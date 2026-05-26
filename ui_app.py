@@ -224,6 +224,16 @@ with tab3:
                     horn_m   = trimesh.load(io.BytesIO(st.session_state["horn_stl"]), file_type='stl')
                     flange_m = trimesh.load(io.BytesIO(st.session_state["flange_stl"]), file_type='stl')
 
+                    # Ensure both are watertight volumes
+                    for label, mesh in [("Horn", horn_m), ("Flange", flange_m)]:
+                        if not mesh.is_watertight:
+                            mesh.fill_holes()
+                            mesh.remove_unreferenced_vertices()
+                            mesh.update_faces(mesh.nondegenerate_faces())
+                            if not mesh.is_watertight:
+                                st.error(f"❌ {label} is not a watertight volume — merge impossible")
+                                st.stop()
+
                     # Horn outer radius at throat  →  flange wraps AROUND it
                     v = horn_m.vertices[horn_m.vertices[:,2] < 0.5]
                     horn_outer = float(np.sqrt(v[:,0]**2 + v[:,1]**2).max())
@@ -237,6 +247,9 @@ with tab3:
                     hole = creation.cylinder(radius=horn_outer-0.1, height=f_h+2, sections=64,
                         transform=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,eps+f_h/2],[0,0,0,1]]))
                     flange_ring = trimesh.boolean.difference([disc, hole], engine="manifold")
+                    if not flange_ring.is_watertight:
+                        st.error("❌ Flange ring generation failed — not a volume")
+                        st.stop()
 
                     # Bolt holes
                     bc_r = 22.0; bn = 4; bd = 3.5
@@ -249,6 +262,9 @@ with tab3:
                         sh = creation.cylinder(radius=bd/2, height=f_h+4, sections=32,
                             transform=np.array([[1,0,0,x],[0,1,0,y],[0,0,1,(f_h+4)/2],[0,0,0,1]]))
                         flange_ring = trimesh.boolean.difference([flange_ring, sh], engine="manifold")
+                        if not flange_ring.is_watertight:
+                            st.error(f"❌ Bolt hole subtraction failed at ({x:.0f},{y:.0f})")
+                            st.stop()
 
                     # Union: flange wraps around horn, merges at outer wall
                     combined = trimesh.boolean.union([horn_m, flange_ring], engine="manifold")
