@@ -80,42 +80,49 @@ def get_tractrix(throat: float, mouth: float, n: int
 def get_lecleach(throat: float, fc: float, n: int
                  ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Le Cléac'h closed-form spherical wavefront expansion.
-
-        k    = 2π·fc / c            wave number at cutoff
-        R_w  = 1 / k                reference radius
-        S_t  = π·rt²                throat area
-        S_max = 4π·R_w²             max spherical expansion
-
-        S(x)        = S_t · exp(2k·x)
-        cos_α(x)    = 1 − S / (2π·R_w²)
-
-    No for-loops, no iterative integration.
+    True Le Cléac'h numerical integration.
+    Parameterised by wavefront expansion angle T from 0 to 180° (pi).
     """
-    rt = throat / 2.0
-    c  = SOUND_SPEED
-    k  = 2.0 * np.pi * fc / c          # wave number
-    Rw = 1.0 / k                       # reference radius
-    St = np.pi * rt * rt               # throat area
-    Sm = 4.0 * np.pi * Rw * Rw         # max spherical area
+    r0 = throat / 2.0
+    # Expansion parameter m = 2π·fc·rt / c  (includes throat radius)
+    m = 2.0 * np.pi * fc * r0 / SOUND_SPEED
 
-    if St >= Sm:
+    if m >= 1.0:
         raise ValueError(
-            f"Throat ø{throat:.0f} too large for Fc={fc:.0f} Hz.  "
-            f"Wavefront cannot expand (Rw={Rw:.0f} mm).  "
-            "Reduce throat or increase Fc."
+            f"m={m:.3f} ≥ 1.  Throat too large for this Fc."
+        )
+    if m < 0.3:
+        logger.warning(
+            f"m={m:.3f} < 0.3 — expansion barely opens.  "
+            f"Mouth ø ≈ {r0*2/np.sqrt(1-m*m):.1f} mm  (throat={r0*2:.0f} mm).  "
+            "Increase Fc or reduce throat for meaningful expansion."
         )
 
-    x_max = (1.0 / (2.0 * k)) * np.log(Sm / St)
-    x = np.linspace(0, x_max, n)
+    T_max = np.pi * 0.99
+    T = np.linspace(0, T_max, n)
 
-    S = St * np.exp(2.0 * k * x)       # area expansion
+    z = np.zeros(n)
+    r = np.zeros(n)
+    z[0] = 0.0
+    r[0] = r0
 
-    cos_α = np.clip(1.0 - S / (2.0 * np.pi * Rw * Rw), -1.0, 1.0)
-    α = np.arccos(cos_α)               # wavefront angle
+    for i in range(1, n):
+        Ti    = T[i]
+        dT    = Ti - T[i - 1]
+        sT    = np.sin(Ti)
+        cT    = np.cos(Ti)
+        denom = 1.0 - (m * sT) ** 2
 
-    r = Rw * np.sin(α)
-    z = x - Rw * (1.0 - cos_α)
+        if denom <= 0:
+            z = z[:i]
+            r = r[:i]
+            break
+
+        dr_dT = r0 * m ** 2 * sT * cT / (denom ** 1.5)
+        dz_dT = r0 * m ** 2 * cT * cT / (denom ** 1.5)
+
+        r[i] = r[i - 1] + dr_dT * dT
+        z[i] = z[i - 1] + dz_dT * dT
 
     return z - z[0], r
 
