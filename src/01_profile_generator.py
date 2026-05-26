@@ -80,51 +80,58 @@ def get_tractrix(throat: float, mouth: float, n: int
 def get_lecleach(throat: float, fc: float, n: int
                  ) -> tuple[np.ndarray, np.ndarray]:
     """
-    True Le Cléac'h numerical integration.
-    Parameterised by wavefront expansion angle T from 0 to 180° (pi).
+    Vero profilo Le Cléac'h generato tramite integrazione differenziale esatta
+    delle traiettorie ortogonali ai fronti d'onda isofase.
     """
-    r0 = throat / 2.0
-    # Expansion parameter m = 2π·fc·rt / c  (includes throat radius)
-    m = 2.0 * np.pi * fc * r0 / SOUND_SPEED
+    rt = throat / 2.0
+    # Costante di espansione (m) per tromba esponenziale
+    m = 4.0 * np.pi * fc / SOUND_SPEED
 
-    if m >= 1.0:
-        raise ValueError(
-            f"m={m:.3f} ≥ 1.  Throat too large for this Fc."
-        )
-    if m < 0.3:
-        logger.warning(
-            f"m={m:.3f} < 0.3 — expansion barely opens.  "
-            f"Mouth ø ≈ {r0*2/np.sqrt(1-m*m):.1f} mm  (throat={r0*2:.0f} mm).  "
-            "Increase Fc or reduce throat for meaningful expansion."
-        )
+    S_t = np.pi * rt ** 2
 
-    T_max = np.pi * 0.99
-    T = np.linspace(0, T_max, n)
+    # Angolo di roll-back target (160 gradi). Spinge il bordo indietro e all'infuori.
+    target_cos_alpha = np.cos(np.radians(160))
 
-    z = np.zeros(n)
-    r = np.zeros(n)
-    z[0] = 0.0
-    r[0] = r0
+    # Risoluzione dell'integrazione di Eulero (0.1 mm garantisce stabilità e precisione)
+    ds = 0.1
+    r_val = float(rt)
+    z_val = 0.0
+    s = 0.0
 
-    for i in range(1, n):
-        Ti    = T[i]
-        dT    = Ti - T[i - 1]
-        sT    = np.sin(Ti)
-        cT    = np.cos(Ti)
-        denom = 1.0 - (m * sT) ** 2
+    r_list = [r_val]
+    z_list = [z_val]
+    s_list = [s]
 
-        if denom <= 0:
-            z = z[:i]
-            r = r[:i]
+    for _ in range(30000):  # Limite di sicurezza per evitare loop infiniti
+        s += ds
+        S_current = S_t * np.exp(m * s)
+
+        # Calcolo dell'angolo del fronte d'onda
+        cos_alpha = (2.0 * np.pi * r_val ** 2) / S_current - 1.0
+
+        # Difesa contro errori di precisione floating-point ai limiti del dominio
+        cos_alpha = max(-1.0, min(1.0, cos_alpha))
+        sin_alpha = np.sqrt(1.0 - cos_alpha ** 2)
+
+        # ODE: La parete cresce ortogonalmente al fronte d'onda
+        r_val += sin_alpha * ds
+        z_val += cos_alpha * ds
+
+        r_list.append(r_val)
+        z_list.append(z_val)
+        s_list.append(s)
+
+        # Termina quando il roll-back raggiunge l'angolo desiderato
+        if cos_alpha <= target_cos_alpha:
             break
 
-        dr_dT = r0 * m ** 2 * sT * cT / (denom ** 1.5)
-        dz_dT = r0 * m ** 2 * cT * cT / (denom ** 1.5)
+    # Ricampionamento lineare per garantire esattamente 'n' punti per il mesh engine
+    s_arr = np.array(s_list)
+    s_new = np.linspace(0, s, n)
+    r = np.interp(s_new, s_arr, r_list)
+    z = np.interp(s_new, s_arr, z_list)
 
-        r[i] = r[i - 1] + dr_dT * dT
-        z[i] = z[i - 1] + dz_dT * dT
-
-    return z - z[0], r
+    return z, r
 
 
 # ---- Iwata (axisymmetric) -----------------------------------------------
