@@ -86,7 +86,7 @@ with tab1:
         if gen_btn:
             with st.spinner("Generating …"):
                 core = _get_core()
-                stl_bytes, z = None, None
+                stl_bytes = z = r = None
                 try:
                     if profile == "radial":
                         import importlib.machinery, importlib.util
@@ -127,7 +127,7 @@ with tab1:
                         z, r = core.get_iwata(throat_diam, fc, length, segments)
                         label = f"iwata_{throat_diam:.0f}_fc{fc:.0f}_L{length:.0f}"
 
-                    if profile != "rectangular":
+                    if profile not in ("rectangular", "radial"):
                         with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as tmp:
                             tmp_path = tmp.name
                         core.generate_3d_mesh_from_profile(z, r, thickness, rings, output_path=tmp_path)
@@ -138,8 +138,9 @@ with tab1:
                     st.session_state["horn_stl"] = stl_bytes
                     st.session_state["horn_label"] = label
 
+                    vol = "—"; tri = "—"; wt = "—"; m = None
                     z_len = mw_val = mh_val = 0
-                    if profile != "radial" and stl_bytes is not None:
+                    if stl_bytes is not None:
                         try:
                             import trimesh
                             m = trimesh.load(io.BytesIO(stl_bytes), file_type='stl')
@@ -150,8 +151,7 @@ with tab1:
                             mw_val = m.bounds[1,0] - m.bounds[0,0]
                             mh_val = m.bounds[1,1] - m.bounds[0,1]
                         except Exception:
-                            vol = "—"; tri = "—"; wt = "—"
-                            z_len = 0
+                            pass
 
                     c_spd = 343000.0
                     if profile == "radial":
@@ -176,22 +176,26 @@ with tab1:
                         st.download_button("📥 Download STL", stl_bytes,
                             f"{label}_Fc{fc_hz:.0f}hz.stl", "model/stl", use_container_width=True)
                     else:
-                        mouth_r = float(np.sqrt(m.vertices[:,0]**2+m.vertices[:,1]**2).max())
-                        fc_hz = fc if profile in ("lecleach", "iwata") else c_spd / (np.pi * mouth_r * 2)
-                        st.metric("Length", f"{z_len:.0f} mm")
-                        st.metric("Mouth ø", f"{mouth_r*2:.0f} mm")
-                        st.metric("Fc", f"{fc_hz:.0f} Hz")
+                        if m is not None:
+                            mouth_r = float(np.sqrt(m.vertices[:,0]**2+m.vertices[:,1]**2).max())
+                            fc_hz = fc if profile in ("lecleach", "iwata") else c_spd / (np.pi * mouth_r * 2)
+                            st.metric("Length", f"{z_len:.0f} mm")
+                            st.metric("Mouth ø", f"{mouth_r*2:.0f} mm")
+                            st.metric("Fc", f"{fc_hz:.0f} Hz")
+                        else:
+                            fc_hz = fc if profile in ("lecleach", "iwata") else 0
+                            st.metric("Length", f"{z_len:.0f} mm")
+                            st.metric("Fc", f"{fc_hz:.0f} Hz")
                         st.metric("Triangles", tri)
                         st.metric("Volume", vol)
                         if wt is True:
                             st.success("✅ Watertight")
-                        st.download_button("📥 Download STL", stl_bytes,
+                        st.download_button("📥 Download STL", stl_bytes or b"",
                             f"{label}_Fc{fc_hz:.0f}hz.stl", "model/stl", use_container_width=True)
 
-                except ValueError as exc:
-                    st.error(f"❌ {exc}")
-                except Exception as exc:
-                    st.error(f"❌ Generation failed: {exc}")
+                except Exception:
+                    import traceback
+                    st.error(f"❌ {traceback.format_exc()}")
         else:
             st.info("Set parameters on the left and click **Generate STL**")
 

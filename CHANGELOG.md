@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 (2026-05-26)
+
+- Fixed radial horn: `_revolve_polygon` replaces `_revolve_profile` (no center caps, closed 4-loop)
+- Fixed UI: guard `if profile not in ("rectangular", "radial")` prevents `z=None` error
+- Added comprehensive test suite (`tests/test_all.py`): 16 tests, all profiles
+- Added radial horn to Web UI (dual-piece download)
+- Rectangular horn engine + Web UI integration
+
 ## 1.0.0 (2026-05-26)
 
 - Initial release
