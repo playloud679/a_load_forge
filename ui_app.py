@@ -108,14 +108,20 @@ with tab1:
                     except Exception:
                         vol = "—"; tri = "—"; wt = "—"
 
+                    c_spd = 343000.0
+                    if profile == "lecleach":
+                        fc_hz = fc
+                    else:
+                        fc_hz = c_spd / (np.pi * r.max() * 2)
                     st.metric("Length", f"{z.max():.0f} mm")
                     st.metric("Mouth ø", f"{r.max()*2:.0f} mm")
+                    st.metric("Fc", f"{fc_hz:.0f} Hz")
                     st.metric("Triangles", tri)
                     st.metric("Volume", vol)
                     if wt is True:
                         st.success("✅ Watertight")
                     st.download_button("📥 Download STL", stl_bytes,
-                        f"{label}.stl", "model/stl", use_container_width=True)
+                        f"{label}_Fc{fc_hz:.0f}hz.stl", "model/stl", use_container_width=True)
 
                 except Exception as exc:
                     st.error(str(exc))

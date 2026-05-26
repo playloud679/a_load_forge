@@ -305,15 +305,16 @@ def main(argv: list[str] | None = None) -> None:
                 raise ValueError("--mouth required for tractrix")
             logger.info("Tractrix: throat=%s  mouth=%s", args.throat, args.mouth)
             z, r = get_tractrix(args.throat, args.mouth, args.segments)
-            logger.info("Length: %.1f mm  (tangent horizontal)", z[-1])
+            fc = SOUND_SPEED / (np.pi * args.mouth)
+            logger.info("Length: %.1f mm  Fc: %.0f Hz  (tangent horizontal)", z[-1], fc)
 
         elif name == "lecleach":
             if args.fc is None:
                 raise ValueError("--fc required for Le Cléac'h")
             logger.info("Le Cléac'h: throat=%s  Fc=%s Hz", args.throat, args.fc)
             z, r = get_lecleach(args.throat, args.fc, args.segments)
-            logger.info("Mouth ø: %.1f mm  Length: %.1f mm  (roll-back 180°)",
-                        r.max() * 2, z.max())
+            logger.info("Mouth ø: %.1f mm  Length: %.1f mm  Fc: %.0f Hz  (roll-back 180°)",
+                        r.max() * 2, z.max(), args.fc)
 
         elif name == "iwata":
             if args.mouth is None or args.length is None:
@@ -321,7 +322,8 @@ def main(argv: list[str] | None = None) -> None:
             logger.info("Iwata: throat=%s  mouth=%s  length=%s",
                         args.throat, args.mouth, args.length)
             z, r = get_iwata(args.throat, args.mouth, args.length, args.segments)
-            logger.info("Mouth ø: %.1f mm", r.max() * 2)
+            fc = SOUND_SPEED / (np.pi * r.max() * 2)
+            logger.info("Mouth ø: %.1f mm  Fc: %.0f Hz", r.max() * 2, fc)
 
         else:
             raise ValueError(f"Unknown profile: {name}")
