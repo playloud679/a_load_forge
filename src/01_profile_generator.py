@@ -103,6 +103,12 @@ def get_lecleach(throat: float, fc: float, n: int
             f"m={m:.3f} ≥ 1 — no roll-back possible.  "
             "Use smaller throat or lower Fc."
         )
+    if m < 0.3:
+        logger.warning(
+            f"m={m:.3f} < 0.3 — expansion barely opens.  "
+            f"Mouth ø ≈ {rt*2/np.sqrt(1-m*m):.1f} mm  (throat={rt*2:.0f} mm).  "
+            "Increase Fc or reduce throat for meaningful expansion."
+        )
 
     theta = np.linspace(0, np.pi, n)
     s2 = np.sin(theta) ** 2
@@ -183,14 +189,17 @@ def generate_3d_mesh_from_profile(
     tan = np.column_stack([dz, dr])
     tn = np.sqrt(tan[:, 0] ** 2 + tan[:, 1] ** 2)
 
-    # Boundary protection: if tangent magnitude collapses (dz≈dr≈0 at profile
-    # end-points), extrapolate the normal from the nearest valid neighbour.
-    for bound_idx in [0, -1]:
-        if tn[bound_idx] < 1e-12:
-            neighbour = 1 if bound_idx == 0 else -2
-            dz[bound_idx] = dz[neighbour]
-            dr[bound_idx] = dr[neighbour]
-            tn[bound_idx] = tn[neighbour]
+    # Boundary protection: wherever the tangent magnitude collapses
+    # (dz≈dr≈0), replace with the nearest valid neighbour.
+    tiny = tn < 1e-10
+    if tiny.any():
+        valid = np.where(~tiny)[0]
+        if len(valid) > 0:
+            for idx in np.where(tiny)[0]:
+                neighbour = valid[np.argmin(np.abs(valid - idx))]
+                dz[idx] = dz[neighbour]
+                dr[idx] = dr[neighbour]
+                tn[idx] = tn[neighbour]
     tn[tn < 1e-15] = 1.0
     tan /= tn.reshape(-1, 1)
 
@@ -272,7 +281,16 @@ def generate_3d_mesh_from_profile(
     if abs(z_min) > 1e-4:
         m_obj.vectors[:, :, 2] -= z_min
 
-    # ---- 5. Save ----------------------------------------------------------
+    # ---- 5. Fix inverted normals (negative volume) ------------------------
+    try:
+        vol = m_obj.get_mass_properties()[0]
+        if vol < 0:
+            m_obj.vectors = m_obj.vectors[:, [0, 2, 1]]   # flip winding
+            logger.info("Flipped normals (volume was %.0f mm³)", vol)
+    except Exception:
+        pass
+
+    # ---- 6. Save ----------------------------------------------------------
     if output_path:
         m_obj.save(output_path)
         logger.info("Exported: %s  (%d triangles)", output_path, n_tri)
