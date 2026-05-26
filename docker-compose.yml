@@ -1,0 +1,17 @@
+services:
+  horn-generator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: acoustic-horn-gen
+    volumes:
+      - ./io:/app/io
+    command: >
+      --length 100
+      --throat 10
+      --mouth 50
+      --slicing-config /app/configs/slicing_profiles/default.def.json
+    # Uncomment to enable printer upload (requires a running OctoPrint instance):
+    # environment:
+    #   - PRINTER_HOST=192.168.1.100
+    #   - PRINTER_API_KEY=your_api_key_here

@@ -1,0 +1,259 @@
+"""
+Horn Generator + Flange — Web UI (Streamlit).
+
+Usage:
+    streamlit run ui_app.py
+"""
+
+import io
+import os
+import sys
+import tempfile
+from pathlib import Path
+
+import streamlit as st
+import numpy as np
+
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+# ── Lazy-import the core engine ───────────────────────────────────────
+def _get_core():
+    import importlib.machinery, importlib.util
+    p = Path(__file__).parent / "src" / "01_profile_generator.py"
+    l = importlib.machinery.SourceFileLoader("_hc", str(p))
+    s = importlib.util.spec_from_loader("_hc", l)
+    m = importlib.util.module_from_spec(s)
+    l.exec_module(m)
+    return m
+
+def _get_flange():
+    import importlib.machinery, importlib.util
+    p = Path(__file__).parent / "src" / "02_flange_generator.py"
+    l = importlib.machinery.SourceFileLoader("_fg", str(p))
+    s = importlib.util.spec_from_loader("_fg", l)
+    m = importlib.util.module_from_spec(s)
+    l.exec_module(m)
+    return m
+
+
+st.set_page_config(page_title="Horn Generator", layout="centered")
+st.title("📯 Horn + Flange Generator")
+
+tab1, tab2, tab3 = st.tabs(["🔧 Horn", "🔩 Flange", "🧩 Merge"])
+
+# ═══════════════════════════════════════════════════════════════════════
+#  TAB 1 — Horn
+# ═══════════════════════════════════════════════════════════════════════
+
+with tab1:
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        profile = st.selectbox("Profile",
+            ["tractrix", "lecleach", "iwata"], index=0,
+            help="tractrix = mouth-driven / lecleach = Fc-driven roll-back / iwata = area-expansion")
+
+        throat_diam = st.number_input("Throat ø (mm)", 2.0, 200.0, 20.0, 1.0)
+        thickness   = st.number_input("Wall (mm)", 1.0, 20.0, 4.0, 0.5)
+
+        mouth_diam = fc = length = None
+        if profile == "tractrix":
+            mouth_diam = st.number_input("Mouth ø (mm)", 4.0, 500.0, 100.0, 5.0)
+        elif profile == "lecleach":
+            fc = st.number_input("Cutoff Fc (Hz)", 50, 20000, 600, 50,
+                help="Calcola la bocca come rm = c/(2π·fc). Frequenza più bassa → bocca più grande.")
+            st.caption(f"Bocca risultante ≈ {343000/(np.pi*(fc or 600)):.0f} mm")
+        else:  # iwata
+            mouth_diam = st.number_input("Mouth ø (mm)", 4.0, 500.0, 100.0, 5.0)
+            length     = st.number_input("Length (mm)", 10.0, 500.0, 80.0, 5.0)
+
+        segments = st.slider("Segments", 100, 500, 300, 50)
+        rings    = st.slider("Rings", 32, 128, 64, 16)
+
+        gen_btn = st.button("🔧 Generate STL", type="primary", use_container_width=True)
+
+    with col2:
+        if gen_btn:
+            with st.spinner("Generating …"):
+                core = _get_core()
+                try:
+                    if profile == "tractrix":
+                        z, r = core.get_tractrix(throat_diam, mouth_diam, segments)
+                        label = f"tractrix_{throat_diam:.0f}_{mouth_diam:.0f}"
+                    elif profile == "lecleach":
+                        z, r = core.get_lecleach(throat_diam, fc, segments)
+                        label = f"lecleach_{throat_diam:.0f}_{fc:.0f}hz"
+                    else:
+                        z, r = core.get_iwata(throat_diam, mouth_diam, length, segments)
+                        label = f"iwata_{throat_diam:.0f}_{mouth_diam:.0f}_L{length:.0f}"
+
+                    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as tmp:
+                        tmp_path = tmp.name
+                    core.generate_3d_mesh_from_profile(z, r, thickness, rings, output_path=tmp_path)
+                    with open(tmp_path, "rb") as f:
+                        stl_bytes = f.read()
+                    os.unlink(tmp_path)
+
+                    st.session_state["horn_stl"] = stl_bytes
+                    st.session_state["horn_label"] = label
+                    st.session_state["horn_z"] = float(z.max())
+                    st.session_state["horn_r"] = float(r.max())
+
+                    try:
+                        import trimesh
+                        m = trimesh.load(io.BytesIO(stl_bytes), file_type='stl')
+                        vol = f"{m.volume:.0f} mm³"
+                        tri = len(m.faces)
+                        wt  = m.is_watertight
+                    except Exception:
+                        vol = "—"; tri = "—"; wt = "—"
+
+                    st.metric("Length", f"{z.max():.0f} mm")
+                    st.metric("Mouth ø", f"{r.max()*2:.0f} mm")
+                    st.metric("Triangles", tri)
+                    st.metric("Volume", vol)
+                    if wt is True:
+                        st.success("✅ Watertight")
+                    st.download_button("📥 Download STL", stl_bytes,
+                        f"{label}.stl", "model/stl", use_container_width=True)
+
+                except Exception as exc:
+                    st.error(str(exc))
+        else:
+            st.info("Set parameters on the left and click **Generate STL**")
+
+# ═══════════════════════════════════════════════════════════════════════
+#  TAB 2 — Flange
+# ═══════════════════════════════════════════════════════════════════════
+
+with tab2:
+    st.subheader("Parametric Circular Flange")
+
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        f_outer   = st.number_input("Outer ø (mm)", 10.0, 250.0, 60.0, 1.0)
+        f_inner   = st.number_input("Inner ø (mm)", 5.0, 240.0, 29.0, 0.5)
+        f_thick   = st.number_input("Thickness (mm)", 2.0, 20.0, 6.0, 0.5)
+        f_bc_rad  = st.number_input("Bolt circle R (mm)", 5.0, 120.0, 22.0, 0.5)
+        f_n       = st.number_input("N° bolts", 2, 24, 4, 1)
+        f_bd      = st.number_input("Bolt ø (mm)", 1.0, 12.0, 3.5, 0.1)
+        f_btn     = st.button("🔩 Generate Flange", type="primary", use_container_width=True)
+
+    with c2:
+        if f_btn:
+            with st.spinner("Generating flange …"):
+                try:
+                    _fg = _get_flange()
+                    mesh = _fg.generate_flange(
+                        outer_diam=f_outer, inner_diam=f_inner,
+                        thickness=f_thick,
+                        bolt_radius=f_bc_rad, bolt_count=int(f_n),
+                        bolt_diam=f_bd, output_path=None)
+
+                    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as tmp:
+                        tmp_path = tmp.name
+                    mesh.export(tmp_path)
+                    with open(tmp_path, "rb") as f:
+                        stl_bytes = f.read()
+                    os.unlink(tmp_path)
+
+                    st.session_state["flange_stl"] = stl_bytes
+                    st.session_state["_flange_params"] = {
+                        "bc_rad": f_bc_rad, "n": int(f_n), "bd": f_bd}
+                    st.metric("Outer", f"Ø{f_outer:.0f} mm")
+                    st.metric("Inner", f"Ø{f_inner:.0f} mm")
+                    st.metric("Bolts", f"{int(f_n)} × Ø{f_bd:.1f} @ R{f_bc_rad:.0f}")
+                    st.metric("Triangles", len(mesh.faces))
+
+                    st.success("✅ Watertight" if mesh.is_watertight else "❌")
+                    st.download_button("📥 Download STL", stl_bytes,
+                        f"flange_OD{f_outer:.0f}_ID{f_inner:.0f}.stl",
+                        "model/stl", use_container_width=True)
+
+                except Exception as exc:
+                    st.error(str(exc))
+        else:
+            st.info("Adjust parameters and click **Generate Flange**")
+
+# ═══════════════════════════════════════════════════════════════════════
+#  TAB 3 — Merge
+# ═══════════════════════════════════════════════════════════════════════
+
+with tab3:
+    st.subheader("Merge Flange + Horn Section 1")
+
+    has_horn   = "horn_stl" in st.session_state
+    has_flange = "flange_stl" in st.session_state
+
+    c1, c2 = st.columns([1, 2])
+    with c1:
+        if has_horn:
+            st.success(f"✅ Horn: {st.session_state['horn_label']}")
+        else:
+            st.warning("❌ Generate a horn first (Tab 1)")
+
+        if has_flange:
+            st.success(f"✅ Flange loaded")
+        else:
+            st.warning("❌ Generate a flange first (Tab 2)")
+
+        merge_btn = st.button("🧩 Merge & Download",
+            type="primary", use_container_width=True,
+            disabled=not (has_horn and has_flange))
+
+    with c2:
+        if merge_btn and has_horn and has_flange:
+            import trimesh
+            from trimesh import creation
+
+            with st.spinner("Merging …"):
+                try:
+                    horn_m   = trimesh.load(io.BytesIO(st.session_state["horn_stl"]), file_type='stl')
+                    flange_m = trimesh.load(io.BytesIO(st.session_state["flange_stl"]), file_type='stl')
+
+                    # Horn outer radius at throat  →  flange wraps AROUND it
+                    v = horn_m.vertices[horn_m.vertices[:,2] < 0.5]
+                    horn_outer = float(np.sqrt(v[:,0]**2 + v[:,1]**2).max())
+                    flange_outer = flange_m.bounds[1,0]
+                    f_h = flange_m.bounds[1,2] - flange_m.bounds[0,2]
+
+                    # Rebuild flange ring: inner = horn_outer (wraps around, no step)
+                    eps = 0.01  # tiny Z-shift to avoid coplanar face issues
+                    disc = creation.cylinder(radius=flange_outer, height=f_h, sections=80,
+                        transform=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,eps+f_h/2],[0,0,0,1]]))
+                    hole = creation.cylinder(radius=horn_outer-0.1, height=f_h+2, sections=64,
+                        transform=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,eps+f_h/2],[0,0,0,1]]))
+                    flange_ring = trimesh.boolean.difference([disc, hole], engine="manifold")
+
+                    # Bolt holes
+                    bc_r = 22.0; bn = 4; bd = 3.5
+                    if "_flange_params" in st.session_state:
+                        bc_r = st.session_state["_flange_params"].get("bc_rad", bc_r)
+                        bn   = st.session_state["_flange_params"].get("n", bn)
+                        bd   = st.session_state["_flange_params"].get("bd", bd)
+                    for a in np.linspace(0, 2*np.pi, int(bn), False):
+                        x,y = bc_r*np.cos(a), bc_r*np.sin(a)
+                        sh = creation.cylinder(radius=bd/2, height=f_h+4, sections=32,
+                            transform=np.array([[1,0,0,x],[0,1,0,y],[0,0,1,(f_h+4)/2],[0,0,0,1]]))
+                        flange_ring = trimesh.boolean.difference([flange_ring, sh], engine="manifold")
+
+                    # Union: flange wraps around horn, merges at outer wall
+                    combined = trimesh.boolean.union([horn_m, flange_ring], engine="manifold")
+
+                    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as tmp:
+                        tmp_path = tmp.name
+                    combined.export(tmp_path)
+                    with open(tmp_path, "rb") as f:
+                        stl_bytes = f.read()
+                    os.unlink(tmp_path)
+
+                    st.metric("Triangles", len(combined.faces))
+                    st.metric("Bodies", combined.body_count)
+                    st.success("✅ Watertight" if combined.is_watertight else "❌")
+                    st.download_button("📥 Download Merged STL", stl_bytes,
+                        "horn_con_flangia.stl", "model/stl", use_container_width=True)
+
+                except Exception as exc:
+                    st.error(f"Merge failed: {exc}")
+        else:
+            st.info("Generate both a horn (Tab 1) and a flange (Tab 2) before merging.")
