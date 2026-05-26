@@ -50,13 +50,17 @@ with tab1:
 
     with col1:
         profile = st.selectbox("Profile",
-            ["tractrix", "lecleach", "iwata", "rectangular"], index=0,
-            help="tractrix / lecleach / iwata = axisymmetric · rectangular = area-preserving rectangular horn")
+            ["tractrix", "lecleach", "iwata", "rectangular", "radial"], index=0,
+            help="tractrix / lecleach / iwata / rectangular / radial (360° omnidirectional)")
 
         thickness = st.number_input("Wall (mm)", 1.0, 20.0, 4.0, 0.5)
 
         mouth_diam = fc = length = tw = th = mw = None
-        if profile == "rectangular":
+        if profile == "radial":
+            throat_diam = st.number_input("Throat ø (mm)", 5.0, 100.0, 25.0, 1.0)
+            mouth_diam = st.number_input("Mouth ø (mm)", 20.0, 500.0, 200.0, 5.0)
+            fc = st.number_input("Cutoff Fc (Hz)", 50, 20000, 600, 50)
+        elif profile == "rectangular":
             tw = st.number_input("Throat width (mm)", 4.0, 200.0, 20.0, 1.0)
             th = st.number_input("Throat height (mm)", 2.0, 200.0, 10.0, 1.0)
             mw = st.number_input("Mouth width (mm)", 10.0, 500.0, 160.0, 5.0)
@@ -83,7 +87,21 @@ with tab1:
             with st.spinner("Generating …"):
                 core = _get_core()
                 try:
-                    if profile == "rectangular":
+                    if profile == "radial":
+                        import importlib.machinery, importlib.util
+                        _rd_l = importlib.machinery.SourceFileLoader("_rd",
+                            str(Path(__file__).parent / "src" / "03_omni_radial_horn.py"))
+                        _rd = importlib.util.module_from_spec(
+                            importlib.util.spec_from_loader("_rd", _rd_l))
+                        _rd_l.exec_module(_rd)
+                        _rd.generate_radial_horn(throat_diam, mouth_diam, fc, rings,
+                                                  str(Path(__file__).parent / "io"))
+                        for sfx in ['bottom', 'top']:
+                            pth = Path(__file__).parent / f"io/radial_{sfx}.stl"
+                            st.session_state[f"radial_{sfx}"] = open(pth, 'rb').read()
+                        stl_bytes = st.session_state["radial_bottom"]
+                        label = f"radial_{throat_diam:.0f}_{mouth_diam:.0f}_fc{fc:.0f}"
+                    elif profile == "rectangular":
                         import importlib.machinery, importlib.util
                         _rl = importlib.machinery.SourceFileLoader("_rh",
                             str(Path(__file__).parent / "src" / "03_rectangular_horn.py"))
@@ -134,24 +152,39 @@ with tab1:
                         mw_val = mh_val = None
 
                     c_spd = 343000.0
-                    if profile == "rectangular":
+                    if profile == "radial":
+                        st.metric("Fc", f"{fc:.0f} Hz")
+                        st.metric("Mouth ø", f"{mouth_diam:.0f} mm")
+                        col_a, col_b = st.columns(2)
+                        with col_a:
+                            st.download_button("⬇️ Bottom deflector", st.session_state["radial_bottom"],
+                                f"{label}_bottom.stl", use_container_width=True)
+                        with col_b:
+                            st.download_button("⬇️ Top reflector", st.session_state["radial_top"],
+                                f"{label}_top.stl", use_container_width=True)
+                    elif profile == "rectangular":
                         fc_hz = fc
                         st.metric("Length", f"{z_len:.0f} mm")
                         st.metric("Mouth W×H", f"{mw_val:.0f}×{mh_val:.0f} mm" if mw_val else "—")
                         st.metric("Fc", f"{fc_hz:.0f} Hz")
+                        st.metric("Triangles", tri)
+                        st.metric("Volume", vol)
+                        if wt is True:
+                            st.success("✅ Watertight")
+                        st.download_button("📥 Download STL", stl_bytes,
+                            f"{label}_Fc{fc_hz:.0f}hz.stl", "model/stl", use_container_width=True)
                     else:
                         mouth_r = float(np.sqrt(m.vertices[:,0]**2+m.vertices[:,1]**2).max())
                         fc_hz = fc if profile in ("lecleach", "iwata") else c_spd / (np.pi * mouth_r * 2)
                         st.metric("Length", f"{z_len:.0f} mm")
                         st.metric("Mouth ø", f"{mouth_r*2:.0f} mm")
                         st.metric("Fc", f"{fc_hz:.0f} Hz")
-
-                    st.metric("Triangles", tri)
-                    st.metric("Volume", vol)
-                    if wt is True:
-                        st.success("✅ Watertight")
-                    st.download_button("📥 Download STL", stl_bytes,
-                        f"{label}_Fc{fc_hz:.0f}hz.stl", "model/stl", use_container_width=True)
+                        st.metric("Triangles", tri)
+                        st.metric("Volume", vol)
+                        if wt is True:
+                            st.success("✅ Watertight")
+                        st.download_button("📥 Download STL", stl_bytes,
+                            f"{label}_Fc{fc_hz:.0f}hz.stl", "model/stl", use_container_width=True)
 
                 except ValueError as exc:
                     st.error(f"❌ {exc}")
