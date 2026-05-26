@@ -242,14 +242,28 @@ with tab3:
 
                     # Rebuild flange ring: inner = horn_outer (wraps around, no step)
                     eps = 0.01  # tiny Z-shift to avoid coplanar face issues
-                    disc = creation.cylinder(radius=flange_outer, height=f_h, sections=80,
-                        transform=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,eps+f_h/2],[0,0,0,1]]))
-                    hole = creation.cylinder(radius=horn_outer-0.1, height=f_h+2, sections=64,
-                        transform=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,eps+f_h/2],[0,0,0,1]]))
-                    flange_ring = trimesh.boolean.difference([disc, hole], engine="manifold")
-                    if not flange_ring.is_watertight:
-                        st.error("❌ Flange ring generation failed — not a volume")
-                        st.stop()
+                    horn_inner = float(np.sqrt(v[:,0]**2+v[:,1]**2).min())
+                    ring_ok = False
+                    for sections in [80, 64, 48, 32]:
+                        try:
+                            disc = creation.cylinder(radius=flange_outer, height=f_h, sections=sections,
+                                transform=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,eps+f_h/2],[0,0,0,1]]))
+                            hole = creation.cylinder(radius=horn_outer-0.1, height=f_h+2, sections=sections,
+                                transform=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,eps+f_h/2],[0,0,0,1]]))
+                            flange_ring = trimesh.boolean.difference([disc, hole], engine="manifold")
+                            ring_ok = flange_ring.is_watertight
+                            if ring_ok:
+                                break
+                        except Exception:
+                            continue
+                    if not ring_ok:
+                        # Fallback: create ring by removing center from disc with a larger gap
+                        hole = creation.cylinder(radius=horn_outer+2, height=f_h+2, sections=48,
+                            transform=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,eps+f_h/2],[0,0,0,1]]))
+                        flange_ring = trimesh.boolean.difference([disc, hole], engine="manifold")
+                        if not flange_ring.is_watertight:
+                            st.error("❌ Flange ring generation failed — not a volume")
+                            st.stop()
 
                     # Bolt holes
                     bc_r = 22.0; bn = 4; bd = 3.5
