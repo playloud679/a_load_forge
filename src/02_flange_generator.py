@@ -35,6 +35,19 @@ def generate_flange(
     bolt_diam:   float = BOLT_DIAM,
     output_path: str  | None = OUTPUT,
 ):
+    # Validate — bolt circle must be outside centre hole
+    inner_r = inner_diam / 2.0
+    if bolt_radius <= inner_r:
+        raise ValueError(
+            f"bolt_radius ({bolt_radius:.1f}) must be > inner_radius ({inner_r:.1f}). "
+            "Bolt holes would fall inside the centre hole."
+        )
+    if bolt_radius + bolt_diam / 2.0 > outer_diam / 2.0:
+        raise ValueError(
+            f"Bolt circle (R={bolt_radius:.1f} + ø{bolt_diam:.1f}/2) extends "
+            f"beyond outer radius ({outer_diam/2:.1f})."
+        )
+
     # ---- 1. Outer disc ----------------------------------------------------
     disc = creation.cylinder(
         radius=outer_diam / 2.0,
