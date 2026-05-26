@@ -79,19 +79,15 @@ def get_tractrix(throat: float, mouth: float, n: int
 def get_lecleach(throat: float, fc: float, n: int
                  ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Pure Le Cléac'h profile — isophase wavefront expansion with native
-    roll-back.  No tractrix hybrid.
+    Le Cléac'h profile — terminates at 90° (θ = π/2) like tractrix.
 
-    Parametric equations on tangent angle θ ∈ [0, π]:
+    Parametric equations on tangent angle θ ∈ [0, π/2]:
 
         r(θ) = rt / √(1 − m²·sin²θ)
 
         z(θ) = rt·√(1−m²)·m² · ∫ sin²θ / (1−m²·sin²θ)^(3/2) dθ
 
-    The profile expands from throat (θ=0, r=rt) to its widest point at
-    θ=π/2 (the mouth), then rolls back to θ=π (r=rt again).
-
-    The mouth diameter is determined solely by rt and fc:
+    The mouth diameter and length are determined by fc and rt:
         rm = rt / √(1 − m²)     where  m = 2π·fc·rt / c
     """
     rt = throat / 2.0
@@ -102,9 +98,7 @@ def get_lecleach(throat: float, fc: float, n: int
             f"m={m:.3f} ≥ 1 — no roll-back.  Use smaller throat or lower Fc."
         )
 
-    r_max = rt / np.sqrt(1.0 - m * m)          # mouth radius at θ = π/2
-
-    theta = np.linspace(0, np.pi, n)
+    theta = np.linspace(0, np.pi / 2, n)
     s2 = np.sin(theta) ** 2
     denom = 1.0 - m * m * s2
 
@@ -126,27 +120,48 @@ def get_lecleach(throat: float, fc: float, n: int
 def get_iwata(throat: float, mouth: float, length: float, n: int
               ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Axisymmetric Iwata horn — area expansion converted to radius.
+    Axisymmetric Iwata (Hyperbolic-Exponential / Salmon family) horn.
 
-        S(x) = S_t·exp(m·x) / (1 + (exp(m·x) − 1)·S_t/S_m)
+        S(x) = S_t · (cosh(m·x) + T · sinh(m·x))²
         R(x) = √(S(x)/π)
 
-    The expansion rate m is solved so that R(length) ≈ 99 % of mouth/2.
+    T = 0.7 (standard flare parameter).
+    The expansion rate m is solved so that R(length) ≈ mouth/2.
     Returns (z, r) — same interface as get_tractrix.
     """
     rt = throat / 2.0
     rm = mouth / 2.0
-    k = (rt / rm) ** 2
-    f = 0.99
+    T = 0.7
 
-    u = f * (1.0 - k) / (k * (1.0 - f))
+    # Solve for m such that sqrt(S(length)/π) = rm
+    # S(L)/S_t = (cosh(m·L) + T·sinh(m·L))² = (rm/rt)²
+    # cosh(m·L) + T·sinh(m·L) = rm/rt
+    # (e^{mL}+e^{-mL})/2 + T·(e^{mL}-e^{-mL})/2 = rm/rt
+    # e^{mL}·(1+T)/2 + e^{-mL}·(1-T)/2 = rm/rt
+    # Let u = e^{mL}:
+    # u·(1+T)/2 + 1/u·(1-T)/2 = rm/rt
+    # u·(1+T) + 1/u·(1-T) = 2·rm/rt
+    # u·(1+T) − 2·rm/rt + (1-T)/u = 0
+    # Multiply by u:  (1+T)·u² − 2·rm/rt·u + (1-T) = 0
+
+    A = 1.0 + T
+    B = -2.0 * rm / rt
+    C = 1.0 - T
+    disc = B * B - 4.0 * A * C
+    if disc < 0:
+        raise ValueError("Iwata: throat/mouth/length impossible for T=0.7")
+    u = (-B + np.sqrt(disc)) / (2.0 * A)
     if u <= 0:
-        raise ValueError("Iwata: throat/mouth/length mismatch")
+        u = (-B - np.sqrt(disc)) / (2.0 * A)
+    if u <= 0:
+        raise ValueError("Iwata: cannot solve expansion rate")
+
     m = np.log(u) / length
 
     x = np.linspace(0, length, n)
-    ex = np.exp(m * x)
-    s = np.pi * rt * rt * ex / (1.0 + (ex - 1.0) * k)
+    ch = np.cosh(m * x)
+    sh = np.sinh(m * x)
+    s = np.pi * rt * rt * (ch + T * sh) ** 2
     r = np.sqrt(s / np.pi)
     return x, r
 
@@ -180,6 +195,15 @@ def generate_3d_mesh_from_profile(
     dr = np.gradient(r_i)
     tan = np.column_stack([dz, dr])
     tn = np.sqrt(tan[:, 0] ** 2 + tan[:, 1] ** 2)
+
+    # Boundary protection: if tangent magnitude collapses (dz≈dr≈0 at profile
+    # end-points), extrapolate the normal from the nearest valid neighbour.
+    for bound_idx in [0, -1]:
+        if tn[bound_idx] < 1e-12:
+            neighbour = 1 if bound_idx == 0 else -2
+            dz[bound_idx] = dz[neighbour]
+            dr[bound_idx] = dr[neighbour]
+            tn[bound_idx] = tn[neighbour]
     tn[tn < 1e-15] = 1.0
     tan /= tn.reshape(-1, 1)
 
