@@ -80,54 +80,44 @@ def get_tractrix(throat: float, mouth: float, n: int
 def get_lecleach(throat: float, fc: float, n: int
                  ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Authentic Le Cléac'h profile — spherical isophase wavefront expansion.
+    Le Cléac'h closed-form spherical wavefront expansion.
 
-    The curve is parameterised by the wall tangent angle θ ∈ [0, π]:
+        k    = 2π·fc / c            wave number at cutoff
+        R_w  = 1 / k                reference radius
+        S_t  = π·rt²                throat area
+        S_max = 4π·R_w²             max spherical expansion
 
-        r(θ) = rt / √(1 − m²·sin²θ)
+        S(x)        = S_t · exp(2k·x)
+        cos_α(x)    = 1 − S / (2π·R_w²)
 
-        dz/dθ = rt · m² · cos²θ / (1 − m²·sin²θ)^(3/2)
-
-    Key properties:
-      • θ = 0        → throat (r = rt)
-      • θ = π/2      → widest point (mouth),  dr/dθ = 0
-      • θ = π        → roll-back complete, r returns to rt
-      • Z increases monotonically; the roll-back curves R back
-        toward the axis while Z continues upward.
+    No for-loops, no iterative integration.
     """
     rt = throat / 2.0
+    c  = SOUND_SPEED
+    k  = 2.0 * np.pi * fc / c          # wave number
+    Rw = 1.0 / k                       # reference radius
+    St = np.pi * rt * rt               # throat area
+    Sm = 4.0 * np.pi * Rw * Rw         # max spherical area
 
-    m = 2.0 * np.pi * fc * rt / SOUND_SPEED
-    if m >= 1.0:
+    if St >= Sm:
         raise ValueError(
-            f"m={m:.3f} ≥ 1 — no roll-back possible.  "
-            "Use smaller throat or lower Fc."
-        )
-    if m < 0.3:
-        logger.warning(
-            f"m={m:.3f} < 0.3 — expansion barely opens.  "
-            f"Mouth ø ≈ {rt*2/np.sqrt(1-m*m):.1f} mm  (throat={rt*2:.0f} mm).  "
-            "Increase Fc or reduce throat for meaningful expansion."
+            f"Throat ø{throat:.0f} too large for Fc={fc:.0f} Hz.  "
+            f"Wavefront cannot expand (Rw={Rw:.0f} mm).  "
+            "Reduce throat or increase Fc."
         )
 
-    theta = np.linspace(0, np.pi, n)
-    s2 = np.sin(theta) ** 2
-    c2 = np.cos(theta) ** 2
-    denom = 1.0 - m * m * s2
+    x_max = (1.0 / (2.0 * k)) * np.log(Sm / St)
+    x = np.linspace(0, x_max, n)
 
-    r = rt / np.sqrt(denom)
+    S = St * np.exp(2.0 * k * x)       # area expansion
 
-    # dz/dθ = rt · m² · cos²θ / (1 − m²·sin²θ)^(3/2)
-    dz_dθ = rt * m * m * c2 / (denom ** 1.5)
+    cos_α = np.clip(1.0 - S / (2.0 * np.pi * Rw * Rw), -1.0, 1.0)
+    α = np.arccos(cos_α)               # wavefront angle
 
-    z = np.empty_like(theta)
-    z[0] = 0.0
-    for i in range(1, n):
-        z[i] = z[i - 1] + 0.5 * (dz_dθ[i - 1] + dz_dθ[i]) * (
-            theta[i] - theta[i - 1]
-        )
+    r = Rw * np.sin(α)
+    z = x - Rw * (1.0 - cos_α)
 
-    return z, r
+    return z - z[0], r
 
 
 # ---- Iwata (axisymmetric) -----------------------------------------------

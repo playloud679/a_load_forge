@@ -106,16 +106,20 @@ with tab1:
                         vol = f"{m.volume:.0f} mm³"
                         tri = len(m.faces)
                         wt  = m.is_watertight
+                        z_len = m.bounds[1,2] - m.bounds[0,2]
+                        mouth_r = float(np.sqrt(m.vertices[:,0]**2+m.vertices[:,1]**2).max())
                     except Exception:
                         vol = "—"; tri = "—"; wt = "—"
+                        z_len = z.max() - z.min()
+                        mouth_r = float(r.max())
 
                     c_spd = 343000.0
                     if profile in ("lecleach", "iwata"):
                         fc_hz = fc
                     else:
-                        fc_hz = c_spd / (np.pi * r.max() * 2)
-                    st.metric("Length", f"{z.max():.0f} mm")
-                    st.metric("Mouth ø", f"{r.max()*2:.0f} mm")
+                        fc_hz = c_spd / (np.pi * mouth_r * 2)
+                    st.metric("Length", f"{z_len:.0f} mm")
+                    st.metric("Mouth ø", f"{mouth_r*2:.0f} mm")
                     st.metric("Fc", f"{fc_hz:.0f} Hz")
                     st.metric("Triangles", tri)
                     st.metric("Volume", vol)
@@ -124,8 +128,10 @@ with tab1:
                     st.download_button("📥 Download STL", stl_bytes,
                         f"{label}_Fc{fc_hz:.0f}hz.stl", "model/stl", use_container_width=True)
 
+                except ValueError as exc:
+                    st.error(f"❌ {exc}")
                 except Exception as exc:
-                    st.error(str(exc))
+                    st.error(f"❌ Generation failed: {exc}")
         else:
             st.info("Set parameters on the left and click **Generate STL**")
 
