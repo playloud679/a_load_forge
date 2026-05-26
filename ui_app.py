@@ -86,6 +86,7 @@ with tab1:
         if gen_btn:
             with st.spinner("Generating …"):
                 core = _get_core()
+                stl_bytes, z = None, None
                 try:
                     if profile == "radial":
                         import importlib.machinery, importlib.util
@@ -137,19 +138,20 @@ with tab1:
                     st.session_state["horn_stl"] = stl_bytes
                     st.session_state["horn_label"] = label
 
-                    try:
-                        import trimesh
-                        m = trimesh.load(io.BytesIO(stl_bytes), file_type='stl')
-                        vol = f"{m.volume:.0f} mm³"
-                        tri = len(m.faces)
-                        wt  = m.is_watertight
-                        z_len = m.bounds[1,2] - m.bounds[0,2]
-                        mw_val = m.bounds[1,0] - m.bounds[0,0]  # total X width
-                        mh_val = m.bounds[1,1] - m.bounds[0,1]  # total Y height
-                    except Exception:
-                        vol = "—"; tri = "—"; wt = "—"
-                        z_len = z.max() - z.min() if profile != "rectangular" else z[-1]
-                        mw_val = mh_val = None
+                    z_len = mw_val = mh_val = 0
+                    if profile != "radial" and stl_bytes is not None:
+                        try:
+                            import trimesh
+                            m = trimesh.load(io.BytesIO(stl_bytes), file_type='stl')
+                            vol = f"{m.volume:.0f} mm³"
+                            tri = len(m.faces)
+                            wt  = m.is_watertight
+                            z_len = m.bounds[1,2] - m.bounds[0,2]
+                            mw_val = m.bounds[1,0] - m.bounds[0,0]
+                            mh_val = m.bounds[1,1] - m.bounds[0,1]
+                        except Exception:
+                            vol = "—"; tri = "—"; wt = "—"
+                            z_len = 0
 
                     c_spd = 343000.0
                     if profile == "radial":
