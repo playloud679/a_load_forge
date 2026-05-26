@@ -50,26 +50,31 @@ with tab1:
 
     with col1:
         profile = st.selectbox("Profile",
-            ["tractrix", "lecleach", "iwata"], index=0,
-            help="tractrix = mouth-driven / lecleach = Fc-driven roll-back / iwata = area-expansion")
+            ["tractrix", "lecleach", "iwata", "rectangular"], index=0,
+            help="tractrix / lecleach / iwata = axisymmetric · rectangular = area-preserving rectangular horn")
 
-        throat_diam = st.number_input("Throat ø (mm)", 2.0, 200.0, 20.0, 1.0)
-        thickness   = st.number_input("Wall (mm)", 1.0, 20.0, 4.0, 0.5)
+        thickness = st.number_input("Wall (mm)", 1.0, 20.0, 4.0, 0.5)
 
-        mouth_diam = fc = length = None
-        if profile == "tractrix":
+        mouth_diam = fc = length = tw = th = mw = None
+        if profile == "rectangular":
+            tw = st.number_input("Throat width (mm)", 4.0, 200.0, 20.0, 1.0)
+            th = st.number_input("Throat height (mm)", 2.0, 200.0, 10.0, 1.0)
+            mw = st.number_input("Mouth width (mm)", 10.0, 500.0, 160.0, 5.0)
+            fc = st.number_input("Cutoff Fc (Hz)", 50, 20000, 600, 50)
+        elif profile == "tractrix":
+            throat_diam = st.number_input("Throat ø (mm)", 2.0, 200.0, 20.0, 1.0)
             mouth_diam = st.number_input("Mouth ø (mm)", 4.0, 500.0, 100.0, 5.0)
         elif profile == "lecleach":
+            throat_diam = st.number_input("Throat ø (mm)", 2.0, 200.0, 20.0, 1.0)
             fc = st.number_input("Cutoff Fc (Hz)", 50, 20000, 600, 50,
-                help="Calcola la bocca come rm = c/(2π·fc). Frequenza più bassa → bocca più grande.")
-            st.caption(f"Bocca risultante ≈ {343000/(np.pi*(fc or 600)):.0f} mm")
+                help="m = 4π·fc/c — Euler integration with 160° roll-back")
         else:  # iwata
-            fc = st.number_input("Cutoff Fc (Hz)", 50, 20000, 600, 50,
-                help="x₀ = c/(2π·fc)  — scaling length per Salmon T=0.707")
+            throat_diam = st.number_input("Throat ø (mm)", 2.0, 200.0, 20.0, 1.0)
+            fc = st.number_input("Cutoff Fc (Hz)", 50, 20000, 600, 50)
             length = st.number_input("Length (mm)", 10.0, 500.0, 80.0, 5.0)
 
         segments = st.slider("Segments", 100, 500, 300, 50)
-        rings    = st.slider("Rings", 32, 128, 64, 16)
+        rings = st.slider("Rings", 32, 128, 64, 16) if profile != "rectangular" else st.slider("Rings (inutilizzato)", 32, 128, 64, 16, disabled=True)
 
         gen_btn = st.button("🔧 Generate STL", type="primary", use_container_width=True)
 
@@ -78,7 +83,21 @@ with tab1:
             with st.spinner("Generating …"):
                 core = _get_core()
                 try:
-                    if profile == "tractrix":
+                    if profile == "rectangular":
+                        import importlib.machinery, importlib.util as _iu
+                        _rl = _iu.SourceFileLoader("_rh",
+                            str(Path(__file__).parent / "src" / "03_rectangular_horn.py"))
+                        _rh = _iu.module_from_spec(_iu.spec_from_loader("_rh", _rl))
+                        _rl.exec_module(_rh)
+                        z, w, h = _rh.get_rectangular_exponential(tw, th, mw, fc, segments)
+                        with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as _t:
+                            _tp = _t.name
+                        _rh.generate_rectangular_3d_mesh(z, w, h, thickness, _tp)
+                        with open(_tp, "rb") as f:
+                            stl_bytes = f.read()
+                        os.unlink(_tp)
+                        label = f"rect_{tw:.0f}x{th:.0f}_mw{mw:.0f}_fc{fc:.0f}"
+                    elif profile == "tractrix":
                         z, r = core.get_tractrix(throat_diam, mouth_diam, segments)
                         label = f"tractrix_{throat_diam:.0f}_{mouth_diam:.0f}"
                     elif profile == "lecleach":
@@ -88,17 +107,16 @@ with tab1:
                         z, r = core.get_iwata(throat_diam, fc, length, segments)
                         label = f"iwata_{throat_diam:.0f}_fc{fc:.0f}_L{length:.0f}"
 
-                    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as tmp:
-                        tmp_path = tmp.name
-                    core.generate_3d_mesh_from_profile(z, r, thickness, rings, output_path=tmp_path)
-                    with open(tmp_path, "rb") as f:
-                        stl_bytes = f.read()
-                    os.unlink(tmp_path)
+                    if profile != "rectangular":
+                        with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as tmp:
+                            tmp_path = tmp.name
+                        core.generate_3d_mesh_from_profile(z, r, thickness, rings, output_path=tmp_path)
+                        with open(tmp_path, "rb") as f:
+                            stl_bytes = f.read()
+                        os.unlink(tmp_path)
 
                     st.session_state["horn_stl"] = stl_bytes
                     st.session_state["horn_label"] = label
-                    st.session_state["horn_z"] = float(z.max())
-                    st.session_state["horn_r"] = float(r.max())
 
                     try:
                         import trimesh
@@ -107,20 +125,26 @@ with tab1:
                         tri = len(m.faces)
                         wt  = m.is_watertight
                         z_len = m.bounds[1,2] - m.bounds[0,2]
-                        mouth_r = float(np.sqrt(m.vertices[:,0]**2+m.vertices[:,1]**2).max())
+                        mw_val = m.bounds[1,0] - m.bounds[0,0]  # total X width
+                        mh_val = m.bounds[1,1] - m.bounds[0,1]  # total Y height
                     except Exception:
                         vol = "—"; tri = "—"; wt = "—"
-                        z_len = z.max() - z.min()
-                        mouth_r = float(r.max())
+                        z_len = z.max() - z.min() if profile != "rectangular" else z[-1]
+                        mw_val = mh_val = None
 
                     c_spd = 343000.0
-                    if profile in ("lecleach", "iwata"):
-                        fc_hz = fc
+                    if profile == "rectangular":
+                        st.metric("Length", f"{z_len:.0f} mm")
+                        st.metric("Mouth W×H", f"{mw_val:.0f}×{mh_val:.0f} mm" if mw_val else "—")
+                        st.metric("Fc", f"{fc:.0f} Hz")
                     else:
-                        fc_hz = c_spd / (np.pi * mouth_r * 2)
-                    st.metric("Length", f"{z_len:.0f} mm")
-                    st.metric("Mouth ø", f"{mouth_r*2:.0f} mm")
-                    st.metric("Fc", f"{fc_hz:.0f} Hz")
+                        mouth_r = float(mw_val / 2) if profile == "rectangular" else float(
+                            (np.sqrt(m.vertices[:,0]**2+m.vertices[:,1]**2).max()) if 'm' in dir() else r.max())
+                        fc_hz = fc if profile in ("lecleach", "iwata") else c_spd / (np.pi * mouth_r * 2)
+                        st.metric("Length", f"{z_len:.0f} mm")
+                        st.metric("Mouth ø", f"{mouth_r*2:.0f} mm")
+                        st.metric("Fc", f"{fc_hz:.0f} Hz")
+
                     st.metric("Triangles", tri)
                     st.metric("Volume", vol)
                     if wt is True:
