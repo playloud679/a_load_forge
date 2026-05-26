@@ -84,10 +84,11 @@ with tab1:
                 core = _get_core()
                 try:
                     if profile == "rectangular":
-                        import importlib.machinery, importlib.util as _iu
-                        _rl = _iu.SourceFileLoader("_rh",
+                        import importlib.machinery, importlib.util
+                        _rl = importlib.machinery.SourceFileLoader("_rh",
                             str(Path(__file__).parent / "src" / "03_rectangular_horn.py"))
-                        _rh = _iu.module_from_spec(_iu.spec_from_loader("_rh", _rl))
+                        _rh = importlib.util.module_from_spec(
+                            importlib.util.spec_from_loader("_rh", _rl))
                         _rl.exec_module(_rh)
                         z, w, h = _rh.get_rectangular_exponential(tw, th, mw, fc, segments)
                         with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as _t:
@@ -134,12 +135,12 @@ with tab1:
 
                     c_spd = 343000.0
                     if profile == "rectangular":
+                        fc_hz = fc
                         st.metric("Length", f"{z_len:.0f} mm")
                         st.metric("Mouth W×H", f"{mw_val:.0f}×{mh_val:.0f} mm" if mw_val else "—")
-                        st.metric("Fc", f"{fc:.0f} Hz")
+                        st.metric("Fc", f"{fc_hz:.0f} Hz")
                     else:
-                        mouth_r = float(mw_val / 2) if profile == "rectangular" else float(
-                            (np.sqrt(m.vertices[:,0]**2+m.vertices[:,1]**2).max()) if 'm' in dir() else r.max())
+                        mouth_r = float(np.sqrt(m.vertices[:,0]**2+m.vertices[:,1]**2).max())
                         fc_hz = fc if profile in ("lecleach", "iwata") else c_spd / (np.pi * mouth_r * 2)
                         st.metric("Length", f"{z_len:.0f} mm")
                         st.metric("Mouth ø", f"{mouth_r*2:.0f} mm")
