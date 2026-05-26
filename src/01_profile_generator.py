@@ -35,9 +35,10 @@ SOUND_SPEED = 343_000           # mm / s
 def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Horn .stl generator")
     p.add_argument("--throat", type=float, required=True)
-    p.add_argument("--mouth", type=float, default=None)
+    p.add_argument("--mouth", type=float, default=None,
+                   help="Mouth diameter (tractrix only)")
     p.add_argument("--fc", type=float, default=None,
-                   help="Cutoff frequency in Hz (lecleach mode)")
+                   help="Cutoff frequency in Hz (lecleach / iwata)")
     p.add_argument("--length", type=float, default=None,
                    help="Axial length in mm (iwata)")
     p.add_argument("--profile", choices=["auto", "tractrix", "lecleach", "iwata"],
@@ -79,32 +80,40 @@ def get_tractrix(throat: float, mouth: float, n: int
 def get_lecleach(throat: float, fc: float, n: int
                  ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Le Cléac'h profile — terminates at 90° (θ = π/2) like tractrix.
+    Authentic Le Cléac'h profile — spherical isophase wavefront expansion.
 
-    Parametric equations on tangent angle θ ∈ [0, π/2]:
+    The curve is parameterised by the wall tangent angle θ ∈ [0, π]:
 
         r(θ) = rt / √(1 − m²·sin²θ)
 
-        z(θ) = rt·√(1−m²)·m² · ∫ sin²θ / (1−m²·sin²θ)^(3/2) dθ
+        dz/dθ = rt · m² · cos²θ / (1 − m²·sin²θ)^(3/2)
 
-    The mouth diameter and length are determined by fc and rt:
-        rm = rt / √(1 − m²)     where  m = 2π·fc·rt / c
+    Key properties:
+      • θ = 0        → throat (r = rt)
+      • θ = π/2      → widest point (mouth),  dr/dθ = 0
+      • θ = π        → roll-back complete, r returns to rt
+      • Z increases monotonically; the roll-back curves R back
+        toward the axis while Z continues upward.
     """
     rt = throat / 2.0
 
     m = 2.0 * np.pi * fc * rt / SOUND_SPEED
     if m >= 1.0:
         raise ValueError(
-            f"m={m:.3f} ≥ 1 — no roll-back.  Use smaller throat or lower Fc."
+            f"m={m:.3f} ≥ 1 — no roll-back possible.  "
+            "Use smaller throat or lower Fc."
         )
 
-    theta = np.linspace(0, np.pi / 2, n)
+    theta = np.linspace(0, np.pi, n)
     s2 = np.sin(theta) ** 2
+    c2 = np.cos(theta) ** 2
     denom = 1.0 - m * m * s2
 
     r = rt / np.sqrt(denom)
 
-    dz_dθ = rt * np.sqrt(1.0 - m * m) * m * m * s2 / (denom ** 1.5)
+    # dz/dθ = rt · m² · cos²θ / (1 − m²·sin²θ)^(3/2)
+    dz_dθ = rt * m * m * c2 / (denom ** 1.5)
+
     z = np.empty_like(theta)
     z[0] = 0.0
     for i in range(1, n):
@@ -117,50 +126,28 @@ def get_lecleach(throat: float, fc: float, n: int
 
 # ---- Iwata (axisymmetric) -----------------------------------------------
 
-def get_iwata(throat: float, mouth: float, length: float, n: int
+def get_iwata(throat: float, fc: float, length: float, n: int
               ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Axisymmetric Iwata (Hyperbolic-Exponential / Salmon family) horn.
+    Axisymmetric Iwata (Salmon / Hyperbolic-Exponential) horn.
 
-        S(x) = S_t · (cosh(m·x) + T · sinh(m·x))²
+        S(x) = S_t · (cosh(x/x₀) + T · sinh(x/x₀))²
         R(x) = √(S(x)/π)
 
-    T = 0.7 (standard flare parameter).
-    The expansion rate m is solved so that R(length) ≈ mouth/2.
+    Constants:
+        T  = 0.707  (Iwata flare parameter)
+        x₀ = c / (2π·fc)   (reference scaling length from cutoff Fc)
+
+    The mouth radius at x = length is determined by fc and T.
     Returns (z, r) — same interface as get_tractrix.
     """
     rt = throat / 2.0
-    rm = mouth / 2.0
-    T = 0.7
-
-    # Solve for m such that sqrt(S(length)/π) = rm
-    # S(L)/S_t = (cosh(m·L) + T·sinh(m·L))² = (rm/rt)²
-    # cosh(m·L) + T·sinh(m·L) = rm/rt
-    # (e^{mL}+e^{-mL})/2 + T·(e^{mL}-e^{-mL})/2 = rm/rt
-    # e^{mL}·(1+T)/2 + e^{-mL}·(1-T)/2 = rm/rt
-    # Let u = e^{mL}:
-    # u·(1+T)/2 + 1/u·(1-T)/2 = rm/rt
-    # u·(1+T) + 1/u·(1-T) = 2·rm/rt
-    # u·(1+T) − 2·rm/rt + (1-T)/u = 0
-    # Multiply by u:  (1+T)·u² − 2·rm/rt·u + (1-T) = 0
-
-    A = 1.0 + T
-    B = -2.0 * rm / rt
-    C = 1.0 - T
-    disc = B * B - 4.0 * A * C
-    if disc < 0:
-        raise ValueError("Iwata: throat/mouth/length impossible for T=0.7")
-    u = (-B + np.sqrt(disc)) / (2.0 * A)
-    if u <= 0:
-        u = (-B - np.sqrt(disc)) / (2.0 * A)
-    if u <= 0:
-        raise ValueError("Iwata: cannot solve expansion rate")
-
-    m = np.log(u) / length
+    T  = 0.707
+    x0 = SOUND_SPEED / (2.0 * np.pi * fc)
 
     x = np.linspace(0, length, n)
-    ch = np.cosh(m * x)
-    sh = np.sinh(m * x)
+    ch = np.cosh(x / x0)
+    sh = np.sinh(x / x0)
     s = np.pi * rt * rt * (ch + T * sh) ** 2
     r = np.sqrt(s / np.pi)
     return x, r
@@ -307,10 +294,10 @@ _PROFILES = {
 def resolve_profile(args: argparse.Namespace) -> str:
     if args.profile != "auto":
         return args.profile
+    if args.profile == "iwata" or (args.length is not None and args.fc is not None):
+        return "iwata"
     if args.fc is not None:
         return "lecleach"
-    if args.length is not None:
-        return "iwata"
     if args.mouth is not None:
         return "tractrix"
     raise ValueError("Specify --mouth, --fc, or --length")
@@ -341,13 +328,13 @@ def main(argv: list[str] | None = None) -> None:
                         r.max() * 2, z.max(), args.fc)
 
         elif name == "iwata":
-            if args.mouth is None or args.length is None:
-                raise ValueError("--mouth and --length required for iwata")
-            logger.info("Iwata: throat=%s  mouth=%s  length=%s",
-                        args.throat, args.mouth, args.length)
-            z, r = get_iwata(args.throat, args.mouth, args.length, args.segments)
-            fc = SOUND_SPEED / (np.pi * r.max() * 2)
-            logger.info("Mouth ø: %.1f mm  Fc: %.0f Hz", r.max() * 2, fc)
+            if args.fc is None or args.length is None:
+                raise ValueError("--fc and --length required for iwata")
+            logger.info("Iwata: throat=%s  Fc=%s  length=%s",
+                        args.throat, args.fc, args.length)
+            z, r = get_iwata(args.throat, args.fc, args.length, args.segments)
+            logger.info("Mouth ø: %.1f mm  (Salmon T=0.707, x₀=c/2π·fc=%.0fmm)",
+                        r.max() * 2, SOUND_SPEED / (2.0 * np.pi * args.fc))
 
         else:
             raise ValueError(f"Unknown profile: {name}")

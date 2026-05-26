@@ -64,8 +64,9 @@ with tab1:
                 help="Calcola la bocca come rm = c/(2π·fc). Frequenza più bassa → bocca più grande.")
             st.caption(f"Bocca risultante ≈ {343000/(np.pi*(fc or 600)):.0f} mm")
         else:  # iwata
-            mouth_diam = st.number_input("Mouth ø (mm)", 4.0, 500.0, 100.0, 5.0)
-            length     = st.number_input("Length (mm)", 10.0, 500.0, 80.0, 5.0)
+            fc = st.number_input("Cutoff Fc (Hz)", 50, 20000, 600, 50,
+                help="x₀ = c/(2π·fc)  — scaling length per Salmon T=0.707")
+            length = st.number_input("Length (mm)", 10.0, 500.0, 80.0, 5.0)
 
         segments = st.slider("Segments", 100, 500, 300, 50)
         rings    = st.slider("Rings", 32, 128, 64, 16)
@@ -84,8 +85,8 @@ with tab1:
                         z, r = core.get_lecleach(throat_diam, fc, segments)
                         label = f"lecleach_{throat_diam:.0f}_{fc:.0f}hz"
                     else:
-                        z, r = core.get_iwata(throat_diam, mouth_diam, length, segments)
-                        label = f"iwata_{throat_diam:.0f}_{mouth_diam:.0f}_L{length:.0f}"
+                        z, r = core.get_iwata(throat_diam, fc, length, segments)
+                        label = f"iwata_{throat_diam:.0f}_fc{fc:.0f}_L{length:.0f}"
 
                     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as tmp:
                         tmp_path = tmp.name
@@ -109,7 +110,7 @@ with tab1:
                         vol = "—"; tri = "—"; wt = "—"
 
                     c_spd = 343000.0
-                    if profile == "lecleach":
+                    if profile in ("lecleach", "iwata"):
                         fc_hz = fc
                     else:
                         fc_hz = c_spd / (np.pi * r.max() * 2)
