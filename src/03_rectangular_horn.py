@@ -27,31 +27,30 @@ def get_rectangular_exponential(
     n: int = 300,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Area-preserving rectangular horn.
+    Rectangular horn — exponential area expansion, exponential width.
 
-    The throat area  S_t = throat_w · throat_h  expands exponentially
-    with rate m derived from the cutoff frequency Fc.
-    The Width W(z) flares linearly from *throat_w* to *mouth_w*.
-    The Height H(z) = S(z) / W(z) preserves the acoustic impedance.
+    S(z) = St · exp(m · z)          (m = 4π·fc/c)
+    W(z) = Wt · exp(m/2 · z)       (exponential, matched to area rate)
+    H(z) = Ht · exp(m/2 · z)       (same rate → aspect ratio preserved)
+
+    The mouth width is *mouth_w*.  The length L is solved so that
+    W(L) = mouth_w.  Then H(L) is determined.
 
     Returns (z_array, w_array, h_array).
     """
     St = throat_w * throat_h
     m  = 4.0 * np.pi * fc / SOUND_SPEED
 
-    # Maximum length: stop when area has expanded by a reasonable factor
-    L = (1.0 / m) * np.log(400.0) if m > 0 else 200.0  # exp(m·L) = 400 → large mouth
+    if mouth_w <= throat_w:
+        raise ValueError("mouth_w must be > throat_w")
+
+    # Length such that W(L) = mouth_w = throat_w · exp(m/2 · L)
+    L = 2.0 / m * np.log(mouth_w / throat_w)
 
     z = np.linspace(0, L, n)
 
-    # Area expansion
-    S = St * np.exp(m * z)
-
-    # Width: linear flare
-    W = np.linspace(throat_w, mouth_w, n)
-
-    # Height: area / width
-    H = S / W
+    W = throat_w * np.exp(m / 2.0 * z)
+    H = throat_h * np.exp(m / 2.0 * z)
 
     return z, W, H
 

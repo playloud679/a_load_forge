@@ -16,6 +16,25 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
+# ── Persistent session state keys ──────────────────────────────────────
+_SESSION_KEYS = {
+    "horn_stl":       "Horn STL",
+    "flange_stl":     "Flange STL",
+    "horn_label":     "Horn label",
+    "radial_bottom":  "Radial bottom",
+    "radial_top":     "Radial top",
+    "_flange_params": "Flange params",
+}
+
+
+def _session_badge():
+    """Show a compact indicator of stored data in the sidebar."""
+    items = [v for k, v in _SESSION_KEYS.items() if k in st.session_state]
+    if items:
+        st.sidebar.markdown("**📦 Stored data:**  " + " · ".join(items))
+    else:
+        st.sidebar.markdown("*No data stored*")
+
 # ── Lazy-import the core engine ───────────────────────────────────────
 def _get_core():
     import importlib.machinery, importlib.util
@@ -38,6 +57,7 @@ def _get_flange():
 
 st.set_page_config(page_title="Horn Generator", layout="centered")
 st.title("📯 Horn + Flange Generator")
+_session_badge()
 
 tab1, tab2, tab3 = st.tabs(["🔧 Horn", "🔩 Flange", "🧩 Merge"])
 
