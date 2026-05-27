@@ -209,14 +209,14 @@ with tab2:
     c1, c2 = st.columns([1, 2])
     with c1:
         if f_type == "rectangular":
-            f_ow = st.number_input("Outer width (mm)", 10.0, 250.0, 60.0, 1.0)
-            f_oh = st.number_input("Outer height (mm)", 10.0, 250.0, 50.0, 1.0)
-            f_iw = st.number_input("Inner width (mm)", 4.0, 240.0, 20.0, 1.0)
-            f_ih = st.number_input("Inner height (mm)", 4.0, 240.0, 10.0, 1.0)
-            f_thick  = st.number_input("Thickness (mm)", 2.0, 20.0, 6.0, 0.5)
-            f_inset  = st.number_input("Bolt inset (mm)", 2.0, 30.0, 5.0, 0.5)
-            f_bd     = st.number_input("Bolt ø (mm)", 1.0, 12.0, 3.5, 0.1)
-            f_btn    = st.button("🔩 Generate Flange", type="primary", use_container_width=True)
+            f_outer   = st.number_input("Outer ø (mm)", 10.0, 250.0, 70.0, 1.0)
+            f_iw      = st.number_input("Inner width (mm)", 4.0, 240.0, 20.0, 1.0)
+            f_ih      = st.number_input("Inner height (mm)", 4.0, 240.0, 10.0, 1.0)
+            f_thick   = st.number_input("Thickness (mm)", 2.0, 20.0, 6.0, 0.5)
+            f_bc_rad  = st.number_input("Bolt circle R (mm)", 5.0, 120.0, 26.0, 0.5)
+            f_n       = st.number_input("N° bolts", 2, 24, 4, 1)
+            f_bd      = st.number_input("Bolt ø (mm)", 1.0, 12.0, 3.5, 0.1)
+            f_btn     = st.button("🔩 Generate Flange", type="primary", use_container_width=True)
         else:
             f_outer   = st.number_input("Outer ø (mm)", 10.0, 250.0, 60.0, 1.0)
             f_inner   = st.number_input("Inner ø (mm)", 5.0, 240.0, 29.0, 0.5)
@@ -238,9 +238,9 @@ with tab2:
                             importlib.util.spec_from_loader("_rf", _rfl))
                         _rfl.exec_module(_rf)
                         mesh = _rf.generate_rectangular_flange(
-                            outer_w=f_ow, outer_h=f_oh,
-                            inner_w=f_iw, inner_h=f_ih,
-                            thickness=f_thick, bolt_inset=f_inset,
+                            outer_diam=f_outer, inner_w=f_iw, inner_h=f_ih,
+                            thickness=f_thick,
+                            bolt_radius=f_bc_rad, bolt_count=int(f_n),
                             bolt_diam=f_bd, output_path=None)
                         if mesh is None:
                             st.error("❌ Generation failed")
@@ -253,16 +253,16 @@ with tab2:
                         os.unlink(tmp_path)
                         st.session_state["flange_stl"] = stl_bytes
                         st.session_state["_flange_params"] = {
-                            "type": "rect", "ow": f_ow, "oh": f_oh,
+                            "type": "rect", "outer": f_outer,
                             "iw": f_iw, "ih": f_ih, "thick": f_thick,
-                            "inset": f_inset, "bd": f_bd}
-                        st.metric("Outer", f"{f_ow:.0f}×{f_oh:.0f} mm")
+                            "bc_rad": f_bc_rad, "n": int(f_n), "bd": f_bd}
+                        st.metric("Outer", f"Ø{f_outer:.0f} mm")
                         st.metric("Inner", f"{f_iw:.0f}×{f_ih:.0f} mm")
-                        st.metric("Thickness", f"{f_thick:.0f} mm")
+                        st.metric("Bolts", f"{int(f_n)} × Ø{f_bd:.1f} @ R{f_bc_rad:.0f}")
                         st.metric("Triangles", len(mesh.faces))
                         st.success("✅ Watertight" if mesh.is_watertight else "❌")
                         st.download_button("📥 Download STL", stl_bytes,
-                            f"rect_flange_{f_ow:.0f}x{f_oh:.0f}.stl",
+                            f"rect_flange_OD{f_outer:.0f}_IW{f_iw:.0f}x{f_ih:.0f}.stl",
                             "model/stl", use_container_width=True)
                     else:
                         _fg = _get_flange()

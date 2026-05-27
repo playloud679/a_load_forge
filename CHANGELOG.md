@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.4.0 (2026-05-26)
+
+- Rectangular flange: circular outer shape, rectangular inner hole, N bolts on adjustable circle
+- Web UI: flange type selector with circular/rectangular options
+- Merge Tab: concatenation for rectangular horn+flange (no boolean)
+
 ## 1.3.0 (2026-05-26)
 
 - Fixed radial horn: `_revolve_polygon` replaces `_revolve_profile` (no center caps, closed 4-loop)

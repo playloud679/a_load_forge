@@ -29,13 +29,15 @@ python -m src.main --profile iwata --throat 20 --fc 600 --length 80
 | **Rectangular** | `--throat_w --throat_h --mouth_w --fc` | Area-preserving W(z)×H(z), manual lofting |
 | **Radial 360°** | `--throat --mouth --fc` | Omnidirectional reflector, dual-piece, flipped top |
 
-## Flange Generator
+## Flange Generators
 
 ```bash
+# Circular flange (circular hole)
 python -m src.02_flange_generator
-```
 
-Parameters: outer diameter, inner diameter, thickness, bolt circle radius, bolt count, bolt diameter.
+# Rectangular-hole flange (circular outer, rectangular inner)
+python -m src.04_rectangular_flange
+```
 
 ## Testing
 

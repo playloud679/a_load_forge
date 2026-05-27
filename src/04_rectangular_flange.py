@@ -1,7 +1,9 @@
 """
-Parametric Rectangular Flange Generator — using trimesh + manifold3d.
+Parametric Flange — Circular outer, rectangular inner hole.
 
-For rectangular horn throats.  Uses proper boolean subtraction.
+Outer: disc with diameter *outer_diam*
+Inner: rectangular hole *inner_w* × *inner_h*
+Bolts: N holes on a bolt circle of radius *bolt_radius*
 """
 
 import logging
@@ -14,23 +16,23 @@ logger = logging.getLogger(__name__)
 
 
 def generate_rectangular_flange(
-    outer_w: float = 60.0,
-    outer_h: float = 60.0,
+    outer_diam: float = 70.0,
     inner_w: float = 20.0,
     inner_h: float = 10.0,
     thickness: float = 6.0,
-    bolt_inset: float = 5.0,
+    bolt_radius: float = 26.0,
+    bolt_count: int = 4,
     bolt_diam: float = 3.5,
     output_path: str | None = "io/rect_flange.stl",
 ) -> trimesh.Trimesh | None:
     """
-    Rectangular flange with a centred rectangular hole and bolt holes.
-
-    Uses trimesh with manifold3d engine for robust CSG.
+    Circular flange with a centred rectangular hole and bolt holes on a circle.
     """
-    # ---- 1. Outer box -----------------------------------------------------
-    base = creation.box(
-        extents=[outer_w, outer_h, thickness],
+    # ---- 1. Outer disc ----------------------------------------------------
+    disc = creation.cylinder(
+        radius=outer_diam / 2.0,
+        height=thickness,
+        sections=80,
         transform=np.array([
             [1, 0, 0, 0],
             [0, 1, 0, 0],
@@ -39,25 +41,24 @@ def generate_rectangular_flange(
         ]),
     )
 
-    # ---- 2. Centre hole ---------------------------------------------------
+    # ---- 2. Rectangular centre hole --------------------------------------
     centre_hole = creation.box(
         extents=[inner_w, inner_h, thickness * 2],
     )
 
-    # ---- 3. Bolt holes ----------------------------------------------------
-    bolt_r = bolt_diam / 2
-    bx = outer_w / 2 - bolt_inset
-    by = outer_h / 2 - bolt_inset
-
+    # ---- 3. Bolt holes on a circle ---------------------------------------
     bolt_holes = []
-    for cx, cy in [(-bx, -by), (bx, -by), (bx, by), (-bx, by)]:
+    angles = np.linspace(0, 2 * np.pi, int(bolt_count), endpoint=False)
+    for a in angles:
+        x = bolt_radius * np.cos(a)
+        y = bolt_radius * np.sin(a)
         bh = creation.cylinder(
-            radius=bolt_r,
+            radius=bolt_diam / 2.0,
             height=thickness * 2,
             sections=16,
             transform=np.array([
-                [1, 0, 0, cx],
-                [0, 1, 0, cy],
+                [1, 0, 0, x],
+                [0, 1, 0, y],
                 [0, 0, 1, 0],
                 [0, 0, 0, 1],
             ]),
@@ -66,7 +67,7 @@ def generate_rectangular_flange(
 
     # ---- 4. Boolean subtraction -------------------------------------------
     to_sub = [centre_hole] + bolt_holes
-    flange = trimesh.boolean.difference([base] + to_sub, engine="manifold")
+    flange = trimesh.boolean.difference([disc] + to_sub, engine="manifold")
 
     if flange is None:
         logger.error("Boolean operation returned None")
@@ -89,10 +90,8 @@ def generate_rectangular_flange(
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     m = generate_rectangular_flange(
-        outer_w=60, outer_h=50,
-        inner_w=20, inner_h=10,
-        thickness=6, bolt_inset=5, bolt_diam=3.5,
+        outer_diam=70, inner_w=20, inner_h=10,
+        thickness=6, bolt_radius=26, bolt_count=4, bolt_diam=3.5,
     )
     if m:
         print(f"WT:{m.is_watertight} B:{m.body_count} V:{m.volume:.0f}")
-        print(f"X:[{m.bounds[0,0]:.1f},{m.bounds[1,0]:.1f}]  Y:[{m.bounds[0,1]:.1f},{m.bounds[1,1]:.1f}]  Z:[{m.bounds[0,2]:.1f},{m.bounds[1,2]:.1f}]")
