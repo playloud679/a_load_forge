@@ -161,6 +161,31 @@ for label, th, mo, fc in [
 
 
 # ======================================================================
+#  5. Rectangular flange
+# ======================================================================
+
+print("\n═══ Rectangular Flange ═══")
+
+_l4 = importlib.machinery.SourceFileLoader("_rf", "src/04_rectangular_flange.py")
+_rf = importlib.util.module_from_spec(importlib.util.spec_from_loader("_rf", _l4))
+_l4.exec_module(_rf)
+
+for label, ow, oh, iw, ih in [
+    ("60×50 / 20×10", 60, 50, 20, 10),
+    ("80×60 / 30×15", 80, 60, 30, 15),
+]:
+    def make(ow=ow, oh=oh, iw=iw, ih=ih):
+        m = _rf.generate_rectangular_flange(ow, oh, iw, ih, output_path=None)
+        assert m is not None, "Flange generation returned None"
+        assert m.is_watertight, "Not watertight"
+        assert m.body_count == 1, f"{m.body_count} bodies"
+        assert m.volume > 0, f"Volume {m.volume}"
+        return m
+
+    test(label, make)
+
+
+# ======================================================================
 #  Summary
 # ======================================================================
 
