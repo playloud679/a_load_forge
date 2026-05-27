@@ -204,48 +204,92 @@ with tab1:
 # ═══════════════════════════════════════════════════════════════════════
 
 with tab2:
-    st.subheader("Parametric Circular Flange")
+    f_type = st.selectbox("Flange type", ["circular", "rectangular"], index=0)
 
     c1, c2 = st.columns([1, 2])
     with c1:
-        f_outer   = st.number_input("Outer ø (mm)", 10.0, 250.0, 60.0, 1.0)
-        f_inner   = st.number_input("Inner ø (mm)", 5.0, 240.0, 29.0, 0.5)
-        f_thick   = st.number_input("Thickness (mm)", 2.0, 20.0, 6.0, 0.5)
-        f_bc_rad  = st.number_input("Bolt circle R (mm)", 5.0, 120.0, 22.0, 0.5)
-        f_n       = st.number_input("N° bolts", 2, 24, 4, 1)
-        f_bd      = st.number_input("Bolt ø (mm)", 1.0, 12.0, 3.5, 0.1)
-        f_btn     = st.button("🔩 Generate Flange", type="primary", use_container_width=True)
+        if f_type == "rectangular":
+            f_ow = st.number_input("Outer width (mm)", 10.0, 250.0, 60.0, 1.0)
+            f_oh = st.number_input("Outer height (mm)", 10.0, 250.0, 50.0, 1.0)
+            f_iw = st.number_input("Inner width (mm)", 4.0, 240.0, 20.0, 1.0)
+            f_ih = st.number_input("Inner height (mm)", 4.0, 240.0, 10.0, 1.0)
+            f_thick  = st.number_input("Thickness (mm)", 2.0, 20.0, 6.0, 0.5)
+            f_inset  = st.number_input("Bolt inset (mm)", 2.0, 30.0, 5.0, 0.5)
+            f_bd     = st.number_input("Bolt ø (mm)", 1.0, 12.0, 3.5, 0.1)
+            f_btn    = st.button("🔩 Generate Flange", type="primary", use_container_width=True)
+        else:
+            f_outer   = st.number_input("Outer ø (mm)", 10.0, 250.0, 60.0, 1.0)
+            f_inner   = st.number_input("Inner ø (mm)", 5.0, 240.0, 29.0, 0.5)
+            f_thick   = st.number_input("Thickness (mm)", 2.0, 20.0, 6.0, 0.5)
+            f_bc_rad  = st.number_input("Bolt circle R (mm)", 5.0, 120.0, 22.0, 0.5)
+            f_n       = st.number_input("N° bolts", 2, 24, 4, 1)
+            f_bd      = st.number_input("Bolt ø (mm)", 1.0, 12.0, 3.5, 0.1)
+            f_btn     = st.button("🔩 Generate Flange", type="primary", use_container_width=True)
 
     with c2:
         if f_btn:
             with st.spinner("Generating flange …"):
                 try:
-                    _fg = _get_flange()
-                    mesh = _fg.generate_flange(
-                        outer_diam=f_outer, inner_diam=f_inner,
-                        thickness=f_thick,
-                        bolt_radius=f_bc_rad, bolt_count=int(f_n),
-                        bolt_diam=f_bd, output_path=None)
+                    if f_type == "rectangular":
+                        import importlib.machinery, importlib.util
+                        _rfl = importlib.machinery.SourceFileLoader("_rf",
+                            str(Path(__file__).parent / "src" / "04_rectangular_flange.py"))
+                        _rf = importlib.util.module_from_spec(
+                            importlib.util.spec_from_loader("_rf", _rfl))
+                        _rfl.exec_module(_rf)
+                        mesh = _rf.generate_rectangular_flange(
+                            outer_w=f_ow, outer_h=f_oh,
+                            inner_w=f_iw, inner_h=f_ih,
+                            thickness=f_thick, bolt_inset=f_inset,
+                            bolt_diam=f_bd, output_path=None)
+                        if mesh is None:
+                            st.error("❌ Generation failed")
+                            st.stop()
+                        with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as tmp:
+                            tmp_path = tmp.name
+                        mesh.export(tmp_path)
+                        with open(tmp_path, "rb") as f:
+                            stl_bytes = f.read()
+                        os.unlink(tmp_path)
+                        st.session_state["flange_stl"] = stl_bytes
+                        st.session_state["_flange_params"] = {
+                            "type": "rect", "ow": f_ow, "oh": f_oh,
+                            "iw": f_iw, "ih": f_ih, "thick": f_thick,
+                            "inset": f_inset, "bd": f_bd}
+                        st.metric("Outer", f"{f_ow:.0f}×{f_oh:.0f} mm")
+                        st.metric("Inner", f"{f_iw:.0f}×{f_ih:.0f} mm")
+                        st.metric("Thickness", f"{f_thick:.0f} mm")
+                        st.metric("Triangles", len(mesh.faces))
+                        st.success("✅ Watertight" if mesh.is_watertight else "❌")
+                        st.download_button("📥 Download STL", stl_bytes,
+                            f"rect_flange_{f_ow:.0f}x{f_oh:.0f}.stl",
+                            "model/stl", use_container_width=True)
+                    else:
+                        _fg = _get_flange()
+                        mesh = _fg.generate_flange(
+                            outer_diam=f_outer, inner_diam=f_inner,
+                            thickness=f_thick,
+                            bolt_radius=f_bc_rad, bolt_count=int(f_n),
+                            bolt_diam=f_bd, output_path=None)
 
-                    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as tmp:
-                        tmp_path = tmp.name
-                    mesh.export(tmp_path)
-                    with open(tmp_path, "rb") as f:
-                        stl_bytes = f.read()
-                    os.unlink(tmp_path)
+                        with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as tmp:
+                            tmp_path = tmp.name
+                        mesh.export(tmp_path)
+                        with open(tmp_path, "rb") as f:
+                            stl_bytes = f.read()
+                        os.unlink(tmp_path)
 
-                    st.session_state["flange_stl"] = stl_bytes
-                    st.session_state["_flange_params"] = {
-                        "bc_rad": f_bc_rad, "n": int(f_n), "bd": f_bd}
-                    st.metric("Outer", f"Ø{f_outer:.0f} mm")
-                    st.metric("Inner", f"Ø{f_inner:.0f} mm")
-                    st.metric("Bolts", f"{int(f_n)} × Ø{f_bd:.1f} @ R{f_bc_rad:.0f}")
-                    st.metric("Triangles", len(mesh.faces))
-
-                    st.success("✅ Watertight" if mesh.is_watertight else "❌")
-                    st.download_button("📥 Download STL", stl_bytes,
-                        f"flange_OD{f_outer:.0f}_ID{f_inner:.0f}.stl",
-                        "model/stl", use_container_width=True)
+                        st.session_state["flange_stl"] = stl_bytes
+                        st.session_state["_flange_params"] = {
+                            "bc_rad": f_bc_rad, "n": int(f_n), "bd": f_bd}
+                        st.metric("Outer", f"Ø{f_outer:.0f} mm")
+                        st.metric("Inner", f"Ø{f_inner:.0f} mm")
+                        st.metric("Bolts", f"{int(f_n)} × Ø{f_bd:.1f} @ R{f_bc_rad:.0f}")
+                        st.metric("Triangles", len(mesh.faces))
+                        st.success("✅ Watertight" if mesh.is_watertight else "❌")
+                        st.download_button("📥 Download STL", stl_bytes,
+                            f"flange_OD{f_outer:.0f}_ID{f_inner:.0f}.stl",
+                            "model/stl", use_container_width=True)
 
                 except Exception as exc:
                     st.error(str(exc))
@@ -280,12 +324,8 @@ with tab3:
 
     with c2:
         if merge_btn and has_horn and has_flange:
-            # Only axisymmetric horns can be merged with a circular flange
             _label = st.session_state.get("horn_label", "")
-            if _label.startswith("rect_") or _label.startswith("radial_"):
-                st.error("❌ Merge requires an axisymmetric horn (tractrix / lecleach / iwata). "
-                         "Rectangular and radial horns use different flange geometries.")
-                st.stop()
+            is_rect = _label.startswith("rect_")
 
             import trimesh
             from trimesh import creation
@@ -305,54 +345,56 @@ with tab3:
                                 st.error(f"❌ {label} is not a watertight volume — merge impossible")
                                 st.stop()
 
-                    # Horn outer radius at throat  →  flange wraps AROUND it
-                    v = horn_m.vertices[horn_m.vertices[:,2] < 0.5]
-                    horn_outer = float(np.sqrt(v[:,0]**2 + v[:,1]**2).max())
-                    flange_outer = flange_m.bounds[1,0]
-                    f_h = flange_m.bounds[1,2] - flange_m.bounds[0,2]
+                    if is_rect:
+                        # Rectangular: concatenate (flange + horn), no boolean union
+                        # (the manifold engine can't union rect meshes reliably)
+                        combined = trimesh.util.concatenate([horn_m, flange_m])
+                    else:
+                        # Axisymmetric: rebuild circular flange ring around horn's outer wall
+                        v = horn_m.vertices[horn_m.vertices[:,2] < 0.5]
+                        horn_outer = float(np.sqrt(v[:,0]**2 + v[:,1]**2).max())
+                        flange_outer = flange_m.bounds[1,0]
+                        f_h = flange_m.bounds[1,2] - flange_m.bounds[0,2]
+                        eps = 0.01
 
-                    # Rebuild flange ring: inner = horn_outer (wraps around, no step)
-                    eps = 0.01  # tiny Z-shift to avoid coplanar face issues
-                    horn_inner = float(np.sqrt(v[:,0]**2+v[:,1]**2).min())
-                    ring_ok = False
-                    for sections in [80, 64, 48, 32]:
-                        try:
-                            disc = creation.cylinder(radius=flange_outer, height=f_h, sections=sections,
-                                transform=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,eps+f_h/2],[0,0,0,1]]))
-                            hole = creation.cylinder(radius=horn_outer-0.1, height=f_h+2, sections=sections,
+                        # Rebuild flange ring: inner = horn_outer (wraps around, no step)
+                        ring_ok = False
+                        for sections in [80, 64, 48, 32]:
+                            try:
+                                disc = creation.cylinder(radius=flange_outer, height=f_h, sections=sections,
+                                    transform=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,eps+f_h/2],[0,0,0,1]]))
+                                hole = creation.cylinder(radius=horn_outer-0.1, height=f_h+2, sections=sections,
+                                    transform=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,eps+f_h/2],[0,0,0,1]]))
+                                flange_ring = trimesh.boolean.difference([disc, hole], engine="manifold")
+                                ring_ok = flange_ring.is_watertight
+                                if ring_ok:
+                                    break
+                            except Exception:
+                                continue
+                        if not ring_ok:
+                            hole = creation.cylinder(radius=horn_outer+2, height=f_h+2, sections=48,
                                 transform=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,eps+f_h/2],[0,0,0,1]]))
                             flange_ring = trimesh.boolean.difference([disc, hole], engine="manifold")
-                            ring_ok = flange_ring.is_watertight
-                            if ring_ok:
-                                break
-                        except Exception:
-                            continue
-                    if not ring_ok:
-                        # Fallback: create ring by removing center from disc with a larger gap
-                        hole = creation.cylinder(radius=horn_outer+2, height=f_h+2, sections=48,
-                            transform=np.array([[1,0,0,0],[0,1,0,0],[0,0,1,eps+f_h/2],[0,0,0,1]]))
-                        flange_ring = trimesh.boolean.difference([disc, hole], engine="manifold")
-                        if not flange_ring.is_watertight:
-                            st.error("❌ Flange ring generation failed — not a volume")
-                            st.stop()
+                            if not flange_ring.is_watertight:
+                                st.error("❌ Flange ring generation failed — not a volume")
+                                st.stop()
 
-                    # Bolt holes
-                    bc_r = 22.0; bn = 4; bd = 3.5
-                    if "_flange_params" in st.session_state:
-                        bc_r = st.session_state["_flange_params"].get("bc_rad", bc_r)
-                        bn   = st.session_state["_flange_params"].get("n", bn)
-                        bd   = st.session_state["_flange_params"].get("bd", bd)
-                    for a in np.linspace(0, 2*np.pi, int(bn), False):
-                        x,y = bc_r*np.cos(a), bc_r*np.sin(a)
-                        sh = creation.cylinder(radius=bd/2, height=f_h+4, sections=32,
-                            transform=np.array([[1,0,0,x],[0,1,0,y],[0,0,1,(f_h+4)/2],[0,0,0,1]]))
-                        flange_ring = trimesh.boolean.difference([flange_ring, sh], engine="manifold")
-                        if not flange_ring.is_watertight:
-                            st.error(f"❌ Bolt hole subtraction failed at ({x:.0f},{y:.0f})")
-                            st.stop()
+                        # Bolt holes
+                        bc_r = 22.0; bn = 4; bd = 3.5
+                        if "_flange_params" in st.session_state:
+                            bc_r = st.session_state["_flange_params"].get("bc_rad", bc_r)
+                            bn   = st.session_state["_flange_params"].get("n", bn)
+                            bd   = st.session_state["_flange_params"].get("bd", bd)
+                        for a in np.linspace(0, 2*np.pi, int(bn), False):
+                            x,y = bc_r*np.cos(a), bc_r*np.sin(a)
+                            sh = creation.cylinder(radius=bd/2, height=f_h+4, sections=32,
+                                transform=np.array([[1,0,0,x],[0,1,0,y],[0,0,1,(f_h+4)/2],[0,0,0,1]]))
+                            flange_ring = trimesh.boolean.difference([flange_ring, sh], engine="manifold")
+                            if not flange_ring.is_watertight:
+                                st.error(f"❌ Bolt hole subtraction failed at ({x:.0f},{y:.0f})")
+                                st.stop()
 
-                    # Union: flange wraps around horn, merges at outer wall
-                    combined = trimesh.boolean.union([horn_m, flange_ring], engine="manifold")
+                        combined = trimesh.boolean.union([horn_m, flange_ring], engine="manifold")
 
                     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as tmp:
                         tmp_path = tmp.name
