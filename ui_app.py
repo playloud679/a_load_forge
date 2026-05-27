@@ -280,6 +280,13 @@ with tab3:
 
     with c2:
         if merge_btn and has_horn and has_flange:
+            # Only axisymmetric horns can be merged with a circular flange
+            _label = st.session_state.get("horn_label", "")
+            if _label.startswith("rect_") or _label.startswith("radial_"):
+                st.error("❌ Merge requires an axisymmetric horn (tractrix / lecleach / iwata). "
+                         "Rectangular and radial horns use different flange geometries.")
+                st.stop()
+
             import trimesh
             from trimesh import creation
 
