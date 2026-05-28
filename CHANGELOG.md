@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.2.2 (2026-05-28)
+
+- **Three-column wide layout**: Horn Profile (left) | Flanges (center) | Assembly + Download (right) — no scrolling needed
+- **Compact flange inputs**: Throat / Mouth / Mid in 3 side-by-side columns with collapsed labels
+- **Compact metrics**: replaced `st.metric` with markdown for smaller result display
+- Mid flange always visible (removed expander)
+
 ## 2.2.1 (2026-05-28)
 
 - **English UI**: complete rewrite with proper acoustic terminology (throat, mouth, bolt circle, PCD)
