@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.2.0 (2026-05-28)
+
+- **Mid flange**: third adjustable flange at any position (5-95% of horn length), auto-calculated hole & bolt circle
+- **Selective generation**: checkboxes to toggle horn, throat flange, mid flange, mouth flange independently before assembly
+- Fixed stray `NameError` on mid flange variable for radial profiles
+- Fixed `_tris`/`_vol` variable ordering in metrics display
+
 ## 2.1.0 (2026-05-28)
 
 - **Flange calculator**: "Calcola flange" button auto-computes all diameters (outer, bolt circle) from horn geometry with real 2D profile generation for Le Cleac'h / Iwata
