@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.2.1 (2026-05-28)
+
+- **English UI**: complete rewrite with proper acoustic terminology (throat, mouth, bolt circle, PCD)
+- **Auto-recalculate on profile change**: flange defaults update automatically when switching profiles
+- **LeCleach safety clamp**: flange OD capped at mouth diameter, hole auto-adjusted to fit
+- **Duplicate element ID fix**: unique keys for all repeated labels (thickness, bolt count, etc.)
+- **Integration test**: 5-profile full assembly test (`tests/test_integration.py`) — tractrix, lecleach, iwata, rectangular, radial — all watertight
+- Fixed LeCleach inward flange logic in integration test
+
 ## 2.2.0 (2026-05-28)
 
 - **Mid flange**: third adjustable flange at any position (5-95% of horn length), auto-calculated hole & bolt circle
