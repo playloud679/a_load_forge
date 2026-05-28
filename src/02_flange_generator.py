@@ -1,95 +1,113 @@
 """
-Parametric Circular Flange Generator.
+Parametric Circular Flange — CSG boolean operations.
 
-Parameters:
-  outer_diam  — outer diameter of the flange
-  inner_diam  — centre hole diameter (sound path)
-  thickness   — flange height (Z)
-  bolt_radius — radius of the bolt hole circle
-  bolt_count  — number of bolt holes
-  bolt_diam   — diameter of each bolt hole
+  z_top    = offset          (flush with horn throat)
+  z_bottom = offset - thickness
 
-Outputs a watertight STL.
+Inner hole radius = throat_R  (matches horn throat).
+Outer radius      = flange_R.
+Bolt holes        = genuine cutouts via trimesh boolean difference.
 """
+
+import logging
+import sys
+from pathlib import Path
 
 import numpy as np
 import trimesh
 from trimesh import creation
 
-OUTER_DIAM   = 60.0
-INNER_DIAM   = 29.0
-THICKNESS    = 6.0
-BOLT_RADIUS  = 22.0      # centre of bolt holes from origin
-BOLT_COUNT   = 4
-BOLT_DIAM    = 3.5
+_src = str(Path(__file__).resolve().parent)
+if _src not in sys.path:
+    sys.path.insert(0, _src)
 
-OUTPUT       = "io/flange.stl"
+logger = logging.getLogger(__name__)
+
+# Legacy defaults
+OUTER_DIAM = 60.0
+INNER_DIAM = 29.0
+THICKNESS = 6.0
+BOLT_RADIUS = 22.0
+BOLT_COUNT = 4
+BOLT_DIAM = 3.5
 
 
 def generate_flange(
-    outer_diam:  float = OUTER_DIAM,
-    inner_diam:  float = INNER_DIAM,
-    thickness:   float = THICKNESS,
-    bolt_radius: float = BOLT_RADIUS,
-    bolt_count:  int   = BOLT_COUNT,
-    bolt_diam:   float = BOLT_DIAM,
-    output_path: str  | None = OUTPUT,
-):
-    # Validate — bolt circle must be outside centre hole
-    inner_r = inner_diam / 2.0
-    if bolt_radius <= inner_r:
-        raise ValueError(
-            f"bolt_radius ({bolt_radius:.1f}) must be > inner_radius ({inner_r:.1f}). "
-            "Bolt holes would fall inside the centre hole."
-        )
-    if bolt_radius + bolt_diam / 2.0 > outer_diam / 2.0:
-        raise ValueError(
-            f"Bolt circle (R={bolt_radius:.1f} + ø{bolt_diam:.1f}/2) extends "
-            f"beyond outer radius ({outer_diam/2:.1f})."
-        )
+    throat_R: float,
+    flange_R: float,
+    thickness: float = 6.0,
+    bolt_R: float = 22.0,
+    bolt_n: int = 4,
+    bolt_d: float = 3.5,
+    offset: float = 0.0,
+    seg: int = 64,
+    output_path: str | None = "io/flange.stl",
+) -> trimesh.Trimesh | None:
+    """
+    Circular flange — CSG boolean difference.
 
-    # ---- 1. Outer disc ----------------------------------------------------
+    The flange sits with its TOP face at *offset* and grows downward (-Z).
+    Inner hole radius = *throat_R* (matches the horn throat).
+    Bolt holes are genuine cutouts via trimesh boolean operations.
+    """
+    zt = offset
+    zb = offset - thickness
+    disc_center_z = zb + thickness / 2.0
+
+    # ── Outer disc ──────────────────────────────────────────────────────
     disc = creation.cylinder(
-        radius=outer_diam / 2.0,
+        radius=flange_R,
         height=thickness,
-        sections=80,
+        sections=seg,
         transform=np.array([
             [1, 0, 0, 0],
             [0, 1, 0, 0],
-            [0, 0, 1, thickness / 2],
+            [0, 0, 1, disc_center_z],
             [0, 0, 0, 1],
         ]),
     )
 
-    # ---- 2. Centre hole ---------------------------------------------------
-    centre_hole = creation.cylinder(
-        radius=inner_diam / 2.0,
-        height=thickness * 2,
-        sections=64,
-    )
+    # ── Bodies to subtract ──────────────────────────────────────────────
+    hole_height = thickness + 2.0
+    to_sub: list[trimesh.Trimesh] = []
 
-    # ---- 3. Bolt holes ----------------------------------------------------
-    bolt_holes = []
-    angles = np.linspace(0, 2 * np.pi, bolt_count, endpoint=False)
-    for a in angles:
-        x = bolt_radius * np.cos(a)
-        y = bolt_radius * np.sin(a)
+    # Throat hole
+    throat_hole = creation.cylinder(
+        radius=throat_R,
+        height=hole_height,
+        sections=seg,
+        transform=np.array([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, disc_center_z],
+            [0, 0, 0, 1],
+        ]),
+    )
+    to_sub.append(throat_hole)
+
+    # Bolt holes
+    for k in range(bolt_n):
+        a = 2 * np.pi * k / bolt_n
+        cx, cy = bolt_R * np.cos(a), bolt_R * np.sin(a)
         bh = creation.cylinder(
-            radius=bolt_diam / 2.0,
-            height=thickness * 2,
-            sections=32,
+            radius=bolt_d / 2.0,
+            height=hole_height,
+            sections=12,
             transform=np.array([
-                [1, 0, 0, x],
-                [0, 1, 0, y],
-                [0, 0, 1, 0],
+                [1, 0, 0, cx],
+                [0, 1, 0, cy],
+                [0, 0, 1, disc_center_z],
                 [0, 0, 0, 1],
             ]),
         )
-        bolt_holes.append(bh)
+        to_sub.append(bh)
 
-    # ---- 4. Boolean subtraction -------------------------------------------
-    to_sub = [centre_hole] + bolt_holes
+    # ── Boolean difference ──────────────────────────────────────────────
     flange = trimesh.boolean.difference([disc] + to_sub, engine="manifold")
+
+    if flange is None:
+        logger.error("Boolean operation returned None")
+        return None
 
     flange.remove_unreferenced_vertices()
     flange.update_faces(flange.nondegenerate_faces())
@@ -97,16 +115,23 @@ def generate_flange(
 
     if output_path:
         flange.export(output_path)
-        print(f"Exported: {output_path}")
-        print(f"  Outer:   Ø{outer_diam:.0f} mm")
-        print(f"  Inner:   Ø{inner_diam:.0f} mm")
-        print(f"  Thick:   {thickness:.0f} mm")
-        print(f"  Bolts:   {bolt_count} × Ø{bolt_diam:.1f} @ R{bolt_radius:.0f} mm")
-        print(f"  Tris:    {len(flange.faces)}")
-        print(f"  WT:      {flange.is_watertight}")
+        logger.info(
+            "Exported: %s  (%d triangles, WT=%s)",
+            output_path, len(flange.faces), flange.is_watertight,
+        )
 
     return flange
 
 
 if __name__ == "__main__":
-    generate_flange()
+    logging.basicConfig(level=logging.INFO)
+    m = generate_flange(
+        throat_R=INNER_DIAM / 2,
+        flange_R=OUTER_DIAM / 2,
+        thickness=THICKNESS,
+        bolt_R=BOLT_RADIUS,
+        bolt_n=BOLT_COUNT,
+        bolt_d=BOLT_DIAM,
+    )
+    if m:
+        print(f"WT:{m.is_watertight} B:{m.body_count} V:{m.volume:.0f}")

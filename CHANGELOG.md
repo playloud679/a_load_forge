@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.0.0 (2026-05-28)
+
+- Circular flange rewritten with CSG boolean operations (trimesh + manifold3d): bolt holes are now genuine cutouts, no more overlapping geometry artifacts
+- Fixed throat Z-alignment: outer and inner profiles now share the same Z origin, ensuring a flat bottom annulus for perfect flange mating
+- Fixed mouth flange positioning: uses max Z instead of max-radius vertex, eliminating gap (was 3mm on tractrix, 84mm on Le Cleac'h)
+- Throat flange now grows upward (into horn body) instead of downward, ensuring proper boolean union merge
+- Shared constants module (`src/_constants.py`): single source for SOUND_SPEED
+- Shared utilities module (`src/_utils.py`): compute_profile_normals, ensure_positive_volume, align_z_to_zero
+- CLI orchestrator rewritten: direct function calls via importlib instead of subprocess
+- Web UI: unified lazy-import helper, radial horn uses temp files, circular flange returns trimesh directly
+- Cleaned up dead code: removed unused `_bc()` function from radial horn, simplified redundant expression
+- Added `pyproject.toml`, `manifold3d` and `streamlit` to dependencies
+- README: corrected test count (16 → 18), updated project structure
+
 ## 1.4.0 (2026-05-26)
 
 - Rectangular flange: circular outer shape, rectangular inner hole, N bolts on adjustable circle

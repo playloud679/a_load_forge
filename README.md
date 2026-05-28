@@ -45,7 +45,7 @@ python -m src.04_rectangular_flange
 .venv/bin/python tests/test_all.py
 ```
 
-16 tests covering all profiles, mesh engines, and watertightness.
+18 tests covering all profiles, mesh engines, and watertightness.
 
 ## Requirements
 
@@ -71,9 +71,13 @@ src/  01_profile_generator.py    — axisymmetric profiles + 3D engine
      02_flange_generator.py     — parametric circular flange
      03_rectangular_horn.py     — rectangular horn lofting engine
      03_omni_radial_horn.py     — 360° radial horn (dual-piece)
+     04_rectangular_flange.py   — rectangular-hole flange
+     _step_export.py            — STEP AP242 export utility
+     _constants.py              — shared constants
+     _utils.py                  — shared utilities (normals, volume, Z-align)
      main.py                    — CLI orchestrator
 ui_app.py                       — Streamlit web UI
-tests/test_all.py               — comprehensive test suite (16 tests)
+tests/test_all.py               — comprehensive test suite (18 tests)
 ```
 
 ## License

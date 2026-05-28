@@ -7,12 +7,20 @@ expansion derived from the cutoff frequency Fc.
 """
 
 import logging
+import sys
+from pathlib import Path
 
 import numpy as np
 from stl import mesh
 
+_src = str(Path(__file__).resolve().parent)
+if _src not in sys.path:
+    sys.path.insert(0, _src)
+
+from _constants import SOUND_SPEED
+import _utils
+
 logger = logging.getLogger(__name__)
-SOUND_SPEED = 343_000
 
 
 # ======================================================================
@@ -79,31 +87,8 @@ def generate_rectangular_3d_mesh(
     n = len(z)
 
     # ---- 1. Normals for the W-Z and H-Z profiles --------------------------
-    def _normals(arr: np.ndarray) -> np.ndarray:
-        dz = np.gradient(z)
-        da = np.gradient(arr)
-        tan = np.column_stack([dz, da])
-        tn = np.sqrt(tan[:, 0] ** 2 + tan[:, 1] ** 2)
-
-        # Boundary protection
-        tiny = tn < 1e-10
-        if tiny.any():
-            valid = np.where(~tiny)[0]
-            if len(valid):
-                for idx in np.where(tiny)[0]:
-                    nbr = valid[np.argmin(np.abs(valid - idx))]
-                    dz[idx], da[idx] = dz[nbr], da[nbr]
-                    tn[idx] = tn[nbr]
-        tn[tn < 1e-15] = 1.0
-        tan /= tn.reshape(-1, 1)
-
-        nml = np.column_stack([-tan[:, 1], tan[:, 0]])
-        if nml[0, 1] < 0:
-            nml = -nml
-        return nml
-
-    nw = _normals(w)   # normals for width  (X-Z plane)
-    nh = _normals(h)   # normals for height (Y-Z plane)
+    nw = _utils.compute_profile_normals(z, w, flip_if_negative=True)
+    nh = _utils.compute_profile_normals(z, h, flip_if_negative=True)
 
     # ---- 2. Offset profiles -----------------------------------------------
     # Width extends in ±X → total offset = 2× thickness × Nx
@@ -113,9 +98,6 @@ def generate_rectangular_3d_mesh(
 
     # Z offset: use the mean of the two Z-normal components
     z_o = z + thickness * (nw[:, 0] + nh[:, 0]) / 2.0
-    shift = z_o.min()
-    if shift < 0:
-        z_o -= shift
 
     # ---- 3. Triangle budget -----------------------------------------------
     # 4 inner walls + 4 outer walls = 8 walls × (n-1) quads × 2 tris = 16·(n-1)
@@ -201,18 +183,7 @@ def generate_rectangular_3d_mesh(
 
     m_obj = mesh.Mesh(data)
 
-    # Z-alignment
-    z_min = m_obj.vectors.reshape(-1, 3)[:, 2].min()
-    if abs(z_min) > 1e-4:
-        m_obj.vectors[:, :, 2] -= z_min
-
-    # Flip normals if volume is negative
-    try:
-        vol = m_obj.get_mass_properties()[0]
-        if vol < 0:
-            m_obj.vectors = m_obj.vectors[:, [0, 2, 1]]
-    except Exception:
-        pass
+    _utils.ensure_positive_volume(m_obj)
 
     if output_path:
         m_obj.save(output_path)

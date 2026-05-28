@@ -20,12 +20,19 @@ Usage:
 import argparse
 import logging
 import sys
+from pathlib import Path
 
 import numpy as np
 from stl import mesh
 
+_src = str(Path(__file__).resolve().parent)
+if _src not in sys.path:
+    sys.path.insert(0, _src)
+
+from _constants import SOUND_SPEED
+import _utils
+
 logger = logging.getLogger(__name__)
-SOUND_SPEED = 343_000           # mm / s
 
 
 # ======================================================================
@@ -188,36 +195,12 @@ def generate_3d_mesh_from_profile(
     n_pts = len(z_i)
 
     # ---- 1. Normals -------------------------------------------------------
-    dz = np.gradient(z_i)
-    dr = np.gradient(r_i)
-    tan = np.column_stack([dz, dr])
-    tn = np.sqrt(tan[:, 0] ** 2 + tan[:, 1] ** 2)
-
-    # Boundary protection: wherever the tangent magnitude collapses
-    # (dz≈dr≈0), replace with the nearest valid neighbour.
-    tiny = tn < 1e-10
-    if tiny.any():
-        valid = np.where(~tiny)[0]
-        if len(valid) > 0:
-            for idx in np.where(tiny)[0]:
-                neighbour = valid[np.argmin(np.abs(valid - idx))]
-                dz[idx] = dz[neighbour]
-                dr[idx] = dr[neighbour]
-                tn[idx] = tn[neighbour]
-    tn[tn < 1e-15] = 1.0
-    tan /= tn.reshape(-1, 1)
-
-    nml = np.column_stack([-tan[:, 1], tan[:, 0]])
+    nml = _utils.compute_profile_normals(z_i, r_i)
 
     # ---- 2. Outer profile -------------------------------------------------
     z_o = z_i + nml[:, 0] * thickness
     r_o = r_i + nml[:, 1] * thickness
-
-    shift_o = z_o.min()
-    if shift_o < 0:
-        z_o -= shift_o
-
-    # ---- 3. Revolution (single pass, shared theta) -----------------------
+    z_o -= z_o[0]                     # flat bottom: outer throat = inner throat = 0
     theta = np.linspace(0, 2 * np.pi, rings, endpoint=False)
     ct, st = np.cos(theta), np.sin(theta)
 
@@ -280,21 +263,10 @@ def generate_3d_mesh_from_profile(
 
     m_obj = mesh.Mesh(data)
 
-    # ---- 4. Z-alignment ---------------------------------------------------
-    z_min = m_obj.vectors.reshape(-1, 3)[:, 2].min()
-    if abs(z_min) > 1e-4:
-        m_obj.vectors[:, :, 2] -= z_min
+    # ---- 4. Fix inverted normals (negative volume) ------------------------
+    _utils.ensure_positive_volume(m_obj)
 
-    # ---- 5. Fix inverted normals (negative volume) ------------------------
-    try:
-        vol = m_obj.get_mass_properties()[0]
-        if vol < 0:
-            m_obj.vectors = m_obj.vectors[:, [0, 2, 1]]   # flip winding
-            logger.info("Flipped normals (volume was %.0f mm³)", vol)
-    except Exception:
-        pass
-
-    # ---- 6. Save ----------------------------------------------------------
+    # ---- 5. Save ----------------------------------------------------------
     if output_path:
         m_obj.save(output_path)
         logger.info("Exported: %s  (%d triangles)", output_path, n_tri)

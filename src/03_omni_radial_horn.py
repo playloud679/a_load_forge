@@ -13,12 +13,20 @@ Output:  radial_bottom.stl  — flat base at Z=0, throat hole
 """
 
 import logging
+import sys
+from pathlib import Path
 
 import numpy as np
 from stl import mesh
 
+_src = str(Path(__file__).resolve().parent)
+if _src not in sys.path:
+    sys.path.insert(0, _src)
+
+from _constants import SOUND_SPEED
+import _utils
+
 logger = logging.getLogger(__name__)
-SOUND_SPEED = 343_000
 
 
 # ======================================================================
@@ -47,8 +55,8 @@ def get_radial_profiles(
     # Vertical gap  H(R) = S(R) / (2πR)
     H = S / (2.0 * np.pi * R)
 
-    # Bottom deflector: gentle exponential rise from the throat
-    Z_bottom = (R - Rt) / (Rm - Rt) * (Rm - Rt) * 0.3   # gentle linear rise, 0.3 slope
+    # Bottom deflector: gentle linear rise from the throat
+    Z_bottom = (R - Rt) * 0.3
 
     # Top reflector sits exactly H(R) above the bottom
     Z_top = Z_bottom + H
@@ -93,17 +101,8 @@ def _revolve_polygon(
 
     m_obj = mesh.Mesh(data)
 
-    # Z‑alignment
-    z_min = m_obj.vectors.reshape(-1, 3)[:, 2].min()
-    if abs(z_min) > 1e-4:
-        m_obj.vectors[:, :, 2] -= z_min
-
-    # Fix inverted normals automatically
-    try:
-        if m_obj.get_mass_properties()[0] < 0:
-            m_obj.vectors = m_obj.vectors[:, [0, 2, 1]]
-    except Exception:
-        pass
+    _utils.align_z_to_zero(m_obj)
+    _utils.ensure_positive_volume(m_obj)
 
     return m_obj
 
@@ -172,9 +171,6 @@ def _wt(m):
         return str(m.get_mass_properties()[0] > 0)
     except Exception:
         return "?"
-
-def _bc(m):
-    return 1  # single piece by construction
 
 
 # ======================================================================
