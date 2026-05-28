@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.0 (2026-05-28)
+
+- **Flange calculator**: "Calcola flange" button auto-computes all diameters (outer, bolt circle) from horn geometry with real 2D profile generation for Le Cleac'h / Iwata
+- **Le Cleac'h mouth flange**: positioned at roll-back (max radius), extruded backward, 10mm flange ring goes *inward* (verso il centro) instead of outward — outer edge flush with mouth, hole 20mm smaller
+- **Derived metrics**: automatic display of Fc (tractrix), length, and mouth diameter on every parameter change
+- Mouth flange hole sizing now profile-aware: local radius for standard profiles, max radius for Le Cleac'h roll-back
+- Simplified flange parameter UI: session-state driven inputs, removed scattered inline computations
+
 ## 2.0.0 (2026-05-28)
 
 - Circular flange rewritten with CSG boolean operations (trimesh + manifold3d): bolt holes are now genuine cutouts, no more overlapping geometry artifacts
