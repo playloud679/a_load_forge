@@ -40,3 +40,39 @@ Whenever you modify a Python module under `src/` (add a new profile, change a fu
 ```
 
 All tests must pass before committing.
+
+## Streamlit Module Caching & Live Reloading
+
+### The Caching Problem
+Streamlit runs the main script (`ui_app.py`) in a long-lived Python process. Helper and generator modules imported from `src/` are cached in `sys.modules` by Python. When coding assistants modify these source files and Streamlit automatically reruns the main script, the cached versions are still used, meaning **your changes will have absolutely no effect in the running UI** until the Streamlit process is fully restarted.
+
+### Mandatory Fix
+**At the very top of `ui_app.py`**, right after the standard imports, you **must** import and reload every helper/generator module that lives under `src/` using `importlib.reload()`. This forces Python to re-execute the module's code and ensures that all edits are picked up immediately on UI reload.
+
+### Concrete Pattern to Use
+
+```python
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent / "src"))
+
+import profile_generator as _core
+import flange_generator as _fg
+import rectangular_flange as _rf
+import rectangular_horn as _rh
+import radial_horn as _rd
+
+import importlib
+importlib.reload(_core)
+importlib.reload(_fg)
+importlib.reload(_rf)
+importlib.reload(_rh)
+importlib.reload(_rd)
+```
+
+### Important Rules
+1. `importlib.reload()` must be called **after** the module is imported.
+2. If you add a new module under `src/` that is used in `ui_app.py`, you **must** add both its import and its reload call to this block.
+3. Always import the full module (e.g. `import rectangular_horn as _rh`) rather than importing names from it, so that the module reference can be passed to `importlib.reload()`.
+4. This ensures that every hot-reload picks up your latest changes immediately, without requiring a manual restart of Streamlit.
+

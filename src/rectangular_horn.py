@@ -164,6 +164,10 @@ def generate_rectangular_3d_mesh(
 
     # Z offset: use the mean of the two Z-normal components
     z_o = z + thickness * (nw[:, 0] + nh[:, 0]) / 2.0
+    # Clip Z offset to be within the original Z range to avoid protrusions
+    z_o = np.clip(z_o, z[0], z[-1])
+    z_o[0] = z[0]    # Force bottom frame to be perfectly flat/flush at Z=0
+    z_o[-1] = z[-1]  # Force top frame to be perfectly flat/flush at Z=L
 
     # ---- 3. Triangle budget -----------------------------------------------
     # 4 inner walls + 4 outer walls = 8 walls × (n-1) quads × 2 tris = 16·(n-1)

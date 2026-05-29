@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.5 (2026-05-30)
+
+- **Z-offset flat bottom fix**: Clipped `z_o` coordinates to the original `[z[0], z[-1]]` range in `rectangular_horn.py` to completely eliminate negative Z protrusions ("bordino") under the throat flange, ensuring a perfectly flat base.
+- **Streamlit hot reload**: Added explicit `importlib.reload()` for all core generator modules at the top of `ui_app.py` to bypass Streamlit's module caching, ensuring that all subsequent code modifications immediately take effect in the active dashboard.
+- **Agent instructions**: Updated `AGENTS.md` with guidelines on Streamlit module caching and hot reloading to prevent future caching issues.
+
 ## 2.2.4 (2026-05-29)
 
 - **Architecture**: removed all `importlib.machinery.SourceFileLoader` — standard Python imports throughout
