@@ -75,7 +75,7 @@ def make_assembly(label, horn_mesh, z_mouth, is_rect=False, is_lecleach=False,
     flanges = []
 
     f = fg.generate_flange(throat_R=fg_hole/2, flange_R=fg_od/2, thickness=fg_spess,
-                           bolt_R=fg_bc/2, bolt_n=4, bolt_d=3.5, offset=0 + fg_spess)
+                           bolt_R=fg_bc/2, bolt_n=4, bolt_d=3.5, offset=0)
     if f is None: raise RuntimeError("Throat flange failed")
     flanges.append(f)
     print(f"    Throat: hole=Ø{fg_hole:.0f} od=Ø{fg_od:.0f} bc=Ø{fg_bc:.0f}")

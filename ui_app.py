@@ -3,10 +3,11 @@ Horn Generator — Dashboard monotab professionale.
 Layout: Profilo (sx) + Anteprima 2D (dx) | Flange | Generazione Assembly.
 """
 
-import io, os, sys, tempfile, traceback
+import io, os, sys, tempfile, traceback, base64
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -18,14 +19,145 @@ import rectangular_horn as _rh
 import radial_horn as _rd
 from _step_export import export_step
 
+import importlib
+importlib.reload(_core)
+importlib.reload(_fg)
+importlib.reload(_rf)
+importlib.reload(_rh)
+importlib.reload(_rd)
+
 st.set_page_config(page_title="Generatore di Trombe", layout="wide",
     initial_sidebar_state="collapsed", menu_items={})
+
+def get_threejs_viewer_html(stl_bytes: bytes) -> str:
+    stl_b64 = base64.b64encode(stl_bytes).decode("utf-8")
+    return f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ margin: 0; overflow: hidden; background: #0e1117; font-family: sans-serif; }}
+            #canvas-container {{ width: 100vw; height: 100vh; }}
+            #loading {{
+                position: absolute; top: 50%; left: 50%;
+                transform: translate(-50%, -50%);
+                color: #2196F3; font-weight: bold; font-size: 14px;
+                pointer-events: none; transition: opacity 0.5s;
+            }}
+        </style>
+    </head>
+    <body>
+        <div id="loading">Caricamento modello 3D...</div>
+        <div id="canvas-container"></div>
+
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+        <script>
+            const container = document.getElementById('canvas-container');
+            const loadingEl = document.getElementById('loading');
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0e1117);
+
+            const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({{ antialias: true }});
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Lights
+            const ambientLight = new THREE.AmbientLight(0x333333);
+            scene.add(ambientLight);
+
+            const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight1.position.set(1, 1, 1).normalize();
+            scene.add(dirLight1);
+
+            const dirLight2 = new THREE.DirectionalLight(0x2196F3, 0.5);
+            dirLight2.position.set(-1, -1, 1).normalize();
+            scene.add(dirLight2);
+
+            const pointLight = new THREE.PointLight(0xffffff, 0.5);
+            camera.add(pointLight);
+            scene.add(camera);
+
+            // Load Base64 STL
+            const b64Data = "{stl_b64}";
+            const binStr = atob(b64Data);
+            const len = binStr.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {{
+                bytes[i] = binStr.charCodeAt(i);
+            }}
+
+            const loader = new THREE.STLLoader();
+            const geometry = loader.parse(bytes.buffer);
+
+            const material = new THREE.MeshStandardMaterial({{
+                color: 0x2196F3,
+                roughness: 0.3,
+                metalness: 0.8,
+                flatShading: false
+            }});
+
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            scene.add(mesh);
+
+            // Center geometry and adjust camera
+            geometry.computeBoundingBox();
+            const boundingBox = geometry.boundingBox;
+            const center = new THREE.Vector3();
+            boundingBox.getCenter(center);
+            mesh.position.sub(center); // center the model
+
+            const size = new THREE.Vector3();
+            boundingBox.getSize(size);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            let cameraZ = Math.abs(maxDim / 2 * Math.tan(fov * 2));
+            cameraZ *= 1.5; // zoom out a bit
+            camera.position.set(maxDim * 0.8, maxDim * 0.8, cameraZ);
+            camera.lookAt(new THREE.Vector3(0, 0, 0));
+            controls.target.set(0, 0, 0);
+
+            loadingEl.style.opacity = 0;
+
+            // Resize handler
+            window.addEventListener('resize', () => {{
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }});
+
+            // Animation loop
+            function animate() {{
+                requestAnimationFrame(animate);
+                controls.update();
+                renderer.render(scene, camera);
+            }}
+            animate();
+        </script>
+    </body>
+    </html>
+    """
 
 # ── Flange recalculation callback ────────────────────────────────────
 
 def _on_horn_change():
     """Recalculate geometry-dependent flange defaults when horn changes."""
-    for _k in ("fg_od", "fg_bc", "fg_ow", "fg_oh",
+    st.session_state["_horn_changed"] = True
+    for _k in ("gola_out", "bocca_out", "mid_out",
+               "fg_od", "fg_bc", "fg_ow", "fg_oh",
                "fm_od", "fm_bc", "fm_ow", "fm_oh",
                "mid_od", "mid_bc", "mid_ow", "mid_oh"):
         st.session_state.pop(_k, None)
@@ -71,33 +203,33 @@ with col_prof:
     d1, d2, d3, d4 = st.columns(4)
     with d1:
         if is_rect:
-            tw = st.number_input("Larghezza gola (mm)", 4.0, 200.0, 20.0, 1.0)
-            th = st.number_input("Altezza gola (mm)", 2.0, 200.0, 10.0, 1.0)
+            tw = st.number_input("Larghezza gola (mm)", 4.0, 200.0, 20.0, 1.0, on_change=_on_horn_change)
+            th = st.number_input("Altezza gola (mm)", 2.0, 200.0, 10.0, 1.0, on_change=_on_horn_change)
         elif is_radial:
-            td = st.number_input("Ø gola (mm)", 5.0, 100.0, 25.0, 1.0)
+            td = st.number_input("Ø gola (mm)", 5.0, 100.0, 25.0, 1.0, on_change=_on_horn_change)
         else:
-            td = st.number_input("Ø gola (mm)", 2.0, 200.0, 20.0, 1.0)
+            td = st.number_input("Ø gola (mm)", 2.0, 200.0, 20.0, 1.0, on_change=_on_horn_change)
     with d2:
         if is_rect:
             if is_tractrix or is_exp:
-                mw = st.number_input("Larghezza bocca (mm)", 10.0, 500.0, 160.0, 5.0)
+                mw = st.number_input("Larghezza bocca (mm)", 10.0, 500.0, 160.0, 5.0, on_change=_on_horn_change)
             else:
                 st.caption("Bocca — calcolata")
         elif is_radial or is_tractrix:
-            md = st.number_input("Ø bocca (mm)", 4.0, 500.0, 100.0 if is_tractrix else 200.0, 5.0)
+            md = st.number_input("Ø bocca (mm)", 4.0, 500.0, 100.0 if is_tractrix else 200.0, 5.0, on_change=_on_horn_change)
         else:
             st.caption("Bocca — calcolata da Fc")
     with d3:
         if has_fc:
             fc = st.number_input("Frequenza di taglio Fc (Hz)", 50, 20000, 600, 50,
-                help="Determina il tasso di espansione (m = 4π·fc / c₀)")
+                help="Determina il tasso di espansione (m = 4π·fc / c₀)", on_change=_on_horn_change)
         else:
             fc = None; st.caption("—")
     with d4:
         if is_rect and is_exp:
             pass  # exponential: mouth_w determines length
         elif is_iwata:
-            ln = st.number_input("Lunghezza assiale (mm)", 10.0, 500.0, 80.0, 5.0)
+            ln = st.number_input("Lunghezza assiale (mm)", 10.0, 500.0, 80.0, 5.0, on_change=_on_horn_change)
         else:
             st.caption("—")
 
@@ -238,14 +370,96 @@ def _calc_flange_dims():
 
 ir_g, ir_m, _get_mid_r = _calc_flange_dims()
 
-if st.button("🔧 Ricalcola flange", use_container_width=True,
-             help="Aggiorna tutti i diametri flange in base ai parametri attuali del corno"):
-    _on_horn_change()
-
 # Common bolt defaults
 _bolt_n = 4
 _bolt_d = 3.5
 _flange_sp = 6.0
+
+# Centralized Flange Recalculation
+_mid_pos_val = st.session_state.get("mid_z", max(5.0, (_len or 200) * 0.5))
+
+# Initialize flange widths if not present
+if "fg_w" not in st.session_state:
+    st.session_state["fg_w"] = 15.0 if is_rect else 10.0
+if "fm_w" not in st.session_state:
+    st.session_state["fm_w"] = 15.0 if is_rect else 10.0
+if "mid_w" not in st.session_state:
+    st.session_state["mid_w"] = 15.0 if is_rect else 10.0
+
+if st.session_state.get("_horn_changed", False) or not all(
+    k in st.session_state for k in ("fg_od", "fg_bc", "fg_ow", "fg_oh", "fm_od", "fm_bc", "fm_ow", "fm_oh", "mid_od", "mid_bc", "mid_ow", "mid_oh")
+):
+    # Set default outer flange shapes matching section
+    st.session_state["gola_out"] = "Rettangolare" if is_rect else "Circolare"
+    st.session_state["bocca_out"] = "Rettangolare" if is_rect else "Circolare"
+    st.session_state["mid_out"] = "Rettangolare" if is_rect else "Circolare"
+
+    _w_g = st.session_state["fg_w"]
+    _w_m = st.session_state["fm_w"]
+    _w_mid = st.session_state["mid_w"]
+
+    # --- Throat Flange (Flangia Gola) ---
+    if is_rect:
+        r_corner_g = np.sqrt((max(tw, th)/2)**2 + (min(tw, th)/2)**2)
+        r_horn_outer_g = r_corner_g + spessore
+        st.session_state["fg_od"] = float((r_horn_outer_g + _w_g) * 2.0)
+        st.session_state["fg_bc"] = float((r_horn_outer_g + _w_g / 2.0) * 2.0)
+    else:
+        st.session_state["fg_od"] = float((td/2 + spessore) * 2 + 2 * _w_g)
+        st.session_state["fg_bc"] = float((td/2 + spessore + _w_g / 2.0) * 2.0)
+    st.session_state["fg_ow"] = st.session_state["fg_od"]
+    st.session_state["fg_oh"] = st.session_state["fg_od"]
+
+    # --- Mouth Flange (Flangia Bocca) ---
+    if is_rect:
+        zp, wp, hp = _get_rect_profile(segmenti)
+        fm_hole_w = wp[-1] + spessore * 2
+        fm_hole_h = hp[-1] + spessore * 2
+        if is_lecleach:
+            st.session_state["fm_od"] = float(fm_hole_w - 2 * _w_m)
+            st.session_state["fm_ow"] = float(fm_hole_w - 2 * _w_m)
+            st.session_state["fm_oh"] = float(fm_hole_h - 2 * _w_m)
+            st.session_state["fm_bc"] = float(fm_hole_w - 3 * _w_m)
+        else:
+            r_corner_m = np.sqrt((fm_hole_w/2)**2 + (fm_hole_h/2)**2)
+            st.session_state["fm_od"] = float((r_corner_m + _w_m) * 2.0)
+            st.session_state["fm_ow"] = st.session_state["fm_od"]
+            st.session_state["fm_oh"] = float(st.session_state["fm_od"] * fm_hole_h / fm_hole_w)
+            st.session_state["fm_bc"] = float((r_corner_m + _w_m / 2.0) * 2.0)
+    elif is_lecleach:
+        st.session_state["fm_od"] = float(ir_m * 2)
+        st.session_state["fm_bc"] = float(st.session_state["fm_od"] - 2 * _w_m)
+        st.session_state["fm_ow"] = st.session_state["fm_od"]
+        st.session_state["fm_oh"] = st.session_state["fm_od"]
+    else:
+        st.session_state["fm_od"] = float((ir_m + spessore) * 2 + 2 * _w_m)
+        st.session_state["fm_bc"] = float((ir_m + spessore + _w_m / 2.0) * 2.0)
+        st.session_state["fm_ow"] = st.session_state["fm_od"]
+        st.session_state["fm_oh"] = st.session_state["fm_od"]
+
+    # --- Intermediate Flange (Flangia Intermedia) ---
+    if not is_radial:
+        if is_rect:
+            zp, wp, hp = _get_rect_profile(segmenti)
+            _idx = min(int(np.searchsorted(zp, _mid_pos_val)), len(zp)-1)
+            _w_mid_pt = wp[_idx] + spessore * 2
+            _h_mid_pt = hp[_idx] + spessore * 2
+            r_corner_mid = np.sqrt((_w_mid_pt / 2.0)**2 + (_h_mid_pt / 2.0)**2)
+            st.session_state["mid_od"] = float((r_corner_mid + _w_mid) * 2.0)
+            st.session_state["mid_ow"] = st.session_state["mid_od"]
+            st.session_state["mid_oh"] = float(st.session_state["mid_od"] * _h_mid_pt / _w_mid_pt)
+            st.session_state["mid_bc"] = float((r_corner_mid + _w_mid / 2.0) * 2.0)
+        else:
+            mid_r = _get_mid_r(_mid_pos_val / max(_len or 1, 1) * 100) if _len else 10
+            mid_outer = mid_r + spessore
+            mid_hole = mid_outer * 2
+            st.session_state["mid_od"] = float(mid_hole + 2 * _w_mid)
+            st.session_state["mid_bc"] = float((mid_outer + _w_mid / 2.0) * 2.0)
+            st.session_state["mid_ow"] = st.session_state["mid_od"]
+            st.session_state["mid_oh"] = st.session_state["mid_od"]
+
+    # Clear changed flag
+    st.session_state["_horn_changed"] = False
 
 # --- Flange inputs (3 columns) ---
 fg1, fg2, fg3 = st.columns(3)
@@ -255,71 +469,67 @@ with fg1:
     gen_gola = st.checkbox("Includi", True, key="gen_gola")
     _fg_sp = st.number_input("Spessore (mm)", 2.0, 20.0, _flange_sp, 0.5, key="fg_spess")
     _fg_off = st.number_input("Offset Z (mm)", -50.0, 50.0, 0.0, 0.5, key="fg_off")
+    _fg_w = st.number_input("Larghezza bordo (mm)", 2.0, 150.0, key="fg_w", step=1.0, on_change=_on_horn_change)
     _fg_nb = st.number_input("N° bulloni", 2, 24, _bolt_n, 1, key="fg_nb")
     _fg_db = st.number_input("Ø foro bullone (mm)", 1.0, 12.0, _bolt_d, 0.1, key="fg_db")
+    
     if is_rect:
-        r_corner_g = np.sqrt((max(tw, th)/2)**2 + (min(tw, th)/2)**2)
-        r_horn_outer_g = r_corner_g + spessore
-        _fg_od = (r_horn_outer_g + 15.0) * 2.0
-        _fg_bc = r_horn_outer_g + _fg_od / 2.0
         st.caption(f"Foro: {max(tw,th):.0f}×{min(tw,th):.0f} mm (rettangolare)")
     else:
-        _fg_od = (td/2 + spessore) * 2 + 20
-        _fg_bc = td/2 + spessore + _fg_od / 2
         st.caption(f"Foro: Ø{td + spessore*2:.0f} mm (circolare)")
+        
+    gola_default = "Rettangolare" if is_rect else "Circolare"
+    if "gola_out" not in st.session_state:
+        st.session_state["gola_out"] = gola_default
+    gola_index = ["Circolare", "Rettangolare"].index(st.session_state["gola_out"])
     gola_out = st.radio("Esterno", ["Circolare", "Rettangolare"],
-                         index=1 if is_rect else 0, horizontal=True, key="gola_out")
+                         index=gola_index, horizontal=True, key="gola_out")
+    
     if gola_out == "Rettangolare":
-        if '_fg_ow' not in dir(): _fg_ow = _fg_od
-        if '_fg_oh' not in dir(): _fg_oh = _fg_od
-        _fg_ow = st.number_input("Larghezza (mm)", 10.0, 300.0, _fg_ow, 1.0, key="fg_ow")
-        _fg_oh = st.number_input("Altezza (mm)", 10.0, 300.0, _fg_oh, 1.0, key="fg_oh")
+        _fg_ow = st.number_input("Larghezza (mm)", 10.0, 300.0, key="fg_ow", step=1.0)
+        _fg_oh = st.number_input("Altezza (mm)", 10.0, 300.0, key="fg_oh", step=1.0)
+        _fg_od = st.session_state.get("fg_od", 60.0)
+        _fg_bc = st.session_state.get("fg_bc", 50.0)
     else:
-        _fg_od = st.number_input("Ø esterno (mm)", 10.0, 300.0, _fg_od, 1.0, key="fg_od")
-        _fg_bc = st.number_input("Ø cerchio fori (mm)", 10.0, 280.0, _fg_bc, 1.0, key="fg_bc")
+        _fg_od = st.number_input("Ø esterno (mm)", 10.0, 300.0, key="fg_od", step=1.0)
+        _fg_bc = st.number_input("Ø cerchio fori (mm)", 10.0, 280.0, key="fg_bc", step=1.0)
+        _fg_ow = st.session_state.get("fg_ow", 60.0)
+        _fg_oh = st.session_state.get("fg_oh", 60.0)
 
 with fg2:
     st.markdown("##### Flangia Bocca")
     gen_bocca = st.checkbox("Includi", True, key="gen_bocca")
     _fm_sp = st.number_input("Spessore (mm)", 2.0, 20.0, _flange_sp, 0.5, key="fm_spess")
     _fm_off = st.number_input("Offset Z (mm)", -50.0, 50.0, 0.0, 0.5, key="fm_off")
+    _fm_w = st.number_input("Larghezza bordo (mm)", 2.0, 150.0, key="fm_w", step=1.0, on_change=_on_horn_change)
     _fm_nb = st.number_input("N° bulloni", 2, 24, _bolt_n, 1, key="fm_nb")
     _fm_db = st.number_input("Ø foro bullone (mm)", 1.0, 12.0, _bolt_d, 0.1, key="fm_db")
+    
     if is_rect:
         zp, wp, hp = _get_rect_profile(segmenti)
         fm_hole_w = wp[-1] + spessore * 2
         fm_hole_h = hp[-1] + spessore * 2
-        if is_lecleach:
-            # INWARD: entire flange sits inside mouth (outer = mouth - 20, hole = mouth - 40)
-            _fm_od = fm_hole_w - 20
-            _fm_ow = fm_hole_w - 20
-            _fm_oh = fm_hole_h - 20
-            _fm_bc = fm_hole_w - 30  # midpoint of 20mm inward ring
-        else:
-            r_corner_m = np.sqrt((fm_hole_w/2)**2 + (fm_hole_h/2)**2)
-            _fm_od = (r_corner_m + 15.0) * 2.0
-            _fm_ow = _fm_od
-            _fm_oh = _fm_od * fm_hole_h / fm_hole_w
-            _fm_bc = r_corner_m + _fm_od / 2.0
         st.caption(f"Foro: {fm_hole_w:.0f}×{fm_hole_h:.0f} mm (rettangolare)")
-    elif is_lecleach:
-        _fm_od = ir_m * 2
-        _fm_bc = _fm_od - 20  # inward: midpoint between hole and mouth edge
-        st.caption(f"Foro: Ø{ir_m*2 + spessore*2:.0f} mm (circolare)")
     else:
-        _fm_od = (ir_m + spessore) * 2 + 20
-        _fm_bc = ir_m + spessore + _fm_od / 2
         st.caption(f"Foro: Ø{ir_m*2 + spessore*2:.0f} mm (circolare)")
+        
+    bocca_default = "Rettangolare" if is_rect else "Circolare"
+    if "bocca_out" not in st.session_state:
+        st.session_state["bocca_out"] = bocca_default
+    bocca_index = ["Circolare", "Rettangolare"].index(st.session_state["bocca_out"])
     bocca_out = st.radio("Esterno", ["Circolare", "Rettangolare"],
-                          index=1 if is_rect else 0, horizontal=True, key="bocca_out")
+                          index=bocca_index, horizontal=True, key="bocca_out")
+                          
     if bocca_out == "Rettangolare":
-        if '_fm_ow' not in dir(): _fm_ow = _fm_od
-        if '_fm_oh' not in dir(): _fm_oh = _fm_od
-        _fm_ow = st.number_input("Larghezza (mm)", 10.0, 1000.0, _fm_ow, 1.0, key="fm_ow")
-        _fm_oh = st.number_input("Altezza (mm)", 10.0, 1000.0, _fm_oh, 1.0, key="fm_oh")
+        _fm_ow = st.number_input("Larghezza (mm)", 10.0, 1000.0, key="fm_ow", step=1.0)
+        _fm_oh = st.number_input("Altezza (mm)", 10.0, 1000.0, key="fm_oh", step=1.0)
+        _fm_od = st.session_state.get("fm_od", 120.0)
+        _fm_bc = st.session_state.get("fm_bc", 110.0)
     else:
-        _fm_od = st.number_input("Ø esterno (mm)", 10.0, 1000.0, _fm_od, 1.0, key="fm_od")
-        _fm_bc = st.number_input("Ø cerchio fori (mm)", 10.0, 980.0, _fm_bc, 1.0, key="fm_bc")
+        _fm_od = st.number_input("Ø esterno (mm)", 10.0, 1000.0, key="fm_od", step=1.0)
+        _fm_bc = st.number_input("Ø cerchio fori (mm)", 10.0, 980.0, key="fm_bc", step=1.0)
+        _fm_ow = st.session_state.get("fm_ow", 120.0)
+        _fm_oh = st.session_state.get("fm_oh", 120.0)
 
 with fg3:
     st.markdown("##### Flangia Intermedia")
@@ -329,38 +539,41 @@ with fg3:
     else:
         gen_mid = st.checkbox("Includi", False, key="gen_mid")
         _mid_pos = st.number_input("Distanza dalla gola (mm)", 5.0, 2000.0,
-            max(5.0, (_len or 200) * 0.5), 5.0, key="mid_z")
+            max(5.0, (_len or 200) * 0.5), 5.0, key="mid_z", on_change=_on_horn_change)
         _mid_sp = st.number_input("Spessore (mm)", 2.0, 20.0, 4.0, 0.5, key="mid_spess")
+        _mid_w = st.number_input("Larghezza bordo (mm)", 2.0, 150.0, key="mid_w", step=1.0, on_change=_on_horn_change)
         _mid_nb = st.number_input("N° bulloni", 2, 24, _bolt_n, 1, key="mid_nb")
         _mid_db = st.number_input("Ø foro bullone (mm)", 1.0, 12.0, _bolt_d, 0.1, key="mid_db")
+        
         if is_rect:
             zp, wp, hp = _get_rect_profile(segmenti)
             _idx = min(int(np.searchsorted(zp, _mid_pos)), len(zp)-1)
             _w_mid = wp[_idx] + spessore * 2
             _h_mid = hp[_idx] + spessore * 2
-            r_corner_mid = np.sqrt((_w_mid / 2.0)**2 + (_h_mid / 2.0)**2)
-            _mid_od = (r_corner_mid + 15.0) * 2.0
-            _mid_ow = _mid_od
-            _mid_oh = _mid_od * _h_mid / _w_mid
-            _mid_bc = r_corner_mid + _mid_od / 2.0
             st.caption(f"Foro: {_w_mid:.0f}×{_h_mid:.0f} mm (rettangolare)")
         else:
             mid_r = _get_mid_r(_mid_pos / max(_len or 1, 1) * 100) if _len else 10
             mid_outer = mid_r + spessore
             mid_hole = mid_outer * 2
-            _mid_od = mid_hole + 20
-            _mid_bc = mid_outer + _mid_od / 2
             st.caption(f"Foro: Ø{mid_hole:.0f} mm (circolare)")
+            
+        mid_default = "Rettangolare" if is_rect else "Circolare"
+        if "mid_out" not in st.session_state:
+            st.session_state["mid_out"] = mid_default
+        mid_index = ["Circolare", "Rettangolare"].index(st.session_state["mid_out"])
         mid_out = st.radio("Esterno", ["Circolare", "Rettangolare"],
-                            index=1 if is_rect else 0, horizontal=True, key="mid_out")
+                            index=mid_index, horizontal=True, key="mid_out")
+                            
         if mid_out == "Rettangolare":
-            if '_mid_ow' not in dir(): _mid_ow = _mid_od
-            if '_mid_oh' not in dir(): _mid_oh = _mid_od
-            _mid_ow = st.number_input("Larghezza (mm)", 10.0, 1000.0, _mid_ow, 1.0, key="mid_ow")
-            _mid_oh = st.number_input("Altezza (mm)", 10.0, 1000.0, _mid_oh, 1.0, key="mid_oh")
+            _mid_ow = st.number_input("Larghezza (mm)", 10.0, 1000.0, key="mid_ow", step=1.0)
+            _mid_oh = st.number_input("Altezza (mm)", 10.0, 1000.0, key="mid_oh", step=1.0)
+            _mid_od = st.session_state.get("mid_od", 80.0)
+            _mid_bc = st.session_state.get("mid_bc", 70.0)
         else:
-            _mid_od = st.number_input("Ø esterno (mm)", 10.0, 1000.0, _mid_od, 1.0, key="mid_od")
-            _mid_bc = st.number_input("Ø cerchio fori (mm)", 10.0, 980.0, _mid_bc, 1.0, key="mid_bc")
+            _mid_od = st.number_input("Ø esterno (mm)", 10.0, 1000.0, key="mid_od", step=1.0)
+            _mid_bc = st.number_input("Ø cerchio fori (mm)", 10.0, 980.0, key="mid_bc", step=1.0)
+            _mid_ow = st.session_state.get("mid_ow", 80.0)
+            _mid_oh = st.session_state.get("mid_oh", 80.0)
 
 # ═══════════════════════════════════════════════════════════════════════
 #  ROW 3 — Generate Assembly
@@ -426,9 +639,9 @@ if gen_btn:
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
                 bocca_w = bocca_h = (rp[-1] + spessore) * 2 if not is_lecleach else ir_m * 2
 
-            z_min = horn.vertices[:,2].min()
+            z_min = 0.0
 
-            # --- 3b. Throat hole — analytical ---
+            # --- 3b. Throat hole — analytical (collar matching outer horn wall) ---
             if is_rect:
                 fiw_g = tw + spessore * 2
                 fih_g = th + spessore * 2
@@ -438,8 +651,8 @@ if gen_btn:
             # --- 3c. Exact mouth dimensions ---
             if is_rect:
                 zp, wp, hp = _get_rect_profile(segmenti)
-                fiw_m = wp[-1] + spessore * 2
-                fih_m = hp[-1] + spessore * 2
+                fiw_m = wp[-1]
+                fih_m = hp[-1]
                 z_mouth = zp[-1]
             elif is_radial:
                 fiw_m = fih_m = md
@@ -538,9 +751,7 @@ if gen_btn:
                 st.error("Seleziona almeno un elemento da generare")
                 st.stop()
 
-            if is_rect:
-                combined = _tm.util.concatenate(bodies)
-            elif len(bodies) == 1:
+            if len(bodies) == 1:
                 combined = bodies[0]
             else:
                 try:
@@ -588,6 +799,11 @@ if gen_btn:
                 st.warning("Mesh non watertight — verifica i parametri")
             else:
                 st.info("Output multi-corpo (flange separate)")
+
+            # WebGL 3D Preview
+            st.markdown("##### Anteprima 3D Interattiva")
+            html_content = get_threejs_viewer_html(stl_bytes)
+            components.html(html_content, height=450, scrolling=False)
 
             col_dl1, col_dl2 = st.columns(2)
             with col_dl1:

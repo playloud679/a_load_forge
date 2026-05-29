@@ -205,62 +205,67 @@ def generate_3d_mesh_from_profile(
     theta = np.linspace(0, 2 * np.pi, rings, endpoint=False)
     ct, st = np.cos(theta), np.sin(theta)
 
-    n_tri = 4 * n_pts * rings
-    data = np.zeros(n_tri, dtype=mesh.Mesh.dtype)
-    tri = 0
+    V_o = np.zeros((n_pts, rings, 3))
+    V_o[:, :, 0] = r_o[:, np.newaxis] * ct[np.newaxis, :]
+    V_o[:, :, 1] = r_o[:, np.newaxis] * st[np.newaxis, :]
+    V_o[:, :, 2] = z_o[:, np.newaxis]
 
-    def emit(a, b, c):
-        nonlocal tri
-        data["vectors"][tri] = [a, b, c]
-        tri += 1
+    V_i = np.zeros((n_pts, rings, 3))
+    V_i[:, :, 0] = r_i[:, np.newaxis] * ct[np.newaxis, :]
+    V_i[:, :, 1] = r_i[:, np.newaxis] * st[np.newaxis, :]
+    V_i[:, :, 2] = z_i[:, np.newaxis]
+
+    I = np.arange(n_pts - 1)[:, np.newaxis]
+    J = np.arange(rings)[np.newaxis, :]
+    JJ = (J + 1) % rings
 
     # Outer wall
-    for i in range(n_pts - 1):
-        z0, z1 = z_o[i], z_o[i + 1]
-        r0, r1 = r_o[i], r_o[i + 1]
-        for j in range(rings):
-            jj = (j + 1) % rings
-            a = [r0 * ct[j],  r0 * st[j],  z0]
-            b = [r1 * ct[j],  r1 * st[j],  z1]
-            c = [r1 * ct[jj], r1 * st[jj], z1]
-            d = [r0 * ct[jj], r0 * st[jj], z0]
-            emit(a, d, b)
-            emit(b, d, c)
+    a_o = V_o[I, J]
+    b_o = V_o[I + 1, J]
+    c_o = V_o[I + 1, JJ]
+    d_o = V_o[I, JJ]
+
+    tri_o_1 = np.stack([a_o, d_o, b_o], axis=-2).reshape(-1, 3, 3)
+    tri_o_2 = np.stack([b_o, d_o, c_o], axis=-2).reshape(-1, 3, 3)
 
     # Inner wall
-    for i in range(n_pts - 1):
-        z0, z1 = z_i[i], z_i[i + 1]
-        r0, r1 = r_i[i], r_i[i + 1]
-        for j in range(rings):
-            jj = (j + 1) % rings
-            a = [r0 * ct[j],  r0 * st[j],  z0]
-            b = [r1 * ct[j],  r1 * st[j],  z1]
-            c = [r1 * ct[jj], r1 * st[jj], z1]
-            d = [r0 * ct[jj], r0 * st[jj], z0]
-            emit(a, b, d)
-            emit(b, c, d)
+    a_i = V_i[I, J]
+    b_i = V_i[I + 1, J]
+    c_i = V_i[I + 1, JJ]
+    d_i = V_i[I, JJ]
+
+    tri_i_1 = np.stack([a_i, b_i, d_i], axis=-2).reshape(-1, 3, 3)
+    tri_i_2 = np.stack([b_i, c_i, d_i], axis=-2).reshape(-1, 3, 3)
 
     # Bottom annulus
-    for j in range(rings):
-        jj = (j + 1) % rings
-        a = [r_i[0] * ct[j],  r_i[0] * st[j],  z_i[0]]
-        b = [r_o[0] * ct[j],  r_o[0] * st[j],  z_o[0]]
-        c = [r_o[0] * ct[jj], r_o[0] * st[jj], z_o[0]]
-        d = [r_i[0] * ct[jj], r_i[0] * st[jj], z_i[0]]
-        emit(a, d, c)
-        emit(a, c, b)
+    a_b = V_i[0, J]
+    b_b = V_o[0, J]
+    c_b = V_o[0, JJ]
+    d_b = V_i[0, JJ]
+
+    tri_b_1 = np.stack([a_b, d_b, c_b], axis=-2).reshape(-1, 3, 3)
+    tri_b_2 = np.stack([a_b, c_b, b_b], axis=-2).reshape(-1, 3, 3)
 
     # Top annulus
-    for j in range(rings):
-        jj = (j + 1) % rings
-        a = [r_i[-1] * ct[j],  r_i[-1] * st[j],  z_i[-1]]
-        b = [r_o[-1] * ct[j],  r_o[-1] * st[j],  z_o[-1]]
-        c = [r_o[-1] * ct[jj], r_o[-1] * st[jj], z_o[-1]]
-        d = [r_i[-1] * ct[jj], r_i[-1] * st[jj], z_i[-1]]
-        emit(a, b, c)
-        emit(a, c, d)
+    a_t = V_i[-1, J]
+    b_t = V_o[-1, J]
+    c_t = V_o[-1, JJ]
+    d_t = V_i[-1, JJ]
 
-    assert tri == n_tri
+    tri_t_1 = np.stack([a_t, b_t, c_t], axis=-2).reshape(-1, 3, 3)
+    tri_t_2 = np.stack([a_t, c_t, d_t], axis=-2).reshape(-1, 3, 3)
+
+    # Concatenate all triangles
+    all_vectors = np.concatenate([
+        tri_o_1, tri_o_2,
+        tri_i_1, tri_i_2,
+        tri_b_1, tri_b_2,
+        tri_t_1, tri_t_2
+    ], axis=0)
+
+    n_tri = 4 * n_pts * rings
+    data = np.zeros(n_tri, dtype=mesh.Mesh.dtype)
+    data["vectors"] = all_vectors
 
     m_obj = mesh.Mesh(data)
 
