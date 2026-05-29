@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.2.3 (2026-05-29)
+
+- **Refactored UI**: single-view monotab dashboard — Horn Profile + 2D Preview | Flanges | Assembly
+- **Per-flange outer shape selector**: Circular (disc) or Rectangular (plate) — independently for throat, mouth, mid
+- **Inner hole always matches horn profile**: circular for axisymmetric, rectangular for rectangular horns
+- **Live 2D preview**: reactive Matplotlib plot, no "Show Preview" button
+- **Smart rectangular defaults**: outer OD = corner diagonal + wall + 15mm, bolt circle = midpoint
+- **Mid flange**: Z-offset from throat input, dimensions auto-intercepted from horn profile at that position
+- **Rectangular flange outer W×H**: adjustable independent dimensions when Rectangular outer selected
+- **`generate_rectangular_flange`**: accepts optional `outer_w`/`outer_h` for custom rectangular plate dimensions
+
 ## 2.2.2 (2026-05-28)
 
 - **Three-column wide layout**: Horn Profile (left) | Flanges (center) | Assembly + Download (right) — no scrolling needed
