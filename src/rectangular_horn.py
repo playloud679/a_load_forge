@@ -63,6 +63,72 @@ def get_rectangular_exponential(
     return z, W, H
 
 
+def _area_to_rect(z: np.ndarray, r: np.ndarray, throat_w: float, throat_h: float
+                  ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Convert axisymmetric profile (z, r) to area-preserving rectangular (z, w, h)."""
+    A = np.pi * r**2
+    AR = throat_w / throat_h
+    W = np.sqrt(A * AR)
+    H = A / W
+    return z, W, H
+
+
+def get_rectangular_tractrix(
+    throat_w: float, throat_h: float, mouth_w: float, n: int = 300,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Rectangular tractrix: area-preserving conversion from circular tractrix."""
+    from profile_generator import get_tractrix
+    throat = np.sqrt(throat_w * throat_h * 4 / np.pi)
+    mouth = np.sqrt(mouth_w * throat_h * 4 / np.pi)
+    z, r = get_tractrix(throat, mouth, n)
+    return _area_to_rect(z, r, throat_w, throat_h)
+
+
+def get_rectangular_lecleach(
+    throat_w: float, throat_h: float, fc: float, n: int = 300,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Rectangular Le Cléac'h: area-preserving from circular Le Cléac'h."""
+    from profile_generator import get_lecleach
+    throat = np.sqrt(throat_w * throat_h * 4 / np.pi)
+    z, r = get_lecleach(throat, fc, n)
+    return _area_to_rect(z, r, throat_w, throat_h)
+
+
+def get_rectangular_iwata(
+    throat_w: float, throat_h: float, fc: float, length: float, n: int = 300,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Rectangular Iwata: area-preserving from circular Iwata."""
+    from profile_generator import get_iwata
+    throat = np.sqrt(throat_w * throat_h * 4 / np.pi)
+    z, r = get_iwata(throat, fc, length, n)
+    return _area_to_rect(z, r, throat_w, throat_h)
+
+
+def get_rectangular_lecleach(
+    throat_w: float, throat_h: float, fc: float, n: int = 300,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Rectangular Le Cléac'h: area-preserving from circular Le Cléac'h."""
+    from profile_generator import get_lecleach
+    throat = np.sqrt(throat_w * throat_h * 4 / np.pi)
+    z, r = get_lecleach(throat, fc, n)
+    return _area_to_rect(z, r, throat_w, throat_h)
+
+
+def get_rectangular_iwata(
+    throat_w: float, throat_h: float, fc: float, length: float, n: int = 300,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Rectangular Iwata: area-preserving from circular Iwata."""
+    from profile_generator import get_iwata
+    throat = np.sqrt(throat_w * throat_h * 4 / np.pi)
+    z, r = get_iwata(throat, fc, length, n)
+    return _area_to_rect(z, r, throat_w, throat_h)
+    mod = importlib.util.module_from_spec(importlib.util.spec_from_loader("_c", ldr))
+    ldr.exec_module(mod)
+    throat = np.sqrt(throat_w * throat_h * 4 / np.pi)
+    z, r = mod.get_iwata(throat, fc, length, n)
+    return _area_to_rect(z, r, throat_w, throat_h)
+
+
 # ======================================================================
 #  3-D rectangular lofting engine
 # ======================================================================

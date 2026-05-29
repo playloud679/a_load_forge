@@ -2,24 +2,15 @@
 Full integration test: generate STL assemblies for all profile types.
 """
 import os, sys, tempfile
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
-import importlib.machinery, importlib.util
 import numpy as np
 import trimesh as _tm
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-
-def _load(name, filename):
-    l = importlib.machinery.SourceFileLoader(name, f"src/{filename}")
-    m = importlib.util.module_from_spec(importlib.util.spec_from_loader(name, l))
-    l.exec_module(m)
-    return m
-
-
-core   = _load("_c", "01_profile_generator.py")
-fg     = _load("_f", "02_flange_generator.py")
-rh     = _load("_rh", "03_rectangular_horn.py")
-rd     = _load("_rd", "03_omni_radial_horn.py")
-rf     = _load("_rf", "04_rectangular_flange.py")
+from src import profile_generator as core
+from src import flange_generator as fg
+from src import rectangular_horn as rh
+from src import radial_horn as rd
+from src import rectangular_flange as rf
 
 os.makedirs("io", exist_ok=True)
 

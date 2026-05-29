@@ -8,7 +8,7 @@ Whenever you modify a Python module under `src/` (add a new profile, change a fu
 
 | Python change | Required UI update |
 |---|---|
-| New profile function (e.g. `get_xxx()` in `01_profile_generator.py`) | Add profile to the `st.selectbox()` in Tab 1, add parameter inputs, add generation branch |
+| New profile function (e.g. `get_xxx()` in `profile_generator.py`) | Add profile to the `st.selectbox()` in Tab 1, add parameter inputs, add generation branch |
 | New 3D engine module (e.g. `03_xxx.py`) | Add lazy import + generation branch in Tab 1, add download buttons |
 | New flange generator | Add flange type in Tab 2, add parameter inputs and generation branch |
 | Changed function signature (e.g. added/removed a parameter) | Update the `gen_args` list and the function call in Tab 1 |

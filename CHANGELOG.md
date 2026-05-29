@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.2.4 (2026-05-29)
+
+- **Architecture**: removed all `importlib.machinery.SourceFileLoader` — standard Python imports throughout
+- **File rename**: `0*_*.py` → descriptive names (`profile_generator.py`, `flange_generator.py`, etc.)
+- **ODE solver**: `get_lecleach` refactored to `scipy.integrate.solve_ivp` with RK45 + termination event
+- **No vertex inference**: flange hole dimensions from analytical profile values, not 3D mesh sampling
+- **STEP export**: download button alongside STL, uses `_step_export.py` for AP242 conversion
+- **State management**: `on_change` callbacks on horn widgets, targeted `pop()` instead of destructive `del`
+- **Rectangular flange patch**: `offset` parameter, `bolt_inset`, safety clamps, `thickness*3` boolean cylinders
+- **LeCléac'h mouth fix**: hole sized from roll-back endpoint with 30mm shrink + 5mm minimum wall
+- **Radial assembly**: both bottom + top in one STL, properly spaced by acoustic gap, top reflector rebuilt solid
+- **Expansion × Section**: all 4 expansion types (Tractrix, LeCléac'h, Iwata, Exponential) × 2 sections (Circular, Rectangular)
+- **Import/export**: standard `from src import profile_generator`, all tests pass from project root
+
 ## 2.2.3 (2026-05-29)
 
 - **Refactored UI**: single-view monotab dashboard — Horn Profile + 2D Preview | Flanges | Assembly

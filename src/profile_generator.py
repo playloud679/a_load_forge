@@ -11,9 +11,9 @@ Mesh engine (profile-agnostic):
     → calculates normals, offsets by thickness, revolves, caps, exports STL
 
 Usage:
-    python -m src.01_profile_generator --throat 10 --mouth 50 --output h.stl
-    python -m src.01_profile_generator --throat 10 --fc 800  --output h.stl
-    python -m src.01_profile_generator --throat 20 --mouth 100 --length 80 \
+    python -m src.profile_generator --throat 10 --mouth 50 --output h.stl
+    python -m src.profile_generator --throat 10 --fc 800  --output h.stl
+    python -m src.profile_generator --throat 20 --mouth 100 --length 80 \
         --profile iwata --output h.stl
 """
 
@@ -84,59 +84,60 @@ def get_tractrix(throat: float, mouth: float, n: int
 
 # ---- Le Cléac'h --------------------------------------------------------
 
+from scipy.integrate import solve_ivp
+
+
 def get_lecleach(throat: float, fc: float, n: int
                  ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Vero profilo Le Cléac'h generato tramite integrazione differenziale esatta
-    delle traiettorie ortogonali ai fronti d'onda isofase.
+    Le Cléac'h profile via exact isophase wavefront ODE integration (solve_ivp).
+
+    ODE system:
+        d/ds (r, z) = (sin(α), cos(α))
+        cos(α) = 2πr² / (S_t · exp(m·s)) − 1
+
+    Terminates when the roll-back reaches the target 160° angle.
     """
     rt = throat / 2.0
-    # Costante di espansione (m) per tromba esponenziale
     m = 4.0 * np.pi * fc / SOUND_SPEED
-
     S_t = np.pi * rt ** 2
+    target_cos = np.cos(np.radians(160))
 
-    # Angolo di roll-back target (160 gradi). Spinge il bordo indietro e all'infuori.
-    target_cos_alpha = np.cos(np.radians(160))
+    def _ode(s, y):
+        r, z = y
+        S = S_t * np.exp(m * s)
+        ca = (2.0 * np.pi * r**2) / S - 1.0
+        ca = max(-1.0, min(1.0, ca))
+        sa = np.sqrt(1.0 - ca**2)
+        return [sa, ca]
 
-    # Risoluzione dell'integrazione di Eulero (0.1 mm garantisce stabilità e precisione)
-    ds = 0.1
-    r_val = float(rt)
-    z_val = 0.0
-    s = 0.0
+    def _event(s, y):
+        r, z = y
+        S = S_t * np.exp(m * s)
+        ca = (2.0 * np.pi * r**2) / S - 1.0
+        ca = max(-1.0, min(1.0, ca))
+        return ca - target_cos  # zero crossing when ca == target_cos
+    _event.terminal = True
+    _event.direction = -1  # trigger when ca DECREASES through target
 
-    r_list = [r_val]
-    z_list = [z_val]
-    s_list = [s]
+    # s_max: arc-length estimate based on exponential expansion
+    # 20 doublings of area → s_max = 20 * ln(2) / m
+    s_max = 20.0 * np.log(2.0) / max(m, 1e-9)
+    sol = solve_ivp(_ode, (0, min(s_max, 5000.0)), [rt, 0.0],
+                    method='RK45', events=_event, max_step=0.5,
+                    rtol=1e-9, atol=1e-9)
 
-    for _ in range(30000):  # Limite di sicurezza per evitare loop infiniti
-        s += ds
-        S_current = S_t * np.exp(m * s)
+    s_arr = sol.t
+    r_arr, z_arr = sol.y
 
-        # Calcolo dell'angolo del fronte d'onda
-        cos_alpha = (2.0 * np.pi * r_val ** 2) / S_current - 1.0
-
-        # Difesa contro errori di precisione floating-point ai limiti del dominio
-        cos_alpha = max(-1.0, min(1.0, cos_alpha))
-        sin_alpha = np.sqrt(1.0 - cos_alpha ** 2)
-
-        # ODE: La parete cresce ortogonalmente al fronte d'onda
-        r_val += sin_alpha * ds
-        z_val += cos_alpha * ds
-
-        r_list.append(r_val)
-        z_list.append(z_val)
-        s_list.append(s)
-
-        # Termina quando il roll-back raggiunge l'angolo desiderato
-        if cos_alpha <= target_cos_alpha:
-            break
-
-    # Ricampionamento lineare per garantire esattamente 'n' punti per il mesh engine
-    s_arr = np.array(s_list)
-    s_new = np.linspace(0, s, n)
-    r = np.interp(s_new, s_arr, r_list)
-    z = np.interp(s_new, s_arr, z_list)
+    # Resample to exactly n points
+    if len(s_arr) > 1:
+        s_new = np.linspace(0, s_arr[-1], n)
+        r = np.interp(s_new, s_arr, r_arr)
+        z = np.interp(s_new, s_arr, z_arr)
+    else:
+        r = np.full(n, rt)
+        z = np.zeros(n)
 
     return z, r
 

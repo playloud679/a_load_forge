@@ -5,32 +5,23 @@ Orchestrator — Horn Generator Pipeline.
 """
 
 import argparse
-import importlib.machinery
-import importlib.util
 import logging
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from profile_generator import (get_tractrix, get_lecleach, get_iwata,
+                                generate_3d_mesh_from_profile, resolve_profile)
+
 logger = logging.getLogger(__name__)
-
-
-def _load_module(path: Path) -> object:
-    loader = importlib.machinery.SourceFileLoader("_core", str(path))
-    spec = importlib.util.spec_from_loader("_core", loader)
-    mod = importlib.util.module_from_spec(spec)
-    loader.exec_module(mod)
-    return mod
 
 
 def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Tractrix Horn Generator Pipeline")
     p.add_argument("--throat", type=float, required=True)
-    p.add_argument("--mouth", type=float, default=None,
-                   help="Mouth diameter (tractrix / iwata mode)")
-    p.add_argument("--fc", type=float, default=None,
-                   help="Cutoff frequency in Hz (Le Cléac'h mode)")
-    p.add_argument("--length", type=float, default=None,
-                   help="Axial length in mm (iwata mode)")
+    p.add_argument("--mouth", type=float, default=None)
+    p.add_argument("--fc", type=float, default=None)
+    p.add_argument("--length", type=float, default=None)
     p.add_argument("--profile", choices=["auto", "tractrix", "lecleach", "iwata"],
                    default="auto")
     p.add_argument("--thickness", type=float, default=4.0)
@@ -53,27 +44,24 @@ def main(argv: list[str] | None = None) -> None:
 
     try:
         logger.info("=== Stage 1: Profile Generator ===")
-
-        core = _load_module(Path(__file__).parent / "01_profile_generator.py")
-
-        name = core.resolve_profile(args)
+        name = resolve_profile(args)
 
         if name == "tractrix":
             if args.mouth is None:
                 raise ValueError("--mouth required for tractrix")
-            z, r = core.get_tractrix(args.throat, args.mouth, args.segments)
+            z, r = get_tractrix(args.throat, args.mouth, args.segments)
         elif name == "lecleach":
             if args.fc is None:
                 raise ValueError("--fc required for Le Cléac'h")
-            z, r = core.get_lecleach(args.throat, args.fc, args.segments)
+            z, r = get_lecleach(args.throat, args.fc, args.segments)
         elif name == "iwata":
             if args.fc is None or args.length is None:
                 raise ValueError("--fc and --length required for iwata")
-            z, r = core.get_iwata(args.throat, args.fc, args.length, args.segments)
+            z, r = get_iwata(args.throat, args.fc, args.length, args.segments)
         else:
             raise ValueError(f"Unknown profile: {name}")
 
-        core.generate_3d_mesh_from_profile(
+        generate_3d_mesh_from_profile(
             z, r,
             thickness=args.thickness,
             rings=args.rings,

@@ -33,10 +33,10 @@ python -m src.main --profile iwata --throat 20 --fc 600 --length 80
 
 ```bash
 # Circular flange (circular hole)
-python -m src.02_flange_generator
+python -m src.flange_generator
 
 # Rectangular-hole flange (circular outer, rectangular inner)
-python -m src.04_rectangular_flange
+python -m src.rectangular_flange
 ```
 
 ## Testing
@@ -67,11 +67,11 @@ Radial:       (R, Zb, Zt) → _revolve_polygon() → radial_bottom + radial_top
 ## Project Structure
 
 ```
-src/  01_profile_generator.py    — axisymmetric profiles + 3D engine
-     02_flange_generator.py     — parametric circular flange
-     03_rectangular_horn.py     — rectangular horn lofting engine
-     03_omni_radial_horn.py     — 360° radial horn (dual-piece)
-     04_rectangular_flange.py   — rectangular-hole flange
+src/  profile_generator.py       — axisymmetric profiles + 3D engine
+     flange_generator.py        — parametric circular flange
+     rectangular_horn.py        — rectangular horn lofting engine
+     radial_horn.py             — 360° radial horn (dual-piece)
+     rectangular_flange.py      — rectangular-hole flange
      _step_export.py            — STEP AP242 export utility
      _constants.py              — shared constants
      _utils.py                  — shared utilities (normals, volume, Z-align)

@@ -39,12 +39,10 @@ def test(label, fn, cleanup=True):
 
 print("\n═══ 2-D Profile Math ═══")
 
-import importlib.machinery, importlib.util
-
-# Axisymmetric core
-_l = importlib.machinery.SourceFileLoader("_c", "src/01_profile_generator.py")
-_c = importlib.util.module_from_spec(importlib.util.spec_from_loader("_c", _l))
-_l.exec_module(_c)
+from src import profile_generator as _c
+from src import rectangular_horn as _r
+from src import radial_horn as _d
+from src import rectangular_flange as _rf
 
 test("Tractrix 20→100",        lambda: _c.get_tractrix(20, 100, 300))
 test("Tractrix 20→200",        lambda: _c.get_tractrix(20, 200, 300))
@@ -52,18 +50,8 @@ test("LeCléac'h 20/800Hz",     lambda: _c.get_lecleach(20, 800, 300))
 test("LeCléac'h 20/5000Hz",    lambda: _c.get_lecleach(20, 5000, 300))
 test("Iwata 20/600/L80",       lambda: _c.get_iwata(20, 600, 80, 300))
 
-# Rectangular
-_l2 = importlib.machinery.SourceFileLoader("_r", "src/03_rectangular_horn.py")
-_r = importlib.util.module_from_spec(importlib.util.spec_from_loader("_r", _l2))
-_l2.exec_module(_r)
-
 test("Rectangular 20×10→160 600Hz",
       lambda: _r.get_rectangular_exponential(20, 10, 160, 600, 300))
-
-# Radial
-_l3 = importlib.machinery.SourceFileLoader("_d", "src/03_omni_radial_horn.py")
-_d = importlib.util.module_from_spec(importlib.util.spec_from_loader("_d", _l3))
-_l3.exec_module(_d)
 
 test("Radial profiles 25/200 600Hz",
       lambda: _d.get_radial_profiles(25, 200, 600, 300))
@@ -165,10 +153,6 @@ for label, th, mo, fc in [
 # ======================================================================
 
 print("\n═══ Rectangular Flange ═══")
-
-_l4 = importlib.machinery.SourceFileLoader("_rf", "src/04_rectangular_flange.py")
-_rf = importlib.util.module_from_spec(importlib.util.spec_from_loader("_rf", _l4))
-_l4.exec_module(_rf)
 
 for label, ow, oh, iw, ih in [
     ("60×50 / 20×10", 60, 50, 20, 10),
