@@ -379,14 +379,14 @@ if gen_btn:
                     R, Zb, Zt = _rd.get_radial_profiles(throat_d, mouth_d, fc, segments)
                     Rm, Rt_rad = R[-1], R[0]
                     Z_top_flat = Zt[-1] + 4.0
-                    r_poly = np.concatenate([R, [Rm], [0.0], [Rt_rad]])
-                    z_poly = np.concatenate([Zt, [Z_top_flat], [Z_top_flat], [Zt[0]]])
+                    eps = 0.01
+                    r_poly = np.concatenate([[eps], R, [Rm, eps, eps]])
+                    z_poly = np.concatenate([[Zt[0]], Zt, [Z_top_flat, Z_top_flat, Zt[0]]])
                     top_mesh = _rd._revolve_polygon(r_poly, z_poly, 48)
                     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as _tf: _tfn = _tf.name
                     top_mesh.save(_tfn)
                     horn_top = _tm.load(_tfn, file_type="stl"); os.unlink(_tfn)
-                    gap = Zt[-1] - Zb[-1]
-                    horn_top.apply_translation([0, 0, horn.bounds[1, 2] + gap])
+                    horn_top.apply_translation([0, 0, Zt[0]])
                 mouth_bx = mouth_by = mouth_d
             else:
                 if is_tractrix:

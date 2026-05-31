@@ -146,8 +146,9 @@ def generate_radial_horn(
     wall_T = 4.0
     Z_flat = Zt[-1] + wall_T
 
-    r_top = np.concatenate([R, [Rm], [Rt], [Rt]])
-    z_top = np.concatenate([Zt, [Z_flat], [Z_flat], [Zt[0]]])
+    eps = 0.01  # avoids degenerate triangles at r=0 while closing the center
+    r_top = np.concatenate([[eps], R, [Rm, eps, eps]])
+    z_top = np.concatenate([[Zt[0]], Zt, [Z_flat, Z_flat, Zt[0]]])
 
     top_mesh = _revolve_polygon(r_top, z_top, rings)
 
