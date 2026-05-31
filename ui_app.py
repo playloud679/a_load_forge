@@ -234,75 +234,93 @@ fg1, fg2, fg3 = st.columns(3)
 
 with fg1:
     st.markdown("##### Throat Flange")
-    gen_throat = st.checkbox("Include", True, key="gen_throat")
-    _ft_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, _flange_sp, 0.5, key="ft_spess")
-    _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off")
-    _ft_nb  = st.number_input("Bolt count", 2, 24, _bolt_n, 1, key="ft_nb")
-    _ft_db  = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
-    if is_rect:
-        r_corner_g    = np.sqrt((max(throat_w, throat_h)/2)**2 + (min(throat_w, throat_h)/2)**2)
-        r_horn_outer_g = r_corner_g + thickness
-        _ft_od = (r_horn_outer_g + 15.0) * 2.0
-        _ft_bc = r_horn_outer_g + _ft_od / 2.0
-        st.caption(f"Hole: {max(throat_w,throat_h):.0f}×{min(throat_w,throat_h):.0f} mm (rectangular)")
+    if is_radial:
+        st.caption("Mounting holes on bottom plate")
+        gen_throat = st.checkbox("Include", True, key="gen_throat")
+        _ft_nb    = st.number_input("Bolt count", 2, 24, _bolt_n, 1, key="ft_nb")
+        _ft_db    = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
+        _ft_bc    = st.number_input("Bolt circle Ø (mm)", throat_d, mouth_d * 0.95,
+                                    mouth_d * 0.7, 1.0, key="ft_bc")
+        _ft_depth = st.number_input("Hole depth (mm)", 2.0, 30.0, 8.0, 0.5, key="ft_depth")
+        _ft_sp = _ft_off = _ft_od = _ft_ow = _ft_oh = 0.0
+        throat_outer = "Circular"
     else:
-        _ft_od = (throat_d/2 + thickness) * 2 + 20
-        _ft_bc = throat_d/2 + thickness + _ft_od / 2
-        st.caption(f"Hole: Ø{throat_d + thickness*2:.0f} mm (circular)")
-    _ft_ow = _ft_od
-    _ft_oh = _ft_od
-    throat_outer = st.radio("Outer shape", ["Circular", "Rectangular"],
-                         index=1 if is_rect else 0, horizontal=True, key="throat_outer")
-    if throat_outer == "Rectangular":
-        _ft_ow = st.number_input("Width (mm)",  10.0, 300.0, _ft_ow, 1.0, key="ft_ow")
-        _ft_oh = st.number_input("Height (mm)", 10.0, 300.0, _ft_oh, 1.0, key="ft_oh")
-    else:
-        _ft_od = st.number_input("Outer Ø (mm)",       10.0, 300.0, _ft_od, 1.0, key="ft_od")
-        _ft_bc = st.number_input("Bolt circle Ø (mm)", 10.0, 280.0, _ft_bc, 1.0, key="ft_bc")
+        gen_throat = st.checkbox("Include", True, key="gen_throat")
+        _ft_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, _flange_sp, 0.5, key="ft_spess")
+        _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off")
+        _ft_nb  = st.number_input("Bolt count", 2, 24, _bolt_n, 1, key="ft_nb")
+        _ft_db  = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
+        if is_rect:
+            r_corner_g    = np.sqrt((max(throat_w, throat_h)/2)**2 + (min(throat_w, throat_h)/2)**2)
+            r_horn_outer_g = r_corner_g + thickness
+            _ft_od = (r_horn_outer_g + 15.0) * 2.0
+            _ft_bc = r_horn_outer_g + _ft_od / 2.0
+            st.caption(f"Hole: {max(throat_w,throat_h):.0f}×{min(throat_w,throat_h):.0f} mm (rectangular)")
+        else:
+            _ft_od = (throat_d/2 + thickness) * 2 + 20
+            _ft_bc = throat_d/2 + thickness + _ft_od / 2
+            st.caption(f"Hole: Ø{throat_d + thickness*2:.0f} mm (circular)")
+        _ft_ow = _ft_od
+        _ft_oh = _ft_od
+        throat_outer = st.radio("Outer shape", ["Circular", "Rectangular"],
+                             index=1 if is_rect else 0, horizontal=True, key="throat_outer")
+        if throat_outer == "Rectangular":
+            _ft_ow = st.number_input("Width (mm)",  10.0, 300.0, _ft_ow, 1.0, key="ft_ow")
+            _ft_oh = st.number_input("Height (mm)", 10.0, 300.0, _ft_oh, 1.0, key="ft_oh")
+        else:
+            _ft_od = st.number_input("Outer Ø (mm)",       10.0, 300.0, _ft_od, 1.0, key="ft_od")
+            _ft_bc = st.number_input("Bolt circle Ø (mm)", 10.0, 280.0, _ft_bc, 1.0, key="ft_bc")
+        _ft_depth = 0.0
 
 with fg2:
     st.markdown("##### Mouth Flange")
-    gen_mouth = st.checkbox("Include", True, key="gen_mouth")
-    _fm_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, _flange_sp, 0.5, key="fm_spess")
-    _fm_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="fm_off")
-    _fm_nb  = st.number_input("Bolt count", 2, 24, _bolt_n, 1, key="fm_nb")
-    _fm_db  = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="fm_db")
-    if is_rect:
-        zp, wp, hp = _get_rect_profile(segments)
-        fm_hole_w = wp[-1] + thickness * 2
-        fm_hole_h = hp[-1] + thickness * 2
-        if is_lecleach:
-            _fm_od = fm_hole_w - 20
-            _fm_ow = fm_hole_w - 20
-            _fm_oh = fm_hole_h - 20
-            _fm_bc = fm_hole_w - 30
-        else:
-            r_corner_m = np.sqrt((fm_hole_w/2)**2 + (fm_hole_h/2)**2)
-            _fm_od = (r_corner_m + 15.0) * 2.0
+    if is_radial:
+        gen_mouth = False
+        _fm_sp = _fm_off = _fm_nb = _fm_db = _fm_od = _fm_bc = _fm_ow = _fm_oh = 0.0
+        mouth_outer = "Circular"
+        st.caption("Not available for radial profile")
+    else:
+        gen_mouth = st.checkbox("Include", True, key="gen_mouth")
+        _fm_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, _flange_sp, 0.5, key="fm_spess")
+        _fm_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="fm_off")
+        _fm_nb  = st.number_input("Bolt count", 2, 24, _bolt_n, 1, key="fm_nb")
+        _fm_db  = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="fm_db")
+        if is_rect:
+            zp, wp, hp = _get_rect_profile(segments)
+            fm_hole_w = wp[-1] + thickness * 2
+            fm_hole_h = hp[-1] + thickness * 2
+            if is_lecleach:
+                _fm_od = fm_hole_w - 20
+                _fm_ow = fm_hole_w - 20
+                _fm_oh = fm_hole_h - 20
+                _fm_bc = fm_hole_w - 30
+            else:
+                r_corner_m = np.sqrt((fm_hole_w/2)**2 + (fm_hole_h/2)**2)
+                _fm_od = (r_corner_m + 15.0) * 2.0
+                _fm_ow = _fm_od
+                _fm_oh = _fm_od * fm_hole_h / fm_hole_w
+                _fm_bc = r_corner_m + _fm_od / 2.0
+            st.caption(f"Hole: {fm_hole_w:.0f}×{fm_hole_h:.0f} mm (rectangular)")
+        elif is_lecleach:
+            _fm_od = ir_mouth * 2
+            _fm_bc = _fm_od - 20
             _fm_ow = _fm_od
-            _fm_oh = _fm_od * fm_hole_h / fm_hole_w
-            _fm_bc = r_corner_m + _fm_od / 2.0
-        st.caption(f"Hole: {fm_hole_w:.0f}×{fm_hole_h:.0f} mm (rectangular)")
-    elif is_lecleach:
-        _fm_od = ir_mouth * 2
-        _fm_bc = _fm_od - 20
-        _fm_ow = _fm_od
-        _fm_oh = _fm_od
-        st.caption(f"Hole: Ø{ir_mouth*2 + thickness*2:.0f} mm (circular)")
-    else:
-        _fm_od = (ir_mouth + thickness) * 2 + 20
-        _fm_bc = ir_mouth + thickness + _fm_od / 2
-        _fm_ow = _fm_od
-        _fm_oh = _fm_od
-        st.caption(f"Hole: Ø{ir_mouth*2 + thickness*2:.0f} mm (circular)")
-    mouth_outer = st.radio("Outer shape", ["Circular", "Rectangular"],
-                          index=1 if is_rect else 0, horizontal=True, key="mouth_outer")
-    if mouth_outer == "Rectangular":
-        _fm_ow = st.number_input("Width (mm)",  10.0, 1000.0, _fm_ow, 1.0, key="fm_ow")
-        _fm_oh = st.number_input("Height (mm)", 10.0, 1000.0, _fm_oh, 1.0, key="fm_oh")
-    else:
-        _fm_od = st.number_input("Outer Ø (mm)",       10.0, 1000.0, _fm_od, 1.0, key="fm_od")
-        _fm_bc = st.number_input("Bolt circle Ø (mm)", 10.0,  980.0, _fm_bc, 1.0, key="fm_bc")
+            _fm_oh = _fm_od
+            st.caption(f"Hole: Ø{ir_mouth*2 + thickness*2:.0f} mm (circular)")
+        else:
+            _fm_od = (ir_mouth + thickness) * 2 + 20
+            _fm_bc = ir_mouth + thickness + _fm_od / 2
+            _fm_ow = _fm_od
+            _fm_oh = _fm_od
+            st.caption(f"Hole: Ø{ir_mouth*2 + thickness*2:.0f} mm (circular)")
+        mouth_outer = st.radio("Outer shape", ["Circular", "Rectangular"],
+                              index=1 if is_rect else 0, horizontal=True, key="mouth_outer")
+        if mouth_outer == "Rectangular":
+            _fm_ow = st.number_input("Width (mm)",  10.0, 1000.0, _fm_ow, 1.0, key="fm_ow")
+            _fm_oh = st.number_input("Height (mm)", 10.0, 1000.0, _fm_oh, 1.0, key="fm_oh")
+        else:
+            _fm_od = st.number_input("Outer Ø (mm)",       10.0, 1000.0, _fm_od, 1.0, key="fm_od")
+            _fm_bc = st.number_input("Bolt circle Ø (mm)", 10.0,  980.0, _fm_bc, 1.0, key="fm_bc")
 
 with fg3:
     st.markdown("##### Mid Flange")
@@ -433,6 +451,15 @@ if gen_btn:
 
             # --- 3d. Generate flanges ---
             f_throat = f_mouth = f_mid = None
+
+            if gen_throat and is_radial:
+                bolt_angles = np.linspace(0, 2 * np.pi, int(_ft_nb), endpoint=False)
+                for angle in bolt_angles:
+                    x = (_ft_bc / 2.0) * np.cos(angle)
+                    y = (_ft_bc / 2.0) * np.sin(angle)
+                    cyl = _tm.creation.cylinder(radius=_ft_db / 2.0, height=_ft_depth + 2.0)
+                    cyl.apply_translation([x, y, _ft_depth / 2.0])
+                    horn = _tm.boolean.difference([horn, cyl], engine="manifold", check_volume=False)
 
             if gen_throat and not is_radial:
                 if is_rect:
