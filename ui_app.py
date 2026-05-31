@@ -34,7 +34,7 @@ st.set_page_config(page_title="flare_forge", layout="wide",
 
 def _on_horn_change():
     """Recalculate geometry-dependent flange defaults when horn changes."""
-    for _k in ("ft_ring", "ft_bc", "ft_ow", "ft_oh",
+    for _k in ("ft_ring", "ft_bc", "ft_bc_rad", "ft_ow", "ft_oh",
                "fm_ring", "fm_bc", "fm_ow", "fm_oh",
                "mid_ring", "mid_bc", "mid_ow", "mid_oh"):
         st.session_state.pop(_k, None)
@@ -77,82 +77,109 @@ with col_prof:
     has_fc      = is_lecleach or is_iwata or is_exp
 
     st.markdown("##### Dimensions")
+
+    # Each profile is driven by a different set of inputs; the rest are solved
+    # from the math and shown live (greyed) in their own fields.
+    _hint = ("Set **throat + mouth**. Acoustic gap follows."         if is_radial   else
+             "Set **throat + mouth**. Length and Fc follow."          if is_tractrix else
+             "Set **throat + cutoff Fc**. Mouth and length follow."   if is_lecleach else
+             "Set **throat + Fc + length**. Mouth follows."           if is_iwata    else
+             "Set **throat + mouth + Fc** (Fc = flare rate). Length follows.")
+    st.caption(_hint)
+
     if is_poly:
         n_sides = st.select_slider("Sides", options=list(range(3, 13)), value=4,
                                    key="n_sides")
     else:
         n_sides = 4
-    d1, d2, d3, d4 = st.columns(4)
-    with d1:
-        if is_radial:
-            _t_default = 25.0
-            throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0, _t_default, 1.0)
-        else:
-            throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0, 20.0, 1.0)
-    with d2:
-        if is_radial or is_tractrix or is_exp:
-            _m_default = 200.0 if is_radial else 100.0
-            mouth_d = st.number_input("Mouth Ø (mm)", 4.0, 500.0, _m_default, 5.0)
-        else:
-            mouth_d = None; st.caption("Mouth — computed from Fc")
-    with d3:
-        if has_fc:
-            fc = st.number_input("Cutoff frequency Fc (Hz)", 50, 20000, 600, 50,
-                help="Sets the flare rate (m = 4π·fc / c₀)")
-        else:
-            fc = None; st.caption("—")
-    with d4:
-        if is_iwata and not is_radial:
-            axial_len = st.number_input("Axial length (mm)", 10.0, 500.0, 80.0, 5.0)
-        else:
-            axial_len = 80.0
-            if not is_exp:
-                st.caption("—")
 
     # ── Exponential profile delegate ─────────────────────────────────────
     def _get_exp_profile(throat_d, mouth_d, fc, n):
         return _core.get_exponential(throat_d, mouth_d, fc, n)
 
-    # Derived metrics
-    _len = _mouth = _fc = None
+    d1, d2, d3, d4 = st.columns(4)
+
+    # Editable inputs first, so the derived fields can use their live values.
+    with d1:
+        throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0,
+            25.0 if is_radial else 20.0, 1.0,
+            help="Driver-side opening — the small end")
+
+    _mouth_is_input = is_radial or is_tractrix or is_exp
+    if _mouth_is_input:
+        with d2:
+            mouth_d = st.number_input("Mouth Ø (mm)", 4.0, 500.0,
+                200.0 if is_radial else 100.0, 5.0,
+                help="Large end — where the horn stops expanding")
+    else:
+        mouth_d = None
+
+    if has_fc:
+        with d3:
+            _fc_help = ("Flare rate — how fast the horn opens. The mouth sets where it ends."
+                        if is_exp else
+                        "Cutoff frequency — sets the flare rate, and with it the mouth size.")
+            fc = st.number_input("Cutoff Fc (Hz)", 50, 20000, 600, 50, help=_fc_help)
+    else:
+        fc = None
+
+    if is_iwata and not is_radial:
+        with d4:
+            axial_len = st.number_input("Axial length (mm)", 10.0, 500.0, 80.0, 5.0,
+                help="Horn depth along the axis")
+    else:
+        axial_len = 80.0
+
+    # Compute the profile once; derive the remaining scalars.
+    _len = None
+    _mouth_d_eff = mouth_d          # circular-equivalent mouth diameter
+    _fc_eff = fc
+    _gap_t = _gap_m = None
+    _err = False
     try:
         if is_radial:
             _Rr, _Zb, _Zt = _rd.get_radial_profiles(throat_d, mouth_d, fc, 50, profile_type)
             _gap_t = _Zt[0] - _Zb[0]; _gap_m = _Zt[-1] - _Zb[-1]
-            st.caption(f"Gap: throat {_gap_t:.1f} mm · mouth {_gap_m:.1f} mm")
-            _len = _mouth = _fc = None
-        elif is_poly:
-            if is_tractrix:
-                zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
-            elif is_lecleach:
-                zp, rp = _core.get_lecleach(throat_d, fc, segments)
-            elif is_iwata:
-                zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
-            elif is_exp:
-                zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
-            _len = zp[-1]
-            from polygonal_horn import _r_to_circumradius
-            R_poly = _r_to_circumradius(rp[-1], n_sides)
-            _mouth = f"R={R_poly:.0f}mm ({n_sides}-gon)"; _fc = None
         elif is_tractrix:
             zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
-            _len = zp[-1]; _mouth = f"Ø{rp[-1]*2:.0f}"; _fc = 343_000 / (np.pi * mouth_d)
+            _len = zp[-1]; _fc_eff = 343_000 / (np.pi * mouth_d)
         elif is_lecleach:
             zp, rp = _core.get_lecleach(throat_d, fc, segments)
-            mi = int(np.argmax(zp)); _len = zp.max(); _mouth = f"Ø{rp[mi]*2:.0f}"; _fc = None
+            _len = zp.max(); _mouth_d_eff = rp.max() * 2
         elif is_iwata:
             zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
-            _len = axial_len; _mouth = f"Ø{rp.max()*2:.0f}"; _fc = None
+            _len = axial_len; _mouth_d_eff = rp.max() * 2
         elif is_exp:
             zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
-            _len = zp[-1]; _mouth = f"Ø{rp[-1]*2:.0f}"; _fc = None
-        _m = []
-        if _len:  _m.append(f"Length = {_len:.0f} mm")
-        if _mouth: _m.append(f"Mouth {_mouth}")
-        if _fc:   _m.append(f"Fc = {_fc:.0f} Hz")
-        if _m: st.caption(" · ".join(_m))
+            _len = zp[-1]
     except Exception:
-        _len = _mouth = _fc = None
+        _err = True
+
+    # Read-only display: shows the actual computed number, greyed out.
+    def _ro(col, label, value, fmt="%.0f"):
+        with col:
+            try:
+                st.number_input(label, value=float(value), disabled=True, format=fmt)
+            except Exception:
+                st.text_input(label, value="—", disabled=True)
+
+    if _err:
+        st.caption("Adjust parameters — profile could not be computed")
+    elif is_radial:
+        if not has_fc:
+            _ro(d3, "Throat gap (mm)", _gap_t, fmt="%.1f")
+        _ro(d4, "Mouth gap (mm)", _gap_m, fmt="%.1f")
+    else:
+        if not _mouth_is_input:                 # mouth derived (Le Cléac'h, Iwata)
+            _ro(d2, "Mouth Ø (mm)", _mouth_d_eff)
+        if not has_fc:                          # Fc derived (Tractrix)
+            _ro(d3, "Cutoff Fc (Hz)", _fc_eff)
+        if not (is_iwata and not is_radial):    # length derived (all but Iwata)
+            _ro(d4, "Axial length (mm)", _len)
+        if is_poly:
+            from polygonal_horn import _r_to_circumradius
+            _Rp = _r_to_circumradius(_mouth_d_eff / 2.0, n_sides)
+            st.caption(f"Polygonal mouth: Ø{2*_Rp:.0f} across corners ({n_sides}-gon)")
 
 with col_prev:
     st.subheader("2D Preview — Cross-section")
@@ -260,6 +287,20 @@ _bolt_d = 3.5
 _flange_sp = 6.0
 
 
+def _clamp_state(key, lo, hi):
+    """Keep a persisted widget value within [lo, hi] before the widget is created.
+
+    Streamlit reads session_state[key] as the widget value; if a previously stored
+    value falls outside a newly computed min/max it raises at creation time. Clamp
+    it here so changing the horn (and thus the flange bounds) never crashes the run.
+    """
+    if key in st.session_state:
+        try:
+            st.session_state[key] = float(min(max(st.session_state[key], lo), hi))
+        except (TypeError, ValueError):
+            st.session_state.pop(key, None)
+
+
 def _flange_R_from_ring(inner_R, ring, outer_n):
     """
     Outer circumradius such that the wall thickness at the FLAT faces equals `ring`.
@@ -276,6 +317,23 @@ def _flange_R_from_ring(inner_R, ring, outer_n):
     return inner_R + ring
 
 
+def _bolt_circle_band(inner_R, flange_R, bolt_d, outer_n):
+    """Valid bolt-circle Ø range so the holes stay inside the ring.
+
+    The flange size is fixed by the ring width; the bolts must sit between the
+    inner hole and the outer edge, clear of both by the bolt radius + 1 mm.
+    Returns (lo, hi) diameters. Moving the bolt circle within this band slides the
+    holes through the ring without ever pushing them off the edge or into the hole,
+    and without resizing the flange. (Polygons: the binding edge is the inradius.)
+    """
+    outer_lim = flange_R * np.cos(np.pi / outer_n) if outer_n >= 3 else flange_R
+    lo = max(10.0, 2.0 * (inner_R + bolt_d / 2.0 + 1.0))
+    hi = 2.0 * (outer_lim - bolt_d / 2.0 - 1.0)
+    if hi <= lo:                 # ring too thin to seat a bolt clear of both edges
+        hi = lo + 2.0
+    return lo, hi
+
+
 # --- Flange inputs (3 columns) ---
 fg1, fg2, fg3 = st.columns(3)
 
@@ -286,8 +344,12 @@ with fg1:
         gen_throat = st.checkbox("Include", True, key="gen_throat")
         _ft_nb    = st.number_input("Bolt count", 2, 24, _bolt_n, 1, key="ft_nb")
         _ft_db    = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
-        _ft_bc    = st.number_input("Bolt circle Ø (mm)", throat_d, mouth_d * 0.95,
-                                    mouth_d * 0.7, 1.0, key="ft_bc")
+        _ft_bc_lo, _ft_bc_hi = float(throat_d), float(mouth_d * 0.95)
+        if "ft_bc_rad" not in st.session_state:
+            st.session_state["ft_bc_rad"] = float(mouth_d * 0.7)
+        _clamp_state("ft_bc_rad", _ft_bc_lo, _ft_bc_hi)
+        _ft_bc    = st.number_input("Bolt circle Ø (mm)", _ft_bc_lo, _ft_bc_hi,
+                                    step=1.0, key="ft_bc_rad")
         _ft_depth = st.number_input("Hole depth (mm)", 2.0, 30.0, 8.0, 0.5, key="ft_depth")
         _ft_sp = _ft_off = _ft_od = _ft_ow = _ft_oh = 0.0
         throat_outer = "Circular"
@@ -312,18 +374,20 @@ with fg1:
                                         value=n_sides, key="ft_outer_n")
                        if throat_outer == "Polygonal" else 0)
         _ft_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="ft_ring",
-            help="Wall thickness at the flat faces; on polygons the corners extend further")
+            help="Wall around the hole — this sets the flange size. Widen it to fit bolts further out.")
         _ft_flange_R = _flange_R_from_ring(_ft_inner_R, _ft_ring, _ft_outer_n)
-        _ft_od   = _ft_flange_R * 2
-        _ft_bc   = _ft_inner_R * 2 + _ft_ring        # default bolt circle: hole + half wall
+        _ft_od = _ft_flange_R * 2
         if _ft_outer_n >= 3:
-            _ft_inradius = _ft_flange_R * np.cos(np.pi / _ft_outer_n)
             st.caption(f"Across corners Ø: {_ft_od:.1f} mm · flats wall {_ft_ring:.0f} mm")
-            _ft_bc = min(_ft_bc, (_ft_inradius - _ft_db / 2 - 1.0) * 2)
-            _ft_bc = st.number_input("Bolt circle Ø (mm)", 10.0, 980.0, _ft_bc, 1.0, key="ft_bc")
         else:
             st.caption(f"Outer Ø: {_ft_od:.1f} mm")
-            _ft_bc = st.number_input("Bolt circle Ø (mm)", 10.0, 280.0, _ft_bc, 1.0, key="ft_bc")
+        # Bolt circle constrained to the ring band — holes stay inside, flange fixed.
+        _ft_bc_lo, _ft_bc_hi = _bolt_circle_band(_ft_inner_R, _ft_flange_R, _ft_db, _ft_outer_n)
+        if "ft_bc" not in st.session_state:
+            st.session_state["ft_bc"] = float((_ft_bc_lo + _ft_bc_hi) / 2.0)
+        _clamp_state("ft_bc", _ft_bc_lo, _ft_bc_hi)
+        _ft_bc = st.number_input("Bolt circle Ø (mm)", _ft_bc_lo, _ft_bc_hi,
+            step=1.0, key="ft_bc")
         _ft_depth = 0.0
 
 with fg2:
@@ -353,19 +417,20 @@ with fg2:
                                         value=n_sides, key="fm_outer_n")
                        if mouth_outer == "Polygonal" else 0)
         _fm_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="fm_ring",
-            help="Wall thickness at the flat faces; on polygons the corners extend further")
+            help="Wall around the hole — this sets the flange size. Widen it to fit bolts further out.")
         _fm_flange_R = _flange_R_from_ring(_fm_inner_R, _fm_ring, _fm_outer_n)
-        _fm_od   = _fm_flange_R * 2
-        _fm_bc   = _fm_inner_R * 2 + _fm_ring        # default bolt circle: hole + half wall
+        _fm_od = _fm_flange_R * 2
         _fm_ow = _fm_od; _fm_oh = _fm_od
         if _fm_outer_n >= 3:
-            _fm_inradius = _fm_flange_R * np.cos(np.pi / _fm_outer_n)
             st.caption(f"Across corners Ø: {_fm_od:.1f} mm · flats wall {_fm_ring:.0f} mm")
-            _fm_bc = min(_fm_bc, (_fm_inradius - _fm_db / 2 - 1.0) * 2)
-            _fm_bc = st.number_input("Bolt circle Ø (mm)", 10.0,  980.0, _fm_bc, 1.0, key="fm_bc")
         else:
             st.caption(f"Outer Ø: {_fm_od:.1f} mm")
-            _fm_bc = st.number_input("Bolt circle Ø (mm)", 10.0,  980.0, _fm_bc, 1.0, key="fm_bc")
+        _fm_bc_lo, _fm_bc_hi = _bolt_circle_band(_fm_inner_R, _fm_flange_R, _fm_db, _fm_outer_n)
+        if "fm_bc" not in st.session_state:
+            st.session_state["fm_bc"] = float((_fm_bc_lo + _fm_bc_hi) / 2.0)
+        _clamp_state("fm_bc", _fm_bc_lo, _fm_bc_hi)
+        _fm_bc = st.number_input("Bolt circle Ø (mm)", _fm_bc_lo, _fm_bc_hi,
+            step=1.0, key="fm_bc")
 
 with fg3:
     st.markdown("##### Mid Flange")
@@ -396,18 +461,19 @@ with fg3:
                                          value=n_sides, key="mid_outer_n")
                         if mid_out == "Polygonal" else 0)
         _mid_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="mid_ring",
-            help="Wall thickness at the flat faces; on polygons the corners extend further")
+            help="Wall around the hole — this sets the flange size. Widen it to fit bolts further out.")
         _mid_flange_R = _flange_R_from_ring(_mid_inner_R, _mid_ring, _mid_outer_n)
-        _mid_od   = _mid_flange_R * 2
-        _mid_bc   = _mid_inner_R * 2 + _mid_ring      # default bolt circle: hole + half wall
+        _mid_od = _mid_flange_R * 2
         if _mid_outer_n >= 3:
-            _mid_inradius = _mid_flange_R * np.cos(np.pi / _mid_outer_n)
             st.caption(f"Across corners Ø: {_mid_od:.1f} mm · flats wall {_mid_ring:.0f} mm")
-            _mid_bc = min(_mid_bc, (_mid_inradius - _mid_db / 2 - 1.0) * 2)
-            _mid_bc = st.number_input("Bolt circle Ø (mm)", 10.0,  980.0, _mid_bc, 1.0, key="mid_bc")
         else:
             st.caption(f"Outer Ø: {_mid_od:.1f} mm")
-            _mid_bc = st.number_input("Bolt circle Ø (mm)", 10.0,  980.0, _mid_bc, 1.0, key="mid_bc")
+        _mid_bc_lo, _mid_bc_hi = _bolt_circle_band(_mid_inner_R, _mid_flange_R, _mid_db, _mid_outer_n)
+        if "mid_bc" not in st.session_state:
+            st.session_state["mid_bc"] = float((_mid_bc_lo + _mid_bc_hi) / 2.0)
+        _clamp_state("mid_bc", _mid_bc_lo, _mid_bc_hi)
+        _mid_bc = st.number_input("Bolt circle Ø (mm)", _mid_bc_lo, _mid_bc_hi,
+            step=1.0, key="mid_bc")
 
 # ═══════════════════════════════════════════════════════════════════════
 #  ROW 3 — Generate Assembly

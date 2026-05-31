@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.2.8 (2026-06-01)
+
+UI clarity pass on the dimensions inputs, plus three flange-parameter bugs found
+by actually measuring the generated solid instead of trusting that the value reached
+it. All in `ui_app.py`.
+
+### Dimensions inputs
+
+- Each profile is driven by a different set of inputs (Tractrix: throat+mouth; Le Cléac'h: throat+Fc; Iwata: throat+Fc+length; Exponential: throat+mouth+Fc). A one-line hint now states which you set and which follow.
+- The fields you don't set are no longer blank or a cryptic "—". They show the **computed value live, greyed out** — Le Cléac'h shows the resulting mouth Ø, Tractrix shows the derived Fc and length, etc. Implemented by reading the editable inputs first, solving the profile once, then filling the read-only fields.
+- Per-profile help on Fc (flare rate for Exponential vs cutoff for Le Cléac'h/Iwata); units unified (polygonal mouth shown as a diameter across corners).
+
+### Flange bolt circle — three bugs
+
+- **Polygonal outer was ignored on circular-hole flanges**: `generate_flange` rendered a circle no matter the selection. (Fixed in the engine in 2.2.7; the UI now passes `outer_n_sides` through for throat/mouth/mid.)
+- **Editing the bolt circle did nothing**: the widgets used the `st.number_input(value=…, key=…)` anti-pattern, so the recomputed default fought the user's value on every rerun. Switched to the canonical pattern — seed `session_state` once if absent, then create the widget with `key` and no `value`. The radial throat bolt circle also shared key `ft_bc` with the non-radial one (a latent crash when switching sections); it now has its own key.
+- **Moving bolts outward made them vanish, or (after a first fix) wrongly grew the flange**: the bolt circle is now clamped to a valid band inside the ring — from just outside the hole to just inside the outer edge (the inradius, on polygons). The flange size is set solely by the ring width; the bolts slide within it and can't be pushed off the edge. To seat bolts further out you widen the ring. Verified by measuring bolt-hole radii in the generated mesh across the range.
+
+### Robustness
+
+- `_clamp_state` keeps a persisted widget value within its current min/max before the widget is created, so changing the horn (which changes the flange bounds) can't raise `StreamlitValueAboveMaxError` mid-run.
+
 ## 2.2.7 (2026-05-31)
 
 Cross-section overhaul plus a round of flange-correctness fixes. Most of these were
