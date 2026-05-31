@@ -1,4 +1,4 @@
-# 📯 Acoustic Horn Generator
+# 📯 flare_forge
 
 Parametric STL generator for acoustic horns — Tractrix, Le Cléac'h, Iwata.
 

@@ -1,6 +1,8 @@
 """
-STEP export — AP242 faceted B-Rep (ISO 10303-21).
-Deduplicates vertices for a valid STEP file.
+STEP export — AP203 / CONFIG_CONTROL_DESIGN, FACETED_BREP encoding.
+
+Valid combination for triangulated meshes:
+  FACETED_BREP → CLOSED_SHELL → FACE_SURFACE + FACE_OUTER_BOUND + POLY_LOOP
 """
 
 from stl import mesh
@@ -14,106 +16,100 @@ def export_step(stl_path: str, step_path: str) -> None:
     # Deduplicate vertices by rounding to 4 decimal places
     verts = m.vectors.reshape(-1, 3)
     rounded = np.round(verts, 4)
-    # Find unique vertices
     _, inv_idx = np.unique(rounded, axis=0, return_inverse=True)
     unique_verts = rounded[np.sort(np.unique(inv_idx, return_index=True)[1])]
 
-    nv = len(unique_verts)
     eid = 0
 
-    def e(cnt=1):
+    def e():
         nonlocal eid
-        r = list(range(eid + 1, eid + cnt + 1))
-        eid += cnt
-        return r if cnt > 1 else r[0]
+        eid += 1
+        return eid
+
+    # Pre-assign IDs for structural entities
+    app_ctx    = e()   # APPLICATION_CONTEXT
+    mech_ctx   = e()   # MECHANICAL_CONTEXT
+    prod       = e()   # PRODUCT
+    pdf        = e()   # PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE
+    design_ctx = e()   # DESIGN_CONTEXT
+    pdef       = e()   # PRODUCT_DEFINITION
+    pds        = e()   # PRODUCT_DEFINITION_SHAPE
+    sdr        = e()   # SHAPE_DEFINITION_REPRESENTATION
+    sr         = e()   # SHAPE_REPRESENTATION
+    rep_ctx    = e()   # REPRESENTATION_CONTEXT (complex entity)
+    unc        = e()   # UNCERTAINTY_MEASURE_WITH_UNIT
+    lu         = e()   # LENGTH_UNIT complex
+    pau        = e()   # PLANE_ANGLE_UNIT complex
+    sau        = e()   # SOLID_ANGLE_UNIT complex
+    brep       = e()   # FACETED_BREP
+    shell      = e()   # CLOSED_SHELL
 
     lines = [
         "ISO-10303-21;",
         "HEADER;",
-        "FILE_DESCRIPTION((''),'2;1');",
-        "FILE_NAME('','',(''),(''),'Horn Generator','',(''));",
+        "FILE_DESCRIPTION(('flare_forge STEP Export'),'2;1');",
+        "FILE_NAME('','',(''),(''),'flare_forge','','');",
         "FILE_SCHEMA(('CONFIG_CONTROL_DESIGN'));",
         "ENDSEC;",
         "DATA;",
     ]
 
-    # CARTESIAN_POINT for unique vertices
+    # CARTESIAN_POINTs for unique vertices
     pt_ids = []
     for pt in unique_verts:
         pid = e()
         pt_ids.append(pid)
         lines.append(f"#{pid}=CARTESIAN_POINT('',({pt[0]:.4f},{pt[1]:.4f},{pt[2]:.4f}));")
 
-    # Map each triangle to its 3 vertex IDs via inv_idx
-    # inv_idx maps each original vertex to its unique index
+    # Triangular faces: POLY_LOOP → FACE_OUTER_BOUND → FACE_SURFACE
     tri_pt_ids = inv_idx.reshape(-1, 3)
-
     face_ids = []
     for i in range(n):
         a = pt_ids[tri_pt_ids[i, 0]]
         b = pt_ids[tri_pt_ids[i, 1]]
         c = pt_ids[tri_pt_ids[i, 2]]
 
-        v0, v1, v2 = m.vectors[i]
-        ex = v1 - v0
-        ey = v2 - v0
-        ez = m.normals[i]
+        loop_id  = e()
+        lines.append(f"#{loop_id}=POLY_LOOP('',(#{a},#{b},#{c}));")
+        bound_id = e()
+        lines.append(f"#{bound_id}=FACE_OUTER_BOUND('',#{loop_id},.T.);")
+        face_id  = e()
+        lines.append(f"#{face_id}=FACE_SURFACE('',(#{bound_id}),$,.T.);")
+        face_ids.append(face_id)
 
-        nx, ny, nz = ez / np.linalg.norm(ez)
-        exn = ex / np.linalg.norm(ex)
+    # CLOSED_SHELL + FACETED_BREP
+    face_list = ",".join(f"#{f}" for f in face_ids)
+    lines.append(f"#{shell}=CLOSED_SHELL('',({face_list}));")
+    lines.append(f"#{brep}=FACETED_BREP('Horn',#{shell});")
 
-        zdir = e()
-        lines.append(f"#{zdir}=DIRECTION('',({nx:.6f},{ny:.6f},{nz:.6f}));")
-        xdir = e()
-        lines.append(f"#{xdir}=DIRECTION('',({exn[0]:.6f},{exn[1]:.6f},{exn[2]:.6f}));")
-
-        axis = e()
-        lines.append(f"#{axis}=AXIS2_PLACEMENT_3D('',#{a},#{zdir},#{xdir});")
-        plane = e()
-        lines.append(f"#{plane}=PLANE('',#{axis});")
-
-        loop = e()
-        lines.append(f"#{loop}=POLY_LOOP('',(#{a},#{b},#{c}));")
-        fb = e()
-        lines.append(f"#{fb}=FACE_BOUND('',#{loop},.T.);")
-
-        af = e()
-        lines.append(f"#{af}=ADVANCED_FACE('',(#{fb}),#{plane},.T.);")
-        face_ids.append(af)
-
-    # CLOSED_SHELL
-    sh = e()
+    # Representation context (complex entity — millimetres, radians)
+    lines.append(f"#{lu}=( LENGTH_UNIT() NAMED_UNIT(*) SI_UNIT(.MILLI.,.METRE.) );")
+    lines.append(f"#{pau}=( NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.) );")
+    lines.append(f"#{sau}=( NAMED_UNIT(*) SI_UNIT($,.STERADIAN.) SOLID_ANGLE_UNIT() );")
     lines.append(
-        f"#{sh}=CLOSED_SHELL('',({','.join(f'#{f}' for f in face_ids)}));"
+        f"#{unc}=UNCERTAINTY_MEASURE_WITH_UNIT("
+        f"LENGTH_MEASURE(1.E-07),#{lu},'distance_accuracy_value','confusion accuracy');"
+    )
+    lines.append(
+        f"#{rep_ctx}=( GEOMETRIC_REPRESENTATION_CONTEXT(3)"
+        f" GLOBAL_UNCERTAINTY_ASSIGNED_CONTEXT((#{unc}))"
+        f" GLOBAL_UNIT_ASSIGNED_CONTEXT((#{lu},#{pau},#{sau}))"
+        f" REPRESENTATION_CONTEXT('3D Context','3D Context') );"
     )
 
-    # MANIFOLD_SOLID_BREP
-    ms = e()
-    lines.append(f"#{ms}=MANIFOLD_SOLID_BREP('Horn',#{sh});")
-
-    # SHAPE_REPRESENTATION
-    sr = e()
-    rc = e()
-    lines.append(f"#{sr}=SHAPE_REPRESENTATION('',(#{ms}),#{rc});")
-    lines.append(f"#{rc}=REPRESENTATION_CONTEXT('',(#{e()}),'');")
-
-    # PRODUCT chain
-    prod = e()
-    pdf = e()
-    pc = e()
-    lines.append(f"#{prod}=PRODUCT('Horn','',(#{pc}));")
-    lines.append(f"#{pc}=PRODUCT_CONTEXT('',(#{e()}),'mechanical');")
-    lines.append(f"#{pdf}=PRODUCT_DEFINITION_FORMATION('',(#{prod}),'');")
-
-    pdef = e()
-    pdc = e()
-    lines.append(f"#{pdef}=PRODUCT_DEFINITION('design',(#{pdc}),#{pdf});")
-    lines.append(f"#{pdc}=PRODUCT_DEFINITION_CONTEXT('',(#{e()}),'design');")
-
-    sdr = e()
-    lines.append(f"#{sdr}=SHAPE_DEFINITION_REPRESENTATION('',(#{sr}),#{pdef});")
-
-    lines.append(f"#{e()}=PRODUCT_DEFINITION_SHAPE('',(#{sdr}),#{pdef});")
+    # SHAPE_REPRESENTATION → PRODUCT chain
+    lines.append(f"#{sr}=SHAPE_REPRESENTATION('Horn',(#{brep}),#{rep_ctx});")
+    lines.append(f"#{app_ctx}=APPLICATION_CONTEXT('config control design');")
+    lines.append(f"#{mech_ctx}=MECHANICAL_CONTEXT('',#{app_ctx},'mechanical');")
+    lines.append(f"#{prod}=PRODUCT('Horn','Horn','',(#{mech_ctx}));")
+    lines.append(
+        f"#{pdf}=PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE"
+        f"('','',#{prod},.NOT_KNOWN.);"
+    )
+    lines.append(f"#{design_ctx}=DESIGN_CONTEXT('',#{app_ctx},'design');")
+    lines.append(f"#{pdef}=PRODUCT_DEFINITION('design','',#{pdf},#{design_ctx});")
+    lines.append(f"#{pds}=PRODUCT_DEFINITION_SHAPE('','',#{pdef});")
+    lines.append(f"#{sdr}=SHAPE_DEFINITION_REPRESENTATION(#{pds},#{sr});")
 
     lines.append("ENDSEC;")
     lines.append("END-ISO-10303-21;")

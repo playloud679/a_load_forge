@@ -284,17 +284,10 @@ def generate_3d_mesh_from_profile(
 #  Dispatch
 # ======================================================================
 
-_PROFILES = {
-    "tractrix": get_tractrix,
-    "lecleach": get_lecleach,
-    "iwata":    get_iwata,
-}
-
-
 def resolve_profile(args: argparse.Namespace) -> str:
     if args.profile != "auto":
         return args.profile
-    if args.profile == "iwata" or (args.length is not None and args.fc is not None):
+    if args.length is not None and args.fc is not None:
         return "iwata"
     if args.fc is not None:
         return "lecleach"

@@ -1,0 +1,80 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Commands
+
+```bash
+# Setup
+make install          # create .venv and install dependencies
+
+# Run web UI
+streamlit run ui_app.py
+
+# CLI usage
+python -m src.main --throat 20 --mouth 100
+python -m src.main --throat 20 --fc 800
+python -m src.main --profile iwata --throat 20 --fc 600 --length 80
+
+# Run tests
+.venv/bin/python tests/test_all.py
+```
+
+## Architecture
+
+### Data flow
+
+```
+Parameters → 2D Profile (z, r) → generate_3d_mesh_from_profile() → STL
+
+Rectangular: (z, w, h) → generate_rectangular_3d_mesh() → STL
+Radial:      (R, Zb, Zt) → _revolve_polygon() → radial_bottom.stl + radial_top.stl
+```
+
+### Key invariant: two-layer system
+
+Every profile has two separate layers:
+1. **2D math layer** (`get_tractrix`, `get_lecleach`, `get_iwata`, etc.) — returns `(z, r)` arrays only, no side effects.
+2. **3D mesh engine** (`generate_3d_mesh_from_profile` or `generate_rectangular_3d_mesh`) — profile-agnostic, takes any valid `(z, r)` and produces watertight STL via revolution + normal offset.
+
+The axisymmetric engine in `profile_generator.py` is shared by tractrix, lecleach, and iwata. Rectangular and radial have their own dedicated engines.
+
+### Modules
+
+| Module | Role |
+|---|---|
+| `src/profile_generator.py` | Axisymmetric profiles (tractrix, lecleach, iwata) + shared 3D revolution engine |
+| `src/rectangular_horn.py` | Rectangular area-preserving profile + dedicated lofting engine |
+| `src/radial_horn.py` | 360° omnidirectional radial horn, two-piece output (bottom + top) |
+| `src/flange_generator.py` | Parametric circular mounting flange |
+| `src/rectangular_flange.py` | Circular-outer / rectangular-inner flange |
+| `src/_step_export.py` | STEP AP242 export utility |
+| `src/_utils.py` | Shared math: profile normals, volume sign, Z-align |
+| `src/_constants.py` | `SOUND_SPEED = 343000 mm/s` |
+| `src/main.py` | CLI orchestrator (thin wrapper over profile_generator) |
+| `ui_app.py` | Streamlit web UI — three tabs: Generate, Flange, Merge |
+
+### Acoustic constants
+
+- Le Cléac'h expansion rate: `m = 4π·fc/c`
+- Iwata: Salmon hyperbolic-exponential with `T = 0.707`, `x₀ = c/(2π·fc)`
+- Radial: `S(R) = S_t · exp(m·(R−Rt))`, `H(R) = S(R)/(2πR)`
+
+### STL output directory
+
+All generated files go to `io/`. The directory must exist (kept via `io/.gitkeep`).
+
+## Critical rule: UI must stay in sync with `src/`
+
+When modifying any Python module under `src/`:
+
+| Change | Required UI update in `ui_app.py` |
+|---|---|
+| New profile function | Add to `st.selectbox()`, add parameter inputs, add generation branch |
+| New 3D engine module | Add lazy import + generation branch + download buttons |
+| New flange generator | Add flange type in Tab 2 with inputs and generation branch |
+| Changed function signature | Update `gen_args` list and the function call |
+| Changed profile name/label format | Update the `_label.startswith()` check in Tab 3 (merge) |
+| Profile that can't be merged (like radial) | Update merge guard in Tab 3 |
+
+Always add a test case in `tests/test_all.py` for new profiles.
