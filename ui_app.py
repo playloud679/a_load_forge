@@ -434,7 +434,7 @@ if gen_btn:
             # --- 3d. Generate flanges ---
             f_throat = f_mouth = f_mid = None
 
-            if gen_throat:
+            if gen_throat and not is_radial:
                 if is_rect:
                     f_throat = _rf.generate_rectangular_flange(
                         outer_diam=_ft_od, inner_w=fiw_g, inner_h=fih_g,
@@ -452,7 +452,7 @@ if gen_btn:
                         bolt_n=int(_ft_nb), bolt_d=_ft_db,
                         offset=z_min + _ft_off + _ft_sp)
 
-            if gen_mouth:
+            if gen_mouth and not is_radial:
                 if is_rect:
                     f_mouth = _rf.generate_rectangular_flange(
                         outer_diam=_fm_od, inner_w=fiw_m, inner_h=fih_m,
