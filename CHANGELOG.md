@@ -1,5 +1,47 @@
 # Changelog
 
+## 2.2.7 (2026-05-31)
+
+Cross-section overhaul plus a round of flange-correctness fixes. Most of these were
+bugs that produced a plausible-looking but wrong solid — the kind you only catch when
+you load the STL in a slicer, which is exactly why this release also rewrites the tests.
+
+### Cross-section is now its own axis
+
+- **Polygonal section** replaces Rectangular: regular N-gon (3–12 sides) at every Z slice, area-matched to the equivalent circle. The old rectangular lofting engine is gone.
+- **Radial 360°** is no longer a separate "profile" — it's a section type, so it now composes with all four expansion curves (Tractrix, Le Cléac'h, Iwata, Exponential), not just exponential.
+- The model is now cleanly **4 expansion profiles × 3 sections** (Circular, Polygonal, Radial), instead of profiles and sections being tangled together.
+
+### Exponential + Circular was silently broken
+
+`get_exponential` only existed inline in the UI, and only on the Polygonal path. With a
+Circular section the code fell through to `get_iwata` in **five** places — mouth input,
+derived metrics, 2D preview, flange sizing, and final generation — so you'd ask for an
+exponential horn and quietly get an Iwata. Extracted `get_exponential` to
+`profile_generator.py` as a first-class profile and wired all five paths to it.
+
+### Polygonal flange outer shape
+
+- `generate_flange` ignored `outer_n_sides`, so selecting a "Polygonal" outer on a circular-hole flange always rendered a **circle**. Added the parameter; the outer body can now be an N-gon prism.
+- **Ring width on polygonal outers now means wall thickness at the flat faces** (the minimum wall), with circumradius `= (inner_R + ring) / cos(π/N)`. Before, ring width was the corner extension, so for a large hole the flat-face wall went negative and the round hole punched through the polygon edges — leaving four detached corner triangles. With the new definition the default 15 mm is valid for any side count and the wall is uniform where it's thinnest.
+- **Auto-expand guard**: if the inner hole would still exceed the polygon inradius, `flange_R` grows to fit instead of producing a broken solid.
+- Reordered the flange input blocks (outer-shape selector before ring width), which also removes a latent `NameError` that would fire the moment you picked Polygonal.
+
+### Other fixes
+
+- **Mid flange** distance is clamped to the horn length, and the midpoint percentage is clamped to 100 — it was indexing past the end of the profile array.
+- **Le Cléac'h mouth flange** hole is now sized `inner_R + thickness` like every other circular profile; it was missing the wall offset, so the hole sat on the inner wall instead of the outer.
+- `generate_flange` defaults `output_path=None` — it no longer writes `io/flange.stl` as a side effect on every UI generation.
+
+### Tests
+
+- `tests/test_all.py` rewritten: **18 → 54**. Real geometric assertions (watertight, single body, positive volume, correct mouth radius) across the full profile × section matrix, instead of "didn't throw".
+- New `tests/test_geometry.py` (**36 tests**): checks output *shape* the way you would in a slicer — sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 = circle, `1/cos(π/N)` = N-gon). This is the test that catches "polygonal flange came out round" and "ring width isn't a uniform 15 mm wall".
+
+### Dependencies
+
+- `shapely>=2.0.0` (polygon extrusion for N-gon flange bodies)
+
 ## 2.2.6 (2026-05-31)
 
 - **Renamed to flare_forge**: new brand name throughout — UI title, page tab, STEP export header, package name, download filenames

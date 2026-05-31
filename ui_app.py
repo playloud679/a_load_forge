@@ -34,9 +34,9 @@ st.set_page_config(page_title="flare_forge", layout="wide",
 
 def _on_horn_change():
     """Recalculate geometry-dependent flange defaults when horn changes."""
-    for _k in ("ft_od", "ft_bc", "ft_ow", "ft_oh",
-               "fm_od", "fm_bc", "fm_ow", "fm_oh",
-               "mid_od", "mid_bc", "mid_ow", "mid_oh"):
+    for _k in ("ft_ring", "ft_bc", "ft_ow", "ft_oh",
+               "fm_ring", "fm_bc", "fm_ow", "fm_oh",
+               "mid_ring", "mid_bc", "mid_ow", "mid_oh"):
         st.session_state.pop(_k, None)
 
 st.title("flare_forge")
@@ -90,11 +90,11 @@ with col_prof:
         else:
             throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0, 20.0, 1.0)
     with d2:
-        if is_radial or is_tractrix or (is_poly and is_exp):
+        if is_radial or is_tractrix or is_exp:
             _m_default = 200.0 if is_radial else 100.0
             mouth_d = st.number_input("Mouth Ø (mm)", 4.0, 500.0, _m_default, 5.0)
         else:
-            st.caption("Mouth — computed from Fc")
+            mouth_d = None; st.caption("Mouth — computed from Fc")
     with d3:
         if has_fc:
             fc = st.number_input("Cutoff frequency Fc (Hz)", 50, 20000, 600, 50,
@@ -105,9 +105,16 @@ with col_prof:
         if is_iwata and not is_radial:
             axial_len = st.number_input("Axial length (mm)", 10.0, 500.0, 80.0, 5.0)
         else:
-            axial_len = 80.0; st.caption("—")
+            axial_len = 80.0
+            if not is_exp:
+                st.caption("—")
+
+    # ── Exponential profile delegate ─────────────────────────────────────
+    def _get_exp_profile(throat_d, mouth_d, fc, n):
+        return _core.get_exponential(throat_d, mouth_d, fc, n)
 
     # Derived metrics
+    _len = _mouth = _fc = None
     try:
         if is_radial:
             _Rr, _Zb, _Zt = _rd.get_radial_profiles(throat_d, mouth_d, fc, 50, profile_type)
@@ -122,10 +129,7 @@ with col_prof:
             elif is_iwata:
                 zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
             elif is_exp:
-                import numpy as np; from _constants import SOUND_SPEED
-                m = 4*np.pi*fc/SOUND_SPEED
-                L = 2/m*np.log(mouth_d/throat_d)
-                zp = np.linspace(0, L, segments); rp = throat_d/2*np.exp(m/2*zp)
+                zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             _len = zp[-1]
             from polygonal_horn import _r_to_circumradius
             R_poly = _r_to_circumradius(rp[-1], n_sides)
@@ -139,6 +143,9 @@ with col_prof:
         elif is_iwata:
             zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
             _len = axial_len; _mouth = f"Ø{rp.max()*2:.0f}"; _fc = None
+        elif is_exp:
+            zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
+            _len = zp[-1]; _mouth = f"Ø{rp[-1]*2:.0f}"; _fc = None
         _m = []
         if _len:  _m.append(f"Length = {_len:.0f} mm")
         if _mouth: _m.append(f"Mouth {_mouth}")
@@ -160,10 +167,7 @@ with col_prev:
             elif is_iwata:
                 zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
             elif is_exp:
-                from _constants import SOUND_SPEED
-                m = 4*np.pi*fc/SOUND_SPEED
-                L = 2/m*np.log(mouth_d/throat_d)
-                zp = np.linspace(0, L, segments); rp = throat_d/2*np.exp(m/2*zp)
+                zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             from polygonal_horn import _r_to_circumradius
             R_poly_arr = _r_to_circumradius(rp, n_sides)
             R_poly_o   = R_poly_arr + thickness / np.cos(np.pi / n_sides)
@@ -181,8 +185,10 @@ with col_prev:
                 zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
             elif is_lecleach:
                 zp, rp = _core.get_lecleach(throat_d, fc, segments)
-            else:
+            elif is_iwata:
                 zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
+            elif is_exp:
+                zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             ax.plot(zp, rp, label="Inner profile", c="#2196F3")
             ax.plot(zp, rp+thickness, "--", label="+ wall", c="#FF5722", alpha=.5)
             ax.set_xlabel("Z (mm)")
@@ -213,10 +219,7 @@ def _calc_flange_dims():
         elif is_iwata:
             zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
         elif is_exp:
-            from _constants import SOUND_SPEED
-            m = 4*np.pi*fc/SOUND_SPEED
-            L = 2/m*np.log(mouth_d/throat_d)
-            zp = np.linspace(0, L, segments); rp = throat_d/2*np.exp(m/2*zp)
+            zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
         ir_mouth = _r_to_circumradius(np.array([rp.max()]), n_sides)[0]
         _get_mid_r = lambda pct: _r_to_circumradius(np.array([rp[int(len(rp)*pct/100)]]), n_sides)[0]
     elif is_radial:
@@ -232,6 +235,10 @@ def _calc_flange_dims():
         _zmax = zp.max(); _zmax_idx = int(np.argmax(zp))
         _zmono, _rmono = zp[:_zmax_idx+1], rp[:_zmax_idx+1]
         _get_mid_r = lambda pct: np.interp(_zmax * pct / 100.0, _zmono, _rmono)
+    elif is_exp:
+        zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
+        ir_throat = throat_d / 2; ir_mouth = rp.max()
+        _get_mid_r = lambda pct: rp[min(int(np.searchsorted(zp, zp[-1]*pct/100)), len(rp)-1)]
     else:  # iwata
         zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
         ir_throat = throat_d / 2; ir_mouth = rp.max()
@@ -251,6 +258,23 @@ if st.button("🔧 Recalculate flanges", use_container_width=True,
 _bolt_n = 4
 _bolt_d = 3.5
 _flange_sp = 6.0
+
+
+def _flange_R_from_ring(inner_R, ring, outer_n):
+    """
+    Outer circumradius such that the wall thickness at the FLAT faces equals `ring`.
+
+    Circular (outer_n < 3): flange_R = inner_R + ring (uniform radial wall).
+    Polygonal: inradius = flange_R·cos(π/N) must equal inner_R + ring, so
+        flange_R = (inner_R + ring) / cos(π/N).
+    The corners extend further out, but the minimum wall (at the flats) stays = ring,
+    so the default 15 mm is always coherent for any side count — the hole never
+    breaks through the polygon edges.
+    """
+    if outer_n >= 3:
+        return (inner_R + ring) / np.cos(np.pi / outer_n)
+    return inner_R + ring
+
 
 # --- Flange inputs (3 columns) ---
 fg1, fg2, fg3 = st.columns(3)
@@ -275,23 +299,30 @@ with fg1:
         _ft_db  = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
         if is_poly:
             from polygonal_horn import _r_to_circumradius
-            _R_poly_g  = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
-            _ft_od = (_R_poly_g + thickness) * 2 + 20
-            _ft_bc = _R_poly_g + thickness + _ft_od / 2
-            st.caption(f"Hole: Ø{throat_d + thickness*2:.0f} mm ({n_sides}-gon inner)")
+            _R_poly_g     = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
+            _R_o_g_approx = _R_poly_g + thickness / np.cos(np.pi / n_sides)
+            _ft_inner_R   = _R_o_g_approx
+            st.caption(f"Hole: {n_sides}-gon, R={_ft_inner_R:.1f} mm")
         else:
-            _ft_od = (throat_d/2 + thickness) * 2 + 20
-            _ft_bc = throat_d/2 + thickness + _ft_od / 2
-            st.caption(f"Hole: Ø{throat_d + thickness*2:.0f} mm (circular)")
-        _ft_ow = _ft_od
-        _ft_oh = _ft_od
-        throat_outer = st.radio("Outer shape", ["Circular", "Rectangular"],
+            _ft_inner_R = throat_d / 2 + thickness
+            st.caption(f"Hole: Ø{_ft_inner_R*2:.0f} mm (circular)")
+        throat_outer = st.radio("Outer shape", ["Circular", "Polygonal"],
                              index=0, horizontal=True, key="throat_outer")
-        if throat_outer == "Rectangular":
-            _ft_ow = st.number_input("Width (mm)",  10.0, 300.0, _ft_ow, 1.0, key="ft_ow")
-            _ft_oh = st.number_input("Height (mm)", 10.0, 300.0, _ft_oh, 1.0, key="ft_oh")
+        _ft_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
+                                        value=n_sides, key="ft_outer_n")
+                       if throat_outer == "Polygonal" else 0)
+        _ft_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="ft_ring",
+            help="Wall thickness at the flat faces; on polygons the corners extend further")
+        _ft_flange_R = _flange_R_from_ring(_ft_inner_R, _ft_ring, _ft_outer_n)
+        _ft_od   = _ft_flange_R * 2
+        _ft_bc   = _ft_inner_R * 2 + _ft_ring        # default bolt circle: hole + half wall
+        if _ft_outer_n >= 3:
+            _ft_inradius = _ft_flange_R * np.cos(np.pi / _ft_outer_n)
+            st.caption(f"Across corners Ø: {_ft_od:.1f} mm · flats wall {_ft_ring:.0f} mm")
+            _ft_bc = min(_ft_bc, (_ft_inradius - _ft_db / 2 - 1.0) * 2)
+            _ft_bc = st.number_input("Bolt circle Ø (mm)", 10.0, 980.0, _ft_bc, 1.0, key="ft_bc")
         else:
-            _ft_od = st.number_input("Outer Ø (mm)",       10.0, 300.0, _ft_od, 1.0, key="ft_od")
+            st.caption(f"Outer Ø: {_ft_od:.1f} mm")
             _ft_bc = st.number_input("Bolt circle Ø (mm)", 10.0, 280.0, _ft_bc, 1.0, key="ft_bc")
         _ft_depth = 0.0
 
@@ -309,31 +340,31 @@ with fg2:
         _fm_nb  = st.number_input("Bolt count", 2, 24, _bolt_n, 1, key="fm_nb")
         _fm_db  = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="fm_db")
         if is_poly:
-            from polygonal_horn import _r_to_circumradius
-            _R_poly_m  = _r_to_circumradius(np.array([ir_mouth]), n_sides)[0]
-            _fm_od = (_R_poly_m + thickness) * 2 + 20
-            _fm_bc = _R_poly_m + thickness + _fm_od / 2
-            _fm_ow = _fm_od; _fm_oh = _fm_od
-            st.caption(f"Hole: Ø{ir_mouth*2 + thickness*2:.0f} mm ({n_sides}-gon inner)")
-        elif is_lecleach:
-            _fm_od = ir_mouth * 2
-            _fm_bc = _fm_od - 20
-            _fm_ow = _fm_od
-            _fm_oh = _fm_od
-            st.caption(f"Hole: Ø{ir_mouth*2 + thickness*2:.0f} mm (circular)")
+            _fm_inner_R = ir_mouth
+            st.caption(f"Hole: {n_sides}-gon, R≈{_fm_inner_R:.0f} mm")
         else:
-            _fm_od = (ir_mouth + thickness) * 2 + 20
-            _fm_bc = ir_mouth + thickness + _fm_od / 2
-            _fm_ow = _fm_od
-            _fm_oh = _fm_od
-            st.caption(f"Hole: Ø{ir_mouth*2 + thickness*2:.0f} mm (circular)")
-        mouth_outer = st.radio("Outer shape", ["Circular", "Rectangular"],
-                              index=0, horizontal=True, key="mouth_outer")
-        if mouth_outer == "Rectangular":
-            _fm_ow = st.number_input("Width (mm)",  10.0, 1000.0, _fm_ow, 1.0, key="fm_ow")
-            _fm_oh = st.number_input("Height (mm)", 10.0, 1000.0, _fm_oh, 1.0, key="fm_oh")
+            # uniform: inner profile radius + wall thickness for all circular profiles
+            _fm_inner_R = ir_mouth + thickness
+            st.caption(f"Hole: Ø{_fm_inner_R*2:.0f} mm (circular)")
+        _mouth_outer_default = 1 if is_poly else 0
+        mouth_outer = st.radio("Outer shape", ["Circular", "Polygonal"],
+                              index=_mouth_outer_default, horizontal=True, key="mouth_outer")
+        _fm_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
+                                        value=n_sides, key="fm_outer_n")
+                       if mouth_outer == "Polygonal" else 0)
+        _fm_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="fm_ring",
+            help="Wall thickness at the flat faces; on polygons the corners extend further")
+        _fm_flange_R = _flange_R_from_ring(_fm_inner_R, _fm_ring, _fm_outer_n)
+        _fm_od   = _fm_flange_R * 2
+        _fm_bc   = _fm_inner_R * 2 + _fm_ring        # default bolt circle: hole + half wall
+        _fm_ow = _fm_od; _fm_oh = _fm_od
+        if _fm_outer_n >= 3:
+            _fm_inradius = _fm_flange_R * np.cos(np.pi / _fm_outer_n)
+            st.caption(f"Across corners Ø: {_fm_od:.1f} mm · flats wall {_fm_ring:.0f} mm")
+            _fm_bc = min(_fm_bc, (_fm_inradius - _fm_db / 2 - 1.0) * 2)
+            _fm_bc = st.number_input("Bolt circle Ø (mm)", 10.0,  980.0, _fm_bc, 1.0, key="fm_bc")
         else:
-            _fm_od = st.number_input("Outer Ø (mm)",       10.0, 1000.0, _fm_od, 1.0, key="fm_od")
+            st.caption(f"Outer Ø: {_fm_od:.1f} mm")
             _fm_bc = st.number_input("Bolt circle Ø (mm)", 10.0,  980.0, _fm_bc, 1.0, key="fm_bc")
 
 with fg3:
@@ -343,29 +374,39 @@ with fg3:
         st.caption("Not available for radial profile")
     else:
         gen_mid = st.checkbox("Include", False, key="gen_mid")
-        _mid_pos = st.number_input("Distance from throat (mm)", 5.0, 2000.0,
-            max(5.0, (_len or 200) * 0.5), 5.0, key="mid_z")
-        _mid_sp = st.number_input("Thickness (mm)", 2.0, 20.0, 4.0, 0.5, key="mid_spess")
+        _mid_max = max(5.0, _len or 200.0)
+        _mid_pos = st.number_input("Distance from throat (mm)", 5.0, _mid_max,
+            max(5.0, _mid_max * 0.5), 5.0, key="mid_z")
+        _mid_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, 4.0, 0.5, key="mid_spess")
+        _mid_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="mid_off")
         _mid_nb = st.number_input("Bolt count", 2, 24, _bolt_n, 1, key="mid_nb")
         _mid_db = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="mid_db")
-        if False:
-            pass
+        _mid_pct = min(100.0, _mid_pos / max(_len or 1, 1) * 100)
+        mid_r = _get_mid_r(_mid_pct) if _len else 10
+        if is_poly:
+            _mid_inner_R = mid_r
+            st.caption(f"Hole: {n_sides}-gon, R≈{_mid_inner_R:.0f} mm")
         else:
-            mid_r    = _get_mid_r(_mid_pos / max(_len or 1, 1) * 100) if _len else 10
-            mid_wall = mid_r + thickness
-            mid_hole = mid_wall * 2
-            _mid_od  = mid_hole + 20
-            _mid_bc  = mid_wall + _mid_od / 2
-            _mid_ow  = _mid_od
-            _mid_oh  = _mid_od
-            st.caption(f"Hole: Ø{mid_hole:.0f} mm (circular)")
-        mid_out = st.radio("Outer shape", ["Circular", "Rectangular"],
-                            index=0, horizontal=True, key="mid_out")
-        if mid_out == "Rectangular":
-            _mid_ow = st.number_input("Width (mm)",  10.0, 1000.0, _mid_ow, 1.0, key="mid_ow")
-            _mid_oh = st.number_input("Height (mm)", 10.0, 1000.0, _mid_oh, 1.0, key="mid_oh")
+            _mid_inner_R = mid_r + thickness
+            st.caption(f"Hole: Ø{_mid_inner_R*2:.0f} mm (circular)")
+        _mid_outer_default = 1 if is_poly else 0
+        mid_out = st.radio("Outer shape", ["Circular", "Polygonal"],
+                            index=_mid_outer_default, horizontal=True, key="mid_out")
+        _mid_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
+                                         value=n_sides, key="mid_outer_n")
+                        if mid_out == "Polygonal" else 0)
+        _mid_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="mid_ring",
+            help="Wall thickness at the flat faces; on polygons the corners extend further")
+        _mid_flange_R = _flange_R_from_ring(_mid_inner_R, _mid_ring, _mid_outer_n)
+        _mid_od   = _mid_flange_R * 2
+        _mid_bc   = _mid_inner_R * 2 + _mid_ring      # default bolt circle: hole + half wall
+        if _mid_outer_n >= 3:
+            _mid_inradius = _mid_flange_R * np.cos(np.pi / _mid_outer_n)
+            st.caption(f"Across corners Ø: {_mid_od:.1f} mm · flats wall {_mid_ring:.0f} mm")
+            _mid_bc = min(_mid_bc, (_mid_inradius - _mid_db / 2 - 1.0) * 2)
+            _mid_bc = st.number_input("Bolt circle Ø (mm)", 10.0,  980.0, _mid_bc, 1.0, key="mid_bc")
         else:
-            _mid_od = st.number_input("Outer Ø (mm)",       10.0, 1000.0, _mid_od, 1.0, key="mid_od")
+            st.caption(f"Outer Ø: {_mid_od:.1f} mm")
             _mid_bc = st.number_input("Bolt circle Ø (mm)", 10.0,  980.0, _mid_bc, 1.0, key="mid_bc")
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -396,15 +437,20 @@ if gen_btn:
                 elif is_iwata:
                     zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
                 elif is_exp:
-                    from _constants import SOUND_SPEED as _C
-                    m = 4*np.pi*fc/_C
-                    L = 2/m*np.log(mouth_d/throat_d)
-                    zp = np.linspace(0, L, segments); rp = throat_d/2*np.exp(m/2*zp)
+                    zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
                 _ph.generate_polygonal_3d_mesh(zp, rp, n_sides, thickness, tp)
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
+                horn.fix_normals()
                 from polygonal_horn import _r_to_circumradius
-                mouth_bx = mouth_by = (_r_to_circumradius(np.array([rp[-1]]), n_sides)[0] + thickness) * 2
+                import _utils as _uts
+                _R_i_arr   = _r_to_circumradius(rp, n_sides)
+                _nml_poly  = _uts.compute_profile_normals(zp, _R_i_arr, flip_if_negative=True)
+                _cos_pn    = np.cos(np.pi / n_sides)
+                _R_o_arr   = _R_i_arr + thickness / _cos_pn * _nml_poly[:, 1]
+                _R_o_throat_poly = _R_o_arr[0]
+                _R_o_mouth_poly  = _R_o_arr[-1]
+                mouth_bx = mouth_by = _R_o_arr[-1] * 2
             elif is_radial:
                 with tempfile.TemporaryDirectory() as _tmp:
                     _rd.generate_radial_horn(throat_d, mouth_d, fc, 48, _tmp, profile_type)
@@ -426,12 +472,14 @@ if gen_btn:
                     zp, rp = C.get_tractrix(throat_d, mouth_d, segments)
                 elif is_lecleach:
                     zp, rp = C.get_lecleach(throat_d, fc, segments)
-                else:
+                elif is_iwata:
                     zp, rp = C.get_iwata(throat_d, fc, axial_len, segments)
+                elif is_exp:
+                    zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
                 C.generate_3d_mesh_from_profile(zp, rp, thickness, 64, tp)
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
-                mouth_bx = mouth_by = (rp[-1] + thickness) * 2 if not is_lecleach else ir_mouth * 2
+                mouth_bx = mouth_by = (rp[-1] + thickness) * 2
 
             z_min = horn.vertices[:,2].min()
 
@@ -443,10 +491,6 @@ if gen_btn:
                 fiw_m = fih_m = mouth_d; z_mouth = 0.0
             else:
                 fiw_m = fih_m = rp[-1] * 2; z_mouth = zp[-1]
-
-            if is_lecleach:
-                fiw_m -= 30.0
-                fih_m = fiw_m
 
             # --- 3d. Generate flanges ---
             f_throat = f_mouth = f_mid = None
@@ -461,34 +505,68 @@ if gen_btn:
                     horn = _tm.boolean.difference([horn, cyl], engine="manifold", check_volume=False)
 
             if gen_throat and not is_radial:
-                _tr = fiw_g / 2
-                f_throat = _fg.generate_flange(
-                    throat_R=_tr, flange_R=_ft_od/2,
-                    thickness=_ft_sp, bolt_R=_ft_bc/2,
-                    bolt_n=int(_ft_nb), bolt_d=_ft_db,
-                    offset=z_min + _ft_off + _ft_sp)
+                if is_poly:
+                    f_throat = _fg.generate_polygonal_flange(
+                        inner_circumR=_R_o_throat_poly, n_sides=n_sides,
+                        flange_R=_ft_od/2,
+                        thickness=_ft_sp, bolt_R=_ft_bc/2,
+                        bolt_n=int(_ft_nb), bolt_d=_ft_db,
+                        offset=z_min + _ft_off + _ft_sp,
+                        outer_n_sides=_ft_outer_n)
+                else:
+                    f_throat = _fg.generate_flange(
+                        throat_R=fiw_g/2, flange_R=_ft_od/2,
+                        thickness=_ft_sp, bolt_R=_ft_bc/2,
+                        bolt_n=int(_ft_nb), bolt_d=_ft_db,
+                        offset=z_min + _ft_off + _ft_sp,
+                        outer_n_sides=_ft_outer_n,
+                        output_path=None)
 
             if gen_mouth and not is_radial:
-                _R    = _fm_od / 2.0
-                _tr_m = fiw_m / 2.0
-                if is_lecleach:
-                    _R    = min(_R, rp.max())
-                    _tr_m = min(_tr_m, _R - 5.0)
-                f_mouth = _fg.generate_flange(
-                    throat_R=_tr_m, flange_R=_R,
-                    thickness=_fm_sp, bolt_R=_fm_bc/2,
-                    bolt_n=int(_fm_nb), bolt_d=_fm_db,
-                    offset=z_mouth + _fm_off)
+                if is_poly:
+                    f_mouth = _fg.generate_polygonal_flange(
+                        inner_circumR=_R_o_mouth_poly, n_sides=n_sides,
+                        flange_R=_fm_od/2,
+                        thickness=_fm_sp, bolt_R=_fm_bc/2,
+                        bolt_n=int(_fm_nb), bolt_d=_fm_db,
+                        offset=z_mouth + _fm_off,
+                        outer_n_sides=_fm_outer_n)
+                else:
+                    _R    = _fm_od / 2.0
+                    _tr_m = fiw_m / 2.0
+                    # guard: outer radius must exceed inner by at least 1 mm
+                    if _R <= _tr_m + 1.0:
+                        _R = _tr_m + _fm_ring
+                    f_mouth = _fg.generate_flange(
+                        throat_R=_tr_m, flange_R=_R,
+                        thickness=_fm_sp, bolt_R=_fm_bc/2,
+                        bolt_n=int(_fm_nb), bolt_d=_fm_db,
+                        offset=z_mouth + _fm_off,
+                        outer_n_sides=_fm_outer_n,
+                        output_path=None)
 
             if gen_mid and not is_radial:
-                z_mid = z_min + _mid_pos
-                mid_r   = _get_mid_r(_mid_pos / max(_len or 1, 1) * 100) if _len else 10
-                fiw_mid = (mid_r + thickness) * 2
-                f_mid = _fg.generate_flange(
-                    throat_R=fiw_mid/2, flange_R=_mid_od/2,
-                    thickness=_mid_sp, bolt_R=_mid_bc/2,
-                    bolt_n=int(_mid_nb), bolt_d=_mid_db,
-                    offset=z_mid)
+                z_mid = z_min + _mid_pos + _mid_off
+                if is_poly:
+                    _R_o_mid_poly = float(np.interp(_mid_pos, zp, _R_o_arr))
+                    f_mid = _fg.generate_polygonal_flange(
+                        inner_circumR=_R_o_mid_poly, n_sides=n_sides,
+                        flange_R=_mid_od/2,
+                        thickness=_mid_sp, bolt_R=_mid_bc/2,
+                        bolt_n=int(_mid_nb), bolt_d=_mid_db,
+                        offset=z_mid,
+                        outer_n_sides=_mid_outer_n)
+                else:
+                    _mid_pct_gen = min(100.0, _mid_pos / max(_len or 1, 1) * 100)
+                    mid_r   = _get_mid_r(_mid_pct_gen) if _len else 10
+                    fiw_mid = (mid_r + thickness) * 2
+                    f_mid = _fg.generate_flange(
+                        throat_R=fiw_mid/2, flange_R=_mid_od/2,
+                        thickness=_mid_sp, bolt_R=_mid_bc/2,
+                        bolt_n=int(_mid_nb), bolt_d=_mid_db,
+                        offset=z_mid,
+                        outer_n_sides=_mid_outer_n,
+                        output_path=None)
 
             # --- 3e. Merge ---
             bodies = []

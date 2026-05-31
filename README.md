@@ -15,9 +15,9 @@ The web interface runs at `localhost:8501`. There is also a CLI:
     python -m src.main --throat 20 --mouth 100
     python -m src.main --profile iwata --throat 20 --fc 600 --length 80
 
-## Why five profiles
+## The expansion profiles
 
-Because the right expansion curve depends on what you're optimizing for, and none of them is obviously better.
+There are four. The right expansion curve depends on what you're optimizing for, and none of them is obviously better.
 
 **Tractrix** has a nice variational property: the tangent is horizontal at the mouth, which minimizes reflections. It comes out short though, which means poor low-frequency driver loading. Still, it's the one with the cleanest derivation.
 
@@ -27,17 +27,31 @@ Because the right expansion curve depends on what you're optimizing for, and non
 
 **Exponential** is the textbook formula. Area doubles every fixed axial distance. Fast, simple, valid for many applications.
 
+Each returns `(z, r)` and nothing else — just the math. The cross-section is a separate choice.
+
+## Cross-sections
+
+The profile says how the area grows along the axis. The section says what shape that area takes. Any of the four profiles composes with any of the three sections.
+
+**Circular** is the revolution you'd expect: spin the profile around Z.
+
+**Polygonal** makes every Z slice a regular N-gon (3 to 12 sides), area-matched to the equivalent circle, so the acoustics are unchanged but the horn prints flat-faced. The circumradius is `r_eq · √(2π / (N·sin(2π/N)))`.
+
 **Radial 360°** is a disk waveguide for omnidirectional applications. Two pieces — bottom plate and top reflector — with an acoustic gap between them.
 
 ## How the mesh is built
 
-The 2D profile functions return `(z, r)` arrays — pure math, no geometry yet. These feed a profile-agnostic 3D engine that computes outward normals via finite differences, offsets the inner profile along those normals by the wall thickness to get the outer surface, revolves both around Z, and caps the annuli at the throat and mouth.
+The 2D profile functions return `(z, r)` arrays — pure math, no geometry yet. For a circular section these feed a profile-agnostic 3D engine that computes outward normals via finite differences, offsets the inner profile along those normals by the wall thickness to get the outer surface, revolves both around Z, and caps the annuli at the throat and mouth.
 
 Offsets are computed in normal space, not Euclidean space. The distinction matters at the throat, where the profile curves tightly: a naive Euclidean offset collapses or self-intersects there, while the normal-space approach keeps wall thickness uniform in the direction the wall actually faces.
 
-For rectangular cross-sections, the revolution step is replaced by a rectangular lofting engine. Area is preserved from the circular equivalent — `S_rect = S_circ` — with the throat aspect ratio maintained throughout.
+The polygonal section reuses the same `(z, r)` and the same normal-offset idea, but lofts N-gon rings instead of revolving — the per-vertex offset is scaled by `1/cos(π/N)` so the wall thickness stays uniform along the face normal, not the vertex direction. Radial has its own two-piece revolution engine.
 
-Mounting flanges (throat, mouth, and an optional mid-flange at any axial position) are built with CSG boolean operations via trimesh and manifold3d. Bolt holes are real cutouts, not overlapping geometry.
+## Flanges
+
+Mounting flanges (throat, mouth, and an optional mid-flange at any axial position) are built with CSG boolean operations via trimesh and manifold3d. Bolt holes are real cutouts, not overlapping geometry. The outer body can be circular or a polygon, independently of the horn's section.
+
+One subtlety worth stating, because it's easy to get wrong: on a polygonal outer, "ring width" is the wall thickness at the **flat faces**, not the distance to the corners. The hole is a circle of radius `inner_R`; the polygon's narrowest wall is at its inradius, `flange_R · cos(π/N)`. If you size the polygon by its circumradius (`inner_R + ring`), the flat-face wall shrinks as you add sides and eventually goes negative — the round hole punches straight through the edges and you're left with detached corner triangles. So the circumradius is solved backwards from the wall you actually want: `flange_R = (inner_R + ring) / cos(π/N)`. The wall is then a uniform `ring` everywhere it's thinnest, for any side count.
 
 ## STEP export
 
@@ -46,14 +60,17 @@ The STEP files use AP203 CONFIG_CONTROL_DESIGN schema with `FACETED_BREP` and `C
 ## Tests
 
     .venv/bin/python tests/test_all.py
+    .venv/bin/python tests/test_geometry.py
 
-18 tests covering all profile and cross-section combinations. All meshes are checked for watertightness.
+`test_all.py` (54 tests) covers the full profile × section matrix and asserts the things that actually matter for printing: watertight, single body, positive volume, correct mouth radius. `test_geometry.py` (36 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
 
 ## Known limitations
 
 For very low cutoff frequencies (below roughly 200 Hz) the Le Cléac'h ODE integrates over an enormous arc length and may not terminate cleanly. In practice a 200 Hz horn is physically impractical to print so this doesn't come up often.
 
 Wall thickness at the throat end of high-curvature profiles will be slightly thinner on the concave face than requested. The error is typically under 0.5 mm for normal throat sizes.
+
+A polygonal flange with few sides and a large hole gets big: holding a uniform flat-face wall on a triangle means the corners reach a long way out. That's geometry, not a bug — switch to more sides or a circular outer if the footprint matters.
 
 ## License
 

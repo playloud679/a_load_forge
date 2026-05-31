@@ -142,6 +142,26 @@ def get_lecleach(throat: float, fc: float, n: int
     return z, r
 
 
+# ---- Exponential -------------------------------------------------------
+
+def get_exponential(throat: float, mouth: float, fc: float, n: int
+                    ) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Pure exponential horn.
+
+        S(z) = S_t · exp(m · z),   m = 4π·fc / c
+        R(z) = (throat/2) · exp(m/2 · z)
+
+    Length is derived so that R(L) = mouth/2.
+    Returns (z, r) — same interface as get_tractrix.
+    """
+    m = 4.0 * np.pi * fc / SOUND_SPEED
+    L = 2.0 / m * np.log(mouth / throat)
+    z = np.linspace(0.0, L, n)
+    r = (throat / 2.0) * np.exp(m / 2.0 * z)
+    return z, r
+
+
 # ---- Iwata (axisymmetric) -----------------------------------------------
 
 def get_iwata(throat: float, fc: float, length: float, n: int
