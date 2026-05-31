@@ -36,31 +36,53 @@ logger = logging.getLogger(__name__)
 def get_radial_profiles(
     throat_diam: float,
     mouth_diam: float,
-    fc: float,
+    fc: float | None = None,
     n: int = 300,
+    profile: str = "Exponential",
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Compute the 1‑D radial functions.
+    Compute the 1-D radial functions for any expansion profile.
+
+    The area law S(R) is derived from the chosen profile by normalising its
+    axial coordinate to span [Rt, Rm]:
+
+        Exponential — S(R) = St · exp(m·(R−Rt)),  m = 4π·fc/c
+        Tractrix    — area re-parameterised from get_tractrix(throat, mouth)
+        Le Cléac'h  — area re-parameterised from get_lecleach(throat, fc)
+        Iwata       — area re-parameterised from get_iwata with length=Rm−Rt
+
+    H(R) = S(R) / (2πR),  Z_bottom = (R−Rt)·0.3,  Z_top = Z_bottom + H
 
     Returns (R, Z_bottom, Z_top) arrays.
     """
     Rt = throat_diam / 2.0
     Rm = mouth_diam / 2.0
-    m  = 4.0 * np.pi * fc / SOUND_SPEED   # expansion rate
-
-    R = np.linspace(Rt, Rm, n)
     St = np.pi * Rt ** 2
-    S  = St * np.exp(m * (R - Rt))
+    R = np.linspace(Rt, Rm, n)
 
-    # Vertical gap  H(R) = S(R) / (2πR)
+    if profile == "Exponential":
+        m = 4.0 * np.pi * (fc or 1000.0) / SOUND_SPEED
+        S = St * np.exp(m * (R - Rt))
+    else:
+        from profile_generator import get_tractrix, get_lecleach, get_iwata
+        if profile == "Tractrix":
+            z_p, r_p = get_tractrix(throat_diam, mouth_diam, n)
+        elif profile == "Le Cléac'h":
+            z_p, r_p = get_lecleach(throat_diam, fc or 1000.0, n)
+        elif profile == "Iwata":
+            z_p, r_p = get_iwata(throat_diam, fc or 1000.0, float(Rm - Rt), n)
+        else:
+            raise ValueError(f"Unknown profile: {profile}")
+
+        # Re-parameterise: stretch the profile's z-axis to fill [Rt, Rm]
+        S_prof = np.pi * r_p ** 2
+        t = np.linspace(0, 1, len(z_p))
+        S = np.interp(np.linspace(0, 1, n), t, S_prof)
+        S = np.maximum(S, St)  # monotone: never narrower than throat
+
     H = S / (2.0 * np.pi * R)
-
-    # Bottom deflector: gentle linear rise from the throat
     Z_bottom = (R - Rt) * 0.3
-
-    # Top reflector sits exactly H(R) above the bottom
     Z_top = Z_bottom + H
-
     return R, Z_bottom, Z_top
 
 
@@ -114,13 +136,14 @@ def _revolve_polygon(
 def generate_radial_horn(
     throat_diam: float = 25.0,
     mouth_diam:  float = 200.0,
-    fc:          float = 600.0,
+    fc:          float | None = None,
     rings:       int   = 64,
     output_dir:  str   = "io",
+    profile:     str   = "Exponential",
 ):
     """Generate both bottom deflector and top reflector STLs."""
 
-    R, Zb, Zt = get_radial_profiles(throat_diam, mouth_diam, fc, 300)
+    R, Zb, Zt = get_radial_profiles(throat_diam, mouth_diam, fc, 300, profile)
 
     logger.info("Radial horn:  throat=%.0f  mouth=%.0f  fc=%.0f",
                 throat_diam, mouth_diam, fc)

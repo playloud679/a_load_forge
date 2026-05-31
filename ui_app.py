@@ -63,12 +63,11 @@ with col_prof:
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         profile_type = st.selectbox("Profile",
-            ["Tractrix", "Le Cléac'h", "Iwata", "Exponential", "Radial 360°"], index=0,
+            ["Tractrix", "Le Cléac'h", "Iwata", "Exponential"], index=0,
             on_change=_on_horn_change, key="profile_type")
     with c2:
-        section_type = st.radio("Section", ["Circular", "Rectangular"],
+        section_type = st.radio("Section", ["Circular", "Rectangular", "Radial 360°"],
                           index=0, horizontal=True, key="section_type",
-                          disabled=profile_type.startswith("Rad"),
                           on_change=_on_horn_change)
     with c3:
         thickness = st.number_input("Wall thickness (mm)", 1.0, 20.0, 4.0, 0.5,
@@ -77,13 +76,13 @@ with col_prof:
     with c4:
         segments = st.number_input("Profile points", 100, 50000, 300, 50)
 
-    is_radial   = profile_type.startswith("Rad")
-    is_rect     = section_type == "Rectangular" and not is_radial
+    is_radial   = section_type.startswith("Rad")
+    is_rect     = section_type == "Rectangular"
     is_tractrix = profile_type.startswith("Tract")
     is_lecleach = profile_type.startswith("Le Clé")
     is_iwata    = profile_type.startswith("Iwata")
     is_exp      = profile_type.startswith("Exp")
-    has_fc      = is_lecleach or is_iwata or is_exp or is_radial
+    has_fc      = is_lecleach or is_iwata or is_exp
 
     st.markdown("##### Dimensions")
     d1, d2, d3, d4 = st.columns(4)
@@ -91,10 +90,9 @@ with col_prof:
         if is_rect:
             throat_w = st.number_input("Throat width (mm)", 4.0, 200.0, 20.0, 1.0)
             throat_h = st.number_input("Throat height (mm)", 2.0, 200.0, 10.0, 1.0)
-        elif is_radial:
-            throat_d = st.number_input("Throat Ø (mm)", 5.0, 100.0, 25.0, 1.0)
         else:
-            throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0, 20.0, 1.0)
+            _t_default = 25.0 if is_radial else 20.0
+            throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0, _t_default, 1.0)
     with d2:
         if is_rect:
             if is_tractrix or is_exp:
@@ -102,8 +100,8 @@ with col_prof:
             else:
                 st.caption("Mouth — computed")
         elif is_radial or is_tractrix:
-            mouth_d = st.number_input("Mouth Ø (mm)", 4.0, 500.0,
-                                      100.0 if is_tractrix else 200.0, 5.0)
+            _m_default = 200.0 if is_radial else 100.0
+            mouth_d = st.number_input("Mouth Ø (mm)", 4.0, 500.0, _m_default, 5.0)
         else:
             st.caption("Mouth — computed from Fc")
     with d3:
@@ -115,14 +113,17 @@ with col_prof:
     with d4:
         if is_rect and is_exp:
             pass  # exponential: mouth_w determines length
-        elif is_iwata:
+        elif is_iwata and not is_radial:
             axial_len = st.number_input("Axial length (mm)", 10.0, 500.0, 80.0, 5.0)
         else:
-            st.caption("—")
+            axial_len = 80.0; st.caption("—")
 
     # Derived metrics
     try:
         if is_radial:
+            _Rr, _Zb, _Zt = _rd.get_radial_profiles(throat_d, mouth_d, fc, 50, profile_type)
+            _gap_t = _Zt[0] - _Zb[0]; _gap_m = _Zt[-1] - _Zb[-1]
+            st.caption(f"Gap: throat {_gap_t:.1f} mm · mouth {_gap_m:.1f} mm")
             _len = _mouth = _fc = None
         elif is_rect:
             zp, wp, hp = _get_rect_profile(segments)
@@ -156,7 +157,7 @@ with col_prev:
             ax.plot(zp, wp/2+thickness, "--", c="#2196F3", alpha=.4)
             ax.plot(zp, hp/2+thickness, "--", c="#FF5722", alpha=.4)
         elif is_radial:
-            Rr, Zb, Zt = _rd.get_radial_profiles(throat_d, mouth_d, fc, segments)
+            Rr, Zb, Zt = _rd.get_radial_profiles(throat_d, mouth_d, fc, segments, profile_type)
             ax.plot(Rr, Zb, label="Bottom deflector", c="#FF5722")
             ax.plot(Rr, Zt, label="Top reflector", c="#2196F3")
             ax.fill_between(Rr, Zb, Zt, alpha=.15, color="#4CAF50")
@@ -392,9 +393,9 @@ if gen_btn:
                 mouth_by = h[-1] + thickness * 2
             elif is_radial:
                 with tempfile.TemporaryDirectory() as _tmp:
-                    _rd.generate_radial_horn(throat_d, mouth_d, fc, 48, _tmp)
+                    _rd.generate_radial_horn(throat_d, mouth_d, fc, 48, _tmp, profile_type)
                     horn = _tm.load(os.path.join(_tmp, "radial_bottom.stl"), file_type="stl")
-                    R, Zb, Zt = _rd.get_radial_profiles(throat_d, mouth_d, fc, segments)
+                    R, Zb, Zt = _rd.get_radial_profiles(throat_d, mouth_d, fc, segments, profile_type)
                     Rm, Rt_rad = R[-1], R[0]
                     Z_top_flat = Zt[-1] + 4.0
                     eps = 0.01
