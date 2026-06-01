@@ -142,6 +142,15 @@ with col_prof:
     else:
         axial_len = 80.0
 
+    if is_iwata:
+        iwata_T = st.number_input(
+            "Flare parameter T", 0.0, 10.0, 0.707, 0.01, key="iwata_T",
+            on_change=_on_horn_change,
+            help="Hornresp T: 0 = catenoidal · <1 = cosh · 1 = exponential · >1 = sinh"
+        )
+    else:
+        iwata_T = 0.707
+
     # Compute the profile once; derive the remaining scalars.
     _len = None
     _mouth_d_eff = mouth_d          # circular-equivalent mouth diameter
@@ -159,7 +168,7 @@ with col_prof:
             zp, rp = _core.get_lecleach(throat_d, fc, segments)
             _len = zp.max(); _mouth_d_eff = rp.max() * 2
         elif is_iwata:
-            zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
+            zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
             _len = axial_len; _mouth_d_eff = rp.max() * 2
         elif is_exp:
             zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
@@ -204,7 +213,7 @@ with col_prev:
             elif is_lecleach:
                 zp, rp = _core.get_lecleach(throat_d, fc, segments)
             elif is_iwata:
-                zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
+                zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
             elif is_exp:
                 zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             from polygonal_horn import _r_to_circumradius
@@ -225,7 +234,7 @@ with col_prev:
             elif is_lecleach:
                 zp, rp = _core.get_lecleach(throat_d, fc, segments)
             elif is_iwata:
-                zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
+                zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
             elif is_exp:
                 zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             ax.plot(zp, rp, label="Inner profile", c="#2196F3")
@@ -256,7 +265,7 @@ def _calc_flange_dims():
         elif is_lecleach:
             zp, rp = _core.get_lecleach(throat_d, fc, segments)
         elif is_iwata:
-            zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
+            zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
         elif is_exp:
             zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
         ir_mouth = _r_to_circumradius(np.array([rp.max()]), n_sides)[0]
@@ -279,7 +288,7 @@ def _calc_flange_dims():
         ir_throat = throat_d / 2; ir_mouth = rp.max()
         _get_mid_r = lambda pct: rp[min(int(np.searchsorted(zp, zp[-1]*pct/100)), len(rp)-1)]
     else:  # iwata
-        zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
+        zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
         ir_throat = throat_d / 2; ir_mouth = rp.max()
         _get_mid_r = lambda pct: rp[int(np.searchsorted(zp, zp[-1]*pct/100))]
 
@@ -513,7 +522,7 @@ if gen_btn:
                 elif is_lecleach:
                     zp, rp = _core.get_lecleach(throat_d, fc, segments)
                 elif is_iwata:
-                    zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
+                    zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
                 elif is_exp:
                     zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
@@ -551,7 +560,7 @@ if gen_btn:
                 elif is_lecleach:
                     zp, rp = C.get_lecleach(throat_d, fc, segments)
                 elif is_iwata:
-                    zp, rp = C.get_iwata(throat_d, fc, axial_len, segments)
+                    zp, rp = C.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
                 elif is_exp:
                     zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name

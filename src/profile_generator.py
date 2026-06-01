@@ -48,6 +48,8 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
                    help="Cutoff frequency in Hz (lecleach / iwata)")
     p.add_argument("--length", type=float, default=None,
                    help="Axial length in mm (iwata)")
+    p.add_argument("--T", type=float, default=0.707,
+                   help="Iwata flare parameter T (0=catenoidal, <1=cosh, 1=exponential, >1=sinh)")
     p.add_argument("--profile", choices=["auto", "tractrix", "lecleach", "iwata"],
                    default="auto")
     p.add_argument("--thickness", type=float, default=4.0)
@@ -164,23 +166,21 @@ def get_exponential(throat: float, mouth: float, fc: float, n: int
 
 # ---- Iwata (axisymmetric) -----------------------------------------------
 
-def get_iwata(throat: float, fc: float, length: float, n: int
-              ) -> tuple[np.ndarray, np.ndarray]:
+def get_iwata(throat: float, fc: float, length: float, n: int,
+              T: float = 0.707) -> tuple[np.ndarray, np.ndarray]:
     """
-    Axisymmetric Iwata (Salmon / Hyperbolic-Exponential) horn.
+    Axisymmetric Salmon / Hyperbolic-Exponential horn.
 
         S(x) = S_t · (cosh(x/x₀) + T · sinh(x/x₀))²
         R(x) = √(S(x)/π)
+        x₀   = c / (2π·fc)
 
-    Constants:
-        T  = 0.707  (Iwata flare parameter)
-        x₀ = c / (2π·fc)   (reference scaling length from cutoff Fc)
-
-    The mouth radius at x = length is determined by fc and T.
-    Returns (z, r) — same interface as get_tractrix.
+    T: Hornresp-compatible flare parameter.
+       0 = catenoidal (cosh²),  <1 = cosh-dominant,
+       1 = exponential (e^{2x/x₀}),  >1 = sinh-dominant.
+    Default T=0.707 matches the classical Iwata alignment.
     """
     rt = throat / 2.0
-    T  = 0.707
     x0 = SOUND_SPEED / (2.0 * np.pi * fc)
 
     x = np.linspace(0, length, n)
@@ -343,11 +343,11 @@ def main(argv: list[str] | None = None) -> None:
         elif name == "iwata":
             if args.fc is None or args.length is None:
                 raise ValueError("--fc and --length required for iwata")
-            logger.info("Iwata: throat=%s  Fc=%s  length=%s",
-                        args.throat, args.fc, args.length)
-            z, r = get_iwata(args.throat, args.fc, args.length, args.segments)
-            logger.info("Mouth ø: %.1f mm  (Salmon T=0.707, x₀=c/2π·fc=%.0fmm)",
-                        r.max() * 2, SOUND_SPEED / (2.0 * np.pi * args.fc))
+            logger.info("Iwata: throat=%s  Fc=%s  length=%s  T=%s",
+                        args.throat, args.fc, args.length, args.T)
+            z, r = get_iwata(args.throat, args.fc, args.length, args.segments, T=args.T)
+            logger.info("Mouth ø: %.1f mm  (T=%.3f, x₀=c/2π·fc=%.0fmm)",
+                        r.max() * 2, args.T, SOUND_SPEED / (2.0 * np.pi * args.fc))
 
         else:
             raise ValueError(f"Unknown profile: {name}")
