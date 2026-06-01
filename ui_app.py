@@ -32,8 +32,8 @@ st.set_page_config(page_title="flare_forge", layout="wide",
 
 # ── Support link ─────────────────────────────────────────────────────
 # Replace with your Buy Me a Coffee username; the button hides if left blank.
-BMC_USERNAME = "your_username"
-BMC_URL = f"https://www.buymeacoffee.com/{BMC_USERNAME}"
+BMC_USERNAME = "steo_lab"
+BMC_URL = f"https://buymeacoffee.com/{BMC_USERNAME}"
 
 # ── Flange recalculation callback ────────────────────────────────────
 
