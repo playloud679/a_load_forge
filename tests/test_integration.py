@@ -38,7 +38,7 @@ def _hole_size(mesh, near_z):
     return float(np.sqrt(v[:, 0]**2 + v[:, 1]**2).max()) * 2
 
 
-def make_assembly(label, horn_mesh, z_mouth, is_rect=False, is_lecleach=False,
+def make_assembly(label, horn_mesh, z_mouth, is_rect=False,
                   fg_spess=6, fm_spess=6, mid_pct=None):
     """Build full assembly: horn + throat + mouth + optional mid flange."""
     z_min = horn_mesh.vertices[:, 2].min()
@@ -62,15 +62,9 @@ def make_assembly(label, horn_mesh, z_mouth, is_rect=False, is_lecleach=False,
     fg_od = max(fg_hole + 20, 40)
     fg_bc = fg_hole / 2 + fg_od / 2
 
-    # Mouth: LeCleach → inward (outer edge = mouth, hole smaller)
-    if is_lecleach:
-        fm_od = fm_hole            # flush with mouth, no outward margin
-        fm_hole_actual = fm_od - 20  # hole 10mm inward from edge
-        fm_bc = (fm_hole_actual / 2 + fm_od / 2)
-    else:
-        fm_od = max(fm_hole + 20, 40)
-        fm_hole_actual = fm_hole
-        fm_bc = fm_hole / 2 + fm_od / 2
+    fm_od = max(fm_hole + 20, 40)
+    fm_hole_actual = fm_hole
+    fm_bc = fm_hole / 2 + fm_od / 2
 
     flanges = []
 
@@ -84,8 +78,7 @@ def make_assembly(label, horn_mesh, z_mouth, is_rect=False, is_lecleach=False,
                            bolt_R=fm_bc/2, bolt_n=4, bolt_d=3.5, offset=z_mouth)
     if f is None: raise RuntimeError("Mouth flange failed")
     flanges.append(f)
-    extra = " (verso centro)" if is_lecleach else ""
-    print(f"    Mouth:  hole=Ø{fm_hole_actual:.0f} od=Ø{fm_od:.0f} bc=Ø{fm_bc:.0f}{extra}")
+    print(f"    Mouth:  hole=Ø{fm_hole_actual:.0f} od=Ø{fm_od:.0f} bc=Ø{fm_bc:.0f}")
 
     if mid_pct is not None:
         z_len = horn_mesh.vertices[:, 2].max() - z_min
@@ -128,31 +121,16 @@ test("Tractrix assembly", lambda: make_assembly("tractrix_full", horn,
       horn.vertices[:, 2].max(), mid_pct=50))
 
 # ═══════════════════════════════════════════════════════════════════════
-#  LE CLÉAC'H
+#  SALMON
 # ═══════════════════════════════════════════════════════════════════════
-print("\n═══ Le Cléac'h (20/800Hz, t=4) ═══")
-z, r = core.get_lecleach(20, 800, 300)
+print("\n═══ Salmon (20/600Hz/L=80, t=4) ═══")
+z, r = core.get_salmon(20, 600, 80, 300)
 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
     tp = t.name
 core.generate_3d_mesh_from_profile(z, r, 4.0, 64, tp)
 horn = _tm.load(tp, file_type="stl")
 os.unlink(tp)
-rr = np.sqrt(horn.vertices[:, 0]**2 + horn.vertices[:, 1]**2)
-z_mouth = float(horn.vertices[int(rr.argmax()), 2])
-test("LeCleach assembly", lambda: make_assembly("lecleach_full", horn, z_mouth,
-      is_lecleach=True, mid_pct=40))
-
-# ═══════════════════════════════════════════════════════════════════════
-#  IWATA
-# ═══════════════════════════════════════════════════════════════════════
-print("\n═══ Iwata (20/600Hz/L=80, t=4) ═══")
-z, r = core.get_iwata(20, 600, 80, 300)
-with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
-    tp = t.name
-core.generate_3d_mesh_from_profile(z, r, 4.0, 64, tp)
-horn = _tm.load(tp, file_type="stl")
-os.unlink(tp)
-test("Iwata assembly", lambda: make_assembly("iwata_full", horn,
+test("Salmon assembly", lambda: make_assembly("salmon_full", horn,
       horn.vertices[:, 2].max(), mid_pct=50))
 
 # ═══════════════════════════════════════════════════════════════════════

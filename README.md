@@ -11,19 +11,16 @@ I built this because every tool I found either required a full CAD package, or p
 
 The web interface runs at `localhost:8501`. There is also a CLI:
 
-    python -m src.main --throat 20 --fc 600 --profile lecleach --output horn.stl
-    python -m src.main --throat 20 --mouth 100
-    python -m src.main --profile iwata --throat 20 --fc 600 --length 80
+     python -m src.main --throat 20 --mouth 100
+    python -m src.main --profile salmon --throat 20 --fc 600 --length 80
 
 ## The expansion profiles
 
-There are four. The right expansion curve depends on what you're optimizing for, and none of them is obviously better.
+There are three. The right expansion curve depends on what you're optimizing for, and none of them is obviously better.
 
 **Tractrix** has a nice variational property: the tangent is horizontal at the mouth, which minimizes reflections. It comes out short though, which means poor low-frequency driver loading. Still, it's the one with the cleanest derivation.
 
-**Le Cléac'h** is what you use when you actually want to listen to music. It maintains isophase wavefronts by integrating an ODE with RK45. The curve rolls back about 160° before terminating, giving a larger effective mouth than tractrix for the same throat and cutoff.
-
-**Iwata** (technically Salmon hyperbolic-exponential, T=0.707) is the practical one. You hand it a length and a cutoff frequency and it fits an expansion in the box. Predictable and widely used in compression driver work.
+**Salmon** (hyperbolic-exponential, parametrizzato da `T`). Con `T=0.707` (Hypex) è il profilo più usato nei compression driver. Dai una lunghezza e una frequenza di taglio, e calcola l'espansione. Prevedibile e robusto.
 
 **Exponential** is the textbook formula. Area doubles every fixed axial distance. Fast, simple, valid for many applications.
 

@@ -9,7 +9,7 @@ Whenever you modify a Python module under `src/` (add a new profile, change a fu
 | Python change | Required UI update |
 |---|---|
 | New profile function (e.g. `get_xxx()` in `profile_generator.py`) | Add profile to the `st.selectbox()` in Tab 1, add parameter inputs, add generation branch |
-| New 3D engine module (e.g. `03_xxx.py`) | Add lazy import + generation branch in Tab 1, add download buttons |
+| New 3D engine or slicer module (e.g. `_slicer.py`) | Add lazy import + UI section with controls and download buttons |
 | New flange generator | Add flange type in Tab 2, add parameter inputs and generation branch |
 | Changed function signature (e.g. added/removed a parameter) | Update the `gen_args` list and the function call in Tab 1 |
 | Changed profile name or label format | Update the `_label.startswith()` check in Tab 3 (merge) |
@@ -20,7 +20,7 @@ Whenever you modify a Python module under `src/` (add a new profile, change a fu
 1. Add the profile name to the `st.selectbox()` in Tab 1:
    ```python
    profile = st.selectbox("Profile",
-       ["tractrix", "lecleach", "iwata", "rectangular", "radial", "newprofile"], ...)
+        ["tractrix", "salmon", "exponential", "newprofile"], ...)
    ```
 
 2. Add parameter inputs for the new profile in the `if/elif` chain below the selectbox.

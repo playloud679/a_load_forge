@@ -17,6 +17,7 @@ import rectangular_flange as _rf
 import rectangular_horn as _rh
 import radial_horn as _rd
 import polygonal_horn as _ph
+import _slicer as _slc
 from _step_export import export_step
 
 import importlib
@@ -26,6 +27,7 @@ importlib.reload(_rf)
 importlib.reload(_rh)
 importlib.reload(_rd)
 importlib.reload(_ph)
+importlib.reload(_slc)
 
 st.set_page_config(page_title="flare_forge", layout="wide",
     initial_sidebar_state="collapsed", menu_items={})
@@ -43,6 +45,7 @@ def _on_horn_change():
                "fm_ring", "fm_bc", "fm_ow", "fm_oh",
                "mid_ring", "mid_bc", "mid_ow", "mid_oh"):
         st.session_state.pop(_k, None)
+    st.session_state.pop("_combined", None)
 
 _hdr_l, _hdr_r = st.columns([5, 1])
 with _hdr_l:
@@ -66,7 +69,7 @@ with col_prof:
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         profile_type = st.selectbox("Profile",
-            ["Tractrix", "Le Cléac'h", "Iwata", "Exponential"], index=0,
+            ["Tractrix", "Salmon", "Iwata", "Le Cléac'h (isophase)", "Exponential"], index=0,
             on_change=_on_horn_change, key="profile_type")
     with c2:
         section_type = st.radio("Section", ["Circular", "Polygonal", "Radial 360°"],
@@ -83,10 +86,12 @@ with col_prof:
     is_poly     = section_type == "Polygonal"
     is_rect     = False  # removed
     is_tractrix = profile_type.startswith("Tract")
-    is_lecleach = profile_type.startswith("Le Clé")
+    is_salmon    = profile_type.startswith("Salmon")
     is_iwata    = profile_type.startswith("Iwata")
+    is_lecleach = profile_type.startswith("Le Cl")
     is_exp      = profile_type.startswith("Exp")
-    has_fc      = is_lecleach or is_iwata or is_exp
+    has_fc      = is_salmon or is_iwata or is_lecleach or is_exp
+    is_T_variable = is_salmon or is_lecleach
 
     st.markdown("##### Dimensions")
 
@@ -94,8 +99,9 @@ with col_prof:
     # from the math and shown live (greyed) in their own fields.
     _hint = ("Set **throat + mouth**. Acoustic gap follows."         if is_radial   else
              "Set **throat + mouth**. Length and Fc follow."          if is_tractrix else
-             "Set **throat + cutoff Fc**. Mouth and length follow."   if is_lecleach else
-             "Set **throat + Fc + length**. Mouth follows."           if is_iwata    else
+             "Set **throat + Fc + length** (T=0.707 Hypex)."          if is_salmon    else
+             "Set **throat + Fc + length** (T=0.707, preset Iwata)."  if is_iwata    else
+             "Set **throat + Fc + length**. Roll-back at mouth."      if is_lecleach else
              "Set **throat + mouth + Fc** (Fc = flare rate). Length follows.")
     st.caption(_hint)
 
@@ -116,6 +122,8 @@ with col_prof:
         throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0,
             25.0 if is_radial else 20.0, 1.0,
             help="Driver-side opening — the small end")
+        _S_t_cm2 = np.pi * (throat_d / 2) ** 2 / 100
+        st.caption(f"S_t = {_S_t_cm2:.2f} cm²")
 
     _mouth_is_input = is_radial or is_tractrix or is_exp
     if _mouth_is_input:
@@ -123,6 +131,8 @@ with col_prof:
             mouth_d = st.number_input("Mouth Ø (mm)", 4.0, 500.0,
                 200.0 if is_radial else 100.0, 5.0,
                 help="Large end — where the horn stops expanding")
+            _S_m_cm2 = np.pi * (mouth_d / 2) ** 2 / 100
+            st.caption(f"S_m = {_S_m_cm2:.2f} cm²")
     else:
         mouth_d = None
 
@@ -135,21 +145,21 @@ with col_prof:
     else:
         fc = None
 
-    if is_iwata and not is_radial:
+    if (is_salmon or is_iwata or is_lecleach) and not is_radial:
         with d4:
             axial_len = st.number_input("Axial length (mm)", 10.0, 500.0, 80.0, 5.0,
                 help="Horn depth along the axis")
     else:
         axial_len = 80.0
 
-    if is_iwata:
-        iwata_T = st.number_input(
-            "Flare parameter T", 0.0, 10.0, 0.707, 0.01, key="iwata_T",
+    if is_T_variable:
+        salmon_T = st.number_input(
+            "Flare parameter T", 0.0, 10.0, 0.707, 0.01, key="salmon_T",
             on_change=_on_horn_change,
             help="Hornresp T: 0 = catenoidal · <1 = cosh · 1 = exponential · >1 = sinh"
         )
     else:
-        iwata_T = 0.707
+        salmon_T = 0.707
 
     # Compute the profile once; derive the remaining scalars.
     _len = None
@@ -164,12 +174,15 @@ with col_prof:
         elif is_tractrix:
             zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
             _len = zp[-1]; _fc_eff = 343_000 / (np.pi * mouth_d)
-        elif is_lecleach:
-            zp, rp = _core.get_lecleach(throat_d, fc, segments)
-            _len = zp.max(); _mouth_d_eff = rp.max() * 2
-        elif is_iwata:
-            zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
+        elif is_salmon:
+            zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
             _len = axial_len; _mouth_d_eff = rp.max() * 2
+        elif is_iwata:
+            zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
+            _len = axial_len; _mouth_d_eff = rp.max() * 2
+        elif is_lecleach:
+            zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
+            _len = zp.max(); _mouth_d_eff = rp.max() * 2
         elif is_exp:
             zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             _len = zp[-1]
@@ -191,11 +204,11 @@ with col_prof:
             _ro(d3, "Throat gap (mm)", _gap_t, fmt="%.1f")
         _ro(d4, "Mouth gap (mm)", _gap_m, fmt="%.1f")
     else:
-        if not _mouth_is_input:                 # mouth derived (Le Cléac'h, Iwata)
+        if not _mouth_is_input:                 # mouth derived (Salmon)
             _ro(d2, "Mouth Ø (mm)", _mouth_d_eff)
         if not has_fc:                          # Fc derived (Tractrix)
             _ro(d3, "Cutoff Fc (Hz)", _fc_eff)
-        if not (is_iwata and not is_radial):    # length derived (all but Iwata)
+        if not ((is_salmon or is_iwata) and not is_radial):  # length derived (all but Salmon/Iwata)
             _ro(d4, "Axial length (mm)", _len)
         if is_poly:
             from polygonal_horn import _r_to_circumradius
@@ -210,10 +223,12 @@ with col_prev:
         if is_poly:
             if is_tractrix:
                 zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
-            elif is_lecleach:
-                zp, rp = _core.get_lecleach(throat_d, fc, segments)
+            elif is_salmon:
+                zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
             elif is_iwata:
-                zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
+                zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
+            elif is_lecleach:
+                zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
             elif is_exp:
                 zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             from polygonal_horn import _r_to_circumradius
@@ -231,10 +246,12 @@ with col_prev:
         else:
             if is_tractrix:
                 zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
-            elif is_lecleach:
-                zp, rp = _core.get_lecleach(throat_d, fc, segments)
+            elif is_salmon:
+                zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
             elif is_iwata:
-                zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
+                zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
+            elif is_lecleach:
+                zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
             elif is_exp:
                 zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             ax.plot(zp, rp, label="Inner profile", c="#2196F3")
@@ -262,10 +279,12 @@ def _calc_flange_dims():
         ir_throat = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
         if is_tractrix:
             zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
-        elif is_lecleach:
-            zp, rp = _core.get_lecleach(throat_d, fc, segments)
+        elif is_salmon:
+            zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
         elif is_iwata:
-            zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
+            zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
+        elif is_lecleach:
+            zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
         elif is_exp:
             zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
         ir_mouth = _r_to_circumradius(np.array([rp.max()]), n_sides)[0]
@@ -277,20 +296,20 @@ def _calc_flange_dims():
         ir_throat = throat_d / 2; ir_mouth = mouth_d / 2
         zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
         _get_mid_r = lambda pct: rp[int(np.searchsorted(zp, zp[-1]*pct/100))]
-    elif is_lecleach:
-        zp, rp = _core.get_lecleach(throat_d, fc, segments)
-        ir_throat = throat_d / 2; ir_mouth = rp.max()
-        _zmax = zp.max(); _zmax_idx = int(np.argmax(zp))
-        _zmono, _rmono = zp[:_zmax_idx+1], rp[:_zmax_idx+1]
-        _get_mid_r = lambda pct: np.interp(_zmax * pct / 100.0, _zmono, _rmono)
     elif is_exp:
         zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
         ir_throat = throat_d / 2; ir_mouth = rp.max()
         _get_mid_r = lambda pct: rp[min(int(np.searchsorted(zp, zp[-1]*pct/100)), len(rp)-1)]
-    else:  # iwata
-        zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
+    else:  # salmon / iwata / lecleach
+        if is_salmon:
+            zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
+        elif is_iwata:
+            zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
+        else:
+            zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
         ir_throat = throat_d / 2; ir_mouth = rp.max()
-        _get_mid_r = lambda pct: rp[int(np.searchsorted(zp, zp[-1]*pct/100))]
+        _z_len = zp.max()  # for roll-back profiles, use max z (axial extent)
+        _get_mid_r = lambda pct, _zp=zp, _rp=rp, _zl=_z_len: _rp[np.argmin(np.abs(_zp - _zl*pct/100))]
 
     return ir_throat, ir_mouth, _get_mid_r
 
@@ -413,11 +432,14 @@ with fg1:
 
 with fg2:
     st.markdown("##### Mouth Flange")
-    if is_radial:
+    if is_radial or is_lecleach:
         gen_mouth = False
         _fm_sp = _fm_off = _fm_nb = _fm_db = _fm_od = _fm_bc = _fm_ow = _fm_oh = 0.0
         mouth_outer = "Circular"
-        st.caption("Not available for radial profile")
+        if is_radial:
+            st.caption("Not available for radial profile")
+        else:
+            st.caption("Not available — use Mid Flange instead")
     else:
         gen_mouth = st.checkbox("Include", True, key="gen_mouth")
         _fm_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, _flange_sp, 0.5, key="fm_spess")
@@ -428,9 +450,9 @@ with fg2:
             _fm_inner_R = ir_mouth
             st.caption(f"Hole: {n_sides}-gon, R≈{_fm_inner_R:.0f} mm")
         else:
-            # uniform: inner profile radius + wall thickness for all circular profiles
             _fm_inner_R = ir_mouth + thickness
-            st.caption(f"Hole: Ø{_fm_inner_R*2:.0f} mm (circular)")
+            _fm_prof_R  = ir_mouth  # inner profile radius (without wall)
+            st.caption(f"Hole: Ø{_fm_prof_R*2:.0f} mm (circular)")
         _mouth_outer_default = 1 if is_poly else 0
         mouth_outer = st.radio("Outer shape", ["Circular", "Polygonal"],
                               index=_mouth_outer_default, horizontal=True, key="mouth_outer")
@@ -438,15 +460,16 @@ with fg2:
                                         value=n_sides, key="fm_outer_n")
                        if mouth_outer == "Polygonal" else 0)
         _fm_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="fm_ring",
-            help="Wall around the hole — this sets the flange size. Widen it to fit bolts further out.")
-        _fm_flange_R = _flange_R_from_ring(_fm_inner_R, _fm_ring, _fm_outer_n)
+            help="Wall around the hole — this sets the flange size.")
+        _fm_flange_R = _flange_R_from_ring(ir_mouth, _fm_ring, _fm_outer_n)
+        _fm_hole_R   = ir_mouth
         _fm_od = _fm_flange_R * 2
-        _fm_ow = _fm_od; _fm_oh = _fm_od
         if _fm_outer_n >= 3:
             st.caption(f"Across corners Ø: {_fm_od:.1f} mm · flats wall {_fm_ring:.0f} mm")
         else:
             st.caption(f"Outer Ø: {_fm_od:.1f} mm")
-        _fm_bc_lo, _fm_bc_hi = _bolt_circle_band(_fm_inner_R, _fm_flange_R, _fm_db, _fm_outer_n)
+        _fm_ow = _fm_od; _fm_oh = _fm_od
+        _fm_bc_lo, _fm_bc_hi = _bolt_circle_band(_fm_hole_R, _fm_flange_R, _fm_db, _fm_outer_n)
         if "fm_bc" not in st.session_state:
             st.session_state["fm_bc"] = float((_fm_bc_lo + _fm_bc_hi) / 2.0)
         _clamp_state("fm_bc", _fm_bc_lo, _fm_bc_hi)
@@ -459,7 +482,7 @@ with fg3:
         gen_mid = False; _mid_pos = 50
         st.caption("Not available for radial profile")
     else:
-        gen_mid = st.checkbox("Include", False, key="gen_mid")
+        gen_mid = st.checkbox("Include", is_lecleach, key="gen_mid")
         _mid_max = max(5.0, _len or 200.0)
         _mid_pos = st.number_input("Distance from throat (mm)", 5.0, _mid_max,
             max(5.0, _mid_max * 0.5), 5.0, key="mid_z")
@@ -519,10 +542,12 @@ if gen_btn:
             if is_poly:
                 if is_tractrix:
                     zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
-                elif is_lecleach:
-                    zp, rp = _core.get_lecleach(throat_d, fc, segments)
+                elif is_salmon:
+                    zp, rp = C.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
                 elif is_iwata:
-                    zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
+                    zp, rp = C.get_iwata(throat_d, fc, axial_len, segments)
+                elif is_lecleach:
+                    zp, rp = C.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
                 elif is_exp:
                     zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
@@ -557,16 +582,23 @@ if gen_btn:
             else:
                 if is_tractrix:
                     zp, rp = C.get_tractrix(throat_d, mouth_d, segments)
-                elif is_lecleach:
-                    zp, rp = C.get_lecleach(throat_d, fc, segments)
+                elif is_salmon:
+                    zp, rp = C.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
                 elif is_iwata:
-                    zp, rp = C.get_iwata(throat_d, fc, axial_len, segments, T=iwata_T)
+                    zp, rp = C.get_iwata(throat_d, fc, axial_len, segments)
+                elif is_lecleach:
+                    zp, rp = C.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
                 elif is_exp:
                     zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
                 C.generate_3d_mesh_from_profile(zp, rp, thickness, 64, tp)
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
-                mouth_bx = mouth_by = (rp[-1] + thickness) * 2
+                if is_lecleach:
+                    _rmax = rp.max(); _imax = rp.argmax()
+                    _rp_mouth = _rmax; _zp_mouth = zp[_imax]
+                else:
+                    _rp_mouth = rp[-1]; _zp_mouth = zp[-1]
+                mouth_bx = mouth_by = (_rp_mouth + thickness) * 2
 
             z_min = horn.vertices[:,2].min()
 
@@ -577,7 +609,7 @@ if gen_btn:
             if is_radial:
                 fiw_m = fih_m = mouth_d; z_mouth = 0.0
             else:
-                fiw_m = fih_m = rp[-1] * 2; z_mouth = zp[-1]
+                fiw_m = fih_m = _rp_mouth * 2; z_mouth = _zp_mouth
 
             # --- 3d. Generate flanges ---
             f_throat = f_mouth = f_mid = None
@@ -620,10 +652,10 @@ if gen_btn:
                         outer_n_sides=_fm_outer_n)
                 else:
                     _R    = _fm_od / 2.0
-                    _tr_m = fiw_m / 2.0
+                    _tr_m = _fm_hole_R
                     # guard: outer radius must exceed inner by at least 1 mm
                     if _R <= _tr_m + 1.0:
-                        _R = _tr_m + _fm_ring
+                        _R = _tr_m + 5.0
                     f_mouth = _fg.generate_flange(
                         throat_R=_tr_m, flange_R=_R,
                         thickness=_fm_sp, bolt_R=_fm_bc/2,
@@ -676,6 +708,7 @@ if gen_btn:
                     combined = _tm.boolean.union(bodies, engine="manifold")
                 except Exception:
                     combined = _tm.util.concatenate(bodies)
+            st.session_state["_combined"] = combined
 
             with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
             combined.export(tp)
@@ -735,3 +768,138 @@ if gen_btn:
             st.code(traceback.format_exc())
 else:
     st.info("Configure the parameters and click **Generate Assembly STL**")
+
+# ══════════════════════════════════════════════════════════════
+#  ROW 4 — STL Slicing (always visible, works on generated or uploaded STL)
+# ══════════════════════════════════════════════════════════════
+
+st.divider()
+st.subheader("Slice STL")
+
+load_choice = st.radio("Source", ["Generated assembly", "Upload STL file"],
+                       index=0, horizontal=True, key="slice_src")
+mesh_to_slice = None
+if load_choice == "Generated assembly":
+    if "_combined" in st.session_state:
+        mesh_to_slice = st.session_state["_combined"]
+    else:
+        st.caption("⚠️ Generate an assembly first, or switch to Upload")
+else:
+    uploaded = st.file_uploader("Upload STL", type=["stl"], key="slice_upload")
+    if uploaded:
+        with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as _t:
+            _t.write(uploaded.read())
+            _tp = _t.name
+        mesh_to_slice = _tm.load(_tp, file_type="stl")
+        os.unlink(_tp)
+
+if mesh_to_slice is None:
+    st.stop()
+
+# ── Slicing workflow ────────────────────────────────────────────────
+import io, zipfile
+
+# Shift mesh so Z_min = 0 for clean segmentation
+_z_off = mesh_to_slice.bounds[0, 2]
+if abs(_z_off) > 0.5:
+    mesh_to_slice = mesh_to_slice.copy()
+    mesh_to_slice.apply_translation([0, 0, -_z_off])
+    st.caption(f"Mesh shifted by {-_z_off:.0f} mm so Z starts at 0")
+
+ax_mode = st.radio("Define segments by", ["Count", "Height (mm)"],
+                   horizontal=True, key="ax_mode")
+if ax_mode == "Count":
+    n_ax = st.number_input("Number of axial segments", 1, 50, 4, step=1, key="n_ax")
+    seg_ref = ("count", n_ax)
+else:
+    seg_h = st.number_input("Segment height (mm)", 5, 500, 50, step=5, key="seg_h")
+    total_z = mesh_to_slice.bounds[1, 2] - mesh_to_slice.bounds[0, 2]
+    n_ax_auto = max(1, int(round(total_z / seg_h)))
+    st.caption(f"Total Z={total_z:.0f} mm → ~{n_ax_auto} segments")
+    seg_ref = ("height", seg_h)
+
+if st.button("❶ Slice axially", use_container_width=True):
+    with st.spinner("Cutting axially…"):
+        if seg_ref[0] == "count":
+            n = seg_ref[1]
+            if n <= 1:
+                st.session_state["_ax_segs"] = [mesh_to_slice]
+            else:
+                st.session_state["_ax_segs"] = _slc.slice_into_segments(mesh_to_slice, n)
+        else:
+            dz = seg_ref[1]
+            z0, z1 = mesh_to_slice.bounds[0, 2], mesh_to_slice.bounds[1, 2]
+            n = max(1, int(round((z1 - z0) / dz)))
+            if n <= 1:
+                st.session_state["_ax_segs"] = [mesh_to_slice]
+            else:
+                st.session_state["_ax_segs"] = _slc.slice_into_segments(mesh_to_slice, n)
+    st.session_state.pop("_pieces", None)
+    # cleanup old per-segment petal keys
+    for k in list(st.session_state.keys()):
+        if k.startswith("_pet_ax") or k.startswith("_sel_ax"):
+            del st.session_state[k]
+
+ax_segs = st.session_state.get("_ax_segs", None)
+if ax_segs:
+    st.markdown(f"**{len(ax_segs)} axial segment{'s' if len(ax_segs)>1 else ''}** — set petals per segment (1 = no petal)")
+
+    n_cols = min(4, len(ax_segs))
+    cols = st.columns(n_cols)
+    petals_per = []
+    for ai, seg in enumerate(ax_segs):
+        with cols[ai % n_cols]:
+            z_lo, z_hi = seg.bounds[0, 2], seg.bounds[1, 2]
+            st.caption(f"S{ai+1}  Z={z_lo:.0f}–{z_hi:.0f}")
+            pet_key = f"_pet_ax{ai}"
+            default_pet = int(st.session_state.get(pet_key, 1))
+            np_ = st.number_input("Petals", 1, 36, default_pet, step=1,
+                                  key=pet_key, label_visibility="collapsed")
+            petals_per.append(np_)
+
+    if st.button("❷ Apply petals", use_container_width=True):
+        with st.spinner("Cutting petals…"):
+            pieces = []
+            for ai, (seg, np_) in enumerate(zip(ax_segs, petals_per)):
+                if np_ > 1:
+                    pets = _slc.slice_into_petals(seg, np_)
+                    for pi, pet in enumerate(pets):
+                        pieces.append((f"ax{ai+1:02d}_pet{pi+1:02d}", pet))
+                else:
+                    pieces.append((f"ax{ai+1:02d}", seg))
+            st.session_state["_pieces"] = pieces
+        st.rerun()
+
+# Show results
+pieces = st.session_state.get("_pieces", None)
+if pieces:
+    st.success(f"{len(pieces)} piece{'s' if len(pieces)>1 else ''} generated")
+
+    zip_buf = io.BytesIO()
+    with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for name, mesh in pieces:
+            with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as _t:
+                _tp = _t.name
+                mesh.export(_tp)
+            with open(_tp, "rb") as f:
+                zf.writestr(f"{name}.stl", f.read())
+            os.unlink(_tp)
+
+    _, col_zip, _ = st.columns([1, 2, 1])
+    with col_zip:
+        st.download_button("📦 Download all as ZIP", zip_buf.getvalue(),
+                           "flare_forge_slices.zip", "application/zip",
+                           use_container_width=True)
+
+    for name, mesh in pieces:
+        with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as _t:
+            _tp = _t.name
+            mesh.export(_tp)
+        with open(_tp, "rb") as f:
+            b = f.read()
+        os.unlink(_tp)
+        label = f"📥 {name}"
+        if "_pet" not in name:
+            z_lo, z_hi = mesh.bounds[0, 2], mesh.bounds[1, 2]
+            label += f"  (Z={z_lo:.0f}–{z_hi:.0f} mm)"
+        st.download_button(label, b, f"{name}.stl", "model/stl")

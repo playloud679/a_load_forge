@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from profile_generator import (get_tractrix, get_lecleach, get_iwata,
+from profile_generator import (get_tractrix, get_salmon,
                                 generate_3d_mesh_from_profile, resolve_profile)
 
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--mouth", type=float, default=None)
     p.add_argument("--fc", type=float, default=None)
     p.add_argument("--length", type=float, default=None)
-    p.add_argument("--profile", choices=["auto", "tractrix", "lecleach", "iwata"],
+    p.add_argument("--profile", choices=["auto", "tractrix", "salmon"],
                    default="auto")
     p.add_argument("--thickness", type=float, default=4.0)
     p.add_argument("--segments", type=int, default=300)
@@ -50,14 +50,10 @@ def main(argv: list[str] | None = None) -> None:
             if args.mouth is None:
                 raise ValueError("--mouth required for tractrix")
             z, r = get_tractrix(args.throat, args.mouth, args.segments)
-        elif name == "lecleach":
-            if args.fc is None:
-                raise ValueError("--fc required for Le Cléac'h")
-            z, r = get_lecleach(args.throat, args.fc, args.segments)
-        elif name == "iwata":
+        elif name == "salmon":
             if args.fc is None or args.length is None:
-                raise ValueError("--fc and --length required for iwata")
-            z, r = get_iwata(args.throat, args.fc, args.length, args.segments)
+                raise ValueError("--fc and --length required for salmon")
+            z, r = get_salmon(args.throat, args.fc, args.length, args.segments)
         else:
             raise ValueError(f"Unknown profile: {name}")
 

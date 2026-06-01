@@ -48,8 +48,7 @@ def get_radial_profiles(
 
         Exponential — S(R) = St · exp(m·(R−Rt)),  m = 4π·fc/c
         Tractrix    — area re-parameterised from get_tractrix(throat, mouth)
-        Le Cléac'h  — area re-parameterised from get_lecleach(throat, fc)
-        Iwata       — area re-parameterised from get_iwata with length=Rm−Rt
+        Salmon      — area re-parameterised from get_salmon with length=Rm−Rt
 
     H(R) = S(R) / (2πR),  Z_bottom = (R−Rt)·0.3,  Z_top = Z_bottom + H
 
@@ -64,13 +63,11 @@ def get_radial_profiles(
         m = 4.0 * np.pi * (fc or 1000.0) / SOUND_SPEED
         S = St * np.exp(m * (R - Rt))
     else:
-        from profile_generator import get_tractrix, get_lecleach, get_iwata
+        from profile_generator import get_tractrix, get_salmon
         if profile == "Tractrix":
             z_p, r_p = get_tractrix(throat_diam, mouth_diam, n)
-        elif profile == "Le Cléac'h":
-            z_p, r_p = get_lecleach(throat_diam, fc or 1000.0, n)
-        elif profile == "Iwata":
-            z_p, r_p = get_iwata(throat_diam, fc or 1000.0, float(Rm - Rt), n)
+        elif profile == "Salmon":
+            z_p, r_p = get_salmon(throat_diam, fc or 1000.0, float(Rm - Rt), n)
         else:
             raise ValueError(f"Unknown profile: {profile}")
 

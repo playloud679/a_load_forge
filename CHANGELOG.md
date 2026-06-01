@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.3.0 (2026-06-01)
+
+- **`get_iwata()`** renamed to **`get_salmon(T)`** — la formula è Salmon hyperbolic-exponential, non Iwata. Parametro `T` variabile (0=catenoidale, 0.707=Hypex, 1=exponenziale).
+- **Nuovo preset `get_iwata()`** — wrapper per `get_salmon(T=0.707)`, per chi cerca il nome classico Iwata.
+- **Nuovo `get_lecleach()`** — ODE isofase con legge d'area Salmon + parametro `max_angle` (roll-back 90-180°). Corrisponde al flare type "Le Cléac'h" di Hornresp.
+- **Rimosso `get_rectangular_iwata()`** → rinominato `get_rectangular_salmon()`.
+- **`src/_slicer.py`** — nuovo modulo per sezionare mesh STL in segmenti assiali e petali radiali.
+- **UI — Sezione "Slice STL"**: taglio assiale (per conteggio o altezza) + petali radiali con conteggio variabile per segmento. Download singolo o ZIP.
+- **UI — Flange**: Mouth flange disabilitata su Le Cléac'h (roll-back incompatibile). Mid-flange attivo di default su Le Cléac'h.
+- **UI — Helper cm²**: sotto Throat/Mouth Ø mostra area equivalente in cm² (formato Hornresp).
+- **Documentazione**: AGENTS.md, CLAUDE.md, README.md allineati ai nuovi nomi.
+
+## 2.2.10 (2026-06-01)
+
+- **Removed `get_lecleach()`**: profilo ODE isofase rimosso. Non corrispondeva al "Le Cléac'h horn" della comunità audio (che è `get_iwata(T=0.707)`). Rimossi tutti i riferimenti da UI, CLI, test, radial/rectangular horn e docs.
+
 ## 2.2.9 (2026-06-01)
 
 - **Buy Me a Coffee button**: a "☕ Buy me a coffee" link button in the header. Set `BMC_USERNAME` at the top of `ui_app.py`; until it's filled in, the button hides and shows a reminder instead of a broken link.

@@ -69,10 +69,8 @@ def _check_profile(z, r, throat, mouth=None, label="", monotone_z=True):
 for entry in [
     ("Tractrix 20→100",          lambda: _c.get_tractrix(THROAT, MOUTH, N),         True),
     ("Tractrix 20→200",          lambda: _c.get_tractrix(THROAT, 200,   N),         True),
-    ("Le Cléac'h 20/600Hz",      lambda: _c.get_lecleach(THROAT, FC,    N),         False),
-    ("Le Cléac'h 20/4000Hz",     lambda: _c.get_lecleach(THROAT, 4000,  N),         False),
-    ("Iwata 20/600/L80",         lambda: _c.get_iwata(THROAT, FC, 80,   N),         True),
-    ("Iwata 20/1200/L50",        lambda: _c.get_iwata(THROAT, 1200, 50, N),         True),
+    ("Salmon 20/600/L80",        lambda: _c.get_salmon(THROAT, FC, 80,   N),         True),
+    ("Salmon 20/1200/L50",       lambda: _c.get_salmon(THROAT, 1200, 50, N),         True),
     ("Exponential 20→100/600Hz", lambda: _c.get_exponential(THROAT, MOUTH, FC, N),  True),
     ("Exponential 20→200/400Hz", lambda: _c.get_exponential(THROAT, 200, 400, N),   True),
 ]:
@@ -96,8 +94,7 @@ print("\n═══ Circular section — 3-D mesh ═══")
 
 CIRC_CASES = [
     ("Tractrix",     lambda: _c.get_tractrix(THROAT, MOUTH, N)),
-    ("Le Cléac'h",   lambda: _c.get_lecleach(THROAT, FC,    N)),
-    ("Iwata",        lambda: _c.get_iwata(THROAT, FC, 80,   N)),
+    ("Salmon",       lambda: _c.get_salmon(THROAT, FC, 80,   N)),
     ("Exponential",  lambda: _c.get_exponential(THROAT, MOUTH, FC, N)),
 ]
 
@@ -148,7 +145,7 @@ for (label, profile_fn), n_sides in itertools.product(CIRC_CASES, POLY_SIDES):
 
 print("\n═══ Radial 360° section ═══")
 
-RADIAL_PROFILES = ["Tractrix", "Le Cléac'h", "Iwata", "Exponential"]
+RADIAL_PROFILES = ["Tractrix", "Salmon", "Exponential"]
 
 def _check_radial_profiles(R, Zb, Zt, label):
     assert len(R) == len(Zb) == len(Zt),       f"{label}: array length mismatch"
@@ -159,7 +156,7 @@ def _check_radial_profiles(R, Zb, Zt, label):
     assert gap[0] > 0.5,                       f"{label}: throat gap too small ({gap[0]:.2f} mm)"
     assert gap[-1] > 0.5,                      f"{label}: mouth gap too small ({gap[-1]:.2f} mm)"
     # Informational: whether H(R)=S(R)/(2πR) expands depends on area growth rate vs R.
-    # Tractrix and Le Cléac'h naturally expand; Iwata/Exponential may not with all params.
+    # Tractrix naturally expands; Salmon/Exponential may not with all params.
 
 for prof in RADIAL_PROFILES:
     def make(p=prof):
@@ -236,8 +233,7 @@ print("\n═══ Assembly (horn + flanges) ═══")
 ASSEMBLY_CASES = [
     ("Tractrix circular",    lambda: _c.get_tractrix(THROAT, MOUTH, N),    "circular"),
     ("Exponential circular", lambda: _c.get_exponential(THROAT, MOUTH, FC, N), "circular"),
-    ("Le Cléac'h circular",  lambda: _c.get_lecleach(THROAT, FC, N),       "circular"),
-    ("Iwata circular",       lambda: _c.get_iwata(THROAT, FC, 80, N),      "circular"),
+    ("Salmon circular",      lambda: _c.get_salmon(THROAT, FC, 80, N),      "circular"),
     ("Tractrix 4-gon",       lambda: _c.get_tractrix(THROAT, MOUTH, N),    "poly4"),
     ("Exponential 6-gon",    lambda: _c.get_exponential(THROAT, MOUTH, FC, N), "poly6"),
 ]

@@ -1,5 +1,5 @@
 """
-Validation: compare Hornresp Export Horn Data against get_iwata().
+Validation: compare Hornresp Export Horn Data against get_salmon().
 
 Usage:
     python tests/validate_hornresp.py <hornresp_export.txt> \\
@@ -13,9 +13,9 @@ Hornresp units  → internal conversion:
 The script:
   1. Reads the Hornresp export (auto-detects tab or comma delimiter).
   2. Extracts throat diameter, axial positions, and area profile.
-  3. Runs get_iwata() with the same throat, fc, length (mm) and the
+  3. Runs get_salmon() with the same throat, fc, length (mm) and the
      supplied T value.
-  4. Computes S_mine(x) = π·r(x)² from get_iwata() output.
+  4. Computes S_mine(x) = π·r(x)² from get_salmon() output.
   5. Computes S_hornresp(x) by interpolating the exported profile onto
      the same x grid.
   6. Reports max absolute and RMS relative errors, and optionally plots.
@@ -27,13 +27,13 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-from profile_generator import get_iwata
+from profile_generator import get_salmon
 from _constants import SOUND_SPEED
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
 
 def parse():
-    p = argparse.ArgumentParser(description="Compare Hornresp horn data vs get_iwata()")
+    p = argparse.ArgumentParser(description="Compare Hornresp horn data vs get_salmon()")
     p.add_argument("hornresp_file", help="Hornresp Export Horn Data (.txt or .csv)")
     p.add_argument("--T",   type=float, required=True, help="Hornresp flare parameter T (e.g. 0.707)")
     p.add_argument("--fc",  type=float, required=True, help="Cutoff frequency in Hz (Hornresp F12)")
@@ -131,12 +131,12 @@ def run_comparison(args):
     print(f"  Inferred throat Ø : {throat_d_mm:.3f} mm")
     print(f"  Inferred length   : {length_mm:.3f} mm")
 
-    # Override T inside get_iwata by monkeypatching — avoid editing the module
+    # Override T inside get_salmon by monkeypatching — avoid editing the module
     import profile_generator as _pg
     _orig_T = None
-    original_fn = _pg.get_iwata
+    original_fn = _pg.get_salmon
 
-    def get_iwata_with_T(throat, fc, length, n):
+    def get_salmon_with_T(throat, fc, length, n):
         rt = throat / 2.0
         x0 = SOUND_SPEED / (2.0 * np.pi * fc)
         x = np.linspace(0, length, n)
@@ -148,7 +148,7 @@ def run_comparison(args):
 
     # Compute mine on the same axial grid as Hornresp
     n = len(x_hr)
-    x_mine, r_mine = get_iwata_with_T(throat_d_mm, args.fc, length_mm, n)
+    x_mine, r_mine = get_salmon_with_T(throat_d_mm, args.fc, length_mm, n)
     S_mine = np.pi * r_mine ** 2
 
     # Interpolate Hornresp onto mine's x grid (in case x_hr doesn't start at 0)
@@ -178,7 +178,7 @@ def run_comparison(args):
         import matplotlib.pyplot as plt
         fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(9, 6))
         ax1.plot(x_hr_shifted, S_hr,       label="Hornresp", lw=2)
-        ax1.plot(x_mine,       S_mine, "--", label=f"get_iwata(T={args.T})", lw=1.5)
+        ax1.plot(x_mine,       S_mine, "--", label=f"get_salmon(T={args.T})", lw=1.5)
         ax1.set_ylabel("S(x)  [mm²]"); ax1.legend(); ax1.grid(True, alpha=.3)
         ax1.set_title(f"T={args.T}  fc={args.fc} Hz  throat={throat_d_mm:.1f} mm")
         ax2.plot(x_mine, 100*rel_err)

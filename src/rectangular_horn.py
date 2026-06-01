@@ -84,23 +84,13 @@ def get_rectangular_tractrix(
     return _area_to_rect(z, r, throat_w, throat_h)
 
 
-def get_rectangular_lecleach(
-    throat_w: float, throat_h: float, fc: float, n: int = 300,
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Rectangular Le Cléac'h: area-preserving from circular Le Cléac'h."""
-    from profile_generator import get_lecleach
-    throat = np.sqrt(throat_w * throat_h * 4 / np.pi)
-    z, r = get_lecleach(throat, fc, n)
-    return _area_to_rect(z, r, throat_w, throat_h)
-
-
-def get_rectangular_iwata(
+def get_rectangular_salmon(
     throat_w: float, throat_h: float, fc: float, length: float, n: int = 300,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Rectangular Iwata: area-preserving from circular Iwata."""
-    from profile_generator import get_iwata
+    """Rectangular Salmon: area-preserving from circular Salmon."""
+    from profile_generator import get_salmon
     throat = np.sqrt(throat_w * throat_h * 4 / np.pi)
-    z, r = get_iwata(throat, fc, length, n)
+    z, r = get_salmon(throat, fc, length, n)
     return _area_to_rect(z, r, throat_w, throat_h)
 
 

@@ -9,7 +9,7 @@ the area of the equivalent circle derived from the chosen profile:
     outer offset  R_outer = R + t / cos(π/N)    (uniform face-normal thickness)
 
 Input r_eq is the area-equivalent circular radius returned by any profile
-function (get_tractrix, get_lecleach, get_iwata, or computed for Exponential).
+function (get_tractrix, get_salmon, or computed for Exponential).
 """
 
 import logging

@@ -14,7 +14,7 @@ streamlit run ui_app.py
 # CLI usage
 python -m src.main --throat 20 --mouth 100
 python -m src.main --throat 20 --fc 800
-python -m src.main --profile iwata --throat 20 --fc 600 --length 80
+python -m src.main --profile salmon --throat 20 --fc 600 --length 80
 
 # Run tests
 .venv/bin/python tests/test_all.py
@@ -34,16 +34,16 @@ Radial:      (R, Zb, Zt) → _revolve_polygon() → radial_bottom.stl + radial_t
 ### Key invariant: two-layer system
 
 Every profile has two separate layers:
-1. **2D math layer** (`get_tractrix`, `get_lecleach`, `get_iwata`, etc.) — returns `(z, r)` arrays only, no side effects.
+1. **2D math layer** (`get_tractrix`, `get_salmon`, `get_exponential`, etc.) — returns `(z, r)` arrays only, no side effects.
 2. **3D mesh engine** (`generate_3d_mesh_from_profile` or `generate_rectangular_3d_mesh`) — profile-agnostic, takes any valid `(z, r)` and produces watertight STL via revolution + normal offset.
 
-The axisymmetric engine in `profile_generator.py` is shared by tractrix, lecleach, and iwata. Rectangular and radial have their own dedicated engines.
+The axisymmetric engine in `profile_generator.py` is shared by tractrix, salmon, and exponential. Rectangular and radial have their own dedicated engines.
 
 ### Modules
 
 | Module | Role |
 |---|---|
-| `src/profile_generator.py` | Axisymmetric profiles (tractrix, lecleach, iwata) + shared 3D revolution engine |
+| `src/profile_generator.py` | Axisymmetric profiles (tractrix, salmon, exponential) + shared 3D revolution engine |
 | `src/rectangular_horn.py` | Rectangular area-preserving profile + dedicated lofting engine |
 | `src/radial_horn.py` | 360° omnidirectional radial horn, two-piece output (bottom + top) |
 | `src/flange_generator.py` | Parametric circular mounting flange |
@@ -56,8 +56,8 @@ The axisymmetric engine in `profile_generator.py` is shared by tractrix, lecleac
 
 ### Acoustic constants
 
-- Le Cléac'h expansion rate: `m = 4π·fc/c`
-- Iwata: Salmon hyperbolic-exponential with `T = 0.707`, `x₀ = c/(2π·fc)`
+- Exponential expansion rate: `m = 4π·fc/c`
+- Salmon: hyperbolic-exponential with `T = 0.707` (Hypex), `x₀ = c/(2π·fc)`
 - Radial: `S(R) = S_t · exp(m·(R−Rt))`, `H(R) = S(R)/(2πR)`
 
 ### STL output directory

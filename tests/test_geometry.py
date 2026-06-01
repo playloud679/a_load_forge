@@ -140,8 +140,7 @@ def _circ_flange(profile_fn, outer_n_sides):
 
 PROFILES = [
     ("Tractrix",    lambda: _c.get_tractrix(20.0, 100.0, 300)),
-    ("Le Cléac'h",  lambda: _c.get_lecleach(20.0, 600, 300)),
-    ("Iwata",       lambda: _c.get_iwata(20.0, 600, 80, 300)),
+    ("Salmon",      lambda: _c.get_salmon(20.0, 600, 80, 300)),
     ("Exponential", lambda: _c.get_exponential(20.0, 100.0, 600, 300)),
 ]
 
