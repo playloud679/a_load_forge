@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.9 (2026-06-01)
+
+- **Buy Me a Coffee button**: a "☕ Buy me a coffee" link button in the header. Set `BMC_USERNAME` at the top of `ui_app.py`; until it's filled in, the button hides and shows a reminder instead of a broken link.
+
 ## 2.2.8 (2026-06-01)
 
 UI clarity pass on the dimensions inputs, plus three flange-parameter bugs found

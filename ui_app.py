@@ -30,6 +30,11 @@ importlib.reload(_ph)
 st.set_page_config(page_title="flare_forge", layout="wide",
     initial_sidebar_state="collapsed", menu_items={})
 
+# ── Support link ─────────────────────────────────────────────────────
+# Replace with your Buy Me a Coffee username; the button hides if left blank.
+BMC_USERNAME = "your_username"
+BMC_URL = f"https://www.buymeacoffee.com/{BMC_USERNAME}"
+
 # ── Flange recalculation callback ────────────────────────────────────
 
 def _on_horn_change():
@@ -39,8 +44,15 @@ def _on_horn_change():
                "mid_ring", "mid_bc", "mid_ow", "mid_oh"):
         st.session_state.pop(_k, None)
 
-st.title("flare_forge")
-st.caption("Acoustic profile + mounting flanges · watertight assembly for 3D printing")
+_hdr_l, _hdr_r = st.columns([5, 1])
+with _hdr_l:
+    st.title("flare_forge")
+    st.caption("Acoustic profile + mounting flanges · watertight assembly for 3D printing")
+with _hdr_r:
+    if BMC_USERNAME and BMC_USERNAME != "your_username":
+        st.link_button("☕ Buy me a coffee", BMC_URL, use_container_width=True)
+    else:
+        st.caption("☕ set BMC_USERNAME")
 
 # ═══════════════════════════════════════════════════════════════════════
 #  ROW 1 — Horn Profile (Left) + Live 2D Preview (Right)
