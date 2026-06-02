@@ -37,9 +37,25 @@ Whenever you modify a Python module under `src/` (add a new profile, change a fu
 
 ```bash
 .venv/bin/python tests/test_all.py
+.venv/bin/python tests/test_geometry.py
 ```
 
 All tests must pass before committing.
+
+### Running the app
+
+```bash
+make run          # Streamlit headless + opens in Safari
+```
+
+### Mesh engine sync
+
+`generate_3d_mesh_from_profile` (`profile_generator.py`) builds the wall with a
+true **parallel** normal offset (constant thickness) and slices the throat base
+flat. Any UI logic that depends on the wall's axial extent — e.g. the mouth
+flange's flush default thickness in `ui_app.py` — must replicate the same
+`z_o = z_i + n_z·thickness` offset. If you change the offset in the engine,
+update that helper too.
 
 ## Streamlit Module Caching & Live Reloading
 

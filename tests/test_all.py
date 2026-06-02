@@ -324,6 +324,39 @@ for label, ow, oh, iw, ih in [
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  Slicer — radial petals (plain flat seams)
+# ══════════════════════════════════════════════════════════════════════════════
+
+print("\n═══ Slicer — petals ═══")
+
+from src import _slicer as _slc
+
+def _horn_trimesh():
+    z, r = _c.get_tractrix(THROAT, MOUTH, N)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _c.generate_3d_mesh_from_profile(z, r, 4.0, 64, p)
+    m = trimesh.load(p, file_type="stl"); os.unlink(p)
+    return m
+
+def _make_check_petals(n):
+    def _check():
+        horn = _horn_trimesh()
+        Vh = horn.volume
+        petals = _slc.slice_into_petals(horn, n)
+        assert len(petals) == n, f"petals: got {len(petals)}"
+        for i, p1 in enumerate(petals):
+            assert p1.is_watertight,   f"petal {i}: not watertight"
+            assert p1.body_count == 1, f"petal {i}: not one body ({p1.body_count})"
+        # petals tile the horn
+        sv = sum(p.volume for p in petals)
+        assert 0.95 * Vh < sv <= Vh + 1e-6, f"n={n}: petals don't tile horn ({sv/Vh:.3f})"
+    return _check
+
+for _n in (3, 4, 6):
+    test(f"{_n} petals", _make_check_petals(_n))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  Summary
 # ══════════════════════════════════════════════════════════════════════════════
 

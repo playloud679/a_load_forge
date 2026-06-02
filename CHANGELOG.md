@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.4.0 (2026-06-02)
+
+- **Spessore parete costante (vero offset 3D)**: l'engine assisimmetrico (`profile_generator.py`) ora usa un offset parallelo puro lungo la normale del meridiano — per un solido di rivoluzione coincide con un offset 3D, quindi lo spessore perpendicolare è **costante ovunque** (verificato min=max=thickness). Rimosso lo shift assiale `z_o -= z_o[0]` che assottigliava progressivamente la parete verso la bocca (fino a ~0.8 mm su 4).
+- **Base gola tagliata piatta**: poiché l'offset parallelo lascerebbe il bordo di gola inclinato, la base viene sezionata con un piano e richiusa via trimesh → faccia di gola perfettamente planare, mantenendo lo spessore uniforme sulle pareti.
+- **Mouth flange a filo**: lo spessore di default della mouth flange ora è l'**estensione assiale** della parete alla bocca (`thickness·|n_z|`), non lo spessore lungo la normale. La flangia termina a filo con il flare, senza bordino sporgente. Si riallinea automaticamente al cambio di wall thickness.
+- **Petali senza tasselli**: rimosso l'interlock a tassello (tab/slot alternati) dai seam radiali; `slice_into_petals()` taglia con seam piatti puliti. Rimosse le funzioni helper non più usate.
+- **2D Preview parallelo**: la linea "+ wall" del preview ora disegna l'offset parallelo lungo la normale (sia circolare che poligonale), coerente con la geometria stampata, invece di un offset radiale a Z costante.
+- **`make run` / `run.sh`**: avvia l'app e la apre in Safari (Streamlit headless + `open -a Safari`).
+- **`requirements.txt` / `pyproject.toml`**: `trimesh[easy]` per includere le dipendenze opzionali (networkx, rtree, …) necessarie allo slicing dei petali.
+
 ## 2.3.0 (2026-06-01)
 
 - **`get_iwata()`** renamed to **`get_salmon(T)`** — la formula è Salmon hyperbolic-exponential, non Iwata. Parametro `T` variabile (0=catenoidale, 0.707=Hypex, 1=exponenziale).

@@ -9,7 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 make install          # create .venv and install dependencies
 
 # Run web UI
-streamlit run ui_app.py
+make run               # launch headless + open in Safari
+streamlit run ui_app.py   # or run directly (default browser)
 
 # CLI usage
 python -m src.main --throat 20 --mouth 100
@@ -38,6 +39,8 @@ Every profile has two separate layers:
 2. **3D mesh engine** (`generate_3d_mesh_from_profile` or `generate_rectangular_3d_mesh`) — profile-agnostic, takes any valid `(z, r)` and produces watertight STL via revolution + normal offset.
 
 The axisymmetric engine in `profile_generator.py` is shared by tractrix, salmon, and exponential. Rectangular and radial have their own dedicated engines.
+
+**Constant-thickness invariant**: the axisymmetric engine offsets the inner profile along the meridian normal (a true parallel offset → constant perpendicular wall thickness, no axial shift). This leaves a slanted throat rim, so the engine slices the base flat with a plane (`slice_plane(..., cap=True)`) and re-caps it. Anything that needs the wall's *axial* extent at the mouth (e.g. the mouth-flange flush thickness in `ui_app.py`) must replicate the same `z_o = z_i + n_z·thickness` offset — keep them in sync.
 
 ### Modules
 

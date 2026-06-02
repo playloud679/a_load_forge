@@ -1,4 +1,4 @@
-.PHONY: venv install clean
+.PHONY: venv install run clean
 
 VENV_DIR := .venv
 PYTHON  := python3
@@ -12,6 +12,9 @@ install: venv
 	$(VENV_DIR)/bin/pip install --upgrade pip
 	$(VENV_DIR)/bin/pip install -r requirements.txt
 	@echo "Dependencies installed."
+
+run:
+	./run.sh
 
 clean:
 	rm -rf $(VENV_DIR)

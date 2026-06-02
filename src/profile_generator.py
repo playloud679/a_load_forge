@@ -23,6 +23,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import trimesh
 from stl import mesh
 
 _src = str(Path(__file__).resolve().parent)
@@ -232,9 +233,10 @@ def generate_3d_mesh_from_profile(
 
     Steps:
       1. Compute unit normals via finite-difference gradient.
-      2. Offset inner profile by *thickness* along normal → outer profile.
+      2. Offset inner profile by *thickness* along the normal → outer profile
+         (true parallel offset = constant perpendicular wall thickness).
       3. Revolve both profiles about Z; cap top and bottom annuli.
-      4. Shift so the lowest vertex sits at Z = 0.
+      4. Slice the throat base flat (constant thickness ⇒ slanted raw base).
       5. Save to *output_path* and return the Mesh.
     """
     n_pts = len(z_i)
@@ -243,9 +245,13 @@ def generate_3d_mesh_from_profile(
     nml = _utils.compute_profile_normals(z_i, r_i)
 
     # ---- 2. Outer profile -------------------------------------------------
+    # True parallel offset along the meridian normal. For a body of revolution
+    # the 3-D surface normal lies in the meridian plane, so this gives a wall of
+    # *constant* perpendicular thickness everywhere (a real 3-D offset). The
+    # throat base is flattened later by a planar cut rather than by shifting the
+    # whole outer surface (which would taper the wall toward the mouth).
     z_o = z_i + nml[:, 0] * thickness
     r_o = r_i + nml[:, 1] * thickness
-    z_o -= z_o[0]                     # flat bottom: outer throat = inner throat = 0
     theta = np.linspace(0, 2 * np.pi, rings, endpoint=False)
     ct, st = np.cos(theta), np.sin(theta)
 
@@ -307,21 +313,31 @@ def generate_3d_mesh_from_profile(
         tri_t_1, tri_t_2
     ], axis=0)
 
-    n_tri = 4 * n_pts * rings
-    data = np.zeros(n_tri, dtype=mesh.Mesh.dtype)
-    data["vectors"] = all_vectors
+    # ---- 3. Watertight solid via trimesh ---------------------------------
+    tri_pts = all_vectors.reshape(-1, 3)
+    faces = np.arange(len(tri_pts)).reshape(-1, 3)
+    tm = trimesh.Trimesh(vertices=tri_pts, faces=faces, process=True)
+    tm.merge_vertices()
 
-    m_obj = mesh.Mesh(data)
+    # ---- 4. Flatten the throat base ---------------------------------------
+    # The constant-thickness offset leaves the outer throat rim at a different Z
+    # than the inner rim, so the raw base is slanted. Slice it flat at the higher
+    # of the two rims and cap → a planar throat face, while the wall stays uniform
+    # thickness everywhere else.
+    base_z = max(float(z_i[0]), float(z_o[0]))
+    sliced = tm.slice_plane([0.0, 0.0, base_z], [0.0, 0.0, 1.0], cap=True)
+    if sliced is not None and not sliced.is_empty:
+        tm = sliced
+    tm.fix_normals()
 
-    # ---- 4. Fix inverted normals (negative volume) ------------------------
-    _utils.ensure_positive_volume(m_obj)
-
-    # ---- 5. Save ----------------------------------------------------------
+    # ---- 5. Save / return -------------------------------------------------
     if output_path:
-        m_obj.save(output_path)
-        logger.info("Exported: %s  (%d triangles)", output_path, n_tri)
+        tm.export(output_path)
+        logger.info("Exported: %s  (%d triangles)", output_path, len(tm.faces))
 
-    return m_obj
+    data = np.zeros(len(tm.faces), dtype=mesh.Mesh.dtype)
+    data["vectors"] = tm.triangles
+    return mesh.Mesh(data)
 
 
 # ======================================================================

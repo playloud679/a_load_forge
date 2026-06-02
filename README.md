@@ -7,9 +7,9 @@ I built this because every tool I found either required a full CAD package, or p
 ## Running it
 
     make install
-    streamlit run ui_app.py
+    make run            # launches the UI and opens it in Safari
 
-The web interface runs at `localhost:8501`. There is also a CLI:
+`make run` starts Streamlit headless and opens `localhost:8501` in Safari. Or run it yourself with `streamlit run ui_app.py` (default browser). There is also a CLI:
 
      python -m src.main --throat 20 --mouth 100
     python -m src.main --profile salmon --throat 20 --fc 600 --length 80
@@ -38,9 +38,11 @@ The profile says how the area grows along the axis. The section says what shape 
 
 ## How the mesh is built
 
-The 2D profile functions return `(z, r)` arrays — pure math, no geometry yet. For a circular section these feed a profile-agnostic 3D engine that computes outward normals via finite differences, offsets the inner profile along those normals by the wall thickness to get the outer surface, revolves both around Z, and caps the annuli at the throat and mouth.
+The 2D profile functions return `(z, r)` arrays — pure math, no geometry yet. For a circular section these feed a profile-agnostic 3D engine that computes outward normals via finite differences, offsets the inner profile along those normals by the wall thickness to get the outer surface, revolves both around Z, and caps the throat and mouth.
 
-Offsets are computed in normal space, not Euclidean space. The distinction matters at the throat, where the profile curves tightly: a naive Euclidean offset collapses or self-intersects there, while the normal-space approach keeps wall thickness uniform in the direction the wall actually faces.
+The offset is a true parallel offset along the meridian normal. For a body of revolution the 3D surface normal lies entirely in the meridian plane, so a 2D normal offset *is* a 3D offset — the wall comes out at a **constant** perpendicular thickness everywhere (no Euclidean/normal-space approximation, no thinning toward the mouth). The trade-off is that the outer throat rim then sits at a different Z than the inner rim, leaving a slanted base; the engine slices that base flat with a plane and re-caps it, so the throat face is planar while the wall stays uniform.
+
+The 2D preview's "+ wall" line draws this same parallel offset, so what you see is what gets printed.
 
 The polygonal section reuses the same `(z, r)` and the same normal-offset idea, but lofts N-gon rings instead of revolving — the per-vertex offset is scaled by `1/cos(π/N)` so the wall thickness stays uniform along the face normal, not the vertex direction. Radial has its own two-piece revolution engine.
 
@@ -59,13 +61,11 @@ The STEP files use AP203 CONFIG_CONTROL_DESIGN schema with `FACETED_BREP` and `C
     .venv/bin/python tests/test_all.py
     .venv/bin/python tests/test_geometry.py
 
-`test_all.py` (54 tests) covers the full profile × section matrix and asserts the things that actually matter for printing: watertight, single body, positive volume, correct mouth radius. `test_geometry.py` (36 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
+`test_all.py` (48 tests) covers the full profile × section matrix and asserts the things that actually matter for printing: watertight, single body, positive volume, correct mouth radius. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
 
 ## Known limitations
 
 For very low cutoff frequencies (below roughly 200 Hz) the Le Cléac'h ODE integrates over an enormous arc length and may not terminate cleanly. In practice a 200 Hz horn is physically impractical to print so this doesn't come up often.
-
-Wall thickness at the throat end of high-curvature profiles will be slightly thinner on the concave face than requested. The error is typically under 0.5 mm for normal throat sizes.
 
 A polygonal flange with few sides and a large hole gets big: holding a uniform flat-face wall on a triangle means the corners reach a long way out. That's geometry, not a bug — switch to more sides or a circular outer if the footprint matters.
 

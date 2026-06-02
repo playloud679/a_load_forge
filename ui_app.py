@@ -42,7 +42,7 @@ BMC_URL = f"https://buymeacoffee.com/{BMC_USERNAME}"
 def _on_horn_change():
     """Recalculate geometry-dependent flange defaults when horn changes."""
     for _k in ("ft_ring", "ft_bc", "ft_bc_rad", "ft_ow", "ft_oh",
-               "fm_ring", "fm_bc", "fm_ow", "fm_oh",
+               "fm_spess", "fm_ring", "fm_bc", "fm_ow", "fm_oh",
                "mid_ring", "mid_bc", "mid_ow", "mid_oh"):
         st.session_state.pop(_k, None)
     st.session_state.pop("_combined", None)
@@ -219,6 +219,7 @@ with col_prev:
     st.subheader("2D Preview — Cross-section")
 
     try:
+        import _utils as _uts
         fig, ax = plt.subplots(figsize=(6, 3.5))
         if is_poly:
             if is_tractrix:
@@ -233,9 +234,16 @@ with col_prev:
                 zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             from polygonal_horn import _r_to_circumradius
             R_poly_arr = _r_to_circumradius(rp, n_sides)
-            R_poly_o   = R_poly_arr + thickness / np.cos(np.pi / n_sides)
+            # Parallel offset along the meridian normal — matches the poly engine
+            # (R_o = R_i + t/cos·n_r, z_o = z + t·n_z, ends pinned), so the outer
+            # wall stays parallel instead of a constant-z radial offset.
+            _nml = _uts.compute_profile_normals(zp, R_poly_arr, flip_if_negative=True)
+            R_poly_o = R_poly_arr + thickness / np.cos(np.pi / n_sides) * _nml[:, 1]
+            z_poly_o = zp + thickness * _nml[:, 0]
+            z_poly_o = np.clip(z_poly_o, zp[0], zp[-1])
+            z_poly_o[0] = zp[0]; z_poly_o[-1] = zp[-1]
             ax.plot(zp, R_poly_arr, label=f"Inner ({n_sides}-gon)", c="#2196F3")
-            ax.plot(zp, R_poly_o,   label="+ wall", c="#FF5722", alpha=.5, linestyle="--")
+            ax.plot(z_poly_o, R_poly_o, label="+ wall", c="#FF5722", alpha=.5, linestyle="--")
             ax.set_xlabel("Z (mm)")
         elif is_radial:
             Rr, Zb, Zt = _rd.get_radial_profiles(throat_d, mouth_d, fc, segments, profile_type)
@@ -254,8 +262,14 @@ with col_prev:
                 zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
             elif is_exp:
                 zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
+            # Parallel offset along the meridian normal — matches the mesh engine
+            # (constant-thickness wall), so the outer line stays parallel instead
+            # of a constant-z radial offset.
+            _nml = _uts.compute_profile_normals(zp, rp)
+            z_wall = zp + thickness * _nml[:, 0]
+            r_wall = rp + thickness * _nml[:, 1]
             ax.plot(zp, rp, label="Inner profile", c="#2196F3")
-            ax.plot(zp, rp+thickness, "--", label="+ wall", c="#FF5722", alpha=.5)
+            ax.plot(z_wall, r_wall, "--", label="+ wall", c="#FF5722", alpha=.5)
             ax.set_xlabel("Z (mm)")
         ax.set_ylabel("R (mm)"); ax.legend(fontsize=8); ax.grid(True, alpha=.3)
         fig.tight_layout(); st.pyplot(fig)
@@ -274,6 +288,17 @@ st.subheader("Mounting Flanges")
 
 def _calc_flange_dims():
     """Return suggested flange dimensions based on current horn profile."""
+    import _utils as _uts
+
+    def _mouth_wall_dz(zp, rp):
+        """Axial (Z) extent of the wall at the mouth — matches the mesh engine's
+        parallel normal offset, so a flange of this thickness sits flush with the
+        flare (no protruding rim) instead of using the along-normal thickness."""
+        nml = _uts.compute_profile_normals(zp, rp)
+        z_o = zp + nml[:, 0] * thickness
+        return float(max(0.1, zp[-1] - z_o[-1]))
+
+    mouth_dz = float(thickness)
     if is_poly:
         from polygonal_horn import _r_to_circumradius
         ir_throat = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
@@ -288,6 +313,7 @@ def _calc_flange_dims():
         elif is_exp:
             zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
         ir_mouth = _r_to_circumradius(np.array([rp.max()]), n_sides)[0]
+        mouth_dz = _mouth_wall_dz(zp, rp)
         _get_mid_r = lambda pct: _r_to_circumradius(np.array([rp[int(len(rp)*pct/100)]]), n_sides)[0]
     elif is_radial:
         ir_throat = throat_d / 2; ir_mouth = mouth_d / 2
@@ -295,10 +321,12 @@ def _calc_flange_dims():
     elif is_tractrix:
         ir_throat = throat_d / 2; ir_mouth = mouth_d / 2
         zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
+        mouth_dz = _mouth_wall_dz(zp, rp)
         _get_mid_r = lambda pct: rp[int(np.searchsorted(zp, zp[-1]*pct/100))]
     elif is_exp:
         zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
         ir_throat = throat_d / 2; ir_mouth = rp.max()
+        mouth_dz = _mouth_wall_dz(zp, rp)
         _get_mid_r = lambda pct: rp[min(int(np.searchsorted(zp, zp[-1]*pct/100)), len(rp)-1)]
     else:  # salmon / iwata / lecleach
         if is_salmon:
@@ -308,13 +336,14 @@ def _calc_flange_dims():
         else:
             zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
         ir_throat = throat_d / 2; ir_mouth = rp.max()
+        mouth_dz = _mouth_wall_dz(zp, rp)
         _z_len = zp.max()  # for roll-back profiles, use max z (axial extent)
         _get_mid_r = lambda pct, _zp=zp, _rp=rp, _zl=_z_len: _rp[np.argmin(np.abs(_zp - _zl*pct/100))]
 
-    return ir_throat, ir_mouth, _get_mid_r
+    return ir_throat, ir_mouth, _get_mid_r, mouth_dz
 
 
-ir_throat, ir_mouth, _get_mid_r = _calc_flange_dims()
+ir_throat, ir_mouth, _get_mid_r, _mouth_wall_dz = _calc_flange_dims()
 
 if st.button("🔧 Recalculate flanges", use_container_width=True,
              help="Update all flange diameters based on current horn parameters"):
@@ -382,7 +411,7 @@ with fg1:
     if is_radial:
         st.caption("Mounting holes on bottom plate")
         gen_throat = st.checkbox("Include", True, key="gen_throat")
-        _ft_nb    = st.number_input("Bolt count", 2, 24, _bolt_n, 1, key="ft_nb")
+        _ft_nb    = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="ft_nb")
         _ft_db    = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
         _ft_bc_lo, _ft_bc_hi = float(throat_d), float(mouth_d * 0.95)
         if "ft_bc_rad" not in st.session_state:
@@ -397,7 +426,7 @@ with fg1:
         gen_throat = st.checkbox("Include", True, key="gen_throat")
         _ft_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, _flange_sp, 0.5, key="ft_spess")
         _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off")
-        _ft_nb  = st.number_input("Bolt count", 2, 24, _bolt_n, 1, key="ft_nb")
+        _ft_nb  = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="ft_nb")
         _ft_db  = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
         if is_poly:
             from polygonal_horn import _r_to_circumradius
@@ -442,9 +471,15 @@ with fg2:
             st.caption("Not available — use Mid Flange instead")
     else:
         gen_mouth = st.checkbox("Include", True, key="gen_mouth")
-        _fm_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, _flange_sp, 0.5, key="fm_spess")
+        # Default to the wall's axial extent at the mouth so the flange sits flush
+        # with the flare (no protruding rim). This is thickness·|n_z|, not the raw
+        # along-normal wall thickness.
+        _fm_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, max(2.0, float(_mouth_wall_dz)), 0.5,
+            key="fm_spess",
+            help="Defaults to the flare's axial thickness at the mouth, so the "
+                 "flange ends flush with the wall (no rim)")
         _fm_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="fm_off")
-        _fm_nb  = st.number_input("Bolt count", 2, 24, _bolt_n, 1, key="fm_nb")
+        _fm_nb  = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="fm_nb")
         _fm_db  = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="fm_db")
         if is_poly:
             _fm_inner_R = ir_mouth
@@ -488,7 +523,7 @@ with fg3:
             max(5.0, _mid_max * 0.5), 5.0, key="mid_z")
         _mid_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, 4.0, 0.5, key="mid_spess")
         _mid_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="mid_off")
-        _mid_nb = st.number_input("Bolt count", 2, 24, _bolt_n, 1, key="mid_nb")
+        _mid_nb = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="mid_nb")
         _mid_db = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="mid_db")
         _mid_pct = min(100.0, _mid_pos / max(_len or 1, 1) * 100)
         mid_r = _get_mid_r(_mid_pct) if _len else 10
@@ -806,16 +841,24 @@ if abs(_z_off) > 0.5:
     mesh_to_slice.apply_translation([0, 0, -_z_off])
     st.caption(f"Mesh shifted by {-_z_off:.0f} mm so Z starts at 0")
 
+_joint = st.checkbox("Axial joint lip", True, key="joint_en",
+                     help="Add a joint lip on each axial cut so stacked segments "
+                          "register and glue together. Petals are cut with plain "
+                          "flat seams.")
+_joint_w = st.number_input("Lip wall (mm)", 0.5, 10.0, 4.0, 0.5, key="joint_w",
+                            help="Wall thickness of the axial joint lip") if _joint else 0.0
+
 ax_mode = st.radio("Define segments by", ["Count", "Height (mm)"],
                    horizontal=True, key="ax_mode")
 if ax_mode == "Count":
     n_ax = st.number_input("Number of axial segments", 1, 50, 4, step=1, key="n_ax")
     seg_ref = ("count", n_ax)
 else:
-    seg_h = st.number_input("Segment height (mm)", 5, 500, 50, step=5, key="seg_h")
+    seg_h = st.number_input("Cut every (mm)", 5, 500, 50, step=5, key="seg_h")
     total_z = mesh_to_slice.bounds[1, 2] - mesh_to_slice.bounds[0, 2]
-    n_ax_auto = max(1, int(round(total_z / seg_h)))
-    st.caption(f"Total Z={total_z:.0f} mm → ~{n_ax_auto} segments")
+    cuts = [seg_h * k for k in range(1, int(total_z / seg_h) + 1)]
+    n_seg = len(cuts) + 1
+    st.caption(f"Total Z={total_z:.0f} mm → {n_seg} segment{'s' if n_seg>1 else ''} (cut at {', '.join(f'{c:.0f}' for c in cuts)})")
     seg_ref = ("height", seg_h)
 
 if st.button("❶ Slice axially", use_container_width=True):
@@ -825,15 +868,15 @@ if st.button("❶ Slice axially", use_container_width=True):
             if n <= 1:
                 st.session_state["_ax_segs"] = [mesh_to_slice]
             else:
-                st.session_state["_ax_segs"] = _slc.slice_into_segments(mesh_to_slice, n)
+                st.session_state["_ax_segs"] = _slc.slice_into_segments(mesh_to_slice, n, joint_wall=_joint_w)
         else:
             dz = seg_ref[1]
             z0, z1 = mesh_to_slice.bounds[0, 2], mesh_to_slice.bounds[1, 2]
-            n = max(1, int(round((z1 - z0) / dz)))
-            if n <= 1:
+            cuts = [dz * k for k in range(1, int((z1 - z0) / dz) + 1)]
+            if not cuts:
                 st.session_state["_ax_segs"] = [mesh_to_slice]
             else:
-                st.session_state["_ax_segs"] = _slc.slice_into_segments(mesh_to_slice, n)
+                st.session_state["_ax_segs"] = _slc.slice_at_heights(mesh_to_slice, cuts, joint_wall=_joint_w)
     st.session_state.pop("_pieces", None)
     # cleanup old per-segment petal keys
     for k in list(st.session_state.keys()):
@@ -857,12 +900,29 @@ if ax_segs:
                                   key=pet_key, label_visibility="collapsed")
             petals_per.append(np_)
 
+    # Bolt-hole angles from the enabled mounting flanges (holes start at 0°).
+    # Petal seams are rotated into the widest gap so they never cut a hole.
+    _hole_angles = []
+    for _en, _nb in ((globals().get("gen_throat", False), globals().get("_ft_nb", 0)),
+                     (globals().get("gen_mouth", False),  globals().get("_fm_nb", 0)),
+                     (globals().get("gen_mid", False),    globals().get("_mid_nb", 0))):
+        try:
+            _nb = int(_nb)
+        except (TypeError, ValueError):
+            _nb = 0
+        if _en and _nb >= 2:
+            _hole_angles += list(np.linspace(0, 2 * np.pi, _nb, endpoint=False))
+    if _hole_angles:
+        st.caption(f"🔩 {len(_hole_angles)} bolt hole(s) detected — seams will be "
+                   "rotated to fall between them.")
+
     if st.button("❷ Apply petals", use_container_width=True):
         with st.spinner("Cutting petals…"):
             pieces = []
             for ai, (seg, np_) in enumerate(zip(ax_segs, petals_per)):
                 if np_ > 1:
-                    pets = _slc.slice_into_petals(seg, np_)
+                    phase = _slc.seam_phase_avoiding_holes(np_, _hole_angles)
+                    pets = _slc.slice_into_petals(seg, np_, phase=phase)
                     for pi, pet in enumerate(pets):
                         pieces.append((f"ax{ai+1:02d}_pet{pi+1:02d}", pet))
                 else:
