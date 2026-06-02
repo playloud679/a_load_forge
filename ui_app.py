@@ -854,6 +854,11 @@ _radial_joint_d = st.number_input("Joint depth (mm)", 0.5, 5.0, 2.0, 0.5,
                                    key="radial_joint_d",
                                    help="How far the tongue sticks out / groove "
                                         "goes in") if _radial_joint else 0.0
+_radial_clearance = st.number_input("Clearance (mm)", 0.0, 0.5, 0.1, 0.05,
+                                     key="radial_clearance",
+                                     help="Total gap between tongue and groove "
+                                          "(split evenly: 0.05 mm per side at default)"
+                                     ) if _radial_joint else 0.0
 
 ax_mode = st.radio("Define segments by", ["Count", "Height (mm)"],
                    horizontal=True, key="ax_mode")
@@ -924,7 +929,7 @@ if ax_segs:
                    "rotated to fall between them.")
 
     if _radial_joint:
-        st.caption(f"✔ Tongue & groove joint active — depth = {_radial_joint_d} mm")
+        st.caption(f"✔ Tongue & groove — depth {_radial_joint_d} mm, clearance {_radial_clearance} mm")
 
     if st.button("❷ Apply petals", use_container_width=True):
         with st.spinner("Cutting petals…"):
@@ -933,7 +938,8 @@ if ax_segs:
                 if np_ > 1:
                     phase = _slc.seam_phase_avoiding_holes(np_, _hole_angles)
                     pets = _slc.slice_into_petals(seg, np_, phase=phase,
-                                                   joint_depth=_radial_joint_d)
+                                                   joint_depth=_radial_joint_d,
+                                                   clearance=_radial_clearance)
                     for pi, pet in enumerate(pets):
                         pieces.append((f"ax{ai+1:02d}_pet{pi+1:02d}", pet))
                 else:

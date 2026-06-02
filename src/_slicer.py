@@ -264,12 +264,17 @@ def _filter_polys_by_side(polys, to_3D, axis, side):
 def add_radial_tongue(petal: trimesh.Trimesh, angle: float,
                       joint_depth: float = 2.0,
                       margin: float = 1.0,
+                      clearance: float = 0.1,
                       side: int = 0, axis=None) -> trimesh.Trimesh:
     """
     Add a tongue on the RIGHT seam (at *angle*) of a radial petal.
 
     The tongue is a vertical strip centred on the wall cross-section,
     extruded outward along the seam normal by *joint_depth*.
+
+    *clearance* is the total radial gap between tongue and groove when
+    mated (split equally: clearance/2 per side).  With the default 0.1 mm
+    each face gets 0.05 mm of air.
 
     When *side* != 0 (n==2 only), the tongue is restricted to the seam strip
     whose centroid sits on that *side* of *axis* (an in-plane direction).
@@ -285,7 +290,7 @@ def add_radial_tongue(petal: trimesh.Trimesh, angle: float,
     to_3D_out[:3, 2] = -to_3D_out[:3, 2]
     tongues = []
     for poly in polys:
-        inner = _buffer_single(poly, -margin)
+        inner = _buffer_single(poly, -(margin + clearance / 2.0))
         if inner is None:
             continue
         # Start the tongue *inside* the petal (z=-overlap) so it overlaps the body
@@ -320,12 +325,17 @@ def add_radial_tongue(petal: trimesh.Trimesh, angle: float,
 def add_radial_groove(petal: trimesh.Trimesh, angle: float,
                       joint_depth: float = 2.0,
                       margin: float = 1.0,
+                      clearance: float = 0.1,
                       side: int = 0, axis=None) -> trimesh.Trimesh:
     """
     Cut a groove on the LEFT seam (at *angle*) of a radial petal.
 
     The groove is a vertical slot centred on the wall cross-section,
     going INTO the petal by *joint_depth*.
+
+    *clearance* is the total radial gap between tongue and groove when
+    mated (split equally: clearance/2 per side).  With the default 0.1 mm
+    each face gets 0.05 mm of air.
 
     When *side* != 0 (n==2 only), the groove is restricted to the seam strip
     whose centroid sits on that *side* of *axis* (an in-plane direction).
@@ -342,7 +352,7 @@ def add_radial_groove(petal: trimesh.Trimesh, angle: float,
 
     result = petal
     for poly in polys:
-        inner = _buffer_single(poly, -margin)
+        inner = _buffer_single(poly, -(margin - clearance / 2.0))
         if inner is None:
             continue
         groove = trimesh.creation.extrude_polygon(inner, height=joint_depth + overlap)
@@ -360,7 +370,8 @@ def add_radial_groove(petal: trimesh.Trimesh, angle: float,
 def slice_into_petals(mesh: trimesh.Trimesh, n: int,
                       phase: float = 0.0,
                       joint_depth: float = 0.0,
-                      joint_margin: float = 0.5
+                      joint_margin: float = 0.5,
+                      clearance: float = 0.1,
                       ) -> list[trimesh.Trimesh]:
     """
     Cut *mesh* into *n* radial petals (like an orange).
@@ -372,6 +383,8 @@ def slice_into_petals(mesh: trimesh.Trimesh, n: int,
     wall strips, one each side of the axis); each half gets a tongue on one strip
     and a groove on the other, assigned so the halves mate and come out as
     identical parts.
+
+    *clearance* — total radial gap between tongue and groove (default 0.1 mm).
     """
     petals: list[trimesh.Trimesh] = []
     for i in range(n):
@@ -400,12 +413,16 @@ def slice_into_petals(mesh: trimesh.Trimesh, n: int,
                 axis = np.array([np.cos(phase), np.sin(phase), 0.0])
                 tongue_side = 1 if i == 0 else -1
                 petal = add_radial_tongue(petal, angle1, joint_depth, joint_margin,
+                                          clearance=clearance,
                                           side=tongue_side, axis=axis)
                 petal = add_radial_groove(petal, angle0, joint_depth, joint_margin,
+                                          clearance=clearance,
                                           side=-tongue_side, axis=axis)
             else:
-                petal = add_radial_groove(petal, angle0, joint_depth, joint_margin)
-                petal = add_radial_tongue(petal, angle1, joint_depth, joint_margin)
+                petal = add_radial_groove(petal, angle0, joint_depth, joint_margin,
+                                          clearance=clearance)
+                petal = add_radial_tongue(petal, angle1, joint_depth, joint_margin,
+                                          clearance=clearance)
 
         petals.append(petal)
 

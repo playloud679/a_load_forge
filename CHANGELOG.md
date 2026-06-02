@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.3 (2026-06-02)
+
+- **Clearance regolabile giunto petali**: nuovo parametro `clearance` in `slice_into_petals()` (default 0.1 mm). La lingua viene rimpicciolita di `clearance/2`, la cava viene allargata di `clearance/2` → gioco totale `clearance` mm (0.05 mm per parte al default). Controllo UI "Clearance (mm)" in Tab Slice STL sotto il checkbox del giunto radiale.
+- **Tolleranza 0.05 mm per parte**: `add_radial_tongue` buffer `-(margin + clearance/2)`, `add_radial_groove` buffer `-(margin - clearance/2)`. Con margin=0.5 e clearance=0.1 il gioco risultante è 0.1 mm totale.
+- **Test**: 54 test, tutti verdi.
+
 ## 2.4.2 (2026-06-02)
 
 - **Fix giunto radiale a 2 petali**: prima il caso `n=2` faceva il joint su una sola faccia (lo step a tutta faccia cancellava il materiale della lingua, che falliva silenziosamente). Causa: con 2 petali i due piani di taglio sono complanari (`normal0 == normal1`) — un unico piano diametrale che attraversa l'asse e taglia la parete in **due strisce**, mentre `_seam_face_polygon` ne teneva solo la più grande.
