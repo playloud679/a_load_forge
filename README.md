@@ -28,11 +28,13 @@ Each returns `(z, r)` and nothing else — just the math. The cross-section is a
 
 ## Cross-sections
 
-The profile says how the area grows along the axis. The section says what shape that area takes. Any of the four profiles composes with any of the three sections.
+The profile says how the area grows along the axis. The section says what shape that area takes. Any of the four profiles composes with any of the four sections.
 
 **Circular** is the revolution you'd expect: spin the profile around Z.
 
 **Polygonal** makes every Z slice a regular N-gon (3 to 12 sides), area-matched to the equivalent circle, so the acoustics are unchanged but the horn prints flat-faced. The circumradius is `r_eq · √(2π / (N·sin(2π/N)))`.
+
+**Rectangular** loftes a rectangle of constant aspect ratio along the axis; width and height both follow the same area-preserving expansion as the equivalent circle.
 
 **Radial 360°** is a disk waveguide for omnidirectional applications. Two pieces — bottom plate and top reflector — with an acoustic gap between them.
 

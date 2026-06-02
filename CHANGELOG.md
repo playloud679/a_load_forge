@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.4.6 (2026-06-02)
+
+- **Sezione Rectangular reinserita nella UI**: quarta opzione in `section_type` radio (dopo Polygonal). Dimensioni W×H invece di Ø, aspect ratio slider, hint dedicato.
+- **Profili rettangolari**: chiama `get_rectangular_tractrix()`, `get_rectangular_exponential()`, `get_rectangular_salmon()`, oppure `_area_to_rect()` per Iwata/Le Cléac'h.
+- **Preview 2D rettangolare**: mostra W(z) e H(z) affiancati.
+- **Flange rettangolari** (gola/bocca/mid): generate con `generate_rectangular_flange()`, outer shape "Circular" o "Rectangular". Foro allineato alle dimensioni esterne reali del corno (conto tenuto del clip `z_o` dell'engine).
+- **Fix offset flangia rettangolare**: `generate_rectangular_flange` interpreta `offset` come fondo (non top come `generate_flange`). Passati offset corretti: gola `z_min + ft_off`, bocca `z_mouth + fm_off - fm_sp`, mid `z_mid - mid_sp`.
+- **Fix outer_diam mancante**: quando outer è "Circular" passato `outer_diam=X` invece del default 70mm che causava auto-espansione a `sqrt(w²+h²)+24`.
+- **Fix mesh non‑manifold**: `horn.fix_normals()` dopo `generate_rectangular_3d_mesh()` — il winding inconsistente impediva a manifold3d di processare il mesh.
+- **Test**: 54 test, tutti verdi.
+
 ## 2.4.3 (2026-06-02)
 
 - **Clearance regolabile giunto petali**: nuovo parametro `clearance` in `slice_into_petals()` (default 0.1 mm). La lingua viene rimpicciolita di `clearance/2`, la cava viene allargata di `clearance/2` → gioco totale `clearance` mm (0.05 mm per parte al default). Controllo UI "Clearance (mm)" in Tab Slice STL sotto il checkbox del giunto radiale.

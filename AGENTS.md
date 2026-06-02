@@ -14,8 +14,9 @@ Whenever you modify a Python module under `src/` (add a new profile, change a fu
 | Changed function signature (e.g. added/removed a parameter) | Update the `gen_args` list and the function call in Tab 1 |
 | Changed profile name or label format | Update the `_label.startswith()` check in Tab 3 (merge) |
 | Added a new profile type that can/cannot be merged | Update the merge logic in Tab 3 |
-| New radial joint feature (tongue & groove) | Add checkbox + depth control in Tab 3; `slice_into_petals()` accepts `joint_depth` |
-| Changed radial joint behaviour | `slice_into_petals()`: n>=3 → groove on left seam + tongue on right; n==2 → the single diametric seam has two wall strips, so each half gets a tongue on one strip + groove on the other (hermaphrodite, identical parts). No UI change needed. |
+| New radial joint feature (tongue & groove) | Add checkbox + depth + clearance controls in Slice section; `slice_into_petals()` accepts `joint_depth`, `clearance` |
+| Changed radial joint behaviour | `slice_into_petals()`: n>=3 → groove on left seam + tongue on right; n==2 → hermaphrodite (identical parts). No UI change needed. |
+| Re‑enable Rectangular section | Add `"Rectangular"` to `section_type` radio; set `is_rect`; show W×H inputs for throat/mouth; add preview + flange + generation branches |
 
 ### Concrete pattern for adding a new profile
 
@@ -79,6 +80,8 @@ import flange_generator as _fg
 import rectangular_flange as _rf
 import rectangular_horn as _rh
 import radial_horn as _rd
+import polygonal_horn as _ph
+import _slicer as _slc
 
 import importlib
 importlib.reload(_core)
@@ -86,6 +89,8 @@ importlib.reload(_fg)
 importlib.reload(_rf)
 importlib.reload(_rh)
 importlib.reload(_rd)
+importlib.reload(_ph)
+importlib.reload(_slc)
 ```
 
 ### Important Rules
