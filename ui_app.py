@@ -843,10 +843,17 @@ if abs(_z_off) > 0.5:
 
 _joint = st.checkbox("Axial joint lip", True, key="joint_en",
                      help="Add a joint lip on each axial cut so stacked segments "
-                          "register and glue together. Petals are cut with plain "
-                          "flat seams.")
+                          "register and glue together.")
 _joint_w = st.number_input("Lip wall (mm)", 0.5, 10.0, 4.0, 0.5, key="joint_w",
                             help="Wall thickness of the axial joint lip") if _joint else 0.0
+
+_radial_joint = st.checkbox("Radial joint (tongue & groove)", False, key="radial_joint_en",
+                            help="Add a vertical tongue & groove on each radial "
+                                 "seam so petals interlock and self-align.")
+_radial_joint_d = st.number_input("Joint depth (mm)", 0.5, 5.0, 2.0, 0.5,
+                                   key="radial_joint_d",
+                                   help="How far the tongue sticks out / groove "
+                                        "goes in") if _radial_joint else 0.0
 
 ax_mode = st.radio("Define segments by", ["Count", "Height (mm)"],
                    horizontal=True, key="ax_mode")
@@ -916,13 +923,17 @@ if ax_segs:
         st.caption(f"🔩 {len(_hole_angles)} bolt hole(s) detected — seams will be "
                    "rotated to fall between them.")
 
+    if _radial_joint:
+        st.caption(f"✔ Tongue & groove joint active — depth = {_radial_joint_d} mm")
+
     if st.button("❷ Apply petals", use_container_width=True):
         with st.spinner("Cutting petals…"):
             pieces = []
             for ai, (seg, np_) in enumerate(zip(ax_segs, petals_per)):
                 if np_ > 1:
                     phase = _slc.seam_phase_avoiding_holes(np_, _hole_angles)
-                    pets = _slc.slice_into_petals(seg, np_, phase=phase)
+                    pets = _slc.slice_into_petals(seg, np_, phase=phase,
+                                                   joint_depth=_radial_joint_d)
                     for pi, pet in enumerate(pets):
                         pieces.append((f"ax{ai+1:02d}_pet{pi+1:02d}", pet))
                 else:

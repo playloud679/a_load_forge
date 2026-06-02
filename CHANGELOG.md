@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.4.1 (2026-06-02)
+
+- **Radial joint (tongue & groove)**: nuovo interlock per petali radiali. Ogni petalo riceve una lingua maschio su un seam e una scanalatura femmina sull'altro. Supportato per 2+ petali:
+  - 2 petali: step joint (intera faccia arretrata 2mm) + lingua sporgente
+  - 3+ petali: scanalatura centrale 2mm + lingua sporgente 2mm
+  - `slice_into_petals()` ora accetta parametri `joint_depth` e `joint_margin`
+- **Fix robustezza booleane**: overlap di 1mm nelle estrusioni per evitare facce coincidenti con manifold3d; re-merge dei corpi a volume negativo dopo union
+- **Fix `_seam_face_polygon`**: `to_2D(normal=normal)` esplicito per allineamento corretto del sistema di riferimento; filtro `None` in `polygons_closed` che causava crash con 3 petali
+- **UI — Controllo "Radial joint (tongue & groove)"**: checkbox + joint depth in Tab 3 (Slice STL), disabilitato di default
+
 ## 2.4.0 (2026-06-02)
 
 - **Spessore parete costante (vero offset 3D)**: l'engine assisimmetrico (`profile_generator.py`) ora usa un offset parallelo puro lungo la normale del meridiano — per un solido di rivoluzione coincide con un offset 3D, quindi lo spessore perpendicolare è **costante ovunque** (verificato min=max=thickness). Rimosso lo shift assiale `z_o -= z_o[0]` che assottigliava progressivamente la parete verso la bocca (fino a ~0.8 mm su 4).

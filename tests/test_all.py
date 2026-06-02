@@ -357,6 +357,34 @@ for _n in (3, 4, 6):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  Slicer — radial petals with tongue & groove joint
+# ══════════════════════════════════════════════════════════════════════════════
+
+print("\n═══ Slicer — petals with T&G joint ═══")
+
+def _make_check_jointed_petals(n, depth):
+    def _check():
+        horn = _horn_trimesh()
+        Vh = horn.volume
+        petals = _slc.slice_into_petals(horn, n, joint_depth=depth)
+        assert len(petals) == n, f"jointed n={n}: got {len(petals)} petals"
+        for i, p1 in enumerate(petals):
+            assert p1.is_watertight,   f"jointed petal {i} (n={n}): not watertight"
+            assert p1.body_count == 1, f"jointed petal {i} (n={n}): not one body ({p1.body_count})"
+            assert p1.volume > 0,      f"jointed petal {i} (n={n}): zero volume"
+        # Tongue adds material, groove removes it — roughly same volume
+        sv = sum(p.volume for p in petals)
+        ratio = sv / Vh
+        assert 0.95 <= ratio <= 1.05, \
+            f"n={n} depth={depth}: jointed petals volume ratio {ratio:.3f} (expected ~1.0)"
+    return _check
+
+for _n in (2, 3, 4):
+    test(f"{_n} petals joint_depth=2", _make_check_jointed_petals(_n, 2.0))
+    test(f"{_n} petals joint_depth=0.5", _make_check_jointed_petals(_n, 0.5))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  Summary
 # ══════════════════════════════════════════════════════════════════════════════
 

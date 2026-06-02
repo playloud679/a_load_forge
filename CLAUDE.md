@@ -81,3 +81,15 @@ When modifying any Python module under `src/`:
 | Profile that can't be merged (like radial) | Update merge guard in Tab 3 |
 
 Always add a test case in `tests/test_all.py` for new profiles.
+
+### Radial petal joint
+
+`slice_into_petals()` accepts `joint_depth` and `joint_margin`. When `joint_depth > 0`:
+- **2 petals**: step joint on left seam (full-face recess via `slice_plane`) + centred tongue on right seam
+- **3+ petals**: centred groove on left seam + centred tongue on right seam (both via boolean ops)
+
+Key helper functions in `_slicer.py`:
+- `add_radial_tongue()` — extrudes inset polygon outward along seam normal
+- `add_radial_groove()` — booleans out inset polygon inward along seam normal
+- `_seam_face_polygon()` — returns seam-face polygon + `to_3D` transform (uses `to_2D(normal=...)`)
+- `_buffer_single()` — shapely buffer returning single Polygon (handles MultiPolygon)

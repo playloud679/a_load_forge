@@ -14,6 +14,8 @@ Whenever you modify a Python module under `src/` (add a new profile, change a fu
 | Changed function signature (e.g. added/removed a parameter) | Update the `gen_args` list and the function call in Tab 1 |
 | Changed profile name or label format | Update the `_label.startswith()` check in Tab 3 (merge) |
 | Added a new profile type that can/cannot be merged | Update the merge logic in Tab 3 |
+| New radial joint feature (tongue & groove) | Add checkbox + depth control in Tab 3; `slice_into_petals()` accepts `joint_depth` |
+| Changed radial joint behaviour (step vs groove) | `slice_into_petals()` uses step for n=2, groove for n>=3 — no UI change needed |
 
 ### Concrete pattern for adding a new profile
 
