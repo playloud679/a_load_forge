@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.4.2 (2026-06-02)
+
+- **Fix giunto radiale a 2 petali**: prima il caso `n=2` faceva il joint su una sola faccia (lo step a tutta faccia cancellava il materiale della lingua, che falliva silenziosamente). Causa: con 2 petali i due piani di taglio sono complanari (`normal0 == normal1`) — un unico piano diametrale che attraversa l'asse e taglia la parete in **due strisce**, mentre `_seam_face_polygon` ne teneva solo la più grande.
+- **Petali ermafroditi (maschio + femmina su ogni pezzo)**: nel caso `n=2` ogni metà riceve ora una **lingua su una striscia e una scanalatura sull'altra**; l'assegnazione si inverte fra le due metà (`side`/`axis` rispetto a un asse globale fisso) così che maschio e femmina si fronteggino sempre. Le due metà risultano **pezzi identici** (uno è l'altro ruotato di 180° attorno a Z). Per `n>=3` il comportamento (scanalatura a sinistra + lingua a destra) è invariato.
+- **`_seam_face_polygon` → `_seam_face_polygons`**: ritorna tutte le strisce significative della sezione del seam (sliver sotto il 5% dell'area massima scartati); `add_radial_tongue`/`add_radial_groove` iterano su tutte le strisce e accettano un selettore `side`/`axis` (via `_filter_polys_by_side`) per limitare il giunto a una striscia.
+- **Lingua con overlap nel corpo**: la lingua parte ora da `z=-overlap` così da compenetrare il petalo — un contatto puramente complanare non si saldava in modo affidabile nella union (causava `body_count == 2`). Rimossa la funzione `_apply_step_joint` non più usata.
+- **Test**: check `n=2` rinforzato — verifica che ogni petalo abbia una lingua che sporge oltre il seam su una striscia e che le due metà siano pezzi identici (54 test, tutti verdi).
+
 ## 2.4.1 (2026-06-02)
 
 - **Radial joint (tongue & groove)**: nuovo interlock per petali radiali. Ogni petalo riceve una lingua maschio su un seam e una scanalatura femmina sull'altro. Supportato per 2+ petali:

@@ -46,6 +46,14 @@ The 2D preview's "+ wall" line draws this same parallel offset, so what you see 
 
 The polygonal section reuses the same `(z, r)` and the same normal-offset idea, but lofts N-gon rings instead of revolving — the per-vertex offset is scaled by `1/cos(π/N)` so the wall thickness stays uniform along the face normal, not the vertex direction. Radial has its own two-piece revolution engine.
 
+## Splitting into petals
+
+A horn that's too big for the print bed can be sliced into `n` radial petals (like an orange) and glued back together. With a non-zero joint depth each seam gets a tongue-and-groove interlock for alignment and glue area.
+
+For `n >= 3` each petal is a wedge under 180°, so its left and right seams are distinct planes: a groove goes on the left, a tongue on the right, and adjacent petals mate tongue-into-groove.
+
+`n = 2` is the awkward case, and worth calling out because it's easy to get wrong. The two cutting planes are coplanar — a single diametric plane through the axis — so a petal's "left" and "right" seams are the *same* face, and that face crosses the axis into **two** wall strips. You can't put both a groove and a tongue on one face. The fix is to make each half hermaphrodite: a tongue on one strip, a groove on the other, with the strip assignment flipped between the two halves so a tongue always faces a groove. The two halves come out as identical parts — one is just the other rotated 180°.
+
 ## Flanges
 
 Mounting flanges (throat, mouth, and an optional mid-flange at any axial position) are built with CSG boolean operations via trimesh and manifold3d. Bolt holes are real cutouts, not overlapping geometry. The outer body can be circular or a polygon, independently of the horn's section.

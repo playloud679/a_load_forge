@@ -209,20 +209,27 @@ def seam_phase_avoiding_holes(n: int, hole_angles, samples: int = 1440) -> float
     return best_phase
 
 
-def _seam_face_polygon(petal, origin, normal):
-    """Get the outermost closed polygon of a mesh cross-section at a plane."""
+def _seam_face_polygons(petal, origin, normal, min_area_frac=0.05):
+    """Return all significant closed polygons of a mesh cross-section + its to_3D.
+
+    For n>=3 petals the seam plane meets the wall on a single strip, so this
+    returns one polygon.  For n==2 the seam is a diametric plane that crosses the
+    axis and meets the wall on TWO strips (one each side), so both are returned.
+    Slivers below *min_area_frac* of the largest strip are dropped.
+    """
     section = petal.section(plane_origin=origin, plane_normal=normal)
     if section is None:
-        return None, None
+        return [], None
     try:
         planar, to_3D = section.to_2D(normal=normal)
     except Exception:
-        return None, None
-    poly_list = [p for p in planar.polygons_closed if p is not None]
-    if not poly_list:
-        return None, None
-    poly = max(poly_list, key=lambda p: p.area)
-    return poly, to_3D
+        return [], None
+    polys = [p for p in planar.polygons_closed if p is not None and not p.is_empty]
+    if not polys:
+        return [], None
+    max_area = max(p.area for p in polys)
+    polys = [p for p in polys if p.area >= min_area_frac * max_area]
+    return polys, to_3D
 
 
 def _buffer_single(poly, distance):
@@ -236,34 +243,65 @@ def _buffer_single(poly, distance):
     return result
 
 
+def _filter_polys_by_side(polys, to_3D, axis, side):
+    """Keep only the seam strips whose 3D centroid lies on the requested *side*.
+
+    *axis* is an in-plane horizontal direction; *side* is +1 / -1 (or 0 = keep
+    all).  Used for n==2, where the diametric seam yields two strips (one each
+    side of the axis) and tongue/groove must land on opposite strips.
+    """
+    if side == 0 or axis is None:
+        return polys
+    out = []
+    for p in polys:
+        c = to_3D @ np.array([p.centroid.x, p.centroid.y, 0.0, 1.0])
+        d = float(c[:3] @ axis)
+        if (d > 0 and side > 0) or (d < 0 and side < 0):
+            out.append(p)
+    return out
+
+
 def add_radial_tongue(petal: trimesh.Trimesh, angle: float,
                       joint_depth: float = 2.0,
-                      margin: float = 1.0) -> trimesh.Trimesh:
+                      margin: float = 1.0,
+                      side: int = 0, axis=None) -> trimesh.Trimesh:
     """
     Add a tongue on the RIGHT seam (at *angle*) of a radial petal.
 
     The tongue is a vertical strip centred on the wall cross-section,
     extruded outward along the seam normal by *joint_depth*.
+
+    When *side* != 0 (n==2 only), the tongue is restricted to the seam strip
+    whose centroid sits on that *side* of *axis* (an in-plane direction).
     """
     normal = np.array([-np.sin(angle), np.cos(angle), 0.0])
-    poly, to_3D = _seam_face_polygon(petal, [0.0, 0.0, 0.0], normal)
-    if poly is None:
+    polys, to_3D = _seam_face_polygons(petal, [0.0, 0.0, 0.0], normal)
+    polys = _filter_polys_by_side(polys, to_3D, axis, side)
+    if not polys:
         return petal
 
-    inner = _buffer_single(poly, -margin)
-    if inner is None:
-        return petal
-
-    tongue = trimesh.creation.extrude_polygon(inner, height=joint_depth)
+    overlap = 1.0
     to_3D_out = to_3D.copy()
     to_3D_out[:3, 2] = -to_3D_out[:3, 2]
-    tongue.apply_transform(to_3D_out)
+    tongues = []
+    for poly in polys:
+        inner = _buffer_single(poly, -margin)
+        if inner is None:
+            continue
+        # Start the tongue *inside* the petal (z=-overlap) so it overlaps the body
+        # volumetrically — a bare coplanar touch doesn't reliably weld in a union.
+        t = trimesh.creation.extrude_polygon(inner, height=joint_depth + overlap)
+        t.apply_translation([0.0, 0.0, -overlap])
+        t.apply_transform(to_3D_out)
+        tongues.append(t)
+    if not tongues:
+        return petal
 
     try:
-        result = trimesh.boolean.union([petal, tongue], engine="manifold",
+        result = trimesh.boolean.union([petal, *tongues], engine="manifold",
                                        check_volume=False)
     except Exception:
-        result = trimesh.util.concatenate([petal, tongue])
+        result = trimesh.util.concatenate([petal, *tongues])
     if result is not None and not result.is_empty:
         if result.body_count > 1:
             bodies = [b for b in result.split() if b.volume > 0]
@@ -281,46 +319,42 @@ def add_radial_tongue(petal: trimesh.Trimesh, angle: float,
 
 def add_radial_groove(petal: trimesh.Trimesh, angle: float,
                       joint_depth: float = 2.0,
-                      margin: float = 1.0) -> trimesh.Trimesh:
+                      margin: float = 1.0,
+                      side: int = 0, axis=None) -> trimesh.Trimesh:
     """
     Cut a groove on the LEFT seam (at *angle*) of a radial petal.
 
     The groove is a vertical slot centred on the wall cross-section,
     going INTO the petal by *joint_depth*.
+
+    When *side* != 0 (n==2 only), the groove is restricted to the seam strip
+    whose centroid sits on that *side* of *axis* (an in-plane direction).
     """
     normal = np.array([np.sin(angle), -np.cos(angle), 0.0])
-    poly, to_3D = _seam_face_polygon(petal, [0.0, 0.0, 0.0], normal)
-    if poly is None:
-        return petal
-
-    inner = _buffer_single(poly, -margin)
-    if inner is None:
+    polys, to_3D = _seam_face_polygons(petal, [0.0, 0.0, 0.0], normal)
+    polys = _filter_polys_by_side(polys, to_3D, axis, side)
+    if not polys:
         return petal
 
     overlap = 1.0
-    groove = trimesh.creation.extrude_polygon(inner, height=joint_depth + overlap)
     to_3D_off = to_3D.copy()
     to_3D_off[:3, 3] += normal * (-overlap)
-    groove.apply_transform(to_3D_off)
 
-    try:
-        result = trimesh.boolean.difference([petal, groove], engine="manifold",
-                                            check_volume=False)
-    except Exception:
-        return petal
-    if result is not None and not result.is_empty and result.body_count == 1:
-        return result
-    return petal
-
-
-def _apply_step_joint(petal, angle, joint_depth, normal_into):
-    """Cut a full-face step at the left seam — removes entire face inward."""
-    normal = normal_into
-    origin_off = np.array([0.0, 0.0, 0.0]) + normal * joint_depth
-    result = petal.slice_plane(plane_origin=origin_off, plane_normal=normal, cap=True)
-    if result is not None and not result.is_empty and result.body_count == 1:
-        return result
-    return petal
+    result = petal
+    for poly in polys:
+        inner = _buffer_single(poly, -margin)
+        if inner is None:
+            continue
+        groove = trimesh.creation.extrude_polygon(inner, height=joint_depth + overlap)
+        groove.apply_transform(to_3D_off)
+        try:
+            cut = trimesh.boolean.difference([result, groove], engine="manifold",
+                                             check_volume=False)
+        except Exception:
+            return petal
+        if cut is not None and not cut.is_empty and cut.body_count == 1:
+            result = cut
+    return result
 
 
 def slice_into_petals(mesh: trimesh.Trimesh, n: int,
@@ -332,8 +366,12 @@ def slice_into_petals(mesh: trimesh.Trimesh, n: int,
     Cut *mesh* into *n* radial petals (like an orange).
 
     Seams sit at angles *phase* + i·2π/n (rotate *phase* to keep them clear of
-    flange bolt holes).  When *joint_depth* > 0, each petal gets a tongue on its
-    right seam face and a groove on its left seam face (tongue & groove joint).
+    flange bolt holes).  When *joint_depth* > 0 and n >= 3, each petal gets a
+    tongue on its right seam face and a groove on its left seam face (tongue &
+    groove joint).  For n == 2 the two halves share a single diametric seam (two
+    wall strips, one each side of the axis); each half gets a tongue on one strip
+    and a groove on the other, assigned so the halves mate and come out as
+    identical parts.
     """
     petals: list[trimesh.Trimesh] = []
     for i in range(n):
@@ -352,9 +390,19 @@ def slice_into_petals(mesh: trimesh.Trimesh, n: int,
 
         if joint_depth > 0:
             if n == 2:
-                # Full-face step: very visible recess (female) on left, tongue (male) on right
-                petal = _apply_step_joint(petal, angle0, joint_depth, normal0)
-                petal = add_radial_tongue(petal, angle1, joint_depth, joint_margin)
+                # The two halves share ONE diametric seam plane, which crosses the
+                # axis and meets the wall on two strips.  Put a tongue on one strip
+                # and a groove on the other so EVERY petal carries one male + one
+                # female.  The assignment flips between the halves (axis fixed in
+                # global frame) so a tongue on one always faces a groove on the
+                # other.  The two petals end up identical (one is the other rotated
+                # 180°).
+                axis = np.array([np.cos(phase), np.sin(phase), 0.0])
+                tongue_side = 1 if i == 0 else -1
+                petal = add_radial_tongue(petal, angle1, joint_depth, joint_margin,
+                                          side=tongue_side, axis=axis)
+                petal = add_radial_groove(petal, angle0, joint_depth, joint_margin,
+                                          side=-tongue_side, axis=axis)
             else:
                 petal = add_radial_groove(petal, angle0, joint_depth, joint_margin)
                 petal = add_radial_tongue(petal, angle1, joint_depth, joint_margin)

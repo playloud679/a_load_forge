@@ -85,11 +85,13 @@ Always add a test case in `tests/test_all.py` for new profiles.
 ### Radial petal joint
 
 `slice_into_petals()` accepts `joint_depth` and `joint_margin`. When `joint_depth > 0`:
-- **2 petals**: step joint on left seam (full-face recess via `slice_plane`) + centred tongue on right seam
+- **2 petals**: the two halves share a single diametric seam plane that crosses the axis, so its cross-section yields **two** wall strips (one either side). Each half gets a **tongue on one strip and a groove on the other** (hermaphrodite — one male + one female per petal). The strip assignment flips between the two halves (`side = +1` for petal 0, `-1` for petal 1, against a fixed global `axis`) so a tongue always faces a groove. The two halves come out as **identical parts** (one is the other rotated 180° about Z).
 - **3+ petals**: centred groove on left seam + centred tongue on right seam (both via boolean ops)
 
+For n==2, `add_radial_tongue`/`add_radial_groove` take a `side`/`axis` selector (via `_filter_polys_by_side`) to restrict the joint to one of the two strips; for n>=3 there is a single strip and `side=0` (no filter). The tongue extrudes from `z=-overlap` so it overlaps the petal body volumetrically — a bare coplanar touch does not reliably weld in a boolean union.
+
 Key helper functions in `_slicer.py`:
-- `add_radial_tongue()` — extrudes inset polygon outward along seam normal
-- `add_radial_groove()` — booleans out inset polygon inward along seam normal
-- `_seam_face_polygon()` — returns seam-face polygon + `to_3D` transform (uses `to_2D(normal=...)`)
+- `add_radial_tongue()` — extrudes inset polygon(s) outward along seam normal
+- `add_radial_groove()` — booleans out inset polygon(s) inward along seam normal
+- `_seam_face_polygons()` — returns all significant seam-face polygons + `to_3D` transform (uses `to_2D(normal=...)`); drops slivers below `min_area_frac` of the largest
 - `_buffer_single()` — shapely buffer returning single Polygon (handles MultiPolygon)

@@ -377,6 +377,27 @@ def _make_check_jointed_petals(n, depth):
         ratio = sv / Vh
         assert 0.95 <= ratio <= 1.05, \
             f"n={n} depth={depth}: jointed petals volume ratio {ratio:.3f} (expected ~1.0)"
+        # n==2: the diametric seam (y=0, phase=0) crosses the axis -> two strips
+        # (x>0 and x<0).  Every petal must be hermaphrodite: a tongue protruding
+        # past the seam on ONE strip and a groove recessed on the OTHER.
+        if n == 2:
+            for i, p1 in enumerate(petals):
+                v = p1.vertices
+                sign = 1.0 if i == 0 else -1.0          # which side the body is on
+                # tongue: material reaching across the seam (past y=0 by >0.5*depth)
+                past = v[sign * v[:, 1] < -0.5 * depth]
+                assert len(past) > 0, \
+                    f"n=2 depth={depth} petal {i}: no tongue protruding past seam"
+                tongue_x = past[np.argmax(np.abs(past[:, 0])), 0]
+                # groove: the seam face (y≈0) is recessed on the opposite strip,
+                # so the petal carries no full-thickness wall there at the rim.
+                assert (tongue_x > 1e-6 or tongue_x < -1e-6), \
+                    f"n=2 depth={depth} petal {i}: tongue not on a wall strip"
+            # the two petals are the same part: one is the other rotated 180° about z
+            a, b = petals
+            br = b.copy(); br.apply_transform(trimesh.transformations.rotation_matrix(np.pi, [0, 0, 1]))
+            assert abs(a.volume - b.volume) < 1e-3 * a.volume, \
+                f"n=2 depth={depth}: halves are not identical parts"
     return _check
 
 for _n in (2, 3, 4):

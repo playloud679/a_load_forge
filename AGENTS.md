@@ -15,7 +15,7 @@ Whenever you modify a Python module under `src/` (add a new profile, change a fu
 | Changed profile name or label format | Update the `_label.startswith()` check in Tab 3 (merge) |
 | Added a new profile type that can/cannot be merged | Update the merge logic in Tab 3 |
 | New radial joint feature (tongue & groove) | Add checkbox + depth control in Tab 3; `slice_into_petals()` accepts `joint_depth` |
-| Changed radial joint behaviour (step vs groove) | `slice_into_petals()` uses step for n=2, groove for n>=3 — no UI change needed |
+| Changed radial joint behaviour | `slice_into_petals()`: n>=3 → groove on left seam + tongue on right; n==2 → the single diametric seam has two wall strips, so each half gets a tongue on one strip + groove on the other (hermaphrodite, identical parts). No UI change needed. |
 
 ### Concrete pattern for adding a new profile
 
