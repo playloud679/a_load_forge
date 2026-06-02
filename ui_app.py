@@ -762,6 +762,8 @@ if gen_btn:
                 _R_o_throat_poly = _R_o_arr[0]
                 _R_o_mouth_poly  = _R_o_arr[-1]
                 mouth_bx = mouth_by = _R_o_arr[-1] * 2
+                _rp_mouth = rp[-1]
+                _zp_mouth = zp[-1]
             elif is_radial:
                 with tempfile.TemporaryDirectory() as _tmp:
                     _rd.generate_radial_horn(throat_d, mouth_d, fc, 48, _tmp, profile_type)
