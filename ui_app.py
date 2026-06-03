@@ -66,21 +66,16 @@ col_prof, col_prev = st.columns([2, 3])
 with col_prof:
     st.subheader("Acoustic Profile")
 
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
+    # ── Shape — the two primary design choices ───────────────────────────
+    sh1, sh2 = st.columns([2, 3])
+    with sh1:
         profile_type = st.selectbox("Profile",
             ["Tractrix", "Salmon", "Iwata", "Le Cléac'h (isophase)", "Exponential"], index=0,
             on_change=_on_horn_change, key="profile_type")
-    with c2:
+    with sh2:
         section_type = st.radio("Section", ["Circular", "Polygonal", "Rectangular", "Radial 360°"],
                           index=0, horizontal=True, key="section_type",
                           on_change=_on_horn_change)
-    with c3:
-        thickness = st.number_input("Wall thickness (mm)", 1.0, 20.0, 4.0, 0.5,
-            help="Uniform thickness applied along the profile normal",
-            on_change=_on_horn_change, key="thickness")
-    with c4:
-        segments = st.number_input("Profile points", 100, 50000, 300, 50)
 
     is_radial   = section_type.startswith("Rad")
     is_poly     = section_type == "Polygonal"
@@ -90,104 +85,136 @@ with col_prof:
     is_iwata    = profile_type.startswith("Iwata")
     is_lecleach = profile_type.startswith("Le Cl")
     is_exp      = profile_type.startswith("Exp")
-    has_fc      = is_salmon or is_iwata or is_lecleach or is_exp
+    has_fc      = is_salmon or is_lecleach or is_exp
     is_T_variable = is_salmon or is_lecleach
 
-    st.markdown("##### Dimensions")
+    # Iwata is the real l'Audiophile horn: a fixed *rectangular* dual-flare
+    # geometry digitized from the plan, driven only by throat size + length.
+    # It always renders as a rectangular section, whatever the Section selector.
+    if is_iwata:
+        is_rect = True
+        is_poly = is_radial = False
+        st.caption("ℹ️ Iwata = fixed rectangular dual-flare horn (l'Audiophile plan) — "
+                   "the Section selector is ignored.")
 
-    # Each profile is driven by a different set of inputs; the rest are solved
-    # from the math and shown live (greyed) in their own fields.
-    _hint = ("Set **throat + mouth**. Acoustic gap follows."         if is_radial   else
-             "Set **throat + mouth**. Length and Fc follow."          if is_tractrix else
-             "Set **throat W×H + mouth W**. Mouth H follows."         if is_rect     else
-             "Set **throat + Fc + length** (T=0.707 Hypex)."          if is_salmon    else
-             "Set **throat + Fc + length** (T=0.707, preset Iwata)."  if is_iwata    else
-             "Set **throat + Fc + length**. Roll-back at mouth."      if is_lecleach else
-             "Set **throat + mouth + Fc** (Fc = flare rate). Length follows.")
-    st.caption(_hint)
+    # ── Section / flare modifiers — only those relevant to the current shape
+    rect_ar, n_sides, salmon_T = 1.5, 4, 0.707
+    _mods = (["ar"] if (is_rect and not is_iwata) else []) + (["sides"] if is_poly else []) \
+            + (["T"] if is_T_variable else [])
+    if _mods:
+        _mcols = st.columns(len(_mods))
+        for _mcol, _mk in zip(_mcols, _mods):
+            with _mcol:
+                if _mk == "ar":
+                    rect_ar = st.number_input("Aspect ratio (W:H)", 1.0, 10.0, 1.5, 0.1,
+                        key="rect_ar", help="Throat width / throat height")
+                elif _mk == "sides":
+                    n_sides = st.select_slider("Sides", options=list(range(3, 13)),
+                        value=4, key="n_sides")
+                elif _mk == "T":
+                    salmon_T = st.number_input("Flare parameter T", 0.0, 10.0, 0.707, 0.01,
+                        key="salmon_T", on_change=_on_horn_change,
+                        help="Hornresp T: 0 = catenoidal · <1 = cosh · 1 = exponential · >1 = sinh")
 
-    if is_rect:
-        rect_ar = st.number_input("Aspect ratio (W:H)", 1.0, 10.0, 1.5, 0.1,
-                                  key="rect_ar",
-                                  help="Throat width / throat height")
-    else:
-        rect_ar = 1.5
+    # ── Advanced settings — print params + the global speed of sound
+    with st.expander("⚙️ Advanced settings"):
+        _ps1, _ps2, _ps3 = st.columns(3)
+        with _ps1:
+            thickness = st.number_input("Wall thickness (mm)", 1.0, 20.0, 4.0, 0.5,
+                help="Uniform thickness applied along the profile normal",
+                on_change=_on_horn_change, key="thickness")
+        with _ps2:
+            segments = st.number_input("Profile points", 100, 50000, 300, 50,
+                help="Resolution of the generated profile / mesh")
+        with _ps3:
+            _c_ms = st.number_input("Speed of sound (m/s)", 320.0, 360.0, 344.0, 1.0,
+                on_change=_on_horn_change, key="c_sound",
+                help="Temperature-dependent (≈343 at 20°C, ≈349 at 30°C). "
+                     "Hornresp default is 344.")
 
-    if is_poly:
-        n_sides = st.select_slider("Sides", options=list(range(3, 13)), value=4,
-                                   key="n_sides")
-    else:
-        n_sides = 4
+    # All flare math reads SOUND_SPEED from its module global at call time, so
+    # overriding it here (after the importlib.reload above) makes the chosen
+    # speed of sound flow through every profile, cutoff and mouth calculation.
+    c_val = _c_ms * 1000.0  # mm/s
+    _core.SOUND_SPEED = c_val
+    _rh.SOUND_SPEED = c_val
+    _rd.SOUND_SPEED = c_val
 
     # ── Exponential profile delegate ─────────────────────────────────────
     def _get_exp_profile(throat_d, mouth_d, fc, n):
         return _core.get_exponential(throat_d, mouth_d, fc, n)
 
-    d1, d2, d3, d4 = st.columns(4)
+    st.markdown("##### Dimensions")
 
-    # Editable inputs first, so the derived fields can use their live values.
-    with d1:
-        if is_rect:
+    # Each profile is driven by a different set of inputs; the rest are solved
+    # from the math and shown as results in the "Computed" panel on the right.
+    _hint = ("Set **throat + mouth**. Acoustic gap follows."         if is_radial   else
+             "Set **throat + mouth**. Length and Fc follow."          if is_tractrix else
+             "Real **Iwata** (l'Audiophile): set **throat + length**; mouth W×H & Fc follow." if is_iwata else
+             "Set **throat W×H + mouth W**. Mouth H follows."         if is_rect     else
+             "Set **throat + Fc + length** (T=0.707 Hypex)."          if is_salmon    else
+             "Set **throat + Fc + length**. Roll-back at mouth."      if is_lecleach else
+             "Set **throat + mouth + Fc** (Fc = flare rate). Length follows.")
+    st.caption(_hint)
+
+    col_in, col_out = st.columns(2)
+
+    # ---- Inputs: only the parameters that drive the chosen profile --------
+    with col_in:
+        st.markdown("**You set**")
+        if is_iwata:
+            throat_d = st.number_input("Throat Ø (mm)", 10.0, 200.0, 50.0, 1.0,
+                help="Square rectangular throat, downstream of the round driver adaptor "
+                     "(native plan = 50 mm, for a 1.5\" driver)")
+            throat_w = throat_h = throat_d
+            iwata_length = st.number_input("Axial length (mm)", 100.0, 1500.0, 572.0, 10.0,
+                help="Stretches the l'Audiophile plan along the axis (native = 572 mm)")
+            mouth_d = mouth_w = None
+            _mouth_is_input = False
+        elif is_rect:
             throat_w = st.number_input("Throat W (mm)", 2.0, 200.0, 30.0, 1.0,
                 help="Driver-side opening — width")
             throat_h = st.number_input("Throat H (mm)", 2.0, 200.0,
                 max(2.0, 30.0 / rect_ar), 1.0,
                 help="Driver-side opening — height (set by aspect ratio)")
             throat_d = np.sqrt(throat_w * throat_h * 4 / np.pi)
-            _S_t_cm2 = throat_w * throat_h / 100
-            st.caption(f"S_t = {_S_t_cm2:.2f} cm²")
+            _mouth_is_input = True
         else:
             throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0,
                 25.0 if is_radial else 20.0, 1.0,
                 help="Driver-side opening — the small end")
             throat_w = throat_h = throat_d
-            _S_t_cm2 = np.pi * (throat_d / 2) ** 2 / 100
-            st.caption(f"S_t = {_S_t_cm2:.2f} cm²")
+            _mouth_is_input = is_radial or is_tractrix or is_exp
 
-    _mouth_is_input = is_radial or is_tractrix or is_exp or is_rect
-    if _mouth_is_input:
-        with d2:
+        if _mouth_is_input:
             if is_rect:
                 mouth_w = st.number_input("Mouth W (mm)", 4.0, 500.0, 160.0, 5.0,
                     help="Large end — width. Height follows from area preservation.")
                 mouth_d = None
-                _S_m_cm2 = mouth_w * throat_h * (mouth_w / throat_w) / 100
-                st.caption(f"S_m ≈ {_S_m_cm2:.2f} cm²")
             else:
                 mouth_d = st.number_input("Mouth Ø (mm)", 4.0, 500.0,
                     200.0 if is_radial else 100.0, 5.0,
                     help="Large end — where the horn stops expanding")
                 mouth_w = mouth_d
-                _S_m_cm2 = np.pi * (mouth_d / 2) ** 2 / 100
-                st.caption(f"S_m = {_S_m_cm2:.2f} cm²")
-    else:
-        mouth_d = None
-        mouth_w = None
+        elif not is_iwata:
+            mouth_d = None
+            mouth_w = None
 
-    if has_fc:
-        with d3:
+        if has_fc:
             _fc_help = ("Flare rate — how fast the horn opens. The mouth sets where it ends."
                         if is_exp else
                         "Cutoff frequency — sets the flare rate, and with it the mouth size.")
             fc = st.number_input("Cutoff Fc (Hz)", 50, 20000, 600, 50, help=_fc_help)
-    else:
-        fc = None
+        else:
+            fc = None
 
-    if (is_salmon or is_iwata or is_lecleach) and not is_radial and not is_rect:
-        with d4:
+        if is_iwata:
+            axial_len = iwata_length
+        elif (is_salmon or is_lecleach) and not is_radial and not is_rect:
             axial_len = st.number_input("Axial length (mm)", 10.0, 500.0, 80.0, 5.0,
                 help="Horn depth along the axis")
-    else:
-        axial_len = 80.0
-
-    if is_T_variable:
-        salmon_T = st.number_input(
-            "Flare parameter T", 0.0, 10.0, 0.707, 0.01, key="salmon_T",
-            on_change=_on_horn_change,
-            help="Hornresp T: 0 = catenoidal · <1 = cosh · 1 = exponential · >1 = sinh"
-        )
-    else:
-        salmon_T = 0.707
+        else:
+            axial_len = 80.0
 
     # Compute the profile once; derive the remaining scalars.
     _len = None
@@ -196,6 +223,7 @@ with col_prof:
     _gap_t = _gap_m = None
     _err = False
     _zw = _zh = None  # rectangular profile arrays
+    _iwata_mw = _iwata_mh = None  # iwata mouth W, H (mm)
     _rect_w_o_0 = _rect_h_o_0 = 0.0  # actual outer at throat (rect)
     _rect_w_o_n = _rect_h_o_n = 0.0  # actual outer at mouth  (rect)
     try:
@@ -205,7 +233,7 @@ with col_prof:
         elif is_rect:
             if is_tractrix:
                 zr, wr, hr = _rh.get_rectangular_tractrix(throat_w, throat_h, mouth_w, segments)
-                _len = zr[-1]; _fc_eff = 343_000 / (np.pi * mouth_w)
+                _len = zr[-1]; _fc_eff = c_val / (np.pi * mouth_w)
                 zp, rp = zr, np.sqrt(wr * hr / np.pi)
                 _mouth_d_eff = max(wr.max(), hr.max())
             elif is_exp:
@@ -218,12 +246,17 @@ with col_prof:
                 _len = axial_len
                 zp, rp = zr, np.sqrt(wr * hr / np.pi)
                 _mouth_d_eff = max(wr.max(), hr.max())
-            else:  # iwata / lecleach — area-preserving from circular
+            elif is_iwata:   # real l'Audiophile plan — rectangular dual-flare
+                zr, wr, hr = _rh.get_iwata_horn(throat_d, axial_len, segments)
+                _len = zr[-1]
+                _iwata_mw, _iwata_mh = float(wr[-1]), float(hr[-1])
+                _mouth_d_eff = max(wr.max(), hr.max())
+                _fc_eff = _core.SOUND_SPEED * np.log(
+                    (wr[-1] * hr[-1]) / (wr[0] * hr[0])) / (4.0 * np.pi * zr[-1])
+                zp, rp = zr, np.sqrt(wr * hr / np.pi)
+            else:  # lecleach — area-preserving from circular
                 throat_d_eq = np.sqrt(throat_w * throat_h * 4 / np.pi)
-                if is_iwata:
-                    zp, rp = _core.get_iwata(throat_d_eq, fc, axial_len, segments)
-                else:
-                    zp, rp = _core.get_lecleach(throat_d_eq, fc, axial_len, segments, T=salmon_T)
+                zp, rp = _core.get_lecleach(throat_d_eq, fc, axial_len, segments, T=salmon_T)
                 zr, wr, hr = _rh._area_to_rect(zp, rp, throat_w, throat_h)
                 _mouth_d_eff = max(wr.max(), hr.max())
                 _len = zp.max()
@@ -246,12 +279,9 @@ with col_prof:
             _rect_h_o_n = _h_o_rect[-1]
         elif is_tractrix:
             zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
-            _len = zp[-1]; _fc_eff = 343_000 / (np.pi * mouth_d)
+            _len = zp[-1]; _fc_eff = c_val / (np.pi * mouth_d)
         elif is_salmon:
             zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
-            _len = axial_len; _mouth_d_eff = rp.max() * 2
-        elif is_iwata:
-            zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
             _len = axial_len; _mouth_d_eff = rp.max() * 2
         elif is_lecleach:
             zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
@@ -262,38 +292,64 @@ with col_prof:
     except Exception:
         _err = True
 
-    # Read-only display: shows the actual computed number, greyed out.
-    def _ro(col, label, value, fmt="%.0f"):
-        with col:
-            try:
-                st.number_input(label, value=float(value), disabled=True, format=fmt)
-            except Exception:
-                st.text_input(label, value="—", disabled=True)
-
-    if _err:
-        st.caption("Adjust parameters — profile could not be computed")
-    elif is_radial:
-        if not has_fc:
-            _ro(d3, "Throat gap (mm)", _gap_t, fmt="%.1f")
-        _ro(d4, "Mouth gap (mm)", _gap_m, fmt="%.1f")
+    # ---- Computed: derived scalars, shown as results (not editable) -------
+    _S_t_cm2 = (throat_w * throat_h if is_rect else np.pi * (throat_d / 2) ** 2) / 100.0
+    if _err or _mouth_d_eff is None:
+        _S_m_cm2 = None
+    elif is_iwata and _iwata_mw is not None:
+        _S_m_cm2 = _iwata_mw * _iwata_mh / 100.0   # true rectangular mouth area
     elif is_rect:
-        if zp is not None:
-            _ro(d2, "Mouth Ø eq (mm)", _mouth_d_eff)
-        if not has_fc:
-            _ro(d3, "Cutoff Fc (Hz)", _fc_eff)
-        if not (is_salmon or is_iwata):
-            _ro(d4, "Axial length (mm)", _len)
+        _S_m_cm2 = _S_t_cm2 * (_mouth_d_eff / max(throat_w, throat_h)) ** 2
     else:
-        if not _mouth_is_input:                 # mouth derived (Salmon)
-            _ro(d2, "Mouth Ø (mm)", _mouth_d_eff)
-        if not has_fc:                          # Fc derived (Tractrix)
-            _ro(d3, "Cutoff Fc (Hz)", _fc_eff)
-        if not ((is_salmon or is_iwata) and not is_radial):  # length derived (all but Salmon/Iwata)
-            _ro(d4, "Axial length (mm)", _len)
-        if is_poly:
-            from polygonal_horn import _r_to_circumradius
-            _Rp = _r_to_circumradius(_mouth_d_eff / 2.0, n_sides)
-            st.caption(f"Polygonal mouth: Ø{2*_Rp:.0f} across corners ({n_sides}-gon)")
+        _S_m_cm2 = np.pi * (_mouth_d_eff / 2) ** 2 / 100.0
+
+    with col_out:
+        st.markdown("**Computed**")
+        if _err:
+            st.caption("Adjust parameters — profile could not be computed")
+        else:
+            _mets = []
+            if is_radial:
+                if not has_fc and _gap_t is not None:
+                    _mets.append(("Throat gap", f"{_gap_t:.1f} mm"))
+                if _gap_m is not None:
+                    _mets.append(("Mouth gap", f"{_gap_m:.1f} mm"))
+            elif _len:
+                _mets.append(("Length", f"{_len:.0f} mm"))
+            if not has_fc and _fc_eff:                       # Fc derived (tractrix)
+                _mets.append(("Cutoff Fc", f"{_fc_eff:.0f} Hz"))
+            if is_iwata and _iwata_mw is not None:           # real Iwata: rectangular mouth
+                _mets.append(("Mouth W×H", f"{_iwata_mw:.0f}×{_iwata_mh:.0f} mm"))
+            elif not _mouth_is_input and _mouth_d_eff:       # mouth derived (salmon/lecleach)
+                _mets.append(("Mouth Ø", f"{_mouth_d_eff:.0f} mm"))
+            elif is_rect and _mouth_d_eff:
+                _mets.append(("Mouth Ø eq", f"{_mouth_d_eff:.0f} mm"))
+            _mets.append(("S_t", f"{_S_t_cm2:.2f} cm²"))
+            if _S_m_cm2:
+                _mets.append(("S_m", f"{_S_m_cm2:.2f} cm²"))
+            for _ri in range(0, len(_mets), 2):
+                _rcols = st.columns(2)
+                for _rc, (_lbl, _val) in zip(_rcols, _mets[_ri:_ri + 2]):
+                    _rc.metric(_lbl, _val)
+            if is_poly and _mouth_d_eff:
+                from polygonal_horn import _r_to_circumradius
+                _Rp = _r_to_circumradius(_mouth_d_eff / 2.0, n_sides)
+                st.caption(f"Polygonal mouth: Ø{2*_Rp:.0f} across corners ({n_sides}-gon)")
+
+            # ── Mouth-size adequacy check ─────────────────────────────────
+            # A horn only loads down to its cutoff if the mouth circumference is
+            # at least one wavelength there: π·D ≥ λ = c/fc  →  D ≥ c/(π·fc).
+            # Below that the real cutoff rises above the stated Fc.
+            _fc_used = fc if has_fc else _fc_eff
+            if _fc_used and _S_m_cm2:
+                _D_eq = np.sqrt(400.0 * _S_m_cm2 / np.pi)      # area-equivalent mouth Ø (mm)
+                _D_min = c_val / (np.pi * _fc_used)
+                if _D_eq < 0.9 * _D_min:
+                    st.warning(
+                        f"⚠️ Mouth ≈Ø{_D_eq:.0f} mm (area-equivalent) is below the "
+                        f"~{_D_min:.0f} mm needed to load down to {_fc_used:.0f} Hz "
+                        f"(mouth circumference < wavelength). The real cutoff will be "
+                        f"higher — enlarge the mouth or raise Fc.")
 
 with col_prev:
     st.subheader("2D Preview — Cross-section")
@@ -306,8 +362,6 @@ with col_prev:
                 zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
             elif is_salmon:
                 zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
-            elif is_iwata:
-                zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
             elif is_lecleach:
                 zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
             elif is_exp:
@@ -332,8 +386,10 @@ with col_prev:
                 zr, wr, hr = _rh.get_rectangular_exponential(throat_w, throat_h, mouth_w, fc, segments)
             elif is_salmon:
                 zr, wr, hr = _rh.get_rectangular_salmon(throat_w, throat_h, fc, axial_len, segments)
+            elif is_iwata:
+                zr, wr, hr = _rh.get_iwata_horn(throat_d, axial_len, segments)
             else:
-                # iwata / lecleach — area-preserving from circular
+                # lecleach — area-preserving from circular
                 zr, wr, hr = _rh._area_to_rect(zp, rp, throat_w, throat_h)
             ax.plot(zr, wr, label="Width W(z)", c="#2196F3")
             ax.plot(zr, hr, label="Height H(z)", c="#FF5722")
@@ -349,8 +405,6 @@ with col_prev:
                 zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
             elif is_salmon:
                 zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
-            elif is_iwata:
-                zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
             elif is_lecleach:
                 zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
             elif is_exp:
@@ -367,6 +421,10 @@ with col_prev:
         ax.set_ylabel("R (mm)"); ax.legend(fontsize=8); ax.grid(True, alpha=.3)
         fig.tight_layout(); st.pyplot(fig)
         plt.close(fig)
+        if is_iwata:
+            st.caption("Plan-view mouth is a circular arc (r≈692 mm scaled, apex R below "
+                       "the throat); the height-plane mouth stays flat. The arc is applied "
+                       "to the 3D mesh, not shown in this W/H section.")
     except Exception:
         st.info("Set profile parameters to display the preview")
 
@@ -394,19 +452,17 @@ def _calc_flange_dims():
     mouth_dz = float(thickness)
     if is_rect:
         ir_throat = throat_w / 2 + thickness
-        ir_mouth = mouth_w / 2 + thickness
         if is_tractrix:
             zr, wr, hr = _rh.get_rectangular_tractrix(throat_w, throat_h, mouth_w, segments)
         elif is_exp:
             zr, wr, hr = _rh.get_rectangular_exponential(throat_w, throat_h, mouth_w, fc, segments)
         elif is_salmon:
             zr, wr, hr = _rh.get_rectangular_salmon(throat_w, throat_h, fc, axial_len, segments)
+        elif is_iwata:
+            zr, wr, hr = _rh.get_iwata_horn(throat_d, axial_len, segments)
         else:
             throat_d_eq = np.sqrt(throat_w * throat_h * 4 / np.pi)
-            if is_iwata:
-                zr, wr, hr = _rh._area_to_rect(*_core.get_iwata(throat_d_eq, fc, axial_len, segments), throat_w, throat_h)
-            else:
-                zr, wr, hr = _rh._area_to_rect(*_core.get_lecleach(throat_d_eq, fc, axial_len, segments, T=salmon_T), throat_w, throat_h)
+            zr, wr, hr = _rh._area_to_rect(*_core.get_lecleach(throat_d_eq, fc, axial_len, segments, T=salmon_T), throat_w, throat_h)
         ir_mouth = max(wr[-1], hr[-1]) / 2 + thickness
         _get_mid_r = lambda pct, _z=zr, _w=wr, _h=hr: max(
             _w[min(int(len(_w)*pct/100), len(_w)-1)],
@@ -418,8 +474,6 @@ def _calc_flange_dims():
             zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
         elif is_salmon:
             zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
-        elif is_iwata:
-            zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
         elif is_lecleach:
             zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
         elif is_exp:
@@ -440,11 +494,9 @@ def _calc_flange_dims():
         ir_throat = throat_d / 2; ir_mouth = rp.max()
         mouth_dz = _mouth_wall_dz(zp, rp)
         _get_mid_r = lambda pct: rp[min(int(np.searchsorted(zp, zp[-1]*pct/100)), len(rp)-1)]
-    else:  # salmon / iwata / lecleach
+    else:  # salmon / lecleach
         if is_salmon:
             zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
-        elif is_iwata:
-            zp, rp = _core.get_iwata(throat_d, fc, axial_len, segments)
         else:
             zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
         ir_throat = throat_d / 2; ir_mouth = rp.max()
@@ -463,9 +515,18 @@ if st.button("🔧 Recalculate flanges", use_container_width=True,
     st.toast("Flanges recalculated", icon="✅")
 
 # Common bolt defaults
-_bolt_n = 4
+_bolt_n = n_sides if (is_poly or is_rect) else 4
 _bolt_d = 3.5
 _flange_sp = 6.0
+
+def _bolt_phase(sides, pos):
+    if pos == "faces":
+        return np.pi / 2.0 + np.pi / max(sides, 3)
+    return np.pi / 2.0
+
+def _def_bc(lo, hi):
+    """Default bolt-circle Ø: bias strongly outward (toward vertices) for poly/rect."""
+    return float(hi - 2.0) if (is_poly or is_rect) else float((lo + hi) / 2.0)
 
 
 def _clamp_state(key, lo, hi):
@@ -505,12 +566,18 @@ def _bolt_circle_band(inner_R, flange_R, bolt_d, outer_n):
     inner hole and the outer edge, clear of both by the bolt radius + 1 mm.
     Returns (lo, hi) diameters. Moving the bolt circle within this band slides the
     holes through the ring without ever pushing them off the edge or into the hole,
-    and without resizing the flange. (Polygons: the binding edge is the inradius.)
+    and without resizing the flange. (Polygons: uses circumradius when bolts are
+    vertex-aligned, inradius for face-aligned.)
     """
-    outer_lim = flange_R * np.cos(np.pi / outer_n) if outer_n >= 3 else flange_R
+    if outer_n >= 3 and (is_poly or is_rect):
+        outer_lim = flange_R  # bolts at vertices → bind on circumradius
+    elif outer_n >= 3:
+        outer_lim = flange_R * np.cos(np.pi / outer_n)  # inradius
+    else:
+        outer_lim = flange_R
     lo = max(10.0, 2.0 * (inner_R + bolt_d / 2.0 + 1.0))
     hi = 2.0 * (outer_lim - bolt_d / 2.0 - 1.0)
-    if hi <= lo:                 # ring too thin to seat a bolt clear of both edges
+    if hi <= lo:
         hi = lo + 2.0
     return lo, hi
 
@@ -554,6 +621,11 @@ with fg1:
         else:
             _ft_inner_R = throat_d / 2 + thickness
             st.caption(f"Hole: Ø{_ft_inner_R*2:.0f} mm (circular)")
+        _ft_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
+            index=0, horizontal=True, key="ft_bpos",
+            help="Align bolts with polygon vertices or face centers"
+            ) if (is_poly or is_rect) else "At vertices"
+        _ft_bphase = _bolt_phase(n_sides if is_poly else 4, _ft_bpos)
         throat_outer = st.radio("Outer shape",
             ["Circular", "Rectangular"] if is_rect else ["Circular", "Polygonal"],
             index=0, horizontal=True, key="throat_outer")
@@ -580,7 +652,7 @@ with fg1:
         # Bolt circle constrained to the ring band — holes stay inside, flange fixed.
         _ft_bc_lo, _ft_bc_hi = _bolt_circle_band(_ft_inner_R, _ft_flange_R, _ft_db, _ft_outer_n)
         if "ft_bc" not in st.session_state:
-            st.session_state["ft_bc"] = float((_ft_bc_lo + _ft_bc_hi) / 2.0)
+            st.session_state["ft_bc"] = _def_bc(_ft_bc_lo, _ft_bc_hi)
         _clamp_state("ft_bc", _ft_bc_lo, _ft_bc_hi)
         _ft_bc = st.number_input("Bolt circle Ø (mm)", _ft_bc_lo, _ft_bc_hi,
             step=1.0, key="ft_bc")
@@ -588,12 +660,14 @@ with fg1:
 
 with fg2:
     st.markdown("##### Mouth Flange")
-    if is_radial or is_lecleach:
+    if is_radial or is_lecleach or is_iwata:
         gen_mouth = False
         _fm_sp = _fm_off = _fm_nb = _fm_db = _fm_od = _fm_bc = _fm_ow = _fm_oh = 0.0
         mouth_outer = "Circular"
         if is_radial:
             st.caption("Not available for radial profile")
+        elif is_iwata:
+            st.caption("Not available — Iwata mouth is a curved arc (no flat flange)")
         else:
             st.caption("Not available — use Mid Flange instead")
     else:
@@ -613,8 +687,6 @@ with fg2:
             _fm_inner_h = max(_rect_h_o_n, 1.0)
             _fm_inner_R = max(_fm_inner_w, _fm_inner_h) / 2
             st.caption(f"Hole: {_fm_inner_w:.1f}×{_fm_inner_h:.1f} mm (rectangular)")
-            _fm_inner_R = max(_fm_inner_w, _fm_inner_h) / 2
-            st.caption(f"Hole: {_fm_inner_w:.0f}×{_fm_inner_h:.0f} mm (rectangular)")
         elif is_poly:
             _fm_inner_R = ir_mouth
             st.caption(f"Hole: {n_sides}-gon, R≈{_fm_inner_R:.0f} mm")
@@ -622,6 +694,11 @@ with fg2:
             _fm_inner_R = ir_mouth + thickness
             _fm_prof_R  = ir_mouth  # inner profile radius (without wall)
             st.caption(f"Hole: Ø{_fm_prof_R*2:.0f} mm (circular)")
+        _fm_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
+            index=0, horizontal=True, key="fm_bpos",
+            help="Align bolts with polygon vertices or face centers"
+            ) if (is_poly or is_rect) else "At vertices"
+        _fm_bphase = _bolt_phase(n_sides if is_poly else 4, _fm_bpos)
         _mouth_outer_default = 0
         mouth_outer = st.radio("Outer shape",
             ["Circular", "Rectangular"] if is_rect else ["Circular", "Polygonal"],
@@ -650,7 +727,7 @@ with fg2:
         _fm_ow = _fm_od; _fm_oh = _fm_od
         _fm_bc_lo, _fm_bc_hi = _bolt_circle_band(_fm_hole_R, _fm_flange_R, _fm_db, _fm_outer_n)
         if "fm_bc" not in st.session_state:
-            st.session_state["fm_bc"] = float((_fm_bc_lo + _fm_bc_hi) / 2.0)
+            st.session_state["fm_bc"] = _def_bc(_fm_bc_lo, _fm_bc_hi)
         _clamp_state("fm_bc", _fm_bc_lo, _fm_bc_hi)
         _fm_bc = st.number_input("Bolt circle Ø (mm)", _fm_bc_lo, _fm_bc_hi,
             step=1.0, key="fm_bc")
@@ -679,7 +756,6 @@ with fg3:
             _mid_inner_w = max(wr[_mid_idx] + 2.0 * thickness * _nw_mid[_mid_idx, 1], 1.0)
             _mid_inner_h = max(hr[_mid_idx] + 2.0 * thickness * _nh_mid[_mid_idx, 1], 1.0)
             _mid_inner_R = max(_mid_inner_w, _mid_inner_h) / 2
-            _mid_inner_R = max(_mid_inner_w, _mid_inner_h) / 2
             st.caption(f"Hole: {_mid_inner_w:.0f}×{_mid_inner_h:.0f} mm (rectangular)")
         elif is_poly:
             _mid_inner_R = mid_r
@@ -687,6 +763,11 @@ with fg3:
         else:
             _mid_inner_R = mid_r + thickness
             st.caption(f"Hole: Ø{_mid_inner_R*2:.0f} mm (circular)")
+        _mid_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
+            index=0, horizontal=True, key="mid_bpos",
+            help="Align bolts with polygon vertices or face centers"
+            ) if (is_poly or is_rect) else "At vertices"
+        _mid_bphase = _bolt_phase(n_sides if is_poly else 4, _mid_bpos)
         _mid_outer_default = 0
         mid_out = st.radio("Outer shape",
             ["Circular", "Rectangular"] if is_rect else ["Circular", "Polygonal"],
@@ -713,7 +794,7 @@ with fg3:
             st.caption(f"Outer Ø: {_mid_od:.1f} mm")
         _mid_bc_lo, _mid_bc_hi = _bolt_circle_band(_mid_inner_R, _mid_flange_R, _mid_db, _mid_outer_n)
         if "mid_bc" not in st.session_state:
-            st.session_state["mid_bc"] = float((_mid_bc_lo + _mid_bc_hi) / 2.0)
+            st.session_state["mid_bc"] = _def_bc(_mid_bc_lo, _mid_bc_hi)
         _clamp_state("mid_bc", _mid_bc_lo, _mid_bc_hi)
         _mid_bc = st.number_input("Bolt circle Ø (mm)", _mid_bc_lo, _mid_bc_hi,
             step=1.0, key="mid_bc")
@@ -743,8 +824,6 @@ if gen_btn:
                     zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
                 elif is_salmon:
                     zp, rp = C.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
-                elif is_iwata:
-                    zp, rp = C.get_iwata(throat_d, fc, axial_len, segments)
                 elif is_lecleach:
                     zp, rp = C.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
                 elif is_exp:
@@ -787,27 +866,42 @@ if gen_btn:
                     zr, wr, hr = _rh.get_rectangular_exponential(throat_w, throat_h, mouth_w, fc, segments)
                 elif is_salmon:
                     zr, wr, hr = _rh.get_rectangular_salmon(throat_w, throat_h, fc, axial_len, segments)
+                elif is_iwata:
+                    zr, wr, hr = _rh.get_iwata_horn(throat_d, axial_len, segments)
                 else:
                     throat_d_eq = np.sqrt(throat_w * throat_h * 4 / np.pi)
-                    if is_iwata:
-                        zp_c, rp_c = _core.get_iwata(throat_d_eq, fc, axial_len, segments)
-                    else:
-                        zp_c, rp_c = _core.get_lecleach(throat_d_eq, fc, axial_len, segments, T=salmon_T)
+                    zp_c, rp_c = _core.get_lecleach(throat_d_eq, fc, axial_len, segments, T=salmon_T)
                     zr, wr, hr = _rh._area_to_rect(zp_c, rp_c, throat_w, throat_h)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
                 _rh.generate_rectangular_3d_mesh(zr, wr, hr, thickness, tp)
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
                 horn.fix_normals()
+                if is_iwata:
+                    # Roll the wide-plane mouth back onto the plan arc (r=692 native):
+                    # intersect with a solid cylinder whose axis runs along the height (Y).
+                    _R_arc, _cz = _rh.iwata_arc_mouth(throat_d, axial_len)
+                    _cyl = _tm.creation.cylinder(radius=_R_arc, sections=256,
+                                                 height=(hr[-1] + 2 * thickness) * 2.0)
+                    _cyl.apply_transform(
+                        _tm.transformations.rotation_matrix(np.pi / 2.0, [1, 0, 0]))
+                    _cyl.apply_translation([0.0, 0.0, _cz])
+                    _trimmed = _tm.boolean.intersection([horn, _cyl], engine="manifold")
+                    if _trimmed is not None and not _trimmed.is_empty:
+                        horn = _trimmed
+                        horn.fix_normals()
                 _rp_mouth = max(wr[-1], hr[-1]) / 2 + thickness
                 _zp_mouth = zr[-1]
-                mouth_bx, mouth_by = wr[-1] + 2 * thickness, hr[-1] + 2 * thickness
+                if is_iwata:
+                    # The arc trim narrows the wide-plane mouth — report the real extent.
+                    mouth_bx = float(horn.bounds[1, 0] - horn.bounds[0, 0])
+                    mouth_by = float(horn.bounds[1, 1] - horn.bounds[0, 1])
+                else:
+                    mouth_bx, mouth_by = wr[-1] + 2 * thickness, hr[-1] + 2 * thickness
             else:
                 if is_tractrix:
                     zp, rp = C.get_tractrix(throat_d, mouth_d, segments)
                 elif is_salmon:
                     zp, rp = C.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
-                elif is_iwata:
-                    zp, rp = C.get_iwata(throat_d, fc, axial_len, segments)
                 elif is_lecleach:
                     zp, rp = C.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
                 elif is_exp:
@@ -853,6 +947,7 @@ if gen_btn:
                         inner_w=_ft_inner_w, inner_h=_ft_inner_h,
                         thickness=_ft_sp,
                         bolt_radius=_ft_bc/2, bolt_count=int(_ft_nb), bolt_diam=_ft_db,
+                        bolt_phase=_ft_bphase,
                         outer_type=_ft_ot,
                         outer_w=_ft_outer_w if _ft_ot == "rectangular" else None,
                         outer_h=_ft_outer_h if _ft_ot == "rectangular" else None,
@@ -864,6 +959,7 @@ if gen_btn:
                         flange_R=_ft_od/2,
                         thickness=_ft_sp, bolt_R=_ft_bc/2,
                         bolt_n=int(_ft_nb), bolt_d=_ft_db,
+                        bolt_phase=_ft_bphase,
                         offset=z_min + _ft_off + _ft_sp,
                         outer_n_sides=_ft_outer_n)
                 else:
@@ -871,6 +967,7 @@ if gen_btn:
                         throat_R=fiw_g/2, flange_R=_ft_od/2,
                         thickness=_ft_sp, bolt_R=_ft_bc/2,
                         bolt_n=int(_ft_nb), bolt_d=_ft_db,
+                        bolt_phase=_ft_bphase,
                         offset=z_min + _ft_off + _ft_sp,
                         outer_n_sides=_ft_outer_n,
                         output_path=None)
@@ -883,6 +980,7 @@ if gen_btn:
                         inner_w=_fm_inner_w, inner_h=_fm_inner_h,
                         thickness=_fm_sp,
                         bolt_radius=_fm_bc/2, bolt_count=int(_fm_nb), bolt_diam=_fm_db,
+                        bolt_phase=_fm_bphase,
                         outer_type=_fm_ot,
                         outer_w=_fm_outer_w if _fm_ot == "rectangular" else None,
                         outer_h=_fm_outer_h if _fm_ot == "rectangular" else None,
@@ -894,6 +992,7 @@ if gen_btn:
                         flange_R=_fm_od/2,
                         thickness=_fm_sp, bolt_R=_fm_bc/2,
                         bolt_n=int(_fm_nb), bolt_d=_fm_db,
+                        bolt_phase=_fm_bphase,
                         offset=z_mouth + _fm_off,
                         outer_n_sides=_fm_outer_n)
                 else:
@@ -906,6 +1005,7 @@ if gen_btn:
                         throat_R=_tr_m, flange_R=_R,
                         thickness=_fm_sp, bolt_R=_fm_bc/2,
                         bolt_n=int(_fm_nb), bolt_d=_fm_db,
+                        bolt_phase=_fm_bphase,
                         offset=z_mouth + _fm_off,
                         outer_n_sides=_fm_outer_n,
                         output_path=None)
@@ -919,6 +1019,7 @@ if gen_btn:
                         inner_w=_mid_inner_w, inner_h=_mid_inner_h,
                         thickness=_mid_sp,
                         bolt_radius=_mid_bc/2, bolt_count=int(_mid_nb), bolt_diam=_mid_db,
+                        bolt_phase=_mid_bphase,
                         outer_type=_mid_ot,
                         outer_w=_mid_outer_w if _mid_ot == "rectangular" else None,
                         outer_h=_mid_outer_h if _mid_ot == "rectangular" else None,
@@ -931,6 +1032,7 @@ if gen_btn:
                         flange_R=_mid_od/2,
                         thickness=_mid_sp, bolt_R=_mid_bc/2,
                         bolt_n=int(_mid_nb), bolt_d=_mid_db,
+                        bolt_phase=_mid_bphase,
                         offset=z_mid,
                         outer_n_sides=_mid_outer_n)
                 else:
@@ -941,6 +1043,7 @@ if gen_btn:
                         throat_R=fiw_mid/2, flange_R=_mid_od/2,
                         thickness=_mid_sp, bolt_R=_mid_bc/2,
                         bolt_n=int(_mid_nb), bolt_d=_mid_db,
+                        bolt_phase=_mid_bphase,
                         offset=z_mid,
                         outer_n_sides=_mid_outer_n,
                         output_path=None)
@@ -1138,15 +1241,15 @@ if ax_segs:
     # Bolt-hole angles from the enabled mounting flanges (holes start at 0°).
     # Petal seams are rotated into the widest gap so they never cut a hole.
     _hole_angles = []
-    for _en, _nb in ((globals().get("gen_throat", False), globals().get("_ft_nb", 0)),
-                     (globals().get("gen_mouth", False),  globals().get("_fm_nb", 0)),
-                     (globals().get("gen_mid", False),    globals().get("_mid_nb", 0))):
+    for _en, _nb, _bp in ((globals().get("gen_throat", False), globals().get("_ft_nb", 0), globals().get("_ft_bphase", 0.0)),
+                           (globals().get("gen_mouth", False),  globals().get("_fm_nb", 0), globals().get("_fm_bphase", 0.0)),
+                           (globals().get("gen_mid", False),    globals().get("_mid_nb", 0), globals().get("_mid_bphase", 0.0))):
         try:
             _nb = int(_nb)
         except (TypeError, ValueError):
             _nb = 0
         if _en and _nb >= 2:
-            _hole_angles += list(np.linspace(0, 2 * np.pi, _nb, endpoint=False))
+            _hole_angles += list(_bp + np.linspace(0, 2 * np.pi, _nb, endpoint=False))
     if _hole_angles:
         st.caption(f"🔩 {len(_hole_angles)} bolt hole(s) detected — seams will be "
                    "rotated to fall between them.")

@@ -323,6 +323,53 @@ for label, ow, oh, iw, ih in [
     test(label, make)
 
 
+print("\n═══ Iwata horn (faithful l'Audiophile rectangular dual-flare) ═══")
+
+def _iwata_plan():
+    # Native plan must reproduce the drawing: mouth 740×320, throat ~50×50.
+    z, w, h = _r.get_iwata_horn(50.0, 550.0, 300)
+    assert abs(w[-1] - 740.0) < 1.0 and abs(h[-1] - 320.0) < 1.0, \
+        f"mouth {w[-1]:.1f}×{h[-1]:.1f} != 740×320"
+    assert abs(w[0] - 50.0) < 1.0 and abs(h[0] - 50.0) < 3.0, "throat not ~50×50"
+    assert (np.diff(w) >= -1e-6).all() and (np.diff(h) >= -1e-6).all(), "non-monotone"
+test("plan reproduction (50→740×320)", _iwata_plan)
+
+def _iwata_scale():
+    # Uniform scaling preserves the Iwata mouth aspect ratio (~2.31:1).
+    _, w0, h0 = _r.get_iwata_horn(50.0, 550.0, 200)
+    _, w1, h1 = _r.get_iwata_horn(25.0, 275.0, 200)
+    assert abs((w1[-1] / h1[-1]) - (w0[-1] / h0[-1])) < 1e-6, "aspect not preserved"
+test("uniform scaling preserves aspect", _iwata_scale)
+
+def _iwata_mesh():
+    z, w, h = _r.get_iwata_horn(50.0, 550.0, 300)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _r.generate_rectangular_3d_mesh(z, w, h, 4.0, p)
+    m = trimesh.load(p, file_type="stl"); os.unlink(p)
+    _check_mesh(m, "iwata mesh")
+test("iwata watertight mesh", _iwata_mesh)
+
+def _iwata_arc_mouth():
+    # Plan-view arc mouth: trimming with the height-axis cylinder must stay
+    # watertight and roll the mouth corners back behind the centre.
+    z, w, h = _r.get_iwata_horn(50.0, 572.0, 200)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _r.generate_rectangular_3d_mesh(z, w, h, 4.0, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p); horn.fix_normals()
+    R, cz = _r.iwata_arc_mouth(50.0, 572.0)
+    cyl = trimesh.creation.cylinder(radius=R, height=(h[-1] + 8) * 2)
+    cyl.apply_transform(trimesh.transformations.rotation_matrix(np.pi / 2, [1, 0, 0]))
+    cyl.apply_translation([0, 0, cz])
+    m = trimesh.boolean.intersection([horn, cyl], engine="manifold"); m.fix_normals()
+    assert m.is_watertight, "arc-trimmed mouth not watertight"
+    v = m.vertices
+    x_max = np.abs(v[:, 0]).max()
+    zc = v[np.abs(v[:, 0]) < 20][:, 2].max()             # centre reaches forward
+    ze = v[np.abs(v[:, 0]) > 0.8 * x_max][:, 2].max()    # widest edge rolls back
+    assert ze < zc - 20, f"mouth not rolled back (centre {zc:.0f}, edge {ze:.0f})"
+test("iwata arc mouth (curved, watertight)", _iwata_arc_mouth)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  Slicer — radial petals (plain flat seams)
 # ══════════════════════════════════════════════════════════════════════════════

@@ -24,7 +24,9 @@ There are three. The right expansion curve depends on what you're optimizing for
 
 **Exponential** is the textbook formula. Area doubles every fixed axial distance. Fast, simple, valid for many applications.
 
-Each returns `(z, r)` and nothing else — just the math. The cross-section is a separate choice.
+**Iwata** is the real thing — the horn from the l'Audiophile plan (for JBL 2440/375), digitized from the drawing. Unlike the others it is *rectangular and asymmetric*: width and height flare at different rates (mouth ≈ 740×320 mm over 572 mm), so the cross-section grows from ~1:1 at the throat to ~2.3:1 at the mouth. The wide-plane mouth is a **circular arc** (radius 692 mm about an apex behind the throat), the height-plane mouth stays flat — built by boolean-trimming the loft with a cylinder. You set throat size and length; the proportions, mouth and ≈210 Hz cutoff follow from the plan. (Selecting Iwata forces a rectangular section; the curved mouth means no mouth flange.)
+
+Most profiles return `(z, r)` and nothing else — just the math, with the cross-section a separate choice. The rectangular ones (including Iwata) return `(z, w, h)` because the section is intrinsic to them.
 
 ## Cross-sections
 

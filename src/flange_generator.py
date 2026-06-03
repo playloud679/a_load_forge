@@ -43,6 +43,7 @@ def generate_flange(
     seg: int = 64,
     output_path: str | None = None,
     outer_n_sides: int = 0,
+    bolt_phase: float = 0.0,
 ) -> trimesh.Trimesh | None:
     """
     Circular-inner flange — CSG boolean difference.
@@ -102,7 +103,7 @@ def generate_flange(
 
     # Bolt holes
     for k in range(bolt_n):
-        a = 2 * np.pi * k / bolt_n
+        a = bolt_phase + 2 * np.pi * k / bolt_n
         cx, cy = bolt_R * np.cos(a), bolt_R * np.sin(a)
         bh = creation.cylinder(
             radius=bolt_d / 2.0,
@@ -150,6 +151,7 @@ def generate_polygonal_flange(
     seg: int = 64,
     output_path: str | None = None,
     outer_n_sides: int = 0,
+    bolt_phase: float = 0.0,
 ) -> trimesh.Trimesh | None:
     """
     Polygonal flange — N-gon inner hole matching the horn cross-section.
@@ -207,7 +209,7 @@ def generate_polygonal_flange(
 
     # Bolt holes
     for k in range(bolt_n):
-        a = 2 * np.pi * k / bolt_n
+        a = bolt_phase + 2 * np.pi * k / bolt_n
         cx, cy = bolt_R * np.cos(a), bolt_R * np.sin(a)
         bh = creation.cylinder(
             radius=bolt_d / 2.0,

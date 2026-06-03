@@ -94,6 +94,100 @@ def get_rectangular_salmon(
     return _area_to_rect(z, r, throat_w, throat_h)
 
 
+# ======================================================================
+#  Iwata horn — faithful rectangular dual-flare from the l'Audiophile plan
+# ======================================================================
+#
+# Digitized from the original Iwata construction drawing published in
+# l'Audiophile (for the JBL 2440 / 375 1.5" compression drivers). Unlike the
+# axisymmetric "Iwata ≈ Salmon T=0.707" loading approximation, the real Iwata
+# is a *rectangular* horn whose two planes expand at *different* rates:
+#   • width  W: ~×15 over the length (fast — horizontal coverage)
+#   • height H: ~×6.4 (slow — vertical coverage)
+# so the cross-section aspect ratio grows from ~1:1 at the throat to ~2.3:1 at
+# the mouth. The mouth also carries a curved roll-back lip (omitted here — it is
+# a finishing edge, not part of the acoustic loading).
+#
+# Stations are 50 mm apart on the native plan; the first station is the
+# (≈square) rectangular throat downstream of the round driver adaptor.
+_IWATA_Z = np.array(
+    [0, 50, 100, 150, 200, 250, 300, 350, 400, 450, 500, 550], dtype=float)
+_IWATA_W = np.array(
+    [50.0, 50.0, 63.2, 81.4, 100.0, 140.2, 184.7, 245.7, 335.8, 485.0, 648.0, 740.0])
+_IWATA_H = np.array(
+    [50.0, 52.2, 57.3, 64.7, 74.2, 86.0, 99.6, 116.5, 137.0, 171.2, 247.4, 320.0])
+_IWATA_L0 = float(_IWATA_Z[-1])   # native plan length (mm)
+_IWATA_W0 = float(_IWATA_W[0])    # native plan throat width (mm)
+
+
+# Plan-view mouth arc: the wide-plane mouth is a circular arc of radius 692 mm
+# centred on "Point R", a virtual apex on the axis ~120 mm *behind* the throat
+# (692 − 572 axial). Native values; both scale with the width factor f = throat/50.
+_IWATA_ARC_R0 = 692.0          # mm, mouth arc radius about point R
+_IWATA_AXIAL0 = 572.0          # mm, native axial length (throat → mouth centre)
+
+
+def iwata_arc_mouth(throat: float, length: float) -> tuple[float, float]:
+    """
+    Geometry of the Iwata's curved (plan-view) mouth, for terminating the mesh.
+
+    Returns (radius, center_z) of a cylinder whose axis runs along the *height*
+    (Y) direction: intersecting the straight rectangular loft with this solid
+    cylinder rolls the wide-plane mouth back into the plan arc (r=692 native),
+    while leaving the height-plane mouth flat — exactly as drawn in l'Audiophile.
+
+        keep material where  x² + (z − center_z)² ≤ radius²
+
+    The mouth centre (x=0) sits at z=length (furthest forward); the corners roll
+    back ~107·f mm. Radius scales with the width factor f = throat/50, so the arc
+    curvature follows the cross-section size independently of the chosen length.
+    """
+    f = throat / _IWATA_W0
+    radius = _IWATA_ARC_R0 * f
+    center_z = length - radius
+    return radius, center_z
+
+
+def get_iwata_horn(
+    throat: float = 50.0, length: float = 572.0, n: int = 300,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Faithful Iwata horn (rectangular, asymmetric dual-flare) from the
+    l'Audiophile plan, scaled to the requested throat size and axial length.
+
+    The plan's normalized W(z)/H(z) proportions are preserved exactly: a
+    uniform scale factor f = throat / W0 resizes the cross-section, while *length*
+    stretches the axis. With the defaults (throat=50, length=572) this reproduces
+    the original drawing: mouth ≈ 740 × 320 mm, throat ≈ 50 × 50 mm. The wide-plane
+    mouth arc (see iwata_arc_mouth) is applied at the mesh stage, not here.
+
+    Returns (z, w, h) — same interface as the other rectangular profiles, so it
+    feeds straight into generate_rectangular_3d_mesh().
+    """
+    f = throat / _IWATA_W0
+    t = np.linspace(0.0, 1.0, n)
+    z = t * length
+    w = _iwata_smooth(_IWATA_W, t) * f
+    h = _iwata_smooth(_IWATA_H, t) * f
+    return z, w, h
+
+
+def _iwata_smooth(arr: np.ndarray, t: np.ndarray, deg: int = 3) -> np.ndarray:
+    """
+    Smooth, monotone curve through the hand-digitized plan stations.
+
+    Interpolating every station (e.g. with PCHIP) faithfully reproduces the few-%
+    reading noise of the scan as visible ripples on the printed wall. Instead we
+    fit a low-degree polynomial in *log* space (natural for the near-exponential
+    growth, keeps it positive and monotone) and anchor *both* endpoints exactly so
+    the throat and mouth still match the drawing. Result: ~5× smoother wall, same
+    overall shape, throat/mouth spot on.
+    """
+    lraw = np.polyval(np.polyfit(_IWATA_Z, np.log(arr), deg), t * _IWATA_L0)
+    corr = (np.log(arr[0]) - lraw[0]) * (1.0 - t) + (np.log(arr[-1]) - lraw[-1]) * t
+    return np.exp(lraw + corr)
+
+
 
 # ======================================================================
 #  3-D rectangular lofting engine

@@ -28,6 +28,7 @@ def generate_rectangular_flange(
     outer_h: float | None = None,
     offset: float = 0.0,
     output_path: str | None = None,
+    bolt_phase: float = 0.0,
 ) -> trimesh.Trimesh | None:
     """
     Rectangular-hole flange with safety clamps and Z-offset.
@@ -108,8 +109,8 @@ def generate_rectangular_flange(
         actual_bolt_radius = max(bolt_radius, safe_radius)
         angles = np.linspace(0, 2 * np.pi, int(bolt_count), endpoint=False)
         for a in angles:
-            x = actual_bolt_radius * np.cos(a)
-            y = actual_bolt_radius * np.sin(a)
+            x = actual_bolt_radius * np.cos(a + bolt_phase)
+            y = actual_bolt_radius * np.sin(a + bolt_phase)
             bh = creation.cylinder(
                 radius=bolt_diam / 2.0,
                 height=thickness * 3,

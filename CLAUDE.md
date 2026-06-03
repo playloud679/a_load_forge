@@ -47,21 +47,59 @@ The axisymmetric engine in `profile_generator.py` is shared by tractrix, salmon,
 | Module | Role |
 |---|---|
 | `src/profile_generator.py` | Axisymmetric profiles (tractrix, salmon, exponential) + shared 3D revolution engine |
-| `src/rectangular_horn.py` | Rectangular area-preserving profile + dedicated lofting engine |
+| `src/rectangular_horn.py` | Rectangular area-preserving profiles + the faithful **Iwata** dual-flare profile (`get_iwata_horn`) + dedicated lofting engine |
 | `src/radial_horn.py` | 360° omnidirectional radial horn, two-piece output (bottom + top) |
 | `src/flange_generator.py` | Parametric circular mounting flange |
 | `src/rectangular_flange.py` | Circular-outer / rectangular-inner flange |
 | `src/_step_export.py` | STEP AP242 export utility |
 | `src/_utils.py` | Shared math: profile normals, volume sign, Z-align |
-| `src/_constants.py` | `SOUND_SPEED = 343000 mm/s` |
+| `src/_constants.py` | `SOUND_SPEED = 344000 mm/s` (Hornresp default; UI-adjustable, see below) |
 | `src/main.py` | CLI orchestrator (thin wrapper over profile_generator) |
 | `ui_app.py` | Streamlit web UI — three tabs: Generate, Flange, Merge |
+
+### Iwata profile (special case)
+
+The "Iwata" profile is **not** axisymmetric. It is the real horn from the
+l'Audiophile plan (for JBL 2440/375): a *rectangular dual-flare* whose width and
+height expand at different rates (mouth ≈ 740×320 over 550 mm, throat ≈ 50×50),
+digitized into `get_iwata_horn(throat, length)` in `rectangular_horn.py`. The noisy
+hand-read stations are fitted with a smooth monotone curve (`_iwata_smooth`: cubic in
+log-space, both endpoints anchored) rather than interpolated through every point —
+PCHIP-through-all-points reproduced the reading noise as visible ripples on the wall.
+A uniform scale (`throat`) + axial stretch (`length`) preserve the plan's proportions.
+
+In the UI, selecting Iwata **forces `is_rect = True` and ignores the Section
+selector** (like radial is special), and the inputs collapse to throat Ø + length
+(no mouth/aspect/Fc — those are intrinsic; Fc is derived ≈ c·ln(Sm/St)/(4π·L) and
+shown as a result). The axisymmetric `get_iwata` in `profile_generator.py` (Salmon
+T=0.707) is now CLI-only; the UI never calls it.
+
+**Curved mouth**: the wide (plan) plane mouth is a circular arc (native r=692 mm
+about apex "point R", ~120 mm behind the throat), the height plane stays flat.
+`iwata_arc_mouth(throat, length)` returns the `(radius, center_z)` of a height-axis
+(Y) cylinder; the generation step in `ui_app.py` **boolean-intersects** the straight
+rectangular loft with that cylinder (manifold engine) to roll the corners back. Because
+the mouth is curved, the **mouth flange is disabled** for Iwata (only throat/mid).
+Per Petoin's analysis the Iwata is essentially a Le Cléac'h horn (hypex area law,
+F≈207 Hz, T≈0.5), but the geometry here is taken from the digitized drawing
+(constant-z stations), not re-derived from the isophase ODE.
 
 ### Acoustic constants
 
 - Exponential expansion rate: `m = 4π·fc/c`
 - Salmon: hyperbolic-exponential with `T = 0.707` (Hypex), `x₀ = c/(2π·fc)`
 - Radial: `S(R) = S_t · exp(m·(R−Rt))`, `H(R) = S(R)/(2πR)`
+
+**Adjustable speed of sound**: `c` defaults to `_constants.SOUND_SPEED` (344000 mm/s)
+but is a UI input (Advanced settings, m/s). The flare functions read `SOUND_SPEED`
+from their *module* global at call time, so `ui_app.py` overrides it after the
+`importlib.reload` block — `_core.SOUND_SPEED = _rh.SOUND_SPEED = _rd.SOUND_SPEED =
+c_val` — and every cutoff/mouth calc picks it up. Don't reintroduce hardcoded `c`
+literals in `ui_app.py`; use `c_val`.
+
+**Mouth-size adequacy warning**: the Computed panel warns when the area-equivalent
+mouth Ø is below `c/(π·fc)` (mouth circumference < one wavelength at cutoff), i.e.
+the horn won't actually load down to the stated Fc.
 
 ### STL output directory
 

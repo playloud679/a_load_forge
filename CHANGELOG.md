@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.5.0 (2026-06-03)
+
+- **Iwata fedele (pavillon l'Audiophile, JBL 2440/375)**: il profilo "Iwata" non è più un clone assialsimmetrico di Salmon T=0.707, ma la geometria reale ricostruita dal piano originale — un corno **rettangolare a doppio flare** (larghezza e altezza con tassi diversi: gola 50×50 → bocca 740×320, aspect 1:1 → 2.3:1). Nuova `rectangular_horn.get_iwata_horn(throat, length)`. La sezione Iwata è auto-rettangolare e ignora il selettore Section (come il radiale); input ridotti a gola Ø + lunghezza (mouth, aspect e Fc sono intrinseci e derivati).
+- **Bocca ad arco (vista in pianta)**: la bocca nel piano orizzontale è un arco circolare (r=692 mm nativo attorno all'apice "point R", ~120 mm dietro la gola), piatta in elevazione — come da disegno. Realizzata per **intersezione booleana** del loft con un cilindro lungo l'altezza (`iwata_arc_mouth()`), 256 facce per un arco liscio. Flangia di bocca disabilitata per l'Iwata (bocca curva). Conferma da Petoin (petoindominique.fr): l'Iwata è di fatto un Le Cléac'h, legge d'area hypex F≈207 Hz, T≈0.5.
+- **Profilo liscio**: `_iwata_smooth` rimpiazza l'interpolazione PCHIP punto-per-punto con un fit monòtono liscio (cubica in log-space, estremi ancorati) — toglie il rumore di digitalizzazione che appariva come ondulazioni sulla parete (curviness 0.005 vs 0.026), gola/bocca esatte.
+- **Velocità del suono regolabile**: nuovo campo "Speed of sound (m/s)" (Advanced settings, default 344 = Hornresp), propagato a tutta la matematica dei flare tramite override dei global di modulo. Rimossi i `343_000` hardcoded nei readout Fc tractrix.
+- **Warning adeguatezza bocca**: il pannello Computed avvisa quando il Ø-equivalente della bocca è sotto `c/(π·fc)` (circonferenza bocca < lunghezza d'onda al taglio) → il cutoff reale sarà più alto di quello impostato.
+- **UI prima sezione ridisegnata**: blocchi separati Shape (Profile + Section) / "You set" (solo input attivi) / "Computed" (`st.metric`, niente più campi grigi disabilitati). Spessore parete, punti profilo e velocità del suono spostati nell'expander "Advanced settings".
+- **Flange**: parametro `bolt_phase` in `generate_flange`, `generate_polygonal_flange`, `generate_rectangular_flange` per allineare i bulloni a vertici o mezzerie.
+- **Pulizia**: rimossi i rami `get_iwata` assialsimmetrici ormai irraggiungibili nella UI (l'Iwata assiale resta solo per la CLI).
+- **Test**: 58 test, tutti verdi (3 nuovi per l'Iwata: riproduzione piano, scala, bocca ad arco watertight).
+
 ## 2.4.6 (2026-06-02)
 
 - **Sezione Rectangular reinserita nella UI**: quarta opzione in `section_type` radio (dopo Polygonal). Dimensioni W×H invece di Ø, aspect ratio slider, hint dedicato.
