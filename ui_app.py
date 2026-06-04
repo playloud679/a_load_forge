@@ -1423,6 +1423,14 @@ _radial_outer_keep = st.number_input("Outer skin keep (mm)", 0.5, 5.0, 1.5, 0.5,
                                           "placing tongue/groove features."
                                      ) if _radial_joint else None
 
+if st.button("Reset slicer cache", use_container_width=True):
+    st.session_state.pop("_ax_segs", None)
+    st.session_state.pop("_pieces", None)
+    for _k in list(st.session_state.keys()):
+        if _k.startswith("_pet_ax") or _k.startswith("_sel_ax"):
+            del st.session_state[_k]
+    st.rerun()
+
 ax_mode = st.radio("Define segments by", ["Count", "Height (mm)"],
                    horizontal=True, key="ax_mode")
 if ax_mode == "Count":
@@ -1437,6 +1445,21 @@ else:
     _total_label = "Total flare Z" if _cut_adapter_segment else "Total Z"
     st.caption(f"{_total_label}={total_z:.0f} mm → {n_seg} segment{'s' if n_seg>1 else ''}")
     seg_ref = ("height", seg_h)
+
+_slice_sig = (
+    tuple(np.round(mesh_to_slice.bounds.reshape(-1), 4)),
+    bool(_joint), float(_joint_w),
+    bool(_cut_adapter_segment),
+    None if _adapter_cut_z is None else round(float(_adapter_cut_z), 4),
+    seg_ref,
+)
+if st.session_state.get("_slice_sig") != _slice_sig:
+    st.session_state["_slice_sig"] = _slice_sig
+    st.session_state.pop("_ax_segs", None)
+    st.session_state.pop("_pieces", None)
+    for _k in list(st.session_state.keys()):
+        if _k.startswith("_pet_ax") or _k.startswith("_sel_ax"):
+            del st.session_state[_k]
 
 if st.button("❶ Slice axially", use_container_width=True):
     with st.spinner("Cutting axially…"):
@@ -1506,6 +1529,18 @@ if ax_segs:
 
     if _radial_joint:
         st.caption(f"✔ Tongue & groove — depth {_radial_joint_d} mm, clearance {_radial_clearance} mm, outer skin {_radial_outer_keep} mm")
+
+    _petal_sig = (
+        tuple(int(v) for v in petals_per),
+        bool(_radial_joint),
+        round(float(_radial_joint_d), 4),
+        round(float(_radial_clearance), 4),
+        None if _radial_outer_keep is None else round(float(_radial_outer_keep), 4),
+        tuple(round(float(a), 6) for a in _hole_angles),
+    )
+    if st.session_state.get("_petal_sig") != _petal_sig:
+        st.session_state["_petal_sig"] = _petal_sig
+        st.session_state.pop("_pieces", None)
 
     if st.button("❷ Apply petals", use_container_width=True):
         with st.spinner("Cutting petals…"):

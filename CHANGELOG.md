@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.8.2 (2026-06-04)
+
+- **Slicer UI cache reset** (`ui_app.py`): aggiunto pulsante `Reset slicer cache` e invalidazione automatica di `_ax_segs` / `_pieces` quando cambiano mesh, axial cut, adapter segment, petal count, radial joint depth, clearance o `Outer skin keep`. I download STL non restano più fermi su pezzi generati con parametri vecchi.
+- **Test**: 79 funzionali + 33 geometria (112 totali), tutti verdi.
+
 ## 2.8.1 (2026-06-04)
 
 - **Slicer radial T&G — pelle esterna consistente** (`src/_slicer.py`, `ui_app.py`): lingua e cava non vengono più centrate su tutta la parete del seam. Il profilo del giunto può proteggere una fascia esterna (`Outer skin keep`, default 1.5 mm) e spostare tongue/groove verso l'interno, evitando bordini esterni troppo sottili.
