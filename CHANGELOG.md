@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.7.1 (2026-06-04)
+
+- **Version sync**: `VERSION` e `pyproject.toml` allineati a `2.7.1`.
+- **Docs sync**: README e indice docs aggiornati per chiarire la regola della mouth flange: foro sulla parete esterna reale del flare con bite da 0.5 mm, coerente tra UI, ring width, bolt circle e mesh generata.
+
 ## 2.7.0 (2026-06-04)
 
 - **Adapter filettato anche su flare circolari** (`src/throat_adapter.py`, `ui_app.py`): la sezione Throat Flange / Adapter ora espone `Flanged`, `Threaded 1"`, `Threaded 1¼"` e `Threaded 2"` anche quando la sezione del corno è **Circular**. Il backend accetta `horn_shape="circular"` oltre a rectangular/polygonal.

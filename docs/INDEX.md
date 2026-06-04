@@ -41,6 +41,12 @@ source** to save tokens.
 |---|---|---|
 | `ui_app.py` | _(no separate doc — see source)_ | Streamlit single-page dashboard — sections: Acoustic Profile, Mounting Flanges, Generate Assembly, Slice STL |
 
+### UI Geometry Contracts
+
+- Mouth flange holes are based on the horn's **actual outer wall at the mouth**, then reduced by `_FLANGE_WALL_BITE = 0.5 mm` so the flange overlaps the wall and booleans cleanly. Circular, polygonal and rectangular modes must keep the displayed hole, ring sizing, bolt-circle limits and generated mesh on this same value.
+- Throat adapters overlap the flare throat by 0.5 mm during assembly to avoid coplanar-contact unions.
+- Polygonal adapters use the same `+π/2` phase as `polygonal_horn.py`; do not reintroduce a circular `θ=0` source phase for polygonal morphs.
+
 ## Data Flow
 
 ```
