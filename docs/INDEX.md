@@ -46,6 +46,7 @@ source** to save tokens.
 - Mouth flange holes are based on the horn's **actual outer wall at the mouth**, then reduced by `_FLANGE_WALL_BITE = 0.5 mm` so the flange overlaps the wall and booleans cleanly. Circular, polygonal and rectangular modes must keep the displayed hole, ring sizing, bolt-circle limits and generated mesh on this same value.
 - Throat adapters overlap the flare throat by 0.5 mm during assembly to avoid coplanar-contact unions.
 - Generated assemblies with a throat adapter store `_adapter_cut_z`; the Slice STL UI uses it for the "Adapter as axial segment" option so flare Count/Height segmentation starts above the adapter.
+- Radial tongue/groove joints protect the external seam skin through `outer_margin` (`Outer skin keep` in UI, default 1.5 mm); interlock features should stay biased inward rather than thinning the visible outer wall.
 - Polygonal adapters use the same `+π/2` phase as `polygonal_horn.py`; do not reintroduce a circular `θ=0` source phase for polygonal morphs.
 
 ## Data Flow

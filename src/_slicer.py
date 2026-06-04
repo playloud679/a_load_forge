@@ -283,6 +283,57 @@ def _buffer_single(poly, distance):
     return result
 
 
+def _joint_profile(poly, to_3D, margin, clearance_offset=0.0,
+                   outer_margin: float | None = None):
+    """Return an inset joint profile biased away from the external skin."""
+    inset = max(0.0, margin + clearance_offset)
+    profile = _buffer_single(poly, -inset)
+    if profile is None or to_3D is None:
+        return profile
+
+    keep_outer = inset if outer_margin is None else max(inset, float(outer_margin))
+    if keep_outer <= inset + 1e-6:
+        return profile
+
+    coords = np.asarray(poly.exterior.coords[:-1], dtype=float)
+    if len(coords) < 3:
+        return profile
+
+    hom = np.column_stack([coords, np.zeros(len(coords)), np.ones(len(coords))])
+    pts3 = (to_3D @ hom.T).T[:, :3]
+    radii = np.linalg.norm(pts3[:, :2], axis=1)
+    outer_idx = int(np.argmax(radii))
+    radial_xy = pts3[outer_idx, :2]
+    radial_norm = float(np.linalg.norm(radial_xy))
+    if radial_norm < 1e-9:
+        return profile
+    radial_xy /= radial_norm
+    outer_dir = to_3D[:2, :2].T @ radial_xy
+    norm = float(np.linalg.norm(outer_dir))
+    if norm < 1e-9:
+        return profile
+    outer_dir /= norm
+
+    max_outer = float(np.max(coords @ outer_dir))
+    limit = max_outer - keep_outer
+    bounds = np.asarray(poly.bounds, dtype=float)
+    extent = max(bounds[2] - bounds[0], bounds[3] - bounds[1], keep_outer, 1.0) * 8.0 + 100.0
+    tangent = np.array([-outer_dir[1], outer_dir[0]])
+    p0 = outer_dir * limit
+    clip = shp.Polygon([
+        p0 + tangent * extent,
+        p0 - tangent * extent,
+        p0 - outer_dir * extent - tangent * extent,
+        p0 - outer_dir * extent + tangent * extent,
+    ])
+    clipped = profile.intersection(clip)
+    if clipped is None or clipped.is_empty:
+        return profile
+    if clipped.geom_type == "MultiPolygon":
+        clipped = max(clipped.geoms, key=lambda p: p.area)
+    return clipped
+
+
 def _filter_polys_by_side(polys, to_3D, axis, side):
     """Keep only the seam strips whose 3D centroid lies on the requested *side*.
 
@@ -305,11 +356,12 @@ def add_radial_tongue(petal: trimesh.Trimesh, angle: float,
                       joint_depth: float = 2.0,
                       margin: float = 1.0,
                       clearance: float = 0.1,
+                      outer_margin: float | None = None,
                       side: int = 0, axis=None) -> trimesh.Trimesh:
     """
     Add a tongue on the RIGHT seam (at *angle*) of a radial petal.
 
-    The tongue is a vertical strip centred on the wall cross-section,
+    The tongue is a vertical strip biased toward the inner side of the wall,
     extruded outward along the seam normal by *joint_depth*.
 
     *clearance* is the total radial gap between tongue and groove when
@@ -330,7 +382,8 @@ def add_radial_tongue(petal: trimesh.Trimesh, angle: float,
     to_3D_out[:3, 2] = -to_3D_out[:3, 2]
     tongues = []
     for poly in polys:
-        inner = _buffer_single(poly, -(margin + clearance / 2.0))
+        inner = _joint_profile(poly, to_3D, margin, clearance / 2.0,
+                               outer_margin=outer_margin)
         if inner is None:
             continue
         # Start the tongue *inside* the petal (z=-overlap) so it overlaps the body
@@ -366,11 +419,12 @@ def add_radial_groove(petal: trimesh.Trimesh, angle: float,
                       joint_depth: float = 2.0,
                       margin: float = 1.0,
                       clearance: float = 0.1,
+                      outer_margin: float | None = None,
                       side: int = 0, axis=None) -> trimesh.Trimesh:
     """
     Cut a groove on the LEFT seam (at *angle*) of a radial petal.
 
-    The groove is a vertical slot centred on the wall cross-section,
+    The groove is a vertical slot biased toward the inner side of the wall,
     going INTO the petal by *joint_depth*.
 
     *clearance* is the total radial gap between tongue and groove when
@@ -392,7 +446,8 @@ def add_radial_groove(petal: trimesh.Trimesh, angle: float,
 
     result = petal
     for poly in polys:
-        inner = _buffer_single(poly, -(margin - clearance / 2.0))
+        inner = _joint_profile(poly, to_3D, margin, -clearance / 2.0,
+                               outer_margin=outer_margin)
         if inner is None:
             continue
         groove = trimesh.creation.extrude_polygon(inner, height=joint_depth + overlap)
@@ -412,6 +467,7 @@ def slice_into_petals(mesh: trimesh.Trimesh, n: int,
                       joint_depth: float = 0.0,
                       joint_margin: float = 0.5,
                       clearance: float = 0.1,
+                      outer_margin: float | None = None,
                       ) -> list[trimesh.Trimesh]:
     """
     Cut *mesh* into *n* radial petals (like an orange).
@@ -425,6 +481,8 @@ def slice_into_petals(mesh: trimesh.Trimesh, n: int,
     identical parts.
 
     *clearance* — total radial gap between tongue and groove (default 0.1 mm).
+    *outer_margin* — protected external-skin width; when set, tongue/groove
+    profiles are clipped away from the outside so the visible wall stays solid.
     """
     petals: list[trimesh.Trimesh] = []
     for i in range(n):
@@ -454,15 +512,19 @@ def slice_into_petals(mesh: trimesh.Trimesh, n: int,
                 tongue_side = 1 if i == 0 else -1
                 petal = add_radial_tongue(petal, angle1, joint_depth, joint_margin,
                                           clearance=clearance,
+                                          outer_margin=outer_margin,
                                           side=tongue_side, axis=axis)
                 petal = add_radial_groove(petal, angle0, joint_depth, joint_margin,
                                           clearance=clearance,
+                                          outer_margin=outer_margin,
                                           side=-tongue_side, axis=axis)
             else:
                 petal = add_radial_groove(petal, angle0, joint_depth, joint_margin,
-                                          clearance=clearance)
+                                          clearance=clearance,
+                                          outer_margin=outer_margin)
                 petal = add_radial_tongue(petal, angle1, joint_depth, joint_margin,
-                                          clearance=clearance)
+                                          clearance=clearance,
+                                          outer_margin=outer_margin)
 
         petals.append(petal)
 

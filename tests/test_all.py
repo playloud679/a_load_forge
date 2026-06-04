@@ -439,6 +439,21 @@ def _adapter_segment_axial_cut():
         assert abs(part.bounds[1, 2] - hi) < 1e-6, f"segment {i}: z_hi {part.bounds[1,2]} != {hi}"
 test("adapter segment axial cut", _adapter_segment_axial_cut)
 
+def _joint_profile_preserves_outer_skin():
+    poly = _slc.shp.Polygon([(0, 0), (4, 0), (4, 30), (0, 30)])
+    to_3d = np.array([
+        [1, 0, 0, 0],  # 2-D x -> radial X
+        [0, 0, 1, 0],
+        [0, 1, 0, 0],  # 2-D y -> vertical Z
+        [0, 0, 0, 1],
+    ], dtype=float)
+    prof = _slc._joint_profile(poly, to_3d, margin=0.5, outer_margin=1.5)
+    assert prof is not None and not prof.is_empty, "outer-biased joint profile vanished"
+    minx, _, maxx, _ = prof.bounds
+    assert minx >= 0.5 - 1e-6, f"inner margin lost: minx={minx}"
+    assert maxx <= 2.5 + 1e-6, f"outer skin not preserved: maxx={maxx}"
+test("joint profile preserves outer skin", _joint_profile_preserves_outer_skin)
+
 def _make_check_petals(n):
     def _check():
         horn = _horn_trimesh()

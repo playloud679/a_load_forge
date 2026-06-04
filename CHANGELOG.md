@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.8.1 (2026-06-04)
+
+- **Slicer radial T&G — pelle esterna consistente** (`src/_slicer.py`, `ui_app.py`): lingua e cava non vengono più centrate su tutta la parete del seam. Il profilo del giunto può proteggere una fascia esterna (`Outer skin keep`, default 1.5 mm) e spostare tongue/groove verso l'interno, evitando bordini esterni troppo sottili.
+- **Test**: 79 funzionali + 33 geometria (112 totali), tutti verdi. Nuovo test `joint profile preserves outer skin`.
+- **Docs**: `docs/_slicer.md` aggiornato per `outer_margin` e `_joint_profile`.
+
 ## 2.8.0 (2026-06-04)
 
 - **Slicer — adapter come segmento assiale** (`src/_slicer.py`, `ui_app.py`): quando l'assembly generato contiene un throat adapter, lo slicer può creare un taglio dedicato alla quota adapter→flare. L'adapter diventa il segmento assiale inferiore e il flare viene segmentato solo sopra quel punto, con lo stesso axial joint lip se abilitato.

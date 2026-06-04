@@ -99,6 +99,32 @@ result is empty.
 
 ---
 
+### `_joint_profile`
+
+```python
+def _joint_profile(
+    poly: shp.Polygon,
+    to_3D: np.ndarray,
+    margin: float,
+    clearance_offset: float = 0.0,
+    outer_margin: float | None = None,
+) -> shp.Polygon | None:
+```
+
+Builds the 2-D tongue/groove profile from a seam-face polygon.
+
+It first applies the normal negative buffer (`margin + clearance_offset`).
+When `outer_margin` is larger than that inset, it detects the side of the
+seam polygon with the largest radius from the Z axis and clips the joint
+profile away from that external skin. Result: the visible outside wall keeps
+a thicker continuous strip, and tongue/groove features move toward the inner
+side of the wall instead of leaving fragile external rims.
+
+Returns the largest polygon if clipping produces a `MultiPolygon`, or the
+regular buffered profile if clipping cannot be applied safely.
+
+---
+
 ### `_filter_polys_by_side`
 
 ```python
@@ -281,6 +307,7 @@ def add_radial_tongue(
     joint_depth: float = 2.0,
     margin: float = 1.0,
     clearance: float = 0.1,
+    outer_margin: float | None = None,
     side: int = 0,
     axis: np.ndarray | None = None,
 ) -> trimesh.Trimesh:
@@ -288,7 +315,8 @@ def add_radial_tongue(
 
 Adds a **tongue** (male protrusion) on the **RIGHT** seam at `angle` of a
 radial petal. The seam normal points in the +seam direction (tangent to the
-circle).
+circle). The profile is biased toward the inner side when `outer_margin` is
+set, preserving a solid external skin.
 
 **Parameters:**
 
@@ -299,14 +327,15 @@ circle).
 | `joint_depth` | `float` | `2.0` | How far the tongue protrudes outward from the seam face (mm). |
 | `margin` | `float` | `1.0` | Inset from the wall edge before the tongue starts (mm). |
 | `clearance` | `float` | `0.1` | Total radial gap between tongue and groove when mated (split equally). |
+| `outer_margin` | `float \| None` | `None` | Protected external-skin width. Keeps tongue away from the visible outer wall. |
 | `side` | `int` | `0` | For n=2: which side of the axis to apply the tongue to (+1 or −1). 0 = both sides. |
 | `axis` | `np.ndarray \| None` | `None` | For n=2: the in-plane direction used by `_filter_polys_by_side`. |
 
 **Algorithm:**
 1. Section the petal at the seam plane to get the wall cross-section
    polygon(s).
-2. For each polygon, shrink inward by `margin + clearance/2` to create the
-   tongue profile.
+2. For each polygon, shrink inward by `margin + clearance/2`, then clip away
+   from the external side when `outer_margin` is set.
 3. Extrude the profile by `joint_depth + overlap` (where `overlap = 1.0`
    mm) and translate by `−overlap` in Z so it starts **inside** the petal
    body. This volumetric overlap ensures the boolean union welds reliably
@@ -327,6 +356,7 @@ def add_radial_groove(
     joint_depth: float = 2.0,
     margin: float = 1.0,
     clearance: float = 0.1,
+    outer_margin: float | None = None,
     side: int = 0,
     axis: np.ndarray | None = None,
 ) -> trimesh.Trimesh:
@@ -341,8 +371,8 @@ Parameters are identical to `add_radial_tongue`.
 1. Section the petal at the seam plane (normal reversed vs tongue) to get
    the wall cross-section polygon(s).
 2. Shrink the polygon by `margin − clearance/2` (note: less shrinkage than
-   tongue, creating a slightly wider slot). Then extrude inward by
-   `joint_depth + overlap`.
+   tongue, creating a slightly wider slot), then clip away from the external
+   side when `outer_margin` is set. Then extrude inward by `joint_depth + overlap`.
 3. Boolean difference to cut the groove into the petal. Each groove is cut
    sequentially into `result`, checking that `body_count == 1` after each
    cut.
@@ -359,6 +389,7 @@ def slice_into_petals(
     joint_depth: float = 0.0,
     joint_margin: float = 0.5,
     clearance: float = 0.1,
+    outer_margin: float | None = None,
 ) -> list[trimesh.Trimesh]:
 ```
 
@@ -380,6 +411,7 @@ Seams are capped. The phase rotates the entire seam pattern (use
 | `joint_depth` | `float` | `0.0` | Tongue & groove depth. 0 = plain petals without joints. |
 | `joint_margin` | `float` | `0.5` | Inset from wall edge for joint features (mm). |
 | `clearance` | `float` | `0.1` | Total radial gap between mated tongue and groove (mm). |
+| `outer_margin` | `float \| None` | `None` | Protected external-skin strip. UI default is 1.5 mm when radial joint is enabled. |
 
 #### Tongue & groove joint logic
 

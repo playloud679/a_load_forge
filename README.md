@@ -60,6 +60,8 @@ When an assembly includes a throat adapter, the slicer can treat the adapter as 
 
 For `n >= 3` each petal is a wedge under 180°, so its left and right seams are distinct planes: a groove goes on the left, a tongue on the right, and adjacent petals mate tongue-into-groove.
 
+The radial tongue-and-groove joint protects the outside skin before placing the interlock. By default the outer 1.5 mm strip of the seam is kept solid, so the visible external wall remains consistent and the tongue/groove geometry is biased toward the inside of the wall.
+
 `n = 2` is the awkward case, and worth calling out because it's easy to get wrong. The two cutting planes are coplanar — a single diametric plane through the axis — so a petal's "left" and "right" seams are the *same* face, and that face crosses the axis into **two** wall strips. You can't put both a groove and a tongue on one face. The fix is to make each half hermaphrodite: a tongue on one strip, a groove on the other, with the strip assignment flipped between the two halves so a tongue always faces a groove. The two halves come out as identical parts — one is just the other rotated 180°.
 
 ## Flanges
@@ -81,7 +83,7 @@ The STEP files use AP203 CONFIG_CONTROL_DESIGN schema with `FACETED_BREP` and `C
     .venv/bin/python tests/test_all.py
     .venv/bin/python tests/test_geometry.py
 
-`test_all.py` (78 tests) covers the full profile × section matrix, flanges, slicing, the radial petal tongue & groove joint, and the throat adapter raccordo. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
+`test_all.py` (79 tests) covers the full profile × section matrix, flanges, slicing, the radial petal tongue & groove joint, and the throat adapter raccordo. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
 
 ## Known limitations
 
