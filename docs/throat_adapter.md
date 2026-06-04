@@ -123,7 +123,7 @@ Returns a watertight `trimesh.Trimesh`.
 
 ## Public API
 
-### `make_adapter(driver_R: float, horn_shape: str, horn_w: float, horn_h: float, horn_n_sides: int, horn_R_eq: float, horn_circumR: float, axial_steps: int, adapter_length: float, wall_thickness: float, thread_key: str | None = None, socket_length: float = 0.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, output_path: str | None = None) -> trimesh.Trimesh`
+### `make_adapter(driver_R: float, horn_shape: str, horn_w: float, horn_h: float, horn_n_sides: int, horn_R_eq: float, horn_circumR: float, axial_steps: int, adapter_length: float, wall_thickness: float, thread_key: str | None = None, socket_length: float = 0.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, output_path: str | None = None) -> trimesh.Trimesh`
 
 Builds the morphing transition section, optionally with an integrated threaded extension at the circular (driver) end.
 
@@ -132,12 +132,12 @@ Builds the morphing transition section, optionally with an integrated threaded e
 | Parameter | Type | Description |
 |---|---|---|
 | `driver_R` | `float` | Radius of the circular driver exit (mm) |
-| `horn_shape` | `str` | `"rectangular"` or `"polygonal"` |
-| `horn_w` | `float` | Throat width for rectangular (mm) |
-| `horn_h` | `float` | Throat height for rectangular (mm) |
-| `horn_n_sides` | `int` | Number of polygon sides (for `"polygonal"`) |
+| `horn_shape` | `str` | `"circular"`, `"rectangular"`, or `"polygonal"` |
+| `horn_w` | `float` | Throat width for rectangular (mm); unused for circular/polygonal |
+| `horn_h` | `float` | Throat height for rectangular (mm); unused for circular/polygonal |
+| `horn_n_sides` | `int` | Number of polygon sides (for `"polygonal"`); unused for circular/rectangular |
 | `horn_R_eq` | `float` | Area-equivalent radius at horn throat (mm) |
-| `horn_circumR` | `float` | Circumradius of the polygon at horn throat (mm) |
+| `horn_circumR` | `float` | Circumradius of the polygon at horn throat (mm); unused for circular/rectangular |
 | `axial_steps` | `int` | Number of Z slices for the loft |
 | `adapter_length` | `float` | Axial length of the transition (mm) |
 | `wall_thickness` | `float` | Wall thickness for outer offset (mm) |
@@ -146,20 +146,24 @@ Builds the morphing transition section, optionally with an integrated threaded e
 | `outer_target_R` | `float \| None` | Outer equivalent radius for threaded mode outer profile (matches horn outer dimensions) |
 | `outer_rect_w` | `float \| None` | Outer rectangle width (threaded mode) |
 | `outer_rect_h` | `float \| None` | Outer rectangle height (threaded mode) |
+| `target_slope` | `float \| None` | Inner equivalent-radius slope `dr/dz` at the horn throat; when set, the adapter reaches the flare with matching expansion derivative |
+| `outer_target_slope` | `float \| None` | Outer equivalent-radius slope `dr/dz` at the horn throat, computed from the same parallel-offset wall as the horn mesh |
 | `output_path` | `str \| None` | Optional STL export path |
+
+**Raccordo / expansion continuity:** The shape morph and acoustic area progression are controlled separately. The shape blend uses a quintic smoothstep, so it has zero shape-change derivative at the horn throat. The equivalent radius uses cubic Hermite interpolation when `target_slope` is provided, so the final `dr/dz` matches the first derivative of the selected flare. This removes the geometric edge at the adapter→flare joint while preserving the flare's expansion law at the handoff.
 
 **Algorithm — Three modes:**
 
 **A. Threaded mode** (`thread_key` is not None AND `socket_length > 0.5`):
 1. Z range: `[-thread_len, adapter_length]` where `thread_len = n_turns * pitch`
 2. **Thread section** (`z < 0`): Circular socket with sinusoidal thread profile `r_thread = major_R − (major_R − minor_R) · 0.5 · (1 − cos(2π · turn_frac))`. Outer wall is a smooth cylinder at `outer_R = major_R + wall_thickness`.
-3. **Transition section** (`z ≥ 0`): Inner morphs from `major_R` to inner target via `_morph_slice`. Outer morphs from `outer_R` to the outer target if provided (for matching horn outer dimensions), otherwise to a slightly larger inner target.
+3. **Transition section** (`z ≥ 0`): Inner morphs from `major_R` to inner target via `_morph_slice`. For `"circular"` the target is a circle of radius `horn_R_eq`; for `"rectangular"` it is the requested rectangle; for `"polygonal"` it is the requested regular N-gon. Outer morphs from `outer_R` to the outer target if provided (for matching horn outer dimensions), otherwise to a slightly larger inner target. If slope inputs are provided, both inner and outer profiles end tangent to the horn.
 4. In threaded mode, the transition is flush with the horn inner — no wall thickness separate from the outer profile.
 
 **B. Flanged mode** (`thread_key` is None):
 1. Z range: `[0, adapter_length]`
 2. Inner profile morphs from `driver_R` to inner target via `_morph_slice`.
-3. Outer profile is a true outward-**normal (miter) offset** of the inner via `_offset_polygon_outward(inner, wall_thickness)` → constant perpendicular wall thickness. This is what makes the adapter's outer wall **flush with the horn's** at the throat junction (the horn uses the same kind of normal offset). It replaced an earlier radial-from-origin offset (`outer = inner · (1 + wt/r)`) which under-extended the corners and left a visible outer step.
+3. If an outer target is provided, the outer profile is Hermite-raccordato to that target and slope. Otherwise it falls back to a true outward-**normal (miter) offset** of the inner via `_offset_polygon_outward(inner, wall_thickness)` → constant perpendicular wall thickness. Passing the horn's actual outer throat target avoids an external step at the junction.
 
 **C. Degenerate** (`adapter_length ≤ 0.5`): Returns a thin cylinder ring with a central hole.
 
@@ -193,7 +197,7 @@ Returns a watertight `trimesh.Trimesh`.
 
 ---
 
-### `make_adapter_assembly(driver_type: str, driver_diam: float | None, thread_key: str | None, horn_shape: str, rect_w: float, rect_h: float, poly_n_sides: int, poly_circumR: float, horn_R_eq: float, adapter_length: float, wall_thickness: float, axial_steps: int = 50, flange_R: float = 0.0, flange_thickness: float = 6.0, flange_bolt_R: float = 0.0, flange_bolt_n: int = 4, flange_bolt_d: float = 3.5, flange_bolt_phase: float = 0.0, flange_outer_n: int = 0, socket_length: float = 15.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, z_offset: float = 0.0, output_path: str | None = None) -> trimesh.Trimesh`
+### `make_adapter_assembly(driver_type: str, driver_diam: float | None, thread_key: str | None, horn_shape: str, rect_w: float, rect_h: float, poly_n_sides: int, poly_circumR: float, horn_R_eq: float, adapter_length: float, wall_thickness: float, axial_steps: int = 50, flange_R: float = 0.0, flange_thickness: float = 6.0, flange_bolt_R: float = 0.0, flange_bolt_n: int = 4, flange_bolt_d: float = 3.5, flange_bolt_phase: float = 0.0, flange_outer_n: int = 0, socket_length: float = 15.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, z_offset: float = 0.0, output_path: str | None = None) -> trimesh.Trimesh`
 
 Assembles the complete throat adapter: driver interface + morphing transition.
 
@@ -206,11 +210,11 @@ Assembles the complete throat adapter: driver interface + morphing transition.
 | `driver_type` | `str` | — | `"flanged"` or a `THREAD_SPECS` key |
 | `driver_diam` | `float \| None` | — | Driver exit diameter (for flanged only) |
 | `thread_key` | `str \| None` | — | Thread spec key (for threaded only) |
-| `horn_shape` | `str` | — | `"rectangular"` or `"polygonal"` |
-| `rect_w` | `float` | — | Rectangular throat width (mm) |
-| `rect_h` | `float` | — | Rectangular throat height (mm) |
-| `poly_n_sides` | `int` | — | Polygon side count |
-| `poly_circumR` | `float` | — | Polygon circumradius at throat (mm) |
+| `horn_shape` | `str` | — | `"circular"`, `"rectangular"`, or `"polygonal"` |
+| `rect_w` | `float` | — | Rectangular throat width (mm); unused for circular/polygonal |
+| `rect_h` | `float` | — | Rectangular throat height (mm); unused for circular/polygonal |
+| `poly_n_sides` | `int` | — | Polygon side count; unused for circular/rectangular |
+| `poly_circumR` | `float` | — | Polygon circumradius at throat (mm); unused for circular/rectangular |
 | `horn_R_eq` | `float` | — | Area-equivalent radius at horn throat (mm) |
 | `adapter_length` | `float` | — | Transition length (mm) |
 | `wall_thickness` | `float` | — | Wall thickness (mm) |
@@ -226,6 +230,8 @@ Assembles the complete throat adapter: driver interface + morphing transition.
 | `outer_target_R` | `float \| None` | `None` | Outer equiv. radius for threaded mode (matches horn outer) |
 | `outer_rect_w` | `float \| None` | `None` | Outer rect width (threaded mode) |
 | `outer_rect_h` | `float \| None` | `None` | Outer rect height (threaded mode) |
+| `target_slope` | `float \| None` | `None` | Inner equivalent-radius slope `dr/dz` at horn throat |
+| `outer_target_slope` | `float \| None` | `None` | Outer equivalent-radius slope `dr/dz` at horn throat |
 | `z_offset` | `float` | `0.0` | Z position of horn-throat end of transition |
 | `output_path` | `str \| None` | `None` | Optional STL export path |
 

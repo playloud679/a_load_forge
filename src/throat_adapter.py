@@ -1,7 +1,7 @@
 """
 Throat adapter — transitions from circular driver interface to horn throat shape.
 
-Designed for rectangular/polygonal horns that mate with a round compression driver.
+Designed for circular/rectangular/polygonal horns that mate with a round compression driver.
 The adapter maintains the cross-sectional area expansion from the horn profile.
 
 Driver interfaces:
@@ -208,18 +208,26 @@ def _morph_slice(
     target_fn,
     target_R_eq: float,
     n: int = _NP,
+    shape_t: float | None = None,
+    r_eq_des: float | None = None,
 ) -> np.ndarray:
     """Single cross-section at parametric position *t* ∈ [0, 1].
 
     At t=0: circle of radius *driver_R*.
     At t=1: shape returned by *target_fn* (callable returning N×2), scaled
             so its area equals π·target_R_eq².
-    Intermediate: linear morph of vertices, then scaled to maintain the
-    area progression implied by a linear interpolation of the equivalent radius.
+    Intermediate: morph of vertices, then scaled to maintain the requested
+    equivalent-radius progression.
 
-    A simple linear vertex blend keeps the wall twist-free and the
-    boolean merging predictable.
+    ``shape_t`` controls only the geometry blend. ``r_eq_des`` controls the
+    acoustic area progression. Keeping those separate lets the shape morph
+    finish with zero derivative while the area derivative matches the flare.
     """
+    if shape_t is None:
+        shape_t = t
+    if r_eq_des is None:
+        r_eq_des = (1.0 - t) * driver_R + t * target_R_eq
+
     # Source: circle at driver radius
     src = _circle_points(driver_R, n)
 
@@ -234,19 +242,46 @@ def _morph_slice(
     target = c + (raw_target - c) * s
 
     # Morph
-    pts = (1.0 - t) * src + t * target
+    pts = (1.0 - shape_t) * src + shape_t * target
 
     # Scale to match the desired equivalent radius at this z
     A_raw = _polygon_area(pts)
     if A_raw < 1e-12:
         A_raw = 1e-12
     r_eq_now = np.sqrt(A_raw / np.pi)
-    r_eq_des = (1.0 - t) * driver_R + t * target_R_eq
     scale = r_eq_des / r_eq_now
     c_now = _centroid(pts)
     pts = c_now + (pts - c_now) * scale
 
     return pts
+
+
+def _smoothstep5(t: float) -> float:
+    """Quintic smoothstep with zero first derivative at both ends."""
+    t = float(np.clip(t, 0.0, 1.0))
+    return t * t * t * (t * (t * 6.0 - 15.0) + 10.0)
+
+
+def _hermite_radius(
+    t: float,
+    r0: float,
+    r1: float,
+    length: float,
+    slope1: float | None,
+    slope0: float = 0.0,
+) -> float:
+    """Equivalent-radius progression with optional end slope in mm/mm."""
+    if slope1 is None or length <= 1e-9:
+        return (1.0 - t) * r0 + t * r1
+
+    t = float(np.clip(t, 0.0, 1.0))
+    m0 = float(slope0) * length
+    m1 = float(slope1) * length
+    h00 = 2.0 * t**3 - 3.0 * t**2 + 1.0
+    h10 = t**3 - 2.0 * t**2 + t
+    h01 = -2.0 * t**3 + 3.0 * t**2
+    h11 = t**3 - t**2
+    return max(1e-6, h00 * r0 + h10 * m0 + h01 * r1 + h11 * m1)
 
 
 # ======================================================================
@@ -271,6 +306,9 @@ def make_adapter(
     outer_target_R: float | None = None,
     outer_rect_w: float | None = None,
     outer_rect_h: float | None = None,
+    # C1 raccordo to the horn throat
+    target_slope: float | None = None,
+    outer_target_slope: float | None = None,
     output_path: str | None = None,
 ) -> trimesh.Trimesh:
     """Build the morphing transition section, optionally with an integrated
@@ -284,15 +322,15 @@ def make_adapter(
     ----------
     driver_R : float
         Radius of the circular driver exit (mm).
-    horn_shape : "rectangular" | "polygonal"
+    horn_shape : "circular" | "rectangular" | "polygonal"
     horn_w, horn_h : float
-        Throat dimensions for rectangular (mm).
+        Throat dimensions for rectangular (mm); unused for circular/polygonal.
     horn_n_sides : int
-        Number of polygon sides (for "polygonal").
+        Number of polygon sides (for "polygonal"); unused for circular/rectangular.
     horn_R_eq : float
         Area-equivalent radius at the horn throat (mm).
     horn_circumR : float
-        Circumradius of the polygon at the horn throat (mm).
+        Circumradius of the polygon at the horn throat (mm); unused for circular/rectangular.
     axial_steps : int
         Number of Z slices for the loft.
     adapter_length : float
@@ -305,11 +343,22 @@ def make_adapter(
         morphing start).
     socket_length : float
         Depth of the threaded section (mm).
+    target_slope : float, optional
+        Equivalent-radius slope ``dr/dz`` at the horn throat. When provided,
+        the adapter reaches the horn with the same expansion derivative.
+    outer_target_slope : float, optional
+        Equivalent-radius slope for the horn's outer throat profile.
     output_path : str, optional
 
     Returns a watertight Trimesh.
     """
-    if horn_shape == "rectangular":
+    if horn_shape == "circular":
+        target_R = horn_R_eq
+        def _target_fn():
+            return _circle_points(target_R)
+        _outer_target_fn = None
+        _outer_target_R = outer_target_R
+    elif horn_shape == "rectangular":
         hw, hh = horn_w / 2.0, horn_h / 2.0
         target_R = np.sqrt(horn_w * horn_h / np.pi)
         def _target_fn():
@@ -320,12 +369,14 @@ def make_adapter(
             _outer_target_fn = lambda: _rect_points(outer_rect_w / 2.0,
                                                      outer_rect_h / 2.0)
             _outer_target_R = outer_target_R
-    else:
+    elif horn_shape == "polygonal":
         def _target_fn():
             return _poly_points(horn_n_sides, horn_circumR)
         target_R = horn_R_eq
         _outer_target_fn = None
         _outer_target_R = outer_target_R
+    else:
+        raise ValueError(f"unsupported horn_shape: {horn_shape!r}")
 
     # ---- Thread parameters ----
     has_threads = thread_key is not None and socket_length > 0.5
@@ -375,16 +426,27 @@ def make_adapter(
             # Threaded transition: inner morphs from major_R → inner target,
             # outer morphs from outer_R → outer target
             t = zi / adapter_length if adapter_length > 0 else 1.0
-            inner = _morph_slice(t, _major_R, _target_fn, target_R, n)
+            shape_t = _smoothstep5(t)
+            inner_R = _hermite_radius(t, _major_R, target_R,
+                                      adapter_length, target_slope)
+            inner = _morph_slice(t, _major_R, _target_fn, target_R, n,
+                                 shape_t=shape_t, r_eq_des=inner_R)
             if _outer_target_fn is not None and _outer_target_R is not None:
+                outer_R = _hermite_radius(t, _outer_R, _outer_target_R,
+                                          adapter_length, outer_target_slope)
                 outer = _morph_slice(t, _outer_R, _outer_target_fn,
-                                     _outer_target_R, n)
+                                     _outer_target_R, n,
+                                     shape_t=shape_t, r_eq_des=outer_R)
             elif outer_target_R is not None:
+                outer_R = _hermite_radius(t, _outer_R, outer_target_R,
+                                          adapter_length, outer_target_slope)
                 outer = _morph_slice(t, _outer_R, _target_fn,
-                                     outer_target_R, n)
+                                     outer_target_R, n,
+                                     shape_t=shape_t, r_eq_des=outer_R)
             else:
                 outer = _morph_slice(t, _outer_R, _target_fn,
-                                     target_R + 0.15, n)
+                                     target_R + 0.15, n,
+                                     shape_t=shape_t)
             is_thread.append(False)
         else:
             # Flanged transition: double‑wall with a true outward-normal
@@ -393,8 +455,27 @@ def make_adapter(
             # OUTSIDE.  (A radial-from-origin offset under-extends the corners
             # and leaves a visible step there — "dentro ok, fuori il gradino".)
             t = zi / adapter_length if adapter_length > 0 else 1.0
-            inner = _morph_slice(t, driver_R, _target_fn, target_R, n)
-            outer = _offset_polygon_outward(inner, wall_thickness)
+            shape_t = _smoothstep5(t)
+            inner_R = _hermite_radius(t, driver_R, target_R,
+                                      adapter_length, target_slope)
+            inner = _morph_slice(t, driver_R, _target_fn, target_R, n,
+                                 shape_t=shape_t, r_eq_des=inner_R)
+            if _outer_target_fn is not None and _outer_target_R is not None:
+                outer_R = _hermite_radius(t, driver_R + wall_thickness,
+                                          _outer_target_R, adapter_length,
+                                          outer_target_slope)
+                outer = _morph_slice(t, driver_R + wall_thickness,
+                                     _outer_target_fn, _outer_target_R, n,
+                                     shape_t=shape_t, r_eq_des=outer_R)
+            elif outer_target_R is not None:
+                outer_R = _hermite_radius(t, driver_R + wall_thickness,
+                                          outer_target_R, adapter_length,
+                                          outer_target_slope)
+                outer = _morph_slice(t, driver_R + wall_thickness,
+                                     _target_fn, outer_target_R, n,
+                                     shape_t=shape_t, r_eq_des=outer_R)
+            else:
+                outer = _offset_polygon_outward(inner, wall_thickness)
             is_thread.append(False)
 
         inner_slices.append(inner)
@@ -628,7 +709,7 @@ def make_adapter_assembly(
     driver_diam: float | None,  # for flanged only (mm)
     thread_key: str | None,     # for threaded only
     # Horn throat shape
-    horn_shape: str,          # "rectangular" | "polygonal"
+    horn_shape: str,          # "circular" | "rectangular" | "polygonal"
     rect_w: float,
     rect_h: float,
     poly_n_sides: int,
@@ -652,6 +733,8 @@ def make_adapter_assembly(
     outer_target_R: float | None = None,
     outer_rect_w: float | None = None,
     outer_rect_h: float | None = None,
+    target_slope: float | None = None,
+    outer_target_slope: float | None = None,
     # Positioning: the horn-throat end of the transition sits at *z_offset*
     z_offset: float = 0.0,
     # Output
@@ -681,6 +764,8 @@ def make_adapter_assembly(
             outer_target_R=outer_target_R,
             outer_rect_w=outer_rect_w,
             outer_rect_h=outer_rect_h,
+            target_slope=target_slope,
+            outer_target_slope=outer_target_slope,
             output_path=None,
         )
     else:

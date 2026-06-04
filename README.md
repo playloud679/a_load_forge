@@ -54,6 +54,8 @@ The polygonal section reuses the same `(z, r)` and the same normal-offset idea, 
 
 A horn that's too big for the print bed can be sliced into `n` radial petals (like an orange) and glued back together. With a non-zero joint depth each seam gets a tongue-and-groove interlock for alignment and glue area.
 
+The UI defaults to one axial segment and two radial petals. That gives a ready-to-print left/right split without accidentally slicing the horn into a stack of axial rings; increase the segment count only when the print height needs it.
+
 For `n >= 3` each petal is a wedge under 180°, so its left and right seams are distinct planes: a groove goes on the left, a tongue on the right, and adjacent petals mate tongue-into-groove.
 
 `n = 2` is the awkward case, and worth calling out because it's easy to get wrong. The two cutting planes are coplanar — a single diametric plane through the axis — so a petal's "left" and "right" seams are the *same* face, and that face crosses the axis into **two** wall strips. You can't put both a groove and a tongue on one face. The fix is to make each half hermaphrodite: a tongue on one strip, a groove on the other, with the strip assignment flipped between the two halves so a tongue always faces a groove. The two halves come out as identical parts — one is just the other rotated 180°.
@@ -64,6 +66,8 @@ Mounting flanges (throat, mouth, and an optional mid-flange at any axial positio
 
 One subtlety worth stating, because it's easy to get wrong: on a polygonal outer, "ring width" is the wall thickness at the **flat faces**, not the distance to the corners. The hole is a circle of radius `inner_R`; the polygon's narrowest wall is at its inradius, `flange_R · cos(π/N)`. If you size the polygon by its circumradius (`inner_R + ring`), the flat-face wall shrinks as you add sides and eventually goes negative — the round hole punches straight through the edges and you're left with detached corner triangles. So the circumradius is solved backwards from the wall you actually want: `flange_R = (inner_R + ring) / cos(π/N)`. The wall is then a uniform `ring` everywhere it's thinnest, for any side count.
 
+The throat side can also be an adapter from a round driver interface into the horn throat. Flanged drivers and modeled internal threads are supported for 1", 1¼" and 2" UNF interfaces, on circular, rectangular and polygonal flares. The adapter is not just diameter-matched at the throat: its equivalent-radius curve is Hermite-raccordato to the flare's first derivative, and the outer wall target is computed with the same parallel-offset convention as the horn mesh, so the adapter hands off without an internal or external edge while preserving the expansion law.
+
 ## STEP export
 
 The STEP files use AP203 CONFIG_CONTROL_DESIGN schema with `FACETED_BREP` and `CLOSED_SHELL`. This is the correct combination for triangulated geometry. The common mistake — which you'll find in a lot of generated STEP files — is `MANIFOLD_SOLID_BREP`, which requires a proper boundary representation, not a triangle soup. FreeCAD, Fusion 360, and SolidWorks all reject that silently or import it as an empty body.
@@ -73,7 +77,7 @@ The STEP files use AP203 CONFIG_CONTROL_DESIGN schema with `FACETED_BREP` and `C
     .venv/bin/python tests/test_all.py
     .venv/bin/python tests/test_geometry.py
 
-`test_all.py` (54 tests) covers the full profile × section matrix, plus the radial petal tongue & groove joint. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
+`test_all.py` (74 tests) covers the full profile × section matrix, flanges, slicing, the radial petal tongue & groove joint, and the throat adapter raccordo. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
 
 ## Known limitations
 

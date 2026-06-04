@@ -586,6 +586,42 @@ def test_adapter_poly():
     _check_trimesh_watertight(m, "adapter poly")
 test("adapter circle→poly watertight", test_adapter_poly)
 
+def test_adapter_circular():
+    """Circle→circle adapter: tapered circular transition, watertight."""
+    m = _ta.make_adapter(
+        driver_R=12.5, horn_shape="circular",
+        horn_w=0.0, horn_h=0.0, horn_n_sides=0,
+        horn_R_eq=16.0,
+        horn_circumR=0.0,
+        axial_steps=20, adapter_length=30.0, wall_thickness=4.0,
+        output_path=None,
+    )
+    _check_trimesh_watertight(m, "adapter circular")
+test("adapter circle→circle watertight", test_adapter_circular)
+
+def test_adapter_c1_raccordo_slope():
+    """Adapter must reach the flare throat with the requested expansion slope."""
+    target_slope = 0.22
+    m = _ta.make_adapter(
+        driver_R=10.0, horn_shape="circular",
+        horn_w=0.0, horn_h=0.0, horn_n_sides=0,
+        horn_R_eq=18.0,
+        horn_circumR=0.0,
+        axial_steps=80, adapter_length=40.0, wall_thickness=4.0,
+        target_slope=target_slope,
+        outer_target_R=22.0,
+        outer_target_slope=target_slope,
+        output_path=None,
+    )
+    _check_trimesh_watertight(m, "adapter c1 raccordo")
+    zs = np.unique(np.round(m.vertices[:, 2], 6))
+    z0, z1 = zs[-2], zs[-1]
+    r0 = np.linalg.norm(m.vertices[np.isclose(m.vertices[:, 2], z0), :2], axis=1).min()
+    r1 = np.linalg.norm(m.vertices[np.isclose(m.vertices[:, 2], z1), :2], axis=1).min()
+    got = (r1 - r0) / (z1 - z0)
+    assert abs(got - target_slope) < 0.02, f"end slope {got:.3f} != {target_slope:.3f}"
+test("adapter C1 raccordo slope", test_adapter_c1_raccordo_slope)
+
 def test_adapter_outer_flush():
     """Flanged adapter's outer wall must match the horn's outer wall at the
     horn-throat end (miter offset, not radial) — otherwise the union steps on
@@ -642,6 +678,23 @@ def test_adapter_assembly_threaded():
     )
     _check_trimesh_watertight(m, "adapter assembly threaded")
 test("adapter assembly threaded", test_adapter_assembly_threaded)
+
+def test_adapter_assembly_threaded_circular():
+    """Full assembly with threaded socket, circle→circle transition."""
+    m = _ta.make_adapter_assembly(
+        driver_type="1_25in", driver_diam=None, thread_key="1_25in",
+        horn_shape="circular",
+        rect_w=0.0, rect_h=0.0, poly_n_sides=0,
+        poly_circumR=0.0,
+        horn_R_eq=18.0,
+        adapter_length=30.0, wall_thickness=4.0,
+        socket_length=15.0,
+        outer_target_R=22.0,
+        z_offset=0.0,
+        output_path=None,
+    )
+    _check_trimesh_watertight(m, "adapter assembly threaded circular")
+test("adapter assembly threaded circular", test_adapter_assembly_threaded_circular)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

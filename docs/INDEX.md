@@ -23,7 +23,7 @@ source** to save tokens.
 |---|---|---|
 | `flange_generator.py` | [flange_generator.md](flange_generator.md) | Circular/polygonal flange with CSG bolt holes |
 | `rectangular_flange.py` | [rectangular_flange.md](rectangular_flange.md) | Rectangular‑hole flange (circular or rectangular outer) |
-| `throat_adapter.py` | [throat_adapter.md](throat_adapter.md) | Throat adapter: round driver → rect/poly transition with threaded (1"/1¼"/2" UNF) or flanged interface |
+| `throat_adapter.py` | [throat_adapter.md](throat_adapter.md) | Throat adapter: round driver → circular/rect/poly throat with flanged or threaded (1"/1¼"/2" UNF) interface and C1 raccordo |
 
 ## Utilities
 

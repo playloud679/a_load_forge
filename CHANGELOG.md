@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.7.0 (2026-06-04)
+
+- **Adapter filettato anche su flare circolari** (`src/throat_adapter.py`, `ui_app.py`): la sezione Throat Flange / Adapter ora espone `Flanged`, `Threaded 1"`, `Threaded 1¼"` e `Threaded 2"` anche quando la sezione del corno è **Circular**. Il backend accetta `horn_shape="circular"` oltre a rectangular/polygonal.
+- **Raccordo C1 adapter↔flare per tutti i tipi**: l'adapter non termina più con una semplice corrispondenza di diametro. La morph shape usa smoothstep quintico, mentre il raggio equivalente usa Hermite con `target_slope` e `outer_target_slope` calcolati dalla derivata reale del flare. Risultato: niente spigolo al giunto e continuità di espansione interna/esterna per circular, rectangular e polygonal, sia flanged sia threaded.
+- **Outer target coerente col mesh engine** (`ui_app.py`): la UI passa all'adapter le dimensioni esterne e la pendenza esterna calcolate con lo stesso parallel-offset usato dai motori 3D, evitando scalini fuori dalla gola.
+- **Split defaults** (`ui_app.py`): il taglio assiale ora parte da **1 segmento** e i petali per segmento partono da **2 petali**.
+- **Test**: 74 funzionali + 33 geometria (107 totali), tutti verdi. Nuovi test per adapter circular, threaded circular e pendenza C1 del raccordo.
+- **Docs**: README, `docs/INDEX.md` e `docs/throat_adapter.md` aggiornati.
+
 ## 2.6.1 (2026-06-04)
 
 - **Fix gradino esterno al raccordo throat adapter↔corno** (`src/throat_adapter.py`): in modalità flangiata l'adattatore calcolava la parete esterna con un offset **radiale dall'origine** (`outer = inner·(1+wt/r)`), che combacia col centro dei lati ma **rientra agli angoli**, mentre i corni offsettano la parete in **normale/per-faccia** (`R_o = R_i + thickness/cos(π/n)`). Risultato: il bore era continuo ma la parete esterna saltava di ~2 mm alla giunzione (*"dentro ok, fuori il gradino"*). Ora l'outer usa un vero **offset normale (miter)** (`_offset_polygon_outward`) → spessore parete costante, identico a quello del corno → parete esterna **a filo**. Nuovi helper `_offset_polygon_outward` + `_signed_area` (winding-aware, miter clampato a `cos_half ≥ 0.2` sugli angoli vivi).

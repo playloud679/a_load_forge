@@ -611,18 +611,17 @@ with fg1:
         _ft_sp = _ft_off = _ft_od = _ft_ow = _ft_oh = 0.0; _ft_ring = 0.0
         throat_outer = "Circular"; _ta_driver_type = "flanged"; _ta_include_adapter = False
         _ta_adapter_len = 0.0; _ta_socket_depth = 0.0
-    elif is_rect or is_poly:
+    elif not is_radial:
         gen_throat = st.checkbox("Include", True, key="gen_throat")
 
         # ── Adapter section ───────────────────────────────────────────────
-        _ta_include_adapter = st.checkbox("Include shape adapter", True,
+        _ta_include_adapter = st.checkbox("Include shape adapter", is_rect or is_poly,
             key="ta_incl_adapter",
-            help="Transitions from round driver to the rectangular/polygonal "
-                 "horn throat, maintaining the expansion profile. "
-                 "Uncheck for a simple rectangular/polygonal throat flange.")
+            help="Transitions from round or threaded driver interfaces to the "
+                 "horn throat. Uncheck for a simple throat flange.")
 
         if _ta_include_adapter:
-            # ── Adapter mode: round driver → rect/poly transition ─────────
+            # ── Adapter mode: round/threaded driver → horn-throat transition ─
             _ta_driver_type = st.radio("Driver interface",
                 ["Flanged", 'Threaded 1"', 'Threaded 1\u00bc"', 'Threaded 2"'],
                 index=0, horizontal=True, key="ta_driver_type")
@@ -692,7 +691,7 @@ with fg1:
             # Dummy old-style rect/poly vars (not used in adapter mode)
             _ft_inner_w = _ft_inner_h = 0.0
         else:
-            # ── No adapter: traditional rect/poly flange at horn throat ──
+            # ── No adapter: traditional throat flange ─────────────────────
             _ta_driver_type = "flanged"
             _ta_include_adapter = False
             _ta_adapter_len = 0.0
@@ -705,13 +704,17 @@ with fg1:
                 _ft_inner_h = max(_rect_h_o_0 - 2 * _FLANGE_WALL_BITE, 1.0)
                 _ft_inner_R = max(_ft_inner_w, _ft_inner_h) / 2
                 st.caption(f"Hole: {_ft_inner_w:.1f}\u00d7{_ft_inner_h:.1f} mm (rectangular)")
-            else:
+            elif is_poly:
                 from polygonal_horn import _r_to_circumradius
                 _R_poly_g     = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
                 _R_o_g_approx = _R_poly_g + thickness / np.cos(np.pi / n_sides)
                 _ft_inner_R   = _R_o_g_approx
                 _ft_inner_w = _ft_inner_h = 0.0
                 st.caption(f"Hole: {n_sides}-gon, R={_ft_inner_R:.1f} mm")
+            else:
+                _ft_inner_R = throat_d / 2 + thickness
+                _ft_inner_w = _ft_inner_h = 0.0
+                st.caption(f"Hole: \u00d8{_ft_inner_R*2:.0f} mm (circular)")
 
             _ft_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, _flange_sp, 0.5, key="ft_spess")
             _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off")
@@ -752,39 +755,6 @@ with fg1:
             _ft_bc = st.number_input("Bolt circle \u00d8 (mm)", _ft_bc_lo, _ft_bc_hi,
                 step=1.0, key="ft_bc")
             _ft_depth = 0.0; _ft_ow = _ft_oh = 0.0
-    else:
-        gen_throat = st.checkbox("Include", True, key="gen_throat")
-        _ft_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, _flange_sp, 0.5, key="ft_spess")
-        _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off")
-        _ft_nb  = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="ft_nb")
-        _ft_db  = st.number_input("Bolt hole \u00d8 (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
-        _ft_inner_R = throat_d / 2 + thickness
-        st.caption(f"Hole: \u00d8{_ft_inner_R*2:.0f} mm (circular)")
-        _ft_bpos = "At vertices"
-        _ft_bphase = _bolt_phase(4, "At vertices")
-        throat_outer = st.radio("Outer shape",
-            ["Circular", "Polygonal"], index=0, horizontal=True, key="throat_outer")
-        _ft_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
-                                        value=4, key="ft_outer_n")
-                       if throat_outer == "Polygonal" else 0)
-        _ft_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="ft_ring",
-            help="Wall around the hole — this sets the flange size. Widen it to fit bolts further out.")
-        _ft_flange_R = _flange_R_from_ring(_ft_inner_R, _ft_ring, _ft_outer_n)
-        _ft_od = _ft_flange_R * 2
-        if _ft_outer_n >= 3:
-            st.caption(f"Across corners \u00d8: {_ft_od:.1f} mm \u00b7 flats wall {_ft_ring:.0f} mm")
-        else:
-            st.caption(f"Outer \u00d8: {_ft_od:.1f} mm")
-        _ft_bc_lo, _ft_bc_hi = _bolt_circle_band(_ft_inner_R, _ft_flange_R, _ft_db, _ft_outer_n)
-        if "ft_bc" not in st.session_state:
-            st.session_state["ft_bc"] = _def_bc(_ft_bc_lo, _ft_bc_hi)
-        _clamp_state("ft_bc", _ft_bc_lo, _ft_bc_hi)
-        _ft_bc = st.number_input("Bolt circle \u00d8 (mm)", _ft_bc_lo, _ft_bc_hi,
-            step=1.0, key="ft_bc")
-        _ft_depth = 0.0
-        _ta_driver_type = "flanged"; _ta_include_adapter = False
-        _ta_adapter_len = 0.0; _ta_socket_depth = 0.0; _ft_driver_R = _ft_inner_R
-
 with fg2:
     st.markdown("##### Mouth Flange")
     if is_radial or is_lecleach or is_iwata:
@@ -945,7 +915,24 @@ if gen_btn:
     with st.spinner("Generating…"):
         try:
             import trimesh as _tm
+            import _utils as _uts
             C = _core
+
+            def _slope_start(z_arr, v_arr):
+                z_arr = np.asarray(z_arr, dtype=float)
+                v_arr = np.asarray(v_arr, dtype=float)
+                if len(z_arr) < 2:
+                    return 0.0
+                dz = z_arr[1] - z_arr[0]
+                if abs(dz) < 1e-9:
+                    return 0.0
+                return float((v_arr[1] - v_arr[0]) / dz)
+
+            _adapter_target_slope = 0.0
+            _adapter_outer_target_R = None
+            _adapter_outer_target_slope = None
+            _adapter_outer_rw = None
+            _adapter_outer_rh = None
 
             # --- 3a. Generate horn ---
             if is_poly:
@@ -962,16 +949,23 @@ if gen_btn:
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
                 horn.fix_normals()
                 from polygonal_horn import _r_to_circumradius
-                import _utils as _uts
                 _R_i_arr   = _r_to_circumradius(rp, n_sides)
                 _nml_poly  = _uts.compute_profile_normals(zp, _R_i_arr, flip_if_negative=True)
                 _cos_pn    = np.cos(np.pi / n_sides)
                 _R_o_arr   = _R_i_arr + thickness / _cos_pn * _nml_poly[:, 1]
+                _z_o_poly  = zp + thickness * _nml_poly[:, 0]
+                _z_o_poly  = np.clip(_z_o_poly, zp[0], zp[-1])
+                _z_o_poly[0] = zp[0]; _z_o_poly[-1] = zp[-1]
+                _R_o_eq_arr = np.sqrt(
+                    (0.5 * n_sides * _R_o_arr**2 * np.sin(2*np.pi/n_sides)) / np.pi)
                 _R_o_throat_poly = _R_o_arr[0]
                 _R_o_mouth_poly  = _R_o_arr[-1]
                 mouth_bx = mouth_by = _R_o_arr[-1] * 2
                 _rp_mouth = rp[-1]
                 _zp_mouth = zp[-1]
+                _adapter_target_slope = _slope_start(zp, rp)
+                _adapter_outer_target_R = float(_R_o_eq_arr[0])
+                _adapter_outer_target_slope = _slope_start(_z_o_poly, _R_o_eq_arr)
             elif is_radial:
                 with tempfile.TemporaryDirectory() as _tmp:
                     _rd.generate_radial_horn(throat_d, mouth_d, fc, 48, _tmp, profile_type)
@@ -1005,6 +999,20 @@ if gen_btn:
                 _rh.generate_rectangular_3d_mesh(zr, wr, hr, thickness, tp)
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
                 horn.fix_normals()
+                _nw_rect = _uts.compute_profile_normals(zr, wr, flip_if_negative=True)
+                _nh_rect = _uts.compute_profile_normals(zr, hr, flip_if_negative=True)
+                _z_o_rect = zr + thickness * (_nw_rect[:, 0] + _nh_rect[:, 0]) / 2.0
+                _z_o_rect = np.clip(_z_o_rect, zr[0], zr[-1])
+                _z_o_rect[0] = zr[0]; _z_o_rect[-1] = zr[-1]
+                _w_o_rect = wr + 2 * thickness * _nw_rect[:, 1]
+                _h_o_rect = hr + 2 * thickness * _nh_rect[:, 1]
+                _inner_eq_rect = np.sqrt(wr * hr / np.pi)
+                _outer_eq_rect = np.sqrt(_w_o_rect * _h_o_rect / np.pi)
+                _adapter_target_slope = _slope_start(zr, _inner_eq_rect)
+                _adapter_outer_target_R = float(_outer_eq_rect[0])
+                _adapter_outer_target_slope = _slope_start(_z_o_rect, _outer_eq_rect)
+                _adapter_outer_rw = float(_w_o_rect[0])
+                _adapter_outer_rh = float(_h_o_rect[0])
                 if is_iwata:
                     # Roll the wide-plane mouth back onto the plan arc (r=692 native):
                     # intersect with a solid cylinder whose axis runs along the height (Y).
@@ -1038,6 +1046,12 @@ if gen_btn:
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
                 C.generate_3d_mesh_from_profile(zp, rp, thickness, 64, tp)
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
+                _nml_circ = _uts.compute_profile_normals(zp, rp)
+                _z_o_circ = zp + thickness * _nml_circ[:, 0]
+                _r_o_circ = rp + thickness * _nml_circ[:, 1]
+                _adapter_target_slope = _slope_start(zp, rp)
+                _adapter_outer_target_R = float(_r_o_circ[0])
+                _adapter_outer_target_slope = _slope_start(_z_o_circ, _r_o_circ)
                 if is_lecleach:
                     _rmax = rp.max(); _imax = rp.argmax()
                     _rp_mouth = _rmax; _zp_mouth = zp[_imax]
@@ -1069,9 +1083,12 @@ if gen_btn:
                     horn = _tm.boolean.difference([horn, cyl], engine="manifold", check_volume=False)
 
             if gen_throat and not is_radial:
-                if (is_rect or is_poly) and _ta_include_adapter:
-                    # ── Adapter path: round driver → rect/poly transition ──
-                    _outer_target_R = None; _outer_rw = None; _outer_rh = None
+                if _ta_include_adapter:
+                    # ── Adapter path: round/threaded driver → horn throat ──
+                    _outer_target_R = _adapter_outer_target_R
+                    _outer_target_slope = _adapter_outer_target_slope
+                    _outer_rw = _adapter_outer_rw
+                    _outer_rh = _adapter_outer_rh
                     if is_rect:
                         horn_shape = "rectangular"
                         rect_w = throat_w
@@ -1079,11 +1096,7 @@ if gen_btn:
                         poly_n_sides = 0
                         poly_circumR = 0.0
                         horn_R_eq = np.sqrt(throat_w * throat_h / np.pi)
-                        if _driver_is_threaded:
-                            _outer_rw = _rect_w_o_0
-                            _outer_rh = _rect_h_o_0
-                            _outer_target_R = np.sqrt(_rect_w_o_0 * _rect_h_o_0 / np.pi)
-                    else:
+                    elif is_poly:
                         horn_shape = "polygonal"
                         rect_w = rect_h = 0.0
                         poly_n_sides = n_sides
@@ -1091,10 +1104,12 @@ if gen_btn:
                         poly_circumR = _r_to_circumradius(
                             np.array([throat_d / 2.0]), n_sides)[0]
                         horn_R_eq = throat_d / 2.0
-                        if _driver_is_threaded:
-                            _ocr = poly_circumR + thickness / np.cos(np.pi / n_sides)
-                            _outer_A = 0.5 * n_sides * _ocr**2 * np.sin(2*np.pi/n_sides)
-                            _outer_target_R = np.sqrt(_outer_A / np.pi)
+                    else:
+                        horn_shape = "circular"
+                        rect_w = rect_h = 0.0
+                        poly_n_sides = 0
+                        poly_circumR = 0.0
+                        horn_R_eq = throat_d / 2.0
 
                     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
                     f_throat = _ta.make_adapter_assembly(
@@ -1119,6 +1134,8 @@ if gen_btn:
                         outer_target_R=_outer_target_R,
                         outer_rect_w=_outer_rw,
                         outer_rect_h=_outer_rh,
+                        target_slope=_adapter_target_slope,
+                        outer_target_slope=_outer_target_slope,
                         z_offset=z_min,
                         output_path=tp,
                     )
@@ -1371,7 +1388,7 @@ _radial_clearance = st.number_input("Clearance (mm)", 0.0, 0.5, 0.1, 0.05,
 ax_mode = st.radio("Define segments by", ["Count", "Height (mm)"],
                    horizontal=True, key="ax_mode")
 if ax_mode == "Count":
-    n_ax = st.number_input("Number of axial segments", 1, 50, 4, step=1, key="n_ax")
+    n_ax = st.number_input("Number of axial segments", 1, 50, 1, step=1, key="n_ax")
     seg_ref = ("count", n_ax)
 else:
     seg_h = st.number_input("Cut every (mm)", 5, 500, 50, step=5, key="seg_h")
@@ -1415,7 +1432,7 @@ if ax_segs:
             z_lo, z_hi = seg.bounds[0, 2], seg.bounds[1, 2]
             st.caption(f"S{ai+1}  Z={z_lo:.0f}–{z_hi:.0f}")
             pet_key = f"_pet_ax{ai}"
-            default_pet = int(st.session_state.get(pet_key, 1))
+            default_pet = int(st.session_state.get(pet_key, 2))
             np_ = st.number_input("Petals", 1, 36, default_pet, step=1,
                                   key=pet_key, label_visibility="collapsed")
             petals_per.append(np_)
