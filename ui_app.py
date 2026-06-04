@@ -18,6 +18,7 @@ import rectangular_horn as _rh
 import radial_horn as _rd
 import polygonal_horn as _ph
 import _slicer as _slc
+import throat_adapter as _ta
 from _step_export import export_step
 
 import importlib
@@ -28,6 +29,7 @@ importlib.reload(_rh)
 importlib.reload(_rd)
 importlib.reload(_ph)
 importlib.reload(_slc)
+importlib.reload(_ta)
 
 st.set_page_config(page_title="flare_forge", layout="wide",
     initial_sidebar_state="collapsed", menu_items={})
@@ -586,7 +588,7 @@ def _bolt_circle_band(inner_R, flange_R, bolt_d, outer_n):
 fg1, fg2, fg3 = st.columns(3)
 
 with fg1:
-    st.markdown("##### Throat Flange")
+    st.markdown("##### Throat Flange / Adapter")
     if is_radial:
         st.caption("Mounting holes on bottom plate")
         gen_throat = st.checkbox("Include", True, key="gen_throat")
@@ -599,64 +601,182 @@ with fg1:
         _ft_bc    = st.number_input("Bolt circle Ø (mm)", _ft_bc_lo, _ft_bc_hi,
                                     step=1.0, key="ft_bc_rad")
         _ft_depth = st.number_input("Hole depth (mm)", 2.0, 30.0, 8.0, 0.5, key="ft_depth")
-        _ft_sp = _ft_off = _ft_od = _ft_ow = _ft_oh = 0.0
-        throat_outer = "Circular"
+        _ft_sp = _ft_off = _ft_od = _ft_ow = _ft_oh = 0.0; _ft_ring = 0.0
+        throat_outer = "Circular"; _ta_driver_type = "flanged"; _ta_include_adapter = False
+        _ta_adapter_len = 0.0; _ta_socket_depth = 0.0
+    elif is_rect or is_poly:
+        gen_throat = st.checkbox("Include", True, key="gen_throat")
+
+        # ── Adapter section ───────────────────────────────────────────────
+        _ta_include_adapter = st.checkbox("Include shape adapter", True,
+            key="ta_incl_adapter",
+            help="Transitions from round driver to the rectangular/polygonal "
+                 "horn throat, maintaining the expansion profile. "
+                 "Uncheck for a simple rectangular/polygonal throat flange.")
+
+        if _ta_include_adapter:
+            # ── Adapter mode: round driver → rect/poly transition ─────────
+            _ta_driver_type = st.radio("Driver interface",
+                ["Flanged", 'Threaded 1"', 'Threaded 1\u00bc"', 'Threaded 2"'],
+                index=0, horizontal=True, key="ta_driver_type")
+            _driver_is_flanged = _ta_driver_type == "Flanged"
+            _driver_is_threaded = not _driver_is_flanged
+
+            _ta_thread_key = None
+            if _driver_is_threaded:
+                _ta_thread_key = {"Threaded 1\"": "1in",
+                                  "Threaded 1\u00bc\"": "1_25in",
+                                  "Threaded 2\"": "2in"}[_ta_driver_type]
+
+            _ta_adapter_len = st.number_input("Adapter length (mm)", 5.0, 200.0, 30.0, 5.0,
+                key="ta_adapter_len",
+                help="Length of the round-to-shape transition section")
+
+            if _driver_is_threaded:
+                _ft_driver_d = _ta.THREAD_SPECS[_ta_thread_key].major_diam
+                st.caption(f"Driver throat: \u00d8{_ft_driver_d:.1f} mm ({_ta_driver_type})")
+                _ta_socket_depth = st.number_input("Socket depth (mm)", 5.0, 30.0, 15.0, 1.0,
+                    key="ta_socket_depth",
+                    help="Depth of the threaded bore for the driver")
+                _ft_sp = _ft_off = _ft_nb = _ft_db = _ft_od = _ft_bc = 0.0
+                _ft_ring = _ft_outer_n = 0; _ft_inner_R = _ft_driver_d / 2.0
+                throat_outer = "Circular"; _ft_bphase = 0.0; _ft_ow = _ft_oh = 0.0
+            else:
+                _default_driver_d = float(throat_d if is_rect else throat_d)
+                _ft_driver_d = st.number_input("Driver throat \u00d8 (mm)", 5.0, 200.0,
+                    _default_driver_d, 1.0, key="ft_driver_d",
+                    help="Circular throat diameter at the driver end. "
+                         "The adapter transitions from this to the horn throat shape.")
+                _ft_inner_R = _ft_driver_d / 2.0
+                _ft_sp  = st.number_input("Flange thickness (mm)", 2.0, 20.0, _flange_sp, 0.5,
+                    key="ft_spess")
+                _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off")
+                _ft_nb  = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="ft_nb")
+                _ft_db  = st.number_input("Bolt hole \u00d8 (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
+                st.caption(f"Hole: \u00d8{_ft_driver_d:.0f} mm (circular — driver end)")
+                _ft_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
+                    index=0, horizontal=True, key="ft_bpos",
+                    help="Align bolts with polygon vertices or face centers"
+                    ) if is_poly else "At vertices"
+                _ft_bphase = _bolt_phase(n_sides if is_poly else 4, _ft_bpos)
+                throat_outer = st.radio("Outer shape",
+                    ["Circular", "Polygonal"], index=0, horizontal=True, key="throat_outer")
+                _ft_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
+                                                value=n_sides, key="ft_outer_n")
+                               if throat_outer == "Polygonal" else 0)
+                _ft_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="ft_ring",
+                    help="Wall around the hole — this sets the flange size. "
+                         "Widen it to fit bolts further out.")
+                _ft_flange_R = _flange_R_from_ring(_ft_inner_R, _ft_ring, _ft_outer_n)
+                _ft_od = _ft_flange_R * 2
+                if _ft_outer_n >= 3:
+                    st.caption(f"Across corners \u00d8: {_ft_od:.1f} mm \u00b7 flats wall {_ft_ring:.0f} mm")
+                else:
+                    st.caption(f"Outer \u00d8: {_ft_od:.1f} mm")
+                _ft_bc_lo, _ft_bc_hi = _bolt_circle_band(_ft_inner_R, _ft_flange_R, _ft_db, _ft_outer_n)
+                if "ft_bc" not in st.session_state:
+                    st.session_state["ft_bc"] = _def_bc(_ft_bc_lo, _ft_bc_hi)
+                _clamp_state("ft_bc", _ft_bc_lo, _ft_bc_hi)
+                _ft_bc = st.number_input("Bolt circle \u00d8 (mm)", _ft_bc_lo, _ft_bc_hi,
+                    step=1.0, key="ft_bc")
+                _ta_socket_depth = 0.0; _ft_ow = _ft_oh = 0.0
+
+            _ft_depth = 0.0
+            # Dummy old-style rect/poly vars (not used in adapter mode)
+            _ft_inner_w = _ft_inner_h = 0.0
+        else:
+            # ── No adapter: traditional rect/poly flange at horn throat ──
+            _ta_driver_type = "flanged"
+            _ta_include_adapter = False
+            _ta_adapter_len = 0.0
+            _ta_socket_depth = 0.0
+            _driver_is_threaded = False
+            _driver_is_flanged = True
+
+            if is_rect:
+                _ft_inner_w = max(_rect_w_o_0, 1.0)
+                _ft_inner_h = max(_rect_h_o_0, 1.0)
+                _ft_inner_R = max(_ft_inner_w, _ft_inner_h) / 2
+                st.caption(f"Hole: {_ft_inner_w:.1f}\u00d7{_ft_inner_h:.1f} mm (rectangular)")
+            else:
+                from polygonal_horn import _r_to_circumradius
+                _R_poly_g     = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
+                _R_o_g_approx = _R_poly_g + thickness / np.cos(np.pi / n_sides)
+                _ft_inner_R   = _R_o_g_approx
+                _ft_inner_w = _ft_inner_h = 0.0
+                st.caption(f"Hole: {n_sides}-gon, R={_ft_inner_R:.1f} mm")
+
+            _ft_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, _flange_sp, 0.5, key="ft_spess")
+            _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off")
+            _ft_nb  = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="ft_nb")
+            _ft_db  = st.number_input("Bolt hole \u00d8 (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
+            _ft_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
+                index=0, horizontal=True, key="ft_bpos",
+                help="Align bolts with polygon vertices or face centers"
+                ) if (is_poly or is_rect) else "At vertices"
+            _ft_bphase = _bolt_phase(n_sides if is_poly else 4, _ft_bpos)
+            throat_outer = st.radio("Outer shape",
+                ["Circular", "Rectangular"] if is_rect else ["Circular", "Polygonal"],
+                index=0, horizontal=True, key="throat_outer")
+            _ft_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
+                                            value=n_sides, key="ft_outer_n")
+                           if throat_outer == "Polygonal" else 0)
+            _ft_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="ft_ring",
+                help="Wall around the hole — this sets the flange size. Widen it to fit bolts further out.")
+            _ft_flange_R = _flange_R_from_ring(_ft_inner_R, _ft_ring, _ft_outer_n)
+            _ft_od = _ft_flange_R * 2
+            if is_rect:
+                _ft_outer_w = _ft_inner_w + 2 * _ft_ring
+                _ft_outer_h = _ft_inner_h + 2 * _ft_ring
+                if throat_outer == "Circular":
+                    _ft_diag = np.sqrt(_ft_inner_w**2 + _ft_inner_h**2)
+                    _ft_od = _ft_diag + 2 * _ft_ring
+                    st.caption(f"Outer \u00d8: {_ft_od:.0f} mm (diag + 2\u00d7ring)")
+                else:
+                    st.caption(f"Outer: {_ft_outer_w:.0f}\u00d7{_ft_outer_h:.0f} mm (ring {_ft_ring:.0f} mm)")
+            elif _ft_outer_n >= 3:
+                st.caption(f"Across corners \u00d8: {_ft_od:.1f} mm \u00b7 flats wall {_ft_ring:.0f} mm")
+            else:
+                st.caption(f"Outer \u00d8: {_ft_od:.1f} mm")
+            _ft_bc_lo, _ft_bc_hi = _bolt_circle_band(_ft_inner_R, _ft_flange_R, _ft_db, _ft_outer_n)
+            if "ft_bc" not in st.session_state:
+                st.session_state["ft_bc"] = _def_bc(_ft_bc_lo, _ft_bc_hi)
+            _clamp_state("ft_bc", _ft_bc_lo, _ft_bc_hi)
+            _ft_bc = st.number_input("Bolt circle \u00d8 (mm)", _ft_bc_lo, _ft_bc_hi,
+                step=1.0, key="ft_bc")
+            _ft_depth = 0.0; _ft_ow = _ft_oh = 0.0
     else:
         gen_throat = st.checkbox("Include", True, key="gen_throat")
         _ft_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, _flange_sp, 0.5, key="ft_spess")
         _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off")
         _ft_nb  = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="ft_nb")
-        _ft_db  = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
-        if is_rect:
-            _ft_inner_w = max(_rect_w_o_0, 1.0)
-            _ft_inner_h = max(_rect_h_o_0, 1.0)
-            _ft_inner_R = max(_ft_inner_w, _ft_inner_h) / 2
-            st.caption(f"Hole: {_ft_inner_w:.1f}×{_ft_inner_h:.1f} mm (rectangular)")
-        elif is_poly:
-            from polygonal_horn import _r_to_circumradius
-            _R_poly_g     = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
-            _R_o_g_approx = _R_poly_g + thickness / np.cos(np.pi / n_sides)
-            _ft_inner_R   = _R_o_g_approx
-            st.caption(f"Hole: {n_sides}-gon, R={_ft_inner_R:.1f} mm")
-        else:
-            _ft_inner_R = throat_d / 2 + thickness
-            st.caption(f"Hole: Ø{_ft_inner_R*2:.0f} mm (circular)")
-        _ft_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
-            index=0, horizontal=True, key="ft_bpos",
-            help="Align bolts with polygon vertices or face centers"
-            ) if (is_poly or is_rect) else "At vertices"
-        _ft_bphase = _bolt_phase(n_sides if is_poly else 4, _ft_bpos)
+        _ft_db  = st.number_input("Bolt hole \u00d8 (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
+        _ft_inner_R = throat_d / 2 + thickness
+        st.caption(f"Hole: \u00d8{_ft_inner_R*2:.0f} mm (circular)")
+        _ft_bpos = "At vertices"
+        _ft_bphase = _bolt_phase(4, "At vertices")
         throat_outer = st.radio("Outer shape",
-            ["Circular", "Rectangular"] if is_rect else ["Circular", "Polygonal"],
-            index=0, horizontal=True, key="throat_outer")
+            ["Circular", "Polygonal"], index=0, horizontal=True, key="throat_outer")
         _ft_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
-                                        value=n_sides, key="ft_outer_n")
+                                        value=4, key="ft_outer_n")
                        if throat_outer == "Polygonal" else 0)
         _ft_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="ft_ring",
             help="Wall around the hole — this sets the flange size. Widen it to fit bolts further out.")
         _ft_flange_R = _flange_R_from_ring(_ft_inner_R, _ft_ring, _ft_outer_n)
         _ft_od = _ft_flange_R * 2
-        if is_rect:
-            _ft_outer_w = _ft_inner_w + 2 * _ft_ring
-            _ft_outer_h = _ft_inner_h + 2 * _ft_ring
-            if throat_outer == "Circular":
-                _ft_diag = np.sqrt(_ft_inner_w**2 + _ft_inner_h**2)
-                _ft_od = _ft_diag + 2 * _ft_ring
-                st.caption(f"Outer Ø: {_ft_od:.0f} mm (diag + 2×ring)")
-            else:
-                st.caption(f"Outer: {_ft_outer_w:.0f}×{_ft_outer_h:.0f} mm (ring {_ft_ring:.0f} mm)")
-        elif _ft_outer_n >= 3:
-            st.caption(f"Across corners Ø: {_ft_od:.1f} mm · flats wall {_ft_ring:.0f} mm")
+        if _ft_outer_n >= 3:
+            st.caption(f"Across corners \u00d8: {_ft_od:.1f} mm \u00b7 flats wall {_ft_ring:.0f} mm")
         else:
-            st.caption(f"Outer Ø: {_ft_od:.1f} mm")
-        # Bolt circle constrained to the ring band — holes stay inside, flange fixed.
+            st.caption(f"Outer \u00d8: {_ft_od:.1f} mm")
         _ft_bc_lo, _ft_bc_hi = _bolt_circle_band(_ft_inner_R, _ft_flange_R, _ft_db, _ft_outer_n)
         if "ft_bc" not in st.session_state:
             st.session_state["ft_bc"] = _def_bc(_ft_bc_lo, _ft_bc_hi)
         _clamp_state("ft_bc", _ft_bc_lo, _ft_bc_hi)
-        _ft_bc = st.number_input("Bolt circle Ø (mm)", _ft_bc_lo, _ft_bc_hi,
+        _ft_bc = st.number_input("Bolt circle \u00d8 (mm)", _ft_bc_lo, _ft_bc_hi,
             step=1.0, key="ft_bc")
         _ft_depth = 0.0
+        _ta_driver_type = "flanged"; _ta_include_adapter = False
+        _ta_adapter_len = 0.0; _ta_socket_depth = 0.0; _ft_driver_R = _ft_inner_R
 
 with fg2:
     st.markdown("##### Mouth Flange")
@@ -940,7 +1060,60 @@ if gen_btn:
                     horn = _tm.boolean.difference([horn, cyl], engine="manifold", check_volume=False)
 
             if gen_throat and not is_radial:
-                if is_rect:
+                if (is_rect or is_poly) and _ta_include_adapter:
+                    # ── Adapter path: round driver → rect/poly transition ──
+                    _outer_target_R = None; _outer_rw = None; _outer_rh = None
+                    if is_rect:
+                        horn_shape = "rectangular"
+                        rect_w = throat_w
+                        rect_h = throat_h
+                        poly_n_sides = 0
+                        poly_circumR = 0.0
+                        horn_R_eq = np.sqrt(throat_w * throat_h / np.pi)
+                        if _driver_is_threaded:
+                            _outer_rw = _rect_w_o_0
+                            _outer_rh = _rect_h_o_0
+                            _outer_target_R = np.sqrt(_rect_w_o_0 * _rect_h_o_0 / np.pi)
+                    else:
+                        horn_shape = "polygonal"
+                        rect_w = rect_h = 0.0
+                        poly_n_sides = n_sides
+                        from polygonal_horn import _r_to_circumradius
+                        poly_circumR = _r_to_circumradius(
+                            np.array([throat_d / 2.0]), n_sides)[0]
+                        horn_R_eq = throat_d / 2.0
+                        if _driver_is_threaded:
+                            _ocr = poly_circumR + thickness / np.cos(np.pi / n_sides)
+                            _outer_A = 0.5 * n_sides * _ocr**2 * np.sin(2*np.pi/n_sides)
+                            _outer_target_R = np.sqrt(_outer_A / np.pi)
+
+                    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
+                    f_throat = _ta.make_adapter_assembly(
+                        driver_type=_ta_thread_key if _driver_is_threaded else "flanged",
+                        driver_diam=_ft_driver_d if _driver_is_flanged else None,
+                        thread_key=_ta_thread_key,
+                        horn_shape=horn_shape,
+                        rect_w=rect_w, rect_h=rect_h,
+                        poly_n_sides=poly_n_sides,
+                        poly_circumR=poly_circumR,
+                        horn_R_eq=horn_R_eq,
+                        adapter_length=_ta_adapter_len,
+                        wall_thickness=thickness,
+                        flange_R=_ft_od / 2.0 if _driver_is_flanged else 0.0,
+                        flange_thickness=_ft_sp if _driver_is_flanged else 0.0,
+                        flange_bolt_R=_ft_bc / 2.0 if _driver_is_flanged else 0.0,
+                        flange_bolt_n=int(_ft_nb) if _driver_is_flanged else 0,
+                        flange_bolt_d=_ft_db if _driver_is_flanged else 0.0,
+                        flange_bolt_phase=_ft_bphase if _driver_is_flanged else 0.0,
+                        flange_outer_n=_ft_outer_n if _driver_is_flanged else 0,
+                        socket_length=_ta_socket_depth if _driver_is_threaded else 0.0,
+                        outer_target_R=_outer_target_R,
+                        outer_rect_w=_outer_rw,
+                        outer_rect_h=_outer_rh,
+                        z_offset=z_min,
+                        output_path=tp,
+                    )
+                elif is_rect:
                     _ft_ot = "circular" if throat_outer == "Circular" else "rectangular"
                     f_throat = _rf.generate_rectangular_flange(
                         outer_diam=_ft_od if _ft_ot == "circular" else None,

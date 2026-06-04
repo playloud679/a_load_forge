@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.6.0 (2026-06-04)
+
+- **Throat adapter / attacco filettato (`src/throat_adapter.py`)**: nuovo modulo per la flangia di gola che supporta un **adattatore tondo→rettangolare/poligonale** con interfaccia filettata. L'adattatore crea una transizione fluida (morphing) dall'uscita tonda del driver alla gola rettangolare/poligonale del corno, mantenendo la legge d'area del profilo di espansione. Interfacce driver disponibili: flangiata tradizionale (con fori bulloni), filettata 1" UNF, filettata 1¼" UNF, filettata 2" UNF. Il **filetto è modellato con profilo UNF 60°** tramite rivoluzione sinusoidale del profilo (r, z) — nessuna operazione booleana. L'adattatore è un unico corpo senza soluzione di continuità: il filetto termina esattamente a z=0 dove inizia il morphing, la parete esterna si raccorda fluidamente dall'anello filettato fino alla gola del corno.
+- **ThreadSpec**: dataclass con specifiche geometriche dei filetti (major_diam, pitch, tpi).
+- **UI — Throat Adapter**: nuova sezione nella flangia di gola per sezioni Rettangolare/Poligonale: checkbox "Include shape adapter", radio "Driver interface" (Flanged / Threaded 1" / 1¼" / 2"), lunghezza adattatore, profondità socket filettato. La flangia lato driver (se flangiata) è circolare e si aggancia all'uscita del driver; l'adattatore morphing collega il driver alla gola del corno.
+- **Fix profilo spiralato**: allineamento vertici cerchio↔bersaglio a θ=0 in `_rect_points` e `_poly_points` — il loft non ha più torsione elicoidale.
+- **Fix outer target**: l'adattatore filettato passa le dimensioni esterne del corno (`_rect_w_o_0` / `_rect_h_o_0`) come outer target, così l'outer wall dell'adattatore si aggancia all'ESTERNO della gola e l'inner wall all'INTERNO — parete continua senza scalini.
+- **Test**: 69 test funzionali + 33 geometria (102 totali), tutti verdi. 11 nuovi test per `throat_adapter`.
+
 ## 2.5.0 (2026-06-03)
 
 - **Iwata fedele (pavillon l'Audiophile, JBL 2440/375)**: il profilo "Iwata" non è più un clone assialsimmetrico di Salmon T=0.707, ma la geometria reale ricostruita dal piano originale — un corno **rettangolare a doppio flare** (larghezza e altezza con tassi diversi: gola 50×50 → bocca 740×320, aspect 1:1 → 2.3:1). Nuova `rectangular_horn.get_iwata_horn(throat, length)`. La sezione Iwata è auto-rettangolare e ignora il selettore Section (come il radiale); input ridotti a gola Ø + lunghezza (mouth, aspect e Fc sono intrinseci e derivati).

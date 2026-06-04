@@ -39,6 +39,7 @@ from src import radial_horn as _rd
 from src import flange_generator as _fg
 from src import rectangular_horn as _r
 from src import rectangular_flange as _rf
+from src import throat_adapter as _ta
 import trimesh
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -450,6 +451,137 @@ def _make_check_jointed_petals(n, depth):
 for _n in (2, 3, 4):
     test(f"{_n} petals joint_depth=2", _make_check_jointed_petals(_n, 2.0))
     test(f"{_n} petals joint_depth=0.5", _make_check_jointed_petals(_n, 0.5))
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  9. Throat adapter — thread specs, geometry, and assembly
+# ══════════════════════════════════════════════════════════════════════════════
+
+print("\n═══ Throat adapter ═══")
+
+def test_thread_specs():
+    assert len(_ta.THREAD_SPECS) == 3, f"expected 3 thread specs, got {len(_ta.THREAD_SPECS)}"
+    for key in ("1in", "1_25in", "2in"):
+        assert key in _ta.THREAD_SPECS, f"missing {key}"
+        spec = _ta.THREAD_SPECS[key]
+        assert spec.major_diam > 0, f"{key}: major_diam={spec.major_diam}"
+        assert spec.pitch > 0, f"{key}: pitch={spec.pitch}"
+test("thread specs", test_thread_specs)
+
+def test_circle_points():
+    pts = _ta._circle_points(10.0, 64)
+    assert pts.shape == (64, 2), f"shape={pts.shape}"
+    r = np.linalg.norm(pts, axis=1)
+    assert np.allclose(r, 10.0, atol=1e-10), f"radius not uniform: {r.min():.4f}..{r.max():.4f}"
+test("circle points", test_circle_points)
+
+def test_rect_points():
+    pts = _ta._rect_points(20.0, 10.0, 64)
+    assert pts.shape == (64, 2), f"shape={pts.shape}"
+    # Check bounds
+    assert abs(pts[:, 0].max() - 20.0) < 1e-10, f"x max {pts[:, 0].max()}"
+    assert abs(pts[:, 1].min() - (-10.0)) < 1e-10, f"y min {pts[:, 1].min()}"
+    area = _ta._polygon_area(pts)
+    expected = 40.0 * 20.0  # 2*hw * 2*hh
+    assert abs(area - expected) / expected < 0.05, f"area={area:.0f} vs {expected}"
+test("rect points", test_rect_points)
+
+def test_poly_points():
+    pts = _ta._poly_points(6, 20.0, 60)
+    assert pts.shape[0] >= 6, f"too few points {pts.shape}"
+    area = _ta._polygon_area(pts)
+    expected = 0.5 * 6 * 20.0**2 * np.sin(2 * np.pi / 6)
+    assert abs(area - expected) / expected < 0.05, f"area={area:.1f} vs {expected:.1f}"
+test("poly points", test_poly_points)
+
+def test_morph_slice_circle():
+    """At t=0 the morph should return a circle of radius ~driver_R."""
+    def _tfn():
+        return _ta._rect_points(10.0, 5.0, 64)
+    pts = _ta._morph_slice(0.0, 12.5, _tfn, 12.5, 64)
+    r = np.linalg.norm(pts, axis=1)
+    assert np.allclose(r, 12.5, atol=1.0), f"circle r={r.mean():.2f} vs 12.5"
+test("morph slice at t=0 (circle)", test_morph_slice_circle)
+
+def test_morph_slice_target():
+    """At t=1 the morph should match the target area."""
+    def _tfn():
+        return _ta._rect_points(20.0, 10.0, 64)
+    target_R_eq = np.sqrt(40.0 * 20.0 / np.pi)
+    pts = _ta._morph_slice(1.0, 12.5, _tfn, target_R_eq, 64)
+    area = _ta._polygon_area(pts)
+    expected = np.pi * target_R_eq**2
+    assert abs(area - expected) / expected < 0.02, f"area={area:.1f} vs {expected:.1f}"
+test("morph slice at t=1 (target)", test_morph_slice_target)
+
+def _check_trimesh_watertight(m, label):
+    assert m is not None, f"{label}: returned None"
+    assert m.is_watertight, f"{label}: not watertight"
+    assert m.body_count == 1, f"{label}: {m.body_count} bodies"
+    assert m.volume > 0, f"{label}: volume={m.volume}"
+
+def test_adapter_rect():
+    """Circle→rect adapter: short 30mm transition, watertight."""
+    m = _ta.make_adapter(
+        driver_R=12.5, horn_shape="rectangular",
+        horn_w=40.0, horn_h=20.0, horn_n_sides=0,
+        horn_R_eq=np.sqrt(40*20/np.pi),
+        horn_circumR=0.0,
+        axial_steps=20, adapter_length=30.0, wall_thickness=4.0,
+        output_path=None,
+    )
+    _check_trimesh_watertight(m, "adapter rect")
+test("adapter circle→rect watertight", test_adapter_rect)
+
+def test_adapter_poly():
+    """Circle→poly adapter: short transition, watertight."""
+    m = _ta.make_adapter(
+        driver_R=12.5, horn_shape="polygonal",
+        horn_w=0.0, horn_h=0.0, horn_n_sides=6,
+        horn_R_eq=12.5,
+        horn_circumR=12.5 * np.sqrt(2*np.pi / (6*np.sin(2*np.pi/6))),
+        axial_steps=20, adapter_length=30.0, wall_thickness=4.0,
+        output_path=None,
+    )
+    _check_trimesh_watertight(m, "adapter poly")
+test("adapter circle→poly watertight", test_adapter_poly)
+
+def test_threaded_socket():
+    for key in ("1in", "1_25in", "2in"):
+        m = _ta.make_threaded_socket(key, 15.0, 4.0)
+        _check_trimesh_watertight(m, f"threaded socket {key}")
+test("threaded sockets watertight", test_threaded_socket)
+
+def test_adapter_assembly_flanged():
+    """Full assembly with flange at driver end, circle→rect transition."""
+    m = _ta.make_adapter_assembly(
+        driver_type="flanged", driver_diam=25.0, thread_key=None,
+        horn_shape="rectangular",
+        rect_w=40.0, rect_h=20.0, poly_n_sides=0, poly_circumR=0.0,
+        horn_R_eq=np.sqrt(40*20/np.pi),
+        adapter_length=30.0, wall_thickness=4.0,
+        flange_R=30.0, flange_thickness=6.0,
+        flange_bolt_R=20.0, flange_bolt_n=4, flange_bolt_d=3.5,
+        socket_length=0.0, z_offset=0.0,
+        output_path=None,
+    )
+    _check_trimesh_watertight(m, "adapter assembly flanged")
+test("adapter assembly flanged", test_adapter_assembly_flanged)
+
+def test_adapter_assembly_threaded():
+    """Full assembly with threaded socket, circle→poly transition."""
+    m = _ta.make_adapter_assembly(
+        driver_type="1in", driver_diam=None, thread_key="1in",
+        horn_shape="polygonal",
+        rect_w=0.0, rect_h=0.0, poly_n_sides=6,
+        poly_circumR=15.0,
+        horn_R_eq=12.5,
+        adapter_length=30.0, wall_thickness=4.0,
+        socket_length=15.0, z_offset=0.0,
+        output_path=None,
+    )
+    _check_trimesh_watertight(m, "adapter assembly threaded")
+test("adapter assembly threaded", test_adapter_assembly_threaded)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

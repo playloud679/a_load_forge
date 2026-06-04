@@ -17,6 +17,9 @@ Whenever you modify a Python module under `src/` (add a new profile, change a fu
 | New radial joint feature (tongue & groove) | Add checkbox + depth + clearance controls in Slice section; `slice_into_petals()` accepts `joint_depth`, `clearance` |
 | Changed radial joint behaviour | `slice_into_petals()`: n>=3 → groove on left seam + tongue on right; n==2 → hermaphrodite (identical parts). No UI change needed. |
 | Re‑enable Rectangular section | Add `"Rectangular"` to `section_type` radio; set `is_rect`; show W×H inputs for throat/mouth; add preview + flange + generation branches |
+| New throat adapter feature (`src/throat_adapter.py`) | Add `import throat_adapter as _ta` + `importlib.reload(_ta)` at top of `ui_app.py`. In throat flange section (rect/poly): add "Include shape adapter" checkbox + "Driver interface" radio (Flanged / Threaded 1" / 1¼" / 2") + adapter length + socket depth. In generation: call `_ta.make_adapter_assembly()` for adapter path, falls through to existing rect/poly flange when adapter is off. |
+| Changed `make_adapter_assembly` signature | If you change parameters, update both the UI call in the generation block and the test cases in `tests/test_all.py`. |
+| New `throat_adapter.py` module | See module docstring. `THREAD_SPECS` dict for standard thread sizes. Key functions: `make_adapter()` (transition loft only), `make_threaded_socket()`, `make_adapter_assembly()` (full assembly). Add to the `importlib.reload()` block and test suite. |
 
 ### Concrete pattern for adding a new profile
 
@@ -82,6 +85,7 @@ import rectangular_horn as _rh
 import radial_horn as _rd
 import polygonal_horn as _ph
 import _slicer as _slc
+import throat_adapter as _ta
 
 import importlib
 importlib.reload(_core)
@@ -91,6 +95,7 @@ importlib.reload(_rh)
 importlib.reload(_rd)
 importlib.reload(_ph)
 importlib.reload(_slc)
+importlib.reload(_ta)
 ```
 
 ### Important Rules
