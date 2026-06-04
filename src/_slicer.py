@@ -184,6 +184,46 @@ def slice_at_heights(mesh: trimesh.Trimesh, heights: list[float],
     return _with_joints(segments, cuts, joint_wall, angles)
 
 
+def slice_with_adapter_segment(
+    mesh: trimesh.Trimesh,
+    adapter_cut_z: float,
+    flare_segments: int = 1,
+    flare_height: float | None = None,
+    joint_wall: float = 0.0,
+) -> list[trimesh.Trimesh]:
+    """
+    Cut off the throat adapter as its own bottom axial segment, then slice only
+    the flare side above *adapter_cut_z*.
+
+    *adapter_cut_z* is the Z height where the adapter enters the horn throat.
+    When *joint_wall* > 0 the adapter→flare cut receives the same axial lip as
+    any other intermediate Z cut.
+    """
+    z_min = float(mesh.bounds[0, 2])
+    z_max = float(mesh.bounds[1, 2])
+    cut = float(adapter_cut_z)
+    cuts: list[float] = []
+
+    if z_min + 1e-6 < cut < z_max - 1e-6:
+        cuts.append(cut)
+    else:
+        return slice_into_segments(mesh, max(1, int(flare_segments)),
+                                   joint_wall=joint_wall)
+
+    if flare_height is not None and flare_height > 0:
+        z = cut + float(flare_height)
+        while z < z_max - 1e-6:
+            cuts.append(z)
+            z += float(flare_height)
+    else:
+        n = max(1, int(flare_segments))
+        if n > 1:
+            dz = (z_max - cut) / n
+            cuts.extend(cut + dz * k for k in range(1, n))
+
+    return slice_at_heights(mesh, cuts, joint_wall=joint_wall)
+
+
 def seam_phase_avoiding_holes(n: int, hole_angles, samples: int = 1440) -> float:
     """
     Pick a seam phase (rad) for *n* evenly-spaced radial cuts that keeps every

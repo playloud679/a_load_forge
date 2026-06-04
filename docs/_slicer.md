@@ -204,6 +204,46 @@ between consecutive heights. Joint lips added when `joint_wall > 0`.
 
 ---
 
+### `slice_with_adapter_segment`
+
+```python
+def slice_with_adapter_segment(
+    mesh: trimesh.Trimesh,
+    adapter_cut_z: float,
+    flare_segments: int = 1,
+    flare_height: float | None = None,
+    joint_wall: float = 0.0,
+) -> list[trimesh.Trimesh]:
+```
+
+Cuts the throat adapter off as its own bottom axial segment, then segments
+only the flare side above `adapter_cut_z`.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `mesh` | `trimesh.Trimesh` | (required) | Full generated/uploaded mesh to slice. |
+| `adapter_cut_z` | `float` | (required) | Z height where the adapter enters the horn throat. |
+| `flare_segments` | `int` | `1` | Number of equal axial segments above the adapter cut when `flare_height` is not set. |
+| `flare_height` | `float \| None` | `None` | If set, cut the flare side every this many mm above `adapter_cut_z`. |
+| `joint_wall` | `float` | `0.0` | Axial lip wall. `0` = plain cut; `>0` adds lips through `slice_at_heights()`. |
+
+**Behavior:**
+
+1. Adds `adapter_cut_z` as the first intermediate cut when it lies inside
+   the mesh Z bounds.
+2. If `flare_height` is provided, adds repeated cuts at
+   `adapter_cut_z + k·flare_height` up to `Zmax`.
+3. Otherwise divides only `[adapter_cut_z, Zmax]` into `flare_segments`
+   equal parts.
+4. Calls `slice_at_heights()` so all cuts, including adapter→flare, receive
+   the usual axial lip when `joint_wall > 0`.
+5. If `adapter_cut_z` is outside the mesh bounds, falls back to
+   `slice_into_segments(mesh, flare_segments, joint_wall)`.
+
+---
+
 ## Radial petals
 
 ### `seam_phase_avoiding_holes`

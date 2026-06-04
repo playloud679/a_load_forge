@@ -427,6 +427,18 @@ def _horn_trimesh():
     m = trimesh.load(p, file_type="stl"); os.unlink(p)
     return m
 
+def _adapter_segment_axial_cut():
+    mesh = trimesh.creation.cylinder(radius=20.0, height=100.0, sections=64)
+    mesh.apply_translation([0, 0, 50.0])
+    parts = _slc.slice_with_adapter_segment(mesh, 20.0, flare_segments=2)
+    assert len(parts) == 3, f"expected adapter + 2 flare segments, got {len(parts)}"
+    expected = [(0.0, 20.0), (20.0, 60.0), (60.0, 100.0)]
+    for i, (part, (lo, hi)) in enumerate(zip(parts, expected)):
+        assert part.is_watertight, f"adapter axial segment {i}: not watertight"
+        assert abs(part.bounds[0, 2] - lo) < 1e-6, f"segment {i}: z_lo {part.bounds[0,2]} != {lo}"
+        assert abs(part.bounds[1, 2] - hi) < 1e-6, f"segment {i}: z_hi {part.bounds[1,2]} != {hi}"
+test("adapter segment axial cut", _adapter_segment_axial_cut)
+
 def _make_check_petals(n):
     def _check():
         horn = _horn_trimesh()

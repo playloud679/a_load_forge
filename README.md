@@ -56,6 +56,8 @@ A horn that's too big for the print bed can be sliced into `n` radial petals (li
 
 The UI defaults to one axial segment and two radial petals. That gives a ready-to-print left/right split without accidentally slicing the horn into a stack of axial rings; increase the segment count only when the print height needs it.
 
+When an assembly includes a throat adapter, the slicer can treat the adapter as its own bottom axial segment. The cut is placed at the adapter-to-flare handoff and uses the same axial joint lip when enabled, while Count/Height segmentation applies only to the flare above it.
+
 For `n >= 3` each petal is a wedge under 180°, so its left and right seams are distinct planes: a groove goes on the left, a tongue on the right, and adjacent petals mate tongue-into-groove.
 
 `n = 2` is the awkward case, and worth calling out because it's easy to get wrong. The two cutting planes are coplanar — a single diametric plane through the axis — so a petal's "left" and "right" seams are the *same* face, and that face crosses the axis into **two** wall strips. You can't put both a groove and a tongue on one face. The fix is to make each half hermaphrodite: a tongue on one strip, a groove on the other, with the strip assignment flipped between the two halves so a tongue always faces a groove. The two halves come out as identical parts — one is just the other rotated 180°.
@@ -79,7 +81,7 @@ The STEP files use AP203 CONFIG_CONTROL_DESIGN schema with `FACETED_BREP` and `C
     .venv/bin/python tests/test_all.py
     .venv/bin/python tests/test_geometry.py
 
-`test_all.py` (77 tests) covers the full profile × section matrix, flanges, slicing, the radial petal tongue & groove joint, and the throat adapter raccordo. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
+`test_all.py` (78 tests) covers the full profile × section matrix, flanges, slicing, the radial petal tongue & groove joint, and the throat adapter raccordo. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
 
 ## Known limitations
 

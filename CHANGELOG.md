@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.8.0 (2026-06-04)
+
+- **Slicer — adapter come segmento assiale** (`src/_slicer.py`, `ui_app.py`): quando l'assembly generato contiene un throat adapter, lo slicer può creare un taglio dedicato alla quota adapter→flare. L'adapter diventa il segmento assiale inferiore e il flare viene segmentato solo sopra quel punto, con lo stesso axial joint lip se abilitato.
+- **Test**: 78 funzionali + 33 geometria (111 totali), tutti verdi. Nuovo test `adapter segment axial cut`.
+- **Docs**: README e `docs/_slicer.md` aggiornati per il nuovo taglio adapter.
+
 ## 2.7.1 (2026-06-04)
 
 - **Version sync**: `VERSION` e `pyproject.toml` allineati a `2.7.1`.

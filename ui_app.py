@@ -48,6 +48,7 @@ def _on_horn_change():
                "mid_ring", "mid_bc", "mid_ow", "mid_oh"):
         st.session_state.pop(_k, None)
     st.session_state.pop("_combined", None)
+    st.session_state.pop("_adapter_cut_z", None)
 
 _hdr_l, _hdr_r = st.columns([5, 1])
 with _hdr_l:
@@ -1279,6 +1280,10 @@ if gen_btn:
                 except Exception:
                     combined = _tm.util.concatenate(bodies)
             st.session_state["_combined"] = combined
+            if gen_throat and not is_radial and _ta_include_adapter and f_throat is not None:
+                st.session_state["_adapter_cut_z"] = float(z_min + 0.5)
+            else:
+                st.session_state.pop("_adapter_cut_z", None)
 
             with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
             combined.export(tp)
@@ -1376,11 +1381,29 @@ if abs(_z_off) > 0.5:
     mesh_to_slice.apply_translation([0, 0, -_z_off])
     st.caption(f"Mesh shifted by {-_z_off:.0f} mm so Z starts at 0")
 
+_adapter_cut_z = None
+if load_choice == "Generated assembly":
+    _adapter_cut_raw = st.session_state.get("_adapter_cut_z")
+    if _adapter_cut_raw is not None:
+        _adapter_cut_z = float(_adapter_cut_raw) - float(_z_off)
+        if not (mesh_to_slice.bounds[0, 2] + 1e-6 < _adapter_cut_z < mesh_to_slice.bounds[1, 2] - 1e-6):
+            _adapter_cut_z = None
+
 _joint = st.checkbox("Axial joint lip", True, key="joint_en",
                      help="Add a joint lip on each axial cut so stacked segments "
                           "register and glue together.")
 _joint_w = st.number_input("Lip wall (mm)", 0.5, 10.0, 4.0, 0.5, key="joint_w",
                             help="Wall thickness of the axial joint lip") if _joint else 0.0
+
+_cut_adapter_segment = False
+if _adapter_cut_z is not None:
+    _cut_adapter_segment = st.checkbox("Adapter as axial segment", False,
+                                       key="slice_adapter_segment",
+                                       help="Add a dedicated cut where the adapter enters "
+                                            "the flare; the adapter becomes its own bottom "
+                                            "segment and receives the axial joint lip.")
+    if _cut_adapter_segment:
+        st.caption(f"Adapter cut at Z={_adapter_cut_z:.1f} mm; flare segmentation starts above it.")
 
 _radial_joint = st.checkbox("Radial joint (tongue & groove)", False, key="radial_joint_en",
                             help="Add a vertical tongue & groove on each radial "
@@ -1398,19 +1421,32 @@ _radial_clearance = st.number_input("Clearance (mm)", 0.0, 0.5, 0.1, 0.05,
 ax_mode = st.radio("Define segments by", ["Count", "Height (mm)"],
                    horizontal=True, key="ax_mode")
 if ax_mode == "Count":
-    n_ax = st.number_input("Number of axial segments", 1, 50, 1, step=1, key="n_ax")
+    _n_ax_label = "Flare axial segments" if _cut_adapter_segment else "Number of axial segments"
+    n_ax = st.number_input(_n_ax_label, 1, 50, 1, step=1, key="n_ax")
     seg_ref = ("count", n_ax)
 else:
     seg_h = st.number_input("Cut every (mm)", 5, 500, 50, step=5, key="seg_h")
-    total_z = mesh_to_slice.bounds[1, 2] - mesh_to_slice.bounds[0, 2]
+    total_z = mesh_to_slice.bounds[1, 2] - (_adapter_cut_z if _cut_adapter_segment else mesh_to_slice.bounds[0, 2])
     cuts = [seg_h * k for k in range(1, int(total_z / seg_h) + 1)]
-    n_seg = len(cuts) + 1
-    st.caption(f"Total Z={total_z:.0f} mm → {n_seg} segment{'s' if n_seg>1 else ''} (cut at {', '.join(f'{c:.0f}' for c in cuts)})")
+    n_seg = len(cuts) + 1 + (1 if _cut_adapter_segment else 0)
+    _total_label = "Total flare Z" if _cut_adapter_segment else "Total Z"
+    st.caption(f"{_total_label}={total_z:.0f} mm → {n_seg} segment{'s' if n_seg>1 else ''}")
     seg_ref = ("height", seg_h)
 
 if st.button("❶ Slice axially", use_container_width=True):
     with st.spinner("Cutting axially…"):
-        if seg_ref[0] == "count":
+        if _cut_adapter_segment and _adapter_cut_z is not None:
+            if seg_ref[0] == "count":
+                st.session_state["_ax_segs"] = _slc.slice_with_adapter_segment(
+                    mesh_to_slice, _adapter_cut_z,
+                    flare_segments=int(seg_ref[1]),
+                    joint_wall=_joint_w)
+            else:
+                st.session_state["_ax_segs"] = _slc.slice_with_adapter_segment(
+                    mesh_to_slice, _adapter_cut_z,
+                    flare_height=float(seg_ref[1]),
+                    joint_wall=_joint_w)
+        elif seg_ref[0] == "count":
             n = seg_ref[1]
             if n <= 1:
                 st.session_state["_ax_segs"] = [mesh_to_slice]
