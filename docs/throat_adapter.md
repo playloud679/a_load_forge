@@ -43,9 +43,9 @@ class ThreadSpec:
 
 All return `np.ndarray` of shape `(n, 2)` — XY points.
 
-### `_circle_points(r: float, n: int = 64) -> np.ndarray`
+### `_circle_points(r: float, n: int = 64, phase: float = 0.0) -> np.ndarray`
 
-Returns `n` equally-spaced points on a circle of radius `r`. First point at `θ = 0` (rightmost: `(r, 0)`).
+Returns `n` equally-spaced points on a circle of radius `r`. First point is at `θ = phase`; default `phase = 0` gives the rightmost point `(r, 0)`. Polygonal adapters pass `phase = π/2` so the circular driver/socket rings and the target N-gon use the same vertex phase, preventing a helical twist through the transition.
 
 ### `_rect_points(hw: float, hh: float, n: int = 64) -> np.ndarray`
 
@@ -64,7 +64,7 @@ This matched start point (mid-right = `θ=0` equivalent) ensures twist-free morp
 
 Returns `n` points on a regular N-gon (convex polygon), distributed evenly along the perimeter.
 
-- First vertex at `θ = 0` (rightmost point — matches `_circle_points` start)
+- Vertices use the same `θ = k × 2π/N + π/2` phase as `polygonal_horn.py`, so the adapter's polygonal throat is rotationally aligned with the flare.
 - Computes vertex positions, edge lengths, cumulative perimeter
 - Interpolates `n` points along the perimeter by linear position along each edge
 - Returns exactly `n` points for compatibility with morphing engine

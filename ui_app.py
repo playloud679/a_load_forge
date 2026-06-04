@@ -458,6 +458,12 @@ def _calc_flange_dims():
         z_o = zp + nml[:, 0] * thickness
         return float(max(0.1, zp[-1] - z_o[-1]))
 
+    def _circular_mouth_hole_R(zp, rp):
+        """Mouth flange hole: actual outer wall radius, bitten slightly inward."""
+        nml = _uts.compute_profile_normals(zp, rp)
+        r_o = rp + nml[:, 1] * thickness
+        return float(max(rp[-1] + 0.1, r_o[-1] - _FLANGE_WALL_BITE))
+
     mouth_dz = float(thickness)
     if is_rect:
         ir_throat = throat_w / 2 + thickness
@@ -472,7 +478,7 @@ def _calc_flange_dims():
         else:
             throat_d_eq = np.sqrt(throat_w * throat_h * 4 / np.pi)
             zr, wr, hr = _rh._area_to_rect(*_core.get_lecleach(throat_d_eq, fc, axial_len, segments, T=salmon_T), throat_w, throat_h)
-        ir_mouth = max(wr[-1], hr[-1]) / 2 + thickness
+        ir_mouth = max(_rect_w_o_n, _rect_h_o_n) / 2 - _FLANGE_WALL_BITE
         _get_mid_r = lambda pct, _z=zr, _w=wr, _h=hr: max(
             _w[min(int(len(_w)*pct/100), len(_w)-1)],
             _h[min(int(len(_h)*pct/100), len(_h)-1)]) / 2 + thickness
@@ -487,20 +493,25 @@ def _calc_flange_dims():
             zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
         elif is_exp:
             zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
-        ir_mouth = _r_to_circumradius(np.array([rp.max()]), n_sides)[0]
+        R_i = _r_to_circumradius(rp, n_sides)
+        nml = _uts.compute_profile_normals(zp, R_i, flip_if_negative=True)
+        R_o = R_i + thickness / np.cos(np.pi / n_sides) * nml[:, 1]
+        ir_mouth = float(max(R_i[-1] + 0.1, R_o[-1] - _FLANGE_WALL_BITE))
         mouth_dz = _mouth_wall_dz(zp, rp)
         _get_mid_r = lambda pct: _r_to_circumradius(np.array([rp[int(len(rp)*pct/100)]]), n_sides)[0]
     elif is_radial:
         ir_throat = throat_d / 2; ir_mouth = mouth_d / 2
         _get_mid_r = lambda pct: None
     elif is_tractrix:
-        ir_throat = throat_d / 2; ir_mouth = mouth_d / 2
+        ir_throat = throat_d / 2
         zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
+        ir_mouth = _circular_mouth_hole_R(zp, rp)
         mouth_dz = _mouth_wall_dz(zp, rp)
         _get_mid_r = lambda pct: rp[int(np.searchsorted(zp, zp[-1]*pct/100))]
     elif is_exp:
         zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
-        ir_throat = throat_d / 2; ir_mouth = rp.max()
+        ir_throat = throat_d / 2
+        ir_mouth = _circular_mouth_hole_R(zp, rp)
         mouth_dz = _mouth_wall_dz(zp, rp)
         _get_mid_r = lambda pct: rp[min(int(np.searchsorted(zp, zp[-1]*pct/100)), len(rp)-1)]
     else:  # salmon / lecleach
@@ -508,7 +519,8 @@ def _calc_flange_dims():
             zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
         else:
             zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
-        ir_throat = throat_d / 2; ir_mouth = rp.max()
+        ir_throat = throat_d / 2
+        ir_mouth = _circular_mouth_hole_R(zp, rp)
         mouth_dz = _mouth_wall_dz(zp, rp)
         _z_len = zp.max()  # for roll-back profiles, use max z (axial extent)
         _get_mid_r = lambda pct, _zp=zp, _rp=rp, _zl=_z_len: _rp[np.argmin(np.abs(_zp - _zl*pct/100))]
@@ -786,11 +798,10 @@ with fg2:
             st.caption(f"Hole: {_fm_inner_w:.1f}×{_fm_inner_h:.1f} mm (rectangular)")
         elif is_poly:
             _fm_inner_R = ir_mouth
-            st.caption(f"Hole: {n_sides}-gon, R≈{_fm_inner_R:.0f} mm")
+            st.caption(f"Hole: {n_sides}-gon, R≈{_fm_inner_R:.1f} mm")
         else:
-            _fm_inner_R = ir_mouth + thickness
-            _fm_prof_R  = ir_mouth  # inner profile radius (without wall)
-            st.caption(f"Hole: Ø{_fm_prof_R*2:.0f} mm (circular)")
+            _fm_inner_R = ir_mouth
+            st.caption(f"Hole: Ø{_fm_inner_R*2:.1f} mm (bites wall)")
         _fm_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
             index=0, horizontal=True, key="fm_bpos",
             help="Align bolts with polygon vertices or face centers"
@@ -805,8 +816,8 @@ with fg2:
                        if mouth_outer == "Polygonal" else 0)
         _fm_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="fm_ring",
             help="Wall around the hole — this sets the flange size.")
-        _fm_flange_R = _flange_R_from_ring(ir_mouth, _fm_ring, _fm_outer_n)
-        _fm_hole_R   = ir_mouth
+        _fm_hole_R = _fm_inner_R
+        _fm_flange_R = _flange_R_from_ring(_fm_hole_R, _fm_ring, _fm_outer_n)
         _fm_od = _fm_flange_R * 2
         if is_rect:
             _fm_outer_w = _fm_inner_w + 2 * _fm_ring
@@ -921,12 +932,11 @@ if gen_btn:
             def _slope_start(z_arr, v_arr):
                 z_arr = np.asarray(z_arr, dtype=float)
                 v_arr = np.asarray(v_arr, dtype=float)
-                if len(z_arr) < 2:
-                    return 0.0
-                dz = z_arr[1] - z_arr[0]
-                if abs(dz) < 1e-9:
-                    return 0.0
-                return float((v_arr[1] - v_arr[0]) / dz)
+                for i in range(1, len(z_arr)):
+                    dz = z_arr[i] - z_arr[0]
+                    if abs(dz) > 1e-6:
+                        return float((v_arr[i] - v_arr[0]) / dz)
+                return 0.0
 
             _adapter_target_slope = 0.0
             _adapter_outer_target_R = None
@@ -1136,7 +1146,7 @@ if gen_btn:
                         outer_rect_h=_outer_rh,
                         target_slope=_adapter_target_slope,
                         outer_target_slope=_outer_target_slope,
-                        z_offset=z_min,
+                        z_offset=z_min + 0.5,
                         output_path=tp,
                     )
                 elif is_rect:
@@ -1187,7 +1197,7 @@ if gen_btn:
                         output_path=None)
                 elif is_poly:
                     f_mouth = _fg.generate_polygonal_flange(
-                        inner_circumR=_R_o_mouth_poly, n_sides=n_sides,
+                        inner_circumR=_fm_hole_R, n_sides=n_sides,
                         flange_R=_fm_od/2,
                         thickness=_fm_sp, bolt_R=_fm_bc/2,
                         bolt_n=int(_fm_nb), bolt_d=_fm_db,

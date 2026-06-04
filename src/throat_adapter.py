@@ -52,9 +52,9 @@ THREAD_SPECS: dict[str, ThreadSpec] = {
 _NP = 64  # points per perimeter
 
 
-def _circle_points(r: float, n: int = _NP) -> np.ndarray:
+def _circle_points(r: float, n: int = _NP, phase: float = 0.0) -> np.ndarray:
     """Return N×2 array of points on a circle of radius *r*."""
-    th = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    th = np.linspace(0, 2 * np.pi, n, endpoint=False) + phase
     return np.column_stack([r * np.cos(th), r * np.sin(th)])
 
 
@@ -106,13 +106,13 @@ def _rect_points(hw: float, hh: float, n: int = _NP) -> np.ndarray:
 def _poly_points(n_sides: int, circumradius: float, n: int = _NP) -> np.ndarray:
     """Return N×2 array of *n* points on a regular N-gon.
 
-    First vertex is at θ=0 (rightmost point, matching the circle's first
-    point) so the morphing loft has no helical twist.
+    Vertices use the same +π/2 phase as ``polygonal_horn`` so the adapter
+    throat lands on the horn without a rotational offset.
     Points are distributed evenly along the perimeter, always returning
     exactly *n* points for compatibility with the morphing engine.
     """
-    # First vertex at angle 0 (rightmost), matching _circle_points(θ=0)
-    v_theta = np.linspace(0, 2 * np.pi, n_sides, endpoint=False)
+    # Match polygonal_horn.generate_polygonal_3d_mesh orientation.
+    v_theta = np.linspace(0, 2 * np.pi, n_sides, endpoint=False) + np.pi / 2.0
     # Vertex positions
     verts = np.column_stack([circumradius * np.cos(v_theta),
                               circumradius * np.sin(v_theta)])
@@ -210,6 +210,7 @@ def _morph_slice(
     n: int = _NP,
     shape_t: float | None = None,
     r_eq_des: float | None = None,
+    source_phase: float = 0.0,
 ) -> np.ndarray:
     """Single cross-section at parametric position *t* ∈ [0, 1].
 
@@ -229,7 +230,7 @@ def _morph_slice(
         r_eq_des = (1.0 - t) * driver_R + t * target_R_eq
 
     # Source: circle at driver radius
-    src = _circle_points(driver_R, n)
+    src = _circle_points(driver_R, n, phase=source_phase)
 
     # Target shape, scaled to target area
     raw_target = target_fn()
@@ -377,6 +378,7 @@ def make_adapter(
         _outer_target_R = outer_target_R
     else:
         raise ValueError(f"unsupported horn_shape: {horn_shape!r}")
+    _source_phase = np.pi / 2.0 if horn_shape == "polygonal" else 0.0
 
     # ---- Thread parameters ----
     has_threads = thread_key is not None and socket_length > 0.5
@@ -419,8 +421,8 @@ def make_adapter(
             turn_frac = (t_abs % _pitch) / _pitch
             r_thread = _major_R - (_major_R - _minor_R) * 0.5 * (
                 1.0 - np.cos(2.0 * np.pi * turn_frac))
-            inner = _circle_points(r_thread, n)
-            outer = _circle_points(_outer_R, n)
+            inner = _circle_points(r_thread, n, phase=_source_phase)
+            outer = _circle_points(_outer_R, n, phase=_source_phase)
             is_thread.append(True)
         elif has_threads:
             # Threaded transition: inner morphs from major_R → inner target,
@@ -430,23 +432,27 @@ def make_adapter(
             inner_R = _hermite_radius(t, _major_R, target_R,
                                       adapter_length, target_slope)
             inner = _morph_slice(t, _major_R, _target_fn, target_R, n,
-                                 shape_t=shape_t, r_eq_des=inner_R)
+                                 shape_t=shape_t, r_eq_des=inner_R,
+                                 source_phase=_source_phase)
             if _outer_target_fn is not None and _outer_target_R is not None:
                 outer_R = _hermite_radius(t, _outer_R, _outer_target_R,
                                           adapter_length, outer_target_slope)
                 outer = _morph_slice(t, _outer_R, _outer_target_fn,
                                      _outer_target_R, n,
-                                     shape_t=shape_t, r_eq_des=outer_R)
+                                     shape_t=shape_t, r_eq_des=outer_R,
+                                     source_phase=_source_phase)
             elif outer_target_R is not None:
                 outer_R = _hermite_radius(t, _outer_R, outer_target_R,
                                           adapter_length, outer_target_slope)
                 outer = _morph_slice(t, _outer_R, _target_fn,
                                      outer_target_R, n,
-                                     shape_t=shape_t, r_eq_des=outer_R)
+                                     shape_t=shape_t, r_eq_des=outer_R,
+                                     source_phase=_source_phase)
             else:
                 outer = _morph_slice(t, _outer_R, _target_fn,
                                      target_R + 0.15, n,
-                                     shape_t=shape_t)
+                                     shape_t=shape_t,
+                                     source_phase=_source_phase)
             is_thread.append(False)
         else:
             # Flanged transition: double‑wall with a true outward-normal
@@ -459,21 +465,24 @@ def make_adapter(
             inner_R = _hermite_radius(t, driver_R, target_R,
                                       adapter_length, target_slope)
             inner = _morph_slice(t, driver_R, _target_fn, target_R, n,
-                                 shape_t=shape_t, r_eq_des=inner_R)
+                                 shape_t=shape_t, r_eq_des=inner_R,
+                                 source_phase=_source_phase)
             if _outer_target_fn is not None and _outer_target_R is not None:
                 outer_R = _hermite_radius(t, driver_R + wall_thickness,
                                           _outer_target_R, adapter_length,
                                           outer_target_slope)
                 outer = _morph_slice(t, driver_R + wall_thickness,
                                      _outer_target_fn, _outer_target_R, n,
-                                     shape_t=shape_t, r_eq_des=outer_R)
+                                     shape_t=shape_t, r_eq_des=outer_R,
+                                     source_phase=_source_phase)
             elif outer_target_R is not None:
                 outer_R = _hermite_radius(t, driver_R + wall_thickness,
                                           outer_target_R, adapter_length,
                                           outer_target_slope)
                 outer = _morph_slice(t, driver_R + wall_thickness,
                                      _target_fn, outer_target_R, n,
-                                     shape_t=shape_t, r_eq_des=outer_R)
+                                     shape_t=shape_t, r_eq_des=outer_R,
+                                     source_phase=_source_phase)
             else:
                 outer = _offset_polygon_outward(inner, wall_thickness)
             is_thread.append(False)

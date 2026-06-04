@@ -40,6 +40,7 @@ from src import flange_generator as _fg
 from src import rectangular_horn as _r
 from src import rectangular_flange as _rf
 from src import throat_adapter as _ta
+from src import _utils as _uts
 import trimesh
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -534,6 +535,11 @@ def test_poly_points():
     assert abs(area - expected) / expected < 0.05, f"area={area:.1f} vs {expected:.1f}"
 test("poly points", test_poly_points)
 
+def test_poly_points_phase_matches_horn():
+    pts = _ta._poly_points(4, 20.0, 4)
+    assert np.allclose(pts[0], [0.0, 20.0], atol=1e-10), f"first vertex {pts[0]} not +Y"
+test("poly points phase matches polygonal horn", test_poly_points_phase_matches_horn)
+
 def test_morph_slice_circle():
     """At t=0 the morph should return a circle of radius ~driver_R."""
     def _tfn():
@@ -542,6 +548,14 @@ def test_morph_slice_circle():
     r = np.linalg.norm(pts, axis=1)
     assert np.allclose(r, 12.5, atol=1.0), f"circle r={r.mean():.2f} vs 12.5"
 test("morph slice at t=0 (circle)", test_morph_slice_circle)
+
+def test_morph_slice_source_phase():
+    """Polygonal adapters must start the source circle in the horn's phase."""
+    def _tfn():
+        return _ta._poly_points(4, 20.0, 64)
+    pts = _ta._morph_slice(0.0, 12.5, _tfn, 12.5, 64, source_phase=np.pi / 2.0)
+    assert abs(pts[0, 0]) < 1e-10 and pts[0, 1] > 0, f"source phase wrong: {pts[0]}"
+test("morph slice source phase", test_morph_slice_source_phase)
 
 def test_morph_slice_target():
     """At t=1 the morph should match the target area."""
@@ -695,6 +709,52 @@ def test_adapter_assembly_threaded_circular():
     )
     _check_trimesh_watertight(m, "adapter assembly threaded circular")
 test("adapter assembly threaded circular", test_adapter_assembly_threaded_circular)
+
+def test_polygonal_horn_adapter_union_watertight():
+    """Polygonal flare + threaded adapter must union with a real overlap."""
+    throat_d = 20.0
+    n_sides = 4
+    thickness = 4.0
+    z, r = _c.get_exponential(throat_d, 100.0, 600, 300)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
+        p = t.name
+    _ph.generate_polygonal_3d_mesh(z, r, n_sides, thickness, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+    horn.fix_normals()
+
+    from polygonal_horn import _r_to_circumradius
+    R_i = _r_to_circumradius(r, n_sides)
+    nml = _uts.compute_profile_normals(z, R_i, flip_if_negative=True)
+    R_o = R_i + thickness / np.cos(np.pi / n_sides) * nml[:, 1]
+    z_o = z + thickness * nml[:, 0]
+    z_o = np.clip(z_o, z[0], z[-1]); z_o[0] = z[0]; z_o[-1] = z[-1]
+    R_o_eq = np.sqrt((0.5 * n_sides * R_o**2 * np.sin(2*np.pi/n_sides)) / np.pi)
+
+    def _slope_start(zz, vv):
+        for i in range(1, len(zz)):
+            dz = zz[i] - zz[0]
+            if abs(dz) > 1e-6:
+                return float((vv[i] - vv[0]) / dz)
+        return 0.0
+
+    poly_circumR = _r_to_circumradius(np.array([throat_d / 2.0]), n_sides)[0]
+    adapter = _ta.make_adapter_assembly(
+        driver_type="1in", driver_diam=None, thread_key="1in",
+        horn_shape="polygonal",
+        rect_w=0.0, rect_h=0.0, poly_n_sides=n_sides,
+        poly_circumR=poly_circumR, horn_R_eq=throat_d / 2.0,
+        adapter_length=30.0, wall_thickness=thickness,
+        socket_length=15.0,
+        outer_target_R=float(R_o_eq[0]),
+        target_slope=_slope_start(z, r),
+        outer_target_slope=_slope_start(z_o, R_o_eq),
+        z_offset=horn.vertices[:, 2].min() + 0.5,
+        output_path=None,
+    )
+    combined = trimesh.boolean.union([horn, adapter], engine="manifold")
+    combined.merge_vertices(); combined.fix_normals()
+    _check_trimesh_watertight(combined, "polygonal horn + adapter union")
+test("polygonal horn + adapter union watertight", test_polygonal_horn_adapter_union_watertight)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

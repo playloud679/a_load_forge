@@ -4,9 +4,12 @@
 
 - **Adapter filettato anche su flare circolari** (`src/throat_adapter.py`, `ui_app.py`): la sezione Throat Flange / Adapter ora espone `Flanged`, `Threaded 1"`, `Threaded 1¼"` e `Threaded 2"` anche quando la sezione del corno è **Circular**. Il backend accetta `horn_shape="circular"` oltre a rectangular/polygonal.
 - **Raccordo C1 adapter↔flare per tutti i tipi**: l'adapter non termina più con una semplice corrispondenza di diametro. La morph shape usa smoothstep quintico, mentre il raggio equivalente usa Hermite con `target_slope` e `outer_target_slope` calcolati dalla derivata reale del flare. Risultato: niente spigolo al giunto e continuità di espansione interna/esterna per circular, rectangular e polygonal, sia flanged sia threaded.
+- **Fix fase adapter poligonale**: il target N-gon dell'adapter usa la stessa rotazione `+π/2` del motore `polygonal_horn`, quindi adapter e flare poligonale non risultano più sfasati dopo generazione o split.
+- **Fix non-manifold adapter↔flare**: l'adapter viene inserito nel flare con 0.5 mm di overlap volumetrico invece di appoggiarsi con facce coplanari al throat. La union manifold non lascia più edge con più di due facce nel caso polygonal + threaded adapter.
+- **Fix mouth flange consistente** (`ui_app.py`): circular, polygonal e rectangular ora usano la stessa regola per il foro alla bocca: parete esterna reale del flare meno `_FLANGE_WALL_BITE` (0.5 mm). La misura mostrata in UI, il ring width, il bolt circle e la mesh generata non divergono più.
 - **Outer target coerente col mesh engine** (`ui_app.py`): la UI passa all'adapter le dimensioni esterne e la pendenza esterna calcolate con lo stesso parallel-offset usato dai motori 3D, evitando scalini fuori dalla gola.
 - **Split defaults** (`ui_app.py`): il taglio assiale ora parte da **1 segmento** e i petali per segmento partono da **2 petali**.
-- **Test**: 74 funzionali + 33 geometria (107 totali), tutti verdi. Nuovi test per adapter circular, threaded circular e pendenza C1 del raccordo.
+- **Test**: 77 funzionali + 33 geometria (110 totali), tutti verdi. Nuovi test per adapter circular, threaded circular, pendenza C1 del raccordo, fase poligonale, fase sorgente del morph e union polygonal adapter↔flare.
 - **Docs**: README, `docs/INDEX.md` e `docs/throat_adapter.md` aggiornati.
 
 ## 2.6.1 (2026-06-04)

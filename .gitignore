@@ -9,9 +9,8 @@ build/
 .venv/
 
 # Generated output files
-io/*.xyz
-io/*.stl
-io/*.gcode
+io/*
+!io/.gitkeep
 
 # IDE
 .vscode/
