@@ -1,10 +1,21 @@
 # Agent Instructions for AI Coding Assistants
 
+## ⛔ Rule 0: docs/ MUST stay in sync with src/
+
+Editing any `src/*.py` REQUIRES updating its `docs/<module>.md` in the same
+change. The docs are read instead of the source to save tokens — a stale doc
+misleads every future agent. No exceptions; create the doc if missing.
+
 ## Critical Rule: Web UI must stay in sync with Python modules
 
 Whenever you modify a Python module under `src/` (add a new profile, change a function signature, add a new generator, etc.), you **must** update the Streamlit UI in `ui_app.py` accordingly:
 
 ### Checklist for changes
+
+> **Layout note:** the UI is now a single-page dashboard, not tabs. Map the
+> legacy labels below as: **Tab 1 → "Acoustic Profile"**, **Tab 2 → "Mounting
+> Flanges"**, **Tab 3 → "Generate Assembly"** (the merge is step 3e there).
+> There is no `gen_args` list anymore — dispatch is via `profile_type.startswith(...)`.
 
 | Python change | Required UI update |
 |---|---|

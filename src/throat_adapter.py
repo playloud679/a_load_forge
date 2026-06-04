@@ -155,6 +155,53 @@ def _centroid(pts: np.ndarray) -> np.ndarray:
     return np.array([cx, cy])
 
 
+def _offset_polygon_outward(pts: np.ndarray, dist: float) -> np.ndarray:
+    """Offset a closed 2-D polygon outward by *dist* along the edge normals.
+
+    True parallel (miter) offset: every edge moves out by exactly *dist*
+    perpendicular to itself, so the result has constant perpendicular wall
+    thickness.  This matches how the horn engines build their outer wall
+    (`R_o = R_i + thickness/cos(π/n)` for polygons, per-side for rectangles),
+    so the adapter's outer wall lines up flush with the horn's at the throat
+    junction.  A naive radial-from-origin offset under-extends the corners and
+    leaves a visible step there.
+
+    Assumes a simple, roughly convex polygon (circle / rect / N-gon blends),
+    which is what the morphing loft produces.
+    """
+    n = len(pts)
+    # Outward normal sign: +1 for CCW winding, −1 for CW.
+    sign = 1.0 if _signed_area(pts) > 0 else -1.0
+    out = np.empty_like(pts)
+    for i in range(n):
+        p_prev = pts[(i - 1) % n]
+        p = pts[i]
+        p_next = pts[(i + 1) % n]
+        e1 = p - p_prev
+        e2 = p_next - p
+        # Outward edge normal for CCW polygon is (dy, -dx).
+        n1 = np.array([e1[1], -e1[0]]) * sign
+        n2 = np.array([e2[1], -e2[0]]) * sign
+        l1 = np.linalg.norm(n1); l2 = np.linalg.norm(n2)
+        if l1 > 1e-12: n1 /= l1
+        if l2 > 1e-12: n2 /= l2
+        m = n1 + n2
+        ml = np.linalg.norm(m)
+        if ml < 1e-9:           # 180° spike — fall back to edge normal
+            out[i] = p + n2 * dist
+            continue
+        m /= ml
+        cos_half = np.clip(np.dot(m, n2), 0.2, 1.0)  # clamp miter at sharp corners
+        out[i] = p + m * (dist / cos_half)
+    return out
+
+
+def _signed_area(pts: np.ndarray) -> float:
+    """Signed area of a 2-D polygon (shoelace).  >0 for CCW winding."""
+    x, y = pts[:, 0], pts[:, 1]
+    return 0.5 * (np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))
+
+
 def _morph_slice(
     t: float,
     driver_R: float,
@@ -340,12 +387,14 @@ def make_adapter(
                                      target_R + 0.15, n)
             is_thread.append(False)
         else:
-            # Flanged transition: double‑wall with wall offset
+            # Flanged transition: double‑wall with a true outward-normal
+            # (miter) offset → constant perpendicular wall thickness matching
+            # the horn's wall, so the adapter↔horn junction is flush on the
+            # OUTSIDE.  (A radial-from-origin offset under-extends the corners
+            # and leaves a visible step there — "dentro ok, fuori il gradino".)
             t = zi / adapter_length if adapter_length > 0 else 1.0
             inner = _morph_slice(t, driver_R, _target_fn, target_R, n)
-            r_pts = np.linalg.norm(inner, axis=1)
-            r_pts = np.maximum(r_pts, 1e-12)
-            outer = inner * (1.0 + wall_thickness / r_pts[:, None])
+            outer = _offset_polygon_outward(inner, wall_thickness)
             is_thread.append(False)
 
         inner_slices.append(inner)

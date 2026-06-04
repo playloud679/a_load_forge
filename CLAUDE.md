@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> ## ⛔ MANDATORY — DOCS STAY IN SYNC WITH CODE
+> **If you modify any `src/*.py` module, you MUST update its matching
+> `docs/<module>.md` in the same change.** The per-module docs in `docs/` are the
+> token-saving source of truth: agents read them *instead of* the full source. A
+> stale doc silently misleads every future agent — it is worse than no doc.
+>
+> This applies to every signature change, new function, renamed profile, or
+> behaviour change. No exceptions. If a `docs/<module>.md` does not yet exist for
+> a module you touched, create it. Treat an out-of-sync doc as a broken build.
+
 ## Commands
 
 ```bash
@@ -46,16 +56,18 @@ The axisymmetric engine in `profile_generator.py` is shared by tractrix, salmon,
 
 | Module | Role |
 |---|---|
-| `src/profile_generator.py` | Axisymmetric profiles (tractrix, salmon, exponential) + shared 3D revolution engine |
+| `src/profile_generator.py` | Axisymmetric profiles (tractrix, salmon, exponential, **Le Cléac'h**) + shared 3D revolution engine |
+| `src/polygonal_horn.py` | Polygonal N-gon section engine (area-matched to circular equivalent) |
 | `src/rectangular_horn.py` | Rectangular area-preserving profiles + the faithful **Iwata** dual-flare profile (`get_iwata_horn`) + dedicated lofting engine |
 | `src/radial_horn.py` | 360° omnidirectional radial horn, two-piece output (bottom + top) |
+| `src/throat_adapter.py` | Throat adapter: round driver → rect/poly transition, threaded (1"/1¼"/2" UNF) or flanged interface |
 | `src/flange_generator.py` | Parametric circular mounting flange |
 | `src/rectangular_flange.py` | Circular-outer / rectangular-inner flange |
-| `src/_step_export.py` | STEP AP242 export utility |
+| `src/_step_export.py` | STEP AP203 export utility |
 | `src/_utils.py` | Shared math: profile normals, volume sign, Z-align |
 | `src/_constants.py` | `SOUND_SPEED = 344000 mm/s` (Hornresp default; UI-adjustable, see below) |
 | `src/main.py` | CLI orchestrator (thin wrapper over profile_generator) |
-| `ui_app.py` | Streamlit web UI — three tabs: Generate, Flange, Merge |
+| `ui_app.py` | Streamlit single-page dashboard — sections: Acoustic Profile, Mounting Flanges, Generate Assembly (merge is step 3e), Slice STL |
 
 ### Iwata profile (special case)
 
@@ -113,10 +125,10 @@ When modifying any Python module under `src/`:
 |---|---|
 | New profile function | Add to `st.selectbox()`, add parameter inputs, add generation branch |
 | New 3D engine module | Add lazy import + generation branch + download buttons |
-| New flange generator | Add flange type in Tab 2 with inputs and generation branch |
-| Changed function signature | Update `gen_args` list and the function call |
-| Changed profile name/label format | Update the `_label.startswith()` check in Tab 3 (merge) |
-| Profile that can't be merged (like radial) | Update merge guard in Tab 3 |
+| New flange generator | Add flange type in the Mounting Flanges section with inputs and generation branch |
+| Changed function signature | Update the profile-dispatch call in the Generate Assembly section (the `profile_type.startswith(...)` branch), not a `gen_args` list |
+| Changed profile name/label format | Update the `profile_type.startswith()` / `section_type.startswith()` checks and the merge step (3e) in Generate Assembly |
+| Profile that can't be merged (like radial) | Update the merge guard in the Generate Assembly merge step (3e) |
 
 Always add a test case in `tests/test_all.py` for new profiles.
 

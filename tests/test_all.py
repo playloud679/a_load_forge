@@ -324,6 +324,46 @@ for label, ow, oh, iw, ih in [
     test(label, make)
 
 
+# Regression: a rectangular flange whose hole exactly equals the horn's OUTER
+# wall makes the two coincident walls degenerate → manifold union leaves a
+# non-manifold edge + a visible ledge ("chamfer"). ui_app shrinks the hole by
+# _FLANGE_WALL_BITE per side so the flange bites into the wall (volumetric
+# weld). This test pins both halves: coincident = broken, bitten = clean.
+def _nm_edge_count(m):
+    mc = m.copy(); mc.merge_vertices()
+    groups = trimesh.grouping.group_rows(mc.edges_sorted, require_count=None)
+    return sum(1 for g in groups if len(g) != 2)
+
+def _rect_flange_wall_bite():
+    BITE = 0.5  # must match ui_app._FLANGE_WALL_BITE
+    thickness = 4.0
+    z = np.linspace(0, 60, 80)
+    w = np.linspace(40, 61.4, 80)
+    h = np.linspace(30, 38.4, 80)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _r.generate_rectangular_3d_mesh(z, w, h, thickness, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+    horn.merge_vertices(); horn.fix_normals()
+    zmouth = horn.vertices[:, 2].max()
+    ow = horn.vertices[:, 0].max() * 2.0   # actual outer wall at mouth
+    oh = horn.vertices[:, 1].max() * 2.0
+
+    def union_nm(iw, ih):
+        f = _rf.generate_rectangular_flange(
+            outer_diam=113.5, inner_w=iw, inner_h=ih, thickness=6.0,
+            bolt_radius=42, bolt_count=4, bolt_diam=4,
+            outer_type="circular", offset=zmouth - 6.0)
+        u = trimesh.boolean.union([horn, f], engine="manifold")
+        return _nm_edge_count(u)
+
+    # coincident hole == outer wall must be the failing case…
+    assert union_nm(ow, oh) > 0, "expected coincident-wall union to be non-manifold"
+    # …and the wall-bite must make it clean.
+    assert union_nm(ow - 2 * BITE, oh - 2 * BITE) == 0, \
+        "wall-bite did not yield a manifold union"
+test("rect mouth flange wall-bite (no non-manifold edge)", _rect_flange_wall_bite)
+
+
 print("\n═══ Iwata horn (faithful l'Audiophile rectangular dual-flare) ═══")
 
 def _iwata_plan():
@@ -545,6 +585,26 @@ def test_adapter_poly():
     )
     _check_trimesh_watertight(m, "adapter poly")
 test("adapter circle→poly watertight", test_adapter_poly)
+
+def test_adapter_outer_flush():
+    """Flanged adapter's outer wall must match the horn's outer wall at the
+    horn-throat end (miter offset, not radial) — otherwise the union steps on
+    the outside ("dentro ok, fuori il gradino")."""
+    n_sides = 6; R_i = 12.0; wt = 4.0
+    R_eq = R_i * np.sqrt(6 * np.sin(2*np.pi/6) / (2*np.pi))  # poly area-eq radius
+    m = _ta.make_adapter(
+        driver_R=10.0, horn_shape="polygonal",
+        horn_w=0.0, horn_h=0.0, horn_n_sides=n_sides,
+        horn_R_eq=R_eq, horn_circumR=R_i,
+        axial_steps=30, adapter_length=30.0, wall_thickness=wt,
+        output_path=None)
+    zt = m.vertices[:, 2].max()
+    top = np.abs(m.vertices[:, 2] - zt) < 0.2
+    ro_adapter = np.linalg.norm(m.vertices[top][:, :2], axis=1).max()
+    horn_outer = R_i + wt / np.cos(np.pi / n_sides)  # polygonal_horn convention
+    assert abs(ro_adapter - horn_outer) < 0.15, \
+        f"adapter outer {ro_adapter:.3f} != horn outer {horn_outer:.3f} (step)"
+test("adapter outer wall flush with horn (no step)", test_adapter_outer_flush)
 
 def test_threaded_socket():
     for key in ("1in", "1_25in", "2in"):

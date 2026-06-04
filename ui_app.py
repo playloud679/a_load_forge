@@ -228,6 +228,13 @@ with col_prof:
     _iwata_mw = _iwata_mh = None  # iwata mouth W, H (mm)
     _rect_w_o_0 = _rect_h_o_0 = 0.0  # actual outer at throat (rect)
     _rect_w_o_n = _rect_h_o_n = 0.0  # actual outer at mouth  (rect)
+    # Rect-flange holes are sized to the horn's OUTER wall. Making the hole
+    # exactly equal to the outer wall makes the flange's hole face *coincide*
+    # with the horn's faceted outer wall → the manifold union of the two is
+    # degenerate (coincident coplanar walls) and leaves a non-manifold edge
+    # plus a visible ledge. Shrinking the hole by this much (per side) makes
+    # the flange bite *into* the wall so the union is a clean volumetric weld.
+    _FLANGE_WALL_BITE = 0.5  # mm per side
     try:
         if is_radial:
             _Rr, _Zb, _Zt = _rd.get_radial_profiles(throat_d, mouth_d, fc, 50, profile_type)
@@ -694,8 +701,8 @@ with fg1:
             _driver_is_flanged = True
 
             if is_rect:
-                _ft_inner_w = max(_rect_w_o_0, 1.0)
-                _ft_inner_h = max(_rect_h_o_0, 1.0)
+                _ft_inner_w = max(_rect_w_o_0 - 2 * _FLANGE_WALL_BITE, 1.0)
+                _ft_inner_h = max(_rect_h_o_0 - 2 * _FLANGE_WALL_BITE, 1.0)
                 _ft_inner_R = max(_ft_inner_w, _ft_inner_h) / 2
                 st.caption(f"Hole: {_ft_inner_w:.1f}\u00d7{_ft_inner_h:.1f} mm (rectangular)")
             else:
@@ -803,8 +810,8 @@ with fg2:
         _fm_nb  = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="fm_nb")
         _fm_db  = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="fm_db")
         if is_rect:
-            _fm_inner_w = max(_rect_w_o_n, 1.0)
-            _fm_inner_h = max(_rect_h_o_n, 1.0)
+            _fm_inner_w = max(_rect_w_o_n - 2 * _FLANGE_WALL_BITE, 1.0)
+            _fm_inner_h = max(_rect_h_o_n - 2 * _FLANGE_WALL_BITE, 1.0)
             _fm_inner_R = max(_fm_inner_w, _fm_inner_h) / 2
             st.caption(f"Hole: {_fm_inner_w:.1f}×{_fm_inner_h:.1f} mm (rectangular)")
         elif is_poly:
@@ -873,8 +880,10 @@ with fg3:
             import _utils as _uts
             _nw_mid = _uts.compute_profile_normals(zr, wr, flip_if_negative=True)
             _nh_mid = _uts.compute_profile_normals(zr, hr, flip_if_negative=True)
-            _mid_inner_w = max(wr[_mid_idx] + 2.0 * thickness * _nw_mid[_mid_idx, 1], 1.0)
-            _mid_inner_h = max(hr[_mid_idx] + 2.0 * thickness * _nh_mid[_mid_idx, 1], 1.0)
+            _mid_inner_w = max(wr[_mid_idx] + 2.0 * thickness * _nw_mid[_mid_idx, 1]
+                               - 2 * _FLANGE_WALL_BITE, 1.0)
+            _mid_inner_h = max(hr[_mid_idx] + 2.0 * thickness * _nh_mid[_mid_idx, 1]
+                               - 2 * _FLANGE_WALL_BITE, 1.0)
             _mid_inner_R = max(_mid_inner_w, _mid_inner_h) / 2
             st.caption(f"Hole: {_mid_inner_w:.0f}×{_mid_inner_h:.0f} mm (rectangular)")
         elif is_poly:
