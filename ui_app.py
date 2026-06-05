@@ -73,7 +73,7 @@ with col_prof:
     sh1, sh2 = st.columns([2, 3])
     with sh1:
         profile_type = st.selectbox("Profile",
-            ["Tractrix", "Salmon", "Iwata", "Le Cléac'h (isophase)", "Exponential"], index=0,
+            ["Tractrix", "Salmon", "Iwata", "Le Cléac'h (isophase)", "Oblate spheroidal", "Exponential"], index=0,
             on_change=_on_horn_change, key="profile_type")
     with sh2:
         section_type = st.radio("Section", ["Circular", "Polygonal", "Rectangular", "Radial 360°"],
@@ -87,6 +87,7 @@ with col_prof:
     is_salmon    = profile_type.startswith("Salmon")
     is_iwata    = profile_type.startswith("Iwata")
     is_lecleach = profile_type.startswith("Le Cl")
+    is_oblate   = profile_type.startswith("Oblate")
     is_exp      = profile_type.startswith("Exp")
     has_fc      = is_salmon or is_lecleach or is_exp
     is_T_variable = is_salmon or is_lecleach
@@ -154,6 +155,7 @@ with col_prof:
     _hint = ("Set **throat + mouth**. Acoustic gap follows."         if is_radial   else
              "Set **throat + mouth**. Length and Fc follow."          if is_tractrix else
              "Real **Iwata** (l'Audiophile): set **throat + length**; mouth W×H & Fc follow." if is_iwata else
+             "Set **throat + coverage + length**. Mouth follows the CD asymptote." if is_oblate and not is_radial else
              "Set **throat W×H + mouth W**. Mouth H follows."         if is_rect     else
              "Set **throat + Fc + length** (T=0.707 Hypex)."          if is_salmon    else
              "Set **throat + Fc + length**. Roll-back at mouth."      if is_lecleach else
@@ -181,7 +183,7 @@ with col_prof:
                 max(2.0, 30.0 / rect_ar), 1.0,
                 help="Driver-side opening — height (set by aspect ratio)")
             throat_d = np.sqrt(throat_w * throat_h * 4 / np.pi)
-            _mouth_is_input = True
+            _mouth_is_input = not is_oblate
         else:
             throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0,
                 25.0 if is_radial else 20.0, 1.0,
@@ -203,6 +205,21 @@ with col_prof:
             mouth_d = None
             mouth_w = None
 
+        coverage_h = coverage_v = 90.0
+        if is_oblate and not is_radial:
+            if is_rect:
+                _cov_cols = st.columns(2)
+                with _cov_cols[0]:
+                    coverage_h = st.number_input("Horizontal coverage (°)", 1.0, 179.0, 90.0, 5.0,
+                        help="Total horizontal dispersion; formula uses theta = coverage/2")
+                with _cov_cols[1]:
+                    coverage_v = st.number_input("Vertical coverage (°)", 1.0, 179.0, 45.0, 5.0,
+                        help="Total vertical dispersion; formula uses theta = coverage/2")
+            else:
+                coverage_h = st.number_input("Coverage (°)", 1.0, 179.0, 90.0, 5.0,
+                    help="Total dispersion; formula uses theta = coverage/2")
+                coverage_v = coverage_h
+
         if has_fc:
             _fc_help = ("Flare rate — how fast the horn opens. The mouth sets where it ends."
                         if is_exp else
@@ -213,7 +230,7 @@ with col_prof:
 
         if is_iwata:
             axial_len = iwata_length
-        elif (is_salmon or is_lecleach) and not is_radial and not is_rect:
+        elif ((is_salmon or is_lecleach) and not is_rect or is_oblate) and not is_radial:
             axial_len = st.number_input("Axial length (mm)", 10.0, 500.0, 80.0, 5.0,
                 help="Horn depth along the axis")
         else:
@@ -256,6 +273,12 @@ with col_prof:
                 _len = axial_len
                 zp, rp = zr, np.sqrt(wr * hr / np.pi)
                 _mouth_d_eff = max(wr.max(), hr.max())
+            elif is_oblate:
+                zr, wr, hr = _rh.get_rectangular_oblate_spheroidal(throat_w, throat_h, coverage_h, coverage_v, axial_len, segments)
+                _len = axial_len
+                zp, rp = zr, np.sqrt(wr * hr / np.pi)
+                _mouth_d_eff = max(wr.max(), hr.max())
+                _fc_eff = c_val / (np.pi * (2.0 * np.sqrt((wr[-1] * hr[-1]) / np.pi)))
             elif is_iwata:   # real l'Audiophile plan — rectangular dual-flare
                 zr, wr, hr = _rh.get_iwata_horn(throat_d, axial_len, segments)
                 _len = zr[-1]
@@ -296,6 +319,10 @@ with col_prof:
         elif is_lecleach:
             zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
             _len = zp.max(); _mouth_d_eff = rp.max() * 2
+        elif is_oblate:
+            zp, rp = _core.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
+            _len = zp[-1]; _mouth_d_eff = rp[-1] * 2
+            _fc_eff = c_val / (np.pi * _mouth_d_eff)
         elif is_exp:
             zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             _len = zp[-1]
@@ -374,6 +401,8 @@ with col_prev:
                 zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
             elif is_lecleach:
                 zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
+            elif is_oblate:
+                zp, rp = _core.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
             elif is_exp:
                 zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             from polygonal_horn import _r_to_circumradius
@@ -396,6 +425,8 @@ with col_prev:
                 zr, wr, hr = _rh.get_rectangular_exponential(throat_w, throat_h, mouth_w, fc, segments)
             elif is_salmon:
                 zr, wr, hr = _rh.get_rectangular_salmon(throat_w, throat_h, fc, axial_len, segments)
+            elif is_oblate:
+                zr, wr, hr = _rh.get_rectangular_oblate_spheroidal(throat_w, throat_h, coverage_h, coverage_v, axial_len, segments)
             elif is_iwata:
                 zr, wr, hr = _rh.get_iwata_horn(throat_d, axial_len, segments)
             else:
@@ -417,6 +448,8 @@ with col_prev:
                 zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
             elif is_lecleach:
                 zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
+            elif is_oblate:
+                zp, rp = _core.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
             elif is_exp:
                 zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             # Parallel offset along the meridian normal — matches the mesh engine
@@ -476,6 +509,8 @@ def _calc_flange_dims():
             zr, wr, hr = _rh.get_rectangular_salmon(throat_w, throat_h, fc, axial_len, segments)
         elif is_iwata:
             zr, wr, hr = _rh.get_iwata_horn(throat_d, axial_len, segments)
+        elif is_oblate:
+            zr, wr, hr = _rh.get_rectangular_oblate_spheroidal(throat_w, throat_h, coverage_h, coverage_v, axial_len, segments)
         else:
             throat_d_eq = np.sqrt(throat_w * throat_h * 4 / np.pi)
             zr, wr, hr = _rh._area_to_rect(*_core.get_lecleach(throat_d_eq, fc, axial_len, segments, T=salmon_T), throat_w, throat_h)
@@ -492,6 +527,8 @@ def _calc_flange_dims():
             zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
         elif is_lecleach:
             zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
+        elif is_oblate:
+            zp, rp = _core.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
         elif is_exp:
             zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
         R_i = _r_to_circumradius(rp, n_sides)
@@ -511,6 +548,12 @@ def _calc_flange_dims():
         _get_mid_r = lambda pct: rp[int(np.searchsorted(zp, zp[-1]*pct/100))]
     elif is_exp:
         zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
+        ir_throat = throat_d / 2
+        ir_mouth = _circular_mouth_hole_R(zp, rp)
+        mouth_dz = _mouth_wall_dz(zp, rp)
+        _get_mid_r = lambda pct: rp[min(int(np.searchsorted(zp, zp[-1]*pct/100)), len(rp)-1)]
+    elif is_oblate:
+        zp, rp = _core.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
         ir_throat = throat_d / 2
         ir_mouth = _circular_mouth_hole_R(zp, rp)
         mouth_dz = _mouth_wall_dz(zp, rp)
@@ -636,7 +679,7 @@ with fg1:
         if _ta_include_adapter:
             # ── Adapter mode: round/threaded driver → horn-throat transition ─
             _ta_driver_type = st.radio("Driver interface",
-                ["Flanged", 'Threaded 1"', 'Threaded 1\u00bc"', 'Threaded 2"'],
+                ["Flanged", 'Threaded 1"', 'Threaded 1\u00bc"', 'Threaded 1\u215c"', 'Threaded 2"'],
                 index=0, horizontal=True, key="ta_driver_type")
             _driver_is_flanged = _ta_driver_type == "Flanged"
             _driver_is_threaded = not _driver_is_flanged
@@ -645,6 +688,7 @@ with fg1:
             if _driver_is_threaded:
                 _ta_thread_key = {"Threaded 1\"": "1in",
                                   "Threaded 1\u00bc\"": "1_25in",
+                                  "Threaded 1\u215c\"": "1_375in",
                                   "Threaded 2\"": "2in"}[_ta_driver_type]
 
             _ta_adapter_len = st.number_input("Adapter length (mm)", 5.0, 200.0, 30.0, 5.0,
@@ -953,6 +997,8 @@ if gen_btn:
                     zp, rp = C.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
                 elif is_lecleach:
                     zp, rp = C.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
+                elif is_oblate:
+                    zp, rp = C.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
                 elif is_exp:
                     zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
@@ -1000,6 +1046,8 @@ if gen_btn:
                     zr, wr, hr = _rh.get_rectangular_exponential(throat_w, throat_h, mouth_w, fc, segments)
                 elif is_salmon:
                     zr, wr, hr = _rh.get_rectangular_salmon(throat_w, throat_h, fc, axial_len, segments)
+                elif is_oblate:
+                    zr, wr, hr = _rh.get_rectangular_oblate_spheroidal(throat_w, throat_h, coverage_h, coverage_v, axial_len, segments)
                 elif is_iwata:
                     zr, wr, hr = _rh.get_iwata_horn(throat_d, axial_len, segments)
                 else:
@@ -1052,6 +1100,8 @@ if gen_btn:
                     zp, rp = C.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
                 elif is_lecleach:
                     zp, rp = C.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
+                elif is_oblate:
+                    zp, rp = C.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
                 elif is_exp:
                     zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
@@ -1284,6 +1334,10 @@ if gen_btn:
                 st.session_state["_adapter_cut_z"] = float(z_min + 0.5)
             else:
                 st.session_state.pop("_adapter_cut_z", None)
+            if gen_throat and f_throat is not None:
+                st.session_state["_throat_keep_z"] = float(f_throat.bounds[1, 2])
+            else:
+                st.session_state.pop("_throat_keep_z", None)
 
             with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
             combined.export(tp)
@@ -1353,6 +1407,8 @@ st.subheader("Slice STL")
 
 load_choice = st.radio("Source", ["Generated assembly", "Upload STL file"],
                        index=0, horizontal=True, key="slice_src")
+slice_strategy = st.radio("Slicing mode", ["Axial / petals", "Print volume boxes"],
+                          horizontal=True, key="slice_strategy")
 mesh_to_slice = None
 if load_choice == "Generated assembly":
     if "_combined" in st.session_state:
@@ -1369,6 +1425,18 @@ else:
         os.unlink(_tp)
 
 if mesh_to_slice is None:
+    if slice_strategy == "Print volume boxes":
+        _pv_preview_cols = st.columns(3)
+        with _pv_preview_cols[0]:
+            st.number_input("Max X (mm)", 10.0, 2000.0, 220.0, 10.0,
+                            key="pv_x_preview", disabled=True)
+        with _pv_preview_cols[1]:
+            st.number_input("Max Y (mm)", 10.0, 2000.0, 220.0, 10.0,
+                            key="pv_y_preview", disabled=True)
+        with _pv_preview_cols[2]:
+            st.number_input("Max Z (mm)", 10.0, 2000.0, 250.0, 10.0,
+                            key="pv_z_preview", disabled=True)
+        st.caption("Generate an assembly or upload an STL to enable print-volume slicing.")
     st.stop()
 
 # ── Slicing workflow ────────────────────────────────────────────────
@@ -1382,12 +1450,18 @@ if abs(_z_off) > 0.5:
     st.caption(f"Mesh shifted by {-_z_off:.0f} mm so Z starts at 0")
 
 _adapter_cut_z = None
+_throat_keep_z = None
 if load_choice == "Generated assembly":
     _adapter_cut_raw = st.session_state.get("_adapter_cut_z")
     if _adapter_cut_raw is not None:
         _adapter_cut_z = float(_adapter_cut_raw) - float(_z_off)
         if not (mesh_to_slice.bounds[0, 2] + 1e-6 < _adapter_cut_z < mesh_to_slice.bounds[1, 2] - 1e-6):
             _adapter_cut_z = None
+    _throat_keep_raw = st.session_state.get("_throat_keep_z")
+    if _throat_keep_raw is not None:
+        _throat_keep_z = float(_throat_keep_raw) - float(_z_off)
+        if not (mesh_to_slice.bounds[0, 2] + 1e-6 < _throat_keep_z < mesh_to_slice.bounds[1, 2] - 1e-6):
+            _throat_keep_z = None
 
 _joint = st.checkbox("Axial joint lip", True, key="joint_en",
                      help="Add a joint lip on each axial cut so stacked segments "
@@ -1422,6 +1496,12 @@ _radial_outer_keep = st.number_input("Outer skin keep (mm)", 0.5, 5.0, 1.5, 0.5,
                                      help="Protected external wall strip kept solid before "
                                           "placing tongue/groove features."
                                      ) if _radial_joint else None
+_radial_inner_margin = st.number_input("Inner margin (mm)", 0.5, 5.0, 0.5, 0.5,
+                                       key="radial_inner_margin",
+                                       help="Margin kept on the inner side of the wall. "
+                                            "Together with Outer skin keep, controls how "
+                                            "thick the tongue/groove will be."
+                                       ) if _radial_joint else 0.5
 
 if st.button("Reset slicer cache", use_container_width=True):
     st.session_state.pop("_ax_segs", None)
@@ -1430,6 +1510,90 @@ if st.button("Reset slicer cache", use_container_width=True):
         if _k.startswith("_pet_ax") or _k.startswith("_sel_ax"):
             del st.session_state[_k]
     st.rerun()
+
+if slice_strategy == "Print volume boxes":
+    _pv_cols = st.columns(3)
+    with _pv_cols[0]:
+        _pv_x = st.number_input("Max X (mm)", 10.0, 2000.0, 220.0, 10.0, key="pv_x")
+    with _pv_cols[1]:
+        _pv_y = st.number_input("Max Y (mm)", 10.0, 2000.0, 220.0, 10.0, key="pv_y")
+    with _pv_cols[2]:
+        _pv_z = st.number_input("Max Z (mm)", 10.0, 2000.0, 250.0, 10.0, key="pv_z")
+    _pv_strategy = st.radio("Packing", ["Center-up core first", "Adaptive largest pieces", "Regular grid"],
+                            horizontal=True, key="pv_strategy",
+                            help="Center-up cuts the central stack bottom-to-top first, then side wings. "
+                                 "Adaptive recursively splits oversized pieces. "
+                                 "Regular grid cuts the whole bounding box into fixed cells.")
+    _pv_joint = st.checkbox("Box joints (tongue & groove)", False, key="pv_joint_en",
+                            help="Add male/female alignment joints on shared print-volume cut faces.")
+    _pv_joint_d = st.number_input("Box joint depth (mm)", 0.5, 5.0, 2.0, 0.5,
+                                  key="pv_joint_d") if _pv_joint else 0.0
+    _pv_clearance = st.number_input("Box joint clearance (mm)", 0.0, 0.5, 0.1, 0.05,
+                                    key="pv_clearance") if _pv_joint else 0.0
+    _pv_margin = st.number_input("Box joint margin (mm)", 0.5, 8.0, 1.0, 0.5,
+                                 key="pv_margin",
+                                 help="Inset from the cut-face perimeter before placing the tongue/groove."
+                                 ) if _pv_joint else 1.0
+
+    _keep_throat = False
+    _manual_keep_z = None
+    if _throat_keep_z is not None:
+        _keep_throat = st.checkbox("Keep throat adapter/flange monolithic", True,
+                                   key="pv_keep_throat",
+                                   help="Do not split the generated throat-side hardware. "
+                                        "It stays inside the first center-bottom chunk, "
+                                        "which may exceed the print volume.")
+        if _keep_throat:
+            st.caption(f"Protected throat inside first core block: Z=0–{_throat_keep_z:.1f} mm")
+    elif load_choice != "Generated assembly":
+        _manual_keep = st.checkbox("Keep throat-side section monolithic", False,
+                                   key="pv_keep_manual")
+        if _manual_keep:
+            _manual_keep_z = st.number_input("Protected Z height (mm)", 1.0,
+                                             float(mesh_to_slice.bounds[1, 2] - mesh_to_slice.bounds[0, 2]),
+                                             30.0, 1.0, key="pv_keep_z")
+
+    _pv_keep_z = _throat_keep_z if (_keep_throat and _throat_keep_z is not None) else _manual_keep_z
+    _pv_sig = (
+        tuple(np.round(mesh_to_slice.bounds.reshape(-1), 4)),
+        round(float(_pv_x), 4), round(float(_pv_y), 4), round(float(_pv_z), 4),
+        None if _pv_keep_z is None else round(float(_pv_keep_z), 4),
+        _pv_strategy,
+        bool(_pv_joint), round(float(_pv_joint_d), 4),
+        round(float(_pv_clearance), 4), round(float(_pv_margin), 4),
+    )
+    if st.session_state.get("_pv_sig") != _pv_sig:
+        st.session_state["_pv_sig"] = _pv_sig
+        st.session_state.pop("_pieces", None)
+
+    if st.button("Slice to print volume", use_container_width=True):
+        with st.spinner("Cutting into print-volume boxes…"):
+            _box_meshes = _slc.slice_to_print_volume(
+                mesh_to_slice, _pv_x, _pv_y, _pv_z, keep_z_max=_pv_keep_z,
+                strategy=(
+                    "center_up" if _pv_strategy.startswith("Center") else
+                    "adaptive" if _pv_strategy.startswith("Adaptive") else
+                    "grid"
+                ),
+                joint_depth=_pv_joint_d,
+                joint_margin=_pv_margin,
+                clearance=_pv_clearance,
+            )
+            _pieces = []
+            for _i, _part in enumerate(_box_meshes):
+                _dims = _part.bounds[1] - _part.bounds[0]
+                if _part.metadata.get("print_volume_core") and _pv_keep_z is not None and _i == 0:
+                    _prefix = "core_throat001"
+                elif _part.metadata.get("print_volume_core"):
+                    _prefix = f"core{_i+1:03d}"
+                else:
+                    _prefix = f"wing{_i+1:03d}"
+                _pieces.append((
+                    f"{_prefix}_{_dims[0]:.0f}x{_dims[1]:.0f}x{_dims[2]:.0f}mm",
+                    _part,
+                ))
+            st.session_state["_pieces"] = _pieces
+        st.rerun()
 
 ax_mode = st.radio("Define segments by", ["Count", "Height (mm)"],
                    horizontal=True, key="ax_mode")
@@ -1453,7 +1617,7 @@ _slice_sig = (
     None if _adapter_cut_z is None else round(float(_adapter_cut_z), 4),
     seg_ref,
 )
-if st.session_state.get("_slice_sig") != _slice_sig:
+if slice_strategy == "Axial / petals" and st.session_state.get("_slice_sig") != _slice_sig:
     st.session_state["_slice_sig"] = _slice_sig
     st.session_state.pop("_ax_segs", None)
     st.session_state.pop("_pieces", None)
@@ -1461,7 +1625,8 @@ if st.session_state.get("_slice_sig") != _slice_sig:
         if _k.startswith("_pet_ax") or _k.startswith("_sel_ax"):
             del st.session_state[_k]
 
-if st.button("❶ Slice axially", use_container_width=True):
+if st.button("❶ Slice axially", use_container_width=True,
+             disabled=(slice_strategy != "Axial / petals")):
     with st.spinner("Cutting axially…"):
         if _cut_adapter_segment and _adapter_cut_z is not None:
             if seg_ref[0] == "count":
@@ -1494,7 +1659,7 @@ if st.button("❶ Slice axially", use_container_width=True):
         if k.startswith("_pet_ax") or k.startswith("_sel_ax"):
             del st.session_state[k]
 
-ax_segs = st.session_state.get("_ax_segs", None)
+ax_segs = st.session_state.get("_ax_segs", None) if slice_strategy == "Axial / petals" else None
 if ax_segs:
     st.markdown(f"**{len(ax_segs)} axial segment{'s' if len(ax_segs)>1 else ''}** — set petals per segment (1 = no petal)")
 
@@ -1528,7 +1693,7 @@ if ax_segs:
                    "rotated to fall between them.")
 
     if _radial_joint:
-        st.caption(f"✔ Tongue & groove — depth {_radial_joint_d} mm, clearance {_radial_clearance} mm, outer skin {_radial_outer_keep} mm")
+        st.caption(f"✔ Tongue & groove — depth {_radial_joint_d} mm, clearance {_radial_clearance} mm, outer skin {_radial_outer_keep} mm, inner margin {_radial_inner_margin} mm")
 
     _petal_sig = (
         tuple(int(v) for v in petals_per),
@@ -1536,6 +1701,7 @@ if ax_segs:
         round(float(_radial_joint_d), 4),
         round(float(_radial_clearance), 4),
         None if _radial_outer_keep is None else round(float(_radial_outer_keep), 4),
+        round(float(_radial_inner_margin), 4),
         tuple(round(float(a), 6) for a in _hole_angles),
     )
     if st.session_state.get("_petal_sig") != _petal_sig:
@@ -1549,9 +1715,10 @@ if ax_segs:
                 if np_ > 1:
                     phase = _slc.seam_phase_avoiding_holes(np_, _hole_angles)
                     pets = _slc.slice_into_petals(seg, np_, phase=phase,
-                                                   joint_depth=_radial_joint_d,
-                                                   clearance=_radial_clearance,
-                                                   outer_margin=_radial_outer_keep)
+                                                    joint_depth=_radial_joint_d,
+                                                    joint_margin=_radial_inner_margin,
+                                                    clearance=_radial_clearance,
+                                                    outer_margin=_radial_outer_keep)
                     for pi, pet in enumerate(pets):
                         pieces.append((f"ax{ai+1:02d}_pet{pi+1:02d}", pet))
                 else:

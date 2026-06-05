@@ -12,8 +12,8 @@ source** to save tokens.
 
 | Module | Doc | What it does |
 |---|---|---|
-| `profile_generator.py` | [profile_generator.md](profile_generator.md) | Axisymmetric profiles (Tractrix, Salmon, Exponential, Le Cléac'h) + shared 3-D revolution engine |
-| `rectangular_horn.py` | [rectangular_horn.md](rectangular_horn.md) | Rectangular profiles (Exponential, Tractrix, Salmon) + faithful **Iwata** dual‑flare + rectangular loft engine |
+| `profile_generator.py` | [profile_generator.md](profile_generator.md) | Axisymmetric profiles (Tractrix, Salmon, Exponential, Le Cléac'h, Oblate spheroidal) + shared 3-D revolution engine |
+| `rectangular_horn.py` | [rectangular_horn.md](rectangular_horn.md) | Rectangular profiles (Exponential, Tractrix, Salmon, Oblate spheroidal) + faithful **Iwata** dual‑flare + rectangular loft engine |
 | `polygonal_horn.py` | [polygonal_horn.md](polygonal_horn.md) | Polygonal N‑gon section engine (area‑matched to circular equivalent) |
 | `radial_horn.py` | [radial_horn.md](radial_horn.md) | 360° omnidirectional radial horn (two‑piece: bottom plate + top reflector) |
 

@@ -49,6 +49,7 @@ def get_radial_profiles(
         Exponential — S(R) = St · exp(m·(R−Rt)),  m = 4π·fc/c
         Tractrix    — area re-parameterised from get_tractrix(throat, mouth)
         Salmon      — area re-parameterised from get_salmon with length=Rm−Rt
+        Oblate      — area re-parameterised from get_oblate_spheroidal_for_mouth
 
     H(R) = S(R) / (2πR),  Z_bottom = (R−Rt)·0.3,  Z_top = Z_bottom + H
 
@@ -63,11 +64,13 @@ def get_radial_profiles(
         m = 4.0 * np.pi * (fc or 1000.0) / SOUND_SPEED
         S = St * np.exp(m * (R - Rt))
     else:
-        from profile_generator import get_tractrix, get_salmon
+        from profile_generator import get_tractrix, get_salmon, get_oblate_spheroidal_for_mouth
         if profile == "Tractrix":
             z_p, r_p = get_tractrix(throat_diam, mouth_diam, n)
         elif profile == "Salmon":
             z_p, r_p = get_salmon(throat_diam, fc or 1000.0, float(Rm - Rt), n)
+        elif profile == "Oblate spheroidal":
+            z_p, r_p = get_oblate_spheroidal_for_mouth(throat_diam, mouth_diam, 90.0, n)
         else:
             raise ValueError(f"Unknown profile: {profile}")
 

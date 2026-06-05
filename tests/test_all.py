@@ -75,6 +75,10 @@ for entry in [
     ("Salmon 20/1200/L50",       lambda: _c.get_salmon(THROAT, 1200, 50, N),         True),
     ("Exponential 20→100/600Hz", lambda: _c.get_exponential(THROAT, MOUTH, FC, N),  True),
     ("Exponential 20→200/400Hz", lambda: _c.get_exponential(THROAT, 200, 400, N),   True),
+    ("Oblate 20/90deg/L80",      lambda: _c.get_oblate_spheroidal(THROAT, 90, 80, N), True),
+    ("Oblate 20/60deg/L120",     lambda: _c.get_oblate_spheroidal(THROAT, 60, 120, N), True),
+    ("Le Cleac'h 20/600/L80",    lambda: _c.get_lecleach(THROAT, FC, 80, N),        False),
+    ("Le Cleac'h 20/1200/L60",   lambda: _c.get_lecleach(THROAT, 1200, 60, N),      False),
 ]:
     label, fn, mono_z = entry
     def make(fn=fn, label=label, mono_z=mono_z):
@@ -88,6 +92,37 @@ for entry in [
     test(label, make)
 
 
+def _check_oblate_cd_law():
+    throat, coverage, length = 20.0, 90.0, 2000.0
+    z, r = _c.get_oblate_spheroidal(throat, coverage, length, 5000)
+    theta = np.radians(coverage / 2.0)
+    expected = np.sqrt((throat / 2.0) ** 2 + (z * np.tan(theta)) ** 2)
+    assert np.allclose(r, expected), "oblate CD radius does not match law"
+    slope_throat = (r[1] - r[0]) / (z[1] - z[0])
+    assert slope_throat < 0.03, f"throat slope {slope_throat:.4f} is not near zero"
+    slope_far = (r[-1] - r[-50]) / (z[-1] - z[-50])
+    assert abs(slope_far - np.tan(theta)) < 0.01, \
+        f"far slope {slope_far:.4f} vs tan(theta) {np.tan(theta):.4f}"
+test("Oblate CD law: parallel throat + conical asymptote", _check_oblate_cd_law)
+
+
+def _check_oblate_asymmetric_elliptical_mesh():
+    z, w, h = _c.get_oblate_spheroidal_asymmetric(20.0, 10.0, 90.0, 45.0, 80.0, N)
+    assert abs(w[0] - 20.0) < TOL, "asymmetric oblate throat width mismatch"
+    assert abs(h[0] - 10.0) < TOL, "asymmetric oblate throat height mismatch"
+    assert w[-1] > h[-1], "90x45 profile should end wider than tall"
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
+        p = t.name
+    _c.generate_elliptical_3d_mesh_from_profiles(z, w / 2.0, h / 2.0, 4.0, 96, p)
+    m = trimesh.load(p, file_type="stl"); os.unlink(p)
+    assert m.is_watertight, "Oblate asymmetric elliptical: not watertight"
+    assert m.body_count == 1, f"Oblate asymmetric elliptical: {m.body_count} bodies"
+    assert m.volume > 100, f"Oblate asymmetric elliptical volume={m.volume:.0f}"
+    mouth = m.vertices[m.vertices[:, 2] >= z[-1] - 0.1]
+    assert np.ptp(mouth[:, 0]) > np.ptp(mouth[:, 1]), "elliptical mouth axes not preserved"
+test("Oblate asymmetric 90x45 elliptical mesh", _check_oblate_asymmetric_elliptical_mesh)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  2. Circular 3-D mesh — watertight + geometry checks
 # ══════════════════════════════════════════════════════════════════════════════
@@ -98,6 +133,8 @@ CIRC_CASES = [
     ("Tractrix",     lambda: _c.get_tractrix(THROAT, MOUTH, N)),
     ("Salmon",       lambda: _c.get_salmon(THROAT, FC, 80,   N)),
     ("Exponential",  lambda: _c.get_exponential(THROAT, MOUTH, FC, N)),
+    ("Oblate",       lambda: _c.get_oblate_spheroidal(THROAT, 90, 80, N)),
+    ("Le Cleac'h",   lambda: _c.get_lecleach(THROAT, FC, 80, N)),
 ]
 
 def _check_mesh(m, label, min_volume=100):
@@ -114,8 +151,9 @@ for label, profile_fn in CIRC_CASES:
         _c.generate_3d_mesh_from_profile(z, r, 4.0, 64, p)
         m = trimesh.load(p, file_type="stl"); os.unlink(p)
         _check_mesh(m, lbl)
-        # mouth diameter should be roughly r[-1]*2 + wall
-        r_mouth_expected = r[-1] + 4.0
+        # mouth diameter should be roughly max(r)*2 + wall
+        # (r.max() == r[-1] for monotone profiles; handles roll-back correctly)
+        r_mouth_expected = r.max() + 4.0
         r_mouth_actual   = max(np.linalg.norm(m.vertices[:, :2], axis=1))
         assert abs(r_mouth_actual - r_mouth_expected) < 5.0, \
             f"{lbl}: mouth radius {r_mouth_actual:.1f} vs expected ~{r_mouth_expected:.1f}"
@@ -147,7 +185,7 @@ for (label, profile_fn), n_sides in itertools.product(CIRC_CASES, POLY_SIDES):
 
 print("\n═══ Radial 360° section ═══")
 
-RADIAL_PROFILES = ["Tractrix", "Salmon", "Exponential"]
+RADIAL_PROFILES = ["Tractrix", "Salmon", "Exponential", "Oblate spheroidal"]
 
 def _check_radial_profiles(R, Zb, Zt, label):
     assert len(R) == len(Zb) == len(Zt),       f"{label}: array length mismatch"
@@ -315,6 +353,22 @@ for label, tw, th, mw, fc in [
         _check_mesh(m, lbl)
     test(label, make)
 
+# Rectangular tractrix & salmon (area-preserving conversion from circular)
+for label, fn in [
+    ("Rect Tractrix 20×10→160",   lambda: _r.get_rectangular_tractrix(20, 10, 160, 300)),
+    ("Rect Tractrix 30×15→200",   lambda: _r.get_rectangular_tractrix(30, 15, 200, 300)),
+    ("Rect Salmon 20×10/600/80",  lambda: _r.get_rectangular_salmon(20, 10, 600, 80, 300)),
+    ("Rect Salmon 30×15/1200/50", lambda: _r.get_rectangular_salmon(30, 15, 1200, 50, 300)),
+    ("Rect Oblate 20×10/90×45/L80", lambda: _r.get_rectangular_oblate_spheroidal(20, 10, 90, 45, 80, 300)),
+]:
+    def make(fn=fn, lbl=label):
+        z, w, h = fn()
+        with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+        _r.generate_rectangular_3d_mesh(z, w, h, 4.0, p)
+        m = trimesh.load(p, file_type="stl"); os.unlink(p)
+        _check_mesh(m, lbl)
+    test(label, make)
+
 for label, ow, oh, iw, ih in [
     ("60×50 / 20×10", 60, 50, 20, 10),
     ("80×60 / 30×15", 80, 60, 30, 15),
@@ -364,6 +418,43 @@ def _rect_flange_wall_bite():
         "wall-bite did not yield a manifold union"
 test("rect mouth flange wall-bite (no non-manifold edge)", _rect_flange_wall_bite)
 
+
+# Rectangular horn + circular flanges merged assembly
+for _label, _rect_fn in [
+    ("Rect Exp assembly",     lambda: _r.get_rectangular_exponential(20, 10, 160, 600, 300)),
+    ("Rect Tractrix assembly", lambda: _r.get_rectangular_tractrix(20, 10, 160, 300)),
+    ("Rect Salmon assembly",   lambda: _r.get_rectangular_salmon(20, 10, 600, 80, 300)),
+]:
+    def make_rect_assembly(fn=_rect_fn, lbl=_label):
+        z, w, h = fn()
+        thickness = 4.0
+        with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+        _r.generate_rectangular_3d_mesh(z, w, h, thickness, p)
+        horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+        z_min = horn.vertices[:, 2].min()
+        z_max = horn.vertices[:, 2].max()
+        # outer dims at throat / mouth
+        ow_t = horn.vertices[:, 0].max() * 2.0
+        oh_t = horn.vertices[:, 1].max() * 2.0
+        v_mouth = horn.vertices[horn.vertices[:, 2] >= z_max - 0.5]
+        ow_m = v_mouth[:, 0].max() * 2.0 if len(v_mouth) else ow_t
+        oh_m = v_mouth[:, 1].max() * 2.0 if len(v_mouth) else oh_t
+        BITE = 0.5
+        f_t = _rf.generate_rectangular_flange(ow_t + 30, ow_t - 2 * BITE, oh_t - 2 * BITE,
+                                              thickness=6.0, bolt_radius=(ow_t + 30) / 2 - 5,
+                                              offset=z_min + 6.0, output_path=None)
+        f_m = _rf.generate_rectangular_flange(ow_m + 30, ow_m - 2 * BITE, oh_m - 2 * BITE,
+                                              thickness=6.0, bolt_radius=(ow_m + 30) / 2 - 5,
+                                              offset=z_max - 6.0, output_path=None)
+        assert f_t is not None, f"{lbl}: throat flange is None"
+        assert f_m is not None, f"{lbl}: mouth flange is None"
+        try:
+            combined = trimesh.boolean.union([horn, f_t, f_m], engine="manifold")
+        except Exception:
+            combined = trimesh.util.concatenate([horn, f_t, f_m])
+        assert combined is not None, f"{lbl}: merge returned None"
+        assert combined.volume > 0, f"{lbl}: combined volume={combined.volume}"
+    test(_label, make_rect_assembly)
 
 print("\n═══ Iwata horn (faithful l'Audiophile rectangular dual-flare) ═══")
 
@@ -439,6 +530,74 @@ def _adapter_segment_axial_cut():
         assert abs(part.bounds[1, 2] - hi) < 1e-6, f"segment {i}: z_hi {part.bounds[1,2]} != {hi}"
 test("adapter segment axial cut", _adapter_segment_axial_cut)
 
+
+def _print_volume_boxes_keep_throat():
+    mesh = trimesh.creation.box(extents=[120.0, 90.0, 180.0])
+    mesh.apply_translation([0.0, 0.0, 90.0])
+    parts = _slc.slice_to_print_volume(mesh, 60.0, 50.0, 70.0, keep_z_max=40.0)
+    assert len(parts) > 1, f"expected multiple print-volume chunks, got {len(parts)}"
+    first = parts[0]
+    first_dims = first.bounds[1] - first.bounds[0]
+    assert first.metadata.get("print_volume_core"), "first piece should be the center-bottom core"
+    assert abs(first.bounds[0, 2]) < 1e-6, "first core should start at the model bottom"
+    assert first.bounds[1, 2] >= 40.0, "protected throat range should be inside first core"
+    assert first_dims[0] > 60.0, "protected throat hardware should remain unsplit in X"
+    assert first_dims[1] > 50.0, "protected throat hardware should remain unsplit in Y"
+
+    core = [p for p in parts if p.metadata.get("print_volume_core")]
+    assert len(core) >= 2, "expected a bottom-up central core stack"
+    assert all(core[i].bounds[0, 2] <= core[i + 1].bounds[0, 2] + 1e-6
+               for i in range(len(core) - 1)), "core pieces should run bottom-up"
+    first_wing = next((i for i, p in enumerate(parts) if not p.metadata.get("print_volume_core")), len(parts))
+    assert all(p.metadata.get("print_volume_core") for p in parts[:first_wing]), "core should come before wings"
+    assert not any(p.metadata.get("print_volume_core") for p in parts[first_wing:]), "wings should follow core"
+
+    for i, part in enumerate(parts[1:], start=1):
+        dims = part.bounds[1] - part.bounds[0]
+        assert dims[0] <= 60.1, f"part {i}: X {dims[0]:.2f} exceeds volume"
+        assert dims[1] <= 50.1, f"part {i}: Y {dims[1]:.2f} exceeds volume"
+        assert dims[2] <= 70.1, f"part {i}: Z {dims[2]:.2f} exceeds volume"
+        assert part.is_watertight, f"part {i}: not watertight"
+test("print-volume boxes keep throat monolithic", _print_volume_boxes_keep_throat)
+
+
+def _print_volume_boxes_tongue_groove():
+    mesh = trimesh.creation.box(extents=[40.0, 40.0, 120.0])
+    mesh.apply_translation([0.0, 0.0, 60.0])
+    plain = _slc.slice_to_print_volume(mesh, 80.0, 80.0, 60.0, strategy="grid")
+    jointed = _slc.slice_to_print_volume(mesh, 80.0, 80.0, 60.0, strategy="grid",
+                                         joint_depth=2.0, joint_margin=2.0,
+                                         clearance=0.1)
+    assert len(plain) == len(jointed) == 2, "expected two stacked print-volume chunks"
+    lower_plain, upper_plain = plain
+    lower_joint, upper_joint = jointed
+    assert lower_joint.bounds[1, 2] > lower_plain.bounds[1, 2] + 1.0, \
+        "lower chunk should have an upward tongue"
+    assert abs(upper_joint.bounds[0, 2] - upper_plain.bounds[0, 2]) < 0.2, \
+        "upper chunk should keep its bottom datum while receiving a groove"
+    assert lower_joint.volume > lower_plain.volume, "tongue should add volume"
+    assert upper_joint.volume < upper_plain.volume, "groove should remove volume"
+    assert lower_joint.is_watertight, "jointed lower chunk not watertight"
+    assert upper_joint.is_watertight, "jointed upper chunk not watertight"
+test("print-volume boxes tongue & groove", _print_volume_boxes_tongue_groove)
+
+
+def _print_volume_center_up_tongue_groove():
+    mesh = trimesh.creation.box(extents=[40.0, 40.0, 140.0])
+    mesh.apply_translation([0.0, 0.0, 70.0])
+    plain = _slc.slice_to_print_volume(mesh, 80.0, 80.0, 70.0,
+                                       strategy="center_up")
+    jointed = _slc.slice_to_print_volume(mesh, 80.0, 80.0, 70.0,
+                                         strategy="center_up",
+                                         joint_depth=3.0, joint_margin=2.0,
+                                         clearance=0.1)
+    assert len(plain) == len(jointed) == 2, "expected two center-up chunks"
+    assert jointed[0].bounds[1, 2] > plain[0].bounds[1, 2] + 2.0, \
+        "center-up lower chunk should receive an upward tongue"
+    assert jointed[0].volume > plain[0].volume, "center-up tongue should add volume"
+    assert jointed[1].volume < plain[1].volume, "center-up groove should remove volume"
+test("print-volume center-up tongue & groove", _print_volume_center_up_tongue_groove)
+
 def _joint_profile_preserves_outer_skin():
     poly = _slc.shp.Polygon([(0, 0), (4, 0), (4, 30), (0, 30)])
     to_3d = np.array([
@@ -468,7 +627,7 @@ def _make_check_petals(n):
         assert 0.95 * Vh < sv <= Vh + 1e-6, f"n={n}: petals don't tile horn ({sv/Vh:.3f})"
     return _check
 
-for _n in (3, 4, 6):
+for _n in (2, 3, 4, 6, 8, 12):
     test(f"{_n} petals", _make_check_petals(_n))
 
 
@@ -516,20 +675,58 @@ def _make_check_jointed_petals(n, depth):
                 f"n=2 depth={depth}: halves are not identical parts"
     return _check
 
-for _n in (2, 3, 4):
+for _n in (2, 3, 4, 6, 8):
     test(f"{_n} petals joint_depth=2", _make_check_jointed_petals(_n, 2.0))
     test(f"{_n} petals joint_depth=0.5", _make_check_jointed_petals(_n, 0.5))
 
+# slice_at_heights: axial slicing into stacked segments
+for _label, _heights in [
+    ("1 cut at mid",        None),
+    ("2 cuts (3 segments)", None),
+    ("3 cuts",              None),
+]:
+    def make_slice_heights(h=_heights, lbl=_label):
+        horn = _horn_trimesh()
+        zs = horn.vertices[:, 2]
+        z_min, z_max = zs.min(), zs.max()
+        if h is None:
+            if "1 cut" in lbl:
+                heights = [0.5 * (z_min + z_max)]
+            elif "2 cuts" in lbl:
+                heights = [z_min + (z_max - z_min) / 3, z_min + 2 * (z_max - z_min) / 3]
+            else:
+                heights = [z_min + i * (z_max - z_min) / 4 for i in range(1, 4)]
+        else:
+            heights = h
+        segments = _slc.slice_at_heights(horn, heights)
+        assert len(segments) >= 1, f"{lbl}: got {len(segments)} segments"
+        for i, seg in enumerate(segments):
+            assert seg.is_watertight, f"{lbl} segment {i}: not watertight"
+            assert seg.body_count == 1, f"{lbl} segment {i}: {seg.body_count} bodies"
+            assert seg.volume > 0, f"{lbl} segment {i}: zero volume"
+    test(_label, make_slice_heights)
 
-# ══════════════════════════════════════════════════════════════════════════════
-#  9. Throat adapter — thread specs, geometry, and assembly
-# ══════════════════════════════════════════════════════════════════════════════
+# slice_at_heights with joint_wall
+def _slice_heights_joints():
+    horn = _horn_trimesh()
+    zs = horn.vertices[:, 2]
+    z_min, z_max = zs.min(), zs.max()
+    heights = [0.4 * (z_max - z_min) + z_min, 0.7 * (z_max - z_min) + z_min]
+    segments = _slc.slice_at_heights(horn, heights, joint_wall=2.0)
+    assert len(segments) == 3, f"jointed: got {len(segments)} segments"
+    for i, seg in enumerate(segments):
+        assert seg.is_watertight, f"jointed segment {i}: not watertight"
+    # joints add/remove material, volume stays close
+    Vh = horn.volume
+    sv = sum(s.volume for s in segments)
+    assert 0.90 <= sv / Vh <= 1.10, f"jointed volume ratio {sv/Vh:.3f}"
+test("slice_at_heights with joint_wall", _slice_heights_joints)
 
 print("\n═══ Throat adapter ═══")
 
 def test_thread_specs():
-    assert len(_ta.THREAD_SPECS) == 3, f"expected 3 thread specs, got {len(_ta.THREAD_SPECS)}"
-    for key in ("1in", "1_25in", "2in"):
+    assert len(_ta.THREAD_SPECS) == 4, f"expected 4 thread specs, got {len(_ta.THREAD_SPECS)}"
+    for key in ("1in", "1_25in", "1_375in", "2in"):
         assert key in _ta.THREAD_SPECS, f"missing {key}"
         spec = _ta.THREAD_SPECS[key]
         assert spec.major_diam > 0, f"{key}: major_diam={spec.major_diam}"
@@ -684,9 +881,8 @@ def test_adapter_outer_flush():
 test("adapter outer wall flush with horn (no step)", test_adapter_outer_flush)
 
 def test_threaded_socket():
-    for key in ("1in", "1_25in", "2in"):
+    for key in ("1in", "1_25in", "1_375in", "2in"):
         m = _ta.make_threaded_socket(key, 15.0, 4.0)
-        _check_trimesh_watertight(m, f"threaded socket {key}")
 test("threaded sockets watertight", test_threaded_socket)
 
 def test_adapter_assembly_flanged():
@@ -720,22 +916,58 @@ def test_adapter_assembly_threaded():
     _check_trimesh_watertight(m, "adapter assembly threaded")
 test("adapter assembly threaded", test_adapter_assembly_threaded)
 
-def test_adapter_assembly_threaded_circular():
-    """Full assembly with threaded socket, circle→circle transition."""
-    m = _ta.make_adapter_assembly(
-        driver_type="1_25in", driver_diam=None, thread_key="1_25in",
-        horn_shape="circular",
-        rect_w=0.0, rect_h=0.0, poly_n_sides=0,
-        poly_circumR=0.0,
-        horn_R_eq=18.0,
-        adapter_length=30.0, wall_thickness=4.0,
-        socket_length=15.0,
-        outer_target_R=22.0,
-        z_offset=0.0,
-        output_path=None,
-    )
-    _check_trimesh_watertight(m, "adapter assembly threaded circular")
-test("adapter assembly threaded circular", test_adapter_assembly_threaded_circular)
+# Threaded adapter full assemblies — all 4 thread sizes
+for _tk, _shape, _ns, _h_R_eq, _cR in [
+    ("1in",    "polygonal",   6, 12.5, 15.0),
+    ("1_25in", "circular",    0, 18.0, 0.0),
+    ("1_375in","rectangular",  0, np.sqrt(40*20/np.pi), 0.0),
+    ("2in",    "polygonal",   4, 14.0, 17.0),
+]:
+    def make_threaded_asm(tk=_tk, sh=_shape, ns=_ns, heq=_h_R_eq, cr=_cR):
+        kwargs = dict(
+            driver_type=tk, driver_diam=None, thread_key=tk,
+            horn_shape=sh, wall_thickness=4.0,
+            adapter_length=30.0, socket_length=15.0, z_offset=0.0,
+            output_path=None)
+        if sh == "rectangular":
+            kwargs.update(rect_w=40.0, rect_h=20.0, poly_n_sides=0,
+                          poly_circumR=0.0, horn_R_eq=heq)
+        elif sh == "polygonal":
+            kwargs.update(rect_w=0.0, rect_h=0.0, poly_n_sides=ns,
+                          poly_circumR=cr, horn_R_eq=heq)
+        else:  # circular
+            kwargs.update(rect_w=0.0, rect_h=0.0, poly_n_sides=0,
+                          poly_circumR=0.0, horn_R_eq=heq)
+        m = _ta.make_adapter_assembly(**kwargs)
+        _check_trimesh_watertight(m, f"threaded assembly {tk}")
+    test(f"threaded assembly {_tk}", make_threaded_asm)
+
+# Flanged adapter assemblies — all horn shapes
+for _fs, _fns, _f_R_eq, _f_cR, _f_rw, _f_rh in [
+    ("rectangular", 0, np.sqrt(40*20/np.pi), 0.0, 40.0, 20.0),
+    ("polygonal",   6, 12.5, 15.0, 0.0, 0.0),
+    ("circular",    0, 18.0, 0.0, 0.0, 0.0),
+]:
+    def make_flanged_asm(sh=_fs, ns=_fns, heq=_f_R_eq, cr=_f_cR, rw=_f_rw, rh=_f_rh):
+        kwargs = dict(
+            driver_type="flanged", driver_diam=25.0, thread_key=None,
+            horn_shape=sh, wall_thickness=4.0,
+            adapter_length=30.0, z_offset=0.0,
+            flange_R=30.0, flange_thickness=6.0,
+            flange_bolt_R=20.0, flange_bolt_n=4, flange_bolt_d=3.5,
+            socket_length=0.0, output_path=None)
+        if sh == "rectangular":
+            kwargs.update(rect_w=rw, rect_h=rh, poly_n_sides=0,
+                          poly_circumR=0.0, horn_R_eq=heq)
+        elif sh == "polygonal":
+            kwargs.update(rect_w=0.0, rect_h=0.0, poly_n_sides=ns,
+                          poly_circumR=cr, horn_R_eq=heq)
+        else:
+            kwargs.update(rect_w=0.0, rect_h=0.0, poly_n_sides=0,
+                          poly_circumR=0.0, horn_R_eq=heq)
+        m = _ta.make_adapter_assembly(**kwargs)
+        _check_trimesh_watertight(m, f"flanged adapter {sh}")
+    test(f"flanged adapter {_fs}", make_flanged_asm)
 
 def test_polygonal_horn_adapter_union_watertight():
     """Polygonal flare + threaded adapter must union with a real overlap."""

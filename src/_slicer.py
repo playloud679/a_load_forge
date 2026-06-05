@@ -224,6 +224,437 @@ def slice_with_adapter_segment(
     return slice_at_heights(mesh, cuts, joint_wall=joint_wall)
 
 
+def _axis_intervals(lo: float, hi: float, max_size: float) -> list[tuple[float, float]]:
+    """Split [lo, hi] into intervals no larger than *max_size*."""
+    lo = float(lo)
+    hi = float(hi)
+    max_size = float(max_size)
+    if max_size <= 0:
+        raise ValueError("max_size must be positive")
+    if hi <= lo:
+        return []
+    intervals = []
+    cur = lo
+    while cur < hi - 1e-6:
+        nxt = min(cur + max_size, hi)
+        intervals.append((cur, nxt))
+        cur = nxt
+    return intervals
+
+
+def _balanced_axis_intervals(lo: float, hi: float, max_size: float) -> list[tuple[float, float]]:
+    """Split [lo, hi] into near-equal intervals no larger than *max_size*."""
+    lo = float(lo)
+    hi = float(hi)
+    max_size = float(max_size)
+    if max_size <= 0:
+        raise ValueError("max_size must be positive")
+    if hi <= lo:
+        return []
+    span = hi - lo
+    count = int(np.ceil(span / max_size))
+    step = span / count
+    return [(lo + step * i, lo + step * (i + 1)) for i in range(count)]
+
+
+def _centered_axis_intervals(lo: float, hi: float, max_size: float) -> list[tuple[float, float, int]]:
+    """Return center-first intervals as (lo, hi, ring), where ring 0 is central."""
+    lo = float(lo)
+    hi = float(hi)
+    max_size = float(max_size)
+    if max_size <= 0:
+        raise ValueError("max_size must be positive")
+    if hi <= lo:
+        return []
+    span = hi - lo
+    if span <= max_size + 1e-6:
+        return [(lo, hi, 0)]
+
+    center = (lo + hi) / 2.0
+    c0 = max(lo, center - max_size / 2.0)
+    c1 = min(hi, c0 + max_size)
+    c0 = max(lo, c1 - max_size)
+    intervals = [(c0, c1, 0)]
+
+    ring = 1
+    left_hi = c0
+    right_lo = c1
+    while left_hi > lo + 1e-6 or right_lo < hi - 1e-6:
+        if left_hi > lo + 1e-6:
+            left_lo = max(lo, left_hi - max_size)
+            intervals.append((left_lo, left_hi, ring))
+            left_hi = left_lo
+        if right_lo < hi - 1e-6:
+            right_hi = min(hi, right_lo + max_size)
+            intervals.append((right_lo, right_hi, ring))
+            right_lo = right_hi
+        ring += 1
+    return intervals
+
+
+def _clip_to_box(
+    mesh: trimesh.Trimesh,
+    bounds_min: tuple[float, float, float],
+    bounds_max: tuple[float, float, float],
+) -> trimesh.Trimesh | None:
+    """Clip *mesh* to an axis-aligned box and cap every cut plane."""
+    out = mesh
+    xmin, ymin, zmin = bounds_min
+    xmax, ymax, zmax = bounds_max
+    planes = [
+        ([xmin, 0.0, 0.0], [1.0, 0.0, 0.0]),
+        ([xmax, 0.0, 0.0], [-1.0, 0.0, 0.0]),
+        ([0.0, ymin, 0.0], [0.0, 1.0, 0.0]),
+        ([0.0, ymax, 0.0], [0.0, -1.0, 0.0]),
+        ([0.0, 0.0, zmin], [0.0, 0.0, 1.0]),
+        ([0.0, 0.0, zmax], [0.0, 0.0, -1.0]),
+    ]
+    for origin, normal in planes:
+        out = out.slice_plane(origin, normal, cap=True)
+        if out is None or out.is_empty:
+            return None
+    out.merge_vertices()
+    out.fix_normals()
+    return out
+
+
+def _split_adaptive_to_limits(
+    mesh: trimesh.Trimesh,
+    limits: np.ndarray,
+) -> list[trimesh.Trimesh]:
+    """Recursively split a mesh until every real bounding box fits *limits*."""
+    pieces: list[trimesh.Trimesh] = []
+    queue = [mesh]
+    while queue:
+        part = queue.pop(0)
+        dims = part.bounds[1] - part.bounds[0]
+        excess = dims / limits
+        axis = int(np.argmax(excess))
+        if excess[axis] <= 1.0 + 1e-6:
+            pieces.append(part)
+            continue
+
+        cut = float((part.bounds[0, axis] + part.bounds[1, axis]) / 2.0)
+        origin = np.zeros(3)
+        normal = np.zeros(3)
+        origin[axis] = cut
+        normal[axis] = 1.0
+        below = part.slice_plane(origin, -normal, cap=True)
+        above = part.slice_plane(origin, normal, cap=True)
+        children = []
+        for child in (below, above):
+            if child is not None and not child.is_empty and child.volume > 1e-3:
+                child.merge_vertices()
+                child.fix_normals()
+                children.append(child)
+        if len(children) <= 1:
+            pieces.append(part)
+        else:
+            queue.extend(children)
+    return pieces
+
+
+def _box_face_polygons(part: trimesh.Trimesh, axis: int, coord: float, normal: np.ndarray):
+    """Return significant polygons on an axis-aligned print-volume cut face."""
+    origin = np.zeros(3)
+    origin[axis] = coord
+    polys, to_3D = _seam_face_polygons(part, origin, normal, min_area_frac=0.01)
+    if polys:
+        return polys, to_3D
+    return _seam_face_polygons(part, origin, -normal, min_area_frac=0.01)
+
+
+def _add_box_tongue(
+    part: trimesh.Trimesh,
+    axis: int,
+    side: int,
+    joint_depth: float,
+    margin: float,
+    clearance: float,
+) -> trimesh.Trimesh:
+    """Add a tongue protruding from one axis-aligned print-volume face."""
+    normal = np.zeros(3)
+    normal[axis] = float(side)
+    coord = float(part.bounds[1 if side > 0 else 0, axis])
+    polys, to_3D = _box_face_polygons(part, axis, coord, normal)
+    if not polys or to_3D is None:
+        return part
+
+    overlap = min(1.0, max(0.2, joint_depth * 0.5))
+    tongues = []
+    for poly in polys:
+        inner = _joint_profile(poly, to_3D, margin, clearance / 2.0)
+        if inner is None or inner.is_empty:
+            continue
+        tongue = trimesh.creation.extrude_polygon(inner, height=joint_depth + overlap)
+        tongue.apply_translation([0.0, 0.0, -overlap])
+        transform = to_3D.copy()
+        transform[:3, 2] = normal
+        tongue.apply_transform(transform)
+        tongues.append(tongue)
+    if not tongues:
+        return part
+
+    try:
+        result = trimesh.boolean.union([part, *tongues], engine="manifold",
+                                       check_volume=False)
+    except Exception:
+        result = trimesh.util.concatenate([part, *tongues])
+    if result is not None and not result.is_empty:
+        return result
+    return part
+
+
+def _add_box_groove(
+    part: trimesh.Trimesh,
+    axis: int,
+    side: int,
+    joint_depth: float,
+    margin: float,
+    clearance: float,
+) -> trimesh.Trimesh:
+    """Cut a groove into one axis-aligned print-volume face."""
+    normal = np.zeros(3)
+    normal[axis] = float(side)
+    coord = float(part.bounds[1 if side > 0 else 0, axis])
+    polys, to_3D = _box_face_polygons(part, axis, coord, normal)
+    if not polys or to_3D is None:
+        return part
+
+    overlap = min(1.0, max(0.2, joint_depth * 0.5))
+    result = part
+    for poly in polys:
+        inner = _joint_profile(poly, to_3D, margin, -clearance / 2.0)
+        if inner is None or inner.is_empty:
+            continue
+        groove = trimesh.creation.extrude_polygon(inner, height=joint_depth + overlap)
+        transform = to_3D.copy()
+        transform[:3, 2] = -normal
+        transform[:3, 3] += normal * overlap
+        groove.apply_transform(transform)
+        try:
+            cut = trimesh.boolean.difference([result, groove], engine="manifold",
+                                             check_volume=False)
+        except Exception:
+            return part
+        if cut is not None and not cut.is_empty:
+            result = cut
+    return result
+
+
+def _face_overlap(bounds_a: np.ndarray, bounds_b: np.ndarray, axis: int) -> float:
+    """Return overlap area of two bounding boxes on the face orthogonal to *axis*."""
+    other = [i for i in range(3) if i != axis]
+    area = 1.0
+    for ax in other:
+        lo = max(float(bounds_a[0, ax]), float(bounds_b[0, ax]))
+        hi = min(float(bounds_a[1, ax]), float(bounds_b[1, ax]))
+        if hi <= lo + 1e-6:
+            return 0.0
+        area *= hi - lo
+    return area
+
+
+def _add_print_volume_joints(
+    pieces: list[trimesh.Trimesh],
+    joint_depth: float,
+    joint_margin: float,
+    clearance: float,
+) -> list[trimesh.Trimesh]:
+    """Add tongue/groove joints between neighboring print-volume chunks."""
+    if joint_depth <= 0 or len(pieces) <= 1:
+        return pieces
+
+    out = list(pieces)
+    original_bounds = [p.bounds.copy() for p in pieces]
+    ops: list[list[tuple[str, int, int]]] = [[] for _ in pieces]
+    touch_tol = max(0.05, clearance * 2.0)
+    min_overlap = max((joint_margin * 2.0) ** 2, 4.0)
+
+    for i in range(len(pieces)):
+        for j in range(i + 1, len(pieces)):
+            bi = original_bounds[i]
+            bj = original_bounds[j]
+            for axis in range(3):
+                if abs(float(bi[1, axis] - bj[0, axis])) <= touch_tol:
+                    if _face_overlap(bi, bj, axis) >= min_overlap:
+                        ops[i].append(("tongue", axis, 1))
+                        ops[j].append(("groove", axis, -1))
+                    break
+                if abs(float(bj[1, axis] - bi[0, axis])) <= touch_tol:
+                    if _face_overlap(bi, bj, axis) >= min_overlap:
+                        ops[j].append(("tongue", axis, 1))
+                        ops[i].append(("groove", axis, -1))
+                    break
+
+    for idx, part_ops in enumerate(ops):
+        seen = set()
+        part = out[idx]
+        for kind, axis, side in part_ops:
+            key = (kind, axis, side)
+            if key in seen:
+                continue
+            seen.add(key)
+            if kind == "tongue":
+                part = _add_box_tongue(part, axis, side, joint_depth,
+                                       joint_margin, clearance)
+            else:
+                part = _add_box_groove(part, axis, side, joint_depth,
+                                       joint_margin, clearance)
+        part.metadata.update(pieces[idx].metadata)
+        out[idx] = part
+    return out
+
+
+def slice_to_print_volume(
+    mesh: trimesh.Trimesh,
+    max_x: float,
+    max_y: float,
+    max_z: float,
+    keep_z_max: float | None = None,
+    strategy: str = "center_up",
+    joint_depth: float = 0.0,
+    joint_margin: float = 1.0,
+    clearance: float = 0.1,
+) -> list[trimesh.Trimesh]:
+    """
+    Slice *mesh* into axis-aligned cuboid chunks constrained by max print volume.
+
+    If *keep_z_max* is set, the throat-side range is kept inside the first
+    center-bottom chunk rather than exported as a separate adapter/flange piece.
+    That first chunk may exceed the requested build volume so throat hardware
+    remains monolithic with the lower horn body.
+
+    strategy="center_up" cuts center-first in X/Y and bottom-up in Z. It yields
+    a central stack first, then side wings. strategy="adaptive" recursively
+    splits the current largest offending real piece. strategy="grid" uses a
+    fixed global X/Y/Z box grid.
+    """
+    if max_x <= 0 or max_y <= 0 or max_z <= 0:
+        raise ValueError("max print dimensions must be positive")
+
+    bmin = mesh.bounds[0].astype(float)
+    bmax = mesh.bounds[1].astype(float)
+    z_min, z_max = float(bmin[2]), float(bmax[2])
+    pieces: list[trimesh.Trimesh] = []
+
+    keep_z = None
+    if keep_z_max is not None:
+        keep_z = float(np.clip(keep_z_max, z_min, z_max))
+
+    whole = _clip_to_box(mesh, tuple(bmin), tuple(bmax))
+    if whole is None or whole.is_empty:
+        return _add_print_volume_joints(pieces, joint_depth, joint_margin, clearance)
+
+    protected_z1 = None
+    if keep_z is not None:
+        protected_z1 = min(z_max, max(z_min + max_z, keep_z))
+
+    if strategy == "adaptive":
+        limits = np.array([max_x, max_y, max_z], dtype=float)
+        adaptive_start = z_min
+        if protected_z1 is not None:
+            first = _clip_to_box(mesh, (bmin[0], bmin[1], z_min), (bmax[0], bmax[1], protected_z1))
+            if first is not None and not first.is_empty:
+                first.metadata["print_volume_ring"] = 0
+                first.metadata["print_volume_core"] = True
+                first.metadata["print_volume_z"] = (float(z_min), float(protected_z1))
+                pieces.append(first)
+            adaptive_start = protected_z1
+        rest = _clip_to_box(mesh, (bmin[0], bmin[1], adaptive_start), (bmax[0], bmax[1], z_max))
+        if rest is not None and not rest.is_empty:
+            pieces.extend(_split_adaptive_to_limits(rest, limits))
+        return _add_print_volume_joints(pieces, joint_depth, joint_margin, clearance)
+
+    if strategy not in ("center_up", "grid"):
+        raise ValueError("strategy must be 'center_up', 'adaptive' or 'grid'")
+
+    if strategy == "center_up":
+        limits = np.array([max_x, max_y, max_z], dtype=float)
+        cx_intervals = _centered_axis_intervals(bmin[0], bmax[0], max_x)
+        cy_intervals = _centered_axis_intervals(bmin[1], bmax[1], max_y)
+        cx0, cx1, _ = cx_intervals[0]
+        cy0, cy1, _ = cy_intervals[0]
+
+        core_z0 = z_min
+        first_z1 = min(z_max, z_min + max_z)
+        if protected_z1 is not None:
+            first_z1 = protected_z1
+            first = _clip_to_box(mesh, (bmin[0], bmin[1], core_z0), (bmax[0], bmax[1], first_z1))
+            if first is not None and not first.is_empty:
+                first.metadata["print_volume_ring"] = 0
+                first.metadata["print_volume_core"] = True
+                first.metadata["print_volume_z"] = (float(core_z0), float(first_z1))
+                pieces.append(first)
+            core_z0 = first_z1
+
+        core_probe = _clip_to_box(mesh, (cx0, cy0, core_z0), (cx1, cy1, z_max))
+        core_z1 = z_max
+        if core_probe is not None and not core_probe.is_empty:
+            core_z1 = float(core_probe.bounds[1, 2])
+
+        for z0, z1 in _balanced_axis_intervals(core_z0, core_z1, max_z):
+            core = _clip_to_box(mesh, (cx0, cy0, z0), (cx1, cy1, z1))
+            if core is not None and not core.is_empty and core.volume > 1e-3:
+                core.metadata["print_volume_ring"] = 0
+                core.metadata["print_volume_core"] = True
+                core.metadata["print_volume_z"] = (float(z0), float(z1))
+                pieces.append(core)
+
+        wing_regions = [
+            (bmin[0], cx0, bmin[1], bmax[1]),
+            (cx1, bmax[0], bmin[1], bmax[1]),
+            (cx0, cx1, bmin[1], cy0),
+            (cx0, cx1, cy1, bmax[1]),
+        ]
+        wing_start = first_z1 if keep_z is not None else z_min
+        for x0, x1, y0, y1 in wing_regions:
+            if x1 <= x0 + 1e-6 or y1 <= y0 + 1e-6:
+                continue
+            wing = _clip_to_box(mesh, (x0, y0, wing_start), (x1, y1, z_max))
+            if wing is None or wing.is_empty:
+                continue
+            for part in _split_adaptive_to_limits(wing, limits):
+                part.metadata["print_volume_ring"] = 1
+                part.metadata["print_volume_core"] = False
+                part.metadata["print_volume_z"] = (float(part.bounds[0, 2]), float(part.bounds[1, 2]))
+                pieces.append(part)
+        return _add_print_volume_joints(pieces, joint_depth, joint_margin, clearance)
+
+    grid_z_min = z_min
+    if protected_z1 is not None:
+        first = _clip_to_box(mesh, (bmin[0], bmin[1], z_min), (bmax[0], bmax[1], protected_z1))
+        if first is not None and not first.is_empty:
+            first.metadata["print_volume_ring"] = 0
+            first.metadata["print_volume_core"] = True
+            first.metadata["print_volume_z"] = (float(z_min), float(protected_z1))
+            pieces.append(first)
+        grid_z_min = protected_z1
+
+    x_intervals = [(a, b, i) for i, (a, b) in enumerate(_axis_intervals(bmin[0], bmax[0], max_x))]
+    y_intervals = [(a, b, i) for i, (a, b) in enumerate(_axis_intervals(bmin[1], bmax[1], max_y))]
+    z_intervals = _axis_intervals(grid_z_min, z_max, max_z)
+
+    cells = []
+    for yr, (y0, y1, y_ring) in enumerate(y_intervals):
+        for xr, (x0, x1, x_ring) in enumerate(x_intervals):
+            ring = max(x_ring, y_ring)
+            dist = abs((x0 + x1) / 2.0 - (bmin[0] + bmax[0]) / 2.0) + \
+                   abs((y0 + y1) / 2.0 - (bmin[1] + bmax[1]) / 2.0)
+            cells.append((ring, dist, yr, xr, x0, x1, y0, y1))
+    cells.sort(key=lambda c: (c[0], c[1], c[2], c[3]))
+
+    for ring, _dist, _yr, _xr, x0, x1, y0, y1 in cells:
+        for z0, z1 in z_intervals:
+            part = _clip_to_box(mesh, (x0, y0, z0), (x1, y1, z1))
+            if part is not None and not part.is_empty and part.volume > 1e-3:
+                part.metadata["print_volume_ring"] = int(ring)
+                part.metadata["print_volume_core"] = bool(ring == 0)
+                part.metadata["print_volume_z"] = (float(z0), float(z1))
+                pieces.append(part)
+    return _add_print_volume_joints(pieces, joint_depth, joint_margin, clearance)
+
+
 def seam_phase_avoiding_holes(n: int, hole_angles, samples: int = 1440) -> float:
     """
     Pick a seam phase (rad) for *n* evenly-spaced radial cuts that keeps every

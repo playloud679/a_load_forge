@@ -38,7 +38,7 @@ are also saved to `output_dir/radial_bottom.stl` and
 | `fc` | `float \| None` | `None` | Cutoff frequency (Hz). Defaults to `1000.0` internally. Used for Exponential and Salmon profiles. |
 | `rings` | `int` | `64` | Number of angular segments in the revolution. |
 | `output_dir` | `str` | `"io"` | Directory for STL output files. |
-| `profile` | `str` | `"Exponential"` | Aerodynamic expansion profile. Must be `"Exponential"`, `"Tractrix"`, or `"Salmon"`. |
+| `profile` | `str` | `"Exponential"` | Aerodynamic expansion profile. Must be `"Exponential"`, `"Tractrix"`, `"Salmon"`, or `"Oblate spheroidal"`. |
 
 ---
 
@@ -93,6 +93,12 @@ Straight logarithmic expansion. `fc` is required (defaults to 1000 Hz).
 
 - Calls `profile_generator.get_salmon(throat_diam, fc, Rm − Rt, n)`.
 - Same re-parameterisation and clamping as Tractrix.
+
+#### Oblate spheroidal
+
+- Calls `profile_generator.get_oblate_spheroidal_for_mouth(throat_diam, mouth_diam, 90.0, n)`.
+- Same re-parameterisation and clamping as Tractrix.
+- `fc` is ignored because the oblate radial profile is driven by throat, mouth, and a default 90° total coverage.
 
 `fc` is ignored for Tractrix (the profile itself has no frequency parameter);
 for Salmon it is used in the underlying `get_salmon` call (defaults to 1000).

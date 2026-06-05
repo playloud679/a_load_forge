@@ -40,10 +40,11 @@ Imported from `src/_constants.py`.
 | `--throat` | `float` | **required** | Throat diameter in mm |
 | `--mouth` | `float` | `None` | Mouth diameter (tractrix only) |
 | `--fc` | `float` | `None` | Cutoff frequency in Hz (exponential / salmon) |
-| `--length` | `float` | `None` | Axial length in mm (salmon / lecleach) |
+| `--length` | `float` | `None` | Axial length in mm (salmon / lecleach / oblate) |
+| `--coverage` | `float` | `90.0` | Total coverage angle in degrees (oblate only; `theta = coverage/2`) |
 | `--T` | `float` | `0.707` | Salmon flare parameter T (0=catenoidal, <1=cosh, 1=exponential, >1=sinh) |
 | `--max-angle` | `float` | `300.0` | Termination angle in degrees (lecleach only, 90-180, default 160) |
-| `--profile` | `str` | `"auto"` | Choices: `"auto"`, `"tractrix"`, `"salmon"`, `"iwata"`, `"lecleach"` |
+| `--profile` | `str` | `"auto"` | Choices: `"auto"`, `"tractrix"`, `"salmon"`, `"iwata"`, `"lecleach"`, `"oblate"` |
 | `--thickness` | `float` | `4.0` | Wall thickness in mm |
 | `--segments` | `int` | `300` | Number of profile sample points |
 | `--rings` | `int` | `64` | Circumferential tessellation rings |
@@ -75,6 +76,53 @@ R(z) = (throat/2) · exp(m/2 · z)
 ```
 
 Length is derived from the target mouth: `L = (2/m) · ln(mouth / throat)`. Z linearly sampled on `[0, L]`.
+
+### `get_oblate_spheroidal(throat: float, coverage_angle: float, length: float, n: int) -> tuple[np.ndarray, np.ndarray]`
+
+**Algorithm:** Constant-directivity oblate spheroidal waveguide profile.
+
+The wall radius is:
+
+```
+r(x) = sqrt(r₀² + (x · tan(theta))²)
+theta = coverage_angle / 2
+```
+
+where `r₀ = throat/2`, `x` is the axial coordinate, and `coverage_angle` is the total desired dispersion. This gives the two required CD constraints:
+
+- **Parallel throat:** `dr/dx = x·tan²(theta) / r(x)`, so `dr/dx = 0` at `x = 0`.
+- **Conical asymptote:** for large `x`, `r(x) ≈ x·tan(theta)`, so the wall tends to the requested half-angle.
+
+The function raises `ValueError` if throat or length are non-positive, or if `coverage_angle` is not between 0° and 180°.
+
+The CD oblate law itself is angle/length driven and does not contain an exponential cutoff parameter. The CLI reports an estimated mouth-loading cutoff using the same rule used elsewhere in the app:
+
+```
+Fc ≈ c / (π · D_mouth)
+```
+
+where `D_mouth = 2 · r[-1]`.
+
+### `get_oblate_spheroidal_for_mouth(throat: float, mouth: float, coverage_angle: float, n: int) -> tuple[np.ndarray, np.ndarray]`
+
+Convenience wrapper for cases that start from a target mouth diameter. It solves:
+
+```
+length = sqrt((mouth/2)² − (throat/2)²) / tan(coverage_angle/2)
+```
+
+and delegates to `get_oblate_spheroidal()`.
+
+### `get_oblate_spheroidal_asymmetric(throat_w: float, throat_h: float, coverage_h: float, coverage_v: float, length: float, n: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]`
+
+Asymmetric constant-directivity oblate profile. Horizontal and vertical axes are calculated independently:
+
+```
+w(x) = 2 · sqrt((throat_w/2)² + (x · tan(coverage_h/2))²)
+h(x) = 2 · sqrt((throat_h/2)² + (x · tan(coverage_v/2))²)
+```
+
+This supports waveguides such as 90° horizontal × 45° vertical, with both axes starting parallel at the throat and tending toward their independent conical asymptotes.
 
 ### `get_salmon(throat: float, fc: float, length: float, n: int, T: float = 0.707) -> tuple[np.ndarray, np.ndarray]`
 
@@ -163,6 +211,26 @@ If the ODE returns a single point (degenerate), the function returns `z = zeros(
 7. **Normals fix** — `tm.fix_normals()` ensures outward-facing normals.
 
 8. **Export** — If `output_path` is provided, exports STL. Returns a `mesh.Mesh` (numpy-stl) object.
+
+### `generate_elliptical_3d_mesh_from_profiles(z_i: np.ndarray, rx_i: np.ndarray, ry_i: np.ndarray, thickness: float = 4.0, rings: int = 96, output_path: str | None = None) -> mesh.Mesh`
+
+Builds a watertight elliptical-section horn from independent X/Y radii. This is the mesh path for asymmetric oblate CD waveguides with different horizontal and vertical coverage angles.
+
+Each inner slice is:
+
+```
+x = rx(z) · cos(phi)
+y = ry(z) · sin(phi)
+```
+
+The outer wall uses an outward elliptical radial offset:
+
+```
+rx_outer = rx + thickness
+ry_outer = ry + thickness
+```
+
+The function triangulates inner wall, outer wall, throat annulus, and mouth annulus, runs the result through `trimesh.Trimesh(..., process=True)`, merges vertices, fixes normals, optionally exports STL, and returns a `mesh.Mesh`.
 
 ---
 

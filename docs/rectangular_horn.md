@@ -15,7 +15,7 @@
 | `stl.mesh` | `Mesh` |
 | `_constants` | `SOUND_SPEED` |
 | `_utils` | `compute_profile_normals`, `ensure_positive_volume` |
-| `profile_generator` | `get_tractrix`, `get_salmon` (used by area-preserving wrappers) |
+| `profile_generator` | `get_tractrix`, `get_salmon`, `get_oblate_spheroidal_asymmetric` |
 
 ---
 
@@ -79,6 +79,21 @@ Area-preserving rectangular Salmon (Hypex).
 1. Computes area-equivalent circular throat: `throat_eq = √(throat_w · throat_h · 4/π)`
 2. Generates a circular Salmon profile via `profile_generator.get_salmon(throat_eq, fc, length, n)`
 3. Converts to rectangular via `_area_to_rect(z, r, throat_w, throat_h)`
+
+---
+
+### `get_rectangular_oblate_spheroidal(throat_w: float, throat_h: float, coverage_h: float, coverage_v: float, length: float, n: int = 300) -> tuple[np.ndarray, np.ndarray, np.ndarray]`
+
+Asymmetric rectangular oblate constant-directivity profile.
+
+**Algorithm:**
+1. Delegates to `profile_generator.get_oblate_spheroidal_asymmetric(throat_w, throat_h, coverage_h, coverage_v, length, n)`.
+2. Horizontal and vertical wall distances are solved independently:
+   ```
+   W(x) = 2 · sqrt((throat_w/2)² + (x · tan(coverage_h/2))²)
+   H(x) = 2 · sqrt((throat_h/2)² + (x · tan(coverage_v/2))²)
+   ```
+3. Both axes have zero slope at the throat and asymptotically approach their requested coverage half-angles.
 
 ---
 

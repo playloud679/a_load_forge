@@ -5,6 +5,7 @@ Profiles (return z_array, r_array only):
   tractrix  — z(r) = a·arcosh(a/r) − √(a²−r²);  stops at 90°
   salmon    — axisymmetric Salmon hyperbolic-exponential → radius
   lecleach  — isophase wavefront (Salmon area law + parallel wavefronts)
+  oblate    — CD oblate spheroidal profile with conical asymptote
 
 Mesh engine (profile-agnostic):
   generate_3d_mesh_from_profile(z, r, thickness)
@@ -48,12 +49,14 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--fc", type=float, default=None,
                    help="Cutoff frequency in Hz (exponential / salmon)")
     p.add_argument("--length", type=float, default=None,
-                   help="Axial length in mm (salmon / lecleach)")
+                   help="Axial length in mm (salmon / lecleach / oblate)")
+    p.add_argument("--coverage", type=float, default=90.0,
+                   help="Total coverage angle in degrees (oblate only; theta = coverage/2)")
     p.add_argument("--T", type=float, default=0.707,
                    help="Salmon flare parameter T (0=catenoidal, <1=cosh, 1=exponential, >1=sinh)")
     p.add_argument("--max-angle", type=float, default=300.0,
                    help="Termination angle in degrees (lecleach only, 90-180, default 160)")
-    p.add_argument("--profile", choices=["auto", "tractrix", "salmon", "iwata", "lecleach"],
+    p.add_argument("--profile", choices=["auto", "tractrix", "salmon", "iwata", "lecleach", "oblate"],
                    default="auto")
     p.add_argument("--thickness", type=float, default=4.0)
     p.add_argument("--segments", type=int, default=300)
@@ -105,6 +108,94 @@ def get_exponential(throat: float, mouth: float, fc: float, n: int
     z = np.linspace(0.0, L, n)
     r = (throat / 2.0) * np.exp(m / 2.0 * z)
     return z, r
+
+
+# ---- Oblate spheroidal --------------------------------------------------
+
+def get_oblate_spheroidal(
+    throat: float,
+    coverage_angle: float,
+    length: float,
+    n: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Constant-directivity oblate spheroidal waveguide profile.
+
+    The wall follows the hyperbolic/oblate law
+
+        r(x) = sqrt(r0^2 + (x * tan(theta))^2)
+
+    where r0 is the throat radius and theta is half of the requested total
+    coverage angle. The derivative is zero at x=0, so the throat starts parallel
+    to the acoustic axis, and the far-field slope tends to tan(theta), giving a
+    conical asymptote for constant-directivity loading.
+    """
+    rt = throat / 2.0
+
+    if throat <= 0 or length <= 0:
+        raise ValueError("throat and length must be positive")
+    if not 0.0 < coverage_angle < 180.0:
+        raise ValueError("coverage_angle must be between 0 and 180 degrees")
+
+    theta = np.radians(coverage_angle / 2.0)
+    z = np.linspace(0.0, length, n)
+    r = np.sqrt(rt * rt + (z * np.tan(theta)) ** 2)
+    return z, r
+
+
+def get_oblate_spheroidal_for_mouth(
+    throat: float,
+    mouth: float,
+    coverage_angle: float,
+    n: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Constant-directivity oblate profile solved to hit a target mouth diameter.
+
+    This is a convenience wrapper around get_oblate_spheroidal(): length is
+    solved from mouth radius and half-coverage angle.
+    """
+    rt = throat / 2.0
+    rm = mouth / 2.0
+    if mouth <= throat:
+        raise ValueError("mouth must be greater than throat")
+    if not 0.0 < coverage_angle < 180.0:
+        raise ValueError("coverage_angle must be between 0 and 180 degrees")
+
+    theta = np.radians(coverage_angle / 2.0)
+    length = np.sqrt(max(0.0, rm * rm - rt * rt)) / np.tan(theta)
+    return get_oblate_spheroidal(throat, coverage_angle, length, n)
+
+
+def get_oblate_spheroidal_asymmetric(
+    throat_w: float,
+    throat_h: float,
+    coverage_h: float,
+    coverage_v: float,
+    length: float,
+    n: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Asymmetric constant-directivity oblate profile.
+
+    Horizontal and vertical axes are evaluated independently with the same
+    oblate CD law, producing diameters (w, h) that can loft to an elliptical or
+    rectangular waveguide section:
+
+        w(x) = 2 * sqrt((throat_w/2)^2 + (x*tan(coverage_h/2))^2)
+        h(x) = 2 * sqrt((throat_h/2)^2 + (x*tan(coverage_v/2))^2)
+    """
+    if throat_w <= 0 or throat_h <= 0 or length <= 0:
+        raise ValueError("throat_w, throat_h and length must be positive")
+    if not 0.0 < coverage_h < 180.0 or not 0.0 < coverage_v < 180.0:
+        raise ValueError("coverage angles must be between 0 and 180 degrees")
+
+    z = np.linspace(0.0, length, n)
+    th = np.radians(coverage_h / 2.0)
+    tv = np.radians(coverage_v / 2.0)
+    w = 2.0 * np.sqrt((throat_w / 2.0) ** 2 + (z * np.tan(th)) ** 2)
+    h = 2.0 * np.sqrt((throat_h / 2.0) ** 2 + (z * np.tan(tv)) ** 2)
+    return z, w, h
 
 
 # ---- Salmon (axisymmetric) -----------------------------------------------
@@ -340,6 +431,106 @@ def generate_3d_mesh_from_profile(
     return mesh.Mesh(data)
 
 
+def generate_elliptical_3d_mesh_from_profiles(
+    z_i: np.ndarray,
+    rx_i: np.ndarray,
+    ry_i: np.ndarray,
+    thickness: float = 4.0,
+    rings: int = 96,
+    output_path: str | None = None,
+) -> mesh.Mesh:
+    """
+    Build a watertight elliptical-section horn from independent X/Y radii.
+
+    This supports asymmetric oblate CD waveguides whose horizontal and vertical
+    coverages differ. Each slice is an ellipse:
+
+        x = rx(z) * cos(phi),  y = ry(z) * sin(phi)
+
+    The outer wall uses an outward elliptical radial offset by *thickness*.
+    This is intentionally a geometric elliptical loft, distinct from the
+    rectangular W/H loft used by rectangular_horn.py.
+    """
+    z_i = np.asarray(z_i, dtype=float)
+    rx_i = np.asarray(rx_i, dtype=float)
+    ry_i = np.asarray(ry_i, dtype=float)
+
+    if not (len(z_i) == len(rx_i) == len(ry_i) > 1):
+        raise ValueError("z_i, rx_i and ry_i must have the same length > 1")
+    if np.any(rx_i <= 0) or np.any(ry_i <= 0):
+        raise ValueError("ellipse radii must be positive")
+
+    n_pts = len(z_i)
+    theta = np.linspace(0.0, 2.0 * np.pi, rings, endpoint=False)
+    ct, st = np.cos(theta), np.sin(theta)
+
+    rx_o = rx_i + thickness
+    ry_o = ry_i + thickness
+
+    V_i = np.zeros((n_pts, rings, 3))
+    V_i[:, :, 0] = rx_i[:, np.newaxis] * ct[np.newaxis, :]
+    V_i[:, :, 1] = ry_i[:, np.newaxis] * st[np.newaxis, :]
+    V_i[:, :, 2] = z_i[:, np.newaxis]
+
+    V_o = np.zeros((n_pts, rings, 3))
+    V_o[:, :, 0] = rx_o[:, np.newaxis] * ct[np.newaxis, :]
+    V_o[:, :, 1] = ry_o[:, np.newaxis] * st[np.newaxis, :]
+    V_o[:, :, 2] = z_i[:, np.newaxis]
+
+    I = np.arange(n_pts - 1)[:, np.newaxis]
+    J = np.arange(rings)[np.newaxis, :]
+    JJ = (J + 1) % rings
+
+    a_o = V_o[I, J]
+    b_o = V_o[I + 1, J]
+    c_o = V_o[I + 1, JJ]
+    d_o = V_o[I, JJ]
+    tri_o_1 = np.stack([a_o, d_o, b_o], axis=-2).reshape(-1, 3, 3)
+    tri_o_2 = np.stack([b_o, d_o, c_o], axis=-2).reshape(-1, 3, 3)
+
+    a_i = V_i[I, J]
+    b_i = V_i[I + 1, J]
+    c_i = V_i[I + 1, JJ]
+    d_i = V_i[I, JJ]
+    tri_i_1 = np.stack([a_i, b_i, d_i], axis=-2).reshape(-1, 3, 3)
+    tri_i_2 = np.stack([b_i, c_i, d_i], axis=-2).reshape(-1, 3, 3)
+
+    a_b = V_i[0, J]
+    b_b = V_o[0, J]
+    c_b = V_o[0, JJ]
+    d_b = V_i[0, JJ]
+    tri_b_1 = np.stack([a_b, d_b, c_b], axis=-2).reshape(-1, 3, 3)
+    tri_b_2 = np.stack([a_b, c_b, b_b], axis=-2).reshape(-1, 3, 3)
+
+    a_t = V_i[-1, J]
+    b_t = V_o[-1, J]
+    c_t = V_o[-1, JJ]
+    d_t = V_i[-1, JJ]
+    tri_t_1 = np.stack([a_t, b_t, c_t], axis=-2).reshape(-1, 3, 3)
+    tri_t_2 = np.stack([a_t, c_t, d_t], axis=-2).reshape(-1, 3, 3)
+
+    all_vectors = np.concatenate([
+        tri_o_1, tri_o_2,
+        tri_i_1, tri_i_2,
+        tri_b_1, tri_b_2,
+        tri_t_1, tri_t_2,
+    ], axis=0)
+
+    tri_pts = all_vectors.reshape(-1, 3)
+    faces = np.arange(len(tri_pts)).reshape(-1, 3)
+    tm = trimesh.Trimesh(vertices=tri_pts, faces=faces, process=True)
+    tm.merge_vertices()
+    tm.fix_normals()
+
+    if output_path:
+        tm.export(output_path)
+        logger.info("Exported: %s  (%d triangles)", output_path, len(tm.faces))
+
+    data = np.zeros(len(tm.faces), dtype=mesh.Mesh.dtype)
+    data["vectors"] = tm.triangles
+    return mesh.Mesh(data)
+
+
 # ======================================================================
 #  Dispatch
 # ======================================================================
@@ -347,6 +538,8 @@ def generate_3d_mesh_from_profile(
 def resolve_profile(args: argparse.Namespace) -> str:
     if args.profile != "auto":
         return args.profile
+    if args.length is not None and args.profile == "oblate":
+        return "oblate"
     if args.length is not None and args.fc is not None:
         return "salmon"
     if args.fc is not None:
@@ -405,6 +598,16 @@ def main(argv: list[str] | None = None) -> None:
                                 T=args.T, max_angle=args.max_angle)
             logger.info("Mouth ø: %.1f mm  Length: %.1f mm  (roll-back %.0f°)",
                         r.max() * 2, z.max(), args.max_angle)
+
+        elif name == "oblate":
+            if args.length is None:
+                raise ValueError("--length required for oblate")
+            logger.info("Oblate spheroidal CD: throat=%s  coverage=%s  length=%s",
+                        args.throat, args.coverage, args.length)
+            z, r = get_oblate_spheroidal(args.throat, args.coverage, args.length, args.segments)
+            fc = SOUND_SPEED / (np.pi * r[-1] * 2.0)
+            logger.info("Mouth ø: %.1f mm  Length: %.1f mm  Fc≈%.0f Hz",
+                        r[-1] * 2, z[-1], fc)
 
         else:
             raise ValueError(f"Unknown profile: {name}")

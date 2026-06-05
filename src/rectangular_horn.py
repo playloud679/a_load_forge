@@ -94,6 +94,27 @@ def get_rectangular_salmon(
     return _area_to_rect(z, r, throat_w, throat_h)
 
 
+def get_rectangular_oblate_spheroidal(
+    throat_w: float,
+    throat_h: float,
+    coverage_h: float,
+    coverage_v: float,
+    length: float,
+    n: int = 300,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Asymmetric rectangular oblate CD profile.
+
+    Horizontal and vertical coverage are solved independently with the oblate
+    constant-directivity law, so the throat starts parallel on both axes and the
+    mouth tends toward the requested conical asymptotes.
+    """
+    from profile_generator import get_oblate_spheroidal_asymmetric
+    return get_oblate_spheroidal_asymmetric(
+        throat_w, throat_h, coverage_h, coverage_v, length, n
+    )
+
+
 # ======================================================================
 #  Iwata horn — faithful rectangular dual-flare from the l'Audiophile plan
 # ======================================================================

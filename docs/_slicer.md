@@ -270,6 +270,70 @@ only the flare side above `adapter_cut_z`.
 
 ---
 
+### `slice_to_print_volume`
+
+```python
+def slice_to_print_volume(
+    mesh: trimesh.Trimesh,
+    max_x: float,
+    max_y: float,
+    max_z: float,
+    keep_z_max: float | None = None,
+    strategy: str = "center_up",
+    joint_depth: float = 0.0,
+    joint_margin: float = 1.0,
+    clearance: float = 0.1,
+) -> list[trimesh.Trimesh]:
+```
+
+Cuts `mesh` into axis-aligned parallelepiped chunks sized for a printer build
+volume.
+
+With `strategy="center_up"` (the UI default), the slicer builds X/Y intervals
+from the model centre outward and balanced Z intervals from bottom to top, so a
+large central stack does not end with a very thin residual slab. Output order is
+the central stack first, bottom-up, then larger side-wing regions split only as
+much as needed to fit the print volume. This avoids filling the output with tiny
+global-grid slivers.
+
+With `strategy="adaptive"`, the slicer recursively inspects the actual
+bounding box of each current piece and cuts only the axis that exceeds the
+build volume most. This produces fewer, larger chunks than a global grid but
+does not guarantee centre-bottom ordering.
+
+With `strategy="grid"`, the slicer uses fixed global intervals no larger than
+`max_x`, `max_y`, and `max_z`, then clips each occupied box with capped X/Y/Z
+planes.
+
+If `keep_z_max` is provided, the throat-side range `[Zmin, keep_z_max]` is kept
+inside the first center-bottom core chunk. The throat adapter and/or throat
+flange remain monolithic, but they are not exported as a separate part; the
+first core chunk may exceed the requested print volume when this is necessary
+to preserve that hardware.
+
+When `joint_depth > 0`, the slicer adds tongue/groove alignment joints between
+neighboring print-volume chunks. For a shared face along X/Y/Z, the chunk on the
+negative side receives the tongue on its positive face and the chunk on the
+positive side receives the matching groove on its negative face. `joint_margin`
+insets the feature from the cut-face perimeter and `clearance` opens the groove
+relative to the tongue.
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `mesh` | `trimesh.Trimesh` | (required) | Full generated/uploaded mesh to slice. |
+| `max_x` | `float` | (required) | Maximum printable X dimension in mm. |
+| `max_y` | `float` | (required) | Maximum printable Y dimension in mm. |
+| `max_z` | `float` | (required) | Maximum printable Z dimension in mm. |
+| `keep_z_max` | `float \| None` | `None` | Optional protected throat-side Z height. |
+| `strategy` | `str` | `"center_up"` | `"center_up"` for central bottom-up order, `"adaptive"` for largest practical pieces, `"grid"` for fixed cells. |
+| `joint_depth` | `float` | `0.0` | Tongue/groove depth on print-volume cut faces. 0 = plain cuts. |
+| `joint_margin` | `float` | `1.0` | Inset from the cut-face perimeter before placing each joint feature. |
+| `clearance` | `float` | `0.1` | Total mating clearance between tongue and groove in mm. |
+
+---
+
 ## Radial petals
 
 ### `seam_phase_avoiding_holes`

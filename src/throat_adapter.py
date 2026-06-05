@@ -40,9 +40,10 @@ class ThreadSpec:
     tpi: float               # threads per inch (informational)
 
 THREAD_SPECS: dict[str, ThreadSpec] = {
-    "1in":    ThreadSpec('1" UNF',     25.40, 1.270, 20),
-    "1_25in": ThreadSpec('1\u00bc" UNF', 31.75, 1.411, 18),
-    "2in":    ThreadSpec('2" UNF',     50.80, 1.270, 20),
+    "1in":    ThreadSpec('1" UNF',        25.40,  1.270, 20),
+    "1_25in": ThreadSpec('1\u00bc" UNF', 31.75,  1.411, 18),
+    "1_375in":ThreadSpec('1\u215c" UNF', 34.925, 1.411, 18),
+    "2in":    ThreadSpec('2" UNF',        50.80,  1.270, 20),
 }
 
 # ======================================================================
