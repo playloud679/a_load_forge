@@ -3,8 +3,13 @@ flare_forge — Professional single-tab dashboard.
 Layout: Profile (left) + 2D Preview (right) | Flanges | Assembly Generation.
 """
 
-import io, os, sys, tempfile, traceback
+import io, logging, os, sys, tempfile
 from pathlib import Path
+
+# Server-side logger. Tracebacks go HERE (visible to the operator in the app
+# logs), never to the browser — a traceback leaks source-code snippets to
+# whoever is using the app. See st.error usage below.
+logger = logging.getLogger("flare_forge.ui")
 
 import streamlit as st
 import numpy as np
@@ -1393,8 +1398,10 @@ if gen_btn:
                     st.caption("STEP not available")
 
         except Exception as exc:
-            st.error(f"❌ Generation failed: {exc}")
-            st.code(traceback.format_exc())
+            # Show a short, safe message to the user; keep the full traceback
+            # server-side only (it would otherwise expose source snippets).
+            st.error(f"❌ Generation failed: {type(exc).__name__}: {exc}")
+            logger.exception("Assembly generation failed")
 else:
     st.info("Configure the parameters and click **Generate Assembly STL**")
 

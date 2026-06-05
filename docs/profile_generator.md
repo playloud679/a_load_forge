@@ -43,7 +43,7 @@ Imported from `src/_constants.py`.
 | `--length` | `float` | `None` | Axial length in mm (salmon / lecleach / oblate) |
 | `--coverage` | `float` | `90.0` | Total coverage angle in degrees (oblate only; `theta = coverage/2`) |
 | `--T` | `float` | `0.707` | Salmon flare parameter T (0=catenoidal, <1=cosh, 1=exponential, >1=sinh) |
-| `--max-angle` | `float` | `300.0` | Termination angle in degrees (lecleach only, 90-180, default 160) |
+| `--max-angle` | `float` | `160.0` | Termination angle in degrees (lecleach only, 90-180, default 160) |
 | `--profile` | `str` | `"auto"` | Choices: `"auto"`, `"tractrix"`, `"salmon"`, `"iwata"`, `"lecleach"`, `"oblate"` |
 | `--thickness` | `float` | `4.0` | Wall thickness in mm |
 | `--segments` | `int` | `300` | Number of profile sample points |

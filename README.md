@@ -11,12 +11,13 @@ I built this because every tool I found either required a full CAD package, or p
 
 `make run` starts Streamlit headless and opens `localhost:8501` in Safari. Or run it yourself with `streamlit run ui_app.py` (default browser). There is also a CLI:
 
-     python -m src.main --throat 20 --mouth 100
-    python -m src.main --profile salmon --throat 20 --fc 600 --length 80
+    python -m src.main --profile tractrix --throat 20 --mouth 100 --output io/horn.stl
+    python -m src.main --profile salmon --throat 20 --fc 600 --length 80 --output io/horn.stl
+    python -m src.main --profile oblate --throat 20 --coverage 90 --length 120 --output io/horn.stl
 
 ## The expansion profiles
 
-There are three. The right expansion curve depends on what you're optimizing for, and none of them is obviously better.
+The right expansion curve depends on what you're optimizing for, and none of them is obviously better.
 
 **Tractrix** has a nice variational property: the tangent is horizontal at the mouth, which minimizes reflections. It comes out short though, which means poor low-frequency driver loading. Still, it's the one with the cleanest derivation.
 
@@ -24,13 +25,18 @@ There are three. The right expansion curve depends on what you're optimizing for
 
 **Exponential** is the textbook formula. Area doubles every fixed axial distance. Fast, simple, valid for many applications.
 
+**Le Cléac'h** integrates an isophase wavefront profile from a Salmon/Hypex area law. It can roll the mouth back, which is useful acoustically but means some simple mouth-flange assumptions stop applying.
+
+**Oblate spheroidal** is a constant-directivity profile:
+`r(x) = sqrt(r0² + (x·tan(coverage/2))²)`. The throat starts parallel to the axis, then tends toward a conical asymptote. Rectangular oblate horns solve horizontal and vertical coverage independently, so 90° × 45° waveguides are first-class.
+
 **Iwata** is the real thing — the horn from the l'Audiophile plan (for JBL 2440/375), digitized from the drawing. Unlike the others it is *rectangular and asymmetric*: width and height flare at different rates (mouth ≈ 740×320 mm over 572 mm), so the cross-section grows from ~1:1 at the throat to ~2.3:1 at the mouth. The wide-plane mouth is a **circular arc** (radius 692 mm about an apex behind the throat), the height-plane mouth stays flat — built by boolean-trimming the loft with a cylinder. You set throat size and length; the proportions, mouth and ≈210 Hz cutoff follow from the plan. (Selecting Iwata forces a rectangular section; the curved mouth means no mouth flange.)
 
 Most profiles return `(z, r)` and nothing else — just the math, with the cross-section a separate choice. The rectangular ones (including Iwata) return `(z, w, h)` because the section is intrinsic to them.
 
 ## Cross-sections
 
-The profile says how the area grows along the axis. The section says what shape that area takes. Any of the four profiles composes with any of the four sections.
+The profile says how the area grows along the axis. The section says what shape that area takes. Most axisymmetric profiles compose with the circular, polygonal, rectangular and radial engines; Iwata is intrinsically rectangular.
 
 **Circular** is the revolution you'd expect: spin the profile around Z.
 
@@ -50,13 +56,15 @@ The 2D preview's "+ wall" line draws this same parallel offset, so what you see 
 
 The polygonal section reuses the same `(z, r)` and the same normal-offset idea, but lofts N-gon rings instead of revolving — the per-vertex offset is scaled by `1/cos(π/N)` so the wall thickness stays uniform along the face normal, not the vertex direction. Radial has its own two-piece revolution engine.
 
-## Splitting into petals
+## Slicing for printing
 
 A horn that's too big for the print bed can be sliced into `n` radial petals (like an orange) and glued back together. With a non-zero joint depth each seam gets a tongue-and-groove interlock for alignment and glue area.
 
 The UI defaults to one axial segment and two radial petals. That gives a ready-to-print left/right split without accidentally slicing the horn into a stack of axial rings; increase the segment count only when the print height needs it.
 
 When an assembly includes a throat adapter, the slicer can treat the adapter as its own bottom axial segment. The cut is placed at the adapter-to-flare handoff and uses the same axial joint lip when enabled, while Count/Height segmentation applies only to the flare above it.
+
+For box-style printer limits, the slicer can cut the assembly into print-volume chunks. The default strategy starts from the center-bottom core, climbs upward, then fills side wings with larger adaptive chunks instead of a global grid of slivers. Throat adapters and throat flanges can be kept monolithic inside the first center-bottom chunk, even if that first chunk exceeds the requested build volume. Box chunks can also receive tongue-and-groove alignment joints on shared cut faces.
 
 For `n >= 3` each petal is a wedge under 180°, so its left and right seams are distinct planes: a groove goes on the left, a tongue on the right, and adjacent petals mate tongue-into-groove.
 
@@ -83,7 +91,7 @@ The STEP files use AP203 CONFIG_CONTROL_DESIGN schema with `FACETED_BREP` and `C
     .venv/bin/python tests/test_all.py
     .venv/bin/python tests/test_geometry.py
 
-`test_all.py` (79 tests) covers the full profile × section matrix, flanges, slicing, the radial petal tongue & groove joint, and the throat adapter raccordo. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
+`test_all.py` (124 tests) covers the full profile × section matrix, flanges, slicing, radial and box tongue-and-groove joints, print-volume chunks, and the throat adapter raccordo. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
 
 ## Known limitations
 

@@ -54,7 +54,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
                    help="Total coverage angle in degrees (oblate only; theta = coverage/2)")
     p.add_argument("--T", type=float, default=0.707,
                    help="Salmon flare parameter T (0=catenoidal, <1=cosh, 1=exponential, >1=sinh)")
-    p.add_argument("--max-angle", type=float, default=300.0,
+    p.add_argument("--max-angle", type=float, default=160.0,
                    help="Termination angle in degrees (lecleach only, 90-180, default 160)")
     p.add_argument("--profile", choices=["auto", "tractrix", "salmon", "iwata", "lecleach", "oblate"],
                    default="auto")

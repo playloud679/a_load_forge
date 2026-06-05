@@ -1,0 +1,15 @@
+# flare_forge — Streamlit configuration
+#
+# Keep the app's Python source server-side only. The two settings below stop
+# uncaught-exception tracebacks (which embed source-code snippets) from being
+# rendered in the user's browser. App users get a generic error; the full
+# traceback is written to the server logs (see logger usage in ui_app.py).
+
+[client]
+# "none" → no error details in the browser. Use "full" locally while debugging.
+showErrorDetails = "none"
+
+[server]
+# We never serve files from a static/ folder; keep it off so source/assets
+# can't be fetched directly over HTTP.
+enableStaticServing = false

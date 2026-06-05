@@ -1,4 +1,4 @@
-.PHONY: venv install run clean
+.PHONY: venv install dev run test lint format clean
 
 VENV_DIR := .venv
 PYTHON  := python3
@@ -13,8 +13,21 @@ install: venv
 	$(VENV_DIR)/bin/pip install -r requirements.txt
 	@echo "Dependencies installed."
 
+dev: install
+	$(VENV_DIR)/bin/pip install ruff
+	@echo "Dev tooling installed (ruff)."
+
 run:
 	./run.sh
+
+test:
+	$(VENV_DIR)/bin/python tests/test_all.py
+
+lint:
+	$(VENV_DIR)/bin/python -m ruff check src tests ui_app.py
+
+format:
+	$(VENV_DIR)/bin/python -m ruff format src tests ui_app.py
 
 clean:
 	rm -rf $(VENV_DIR)

@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.9.0 (2026-06-05)
+
+- **Profilo oblate spheroidal CD** (`src/profile_generator.py`, `src/rectangular_horn.py`, `src/radial_horn.py`, `ui_app.py`): nuovo profilo constant-directivity con legge `r(x)=sqrt(r0^2 + (x*tan(theta))^2)`, throat a pendenza zero e asintoto conico. Supporto asimmetrico rettangolare/ellittico con coperture orizzontale e verticale indipendenti.
+- **Slicing print-volume** (`src/_slicer.py`, `ui_app.py`): nuova modalita `Print volume boxes` con volume massimo X/Y/Z, packing `Center-up core first`, `Adaptive largest pieces` o `Regular grid`. Il default parte dal core centrale basso, sale in Z e poi genera ali laterali grandi invece di listelli da griglia globale.
+- **Throat adapter/flange monolitici nei box**: il blocco throat-side protetto resta integrato nel primo core chunk invece di diventare un pezzo separato. Il primo chunk puo superare il volume di stampa se necessario per mantenere adapter/flange monolitici.
+- **Box tongue & groove** (`src/_slicer.py`, `ui_app.py`): giunti maschio/femmina opzionali sulle facce condivise dei chunk print-volume, con depth, clearance e margin regolabili.
+- **CLI sync** (`src/main.py`): `python -m src.main` e lo script console `horn` delegano alla CLI aggiornata di `profile_generator.py`, evitando una seconda lista profili obsoleta.
+- **Docs/versioning**: README, docs modulo, `VERSION` e `pyproject.toml` aggiornati a 2.9.0.
+- **Packaging fix** (`pyproject.toml`): aggiunta `shapely>=2.0.0` mancante dalle `dependencies` (era solo in `requirements.txt`, ma `_slicer.py` la richiede) — un install via `pip install .` ora porta tutte le dipendenze runtime.
+- **Tooling** (`pyproject.toml`, `Makefile`): config `ruff` minima (`E,F,I,UP,B`, line-length 100) + extra `[dev]`; nuovi target `make test`, `make lint`, `make format`, `make dev`.
+- **Type aliases** (`src/_utils.py`): `CircularProfile` `(z, r)` e `RectProfile` `(z, w, h)` per annotare il math-layer; nuovo `docs/_utils.md`.
+- **Hardening sorgenti UI** (`ui_app.py`, `.streamlit/config.toml`): i traceback non finiscono più nel browser (esponevano frammenti di sorgente). `st.code(traceback.format_exc())` sostituito da messaggio generico + `logger.exception` lato server; nuova config con `client.showErrorDetails = "none"` e `server.enableStaticServing = false`.
+- **Test**: 126 funzionali + 33 geometria (159 totali), tutti verdi. Nuovi: `pyproject.toml covers all requirements.txt deps` (blinda l'omissione `shapely`) e `_utils exposes CircularProfile/RectProfile aliases`.
+
 ## 2.8.2 (2026-06-04)
 
 - **Slicer UI cache reset** (`ui_app.py`): aggiunto pulsante `Reset slicer cache` e invalidazione automatica di `_ax_segs` / `_pieces` quando cambiano mesh, axial cut, adapter segment, petal count, radial joint depth, clearance o `Outer skin keep`. I download STL non restano più fermi su pezzi generati con parametri vecchi.

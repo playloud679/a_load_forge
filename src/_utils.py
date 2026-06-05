@@ -1,5 +1,12 @@
+from __future__ import annotations
+
 import numpy as np
 from stl import mesh
+
+# Canonical type aliases for the 2-D math layer (see CLAUDE.md "two-layer system").
+# A profile is a tuple of parallel 1-D arrays describing the meridian.
+CircularProfile = tuple[np.ndarray, np.ndarray]  # (z, r) — axisymmetric
+RectProfile = tuple[np.ndarray, np.ndarray, np.ndarray]  # (z, w, h) — rectangular
 
 
 def compute_profile_normals(

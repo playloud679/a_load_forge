@@ -64,6 +64,8 @@ Priorita operative per tenere `flare_forge` semplice da estendere e difficile da
       profile -> section -> mesh -> flange/adapter -> assembly -> slicing.
 - [ ] Aggiornare `VERSION` e `pyproject.toml` nello stesso commit quando si fa
       release.
+- [x] Sincronizzare `pyproject.toml` con `requirements.txt`: `shapely` mancava
+      dalle dependencies (install via `pip install .` era rotto per lo slicer).
 - [ ] Aggiungere una checklist release:
       test suite, README, docs, CHANGELOG, version bump, tag.
 
@@ -83,6 +85,8 @@ Priorita operative per tenere `flare_forge` semplice da estendere e difficile da
 
 - [ ] Convertire i test custom print-based a `pytest`, mantenendo output leggibile.
 - [ ] Centralizzare helper temporanei STL/load/unlink usati nei test.
-- [ ] Aggiungere type aliases per profili: `CircularProfile`, `RectProfile`.
+- [x] Aggiungere type aliases per profili: `CircularProfile`, `RectProfile`
+      (in `src/_utils.py`, documentati in `docs/_utils.md`).
 - [ ] Ridurre `except Exception` generici nei moduli geometrici.
-- [ ] Aggiungere lint/format minimo nel Makefile.
+- [x] Aggiungere lint/format minimo nel Makefile (`make lint` / `make format`
+      via ruff, config in `pyproject.toml`; `make test` e `make dev`).

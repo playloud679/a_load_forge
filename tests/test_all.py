@@ -1017,6 +1017,65 @@ test("polygonal horn + adapter union watertight", test_polygonal_horn_adapter_un
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+#  Packaging + module surface (guards regressions in deps / public aliases)
+# ══════════════════════════════════════════════════════════════════════════════
+
+print("\n═══ Packaging + module surface ═══")
+
+_ROOT = os.path.join(os.path.dirname(__file__), "..")
+
+
+def _req_pkg_names(path):
+    """Base distribution names from a requirements.txt (drop version/extras)."""
+    names = []
+    with open(path) as fh:
+        for raw in fh:
+            line = raw.split("#", 1)[0].strip()
+            if not line or line.startswith("-"):
+                continue
+            # split off the first version/extra/marker delimiter
+            name = line
+            for sep in ("[", ">", "<", "=", "!", "~", " ", ";"):
+                name = name.split(sep, 1)[0]
+            if name:
+                names.append(name.strip().lower())
+    return names
+
+
+def test_pyproject_covers_requirements():
+    """Every runtime dep in requirements.txt must be declared in pyproject.toml.
+
+    Guards the class of bug where `shapely` lived only in requirements.txt while
+    `_slicer.py` imported it, leaving `pip install .` broken.
+    """
+    try:
+        import tomllib
+    except ImportError:  # pragma: no cover — Python < 3.11
+        print("    (skipped: tomllib unavailable)")
+        return
+    req = _req_pkg_names(os.path.join(_ROOT, "requirements.txt"))
+    with open(os.path.join(_ROOT, "pyproject.toml"), "rb") as fh:
+        data = tomllib.load(fh)
+    declared = " ".join(data["project"]["dependencies"]).lower()
+    missing = [p for p in req if p not in declared]
+    assert not missing, f"requirements.txt deps missing from pyproject.toml: {missing}"
+
+
+test("pyproject.toml covers all requirements.txt deps", test_pyproject_covers_requirements)
+
+
+def test_utils_profile_aliases():
+    """`_utils` exposes the canonical (z,r) / (z,w,h) profile type aliases."""
+    assert hasattr(_uts, "CircularProfile"), "missing CircularProfile alias"
+    assert hasattr(_uts, "RectProfile"), "missing RectProfile alias"
+    assert _uts.CircularProfile == tuple[np.ndarray, np.ndarray]
+    assert _uts.RectProfile == tuple[np.ndarray, np.ndarray, np.ndarray]
+
+
+test("_utils exposes CircularProfile/RectProfile aliases", test_utils_profile_aliases)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 #  Summary
 # ══════════════════════════════════════════════════════════════════════════════
 

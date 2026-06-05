@@ -30,10 +30,10 @@ source** to save tokens.
 | Module | Doc | What it does |
 |---|---|---|
 | `_slicer.py` | [_slicer.md](_slicer.md) | Axial slicing + radial petal cutting with tongue‑&‑groove joints |
-| `_utils.py` | _(no separate doc — see source)_ | Profile normals, volume sign, Z‑alignment |
+| `_utils.py` | [_utils.md](_utils.md) | Profile normals, volume sign, Z‑alignment + `CircularProfile`/`RectProfile` type aliases |
 | `_step_export.py` | _(no separate doc — see source)_ | STEP AP203 export for triangulated meshes |
 | `_constants.py` | _(no separate doc — see source)_ | Global constants (SOUND_SPEED) |
-| `main.py` | _(no separate doc — see source)_ | CLI orchestrator |
+| `main.py` | [main.md](main.md) | Compatibility CLI wrapper that delegates to `profile_generator.main()` |
 
 ## UI
 
