@@ -465,6 +465,11 @@ between two seam planes:
 Seams are capped. The phase rotates the entire seam pattern (use
 `seam_phase_avoiding_holes` to pick a good one).
 
+For `n == 2`, both angular boundaries describe the same diametric plane. The
+mesh is therefore sliced and capped only once per half; capping the coincident
+plane twice can retriangulate coplanar faces and appear as a horizontal
+z-fighting artifact on roll-back profiles.
+
 **Parameters:**
 
 | Parameter | Type | Default | Description |

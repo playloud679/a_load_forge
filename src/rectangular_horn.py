@@ -115,6 +115,35 @@ def get_rectangular_oblate_spheroidal(
     )
 
 
+def get_rectangular_conical(
+    throat_w: float,
+    throat_h: float,
+    coverage_h: float,
+    coverage_v: float,
+    length: float,
+    n: int = 300,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    Asymmetric rectangular conical profile (CD baseline).
+
+    Each plane is a straight wall at its own half-coverage angle:
+
+        w(x) = throat_w + 2*x*tan(coverage_h/2)
+        h(x) = throat_h + 2*x*tan(coverage_v/2)
+
+    Same interface as get_rectangular_oblate_spheroidal so it drops into the same
+    rectangular dispatch and lofting engine.
+    """
+    if throat_w <= 0 or throat_h <= 0 or length <= 0:
+        raise ValueError("throat_w, throat_h and length must be positive")
+    if not 0.0 < coverage_h < 180.0 or not 0.0 < coverage_v < 180.0:
+        raise ValueError("coverage angles must be between 0 and 180 degrees")
+    z = np.linspace(0.0, length, n)
+    w = throat_w + 2.0 * z * np.tan(np.radians(coverage_h / 2.0))
+    h = throat_h + 2.0 * z * np.tan(np.radians(coverage_v / 2.0))
+    return z, w, h
+
+
 # ======================================================================
 #  Iwata horn — faithful rectangular dual-flare from the l'Audiophile plan
 # ======================================================================

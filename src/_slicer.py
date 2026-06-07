@@ -926,9 +926,10 @@ def slice_into_petals(mesh: trimesh.Trimesh, n: int,
         petal = mesh.slice_plane([0.0, 0.0, 0.0], normal0, cap=True)
         if petal is None or petal.is_empty:
             continue
-        petal = petal.slice_plane([0.0, 0.0, 0.0], normal1, cap=True)
-        if petal is None or petal.is_empty:
-            continue
+        if n > 2:
+            petal = petal.slice_plane([0.0, 0.0, 0.0], normal1, cap=True)
+            if petal is None or petal.is_empty:
+                continue
 
         if joint_depth > 0:
             if n == 2:

@@ -6,6 +6,7 @@ Profiles (return z_array, r_array only):
   salmon    — axisymmetric Salmon hyperbolic-exponential → radius
   lecleach  — isophase wavefront (Salmon area law + parallel wavefronts)
   oblate    — CD oblate spheroidal profile with conical asymptote
+  rosse     — parametric rollback OSSE waveguide
 
 Mesh engine (profile-agnostic):
   generate_3d_mesh_from_profile(z, r, thickness)
@@ -45,18 +46,19 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Horn .stl generator")
     p.add_argument("--throat", type=float, required=True)
     p.add_argument("--mouth", type=float, default=None,
-                   help="Mouth diameter (tractrix only)")
+                   help="Mouth diameter (tractrix / exponential / rosse)")
     p.add_argument("--fc", type=float, default=None,
                    help="Cutoff frequency in Hz (exponential / salmon)")
     p.add_argument("--length", type=float, default=None,
                    help="Axial length in mm (salmon / lecleach / oblate)")
     p.add_argument("--coverage", type=float, default=90.0,
-                   help="Total coverage angle in degrees (oblate only; theta = coverage/2)")
+                   help="Total coverage angle in degrees (oblate / conical / rosse)")
     p.add_argument("--T", type=float, default=0.707,
                    help="Salmon flare parameter T (0=catenoidal, <1=cosh, 1=exponential, >1=sinh)")
     p.add_argument("--max-angle", type=float, default=160.0,
                    help="Termination angle in degrees (lecleach only, 90-180, default 160)")
-    p.add_argument("--profile", choices=["auto", "tractrix", "salmon", "iwata", "lecleach", "oblate"],
+    p.add_argument("--profile",
+                   choices=["auto", "tractrix", "salmon", "iwata", "lecleach", "oblate", "conical", "rosse"],
                    default="auto")
     p.add_argument("--thickness", type=float, default=4.0)
     p.add_argument("--segments", type=int, default=300)
@@ -196,6 +198,105 @@ def get_oblate_spheroidal_asymmetric(
     w = 2.0 * np.sqrt((throat_w / 2.0) ** 2 + (z * np.tan(th)) ** 2)
     h = 2.0 * np.sqrt((throat_h / 2.0) ** 2 + (z * np.tan(tv)) ** 2)
     return z, w, h
+
+
+# ---- Conical (constant-directivity baseline) -----------------------------
+
+def get_conical(
+    throat: float,
+    coverage_angle: float,
+    length: float,
+    n: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Conical horn — the constant-directivity reference shape.
+
+        r(x) = r0 + x * tan(theta),   theta = coverage_angle / 2
+
+    A straight wall from the throat at the half-coverage angle. Unlike the oblate
+    profile the throat slope is non-zero (a sharp cone), so directivity is set
+    purely by the wall angle. Same (throat, coverage, length) interface as
+    get_oblate_spheroidal, so it drops into the same dispatch. Returns (z, r).
+    """
+    if throat <= 0 or length <= 0:
+        raise ValueError("throat and length must be positive")
+    if not 0.0 < coverage_angle < 180.0:
+        raise ValueError("coverage_angle must be between 0 and 180 degrees")
+    rt = throat / 2.0
+    theta = np.radians(coverage_angle / 2.0)
+    z = np.linspace(0.0, length, n)
+    r = rt + z * np.tan(theta)
+    return z, r
+
+
+# ---- R-OSSE (rollback OSSE waveguide, Marcel Batík) ----------------------
+
+def get_rosse(
+    throat: float,
+    mouth: float,
+    coverage_angle: float,
+    n: int,
+    throat_angle: float = 15.0,
+    k: float = 1.8,
+    r: float = 0.3,
+    m: float = 0.8,
+    b: float = 0.3,
+    q: float = 3.7,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    R-OSSE waveguide — rollback Oblate-Spheroidal-Superellipse (Marcel Batík).
+
+    Faithful implementation of the published R-OSSE parametric formulae
+    (at-horns.eu, "R-OSSE Waveguide" rev.7). A modern constant-directivity
+    waveguide whose mouth rolls back smoothly into free space (so the meridian
+    folds: z is NOT monotone near the mouth — like the Le Cléac'h roll-back).
+
+        c1 = (k·r0)²,  c2 = 2·k·r0·tan(a0),  c3 = tan²(a)
+        L  = [√(c2² − 4·c3·(c1 − (R + r0(k−1))²)) − c2] / (2·c3)
+        x(t) = L[√(r²+m²) − √(r²+(t−m)²)] + bL[√(r²+(1−m)²) − √(r²+m²)]·t²
+        y(t) = (1−t^q)[√(c1 + c2·L·t + c3·L²·t²) + r0(1−k)]
+               + t^q[R + L(1 − √(1 + c3·(t−1)²))]
+
+    where r0 = throat/2 (so y(0)=r0, x(0)=0), R = mouth/2 (outer radius), and the
+    half-angles a = coverage_angle/2, a0 = throat_angle/2 enter as documented
+    ("nominal ×0.5"). Shape factors k/r/m/b/q default to Batík's ST260 sample.
+    Returns (z, r).
+    """
+    if throat <= 0 or mouth <= 0:
+        raise ValueError("throat and mouth must be positive")
+    if mouth <= throat:
+        raise ValueError("mouth must be greater than throat")
+    if not 0.0 < coverage_angle < 180.0:
+        raise ValueError("coverage_angle must be between 0 and 180 degrees")
+    if not 0.0 <= throat_angle < 180.0:
+        raise ValueError("throat_angle must be between 0 and 180 degrees")
+    if n < 2:
+        raise ValueError("n must be at least 2")
+    if k <= 0.0 or r <= 0.0 or q <= 0.0:
+        raise ValueError("k, r and q must be positive")
+    if not 0.0 <= m <= 1.0:
+        raise ValueError("m must be between 0 and 1")
+
+    r0 = throat / 2.0
+    R = mouth / 2.0
+    a = np.radians(coverage_angle / 2.0)
+    a0 = np.radians(throat_angle / 2.0)
+
+    c1 = (k * r0) ** 2
+    c2 = 2.0 * k * r0 * np.tan(a0)
+    c3 = np.tan(a) ** 2
+
+    disc = c2 ** 2 - 4.0 * c3 * (c1 - (R + r0 * (k - 1.0)) ** 2)
+    if disc < 0:
+        raise ValueError("R-OSSE: no real length solution (check mouth/coverage/k)")
+    L = (np.sqrt(disc) - c2) / (2.0 * c3)
+
+    t = np.linspace(0.0, 1.0, n)
+    x = (L * (np.sqrt(r ** 2 + m ** 2) - np.sqrt(r ** 2 + (t - m) ** 2))
+         + b * L * (np.sqrt(r ** 2 + (1.0 - m) ** 2) - np.sqrt(r ** 2 + m ** 2)) * t ** 2)
+    y = ((1.0 - t ** q) * (np.sqrt(c1 + c2 * L * t + c3 * L ** 2 * t ** 2) + r0 * (1.0 - k))
+         + t ** q * (R + L * (1.0 - np.sqrt(1.0 + c3 * (t - 1.0) ** 2))))
+    return x, y
 
 
 # ---- Salmon (axisymmetric) -----------------------------------------------
@@ -431,6 +532,47 @@ def generate_3d_mesh_from_profile(
     return mesh.Mesh(data)
 
 
+def _elliptical_parallel_offset_vertices(
+    z_i: np.ndarray,
+    rx_i: np.ndarray,
+    ry_i: np.ndarray,
+    thickness: float,
+    rings: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return inner and true parallel-offset outer elliptical loft vertices.
+
+    The offset follows the full 3-D surface normal, including its axial
+    component. This preserves wall thickness through roll-back regions where
+    a radial-only ``rx + thickness, ry + thickness`` offset collapses.
+    """
+    theta = np.linspace(0.0, 2.0 * np.pi, rings, endpoint=False)
+    ct, st = np.cos(theta), np.sin(theta)
+
+    V_i = np.zeros((len(z_i), rings, 3))
+    V_i[:, :, 0] = rx_i[:, np.newaxis] * ct[np.newaxis, :]
+    V_i[:, :, 1] = ry_i[:, np.newaxis] * st[np.newaxis, :]
+    V_i[:, :, 2] = z_i[:, np.newaxis]
+
+    dz = np.gradient(z_i)
+    drx = np.gradient(rx_i)
+    dry = np.gradient(ry_i)
+
+    # dS/dtheta × dS/du. At the throat its XY components point outward;
+    # through a roll-back they rotate continuously with the wall.
+    normals = np.empty_like(V_i)
+    normals[:, :, 0] = ry_i[:, None] * ct[None, :] * dz[:, None]
+    normals[:, :, 1] = rx_i[:, None] * st[None, :] * dz[:, None]
+    normals[:, :, 2] = -(
+        rx_i[:, None] * dry[:, None] * st[None, :] ** 2
+        + ry_i[:, None] * drx[:, None] * ct[None, :] ** 2
+    )
+    norm = np.linalg.norm(normals, axis=2, keepdims=True)
+    norm[norm < 1e-12] = 1.0
+    normals /= norm
+
+    return V_i, V_i + thickness * normals
+
+
 def generate_elliptical_3d_mesh_from_profiles(
     z_i: np.ndarray,
     rx_i: np.ndarray,
@@ -447,7 +589,8 @@ def generate_elliptical_3d_mesh_from_profiles(
 
         x = rx(z) * cos(phi),  y = ry(z) * sin(phi)
 
-    The outer wall uses an outward elliptical radial offset by *thickness*.
+    The outer wall is offset by *thickness* along the full 3-D surface normal,
+    preserving constant wall thickness through steep and roll-back regions.
     This is intentionally a geometric elliptical loft, distinct from the
     rectangular W/H loft used by rectangular_horn.py.
     """
@@ -461,21 +604,8 @@ def generate_elliptical_3d_mesh_from_profiles(
         raise ValueError("ellipse radii must be positive")
 
     n_pts = len(z_i)
-    theta = np.linspace(0.0, 2.0 * np.pi, rings, endpoint=False)
-    ct, st = np.cos(theta), np.sin(theta)
-
-    rx_o = rx_i + thickness
-    ry_o = ry_i + thickness
-
-    V_i = np.zeros((n_pts, rings, 3))
-    V_i[:, :, 0] = rx_i[:, np.newaxis] * ct[np.newaxis, :]
-    V_i[:, :, 1] = ry_i[:, np.newaxis] * st[np.newaxis, :]
-    V_i[:, :, 2] = z_i[:, np.newaxis]
-
-    V_o = np.zeros((n_pts, rings, 3))
-    V_o[:, :, 0] = rx_o[:, np.newaxis] * ct[np.newaxis, :]
-    V_o[:, :, 1] = ry_o[:, np.newaxis] * st[np.newaxis, :]
-    V_o[:, :, 2] = z_i[:, np.newaxis]
+    V_i, V_o = _elliptical_parallel_offset_vertices(
+        z_i, rx_i, ry_i, thickness, rings)
 
     I = np.arange(n_pts - 1)[:, np.newaxis]
     J = np.arange(rings)[np.newaxis, :]
@@ -608,6 +738,26 @@ def main(argv: list[str] | None = None) -> None:
             fc = SOUND_SPEED / (np.pi * r[-1] * 2.0)
             logger.info("Mouth ø: %.1f mm  Length: %.1f mm  Fc≈%.0f Hz",
                         r[-1] * 2, z[-1], fc)
+
+        elif name == "conical":
+            if args.length is None:
+                raise ValueError("--length required for conical")
+            logger.info("Conical CD: throat=%s  coverage=%s  length=%s",
+                        args.throat, args.coverage, args.length)
+            z, r = get_conical(args.throat, args.coverage, args.length, args.segments)
+            fc = SOUND_SPEED / (np.pi * r[-1] * 2.0)
+            logger.info("Mouth ø: %.1f mm  Length: %.1f mm  Fc≈%.0f Hz",
+                        r[-1] * 2, z[-1], fc)
+
+        elif name == "rosse":
+            if args.mouth is None:
+                raise ValueError("--mouth required for rosse (waveguide outer Ø)")
+            logger.info("R-OSSE: throat=%s  mouth=%s  coverage=%s",
+                        args.throat, args.mouth, args.coverage)
+            z, r = get_rosse(args.throat, args.mouth, args.coverage, args.segments)
+            fc = SOUND_SPEED / (np.pi * args.mouth)
+            logger.info("Mouth ø: %.1f mm  Length: %.1f mm  Fc≈%.0f Hz (rollback)",
+                        args.mouth, z.max(), fc)
 
         else:
             raise ValueError(f"Unknown profile: {name}")

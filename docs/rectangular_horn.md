@@ -95,6 +95,17 @@ Asymmetric rectangular oblate constant-directivity profile.
    ```
 3. Both axes have zero slope at the throat and asymptotically approach their requested coverage half-angles.
 
+### `get_rectangular_conical(throat_w: float, throat_h: float, coverage_h: float, coverage_v: float, length: float, n: int = 300) -> tuple[np.ndarray, np.ndarray, np.ndarray]`
+
+Asymmetric rectangular conical profile — the CD baseline. Each plane is a straight wall at its own half-coverage angle:
+
+```
+w(x) = throat_w + 2 · x · tan(coverage_h/2)
+h(x) = throat_h + 2 · x · tan(coverage_v/2)
+```
+
+Same interface as `get_rectangular_oblate_spheroidal`, so it drops into the same rectangular dispatch and lofting engine. Unlike oblate, the walls are straight from the throat (non-zero throat slope).
+
 ---
 
 ## Iwata Horn — Faithful Rectangular Dual-Flare

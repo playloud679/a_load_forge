@@ -6,7 +6,7 @@ The adapter maintains the cross-sectional area expansion from the horn profile.
 
 Driver interfaces:
   - Flanged: circular flange with bolt holes (reuses flange_generator)
-  - Threaded: standard compression driver threads (1" UNF, 1¼" UNF, 2" UNF)
+  - Threaded: 1⅜"-18 female thread with a 25 mm acoustic bore
 
 Architecture:
   ThreadSpec        → thread geometry constants
@@ -36,14 +36,12 @@ class ThreadSpec:
     """Standard compression driver thread geometry."""
     name: str
     major_diam: float        # mm — outer thread diameter
+    bore_diam: float         # mm — clear acoustic passage after the thread
     pitch: float             # mm
     tpi: float               # threads per inch (informational)
 
 THREAD_SPECS: dict[str, ThreadSpec] = {
-    "1in":    ThreadSpec('1" UNF',        25.40,  1.270, 20),
-    "1_25in": ThreadSpec('1\u00bc" UNF', 31.75,  1.411, 18),
-    "1_375in":ThreadSpec('1\u215c" UNF', 34.925, 1.411, 18),
-    "2in":    ThreadSpec('2" UNF',        50.80,  1.270, 20),
+    "1_375in": ThreadSpec('1\u215c"-18', 34.925, 25.0, 25.4 / 18.0, 18),
 }
 
 # ======================================================================
@@ -57,6 +55,12 @@ def _circle_points(r: float, n: int = _NP, phase: float = 0.0) -> np.ndarray:
     """Return N×2 array of points on a circle of radius *r*."""
     th = np.linspace(0, 2 * np.pi, n, endpoint=False) + phase
     return np.column_stack([r * np.cos(th), r * np.sin(th)])
+
+
+def _ellipse_points(rx: float, ry: float, n: int = _NP) -> np.ndarray:
+    """Return N×2 array of points on an ellipse with semi-axes *rx*, *ry*."""
+    th = np.linspace(0, 2 * np.pi, n, endpoint=False)
+    return np.column_stack([rx * np.cos(th), ry * np.sin(th)])
 
 
 def _rect_points(hw: float, hh: float, n: int = _NP) -> np.ndarray:
@@ -324,9 +328,9 @@ def make_adapter(
     ----------
     driver_R : float
         Radius of the circular driver exit (mm).
-    horn_shape : "circular" | "rectangular" | "polygonal"
+    horn_shape : "circular" | "elliptical" | "rectangular" | "polygonal"
     horn_w, horn_h : float
-        Throat dimensions for rectangular (mm); unused for circular/polygonal.
+        Full throat axes for elliptical or dimensions for rectangular (mm).
     horn_n_sides : int
         Number of polygon sides (for "polygonal"); unused for circular/rectangular.
     horn_R_eq : float
@@ -360,6 +364,16 @@ def make_adapter(
             return _circle_points(target_R)
         _outer_target_fn = None
         _outer_target_R = outer_target_R
+    elif horn_shape == "elliptical":
+        target_R = horn_R_eq
+        def _target_fn():
+            return _ellipse_points(horn_w / 2.0, horn_h / 2.0)
+        _outer_target_fn = None
+        _outer_target_R = None
+        if outer_target_R is not None and outer_rect_w is not None:
+            _outer_target_fn = lambda: _ellipse_points(outer_rect_w / 2.0,
+                                                        outer_rect_h / 2.0)
+            _outer_target_R = outer_target_R
     elif horn_shape == "rectangular":
         hw, hh = horn_w / 2.0, horn_h / 2.0
         target_R = np.sqrt(horn_w * horn_h / np.pi)
@@ -389,6 +403,7 @@ def make_adapter(
     _pitch = 1.0
     if has_threads:
         spec = THREAD_SPECS[thread_key]
+        driver_R = spec.bore_diam / 2.0
         _major_R = spec.major_diam / 2.0
         _pitch = spec.pitch
         _minor_R = _major_R - 0.6495 * _pitch
@@ -401,8 +416,10 @@ def make_adapter(
         n_turns = max(1, int(socket_length / _pitch))
         thread_len = n_turns * _pitch
         n_thread = max(16, n_turns * 8)
-        z_thread = np.linspace(-thread_len, 0.0, n_thread)
-        z_trans = np.linspace(0.0, adapter_length, axial_steps + 1)[1:]
+        # The final threaded ring stays below z=0; the exact z=0 slice is the
+        # clear acoustic bore from which the morph starts.
+        z_thread = np.linspace(-thread_len, 0.0, n_thread, endpoint=False)
+        z_trans = np.linspace(0.0, adapter_length, axial_steps)
         z = np.concatenate([z_thread, z_trans])
     else:
         z = np.linspace(0.0, adapter_length, axial_steps)
@@ -426,13 +443,14 @@ def make_adapter(
             outer = _circle_points(_outer_R, n, phase=_source_phase)
             is_thread.append(True)
         elif has_threads:
-            # Threaded transition: inner morphs from major_R → inner target,
+            # Threaded transition: the female thread is 1⅜", but the acoustic
+            # passage starts from the spec's 25 mm bore and morphs to the target.
             # outer morphs from outer_R → outer target
             t = zi / adapter_length if adapter_length > 0 else 1.0
             shape_t = _smoothstep5(t)
-            inner_R = _hermite_radius(t, _major_R, target_R,
+            inner_R = _hermite_radius(t, driver_R, target_R,
                                       adapter_length, target_slope)
-            inner = _morph_slice(t, _major_R, _target_fn, target_R, n,
+            inner = _morph_slice(t, driver_R, _target_fn, target_R, n,
                                  shape_t=shape_t, r_eq_des=inner_R,
                                  source_phase=_source_phase)
             if _outer_target_fn is not None and _outer_target_R is not None:
@@ -643,7 +661,7 @@ def make_threaded_socket(
     Parameters
     ----------
     thread_key : str
-        One of ``THREAD_SPECS`` keys ("1in", "1_25in", "2in").
+        The supported ``THREAD_SPECS`` key: ``"1_375in"``.
     length : float
         Depth of the socket (mm).
     wall_thickness : float
@@ -719,7 +737,7 @@ def make_adapter_assembly(
     driver_diam: float | None,  # for flanged only (mm)
     thread_key: str | None,     # for threaded only
     # Horn throat shape
-    horn_shape: str,          # "circular" | "rectangular" | "polygonal"
+    horn_shape: str,          # "circular" | "elliptical" | "rectangular" | "polygonal"
     rect_w: float,
     rect_h: float,
     poly_n_sides: int,
@@ -766,7 +784,7 @@ def make_adapter_assembly(
         tk = thread_key if driver_type != "flanged" else None
         sl = socket_length if driver_type != "flanged" else 0.0
         adapter = make_adapter(
-            driver_R if driver_type == "flanged" else THREAD_SPECS[thread_key].major_diam / 2.0,
+            driver_R if driver_type == "flanged" else THREAD_SPECS[thread_key].bore_diam / 2.0,
             horn_shape, rect_w, rect_h,
             poly_n_sides, horn_R_eq, poly_circumR,
             axial_steps, adapter_length, wall_thickness,
@@ -781,7 +799,7 @@ def make_adapter_assembly(
     else:
         # No transition — just a thin ring
         r0 = driver_R if driver_type == "flanged" else \
-             (THREAD_SPECS[thread_key].major_diam / 2.0)
+             (THREAD_SPECS[thread_key].bore_diam / 2.0)
         adapter = _tc.cylinder(radius=r0 + wall_thickness,
                                 height=1.0, sections=64)
         hole = _tc.cylinder(radius=r0, height=3.0, sections=64)

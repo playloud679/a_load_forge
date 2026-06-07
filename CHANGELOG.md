@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.10.1 (2026-06-08)
+
+- **Flangia bocca inward strutturale** (`ui_app.py`): la roll-back mouth flange ora crea piloni pieni tra flare e flangia interna, poi li rifila con una booleana sulla superficie reale del flare. Il supporto resta continuo fino alla battuta delle viti senza sporgere dalla parete esterna.
+- **Fori e sedi testa corretti** (`ui_app.py`): i fori visibili sul flare sono tagli circolari del solo diametro vite; le sedi testa sono assiali e concentriche ai fori verticali, con fondo comune complanare controllato da `Head depth`. La sottrazione finale avviene dopo l'unione dei piloni, evitando riempimenti o aperture deformate.
+- **Posizionamento rettangolare** (`ui_app.py`): i piloni e i bulloni delle flange inward rettangolari seguono il bordo rettangolare reale invece di una circonferenza equivalente.
+- **Regressioni** (`tests/test_all.py`): aggiunti controlli sulla creazione, rifilatura e unione dei piloni, sul foro esterno tondo e sulle sedi testa assiali/complanari.
+- **Docs/versioning**: `VERSION`, `pyproject.toml`, README, guida utente, manuale e documentazione tecnica aggiornati a `2.10.1`.
+- **Test**: 156 funzionali + 33 geometria (189 totali), tutti verdi.
+
+## 2.10.0 (2026-06-06)
+
+- **Flange + adapter Elliptical** (`rectangular_flange.py`, `throat_adapter.py`, `ui_app.py`): aggiunto foro interno ellittico, abilitate flange di gola/bocca/intermedia e shape adapter con target ellittico reale. Il morph usa il raggio equivalente `sqrt(W·H)/2` e sostituisce l'inizio del flare senza allungare la tromba.
+- **Threaded corretto** (`throat_adapter.py`, `ui_app.py`): rimossa la selezione 1"/1¼"/2". Rimane il solo standard driver **1⅜"-18**, distinguendo il diametro del filetto (`34,925 mm`) dal foro acustico reale da **25,0 mm**, da cui ora parte il morph.
+- **Adapter integrato nella lunghezza della tromba** (`ui_app.py`): il morph round→shape non viene più aggiunto prima della gola. Ora sostituisce i primi millimetri del flare, che viene tagliato alla quota di raccordo; forma interna/esterna e pendenze sono interpolate sul profilo reale. La posizione della bocca e la profondità acustica restano invariate. Solo flangia o socket filettato possono sporgere dietro il piano gola.
+- **Nuovo profilo R-OSSE** (`profile_generator.get_rosse`, CLI `--profile rosse`, `ui_app.py`): implementazione delle equazioni parametriche pubblicate in “R-OSSE Acoustic Waveguide rev.7” di Marcel Batík, con roll-back completo verso lo spazio libero. La UI espone diametro esterno, copertura totale, angolo gola e fattori `k/r/m/b/q`; supporta sezioni Circular/Polygonal e conversione area-preservante Rectangular/Elliptical. Test di regressione sul campione ST260 del documento (Ø260 mm, profondità 77,70 mm) e mesh watertight.
+- **Nuovo profilo Conical** (`src/profile_generator.py` `get_conical`, `src/rectangular_horn.py` `get_rectangular_conical`, CLI `--profile conical`, `ui_app.py`): cono dritto CD `r(x)=r0+x·tan(theta)`, baseline a direttività costante. Stessa interfaccia throat+coverage+length dell'oblate; la UI le dispaccia entrambe via un singolo handle `is_cd` invece di duplicare 17 branch. Sezioni Circular/Polygonal/Rectangular (Radial non supportato, come Le Cléac'h). Docs di modulo + 9 nuovi test (math/legge/mesh circolare/rettangolare).
+- **Sezione Elliptical** (`ui_app.py`, motore `profile_generator.generate_elliptical_3d_mesh_from_profiles` già esistente): nuova Section che riusa l'intera matematica rettangolare (eredita tutti i profili + input W/H e copertura H/V dei CD) ma lofta ogni slice come **ellisse vera** (semiassi w/2, h/2). È la sezione "giusta" per i waveguide asimmetrici. In questa v1 flange/adapter sono **disabilitati** per l'ellittica (una flangia rett./circolare non si salda watertight attorno a un'ellisse — servirà una flangia a foro ellittico). Nuovo test end-to-end watertight (rect-math Salmon → ellisse).
+- **Ergonomia UI** (`ui_app.py`): le tre flange (Throat/Mouth/Mid) mostrano in primo piano solo i campi che contano (Thickness, Bolt count/Ø, Ring width); Z offset, Bolt position e Outer shape/sides spostati in un expander "Advanced". I parametri secondari dei giunti radiali e box (clearance, outer skin, margin) spostati in expander "Advanced … joint" lasciando in vista solo la depth. Rimossi tre `number_input` disabilitati di sola anteprima nella sezione Slice e import morti (`io, zipfile`, `_utils` ri-importato in locale 5×, ora a livello modulo).
+- **Badge versione in UI** (`ui_app.py`): la versione (letta da `VERSION` a runtime) è mostrata in piccolo sotto il titolo e nel titolo della tab del browser.
+- **Guida utente** (`USER_GUIDE.md`): nuovo manuale bilingue IT/EN orientato all'utente dell'app (distinto dal tecnico `MANUAL.md`).
+- **Test**: 136 funzionali + 33 geometria (169 totali), tutti verdi. Verificato con `streamlit.testing.AppTest` su tutti i profili × sezioni + percorso generate→slice→giunti (0 eccezioni).
+
 ## 2.9.0 (2026-06-05)
 
 - **Profilo oblate spheroidal CD** (`src/profile_generator.py`, `src/rectangular_horn.py`, `src/radial_horn.py`, `ui_app.py`): nuovo profilo constant-directivity con legge `r(x)=sqrt(r0^2 + (x*tan(theta))^2)`, throat a pendenza zero e asintoto conico. Supporto asimmetrico rettangolare/ellittico con coperture orizzontale e verticale indipendenti.
@@ -38,7 +60,7 @@
 
 ## 2.7.0 (2026-06-04)
 
-- **Adapter filettato anche su flare circolari** (`src/throat_adapter.py`, `ui_app.py`): la sezione Throat Flange / Adapter ora espone `Flanged`, `Threaded 1"`, `Threaded 1¼"` e `Threaded 2"` anche quando la sezione del corno è **Circular**. Il backend accetta `horn_shape="circular"` oltre a rectangular/polygonal.
+- **Adapter filettato anche su flare circolari** (`src/throat_adapter.py`, `ui_app.py`): la sezione Throat Flange / Adapter espone l'interfaccia threaded anche quando la sezione del corno è **Circular**. Il backend accetta `horn_shape="circular"` oltre a rectangular/polygonal. Le vecchie taglie multiple sono state sostituite in 2.10.0 dal solo attacco 1⅜"-18 con foro da 1".
 - **Raccordo C1 adapter↔flare per tutti i tipi**: l'adapter non termina più con una semplice corrispondenza di diametro. La morph shape usa smoothstep quintico, mentre il raggio equivalente usa Hermite con `target_slope` e `outer_target_slope` calcolati dalla derivata reale del flare. Risultato: niente spigolo al giunto e continuità di espansione interna/esterna per circular, rectangular e polygonal, sia flanged sia threaded.
 - **Fix fase adapter poligonale**: il target N-gon dell'adapter usa la stessa rotazione `+π/2` del motore `polygonal_horn`, quindi adapter e flare poligonale non risultano più sfasati dopo generazione o split.
 - **Fix non-manifold adapter↔flare**: l'adapter viene inserito nel flare con 0.5 mm di overlap volumetrico invece di appoggiarsi con facce coplanari al throat. La union manifold non lascia più edge con più di due facce nel caso polygonal + threaded adapter.
@@ -57,9 +79,9 @@
 
 ## 2.6.0 (2026-06-04)
 
-- **Throat adapter / attacco filettato (`src/throat_adapter.py`)**: nuovo modulo per la flangia di gola che supporta un **adattatore tondo→rettangolare/poligonale** con interfaccia filettata. L'adattatore crea una transizione fluida (morphing) dall'uscita tonda del driver alla gola rettangolare/poligonale del corno, mantenendo la legge d'area del profilo di espansione. Interfacce driver disponibili: flangiata tradizionale (con fori bulloni), filettata 1" UNF, filettata 1¼" UNF, filettata 2" UNF. Il **filetto è modellato con profilo UNF 60°** tramite rivoluzione sinusoidale del profilo (r, z) — nessuna operazione booleana. L'adattatore è un unico corpo senza soluzione di continuità: il filetto termina esattamente a z=0 dove inizia il morphing, la parete esterna si raccorda fluidamente dall'anello filettato fino alla gola del corno.
+- **Throat adapter / attacco filettato (`src/throat_adapter.py`)**: nuovo modulo per la flangia di gola che supporta un **adattatore tondo→rettangolare/poligonale** con interfaccia filettata. L'adattatore crea una transizione fluida (morphing) dall'uscita tonda del driver alla gola rettangolare/poligonale del corno, mantenendo la legge d'area del profilo di espansione. Il **filetto è modellato con profilo UNF 60°** tramite rivoluzione sinusoidale del profilo (r, z) — nessuna operazione booleana. Le taglie threaded originarie sono state sostituite in 2.10.0 dal solo attacco 1⅜"-18 con foro acustico da 25 mm.
 - **ThreadSpec**: dataclass con specifiche geometriche dei filetti (major_diam, pitch, tpi).
-- **UI — Throat Adapter**: nuova sezione nella flangia di gola per sezioni Rettangolare/Poligonale: checkbox "Include shape adapter", radio "Driver interface" (Flanged / Threaded 1" / 1¼" / 2"), lunghezza adattatore, profondità socket filettato. La flangia lato driver (se flangiata) è circolare e si aggancia all'uscita del driver; l'adattatore morphing collega il driver alla gola del corno.
+- **UI — Throat Adapter**: nuova sezione nella flangia di gola per sezioni Rettangolare/Poligonale: checkbox "Include shape adapter", scelta Flanged/Threaded, lunghezza adattatore e profondità socket filettato. La flangia lato driver (se flangiata) è circolare e si aggancia all'uscita del driver; l'adattatore morphing collega il driver alla gola del corno.
 - **Fix profilo spiralato**: allineamento vertici cerchio↔bersaglio a θ=0 in `_rect_points` e `_poly_points` — il loft non ha più torsione elicoidale.
 - **Fix outer target**: l'adattatore filettato passa le dimensioni esterne del corno (`_rect_w_o_0` / `_rect_h_o_0`) come outer target, così l'outer wall dell'adattatore si aggancia all'ESTERNO della gola e l'inner wall all'INTERNO — parete continua senza scalini.
 - **Test**: 69 test funzionali + 33 geometria (102 totali), tutti verdi. 11 nuovi test per `throat_adapter`.
@@ -317,3 +339,5 @@ exponential horn and quietly get an Iwata. Extracted `get_exponential` to
 - Automatic normal flip on negative volume
 - Multi-section horn splitting for 250mm³ printers
 - Merge flange + horn into single watertight STL
+- **Spessore Elliptical nei roll-back** (`profile_generator.py`, `ui_app.py`): sostituito l'offset radiale `rx+t`, `ry+t` con un vero offset lungo la normale 3D della superficie. R-OSSE e altri profili che tornano indietro mantengono ora lo spessore perpendicolare impostato; anche i calcoli esterni della UI usano la stessa superficie.
+- **Fix artefatto petali sui roll-back** (`_slicer.py`): con 2 petali i due limiti coincidono sullo stesso piano diametrale; ora viene applicato un solo taglio/cap invece di richiudere due volte facce coplanari, eliminando la riga di z-fighting visibile in Bambu Studio.

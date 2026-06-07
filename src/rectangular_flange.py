@@ -1,8 +1,8 @@
 """
-Parametric Rectangular Flange.
+Parametric Rectangular / Elliptical-Hole Flange.
 
 Supports both circular outer (disc) and rectangular outer (plate).
-Inner hole is always rectangular.
+Inner hole can be rectangular or elliptical.
 Bolts: on a circle (circular outer) or at corners (rectangular outer).
 """
 
@@ -29,39 +29,73 @@ def generate_rectangular_flange(
     offset: float = 0.0,
     output_path: str | None = None,
     bolt_phase: float = 0.0,
+    inner_type: str = "rectangular",
 ) -> trimesh.Trimesh | None:
     """
-    Rectangular-hole flange with safety clamps and Z-offset.
+    Rectangular/elliptical-hole flange with safety clamps and Z-offset.
 
-    outer_type = "circular"   → circular disc outer, bolts on a circle
+    outer_type = "circular"    → circular disc outer, bolts on a circle
     outer_type = "rectangular" → rectangular plate outer, bolts at corners
+    outer_type = "elliptical"  → elliptical-offset outer (ring follows the hole),
+                                 bolts on the mid-ring ellipse
+    inner_type = "rectangular" | "elliptical"
     offset = Z position of the flange bottom face.
     """
+    if inner_type not in {"rectangular", "elliptical"}:
+        raise ValueError("inner_type must be 'rectangular' or 'elliptical'")
+    if outer_type not in {"rectangular", "circular", "elliptical"}:
+        raise ValueError("outer_type must be 'rectangular', 'circular' or 'elliptical'")
 
     zb = offset
     center_z = zb + thickness / 2.0
+    _z_xform = np.array([
+        [1, 0, 0, 0],
+        [0, 1, 0, 0],
+        [0, 0, 1, center_z],
+        [0, 0, 0, 1],
+    ])
+    safe_margin = (bolt_inset * 2) + bolt_diam + 10.0
 
     # ---- Outer body ----------------------------------------------------
     if outer_type == "rectangular":
-        safe_margin = (bolt_inset * 2) + bolt_diam + 10.0
         outer_w_val = outer_w if outer_w is not None else inner_w + safe_margin
         outer_h_val = outer_h if outer_h is not None else inner_h + safe_margin
         outer = creation.box(
             extents=[outer_w_val, outer_h_val, thickness],
-            transform=np.array([
-                [1, 0, 0, 0],
-                [0, 1, 0, 0],
-                [0, 0, 1, center_z],
-                [0, 0, 0, 1],
-            ]),
+            transform=_z_xform,
         )
+    elif outer_type == "elliptical":
+        # Elliptical-offset outer: the ring follows the hole's ellipse, offset
+        # outward by a constant ring width (caller passes outer_w/h = inner_w/h
+        # + 2·ring). Built as a unit cylinder scaled to the outer semi-axes.
+        outer_w_val = outer_w if outer_w is not None else inner_w + safe_margin
+        outer_h_val = outer_h if outer_h is not None else inner_h + safe_margin
+        outer = creation.cylinder(radius=1.0, height=thickness, sections=128)
+        outer.apply_scale([outer_w_val / 2.0, outer_h_val / 2.0, 1.0])
+        outer.apply_translation([0.0, 0.0, center_z])
     else:
         min_diam = np.sqrt(inner_w**2 + inner_h**2) + (bolt_diam * 4) + 10.0
         actual_diam = max(outer_diam, min_diam)
+        outer_w_val = outer_h_val = actual_diam
         outer = creation.cylinder(
             radius=actual_diam / 2.0,
             height=thickness,
             sections=80,
+            transform=_z_xform,
+        )
+
+    # ---- Centre hole ---------------------------------------------------
+    if inner_type == "elliptical":
+        centre_hole = creation.cylinder(
+            radius=1.0,
+            height=thickness * 3,
+            sections=128,
+        )
+        centre_hole.apply_scale([inner_w / 2.0, inner_h / 2.0, 1.0])
+        centre_hole.apply_translation([0.0, 0.0, center_z])
+    else:
+        centre_hole = creation.box(
+            extents=[inner_w, inner_h, thickness * 3],
             transform=np.array([
                 [1, 0, 0, 0],
                 [0, 1, 0, 0],
@@ -69,17 +103,6 @@ def generate_rectangular_flange(
                 [0, 0, 0, 1],
             ]),
         )
-
-    # ---- Rectangular centre hole ---------------------------------------
-    centre_hole = creation.box(
-        extents=[inner_w, inner_h, thickness * 3],
-        transform=np.array([
-            [1, 0, 0, 0],
-            [0, 1, 0, 0],
-            [0, 0, 1, center_z],
-            [0, 0, 0, 1],
-        ]),
-    )
 
     # ---- Bolt holes ----------------------------------------------------
     bolt_holes = []
@@ -92,6 +115,27 @@ def generate_rectangular_flange(
         hw = max(hw, min_x)
         hh = max(hh, min_y)
         for x, y in [(-hw, -hh), (hw, -hh), (hw, hh), (-hw, hh)]:
+            bh = creation.cylinder(
+                radius=bolt_diam / 2.0,
+                height=thickness * 3,
+                sections=16,
+                transform=np.array([
+                    [1, 0, 0, x],
+                    [0, 1, 0, y],
+                    [0, 0, 1, center_z],
+                    [0, 0, 0, 1],
+                ]),
+            )
+            bolt_holes.append(bh)
+    elif outer_type == "elliptical":
+        # Bolts ride the mid-ring ellipse (halfway between hole and outer edge),
+        # so they stay centred in the elliptical wall for any aspect ratio.
+        bx = (inner_w / 2.0 + outer_w_val / 2.0) / 2.0
+        by = (inner_h / 2.0 + outer_h_val / 2.0) / 2.0
+        angles = np.linspace(0, 2 * np.pi, int(bolt_count), endpoint=False)
+        for a in angles:
+            x = bx * np.cos(a + bolt_phase)
+            y = by * np.sin(a + bolt_phase)
             bh = creation.cylinder(
                 radius=bolt_diam / 2.0,
                 height=thickness * 3,

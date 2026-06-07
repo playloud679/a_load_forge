@@ -38,13 +38,13 @@ Imported from `src/_constants.py`.
 | Argument | Type | Default | Description |
 |---|---|---|---|
 | `--throat` | `float` | **required** | Throat diameter in mm |
-| `--mouth` | `float` | `None` | Mouth diameter (tractrix only) |
+| `--mouth` | `float` | `None` | Mouth diameter (tractrix / exponential / R-OSSE) |
 | `--fc` | `float` | `None` | Cutoff frequency in Hz (exponential / salmon) |
 | `--length` | `float` | `None` | Axial length in mm (salmon / lecleach / oblate) |
-| `--coverage` | `float` | `90.0` | Total coverage angle in degrees (oblate only; `theta = coverage/2`) |
+| `--coverage` | `float` | `90.0` | Total coverage angle in degrees (oblate / conical / R-OSSE; formula uses half-angle) |
 | `--T` | `float` | `0.707` | Salmon flare parameter T (0=catenoidal, <1=cosh, 1=exponential, >1=sinh) |
 | `--max-angle` | `float` | `160.0` | Termination angle in degrees (lecleach only, 90-180, default 160) |
-| `--profile` | `str` | `"auto"` | Choices: `"auto"`, `"tractrix"`, `"salmon"`, `"iwata"`, `"lecleach"`, `"oblate"` |
+| `--profile` | `str` | `"auto"` | Choices: `"auto"`, `"tractrix"`, `"salmon"`, `"iwata"`, `"lecleach"`, `"oblate"`, `"conical"`, `"rosse"` |
 | `--thickness` | `float` | `4.0` | Wall thickness in mm |
 | `--segments` | `int` | `300` | Number of profile sample points |
 | `--rings` | `int` | `64` | Circumferential tessellation rings |
@@ -123,6 +123,24 @@ h(x) = 2 · sqrt((throat_h/2)² + (x · tan(coverage_v/2))²)
 ```
 
 This supports waveguides such as 90° horizontal × 45° vertical, with both axes starting parallel at the throat and tending toward their independent conical asymptotes.
+
+### `get_conical(throat: float, coverage_angle: float, length: float, n: int) -> tuple[np.ndarray, np.ndarray]`
+
+Conical horn — the constant-directivity **reference** shape. Straight wall from the throat at the half-coverage angle:
+
+```
+r(x) = r0 + x · tan(theta),   theta = coverage_angle / 2
+```
+
+Same `(throat, coverage, length)` interface as `get_oblate_spheroidal`, so the UI dispatches both through one handle (`is_cd`). Unlike oblate, the throat slope is **non-zero** (a sharp cone): directivity is set purely by the wall angle. Mouth Ø and an estimated mouth-loading cutoff are derived (not inputs). The rectangular counterpart is `rectangular_horn.get_rectangular_conical`.
+
+### `get_rosse(throat: float, mouth: float, coverage_angle: float, n: int, throat_angle: float = 15.0, k: float = 1.8, r: float = 0.3, m: float = 0.8, b: float = 0.3, q: float = 3.7) -> tuple[np.ndarray, np.ndarray]`
+
+Implements Marcel Batík's **R-OSSE Acoustic Waveguide rev.7** parametric expansion. Unlike a function `r(z)`, R-OSSE uses `[z(t), r(t)]` for `0 <= t <= 1`, allowing the mouth to roll back toward free space. The public `coverage_angle` and `throat_angle` arguments are total angles; the published formula's `a` and `a0` are their half-angles.
+
+The defaults reproduce the document's ST260 example when called as `get_rosse(25.4, 260, 78, n)`: outer radius `130 mm`, maximum axial depth approximately `77.70 mm`, and rolled-back edge at approximately `57.47 mm`.
+
+The UI exposes all six shape controls from the paper. Circular and polygonal sections use the axisymmetric profile directly. Rectangular and elliptical sections use an area-preserving conversion at a constant throat aspect ratio. Radial 360° is not applicable and falls back to Circular.
 
 ### `get_salmon(throat: float, fc: float, length: float, n: int, T: float = 0.707) -> tuple[np.ndarray, np.ndarray]`
 
@@ -223,14 +241,24 @@ x = rx(z) · cos(phi)
 y = ry(z) · sin(phi)
 ```
 
-The outer wall uses an outward elliptical radial offset:
+The outer wall uses `_elliptical_parallel_offset_vertices()` to offset every
+surface point along its full 3-D unit normal:
 
 ```
-rx_outer = rx + thickness
-ry_outer = ry + thickness
+V_outer(u, phi) = V_inner(u, phi) + thickness · normal(u, phi)
 ```
+
+Unlike the old radial-only `rx + thickness`, `ry + thickness` construction,
+this includes the axial normal component and preserves constant perpendicular
+wall thickness through steep and roll-back regions such as R-OSSE.
 
 The function triangulates inner wall, outer wall, throat annulus, and mouth annulus, runs the result through `trimesh.Trimesh(..., process=True)`, merges vertices, fixes normals, optionally exports STL, and returns a `mesh.Mesh`.
+
+### `_elliptical_parallel_offset_vertices(z_i, rx_i, ry_i, thickness, rings) -> tuple[np.ndarray, np.ndarray]`
+
+Returns the inner vertex grid and its true parallel-offset outer grid. The UI
+uses the same helper when deriving elliptical outer dimensions and adapter
+raccordo values, keeping generated accessories synchronized with the mesh.
 
 ---
 

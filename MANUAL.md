@@ -287,6 +287,19 @@ rf.generate_rectangular_flange(...)
 I fori dei bulloni sono **vere sottrazioni booleane** (trimesh), non finta
 geometria. The bolt holes are **real boolean cutouts**, not fake geometry.
 
+Per una mouth flange inward sotto un roll-back, la UI costruisce prima piloni
+pieni portanti, li interseca con il volume interno alla superficie reale del
+flare e infine unisce il risultato. Solo dopo l'unione sottrae i fori vite e le
+eventuali sedi testa. I fori esterni restano tondi al diametro del gambo; le
+sedi testa sono assiali, concentriche e hanno un unico fondo complanare definito
+da `Head depth`.
+
+For an inward mouth flange below a roll-back, the UI first creates full
+load-bearing pillars, clips them to the real flare surface, and unions the
+result. Screw holes and optional head seats are subtracted only after that
+union. External openings remain round at shaft diameter; head seats are axial,
+concentric, and terminate on one coplanar floor set by `Head depth`.
+
 ---
 
 ## 6. Tutorial — throat adapter / L'adattatore di gola
@@ -299,7 +312,8 @@ progetto, quindi qui non ti do tutta la firma a memoria — la trovi in
 ti risparmia token e tempo).
 
 **EN** — The adapter bridges the round driver to the horn throat (round, rect or
-polygonal) with a **flanged** or **threaded** (1" / 1¼" / 2" UNF) interface. It's
+polygonal) with a **flanged** or **threaded 1⅜"-18** interface and a separate
+25 mm acoustic bore. It's
 the geometrically hairiest part of the project, so I won't recite the full
 signature here — it lives in `docs/throat_adapter.md`, the source of truth (read
 that, not the source: saves you tokens and time).

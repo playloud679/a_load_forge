@@ -24,6 +24,7 @@ import radial_horn as _rd
 import polygonal_horn as _ph
 import _slicer as _slc
 import throat_adapter as _ta
+import _utils as _uts
 from _step_export import export_step
 
 import importlib
@@ -35,8 +36,16 @@ importlib.reload(_rd)
 importlib.reload(_ph)
 importlib.reload(_slc)
 importlib.reload(_ta)
+importlib.reload(_uts)
 
-st.set_page_config(page_title="flare_forge", layout="wide",
+# App version — read from the repo VERSION file so the UI badge always matches
+# the released version without a second source of truth to keep in sync.
+try:
+    _VERSION = (Path(__file__).parent / "VERSION").read_text().strip()
+except OSError:
+    _VERSION = "dev"
+
+st.set_page_config(page_title=f"flare_forge v{_VERSION}", layout="wide",
     initial_sidebar_state="collapsed", menu_items={})
 
 # ── Support link ─────────────────────────────────────────────────────
@@ -58,7 +67,7 @@ def _on_horn_change():
 _hdr_l, _hdr_r = st.columns([5, 1])
 with _hdr_l:
     st.title("flare_forge")
-    st.caption("Acoustic profile + mounting flanges · watertight assembly for 3D printing")
+    st.caption(f":gray[v{_VERSION}] · Acoustic profile + mounting flanges · watertight assembly for 3D printing")
 with _hdr_r:
     if BMC_USERNAME and BMC_USERNAME != "your_username":
         st.link_button("☕ Buy me a coffee", BMC_URL, use_container_width=True)
@@ -78,33 +87,53 @@ with col_prof:
     sh1, sh2 = st.columns([2, 3])
     with sh1:
         profile_type = st.selectbox("Profile",
-            ["Tractrix", "Salmon", "Iwata", "Le Cléac'h (isophase)", "Oblate spheroidal", "Exponential"], index=0,
+            ["Tractrix", "Salmon", "Iwata", "Le Cléac'h (isophase)", "Oblate spheroidal", "Conical", "R-OSSE", "Exponential"], index=0,
             on_change=_on_horn_change, key="profile_type")
     with sh2:
-        section_type = st.radio("Section", ["Circular", "Polygonal", "Rectangular", "Radial 360°"],
+        section_type = st.radio("Section", ["Circular", "Polygonal", "Rectangular", "Elliptical", "Radial 360°"],
                           index=0, horizontal=True, key="section_type",
                           on_change=_on_horn_change)
 
     is_radial   = section_type.startswith("Rad")
     is_poly     = section_type == "Polygonal"
     is_rect     = section_type == "Rectangular"
+    is_ellip    = section_type == "Elliptical"
     is_tractrix = profile_type.startswith("Tract")
     is_salmon    = profile_type.startswith("Salmon")
     is_iwata    = profile_type.startswith("Iwata")
     is_lecleach = profile_type.startswith("Le Cl")
     is_oblate   = profile_type.startswith("Oblate")
+    is_conical  = profile_type.startswith("Conical")
+    is_rosse    = profile_type.startswith("R-OSSE")
     is_exp      = profile_type.startswith("Exp")
     has_fc      = is_salmon or is_lecleach or is_exp
     is_T_variable = is_salmon or is_lecleach
+    # Conical and Oblate share the same constant-directivity inputs
+    # (throat + coverage + length, mouth derived) and the same dispatch shape,
+    # so a single pair of function handles keeps every branch below to one line.
+    is_cd       = is_oblate or is_conical
+    _cd_fn      = _core.get_conical if is_conical else _core.get_oblate_spheroidal
+    _cd_rect_fn = _rh.get_rectangular_conical if is_conical else _rh.get_rectangular_oblate_spheroidal
 
     # Iwata is the real l'Audiophile horn: a fixed *rectangular* dual-flare
     # geometry digitized from the plan, driven only by throat size + length.
     # It always renders as a rectangular section, whatever the Section selector.
+    # Elliptical reuses the rectangular profile math + inputs (independent W/H),
+    # but lofts each slice as a true ellipse instead of a rectangle. So it forces
+    # is_rect for inputs/profile dispatch and is special-cased at the body,
+    # flange, and adapter mesh paths.
+    if is_ellip:
+        is_rect = True
+        is_poly = is_radial = False
+
     if is_iwata:
         is_rect = True
         is_poly = is_radial = False
         st.caption("ℹ️ Iwata = fixed rectangular dual-flare horn (l'Audiophile plan) — "
                    "the Section selector is ignored.")
+    if is_rosse and is_radial:
+        is_radial = False
+        st.caption("R-OSSE is axisymmetric; Radial 360° is ignored and generated as Circular.")
 
     # ── Section / flare modifiers — only those relevant to the current shape
     rect_ar, n_sides, salmon_T = 1.5, 4, 0.707
@@ -153,14 +182,29 @@ with col_prof:
     def _get_exp_profile(throat_d, mouth_d, fc, n):
         return _core.get_exponential(throat_d, mouth_d, fc, n)
 
+    rosse_a0, rosse_k, rosse_r = 15.0, 1.8, 0.3
+    rosse_m, rosse_b, rosse_q = 0.8, 0.3, 3.7
+
+    def _get_rosse_profile(throat_d, mouth_d, n):
+        return _core.get_rosse(
+            throat_d, mouth_d, coverage_h, n, rosse_a0,
+            rosse_k, rosse_r, rosse_m, rosse_b, rosse_q)
+
+    def _get_rect_rosse_profile(throat_w, throat_h, mouth_w, n):
+        throat_eq = np.sqrt(throat_w * throat_h * 4.0 / np.pi)
+        mouth_eq = mouth_w * throat_eq / throat_w
+        z, r = _get_rosse_profile(throat_eq, mouth_eq, n)
+        return _rh._area_to_rect(z, r, throat_w, throat_h)
+
     st.markdown("##### Dimensions")
 
     # Each profile is driven by a different set of inputs; the rest are solved
     # from the math and shown as results in the "Computed" panel on the right.
     _hint = ("Set **throat + mouth**. Acoustic gap follows."         if is_radial   else
              "Set **throat + mouth**. Length and Fc follow."          if is_tractrix else
+             "Set **throat + outer diameter + coverage**. Shape factors control the roll-back." if is_rosse else
              "Real **Iwata** (l'Audiophile): set **throat + length**; mouth W×H & Fc follow." if is_iwata else
-             "Set **throat + coverage + length**. Mouth follows the CD asymptote." if is_oblate and not is_radial else
+             "Set **throat + coverage + length**. Mouth follows the CD asymptote." if is_cd and not is_radial else
              "Set **throat W×H + mouth W**. Mouth H follows."         if is_rect     else
              "Set **throat + Fc + length** (T=0.707 Hypex)."          if is_salmon    else
              "Set **throat + Fc + length**. Roll-back at mouth."      if is_lecleach else
@@ -188,13 +232,13 @@ with col_prof:
                 max(2.0, 30.0 / rect_ar), 1.0,
                 help="Driver-side opening — height (set by aspect ratio)")
             throat_d = np.sqrt(throat_w * throat_h * 4 / np.pi)
-            _mouth_is_input = not is_oblate
+            _mouth_is_input = not is_cd
         else:
             throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0,
                 25.0 if is_radial else 20.0, 1.0,
                 help="Driver-side opening — the small end")
             throat_w = throat_h = throat_d
-            _mouth_is_input = is_radial or is_tractrix or is_exp
+            _mouth_is_input = is_radial or is_tractrix or is_rosse or is_exp
 
         if _mouth_is_input:
             if is_rect:
@@ -211,8 +255,8 @@ with col_prof:
             mouth_w = None
 
         coverage_h = coverage_v = 90.0
-        if is_oblate and not is_radial:
-            if is_rect:
+        if (is_cd or is_rosse) and not is_radial:
+            if is_rect and not is_rosse:
                 _cov_cols = st.columns(2)
                 with _cov_cols[0]:
                     coverage_h = st.number_input("Horizontal coverage (°)", 1.0, 179.0, 90.0, 5.0,
@@ -225,6 +269,19 @@ with col_prof:
                     help="Total dispersion; formula uses theta = coverage/2")
                 coverage_v = coverage_h
 
+        if is_rosse:
+            with st.expander("R-OSSE shape factors"):
+                _rc1, _rc2, _rc3 = st.columns(3)
+                with _rc1:
+                    rosse_a0 = st.number_input("Throat opening (total °)", 0.0, 179.0, 15.0, 1.0)
+                    rosse_k = st.number_input("Throat expansion k", 0.1, 10.0, 1.8, 0.1)
+                with _rc2:
+                    rosse_r = st.number_input("Apex radius r", 0.01, 5.0, 0.3, 0.05)
+                    rosse_m = st.number_input("Apex shift m", 0.0, 1.0, 0.8, 0.05)
+                with _rc3:
+                    rosse_b = st.number_input("Bending b", -5.0, 5.0, 0.3, 0.05)
+                    rosse_q = st.number_input("Throat shape q", 0.1, 20.0, 3.7, 0.1)
+
         if has_fc:
             _fc_help = ("Flare rate — how fast the horn opens. The mouth sets where it ends."
                         if is_exp else
@@ -235,7 +292,7 @@ with col_prof:
 
         if is_iwata:
             axial_len = iwata_length
-        elif ((is_salmon or is_lecleach) and not is_rect or is_oblate) and not is_radial:
+        elif ((is_salmon or is_lecleach) and not is_rect or is_cd) and not is_radial:
             axial_len = st.number_input("Axial length (mm)", 10.0, 500.0, 80.0, 5.0,
                 help="Horn depth along the axis")
         else:
@@ -278,8 +335,14 @@ with col_prof:
                 _len = axial_len
                 zp, rp = zr, np.sqrt(wr * hr / np.pi)
                 _mouth_d_eff = max(wr.max(), hr.max())
-            elif is_oblate:
-                zr, wr, hr = _rh.get_rectangular_oblate_spheroidal(throat_w, throat_h, coverage_h, coverage_v, axial_len, segments)
+            elif is_rosse:
+                zr, wr, hr = _get_rect_rosse_profile(throat_w, throat_h, mouth_w, segments)
+                _len = zr.max()
+                zp, rp = zr, np.sqrt(wr * hr / np.pi)
+                _mouth_d_eff = max(wr[-1], hr[-1])
+                _fc_eff = c_val / (np.pi * (2.0 * rp[-1]))
+            elif is_cd:
+                zr, wr, hr = _cd_rect_fn(throat_w, throat_h, coverage_h, coverage_v, axial_len, segments)
                 _len = axial_len
                 zp, rp = zr, np.sqrt(wr * hr / np.pi)
                 _mouth_d_eff = max(wr.max(), hr.max())
@@ -299,15 +362,26 @@ with col_prof:
                 _mouth_d_eff = max(wr.max(), hr.max())
                 _len = zp.max()
             # Actual outer dimensions at throat and mouth (normal offset)
-            import _utils as _uts
             _nw_rect = _uts.compute_profile_normals(zr, wr, flip_if_negative=True)
             _nh_rect = _uts.compute_profile_normals(zr, hr, flip_if_negative=True)
             _z_o_rect = zr + thickness * (_nw_rect[:, 0] + _nh_rect[:, 0]) / 2.0
-            _z_o_rect = np.clip(_z_o_rect, zr[0], zr[-1])
+            # Roll-back profiles (Le Cléac'h/oblate/rosse) have non-monotonic Z;
+            # clip to the true axial extent (zr.max()), NOT zr[-1] — the latter is
+            # the curled-back lip and would crush the whole flare onto one plane.
+            _z_o_rect = np.clip(_z_o_rect, zr.min(), zr.max())
             _z_o_rect[0] = zr[0]
             _z_o_rect[-1] = zr[-1]
             _w_o_rect = wr + 2.0 * thickness * _nw_rect[:, 1]
             _h_o_rect = hr + 2.0 * thickness * _nh_rect[:, 1]
+            if is_ellip:
+                # True parallel offset of the elliptical loft — identical to the
+                # mesh engine — so flange holes line up with the real outer wall
+                # (the radial-only rx+t/ry+t shortcut drifts off the wall in Z).
+                _, _Vo_e = _core._elliptical_parallel_offset_vertices(
+                    zr, wr / 2.0, hr / 2.0, thickness, 96)
+                _z_o_rect = np.mean(_Vo_e[:, :, 2], axis=1)
+                _w_o_rect = 2.0 * np.max(np.abs(_Vo_e[:, :, 0]), axis=1)
+                _h_o_rect = 2.0 * np.max(np.abs(_Vo_e[:, :, 1]), axis=1)
             # At the throat: take the max width among all slices whose outer Z == zr[0]
             # (the clip flattens several slices onto the base plane)
             _throat_mask = np.abs(_z_o_rect - zr[0]) < 1e-6
@@ -324,8 +398,12 @@ with col_prof:
         elif is_lecleach:
             zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
             _len = zp.max(); _mouth_d_eff = rp.max() * 2
-        elif is_oblate:
-            zp, rp = _core.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
+        elif is_rosse:
+            zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
+            _len = zp.max(); _mouth_d_eff = rp[-1] * 2
+            _fc_eff = c_val / (np.pi * _mouth_d_eff)
+        elif is_cd:
+            zp, rp = _cd_fn(throat_d, coverage_h, axial_len, segments)
             _len = zp[-1]; _mouth_d_eff = rp[-1] * 2
             _fc_eff = c_val / (np.pi * _mouth_d_eff)
         elif is_exp:
@@ -397,7 +475,6 @@ with col_prev:
     st.subheader("2D Preview — Cross-section")
 
     try:
-        import _utils as _uts
         fig, ax = plt.subplots(figsize=(6, 3.5))
         if is_poly:
             if is_tractrix:
@@ -406,8 +483,10 @@ with col_prev:
                 zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
             elif is_lecleach:
                 zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
-            elif is_oblate:
-                zp, rp = _core.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
+            elif is_rosse:
+                zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
+            elif is_cd:
+                zp, rp = _cd_fn(throat_d, coverage_h, axial_len, segments)
             elif is_exp:
                 zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             from polygonal_horn import _r_to_circumradius
@@ -430,8 +509,10 @@ with col_prev:
                 zr, wr, hr = _rh.get_rectangular_exponential(throat_w, throat_h, mouth_w, fc, segments)
             elif is_salmon:
                 zr, wr, hr = _rh.get_rectangular_salmon(throat_w, throat_h, fc, axial_len, segments)
-            elif is_oblate:
-                zr, wr, hr = _rh.get_rectangular_oblate_spheroidal(throat_w, throat_h, coverage_h, coverage_v, axial_len, segments)
+            elif is_rosse:
+                zr, wr, hr = _get_rect_rosse_profile(throat_w, throat_h, mouth_w, segments)
+            elif is_cd:
+                zr, wr, hr = _cd_rect_fn(throat_w, throat_h, coverage_h, coverage_v, axial_len, segments)
             elif is_iwata:
                 zr, wr, hr = _rh.get_iwata_horn(throat_d, axial_len, segments)
             else:
@@ -453,8 +534,10 @@ with col_prev:
                 zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
             elif is_lecleach:
                 zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
-            elif is_oblate:
-                zp, rp = _core.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
+            elif is_rosse:
+                zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
+            elif is_cd:
+                zp, rp = _cd_fn(throat_d, coverage_h, axial_len, segments)
             elif is_exp:
                 zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
             # Parallel offset along the meridian normal — matches the mesh engine
@@ -485,9 +568,83 @@ st.subheader("Mounting Flanges")
 
 # --- Auto-calculate flange dimensions from profile ---
 
+def _outgoing_leg(z_o, w_o, h_o):
+    """Throat→peak leg of a (possibly rolled-back) outer wall, sorted by Z.
+
+    Roll-back profiles (Le Cléac'h, oblate, rosse) have a non-monotonic Z that
+    climbs to a peak then curls the lip back toward the throat. A flange must
+    weld onto the *outgoing* leg, and it must be sorted by Z so ``np.interp``
+    can sample it. For ordinary monotonic profiles this returns the whole array.
+    """
+    z_o = np.asarray(z_o, float)
+    w_o = np.asarray(w_o, float)
+    h_o = np.asarray(h_o, float)
+    peak = int(np.argmax(z_o))
+    sl = slice(0, peak + 1)
+    order = np.argsort(z_o[sl])
+    return z_o[sl][order], w_o[sl][order], h_o[sl][order]
+
+
+def _outer_wh_at_z(z_o, w_o, h_o, z_target):
+    """Interpolated outer (w, h) of the wall at physical Z on the outgoing leg.
+
+    Used to size a flat flange's hole from the real outer wall at the plate's
+    bottom face, so the widening wall pokes through the ring and welds
+    volumetrically instead of merely touching coplanar (which floats apart).
+    """
+    zb, wb, hb = _outgoing_leg(z_o, w_o, h_o)
+    zt = float(np.clip(z_target, zb[0], zb[-1]))
+    return float(np.interp(zt, zb, wb)), float(np.interp(zt, zb, hb))
+
+
+def _mouth_station(z_o, w_o, h_o):
+    """Index of the widest outer cross-section (the acoustic mouth rim).
+
+    For roll-back profiles this is the peak of the flare, not the curled-back
+    last array element. Returns (index, z_at_index)."""
+    eq = np.asarray(w_o, float) * np.asarray(h_o, float)
+    i = int(np.argmax(eq))
+    return i, float(np.asarray(z_o, float)[i])
+
+
+def _rim_weld(z_o, w_o, h_o, plate_thickness):
+    """Geometry to weld a flat flange to the OUTER rim (widest cross-section).
+
+    Returns ``(offset, wall_w, wall_h)`` where ``offset`` is the plate's bottom
+    face and ``wall_w/h`` is the outer wall at the plate's rim-*distal* face.
+    The wall widens toward the rim, so it pokes through the ring and welds
+    volumetrically.
+
+    Two cases, so it works for ordinary flares **and** roll-back lips:
+    - rim on the outgoing leg (normal mouth, rim is the top): plate sits *below*
+      the rim, hole sized at its bottom face.
+    - rim on the returning leg (roll-back, rim is the bottom of the curled lip):
+      plate sits *above* the rim, hole sized at its top face. This is the
+      "bordo esterno" of a Le Cléac'h / R-OSSE / oblate horn.
+    """
+    z_o = np.asarray(z_o, float)
+    w_o = np.asarray(w_o, float)
+    h_o = np.asarray(h_o, float)
+    rim = int(np.argmax(w_o * h_o))
+    peak = int(np.argmax(z_o))
+    z_rim = float(z_o[rim])
+    if rim <= peak:                       # rim on the outgoing leg → plate below
+        seg = slice(0, rim + 1)
+        offset = z_rim - plate_thickness
+        z_face = offset
+    else:                                 # rim on the returning leg → plate above
+        seg = slice(peak, rim + 1)
+        offset = z_rim
+        z_face = z_rim + plate_thickness
+    zs, ws, hs = z_o[seg], w_o[seg], h_o[seg]
+    order = np.argsort(zs)
+    zs, ws, hs = zs[order], ws[order], hs[order]
+    z_face = float(np.clip(z_face, zs[0], zs[-1]))
+    return float(offset), float(np.interp(z_face, zs, ws)), float(np.interp(z_face, zs, hs))
+
+
 def _calc_flange_dims():
     """Return suggested flange dimensions based on current horn profile."""
-    import _utils as _uts
 
     def _mouth_wall_dz(zp, rp):
         """Axial (Z) extent of the wall at the mouth — matches the mesh engine's
@@ -512,17 +669,22 @@ def _calc_flange_dims():
             zr, wr, hr = _rh.get_rectangular_exponential(throat_w, throat_h, mouth_w, fc, segments)
         elif is_salmon:
             zr, wr, hr = _rh.get_rectangular_salmon(throat_w, throat_h, fc, axial_len, segments)
+        elif is_rosse:
+            zr, wr, hr = _get_rect_rosse_profile(throat_w, throat_h, mouth_w, segments)
         elif is_iwata:
             zr, wr, hr = _rh.get_iwata_horn(throat_d, axial_len, segments)
-        elif is_oblate:
-            zr, wr, hr = _rh.get_rectangular_oblate_spheroidal(throat_w, throat_h, coverage_h, coverage_v, axial_len, segments)
+        elif is_cd:
+            zr, wr, hr = _cd_rect_fn(throat_w, throat_h, coverage_h, coverage_v, axial_len, segments)
         else:
             throat_d_eq = np.sqrt(throat_w * throat_h * 4 / np.pi)
             zr, wr, hr = _rh._area_to_rect(*_core.get_lecleach(throat_d_eq, fc, axial_len, segments, T=salmon_T), throat_w, throat_h)
-        ir_mouth = max(_rect_w_o_n, _rect_h_o_n) / 2 - _FLANGE_WALL_BITE
-        _get_mid_r = lambda pct, _z=zr, _w=wr, _h=hr: max(
-            _w[min(int(len(_w)*pct/100), len(_w)-1)],
-            _h[min(int(len(_h)*pct/100), len(_h)-1)]) / 2 + thickness
+        # Mouth hole = the widest outer cross-section (roll-back aware), not the
+        # curled-back last array element.
+        _im, _ = _mouth_station(_z_o_rect, _w_o_rect, _h_o_rect)
+        ir_mouth = max(_w_o_rect[_im], _h_o_rect[_im]) / 2 - _FLANGE_WALL_BITE
+        # Mid radius sampled by physical Z on the outgoing leg (pct·_len == Z mm).
+        _get_mid_r = lambda pct, _l=(_len or 1.0): (lambda w, h: max(w, h) / 2)(
+            *_outer_wh_at_z(_z_o_rect, _w_o_rect, _h_o_rect, _l * pct / 100.0))
     elif is_poly:
         from polygonal_horn import _r_to_circumradius
         ir_throat = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
@@ -532,8 +694,10 @@ def _calc_flange_dims():
             zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
         elif is_lecleach:
             zp, rp = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
-        elif is_oblate:
-            zp, rp = _core.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
+        elif is_rosse:
+            zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
+        elif is_cd:
+            zp, rp = _cd_fn(throat_d, coverage_h, axial_len, segments)
         elif is_exp:
             zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
         R_i = _r_to_circumradius(rp, n_sides)
@@ -557,12 +721,19 @@ def _calc_flange_dims():
         ir_mouth = _circular_mouth_hole_R(zp, rp)
         mouth_dz = _mouth_wall_dz(zp, rp)
         _get_mid_r = lambda pct: rp[min(int(np.searchsorted(zp, zp[-1]*pct/100)), len(rp)-1)]
-    elif is_oblate:
-        zp, rp = _core.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
+    elif is_cd:
+        zp, rp = _cd_fn(throat_d, coverage_h, axial_len, segments)
         ir_throat = throat_d / 2
         ir_mouth = _circular_mouth_hole_R(zp, rp)
         mouth_dz = _mouth_wall_dz(zp, rp)
         _get_mid_r = lambda pct: rp[min(int(np.searchsorted(zp, zp[-1]*pct/100)), len(rp)-1)]
+    elif is_rosse:
+        zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
+        ir_throat = throat_d / 2
+        ir_mouth = _circular_mouth_hole_R(zp, rp)
+        mouth_dz = _mouth_wall_dz(zp, rp)
+        _z_len = zp.max()
+        _get_mid_r = lambda pct, _zp=zp, _rp=rp, _zl=_z_len: _rp[np.argmin(np.abs(_zp - _zl*pct/100))]
     else:  # salmon / lecleach
         if is_salmon:
             zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
@@ -679,30 +850,32 @@ with fg1:
         _ta_include_adapter = st.checkbox("Include shape adapter", is_rect or is_poly,
             key="ta_incl_adapter",
             help="Transitions from round or threaded driver interfaces to the "
-                 "horn throat. Uncheck for a simple throat flange.")
+                 "horn throat without increasing the horn length.")
 
         if _ta_include_adapter:
             # ── Adapter mode: round/threaded driver → horn-throat transition ─
+            st.caption("The morph replaces the first part of the flare. Only the "
+                       "driver flange or threaded socket may protrude behind the throat plane.")
             _ta_driver_type = st.radio("Driver interface",
-                ["Flanged", 'Threaded 1"', 'Threaded 1\u00bc"', 'Threaded 1\u215c"', 'Threaded 2"'],
+                ["Flanged", 'Threaded 1\u215c"-18 (25 mm bore)'],
                 index=0, horizontal=True, key="ta_driver_type")
             _driver_is_flanged = _ta_driver_type == "Flanged"
             _driver_is_threaded = not _driver_is_flanged
 
             _ta_thread_key = None
             if _driver_is_threaded:
-                _ta_thread_key = {"Threaded 1\"": "1in",
-                                  "Threaded 1\u00bc\"": "1_25in",
-                                  "Threaded 1\u215c\"": "1_375in",
-                                  "Threaded 2\"": "2in"}[_ta_driver_type]
+                _ta_thread_key = "1_375in"
 
-            _ta_adapter_len = st.number_input("Adapter length (mm)", 5.0, 200.0, 30.0, 5.0,
+            _ta_adapter_len = st.number_input("Morph length inside horn (mm)", 5.0, 200.0, 30.0, 5.0,
                 key="ta_adapter_len",
-                help="Length of the round-to-shape transition section")
+                help="Length of the round-to-shape transition. It replaces the first "
+                     "part of the flare, so it does not increase horn depth.")
 
             if _driver_is_threaded:
-                _ft_driver_d = _ta.THREAD_SPECS[_ta_thread_key].major_diam
-                st.caption(f"Driver throat: \u00d8{_ft_driver_d:.1f} mm ({_ta_driver_type})")
+                _thread_spec = _ta.THREAD_SPECS[_ta_thread_key]
+                _ft_driver_d = _thread_spec.bore_diam
+                st.caption(f"Female thread: {_thread_spec.name} · acoustic bore: "
+                           f"\u00d8{_thread_spec.bore_diam:.1f} mm")
                 _ta_socket_depth = st.number_input("Socket depth (mm)", 5.0, 30.0, 15.0, 1.0,
                     key="ta_socket_depth",
                     help="Depth of the threaded bore for the driver")
@@ -765,7 +938,8 @@ with fg1:
                 _ft_inner_w = max(_rect_w_o_0 - 2 * _FLANGE_WALL_BITE, 1.0)
                 _ft_inner_h = max(_rect_h_o_0 - 2 * _FLANGE_WALL_BITE, 1.0)
                 _ft_inner_R = max(_ft_inner_w, _ft_inner_h) / 2
-                st.caption(f"Hole: {_ft_inner_w:.1f}\u00d7{_ft_inner_h:.1f} mm (rectangular)")
+                st.caption(f"Hole: {_ft_inner_w:.1f}\u00d7{_ft_inner_h:.1f} mm "
+                           f"({'elliptical' if is_ellip else 'rectangular'})")
             elif is_poly:
                 from polygonal_horn import _r_to_circumradius
                 _R_poly_g     = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
@@ -779,22 +953,24 @@ with fg1:
                 st.caption(f"Hole: \u00d8{_ft_inner_R*2:.0f} mm (circular)")
 
             _ft_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, _flange_sp, 0.5, key="ft_spess")
-            _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off")
             _ft_nb  = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="ft_nb")
             _ft_db  = st.number_input("Bolt hole \u00d8 (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
-            _ft_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
-                index=0, horizontal=True, key="ft_bpos",
-                help="Align bolts with polygon vertices or face centers"
-                ) if (is_poly or is_rect) else "At vertices"
-            _ft_bphase = _bolt_phase(n_sides if is_poly else 4, _ft_bpos)
-            throat_outer = st.radio("Outer shape",
-                ["Circular", "Rectangular"] if is_rect else ["Circular", "Polygonal"],
-                index=0, horizontal=True, key="throat_outer")
-            _ft_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
-                                            value=n_sides, key="ft_outer_n")
-                           if throat_outer == "Polygonal" else 0)
             _ft_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="ft_ring",
                 help="Wall around the hole — this sets the flange size. Widen it to fit bolts further out.")
+            with st.expander("Advanced"):
+                _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off")
+                _ft_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
+                    index=0, horizontal=True, key="ft_bpos",
+                    help="Align bolts with polygon vertices or face centers"
+                    ) if (is_poly or is_rect) else "At vertices"
+                throat_outer = st.radio("Outer shape",
+                    (["Elliptical", "Circular", "Rectangular"] if is_ellip else
+                     ["Circular", "Rectangular"]) if is_rect else ["Circular", "Polygonal"],
+                    index=0, horizontal=True, key="throat_outer")
+                _ft_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
+                                                value=n_sides, key="ft_outer_n")
+                               if throat_outer == "Polygonal" else 0)
+            _ft_bphase = _bolt_phase(n_sides if is_poly else 4, _ft_bpos)
             _ft_flange_R = _flange_R_from_ring(_ft_inner_R, _ft_ring, _ft_outer_n)
             _ft_od = _ft_flange_R * 2
             if is_rect:
@@ -804,22 +980,31 @@ with fg1:
                     _ft_diag = np.sqrt(_ft_inner_w**2 + _ft_inner_h**2)
                     _ft_od = _ft_diag + 2 * _ft_ring
                     st.caption(f"Outer \u00d8: {_ft_od:.0f} mm (diag + 2\u00d7ring)")
+                elif throat_outer == "Elliptical":
+                    st.caption(f"Outer ellipse: {_ft_outer_w:.0f}\u00d7{_ft_outer_h:.0f} mm "
+                               f"(ring {_ft_ring:.0f} mm, offset)")
                 else:
                     st.caption(f"Outer: {_ft_outer_w:.0f}\u00d7{_ft_outer_h:.0f} mm (ring {_ft_ring:.0f} mm)")
             elif _ft_outer_n >= 3:
                 st.caption(f"Across corners \u00d8: {_ft_od:.1f} mm \u00b7 flats wall {_ft_ring:.0f} mm")
             else:
                 st.caption(f"Outer \u00d8: {_ft_od:.1f} mm")
-            _ft_bc_lo, _ft_bc_hi = _bolt_circle_band(_ft_inner_R, _ft_flange_R, _ft_db, _ft_outer_n)
-            if "ft_bc" not in st.session_state:
-                st.session_state["ft_bc"] = _def_bc(_ft_bc_lo, _ft_bc_hi)
-            _clamp_state("ft_bc", _ft_bc_lo, _ft_bc_hi)
-            _ft_bc = st.number_input("Bolt circle \u00d8 (mm)", _ft_bc_lo, _ft_bc_hi,
-                step=1.0, key="ft_bc")
+            if is_ellip and throat_outer == "Elliptical":
+                # Elliptical outer: bolts follow the mid-ring ellipse automatically.
+                _ft_bc = (_ft_inner_w + _ft_outer_w) / 2.0
+                st.caption(f"Bolts auto-placed on mid-ring ellipse "
+                           f"({(_ft_inner_w+_ft_outer_w)/2:.0f}\u00d7{(_ft_inner_h+_ft_outer_h)/2:.0f} mm)")
+            else:
+                _ft_bc_lo, _ft_bc_hi = _bolt_circle_band(_ft_inner_R, _ft_flange_R, _ft_db, _ft_outer_n)
+                if "ft_bc" not in st.session_state:
+                    st.session_state["ft_bc"] = _def_bc(_ft_bc_lo, _ft_bc_hi)
+                _clamp_state("ft_bc", _ft_bc_lo, _ft_bc_hi)
+                _ft_bc = st.number_input("Bolt circle \u00d8 (mm)", _ft_bc_lo, _ft_bc_hi,
+                    step=1.0, key="ft_bc")
             _ft_depth = 0.0; _ft_ow = _ft_oh = 0.0
 with fg2:
     st.markdown("##### Mouth Flange")
-    if is_radial or is_lecleach or is_iwata:
+    if is_radial or is_iwata or (is_lecleach and not is_rect):
         gen_mouth = False
         _fm_sp = _fm_off = _fm_nb = _fm_db = _fm_od = _fm_bc = _fm_ow = _fm_oh = 0.0
         mouth_outer = "Circular"
@@ -838,44 +1023,134 @@ with fg2:
             key="fm_spess",
             help="Defaults to the flare's axial thickness at the mouth, so the "
                  "flange ends flush with the wall (no rim)")
-        _fm_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="fm_off")
         _fm_nb  = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="fm_nb")
         _fm_db  = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="fm_db")
+        _fm_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="fm_ring",
+            help="Wall around the hole — this sets the flange size (or, for an "
+                 "inward flange, how far the ring reaches in from the rim).")
+
+        # --- Flange direction (roll-back lips only) -------------------------
+        # Outward: ring beyond the rim (Ø grows) — the default for plain flares.
+        # Inward: ring reaches *into* the curled lip so the outer Ø stays = rim;
+        # the bolts then pierce the flare toward the front. Only sensible when the
+        # roll-back is deep enough to hold the ring + bolts ("ingombro").
+        _fm_inward = False
+        _fm_inward_ok = False
         if is_rect:
-            _fm_inner_w = max(_rect_w_o_n - 2 * _FLANGE_WALL_BITE, 1.0)
-            _fm_inner_h = max(_rect_h_o_n - 2 * _FLANGE_WALL_BITE, 1.0)
+            _fm_rim_off, _fm_w_o, _fm_h_o = _rim_weld(
+                _z_o_rect, _w_o_rect, _h_o_rect, _fm_sp)
+            _fm_rim_idx = int(np.argmax(_w_o_rect * _h_o_rect))
+            _fm_peak_idx = int(np.argmax(_z_o_rect))
+            _fm_is_rollback = _fm_rim_idx > _fm_peak_idx
+            _fm_rim_w = float(_w_o_rect[_fm_rim_idx])
+            _fm_rim_h = float(_h_o_rect[_fm_rim_idx])
+            _fm_peak_w = float(_w_o_rect[_fm_peak_idx])
+            _fm_peak_h = float(_h_o_rect[_fm_peak_idx])
+            # Inward bolts ride the mid-ring (≈ rim − ring); they must clear the
+            # inner flare (peak radius) so the axial holes only pierce the lip.
+            _fm_inward_ok = (
+                _fm_is_rollback
+                and (_fm_rim_w - _fm_ring - _fm_db - 4.0) > _fm_peak_w
+                and (_fm_rim_h - _fm_ring - _fm_db - 4.0) > _fm_peak_h
+                and (_fm_rim_w - 2 * _fm_ring) > 1.0
+                and (_fm_rim_h - 2 * _fm_ring) > 1.0)
+            if _fm_is_rollback:
+                _dir_opts = (["Inward (into roll-back)", "Outward"] if _fm_inward_ok
+                             else ["Outward", "Inward (into roll-back)"])
+                _fm_dir = st.radio("Flange direction", _dir_opts, index=0, horizontal=True,
+                    key="fm_dir",
+                    help="Roll-back lip — Inward keeps the outer Ø (= rim) and routes "
+                         "the bolts through the flare toward the front; Outward adds a "
+                         "ring beyond the rim (Ø grows).")
+                _fm_inward = _fm_dir.startswith("Inward")
+                if _fm_inward and not _fm_inward_ok:
+                    st.warning("Roll-back may be too shallow for an inward flange — "
+                               "bolts could clip the inner flare. Reduce the ring/bolt Ø.")
+
+            if _fm_inward:
+                # No annulus/ring for inward — bolts are drilled into the lip
+                # itself. These are placeholders (unused); the real bolt placement
+                # is computed at generation from the rim + wall margin.
+                _fm_inner_w, _fm_inner_h = _fm_rim_w, _fm_rim_h
+            else:
+                # Weld to the OUTER rim, biting slightly into the wall.
+                _fm_inner_w = max(_fm_w_o - 2 * _FLANGE_WALL_BITE, 1.0)
+                _fm_inner_h = max(_fm_h_o - 2 * _FLANGE_WALL_BITE, 1.0)
             _fm_inner_R = max(_fm_inner_w, _fm_inner_h) / 2
-            st.caption(f"Hole: {_fm_inner_w:.1f}×{_fm_inner_h:.1f} mm (rectangular)")
+            if not _fm_inward:
+                st.caption(f"Hole: {_fm_inner_w:.1f}×{_fm_inner_h:.1f} mm "
+                           f"({'elliptical' if is_ellip else 'rectangular'})")
         elif is_poly:
             _fm_inner_R = ir_mouth
             st.caption(f"Hole: {n_sides}-gon, R≈{_fm_inner_R:.1f} mm")
         else:
             _fm_inner_R = ir_mouth
             st.caption(f"Hole: Ø{_fm_inner_R*2:.1f} mm (bites wall)")
-        _fm_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
-            index=0, horizontal=True, key="fm_bpos",
-            help="Align bolts with polygon vertices or face centers"
-            ) if (is_poly or is_rect) else "At vertices"
+        with st.expander("Advanced"):
+            _fm_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="fm_off")
+            _fm_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
+                index=0, horizontal=True, key="fm_bpos",
+                help="Align bolts with polygon vertices or face centers"
+                ) if (is_poly or is_rect) else "At vertices"
+            if is_rect and _fm_inward:
+                # Inward ring follows the lip; outer shape is fixed to the rim.
+                mouth_outer = "Elliptical" if is_ellip else "Rectangular"
+                st.caption("Outer follows the rim (inward flange)")
+            else:
+                mouth_outer = st.radio("Outer shape",
+                    (["Elliptical", "Circular", "Rectangular"] if is_ellip else
+                     ["Circular", "Rectangular"]) if is_rect else ["Circular", "Polygonal"],
+                    index=0, horizontal=True, key="mouth_outer")
+            _fm_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
+                                            value=n_sides, key="fm_outer_n")
+                           if mouth_outer == "Polygonal" else 0)
+            # --- Screw-head seat (counterbore), inward flange only ----------
+            # A flat plate fills the roll-back cavity (welded between the inner
+            # flare and the curled lip); the bolts are drilled through it. Annular
+            # pillars connect plate to lip around the bolt channels, so tightening
+            # the screws cannot collapse the empty cavity.
+            _fm_seat = False
+            _fm_head_d = _fm_seat_depth = _fm_seat_wall = 0.0
+            if is_rect and _fm_inward:
+                _fm_seat = st.checkbox("Screw-head seat (counterbore)", True, key="fm_seat",
+                    help="Recess the screw head into the lip. A hidden annular pillar "
+                         "supports the lip against the flange while tightening.")
+                if _fm_seat:
+                    _fm_head_d = st.number_input("Head Ø (mm)", _fm_db + 0.5, 40.0,
+                        float(round(_fm_db * 1.9, 1)), 0.5, key="fm_head_d")
+                    _fm_seat_depth = st.number_input("Head depth (mm)", 0.5, 30.0,
+                        float(round(max(1.0, _fm_db * 0.8), 1)), 0.5, key="fm_seat_depth",
+                        help="Depth below the inward flange top plane. All screw-head "
+                             "seats are axial with their holes and share one flat plane.")
+                _fm_seat_wall = st.number_input("Wall around hole (mm)", 1.0, 20.0, 3.0, 0.5,
+                    key="fm_seat_wall",
+                    help="Pillar wall around each bolt channel. The pillars connect "
+                         "the flange plate to the curled lip and carry screw clamp load.")
         _fm_bphase = _bolt_phase(n_sides if is_poly else 4, _fm_bpos)
-        _mouth_outer_default = 0
-        mouth_outer = st.radio("Outer shape",
-            ["Circular", "Rectangular"] if is_rect else ["Circular", "Polygonal"],
-            index=_mouth_outer_default, horizontal=True, key="mouth_outer")
-        _fm_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
-                                        value=n_sides, key="fm_outer_n")
-                       if mouth_outer == "Polygonal" else 0)
-        _fm_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="fm_ring",
-            help="Wall around the hole — this sets the flange size.")
         _fm_hole_R = _fm_inner_R
         _fm_flange_R = _flange_R_from_ring(_fm_hole_R, _fm_ring, _fm_outer_n)
         _fm_od = _fm_flange_R * 2
-        if is_rect:
+        if is_rect and _fm_inward:
+            # Plate fills the lip cavity; outer = rim (Ø unchanged). Bolt pillars
+            # use the head-clearance diameter when counterbores are enabled.
+            _fm_bearing_d = _fm_head_d if _fm_seat else _fm_db
+            _fm_outer_w = _fm_rim_w; _fm_outer_h = _fm_rim_h; _fm_od = _fm_rim_w
+            _fm_bolt_w = _fm_rim_w - 2 * (_fm_bearing_d / 2.0 + _fm_seat_wall)
+            _fm_bolt_h = _fm_rim_h - 2 * (_fm_bearing_d / 2.0 + _fm_seat_wall)
+            st.caption(f"Plate fills the roll-back cavity (outer Ø = rim). Bolts on "
+                       f"{_fm_bolt_w:.0f}×{_fm_bolt_h:.0f} mm "
+                       f"with {_fm_seat_wall:.0f} mm load-bearing pillars"
+                       + (f", head seat Ø{_fm_head_d:.0f}×{_fm_seat_depth:.0f} mm" if _fm_seat else ""))
+        elif is_rect:
             _fm_outer_w = _fm_inner_w + 2 * _fm_ring
             _fm_outer_h = _fm_inner_h + 2 * _fm_ring
             if mouth_outer == "Circular":
                 _fm_diag = np.sqrt(_fm_inner_w**2 + _fm_inner_h**2)
                 _fm_od = _fm_diag + 2 * _fm_ring
                 st.caption(f"Outer Ø: {_fm_od:.0f} mm (diag + 2×ring)")
+            elif mouth_outer == "Elliptical":
+                st.caption(f"Outer ellipse: {_fm_outer_w:.0f}×{_fm_outer_h:.0f} mm "
+                           f"(ring {_fm_ring:.0f} mm, offset)")
             else:
                 st.caption(f"Outer: {_fm_outer_w:.0f}×{_fm_outer_h:.0f} mm (ring {_fm_ring:.0f} mm)")
         elif _fm_outer_n >= 3:
@@ -883,12 +1158,22 @@ with fg2:
         else:
             st.caption(f"Outer Ø: {_fm_od:.1f} mm")
         _fm_ow = _fm_od; _fm_oh = _fm_od
-        _fm_bc_lo, _fm_bc_hi = _bolt_circle_band(_fm_hole_R, _fm_flange_R, _fm_db, _fm_outer_n)
-        if "fm_bc" not in st.session_state:
-            st.session_state["fm_bc"] = _def_bc(_fm_bc_lo, _fm_bc_hi)
-        _clamp_state("fm_bc", _fm_bc_lo, _fm_bc_hi)
-        _fm_bc = st.number_input("Bolt circle Ø (mm)", _fm_bc_lo, _fm_bc_hi,
-            step=1.0, key="fm_bc")
+        if is_rect and _fm_inward:
+            _fm_bc = max(_fm_rim_w - 2 * (_fm_head_d / 2.0 + _fm_seat_wall), 1.0)
+            st.caption("Screws drop in from the front and pass through the lip to "
+                       "the back (nothing protrudes into the flare).")
+        elif is_ellip and mouth_outer == "Elliptical":
+            # Elliptical outer: bolts follow the mid-ring ellipse automatically.
+            _fm_bc = (_fm_inner_w + _fm_outer_w) / 2.0
+            st.caption(f"Bolts auto-placed on mid-ring ellipse "
+                       f"({(_fm_inner_w+_fm_outer_w)/2:.0f}×{(_fm_inner_h+_fm_outer_h)/2:.0f} mm)")
+        else:
+            _fm_bc_lo, _fm_bc_hi = _bolt_circle_band(_fm_hole_R, _fm_flange_R, _fm_db, _fm_outer_n)
+            if "fm_bc" not in st.session_state:
+                st.session_state["fm_bc"] = _def_bc(_fm_bc_lo, _fm_bc_hi)
+            _clamp_state("fm_bc", _fm_bc_lo, _fm_bc_hi)
+            _fm_bc = st.number_input("Bolt circle Ø (mm)", _fm_bc_lo, _fm_bc_hi,
+                step=1.0, key="fm_bc")
 
 with fg3:
     st.markdown("##### Mid Flange")
@@ -896,47 +1181,51 @@ with fg3:
         gen_mid = False; _mid_pos = 50
         st.caption("Not available for radial profile")
     else:
-        gen_mid = st.checkbox("Include", is_lecleach, key="gen_mid")
+        # Roll-back rect/ellip now get a real mouth flange welded to the outer
+        # rim, so the mid-flange workaround is no longer on by default there.
+        gen_mid = st.checkbox("Include", is_lecleach and not is_rect, key="gen_mid")
         _mid_max = max(5.0, _len or 200.0)
         _mid_pos = st.number_input("Distance from throat (mm)", 5.0, _mid_max,
             max(5.0, _mid_max * 0.5), 5.0, key="mid_z")
         _mid_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, 4.0, 0.5, key="mid_spess")
-        _mid_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="mid_off")
         _mid_nb = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="mid_nb")
         _mid_db = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="mid_db")
         _mid_pct = min(100.0, _mid_pos / max(_len or 1, 1) * 100)
         mid_r = _get_mid_r(_mid_pct) if _len else 10
         if is_rect:
-            _mid_idx = min(int(_mid_pct / 100 * len(zr)), len(zr) - 1)
-            import _utils as _uts
-            _nw_mid = _uts.compute_profile_normals(zr, wr, flip_if_negative=True)
-            _nh_mid = _uts.compute_profile_normals(zr, hr, flip_if_negative=True)
-            _mid_inner_w = max(wr[_mid_idx] + 2.0 * thickness * _nw_mid[_mid_idx, 1]
-                               - 2 * _FLANGE_WALL_BITE, 1.0)
-            _mid_inner_h = max(hr[_mid_idx] + 2.0 * thickness * _nh_mid[_mid_idx, 1]
-                               - 2 * _FLANGE_WALL_BITE, 1.0)
+            # Hole sized from the real outer wall at the plate's bottom face
+            # (throat-relative Z ≈ _mid_pos − thickness) on the outgoing leg, so
+            # the widening wall welds into the ring. Index-by-fraction breaks on
+            # roll-back profiles whose Z is non-monotonic.
+            _mid_w_o, _mid_h_o = _outer_wh_at_z(
+                _z_o_rect, _w_o_rect, _h_o_rect, _mid_pos - _mid_sp)
+            _mid_inner_w = max(_mid_w_o - 2 * _FLANGE_WALL_BITE, 1.0)
+            _mid_inner_h = max(_mid_h_o - 2 * _FLANGE_WALL_BITE, 1.0)
             _mid_inner_R = max(_mid_inner_w, _mid_inner_h) / 2
-            st.caption(f"Hole: {_mid_inner_w:.0f}×{_mid_inner_h:.0f} mm (rectangular)")
+            st.caption(f"Hole: {_mid_inner_w:.0f}×{_mid_inner_h:.0f} mm "
+                       f"({'elliptical' if is_ellip else 'rectangular'})")
         elif is_poly:
             _mid_inner_R = mid_r
             st.caption(f"Hole: {n_sides}-gon, R≈{_mid_inner_R:.0f} mm")
         else:
             _mid_inner_R = mid_r + thickness
             st.caption(f"Hole: Ø{_mid_inner_R*2:.0f} mm (circular)")
-        _mid_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
-            index=0, horizontal=True, key="mid_bpos",
-            help="Align bolts with polygon vertices or face centers"
-            ) if (is_poly or is_rect) else "At vertices"
-        _mid_bphase = _bolt_phase(n_sides if is_poly else 4, _mid_bpos)
-        _mid_outer_default = 0
-        mid_out = st.radio("Outer shape",
-            ["Circular", "Rectangular"] if is_rect else ["Circular", "Polygonal"],
-            index=_mid_outer_default, horizontal=True, key="mid_out")
-        _mid_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
-                                         value=n_sides, key="mid_outer_n")
-                        if mid_out == "Polygonal" else 0)
         _mid_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="mid_ring",
             help="Wall around the hole — this sets the flange size. Widen it to fit bolts further out.")
+        with st.expander("Advanced"):
+            _mid_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="mid_off")
+            _mid_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
+                index=0, horizontal=True, key="mid_bpos",
+                help="Align bolts with polygon vertices or face centers"
+                ) if (is_poly or is_rect) else "At vertices"
+            mid_out = st.radio("Outer shape",
+                (["Elliptical", "Circular", "Rectangular"] if is_ellip else
+                 ["Circular", "Rectangular"]) if is_rect else ["Circular", "Polygonal"],
+                index=0, horizontal=True, key="mid_out")
+            _mid_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
+                                             value=n_sides, key="mid_outer_n")
+                            if mid_out == "Polygonal" else 0)
+        _mid_bphase = _bolt_phase(n_sides if is_poly else 4, _mid_bpos)
         _mid_flange_R = _flange_R_from_ring(_mid_inner_R, _mid_ring, _mid_outer_n)
         _mid_od = _mid_flange_R * 2
         if is_rect:
@@ -946,18 +1235,27 @@ with fg3:
                 _mid_diag = np.sqrt(_mid_inner_w**2 + _mid_inner_h**2)
                 _mid_od = _mid_diag + 2 * _mid_ring
                 st.caption(f"Outer Ø: {_mid_od:.0f} mm (diag + 2×ring)")
+            elif mid_out == "Elliptical":
+                st.caption(f"Outer ellipse: {_mid_outer_w:.0f}×{_mid_outer_h:.0f} mm "
+                           f"(ring {_mid_ring:.0f} mm, offset)")
             else:
                 st.caption(f"Outer: {_mid_outer_w:.0f}×{_mid_outer_h:.0f} mm (ring {_mid_ring:.0f} mm)")
         elif _mid_outer_n >= 3:
             st.caption(f"Across corners Ø: {_mid_od:.1f} mm · flats wall {_mid_ring:.0f} mm")
         else:
             st.caption(f"Outer Ø: {_mid_od:.1f} mm")
-        _mid_bc_lo, _mid_bc_hi = _bolt_circle_band(_mid_inner_R, _mid_flange_R, _mid_db, _mid_outer_n)
-        if "mid_bc" not in st.session_state:
-            st.session_state["mid_bc"] = _def_bc(_mid_bc_lo, _mid_bc_hi)
-        _clamp_state("mid_bc", _mid_bc_lo, _mid_bc_hi)
-        _mid_bc = st.number_input("Bolt circle Ø (mm)", _mid_bc_lo, _mid_bc_hi,
-            step=1.0, key="mid_bc")
+        if is_ellip and mid_out == "Elliptical":
+            # Elliptical outer: bolts follow the mid-ring ellipse automatically.
+            _mid_bc = (_mid_inner_w + _mid_outer_w) / 2.0
+            st.caption(f"Bolts auto-placed on mid-ring ellipse "
+                       f"({(_mid_inner_w+_mid_outer_w)/2:.0f}×{(_mid_inner_h+_mid_outer_h)/2:.0f} mm)")
+        else:
+            _mid_bc_lo, _mid_bc_hi = _bolt_circle_band(_mid_inner_R, _mid_flange_R, _mid_db, _mid_outer_n)
+            if "mid_bc" not in st.session_state:
+                st.session_state["mid_bc"] = _def_bc(_mid_bc_lo, _mid_bc_hi)
+            _clamp_state("mid_bc", _mid_bc_lo, _mid_bc_hi)
+            _mid_bc = st.number_input("Bolt circle Ø (mm)", _mid_bc_lo, _mid_bc_hi,
+                step=1.0, key="mid_bc")
 
 # ═══════════════════════════════════════════════════════════════════════
 #  ROW 3 — Generate Assembly
@@ -976,7 +1274,6 @@ if gen_btn:
     with st.spinner("Generating…"):
         try:
             import trimesh as _tm
-            import _utils as _uts
             C = _core
 
             def _slope_start(z_arr, v_arr):
@@ -988,11 +1285,29 @@ if gen_btn:
                         return float((v_arr[i] - v_arr[0]) / dz)
                 return 0.0
 
+            def _profile_value_slope(z_arr, v_arr, z_target):
+                """Interpolate value and dv/dz on the first advancing profile branch."""
+                z_arr = np.asarray(z_arr, dtype=float)
+                v_arr = np.asarray(v_arr, dtype=float)
+                end = int(np.argmax(z_arr)) + 1
+                zz = z_arr[:end]
+                vv = v_arr[:end]
+                keep = np.concatenate([[True], np.diff(zz) > 1e-8])
+                zz = zz[keep]
+                vv = vv[keep]
+                if len(zz) < 2:
+                    return float(vv[0]), 0.0
+                z_target = float(np.clip(z_target, zz[0], zz[-1]))
+                slopes = np.gradient(vv, zz)
+                return (float(np.interp(z_target, zz, vv)),
+                        float(np.interp(z_target, zz, slopes)))
+
             _adapter_target_slope = 0.0
             _adapter_outer_target_R = None
             _adapter_outer_target_slope = None
             _adapter_outer_rw = None
             _adapter_outer_rh = None
+            _embedded_adapter_cut_z = None
 
             # --- 3a. Generate horn ---
             if is_poly:
@@ -1002,8 +1317,10 @@ if gen_btn:
                     zp, rp = C.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
                 elif is_lecleach:
                     zp, rp = C.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
-                elif is_oblate:
-                    zp, rp = C.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
+                elif is_rosse:
+                    zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
+                elif is_cd:
+                    zp, rp = _cd_fn(throat_d, coverage_h, axial_len, segments)
                 elif is_exp:
                     zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
@@ -1051,8 +1368,10 @@ if gen_btn:
                     zr, wr, hr = _rh.get_rectangular_exponential(throat_w, throat_h, mouth_w, fc, segments)
                 elif is_salmon:
                     zr, wr, hr = _rh.get_rectangular_salmon(throat_w, throat_h, fc, axial_len, segments)
-                elif is_oblate:
-                    zr, wr, hr = _rh.get_rectangular_oblate_spheroidal(throat_w, throat_h, coverage_h, coverage_v, axial_len, segments)
+                elif is_rosse:
+                    zr, wr, hr = _get_rect_rosse_profile(throat_w, throat_h, mouth_w, segments)
+                elif is_cd:
+                    zr, wr, hr = _cd_rect_fn(throat_w, throat_h, coverage_h, coverage_v, axial_len, segments)
                 elif is_iwata:
                     zr, wr, hr = _rh.get_iwata_horn(throat_d, axial_len, segments)
                 else:
@@ -1060,18 +1379,35 @@ if gen_btn:
                     zp_c, rp_c = _core.get_lecleach(throat_d_eq, fc, axial_len, segments, T=salmon_T)
                     zr, wr, hr = _rh._area_to_rect(zp_c, rp_c, throat_w, throat_h)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
-                _rh.generate_rectangular_3d_mesh(zr, wr, hr, thickness, tp)
+                if is_ellip:
+                    # Same (z, w, h) profile math as rectangular, but each slice is a
+                    # true ellipse (semi-axes w/2, h/2) via the elliptical loft engine.
+                    _core.generate_elliptical_3d_mesh_from_profiles(
+                        zr, wr / 2.0, hr / 2.0, thickness, 96, tp)
+                else:
+                    _rh.generate_rectangular_3d_mesh(zr, wr, hr, thickness, tp)
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
                 horn.fix_normals()
-                _nw_rect = _uts.compute_profile_normals(zr, wr, flip_if_negative=True)
-                _nh_rect = _uts.compute_profile_normals(zr, hr, flip_if_negative=True)
-                _z_o_rect = zr + thickness * (_nw_rect[:, 0] + _nh_rect[:, 0]) / 2.0
-                _z_o_rect = np.clip(_z_o_rect, zr[0], zr[-1])
-                _z_o_rect[0] = zr[0]; _z_o_rect[-1] = zr[-1]
-                _w_o_rect = wr + 2 * thickness * _nw_rect[:, 1]
-                _h_o_rect = hr + 2 * thickness * _nh_rect[:, 1]
-                _inner_eq_rect = np.sqrt(wr * hr / np.pi)
-                _outer_eq_rect = np.sqrt(_w_o_rect * _h_o_rect / np.pi)
+                if is_ellip:
+                    _, _V_o_ellip = _core._elliptical_parallel_offset_vertices(
+                        zr, wr / 2.0, hr / 2.0, thickness, 96)
+                    _z_o_rect = np.mean(_V_o_ellip[:, :, 2], axis=1)
+                    _w_o_rect = 2.0 * np.max(np.abs(_V_o_ellip[:, :, 0]), axis=1)
+                    _h_o_rect = 2.0 * np.max(np.abs(_V_o_ellip[:, :, 1]), axis=1)
+                    _inner_eq_rect = np.sqrt(wr * hr) / 2.0
+                    _outer_eq_rect = np.sqrt(_w_o_rect * _h_o_rect) / 2.0
+                else:
+                    _nw_rect = _uts.compute_profile_normals(zr, wr, flip_if_negative=True)
+                    _nh_rect = _uts.compute_profile_normals(zr, hr, flip_if_negative=True)
+                    _z_o_rect = zr + thickness * (_nw_rect[:, 0] + _nh_rect[:, 0]) / 2.0
+                    # Roll-back aware: clamp to the true axial extent, not the
+                    # curled-back lip at zr[-1] (see param-block note above).
+                    _z_o_rect = np.clip(_z_o_rect, zr.min(), zr.max())
+                    _z_o_rect[0] = zr[0]; _z_o_rect[-1] = zr[-1]
+                    _w_o_rect = wr + 2 * thickness * _nw_rect[:, 1]
+                    _h_o_rect = hr + 2 * thickness * _nh_rect[:, 1]
+                    _inner_eq_rect = np.sqrt(wr * hr / np.pi)
+                    _outer_eq_rect = np.sqrt(_w_o_rect * _h_o_rect / np.pi)
                 _adapter_target_slope = _slope_start(zr, _inner_eq_rect)
                 _adapter_outer_target_R = float(_outer_eq_rect[0])
                 _adapter_outer_target_slope = _slope_start(_z_o_rect, _outer_eq_rect)
@@ -1090,8 +1426,12 @@ if gen_btn:
                     if _trimmed is not None and not _trimmed.is_empty:
                         horn = _trimmed
                         horn.fix_normals()
-                _rp_mouth = max(wr[-1], hr[-1]) / 2 + thickness
-                _zp_mouth = zr[-1]
+                # Mouth rim = widest outer cross-section, roll-back aware. For
+                # ordinary monotonic flares this is the last station (≈ zr[-1]);
+                # for Le Cléac'h/oblate/rosse it is the flare peak, where the
+                # mouth flange must sit (not the curled-back lip).
+                _i_rim_rect, _zp_mouth = _mouth_station(_z_o_rect, _w_o_rect, _h_o_rect)
+                _rp_mouth = max(_w_o_rect[_i_rim_rect], _h_o_rect[_i_rim_rect]) / 2.0
                 if is_iwata:
                     # The arc trim narrows the wide-plane mouth — report the real extent.
                     mouth_bx = float(horn.bounds[1, 0] - horn.bounds[0, 0])
@@ -1105,8 +1445,10 @@ if gen_btn:
                     zp, rp = C.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
                 elif is_lecleach:
                     zp, rp = C.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
-                elif is_oblate:
-                    zp, rp = C.get_oblate_spheroidal(throat_d, coverage_h, axial_len, segments)
+                elif is_rosse:
+                    zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
+                elif is_cd:
+                    zp, rp = _cd_fn(throat_d, coverage_h, axial_len, segments)
                 elif is_exp:
                     zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
@@ -1118,7 +1460,7 @@ if gen_btn:
                 _adapter_target_slope = _slope_start(zp, rp)
                 _adapter_outer_target_R = float(_r_o_circ[0])
                 _adapter_outer_target_slope = _slope_start(_z_o_circ, _r_o_circ)
-                if is_lecleach:
+                if is_lecleach or is_rosse:
                     _rmax = rp.max(); _imax = rp.argmax()
                     _rp_mouth = _rmax; _zp_mouth = zp[_imax]
                 else:
@@ -1138,6 +1480,10 @@ if gen_btn:
 
             # --- 3d. Generate flanges ---
             f_throat = f_mouth = f_mid = None
+            _mouth_bolt_cuts = []   # bolt shafts + head seats drilled into the lip (inward flange)
+            _mouth_bolt_pillars = []  # compression sleeves between inward plate and curled lip
+            _mouth_flare_opening_cuts = []  # surface-normal cuts applied to horn only
+            _mouth_head_seat_cuts = []  # shallow normal pockets applied after pillar union
 
             if gen_throat and is_radial:
                 bolt_angles = np.linspace(0, 2 * np.pi, int(_ft_nb), endpoint=False)
@@ -1150,32 +1496,72 @@ if gen_btn:
 
             if gen_throat and not is_radial:
                 if _ta_include_adapter:
-                    # ── Adapter path: round/threaded driver → horn throat ──
-                    _outer_target_R = _adapter_outer_target_R
-                    _outer_target_slope = _adapter_outer_target_slope
-                    _outer_rw = _adapter_outer_rw
-                    _outer_rh = _adapter_outer_rh
+                    # The morph replaces the first section of the flare instead of
+                    # being prepended below the throat.  Trim the original horn at
+                    # the requested distance and match the real profile there.
                     if is_rect:
-                        horn_shape = "rectangular"
-                        rect_w = throat_w
-                        rect_h = throat_h
+                        _profile_z = zr
+                    else:
+                        _profile_z = zp
+                    _profile_extent = float(np.max(_profile_z))
+                    # Roll-back profiles return toward the throat after their
+                    # deepest point. A planar trim must stay below that returning
+                    # mouth edge, otherwise it would cut the lip as well.
+                    _safe_embed_extent = min(_profile_extent, float(_profile_z[-1]))
+                    _morph_len = min(float(_ta_adapter_len),
+                                     max(0.5, _safe_embed_extent - 2.0))
+                    _overlap = min(0.5, max(0.1, _safe_embed_extent - _morph_len))
+                    _target_local_z = _morph_len + _overlap
+                    _trim_z = float(z_min + _morph_len)
+                    _adapter_top_z = float(z_min + _target_local_z)
+                    _embedded_adapter_cut_z = _trim_z
+
+                    _trimmed_horn = horn.slice_plane(
+                        [0.0, 0.0, _trim_z], [0.0, 0.0, 1.0], cap=True)
+                    if _trimmed_horn is not None and not _trimmed_horn.is_empty:
+                        horn = _trimmed_horn
+                        horn.remove_unreferenced_vertices()
+                        horn.fix_normals()
+
+                    if is_rect:
+                        horn_shape = "elliptical" if is_ellip else "rectangular"
+                        rect_w, _ = _profile_value_slope(zr, wr, _target_local_z)
+                        rect_h, _ = _profile_value_slope(zr, hr, _target_local_z)
                         poly_n_sides = 0
                         poly_circumR = 0.0
-                        horn_R_eq = np.sqrt(throat_w * throat_h / np.pi)
+                        _inner_eq = (np.sqrt(wr * hr) / 2.0 if is_ellip
+                                     else np.sqrt(wr * hr / np.pi))
+                        horn_R_eq, _adapter_target_slope = _profile_value_slope(
+                            zr, _inner_eq, _target_local_z)
+                        _outer_eq = (np.sqrt(_w_o_rect * _h_o_rect) / 2.0 if is_ellip
+                                     else np.sqrt(_w_o_rect * _h_o_rect / np.pi))
+                        _outer_target_R, _outer_target_slope = _profile_value_slope(
+                            _z_o_rect, _outer_eq, _target_local_z)
+                        _outer_rw, _ = _profile_value_slope(
+                            _z_o_rect, _w_o_rect, _target_local_z)
+                        _outer_rh, _ = _profile_value_slope(
+                            _z_o_rect, _h_o_rect, _target_local_z)
                     elif is_poly:
                         horn_shape = "polygonal"
                         rect_w = rect_h = 0.0
                         poly_n_sides = n_sides
-                        from polygonal_horn import _r_to_circumradius
-                        poly_circumR = _r_to_circumradius(
-                            np.array([throat_d / 2.0]), n_sides)[0]
-                        horn_R_eq = throat_d / 2.0
+                        poly_circumR, _ = _profile_value_slope(
+                            zp, _R_i_arr, _target_local_z)
+                        horn_R_eq, _adapter_target_slope = _profile_value_slope(
+                            zp, rp, _target_local_z)
+                        _outer_target_R, _outer_target_slope = _profile_value_slope(
+                            _z_o_poly, _R_o_eq_arr, _target_local_z)
+                        _outer_rw = _outer_rh = None
                     else:
                         horn_shape = "circular"
                         rect_w = rect_h = 0.0
                         poly_n_sides = 0
                         poly_circumR = 0.0
-                        horn_R_eq = throat_d / 2.0
+                        horn_R_eq, _adapter_target_slope = _profile_value_slope(
+                            zp, rp, _target_local_z)
+                        _outer_target_R, _outer_target_slope = _profile_value_slope(
+                            _z_o_circ, _r_o_circ, _target_local_z)
+                        _outer_rw = _outer_rh = None
 
                     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
                     f_throat = _ta.make_adapter_assembly(
@@ -1187,7 +1573,7 @@ if gen_btn:
                         poly_n_sides=poly_n_sides,
                         poly_circumR=poly_circumR,
                         horn_R_eq=horn_R_eq,
-                        adapter_length=_ta_adapter_len,
+                        adapter_length=_target_local_z,
                         wall_thickness=thickness,
                         flange_R=_ft_od / 2.0 if _driver_is_flanged else 0.0,
                         flange_thickness=_ft_sp if _driver_is_flanged else 0.0,
@@ -1202,11 +1588,13 @@ if gen_btn:
                         outer_rect_h=_outer_rh,
                         target_slope=_adapter_target_slope,
                         outer_target_slope=_outer_target_slope,
-                        z_offset=z_min + 0.5,
+                        z_offset=_adapter_top_z,
                         output_path=tp,
                     )
                 elif is_rect:
-                    _ft_ot = "circular" if throat_outer == "Circular" else "rectangular"
+                    _ft_ot = ("circular" if throat_outer == "Circular"
+                              else "elliptical" if throat_outer == "Elliptical"
+                              else "rectangular")
                     f_throat = _rf.generate_rectangular_flange(
                         outer_diam=_ft_od if _ft_ot == "circular" else None,
                         inner_w=_ft_inner_w, inner_h=_ft_inner_h,
@@ -1214,9 +1602,10 @@ if gen_btn:
                         bolt_radius=_ft_bc/2, bolt_count=int(_ft_nb), bolt_diam=_ft_db,
                         bolt_phase=_ft_bphase,
                         outer_type=_ft_ot,
-                        outer_w=_ft_outer_w if _ft_ot == "rectangular" else None,
-                        outer_h=_ft_outer_h if _ft_ot == "rectangular" else None,
+                        outer_w=_ft_outer_w if _ft_ot in ("rectangular", "elliptical") else None,
+                        outer_h=_ft_outer_h if _ft_ot in ("rectangular", "elliptical") else None,
                         offset=z_min + _ft_off,
+                        inner_type="elliptical" if is_ellip else "rectangular",
                         output_path=None)
                 elif is_poly:
                     f_throat = _fg.generate_polygonal_flange(
@@ -1238,8 +1627,213 @@ if gen_btn:
                         output_path=None)
 
             if gen_mouth and not is_radial:
-                if is_rect:
-                    _fm_ot = "circular" if mouth_outer == "Circular" else "rectangular"
+                if is_rect and _fm_inward:
+                    # Inward flange: a flat plate that FILLS the roll-back cavity,
+                    # welded between the inner flare and the curled-back lip. The
+                    # outer contour stays = rim (nothing protrudes beyond the mouth
+                    # Ø); the hole = flare wall at the peak so the airway is clear
+                    # and the wall pokes through to weld. Bolts sit just inside the
+                    # rim (≥ wall margin). Annular pillars bridge the empty cavity
+                    # between plate and lip before the shaft/head channels are cut.
+                    _fm_ot = "elliptical" if is_ellip else "rectangular"
+                    f_mouth = _rf.generate_rectangular_flange(
+                        inner_w=max(_fm_peak_w - 2 * _FLANGE_WALL_BITE, 1.0),
+                        inner_h=max(_fm_peak_h - 2 * _FLANGE_WALL_BITE, 1.0),
+                        thickness=_fm_sp,
+                        bolt_count=0, bolt_diam=_fm_db,
+                        outer_type=_fm_ot,
+                        outer_w=_fm_rim_w, outer_h=_fm_rim_h,
+                        offset=_fm_rim_off + _fm_off,
+                        inner_type="elliptical" if is_ellip else "rectangular",
+                        output_path=None)
+                    _fm_channel_d = _fm_head_d if _fm_seat else _fm_db
+                    _fm_pillar_R = _fm_channel_d / 2.0 + _fm_seat_wall
+                    _bx = max(_fm_rim_w / 2.0 - _fm_pillar_R, 1.0)
+                    _by = max(_fm_rim_h / 2.0 - _fm_pillar_R, 1.0)
+                    _ang = np.linspace(0, 2 * np.pi, int(_fm_nb), endpoint=False) + _fm_bphase
+                    _z_lo = float(horn.bounds[0, 2]) - 10.0
+                    _z_hi = float(horn.bounds[1, 2]) + 10.0
+                    # Top face of the cavity-filling plate (the flange the heads
+                    # bear on). The head counterbore must reach down to it so the
+                    # screw head clears the lip + cavity and seats on the flange.
+                    _fm_plate_top = _fm_rim_off + _fm_off + _fm_sp
+                    # Sample the horn solid along Z. Pillars stop at the first lip
+                    # material above the plate across their whole footprint, so
+                    # they remain hidden below the curved outer skin.
+                    _zsamp = np.linspace(horn.bounds[0, 2], horn.bounds[1, 2], 400)
+                    for _a in _ang:
+                        if is_ellip:
+                            _cx, _cy = _bx * np.cos(_a), _by * np.sin(_a)
+                        else:
+                            # Follow the actual rectangular rim. An ellipse-based
+                            # pattern puts diagonal bolts deep in the empty cavity,
+                            # so they drill only the plate and never reach the lip.
+                            _ca, _sa = np.cos(_a), np.sin(_a)
+                            _sx = (_fm_rim_w / 2.0) / max(abs(_ca), 1e-9)
+                            _sy = (_fm_rim_h / 2.0) / max(abs(_sa), 1e-9)
+                            _edge_R = min(_sx, _sy)
+                            _ex, _ey = _edge_R * _ca, _edge_R * _sa
+                            _cx = float(np.clip(
+                                _ex, -_fm_rim_w / 2.0 + _fm_pillar_R,
+                                _fm_rim_w / 2.0 - _fm_pillar_R))
+                            _cy = float(np.clip(
+                                _ey, -_fm_rim_h / 2.0 + _fm_pillar_R,
+                                _fm_rim_h / 2.0 - _fm_pillar_R))
+                        # shaft through-hole, full span (open front-to-back)
+                        _sh = _tm.creation.cylinder(
+                            radius=_fm_db / 2.0, height=_z_hi - _z_lo, sections=64)
+                        _sh.apply_translation([_cx, _cy, (_z_lo + _z_hi) / 2.0])
+                        _mouth_bolt_cuts.append(_sh)
+                        _col = np.column_stack(
+                            [np.full_like(_zsamp, _cx), np.full_like(_zsamp, _cy), _zsamp])
+                        _ins = horn.contains(_col)
+                        _ztop = float(_zsamp[_ins][-1]) if _ins.any() else _fm_plate_top
+                        # Finish the visible flare opening with a short cylinder
+                        # normal to the local curved surface. The long axial bore
+                        # remains vertical for the screw/pillar, while this final
+                        # cut makes the mouth-facing opening circular instead of
+                        # the teardrop produced by a vertical cylinder crossing an
+                        # inclined surface.
+                        try:
+                            _surf_p, _, _surf_face = horn.nearest.on_surface(
+                                np.array([[_cx, _cy, _ztop]], dtype=float))
+                            _surf_p = _surf_p[0]
+                            _surf_n = horn.face_normals[int(_surf_face[0])]
+                            # Only the screw shaft opens through the visible flare
+                            # skin. The larger head counterbore stays hidden below.
+                            _mouth_d = _fm_db
+                            _mouth_in = thickness + 0.5
+                            _mouth_out = 2.0
+                            _mouth_len = _mouth_in + _mouth_out
+                            _mouth_cut = _tm.creation.cylinder(
+                                radius=_mouth_d / 2.0,
+                                height=_mouth_len,
+                                sections=96)
+                            _mouth_cut.apply_transform(
+                                _tm.geometry.align_vectors([0.0, 0.0, 1.0], _surf_n))
+                            _mouth_cut.apply_translation(
+                                _surf_p + _surf_n * ((_mouth_out - _mouth_in) / 2.0))
+                            _mouth_flare_opening_cuts.append(_mouth_cut)
+                        except Exception:
+                            # The axial bore is still valid if proximity lookup
+                            # fails on an unusual/partially repaired mesh.
+                            pass
+                        # Create the complete pillar through and beyond the flare,
+                        # then boolean-clip it against a closed local volume whose
+                        # top follows the real curved outer surface. This removes
+                        # every protruding fragment while preserving full support
+                        # from the plate to the lip.
+                        _pillar_bot = _fm_plate_top - 0.3
+                        _pillar_full = _tm.creation.cylinder(
+                            radius=_fm_pillar_R,
+                            height=_z_hi - _pillar_bot,
+                            sections=64)
+                        _pillar_full.apply_translation(
+                            [_cx, _cy, (_z_hi + _pillar_bot) / 2.0])
+
+                        _nr, _na = 6, 64
+                        _radii = np.linspace(
+                            (_fm_pillar_R + 0.3) / _nr,
+                            _fm_pillar_R + 0.3, _nr)
+                        _theta = np.linspace(0.0, 2 * np.pi, _na, endpoint=False)
+                        _top_grid = np.empty((_nr, _na), dtype=float)
+                        _valid_clip = True
+                        _ccol = np.column_stack([
+                            np.full_like(_zsamp, _cx),
+                            np.full_like(_zsamp, _cy),
+                            _zsamp])
+                        _cins = horn.contains(_ccol)
+                        _top_center = float(_zsamp[_cins][-1]) if _cins.any() else _fm_plate_top
+                        for _ri, _pr in enumerate(_radii):
+                            for _ai, _pa in enumerate(_theta):
+                                _px = _cx + _pr * np.cos(_pa)
+                                _py = _cy + _pr * np.sin(_pa)
+                                _pcol = np.column_stack([
+                                    np.full_like(_zsamp, _px),
+                                    np.full_like(_zsamp, _py),
+                                    _zsamp])
+                                _pins = horn.contains(_pcol)
+                                if not _pins.any():
+                                    _valid_clip = False
+                                    break
+                                _top_grid[_ri, _ai] = float(_zsamp[_pins][-1])
+                            if not _valid_clip:
+                                break
+
+                        if _valid_clip:
+                            _clip_v = [[_cx, _cy, _pillar_bot]]
+                            for _ri, _pr in enumerate(_radii):
+                                for _ai, _pa in enumerate(_theta):
+                                    _clip_v.append([
+                                        _cx + _pr * np.cos(_pa),
+                                        _cy + _pr * np.sin(_pa),
+                                        _pillar_bot])
+                            _top_center_i = len(_clip_v)
+                            _clip_v.append([_cx, _cy, _top_center])
+                            _top_ring0 = len(_clip_v)
+                            for _ri, _pr in enumerate(_radii):
+                                for _ai, _pa in enumerate(_theta):
+                                    _clip_v.append([
+                                        _cx + _pr * np.cos(_pa),
+                                        _cy + _pr * np.sin(_pa),
+                                        _top_grid[_ri, _ai]])
+                            _clip_f = []
+                            for _ai in range(_na):
+                                _aj = (_ai + 1) % _na
+                                _clip_f.extend([
+                                    [0, 1 + _aj, 1 + _ai],
+                                    [_top_center_i, _top_ring0 + _ai, _top_ring0 + _aj]])
+                            for _ri in range(_nr - 1):
+                                for _ai in range(_na):
+                                    _aj = (_ai + 1) % _na
+                                    _b0 = 1 + _ri * _na + _ai
+                                    _b1 = 1 + _ri * _na + _aj
+                                    _b2 = 1 + (_ri + 1) * _na + _aj
+                                    _b3 = 1 + (_ri + 1) * _na + _ai
+                                    _t0 = _top_ring0 + _ri * _na + _ai
+                                    _t1 = _top_ring0 + _ri * _na + _aj
+                                    _t2 = _top_ring0 + (_ri + 1) * _na + _aj
+                                    _t3 = _top_ring0 + (_ri + 1) * _na + _ai
+                                    _clip_f.extend([
+                                        [_b0, _b2, _b1], [_b0, _b3, _b2],
+                                        [_t0, _t1, _t2], [_t0, _t2, _t3]])
+                            _outer_b = 1 + (_nr - 1) * _na
+                            _outer_t = _top_ring0 + (_nr - 1) * _na
+                            for _ai in range(_na):
+                                _aj = (_ai + 1) % _na
+                                _b0, _b1 = _outer_b + _ai, _outer_b + _aj
+                                _t0, _t1 = _outer_t + _ai, _outer_t + _aj
+                                _clip_f.extend([[_b0, _b1, _t1], [_b0, _t1, _t0]])
+                            _clip = _tm.Trimesh(
+                                vertices=np.asarray(_clip_v),
+                                faces=np.asarray(_clip_f),
+                                process=True)
+                            _clip.fix_normals()
+                            _pillar = _tm.boolean.intersection(
+                                [_pillar_full, _clip], engine="manifold",
+                                check_volume=False)
+                            if _pillar is not None and not _pillar.is_empty:
+                                _mouth_bolt_pillars.append(_pillar)
+                        if _fm_seat and int(_fm_nb) > 0:
+                            # Axial, concentric, coplanar head seats. Every bore
+                            # ends on the same Z plane in the inward flange/pillar
+                            # assembly, regardless of local flare curvature.
+                            _fm_plate_bot = _fm_rim_off + _fm_off
+                            _seat_floor = max(
+                                _fm_plate_top - _fm_seat_depth,
+                                _fm_plate_bot + 0.5)
+                            _seat_top = _z_hi
+                            _seat_cut = _tm.creation.cylinder(
+                                radius=_fm_head_d / 2.0,
+                                height=_seat_top - _seat_floor,
+                                sections=96)
+                            _seat_cut.apply_translation(
+                                [_cx, _cy, (_seat_top + _seat_floor) / 2.0])
+                            _mouth_head_seat_cuts.append(_seat_cut)
+                elif is_rect:
+                    _fm_ot = ("circular" if mouth_outer == "Circular"
+                              else "elliptical" if mouth_outer == "Elliptical"
+                              else "rectangular")
                     f_mouth = _rf.generate_rectangular_flange(
                         outer_diam=_fm_od if _fm_ot == "circular" else None,
                         inner_w=_fm_inner_w, inner_h=_fm_inner_h,
@@ -1247,9 +1841,10 @@ if gen_btn:
                         bolt_radius=_fm_bc/2, bolt_count=int(_fm_nb), bolt_diam=_fm_db,
                         bolt_phase=_fm_bphase,
                         outer_type=_fm_ot,
-                        outer_w=_fm_outer_w if _fm_ot == "rectangular" else None,
-                        outer_h=_fm_outer_h if _fm_ot == "rectangular" else None,
-                        offset=z_mouth + _fm_off - _fm_sp,
+                        outer_w=_fm_outer_w if _fm_ot in ("rectangular", "elliptical") else None,
+                        outer_h=_fm_outer_h if _fm_ot in ("rectangular", "elliptical") else None,
+                        offset=_fm_rim_off + _fm_off,
+                        inner_type="elliptical" if is_ellip else "rectangular",
                         output_path=None)
                 elif is_poly:
                     f_mouth = _fg.generate_polygonal_flange(
@@ -1278,7 +1873,9 @@ if gen_btn:
             if gen_mid and not is_radial:
                 z_mid = z_min + _mid_pos + _mid_off
                 if is_rect:
-                    _mid_ot = "circular" if mid_out == "Circular" else "rectangular"
+                    _mid_ot = ("circular" if mid_out == "Circular"
+                               else "elliptical" if mid_out == "Elliptical"
+                               else "rectangular")
                     f_mid = _rf.generate_rectangular_flange(
                         outer_diam=_mid_od if _mid_ot == "circular" else None,
                         inner_w=_mid_inner_w, inner_h=_mid_inner_h,
@@ -1286,9 +1883,10 @@ if gen_btn:
                         bolt_radius=_mid_bc/2, bolt_count=int(_mid_nb), bolt_diam=_mid_db,
                         bolt_phase=_mid_bphase,
                         outer_type=_mid_ot,
-                        outer_w=_mid_outer_w if _mid_ot == "rectangular" else None,
-                        outer_h=_mid_outer_h if _mid_ot == "rectangular" else None,
+                        outer_w=_mid_outer_w if _mid_ot in ("rectangular", "elliptical") else None,
+                        outer_h=_mid_outer_h if _mid_ot in ("rectangular", "elliptical") else None,
                         offset=z_mid - _mid_sp,
+                        inner_type="elliptical" if is_ellip else "rectangular",
                         output_path=None)
                 elif is_poly:
                     _R_o_mid_poly = float(np.interp(_mid_pos, zp, _R_o_arr))
@@ -1314,6 +1912,17 @@ if gen_btn:
                         output_path=None)
 
             # --- 3e. Merge ---
+            # Circular mouth-facing openings affect only the flare skin. Applying
+            # them after the pillar union would carve the load-bearing sleeves.
+            if _mouth_flare_opening_cuts:
+                try:
+                    horn = _tm.boolean.difference(
+                        [horn] + _mouth_flare_opening_cuts,
+                        engine="manifold",
+                        check_volume=False)
+                except Exception:
+                    pass
+
             bodies = []
             if gen_horn:
                 bodies.append(horn)
@@ -1322,6 +1931,7 @@ if gen_btn:
             if f_throat is not None: bodies.append(f_throat)
             if f_mouth  is not None: bodies.append(f_mouth)
             if f_mid    is not None: bodies.append(f_mid)
+            bodies.extend(_mouth_bolt_pillars)
 
             if not bodies:
                 st.error("Select at least one element to generate")
@@ -1334,9 +1944,25 @@ if gen_btn:
                     combined = _tm.boolean.union(bodies, engine="manifold")
                 except Exception:
                     combined = _tm.util.concatenate(bodies)
+            # Inward mouth flange: drill the bolt channels through the welded
+            # plate, compression pillars, and curled lip so they reach the front.
+            if _mouth_bolt_cuts:
+                try:
+                    combined = _tm.boolean.difference(
+                        [combined] + _mouth_bolt_cuts, engine="manifold")
+                except Exception:
+                    pass
+            if _mouth_head_seat_cuts:
+                try:
+                    combined = _tm.boolean.difference(
+                        [combined] + _mouth_head_seat_cuts,
+                        engine="manifold",
+                        check_volume=False)
+                except Exception:
+                    pass
             st.session_state["_combined"] = combined
             if gen_throat and not is_radial and _ta_include_adapter and f_throat is not None:
-                st.session_state["_adapter_cut_z"] = float(z_min + 0.5)
+                st.session_state["_adapter_cut_z"] = float(_embedded_adapter_cut_z)
             else:
                 st.session_state.pop("_adapter_cut_z", None)
             if gen_throat and f_throat is not None:
@@ -1433,21 +2059,11 @@ else:
 
 if mesh_to_slice is None:
     if slice_strategy == "Print volume boxes":
-        _pv_preview_cols = st.columns(3)
-        with _pv_preview_cols[0]:
-            st.number_input("Max X (mm)", 10.0, 2000.0, 220.0, 10.0,
-                            key="pv_x_preview", disabled=True)
-        with _pv_preview_cols[1]:
-            st.number_input("Max Y (mm)", 10.0, 2000.0, 220.0, 10.0,
-                            key="pv_y_preview", disabled=True)
-        with _pv_preview_cols[2]:
-            st.number_input("Max Z (mm)", 10.0, 2000.0, 250.0, 10.0,
-                            key="pv_z_preview", disabled=True)
         st.caption("Generate an assembly or upload an STL to enable print-volume slicing.")
     st.stop()
 
 # ── Slicing workflow ────────────────────────────────────────────────
-import io, zipfile
+import zipfile
 
 # Shift mesh so Z_min = 0 for clean segmentation
 _z_off = mesh_to_slice.bounds[0, 2]
@@ -1489,26 +2105,28 @@ if _adapter_cut_z is not None:
 _radial_joint = st.checkbox("Radial joint (tongue & groove)", False, key="radial_joint_en",
                             help="Add a vertical tongue & groove on each radial "
                                  "seam so petals interlock and self-align.")
-_radial_joint_d = st.number_input("Joint depth (mm)", 0.5, 5.0, 2.0, 0.5,
-                                   key="radial_joint_d",
-                                   help="How far the tongue sticks out / groove "
-                                        "goes in") if _radial_joint else 0.0
-_radial_clearance = st.number_input("Clearance (mm)", 0.0, 0.5, 0.1, 0.05,
-                                     key="radial_clearance",
-                                     help="Total gap between tongue and groove "
-                                          "(split evenly: 0.05 mm per side at default)"
-                                     ) if _radial_joint else 0.0
-_radial_outer_keep = st.number_input("Outer skin keep (mm)", 0.5, 5.0, 1.5, 0.5,
-                                     key="radial_outer_keep",
-                                     help="Protected external wall strip kept solid before "
-                                          "placing tongue/groove features."
-                                     ) if _radial_joint else None
-_radial_inner_margin = st.number_input("Inner margin (mm)", 0.5, 5.0, 0.5, 0.5,
-                                       key="radial_inner_margin",
-                                       help="Margin kept on the inner side of the wall. "
-                                            "Together with Outer skin keep, controls how "
-                                            "thick the tongue/groove will be."
-                                       ) if _radial_joint else 0.5
+# Defaults that work for most prints; only depth is in the primary flow.
+_radial_clearance, _radial_outer_keep, _radial_inner_margin = 0.0, None, 0.5
+if _radial_joint:
+    _radial_joint_d = st.number_input("Joint depth (mm)", 0.5, 5.0, 2.0, 0.5,
+                                      key="radial_joint_d",
+                                      help="How far the tongue sticks out / groove goes in")
+    with st.expander("Advanced radial joint"):
+        _radial_clearance = st.number_input("Clearance (mm)", 0.0, 0.5, 0.1, 0.05,
+                                            key="radial_clearance",
+                                            help="Total gap between tongue and groove "
+                                                 "(split evenly: 0.05 mm per side at default)")
+        _radial_outer_keep = st.number_input("Outer skin keep (mm)", 0.5, 5.0, 1.5, 0.5,
+                                            key="radial_outer_keep",
+                                            help="Protected external wall strip kept solid before "
+                                                 "placing tongue/groove features.")
+        _radial_inner_margin = st.number_input("Inner margin (mm)", 0.5, 5.0, 0.5, 0.5,
+                                              key="radial_inner_margin",
+                                              help="Margin kept on the inner side of the wall. "
+                                                   "Together with Outer skin keep, controls how "
+                                                   "thick the tongue/groove will be.")
+else:
+    _radial_joint_d = 0.0
 
 if st.button("Reset slicer cache", use_container_width=True):
     st.session_state.pop("_ax_segs", None)
@@ -1533,14 +2151,18 @@ if slice_strategy == "Print volume boxes":
                                  "Regular grid cuts the whole bounding box into fixed cells.")
     _pv_joint = st.checkbox("Box joints (tongue & groove)", False, key="pv_joint_en",
                             help="Add male/female alignment joints on shared print-volume cut faces.")
-    _pv_joint_d = st.number_input("Box joint depth (mm)", 0.5, 5.0, 2.0, 0.5,
-                                  key="pv_joint_d") if _pv_joint else 0.0
-    _pv_clearance = st.number_input("Box joint clearance (mm)", 0.0, 0.5, 0.1, 0.05,
-                                    key="pv_clearance") if _pv_joint else 0.0
-    _pv_margin = st.number_input("Box joint margin (mm)", 0.5, 8.0, 1.0, 0.5,
-                                 key="pv_margin",
-                                 help="Inset from the cut-face perimeter before placing the tongue/groove."
-                                 ) if _pv_joint else 1.0
+    _pv_clearance, _pv_margin = 0.0, 1.0
+    if _pv_joint:
+        _pv_joint_d = st.number_input("Box joint depth (mm)", 0.5, 5.0, 2.0, 0.5,
+                                      key="pv_joint_d")
+        with st.expander("Advanced box joint"):
+            _pv_clearance = st.number_input("Box joint clearance (mm)", 0.0, 0.5, 0.1, 0.05,
+                                            key="pv_clearance")
+            _pv_margin = st.number_input("Box joint margin (mm)", 0.5, 8.0, 1.0, 0.5,
+                                         key="pv_margin",
+                                         help="Inset from the cut-face perimeter before placing the tongue/groove.")
+    else:
+        _pv_joint_d = 0.0
 
     _keep_throat = False
     _manual_keep_z = None
@@ -1618,6 +2240,7 @@ else:
     seg_ref = ("height", seg_h)
 
 _slice_sig = (
+    2,  # slicer algorithm cache version
     tuple(np.round(mesh_to_slice.bounds.reshape(-1), 4)),
     bool(_joint), float(_joint_w),
     bool(_cut_adapter_segment),
@@ -1703,6 +2326,7 @@ if ax_segs:
         st.caption(f"✔ Tongue & groove — depth {_radial_joint_d} mm, clearance {_radial_clearance} mm, outer skin {_radial_outer_keep} mm, inner margin {_radial_inner_margin} mm")
 
     _petal_sig = (
+        2,  # radial petal algorithm cache version
         tuple(int(v) for v in petals_per),
         bool(_radial_joint),
         round(float(_radial_joint_d), 4),

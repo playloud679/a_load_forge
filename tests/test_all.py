@@ -77,6 +77,9 @@ for entry in [
     ("Exponential 20→200/400Hz", lambda: _c.get_exponential(THROAT, 200, 400, N),   True),
     ("Oblate 20/90deg/L80",      lambda: _c.get_oblate_spheroidal(THROAT, 90, 80, N), True),
     ("Oblate 20/60deg/L120",     lambda: _c.get_oblate_spheroidal(THROAT, 60, 120, N), True),
+    ("Conical 20/90deg/L80",     lambda: _c.get_conical(THROAT, 90, 80, N),          True),
+    ("Conical 20/60deg/L120",    lambda: _c.get_conical(THROAT, 60, 120, N),         True),
+    ("R-OSSE 20→100/78deg",      lambda: _c.get_rosse(THROAT, MOUTH, 78, N),         False),
     ("Le Cleac'h 20/600/L80",    lambda: _c.get_lecleach(THROAT, FC, 80, N),        False),
     ("Le Cleac'h 20/1200/L60",   lambda: _c.get_lecleach(THROAT, 1200, 60, N),      False),
 ]:
@@ -87,6 +90,8 @@ for entry in [
         if "Tractrix" in label:
             mouth = float(label.split("→")[1])
         elif "Exponential" in label:
+            mouth = float(label.split("→")[1].split("/")[0])
+        elif "R-OSSE" in label:
             mouth = float(label.split("→")[1].split("/")[0])
         _check_profile(z, r, THROAT, mouth, label, monotone_z=mono_z)
     test(label, make)
@@ -106,6 +111,28 @@ def _check_oblate_cd_law():
 test("Oblate CD law: parallel throat + conical asymptote", _check_oblate_cd_law)
 
 
+def _check_conical_law():
+    throat, coverage, length = 20.0, 90.0, 200.0
+    z, r = _c.get_conical(throat, coverage, length, 2000)
+    theta = np.radians(coverage / 2.0)
+    expected = throat / 2.0 + z * np.tan(theta)
+    assert np.allclose(r, expected), "conical radius does not match straight-wall law"
+    # Constant slope = tan(theta) everywhere (a straight cone, unlike oblate).
+    slope = np.diff(r) / np.diff(z)
+    assert np.allclose(slope, np.tan(theta)), "conical wall is not straight"
+test("Conical law: straight wall at tan(theta)", _check_conical_law)
+
+
+def _check_rosse_st260_reference():
+    """Published rev.7 sample: 1-inch throat, 260 mm OD, just under 80 mm deep."""
+    z, r = _c.get_rosse(25.4, 260.0, 78.0, 2000)
+    assert abs(r[0] - 12.7) < 1e-9, "R-OSSE ST260 throat radius mismatch"
+    assert abs(r[-1] - 130.0) < 1e-9, "R-OSSE ST260 outer radius mismatch"
+    assert abs(z.max() - 77.70) < 0.1, f"R-OSSE ST260 depth={z.max():.2f} mm"
+    assert z[-1] < z.max() - 10.0, "R-OSSE profile does not roll back"
+test("R-OSSE rev.7 ST260 reference geometry", _check_rosse_st260_reference)
+
+
 def _check_oblate_asymmetric_elliptical_mesh():
     z, w, h = _c.get_oblate_spheroidal_asymmetric(20.0, 10.0, 90.0, 45.0, 80.0, N)
     assert abs(w[0] - 20.0) < TOL, "asymmetric oblate throat width mismatch"
@@ -123,6 +150,50 @@ def _check_oblate_asymmetric_elliptical_mesh():
 test("Oblate asymmetric 90x45 elliptical mesh", _check_oblate_asymmetric_elliptical_mesh)
 
 
+def _check_elliptical_section_from_rect_math():
+    """UI 'Elliptical' section path: rectangular profile math lofted as an ellipse.
+
+    The UI reuses get_rectangular_* to get (z, w, h) then feeds the elliptical
+    engine with semi-axes (w/2, h/2). Guards that this produces a watertight body
+    for a non-CD profile (here Salmon), not just for the asymmetric oblate case.
+    """
+    z, w, h = _r.get_rectangular_salmon(30.0, 18.0, FC, 80.0, N)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
+        p = t.name
+    _c.generate_elliptical_3d_mesh_from_profiles(z, w / 2.0, h / 2.0, 4.0, 96, p)
+    m = trimesh.load(p, file_type="stl"); os.unlink(p)
+    assert m.is_watertight, "Elliptical Salmon section: not watertight"
+    assert m.body_count == 1, f"Elliptical Salmon section: {m.body_count} bodies"
+    assert m.volume > 100, f"Elliptical Salmon section volume={m.volume:.0f}"
+test("Elliptical section (rect math, Salmon) watertight", _check_elliptical_section_from_rect_math)
+
+
+def _check_elliptical_rollback_parallel_thickness():
+    """Elliptical roll-back must offset along the surface normal, not radially."""
+    z, r = _c.get_rosse(25.4, 260.0, 78.0, N)
+    rx = r * 1.35
+    ry = r / 1.35
+    thickness = 4.0
+    inner, outer = _c._elliptical_parallel_offset_vertices(
+        z, rx, ry, thickness, 96)
+    distances = np.linalg.norm(outer - inner, axis=2)
+    assert np.allclose(distances, thickness, atol=1e-9), \
+        f"elliptical wall thickness {distances.min():.4f}..{distances.max():.4f}"
+    # At the rolled-back edge the parallel normal points partly inward and
+    # backward; a radial-only offset would incorrectly increase both axes.
+    assert outer[-1, 0, 0] < inner[-1, 0, 0], "roll-back outer edge did not turn inward"
+    assert outer[-1, 0, 2] < inner[-1, 0, 2], "roll-back outer edge did not offset backward"
+
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
+        p = t.name
+    _c.generate_elliptical_3d_mesh_from_profiles(z, rx, ry, thickness, 96, p)
+    m = trimesh.load(p, file_type="stl"); os.unlink(p)
+    assert m.is_watertight, "Elliptical R-OSSE roll-back: not watertight"
+    assert m.body_count == 1, f"Elliptical R-OSSE roll-back: {m.body_count} bodies"
+test("Elliptical R-OSSE roll-back keeps parallel thickness",
+     _check_elliptical_rollback_parallel_thickness)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  2. Circular 3-D mesh — watertight + geometry checks
 # ══════════════════════════════════════════════════════════════════════════════
@@ -134,6 +205,8 @@ CIRC_CASES = [
     ("Salmon",       lambda: _c.get_salmon(THROAT, FC, 80,   N)),
     ("Exponential",  lambda: _c.get_exponential(THROAT, MOUTH, FC, N)),
     ("Oblate",       lambda: _c.get_oblate_spheroidal(THROAT, 90, 80, N)),
+    ("Conical",      lambda: _c.get_conical(THROAT, 90, 80, N)),
+    ("R-OSSE",       lambda: _c.get_rosse(THROAT, MOUTH, 78, N)),
     ("Le Cleac'h",   lambda: _c.get_lecleach(THROAT, FC, 80, N)),
 ]
 
@@ -360,6 +433,7 @@ for label, fn in [
     ("Rect Salmon 20×10/600/80",  lambda: _r.get_rectangular_salmon(20, 10, 600, 80, 300)),
     ("Rect Salmon 30×15/1200/50", lambda: _r.get_rectangular_salmon(30, 15, 1200, 50, 300)),
     ("Rect Oblate 20×10/90×45/L80", lambda: _r.get_rectangular_oblate_spheroidal(20, 10, 90, 45, 80, 300)),
+    ("Rect Conical 20×10/90×45/L80", lambda: _r.get_rectangular_conical(20, 10, 90, 45, 80, 300)),
 ]:
     def make(fn=fn, lbl=label):
         z, w, h = fn()
@@ -417,6 +491,338 @@ def _rect_flange_wall_bite():
     assert union_nm(ow - 2 * BITE, oh - 2 * BITE) == 0, \
         "wall-bite did not yield a manifold union"
 test("rect mouth flange wall-bite (no non-manifold edge)", _rect_flange_wall_bite)
+
+
+def _elliptical_flange_and_horn_assembly():
+    """Ellipse-hole flange must weld to the elliptical loft as one body."""
+    thickness = 4.0
+    z, w, h = _r.get_rectangular_exponential(30.0, 18.0, 120.0, 600, 300)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
+        p = t.name
+    _c.generate_elliptical_3d_mesh_from_profiles(
+        z, w / 2.0, h / 2.0, thickness, 96, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+    hole_w = w[-1] + 2.0 * thickness - 1.0
+    hole_h = h[-1] + 2.0 * thickness - 1.0
+    flange = _rf.generate_rectangular_flange(
+        outer_diam=np.hypot(hole_w, hole_h) + 30.0,
+        inner_w=hole_w, inner_h=hole_h,
+        thickness=6.0, bolt_radius=np.hypot(hole_w, hole_h) / 2.0 + 8.0,
+        bolt_count=4, bolt_diam=3.5,
+        outer_type="circular", inner_type="elliptical",
+        offset=z[-1] - 6.0, output_path=None,
+    )
+    _check_flange(flange, "elliptical-hole flange")
+    combined = trimesh.boolean.union([horn, flange], engine="manifold")
+    combined.merge_vertices(); combined.fix_normals()
+    _check_mesh(combined, "elliptical horn + mouth flange")
+test("elliptical-hole flange + horn assembly", _elliptical_flange_and_horn_assembly)
+
+
+def _elliptical_rollback_flange_welds():
+    """Mid/mouth flange on a *roll-back* elliptical horn must weld as one body.
+
+    Le Cléac'h / oblate / R-OSSE profiles have non-monotonic Z (the lip curls
+    back toward the throat). Sizing a flat flange's hole by array-index fraction
+    samples the wrong station, so the plate floats off the wall. The fix sizes
+    the hole from the real outer wall at the plate's bottom face on the
+    *outgoing* leg — this guards against a regression to the floating flange.
+    """
+    thickness = 4.0
+    BITE = 0.5
+
+    def outer_wh_at_z(z_o, w_o, h_o, z_target):
+        peak = int(np.argmax(z_o))
+        sl = slice(0, peak + 1)
+        order = np.argsort(z_o[sl])
+        zb, wb, hb = z_o[sl][order], w_o[sl][order], h_o[sl][order]
+        zt = float(np.clip(z_target, zb[0], zb[-1]))
+        return float(np.interp(zt, zb, wb)), float(np.interp(zt, zb, hb))
+
+    # Elliptical Le Cléac'h (roll-back): area-preserving from the circular curve
+    zp, rp = _c.get_lecleach(np.sqrt(25.0 * 25.0 * 4 / np.pi), 500.0, 120.0, 200, T=0.707)
+    zr, wr, hr = _r._area_to_rect(zp, rp, 25.0, 25.0)
+    assert not np.all(np.diff(zr) >= 0), "expected a non-monotonic (roll-back) Z"
+
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _c.generate_elliptical_3d_mesh_from_profiles(zr, wr / 2.0, hr / 2.0, thickness, 96, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+    _, V_o = _c._elliptical_parallel_offset_vertices(zr, wr / 2.0, hr / 2.0, thickness, 96)
+    z_o = np.mean(V_o[:, :, 2], axis=1)
+    w_o = 2.0 * np.max(np.abs(V_o[:, :, 0]), axis=1)
+    h_o = 2.0 * np.max(np.abs(V_o[:, :, 1]), axis=1)
+    z_min = horn.vertices[:, 2].min()
+
+    mid_pos, mid_sp, ring = 120.0, 4.0, 15.0
+    mw, mh = outer_wh_at_z(z_o, w_o, h_o, mid_pos - mid_sp)
+    iw, ih = max(mw - 2 * BITE, 1.0), max(mh - 2 * BITE, 1.0)
+    flange = _rf.generate_rectangular_flange(
+        inner_w=iw, inner_h=ih, thickness=mid_sp, bolt_count=6, bolt_diam=4.0,
+        outer_type="rectangular", outer_w=iw + 2 * ring, outer_h=ih + 2 * ring,
+        offset=z_min + mid_pos - mid_sp, inner_type="elliptical", output_path=None)
+    _check_flange(flange, "roll-back mid flange")
+    combined = trimesh.boolean.union([horn, flange], engine="manifold")
+    combined.merge_vertices(); combined.fix_normals()
+    _check_mesh(combined, "roll-back elliptical horn + mid flange", min_volume=1000)
+test("roll-back elliptical flange welds (single body)", _elliptical_rollback_flange_welds)
+
+
+def _elliptical_outer_flange_offset():
+    """outer_type='elliptical' must produce an elliptical-offset ring (not a
+    disc/plate): a watertight flange whose outer XY extents follow inner+2·ring
+    and differ between axes for an asymmetric hole, with bolts that don't breach.
+    """
+    inner_w, inner_h, ring = 120.0, 60.0, 15.0
+    ow, oh = inner_w + 2 * ring, inner_h + 2 * ring
+    flange = _rf.generate_rectangular_flange(
+        inner_w=inner_w, inner_h=inner_h, thickness=6.0,
+        bolt_count=8, bolt_diam=4.0, bolt_phase=0.0,
+        outer_type="elliptical", outer_w=ow, outer_h=oh,
+        offset=0.0, inner_type="elliptical", output_path=None)
+    _check_flange(flange, "elliptical-offset flange")
+    ext_x = flange.bounds[1, 0] - flange.bounds[0, 0]
+    ext_y = flange.bounds[1, 1] - flange.bounds[0, 1]
+    assert abs(ext_x - ow) < 1.0, f"outer X {ext_x:.1f} != {ow:.1f} (not elliptical offset)"
+    assert abs(ext_y - oh) < 1.0, f"outer Y {ext_y:.1f} != {oh:.1f} (not elliptical offset)"
+    assert ext_x > ext_y + 10.0, "outer should follow the hole's aspect ratio, not be circular"
+test("elliptical-offset outer flange", _elliptical_outer_flange_offset)
+
+
+def _rollback_mouth_flange_welds_to_outer_rim():
+    """A mouth flange on a roll-back elliptical horn must weld to the OUTER rim
+    (the curled-back lip, widest cross-section) as one body — not float off it.
+
+    The rim sits on the *returning* leg of the lip, so the plate goes above it
+    and the wall widens downward through the ring. Mirrors ui_app `_rim_weld`.
+    """
+    thickness = 4.0
+    BITE = 0.5
+
+    def rim_weld(z_o, w_o, h_o, sp):
+        rim = int(np.argmax(w_o * h_o))
+        peak = int(np.argmax(z_o))
+        z_rim = float(z_o[rim])
+        if rim <= peak:
+            seg = slice(0, rim + 1); offset = z_rim - sp; zf = offset
+        else:
+            seg = slice(peak, rim + 1); offset = z_rim; zf = z_rim + sp
+        zs, ws, hs = z_o[seg], w_o[seg], h_o[seg]
+        o = np.argsort(zs); zs, ws, hs = zs[o], ws[o], hs[o]
+        zf = float(np.clip(zf, zs[0], zs[-1]))
+        return offset, float(np.interp(zf, zs, ws)), float(np.interp(zf, zs, hs))
+
+    zp, rp = _c.get_lecleach(np.sqrt(25.0 * 25.0 * 4 / np.pi), 500.0, 120.0, 200, T=0.707)
+    zr, wr, hr = _r._area_to_rect(zp, rp, 25.0, 25.0)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _c.generate_elliptical_3d_mesh_from_profiles(zr, wr / 2.0, hr / 2.0, thickness, 96, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+    _, V_o = _c._elliptical_parallel_offset_vertices(zr, wr / 2.0, hr / 2.0, thickness, 96)
+    z_o = np.mean(V_o[:, :, 2], axis=1)
+    w_o = 2.0 * np.max(np.abs(V_o[:, :, 0]), axis=1)
+    h_o = 2.0 * np.max(np.abs(V_o[:, :, 1]), axis=1)
+
+    # The rim must be on the returning leg (genuine roll-back), else the test is moot.
+    assert int(np.argmax(w_o * h_o)) > int(np.argmax(z_o)), "rim not on the returning leg"
+
+    sp, ring = 4.0, 20.0
+    off, ww, wh = rim_weld(z_o, w_o, h_o, sp)
+    iw, ih = max(ww - 2 * BITE, 1.0), max(wh - 2 * BITE, 1.0)
+    flange = _rf.generate_rectangular_flange(
+        inner_w=iw, inner_h=ih, thickness=sp, bolt_count=8, bolt_diam=4.0,
+        outer_type="elliptical", outer_w=iw + 2 * ring, outer_h=ih + 2 * ring,
+        offset=off, inner_type="elliptical", output_path=None)
+    _check_flange(flange, "roll-back mouth flange")
+    # Hole must match the horn's widest outer width → it is at the OUTER rim.
+    assert iw > 0.95 * w_o.max(), f"hole {iw:.0f} not at outer rim (widest {w_o.max():.0f})"
+    combined = trimesh.boolean.union([horn, flange], engine="manifold")
+    combined.merge_vertices(); combined.fix_normals()
+    _check_mesh(combined, "roll-back horn + outer-rim mouth flange", min_volume=1000)
+test("roll-back mouth flange welds to outer rim", _rollback_mouth_flange_welds_to_outer_rim)
+
+
+def _inward_mouth_flange_drills_through_flare():
+    """Inward mouth flange on a deep roll-back: a flat plate FILLS the lip cavity
+    (welded between the inner flare and the curled-back lip). The outer contour
+    stays = rim, so nothing protrudes beyond the mouth Ø; the hole = flare wall
+    at the peak so the airway stays clear. Bolts are then drilled through the
+    plate + lip. Annular compression pillars bridge the cavity around each bolt
+    before the full-Z through-hole + head counterbore are cut. Mirrors ui_app.
+    """
+    sp, nb, db = 4.0, 8, 5.0
+    head_d, seat_depth, seat_wall = 9.5, 2.0, 3.0
+    BITE = 0.5
+    zp, rp = _c.get_lecleach(np.sqrt(25.0 * 25.0 * 4 / np.pi), 500.0, 120.0, 200, T=0.707)
+    zr, wr, hr = _r._area_to_rect(zp, rp, 25.0, 25.0)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _c.generate_elliptical_3d_mesh_from_profiles(zr, wr / 2.0, hr / 2.0, sp, 96, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+    _, V_o = _c._elliptical_parallel_offset_vertices(zr, wr / 2.0, hr / 2.0, sp, 96)
+    z_o = np.mean(V_o[:, :, 2], axis=1)
+    w_o = 2.0 * np.max(np.abs(V_o[:, :, 0]), axis=1)
+    h_o = 2.0 * np.max(np.abs(V_o[:, :, 1]), axis=1)
+    rim = int(np.argmax(w_o * h_o)); peak = int(np.argmax(z_o))
+    assert rim > peak, "needs a genuine roll-back lip"
+    rim_w, rim_h = float(w_o[rim]), float(h_o[rim])
+    peak_w, peak_h = float(w_o[peak]), float(h_o[peak])
+    rim_off = float(z_o[rim])   # roll-back: plate sits at the rim plane (above it)
+
+    # Plate fills the cavity: outer = rim, hole = peak (bitten so the wall welds).
+    plate = _rf.generate_rectangular_flange(
+        inner_w=max(peak_w - 2 * BITE, 1.0), inner_h=max(peak_h - 2 * BITE, 1.0),
+        thickness=sp, bolt_count=0, bolt_diam=db,
+        outer_type="elliptical", outer_w=rim_w, outer_h=rim_h,
+        offset=rim_off, inner_type="elliptical", output_path=None)
+    _check_flange(plate, "inward mouth plate")
+    combined = trimesh.boolean.union([horn, plate], engine="manifold")
+    combined.merge_vertices(); combined.fix_normals()
+    _check_mesh(combined, "inward mouth flange (plate + horn)", min_volume=1000)
+    # A real flange was added (material grew vs. the bare horn) and the outer Ø
+    # never exceeds the rim — nothing protrudes beyond the mouth envelope.
+    assert combined.volume > horn.volume, "inward flange must add the cavity plate"
+    assert combined.bounds[1, 0] <= horn.bounds[1, 0] + 1.0 and \
+           combined.bounds[1, 1] <= horn.bounds[1, 1] + 1.0, "plate grew beyond the rim Ø"
+
+    bx = rim_w / 2.0 - (head_d / 2.0 + seat_wall)
+    by = rim_h / 2.0 - (head_d / 2.0 + seat_wall)
+    plate_top = rim_off + sp
+    z_lo, z_hi = combined.bounds[0, 2] - 10.0, combined.bounds[1, 2] + 10.0
+    zsamp = np.linspace(horn.bounds[0, 2], horn.bounds[1, 2], 400)
+    cuts = []
+    flare_opening_cuts = []
+    head_seat_cuts = []
+    shaft_cuts = []
+    pillars = []
+    ztops = []
+    for a in np.linspace(0, 2 * np.pi, nb, endpoint=False):
+        cx, cy = bx * np.cos(a), by * np.sin(a)
+        sh = trimesh.creation.cylinder(radius=db / 2.0, height=z_hi - z_lo, sections=64)
+        sh.apply_translation([cx, cy, (z_lo + z_hi) / 2.0])
+        cuts.append(sh); shaft_cuts.append(sh)
+        col = np.column_stack([np.full_like(zsamp, cx), np.full_like(zsamp, cy), zsamp])
+        ins = horn.contains(col)
+        assert ins.any(), "bolt does not land on the lip"
+        ztop = float(zsamp[ins][-1]); ztops.append(ztop)
+        surf_p, _, surf_face = horn.nearest.on_surface(
+            np.array([[cx, cy, ztop]], dtype=float))
+        surf_n = horn.face_normals[int(surf_face[0])]
+        mouth_in, mouth_out = sp + 0.5, 2.0
+        mouth_len = mouth_in + mouth_out
+        mouth_cut = trimesh.creation.cylinder(
+            radius=db / 2.0, height=mouth_len, sections=96)
+        mouth_cut.apply_transform(trimesh.geometry.align_vectors([0.0, 0.0, 1.0], surf_n))
+        mouth_cut.apply_translation(surf_p[0] + surf_n * ((mouth_out - mouth_in) / 2.0))
+        flare_opening_cuts.append(mouth_cut)
+        assert abs(float(np.dot(surf_n, [0.0, 0.0, 1.0]))) < 0.999, \
+            "test surface is not inclined enough to verify a normal-oriented opening"
+        pillar_r = head_d / 2.0 + seat_wall
+        pillar_bot = plate_top - 0.3
+        full = trimesh.creation.cylinder(
+            radius=pillar_r, height=z_hi - pillar_bot, sections=64)
+        full.apply_translation([cx, cy, (z_hi + pillar_bot) / 2.0])
+        nr, na = 6, 64
+        radii = np.linspace((pillar_r + 0.3) / nr, pillar_r + 0.3, nr)
+        theta = np.linspace(0.0, 2 * np.pi, na, endpoint=False)
+        top_grid = np.empty((nr, na), dtype=float)
+        ccol = np.column_stack(
+            [np.full_like(zsamp, cx), np.full_like(zsamp, cy), zsamp])
+        cins = horn.contains(ccol)
+        assert cins.any(), "pillar center misses the flare"
+        top_center = float(zsamp[cins][-1])
+        for ri, pr in enumerate(radii):
+            for ai, pa in enumerate(theta):
+                px, py = cx + pr * np.cos(pa), cy + pr * np.sin(pa)
+                pcol = np.column_stack(
+                    [np.full_like(zsamp, px), np.full_like(zsamp, py), zsamp])
+                pins = horn.contains(pcol)
+                assert pins.any(), "pillar footprint misses the flare"
+                top_grid[ri, ai] = float(zsamp[pins][-1])
+        vv = [[cx, cy, pillar_bot]]
+        for ri, pr in enumerate(radii):
+            for ai, pa in enumerate(theta):
+                vv.append([cx + pr * np.cos(pa), cy + pr * np.sin(pa), pillar_bot])
+        top_center_i = len(vv)
+        vv.append([cx, cy, top_center])
+        top_ring0 = len(vv)
+        for ri, pr in enumerate(radii):
+            for ai, pa in enumerate(theta):
+                vv.append([cx + pr * np.cos(pa), cy + pr * np.sin(pa), top_grid[ri, ai]])
+        ff = []
+        for ai in range(na):
+            aj = (ai + 1) % na
+            ff.extend([[0, 1 + aj, 1 + ai],
+                       [top_center_i, top_ring0 + ai, top_ring0 + aj]])
+        for ri in range(nr - 1):
+            for ai in range(na):
+                aj = (ai + 1) % na
+                b0, b1 = 1 + ri * na + ai, 1 + ri * na + aj
+                b2, b3 = 1 + (ri + 1) * na + aj, 1 + (ri + 1) * na + ai
+                t0, t1 = top_ring0 + ri * na + ai, top_ring0 + ri * na + aj
+                t2, t3 = top_ring0 + (ri + 1) * na + aj, top_ring0 + (ri + 1) * na + ai
+                ff.extend([[b0, b2, b1], [b0, b3, b2],
+                           [t0, t1, t2], [t0, t2, t3]])
+        outer_b, outer_t = 1 + (nr - 1) * na, top_ring0 + (nr - 1) * na
+        for ai in range(na):
+            aj = (ai + 1) % na
+            b0, b1 = outer_b + ai, outer_b + aj
+            t0, t1 = outer_t + ai, outer_t + aj
+            ff.extend([[b0, b1, t1], [b0, t1, t0]])
+        clip = trimesh.Trimesh(vertices=np.asarray(vv), faces=np.asarray(ff), process=True)
+        clip.fix_normals()
+        pillar = trimesh.boolean.intersection(
+            [full, clip], engine="manifold", check_volume=False)
+        assert pillar is not None and not pillar.is_empty, "boolean pillar trim failed"
+        assert pillar.bounds[1, 2] <= max(top_center, float(top_grid.max())) + 1e-6, \
+            "trimmed pillar protrudes beyond clipping surface"
+        pillars.append(pillar)
+        seat_floor = max(plate_top - seat_depth, rim_off + 0.5)
+        seat_cut = trimesh.creation.cylinder(
+            radius=head_d / 2.0, height=z_hi - seat_floor, sections=96)
+        seat_cut.apply_translation([cx, cy, (z_hi + seat_floor) / 2.0])
+        head_seat_cuts.append(seat_cut)
+    horn_opened = trimesh.boolean.difference(
+        [horn] + flare_opening_cuts, engine="manifold", check_volume=False)
+    assert horn_opened is not None and not horn_opened.is_empty, "flare opening cut failed"
+    combined_opened = trimesh.boolean.union([horn_opened, plate], engine="manifold")
+    supported = trimesh.boolean.union([combined_opened] + pillars, engine="manifold")
+    _check_mesh(supported, "inward mouth flange (with pillars)", min_volume=1000)
+    assert supported.volume > combined_opened.volume + 100.0, "compression pillars were not added"
+    drilled = trimesh.boolean.difference([supported] + cuts, engine="manifold")
+    drilled = trimesh.boolean.difference(
+        [drilled] + head_seat_cuts, engine="manifold", check_volume=False)
+    _check_mesh(drilled, "inward mouth flange (drilled)", min_volume=1000)
+    assert drilled.volume < supported.volume, "bolts did not pierce the supported assembly"
+
+    # Axial head pockets remove more than bare shafts while leaving the
+    # compression pillar present below their common flat seating plane.
+    # Material immediately outside the counterbore remains through the cavity:
+    # this is the annular pillar that carries screw clamp load.
+    pillar_probe_r = bx + head_d / 2.0 + 0.5
+    assert drilled.contains([[pillar_probe_r, 0.0, plate_top + 0.5]])[0], \
+        "compression pillar is missing around the bolt channel"
+    shaft_only = trimesh.boolean.difference([supported] + shaft_cuts, engine="manifold")
+    assert drilled.volume < shaft_only.volume - 50.0, "counterbore seat not cut"
+test("inward mouth flange drills through flare", _inward_mouth_flange_drills_through_flare)
+
+
+def _rectangular_inward_bolts_follow_rim():
+    """Diagonal inward-flange bolts must follow the rectangular rim, not an ellipse.
+
+    Elliptical placement moves diagonal bolts too far inward, where they pass only
+    through the cavity plate and cannot form a supported hole through the lip.
+    """
+    rim_w, rim_h, pillar_r = 240.0, 120.0, 8.0
+    for a in np.linspace(0, 2 * np.pi, 8, endpoint=False):
+        ca, sa = np.cos(a), np.sin(a)
+        sx = (rim_w / 2.0) / max(abs(ca), 1e-9)
+        sy = (rim_h / 2.0) / max(abs(sa), 1e-9)
+        edge_r = min(sx, sy)
+        ex, ey = edge_r * ca, edge_r * sa
+        x = float(np.clip(ex, -rim_w / 2.0 + pillar_r, rim_w / 2.0 - pillar_r))
+        y = float(np.clip(ey, -rim_h / 2.0 + pillar_r, rim_h / 2.0 - pillar_r))
+        edge_gap = min(rim_w / 2.0 - abs(x), rim_h / 2.0 - abs(y))
+        assert abs(edge_gap - pillar_r) < 1e-6, \
+            f"bolt at {np.degrees(a):.0f}° is not inset from rectangular rim: {edge_gap}"
+test("rectangular inward bolts follow rim", _rectangular_inward_bolts_follow_rim)
 
 
 # Rectangular horn + circular flanges merged assembly
@@ -631,6 +1037,28 @@ for _n in (2, 3, 4, 6, 8, 12):
     test(f"{_n} petals", _make_check_petals(_n))
 
 
+def _rollback_two_petals_single_diametric_cap():
+    """Two petals must cap their shared diametric plane only once."""
+    z, r = _c.get_rosse(25.4, 260.0, 78.0, N)
+    rx, ry = r * 1.35, r / 1.35
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
+        p = t.name
+    _c.generate_elliptical_3d_mesh_from_profiles(z, rx, ry, 4.0, 96, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+    petals = _slc.slice_into_petals(horn, 2)
+    assert len(petals) == 2
+    assert all(p.is_watertight and p.body_count == 1 for p in petals)
+    assert abs(sum(p.volume for p in petals) / horn.volume - 1.0) < 1e-6
+
+    # A second cap pass on the coincident n=2 boundary retriangulates the same
+    # face and adds thousands of coplanar triangles (visible as z-fighting).
+    once = horn.slice_plane([0, 0, 0], [0, -1, 0], cap=True)
+    assert len(petals[0].faces) == len(once.faces), \
+        f"diametric seam capped more than once: {len(petals[0].faces)} vs {len(once.faces)}"
+test("rollback 2 petals use one diametric cap",
+     _rollback_two_petals_single_diametric_cap)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  Slicer — radial petals with tongue & groove joint
 # ══════════════════════════════════════════════════════════════════════════════
@@ -725,12 +1153,12 @@ test("slice_at_heights with joint_wall", _slice_heights_joints)
 print("\n═══ Throat adapter ═══")
 
 def test_thread_specs():
-    assert len(_ta.THREAD_SPECS) == 4, f"expected 4 thread specs, got {len(_ta.THREAD_SPECS)}"
-    for key in ("1in", "1_25in", "1_375in", "2in"):
-        assert key in _ta.THREAD_SPECS, f"missing {key}"
-        spec = _ta.THREAD_SPECS[key]
-        assert spec.major_diam > 0, f"{key}: major_diam={spec.major_diam}"
-        assert spec.pitch > 0, f"{key}: pitch={spec.pitch}"
+    assert set(_ta.THREAD_SPECS) == {"1_375in"}, \
+        f"unexpected thread specs: {sorted(_ta.THREAD_SPECS)}"
+    spec = _ta.THREAD_SPECS["1_375in"]
+    assert abs(spec.major_diam - 34.925) < 1e-6, f"major_diam={spec.major_diam}"
+    assert abs(spec.bore_diam - 25.0) < 1e-6, f"bore_diam={spec.bore_diam}"
+    assert spec.tpi == 18 and abs(spec.pitch - 25.4 / 18.0) < 1e-9
 test("thread specs", test_thread_specs)
 
 def test_circle_points():
@@ -750,6 +1178,15 @@ def test_rect_points():
     expected = 40.0 * 20.0  # 2*hw * 2*hh
     assert abs(area - expected) / expected < 0.05, f"area={area:.0f} vs {expected}"
 test("rect points", test_rect_points)
+
+def test_ellipse_points():
+    pts = _ta._ellipse_points(20.0, 10.0, 128)
+    assert pts.shape == (128, 2), f"shape={pts.shape}"
+    assert np.isclose(np.max(np.abs(pts[:, 0])), 20.0)
+    assert np.isclose(np.max(np.abs(pts[:, 1])), 10.0)
+    expected = np.pi * 20.0 * 10.0
+    assert abs(_ta._polygon_area(pts) - expected) / expected < 0.01
+test("ellipse points", test_ellipse_points)
 
 def test_poly_points():
     pts = _ta._poly_points(6, 20.0, 60)
@@ -810,6 +1247,21 @@ def test_adapter_rect():
     )
     _check_trimesh_watertight(m, "adapter rect")
 test("adapter circle→rect watertight", test_adapter_rect)
+
+def test_adapter_elliptical():
+    """Circle→ellipse adapter: short 30mm transition, watertight."""
+    m = _ta.make_adapter(
+        driver_R=12.5, horn_shape="elliptical",
+        horn_w=40.0, horn_h=20.0, horn_n_sides=0,
+        horn_R_eq=np.sqrt(40*20) / 2.0,
+        horn_circumR=0.0,
+        axial_steps=20, adapter_length=30.0, wall_thickness=4.0,
+        outer_target_R=np.sqrt(48*28) / 2.0,
+        outer_rect_w=48.0, outer_rect_h=28.0,
+        output_path=None,
+    )
+    _check_trimesh_watertight(m, "adapter elliptical")
+test("adapter circle→ellipse watertight", test_adapter_elliptical)
 
 def test_adapter_poly():
     """Circle→poly adapter: short transition, watertight."""
@@ -880,10 +1332,70 @@ def test_adapter_outer_flush():
         f"adapter outer {ro_adapter:.3f} != horn outer {horn_outer:.3f} (step)"
 test("adapter outer wall flush with horn (no step)", test_adapter_outer_flush)
 
+
+def test_embedded_adapter_preserves_horn_length():
+    """An embedded morph replaces the flare start instead of extending its Z."""
+    throat_d, mouth_d, thickness = 20.0, 100.0, 4.0
+    z, r = _c.get_exponential(throat_d, mouth_d, 600, 300)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
+        p = t.name
+    _c.generate_3d_mesh_from_profile(z, r, thickness, 64, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+    original_z_max = float(horn.bounds[1, 2])
+
+    morph_len, overlap = 30.0, 0.5
+    target_z = morph_len + overlap
+    nml = _uts.compute_profile_normals(z, r)
+    z_o = z + thickness * nml[:, 0]
+    r_o = r + thickness * nml[:, 1]
+    target_r = float(np.interp(target_z, z, r))
+    target_ro = float(np.interp(target_z, z_o, r_o))
+    target_slope = float(np.interp(target_z, z, np.gradient(r, z)))
+    outer_slope = float(np.interp(target_z, z_o, np.gradient(r_o, z_o)))
+
+    trimmed = horn.slice_plane([0, 0, morph_len], [0, 0, 1], cap=True)
+    adapter = _ta.make_adapter_assembly(
+        driver_type="flanged", driver_diam=throat_d, thread_key=None,
+        horn_shape="circular",
+        rect_w=0.0, rect_h=0.0, poly_n_sides=0, poly_circumR=0.0,
+        horn_R_eq=target_r,
+        adapter_length=target_z, wall_thickness=thickness,
+        flange_R=0.0, socket_length=0.0,
+        outer_target_R=target_ro,
+        target_slope=target_slope,
+        outer_target_slope=outer_slope,
+        z_offset=target_z,
+        output_path=None,
+    )
+    combined = trimesh.boolean.union([trimmed, adapter], engine="manifold")
+    combined.merge_vertices(); combined.fix_normals()
+    _check_trimesh_watertight(combined, "embedded adapter + horn")
+    assert abs(combined.bounds[0, 2]) < 1e-6, "embedded morph moved behind throat plane"
+    assert abs(combined.bounds[1, 2] - original_z_max) < 0.1, \
+        "embedded morph changed horn mouth position"
+test("embedded adapter preserves horn length", test_embedded_adapter_preserves_horn_length)
+
+
 def test_threaded_socket():
-    for key in ("1in", "1_25in", "1_375in", "2in"):
-        m = _ta.make_threaded_socket(key, 15.0, 4.0)
+    m = _ta.make_threaded_socket("1_375in", 15.0, 4.0)
+    _check_trimesh_watertight(m, '1⅜"-18 threaded socket')
 test("threaded sockets watertight", test_threaded_socket)
+
+
+def test_threaded_adapter_25mm_bore():
+    m = _ta.make_adapter(
+        driver_R=99.0, horn_shape="circular",
+        horn_w=0.0, horn_h=0.0, horn_n_sides=0,
+        horn_R_eq=18.0, horn_circumR=0.0,
+        axial_steps=30, adapter_length=30.0, wall_thickness=4.0,
+        thread_key="1_375in", socket_length=15.0,
+        output_path=None,
+    )
+    at_bore = m.vertices[np.isclose(m.vertices[:, 2], 0.0)]
+    bore_r = np.linalg.norm(at_bore[:, :2], axis=1).min()
+    assert abs(bore_r * 2.0 - 25.0) < 0.05, f"acoustic bore={bore_r * 2.0:.3f} mm"
+test('1⅜"-18 threaded adapter has 25 mm acoustic bore', test_threaded_adapter_25mm_bore)
+
 
 def test_adapter_assembly_flanged():
     """Full assembly with flange at driver end, circle→rect transition."""
@@ -904,7 +1416,7 @@ test("adapter assembly flanged", test_adapter_assembly_flanged)
 def test_adapter_assembly_threaded():
     """Full assembly with threaded socket, circle→poly transition."""
     m = _ta.make_adapter_assembly(
-        driver_type="1in", driver_diam=None, thread_key="1in",
+        driver_type="1_375in", driver_diam=None, thread_key="1_375in",
         horn_shape="polygonal",
         rect_w=0.0, rect_h=0.0, poly_n_sides=6,
         poly_circumR=15.0,
@@ -916,20 +1428,20 @@ def test_adapter_assembly_threaded():
     _check_trimesh_watertight(m, "adapter assembly threaded")
 test("adapter assembly threaded", test_adapter_assembly_threaded)
 
-# Threaded adapter full assemblies — all 4 thread sizes
-for _tk, _shape, _ns, _h_R_eq, _cR in [
-    ("1in",    "polygonal",   6, 12.5, 15.0),
-    ("1_25in", "circular",    0, 18.0, 0.0),
-    ("1_375in","rectangular",  0, np.sqrt(40*20/np.pi), 0.0),
-    ("2in",    "polygonal",   4, 14.0, 17.0),
+# 1⅜"-18 threaded adapter with 25 mm bore — representative horn shapes
+for _shape, _ns, _h_R_eq, _cR in [
+    ("polygonal",   6, 12.5, 15.0),
+    ("circular",    0, 18.0, 0.0),
+    ("rectangular", 0, np.sqrt(40*20/np.pi), 0.0),
+    ("elliptical",  0, np.sqrt(40*20)/2.0, 0.0),
 ]:
-    def make_threaded_asm(tk=_tk, sh=_shape, ns=_ns, heq=_h_R_eq, cr=_cR):
+    def make_threaded_asm(sh=_shape, ns=_ns, heq=_h_R_eq, cr=_cR):
         kwargs = dict(
-            driver_type=tk, driver_diam=None, thread_key=tk,
+            driver_type="1_375in", driver_diam=None, thread_key="1_375in",
             horn_shape=sh, wall_thickness=4.0,
             adapter_length=30.0, socket_length=15.0, z_offset=0.0,
             output_path=None)
-        if sh == "rectangular":
+        if sh in ("rectangular", "elliptical"):
             kwargs.update(rect_w=40.0, rect_h=20.0, poly_n_sides=0,
                           poly_circumR=0.0, horn_R_eq=heq)
         elif sh == "polygonal":
@@ -939,12 +1451,13 @@ for _tk, _shape, _ns, _h_R_eq, _cR in [
             kwargs.update(rect_w=0.0, rect_h=0.0, poly_n_sides=0,
                           poly_circumR=0.0, horn_R_eq=heq)
         m = _ta.make_adapter_assembly(**kwargs)
-        _check_trimesh_watertight(m, f"threaded assembly {tk}")
-    test(f"threaded assembly {_tk}", make_threaded_asm)
+        _check_trimesh_watertight(m, f'1⅜"-18 threaded assembly {sh}')
+    test(f'1⅜"-18 threaded assembly {_shape}', make_threaded_asm)
 
 # Flanged adapter assemblies — all horn shapes
 for _fs, _fns, _f_R_eq, _f_cR, _f_rw, _f_rh in [
     ("rectangular", 0, np.sqrt(40*20/np.pi), 0.0, 40.0, 20.0),
+    ("elliptical",  0, np.sqrt(40*20)/2.0, 0.0, 40.0, 20.0),
     ("polygonal",   6, 12.5, 15.0, 0.0, 0.0),
     ("circular",    0, 18.0, 0.0, 0.0, 0.0),
 ]:
@@ -956,7 +1469,7 @@ for _fs, _fns, _f_R_eq, _f_cR, _f_rw, _f_rh in [
             flange_R=30.0, flange_thickness=6.0,
             flange_bolt_R=20.0, flange_bolt_n=4, flange_bolt_d=3.5,
             socket_length=0.0, output_path=None)
-        if sh == "rectangular":
+        if sh in ("rectangular", "elliptical"):
             kwargs.update(rect_w=rw, rect_h=rh, poly_n_sides=0,
                           poly_circumR=0.0, horn_R_eq=heq)
         elif sh == "polygonal":
@@ -998,7 +1511,7 @@ def test_polygonal_horn_adapter_union_watertight():
 
     poly_circumR = _r_to_circumradius(np.array([throat_d / 2.0]), n_sides)[0]
     adapter = _ta.make_adapter_assembly(
-        driver_type="1in", driver_diam=None, thread_key="1in",
+        driver_type="1_375in", driver_diam=None, thread_key="1_375in",
         horn_shape="polygonal",
         rect_w=0.0, rect_h=0.0, poly_n_sides=n_sides,
         poly_circumR=poly_circumR, horn_R_eq=throat_d / 2.0,

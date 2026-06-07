@@ -23,20 +23,20 @@
 ```python
 @dataclass(frozen=True)
 class ThreadSpec:
-    name: str          # e.g. '1" UNF'
+    name: str          # e.g. '1⅜"-18'
     major_diam: float  # mm — outer thread diameter
+    bore_diam: float   # mm — clear acoustic passage after the thread
     pitch: float       # mm
     tpi: float         # threads per inch (informational)
 ```
 
 ### `THREAD_SPECS: dict[str, ThreadSpec]`
 
-| Key | Name | Major Diam (mm) | Pitch (mm) | TPI |
-|---|---|---|---|---|
-| `"1in"` | 1" UNF | 25.40 | 1.270 | 20 |
-| `"1_25in"` | 1\u00bc" UNF | 31.75 | 1.411 | 18 |
-| `"1_375in"` | 1\u215c" UNF | 34.925 | 1.411 | 18 |
-| `"2in"` | 2" UNF | 50.80 | 1.270 | 20 |
+| Key | Name | Major Diam (mm) | Acoustic Bore (mm) | Pitch (mm) | TPI |
+|---|---|---|---|---|---|
+| `"1_375in"` | 1⅜"-18 | 34.925 | 25.00 | 1.411 | 18 |
+
+The nominal `1⅜"` dimension describes the female thread, not the acoustic opening. The integrated transition starts from a clear 25 mm bore.
 
 ---
 
@@ -47,6 +47,10 @@ All return `np.ndarray` of shape `(n, 2)` — XY points.
 ### `_circle_points(r: float, n: int = 64, phase: float = 0.0) -> np.ndarray`
 
 Returns `n` equally-spaced points on a circle of radius `r`. First point is at `θ = phase`; default `phase = 0` gives the rightmost point `(r, 0)`. Polygonal adapters pass `phase = π/2` so the circular driver/socket rings and the target N-gon use the same vertex phase, preventing a helical twist through the transition.
+
+### `_ellipse_points(rx: float, ry: float, n: int = 64) -> np.ndarray`
+
+Returns `n` angularly spaced points on an ellipse with semi-axes `rx` and `ry`. Elliptical adapter targets use full UI axes `W`, `H` as `rx=W/2`, `ry=H/2`, with area-equivalent radius `sqrt(W·H)/2`.
 
 ### `_rect_points(hw: float, hh: float, n: int = 64) -> np.ndarray`
 
@@ -133,9 +137,9 @@ Builds the morphing transition section, optionally with an integrated threaded e
 | Parameter | Type | Description |
 |---|---|---|
 | `driver_R` | `float` | Radius of the circular driver exit (mm) |
-| `horn_shape` | `str` | `"circular"`, `"rectangular"`, or `"polygonal"` |
-| `horn_w` | `float` | Throat width for rectangular (mm); unused for circular/polygonal |
-| `horn_h` | `float` | Throat height for rectangular (mm); unused for circular/polygonal |
+| `horn_shape` | `str` | `"circular"`, `"elliptical"`, `"rectangular"`, or `"polygonal"` |
+| `horn_w` | `float` | Throat width/full ellipse major axis (mm); unused for circular/polygonal |
+| `horn_h` | `float` | Throat height/full ellipse minor axis (mm); unused for circular/polygonal |
 | `horn_n_sides` | `int` | Number of polygon sides (for `"polygonal"`); unused for circular/rectangular |
 | `horn_R_eq` | `float` | Area-equivalent radius at horn throat (mm) |
 | `horn_circumR` | `float` | Circumradius of the polygon at horn throat (mm); unused for circular/rectangular |
@@ -157,9 +161,10 @@ Builds the morphing transition section, optionally with an integrated threaded e
 
 **A. Threaded mode** (`thread_key` is not None AND `socket_length > 0.5`):
 1. Z range: `[-thread_len, adapter_length]` where `thread_len = n_turns * pitch`
-2. **Thread section** (`z < 0`): Circular socket with sinusoidal thread profile `r_thread = major_R − (major_R − minor_R) · 0.5 · (1 − cos(2π · turn_frac))`. Outer wall is a smooth cylinder at `outer_R = major_R + wall_thickness`.
-3. **Transition section** (`z ≥ 0`): Inner morphs from `major_R` to inner target via `_morph_slice`. For `"circular"` the target is a circle of radius `horn_R_eq`; for `"rectangular"` it is the requested rectangle; for `"polygonal"` it is the requested regular N-gon. Outer morphs from `outer_R` to the outer target if provided (for matching horn outer dimensions), otherwise to a slightly larger inner target. If slope inputs are provided, both inner and outer profiles end tangent to the horn.
-4. In threaded mode, the transition is flush with the horn inner — no wall thickness separate from the outer profile.
+2. **Thread section** (`z < 0`): 1⅜"-18 circular socket with sinusoidal thread profile `r_thread = major_R − (major_R − minor_R) · 0.5 · (1 − cos(2π · turn_frac))`. Outer wall is a smooth cylinder at `outer_R = major_R + wall_thickness`.
+3. **Acoustic handoff** (`z = 0`): the inner passage reduces to the specified 25 mm bore.
+4. **Transition section** (`z ≥ 0`): Inner morphs from the 25 mm bore to the inner target via `_morph_slice`. Outer morphs from `outer_R` to the outer target. If slope inputs are provided, both profiles end tangent to the horn.
+5. In threaded mode, the transition is flush with the horn inner — no wall thickness separate from the outer profile.
 
 **B. Flanged mode** (`thread_key` is None):
 1. Z range: `[0, adapter_length]`
@@ -204,6 +209,8 @@ Assembles the complete throat adapter: driver interface + morphing transition.
 
 **Driver interface positioning:** The adapter is centered on Z. The driver interface sits at `z = z_offset - adapter_length`, the horn throat sits at `z = z_offset`.
 
+**UI embedded-morph behavior:** `ui_app.py` uses this positioning API to place the driver end on the original throat plane and the horn-shape end inside the flare. It trims away the original first `adapter_length` millimetres and targets the actual profile dimensions and derivatives at the handoff. Therefore the morph changes shape without increasing the horn's mouth position or acoustic depth. A flange or threaded socket remains a mechanical attachment and may extend behind the original throat plane.
+
 **Parameters:**
 
 | Parameter | Type | Default | Description |
@@ -211,7 +218,7 @@ Assembles the complete throat adapter: driver interface + morphing transition.
 | `driver_type` | `str` | — | `"flanged"` or a `THREAD_SPECS` key |
 | `driver_diam` | `float \| None` | — | Driver exit diameter (for flanged only) |
 | `thread_key` | `str \| None` | — | Thread spec key (for threaded only) |
-| `horn_shape` | `str` | — | `"circular"`, `"rectangular"`, or `"polygonal"` |
+| `horn_shape` | `str` | — | `"circular"`, `"elliptical"`, `"rectangular"`, or `"polygonal"` |
 | `rect_w` | `float` | — | Rectangular throat width (mm); unused for circular/polygonal |
 | `rect_h` | `float` | — | Rectangular throat height (mm); unused for circular/polygonal |
 | `poly_n_sides` | `int` | — | Polygon side count; unused for circular/rectangular |

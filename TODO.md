@@ -56,13 +56,13 @@ Priorita operative per tenere `flare_forge` semplice da estendere e difficile da
 
 ## P2 - Documentazione e versioning
 
-- [ ] Aggiornare `README.md`: profili reali supportati, numero test corrente,
+- [x] Aggiornare `README.md`: profili reali supportati, numero test corrente,
       slicing print-volume, box T&G.
 - [ ] Spostare i numeri volatili della README in una sezione generata o facile
       da aggiornare.
 - [ ] Aggiungere `docs/architecture.md` con il flusso:
       profile -> section -> mesh -> flange/adapter -> assembly -> slicing.
-- [ ] Aggiornare `VERSION` e `pyproject.toml` nello stesso commit quando si fa
+- [x] Aggiornare `VERSION` e `pyproject.toml` nello stesso commit quando si fa
       release.
 - [x] Sincronizzare `pyproject.toml` con `requirements.txt`: `shapely` mancava
       dalle dependencies (install via `pip install .` era rotto per lo slicer).
