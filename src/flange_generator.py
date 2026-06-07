@@ -11,6 +11,7 @@ Bolt holes        = genuine cutouts via trimesh boolean difference.
 
 import logging
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -30,6 +31,74 @@ THICKNESS = 6.0
 BOLT_RADIUS = 22.0
 BOLT_COUNT = 4
 BOLT_DIAM = 3.5
+
+
+@dataclass(frozen=True)
+class DriverFlangeSpec:
+    """Industrial bolt-on compression-driver mounting pattern."""
+
+    name: str
+    throat_diam: float
+    outer_diam: float
+    bolt_count: int
+    bolt_diam: float
+    pcd: float
+    bolt_phase: float = 0.0
+
+
+DRIVER_FLANGE_SPECS: dict[str, DriverFlangeSpec] = {
+    "bolt_on_1in_2": DriverFlangeSpec(
+        '1" bolt-on, 2-hole', 25.4, 100.0, 2, 6.5, 76.2
+    ),
+    "bolt_on_1in_3": DriverFlangeSpec(
+        '1" bolt-on, 3-hole', 25.4, 90.0, 3, 6.5, 57.2
+    ),
+    "bolt_on_1_4in_4": DriverFlangeSpec(
+        '1.4" bolt-on, 4-hole', 35.6, 135.0, 4, 6.5, 101.6
+    ),
+    "bolt_on_2in_4": DriverFlangeSpec(
+        '2" bolt-on, 4-hole', 50.8, 135.0, 4, 6.5, 101.6
+    ),
+}
+
+
+def driver_mounting_hole_centers(driver_type: str) -> np.ndarray:
+    """Return the XY centres of a standard bolt-on driver's mounting holes."""
+    spec = DRIVER_FLANGE_SPECS[driver_type]
+    angles = spec.bolt_phase + 2.0 * np.pi * np.arange(spec.bolt_count) / spec.bolt_count
+    radius = spec.pcd / 2.0
+    return np.column_stack([radius * np.cos(angles), radius * np.sin(angles)])
+
+
+def generate_driver_mounting_flange(
+    driver_type: str,
+    thickness: float = 6.0,
+    throat_clearance: float = 0.3,
+    offset: float = 0.0,
+    seg: int = 96,
+    output_path: str | None = None,
+) -> trimesh.Trimesh | None:
+    """Generate a standard bolt-on compression-driver mounting flange.
+
+    ``driver_type`` selects an entry from ``DRIVER_FLANGE_SPECS``. The centre
+    bore is the nominal driver throat plus ``throat_clearance``; all mounting
+    dimensions remain fixed by the selected industrial pattern.
+    """
+    if throat_clearance < 0.0:
+        raise ValueError("throat_clearance must be non-negative")
+    spec = DRIVER_FLANGE_SPECS[driver_type]
+    return generate_flange(
+        throat_R=(spec.throat_diam + throat_clearance) / 2.0,
+        flange_R=spec.outer_diam / 2.0,
+        thickness=thickness,
+        bolt_R=spec.pcd / 2.0,
+        bolt_n=spec.bolt_count,
+        bolt_d=spec.bolt_diam,
+        offset=offset,
+        seg=seg,
+        output_path=output_path,
+        bolt_phase=spec.bolt_phase,
+    )
 
 
 def generate_flange(

@@ -30,6 +30,38 @@ BOLT_DIAM    = 3.5    # mm
 
 ---
 
+## Standard compression-driver bolt-on flanges
+
+### `DriverFlangeSpec`
+
+Immutable industrial mounting pattern with nominal throat diameter, outer
+diameter, bolt count, bolt-hole diameter, PCD, and bolt-pattern phase.
+
+### `DRIVER_FLANGE_SPECS`
+
+| Key | Pattern | Nominal throat | Outer Ø | Holes | Hole Ø | PCD |
+|---|---|---:|---:|---:|---:|---:|
+| `bolt_on_1in_2` | 1" bolt-on, horizontal 2-hole | 25.4 mm | 100 mm | 2 | 6.5 mm | 76.2 mm |
+| `bolt_on_1in_3` | 1" bolt-on, 3-hole | 25.4 mm | 90 mm | 3 | 6.5 mm | 57.2 mm |
+| `bolt_on_1_4in_4` | 1.4" bolt-on, 4-hole cross | 35.6 mm | 135 mm | 4 | 6.5 mm | 101.6 mm |
+| `bolt_on_2in_4` | 2" bolt-on, 4-hole cross | 50.8 mm | 135 mm | 4 | 6.5 mm | 101.6 mm |
+
+### `driver_mounting_hole_centers(driver_type: str) -> np.ndarray`
+
+Returns the XY centres of the selected standard bolt pattern. With the default
+phase, the 2-hole pattern lies on the horizontal X axis and the 4-hole pattern
+forms a cross.
+
+### `generate_driver_mounting_flange(driver_type: str, thickness: float = 6.0, throat_clearance: float = 0.3, offset: float = 0.0, seg: int = 96, output_path: str | None = None) -> trimesh.Trimesh | None`
+
+Generates the selected standard circular flange using `generate_flange()`.
+The central through-hole diameter is `nominal throat + throat_clearance`; outer
+diameter, M6 clearance holes, PCD, count, and angular layout remain fixed by
+the industrial preset. The default 0.3 mm clearance turns a nominal 25.4 mm
+1" throat into a 25.7 mm printed bore.
+
+---
+
 ## `generate_flange(throat_R: float, flange_R: float, thickness: float = 6.0, bolt_R: float = 22.0, bolt_n: int = 4, bolt_d: float = 3.5, offset: float = 0.0, seg: int = 64, output_path: str | None = None, outer_n_sides: int = 0, bolt_phase: float = 0.0) -> trimesh.Trimesh | None`
 
 Generates a circular-inner flange via CSG boolean difference.

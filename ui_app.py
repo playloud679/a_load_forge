@@ -856,15 +856,26 @@ with fg1:
             # ── Adapter mode: round/threaded driver → horn-throat transition ─
             st.caption("The morph replaces the first part of the flare. Only the "
                        "driver flange or threaded socket may protrude behind the throat plane.")
+            _bolt_on_labels = {
+                'Bolt-on 1" · 2 holes': "bolt_on_1in_2",
+                'Bolt-on 1" · 3 holes': "bolt_on_1in_3",
+                'Bolt-on 1.4" · 4 holes': "bolt_on_1_4in_4",
+                'Bolt-on 2" · 4 holes': "bolt_on_2in_4",
+            }
             _ta_driver_type = st.radio("Driver interface",
-                ["Flanged", 'Threaded 1\u215c"-18 (25 mm bore)'],
-                index=0, horizontal=True, key="ta_driver_type")
-            _driver_is_flanged = _ta_driver_type == "Flanged"
-            _driver_is_threaded = not _driver_is_flanged
+                ["Flanged custom", *_bolt_on_labels, 'Threaded 1\u215c"-18 (25 mm bore)'],
+                index=0, key="ta_driver_type")
+            _driver_is_custom_flange = _ta_driver_type == "Flanged custom"
+            _driver_is_bolt_on = _ta_driver_type in _bolt_on_labels
+            _driver_is_threaded = _ta_driver_type.startswith("Threaded")
+            _driver_is_flanged = _driver_is_custom_flange or _driver_is_bolt_on
+            _ta_driver_key = (_bolt_on_labels[_ta_driver_type] if _driver_is_bolt_on
+                              else "1_375in" if _driver_is_threaded else "flanged")
 
             _ta_thread_key = None
             if _driver_is_threaded:
                 _ta_thread_key = "1_375in"
+            _ta_driver_clearance = 0.3
 
             _ta_adapter_len = st.number_input("Morph length inside horn (mm)", 5.0, 200.0, 30.0, 5.0,
                 key="ta_adapter_len",
@@ -882,6 +893,32 @@ with fg1:
                 _ft_sp = _ft_off = _ft_nb = _ft_db = _ft_od = _ft_bc = 0.0
                 _ft_ring = _ft_outer_n = 0; _ft_inner_R = _ft_driver_d / 2.0
                 throat_outer = "Circular"; _ft_bphase = 0.0; _ft_ow = _ft_oh = 0.0
+            elif _driver_is_bolt_on:
+                _driver_spec = _fg.DRIVER_FLANGE_SPECS[_ta_driver_key]
+                _ta_driver_clearance = st.number_input(
+                    "Throat clearance (mm)", 0.0, 2.0, 0.3, 0.1,
+                    key="ta_driver_clearance",
+                    help="Added to the nominal driver throat diameter.",
+                )
+                _ft_driver_d = _driver_spec.throat_diam + _ta_driver_clearance
+                _ft_inner_R = _ft_driver_d / 2.0
+                _ft_sp = st.number_input("Flange thickness (mm)", 2.0, 20.0, _flange_sp, 0.5,
+                    key="ft_spess")
+                _ft_off = 0.0
+                _ft_nb = _driver_spec.bolt_count
+                _ft_db = _driver_spec.bolt_diam
+                _ft_od = _driver_spec.outer_diam
+                _ft_bc = _driver_spec.pcd
+                _ft_bphase = _driver_spec.bolt_phase
+                _ft_outer_n = 0
+                _ft_ring = (_driver_spec.outer_diam - _ft_driver_d) / 2.0
+                throat_outer = "Circular"; _ft_ow = _ft_oh = 0.0
+                _ta_socket_depth = 0.0
+                st.caption(
+                    f"{_driver_spec.name}: throat Ø{_ft_driver_d:.1f} mm · "
+                    f"outer Ø{_ft_od:.1f} mm · {_ft_nb} × Ø{_ft_db:.1f} mm · "
+                    f"PCD {_ft_bc:.1f} mm"
+                )
             else:
                 _default_driver_d = float(throat_d if is_rect else throat_d)
                 _ft_driver_d = st.number_input("Driver throat \u00d8 (mm)", 5.0, 200.0,
@@ -928,6 +965,8 @@ with fg1:
         else:
             # ── No adapter: traditional throat flange ─────────────────────
             _ta_driver_type = "flanged"
+            _ta_driver_key = "flanged"
+            _ta_driver_clearance = 0.3
             _ta_include_adapter = False
             _ta_adapter_len = 0.0
             _ta_socket_depth = 0.0
@@ -1565,8 +1604,8 @@ if gen_btn:
 
                     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
                     f_throat = _ta.make_adapter_assembly(
-                        driver_type=_ta_thread_key if _driver_is_threaded else "flanged",
-                        driver_diam=_ft_driver_d if _driver_is_flanged else None,
+                        driver_type=_ta_driver_key,
+                        driver_diam=_ft_driver_d if _driver_is_custom_flange else None,
                         thread_key=_ta_thread_key,
                         horn_shape=horn_shape,
                         rect_w=rect_w, rect_h=rect_h,
@@ -1575,13 +1614,14 @@ if gen_btn:
                         horn_R_eq=horn_R_eq,
                         adapter_length=_target_local_z,
                         wall_thickness=thickness,
-                        flange_R=_ft_od / 2.0 if _driver_is_flanged else 0.0,
+                        flange_R=_ft_od / 2.0 if _driver_is_custom_flange else 0.0,
                         flange_thickness=_ft_sp if _driver_is_flanged else 0.0,
-                        flange_bolt_R=_ft_bc / 2.0 if _driver_is_flanged else 0.0,
-                        flange_bolt_n=int(_ft_nb) if _driver_is_flanged else 0,
-                        flange_bolt_d=_ft_db if _driver_is_flanged else 0.0,
-                        flange_bolt_phase=_ft_bphase if _driver_is_flanged else 0.0,
-                        flange_outer_n=_ft_outer_n if _driver_is_flanged else 0,
+                        flange_bolt_R=_ft_bc / 2.0 if _driver_is_custom_flange else 0.0,
+                        flange_bolt_n=int(_ft_nb) if _driver_is_custom_flange else 0,
+                        flange_bolt_d=_ft_db if _driver_is_custom_flange else 0.0,
+                        flange_bolt_phase=_ft_bphase if _driver_is_custom_flange else 0.0,
+                        flange_outer_n=_ft_outer_n if _driver_is_custom_flange else 0,
+                        driver_clearance=_ta_driver_clearance,
                         socket_length=_ta_socket_depth if _driver_is_threaded else 0.0,
                         outer_target_R=_outer_target_R,
                         outer_rect_w=_outer_rw,

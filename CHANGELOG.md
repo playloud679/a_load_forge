@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.11.0 (2026-06-08)
+
+- **Preset bolt-on driver standard** (`src/flange_generator.py`): nuovo `DriverFlangeSpec` + tabella `DRIVER_FLANGE_SPECS` con i pattern industriali di montaggio (`bolt_on_1in_2` 1" 2-fori, `bolt_on_1in_3` 1" 3-fori, `bolt_on_1_4in_4` 1.4" 4-fori a croce, `bolt_on_2in_4` 2" 4-fori a croce). Helper `driver_mounting_hole_centers()` e `generate_driver_mounting_flange()` fissano diametro esterno, fori M6, PCD, numero e fase del pattern; il foro centrale è `gola nominale + throat_clearance` (default 0.3 mm).
+- **Adapter di gola con bolt-on** (`src/throat_adapter.py`): `make_adapter_assembly()` accetta una chiave bolt-on come `driver_type` e nuovo parametro `driver_clearance` (0.3 mm). Per i preset carica il pattern fisso da `DRIVER_FLANGE_SPECS` e lo unisce alla transizione con il motore manifold; la flangia custom resta disponibile via `flange_R`.
+- **UI** (`ui_app.py`): selettore driver esteso con flangia custom + bolt-on standard 1"/1.4"/2"; clearance di gola configurabile. I preset bloccano Ø esterno, fori, PCD e layout angolare così che non possano divergere.
+- **Single source of truth**: throat nominale, Ø esterno, fori M6, PCD e fase vivono solo in `DRIVER_FLANGE_SPECS`; UI e adapter consumano quelle chiavi (vedi `docs/INDEX.md`).
+- **Test** (`tests/test_all.py`): +7 controlli sui preset bolt-on (centri fori, clearance, union watertight con l'adapter) → **163 funzionali** + 33 geometria, tutti verdi.
+- **Docs/versioning**: `VERSION`, `pyproject.toml`, README, guida utente e documentazione di modulo (`docs/flange_generator.md`, `docs/throat_adapter.md`, `docs/INDEX.md`) aggiornati a `2.11.0`.
+
 ## 2.10.1 (2026-06-08)
 
 - **Flangia bocca inward strutturale** (`ui_app.py`): la roll-back mouth flange ora crea piloni pieni tra flare e flangia interna, poi li rifila con una booleana sulla superficie reale del flare. Il supporto resta continuo fino alla battuta delle viti senza sporgere dalla parete esterna.

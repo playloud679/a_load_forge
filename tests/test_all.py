@@ -233,6 +233,54 @@ for label, profile_fn in CIRC_CASES:
     test(label, make)
 
 
+def test_driver_flange_specs():
+    expected = {
+        "bolt_on_1in_2": (25.4, 100.0, 2, 6.5, 76.2),
+        "bolt_on_1in_3": (25.4, 90.0, 3, 6.5, 57.2),
+        "bolt_on_1_4in_4": (35.6, 135.0, 4, 6.5, 101.6),
+        "bolt_on_2in_4": (50.8, 135.0, 4, 6.5, 101.6),
+    }
+    assert set(_fg.DRIVER_FLANGE_SPECS) == set(expected)
+    for key, values in expected.items():
+        spec = _fg.DRIVER_FLANGE_SPECS[key]
+        assert (spec.throat_diam, spec.outer_diam, spec.bolt_count,
+                spec.bolt_diam, spec.pcd) == values
+test("standard bolt-on driver flange specs", test_driver_flange_specs)
+
+
+def test_driver_mounting_hole_centers():
+    two = _fg.driver_mounting_hole_centers("bolt_on_1in_2")
+    assert np.allclose(two, [[38.1, 0.0], [-38.1, 0.0]], atol=1e-9)
+    three = _fg.driver_mounting_hole_centers("bolt_on_1in_3")
+    assert np.allclose(np.linalg.norm(three, axis=1), 57.2 / 2.0)
+    four = _fg.driver_mounting_hole_centers("bolt_on_2in_4")
+    assert np.allclose(np.linalg.norm(four, axis=1), 101.6 / 2.0)
+test("standard bolt-on hole positions", test_driver_mounting_hole_centers)
+
+
+for _driver_key, _driver_spec in _fg.DRIVER_FLANGE_SPECS.items():
+    def make_driver_flange(key=_driver_key, spec=_driver_spec):
+        clearance = 0.3
+        thickness = 6.0
+        m = _fg.generate_driver_mounting_flange(
+            key, thickness=thickness, throat_clearance=clearance
+        )
+        assert m is not None, f"driver flange {key}: returned None"
+        assert m.is_watertight, f"driver flange {key}: not watertight"
+        assert m.body_count == 1, f"driver flange {key}: {m.body_count} bodies"
+        assert m.volume > 0, f"driver flange {key}: volume={m.volume}"
+        extents = m.bounds[1] - m.bounds[0]
+        assert abs(extents[0] - spec.outer_diam) < 0.1
+        assert abs(extents[1] - spec.outer_diam) < 0.1
+        expected_volume = np.pi * thickness * (
+            (spec.outer_diam / 2.0) ** 2
+            - ((spec.throat_diam + clearance) / 2.0) ** 2
+            - spec.bolt_count * (spec.bolt_diam / 2.0) ** 2
+        )
+        assert abs(m.volume - expected_volume) / expected_volume < 0.01
+    test(f"standard driver flange {_driver_key}", make_driver_flange)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  3. Polygonal section — all profiles × n_sides sample
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1427,6 +1475,24 @@ def test_adapter_assembly_threaded():
     )
     _check_trimesh_watertight(m, "adapter assembly threaded")
 test("adapter assembly threaded", test_adapter_assembly_threaded)
+
+
+def test_adapter_assembly_standard_bolt_on():
+    """A standard bolt-on preset must drive both transition bore and flange."""
+    m = _ta.make_adapter_assembly(
+        driver_type="bolt_on_2in_4", driver_diam=None, thread_key=None,
+        horn_shape="circular",
+        rect_w=0.0, rect_h=0.0, poly_n_sides=0, poly_circumR=0.0,
+        horn_R_eq=30.0,
+        adapter_length=30.0, wall_thickness=4.0,
+        flange_thickness=6.0, driver_clearance=0.3,
+        socket_length=0.0, z_offset=0.0,
+        output_path=None,
+    )
+    _check_trimesh_watertight(m, "adapter assembly standard bolt-on")
+    assert abs((m.bounds[1, 0] - m.bounds[0, 0]) - 135.0) < 0.1
+test("adapter assembly standard bolt-on", test_adapter_assembly_standard_bolt_on)
+
 
 # 1⅜"-18 threaded adapter with 25 mm bore — representative horn shapes
 for _shape, _ns, _h_R_eq, _cR in [

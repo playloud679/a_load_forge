@@ -203,7 +203,7 @@ Returns a watertight `trimesh.Trimesh`.
 
 ---
 
-### `make_adapter_assembly(driver_type: str, driver_diam: float | None, thread_key: str | None, horn_shape: str, rect_w: float, rect_h: float, poly_n_sides: int, poly_circumR: float, horn_R_eq: float, adapter_length: float, wall_thickness: float, axial_steps: int = 50, flange_R: float = 0.0, flange_thickness: float = 6.0, flange_bolt_R: float = 0.0, flange_bolt_n: int = 4, flange_bolt_d: float = 3.5, flange_bolt_phase: float = 0.0, flange_outer_n: int = 0, socket_length: float = 15.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, z_offset: float = 0.0, output_path: str | None = None) -> trimesh.Trimesh`
+### `make_adapter_assembly(driver_type: str, driver_diam: float | None, thread_key: str | None, horn_shape: str, rect_w: float, rect_h: float, poly_n_sides: int, poly_circumR: float, horn_R_eq: float, adapter_length: float, wall_thickness: float, axial_steps: int = 50, flange_R: float = 0.0, flange_thickness: float = 6.0, flange_bolt_R: float = 0.0, flange_bolt_n: int = 4, flange_bolt_d: float = 3.5, flange_bolt_phase: float = 0.0, flange_outer_n: int = 0, driver_clearance: float = 0.3, socket_length: float = 15.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, z_offset: float = 0.0, output_path: str | None = None) -> trimesh.Trimesh`
 
 Assembles the complete throat adapter: driver interface + morphing transition.
 
@@ -215,7 +215,7 @@ Assembles the complete throat adapter: driver interface + morphing transition.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
-| `driver_type` | `str` | — | `"flanged"` or a `THREAD_SPECS` key |
+| `driver_type` | `str` | — | `"flanged"`, a `DRIVER_FLANGE_SPECS` bolt-on key, or a `THREAD_SPECS` key |
 | `driver_diam` | `float \| None` | — | Driver exit diameter (for flanged only) |
 | `thread_key` | `str \| None` | — | Thread spec key (for threaded only) |
 | `horn_shape` | `str` | — | `"circular"`, `"elliptical"`, `"rectangular"`, or `"polygonal"` |
@@ -234,6 +234,7 @@ Assembles the complete throat adapter: driver interface + morphing transition.
 | `flange_bolt_d` | `float` | `3.5` | Bolt hole diameter |
 | `flange_bolt_phase` | `float` | `0.0` | Bolt pattern rotation (radians) |
 | `flange_outer_n` | `int` | `0` | Outer polygon sides (0 = circular) |
+| `driver_clearance` | `float` | `0.3` | Added to a standard bolt-on preset's nominal throat diameter |
 | `socket_length` | `float` | `15.0` | Threaded socket depth (mm) |
 | `outer_target_R` | `float \| None` | `None` | Outer equiv. radius for threaded mode (matches horn outer) |
 | `outer_rect_w` | `float \| None` | `None` | Outer rect width (threaded mode) |
@@ -245,6 +246,6 @@ Assembles the complete throat adapter: driver interface + morphing transition.
 
 **Algorithm:**
 1. Builds the adapter (transition + optional integrated threads) via `make_adapter()`.
-2. For flanged mode: if `flange_R > 0`, imports `flange_generator.generate_flange` and creates a bolt flange at the driver interface, then booleans it with the adapter via `trimesh.boolean.union` (manifold engine).
+2. For custom flanged mode: if `flange_R > 0`, creates a custom bolt flange. For a standard bolt-on `driver_type`, loads the fixed industrial pattern from `flange_generator.DRIVER_FLANGE_SPECS` and creates it via `generate_driver_mounting_flange()`. Both are boolean-unioned to the transition with the manifold engine.
 3. Translates the full assembly so the horn-throat end is at `z = z_offset`.
 4. Returns a single watertight `trimesh.Trimesh` (or `None` on failure).

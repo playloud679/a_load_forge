@@ -5,7 +5,8 @@ Designed for circular/rectangular/polygonal horns that mate with a round compres
 The adapter maintains the cross-sectional area expansion from the horn profile.
 
 Driver interfaces:
-  - Flanged: circular flange with bolt holes (reuses flange_generator)
+  - Flanged: custom circular flange with bolt holes (reuses flange_generator)
+  - Bolt-on: standard 1", 1.4", and 2" compression-driver mounting patterns
   - Threaded: 1⅜"-18 female thread with a 25 mm acoustic bore
 
 Architecture:
@@ -733,7 +734,7 @@ def make_threaded_socket(
 
 def make_adapter_assembly(
     # Driver interface
-    driver_type: str,         # "flanged" | thread_key
+    driver_type: str,         # "flanged" | DRIVER_FLANGE_SPECS key | thread_key
     driver_diam: float | None,  # for flanged only (mm)
     thread_key: str | None,     # for threaded only
     # Horn throat shape
@@ -755,6 +756,7 @@ def make_adapter_assembly(
     flange_bolt_d: float = 3.5,
     flange_bolt_phase: float = 0.0,
     flange_outer_n: int = 0,
+    driver_clearance: float = 0.3,
     # Threaded socket params
     socket_length: float = 15.0,
     # Outer target (for threaded mode — horn's OUTER throat eq. radius)
@@ -777,14 +779,26 @@ def make_adapter_assembly(
     """
     import trimesh as _tm
 
-    driver_R = (driver_diam / 2.0) if driver_type == "flanged" else 0.0
+    from flange_generator import DRIVER_FLANGE_SPECS
+
+    is_custom_flange = driver_type == "flanged"
+    is_bolt_on = driver_type in DRIVER_FLANGE_SPECS
+    is_threaded = driver_type in THREAD_SPECS
+    if not (is_custom_flange or is_bolt_on or is_threaded):
+        raise ValueError(f"Unsupported driver_type: {driver_type}")
+    if is_bolt_on:
+        driver_R = (DRIVER_FLANGE_SPECS[driver_type].throat_diam + driver_clearance) / 2.0
+    elif is_custom_flange:
+        driver_R = driver_diam / 2.0
+    else:
+        driver_R = 0.0
 
     # ---- 1. Build the seamless adapter (threads + transition) ----
     if adapter_length > 0.5:
-        tk = thread_key if driver_type != "flanged" else None
-        sl = socket_length if driver_type != "flanged" else 0.0
+        tk = thread_key if is_threaded else None
+        sl = socket_length if is_threaded else 0.0
         adapter = make_adapter(
-            driver_R if driver_type == "flanged" else THREAD_SPECS[thread_key].bore_diam / 2.0,
+            THREAD_SPECS[thread_key].bore_diam / 2.0 if is_threaded else driver_R,
             horn_shape, rect_w, rect_h,
             poly_n_sides, horn_R_eq, poly_circumR,
             axial_steps, adapter_length, wall_thickness,
@@ -798,8 +812,7 @@ def make_adapter_assembly(
         )
     else:
         # No transition — just a thin ring
-        r0 = driver_R if driver_type == "flanged" else \
-             (THREAD_SPECS[thread_key].bore_diam / 2.0)
+        r0 = THREAD_SPECS[thread_key].bore_diam / 2.0 if is_threaded else driver_R
         adapter = _tc.cylinder(radius=r0 + wall_thickness,
                                 height=1.0, sections=64)
         hole = _tc.cylinder(radius=r0, height=3.0, sections=64)
@@ -818,20 +831,28 @@ def make_adapter_assembly(
     # ---- 2. Flanged driver interface (bolt flange on top of adapter) ----
     bodies = [adapter]
 
-    if driver_type == "flanged" and flange_R > 0:
-        from flange_generator import generate_flange
-        f_throat = generate_flange(
-            throat_R=driver_R,
-            flange_R=flange_R,
-            thickness=flange_thickness,
-            bolt_R=flange_bolt_R,
-            bolt_n=int(flange_bolt_n),
-            bolt_d=flange_bolt_d,
-            bolt_phase=flange_bolt_phase,
-            offset=0.0,
-            outer_n_sides=flange_outer_n,
-            output_path=None,
-        )
+    if is_bolt_on or (is_custom_flange and flange_R > 0):
+        from flange_generator import generate_driver_mounting_flange, generate_flange
+        if is_bolt_on:
+            f_throat = generate_driver_mounting_flange(
+                driver_type,
+                thickness=flange_thickness,
+                throat_clearance=driver_clearance,
+                offset=0.0,
+            )
+        else:
+            f_throat = generate_flange(
+                throat_R=driver_R,
+                flange_R=flange_R,
+                thickness=flange_thickness,
+                bolt_R=flange_bolt_R,
+                bolt_n=int(flange_bolt_n),
+                bolt_d=flange_bolt_d,
+                bolt_phase=flange_bolt_phase,
+                offset=0.0,
+                outer_n_sides=flange_outer_n,
+                output_path=None,
+            )
         if f_throat is not None:
             bodies.append(f_throat)
             try:

@@ -139,12 +139,14 @@ Sotto **Advanced** (apri solo se serve): `Z offset`, posizione bulloni
 
 > **Throat — adattatore driver.** Se spunti **Include shape adapter** puoi
 > collegare un driver **a vite 1⅜"-18 con foro acustico da 25 mm** oppure
-> **flangiato**, e
+> **flangiato custom** o bolt-on standard **1" 2-fori**, **1" 3-fori**,
+> **1.4" 4-fori** e **2" 4-fori**, e
 > l'app costruisce la transizione dalla gola tonda alla forma della tromba.
 > **Morph length inside horn** sostituisce i primi millimetri del flare: non
 > allunga la tromba. Solo flangia o socket possono sporgere dietro la gola.
 > **Throat — driver adapter.** Tick **Include shape adapter** to connect a
-> **1⅜"-18 threaded driver with a 25 mm acoustic bore** or a **flanged** driver; the app builds the
+> **1⅜"-18 threaded driver with a 25 mm acoustic bore**, a custom flange, or
+> a standard **1" / 1.4" / 2" bolt-on** driver; the app builds the
 > round-to-shape transition. **Morph length inside horn** replaces the first
 > part of the flare, so it does not increase horn depth. Only the flange or
 > threaded socket may protrude behind the throat plane.
