@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.12.1 (2026-06-08)
+
+- **Forma e dimensionamento Mouth/Mid** (`src/flange_generator.py`, `ui_app.py`): `Offset from flare` mostra solo l'offset e segue automaticamente la sezione del flare, con fori centrati nel materiale. `Custom dimensions` espone Circular/Polygonal/Rectangular su ogni sezione e consente fori auto-centrati oppure su distanza fissa dal centro (PCD). La mouth inward resta vincolata al bordo strutturale; la throat flange mantiene controlli e comportamento precedenti.
+- **Mouth inward su tutti i roll-back** (`ui_app.py`): la modalità inward non è più limitata a Rectangular/Elliptical. Il bordo di ritorno viene rilevato dalla geometria esterna reale e la piastra interna, i fori, i pilastri e le sedi testa seguono anche sezioni Circular e Polygonal. L'opzione compare solo quando la cavità ha profondità sufficiente per offset e diametro fori correnti.
+- **DXF ellittico custom** (`src/dxf_export.py`): `elliptical_flange_dxf()` accetta anche `outer_w`/`outer_h`, così flange ellittiche con dimensioni esterne arbitrarie mantengono outline e pattern fori esatti.
+- **DXF flange più affidabili** (`src/dxf_export.py`, `ui_app.py`): il rilevamento automatico prova anche i piani mediani tra facce orizzontali, quindi trova piatti sottili sopra adapter lunghi; la flangia bocca inward esporta anche i fori passanti ricavati dai tagli applicati all'assieme.
+- **Shape adapter senza aumento profondità** (`ui_app.py`): confermato il morph embedded che sostituisce il primo tratto del flare e mantiene invariata la posizione della bocca.
+- **Test/docs** (`tests/test_all.py`): aggiunte regressioni per adapter lunghi, DXF ellittico analitico, generatore Mouth/Mid comune e piastre inward circolari/poligonali. Totale: **175 funzionali** + 33 geometria.
+- **Versioning**: `VERSION` e `pyproject.toml` aggiornati a `2.12.1`.
+
 ## 2.12.0 (2026-06-08)
 
 - **Export DXF dima fori flange** (`src/dxf_export.py` nuovo, `ui_app.py`): ogni flangia (gola/bocca/intermedia) ora si scarica come **DXF 2D** — fori-bullone, foro centrale e contorno su layer separati (`HOLES`/`BORE`/`OUTLINE`/`CENTERS`), pronto come dima di foratura o taglio laser/CNC di una piastra. Nessuna dipendenza nuova: scritto a mano come AutoCAD **R12 (AC1009)** ASCII in millimetri (come `_step_export.py` per lo STEP). Il template è **derivato dalla mesh** della flangia (sezione planare del piatto), quindi funziona per ogni tipo (circolare/poligonale/rettangolare/ellittica, custom o bolt-on, incluso il piatto dell'adapter bolt-on) senza riderivare parametri. I fori-bullone escono come **cerchi al diametro nominale esatto** sul cerchio bulloni reale (raggio recuperato come raggio circoscritto dei vertici, anche se il foro mesh è un cilindro a 12 facce); un foro centrale esagonale o rettangolare mantiene la forma vera come polilinea. Bottoni di download per-flangia sotto STL/STEP nei risultati; mostrati solo per flange con fori reali.

@@ -208,6 +208,162 @@ def generate_flange(
     return flange
 
 
+def generate_profile_flange(
+    inner_type: str,
+    thickness: float,
+    bolt_n: int,
+    bolt_d: float,
+    offset: float,
+    inner_R: float = 0.0,
+    inner_w: float = 0.0,
+    inner_h: float = 0.0,
+    inner_n_sides: int = 0,
+    outer_mode: str = "offset",
+    outer_type: str = "circular",
+    outer_offset: float = 15.0,
+    outer_diam: float = 0.0,
+    outer_w: float = 0.0,
+    outer_h: float = 0.0,
+    outer_n_sides: int = 0,
+    bolt_mode: str = "auto",
+    bolt_R: float = 0.0,
+    bolt_phase: float = 0.0,
+    seg: int = 128,
+    output_path: str | None = None,
+) -> trimesh.Trimesh | None:
+    """Generate an outward Mouth/Mid flange around any supported flare opening.
+
+    The flange top face is at ``offset`` and grows downward. ``outer_mode`` is
+    either ``"offset"`` (outer shape follows the opening) or ``"custom"``
+    (circular, polygonal, or rectangular outer dimensions). ``bolt_mode`` is
+    either ``"auto"`` (each hole is centred radially in the available material)
+    or ``"fixed"`` (all holes use the requested ``bolt_R``).
+    """
+    from shapely.geometry import Polygon as _ShapelyPolygon
+
+    valid_inner = {"circular", "polygonal", "rectangular", "elliptical"}
+    valid_outer = {"circular", "polygonal", "rectangular", "elliptical"}
+    if inner_type not in valid_inner:
+        raise ValueError(f"unsupported inner_type: {inner_type}")
+    if outer_mode not in {"offset", "custom"}:
+        raise ValueError("outer_mode must be 'offset' or 'custom'")
+    if outer_type not in valid_outer:
+        raise ValueError(f"unsupported outer_type: {outer_type}")
+    if bolt_mode not in {"auto", "fixed"}:
+        raise ValueError("bolt_mode must be 'auto' or 'fixed'")
+
+    def _shape_points(shape: str, R: float, w: float, h: float, n: int) -> np.ndarray:
+        if shape == "rectangular":
+            return np.array([[-w / 2, -h / 2], [w / 2, -h / 2],
+                             [w / 2, h / 2], [-w / 2, h / 2]], dtype=float)
+        count = n if shape == "polygonal" else seg
+        phase = np.pi / 2.0 if shape == "polygonal" else 0.0
+        angles = np.linspace(0.0, 2.0 * np.pi, count, endpoint=False) + phase
+        if shape == "elliptical":
+            return np.column_stack([(w / 2.0) * np.cos(angles),
+                                    (h / 2.0) * np.sin(angles)])
+        return np.column_stack([R * np.cos(angles), R * np.sin(angles)])
+
+    def _radial_extent(shape: str, R: float, w: float, h: float,
+                       n: int, angle: float) -> float:
+        ca, sa = abs(np.cos(angle)), abs(np.sin(angle))
+        if shape == "circular":
+            return R
+        if shape == "elliptical":
+            a, b = w / 2.0, h / 2.0
+            return 1.0 / np.sqrt((ca / a) ** 2 + (sa / b) ** 2)
+        if shape == "rectangular":
+            return min((w / 2.0) / max(ca, 1e-12),
+                       (h / 2.0) / max(sa, 1e-12))
+        # Polygon vertices use phase pi/2. Intersect a ray with its boundary.
+        points = _shape_points(shape, R, w, h, n)
+        ray = np.array([np.cos(angle), np.sin(angle)])
+        best = np.inf
+        for p0, p1 in zip(points, np.roll(points, -1, axis=0)):
+            edge = p1 - p0
+            cross = ray[0] * edge[1] - ray[1] * edge[0]
+            if abs(cross) < 1e-12:
+                continue
+            t = (p0[0] * edge[1] - p0[1] * edge[0]) / cross
+            u = (p0[0] * ray[1] - p0[1] * ray[0]) / cross
+            if t > 0.0 and -1e-9 <= u <= 1.0 + 1e-9:
+                best = min(best, t)
+        return float(best)
+
+    if inner_type == "polygonal" and inner_n_sides < 3:
+        raise ValueError("polygonal inner requires inner_n_sides >= 3")
+    if outer_mode == "offset":
+        outer_type = inner_type
+        if inner_type == "circular":
+            outer_diam = 2.0 * (inner_R + outer_offset)
+        elif inner_type == "polygonal":
+            outer_n_sides = inner_n_sides
+            outer_diam = 2.0 * (
+                inner_R + outer_offset / np.cos(np.pi / inner_n_sides))
+        else:
+            outer_w = inner_w + 2.0 * outer_offset
+            outer_h = inner_h + 2.0 * outer_offset
+    elif outer_type == "polygonal" and outer_n_sides < 3:
+        raise ValueError("polygonal outer requires outer_n_sides >= 3")
+
+    outer_R = outer_diam / 2.0
+    inner_pts = _shape_points(
+        inner_type, inner_R, inner_w, inner_h, inner_n_sides)
+    outer_pts = _shape_points(
+        outer_type, outer_R, outer_w, outer_h, outer_n_sides)
+    inner_poly = _ShapelyPolygon(inner_pts)
+    outer_poly = _ShapelyPolygon(outer_pts)
+    if not outer_poly.buffer(1e-7).contains(inner_poly):
+        raise ValueError("outer flange dimensions do not contain the flare opening")
+
+    zb = offset - thickness
+    body = trimesh.creation.extrude_polygon(outer_poly, height=thickness)
+    body.apply_translation([0.0, 0.0, zb])
+    hole_h = thickness + 2.0
+    bore = trimesh.creation.extrude_polygon(inner_poly, height=hole_h)
+    bore.apply_translation([0.0, 0.0, zb - 1.0])
+    cuts: list[trimesh.Trimesh] = [bore]
+
+    angles = (bolt_phase + 2.0 * np.pi * np.arange(int(bolt_n)) /
+              max(int(bolt_n), 1))
+    margin = bolt_d / 2.0 + 1.0
+    if bolt_mode == "fixed" and len(angles):
+        sample = np.linspace(0.0, 2.0 * np.pi, 360, endpoint=False)
+        inner_limit = max(_radial_extent(
+            inner_type, inner_R, inner_w, inner_h, inner_n_sides, a)
+            for a in sample) + margin
+        outer_limit = min(_radial_extent(
+            outer_type, outer_R, outer_w, outer_h, outer_n_sides, a)
+            for a in sample) - margin
+        if outer_limit <= inner_limit:
+            raise ValueError("not enough flange material for a fixed bolt circle")
+        bolt_R = float(np.clip(bolt_R, inner_limit, outer_limit))
+
+    for angle in angles:
+        ri = _radial_extent(
+            inner_type, inner_R, inner_w, inner_h, inner_n_sides, angle)
+        ro = _radial_extent(
+            outer_type, outer_R, outer_w, outer_h, outer_n_sides, angle)
+        radius = (ri + ro) / 2.0 if bolt_mode == "auto" else bolt_R
+        if radius < ri + margin or radius > ro - margin:
+            raise ValueError("not enough flange material around a bolt hole")
+        cx, cy = radius * np.cos(angle), radius * np.sin(angle)
+        cut = creation.cylinder(radius=bolt_d / 2.0, height=hole_h, sections=24)
+        cut.apply_translation([cx, cy, zb + thickness / 2.0])
+        cuts.append(cut)
+
+    flange = trimesh.boolean.difference([body] + cuts, engine="manifold")
+    if flange is None or flange.is_empty:
+        logger.error("Profile flange boolean operation failed")
+        return None
+    flange.remove_unreferenced_vertices()
+    flange.update_faces(flange.nondegenerate_faces())
+    flange.fix_normals()
+    if output_path:
+        flange.export(output_path)
+    return flange
+
+
 def generate_polygonal_flange(
     inner_circumR: float,
     n_sides: int,

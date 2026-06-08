@@ -90,14 +90,14 @@ The STEP files use AP203 CONFIG_CONTROL_DESIGN schema with `FACETED_BREP` and `C
 
 ## DXF drilling templates
 
-Each mounting flange (throat, mouth, mid) can also be downloaded as a flat 2-D **DXF** template — a drill/cut drawing with the bolt holes, the throat bore, and the plate outline on separate layers (`HOLES`, `BORE`, `OUTLINE`, `CENTERS`). It's written by hand as plain AutoCAD R12 (AC1009) ASCII in millimetres, so there's no extra dependency and it opens in LibreCAD/QCAD/Fusion/Illustrator and every CAM tool. The template is taken straight from the generated flange *mesh* by cutting a cross-section through the plate, so any flange type (circular, polygonal, rectangular, elliptical, custom or bolt-on) exports without re-deriving parameters. Bolt holes come back as exact nominal circles on the exact bolt circle even though the mesh hole is a faceted cylinder (the radius is recovered as the circumscribed vertex radius); a hexagonal or rectangular bore keeps its real shape as a polyline.
+Each mounting flange (throat, mouth, mid) can also be downloaded as a flat 2-D **DXF** template — a drill/cut drawing with the bolt holes, the throat bore, and the plate outline on separate layers (`HOLES`, `BORE`, `OUTLINE`, `CENTERS`). It's written by hand as plain AutoCAD R12 (AC1009) ASCII in millimetres, so there's no extra dependency and it opens in LibreCAD/QCAD/Fusion/Illustrator and every CAM tool. Templates are taken straight from the generated flange *mesh* by cutting a cross-section through the plate; the section finder also detects thin flange plates on tall throat adapters. Inward mouth flanges export the shaft holes drilled into the assembled horn. Bolt holes come back as exact nominal circles; a hexagonal or rectangular bore keeps its real shape as a polyline.
 
 ## Tests
 
     .venv/bin/python tests/test_all.py
     .venv/bin/python tests/test_geometry.py
 
-`test_all.py` (169 tests) covers the full profile × section matrix, standard driver bolt-on presets, flanges, DXF drilling templates, inward-flange pillars and screw seats, slicing, radial and box tongue-and-groove joints, print-volume chunks, and the throat adapter C1/C2 raccordo. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
+`test_all.py` (175 tests) covers the full profile × section matrix, standard driver bolt-on presets, flanges, DXF drilling templates, inward-flange pillars and screw seats across roll-back section shapes, slicing, radial and box tongue-and-groove joints, print-volume chunks, and the throat adapter C1/C2 raccordo. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
 
 ## Known limitations
 

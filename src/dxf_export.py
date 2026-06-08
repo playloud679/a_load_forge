@@ -23,6 +23,11 @@ or rectangular opening stays a polyline; a round one becomes a circle).
 
 Layers let the user keep only what they need: delete OUTLINE/BORE to get a
 pure hole template, or keep everything for registration when drilling a plate.
+
+Elliptical-offset flanges also have an **analytic** path
+(``elliptical_flange_dxf``) that builds the same template straight from the
+source parameters instead of a mesh section — exact and immune to boolean/mesh
+artefacts that can mis-centre mesh-derived holes.
 """
 from __future__ import annotations
 
@@ -109,6 +114,33 @@ def _ring_xy(ring) -> np.ndarray:
     return c
 
 
+def _candidate_section_zs(mesh, samples: int) -> list[float]:
+    """Z heights worth sectioning to locate the drilling plane.
+
+    A flange plate is bounded by two horizontal faces (top + bottom), so the
+    midpoint between consecutive horizontal-face levels is guaranteed to cut
+    *through* the plate and catch every vertical bolt hole — even a thin plate
+    sitting atop a long throat adapter, where uniform fractional sampling can
+    step right over it. Those midpoints are tried first; a uniform sweep is
+    appended as a fallback for meshes with no clear horizontal plate faces.
+    """
+    z0, z1 = float(mesh.bounds[0, 2]), float(mesh.bounds[1, 2])
+    span = z1 - z0
+    zs: list[float] = []
+    try:
+        nz = mesh.face_normals[:, 2]
+        cz = mesh.triangles_center[:, 2]
+        horiz = np.abs(nz) > 0.99
+        if horiz.any():
+            levels = np.unique(np.round(cz[horiz], 3))
+            if len(levels) >= 2:
+                zs.extend(((levels[:-1] + levels[1:]) / 2.0).tolist())
+    except Exception:
+        pass
+    zs.extend((z0 + np.linspace(0.08, 0.92, samples) * span).tolist())
+    return zs
+
+
 def _best_section_z(mesh, samples: int = 11):
     """Pick the Z that cuts the plate where the bolt pattern lives.
 
@@ -121,8 +153,7 @@ def _best_section_z(mesh, samples: int = 11):
     if span <= 1e-6:
         return None, []
     best = (None, [], -1, -1.0)  # z, polygons, n_holes, ext_area
-    for frac in np.linspace(0.08, 0.92, samples):
-        z = z0 + frac * span
+    for z in _candidate_section_zs(mesh, samples):
         sec = mesh.section(plane_origin=[0.0, 0.0, z], plane_normal=[0.0, 0.0, 1.0])
         if sec is None:
             continue
@@ -138,6 +169,65 @@ def _best_section_z(mesh, samples: int = 11):
         if (n_holes, ext_area) > (best[2], best[3]):
             best = (z, polys, n_holes, ext_area)
     return best[0], best[1]
+
+
+def elliptical_flange_dxf(
+    inner_w: float,
+    inner_h: float,
+    ring: float | None = None,
+    bolt_count: int = 0,
+    bolt_diam: float = 0.0,
+    bolt_phase: float = 0.0,
+    sections: int = 128,
+    output_path: str | None = None,
+    outer_w: float | None = None,
+    outer_h: float | None = None,
+) -> str:
+    """Analytic 2-D DXF drilling template for an elliptical-offset flange.
+
+    Built directly from the source parameters (not by sectioning a mesh), so the
+    geometry is exact and immune to boolean/mesh artefacts that can mis-centre
+    mesh-derived holes. Matches the solid produced by
+    ``rectangular_flange.generate_rectangular_flange`` with
+    ``outer_type="elliptical"`` / ``inner_type="elliptical"`` — i.e. the
+    semi-axis-scaled (concentric) ellipse the flange actually uses:
+
+      * BORE    — the hole ellipse, semi-axes ``(a, b) = (inner_w/2, inner_h/2)``
+      * OUTLINE — the explicit ``outer_w``/``outer_h`` ellipse, or the
+                  offset ellipse with semi-axes ``(a + ring, b + ring)``
+      * HOLES   — ``bolt_count`` circles on the mid-ring ellipse, semi-axes
+                  ``(a + ring/2, b + ring/2)`` + a centre mark each
+
+    ``inner_w``/``inner_h`` are full axis lengths. Returns the DXF text (and
+    writes *output_path* if given).
+    """
+    a, b = inner_w / 2.0, inner_h / 2.0
+    if outer_w is None or outer_h is None:
+        if ring is None:
+            raise ValueError("ring or both outer_w/outer_h are required")
+        outer_w, outer_h = inner_w + 2.0 * ring, inner_h + 2.0 * ring
+    ao, bo = outer_w / 2.0, outer_h / 2.0
+    theta = np.linspace(0.0, 2.0 * np.pi, sections, endpoint=False)
+    ct, st = np.cos(theta), np.sin(theta)
+    bore = np.column_stack([a * ct, b * st])
+    outline = np.column_stack([ao * ct, bo * st])
+
+    ent: list[str] = [_polyline("OUTLINE", outline), _polyline("BORE", bore)]
+
+    if bolt_count and bolt_count > 0 and bolt_diam > 0.0:
+        ang = np.linspace(0.0, 2.0 * np.pi, int(bolt_count),
+                          endpoint=False) + bolt_phase
+        bx, by = (a + ao) / 2.0, (b + bo) / 2.0
+        for t in ang:
+            cx, cy = bx * np.cos(t), by * np.sin(t)
+            ent.append(_circle("HOLES", float(cx), float(cy), bolt_diam / 2.0))
+            ent.append(_point("CENTERS", float(cx), float(cy)))
+
+    dxf = _document("".join(ent))
+    if output_path:
+        with open(output_path, "w") as fh:
+            fh.write(dxf)
+    return dxf
 
 
 def mesh_to_flange_dxf(mesh, z: float | None = None,

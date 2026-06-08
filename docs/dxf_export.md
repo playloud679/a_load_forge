@@ -1,4 +1,4 @@
-# `dxf_export.py` — 2D DXF drilling/cut template from a flange mesh
+# `dxf_export.py` — 2D DXF drilling/cut templates for flanges
 
 **Path:** `src/dxf_export.py`
 
@@ -10,11 +10,13 @@ STEP). Units are millimetres (`$INSUNITS = 4`).
 
 ## How it works
 
-The template is taken **straight from the flange mesh** by cutting one
-horizontal cross-section through the plate, so every flange type (circular /
-polygonal / rectangular / elliptical, custom or bolt-on, even the bolt-on
-driver-adapter plate) exports without re-deriving any parameters. Each closed
-loop of the section becomes a DXF entity, sorted onto layers:
+Most templates are taken **straight from the flange mesh** by cutting one
+horizontal cross-section through the plate, so circular, polygonal,
+rectangular, custom and bolt-on flanges (including the driver-adapter plate)
+export without re-deriving parameters. Elliptical-offset flanges use the
+analytic `elliptical_flange_dxf()` path instead, because imperfect boolean
+meshes can move the recovered hole centres. Each closed loop of a mesh section,
+or each analytic elliptical entity, is sorted onto layers:
 
 | Layer | Color | Content |
 |---|---|---|
@@ -48,11 +50,31 @@ closed interior loops, ties broken by exterior area). Writes `output_path` when
 given. Returns the DXF string, or `None` if the mesh yields no usable
 cross-section (e.g. a radial horn piece with no flange).
 
+### `elliptical_flange_dxf(inner_w, inner_h, ring=None, bolt_count=0, bolt_diam=0.0, bolt_phase=0.0, sections=128, output_path=None, outer_w=None, outer_h=None) -> str`
+
+**Analytic** template for an elliptical-offset flange — built straight from the
+source parameters, *not* by sectioning a mesh, so it is exact and immune to
+boolean/mesh artefacts (the mesh path mis-centres holes when the solid is
+imperfect). Matches `rectangular_flange.generate_rectangular_flange` with
+`outer_type="elliptical"` — i.e. the semi-axis-scaled (concentric) ellipse the
+flange actually uses, so the 2-D template and the 3-D part agree:
+
+- `BORE` — the hole ellipse, semi-axes `(a, b) = (inner_w/2, inner_h/2)`.
+- `OUTLINE` — the explicit `outer_w`/`outer_h` ellipse when supplied, otherwise
+  the scaled offset ellipse with semi-axes `(a + ring, b + ring)`.
+- `HOLES`/`CENTERS` — `bolt_count` circles of radius `bolt_diam/2` on the
+  ellipse halfway between bore and outline, `+ bolt_phase`.
+
+Always returns a string (never `None`). It remains available as a public API;
+the UI exports generated Mouth/Mid geometry through the mesh-derived path so
+custom and fixed-radius hole layouts are represented exactly.
+
 ### Helpers (private)
 
 - `_fit_circle(pts) -> (cx, cy, r_fit, r_min, r_max)` — least-squares circle + inscribed/circumscribed vertex radii.
 - `_is_round(r_min, r_max, n_pts)` — `True` when `n_pts ≥ 16` and `(r_max−r_min)/r_max < 0.05`.
-- `_best_section_z(mesh, samples=11)` — auto-locate the drilling plane; returns `(z, polygons)`.
+- `_candidate_section_zs(mesh, samples)` — Z heights worth sectioning: midpoints between consecutive **horizontal-face** levels (each flange plate is bounded by two such faces, so its midplane is guaranteed to cut through every vertical bolt hole — even a thin plate on a long throat adapter), plus a uniform sweep as fallback.
+- `_best_section_z(mesh, samples=11)` — auto-locate the drilling plane over `_candidate_section_zs`; returns `(z, polygons)`.
 - `_circle` / `_polyline` / `_point` — R12 entity emitters.
 - `_document(entities)` — wraps entities with HEADER + LAYER table + ENTITIES sections.
 - `_ring_xy(ring)` — shapely ring → unique XY vertices (drops the closing duplicate).
@@ -65,3 +87,8 @@ piece excluded), then offers one **“… flange DXF”** download button per fl
 under the STL/STEP buttons in the Generate Assembly results. Buttons appear
 only for flanges whose section actually yields holes (`mesh_to_flange_dxf`
 returns non-`None`). The stash is cleared on parameter reset.
+
+The **inward mouth flange** is modelled with `bolt_count=0` (its bolt shafts are
+drilled into the merged assembly, not the plate), so `ui_app.py` subtracts those
+shaft cuts into a DXF-only copy of the plate before stashing — otherwise its
+template would come out with no holes.

@@ -319,6 +319,23 @@ def test_dxf_rectangular_flange():
     assert "0\nPOLYLINE\n8\nBORE\n" in dxf  # rectangular opening stays a polyline
 test("DXF rectangular flange template", test_dxf_rectangular_flange)
 
+def test_dxf_finds_thin_flange_on_tall_adapter():
+    """A thin bolt-on flange atop a long throat adapter must still be located:
+    the drilling plane is found via horizontal plate faces, not coarse uniform
+    sampling (which stepped over the plate and reported zero holes)."""
+    from src import throat_adapter as _ta
+    for L in (40.0, 120.0, 200.0):
+        m = _ta.make_adapter_assembly(
+            driver_type="bolt_on_2in_4", driver_diam=None, thread_key=None,
+            horn_shape="circular", rect_w=0, rect_h=0, poly_n_sides=0,
+            poly_circumR=0, horn_R_eq=20.0, adapter_length=L,
+            wall_thickness=4.0, flange_thickness=6.0)
+        dxf = _dxf.mesh_to_flange_dxf(m)
+        assert dxf is not None, f"no DXF for adapter L={L}"
+        holes = [c for c in _parse_circles(dxf) if c[0] == "HOLES"]
+        assert len(holes) >= 1, f"adapter L={L}: holes missed ({len(holes)})"
+test("DXF finds thin flange on tall adapter", test_dxf_finds_thin_flange_on_tall_adapter)
+
 def test_dxf_radial_returns_none():
     """A body with no flange-style holes yields no template (None, not a crash)."""
     cyl = trimesh.creation.cylinder(radius=20.0, height=10.0)
@@ -451,6 +468,62 @@ for n_inner, n_outer in POLY_FLANGE_CASES:
             output_path=None)
         _check_flange(m, lbl)
     test(label, make)
+
+
+def _profile_flange_offset_modes():
+    cases = [
+        dict(inner_type="circular", inner_R=30.0),
+        dict(inner_type="polygonal", inner_R=30.0, inner_n_sides=6),
+        dict(inner_type="rectangular", inner_w=60.0, inner_h=40.0),
+        dict(inner_type="elliptical", inner_w=60.0, inner_h=40.0),
+    ]
+    for params in cases:
+        m = _fg.generate_profile_flange(
+            thickness=6.0, bolt_n=4, bolt_d=3.5, offset=6.0,
+            outer_mode="offset", outer_offset=15.0, **params)
+        _check_flange(m, f"profile flange offset {params['inner_type']}")
+test("profile flange offset follows every opening", _profile_flange_offset_modes)
+
+
+def _profile_flange_custom_outer_shapes():
+    inners = [
+        dict(inner_type="circular", inner_R=20.0),
+        dict(inner_type="polygonal", inner_R=20.0, inner_n_sides=6),
+        dict(inner_type="rectangular", inner_w=40.0, inner_h=30.0),
+        dict(inner_type="elliptical", inner_w=40.0, inner_h=30.0),
+    ]
+    outers = [
+        ("circular", dict(outer_diam=110.0)),
+        ("polygonal", dict(outer_diam=130.0, outer_n_sides=6)),
+        ("rectangular", dict(outer_w=110.0, outer_h=90.0)),
+    ]
+    for inner in inners:
+        for outer_type, dims in outers:
+            m = _fg.generate_profile_flange(
+                thickness=6.0, bolt_n=4, bolt_d=3.5, offset=6.0,
+                outer_mode="custom", outer_type=outer_type,
+                bolt_mode="auto", **inner, **dims)
+            _check_flange(
+                m, f"profile flange {inner['inner_type']} / {outer_type}")
+test("profile flange custom circular/polygonal/rectangular",
+     _profile_flange_custom_outer_shapes)
+
+
+def _profile_flange_fixed_bolt_circle():
+    m = _fg.generate_profile_flange(
+        inner_type="rectangular", inner_w=60.0, inner_h=40.0,
+        thickness=6.0, bolt_n=4, bolt_d=6.0, offset=6.0,
+        outer_mode="custom", outer_type="rectangular",
+        outer_w=120.0, outer_h=100.0,
+        bolt_mode="fixed", bolt_R=43.0)
+    _check_flange(m, "profile flange fixed bolt circle")
+    dxf = _dxf.mesh_to_flange_dxf(m)
+    holes = [c for c in _parse_circles(dxf) if c[0] == "HOLES"]
+    assert len(holes) == 4
+    assert np.allclose([np.hypot(cx, cy) for _, cx, cy, _ in holes],
+                       43.0, atol=0.5)
+test("profile flange fixed holes stay on requested PCD",
+     _profile_flange_fixed_bolt_circle)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -633,6 +706,57 @@ def _elliptical_flange_and_horn_assembly():
     combined.merge_vertices(); combined.fix_normals()
     _check_mesh(combined, "elliptical horn + mouth flange")
 test("elliptical-hole flange + horn assembly", _elliptical_flange_and_horn_assembly)
+
+
+def _elliptical_analytic_dxf_matches_scaled_solid():
+    """Analytic elliptical DXF must match the (semi-axis-scaled) flange solid.
+
+    The flange uses a scaled outer ellipse (a→a+ring, b→b+ring) with bolts on
+    the scaled mid-ring (a+ring/2, b+ring/2). The analytic DXF
+    (dxf_export.elliptical_flange_dxf) is built from the same parameters and must
+    place its holes exactly where the solid's bolt holes land — guarding the 2-D
+    template against drifting from the 3-D part.
+    """
+    import re
+    from src import dxf_export as _dxf2
+    inner_w, inner_h, ring = 120.0, 60.0, 15.0
+    bc, bd, bphase = 12, 4.0, 0.3
+    a, b = inner_w / 2.0, inner_h / 2.0
+
+    # solid: section the real flange and recover its bolt-hole centres
+    f = _rf.generate_rectangular_flange(
+        inner_w=inner_w, inner_h=inner_h, thickness=6.0,
+        outer_type="elliptical", inner_type="elliptical",
+        outer_w=inner_w + 2 * ring, outer_h=inner_h + 2 * ring,
+        bolt_count=bc, bolt_diam=bd, bolt_phase=bphase, output_path=None)
+    _check_flange(f, "scaled elliptical flange")
+    s2 = f.section(plane_origin=[0, 0, 3.0], plane_normal=[0, 0, 1]).to_2D()[0]
+    solid_c = []
+    for poly in s2.polygons_full:
+        for ring_ in poly.interiors:
+            c = np.asarray(ring_.coords)[:, :2]
+            cen = c.mean(0)
+            if np.hypot(*(c - cen).T).mean() < 10:   # a bolt hole (small loop)
+                solid_c.append(cen)
+    solid_c = np.array(sorted(solid_c, key=lambda p: np.arctan2(p[1], p[0])))
+    assert len(solid_c) == bc, f"solid has {len(solid_c)} bolt holes, want {bc}"
+
+    # analytic DXF holes
+    dxf = _dxf2.elliptical_flange_dxf(inner_w, inner_h, ring, bc, bd, bphase)
+    assert all(k in dxf for k in ("OUTLINE", "BORE", "HOLES", "CENTERS"))
+    circ = re.findall(
+        r"CIRCLE\n8\nHOLES\n10\n([-0-9.]+)\n20\n([-0-9.]+)\n30\n0.0\n40\n([-0-9.]+)",
+        dxf)
+    assert len(circ) == bc, f"DXF has {len(circ)} holes, want {bc}"
+    dxf_c = np.array(sorted(([float(x), float(y)] for x, y, _ in circ),
+                            key=lambda p: np.arctan2(p[1], p[0])))
+    assert np.allclose([float(r) for *_, r in circ], bd / 2.0), "hole radius wrong"
+    # DXF holes must sit on the scaled mid-ring and match the solid (~0.5 mm,
+    # the solid being a 16-gon faceted hole vs the analytic centre)
+    assert np.allclose(dxf_c, solid_c, atol=0.5), \
+        "analytic DXF holes drift from the scaled solid's bolt centres"
+test("elliptical analytic DXF matches scaled solid",
+     _elliptical_analytic_dxf_matches_scaled_solid)
 
 
 def _elliptical_rollback_flange_welds():
@@ -918,6 +1042,48 @@ def _inward_mouth_flange_drills_through_flare():
     shaft_only = trimesh.boolean.difference([supported] + shaft_cuts, engine="manifold")
     assert drilled.volume < shaft_only.volume - 50.0, "counterbore seat not cut"
 test("inward mouth flange drills through flare", _inward_mouth_flange_drills_through_flare)
+
+
+def _inward_rollback_plates_circular_and_polygonal():
+    """Inward cavity plates must follow circular and polygonal roll-back rims."""
+    sp = 4.0
+    z, r = _c.get_lecleach(25.0, 500.0, 120.0, 200, T=0.707)
+    for shape, sides in (("circular", 0), ("polygonal", 6)):
+        with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
+            p = t.name
+        if shape == "circular":
+            _c.generate_3d_mesh_from_profile(z, r, sp, 96, p)
+            normals = _uts.compute_profile_normals(z, r)
+            z_o = z + sp * normals[:, 0]
+            R_o = r + sp * normals[:, 1]
+        else:
+            _ph.generate_polygonal_3d_mesh(z, r, sides, sp, p)
+            R_i = _ph._r_to_circumradius(r, sides)
+            normals = _uts.compute_profile_normals(z, R_i, flip_if_negative=True)
+            z_o = np.clip(z + sp * normals[:, 0], z.min(), z.max())
+            z_o[0] = z[0]; z_o[-1] = z[-1]
+            R_o = R_i + sp / np.cos(np.pi / sides) * normals[:, 1]
+        envelope_R = np.maximum(r if shape == "circular" else R_i, R_o)
+        horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+        rim, peak = int(np.argmax(envelope_R)), int(np.argmax(z_o))
+        assert rim > peak, f"{shape}: expected roll-back rim"
+        z_rim = z[rim] if envelope_R[rim] > R_o[rim] else z_o[rim]
+        plate = _fg.generate_profile_flange(
+            inner_type=shape, inner_R=R_o[peak] - 0.5,
+            inner_n_sides=sides, outer_mode="custom", outer_type=shape,
+            outer_diam=2.0 * envelope_R[rim], outer_n_sides=sides,
+            thickness=sp + 0.5, bolt_n=0, bolt_d=4.0,
+            offset=float(z_rim + sp))
+        _check_flange(plate, f"{shape} inward plate")
+        assert plate.bounds[0, 2] < z_rim, f"{shape}: plate does not embed below rim"
+        assert envelope_R[rim] > R_o[rim], f"{shape}: no radial wall overlap"
+        if shape == "circular":
+            combined = trimesh.boolean.union(
+                [horn, plate], engine="manifold", check_volume=False)
+            _check_mesh(
+                combined, f"{shape} inward plate + roll-back horn", min_volume=1000)
+test("inward roll-back plates circular and polygonal",
+     _inward_rollback_plates_circular_and_polygonal)
 
 
 def _rectangular_inward_bolts_follow_rim():

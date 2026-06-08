@@ -144,6 +144,28 @@ Same coordinate system as `generate_flange`: top face at `z = offset`, grows dow
 
 ---
 
+## `generate_profile_flange(...) -> trimesh.Trimesh | None`
+
+Common outward-flange generator used by the UI for **Mouth** and **Mid**. The
+throat flange continues to use the legacy generators above.
+
+- Inner opening types: `circular`, `polygonal`, `rectangular`, `elliptical`.
+- `outer_mode="offset"` automatically follows the opening shape and grows it by
+  `outer_offset`.
+- `outer_mode="custom"` accepts `circular`, `polygonal`, or `rectangular`
+  explicit outer dimensions.
+- `bolt_mode="auto"` places every hole halfway between the inner and outer
+  boundary along its radial direction.
+- `bolt_mode="fixed"` places every hole on the requested `bolt_R`, clamped to a
+  conservative range that clears both opening and outer boundary.
+- The top face is at `offset`; the flange grows downward, matching
+  `generate_flange()` and `generate_polygonal_flange()`.
+
+The function builds centered Shapely polygons, extrudes the outer plate, and
+subtracts the opening and bolt cylinders with the manifold boolean engine.
+
+---
+
 ## Bolt Phase Parameter
 
 The `bolt_phase` parameter (in radians) rotates the entire bolt hole pattern around the Z axis. By default `bolt_phase = 0.0`, which places the first bolt at angle 0 (along the +X axis). For a polygon with `outer_n_sides ≥ 3`, the polygon's first face edge is vertical (vertex at `π/2` offset), so the bolt pattern is independent of the polygon rotation unless `bolt_phase` is set to align them.

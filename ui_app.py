@@ -25,8 +25,8 @@ import polygonal_horn as _ph
 import _slicer as _slc
 import throat_adapter as _ta
 import _utils as _uts
-from _step_export import export_step
-from dxf_export import mesh_to_flange_dxf
+import _step_export as _step
+import dxf_export as _dxf
 
 import importlib
 importlib.reload(_core)
@@ -38,6 +38,11 @@ importlib.reload(_ph)
 importlib.reload(_slc)
 importlib.reload(_ta)
 importlib.reload(_uts)
+importlib.reload(_step)
+importlib.reload(_dxf)
+
+export_step = _step.export_step
+mesh_to_flange_dxf = _dxf.mesh_to_flange_dxf
 
 # App version — read from the repo VERSION file so the UI badge always matches
 # the released version without a second source of truth to keep in sync.
@@ -60,7 +65,9 @@ def _on_horn_change():
     """Recalculate geometry-dependent flange defaults when horn changes."""
     for _k in ("ft_ring", "ft_bc", "ft_bc_rad", "ft_ow", "ft_oh",
                "fm_spess", "fm_ring", "fm_bc", "fm_ow", "fm_oh",
-               "mid_ring", "mid_bc", "mid_ow", "mid_oh"):
+               "fm_custom_d", "fm_custom_w", "fm_custom_h",
+               "mid_ring", "mid_bc", "mid_ow", "mid_oh",
+               "mid_custom_d", "mid_custom_w", "mid_custom_h"):
         st.session_state.pop(_k, None)
     st.session_state.pop("_combined", None)
     st.session_state.pop("_flange_bodies", None)
@@ -645,6 +652,77 @@ def _rim_weld(z_o, w_o, h_o, plate_thickness):
     return float(offset), float(np.interp(z_face, zs, ws)), float(np.interp(z_face, zs, hs))
 
 
+def _rollback_mouth_geometry():
+    """Return real outer-wall rim/peak geometry for a rolled-back mouth."""
+    if is_radial or is_iwata:
+        return None
+    if is_rect:
+        z_o = np.asarray(_z_o_rect, float)
+        w_o = np.asarray(_w_o_rect, float)
+        h_o = np.asarray(_h_o_rect, float)
+        rim = int(np.argmax(w_o * h_o))
+        peak = int(np.argmax(z_o))
+        return {
+            "is_rollback": rim > peak,
+            "shape": "elliptical" if is_ellip else "rectangular",
+            "z_rim": float(z_o[rim]),
+            "rim_w": float(w_o[rim]), "rim_h": float(h_o[rim]),
+            "peak_w": float(w_o[peak]), "peak_h": float(h_o[peak]),
+            "rim_R": max(float(w_o[rim]), float(h_o[rim])) / 2.0,
+            "peak_R": max(float(w_o[peak]), float(h_o[peak])) / 2.0,
+        }
+
+    if is_tractrix:
+        z, r = _core.get_tractrix(throat_d, mouth_d, segments)
+    elif is_salmon:
+        z, r = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
+    elif is_lecleach:
+        z, r = _core.get_lecleach(throat_d, fc, axial_len, segments, T=salmon_T)
+    elif is_rosse:
+        z, r = _get_rosse_profile(throat_d, mouth_d, segments)
+    elif is_cd:
+        z, r = _cd_fn(throat_d, coverage_h, axial_len, segments)
+    else:
+        z, r = _get_exp_profile(throat_d, mouth_d, fc, segments)
+
+    if is_poly:
+        from polygonal_horn import _r_to_circumradius
+        inner_R = _r_to_circumradius(r, n_sides)
+        normals = _uts.compute_profile_normals(z, inner_R, flip_if_negative=True)
+        z_o = np.clip(z + thickness * normals[:, 0], np.min(z), np.max(z))
+        z_o[0] = z[0]
+        z_o[-1] = z[-1]
+        outer_R = inner_R + thickness / np.cos(np.pi / n_sides) * normals[:, 1]
+        shape = "polygonal"
+    else:
+        normals = _uts.compute_profile_normals(z, r)
+        z_o = z + thickness * normals[:, 0]
+        inner_R = r
+        outer_R = r + thickness * normals[:, 1]
+        shape = "circular"
+    envelope_R = np.maximum(inner_R, outer_R)
+    rim = int(np.argmax(envelope_R))
+    peak = int(np.argmax(z_o))
+    z_rim = z[rim] if inner_R[rim] >= outer_R[rim] else z_o[rim]
+    return {
+        "is_rollback": rim > peak,
+        "shape": shape,
+        "z_rim": float(z_rim),
+        "rim_R": float(envelope_R[rim]),
+        "peak_R": float(outer_R[peak]),
+        "rim_w": float(2.0 * envelope_R[rim]),
+        "rim_h": float(2.0 * envelope_R[rim]),
+        "peak_w": float(2.0 * outer_R[peak]),
+        "peak_h": float(2.0 * outer_R[peak]),
+    }
+
+
+def _polygon_radius_at_angle(circum_R, sides, angle):
+    """Ray distance to a regular polygon with the project's +pi/2 phase."""
+    rel = (angle - np.pi / 2.0 + np.pi / sides) % (2.0 * np.pi / sides)
+    return circum_R * np.cos(np.pi / sides) / np.cos(rel - np.pi / sides)
+
+
 def _calc_flange_dims():
     """Return suggested flange dimensions based on current horn profile."""
 
@@ -823,6 +901,101 @@ def _bolt_circle_band(inner_R, flange_R, bolt_d, outer_n):
     if hi <= lo:
         hi = lo + 2.0
     return lo, hi
+
+
+_FLANGE_SHAPE_LABELS = {
+    "Circular": "○ Circular",
+    "Polygonal": "⬡ Polygonal",
+    "Rectangular": "▭ Rectangular",
+    "Elliptical": "⬭ Elliptical",
+}
+
+
+def _flange_shape_selector(key, sides_key):
+    """Custom outer-contour selector for mouth and mid flange cards."""
+    options = ["Circular", "Polygonal", "Rectangular"]
+    shape = st.radio(
+        "Flange shape",
+        options,
+        index=0,
+        horizontal=True,
+        key=key,
+        format_func=lambda value: _FLANGE_SHAPE_LABELS[value],
+        help="Outer contour of the flange. The central opening still follows "
+             "the horn section.",
+    )
+    outer_n = (
+        st.select_slider(
+            "Polygon sides",
+            options=list(range(3, 13)),
+            value=n_sides,
+            key=sides_key,
+            help="Number of sides on the flange outer contour.",
+        )
+        if shape == "Polygonal" else 0
+    )
+    return shape, outer_n
+
+
+def _automatic_flange_shape():
+    """Outer contour used when sizing is an offset from the flare."""
+    if is_ellip:
+        return "Elliptical", 0
+    if is_rect:
+        return "Rectangular", 0
+    if is_poly:
+        return "Polygonal", n_sides
+    return "Circular", 0
+
+
+def _flange_sizing_selector(key):
+    """Choose relative flare offset or explicit outer flange dimensions."""
+    return st.radio(
+        "Sizing",
+        ["Offset from flare", "Custom dimensions"],
+        horizontal=True,
+        key=key,
+        help="Offset from flare grows the real opening by a uniform ring width. "
+             "Custom dimensions sets the outer contour explicitly.",
+    )
+
+
+def _bolt_placement_selector(key):
+    """Choose automatic radial centring or a fixed bolt circle."""
+    return st.radio(
+        "Hole placement",
+        ["Auto centered", "Fixed from center"],
+        horizontal=True,
+        key=key,
+        help="Auto centered places each hole halfway through the available "
+             "material. Fixed from center places every hole on one bolt circle.",
+    )
+
+
+def _shape_limits(inner_R, inner_w, inner_h, outer_shape, outer_n,
+                  outer_d, outer_w, outer_h):
+    """Conservative radial limits for a fixed circular bolt pattern."""
+    inner_limit = (
+        np.hypot(inner_w, inner_h) / 2.0 if inner_w > 0.0 and inner_h > 0.0
+        else inner_R
+    )
+    if outer_shape == "Circular":
+        outer_limit = outer_d / 2.0
+    elif outer_shape == "Polygonal":
+        outer_limit = outer_d / 2.0 * np.cos(np.pi / outer_n)
+    else:
+        outer_limit = min(outer_w, outer_h) / 2.0
+    return inner_limit, outer_limit
+
+
+def _custom_dimension(label, key, minimum, suggested):
+    """Positive custom dimension whose persisted value follows changing bounds."""
+    minimum = float(max(1.0, minimum))
+    maximum = float(max(1000.0, minimum + 10.0))
+    if key not in st.session_state:
+        st.session_state[key] = float(max(minimum, suggested))
+    _clamp_state(key, minimum, maximum)
+    return st.number_input(label, minimum, maximum, step=1.0, key=key)
 
 
 # --- Flange inputs (3 columns) ---
@@ -1045,7 +1218,7 @@ with fg1:
             _ft_depth = 0.0; _ft_ow = _ft_oh = 0.0
 with fg2:
     st.markdown("##### Mouth Flange")
-    if is_radial or is_iwata or (is_lecleach and not is_rect):
+    if is_radial or is_iwata:
         gen_mouth = False
         _fm_sp = _fm_off = _fm_nb = _fm_db = _fm_od = _fm_bc = _fm_ow = _fm_oh = 0.0
         mouth_outer = "Circular"
@@ -1053,8 +1226,6 @@ with fg2:
             st.caption("Not available for radial profile")
         elif is_iwata:
             st.caption("Not available — Iwata mouth is a curved arc (no flat flange)")
-        else:
-            st.caption("Not available — use Mid Flange instead")
     else:
         gen_mouth = st.checkbox("Include", True, key="gen_mouth")
         # Default to the wall's axial extent at the mouth so the flange sits flush
@@ -1066,9 +1237,15 @@ with fg2:
                  "flange ends flush with the wall (no rim)")
         _fm_nb  = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="fm_nb")
         _fm_db  = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="fm_db")
-        _fm_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="fm_ring",
-            help="Wall around the hole — this sets the flange size (or, for an "
-                 "inward flange, how far the ring reaches in from the rim).")
+        _fm_sizing = _flange_sizing_selector("fm_sizing")
+        _fm_custom = _fm_sizing == "Custom dimensions"
+        if _fm_custom:
+            # Used only while evaluating roll-back geometry. Custom dimensions
+            # always produce an outward flange, so this is not a user setting.
+            _fm_ring = 15.0
+        else:
+            _fm_ring = st.number_input("Offset from flare (mm)", 5.0, 200.0, 15.0, 1.0, key="fm_ring",
+                help="Uniform material added outside the real flare opening.")
 
         # --- Flange direction (roll-back lips only) -------------------------
         # Outward: ring beyond the rim (Ø grows) — the default for plain flares.
@@ -1077,6 +1254,28 @@ with fg2:
         # roll-back is deep enough to hold the ring + bolts ("ingombro").
         _fm_inward = False
         _fm_inward_ok = False
+        _fm_rb = _rollback_mouth_geometry()
+        if not is_rect and _fm_rb is not None:
+            _fm_is_rollback = _fm_rb["is_rollback"]
+            _fm_rim_off = _fm_rb["z_rim"]
+            _fm_rim_w, _fm_rim_h = _fm_rb["rim_w"], _fm_rb["rim_h"]
+            _fm_peak_w, _fm_peak_h = _fm_rb["peak_w"], _fm_rb["peak_h"]
+            _fm_rim_R, _fm_peak_R = _fm_rb["rim_R"], _fm_rb["peak_R"]
+            _fm_inward_ok = (
+                _fm_is_rollback
+                and (_fm_rim_R - _fm_ring - _fm_db - 4.0) > _fm_peak_R
+                and (_fm_rim_R - _fm_ring) > 1.0)
+            if _fm_is_rollback and not _fm_custom:
+                if _fm_inward_ok:
+                    _fm_dir = st.radio(
+                        "Flange direction", ["Inward (into roll-back)", "Outward"],
+                        index=0, horizontal=True, key="fm_dir",
+                        help="Roll-back lip — Inward keeps the flange inside the rim "
+                             "and routes the bolts through the returning lip.")
+                    _fm_inward = _fm_dir.startswith("Inward")
+                else:
+                    st.caption("Inward unavailable: roll-back cavity too shallow "
+                               "for this offset and bolt diameter.")
         if is_rect:
             _fm_rim_off, _fm_w_o, _fm_h_o = _rim_weld(
                 _z_o_rect, _w_o_rect, _h_o_rect, _fm_sp)
@@ -1087,6 +1286,8 @@ with fg2:
             _fm_rim_h = float(_h_o_rect[_fm_rim_idx])
             _fm_peak_w = float(_w_o_rect[_fm_peak_idx])
             _fm_peak_h = float(_h_o_rect[_fm_peak_idx])
+            _fm_rim_R = max(_fm_rim_w, _fm_rim_h) / 2.0
+            _fm_peak_R = max(_fm_peak_w, _fm_peak_h) / 2.0
             # Inward bolts ride the mid-ring (≈ rim − ring); they must clear the
             # inner flare (peak radius) so the axial holes only pierce the lip.
             _fm_inward_ok = (
@@ -1095,18 +1296,18 @@ with fg2:
                 and (_fm_rim_h - _fm_ring - _fm_db - 4.0) > _fm_peak_h
                 and (_fm_rim_w - 2 * _fm_ring) > 1.0
                 and (_fm_rim_h - 2 * _fm_ring) > 1.0)
-            if _fm_is_rollback:
-                _dir_opts = (["Inward (into roll-back)", "Outward"] if _fm_inward_ok
-                             else ["Outward", "Inward (into roll-back)"])
-                _fm_dir = st.radio("Flange direction", _dir_opts, index=0, horizontal=True,
-                    key="fm_dir",
-                    help="Roll-back lip — Inward keeps the outer Ø (= rim) and routes "
-                         "the bolts through the flare toward the front; Outward adds a "
-                         "ring beyond the rim (Ø grows).")
-                _fm_inward = _fm_dir.startswith("Inward")
-                if _fm_inward and not _fm_inward_ok:
-                    st.warning("Roll-back may be too shallow for an inward flange — "
-                               "bolts could clip the inner flare. Reduce the ring/bolt Ø.")
+            if _fm_is_rollback and not _fm_custom:
+                if _fm_inward_ok:
+                    _fm_dir = st.radio(
+                        "Flange direction", ["Inward (into roll-back)", "Outward"],
+                        index=0, horizontal=True, key="fm_dir",
+                        help="Roll-back lip — Inward keeps the outer Ø (= rim) and routes "
+                             "the bolts through the flare toward the front; Outward adds a "
+                             "ring beyond the rim (Ø grows).")
+                    _fm_inward = _fm_dir.startswith("Inward")
+                else:
+                    st.caption("Inward unavailable: roll-back cavity too shallow "
+                               "for this offset and bolt diameter.")
 
             if _fm_inward:
                 # No annulus/ring for inward — bolts are drilled into the lip
@@ -1122,29 +1323,29 @@ with fg2:
                 st.caption(f"Hole: {_fm_inner_w:.1f}×{_fm_inner_h:.1f} mm "
                            f"({'elliptical' if is_ellip else 'rectangular'})")
         elif is_poly:
-            _fm_inner_R = ir_mouth
+            _fm_inner_R = _fm_rim_R if _fm_inward else ir_mouth
             st.caption(f"Hole: {n_sides}-gon, R≈{_fm_inner_R:.1f} mm")
         else:
-            _fm_inner_R = ir_mouth
+            _fm_inner_R = _fm_rim_R if _fm_inward else ir_mouth
             st.caption(f"Hole: Ø{_fm_inner_R*2:.1f} mm (bites wall)")
+        if _fm_inward:
+            # Inward ring follows the lip; outer shape is fixed to the rim.
+            mouth_outer = (
+                "Elliptical" if is_ellip else "Rectangular" if is_rect
+                else "Polygonal" if is_poly else "Circular")
+            _fm_outer_n = n_sides if is_poly else 0
+            st.caption(f"Flange shape: {_FLANGE_SHAPE_LABELS[mouth_outer]} · follows the rim")
+        elif _fm_custom:
+            mouth_outer, _fm_outer_n = _flange_shape_selector(
+                "mouth_outer", "fm_outer_n")
+        else:
+            mouth_outer, _fm_outer_n = _automatic_flange_shape()
         with st.expander("Advanced"):
             _fm_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="fm_off")
             _fm_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
                 index=0, horizontal=True, key="fm_bpos",
                 help="Align bolts with polygon vertices or face centers"
                 ) if (is_poly or is_rect) else "At vertices"
-            if is_rect and _fm_inward:
-                # Inward ring follows the lip; outer shape is fixed to the rim.
-                mouth_outer = "Elliptical" if is_ellip else "Rectangular"
-                st.caption("Outer follows the rim (inward flange)")
-            else:
-                mouth_outer = st.radio("Outer shape",
-                    (["Elliptical", "Circular", "Rectangular"] if is_ellip else
-                     ["Circular", "Rectangular"]) if is_rect else ["Circular", "Polygonal"],
-                    index=0, horizontal=True, key="mouth_outer")
-            _fm_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
-                                            value=n_sides, key="fm_outer_n")
-                           if mouth_outer == "Polygonal" else 0)
             # --- Screw-head seat (counterbore), inward flange only ----------
             # A flat plate fills the roll-back cavity (welded between the inner
             # flare and the curled lip); the bolts are drilled through it. Annular
@@ -1152,7 +1353,7 @@ with fg2:
             # the screws cannot collapse the empty cavity.
             _fm_seat = False
             _fm_head_d = _fm_seat_depth = _fm_seat_wall = 0.0
-            if is_rect and _fm_inward:
+            if _fm_inward:
                 _fm_seat = st.checkbox("Screw-head seat (counterbore)", True, key="fm_seat",
                     help="Recess the screw head into the lip. A hidden annular pillar "
                          "supports the lip against the flange while tightening.")
@@ -1171,50 +1372,95 @@ with fg2:
         _fm_hole_R = _fm_inner_R
         _fm_flange_R = _flange_R_from_ring(_fm_hole_R, _fm_ring, _fm_outer_n)
         _fm_od = _fm_flange_R * 2
-        if is_rect and _fm_inward:
+        _fm_outer_w = _fm_outer_h = 0.0
+        if _fm_inward:
             # Plate fills the lip cavity; outer = rim (Ø unchanged). Bolt pillars
             # use the head-clearance diameter when counterbores are enabled.
             _fm_bearing_d = _fm_head_d if _fm_seat else _fm_db
-            _fm_outer_w = _fm_rim_w; _fm_outer_h = _fm_rim_h; _fm_od = _fm_rim_w
+            _fm_outer_w = _fm_rim_w; _fm_outer_h = _fm_rim_h
+            _fm_od = 2.0 * _fm_rim_R if not is_rect else _fm_rim_w
             _fm_bolt_w = _fm_rim_w - 2 * (_fm_bearing_d / 2.0 + _fm_seat_wall)
             _fm_bolt_h = _fm_rim_h - 2 * (_fm_bearing_d / 2.0 + _fm_seat_wall)
             st.caption(f"Plate fills the roll-back cavity (outer Ø = rim). Bolts on "
                        f"{_fm_bolt_w:.0f}×{_fm_bolt_h:.0f} mm "
                        f"with {_fm_seat_wall:.0f} mm load-bearing pillars"
                        + (f", head seat Ø{_fm_head_d:.0f}×{_fm_seat_depth:.0f} mm" if _fm_seat else ""))
+        elif _fm_custom:
+            _fm_inner_bound_R = (
+                np.hypot(_fm_inner_w, _fm_inner_h) / 2.0 if is_rect
+                else _fm_hole_R
+            )
+            _fm_margin = _fm_db + 2.0
+            if mouth_outer == "Circular":
+                _fm_min_d = 2.0 * (_fm_inner_bound_R + _fm_margin)
+                _fm_od = _custom_dimension(
+                    "Outer diameter (mm)", "fm_custom_d", _fm_min_d,
+                    _fm_min_d + 20.0)
+                _fm_flange_R = _fm_od / 2.0
+                st.caption(f"Outer Ø: {_fm_od:.1f} mm")
+            elif mouth_outer == "Polygonal":
+                _fm_min_R = (_fm_inner_bound_R + _fm_margin) / np.cos(
+                    np.pi / _fm_outer_n)
+                _fm_od = _custom_dimension(
+                    "Across corners Ø (mm)", "fm_custom_d", 2.0 * _fm_min_R,
+                    2.0 * _fm_min_R + 20.0)
+                _fm_flange_R = _fm_od / 2.0
+                st.caption(f"Across corners Ø: {_fm_od:.1f} mm")
+            else:
+                _fm_inner_box_w = _fm_inner_w if is_rect else 2.0 * _fm_hole_R
+                _fm_inner_box_h = _fm_inner_h if is_rect else 2.0 * _fm_hole_R
+                _fm_outer_w = _custom_dimension(
+                    "Outer width (mm)", "fm_custom_w",
+                    _fm_inner_box_w + 2.0 * _fm_margin,
+                    _fm_inner_box_w + 30.0)
+                _fm_outer_h = _custom_dimension(
+                    "Outer height (mm)", "fm_custom_h",
+                    _fm_inner_box_h + 2.0 * _fm_margin,
+                    _fm_inner_box_h + 30.0)
+                _fm_od = max(_fm_outer_w, _fm_outer_h)
+                st.caption(f"Outer: {_fm_outer_w:.1f}×{_fm_outer_h:.1f} mm")
         elif is_rect:
             _fm_outer_w = _fm_inner_w + 2 * _fm_ring
             _fm_outer_h = _fm_inner_h + 2 * _fm_ring
-            if mouth_outer == "Circular":
-                _fm_diag = np.sqrt(_fm_inner_w**2 + _fm_inner_h**2)
-                _fm_od = _fm_diag + 2 * _fm_ring
-                st.caption(f"Outer Ø: {_fm_od:.0f} mm (diag + 2×ring)")
-            elif mouth_outer == "Elliptical":
-                st.caption(f"Outer ellipse: {_fm_outer_w:.0f}×{_fm_outer_h:.0f} mm "
-                           f"(ring {_fm_ring:.0f} mm, offset)")
+            _fm_od = max(_fm_outer_w, _fm_outer_h)
+            if mouth_outer == "Elliptical":
+                st.caption(f"Offset ellipse: {_fm_outer_w:.0f}×{_fm_outer_h:.0f} mm")
             else:
-                st.caption(f"Outer: {_fm_outer_w:.0f}×{_fm_outer_h:.0f} mm (ring {_fm_ring:.0f} mm)")
-        elif _fm_outer_n >= 3:
-            st.caption(f"Across corners Ø: {_fm_od:.1f} mm · flats wall {_fm_ring:.0f} mm")
+                st.caption(f"Offset rectangle: {_fm_outer_w:.0f}×{_fm_outer_h:.0f} mm")
+        elif is_poly:
+            _fm_flange_R = _fm_hole_R + _fm_ring / np.cos(np.pi / n_sides)
+            _fm_od = 2.0 * _fm_flange_R
+            st.caption(f"Offset {n_sides}-gon · across corners Ø {_fm_od:.1f} mm")
         else:
-            st.caption(f"Outer Ø: {_fm_od:.1f} mm")
+            _fm_flange_R = _fm_hole_R + _fm_ring
+            _fm_od = 2.0 * _fm_flange_R
+            st.caption(f"Offset circular · outer Ø {_fm_od:.1f} mm")
         _fm_ow = _fm_od; _fm_oh = _fm_od
-        if is_rect and _fm_inward:
-            _fm_bc = max(_fm_rim_w - 2 * (_fm_head_d / 2.0 + _fm_seat_wall), 1.0)
+        if _fm_inward:
+            _fm_bc = max(2.0 * (_fm_rim_R - (_fm_head_d / 2.0 + _fm_seat_wall)), 1.0)
             st.caption("Screws drop in from the front and pass through the lip to "
                        "the back (nothing protrudes into the flare).")
-        elif is_ellip and mouth_outer == "Elliptical":
-            # Elliptical outer: bolts follow the mid-ring ellipse automatically.
-            _fm_bc = (_fm_inner_w + _fm_outer_w) / 2.0
-            st.caption(f"Bolts auto-placed on mid-ring ellipse "
-                       f"({(_fm_inner_w+_fm_outer_w)/2:.0f}×{(_fm_inner_h+_fm_outer_h)/2:.0f} mm)")
+        elif not _fm_custom:
+            _fm_bolt_mode = "auto"
+            _fm_bc = 0.0
+            st.caption("Holes auto-centered in the offset material")
         else:
-            _fm_bc_lo, _fm_bc_hi = _bolt_circle_band(_fm_hole_R, _fm_flange_R, _fm_db, _fm_outer_n)
-            if "fm_bc" not in st.session_state:
-                st.session_state["fm_bc"] = _def_bc(_fm_bc_lo, _fm_bc_hi)
-            _clamp_state("fm_bc", _fm_bc_lo, _fm_bc_hi)
-            _fm_bc = st.number_input("Bolt circle Ø (mm)", _fm_bc_lo, _fm_bc_hi,
-                step=1.0, key="fm_bc")
+            _fm_bolt_mode = _bolt_placement_selector("fm_bolt_mode")
+            if _fm_bolt_mode == "Fixed from center":
+                _fm_i_lim, _fm_o_lim = _shape_limits(
+                    _fm_hole_R, _fm_inner_w if is_rect else 0.0,
+                    _fm_inner_h if is_rect else 0.0,
+                    mouth_outer, _fm_outer_n, _fm_od, _fm_outer_w, _fm_outer_h)
+                _fm_bc_lo = 2.0 * (_fm_i_lim + _fm_db / 2.0 + 1.0)
+                _fm_bc_hi = 2.0 * (_fm_o_lim - _fm_db / 2.0 - 1.0)
+                _fm_bc_hi = max(_fm_bc_hi, _fm_bc_lo + 2.0)
+                if "fm_bc" not in st.session_state:
+                    st.session_state["fm_bc"] = _def_bc(_fm_bc_lo, _fm_bc_hi)
+                _clamp_state("fm_bc", _fm_bc_lo, _fm_bc_hi)
+                _fm_bc = st.number_input("Bolt circle Ø (mm)", _fm_bc_lo, _fm_bc_hi,
+                    step=1.0, key="fm_bc")
+            else:
+                _fm_bc = 0.0
 
 with fg3:
     st.markdown("##### Mid Flange")
@@ -1251,52 +1497,96 @@ with fg3:
         else:
             _mid_inner_R = mid_r + thickness
             st.caption(f"Hole: Ø{_mid_inner_R*2:.0f} mm (circular)")
-        _mid_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="mid_ring",
-            help="Wall around the hole — this sets the flange size. Widen it to fit bolts further out.")
+        _mid_sizing = _flange_sizing_selector("mid_sizing")
+        _mid_custom = _mid_sizing == "Custom dimensions"
+        _mid_ring = (15.0 if _mid_custom else
+            st.number_input("Offset from flare (mm)", 5.0, 200.0, 15.0, 1.0, key="mid_ring",
+                help="Uniform material added outside the real flare opening."))
+        if _mid_custom:
+            mid_out, _mid_outer_n = _flange_shape_selector("mid_out", "mid_outer_n")
+        else:
+            mid_out, _mid_outer_n = _automatic_flange_shape()
         with st.expander("Advanced"):
             _mid_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="mid_off")
             _mid_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
                 index=0, horizontal=True, key="mid_bpos",
                 help="Align bolts with polygon vertices or face centers"
                 ) if (is_poly or is_rect) else "At vertices"
-            mid_out = st.radio("Outer shape",
-                (["Elliptical", "Circular", "Rectangular"] if is_ellip else
-                 ["Circular", "Rectangular"]) if is_rect else ["Circular", "Polygonal"],
-                index=0, horizontal=True, key="mid_out")
-            _mid_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
-                                             value=n_sides, key="mid_outer_n")
-                            if mid_out == "Polygonal" else 0)
         _mid_bphase = _bolt_phase(n_sides if is_poly else 4, _mid_bpos)
         _mid_flange_R = _flange_R_from_ring(_mid_inner_R, _mid_ring, _mid_outer_n)
         _mid_od = _mid_flange_R * 2
-        if is_rect:
+        _mid_outer_w = _mid_outer_h = 0.0
+        if _mid_custom:
+            _mid_inner_bound_R = (
+                np.hypot(_mid_inner_w, _mid_inner_h) / 2.0 if is_rect
+                else _mid_inner_R
+            )
+            _mid_margin = _mid_db + 2.0
+            if mid_out == "Circular":
+                _mid_min_d = 2.0 * (_mid_inner_bound_R + _mid_margin)
+                _mid_od = _custom_dimension(
+                    "Outer diameter (mm)", "mid_custom_d", _mid_min_d,
+                    _mid_min_d + 20.0)
+                _mid_flange_R = _mid_od / 2.0
+                st.caption(f"Outer Ø: {_mid_od:.1f} mm")
+            elif mid_out == "Polygonal":
+                _mid_min_R = (_mid_inner_bound_R + _mid_margin) / np.cos(
+                    np.pi / _mid_outer_n)
+                _mid_od = _custom_dimension(
+                    "Across corners Ø (mm)", "mid_custom_d", 2.0 * _mid_min_R,
+                    2.0 * _mid_min_R + 20.0)
+                _mid_flange_R = _mid_od / 2.0
+                st.caption(f"Across corners Ø: {_mid_od:.1f} mm")
+            else:
+                _mid_inner_box_w = _mid_inner_w if is_rect else 2.0 * _mid_inner_R
+                _mid_inner_box_h = _mid_inner_h if is_rect else 2.0 * _mid_inner_R
+                _mid_outer_w = _custom_dimension(
+                    "Outer width (mm)", "mid_custom_w",
+                    _mid_inner_box_w + 2.0 * _mid_margin,
+                    _mid_inner_box_w + 30.0)
+                _mid_outer_h = _custom_dimension(
+                    "Outer height (mm)", "mid_custom_h",
+                    _mid_inner_box_h + 2.0 * _mid_margin,
+                    _mid_inner_box_h + 30.0)
+                _mid_od = max(_mid_outer_w, _mid_outer_h)
+                st.caption(f"Outer: {_mid_outer_w:.1f}×{_mid_outer_h:.1f} mm")
+        elif is_rect:
             _mid_outer_w = _mid_inner_w + 2 * _mid_ring
             _mid_outer_h = _mid_inner_h + 2 * _mid_ring
-            if mid_out == "Circular":
-                _mid_diag = np.sqrt(_mid_inner_w**2 + _mid_inner_h**2)
-                _mid_od = _mid_diag + 2 * _mid_ring
-                st.caption(f"Outer Ø: {_mid_od:.0f} mm (diag + 2×ring)")
-            elif mid_out == "Elliptical":
-                st.caption(f"Outer ellipse: {_mid_outer_w:.0f}×{_mid_outer_h:.0f} mm "
-                           f"(ring {_mid_ring:.0f} mm, offset)")
+            _mid_od = max(_mid_outer_w, _mid_outer_h)
+            if mid_out == "Elliptical":
+                st.caption(f"Offset ellipse: {_mid_outer_w:.0f}×{_mid_outer_h:.0f} mm")
             else:
-                st.caption(f"Outer: {_mid_outer_w:.0f}×{_mid_outer_h:.0f} mm (ring {_mid_ring:.0f} mm)")
-        elif _mid_outer_n >= 3:
-            st.caption(f"Across corners Ø: {_mid_od:.1f} mm · flats wall {_mid_ring:.0f} mm")
+                st.caption(f"Offset rectangle: {_mid_outer_w:.0f}×{_mid_outer_h:.0f} mm")
+        elif is_poly:
+            _mid_flange_R = _mid_inner_R + _mid_ring / np.cos(np.pi / n_sides)
+            _mid_od = 2.0 * _mid_flange_R
+            st.caption(f"Offset {n_sides}-gon · across corners Ø {_mid_od:.1f} mm")
         else:
-            st.caption(f"Outer Ø: {_mid_od:.1f} mm")
-        if is_ellip and mid_out == "Elliptical":
-            # Elliptical outer: bolts follow the mid-ring ellipse automatically.
-            _mid_bc = (_mid_inner_w + _mid_outer_w) / 2.0
-            st.caption(f"Bolts auto-placed on mid-ring ellipse "
-                       f"({(_mid_inner_w+_mid_outer_w)/2:.0f}×{(_mid_inner_h+_mid_outer_h)/2:.0f} mm)")
+            _mid_flange_R = _mid_inner_R + _mid_ring
+            _mid_od = 2.0 * _mid_flange_R
+            st.caption(f"Offset circular · outer Ø {_mid_od:.1f} mm")
+        if not _mid_custom:
+            _mid_bolt_mode = "auto"
+            _mid_bc = 0.0
+            st.caption("Holes auto-centered in the offset material")
         else:
-            _mid_bc_lo, _mid_bc_hi = _bolt_circle_band(_mid_inner_R, _mid_flange_R, _mid_db, _mid_outer_n)
-            if "mid_bc" not in st.session_state:
-                st.session_state["mid_bc"] = _def_bc(_mid_bc_lo, _mid_bc_hi)
-            _clamp_state("mid_bc", _mid_bc_lo, _mid_bc_hi)
-            _mid_bc = st.number_input("Bolt circle Ø (mm)", _mid_bc_lo, _mid_bc_hi,
-                step=1.0, key="mid_bc")
+            _mid_bolt_mode = _bolt_placement_selector("mid_bolt_mode")
+            if _mid_bolt_mode == "Fixed from center":
+                _mid_i_lim, _mid_o_lim = _shape_limits(
+                    _mid_inner_R, _mid_inner_w if is_rect else 0.0,
+                    _mid_inner_h if is_rect else 0.0,
+                    mid_out, _mid_outer_n, _mid_od, _mid_outer_w, _mid_outer_h)
+                _mid_bc_lo = 2.0 * (_mid_i_lim + _mid_db / 2.0 + 1.0)
+                _mid_bc_hi = 2.0 * (_mid_o_lim - _mid_db / 2.0 - 1.0)
+                _mid_bc_hi = max(_mid_bc_hi, _mid_bc_lo + 2.0)
+                if "mid_bc" not in st.session_state:
+                    st.session_state["mid_bc"] = _def_bc(_mid_bc_lo, _mid_bc_hi)
+                _clamp_state("mid_bc", _mid_bc_lo, _mid_bc_hi)
+                _mid_bc = st.number_input("Bolt circle Ø (mm)", _mid_bc_lo, _mid_bc_hi,
+                    step=1.0, key="mid_bc")
+            else:
+                _mid_bc = 0.0
 
 # ═══════════════════════════════════════════════════════════════════════
 #  ROW 3 — Generate Assembly
@@ -1560,12 +1850,9 @@ if gen_btn:
             if gen_throat and not is_radial:
                 if _ta_include_adapter:
                     # The morph replaces the first section of the flare instead of
-                    # being prepended below the throat.  Trim the original horn at
+                    # being prepended below the throat. Trim the original horn at
                     # the requested distance and match the real profile there.
-                    if is_rect:
-                        _profile_z = zr
-                    else:
-                        _profile_z = zp
+                    _profile_z = zr if is_rect else zp
                     _profile_extent = float(np.max(_profile_z))
                     # Roll-back profiles return toward the throat after their
                     # deepest point. A planar trim must stay below that returning
@@ -1705,7 +1992,7 @@ if gen_btn:
                         output_path=None)
 
             if gen_mouth and not is_radial:
-                if is_rect and _fm_inward:
+                if _fm_inward:
                     # Inward flange: a flat plate that FILLS the roll-back cavity,
                     # welded between the inner flare and the curled-back lip. The
                     # outer contour stays = rim (nothing protrudes beyond the mouth
@@ -1713,16 +2000,22 @@ if gen_btn:
                     # and the wall pokes through to weld. Bolts sit just inside the
                     # rim (≥ wall margin). Annular pillars bridge the empty cavity
                     # between plate and lip before the shaft/head channels are cut.
-                    _fm_ot = "elliptical" if is_ellip else "rectangular"
-                    f_mouth = _rf.generate_rectangular_flange(
+                    _fm_inward_shape = (
+                        "elliptical" if is_ellip else "rectangular" if is_rect
+                        else "polygonal" if is_poly else "circular")
+                    f_mouth = _fg.generate_profile_flange(
+                        inner_type=_fm_inward_shape,
+                        inner_R=max(_fm_peak_R - _FLANGE_WALL_BITE, 1.0),
                         inner_w=max(_fm_peak_w - 2 * _FLANGE_WALL_BITE, 1.0),
                         inner_h=max(_fm_peak_h - 2 * _FLANGE_WALL_BITE, 1.0),
-                        thickness=_fm_sp,
-                        bolt_count=0, bolt_diam=_fm_db,
-                        outer_type=_fm_ot,
+                        inner_n_sides=n_sides if is_poly else 0,
+                        outer_mode="custom",
+                        outer_type=_fm_inward_shape,
+                        outer_diam=2.0 * _fm_rim_R,
                         outer_w=_fm_rim_w, outer_h=_fm_rim_h,
-                        offset=_fm_rim_off + _fm_off,
-                        inner_type="elliptical" if is_ellip else "rectangular",
+                        outer_n_sides=n_sides if is_poly else 0,
+                        thickness=_fm_sp + 0.5, bolt_n=0, bolt_d=_fm_db,
+                        offset=_fm_rim_off + _fm_off + _fm_sp,
                         output_path=None)
                     _fm_channel_d = _fm_head_d if _fm_seat else _fm_db
                     _fm_pillar_R = _fm_channel_d / 2.0 + _fm_seat_wall
@@ -1742,7 +2035,7 @@ if gen_btn:
                     for _a in _ang:
                         if is_ellip:
                             _cx, _cy = _bx * np.cos(_a), _by * np.sin(_a)
-                        else:
+                        elif is_rect:
                             # Follow the actual rectangular rim. An ellipse-based
                             # pattern puts diagonal bolts deep in the empty cavity,
                             # so they drill only the plate and never reach the lip.
@@ -1757,6 +2050,14 @@ if gen_btn:
                             _cy = float(np.clip(
                                 _ey, -_fm_rim_h / 2.0 + _fm_pillar_R,
                                 _fm_rim_h / 2.0 - _fm_pillar_R))
+                        elif is_poly:
+                            _edge_R = _polygon_radius_at_angle(
+                                _fm_rim_R, n_sides, _a)
+                            _bolt_R = max(_edge_R - _fm_pillar_R, 1.0)
+                            _cx, _cy = _bolt_R * np.cos(_a), _bolt_R * np.sin(_a)
+                        else:
+                            _bolt_R = max(_fm_rim_R - _fm_pillar_R, 1.0)
+                            _cx, _cy = _bolt_R * np.cos(_a), _bolt_R * np.sin(_a)
                         # shaft through-hole, full span (open front-to-back)
                         _sh = _tm.creation.cylinder(
                             radius=_fm_db / 2.0, height=_z_hi - _z_lo, sections=64)
@@ -1908,86 +2209,65 @@ if gen_btn:
                             _seat_cut.apply_translation(
                                 [_cx, _cy, (_seat_top + _seat_floor) / 2.0])
                             _mouth_head_seat_cuts.append(_seat_cut)
-                elif is_rect:
-                    _fm_ot = ("circular" if mouth_outer == "Circular"
-                              else "elliptical" if mouth_outer == "Elliptical"
-                              else "rectangular")
-                    f_mouth = _rf.generate_rectangular_flange(
-                        outer_diam=_fm_od if _fm_ot == "circular" else None,
-                        inner_w=_fm_inner_w, inner_h=_fm_inner_h,
-                        thickness=_fm_sp,
-                        bolt_radius=_fm_bc/2, bolt_count=int(_fm_nb), bolt_diam=_fm_db,
-                        bolt_phase=_fm_bphase,
-                        outer_type=_fm_ot,
-                        outer_w=_fm_outer_w if _fm_ot in ("rectangular", "elliptical") else None,
-                        outer_h=_fm_outer_h if _fm_ot in ("rectangular", "elliptical") else None,
-                        offset=_fm_rim_off + _fm_off,
-                        inner_type="elliptical" if is_ellip else "rectangular",
-                        output_path=None)
-                elif is_poly:
-                    f_mouth = _fg.generate_polygonal_flange(
-                        inner_circumR=_fm_hole_R, n_sides=n_sides,
-                        flange_R=_fm_od/2,
-                        thickness=_fm_sp, bolt_R=_fm_bc/2,
-                        bolt_n=int(_fm_nb), bolt_d=_fm_db,
-                        bolt_phase=_fm_bphase,
-                        offset=z_mouth + _fm_off,
-                        outer_n_sides=_fm_outer_n)
                 else:
-                    _R    = _fm_od / 2.0
-                    _tr_m = _fm_hole_R
-                    # guard: outer radius must exceed inner by at least 1 mm
-                    if _R <= _tr_m + 1.0:
-                        _R = _tr_m + 5.0
-                    f_mouth = _fg.generate_flange(
-                        throat_R=_tr_m, flange_R=_R,
-                        thickness=_fm_sp, bolt_R=_fm_bc/2,
+                    _fm_inner_type = (
+                        "elliptical" if is_ellip else
+                        "rectangular" if is_rect else
+                        "polygonal" if is_poly else "circular")
+                    _fm_top = (
+                        _fm_rim_off + _fm_off + _fm_sp if is_rect
+                        else z_mouth + _fm_off)
+                    f_mouth = _fg.generate_profile_flange(
+                        inner_type=_fm_inner_type,
+                        inner_R=_fm_hole_R,
+                        inner_w=_fm_inner_w if is_rect else 0.0,
+                        inner_h=_fm_inner_h if is_rect else 0.0,
+                        inner_n_sides=n_sides if is_poly else 0,
+                        outer_mode="custom" if _fm_custom else "offset",
+                        outer_type=mouth_outer.lower(),
+                        outer_offset=_fm_ring,
+                        outer_diam=_fm_od,
+                        outer_w=_fm_outer_w,
+                        outer_h=_fm_outer_h,
+                        outer_n_sides=_fm_outer_n,
+                        thickness=_fm_sp,
+                        bolt_mode="fixed" if _fm_bolt_mode == "Fixed from center" else "auto",
+                        bolt_R=_fm_bc / 2.0,
                         bolt_n=int(_fm_nb), bolt_d=_fm_db,
                         bolt_phase=_fm_bphase,
-                        offset=z_mouth + _fm_off,
-                        outer_n_sides=_fm_outer_n,
+                        offset=_fm_top,
                         output_path=None)
 
             if gen_mid and not is_radial:
                 z_mid = z_min + _mid_pos + _mid_off
-                if is_rect:
-                    _mid_ot = ("circular" if mid_out == "Circular"
-                               else "elliptical" if mid_out == "Elliptical"
-                               else "rectangular")
-                    f_mid = _rf.generate_rectangular_flange(
-                        outer_diam=_mid_od if _mid_ot == "circular" else None,
-                        inner_w=_mid_inner_w, inner_h=_mid_inner_h,
-                        thickness=_mid_sp,
-                        bolt_radius=_mid_bc/2, bolt_count=int(_mid_nb), bolt_diam=_mid_db,
-                        bolt_phase=_mid_bphase,
-                        outer_type=_mid_ot,
-                        outer_w=_mid_outer_w if _mid_ot in ("rectangular", "elliptical") else None,
-                        outer_h=_mid_outer_h if _mid_ot in ("rectangular", "elliptical") else None,
-                        offset=z_mid - _mid_sp,
-                        inner_type="elliptical" if is_ellip else "rectangular",
-                        output_path=None)
-                elif is_poly:
+                if is_poly:
                     _R_o_mid_poly = float(np.interp(_mid_pos, zp, _R_o_arr))
-                    f_mid = _fg.generate_polygonal_flange(
-                        inner_circumR=_R_o_mid_poly, n_sides=n_sides,
-                        flange_R=_mid_od/2,
-                        thickness=_mid_sp, bolt_R=_mid_bc/2,
-                        bolt_n=int(_mid_nb), bolt_d=_mid_db,
-                        bolt_phase=_mid_bphase,
-                        offset=z_mid,
-                        outer_n_sides=_mid_outer_n)
                 else:
-                    _mid_pct_gen = min(100.0, _mid_pos / max(_len or 1, 1) * 100)
-                    mid_r   = _get_mid_r(_mid_pct_gen) if _len else 10
-                    fiw_mid = (mid_r + thickness) * 2
-                    f_mid = _fg.generate_flange(
-                        throat_R=fiw_mid/2, flange_R=_mid_od/2,
-                        thickness=_mid_sp, bolt_R=_mid_bc/2,
-                        bolt_n=int(_mid_nb), bolt_d=_mid_db,
-                        bolt_phase=_mid_bphase,
-                        offset=z_mid,
-                        outer_n_sides=_mid_outer_n,
-                        output_path=None)
+                    _R_o_mid_poly = _mid_inner_R
+                _mid_inner_type = (
+                    "elliptical" if is_ellip else
+                    "rectangular" if is_rect else
+                    "polygonal" if is_poly else "circular")
+                f_mid = _fg.generate_profile_flange(
+                    inner_type=_mid_inner_type,
+                    inner_R=_R_o_mid_poly,
+                    inner_w=_mid_inner_w if is_rect else 0.0,
+                    inner_h=_mid_inner_h if is_rect else 0.0,
+                    inner_n_sides=n_sides if is_poly else 0,
+                    outer_mode="custom" if _mid_custom else "offset",
+                    outer_type=mid_out.lower(),
+                    outer_offset=_mid_ring,
+                    outer_diam=_mid_od,
+                    outer_w=_mid_outer_w,
+                    outer_h=_mid_outer_h,
+                    outer_n_sides=_mid_outer_n,
+                    thickness=_mid_sp,
+                    bolt_mode="fixed" if _mid_bolt_mode == "Fixed from center" else "auto",
+                    bolt_R=_mid_bc / 2.0,
+                    bolt_n=int(_mid_nb), bolt_d=_mid_db,
+                    bolt_phase=_mid_bphase,
+                    offset=z_mid,
+                    output_path=None)
 
             # --- 3e. Merge ---
             # Circular mouth-facing openings affect only the flare skin. Applying
@@ -2041,10 +2321,22 @@ if gen_btn:
             st.session_state["_combined"] = combined
             # Stash the individual flange bodies so each can be exported as a 2-D
             # DXF drilling template (bolt holes + bore + outline) on demand.
+            # The inward mouth flange is generated with bolt_count=0 (its shafts
+            # are drilled into `combined`, not the plate), so drill the shaft
+            # cuts into a DXF-only copy here — otherwise its template has no
+            # holes. Pillars/head-seats are left out; only the through-shafts
+            # define the drilling pattern.
+            _f_mouth_dxf = f_mouth
+            if f_mouth is not None and _mouth_bolt_cuts:
+                try:
+                    _f_mouth_dxf = _tm.boolean.difference(
+                        [f_mouth] + _mouth_bolt_cuts, engine="manifold")
+                except Exception:
+                    _f_mouth_dxf = f_mouth
             st.session_state["_flange_bodies"] = {
                 name: body for name, body in (
                     ("throat", f_throat if not is_radial else None),
-                    ("mouth", f_mouth),
+                    ("mouth", _f_mouth_dxf),
                     ("mid", f_mid),
                 ) if body is not None
             }

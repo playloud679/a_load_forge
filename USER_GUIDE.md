@@ -114,7 +114,20 @@ long horns printed in parts). Each has an **Include** checkbox.
 
 ### I campi che contano / the fields that matter
 
-In prima fila trovi solo l'essenziale:
+Per **Mouth** e **Mid**, **Sizing** offre due modalità:
+- **Offset from flare** — mostra solo l'offset, segue automaticamente la forma
+  reale del flare e centra i fori nel materiale disponibile.
+- **Custom dimensions** — mostra **Flange shape** con Circular, Polygonal e
+  Rectangular, quindi le dimensioni esterne. **Hole placement** può centrare
+  automaticamente i fori oppure disporli a distanza fissa dal centro tramite
+  il Bolt circle Ø.
+
+La mouth flange inward resta vincolata al bordo del roll-back e quindi usa
+sempre la sua dimensione strutturale. È disponibile su ogni sezione roll-back
+rilevata (Circular, Polygonal, Rectangular, Elliptical); quando la cavità è
+troppo poco profonda, l'opzione Inward non compare. La throat flange
+mantiene il precedente controllo **Outer shape** dentro **Advanced**.
+L'apertura centrale continua sempre a seguire la sezione della tromba.
 
 | Campo | IT | EN |
 |---|---|---|
@@ -124,10 +137,11 @@ In prima fila trovi solo l'essenziale:
 | **Bolt circle Ø** | su che cerchio stanno i bulloni | the circle the bolts sit on |
 
 Sotto **Advanced** (apri solo se serve): `Z offset`, posizione bulloni
-(spigoli/facce), forma esterna (tonda/poligonale) e numero lati esterni.
+(spigoli/facce) e, per la flangia bocca inward, le sedi delle teste.
 
-> **Mouth flange inward.** Quando la flangia di bocca rientra sotto il
-> roll-back, l'app costruisce piloni pieni fino alla battuta delle viti e li
+> **Mouth flange inward.** Quando la flangia di bocca rientra sotto un
+> roll-back circolare, poligonale, rettangolare o ellittico, l'app costruisce
+> piloni pieni fino alla battuta delle viti e li
 > rifila sulla superficie curva reale: dal flare non sporge nulla. Il foro
 > visibile resta tondo e largo quanto il gambo vite. Abilitando
 > **Screw-head seat**, `Head Ø` imposta il diametro della testa e `Head depth`
@@ -171,7 +185,8 @@ Sotto **Advanced** (apri solo se serve): `Z offset`, posizione bulloni
 5. Per ogni flangia compare anche **📥 … flange DXF**: un disegno 2D (fori,
    foro centrale, contorno su layer separati) da usare come dima di foratura o
    per tagliare una piastra al laser/CNC. I fori-bullone escono come cerchi
-   esatti al diametro nominale sul cerchio bulloni reale.
+   esatti al diametro nominale sul pattern reale, anche per flange ellittiche,
+   flange sottili sopra adapter lunghi e flange bocca inward.
 
 **EN** —
 1. Keep **Include horn** ticked.
@@ -182,7 +197,8 @@ Sotto **Advanced** (apri solo se serve): `Z offset`, posizione bulloni
 5. Each flange also offers **📥 … flange DXF**: a 2-D drawing (bolt holes,
    bore and outline on separate layers) to use as a drilling template or to
    laser/CNC-cut a mounting plate. Bolt holes come out as exact nominal
-   circles on the real bolt circle.
+   circles on the real pattern, including elliptical flanges, thin plates on
+   tall adapters, and inward mouth flanges.
 
 Se compare un errore rosso, cambia leggermente i parametri (spesso una flangia
 troppo grande o una bocca troppo piccola) e rigenera. / On a red error, nudge the
