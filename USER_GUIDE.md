@@ -168,6 +168,10 @@ Sotto **Advanced** (apri solo se serve): `Z offset`, posizione bulloni
 3. Aspetta lo spinner: l'app fonde tromba + flange + adattatore in **un solo
    pezzo a tenuta stagna**.
 4. Scarica con **📥 Download STL** (o **STEP** per il CAD).
+5. Per ogni flangia compare anche **📥 … flange DXF**: un disegno 2D (fori,
+   foro centrale, contorno su layer separati) da usare come dima di foratura o
+   per tagliare una piastra al laser/CNC. I fori-bullone escono come cerchi
+   esatti al diametro nominale sul cerchio bulloni reale.
 
 **EN** —
 1. Keep **Include horn** ticked.
@@ -175,6 +179,10 @@ Sotto **Advanced** (apri solo se serve): `Z offset`, posizione bulloni
 3. Wait for the spinner: horn + flanges + adapter are merged into **one
    watertight piece**.
 4. Download with **📥 Download STL** (or **STEP** for CAD).
+5. Each flange also offers **📥 … flange DXF**: a 2-D drawing (bolt holes,
+   bore and outline on separate layers) to use as a drilling template or to
+   laser/CNC-cut a mounting plate. Bolt holes come out as exact nominal
+   circles on the real bolt circle.
 
 Se compare un errore rosso, cambia leggermente i parametri (spesso una flangia
 troppo grande o una bocca troppo piccola) e rigenera. / On a red error, nudge the

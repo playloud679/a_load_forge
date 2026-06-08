@@ -258,6 +258,74 @@ def test_driver_mounting_hole_centers():
 test("standard bolt-on hole positions", test_driver_mounting_hole_centers)
 
 
+from src import dxf_export as _dxf
+
+def _parse_circles(dxf):
+    """Return list of (layer, cx, cy, r) from CIRCLE entities of a DXF string."""
+    out = []
+    for blk in dxf.split("0\nCIRCLE\n")[1:]:
+        layer = blk.split("8\n")[1].split("\n")[0]
+        cx = float(blk.split("10\n")[1].split("\n")[0])
+        cy = float(blk.split("20\n")[1].split("\n")[0])
+        r = float(blk.split("40\n")[1].split("\n")[0])
+        out.append((layer, cx, cy, r))
+    return out
+
+def test_dxf_circular_flange_exact_holes():
+    """DXF template recovers the exact nominal bolt holes (Ø + centres on the
+    bolt circle) from a faceted flange mesh, plus a centred bore and outline."""
+    m = _fg.generate_flange(throat_R=12.7, flange_R=50.0, thickness=6.0,
+                            bolt_R=38.1, bolt_n=4, bolt_d=6.5)
+    dxf = _dxf.mesh_to_flange_dxf(m)
+    assert dxf is not None and dxf.startswith("0\nSECTION") and dxf.rstrip().endswith("EOF")
+    circles = _parse_circles(dxf)
+    holes = [c for c in circles if c[0] == "HOLES"]
+    assert len(holes) == 4, f"expected 4 bolt holes, got {len(holes)}"
+    for _, cx, cy, r in holes:
+        assert abs(2 * r - 6.5) < 1e-3, f"hole Ø {2*r:.4f} != 6.5"
+        assert abs(np.hypot(cx, cy) - 38.1) < 1e-3, f"hole off bolt circle: {np.hypot(cx,cy):.4f}"
+    assert any(c[0] == "OUTLINE" for c in circles)
+    assert any(c[0] == "BORE" for c in circles)
+    # one POINT centre mark per bolt hole
+    assert dxf.count("\nPOINT\n") == 4
+test("DXF circular flange exact bolt holes", test_dxf_circular_flange_exact_holes)
+
+def test_dxf_keeps_polygonal_bore_shape():
+    """A hexagonal bore must stay a POLYLINE (not be rounded to a circle), while
+    the round bolt holes are still exact circles."""
+    m = _fg.generate_polygonal_flange(inner_circumR=18.0, n_sides=6, flange_R=55.0,
+                                       thickness=6.0, bolt_R=42.0, bolt_n=6, bolt_d=6.5)
+    dxf = _dxf.mesh_to_flange_dxf(m)
+    assert dxf is not None
+    circles = _parse_circles(dxf)
+    holes = [c for c in circles if c[0] == "HOLES"]
+    assert len(holes) == 6
+    for _, _, _, r in holes:
+        assert abs(2 * r - 6.5) < 1e-3
+    # the bore is a hexagon → emitted as a POLYLINE on the BORE layer
+    assert "0\nPOLYLINE\n8\nBORE\n" in dxf
+    assert not any(c[0] == "BORE" for c in circles)
+test("DXF keeps polygonal bore as polyline", test_dxf_keeps_polygonal_bore_shape)
+
+def test_dxf_rectangular_flange():
+    """Rectangular flange: rect outline + rect bore → polylines, round holes."""
+    m = _rf.generate_rectangular_flange(outer_diam=120.0, inner_w=60.0, inner_h=40.0,
+                                        thickness=6.0, bolt_radius=48.0,
+                                        bolt_count=4, bolt_diam=6.5)
+    dxf = _dxf.mesh_to_flange_dxf(m)
+    assert dxf is not None
+    holes = [c for c in _parse_circles(dxf) if c[0] == "HOLES"]
+    assert len(holes) == 4
+    assert "0\nPOLYLINE\n8\nBORE\n" in dxf  # rectangular opening stays a polyline
+test("DXF rectangular flange template", test_dxf_rectangular_flange)
+
+def test_dxf_radial_returns_none():
+    """A body with no flange-style holes yields no template (None, not a crash)."""
+    cyl = trimesh.creation.cylinder(radius=20.0, height=10.0)
+    assert _dxf.mesh_to_flange_dxf(cyl) is None
+test("DXF returns None when no holes present", test_dxf_radial_returns_none)
+
+
 for _driver_key, _driver_spec in _fg.DRIVER_FLANGE_SPECS.items():
     def make_driver_flange(key=_driver_key, spec=_driver_spec):
         clearance = 0.3

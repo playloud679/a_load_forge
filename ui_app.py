@@ -26,6 +26,7 @@ import _slicer as _slc
 import throat_adapter as _ta
 import _utils as _uts
 from _step_export import export_step
+from dxf_export import mesh_to_flange_dxf
 
 import importlib
 importlib.reload(_core)
@@ -62,6 +63,7 @@ def _on_horn_change():
                "mid_ring", "mid_bc", "mid_ow", "mid_oh"):
         st.session_state.pop(_k, None)
     st.session_state.pop("_combined", None)
+    st.session_state.pop("_flange_bodies", None)
     st.session_state.pop("_adapter_cut_z", None)
 
 _hdr_l, _hdr_r = st.columns([5, 1])
@@ -2037,6 +2039,15 @@ if gen_btn:
                 except Exception:
                     pass
             st.session_state["_combined"] = combined
+            # Stash the individual flange bodies so each can be exported as a 2-D
+            # DXF drilling template (bolt holes + bore + outline) on demand.
+            st.session_state["_flange_bodies"] = {
+                name: body for name, body in (
+                    ("throat", f_throat if not is_radial else None),
+                    ("mouth", f_mouth),
+                    ("mid", f_mid),
+                ) if body is not None
+            }
             if gen_throat and not is_radial and _ta_include_adapter and f_throat is not None:
                 st.session_state["_adapter_cut_z"] = float(_embedded_adapter_cut_z)
             else:
@@ -2098,6 +2109,33 @@ if gen_btn:
                         "model/step", use_container_width=True)
                 else:
                     st.caption("STEP not available")
+
+            # 2-D DXF drilling templates — one per mounting flange (bolt holes,
+            # bore and outline on separate layers). Generated lazily from each
+            # flange body so any flange type (round/poly/rect, custom/bolt-on)
+            # exports without re-deriving parameters.
+            _flange_bodies = st.session_state.get("_flange_bodies", {})
+            _dxf_labels = {"throat": "Throat", "mouth": "Mouth", "mid": "Mid"}
+            _dxf_items = []
+            for _key, _body in _flange_bodies.items():
+                try:
+                    _dxf = mesh_to_flange_dxf(_body)
+                except Exception:
+                    _dxf = None
+                if _dxf:
+                    _dxf_items.append((_key, _dxf))
+            if _dxf_items:
+                st.caption("📐 Flange drilling templates (DXF — bolt holes, bore, outline)")
+                _dxf_cols = st.columns(len(_dxf_items))
+                for _col, (_key, _dxf) in zip(_dxf_cols, _dxf_items):
+                    with _col:
+                        st.download_button(
+                            f"📥 {_dxf_labels.get(_key, _key)} flange DXF",
+                            _dxf.encode("ascii"),
+                            f"{_key}_flange_holes.dxf",
+                            "application/dxf",
+                            use_container_width=True,
+                            key=f"dxf_{_key}")
 
         except Exception as exc:
             # Show a short, safe message to the user; keep the full traceback

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.12.0 (2026-06-08)
+
+- **Export DXF dima fori flange** (`src/dxf_export.py` nuovo, `ui_app.py`): ogni flangia (gola/bocca/intermedia) ora si scarica come **DXF 2D** — fori-bullone, foro centrale e contorno su layer separati (`HOLES`/`BORE`/`OUTLINE`/`CENTERS`), pronto come dima di foratura o taglio laser/CNC di una piastra. Nessuna dipendenza nuova: scritto a mano come AutoCAD **R12 (AC1009)** ASCII in millimetri (come `_step_export.py` per lo STEP). Il template è **derivato dalla mesh** della flangia (sezione planare del piatto), quindi funziona per ogni tipo (circolare/poligonale/rettangolare/ellittica, custom o bolt-on, incluso il piatto dell'adapter bolt-on) senza riderivare parametri. I fori-bullone escono come **cerchi al diametro nominale esatto** sul cerchio bulloni reale (raggio recuperato come raggio circoscritto dei vertici, anche se il foro mesh è un cilindro a 12 facce); un foro centrale esagonale o rettangolare mantiene la forma vera come polilinea. Bottoni di download per-flangia sotto STL/STEP nei risultati; mostrati solo per flange con fori reali.
+- **Test** (`tests/test_all.py`): +4 controlli DXF (recupero esatto fori circolari, bore poligonale come polilinea, flangia rettangolare, nessun template senza fori) → **169 funzionali** + 33 geometria, tutti verdi.
+- **Docs/versioning**: nuovo `docs/dxf_export.md`, tabella moduli in `CLAUDE.md`, `docs/INDEX.md`, README, guida utente e versione aggiornati a `2.12.0`.
+
 ## 2.11.1 (2026-06-08)
 
 - **Raccordo C2 adapter→flare** (`src/throat_adapter.py`, `ui_app.py`): il raggio equivalente dell'adapter ora può usare Hermite **quintico** che combacia anche la **curvatura** (`d²r/dz²`) del flare al handoff, non solo valore e slope. Il raccordo cubico precedente, partendo piatto dal driver, faceva overshoot dello slope e ripiegava: vicino al giunto la curvatura cambiava segno rispetto al flare e lasciava una **linea d'inflessione** visibile nel slicer. Nuovi parametri `target_curv`/`outer_target_curv` su `make_adapter()` e `make_adapter_assembly()`; la UI calcola la curvatura interna ed esterna al punto di raccordo (`_profile_curv`) e la passa. Misurato: salto di slope al giunto **0.0034 → 0.0007** (≈5×), pezzo watertight invariato.

@@ -64,6 +64,7 @@ The axisymmetric engine in `profile_generator.py` is shared by tractrix, salmon,
 | `src/flange_generator.py` | Parametric circular mounting flange |
 | `src/rectangular_flange.py` | Circular-outer / rectangular-inner flange |
 | `src/_step_export.py` | STEP AP203 export utility |
+| `src/dxf_export.py` | 2D DXF drilling-template export from a flange mesh (bolt holes + bore + outline on layers) |
 | `src/_utils.py` | Shared math: profile normals, volume sign, Z-align |
 | `src/_constants.py` | `SOUND_SPEED = 344000 mm/s` (Hornresp default; UI-adjustable, see below) |
 | `src/main.py` | CLI orchestrator (thin wrapper over profile_generator) |
