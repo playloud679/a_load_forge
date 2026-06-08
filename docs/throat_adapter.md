@@ -128,7 +128,7 @@ Returns a watertight `trimesh.Trimesh`.
 
 ## Public API
 
-### `make_adapter(driver_R: float, horn_shape: str, horn_w: float, horn_h: float, horn_n_sides: int, horn_R_eq: float, horn_circumR: float, axial_steps: int, adapter_length: float, wall_thickness: float, thread_key: str | None = None, socket_length: float = 0.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, output_path: str | None = None) -> trimesh.Trimesh`
+### `make_adapter(driver_R: float, horn_shape: str, horn_w: float, horn_h: float, horn_n_sides: int, horn_R_eq: float, horn_circumR: float, axial_steps: int, adapter_length: float, wall_thickness: float, thread_key: str | None = None, socket_length: float = 0.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, output_path: str | None = None) -> trimesh.Trimesh`
 
 Builds the morphing transition section, optionally with an integrated threaded extension at the circular (driver) end.
 
@@ -153,9 +153,11 @@ Builds the morphing transition section, optionally with an integrated threaded e
 | `outer_rect_h` | `float \| None` | Outer rectangle height (threaded mode) |
 | `target_slope` | `float \| None` | Inner equivalent-radius slope `dr/dz` at the horn throat; when set, the adapter reaches the flare with matching expansion derivative |
 | `outer_target_slope` | `float \| None` | Outer equivalent-radius slope `dr/dz` at the horn throat, computed from the same parallel-offset wall as the horn mesh |
+| `target_curv` | `float \| None` | Inner equivalent-radius curvature `d²r/dz²` at the horn throat; upgrades the inner raccordo to quintic Hermite (C2) |
+| `outer_target_curv` | `float \| None` | Outer equivalent-radius curvature `d²r/dz²` at the horn throat; upgrades the outer raccordo to quintic Hermite (C2) |
 | `output_path` | `str \| None` | Optional STL export path |
 
-**Raccordo / expansion continuity:** The shape morph and acoustic area progression are controlled separately. The shape blend uses a quintic smoothstep, so it has zero shape-change derivative at the horn throat. The equivalent radius uses cubic Hermite interpolation when `target_slope` is provided, so the final `dr/dz` matches the first derivative of the selected flare. This removes the geometric edge at the adapter→flare joint while preserving the flare's expansion law at the handoff.
+**Raccordo / expansion continuity:** The shape morph and acoustic area progression are controlled separately. The shape blend uses a quintic smoothstep, so it has zero shape-change derivative at the horn throat. The equivalent radius uses **cubic** Hermite interpolation when only `target_slope` is provided (matches value + `dr/dz`, i.e. C1), or **quintic** Hermite when `target_curv` (`d²r/dz²` of the flare) is also provided — then the adapter additionally matches the flare's curvature (C2). C2 matters because a cubic raccordo, starting flat at the driver, overshoots the end slope and curls back: its curvature near the join flips sign relative to the flare and prints/renders as a faint **inflection line**. Matching `d²r/dz²` removes it. Both inner and outer equivalent-radius profiles take their own slope/curv targets so the wall stays continuous on both faces.
 
 **Algorithm — Three modes:**
 
@@ -203,7 +205,7 @@ Returns a watertight `trimesh.Trimesh`.
 
 ---
 
-### `make_adapter_assembly(driver_type: str, driver_diam: float | None, thread_key: str | None, horn_shape: str, rect_w: float, rect_h: float, poly_n_sides: int, poly_circumR: float, horn_R_eq: float, adapter_length: float, wall_thickness: float, axial_steps: int = 50, flange_R: float = 0.0, flange_thickness: float = 6.0, flange_bolt_R: float = 0.0, flange_bolt_n: int = 4, flange_bolt_d: float = 3.5, flange_bolt_phase: float = 0.0, flange_outer_n: int = 0, driver_clearance: float = 0.3, socket_length: float = 15.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, z_offset: float = 0.0, output_path: str | None = None) -> trimesh.Trimesh`
+### `make_adapter_assembly(driver_type: str, driver_diam: float | None, thread_key: str | None, horn_shape: str, rect_w: float, rect_h: float, poly_n_sides: int, poly_circumR: float, horn_R_eq: float, adapter_length: float, wall_thickness: float, axial_steps: int = 50, flange_R: float = 0.0, flange_thickness: float = 6.0, flange_bolt_R: float = 0.0, flange_bolt_n: int = 4, flange_bolt_d: float = 3.5, flange_bolt_phase: float = 0.0, flange_outer_n: int = 0, driver_clearance: float = 0.3, socket_length: float = 15.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, z_offset: float = 0.0, output_path: str | None = None) -> trimesh.Trimesh`
 
 Assembles the complete throat adapter: driver interface + morphing transition.
 
@@ -241,6 +243,8 @@ Assembles the complete throat adapter: driver interface + morphing transition.
 | `outer_rect_h` | `float \| None` | `None` | Outer rect height (threaded mode) |
 | `target_slope` | `float \| None` | `None` | Inner equivalent-radius slope `dr/dz` at horn throat |
 | `outer_target_slope` | `float \| None` | `None` | Outer equivalent-radius slope `dr/dz` at horn throat |
+| `target_curv` | `float \| None` | `None` | Inner equivalent-radius curvature `d²r/dz²` at horn throat (quintic C2 raccordo) |
+| `outer_target_curv` | `float \| None` | `None` | Outer equivalent-radius curvature `d²r/dz²` at horn throat (quintic C2 raccordo) |
 | `z_offset` | `float` | `0.0` | Z position of horn-throat end of transition |
 | `output_path` | `str \| None` | `None` | Optional STL export path |
 

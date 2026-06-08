@@ -1341,9 +1341,31 @@ if gen_btn:
                 return (float(np.interp(z_target, zz, vv)),
                         float(np.interp(z_target, zz, slopes)))
 
+            def _profile_curv(z_arr, v_arr, z_target):
+                """Second derivative d²v/dz² on the first advancing branch.
+
+                Feeds the adapter's quintic raccordo so it meets the flare with
+                matching curvature (C2), killing the inflection line at the join.
+                """
+                z_arr = np.asarray(z_arr, dtype=float)
+                v_arr = np.asarray(v_arr, dtype=float)
+                end = int(np.argmax(z_arr)) + 1
+                zz = z_arr[:end]
+                vv = v_arr[:end]
+                keep = np.concatenate([[True], np.diff(zz) > 1e-8])
+                zz = zz[keep]
+                vv = vv[keep]
+                if len(zz) < 3:
+                    return 0.0
+                z_target = float(np.clip(z_target, zz[0], zz[-1]))
+                curv = np.gradient(np.gradient(vv, zz), zz)
+                return float(np.interp(z_target, zz, curv))
+
             _adapter_target_slope = 0.0
+            _adapter_target_curv = None
             _adapter_outer_target_R = None
             _adapter_outer_target_slope = None
+            _adapter_outer_target_curv = None
             _adapter_outer_rw = None
             _adapter_outer_rh = None
             _embedded_adapter_cut_z = None
@@ -1572,9 +1594,13 @@ if gen_btn:
                                      else np.sqrt(wr * hr / np.pi))
                         horn_R_eq, _adapter_target_slope = _profile_value_slope(
                             zr, _inner_eq, _target_local_z)
+                        _adapter_target_curv = _profile_curv(
+                            zr, _inner_eq, _target_local_z)
                         _outer_eq = (np.sqrt(_w_o_rect * _h_o_rect) / 2.0 if is_ellip
                                      else np.sqrt(_w_o_rect * _h_o_rect / np.pi))
                         _outer_target_R, _outer_target_slope = _profile_value_slope(
+                            _z_o_rect, _outer_eq, _target_local_z)
+                        _adapter_outer_target_curv = _profile_curv(
                             _z_o_rect, _outer_eq, _target_local_z)
                         _outer_rw, _ = _profile_value_slope(
                             _z_o_rect, _w_o_rect, _target_local_z)
@@ -1588,7 +1614,11 @@ if gen_btn:
                             zp, _R_i_arr, _target_local_z)
                         horn_R_eq, _adapter_target_slope = _profile_value_slope(
                             zp, rp, _target_local_z)
+                        _adapter_target_curv = _profile_curv(
+                            zp, rp, _target_local_z)
                         _outer_target_R, _outer_target_slope = _profile_value_slope(
+                            _z_o_poly, _R_o_eq_arr, _target_local_z)
+                        _adapter_outer_target_curv = _profile_curv(
                             _z_o_poly, _R_o_eq_arr, _target_local_z)
                         _outer_rw = _outer_rh = None
                     else:
@@ -1598,7 +1628,11 @@ if gen_btn:
                         poly_circumR = 0.0
                         horn_R_eq, _adapter_target_slope = _profile_value_slope(
                             zp, rp, _target_local_z)
+                        _adapter_target_curv = _profile_curv(
+                            zp, rp, _target_local_z)
                         _outer_target_R, _outer_target_slope = _profile_value_slope(
+                            _z_o_circ, _r_o_circ, _target_local_z)
+                        _adapter_outer_target_curv = _profile_curv(
                             _z_o_circ, _r_o_circ, _target_local_z)
                         _outer_rw = _outer_rh = None
 
@@ -1628,6 +1662,8 @@ if gen_btn:
                         outer_rect_h=_outer_rh,
                         target_slope=_adapter_target_slope,
                         outer_target_slope=_outer_target_slope,
+                        target_curv=_adapter_target_curv,
+                        outer_target_curv=_adapter_outer_target_curv,
                         z_offset=_adapter_top_z,
                         output_path=tp,
                     )

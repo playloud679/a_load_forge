@@ -276,19 +276,46 @@ def _hermite_radius(
     length: float,
     slope1: float | None,
     slope0: float = 0.0,
+    curv1: float | None = None,
+    curv0: float = 0.0,
 ) -> float:
-    """Equivalent-radius progression with optional end slope in mm/mm."""
+    """Equivalent-radius progression with optional end slope (and curvature).
+
+    With only ``slope1`` it is a **cubic** Hermite matching value + first
+    derivative at the flare end (C1). When ``curv1`` (the flare's ``d²r/dz²``
+    at the join) is also given it upgrades to a **quintic** Hermite that
+    additionally matches the second derivative, so the adapter meets the flare
+    with continuous curvature (C2). Cubic Hermite, starting flat, overshoots
+    the end slope and curls back — its curvature near the join flips sign
+    relative to the flare and shows up as an inflection line; matching curvature
+    removes it. ``slope0``/``curv0`` default to 0 (the circular driver end).
+    """
     if slope1 is None or length <= 1e-9:
         return (1.0 - t) * r0 + t * r1
 
     t = float(np.clip(t, 0.0, 1.0))
     m0 = float(slope0) * length
     m1 = float(slope1) * length
-    h00 = 2.0 * t**3 - 3.0 * t**2 + 1.0
-    h10 = t**3 - 2.0 * t**2 + t
-    h01 = -2.0 * t**3 + 3.0 * t**2
-    h11 = t**3 - t**2
-    return max(1e-6, h00 * r0 + h10 * m0 + h01 * r1 + h11 * m1)
+    if curv1 is None:
+        h00 = 2.0 * t**3 - 3.0 * t**2 + 1.0
+        h10 = t**3 - 2.0 * t**2 + t
+        h01 = -2.0 * t**3 + 3.0 * t**2
+        h11 = t**3 - t**2
+        return max(1e-6, h00 * r0 + h10 * m0 + h01 * r1 + h11 * m1)
+
+    # Quintic Hermite: position, 1st and 2nd derivative matched at both ends.
+    # Derivatives are taken into normalized-t space (slope·L, curv·L²).
+    a0 = float(curv0) * length * length
+    a1 = float(curv1) * length * length
+    t2 = t * t; t3 = t2 * t; t4 = t3 * t; t5 = t4 * t
+    H0 = 1.0 - 10.0 * t3 + 15.0 * t4 - 6.0 * t5      # r0
+    H1 = t - 6.0 * t3 + 8.0 * t4 - 3.0 * t5          # m0
+    H2 = 0.5 * t2 - 1.5 * t3 + 1.5 * t4 - 0.5 * t5   # a0
+    H3 = 0.5 * t3 - t4 + 0.5 * t5                    # a1
+    H4 = -4.0 * t3 + 7.0 * t4 - 3.0 * t5             # m1
+    H5 = 10.0 * t3 - 15.0 * t4 + 6.0 * t5            # r1
+    return max(1e-6,
+               H0 * r0 + H1 * m0 + H2 * a0 + H3 * a1 + H4 * m1 + H5 * r1)
 
 
 # ======================================================================
@@ -316,6 +343,9 @@ def make_adapter(
     # C1 raccordo to the horn throat
     target_slope: float | None = None,
     outer_target_slope: float | None = None,
+    # C2 raccordo (equivalent-radius curvature at the horn throat)
+    target_curv: float | None = None,
+    outer_target_curv: float | None = None,
     output_path: str | None = None,
 ) -> trimesh.Trimesh:
     """Build the morphing transition section, optionally with an integrated
@@ -355,6 +385,12 @@ def make_adapter(
         the adapter reaches the horn with the same expansion derivative.
     outer_target_slope : float, optional
         Equivalent-radius slope for the horn's outer throat profile.
+    target_curv, outer_target_curv : float, optional
+        Equivalent-radius curvature ``d²r/dz²`` of the inner/outer flare at the
+        horn throat. When given alongside the matching slope, the radius
+        progression uses a quintic Hermite so the adapter reaches the flare
+        with continuous curvature (C2) — removes the inflection line at the
+        join that a cubic (C1-only) raccordo leaves.
     output_path : str, optional
 
     Returns a watertight Trimesh.
@@ -450,20 +486,23 @@ def make_adapter(
             t = zi / adapter_length if adapter_length > 0 else 1.0
             shape_t = _smoothstep5(t)
             inner_R = _hermite_radius(t, driver_R, target_R,
-                                      adapter_length, target_slope)
+                                      adapter_length, target_slope,
+                                      curv1=target_curv)
             inner = _morph_slice(t, driver_R, _target_fn, target_R, n,
                                  shape_t=shape_t, r_eq_des=inner_R,
                                  source_phase=_source_phase)
             if _outer_target_fn is not None and _outer_target_R is not None:
                 outer_R = _hermite_radius(t, _outer_R, _outer_target_R,
-                                          adapter_length, outer_target_slope)
+                                          adapter_length, outer_target_slope,
+                                          curv1=outer_target_curv)
                 outer = _morph_slice(t, _outer_R, _outer_target_fn,
                                      _outer_target_R, n,
                                      shape_t=shape_t, r_eq_des=outer_R,
                                      source_phase=_source_phase)
             elif outer_target_R is not None:
                 outer_R = _hermite_radius(t, _outer_R, outer_target_R,
-                                          adapter_length, outer_target_slope)
+                                          adapter_length, outer_target_slope,
+                                          curv1=outer_target_curv)
                 outer = _morph_slice(t, _outer_R, _target_fn,
                                      outer_target_R, n,
                                      shape_t=shape_t, r_eq_des=outer_R,
@@ -483,14 +522,16 @@ def make_adapter(
             t = zi / adapter_length if adapter_length > 0 else 1.0
             shape_t = _smoothstep5(t)
             inner_R = _hermite_radius(t, driver_R, target_R,
-                                      adapter_length, target_slope)
+                                      adapter_length, target_slope,
+                                      curv1=target_curv)
             inner = _morph_slice(t, driver_R, _target_fn, target_R, n,
                                  shape_t=shape_t, r_eq_des=inner_R,
                                  source_phase=_source_phase)
             if _outer_target_fn is not None and _outer_target_R is not None:
                 outer_R = _hermite_radius(t, driver_R + wall_thickness,
                                           _outer_target_R, adapter_length,
-                                          outer_target_slope)
+                                          outer_target_slope,
+                                          curv1=outer_target_curv)
                 outer = _morph_slice(t, driver_R + wall_thickness,
                                      _outer_target_fn, _outer_target_R, n,
                                      shape_t=shape_t, r_eq_des=outer_R,
@@ -498,7 +539,8 @@ def make_adapter(
             elif outer_target_R is not None:
                 outer_R = _hermite_radius(t, driver_R + wall_thickness,
                                           outer_target_R, adapter_length,
-                                          outer_target_slope)
+                                          outer_target_slope,
+                                          curv1=outer_target_curv)
                 outer = _morph_slice(t, driver_R + wall_thickness,
                                      _target_fn, outer_target_R, n,
                                      shape_t=shape_t, r_eq_des=outer_R,
@@ -765,6 +807,8 @@ def make_adapter_assembly(
     outer_rect_h: float | None = None,
     target_slope: float | None = None,
     outer_target_slope: float | None = None,
+    target_curv: float | None = None,
+    outer_target_curv: float | None = None,
     # Positioning: the horn-throat end of the transition sits at *z_offset*
     z_offset: float = 0.0,
     # Output
@@ -808,6 +852,8 @@ def make_adapter_assembly(
             outer_rect_h=outer_rect_h,
             target_slope=target_slope,
             outer_target_slope=outer_target_slope,
+            target_curv=target_curv,
+            outer_target_curv=outer_target_curv,
             output_path=None,
         )
     else:

@@ -1360,6 +1360,64 @@ def test_adapter_c1_raccordo_slope():
     assert abs(got - target_slope) < 0.02, f"end slope {got:.3f} != {target_slope:.3f}"
 test("adapter C1 raccordo slope", test_adapter_c1_raccordo_slope)
 
+def test_hermite_radius_quintic_c2():
+    """Quintic raccordo must match value, slope AND curvature at the flare end
+    (t=1) and stay flat (slope 0, curv 0) at the driver end (t=0), so the
+    adapter→flare join has continuous curvature (no inflection line)."""
+    r0, r1, L = 10.0, 18.0, 40.0
+    slope1, curv1 = 0.22, 0.004  # dr/dz, d²r/dz² at the flare end
+    def R(t):
+        return _ta._hermite_radius(t, r0, r1, L, slope1, curv1=curv1)
+    # z = t * L → derivatives in z-space via finite differences in t
+    h = 1e-4
+    assert abs(R(0.0) - r0) < 1e-9 and abs(R(1.0) - r1) < 1e-9
+    # slope at end (dr/dz = dr/dt / L)
+    s_end = (R(1.0) - R(1.0 - h)) / (h * L)
+    assert abs(s_end - slope1) < 5e-3, f"end slope {s_end:.4f} != {slope1}"
+    # curvature at end (d²r/dz²)
+    c_end = (R(1.0) - 2 * R(1.0 - h) + R(1.0 - 2 * h)) / (h * L) ** 2
+    assert abs(c_end - curv1) < 5e-3, f"end curv {c_end:.4f} != {curv1}"
+    # driver end stays flat (slope ~0)
+    s0 = (R(h) - R(0.0)) / (h * L)
+    assert abs(s0) < 5e-3, f"driver-end slope {s0:.4f} != 0"
+    # cubic fallback (no curv1) still matches value + slope
+    s_cubic = (_ta._hermite_radius(1.0, r0, r1, L, slope1)
+               - _ta._hermite_radius(1.0 - h, r0, r1, L, slope1)) / (h * L)
+    assert abs(s_cubic - slope1) < 5e-3
+test("adapter C2 raccordo (quintic curvature match)", test_hermite_radius_quintic_c2)
+
+def test_adapter_c2_smoother_than_c1():
+    """A curvature-matched (quintic) raccordo must reach the flare end with an
+    end slope closer to the requested expansion than the slope-only (cubic)
+    raccordo — a cubic, starting flat, overshoots and curls back. Measured on
+    the OUTER wall (circumscribed radius is smooth, unlike the faceted inner
+    min radius). Both must stay watertight."""
+    target = 0.22
+    kw = dict(driver_R=10.0, horn_shape="circular", horn_w=0.0, horn_h=0.0,
+              horn_n_sides=0, horn_R_eq=18.0, horn_circumR=0.0,
+              axial_steps=120, adapter_length=40.0, wall_thickness=4.0,
+              target_slope=target, outer_target_R=22.0, outer_target_slope=target)
+    def end_slope_error(curv):
+        extra = dict(target_curv=0.004, outer_target_curv=0.004) if curv else {}
+        m = _ta.make_adapter(output_path=None, **kw, **extra)
+        _check_trimesh_watertight(m, "adapter c2" if curv else "adapter c1")
+        zt = m.vertices[:, 2].max()
+        rr = []
+        for z in np.linspace(zt - 4.0, zt - 0.05, 24):
+            sec = m.section(plane_origin=[0, 0, z], plane_normal=[0, 0, 1])
+            if sec is None:
+                continue
+            p, _ = sec.to_2D()
+            rr.append((z, np.linalg.norm(p.vertices[:, :2], axis=1).max()))
+        rr = np.array(rr)
+        tail = rr[rr[:, 0] > zt - 1.5]
+        return abs(np.polyfit(tail[:, 0], tail[:, 1], 1)[0] - target)
+    j_cubic = end_slope_error(False)
+    j_quintic = end_slope_error(True)
+    assert j_quintic <= j_cubic + 1e-4, \
+        f"quintic end-slope error {j_quintic:.4f} should be <= cubic {j_cubic:.4f}"
+test("adapter C2 raccordo smoother than C1", test_adapter_c2_smoother_than_c1)
+
 def test_adapter_outer_flush():
     """Flanged adapter's outer wall must match the horn's outer wall at the
     horn-throat end (miter offset, not radial) — otherwise the union steps on

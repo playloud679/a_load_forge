@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.11.1 (2026-06-08)
+
+- **Raccordo C2 adapter→flare** (`src/throat_adapter.py`, `ui_app.py`): il raggio equivalente dell'adapter ora può usare Hermite **quintico** che combacia anche la **curvatura** (`d²r/dz²`) del flare al handoff, non solo valore e slope. Il raccordo cubico precedente, partendo piatto dal driver, faceva overshoot dello slope e ripiegava: vicino al giunto la curvatura cambiava segno rispetto al flare e lasciava una **linea d'inflessione** visibile nel slicer. Nuovi parametri `target_curv`/`outer_target_curv` su `make_adapter()` e `make_adapter_assembly()`; la UI calcola la curvatura interna ed esterna al punto di raccordo (`_profile_curv`) e la passa. Misurato: salto di slope al giunto **0.0034 → 0.0007** (≈5×), pezzo watertight invariato.
+- **Test** (`tests/test_all.py`): +2 controlli (verifica analitica valore/slope/curvatura del quintico + confronto C2 vs C1 più liscio) → **165 funzionali** + 33 geometria, tutti verdi.
+- **Docs/versioning**: `docs/throat_adapter.md`, README e versione aggiornati a `2.11.1`.
+
 ## 2.11.0 (2026-06-08)
 
 - **Preset bolt-on driver standard** (`src/flange_generator.py`): nuovo `DriverFlangeSpec` + tabella `DRIVER_FLANGE_SPECS` con i pattern industriali di montaggio (`bolt_on_1in_2` 1" 2-fori, `bolt_on_1in_3` 1" 3-fori, `bolt_on_1_4in_4` 1.4" 4-fori a croce, `bolt_on_2in_4` 2" 4-fori a croce). Helper `driver_mounting_hole_centers()` e `generate_driver_mounting_flange()` fissano diametro esterno, fori M6, PCD, numero e fase del pattern; il foro centrale è `gola nominale + throat_clearance` (default 0.3 mm).
