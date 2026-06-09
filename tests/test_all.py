@@ -40,6 +40,7 @@ from src import flange_generator as _fg
 from src import rectangular_horn as _r
 from src import rectangular_flange as _rf
 from src import throat_adapter as _ta
+from src import osse_horn as _osse
 from src import _utils as _uts
 import trimesh
 
@@ -80,8 +81,8 @@ for entry in [
     ("Conical 20/90deg/L80",     lambda: _c.get_conical(THROAT, 90, 80, N),          True),
     ("Conical 20/60deg/L120",    lambda: _c.get_conical(THROAT, 60, 120, N),         True),
     ("R-OSSE 20→100/78deg",      lambda: _c.get_rosse(THROAT, MOUTH, 78, N),         False),
-    ("Le Cleac'h 20/600/L80",    lambda: _c.get_lecleach(THROAT, FC, 80, N),        False),
-    ("Le Cleac'h 20/1200/L60",   lambda: _c.get_lecleach(THROAT, 1200, 60, N),      False),
+    ("Le Cleac'h 20/600/A160",   lambda: _c.get_lecleach(THROAT, FC, N),            False),
+    ("Le Cleac'h 20/1200/A140",  lambda: _c.get_lecleach(THROAT, 1200, N, max_angle=140), False),
 ]:
     label, fn, mono_z = entry
     def make(fn=fn, label=label, mono_z=mono_z):
@@ -121,6 +122,15 @@ def _check_conical_law():
     slope = np.diff(r) / np.diff(z)
     assert np.allclose(slope, np.tan(theta)), "conical wall is not straight"
 test("Conical law: straight wall at tan(theta)", _check_conical_law)
+
+
+def _check_lecleach_termination_angle_changes_geometry():
+    z_120, r_120 = _c.get_lecleach(THROAT, FC, N, max_angle=120.0)
+    z_160, r_160 = _c.get_lecleach(THROAT, FC, N, max_angle=160.0)
+    assert z_160[-1] < z_120[-1], "larger termination angle should curl the edge farther back"
+    assert r_160[-1] > r_120[-1], "larger termination angle should produce a larger mouth"
+test("Le Cleac'h termination angle changes geometry",
+     _check_lecleach_termination_angle_changes_geometry)
 
 
 def _check_rosse_st260_reference():
@@ -207,7 +217,7 @@ CIRC_CASES = [
     ("Oblate",       lambda: _c.get_oblate_spheroidal(THROAT, 90, 80, N)),
     ("Conical",      lambda: _c.get_conical(THROAT, 90, 80, N)),
     ("R-OSSE",       lambda: _c.get_rosse(THROAT, MOUTH, 78, N)),
-    ("Le Cleac'h",   lambda: _c.get_lecleach(THROAT, FC, 80, N)),
+    ("Le Cleac'h",   lambda: _c.get_lecleach(THROAT, FC, N)),
 ]
 
 def _check_mesh(m, label, min_volume=100):
@@ -383,6 +393,309 @@ for (label, profile_fn), n_sides in itertools.product(CIRC_CASES, POLY_SIDES):
         m = trimesh.load(p, file_type="stl"); os.unlink(p)
         _check_mesh(m, lbl)
     test(_lbl, make)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  3b. Profile adherence — generated wall follows the math curve at every station
+# ══════════════════════════════════════════════════════════════════════════════
+
+print("\n═══ Profile adherence to mathematical curves ═══")
+
+from shapely.geometry import Polygon as _ShPoly
+
+
+def _airway_section(m, z):
+    """Measure the hollow airway of mesh *m* at height *z*.
+
+    Returns ``(r_eq, width, height)`` where ``r_eq = sqrt(A_hole/π)`` is the
+    area-equivalent radius of the airway (shape-agnostic: works for circular,
+    rectangular and N-gon sections alike) and width/height are the airway's
+    bounding box. Returns ``None`` when the slice is solid or off the body.
+    """
+    sec = m.section(plane_origin=[0.0, 0.0, float(z)], plane_normal=[0.0, 0.0, 1.0])
+    if sec is None:
+        return None
+    p, _ = sec.to_planar()
+    polys = p.polygons_full
+    if not polys:
+        return None
+    poly = max(polys, key=lambda q: q.area)
+    if not poly.interiors:
+        return None
+    ring = max(poly.interiors, key=lambda r: _ShPoly(r).area)
+    hole = _ShPoly(ring)
+    minx, miny, maxx, maxy = hole.bounds
+    return (float(np.sqrt(hole.area / np.pi)),
+            float(maxx - minx), float(maxy - miny))
+
+
+def _monotone_increasing(z, *arrs):
+    """Rising-Z portion of a (possibly rolled-back) profile, strictly increasing
+    in z so it can drive ``np.interp``."""
+    k = int(np.argmax(z)) + 1
+    zc = z[:k]
+    keep = np.concatenate([[True], np.diff(zc) > 1e-9])
+    return (zc[keep],) + tuple(a[:k][keep] for a in arrs)
+
+
+def _adherence_circular(fn, label, tol=0.4):
+    z, r = fn()
+    zc, rc = _monotone_increasing(z, r)
+    # For rolled-back profiles the mouth lip folds back over the flare, so a
+    # horizontal plane above the lip cuts the wall twice and the airway becomes
+    # ambiguous. Only sample below the lip, where each z hits one wall.
+    k = int(np.argmax(z)) + 1
+    z_lip = float(z[k:].min()) if k < len(z) else float(zc[-1])
+    z_hi = min(float(zc[-1]), z_lip)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _c.generate_3d_mesh_from_profile(z, r, 4.0, 96, p)
+    m = trimesh.load(p, file_type="stl"); os.unlink(p)
+    for frac in (0.2, 0.4, 0.6):
+        zq = zc[0] + frac * (z_hi - zc[0])
+        got = _airway_section(m, zq)
+        assert got is not None, f"{label}: no airway at z={zq:.1f}"
+        r_math = float(np.interp(zq, zc, rc))
+        assert abs(got[0] - r_math) < tol, \
+            f"{label}: airway r_eq {got[0]:.3f} != math {r_math:.3f} at z={zq:.1f}"
+
+for label, profile_fn in CIRC_CASES:
+    test(f"{label} mesh follows math curve",
+         lambda fn=profile_fn, lbl=label: _adherence_circular(fn, lbl))
+
+
+def _adherence_rectangular():
+    z, w, h = _r.get_rectangular_exponential(40.0, 24.0, 200.0, FC)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _r.generate_rectangular_3d_mesh(z, w, h, 4.0, p)
+    m = trimesh.load(p, file_type="stl"); os.unlink(p)
+    span = z[-1] - z[0]
+    for frac in (0.2, 0.4, 0.6, 0.8):
+        zq = z[0] + frac * span
+        got = _airway_section(m, zq)
+        assert got is not None, f"rect: no airway at z={zq:.1f}"
+        wq = float(np.interp(zq, z, w)); hq = float(np.interp(zq, z, h))
+        assert abs(got[1] - wq) < 0.6, f"rect width {got[1]:.2f} != {wq:.2f} at z={zq:.1f}"
+        assert abs(got[2] - hq) < 0.6, f"rect height {got[2]:.2f} != {hq:.2f} at z={zq:.1f}"
+        r_math = float(np.sqrt(wq * hq / np.pi))
+        assert abs(got[0] - r_math) < 0.6, \
+            f"rect r_eq {got[0]:.2f} != {r_math:.2f} at z={zq:.1f}"
+test("rectangular mesh follows math curve", _adherence_rectangular)
+
+
+def _adherence_polygonal(n_sides):
+    z, r = _c.get_exponential(THROAT, MOUTH, FC, N)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _ph.generate_polygonal_3d_mesh(z, r, n_sides, 4.0, p)
+    m = trimesh.load(p, file_type="stl"); os.unlink(p)
+    span = z[-1] - z[0]
+    for frac in (0.25, 0.5, 0.75):
+        zq = z[0] + frac * span
+        got = _airway_section(m, zq)
+        assert got is not None, f"{n_sides}-gon: no airway at z={zq:.1f}"
+        r_math = float(np.interp(zq, z, r))
+        # area-matched N-gon → airway area-equivalent radius == circular r_eq
+        assert abs(got[0] - r_math) < 0.4, \
+            f"{n_sides}-gon r_eq {got[0]:.3f} != math {r_math:.3f} at z={zq:.1f}"
+for _ns in (4, 6, 8):
+    test(f"{_ns}-gon mesh area matches circular r_eq",
+         lambda n=_ns: _adherence_polygonal(n))
+
+
+def _adherence_embedded_morph():
+    """With the morph adapter embedded, (a) the untouched flare above the join
+    still follows the math curve, (b) the airway is continuous (the adapter
+    reaches the flare's area at the join), and (c) the driver end honours the
+    25 mm-class bore — i.e. the morph adheres to the curve at the handoff
+    without distorting the rest of the horn."""
+    thickness = 4.0
+    z, r = _c.get_exponential(20.0, 120.0, 600, 300)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _c.generate_3d_mesh_from_profile(z, r, thickness, 96, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+    horn.merge_vertices(); horn.fix_normals()
+    morph_len, overlap = 30.0, 0.5
+    target_z = morph_len + overlap
+    trimmed = horn.slice_plane([0, 0, morph_len], [0, 0, 1], cap=True); trimmed.fix_normals()
+    nml = _uts.compute_profile_normals(z, r)
+    z_o = z + thickness * nml[:, 0]; r_o = r + thickness * nml[:, 1]
+    target_r = float(np.interp(target_z, z, r))
+    target_ro = float(np.interp(target_z, z_o, r_o))
+    target_slope = float(np.interp(target_z, z, np.gradient(r, z)))
+    outer_slope = float(np.interp(target_z, z_o, np.gradient(r_o, z_o)))
+    adapter = _ta.make_adapter_assembly(
+        driver_type="flanged", driver_diam=25.0, thread_key=None,
+        horn_shape="circular", rect_w=0, rect_h=0, poly_n_sides=0, poly_circumR=0,
+        horn_R_eq=target_r, adapter_length=target_z, wall_thickness=thickness,
+        flange_R=0.0, socket_length=0.0, outer_target_R=target_ro,
+        target_slope=target_slope, outer_target_slope=outer_slope, z_offset=target_z)
+    m = trimesh.boolean.union([trimmed, adapter], engine="manifold")
+    m.merge_vertices(); m.fix_normals()
+
+    # (a) flare above the join is unchanged → airway follows the math curve
+    z_mouth = float(m.bounds[1, 2])
+    for zq in np.linspace(target_z + 5.0, z_mouth - 5.0, 3):
+        got = _airway_section(m, zq)
+        assert got is not None, f"morph: no airway at z={zq:.1f}"
+        r_math = float(np.interp(zq, z, r))
+        assert abs(got[0] - r_math) < 0.6, \
+            f"morph flare r_eq {got[0]:.2f} != math {r_math:.2f} at z={zq:.1f}"
+
+    # (b) airway continuous across the join (adapter meets the flare's area)
+    below = _airway_section(m, target_z - 2.0)
+    above = _airway_section(m, target_z + 2.0)
+    assert below is not None and above is not None, "morph: airway broken at join"
+    assert abs(below[0] - above[0]) < 0.8, \
+        f"morph: airway step at join {below[0]:.2f}→{above[0]:.2f}"
+    join = _airway_section(m, target_z)
+    assert abs(join[0] - target_r) < 0.8, \
+        f"morph: airway r_eq {join[0]:.2f} != flare {target_r:.2f} at join"
+
+    # (c) driver end honours the bore, and the airway grows monotonically
+    drv = _airway_section(m, 1.0)
+    assert drv is not None and abs(drv[0] - 12.5) < 1.5, \
+        f"morph: driver-end airway r_eq {None if drv is None else round(drv[0],2)} != ~12.5"
+    eqs = [_airway_section(m, zz)[0]
+           for zz in np.linspace(2.0, z_mouth - 5.0, 8)]
+    assert all(b >= a - 0.3 for a, b in zip(eqs, eqs[1:])), \
+        f"morph: airway not monotone: {[round(e,1) for e in eqs]}"
+test("embedded morph adheres to curve + preserves flare", _adherence_embedded_morph)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  3c. OS-SE waveguide (full non-axisymmetric ATH-style, with diagonal ridges)
+# ══════════════════════════════════════════════════════════════════════════════
+
+print("\n═══ OS-SE waveguide ═══")
+
+def test_osse_profile_eq5():
+    # Batík Fig.5 reference: r0=12.7, α=45°, k=1, L=120, s=0.8, n=5, q=0.998
+    z = np.array([0.0, 120.0])
+    r = _osse.osse_profile(z, 12.7, np.radians(45), 0.0, 1.0, 120.0, 0.8, 5.0, 0.998)
+    assert abs(r[0] - 12.7) < 1e-9, f"r(0)={r[0]} != throat radius"
+    assert abs(r[1] - 178.6) < 0.5, f"r(L)={r[1]:.2f} != ~178.6 (eq.5)"
+    # k=0 collapses the OS term to a straight cone r0 + z·tanα
+    zc = np.linspace(0, 100, 7)
+    rc = _osse.osse_profile(zc, 10.0, np.radians(30), 0.0, 0.0, 100.0, 0.0, 5.0, 0.998)
+    assert np.allclose(rc, 10.0 + zc * np.tan(np.radians(30)), atol=1e-9), "k=0 not conical"
+test("OS-SE profile matches eq.5 (+ conical limit)", test_osse_profile_eq5)
+
+
+def test_osse_coverage_and_superellipse():
+    a_h, a_v = np.radians(50), np.radians(35)
+    phi = np.array([0.0, np.pi / 2.0, np.pi / 4.0])
+    al = _osse.coverage_alpha(phi, a_h, a_v)
+    assert abs(al[0] - a_h) < 1e-9 and abs(al[1] - a_v) < 1e-9, "coverage ends wrong"
+    assert a_v < al[2] < a_h, "diagonal coverage not between H and V"
+    # superellipse: ellipse (p=2) → R at corner; rectangle (large p) → up to √2·R
+    R = 100.0
+    assert abs(_osse.superellipse_radius(np.array([np.pi/4]), R, R, 2.0)[0] - R) < 1e-6
+    corner = _osse.superellipse_radius(np.array([np.pi/4]), R, R, 50.0)[0]
+    assert R * 1.30 < corner < R * np.sqrt(2) + 1e-6, f"rect corner {corner:.1f} off"
+test("OS-SE coverage(φ) + superellipse outline", test_osse_coverage_and_superellipse)
+
+
+def test_osse_mouth_is_superelliptical_with_ridges():
+    """The morphed mouth equals the superellipse target: H/V match the natural
+    OS-SE mouth, and the diagonal is pushed OUT past the ellipse → the ridge."""
+    r0, L = 12.7, 120.0
+    a_h, a_v = np.radians(50), np.radians(30)
+    z, phi, R = _osse.osse_surface(r0, L, a_h, a_v, 0.0, 1.0, 0.8, 5.0, 0.998,
+                                   mouth_exp=8.0, morph_start=0.0, morph_rate=2.0,
+                                   nphi=240)
+    def at(ph):
+        return float(R[-1, int(np.argmin(np.abs(phi - ph)))])
+    a = _osse.osse_profile(np.array([L]), r0, a_h, 0, 1, L, 0.8, 5, 0.998)[0]
+    b = _osse.osse_profile(np.array([L]), r0, a_v, 0, 1, L, 0.8, 5, 0.998)[0]
+    assert abs(at(0.0) - a) < 0.5, f"mouth H {at(0.0):.1f} != natural {a:.1f}"
+    assert abs(at(np.pi/2) - b) < 0.5, f"mouth V {at(np.pi/2):.1f} != natural {b:.1f}"
+    # ridge: diagonal beyond the plain ellipse through the same H/V mouth
+    ell_diag = _osse.superellipse_radius(np.array([np.pi/4]), a, b, 2.0)[0]
+    assert at(np.pi/4) > ell_diag + 2.0, \
+        f"no diagonal ridge: diag {at(np.pi/4):.1f} <= ellipse {ell_diag:.1f}"
+    # throat is a clean circle of radius r0 at every azimuth
+    assert np.allclose(R[0, :], r0, atol=1e-9), "throat not circular"
+test("OS-SE mouth superelliptical + ridges present", test_osse_mouth_is_superelliptical_with_ridges)
+
+
+def test_osse_axes_follow_analytic_profile():
+    """On the horizontal and vertical axes the morph is a no-op (the superellipse
+    passes through the natural H/V mouth points), so r(z,0)/r(z,π/2) equal the
+    analytic single-azimuth profile with α_h / α_v."""
+    r0, L = 12.7, 120.0
+    a_h, a_v = np.radians(55), np.radians(32)
+    z, phi, R = _osse.osse_surface(r0, L, a_h, a_v, 0.0, 1.0, 0.8, 5.0, 0.998,
+                                   mouth_exp=6.0, morph_start=0.0, morph_rate=2.0,
+                                   nphi=240)
+    jh = int(np.argmin(np.abs(phi - 0.0)))
+    jv = int(np.argmin(np.abs(phi - np.pi / 2.0)))
+    rh = _osse.osse_profile(z, r0, a_h, 0, 1, L, 0.8, 5, 0.998)
+    rv = _osse.osse_profile(z, r0, a_v, 0, 1, L, 0.8, 5, 0.998)
+    assert np.allclose(R[:, jh], rh, atol=1e-6), "horizontal axis off analytic profile"
+    assert np.allclose(R[:, jv], rv, atol=1e-6), "vertical axis off analytic profile"
+test("OS-SE H/V axes follow analytic profile", test_osse_axes_follow_analytic_profile)
+
+
+def test_osse_mesh_watertight_flat_faces():
+    m = _osse.generate_osse_3d_mesh(
+        throat=25.4, length=120.0, coverage_h=90.0, coverage_v=60.0,
+        k=1.0, s=0.8, n=5.0, mouth_exp=8.0, thickness=4.0, nz=100, nphi=140)
+    assert m.is_watertight, "OS-SE mesh not watertight"
+    assert m.body_count == 1, f"OS-SE mesh {m.body_count} bodies"
+    assert m.volume > 1000, f"OS-SE volume {m.volume:.0f}"
+    # throat and mouth faces pinned flat at z=0 and z=L (mounting)
+    assert abs(m.bounds[0, 2] - 0.0) < 1e-6, f"throat face not flat (z={m.bounds[0,2]:.3f})"
+    assert abs(m.bounds[1, 2] - 120.0) < 1e-6, f"mouth face not flat (z={m.bounds[1,2]:.3f})"
+test("OS-SE mesh watertight + flat throat/mouth", test_osse_mesh_watertight_flat_faces)
+
+
+def test_osse_flanges_weld_to_horn():
+    """OS-SE supports round throat + elliptical mouth/mid flanges (as wired in
+    ui_app): each generates watertight and all three weld to the horn into one
+    body. Mirrors the UI geometry: throat hole = throat_R+wall, elliptical
+    holes = airway+wall bitten inward so the constant-thickness wall pokes
+    through and fuses."""
+    import trimesh as _tm
+    throat_d, L, th, BITE = 25.4, 120.0, 4.0, 0.5
+    z, phi, R = _osse.osse_surface(throat_d / 2.0, L, np.radians(45), np.radians(30),
+                                   0.0, 1.0, 0.8, 5.0, 0.998, mouth_exp=6.0,
+                                   morph_start=0.0, morph_rate=2.0, nz=60, nphi=120)
+    def contour(zt):
+        zt = float(np.clip(zt, z[0], z[-1]))
+        Rz = np.array([np.interp(zt, z, R[:, j]) for j in range(R.shape[1])])
+        return np.column_stack([Rz * np.cos(phi), Rz * np.sin(phi)])
+
+    fiw = throat_d + 2.0 * th
+    f_throat = _fg.generate_flange(throat_R=fiw / 2.0, flange_R=fiw / 2.0 + 12.0,
+        thickness=6.0, bolt_R=fiw / 2.0 + 6.0, bolt_n=4, bolt_d=4.0, offset=6.0)
+    # Mouth/mid follow the REAL superelliptical contour (ridges), not an ellipse.
+    f_mouth = _fg.generate_contour_flange(inner_xy=contour(L), thickness=6.0,
+        wall=th, ring=15.0, bite=BITE, bolt_n=8, bolt_d=4.0, offset=L)
+    f_mid = _fg.generate_contour_flange(inner_xy=contour(60.0), thickness=6.0,
+        wall=th, ring=15.0, bite=BITE, bolt_n=6, bolt_d=4.0, offset=60.0)
+    for nm, fl in (("throat", f_throat), ("mouth", f_mouth), ("mid", f_mid)):
+        assert fl is not None and fl.is_watertight, f"{nm} flange not watertight"
+
+    # The contour flange must follow the superellipse: its hole reaches the
+    # diagonal corner (within bite), not an inscribed ellipse ~30 mm short.
+    cm = contour(L)
+    jd = int(np.argmin(np.abs(phi - np.pi / 4)))
+    r_corner = float(np.hypot(cm[jd, 0], cm[jd, 1]))
+    a = float(np.max(np.abs(cm[:, 0]))); b = float(np.max(np.abs(cm[:, 1])))
+    r_ellipse = 1.0 / np.hypot(np.cos(phi[jd]) / a, np.sin(phi[jd]) / b)
+    assert r_corner > r_ellipse + 10.0, "test setup: no ridge to distinguish"
+    # flange outer bbox must enclose the real corner + ring, i.e. be wider than
+    # an elliptical flange would have been.
+    assert (f_mouth.bounds[1, 0] - f_mouth.bounds[0, 0]) > 2 * a + 2 * 15.0 - 1.0, \
+        "mouth flange narrower than the real contour + ring"
+
+    horn = _osse.generate_osse_3d_mesh(throat=throat_d, length=L,
+        coverage_h=90.0, coverage_v=60.0, thickness=th)
+    merged = _tm.boolean.union([horn, f_throat, f_mouth, f_mid],
+                               engine="manifold", check_volume=False)
+    assert merged.is_watertight, "merged OS-SE + flanges not watertight"
+    assert merged.volume > horn.volume, "flanges added no material"
+    assert len(merged.split(only_watertight=False)) == 1, "flanges float (not welded)"
+test("OS-SE throat/mouth/mid flanges weld to horn", test_osse_flanges_weld_to_horn)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -632,6 +945,16 @@ for label, fn in [
         _check_mesh(m, lbl)
     test(label, make)
 
+
+def _check_rectangular_tractrix_respects_mouth_width():
+    for throat_w, throat_h, mouth_w in [(20.0, 10.0, 160.0), (30.0, 20.0, 200.0)]:
+        _, w, h = _r.get_rectangular_tractrix(throat_w, throat_h, mouth_w, N)
+        assert abs(w[-1] - mouth_w) < 1e-6, f"mouth width {w[-1]:.3f} != {mouth_w}"
+        expected_h = mouth_w * throat_h / throat_w
+        assert abs(h[-1] - expected_h) < 1e-6, f"mouth height {h[-1]:.3f} != {expected_h}"
+test("Rectangular tractrix respects requested mouth width",
+     _check_rectangular_tractrix_respects_mouth_width)
+
 for label, ow, oh, iw, ih in [
     ("60×50 / 20×10", 60, 50, 20, 10),
     ("80×60 / 30×15", 80, 60, 30, 15),
@@ -780,7 +1103,7 @@ def _elliptical_rollback_flange_welds():
         return float(np.interp(zt, zb, wb)), float(np.interp(zt, zb, hb))
 
     # Elliptical Le Cléac'h (roll-back): area-preserving from the circular curve
-    zp, rp = _c.get_lecleach(np.sqrt(25.0 * 25.0 * 4 / np.pi), 500.0, 120.0, 200, T=0.707)
+    zp, rp = _c.get_lecleach(np.sqrt(25.0 * 25.0 * 4 / np.pi), 500.0, 200, T=0.707)
     zr, wr, hr = _r._area_to_rect(zp, rp, 25.0, 25.0)
     assert not np.all(np.diff(zr) >= 0), "expected a non-monotonic (roll-back) Z"
 
@@ -851,7 +1174,7 @@ def _rollback_mouth_flange_welds_to_outer_rim():
         zf = float(np.clip(zf, zs[0], zs[-1]))
         return offset, float(np.interp(zf, zs, ws)), float(np.interp(zf, zs, hs))
 
-    zp, rp = _c.get_lecleach(np.sqrt(25.0 * 25.0 * 4 / np.pi), 500.0, 120.0, 200, T=0.707)
+    zp, rp = _c.get_lecleach(np.sqrt(25.0 * 25.0 * 4 / np.pi), 500.0, 200, T=0.707)
     zr, wr, hr = _r._area_to_rect(zp, rp, 25.0, 25.0)
     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
     _c.generate_elliptical_3d_mesh_from_profiles(zr, wr / 2.0, hr / 2.0, thickness, 96, p)
@@ -891,7 +1214,7 @@ def _inward_mouth_flange_drills_through_flare():
     sp, nb, db = 4.0, 8, 5.0
     head_d, seat_depth, seat_wall = 9.5, 2.0, 3.0
     BITE = 0.5
-    zp, rp = _c.get_lecleach(np.sqrt(25.0 * 25.0 * 4 / np.pi), 500.0, 120.0, 200, T=0.707)
+    zp, rp = _c.get_lecleach(np.sqrt(25.0 * 25.0 * 4 / np.pi), 500.0, 200, T=0.707)
     zr, wr, hr = _r._area_to_rect(zp, rp, 25.0, 25.0)
     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
     _c.generate_elliptical_3d_mesh_from_profiles(zr, wr / 2.0, hr / 2.0, sp, 96, p)
@@ -1047,7 +1370,7 @@ test("inward mouth flange drills through flare", _inward_mouth_flange_drills_thr
 def _inward_rollback_plates_circular_and_polygonal():
     """Inward cavity plates must follow circular and polygonal roll-back rims."""
     sp = 4.0
-    z, r = _c.get_lecleach(25.0, 500.0, 120.0, 200, T=0.707)
+    z, r = _c.get_lecleach(25.0, 500.0, 200, T=0.707)
     for shape, sides in (("circular", 0), ("polygonal", 6)):
         with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
             p = t.name
@@ -1461,6 +1784,20 @@ def test_rect_points():
     assert abs(area - expected) / expected < 0.05, f"area={area:.0f} vs {expected}"
 test("rect points", test_rect_points)
 
+def test_rect_points_corners_anchored():
+    # Non-square rectangles must still land an exact vertex on every corner,
+    # otherwise the morph chamfers the corners (square only worked by luck:
+    # its corner fractions 1/8,3/8,5/8,7/8 hit integer indices).
+    import numpy as _np
+    for hw, hh in [(50.0, 50.0), (185.0, 80.0), (370.0, 30.0), (10.0, 400.0)]:
+        pts = _ta._rect_points(hw, hh, 64)
+        assert pts.shape == (64, 2), f"shape={pts.shape}"
+        assert _np.allclose(pts[0], [hw, 0.0]), f"start={pts[0]}"  # mid-right, θ=0
+        corners = _np.array([[hw, hh], [-hw, hh], [-hw, -hh], [hw, -hh]])
+        miss = max(_np.min(_np.linalg.norm(pts - c, axis=1)) for c in corners)
+        assert miss < 1e-9, f"{hw}x{hh}: corner not sampled, miss={miss:.2e}"
+test("rect points corners anchored", test_rect_points_corners_anchored)
+
 def test_ellipse_points():
     pts = _ta._ellipse_points(20.0, 10.0, 128)
     assert pts.shape == (128, 2), f"shape={pts.shape}"
@@ -1735,6 +2072,37 @@ def test_threaded_adapter_25mm_bore():
     bore_r = np.linalg.norm(at_bore[:, :2], axis=1).min()
     assert abs(bore_r * 2.0 - 25.0) < 0.05, f"acoustic bore={bore_r * 2.0:.3f} mm"
 test('1⅜"-18 threaded adapter has 25 mm acoustic bore', test_threaded_adapter_25mm_bore)
+
+
+def test_adapter_transition_wall_constant_thickness():
+    """The transition wall must stay ~wall_thickness on every axis, even for a
+    very elongated rectangular target. Morphing the outer to the horn's
+    area-equivalent outer used to balloon the narrow axis into a solid wedge
+    ("lo spazio tra flangia e flare non deve essere pieno")."""
+    wt = 4.0
+    w, h, ow, oh = 120.0, 60.0, 128.0, 68.0
+    m = _ta.make_adapter(
+        driver_R=_ta.THREAD_SPECS["1_375in"].bore_diam / 2.0,
+        horn_shape="rectangular", horn_w=w, horn_h=h, horn_n_sides=0,
+        horn_R_eq=np.sqrt(w * h / np.pi), horn_circumR=0.0,
+        axial_steps=60, adapter_length=30.0, wall_thickness=wt,
+        thread_key="1_375in", socket_length=15.0,
+        outer_target_R=np.sqrt(ow * oh / np.pi),
+        outer_rect_w=ow, outer_rect_h=oh, output_path=None)
+    # narrow (+Y) axis wall thickness at several transition heights
+    for z in (2.0, 4.0, 8.0, 15.0):
+        sec = m.section(plane_origin=[0, 0, z], plane_normal=[0, 0, 1])
+        assert sec is not None, f"no section at z={z}"
+        p, _ = sec.to_planar()
+        poly = max(p.polygons_full, key=lambda q: q.area)
+        assert len(poly.interiors) == 1, f"airway not hollow at z={z}"
+        ext = np.array(poly.exterior.coords)
+        inr = np.array(poly.interiors[0].coords)
+        oy = ext[np.abs(ext[:, 0]) < 3.0][:, 1].max()
+        iy = inr[np.abs(inr[:, 0]) < 3.0][:, 1].max()
+        wall = oy - iy
+        assert wall < wt * 1.4, f"z={z}: narrow wall {wall:.2f} mm balloons (fill)"
+test("adapter transition wall constant thickness", test_adapter_transition_wall_constant_thickness)
 
 
 def test_adapter_assembly_flanged():

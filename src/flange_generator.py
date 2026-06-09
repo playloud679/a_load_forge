@@ -469,6 +469,76 @@ def generate_polygonal_flange(
     return flange
 
 
+def generate_contour_flange(
+    inner_xy: np.ndarray,
+    thickness: float,
+    bolt_n: int,
+    bolt_d: float,
+    offset: float,
+    wall: float = 0.0,
+    ring: float = 15.0,
+    bite: float = 0.5,
+    bolt_R: float = 0.0,
+    bolt_phase: float = 0.0,
+    output_path: str | None = None,
+) -> trimesh.Trimesh | None:
+    """Flat flange whose hole and outer ring follow an **arbitrary closed
+    contour** (e.g. the superelliptical OS-SE mouth, ridges included), instead
+    of being forced to a circle/ellipse/rectangle.
+
+    ``inner_xy`` is the airway (inner-wall) contour, (N, 2). The hole is that
+    contour pulled **in** by ``bite`` so the constant-thickness wall pokes
+    through and fuses; the outer body is the contour pushed **out** by
+    ``wall + ring`` (``wall`` clears the wall, ``ring`` is the bolting land).
+    Bolts are spaced evenly by arc length along the mid-line of the land, so
+    they follow the contour shape. Top face at ``offset``, grows down by
+    ``thickness`` (same convention as the other flanges)."""
+    from shapely.geometry import Polygon as _ShapelyPolygon
+
+    inner_poly = _ShapelyPolygon(np.asarray(inner_xy, dtype=float))
+    if not inner_poly.is_valid:
+        inner_poly = inner_poly.buffer(0)
+    hole_poly = inner_poly.buffer(-abs(bite))
+    outer_poly = inner_poly.buffer(wall + ring)
+    if hole_poly.is_empty or outer_poly.is_empty:
+        logger.error("contour flange: degenerate buffer (ring/bite too large)")
+        return None
+    land_poly = outer_poly.difference(hole_poly)
+    if land_poly.is_empty:
+        return None
+
+    zb = offset - thickness
+    body = trimesh.creation.extrude_polygon(
+        land_poly if land_poly.geom_type == "Polygon"
+        else max(land_poly.geoms, key=lambda g: g.area),
+        height=thickness)
+    body.apply_translation([0.0, 0.0, zb])
+
+    cuts: list[trimesh.Trimesh] = []
+    hole_h = thickness + 2.0
+    n = int(bolt_n)
+    if n > 0:
+        midline = inner_poly.buffer(wall + ring * 0.5).exterior
+        total = midline.length
+        for k in range(n):
+            p = midline.interpolate((bolt_phase / (2.0 * np.pi) + k / n) % 1.0 * total,
+                                    normalized=False)
+            cut = creation.cylinder(radius=bolt_d / 2.0, height=hole_h, sections=24)
+            cut.apply_translation([p.x, p.y, zb + thickness / 2.0])
+            cuts.append(cut)
+
+    flange = trimesh.boolean.difference([body] + cuts, engine="manifold") if cuts else body
+    if flange is None or flange.is_empty:
+        logger.error("contour flange boolean failed")
+        return None
+    flange.remove_unreferenced_vertices()
+    flange.update_faces(flange.nondegenerate_faces())
+    flange.fix_normals()
+    if output_path:
+        flange.export(output_path)
+    return flange
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     m = generate_flange(

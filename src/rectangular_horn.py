@@ -79,7 +79,8 @@ def get_rectangular_tractrix(
     """Rectangular tractrix: area-preserving conversion from circular tractrix."""
     from profile_generator import get_tractrix
     throat = np.sqrt(throat_w * throat_h * 4 / np.pi)
-    mouth = np.sqrt(mouth_w * throat_h * 4 / np.pi)
+    mouth_h = mouth_w * throat_h / throat_w
+    mouth = np.sqrt(mouth_w * mouth_h * 4 / np.pi)
     z, r = get_tractrix(throat, mouth, n)
     return _area_to_rect(z, r, throat_w, throat_h)
 

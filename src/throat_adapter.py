@@ -70,10 +70,35 @@ def _rect_points(hw: float, hh: float, n: int = _NP) -> np.ndarray:
     Perimeter starts at MID-RIGHT (hw, 0) — matching θ=0 on the circle —
     and proceeds counter-clockwise so every vertex maps to the same
     parametric angle, producing a twist-free morphing loft.
+
+    The four corners are **always** sampled as exact vertices: the perimeter
+    is split at the start point and the four corners into five arcs, and the
+    `n` points are spread proportionally to arc length (≥1 interval each).
+    A uniform-by-perimeter sampling only lands a vertex on every corner for a
+    *square* (corner fractions 1/8, 3/8, 5/8, 7/8 → integer indices). For a
+    non-square rectangle the corners fall between samples, so the connecting
+    edge cuts across them and the morph produces a **chamfered corner** on both
+    the inner and outer walls. Anchoring the corners removes that bevel.
     """
-    th = np.linspace(0, 2 * np.pi, n, endpoint=False)
     perim = 4.0 * (hw + hh)
-    p = th / (2 * np.pi) * perim
+
+    # Forced break positions along the perimeter: start (mid-right) + 4 corners.
+    keys = np.array([0.0, hh, hh + 2.0 * hw, 3.0 * hh + 2.0 * hw,
+                     3.0 * hh + 4.0 * hw])
+    arc_len = np.diff(np.append(keys, perim))          # 5 arc lengths
+
+    # Distribute n intervals proportional to arc length, ≥1 per arc.
+    counts = np.maximum(1, np.round(arc_len / perim * n).astype(int))
+    while counts.sum() > n:                             # trim from longest arc
+        counts[np.argmax(arc_len / counts)] -= 1
+    while counts.sum() < n:                             # pad the longest arc
+        counts[np.argmax(arc_len / counts)] += 1
+
+    # Evenly place each arc's points, the first sitting exactly on its key.
+    p = np.concatenate([
+        keys[k] + arc_len[k] * np.arange(counts[k]) / counts[k]
+        for k in range(5)
+    ])
 
     x = np.empty(n); y = np.empty(n)
 
@@ -395,39 +420,29 @@ def make_adapter(
 
     Returns a watertight Trimesh.
     """
+    # The outer wall is always a constant-thickness parallel offset of the
+    # morphed inner (see the transition loop below), so only the *inner* target
+    # shape is needed here. The ``outer_target_*``/``outer_rect_*`` parameters
+    # are accepted for signature/back-compat but no longer drive the wall — a
+    # parallel offset is inherently flush with the horn and never balloons the
+    # wall into a solid wedge on the narrow axis of an elongated target.
     if horn_shape == "circular":
         target_R = horn_R_eq
         def _target_fn():
             return _circle_points(target_R)
-        _outer_target_fn = None
-        _outer_target_R = outer_target_R
     elif horn_shape == "elliptical":
         target_R = horn_R_eq
         def _target_fn():
             return _ellipse_points(horn_w / 2.0, horn_h / 2.0)
-        _outer_target_fn = None
-        _outer_target_R = None
-        if outer_target_R is not None and outer_rect_w is not None:
-            _outer_target_fn = lambda: _ellipse_points(outer_rect_w / 2.0,
-                                                        outer_rect_h / 2.0)
-            _outer_target_R = outer_target_R
     elif horn_shape == "rectangular":
         hw, hh = horn_w / 2.0, horn_h / 2.0
         target_R = np.sqrt(horn_w * horn_h / np.pi)
         def _target_fn():
             return _rect_points(hw, hh)
-        _outer_target_fn = None
-        _outer_target_R = None
-        if outer_target_R is not None and outer_rect_w is not None:
-            _outer_target_fn = lambda: _rect_points(outer_rect_w / 2.0,
-                                                     outer_rect_h / 2.0)
-            _outer_target_R = outer_target_R
     elif horn_shape == "polygonal":
         def _target_fn():
             return _poly_points(horn_n_sides, horn_circumR)
         target_R = horn_R_eq
-        _outer_target_fn = None
-        _outer_target_R = outer_target_R
     else:
         raise ValueError(f"unsupported horn_shape: {horn_shape!r}")
     _source_phase = np.pi / 2.0 if horn_shape == "polygonal" else 0.0
@@ -482,7 +497,6 @@ def make_adapter(
         elif has_threads:
             # Threaded transition: the female thread is 1⅜", but the acoustic
             # passage starts from the spec's 25 mm bore and morphs to the target.
-            # outer morphs from outer_R → outer target
             t = zi / adapter_length if adapter_length > 0 else 1.0
             shape_t = _smoothstep5(t)
             inner_R = _hermite_radius(t, driver_R, target_R,
@@ -491,27 +505,16 @@ def make_adapter(
             inner = _morph_slice(t, driver_R, _target_fn, target_R, n,
                                  shape_t=shape_t, r_eq_des=inner_R,
                                  source_phase=_source_phase)
-            if _outer_target_fn is not None and _outer_target_R is not None:
-                outer_R = _hermite_radius(t, _outer_R, _outer_target_R,
-                                          adapter_length, outer_target_slope,
-                                          curv1=outer_target_curv)
-                outer = _morph_slice(t, _outer_R, _outer_target_fn,
-                                     _outer_target_R, n,
-                                     shape_t=shape_t, r_eq_des=outer_R,
-                                     source_phase=_source_phase)
-            elif outer_target_R is not None:
-                outer_R = _hermite_radius(t, _outer_R, outer_target_R,
-                                          adapter_length, outer_target_slope,
-                                          curv1=outer_target_curv)
-                outer = _morph_slice(t, _outer_R, _target_fn,
-                                     outer_target_R, n,
-                                     shape_t=shape_t, r_eq_des=outer_R,
-                                     source_phase=_source_phase)
-            else:
-                outer = _morph_slice(t, _outer_R, _target_fn,
-                                     target_R + 0.15, n,
-                                     shape_t=shape_t,
-                                     source_phase=_source_phase)
+            # Constant-thickness wall: the outer is a true parallel (miter)
+            # offset of the morphed inner, so the transition stays exactly
+            # *wall_thickness* thick. Morphing the outer independently toward the
+            # horn's area-equivalent outer used to make the narrow axis of an
+            # elongated target overshoot *more* than the inner did, packing the
+            # space between the threaded collar and the flare with solid material
+            # ("lo spazio tra flangia e flare non deve essere pieno"). A parallel
+            # offset is also automatically flush with the horn at the join — the
+            # horn wall is the same constant offset of the same inner profile.
+            outer = _offset_polygon_outward(inner, wall_thickness)
             is_thread.append(False)
         else:
             # Flanged transition: double‑wall with a true outward-normal
@@ -519,6 +522,12 @@ def make_adapter(
             # the horn's wall, so the adapter↔horn junction is flush on the
             # OUTSIDE.  (A radial-from-origin offset under-extends the corners
             # and leaves a visible step there — "dentro ok, fuori il gradino".)
+            # The parallel offset is used unconditionally: morphing the outer
+            # independently to the horn's area-equivalent outer made the narrow
+            # axis of an elongated target overshoot more than the inner did,
+            # filling the wall solid. The constant offset is inherently flush
+            # (the horn wall is the same offset of the same inner) and keeps the
+            # wall exactly *wall_thickness* thick.
             t = zi / adapter_length if adapter_length > 0 else 1.0
             shape_t = _smoothstep5(t)
             inner_R = _hermite_radius(t, driver_R, target_R,
@@ -527,26 +536,7 @@ def make_adapter(
             inner = _morph_slice(t, driver_R, _target_fn, target_R, n,
                                  shape_t=shape_t, r_eq_des=inner_R,
                                  source_phase=_source_phase)
-            if _outer_target_fn is not None and _outer_target_R is not None:
-                outer_R = _hermite_radius(t, driver_R + wall_thickness,
-                                          _outer_target_R, adapter_length,
-                                          outer_target_slope,
-                                          curv1=outer_target_curv)
-                outer = _morph_slice(t, driver_R + wall_thickness,
-                                     _outer_target_fn, _outer_target_R, n,
-                                     shape_t=shape_t, r_eq_des=outer_R,
-                                     source_phase=_source_phase)
-            elif outer_target_R is not None:
-                outer_R = _hermite_radius(t, driver_R + wall_thickness,
-                                          outer_target_R, adapter_length,
-                                          outer_target_slope,
-                                          curv1=outer_target_curv)
-                outer = _morph_slice(t, driver_R + wall_thickness,
-                                     _target_fn, outer_target_R, n,
-                                     shape_t=shape_t, r_eq_des=outer_R,
-                                     source_phase=_source_phase)
-            else:
-                outer = _offset_polygon_outward(inner, wall_thickness)
+            outer = _offset_polygon_outward(inner, wall_thickness)
             is_thread.append(False)
 
         inner_slices.append(inner)

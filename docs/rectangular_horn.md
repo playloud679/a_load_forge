@@ -65,9 +65,12 @@ Area-preserving rectangular tractrix.
 
 **Algorithm:**
 1. Computes area-equivalent circular throat: `throat_eq = √(throat_w · throat_h · 4/π)`
-2. Computes area-equivalent circular mouth: `mouth_eq = √(mouth_w · throat_h · 4/π)` (uses throat_h as the height reference for the mouth area)
-3. Generates a circular tractrix profile via `profile_generator.get_tractrix(throat_eq, mouth_eq, n)`
-4. Converts to rectangular via `_area_to_rect(z, r, throat_w, throat_h)`
+2. Computes the constant-aspect-ratio mouth height:
+   `mouth_h = mouth_w · throat_h / throat_w`
+3. Computes area-equivalent circular mouth:
+   `mouth_eq = √(mouth_w · mouth_h · 4/π)`
+4. Generates a circular tractrix profile via `profile_generator.get_tractrix(throat_eq, mouth_eq, n)`
+5. Converts to rectangular via `_area_to_rect(z, r, throat_w, throat_h)`, producing exactly the requested `mouth_w`.
 
 ---
 

@@ -83,7 +83,7 @@ Argomenti che contano / arguments that matter:
 | `--throat` | diametro gola (mm), **obbligatorio** | throat diameter (mm), **required** |
 | `--mouth` | diametro bocca (tractrix) | mouth diameter (tractrix) |
 | `--fc` | frequenza di taglio Hz (exp/salmon) | cutoff frequency Hz (exp/salmon) |
-| `--length` | lunghezza assiale (salmon/lecleach/oblate) | axial length (salmon/lecleach/oblate) |
+| `--length` | lunghezza assiale (salmon/oblate) | axial length (salmon/oblate) |
 | `--profile` | `auto`/`tractrix`/`salmon`/`iwata`/`lecleach`/`oblate` | same |
 | `--thickness` | spessore parete, default 4 mm | wall thickness, default 4 mm |
 | `--output` | path del file, **obbligatorio** | file path, **required** |
@@ -129,7 +129,7 @@ z, r = pg.get_salmon(throat=20.0, fc=600.0, length=80.0, n=N, T=0.707)
 #   T>1   → sinh-dominato / sinh-dominated
 
 # --- Le Cléac'h (fronte d'onda isofase) ----------------------------------
-z, r = pg.get_lecleach(throat=20.0, fc=600.0, length=80.0, n=N,
+z, r = pg.get_lecleach(throat=20.0, fc=600.0, n=N,
                        T=0.707, max_angle=160.0)
 
 # --- Oblate spheroidal CD (constant directivity) -------------------------
@@ -227,7 +227,7 @@ sync. Don't guess, recompute.
 | `generate_3d_mesh_from_profile(z, r, ...)` | `profile_generator.py` | assialsimmetrico / axisymmetric |
 | `generate_rectangular_3d_mesh(z, w, h, ...)` | `rectangular_horn.py` | rettangolare / rectangular |
 | `generate_polygonal_3d_mesh(z, r_eq, n_sides, ...)` | `polygonal_horn.py` | N-gono / N-gon (3–12 lati) |
-| `generate_radial_horn(throat, mouth, fc, ...)` | `radial_horn.py` | radiale 360° / radial, **2 pezzi** |
+| `generate_radial_horn(throat, mouth, fc, ...)` | `radial_horn.py` | API sperimentale non esposta nella UI / experimental API not exposed in UI |
 
 ```python
 from src import polygonal_horn as ph
@@ -436,7 +436,7 @@ from src import profile_generator as pg
 from src import _slicer as slc
 
 # 1. matematica: scegli la curva / math: pick the curve
-z, r = pg.get_lecleach(throat=25.4, fc=500.0, length=120.0, n=300)
+z, r = pg.get_lecleach(throat=25.4, fc=500.0, n=300, max_angle=160.0)
 
 # 2. mesh: trasformala in solido watertight / turn it into a watertight solid
 pg.generate_3d_mesh_from_profile(z, r, thickness=5.0, output_path="io/horn.stl")

@@ -19,3 +19,9 @@ io/*
 # OS
 .DS_Store
 Thumbs.db
+
+# Local Claude Code config + agent skills (not part of the package)
+.claude/
+
+# Local reference library (large, third-party PDFs — kept out of the repo)
+skills/

@@ -166,6 +166,26 @@ subtracts the opening and bolt cylinders with the manifold boolean engine.
 
 ---
 
+## `generate_contour_flange(inner_xy, thickness, bolt_n, bolt_d, offset, wall=0.0, ring=15.0, bite=0.5, bolt_R=0.0, bolt_phase=0.0, output_path=None) -> trimesh.Trimesh | None`
+
+Mouth/Mid flange around an **arbitrary closed contour** instead of a
+circle/ellipse/rectangle — used by the UI for the **OS-SE** waveguide, whose
+section is superelliptical (the inscribed ellipse of `generate_profile_flange`
+falls ~30 mm short of the diagonal corners/ridges and would block the airway
+there).
+
+- `inner_xy` — the airway (inner-wall) contour, `(N, 2)`, in the flange plane.
+- Hole = `inner_xy` buffered **inward** by `bite` (the constant-thickness wall
+  pokes through and fuses).
+- Outer body = `inner_xy` buffered **outward** by `wall + ring` (`wall` clears
+  the wall, `ring` is the bolting land).
+- Bolts are spaced evenly **by arc length** along the mid-line of the land
+  (`inner.buffer(wall + ring/2)`), so they follow the contour shape.
+- Top face at `offset`, grows down by `thickness` (same convention as the other
+  flanges). Built with Shapely buffers + manifold boolean.
+
+---
+
 ## Bolt Phase Parameter
 
 The `bolt_phase` parameter (in radians) rotates the entire bolt hole pattern around the Z axis. By default `bolt_phase = 0.0`, which places the first bolt at angle 0 (along the +X axis). For a polygon with `outer_n_sides ≥ 3`, the polygon's first face edge is vertical (vertex at `π/2` offset), so the bolt pattern is independent of the polygon rotation unless `bolt_phase` is set to align them.

@@ -50,7 +50,7 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--fc", type=float, default=None,
                    help="Cutoff frequency in Hz (exponential / salmon)")
     p.add_argument("--length", type=float, default=None,
-                   help="Axial length in mm (salmon / lecleach / oblate)")
+                   help="Axial length in mm (salmon / oblate)")
     p.add_argument("--coverage", type=float, default=90.0,
                    help="Total coverage angle in degrees (oblate / conical / rosse)")
     p.add_argument("--T", type=float, default=0.707,
@@ -339,7 +339,7 @@ def get_iwata(throat: float, fc: float, length: float, n: int,
 from scipy.integrate import solve_ivp
 
 
-def get_lecleach(throat: float, fc: float, length: float, n: int,
+def get_lecleach(throat: float, fc: float, n: int,
                  T: float = 0.707,
                  max_angle: float = 160.0) -> tuple[np.ndarray, np.ndarray]:
     """
@@ -351,9 +351,6 @@ def get_lecleach(throat: float, fc: float, length: float, n: int,
         S(s) = S_t · (cosh(s/x₀) + T · sinh(s/x₀))²    (area law)
         cosα = 2πr² / S(s) − 1                           (wavefront curvature)
         dr/ds = sinα ,  dz/ds = cosα                     (wall follows normal)
-
-    *length* is a *minimum* axial extent — the integration continues until
-    the wavefront angle reaches *max_angle*, even if that requires a longer horn.
 
     Terminates when the wall tangent angle reaches *max_angle* (default 160°).
     Practical range: 90° (gentle roll-back) to 180° (full roll-back, mouth
@@ -387,10 +384,8 @@ def get_lecleach(throat: float, fc: float, length: float, n: int,
     _event.terminal = True
     _event.direction = -1
 
-    # Integrate until termination angle is reached. User-provided length is a
-    # *minimum* — the ODE continues beyond it if needed to reach max_angle.
-    s_max = max(length * 10.0, 50000.0)
-    sol = solve_ivp(_ode, (0, s_max), [rt, 0.0],
+    # The termination angle, not an arbitrary axial length, defines the mouth.
+    sol = solve_ivp(_ode, (0, 50000.0), [rt, 0.0],
                     method='RK45', events=_event, max_step=0.5,
                     rtol=1e-9, atol=1e-9)
 
@@ -720,11 +715,11 @@ def main(argv: list[str] | None = None) -> None:
                         r.max() * 2)
 
         elif name == "lecleach":
-            if args.fc is None or args.length is None:
-                raise ValueError("--fc and --length required for lecleach")
-            logger.info("Le Cléac'h: throat=%s  Fc=%s  length=%s  T=%s  max_angle=%s",
-                        args.throat, args.fc, args.length, args.T, args.max_angle)
-            z, r = get_lecleach(args.throat, args.fc, args.length, args.segments,
+            if args.fc is None:
+                raise ValueError("--fc required for lecleach")
+            logger.info("Le Cléac'h: throat=%s  Fc=%s  T=%s  max_angle=%s",
+                        args.throat, args.fc, args.T, args.max_angle)
+            z, r = get_lecleach(args.throat, args.fc, args.segments,
                                 T=args.T, max_angle=args.max_angle)
             logger.info("Mouth ø: %.1f mm  Length: %.1f mm  (roll-back %.0f°)",
                         r.max() * 2, z.max(), args.max_angle)
@@ -735,8 +730,9 @@ def main(argv: list[str] | None = None) -> None:
             logger.info("Oblate spheroidal CD: throat=%s  coverage=%s  length=%s",
                         args.throat, args.coverage, args.length)
             z, r = get_oblate_spheroidal(args.throat, args.coverage, args.length, args.segments)
-            fc = SOUND_SPEED / (np.pi * r[-1] * 2.0)
-            logger.info("Mouth ø: %.1f mm  Length: %.1f mm  Fc≈%.0f Hz",
+            fc = 0.2 * SOUND_SPEED * np.sin(np.radians(args.coverage / 2.0)) / (
+                np.pi * (args.throat / 2.0))
+            logger.info("Mouth ø: %.1f mm  Length: %.1f mm  OS loading estimate≈%.0f Hz",
                         r[-1] * 2, z[-1], fc)
 
         elif name == "conical":
@@ -746,7 +742,7 @@ def main(argv: list[str] | None = None) -> None:
                         args.throat, args.coverage, args.length)
             z, r = get_conical(args.throat, args.coverage, args.length, args.segments)
             fc = SOUND_SPEED / (np.pi * r[-1] * 2.0)
-            logger.info("Mouth ø: %.1f mm  Length: %.1f mm  Fc≈%.0f Hz",
+            logger.info("Mouth ø: %.1f mm  Length: %.1f mm  mouth-loading estimate≈%.0f Hz",
                         r[-1] * 2, z[-1], fc)
 
         elif name == "rosse":
@@ -756,7 +752,7 @@ def main(argv: list[str] | None = None) -> None:
                         args.throat, args.mouth, args.coverage)
             z, r = get_rosse(args.throat, args.mouth, args.coverage, args.segments)
             fc = SOUND_SPEED / (np.pi * args.mouth)
-            logger.info("Mouth ø: %.1f mm  Length: %.1f mm  Fc≈%.0f Hz (rollback)",
+            logger.info("Mouth ø: %.1f mm  Length: %.1f mm  mouth-loading estimate≈%.0f Hz (rollback)",
                         args.mouth, z.max(), fc)
 
         else:

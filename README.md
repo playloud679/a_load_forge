@@ -27,24 +27,25 @@ The right expansion curve depends on what you're optimizing for, and none of the
 
 **Le Cléac'h** integrates an isophase wavefront profile from a Salmon/Hypex area law. It can roll the mouth back, which is useful acoustically but means some simple mouth-flange assumptions stop applying.
 
-**Oblate spheroidal** is a constant-directivity profile:
+**Oblate spheroidal** is a constant-directivity-oriented profile:
 `r(x) = sqrt(r0² + (x·tan(coverage/2))²)`. The throat starts parallel to the axis, then tends toward a conical asymptote. Rectangular oblate horns solve horizontal and vertical coverage independently, so 90° × 45° waveguides are first-class.
+The requested angles are nominal/asymptotic: actual polar response depends on frequency, driver and higher-order modes.
 
-**Iwata** is the real thing — the horn from the l'Audiophile plan (for JBL 2440/375), digitized from the drawing. Unlike the others it is *rectangular and asymmetric*: width and height flare at different rates (mouth ≈ 740×320 mm over 572 mm), so the cross-section grows from ~1:1 at the throat to ~2.3:1 at the mouth. The wide-plane mouth is a **circular arc** (radius 692 mm about an apex behind the throat), the height-plane mouth stays flat — built by boolean-trimming the loft with a cylinder. You set throat size and length; the proportions, mouth and ≈210 Hz cutoff follow from the plan. (Selecting Iwata forces a rectangular section; the curved mouth means no mouth flange.)
+**Iwata** is the real thing — the horn from the l'Audiophile plan (for JBL 2440/375), digitized from the drawing. Unlike the others it is *rectangular and asymmetric*: width and height flare at different rates (mouth ≈ 740×320 mm over 572 mm), so the cross-section grows from ~1:1 at the throat to ~2.3:1 at the mouth. The wide-plane mouth is a **circular arc** (radius 692 mm about an apex behind the throat), the height-plane mouth stays flat — built by boolean-trimming the loft with a cylinder. You set throat size and length; the proportions, mouth and an approximate loading frequency follow from the plan. (Selecting Iwata forces a rectangular section; the curved mouth means no mouth flange.)
+
+**OS-SE (ATH)** is the full waveguide from Marcel Batík's OS-SE formula (at-horns.eu): a *round throat → superelliptical mouth* device whose coverage varies with azimuth, so the diagonals get pushed out to the corners in the second half of the length — those bulges are the characteristic **diagonal ridges**. You set throat, length and horizontal/vertical coverage; the mouth W×H and ridges follow. Like radial/Iwata it is non-axisymmetric with its own `r(z,φ)` loft engine and ignores the section selector. It now supports all three mounting flanges: a round throat flange, and superelliptical mouth/mid flanges that follow the **real contour** (ridges included), not an inscribed ellipse.
 
 Most profiles return `(z, r)` and nothing else — just the math, with the cross-section a separate choice. The rectangular ones (including Iwata) return `(z, w, h)` because the section is intrinsic to them.
 
 ## Cross-sections
 
-The profile says how the area grows along the axis. The section says what shape that area takes. Most axisymmetric profiles compose with the circular, polygonal, rectangular and radial engines; Iwata is intrinsically rectangular.
+The profile says how the area grows along the axis. The section says what shape that area takes. Most axisymmetric profiles compose with the circular, polygonal and rectangular engines; Iwata is intrinsically rectangular.
 
 **Circular** is the revolution you'd expect: spin the profile around Z.
 
-**Polygonal** makes every Z slice a regular N-gon (3 to 12 sides), area-matched to the equivalent circle, so the acoustics are unchanged but the horn prints flat-faced. The circumradius is `r_eq · √(2π / (N·sin(2π/N)))`.
+**Polygonal** makes every Z slice a regular N-gon (3 to 12 sides), area-matched to the equivalent circle, so the fundamental one-dimensional area law is preserved while the horn prints flat-faced. Higher-order modes and directivity can differ from the circular version. The circumradius is `r_eq · √(2π / (N·sin(2π/N)))`.
 
 **Rectangular** loftes a rectangle of constant aspect ratio along the axis; width and height both follow the same area-preserving expansion as the equivalent circle.
-
-**Radial 360°** is a disk waveguide for omnidirectional applications. Two pieces — bottom plate and top reflector — with an acoustic gap between them.
 
 ## How the mesh is built
 
@@ -76,7 +77,7 @@ The radial tongue-and-groove joint protects the outside skin before placing the 
 
 Mounting flanges (throat, mouth, and an optional mid-flange at any axial position) are built with CSG boolean operations via trimesh and manifold3d. Bolt holes are real cutouts, not overlapping geometry. The outer body can be circular or a polygon, independently of the horn's section.
 
-The mouth flange is sized against the horn's actual outer wall, not the acoustic inner profile. Circular, polygonal and rectangular mouths all use the same rule: the hole follows the real outer wall at the mouth and bites inward by 0.5 mm. That small overlap avoids coplanar contact, so the flange unions as a real volumetric weld instead of leaving non-manifold edges or a visible loose ledge. The value shown in the UI is the same value used for ring width, bolt-circle limits and final mesh generation.
+The mouth flange is sized against the horn's actual outer wall, not the acoustic inner profile. Circular, polygonal and rectangular mouths all use the same rule: the hole follows the real outer wall at the mouth and bites inward by 0.5 mm. The OS-SE waveguide goes one step further: because its section is superelliptical, the mouth and mid flanges are built around the **real sampled contour** (`generate_contour_flange`), so they follow the ridges out to the corners instead of an inscribed ellipse that would fall ~30 mm short on the diagonal and clip the airway. That small overlap avoids coplanar contact, so the flange unions as a real volumetric weld instead of leaving non-manifold edges or a visible loose ledge. The value shown in the UI is the same value used for ring width, bolt-circle limits and final mesh generation.
 
 An inward roll-back mouth flange is supported by full load-bearing pillars between the flange and flare. Each pillar is built first and then boolean-clipped against the real curved flare surface, so it reaches the screw bearing face without protruding outside. The visible flare opening remains a round shaft-diameter hole. Optional screw-head seats are axial and concentric with the vertical screw holes, and all seats terminate on one shared coplanar floor set by `Head depth`.
 
@@ -97,7 +98,7 @@ Each mounting flange (throat, mouth, mid) can also be downloaded as a flat 2-D *
     .venv/bin/python tests/test_all.py
     .venv/bin/python tests/test_geometry.py
 
-`test_all.py` (175 tests) covers the full profile × section matrix, standard driver bolt-on presets, flanges, DXF drilling templates, inward-flange pillars and screw seats across roll-back section shapes, slicing, radial and box tongue-and-groove joints, print-volume chunks, and the throat adapter C1/C2 raccordo. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
+`test_all.py` (197 tests) covers the profile × section matrix, requested-dimension regressions, standard driver bolt-on presets, flanges, DXF drilling templates, inward-flange pillars and screw seats across roll-back section shapes, slicing, radial and box tongue-and-groove joints, print-volume chunks, and the throat adapter C1/C2 raccordo. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
 
 ## Known limitations
 

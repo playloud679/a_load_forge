@@ -40,7 +40,7 @@ Imported from `src/_constants.py`.
 | `--throat` | `float` | **required** | Throat diameter in mm |
 | `--mouth` | `float` | `None` | Mouth diameter (tractrix / exponential / R-OSSE) |
 | `--fc` | `float` | `None` | Cutoff frequency in Hz (exponential / salmon) |
-| `--length` | `float` | `None` | Axial length in mm (salmon / lecleach / oblate) |
+| `--length` | `float` | `None` | Axial length in mm (salmon / oblate) |
 | `--coverage` | `float` | `90.0` | Total coverage angle in degrees (oblate / conical / R-OSSE; formula uses half-angle) |
 | `--T` | `float` | `0.707` | Salmon flare parameter T (0=catenoidal, <1=cosh, 1=exponential, >1=sinh) |
 | `--max-angle` | `float` | `160.0` | Termination angle in degrees (lecleach only, 90-180, default 160) |
@@ -95,13 +95,13 @@ where `r₀ = throat/2`, `x` is the axial coordinate, and `coverage_angle` is th
 
 The function raises `ValueError` if throat or length are non-positive, or if `coverage_angle` is not between 0° and 180°.
 
-The CD oblate law itself is angle/length driven and does not contain an exponential cutoff parameter. The CLI reports an estimated mouth-loading cutoff using the same rule used elsewhere in the app:
+The CD oblate law itself is angle/length driven and does not contain an exponential cutoff parameter. The CLI and UI report the approximate lower loading limit at which throat resistance reaches about 0.2 of its asymptotic value:
 
 ```
-Fc ≈ c / (π · D_mouth)
+f_load ≈ 0.2 · c · sin(coverage_angle/2) / (π · throat_radius)
 ```
 
-where `D_mouth = 2 · r[-1]`.
+This is still a loading estimate, not a prediction of the complete driver/waveguide response or polar pattern.
 
 ### `get_oblate_spheroidal_for_mouth(throat: float, mouth: float, coverage_angle: float, n: int) -> tuple[np.ndarray, np.ndarray]`
 
@@ -132,7 +132,7 @@ Conical horn — the constant-directivity **reference** shape. Straight wall fro
 r(x) = r0 + x · tan(theta),   theta = coverage_angle / 2
 ```
 
-Same `(throat, coverage, length)` interface as `get_oblate_spheroidal`, so the UI dispatches both through one handle (`is_cd`). Unlike oblate, the throat slope is **non-zero** (a sharp cone): directivity is set purely by the wall angle. Mouth Ø and an estimated mouth-loading cutoff are derived (not inputs). The rectangular counterpart is `rectangular_horn.get_rectangular_conical`.
+Same `(throat, coverage, length)` interface as `get_oblate_spheroidal`, so the UI dispatches both through one handle (`is_cd`). Unlike oblate, the throat slope is **non-zero** (a sharp cone). The wall angle is nominal/asymptotic; actual directivity remains frequency- and driver-dependent. Mouth Ø and a one-wavelength mouth-loading estimate are derived (not inputs). The rectangular counterpart is `rectangular_horn.get_rectangular_conical`.
 
 ### `get_rosse(throat: float, mouth: float, coverage_angle: float, n: int, throat_angle: float = 15.0, k: float = 1.8, r: float = 0.3, m: float = 0.8, b: float = 0.3, q: float = 3.7) -> tuple[np.ndarray, np.ndarray]`
 
@@ -140,7 +140,7 @@ Implements Marcel Batík's **R-OSSE Acoustic Waveguide rev.7** parametric expans
 
 The defaults reproduce the document's ST260 example when called as `get_rosse(25.4, 260, 78, n)`: outer radius `130 mm`, maximum axial depth approximately `77.70 mm`, and rolled-back edge at approximately `57.47 mm`.
 
-The UI exposes all six shape controls from the paper. Circular and polygonal sections use the axisymmetric profile directly. Rectangular and elliptical sections use an area-preserving conversion at a constant throat aspect ratio. Radial 360° is not applicable and falls back to Circular.
+The UI exposes all six shape controls from the paper. Circular and polygonal sections use the axisymmetric profile directly. Rectangular and elliptical sections use an area-preserving conversion at a constant throat aspect ratio. The experimental Radial 360° engine is not exposed in the UI.
 
 ### `get_salmon(throat: float, fc: float, length: float, n: int, T: float = 0.707) -> tuple[np.ndarray, np.ndarray]`
 
@@ -163,7 +163,7 @@ where `Sₜ = π · (throat/2)²`. The parameter `T` controls the flare family:
 
 Wrapper that calls `get_salmon(throat, fc, length, n, T=0.707)`. Iwata = Salmon Hypex preset.
 
-### `get_lecleach(throat: float, fc: float, length: float, n: int, T: float = 0.707, max_angle: float = 160.0) -> tuple[np.ndarray, np.ndarray]`
+### `get_lecleach(throat: float, fc: float, n: int, T: float = 0.707, max_angle: float = 160.0) -> tuple[np.ndarray, np.ndarray]`
 
 **Algorithm:** Le Cléac'h isophase wavefront horn — Salmon area law + parallel wavefronts, solved via ODE.
 
@@ -183,7 +183,7 @@ where `Sₜ = π · (throat/2)²` and `x₀ = c / (2π · fc)`.
 - `rtol = 1e-9`, `atol = 1e-9`
 - `max_step = 0.5`
 - Initial conditions: `s=0, r=throat/2, z=0`
-- Integration domain: `[0, max(length*10, 50000)]` — the user-provided `length` is a **minimum**
+- Integration domain: `[0, 50000]`; the mouth is defined by the termination-angle event, not by an axial-length input.
 
 **Termination event:**
 ```

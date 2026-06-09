@@ -54,7 +54,7 @@ Returns `n` angularly spaced points on an ellipse with semi-axes `rx` and `ry`. 
 
 ### `_rect_points(hw: float, hh: float, n: int = 64) -> np.ndarray`
 
-Returns `n` points on a rectangle of half-width `hw` and half-height `hh`, distributed evenly along the perimeter.
+Returns `n` points on a rectangle of half-width `hw` and half-height `hh`. The four corners are **always anchored as exact vertices**: the perimeter is split at the start point + 4 corners into five arcs, and the `n` points are spread proportionally to arc length (≥1 interval per arc). A plain uniform-by-perimeter sampling only lands a vertex on every corner for a **square** (corner fractions `1/8, 3/8, 5/8, 7/8` → integer indices); for a non-square rectangle the corners fall *between* samples, so the connecting edge cuts across them and the morph renders a **chamfered corner** on both inner and outer walls. Anchoring the corners removes that bevel. Square output is unchanged (arcs `1:2:2:2:1` → counts `8,16,16,16,8`).
 
 **Perimeter ordering:** Starts at **mid-right** `(hw, 0)` and proceeds **counter-clockwise**:
 1. Right edge, bottom→top: `(hw, 0)` → `(hw, hh)` 
@@ -165,13 +165,14 @@ Builds the morphing transition section, optionally with an integrated threaded e
 1. Z range: `[-thread_len, adapter_length]` where `thread_len = n_turns * pitch`
 2. **Thread section** (`z < 0`): 1⅜"-18 circular socket with sinusoidal thread profile `r_thread = major_R − (major_R − minor_R) · 0.5 · (1 − cos(2π · turn_frac))`. Outer wall is a smooth cylinder at `outer_R = major_R + wall_thickness`.
 3. **Acoustic handoff** (`z = 0`): the inner passage reduces to the specified 25 mm bore.
-4. **Transition section** (`z ≥ 0`): Inner morphs from the 25 mm bore to the inner target via `_morph_slice`. Outer morphs from `outer_R` to the outer target. If slope inputs are provided, both profiles end tangent to the horn.
-5. In threaded mode, the transition is flush with the horn inner — no wall thickness separate from the outer profile.
+4. **Transition section** (`z ≥ 0`): Inner morphs from the 25 mm bore to the inner target via `_morph_slice`; the outer is a true **parallel (miter) offset** of that inner via `_offset_polygon_outward(inner, wall_thickness)`. The threaded collar (outer `≈ major_R + wt`) therefore steps down to a thin-walled funnel at `z = 0`.
 
 **B. Flanged mode** (`thread_key` is None):
 1. Z range: `[0, adapter_length]`
 2. Inner profile morphs from `driver_R` to inner target via `_morph_slice`.
-3. If an outer target is provided, the outer profile is Hermite-raccordato to that target and slope. Otherwise it falls back to a true outward-**normal (miter) offset** of the inner via `_offset_polygon_outward(inner, wall_thickness)` → constant perpendicular wall thickness. Passing the horn's actual outer throat target avoids an external step at the junction.
+3. Outer profile is a true outward-**normal (miter) offset** of the inner via `_offset_polygon_outward(inner, wall_thickness)`.
+
+**Constant-thickness wall (both modes):** the transition outer is *always* a parallel offset of the morphed inner, so the wall is exactly `wall_thickness` thick on every axis and the airway behind it stays hollow. This is also inherently **flush** with the horn at the join — the horn's own outer wall is the same constant offset of the same inner profile, so matching the inner slope/curvature (C1/C2) makes the outer match too. An earlier design morphed the outer *independently* toward the horn's area-equivalent outer; for an elongated (non-square) rectangular target the area-preserving intermediate is rounder than the final shape, so the **narrow axis of the outer overshot more than the inner did and packed the wall solid** between the threaded collar/flange and the flare ("lo spazio tra flangia e flare non deve essere pieno"). The `outer_target_*` / `outer_rect_*` / `outer_target_slope` / `outer_target_curv` parameters are still accepted for signature/back-compat but no longer drive the wall.
 
 **C. Degenerate** (`adapter_length ≤ 0.5`): Returns a thin cylinder ring with a central hole.
 

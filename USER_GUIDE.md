@@ -39,12 +39,13 @@ Segui le sezioni in quest'ordine e non puoi sbagliare.
 |---|---|---|
 | **Tractrix** | Classico, carico dolce. Imposti gola + bocca. | Classic, gentle loading. Set throat + mouth. |
 | **Salmon** | Ipex (T=0.707), molto usato. Imposti gola + Fc + lunghezza. | Hypex, very common. Throat + Fc + length. |
-| **Le Cléac'h** | Fronte d'onda isofase, "roll-back" alla bocca. Hi-fi. | Isophase wavefront, mouth roll-back. Hi-fi. |
-| **Oblate spheroidal** | Direttività costante (CD): scegli l'angolo di copertura. | Constant directivity: you pick the coverage angle. |
-| **Conical** | Il CD più semplice: cono dritto, direttività data solo dall'angolo. Throat + coverage + length. | Simplest CD: straight cone, directivity set by the angle alone. Throat + coverage + length. |
+| **Le Cléac'h** | Fronte d'onda isofase con roll-back definito dall'angolo di terminazione. | Isophase wavefront with roll-back defined by the termination angle. |
+| **Oblate spheroidal** | Waveguide orientato alla direttività costante: scegli l'angolo nominale/asintotico. | Constant-directivity-oriented waveguide: choose the nominal/asymptotic angle. |
+| **Conical** | Cono dritto con angolo nominale. La risposta reale dipende anche da frequenza e driver. | Straight cone with a nominal angle. Actual response also depends on frequency and driver. |
 | **R-OSSE** | Waveguide CD parametrico con bordo che torna indietro dolcemente nello spazio libero. Imposta gola, diametro esterno e copertura; i fattori avanzati regolano la forma. | Parametric CD waveguide with a smooth free-space roll-back. Set throat, outer diameter and coverage; advanced factors tune the shape. |
 | **Exponential** | Il più semplice: gola + bocca + Fc (tasso di flare). | Simplest: throat + mouth + Fc (flare rate). |
 | **Iwata** | La tromba vera del piano l'Audiophile. Solo gola + lunghezza. | The real l'Audiophile horn. Throat + length only. |
+| **OS-SE (ATH)** | Waveguide ATH gola tonda → bocca superellittica con copertura H/V indipendente: i ridge diagonali nascono da sé. Imposta gola, lunghezza e coperture H/V. Flange gola/bocca/mid disponibili (la bocca segue il contorno reale). | ATH waveguide, round throat → superelliptical mouth with independent H/V coverage; the diagonal ridges emerge by themselves. Set throat, length and H/V coverage. Throat/mouth/mid flanges available (mouth follows the real contour). |
 
 > **Iwata è speciale.** È una forma fissa rettangolare: quando la scegli, il
 > selettore **Section** viene ignorato e ti restano solo gola + lunghezza. Tutto
@@ -62,9 +63,6 @@ Segui le sezioni in quest'ordine e non puoi sbagliare.
   asimmetrici. Le flange usano un foro ellittico dedicato e lo shape adapter
   raccorda il driver all'ellisse senza allungare la tromba. / true ellipse
   cross-section, with elliptical-hole flanges and an embedded shape adapter.
-- **Radial 360°** — omnidirezionale, esce in **due pezzi** (piatto + riflettore).
-  / omnidirectional, comes out as **two pieces**.
-
 ### I numeri / the numbers — "You set" vs "Computed"
 
 **IT** — A sinistra (**You set**) metti i pochi numeri che guidano la tromba che
@@ -77,11 +75,12 @@ chosen horn. On the right (**Computed**) the app **shows** what follows (length,
 Fc, throat/mouth area) — those aren't editable, they're results. The hint under
 "Dimensions" tells you each time *which* fields are needed.
 
-> ⚠️ **Avviso bocca piccola / small-mouth warning.** Se compare un avviso giallo,
-> la bocca è troppo piccola per "caricare" fino alla Fc dichiarata: la frequenza
-> di taglio reale sarà più alta. Allarga la bocca o alza la Fc.
-> If a yellow warning appears, the mouth is too small to load down to the stated
-> Fc — the real cutoff will be higher. Enlarge the mouth or raise Fc.
+> ⚠️ **Avviso bocca piccola / small-mouth warning.** La regola della circonferenza
+> pari a una lunghezza d'onda è una guida pratica per la terminazione, non una
+> previsione completa della risposta. L'avviso indica possibili riflessioni più
+> forti o caricamento più debole vicino alla frequenza indicata.
+> The one-wavelength mouth-circumference rule is a practical termination
+> guideline, not a complete response prediction.
 
 ### ⚙️ Advanced settings (di solito lasciali stare / usually leave them)
 
@@ -166,9 +165,7 @@ Sotto **Advanced** (apri solo se serve): `Z offset`, posizione bulloni
 > threaded socket may protrude behind the throat plane.
 
 **Note / notes:**
-- Per **Radial** e **Iwata** alcune flange non sono disponibili (la bocca è
-  curva o il profilo è speciale): l'app te lo dice. / some flanges are disabled
-  for Radial/Iwata; the app tells you.
+- Per **Iwata** alcune flange non sono disponibili perché la bocca è curva.
 - Il bottone **🔧 Recalculate flanges** riallinea le misure delle flange dopo
   che hai cambiato la tromba. / re-aligns flange sizes after you change the horn.
 
