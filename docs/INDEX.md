@@ -55,6 +55,7 @@ source** to save tokens.
 - Radial tongue/groove joints protect the external seam skin through `outer_margin` (`Outer skin keep` in UI, default 1.5 mm); interlock features should stay biased inward rather than thinning the visible outer wall.
 - Polygonal adapters use the same `+π/2` phase as `polygonal_horn.py`; do not reintroduce a circular `θ=0` source phase for polygonal morphs.
 - The **Elliptical** section forces `is_rect = True` (reuses rectangular profile math + W/H inputs) and calls `generate_elliptical_3d_mesh_from_profiles(z, w/2, h/2)` for the body. Its outer wall is a true full-3D normal offset, including through roll-back; UI outer dimensions come from the same helper. The throat flange keeps `rectangular_flange.generate_rectangular_flange(..., inner_type="elliptical")`; outward Mouth/Mid use `generate_profile_flange()`, and shape adapters use a true elliptical morph target with `sqrt(W·H)/2` equivalent radius.
+- **OS-SE** uses a true 3-D surface normal offset to guarantee constant perpendicular `thickness` everywhere. The throat is flattened via a boolean slice, while the mouth remains naturally slanted to avoid tapering (it is enveloped by the flange). The UI's `_osse_contour_xy` defines the flange inner bounds so flanges follow the ridges perfectly.
 
 ## Data Flow
 

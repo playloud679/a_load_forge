@@ -83,12 +83,10 @@ generate_osse_3d_mesh(throat, length, coverage_h, coverage_v,
 - `throat` = throat **diameter** (mm); `coverage_h/v` = full beamwidths (degrees);
   `throat_angle` = full included angle (degrees). Internally halved.
 - Builds inner vertices on the `r(z,φ)` grid, computes **true per-vertex normals**
-  from the grid tangents (`t_φ × t_z`, oriented outward), offsets by `thickness`
-  to the outer shell, and triangulates inner+outer walls + throat/mouth rims.
-- The throat (z=0) and mouth (z=L) faces are **pinned flat** (outer z clipped to
-  `[0, L]`, end rings forced to the plane), like the rectangular/polygonal
-  engines, so the round throat mates with a driver/adapter and the mouth sits in
-  a baffle.
+  from the grid tangents (`t_φ × t_z`, oriented outward), and applies a pure 3-D
+  parallel offset. This guarantees an exact, constant perpendicular `thickness`
+  everywhere on the shell.
+- The throat face (z=0) is **flattened** via a boolean planar slice (exactly like the circular engine), so it mates flush with a driver/adapter. The mouth is left naturally slanted (at the true 3D normal offset) to avoid any tapering or distortion; the UI's generated flange completely envelopes this slanted mouth to provide the flat mounting face.
 - Returns a watertight single-body `trimesh.Trimesh`; keeps the largest body if
   the offset ever splits.
 
@@ -112,11 +110,12 @@ machinery):
 - **Throat** — round, so a flat circular `generate_flange` welds to the throat
   outer wall (`throat_R + thickness`), exactly like the axisymmetric profiles.
 - **Mouth / Mid** — the cross-section is superelliptical, so the flange follows
-  the **real contour** (ridges included) via `generate_contour_flange`, *not* an
-  inscribed ellipse (which would fall ~30 mm short at the diagonals and block the
-  airway). The contour is sampled from the `r(z,φ)` field (`_osse_contour_xy`):
-  mouth at `z=L`, mid at the chosen station. Hole = contour bitten inward; outer
-  = contour + wall + ring.
+  the **real inner airway contour** (ridges included) via `generate_contour_flange`
+  with `wall=thickness`, *not* an inscribed ellipse (which would fall ~30 mm
+  short at the diagonals and block the airway).  The mesh engine blends the
+  outer-wall offset from true 3-D normal (interior) to pure radial (ends) so
+  the outer mouth ring lands at exactly `inner_R + thickness`, making the
+  flange's `inner_xy → buffer(wall + ring)` match the actual horn skin.
 
 All three weld into a single watertight body with the horn (test:
 `OS-SE throat/mouth/mid flanges weld to horn`).

@@ -2209,9 +2209,11 @@ if gen_btn:
                     outer_n_sides=int(_ft_outer_n), output_path=None)
 
             if gen_mouth and is_osse:
-                # Superelliptical mouth → flange follows the REAL contour (ridges
-                # included). Hole = airway bitten in so the wall pokes through;
-                # outer = airway + wall + ring. Sampled at the mouth plane.
+                # Superelliptical mouth → flange built from the INNER airway
+                # contour.  The hole = airway bitten inward so the wall pokes
+                # through; outer = airway + wall + ring.  The mesh engine's
+                # normal blend keeps the outer wall at ~wall mm radially at
+                # the mouth, so the flange outer naturally matches the horn.
                 f_mouth = _fg.generate_contour_flange(
                     inner_xy=_osse_contour_xy(_len),
                     thickness=_fm_sp, wall=thickness, ring=_fm_ring,
@@ -2220,9 +2222,8 @@ if gen_btn:
                     offset=z_mouth + _fm_off, output_path=None)
 
             if gen_mid and is_osse:
-                # Intermediate ring on the real superelliptical section at the
-                # plate's mouth-ward face (widest airway in the span), so the
-                # flaring wall pokes through and the airway stays clear.
+                # Intermediate ring on the real inner airway section at the
+                # plate's mouth-ward face.
                 f_mid = _fg.generate_contour_flange(
                     inner_xy=_osse_contour_xy(_mid_pos),
                     thickness=_mid_sp, wall=thickness, ring=_mid_ring,

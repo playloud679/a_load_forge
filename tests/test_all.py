@@ -660,6 +660,7 @@ def test_osse_flanges_weld_to_horn():
                                    0.0, 1.0, 0.8, 5.0, 0.998, mouth_exp=6.0,
                                    morph_start=0.0, morph_rate=2.0, nz=60, nphi=120)
     def contour(zt):
+        """Inner airway contour at axial Z."""
         zt = float(np.clip(zt, z[0], z[-1]))
         Rz = np.array([np.interp(zt, z, R[:, j]) for j in range(R.shape[1])])
         return np.column_stack([Rz * np.cos(phi), Rz * np.sin(phi)])
@@ -667,7 +668,9 @@ def test_osse_flanges_weld_to_horn():
     fiw = throat_d + 2.0 * th
     f_throat = _fg.generate_flange(throat_R=fiw / 2.0, flange_R=fiw / 2.0 + 12.0,
         thickness=6.0, bolt_R=fiw / 2.0 + 6.0, bolt_n=4, bolt_d=4.0, offset=6.0)
-    # Mouth/mid follow the REAL superelliptical contour (ridges), not an ellipse.
+    # Mouth/mid built from the INNER airway contour.  The mesh engine's blend
+    # keeps the outer wall at ~thickness mm radially at the ends, so
+    # inner + wall + ring naturally matches the horn's outer wall.
     f_mouth = _fg.generate_contour_flange(inner_xy=contour(L), thickness=6.0,
         wall=th, ring=15.0, bite=BITE, bolt_n=8, bolt_d=4.0, offset=L)
     f_mid = _fg.generate_contour_flange(inner_xy=contour(60.0), thickness=6.0,

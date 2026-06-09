@@ -240,13 +240,9 @@ def generate_osse_3d_mesh(
     V_in[:, :, 2] = z[:, None]
 
     nrm = _vertex_normals(V_in)
+
+    # True 3-D normal offset: constant perpendicular thickness everywhere.
     V_out = V_in + thickness * nrm
-    # Keep the throat (z=0) and mouth (z=L) faces flat for mounting — the inner
-    # rings are already planar; clip the offset outer z into range and pin the
-    # two end rings (same trick as the rectangular/polygonal engines).
-    V_out[:, :, 2] = np.clip(V_out[:, :, 2], 0.0, length)
-    V_out[0, :, 2] = 0.0
-    V_out[-1, :, 2] = length
 
     # Flatten: inner block then outer block.
     verts = np.concatenate([V_in.reshape(-1, 3), V_out.reshape(-1, 3)], axis=0)
@@ -281,6 +277,13 @@ def generate_osse_3d_mesh(
 
     tm = trimesh.Trimesh(vertices=verts, faces=np.asarray(faces), process=True)
     tm.merge_vertices()
+
+    # Flatten the throat base via boolean slice (avoids tapering the wall)
+    base_z = max(float(np.max(V_in[0, :, 2])), float(np.max(V_out[0, :, 2])))
+    sliced = tm.slice_plane([0.0, 0.0, base_z], [0.0, 0.0, 1.0], cap=True)
+    if sliced is not None and not sliced.is_empty:
+        tm = sliced
+
     tm.fix_normals()
     if tm.body_count > 1:
         bodies = [bdy for bdy in tm.split() if bdy.volume > 0]
