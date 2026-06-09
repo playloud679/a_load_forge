@@ -1177,8 +1177,132 @@ with fg1:
             _ft_outer_n = int(st.number_input("Outer N-gon sides (0 = round)", 0, 12, 0, 1,
                 key="ft_outer_n_osse"))
         _ft_bphase = 0.0; throat_outer = "Circular"
-        _ta_driver_type = _ta_driver_key = "flanged"; _ta_thread_key = None
-        _ta_include_adapter = False; _ta_adapter_len = 0.0; _ta_socket_depth = 0.0
+
+        _ta_include_adapter = st.checkbox("Include shape adapter", False,
+            key="ta_incl_adapter_osse",
+            help="Transitions from round or threaded driver interfaces to the "
+                 "horn throat without increasing the horn length.")
+
+        if _ta_include_adapter:
+            # ── Adapter mode: round/threaded driver → horn-throat transition ─
+            st.caption("The morph replaces the first part of the flare. Only the "
+                       "driver flange or threaded socket may protrude behind the throat plane.")
+            _bolt_on_labels = {
+                'Bolt-on 1" · 2 holes': "bolt_on_1in_2",
+                'Bolt-on 1" · 3 holes': "bolt_on_1in_3",
+                'Bolt-on 1.4" · 4 holes': "bolt_on_1_4in_4",
+                'Bolt-on 2" · 4 holes': "bolt_on_2in_4",
+            }
+            _ta_driver_type = st.radio("Driver interface",
+                ["Flanged custom", *_bolt_on_labels, 'Threaded 1\u215c"-18 (25 mm bore)'],
+                index=0, key="ta_driver_type_osse")
+            _driver_is_custom_flange = _ta_driver_type == "Flanged custom"
+            _driver_is_bolt_on = _ta_driver_type in _bolt_on_labels
+            _driver_is_threaded = _ta_driver_type.startswith("Threaded")
+            _driver_is_flanged = _driver_is_custom_flange or _driver_is_bolt_on
+            _ta_driver_key = (_bolt_on_labels[_ta_driver_type] if _driver_is_bolt_on
+                              else "1_375in" if _driver_is_threaded else "flanged")
+
+            _ta_thread_key = None
+            if _driver_is_threaded:
+                _ta_thread_key = "1_375in"
+            _ta_driver_clearance = 0.3
+
+            _ta_adapter_len = st.number_input("Morph length inside horn (mm)", 5.0, 200.0, 30.0, 5.0,
+                key="ta_adapter_len_osse",
+                help="Length of the round-to-shape transition. It replaces the first "
+                     "part of the flare, so it does not increase horn depth.")
+
+            if _driver_is_threaded:
+                _thread_spec = _ta.THREAD_SPECS[_ta_thread_key]
+                _ft_driver_d = _thread_spec.bore_diam
+                st.caption(f"Female thread: {_thread_spec.name} · acoustic bore: "
+                           f"\u00d8{_thread_spec.bore_diam:.1f} mm")
+                _ta_socket_depth = st.number_input("Socket depth (mm)", 5.0, 30.0, 15.0, 1.0,
+                    key="ta_socket_depth_osse",
+                    help="Depth of the threaded bore for the driver")
+                _ft_sp = _ft_off = _ft_nb = _ft_db = _ft_od = _ft_bc = 0.0
+                _ft_ring = _ft_outer_n = 0; _ft_inner_R = _ft_driver_d / 2.0
+                throat_outer = "Circular"; _ft_bphase = 0.0; _ft_ow = _ft_oh = 0.0
+            elif _driver_is_bolt_on:
+                _driver_spec = _fg.DRIVER_FLANGE_SPECS[_ta_driver_key]
+                _ta_driver_clearance = st.number_input(
+                    "Throat clearance (mm)", 0.0, 2.0, 0.3, 0.1,
+                    key="ta_driver_clearance_osse",
+                    help="Added to the nominal driver throat diameter.",
+                )
+                _ft_driver_d = _driver_spec.throat_diam + _ta_driver_clearance
+                _ft_inner_R = _ft_driver_d / 2.0
+                _ft_sp = st.number_input("Flange thickness (mm)", 2.0, 20.0, _flange_sp, 0.5,
+                    key="ft_spess_osse")
+                _ft_off = 0.0
+                _ft_nb = _driver_spec.bolt_count
+                _ft_db = _driver_spec.bolt_diam
+                _ft_od = _driver_spec.outer_diam
+                _ft_bc = _driver_spec.pcd
+                _ft_bphase = _driver_spec.bolt_phase
+                _ft_outer_n = 0
+                _ft_ring = (_driver_spec.outer_diam - _ft_driver_d) / 2.0
+                throat_outer = "Circular"; _ft_ow = _ft_oh = 0.0
+                _ta_socket_depth = 0.0
+                st.caption(
+                    f"{_driver_spec.name}: throat Ø{_ft_driver_d:.1f} mm · "
+                    f"outer Ø{_ft_od:.1f} mm · {_ft_nb} × Ø{_ft_db:.1f} mm · "
+                    f"PCD {_ft_bc:.1f} mm"
+                )
+            else:
+                _default_driver_d = float(throat_d if is_rect else throat_d)
+                _ft_driver_d = st.number_input("Driver throat \u00d8 (mm)", 5.0, 200.0,
+                    _default_driver_d, 1.0, key="ft_driver_d_osse",
+                    help="Circular throat diameter at the driver end. "
+                         "The adapter transitions from this to the horn throat shape.")
+                _ft_inner_R = _ft_driver_d / 2.0
+                _ft_sp  = st.number_input("Flange thickness (mm)", 2.0, 20.0, _flange_sp, 0.5,
+                    key="ft_spess_osse")
+                _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off_osse_ta")
+                _ft_nb  = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="ft_nb_osse_ta")
+                _ft_db  = st.number_input("Bolt hole \u00d8 (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db_osse_ta")
+                st.caption(f"Hole: \u00d8{_ft_driver_d:.0f} mm (circular — driver end)")
+                _ft_bpos = st.radio("Bolt position", ["At vertices", "At mid-faces"],
+                    index=0, horizontal=True, key="ft_bpos_osse_ta",
+                    help="Align bolts with polygon vertices or face centers"
+                    ) if is_poly else "At vertices"
+                _ft_bphase = _bolt_phase(n_sides if is_poly else 4, _ft_bpos)
+                throat_outer = st.radio("Outer shape",
+                    ["Circular", "Polygonal"], index=0, horizontal=True, key="throat_outer_osse_ta")
+                _ft_outer_n = (st.select_slider("Outer sides", options=list(range(3, 13)),
+                                                value=n_sides, key="ft_outer_n_osse_ta")
+                               if throat_outer == "Polygonal" else 0)
+                _ft_ring = st.number_input("Ring width (mm)", 5.0, 200.0, 15.0, 1.0, key="ft_ring_osse_ta",
+                    help="Wall around the hole — this sets the flange size. "
+                         "Widen it to fit bolts further out.")
+                _ft_flange_R = _flange_R_from_ring(_ft_inner_R, _ft_ring, _ft_outer_n)
+                _ft_od = _ft_flange_R * 2
+                if _ft_outer_n >= 3:
+                    st.caption(f"Across corners \u00d8: {_ft_od:.1f} mm \u00b7 flats wall {_ft_ring:.0f} mm")
+                else:
+                    st.caption(f"Outer \u00d8: {_ft_od:.1f} mm")
+                _ft_bc_lo, _ft_bc_hi = _bolt_circle_band(_ft_inner_R, _ft_flange_R, _ft_db, _ft_outer_n)
+                if "ft_bc" not in st.session_state:
+                    st.session_state["ft_bc"] = _def_bc(_ft_bc_lo, _ft_bc_hi)
+                _clamp_state("ft_bc", _ft_bc_lo, _ft_bc_hi)
+                _ft_bc = st.number_input("Bolt circle \u00d8 (mm)", _ft_bc_lo, _ft_bc_hi,
+                    step=1.0, key="ft_bc_osse_ta")
+                _ta_socket_depth = 0.0; _ft_ow = _ft_oh = 0.0
+
+            _ft_depth = 0.0
+            # Dummy old-style rect/poly vars (not used in adapter mode)
+            _ft_inner_w = _ft_inner_h = 0.0
+        else:
+            _ta_driver_type = "flanged"
+            _ta_driver_key = "flanged"
+            _ta_driver_clearance = 0.3
+            _ta_include_adapter = False
+            _ta_adapter_len = 0.0
+            _ta_socket_depth = 0.0
+            _driver_is_threaded = False
+            _driver_is_flanged = True
+
     elif not is_radial:
         gen_throat = st.checkbox("Include", True, key="gen_throat")
 
@@ -2054,12 +2178,12 @@ if gen_btn:
                     cyl.apply_translation([x, y, _ft_depth / 2.0])
                     horn = _tm.boolean.difference([horn, cyl], engine="manifold", check_volume=False)
 
-            if gen_throat and not is_radial and not is_osse:
+            if gen_throat and not is_radial:
                 if _ta_include_adapter:
                     # The morph replaces the first section of the flare instead of
                     # being prepended below the throat. Trim the original horn at
                     # the requested distance and match the real profile there.
-                    _profile_z = zr if is_rect else zp
+                    _profile_z = _z_os if is_osse else (zr if is_rect else zp)
                     _profile_extent = float(np.max(_profile_z))
                     # Roll-back profiles return toward the throat after their
                     # deepest point. A planar trim must stay below that returning
@@ -2116,6 +2240,35 @@ if gen_btn:
                             _z_o_poly, _R_o_eq_arr, _target_local_z)
                         _adapter_outer_target_curv = _profile_curv(
                             _z_o_poly, _R_o_eq_arr, _target_local_z)
+                        _outer_rw = _outer_rh = None
+                    elif is_osse:
+                        horn_shape = "elliptical"
+                        zt = float(np.clip(_target_local_z, _z_os[0], _z_os[-1]))
+                        _r_phi0 = float(np.interp(zt, _z_os, _R_os[:, 0]))
+                        _r_phi90 = float(np.interp(zt, _z_os, _R_os[:, -1]))
+                        rect_w = _r_phi0 * 2.0
+                        rect_h = _r_phi90 * 2.0
+                        poly_n_sides = 0
+                        poly_circumR = 0.0
+                        
+                        import throat_adapter as _ta_mod
+                        _pts = np.column_stack([
+                            np.array([np.interp(zt, _z_os, _R_os[:, j]) for j in range(nphi)]) * np.cos(_phi_os),
+                            np.array([np.interp(zt, _z_os, _R_os[:, j]) for j in range(nphi)]) * np.sin(_phi_os)
+                        ])
+                        horn_R_eq = np.sqrt(_ta_mod._polygon_area(_pts) / np.pi)
+                        
+                        dz = 1e-3
+                        zt_dz = float(np.clip(_target_local_z + dz, _z_os[0], _z_os[-1]))
+                        _pts_dz = np.column_stack([
+                            np.array([np.interp(zt_dz, _z_os, _R_os[:, j]) for j in range(nphi)]) * np.cos(_phi_os),
+                            np.array([np.interp(zt_dz, _z_os, _R_os[:, j]) for j in range(nphi)]) * np.sin(_phi_os)
+                        ])
+                        _R_eq_dz = np.sqrt(_ta_mod._polygon_area(_pts_dz) / np.pi)
+                        _adapter_target_slope = (_R_eq_dz - horn_R_eq) / dz
+                        _adapter_target_curv = 0.0
+                        
+                        _outer_target_R = _outer_target_slope = _adapter_outer_target_curv = 0.0
                         _outer_rw = _outer_rh = None
                     else:
                         horn_shape = "circular"
@@ -2580,7 +2733,7 @@ if gen_btn:
                     ("mid", f_mid),
                 ) if body is not None
             }
-            if gen_throat and not is_radial and not is_osse and _ta_include_adapter and f_throat is not None:
+            if gen_throat and not is_radial and _ta_include_adapter and f_throat is not None:
                 st.session_state["_adapter_cut_z"] = float(_embedded_adapter_cut_z)
             else:
                 st.session_state.pop("_adapter_cut_z", None)
