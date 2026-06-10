@@ -204,6 +204,29 @@ test("Elliptical R-OSSE roll-back keeps parallel thickness",
      _check_elliptical_rollback_parallel_thickness)
 
 
+def _check_elliptical_base_flat():
+    """Elliptical engine must slice the throat base flat at z[0] (same
+    invariant as the axisymmetric engine). The 3-D normal offset pushes the
+    outer throat rim below z[0] on an expanding throat; without the base slice
+    the mesh z_min sat ~thickness·|n_z| below the profile origin, shifting
+    everything the UI anchors to mesh z_min (embedded throat adapter trim and
+    positioning, flange Z offsets) and leaving a visible step at the
+    adapter↔flare junction for elliptical R-OSSE."""
+    z, r = _c.get_rosse(27.6, 147.0, 90.0, N)
+    rx = r * 1.225
+    ry = r / 1.225
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
+        p = t.name
+    _c.generate_elliptical_3d_mesh_from_profiles(z, rx, ry, 4.0, 96, p)
+    m = trimesh.load(p, file_type="stl"); os.unlink(p)
+    assert m.is_watertight, "Elliptical base-flat: not watertight"
+    assert m.body_count == 1, f"Elliptical base-flat: {m.body_count} bodies"
+    z_min = float(m.vertices[:, 2].min())
+    assert abs(z_min - z[0]) < 1e-6, \
+        f"elliptical base not flat at z[0]={z[0]:.4f}: z_min={z_min:.4f}"
+test("Elliptical engine flattens throat base at z[0]", _check_elliptical_base_flat)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  2. Circular 3-D mesh — watertight + geometry checks
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1760,6 +1783,157 @@ test("slice_at_heights with joint_wall", _slice_heights_joints)
 
 print("\n═══ Throat adapter ═══")
 
+def test_morph_circle_to_ellipse_basic():
+    """Default parameters produce valid arrays of correct length."""
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(z_steps=100)
+    assert len(z) == len(a) == len(b) == len(r_eq) == 100
+    assert z[0] == 0.0 and z[-1] > 0.0
+    assert np.all(a > 0) and np.all(b > 0)
+test("morph_circle_to_ellipse basic", test_morph_circle_to_ellipse_basic)
+
+def test_morph_circle_to_ellipse_throat_radius():
+    """At z=0, a = b = throat_radius (circle)."""
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(
+        throat_radius=10.0, target_ellipse_a=40.0, target_ellipse_b=20.0, z_steps=50)
+    assert abs(r_eq[0] - 10.0) < 1e-9, f"r_eq(0)={r_eq[0]:.6f}"
+    assert abs(a[0] - 10.0) < 1e-9, f"a(0)={a[0]:.6f}"
+    assert abs(b[0] - 10.0) < 1e-9, f"b(0)={b[0]:.6f}"
+test("morph_circle_to_ellipse throat is circle at z=0", test_morph_circle_to_ellipse_throat_radius)
+
+def test_morph_circle_to_ellipse_target_ellipse():
+    """At z=L, semi-axes must match the target ellipse."""
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(
+        target_ellipse_a=50.0, target_ellipse_b=25.0, z_steps=50)
+    assert abs(a[-1] - 50.0) < 1e-9, f"a(L)={a[-1]:.6f}"
+    assert abs(b[-1] - 25.0) < 1e-9, f"b(L)={b[-1]:.6f}"
+    expected_req = np.sqrt(50.0 * 25.0)
+    assert abs(r_eq[-1] - expected_req) < 1e-9, f"r_eq(L)={r_eq[-1]:.6f} vs {expected_req}"
+test("morph_circle_to_ellipse target ellipse at z=L", test_morph_circle_to_ellipse_target_ellipse)
+
+def test_morph_circle_to_ellipse_throat_angle():
+    """dr_eq/dz at z=0 must equal tan(throat_angle)."""
+    angle = 10.0
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(
+        throat_angle_deg=angle, z_steps=500)
+    dz = z[1] - z[0]
+    dr_dz_0 = (r_eq[1] - r_eq[0]) / dz
+    expected = np.tan(np.radians(angle))
+    assert abs(dr_dz_0 - expected) < 5e-4, \
+        f"dr_eq/dz(0)={dr_dz_0:.6f} vs tan({angle}°)={expected:.6f}"
+test("morph_circle_to_ellipse throat angle derivative", test_morph_circle_to_ellipse_throat_angle)
+
+def test_morph_circle_to_ellipse_area_rule():
+    """A(z) = π·r_eq² = π·a·b must hold at every slice."""
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(
+        throat_radius=8.0, target_ellipse_a=35.0, target_ellipse_b=15.0, z_steps=80)
+    A_from_req = np.pi * r_eq ** 2
+    A_from_ab = np.pi * a * b
+    assert np.allclose(A_from_req, A_from_ab, rtol=1e-12), \
+        f"Area rule violated: max error={np.max(np.abs(A_from_req - A_from_ab)):.2e}"
+test("morph_circle_to_ellipse Golden Standard area rule", test_morph_circle_to_ellipse_area_rule)
+
+def test_morph_circle_to_ellipse_c2_smooth():
+    """r_eq and aspect ratio must be C²-smooth: curvature small everywhere, no sign flips."""
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(z_steps=500)
+    dz = z[1] - z[0]
+    d2r = np.gradient(np.gradient(r_eq, dz), dz)
+    # Second derivative is mathematically zero at both ends but finite-diff
+    # is only O(dz) at boundaries.  Check interior smoothness and small magnitude.
+    assert abs(d2r[0]) < 5e-3, f"d²r_eq/dz²(0)={d2r[0]:.2e} not ≈0"
+    assert abs(d2r[-1]) < 5e-3, f"d²r_eq/dz²(L)={d2r[-1]:.2e} not ≈0"
+    # The curvature should change sign at most once (single smooth hump)
+    sign_changes = np.sum(np.diff(np.sign(d2r[1:-1])) != 0)
+    assert sign_changes <= 2, f"too many curvature sign changes: {sign_changes}"
+test("morph_circle_to_ellipse C2 smoothness", test_morph_circle_to_ellipse_c2_smooth)
+
+def test_morph_circle_to_ellipse_monotonic():
+    """r_eq, a, and b must be monotonically increasing."""
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(
+        target_ellipse_a=45.0, target_ellipse_b=30.0, z_steps=50)
+    assert np.all(np.diff(r_eq) >= -1e-12), "r_eq not monotonic"
+    assert np.all(np.diff(a) >= -1e-12), "a not monotonic"
+    assert np.all(np.diff(b) >= -1e-12), "b not monotonic"
+test("morph_circle_to_ellipse monotonic expansion", test_morph_circle_to_ellipse_monotonic)
+
+def test_morph_circle_to_ellipse_area_never_shrinks():
+    """dA/dz ≥ 0 everywhere (no impedance mismatch from constrictions)."""
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(
+        throat_radius=6.0, target_ellipse_a=35.0, target_ellipse_b=10.0, z_steps=100)
+    A = np.pi * r_eq ** 2
+    dA = np.gradient(A, z)
+    assert np.all(dA >= -1e-6), f"dA/dz dips negative: min={dA.min():.4f}"
+test("morph_circle_to_ellipse area never shrinks", test_morph_circle_to_ellipse_area_never_shrinks)
+
+def test_morph_circle_to_ellipse_da_dz_at_zero():
+    """da/dz and db/dz at z=0 must equal tan(θ) (shape hasn't started morphing)."""
+    angle = 7.5
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(throat_angle_deg=angle, z_steps=500)
+    dz = z[1] - z[0]
+    da0 = (a[1] - a[0]) / dz
+    db0 = (b[1] - b[0]) / dz
+    expected = np.tan(np.radians(angle))
+    assert abs(da0 - expected) < 5e-4, f"da/dz(0)={da0:.6f} vs {expected:.6f}"
+    assert abs(db0 - expected) < 5e-4, f"db/dz(0)={db0:.6f} vs {expected:.6f}"
+test("morph_circle_to_ellipse da/dz, db/dz at z=0", test_morph_circle_to_ellipse_da_dz_at_zero)
+
+def test_morph_circle_to_ellipse_aspect_ratio_smooth():
+    """R(z) = a(z)/b(z) transitions via quintic smoothstep (zero derivatives at ends)."""
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(
+        target_ellipse_a=50.0, target_ellipse_b=15.0, z_steps=500)
+    R = a / b
+    dR = np.gradient(R, z)
+    d2R = np.gradient(dR, z)
+    assert abs(dR[0]) < 2e-5, f"dR/dz(0)={dR[0]:.2e} != 0"
+    assert abs(dR[-1]) < 2e-5, f"dR/dz(L)={dR[-1]:.2e} != 0"
+    assert abs(d2R[0]) < 5e-4, f"d²R/dz²(0)={d2R[0]:.2e} not ≈0"
+    assert abs(d2R[-1]) < 5e-4, f"d²R/dz²(L)={d2R[-1]:.2e} not ≈0"
+    assert abs(R[0] - 1.0) < 1e-9, f"R(0)={R[0]:.6f} != 1"
+    assert abs(R[-1] - 50.0/15.0) < 1e-9, f"R(L)={R[-1]:.6f} != {50.0/15.0:.6f}"
+test("morph_circle_to_ellipse aspect ratio smoothstep", test_morph_circle_to_ellipse_aspect_ratio_smooth)
+
+def test_morph_circle_to_ellipse_edge_short_transition():
+    """Very short transition still produces valid output."""
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(
+        transition_length_z=5.0, target_ellipse_a=15.0, target_ellipse_b=14.0, z_steps=10)
+    assert len(z) == 10
+    assert np.allclose(a[0], b[0], atol=1e-9)
+    assert abs(a[-1] - 15.0) < 1e-9
+    assert abs(b[-1] - 14.0) < 1e-9
+test("morph_circle_to_ellipse edge case: short transition", test_morph_circle_to_ellipse_edge_short_transition)
+
+def test_morph_circle_to_ellipse_square_target():
+    """Target ellipse with a == b (circle target) works correctly."""
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(
+        throat_radius=10.0, target_ellipse_a=30.0, target_ellipse_b=30.0, z_steps=50)
+    assert abs(a[-1] - 30.0) < 1e-9
+    assert abs(b[-1] - 30.0) < 1e-9
+    assert abs(r_eq[-1] - 30.0) < 1e-9
+    assert np.allclose(a, b, atol=1e-9)  # stays circular throughout
+test("morph_circle_to_ellipse square target (a=b)", test_morph_circle_to_ellipse_square_target)
+
+def test_morph_circle_to_ellipse_steep_angle():
+    """Steep throat angle (20°) still produces valid C²-smooth r_eq."""
+    angle = 20.0
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(
+        throat_angle_deg=angle, target_ellipse_a=40.0, target_ellipse_b=20.0, z_steps=500)
+    dz = z[1] - z[0]
+    dr0 = (r_eq[1] - r_eq[0]) / dz
+    expected = np.tan(np.radians(angle))
+    assert abs(dr0 - expected) < 5e-4
+    assert np.all(np.diff(r_eq) >= -1e-12)  # still monotonic
+test("morph_circle_to_ellipse steep throat angle", test_morph_circle_to_ellipse_steep_angle)
+
+def test_morph_circle_to_ellipse_very_elongated_ellipse():
+    """Very high aspect ratio target (e.g., 120×20 mm) must not produce NaN."""
+    z, a, b, r_eq = _ta.morph_circle_to_ellipse(
+        target_ellipse_a=120.0, target_ellipse_b=20.0, z_steps=100)
+    assert not np.any(np.isnan(a))
+    assert not np.any(np.isnan(b))
+    assert np.all(a > 0) and np.all(b > 0)
+    assert abs(a[-1] - 120.0) < 1e-9
+    assert abs(b[-1] - 20.0) < 1e-9
+test("morph_circle_to_ellipse very elongated target", test_morph_circle_to_ellipse_very_elongated_ellipse)
+
 def test_thread_specs():
     assert set(_ta.THREAD_SPECS) == {"1_375in"}, \
         f"unexpected thread specs: {sorted(_ta.THREAD_SPECS)}"
@@ -2056,6 +2230,68 @@ def test_embedded_adapter_preserves_horn_length():
 test("embedded adapter preserves horn length", test_embedded_adapter_preserves_horn_length)
 
 
+def test_embedded_custom_stack_adapter_has_no_step():
+    """The embedded UI path must use a real section stack near the overlap, so
+    the adapter follows the flare instead of closing on a single cap plane."""
+    throat_d, mouth_d, thickness = 20.0, 100.0, 4.0
+    z, r = _c.get_exponential(throat_d, mouth_d, 600, 300)
+    nml = _uts.compute_profile_normals(z, r)
+    z_o = z + thickness * nml[:, 0]
+    r_o = r + thickness * nml[:, 1]
+
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
+        p = t.name
+    _c.generate_3d_mesh_from_profile(z, r, thickness, 64, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+    horn.fix_normals()
+    z_min = float(horn.bounds[0, 2])
+
+    morph_len, overlap = 30.0, 0.5
+    zt = morph_len + overlap
+    z_stack = np.append(z[z < zt - 1e-9], zt)
+    inner_stack = np.stack([
+        _ta._circle_points(float(np.interp(zz, z, r))) for zz in z_stack
+    ])
+    outer_stack = np.stack([
+        _ta._circle_points(float(np.interp(zz, z_o, r_o))) for zz in z_stack
+    ])
+    target_r = float(np.interp(zt, z, r))
+    target_ro = float(np.interp(zt, z_o, r_o))
+    target_slope = float(np.interp(zt, z, np.gradient(r, z)))
+    outer_slope = float(np.interp(zt, z_o, np.gradient(r_o, z_o)))
+
+    trimmed = horn.slice_plane([0, 0, morph_len], [0, 0, 1], cap=True)
+    adapter = _ta.make_adapter_assembly(
+        driver_type="flanged", driver_diam=throat_d, thread_key=None,
+        horn_shape="custom",
+        rect_w=0.0, rect_h=0.0, poly_n_sides=0, poly_circumR=0.0,
+        horn_R_eq=target_r,
+        adapter_length=zt, wall_thickness=thickness,
+        flange_R=0.0, socket_length=0.0,
+        outer_target_R=target_ro,
+        target_slope=target_slope,
+        outer_target_slope=outer_slope,
+        custom_pts=inner_stack, custom_outer_pts=outer_stack, custom_pts_z=z_stack,
+        z_offset=z_min + zt,
+        output_path=None,
+    )
+    combined = trimesh.boolean.union([trimmed, adapter], engine="manifold")
+    combined.fix_normals()
+    _check_trimesh_watertight(combined, "embedded custom-stack adapter + horn")
+
+    for dz in (-0.25, +0.25):
+        zq = morph_len + dz
+        sec = combined.section(plane_origin=[0, 0, zq], plane_normal=[0, 0, 1])
+        assert sec is not None, "no section at junction"
+        loops = sec.discrete
+        loop = min(loops, key=lambda p: np.hypot(p[:, 0], p[:, 1]).mean())
+        r_meas = float(np.hypot(loop[:, 0], loop[:, 1]).mean())
+        r_ref = float(np.interp(zq - z_min, z, r))
+        assert abs(r_meas - r_ref) < 0.05, \
+            f"step at junction dz={dz:+.2f}: {r_meas:.3f} vs {r_ref:.3f}"
+test("embedded custom-stack adapter has no step", test_embedded_custom_stack_adapter_has_no_step)
+
+
 def test_threaded_socket():
     m = _ta.make_threaded_socket("1_375in", 15.0, 4.0)
     _check_trimesh_watertight(m, '1⅜"-18 threaded socket')
@@ -2122,6 +2358,8 @@ def test_adapter_assembly_flanged():
         output_path=None,
     )
     _check_trimesh_watertight(m, "adapter assembly flanged")
+    assert abs((m.bounds[1, 2] - m.bounds[0, 2]) - 30.0) < 0.1, \
+        "flanged adapter length should be measured from the flange lower face"
 test("adapter assembly flanged", test_adapter_assembly_flanged)
 
 def test_adapter_assembly_threaded():
@@ -2153,6 +2391,8 @@ def test_adapter_assembly_standard_bolt_on():
         output_path=None,
     )
     _check_trimesh_watertight(m, "adapter assembly standard bolt-on")
+    assert abs((m.bounds[1, 2] - m.bounds[0, 2]) - 30.0) < 0.1, \
+        "bolt-on adapter length should be measured from the flange lower face"
     assert abs((m.bounds[1, 0] - m.bounds[0, 0]) - 135.0) < 0.1
 test("adapter assembly standard bolt-on", test_adapter_assembly_standard_bolt_on)
 
@@ -2256,6 +2496,141 @@ def test_polygonal_horn_adapter_union_watertight():
     combined.merge_vertices(); combined.fix_normals()
     _check_trimesh_watertight(combined, "polygonal horn + adapter union")
 test("polygonal horn + adapter union watertight", test_polygonal_horn_adapter_union_watertight)
+
+
+def _osse_adapter_sections(z, phi, R, thickness, z_target):
+    """Exact OS-SE inner + outer-wall section polygons at axial z_target —
+    the same sampling ui_app.py hands to the adapter (custom shape)."""
+    nphi = R.shape[1]
+    Rz = np.array([np.interp(z_target, z, R[:, j]) for j in range(nphi)])
+    inner = np.column_stack([Rz * np.cos(phi), Rz * np.sin(phi)])
+    V = np.empty((len(z), nphi, 3))
+    V[:, :, 0] = R * np.cos(phi)[None, :]
+    V[:, :, 1] = R * np.sin(phi)[None, :]
+    V[:, :, 2] = z[:, None]
+    Vo = V + thickness * _osse._vertex_normals(V)
+    outer = np.empty((nphi, 2))
+    for j in range(nphi):
+        zc = Vo[:, j, 2]
+        end = int(np.argmax(zc)) + 1
+        outer[j, 0] = np.interp(z_target, zc[:end], Vo[:end, j, 0])
+        outer[j, 1] = np.interp(z_target, zc[:end], Vo[:end, j, 1])
+    return inner, outer
+
+
+def test_adapter_custom_osse_section_no_step():
+    """The OS-SE cross-section is NOT an ellipse: an area-matched ellipse
+    target leaves a step ring at the adapter↔flare junction. With
+    horn_shape="custom" the adapter must end vertex-exact on the real
+    r(z,φ) section — inner AND outer wall."""
+    r0, L, t = 12.7, 120.0, 4.0
+    z, phi, R = _osse.osse_surface(
+        r0, L, np.radians(45.0), np.radians(30.0), 0.0, 1.0, 0.8, 5.0, 0.998,
+        mouth_exp=6.0, nz=60, nphi=96)
+    zt = 30.5
+    inner, outer = _osse_adapter_sections(z, phi, R, t, zt)
+    R_eq = float(np.sqrt(_ta._polygon_area(inner) / np.pi))
+    h = float(z[1] - z[0])
+    in_m, _ = _osse_adapter_sections(z, phi, R, t, zt - h)
+    in_p, _ = _osse_adapter_sections(z, phi, R, t, zt + h)
+    re_m = float(np.sqrt(_ta._polygon_area(in_m) / np.pi))
+    re_p = float(np.sqrt(_ta._polygon_area(in_p) / np.pi))
+    m = _ta.make_adapter(
+        driver_R=12.7, horn_shape="custom",
+        horn_w=0.0, horn_h=0.0, horn_n_sides=0,
+        horn_R_eq=R_eq, horn_circumR=0.0,
+        axial_steps=30, adapter_length=zt, wall_thickness=t,
+        target_slope=(re_p - re_m) / (2.0 * h),
+        target_curv=(re_p - 2.0 * R_eq + re_m) / (h * h),
+        custom_pts=inner, custom_outer_pts=outer,
+        output_path=None)
+    _check_trimesh_watertight(m, "adapter custom OS-SE section")
+    top = m.vertices[np.abs(m.vertices[:, 2] - zt) < 1e-6][:, :2]
+    assert len(top) >= 2 * len(inner) - 4, "top rings missing vertices"
+    for ring, lbl in ((inner, "inner"), (outer, "outer")):
+        d = np.sqrt(((ring[:, None, :] - top[None, :, :]) ** 2).sum(-1)).min(1)
+        assert d.max() < 0.02, \
+            f"{lbl} ring off the horn section by {d.max():.3f} mm (step)"
+    # Sanity: the old area-matched ellipse really was a bad target here.
+    Rz = np.hypot(inner[:, 0], inner[:, 1])
+    ell = np.column_stack([Rz[0] * np.cos(phi), Rz[len(phi) // 4] * np.sin(phi)])
+    ell *= R_eq / np.sqrt(_ta._polygon_area(ell) / np.pi)
+    assert np.abs(np.hypot(ell[:, 0], ell[:, 1]) - Rz).max() > 0.1, \
+        "ellipse≈section here — test premise void"
+test("OS-SE adapter ends on exact r(z,φ) section (no step)", test_adapter_custom_osse_section_no_step)
+
+
+def test_osse_embedded_adapter_union_no_step():
+    """Full UI path: trimmed OS-SE horn + custom-section adapter weld into one
+    watertight body, and the inner surface has no step across the junction."""
+    throat_d, L, t = 25.4, 120.0, 4.0
+    nz, nphi = 240, 120
+    a_h, a_v = np.radians(45.0), np.radians(30.0)
+    horn = _osse.generate_osse_3d_mesh(
+        throat=throat_d, length=L, coverage_h=90.0, coverage_v=60.0,
+        thickness=t, nz=nz, nphi=nphi)
+    z, phi, R = _osse.osse_surface(
+        throat_d / 2.0, L, a_h, a_v, 0.0, 1.0, 0.8, 5.0, 0.998,
+        mouth_exp=4.0, nz=nz, nphi=nphi)
+
+    morph_len, overlap = 30.0, 0.5
+    zt = morph_len + overlap
+    # Section stack (like ui_app.py): the adapter tail follows the real flare
+    # through the overlap, aspect-ratio change included.
+    z_st = np.append(z[z < zt - 1e-9], zt)
+    stacks = [_osse_adapter_sections(z, phi, R, t, zz) for zz in z_st]
+    stack_in = np.stack([s[0] for s in stacks])
+    stack_out = np.stack([s[1] for s in stacks])
+    inner = stack_in[-1]
+    R_eq = float(np.sqrt(_ta._polygon_area(inner) / np.pi))
+    h = 0.5
+    in_m, _ = _osse_adapter_sections(z, phi, R, t, zt - h)
+    in_p, _ = _osse_adapter_sections(z, phi, R, t, zt + h)
+    re_m = float(np.sqrt(_ta._polygon_area(in_m) / np.pi))
+    re_p = float(np.sqrt(_ta._polygon_area(in_p) / np.pi))
+
+    z_min = float(horn.vertices[:, 2].min())
+    trim_z = z_min + morph_len
+    trimmed = horn.slice_plane([0, 0, trim_z], [0, 0, 1], cap=True)
+    adapter = _ta.make_adapter_assembly(
+        driver_type="flanged", driver_diam=throat_d, thread_key=None,
+        horn_shape="custom",
+        rect_w=0.0, rect_h=0.0, poly_n_sides=0, poly_circumR=0.0,
+        horn_R_eq=R_eq,
+        adapter_length=zt, wall_thickness=t,
+        flange_R=0.0, socket_length=0.0,
+        target_slope=(re_p - re_m) / (2.0 * h),
+        target_curv=(re_p - 2.0 * R_eq + re_m) / (h * h),
+        custom_pts=stack_in, custom_outer_pts=stack_out, custom_pts_z=z_st,
+        z_offset=z_min + zt,
+        output_path=None)
+    combined = trimesh.boolean.union([trimmed, adapter], engine="manifold")
+    # NOTE: no merge_vertices() here — the adapter wall is µm-coincident with
+    # the horn wall in the 0.5 mm overlap (that's the point), and vertex
+    # merging would weld the coincident skins into non-manifold edges. The
+    # UI's generate path unions without merging, exactly like this.
+    _check_trimesh_watertight(combined, "OS-SE horn + custom adapter union")
+
+    # No step: the inner radius of the welded body just below and just above
+    # the junction plane must agree with the analytic field on both sides.
+    for dz in (-0.25, +0.25):
+        zq = trim_z + dz
+        sec = combined.section(plane_origin=[0, 0, zq], plane_normal=[0, 0, 1])
+        assert sec is not None, "no section at junction"
+        loops = sec.discrete
+        # inner loop = smallest mean radius; star-shaped → radius(angle) interp
+        loop = min(loops, key=lambda p: np.hypot(p[:, 0], p[:, 1]).mean())
+        a_loop = np.arctan2(loop[:, 1], loop[:, 0]) % (2.0 * np.pi)
+        r_loop = np.hypot(loop[:, 0], loop[:, 1])
+        order = np.argsort(a_loop)
+        a_s, r_s = a_loop[order], r_loop[order]
+        for j_phi, lbl in ((0, "H"), (nphi // 8, "diag"), (nphi // 4, "V")):
+            ang = float(phi[j_phi]) % (2.0 * np.pi)
+            r_meas = float(np.interp(ang, a_s, r_s, period=2.0 * np.pi))
+            r_ref = float(np.interp(zq - z_min, z, R[:, j_phi]))
+            assert abs(r_meas - r_ref) < 0.10, \
+                f"step at junction ({lbl}, dz={dz:+.2f}): {r_meas:.3f} vs {r_ref:.3f}"
+test("OS-SE embedded adapter welds with no junction step", test_osse_embedded_adapter_union_no_step)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

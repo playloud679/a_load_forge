@@ -119,3 +119,25 @@ machinery):
 
 All three weld into a single watertight body with the horn (test:
 `OS-SE throat/mouth/mid flanges weld to horn`).
+
+## UI throat adapter (embedded morph)
+
+OS-SE also supports the **shape adapter** (round/threaded driver → flare):
+`ui_app.py` trims the first `morph_len` mm of the horn and replaces them with a
+`throat_adapter.make_adapter_assembly` morph. Because the OS-SE cross-section
+is **not an ellipse** (elliptical-cone coverage under a sqrt + superellipse
+mouth morph), the adapter is driven with `horn_shape="custom"`: the UI samples
+a **stack** of exact `r(z,φ)` inner contours at every field ring below the
+handoff plane (`custom_pts` + `custom_pts_z`) and the matching outer-wall
+contours from the same true-3-D-normal offset the mesh engine uses
+(`custom_outer_pts`), plus equivalent-radius slope/curvature from the field.
+An area-matched ellipse target used to leave a ~0.5 mm step ring at the
+junction (max on the diagonals); a single uniformly scaled end section still
+left ~0.06 mm (the OS-SE aspect ratio changes with z); the in-plane outer wall
+of a 3-D-normal offset is `thickness/cos(slope)`, so the outer skin stepped
+too. The UI also generates the horn mesh on the **same `(nz, nphi)` grid** it
+samples the field on (`nz=max(120, segments//6)`, `nphi=160`), so the adapter
+ring sits exactly on the horn facets — measured residual at the junction
+≤ 0.005 mm. When the adapter is active the flat OS-SE throat flange branch is
+**skipped** (it must not overwrite `f_throat`). Tests: `OS-SE adapter ends on
+exact r(z,φ) section`, `OS-SE embedded adapter welds with no junction step`.

@@ -645,6 +645,17 @@ def generate_elliptical_3d_mesh_from_profiles(
     faces = np.arange(len(tri_pts)).reshape(-1, 3)
     tm = trimesh.Trimesh(vertices=tri_pts, faces=faces, process=True)
     tm.merge_vertices()
+
+    # Flatten the throat base (same invariant as the axisymmetric engine):
+    # the 3-D normal offset pushes the outer throat rim below z_i[0] wherever
+    # the throat expands, so the raw base ring is slanted and mesh z_min sits
+    # under the profile origin. Anything anchored to mesh z_min (embedded
+    # throat adapter, flange Z offsets) then lands below the profile station
+    # it was computed for — a visible step at the adapter↔flare junction.
+    base_z = max(float(z_i[0]), float(np.max(V_o[0, :, 2])))
+    sliced = tm.slice_plane([0.0, 0.0, base_z], [0.0, 0.0, 1.0], cap=True)
+    if sliced is not None and not sliced.is_empty:
+        tm = sliced
     tm.fix_normals()
 
     if output_path:

@@ -344,6 +344,123 @@ def _hermite_radius(
 
 
 # ======================================================================
+#  Golden-Standard circle→ellipse morph (acoustic-first)
+# ======================================================================
+
+def morph_circle_to_ellipse(
+    throat_radius: float = 12.7,
+    throat_angle_deg: float = 7.5,
+    transition_length_z: float = 30.0,
+    target_ellipse_a: float = 40.0,
+    target_ellipse_b: float = 20.0,
+    z_steps: int = 100,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Morph a circular throat into an elliptical cross-section over Z.
+
+    The cross-sectional area expansion ``A(z) = π·r_eq(z)²`` is the primary
+    acoustic driver (the "Golden Standard").  The shape (circle → ellipse)
+    adapts to the area, not the other way around.  First-derivative continuity
+    at z=0 matches the compression driver's exit angle exactly.
+
+    Parameters
+    ----------
+    throat_radius : float
+        Radius of the circular throat at z=0 (mm).  Default 12.7 mm (0.5").
+    throat_angle_deg : float
+        Throat half-angle in degrees.  ``dr_eq/dz|_{z=0} = tan(θ)``.
+        Default 7.5° (industry standard for 1" compression drivers).
+    transition_length_z : float
+        Total length of the transition (mm).  Default 30 mm.
+    target_ellipse_a : float
+        Target semi-major axis at z=L (mm).
+    target_ellipse_b : float
+        Target semi-minor axis at z=L (mm).
+    z_steps : int
+        Number of evenly-spaced Z positions to generate.
+
+    Returns
+    -------
+    z : np.ndarray      shape (z_steps,)
+        Z positions (mm).
+    a : np.ndarray      shape (z_steps,)
+        Semi-major axis at each Z (mm).
+    b : np.ndarray      shape (z_steps,)
+        Semi-minor axis at each Z (mm).
+    r_eq : np.ndarray   shape (z_steps,)
+        Equivalent radius ``r_eq(z) = sqrt(A(z)/π)`` (mm).
+
+    Notes
+    -----
+    **Area-first design (Golden Standard):**
+
+    * ``r_eq(z)`` drives the expansion via a **quintic Hermite** polynomial
+      that is C²-continuous (smooth first and second derivatives) and
+      monotonically increasing.
+    * ``R(z) = a(z)/b(z)`` morphs from 1 (circle) to ``target_a / target_b``
+      (ellipse) via a quintic smoothstep with zero derivatives at both ends.
+    * Semi-axes enforce the area rule at every slice:
+      ``a(z) = r_eq(z)·√R(z)``,  ``b(z) = r_eq(z)/√R(z)``.
+
+    **Boundary conditions at z=0:**
+
+    * ``r_eq(0) = throat_radius``
+    * ``dr_eq/dz(0) = tan(throat_angle)`` — matches driver exit cone
+    * ``d²r_eq/dz²(0) = 0`` — smooth launch
+    * ``R(0) = 1`` — circle
+
+    **Boundary conditions at z=L:**
+
+    * ``r_eq(L) = sqrt(target_a·target_b)`` — area-equivalent radius
+    * ``dr_eq/dz(L) = d²r_eq/dz²(L) = 0`` — smooth handoff to waveguide
+    * ``R(L) = target_a/target_b`` — ellipse
+    """
+    L = float(transition_length_z)
+    if L <= 1e-9:
+        raise ValueError("transition_length_z must be > 0")
+    if z_steps < 2:
+        raise ValueError("z_steps must be >= 2")
+
+    theta = np.radians(float(throat_angle_deg))
+    slope_0 = np.tan(theta)                          # dr_eq/dz at z=0 (mm/mm)
+
+    r0 = float(throat_radius)
+    r1 = np.sqrt(float(target_ellipse_a) * float(target_ellipse_b))
+
+    R_target = float(target_ellipse_a) / float(max(target_ellipse_b, 1e-9))
+
+    # ---- Equivalent-radius quintic Hermite (C²) ----
+    # H(t), t = z/L ∈ [0,1]
+    #   H(0)=r0,  H'(0)=m0=slope_0·L,  H''(0)=0
+    #   H(1)=r1,  H'(1)=0,              H''(1)=0
+    m0 = slope_0 * L
+    dr = r1 - r0
+    # Closed-form coefficients derived from the 6×6 Hermite system
+    # a₀=r0, a₁=m0, a₂=0, a₃=10·(r1-r0)−6·m0, a₄=8·m0−15·(r1-r0), a₅=6·(r1-r0)−3·m0
+    a3 = 10.0 * dr - 6.0 * m0
+    a4 = 8.0 * m0 - 15.0 * dr
+    a5 = 6.0 * dr - 3.0 * m0
+
+    z = np.linspace(0.0, L, int(z_steps))
+    t = z / L
+    t2 = t * t
+    t3 = t2 * t
+    t4 = t3 * t
+    t5 = t4 * t
+
+    r_eq = r0 + m0 * t + a3 * t3 + a4 * t4 + a5 * t5
+
+    # ---- Aspect-ratio morph (quintic smoothstep) ----
+    s = t3 * (t * (t * 6.0 - 15.0) + 10.0)          # quintic smoothstep
+    R = 1.0 + (R_target - 1.0) * s
+
+    # ---- Semi-axes from area + aspect ratio ----
+    sqrt_R = np.sqrt(np.maximum(R, 1e-12))
+    a = r_eq * sqrt_R
+    b = r_eq / sqrt_R
+
+    return z, a, b, r_eq
+
+# ======================================================================
 #  Adapter transition section (morphing loft)
 # ======================================================================
 
@@ -371,7 +488,12 @@ def make_adapter(
     # C2 raccordo (equivalent-radius curvature at the horn throat)
     target_curv: float | None = None,
     outer_target_curv: float | None = None,
+    # Exact target section (horn_shape="custom")
+    custom_pts: np.ndarray | None = None,
+    custom_outer_pts: np.ndarray | None = None,
+    custom_pts_z: np.ndarray | None = None,
     output_path: str | None = None,
+    return_cutter: bool = False,
 ) -> trimesh.Trimesh:
     """Build the morphing transition section, optionally with an integrated
     threaded extension at the circular (driver) end.
@@ -384,7 +506,7 @@ def make_adapter(
     ----------
     driver_R : float
         Radius of the circular driver exit (mm).
-    horn_shape : "circular" | "elliptical" | "rectangular" | "polygonal"
+    horn_shape : "circular" | "elliptical" | "rectangular" | "polygonal" | "custom"
     horn_w, horn_h : float
         Full throat axes for elliptical or dimensions for rectangular (mm).
     horn_n_sides : int
@@ -416,6 +538,31 @@ def make_adapter(
         progression uses a quintic Hermite so the adapter reaches the flare
         with continuous curvature (C2) — removes the inflection line at the
         join that a cubic (C1-only) raccordo leaves.
+    custom_pts : np.ndarray, optional
+        With ``horn_shape="custom"``: the EXACT target inner section(s) as
+        closed polygons centred on the axis, vertices ordered CCW by
+        ascending azimuth from φ=0 (same parametrisation as the source
+        circle). Either a single ``(m, 2)`` section at the handoff plane, or
+        a ``(K, m, 2)`` stack of sections at the local-z stations
+        ``custom_pts_z`` — then each loft slice morphs toward the section
+        interpolated *at its own z*, so the adapter's tail follows the real
+        flare shape (aspect ratio included) through the weld overlap, not a
+        uniformly scaled copy of the end section. Used for non-analytic
+        sections — e.g. the OS-SE ``r(z, φ)`` contour, which is *not* an
+        ellipse: an area-matched ellipse leaves a visible step ring at the
+        adapter↔flare junction; a single scaled end-section still leaves a
+        small one (the OS-SE aspect ratio changes with z).
+    custom_outer_pts : np.ndarray, optional
+        Matching OUTER-wall contour(s) (same shape as ``custom_pts``). When
+        given, the loft's outer wall blends from the plain miter offset
+        (driver end) into the exact contour (horn end), so the outer skin is
+        also flush. Needed when the horn engine offsets along the true 3-D
+        normal (OS-SE): its in-plane wall is ``thickness / cos(slope)``,
+        wider than the 2-D miter offset.
+    custom_pts_z : np.ndarray, optional
+        Local-z stations (driver plane = 0 … ``adapter_length`` = horn end)
+        for a ``(K, m, 2)`` ``custom_pts`` stack; the last station must be
+        the handoff plane. Ignored for a single ``(m, 2)`` section.
     output_path : str, optional
 
     Returns a watertight Trimesh.
@@ -443,9 +590,60 @@ def make_adapter(
         def _target_fn():
             return _poly_points(horn_n_sides, horn_circumR)
         target_R = horn_R_eq
+    elif horn_shape == "custom":
+        if custom_pts is None:
+            raise ValueError("horn_shape='custom' requires custom_pts")
+        _stack_in = np.asarray(custom_pts, dtype=float)
+        if _stack_in.ndim == 2:                       # single end section
+            _stack_in = _stack_in[None]
+            _stack_z = np.array([float(adapter_length)])
+        else:                                          # (K, m, 2) stack
+            if custom_pts_z is None:
+                raise ValueError("a custom_pts stack requires custom_pts_z")
+            _stack_z = np.asarray(custom_pts_z, dtype=float)
+            if len(_stack_z) != len(_stack_in):
+                raise ValueError("custom_pts_z length must match custom_pts")
+        _custom_in = _stack_in[-1]                    # handoff-plane section
+        target_R = horn_R_eq if horn_R_eq > 0 else float(
+            np.sqrt(_polygon_area(_custom_in) / np.pi))
+        def _target_fn():
+            return _custom_in
     else:
         raise ValueError(f"unsupported horn_shape: {horn_shape!r}")
     _source_phase = np.pi / 2.0 if horn_shape == "polygonal" else 0.0
+
+    # Outer-contour stack for "custom": per-slice deltas blended in along the
+    # loft so the outer wall lands exactly on the horn's outer section at the
+    # join (and through the weld overlap).
+    _stack_z = None
+    if custom_pts_z is not None:
+        _stack_z = np.asarray(custom_pts_z, dtype=float)
+
+    _stack_delta = None
+    if custom_outer_pts is not None and custom_pts is not None:
+        _stack_out = np.asarray(custom_outer_pts, dtype=float)
+        _stack_in_ref = np.asarray(custom_pts, dtype=float)
+        if _stack_out.ndim == 2:
+            _stack_out = _stack_out[None]
+            _stack_in_ref = _stack_in_ref[None]
+        if _stack_out.shape != _stack_in_ref.shape:
+            raise ValueError("custom_outer_pts must match custom_pts shape")
+        _stack_delta = _stack_out - _stack_in_ref
+
+    def _stack_at(stack, z_loc):
+        """Linear interpolation of a (K, m, 2) section stack at local z."""
+        if len(stack) == 1:
+            return stack[0]
+        if _stack_z is None:
+            idx = (z_loc / adapter_length) * (len(stack) - 1) if adapter_length > 0 else 0.0
+            i = int(np.clip(np.floor(idx), 0, len(stack) - 2))
+            w = idx - i
+            return (1.0 - w) * stack[i] + w * stack[i + 1]
+        z_loc = float(np.clip(z_loc, _stack_z[0], _stack_z[-1]))
+        i = int(np.clip(np.searchsorted(_stack_z, z_loc) - 1, 0, len(stack) - 2))
+        dz_st = _stack_z[i + 1] - _stack_z[i]
+        w = (z_loc - _stack_z[i]) / dz_st if dz_st > 1e-12 else 1.0
+        return (1.0 - w) * stack[i] + w * stack[i + 1]
 
     # ---- Thread parameters ----
     has_threads = thread_key is not None and socket_length > 0.5
@@ -461,7 +659,9 @@ def make_adapter(
         _minor_R = _major_R - 0.6495 * _pitch
         _outer_R = _major_R + wall_thickness
 
-    n = _NP
+    # A custom section keeps its own vertex count so the adapter's end ring
+    # is vertex-exact against the section it was sampled from.
+    n = len(_custom_in) if horn_shape == "custom" else _NP
 
     # ---- Build Z positions ----
     if has_threads:
@@ -484,6 +684,14 @@ def make_adapter(
     z_out = []
     is_thread = []
 
+    def _slice_target(zi):
+        """Per-slice morph target: the custom section interpolated at this z
+        (so the tail follows the real flare), else the fixed end target."""
+        if horn_shape == "custom" and len(_stack_in) > 1:
+            sec = _stack_at(_stack_in, zi)
+            return lambda: sec
+        return _target_fn
+
     for zi in z:
         if has_threads and zi < 0:
             # Thread section: circular socket with its own wall thickness
@@ -502,7 +710,7 @@ def make_adapter(
             inner_R = _hermite_radius(t, driver_R, target_R,
                                       adapter_length, target_slope,
                                       curv1=target_curv)
-            inner = _morph_slice(t, driver_R, _target_fn, target_R, n,
+            inner = _morph_slice(t, driver_R, _slice_target(zi), target_R, n,
                                  shape_t=shape_t, r_eq_des=inner_R,
                                  source_phase=_source_phase)
             # Constant-thickness wall: the outer is a true parallel (miter)
@@ -515,6 +723,9 @@ def make_adapter(
             # offset is also automatically flush with the horn at the join — the
             # horn wall is the same constant offset of the same inner profile.
             outer = _offset_polygon_outward(inner, wall_thickness)
+            if _stack_delta is not None:
+                outer_target = _stack_at(_stack_out, zi)
+                outer = (1.0 - shape_t) * outer + shape_t * outer_target
             is_thread.append(False)
         else:
             # Flanged transition: double‑wall with a true outward-normal
@@ -533,10 +744,16 @@ def make_adapter(
             inner_R = _hermite_radius(t, driver_R, target_R,
                                       adapter_length, target_slope,
                                       curv1=target_curv)
-            inner = _morph_slice(t, driver_R, _target_fn, target_R, n,
+            inner = _morph_slice(t, driver_R, _slice_target(zi), target_R, n,
                                  shape_t=shape_t, r_eq_des=inner_R,
                                  source_phase=_source_phase)
             outer = _offset_polygon_outward(inner, wall_thickness)
+            if _stack_delta is not None:
+                # Blend the plain miter wall into the horn's true outer
+                # contour so the OUTER skin is also flush at the join (a 3-D
+                # normal-offset horn wall is wider in-plane than the miter).
+                outer_target = _stack_at(_stack_out, zi)
+                outer = (1.0 - shape_t) * outer + shape_t * outer_target
             is_thread.append(False)
 
         inner_slices.append(inner)
@@ -608,6 +825,35 @@ def make_adapter(
 
     all_faces_arr = np.concatenate(all_faces, axis=0)
 
+
+    if return_cutter:
+        # Build cutter mesh using only the inner walls (the first (n_slices)*n vertices)
+        n_slices_c = len(verts) // (2 * n)
+        c_verts = [verts[k * 2 * n : k * 2 * n + n] for k in range(n_slices_c)]
+        c_verts_flat = np.vstack(c_verts)
+        
+        c_faces = []
+        for i in range(n_slices_c - 1):
+            lo = i * n
+            hi = (i + 1) * n
+            c_faces.append(_quad_strip(list(range(lo, lo + n)), list(range(hi, hi + n))))
+            
+        # Bottom cap (z=0, simple fan)
+        c_faces.append(np.array(
+            [[[0, j, i]] for i in range(1, n-1) for j in [i+1]]
+        ).reshape(-1, 3))
+        
+        # Top cap
+        t_c = (n_slices_c - 1) * n
+        c_faces.append(np.array(
+            [[[t_c+i, t_c+j, t_c+0]] for i in range(1, n-1) for j in [i+1]]
+        ).reshape(-1, 3)) # simple fan triangulation since it's convex
+        
+        c_faces_flat = np.concatenate(c_faces, axis=0)
+        # flip normals so it's a solid facing outward
+        c_faces_flat = c_faces_flat[:, ::-1]
+        cutter_tm = trimesh.Trimesh(vertices=c_verts_flat, faces=c_faces_flat, process=True)
+        cutter_tm.fix_normals()
     tm = trimesh.Trimesh(vertices=verts, faces=all_faces_arr, process=True)
     tm.merge_vertices()
     tm.fix_normals()
@@ -621,7 +867,7 @@ def make_adapter(
         tm.export(output_path)
         logger.info("Exported adapter: %s  (%d triangles)", output_path, len(tm.faces))
 
-    return tm
+    return (tm, cutter_tm) if return_cutter else tm
 
 
 # ======================================================================
@@ -770,7 +1016,7 @@ def make_adapter_assembly(
     driver_diam: float | None,  # for flanged only (mm)
     thread_key: str | None,     # for threaded only
     # Horn throat shape
-    horn_shape: str,          # "circular" | "elliptical" | "rectangular" | "polygonal"
+    horn_shape: str,          # "circular" | "elliptical" | "rectangular" | "polygonal" | "custom"
     rect_w: float,
     rect_h: float,
     poly_n_sides: int,
@@ -799,6 +1045,10 @@ def make_adapter_assembly(
     outer_target_slope: float | None = None,
     target_curv: float | None = None,
     outer_target_curv: float | None = None,
+    # Exact target section (horn_shape="custom") — see make_adapter
+    custom_pts: np.ndarray | None = None,
+    custom_outer_pts: np.ndarray | None = None,
+    custom_pts_z: np.ndarray | None = None,
     # Positioning: the horn-throat end of the transition sits at *z_offset*
     z_offset: float = 0.0,
     # Output
@@ -808,6 +1058,9 @@ def make_adapter_assembly(
 
     The adapter is centered on the Z axis. The driver interface is at
     z = *z_offset* − *adapter_length*, the horn throat is at z = *z_offset*.
+    When a flange is present, the transition body is shortened by the flange
+    thickness so the requested *adapter_length* stays measured from the
+    flange's lower face instead of creating a collar inside the throat.
 
     Returns a single watertight Trimesh (or None on failure).
     """
@@ -831,7 +1084,7 @@ def make_adapter_assembly(
     if adapter_length > 0.5:
         tk = thread_key if is_threaded else None
         sl = socket_length if is_threaded else 0.0
-        adapter = make_adapter(
+        adapter, cutter_tm = make_adapter(
             THREAD_SPECS[thread_key].bore_diam / 2.0 if is_threaded else driver_R,
             horn_shape, rect_w, rect_h,
             poly_n_sides, horn_R_eq, poly_circumR,
@@ -844,6 +1097,10 @@ def make_adapter_assembly(
             outer_target_slope=outer_target_slope,
             target_curv=target_curv,
             outer_target_curv=outer_target_curv,
+            custom_pts=custom_pts,
+            custom_outer_pts=custom_outer_pts,
+            return_cutter=True,
+            custom_pts_z=custom_pts_z,
             output_path=None,
         )
     else:
@@ -866,34 +1123,46 @@ def make_adapter_assembly(
 
     # ---- 2. Flanged driver interface (bolt flange on top of adapter) ----
     bodies = [adapter]
-
     if is_bolt_on or (is_custom_flange and flange_R > 0):
         from flange_generator import generate_driver_mounting_flange, generate_flange
         if is_bolt_on:
             f_throat = generate_driver_mounting_flange(
                 driver_type,
                 thickness=flange_thickness,
-                throat_clearance=driver_clearance,
-                offset=0.0,
+                throat_clearance=-1000.0,
+                offset=flange_thickness,
             )
         else:
             f_throat = generate_flange(
-                throat_R=driver_R,
+                throat_R=driver_R + max(driver_clearance / 2.0, wall_thickness),
                 flange_R=flange_R,
                 thickness=flange_thickness,
                 bolt_R=flange_bolt_R,
                 bolt_n=int(flange_bolt_n),
                 bolt_d=flange_bolt_d,
                 bolt_phase=flange_bolt_phase,
-                offset=0.0,
+                offset=flange_thickness,
                 outer_n_sides=flange_outer_n,
                 output_path=None,
             )
         if f_throat is not None:
-            bodies.append(f_throat)
             try:
+                if is_bolt_on:
+                    # Bolt-on flange has a straight hole (driver_R), but the airway expands.
+                    # Subtract the airway cutter from the flange before unioning,
+                    # so the expanding airway remains perfectly clean.
+                    try:
+                        cut_flange = _tm.boolean.difference([f_throat, cutter_tm], engine="manifold")
+                        if not cut_flange.is_empty:
+                            f_throat = cut_flange
+                    except Exception:
+                        pass
+                bodies.append(f_throat)
                 result = _tm.boolean.union(bodies, engine="manifold")
             except Exception:
+                # If union fails, bodies is already appended
+                if f_throat not in bodies:
+                    bodies.append(f_throat)
                 result = _tm.util.concatenate(bodies)
             if result is not None:
                 result.remove_unreferenced_vertices()
@@ -915,8 +1184,9 @@ def make_adapter_assembly(
     result.fix_normals()
 
     # ---- 4. Position: translate so top (horn-throat end) is at z_offset ----
-    # The adapter's top is at z=adapter_length.  For the threaded case the
-    # thread section extends below z=0, but the top reference is unchanged.
+    # When a driver flange is present, the flange occupies the first portion
+    # of the requested length, but the transition keeps the full adapter
+    # length so the throat↔flare raccordo is not compressed.
     result.apply_translation([0, 0, z_offset - adapter_length])
 
     if output_path:
@@ -925,3 +1195,162 @@ def make_adapter_assembly(
                      output_path, len(result.faces), result.is_watertight)
 
     return result
+
+
+# ======================================================================
+#  Verification plot (run: python src/throat_adapter.py)
+# ======================================================================
+
+if __name__ == "__main__":
+    import matplotlib
+    matplotlib.use("TkAgg")
+    import matplotlib.pyplot as plt
+
+    z, a, b, r_eq = morph_circle_to_ellipse(
+        throat_radius=12.7,
+        throat_angle_deg=7.5,
+        transition_length_z=30.0,
+        target_ellipse_a=60.0,
+        target_ellipse_b=30.0,
+        z_steps=200,
+    )
+
+    L = z[-1]
+    A = np.pi * r_eq ** 2
+    dA_dz = np.gradient(A, z)
+    d2A_dz2 = np.gradient(dA_dz, z)
+
+    theta = np.radians(7.5)
+    expected_slope = 2.0 * np.pi * 12.7 * np.tan(theta)
+
+    fig, axes = plt.subplots(2, 3, figsize=(16, 10))
+    fig.suptitle("morph_circle_to_ellipse — Acoustic Verification", fontsize=14,
+                 fontweight="bold")
+
+    # (0,0) Equivalent radius r_eq(z)
+    ax = axes[0, 0]
+    ax.plot(z, r_eq, "b-", lw=2, label=r"$r_{eq}(z)$")
+    z_tang = np.linspace(0, L, 50)
+    ax.plot(z_tang, 12.7 + z_tang * np.tan(theta), "r--", lw=1,
+            label=f"Tangent at z=0 ({7.5}° half-angle)")
+    ax.axvline(0, color="gray", ls=":", lw=0.8)
+    ax.axhline(12.7, color="gray", ls=":", lw=0.8)
+    ax.axvline(L, color="gray", ls=":", lw=0.8)
+    target_R = np.sqrt(60 * 30)
+    ax.axhline(target_R, color="gray", ls=":", lw=0.8)
+    ax.set_xlabel("Z (mm)")
+    ax.set_ylabel("r_eq (mm)")
+    ax.set_title("Equivalent Radius $r_{eq}(z)$ — C² Quintic Hermite")
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    # (0,1) Semi-axes a(z), b(z)
+    ax = axes[0, 1]
+    ax.plot(z, a, "r-", lw=2, label="a(z) — semi-major")
+    ax.plot(z, b, "g-", lw=2, label="b(z) — semi-minor")
+    ax.plot(z, r_eq, "b--", lw=1, label=r"$r_{eq}(z)$")
+    ax.axvline(0, color="gray", ls=":", lw=0.8)
+    ax.axhline(12.7, color="gray", ls=":", lw=0.8)
+    ax.axvline(L, color="gray", ls=":", lw=0.8)
+    ax.axhline(60.0, color="red", ls=":", lw=0.5)
+    ax.axhline(30.0, color="green", ls=":", lw=0.5)
+    ax.set_xlabel("Z (mm)")
+    ax.set_ylabel("Semi-axis (mm)")
+    ax.set_title("Ellipse Semi-Axes $a(z), b(z)$")
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    # (0,2) Aspect ratio R(z)
+    ax = axes[0, 2]
+    R_z = a / b
+    ax.plot(z, R_z, "m-", lw=2)
+    ax.axhline(1.0, color="gray", ls=":", lw=0.8, label="R=1 (circle)")
+    ax.axhline(60.0 / 30.0, color="gray", ls=":", lw=0.8)
+    ax.set_xlabel("Z (mm)")
+    ax.set_ylabel("Aspect Ratio R = a/b")
+    ax.set_title("Aspect Ratio $R(z)$ — Quintic Smoothstep")
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    # (1,0) Area A(z)
+    ax = axes[1, 0]
+    ax.plot(z, A, "b-", lw=2, label=r"$A(z) = \pi r_{eq}^2$")
+    ax.axvline(0, color="gray", ls=":", lw=0.8)
+    ax.axhline(np.pi * 12.7 ** 2, color="gray", ls=":", lw=0.8)
+    ax.axvline(L, color="gray", ls=":", lw=0.8)
+    ax.set_xlabel("Z (mm)")
+    ax.set_ylabel("Cross-Sectional Area (mm²)")
+    ax.set_title("Area Expansion $A(z)$")
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    # (1,1) dA/dz — MUST NOT spike or drop at z=0
+    ax = axes[1, 1]
+    ax.plot(z, dA_dz, "r-", lw=2, label=r"$dA/dz$")
+    ax.axhline(expected_slope, color="orange", ls="--", lw=1,
+               label=f"Expected at z=0: {expected_slope:.1f} mm²/mm")
+    ax.axvline(0, color="gray", ls=":", lw=0.8)
+    ax.axhline(0, color="gray", ls=":", lw=0.8)
+    ax.set_xlabel("Z (mm)")
+    ax.set_ylabel("dA/dz (mm²/mm)")
+    ax.set_title(r"Area Slope $dA/dz$ — No spike/drop at z=0")
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    # (1,2) d²A/dz² — curvature, verify C² smoothness
+    ax = axes[1, 2]
+    ax.plot(z, d2A_dz2, "purple", lw=2, label=r"$d^2A/dz^2$")
+    ax.axhline(0, color="gray", ls=":", lw=0.8)
+    ax.axvline(0, color="gray", ls=":", lw=0.8)
+    ax.axvline(L, color="gray", ls=":", lw=0.8)
+    ax.set_xlabel("Z (mm)")
+    ax.set_ylabel("d²A/dz² (mm²/mm²)")
+    ax.set_title(r"Area Curvature $d^2A/dz^2$ — C² Smoothness")
+    ax.legend(fontsize=8)
+    ax.grid(True, alpha=0.3)
+
+    plt.tight_layout()
+
+    # Print numerical verification
+    actual_slope = dA_dz[0]
+    print(f"\n{'='*60}")
+    print(f"  Verification: morph_circle_to_ellipse")
+    print(f"{'='*60}")
+    print(f"  Throat radius          : {12.7} mm")
+    print(f"  Target ellipse a×b     : {60.0} × {30.0} mm")
+    print(f"  Transition length      : {L} mm")
+    print(f"  Throat half-angle      : {7.5}°")
+    print(f"  Expected r_eq(0)       : {12.7:.6f} mm  →  got {r_eq[0]:.6f}")
+    print(f"  Expected r_eq(L)       : {target_R:.6f} mm  →  got {r_eq[-1]:.6f}")
+    print(f"  Expected dr_eq/dz(0)   : {np.tan(theta):.6f}  →  got {(r_eq[1]-r_eq[0])/(z[1]-z[0]):.6f}")
+    print(f"  Expected dA/dz(0)      : {expected_slope:.3f} mm²/mm")
+    print(f"  Actual dA/dz(0)        : {actual_slope:.3f} mm²/mm")
+    print(f"  dA/dz(0) error         : {abs(actual_slope - expected_slope):.4f} mm²/mm")
+    print(f"  d²A/dz²(0)             : {d2A_dz2[0]:.6f} mm²/mm²  (≈ 0)")
+    print(f"  a(L)                   : {a[-1]:.6f} mm  (target: {60.0})")
+    print(f"  b(L)                   : {b[-1]:.6f} mm  (target: {30.0})")
+    print(f"  r_eq monotonic         : {bool(np.all(np.diff(r_eq) >= 0))}")
+    print(f"  a monotonic            : {bool(np.all(np.diff(a) >= 0))}")
+    print(f"  b monotonic            : {bool(np.all(np.diff(b) >= 0))}")
+    print(f"  dA/dz ≥ 0 everywhere   : {bool(np.all(dA_dz >= -1e-9))}")
+    print(f"{'='*60}\n")
+
+    # Cross-section shapes at selected z positions
+    fig2, ax2 = plt.subplots(figsize=(8, 8))
+    n_cross = 6
+    idx = np.linspace(0, len(z) - 1, n_cross, dtype=int)
+    colors = plt.cm.viridis(np.linspace(0, 1, n_cross))
+    phi = np.linspace(0, 2 * np.pi, 200)
+    for i, (j, c) in enumerate(zip(idx, colors)):
+        x = a[j] * np.cos(phi)
+        y = b[j] * np.sin(phi)
+        ax2.plot(x, y, color=c, lw=1.5,
+                 label=f"z={z[j]:.1f} mm  a={a[j]:.1f}  b={b[j]:.1f}")
+    ax2.set_aspect("equal")
+    ax2.set_xlabel("X (mm)")
+    ax2.set_ylabel("Y (mm)")
+    ax2.set_title("Cross-Section Evolution: Circle → Ellipse")
+    ax2.legend(fontsize=7, loc="upper right")
+    ax2.grid(True, alpha=0.3)
+
+    plt.show()

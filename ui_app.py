@@ -387,13 +387,17 @@ with col_prof:
     _osse_mouth_w = _osse_mouth_h = None
     try:
         if is_osse:
+            # Same grid as the mesh engine defaults (nz=120, nphi=160): the
+            # throat-adapter sections are sampled from THIS field, so keeping
+            # the grids identical makes the adapter ring sit exactly on the
+            # horn facets (no chordal mismatch at the junction).
             _z_os, _phi_os, _R_os = _osse.osse_surface(
                 throat_d / 2.0, axial_len,
                 np.radians(coverage_h / 2.0), np.radians(coverage_v / 2.0),
                 np.radians(osse_throat_angle / 2.0),
                 osse_k, osse_s, osse_n, osse_q,
                 osse_mouth_exp, osse_morph_start, osse_morph_rate,
-                nz=max(40, int(segments) // 6), nphi=120)
+                nz=max(120, int(segments) // 6), nphi=160)
             _len = float(axial_len)
             _osse_mouth_w = 2.0 * float(np.max(np.abs(_R_os[-1] * np.cos(_phi_os))))
             _osse_mouth_h = 2.0 * float(np.max(np.abs(_R_os[-1] * np.sin(_phi_os))))
@@ -1211,7 +1215,8 @@ with fg1:
             _ta_adapter_len = st.number_input("Morph length inside horn (mm)", 5.0, 200.0, 30.0, 5.0,
                 key="ta_adapter_len_osse",
                 help="Length of the round-to-shape transition. It replaces the first "
-                     "part of the flare, so it does not increase horn depth.")
+                     "part of the flare, so it does not increase horn depth. "
+                     "With a flange, the visible length is measured from its lower face.")
 
             if _driver_is_threaded:
                 _thread_spec = _ta.THREAD_SPECS[_ta_thread_key]
@@ -1340,7 +1345,8 @@ with fg1:
             _ta_adapter_len = st.number_input("Morph length inside horn (mm)", 5.0, 200.0, 30.0, 5.0,
                 key="ta_adapter_len",
                 help="Length of the round-to-shape transition. It replaces the first "
-                     "part of the flare, so it does not increase horn depth.")
+                     "part of the flare, so it does not increase horn depth. "
+                     "With a flange, the visible length is measured from its lower face.")
 
             if _driver_is_threaded:
                 _thread_spec = _ta.THREAD_SPECS[_ta_thread_key]
@@ -1973,6 +1979,9 @@ if gen_btn:
             _adapter_outer_target_curv = None
             _adapter_outer_rw = None
             _adapter_outer_rh = None
+            _adapter_custom_pts = None
+            _adapter_custom_outer = None
+            _adapter_custom_z = None
             _embedded_adapter_cut_z = None
 
             # --- 3a. Generate horn ---
@@ -1985,7 +1994,11 @@ if gen_btn:
                     k=osse_k, s=osse_s, n=osse_n, q=osse_q,
                     mouth_exp=osse_mouth_exp,
                     morph_start=osse_morph_start, morph_rate=osse_morph_rate,
-                    thickness=thickness, output_path=tp)
+                    thickness=thickness,
+                    # Same grid as the _R_os field above — keeps the embedded
+                    # adapter's sections vertex-aligned with the horn facets.
+                    nz=_R_os.shape[0], nphi=_R_os.shape[1],
+                    output_path=tp)
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
                 horn.fix_normals()
                 # Mouth rim extent (superelliptical) + round throat references.
@@ -2204,6 +2217,13 @@ if gen_btn:
                         horn.remove_unreferenced_vertices()
                         horn.fix_normals()
 
+                    def _profile_stack(z_arr, z_end, inner_fn, outer_fn):
+                        z_arr = np.asarray(z_arr, dtype=float)
+                        z_stack = np.append(z_arr[z_arr < z_end - 1e-9], z_end)
+                        inner_stack = np.stack([inner_fn(float(zz)) for zz in z_stack])
+                        outer_stack = np.stack([outer_fn(float(zz)) for zz in z_stack])
+                        return z_stack, inner_stack, outer_stack
+
                     if is_rect:
                         horn_shape = "elliptical" if is_ellip else "rectangular"
                         rect_w, _ = _profile_value_slope(zr, wr, _target_local_z)
@@ -2226,6 +2246,44 @@ if gen_btn:
                             _z_o_rect, _w_o_rect, _target_local_z)
                         _outer_rh, _ = _profile_value_slope(
                             _z_o_rect, _h_o_rect, _target_local_z)
+                        def _rect_section(z_loc):
+                            _wz, _ = _profile_value_slope(zr, wr, z_loc)
+                            _hz, _ = _profile_value_slope(zr, hr, z_loc)
+                            if is_ellip:
+                                return _ta._ellipse_points(_wz / 2.0, _hz / 2.0)
+                            return _ta._rect_points(_wz / 2.0, _hz / 2.0)
+
+                        if is_ellip:
+                            # The elliptical loft's outer wall is a 3-D normal
+                            # offset whose ring Z varies with azimuth, so an
+                            # ellipse through the (w, h) extremes at the mean-Z
+                            # stations misses the real wall by up to ~0.5 mm on
+                            # the wide axis — a visible step at the junction.
+                            # Sample the offset field per azimuth column at the
+                            # adapter's own vertex count instead (same approach
+                            # as the OS-SE branch).
+                            _, _V_o_ad = _core._elliptical_parallel_offset_vertices(
+                                zr, wr / 2.0, hr / 2.0, thickness, _ta._NP)
+
+                            def _rect_outer_section(z_loc):
+                                _out = np.empty((_ta._NP, 2))
+                                for _j in range(_ta._NP):
+                                    _zc = _V_o_ad[:, _j, 2]
+                                    _end = int(np.argmax(_zc)) + 1
+                                    _zt = float(np.clip(z_loc, _zc[0], _zc[_end - 1]))
+                                    _out[_j, 0] = np.interp(_zt, _zc[:_end],
+                                                            _V_o_ad[:_end, _j, 0])
+                                    _out[_j, 1] = np.interp(_zt, _zc[:_end],
+                                                            _V_o_ad[:_end, _j, 1])
+                                return _out
+                        else:
+                            def _rect_outer_section(z_loc):
+                                _wz, _ = _profile_value_slope(_z_o_rect, _w_o_rect, z_loc)
+                                _hz, _ = _profile_value_slope(_z_o_rect, _h_o_rect, z_loc)
+                                return _ta._rect_points(_wz / 2.0, _hz / 2.0)
+
+                        _adapter_custom_z, _adapter_custom_pts, _adapter_custom_outer = _profile_stack(
+                            zr, _target_local_z, _rect_section, _rect_outer_section)
                     elif is_poly:
                         horn_shape = "polygonal"
                         rect_w = rect_h = 0.0
@@ -2241,34 +2299,85 @@ if gen_btn:
                         _adapter_outer_target_curv = _profile_curv(
                             _z_o_poly, _R_o_eq_arr, _target_local_z)
                         _outer_rw = _outer_rh = None
+                        def _poly_section(z_loc):
+                            _Rz, _ = _profile_value_slope(zp, rp, z_loc)
+                            return _ta._poly_points(n_sides, _Rz)
+
+                        def _poly_outer_section(z_loc):
+                            _Rz, _ = _profile_value_slope(_z_o_poly, _R_o_eq_arr, z_loc)
+                            return _ta._poly_points(n_sides, _Rz)
+
+                        _adapter_custom_z, _adapter_custom_pts, _adapter_custom_outer = _profile_stack(
+                            zp, _target_local_z, _poly_section, _poly_outer_section)
                     elif is_osse:
-                        horn_shape = "elliptical"
-                        zt = float(np.clip(_target_local_z, _z_os[0], _z_os[-1]))
-                        _r_phi0 = float(np.interp(zt, _z_os, _R_os[:, 0]))
-                        _r_phi90 = float(np.interp(zt, _z_os, _R_os[:, -1]))
-                        rect_w = _r_phi0 * 2.0
-                        rect_h = _r_phi90 * 2.0
+                        # The OS-SE cross-section is NOT an ellipse (elliptical-
+                        # cone coverage under a sqrt, plus the superellipse mouth
+                        # morph), so an area-matched ellipse target leaves a
+                        # visible step ring at the adapter↔flare junction
+                        # (~0.5 mm, max on the diagonals). Hand the adapter the
+                        # EXACT r(z,φ) contour at the handoff plane instead —
+                        # inner airway and outer wall (true 3-D normal offset,
+                        # same as the mesh engine).
+                        horn_shape = "custom"
+                        rect_w = rect_h = 0.0
                         poly_n_sides = 0
                         poly_circumR = 0.0
-                        
-                        import throat_adapter as _ta_mod
-                        _pts = np.column_stack([
-                            np.array([np.interp(zt, _z_os, _R_os[:, j]) for j in range(nphi)]) * np.cos(_phi_os),
-                            np.array([np.interp(zt, _z_os, _R_os[:, j]) for j in range(nphi)]) * np.sin(_phi_os)
-                        ])
-                        horn_R_eq = np.sqrt(_ta_mod._polygon_area(_pts) / np.pi)
-                        
-                        dz = 1e-3
-                        zt_dz = float(np.clip(_target_local_z + dz, _z_os[0], _z_os[-1]))
-                        _pts_dz = np.column_stack([
-                            np.array([np.interp(zt_dz, _z_os, _R_os[:, j]) for j in range(nphi)]) * np.cos(_phi_os),
-                            np.array([np.interp(zt_dz, _z_os, _R_os[:, j]) for j in range(nphi)]) * np.sin(_phi_os)
-                        ])
-                        _R_eq_dz = np.sqrt(_ta_mod._polygon_area(_pts_dz) / np.pi)
-                        _adapter_target_slope = (_R_eq_dz - horn_R_eq) / dz
-                        _adapter_target_curv = 0.0
-                        
-                        _outer_target_R = _outer_target_slope = _adapter_outer_target_curv = 0.0
+                        _nphi_os = _R_os.shape[1]
+
+                        def _osse_section(z_loc):
+                            _zt = float(np.clip(z_loc, _z_os[0], _z_os[-1]))
+                            _Rz = np.array([np.interp(_zt, _z_os, _R_os[:, j])
+                                            for j in range(_nphi_os)])
+                            return np.column_stack([_Rz * np.cos(_phi_os),
+                                                    _Rz * np.sin(_phi_os)])
+
+                        def _osse_r_eq(z_loc):
+                            return float(np.sqrt(
+                                _ta._polygon_area(_osse_section(z_loc)) / np.pi))
+
+                        _end_section = _osse_section(_target_local_z)
+                        horn_R_eq = float(np.sqrt(
+                            _ta._polygon_area(_end_section) / np.pi))
+                        # Slope/curvature of the equivalent radius from the
+                        # r(z,φ) grid — step by one grid spacing (the field is
+                        # piecewise linear between rings).
+                        _zg = float(_z_os[1] - _z_os[0])
+                        _re_m = _osse_r_eq(_target_local_z - _zg)
+                        _re_p = _osse_r_eq(_target_local_z + _zg)
+                        _adapter_target_slope = (_re_p - _re_m) / (2.0 * _zg)
+                        _adapter_target_curv = (
+                            _re_p - 2.0 * horn_R_eq + _re_m) / (_zg * _zg)
+
+                        # Outer-wall contours: per-vertex true 3-D normal
+                        # offset, identical to generate_osse_3d_mesh.
+                        _V_in_os = np.empty((len(_z_os), _nphi_os, 3))
+                        _V_in_os[:, :, 0] = _R_os * np.cos(_phi_os)[None, :]
+                        _V_in_os[:, :, 1] = _R_os * np.sin(_phi_os)[None, :]
+                        _V_in_os[:, :, 2] = _z_os[:, None]
+                        _V_out_os = _V_in_os + thickness * _osse._vertex_normals(_V_in_os)
+
+                        def _osse_outer_section(z_loc):
+                            _zt = float(np.clip(z_loc, _z_os[0], _z_os[-1]))
+                            _out = np.empty((_nphi_os, 2))
+                            for _j in range(_nphi_os):
+                                _zo_col = _V_out_os[:, _j, 2]
+                                _end = int(np.argmax(_zo_col)) + 1
+                                _out[_j, 0] = np.interp(_zt, _zo_col[:_end],
+                                                        _V_out_os[:_end, _j, 0])
+                                _out[_j, 1] = np.interp(_zt, _zo_col[:_end],
+                                                        _V_out_os[:_end, _j, 1])
+                            return _out
+
+                        # Section STACK (one per field ring below the handoff
+                        # plane + the plane itself): the adapter's tail then
+                        # follows the real flare — aspect ratio included —
+                        # through the weld overlap. A single uniformly scaled
+                        # end section still left a ~0.06 mm step ring because
+                        # the OS-SE aspect ratio changes with z.
+                        _adapter_custom_z, _adapter_custom_pts, _adapter_custom_outer = _profile_stack(
+                            _z_os, _target_local_z, _osse_section, _osse_outer_section)
+
+                        _outer_target_R = _outer_target_slope = _adapter_outer_target_curv = None
                         _outer_rw = _outer_rh = None
                     else:
                         horn_shape = "circular"
@@ -2284,6 +2393,16 @@ if gen_btn:
                         _adapter_outer_target_curv = _profile_curv(
                             _z_o_circ, _r_o_circ, _target_local_z)
                         _outer_rw = _outer_rh = None
+                        def _circ_section(z_loc):
+                            _Rz, _ = _profile_value_slope(zp, rp, z_loc)
+                            return _ta._circle_points(_Rz)
+
+                        def _circ_outer_section(z_loc):
+                            _Rz, _ = _profile_value_slope(_z_o_circ, _r_o_circ, z_loc)
+                            return _ta._circle_points(_Rz)
+
+                        _adapter_custom_z, _adapter_custom_pts, _adapter_custom_outer = _profile_stack(
+                            zp, _target_local_z, _circ_section, _circ_outer_section)
 
                     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
                     f_throat = _ta.make_adapter_assembly(
@@ -2313,6 +2432,9 @@ if gen_btn:
                         outer_target_slope=_outer_target_slope,
                         target_curv=_adapter_target_curv,
                         outer_target_curv=_adapter_outer_target_curv,
+                        custom_pts=_adapter_custom_pts,
+                        custom_outer_pts=_adapter_custom_outer,
+                        custom_pts_z=_adapter_custom_z,
                         z_offset=_adapter_top_z,
                         output_path=tp,
                     )
@@ -2351,9 +2473,11 @@ if gen_btn:
                         outer_n_sides=_ft_outer_n,
                         output_path=None)
 
-            if gen_throat and is_osse:
+            if gen_throat and is_osse and not _ta_include_adapter:
                 # Round throat → flat circular flange welded to the throat outer
                 # wall (fiw_g/2 = throat_R + thickness), like the axisymmetric path.
+                # With the shape adapter active, f_throat already holds the
+                # adapter assembly — do NOT overwrite it with the flat flange.
                 f_throat = _fg.generate_flange(
                     throat_R=fiw_g / 2.0, flange_R=_ft_od / 2.0,
                     thickness=_ft_sp, bolt_R=_ft_bc / 2.0,

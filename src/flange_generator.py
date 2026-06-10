@@ -84,11 +84,9 @@ def generate_driver_mounting_flange(
     bore is the nominal driver throat plus ``throat_clearance``; all mounting
     dimensions remain fixed by the selected industrial pattern.
     """
-    if throat_clearance < 0.0:
-        raise ValueError("throat_clearance must be non-negative")
     spec = DRIVER_FLANGE_SPECS[driver_type]
     return generate_flange(
-        throat_R=(spec.throat_diam + throat_clearance) / 2.0,
+        throat_R=max(1.0, (spec.throat_diam + throat_clearance) / 2.0),
         flange_R=spec.outer_diam / 2.0,
         thickness=thickness,
         bolt_R=spec.pcd / 2.0,

@@ -252,7 +252,13 @@ Unlike the old radial-only `rx + thickness`, `ry + thickness` construction,
 this includes the axial normal component and preserves constant perpendicular
 wall thickness through steep and roll-back regions such as R-OSSE.
 
-The function triangulates inner wall, outer wall, throat annulus, and mouth annulus, runs the result through `trimesh.Trimesh(..., process=True)`, merges vertices, fixes normals, optionally exports STL, and returns a `mesh.Mesh`.
+The function triangulates inner wall, outer wall, throat annulus, and mouth annulus, runs the result through `trimesh.Trimesh(..., process=True)`, merges vertices, **flattens the throat base** (same invariant as the axisymmetric engine: `slice_plane([0,0,base_z], [0,0,1], cap=True)` with `base_z = max(z_i[0], max(V_o[0,:,2]))` — the 3-D normal offset pushes the outer throat rim below `z_i[0]` on an expanding throat, and without the slice the mesh `z_min` sat ~`thickness·|n_z|` below the profile origin, shifting everything the UI anchors to `z_min` — embedded throat adapter trim/positioning, flange Z offsets — and leaving a visible step at the adapter↔flare junction for elliptical R-OSSE), fixes normals, optionally exports STL, and returns a `mesh.Mesh`.
+
+Note for the embedded throat adapter (UI): the outer wall's ring Z varies with
+azimuth (per-vertex 3-D normal offset), so the wall's true constant-Z contour
+is **not** an ellipse through the `(w, h)` extremes at mean-Z stations. The UI
+samples the `_elliptical_parallel_offset_vertices` field per azimuth column at
+`_ta._NP` rings for the adapter's `custom_outer_pts` (same approach as OS-SE).
 
 ### `_elliptical_parallel_offset_vertices(z_i, rx_i, ry_i, thickness, rings) -> tuple[np.ndarray, np.ndarray]`
 
