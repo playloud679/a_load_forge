@@ -66,13 +66,14 @@ def _seam_face_polygons(
     petal: trimesh.Trimesh,
     origin: list[float] | np.ndarray,
     normal: list[float] | np.ndarray,
-    min_area_frac: float = 0.05,
+    min_area_frac: float = 0.0,
 ) -> tuple[list[shp.Polygon], np.ndarray | None]:
 ```
 
 Slices a **single petal** at the seam plane and returns:
 - A `list` of significant closed shapely `Polygon`s (one per wall strip on
-  that seam face). Slivers below `min_area_frac × max_area` are discarded.
+  that seam face). Slivers below `min_area_frac × max_area` are discarded;
+  the default keeps every seam strip so flanged petals are not trimmed away.
 - The `to_3D` transformation matrix from the slice (or `None` if slice
   fails).
 
@@ -114,14 +115,13 @@ def _joint_profile(
 Builds the 2-D tongue/groove profile from a seam-face polygon.
 
 It first applies the normal negative buffer (`margin + clearance_offset`).
-When `outer_margin` is larger than that inset, it detects the side of the
-seam polygon with the largest radius from the Z axis and clips the joint
-profile away from that external skin. Result: the visible outside wall keeps
-a thicker continuous strip, and tongue/groove features move toward the inner
-side of the wall instead of leaving fragile external rims.
+When `outer_margin` is larger than that inset, the joint profile is eroded
+further so the external skin stays at least that thick. If the geometry does
+not have enough material to satisfy the requested skin, the slicer raises a
+clear error instead of silently shrinking the request.
 
-Returns the largest polygon if clipping produces a `MultiPolygon`, or the
-regular buffered profile if clipping cannot be applied safely.
+Returns the largest polygon if erosion produces a `MultiPolygon`, or raises
+if the requested protected skin cannot be satisfied.
 
 ---
 
@@ -480,7 +480,7 @@ z-fighting artifact on roll-back profiles.
 | `joint_depth` | `float` | `0.0` | Tongue & groove depth. 0 = plain petals without joints. |
 | `joint_margin` | `float` | `0.5` | Inset from wall edge for joint features (mm). |
 | `clearance` | `float` | `0.1` | Total radial gap between mated tongue and groove (mm). |
-| `outer_margin` | `float \| None` | `None` | Protected external-skin strip. UI default is 1.5 mm when radial joint is enabled. |
+| `outer_margin` | `float \| None` | `None` | Protected external-skin strip. UI default is 1.5 mm when radial joint is enabled. Treated as a hard minimum. |
 
 #### Tongue & groove joint logic
 

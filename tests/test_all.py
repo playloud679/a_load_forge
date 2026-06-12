@@ -536,8 +536,7 @@ def _adherence_embedded_morph():
     _c.generate_3d_mesh_from_profile(z, r, thickness, 96, p)
     horn = trimesh.load(p, file_type="stl"); os.unlink(p)
     horn.merge_vertices(); horn.fix_normals()
-    morph_len, overlap = 30.0, 0.5
-    target_z = morph_len + overlap
+    morph_len, overlap, target_z = _ta.embedded_morph_span(30.0, float(z[-1]))
     trimmed = horn.slice_plane([0, 0, morph_len], [0, 0, 1], cap=True); trimmed.fix_normals()
     nml = _uts.compute_profile_normals(z, r)
     z_o = z + thickness * nml[:, 0]; r_o = r + thickness * nml[:, 1]
@@ -1645,10 +1644,44 @@ def _joint_profile_preserves_outer_skin():
     ], dtype=float)
     prof = _slc._joint_profile(poly, to_3d, margin=0.5, outer_margin=1.5)
     assert prof is not None and not prof.is_empty, "outer-biased joint profile vanished"
-    minx, _, maxx, _ = prof.bounds
-    assert minx >= 0.5 - 1e-6, f"inner margin lost: minx={minx}"
-    assert maxx <= 2.5 + 1e-6, f"outer skin not preserved: maxx={maxx}"
+    assert prof.distance(poly.exterior) >= 1.5 - 1e-6, \
+        f"outer skin not preserved: distance={prof.distance(poly.exterior):.3f}"
 test("joint profile preserves outer skin", _joint_profile_preserves_outer_skin)
+
+
+def _joint_profile_requires_enough_material():
+    poly = _slc.shp.Polygon([(0, 0), (1.6, 0), (1.6, 30), (0, 30)])
+    to_3d = np.array([
+        [1, 0, 0, 0],
+        [0, 0, 1, 0],
+        [0, 1, 0, 0],
+        [0, 0, 0, 1],
+    ], dtype=float)
+    try:
+        _slc._joint_profile(poly, to_3d, margin=0.5, outer_margin=1.5)
+    except ValueError as exc:
+        assert "outer_margin=1.500 mm" in str(exc), f"unexpected error: {exc}"
+    else:
+        raise AssertionError("expected outer_margin contract to fail on thin wall")
+test("joint profile rejects impossible outer skin", _joint_profile_requires_enough_material)
+
+def _flanged_petal_keeps_both_seam_strips():
+    m = _ta.make_adapter_assembly(
+        driver_type="flanged", driver_diam=25.0, thread_key=None,
+        horn_shape="circular",
+        rect_w=0.0, rect_h=0.0, poly_n_sides=0, poly_circumR=0.0,
+        horn_R_eq=18.0,
+        adapter_length=30.0, wall_thickness=4.0,
+        flange_R=30.0, flange_thickness=6.0,
+        flange_bolt_R=20.0, flange_bolt_n=4, flange_bolt_d=3.5,
+        socket_length=0.0, z_offset=0.0,
+        output_path=None,
+    )
+    petal = _slc.slice_into_petals(m, 2, phase=0.0)[0]
+    polys, _ = _slc._seam_face_polygons(petal, [0.0, 0.0, 0.0],
+                                        np.array([0.0, -1.0, 0.0]))
+    assert len(polys) >= 2, f"expected flange seam strips to survive, got {len(polys)}"
+test("flanged petal keeps both seam strips", _flanged_petal_keeps_both_seam_strips)
 
 def _make_check_petals(n):
     def _check():
@@ -2187,6 +2220,77 @@ def test_adapter_outer_flush():
 test("adapter outer wall flush with horn (no step)", test_adapter_outer_flush)
 
 
+def test_embedded_morph_span():
+    """The UI embed plan keeps the adapter target inside the safe flare."""
+    trim, overlap, target = _ta.embedded_morph_span(30.0, 120.0)
+    assert (trim, overlap, target) == (30.0, 6.0, 36.0)
+
+    trim, overlap, target = _ta.embedded_morph_span(30.0, 32.0)
+    assert (trim, overlap, target) == (26.0, 6.0, 32.0)
+
+    trim, overlap, target = _ta.embedded_morph_span(30.0, 0.6108)
+    assert abs(trim - 0.5) < 1e-9
+    assert abs(overlap - 0.1108) < 1e-9
+    assert abs(target - 0.6108) < 1e-9
+
+    try:
+        _ta.embedded_morph_span(30.0, 0.5)
+    except ValueError as exc:
+        assert "too short" in str(exc)
+    else:
+        raise AssertionError("flare at minimum transition length should be rejected")
+test("embedded morph span stays inside flare", test_embedded_morph_span)
+
+
+def test_short_embedded_adapter_preserves_horn_length():
+    """A flare shorter than the desired overlap must not be extended."""
+    throat_d, mouth_d, thickness = 20.0, 25.0, 4.0
+    z, r = _c.get_exponential(throat_d, mouth_d, 20000.0, 300)
+    nml = _uts.compute_profile_normals(z, r)
+    z_o = z + thickness * nml[:, 0]
+    r_o = r + thickness * nml[:, 1]
+
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
+        p = t.name
+    _c.generate_3d_mesh_from_profile(z, r, thickness, 64, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+    horn.fix_normals()
+    original_z_max = float(horn.bounds[1, 2])
+    z_min = float(horn.bounds[0, 2])
+
+    morph_len, overlap, target_z = _ta.embedded_morph_span(30.0, float(z[-1]))
+    assert overlap < 6.0 and target_z <= float(z[-1]) + 1e-9
+    z_stack = np.append(z[z < target_z - 1e-9], target_z)
+    inner_stack = np.stack([
+        _ta._circle_points(float(np.interp(zz, z, r))) for zz in z_stack
+    ])
+    outer_stack = np.stack([
+        _ta._circle_points(float(np.interp(zz, z_o, r_o))) for zz in z_stack
+    ])
+
+    trimmed = horn.slice_plane([0, 0, z_min + morph_len], [0, 0, 1], cap=True)
+    adapter = _ta.make_adapter_assembly(
+        driver_type="flanged", driver_diam=throat_d, thread_key=None,
+        horn_shape="custom",
+        rect_w=0.0, rect_h=0.0, poly_n_sides=0, poly_circumR=0.0,
+        horn_R_eq=float(np.interp(target_z, z, r)),
+        adapter_length=target_z, wall_thickness=thickness,
+        flange_R=0.0, socket_length=0.0,
+        target_slope=float(np.interp(target_z, z, np.gradient(r, z))),
+        target_curv=float(np.interp(target_z, z, np.gradient(np.gradient(r, z), z))),
+        custom_pts=inner_stack, custom_outer_pts=outer_stack, custom_pts_z=z_stack,
+        custom_match_from_z=morph_len,
+        z_offset=z_min + target_z,
+        output_path=None,
+    )
+    combined = trimesh.boolean.union([trimmed, adapter], engine="manifold")
+    combined.fix_normals()
+    _check_trimesh_watertight(combined, "short embedded adapter + horn")
+    assert combined.bounds[1, 2] <= original_z_max + 0.1, \
+        f"short embedded morph extended mouth by {combined.bounds[1, 2] - original_z_max:.3f} mm"
+test("short embedded adapter preserves horn length", test_short_embedded_adapter_preserves_horn_length)
+
+
 def test_embedded_adapter_preserves_horn_length():
     """An embedded morph replaces the flare start instead of extending its Z."""
     throat_d, mouth_d, thickness = 20.0, 100.0, 4.0
@@ -2197,8 +2301,7 @@ def test_embedded_adapter_preserves_horn_length():
     horn = trimesh.load(p, file_type="stl"); os.unlink(p)
     original_z_max = float(horn.bounds[1, 2])
 
-    morph_len, overlap = 30.0, 0.5
-    target_z = morph_len + overlap
+    morph_len, overlap, target_z = _ta.embedded_morph_span(30.0, float(z[-1]))
     nml = _uts.compute_profile_normals(z, r)
     z_o = z + thickness * nml[:, 0]
     r_o = r + thickness * nml[:, 1]
@@ -2206,6 +2309,13 @@ def test_embedded_adapter_preserves_horn_length():
     target_ro = float(np.interp(target_z, z_o, r_o))
     target_slope = float(np.interp(target_z, z, np.gradient(r, z)))
     outer_slope = float(np.interp(target_z, z_o, np.gradient(r_o, z_o)))
+    z_stack = np.append(z[z < target_z - 1e-9], target_z)
+    inner_stack = np.stack([
+        _ta._circle_points(float(np.interp(zz, z, r))) for zz in z_stack
+    ])
+    outer_stack = np.stack([
+        _ta._circle_points(float(np.interp(zz, z_o, r_o))) for zz in z_stack
+    ])
 
     trimmed = horn.slice_plane([0, 0, morph_len], [0, 0, 1], cap=True)
     adapter = _ta.make_adapter_assembly(
@@ -2218,11 +2328,13 @@ def test_embedded_adapter_preserves_horn_length():
         outer_target_R=target_ro,
         target_slope=target_slope,
         outer_target_slope=outer_slope,
+        custom_pts=inner_stack, custom_outer_pts=outer_stack, custom_pts_z=z_stack,
+        custom_match_from_z=morph_len,
         z_offset=target_z,
         output_path=None,
     )
     combined = trimesh.boolean.union([trimmed, adapter], engine="manifold")
-    combined.merge_vertices(); combined.fix_normals()
+    combined.fix_normals()
     _check_trimesh_watertight(combined, "embedded adapter + horn")
     assert abs(combined.bounds[0, 2]) < 1e-6, "embedded morph moved behind throat plane"
     assert abs(combined.bounds[1, 2] - original_z_max) < 0.1, \
@@ -2246,8 +2358,7 @@ def test_embedded_custom_stack_adapter_has_no_step():
     horn.fix_normals()
     z_min = float(horn.bounds[0, 2])
 
-    morph_len, overlap = 30.0, 0.5
-    zt = morph_len + overlap
+    morph_len, overlap, zt = _ta.embedded_morph_span(30.0, float(z[-1]))
     z_stack = np.append(z[z < zt - 1e-9], zt)
     inner_stack = np.stack([
         _ta._circle_points(float(np.interp(zz, z, r))) for zz in z_stack
@@ -2272,6 +2383,7 @@ def test_embedded_custom_stack_adapter_has_no_step():
         target_slope=target_slope,
         outer_target_slope=outer_slope,
         custom_pts=inner_stack, custom_outer_pts=outer_stack, custom_pts_z=z_stack,
+        custom_match_from_z=morph_len,
         z_offset=z_min + zt,
         output_path=None,
     )
@@ -2573,8 +2685,7 @@ def test_osse_embedded_adapter_union_no_step():
         throat_d / 2.0, L, a_h, a_v, 0.0, 1.0, 0.8, 5.0, 0.998,
         mouth_exp=4.0, nz=nz, nphi=nphi)
 
-    morph_len, overlap = 30.0, 0.5
-    zt = morph_len + overlap
+    morph_len, overlap, zt = _ta.embedded_morph_span(30.0, float(z[-1]))
     # Section stack (like ui_app.py): the adapter tail follows the real flare
     # through the overlap, aspect-ratio change included.
     z_st = np.append(z[z < zt - 1e-9], zt)
@@ -2602,11 +2713,12 @@ def test_osse_embedded_adapter_union_no_step():
         target_slope=(re_p - re_m) / (2.0 * h),
         target_curv=(re_p - 2.0 * R_eq + re_m) / (h * h),
         custom_pts=stack_in, custom_outer_pts=stack_out, custom_pts_z=z_st,
+        custom_match_from_z=morph_len,
         z_offset=z_min + zt,
         output_path=None)
     combined = trimesh.boolean.union([trimmed, adapter], engine="manifold")
     # NOTE: no merge_vertices() here — the adapter wall is µm-coincident with
-    # the horn wall in the 0.5 mm overlap (that's the point), and vertex
+    # the horn wall through the weld overlap (that's the point), and vertex
     # merging would weld the coincident skins into non-manifold edges. The
     # UI's generate path unions without merging, exactly like this.
     _check_trimesh_watertight(combined, "OS-SE horn + custom adapter union")

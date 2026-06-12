@@ -45,6 +45,49 @@ THREAD_SPECS: dict[str, ThreadSpec] = {
     "1_375in": ThreadSpec('1\u215c"-18', 34.925, 25.0, 25.4 / 18.0, 18),
 }
 
+
+def embedded_morph_span(
+    requested_length: float,
+    safe_extent: float,
+    desired_overlap: float = 6.0,
+    min_transition: float = 0.5,
+) -> tuple[float, float, float]:
+    """Return ``(trim_length, overlap, target_length)`` for an embedded morph.
+
+    The target must stay inside the flare's safe advancing branch. Prefer the
+    requested overlap by shortening the trim length when space is limited, then
+    reduce the overlap for very short flares.
+    """
+    values = np.asarray(
+        [requested_length, safe_extent, desired_overlap, min_transition],
+        dtype=float,
+    )
+    if not np.all(np.isfinite(values)):
+        raise ValueError("embedded morph dimensions must be finite")
+    if requested_length <= 0.0:
+        raise ValueError("embedded morph length must be positive")
+    if desired_overlap < 0.0:
+        raise ValueError("embedded morph overlap cannot be negative")
+    if min_transition <= 0.0:
+        raise ValueError("minimum embedded morph length must be positive")
+    if safe_extent <= min_transition:
+        raise ValueError(
+            f"horn is too short for an embedded adapter: safe extent "
+            f"{safe_extent:.2f} mm must exceed {min_transition:.2f} mm"
+        )
+
+    trim_length = min(
+        float(requested_length),
+        max(float(min_transition), float(safe_extent) - float(desired_overlap)),
+    )
+    overlap = min(
+        float(desired_overlap),
+        max(0.0, float(safe_extent) - trim_length),
+    )
+    target_length = trim_length + overlap
+    return trim_length, overlap, target_length
+
+
 # ======================================================================
 #  2-D cross-section helpers
 # ======================================================================
@@ -492,6 +535,7 @@ def make_adapter(
     custom_pts: np.ndarray | None = None,
     custom_outer_pts: np.ndarray | None = None,
     custom_pts_z: np.ndarray | None = None,
+    custom_match_from_z: float | None = None,
     output_path: str | None = None,
     return_cutter: bool = False,
 ) -> trimesh.Trimesh:
@@ -563,10 +607,34 @@ def make_adapter(
         Local-z stations (driver plane = 0 … ``adapter_length`` = horn end)
         for a ``(K, m, 2)`` ``custom_pts`` stack; the last station must be
         the handoff plane. Ignored for a single ``(m, 2)`` section.
+    custom_match_from_z : float, optional
+        Start of the weld overlap. When set with a section stack, the adapter
+        reaches the exact stacked inner/outer contours at this Z and follows
+        them exactly through the remaining overlap.
     output_path : str, optional
 
     Returns a watertight Trimesh.
     """
+    _stack_in = None
+    _stack_z = None
+    _custom_in = None
+    if custom_pts is not None:
+        _stack_in = np.asarray(custom_pts, dtype=float)
+        if _stack_in.ndim == 2:
+            _stack_in = _stack_in[None]
+            _stack_z = np.array([float(adapter_length)])
+        elif _stack_in.ndim == 3:
+            if custom_pts_z is None:
+                raise ValueError("a custom_pts stack requires custom_pts_z")
+            _stack_z = np.asarray(custom_pts_z, dtype=float)
+            if len(_stack_z) != len(_stack_in):
+                raise ValueError("custom_pts_z length must match custom_pts")
+            if np.any(np.diff(_stack_z) <= 0.0):
+                raise ValueError("custom_pts_z must be strictly increasing")
+        else:
+            raise ValueError("custom_pts must be a section or a stack of sections")
+        _custom_in = _stack_in[-1]
+
     # The outer wall is always a constant-thickness parallel offset of the
     # morphed inner (see the transition loop below), so only the *inner* target
     # shape is needed here. The ``outer_target_*``/``outer_rect_*`` parameters
@@ -591,19 +659,8 @@ def make_adapter(
             return _poly_points(horn_n_sides, horn_circumR)
         target_R = horn_R_eq
     elif horn_shape == "custom":
-        if custom_pts is None:
+        if _custom_in is None:
             raise ValueError("horn_shape='custom' requires custom_pts")
-        _stack_in = np.asarray(custom_pts, dtype=float)
-        if _stack_in.ndim == 2:                       # single end section
-            _stack_in = _stack_in[None]
-            _stack_z = np.array([float(adapter_length)])
-        else:                                          # (K, m, 2) stack
-            if custom_pts_z is None:
-                raise ValueError("a custom_pts stack requires custom_pts_z")
-            _stack_z = np.asarray(custom_pts_z, dtype=float)
-            if len(_stack_z) != len(_stack_in):
-                raise ValueError("custom_pts_z length must match custom_pts")
-        _custom_in = _stack_in[-1]                    # handoff-plane section
         target_R = horn_R_eq if horn_R_eq > 0 else float(
             np.sqrt(_polygon_area(_custom_in) / np.pi))
         def _target_fn():
@@ -612,14 +669,9 @@ def make_adapter(
         raise ValueError(f"unsupported horn_shape: {horn_shape!r}")
     _source_phase = np.pi / 2.0 if horn_shape == "polygonal" else 0.0
 
-    # Outer-contour stack for "custom": per-slice deltas blended in along the
-    # loft so the outer wall lands exactly on the horn's outer section at the
-    # join (and through the weld overlap).
-    _stack_z = None
-    if custom_pts_z is not None:
-        _stack_z = np.asarray(custom_pts_z, dtype=float)
-
-    _stack_delta = None
+    # Optional outer-contour stack lets the loft land exactly on the horn's
+    # outer section at the join and through the weld overlap.
+    _stack_out = None
     if custom_outer_pts is not None and custom_pts is not None:
         _stack_out = np.asarray(custom_outer_pts, dtype=float)
         _stack_in_ref = np.asarray(custom_pts, dtype=float)
@@ -628,7 +680,6 @@ def make_adapter(
             _stack_in_ref = _stack_in_ref[None]
         if _stack_out.shape != _stack_in_ref.shape:
             raise ValueError("custom_outer_pts must match custom_pts shape")
-        _stack_delta = _stack_out - _stack_in_ref
 
     def _stack_at(stack, z_loc):
         """Linear interpolation of a (K, m, 2) section stack at local z."""
@@ -644,6 +695,24 @@ def make_adapter(
         dz_st = _stack_z[i + 1] - _stack_z[i]
         w = (z_loc - _stack_z[i]) / dz_st if dz_st > 1e-12 else 1.0
         return (1.0 - w) * stack[i] + w * stack[i + 1]
+
+    _match_from_z = None
+    _match_R = _match_slope = _match_curv = None
+    if custom_match_from_z is not None:
+        if _stack_in is None or len(_stack_in) < 2 or _stack_z is None:
+            raise ValueError("custom_match_from_z requires a custom section stack")
+        _match_from_z = float(custom_match_from_z)
+        if not 0.0 < _match_from_z < adapter_length:
+            raise ValueError("custom_match_from_z must be inside the adapter length")
+        _stack_r_eq = np.array([
+            np.sqrt(_polygon_area(section) / np.pi) for section in _stack_in
+        ])
+        _stack_slopes = np.gradient(_stack_r_eq, _stack_z)
+        _match_R = float(np.interp(_match_from_z, _stack_z, _stack_r_eq))
+        _match_slope = float(np.interp(_match_from_z, _stack_z, _stack_slopes))
+        if len(_stack_z) >= 3:
+            _stack_curv = np.gradient(_stack_slopes, _stack_z)
+            _match_curv = float(np.interp(_match_from_z, _stack_z, _stack_curv))
 
     # ---- Thread parameters ----
     has_threads = thread_key is not None and socket_length > 0.5
@@ -661,9 +730,18 @@ def make_adapter(
 
     # A custom section keeps its own vertex count so the adapter's end ring
     # is vertex-exact against the section it was sampled from.
-    n = len(_custom_in) if horn_shape == "custom" else _NP
+    n = len(_custom_in) if _custom_in is not None else _NP
 
     # ---- Build Z positions ----
+    if _match_from_z is not None:
+        z_morph = np.linspace(0.0, _match_from_z, axial_steps)
+        z_tail = _stack_z[
+            (_stack_z > _match_from_z + 1e-9)
+            & (_stack_z < adapter_length - 1e-9)
+        ]
+        z_trans = np.unique(np.concatenate([z_morph, z_tail, [adapter_length]]))
+    else:
+        z_trans = np.linspace(0.0, adapter_length, axial_steps)
     if has_threads:
         n_turns = max(1, int(socket_length / _pitch))
         thread_len = n_turns * _pitch
@@ -671,10 +749,9 @@ def make_adapter(
         # The final threaded ring stays below z=0; the exact z=0 slice is the
         # clear acoustic bore from which the morph starts.
         z_thread = np.linspace(-thread_len, 0.0, n_thread, endpoint=False)
-        z_trans = np.linspace(0.0, adapter_length, axial_steps)
         z = np.concatenate([z_thread, z_trans])
     else:
-        z = np.linspace(0.0, adapter_length, axial_steps)
+        z = z_trans
 
     # ---- Build the cross-section profiles ----
     # Threaded mode: transition has no wall offset (flush with horn inner).
@@ -687,10 +764,38 @@ def make_adapter(
     def _slice_target(zi):
         """Per-slice morph target: the custom section interpolated at this z
         (so the tail follows the real flare), else the fixed end target."""
-        if horn_shape == "custom" and len(_stack_in) > 1:
+        if _stack_in is not None and len(_stack_in) > 1:
             sec = _stack_at(_stack_in, zi)
             return lambda: sec
         return _target_fn
+
+    def _transition_slice(zi):
+        """Build one transition slice, following the flare exactly in the overlap."""
+        if _match_from_z is not None and zi >= _match_from_z - 1e-9:
+            inner = _stack_at(_stack_in, zi)
+            outer = (
+                _stack_at(_stack_out, zi)
+                if _stack_out is not None
+                else _offset_polygon_outward(inner, wall_thickness)
+            )
+            return inner, outer
+
+        morph_length = _match_from_z if _match_from_z is not None else adapter_length
+        t = zi / morph_length if morph_length > 0 else 1.0
+        shape_t = _smoothstep5(t)
+        end_R = _match_R if _match_from_z is not None else target_R
+        end_slope = _match_slope if _match_from_z is not None else target_slope
+        end_curv = _match_curv if _match_from_z is not None else target_curv
+        inner_R = _hermite_radius(
+            t, driver_R, end_R, morph_length, end_slope, curv1=end_curv)
+        inner = _morph_slice(
+            t, driver_R, _slice_target(zi), end_R, n,
+            shape_t=shape_t, r_eq_des=inner_R, source_phase=_source_phase)
+        outer = _offset_polygon_outward(inner, wall_thickness)
+        if _stack_out is not None:
+            outer_target = _stack_at(_stack_out, zi)
+            outer = (1.0 - shape_t) * outer + shape_t * outer_target
+        return inner, outer
 
     for zi in z:
         if has_threads and zi < 0:
@@ -705,14 +810,7 @@ def make_adapter(
         elif has_threads:
             # Threaded transition: the female thread is 1⅜", but the acoustic
             # passage starts from the spec's 25 mm bore and morphs to the target.
-            t = zi / adapter_length if adapter_length > 0 else 1.0
-            shape_t = _smoothstep5(t)
-            inner_R = _hermite_radius(t, driver_R, target_R,
-                                      adapter_length, target_slope,
-                                      curv1=target_curv)
-            inner = _morph_slice(t, driver_R, _slice_target(zi), target_R, n,
-                                 shape_t=shape_t, r_eq_des=inner_R,
-                                 source_phase=_source_phase)
+            inner, outer = _transition_slice(zi)
             # Constant-thickness wall: the outer is a true parallel (miter)
             # offset of the morphed inner, so the transition stays exactly
             # *wall_thickness* thick. Morphing the outer independently toward the
@@ -722,10 +820,6 @@ def make_adapter(
             # ("lo spazio tra flangia e flare non deve essere pieno"). A parallel
             # offset is also automatically flush with the horn at the join — the
             # horn wall is the same constant offset of the same inner profile.
-            outer = _offset_polygon_outward(inner, wall_thickness)
-            if _stack_delta is not None:
-                outer_target = _stack_at(_stack_out, zi)
-                outer = (1.0 - shape_t) * outer + shape_t * outer_target
             is_thread.append(False)
         else:
             # Flanged transition: double‑wall with a true outward-normal
@@ -739,21 +833,7 @@ def make_adapter(
             # filling the wall solid. The constant offset is inherently flush
             # (the horn wall is the same offset of the same inner) and keeps the
             # wall exactly *wall_thickness* thick.
-            t = zi / adapter_length if adapter_length > 0 else 1.0
-            shape_t = _smoothstep5(t)
-            inner_R = _hermite_radius(t, driver_R, target_R,
-                                      adapter_length, target_slope,
-                                      curv1=target_curv)
-            inner = _morph_slice(t, driver_R, _slice_target(zi), target_R, n,
-                                 shape_t=shape_t, r_eq_des=inner_R,
-                                 source_phase=_source_phase)
-            outer = _offset_polygon_outward(inner, wall_thickness)
-            if _stack_delta is not None:
-                # Blend the plain miter wall into the horn's true outer
-                # contour so the OUTER skin is also flush at the join (a 3-D
-                # normal-offset horn wall is wider in-plane than the miter).
-                outer_target = _stack_at(_stack_out, zi)
-                outer = (1.0 - shape_t) * outer + shape_t * outer_target
+            inner, outer = _transition_slice(zi)
             is_thread.append(False)
 
         inner_slices.append(inner)
@@ -1049,6 +1129,7 @@ def make_adapter_assembly(
     custom_pts: np.ndarray | None = None,
     custom_outer_pts: np.ndarray | None = None,
     custom_pts_z: np.ndarray | None = None,
+    custom_match_from_z: float | None = None,
     # Positioning: the horn-throat end of the transition sits at *z_offset*
     z_offset: float = 0.0,
     # Output
@@ -1101,6 +1182,7 @@ def make_adapter_assembly(
             custom_outer_pts=custom_outer_pts,
             return_cutter=True,
             custom_pts_z=custom_pts_z,
+            custom_match_from_z=custom_match_from_z,
             output_path=None,
         )
     else:

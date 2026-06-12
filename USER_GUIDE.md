@@ -85,8 +85,12 @@ Fc, throat/mouth area) — those aren't editable, they're results. The hint unde
 ### ⚙️ Advanced settings (di solito lasciali stare / usually leave them)
 
 - **Wall thickness** — spessore parete (default 4 mm). / wall thickness.
-- **Profile points** — risoluzione/qualità della mesh (più alto = più liscio e
-  pesante). / mesh resolution (higher = smoother and heavier).
+- **Profile points** — stazioni lungo il profilo (direzione z): liscia il flare
+  in lunghezza. / stations along the profile (z direction).
+- **Angular segments** — facce attorno all'asse per le trombe rotonde: è questo
+  che elimina la sfaccettatura visibile nello slicer (usa 128–256 per bocche
+  grandi). / facets around the axis for round horns; raise to 128–256 for
+  large mouths to remove visible faceting.
 - **Speed of sound** — velocità del suono (344 m/s a ~20 °C; alzala col caldo).
   Cambia i calcoli di Fc/bocca. / speed of sound; affects Fc/mouth math.
 

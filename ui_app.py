@@ -175,19 +175,33 @@ with col_prof:
 
     # ── Advanced settings — print params + the global speed of sound
     with st.expander("⚙️ Advanced settings"):
-        _ps1, _ps2, _ps3 = st.columns(3)
+        _ps1, _ps2, _ps3, _ps4 = st.columns(4)
         with _ps1:
             thickness = st.number_input("Wall thickness (mm)", 1.0, 20.0, 4.0, 0.5,
                 help="Uniform thickness applied along the profile normal",
                 on_change=_on_horn_change, key="thickness")
         with _ps2:
             segments = st.number_input("Profile points", 100, 50000, 300, 50,
-                help="Resolution of the generated profile / mesh")
+                help="Stations ALONG the profile (z direction). Smooths the "
+                     "flare lengthwise — the roundness of the cross-section is "
+                     "set by Angular segments")
         with _ps3:
+            rings_n = int(st.number_input("Angular segments", 32, 512, 64, 16,
+                help="Facets AROUND the axis for round horns (revolution "
+                     "resolution). This is what removes the visible faceting "
+                     "of the flare; raise to 128–256 for large mouths"))
+        with _ps4:
             _c_ms = st.number_input("Speed of sound (m/s)", 320.0, 360.0, 344.0, 1.0,
                 on_change=_on_horn_change, key="c_sound",
                 help="Temperature-dependent (≈343 at 20°C, ≈349 at 30°C). "
                      "Hornresp default is 344.")
+
+    # Engines whose historical angular default is finer than 64 keep it as a
+    # floor, so default output quality never drops: elliptical loft 96,
+    # OS-SE φ-grid 160. Every site lofting/offsetting the same shape MUST use
+    # the same value (flange holes are positioned from these offsets).
+    rings_ellip = max(96, rings_n)
+    rings_osse = max(160, rings_n)
 
     # All flare math reads SOUND_SPEED from its module global at call time, so
     # overriding it here (after the importlib.reload above) makes the chosen
@@ -387,7 +401,7 @@ with col_prof:
     _osse_mouth_w = _osse_mouth_h = None
     try:
         if is_osse:
-            # Same grid as the mesh engine defaults (nz=120, nphi=160): the
+            # Same grid as the mesh engine (nz≥120, nphi=rings_osse): the
             # throat-adapter sections are sampled from THIS field, so keeping
             # the grids identical makes the adapter ring sit exactly on the
             # horn facets (no chordal mismatch at the junction).
@@ -397,7 +411,7 @@ with col_prof:
                 np.radians(osse_throat_angle / 2.0),
                 osse_k, osse_s, osse_n, osse_q,
                 osse_mouth_exp, osse_morph_start, osse_morph_rate,
-                nz=max(120, int(segments) // 6), nphi=160)
+                nz=max(120, int(segments) // 6), nphi=rings_osse)
             _len = float(axial_len)
             _osse_mouth_w = 2.0 * float(np.max(np.abs(_R_os[-1] * np.cos(_phi_os))))
             _osse_mouth_h = 2.0 * float(np.max(np.abs(_R_os[-1] * np.sin(_phi_os))))
@@ -476,7 +490,7 @@ with col_prof:
                 # mesh engine — so flange holes line up with the real outer wall
                 # (the radial-only rx+t/ry+t shortcut drifts off the wall in Z).
                 _, _Vo_e = _core._elliptical_parallel_offset_vertices(
-                    zr, wr / 2.0, hr / 2.0, thickness, 96)
+                    zr, wr / 2.0, hr / 2.0, thickness, rings_ellip)
                 _z_o_rect = np.mean(_Vo_e[:, :, 2], axis=1)
                 _w_o_rect = 2.0 * np.max(np.abs(_Vo_e[:, :, 0]), axis=1)
                 _h_o_rect = 2.0 * np.max(np.abs(_Vo_e[:, :, 1]), axis=1)
@@ -865,10 +879,16 @@ def _calc_flange_dims():
         return float(max(0.1, zp[-1] - z_o[-1]))
 
     def _circular_mouth_hole_R(zp, rp):
-        """Mouth flange hole: actual outer wall radius, bitten slightly inward."""
+        """Mouth flange hole: outermost wall radius at the rim, bitten inward.
+        Near-90° terminations (tractrix, wide CD) end with an almost axial
+        rim normal, so r_o[-1] ≈ rp[-1]: keeping the hole outside the inner
+        rim (the old rp[-1]+0.1 floor) left it tangent to — or proud of —
+        the wall end face, and the union produced an unwelded slit. Bite the
+        rim itself instead (like the OS-SE contour flange), at the cost of
+        ≤ bite mm of flange lip inside the airway at the mouth plane."""
         nml = _uts.compute_profile_normals(zp, rp)
         r_o = rp + nml[:, 1] * thickness
-        return float(max(rp[-1] + 0.1, r_o[-1] - _FLANGE_WALL_BITE))
+        return float(max(r_o[-1], rp[-1]) - _FLANGE_WALL_BITE)
 
     mouth_dz = float(thickness)
     if is_osse:
@@ -922,7 +942,9 @@ def _calc_flange_dims():
         R_i = _r_to_circumradius(rp, n_sides)
         nml = _uts.compute_profile_normals(zp, R_i, flip_if_negative=True)
         R_o = R_i + thickness / np.cos(np.pi / n_sides) * nml[:, 1]
-        ir_mouth = float(max(R_i[-1] + 0.1, R_o[-1] - _FLANGE_WALL_BITE))
+        # Same rim-bite rule as _circular_mouth_hole_R (axial rim normal →
+        # R_o ≈ R_i: the old R_i+0.1 floor left the hole off the wall).
+        ir_mouth = float(max(R_o[-1], R_i[-1]) - _FLANGE_WALL_BITE)
         mouth_dz = _mouth_wall_dz(zp, rp)
         _get_mid_r = lambda pct: _r_to_circumradius(np.array([rp[int(len(rp)*pct/100)]]), n_sides)[0]
     elif is_radial:
@@ -2043,7 +2065,7 @@ if gen_btn:
                 _adapter_outer_target_slope = _slope_start(_z_o_poly, _R_o_eq_arr)
             elif is_radial:
                 with tempfile.TemporaryDirectory() as _tmp:
-                    _rd.generate_radial_horn(throat_d, mouth_d, fc, 48, _tmp, profile_type)
+                    _rd.generate_radial_horn(throat_d, mouth_d, fc, rings_n, _tmp, profile_type)
                     horn = _tm.load(os.path.join(_tmp, "radial_bottom.stl"), file_type="stl")
                     R, Zb, Zt = _rd.get_radial_profiles(throat_d, mouth_d, fc, segments, profile_type)
                     Rm, Rt_rad = R[-1], R[0]
@@ -2051,7 +2073,7 @@ if gen_btn:
                     eps = 0.01
                     r_poly = np.concatenate([[eps], R, [Rm, eps, eps]])
                     z_poly = np.concatenate([[Zt[0]], Zt, [Z_top_flat, Z_top_flat, Zt[0]]])
-                    top_mesh = _rd._revolve_polygon(r_poly, z_poly, 48)
+                    top_mesh = _rd._revolve_polygon(r_poly, z_poly, rings_n)
                     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as _tf: _tfn = _tf.name
                     top_mesh.save(_tfn)
                     horn_top = _tm.load(_tfn, file_type="stl"); os.unlink(_tfn)
@@ -2080,14 +2102,14 @@ if gen_btn:
                     # Same (z, w, h) profile math as rectangular, but each slice is a
                     # true ellipse (semi-axes w/2, h/2) via the elliptical loft engine.
                     _core.generate_elliptical_3d_mesh_from_profiles(
-                        zr, wr / 2.0, hr / 2.0, thickness, 96, tp)
+                        zr, wr / 2.0, hr / 2.0, thickness, rings_ellip, tp)
                 else:
                     _rh.generate_rectangular_3d_mesh(zr, wr, hr, thickness, tp)
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
                 horn.fix_normals()
                 if is_ellip:
                     _, _V_o_ellip = _core._elliptical_parallel_offset_vertices(
-                        zr, wr / 2.0, hr / 2.0, thickness, 96)
+                        zr, wr / 2.0, hr / 2.0, thickness, rings_ellip)
                     _z_o_rect = np.mean(_V_o_ellip[:, :, 2], axis=1)
                     _w_o_rect = 2.0 * np.max(np.abs(_V_o_ellip[:, :, 0]), axis=1)
                     _h_o_rect = 2.0 * np.max(np.abs(_V_o_ellip[:, :, 1]), axis=1)
@@ -2149,7 +2171,7 @@ if gen_btn:
                 elif is_exp:
                     zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
-                C.generate_3d_mesh_from_profile(zp, rp, thickness, 64, tp)
+                C.generate_3d_mesh_from_profile(zp, rp, thickness, rings_n, tp)
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
                 _nml_circ = _uts.compute_profile_normals(zp, rp)
                 _z_o_circ = zp + thickness * _nml_circ[:, 0]
@@ -2202,10 +2224,8 @@ if gen_btn:
                     # deepest point. A planar trim must stay below that returning
                     # mouth edge, otherwise it would cut the lip as well.
                     _safe_embed_extent = min(_profile_extent, float(_profile_z[-1]))
-                    _morph_len = min(float(_ta_adapter_len),
-                                     max(0.5, _safe_embed_extent - 2.0))
-                    _overlap = min(0.5, max(0.1, _safe_embed_extent - _morph_len))
-                    _target_local_z = _morph_len + _overlap
+                    _morph_len, _overlap, _target_local_z = _ta.embedded_morph_span(
+                        float(_ta_adapter_len), _safe_embed_extent)
                     _trim_z = float(z_min + _morph_len)
                     _adapter_top_z = float(z_min + _target_local_z)
                     _embedded_adapter_cut_z = _trim_z
@@ -2435,6 +2455,7 @@ if gen_btn:
                         custom_pts=_adapter_custom_pts,
                         custom_outer_pts=_adapter_custom_outer,
                         custom_pts_z=_adapter_custom_z,
+                        custom_match_from_z=_morph_len,
                         z_offset=_adapter_top_z,
                         output_path=tp,
                     )
@@ -2470,6 +2491,7 @@ if gen_btn:
                         bolt_n=int(_ft_nb), bolt_d=_ft_db,
                         bolt_phase=_ft_bphase,
                         offset=z_min + _ft_off + _ft_sp,
+                        seg=rings_n,
                         outer_n_sides=_ft_outer_n,
                         output_path=None)
 
@@ -2483,6 +2505,7 @@ if gen_btn:
                     thickness=_ft_sp, bolt_R=_ft_bc / 2.0,
                     bolt_n=int(_ft_nb), bolt_d=_ft_db, bolt_phase=_ft_bphase,
                     offset=z_min + _ft_off + _ft_sp,
+                    seg=rings_n,
                     outer_n_sides=int(_ft_outer_n), output_path=None)
 
             if gen_mouth and is_osse:
@@ -2533,6 +2556,7 @@ if gen_btn:
                         outer_n_sides=n_sides if is_poly else 0,
                         thickness=_fm_sp + 0.5, bolt_n=0, bolt_d=_fm_db,
                         offset=_fm_rim_off + _fm_off + _fm_sp,
+                        seg=max(128, rings_n),
                         output_path=None)
                     _fm_channel_d = _fm_head_d if _fm_seat else _fm_db
                     _fm_pillar_R = _fm_channel_d / 2.0 + _fm_seat_wall
@@ -2753,6 +2777,7 @@ if gen_btn:
                         bolt_n=int(_fm_nb), bolt_d=_fm_db,
                         bolt_phase=_fm_bphase,
                         offset=_fm_top,
+                        seg=max(128, rings_n),
                         output_path=None)
 
             if gen_mid and not is_radial and not is_osse:
@@ -2784,6 +2809,7 @@ if gen_btn:
                     bolt_n=int(_mid_nb), bolt_d=_mid_db,
                     bolt_phase=_mid_bphase,
                     offset=z_mid,
+                    seg=max(128, rings_n),
                     output_path=None)
 
             # --- 3e. Merge ---
@@ -3041,8 +3067,8 @@ if _radial_joint:
                                                  "(split evenly: 0.05 mm per side at default)")
         _radial_outer_keep = st.number_input("Outer skin keep (mm)", 0.5, 5.0, 1.5, 0.5,
                                             key="radial_outer_keep",
-                                            help="Protected external wall strip kept solid before "
-                                                 "placing tongue/groove features.")
+                                            help="Hard minimum protected external wall strip. "
+                                                 "The slicer errors out if the wall cannot keep this much.")
         _radial_inner_margin = st.number_input("Inner margin (mm)", 0.5, 5.0, 0.5, 0.5,
                                               key="radial_inner_margin",
                                               help="Margin kept on the inner side of the wall. "

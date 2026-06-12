@@ -680,13 +680,14 @@ def seam_phase_avoiding_holes(n: int, hole_angles, samples: int = 1440) -> float
     return best_phase
 
 
-def _seam_face_polygons(petal, origin, normal, min_area_frac=0.05):
+def _seam_face_polygons(petal, origin, normal, min_area_frac=0.0):
     """Return all significant closed polygons of a mesh cross-section + its to_3D.
 
     For n>=3 petals the seam plane meets the wall on a single strip, so this
     returns one polygon.  For n==2 the seam is a diametric plane that crosses the
     axis and meets the wall on TWO strips (one each side), so both are returned.
     Slivers below *min_area_frac* of the largest strip are dropped.
+    The threshold is intentionally low so narrow flange strips are kept.
     """
     section = petal.section(plane_origin=origin, plane_normal=normal)
     if section is None:
@@ -722,44 +723,18 @@ def _joint_profile(poly, to_3D, margin, clearance_offset=0.0,
     if profile is None or to_3D is None:
         return profile
 
-    keep_outer = inset if outer_margin is None else max(inset, float(outer_margin))
+    if outer_margin is None:
+        return profile
+
+    keep_outer = float(outer_margin)
     if keep_outer <= inset + 1e-6:
         return profile
 
-    coords = np.asarray(poly.exterior.coords[:-1], dtype=float)
-    if len(coords) < 3:
-        return profile
-
-    hom = np.column_stack([coords, np.zeros(len(coords)), np.ones(len(coords))])
-    pts3 = (to_3D @ hom.T).T[:, :3]
-    radii = np.linalg.norm(pts3[:, :2], axis=1)
-    outer_idx = int(np.argmax(radii))
-    radial_xy = pts3[outer_idx, :2]
-    radial_norm = float(np.linalg.norm(radial_xy))
-    if radial_norm < 1e-9:
-        return profile
-    radial_xy /= radial_norm
-    outer_dir = to_3D[:2, :2].T @ radial_xy
-    norm = float(np.linalg.norm(outer_dir))
-    if norm < 1e-9:
-        return profile
-    outer_dir /= norm
-
-    max_outer = float(np.max(coords @ outer_dir))
-    limit = max_outer - keep_outer
-    bounds = np.asarray(poly.bounds, dtype=float)
-    extent = max(bounds[2] - bounds[0], bounds[3] - bounds[1], keep_outer, 1.0) * 8.0 + 100.0
-    tangent = np.array([-outer_dir[1], outer_dir[0]])
-    p0 = outer_dir * limit
-    clip = shp.Polygon([
-        p0 + tangent * extent,
-        p0 - tangent * extent,
-        p0 - outer_dir * extent - tangent * extent,
-        p0 - outer_dir * extent + tangent * extent,
-    ])
-    clipped = profile.intersection(clip)
+    clipped = _buffer_single(profile, -(keep_outer - inset))
     if clipped is None or clipped.is_empty:
-        return profile
+        raise ValueError(
+            f"outer_margin={keep_outer:.3f} mm cannot be satisfied by this seam face"
+        )
     if clipped.geom_type == "MultiPolygon":
         clipped = max(clipped.geoms, key=lambda p: p.area)
     return clipped
