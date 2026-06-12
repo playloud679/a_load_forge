@@ -1725,9 +1725,12 @@ def _make_check_petals(n):
         for i, p1 in enumerate(petals):
             assert p1.is_watertight,   f"petal {i}: not watertight"
             assert p1.body_count == 1, f"petal {i}: not one body ({p1.body_count})"
-        # petals tile the horn
+        # Petals tile the horn. Boolean half-space cuts leave sub-µm³ float
+        # jitter on either side of Vh; a real double-counted wedge would add
+        # whole percents, so bound the excess relatively, not at +1e-6 mm³.
         sv = sum(p.volume for p in petals)
-        assert 0.95 * Vh < sv <= Vh + 1e-6, f"n={n}: petals don't tile horn ({sv/Vh:.3f})"
+        assert 0.95 * Vh < sv < Vh * (1.0 + 1e-6), \
+            f"n={n}: petals don't tile horn ({sv/Vh:.6f})"
     return _check
 
 for _n in (2, 3, 4, 6, 8, 12):
@@ -1749,8 +1752,11 @@ def _rollback_two_petals_single_diametric_cap():
 
     # A second cap pass on the coincident n=2 boundary retriangulates the same
     # face and adds thousands of coplanar triangles (visible as z-fighting).
+    # The boolean half-space cut triangulates the seam slightly differently
+    # from slice_plane (±tens of faces on ~100k), so guard with a 2% band
+    # instead of exact equality — a double cap would blow well past it.
     once = horn.slice_plane([0, 0, 0], [0, -1, 0], cap=True)
-    assert len(petals[0].faces) == len(once.faces), \
+    assert len(petals[0].faces) < len(once.faces) * 1.02, \
         f"diametric seam capped more than once: {len(petals[0].faces)} vs {len(once.faces)}"
 test("rollback 2 petals use one diametric cap",
      _rollback_two_petals_single_diametric_cap)
@@ -2482,6 +2488,53 @@ def test_adapter_section_count_follows_flare_rings():
     combined.fix_normals()
     _check_trimesh_watertight(combined, "ring-matched adapter + horn")
 test("adapter section count follows flare rings", test_adapter_section_count_follows_flare_rings)
+
+
+def test_threaded_adapter_slices_watertight():
+    """Axial segments and radial petals of a threaded-adapter assembly must
+    stay watertight. slice_plane's ear-clip cap broke on the adapter's
+    multi-loop sections (wall ring + threads + bore) and on the coincident
+    faces of the exact weld overlap — petals/segments came out with open
+    edges exactly at z = overlap and at the seams ("overlap threaded adapter
+    non funziona"). All plane cuts now go through boolean half-space
+    intersection (_plane_cut)."""
+    rings = 128
+    throat_d, mouth_d, thickness = 36.0, 250.0, 4.0
+    z, r = _c.get_tractrix(throat_d, mouth_d, 300)
+    nml = _uts.compute_profile_normals(z, r)
+    z_o = z + thickness * nml[:, 0]
+    r_o = r + thickness * nml[:, 1]
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _c.generate_3d_mesh_from_profile(z, r, thickness, rings, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p); horn.fix_normals()
+    z_min = float(horn.bounds[0, 2])
+    morph_len, overlap, zt = _ta.embedded_morph_span(30.0, float(z[-1]))
+    horn_t = horn.slice_plane([0, 0, z_min + morph_len], [0, 0, 1], cap=True)
+    horn_t.fix_normals()
+    z_stack = np.append(z[z < zt - 1e-9], zt)
+    inner = np.stack([
+        _ta._circle_points(float(np.interp(zz, z, r)), n=rings) for zz in z_stack])
+    outer = np.stack([
+        _ta._circle_points(float(np.interp(zz, z_o, r_o)), n=rings) for zz in z_stack])
+    adp = _ta.make_adapter_assembly(
+        driver_type="1_375in", driver_diam=None, thread_key="1_375in",
+        horn_shape="circular", rect_w=0.0, rect_h=0.0,
+        poly_n_sides=0, poly_circumR=0.0,
+        horn_R_eq=float(np.interp(zt, z, r)),
+        adapter_length=zt, wall_thickness=thickness, socket_length=15.0,
+        custom_pts=inner, custom_outer_pts=outer, custom_pts_z=z_stack,
+        custom_match_from_z=morph_len, z_offset=z_min + zt, output_path=None)
+    u = trimesh.boolean.union([horn_t, adp], engine="manifold")
+    assert u.is_watertight, "threaded union not watertight"
+    for jw in (0.0, 4.0):
+        segs = _slc.slice_into_segments(u, 2, joint_wall=jw)
+        assert all(s.is_watertight for s in segs), \
+            f"jw={jw}: axial segment not watertight"
+        petals = _slc.slice_into_petals(segs[0], n=2, joint_depth=0.0)
+        assert all(pp.is_watertight for pp in petals), \
+            f"jw={jw}: adapter-segment petal not watertight"
+test("threaded adapter axial segments + petals stay watertight",
+     test_threaded_adapter_slices_watertight)
 
 
 def test_threaded_socket():

@@ -9,6 +9,50 @@ import trimesh
 import shapely as shp
 
 
+def _half_space_box(normal: np.ndarray, size: float) -> trimesh.Trimesh:
+    """A large box covering the half-space ``normal·x >= 0`` (origin on its face).
+
+    Used as a boolean cutter for radial petal seams. ``trimesh.slice_plane`` caps
+    a planar cut by ear-clipping the section polygon, which fails (non-watertight
+    slivers, open edges) when the section is a multi-loop ring — exactly what an
+    adapter segment is (wall annulus + threaded socket + bore). A boolean
+    intersection against this solid is section-shape agnostic and stays
+    watertight."""
+    normal = np.asarray(normal, dtype=float)
+    normal = normal / (np.linalg.norm(normal) + 1e-12)
+    box = trimesh.creation.box(extents=[size, size, size])
+    # Align the box's local +X with `normal`, then push it so its near face sits
+    # on the origin plane and the body extends to the +normal (keep) side.
+    box.apply_transform(trimesh.geometry.align_vectors([1.0, 0.0, 0.0], normal))
+    box.apply_translation(normal * size / 2.0)
+    return box
+
+
+def _plane_cut(mesh: trimesh.Trimesh, origin, normal) -> trimesh.Trimesh | None:
+    """Keep the half of *mesh* on the +*normal* side of the plane through
+    *origin*, via boolean intersection with a half-space solid.
+
+    Why not ``mesh.slice_plane(..., cap=True)``: that caps the cut by
+    ear-clipping the section *polygon*, which leaves open edges / non-manifold
+    slivers when the section has multiple loops or coincident faces — e.g. a
+    throat-adapter segment (wall annulus + threaded socket + bore) or the exact
+    adapter↔flare weld overlap, whose coincident surfaces survive the union but
+    trip the cap. A boolean intersection is section-shape agnostic and stays
+    watertight. Falls back to the legacy cap only if the boolean fails."""
+    origin = np.asarray(origin, dtype=float)
+    normal = np.asarray(normal, dtype=float)
+    size = float((mesh.bounds[1] - mesh.bounds[0]).max()) * 4.0 + 10.0
+    box = _half_space_box(normal, size)
+    box.apply_translation(origin)
+    try:
+        out = trimesh.boolean.intersection([mesh, box], engine="manifold")
+        if out is not None and not out.is_empty:
+            return out
+    except Exception:
+        pass
+    return mesh.slice_plane(origin, normal, cap=True)
+
+
 def _outer_polygon(mesh, origin, normal):
     """Return the outermost shapely Polygon of a mesh cross-section at *origin*."""
     section = mesh.section(plane_origin=origin, plane_normal=normal)
@@ -110,7 +154,7 @@ def slice_at_z(mesh: trimesh.Trimesh, z: float, keep: str = "below"
     plane_origin = np.array([0.0, 0.0, z])
     if keep == "above":
         plane_normal = -plane_normal
-    result = mesh.slice_plane(plane_origin, plane_normal, cap=True)
+    result = _plane_cut(mesh, plane_origin, plane_normal)
     if result is None or result.is_empty:
         return None
     return result
@@ -150,9 +194,9 @@ def slice_into_segments(mesh: trimesh.Trimesh, n: int,
     for i in range(n):
         hi = lo + dz
         cuts.append(hi)
-        seg = mesh.slice_plane([0.0, 0.0, lo], [0.0, 0.0, 1.0], cap=True)
+        seg = _plane_cut(mesh, [0.0, 0.0, lo], [0.0, 0.0, 1.0])
         if seg is not None and not seg.is_empty:
-            seg = seg.slice_plane([0.0, 0.0, hi], [0.0, 0.0, -1.0], cap=True)
+            seg = _plane_cut(seg, [0.0, 0.0, hi], [0.0, 0.0, -1.0])
             if seg is not None and not seg.is_empty:
                 segments.append(seg)
         lo = hi
@@ -175,9 +219,9 @@ def slice_at_heights(mesh: trimesh.Trimesh, heights: list[float],
     segments: list[trimesh.Trimesh] = []
     for i in range(len(cuts) - 1):
         lo, hi = cuts[i], cuts[i + 1]
-        seg = mesh.slice_plane([0.0, 0.0, lo], [0.0, 0.0, 1.0], cap=True)
+        seg = _plane_cut(mesh, [0.0, 0.0, lo], [0.0, 0.0, 1.0])
         if seg is not None and not seg.is_empty:
-            seg = seg.slice_plane([0.0, 0.0, hi], [0.0, 0.0, -1.0], cap=True)
+            seg = _plane_cut(seg, [0.0, 0.0, hi], [0.0, 0.0, -1.0])
             if seg is not None and not seg.is_empty:
                 segments.append(seg)
     angles = _precompute_angles(mesh, cuts) if joint_wall > 0 else None
@@ -898,13 +942,15 @@ def slice_into_petals(mesh: trimesh.Trimesh, n: int,
         normal0 = np.array([np.sin(angle0), -np.cos(angle0), 0.0])
         normal1 = np.array([-np.sin(angle1), np.cos(angle1), 0.0])
 
-        petal = mesh.slice_plane([0.0, 0.0, 0.0], normal0, cap=True)
+        # Boolean half-space cuts instead of slice_plane's ear-clip cap: the
+        # latter leaves open edges where the seam crosses a multi-loop section
+        # (adapter segment = wall ring + threads + bore, or the weld overlap),
+        # which the slicer used to emit as a non-watertight petal.
+        petal = _plane_cut(mesh, [0.0, 0.0, 0.0], normal0)
+        if petal is not None and not petal.is_empty and n > 2:
+            petal = _plane_cut(petal, [0.0, 0.0, 0.0], normal1)
         if petal is None or petal.is_empty:
             continue
-        if n > 2:
-            petal = petal.slice_plane([0.0, 0.0, 0.0], normal1, cap=True)
-            if petal is None or petal.is_empty:
-                continue
 
         if joint_depth > 0:
             if n == 2:

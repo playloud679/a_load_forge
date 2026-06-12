@@ -1,13 +1,51 @@
 # `src/_slicer.py` — STL Slicer
 
 Cuts a horn mesh either **axially** (into Z-segments) or **radially** (into
-petals like orange slices).  Uses trimesh for plane slicing with capping.
+petals like orange slices).
 
 All distances in mm, angles in radians unless otherwise noted.
+
+**Cutting strategy:** every plane cut (axial Z slabs and radial petal seams)
+goes through `_plane_cut`, a **boolean intersection against a half-space
+solid** (manifold engine), *not* `trimesh.slice_plane(cap=True)`. The
+ear-clip cap of `slice_plane` fails — open edges, non-manifold slivers,
+non-watertight pieces — when the section has multiple loops or coincident
+faces: exactly a throat-adapter segment (wall annulus + threaded socket +
+bore) or the adapter↔flare exact weld overlap. `slice_plane` survives only as
+a last-resort fallback when the boolean itself raises/returns empty.
 
 ---
 
 ## Utility functions
+
+### `_half_space_box`
+
+```python
+def _half_space_box(normal: np.ndarray, size: float) -> trimesh.Trimesh:
+```
+
+A large box covering the half-space `normal·x >= 0`, one face on the plane
+through the origin. Boolean cutter used by `_plane_cut`.
+
+---
+
+### `_plane_cut`
+
+```python
+def _plane_cut(
+    mesh: trimesh.Trimesh,
+    origin,
+    normal,
+) -> trimesh.Trimesh | None:
+```
+
+Keeps the half of `mesh` on the +`normal` side of the plane through `origin`
+via `trimesh.boolean.intersection` with `_half_space_box` (watertight for any
+section shape). Falls back to `mesh.slice_plane(origin, normal, cap=True)`
+only if the boolean fails or comes back empty. **Use this for every plane cut
+in this module** — see the cutting-strategy note at the top.
+
+---
 
 ### `_outer_polygon`
 
@@ -462,13 +500,15 @@ between two seam planes:
 - Left seam at `phase + i·2π/n` (plane normal: outward-left)
 - Right seam at `phase + (i+1)·2π/n` (plane normal: outward-right)
 
-Seams are capped. The phase rotates the entire seam pattern (use
-`seam_phase_avoiding_holes` to pick a good one).
+Seam cuts go through `_plane_cut` (boolean half-space intersection — see the
+cutting-strategy note at the top), so petals stay watertight even on adapter
+segments whose seam section is a multi-loop ring. The phase rotates the
+entire seam pattern (use `seam_phase_avoiding_holes` to pick a good one).
 
 For `n == 2`, both angular boundaries describe the same diametric plane. The
-mesh is therefore sliced and capped only once per half; capping the coincident
-plane twice can retriangulate coplanar faces and appear as a horizontal
-z-fighting artifact on roll-back profiles.
+mesh is therefore cut only once per half; cutting the coincident plane twice
+can retriangulate coplanar faces and appear as a horizontal z-fighting
+artifact on roll-back profiles.
 
 **Parameters:**
 
