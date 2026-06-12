@@ -2537,6 +2537,46 @@ test("threaded adapter axial segments + petals stay watertight",
      test_threaded_adapter_slices_watertight)
 
 
+def test_threaded_collar_laps_the_flare():
+    """The threaded boss must NOT butt-join the cone at the throat plane: its
+    outer cylinder continues `collar_overlap` mm above z=0 wrapping the wall,
+    then tapers at 45° into the flare skin (lap joint — "il colletto filettato
+    si deve sovrapporre con il flare"). Airway untouched."""
+    spec = _ta.THREAD_SPECS["1_375in"]
+    boss_R = spec.major_diam / 2.0 + 4.0   # socket outer = major + wall
+    adp = _ta.make_adapter_assembly(
+        driver_type="1_375in", driver_diam=None, thread_key="1_375in",
+        horn_shape="circular", rect_w=0.0, rect_h=0.0,
+        poly_n_sides=0, poly_circumR=0.0,
+        horn_R_eq=20.0, adapter_length=30.0, wall_thickness=4.0,
+        socket_length=15.0, z_offset=30.0, output_path=None)
+    assert adp.is_watertight, "threaded adapter not watertight"
+    # Local z=2.5 (inside the 5 mm collar): outer radius == boss radius.
+    sec = adp.section(plane_origin=[0, 0, 2.5], plane_normal=[0, 0, 1])
+    r_max = float(np.hypot(sec.vertices[:, 0], sec.vertices[:, 1]).max())
+    assert r_max > boss_R - 0.1, \
+        f"no collar above the throat plane: r_max {r_max:.2f} < boss {boss_R:.2f}"
+    # Airway untouched: bore stays the spec bore at the same plane.
+    r_min = float(np.hypot(sec.vertices[:, 0], sec.vertices[:, 1]).min())
+    assert r_min < spec.bore_diam / 2.0 + 1.5, "collar must not invade the airway"
+    # Past the 45° shoulder the wall is back to the plain morph offset.
+    sec_hi = adp.section(plane_origin=[0, 0, 20.0], plane_normal=[0, 0, 1])
+    r_hi = float(np.hypot(sec_hi.vertices[:, 0], sec_hi.vertices[:, 1]).max())
+    assert r_hi < boss_R + 0.1, "collar must taper back into the wall"
+    # collar_overlap=0 restores the old butt joint (no bulge above z=0).
+    adp0 = _ta.make_adapter_assembly(
+        driver_type="1_375in", driver_diam=None, thread_key="1_375in",
+        horn_shape="circular", rect_w=0.0, rect_h=0.0,
+        poly_n_sides=0, poly_circumR=0.0,
+        horn_R_eq=20.0, adapter_length=30.0, wall_thickness=4.0,
+        socket_length=15.0, collar_overlap=0.0, z_offset=30.0, output_path=None)
+    sec0 = adp0.section(plane_origin=[0, 0, 2.5], plane_normal=[0, 0, 1])
+    r0 = float(np.hypot(sec0.vertices[:, 0], sec0.vertices[:, 1]).max())
+    assert r0 < boss_R - 0.5, "collar_overlap=0 should disable the lap collar"
+test("threaded collar laps the flare (no butt joint)",
+     test_threaded_collar_laps_the_flare)
+
+
 def test_threaded_socket():
     m = _ta.make_threaded_socket("1_375in", 15.0, 4.0)
     _check_trimesh_watertight(m, '1⅜"-18 threaded socket')
@@ -2571,6 +2611,10 @@ def test_adapter_transition_wall_constant_thickness():
         horn_R_eq=np.sqrt(w * h / np.pi), horn_circumR=0.0,
         axial_steps=60, adapter_length=30.0, wall_thickness=wt,
         thread_key="1_375in", socket_length=15.0,
+        # The lap collar deliberately thickens the outer wall in the first
+        # collar_overlap mm (see test_threaded_collar_laps_the_flare); this
+        # test probes the MORPH wall itself, so switch the collar off.
+        collar_overlap=0.0,
         outer_target_R=np.sqrt(ow * oh / np.pi),
         outer_rect_w=ow, outer_rect_h=oh, output_path=None)
     # narrow (+Y) axis wall thickness at several transition heights

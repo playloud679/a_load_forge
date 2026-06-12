@@ -200,7 +200,7 @@ Morph a circular throat into an elliptical cross-section over Z. **Area-first de
 
 ## Public API
 
-### `make_adapter(driver_R: float, horn_shape: str, horn_w: float, horn_h: float, horn_n_sides: int, horn_R_eq: float, horn_circumR: float, axial_steps: int, adapter_length: float, wall_thickness: float, thread_key: str | None = None, socket_length: float = 0.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, custom_pts: np.ndarray | None = None, custom_outer_pts: np.ndarray | None = None, custom_pts_z: np.ndarray | None = None, custom_match_from_z: float | None = None, output_path: str | None = None) -> trimesh.Trimesh`
+### `make_adapter(driver_R: float, horn_shape: str, horn_w: float, horn_h: float, horn_n_sides: int, horn_R_eq: float, horn_circumR: float, axial_steps: int, adapter_length: float, wall_thickness: float, thread_key: str | None = None, socket_length: float = 0.0, collar_overlap: float = 5.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, custom_pts: np.ndarray | None = None, custom_outer_pts: np.ndarray | None = None, custom_pts_z: np.ndarray | None = None, custom_match_from_z: float | None = None, output_path: str | None = None) -> trimesh.Trimesh`
 
 Builds the morphing transition section, optionally with an integrated threaded extension at the circular (driver) end.
 
@@ -220,6 +220,7 @@ Builds the morphing transition section, optionally with an integrated threaded e
 | `wall_thickness` | `float` | Wall thickness for outer offset (mm) |
 | `thread_key` | `str \| None` | One of `THREAD_SPECS` keys — enables threaded mode |
 | `socket_length` | `float` | Depth of the threaded section (mm), must be > 0.5 to activate threads |
+| `collar_overlap` | `float` | Threaded mode only (default 5.0): the socket's outer cylinder continues this many mm ABOVE the throat plane, wrapping the cone wall, then tapers at 45° until it merges into the flare outer skin — a printable lap joint instead of the bare butt joint at z=0. Outer wall only; the airway is untouched. Clamped to half the smooth-morph span so the taper always lands before the handoff plane. `0` disables it |
 | `outer_target_R` | `float \| None` | Outer equivalent radius for threaded mode outer profile (matches horn outer dimensions) |
 | `outer_rect_w` | `float \| None` | Outer rectangle width (threaded mode) |
 | `outer_rect_h` | `float \| None` | Outer rectangle height (threaded mode) |
@@ -301,7 +302,7 @@ Returns a watertight `trimesh.Trimesh`.
 
 ---
 
-### `make_adapter_assembly(driver_type: str, driver_diam: float | None, thread_key: str | None, horn_shape: str, rect_w: float, rect_h: float, poly_n_sides: int, poly_circumR: float, horn_R_eq: float, adapter_length: float, wall_thickness: float, axial_steps: int = 50, flange_R: float = 0.0, flange_thickness: float = 6.0, flange_bolt_R: float = 0.0, flange_bolt_n: int = 4, flange_bolt_d: float = 3.5, flange_bolt_phase: float = 0.0, flange_outer_n: int = 0, driver_clearance: float = 0.3, socket_length: float = 15.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, custom_pts: np.ndarray | None = None, custom_outer_pts: np.ndarray | None = None, custom_pts_z: np.ndarray | None = None, custom_match_from_z: float | None = None, z_offset: float = 0.0, output_path: str | None = None) -> trimesh.Trimesh`
+### `make_adapter_assembly(driver_type: str, driver_diam: float | None, thread_key: str | None, horn_shape: str, rect_w: float, rect_h: float, poly_n_sides: int, poly_circumR: float, horn_R_eq: float, adapter_length: float, wall_thickness: float, axial_steps: int = 50, flange_R: float = 0.0, flange_thickness: float = 6.0, flange_bolt_R: float = 0.0, flange_bolt_n: int = 4, flange_bolt_d: float = 3.5, flange_bolt_phase: float = 0.0, flange_outer_n: int = 0, driver_clearance: float = 0.3, socket_length: float = 15.0, collar_overlap: float = 5.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, custom_pts: np.ndarray | None = None, custom_outer_pts: np.ndarray | None = None, custom_pts_z: np.ndarray | None = None, custom_match_from_z: float | None = None, z_offset: float = 0.0, output_path: str | None = None) -> trimesh.Trimesh`
 
 Assembles the complete throat adapter: driver interface + morphing transition.
 
@@ -336,6 +337,7 @@ When the driver interface includes a flange, the flange overlaps the first porti
 | `flange_outer_n` | `int` | `0` | Outer polygon sides (0 = circular) |
 | `driver_clearance` | `float` | `0.3` | Added to a standard bolt-on preset's nominal throat diameter |
 | `socket_length` | `float` | `15.0` | Threaded socket depth (mm) |
+| `collar_overlap` | `float` | `5.0` | Lap collar above the throat plane in threaded mode (see `make_adapter`); `0` = legacy butt joint |
 | `outer_target_R` | `float \| None` | `None` | Outer equiv. radius for threaded mode (matches horn outer) |
 | `outer_rect_w` | `float \| None` | `None` | Outer rect width (threaded mode) |
 | `outer_rect_h` | `float \| None` | `None` | Outer rect height (threaded mode) |

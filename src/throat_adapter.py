@@ -521,6 +521,7 @@ def make_adapter(
     # Optional threaded extension
     thread_key: str | None = None,
     socket_length: float = 0.0,
+    collar_overlap: float = 5.0,
     # Outer target for threaded mode (horn outer dimensions)
     outer_target_R: float | None = None,
     outer_rect_w: float | None = None,
@@ -728,6 +729,16 @@ def make_adapter(
         _minor_R = _major_R - 0.6495 * _pitch
         _outer_R = _major_R + wall_thickness
 
+    # Collar lap height (threaded only): clamped to half the smooth-morph span
+    # so the 45° taper always lands back on the wall before the handoff plane
+    # (a collar surviving to the top cap would leave an annular ledge there).
+    _collar = 0.0
+    if has_threads and collar_overlap > 0.0:
+        _morph_span = (float(custom_match_from_z)
+                       if custom_match_from_z is not None
+                       else float(adapter_length))
+        _collar = min(float(collar_overlap), 0.5 * _morph_span)
+
     # A custom section keeps its own vertex count so the adapter's end ring
     # is vertex-exact against the section it was sampled from.
     n = len(_custom_in) if _custom_in is not None else _NP
@@ -811,6 +822,18 @@ def make_adapter(
             # Threaded transition: the female thread is 1⅜", but the acoustic
             # passage starts from the spec's 25 mm bore and morphs to the target.
             inner, outer = _transition_slice(zi)
+            # Threaded collar lap joint: the socket's outer cylinder does NOT
+            # stop flat at the throat plane (a butt joint with a bare annular
+            # shelf the cone just sits on). It continues for `collar_overlap`
+            # mm ABOVE z=0 wrapping the cone wall, then tapers at 45° until it
+            # merges into the flare outer skin. Outer-only: the airway is
+            # untouched. The 45° shoulder keeps the lap printable.
+            if _collar > 0.0:
+                _R_col = _outer_R - max(0.0, zi - _collar)
+                _r_pts = np.hypot(outer[:, 0], outer[:, 1])
+                if _R_col > float(_r_pts.min()) + 1e-9:
+                    _scale = np.maximum(1.0, _R_col / np.maximum(_r_pts, 1e-9))
+                    outer = outer * _scale[:, None]
             # Constant-thickness wall: the outer is a true parallel (miter)
             # offset of the morphed inner, so the transition stays exactly
             # *wall_thickness* thick. Morphing the outer independently toward the
@@ -1117,6 +1140,7 @@ def make_adapter_assembly(
     driver_clearance: float = 0.3,
     # Threaded socket params
     socket_length: float = 15.0,
+    collar_overlap: float = 5.0,
     # Outer target (for threaded mode — horn's OUTER throat eq. radius)
     outer_target_R: float | None = None,
     outer_rect_w: float | None = None,
@@ -1171,6 +1195,7 @@ def make_adapter_assembly(
             poly_n_sides, horn_R_eq, poly_circumR,
             axial_steps, adapter_length, wall_thickness,
             thread_key=tk, socket_length=sl,
+            collar_overlap=collar_overlap,
             outer_target_R=outer_target_R,
             outer_rect_w=outer_rect_w,
             outer_rect_h=outer_rect_h,

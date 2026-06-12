@@ -1246,7 +1246,8 @@ with fg1:
                 _thread_spec = _ta.THREAD_SPECS[_ta_thread_key]
                 _ft_driver_d = _thread_spec.bore_diam
                 st.caption(f"Female thread: {_thread_spec.name} · acoustic bore: "
-                           f"\u00d8{_thread_spec.bore_diam:.1f} mm")
+                           f"\u00d8{_thread_spec.bore_diam:.1f} mm · the boss "
+                           f"laps the cone with a 5 mm collar (45° shoulder)")
                 _ta_socket_depth = st.number_input("Socket depth (mm)", 5.0, 30.0, 15.0, 1.0,
                     key="ta_socket_depth_osse",
                     help="Depth of the threaded bore for the driver")
@@ -1378,7 +1379,8 @@ with fg1:
                 _thread_spec = _ta.THREAD_SPECS[_ta_thread_key]
                 _ft_driver_d = _thread_spec.bore_diam
                 st.caption(f"Female thread: {_thread_spec.name} · acoustic bore: "
-                           f"\u00d8{_thread_spec.bore_diam:.1f} mm")
+                           f"\u00d8{_thread_spec.bore_diam:.1f} mm · the boss "
+                           f"laps the cone with a 5 mm collar (45° shoulder)")
                 _ta_socket_depth = st.number_input("Socket depth (mm)", 5.0, 30.0, 15.0, 1.0,
                     key="ta_socket_depth",
                     help="Depth of the threaded bore for the driver")
