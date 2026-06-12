@@ -1392,6 +1392,39 @@ def _inward_mouth_flange_drills_through_flare():
 test("inward mouth flange drills through flare", _inward_mouth_flange_drills_through_flare)
 
 
+def _inward_mouth_plate_flush_with_rim():
+    """The inward plate's BOTTOM face sits exactly on the lip rim plane — the
+    horn mounts flat on it. Regression for the 0.5 mm step left by the old
+    sunk plate (thickness = sp + 0.5 with top at rim + sp). The weld does not
+    need the sink: the curled lip dives through the plate volume from above.
+    Mirrors the ui_app inward circular path."""
+    sp, t, BITE = 4.5, 4.0, 0.5
+    zp, rp = _c.get_lecleach(36.0, 500.0, 300, T=0.707, max_angle=160.0)
+    nml = _uts.compute_profile_normals(zp, rp)
+    z_o = zp + t * nml[:, 0]
+    r_o = rp + t * nml[:, 1]
+    env = np.maximum(rp, r_o)
+    rim = int(np.argmax(env)); peak = int(np.argmax(z_o))
+    assert rim > peak, "needs a genuine roll-back lip"
+    z_rim = float(zp[rim] if rp[rim] >= r_o[rim] else z_o[rim])
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as f: p = f.name
+    _c.generate_3d_mesh_from_profile(zp, rp, t, 128, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+    horn.fix_normals()
+    plate = _fg.generate_profile_flange(
+        inner_type="circular", inner_R=max(float(r_o[peak]) - BITE, 1.0),
+        outer_mode="custom", outer_type="circular",
+        outer_diam=2.0 * float(env[rim]),
+        thickness=sp, bolt_n=0, bolt_d=5.0,
+        offset=z_rim + sp, seg=128)
+    assert abs(plate.bounds[0, 2] - z_rim) < 1e-3, \
+        f"plate bottom {plate.bounds[0, 2]:.3f} not flush with rim {z_rim:.3f}"
+    combined = trimesh.boolean.union([horn, plate], engine="manifold")
+    _check_mesh(combined, "inward plate flush with rim", min_volume=1000)
+    assert combined.volume > horn.volume, "plate did not weld onto the lip"
+test("inward mouth plate sits flush with the rim plane", _inward_mouth_plate_flush_with_rim)
+
+
 def _inward_rollback_plates_circular_and_polygonal():
     """Inward cavity plates must follow circular and polygonal roll-back rims."""
     sp = 4.0
@@ -2402,6 +2435,53 @@ def test_embedded_custom_stack_adapter_has_no_step():
         assert abs(r_meas - r_ref) < 0.05, \
             f"step at junction dz={dz:+.2f}: {r_meas:.3f} vs {r_ref:.3f}"
 test("embedded custom-stack adapter has no step", test_embedded_custom_stack_adapter_has_no_step)
+
+
+def test_adapter_section_count_follows_flare_rings():
+    """The adapter's perimeter point count comes from its custom sections, so
+    the UI must build them at the flare's revolution resolution. If it stays
+    at the old _NP=64 while the flare is at e.g. 256, the coarse adapter N-gon
+    sits ~28 um inside the fine flare N-gon through the overlap and prints as a
+    visible seam ring. Here we build the sections at the flare ring count and
+    confirm the adapter inherits it (n == rings) and the junction is flush."""
+    rings = 256
+    throat_d, mouth_d, thickness = 36.0, 250.0, 4.0
+    z, r = _c.get_tractrix(throat_d, mouth_d, 300)
+    nml = _uts.compute_profile_normals(z, r)
+    z_o = z + thickness * nml[:, 0]
+    r_o = r + thickness * nml[:, 1]
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _c.generate_3d_mesh_from_profile(z, r, thickness, rings, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p); horn.fix_normals()
+    z_min = float(horn.bounds[0, 2])
+    morph_len, overlap, zt = _ta.embedded_morph_span(30.0, float(z[-1]))
+    z_stack = np.append(z[z < zt - 1e-9], zt)
+    inner_stack = np.stack([
+        _ta._circle_points(float(np.interp(zz, z, r)), n=rings) for zz in z_stack])
+    outer_stack = np.stack([
+        _ta._circle_points(float(np.interp(zz, z_o, r_o)), n=rings) for zz in z_stack])
+    assert inner_stack.shape[1] == rings, "custom section did not honour ring count"
+    trimmed = horn.slice_plane([0, 0, morph_len], [0, 0, 1], cap=True)
+    adapter = _ta.make_adapter_assembly(
+        driver_type="1_375in", driver_diam=None, thread_key="1_375in",
+        horn_shape="circular",
+        rect_w=0.0, rect_h=0.0, poly_n_sides=0, poly_circumR=0.0,
+        horn_R_eq=float(np.interp(zt, z, r)),
+        adapter_length=zt, wall_thickness=thickness, socket_length=15.0,
+        custom_pts=inner_stack, custom_outer_pts=outer_stack, custom_pts_z=z_stack,
+        custom_match_from_z=morph_len, z_offset=z_min + zt, output_path=None)
+    # The adapter's own cross-section (below the overlap, pure adapter) must
+    # carry the flare's ring count, not the legacy 64.
+    sec = adapter.section(plane_origin=[0, 0, z_min + morph_len * 0.5],
+                          plane_normal=[0, 0, 1])
+    assert sec is not None, "no adapter section"
+    loop = min(sec.discrete, key=lambda q: np.hypot(q[:, 0], q[:, 1]).mean())
+    assert len(loop) > 128, \
+        f"adapter section has {len(loop)} pts — did not follow the {rings}-ring flare"
+    combined = trimesh.boolean.union([trimmed, adapter], engine="manifold")
+    combined.fix_normals()
+    _check_trimesh_watertight(combined, "ring-matched adapter + horn")
+test("adapter section count follows flare rings", test_adapter_section_count_follows_flare_rings)
 
 
 def test_threaded_socket():

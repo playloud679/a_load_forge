@@ -331,8 +331,10 @@ adapter = ta.make_adapter_assembly(
 )
 ```
 
-**Consiglio operativo / operational tip:** l'adapter si sovrappone alla gola di
-0.5 mm in fase di assemblaggio. Un contatto solo complanare **non** salda in modo
+**Consiglio operativo / operational tip:** l'adapter embedded si sovrappone al
+flare fino a **6 mm** (`embedded_morph_span()` accorcia prima il trim e poi
+l'overlap sui flare corti), seguendo esattamente il contorno reale del flare
+nel tratto di overlap. Un contatto solo complanare **non** salda in modo
 affidabile in una unione booleana. Se ti escono buchi all'incollatura, la
 sovrapposizione è il primo posto dove guardare.
 
@@ -458,7 +460,7 @@ print("watertight:", horn.is_watertight, "volume:", horn.volume)
 | Sintomo / Symptom | IT | EN |
 |---|---|---|
 | "Your mesh is not closed" | Il pezzo non è watertight: spesso un boolean fallito silenziosamente. Controlla lo slicer/adapter. | Piece isn't watertight: often a silently-failed boolean. Check the slicer/adapter. |
-| Buco all'incollatura adapter↔gola | Manca la sovrapposizione di 0.5 mm. | Missing the 0.5 mm overlap. |
+| Buco all'incollatura adapter↔gola | Manca la sovrapposizione (fino a 6 mm via `embedded_morph_span`); un contatto solo complanare non salda. | Missing the weld overlap (up to 6 mm via `embedded_morph_span`); coplanar-only contact does not weld. |
 | Flangia non a filo bocca | Hai usato `thickness` come estensione assiale. Ricalcola `z_o = z_i + n_z·thickness`. | You used `thickness` as axial extent. Recompute `z_o = z_i + n_z·thickness`. |
 | `pip install .` senza una libreria | Dipendenza solo in `requirements.txt` e non in `pyproject.toml`. C'è un test che lo blinda: fallo girare. | Dep only in `requirements.txt`, not `pyproject.toml`. There's a test guarding this: run it. |
 | Profilo "strano" alla gola | `z[0]` deve essere 0 e `r[0]` deve essere `throat/2`. Verifica il contratto. | `z[0]` must be 0, `r[0]` must be `throat/2`. Check the contract. |

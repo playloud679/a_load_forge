@@ -1211,8 +1211,10 @@ with fg1:
 
         if _ta_include_adapter:
             # ── Adapter mode: round/threaded driver → horn-throat transition ─
-            st.caption("The morph replaces the first part of the flare. Only the "
-                       "driver flange or threaded socket may protrude behind the throat plane.")
+            st.caption("The morph replaces the first part of the flare and welds to "
+                       "it through up to 6 mm of exact overlap (the tail follows the "
+                       "real flare contour). Only the driver flange or threaded "
+                       "socket may protrude behind the throat plane.")
             _bolt_on_labels = {
                 'Bolt-on 1" · 2 holes': "bolt_on_1in_2",
                 'Bolt-on 1" · 3 holes': "bolt_on_1in_3",
@@ -1341,8 +1343,10 @@ with fg1:
 
         if _ta_include_adapter:
             # ── Adapter mode: round/threaded driver → horn-throat transition ─
-            st.caption("The morph replaces the first part of the flare. Only the "
-                       "driver flange or threaded socket may protrude behind the throat plane.")
+            st.caption("The morph replaces the first part of the flare and welds to "
+                       "it through up to 6 mm of exact overlap (the tail follows the "
+                       "real flare contour). Only the driver flange or threaded "
+                       "socket may protrude behind the throat plane.")
             _bolt_on_labels = {
                 'Bolt-on 1" · 2 holes': "bolt_on_1in_2",
                 'Bolt-on 1" · 3 holes': "bolt_on_1in_3",
@@ -2230,6 +2234,16 @@ if gen_btn:
                     _adapter_top_z = float(z_min + _target_local_z)
                     _embedded_adapter_cut_z = _trim_z
 
+                    # Perimeter point count of the adapter's cross-sections.
+                    # It MUST match the flare's revolution resolution at the
+                    # junction, otherwise the adapter's coarse N-gon and the
+                    # flare's fine N-gon sit at slightly different radii through
+                    # the weld overlap and print as a visible seam ring. The
+                    # adapter derives its vertex count from these custom
+                    # sections, so this value flows into the morph, the threads
+                    # and the caps. OS-SE samples its own (nz, nphi) grid below.
+                    _adapter_n = rings_ellip if is_ellip else rings_n
+
                     _trimmed_horn = horn.slice_plane(
                         [0.0, 0.0, _trim_z], [0.0, 0.0, 1.0], cap=True)
                     if _trimmed_horn is not None and not _trimmed_horn.is_empty:
@@ -2270,8 +2284,8 @@ if gen_btn:
                             _wz, _ = _profile_value_slope(zr, wr, z_loc)
                             _hz, _ = _profile_value_slope(zr, hr, z_loc)
                             if is_ellip:
-                                return _ta._ellipse_points(_wz / 2.0, _hz / 2.0)
-                            return _ta._rect_points(_wz / 2.0, _hz / 2.0)
+                                return _ta._ellipse_points(_wz / 2.0, _hz / 2.0, n=_adapter_n)
+                            return _ta._rect_points(_wz / 2.0, _hz / 2.0, n=_adapter_n)
 
                         if is_ellip:
                             # The elliptical loft's outer wall is a 3-D normal
@@ -2283,11 +2297,11 @@ if gen_btn:
                             # adapter's own vertex count instead (same approach
                             # as the OS-SE branch).
                             _, _V_o_ad = _core._elliptical_parallel_offset_vertices(
-                                zr, wr / 2.0, hr / 2.0, thickness, _ta._NP)
+                                zr, wr / 2.0, hr / 2.0, thickness, _adapter_n)
 
                             def _rect_outer_section(z_loc):
-                                _out = np.empty((_ta._NP, 2))
-                                for _j in range(_ta._NP):
+                                _out = np.empty((_adapter_n, 2))
+                                for _j in range(_adapter_n):
                                     _zc = _V_o_ad[:, _j, 2]
                                     _end = int(np.argmax(_zc)) + 1
                                     _zt = float(np.clip(z_loc, _zc[0], _zc[_end - 1]))
@@ -2300,7 +2314,7 @@ if gen_btn:
                             def _rect_outer_section(z_loc):
                                 _wz, _ = _profile_value_slope(_z_o_rect, _w_o_rect, z_loc)
                                 _hz, _ = _profile_value_slope(_z_o_rect, _h_o_rect, z_loc)
-                                return _ta._rect_points(_wz / 2.0, _hz / 2.0)
+                                return _ta._rect_points(_wz / 2.0, _hz / 2.0, n=_adapter_n)
 
                         _adapter_custom_z, _adapter_custom_pts, _adapter_custom_outer = _profile_stack(
                             zr, _target_local_z, _rect_section, _rect_outer_section)
@@ -2321,11 +2335,11 @@ if gen_btn:
                         _outer_rw = _outer_rh = None
                         def _poly_section(z_loc):
                             _Rz, _ = _profile_value_slope(zp, rp, z_loc)
-                            return _ta._poly_points(n_sides, _Rz)
+                            return _ta._poly_points(n_sides, _Rz, n=_adapter_n)
 
                         def _poly_outer_section(z_loc):
                             _Rz, _ = _profile_value_slope(_z_o_poly, _R_o_eq_arr, z_loc)
-                            return _ta._poly_points(n_sides, _Rz)
+                            return _ta._poly_points(n_sides, _Rz, n=_adapter_n)
 
                         _adapter_custom_z, _adapter_custom_pts, _adapter_custom_outer = _profile_stack(
                             zp, _target_local_z, _poly_section, _poly_outer_section)
@@ -2415,11 +2429,11 @@ if gen_btn:
                         _outer_rw = _outer_rh = None
                         def _circ_section(z_loc):
                             _Rz, _ = _profile_value_slope(zp, rp, z_loc)
-                            return _ta._circle_points(_Rz)
+                            return _ta._circle_points(_Rz, n=_adapter_n)
 
                         def _circ_outer_section(z_loc):
                             _Rz, _ = _profile_value_slope(_z_o_circ, _r_o_circ, z_loc)
-                            return _ta._circle_points(_Rz)
+                            return _ta._circle_points(_Rz, n=_adapter_n)
 
                         _adapter_custom_z, _adapter_custom_pts, _adapter_custom_outer = _profile_stack(
                             zp, _target_local_z, _circ_section, _circ_outer_section)
@@ -2554,7 +2568,12 @@ if gen_btn:
                         outer_diam=2.0 * _fm_rim_R,
                         outer_w=_fm_rim_w, outer_h=_fm_rim_h,
                         outer_n_sides=n_sides if is_poly else 0,
-                        thickness=_fm_sp + 0.5, bolt_n=0, bolt_d=_fm_db,
+                        # Plate bottom must stay exactly at the rim plane: the
+                        # horn mounts on it. The weld does not need a sunk
+                        # plate (the old +0.5 thickness left a 0.5 mm step
+                        # below the lip): the curled lip dives through the
+                        # plate volume from above, which welds volumetrically.
+                        thickness=_fm_sp, bolt_n=0, bolt_d=_fm_db,
                         offset=_fm_rim_off + _fm_off + _fm_sp,
                         seg=max(128, rings_n),
                         output_path=None)
