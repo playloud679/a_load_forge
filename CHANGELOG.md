@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.16.1 (2026-06-14)
+
+- **Flangia mouth inward ellittica riportata davvero dentro il rollback** (`ui_app.py`, `tests/test_all.py`): il ramo inward usava ancora una corona costruita sul lato esterno della parete di ritorno. Ora la UI campiona la sezione reale del lato cavità del rollback, costruisce la piastra con un vero offset interno e rifiuta la generazione se la flangia attraversa la pelle esterna. Aggiunta regressione specifica sul contorno inward ellittico.
+- **Docs**: aggiornati i riferimenti di flange ellittiche e `generate_contour_flange` ai buffer geometrici reali; `VERSION`, `pyproject.toml`, `CHANGELOG` a `2.16.1`.
+
 ## 2.16.0 (2026-06-12)
 
 - **Colletto filettato a sovrapposizione sul flare** (`src/throat_adapter.py`, `ui_app.py`): la boccola filettata terminava **piatta al piano di gola** — il cono ci appoggiava sopra di testa, con la sola spalla anulare come giunzione ("sto colletto filettato si deve sovrapporre con il flare!"). Nuovo parametro `collar_overlap` (default **5 mm**) in `make_adapter`/`make_adapter_assembly`: in modalità threaded il cilindro esterno della boccola **continua sopra il piano di gola avvolgendo la parete del cono** per `collar_overlap` mm, poi rientra con una **spalla a 45°** (stampabile) fino a fondersi nella pelle esterna del flare. Solo la parete esterna è interessata: l'airway resta intatto. Implementato per-vertice nel loft (`outer = max(parallel offset, R_collar(z))`), quindi funziona per qualsiasi forma target (circolare, rect, ellittico, poligonale, custom/OS-SE); il colletto è clampato a metà dello span di morph così la spalla atterra sempre prima del piano di handoff (un colletto sopravvissuto al top lascerebbe un gradino anulare). `collar_overlap=0` ripristina il giunto di testa. Caption UI threaded aggiornata ("the boss laps the cone with a 5 mm collar").

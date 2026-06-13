@@ -104,18 +104,17 @@ The centre of the plate is always at `Z = offset + thickness / 2.0`.
 - `bolt_count`, `bolt_radius`, `bolt_phase`, and `outer_diam` are **ignored**
   in this mode.
 
-#### `"elliptical"` — elliptical-offset ring with bolts on the mid-ring ellipse
+#### `"elliptical"` — true constant-width offset ring with bolts on the half-offset curve
 
-- Outer body is a 128-section unit cylinder scaled to semi-axes
-  `(outer_w_val/2, outer_h_val/2)`, centred at `(0, 0, center_z)`. The caller
-  passes `outer_w = inner_w + 2·ring` / `outer_h = inner_h + 2·ring`, so the
-  outer contour is the hole's ellipse offset outward by a constant ring width —
-  the natural shape for an elliptical horn flange (no rectangular corners, no
-  circular ledge).
-- `bolt_count` bolts ride the **mid-ring ellipse** with semi-axes
-  `((inner_w/2 + outer_w_val/2)/2, (inner_h/2 + outer_h_val/2)/2)`, at angles
+- Outer body is built via Shapely `buffer(ring)` from the inner ellipse,
+  producing a **true geometric offset** (parallel curve) with constant ring
+  width all around.  A scaled cylinder (`apply_scale`) would produce a
+  scaled ellipse that thins at the diagonals — not a constant-offset ring.
+- `bolt_count` bolts ride the real half-offset curve
+  `inner_ellipse.buffer(ring/2)`, at angles
   `linspace(0, 2π, bolt_count, endpoint=False) + bolt_phase`. This keeps them
-  centred in the elliptical wall for any aspect ratio.
+  centred in the constant-width material instead of placing them on a scaled
+  mid-ellipse.
 - `outer_diam`, `bolt_radius`, and `bolt_inset` are **ignored** in this mode.
 
 ---
@@ -123,8 +122,9 @@ The centre of the plate is always at `Z = offset + thickness / 2.0`.
 ### Algorithm
 
 1. Compute `center_z = offset + thickness / 2.0`.
-2. **Outer body:** box (rectangular), cylinder (circular), or a unit cylinder
-   scaled to the outer semi-axes (elliptical) at `center_z`.
+2. **Outer body:** box (rectangular), cylinder (circular), or a Shapely
+   `inner_ellipse.buffer(ring)` extruded polygon (elliptical — true constant
+   offset) at `zb`.
 3. **Centre hole:** box `(inner_w, inner_h, thickness * 3)` for rectangular,
    or a 128-section unit cylinder scaled to ellipse axes `(inner_w, inner_h)`.
    Extra height ensures a clean through-cut.

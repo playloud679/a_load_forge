@@ -151,11 +151,15 @@ throat flange continues to use the legacy generators above.
 
 - Inner opening types: `circular`, `polygonal`, `rectangular`, `elliptical`.
 - `outer_mode="offset"` automatically follows the opening shape and grows it by
-  `outer_offset`.
+  `outer_offset`. For **elliptical** inner openings this produces a **true
+  geometric offset** (parallel curve via Shapely `buffer()`), giving constant
+  ring width all around — not a scaled copy of the inner ellipse.
 - `outer_mode="custom"` accepts `circular`, `polygonal`, or `rectangular`
   explicit outer dimensions.
-- `bolt_mode="auto"` places every hole halfway between the inner and outer
-  boundary along its radial direction.
+- `bolt_mode="auto"` places every hole halfway between the **actual** inner and
+  outer Shapely boundaries along its radial direction. For elliptical offsets,
+  it uses the true half-offset curve `inner.buffer(outer_offset/2)` instead of
+  falling back to a scaled-ellipse approximation.
 - `bolt_mode="fixed"` places every hole on the requested `bolt_R`, clamped to a
   conservative range that clears both opening and outer boundary.
 - The top face is at `offset`; the flange grows downward, matching
@@ -166,23 +170,68 @@ subtracts the opening and bolt cylinders with the manifold boolean engine.
 
 ---
 
-## `generate_contour_flange(inner_xy, thickness, bolt_n, bolt_d, offset, wall=0.0, ring=15.0, bite=0.5, bolt_R=0.0, bolt_phase=0.0, output_path=None) -> trimesh.Trimesh | None`
+## `generate_contour_flange(inner_xy, thickness, bolt_n, bolt_d, offset, wall=0.0, ring=15.0, bite=0.5, bolt_R=0.0, bolt_phase=0.0, output_path=None, outer_xy=None) -> trimesh.Trimesh | None`
 
-Mouth/Mid flange around an **arbitrary closed contour** instead of a
-circle/ellipse/rectangle — used by the UI for the **OS-SE** waveguide, whose
-section is superelliptical (the inscribed ellipse of `generate_profile_flange`
-falls ~30 mm short of the diagonal corners/ridges and would block the airway
-there).
+Mounting flange around an **arbitrary closed contour** instead of a
+circle/ellipse/rectangle. The UI uses it for the **OS-SE** waveguide and for
+elliptical-section throat/mouth/mid flanges, which are generated from real mesh
+sections rather than fitted/scaled W×H ellipses.
 
 - `inner_xy` — the airway (inner-wall) contour, `(N, 2)`, in the flange plane.
 - Hole = `inner_xy` buffered **inward** by `bite` (the constant-thickness wall
   pokes through and fuses).
 - Outer body = `inner_xy` buffered **outward** by `wall + ring` (`wall` clears
   the wall, `ring` is the bolting land).
+- Optional `outer_xy` replaces the buffered outer boundary. The UI uses it for
+  elliptical inward roll-back plates so the peak hole and rim outline follow
+  real horn sections instead of scaled ellipses.
 - Bolts are spaced evenly **by arc length** along the mid-line of the land
   (`inner.buffer(wall + ring/2)`), so they follow the contour shape.
 - Top face at `offset`, grows down by `thickness` (same convention as the other
   flanges). Built with Shapely buffers + manifold boolean.
+
+---
+
+## `generate_throat_chamfer(base_xy, top_xy, base_z, height, width, overlap=0.35, tip=0.35, samples=128, output_path=None) -> trimesh.Trimesh | None`
+
+Weld-reinforcement chamfer ring that bridges a flange top to the horn body.
+
+**Cross-section (radial slice):**
+
+```
+    top_inner (top_xy)              top_outer (top_xy + tip·width)
+    |                               |
+    |  inner wall (on horn body)    |  outer wall (sloped)
+    |                               |
+    bottom_inner                    bottom_outer
+  (base_xy − overlap·width)     (base_xy + width)
+```
+
+**Parameters:**
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `base_xy` | `(N, 2)` | — | Outer contour of the horn at flange-top level (z = base_z) |
+| `top_xy` | `(N, 2)` | — | Outer contour of the horn at higher z (z = base_z + height) |
+| `base_z` | `float` | — | Z of the bottom face (flange top) |
+| `height` | `float` | — | Axial extent of the chamfer (mm) |
+| `width` | `float` | — | Radial extent of the chamfer foot on the flange (mm) |
+| `overlap` | `float` | `0.35` | Fraction of width that bites inward for fusion |
+| `tip` | `float` | `0.35` | Fraction of width for outer-wall offset at top edge |
+| `samples` | `int` | `128` | Circumferential vertex count per ring (≥ 16) |
+| `output_path` | `str \| None` | `None` | Optional STL export path |
+
+**Non-manifold root causes:**
+
+1. **`tip == 0`** → top-inner ≡ top-outer → top cap collapses to a line; three faces meet at every top edge without a closing cap → non-manifold.  Internally clamped to `≥ 0.01`.
+
+2. **`overlap · width` too large** for a small contour → Shapely `buffer(-d)` collapses the polygon → inner ring is empty → returns `None`.
+
+3. **Non-convex or self-intersecting contours** (e.g. OS-SE ridges) → Shapely `buffer(+d)` can self-intersect; duplicate/crossing vertices break loft triangulation.
+
+4. **Winding order mismatch** between `base_xy` and `top_xy` → loft faces twist and self-intersect.  Both are normalised to CCW internally.
+
+**Algorithm:** Resamples both contours to `samples` CCW points, creates 4 rings (bottom outer/inner, top outer/inner), builds a loft with quad strips, caps both ends, and returns a watertight `trimesh.Trimesh`.
 
 ---
 

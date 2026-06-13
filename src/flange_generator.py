@@ -262,22 +262,12 @@ def generate_profile_flange(
                                     (h / 2.0) * np.sin(angles)])
         return np.column_stack([R * np.cos(angles), R * np.sin(angles)])
 
-    def _radial_extent(shape: str, R: float, w: float, h: float,
-                       n: int, angle: float) -> float:
-        ca, sa = abs(np.cos(angle)), abs(np.sin(angle))
-        if shape == "circular":
-            return R
-        if shape == "elliptical":
-            a, b = w / 2.0, h / 2.0
-            return 1.0 / np.sqrt((ca / a) ** 2 + (sa / b) ** 2)
-        if shape == "rectangular":
-            return min((w / 2.0) / max(ca, 1e-12),
-                       (h / 2.0) / max(sa, 1e-12))
-        # Polygon vertices use phase pi/2. Intersect a ray with its boundary.
-        points = _shape_points(shape, R, w, h, n)
+    def _polygon_radial_extent(poly, angle: float) -> float:
+        """Intersect a ray from the origin with an actual Shapely boundary."""
+        points = np.asarray(poly.exterior.coords, dtype=float)[:, :2]
         ray = np.array([np.cos(angle), np.sin(angle)])
         best = np.inf
-        for p0, p1 in zip(points, np.roll(points, -1, axis=0)):
+        for p0, p1 in zip(points, points[1:]):
             edge = p1 - p0
             cross = ray[0] * edge[1] - ray[1] * edge[0]
             if abs(cross) < 1e-12:
@@ -307,10 +297,19 @@ def generate_profile_flange(
     outer_R = outer_diam / 2.0
     inner_pts = _shape_points(
         inner_type, inner_R, inner_w, inner_h, inner_n_sides)
-    outer_pts = _shape_points(
-        outer_type, outer_R, outer_w, outer_h, outer_n_sides)
     inner_poly = _ShapelyPolygon(inner_pts)
-    outer_poly = _ShapelyPolygon(outer_pts)
+    bolt_mid_poly = None
+    if outer_mode == "offset" and inner_type == "elliptical":
+        # True geometric offset of an ellipse is a parallel curve, NOT an
+        # ellipse. Shapely buffer() produces constant ring width all around;
+        # the old outer_w/h = inner + 2·ring built a scaled ellipse that
+        # thins at the diagonals.
+        outer_poly = inner_poly.buffer(outer_offset)
+        bolt_mid_poly = inner_poly.buffer(outer_offset / 2.0)
+    else:
+        outer_pts = _shape_points(
+            outer_type, outer_R, outer_w, outer_h, outer_n_sides)
+        outer_poly = _ShapelyPolygon(outer_pts)
     if not outer_poly.buffer(1e-7).contains(inner_poly):
         raise ValueError("outer flange dimensions do not contain the flare opening")
 
@@ -327,22 +326,22 @@ def generate_profile_flange(
     margin = bolt_d / 2.0 + 1.0
     if bolt_mode == "fixed" and len(angles):
         sample = np.linspace(0.0, 2.0 * np.pi, 360, endpoint=False)
-        inner_limit = max(_radial_extent(
-            inner_type, inner_R, inner_w, inner_h, inner_n_sides, a)
-            for a in sample) + margin
-        outer_limit = min(_radial_extent(
-            outer_type, outer_R, outer_w, outer_h, outer_n_sides, a)
-            for a in sample) - margin
+        inner_limit = max(_polygon_radial_extent(inner_poly, a)
+                          for a in sample) + margin
+        outer_limit = min(_polygon_radial_extent(outer_poly, a)
+                          for a in sample) - margin
         if outer_limit <= inner_limit:
             raise ValueError("not enough flange material for a fixed bolt circle")
         bolt_R = float(np.clip(bolt_R, inner_limit, outer_limit))
 
     for angle in angles:
-        ri = _radial_extent(
-            inner_type, inner_R, inner_w, inner_h, inner_n_sides, angle)
-        ro = _radial_extent(
-            outer_type, outer_R, outer_w, outer_h, outer_n_sides, angle)
-        radius = (ri + ro) / 2.0 if bolt_mode == "auto" else bolt_R
+        ri = _polygon_radial_extent(inner_poly, angle)
+        ro = _polygon_radial_extent(outer_poly, angle)
+        if bolt_mode == "auto":
+            radius = (_polygon_radial_extent(bolt_mid_poly, angle)
+                      if bolt_mid_poly is not None else (ri + ro) / 2.0)
+        else:
+            radius = bolt_R
         if radius < ri + margin or radius > ro - margin:
             raise ValueError("not enough flange material around a bolt hole")
         cx, cy = radius * np.cos(angle), radius * np.sin(angle)
@@ -479,6 +478,7 @@ def generate_contour_flange(
     bolt_R: float = 0.0,
     bolt_phase: float = 0.0,
     output_path: str | None = None,
+    outer_xy: np.ndarray | None = None,
 ) -> trimesh.Trimesh | None:
     """Flat flange whose hole and outer ring follow an **arbitrary closed
     contour** (e.g. the superelliptical OS-SE mouth, ridges included), instead
@@ -488,6 +488,9 @@ def generate_contour_flange(
     contour pulled **in** by ``bite`` so the constant-thickness wall pokes
     through and fuses; the outer body is the contour pushed **out** by
     ``wall + ring`` (``wall`` clears the wall, ``ring`` is the bolting land).
+    When ``outer_xy`` is supplied, it is used as the explicit outer boundary
+    instead, so inward roll-back plates can follow two real sampled contours
+    without fitting either one to a scaled ellipse.
     Bolts are spaced evenly by arc length along the mid-line of the land, so
     they follow the contour shape. Top face at ``offset``, grows down by
     ``thickness`` (same convention as the other flanges)."""
@@ -497,10 +500,17 @@ def generate_contour_flange(
     if not inner_poly.is_valid:
         inner_poly = inner_poly.buffer(0)
     hole_poly = inner_poly.buffer(-abs(bite))
-    outer_poly = inner_poly.buffer(wall + ring)
+    if outer_xy is None:
+        outer_poly = inner_poly.buffer(wall + ring)
+    else:
+        outer_poly = _ShapelyPolygon(np.asarray(outer_xy, dtype=float))
+        if not outer_poly.is_valid:
+            outer_poly = outer_poly.buffer(0)
     if hole_poly.is_empty or outer_poly.is_empty:
         logger.error("contour flange: degenerate buffer (ring/bite too large)")
         return None
+    if not outer_poly.buffer(1e-7).contains(hole_poly):
+        raise ValueError("explicit outer contour does not contain flange hole")
     land_poly = outer_poly.difference(hole_poly)
     if land_poly.is_empty:
         return None
@@ -535,6 +545,205 @@ def generate_contour_flange(
     if output_path:
         flange.export(output_path)
     return flange
+
+
+def generate_throat_chamfer(
+    base_xy: np.ndarray,
+    top_xy: np.ndarray,
+    base_z: float,
+    height: float,
+    width: float,
+    overlap: float = 0.35,
+    tip: float = 0.35,
+    samples: int = 128,
+    output_path: str | None = None,
+) -> trimesh.Trimesh | None:
+    """Weld-reinforcement chamfer ring that bridges a flange top to the horn
+    body, producing a watertight trimesh suitable for boolean union.
+
+    Cross-section (radial slice)::
+
+            top_inner (top_xy)              top_outer (top_xy + tip·width)
+            |                               |
+            |  inner wall (on horn body)    |  outer wall (sloped)
+            |                               |
+            bottom_inner                   bottom_outer
+          (base_xy − overlap·width)     (base_xy + width)
+
+    **Parameters**
+
+    base_xy : (N, 2) float
+        Outer contour of the horn at the flange-top level (z = base_z).
+    top_xy : (N, 2) float
+        Outer contour of the horn at the higher z level (z = base_z + height).
+    base_z : float
+        Z coordinate of the bottom face (flange top).
+    height : float
+        Axial extent of the chamfer (mm).
+    width : float
+        Radial extent of the chamfer foot on the flange (mm).
+    overlap : float
+        Fraction of *width* that the inner wall bites inward from the horn
+        surface for volumetric fusion (0 = flush, 0.35 typical).
+    tip : float
+        Fraction of *width* for the outer-wall offset at the top edge. Must
+        be > 0 to keep the top cap non-degenerate.
+    samples : int
+        Circumferential vertex count per ring (≥ 16).
+    output_path : str | None
+        Optional STL export path.
+
+    **Non-manifold root causes (diagnosed)**
+
+    1. ``tip == 0`` → top-inner ≡ top-outer → top cap collapses to a line;
+       three faces meet at every top edge *without* a closing cap, producing
+       non-manifold edges.  **Fix:** internally clamp ``tip ≥ 0.01``.
+
+    2. ``overlap`` or ``width`` too large for a tightly-curved contour →
+       Shapely ``buffer(-d)`` collapses the polygon → inner ring is empty.
+
+    3. Non-convex or self-intersecting contours (e.g. OS-SE ridges) —
+       Shapely ``buffer(+d)`` can self-intersect; the resulting exterior
+       has duplicate/crossing vertices that break the loft triangulation.
+
+    4. ``base_xy`` and ``top_xy`` have different winding orders → loft
+       faces twist and cross → self-intersection.
+
+    Returns a watertight ``trimesh.Trimesh`` or ``None`` on failure.
+    """
+    from shapely.geometry import Polygon as _ShapelyPolygon
+
+    if not (np.isfinite(base_z) and np.isfinite(height)
+            and np.isfinite(width) and np.isfinite(overlap)
+            and np.isfinite(tip)):
+        raise ValueError("throat chamfer dimensions must be finite")
+    if height <= 0 or width <= 0:
+        raise ValueError("throat chamfer height and width must be positive")
+    if overlap <= 0 or tip <= 0:
+        raise ValueError("throat chamfer overlap and tip must be positive")
+    if samples < 16:
+        raise ValueError("throat chamfer samples must be at least 16")
+    tip = max(tip, 0.01)
+
+    top_z = base_z + height
+
+    # --- uniform resample of an (N,2) contour to *samples* CCW points ---
+    def _resample(pts: np.ndarray, n: int) -> np.ndarray:
+        pts = np.asarray(pts, dtype=float)
+        poly = _ShapelyPolygon(pts)
+        if not poly.is_valid:
+            poly = poly.buffer(0)
+        ring = poly.exterior
+        total = ring.length
+        out = np.empty((n, 2), dtype=float)
+        for i in range(n):
+            p = ring.interpolate(total * i / n)
+            out[i] = [p.x, p.y]
+        return out
+
+    # --- offset a contour inward (-) or outward (+) ---
+    def _offset(pts: np.ndarray, dist: float) -> np.ndarray | None:
+        poly = _ShapelyPolygon(np.asarray(pts, dtype=float))
+        if not poly.is_valid:
+            poly = poly.buffer(0)
+        result = poly.buffer(dist)
+        if result.is_empty:
+            return None
+        ring = result.exterior
+        total = ring.length
+        out = np.empty((samples, 2), dtype=float)
+        for i in range(samples):
+            p = ring.interpolate(total * i / samples)
+            out[i] = [p.x, p.y]
+        return out
+
+    # --- ensure CW or CCW consistently ---
+    def _ensure_ccw(pts: np.ndarray) -> np.ndarray:
+        signed = np.sum(
+            (pts[:, 0] * np.roll(pts[:, 1], -1)
+             - np.roll(pts[:, 0], -1) * pts[:, 1]))
+        return pts[::-1].copy() if signed < 0 else pts.copy()
+
+    base_r = _resample(base_xy, samples)
+    top_r = _resample(top_xy, samples)
+    base_r = _ensure_ccw(base_r)
+    top_r = _ensure_ccw(top_r)
+
+    inner_bottom = _offset(base_r, -overlap * width)
+    if inner_bottom is None:
+        logger.error("throat chamfer inner ring collapsed (overlap·width too large)")
+        return None
+    outer_bottom = _offset(base_r, width)
+    if outer_bottom is None:
+        logger.error("throat chamfer outer ring collapsed on bottom")
+        return None
+    inner_top = top_r
+    outer_top = _offset(top_r, tip * width)
+    if outer_top is None:
+        logger.error("throat chamfer outer ring collapsed on top")
+        return None
+
+    # --- build vertices: 4 rings × samples points ---
+    verts = np.concatenate([
+        np.column_stack([outer_bottom, np.full(samples, base_z)]),
+        np.column_stack([inner_bottom, np.full(samples, base_z)]),
+        np.column_stack([outer_top,    np.full(samples, top_z)]),
+        np.column_stack([inner_top,    np.full(samples, top_z)]),
+    ], axis=0)
+
+    O_B, I_B = 0 * samples, 1 * samples
+    O_T, I_T = 2 * samples, 3 * samples
+
+    def _quad_strip(lo, hi):
+        n = len(lo)
+        tris = []
+        for i in range(n):
+            j = (i + 1) % n
+            tris.append([lo[i], hi[i], lo[j]])
+            tris.append([lo[j], hi[i], hi[j]])
+        return np.array(tris)
+
+    faces = []
+
+    # inner wall (bottom → top, along horn contour)
+    faces.append(_quad_strip(
+        list(range(I_B, I_B + samples)),
+        list(range(I_T, I_T + samples))))
+
+    # outer wall (reverse winding for outward normals)
+    faces.append(_quad_strip(
+        list(range(O_B, O_B + samples)),
+        list(range(O_T, O_T + samples)))[:, ::-1])
+
+    # bottom cap (annular ring)
+    for i in range(samples):
+        j = (i + 1) % samples
+        faces.append([[O_B + i, I_B + j, O_B + j],
+                      [O_B + i, I_B + i, I_B + j]])
+
+    # top cap (annular ring — only if non-degenerate)
+    if not np.allclose(outer_top, inner_top):
+        for i in range(samples):
+            j = (i + 1) % samples
+            faces.append([[O_T + i, O_T + j, I_T + j],
+                          [O_T + i, I_T + j, I_T + i]])
+
+    faces_arr = np.concatenate(faces, axis=0)
+
+    chamfer = trimesh.Trimesh(vertices=verts, faces=faces_arr, process=True)
+    chamfer.merge_vertices()
+    chamfer.update_faces(chamfer.nondegenerate_faces())
+    chamfer.remove_unreferenced_vertices()
+    chamfer.fix_normals()
+
+    if not chamfer.is_watertight:
+        logger.error("Throat chamfer loft is not watertight")
+        return None
+
+    if output_path:
+        chamfer.export(output_path)
+
+    return chamfer
 
 
 if __name__ == "__main__":

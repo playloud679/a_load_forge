@@ -56,14 +56,13 @@ cross-section (e.g. a radial horn piece with no flange).
 source parameters, *not* by sectioning a mesh, so it is exact and immune to
 boolean/mesh artefacts (the mesh path mis-centres holes when the solid is
 imperfect). Matches `rectangular_flange.generate_rectangular_flange` with
-`outer_type="elliptical"` — i.e. the semi-axis-scaled (concentric) ellipse the
-flange actually uses, so the 2-D template and the 3-D part agree:
+`outer_type="elliptical"` — i.e. the true constant-width parallel offset used
+by the flange, so the 2-D template and the 3-D part agree:
 
 - `BORE` — the hole ellipse, semi-axes `(a, b) = (inner_w/2, inner_h/2)`.
-- `OUTLINE` — the explicit `outer_w`/`outer_h` ellipse when supplied, otherwise
-  the scaled offset ellipse with semi-axes `(a + ring, b + ring)`.
+- `OUTLINE` — `BORE.buffer(ring)`, emitted as a closed polyline.
 - `HOLES`/`CENTERS` — `bolt_count` circles of radius `bolt_diam/2` on the
-  ellipse halfway between bore and outline, `+ bolt_phase`.
+  real half-offset curve `BORE.buffer(ring/2)`, `+ bolt_phase`.
 
 Always returns a string (never `None`). It remains available as a public API;
 the UI exports generated Mouth/Mid geometry through the mesh-derived path so

@@ -189,14 +189,15 @@ def elliptical_flange_dxf(
     geometry is exact and immune to boolean/mesh artefacts that can mis-centre
     mesh-derived holes. Matches the solid produced by
     ``rectangular_flange.generate_rectangular_flange`` with
-    ``outer_type="elliptical"`` / ``inner_type="elliptical"`` — i.e. the
-    semi-axis-scaled (concentric) ellipse the flange actually uses:
+    ``outer_type="elliptical"`` / ``inner_type="elliptical"`` — the OUTLINE
+    is a **true geometric offset** (parallel curve via Shapely buffer), not a
+    scaled copy of the BORE ellipse, giving constant ring width:
 
       * BORE    — the hole ellipse, semi-axes ``(a, b) = (inner_w/2, inner_h/2)``
-      * OUTLINE — the explicit ``outer_w``/``outer_h`` ellipse, or the
-                  offset ellipse with semi-axes ``(a + ring, b + ring)``
-      * HOLES   — ``bolt_count`` circles on the mid-ring ellipse, semi-axes
-                  ``(a + ring/2, b + ring/2)`` + a centre mark each
+      * OUTLINE — true parallel curve at distance ``ring``, polyline with
+                  ``sections`` vertices
+      * HOLES   — ``bolt_count`` circles on the true half-offset curve
+                  ``BORE.buffer(ring/2)`` + a centre mark each
 
     ``inner_w``/``inner_h`` are full axis lengths. Returns the DXF text (and
     writes *output_path* if given).
@@ -207,19 +208,60 @@ def elliptical_flange_dxf(
             raise ValueError("ring or both outer_w/outer_h are required")
         outer_w, outer_h = inner_w + 2.0 * ring, inner_h + 2.0 * ring
     ao, bo = outer_w / 2.0, outer_h / 2.0
+    ring_w, ring_h = ao - a, bo - b
     theta = np.linspace(0.0, 2.0 * np.pi, sections, endpoint=False)
     ct, st = np.cos(theta), np.sin(theta)
     bore = np.column_stack([a * ct, b * st])
-    outline = np.column_stack([ao * ct, bo * st])
+
+    # True geometric offset (parallel curve) via Shapely buffer.
+    # The old outline = (ao*cos, bo*sin) was a scaled ellipse, not a
+    # constant-distance ring.
+    if abs(ring_w - ring_h) < 0.01:
+        from shapely.geometry import Point
+        from shapely import affinity
+        unit = Point(0, 0).buffer(1.0, resolution=sections)
+        inner_ellipse = affinity.scale(unit, xfact=a, yfact=b)
+        outer_topo = inner_ellipse.buffer(ring_w)
+        midline = np.asarray(
+            inner_ellipse.buffer(ring_w / 2.0).exterior.coords)[:, :2]
+        outline_xy = np.asarray(outer_topo.exterior.coords)[:, :2]
+        # Resample to exactly *sections* points
+        from shapely.geometry import LineString
+        ls = LineString(outline_xy)
+        outline = np.empty((sections, 2), dtype=float)
+        for i in range(sections):
+            p = ls.interpolate(ls.length * i / sections)
+            outline[i] = [p.x, p.y]
+    else:
+        outline = np.column_stack([ao * ct, bo * st])
+        midline = np.column_stack([
+            ((a + ao) / 2.0) * ct,
+            ((b + bo) / 2.0) * st,
+        ])
+        midline = np.vstack([midline, midline[0]])
 
     ent: list[str] = [_polyline("OUTLINE", outline), _polyline("BORE", bore)]
 
     if bolt_count and bolt_count > 0 and bolt_diam > 0.0:
+        def _ray_extent(points: np.ndarray, angle: float) -> float:
+            ray = np.array([np.cos(angle), np.sin(angle)])
+            best = np.inf
+            for p0, p1 in zip(points, points[1:]):
+                edge = p1 - p0
+                cross = ray[0] * edge[1] - ray[1] * edge[0]
+                if abs(cross) < 1e-12:
+                    continue
+                t = (p0[0] * edge[1] - p0[1] * edge[0]) / cross
+                u = (p0[0] * ray[1] - p0[1] * ray[0]) / cross
+                if t > 0.0 and -1e-9 <= u <= 1.0 + 1e-9:
+                    best = min(best, t)
+            return float(best)
+
         ang = np.linspace(0.0, 2.0 * np.pi, int(bolt_count),
                           endpoint=False) + bolt_phase
-        bx, by = (a + ao) / 2.0, (b + bo) / 2.0
         for t in ang:
-            cx, cy = bx * np.cos(t), by * np.sin(t)
+            radius = _ray_extent(midline, t)
+            cx, cy = radius * np.cos(t), radius * np.sin(t)
             ent.append(_circle("HOLES", float(cx), float(cy), bolt_diam / 2.0))
             ent.append(_point("CENTERS", float(cx), float(cy)))
 

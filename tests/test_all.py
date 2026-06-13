@@ -723,6 +723,30 @@ def test_osse_flanges_weld_to_horn():
 test("OS-SE throat/mouth/mid flanges weld to horn", test_osse_flanges_weld_to_horn)
 
 
+def test_contour_flange_explicit_outer_boundary():
+    """Inward plates preserve a real rim instead of scaling the hole."""
+    t = np.linspace(0.0, 2.0 * np.pi, 128, endpoint=False)
+    inner = np.column_stack([30.0 * np.cos(t), 15.0 * np.sin(t)])
+    outer = np.array([
+        [-42.0, -27.0], [42.0, -27.0], [42.0, 27.0], [-42.0, 27.0],
+    ])
+    flange = _fg.generate_contour_flange(
+        inner_xy=inner,
+        outer_xy=outer,
+        thickness=6.0,
+        bite=0.5,
+        bolt_n=0,
+        bolt_d=4.0,
+        offset=6.0,
+    )
+    assert flange is not None and flange.is_watertight
+    assert flange.body_count == 1 and flange.volume > 0.0
+    assert np.allclose(flange.bounds[:, :2], [[-42.0, -27.0], [42.0, 27.0]],
+                       atol=0.1), "explicit rim was replaced by a scaled contour"
+test("contour flange preserves explicit outer boundary",
+     test_contour_flange_explicit_outer_boundary)
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 #  4. Radial 360° — all profiles, geometry checks
 # ══════════════════════════════════════════════════════════════════════════════
@@ -808,6 +832,39 @@ for n_inner, n_outer in POLY_FLANGE_CASES:
     test(label, make)
 
 
+def _assert_parallel_ellipse_ring(mesh, inner_w, inner_h, ring, z=3.0):
+    """Check ring width against the bore, including diagonal outer points."""
+    from shapely import affinity
+    from shapely.geometry import Point, Polygon
+
+    section = mesh.section(
+        plane_origin=[0.0, 0.0, z], plane_normal=[0.0, 0.0, 1.0]).to_2D()[0]
+    outer = max(section.polygons_full, key=lambda poly: poly.area).exterior
+    bore = affinity.scale(
+        Point(0.0, 0.0).buffer(1.0, resolution=256),
+        xfact=inner_w / 2.0,
+        yfact=inner_h / 2.0,
+    ).exterior
+    points = np.asarray(outer.coords, dtype=float)[::4, :2]
+    distances = np.array([bore.distance(Point(point)) for point in points])
+    assert np.allclose(distances, ring, atol=0.15), (
+        f"elliptical ring is not a parallel offset: "
+        f"{distances.min():.3f}..{distances.max():.3f} mm, want {ring:.3f}"
+    )
+    bolt_centers = []
+    for interior in max(section.polygons_full, key=lambda poly: poly.area).interiors:
+        center = Polygon(interior).centroid
+        if np.hypot(center.x, center.y) > 1.0:
+            bolt_centers.append(Point(center.x, center.y))
+    if bolt_centers:
+        bolt_offsets = np.array([bore.distance(center) for center in bolt_centers])
+        assert np.allclose(bolt_offsets, ring / 2.0, atol=0.15), (
+            f"elliptical bolts are not on the half-offset curve: "
+            f"{bolt_offsets.min():.3f}..{bolt_offsets.max():.3f} mm, "
+            f"want {ring / 2.0:.3f}"
+        )
+
+
 def _profile_flange_offset_modes():
     cases = [
         dict(inner_type="circular", inner_R=30.0),
@@ -817,9 +874,12 @@ def _profile_flange_offset_modes():
     ]
     for params in cases:
         m = _fg.generate_profile_flange(
-            thickness=6.0, bolt_n=4, bolt_d=3.5, offset=6.0,
+            thickness=6.0, bolt_n=8, bolt_d=3.5, bolt_phase=0.3, offset=6.0,
             outer_mode="offset", outer_offset=15.0, **params)
         _check_flange(m, f"profile flange offset {params['inner_type']}")
+        if params["inner_type"] == "elliptical":
+            _assert_parallel_ellipse_ring(
+                m, params["inner_w"], params["inner_h"], 15.0)
 test("profile flange offset follows every opening", _profile_flange_offset_modes)
 
 
@@ -1056,11 +1116,11 @@ def _elliptical_flange_and_horn_assembly():
 test("elliptical-hole flange + horn assembly", _elliptical_flange_and_horn_assembly)
 
 
-def _elliptical_analytic_dxf_matches_scaled_solid():
-    """Analytic elliptical DXF must match the (semi-axis-scaled) flange solid.
+def _elliptical_analytic_dxf_matches_offset_solid():
+    """Analytic elliptical DXF must match the true-offset flange solid.
 
-    The flange uses a scaled outer ellipse (a→a+ring, b→b+ring) with bolts on
-    the scaled mid-ring (a+ring/2, b+ring/2). The analytic DXF
+    The flange uses a parallel outer curve with bolts on the half-offset curve.
+    The analytic DXF
     (dxf_export.elliptical_flange_dxf) is built from the same parameters and must
     place its holes exactly where the solid's bolt holes land — guarding the 2-D
     template against drifting from the 3-D part.
@@ -1077,7 +1137,8 @@ def _elliptical_analytic_dxf_matches_scaled_solid():
         outer_type="elliptical", inner_type="elliptical",
         outer_w=inner_w + 2 * ring, outer_h=inner_h + 2 * ring,
         bolt_count=bc, bolt_diam=bd, bolt_phase=bphase, output_path=None)
-    _check_flange(f, "scaled elliptical flange")
+    _check_flange(f, "offset elliptical flange")
+    _assert_parallel_ellipse_ring(f, inner_w, inner_h, ring)
     s2 = f.section(plane_origin=[0, 0, 3.0], plane_normal=[0, 0, 1]).to_2D()[0]
     solid_c = []
     for poly in s2.polygons_full:
@@ -1099,12 +1160,12 @@ def _elliptical_analytic_dxf_matches_scaled_solid():
     dxf_c = np.array(sorted(([float(x), float(y)] for x, y, _ in circ),
                             key=lambda p: np.arctan2(p[1], p[0])))
     assert np.allclose([float(r) for *_, r in circ], bd / 2.0), "hole radius wrong"
-    # DXF holes must sit on the scaled mid-ring and match the solid (~0.5 mm,
+    # DXF holes must sit on the half-offset curve and match the solid (~0.5 mm,
     # the solid being a 16-gon faceted hole vs the analytic centre)
     assert np.allclose(dxf_c, solid_c, atol=0.5), \
-        "analytic DXF holes drift from the scaled solid's bolt centres"
-test("elliptical analytic DXF matches scaled solid",
-     _elliptical_analytic_dxf_matches_scaled_solid)
+        "analytic DXF holes drift from the offset solid's bolt centres"
+test("elliptical analytic DXF matches offset solid",
+     _elliptical_analytic_dxf_matches_offset_solid)
 
 
 def _elliptical_rollback_flange_welds():
@@ -1173,6 +1234,7 @@ def _elliptical_outer_flange_offset():
     assert abs(ext_x - ow) < 1.0, f"outer X {ext_x:.1f} != {ow:.1f} (not elliptical offset)"
     assert abs(ext_y - oh) < 1.0, f"outer Y {ext_y:.1f} != {oh:.1f} (not elliptical offset)"
     assert ext_x > ext_y + 10.0, "outer should follow the hole's aspect ratio, not be circular"
+    _assert_parallel_ellipse_ring(flange, inner_w, inner_h, ring)
 test("elliptical-offset outer flange", _elliptical_outer_flange_offset)
 
 
@@ -1229,22 +1291,25 @@ test("roll-back mouth flange welds to outer rim", _rollback_mouth_flange_welds_t
 
 
 def _inward_mouth_flange_drills_through_flare():
-    """Inward mouth flange on a deep roll-back: a flat plate FILLS the lip cavity
-    (welded between the inner flare and the curled-back lip). The outer contour
-    stays = rim, so nothing protrudes beyond the mouth Ø; the hole = flare wall
-    at the peak so the airway stays clear. Bolts are then drilled through the
-    plate + lip. Annular compression pillars bridge the cavity around each bolt
-    before the full-Z through-hole + head counterbore are cut. Mirrors ui_app.
+    """Inward mouth flange on a deep roll-back: a flat ring attaches to the
+    cavity-facing side of the returning lip without crossing the outside skin.
+    Bolts are then drilled through the plate + lip. Annular compression pillars
+    bridge the cavity around each bolt before the full-Z through-hole + head
+    counterbore are cut. Mirrors ui_app.
     """
+    from shapely.geometry import Polygon
+
     sp, nb, db = 4.0, 8, 5.0
     head_d, seat_depth, seat_wall = 9.5, 2.0, 3.0
     BITE = 0.5
+    ring = 15.0
     zp, rp = _c.get_lecleach(np.sqrt(25.0 * 25.0 * 4 / np.pi), 500.0, 200, T=0.707)
     zr, wr, hr = _r._area_to_rect(zp, rp, 25.0, 25.0)
     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
     _c.generate_elliptical_3d_mesh_from_profiles(zr, wr / 2.0, hr / 2.0, sp, 96, p)
     horn = trimesh.load(p, file_type="stl"); os.unlink(p)
-    _, V_o = _c._elliptical_parallel_offset_vertices(zr, wr / 2.0, hr / 2.0, sp, 96)
+    V_i, V_o = _c._elliptical_parallel_offset_vertices(
+        zr, wr / 2.0, hr / 2.0, sp, 96)
     z_o = np.mean(V_o[:, :, 2], axis=1)
     w_o = 2.0 * np.max(np.abs(V_o[:, :, 0]), axis=1)
     h_o = 2.0 * np.max(np.abs(V_o[:, :, 1]), axis=1)
@@ -1254,12 +1319,34 @@ def _inward_mouth_flange_drills_through_flare():
     peak_w, peak_h = float(w_o[peak]), float(h_o[peak])
     rim_off = float(z_o[rim])   # roll-back: plate sits at the rim plane (above it)
 
-    # Plate fills the cavity: outer = rim, hole = peak (bitten so the wall welds).
-    plate = _rf.generate_rectangular_flange(
-        inner_w=max(peak_w - 2 * BITE, 1.0), inner_h=max(peak_h - 2 * BITE, 1.0),
-        thickness=sp, bolt_count=0, bolt_diam=db,
-        outer_type="elliptical", outer_w=rim_w, outer_h=rim_h,
-        offset=rim_off, inner_type="elliptical", output_path=None)
+    def branch_section(grid, z_target, returning):
+        points = np.empty((grid.shape[1], 2))
+        for j in range(grid.shape[1]):
+            z_col = grid[:, j, 2]
+            branch_peak = int(np.argmax(z_col))
+            sl = slice(branch_peak, None) if returning else slice(0, branch_peak + 1)
+            zs = z_col[sl]
+            xs, ys = grid[sl, j, 0], grid[sl, j, 1]
+            order = np.argsort(zs)
+            zs, xs, ys = zs[order], xs[order], ys[order]
+            z = float(np.clip(z_target, zs[0], zs[-1]))
+            points[j] = [np.interp(z, zs, xs), np.interp(z, zs, ys)]
+        return points
+
+    plate_top = rim_off + sp
+    return_outer = Polygon(branch_section(V_o, plate_top, returning=True))
+    return_inner = Polygon(branch_section(V_i, plate_top, returning=True))
+    outgoing_outer = Polygon(branch_section(V_o, plate_top, returning=False))
+    hole_poly = return_outer.buffer(-ring)
+    outer_poly = return_outer.buffer(BITE)
+    assert hole_poly.contains(outgoing_outer), "inward ring collides with outgoing flare"
+    assert return_inner.contains(outer_poly), "inward ring crossed the rollback outside skin"
+
+    plate = _fg.generate_contour_flange(
+        inner_xy=np.asarray(hole_poly.exterior.coords)[:, :2],
+        outer_xy=np.asarray(outer_poly.exterior.coords)[:, :2],
+        thickness=sp, bite=0.0, bolt_n=0, bolt_d=db,
+        offset=plate_top, output_path=None)
     _check_flange(plate, "inward mouth plate")
     combined = trimesh.boolean.union([horn, plate], engine="manifold")
     combined.merge_vertices(); combined.fix_normals()
@@ -1272,7 +1359,6 @@ def _inward_mouth_flange_drills_through_flare():
 
     bx = rim_w / 2.0 - (head_d / 2.0 + seat_wall)
     by = rim_h / 2.0 - (head_d / 2.0 + seat_wall)
-    plate_top = rim_off + sp
     z_lo, z_hi = combined.bounds[0, 2] - 10.0, combined.bounds[1, 2] + 10.0
     zsamp = np.linspace(horn.bounds[0, 2], horn.bounds[1, 2], 400)
     cuts = []

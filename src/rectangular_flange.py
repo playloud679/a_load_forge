@@ -37,7 +37,7 @@ def generate_rectangular_flange(
     outer_type = "circular"    → circular disc outer, bolts on a circle
     outer_type = "rectangular" → rectangular plate outer, bolts at corners
     outer_type = "elliptical"  → elliptical-offset outer (ring follows the hole),
-                                 bolts on the mid-ring ellipse
+                                 bolts on the half-offset curve
     inner_type = "rectangular" | "elliptical"
     offset = Z position of the flange bottom face.
     """
@@ -55,6 +55,7 @@ def generate_rectangular_flange(
         [0, 0, 0, 1],
     ])
     safe_margin = (bolt_inset * 2) + bolt_diam + 10.0
+    elliptical_midline = None
 
     # ---- Outer body ----------------------------------------------------
     if outer_type == "rectangular":
@@ -65,14 +66,30 @@ def generate_rectangular_flange(
             transform=_z_xform,
         )
     elif outer_type == "elliptical":
-        # Elliptical-offset outer: the ring follows the hole's ellipse, offset
-        # outward by a constant ring width (caller passes outer_w/h = inner_w/h
-        # + 2·ring). Built as a unit cylinder scaled to the outer semi-axes.
+        # True geometric offset via Shapely buffer — a scaled cylinder
+        # (apply_scale) does NOT give constant ring width around an ellipse.
+        from shapely.geometry import Point
+        from shapely import affinity
         outer_w_val = outer_w if outer_w is not None else inner_w + safe_margin
         outer_h_val = outer_h if outer_h is not None else inner_h + safe_margin
-        outer = creation.cylinder(radius=1.0, height=thickness, sections=128)
-        outer.apply_scale([outer_w_val / 2.0, outer_h_val / 2.0, 1.0])
-        outer.apply_translation([0.0, 0.0, center_z])
+        ring_w = (outer_w_val - inner_w) / 2.0
+        ring_h = (outer_h_val - inner_h) / 2.0
+        unit_circle = Point(0, 0).buffer(1.0, resolution=128)
+        inner_ellipse = affinity.scale(
+            unit_circle, xfact=inner_w / 2.0, yfact=inner_h / 2.0)
+        if ring_w > 0 and abs(ring_w - ring_h) < 1e-6:
+            outer_poly = inner_ellipse.buffer(ring_w)
+            elliptical_midline = inner_ellipse.buffer(ring_w / 2.0).exterior
+        else:
+            outer_poly = affinity.scale(
+                unit_circle, xfact=outer_w_val / 2.0, yfact=outer_h_val / 2.0)
+            elliptical_midline = affinity.scale(
+                unit_circle,
+                xfact=(inner_w + outer_w_val) / 4.0,
+                yfact=(inner_h + outer_h_val) / 4.0,
+            ).exterior
+        outer = creation.extrude_polygon(outer_poly, height=thickness)
+        outer.apply_translation([0.0, 0.0, zb])
     else:
         min_diam = np.sqrt(inner_w**2 + inner_h**2) + (bolt_diam * 4) + 10.0
         actual_diam = max(outer_diam, min_diam)
@@ -128,14 +145,29 @@ def generate_rectangular_flange(
             )
             bolt_holes.append(bh)
     elif outer_type == "elliptical":
-        # Bolts ride the mid-ring ellipse (halfway between hole and outer edge),
-        # so they stay centred in the elliptical wall for any aspect ratio.
-        bx = (inner_w / 2.0 + outer_w_val / 2.0) / 2.0
-        by = (inner_h / 2.0 + outer_h_val / 2.0) / 2.0
+        # Bolts ride the real half-offset contour, not a scaled mid ellipse.
+        points = np.asarray(elliptical_midline.coords, dtype=float)[:, :2]
+
+        def _ray_extent(angle: float) -> float:
+            ray = np.array([np.cos(angle), np.sin(angle)])
+            best = np.inf
+            for p0, p1 in zip(points, points[1:]):
+                edge = p1 - p0
+                cross = ray[0] * edge[1] - ray[1] * edge[0]
+                if abs(cross) < 1e-12:
+                    continue
+                t = (p0[0] * edge[1] - p0[1] * edge[0]) / cross
+                u = (p0[0] * ray[1] - p0[1] * ray[0]) / cross
+                if t > 0.0 and -1e-9 <= u <= 1.0 + 1e-9:
+                    best = min(best, t)
+            return float(best)
+
         angles = np.linspace(0, 2 * np.pi, int(bolt_count), endpoint=False)
         for a in angles:
-            x = bx * np.cos(a + bolt_phase)
-            y = by * np.sin(a + bolt_phase)
+            angle = a + bolt_phase
+            radius = _ray_extent(angle)
+            x = radius * np.cos(angle)
+            y = radius * np.sin(angle)
             bh = creation.cylinder(
                 radius=bolt_diam / 2.0,
                 height=thickness * 3,
