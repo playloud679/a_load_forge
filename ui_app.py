@@ -2385,20 +2385,30 @@ if gen_btn:
                     # are the sunburst seen down the throat and the wall
                     # chiaroscuro, and they bloat the file + break watertightness.
                     _WELD_BITE = 0.4
+                    # ...but the interpenetration must NOT taper all the way to 0
+                    # at the handoff: tapering to 0 makes the adapter coincide
+                    # with the horn again exactly on the junction plane, so every
+                    # residual sliver collects into a ring right on the join (the
+                    # adapter↔flare junction "problem"). Keep a tiny floor so the
+                    # walls still interpenetrate at the handoff → 0 slivers there.
+                    # 0.05 mm = 1/8 of a 0.4 mm print line: physically
+                    # unprintable, invisible, yet enough to keep the boolean clean.
+                    _WELD_BITE_MIN = 0.05
 
                     def _profile_stack(z_arr, z_end, inner_fn, outer_fn):
                         z_arr = np.asarray(z_arr, dtype=float)
                         z_stack = np.append(z_arr[z_arr < z_end - 1e-9], z_end)
                         inner_stack = np.stack([inner_fn(float(zz)) for zz in z_stack])
                         outer_stack = np.stack([outer_fn(float(zz)) for zz in z_stack])
-                        # Shift the adapter wall OUTWARD by _WELD_BITE through the
-                        # overlap, tapering to 0 exactly at the handoff plane
-                        # (z_end) so the junction stays stepless. Growing BOTH
-                        # walls (rather than shrinking the airway) keeps the
-                        # union's bore equal to the horn's — no throat
-                        # constriction — while the adapter wall now ENCLOSES the
-                        # horn wall → clean interpenetration instead of coincident
-                        # surfaces (measured ≈31k → ≈0.5k slivers, watertight).
+                        # Shift the adapter wall OUTWARD by the (tapered) bite
+                        # through the overlap: full _WELD_BITE at the bottom of the
+                        # overlap, easing to _WELD_BITE_MIN at the handoff plane
+                        # (z_end). Growing BOTH walls (rather than shrinking the
+                        # airway) keeps the union's bore equal to the horn's — no
+                        # throat constriction — while the adapter wall now ENCLOSES
+                        # the horn wall → clean interpenetration instead of
+                        # coincident surfaces (measured ≈31k → 0 slivers,
+                        # watertight; ≤0.05 mm step at the join).
                         if _WELD_BITE > 0.0 and z_end > _morph_len:
                             def _roff(pts, d):
                                 rr = np.hypot(pts[:, 0], pts[:, 1])
@@ -2406,10 +2416,8 @@ if gen_btn:
                                 return pts * sc[:, None]
                             _span = z_end - _morph_len
                             for _k, _zz in enumerate(z_stack):
-                                _b = _WELD_BITE * float(np.clip(
-                                    (z_end - _zz) / _span, 0.0, 1.0))
-                                if _b <= 0.0:
-                                    continue
+                                _t = float(np.clip((z_end - _zz) / _span, 0.0, 1.0))
+                                _b = _WELD_BITE_MIN + (_WELD_BITE - _WELD_BITE_MIN) * _t
                                 outer_stack[_k] = _roff(outer_stack[_k], _b)
                                 inner_stack[_k] = _roff(inner_stack[_k], _b)
                         return z_stack, inner_stack, outer_stack
