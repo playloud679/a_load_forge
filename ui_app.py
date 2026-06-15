@@ -1208,28 +1208,11 @@ with fg1:
         st.caption("Round throat → flat circular bolt-on flange. Mount the driver "
                    "or an adapter to this plate.")
         gen_throat = st.checkbox("Include", True, key="gen_throat")
-        _ft_sp = st.number_input("Thickness (mm)", 2.0, 20.0, 6.0, 0.5, key="ft_sp_osse")
-        _ft_nb = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="ft_nb")
-        _ft_db = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
-        # Hole welds onto the round throat outer wall (throat_R + thickness).
-        _ft_throat_R = throat_d / 2.0 + thickness
-        _ft_ring = st.number_input("Offset from throat (mm)", 5.0, 100.0, 12.0, 1.0,
-            key="ft_ring_osse", help="Material added outside the throat outer wall")
-        _ft_od = 2.0 * (_ft_throat_R + _ft_ring)
-        _ft_bc_lo = 2.0 * (_ft_throat_R + _ft_db / 2.0 + 1.0)
-        _ft_bc_hi = max(_ft_bc_lo + 2.0, _ft_od - _ft_db - 2.0)
-        if "ft_bc_osse" not in st.session_state:
-            st.session_state["ft_bc_osse"] = (_ft_bc_lo + _ft_bc_hi) / 2.0
-        _clamp_state("ft_bc_osse", _ft_bc_lo, _ft_bc_hi)
-        _ft_bc = st.number_input("Bolt circle Ø (mm)", _ft_bc_lo, _ft_bc_hi,
-            step=1.0, key="ft_bc_osse")
-        with st.expander("Advanced"):
-            _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off_osse")
-            _ft_outer_n = int(st.number_input("Outer N-gon sides (0 = round)", 0, 12, 0, 1,
-                key="ft_outer_n_osse"))
-        _ft_bphase = 0.0; throat_outer = "Circular"
 
-        _ta_include_adapter = st.checkbox("Include shape adapter", False,
+        # Adapter first (default ON, like every other non-radial profile): the
+        # OS-SE round throat morphs from a round/threaded driver interface. When
+        # off, fall back to the flat circular bolt-on flange in the else branch.
+        _ta_include_adapter = st.checkbox("Include shape adapter", True,
             key="ta_incl_adapter_osse",
             help="Transitions from round or threaded driver interfaces to the "
                  "horn throat without increasing the horn length.")
@@ -1350,6 +1333,27 @@ with fg1:
             # Dummy old-style rect/poly vars (not used in adapter mode)
             _ft_inner_w = _ft_inner_h = 0.0
         else:
+            # ── No adapter: flat circular bolt-on throat flange ───────────
+            _ft_sp = st.number_input("Thickness (mm)", 2.0, 20.0, 6.0, 0.5, key="ft_sp_osse")
+            _ft_nb = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="ft_nb")
+            _ft_db = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="ft_db")
+            # Hole welds onto the round throat outer wall (throat_R + thickness).
+            _ft_throat_R = throat_d / 2.0 + thickness
+            _ft_ring = st.number_input("Offset from throat (mm)", 5.0, 100.0, 12.0, 1.0,
+                key="ft_ring_osse", help="Material added outside the throat outer wall")
+            _ft_od = 2.0 * (_ft_throat_R + _ft_ring)
+            _ft_bc_lo = 2.0 * (_ft_throat_R + _ft_db / 2.0 + 1.0)
+            _ft_bc_hi = max(_ft_bc_lo + 2.0, _ft_od - _ft_db - 2.0)
+            if "ft_bc_osse" not in st.session_state:
+                st.session_state["ft_bc_osse"] = (_ft_bc_lo + _ft_bc_hi) / 2.0
+            _clamp_state("ft_bc_osse", _ft_bc_lo, _ft_bc_hi)
+            _ft_bc = st.number_input("Bolt circle Ø (mm)", _ft_bc_lo, _ft_bc_hi,
+                step=1.0, key="ft_bc_osse")
+            with st.expander("Advanced"):
+                _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off_osse")
+                _ft_outer_n = int(st.number_input("Outer N-gon sides (0 = round)", 0, 12, 0, 1,
+                    key="ft_outer_n_osse"))
+            _ft_bphase = 0.0; throat_outer = "Circular"
             _ta_driver_type = "flanged"
             _ta_driver_key = "flanged"
             _ta_driver_clearance = 0.3
@@ -2350,7 +2354,8 @@ if gen_btn:
                     # mouth edge, otherwise it would cut the lip as well.
                     _safe_embed_extent = min(_profile_extent, float(_profile_z[-1]))
                     _morph_len, _overlap, _target_local_z = _ta.embedded_morph_span(
-                        float(_ta_adapter_len), _safe_embed_extent)
+                        float(_ta_adapter_len), _safe_embed_extent,
+                        desired_overlap=20.0)
                     _trim_z = float(z_min + _morph_len)
                     _adapter_top_z = float(z_min + _target_local_z)
                     _embedded_adapter_cut_z = _trim_z
@@ -2595,7 +2600,13 @@ if gen_btn:
                         output_path=tp,
                     )
                 elif is_ellip and throat_outer == "Elliptical":
-                    _ft_contour = _mesh_outer_section_xy(horn, z_min)
+                    # Sample the contour at the actual flange top face, not at
+                    # the very bottom of the horn mesh. On roll-backs the base
+                    # section can sit on the returning lip, which makes the
+                    # plate inherit that split instead of following the clean
+                    # throat-facing contour inside the rollback.
+                    _ft_contour_z = float(z_min + _ft_off + _ft_sp)
+                    _ft_contour = _mesh_outer_section_xy(horn, _ft_contour_z)
                     if _ft_contour is not None:
                         f_throat = _fg.generate_contour_flange(
                             inner_xy=_ft_contour,
@@ -2606,7 +2617,7 @@ if gen_btn:
                             bolt_n=int(_ft_nb),
                             bolt_d=_ft_db,
                             bolt_phase=_ft_bphase,
-                            offset=z_min + _ft_off + _ft_sp,
+                            offset=_ft_contour_z,
                             output_path=None,
                         )
                 elif is_rect:
@@ -3181,7 +3192,15 @@ if gen_btn:
 
             r1, r2, r3, r4 = st.columns(4)
             with r1:
-                st.metric("Length", f"{horn.bounds[1,2]-horn.bounds[0,2]:.0f} mm" if gen_horn else "—")
+                # Measure from the ORIGINAL throat plane (z_min, captured before
+                # the embedded adapter trims the flare) to the untouched mouth.
+                # Using horn.bounds[0,2] here would report only the leftover horn
+                # stub after the morph replaced the first part — so the metric
+                # read short (e.g. 36 mm) versus the computed length (63 mm).
+                # The adapter restores the throat to z_min, so the real horn
+                # length is unchanged. (Identical to the old formula when no
+                # adapter trims the horn, since then z_min == horn.bounds[0,2].)
+                st.metric("Length", f"{horn.bounds[1,2]-z_min:.0f} mm" if gen_horn else "—")
             with r2:
                 if gen_horn:
                     st.metric("Mouth", f"Ø{mouth_bx:.0f}" if abs(mouth_bx-mouth_by)<1

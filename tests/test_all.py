@@ -2737,6 +2737,53 @@ def test_adapter_assembly_flanged():
         "flanged adapter length should be measured from the flange lower face"
 test("adapter assembly flanged", test_adapter_assembly_flanged)
 
+def test_flanged_adapter_no_sliver_ring():
+    """The driver-flange bore must INTERPENETRATE the adapter's outer wall, not
+    sit flush with it. A flush bore (driver_R + wall_thickness) is ~tangent to
+    the miter-offset wall, so the manifold union spits out a ring of sliver
+    triangles at r≈bore on the flange face — these print as surface
+    "irregolarità". _FLANGE_WELD_BITE pulls the bore 0.5 mm inside the wall to
+    keep the overlap clean. Guard both the circular and the elliptical custom-
+    stack flanged paths."""
+    drv_R, L, wt = 12.7, 40.0, 6.0
+
+    def slivers(m):
+        return int((m.area_faces < 1e-5).sum())
+
+    m_circ = _ta.make_adapter_assembly(
+        driver_type="flanged", driver_diam=2 * drv_R, thread_key=None,
+        horn_shape="circular", rect_w=0, rect_h=0, poly_n_sides=0, poly_circumR=0,
+        horn_R_eq=30.0, adapter_length=L, wall_thickness=wt,
+        flange_R=55.0, flange_thickness=6.0,
+        flange_bolt_R=42.0, flange_bolt_n=4, flange_bolt_d=5.0,
+        target_slope=0.15, outer_target_slope=0.15,
+        socket_length=0.0, z_offset=0.0, output_path=None)
+    assert m_circ.is_watertight
+    assert slivers(m_circ) == 0, \
+        f"circular flanged adapter has {slivers(m_circ)} sliver faces at the bore"
+
+    n = 96
+    zst = np.linspace(0, L, 12)
+    def _ell(z, ofs=0.0):
+        t = z / L
+        return _ta._ellipse_points(drv_R * (1 - t) + 38 * t + ofs,
+                                   drv_R * (1 - t) + 24 * t + ofs, n=n)
+    cpts = np.stack([_ell(z) for z in zst])
+    copts = np.stack([_ell(z, ofs=wt) for z in zst])
+    m_ell = _ta.make_adapter_assembly(
+        driver_type="flanged", driver_diam=2 * drv_R, thread_key=None,
+        horn_shape="elliptical", rect_w=76, rect_h=48,
+        poly_n_sides=0, poly_circumR=0, horn_R_eq=float(np.sqrt(38 * 24)),
+        adapter_length=L, wall_thickness=wt,
+        flange_R=60.0, flange_thickness=6.0,
+        flange_bolt_R=48.0, flange_bolt_n=4, flange_bolt_d=5.0,
+        custom_pts=cpts, custom_outer_pts=copts, custom_pts_z=zst,
+        custom_match_from_z=20.0, socket_length=0.0, z_offset=0.0, output_path=None)
+    assert m_ell.is_watertight
+    assert slivers(m_ell) == 0, \
+        f"elliptical flanged adapter has {slivers(m_ell)} sliver faces at the bore"
+test("flanged adapter bore has no sliver ring", test_flanged_adapter_no_sliver_ring)
+
 def test_adapter_assembly_threaded():
     """Full assembly with threaded socket, circle→poly transition."""
     m = _ta.make_adapter_assembly(

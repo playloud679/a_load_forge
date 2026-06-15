@@ -357,3 +357,19 @@ When the driver interface includes a flange, the flange overlaps the first porti
 2. For custom flanged mode: if `flange_R > 0`, creates a custom bolt flange. For a standard bolt-on `driver_type`, loads the fixed industrial pattern from `flange_generator.DRIVER_FLANGE_SPECS` and creates it via `generate_driver_mounting_flange()`. The flange overlaps the first portion of the transition so the overall length still measures from the flange bottom face without compressing the morph.
 3. Translates the full assembly so the horn-throat end is at `z = z_offset`.
 4. Returns a single watertight `trimesh.Trimesh` (or `None` on failure).
+
+**Flange bore weld bite (custom flanged mode):** the custom flange's bore is set to
+`driver_R + max(driver_clearance/2, wall_thickness) − _FLANGE_WELD_BITE`. The
+subtracted **`_FLANGE_WELD_BITE` (module constant, 0.5 mm)** is essential: the adapter
+outer wall is a *miter-offset polygon*, so at the driver plane its radius is
+`driver_R + wall_thickness` only at the edge midpoints and slightly larger at the
+vertices. A bore at exactly `driver_R + wall_thickness` is therefore ~tangent
+(≈0.02 mm overlap), and the manifold union then emits a **ring of sliver triangles
+at `r ≈ bore`, `z = 0`** that the slicer renders as surface "irregolarità" on the
+flange face (measured 21 faces < 1e-5 mm², 97 < 1e-3 mm²). Biting the bore 0.5 mm
+inside the wall turns the tangency into a clean interpenetration → **0 slivers** for
+circular and elliptical custom-stack flanges; the bore still clears the airway by the
+full wall thickness, so nothing protrudes into the passage. Bolt-on flanges are
+unaffected (their bore is cut by the actual airway `cutter_tm`, not a fixed radius);
+threaded mode has no flange union (the collar is built into the mesh). Regression
+test: `flanged adapter bore has no sliver ring`.

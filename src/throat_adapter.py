@@ -28,6 +28,12 @@ from trimesh import creation as _tc
 
 logger = logging.getLogger(__name__)
 
+# How far (mm) the driver flange's bore is pulled inside the adapter's outer
+# wall so the two bodies interpenetrate cleanly. A flush bore is ~tangent to the
+# miter-offset wall and makes the manifold union emit sliver triangles on the
+# flange face; 0.5 mm of bite removes them without intruding on the airway.
+_FLANGE_WELD_BITE = 0.5
+
 # ======================================================================
 #  Thread specifications
 # ======================================================================
@@ -1240,8 +1246,20 @@ def make_adapter_assembly(
                 offset=flange_thickness,
             )
         else:
+            # The flange bore must INTERPENETRATE the adapter's outer wall, not
+            # sit flush with it. The adapter outer is a miter-offset polygon, so
+            # its radius at the driver plane is driver_R + wall_thickness *only*
+            # at the edge midpoints and slightly more at the vertices. A bore at
+            # exactly driver_R + wall_thickness is therefore ~tangent (≈0.02 mm
+            # overlap) — the manifold union then spits out a ring of sliver
+            # triangles at r≈bore, z=0 that print as surface "irregolarità" on
+            # the flange face. Biting the bore 0.5 mm inside the wall turns the
+            # tangency into a clean overlap and removes every sliver (measured:
+            # 21→0 faces < 1e-5 mm²); the bore still clears the airway by the
+            # full wall thickness, so nothing protrudes into the passage.
             f_throat = generate_flange(
-                throat_R=driver_R + max(driver_clearance / 2.0, wall_thickness),
+                throat_R=(driver_R + max(driver_clearance / 2.0, wall_thickness)
+                          - _FLANGE_WELD_BITE),
                 flange_R=flange_R,
                 thickness=flange_thickness,
                 bolt_R=flange_bolt_R,
