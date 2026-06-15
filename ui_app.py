@@ -2431,7 +2431,10 @@ if gen_btn:
                             _hz, _ = _profile_value_slope(zr, hr, z_loc)
                             if is_ellip:
                                 return _ta._ellipse_points(_wz / 2.0, _hz / 2.0, n=_adapter_n)
-                            return _ta._rect_points(_wz / 2.0, _hz / 2.0, n=_adapter_n)
+                            # lockstep: same twist-free sampling the rect horn
+                            # walls use (perim_n), so the weld surfaces match.
+                            return _ta._rect_points(_wz / 2.0, _hz / 2.0,
+                                                    n=_adapter_n, lockstep=True)
 
                         if is_ellip:
                             # The elliptical loft's outer wall is a 3-D normal
@@ -2460,7 +2463,8 @@ if gen_btn:
                             def _rect_outer_section(z_loc):
                                 _wz, _ = _profile_value_slope(_z_o_rect, _w_o_rect, z_loc)
                                 _hz, _ = _profile_value_slope(_z_o_rect, _h_o_rect, z_loc)
-                                return _ta._rect_points(_wz / 2.0, _hz / 2.0, n=_adapter_n)
+                                return _ta._rect_points(_wz / 2.0, _hz / 2.0,
+                                                        n=_adapter_n, lockstep=True)
 
                         _adapter_custom_z, _adapter_custom_pts, _adapter_custom_outer = _profile_stack(
                             zr, _target_local_z, _rect_section, _rect_outer_section)

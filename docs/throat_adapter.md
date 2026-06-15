@@ -71,9 +71,11 @@ Returns `n` equally-spaced points on a circle of radius `r`. First point is at `
 
 Returns `n` angularly spaced points on an ellipse with semi-axes `rx` and `ry`. Elliptical adapter targets use full UI axes `W`, `H` as `rx=W/2`, `ry=H/2`, with area-equivalent radius `sqrt(W·H)/2`.
 
-### `_rect_points(hw: float, hh: float, n: int = 64) -> np.ndarray`
+### `_rect_points(hw: float, hh: float, n: int = 64, lockstep: bool = False) -> np.ndarray`
 
 Returns `n` points on a rectangle of half-width `hw` and half-height `hh`. The four corners are **always anchored as exact vertices**: the perimeter is split at the start point + 4 corners into five arcs, and the `n` points are spread proportionally to arc length (≥1 interval per arc). A plain uniform-by-perimeter sampling only lands a vertex on every corner for a **square** (corner fractions `1/8, 3/8, 5/8, 7/8` → integer indices); for a non-square rectangle the corners fall *between* samples, so the connecting edge cuts across them and the morph renders a **chamfered corner** on both inner and outer walls. Anchoring the corners removes that bevel. Square output is unchanged (arcs `1:2:2:2:1` → counts `8,16,16,16,8`).
+
+**`lockstep`** (default `False`): when `True` the per-arc point counts are fixed at the **square ratio `1:2:2:2:1`** regardless of `hw/hh`, instead of being proportional to arc length. Arc-length counts shift points between arcs as the aspect ratio changes, so **lofting or welding rings of varying aspect twists over the whole height** (jagged thin triangles up the wall). Lockstep keeps point `j` on the same arc at the same fraction across every ring → twist-free, while still anchoring the corners. Used for the embedded rect adapter weld: both the rect horn walls (`rectangular_horn.generate_rectangular_3d_mesh(perim_n=N)`) and the adapter sections sample with `lockstep=True` so the coincident weld surfaces share vertices. Single-section / short-morph uses keep `False` (arc-length gives finer sampling on the long edges).
 
 **Perimeter ordering:** Starts at **mid-right** `(hw, 0)` and proceeds **counter-clockwise**:
 1. Right edge, bottom→top: `(hw, 0)` → `(hw, hh)` 

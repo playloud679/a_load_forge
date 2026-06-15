@@ -113,7 +113,8 @@ def _ellipse_points(rx: float, ry: float, n: int = _NP) -> np.ndarray:
     return np.column_stack([rx * np.cos(th), ry * np.sin(th)])
 
 
-def _rect_points(hw: float, hh: float, n: int = _NP) -> np.ndarray:
+def _rect_points(hw: float, hh: float, n: int = _NP,
+                 lockstep: bool = False) -> np.ndarray:
     """Return N×2 array of points on a rectangle (±hw, ±hh).
 
     Perimeter starts at MID-RIGHT (hw, 0) — matching θ=0 on the circle —
@@ -137,11 +138,18 @@ def _rect_points(hw: float, hh: float, n: int = _NP) -> np.ndarray:
     arc_len = np.diff(np.append(keys, perim))          # 5 arc lengths
 
     # Distribute n intervals proportional to arc length, ≥1 per arc.
-    counts = np.maximum(1, np.round(arc_len / perim * n).astype(int))
+    # `lockstep`: fix the per-arc counts at the SQUARE ratio (1:2:2:2:1) instead
+    # of arc length, so point j stays on the same arc at the same fraction
+    # regardless of hw/hh. Arc-length counts shift points between arcs as the
+    # aspect ratio changes, so lofting/welding rings of varying aspect (the
+    # embedded rect adapter onto the rect flare) twists over the whole height.
+    # Lockstep keeps the loft twist-free while still anchoring the four corners.
+    basis = np.array([1.0, 2.0, 2.0, 2.0, 1.0]) if lockstep else arc_len
+    counts = np.maximum(1, np.round(basis / basis.sum() * n).astype(int))
     while counts.sum() > n:                             # trim from longest arc
-        counts[np.argmax(arc_len / counts)] -= 1
+        counts[np.argmax(basis / counts)] -= 1
     while counts.sum() < n:                             # pad the longest arc
-        counts[np.argmax(arc_len / counts)] += 1
+        counts[np.argmax(basis / counts)] += 1
 
     # Evenly place each arc's points, the first sitting exactly on its key.
     p = np.concatenate([

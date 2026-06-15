@@ -253,10 +253,10 @@ def _build_npoint_rect_mesh(z, w, h, w_o, h_o, z_o, perim_n, output_path):
     from throat_adapter import _rect_points
     K, N = len(z), int(perim_n)
     inner = np.stack([np.column_stack([
-        _rect_points(w[i] / 2.0, h[i] / 2.0, n=N), np.full(N, z[i])])
+        _rect_points(w[i] / 2.0, h[i] / 2.0, n=N, lockstep=True), np.full(N, z[i])])
         for i in range(K)])
     outer = np.stack([np.column_stack([
-        _rect_points(w_o[i] / 2.0, h_o[i] / 2.0, n=N), np.full(N, z_o[i])])
+        _rect_points(w_o[i] / 2.0, h_o[i] / 2.0, n=N, lockstep=True), np.full(N, z_o[i])])
         for i in range(K)])
     V = np.vstack([inner.reshape(-1, 3), outer.reshape(-1, 3)])
     ib = lambda i: i * N             # inner ring base index

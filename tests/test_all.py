@@ -1111,7 +1111,8 @@ def _rect_adapter_weld_perim_n():
         ml, ov, tl = _ta.embedded_morph_span(30.0, float(z[-1]), desired_overlap=20.0)
         horn = horn0.slice_plane([0, 0, zmin + ml], [0, 0, 1], cap=True); horn.fix_normals()
         sec = lambda zl, wa, ha: _ta._rect_points(
-            np.interp(zl, z, wa) / 2, np.interp(zl, z, ha) / 2, n=rings_n)
+            np.interp(zl, z, wa) / 2, np.interp(zl, z, ha) / 2,
+            n=rings_n, lockstep=True)
         zst = np.append(z[z < tl - 1e-9], tl)
         cp = np.stack([sec(zz, w, h) for zz in zst])
         co = np.stack([sec(zz, w_o, h_o) for zz in zst])
@@ -1128,6 +1129,15 @@ def _rect_adapter_weld_perim_n():
             custom_match_from_z=ml, z_offset=zmin + tl)
         u = trimesh.boolean.union([horn, ad], engine="manifold")
         return int((u.area_faces < 1e-6).sum())
+
+    # the lockstep N-point horn must be twist-free: arc-length sampling would
+    # shift points between edges as W/H changes and the loft twists over the
+    # whole height (thin/degenerate triangles).
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as f: p = f.name
+    _r.generate_rectangular_3d_mesh(z, w, h, thickness, p, perim_n=rings_n)
+    npm = trimesh.load(p, file_type="stl"); os.unlink(p)
+    assert npm.is_watertight and int((npm.area_faces < 1e-3).sum()) == 0, \
+        "lockstep rect horn twisted (thin faces) or not watertight"
 
     assert weld(4) > 200, "expected the 4-corner weld to spew a sliver band"
     assert weld(rings_n) < 20, \

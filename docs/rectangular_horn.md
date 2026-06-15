@@ -202,11 +202,16 @@ rect-flare "bordello su flare rect" / jagged teeth down the throat; an earlier
 "weld bite" hid them by growing the wall, but that left a measurable ~0.34 mm step).
 Passing `perim_n = N` (the UI passes `rings_n` whenever an adapter welds here, and
 keeps 4 otherwise / for Iwata) routes through `_build_npoint_rect_mesh`, which lofts
-N-point inner+outer rings via the exact same `_rect_points` sampling. The weld is
-then clean (measured 443 → 4 degenerate, 0 non-manifold, watertight) with **no wall
-deformation** — no bite, no step, airway untouched. `perim_n > 4` lofts with trimesh
-(then returns the same `mesh.Mesh` type); `perim_n <= 4` keeps the manual 4-corner
-path below unchanged.
+N-point inner+outer rings via `_rect_points(..., lockstep=True)`. **Lockstep is
+essential:** the rectangle's aspect ratio changes along the flare, and arc-length
+point sampling would shift points between edges from ring to ring, twisting the loft
+into a jagged band up the **whole height** of the wall. Lockstep fixes the per-arc
+counts at the square `1:2:2:2:1` ratio so point `j` stays on the same edge/fraction
+everywhere → twist-free, and the adapter sections use the identical `lockstep=True`
+sampling so the weld surfaces share vertices. Result: clean weld (measured 443 → 4
+degenerate, 0 non-manifold, watertight) with **no wall deformation** — no bite, no
+step, airway untouched, and no twist. `perim_n > 4` lofts with trimesh (then returns
+the same `mesh.Mesh` type); `perim_n <= 4` keeps the manual 4-corner path unchanged.
 
 **Algorithm:**
 
