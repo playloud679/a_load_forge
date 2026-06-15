@@ -188,9 +188,25 @@ With defaults `(throat=50, length=572)`, this reproduces the original drawing: m
 
 ## 3-D Rectangular Lofting Engine
 
-### `generate_rectangular_3d_mesh(z: np.ndarray, w: np.ndarray, h: np.ndarray, thickness: float = 4.0, output_path: str | None = None) -> mesh.Mesh`
+### `generate_rectangular_3d_mesh(z: np.ndarray, w: np.ndarray, h: np.ndarray, thickness: float = 4.0, output_path: str | None = None, perim_n: int = 4) -> mesh.Mesh`
 
 Builds a watertight rectangular horn STL from `(z, w, h)` profiles. No CSG booleans are used — all surfaces are triangulated manually.
+
+**`perim_n` (default 4) — adapter-weldable walls:** the plain horn samples each
+ring at its **4 corners** (flat walls, minimal triangles). The **embedded throat
+adapter** samples its rectangular sections with `throat_adapter._rect_points(n=N)`
+— N points spread along the edges. When the adapter is welded onto this horn the
+two coincident walls must share the **same vertices**, otherwise the boolean union
+spews a jagged band of degenerate slivers + non-manifold edges along the join (the
+rect-flare "bordello su flare rect" / jagged teeth down the throat; an earlier
+"weld bite" hid them by growing the wall, but that left a measurable ~0.34 mm step).
+Passing `perim_n = N` (the UI passes `rings_n` whenever an adapter welds here, and
+keeps 4 otherwise / for Iwata) routes through `_build_npoint_rect_mesh`, which lofts
+N-point inner+outer rings via the exact same `_rect_points` sampling. The weld is
+then clean (measured 443 → 4 degenerate, 0 non-manifold, watertight) with **no wall
+deformation** — no bite, no step, airway untouched. `perim_n > 4` lofts with trimesh
+(then returns the same `mesh.Mesh` type); `perim_n <= 4` keeps the manual 4-corner
+path below unchanged.
 
 **Algorithm:**
 

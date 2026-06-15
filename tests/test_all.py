@@ -1090,6 +1090,52 @@ def _rect_flange_wall_bite():
 test("rect mouth flange wall-bite (no non-manifold edge)", _rect_flange_wall_bite)
 
 
+def _rect_adapter_weld_perim_n():
+    """An embedded adapter welds onto N-point rect walls (perim_n=rings_n)
+    cleanly; the default 4-corner walls leave a jagged sliver band ("bordello
+    su flare rect"). Matching the wall tessellation removes it with NO wall
+    deformation (no bite/step)."""
+    thickness, rings_n, n = 4.0, 64, 160
+    z = np.linspace(0, 120, n); t = z / z[-1]
+    w = 50.0 * (200.0 / 50.0) ** t
+    h = 40.0 * (150.0 / 40.0) ** t
+    nw = _uts.compute_profile_normals(z, w, flip_if_negative=True)
+    nh = _uts.compute_profile_normals(z, h, flip_if_negative=True)
+    w_o = w + 2 * thickness * nw[:, 1]; h_o = h + 2 * thickness * nh[:, 1]
+
+    def weld(perim_n):
+        with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as f: p = f.name
+        _r.generate_rectangular_3d_mesh(z, w, h, thickness, p, perim_n=perim_n)
+        horn0 = trimesh.load(p, file_type="stl"); os.unlink(p); horn0.fix_normals()
+        zmin = float(horn0.bounds[0, 2])
+        ml, ov, tl = _ta.embedded_morph_span(30.0, float(z[-1]), desired_overlap=20.0)
+        horn = horn0.slice_plane([0, 0, zmin + ml], [0, 0, 1], cap=True); horn.fix_normals()
+        sec = lambda zl, wa, ha: _ta._rect_points(
+            np.interp(zl, z, wa) / 2, np.interp(zl, z, ha) / 2, n=rings_n)
+        zst = np.append(z[z < tl - 1e-9], tl)
+        cp = np.stack([sec(zz, w, h) for zz in zst])
+        co = np.stack([sec(zz, w_o, h_o) for zz in zst])
+        ad = _ta.make_adapter_assembly(
+            driver_type="flanged", driver_diam=float(np.sqrt(50 * 40 * 4 / np.pi)),
+            thread_key=None, horn_shape="rectangular",
+            rect_w=float(np.interp(tl, z, w)), rect_h=float(np.interp(tl, z, h)),
+            poly_n_sides=0, poly_circumR=0,
+            horn_R_eq=float(np.sqrt(np.interp(tl, z, w) * np.interp(tl, z, h) / np.pi)),
+            adapter_length=tl, wall_thickness=thickness,
+            flange_R=40.0, flange_thickness=6.0, flange_bolt_R=30.0,
+            flange_bolt_n=4, flange_bolt_d=5.0, driver_clearance=0.3, socket_length=0.0,
+            custom_pts=cp, custom_outer_pts=co, custom_pts_z=zst,
+            custom_match_from_z=ml, z_offset=zmin + tl)
+        u = trimesh.boolean.union([horn, ad], engine="manifold")
+        return int((u.area_faces < 1e-6).sum())
+
+    assert weld(4) > 200, "expected the 4-corner weld to spew a sliver band"
+    assert weld(rings_n) < 20, \
+        f"N-point weld still has {weld(rings_n)} slivers — tessellation mismatch"
+test("rect adapter weld: matched perim_n kills the sliver band",
+     _rect_adapter_weld_perim_n)
+
+
 def _elliptical_flange_and_horn_assembly():
     """Ellipse-hole flange must weld to the elliptical loft as one body."""
     thickness = 4.0

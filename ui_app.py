@@ -2190,7 +2190,16 @@ if gen_btn:
                     _core.generate_elliptical_3d_mesh_from_profiles(
                         zr, wr / 2.0, hr / 2.0, thickness, rings_ellip, tp)
                 else:
-                    _rh.generate_rectangular_3d_mesh(zr, wr, hr, thickness, tp)
+                    # With an embedded adapter, sample the rectangular walls with
+                    # the SAME point count the adapter uses (rings_n) so the weld
+                    # surfaces share vertices — a 4-corner horn vs an N-point
+                    # adapter makes the union spew a jagged sliver band ("bordello"
+                    # su flare rect"). 4 corners stay the default when no adapter
+                    # welds here (and for Iwata's arc-mouth intersection).
+                    _rect_perim_n = (rings_n if (_ta_include_adapter and not is_iwata)
+                                     else 4)
+                    _rh.generate_rectangular_3d_mesh(
+                        zr, wr, hr, thickness, tp, perim_n=_rect_perim_n)
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
                 horn.fix_normals()
                 if is_ellip:

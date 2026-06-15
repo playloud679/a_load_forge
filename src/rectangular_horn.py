@@ -244,12 +244,65 @@ def _iwata_smooth(arr: np.ndarray, t: np.ndarray, deg: int = 3) -> np.ndarray:
 #  3-D rectangular lofting engine
 # ======================================================================
 
+def _build_npoint_rect_mesh(z, w, h, w_o, h_o, z_o, perim_n, output_path):
+    """Loft a rectangular horn whose rings carry `perim_n` points sampled the
+    SAME way as the throat adapter (`throat_adapter._rect_points`), so an
+    embedded adapter welds onto coincident, vertex-matched walls. Returns the
+    same `mesh.Mesh` type as the 4-corner path."""
+    import trimesh
+    from throat_adapter import _rect_points
+    K, N = len(z), int(perim_n)
+    inner = np.stack([np.column_stack([
+        _rect_points(w[i] / 2.0, h[i] / 2.0, n=N), np.full(N, z[i])])
+        for i in range(K)])
+    outer = np.stack([np.column_stack([
+        _rect_points(w_o[i] / 2.0, h_o[i] / 2.0, n=N), np.full(N, z_o[i])])
+        for i in range(K)])
+    V = np.vstack([inner.reshape(-1, 3), outer.reshape(-1, 3)])
+    ib = lambda i: i * N             # inner ring base index
+    ob = lambda i: K * N + i * N     # outer ring base index
+    F = []
+
+    def strip(b0, b1, rev):
+        for j in range(N):
+            jn = (j + 1) % N
+            a, b, c, d = b0 + j, b0 + jn, b1 + jn, b1 + j
+            if rev:
+                F.append([a, b, c]); F.append([a, c, d])
+            else:
+                F.append([a, c, b]); F.append([a, d, c])
+
+    for i in range(K - 1):
+        strip(ib(i), ib(i + 1), True)    # inner wall
+        strip(ob(i), ob(i + 1), False)   # outer wall
+    # end caps: bridge inner ring → outer ring at bottom (i=0) and top (i=K-1)
+    for j in range(N):
+        jn = (j + 1) % N
+        a, b, c, d = ib(0) + j, ib(0) + jn, ob(0) + jn, ob(0) + j
+        F.append([a, b, c]); F.append([a, c, d])
+        a, b, c, d = ib(K - 1) + j, ib(K - 1) + jn, ob(K - 1) + jn, ob(K - 1) + j
+        F.append([a, c, b]); F.append([a, d, c])
+
+    tm = trimesh.Trimesh(vertices=V, faces=np.array(F), process=True)
+    tm.fix_normals()
+    data = np.zeros(len(tm.faces), dtype=mesh.Mesh.dtype)
+    data["vectors"] = tm.vertices[tm.faces]
+    m_obj = mesh.Mesh(data)
+    _utils.ensure_positive_volume(m_obj)
+    if output_path:
+        m_obj.save(output_path)
+        logger.info("Exported (%d-pt walls): %s  (%d triangles)",
+                    N, output_path, len(tm.faces))
+    return m_obj
+
+
 def generate_rectangular_3d_mesh(
     z: np.ndarray,
     w: np.ndarray,
     h: np.ndarray,
     thickness: float = 4.0,
     output_path: str | None = None,
+    perim_n: int = 4,
 ) -> mesh.Mesh:
     """
     Build a watertight rectangular horn STL from (z, w, h) profiles.
@@ -260,6 +313,17 @@ def generate_rectangular_3d_mesh(
 
     The four walls (inner + outer), the bottom frame, and the top
     frame are triangulated manually — no CSG booleans required.
+
+    ``perim_n`` (default 4) is the number of points sampled around each
+    rectangular ring. The plain horn only needs the 4 corners (flat walls).
+    The **embedded throat adapter** samples its rectangular sections with
+    `throat_adapter._rect_points(n=N)`, i.e. N points spread along the edges;
+    when the adapter is welded onto this horn the two coincident walls must
+    share the SAME vertices or the boolean union spews a jagged band of
+    degenerate slivers + non-manifold edges along the join (the rect-flare
+    "bordello"). Passing `perim_n = N` makes this horn's walls carry the exact
+    same N-point sampling, so the weld is clean with NO wall deformation
+    (no bite/step). Use 4 whenever no adapter welds here.
     """
     n = len(z)
 
@@ -279,6 +343,11 @@ def generate_rectangular_3d_mesh(
     z_o = np.clip(z_o, z[0], z[-1])
     z_o[0] = z[0]    # Force bottom frame to be perfectly flat/flush at Z=0
     z_o[-1] = z[-1]  # Force top frame to be perfectly flat/flush at Z=L
+
+    # ---- N-point walls (adapter-weldable) ---------------------------------
+    if perim_n > 4:
+        return _build_npoint_rect_mesh(z, w, h, w_o, h_o, z_o, int(perim_n),
+                                       output_path)
 
     # ---- 3. Triangle budget -----------------------------------------------
     # 4 inner walls + 4 outer walls = 8 walls × (n-1) quads × 2 tris = 16·(n-1)
