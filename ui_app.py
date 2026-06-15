@@ -2377,11 +2377,41 @@ if gen_btn:
                         horn.remove_unreferenced_vertices()
                         horn.fix_normals()
 
+                    # Overlap interpenetration depth (mm). Through the weld the
+                    # adapter follows the EXACT flare contour, so its inner+outer
+                    # walls are coincident with the trimmed horn's — and the
+                    # boolean union then spews degenerate sliver triangles across
+                    # the whole weld band (≈31k on a 20 mm overlap). Those slivers
+                    # are the sunburst seen down the throat and the wall
+                    # chiaroscuro, and they bloat the file + break watertightness.
+                    _WELD_BITE = 0.4
+
                     def _profile_stack(z_arr, z_end, inner_fn, outer_fn):
                         z_arr = np.asarray(z_arr, dtype=float)
                         z_stack = np.append(z_arr[z_arr < z_end - 1e-9], z_end)
                         inner_stack = np.stack([inner_fn(float(zz)) for zz in z_stack])
                         outer_stack = np.stack([outer_fn(float(zz)) for zz in z_stack])
+                        # Shift the adapter wall OUTWARD by _WELD_BITE through the
+                        # overlap, tapering to 0 exactly at the handoff plane
+                        # (z_end) so the junction stays stepless. Growing BOTH
+                        # walls (rather than shrinking the airway) keeps the
+                        # union's bore equal to the horn's — no throat
+                        # constriction — while the adapter wall now ENCLOSES the
+                        # horn wall → clean interpenetration instead of coincident
+                        # surfaces (measured ≈31k → ≈0.5k slivers, watertight).
+                        if _WELD_BITE > 0.0 and z_end > _morph_len:
+                            def _roff(pts, d):
+                                rr = np.hypot(pts[:, 0], pts[:, 1])
+                                sc = np.where(rr > 1e-9, (rr + d) / rr, 1.0)
+                                return pts * sc[:, None]
+                            _span = z_end - _morph_len
+                            for _k, _zz in enumerate(z_stack):
+                                _b = _WELD_BITE * float(np.clip(
+                                    (z_end - _zz) / _span, 0.0, 1.0))
+                                if _b <= 0.0:
+                                    continue
+                                outer_stack[_k] = _roff(outer_stack[_k], _b)
+                                inner_stack[_k] = _roff(inner_stack[_k], _b)
                         return z_stack, inner_stack, outer_stack
 
                     if is_rect:
@@ -3264,6 +3294,59 @@ if gen_btn:
             logger.exception("Assembly generation failed")
 else:
     st.info("Configure the parameters and click **Generate Assembly STL**")
+
+# ══════════════════════════════════════════════════════════════
+#  Interactive 3-D preview of the last generated assembly
+# ══════════════════════════════════════════════════════════════
+# Opt-in (default off): the assembly can be ~175k triangles, and Streamlit
+# re-runs this whole script on every widget change. Rendering the mesh only
+# when the toggle is on keeps normal parameter tweaking snappy; once on, the
+# rotation/zoom itself is client-side WebGL and never triggers a rerun.
+if "_combined" in st.session_state:
+    st.divider()
+    _pc1, _pc2 = st.columns([3, 1])
+    with _pc1:
+        st.subheader("3D Preview")
+    with _pc2:
+        _show_3d = st.toggle("Show", value=False, key="show_3d_preview",
+                             help="Interactive view of the generated assembly — "
+                                  "drag to rotate, scroll to zoom, right-drag to pan")
+    if _show_3d:
+        try:
+            import plotly.graph_objects as go
+            _pm = st.session_state["_combined"]
+            _pv = np.asarray(_pm.vertices, dtype=float)
+            _pf = np.asarray(_pm.faces)
+            # Smooth (Gouraud) shading, NOT flat: the flare wall is built from
+            # ~160 azimuthal facets per ring, and flat shading lights each facet
+            # discretely → a radial "sunburst" down the throat that looks like a
+            # defect but is just the tessellation. Averaged vertex normals blend
+            # the facets into the true smooth surface.
+            _fig3d = go.Figure(go.Mesh3d(
+                x=_pv[:, 0], y=_pv[:, 1], z=_pv[:, 2],
+                i=_pf[:, 0], j=_pf[:, 1], k=_pf[:, 2],
+                color="#7cb342", flatshading=False, hoverinfo="skip",
+                lighting=dict(ambient=0.5, diffuse=0.85, specular=0.15,
+                              roughness=0.7, fresnel=0.1),
+                lightposition=dict(x=200, y=400, z=800)))
+            _fig3d.update_layout(
+                height=620, showlegend=False,
+                margin=dict(l=0, r=0, t=0, b=0),
+                paper_bgcolor="rgba(0,0,0,0)",
+                scene=dict(
+                    aspectmode="data",            # equal scale → true proportions
+                    bgcolor="rgba(0,0,0,0)",
+                    xaxis=dict(visible=False), yaxis=dict(visible=False),
+                    zaxis=dict(visible=False),
+                    camera=dict(eye=dict(x=1.5, y=-1.6, z=0.9))))
+            st.plotly_chart(_fig3d, use_container_width=True,
+                            config={"displaylogo": False})
+            st.caption("Drag to rotate · scroll to zoom · right-drag to pan · "
+                       "double-click to reset")
+        except ModuleNotFoundError:
+            st.warning("3D preview needs `plotly` — run `pip install plotly`.")
+        except Exception as _exc3d:
+            st.warning(f"3D preview unavailable: {type(_exc3d).__name__}: {_exc3d}")
 
 # ══════════════════════════════════════════════════════════════
 #  ROW 4 — STL Slicing (always visible, works on generated or uploaded STL)
