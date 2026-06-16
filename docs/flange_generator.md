@@ -52,13 +52,15 @@ Returns the XY centres of the selected standard bolt pattern. With the default
 phase, the 2-hole pattern lies on the horizontal X axis and the 4-hole pattern
 forms a cross.
 
-### `generate_driver_mounting_flange(driver_type: str, thickness: float = 6.0, throat_clearance: float = 0.3, offset: float = 0.0, seg: int = 96, output_path: str | None = None) -> trimesh.Trimesh | None`
+### `generate_driver_mounting_flange(driver_type: str, thickness: float = 6.0, throat_clearance: float = 0.3, offset: float = 0.0, seg: int = 96, output_path: str | None = None, bolt_phase: float | None = None) -> trimesh.Trimesh | None`
 
 Generates the selected standard circular flange using `generate_flange()`.
 The central through-hole diameter is `nominal throat + throat_clearance`; outer
 diameter, M6 clearance holes, PCD, count, and angular layout remain fixed by
-the industrial preset. The default 0.3 mm clearance turns a nominal 25.4 mm
-1" throat into a 25.7 mm printed bore.
+the industrial preset unless `bolt_phase` is supplied. Adapter assemblies use
+that override to rotate the 2-hole preset vertical and to rotate the 3-hole
+preset toward the flare contour with the largest screw clearance. The default
+0.3 mm clearance turns a nominal 25.4 mm 1" throat into a 25.7 mm printed bore.
 
 ---
 

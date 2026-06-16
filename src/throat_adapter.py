@@ -52,6 +52,126 @@ THREAD_SPECS: dict[str, ThreadSpec] = {
 }
 
 
+def _point_to_polygon_distance(pt: np.ndarray, poly: np.ndarray) -> float:
+    """Signed distance from a point to a closed polygon perimeter."""
+    p = np.asarray(pt, dtype=float)
+    q = np.asarray(poly, dtype=float)
+    if q.ndim != 2 or q.shape[0] < 3:
+        return 0.0
+
+    d_min = np.inf
+    for i in range(len(q)):
+        a = q[i]
+        b = q[(i + 1) % len(q)]
+        ab = b - a
+        denom = float(np.dot(ab, ab))
+        if denom <= 1e-12:
+            closest = a
+        else:
+            t = np.clip(np.dot(p - a, ab) / denom, 0.0, 1.0)
+            closest = a + t * ab
+        d_min = min(d_min, float(np.linalg.norm(p - closest)))
+
+    x, y = p
+    xi, yi = q[:, 0], q[:, 1]
+    xj, yj = np.roll(xi, 1), np.roll(yi, 1)
+    denom = yj - yi
+    denom = np.where(np.abs(denom) < 1e-12, 1e-12, denom)
+    crosses = ((yi > y) != (yj > y)) & (
+        x < (xj - xi) * (y - yi) / denom + xi
+    )
+    return -d_min if bool(np.count_nonzero(crosses) % 2) else d_min
+
+
+def _bolt_phase_clearance_contour(
+    horn_shape: str,
+    rect_w: float,
+    rect_h: float,
+    poly_n_sides: int,
+    poly_circumR: float,
+    horn_R_eq: float,
+    wall_thickness: float,
+    custom_pts: np.ndarray | None = None,
+    custom_outer_pts: np.ndarray | None = None,
+) -> np.ndarray | None:
+    """Outer contour used to orient asymmetric bolt-on adapter flanges."""
+    n = 192
+    if custom_outer_pts is not None:
+        outer = np.asarray(custom_outer_pts, dtype=float)
+        return outer[-1] if outer.ndim == 3 else outer
+    if custom_pts is not None:
+        inner = np.asarray(custom_pts, dtype=float)
+        pts = inner[-1] if inner.ndim == 3 else inner
+        return _offset_polygon_outward(pts, wall_thickness)
+
+    if horn_shape == "circular":
+        return None
+    if horn_shape == "elliptical":
+        pts = _ellipse_points(rect_w / 2.0, rect_h / 2.0, n=n)
+    elif horn_shape == "rectangular":
+        pts = _rect_points(rect_w / 2.0, rect_h / 2.0, n=n, lockstep=True)
+    elif horn_shape == "polygonal":
+        pts = _poly_points(poly_n_sides, poly_circumR, n=n)
+    else:
+        return None
+    return _offset_polygon_outward(pts, wall_thickness)
+
+
+def _adapter_bolt_phase(
+    driver_type: str,
+    horn_shape: str = "",
+    rect_w: float = 0.0,
+    rect_h: float = 0.0,
+    poly_n_sides: int = 0,
+    poly_circumR: float = 0.0,
+    horn_R_eq: float = 0.0,
+    wall_thickness: float = 0.0,
+    custom_pts: np.ndarray | None = None,
+    custom_outer_pts: np.ndarray | None = None,
+) -> float:
+    """Orient bolt-on adapter patterns for maximum flare clearance."""
+    from flange_generator import DRIVER_FLANGE_SPECS
+
+    spec = DRIVER_FLANGE_SPECS.get(driver_type)
+    if spec is None:
+        return 0.0
+    if spec.bolt_count == 2:
+        return np.pi / 2.0
+    if spec.bolt_count != 3:
+        return spec.bolt_phase
+
+    contour = _bolt_phase_clearance_contour(
+        horn_shape, rect_w, rect_h, poly_n_sides, poly_circumR,
+        horn_R_eq, wall_thickness, custom_pts, custom_outer_pts,
+    )
+    if contour is None or len(contour) < 3:
+        return np.pi / 2.0
+
+    period = 2.0 * np.pi / spec.bolt_count
+    phases = spec.bolt_phase + np.linspace(0.0, period, 720, endpoint=False)
+    radius = spec.pcd / 2.0
+    bolt_r = spec.bolt_diam / 2.0
+    best_phase = np.pi / 2.0
+    best_score = (-np.inf, -np.inf, -np.inf)
+    for phase in phases:
+        angles = phase + 2.0 * np.pi * np.arange(spec.bolt_count) / spec.bolt_count
+        centers = np.column_stack([radius * np.cos(angles), radius * np.sin(angles)])
+        clearances = np.array([
+            _point_to_polygon_distance(c, contour) - bolt_r for c in centers
+        ])
+        # Maximize the worst screw clearance, then average clearance. The final
+        # tie-break keeps the conventional "one bolt up" orientation when equal.
+        phase_mod = float(phase % period)
+        pref = -abs(((phase_mod - np.pi / 2.0 + period / 2.0) % period) - period / 2.0)
+        score = (float(clearances.min()), float(clearances.mean()), pref)
+        if score > best_score:
+            best_score = score
+            best_phase = phase_mod
+    if abs(best_score[0]) == np.inf:
+        return np.pi / 2.0
+    return best_phase
+
+
 def embedded_morph_span(
     requested_length: float,
     safe_extent: float,
@@ -1252,6 +1372,18 @@ def make_adapter_assembly(
                 thickness=flange_thickness,
                 throat_clearance=-1000.0,
                 offset=flange_thickness,
+                bolt_phase=_adapter_bolt_phase(
+                    driver_type,
+                    horn_shape=horn_shape,
+                    rect_w=rect_w,
+                    rect_h=rect_h,
+                    poly_n_sides=poly_n_sides,
+                    poly_circumR=poly_circumR,
+                    horn_R_eq=horn_R_eq,
+                    wall_thickness=wall_thickness,
+                    custom_pts=custom_pts,
+                    custom_outer_pts=custom_outer_pts,
+                ),
             )
         else:
             # The flange bore must INTERPENETRATE the adapter's outer wall, not

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.17.5 (2026-06-17)
+
+- **Orientamento bolt-on degli adapter** (`src/throat_adapter.py`, `src/flange_generator.py`): i preset bolt-on standard restano definiti in `DRIVER_FLANGE_SPECS`, ma quando sono usati dentro `make_adapter_assembly()` l'adapter ora passa una fase dedicata a `generate_driver_mounting_flange()`. Il 2-fori viene ruotato verticale (`+90°`) per evitare i lati stretti del flare; il 3-fori cerca la fase che massimizza la clearance minima tra fori e contorno esterno dell'adapter; i 4-fori restano sul pattern catalogo.
+- **Test/docs**: aggiunta regressione `adapter bolt-phase bias`; aggiornati `docs/throat_adapter.md`, `docs/flange_generator.md` e `docs/INDEX.md`; `VERSION`, `pyproject.toml`, `CHANGELOG` a `2.17.5`.
+
 ## 2.16.1 (2026-06-14)
 
 - **Flangia mouth inward ellittica riportata davvero dentro il rollback** (`ui_app.py`, `tests/test_all.py`): il ramo inward usava ancora una corona costruita sul lato esterno della parete di ritorno. Ora la UI campiona la sezione reale del lato cavità del rollback, costruisce la piastra con un vero offset interno e rifiuta la generazione se la flangia attraversa la pelle esterna. Aggiunta regressione specifica sul contorno inward ellittico.

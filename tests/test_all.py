@@ -291,6 +291,24 @@ def test_driver_mounting_hole_centers():
 test("standard bolt-on hole positions", test_driver_mounting_hole_centers)
 
 
+def test_adapter_bolt_phase_bias():
+    assert np.isclose(_ta._adapter_bolt_phase("bolt_on_1in_2"), np.pi / 2.0)
+    assert np.isclose(_ta._adapter_bolt_phase("bolt_on_2in_4"), 0.0)
+    assert np.isclose(_ta._adapter_bolt_phase("bolt_on_1in_3"), np.pi / 2.0)
+
+    wide = _ta._adapter_bolt_phase(
+        "bolt_on_1in_3", horn_shape="rectangular",
+        rect_w=80.0, rect_h=20.0, wall_thickness=4.0,
+    )
+    tall = _ta._adapter_bolt_phase(
+        "bolt_on_1in_3", horn_shape="rectangular",
+        rect_w=20.0, rect_h=80.0, wall_thickness=4.0,
+    )
+    assert np.isclose(wide, np.pi / 6.0)
+    assert np.isclose(tall, 0.0)
+test("adapter bolt-phase bias", test_adapter_bolt_phase_bias)
+
+
 from src import dxf_export as _dxf
 
 def _parse_circles(dxf):

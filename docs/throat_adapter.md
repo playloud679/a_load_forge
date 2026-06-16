@@ -356,7 +356,7 @@ When the driver interface includes a flange, the flange overlaps the first porti
 
 **Algorithm:**
 1. Builds the adapter (transition + optional integrated threads) via `make_adapter()`.
-2. For custom flanged mode: if `flange_R > 0`, creates a custom bolt flange. For a standard bolt-on `driver_type`, loads the fixed industrial pattern from `flange_generator.DRIVER_FLANGE_SPECS` and creates it via `generate_driver_mounting_flange()`. The flange overlaps the first portion of the transition so the overall length still measures from the flange bottom face without compressing the morph.
+2. For custom flanged mode: if `flange_R > 0`, creates a custom bolt flange. For a standard bolt-on `driver_type`, loads the fixed industrial pattern from `flange_generator.DRIVER_FLANGE_SPECS` and creates it via `generate_driver_mounting_flange()`. The adapter rotates the 2-hole preset vertical (`+π/2`) and computes a phase override for the asymmetric 3-hole preset by maximizing the minimum distance between the bolt holes and the adapter's outer flare contour; this keeps screws away from the tighter side of non-round throats. The flange overlaps the first portion of the transition so the overall length still measures from the flange bottom face without compressing the morph.
 3. Translates the full assembly so the horn-throat end is at `z = z_offset`.
 4. Returns a single watertight `trimesh.Trimesh` (or `None` on failure).
 
@@ -373,5 +373,8 @@ inside the wall turns the tangency into a clean interpenetration → **0 slivers
 circular and elliptical custom-stack flanges; the bore still clears the airway by the
 full wall thickness, so nothing protrudes into the passage. Bolt-on flanges are
 unaffected (their bore is cut by the actual airway `cutter_tm`, not a fixed radius);
-threaded mode has no flange union (the collar is built into the mesh). Regression
-test: `flanged adapter bore has no sliver ring`.
+threaded mode has no flange union (the collar is built into the mesh). For the
+standard bolt-on presets, the adapter rotates the 2-hole pattern by `+π/2`
+and searches the 3-hole phase against the final outer contour, choosing the
+rotation with the largest minimum screw clearance. Regression test:
+`flanged adapter bore has no sliver ring`.

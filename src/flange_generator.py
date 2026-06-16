@@ -77,14 +77,18 @@ def generate_driver_mounting_flange(
     offset: float = 0.0,
     seg: int = 96,
     output_path: str | None = None,
+    bolt_phase: float | None = None,
 ) -> trimesh.Trimesh | None:
     """Generate a standard bolt-on compression-driver mounting flange.
 
     ``driver_type`` selects an entry from ``DRIVER_FLANGE_SPECS``. The centre
     bore is the nominal driver throat plus ``throat_clearance``; all mounting
-    dimensions remain fixed by the selected industrial pattern.
+    dimensions remain fixed by the selected industrial pattern. ``bolt_phase``
+    overrides the catalog phase when provided; adapter assemblies use it to
+    rotate the 3-hole preset toward the open corridor of the flare.
     """
     spec = DRIVER_FLANGE_SPECS[driver_type]
+    phase = spec.bolt_phase if bolt_phase is None else bolt_phase
     return generate_flange(
         throat_R=max(1.0, (spec.throat_diam + throat_clearance) / 2.0),
         flange_R=spec.outer_diam / 2.0,
@@ -95,7 +99,7 @@ def generate_driver_mounting_flange(
         offset=offset,
         seg=seg,
         output_path=output_path,
-        bolt_phase=spec.bolt_phase,
+        bolt_phase=phase,
     )
 
 
