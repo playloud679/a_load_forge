@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.18.1 (2026-06-17)
+
+- **UI Layout & Spaziatura**: ridisegnata l'impostazione delle colonne nell'interfaccia (`ui_app.py`) per evitare il troncamento dei testi (i fastidiosi puntini di sospensione nelle metriche e nei parametri OS-SE/R-OSSE). Assegnato il 55% dello spazio allo schermo per le impostazioni e rimosse le colonne nidificate nelle metriche calcolate ("Computed").
+- **Seam Phase Manuale**: aggiunta l'opzione "Auto-avoid bolt holes" in `ui_app.py` che, se disattivata, permette di fissare l'angolo dei tagli radiali (di default 0°) per evitare tagli in diagonale non desiderati.
+- **Docs/Test**: aggiornati `VERSION`, `pyproject.toml` e `CHANGELOG` a `2.18.1`.
+
 ## 2.18.0 (2026-06-17)
 
 - **Adapter cutter interno per profili rollback** (`ui_app.py`, `src/throat_adapter.py`): la transizione embedded non usa più un cilindro dritto (costruito sul raggio massimo dell'adattatore) per rimuovere l'eccesso di tromba originale. Questo approccio cieco finiva per eliminare inavvertitamente il labbro di ritorno (rollback) sui profili come l'OS-SE, laddove il rollback avesse un raggio inferiore al vertice diagonale dell'adattatore. Ora `make_adapter_assembly` accetta un nuovo parametro `return_cutter=True` che restituisce il solido di taglio esatto corrispondente all'airway interno; la sottrazione rimuove solo il condotto in espansione, preservando perfettamente e chirurgicamente ogni rollback esterno.

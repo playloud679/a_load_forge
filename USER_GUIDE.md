@@ -221,6 +221,7 @@ Due modi di taglio / two slicing modes:
   *numero* di segmenti o *ogni quanti mm*. / cut into stacked rings; by count or by mm.
 - **❷ Apply petals** — divide ogni fetta in **spicchi** (petali) verticali, per
   trombe larghe. / split each ring into vertical petals.
+- **Seam angle** — puoi impostare manualmente l'angolo dei tagli disattivando **Auto-avoid bolt holes** (utile per forzare tagli allineati agli assi). / manually set petal rotation angle by disabling **Auto-avoid bolt holes** (handy to force axis-aligned cuts).
 - **Axial joint lip** e **Radial joint (tongue & groove)** aggiungono incastri
   maschio/femmina così i pezzi si allineano e si incollano bene. In vista lasci
   solo la **profondità**; il resto è sotto *Advanced*. / joints add male/female

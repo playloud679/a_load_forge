@@ -107,13 +107,13 @@ with _hdr_r:
 #  ROW 1 — Horn Profile (Left) + Live 2D Preview (Right)
 # ═══════════════════════════════════════════════════════════════════════
 
-col_prof, col_prev = st.columns([2, 3])
+col_prof, col_prev = st.columns([1.2, 1])
 
 with col_prof:
     st.subheader("Acoustic Profile")
 
     # ── Shape — the two primary design choices ───────────────────────────
-    sh1, sh2 = st.columns([2, 3])
+    sh1, sh2 = st.columns([1, 1])
     with sh1:
         profile_type = st.selectbox("Profile",
             ["Tractrix", "Salmon", "Iwata", "Le Cléac'h (isophase)", "Oblate spheroidal", "Conical", "R-OSSE", "OS-SE (ATH)", "Exponential"], index=6,
@@ -417,19 +417,18 @@ with col_prof:
                 coverage_v = st.number_input("Vertical coverage (°)", 10.0, 170.0, 60.0, 5.0,
                     help="Nominal vertical beamwidth (full angle)")
             with st.expander("OS-SE shape factors"):
-                _os1, _os2, _os3 = st.columns(3)
+                _os1, _os2 = st.columns(2)
                 with _os1:
                     osse_mouth_exp = st.number_input("Mouth exponent", 2.0, 20.0, 6.0, 0.5,
                         help="Superellipse mouth: 2 = ellipse · large = rectangle. "
                              "Higher pushes the diagonal ridges further to the corners.")
                     osse_throat_angle = st.number_input("Throat angle (total °)", 0.0, 90.0, 0.0, 1.0,
                         help="Throat included angle (0 = flat wavefront)")
-                with _os2:
                     osse_k = st.number_input("Throat expansion k", 0.0, 8.0, 1.0, 0.1,
                         help="1 = pure OS hyperbola · 0 = straight cone")
+                with _os2:
                     osse_n = st.number_input("SE exponent n", 2.0, 12.0, 5.0, 0.5,
                         help="How late/abrupt the mouth termination is")
-                with _os3:
                     osse_s = st.number_input("Flare amount s", 0.0, 2.0, 0.8, 0.05,
                         help="Amount of mouth flare (0 = no flare)")
                     osse_q = st.number_input("Truncation q", 0.90, 1.0, 0.998, 0.002,
@@ -520,14 +519,13 @@ with col_prof:
 
         if is_rosse:
             with st.expander("R-OSSE shape factors"):
-                _rc1, _rc2, _rc3 = st.columns(3)
+                _rc1, _rc2 = st.columns(2)
                 with _rc1:
                     rosse_a0 = st.number_input("Throat opening (total °)", 0.0, 179.0, 15.0, 1.0)
                     rosse_k = st.number_input("Throat expansion k", 0.1, 10.0, 1.8, 0.1)
-                with _rc2:
                     rosse_r = st.number_input("Apex radius r", 0.01, 5.0, 0.3, 0.05)
+                with _rc2:
                     rosse_m = st.number_input("Apex shift m", 0.0, 1.0, 0.8, 0.05)
-                with _rc3:
                     rosse_b = st.number_input("Bending b", -5.0, 5.0, 0.3, 0.05)
                     rosse_q = st.number_input("Throat shape q", 0.1, 20.0, 3.7, 0.1)
 
@@ -809,10 +807,8 @@ with col_prof:
             _mets.append((_S_t_label, f"{_S_t_cm2:.2f} cm²"))
             if _S_m_cm2:
                 _mets.append(("S_m", f"{_S_m_cm2:.2f} cm²"))
-            for _ri in range(0, len(_mets), 2):
-                _rcols = st.columns(2)
-                for _rc, (_lbl, _val) in zip(_rcols, _mets[_ri:_ri + 2]):
-                    _rc.metric(_lbl, _val)
+            for _lbl, _val in _mets:
+                st.metric(_lbl, _val)
             if is_poly and _mouth_d_eff:
                 from polygonal_horn import _r_to_circumradius
                 _Rp = _r_to_circumradius(_mouth_d_eff / 2.0, n_sides)
@@ -3846,14 +3842,20 @@ if ax_segs:
         if _en and _nb >= 2:
             _hole_angles += list(_bp + np.linspace(0, 2 * np.pi, _nb, endpoint=False))
     if _hole_angles:
-        st.caption(f"🔩 {len(_hole_angles)} bolt hole(s) detected — seams will be "
-                   "rotated to fall between them.")
+        st.caption(f"🔩 {len(_hole_angles)} bolt hole(s) detected.")
+
+    _auto_phase = st.checkbox("Auto-avoid bolt holes", False, key="auto_phase_en",
+                              help="If checked, seams will be rotated to fall between bolt holes. Uncheck to set a manual starting angle.")
+    _manual_phase_deg = 0.0
+    if not _auto_phase:
+        _manual_phase_deg = st.number_input("Seam angle (°)", -180.0, 180.0, 0.0, 1.0, key="manual_phase_deg",
+                                            help="Angle of the first seam (0 = X axis).")
 
     if _radial_joint:
         st.caption(f"✔ Tongue & groove — depth {_radial_joint_d} mm, clearance {_radial_clearance} mm, outer skin {_radial_outer_keep} mm, inner margin {_radial_inner_margin} mm")
 
     _petal_sig = (
-        2,  # radial petal algorithm cache version
+        3,  # radial petal algorithm cache version
         tuple(int(v) for v in petals_per),
         bool(_radial_joint),
         round(float(_radial_joint_d), 4),
@@ -3861,6 +3863,8 @@ if ax_segs:
         None if _radial_outer_keep is None else round(float(_radial_outer_keep), 4),
         round(float(_radial_inner_margin), 4),
         tuple(round(float(a), 6) for a in _hole_angles),
+        bool(_auto_phase),
+        round(float(_manual_phase_deg), 4),
     )
     if st.session_state.get("_petal_sig") != _petal_sig:
         st.session_state["_petal_sig"] = _petal_sig
@@ -3871,7 +3875,10 @@ if ax_segs:
             pieces = []
             for ai, (seg, np_) in enumerate(zip(ax_segs, petals_per)):
                 if np_ > 1:
-                    phase = _slc.seam_phase_avoiding_holes(np_, _hole_angles)
+                    if _auto_phase and _hole_angles:
+                        phase = _slc.seam_phase_avoiding_holes(np_, _hole_angles)
+                    else:
+                        phase = np.radians(_manual_phase_deg)
                     pets = _slc.slice_into_petals(seg, np_, phase=phase,
                                                     joint_depth=_radial_joint_d,
                                                     joint_margin=_radial_inner_margin,
