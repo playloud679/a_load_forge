@@ -4,10 +4,10 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "flare_forge"
-version = "2.19.3"
+version = "2.19.4"
 description = "Parametric STL generator for acoustic horns"
 readme = "README.md"
-license = { text = "MIT" }
+license = { text = "Proprietary" }
 requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.22.0",

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.19.4 (2026-06-18)
+
+- **Legale**: Cambiato il campo `license` in `pyproject.toml` da "MIT" a "Proprietary", coerentemente con il modello di licenza non-commerciale/SaaS.
+- **Docs/Test**: aggiornati `VERSION`, `pyproject.toml` e `CHANGELOG` a `2.19.4`.
+
 ## 2.19.3 (2026-06-18)
 
 - **Legale**: Spostata la lingua Inglese come lingua principale (prima sezione) nel file `TERMS_OF_SERVICE.md`.
