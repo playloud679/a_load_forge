@@ -223,9 +223,10 @@ Due modi di taglio / two slicing modes:
   trombe larghe. / split each ring into vertical petals.
 - **Seam angle** — puoi impostare manualmente l'angolo dei tagli disattivando **Auto-avoid bolt holes** (utile per forzare tagli allineati agli assi). / manually set petal rotation angle by disabling **Auto-avoid bolt holes** (handy to force axis-aligned cuts).
 - **Axial joint lip** e **Radial joint (tongue & groove)** aggiungono incastri
-  maschio/femmina così i pezzi si allineano e si incollano bene. In vista lasci
+  maschio-femmina ai piani di divisione. Nelle impostazioni base inserisci
   solo la **profondità**; il resto è sotto *Advanced*. / joints add male/female
-  interlocks; only depth is up front, the rest under *Advanced*.
+  interlocks. In basic mode set only depth.
+- **Axial bolted flange**: in alternativa al labbro a incastro (joint lip), genera una vera e propria flangia esterna forata lungo i tagli orizzontali per permettere di imbullonare tra loro i segmenti assiali.
 
 ### B) Print volume boxes — scatole a misura di stampante
 - Imposti **Max X / Y / Z** = il tuo volume di stampa.

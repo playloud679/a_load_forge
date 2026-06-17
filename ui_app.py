@@ -3615,6 +3615,30 @@ _joint = st.checkbox("Axial joint lip", True, key="joint_en",
 _joint_w = st.number_input("Lip wall (mm)", 0.5, 10.0, 4.0, 0.5, key="joint_w",
                             help="Wall thickness of the axial joint lip") if _joint else 0.0
 
+_flange_joint = st.checkbox("Axial bolted flange", False, key="flange_joint_en",
+                            help="Add an external flange with bolt holes at each axial cut.")
+_flange_params = None
+if _flange_joint:
+    _fj_cols = st.columns(2)
+    with _fj_cols[0]:
+        _fj_thick = st.number_input("Flange thickness (mm)", 1.0, 30.0, 6.0, 1.0, key="fj_thick")
+        _fj_offset = st.number_input("Offset da parete (mm)", 0.0, 50.0, 0.0, 1.0, key="fj_offset",
+                                     help="Clearance distance from the outer horn wall.")
+        _fj_bolt_n = st.number_input("Bolt count", 2, 32, 8, 1, key="fj_bolt_n")
+    with _fj_cols[1]:
+        _fj_ring = st.number_input("Larghezza anello (mm)", 5.0, 50.0, 15.0, 1.0, key="fj_ring",
+                                   help="Width of the bolting land. Bolts are centered here.")
+        _fj_bolt_d = st.number_input("Bolt hole Ø (mm)", 1.0, 20.0, 4.5, 0.5, key="fj_bolt_d")
+        _fj_phase = st.number_input("Fase fori (deg)", -180.0, 180.0, 0.0, 5.0, key="fj_phase")
+    _flange_params = {
+        "thickness": float(_fj_thick),
+        "ring": float(_fj_ring),
+        "wall": float(_fj_offset),
+        "bolt_n": int(_fj_bolt_n),
+        "bolt_d": float(_fj_bolt_d),
+        "bolt_phase": float(np.radians(_fj_phase)),
+    }
+
 _cut_adapter_segment = False
 if _adapter_cut_z is not None:
     _cut_adapter_segment = st.checkbox("Adapter as axial segment", False,
@@ -3763,9 +3787,10 @@ else:
     seg_ref = ("height", seg_h)
 
 _slice_sig = (
-    2,  # slicer algorithm cache version
+    3,  # slicer algorithm cache version
     tuple(np.round(mesh_to_slice.bounds.reshape(-1), 4)),
     bool(_joint), float(_joint_w),
+    bool(_flange_joint), None if not _flange_params else tuple(_flange_params.values()),
     bool(_cut_adapter_segment),
     None if _adapter_cut_z is None else round(float(_adapter_cut_z), 4),
     seg_ref,
@@ -3786,18 +3811,21 @@ if st.button("❶ Slice axially", use_container_width=True,
                 st.session_state["_ax_segs"] = _slc.slice_with_adapter_segment(
                     mesh_to_slice, _adapter_cut_z,
                     flare_segments=int(seg_ref[1]),
-                    joint_wall=_joint_w)
+                    joint_wall=_joint_w,
+                    flange_params=_flange_params)
             else:
                 st.session_state["_ax_segs"] = _slc.slice_with_adapter_segment(
                     mesh_to_slice, _adapter_cut_z,
                     flare_height=float(seg_ref[1]),
-                    joint_wall=_joint_w)
+                    joint_wall=_joint_w,
+                    flange_params=_flange_params)
         elif seg_ref[0] == "count":
             n = seg_ref[1]
             if n <= 1:
                 st.session_state["_ax_segs"] = [mesh_to_slice]
             else:
-                st.session_state["_ax_segs"] = _slc.slice_into_segments(mesh_to_slice, n, joint_wall=_joint_w)
+                st.session_state["_ax_segs"] = _slc.slice_into_segments(
+                    mesh_to_slice, n, joint_wall=_joint_w, flange_params=_flange_params)
         else:
             dz = seg_ref[1]
             z0, z1 = mesh_to_slice.bounds[0, 2], mesh_to_slice.bounds[1, 2]
@@ -3805,7 +3833,8 @@ if st.button("❶ Slice axially", use_container_width=True,
             if not cuts:
                 st.session_state["_ax_segs"] = [mesh_to_slice]
             else:
-                st.session_state["_ax_segs"] = _slc.slice_at_heights(mesh_to_slice, cuts, joint_wall=_joint_w)
+                st.session_state["_ax_segs"] = _slc.slice_at_heights(
+                    mesh_to_slice, cuts, joint_wall=_joint_w, flange_params=_flange_params)
     st.session_state.pop("_pieces", None)
     # cleanup old per-segment petal keys
     for k in list(st.session_state.keys()):

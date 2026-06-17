@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.19.0 (2026-06-17)
+
+- **Axial Bolted Flanges**: aggiunta la possibilità di generare flange imbullonate sui tagli assiali (`_slicer.py` e `ui_app.py`). Ora è possibile impostare spessore flangia, offset, numero di viti e larghezza anello direttamente dalla UI.
+- (Esperimento Radial Bolted Flanges rimosso su richiesta).
+- **Docs/Test**: aggiornati `VERSION`, `pyproject.toml` e `CHANGELOG` a `2.19.0`.
+
 ## 2.18.1 (2026-06-17)
 
 - **UI Layout & Spaziatura**: ridisegnata l'impostazione delle colonne nell'interfaccia (`ui_app.py`) per evitare il troncamento dei testi (i fastidiosi puntini di sospensione nelle metriche e nei parametri OS-SE/R-OSSE). Assegnato il 55% dello spazio allo schermo per le impostazioni e rimosse le colonne nidificate nelle metriche calcolate ("Computed").

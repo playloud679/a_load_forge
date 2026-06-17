@@ -135,6 +135,54 @@ def add_axial_lip(segment: trimesh.Trimesh, z: float, wall: float,
     return segment
 
 
+def add_axial_flange(segment: trimesh.Trimesh, z: float,
+                     thickness: float, ring: float, wall: float,
+                     bolt_n: int, bolt_d: float, bolt_phase: float = 0.0,
+                     direction: str = "up") -> trimesh.Trimesh:
+    """
+    Add a bolted flange on the OUTER surface of *segment* at Z=*z*.
+    If direction == "up", the cut is at z and the segment goes UP (this is the TOP segment, so flange is at its bottom, occupying [z, z+thickness]).
+    If direction == "down", the cut is at z and the segment goes DOWN (this is the BOTTOM segment, so flange is at its top, occupying [z-thickness, z]).
+    """
+    import flange_generator as _fg
+    
+    eps = 0.01 * (1.0 if direction == "up" else -1.0)
+    outer = _outer_polygon(segment, [0, 0, z + eps], [0, 0, 1])
+    if outer is None:
+        return segment
+
+    pts = np.array(outer.exterior.coords)
+    
+    # generate_contour_flange places the top face at `offset` and grows downwards by `thickness`.
+    # For direction == "up", the flange needs to sit above Z. So top face is z + thickness.
+    # For direction == "down", the flange sits below Z. So top face is z.
+    flange_offset = z + thickness if direction == "up" else z
+    
+    flange = _fg.generate_contour_flange(
+        inner_xy=pts,
+        thickness=thickness,
+        bolt_n=bolt_n,
+        bolt_d=bolt_d,
+        offset=flange_offset,
+        wall=wall,
+        ring=ring,
+        bite=0.5,
+        bolt_phase=bolt_phase
+    )
+    
+    if flange is None or flange.is_empty:
+        return segment
+        
+    try:
+        result = trimesh.boolean.union([segment, flange], engine="manifold", check_volume=False)
+    except Exception:
+        result = trimesh.util.concatenate([segment, flange])
+        
+    if result is not None and not result.is_empty:
+        return result
+    return segment
+
+
 def slice_at_z(mesh: trimesh.Trimesh, z: float, keep: str = "below"
                ) -> trimesh.Trimesh | None:
     """
@@ -160,29 +208,41 @@ def slice_at_z(mesh: trimesh.Trimesh, z: float, keep: str = "below"
     return result
 
 
-def _with_joints(segments, cuts, wall, angles=None):
-    """Add joint lips — each segment (except top) gets a lip on its TOP face."""
-    if wall <= 0 or len(segments) <= 1:
+def _with_joints(segments, cuts, wall, angles=None, flange_params=None):
+    """Add joint lips or bolted flanges — each cut gets joining geometry."""
+    if (wall <= 0 and flange_params is None) or len(segments) <= 1:
         return segments
     if angles is None:
         angles = {}
     out = []
     for i, seg in enumerate(segments):
-        if i < len(segments) - 1:
-            z_cut = cuts[i + 1]
-            ang = angles.get(z_cut, 0.0)
-            seg = add_axial_lip(seg, z_cut, wall, direction="up", angle_deg=ang)
+        if flange_params is not None:
+            # apply flange at the bottom of this segment
+            if i > 0:
+                z_bottom = cuts[i]
+                seg = add_axial_flange(seg, z_bottom, direction="up", **flange_params)
+            # apply flange at the top of this segment
+            if i < len(segments) - 1:
+                z_top = cuts[i + 1]
+                seg = add_axial_flange(seg, z_top, direction="down", **flange_params)
+        elif wall > 0:
+            if i < len(segments) - 1:
+                z_cut = cuts[i + 1]
+                ang = angles.get(z_cut, 0.0)
+                seg = add_axial_lip(seg, z_cut, wall, direction="up", angle_deg=ang)
         out.append(seg)
     return out
 
 
 def slice_into_segments(mesh: trimesh.Trimesh, n: int,
-                        joint_wall: float = 0.0
+                        joint_wall: float = 0.0,
+                        flange_params: dict | None = None
                         ) -> list[trimesh.Trimesh]:
     """
     Cut *mesh* into *n* axial segments of equal Z-height.
 
     When *joint_wall* > 0, a joint lip is added to each intermediate cut.
+    When *flange_params* is provided, a bolted flange is added to each cut.
     """
     z_min = mesh.bounds[0, 2]
     z_max = mesh.bounds[1, 2]
@@ -200,17 +260,19 @@ def slice_into_segments(mesh: trimesh.Trimesh, n: int,
             if seg is not None and not seg.is_empty:
                 segments.append(seg)
         lo = hi
-    angles = _precompute_angles(mesh, cuts) if joint_wall > 0 else None
-    return _with_joints(segments, cuts, joint_wall, angles)
+    angles = _precompute_angles(mesh, cuts) if (joint_wall > 0 and not flange_params) else None
+    return _with_joints(segments, cuts, joint_wall, angles, flange_params)
 
 
 def slice_at_heights(mesh: trimesh.Trimesh, heights: list[float],
-                     joint_wall: float = 0.0
+                     joint_wall: float = 0.0,
+                     flange_params: dict | None = None
                      ) -> list[trimesh.Trimesh]:
     """
     Cut *mesh* at the given Z *heights*. Returns capped slabs.
 
     When *joint_wall* > 0, a joint lip is added at each cut.
+    When *flange_params* is provided, a bolted flange is added.
     """
     z_min = mesh.bounds[0, 2]
     z_max = mesh.bounds[1, 2]
@@ -224,8 +286,8 @@ def slice_at_heights(mesh: trimesh.Trimesh, heights: list[float],
             seg = _plane_cut(seg, [0.0, 0.0, hi], [0.0, 0.0, -1.0])
             if seg is not None and not seg.is_empty:
                 segments.append(seg)
-    angles = _precompute_angles(mesh, cuts) if joint_wall > 0 else None
-    return _with_joints(segments, cuts, joint_wall, angles)
+    angles = _precompute_angles(mesh, cuts) if (joint_wall > 0 and not flange_params) else None
+    return _with_joints(segments, cuts, joint_wall, angles, flange_params)
 
 
 def slice_with_adapter_segment(
@@ -234,6 +296,7 @@ def slice_with_adapter_segment(
     flare_segments: int = 1,
     flare_height: float | None = None,
     joint_wall: float = 0.0,
+    flange_params: dict | None = None,
 ) -> list[trimesh.Trimesh]:
     """
     Cut off the throat adapter as its own bottom axial segment, then slice only
@@ -252,7 +315,8 @@ def slice_with_adapter_segment(
         cuts.append(cut)
     else:
         return slice_into_segments(mesh, max(1, int(flare_segments)),
-                                   joint_wall=joint_wall)
+                                   joint_wall=joint_wall,
+                                   flange_params=flange_params)
 
     if flare_height is not None and flare_height > 0:
         z = cut + float(flare_height)
@@ -265,7 +329,7 @@ def slice_with_adapter_segment(
             dz = (z_max - cut) / n
             cuts.extend(cut + dz * k for k in range(1, n))
 
-    return slice_at_heights(mesh, cuts, joint_wall=joint_wall)
+    return slice_at_heights(mesh, cuts, joint_wall=joint_wall, flange_params=flange_params)
 
 
 def _axis_intervals(lo: float, hi: float, max_size: float) -> list[tuple[float, float]]:
@@ -921,6 +985,7 @@ def slice_into_petals(mesh: trimesh.Trimesh, n: int,
                       joint_margin: float = 0.5,
                       clearance: float = 0.1,
                       outer_margin: float | None = None,
+                      flange_params: dict | None = None,
                       ) -> list[trimesh.Trimesh]:
     """
     Cut *mesh* into *n* radial petals (like an orange).
@@ -932,6 +997,9 @@ def slice_into_petals(mesh: trimesh.Trimesh, n: int,
     wall strips, one each side of the axis); each half gets a tongue on one strip
     and a groove on the other, assigned so the halves mate and come out as
     identical parts.
+
+    If *flange_params* is provided, an external bolted flange is added to the 
+    seams instead of the internal tongue & groove joint.
 
     *clearance* — total radial gap between tongue and groove (default 0.1 mm).
     *outer_margin* — protected external-skin width; when set, tongue/groove
@@ -945,25 +1013,14 @@ def slice_into_petals(mesh: trimesh.Trimesh, n: int,
         normal0 = np.array([np.sin(angle0), -np.cos(angle0), 0.0])
         normal1 = np.array([-np.sin(angle1), np.cos(angle1), 0.0])
 
-        # Boolean half-space cuts instead of slice_plane's ear-clip cap: the
-        # latter leaves open edges where the seam crosses a multi-loop section
-        # (adapter segment = wall ring + threads + bore, or the weld overlap),
-        # which the slicer used to emit as a non-watertight petal.
         petal = _plane_cut(mesh, [0.0, 0.0, 0.0], normal0)
         if petal is not None and not petal.is_empty and n > 2:
             petal = _plane_cut(petal, [0.0, 0.0, 0.0], normal1)
         if petal is None or petal.is_empty:
             continue
-
+            
         if joint_depth > 0:
             if n == 2:
-                # The two halves share ONE diametric seam plane, which crosses the
-                # axis and meets the wall on two strips.  Put a tongue on one strip
-                # and a groove on the other so EVERY petal carries one male + one
-                # female.  The assignment flips between the halves (axis fixed in
-                # global frame) so a tongue on one always faces a groove on the
-                # other.  The two petals end up identical (one is the other rotated
-                # 180°).
                 axis = np.array([np.cos(phase), np.sin(phase), 0.0])
                 tongue_side = 1 if i == 0 else -1
                 petal = add_radial_tongue(petal, angle1, joint_depth, joint_margin,
@@ -975,13 +1032,14 @@ def slice_into_petals(mesh: trimesh.Trimesh, n: int,
                                           outer_margin=outer_margin,
                                           side=-tongue_side, axis=axis)
             else:
-                petal = add_radial_groove(petal, angle0, joint_depth, joint_margin,
-                                          clearance=clearance,
-                                          outer_margin=outer_margin)
                 petal = add_radial_tongue(petal, angle1, joint_depth, joint_margin,
                                           clearance=clearance,
                                           outer_margin=outer_margin)
+                petal = add_radial_groove(petal, angle0, joint_depth, joint_margin,
+                                          clearance=clearance,
+                                          outer_margin=outer_margin)
 
-        petals.append(petal)
+        if petal is not None and not petal.is_empty:
+            petals.append(petal)
 
     return petals
