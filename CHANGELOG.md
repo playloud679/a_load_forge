@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.19.5 (2026-06-18)
+
+- **Legale/UI**: Aggiunto un disclaimer di "Beta / Work In Progress" ai Termini di Servizio (in tutte e 3 le lingue) e come banner di avviso visibile nell'header dell'applicazione Streamlit.
+- **Docs/Test**: aggiornati `VERSION`, `pyproject.toml` e `CHANGELOG` a `2.19.5`.
+
 ## 2.19.4 (2026-06-18)
 
 - **Legale**: Cambiato il campo `license` in `pyproject.toml` da "MIT" a "Proprietary", coerentemente con il modello di licenza non-commerciale/SaaS.

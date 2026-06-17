@@ -97,6 +97,7 @@ _hdr_l, _hdr_r = st.columns([5, 1])
 with _hdr_l:
     st.title("flare_forge")
     st.caption(f":gray[v{_VERSION}] · Acoustic profile + mounting flanges · watertight assembly for 3D printing")
+    st.warning("🚧 **Beta / Work In Progress**: The author is actively validating geometric and acoustic accuracy. Generated STL files may contain imperfections. Always inspect and verify 3D models before printing.", icon="⚠️")
 with _hdr_r:
     try:
         _tos_content = (Path(__file__).parent / "TERMS_OF_SERVICE.md").read_text(encoding="utf-8")

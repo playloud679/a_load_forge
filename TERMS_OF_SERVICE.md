@@ -6,6 +6,8 @@
 
 ## English
 
+> **Disclaimer**: This software is currently in Beta / Work In Progress. The author is actively validating the geometric and acoustic accuracy of the outputs. Generated STL files may contain imperfections or errors. You are advised to always inspect and verify all 3D models before printing.
+
 ### 1. Ownership and License
 The algorithm, software, and infrastructure of "Flare Forge" are the exclusive property of the creator. The user receives a personal, non-transferable, and non-exclusive license to use the service and download the generated STL files. The generated STL files may be used only as set forth in these Terms.
 
@@ -29,6 +31,8 @@ Use of the service is at your own risk.
 ---
 
 ## Italiano
+
+> **Avvertenza**: Questo software è attualmente in fase Beta / Work In Progress. L'autore sta validando l'accuratezza geometrica e acustica degli output. I file STL generati potrebbero contenere imperfezioni o errori. Si consiglia di ispezionare e verificare sempre i modelli 3D prima della stampa.
 
 ### 1. Proprietà e Licenza
 L'algoritmo, il software e l'infrastruttura di "Flare Forge" sono di proprietà esclusiva del creatore. L'utente riceve una licenza personale, non trasferibile e non esclusiva per utilizzare il servizio e scaricare i file STL generati. I file STL generati possono essere utilizzati esclusivamente secondo quanto stabilito nei presenti Termini.
@@ -54,7 +58,9 @@ L'utilizzo del servizio avviene a proprio rischio e pericolo.
 
 ## Español
 
-### 1. Propiedad y Licencia
+> **Aviso Legal**: Este software se encuentra actualmente en fase Beta / Work In Progress. El autor está validando la precisión geométrica y acústica de las salidas. Los archivos STL generados pueden contener imperfecciones o errores. Se recomienda inspeccionar y verificar siempre los modelos 3D antes de la impresión.
+
+### 1. Propiedad y Licenza
 El algoritmo, el software y la infraestructura de "Flare Forge" son propiedad exclusiva del creador. El usuario recibe una licencia personal, intransferible y no exclusiva para utilizar el servicio y descargar los archivos STL generados. Los archivos STL generados pueden utilizarse únicamente según lo establecido en estos Términos.
 
 ### 2. Limitaciones de Uso
