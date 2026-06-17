@@ -1,4 +1,4 @@
-.PHONY: venv install dev run test lint format clean
+.PHONY: venv install dev run test test-all test-geometry test-match lint format clean
 
 VENV_DIR := .venv
 PYTHON  := python3
@@ -22,6 +22,17 @@ run:
 
 test:
 	$(VENV_DIR)/bin/python tests/test_all.py
+	$(VENV_DIR)/bin/python tests/test_geometry.py
+
+test-all:
+	$(VENV_DIR)/bin/python tests/test_all.py
+
+test-geometry:
+	$(VENV_DIR)/bin/python tests/test_geometry.py
+
+test-match:
+	@if [ -z "$(MATCH)" ]; then echo "Usage: make test-match MATCH='complete rollback'"; exit 2; fi
+	$(VENV_DIR)/bin/python tests/test_all.py --match "$(MATCH)"
 
 lint:
 	$(VENV_DIR)/bin/python -m ruff check src tests ui_app.py

@@ -8,6 +8,7 @@ Strategy: section the mesh at a Z plane, isolate the outer contour entity
   N-gon outer:     ratio ≈ 1/cos(π/N)   e.g. 4-gon→1.414, 6-gon→1.155
 """
 
+import argparse
 import sys, os, tempfile, traceback
 import numpy as np
 
@@ -21,10 +22,37 @@ from src import flange_generator as _fg
 
 PASS = 0
 FAIL = 0
+SKIP = 0
+
+
+def _parse_args():
+    parser = argparse.ArgumentParser(description="Run Flare Forge geometry tests.")
+    parser.add_argument(
+        "--match", "-m", action="append", default=[],
+        help="Run only tests whose label contains this text. May be repeated.")
+    parser.add_argument(
+        "--list", action="store_true",
+        help="List matching test labels without running them.")
+    return parser.parse_args()
+
+
+ARGS = _parse_args()
+MATCHES = [m.casefold() for m in ARGS.match]
+
+
+def _selected(label):
+    return not MATCHES or any(m in label.casefold() for m in MATCHES)
 
 
 def test(label, fn):
-    global PASS, FAIL
+    global PASS, FAIL, SKIP
+    if not _selected(label):
+        SKIP += 1
+        return
+    if ARGS.list:
+        print(f"  • {label}")
+        PASS += 1
+        return
     try:
         fn()
         print(f"  ✅ {label}")
@@ -299,7 +327,10 @@ test("default (no outer_n_sides arg) → circle", test_default_still_circular)
 # ══════════════════════════════════════════════════════════════════════════════
 
 print(f"\n{'═' * 40}")
-print(f"  PASS: {PASS}   FAIL: {FAIL}")
+print(f"  PASS: {PASS}   FAIL: {FAIL}   SKIP: {SKIP}")
 print(f"{'═' * 40}")
 import sys as _sys
+if MATCHES and PASS == 0 and FAIL == 0:
+    print("No tests matched --match filter")
+    _sys.exit(2)
 _sys.exit(0 if FAIL == 0 else 1)

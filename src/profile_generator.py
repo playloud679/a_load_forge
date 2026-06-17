@@ -57,6 +57,10 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
                    help="Salmon flare parameter T (0=catenoidal, <1=cosh, 1=exponential, >1=sinh)")
     p.add_argument("--max-angle", type=float, default=160.0,
                    help="Termination angle in degrees (lecleach only, 90-180, default 160)")
+    p.add_argument("--complete-rollback", action="store_true",
+                   help="Extend lecleach/rosse lips with an inward return curl")
+    p.add_argument("--rollback-angle", type=float, default=330.0,
+                   help="Final tangent angle for --complete-rollback (degrees from +Z)")
     p.add_argument("--profile",
                    choices=["auto", "tractrix", "salmon", "iwata", "lecleach", "oblate", "conical", "rosse"],
                    default="auto")
@@ -231,6 +235,81 @@ def get_conical(
 
 # ---- R-OSSE (rollback OSSE waveguide, Marcel Batík) ----------------------
 
+def _resample_profile_by_arclength(
+    z: np.ndarray,
+    r: np.ndarray,
+    n: int,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Resample a possibly non-monotonic meridian by chord length."""
+    z = np.asarray(z, float)
+    r = np.asarray(r, float)
+    if n <= 2 or len(z) <= 2:
+        return z, r
+    ds = np.hypot(np.diff(z), np.diff(r))
+    s = np.concatenate([[0.0], np.cumsum(ds)])
+    if s[-1] <= 1e-12:
+        return np.full(n, z[0]), np.full(n, r[0])
+    s_new = np.linspace(0.0, s[-1], n)
+    return np.interp(s_new, s, z), np.interp(s_new, s, r)
+
+
+def complete_rollback_profile(
+    z: np.ndarray,
+    r: np.ndarray,
+    n: int | None = None,
+    target_angle: float = 330.0,
+    curl_scale: float = 0.30,
+) -> tuple[np.ndarray, np.ndarray]:
+    """
+    Extend a rolled-back meridian with an inward return curl.
+
+    The base Le Cléac'h and R-OSSE formulae stop at the acoustic rollback lip:
+    axial ``z`` has already turned back, but radius is still at (or near) its
+    largest value. This helper appends a smooth circular-arc continuation whose
+    tangent starts at the profile's last tangent and ends at ``target_angle``.
+    The default produces a complete-looking lip while leaving the airway profile
+    unchanged up to the original endpoint.
+    """
+    z = np.asarray(z, float)
+    r = np.asarray(r, float)
+    if z.ndim != 1 or r.ndim != 1 or len(z) != len(r) or len(z) < 3:
+        raise ValueError("z and r must be same-length 1-D arrays with at least 3 points")
+    if curl_scale <= 0.0:
+        raise ValueError("curl_scale must be positive")
+
+    out_n = int(n or len(z))
+    dz = float(z[-1] - z[-3])
+    dr = float(r[-1] - r[-3])
+    theta0 = float(np.arctan2(dr, dz))
+    while theta0 < 0.0:
+        theta0 += 2.0 * np.pi
+
+    # Ordinary profiles are not rolled back enough to define a return curl.
+    if theta0 < np.pi / 2.0:
+        return _resample_profile_by_arclength(z, r, out_n)
+
+    theta1 = np.radians(target_angle)
+    while theta1 <= theta0 + np.radians(5.0):
+        theta1 += 2.0 * np.pi
+
+    r_min = max(float(r[0]) * 1.15, 0.5)
+    denom = np.cos(theta1) - np.cos(theta0)
+    if denom > 1e-9:
+        max_curl_r = 0.90 * max(float(r[-1]) - r_min, 1e-6) / denom
+    else:
+        max_curl_r = float(r[-1])
+    curl_radius = min(float(r[-1]) * curl_scale, max_curl_r)
+    if curl_radius <= 1e-9:
+        return _resample_profile_by_arclength(z, r, out_n)
+
+    extra_n = max(24, out_n // 4)
+    theta = np.linspace(theta0, theta1, extra_n + 1)[1:]
+    z_ext = z[-1] + curl_radius * (np.sin(theta) - np.sin(theta0))
+    r_ext = r[-1] + curl_radius * (np.cos(theta0) - np.cos(theta))
+    z_full = np.concatenate([z, z_ext])
+    r_full = np.concatenate([r, r_ext])
+    return _resample_profile_by_arclength(z_full, r_full, out_n)
+
 def get_rosse(
     throat: float,
     mouth: float,
@@ -242,6 +321,8 @@ def get_rosse(
     m: float = 0.8,
     b: float = 0.3,
     q: float = 3.7,
+    complete_rollback: bool = False,
+    rollback_angle: float = 330.0,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
     R-OSSE waveguide — rollback Oblate-Spheroidal-Superellipse (Marcel Batík).
@@ -296,6 +377,8 @@ def get_rosse(
          + b * L * (np.sqrt(r ** 2 + (1.0 - m) ** 2) - np.sqrt(r ** 2 + m ** 2)) * t ** 2)
     y = ((1.0 - t ** q) * (np.sqrt(c1 + c2 * L * t + c3 * L ** 2 * t ** 2) + r0 * (1.0 - k))
          + t ** q * (R + L * (1.0 - np.sqrt(1.0 + c3 * (t - 1.0) ** 2))))
+    if complete_rollback:
+        return complete_rollback_profile(x, y, n, target_angle=rollback_angle)
     return x, y
 
 
@@ -341,7 +424,9 @@ from scipy.integrate import solve_ivp
 
 def get_lecleach(throat: float, fc: float, n: int,
                  T: float = 0.707,
-                 max_angle: float = 160.0) -> tuple[np.ndarray, np.ndarray]:
+                 max_angle: float = 160.0,
+                 complete_rollback: bool = False,
+                 rollback_angle: float = 330.0) -> tuple[np.ndarray, np.ndarray]:
     """
     Le Cléac'h isophase wavefront horn — Salmon area law + parallel wavefronts.
 
@@ -400,6 +485,8 @@ def get_lecleach(throat: float, fc: float, n: int,
         r = np.full(n, rt)
         z = np.zeros(n)
 
+    if complete_rollback:
+        return complete_rollback_profile(z, r, n, target_angle=rollback_angle)
     return z, r
 
 
@@ -731,7 +818,9 @@ def main(argv: list[str] | None = None) -> None:
             logger.info("Le Cléac'h: throat=%s  Fc=%s  T=%s  max_angle=%s",
                         args.throat, args.fc, args.T, args.max_angle)
             z, r = get_lecleach(args.throat, args.fc, args.segments,
-                                T=args.T, max_angle=args.max_angle)
+                                T=args.T, max_angle=args.max_angle,
+                                complete_rollback=args.complete_rollback,
+                                rollback_angle=args.rollback_angle)
             logger.info("Mouth ø: %.1f mm  Length: %.1f mm  (roll-back %.0f°)",
                         r.max() * 2, z.max(), args.max_angle)
 
@@ -761,7 +850,10 @@ def main(argv: list[str] | None = None) -> None:
                 raise ValueError("--mouth required for rosse (waveguide outer Ø)")
             logger.info("R-OSSE: throat=%s  mouth=%s  coverage=%s",
                         args.throat, args.mouth, args.coverage)
-            z, r = get_rosse(args.throat, args.mouth, args.coverage, args.segments)
+            z, r = get_rosse(
+                args.throat, args.mouth, args.coverage, args.segments,
+                complete_rollback=args.complete_rollback,
+                rollback_angle=args.rollback_angle)
             fc = SOUND_SPEED / (np.pi * args.mouth)
             logger.info("Mouth ø: %.1f mm  Length: %.1f mm  mouth-loading estimate≈%.0f Hz (rollback)",
                         args.mouth, z.max(), fc)

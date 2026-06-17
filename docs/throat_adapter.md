@@ -202,7 +202,7 @@ Morph a circular throat into an elliptical cross-section over Z. **Area-first de
 
 ## Public API
 
-### `make_adapter(driver_R: float, horn_shape: str, horn_w: float, horn_h: float, horn_n_sides: int, horn_R_eq: float, horn_circumR: float, axial_steps: int, adapter_length: float, wall_thickness: float, thread_key: str | None = None, socket_length: float = 0.0, collar_overlap: float = 5.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, custom_pts: np.ndarray | None = None, custom_outer_pts: np.ndarray | None = None, custom_pts_z: np.ndarray | None = None, custom_match_from_z: float | None = None, output_path: str | None = None) -> trimesh.Trimesh`
+### `make_adapter(driver_R: float, horn_shape: str, horn_w: float, horn_h: float, horn_n_sides: int, horn_R_eq: float, horn_circumR: float, axial_steps: int, adapter_length: float, wall_thickness: float, thread_key: str | None = None, socket_length: float = 0.0, collar_overlap: float = 5.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, custom_pts: np.ndarray | None = None, custom_outer_pts: np.ndarray | None = None, custom_pts_z: np.ndarray | None = None, custom_match_from_z: float | None = None, return_cutter: bool = False, output_path: str | None = None) -> trimesh.Trimesh | tuple[trimesh.Trimesh, trimesh.Trimesh]`
 
 Builds the morphing transition section, optionally with an integrated threaded extension at the circular (driver) end.
 
@@ -234,6 +234,7 @@ Builds the morphing transition section, optionally with an integrated threaded e
 | `custom_outer_pts` | `np.ndarray \| None` | Matching **outer-wall** contour(s) (same shape as `custom_pts`). The outer wall blends from the plain miter offset into the exact contour, then follows it exactly from `custom_match_from_z` |
 | `custom_pts_z` | `np.ndarray \| None` | Local-z stations (0 = driver plane … `adapter_length` = handoff plane) for a `(K, m, 2)` stack; the last station must be the handoff plane. Ignored for a single `(m, 2)` section |
 | `custom_match_from_z` | `float \| None` | Start of the weld overlap. With a section stack, the adapter reaches the exact stacked inner/outer contours at this Z and follows them through the rest of the overlap |
+| `return_cutter` | `bool` | If True, returns a tuple `(adapter_mesh, cutter_mesh)` where `cutter_mesh` is the solid inner airway, useful for boolean subtraction from the horn throat. |
 | `output_path` | `str \| None` | Optional STL export path |
 
 **Custom section mode (`horn_shape="custom"`):** built for the **OS-SE** flare,
@@ -304,7 +305,7 @@ Returns a watertight `trimesh.Trimesh`.
 
 ---
 
-### `make_adapter_assembly(driver_type: str, driver_diam: float | None, thread_key: str | None, horn_shape: str, rect_w: float, rect_h: float, poly_n_sides: int, poly_circumR: float, horn_R_eq: float, adapter_length: float, wall_thickness: float, axial_steps: int = 50, flange_R: float = 0.0, flange_thickness: float = 6.0, flange_bolt_R: float = 0.0, flange_bolt_n: int = 4, flange_bolt_d: float = 3.5, flange_bolt_phase: float = 0.0, flange_outer_n: int = 0, driver_clearance: float = 0.3, socket_length: float = 15.0, collar_overlap: float = 5.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, custom_pts: np.ndarray | None = None, custom_outer_pts: np.ndarray | None = None, custom_pts_z: np.ndarray | None = None, custom_match_from_z: float | None = None, z_offset: float = 0.0, output_path: str | None = None) -> trimesh.Trimesh`
+### `make_adapter_assembly(driver_type: str, driver_diam: float | None, thread_key: str | None, horn_shape: str, rect_w: float, rect_h: float, poly_n_sides: int, poly_circumR: float, horn_R_eq: float, adapter_length: float, wall_thickness: float, axial_steps: int = 50, flange_R: float = 0.0, flange_thickness: float = 6.0, flange_bolt_R: float = 0.0, flange_bolt_n: int = 4, flange_bolt_d: float = 3.5, flange_bolt_phase: float = 0.0, flange_outer_n: int = 0, driver_clearance: float = 0.3, socket_length: float = 15.0, collar_overlap: float = 5.0, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, custom_pts: np.ndarray | None = None, custom_outer_pts: np.ndarray | None = None, custom_pts_z: np.ndarray | None = None, custom_match_from_z: float | None = None, z_offset: float = 0.0, return_cutter: bool = False, output_path: str | None = None) -> trimesh.Trimesh | tuple[trimesh.Trimesh, trimesh.Trimesh]`
 
 Assembles the complete throat adapter: driver interface + morphing transition.
 
@@ -352,6 +353,7 @@ When the driver interface includes a flange, the flange overlaps the first porti
 | `custom_pts_z` | `np.ndarray \| None` | `None` | Local-z stations for a `(K, m, 2)` `custom_pts` stack — passed through to `make_adapter` |
 | `custom_match_from_z` | `float \| None` | `None` | Start of exact stacked-contour matching / weld overlap — passed through to `make_adapter` |
 | `z_offset` | `float` | `0.0` | Z position of horn-throat end of transition |
+| `return_cutter` | `bool` | `False` | If True, returns `(assembly, cutter_mesh)` |
 | `output_path` | `str \| None` | `None` | Optional STL export path |
 
 **Algorithm:**

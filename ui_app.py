@@ -171,8 +171,10 @@ with col_prof:
                    "with azimuth-dependent coverage (diagonal ridges). Section selector ignored.")
     # ── Section / flare modifiers — only those relevant to the current shape
     rect_ar, n_sides, salmon_T, lecleach_angle = 2.0, 4, 0.707, 160.0
+    rollback_complete, rollback_angle = False, 330.0
     _mods = (["ar"] if (is_rect and not is_iwata) else []) + (["sides"] if is_poly else []) \
-            + (["T"] if is_T_variable else []) + (["angle"] if is_lecleach else [])
+            + (["T"] if is_T_variable else []) + (["angle"] if is_lecleach else []) \
+            + (["rollback"] if (is_lecleach or is_rosse) else [])
     if _mods:
         _mcols = st.columns(len(_mods))
         for _mcol, _mk in zip(_mcols, _mods):
@@ -192,6 +194,16 @@ with col_prof:
                     lecleach_angle = st.number_input("Termination angle (°)", 90.0, 179.0, 160.0, 5.0,
                         key="lecleach_angle", on_change=_on_horn_change,
                         help="Defines where the Le Cléac'h roll-back terminates; larger angles curl farther back")
+                elif _mk == "rollback":
+                    rollback_mode = st.radio("Rollback lip", ["Truncated", "Complete"],
+                        index=0, horizontal=True, key="rollback_mode",
+                        on_change=_on_horn_change,
+                        help="Truncated keeps the current acoustic lip; Complete adds an inward return curl")
+                    rollback_complete = rollback_mode == "Complete"
+                    if rollback_complete:
+                        rollback_angle = st.number_input("Curl end (°)", 210.0, 360.0, 330.0, 5.0,
+                            key="rollback_angle", on_change=_on_horn_change,
+                            help="Final tangent angle of the added return curl")
 
     # ── Advanced settings — print params + the global speed of sound
     with st.expander("⚙️ Advanced settings"):
@@ -237,10 +249,16 @@ with col_prof:
     rosse_a0, rosse_k, rosse_r = 15.0, 1.8, 0.3
     rosse_m, rosse_b, rosse_q = 0.8, 0.3, 3.7
 
+    def _get_lecleach_profile(throat_d, fc, n):
+        return _core.get_lecleach(
+            throat_d, fc, n, T=salmon_T, max_angle=lecleach_angle,
+            complete_rollback=rollback_complete, rollback_angle=rollback_angle)
+
     def _get_rosse_profile(throat_d, mouth_d, n):
         return _core.get_rosse(
             throat_d, mouth_d, coverage_h, n, rosse_a0,
-            rosse_k, rosse_r, rosse_m, rosse_b, rosse_q)
+            rosse_k, rosse_r, rosse_m, rosse_b, rosse_q,
+            complete_rollback=rollback_complete, rollback_angle=rollback_angle)
 
     def _get_rect_rosse_profile(throat_w, throat_h, mouth_w, n):
         throat_eq = np.sqrt(throat_w * throat_h * 4.0 / np.pi)
@@ -468,8 +486,8 @@ with col_prof:
                 zr, wr, hr = _get_rect_rosse_profile(throat_w, throat_h, mouth_w, segments)
                 _len = zr.max()
                 zp, rp = zr, np.sqrt(wr * hr / np.pi)
-                _mouth_d_eff = 2.0 * rp[-1]
-                _fc_eff = c_val / (np.pi * (2.0 * rp[-1]))
+                _mouth_d_eff = 2.0 * rp.max()
+                _fc_eff = c_val / (np.pi * _mouth_d_eff)
             elif is_cd:
                 zr, wr, hr = _cd_rect_fn(throat_w, throat_h, coverage_h, coverage_v, axial_len, segments)
                 _len = axial_len
@@ -492,11 +510,15 @@ with col_prof:
                 zp, rp = zr, np.sqrt(wr * hr / np.pi)
             else:  # lecleach — area-preserving from circular
                 throat_d_eq = np.sqrt(throat_w * throat_h * 4 / np.pi)
-                zp, rp = _core.get_lecleach(throat_d_eq, fc, segments, T=salmon_T, max_angle=lecleach_angle)
+                zp, rp = _get_lecleach_profile(throat_d_eq, fc, segments)
                 zr, wr, hr = _rh._area_to_rect(zp, rp, throat_w, throat_h)
-                _mouth_d_eff = 2.0 * rp[-1]
+                _mouth_d_eff = 2.0 * rp.max()
                 _len = zp.max()
-            _mouth_w_eff, _mouth_h_eff = float(wr[-1]), float(hr[-1])
+            if is_rosse or is_lecleach:
+                _im_inner = int(np.argmax(wr * hr))
+                _mouth_w_eff, _mouth_h_eff = float(wr[_im_inner]), float(hr[_im_inner])
+            else:
+                _mouth_w_eff, _mouth_h_eff = float(wr[-1]), float(hr[-1])
             # Actual outer dimensions at throat and mouth (normal offset)
             _nw_rect = _uts.compute_profile_normals(zr, wr, flip_if_negative=True)
             _nh_rect = _uts.compute_profile_normals(zr, hr, flip_if_negative=True)
@@ -532,11 +554,11 @@ with col_prof:
             zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
             _len = axial_len; _mouth_d_eff = rp.max() * 2
         elif is_lecleach:
-            zp, rp = _core.get_lecleach(throat_d, fc, segments, T=salmon_T, max_angle=lecleach_angle)
+            zp, rp = _get_lecleach_profile(throat_d, fc, segments)
             _len = zp.max(); _mouth_d_eff = rp.max() * 2
         elif is_rosse:
             zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
-            _len = zp.max(); _mouth_d_eff = rp[-1] * 2
+            _len = zp.max(); _mouth_d_eff = rp.max() * 2
             _fc_eff = c_val / (np.pi * _mouth_d_eff)
         elif is_cd:
             zp, rp = _cd_fn(throat_d, coverage_h, axial_len, segments)
@@ -626,7 +648,7 @@ with col_prev:
             elif is_salmon:
                 zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
             elif is_lecleach:
-                zp, rp = _core.get_lecleach(throat_d, fc, segments, T=salmon_T, max_angle=lecleach_angle)
+                zp, rp = _get_lecleach_profile(throat_d, fc, segments)
             elif is_rosse:
                 zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
             elif is_cd:
@@ -641,7 +663,7 @@ with col_prev:
             _nml = _uts.compute_profile_normals(zp, R_poly_arr, flip_if_negative=True)
             R_poly_o = R_poly_arr + thickness / np.cos(np.pi / n_sides) * _nml[:, 1]
             z_poly_o = zp + thickness * _nml[:, 0]
-            z_poly_o = np.clip(z_poly_o, zp[0], zp[-1])
+            z_poly_o = np.clip(z_poly_o, np.min(zp), np.max(zp))
             z_poly_o[0] = zp[0]; z_poly_o[-1] = zp[-1]
             ax.plot(zp, R_poly_arr, label=f"Inner ({n_sides}-gon)", c="#2196F3")
             ax.plot(z_poly_o, R_poly_o, label="+ wall", c="#FF5722", alpha=.5, linestyle="--")
@@ -686,7 +708,7 @@ with col_prev:
             elif is_salmon:
                 zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
             elif is_lecleach:
-                zp, rp = _core.get_lecleach(throat_d, fc, segments, T=salmon_T, max_angle=lecleach_angle)
+                zp, rp = _get_lecleach_profile(throat_d, fc, segments)
             elif is_rosse:
                 zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
             elif is_cd:
@@ -845,7 +867,7 @@ def _rollback_mouth_geometry():
     elif is_salmon:
         z, r = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
     elif is_lecleach:
-        z, r = _core.get_lecleach(throat_d, fc, segments, T=salmon_T, max_angle=lecleach_angle)
+        z, r = _get_lecleach_profile(throat_d, fc, segments)
     elif is_rosse:
         z, r = _get_rosse_profile(throat_d, mouth_d, segments)
     elif is_cd:
@@ -903,16 +925,17 @@ def _calc_flange_dims():
         return float(max(0.1, zp[-1] - z_o[-1]))
 
     def _circular_mouth_hole_R(zp, rp):
-        """Mouth flange hole: outermost wall radius at the rim, bitten inward.
-        Near-90° terminations (tractrix, wide CD) end with an almost axial
-        rim normal, so r_o[-1] ≈ rp[-1]: keeping the hole outside the inner
-        rim (the old rp[-1]+0.1 floor) left it tangent to — or proud of —
-        the wall end face, and the union produced an unwelded slit. Bite the
-        rim itself instead (like the OS-SE contour flange), at the cost of
-        ≤ bite mm of flange lip inside the airway at the mouth plane."""
+        """Mouth flange hole: outermost wall radius at the acoustic rim.
+
+        Rollback-complete profiles end at an inward curl tip, so the rim is the
+        maximum envelope station, not necessarily the last sample. Near-90°
+        ordinary terminations still resolve to the last sample. Bite the rim
+        inward so the flange welds volumetrically instead of touching coplanar.
+        """
         nml = _uts.compute_profile_normals(zp, rp)
         r_o = rp + nml[:, 1] * thickness
-        return float(max(r_o[-1], rp[-1]) - _FLANGE_WALL_BITE)
+        rim = int(np.argmax(np.maximum(r_o, rp)))
+        return float(max(r_o[rim], rp[rim]) - _FLANGE_WALL_BITE)
 
     mouth_dz = float(thickness)
     if is_osse:
@@ -939,7 +962,7 @@ def _calc_flange_dims():
         else:
             throat_d_eq = np.sqrt(throat_w * throat_h * 4 / np.pi)
             zr, wr, hr = _rh._area_to_rect(
-                *_core.get_lecleach(throat_d_eq, fc, segments, T=salmon_T, max_angle=lecleach_angle),
+                *_get_lecleach_profile(throat_d_eq, fc, segments),
                 throat_w, throat_h)
         # Mouth hole = the widest outer cross-section (roll-back aware), not the
         # curled-back last array element.
@@ -956,7 +979,7 @@ def _calc_flange_dims():
         elif is_salmon:
             zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
         elif is_lecleach:
-            zp, rp = _core.get_lecleach(throat_d, fc, segments, T=salmon_T, max_angle=lecleach_angle)
+            zp, rp = _get_lecleach_profile(throat_d, fc, segments)
         elif is_rosse:
             zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
         elif is_cd:
@@ -966,9 +989,10 @@ def _calc_flange_dims():
         R_i = _r_to_circumradius(rp, n_sides)
         nml = _uts.compute_profile_normals(zp, R_i, flip_if_negative=True)
         R_o = R_i + thickness / np.cos(np.pi / n_sides) * nml[:, 1]
-        # Same rim-bite rule as _circular_mouth_hole_R (axial rim normal →
-        # R_o ≈ R_i: the old R_i+0.1 floor left the hole off the wall).
-        ir_mouth = float(max(R_o[-1], R_i[-1]) - _FLANGE_WALL_BITE)
+        # Same rim-bite rule as _circular_mouth_hole_R; rollback-complete
+        # profiles use the maximum envelope, not the inward curl tip.
+        _rim_poly = int(np.argmax(np.maximum(R_o, R_i)))
+        ir_mouth = float(max(R_o[_rim_poly], R_i[_rim_poly]) - _FLANGE_WALL_BITE)
         mouth_dz = _mouth_wall_dz(zp, rp)
         _get_mid_r = lambda pct: _r_to_circumradius(np.array([rp[int(len(rp)*pct/100)]]), n_sides)[0]
     elif is_radial:
@@ -1003,7 +1027,7 @@ def _calc_flange_dims():
         if is_salmon:
             zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
         else:
-            zp, rp = _core.get_lecleach(throat_d, fc, segments, T=salmon_T, max_angle=lecleach_angle)
+            zp, rp = _get_lecleach_profile(throat_d, fc, segments)
         ir_throat = throat_d / 2
         ir_mouth = _circular_mouth_hole_R(zp, rp)
         mouth_dz = _mouth_wall_dz(zp, rp)
@@ -2120,7 +2144,7 @@ if gen_btn:
                 elif is_salmon:
                     zp, rp = C.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
                 elif is_lecleach:
-                    zp, rp = C.get_lecleach(throat_d, fc, segments, T=salmon_T, max_angle=lecleach_angle)
+                    zp, rp = _get_lecleach_profile(throat_d, fc, segments)
                 elif is_rosse:
                     zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
                 elif is_cd:
@@ -2137,15 +2161,17 @@ if gen_btn:
                 _cos_pn    = np.cos(np.pi / n_sides)
                 _R_o_arr   = _R_i_arr + thickness / _cos_pn * _nml_poly[:, 1]
                 _z_o_poly  = zp + thickness * _nml_poly[:, 0]
-                _z_o_poly  = np.clip(_z_o_poly, zp[0], zp[-1])
+                _z_o_poly  = np.clip(_z_o_poly, np.min(zp), np.max(zp))
                 _z_o_poly[0] = zp[0]; _z_o_poly[-1] = zp[-1]
                 _R_o_eq_arr = np.sqrt(
                     (0.5 * n_sides * _R_o_arr**2 * np.sin(2*np.pi/n_sides)) / np.pi)
                 _R_o_throat_poly = _R_o_arr[0]
-                _R_o_mouth_poly  = _R_o_arr[-1]
-                mouth_bx = mouth_by = _R_o_arr[-1] * 2
-                _rp_mouth = rp[-1]
-                _zp_mouth = zp[-1]
+                _i_rim_poly = int(np.argmax(np.maximum(_R_o_arr, _R_i_arr)))
+                _R_o_mouth_poly  = _R_o_arr[_i_rim_poly]
+                mouth_bx = mouth_by = _R_o_arr[_i_rim_poly] * 2
+                _i_inner_rim_poly = int(np.argmax(rp))
+                _rp_mouth = rp[_i_inner_rim_poly]
+                _zp_mouth = zp[_i_inner_rim_poly]
                 _adapter_target_slope = _slope_start(zp, rp)
                 _adapter_outer_target_R = float(_R_o_eq_arr[0])
                 _adapter_outer_target_slope = _slope_start(_z_o_poly, _R_o_eq_arr)
@@ -2180,8 +2206,7 @@ if gen_btn:
                     zr, wr, hr = _rh.get_iwata_horn(throat_d, axial_len, segments)
                 else:
                     throat_d_eq = np.sqrt(throat_w * throat_h * 4 / np.pi)
-                    zp_c, rp_c = _core.get_lecleach(
-                        throat_d_eq, fc, segments, T=salmon_T, max_angle=lecleach_angle)
+                    zp_c, rp_c = _get_lecleach_profile(throat_d_eq, fc, segments)
                     zr, wr, hr = _rh._area_to_rect(zp_c, rp_c, throat_w, throat_h)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
                 if is_ellip:
@@ -2251,14 +2276,14 @@ if gen_btn:
                     mouth_bx = float(horn.bounds[1, 0] - horn.bounds[0, 0])
                     mouth_by = float(horn.bounds[1, 1] - horn.bounds[0, 1])
                 else:
-                    mouth_bx, mouth_by = wr[-1] + 2 * thickness, hr[-1] + 2 * thickness
+                    mouth_bx, mouth_by = _w_o_rect[_i_rim_rect], _h_o_rect[_i_rim_rect]
             else:
                 if is_tractrix:
                     zp, rp = C.get_tractrix(throat_d, mouth_d, segments)
                 elif is_salmon:
                     zp, rp = C.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
                 elif is_lecleach:
-                    zp, rp = C.get_lecleach(throat_d, fc, segments, T=salmon_T, max_angle=lecleach_angle)
+                    zp, rp = _get_lecleach_profile(throat_d, fc, segments)
                 elif is_rosse:
                     zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
                 elif is_cd:
@@ -2358,16 +2383,25 @@ if gen_btn:
                     # the requested distance and match the real profile there.
                     _profile_z = _z_os if is_osse else (zr if is_rect else zp)
                     _profile_extent = float(np.max(_profile_z))
-                    # Roll-back profiles return toward the throat after their
-                    # deepest point. A planar trim must stay below that returning
-                    # mouth edge, otherwise it would cut the lip as well.
-                    _safe_embed_extent = min(_profile_extent, float(_profile_z[-1]))
+                    # The morph target must stay inside the advancing branch of
+                    # the flare (cannot exceed peak Z). The returning lip is
+                    # preserved via a local cylindrical cut later.
+                    _safe_embed_extent = _profile_extent
                     _morph_len, _overlap, _target_local_z = _ta.embedded_morph_span(
                         float(_ta_adapter_len), _safe_embed_extent,
                         desired_overlap=20.0)
                     _trim_z = float(z_min + _morph_len)
                     _adapter_top_z = float(z_min + _target_local_z)
-                    _embedded_adapter_cut_z = _trim_z
+                    _profile_peak = int(np.argmax(_profile_z))
+                    _return_min_z = (float(np.min(_profile_z[_profile_peak:]))
+                                     if _profile_peak < len(_profile_z) - 1
+                                     else float("inf"))
+                    _adapter_preserve_return_lip = _return_min_z <= _morph_len + 1e-6
+                    _embedded_adapter_cut_z = None if _adapter_preserve_return_lip else _trim_z
+                    _handoff_local_z = float(_target_local_z)
+                    _adapter_length_actual = float(_target_local_z)
+                    _adapter_z_offset = float(_adapter_top_z)
+                    _adapter_match_from_z = float(_morph_len)
 
                     # Perimeter point count of the adapter's cross-sections.
                     # It MUST match the flare's revolution resolution at the
@@ -2379,12 +2413,18 @@ if gen_btn:
                     # and the caps. OS-SE samples its own (nz, nphi) grid below.
                     _adapter_n = rings_ellip if is_ellip else rings_n
 
-                    _trimmed_horn = horn.slice_plane(
-                        [0.0, 0.0, _trim_z], [0.0, 0.0, 1.0], cap=True)
-                    if _trimmed_horn is not None and not _trimmed_horn.is_empty:
-                        horn = _trimmed_horn
-                        horn.remove_unreferenced_vertices()
-                        horn.fix_normals()
+                    if _adapter_preserve_return_lip:
+                        st.warning(
+                            "Complete rollback returns into the adapter trim zone; "
+                            "the throat adapter will replace only the central throat "
+                            "zone, preserving the outer return lip.")
+                    else:
+                        _trimmed_horn = horn.slice_plane(
+                            [0.0, 0.0, _trim_z], [0.0, 0.0, 1.0], cap=True)
+                        if _trimmed_horn is not None and not _trimmed_horn.is_empty:
+                            horn = _trimmed_horn
+                            horn.remove_unreferenced_vertices()
+                            horn.fix_normals()
 
                     # NOTE: no weld "bite" here. A previous version grew the
                     # adapter wall outward through the overlap to force a clean
@@ -2399,33 +2439,36 @@ if gen_btn:
                     # the 3-D preview by smooth shading.
                     def _profile_stack(z_arr, z_end, inner_fn, outer_fn):
                         z_arr = np.asarray(z_arr, dtype=float)
+                        peak = int(np.argmax(z_arr)) + 1
+                        z_arr = z_arr[:peak]
                         z_stack = np.append(z_arr[z_arr < z_end - 1e-9], z_end)
+                        z_stack = z_stack[np.concatenate([[True], np.diff(z_stack) > 1e-9])]
                         inner_stack = np.stack([inner_fn(float(zz)) for zz in z_stack])
                         outer_stack = np.stack([outer_fn(float(zz)) for zz in z_stack])
                         return z_stack, inner_stack, outer_stack
 
                     if is_rect:
                         horn_shape = "elliptical" if is_ellip else "rectangular"
-                        rect_w, _ = _profile_value_slope(zr, wr, _target_local_z)
-                        rect_h, _ = _profile_value_slope(zr, hr, _target_local_z)
+                        rect_w, _ = _profile_value_slope(zr, wr, _handoff_local_z)
+                        rect_h, _ = _profile_value_slope(zr, hr, _handoff_local_z)
                         poly_n_sides = 0
                         poly_circumR = 0.0
                         _inner_eq = (np.sqrt(wr * hr) / 2.0 if is_ellip
                                      else np.sqrt(wr * hr / np.pi))
                         horn_R_eq, _adapter_target_slope = _profile_value_slope(
-                            zr, _inner_eq, _target_local_z)
+                            zr, _inner_eq, _handoff_local_z)
                         _adapter_target_curv = _profile_curv(
-                            zr, _inner_eq, _target_local_z)
+                            zr, _inner_eq, _handoff_local_z)
                         _outer_eq = (np.sqrt(_w_o_rect * _h_o_rect) / 2.0 if is_ellip
                                      else np.sqrt(_w_o_rect * _h_o_rect / np.pi))
                         _outer_target_R, _outer_target_slope = _profile_value_slope(
-                            _z_o_rect, _outer_eq, _target_local_z)
+                            _z_o_rect, _outer_eq, _handoff_local_z)
                         _adapter_outer_target_curv = _profile_curv(
-                            _z_o_rect, _outer_eq, _target_local_z)
+                            _z_o_rect, _outer_eq, _handoff_local_z)
                         _outer_rw, _ = _profile_value_slope(
-                            _z_o_rect, _w_o_rect, _target_local_z)
+                            _z_o_rect, _w_o_rect, _handoff_local_z)
                         _outer_rh, _ = _profile_value_slope(
-                            _z_o_rect, _h_o_rect, _target_local_z)
+                            _z_o_rect, _h_o_rect, _handoff_local_z)
                         def _rect_section(z_loc):
                             _wz, _ = _profile_value_slope(zr, wr, z_loc)
                             _hz, _ = _profile_value_slope(zr, hr, z_loc)
@@ -2467,21 +2510,21 @@ if gen_btn:
                                                         n=_adapter_n, lockstep=True)
 
                         _adapter_custom_z, _adapter_custom_pts, _adapter_custom_outer = _profile_stack(
-                            zr, _target_local_z, _rect_section, _rect_outer_section)
+                            zr, _handoff_local_z, _rect_section, _rect_outer_section)
                     elif is_poly:
                         horn_shape = "polygonal"
                         rect_w = rect_h = 0.0
                         poly_n_sides = n_sides
                         poly_circumR, _ = _profile_value_slope(
-                            zp, _R_i_arr, _target_local_z)
+                            zp, _R_i_arr, _handoff_local_z)
                         horn_R_eq, _adapter_target_slope = _profile_value_slope(
-                            zp, rp, _target_local_z)
+                            zp, rp, _handoff_local_z)
                         _adapter_target_curv = _profile_curv(
-                            zp, rp, _target_local_z)
+                            zp, rp, _handoff_local_z)
                         _outer_target_R, _outer_target_slope = _profile_value_slope(
-                            _z_o_poly, _R_o_eq_arr, _target_local_z)
+                            _z_o_poly, _R_o_eq_arr, _handoff_local_z)
                         _adapter_outer_target_curv = _profile_curv(
-                            _z_o_poly, _R_o_eq_arr, _target_local_z)
+                            _z_o_poly, _R_o_eq_arr, _handoff_local_z)
                         _outer_rw = _outer_rh = None
                         def _poly_section(z_loc):
                             _Rz, _ = _profile_value_slope(zp, rp, z_loc)
@@ -2492,7 +2535,7 @@ if gen_btn:
                             return _ta._poly_points(n_sides, _Rz, n=_adapter_n)
 
                         _adapter_custom_z, _adapter_custom_pts, _adapter_custom_outer = _profile_stack(
-                            zp, _target_local_z, _poly_section, _poly_outer_section)
+                            zp, _handoff_local_z, _poly_section, _poly_outer_section)
                     elif is_osse:
                         # The OS-SE cross-section is NOT an ellipse (elliptical-
                         # cone coverage under a sqrt, plus the superellipse mouth
@@ -2519,15 +2562,15 @@ if gen_btn:
                             return float(np.sqrt(
                                 _ta._polygon_area(_osse_section(z_loc)) / np.pi))
 
-                        _end_section = _osse_section(_target_local_z)
+                        _end_section = _osse_section(_handoff_local_z)
                         horn_R_eq = float(np.sqrt(
                             _ta._polygon_area(_end_section) / np.pi))
                         # Slope/curvature of the equivalent radius from the
                         # r(z,φ) grid — step by one grid spacing (the field is
                         # piecewise linear between rings).
                         _zg = float(_z_os[1] - _z_os[0])
-                        _re_m = _osse_r_eq(_target_local_z - _zg)
-                        _re_p = _osse_r_eq(_target_local_z + _zg)
+                        _re_m = _osse_r_eq(_handoff_local_z - _zg)
+                        _re_p = _osse_r_eq(_handoff_local_z + _zg)
                         _adapter_target_slope = (_re_p - _re_m) / (2.0 * _zg)
                         _adapter_target_curv = (
                             _re_p - 2.0 * horn_R_eq + _re_m) / (_zg * _zg)
@@ -2559,7 +2602,7 @@ if gen_btn:
                         # end section still left a ~0.06 mm step ring because
                         # the OS-SE aspect ratio changes with z.
                         _adapter_custom_z, _adapter_custom_pts, _adapter_custom_outer = _profile_stack(
-                            _z_os, _target_local_z, _osse_section, _osse_outer_section)
+                            _z_os, _handoff_local_z, _osse_section, _osse_outer_section)
 
                         _outer_target_R = _outer_target_slope = _adapter_outer_target_curv = None
                         _outer_rw = _outer_rh = None
@@ -2569,13 +2612,13 @@ if gen_btn:
                         poly_n_sides = 0
                         poly_circumR = 0.0
                         horn_R_eq, _adapter_target_slope = _profile_value_slope(
-                            zp, rp, _target_local_z)
+                            zp, rp, _handoff_local_z)
                         _adapter_target_curv = _profile_curv(
-                            zp, rp, _target_local_z)
+                            zp, rp, _handoff_local_z)
                         _outer_target_R, _outer_target_slope = _profile_value_slope(
-                            _z_o_circ, _r_o_circ, _target_local_z)
+                            _z_o_circ, _r_o_circ, _handoff_local_z)
                         _adapter_outer_target_curv = _profile_curv(
-                            _z_o_circ, _r_o_circ, _target_local_z)
+                            _z_o_circ, _r_o_circ, _handoff_local_z)
                         _outer_rw = _outer_rh = None
                         def _circ_section(z_loc):
                             _Rz, _ = _profile_value_slope(zp, rp, z_loc)
@@ -2586,10 +2629,10 @@ if gen_btn:
                             return _ta._circle_points(_Rz, n=_adapter_n)
 
                         _adapter_custom_z, _adapter_custom_pts, _adapter_custom_outer = _profile_stack(
-                            zp, _target_local_z, _circ_section, _circ_outer_section)
+                            zp, _handoff_local_z, _circ_section, _circ_outer_section)
 
                     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
-                    f_throat = _ta.make_adapter_assembly(
+                    f_throat, _adapter_cutter = _ta.make_adapter_assembly(
                         driver_type=_ta_driver_key,
                         driver_diam=_ft_driver_d if _driver_is_custom_flange else None,
                         thread_key=_ta_thread_key,
@@ -2598,7 +2641,7 @@ if gen_btn:
                         poly_n_sides=poly_n_sides,
                         poly_circumR=poly_circumR,
                         horn_R_eq=horn_R_eq,
-                        adapter_length=_target_local_z,
+                        adapter_length=_adapter_length_actual,
                         wall_thickness=thickness,
                         flange_R=_ft_od / 2.0 if _driver_is_custom_flange else 0.0,
                         flange_thickness=_ft_sp if _driver_is_flanged else 0.0,
@@ -2619,10 +2662,27 @@ if gen_btn:
                         custom_pts=_adapter_custom_pts,
                         custom_outer_pts=_adapter_custom_outer,
                         custom_pts_z=_adapter_custom_z,
-                        custom_match_from_z=_morph_len,
-                        z_offset=_adapter_top_z,
+                        custom_match_from_z=_adapter_match_from_z,
+                        z_offset=_adapter_z_offset,
+                        return_cutter=True,
                         output_path=tp,
                     )
+                    if _adapter_preserve_return_lip and f_throat is not None and _adapter_cutter is not None:
+                        try:
+                            # Use the exact internal cutter generated by the adapter loft
+                            # to hollow out the original horn's throat. This removes only
+                            # the advancing airway without touching the returning lip
+                            # (unlike a straight cylinder cut).
+                            _cut_horn = _tm.boolean.difference(
+                                [horn, _adapter_cutter],
+                                engine="manifold",
+                                check_volume=False)
+                            if _cut_horn is not None and not _cut_horn.is_empty:
+                                horn = _cut_horn
+                                horn.remove_unreferenced_vertices()
+                                horn.fix_normals()
+                        except Exception:
+                            pass
                 elif is_ellip and throat_outer == "Elliptical":
                     # Sample the contour at the actual flange top face, not at
                     # the very bottom of the horn mesh. On roll-backs the base
@@ -3184,7 +3244,8 @@ if gen_btn:
                     ("mid", f_mid),
                 ) if body is not None
             }
-            if gen_throat and not is_radial and _ta_include_adapter and f_throat is not None:
+            if (gen_throat and not is_radial and _ta_include_adapter
+                    and f_throat is not None and _embedded_adapter_cut_z is not None):
                 st.session_state["_adapter_cut_z"] = float(_embedded_adapter_cut_z)
             else:
                 st.session_state.pop("_adapter_cut_z", None)

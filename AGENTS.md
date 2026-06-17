@@ -50,7 +50,44 @@ Whenever you modify a Python module under `src/` (add a new profile, change a fu
 
 6. Add a test case in `tests/test_all.py`.
 
-### Running the test suite
+### Test execution hierarchy
+
+Do **not** run the full 230+ test suite after every small edit by default.
+Use a tiered approach:
+
+1. **During focused development / bug fixing**, run only the smallest relevant
+   checks:
+   ```bash
+   .venv/bin/python -m py_compile ui_app.py tests/test_all.py
+   .venv/bin/python tests/test_all.py --match "complete rollback"
+   .venv/bin/python tests/test_geometry.py --match "outer shape"
+   make test-match MATCH="complete rollback"
+   ```
+
+2. **When touching shared geometry, flange, slicer, adapter, or profile code**,
+   run the matching focused tests first, then broaden only to the affected
+   suite:
+   ```bash
+   make test-all        # tests/test_all.py only
+   make test-geometry   # tests/test_geometry.py only
+   ```
+
+3. **Before committing, opening a PR, or handing off a finished change**, run
+   the full suite:
+   ```bash
+   make test
+   ```
+
+The test runners support repeated label filters:
+
+```bash
+.venv/bin/python tests/test_all.py --match "rollback" --match "adapter"
+```
+
+If a `--match` filter finds no tests, the runner exits with code `2`; adjust
+the filter instead of treating it as a pass.
+
+### Full pre-commit test suite
 
 ```bash
 .venv/bin/python tests/test_all.py
@@ -114,4 +151,3 @@ importlib.reload(_ta)
 2. If you add a new module under `src/` that is used in `ui_app.py`, you **must** add both its import and its reload call to this block.
 3. Always import the full module (e.g. `import rectangular_horn as _rh`) rather than importing names from it, so that the module reference can be passed to `importlib.reload()`.
 4. This ensures that every hot-reload picks up your latest changes immediately, without requiring a manual restart of Streamlit.
-

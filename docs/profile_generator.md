@@ -44,6 +44,8 @@ Imported from `src/_constants.py`.
 | `--coverage` | `float` | `90.0` | Total coverage angle in degrees (oblate / conical / R-OSSE; formula uses half-angle) |
 | `--T` | `float` | `0.707` | Salmon flare parameter T (0=catenoidal, <1=cosh, 1=exponential, >1=sinh) |
 | `--max-angle` | `float` | `160.0` | Termination angle in degrees (lecleach only, 90-180, default 160) |
+| `--complete-rollback` | `flag` | `False` | Extend Le Cléac'h / R-OSSE with an inward return curl after the acoustic rollback lip |
+| `--rollback-angle` | `float` | `330.0` | Final tangent angle for `--complete-rollback`, measured in degrees from +Z |
 | `--profile` | `str` | `"auto"` | Choices: `"auto"`, `"tractrix"`, `"salmon"`, `"iwata"`, `"lecleach"`, `"oblate"`, `"conical"`, `"rosse"` |
 | `--thickness` | `float` | `4.0` | Wall thickness in mm |
 | `--segments` | `int` | `300` | Number of profile sample points |
@@ -134,11 +136,23 @@ r(x) = r0 + x · tan(theta),   theta = coverage_angle / 2
 
 Same `(throat, coverage, length)` interface as `get_oblate_spheroidal`, so the UI dispatches both through one handle (`is_cd`). Unlike oblate, the throat slope is **non-zero** (a sharp cone). The wall angle is nominal/asymptotic; actual directivity remains frequency- and driver-dependent. Mouth Ø and a one-wavelength mouth-loading estimate are derived (not inputs). The rectangular counterpart is `rectangular_horn.get_rectangular_conical`.
 
-### `get_rosse(throat: float, mouth: float, coverage_angle: float, n: int, throat_angle: float = 15.0, k: float = 1.8, r: float = 0.3, m: float = 0.8, b: float = 0.3, q: float = 3.7) -> tuple[np.ndarray, np.ndarray]`
+### `complete_rollback_profile(z: np.ndarray, r: np.ndarray, n: int | None = None, target_angle: float = 330.0, curl_scale: float = 0.30) -> tuple[np.ndarray, np.ndarray]`
+
+Post-process for rollback profiles. The base Le Cléac'h and R-OSSE equations
+stop at the acoustic rollback lip: axial `z` has turned back, while radius is
+still at or near the largest value. This helper appends a smooth circular-arc
+return whose tangent starts from the existing final tangent and ends at
+`target_angle`, then resamples by meridian arc length.
+
+The default mode in `get_lecleach()` and `get_rosse()` leaves profiles
+unchanged. The UI exposes this helper as **Rollback lip: Truncated / Complete**;
+`Complete` adds the inward curl without changing the upstream airway profile.
+
+### `get_rosse(throat: float, mouth: float, coverage_angle: float, n: int, throat_angle: float = 15.0, k: float = 1.8, r: float = 0.3, m: float = 0.8, b: float = 0.3, q: float = 3.7, complete_rollback: bool = False, rollback_angle: float = 330.0) -> tuple[np.ndarray, np.ndarray]`
 
 Implements Marcel Batík's **R-OSSE Acoustic Waveguide rev.7** parametric expansion. Unlike a function `r(z)`, R-OSSE uses `[z(t), r(t)]` for `0 <= t <= 1`, allowing the mouth to roll back toward free space. The public `coverage_angle` and `throat_angle` arguments are total angles; the published formula's `a` and `a0` are their half-angles.
 
-The defaults reproduce the document's ST260 example when called as `get_rosse(25.4, 260, 78, n)`: outer radius `130 mm`, maximum axial depth approximately `77.70 mm`, and rolled-back edge at approximately `57.47 mm`.
+The defaults reproduce the document's ST260 example when called as `get_rosse(25.4, 260, 78, n)`: outer radius `130 mm`, maximum axial depth approximately `77.70 mm`, and rolled-back edge at approximately `57.47 mm`. With `complete_rollback=True`, the published endpoint is extended by the shared inward return curl and the profile is resampled back to `n` points.
 
 The UI exposes all six shape controls from the paper. Circular and polygonal sections use the axisymmetric profile directly. Rectangular and elliptical sections use an area-preserving conversion at a constant throat aspect ratio. The experimental Radial 360° engine is not exposed in the UI.
 
@@ -163,7 +177,7 @@ where `Sₜ = π · (throat/2)²`. The parameter `T` controls the flare family:
 
 Wrapper that calls `get_salmon(throat, fc, length, n, T=0.707)`. Iwata = Salmon Hypex preset.
 
-### `get_lecleach(throat: float, fc: float, n: int, T: float = 0.707, max_angle: float = 160.0) -> tuple[np.ndarray, np.ndarray]`
+### `get_lecleach(throat: float, fc: float, n: int, T: float = 0.707, max_angle: float = 160.0, complete_rollback: bool = False, rollback_angle: float = 330.0) -> tuple[np.ndarray, np.ndarray]`
 
 **Algorithm:** Le Cléac'h isophase wavefront horn — Salmon area law + parallel wavefronts, solved via ODE.
 
@@ -184,6 +198,7 @@ where `Sₜ = π · (throat/2)²` and `x₀ = c / (2π · fc)`.
 - `max_step = 0.5`
 - Initial conditions: `s=0, r=throat/2, z=0`
 - Integration domain: `[0, 50000]`; the mouth is defined by the termination-angle event, not by an axial-length input.
+- `complete_rollback=True` appends the shared inward return curl after the ODE endpoint, then resamples the whole meridian back to `n` points.
 
 **Termination event:**
 ```

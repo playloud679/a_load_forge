@@ -1291,8 +1291,9 @@ def make_adapter_assembly(
     # Positioning: the horn-throat end of the transition sits at *z_offset*
     z_offset: float = 0.0,
     # Output
+    return_cutter: bool = False,
     output_path: str | None = None,
-) -> trimesh.Trimesh:
+) -> trimesh.Trimesh | tuple[trimesh.Trimesh, trimesh.Trimesh]:
     """Assemble the complete throat adapter: driver interface + transition.
 
     The adapter is centered on the Z axis. The driver interface is at
@@ -1444,7 +1445,7 @@ def make_adapter_assembly(
             result = _tm.util.concatenate(bodies)
 
     if result is None:
-        return None
+        return (None, None) if return_cutter else None
     result.remove_unreferenced_vertices()
     result.fix_normals()
 
@@ -1452,14 +1453,17 @@ def make_adapter_assembly(
     # When a driver flange is present, the flange occupies the first portion
     # of the requested length, but the transition keeps the full adapter
     # length so the throat↔flare raccordo is not compressed.
-    result.apply_translation([0, 0, z_offset - adapter_length])
+    trans = [0, 0, z_offset - adapter_length]
+    result.apply_translation(trans)
+    if return_cutter and cutter_tm is not None:
+        cutter_tm.apply_translation(trans)
 
     if output_path:
         result.export(output_path)
         logger.info("Exported adapter assembly: %s  (%d triangles, WT=%s)",
                      output_path, len(result.faces), result.is_watertight)
 
-    return result
+    return (result, cutter_tm) if return_cutter else result
 
 
 # ======================================================================

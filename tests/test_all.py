@@ -8,6 +8,7 @@ Each test asserts not just "doesn't crash" but geometric invariants:
   - Radial: gap > 0 everywhere, R monotone, correct throat/mouth radii
 """
 
+import argparse
 import sys, os, tempfile, traceback, itertools
 
 sys.path.insert(0, str(os.path.join(os.path.dirname(__file__), "..", "src")))
@@ -17,10 +18,37 @@ import numpy as np
 
 PASS = 0
 FAIL = 0
+SKIP = 0
+
+
+def _parse_args():
+    parser = argparse.ArgumentParser(description="Run the full Flare Forge test suite.")
+    parser.add_argument(
+        "--match", "-m", action="append", default=[],
+        help="Run only tests whose label contains this text. May be repeated.")
+    parser.add_argument(
+        "--list", action="store_true",
+        help="List matching test labels without running them.")
+    return parser.parse_args()
+
+
+ARGS = _parse_args()
+MATCHES = [m.casefold() for m in ARGS.match]
+
+
+def _selected(label):
+    return not MATCHES or any(m in label.casefold() for m in MATCHES)
 
 
 def test(label, fn):
-    global PASS, FAIL
+    global PASS, FAIL, SKIP
+    if not _selected(label):
+        SKIP += 1
+        return
+    if ARGS.list:
+        print(f"  • {label}")
+        PASS += 1
+        return
     try:
         fn()
         print(f"  ✅ {label}")
@@ -141,6 +169,41 @@ def _check_rosse_st260_reference():
     assert abs(z.max() - 77.70) < 0.1, f"R-OSSE ST260 depth={z.max():.2f} mm"
     assert z[-1] < z.max() - 10.0, "R-OSSE profile does not roll back"
 test("R-OSSE rev.7 ST260 reference geometry", _check_rosse_st260_reference)
+
+
+def _check_complete_rollback_profile_returns_inward():
+    for label, base_fn, full_fn in [
+        ("Le Cleac'h", 
+         lambda: _c.get_lecleach(THROAT, FC, N, max_angle=160.0),
+         lambda: _c.get_lecleach(THROAT, FC, N, max_angle=160.0,
+                                 complete_rollback=True)),
+        ("R-OSSE",
+         lambda: _c.get_rosse(25.4, 260.0, 78.0, N),
+         lambda: _c.get_rosse(25.4, 260.0, 78.0, N,
+                              complete_rollback=True)),
+    ]:
+        zb, rb = base_fn()
+        zf, rf = full_fn()
+        assert len(zf) == len(rf) == N, f"{label}: complete profile was not resampled"
+        assert abs(zf[0] - zb[0]) < 1e-9, f"{label}: throat z moved"
+        assert abs(rf[0] - rb[0]) < 1e-9, f"{label}: throat r moved"
+        assert rf.max() >= rb.max() - 0.5, f"{label}: acoustic mouth shrank"
+        assert rf[-1] < rb[-1] - 20.0, f"{label}: curl did not return inward"
+        assert zf[-1] < zb[-1], f"{label}: curl did not roll farther back"
+test("Complete rollback profiles add inward return curl",
+     _check_complete_rollback_profile_returns_inward)
+
+
+def _check_complete_rollback_mesh_watertight():
+    z, r = _c.get_lecleach(THROAT, FC, N, complete_rollback=True)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
+        p = t.name
+    _c.generate_3d_mesh_from_profile(z, r, 4.0, 96, p)
+    m = trimesh.load(p, file_type="stl"); os.unlink(p)
+    assert m.is_watertight, "complete Le Cleac'h rollback mesh is not watertight"
+    assert m.body_count == 1, f"complete Le Cleac'h rollback mesh has {m.body_count} bodies"
+test("Complete rollback mesh remains watertight",
+     _check_complete_rollback_mesh_watertight)
 
 
 def _check_oblate_asymmetric_elliptical_mesh():
@@ -2603,6 +2666,77 @@ def test_embedded_custom_stack_adapter_has_no_step():
 test("embedded custom-stack adapter has no step", test_embedded_custom_stack_adapter_has_no_step)
 
 
+def test_complete_rollback_local_adapter_stack_monotone():
+    """Complete rollback lips are non-monotonic in Z; the embedded-adapter UI
+    stack must use only the advancing branch. If the returning lip drops into
+    the trim zone, the UI must replace only the central throat region instead of
+    slicing the completed curl with a full plane cut."""
+    throat_d, thickness = 25.4, 4.0
+    z, r = _c.get_rosse(throat_d, 260.0, 78.0, 300, complete_rollback=True)
+    nml = _uts.compute_profile_normals(z, r)
+    z_o = z + thickness * nml[:, 0]
+    r_o = r + thickness * nml[:, 1]
+    zc, rc = _monotone_increasing(z, r)
+    zoc, roc = _monotone_increasing(z_o, r_o)
+
+    safe_extent = min(float(z.max()), float(z[-1]))
+    morph_len, _, target_z = _ta.embedded_morph_span(30.0, safe_extent)
+    return_min = float(np.min(z[int(np.argmax(z)):]))
+    assert return_min <= morph_len, "test setup no longer exercises trim-zone return lip"
+    handoff_z = target_z
+    z_stack = np.append(zc[zc < handoff_z - 1e-9], handoff_z)
+    z_stack = z_stack[np.concatenate([[True], np.diff(z_stack) > 1e-9])]
+    assert np.all(np.diff(z_stack) > 0.0), "custom_pts_z is not strictly increasing"
+
+    inner_stack = np.stack([
+        _ta._circle_points(float(np.interp(zz, zc, rc))) for zz in z_stack
+    ])
+    outer_stack = np.stack([
+        _ta._circle_points(float(np.interp(zz, zoc, roc))) for zz in z_stack
+    ])
+    target_r = float(np.interp(handoff_z, zc, rc))
+    target_ro = float(np.interp(handoff_z, zoc, roc))
+    target_slope = float(np.interp(handoff_z, zc, np.gradient(rc, zc)))
+    outer_slope = float(np.interp(handoff_z, zoc, np.gradient(roc, zoc)))
+
+    adapter = _ta.make_adapter_assembly(
+        driver_type="flanged", driver_diam=throat_d, thread_key=None,
+        horn_shape="custom",
+        rect_w=0.0, rect_h=0.0, poly_n_sides=0, poly_circumR=0.0,
+        horn_R_eq=target_r,
+        adapter_length=target_z, wall_thickness=thickness,
+        flange_R=0.0, socket_length=0.0,
+        outer_target_R=target_ro,
+        target_slope=target_slope,
+        outer_target_slope=outer_slope,
+        custom_pts=inner_stack, custom_outer_pts=outer_stack, custom_pts_z=z_stack,
+        custom_match_from_z=morph_len,
+        z_offset=target_z,
+        output_path=None,
+    )
+    _check_trimesh_watertight(adapter, "complete rollback local adapter")
+    assert adapter.bounds[0, 2] >= -1e-6, "embedded adapter moved below the throat plane"
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
+        p = t.name
+    _c.generate_3d_mesh_from_profile(z, r, thickness, 96, p)
+    horn = trimesh.load(p, file_type="stl"); os.unlink(p)
+    horn.fix_normals()
+    cut_r = float(np.linalg.norm(outer_stack[-1], axis=1).max() + 0.8)
+    weld_overlap = 1.0
+    cut_h = max(1.0, target_z + 1.0 - weld_overlap)
+    cutter = trimesh.creation.cylinder(radius=cut_r, height=cut_h, sections=96)
+    cutter.apply_translation([0.0, 0.0, -1.0 + cut_h / 2.0])
+    horn = trimesh.boolean.difference([horn, cutter], engine="manifold", check_volume=False)
+    horn.remove_unreferenced_vertices()
+    horn.fix_normals()
+    combined = trimesh.boolean.union([horn, adapter], engine="manifold")
+    _check_trimesh_watertight(combined, "complete rollback local adapter")
+    assert combined.bounds[0, 2] >= -1e-6, "local adapter moved below the throat plane"
+    assert combined.bounds[1, 2] > z.max() - 0.1, "complete rollback lip was plane-trimmed"
+test("complete rollback local adapter stack is monotone",
+     test_complete_rollback_local_adapter_stack_monotone)
+
+
 def test_adapter_section_count_follows_flare_rings():
     """The adapter's perimeter point count comes from its custom sections, so
     the UI must build them at the flare's revolution resolution. If it stays
@@ -3193,6 +3327,9 @@ test("_utils exposes CircularProfile/RectProfile aliases", test_utils_profile_al
 # ══════════════════════════════════════════════════════════════════════════════
 
 print(f"\n{'═' * 40}")
-print(f"  PASS: {PASS}   FAIL: {FAIL}")
+print(f"  PASS: {PASS}   FAIL: {FAIL}   SKIP: {SKIP}")
 print(f"{'═' * 40}")
+if MATCHES and PASS == 0 and FAIL == 0:
+    print("No tests matched --match filter")
+    sys.exit(2)
 sys.exit(0 if FAIL == 0 else 1)

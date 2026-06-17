@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.18.0 (2026-06-17)
+
+- **Adapter cutter interno per profili rollback** (`ui_app.py`, `src/throat_adapter.py`): la transizione embedded non usa più un cilindro dritto (costruito sul raggio massimo dell'adattatore) per rimuovere l'eccesso di tromba originale. Questo approccio cieco finiva per eliminare inavvertitamente il labbro di ritorno (rollback) sui profili come l'OS-SE, laddove il rollback avesse un raggio inferiore al vertice diagonale dell'adattatore. Ora `make_adapter_assembly` accetta un nuovo parametro `return_cutter=True` che restituisce il solido di taglio esatto corrispondente all'airway interno; la sottrazione rimuove solo il condotto in espansione, preservando perfettamente e chirurgicamente ogni rollback esterno.
+- **Docs/Test**: aggiornati parametri e docs di `throat_adapter.md`; `VERSION`, `pyproject.toml`, e `CHANGELOG` aggiornati a `2.18.0`. Tutti i 263 test confermano le geometrie.
+
 ## 2.17.5 (2026-06-17)
 
 - **Orientamento bolt-on degli adapter** (`src/throat_adapter.py`, `src/flange_generator.py`): i preset bolt-on standard restano definiti in `DRIVER_FLANGE_SPECS`, ma quando sono usati dentro `make_adapter_assembly()` l'adapter ora passa una fase dedicata a `generate_driver_mounting_flange()`. Il 2-fori viene ruotato verticale (`+90°`) per evitare i lati stretti del flare; il 3-fori cerca la fase che massimizza la clearance minima tra fori e contorno esterno dell'adapter; i 4-fori restano sul pattern catalogo.
