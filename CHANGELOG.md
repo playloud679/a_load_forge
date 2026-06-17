@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.19.2 (2026-06-18)
+
+- **Legale**: Aggiunto il documento dei Termini di Servizio (`TERMS_OF_SERVICE.md`) in Italiano, Inglese e Spagnolo, che impone l'uso non commerciale degli STL generati.
+- **UI**: Inserito un pulsante di download diretto per il file `TERMS_OF_SERVICE.md` nell'header dell'applicazione Streamlit.
+- **Docs/Test**: aggiornati `VERSION`, `pyproject.toml` e `CHANGELOG` a `2.19.2`.
+
+
 ## 2.19.0 (2026-06-17)
 
 - **Axial Bolted Flanges**: aggiunta la possibilità di generare flange imbullonate sui tagli assiali (`_slicer.py` e `ui_app.py`). Ora è possibile impostare spessore flangia, offset, numero di viti e larghezza anello direttamente dalla UI.

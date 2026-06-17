@@ -98,6 +98,17 @@ with _hdr_l:
     st.title("flare_forge")
     st.caption(f":gray[v{_VERSION}] · Acoustic profile + mounting flanges · watertight assembly for 3D printing")
 with _hdr_r:
+    try:
+        _tos_content = (Path(__file__).parent / "TERMS_OF_SERVICE.md").read_text(encoding="utf-8")
+        st.download_button(
+            label="📜 Terms of Service",
+            data=_tos_content,
+            file_name="TERMS_OF_SERVICE.md",
+            mime="text/markdown",
+            use_container_width=True
+        )
+    except FileNotFoundError:
+        pass
     if BMC_USERNAME and BMC_USERNAME != "your_username":
         st.link_button("☕ Buy me a coffee", BMC_URL, use_container_width=True)
     else:
