@@ -2288,10 +2288,29 @@ def test_poly_points():
 test("poly points", test_poly_points)
 
 def test_poly_points_phase_matches_horn():
-    pts = _ta._poly_points(4, 20.0, 4)
-    expected = [20.0 * np.cos(np.pi / 4), 20.0 * np.sin(np.pi / 4)]
-    assert np.allclose(pts[0], expected, atol=1e-10), f"first vertex {pts[0]} not {expected}"
+    for n_sides in (3, 4, 6, 8):
+        pts = _ta._poly_points(n_sides, 20.0, n_sides)
+        theta = np.linspace(0.0, 2.0 * np.pi, n_sides, endpoint=False) + np.pi / 2.0
+        expected = np.column_stack([20.0 * np.cos(theta), 20.0 * np.sin(theta)])
+        assert np.allclose(pts, expected, atol=1e-10), \
+            f"{n_sides}-gon phase mismatch: {pts[0]} not {expected[0]}"
 test("poly points phase matches polygonal horn", test_poly_points_phase_matches_horn)
+
+def test_poly_points_corners_anchored_with_dense_ring():
+    """Dense adapter rings must still include every real polygon corner.
+
+    The UI often passes a high revolution count (e.g. 160) into polygonal
+    adapter sections. Uniform perimeter sampling misses corners when that count
+    is not divisible by the side count, leaving chamfer/sliver defects exactly
+    at the polygon vertices.
+    """
+    n_sides = 6
+    pts = _ta._poly_points(n_sides, 20.0, 160)
+    theta = np.linspace(0.0, 2.0 * np.pi, n_sides, endpoint=False) + np.pi / 2.0
+    corners = np.column_stack([20.0 * np.cos(theta), 20.0 * np.sin(theta)])
+    miss = max(np.min(np.linalg.norm(pts - corner, axis=1)) for corner in corners)
+    assert miss < 1e-10, f"dense polygon ring missed a corner by {miss:.3g} mm"
+test("poly points dense ring corners anchored", test_poly_points_corners_anchored_with_dense_ring)
 
 def test_morph_slice_circle():
     """At t=0 the morph should return a circle of radius ~driver_R."""
@@ -2306,10 +2325,10 @@ def test_morph_slice_source_phase():
     """Polygonal adapters must start the source circle in the horn's phase."""
     def _tfn():
         return _ta._poly_points(4, 20.0, 64)
-    pts = _ta._morph_slice(0.0, 12.5, _tfn, 12.5, 64, source_phase=np.pi / 4.0)
+    pts = _ta._morph_slice(0.0, 12.5, _tfn, 12.5, 64, source_phase=np.pi / 2.0)
     # The morph applies a sub-percent radial scaling to preserve acoustic area,
-    # so we check the phase angle itself (x == y > 0 for pi/4) instead of exact geometric coords.
-    assert abs(pts[0, 0] - pts[0, 1]) < 1e-10 and pts[0, 0] > 0, f"source phase wrong: {pts[0]}"
+    # so we check the phase angle itself (x == 0, y > 0 for pi/2) instead of exact geometric coords.
+    assert abs(pts[0, 0]) < 1e-10 and pts[0, 1] > 0, f"source phase wrong: {pts[0]}"
 test("morph slice source phase", test_morph_slice_source_phase)
 
 def test_morph_slice_target():

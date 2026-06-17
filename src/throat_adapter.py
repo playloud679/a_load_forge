@@ -317,13 +317,26 @@ def _poly_points(n_sides: int, circumradius: float, n: int = _NP) -> np.ndarray:
     Vertices use the same +π/2 phase as ``polygonal_horn`` so the adapter
     throat lands on the horn without a rotational offset.
     Points are distributed evenly along the perimeter, always returning
-    exactly *n* points for compatibility with the morphing engine.
+    exactly *n* points for compatibility with the morphing engine.  When
+    ``n >= n_sides`` every polygon corner is an exact sample, even if *n* is
+    not divisible by ``n_sides``.
     """
     # Match polygonal_horn.generate_polygonal_3d_mesh orientation.
-    v_theta = np.linspace(0, 2 * np.pi, n_sides, endpoint=False) + np.pi / n_sides
+    v_theta = np.linspace(0, 2 * np.pi, n_sides, endpoint=False) + np.pi / 2.0
     # Vertex positions
     verts = np.column_stack([circumradius * np.cos(v_theta),
                               circumradius * np.sin(v_theta)])
+
+    if n >= n_sides:
+        counts = np.full(n_sides, n // n_sides, dtype=int)
+        counts[: n % n_sides] += 1
+        points = []
+        for edge_idx, count in enumerate(counts):
+            a = verts[edge_idx]
+            b = verts[(edge_idx + 1) % n_sides]
+            for j in range(count):
+                points.append(a + (b - a) * (j / count))
+        return np.asarray(points, dtype=float)
 
     # Edge lengths
     edges = np.roll(verts, -1, axis=0) - verts
@@ -802,7 +815,7 @@ def make_adapter(
             return _custom_in
     else:
         raise ValueError(f"unsupported horn_shape: {horn_shape!r}")
-    _source_phase = np.pi / horn_n_sides if horn_shape == "polygonal" else 0.0
+    _source_phase = np.pi / 2.0 if horn_shape == "polygonal" else 0.0
 
     # Optional outer-contour stack lets the loft land exactly on the horn's
     # outer section at the join and through the weld overlap.

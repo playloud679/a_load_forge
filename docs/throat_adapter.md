@@ -90,7 +90,8 @@ This matched start point (mid-right = `θ=0` equivalent) ensures twist-free morp
 
 Returns `n` points on a regular N-gon (convex polygon), distributed evenly along the perimeter.
 
-- Vertices use the same `θ = k × 2π/N + π/2` phase as `polygonal_horn.py`, so the adapter's polygonal throat is rotationally aligned with the flare.
+- Vertices use the same `θ = k × 2π/N + π/2` phase as `polygonal_horn.py`, so the adapter's polygonal throat is rotationally aligned with the flare. The first vertex is always on the positive Y axis; do not use `π/N` here, because that rotates the adapter relative to the polygonal horn and creates visible corner slivers at the weld.
+- When `n >= n_sides`, every true polygon corner is forced into the returned ring even if `n` is not divisible by `n_sides`. The remaining points are spread per edge. This matters for the UI's dense adapter rings (`rings_n`, often 160): uniform perimeter sampling can miss the real corners and create small chamfers/sliver triangles exactly on the polygon vertices.
 - Computes vertex positions, edge lengths, cumulative perimeter
 - Interpolates `n` points along the perimeter by linear position along each edge
 - Returns exactly `n` points for compatibility with morphing engine

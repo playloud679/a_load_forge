@@ -270,6 +270,108 @@ with col_prof:
         z, r = _get_rosse_profile(throat_eq, mouth_eq, n)
         return _rh._area_to_rect(z, r, throat_w, throat_h)
 
+    _adapter_driver_labels = {
+        'Bolt-on 1" · 2 holes': "bolt_on_1in_2",
+        'Bolt-on 1" · 3 holes': "bolt_on_1in_3",
+        'Bolt-on 1.4" · 4 holes': "bolt_on_1_4in_4",
+        'Bolt-on 2" · 4 holes': "bolt_on_2in_4",
+    }
+
+    _ta_include_adapter = False
+    _ta_integration_mode = "Integrated"
+    _ta_is_separated = False
+    _ta_driver_type = "flanged"
+    _ta_driver_key = "flanged"
+    _ta_thread_key = None
+    _ta_driver_clearance = 0.3
+    _ta_adapter_len = 0.0
+    _ta_socket_depth = 0.0
+    _ft_driver_d = None
+    _driver_is_custom_flange = False
+    _driver_is_bolt_on = False
+    _driver_is_threaded = False
+    _driver_is_flanged = True
+
+    if not is_radial and not is_iwata:
+        st.markdown("##### Driver / Adapter")
+        _adapter_suffix = "_osse" if is_osse else ""
+        _ta_include_adapter = st.checkbox(
+            "Include shape adapter", True,
+            key=f"ta_incl_adapter{_adapter_suffix}",
+            help="Transitions from the driver throat to the horn profile. "
+                 "When enabled, the acoustic profile starts from this driver-side area.",
+        )
+        if _ta_include_adapter:
+            _ta_integration_mode = st.radio(
+                "Integration mode", ["Integrated", "Separated"],
+                horizontal=True, key=f"ta_mode{_adapter_suffix}",
+                help="Integrated: morph replaces the first part of the flare and welds to it. "
+                     "Separated: adapter and flare are exported as independent mating parts.",
+            )
+            _ta_is_separated = _ta_integration_mode == "Separated"
+            _driver_options = [
+                "Flanged custom",
+                *_adapter_driver_labels,
+                'Threaded 1\u215c"-18 (25 mm bore)',
+            ]
+            _ta_driver_type = st.radio(
+                "Driver interface", _driver_options,
+                index=0 if is_osse else 2,
+                key=f"ta_driver_type{_adapter_suffix}",
+            )
+            _driver_is_custom_flange = _ta_driver_type == "Flanged custom"
+            _driver_is_bolt_on = _ta_driver_type in _adapter_driver_labels
+            _driver_is_threaded = _ta_driver_type.startswith("Threaded")
+            _driver_is_flanged = _driver_is_custom_flange or _driver_is_bolt_on
+            _ta_driver_key = (
+                _adapter_driver_labels[_ta_driver_type] if _driver_is_bolt_on
+                else "1_375in" if _driver_is_threaded else "flanged"
+            )
+            _ta_thread_key = "1_375in" if _driver_is_threaded else None
+
+            _ta_adapter_len = st.number_input(
+                "Morph length inside horn (mm)", 5.0, 200.0, 30.0, 5.0,
+                key=f"ta_adapter_len{_adapter_suffix}",
+                help="Length of the round-to-shape transition. It replaces the first "
+                     "part of the flare, so it does not increase horn depth.",
+            )
+            if _driver_is_threaded:
+                _thread_spec = _ta.THREAD_SPECS[_ta_thread_key]
+                _ft_driver_d = float(_thread_spec.bore_diam)
+                st.caption(
+                    f"Female thread: {_thread_spec.name} · acoustic bore "
+                    f"\u00d8{_thread_spec.bore_diam:.1f} mm.")
+                _ta_socket_depth = st.number_input(
+                    "Socket depth (mm)", 5.0, 30.0, 15.0, 1.0,
+                    key=f"ta_socket_depth{_adapter_suffix}",
+                    help="Depth of the threaded bore for the driver.",
+                )
+            elif _driver_is_bolt_on:
+                _driver_spec = _fg.DRIVER_FLANGE_SPECS[_ta_driver_key]
+                _ta_driver_clearance = st.number_input(
+                    "Throat clearance (mm)", 0.0, 2.0, 0.3, 0.1,
+                    key=f"ta_driver_clearance{_adapter_suffix}",
+                    help="Added to the nominal driver throat diameter.",
+                )
+                _ft_driver_d = float(_driver_spec.throat_diam + _ta_driver_clearance)
+                st.caption(
+                    f"{_driver_spec.name}: acoustic throat \u00d8{_ft_driver_d:.1f} mm.")
+                _ta_socket_depth = 0.0
+            else:
+                _default_driver_d = float(st.session_state.get(
+                    f"ft_driver_d{_adapter_suffix}",
+                    25.4 if is_osse else 20.0,
+                ))
+                _ft_driver_d = st.number_input(
+                    "Driver throat \u00d8 (mm)", 5.0, 200.0,
+                    _default_driver_d, 1.0,
+                    key=f"ft_driver_d{_adapter_suffix}",
+                    help="Circular acoustic diameter at the driver end.",
+                )
+                _ta_socket_depth = 0.0
+
+    _adapter_controls_throat = bool(_ta_include_adapter and _ft_driver_d and not is_iwata)
+
     st.markdown("##### Dimensions")
 
     # Each profile is driven by a different set of inputs; the rest are solved
@@ -296,8 +398,14 @@ with col_prof:
     with col_in:
         st.markdown("**You set**")
         if is_osse:
-            throat_d = st.number_input("Throat Ø (mm)", 4.0, 120.0, 25.4, 0.5,
-                help="Round driver-side opening (the small end). 25.4 mm = 1\"")
+            if _adapter_controls_throat:
+                throat_d = float(_ft_driver_d)
+                st.caption(
+                    f"Throat is computed at the adapter exit from driver "
+                    f"\u00d8{throat_d:.1f} mm and the expansion profile.")
+            else:
+                throat_d = st.number_input("Throat Ø (mm)", 4.0, 120.0, 25.4, 0.5,
+                    help="Round driver-side opening (the small end). 25.4 mm = 1\"")
             throat_w = throat_h = throat_d
             osse_length = st.number_input("Axial length (mm)", 20.0, 500.0, 120.0, 5.0,
                 help="Depth of the waveguide along the axis")
@@ -345,23 +453,38 @@ with col_prof:
             mouth_d = mouth_w = None
             _mouth_is_input = False
         elif is_rect:
-            if "throat_w_key" not in st.session_state:
-                st.session_state["throat_w_key"] = 47.0
-                st.session_state["throat_h_key"] = 47.0 / rect_ar
-            throat_w = st.number_input("Throat W (mm)", 2.0, 200.0,
-                key="throat_w_key", on_change=_sync_throat_w,
-                help="Driver-side opening — width")
-            throat_h = st.number_input("Throat H (mm)", 2.0, 200.0,
-                key="throat_h_key", on_change=_sync_throat_h,
-                help="Driver-side opening — height (auto-set by aspect ratio)")
-            throat_d = np.sqrt(throat_w * throat_h * 4 / np.pi)
+            if _adapter_controls_throat:
+                throat_d = float(_ft_driver_d)
+                _adapter_start_area = np.pi * (throat_d / 2.0) ** 2
+                throat_w = float(np.sqrt(_adapter_start_area * rect_ar))
+                throat_h = float(np.sqrt(_adapter_start_area / rect_ar))
+                st.caption(
+                    f"Throat W×H is computed at the adapter exit from driver "
+                    f"\u00d8{throat_d:.1f} mm and the expansion profile.")
+            else:
+                if "throat_w_key" not in st.session_state:
+                    st.session_state["throat_w_key"] = 47.0
+                    st.session_state["throat_h_key"] = 47.0 / rect_ar
+                throat_w = st.number_input("Throat W (mm)", 2.0, 200.0,
+                    key="throat_w_key", on_change=_sync_throat_w,
+                    help="Driver-side opening — width")
+                throat_h = st.number_input("Throat H (mm)", 2.0, 200.0,
+                    key="throat_h_key", on_change=_sync_throat_h,
+                    help="Driver-side opening — height (auto-set by aspect ratio)")
+                throat_d = np.sqrt(throat_w * throat_h * 4 / np.pi)
             # Rectangular/elliptical Salmon and Le Cléac'h derive their mouth
             # from Fc + length + T, just like their circular counterparts.
             _mouth_is_input = is_tractrix or is_rosse or is_exp
         else:
-            throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0,
-                25.0 if is_radial else 20.0, 1.0,
-                help="Driver-side opening — the small end")
+            if _adapter_controls_throat:
+                throat_d = float(_ft_driver_d)
+                st.caption(
+                    f"Throat is computed at the adapter exit from driver "
+                    f"\u00d8{throat_d:.1f} mm and the expansion profile.")
+            else:
+                throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0,
+                    25.0 if is_radial else 20.0, 1.0,
+                    help="Driver-side opening — the small end")
             throat_w = throat_h = throat_d
             _mouth_is_input = is_radial or is_tractrix or is_rosse or is_exp
 
@@ -425,6 +548,27 @@ with col_prof:
                 help="Horn depth along the axis")
         else:
             axial_len = 80.0
+
+    _adapter_profile_start_d = float(_ft_driver_d) if _ta_include_adapter and _ft_driver_d else None
+    _adapter_profile_len = None
+    _adapter_handoff_z = None
+    if _adapter_profile_start_d is not None and not is_iwata:
+        _adapter_profile_len = float(_ta_adapter_len)
+        _adapter_profile_start_d = float(_adapter_profile_start_d)
+        if is_rect:
+            _adapter_start_area = np.pi * (_adapter_profile_start_d / 2.0) ** 2
+            throat_w = float(np.sqrt(_adapter_start_area * rect_ar))
+            throat_h = float(np.sqrt(_adapter_start_area / rect_ar))
+            throat_d = float(np.sqrt(throat_w * throat_h * 4.0 / np.pi))
+            st.caption(
+                f"Adapter active: expansion starts from driver Ø{_adapter_profile_start_d:.1f} mm; "
+                "flare throat is sampled at the adapter exit.")
+        else:
+            throat_d = float(_adapter_profile_start_d)
+            throat_w = throat_h = throat_d
+            st.caption(
+                f"Adapter active: expansion starts from driver Ø{throat_d:.1f} mm; "
+                "flare throat and S_t are sampled at the adapter exit.")
 
     # Compute the profile once; derive the remaining scalars.
     _len = None
@@ -578,7 +722,51 @@ with col_prof:
         _err = True
 
     # ---- Computed: derived scalars, shown as results (not editable) -------
+    _S_t_label = "S_t"
+    _adapter_handoff_value = None
     _S_t_cm2 = (throat_w * throat_h if is_rect else np.pi * (throat_d / 2) ** 2) / 100.0
+    if (not _err and _adapter_profile_start_d is not None
+            and _adapter_profile_len is not None and not is_iwata):
+        try:
+            _profile_extent_for_adapter = float(np.max(_z_os if is_osse else (zr if is_rect else zp)))
+            _, _, _adapter_handoff_z = _ta.embedded_morph_span(
+                float(_adapter_profile_len), _profile_extent_for_adapter,
+                desired_overlap=20.0)
+            _adapter_handoff_z = float(_adapter_handoff_z)
+
+            if is_osse:
+                _R_handoff = np.array([
+                    np.interp(_adapter_handoff_z, _z_os, _R_os[:, j])
+                    for j in range(_R_os.shape[1])
+                ])
+                _pts_handoff = np.column_stack([
+                    _R_handoff * np.cos(_phi_os),
+                    _R_handoff * np.sin(_phi_os),
+                ])
+                _S_t_cm2 = float(_ta._polygon_area(_pts_handoff) / 100.0)
+                _adapter_handoff_value = (
+                    f"{np.ptp(_pts_handoff[:, 0]):.1f}×"
+                    f"{np.ptp(_pts_handoff[:, 1]):.1f} mm")
+            elif is_rect:
+                _peak = int(np.argmax(zr)) + 1
+                _zz = np.asarray(zr[:_peak], dtype=float)
+                _area = np.asarray(wr[:_peak] * hr[:_peak], dtype=float)
+                _keep = np.concatenate([[True], np.diff(_zz) > 1e-8])
+                _S_t_cm2 = float(np.interp(_adapter_handoff_z, _zz[_keep], _area[_keep]) / 100.0)
+                _w_handoff = float(np.interp(_adapter_handoff_z, _zz[_keep], np.asarray(wr[:_peak])[_keep]))
+                _h_handoff = float(np.interp(_adapter_handoff_z, _zz[_keep], np.asarray(hr[:_peak])[_keep]))
+                _adapter_handoff_value = f"{_w_handoff:.1f}×{_h_handoff:.1f} mm"
+            else:
+                _peak = int(np.argmax(zp)) + 1
+                _zz = np.asarray(zp[:_peak], dtype=float)
+                _rr = np.asarray(rp[:_peak], dtype=float)
+                _keep = np.concatenate([[True], np.diff(_zz) > 1e-8])
+                _r_handoff = float(np.interp(_adapter_handoff_z, _zz[_keep], _rr[_keep]))
+                _S_t_cm2 = float(np.pi * _r_handoff ** 2 / 100.0)
+                _adapter_handoff_value = f"\u00d8{2.0 * _r_handoff:.1f} mm"
+            _S_t_label = "S_t @ adapter"
+        except Exception:
+            _adapter_handoff_z = None
     if _err or _mouth_d_eff is None:
         _S_m_cm2 = None
     elif is_iwata and _iwata_mw is not None:
@@ -616,7 +804,9 @@ with col_prof:
                 _mets.append(("Mouth Ø", f"{_mouth_d_eff:.0f} mm"))
             elif is_rect and _mouth_d_eff:
                 _mets.append(("Mouth Ø eq", f"{_mouth_d_eff:.0f} mm"))
-            _mets.append(("S_t", f"{_S_t_cm2:.2f} cm²"))
+            if _adapter_handoff_value:
+                _mets.append(("Throat @ adapter", _adapter_handoff_value))
+            _mets.append((_S_t_label, f"{_S_t_cm2:.2f} cm²"))
             if _S_m_cm2:
                 _mets.append(("S_m", f"{_S_m_cm2:.2f} cm²"))
             for _ri in range(0, len(_mets), 2):
@@ -627,6 +817,11 @@ with col_prof:
                 from polygonal_horn import _r_to_circumradius
                 _Rp = _r_to_circumradius(_mouth_d_eff / 2.0, n_sides)
                 st.caption(f"Polygonal mouth: Ø{2*_Rp:.0f} across corners ({n_sides}-gon)")
+            if _adapter_handoff_z is not None:
+                st.caption(
+                    f"Adapter start: Ø{_adapter_profile_start_d:.1f} mm · "
+                    f"adapter exit sampled at Z={_adapter_handoff_z:.1f} mm. "
+                    "Overall flare length is unchanged.")
 
             # ── Mouth-size adequacy check ─────────────────────────────────
             # Mouth circumference is a practical termination guideline, not a
@@ -1237,74 +1432,19 @@ with fg1:
                    "or an adapter to this plate.")
         gen_throat = st.checkbox("Include", True, key="gen_throat")
 
-        # Adapter first (default ON, like every other non-radial profile): the
-        # OS-SE round throat morphs from a round/threaded driver interface. When
-        # off, fall back to the flat circular bolt-on flange in the else branch.
-        _ta_include_adapter = st.checkbox("Include shape adapter", True,
-            key="ta_incl_adapter_osse",
-            help="Transitions from round or threaded driver interfaces to the "
-                 "horn throat without increasing the horn length.")
-
         if _ta_include_adapter:
-            _ta_integration_mode = st.radio("Integration mode", ["Integrated", "Separated"],
-                horizontal=True, key="ta_mode_osse",
-                help="Integrated: morph replaces the first part of the flare and welds to it. "
-                     "Separated: morph and flare are generated as two independent parts with mating flanges.")
-            _ta_is_separated = _ta_integration_mode == "Separated"
-            # ── Adapter mode: round/threaded driver → horn-throat transition ─
             _ft_chamfer = False; _ft_chamfer_w = _ft_chamfer_h = 0.0
-            st.caption("The morph replaces the first part of the flare and welds to "
-                       "it through up to 6 mm of exact overlap (the tail follows the "
-                       "real flare contour). Only the driver flange or threaded "
-                       "socket may protrude behind the throat plane.")
-            _bolt_on_labels = {
-                'Bolt-on 1" · 2 holes': "bolt_on_1in_2",
-                'Bolt-on 1" · 3 holes': "bolt_on_1in_3",
-                'Bolt-on 1.4" · 4 holes': "bolt_on_1_4in_4",
-                'Bolt-on 2" · 4 holes': "bolt_on_2in_4",
-            }
-            _ta_driver_type = st.radio("Driver interface",
-                ["Flanged custom", *_bolt_on_labels, 'Threaded 1\u215c"-18 (25 mm bore)'],
-                index=0, key="ta_driver_type_osse")
-            _driver_is_custom_flange = _ta_driver_type == "Flanged custom"
-            _driver_is_bolt_on = _ta_driver_type in _bolt_on_labels
-            _driver_is_threaded = _ta_driver_type.startswith("Threaded")
-            _driver_is_flanged = _driver_is_custom_flange or _driver_is_bolt_on
-            _ta_driver_key = (_bolt_on_labels[_ta_driver_type] if _driver_is_bolt_on
-                              else "1_375in" if _driver_is_threaded else "flanged")
-
-            _ta_thread_key = None
-            if _driver_is_threaded:
-                _ta_thread_key = "1_375in"
-            _ta_driver_clearance = 0.3
-
-            _ta_adapter_len = st.number_input("Morph length inside horn (mm)", 5.0, 200.0, 30.0, 5.0,
-                key="ta_adapter_len_osse",
-                help="Length of the round-to-shape transition. It replaces the first "
-                     "part of the flare, so it does not increase horn depth. "
-                     "With a flange, the visible length is measured from its lower face.")
+            _ft_depth = 0.0
+            _ft_inner_R = float(_ft_driver_d) / 2.0
+            _ft_inner_w = _ft_inner_h = 0.0
+            st.caption("Adapter acoustic controls are above; this panel only sizes the driver-side hardware.")
 
             if _driver_is_threaded:
-                _thread_spec = _ta.THREAD_SPECS[_ta_thread_key]
-                _ft_driver_d = _thread_spec.bore_diam
-                st.caption(f"Female thread: {_thread_spec.name} · acoustic bore: "
-                           f"\u00d8{_thread_spec.bore_diam:.1f} mm · the boss "
-                           f"laps the cone with a 5 mm collar (45° shoulder)")
-                _ta_socket_depth = st.number_input("Socket depth (mm)", 5.0, 30.0, 15.0, 1.0,
-                    key="ta_socket_depth_osse",
-                    help="Depth of the threaded bore for the driver")
                 _ft_sp = _ft_off = _ft_nb = _ft_db = _ft_od = _ft_bc = 0.0
-                _ft_ring = _ft_outer_n = 0; _ft_inner_R = _ft_driver_d / 2.0
+                _ft_ring = _ft_outer_n = 0
                 throat_outer = "Circular"; _ft_bphase = 0.0; _ft_ow = _ft_oh = 0.0
             elif _driver_is_bolt_on:
                 _driver_spec = _fg.DRIVER_FLANGE_SPECS[_ta_driver_key]
-                _ta_driver_clearance = st.number_input(
-                    "Throat clearance (mm)", 0.0, 2.0, 0.3, 0.1,
-                    key="ta_driver_clearance_osse",
-                    help="Added to the nominal driver throat diameter.",
-                )
-                _ft_driver_d = _driver_spec.throat_diam + _ta_driver_clearance
-                _ft_inner_R = _ft_driver_d / 2.0
                 _ft_sp = st.number_input("Flange thickness (mm)", 2.0, 20.0, _flange_sp, 0.5,
                     key="ft_spess_osse")
                 _ft_off = 0.0
@@ -1323,12 +1463,6 @@ with fg1:
                     f"PCD {_ft_bc:.1f} mm"
                 )
             else:
-                _default_driver_d = float(throat_d if is_rect else throat_d)
-                _ft_driver_d = st.number_input("Driver throat \u00d8 (mm)", 5.0, 200.0,
-                    _default_driver_d, 1.0, key="ft_driver_d_osse",
-                    help="Circular throat diameter at the driver end. "
-                         "The adapter transitions from this to the horn throat shape.")
-                _ft_inner_R = _ft_driver_d / 2.0
                 _ft_sp  = st.number_input("Flange thickness (mm)", 2.0, 20.0, _flange_sp, 0.5,
                     key="ft_spess_osse")
                 _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off_osse_ta")
@@ -1361,10 +1495,6 @@ with fg1:
                 _ft_bc = st.number_input("Bolt circle \u00d8 (mm)", _ft_bc_lo, _ft_bc_hi,
                     step=1.0, key="ft_bc_osse_ta")
                 _ta_socket_depth = 0.0; _ft_ow = _ft_oh = 0.0
-
-            _ft_depth = 0.0
-            # Dummy old-style rect/poly vars (not used in adapter mode)
-            _ft_inner_w = _ft_inner_h = 0.0
         else:
             # ── No adapter: flat circular bolt-on throat flange ───────────
             _ft_sp = st.number_input("Thickness (mm)", 2.0, 20.0, 6.0, 0.5, key="ft_sp_osse")
@@ -1402,72 +1532,19 @@ with fg1:
     elif not is_radial:
         gen_throat = st.checkbox("Include", True, key="gen_throat")
 
-        # ── Adapter section ───────────────────────────────────────────────
-        _ta_include_adapter = st.checkbox("Include shape adapter", True,
-            key="ta_incl_adapter",
-            help="Transitions from round or threaded driver interfaces to the "
-                 "horn throat without increasing the horn length.")
-
         if _ta_include_adapter:
-            _ta_integration_mode = st.radio("Integration mode", ["Integrated", "Separated"],
-                horizontal=True, key="ta_mode",
-                help="Integrated: morph replaces the first part of the flare and welds to it. "
-                     "Separated: morph and flare are generated as two independent parts with mating flanges.")
-            _ta_is_separated = _ta_integration_mode == "Separated"
-            # ── Adapter mode: round/threaded driver → horn-throat transition ─
             _ft_chamfer = False; _ft_chamfer_w = _ft_chamfer_h = 0.0
-            st.caption("The morph replaces the first part of the flare and welds to "
-                       "it through up to 6 mm of exact overlap (the tail follows the "
-                       "real flare contour). Only the driver flange or threaded "
-                       "socket may protrude behind the throat plane.")
-            _bolt_on_labels = {
-                'Bolt-on 1" · 2 holes': "bolt_on_1in_2",
-                'Bolt-on 1" · 3 holes': "bolt_on_1in_3",
-                'Bolt-on 1.4" · 4 holes': "bolt_on_1_4in_4",
-                'Bolt-on 2" · 4 holes': "bolt_on_2in_4",
-            }
-            _ta_driver_type = st.radio("Driver interface",
-                ["Flanged custom", *_bolt_on_labels, 'Threaded 1\u215c"-18 (25 mm bore)'],
-                index=2, key="ta_driver_type")
-            _driver_is_custom_flange = _ta_driver_type == "Flanged custom"
-            _driver_is_bolt_on = _ta_driver_type in _bolt_on_labels
-            _driver_is_threaded = _ta_driver_type.startswith("Threaded")
-            _driver_is_flanged = _driver_is_custom_flange or _driver_is_bolt_on
-            _ta_driver_key = (_bolt_on_labels[_ta_driver_type] if _driver_is_bolt_on
-                              else "1_375in" if _driver_is_threaded else "flanged")
-
-            _ta_thread_key = None
-            if _driver_is_threaded:
-                _ta_thread_key = "1_375in"
-            _ta_driver_clearance = 0.3
-
-            _ta_adapter_len = st.number_input("Morph length inside horn (mm)", 5.0, 200.0, 30.0, 5.0,
-                key="ta_adapter_len",
-                help="Length of the round-to-shape transition. It replaces the first "
-                     "part of the flare, so it does not increase horn depth. "
-                     "With a flange, the visible length is measured from its lower face.")
+            _ft_depth = 0.0
+            _ft_inner_R = float(_ft_driver_d) / 2.0
+            _ft_inner_w = _ft_inner_h = 0.0
+            st.caption("Adapter acoustic controls are above; this panel only sizes the driver-side hardware.")
 
             if _driver_is_threaded:
-                _thread_spec = _ta.THREAD_SPECS[_ta_thread_key]
-                _ft_driver_d = _thread_spec.bore_diam
-                st.caption(f"Female thread: {_thread_spec.name} · acoustic bore: "
-                           f"\u00d8{_thread_spec.bore_diam:.1f} mm · the boss "
-                           f"laps the cone with a 5 mm collar (45° shoulder)")
-                _ta_socket_depth = st.number_input("Socket depth (mm)", 5.0, 30.0, 15.0, 1.0,
-                    key="ta_socket_depth",
-                    help="Depth of the threaded bore for the driver")
                 _ft_sp = _ft_off = _ft_nb = _ft_db = _ft_od = _ft_bc = 0.0
-                _ft_ring = _ft_outer_n = 0; _ft_inner_R = _ft_driver_d / 2.0
+                _ft_ring = _ft_outer_n = 0
                 throat_outer = "Circular"; _ft_bphase = 0.0; _ft_ow = _ft_oh = 0.0
             elif _driver_is_bolt_on:
                 _driver_spec = _fg.DRIVER_FLANGE_SPECS[_ta_driver_key]
-                _ta_driver_clearance = st.number_input(
-                    "Throat clearance (mm)", 0.0, 2.0, 0.3, 0.1,
-                    key="ta_driver_clearance",
-                    help="Added to the nominal driver throat diameter.",
-                )
-                _ft_driver_d = _driver_spec.throat_diam + _ta_driver_clearance
-                _ft_inner_R = _ft_driver_d / 2.0
                 _ft_sp = st.number_input("Flange thickness (mm)", 2.0, 20.0, _flange_sp, 0.5,
                     key="ft_spess")
                 _ft_off = 0.0
@@ -1486,12 +1563,6 @@ with fg1:
                     f"PCD {_ft_bc:.1f} mm"
                 )
             else:
-                _default_driver_d = float(throat_d if is_rect else throat_d)
-                _ft_driver_d = st.number_input("Driver throat \u00d8 (mm)", 5.0, 200.0,
-                    _default_driver_d, 1.0, key="ft_driver_d",
-                    help="Circular throat diameter at the driver end. "
-                         "The adapter transitions from this to the horn throat shape.")
-                _ft_inner_R = _ft_driver_d / 2.0
                 _ft_sp  = st.number_input("Flange thickness (mm)", 2.0, 20.0, _flange_sp, 0.5,
                     key="ft_spess")
                 _ft_off = st.number_input("Z offset (mm)", -50.0, 50.0, 0.0, 0.5, key="ft_off")
@@ -1524,10 +1595,6 @@ with fg1:
                 _ft_bc = st.number_input("Bolt circle \u00d8 (mm)", _ft_bc_lo, _ft_bc_hi,
                     step=1.0, key="ft_bc")
                 _ta_socket_depth = 0.0; _ft_ow = _ft_oh = 0.0
-
-            _ft_depth = 0.0
-            # Dummy old-style rect/poly vars (not used in adapter mode)
-            _ft_inner_w = _ft_inner_h = 0.0
         else:
             # ── No adapter: traditional throat flange ─────────────────────
             _ta_driver_type = "flanged"
@@ -1641,6 +1708,14 @@ with fg2:
             st.caption("Not available for radial profile")
         else:
             st.caption("Not available — Iwata mouth is a curved arc (no flat flange)")
+    elif rollback_complete:
+        gen_mouth = False
+        _fm_sp = _fm_off = _fm_nb = _fm_db = _fm_od = _fm_bc = _fm_ow = _fm_oh = 0.0
+        _fm_ring = _fm_bphase = 0.0
+        _fm_outer_n = 0
+        _fm_inward = _fm_seat = False
+        mouth_outer = "Circular"
+        st.caption("Disabled for complete roll-back: the mouth lip returns inward, so a flat mouth flange is not generated.")
     elif is_osse:
         # Superelliptical mouth → flat elliptical ring welded to the outer rim.
         gen_mouth = st.checkbox("Include", True, key="gen_mouth")
