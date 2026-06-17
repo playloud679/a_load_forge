@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.19.3 (2026-06-18)
+
+- **Legale**: Spostata la lingua Inglese come lingua principale (prima sezione) nel file `TERMS_OF_SERVICE.md`.
+- **Docs/Test**: aggiornati `VERSION`, `pyproject.toml` e `CHANGELOG` a `2.19.3`.
+
 ## 2.19.2 (2026-06-18)
 
 - **Legale**: Aggiunto il documento dei Termini di Servizio (`TERMS_OF_SERVICE.md`) in Italiano, Inglese e Spagnolo, che impone l'uso non commerciale degli STL generati.

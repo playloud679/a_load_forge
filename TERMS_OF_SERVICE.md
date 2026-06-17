@@ -4,30 +4,6 @@
 
 ---
 
-## Italiano
-
-### 1. Proprietà e Licenza
-L'algoritmo, il software e l'infrastruttura di "Flare Forge" sono di proprietà esclusiva del creatore. L'utente riceve una licenza personale, non trasferibile e non esclusiva per utilizzare il servizio e scaricare i file STL generati. I file STL generati possono essere utilizzati esclusivamente secondo quanto stabilito nei presenti Termini.
-
-### 2. Limitazioni d'Uso
-I file STL generati tramite Flare Forge sono destinati **ESCLUSIVAMENTE** a uso personale, educativo e non commerciale.
-È **severamente vietato**:
-- Vendere, noleggiare, distribuire o cedere a terzi i file STL;
-- Stampare e vendere diffusori acustici o altri oggetti fisici derivati dai file STL;
-- Utilizzare i file STL per attività commerciali di qualsiasi natura.
-Per uso commerciale è necessario sottoscrivere una licenza commerciale separata, da richiedere al titolare del servizio.
-
-### 3. Limitazione di Responsabilità
-Il servizio Flare Forge e i file STL generati sono forniti "così come sono" ("as is"), senza alcuna garanzia, esplicita o implicita, inclusa ma non limitata a garanzie di commerciabilità, idoneità per uno scopo particolare o assenza di difetti.
-L'autore non sarà ritenuto responsabile per:
-- Danni diretti o indiretti derivanti dall'uso del servizio o dei file STL;
-- Spreco di materiale di stampa, tempi di lavorazione o costi associati;
-- Difetti acustici, strutturali o funzionali dei diffusori o di altri oggetti stampati;
-- Qualsiasi perdita o danno, anche se prevedibile.
-L'utilizzo del servizio avviene a proprio rischio e pericolo.
-
----
-
 ## English
 
 ### 1. Ownership and License
@@ -49,6 +25,30 @@ The author shall not be liable for:
 - Acoustic, structural, or functional defects in the printed diffusers or other objects;
 - Any loss or damage, even if foreseeable.
 Use of the service is at your own risk.
+
+---
+
+## Italiano
+
+### 1. Proprietà e Licenza
+L'algoritmo, il software e l'infrastruttura di "Flare Forge" sono di proprietà esclusiva del creatore. L'utente riceve una licenza personale, non trasferibile e non esclusiva per utilizzare il servizio e scaricare i file STL generati. I file STL generati possono essere utilizzati esclusivamente secondo quanto stabilito nei presenti Termini.
+
+### 2. Limitazioni d'Uso
+I file STL generati tramite Flare Forge sono destinati **ESCLUSIVAMENTE** a uso personale, educativo e non commerciale.
+È **severamente vietato**:
+- Vendere, noleggiare, distribuire o cedere a terzi i file STL;
+- Stampare e vendere diffusori acustici o altri oggetti fisici derivati dai file STL;
+- Utilizzare i file STL per attività commerciali di qualsiasi natura.
+Per uso commerciale è necessario sottoscrivere una licenza commerciale separata, da richiedere al titolare del servizio.
+
+### 3. Limitazione di Responsabilità
+Il servizio Flare Forge e i file STL generati sono forniti "così come sono" ("as is"), senza alcuna garanzia, esplicita o implicita, inclusa ma non limitata a garanzie di commerciabilità, idoneità per uno scopo particolare o assenza di difetti.
+L'autore non sarà ritenuto responsabile per:
+- Danni diretti o indiretti derivanti dall'uso del servizio o dei file STL;
+- Spreco di materiale di stampa, tempi di lavorazione o costi associati;
+- Difetti acustici, strutturali o funzionali dei diffusori o di altri oggetti stampati;
+- Qualsiasi perdita o danno, anche se prevedibile.
+L'utilizzo del servizio avviene a proprio rischio e pericolo.
 
 ---
 
