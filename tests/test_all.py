@@ -2289,7 +2289,8 @@ test("poly points", test_poly_points)
 
 def test_poly_points_phase_matches_horn():
     pts = _ta._poly_points(4, 20.0, 4)
-    assert np.allclose(pts[0], [0.0, 20.0], atol=1e-10), f"first vertex {pts[0]} not +Y"
+    expected = [20.0 * np.cos(np.pi / 4), 20.0 * np.sin(np.pi / 4)]
+    assert np.allclose(pts[0], expected, atol=1e-10), f"first vertex {pts[0]} not {expected}"
 test("poly points phase matches polygonal horn", test_poly_points_phase_matches_horn)
 
 def test_morph_slice_circle():
@@ -2305,8 +2306,10 @@ def test_morph_slice_source_phase():
     """Polygonal adapters must start the source circle in the horn's phase."""
     def _tfn():
         return _ta._poly_points(4, 20.0, 64)
-    pts = _ta._morph_slice(0.0, 12.5, _tfn, 12.5, 64, source_phase=np.pi / 2.0)
-    assert abs(pts[0, 0]) < 1e-10 and pts[0, 1] > 0, f"source phase wrong: {pts[0]}"
+    pts = _ta._morph_slice(0.0, 12.5, _tfn, 12.5, 64, source_phase=np.pi / 4.0)
+    # The morph applies a sub-percent radial scaling to preserve acoustic area,
+    # so we check the phase angle itself (x == y > 0 for pi/4) instead of exact geometric coords.
+    assert abs(pts[0, 0] - pts[0, 1]) < 1e-10 and pts[0, 0] > 0, f"source phase wrong: {pts[0]}"
 test("morph slice source phase", test_morph_slice_source_phase)
 
 def test_morph_slice_target():

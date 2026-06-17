@@ -320,7 +320,7 @@ def _poly_points(n_sides: int, circumradius: float, n: int = _NP) -> np.ndarray:
     exactly *n* points for compatibility with the morphing engine.
     """
     # Match polygonal_horn.generate_polygonal_3d_mesh orientation.
-    v_theta = np.linspace(0, 2 * np.pi, n_sides, endpoint=False) + np.pi / 2.0
+    v_theta = np.linspace(0, 2 * np.pi, n_sides, endpoint=False) + np.pi / n_sides
     # Vertex positions
     verts = np.column_stack([circumradius * np.cos(v_theta),
                               circumradius * np.sin(v_theta)])
@@ -802,7 +802,7 @@ def make_adapter(
             return _custom_in
     else:
         raise ValueError(f"unsupported horn_shape: {horn_shape!r}")
-    _source_phase = np.pi / 2.0 if horn_shape == "polygonal" else 0.0
+    _source_phase = np.pi / horn_n_sides if horn_shape == "polygonal" else 0.0
 
     # Optional outer-contour stack lets the loft land exactly on the horn's
     # outer section at the join and through the weld overlap.

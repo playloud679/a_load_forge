@@ -72,6 +72,7 @@ def _on_horn_change():
     st.session_state.pop("_combined", None)
     st.session_state.pop("_flange_bodies", None)
     st.session_state.pop("_adapter_cut_z", None)
+    st.session_state.pop("_dxf_items", None)
 
 def _sync_throat_w():
     """Update throat H when W changes, keeping the aspect ratio."""
@@ -195,11 +196,14 @@ with col_prof:
                         key="lecleach_angle", on_change=_on_horn_change,
                         help="Defines where the Le Cléac'h roll-back terminates; larger angles curl farther back")
                 elif _mk == "rollback":
-                    rollback_mode = st.radio("Rollback lip", ["Truncated", "Complete"],
+                    _rb_opts = ["Normal", "Extended"] if is_rosse else ["Truncated", "Complete"]
+                    _rb_help = ("Normal keeps the native Batík rollback; Extended adds an inward return curl" 
+                                if is_rosse else "Truncated keeps the current acoustic lip; Complete adds an inward return curl")
+                    rollback_mode = st.radio("Rollback lip", _rb_opts,
                         index=0, horizontal=True, key="rollback_mode",
                         on_change=_on_horn_change,
-                        help="Truncated keeps the current acoustic lip; Complete adds an inward return curl")
-                    rollback_complete = rollback_mode == "Complete"
+                        help=_rb_help)
+                    rollback_complete = rollback_mode in ("Complete", "Extended")
                     if rollback_complete:
                         rollback_angle = st.number_input("Curl end (°)", 210.0, 360.0, 330.0, 5.0,
                             key="rollback_angle", on_change=_on_horn_change,
@@ -1227,7 +1231,7 @@ with fg1:
         _ft_sp = _ft_off = _ft_od = _ft_ow = _ft_oh = 0.0; _ft_ring = 0.0
         _ft_chamfer = False; _ft_chamfer_w = _ft_chamfer_h = 0.0
         throat_outer = "Circular"; _ta_driver_type = "flanged"; _ta_include_adapter = False
-        _ta_adapter_len = 0.0; _ta_socket_depth = 0.0
+        _ta_adapter_len = 0.0; _ta_socket_depth = 0.0; _ta_is_separated = False; _ta_integration_mode = "Integrated"
     elif is_osse:
         st.caption("Round throat → flat circular bolt-on flange. Mount the driver "
                    "or an adapter to this plate.")
@@ -1242,6 +1246,11 @@ with fg1:
                  "horn throat without increasing the horn length.")
 
         if _ta_include_adapter:
+            _ta_integration_mode = st.radio("Integration mode", ["Integrated", "Separated"],
+                horizontal=True, key="ta_mode_osse",
+                help="Integrated: morph replaces the first part of the flare and welds to it. "
+                     "Separated: morph and flare are generated as two independent parts with mating flanges.")
+            _ta_is_separated = _ta_integration_mode == "Separated"
             # ── Adapter mode: round/threaded driver → horn-throat transition ─
             _ft_chamfer = False; _ft_chamfer_w = _ft_chamfer_h = 0.0
             st.caption("The morph replaces the first part of the flare and welds to "
@@ -1384,6 +1393,8 @@ with fg1:
             _ta_include_adapter = False
             _ta_adapter_len = 0.0
             _ta_socket_depth = 0.0
+            _ta_is_separated = False
+            _ta_integration_mode = "Integrated"
             _driver_is_threaded = False
             _driver_is_flanged = True
             _ft_chamfer = False; _ft_chamfer_w = _ft_chamfer_h = 0.0
@@ -1398,6 +1409,11 @@ with fg1:
                  "horn throat without increasing the horn length.")
 
         if _ta_include_adapter:
+            _ta_integration_mode = st.radio("Integration mode", ["Integrated", "Separated"],
+                horizontal=True, key="ta_mode",
+                help="Integrated: morph replaces the first part of the flare and welds to it. "
+                     "Separated: morph and flare are generated as two independent parts with mating flanges.")
+            _ta_is_separated = _ta_integration_mode == "Separated"
             # ── Adapter mode: round/threaded driver → horn-throat transition ─
             _ft_chamfer = False; _ft_chamfer_w = _ft_chamfer_h = 0.0
             st.caption("The morph replaces the first part of the flare and welds to "
@@ -1520,6 +1536,8 @@ with fg1:
             _ta_include_adapter = False
             _ta_adapter_len = 0.0
             _ta_socket_depth = 0.0
+            _ta_is_separated = False
+            _ta_integration_mode = "Integrated"
             _driver_is_threaded = False
             _driver_is_flanged = True
 
@@ -2527,11 +2545,11 @@ if gen_btn:
                             _z_o_poly, _R_o_eq_arr, _handoff_local_z)
                         _outer_rw = _outer_rh = None
                         def _poly_section(z_loc):
-                            _Rz, _ = _profile_value_slope(zp, rp, z_loc)
+                            _Rz, _ = _profile_value_slope(zp, _R_i_arr, z_loc)
                             return _ta._poly_points(n_sides, _Rz, n=_adapter_n)
 
                         def _poly_outer_section(z_loc):
-                            _Rz, _ = _profile_value_slope(_z_o_poly, _R_o_eq_arr, z_loc)
+                            _Rz, _ = _profile_value_slope(_z_o_poly, _R_o_arr, z_loc)
                             return _ta._poly_points(n_sides, _Rz, n=_adapter_n)
 
                         _adapter_custom_z, _adapter_custom_pts, _adapter_custom_outer = _profile_stack(
@@ -2667,22 +2685,62 @@ if gen_btn:
                         return_cutter=True,
                         output_path=tp,
                     )
-                    if _adapter_preserve_return_lip and f_throat is not None and _adapter_cutter is not None:
-                        try:
-                            # Use the exact internal cutter generated by the adapter loft
-                            # to hollow out the original horn's throat. This removes only
-                            # the advancing airway without touching the returning lip
-                            # (unlike a straight cylinder cut).
-                            _cut_horn = _tm.boolean.difference(
-                                [horn, _adapter_cutter],
-                                engine="manifold",
-                                check_volume=False)
-                            if _cut_horn is not None and not _cut_horn.is_empty:
-                                horn = _cut_horn
-                                horn.remove_unreferenced_vertices()
-                                horn.fix_normals()
-                        except Exception:
-                            pass
+                    if _ta_is_separated and f_throat is not None:
+                        adapter_mesh = f_throat
+                        cut_z = float(_adapter_length_actual)
+                        
+                        # Generate adapter exit mating flange
+                        _ad_contour = _mesh_outer_section_xy(adapter_mesh, cut_z - 1e-3)
+                        _ring_val = _ft_ring if is_osse else 15.0
+                        if _ad_contour is not None:
+                            _ad_flange = _fg.generate_contour_flange(
+                                inner_xy=_ad_contour, thickness=_ft_sp, wall=0.0,
+                                ring=_ring_val, bite=_FLANGE_WALL_BITE,
+                                bolt_n=int(_ft_nb), bolt_d=_ft_db, bolt_phase=_ft_bphase,
+                                offset=cut_z)
+                            if _ad_flange:
+                                adapter_mesh = _tm.boolean.union([adapter_mesh, _ad_flange], engine="manifold")
+                        
+                        st.session_state["adapter_mesh_exported"] = adapter_mesh
+                        
+                        # Slice horn and translate back
+                        sliced = horn.slice_plane([0.0, 0.0, cut_z], [0.0, 0.0, 1.0], cap=True)
+                        if sliced is not None and not sliced.is_empty:
+                            horn = sliced
+                        horn.apply_translation([0.0, 0.0, -cut_z])
+                        
+                        # Generate horn throat mating flange
+                        _horn_contour = _mesh_outer_section_xy(horn, 1e-3)
+                        if _horn_contour is not None:
+                            f_throat = _fg.generate_contour_flange(
+                                inner_xy=_horn_contour, thickness=_ft_sp, wall=0.0,
+                                ring=_ring_val, bite=_FLANGE_WALL_BITE,
+                                bolt_n=int(_ft_nb), bolt_d=_ft_db, bolt_phase=_ft_bphase,
+                                offset=0.0)
+                        else:
+                            f_throat = None
+                            
+                        # Skip cutter difference
+                        _adapter_cutter = None
+
+                    if not _ta_is_separated:
+                        st.session_state["adapter_mesh_exported"] = None
+                        if _adapter_preserve_return_lip and f_throat is not None and _adapter_cutter is not None:
+                            try:
+                                # Use the exact internal cutter generated by the adapter loft
+                                # to hollow out the original horn's throat. This removes only
+                                # the advancing airway without touching the returning lip
+                                # (unlike a straight cylinder cut).
+                                _cut_horn = _tm.boolean.difference(
+                                    [horn, _adapter_cutter],
+                                    engine="manifold",
+                                    check_volume=False)
+                                if _cut_horn is not None and not _cut_horn.is_empty:
+                                    horn = _cut_horn
+                                    horn.remove_unreferenced_vertices()
+                                    horn.fix_normals()
+                            except Exception:
+                                pass
                 elif is_ellip and throat_outer == "Elliptical":
                     # Sample the contour at the actual flange top face, not at
                     # the very bottom of the horn mesh. On roll-backs the base
@@ -3269,84 +3327,106 @@ if gen_btn:
             os.unlink(tp)
 
             # --- 3f. Results ---
-            st.success("✅ Assembly generated successfully")
-
             _wt   = combined.is_watertight if hasattr(combined, 'is_watertight') else None
             _vol  = combined.volume if hasattr(combined, 'volume') else 0
             _tris = len(combined.faces) if hasattr(combined, 'faces') else 0
 
-            r1, r2, r3, r4 = st.columns(4)
-            with r1:
-                # Measure from the ORIGINAL throat plane (z_min, captured before
-                # the embedded adapter trims the flare) to the untouched mouth.
-                # Using horn.bounds[0,2] here would report only the leftover horn
-                # stub after the morph replaced the first part — so the metric
-                # read short (e.g. 36 mm) versus the computed length (63 mm).
-                # The adapter restores the throat to z_min, so the real horn
-                # length is unchanged. (Identical to the old formula when no
-                # adapter trims the horn, since then z_min == horn.bounds[0,2].)
-                st.metric("Length", f"{horn.bounds[1,2]-z_min:.0f} mm" if gen_horn else "—")
-            with r2:
-                if gen_horn:
-                    st.metric("Mouth", f"Ø{mouth_bx:.0f}" if abs(mouth_bx-mouth_by)<1
-                              else f"{mouth_bx:.0f}×{mouth_by:.0f}")
-                else:
-                    st.metric("Mouth", "—")
-            with r3:
-                st.metric("Triangles", f"{_tris:,}")
-            with r4:
-                st.metric("Volume", f"{_vol:.0f} mm³")
-
-            if _wt is True:
-                st.success("Watertight mesh — ready for 3D printing")
-            elif _wt is False:
-                st.warning("Non-watertight mesh — check parameters")
-            else:
-                st.info("Multi-body output (separate flanges)")
-
-            col_dl1, col_dl2 = st.columns(2)
-            with col_dl1:
-                st.download_button("📥 Download STL", stl_bytes, "flare_forge_assembly.stl",
-                    "model/stl", use_container_width=True)
-            with col_dl2:
-                if step_bytes is not None:
-                    st.download_button("📥 Download STEP", step_bytes, "flare_forge_assembly.step",
-                        "model/step", use_container_width=True)
-                else:
-                    st.caption("STEP not available")
-
-            # 2-D DXF drilling templates — one per mounting flange (bolt holes,
-            # bore and outline on separate layers). Generated lazily from each
-            # flange body so any flange type (round/poly/rect, custom/bolt-on)
-            # exports without re-deriving parameters.
-            _flange_bodies = st.session_state.get("_flange_bodies", {})
-            _dxf_labels = {"throat": "Throat", "mouth": "Mouth", "mid": "Mid"}
-            _dxf_items = []
-            for _key, _body in _flange_bodies.items():
-                try:
-                    _dxf = mesh_to_flange_dxf(_body)
-                except Exception:
-                    _dxf = None
-                if _dxf:
-                    _dxf_items.append((_key, _dxf))
-            if _dxf_items:
-                st.caption("📐 Flange drilling templates (DXF — bolt holes, bore, outline)")
-                _dxf_cols = st.columns(len(_dxf_items))
-                for _col, (_key, _dxf) in zip(_dxf_cols, _dxf_items):
-                    with _col:
-                        st.download_button(
-                            f"📥 {_dxf_labels.get(_key, _key)} flange DXF",
-                            _dxf.encode("ascii"),
-                            f"{_key}_flange_holes.dxf",
-                            "application/dxf",
-                            use_container_width=True,
-                            key=f"dxf_{_key}")
+            st.session_state["_assembly_stl_bytes"] = stl_bytes
+            st.session_state["_assembly_step_bytes"] = step_bytes
+            st.session_state["_assembly_stats"] = {
+                "length": horn.bounds[1,2]-z_min if gen_horn else None,
+                "mouth_bx": mouth_bx if gen_horn else None,
+                "mouth_by": mouth_by if gen_horn else None,
+                "wt": _wt,
+                "vol": _vol,
+                "tris": _tris,
+                "gen_horn": gen_horn
+            }
+            st.session_state["_assembly_generated"] = True
 
         except Exception as exc:
             # Show a short, safe message to the user; keep the full traceback
             # server-side only (it would otherwise expose source snippets).
             st.error(f"❌ Generation failed: {type(exc).__name__}: {exc}")
             logger.exception("Assembly generation failed")
+            st.session_state["_assembly_generated"] = False
+
+if st.session_state.get("_assembly_generated"):
+    stats = st.session_state["_assembly_stats"]
+    st.success("✅ Assembly generated successfully")
+
+    r1, r2, r3, r4 = st.columns(4)
+    with r1:
+        st.metric("Length", f"{stats['length']:.0f} mm" if stats["gen_horn"] else "—")
+    with r2:
+        if stats["gen_horn"]:
+            st.metric("Mouth", f"Ø{stats['mouth_bx']:.0f}" if abs(stats['mouth_bx']-stats['mouth_by'])<1
+                      else f"{stats['mouth_bx']:.0f}×{stats['mouth_by']:.0f}")
+        else:
+            st.metric("Mouth", "—")
+    with r3:
+        st.metric("Triangles", f"{stats['tris']:,}")
+    with r4:
+        st.metric("Volume", f"{stats['vol']:.0f} mm³")
+
+    if stats["wt"] is True:
+        st.success("Watertight mesh — ready for 3D printing")
+    elif stats["wt"] is False:
+        st.warning("Non-watertight mesh — check parameters")
+    else:
+        st.info("Multi-body output (separate flanges)")
+
+    col_dl1, col_dl2 = st.columns(2)
+    with col_dl1:
+        st.download_button("📥 Download STL", st.session_state["_assembly_stl_bytes"], "flare_forge_assembly.stl",
+            "model/stl", use_container_width=True)
+    with col_dl2:
+        _step_bytes = st.session_state.get("_assembly_step_bytes")
+        if _step_bytes is not None:
+            st.download_button("📥 Download STEP", _step_bytes, "flare_forge_assembly.step",
+                "model/step", use_container_width=True)
+        else:
+            st.caption("STEP not available")
+    
+    if st.session_state.get("adapter_mesh_exported") is not None:
+        _adapter_mesh = st.session_state["adapter_mesh_exported"]
+        _ad_stl = _adapter_mesh.export(file_type="stl")
+        st.download_button("📥 Download Separated Adapter (STL)", _ad_stl, "adapter_assembly.stl",
+            "model/stl", use_container_width=True)
+
+    # 2-D DXF drilling templates — one per mounting flange (bolt holes,
+    # bore and outline on separate layers). Generated lazily from each
+    # flange body so any flange type (round/poly/rect, custom/bolt-on)
+    # exports without re-deriving parameters.
+    _flange_bodies = st.session_state.get("_flange_bodies", {})
+    _dxf_labels = {"throat": "Throat", "mouth": "Mouth", "mid": "Mid"}
+    
+    if "_dxf_items" not in st.session_state:
+        _dxf_items = []
+        for _key, _body in _flange_bodies.items():
+            try:
+                _dxf = mesh_to_flange_dxf(_body)
+            except Exception:
+                _dxf = None
+            if _dxf:
+                _dxf_items.append((_key, _dxf))
+        st.session_state["_dxf_items"] = _dxf_items
+    else:
+        _dxf_items = st.session_state["_dxf_items"]
+
+    if _dxf_items:
+        st.caption("📐 Flange drilling templates (DXF — bolt holes, bore, outline)")
+        _dxf_cols = st.columns(len(_dxf_items))
+        for _col, (_key, _dxf) in zip(_dxf_cols, _dxf_items):
+            with _col:
+                st.download_button(
+                    f"📥 {_dxf_labels.get(_key, _key)} flange DXF",
+                    _dxf.encode("ascii"),
+                    f"{_key}_flange_holes.dxf",
+                    "application/dxf",
+                    use_container_width=True,
+                    key=f"dxf_{_key}")
+
 else:
     st.info("Configure the parameters and click **Generate Assembly STL**")
 
@@ -3734,31 +3814,35 @@ pieces = st.session_state.get("_pieces", None)
 if pieces:
     st.success(f"{len(pieces)} piece{'s' if len(pieces)>1 else ''} generated")
 
-    zip_buf = io.BytesIO()
-    with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for name, mesh in pieces:
-            with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as _t:
-                _tp = _t.name
-                mesh.export(_tp)
-            with open(_tp, "rb") as f:
-                zf.writestr(f"{name}.stl", f.read())
-            os.unlink(_tp)
+    if st.session_state.get("_pieces_cache_sig") != st.session_state.get("_petal_sig"):
+        with st.spinner("Preparing downloads..."):
+            zip_buf = io.BytesIO()
+            pieces_bytes = {}
+            with zipfile.ZipFile(zip_buf, "w", zipfile.ZIP_DEFLATED) as zf:
+                for name, mesh in pieces:
+                    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as _t:
+                        _tp = _t.name
+                        mesh.export(_tp)
+                    with open(_tp, "rb") as f:
+                        b = f.read()
+                        pieces_bytes[name] = b
+                        zf.writestr(f"{name}.stl", b)
+                    os.unlink(_tp)
+            st.session_state["_pieces_zip"] = zip_buf.getvalue()
+            st.session_state["_pieces_bytes"] = pieces_bytes
+            st.session_state["_pieces_cache_sig"] = st.session_state.get("_petal_sig")
 
     _, col_zip, _ = st.columns([1, 2, 1])
     with col_zip:
-        st.download_button("📦 Download all as ZIP", zip_buf.getvalue(),
+        st.download_button("📦 Download all as ZIP", st.session_state["_pieces_zip"],
                            "flare_forge_slices.zip", "application/zip",
-                           use_container_width=True)
+                           use_container_width=True, key="dl_zip_slices")
 
     for name, mesh in pieces:
-        with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as _t:
-            _tp = _t.name
-            mesh.export(_tp)
-        with open(_tp, "rb") as f:
-            b = f.read()
-        os.unlink(_tp)
+        b = st.session_state["_pieces_bytes"].get(name)
+        if b is None: continue
         label = f"📥 {name}"
         if "_pet" not in name:
             z_lo, z_hi = mesh.bounds[0, 2], mesh.bounds[1, 2]
             label += f"  (Z={z_lo:.0f}–{z_hi:.0f} mm)"
-        st.download_button(label, b, f"{name}.stl", "model/stl")
+        st.download_button(label, b, f"{name}.stl", "model/stl", key=f"dl_{name}")

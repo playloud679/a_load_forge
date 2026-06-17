@@ -733,7 +733,9 @@ def _seam_face_polygons(petal, origin, normal, min_area_frac=0.0):
     Slivers below *min_area_frac* of the largest strip are dropped.
     The threshold is intentionally low so narrow flange strips are kept.
     """
-    section = petal.section(plane_origin=origin, plane_normal=normal)
+    # Shift origin slightly into the petal to avoid coplanar face degeneracy
+    safe_origin = np.asarray(origin, dtype=float) + np.asarray(normal, dtype=float) * 1e-4
+    section = petal.section(plane_origin=safe_origin, plane_normal=normal)
     if section is None:
         return [], None
     try:
@@ -900,7 +902,8 @@ def add_radial_groove(petal: trimesh.Trimesh, angle: float,
                                outer_margin=outer_margin)
         if inner is None:
             continue
-        groove = trimesh.creation.extrude_polygon(inner, height=joint_depth + overlap)
+        # Add 0.2mm to height to provide clearance at the tip of the tongue
+        groove = trimesh.creation.extrude_polygon(inner, height=joint_depth + overlap + 0.2)
         groove.apply_transform(to_3D_off)
         try:
             cut = trimesh.boolean.difference([result, groove], engine="manifold",
