@@ -47,8 +47,14 @@ parallel offset in the axisymmetric engine.
 def ensure_positive_volume(m: mesh.Mesh) -> mesh.Mesh
 ```
 Flips triangle winding (`vectors[:, [0, 2, 1]]`) if the signed volume is
-negative, so exported STLs have outward-facing normals. Swallows errors from
-`get_mass_properties()` on degenerate meshes and returns the mesh unchanged.
+negative, so exported STLs have outward-facing normals. The signed volume uses
+the same surface integral as `numpy-stl.get_mass_properties()`, but computes
+only the volume term directly from triangle vertices and skips that API's
+`check()` call. This avoids noisy "mesh is not closed" warnings for open
+intermediate helper meshes while preserving the same winding sign used by the
+existing volume tests. Swallows errors on degenerate meshes and returns the mesh
+unchanged. When winding is flipped, cached `numpy-stl` normals are refreshed so
+subsequent exact closed-mesh checks use the new triangle orientation.
 
 ```python
 def align_z_to_zero(m: mesh.Mesh) -> mesh.Mesh

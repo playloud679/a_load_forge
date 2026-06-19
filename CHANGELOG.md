@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.19.10 (2026-06-19)
+
+- **UI throat adapter**: separato lo spessore della flangia adapter dal pannello
+  `Throat Flange`; quando `Include shape adapter` è attivo, la sezione
+  `Throat Flange` mostra solo lo stato informativo e non espone più input
+  duplicati o non applicabili.
+- **Radial mesh closure**: rimossa una striscia degenerata dal bottom deflector
+  radiale e verificata la chiusura esatta dei due STL radiali nei test.
+- **Utils/Test**: `ensure_positive_volume()` calcola il segno del volume senza
+  chiamare `numpy-stl.get_mass_properties()` sugli intermedi aperti e aggiorna
+  le normali dopo un flip.
+- **Docs/Test**: aggiornati `VERSION`, `pyproject.toml`, `CHANGELOG`,
+  `USER_GUIDE.md`, `docs/INDEX.md`, `docs/_utils.md` e `docs/radial_horn.md` a
+  `2.19.10`.
+
 ## 2.19.5 (2026-06-18)
 
 - **Legale/UI**: Aggiunto un disclaimer di "Beta / Work In Progress" ai Termini di Servizio (in tutte e 3 le lingue) e come banner di avviso visibile nell'header dell'applicazione Streamlit.

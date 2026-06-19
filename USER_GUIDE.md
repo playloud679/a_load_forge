@@ -167,6 +167,9 @@ Sotto **Advanced** (apri solo se serve): `Z offset`, posizione bulloni
 > round-to-shape transition. **Morph length inside horn** replaces the first
 > part of the flare, so it does not increase horn depth. Only the flange or
 > threaded socket may protrude behind the throat plane.
+> **Flange thickness** in this block controls the adapter-side flange. When the
+> shape adapter is enabled, the separate **Throat Flange** block is only a status
+> note because the adapter owns that driver-side geometry.
 
 **Note / notes:**
 - Per **Iwata** alcune flange non sono disponibili perché la bocca è curva.

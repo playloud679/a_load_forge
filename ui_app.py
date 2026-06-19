@@ -303,6 +303,7 @@ with st.sidebar:
     _ta_driver_clearance = 0.3
     _ta_adapter_len = 0.0
     _ta_socket_depth = 0.0
+    _ta_flange_sp = 6.0
     _ft_driver_d = None
     _driver_is_custom_flange = False
     _driver_is_bolt_on = False
@@ -351,6 +352,12 @@ with st.sidebar:
                 key=f"ta_adapter_len{_adapter_suffix}",
                 help="Length of the round-to-shape transition. It replaces the first "
                      "part of the flare, so it does not increase horn depth.",
+            )
+            _ta_flange_sp = st.number_input(
+                "Flange thickness (mm)", 2.0, 20.0, 6.0, 0.5,
+                key=f"ta_flange_sp{_adapter_suffix}",
+                help="Thickness of the adapter-side flange used for separated and "
+                     "flanged adapter builds.",
             )
             if _driver_is_threaded:
                 _thread_spec = _ta.THREAD_SPECS[_ta_thread_key]
@@ -1487,8 +1494,47 @@ fg2 = st.sidebar.container()
 fg3 = st.sidebar.container()
 
 with fg1:
-    st.markdown("##### Throat Flange / Adapter")
-    if is_radial:
+    st.markdown("##### Throat Flange")
+    if _ta_include_adapter and not is_radial:
+        gen_throat = True
+        st.caption("Shape adapter enabled above; this throat component will be generated.")
+        _ft_chamfer = False; _ft_chamfer_w = _ft_chamfer_h = 0.0
+        _ft_depth = 0.0
+        _ft_inner_R = float(_ft_driver_d) / 2.0 if _ft_driver_d else 0.0
+        _ft_inner_w = _ft_inner_h = 0.0
+        _ft_sp = _ta_flange_sp
+        _ft_off = 0.0
+        _ft_ow = _ft_oh = 0.0
+        _ft_outer_w = _ft_outer_h = 0.0
+        _ft_outer_n = 0
+        throat_outer = "Circular"
+        _ft_bphase = 0.0
+
+        if _driver_is_threaded:
+            _ft_nb = _ft_db = _ft_od = _ft_bc = 0.0
+            _ft_ring = 0.0
+        elif _driver_is_bolt_on:
+            _driver_spec = _fg.DRIVER_FLANGE_SPECS[_ta_driver_key]
+            _ft_nb = _driver_spec.bolt_count
+            _ft_db = _driver_spec.bolt_diam
+            _ft_od = _driver_spec.outer_diam
+            _ft_bc = _driver_spec.pcd
+            _ft_bphase = _driver_spec.bolt_phase
+            _ft_ring = (_driver_spec.outer_diam - _ft_driver_d) / 2.0
+            _ta_socket_depth = 0.0
+        else:
+            _ft_nb = int(st.session_state.get(
+                "ft_nb_osse_ta" if is_osse else "ft_nb", _bolt_n))
+            _ft_db = float(st.session_state.get(
+                "ft_db_osse_ta" if is_osse else "ft_db", _bolt_d))
+            _ft_ring = float(st.session_state.get(
+                "ft_ring_osse_ta" if is_osse else "ft_ring", 15.0))
+            _ft_od = 2.0 * (_ft_inner_R + _ft_ring)
+            _ft_bc = float(st.session_state.get(
+                "ft_bc_osse_ta" if is_osse else "ft_bc",
+                max(0.0, _ft_od - _ft_db - 2.0)))
+            _ta_socket_depth = 0.0
+    elif is_radial:
         st.caption("Mounting holes on bottom plate")
         gen_throat = st.checkbox("Include", True, key="gen_throat")
         if gen_throat:
@@ -2884,7 +2930,7 @@ if gen_btn:
                         adapter_length=_adapter_length_actual,
                         wall_thickness=thickness,
                         flange_R=_ft_od / 2.0 if _driver_is_custom_flange else 0.0,
-                        flange_thickness=_ft_sp if _driver_is_flanged else 0.0,
+                        flange_thickness=_ta_flange_sp if _driver_is_flanged else 0.0,
                         flange_bolt_R=_ft_bc / 2.0 if _driver_is_custom_flange else 0.0,
                         flange_bolt_n=int(_ft_nb) if _driver_is_custom_flange else 0,
                         flange_bolt_d=_ft_db if _driver_is_custom_flange else 0.0,
@@ -2916,7 +2962,7 @@ if gen_btn:
                         _ring_val = _ft_ring if is_osse else 15.0
                         if _ad_contour is not None:
                             _ad_flange = _fg.generate_contour_flange(
-                                inner_xy=_ad_contour, thickness=_ft_sp, wall=0.0,
+                                inner_xy=_ad_contour, thickness=_ta_flange_sp, wall=0.0,
                                 ring=_ring_val, bite=_FLANGE_WALL_BITE,
                                 bolt_n=int(_ft_nb), bolt_d=_ft_db, bolt_phase=_ft_bphase,
                                 offset=cut_z)
@@ -2935,7 +2981,7 @@ if gen_btn:
                         _horn_contour = _mesh_outer_section_xy(horn, 1e-3)
                         if _horn_contour is not None:
                             f_throat = _fg.generate_contour_flange(
-                                inner_xy=_horn_contour, thickness=_ft_sp, wall=0.0,
+                                inner_xy=_horn_contour, thickness=_ta_flange_sp, wall=0.0,
                                 ring=_ring_val, bite=_FLANGE_WALL_BITE,
                                 bolt_n=int(_ft_nb), bolt_d=_ft_db, bolt_phase=_ft_bphase,
                                 offset=0.0)
@@ -3040,7 +3086,7 @@ if gen_btn:
                 # Identify which body the chamfer wraps around
                 if _ta_include_adapter:
                     _chamfer_source = f_throat
-                    _chamfer_flange_top = float(f_throat.bounds[0, 2] + _ft_sp)
+                    _chamfer_flange_top = float(f_throat.bounds[0, 2] + _ta_flange_sp)
                 else:
                     _chamfer_source = horn
                     _chamfer_flange_top = float(z_min + _ft_off + _ft_sp)

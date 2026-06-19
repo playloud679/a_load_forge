@@ -151,10 +151,10 @@ def generate_radial_horn(
                 Zt[0] - Zb[0], Zt[-1] - Zb[-1])
 
     # ---- Bottom deflector ------------------------------------------------
-    # Closed loop: Inner vertical → Top curve → Outer vertical → Bottom flat
+    # Closed loop: Top curve → Outer vertical → Bottom flat
     Rt, Rm = R[0], R[-1]
-    r_bot = np.concatenate([[Rt], R, [Rm], [Rt]])
-    z_bot = np.concatenate([[0.0], Zb, [0.0], [0.0]])
+    r_bot = np.concatenate([R, [Rm], [Rt]])
+    z_bot = np.concatenate([Zb, [0.0], [0.0]])
 
     bottom_mesh = _revolve_polygon(r_bot, z_bot, rings)
     bottom_mesh.save(f"{output_dir}/radial_bottom.stl")
@@ -192,7 +192,7 @@ def generate_radial_horn(
 
 def _wt(m):
     try:
-        return str(m.get_mass_properties()[0] > 0)
+        return str(m.is_closed(exact=True))
     except Exception:
         return "?"
 

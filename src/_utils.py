@@ -49,8 +49,17 @@ def compute_profile_normals(
 def ensure_positive_volume(m: mesh.Mesh) -> mesh.Mesh:
     """Flip triangle winding if volume is negative."""
     try:
-        if m.get_mass_properties()[0] < 0:
+        v = np.asarray(m.vectors, dtype=np.float64)
+        x0, x1, x2 = v[:, 0, 0], v[:, 1, 0], v[:, 2, 0]
+        y0, y1, y2 = v[:, 0, 1], v[:, 1, 1], v[:, 2, 1]
+        z0, z1, z2 = v[:, 0, 2], v[:, 1, 2], v[:, 2, 2]
+        a1, b1, c1 = x1 - x0, y1 - y0, z1 - z0
+        a2, b2, c2 = x2 - x0, y2 - y0, z2 - z0
+        d0 = b1 * c2 - b2 * c1
+        signed_volume = np.sum(d0 * (x0 + x1 + x2)) / 6.0
+        if signed_volume < 0:
             m.vectors = m.vectors[:, [0, 2, 1]]
+            m.update_normals()
     except Exception:
         pass
     return m

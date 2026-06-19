@@ -133,26 +133,35 @@ polygon definition). Does NOT compute gradient normals — uses flat facets.
 After revolution, calls `_utils.align_z_to_zero(m_obj)` and
 `_utils.ensure_positive_volume(m_obj)`.
 
+The `_wt()` logging helper reports `mesh.is_closed(exact=True)` directly, so
+radial generation logs whether each exported STL is closed without calling
+`numpy-stl.get_mass_properties()` and triggering open-mesh mass-property
+warnings.
+
 ---
 
 ## Bottom Deflector polygon
 
 Closed loop `(r_bot, z_bot)` concatenated as:
 ```
-r_bot = [Rt, R..., Rm, Rt]
-z_bot = [0,  Zb..., 0,  0 ]
+r_bot = [R..., Rm, Rt]
+z_bot = [Zb..., 0,  0 ]
 ```
 
 Vertices (in order):
-1. Inner vertical edge: `(Rt, 0)` → `(Rt, Zb[0])`
-2. Top curve: traces `(R[i], Zb[i])` for all i
-3. Outer vertical edge: `(Rm, Zb[-1])` → `(Rm, 0)`
-4. Bottom flat: `(Rm, 0)` → `(Rt, 0)` (closes the loop, forms solid base at
+1. Top curve: traces `(R[i], Zb[i])` for all i, starting at `(Rt, 0)`.
+2. Outer vertical edge: `(Rm, Zb[-1])` → `(Rm, 0)`.
+3. Bottom flat: `(Rm, 0)` → `(Rt, 0)` (closes the loop, forms solid base at
    Z=0)
 
 This produces a solid with a flat bottom at Z=0 and a curved upper surface
 that follows the bottom profile. The centre throat hole is implicit (no
 material inside `r < Rt` — the revolution starts at `Rt`).
+
+The loop intentionally does **not** prepend an extra `(Rt, 0)` point before
+`R[0]`: `Zb[0]` is already zero, so that duplicate would create a degenerate
+radial strip and make `numpy-stl`'s exact closed-mesh check report the bottom
+piece as open.
 
 ---
 

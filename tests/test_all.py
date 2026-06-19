@@ -15,6 +15,7 @@ sys.path.insert(0, str(os.path.join(os.path.dirname(__file__), "..", "src")))
 sys.path.insert(0, str(os.path.join(os.path.dirname(__file__), "..")))
 
 import numpy as np
+from stl import mesh
 
 PASS = 0
 FAIL = 0
@@ -860,10 +861,12 @@ for prof in RADIAL_PROFILES:
         R, Zb, Zt = _rd.get_radial_profiles(25, 200, FC, 300, p)
         _check_radial_profiles(R, Zb, Zt, f"Radial/{p} profiles")
         with tempfile.TemporaryDirectory() as tmp:
-            _rd.generate_radial_horn(25, 200, FC, 48, tmp, p)
-            for sfx in ["bottom", "top"]:
+            bottom, top = _rd.generate_radial_horn(25, 200, FC, 48, tmp, p)
+            for sfx, raw in [("bottom", bottom), ("top", top)]:
+                assert raw.is_closed(exact=True), f"Radial/{p} {sfx}: numpy-stl mesh is not closed"
                 path = os.path.join(tmp, f"radial_{sfx}.stl")
                 m = trimesh.load(path, file_type="stl")
+                assert m.is_watertight,  f"Radial/{p} {sfx}: not watertight"
                 assert m.body_count == 1,  f"Radial/{p} {sfx}: {m.body_count} bodies"
                 assert m.volume > 0,       f"Radial/{p} {sfx}: volume={m.volume}"
     test(f"Radial / {prof}", make)
@@ -3350,6 +3353,33 @@ def test_utils_profile_aliases():
 
 
 test("_utils exposes CircularProfile/RectProfile aliases", test_utils_profile_aliases)
+
+
+def test_ensure_positive_volume_avoids_numpy_stl_mass_properties():
+    """Orientation helper must not trigger numpy-stl open-mesh warnings."""
+    data = np.zeros(4, dtype=mesh.Mesh.dtype)
+    data["vectors"][:] = np.array([
+        [[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+        [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
+        [[0.0, 0.0, 0.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]],
+        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+    ])
+    m = mesh.Mesh(data)
+
+    original = mesh.Mesh.get_mass_properties
+
+    def _forbid_mass_properties(_self):
+        raise AssertionError("ensure_positive_volume must not call get_mass_properties()")
+
+    mesh.Mesh.get_mass_properties = _forbid_mass_properties
+    try:
+        _uts.ensure_positive_volume(m)
+    finally:
+        mesh.Mesh.get_mass_properties = original
+
+
+test("_utils positive-volume helper avoids open-mesh mass warnings",
+     test_ensure_positive_volume_avoids_numpy_stl_mass_properties)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
