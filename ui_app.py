@@ -444,30 +444,30 @@ with st.sidebar:
             with _ocv[1]:
                 coverage_v = st.number_input("Vertical coverage (°)", 10.0, 170.0, 60.0, 5.0,
                     help="Nominal vertical beamwidth (full angle)")
-            with st.expander("OS-SE shape factors"):
-                _os1, _os2 = st.columns(2)
-                with _os1:
-                    osse_mouth_exp = st.number_input("Mouth exponent", 2.0, 20.0, 6.0, 0.5,
-                        help="Superellipse mouth: 2 = ellipse · large = rectangle. "
-                             "Higher pushes the diagonal ridges further to the corners.")
-                    osse_throat_angle = st.number_input("Throat angle (total °)", 0.0, 90.0, 0.0, 1.0,
-                        help="Throat included angle (0 = flat wavefront)")
-                    osse_k = st.number_input("Throat expansion k", 0.0, 8.0, 1.0, 0.1,
-                        help="1 = pure OS hyperbola · 0 = straight cone")
-                with _os2:
-                    osse_n = st.number_input("SE exponent n", 2.0, 12.0, 5.0, 0.5,
-                        help="How late/abrupt the mouth termination is")
-                    osse_s = st.number_input("Flare amount s", 0.0, 2.0, 0.8, 0.05,
-                        help="Amount of mouth flare (0 = no flare)")
-                    osse_q = st.number_input("Truncation q", 0.90, 1.0, 0.998, 0.002,
-                        help="Drops the last near-straight bit (≈0.998)")
-                _om1, _om2 = st.columns(2)
-                with _om1:
-                    osse_morph_start = st.number_input("Morph start (× L)", 0.0, 0.95, 0.0, 0.05,
-                        help="Fraction of length kept as the natural OS-SE shape before the mouth morph")
-                with _om2:
-                    osse_morph_rate = st.number_input("Morph rate γ", 1.0, 6.0, 2.0, 0.5,
-                        help="How gradual the morph to the rectangular mouth is (1 = abrupt)")
+            st.markdown("###### Shape Factors")
+            _os1, _os2 = st.columns(2)
+            with _os1:
+                osse_mouth_exp = st.number_input("Mouth exponent", 2.0, 20.0, 6.0, 0.5,
+                    help="Superellipse mouth: 2 = ellipse · large = rectangle. "
+                         "Higher pushes the diagonal ridges further to the corners.")
+                osse_throat_angle = st.number_input("Throat angle (total °)", 0.0, 90.0, 0.0, 1.0,
+                    help="Throat included angle (0 = flat wavefront)")
+                osse_k = st.number_input("Throat expansion k", 0.0, 8.0, 1.0, 0.1,
+                    help="1 = pure OS hyperbola · 0 = straight cone")
+            with _os2:
+                osse_n = st.number_input("SE exponent n", 2.0, 12.0, 5.0, 0.5,
+                    help="How late/abrupt the mouth termination is")
+                osse_s = st.number_input("Flare amount s", 0.0, 2.0, 0.8, 0.05,
+                    help="Amount of mouth flare (0 = no flare)")
+                osse_q = st.number_input("Truncation q", 0.90, 1.0, 0.998, 0.002,
+                    help="Drops the last near-straight bit (≈0.998)")
+            _om1, _om2 = st.columns(2)
+            with _om1:
+                osse_morph_start = st.number_input("Morph start (× L)", 0.0, 0.95, 0.0, 0.05,
+                    help="Fraction of length kept as the natural OS-SE shape before the mouth morph")
+            with _om2:
+                osse_morph_rate = st.number_input("Morph rate γ", 1.0, 6.0, 2.0, 0.5,
+                    help="How gradual the morph to the rectangular mouth is (1 = abrupt)")
             mouth_d = mouth_w = None
             _mouth_is_input = False
         elif is_iwata:
@@ -546,16 +546,16 @@ with st.sidebar:
                 coverage_v = coverage_h
 
         if is_rosse:
-            with st.expander("R-OSSE shape factors"):
-                _rc1, _rc2 = st.columns(2)
-                with _rc1:
-                    rosse_a0 = st.number_input("Throat opening (total °)", 0.0, 179.0, 15.0, 1.0)
-                    rosse_k = st.number_input("Throat expansion k", 0.1, 10.0, 1.8, 0.1)
-                    rosse_r = st.number_input("Apex radius r", 0.01, 5.0, 0.3, 0.05)
-                with _rc2:
-                    rosse_m = st.number_input("Apex shift m", 0.0, 1.0, 0.8, 0.05)
-                    rosse_b = st.number_input("Bending b", -5.0, 5.0, 0.3, 0.05)
-                    rosse_q = st.number_input("Throat shape q", 0.1, 20.0, 3.7, 0.1)
+            st.markdown("###### Shape Factors")
+            _rc1, _rc2 = st.columns(2)
+            with _rc1:
+                rosse_a0 = st.number_input("Throat opening (total °)", 0.0, 179.0, 15.0, 1.0)
+                rosse_k = st.number_input("Throat expansion k", 0.1, 10.0, 1.8, 0.1)
+                rosse_r = st.number_input("Apex radius r", 0.01, 5.0, 0.3, 0.05)
+            with _rc2:
+                rosse_m = st.number_input("Apex shift m", 0.0, 1.0, 0.8, 0.05)
+                rosse_b = st.number_input("Bending b", -5.0, 5.0, 0.3, 0.05)
+                rosse_q = st.number_input("Throat shape q", 0.1, 20.0, 3.7, 0.1)
 
         if has_fc:
             _fc_help = ("Flare rate — how fast the horn opens. The mouth sets where it ends."
