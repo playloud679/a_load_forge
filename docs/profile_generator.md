@@ -145,8 +145,12 @@ return whose tangent starts from the existing final tangent and ends at
 `target_angle`, then resamples by meridian arc length.
 
 The default mode in `get_lecleach()` and `get_rosse()` leaves profiles
-unchanged. The UI exposes this helper as **Rollback lip: Truncated / Complete**;
-`Complete` adds the inward curl without changing the upstream airway profile.
+unchanged. The UI exposes this helper as **Rollback lip: Truncated / Extended**
+for Le Cléac'h and **Normal / Extended** for R-OSSE; `Extended` adds the inward
+curl without changing the upstream airway profile.
+If the requested return angle would push the appended curl below the throat
+plane (`z[0]`), the helper reduces only the curl radius so the mesh engine does
+not later crush that below-zero geometry into a flat cap.
 
 ### `get_rosse(throat: float, mouth: float, coverage_angle: float, n: int, throat_angle: float = 15.0, k: float = 1.8, r: float = 0.3, m: float = 0.8, b: float = 0.3, q: float = 3.7, complete_rollback: bool = False, rollback_angle: float = 330.0) -> tuple[np.ndarray, np.ndarray]`
 
@@ -198,7 +202,7 @@ where `Sₜ = π · (throat/2)²` and `x₀ = c / (2π · fc)`.
 - `max_step = 0.5`
 - Initial conditions: `s=0, r=throat/2, z=0`
 - Integration domain: `[0, 50000]`; the mouth is defined by the termination-angle event, not by an axial-length input.
-- `complete_rollback=True` appends the shared inward return curl after the ODE endpoint, then resamples the whole meridian back to `n` points.
+- `complete_rollback=True` appends the shared inward return curl after the ODE endpoint, clamps the curl radius if needed to stay above the throat plane, then resamples the whole meridian back to `n` points.
 
 **Termination event:**
 ```

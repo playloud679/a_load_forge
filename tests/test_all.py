@@ -194,6 +194,14 @@ test("Complete rollback profiles add inward return curl",
      _check_complete_rollback_profile_returns_inward)
 
 
+def _check_complete_rollback_stays_above_throat_plane():
+    z, _ = _c.get_lecleach(25.7, 600.0, 300, max_angle=160.0,
+                           complete_rollback=True, rollback_angle=330.0)
+    assert float(z.min()) >= -1e-6, "Le Cleac'h complete rollback dipped below throat plane"
+test("Complete rollback stays above throat plane",
+     _check_complete_rollback_stays_above_throat_plane)
+
+
 def _check_complete_rollback_mesh_watertight():
     z, r = _c.get_lecleach(THROAT, FC, N, complete_rollback=True)
     with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:

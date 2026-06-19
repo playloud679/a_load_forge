@@ -292,6 +292,9 @@ def complete_rollback_profile(
     while theta1 <= theta0 + np.radians(5.0):
         theta1 += 2.0 * np.pi
 
+    extra_n = max(24, out_n // 4)
+    theta = np.linspace(theta0, theta1, extra_n + 1)[1:]
+
     r_min = max(float(r[0]) * 1.15, 0.5)
     denom = np.cos(theta1) - np.cos(theta0)
     if denom > 1e-9:
@@ -299,11 +302,25 @@ def complete_rollback_profile(
     else:
         max_curl_r = float(r[-1])
     curl_radius = min(float(r[-1]) * curl_scale, max_curl_r)
+
+    # Keep the added return curl above the throat plane.  Le Cléac'h profiles
+    # can have a high rollback lip; a large target angle such as 330 degrees
+    # otherwise drives part of the appended arc below z[0].  The mesh engine
+    # flattens the throat at z[0], so allowing that under-run creates a large
+    # crushed cap in the generated solid.
+    min_sin = min(float(np.sin(theta0)), float(np.sin(theta1)))
+    k = np.ceil((theta0 - 1.5 * np.pi) / (2.0 * np.pi))
+    theta_min_sin = 1.5 * np.pi + 2.0 * np.pi * k
+    if theta0 <= theta_min_sin <= theta1:
+        min_sin = -1.0
+    min_z_delta = min_sin - float(np.sin(theta0))
+    if min_z_delta < -1e-9:
+        z_room = max(float(z[-1] - z[0]), 0.0)
+        curl_radius = min(curl_radius, z_room / -min_z_delta)
+
     if curl_radius <= 1e-9:
         return _resample_profile_by_arclength(z, r, out_n)
 
-    extra_n = max(24, out_n // 4)
-    theta = np.linspace(theta0, theta1, extra_n + 1)[1:]
     z_ext = z[-1] + curl_radius * (np.sin(theta) - np.sin(theta0))
     r_ext = r[-1] + curl_radius * (np.cos(theta0) - np.cos(theta))
     z_full = np.concatenate([z, z_ext])
