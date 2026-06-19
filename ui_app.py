@@ -54,6 +54,23 @@ except OSError:
 st.set_page_config(page_title=f"flare_forge v{_VERSION}", layout="wide",
     initial_sidebar_state="expanded", menu_items={})
 
+st.markdown(
+    """
+    <style>
+    @media (max-width: 768px) {
+        section[data-testid="stSidebar"],
+        section[data-testid="stSidebar"] > div,
+        div[data-testid="stSidebarContent"] {
+            width: 100vw !important;
+            min-width: 100vw !important;
+            max-width: 100vw !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # ── Support link ─────────────────────────────────────────────────────
 # Replace with your Buy Me a Coffee username; the button hides if left blank.
 BMC_USERNAME = "steo_lab"
