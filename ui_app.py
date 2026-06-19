@@ -50,7 +50,7 @@ try:
     _VERSION = (Path(__file__).parent / "VERSION").read_text().strip()
 except OSError:
     _VERSION = "dev"
-_LOGO_PATH = Path(__file__).parent / "assets" / "flare_forge_logo.png"
+_BANNER_PATH = Path(__file__).parent / "assets" / "flare_forge_banner.png"
 
 st.set_page_config(page_title=f"flare_forge v{_VERSION}", layout="wide",
     initial_sidebar_state="expanded", menu_items={})
@@ -111,8 +111,8 @@ def _sync_throat_ar():
         st.session_state["throat_h_key"] = st.session_state["throat_w_key"] / ar
     _on_horn_change()
 
-if _LOGO_PATH.exists():
-    st.image(str(_LOGO_PATH), width="stretch")
+if _BANNER_PATH.exists():
+    st.image(str(_BANNER_PATH), width="stretch")
 st.caption(f":gray[v{_VERSION}] · Acoustic profile + mounting flanges · watertight assembly for 3D printing")
 st.warning(
     "🚧 **Vibe-coded / AI-assisted beta**: geometric and acoustic accuracy is "

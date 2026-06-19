@@ -51,7 +51,7 @@ source** to save tokens.
 - OS-SE and R-OSSE shape factors are base profile-definition controls in the
   sidebar, rendered inline under `Shape Factors` rather than inside a collapsible
   expander.
-- The top header uses `assets/flare_forge_logo.png` as a full-span banner; the
+- The top header uses `assets/flare_forge_banner.png` as a full-span banner; the
   Terms of Service download and Buy Me a Coffee link live in the Generate
   Assembly sidebar block immediately above the STL generation button.
 - The 2-D cross-section preview is rendered with a black plot background and
