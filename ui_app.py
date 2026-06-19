@@ -50,6 +50,7 @@ try:
     _VERSION = (Path(__file__).parent / "VERSION").read_text().strip()
 except OSError:
     _VERSION = "dev"
+_LOGO_PATH = Path(__file__).parent / "assets" / "flare_forge_logo.png"
 
 st.set_page_config(page_title=f"flare_forge v{_VERSION}", layout="wide",
     initial_sidebar_state="expanded", menu_items={})
@@ -110,27 +111,15 @@ def _sync_throat_ar():
         st.session_state["throat_h_key"] = st.session_state["throat_w_key"] / ar
     _on_horn_change()
 
-_hdr_l, _hdr_r = st.columns([5, 1])
-with _hdr_l:
-    st.title("flare_forge")
-    st.caption(f":gray[v{_VERSION}] · Acoustic profile + mounting flanges · watertight assembly for 3D printing")
-    st.warning("🚧 **Beta / Work In Progress**: The author is actively validating geometric and acoustic accuracy. Generated STL files may contain imperfections. Always inspect and verify 3D models before printing.", icon="⚠️")
-with _hdr_r:
-    try:
-        _tos_content = (Path(__file__).parent / "TERMS_OF_SERVICE.md").read_text(encoding="utf-8")
-        st.download_button(
-            label="📜 Terms of Service",
-            data=_tos_content,
-            file_name="TERMS_OF_SERVICE.md",
-            mime="text/markdown",
-            use_container_width=True
-        )
-    except FileNotFoundError:
-        pass
-    if BMC_USERNAME and BMC_USERNAME != "your_username":
-        st.link_button("☕ Buy me a coffee", BMC_URL, use_container_width=True)
-    else:
-        st.caption("☕ set BMC_USERNAME")
+if _LOGO_PATH.exists():
+    st.image(str(_LOGO_PATH), width="stretch")
+st.caption(f":gray[v{_VERSION}] · Acoustic profile + mounting flanges · watertight assembly for 3D printing")
+st.warning(
+    "🚧 **Vibe-coded / AI-assisted beta**: geometric and acoustic accuracy is "
+    "still being validated. Generated STL files may contain imperfections; "
+    "always inspect and verify models before printing.",
+    icon="⚠️",
+)
 
 # ═══════════════════════════════════════════════════════════════════════
 #  ROW 1 — Sidebar horn profile + live 2D preview
@@ -865,6 +854,13 @@ with st.container():
 
     try:
         fig, ax = plt.subplots(figsize=(6, 3.5))
+        fig.patch.set_facecolor("#050505")
+        ax.set_facecolor("#050505")
+        for _spine in ax.spines.values():
+            _spine.set_color("#8a8f98")
+        ax.tick_params(colors="#d7dce2")
+        ax.xaxis.label.set_color("#d7dce2")
+        ax.yaxis.label.set_color("#d7dce2")
         if is_poly:
             if is_tractrix:
                 zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
@@ -947,7 +943,11 @@ with st.container():
             ax.plot(zp, rp, label="Inner profile", c="#2196F3")
             ax.plot(z_wall, r_wall, "--", label="+ wall", c="#FF5722", alpha=.5)
             ax.set_xlabel("Z (mm)")
-        ax.set_ylabel("R (mm)"); ax.legend(fontsize=8); ax.grid(True, alpha=.3)
+        ax.set_ylabel("R (mm)")
+        ax.grid(True, color="#4b5563", alpha=.45)
+        _legend = ax.legend(fontsize=8, facecolor="#111318", edgecolor="#4b5563", framealpha=.92)
+        for _txt in _legend.get_texts():
+            _txt.set_color("#f4f6f8")
         fig.tight_layout(); st.pyplot(fig)
         plt.close(fig)
         if is_iwata:
@@ -2278,6 +2278,17 @@ with chk:
         segments, rings_n = 64, 64
     st.caption(f"Using {segments} axial × {rings_n} radial segments")
     gen_horn = st.checkbox("Include horn", True, key="gen_horn")
+    _tos_path = Path(__file__).parent / "TERMS_OF_SERVICE.md"
+    if _tos_path.exists():
+        st.download_button(
+            label="📜 Terms of Service",
+            data=_tos_path.read_text(encoding="utf-8"),
+            file_name="TERMS_OF_SERVICE.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+    if BMC_USERNAME and BMC_USERNAME != "your_username":
+        st.link_button("☕ Buy me a coffee", BMC_URL, use_container_width=True)
 
 gen_btn = st.sidebar.button("Generate Assembly STL", type="primary", use_container_width=True)
 

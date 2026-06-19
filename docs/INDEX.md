@@ -51,6 +51,11 @@ source** to save tokens.
 - OS-SE and R-OSSE shape factors are base profile-definition controls in the
   sidebar, rendered inline under `Shape Factors` rather than inside a collapsible
   expander.
+- The top header uses `assets/flare_forge_logo.png` as a full-span banner; the
+  Terms of Service download and Buy Me a Coffee link live in the Generate
+  Assembly sidebar block immediately above the STL generation button.
+- The 2-D cross-section preview is rendered with a black plot background and
+  light axes/grid/legend styling to match the dark Streamlit theme.
 - Mouth flange holes are based on the horn's **actual outer wall at the mouth**, then reduced by `_FLANGE_WALL_BITE = 0.5 mm` so the flange overlaps the wall and booleans cleanly. Circular, polygonal and rectangular modes must keep the displayed hole, ring sizing, bolt-circle limits and generated mesh on this same value.
 - Inward roll-back mouth flanges are geometry-detected and available for circular, polygonal, rectangular, and elliptical sections when the returning lip has enough depth. They use a cavity plate matching the real rim, embedded 0.5 mm into the flare to avoid coplanar contact, plus full load-bearing pillars boolean-clipped to the flare surface before union. The external flare cut is shaft-diameter only. Screw-head seats are cut after the pillar union, stay axial and concentric with the vertical screw holes, and share one coplanar floor controlled by `Head depth`; each section shape places bolts and pillars on its actual rim.
 - Standard throat-driver bolt-on presets are defined only in `flange_generator.DRIVER_FLANGE_SPECS`. The UI and `throat_adapter.make_adapter_assembly()` consume those keys directly so nominal throat, outer diameter, M6 clearance holes and PCD cannot drift apart; the adapter rotates the 2-hole preset vertical and computes the asymmetric 3-hole phase against the flare outer contour to maximize screw clearance.
