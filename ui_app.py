@@ -132,11 +132,11 @@ with st.sidebar:
     sh1, sh2 = st.columns([1, 1])
     with sh1:
         profile_type = st.selectbox("Profile",
-            ["Tractrix", "Salmon", "Iwata", "Le Cléac'h (isophase)", "Oblate spheroidal", "Conical", "R-OSSE", "OS-SE (ATH)", "Exponential"], index=6,
+            ["Tractrix", "Salmon", "Iwata", "Le Cléac'h (isophase)", "Oblate spheroidal", "Conical", "R-OSSE", "OS-SE (ATH)", "Exponential"], index=7,
             on_change=_on_horn_change, key="profile_type")
     with sh2:
         section_type = st.radio("Section", ["Circular", "Polygonal", "Rectangular", "Elliptical"],
-                          index=0, horizontal=True, key="section_type",
+                          index=3, horizontal=True, key="section_type",
                           on_change=_on_horn_change)
 
     is_radial   = False
@@ -334,7 +334,7 @@ with st.sidebar:
             ]
             _ta_driver_type = st.radio(
                 "Driver interface", _driver_options,
-                index=0 if is_osse else 2,
+                index=2 if is_osse else 2,
                 key=f"ta_driver_type{_adapter_suffix}",
             )
             _driver_is_custom_flange = _ta_driver_type == "Flanged custom"
@@ -431,7 +431,7 @@ with st.sidebar:
                 throat_d = st.number_input("Throat Ø (mm)", 4.0, 120.0, 25.4, 0.5,
                     help="Round driver-side opening (the small end). 25.4 mm = 1\"")
             throat_w = throat_h = throat_d
-            osse_length = st.number_input("Axial length (mm)", 20.0, 500.0, 120.0, 5.0,
+            osse_length = st.number_input("Axial length (mm)", 20.0, 2000.0, 120.0, 5.0,
                 help="Depth of the waveguide along the axis")
             _ocv = st.columns(2)
             with _ocv[0]:
@@ -513,11 +513,11 @@ with st.sidebar:
 
         if _mouth_is_input:
             if is_rect:
-                mouth_w = st.number_input("Mouth W (mm)", 4.0, 500.0, 320.0, 5.0,
+                mouth_w = st.number_input("Mouth W (mm)", 4.0, 2000.0, 320.0, 5.0,
                     help="Large end — width. Height follows from area preservation.")
                 mouth_d = None
             else:
-                mouth_d = st.number_input("Mouth Ø (mm)", 4.0, 500.0,
+                mouth_d = st.number_input("Mouth Ø (mm)", 4.0, 2000.0,
                     200.0 if is_radial else 100.0, 5.0,
                     help="Large end — where the horn stops expanding")
                 mouth_w = mouth_d
@@ -566,7 +566,7 @@ with st.sidebar:
         elif is_iwata:
             axial_len = iwata_length
         elif (is_salmon and not is_rect or is_cd) and not is_radial:
-            axial_len = st.number_input("Axial length (mm)", 10.0, 500.0, 80.0, 5.0,
+            axial_len = st.number_input("Axial length (mm)", 10.0, 2000.0, 80.0, 5.0,
                 help="Horn depth along the axis")
         else:
             axial_len = 80.0
@@ -1858,7 +1858,7 @@ with fg2:
         st.caption("Disabled for complete roll-back: the mouth lip returns inward, so a flat mouth flange is not generated.")
     elif is_osse:
         # Superelliptical mouth → flat elliptical ring welded to the outer rim.
-        gen_mouth = st.checkbox("Include", True, key="gen_mouth")
+        gen_mouth = st.checkbox("Include", False, key="gen_mouth")
         if gen_mouth:
             _fm_sp = st.number_input("Thickness (mm)", 2.0, 20.0, 6.0, 0.5, key="fm_sp_osse")
             _fm_nb = st.number_input("Bolt count", 0, 24, 12, 1, key="fm_nb")
@@ -3762,7 +3762,7 @@ with st.sidebar:
     load_choice = st.radio("Source", ["Generated assembly", "Upload STL file"],
                            index=0, horizontal=True, key="slice_src")
     slice_strategy = st.radio("Slicing mode", ["Axial / petals", "Print volume boxes"],
-                              horizontal=True, key="slice_strategy")
+                              horizontal=True, key="slice_strategy", index=1)
     mesh_to_slice = None
     if load_choice == "Generated assembly":
         if "_combined" in st.session_state:
@@ -3912,7 +3912,7 @@ with st.sidebar:
         _keep_throat = False
         _manual_keep_z = None
         if _throat_keep_z is not None:
-            _keep_throat = st.checkbox("Keep throat adapter/flange monolithic", True,
+            _keep_throat = st.checkbox("Keep throat adapter/flange monolithic", False,
                                        key="pv_keep_throat",
                                        help="Do not split the generated throat-side hardware. "
                                             "It stays inside the first center-bottom chunk, "
@@ -4123,7 +4123,11 @@ pieces = st.session_state.get("_pieces", None)
 if pieces:
     st.success(f"{len(pieces)} piece{'s' if len(pieces)>1 else ''} generated")
 
-    if st.session_state.get("_pieces_cache_sig") != st.session_state.get("_petal_sig"):
+    if (
+        st.session_state.get("_pieces_cache_sig") != st.session_state.get("_petal_sig")
+        or "_pieces_zip" not in st.session_state
+        or "_pieces_bytes" not in st.session_state
+    ):
         with st.spinner("Preparing downloads..."):
             zip_buf = io.BytesIO()
             pieces_bytes = {}

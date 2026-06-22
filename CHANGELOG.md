@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.20.0 (2026-06-22)
+
+- **Print-volume slicing**: `_clip_to_box` e `_split_adaptive_to_limits` ora
+  usano `_plane_cut` (boolean Manifold) come fallback quando `slice_plane`
+  produce mesh non watertight (sezioni multi-loop: fori bullone, socket
+  filettati). Questo preserva i fori della flangia e i dettagli interni
+  durante il taglio in volumi di stampa.
+- **UI defaults**: profilo default → OS-SE (ATH), slicing mode default →
+  Print volume boxes, adapter default → Bolt-on 1" 3 fori, mouth flange
+  OS-SE → off, "Keep throat monolithic" → off.
+- **Limiti dimensioni**: alzato il max di Axial length, Mouth W e Mouth Ø
+  da 500 mm a 2000 mm.
+- **Docs/Test**: aggiornati `docs/_slicer.md`, `VERSION`, `pyproject.toml`,
+  `CHANGELOG` a `2.20.0`.
+
 ## 2.19.10 (2026-06-19)
 
 - **UI throat adapter**: separato lo spessore della flangia adapter dal pannello

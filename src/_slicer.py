@@ -419,6 +419,8 @@ def _clip_to_box(
     ]
     for origin, normal in planes:
         out = out.slice_plane(origin, normal, cap=True)
+        if out is None or out.is_empty or not out.is_watertight:
+            out = _plane_cut(out, origin, normal)
         if out is None or out.is_empty:
             return None
     out.merge_vertices()
@@ -448,7 +450,11 @@ def _split_adaptive_to_limits(
         origin[axis] = cut
         normal[axis] = 1.0
         below = part.slice_plane(origin, -normal, cap=True)
+        if below is None or below.is_empty or not below.is_watertight:
+            below = _plane_cut(part, origin, -normal)
         above = part.slice_plane(origin, normal, cap=True)
+        if above is None or above.is_empty or not above.is_watertight:
+            above = _plane_cut(part, origin, normal)
         children = []
         for child in (below, above):
             if child is not None and not child.is_empty and child.volume > 1e-3:

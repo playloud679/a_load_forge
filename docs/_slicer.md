@@ -356,6 +356,11 @@ positive side receives the matching groove on its negative face. `joint_margin`
 insets the feature from the cut-face perimeter and `clearance` opens the groove
 relative to the tongue.
 
+Internally, ``_clip_to_box`` and ``_split_adaptive_to_limits`` try the fast
+``slice_plane`` first; when the result is non-watertight (multi-loop sections
+like bolt holes or threaded sockets), they fall back to ``_plane_cut`` (boolean
+half-space intersection via the Manifold engine).
+
 **Parameters:**
 
 | Parameter | Type | Default | Description |
