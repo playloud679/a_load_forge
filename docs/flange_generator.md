@@ -185,8 +185,8 @@ sections rather than fitted/scaled W×H ellipses.
 - Outer body = `inner_xy` buffered **outward** by `wall + ring` (`wall` clears
   the wall, `ring` is the bolting land).
 - Optional `outer_xy` replaces the buffered outer boundary. The UI uses it for
-  elliptical inward roll-back plates so the peak hole and rim outline follow
-  real horn sections instead of scaled ellipses.
+  elliptical inward roll-back plates so the rim-inset hole and rim outline
+  follow real horn sections instead of scaled ellipses.
 - Bolts are spaced evenly **by arc length** along the mid-line of the land
   (`inner.buffer(wall + ring/2)`), so they follow the contour shape.
 - Top face at `offset`, grows down by `thickness` (same convention as the other

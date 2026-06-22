@@ -3,7 +3,7 @@ flare_forge — Professional single-tab dashboard.
 Layout: sidebar parameters + main preview/output workspace.
 """
 
-import io, logging, os, sys, tempfile
+import io, json, logging, os, sys, tempfile
 from pathlib import Path
 
 # Server-side logger. Tracebacks go HERE (visible to the operator in the app
@@ -27,6 +27,7 @@ import osse_horn as _osse
 import _utils as _uts
 import _step_export as _step
 import dxf_export as _dxf
+import save_load as _svl
 
 import importlib
 importlib.reload(_core)
@@ -40,6 +41,7 @@ importlib.reload(_osse)
 importlib.reload(_uts)
 importlib.reload(_step)
 importlib.reload(_dxf)
+importlib.reload(_svl)
 
 export_step = _step.export_step
 mesh_to_flange_dxf = _dxf.mesh_to_flange_dxf
@@ -120,6 +122,63 @@ st.warning(
     "always inspect and verify models before printing.",
     icon="⚠️",
 )
+
+# ── Parameter persistence (.flr) ────────────────────────────────────
+_PARAM_PREFIXES = (
+    "profile_type", "section_type", "throat", "mouth", "axial", "fc",
+    "coverage", "rect_ar", "n_sides", "salmon_T", "lecleach",
+    "rollback", "thickness", "rings", "segments", "osse_",
+    "ta_", "ft_", "fm_", "fj_", "gen_", "bolt_", "flange_",
+    "slice_strategy", "pv_", "joint", "radial_",
+)
+
+def _collect_params() -> dict:
+    """Collect all known parameter keys from session state."""
+    out = {}
+    for k, v in st.session_state.items():
+        if any(k.startswith(p) for p in _PARAM_PREFIXES):
+            try:
+                json.dumps(v)
+                out[k] = v
+            except (TypeError, ValueError):
+                pass
+    return out
+
+_sv_cols = st.columns(2)
+with _sv_cols[0]:
+    if st.button("💾 Save .flr", use_container_width=True,
+                 help="Download current parameters as a .flr file"):
+        params = _collect_params()
+        if params:
+            with tempfile.TemporaryDirectory() as _td:
+                _flr_path = _svl.save(params, Path(_td) / "flare_forge_params.flr")
+                _flr_bytes = _flr_path.read_bytes()
+            st.download_button(
+                "⬇ Download .flr", _flr_bytes,
+                "flare_forge_params.flr", "application/json",
+                use_container_width=True, key="dl_flr")
+        else:
+            st.caption("No parameters to save.")
+with _sv_cols[1]:
+    _flr_upload = st.file_uploader("📂 Load .flr", type=["flr", "json"],
+                                    key="flr_upload", label_visibility="collapsed")
+    if _flr_upload is not None and st.button("Apply", key="apply_flr",
+                                              help="Click to apply loaded parameters",
+                                              use_container_width=True):
+        try:
+            with tempfile.TemporaryDirectory() as _td:
+                _flr_path = Path(_td) / _flr_upload.name
+                _flr_path.write_bytes(_flr_upload.getvalue())
+                loaded = _svl.load(_flr_path)
+            applied = 0
+            for k, v in loaded.items():
+                if any(k.startswith(p) for p in _PARAM_PREFIXES):
+                    st.session_state[k] = v
+                    applied += 1
+            _on_horn_change()
+            st.toast(f"✅ Loaded {applied} parameters")
+        except Exception as e:
+            st.error(f"Invalid .flr: {e}")
 
 # ═══════════════════════════════════════════════════════════════════════
 #  ROW 1 — Sidebar horn profile + live 2D preview
@@ -429,40 +488,52 @@ with st.sidebar:
                     f"\u00d8{throat_d:.1f} mm and the expansion profile.")
             else:
                 throat_d = st.number_input("Throat Ø (mm)", 4.0, 120.0, 25.4, 0.5,
+                    key="throat_d",
                     help="Round driver-side opening (the small end). 25.4 mm = 1\"")
             throat_w = throat_h = throat_d
             osse_length = st.number_input("Axial length (mm)", 20.0, 2000.0, 120.0, 5.0,
+                key="axial_len",
                 help="Depth of the waveguide along the axis")
             _ocv = st.columns(2)
             with _ocv[0]:
                 coverage_h = st.number_input("Horizontal coverage (°)", 10.0, 170.0, 90.0, 5.0,
+                    key="coverage_h",
                     help="Nominal horizontal beamwidth (full angle)")
             with _ocv[1]:
                 coverage_v = st.number_input("Vertical coverage (°)", 10.0, 170.0, 60.0, 5.0,
+                    key="coverage_v",
                     help="Nominal vertical beamwidth (full angle)")
             st.markdown("###### Shape Factors")
             _os1, _os2 = st.columns(2)
             with _os1:
                 osse_mouth_exp = st.number_input("Mouth exponent", 2.0, 20.0, 6.0, 0.5,
+                    key="osse_mouth_exp",
                     help="Superellipse mouth: 2 = ellipse · large = rectangle. "
                          "Higher pushes the diagonal ridges further to the corners.")
                 osse_throat_angle = st.number_input("Throat angle (total °)", 0.0, 90.0, 0.0, 1.0,
+                    key="osse_throat_angle",
                     help="Throat included angle (0 = flat wavefront)")
                 osse_k = st.number_input("Throat expansion k", 0.0, 8.0, 1.0, 0.1,
+                    key="osse_k",
                     help="1 = pure OS hyperbola · 0 = straight cone")
             with _os2:
                 osse_n = st.number_input("SE exponent n", 2.0, 12.0, 5.0, 0.5,
+                    key="osse_n",
                     help="How late/abrupt the mouth termination is")
                 osse_s = st.number_input("Flare amount s", 0.0, 2.0, 0.8, 0.05,
+                    key="osse_s",
                     help="Amount of mouth flare (0 = no flare)")
                 osse_q = st.number_input("Truncation q", 0.90, 1.0, 0.998, 0.002,
+                    key="osse_q",
                     help="Drops the last near-straight bit (≈0.998)")
             _om1, _om2 = st.columns(2)
             with _om1:
                 osse_morph_start = st.number_input("Morph start (× L)", 0.0, 0.95, 0.0, 0.05,
+                    key="osse_morph_start",
                     help="Fraction of length kept as the natural OS-SE shape before the mouth morph")
             with _om2:
                 osse_morph_rate = st.number_input("Morph rate γ", 1.0, 6.0, 2.0, 0.5,
+                    key="osse_morph_rate",
                     help="How gradual the morph to the rectangular mouth is (1 = abrupt)")
             mouth_d = mouth_w = None
             _mouth_is_input = False
@@ -507,6 +578,7 @@ with st.sidebar:
             else:
                 throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0,
                     25.0 if is_radial else 20.0, 1.0,
+                    key="throat_d",
                     help="Driver-side opening — the small end")
             throat_w = throat_h = throat_d
             _mouth_is_input = is_radial or is_tractrix or is_rosse or is_exp
@@ -514,11 +586,13 @@ with st.sidebar:
         if _mouth_is_input:
             if is_rect:
                 mouth_w = st.number_input("Mouth W (mm)", 4.0, 2000.0, 320.0, 5.0,
+                    key="mouth_w",
                     help="Large end — width. Height follows from area preservation.")
                 mouth_d = None
             else:
                 mouth_d = st.number_input("Mouth Ø (mm)", 4.0, 2000.0,
                     200.0 if is_radial else 100.0, 5.0,
+                    key="mouth_d",
                     help="Large end — where the horn stops expanding")
                 mouth_w = mouth_d
         elif not is_iwata:
@@ -532,12 +606,15 @@ with st.sidebar:
                 _cov_cols = st.columns(2)
                 with _cov_cols[0]:
                     coverage_h = st.number_input("Horizontal coverage (°)", 1.0, 179.0, 90.0, 5.0,
+                        key="coverage_h",
                         help="Nominal/asymptotic horizontal angle; actual polar response depends on frequency and driver")
                 with _cov_cols[1]:
                     coverage_v = st.number_input("Vertical coverage (°)", 1.0, 179.0, 45.0, 5.0,
+                        key="coverage_v",
                         help="Nominal/asymptotic vertical angle; actual polar response depends on frequency and driver")
             else:
                 coverage_h = st.number_input("Coverage (°)", 1.0, 179.0, 90.0, 5.0,
+                    key="coverage_h",
                     help="Nominal/asymptotic angle; actual polar response depends on frequency and driver")
                 coverage_v = coverage_h
 
@@ -545,19 +622,26 @@ with st.sidebar:
             st.markdown("###### Shape Factors")
             _rc1, _rc2 = st.columns(2)
             with _rc1:
-                rosse_a0 = st.number_input("Throat opening (total °)", 0.0, 179.0, 15.0, 1.0)
-                rosse_k = st.number_input("Throat expansion k", 0.1, 10.0, 1.8, 0.1)
-                rosse_r = st.number_input("Apex radius r", 0.01, 5.0, 0.3, 0.05)
+                rosse_a0 = st.number_input("Throat opening (total °)", 0.0, 179.0, 15.0, 1.0,
+                    key="rosse_a0")
+                rosse_k = st.number_input("Throat expansion k", 0.1, 10.0, 1.8, 0.1,
+                    key="rosse_k")
+                rosse_r = st.number_input("Apex radius r", 0.01, 5.0, 0.3, 0.05,
+                    key="rosse_r")
             with _rc2:
-                rosse_m = st.number_input("Apex shift m", 0.0, 1.0, 0.8, 0.05)
-                rosse_b = st.number_input("Bending b", -5.0, 5.0, 0.3, 0.05)
-                rosse_q = st.number_input("Throat shape q", 0.1, 20.0, 3.7, 0.1)
+                rosse_m = st.number_input("Apex shift m", 0.0, 1.0, 0.8, 0.05,
+                    key="rosse_m")
+                rosse_b = st.number_input("Bending b", -5.0, 5.0, 0.3, 0.05,
+                    key="rosse_b")
+                rosse_q = st.number_input("Throat shape q", 0.1, 20.0, 3.7, 0.1,
+                    key="rosse_q")
 
         if has_fc:
             _fc_help = ("Flare rate — how fast the horn opens. The mouth sets where it ends."
                         if is_exp else
                         "Cutoff frequency — sets the flare rate, and with it the mouth size.")
-            fc = st.number_input("Flare Fc (Hz)", 50, 20000, 600, 50, help=_fc_help)
+            fc = st.number_input("Flare Fc (Hz)", 50, 20000, 600, 50,
+                key="fc", help=_fc_help)
         else:
             fc = None
 
@@ -567,6 +651,7 @@ with st.sidebar:
             axial_len = iwata_length
         elif (is_salmon and not is_rect or is_cd) and not is_radial:
             axial_len = st.number_input("Axial length (mm)", 10.0, 2000.0, 80.0, 5.0,
+                key="axial_len",
                 help="Horn depth along the axis")
         else:
             axial_len = 80.0
@@ -1956,7 +2041,8 @@ with fg2:
                                    "for this offset and bolt diameter.")
 
                 if _fm_inward:
-                    _fm_inner_w, _fm_inner_h = _fm_rim_w, _fm_rim_h
+                    _fm_inner_w = max(_fm_rim_w - 2.0 * _fm_ring, 1.0)
+                    _fm_inner_h = max(_fm_rim_h - 2.0 * _fm_ring, 1.0)
                 else:
                     _fm_inner_w = max(_fm_w_o - 2 * _FLANGE_WALL_BITE, 1.0)
                     _fm_inner_h = max(_fm_h_o - 2 * _FLANGE_WALL_BITE, 1.0)
@@ -1990,11 +2076,15 @@ with fg2:
                     st.caption(f"Hole: {_fm_inner_w:.1f}×{_fm_inner_h:.1f} mm "
                                f"({'elliptical' if is_ellip else 'rectangular'})")
             elif is_poly:
-                _fm_inner_R = _fm_rim_R if _fm_inward else ir_mouth
-                st.caption(f"Hole: {n_sides}-gon, R≈{_fm_inner_R:.1f} mm")
+                _fm_inner_R = (
+                    max(_fm_rim_R - _fm_ring / np.cos(np.pi / n_sides), 1.0)
+                    if _fm_inward else ir_mouth)
+                _hole_note = "inset from rim" if _fm_inward else "bites wall"
+                st.caption(f"Hole: {n_sides}-gon, R≈{_fm_inner_R:.1f} mm ({_hole_note})")
             else:
-                _fm_inner_R = _fm_rim_R if _fm_inward else ir_mouth
-                st.caption(f"Hole: Ø{_fm_inner_R*2:.1f} mm (bites wall)")
+                _fm_inner_R = max(_fm_rim_R - _fm_ring, 1.0) if _fm_inward else ir_mouth
+                _hole_note = "inset from rim" if _fm_inward else "bites wall"
+                st.caption(f"Hole: Ø{_fm_inner_R*2:.1f} mm ({_hole_note})")
             if _fm_inward:
                 # Inward ring follows the lip; outer shape is fixed to the rim.
                 mouth_outer = (
@@ -2048,7 +2138,7 @@ with fg2:
                 _fm_od = 2.0 * _fm_rim_R if not is_rect else _fm_rim_w
                 _fm_bolt_w = _fm_rim_w - 2 * (_fm_bearing_d / 2.0 + _fm_seat_wall)
                 _fm_bolt_h = _fm_rim_h - 2 * (_fm_bearing_d / 2.0 + _fm_seat_wall)
-                st.caption(f"Plate fills the roll-back cavity (outer Ø = rim). Bolts on "
+                st.caption(f"Inward land {_fm_ring:.0f} mm inside the rim (outer Ø = rim). Bolts on "
                            f"{_fm_bolt_w:.0f}×{_fm_bolt_h:.0f} mm "
                            f"with {_fm_seat_wall:.0f} mm load-bearing pillars"
                            + (f", head seat Ø{_fm_head_d:.0f}×{_fm_seat_depth:.0f} mm" if _fm_seat else ""))
@@ -3134,13 +3224,10 @@ if gen_btn:
 
             if gen_mouth and not is_radial and not is_osse:
                 if _fm_inward:
-                    # Inward flange: a flat plate that FILLS the roll-back cavity,
-                    # welded between the inner flare and the curled-back lip. The
-                    # outer contour stays = rim (nothing protrudes beyond the mouth
-                    # Ø); the hole = flare wall at the peak so the airway is clear
-                    # and the wall pokes through to weld. Bolts sit just inside the
-                    # rim (≥ wall margin). Annular pillars bridge the empty cavity
-                    # between plate and lip before the shaft/head channels are cut.
+                    # Inward flange: a flat annular land on the cavity-facing side
+                    # of the curled-back lip. The outer contour stays at the rim
+                    # and the hole is the rim inset by the requested offset, so the
+                    # user-entered land width is the generated land width.
                     _fm_inward_shape = (
                         "elliptical" if is_ellip else "rectangular" if is_rect
                         else "polygonal" if is_poly else "circular")
@@ -3195,9 +3282,9 @@ if gen_btn:
                     else:
                         f_mouth = _fg.generate_profile_flange(
                             inner_type=_fm_inward_shape,
-                            inner_R=max(_fm_peak_R - _FLANGE_WALL_BITE, 1.0),
-                            inner_w=max(_fm_peak_w - 2 * _FLANGE_WALL_BITE, 1.0),
-                            inner_h=max(_fm_peak_h - 2 * _FLANGE_WALL_BITE, 1.0),
+                            inner_R=_fm_hole_R,
+                            inner_w=_fm_inner_w if is_rect else 0.0,
+                            inner_h=_fm_inner_h if is_rect else 0.0,
                             inner_n_sides=n_sides if is_poly else 0,
                             outer_mode="custom",
                             outer_type=_fm_inward_shape,

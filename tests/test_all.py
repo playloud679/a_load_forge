@@ -71,6 +71,7 @@ from src import rectangular_flange as _rf
 from src import throat_adapter as _ta
 from src import osse_horn as _osse
 from src import _utils as _uts
+from src import save_load as _svl
 import trimesh
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1632,7 +1633,7 @@ def _inward_mouth_plate_flush_with_rim():
     sunk plate (thickness = sp + 0.5 with top at rim + sp). The weld does not
     need the sink: the curled lip dives through the plate volume from above.
     Mirrors the ui_app inward circular path."""
-    sp, t, BITE = 4.5, 4.0, 0.5
+    sp, t, ring = 4.5, 4.0, 9.0
     zp, rp = _c.get_lecleach(36.0, 500.0, 300, T=0.707, max_angle=160.0)
     nml = _uts.compute_profile_normals(zp, rp)
     z_o = zp + t * nml[:, 0]
@@ -1646,13 +1647,16 @@ def _inward_mouth_plate_flush_with_rim():
     horn = trimesh.load(p, file_type="stl"); os.unlink(p)
     horn.fix_normals()
     plate = _fg.generate_profile_flange(
-        inner_type="circular", inner_R=max(float(r_o[peak]) - BITE, 1.0),
+        inner_type="circular", inner_R=max(float(env[rim]) - ring, 1.0),
         outer_mode="custom", outer_type="circular",
         outer_diam=2.0 * float(env[rim]),
         thickness=sp, bolt_n=0, bolt_d=5.0,
         offset=z_rim + sp, seg=128)
     assert abs(plate.bounds[0, 2] - z_rim) < 1e-3, \
         f"plate bottom {plate.bounds[0, 2]:.3f} not flush with rim {z_rim:.3f}"
+    rv = np.linalg.norm(plate.vertices[:, :2], axis=1)
+    assert abs((rv.max() - rv.min()) - ring) < 0.2, \
+        f"inward plate land is {rv.max() - rv.min():.2f} mm, expected {ring:.2f} mm"
     combined = trimesh.boolean.union([horn, plate], engine="manifold")
     _check_mesh(combined, "inward plate flush with rim", min_volume=1000)
     assert combined.volume > horn.volume, "plate did not weld onto the lip"
@@ -1660,8 +1664,8 @@ test("inward mouth plate sits flush with the rim plane", _inward_mouth_plate_flu
 
 
 def _inward_rollback_plates_circular_and_polygonal():
-    """Inward cavity plates must follow circular and polygonal roll-back rims."""
-    sp = 4.0
+    """Inward plates must stay inside the rim by the requested land width."""
+    sp, ring = 4.0, 9.0
     z, r = _c.get_lecleach(25.0, 500.0, 200, T=0.707)
     for shape, sides in (("circular", 0), ("polygonal", 6)):
         with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t:
@@ -1683,15 +1687,23 @@ def _inward_rollback_plates_circular_and_polygonal():
         rim, peak = int(np.argmax(envelope_R)), int(np.argmax(z_o))
         assert rim > peak, f"{shape}: expected roll-back rim"
         z_rim = z[rim] if envelope_R[rim] > R_o[rim] else z_o[rim]
+        inner_R = (
+            float(envelope_R[rim]) - ring if shape == "circular"
+            else float(envelope_R[rim]) - ring / np.cos(np.pi / sides)
+        )
         plate = _fg.generate_profile_flange(
-            inner_type=shape, inner_R=R_o[peak] - 0.5,
+            inner_type=shape, inner_R=inner_R,
             inner_n_sides=sides, outer_mode="custom", outer_type=shape,
             outer_diam=2.0 * envelope_R[rim], outer_n_sides=sides,
-            thickness=sp + 0.5, bolt_n=0, bolt_d=4.0,
+            thickness=sp, bolt_n=0, bolt_d=4.0,
             offset=float(z_rim + sp))
         _check_flange(plate, f"{shape} inward plate")
-        assert plate.bounds[0, 2] < z_rim, f"{shape}: plate does not embed below rim"
-        assert envelope_R[rim] > R_o[rim], f"{shape}: no radial wall overlap"
+        assert abs(plate.bounds[0, 2] - z_rim) < 1e-3, \
+            f"{shape}: plate is not flush with rim"
+        rv = np.linalg.norm(plate.vertices[:, :2], axis=1)
+        if shape == "circular":
+            assert abs((rv.max() - rv.min()) - ring) < 0.2, \
+                f"{shape}: land is {rv.max() - rv.min():.2f} mm, expected {ring:.2f} mm"
         if shape == "circular":
             combined = trimesh.boolean.union(
                 [horn, plate], engine="manifold", check_volume=False)
@@ -3342,6 +3354,26 @@ def test_pyproject_covers_requirements():
 
 
 test("pyproject.toml covers all requirements.txt deps", test_pyproject_covers_requirements)
+
+
+def test_save_load_flr_roundtrip():
+    """`.flr` presets keep user parameters and hide internal metadata on load."""
+    params = {
+        "profile_type": "OS-SE (ATH)",
+        "section_type": "Elliptical",
+        "throat_d": 25.4,
+        "coverage_h": 90.0,
+        "coverage_v": 60.0,
+    }
+    with tempfile.TemporaryDirectory() as td:
+        path = _svl.save(params, os.path.join(td, "preset"))
+        assert path.suffix == ".flr"
+        text = path.read_text(encoding="utf-8")
+        assert _svl.META_KEY in text
+        assert _svl.load(path) == params
+
+
+test("save_load writes .flr metadata and round-trips params", test_save_load_flr_roundtrip)
 
 
 def test_utils_profile_aliases():

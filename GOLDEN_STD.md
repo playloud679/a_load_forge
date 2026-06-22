@@ -322,3 +322,167 @@ A task is done only when:
 - push/PR is done when requested
 - remaining risks are explicitly stated
 
+## 13. Embedded Firmware Addendum
+
+Use this section for firmware, board-support packages, device drivers, and
+hardware-facing applications.
+
+Firmware changes must keep software, hardware assumptions, and validation in
+sync. A passing build is not enough when a change can affect pins, voltage,
+timing, storage, communication, or actuator behavior.
+
+### Required Hardware Docs
+
+Maintain these docs when applicable:
+
+| Area | Suggested doc |
+|---|---|
+| Board/MCU/clock/flash/RAM assumptions | `docs/hardware.md` |
+| Pin assignments, electrical direction, boot states | `docs/pinout.md` |
+| Wiring, connectors, power rails, voltage levels | `docs/wiring.md` |
+| UART/I2C/SPI/CAN/BLE/WiFi protocol payloads | `docs/protocol.md` |
+| Build, flash, debug, monitor commands | `docs/build.md` |
+| EEPROM/NVS/flash config layout | `docs/storage.md` |
+| Timing, ISR, watchdog, debounce, retry policy | `docs/timing.md` |
+
+If the project uses different names, follow the local convention.
+
+### Hardware Safety Contract
+
+Never silently change:
+
+- pin assignments
+- pin direction or default boot state
+- voltage/current assumptions
+- relay, motor, heater, charger, battery, or high-current behavior
+- watchdog, brownout, fail-safe, or emergency-stop behavior
+- persistent storage layout
+- protocol framing, baudrate, checksum, or compatibility
+
+When touching any of these, update docs, tests, and the final report with the
+hardware risk.
+
+Default outputs must boot into a safe state. Actuators should remain disabled
+until configuration and sanity checks complete.
+
+### Build Matrix
+
+Document all build environments and board variants.
+
+Examples:
+
+```bash
+pio run -e esp32-c6-devkitc-1
+pio run -e release
+cmake --build build
+make firmware
+```
+
+For minor patches, build only the affected target. For shared drivers,
+HAL/platform code, protocol changes, or release readiness, build every affected
+environment.
+
+### Upload Policy
+
+Do not flash hardware by default.
+
+Upload only when:
+
+- explicitly requested by the user
+- required to validate a hardware-facing change
+- the target board and port are known
+
+Always state the target and port before upload.
+
+Examples:
+
+```bash
+pio run -e board_name -t upload --upload-port /dev/cu.usbmodem101
+```
+
+Never guess a serial port when multiple devices are connected.
+
+### Embedded Test Hierarchy
+
+During minor firmware patches:
+
+```bash
+pio run -e affected_env
+python -m pytest tests/test_specific.py
+```
+
+For shared firmware logic:
+
+```bash
+pio run -e affected_env_1
+pio run -e affected_env_2
+python -m pytest
+```
+
+Before push, PR, release, or final handoff:
+
+```bash
+pio run
+python -m pytest
+```
+
+If hardware-facing behavior changed, add a smoke test on the real board before
+release when hardware is available. Keep the smoke test short and explicit:
+
+- boot confirms safe state
+- expected peripheral initializes
+- serial/log output is sane
+- actuator outputs remain safe unless intentionally tested
+- protocol command returns expected response
+
+### Realtime and Timing Contract
+
+Document and protect:
+
+- ISR responsibilities and maximum expected duration
+- polling rates
+- debounce intervals
+- timeout values
+- retry/backoff behavior
+- watchdog feed points
+- blocking calls in control loops
+- sleep/power-save behavior
+
+Code comments should mark local invariants briefly. Detailed timing rationale
+belongs in `docs/timing.md` or the matching module doc.
+
+### Protocol and Storage Contract
+
+Protocol changes require:
+
+- payload/schema docs
+- backwards-compatibility note
+- parser/encoder tests
+- version bump if external behavior changes
+
+Persistent storage changes require:
+
+- layout docs
+- migration/default behavior
+- corruption or missing-key behavior
+- tests for old and new layouts when practical
+
+### Logging Contract
+
+Logs must help debug hardware without breaking realtime behavior.
+
+- Keep high-frequency loops quiet by default.
+- Use log levels or compile-time flags.
+- Do not print secrets, WiFi credentials, tokens, or private keys.
+- Do not add blocking logs in ISR or tight control paths.
+
+### Embedded Done Definition
+
+An embedded task is done only when:
+
+- affected firmware targets build
+- relevant unit/host tests pass
+- docs match hardware assumptions
+- pin/protocol/storage/timing changes are called out
+- upload/hardware smoke test is run when required or explicitly skipped with a reason
+- full build/test matrix passes before push, PR, release, or final handoff

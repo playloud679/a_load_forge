@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.20.1 (2026-06-23)
+
+- **UI presets**: aggiunto salvataggio/caricamento parametri `.flr` con metadata
+  di formato/versione tramite `src/save_load.py`; la UI applica solo chiavi
+  parametro note e ricalcola i default dipendenti dalla geometria.
+- **Mouth flange inward**: la flangia inward dei roll-back ora usa una land
+  realmente pari a `Offset from flare`: il contorno esterno resta sul rim e il
+  foro interno è inset dal rim, senza riempire tutta la cavità o crescere fuori
+  dalla flare.
+- **Docs/Test**: aggiornati `GOLDEN_STD.md`, `docs/INDEX.md`,
+  `docs/flange_generator.md`, `docs/save_load.md`, regressioni `.flr` e inward
+  roll-back; `VERSION`, `pyproject.toml`, `CHANGELOG` a `2.20.1`.
+
 ## 2.20.0 (2026-06-22)
 
 - **Print-volume slicing**: `_clip_to_box` e `_split_adaptive_to_limits` ora
