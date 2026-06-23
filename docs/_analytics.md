@@ -44,7 +44,7 @@ from _analytics import ga  # singleton Analytics instance
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `start_session(ip, ua, country)` | `→ None` | Call once per page load, before widget rendering. Loads identity from cookies. |
-| `render_identity_form()` | `→ None` | Shows optional sidebar expander to collect email / forum username. Saves to cookies. |
+| `render_identity_form()` | `→ None` | Shows optional sidebar expander to collect email / forum username. Saves to the current Streamlit session. |
 | `set_identity(email, forum)` | `→ None` | Programmatically set user identity. Sends `$identify` to PostHog. |
 | `track(event, **metadata)` | `→ None` | Record event. User identity (email, forum) is attached automatically. |
 | `show_dashboard()` | `→ None` | If `?analytics=on`, shows Streamlit dialog with stats. |
@@ -56,12 +56,13 @@ from _analytics import ga  # singleton Analytics instance
 Users can optionally provide their email and/or forum username via an expandable
 sidebar form (rendered by `render_identity_form()`). The identity is:
 
-- Stored in browser cookies (`_flare_forge_email`, `_flare_forge_forum`)
+- Stored in `st.session_state` for the current Streamlit session
+- Loaded from legacy browser cookies (`_flare_forge_email`, `_flare_forge_forum`) if present, but never written directly because `st.context.cookies` is read-only on Streamlit Community Cloud
 - Automatically attached to every `track()` event
 - Sent to PostHog as user properties via `$identify` + event properties
 - Visible in the local dashboard under "Registered Users"
 
-No authentication — purely self-reported, optional, and stored client-side.
+No authentication — purely self-reported and optional.
 
 ## Usage in ui_app.py
 
@@ -111,7 +112,7 @@ The result is stored in the `_flare_forge_fp` cookie (1 year expiry) and used
 as the PostHog `distinct_id` with this priority:
 
 1. `_flare_forge_fp` cookie (fingerprint)
-2. `_flare_forge_uid` cookie (UUID fallback)
+2. `_flare_forge_uid` in `st.session_state` (UUID fallback)
 3. New UUID (first visit)
 
 This survives cookie clearing, incognito windows, and IP changes — the same

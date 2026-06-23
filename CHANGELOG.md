@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.20.3 (2026-06-24)
+
+- **Analytics/Streamlit Cloud**: rimossa la scrittura diretta su
+  `st.context.cookies`, che su Streamlit Community Cloud è read-only e faceva
+  fallire il form opzionale "Analytics Profile". Il fallback UUID e l'identità
+  utente ora vivono in `st.session_state`, mentre il fingerprint cookie resta
+  scritto solo dallo snippet JS lato browser.
+- **Test/Docs**: aggiunta regressione con cookie read-only, aggiornati
+  `docs/_analytics.md`, `VERSION`, `pyproject.toml` e `CHANGELOG` a `2.20.3`.
+
 ## 2.20.2 (2026-06-23)
 
 - **Analytics/PostHog**: aggiornato il client Python alla API corrente

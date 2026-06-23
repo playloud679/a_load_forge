@@ -104,16 +104,28 @@ class Analytics:
                 sync_mode=True,
             )
 
-            # User ID priority: fingerprint > UUID cookie > new UUID
-            cookies = st.context.cookies
+            # User ID priority: fingerprint cookie > session fallback > new UUID.
+            # Streamlit exposes context cookies as read-only on Community Cloud.
+            cookies = getattr(st.context, "cookies", {})
+            state = getattr(st, "session_state", {})
             self._ph_id = (cookies.get("_flare_forge_fp")
-                           or cookies.get("_flare_forge_uid")
+                           or state.get("_flare_forge_uid")
                            or str(uuid.uuid4()))
-            # Always set the UUID cookie as fallback
-            cookies["_flare_forge_uid"] = self._ph_id
+            try:
+                state["_flare_forge_uid"] = self._ph_id
+            except Exception:
+                pass
 
-            self._user_email = cookies.get("_flare_forge_email") or ""
-            self._user_forum = cookies.get("_flare_forge_forum") or ""
+            self._user_email = (
+                state.get("_flare_forge_email")
+                or cookies.get("_flare_forge_email")
+                or ""
+            )
+            self._user_forum = (
+                state.get("_flare_forge_forum")
+                or cookies.get("_flare_forge_forum")
+                or ""
+            )
         except Exception:
             self._ph_disabled = True
 
@@ -174,21 +186,30 @@ class Analytics:
     # ── User identity ───────────────────────────────────────────────────
 
     def set_identity(self, email: str = "", forum_username: str = ""):
-        """Save user identity to cookies and send to PostHog as user properties."""
+        """Save user identity for this Streamlit session and send it to PostHog."""
         import streamlit as st
-        cookies = st.context.cookies
+        state = getattr(st, "session_state", {})
         changed = False
 
-        if email and email != self._user_email:
-            self._user_email = email.strip()
-            cookies["_flare_forge_email"] = self._user_email
+        email = (email or "").strip()
+        forum_username = (forum_username or "").strip()
+
+        if email != self._user_email:
+            self._user_email = email
+            try:
+                state["_flare_forge_email"] = self._user_email
+            except Exception:
+                pass
             changed = True
-        if forum_username and forum_username != self._user_forum:
-            self._user_forum = forum_username.strip()
-            cookies["_flare_forge_forum"] = self._user_forum
+        if forum_username != self._user_forum:
+            self._user_forum = forum_username
+            try:
+                state["_flare_forge_forum"] = self._user_forum
+            except Exception:
+                pass
             changed = True
 
-        if changed and self._user_email:
+        if changed and (self._user_email or self._user_forum):
             self._posthog_capture("$identify", {
                 "$set": {
                     "email": self._user_email,

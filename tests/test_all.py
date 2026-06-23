@@ -9,7 +9,7 @@ Each test asserts not just "doesn't crash" but geometric invariants:
 """
 
 import argparse
-import sys, os, tempfile, traceback, itertools
+import sys, os, tempfile, traceback, itertools, types
 
 sys.path.insert(0, str(os.path.join(os.path.dirname(__file__), "..", "src")))
 sys.path.insert(0, str(os.path.join(os.path.dirname(__file__), "..")))
@@ -3374,6 +3374,49 @@ def test_save_load_flr_roundtrip():
 
 
 test("save_load writes .flr metadata and round-trips params", test_save_load_flr_roundtrip)
+
+
+def test_analytics_accepts_read_only_streamlit_cookies():
+    """Streamlit Cloud exposes st.context.cookies as read-only."""
+    from src import _analytics as _anl
+
+    class ReadOnlyCookies(dict):
+        def __setitem__(self, key, value):
+            raise TypeError("cookies are read-only")
+
+    fake_state = {}
+    fake_st = types.SimpleNamespace(
+        context=types.SimpleNamespace(cookies=ReadOnlyCookies()),
+        secrets={
+            "posthog_api_key": "phc_test",
+            "posthog_host": "https://eu.i.posthog.com",
+        },
+        session_state=fake_state,
+    )
+    previous_streamlit = sys.modules.get("streamlit")
+    sys.modules["streamlit"] = fake_st
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            ga = _anl.Analytics(db_path=os.path.join(td, "analytics.db"))
+            ga._init_posthog()
+            assert ga._ph_id
+            assert fake_state["_flare_forge_uid"] == ga._ph_id
+
+            ga._session_id = "test-session"
+            captured = []
+            ga._posthog_capture = lambda event, properties: captured.append((event, properties))
+            ga.set_identity("user@example.com", "diy-user")
+            assert fake_state["_flare_forge_email"] == "user@example.com"
+            assert fake_state["_flare_forge_forum"] == "diy-user"
+            assert captured and captured[0][0] == "$identify"
+    finally:
+        if previous_streamlit is None:
+            sys.modules.pop("streamlit", None)
+        else:
+            sys.modules["streamlit"] = previous_streamlit
+
+
+test("analytics accepts read-only Streamlit cookies", test_analytics_accepts_read_only_streamlit_cookies)
 
 
 def test_utils_profile_aliases():
