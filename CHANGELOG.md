@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.20.4 (2026-06-24)
+
+- **Analytics/PostHog**: deduplicati i `$pageview` generati dai rerun di
+  Streamlit. `start_session()` ora mantiene session id, start time e flag
+  pageview in `st.session_state`, quindi una singola visita non produce più
+  molte righe "Pageview" in PostHog.
+- **Test/Docs**: aggiunta regressione per due rerun consecutivi della stessa
+  sessione Streamlit; aggiornati `docs/_analytics.md`, `VERSION`,
+  `pyproject.toml` e `CHANGELOG` a `2.20.4`.
+
 ## 2.20.3 (2026-06-24)
 
 - **Analytics/Streamlit Cloud**: rimossa la scrittura diretta su

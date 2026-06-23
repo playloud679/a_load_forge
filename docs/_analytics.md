@@ -43,7 +43,7 @@ from _analytics import ga  # singleton Analytics instance
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `start_session(ip, ua, country)` | `→ None` | Call once per page load, before widget rendering. Loads identity from cookies. |
+| `start_session(ip, ua, country)` | `→ None` | Call at the top of each Streamlit run, before widget rendering. Reuses one session/pageview across reruns. |
 | `render_identity_form()` | `→ None` | Shows optional sidebar expander to collect email / forum username. Saves to the current Streamlit session. |
 | `set_identity(email, forum)` | `→ None` | Programmatically set user identity. Sends `$identify` to PostHog. |
 | `track(event, **metadata)` | `→ None` | Record event. User identity (email, forum) is attached automatically. |
@@ -88,6 +88,11 @@ Visible via `?analytics=on`:
 - Registered users with event counts
 - Recent 50 events (with user identity)
 - Daily visitors chart (last 30 days)
+
+Streamlit reruns the script after many widget interactions. `start_session()`
+stores `_flare_forge_session_id`, `_flare_forge_session_start`, and
+`_flare_forge_pageview_sent` in `st.session_state`, so those reruns keep the
+same session and do not create extra PostHog `$pageview` events.
 
 ## PostHog Dashboard
 

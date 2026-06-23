@@ -24,6 +24,10 @@ _POSTHOG_HOST_ALIASES = {
     "https://eu.posthog.com": "https://eu.i.posthog.com",
     "https://us.posthog.com": "https://us.i.posthog.com",
 }
+_SESSION_ID_KEY = "_flare_forge_session_id"
+_SESSION_START_KEY = "_flare_forge_session_start"
+_SESSION_RECORDED_KEY = "_flare_forge_session_recorded"
+_PAGEVIEW_SENT_KEY = "_flare_forge_pageview_sent"
 
 
 def _now_iso() -> str:
@@ -257,9 +261,18 @@ class Analytics:
     # ── Session ─────────────────────────────────────────────────────────
 
     def start_session(self, ip: str = "", ua: str = "", country: str = ""):
-        """Call once per page load at the top of the script."""
-        self._session_id = uuid.uuid4().hex[:12]
-        self._session_start = time.time()
+        """Call at the top of each Streamlit run; records one session/pageview."""
+        import streamlit as st
+
+        state = getattr(st, "session_state", {})
+        now = time.time()
+        self._session_id = state.get(_SESSION_ID_KEY) or uuid.uuid4().hex[:12]
+        self._session_start = float(state.get(_SESSION_START_KEY) or now)
+        try:
+            state[_SESSION_ID_KEY] = self._session_id
+            state[_SESSION_START_KEY] = self._session_start
+        except Exception:
+            pass
 
         # Lazy-init PostHog (also loads cookies)
         self._init_posthog()
@@ -267,19 +280,29 @@ class Analytics:
         # Inject browser fingerprint JS (cookie set on next rerun)
         self._inject_fingerprint_js()
 
-        with self._lock, self._get_conn() as conn:
-            conn.execute(
-                "INSERT INTO sessions (id, started_at, ip, user_agent, country) VALUES (?,?,?,?,?)",
-                (self._session_id, _now_iso(), ip, ua, country),
-            )
+        if not state.get(_SESSION_RECORDED_KEY):
+            with self._lock, self._get_conn() as conn:
+                conn.execute(
+                    "INSERT OR IGNORE INTO sessions (id, started_at, ip, user_agent, country) VALUES (?,?,?,?,?)",
+                    (self._session_id, _now_iso(), ip, ua, country),
+                )
+            try:
+                state[_SESSION_RECORDED_KEY] = True
+            except Exception:
+                pass
 
         # PostHog page view
-        props: dict = {"url": "/", "session_id": self._session_id}
-        if self._user_email:
-            props["email"] = self._user_email
-        if self._user_forum:
-            props["forum_username"] = self._user_forum
-        self._posthog_capture("$pageview", props)
+        if not state.get(_PAGEVIEW_SENT_KEY):
+            props: dict = {"url": "/", "session_id": self._session_id}
+            if self._user_email:
+                props["email"] = self._user_email
+            if self._user_forum:
+                props["forum_username"] = self._user_forum
+            self._posthog_capture("$pageview", props)
+            try:
+                state[_PAGEVIEW_SENT_KEY] = True
+            except Exception:
+                pass
 
     def _update_duration(self):
         if not self._session_id:

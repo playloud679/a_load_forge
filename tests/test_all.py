@@ -3419,6 +3419,44 @@ def test_analytics_accepts_read_only_streamlit_cookies():
 test("analytics accepts read-only Streamlit cookies", test_analytics_accepts_read_only_streamlit_cookies)
 
 
+def test_analytics_dedupes_streamlit_rerun_pageviews():
+    """Streamlit reruns the script on interaction; pageviews should stay one per session."""
+    from src import _analytics as _anl
+
+    fake_state = {}
+    fake_st = types.SimpleNamespace(
+        context=types.SimpleNamespace(cookies={}),
+        secrets={},
+        session_state=fake_state,
+        markdown=lambda *args, **kwargs: None,
+    )
+    previous_streamlit = sys.modules.get("streamlit")
+    sys.modules["streamlit"] = fake_st
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            ga = _anl.Analytics(db_path=os.path.join(td, "analytics.db"))
+            ga._init_posthog = lambda: None
+            ga._inject_fingerprint_js = lambda: None
+            captured = []
+            ga._posthog_capture = lambda event, properties: captured.append((event, properties))
+
+            ga.start_session()
+            first_session_id = ga._session_id
+            ga.start_session()
+
+            assert ga._session_id == first_session_id
+            assert [event for event, _ in captured] == ["$pageview"]
+            assert ga._fetch_one("SELECT COUNT(*) FROM sessions") == (1,)
+    finally:
+        if previous_streamlit is None:
+            sys.modules.pop("streamlit", None)
+        else:
+            sys.modules["streamlit"] = previous_streamlit
+
+
+test("analytics dedupes Streamlit rerun pageviews", test_analytics_dedupes_streamlit_rerun_pageviews)
+
+
 def test_utils_profile_aliases():
     """`_utils` exposes the canonical (z,r) / (z,w,h) profile type aliases."""
     assert hasattr(_uts, "CircularProfile"), "missing CircularProfile alias"
