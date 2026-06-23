@@ -90,6 +90,22 @@ PostHog Cloud provides:
 - Retention analysis
 - Custom dashboards
 
+## Browser Fingerprinting
+
+A self-contained JS snippet (no external CDN) computes a browser fingerprint from:
+`userAgent`, `language`, `screen`, `timezone`, `hardwareConcurrency`,
+`deviceMemory`, `platform`, and a canvas hash — all hashed via djb2.
+
+The result is stored in the `_flare_forge_fp` cookie (1 year expiry) and used
+as the PostHog `distinct_id` with this priority:
+
+1. `_flare_forge_fp` cookie (fingerprint)
+2. `_flare_forge_uid` cookie (UUID fallback)
+3. New UUID (first visit)
+
+This survives cookie clearing, incognito windows, and IP changes — the same
+browser produces the same fingerprint.
+
 ## Files
 
 - DB: `<repo_root>/.analytics.db` — auto-created, git-ignored
