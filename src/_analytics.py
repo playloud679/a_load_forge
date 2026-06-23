@@ -5,7 +5,7 @@ on Streamlit Community Cloud (persistent, free tier: 1M events/month).
 
 Configure PostHog in .streamlit/secrets.toml:
     posthog_api_key = "phc_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-    posthog_host = "https://eu.posthog.com"   # or https://us.posthog.com
+    posthog_host = "https://eu.i.posthog.com"   # or https://us.i.posthog.com
 
 Usage in ui_app.py:
     from _analytics import ga
@@ -19,6 +19,11 @@ import time, datetime, json, uuid, threading
 from pathlib import Path
 
 _DB_PATH = Path(__file__).parent.parent / ".analytics.db"
+_DEFAULT_POSTHOG_HOST = "https://eu.i.posthog.com"
+_POSTHOG_HOST_ALIASES = {
+    "https://eu.posthog.com": "https://eu.i.posthog.com",
+    "https://us.posthog.com": "https://us.i.posthog.com",
+}
 
 
 def _now_iso() -> str:
@@ -89,11 +94,15 @@ class Analytics:
             if not api_key:
                 self._ph_disabled = True
                 return
-            import posthog
-            posthog.project_api_key = api_key
-            posthog.host = st.secrets.get("posthog_host", "https://eu.posthog.com")
-            posthog.debug = False
-            self._ph = posthog
+            from posthog import Posthog
+            host = st.secrets.get("posthog_host", _DEFAULT_POSTHOG_HOST)
+            host = _POSTHOG_HOST_ALIASES.get(host.rstrip("/"), host.rstrip("/"))
+            self._ph = Posthog(
+                api_key,
+                host=host,
+                debug=False,
+                sync_mode=True,
+            )
 
             # User ID priority: fingerprint > UUID cookie > new UUID
             cookies = st.context.cookies

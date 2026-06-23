@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.20.2 (2026-06-23)
+
+- **Analytics/PostHog**: aggiornato il client Python alla API corrente
+  `Posthog(...)`, normalizzati gli host legacy verso gli endpoint di ingestion
+  `*.i.posthog.com` e abilitato `sync_mode=True` per inviare subito gli eventi
+  Streamlit.
+- **Docs**: aggiornati `docs/_analytics.md`, `.streamlit/secrets.toml.example`,
+  `VERSION`, `pyproject.toml` e `CHANGELOG` a `2.20.2`; riallineata la
+  dipendenza `posthog` tra `requirements.txt` e `pyproject.toml`.
+
 ## 2.20.1 (2026-06-23)
 
 - **UI presets**: aggiunto salvataggio/caricamento parametri `.flr` con metadata

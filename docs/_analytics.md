@@ -24,8 +24,16 @@ Streamlit secrets. Falls back to SQLite-only silently if not configured.
 1. Create a free project at [posthog.com](https://posthog.com)
 2. Copy the project API key (starts with `phc_`)
 3. Set the key:
-   - **Local**: `.streamlit/secrets.toml` → `posthog_api_key = "phc_..."`
-   - **Streamlit Cloud**: App settings → Secrets → add `posthog_api_key = "phc_..."`
+   - **Local**: `.streamlit/secrets.toml`
+   - **Streamlit Cloud**: App settings → Secrets
+
+```toml
+posthog_api_key = "phc_..."
+posthog_host = "https://eu.i.posthog.com"  # or https://us.i.posthog.com
+```
+
+Legacy hosts (`https://eu.posthog.com`, `https://us.posthog.com`) are normalized
+to the current ingestion hosts automatically.
 
 ## Public API
 
@@ -89,6 +97,9 @@ PostHog Cloud provides:
 - Funnels and conversion tracking
 - Retention analysis
 - Custom dashboards
+
+The Python SDK is initialized with `Posthog(project_api_key, host=..., sync_mode=True)`
+so Streamlit interactions are sent immediately instead of waiting in the SDK queue.
 
 ## Browser Fingerprinting
 
