@@ -25,3 +25,9 @@ Thumbs.db
 
 # Local reference library (large, third-party PDFs — kept out of the repo)
 skills/
+
+# Analytics database (local tracking)
+.analytics.db
+
+# Streamlit secrets (contains API keys — keep local)
+.streamlit/secrets.toml

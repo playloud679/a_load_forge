@@ -28,6 +28,7 @@ import _utils as _uts
 import _step_export as _step
 import dxf_export as _dxf
 import save_load as _svl
+import _analytics as _anl
 
 import importlib
 importlib.reload(_core)
@@ -42,9 +43,11 @@ importlib.reload(_uts)
 importlib.reload(_step)
 importlib.reload(_dxf)
 importlib.reload(_svl)
+importlib.reload(_anl)
 
 export_step = _step.export_step
 mesh_to_flange_dxf = _dxf.mesh_to_flange_dxf
+ga = _anl.ga
 
 # App version — read from the repo VERSION file so the UI badge always matches
 # the released version without a second source of truth to keep in sync.
@@ -122,6 +125,9 @@ st.warning(
     "always inspect and verify models before printing.",
     icon="⚠️",
 )
+
+# ── Analytics session ──────────────────────────────────────────────────
+ga.start_session()
 
 # ── Parameter persistence (.flr) ────────────────────────────────────
 _PARAM_PREFIXES = (
@@ -3710,6 +3716,12 @@ if st.session_state.get("_assembly_generated"):
     stats = st.session_state["_assembly_stats"]
     st.success("✅ Assembly generated successfully")
 
+    ga.track("assembly_generated",
+             profile=st.session_state.get("profile_type", ""),
+             section=st.session_state.get("section_type", ""),
+             length=stats.get("length", 0),
+             volume=stats.get("vol", 0))
+
     r1, r2, r3, r4 = st.columns(4)
     with r1:
         st.metric("Length", f"{stats['length']:.0f} mm" if stats["gen_horn"] else "—")
@@ -4210,6 +4222,10 @@ pieces = st.session_state.get("_pieces", None)
 if pieces:
     st.success(f"{len(pieces)} piece{'s' if len(pieces)>1 else ''} generated")
 
+    ga.track("slicer_generated",
+             pieces=len(pieces),
+             strategy=st.session_state.get("slice_strategy", ""))
+
     if (
         st.session_state.get("_pieces_cache_sig") != st.session_state.get("_petal_sig")
         or "_pieces_zip" not in st.session_state
@@ -4246,3 +4262,6 @@ if pieces:
             z_lo, z_hi = mesh.bounds[0, 2], mesh.bounds[1, 2]
             label += f"  (Z={z_lo:.0f}–{z_hi:.0f} mm)"
         st.download_button(label, b, f"{name}.stl", "model/stl", key=f"dl_{name}")
+
+# ── Analytics dashboard (visible with ?analytics=on) ──────────────────
+ga.show_dashboard()
