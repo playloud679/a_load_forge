@@ -128,6 +128,7 @@ st.warning(
 
 # ── Analytics session ──────────────────────────────────────────────────
 ga.start_session()
+ga.render_identity_form()
 
 # ── Parameter persistence (.flr) ────────────────────────────────────
 _PARAM_PREFIXES = (

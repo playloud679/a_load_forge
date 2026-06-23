@@ -10,8 +10,9 @@ Configure PostHog in .streamlit/secrets.toml:
 Usage in ui_app.py:
     from _analytics import ga
     ga.start_session()
+    ga.render_identity_form()   # optional email / forum username
     ga.track("generate", profile="tractrix", section="circular")
-    ga.show_dashboard()   # shows dashboard if ?analytics=on
+    ga.show_dashboard()         # shows dashboard if ?analytics=on
 """
 
 import time, datetime, json, uuid, threading
@@ -37,6 +38,10 @@ class Analytics:
         self._ph = None
         self._ph_disabled = False
         self._ph_id: str = ""
+
+        # User identity (loaded from cookies)
+        self._user_email: str = ""
+        self._user_forum: str = ""
 
         self._init_db()
 
@@ -75,7 +80,7 @@ class Analytics:
 
     def _init_posthog(self):
         """Try to import PostHog and read API key from Streamlit secrets.
-        Uses a persistent cookie (1 year) to identify returning users."""
+        Uses a persistent cookie to identify returning users."""
         if self._ph_disabled:
             return
         try:
@@ -90,12 +95,14 @@ class Analytics:
             posthog.debug = False
             self._ph = posthog
 
-            # Persistent user ID via cookie (per-browser-session)
+            # Persistent user ID + identity via cookies
             cookies = st.context.cookies
             self._ph_id = cookies.get("_flare_forge_uid")
             if not self._ph_id:
                 self._ph_id = str(uuid.uuid4())
                 cookies["_flare_forge_uid"] = self._ph_id
+            self._user_email = cookies.get("_flare_forge_email") or ""
+            self._user_forum = cookies.get("_flare_forge_forum") or ""
         except Exception:
             self._ph_disabled = True
 
@@ -114,12 +121,77 @@ class Analytics:
         except Exception:
             pass  # never break the app for analytics
 
+    # ── User identity ───────────────────────────────────────────────────
+
+    def set_identity(self, email: str = "", forum_username: str = ""):
+        """Save user identity to cookies and send to PostHog as user properties."""
+        import streamlit as st
+        cookies = st.context.cookies
+        changed = False
+
+        if email and email != self._user_email:
+            self._user_email = email.strip()
+            cookies["_flare_forge_email"] = self._user_email
+            changed = True
+        if forum_username and forum_username != self._user_forum:
+            self._user_forum = forum_username.strip()
+            cookies["_flare_forge_forum"] = self._user_forum
+            changed = True
+
+        if changed and self._user_email:
+            self._posthog_capture("$identify", {
+                "$set": {
+                    "email": self._user_email,
+                    "forum_username": self._user_forum,
+                }
+            })
+
+    def render_identity_form(self):
+        """Render an optional sidebar form to collect email / forum username.
+        Call after start_session(), before any track() calls."""
+        import streamlit as st
+
+        if not self._session_id:
+            return  # start_session() must be called first
+
+        with st.sidebar:
+            with st.expander("👤 Analytics Profile (optional)", expanded=False):
+                st.caption(
+                    "Help us understand who uses flare_forge. "
+                    "Your email and forum username are only used for analytics "
+                    "and will never be shared."
+                )
+                new_email = st.text_input(
+                    "Email", value=self._user_email,
+                    placeholder="you@example.com",
+                    key="_anl_email",
+                )
+                new_forum = st.text_input(
+                    "Forum username", value=self._user_forum,
+                    placeholder="DIYaudio / Reddit / ...",
+                    key="_anl_forum",
+                )
+                if st.button("Save", key="_anl_save", use_container_width=True):
+                    self.set_identity(email=new_email, forum_username=new_forum)
+                    st.toast("Profile saved!", icon="👤")
+
+    @property
+    def user_email(self) -> str:
+        return self._user_email
+
+    @property
+    def user_forum(self) -> str:
+        return self._user_forum
+
     # ── Session ─────────────────────────────────────────────────────────
 
     def start_session(self, ip: str = "", ua: str = "", country: str = ""):
         """Call once per page load at the top of the script."""
         self._session_id = uuid.uuid4().hex[:12]
         self._session_start = time.time()
+
+        # Lazy-init PostHog (also loads cookies)
+        self._init_posthog()
 
         with self._lock, self._get_conn() as conn:
             conn.execute(
@@ -128,7 +200,12 @@ class Analytics:
             )
 
         # PostHog page view
-        self._posthog_capture("$pageview", {"url": "/", "session_id": self._session_id})
+        props: dict = {"url": "/", "session_id": self._session_id}
+        if self._user_email:
+            props["email"] = self._user_email
+        if self._user_forum:
+            props["forum_username"] = self._user_forum
+        self._posthog_capture("$pageview", props)
 
     def _update_duration(self):
         if not self._session_id:
@@ -144,7 +221,8 @@ class Analytics:
 
     def track(self, event: str, **metadata):
         """Track a named event with optional keyword metadata.
-        Sent to both SQLite (local dashboard) and PostHog (if configured)."""
+        Sent to both SQLite (local dashboard) and PostHog (if configured).
+        User identity (email, forum) is automatically attached."""
         if not self._session_id:
             return
         # Sanitise metadata — only JSON-serialisable primitives
@@ -163,9 +241,13 @@ class Analytics:
                 (self._session_id, event, json.dumps(clean), _now_iso()),
             )
 
-        # PostHog
+        # PostHog — attach identity automatically
         ph_props = dict(clean)
         ph_props["session_id"] = self._session_id
+        if self._user_email:
+            ph_props["email"] = self._user_email
+        if self._user_forum:
+            ph_props["forum_username"] = self._user_forum
         self._posthog_capture(event, ph_props)
 
     # ── Dashboard (SQLite-based) ────────────────────────────────────────
@@ -228,14 +310,40 @@ class Analytics:
                 df = pd.DataFrame(profile_rows, columns=["Profile", "Count"])
                 st.dataframe(df, use_container_width=True, hide_index=True)
 
+            # ── User identities ────────────────────────────────
+            st.markdown("#### Registered Users")
+            id_rows = self._fetch_all("""
+                SELECT DISTINCT
+                    COALESCE(json_extract(metadata, '$.email'),
+                             json_extract(metadata, '$.forum_username'),
+                             'anonymous') as identity,
+                    COUNT(*) as events
+                FROM events
+                WHERE json_extract(metadata, '$.email') IS NOT NULL
+                   OR json_extract(metadata, '$.forum_username') IS NOT NULL
+                GROUP BY identity ORDER BY events DESC
+                LIMIT 20
+            """)
+            if id_rows:
+                import pandas as pd
+                df = pd.DataFrame(id_rows, columns=["User", "Events"])
+                st.dataframe(df, use_container_width=True, hide_index=True)
+            else:
+                st.caption("No users have registered their identity yet.")
+
             # ── Recent activity ────────────────────────────────
             st.markdown("#### Recent Activity")
-            recent = self._fetch_all(
-                "SELECT session_id, event, created_at FROM events ORDER BY created_at DESC LIMIT 50"
-            )
+            recent = self._fetch_all("""
+                SELECT session_id, event,
+                       COALESCE(json_extract(metadata, '$.email'),
+                                json_extract(metadata, '$.forum_username'),
+                                '') as user,
+                       created_at
+                FROM events ORDER BY created_at DESC LIMIT 50
+            """)
             if recent:
                 import pandas as pd
-                df = pd.DataFrame(recent, columns=["Session", "Event", "Time"])
+                df = pd.DataFrame(recent, columns=["Session", "Event", "User", "Time"])
                 st.dataframe(df, use_container_width=True, hide_index=True)
 
             # ── Daily activity ─────────────────────────────────
@@ -251,7 +359,7 @@ class Analytics:
                 df = pd.DataFrame(daily, columns=["Day", "Visitors"])
                 st.bar_chart(df.set_index("Day"), use_container_width=True)
 
-            st.caption("💡 Also check your PostHog dashboard for advanced analytics (funnels, retention, user paths).")
+            st.caption("💡 PostHog dashboard: funnels, retention, user paths.")
 
         _dashboard()
 

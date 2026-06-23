@@ -35,9 +35,25 @@ from _analytics import ga  # singleton Analytics instance
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `start_session(ip, ua, country)` | `→ None` | Call once per page load, before widget rendering |
-| `track(event, **metadata)` | `→ None` | Record event to SQLite + PostHog. Metadata must be JSON-serialisable |
-| `show_dashboard()` | `→ None` | If `?analytics=on`, shows Streamlit dialog with stats. Reads from SQLite |
+| `start_session(ip, ua, country)` | `→ None` | Call once per page load, before widget rendering. Loads identity from cookies. |
+| `render_identity_form()` | `→ None` | Shows optional sidebar expander to collect email / forum username. Saves to cookies. |
+| `set_identity(email, forum)` | `→ None` | Programmatically set user identity. Sends `$identify` to PostHog. |
+| `track(event, **metadata)` | `→ None` | Record event. User identity (email, forum) is attached automatically. |
+| `show_dashboard()` | `→ None` | If `?analytics=on`, shows Streamlit dialog with stats. |
+| `user_email` | `→ str` | Current user's email (from cookie), or empty string. |
+| `user_forum` | `→ str` | Current user's forum username (from cookie), or empty string. |
+
+## User Identity
+
+Users can optionally provide their email and/or forum username via an expandable
+sidebar form (rendered by `render_identity_form()`). The identity is:
+
+- Stored in browser cookies (`_flare_forge_email`, `_flare_forge_forum`)
+- Automatically attached to every `track()` event
+- Sent to PostHog as user properties via `$identify` + event properties
+- Visible in the local dashboard under "Registered Users"
+
+No authentication — purely self-reported, optional, and stored client-side.
 
 ## Usage in ui_app.py
 
@@ -45,12 +61,13 @@ from _analytics import ga  # singleton Analytics instance
 import _analytics as _anl
 ga = _anl.ga
 
-ga.start_session()          # after st.set_page_config
+ga.start_session()              # after st.set_page_config
+ga.render_identity_form()       # sidebar: optional email / forum
 
 ga.track("assembly_generated", profile="Tractrix", section="Circular")
 ga.track("slicer_generated", pieces=4, strategy="radial")
 
-ga.show_dashboard()         # very last line
+ga.show_dashboard()             # very last line
 ```
 
 ## Dashboard (SQLite)
@@ -59,14 +76,16 @@ Visible via `?analytics=on`:
 - Total sessions, events, cumulative time
 - Events by type (table)
 - Most-used profiles breakdown
-- Recent 50 events
+- Registered users with event counts
+- Recent 50 events (with user identity)
 - Daily visitors chart (last 30 days)
 
 ## PostHog Dashboard
 
 PostHog Cloud provides:
 - Event explorer and filtering
-- User session replays
+- User profiles (email, forum username as properties)
+- Session replays
 - Funnels and conversion tracking
 - Retention analysis
 - Custom dashboards
@@ -74,5 +93,5 @@ PostHog Cloud provides:
 ## Files
 
 - DB: `<repo_root>/.analytics.db` — auto-created, git-ignored
-- Secrets: `.streamlit/secrets.toml` — template with placeholder key
+- Secrets: `.streamlit/secrets.toml` — git-ignored (see `.example`)
 - Source: `src/_analytics.py`
