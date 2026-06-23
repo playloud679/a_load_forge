@@ -74,7 +74,8 @@ class Analytics:
     # ── PostHog lazy setup ──────────────────────────────────────────────
 
     def _init_posthog(self):
-        """Try to import PostHog and read API key from Streamlit secrets."""
+        """Try to import PostHog and read API key from Streamlit secrets.
+        Uses a persistent cookie (1 year) to identify returning users."""
         if self._ph_disabled:
             return
         try:
@@ -88,7 +89,13 @@ class Analytics:
             posthog.host = st.secrets.get("posthog_host", "https://eu.posthog.com")
             posthog.debug = False
             self._ph = posthog
-            self._ph_id = str(uuid.uuid4())
+
+            # Persistent user ID via cookie (per-browser-session)
+            cookies = st.context.cookies
+            self._ph_id = cookies.get("_flare_forge_uid")
+            if not self._ph_id:
+                self._ph_id = str(uuid.uuid4())
+                cookies["_flare_forge_uid"] = self._ph_id
         except Exception:
             self._ph_disabled = True
 
