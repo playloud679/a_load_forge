@@ -80,7 +80,7 @@ class Analytics:
 
     def _init_posthog(self):
         """Try to import PostHog and read API key from Streamlit secrets.
-        Uses a persistent cookie to identify returning users."""
+        Uses browser fingerprint (cookie) + fallback UUID to identify users."""
         if self._ph_disabled:
             return
         try:
@@ -95,16 +95,57 @@ class Analytics:
             posthog.debug = False
             self._ph = posthog
 
-            # Persistent user ID + identity via cookies
+            # User ID priority: fingerprint > UUID cookie > new UUID
             cookies = st.context.cookies
-            self._ph_id = cookies.get("_flare_forge_uid")
-            if not self._ph_id:
-                self._ph_id = str(uuid.uuid4())
-                cookies["_flare_forge_uid"] = self._ph_id
+            self._ph_id = (cookies.get("_flare_forge_fp")
+                           or cookies.get("_flare_forge_uid")
+                           or str(uuid.uuid4()))
+            # Always set the UUID cookie as fallback
+            cookies["_flare_forge_uid"] = self._ph_id
+
             self._user_email = cookies.get("_flare_forge_email") or ""
             self._user_forum = cookies.get("_flare_forge_forum") or ""
         except Exception:
             self._ph_disabled = True
+
+    def _inject_fingerprint_js(self):
+        """Inject a JS snippet that computes a browser fingerprint and stores
+        it in a cookie. On next rerun the cookie is picked up as distinct_id.
+        Needs no external dependencies — self-contained canvas + navigator hash."""
+        import streamlit as st
+
+        st.markdown("""
+<script>
+(function(){
+  if (document.cookie.indexOf('_flare_forge_fp=') !== -1) return;
+  try {
+    var fp = [];
+    fp.push(navigator.userAgent||'');
+    fp.push(navigator.language||'');
+    fp.push(screen.colorDepth+','+screen.width+'x'+screen.height);
+    try { fp.push(Intl.DateTimeFormat().resolvedOptions().timeZone); } catch(e){}
+    fp.push(navigator.hardwareConcurrency||'');
+    fp.push(navigator.deviceMemory||'');
+    fp.push(navigator.platform||'');
+    // canvas fingerprint
+    try {
+      var c=document.createElement('canvas'), x=c.getContext('2d');
+      c.width=200;c.height=50;
+      x.textBaseline='top';x.font='14px Arial';
+      x.fillStyle='#f60';x.fillRect(0,0,100,25);
+      x.fillStyle='#069';x.fillRect(100,0,100,25);
+      x.fillStyle='#fff';x.fillText('flare_forge',2,18);
+      fp.push(c.toDataURL().substring(0,120));
+    } catch(e){}
+    // djb2 hash
+    var s = fp.join('###'), hash = 5381;
+    for (var i=0; i<s.length; i++) hash = ((hash<<5)+hash)+s.charCodeAt(i);
+    var fpid = 'fp_' + (hash>>>0).toString(36);
+    document.cookie = '_flare_forge_fp='+fpid+';path=/;max-age='+(365*86400)+';SameSite=Lax';
+  } catch(e){}
+})();
+</script>
+        """, unsafe_allow_html=True)
 
     def _posthog_capture(self, event: str, properties: dict):
         """Send event to PostHog if configured."""
@@ -192,6 +233,9 @@ class Analytics:
 
         # Lazy-init PostHog (also loads cookies)
         self._init_posthog()
+
+        # Inject browser fingerprint JS (cookie set on next rerun)
+        self._inject_fingerprint_js()
 
         with self._lock, self._get_conn() as conn:
             conn.execute(
