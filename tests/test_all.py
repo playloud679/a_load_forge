@@ -3457,6 +3457,63 @@ def test_analytics_dedupes_streamlit_rerun_pageviews():
 test("analytics dedupes Streamlit rerun pageviews", test_analytics_dedupes_streamlit_rerun_pageviews)
 
 
+def test_analytics_reidentifies_when_fingerprint_arrives_late():
+    """If a user identified before JS set the fingerprint, re-identify on the fp id."""
+    from src import _analytics as _anl
+
+    captured = []
+
+    class FakePosthog:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def capture(self, **kwargs):
+            captured.append(kwargs)
+
+    fake_state = {
+        "_flare_forge_uid": "session-fallback-id",
+        "_flare_forge_email": "user@example.com",
+        "_flare_forge_forum": "diy-user",
+        "_flare_forge_identified_id": "session-fallback-id",
+    }
+    fake_st = types.SimpleNamespace(
+        context=types.SimpleNamespace(cookies={"_flare_forge_fp": "fp_stable"}),
+        secrets={
+            "posthog_api_key": "phc_test",
+            "posthog_host": "https://eu.i.posthog.com",
+        },
+        session_state=fake_state,
+    )
+    previous_streamlit = sys.modules.get("streamlit")
+    previous_posthog = sys.modules.get("posthog")
+    sys.modules["streamlit"] = fake_st
+    sys.modules["posthog"] = types.SimpleNamespace(Posthog=FakePosthog)
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            ga = _anl.Analytics(db_path=os.path.join(td, "analytics.db"))
+            ga._init_posthog()
+            assert ga._ph_id == "fp_stable"
+            assert fake_state["_flare_forge_identified_id"] == "fp_stable"
+            assert len(captured) == 1
+            assert captured[0]["event"] == "$identify"
+            assert captured[0]["distinct_id"] == "fp_stable"
+
+            ga._init_posthog()
+            assert len(captured) == 1, "same fingerprint should not identify twice"
+    finally:
+        if previous_streamlit is None:
+            sys.modules.pop("streamlit", None)
+        else:
+            sys.modules["streamlit"] = previous_streamlit
+        if previous_posthog is None:
+            sys.modules.pop("posthog", None)
+        else:
+            sys.modules["posthog"] = previous_posthog
+
+
+test("analytics re-identifies when fingerprint arrives late", test_analytics_reidentifies_when_fingerprint_arrives_late)
+
+
 def test_utils_profile_aliases():
     """`_utils` exposes the canonical (z,r) / (z,w,h) profile type aliases."""
     assert hasattr(_uts, "CircularProfile"), "missing CircularProfile alias"

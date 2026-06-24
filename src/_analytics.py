@@ -28,6 +28,7 @@ _SESSION_ID_KEY = "_flare_forge_session_id"
 _SESSION_START_KEY = "_flare_forge_session_start"
 _SESSION_RECORDED_KEY = "_flare_forge_session_recorded"
 _PAGEVIEW_SENT_KEY = "_flare_forge_pageview_sent"
+_IDENTIFIED_ID_KEY = "_flare_forge_identified_id"
 
 
 def _now_iso() -> str:
@@ -130,6 +131,7 @@ class Analytics:
                 or cookies.get("_flare_forge_forum")
                 or ""
             )
+            self._identify_current_user_if_needed()
         except Exception:
             self._ph_disabled = True
 
@@ -189,6 +191,25 @@ class Analytics:
 
     # ── User identity ───────────────────────────────────────────────────
 
+    def _identify_current_user_if_needed(self):
+        """Associate the current PostHog distinct_id with saved optional identity."""
+        if not self._ph_id or not (self._user_email or self._user_forum):
+            return
+        try:
+            import streamlit as st
+            state = getattr(st, "session_state", {})
+            if state.get(_IDENTIFIED_ID_KEY) == self._ph_id:
+                return
+            self._posthog_capture("$identify", {
+                "$set": {
+                    "email": self._user_email,
+                    "forum_username": self._user_forum,
+                }
+            })
+            state[_IDENTIFIED_ID_KEY] = self._ph_id
+        except Exception:
+            pass
+
     def set_identity(self, email: str = "", forum_username: str = ""):
         """Save user identity for this Streamlit session and send it to PostHog."""
         import streamlit as st
@@ -213,13 +234,12 @@ class Analytics:
                 pass
             changed = True
 
-        if changed and (self._user_email or self._user_forum):
-            self._posthog_capture("$identify", {
-                "$set": {
-                    "email": self._user_email,
-                    "forum_username": self._user_forum,
-                }
-            })
+        if changed:
+            try:
+                state.pop(_IDENTIFIED_ID_KEY, None)
+            except Exception:
+                pass
+            self._identify_current_user_if_needed()
 
     def render_identity_form(self):
         """Render an optional sidebar form to collect email / forum username.

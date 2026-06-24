@@ -60,6 +60,9 @@ sidebar form (rendered by `render_identity_form()`). The identity is:
 - Loaded from legacy browser cookies (`_flare_forge_email`, `_flare_forge_forum`) if present, but never written directly because `st.context.cookies` is read-only on Streamlit Community Cloud
 - Automatically attached to every `track()` event
 - Sent to PostHog as user properties via `$identify` + event properties
+- Re-sent to PostHog if the stable browser fingerprint appears after the user
+  already saved email/forum username, so future anonymous returns are associated
+  with the same PostHog person
 - Visible in the local dashboard under "Registered Users"
 
 No authentication — purely self-reported and optional.
@@ -122,6 +125,11 @@ as the PostHog `distinct_id` with this priority:
 
 This survives cookie clearing, incognito windows, and IP changes — the same
 browser produces the same fingerprint.
+
+If the user saves email/forum username before the JS fingerprint cookie exists,
+the first `$identify` may use the session UUID fallback. On the next rerun,
+when `_flare_forge_fp` is available, `_analytics.py` detects that the PostHog
+`distinct_id` changed and sends `$identify` again for the fingerprint id.
 
 ## Files
 

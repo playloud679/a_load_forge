@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.20.5 (2026-06-24)
+
+- **Analytics/PostHog**: reso robusto il collegamento tra identificazione
+  opzionale (email/forum username) e browser fingerprint. Se l'utente salva
+  l'identità prima che `_flare_forge_fp` sia disponibile, al rerun successivo
+  viene inviato un nuovo `$identify` sul fingerprint stabile.
+- **Test/Docs**: aggiunta regressione per fingerprint tardivo, aggiornati
+  `docs/_analytics.md`, `VERSION`, `pyproject.toml` e `CHANGELOG` a `2.20.5`.
+
 ## 2.20.4 (2026-06-24)
 
 - **Analytics/PostHog**: deduplicati i `$pageview` generati dai rerun di
