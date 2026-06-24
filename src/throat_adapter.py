@@ -669,6 +669,7 @@ def make_adapter(
     thread_key: str | None = None,
     socket_length: float = 0.0,
     collar_overlap: float = 5.0,
+    thread_clearance: float = 0.05,
     # Outer target for threaded mode (horn outer dimensions)
     outer_target_R: float | None = None,
     outer_rect_w: float | None = None,
@@ -719,6 +720,10 @@ def make_adapter(
         morphing start).
     socket_length : float
         Depth of the threaded section (mm).
+    thread_clearance : float
+        Radial clearance added to the internal thread profile (mm). Default
+        0.05 mm. This loosens the mechanical thread only; the acoustic bore
+        at the throat plane remains the thread spec bore.
     target_slope : float, optional
         Equivalent-radius slope ``dr/dz`` at the horn throat. When provided,
         the adapter reaches the horn with the same expansion derivative.
@@ -870,8 +875,9 @@ def make_adapter(
     _pitch = 1.0
     if has_threads:
         spec = THREAD_SPECS[thread_key]
+        _thread_clearance = max(0.0, float(thread_clearance))
         driver_R = spec.bore_diam / 2.0
-        _major_R = spec.major_diam / 2.0
+        _major_R = spec.major_diam / 2.0 + _thread_clearance
         _pitch = spec.pitch
         _minor_R = _major_R - 0.6495 * _pitch
         _outer_R = _major_R + wall_thickness
@@ -1178,6 +1184,7 @@ def make_threaded_socket(
     thread_key: str,
     length: float,
     wall_thickness: float,
+    thread_clearance: float = 0.05,
     seg: int = 48,
 ) -> trimesh.Trimesh:
     """Generate a threaded socket (internal thread) for a compression driver.
@@ -1195,13 +1202,17 @@ def make_threaded_socket(
         Depth of the socket (mm).
     wall_thickness : float
         Material thickness around the bore (mm).
+    thread_clearance : float
+        Radial clearance added to the internal thread profile (mm). Default
+        0.05 mm.
     seg : int
         Circumferential tessellation.
 
     Returns a watertight Trimesh.
     """
     spec = THREAD_SPECS[thread_key]
-    major_R = spec.major_diam / 2.0
+    thread_clearance = max(0.0, float(thread_clearance))
+    major_R = spec.major_diam / 2.0 + thread_clearance
     pitch = spec.pitch
     minor_R = major_R - 0.6495 * pitch
     outer_R = major_R + wall_thickness
@@ -1288,6 +1299,7 @@ def make_adapter_assembly(
     # Threaded socket params
     socket_length: float = 15.0,
     collar_overlap: float = 5.0,
+    thread_clearance: float = 0.05,
     # Outer target (for threaded mode — horn's OUTER throat eq. radius)
     outer_target_R: float | None = None,
     outer_rect_w: float | None = None,
@@ -1344,6 +1356,7 @@ def make_adapter_assembly(
             axial_steps, adapter_length, wall_thickness,
             thread_key=tk, socket_length=sl,
             collar_overlap=collar_overlap,
+            thread_clearance=thread_clearance,
             outer_target_R=outer_target_R,
             outer_rect_w=outer_rect_w,
             outer_rect_h=outer_rect_h,

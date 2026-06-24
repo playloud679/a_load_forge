@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.20.6 (2026-06-24)
+
+- **Threaded adapter**: aggiunto parametro `thread_clearance` (default
+  `0.05 mm`) per aumentare radialmente il profilo del filetto interno 1⅜"-18
+  senza cambiare il bore acustico da 25 mm.
+- **UI/Test/Docs**: esposto il controllo "Thread clearance (mm)" nella sezione
+  adapter filettato; aggiornati `docs/throat_adapter.md`, regressioni,
+  `VERSION`, `pyproject.toml` e `CHANGELOG` a `2.20.6`.
+
 ## 2.20.5 (2026-06-24)
 
 - **Analytics/PostHog**: reso robusto il collegamento tra identificazione

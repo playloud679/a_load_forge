@@ -367,6 +367,7 @@ with st.sidebar:
     _ta_driver_key = "flanged"
     _ta_thread_key = None
     _ta_driver_clearance = 0.3
+    _ta_thread_clearance = 0.05
     _ta_adapter_len = 0.0
     _ta_socket_depth = 0.0
     _ta_flange_sp = 6.0
@@ -435,6 +436,11 @@ with st.sidebar:
                     "Socket depth (mm)", 5.0, 30.0, 15.0, 1.0,
                     key=f"ta_socket_depth{_adapter_suffix}",
                     help="Depth of the threaded bore for the driver.",
+                )
+                _ta_thread_clearance = st.number_input(
+                    "Thread clearance (mm)", 0.0, 0.5, 0.05, 0.01,
+                    key=f"ta_thread_clearance{_adapter_suffix}",
+                    help="Radial clearance added to the internal thread profile.",
                 )
             elif _driver_is_bolt_on:
                 _driver_spec = _fg.DRIVER_FLANGE_SPECS[_ta_driver_key]
@@ -3035,6 +3041,7 @@ if gen_btn:
                         flange_outer_n=_ft_outer_n if _driver_is_custom_flange else 0,
                         driver_clearance=_ta_driver_clearance,
                         socket_length=_ta_socket_depth if _driver_is_threaded else 0.0,
+                        thread_clearance=_ta_thread_clearance if _driver_is_threaded else 0.05,
                         outer_target_R=_outer_target_R,
                         outer_rect_w=_outer_rw,
                         outer_rect_h=_outer_rh,

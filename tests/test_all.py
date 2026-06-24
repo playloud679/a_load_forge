@@ -2922,6 +2922,22 @@ def test_threaded_socket():
 test("threaded sockets watertight", test_threaded_socket)
 
 
+def test_threaded_socket_clearance_offsets_thread_profile():
+    spec = _ta.THREAD_SPECS["1_375in"]
+    m0 = _ta.make_threaded_socket("1_375in", 15.0, 4.0, thread_clearance=0.0)
+    m1 = _ta.make_threaded_socket("1_375in", 15.0, 4.0, thread_clearance=0.2)
+
+    def inner_major_at_first_turn(mesh):
+        ring = mesh.vertices[np.isclose(mesh.vertices[:, 2], spec.pitch, atol=1e-6)]
+        radii = np.linalg.norm(ring[:, :2], axis=1)
+        return float(radii.max())
+
+    assert abs(inner_major_at_first_turn(m0) - spec.major_diam / 2.0) < 0.02
+    assert abs(inner_major_at_first_turn(m1) - (spec.major_diam / 2.0 + 0.2)) < 0.02
+test("threaded socket clearance offsets thread profile",
+     test_threaded_socket_clearance_offsets_thread_profile)
+
+
 def test_threaded_adapter_25mm_bore():
     m = _ta.make_adapter(
         driver_R=99.0, horn_shape="circular",
@@ -2929,6 +2945,7 @@ def test_threaded_adapter_25mm_bore():
         horn_R_eq=18.0, horn_circumR=0.0,
         axial_steps=30, adapter_length=30.0, wall_thickness=4.0,
         thread_key="1_375in", socket_length=15.0,
+        thread_clearance=0.2,
         output_path=None,
     )
     at_bore = m.vertices[np.isclose(m.vertices[:, 2], 0.0)]
@@ -3046,7 +3063,7 @@ def test_adapter_assembly_threaded():
         poly_circumR=15.0,
         horn_R_eq=12.5,
         adapter_length=30.0, wall_thickness=4.0,
-        socket_length=15.0, z_offset=0.0,
+        socket_length=15.0, thread_clearance=0.1, z_offset=0.0,
         output_path=None,
     )
     _check_trimesh_watertight(m, "adapter assembly threaded")
