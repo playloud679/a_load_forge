@@ -132,6 +132,7 @@ class Analytics:
             forum_username = (
                 state.get(_FORUM_COOKIE_NAME)
                 or cookies.get(_FORUM_COOKIE_NAME)
+                or self._read_cookie_component(_FORUM_COOKIE_NAME)
                 or ""
             )
             forum_username = str(forum_username).strip()
@@ -143,6 +144,34 @@ class Analytics:
                     pass
         except Exception:
             pass
+
+    def _cookie_manager(self):
+        """Return an optional bidirectional cookie manager for Streamlit Cloud."""
+        try:
+            import streamlit as st
+            import extra_streamlit_components as stx
+            state = getattr(st, "session_state", {})
+            if "_flare_forge_cookie_manager" not in state:
+                state["_flare_forge_cookie_manager"] = stx.CookieManager()
+            return state["_flare_forge_cookie_manager"]
+        except Exception:
+            return None
+
+    def _read_cookie_component(self, name: str) -> str:
+        manager = self._cookie_manager()
+        if manager is None:
+            return ""
+        try:
+            value = manager.get(cookie=name)
+            return "" if value is None else str(value)
+        except TypeError:
+            try:
+                value = manager.get(name)
+                return "" if value is None else str(value)
+            except Exception:
+                return ""
+        except Exception:
+            return ""
 
     def _posthog_distinct_id(self, state) -> str:
         """Return the least persistent useful PostHog id.
@@ -157,9 +186,27 @@ class Analytics:
     def _write_cookie_js(self, name: str, value: str, max_age_days: int = 365):
         """Persist a first-party cookie from the browser side.
 
-        Streamlit Cloud exposes cookies as read-only in Python, so the forum
-        username cookie has to be written by a small client-side component.
+        Prefer ``extra_streamlit_components.CookieManager`` because plain
+        ``components.html`` can be iframe-isolated on Streamlit Cloud.
         """
+        manager = self._cookie_manager()
+        if manager is not None:
+            try:
+                expires_at = (
+                    datetime.datetime.now(datetime.timezone.utc)
+                    + datetime.timedelta(days=int(max_age_days))
+                )
+                manager.set(name, value, expires_at=expires_at)
+                return
+            except TypeError:
+                try:
+                    manager.set(name, value)
+                    return
+                except Exception:
+                    pass
+            except Exception:
+                pass
+
         try:
             import streamlit.components.v1 as components
             js_name = json.dumps(str(name))

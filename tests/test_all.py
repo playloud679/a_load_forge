@@ -3561,6 +3561,57 @@ def test_analytics_loads_forum_username_cookie_without_posthog():
 test("analytics loads forum username cookie without PostHog", test_analytics_loads_forum_username_cookie_without_posthog)
 
 
+def test_analytics_uses_cookie_manager_for_forum_username():
+    """Streamlit Cloud needs a real component, not iframe-only JS, to persist cookies."""
+    from src import _analytics as _anl
+
+    class FakeCookieManager:
+        def __init__(self):
+            self.cookies = {}
+
+        def get(self, cookie=None):
+            return self.cookies.get(cookie)
+
+        def set(self, name, value, expires_at=None):
+            self.cookies[name] = value
+
+    manager = FakeCookieManager()
+    fake_state = {}
+    fake_st = types.SimpleNamespace(
+        context=types.SimpleNamespace(cookies={}),
+        secrets={},
+        session_state=fake_state,
+        markdown=lambda *args, **kwargs: None,
+    )
+    fake_stx = types.SimpleNamespace(CookieManager=lambda: manager)
+    previous_streamlit = sys.modules.get("streamlit")
+    previous_stx = sys.modules.get("extra_streamlit_components")
+    sys.modules["streamlit"] = fake_st
+    sys.modules["extra_streamlit_components"] = fake_stx
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            ga = _anl.Analytics(db_path=os.path.join(td, "analytics.db"))
+            ga.set_identity(forum_username="diy-user")
+
+            assert manager.cookies["_flare_forge_forum"] == "diy-user"
+
+            ga2 = _anl.Analytics(db_path=os.path.join(td, "analytics2.db"))
+            ga2._load_identity_from_context()
+            assert ga2.user_forum == "diy-user"
+    finally:
+        if previous_streamlit is None:
+            sys.modules.pop("streamlit", None)
+        else:
+            sys.modules["streamlit"] = previous_streamlit
+        if previous_stx is None:
+            sys.modules.pop("extra_streamlit_components", None)
+        else:
+            sys.modules["extra_streamlit_components"] = previous_stx
+
+
+test("analytics uses cookie manager for forum username", test_analytics_uses_cookie_manager_for_forum_username)
+
+
 def test_utils_profile_aliases():
     """`_utils` exposes the canonical (z,r) / (z,w,h) profile type aliases."""
     assert hasattr(_uts, "CircularProfile"), "missing CircularProfile alias"

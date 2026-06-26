@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.20.8 (2026-06-26)
+
+- **Streamlit Cloud cookies**: sostituito il fallback `components.html` con
+  `extra_streamlit_components.CookieManager` per scrivere/leggere davvero il
+  cookie `_flare_forge_forum` anche online; il fallback JS resta solo per
+  ambienti senza la dipendenza.
+- **Deps/Docs**: aggiunta la dipendenza `extra-streamlit-components`, aggiornati
+  `docs/_analytics.md`, `VERSION`, `pyproject.toml` e `CHANGELOG` a `2.20.8`.
+
 ## 2.20.7 (2026-06-26)
 
 - **Privacy/Analytics**: rimossa la raccolta fingerprint automatica; prima

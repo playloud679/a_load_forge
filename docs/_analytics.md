@@ -14,6 +14,11 @@ when `posthog_api_key` exists in Streamlit secrets.
 | SQLite | Local dev + `?analytics=on` dashboard | Repo-local file |
 | PostHog | Production analytics | PostHog Cloud |
 
+The Streamlit app uses `extra_streamlit_components.CookieManager` for
+browser-cookie persistence on Streamlit Cloud. Plain `components.html` scripts
+can run inside an isolated iframe there, so they are kept only as a fallback for
+environments without the cookie-manager dependency.
+
 ## Setup for Production
 
 ```toml
@@ -52,15 +57,16 @@ is already known, `render_forum_username_prompt()` opens a dialog with:
 When saved, the username is:
 
 - stored in `st.session_state["_flare_forge_forum"]`
-- written to the browser cookie `_flare_forge_forum` for one year by a tiny
-  client-side Streamlit component
+- written to the browser cookie `_flare_forge_forum` for one year through
+  `extra_streamlit_components.CookieManager`
 - attached to future SQLite/PostHog events as `forum_username`
 - sent to PostHog as a `$identify` user property
 
 Streamlit Community Cloud exposes `st.context.cookies` as read-only in Python,
-so cookie writes must happen in browser JavaScript. Reads are still performed
-from `st.context.cookies`, and cookie loading happens even when PostHog is not
-configured, so returning users are recognized in local/dev mode too.
+so cookie writes must happen through a browser-backed component. Reads are
+performed from `st.context.cookies` and the cookie manager; cookie loading
+happens even when PostHog is not configured, so returning users are recognized
+in local/dev mode too.
 
 ## Privacy Defaults
 
