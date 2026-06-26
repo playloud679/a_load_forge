@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.20.7 (2026-06-26)
+
+- **Privacy/Analytics**: rimossa la raccolta fingerprint automatica; prima
+  dell'opt-in gli eventi PostHog usano solo l'id di sessione Streamlit non
+  persistente.
+- **Forum username**: sostituita la vecchia finestra analytics/email con un
+  popup opzionale solo `Forum username`; il cookie `_flare_forge_forum` viene
+  scritto solo dopo click esplicito su "Save username" e viene mostrato in UI
+  come `User: <username>` o `User: guest`.
+- **Docs/Test**: aggiornati `docs/_analytics.md`, regressioni analytics,
+  `VERSION`, `pyproject.toml` e `CHANGELOG` a `2.20.7`.
+
 ## 2.20.6 (2026-06-24)
 
 - **Threaded adapter**: aggiunto parametro `thread_clearance` (default

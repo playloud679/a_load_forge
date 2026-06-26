@@ -10,7 +10,7 @@ Configure PostHog in .streamlit/secrets.toml:
 Usage in ui_app.py:
     from _analytics import ga
     ga.start_session()
-    ga.render_identity_form()   # optional email / forum username
+    ga.render_forum_username_prompt()   # optional forum username popup
     ga.track("generate", profile="tractrix", section="circular")
     ga.show_dashboard()         # shows dashboard if ?analytics=on
 """
@@ -29,6 +29,8 @@ _SESSION_START_KEY = "_flare_forge_session_start"
 _SESSION_RECORDED_KEY = "_flare_forge_session_recorded"
 _PAGEVIEW_SENT_KEY = "_flare_forge_pageview_sent"
 _IDENTIFIED_ID_KEY = "_flare_forge_identified_id"
+_FORUM_COOKIE_NAME = "_flare_forge_forum"
+_FORUM_PROMPT_DISMISSED_KEY = "_flare_forge_forum_prompt_dismissed"
 
 
 def _now_iso() -> str:
@@ -49,7 +51,7 @@ class Analytics:
         self._ph_disabled = False
         self._ph_id: str = ""
 
-        # User identity (loaded from cookies)
+        # User identity (loaded from session state / cookies)
         self._user_email: str = ""
         self._user_forum: str = ""
 
@@ -90,11 +92,12 @@ class Analytics:
 
     def _init_posthog(self):
         """Try to import PostHog and read API key from Streamlit secrets.
-        Uses browser fingerprint (cookie) + fallback UUID to identify users."""
+        Uses a forum username only after opt-in; otherwise uses the session id."""
         if self._ph_disabled:
             return
         try:
             import streamlit as st
+            self._load_identity_from_context()
             api_key = st.secrets.get("posthog_api_key", "")
             if not api_key:
                 self._ph_disabled = True
@@ -109,70 +112,70 @@ class Analytics:
                 sync_mode=True,
             )
 
-            # User ID priority: fingerprint cookie > session fallback > new UUID.
-            # Streamlit exposes context cookies as read-only on Community Cloud.
-            cookies = getattr(st.context, "cookies", {})
             state = getattr(st, "session_state", {})
-            self._ph_id = (cookies.get("_flare_forge_fp")
-                           or state.get("_flare_forge_uid")
-                           or str(uuid.uuid4()))
+            self._ph_id = self._posthog_distinct_id(state)
             try:
                 state["_flare_forge_uid"] = self._ph_id
             except Exception:
                 pass
 
-            self._user_email = (
-                state.get("_flare_forge_email")
-                or cookies.get("_flare_forge_email")
-                or ""
-            )
-            self._user_forum = (
-                state.get("_flare_forge_forum")
-                or cookies.get("_flare_forge_forum")
-                or ""
-            )
             self._identify_current_user_if_needed()
         except Exception:
             self._ph_disabled = True
 
-    def _inject_fingerprint_js(self):
-        """Inject a JS snippet that computes a browser fingerprint and stores
-        it in a cookie. On next rerun the cookie is picked up as distinct_id.
-        Needs no external dependencies — self-contained canvas + navigator hash."""
-        import streamlit as st
+    def _load_identity_from_context(self):
+        """Load the saved forum username from Streamlit state or browser cookie."""
+        try:
+            import streamlit as st
+            cookies = getattr(st.context, "cookies", {})
+            state = getattr(st, "session_state", {})
+            forum_username = (
+                state.get(_FORUM_COOKIE_NAME)
+                or cookies.get(_FORUM_COOKIE_NAME)
+                or ""
+            )
+            forum_username = str(forum_username).strip()
+            if forum_username:
+                self._user_forum = forum_username
+                try:
+                    state[_FORUM_COOKIE_NAME] = forum_username
+                except Exception:
+                    pass
+        except Exception:
+            pass
 
-        st.markdown("""
+    def _posthog_distinct_id(self, state) -> str:
+        """Return the least persistent useful PostHog id.
+
+        Before opt-in, events use only the current Streamlit session id. After
+        the user saves a forum username, future visits use that username cookie.
+        """
+        if self._user_forum:
+            return f"forum:{self._user_forum}"
+        return self._session_id or state.get("_flare_forge_uid") or uuid.uuid4().hex
+
+    def _write_cookie_js(self, name: str, value: str, max_age_days: int = 365):
+        """Persist a first-party cookie from the browser side.
+
+        Streamlit Cloud exposes cookies as read-only in Python, so the forum
+        username cookie has to be written by a small client-side component.
+        """
+        try:
+            import streamlit.components.v1 as components
+            js_name = json.dumps(str(name))
+            js_value = json.dumps(str(value))
+            max_age = int(max_age_days) * 86400
+            components.html(f"""
 <script>
-(function(){
-  if (document.cookie.indexOf('_flare_forge_fp=') !== -1) return;
-  try {
-    var fp = [];
-    fp.push(navigator.userAgent||'');
-    fp.push(navigator.language||'');
-    fp.push(screen.colorDepth+','+screen.width+'x'+screen.height);
-    try { fp.push(Intl.DateTimeFormat().resolvedOptions().timeZone); } catch(e){}
-    fp.push(navigator.hardwareConcurrency||'');
-    fp.push(navigator.deviceMemory||'');
-    fp.push(navigator.platform||'');
-    // canvas fingerprint
-    try {
-      var c=document.createElement('canvas'), x=c.getContext('2d');
-      c.width=200;c.height=50;
-      x.textBaseline='top';x.font='14px Arial';
-      x.fillStyle='#f60';x.fillRect(0,0,100,25);
-      x.fillStyle='#069';x.fillRect(100,0,100,25);
-      x.fillStyle='#fff';x.fillText('flare_forge',2,18);
-      fp.push(c.toDataURL().substring(0,120));
-    } catch(e){}
-    // djb2 hash
-    var s = fp.join('###'), hash = 5381;
-    for (var i=0; i<s.length; i++) hash = ((hash<<5)+hash)+s.charCodeAt(i);
-    var fpid = 'fp_' + (hash>>>0).toString(36);
-    document.cookie = '_flare_forge_fp='+fpid+';path=/;max-age='+(365*86400)+';SameSite=Lax';
-  } catch(e){}
-})();
+(function(){{
+  var name = {js_name};
+  var value = encodeURIComponent({js_value});
+  document.cookie = name + '=' + value + ';path=/;max-age={max_age};SameSite=Lax';
+}})();
 </script>
-        """, unsafe_allow_html=True)
+            """, height=0, width=0)
+        except Exception:
+            pass
 
     def _posthog_capture(self, event: str, properties: dict):
         """Send event to PostHog if configured."""
@@ -193,7 +196,7 @@ class Analytics:
 
     def _identify_current_user_if_needed(self):
         """Associate the current PostHog distinct_id with saved optional identity."""
-        if not self._ph_id or not (self._user_email or self._user_forum):
+        if not self._ph_id or not self._user_forum:
             return
         try:
             import streamlit as st
@@ -202,7 +205,6 @@ class Analytics:
                 return
             self._posthog_capture("$identify", {
                 "$set": {
-                    "email": self._user_email,
                     "forum_username": self._user_forum,
                 }
             })
@@ -211,64 +213,87 @@ class Analytics:
             pass
 
     def set_identity(self, email: str = "", forum_username: str = ""):
-        """Save user identity for this Streamlit session and send it to PostHog."""
+        """Save forum username for this Streamlit session and send it to PostHog.
+
+        ``email`` is retained only for backward compatibility with older calls;
+        it is intentionally ignored because the UI no longer asks for email.
+        """
         import streamlit as st
         state = getattr(st, "session_state", {})
         changed = False
 
-        email = (email or "").strip()
         forum_username = (forum_username or "").strip()
 
-        if email != self._user_email:
-            self._user_email = email
-            try:
-                state["_flare_forge_email"] = self._user_email
-            except Exception:
-                pass
-            changed = True
         if forum_username != self._user_forum:
             self._user_forum = forum_username
             try:
-                state["_flare_forge_forum"] = self._user_forum
+                state[_FORUM_COOKIE_NAME] = self._user_forum
             except Exception:
                 pass
+            if self._user_forum:
+                self._write_cookie_js(_FORUM_COOKIE_NAME, self._user_forum)
             changed = True
 
         if changed:
+            if self._ph is not None:
+                self._ph_id = self._posthog_distinct_id(state)
+                try:
+                    state["_flare_forge_uid"] = self._ph_id
+                except Exception:
+                    pass
             try:
                 state.pop(_IDENTIFIED_ID_KEY, None)
             except Exception:
                 pass
             self._identify_current_user_if_needed()
 
-    def render_identity_form(self):
-        """Render an optional sidebar form to collect email / forum username.
-        Call after start_session(), before any track() calls."""
+    def render_forum_username_prompt(self):
+        """Show a one-time landing dialog asking only for a forum username."""
         import streamlit as st
 
         if not self._session_id:
             return  # start_session() must be called first
+        self._load_identity_from_context()
+        if self._user_forum:
+            return
 
-        with st.sidebar:
-            with st.expander("👤 Analytics Profile (optional)", expanded=False):
-                st.caption(
-                    "Help us understand who uses flare_forge. "
-                    "Your email and forum username are only used for analytics "
-                    "and will never be shared."
-                )
-                new_email = st.text_input(
-                    "Email", value=self._user_email,
-                    placeholder="you@example.com",
-                    key="_anl_email",
-                )
+        state = getattr(st, "session_state", {})
+        if state.get(_FORUM_PROMPT_DISMISSED_KEY):
+            return
+
+        @st.dialog("Before you start")
+        def _forum_prompt():
+            st.caption(
+                "Optional: save your forum username in a cookie so I can connect "
+                "bug reports with app activity. No email, no account."
+            )
+            with st.form("_forum_username_form"):
                 new_forum = st.text_input(
-                    "Forum username", value=self._user_forum,
-                    placeholder="DIYaudio / Reddit / ...",
-                    key="_anl_forum",
+                    "Forum username",
+                    value="",
+                    placeholder="DIYAudio / Reddit username",
+                    key="_anl_forum_prompt",
                 )
-                if st.button("Save", key="_anl_save", use_container_width=True):
-                    self.set_identity(email=new_email, forum_username=new_forum)
-                    st.toast("Profile saved!", icon="👤")
+                save = st.form_submit_button("Save username", use_container_width=True)
+                skip = st.form_submit_button("Continue without it", use_container_width=True)
+
+            if save:
+                new_forum = (new_forum or "").strip()
+                if new_forum:
+                    self.set_identity(forum_username=new_forum)
+                    state[_FORUM_PROMPT_DISMISSED_KEY] = True
+                    st.success("Username saved. You can close this popup.")
+                else:
+                    st.warning("Write a username, or continue without it.")
+            if skip:
+                state[_FORUM_PROMPT_DISMISSED_KEY] = True
+                st.rerun()
+
+        _forum_prompt()
+
+    def render_identity_form(self):
+        """Backward-compatible wrapper for the old sidebar identity form."""
+        self.render_forum_username_prompt()
 
     @property
     def user_email(self) -> str:
@@ -285,6 +310,7 @@ class Analytics:
         import streamlit as st
 
         state = getattr(st, "session_state", {})
+        self._load_identity_from_context()
         now = time.time()
         self._session_id = state.get(_SESSION_ID_KEY) or uuid.uuid4().hex[:12]
         self._session_start = float(state.get(_SESSION_START_KEY) or now)
@@ -296,9 +322,6 @@ class Analytics:
 
         # Lazy-init PostHog (also loads cookies)
         self._init_posthog()
-
-        # Inject browser fingerprint JS (cookie set on next rerun)
-        self._inject_fingerprint_js()
 
         if not state.get(_SESSION_RECORDED_KEY):
             with self._lock, self._get_conn() as conn:
@@ -314,8 +337,6 @@ class Analytics:
         # PostHog page view
         if not state.get(_PAGEVIEW_SENT_KEY):
             props: dict = {"url": "/", "session_id": self._session_id}
-            if self._user_email:
-                props["email"] = self._user_email
             if self._user_forum:
                 props["forum_username"] = self._user_forum
             self._posthog_capture("$pageview", props)
@@ -339,7 +360,7 @@ class Analytics:
     def track(self, event: str, **metadata):
         """Track a named event with optional keyword metadata.
         Sent to both SQLite (local dashboard) and PostHog (if configured).
-        User identity (email, forum) is automatically attached."""
+        Forum username is automatically attached when available."""
         if not self._session_id:
             return
         # Sanitise metadata — only JSON-serialisable primitives
@@ -361,8 +382,6 @@ class Analytics:
         # PostHog — attach identity automatically
         ph_props = dict(clean)
         ph_props["session_id"] = self._session_id
-        if self._user_email:
-            ph_props["email"] = self._user_email
         if self._user_forum:
             ph_props["forum_username"] = self._user_forum
         self._posthog_capture(event, ph_props)
@@ -431,13 +450,11 @@ class Analytics:
             st.markdown("#### Registered Users")
             id_rows = self._fetch_all("""
                 SELECT DISTINCT
-                    COALESCE(json_extract(metadata, '$.email'),
-                             json_extract(metadata, '$.forum_username'),
+                    COALESCE(json_extract(metadata, '$.forum_username'),
                              'anonymous') as identity,
                     COUNT(*) as events
                 FROM events
-                WHERE json_extract(metadata, '$.email') IS NOT NULL
-                   OR json_extract(metadata, '$.forum_username') IS NOT NULL
+                WHERE json_extract(metadata, '$.forum_username') IS NOT NULL
                 GROUP BY identity ORDER BY events DESC
                 LIMIT 20
             """)
@@ -452,8 +469,7 @@ class Analytics:
             st.markdown("#### Recent Activity")
             recent = self._fetch_all("""
                 SELECT session_id, event,
-                       COALESCE(json_extract(metadata, '$.email'),
-                                json_extract(metadata, '$.forum_username'),
+                       COALESCE(json_extract(metadata, '$.forum_username'),
                                 '') as user,
                        created_at
                 FROM events ORDER BY created_at DESC LIMIT 50

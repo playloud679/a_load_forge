@@ -128,7 +128,8 @@ st.warning(
 
 # ── Analytics session ──────────────────────────────────────────────────
 ga.start_session()
-ga.render_identity_form()
+ga.render_forum_username_prompt()
+st.caption(f":gray[User: {ga.user_forum or 'guest'}]")
 
 # ── Parameter persistence (.flr) ────────────────────────────────────
 _PARAM_PREFIXES = (

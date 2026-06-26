@@ -3423,9 +3423,10 @@ def test_analytics_accepts_read_only_streamlit_cookies():
             captured = []
             ga._posthog_capture = lambda event, properties: captured.append((event, properties))
             ga.set_identity("user@example.com", "diy-user")
-            assert fake_state["_flare_forge_email"] == "user@example.com"
             assert fake_state["_flare_forge_forum"] == "diy-user"
             assert captured and captured[0][0] == "$identify"
+            assert "email" not in captured[0][1]["$set"]
+            assert captured[0][1]["$set"]["forum_username"] == "diy-user"
     finally:
         if previous_streamlit is None:
             sys.modules.pop("streamlit", None)
@@ -3453,7 +3454,6 @@ def test_analytics_dedupes_streamlit_rerun_pageviews():
         with tempfile.TemporaryDirectory() as td:
             ga = _anl.Analytics(db_path=os.path.join(td, "analytics.db"))
             ga._init_posthog = lambda: None
-            ga._inject_fingerprint_js = lambda: None
             captured = []
             ga._posthog_capture = lambda event, properties: captured.append((event, properties))
 
@@ -3474,8 +3474,8 @@ def test_analytics_dedupes_streamlit_rerun_pageviews():
 test("analytics dedupes Streamlit rerun pageviews", test_analytics_dedupes_streamlit_rerun_pageviews)
 
 
-def test_analytics_reidentifies_when_fingerprint_arrives_late():
-    """If a user identified before JS set the fingerprint, re-identify on the fp id."""
+def test_analytics_uses_forum_cookie_as_stable_posthog_id():
+    """After opt-in, returning users use their forum cookie as stable PostHog id."""
     from src import _analytics as _anl
 
     captured = []
@@ -3489,12 +3489,11 @@ def test_analytics_reidentifies_when_fingerprint_arrives_late():
 
     fake_state = {
         "_flare_forge_uid": "session-fallback-id",
-        "_flare_forge_email": "user@example.com",
         "_flare_forge_forum": "diy-user",
         "_flare_forge_identified_id": "session-fallback-id",
     }
     fake_st = types.SimpleNamespace(
-        context=types.SimpleNamespace(cookies={"_flare_forge_fp": "fp_stable"}),
+        context=types.SimpleNamespace(cookies={"_flare_forge_forum": "diy-user"}),
         secrets={
             "posthog_api_key": "phc_test",
             "posthog_host": "https://eu.i.posthog.com",
@@ -3509,14 +3508,15 @@ def test_analytics_reidentifies_when_fingerprint_arrives_late():
         with tempfile.TemporaryDirectory() as td:
             ga = _anl.Analytics(db_path=os.path.join(td, "analytics.db"))
             ga._init_posthog()
-            assert ga._ph_id == "fp_stable"
-            assert fake_state["_flare_forge_identified_id"] == "fp_stable"
+            assert ga._ph_id == "forum:diy-user"
+            assert fake_state["_flare_forge_identified_id"] == "forum:diy-user"
             assert len(captured) == 1
             assert captured[0]["event"] == "$identify"
-            assert captured[0]["distinct_id"] == "fp_stable"
+            assert captured[0]["distinct_id"] == "forum:diy-user"
+            assert captured[0]["properties"]["$set"] == {"forum_username": "diy-user"}
 
             ga._init_posthog()
-            assert len(captured) == 1, "same fingerprint should not identify twice"
+            assert len(captured) == 1, "same forum id should not identify twice"
     finally:
         if previous_streamlit is None:
             sys.modules.pop("streamlit", None)
@@ -3528,7 +3528,37 @@ def test_analytics_reidentifies_when_fingerprint_arrives_late():
             sys.modules["posthog"] = previous_posthog
 
 
-test("analytics re-identifies when fingerprint arrives late", test_analytics_reidentifies_when_fingerprint_arrives_late)
+test("analytics uses forum cookie as stable PostHog id", test_analytics_uses_forum_cookie_as_stable_posthog_id)
+
+
+def test_analytics_loads_forum_username_cookie_without_posthog():
+    """Returning users should be recognized from cookie even when PostHog is off."""
+    from src import _analytics as _anl
+
+    fake_state = {}
+    fake_st = types.SimpleNamespace(
+        context=types.SimpleNamespace(cookies={"_flare_forge_forum": "diy-user"}),
+        secrets={},
+        session_state=fake_state,
+        markdown=lambda *args, **kwargs: None,
+    )
+    previous_streamlit = sys.modules.get("streamlit")
+    sys.modules["streamlit"] = fake_st
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            ga = _anl.Analytics(db_path=os.path.join(td, "analytics.db"))
+            ga.start_session()
+
+            assert ga.user_forum == "diy-user"
+            assert fake_state["_flare_forge_forum"] == "diy-user"
+    finally:
+        if previous_streamlit is None:
+            sys.modules.pop("streamlit", None)
+        else:
+            sys.modules["streamlit"] = previous_streamlit
+
+
+test("analytics loads forum username cookie without PostHog", test_analytics_loads_forum_username_cookie_without_posthog)
 
 
 def test_utils_profile_aliases():
