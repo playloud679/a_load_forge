@@ -83,6 +83,10 @@ the stable PostHog id is `forum:<username>`, derived from the username cookie.
 The app asks for no email and no account. Session replay should remain disabled
 in PostHog unless the privacy notice and consent flow are updated.
 
+The analytics layer records coarse usage events and selected metadata only.
+Full generation parameters, preset contents, exported STL/STEP/DXF files, and
+mesh geometry are not logged by `_analytics.py`.
+
 ## Usage in `ui_app.py`
 
 ```python

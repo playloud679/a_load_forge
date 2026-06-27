@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.20.10 (2026-06-27)
+
+- **Privacy copy**: aggiunta nel popup username la dicitura esplicita che
+  parametri di generazione e file STL non vengono loggati.
+- **Docs**: chiarito in `docs/_analytics.md` che `_analytics.py` registra solo
+  eventi d'uso sintetici e non logga preset completi, STL/STEP/DXF o geometrie
+  mesh.
+
 ## 2.20.9 (2026-06-27)
 
 - **Streamlit Cloud cookies**: il `CookieManager` ora viene istanziato a ogni

@@ -322,7 +322,8 @@ class Analytics:
         def _forum_prompt():
             st.caption(
                 "Optional: save your forum username in a cookie so I can connect "
-                "bug reports with app activity. No email, no account."
+                "bug reports with app activity. No email, no account. Generation "
+                "parameters and STL files are not logged."
             )
             with st.form("_forum_username_form"):
                 new_forum = st.text_input(
