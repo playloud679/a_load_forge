@@ -19,6 +19,11 @@ browser-cookie persistence on Streamlit Cloud. Plain `components.html` scripts
 can run inside an isolated iframe there, so they are kept only as a fallback for
 environments without the cookie-manager dependency.
 
+`CookieManager` must be instantiated on every Streamlit run with a stable key.
+Do not cache the manager object in `st.session_state`: the constructor renders
+the frontend component that reads browser cookies, and caching the Python object
+prevents that component from mounting on later reruns.
+
 ## Setup for Production
 
 ```toml

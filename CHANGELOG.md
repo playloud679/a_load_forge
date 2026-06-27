@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.20.9 (2026-06-27)
+
+- **Streamlit Cloud cookies**: il `CookieManager` ora viene istanziato a ogni
+  rerun con key stabile e rilegge i cookie via `get_all()` prima di accedere a
+  `_flare_forge_forum`. Questo evita il caso online in cui il componente non si
+  montava più perché l'oggetto Python era stato conservato in `st.session_state`.
+
 ## 2.20.8 (2026-06-26)
 
 - **Streamlit Cloud cookies**: sostituito il fallback `components.html` con

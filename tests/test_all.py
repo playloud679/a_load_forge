@@ -3566,15 +3566,21 @@ def test_analytics_uses_cookie_manager_for_forum_username():
     from src import _analytics as _anl
 
     class FakeCookieManager:
-        def __init__(self):
+        def __init__(self, key="init"):
+            constructed.append(key)
             self.cookies = {}
 
         def get(self, cookie=None):
             return self.cookies.get(cookie)
 
-        def set(self, name, value, expires_at=None):
+        def get_all(self, key="get_all"):
+            self.get_all_key = key
+            return self.cookies
+
+        def set(self, name, value, key="set", path="/", expires_at=None, same_site="strict"):
             self.cookies[name] = value
 
+    constructed = []
     manager = FakeCookieManager()
     fake_state = {}
     fake_st = types.SimpleNamespace(
@@ -3583,7 +3589,9 @@ def test_analytics_uses_cookie_manager_for_forum_username():
         session_state=fake_state,
         markdown=lambda *args, **kwargs: None,
     )
-    fake_stx = types.SimpleNamespace(CookieManager=lambda: manager)
+    fake_stx = types.SimpleNamespace(
+        CookieManager=lambda key="init": (constructed.append(key) or manager)
+    )
     previous_streamlit = sys.modules.get("streamlit")
     previous_stx = sys.modules.get("extra_streamlit_components")
     sys.modules["streamlit"] = fake_st
@@ -3595,9 +3603,12 @@ def test_analytics_uses_cookie_manager_for_forum_username():
 
             assert manager.cookies["_flare_forge_forum"] == "diy-user"
 
+            fake_st.session_state = {}
             ga2 = _anl.Analytics(db_path=os.path.join(td, "analytics2.db"))
             ga2._load_identity_from_context()
             assert ga2.user_forum == "diy-user"
+            assert constructed.count("flare_forge_cookie_manager") >= 2
+            assert manager.get_all_key == "flare_forge_get_all"
     finally:
         if previous_streamlit is None:
             sys.modules.pop("streamlit", None)

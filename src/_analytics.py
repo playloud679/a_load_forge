@@ -148,12 +148,11 @@ class Analytics:
     def _cookie_manager(self):
         """Return an optional bidirectional cookie manager for Streamlit Cloud."""
         try:
-            import streamlit as st
             import extra_streamlit_components as stx
-            state = getattr(st, "session_state", {})
-            if "_flare_forge_cookie_manager" not in state:
-                state["_flare_forge_cookie_manager"] = stx.CookieManager()
-            return state["_flare_forge_cookie_manager"]
+            # Instantiate on every run. CookieManager reads browser cookies by
+            # rendering a component; caching the Python object in session_state
+            # prevents that component from mounting on later Streamlit reruns.
+            return stx.CookieManager(key="flare_forge_cookie_manager")
         except Exception:
             return None
 
@@ -162,6 +161,10 @@ class Analytics:
         if manager is None:
             return ""
         try:
+            try:
+                manager.get_all(key="flare_forge_get_all")
+            except Exception:
+                pass
             value = manager.get(cookie=name)
             return "" if value is None else str(value)
         except TypeError:
@@ -196,7 +199,14 @@ class Analytics:
                     datetime.datetime.now(datetime.timezone.utc)
                     + datetime.timedelta(days=int(max_age_days))
                 )
-                manager.set(name, value, expires_at=expires_at)
+                manager.set(
+                    name,
+                    value,
+                    key=f"set_{name}",
+                    path="/",
+                    expires_at=expires_at,
+                    same_site="lax",
+                )
                 return
             except TypeError:
                 try:
