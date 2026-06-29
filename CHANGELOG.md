@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.20.11 (2026-06-29)
+
+- **STL downloads**: i pulsanti Streamlit per assembly, adapter separato e
+  pezzi dello slicer ora inviano gli STL come download binari, evitando che il
+  browser salvi i file come `.stl.txt`.
+
 ## 2.20.10 (2026-06-27)
 
 - **Privacy copy**: aggiunta nel popup username la dicitura esplicita che

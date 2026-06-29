@@ -49,6 +49,18 @@ export_step = _step.export_step
 mesh_to_flange_dxf = _dxf.mesh_to_flange_dxf
 ga = _anl.ga
 
+_STL_MIME = "application/octet-stream"
+
+
+def _stl_download_button(label, data, file_name, **kwargs):
+    """Download STL as binary so browsers do not append .txt."""
+    if isinstance(data, str):
+        data = data.encode("utf-8")
+    if not file_name.lower().endswith(".stl"):
+        file_name = f"{file_name}.stl"
+    return st.download_button(label, data, file_name, _STL_MIME, **kwargs)
+
+
 # App version — read from the repo VERSION file so the UI badge always matches
 # the released version without a second source of truth to keep in sync.
 try:
@@ -3754,8 +3766,8 @@ if st.session_state.get("_assembly_generated"):
 
     col_dl1, col_dl2 = st.columns(2)
     with col_dl1:
-        st.download_button("📥 Download STL", st.session_state["_assembly_stl_bytes"], "flare_forge_assembly.stl",
-            "model/stl", use_container_width=True)
+        _stl_download_button("📥 Download STL", st.session_state["_assembly_stl_bytes"], "flare_forge_assembly.stl",
+            use_container_width=True)
     with col_dl2:
         _step_bytes = st.session_state.get("_assembly_step_bytes")
         if _step_bytes is not None:
@@ -3767,8 +3779,8 @@ if st.session_state.get("_assembly_generated"):
     if st.session_state.get("adapter_mesh_exported") is not None:
         _adapter_mesh = st.session_state["adapter_mesh_exported"]
         _ad_stl = _adapter_mesh.export(file_type="stl")
-        st.download_button("📥 Download Separated Adapter (STL)", _ad_stl, "adapter_assembly.stl",
-            "model/stl", use_container_width=True)
+        _stl_download_button("📥 Download Separated Adapter (STL)", _ad_stl, "adapter_assembly.stl",
+            use_container_width=True)
 
     # 2-D DXF drilling templates — one per mounting flange (bolt holes,
     # bore and outline on separate layers). Generated lazily from each
@@ -4270,7 +4282,7 @@ if pieces:
         if "_pet" not in name:
             z_lo, z_hi = mesh.bounds[0, 2], mesh.bounds[1, 2]
             label += f"  (Z={z_lo:.0f}–{z_hi:.0f} mm)"
-        st.download_button(label, b, f"{name}.stl", "model/stl", key=f"dl_{name}")
+        _stl_download_button(label, b, f"{name}.stl", key=f"dl_{name}")
 
 # ── Analytics dashboard (visible with ?analytics=on) ──────────────────
 ga.show_dashboard()
