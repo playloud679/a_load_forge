@@ -65,6 +65,7 @@ def test(label, fn):
 from src import profile_generator as _c
 from src import polygonal_horn as _ph
 from src import radial_horn as _rd
+from src import omni_horn as _om
 from src import flange_generator as _fg
 from src import rectangular_horn as _r
 from src import rectangular_flange as _rf
@@ -3659,6 +3660,42 @@ def test_ensure_positive_volume_avoids_numpy_stl_mass_properties():
 
 test("_utils positive-volume helper avoids open-mesh mass warnings",
      test_ensure_positive_volume_avoids_numpy_stl_mass_properties)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#  Omnidirectional CD horn (omni_horn.py)
+# ══════════════════════════════════════════════════════════════════════════════
+
+print("\n═══ Omnidirectional CD horn ═══")
+
+def _check_omni_throat_invariant():
+    """Centerline at Rt/2 ⇒ inner wall on axis, outer wall at Rt, area = St."""
+    throat, mouth = 25.4, 260.0
+    P = _om.get_omni_profile(throat, mouth, fc=600, n=300, profile="Exponential")
+    Rt = throat / 2.0
+    St = np.pi * Rt ** 2
+    assert P["low_r"][0] < 0.05,                      f"deflector nose not on axis: {P['low_r'][0]:.3f}"
+    assert abs(P["up_r"][0] - Rt) < 1e-6,             f"throat hole != Rt: {P['up_r'][0]:.3f}"
+    throat_area = 2 * np.pi * P["rho_c"][0] * P["h"][0]
+    assert abs(throat_area - St) < 1e-3,              f"throat area {throat_area:.2f} != St {St:.2f}"
+    assert abs(P["rho_c"][-1] - mouth / 2.0) < 0.5,   f"centerline mouth radius {P['rho_c'][-1]:.2f}"
+    assert P["Sm"] > St,                              "no expansion to mouth"
+
+test("omni throat invariant: ρ₀=Rt/2 ⇒ exact circular throat", _check_omni_throat_invariant)
+
+def _check_omni_mesh(profile="Exponential", lip=0.0):
+    with tempfile.TemporaryDirectory() as d:
+        _om.generate_omni_horn(25.4, 260.0, fc=600, output_dir=d,
+                               profile=profile, lip_angle_deg=lip)
+        for part in ("omni_deflector", "omni_reflector"):
+            m = trimesh.load(os.path.join(d, f"{part}.stl"), file_type="stl")
+            assert m.is_watertight,   f"{profile} {part}: not watertight"
+            assert m.body_count == 1, f"{profile} {part}: {m.body_count} bodies"
+            assert m.volume > 100,    f"{profile} {part}: volume={m.volume:.0f}"
+
+for _prof in ("Exponential", "Tractrix", "Salmon", "Oblate spheroidal"):
+    test(f"omni {_prof} parts watertight (single body)",
+         lambda p=_prof: _check_omni_mesh(p))
 
 
 # ══════════════════════════════════════════════════════════════════════════════

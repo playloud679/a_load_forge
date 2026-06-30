@@ -21,6 +21,7 @@ import flange_generator as _fg
 import rectangular_flange as _rf
 import rectangular_horn as _rh
 import polygonal_horn as _ph
+import omni_horn as _om
 import _slicer as _slc
 import throat_adapter as _ta
 import osse_horn as _osse
@@ -36,6 +37,7 @@ importlib.reload(_fg)
 importlib.reload(_rf)
 importlib.reload(_rh)
 importlib.reload(_ph)
+importlib.reload(_om)
 importlib.reload(_slc)
 importlib.reload(_ta)
 importlib.reload(_osse)
@@ -147,7 +149,7 @@ st.caption(f":gray[User: {ga.user_forum or 'guest'}]")
 _PARAM_PREFIXES = (
     "profile_type", "section_type", "throat", "mouth", "axial", "fc",
     "coverage", "rect_ar", "n_sides", "salmon_T", "lecleach",
-    "rollback", "thickness", "rings", "segments", "osse_",
+    "rollback", "thickness", "rings", "segments", "osse_", "omni_",
     "ta_", "ft_", "fm_", "fj_", "gen_", "bolt_", "flange_",
     "slice_strategy", "pv_", "joint", "radial_",
 )
@@ -211,7 +213,7 @@ with st.sidebar:
     sh1, sh2 = st.columns([1, 1])
     with sh1:
         profile_type = st.selectbox("Profile",
-            ["Tractrix", "Salmon", "Iwata", "Le Cléac'h (isophase)", "Oblate spheroidal", "Conical", "R-OSSE", "OS-SE (ATH)", "Exponential"], index=7,
+            ["Tractrix", "Salmon", "Iwata", "Le Cléac'h (isophase)", "Oblate spheroidal", "Conical", "R-OSSE", "OS-SE (ATH)", "Exponential", "Omni (CD 360°)"], index=7,
             on_change=_on_horn_change, key="profile_type")
     with sh2:
         section_type = st.radio("Section", ["Circular", "Polygonal", "Rectangular", "Elliptical"],
@@ -231,7 +233,8 @@ with st.sidebar:
     is_rosse    = profile_type.startswith("R-OSSE")
     is_osse     = profile_type.startswith("OS-SE")
     is_exp      = profile_type.startswith("Exp")
-    has_fc      = is_salmon or is_lecleach or is_exp
+    is_omni     = profile_type.startswith("Omni")
+    has_fc      = is_salmon or is_lecleach or is_exp or is_omni
     is_T_variable = is_salmon or is_lecleach
     # Conical and Oblate share the same constant-directivity inputs
     # (throat + coverage + length, mouth derived) and the same dispatch shape,
@@ -265,6 +268,17 @@ with st.sidebar:
         is_rect = is_poly = is_ellip = is_radial = False
         st.caption("ℹ️ OS-SE (ATH) = round-throat → superelliptical-mouth waveguide "
                    "with azimuth-dependent coverage (diagonal ridges). Section selector ignored.")
+
+    # Omni (CD 360°): an axial compression driver fires into a curved central
+    # deflector that turns the wavefront 90° and a curved outer reflector opens
+    # it to a full 360° radial mouth. Like radial/OS-SE it is a special profile:
+    # it ignores the Section selector, has no throat adapter or merge, and emits
+    # two separate parts (deflector + reflector). See src/omni_horn.py.
+    if is_omni:
+        is_rect = is_poly = is_ellip = is_radial = False
+        st.caption("ℹ️ Omni (CD 360°) = axial compression driver → curved 360° radial "
+                   "expansion (central deflector + outer reflector). Two-part output; "
+                   "Section selector ignored.")
     # ── Section / flare modifiers — only those relevant to the current shape
     rect_ar, n_sides, salmon_T, lecleach_angle = 2.0, 4, 0.707, 160.0
     rollback_complete, rollback_angle = False, 330.0
@@ -341,6 +355,7 @@ with st.sidebar:
     c_val = _c_ms * 1000.0  # mm/s
     _core.SOUND_SPEED = c_val
     _rh.SOUND_SPEED = c_val
+    _om.SOUND_SPEED = c_val
 
     # ── Exponential profile delegate ─────────────────────────────────────
     def _get_exp_profile(throat_d, mouth_d, fc, n):
@@ -390,7 +405,7 @@ with st.sidebar:
     _driver_is_threaded = False
     _driver_is_flanged = True
 
-    if not is_radial and not is_iwata:
+    if not is_radial and not is_iwata and not is_omni:
         st.markdown("##### Driver / Adapter")
         _adapter_suffix = "_osse" if is_osse else ""
         _ta_include_adapter = st.checkbox(
@@ -504,6 +519,8 @@ with st.sidebar:
     osse_k, osse_s, osse_n, osse_q = 1.0, 0.8, 5.0, 0.998
     osse_throat_angle, osse_mouth_exp = 0.0, 6.0
     osse_morph_start, osse_morph_rate = 0.0, 2.0
+    # Omni (CD 360°) defaults; overridden by the is_omni input block below.
+    omni_law, omni_lip, omni_bend = "Exponential", 0.0, 1.0
     with col_in:
         st.markdown("**You set**")
         if is_osse:
@@ -603,11 +620,11 @@ with st.sidebar:
                     f"\u00d8{throat_d:.1f} mm and the expansion profile.")
             else:
                 throat_d = st.number_input("Throat Ø (mm)", 2.0, 200.0,
-                    25.0 if is_radial else 20.0, 1.0,
+                    25.4 if is_omni else 25.0 if is_radial else 20.0, 1.0,
                     key="throat_d",
                     help="Driver-side opening — the small end")
             throat_w = throat_h = throat_d
-            _mouth_is_input = is_radial or is_tractrix or is_rosse or is_exp
+            _mouth_is_input = is_radial or is_omni or is_tractrix or is_rosse or is_exp
 
         if _mouth_is_input:
             if is_rect:
@@ -617,13 +634,30 @@ with st.sidebar:
                 mouth_d = None
             else:
                 mouth_d = st.number_input("Mouth Ø (mm)", 4.0, 2000.0,
-                    200.0 if is_radial else 100.0, 5.0,
+                    260.0 if is_omni else 200.0 if is_radial else 100.0, 5.0,
                     key="mouth_d",
-                    help="Large end — where the horn stops expanding")
+                    help=("Outer Ø of the 360° radial mouth" if is_omni else
+                          "Large end — where the horn stops expanding"))
                 mouth_w = mouth_d
         elif not is_iwata:
             mouth_d = None
             mouth_w = None
+
+        if is_omni:
+            omni_law = st.selectbox("Expansion law",
+                ["Exponential", "Tractrix", "Salmon", "Oblate spheroidal"],
+                index=0, key="omni_law",
+                help="Area law for the radial channel gap S(s) along the bend")
+            _olc = st.columns(2)
+            with _olc[0]:
+                omni_lip = st.number_input("Mouth lip angle (°)", -45.0, 60.0, 0.0, 1.0,
+                    key="omni_lip",
+                    help="Flow angle at the mouth. 0 = fires purely radial (clean omni); "
+                         "<0 = upturned morning-glory bell.")
+            with _olc[1]:
+                omni_bend = st.number_input("Bend height ×", 0.3, 3.0, 1.0, 0.1,
+                    key="omni_bend",
+                    help="Vertical stretch of the deflector/bend (taller = >1)")
 
         if not is_osse:            # OS-SE already set its own H/V coverage above
             coverage_h = coverage_v = 90.0
@@ -746,6 +780,10 @@ with st.sidebar:
         elif is_radial:
             _Rr, _Zb, _Zt = _rd.get_radial_profiles(throat_d, mouth_d, fc, 50, profile_type)
             _gap_t = _Zt[0] - _Zb[0]; _gap_m = _Zt[-1] - _Zb[-1]
+        elif is_omni:
+            _Pom = _om.get_omni_profile(throat_d, mouth_d, fc, 120, omni_law, omni_lip, omni_bend)
+            _gap_t = float(_Pom["h"][0]); _gap_m = float(_Pom["h"][-1])
+            _mouth_d_eff = mouth_d
         elif is_rect:
             if is_tractrix:
                 zr, wr, hr = _rh.get_rectangular_tractrix(throat_w, throat_h, mouth_w, segments)
@@ -917,8 +955,8 @@ with st.sidebar:
             st.caption("Adjust parameters — profile could not be computed")
         else:
             _mets = []
-            if is_radial:
-                if not has_fc and _gap_t is not None:
+            if is_radial or is_omni:
+                if (is_omni or not has_fc) and _gap_t is not None:
                     _mets.append(("Throat gap", f"{_gap_t:.1f} mm"))
                 if _gap_m is not None:
                     _mets.append(("Mouth gap", f"{_gap_m:.1f} mm"))
@@ -1039,6 +1077,12 @@ with st.container():
             ax.plot(Rr, Zt, label="Top reflector", c="#2196F3")
             ax.fill_between(Rr, Zb, Zt, alpha=.15, color="#4CAF50")
             ax.set_xlabel("R (mm)")
+        elif is_omni:
+            _Po = _om.get_omni_profile(throat_d, mouth_d, fc, segments, omni_law, omni_lip, omni_bend)
+            ax.plot(_Po["low_r"], _Po["low_z"], label="Deflector wall", c="#FF5722")
+            ax.plot(_Po["up_r"], _Po["up_z"], label="Reflector wall", c="#2196F3")
+            ax.plot(_Po["rho_c"], _Po["z_c"], "--", c="#9aa0a6", alpha=.6, label="Centerline")
+            ax.set_xlabel("R (mm)"); ax.set_aspect("equal", adjustable="datalim")
         else:
             if is_tractrix:
                 zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
@@ -1185,7 +1229,7 @@ def _rim_weld(z_o, w_o, h_o, plate_thickness):
 
 def _rollback_mouth_geometry():
     """Return real outer-wall rim/peak geometry for a rolled-back mouth."""
-    if is_radial or is_iwata or is_osse:
+    if is_radial or is_iwata or is_osse or is_omni:
         return None
     if is_rect:
         z_o = np.asarray(_z_o_rect, float)
@@ -1336,7 +1380,7 @@ def _calc_flange_dims():
         ir_mouth = float(max(R_o[_rim_poly], R_i[_rim_poly]) - _FLANGE_WALL_BITE)
         mouth_dz = _mouth_wall_dz(zp, rp)
         _get_mid_r = lambda pct: _r_to_circumradius(np.array([rp[int(len(rp)*pct/100)]]), n_sides)[0]
-    elif is_radial:
+    elif is_radial or is_omni:
         ir_throat = throat_d / 2; ir_mouth = mouth_d / 2
         _get_mid_r = lambda pct: None
     elif is_tractrix:
@@ -1606,7 +1650,7 @@ fg3 = st.sidebar.container()
 
 with fg1:
     st.markdown("##### Throat Flange")
-    if _ta_include_adapter and not is_radial:
+    if _ta_include_adapter and not is_radial and not is_omni:
         gen_throat = True
         st.caption("Shape adapter enabled above; this throat component will be generated.")
         _ft_chamfer = False; _ft_chamfer_w = _ft_chamfer_h = 0.0
@@ -1645,8 +1689,9 @@ with fg1:
                 "ft_bc_osse_ta" if is_osse else "ft_bc",
                 max(0.0, _ft_od - _ft_db - 2.0)))
             _ta_socket_depth = 0.0
-    elif is_radial:
-        st.caption("Mounting holes on bottom plate")
+    elif is_radial or is_omni:
+        st.caption("Driver mounts at the central throat; bolt the two parts via these holes"
+                   if is_omni else "Mounting holes on bottom plate")
         gen_throat = st.checkbox("Include", True, key="gen_throat")
         if gen_throat:
             _ft_nb    = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="ft_nb")
@@ -1951,12 +1996,14 @@ with fg1:
             _clear_throat_flange_inputs()
 with fg2:
     st.markdown("##### Mouth Flange")
-    if is_radial or is_iwata:
+    if is_radial or is_iwata or is_omni:
         gen_mouth = False
         _fm_sp = _fm_off = _fm_nb = _fm_db = _fm_od = _fm_bc = _fm_ow = _fm_oh = 0.0
         mouth_outer = "Circular"
         if is_radial:
             st.caption("Not available for radial profile")
+        elif is_omni:
+            st.caption("Not available for omni profile (radial mouth)")
         else:
             st.caption("Not available — Iwata mouth is a curved arc (no flat flange)")
     elif rollback_complete:
@@ -2254,10 +2301,11 @@ with fg2:
             _clear_mouth_flange_inputs()
 with fg3:
     st.markdown("##### Mid Flange")
-    if is_radial:
+    if is_radial or is_omni:
         gen_mid = False; _mid_pos = 50
         _mid_sp = _mid_nb = _mid_db = 0.0
-        st.caption("Not available for radial profile")
+        st.caption("Not available for omni profile" if is_omni
+                   else "Not available for radial profile")
     elif is_osse:
         # Intermediate joining/reinforcement ring around the superelliptical body.
         gen_mid = st.checkbox("Include", False, key="gen_mid")
@@ -2519,7 +2567,39 @@ if gen_btn:
             _embedded_adapter_cut_z = None
 
             # --- 3a. Generate horn ---
-            if is_osse:
+            if is_omni:
+                # Omni is a self-contained two-part output (central deflector +
+                # outer reflector). None of the throat-hole / flange / adapter /
+                # merge machinery below applies, so this branch builds both
+                # parts, offers their downloads, and ends the run (st.stop()
+                # raises a BaseException-derived StopException that is NOT caught
+                # by the `except Exception` of this try).
+                with tempfile.TemporaryDirectory() as _otmp:
+                    _odef, _oref = _om.generate_omni_horn(
+                        throat_diam=throat_d, mouth_diam=mouth_d, fc=fc,
+                        rings=rings_n, output_dir=_otmp, profile=omni_law,
+                        lip_angle_deg=omni_lip, bend_scale=omni_bend,
+                        thickness=thickness, n=segments)
+                    _def_bytes = Path(_otmp, "omni_deflector.stl").read_bytes()
+                    _ref_bytes = Path(_otmp, "omni_reflector.stl").read_bytes()
+                _o_tris = len(_odef.vectors) + len(_oref.vectors)
+                st.success(
+                    f"✅ Omni horn generated — {omni_law} law, throat Ø{throat_d:.1f} mm "
+                    f"→ Ø{mouth_d:.0f} mm mouth · {_o_tris:,} triangles total.")
+                st.caption(
+                    "Print both parts. The compression driver mounts at the central "
+                    "throat hole (Ø = throat) in the reflector and fires onto the "
+                    "deflector nose; the 360° gap between them is the horn channel. "
+                    "Hold the deflector concentric with standoffs (not modelled).")
+                _ocols = st.columns(2)
+                with _ocols[0]:
+                    _stl_download_button("📥 Deflector STL", _def_bytes,
+                        "omni_deflector.stl", use_container_width=True)
+                with _ocols[1]:
+                    _stl_download_button("📥 Reflector STL", _ref_bytes,
+                        "omni_reflector.stl", use_container_width=True)
+                st.stop()
+            elif is_osse:
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
                 _osse.generate_osse_3d_mesh(
                     throat=throat_d, length=axial_len,

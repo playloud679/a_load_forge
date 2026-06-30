@@ -16,6 +16,7 @@ source** to save tokens.
 | `rectangular_horn.py` | [rectangular_horn.md](rectangular_horn.md) | Rectangular profiles (Exponential, Tractrix, Salmon, Oblate spheroidal, Conical) + faithful **Iwata** dual‑flare + rectangular loft engine |
 | `polygonal_horn.py` | [polygonal_horn.md](polygonal_horn.md) | Polygonal N‑gon section engine (area‑matched to circular equivalent) |
 | `radial_horn.py` | [radial_horn.md](radial_horn.md) | Experimental 360° radial API; retained in source but not exposed in the UI |
+| `omni_horn.py` | [omni_horn.md](omni_horn.md) | **Omnidirectional CD horn** (experimental): curved axial→360° radial expansion — central deflector + outer reflector bell, area-law gap; own revolution engine |
 | `osse_horn.py` | [osse_horn.md](osse_horn.md) | Full **OS-SE waveguide** (ATH-style): round throat → superelliptical mouth, azimuth-dependent coverage → diagonal ridges; own `r(z,φ)` loft engine |
 
 ## Flanges + Adapter

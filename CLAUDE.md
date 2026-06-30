@@ -60,6 +60,7 @@ The axisymmetric engine in `profile_generator.py` is shared by tractrix, salmon,
 | `src/polygonal_horn.py` | Polygonal N-gon section engine (area-matched to circular equivalent) |
 | `src/rectangular_horn.py` | Rectangular area-preserving profiles + the faithful **Iwata** dual-flare profile (`get_iwata_horn`) + dedicated lofting engine |
 | `src/radial_horn.py` | 360° omnidirectional radial horn, two-piece output (bottom + top) |
+| `src/omni_horn.py` | **Omnidirectional CD horn**: curved axial→360° radial expansion (central deflector + outer reflector bell), area-law gap, exact circular throat (ρ₀=Rt/2). Own revolution engine. Two-piece output (deflector + reflector) |
 | `src/osse_horn.py` | Full **OS-SE waveguide** (ATH-style): round throat → superelliptical mouth with azimuth-dependent coverage → diagonal ridges. Own `r(z,φ)` loft engine (not the axisymmetric/rect engines) |
 | `src/throat_adapter.py` | Throat adapter: round driver → rect/poly transition, threaded (1"/1¼"/2" UNF) or flanged interface |
 | `src/flange_generator.py` | Parametric circular mounting flange |
