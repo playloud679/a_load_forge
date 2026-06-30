@@ -10,15 +10,38 @@ linear deflector ramp (`z = (R-Rt)·0.3`); here the channel follows a true
 *curved meridian* whose flow angle eases smoothly from 90° (axial) at the throat
 to `lip_angle` at the mouth.
 
-All dimensions in mm. Outputs `omni_deflector.stl` and `omni_reflector.stl`.
-Uses `numpy-stl` (`from stl import mesh`) — NOT trimesh. Own revolution engine
-(`_revolve_polygon`), not the axisymmetric/rect engines.
+All dimensions in mm. The meridian revolution uses `numpy-stl`
+(`_revolve_polygon`, own engine); part assembly / boolean welds use `trimesh`.
 
 ---
 
 ## Public API
 
-### `generate_omni_horn`
+### `build_omni_parts` (primary)
+
+```python
+def build_omni_parts(throat_diam=25.0, mouth_diam=200.0, fc=None, rings=64,
+                     profile="Exponential", lip_angle_deg=0.0, bend_scale=1.0,
+                     thickness=4.0, n=300, standoffs=0, standoff_width=3.0,
+                     ribs_fused=True) -> dict
+```
+
+Returns `{"deflector": Trimesh, "reflector": Trimesh, "pillars": Trimesh|None}`,
+**all in one common assembled frame** (throat at the top, mouth below, parts
+positioned relative to each other). The caller exports them assembled (for the
+multi-body assembly STL + slicer) or translates each to `Z=0` for printing.
+
+- `ribs_fused=True` (default): the `standoffs` ribs are welded into the
+  deflector; `pillars` is `None`.
+- `ribs_fused=False`: the deflector stays smooth and the ribs come back as a
+  separate `pillars` body (one multi-body mesh of `standoffs` ribs).
+
+The Streamlit UI calls this so omni flows through the normal assembly/results/
+**slicer** pipeline (the omni branch concatenates the parts into a multi-body
+assembly; the throat adapter is welded onto the reflector when *Integrated* or
+kept as a separate part when *Separated*).
+
+### `generate_omni_horn` (CLI/test wrapper)
 
 ```python
 def generate_omni_horn(
@@ -35,8 +58,10 @@ def generate_omni_horn(
 ) -> tuple[mesh.Mesh, mesh.Mesh]:
 ```
 
-**Returns:** `(deflector, reflector)` — two `stl.mesh.Mesh` objects, also saved
-to `output_dir/omni_deflector.stl` and `output_dir/omni_reflector.stl`.
+Thin wrapper over `build_omni_parts`: fuses the ribs by default, drops each part
+to `Z=0`, writes `omni_deflector.stl` / `omni_reflector.stl` (+ `omni_pillars.stl`
+when `ribs_fused=False`). **Returns** `(deflector, reflector)` as `trimesh`
+objects. Adds `standoffs`, `standoff_width`, `ribs_fused` to the parameter set.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|

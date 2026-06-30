@@ -3713,6 +3713,23 @@ def _check_omni_standoffs():
 
 test("omni centering ribs weld into one solid", _check_omni_standoffs)
 
+def _check_omni_parts_common_frame():
+    """build_omni_parts returns watertight parts in ONE assembled frame."""
+    P = _om.build_omni_parts(25.4, 260.0, fc=600, standoffs=3, ribs_fused=True)
+    d, r = P["deflector"], P["reflector"]
+    assert d.is_watertight and r.is_watertight, "fused parts not watertight"
+    assert P["pillars"] is None, "ribs_fused should leave no separate pillars"
+    # Shared frame: deflector and reflector Z ranges overlap (assembled).
+    assert d.bounds[0, 2] < r.bounds[1, 2] and r.bounds[0, 2] < d.bounds[1, 2], \
+        "deflector/reflector are not in a common assembled frame"
+    # Separate pillars: smooth deflector + standalone ribs.
+    P2 = _om.build_omni_parts(25.4, 260.0, fc=600, standoffs=3, ribs_fused=False)
+    assert P2["deflector"].body_count == 1, "smooth deflector should be one body"
+    assert P2["pillars"] is not None and P2["pillars"].is_watertight, \
+        "separate pillars missing/not watertight"
+
+test("omni build_omni_parts common frame + pillars modes", _check_omni_parts_common_frame)
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  Summary

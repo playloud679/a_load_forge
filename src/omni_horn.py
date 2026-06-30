@@ -160,8 +160,13 @@ def get_omni_profile(
 #  Solid-of-revolution helper (own engine — closed meridian, no center caps)
 # ======================================================================
 
-def _revolve_polygon(r_poly: np.ndarray, z_poly: np.ndarray, rings: int = 64) -> mesh.Mesh:
-    """Revolve a CLOSED 2-D meridian polygon (r, z) around the Z axis."""
+def _revolve_polygon(r_poly: np.ndarray, z_poly: np.ndarray, rings: int = 64,
+                     align: bool = True) -> mesh.Mesh:
+    """Revolve a CLOSED 2-D meridian polygon (r, z) around the Z axis.
+
+    `align=False` keeps the mesh in its input frame (needed when the deflector
+    and reflector must stay in one common assembled frame).
+    """
     n_pts = len(r_poly)
     theta = np.linspace(0.0, 2.0 * np.pi, rings, endpoint=False)
     ct, st = np.cos(theta), np.sin(theta)
@@ -183,7 +188,8 @@ def _revolve_polygon(r_poly: np.ndarray, z_poly: np.ndarray, rings: int = 64) ->
     assert tri == n_tri
 
     m_obj = mesh.Mesh(data)
-    _utils.align_z_to_zero(m_obj)
+    if align:
+        _utils.align_z_to_zero(m_obj)
     _utils.ensure_positive_volume(m_obj)
     return m_obj
 
@@ -246,14 +252,11 @@ def _trimesh_to_mesh(tm) -> mesh.Mesh:
     return mesh.Mesh(data)
 
 
-def _add_standoffs(deflector: mesh.Mesh, P: dict, thickness: float,
-                   count: int, width: float, z_shift: float, rings: int) -> mesh.Mesh:
-    """Weld `count` self-centering ribs onto the deflector (deflector-only).
+def _build_wedges(P: dict, count: int, width: float, rings: int):
+    """Build the `count` rib wedges as a list of watertight trimeshes.
 
-    Each rib sinks `_STANDOFF_OVERLAP` into the deflector body and reaches to
-    `_STANDOFF_CLEARANCE` short of the reflector wall, so the printed deflector
-    self-centers against the (separately printed) reflector. `z_shift` maps the
-    design-frame z onto the already Z-aligned deflector mesh.
+    Wedges are returned in the profile's design frame (no Z shift), so they sit
+    correctly against the deflector/reflector built with `align=False`.
     """
     import trimesh
 
@@ -261,50 +264,104 @@ def _add_standoffs(deflector: mesh.Mesh, P: dict, thickness: float,
     up_r, up_z = P["up_r"], P["up_z"]
     nrho, nz = P["nrho"], P["nz"]
     n = len(low_r)
-    i0 = max(1, int(_STANDOFF_T0 * n))
-    i1 = min(n, int(_STANDOFF_T1 * n))
-    sl = slice(i0, i1)
+    sl = slice(max(1, int(_STANDOFF_T0 * n)), min(n, int(_STANDOFF_T1 * n)))
 
     # Rib root sinks into the deflector (−N), tip stops short of the reflector.
-    root_r = low_r[sl] - _STANDOFF_OVERLAP * nrho[sl]
-    root_z = low_z[sl] - _STANDOFF_OVERLAP * nz[sl] - z_shift
-    tip_r = up_r[sl] - _STANDOFF_CLEARANCE * nrho[sl]
-    tip_z = up_z[sl] - _STANDOFF_CLEARANCE * nz[sl] - z_shift
-    low_band = np.column_stack([root_r, root_z])
-    up_band = np.column_stack([tip_r, tip_z])
+    low_band = np.column_stack([low_r[sl] - _STANDOFF_OVERLAP * nrho[sl],
+                                low_z[sl] - _STANDOFF_OVERLAP * nz[sl]])
+    up_band = np.column_stack([up_r[sl] - _STANDOFF_CLEARANCE * nrho[sl],
+                               up_z[sl] - _STANDOFF_CLEARANCE * nz[sl]])
 
     r_mid = float(np.mean(P["rho_c"][sl]))
     half_ang = max(np.radians(1.0), (width / 2.0) / max(r_mid, 1e-6))
     a_steps = max(3, int(np.ceil(rings * (2 * half_ang) / (2 * np.pi))) + 1)
 
-    defl_tm = _mesh_to_trimesh(deflector)
-    defl_tm.fix_normals()
-    parts = [defl_tm]
+    wedges = []
     for k in range(count):
-        phi_c = 2.0 * np.pi * k / count
-        v, f = _sector_wedge(low_band, up_band, phi_c, half_ang, a_steps)
-        wedge = trimesh.Trimesh(vertices=v, faces=f, process=True)
-        # boolean union (manifold engine) needs each input to be a coherent
-        # volume — fix winding so the wedge is recognised as solid.
-        wedge.fix_normals()
-        parts.append(wedge)
+        v, f = _sector_wedge(low_band, up_band, 2.0 * np.pi * k / count,
+                             half_ang, a_steps)
+        w = trimesh.Trimesh(vertices=v, faces=f, process=True)
+        w.fix_normals()  # boolean union needs each input to be a coherent volume
+        wedges.append(w)
+    return wedges
 
+
+def _union_or_concat(parts):
+    import trimesh
+    if len(parts) == 1:
+        return parts[0]
     try:
         merged = trimesh.boolean.union(parts)
         if isinstance(merged, list):
             merged = trimesh.util.concatenate(merged)
     except Exception as exc:  # pragma: no cover - engine-dependent
-        logger.warning("Standoff boolean union failed (%s); concatenating", exc)
+        logger.warning("Boolean union failed (%s); concatenating", exc)
         merged = trimesh.util.concatenate(parts)
     merged.merge_vertices()
-    out = _trimesh_to_mesh(merged)
-    _utils.ensure_positive_volume(out)
-    return out
+    return merged
 
 
 # ======================================================================
 #  Public API
 # ======================================================================
+
+def build_omni_parts(
+    throat_diam: float = 25.0,
+    mouth_diam: float = 200.0,
+    fc: float | None = None,
+    rings: int = 64,
+    profile: str = "Exponential",
+    lip_angle_deg: float = 0.0,
+    bend_scale: float = 1.0,
+    thickness: float = 4.0,
+    n: int = 300,
+    standoffs: int = 0,
+    standoff_width: float = 3.0,
+    ribs_fused: bool = True,
+) -> dict:
+    """Build the omni parts as trimeshes in ONE common (assembled) frame.
+
+    Returns ``{"deflector": tm, "reflector": tm, "pillars": tm|None}``.  When
+    ``ribs_fused`` the ribs are welded into the deflector and ``pillars`` is
+    ``None``; otherwise the deflector is left smooth and the ribs come back as a
+    separate ``pillars`` body. All meshes share the same Z frame, so the caller
+    can export them assembled or translate each to ``z=0`` for printing.
+    """
+    P = get_omni_profile(throat_diam, mouth_diam, fc, n, profile,
+                         lip_angle_deg, bend_scale)
+    low_r, low_z = P["low_r"], P["low_z"]
+    up_r, up_z = P["up_r"], P["up_z"]
+    nrho, nz = P["nrho"], P["nz"]
+
+    logger.info("Omni parts:  throat=%.0f  mouth=%.0f  fc=%s  profile=%s  "
+                "standoffs=%d  ribs_fused=%s", throat_diam, mouth_diam, fc,
+                profile, standoffs, ribs_fused)
+
+    # ---- Deflector (solid central body under the inner wall) — common frame -
+    z_base = float(min(low_z.min(), up_z.min())) - thickness
+    r_def = np.concatenate([low_r, [low_r[-1], _EPS, _EPS]])
+    z_def = np.concatenate([low_z, [z_base, z_base, low_z[0]]])
+    deflector = _mesh_to_trimesh(_revolve_polygon(r_def, z_def, rings, align=False))
+    deflector.fix_normals()
+
+    # ---- Reflector (outer shell, central throat hole) — common frame --------
+    out_r = up_r + thickness * nrho
+    out_z = up_z + thickness * nz
+    r_ref = np.concatenate([up_r, out_r[::-1], [up_r[0]]])
+    z_ref = np.concatenate([up_z, out_z[::-1], [up_z[0]]])
+    reflector = _mesh_to_trimesh(_revolve_polygon(r_ref, z_ref, rings, align=False))
+    reflector.fix_normals()
+
+    pillars = None
+    if standoffs > 0:
+        wedges = _build_wedges(P, standoffs, standoff_width, rings)
+        if ribs_fused:
+            deflector = _union_or_concat([deflector] + wedges)
+        else:
+            pillars = _union_or_concat(wedges)
+
+    return {"deflector": deflector, "reflector": reflector, "pillars": pillars}
+
 
 def generate_omni_horn(
     throat_diam: float = 25.0,
@@ -319,52 +376,28 @@ def generate_omni_horn(
     n: int = 300,
     standoffs: int = 0,
     standoff_width: float = 3.0,
+    ribs_fused: bool = True,
 ):
-    """Generate the central deflector and outer reflector STLs.
+    """Generate the deflector + reflector STLs, each Z-aligned for printing.
 
-    `standoffs` (>0) welds that many thin self-centering ribs onto the
-    deflector (deflector-only) so it seats concentrically against the
-    separately printed reflector; `standoff_width` is their tangential width.
+    Thin CLI/test wrapper over `build_omni_parts`: fuses the ribs by default,
+    drops each part to Z=0, and writes `omni_deflector.stl` /
+    `omni_reflector.stl` (+ `omni_pillars.stl` when ribs are separate).
     """
-    P = get_omni_profile(throat_diam, mouth_diam, fc, n, profile,
-                         lip_angle_deg, bend_scale)
-
-    low_r, low_z = P["low_r"], P["low_z"]
-    up_r, up_z = P["up_r"], P["up_z"]
-    nrho, nz = P["nrho"], P["nz"]
-
-    logger.info("Omni horn:  throat=%.0f  mouth=%.0f  fc=%s  profile=%s  standoffs=%d",
-                throat_diam, mouth_diam, fc, profile, standoffs)
-    logger.info("  Gap throat H=%.2f  mouth H=%.2f  St=%.0f  Sm=%.0f",
-                P["h"][0], P["h"][-1], P["St"], P["Sm"])
-
-    # ---- Deflector (solid central body under the inner wall) ----------------
-    z_base = float(min(low_z.min(), up_z.min())) - thickness
-    r_def = np.concatenate([low_r, [low_r[-1], _EPS, _EPS]])
-    z_def = np.concatenate([low_z, [z_base, z_base, low_z[0]]])
-    deflector = _revolve_polygon(r_def, z_def, rings)
-    if standoffs > 0:
-        # _revolve_polygon Z-aligned the mesh by −z_base; map ribs to that frame.
-        deflector = _add_standoffs(deflector, P, thickness, standoffs,
-                                   standoff_width, z_base, rings)
-    deflector.save(f"{output_dir}/omni_deflector.stl")
-    logger.info("  Deflector:  closed=%s  Z=[%.0f,%.0f]  tris=%d",
-                _wt(deflector), deflector.vectors[:, :, 2].min(),
-                deflector.vectors[:, :, 2].max(), len(deflector.vectors))
-
-    # ---- Reflector (outer shell of constant thickness, central throat hole) -
-    out_r = up_r + thickness * nrho
-    out_z = up_z + thickness * nz
-    # Close the band: forward inner wall, reversed outer wall, back to start.
-    r_ref = np.concatenate([up_r, out_r[::-1], [up_r[0]]])
-    z_ref = np.concatenate([up_z, out_z[::-1], [up_z[0]]])
-    reflector = _revolve_polygon(r_ref, z_ref, rings)
-    reflector.save(f"{output_dir}/omni_reflector.stl")
-    logger.info("  Reflector:  closed=%s  Z=[%.0f,%.0f]  tris=%d",
-                _wt(reflector), reflector.vectors[:, :, 2].min(),
-                reflector.vectors[:, :, 2].max(), len(reflector.vectors))
-
-    return deflector, reflector
+    parts = build_omni_parts(throat_diam, mouth_diam, fc, rings, profile,
+                             lip_angle_deg, bend_scale, thickness, n,
+                             standoffs, standoff_width, ribs_fused)
+    out = {}
+    for name, tm in parts.items():
+        if tm is None:
+            continue
+        tm = tm.copy()
+        tm.apply_translation([0.0, 0.0, -float(tm.bounds[0, 2])])
+        tm.export(f"{output_dir}/omni_{name}.stl")
+        out[name] = tm
+        logger.info("  %-9s watertight=%s  bodies=%d  tris=%d", name,
+                    tm.is_watertight, tm.body_count, len(tm.faces))
+    return out["deflector"], out["reflector"]
 
 
 def _wt(m):

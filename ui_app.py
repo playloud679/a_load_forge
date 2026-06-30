@@ -419,20 +419,16 @@ with st.sidebar:
                   "When enabled, the acoustic profile starts from this driver-side area."),
         )
         if _ta_include_adapter:
-            if is_omni:
-                # Omni's curved channel can't embed a morph, so the adapter is
-                # always a separate driver→throat part.
-                _ta_integration_mode = "Separated"
-                _ta_is_separated = True
-                st.caption("Omni: adapter is a separate part (driver → circular throat).")
-            else:
-                _ta_integration_mode = st.radio(
-                    "Integration mode", ["Integrated", "Separated"],
-                    horizontal=True, key=f"ta_mode{_adapter_suffix}",
-                    help="Integrated: morph replaces the first part of the flare and welds to it. "
-                         "Separated: adapter and flare are exported as independent mating parts.",
-                )
-                _ta_is_separated = _ta_integration_mode == "Separated"
+            _ta_integration_mode = st.radio(
+                "Integration mode", ["Integrated", "Separated"],
+                horizontal=True, key=f"ta_mode{_adapter_suffix}",
+                help=("Integrated: the adapter is welded onto the reflector throat "
+                      "(one reflector+adapter part). Separated: the adapter is an "
+                      "independent mating part." if is_omni else
+                      "Integrated: morph replaces the first part of the flare and welds to it. "
+                      "Separated: adapter and flare are exported as independent mating parts."),
+            )
+            _ta_is_separated = _ta_integration_mode == "Separated"
             _driver_options = [
                 "Flanged custom",
                 *_adapter_driver_labels,
@@ -537,7 +533,7 @@ with st.sidebar:
     osse_morph_start, osse_morph_rate = 0.0, 2.0
     # Omni (CD 360°) defaults; overridden by the is_omni input block below.
     omni_law, omni_lip, omni_bend = "Exponential", 0.0, 1.0
-    omni_standoffs, omni_standoff_w = 3, 3.0
+    omni_standoffs, omni_standoff_w, omni_ribs_fused = 3, 3.0, True
     with col_in:
         st.markdown("**You set**")
         if is_osse:
@@ -685,6 +681,12 @@ with st.sidebar:
                 omni_standoff_w = st.number_input("Rib width (mm)", 1.0, 12.0, 3.0, 0.5,
                     key="omni_standoff_w",
                     help="Tangential width of each rib (thinner = less channel obstruction)")
+            if omni_standoffs > 0:
+                omni_ribs_fused = st.radio("Pillars", ["Fused to deflector", "Separate part"],
+                    index=0, horizontal=True, key="omni_ribs_fused",
+                    help="Fused: ribs welded into the deflector (prints as one). "
+                         "Separate: deflector stays smooth and the ribs export as a "
+                         "separate 'pillars' part.") == "Fused to deflector"
 
         if not is_osse:            # OS-SE already set its own H/V coverage above
             coverage_h = coverage_v = 90.0
@@ -2595,48 +2597,35 @@ if gen_btn:
             _adapter_custom_outer = None
             _adapter_custom_z = None
             _embedded_adapter_cut_z = None
+            _omni_extra_bodies = []   # omni pillars (separate ribs), added at merge
 
             # --- 3a. Generate horn ---
             if is_omni:
-                # Omni is a self-contained two-part output (central deflector +
-                # outer reflector). None of the throat-hole / flange / adapter /
-                # merge machinery below applies, so this branch builds both
-                # parts, offers their downloads, and ends the run (st.stop()
-                # raises a BaseException-derived StopException that is NOT caught
-                # by the `except Exception` of this try).
-                with tempfile.TemporaryDirectory() as _otmp:
-                    _odef, _oref = _om.generate_omni_horn(
-                        throat_diam=throat_d, mouth_diam=mouth_d, fc=fc,
-                        rings=rings_n, output_dir=_otmp, profile=omni_law,
-                        lip_angle_deg=omni_lip, bend_scale=omni_bend,
-                        thickness=thickness, n=segments,
-                        standoffs=omni_standoffs, standoff_width=omni_standoff_w)
-                    _def_bytes = Path(_otmp, "omni_deflector.stl").read_bytes()
-                    _ref_bytes = Path(_otmp, "omni_reflector.stl").read_bytes()
-                _o_tris = len(_odef.vectors) + len(_oref.vectors)
-                st.success(
-                    f"✅ Omni horn generated — {omni_law} law, throat Ø{throat_d:.1f} mm "
-                    f"→ Ø{mouth_d:.0f} mm mouth · {_o_tris:,} triangles total.")
-                _rib_txt = (f"{omni_standoffs} centering ribs hold the deflector "
-                            f"concentric against the reflector."
-                            if omni_standoffs > 0 else
-                            "Hold the deflector concentric with your own standoffs.")
-                # Optional throat adapter: a separate driver→circular-throat part
-                # (the omni throat is a circle of Ø = throat_d). Reuses the same
-                # tested make_adapter_assembly as the rest of the app.
-                _ad_bytes = None
+                # Omni joins the normal results/slicer pipeline. Build the two
+                # parts (+ optional pillars) in ONE assembled frame, optionally
+                # an adapter (integrated into the reflector or kept separate),
+                # then hand off to the merge (3e) as a multi-body assembly. The
+                # flange sections (3b-3d) are skipped via the gen_* flags.
+                _oparts = _om.build_omni_parts(
+                    throat_diam=throat_d, mouth_diam=mouth_d, fc=fc,
+                    rings=rings_n, profile=omni_law, lip_angle_deg=omni_lip,
+                    bend_scale=omni_bend, thickness=thickness, n=segments,
+                    standoffs=omni_standoffs, standoff_width=omni_standoff_w,
+                    ribs_fused=omni_ribs_fused)
+                _o_reflector = _oparts["reflector"]
+                _o_deflector = _oparts["deflector"]
+                _o_pillars = _oparts["pillars"]
+
+                # Throat adapter (driver → circular throat Ø = throat_d).
+                _o_adapter = None
                 if _ta_include_adapter and _ft_driver_d and _ta_adapter_len > 0.5:
                     try:
-                        with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as _at:
-                            _atp = _at.name
-                        _ta.make_adapter_assembly(
+                        _o_adapter = _ta.make_adapter_assembly(
                             driver_type=_ta_driver_key,
                             driver_diam=_ft_driver_d if _driver_is_custom_flange else None,
-                            thread_key=_ta_thread_key,
-                            horn_shape="circular",
+                            thread_key=_ta_thread_key, horn_shape="circular",
                             rect_w=0.0, rect_h=0.0, poly_n_sides=0, poly_circumR=0.0,
-                            horn_R_eq=throat_d / 2.0,
-                            adapter_length=_ta_adapter_len,
+                            horn_R_eq=throat_d / 2.0, adapter_length=_ta_adapter_len,
                             wall_thickness=thickness,
                             flange_R=_ft_od / 2.0 if _driver_is_custom_flange else 0.0,
                             flange_thickness=_ta_flange_sp if _driver_is_flanged else 0.0,
@@ -2647,40 +2636,67 @@ if gen_btn:
                             flange_outer_n=_ft_outer_n if _driver_is_custom_flange else 0,
                             driver_clearance=_ta_driver_clearance,
                             socket_length=_ta_socket_depth if _driver_is_threaded else 0.0,
-                            thread_clearance=_ta_thread_clearance if _driver_is_threaded else 0.05,
-                            output_path=_atp)
-                        _ad_bytes = Path(_atp).read_bytes()
-                        _adm = _tm.load(_atp, file_type="stl"); os.unlink(_atp)
-                        if not _adm.is_watertight or _adm.body_count > 1:
-                            st.warning(
-                                "⚠️ The throat adapter came out as "
-                                f"{_adm.body_count} piece(s)"
-                                + ("" if _adm.is_watertight else " / not watertight")
-                                + ". This happens when the driver Ø ≈ throat Ø (little "
-                                "taper). Pick a driver larger than the throat, or "
-                                "increase the adapter length, for a single solid part.")
+                            thread_clearance=_ta_thread_clearance if _driver_is_threaded else 0.05)
                     except Exception as _aexc:
                         st.warning(f"Throat adapter could not be built: {_aexc}")
+                        _o_adapter = None
 
-                _ad_txt = (" The throat adapter (3rd file) bolts your driver and mates "
-                           "to the reflector throat." if _ad_bytes else "")
-                st.caption(
-                    "Print the parts. The compression driver mounts at the central "
-                    "throat hole (Ø = throat) in the reflector and fires onto the "
-                    "deflector nose; the 360° gap between them is the horn channel. "
-                    + _rib_txt + _ad_txt)
-                _ocols = st.columns(3 if _ad_bytes else 2)
-                with _ocols[0]:
-                    _stl_download_button("📥 Deflector STL", _def_bytes,
-                        "omni_deflector.stl", use_container_width=True)
-                with _ocols[1]:
-                    _stl_download_button("📥 Reflector STL", _ref_bytes,
-                        "omni_reflector.stl", use_container_width=True)
-                if _ad_bytes:
-                    with _ocols[2]:
-                        _stl_download_button("📥 Adapter STL", _ad_bytes,
-                            "omni_adapter.stl", use_container_width=True)
-                st.stop()
+                # Seat the adapter at the reflector throat (top of the part):
+                # mirror Z so the driver side points away from the mouth, drop the
+                # throat face onto the reflector throat with a 2 mm overlap.
+                if _o_adapter is not None:
+                    _throat_top = float(_o_reflector.bounds[1, 2])
+                    _o_adapter.apply_transform(np.diag([1.0, 1.0, -1.0, 1.0]))
+                    _o_adapter.apply_translation(
+                        [0.0, 0.0, _throat_top - float(_o_adapter.bounds[0, 2]) - 2.0])
+                    _o_adapter.fix_normals()
+
+                _o_adapter_separated = bool(_o_adapter is not None and _ta_is_separated)
+                if _o_adapter is not None and not _ta_is_separated:
+                    try:
+                        _o_reflector = _tm.boolean.union(
+                            [_o_reflector, _o_adapter], engine="manifold")
+                    except Exception:
+                        _o_reflector = _tm.util.concatenate([_o_reflector, _o_adapter])
+                    _o_adapter = None
+
+                # Drop the whole assembly so global min Z = 0 (relative positions
+                # preserved for the assembled file + slicer).
+                _all_now = ([_o_reflector, _o_deflector]
+                            + ([_o_pillars] if _o_pillars is not None else [])
+                            + ([_o_adapter] if _o_adapter is not None else []))
+                _zmin_all = min(float(p.bounds[0, 2]) for p in _all_now)
+                for _p in _all_now:
+                    _p.apply_translation([0.0, 0.0, -_zmin_all])
+
+                # Hand off to merge/results as a multi-body assembly.
+                horn = _o_reflector
+                horn_top = _o_deflector
+                _omni_extra_bodies = [_o_pillars] if _o_pillars is not None else []
+                st.session_state["adapter_mesh_exported"] = (
+                    _o_adapter if _o_adapter_separated else None)
+
+                # Separate parts (each dropped to Z=0) for individual download.
+                _omni_named = [("reflector", _o_reflector), ("deflector", _o_deflector)]
+                if _o_pillars is not None:
+                    _omni_named.append(("pillars", _o_pillars))
+                if _o_adapter_separated and _o_adapter is not None:
+                    _omni_named.append(("adapter", _o_adapter))
+                _omni_parts_bytes = {}
+                for _nm, _pm in _omni_named:
+                    _pc = _pm.copy()
+                    _pc.apply_translation([0.0, 0.0, -float(_pc.bounds[0, 2])])
+                    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as _pt:
+                        _ptn = _pt.name
+                    _pc.export(_ptn)
+                    _omni_parts_bytes[_nm] = Path(_ptn).read_bytes(); os.unlink(_ptn)
+                st.session_state["_omni_parts"] = _omni_parts_bytes
+
+                # Skip flange sections 3b-3d for omni.
+                gen_throat = False
+                mouth_bx = mouth_by = float(mouth_d)
+                _rp_mouth = float(mouth_d) / 2.0
+                _zp_mouth = float(horn.bounds[1, 2])
             elif is_osse:
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
                 _osse.generate_osse_3d_mesh(
@@ -3791,6 +3807,9 @@ if gen_btn:
                 bodies.append(horn)
                 if is_radial:
                     bodies.append(horn_top)
+                if is_omni:
+                    bodies.append(horn_top)
+                    bodies.extend(_omni_extra_bodies)
             if f_throat is not None: bodies.append(f_throat)
             if f_throat_chamfer is not None: bodies.append(f_throat_chamfer)
             if f_mouth  is not None: bodies.append(f_mouth)
@@ -3803,6 +3822,10 @@ if gen_btn:
 
             if len(bodies) == 1:
                 combined = bodies[0]
+            elif is_omni:
+                # Omni parts are distinct printed bodies — keep them separate
+                # (multi-body assembly), do not fuse deflector to reflector.
+                combined = _tm.util.concatenate(bodies)
             else:
                 try:
                     combined = _tm.boolean.union(bodies, engine="manifold")
@@ -3919,7 +3942,11 @@ if st.session_state.get("_assembly_generated"):
     with r4:
         st.metric("Volume", f"{stats['vol']:.0f} mm³")
 
-    if stats["wt"] is True:
+    if is_omni:
+        st.info("Multi-body assembly (reflector + deflector"
+                + (" + pillars" if st.session_state.get("_omni_parts", {}).get("pillars") else "")
+                + "). Each part is watertight on its own — download them below.")
+    elif stats["wt"] is True:
         st.success("Watertight mesh — ready for 3D printing")
     elif stats["wt"] is False:
         st.warning("Non-watertight mesh — check parameters")
@@ -3943,6 +3970,20 @@ if st.session_state.get("_assembly_generated"):
         _ad_stl = _adapter_mesh.export(file_type="stl")
         _stl_download_button("📥 Download Separated Adapter (STL)", _ad_stl, "adapter_assembly.stl",
             use_container_width=True)
+
+    # Omni: the "Download STL" above is the full multi-body assembly (parts in
+    # their assembled position). Offer each part separately too (dropped to Z=0
+    # for printing): reflector, deflector, pillars, and adapter when separated.
+    if is_omni and st.session_state.get("_omni_parts"):
+        st.caption("🧩 Omni parts — separate, each dropped to Z=0 for printing")
+        _omni_labels = {"reflector": "Reflector", "deflector": "Deflector",
+                        "pillars": "Pillars", "adapter": "Adapter"}
+        _op = st.session_state["_omni_parts"]
+        _opcols = st.columns(len(_op))
+        for _c, (_nm, _b) in zip(_opcols, _op.items()):
+            with _c:
+                _stl_download_button(f"📥 {_omni_labels.get(_nm, _nm)}", _b,
+                    f"omni_{_nm}.stl", use_container_width=True, key=f"omni_dl_{_nm}")
 
     # 2-D DXF drilling templates — one per mounting flange (bolt holes,
     # bore and outline on separate layers). Generated lazily from each
