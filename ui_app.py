@@ -272,8 +272,10 @@ with st.sidebar:
     # Omni (CD 360°): an axial compression driver fires into a curved central
     # deflector that turns the wavefront 90° and a curved outer reflector opens
     # it to a full 360° radial mouth. Like radial/OS-SE it is a special profile:
-    # it ignores the Section selector, has no throat adapter or merge, and emits
-    # two separate parts (deflector + reflector). See src/omni_horn.py.
+    # it ignores the Section selector and the flare merge, and emits two separate
+    # parts (deflector + reflector). The throat adapter IS supported, always as a
+    # separate driver→circular-throat part (built in the generation branch).
+    # See src/omni_horn.py.
     if is_omni:
         is_rect = is_poly = is_ellip = is_radial = False
         st.caption("ℹ️ Omni (CD 360°) = axial compression driver → curved 360° radial "
@@ -405,23 +407,32 @@ with st.sidebar:
     _driver_is_threaded = False
     _driver_is_flanged = True
 
-    if not is_radial and not is_iwata and not is_omni:
+    if not is_radial and not is_iwata:
         st.markdown("##### Driver / Adapter")
-        _adapter_suffix = "_osse" if is_osse else ""
+        _adapter_suffix = "_osse" if is_osse else "_omni" if is_omni else ""
         _ta_include_adapter = st.checkbox(
             "Include shape adapter", True,
             key=f"ta_incl_adapter{_adapter_suffix}",
-            help="Transitions from the driver throat to the horn profile. "
-                 "When enabled, the acoustic profile starts from this driver-side area.",
+            help=("Adapter from the driver to the omni throat, exported as a "
+                  "separate mating part." if is_omni else
+                  "Transitions from the driver throat to the horn profile. "
+                  "When enabled, the acoustic profile starts from this driver-side area."),
         )
         if _ta_include_adapter:
-            _ta_integration_mode = st.radio(
-                "Integration mode", ["Integrated", "Separated"],
-                horizontal=True, key=f"ta_mode{_adapter_suffix}",
-                help="Integrated: morph replaces the first part of the flare and welds to it. "
-                     "Separated: adapter and flare are exported as independent mating parts.",
-            )
-            _ta_is_separated = _ta_integration_mode == "Separated"
+            if is_omni:
+                # Omni's curved channel can't embed a morph, so the adapter is
+                # always a separate driver→throat part.
+                _ta_integration_mode = "Separated"
+                _ta_is_separated = True
+                st.caption("Omni: adapter is a separate part (driver → circular throat).")
+            else:
+                _ta_integration_mode = st.radio(
+                    "Integration mode", ["Integrated", "Separated"],
+                    horizontal=True, key=f"ta_mode{_adapter_suffix}",
+                    help="Integrated: morph replaces the first part of the flare and welds to it. "
+                         "Separated: adapter and flare are exported as independent mating parts.",
+                )
+                _ta_is_separated = _ta_integration_mode == "Separated"
             _driver_options = [
                 "Flanged custom",
                 *_adapter_driver_labels,
@@ -429,7 +440,7 @@ with st.sidebar:
             ]
             _ta_driver_type = st.radio(
                 "Driver interface", _driver_options,
-                index=2 if is_osse else 2,
+                index=0 if is_omni else 2,
                 key=f"ta_driver_type{_adapter_suffix}",
             )
             _driver_is_custom_flange = _ta_driver_type == "Flanged custom"
@@ -443,10 +454,12 @@ with st.sidebar:
             _ta_thread_key = "1_375in" if _driver_is_threaded else None
 
             _ta_adapter_len = st.number_input(
-                "Morph length inside horn (mm)", 5.0, 200.0, 30.0, 5.0,
+                "Adapter length (mm)" if is_omni else "Morph length inside horn (mm)",
+                5.0, 200.0, 30.0, 5.0,
                 key=f"ta_adapter_len{_adapter_suffix}",
-                help="Length of the round-to-shape transition. It replaces the first "
-                     "part of the flare, so it does not increase horn depth.",
+                help=("Length of the driver→throat transition part." if is_omni else
+                      "Length of the round-to-shape transition. It replaces the first "
+                      "part of the flare, so it does not increase horn depth."),
             )
             _ta_flange_sp = st.number_input(
                 "Flange thickness (mm)", 2.0, 20.0, 6.0, 0.5,
@@ -494,7 +507,10 @@ with st.sidebar:
                 )
                 _ta_socket_depth = 0.0
 
-    _adapter_controls_throat = bool(_ta_include_adapter and _ft_driver_d and not is_iwata)
+    # Omni keeps its user throat Ø (the adapter morphs driver→throat as a
+    # separate part), so the adapter must NOT redefine the throat for omni.
+    _adapter_controls_throat = bool(_ta_include_adapter and _ft_driver_d
+                                    and not is_iwata and not is_omni)
 
     st.markdown("##### Dimensions")
 
@@ -727,7 +743,8 @@ with st.sidebar:
         else:
             axial_len = 80.0
 
-    _adapter_profile_start_d = float(_ft_driver_d) if _ta_include_adapter and _ft_driver_d else None
+    _adapter_profile_start_d = (float(_ft_driver_d)
+        if _ta_include_adapter and _ft_driver_d and not is_omni else None)
     _adapter_profile_len = None
     _adapter_handoff_z = None
     if _adapter_profile_start_d is not None and not is_iwata:
@@ -1661,9 +1678,11 @@ fg3 = st.sidebar.container()
 
 with fg1:
     st.markdown("##### Throat Flange")
-    if _ta_include_adapter and not is_radial and not is_omni:
+    if _ta_include_adapter and not is_radial:
         gen_throat = True
-        st.caption("Shape adapter enabled above; this throat component will be generated.")
+        st.caption("Adapter enabled above; the driver-side hardware is sized here."
+                   if is_omni else
+                   "Shape adapter enabled above; this throat component will be generated.")
         _ft_chamfer = False; _ft_chamfer_w = _ft_chamfer_h = 0.0
         _ft_depth = 0.0
         _ft_inner_R = float(_ft_driver_d) / 2.0 if _ft_driver_d else 0.0
@@ -2602,18 +2621,65 @@ if gen_btn:
                             f"concentric against the reflector."
                             if omni_standoffs > 0 else
                             "Hold the deflector concentric with your own standoffs.")
+                # Optional throat adapter: a separate driver→circular-throat part
+                # (the omni throat is a circle of Ø = throat_d). Reuses the same
+                # tested make_adapter_assembly as the rest of the app.
+                _ad_bytes = None
+                if _ta_include_adapter and _ft_driver_d and _ta_adapter_len > 0.5:
+                    try:
+                        with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as _at:
+                            _atp = _at.name
+                        _ta.make_adapter_assembly(
+                            driver_type=_ta_driver_key,
+                            driver_diam=_ft_driver_d if _driver_is_custom_flange else None,
+                            thread_key=_ta_thread_key,
+                            horn_shape="circular",
+                            rect_w=0.0, rect_h=0.0, poly_n_sides=0, poly_circumR=0.0,
+                            horn_R_eq=throat_d / 2.0,
+                            adapter_length=_ta_adapter_len,
+                            wall_thickness=thickness,
+                            flange_R=_ft_od / 2.0 if _driver_is_custom_flange else 0.0,
+                            flange_thickness=_ta_flange_sp if _driver_is_flanged else 0.0,
+                            flange_bolt_R=_ft_bc / 2.0 if _driver_is_custom_flange else 0.0,
+                            flange_bolt_n=int(_ft_nb) if _driver_is_custom_flange else 0,
+                            flange_bolt_d=_ft_db if _driver_is_custom_flange else 0.0,
+                            flange_bolt_phase=_ft_bphase if _driver_is_custom_flange else 0.0,
+                            flange_outer_n=_ft_outer_n if _driver_is_custom_flange else 0,
+                            driver_clearance=_ta_driver_clearance,
+                            socket_length=_ta_socket_depth if _driver_is_threaded else 0.0,
+                            thread_clearance=_ta_thread_clearance if _driver_is_threaded else 0.05,
+                            output_path=_atp)
+                        _ad_bytes = Path(_atp).read_bytes()
+                        _adm = _tm.load(_atp, file_type="stl"); os.unlink(_atp)
+                        if not _adm.is_watertight or _adm.body_count > 1:
+                            st.warning(
+                                "⚠️ The throat adapter came out as "
+                                f"{_adm.body_count} piece(s)"
+                                + ("" if _adm.is_watertight else " / not watertight")
+                                + ". This happens when the driver Ø ≈ throat Ø (little "
+                                "taper). Pick a driver larger than the throat, or "
+                                "increase the adapter length, for a single solid part.")
+                    except Exception as _aexc:
+                        st.warning(f"Throat adapter could not be built: {_aexc}")
+
+                _ad_txt = (" The throat adapter (3rd file) bolts your driver and mates "
+                           "to the reflector throat." if _ad_bytes else "")
                 st.caption(
-                    "Print both parts. The compression driver mounts at the central "
+                    "Print the parts. The compression driver mounts at the central "
                     "throat hole (Ø = throat) in the reflector and fires onto the "
                     "deflector nose; the 360° gap between them is the horn channel. "
-                    + _rib_txt)
-                _ocols = st.columns(2)
+                    + _rib_txt + _ad_txt)
+                _ocols = st.columns(3 if _ad_bytes else 2)
                 with _ocols[0]:
                     _stl_download_button("📥 Deflector STL", _def_bytes,
                         "omni_deflector.stl", use_container_width=True)
                 with _ocols[1]:
                     _stl_download_button("📥 Reflector STL", _ref_bytes,
                         "omni_reflector.stl", use_container_width=True)
+                if _ad_bytes:
+                    with _ocols[2]:
+                        _stl_download_button("📥 Adapter STL", _ad_bytes,
+                            "omni_adapter.stl", use_container_width=True)
                 st.stop()
             elif is_osse:
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
