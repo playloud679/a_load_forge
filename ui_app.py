@@ -521,6 +521,7 @@ with st.sidebar:
     osse_morph_start, osse_morph_rate = 0.0, 2.0
     # Omni (CD 360°) defaults; overridden by the is_omni input block below.
     omni_law, omni_lip, omni_bend = "Exponential", 0.0, 1.0
+    omni_standoffs, omni_standoff_w = 3, 3.0
     with col_in:
         st.markdown("**You set**")
         if is_osse:
@@ -658,6 +659,16 @@ with st.sidebar:
                 omni_bend = st.number_input("Bend height ×", 0.3, 3.0, 1.0, 0.1,
                     key="omni_bend",
                     help="Vertical stretch of the deflector/bend (taller = >1)")
+            _osc = st.columns(2)
+            with _osc[0]:
+                omni_standoffs = int(st.number_input("Centering ribs", 0, 6, 3, 1,
+                    key="omni_standoffs",
+                    help="Self-centering struts welded onto the deflector so it seats "
+                         "concentrically against the reflector. 0 = none."))
+            with _osc[1]:
+                omni_standoff_w = st.number_input("Rib width (mm)", 1.0, 12.0, 3.0, 0.5,
+                    key="omni_standoff_w",
+                    help="Tangential width of each rib (thinner = less channel obstruction)")
 
         if not is_osse:            # OS-SE already set its own H/V coverage above
             coverage_h = coverage_v = 90.0
@@ -2579,18 +2590,23 @@ if gen_btn:
                         throat_diam=throat_d, mouth_diam=mouth_d, fc=fc,
                         rings=rings_n, output_dir=_otmp, profile=omni_law,
                         lip_angle_deg=omni_lip, bend_scale=omni_bend,
-                        thickness=thickness, n=segments)
+                        thickness=thickness, n=segments,
+                        standoffs=omni_standoffs, standoff_width=omni_standoff_w)
                     _def_bytes = Path(_otmp, "omni_deflector.stl").read_bytes()
                     _ref_bytes = Path(_otmp, "omni_reflector.stl").read_bytes()
                 _o_tris = len(_odef.vectors) + len(_oref.vectors)
                 st.success(
                     f"✅ Omni horn generated — {omni_law} law, throat Ø{throat_d:.1f} mm "
                     f"→ Ø{mouth_d:.0f} mm mouth · {_o_tris:,} triangles total.")
+                _rib_txt = (f"{omni_standoffs} centering ribs hold the deflector "
+                            f"concentric against the reflector."
+                            if omni_standoffs > 0 else
+                            "Hold the deflector concentric with your own standoffs.")
                 st.caption(
                     "Print both parts. The compression driver mounts at the central "
                     "throat hole (Ø = throat) in the reflector and fires onto the "
                     "deflector nose; the 360° gap between them is the horn channel. "
-                    "Hold the deflector concentric with standoffs (not modelled).")
+                    + _rib_txt)
                 _ocols = st.columns(2)
                 with _ocols[0]:
                     _stl_download_button("📥 Deflector STL", _def_bytes,

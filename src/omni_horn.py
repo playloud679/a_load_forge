@@ -41,6 +41,11 @@ logger = logging.getLogger(__name__)
 
 _EPS = 1e-3  # avoids degenerate triangles on the Z axis
 
+# Standoff ribs (deflector-only self-centering struts across the channel).
+_STANDOFF_OVERLAP = 1.0    # mm the rib root sinks into the deflector body (clean weld)
+_STANDOFF_CLEARANCE = 0.2  # mm air gap between the rib tip and the reflector wall
+_STANDOFF_T0, _STANDOFF_T1 = 0.35, 0.95  # rib spans this fraction of the meridian
+
 
 # ======================================================================
 #  Profile math
@@ -184,6 +189,120 @@ def _revolve_polygon(r_poly: np.ndarray, z_poly: np.ndarray, rings: int = 64) ->
 
 
 # ======================================================================
+#  Standoff ribs (deflector-only)
+# ======================================================================
+
+def _sector_wedge(low: np.ndarray, up: np.ndarray,
+                  phi_c: float, half_ang: float, a_steps: int):
+    """Triangulate one rib: the channel band (low→up) swept over a thin sector.
+
+    `low`/`up` are (K,2) meridian arrays (r, z). The closed band loop is swept
+    over [phi_c-half_ang, phi_c+half_ang] (lateral surface) and capped flat at
+    both angular ends → a watertight wedge. Returns (verts, faces).
+    """
+    K = len(low)
+    loop = np.vstack([low, up[::-1]])          # (2K, 2) closed meridian loop
+    L = len(loop)
+    angles = np.linspace(phi_c - half_ang, phi_c + half_ang, a_steps)
+
+    verts = np.empty((a_steps * L, 3), dtype=float)
+    for a, th in enumerate(angles):
+        ct, st = np.cos(th), np.sin(th)
+        verts[a * L:(a + 1) * L, 0] = loop[:, 0] * ct
+        verts[a * L:(a + 1) * L, 1] = loop[:, 0] * st
+        verts[a * L:(a + 1) * L, 2] = loop[:, 1]
+
+    def vid(a, l):
+        return a * L + l
+
+    faces = []
+    # Lateral sweep of the closed loop.
+    for a in range(a_steps - 1):
+        for l in range(L):
+            l2 = (l + 1) % L
+            faces.append((vid(a, l), vid(a, l2), vid(a + 1, l2)))
+            faces.append((vid(a, l), vid(a + 1, l2), vid(a + 1, l)))
+    # Flat caps at both angular ends (quad strip between low[k] and up[k]).
+    for a in (0, a_steps - 1):
+        for k in range(K - 1):
+            lo0, lo1 = vid(a, k), vid(a, k + 1)
+            up0, up1 = vid(a, 2 * K - 1 - k), vid(a, 2 * K - 2 - k)
+            faces.append((lo0, lo1, up1))
+            faces.append((lo0, up1, up0))
+    return verts, np.asarray(faces, dtype=np.int64)
+
+
+def _mesh_to_trimesh(m: mesh.Mesh):
+    import trimesh
+    v = np.asarray(m.vectors, dtype=float).reshape(-1, 3)
+    f = np.arange(len(v), dtype=np.int64).reshape(-1, 3)
+    return trimesh.Trimesh(vertices=v, faces=f, process=True)
+
+
+def _trimesh_to_mesh(tm) -> mesh.Mesh:
+    tri = np.asarray(tm.triangles, dtype=float)
+    data = np.zeros(len(tri), dtype=mesh.Mesh.dtype)
+    data["vectors"] = tri
+    return mesh.Mesh(data)
+
+
+def _add_standoffs(deflector: mesh.Mesh, P: dict, thickness: float,
+                   count: int, width: float, z_shift: float, rings: int) -> mesh.Mesh:
+    """Weld `count` self-centering ribs onto the deflector (deflector-only).
+
+    Each rib sinks `_STANDOFF_OVERLAP` into the deflector body and reaches to
+    `_STANDOFF_CLEARANCE` short of the reflector wall, so the printed deflector
+    self-centers against the (separately printed) reflector. `z_shift` maps the
+    design-frame z onto the already Z-aligned deflector mesh.
+    """
+    import trimesh
+
+    low_r, low_z = P["low_r"], P["low_z"]
+    up_r, up_z = P["up_r"], P["up_z"]
+    nrho, nz = P["nrho"], P["nz"]
+    n = len(low_r)
+    i0 = max(1, int(_STANDOFF_T0 * n))
+    i1 = min(n, int(_STANDOFF_T1 * n))
+    sl = slice(i0, i1)
+
+    # Rib root sinks into the deflector (−N), tip stops short of the reflector.
+    root_r = low_r[sl] - _STANDOFF_OVERLAP * nrho[sl]
+    root_z = low_z[sl] - _STANDOFF_OVERLAP * nz[sl] - z_shift
+    tip_r = up_r[sl] - _STANDOFF_CLEARANCE * nrho[sl]
+    tip_z = up_z[sl] - _STANDOFF_CLEARANCE * nz[sl] - z_shift
+    low_band = np.column_stack([root_r, root_z])
+    up_band = np.column_stack([tip_r, tip_z])
+
+    r_mid = float(np.mean(P["rho_c"][sl]))
+    half_ang = max(np.radians(1.0), (width / 2.0) / max(r_mid, 1e-6))
+    a_steps = max(3, int(np.ceil(rings * (2 * half_ang) / (2 * np.pi))) + 1)
+
+    defl_tm = _mesh_to_trimesh(deflector)
+    defl_tm.fix_normals()
+    parts = [defl_tm]
+    for k in range(count):
+        phi_c = 2.0 * np.pi * k / count
+        v, f = _sector_wedge(low_band, up_band, phi_c, half_ang, a_steps)
+        wedge = trimesh.Trimesh(vertices=v, faces=f, process=True)
+        # boolean union (manifold engine) needs each input to be a coherent
+        # volume — fix winding so the wedge is recognised as solid.
+        wedge.fix_normals()
+        parts.append(wedge)
+
+    try:
+        merged = trimesh.boolean.union(parts)
+        if isinstance(merged, list):
+            merged = trimesh.util.concatenate(merged)
+    except Exception as exc:  # pragma: no cover - engine-dependent
+        logger.warning("Standoff boolean union failed (%s); concatenating", exc)
+        merged = trimesh.util.concatenate(parts)
+    merged.merge_vertices()
+    out = _trimesh_to_mesh(merged)
+    _utils.ensure_positive_volume(out)
+    return out
+
+
+# ======================================================================
 #  Public API
 # ======================================================================
 
@@ -198,8 +317,15 @@ def generate_omni_horn(
     bend_scale: float = 1.0,
     thickness: float = 4.0,
     n: int = 300,
+    standoffs: int = 0,
+    standoff_width: float = 3.0,
 ):
-    """Generate the central deflector and outer reflector STLs."""
+    """Generate the central deflector and outer reflector STLs.
+
+    `standoffs` (>0) welds that many thin self-centering ribs onto the
+    deflector (deflector-only) so it seats concentrically against the
+    separately printed reflector; `standoff_width` is their tangential width.
+    """
     P = get_omni_profile(throat_diam, mouth_diam, fc, n, profile,
                          lip_angle_deg, bend_scale)
 
@@ -207,8 +333,8 @@ def generate_omni_horn(
     up_r, up_z = P["up_r"], P["up_z"]
     nrho, nz = P["nrho"], P["nz"]
 
-    logger.info("Omni horn:  throat=%.0f  mouth=%.0f  fc=%s  profile=%s",
-                throat_diam, mouth_diam, fc, profile)
+    logger.info("Omni horn:  throat=%.0f  mouth=%.0f  fc=%s  profile=%s  standoffs=%d",
+                throat_diam, mouth_diam, fc, profile, standoffs)
     logger.info("  Gap throat H=%.2f  mouth H=%.2f  St=%.0f  Sm=%.0f",
                 P["h"][0], P["h"][-1], P["St"], P["Sm"])
 
@@ -217,6 +343,10 @@ def generate_omni_horn(
     r_def = np.concatenate([low_r, [low_r[-1], _EPS, _EPS]])
     z_def = np.concatenate([low_z, [z_base, z_base, low_z[0]]])
     deflector = _revolve_polygon(r_def, z_def, rings)
+    if standoffs > 0:
+        # _revolve_polygon Z-aligned the mesh by −z_base; map ribs to that frame.
+        deflector = _add_standoffs(deflector, P, thickness, standoffs,
+                                   standoff_width, z_base, rings)
     deflector.save(f"{output_dir}/omni_deflector.stl")
     logger.info("  Deflector:  closed=%s  Z=[%.0f,%.0f]  tris=%d",
                 _wt(deflector), deflector.vectors[:, :, 2].min(),

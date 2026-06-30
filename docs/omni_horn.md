@@ -50,6 +50,21 @@ to `output_dir/omni_deflector.stl` and `output_dir/omni_reflector.stl`.
 | `bend_scale` | `float` | `1.0` | Vertical stretch of the bend (deflector height/aspect). `>1` = taller. |
 | `thickness` | `float` | `4.0` | Reflector wall thickness; also the deflector base thickness. |
 | `n` | `int` | `300` | Meridian sample count. |
+| `standoffs` | `int` | `0` | Number of self-centering ribs welded onto the **deflector** (deflector-only). `0` = none. |
+| `standoff_width` | `float` | `3.0` | Tangential width (mm) of each rib. |
+
+### Centering ribs (`standoffs > 0`)
+
+Each rib is a thin radial wedge that fills the channel band over `t ∈ [0.35,
+0.95]` of the meridian (the throat tip and extreme rim are skipped so the throat
+is never blocked). Its root sinks `_STANDOFF_OVERLAP = 1 mm` into the deflector
+body (clean boolean weld) and its tip stops `_STANDOFF_CLEARANCE = 0.2 mm` short
+of the reflector wall, so the **separately printed** deflector self-centers
+against the reflector without fusing to it. Ribs are unioned onto the deflector
+with trimesh's boolean engine (each wedge is `fix_normals()`-ed so it is a valid
+volume); on engine failure it falls back to concatenation (the 1 mm overlap
+still slices as one part). The result is returned as a single watertight
+`stl.mesh.Mesh`.
 
 ---
 
@@ -136,8 +151,9 @@ python -m src.omni_horn          # writes omni_deflector.stl + omni_reflector.st
 - Geometric / area-law model, **not** an exact isophase (constant-phase
   wavefront) solution — good for loading & dispersion intent, not a substitute
   for a BEM-optimised waveguide.
-- The deflector is not mechanically tied to the reflector (no standoffs/spider
-  modelled), same as `radial_horn`.
+- Optional `standoffs` ribs self-center the deflector against the reflector;
+  with `standoffs=0` the two parts are not mechanically tied (same as
+  `radial_horn`).
 - `lip_angle_deg < 0` can make the deflector overhang the reflector radially
   when the mouth gap is large (e.g. high-`fc` Exponential). `0` is the clean
   default.

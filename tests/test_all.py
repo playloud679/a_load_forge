@@ -3697,6 +3697,22 @@ for _prof in ("Exponential", "Tractrix", "Salmon", "Oblate spheroidal"):
     test(f"omni {_prof} parts watertight (single body)",
          lambda p=_prof: _check_omni_mesh(p))
 
+def _check_omni_standoffs():
+    """Centering ribs weld into the deflector as one watertight solid."""
+    with tempfile.TemporaryDirectory() as d:
+        plain, _ = _om.generate_omni_horn(25.4, 260.0, fc=600, output_dir=d,
+                                          standoffs=0)
+        v_plain = trimesh.load(os.path.join(d, "omni_deflector.stl"),
+                               file_type="stl").volume
+        _om.generate_omni_horn(25.4, 260.0, fc=600, output_dir=d,
+                               standoffs=3, standoff_width=3.0)
+        m = trimesh.load(os.path.join(d, "omni_deflector.stl"), file_type="stl")
+        assert m.is_watertight,   "ribbed deflector: not watertight"
+        assert m.body_count == 1, f"ribbed deflector: {m.body_count} bodies (ribs not welded)"
+        assert m.volume > v_plain + 1.0, "ribs added no volume"
+
+test("omni centering ribs weld into one solid", _check_omni_standoffs)
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  Summary
