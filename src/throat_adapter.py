@@ -7,7 +7,7 @@ The adapter maintains the cross-sectional area expansion from the horn profile.
 Driver interfaces:
   - Flanged: custom circular flange with bolt holes (reuses flange_generator)
   - Bolt-on: standard 1", 1.4", and 2" compression-driver mounting patterns
-  - Threaded: 1⅜"-18 female thread with a 25 mm acoustic bore
+  - Threaded: 1⅜"-18 female thread with a 25.4 mm acoustic bore
 
 Architecture:
   ThreadSpec        → thread geometry constants
@@ -48,7 +48,10 @@ class ThreadSpec:
     tpi: float               # threads per inch (informational)
 
 THREAD_SPECS: dict[str, ThreadSpec] = {
-    "1_375in": ThreadSpec('1\u215c"-18', 34.925, 25.0, 25.4 / 18.0, 18),
+    # 1\u215c"-18 is the mounting thread of a 1" (25.4 mm) exit compression driver, so
+    # the clear acoustic bore is the driver's true 1" throat = 25.4 mm. A rounded
+    # 25.0 left a 0.4 mm choke/step vs a 25.4 mm horn throat ("flare 25.4, bore 25").
+    "1_375in": ThreadSpec('1\u215c"-18', 34.925, 25.4, 25.4 / 18.0, 18),
 }
 
 
@@ -665,6 +668,7 @@ def make_adapter(
     axial_steps: int,
     adapter_length: float,
     wall_thickness: float,
+    driver_exit_angle_deg: float = 0.0,
     # Optional threaded extension
     thread_key: str | None = None,
     socket_length: float = 0.0,
@@ -714,6 +718,9 @@ def make_adapter(
         Axial length of the transition (mm).
     wall_thickness : float
         Wall thickness for outer offset (mm).
+    driver_exit_angle_deg : float
+        Total included exit angle of the compression-driver throat (degrees).
+        The transition launches with ``dr/dz = tan(driver_exit_angle_deg / 2)``.
     thread_key : str, optional
         One of ``THREAD_SPECS`` keys.  When set, a threaded socket is
         integrated below the transition (the threads end smoothly at the
@@ -821,6 +828,10 @@ def make_adapter(
     else:
         raise ValueError(f"unsupported horn_shape: {horn_shape!r}")
     _source_phase = np.pi / 2.0 if horn_shape == "polygonal" else 0.0
+    _driver_exit_angle = float(driver_exit_angle_deg)
+    if not 0.0 <= _driver_exit_angle < 179.0:
+        raise ValueError("driver_exit_angle_deg must be in [0, 179)")
+    _source_slope = float(np.tan(np.radians(0.5 * _driver_exit_angle)))
 
     # Optional outer-contour stack lets the loft land exactly on the horn's
     # outer section at the join and through the weld overlap.
@@ -866,6 +877,14 @@ def make_adapter(
         if len(_stack_z) >= 3:
             _stack_curv = np.gradient(_stack_slopes, _stack_z)
             _match_curv = float(np.interp(_match_from_z, _stack_z, _stack_curv))
+        if abs(_match_R - float(driver_R)) < 0.1:
+            # Matched mechanical mounts (Omni CD) start and reach the throat at
+            # the same acoustic radius. Applying the flare's positive slope to
+            # that equal-endpoint Hermite makes the neck curl inward before the
+            # exact stack begins. Keep the matched neck cylindrical; the custom
+            # stack takes over at `_match_from_z` and follows the flare exactly.
+            _match_slope = 0.0
+            _match_curv = 0.0
 
     # ---- Thread parameters ----
     has_threads = thread_key is not None and socket_length > 0.5
@@ -950,8 +969,30 @@ def make_adapter(
         end_R = _match_R if _match_from_z is not None else target_R
         end_slope = _match_slope if _match_from_z is not None else target_slope
         end_curv = _match_curv if _match_from_z is not None else target_curv
+        launch_slope = _source_slope
+        # A positive compression-driver exit angle is only physically possible
+        # when the adapter has enough radius growth before the handoff. In
+        # matched-bore mounts (Omni CD: driver bore == reflector throat) an
+        # unconstrained Hermite must expand then shrink back to the same radius,
+        # producing the visible choke/bulge ring. Clamp both endpoint slopes to
+        # the monotone cubic bound for the available radius delta.
+        dr_available = float(end_R) - float(driver_R)
+        if morph_length <= 1e-9 or dr_available <= 1e-9:
+            launch_slope = 0.0
+            if end_slope is not None and end_slope > 0.0:
+                end_slope = 0.0
+                end_curv = 0.0
+        else:
+            slope_limit = 3.0 * dr_available / morph_length
+            launch_slope = min(launch_slope, slope_limit)
+            if end_slope is not None and end_slope > slope_limit:
+                end_slope = slope_limit
+                end_curv = None
+        if end_slope is None and abs(launch_slope) > 1e-12:
+            end_slope = 0.0
         inner_R = _hermite_radius(
-            t, driver_R, end_R, morph_length, end_slope, curv1=end_curv)
+            t, driver_R, end_R, morph_length, end_slope,
+            slope0=launch_slope, curv1=end_curv)
         inner = _morph_slice(
             t, driver_R, _slice_target(zi), end_R, n,
             shape_t=shape_t, r_eq_des=inner_R, source_phase=_source_phase)
@@ -973,7 +1014,7 @@ def make_adapter(
             is_thread.append(True)
         elif has_threads:
             # Threaded transition: the female thread is 1⅜", but the acoustic
-            # passage starts from the spec's 25 mm bore and morphs to the target.
+            # passage starts from the spec's 25.4 mm bore and morphs to the target.
             inner, outer = _transition_slice(zi)
             # Threaded collar lap joint: the socket's outer cylinder does NOT
             # stop flat at the throat plane (a butt joint with a bare annular
@@ -1083,9 +1124,12 @@ def make_adapter(
 
 
     if return_cutter:
-        # Build cutter mesh using only the inner walls (the first (n_slices)*n vertices)
+        # Build cutter mesh using only the inner airway rings. The vertex layout
+        # stores outer then inner for each slice; using the outer rings here cuts
+        # away the flange/neck overlap and leaves bolt-on mounts as separate
+        # bodies, which shows up as a circumferential seam in slicers.
         n_slices_c = len(verts) // (2 * n)
-        c_verts = [verts[k * 2 * n : k * 2 * n + n] for k in range(n_slices_c)]
+        c_verts = [verts[k * 2 * n + n : k * 2 * n + 2 * n] for k in range(n_slices_c)]
         c_verts_flat = np.vstack(c_verts)
         
         c_faces = []
@@ -1287,6 +1331,7 @@ def make_adapter_assembly(
     adapter_length: float,
     wall_thickness: float,
     axial_steps: int = 50,
+    driver_exit_angle_deg: float = 0.0,
     # Flange params (flanged mode)
     flange_R: float = 0.0,
     flange_thickness: float = 6.0,
@@ -1313,6 +1358,7 @@ def make_adapter_assembly(
     custom_outer_pts: np.ndarray | None = None,
     custom_pts_z: np.ndarray | None = None,
     custom_match_from_z: float | None = None,
+    bolt_flange_airway_cut: bool = True,
     # Positioning: the horn-throat end of the transition sits at *z_offset*
     z_offset: float = 0.0,
     # Output
@@ -1326,6 +1372,8 @@ def make_adapter_assembly(
     When a flange is present, the transition body is shortened by the flange
     thickness so the requested *adapter_length* stays measured from the
     flange's lower face instead of creating a collar inside the throat.
+    ``driver_exit_angle_deg`` is a total included angle; it sets the driver-side
+    launch slope to ``tan(angle / 2)`` for every interface type.
 
     Returns a single watertight Trimesh (or None on failure).
     """
@@ -1339,7 +1387,11 @@ def make_adapter_assembly(
     if not (is_custom_flange or is_bolt_on or is_threaded):
         raise ValueError(f"Unsupported driver_type: {driver_type}")
     if is_bolt_on:
-        driver_R = (DRIVER_FLANGE_SPECS[driver_type].throat_diam + driver_clearance) / 2.0
+        # The catalog throat is the acoustic bore. `driver_clearance` is a
+        # mechanical clearance for the bolt-on flange hole only; if it also
+        # enlarged the transition, a matched mount (notably Omni CD) would grow
+        # a false acoustic step before the flare inlet.
+        driver_R = DRIVER_FLANGE_SPECS[driver_type].throat_diam / 2.0
     elif is_custom_flange:
         driver_R = driver_diam / 2.0
     else:
@@ -1354,6 +1406,7 @@ def make_adapter_assembly(
             horn_shape, rect_w, rect_h,
             poly_n_sides, horn_R_eq, poly_circumR,
             axial_steps, adapter_length, wall_thickness,
+            driver_exit_angle_deg=driver_exit_angle_deg,
             thread_key=tk, socket_length=sl,
             collar_overlap=collar_overlap,
             thread_clearance=thread_clearance,
@@ -1397,7 +1450,7 @@ def make_adapter_assembly(
             f_throat = generate_driver_mounting_flange(
                 driver_type,
                 thickness=flange_thickness,
-                throat_clearance=-1000.0,
+                throat_clearance=driver_clearance,
                 offset=flange_thickness,
                 bolt_phase=_adapter_bolt_phase(
                     driver_type,
@@ -1412,6 +1465,8 @@ def make_adapter_assembly(
                     custom_outer_pts=custom_outer_pts,
                 ),
             )
+            if not bolt_flange_airway_cut:
+                f_throat.apply_translation([0.0, 0.0, -0.2])
         else:
             # The flange bore must INTERPENETRATE the adapter's outer wall, not
             # sit flush with it. The adapter outer is a miter-offset polygon, so
@@ -1439,7 +1494,7 @@ def make_adapter_assembly(
             )
         if f_throat is not None:
             try:
-                if is_bolt_on:
+                if is_bolt_on and bolt_flange_airway_cut:
                     # Bolt-on flange has a straight hole (driver_R), but the airway expands.
                     # Subtract the airway cutter from the flange before unioning,
                     # so the expanding airway remains perfectly clean.

@@ -41,10 +41,227 @@ logger = logging.getLogger(__name__)
 
 _EPS = 1e-3  # avoids degenerate triangles on the Z axis
 
-# Standoff ribs (deflector-only self-centering struts across the channel).
+# Centering pillars (legacy UI label: standoffs) across the channel.
 _STANDOFF_OVERLAP = 1.0    # mm the rib root sinks into the deflector body (clean weld)
 _STANDOFF_CLEARANCE = 0.2  # mm air gap between the rib tip and the reflector wall
 _STANDOFF_T0, _STANDOFF_T1 = 0.35, 0.95  # rib spans this fraction of the meridian
+
+
+def _pillar_band(n, low_r=None, r_safe=None):
+    """[i0, i1) meridian index range the pillars occupy.
+
+    The base range skips the throat tip and the extreme rim. When `low_r` /
+    `r_safe` are given, the start is pushed past the deflector nose so the pillar
+    roots stay off the axis (else adjacent pillars collide / take a negative
+    radius). If the wall never lifts that far off the axis, the band is empty.
+    """
+    i0 = max(1, int(_STANDOFF_T0 * n))
+    i1 = min(n, int(_STANDOFF_T1 * n))
+    if low_r is not None and r_safe is not None:
+        safe = np.nonzero(np.asarray(low_r) > r_safe)[0]
+        i0 = max(i0, int(safe[0])) if safe.size else i1
+    return i0, i1
+
+
+_SPLAY_T0 = 0.55  # vertical-coverage lip flare starts here (fraction of meridian)
+
+
+def _splay_walls(low_r, low_z, up_r, up_z, cov_deg: float, t: np.ndarray):
+    """Bend the terminal portion of each wall apart by ±`cov_deg`/2 → vertical
+    coverage. The reflector lip tilts up, the deflector lip down, each rotated
+    (progressively, smoothstep-ramped) about its own point at `_SPLAY_T0`, so the
+    mouth fans out vertically without a kink. `cov_deg = 0` is a no-op.
+    """
+    x = np.clip((t - _SPLAY_T0) / (1.0 - _SPLAY_T0), 0.0, 1.0)
+    ramp = x * x * (3.0 - 2.0 * x)          # smoothstep (C¹ at the flare start)
+    half = np.radians(cov_deg / 2.0) * ramp
+    i0 = int(np.searchsorted(t, _SPLAY_T0))
+
+    def bend(r, z, sign):
+        b = sign * half
+        cb, sb = np.cos(b), np.sin(b)
+        dr, dz = r - r[i0], z - z[i0]
+        return r[i0] + cb * dr - sb * dz, z[i0] + sb * dr + cb * dz
+
+    up_r2, up_z2 = bend(up_r, up_z, +1.0)     # reflector lip up
+    low_r2, low_z2 = bend(low_r, low_z, -1.0)  # deflector lip down
+    return low_r2, low_z2, up_r2, up_z2
+
+
+def _regap_to_area(low_r, low_z, up_r, up_z, s_target, i_start=0):
+    """Re-set the perpendicular gap about the (splayed) midline so the channel's
+    total cross-section equals `s_target` (= 2π·ρ_mid·gap) at every station from
+    `i_start` on (the flare region — the throat half is left untouched).
+
+    Keeps the splayed lip *aim* (the gap direction/midline) but restores the
+    area-law gap magnitude, so a vertical-coverage splay does not balloon the
+    mouth off the chosen expansion law. Returns (low_r, low_z, up_r, up_z).
+    """
+    low_r, low_z, up_r, up_z = (a.copy() for a in (low_r, low_z, up_r, up_z))
+    sl = slice(i_start, None)
+    mr, mz = 0.5 * (low_r[sl] + up_r[sl]), 0.5 * (low_z[sl] + up_z[sl])
+    gr, gz = up_r[sl] - low_r[sl], up_z[sl] - low_z[sl]
+    g = np.hypot(gr, gz)
+    g[g < 1e-9] = 1.0
+    ur, uz = gr / g, gz / g                        # unit gap direction
+    ht = s_target[sl] / (2.0 * np.pi * np.maximum(mr, 1e-6))
+    low_r[sl], low_z[sl] = mr - 0.5 * ht * ur, mz - 0.5 * ht * uz
+    up_r[sl], up_z[sl] = mr + 0.5 * ht * ur, mz + 0.5 * ht * uz
+    return low_r, low_z, up_r, up_z
+
+
+def _wall_normal(r, z, nrho_ref, nz_ref):
+    """Unit meridian normal of a wall curve (r, z), oriented to match a reference
+    normal — used to give the splayed reflector a perpendicular-thick outer face.
+    """
+    tr, tz = np.gradient(r), np.gradient(z)
+    tn = np.hypot(tr, tz)
+    tn[tn < 1e-12] = 1.0
+    tr, tz = tr / tn, tz / tn
+    nr, nz = -tz, tr                          # rotate tangent +90°
+    s = np.sign(nr * nrho_ref + nz * nz_ref)  # keep the outward orientation
+    s[s == 0] = 1.0
+    return nr * s, nz * s
+
+
+def _pillar_halfwidth(n, pillar_width, i0=None, i1=None, power=1):
+    """Tangential width (mm) of ONE pillar at each meridian station: a lens taper
+    ``pillar_width·sin^power(π·u)`` over the band (``[i0, i1)``, default `_pillar_band`).
+
+    Two profiles are derived from this, on purpose (see `get_omni_profile`):
+
+    - `power=1` (``sin``) drives the pillar **mesh** — a slender lens that tapers
+      to a sharp, low-diffraction, *printable* tip (a `sin²` tip is so thin it
+      re-opens on an STL vertex-merge round-trip).
+    - `power=2` (``sin²``) drives the axisymmetric **volume compensation** — its
+      zero-slope onset lets the widened gap join the un-widened gap without a C¹
+      kink (a `sin` taper starts with slope π and leaves a visible annular step
+      in the channel wall). Its integral is the volume the gap widens for.
+    """
+    w = np.zeros(n)
+    if pillar_width <= 0:
+        return w
+    if i0 is None or i1 is None:
+        i0, i1 = _pillar_band(n)
+    if i1 - i0 < 3:
+        return w
+    u = np.linspace(0.0, 1.0, i1 - i0)
+    w[i0:i1] = pillar_width * np.sin(np.pi * u) ** power
+    return w
+
+
+def _circle_section(radius: float, count: int) -> np.ndarray:
+    th = np.linspace(0.0, 2.0 * np.pi, int(count), endpoint=False)
+    return np.column_stack([radius * np.cos(th), radius * np.sin(th)])
+
+
+def omni_adapter_section_stack(
+    P: dict,
+    thickness: float,
+    follow_depth: float,
+    neck_height: float,
+    rings: int,
+    section_count: int = 16,
+) -> dict:
+    """Exact circular section stack for an Omni throat adapter weld.
+
+    The generic circular adapter is too crude for Omni because the reflector
+    outer wall immediately leaves the throat with a real flare slope. This
+    helper samples the reflector inner and outer radii over the first
+    ``follow_depth`` mm below the throat so ``throat_adapter.make_adapter`` can
+    use the same `custom_pts` / `custom_outer_pts` overlap strategy as the
+    OS-SE and R-OSSE branches.
+
+    Returned local Z coordinates are in adapter space: ``neck_height`` is the
+    throat plane and ``neck_height + follow_depth`` is the handoff plane inside
+    the reflector.
+    """
+    follow_depth = max(0.5, float(follow_depth))
+    neck_height = max(0.5, float(neck_height))
+    rings = max(16, int(rings))
+    section_count = max(3, int(section_count))
+
+    up_r = np.asarray(P["up_r"], dtype=float)
+    up_z = np.asarray(P["up_z"], dtype=float)
+    out_r = up_r + float(thickness) * np.asarray(P["nrho_out"], dtype=float)
+    out_z = up_z + float(thickness) * np.asarray(P["nz_out"], dtype=float)
+
+    inner_z = up_z - up_z[0]
+    # Use the inner-wall Z as the station coordinate for both inner and outer.
+    # The reflector outer wall is a normal offset, so sampling it at the same
+    # absolute Z plane can put the "outer" radius inside the inner radius on a
+    # steep Omni throat. Station sampling matches the mesh engine and guarantees
+    # each custom outer section encloses its inner section.
+    max_depth = max(0.5, min(follow_depth, -float(np.min(inner_z))))
+
+    def interp_radius(z_arr, r_arr, z_rel):
+        order = np.argsort(z_arr)
+        return float(np.interp(float(z_rel), z_arr[order], r_arr[order]))
+
+    z_rel = -np.linspace(0.0, max_depth, section_count)
+    custom_z = neck_height - z_rel
+    inner_stack = np.stack([
+        _circle_section(interp_radius(inner_z, up_r, z), rings) for z in z_rel
+    ])
+    outer_stack = np.stack([
+        _circle_section(interp_radius(inner_z, out_r, z), rings) for z in z_rel
+    ])
+
+    handoff_inner = inner_stack[-1]
+    handoff_area = 0.5 * abs(
+        np.dot(handoff_inner[:, 0], np.roll(handoff_inner[:, 1], -1))
+        - np.dot(handoff_inner[:, 1], np.roll(handoff_inner[:, 0], -1))
+    )
+    return {
+        "custom_pts_z": custom_z,
+        "custom_pts": inner_stack,
+        "custom_outer_pts": outer_stack,
+        "custom_match_from_z": float(neck_height),
+        "adapter_length": float(neck_height + max_depth),
+        "follow_depth": float(max_depth),
+        "neck_height": float(neck_height),
+        "horn_R_eq": float(np.sqrt(handoff_area / np.pi)),
+    }
+
+
+def _resolve_pillar_count(pillar_count, n_pillars=None, standoffs=None) -> int:
+    """Resolve the canonical `pillar_count` plus legacy aliases.
+
+    `n_pillars` is the older profile-level name; `standoffs` is the older
+    part-generator/UI name. Keep both as aliases so saved scripts keep working,
+    but reject contradictory explicit values.
+    """
+    values = []
+    for name, value in (
+        ("pillar_count", pillar_count),
+        ("n_pillars", n_pillars),
+        ("standoffs", standoffs),
+    ):
+        if value is not None:
+            values.append((name, int(value)))
+    if not values:
+        return 0
+    first_name, first_value = values[0]
+    for name, value in values[1:]:
+        if value != first_value:
+            raise ValueError(
+                f"Conflicting omni pillar counts: {first_name}={first_value}, "
+                f"{name}={value}"
+            )
+    return max(0, first_value)
+
+
+def _resolve_pillars_fused(ribs_fused=True, pillars_fused=None) -> bool:
+    """Resolve canonical `pillars_fused` plus legacy `ribs_fused`.
+
+    The default legacy value is True, so a supplied canonical value wins unless
+    the legacy argument is explicitly False and contradicts it.
+    """
+    if pillars_fused is None:
+        return bool(ribs_fused)
+    if ribs_fused is False and pillars_fused is True:
+        raise ValueError("Conflicting omni pillar fusion flags: ribs_fused=False, pillars_fused=True")
+    return bool(pillars_fused)
 
 
 # ======================================================================
@@ -66,6 +283,11 @@ def get_omni_profile(
     profile: str = "Exponential",
     lip_angle_deg: float = 0.0,
     bend_scale: float = 1.0,
+    n_pillars: int | None = None,
+    pillar_width: float = 0.0,
+    vert_cov_deg: float = 0.0,
+    preserve_area_law: bool = True,
+    pillar_count: int | None = None,
 ) -> dict:
     """
     Build the curved omni channel: centerline, gap, and the two channel walls.
@@ -75,14 +297,35 @@ def get_omni_profile(
     cross-sectional area `S` is laid out along the resulting arc length using
     the chosen expansion profile.
 
+    `vert_cov_deg` sets the **vertical coverage**: the two mouth lips are splayed
+    apart by ±`vert_cov_deg`/2 over the terminal flare, so the horn fans the
+    360°-radial output out over a vertical angle. `0` keeps the lips parallel
+    (collimated, narrow vertical beam); `lip_angle_deg` still aims that fan
+    up/down. See `_splay_walls`.
+
+    `preserve_area_law` (default True) controls how the splay interacts with the
+    expansion law. True: after splaying, the gap is re-set (`_regap_to_area`) so
+    the cross-section stays exactly on `S(s)` — the lips keep their aim but the
+    mouth slot doesn't balloon; coverage is gentler. False (CD flare): the splay
+    opens the gap freely, so the area grows faster than `S(s)` in the terminal
+    flare (standard constant-directivity mouth) for stronger coverage.
+
+    When `pillar_count > 0`, the gap is widened (axisymmetrically) so the TOTAL open
+    cross-section — full annulus minus the area the pillars block —
+    still equals `S(s)`. The pillars taper to zero width at the throat/mouth
+    ends, so the gap there is unchanged and the exact-throat invariant holds.
+
     Returns a dict of parallel 1-D arrays (all length `n`):
         rho_c, z_c   — centerline (meridian radius, axial)
-        h            — channel gap (perpendicular to flow)
+        h            — channel gap (perpendicular to flow), pillar-compensated
         nrho, nz     — unit meridian normal (gap direction)
         low_r, low_z — inner / deflector-side wall  (M − h/2·N)
         up_r,  up_z  — outer / reflector-side wall   (M + h/2·N)
+        w_mm         — tangential width (mm) of ONE pillar per station (0 = none)
         St, Sm       — throat and mouth cross-sectional area
     """
+    pillar_count = _resolve_pillar_count(pillar_count, n_pillars=n_pillars)
+
     Rt = throat_diam / 2.0
     Rm = mouth_diam / 2.0
     St = np.pi * Rt ** 2
@@ -123,6 +366,12 @@ def get_omni_profile(
             z_p, r_p = get_salmon(throat_diam, fc or 1000.0, float(Rm - Rt), n)
         elif profile == "Oblate spheroidal":
             z_p, r_p = get_oblate_spheroidal_for_mouth(throat_diam, mouth_diam, 90.0, n)
+        elif profile == "Conical":
+            # Constant expansion angle → radius grows linearly along the arc
+            # (S ∝ r²). The constant-directivity reference; loads poorly at LF
+            # (Kolbrek). z_p is unused after the arc-length reparam below.
+            z_p = np.linspace(0.0, 1.0, n)
+            r_p = np.linspace(Rt, Rm, n)
         else:
             raise ValueError(f"Unknown profile: {profile}")
         S_prof = np.pi * r_p ** 2
@@ -130,8 +379,6 @@ def get_omni_profile(
         tp = np.linspace(0.0, 1.0, len(z_p))
         S = np.interp(sn, tp, S_prof)
         S = np.maximum(S, St)  # monotone: never narrower than throat
-
-    h = S / (2.0 * np.pi * rho_c)
 
     # ---- meridian normal (gap direction) ------------------------------------
     t_rho = np.gradient(rho_c)
@@ -144,14 +391,55 @@ def get_omni_profile(
     nrho = -t_z
     nz = t_rho
 
+    # ---- pillar band + area compensation ------------------------------------
+    # Place the pillar band where the deflector inner wall has lifted off the
+    # axis: a steep / low-fc profile can keep low_r≈0 well past t=0.35, and a
+    # pillar rooted there would collide on the axis (or take a negative radius).
+    # Use the uncompensated gap to locate the band, then widen the gap so the
+    # TOTAL open cross-section (annulus − pillar_count·w_comp) still follows S(s).
+    circ = 2.0 * np.pi * rho_c
+    if pillar_count > 0 and pillar_width > 0:
+        low_r0 = rho_c - 0.5 * (S / circ) * nrho     # inner wall, uncompensated
+        i0p, i1p = _pillar_band(n, low_r0, _STANDOFF_OVERLAP + 1.5)
+        w_mm = _pillar_halfwidth(n, pillar_width, i0p, i1p, power=1)    # mesh (sin)
+        w_comp = _pillar_halfwidth(n, pillar_width, i0p, i1p, power=2)  # comp (sin²)
+    else:
+        i0p, i1p = _pillar_band(n)
+        w_mm = w_comp = np.zeros(n)
+    # Compensate with the smooth (sin²) profile so the widened gap has no C¹ kink;
+    # the physical pillar is the sharper `w_mm`, so a tiny (<1%), smooth area
+    # deficit remains near the band edges — negligible vs an annular wall step.
+    open_circ = np.maximum(circ - pillar_count * w_comp, 0.2 * circ)  # cap blockage ≤80%
+    h = S / open_circ
+
     low_r = np.maximum(rho_c - 0.5 * h * nrho, _EPS)
     low_z = z_c - 0.5 * h * nz
     up_r = rho_c + 0.5 * h * nrho
     up_z = z_c + 0.5 * h * nz
 
+    # ---- vertical coverage: splay the mouth lips ----------------------------
+    # `nrho_out`/`nz_out` is the normal used for the reflector's outer face; with
+    # a splay it follows the bent wall (perpendicular-thick), else = centerline N.
+    nrho_out, nz_out = nrho, nz
+    if abs(vert_cov_deg) > 1e-9:
+        low_r, low_z, up_r, up_z = _splay_walls(low_r, low_z, up_r, up_z,
+                                                vert_cov_deg, t)
+        if preserve_area_law:
+            # Restore the area-law gap about the splayed midline (flare region
+            # only): keep the lip aim, keep S(s) exact (no mouth balloon).
+            i_flare = int(np.searchsorted(t, _SPLAY_T0))
+            low_r, low_z, up_r, up_z = _regap_to_area(
+                low_r, low_z, up_r, up_z, 2.0 * np.pi * rho_c * h, i_flare)
+        low_r = np.maximum(low_r, _EPS)
+        nrho_out, nz_out = _wall_normal(up_r, up_z, nrho, nz)
+
     return {
         "rho_c": rho_c, "z_c": z_c, "h": h, "nrho": nrho, "nz": nz,
+        "nrho_out": nrho_out, "nz_out": nz_out,
         "low_r": low_r, "low_z": low_z, "up_r": up_r, "up_z": up_z,
+        "w_mm": w_mm, "w_comp": w_comp,
+        "pillar_count": int(pillar_count), "n_pillars": int(pillar_count),
+        "pillar_i0": int(i0p), "pillar_i1": int(i1p),
         "St": float(St), "Sm": float(S[-1]),
     }
 
@@ -195,27 +483,35 @@ def _revolve_polygon(r_poly: np.ndarray, z_poly: np.ndarray, rings: int = 64,
 
 
 # ======================================================================
-#  Standoff ribs (deflector-only)
+#  Centering pillars (deflector-only when fused)
 # ======================================================================
 
 def _sector_wedge(low: np.ndarray, up: np.ndarray,
-                  phi_c: float, half_ang: float, a_steps: int):
-    """Triangulate one rib: the channel band (low→up) swept over a thin sector.
+                  phi_c: float, half_ang: np.ndarray, a_steps: int):
+    """Triangulate one aerodynamic pillar: the channel band (low→up) swept over a
+    tangential sector whose half-width VARIES per meridian station.
 
-    `low`/`up` are (K,2) meridian arrays (r, z). The closed band loop is swept
-    over [phi_c-half_ang, phi_c+half_ang] (lateral surface) and capped flat at
-    both angular ends → a watertight wedge. Returns (verts, faces).
+    `low`/`up` are (K,2) meridian arrays (r, z); `half_ang` is a length-K array of
+    tangential half-angles. Where it tapers to 0 (leading/trailing edge) the
+    swept loop collapses to a point, giving a streamlined rounded-nose lens
+    planform (near-zero diffraction) instead of a bluff slab. The closed band loop is
+    swept over [phi_c−half_ang[k], phi_c+half_ang[k]] and capped at both angular
+    extremes → a watertight wedge. Returns (verts, faces).
     """
     K = len(low)
     loop = np.vstack([low, up[::-1]])          # (2K, 2) closed meridian loop
     L = len(loop)
-    angles = np.linspace(phi_c - half_ang, phi_c + half_ang, a_steps)
+    # Meridian station index for each loop point (low forward, then up reversed),
+    # so each point's tangential half-angle follows the airfoil taper.
+    kidx = np.concatenate([np.arange(K), np.arange(K)[::-1]])
+    ha_loop = np.asarray(half_ang, dtype=float)[kidx]   # (L,)
+    frac = np.linspace(-1.0, 1.0, a_steps)
 
     verts = np.empty((a_steps * L, 3), dtype=float)
-    for a, th in enumerate(angles):
-        ct, st = np.cos(th), np.sin(th)
-        verts[a * L:(a + 1) * L, 0] = loop[:, 0] * ct
-        verts[a * L:(a + 1) * L, 1] = loop[:, 0] * st
+    for a in range(a_steps):
+        ang = phi_c + frac[a] * ha_loop        # (L,) per-station tangential angle
+        verts[a * L:(a + 1) * L, 0] = loop[:, 0] * np.cos(ang)
+        verts[a * L:(a + 1) * L, 1] = loop[:, 0] * np.sin(ang)
         verts[a * L:(a + 1) * L, 2] = loop[:, 1]
 
     def vid(a, l):
@@ -252,9 +548,14 @@ def _trimesh_to_mesh(tm) -> mesh.Mesh:
     return mesh.Mesh(data)
 
 
-def _build_wedges(P: dict, count: int, width: float, rings: int):
-    """Build the `count` rib wedges as a list of watertight trimeshes.
+def _build_wedges(P: dict, count: int, rings: int):
+    """Build the `count` aerodynamic pillars as a list of watertight trimeshes.
 
+    The tangential half-width follows `P["w_mm"]` (a `sin` taper: zero at the
+    band ends → sharp low-diffraction nose/tail, max mid-band), so each pillar is
+    a slender streamlined lens rather than a bluff slab. The gap it fills was
+    already widened in `get_omni_profile` (via the smoother `w_comp`) to
+    compensate its volume.
     Wedges are returned in the profile's design frame (no Z shift), so they sit
     correctly against the deflector/reflector built with `align=False`.
     """
@@ -263,8 +564,12 @@ def _build_wedges(P: dict, count: int, width: float, rings: int):
     low_r, low_z = P["low_r"], P["low_z"]
     up_r, up_z = P["up_r"], P["up_z"]
     nrho, nz = P["nrho"], P["nz"]
-    n = len(low_r)
-    sl = slice(max(1, int(_STANDOFF_T0 * n)), min(n, int(_STANDOFF_T1 * n)))
+    rho_c = P["rho_c"]
+    w_mm = P["w_mm"]
+    i0, i1 = P["pillar_i0"], P["pillar_i1"]
+    if i1 - i0 < 3:
+        return []
+    sl = slice(i0, i1)
 
     # Rib root sinks into the deflector (−N), tip stops short of the reflector.
     low_band = np.column_stack([low_r[sl] - _STANDOFF_OVERLAP * nrho[sl],
@@ -272,15 +577,20 @@ def _build_wedges(P: dict, count: int, width: float, rings: int):
     up_band = np.column_stack([up_r[sl] - _STANDOFF_CLEARANCE * nrho[sl],
                                up_z[sl] - _STANDOFF_CLEARANCE * nz[sl]])
 
-    r_mid = float(np.mean(P["rho_c"][sl]))
-    half_ang = max(np.radians(1.0), (width / 2.0) / max(r_mid, 1e-6))
-    a_steps = max(3, int(np.ceil(rings * (2 * half_ang) / (2 * np.pi))) + 1)
+    # Per-station tangential half-angle from the (airfoil-tapered) mm width.
+    half_ang = 0.5 * w_mm[sl] / np.maximum(rho_c[sl], 1e-6)
+    ha_max = float(half_ang.max()) if half_ang.size else 0.0
+    if ha_max <= 0.0:
+        return []
+    a_steps = max(3, int(np.ceil(rings * (2 * ha_max) / (2 * np.pi))) + 1)
 
     wedges = []
     for k in range(count):
         v, f = _sector_wedge(low_band, up_band, 2.0 * np.pi * k / count,
                              half_ang, a_steps)
         w = trimesh.Trimesh(vertices=v, faces=f, process=True)
+        w.update_faces(w.nondegenerate_faces())   # drop zero-area knife-tip slivers
+        w.remove_unreferenced_vertices()
         w.fix_normals()  # boolean union needs each input to be a coherent volume
         wedges.append(w)
     return wedges
@@ -301,6 +611,138 @@ def _union_or_concat(parts):
     return merged
 
 
+def _axis_cylinder(start: np.ndarray, end: np.ndarray, radius: float, sections: int):
+    """Cylinder whose local Z axis runs from ``start`` to ``end``."""
+    import trimesh
+
+    start = np.asarray(start, dtype=float)
+    end = np.asarray(end, dtype=float)
+    axis = end - start
+    height = float(np.linalg.norm(axis))
+    if height <= 1e-9 or radius <= 0.0:
+        return None
+    direction = axis / height
+    z_axis = np.array([0.0, 0.0, 1.0])
+    cross = np.cross(z_axis, direction)
+    dot = float(np.clip(np.dot(z_axis, direction), -1.0, 1.0))
+    if np.linalg.norm(cross) < 1e-12:
+        rot = np.eye(4)
+        if dot < 0.0:
+            rot[:3, :3] = np.diag([1.0, -1.0, -1.0])
+    else:
+        skew = np.array([
+            [0.0, -cross[2], cross[1]],
+            [cross[2], 0.0, -cross[0]],
+            [-cross[1], cross[0], 0.0],
+        ])
+        rot3 = (
+            np.eye(3) + skew
+            + skew @ skew * ((1.0 - dot) / max(np.dot(cross, cross), 1e-12))
+        )
+        rot = np.eye(4)
+        rot[:3, :3] = rot3
+    rot[:3, 3] = 0.5 * (start + end)
+    return trimesh.creation.cylinder(
+        radius=float(radius), height=height, sections=max(12, int(sections)),
+        transform=rot)
+
+
+def _pillar_fastener_cutters(
+    P: dict,
+    count: int,
+    thickness: float,
+    reflector_hole_diam: float,
+    deflector_hole_diam: float,
+    hole_pos: float,
+    hole_depth: float,
+    head_diam: float = 0.0,
+    head_depth: float = 0.0,
+    sections: int = 32,
+):
+    """Return ``(reflector_cutters, deflector_cutters, head_cutters)``.
+
+    Cutters are placed at each pillar centreline azimuth and at one meridian
+    station inside the pillar band. Their axes follow the local reflector normal.
+    Reflector and deflector/pillar cutters are split so the outer flare can have
+    a screw-clearance hole while the pillar/deflector has a smaller pilot or
+    heat-set insert hole. The optional head cutter counterbores only the
+    reflector outer skin.
+    """
+    count = max(0, int(count))
+    reflector_hole_diam = max(0.0, float(reflector_hole_diam))
+    deflector_hole_diam = max(0.0, float(deflector_hole_diam))
+    if count <= 0 or max(reflector_hole_diam, deflector_hole_diam) <= 0.0:
+        return [], [], []
+
+    i0, i1 = int(P["pillar_i0"]), int(P["pillar_i1"])
+    if i1 - i0 < 3:
+        return [], []
+    u = float(np.clip(hole_pos, 0.0, 1.0))
+    idx = int(np.clip(round(i0 + u * (i1 - i0 - 1)), i0 + 1, i1 - 2))
+
+    up_r = np.asarray(P["up_r"], dtype=float)
+    up_z = np.asarray(P["up_z"], dtype=float)
+    nrho = np.asarray(P["nrho_out"], dtype=float)
+    nz = np.asarray(P["nz_out"], dtype=float)
+    depth = max(0.5, float(hole_depth))
+    ref_r = 0.5 * reflector_hole_diam
+    def_r = 0.5 * deflector_hole_diam
+    head_r = 0.5 * float(head_diam)
+    head_depth = max(0.0, min(float(head_depth), float(thickness) + 0.5))
+    reflector = []
+    deflector = []
+    heads = []
+
+    for k in range(count):
+        phi = 2.0 * np.pi * k / count
+        cp, sp = np.cos(phi), np.sin(phi)
+        p_inner = np.array([up_r[idx] * cp, up_r[idx] * sp, up_z[idx]])
+        normal = np.array([nrho[idx] * cp, nrho[idx] * sp, nz[idx]])
+        normal /= max(float(np.linalg.norm(normal)), 1e-12)
+
+        start = p_inner + normal * (float(thickness) + 1.0)
+        # Stop the reflector cutter inside the air gap, before it reaches the
+        # pillar tip. The deflector/pillar cutter starts just beyond that tip.
+        ref_end = p_inner - normal * (0.5 * _STANDOFF_CLEARANCE)
+        def_start = p_inner - normal * (_STANDOFF_CLEARANCE + 0.05)
+        def_end = p_inner - normal * (_STANDOFF_CLEARANCE + depth)
+        if ref_r > 0.0:
+            cyl = _axis_cylinder(start, ref_end, ref_r, sections)
+            if cyl is not None:
+                reflector.append(cyl)
+        if def_r > 0.0:
+            cyl = _axis_cylinder(def_start, def_end, def_r, sections)
+            if cyl is not None:
+                deflector.append(cyl)
+
+        if head_r > max(ref_r, 1e-9) and head_depth > 0.0:
+            h_end = p_inner + normal * max(float(thickness) - head_depth, 0.0)
+            hcyl = _axis_cylinder(start, h_end, head_r, sections)
+            if hcyl is not None:
+                heads.append(hcyl)
+    return reflector, deflector, heads
+
+
+def _difference_or_original(body, cutters, label: str):
+    import trimesh
+
+    cutters = [c for c in cutters if c is not None and not c.is_empty]
+    if not cutters:
+        return body
+    try:
+        out = trimesh.boolean.difference([body] + cutters, engine="manifold")
+        if isinstance(out, list):
+            out = trimesh.util.concatenate(out)
+        if out is not None and not out.is_empty:
+            out.remove_unreferenced_vertices()
+            out.fix_normals()
+            return out
+    except Exception as exc:  # pragma: no cover - engine-dependent
+        logger.warning("Omni pillar fastener cut failed on %s (%s); leaving part uncut",
+                       label, exc)
+    return body
+
+
 # ======================================================================
 #  Public API
 # ======================================================================
@@ -315,27 +757,47 @@ def build_omni_parts(
     bend_scale: float = 1.0,
     thickness: float = 4.0,
     n: int = 300,
-    standoffs: int = 0,
+    standoffs: int | None = None,
     standoff_width: float = 3.0,
     ribs_fused: bool = True,
+    vert_cov_deg: float = 0.0,
+    preserve_area_law: bool = True,
+    pillar_count: int | None = None,
+    pillars_fused: bool | None = None,
+    pillar_hole_diam: float = 0.0,
+    pillar_hole_ref_diam: float | None = None,
+    pillar_hole_def_diam: float | None = None,
+    pillar_hole_pos: float = 0.55,
+    pillar_hole_depth: float = 4.0,
+    pillar_hole_head_diam: float = 0.0,
+    pillar_hole_head_depth: float = 0.0,
 ) -> dict:
     """Build the omni parts as trimeshes in ONE common (assembled) frame.
 
     Returns ``{"deflector": tm, "reflector": tm, "pillars": tm|None}``.  When
-    ``ribs_fused`` the ribs are welded into the deflector and ``pillars`` is
-    ``None``; otherwise the deflector is left smooth and the ribs come back as a
+    ``pillars_fused`` the pillars are welded into the deflector and ``pillars``
+    is ``None``; otherwise the deflector is left smooth and the pillars come back as a
     separate ``pillars`` body. All meshes share the same Z frame, so the caller
     can export them assembled or translate each to ``z=0`` for printing.
+    ``vert_cov_deg`` splays the mouth lips apart for vertical coverage.
+    ``pillar_hole_diam > 0`` drills one adjustable reflector↔pillar fixing hole
+    per pillar; ``pillar_hole_ref_diam`` and ``pillar_hole_def_diam`` override
+    that legacy/common diameter independently.
     """
-    P = get_omni_profile(throat_diam, mouth_diam, fc, n, profile,
-                         lip_angle_deg, bend_scale)
+    pillar_count = _resolve_pillar_count(pillar_count, standoffs=standoffs)
+    pillars_fused = _resolve_pillars_fused(ribs_fused, pillars_fused)
+    P = get_omni_profile(
+        throat_diam=throat_diam, mouth_diam=mouth_diam, fc=fc, n=n,
+        profile=profile, lip_angle_deg=lip_angle_deg, bend_scale=bend_scale,
+        pillar_count=pillar_count, pillar_width=standoff_width,
+        vert_cov_deg=vert_cov_deg, preserve_area_law=preserve_area_law)
     low_r, low_z = P["low_r"], P["low_z"]
     up_r, up_z = P["up_r"], P["up_z"]
-    nrho, nz = P["nrho"], P["nz"]
+    nrho_out, nz_out = P["nrho_out"], P["nz_out"]
 
     logger.info("Omni parts:  throat=%.0f  mouth=%.0f  fc=%s  profile=%s  "
-                "standoffs=%d  ribs_fused=%s", throat_diam, mouth_diam, fc,
-                profile, standoffs, ribs_fused)
+                "pillars=%d  pillars_fused=%s", throat_diam, mouth_diam, fc,
+                profile, pillar_count, pillars_fused)
 
     # ---- Deflector (solid central body under the inner wall) — common frame -
     z_base = float(min(low_z.min(), up_z.min())) - thickness
@@ -345,20 +807,38 @@ def build_omni_parts(
     deflector.fix_normals()
 
     # ---- Reflector (outer shell, central throat hole) — common frame --------
-    out_r = up_r + thickness * nrho
-    out_z = up_z + thickness * nz
+    # Outer face offset along the wall normal (splay-aware; = centerline N when
+    # there is no vertical-coverage splay).
+    out_r = up_r + thickness * nrho_out
+    out_z = up_z + thickness * nz_out
     r_ref = np.concatenate([up_r, out_r[::-1], [up_r[0]]])
     z_ref = np.concatenate([up_z, out_z[::-1], [up_z[0]]])
     reflector = _mesh_to_trimesh(_revolve_polygon(r_ref, z_ref, rings, align=False))
     reflector.fix_normals()
 
     pillars = None
-    if standoffs > 0:
-        wedges = _build_wedges(P, standoffs, standoff_width, rings)
-        if ribs_fused:
+    if pillar_count > 0:
+        wedges = _build_wedges(P, pillar_count, rings)
+        if wedges and pillars_fused:
             deflector = _union_or_concat([deflector] + wedges)
-        else:
+        elif wedges:
             pillars = _union_or_concat(wedges)
+        ref_hole_d = (float(pillar_hole_diam) if pillar_hole_ref_diam is None
+                      else float(pillar_hole_ref_diam))
+        def_hole_d = (float(pillar_hole_diam) if pillar_hole_def_diam is None
+                      else float(pillar_hole_def_diam))
+        if wedges and max(ref_hole_d, def_hole_d) > 0.0:
+            ref_cuts, def_cuts, heads = _pillar_fastener_cutters(
+                P, pillar_count, thickness, ref_hole_d, def_hole_d,
+                pillar_hole_pos, pillar_hole_depth,
+                head_diam=pillar_hole_head_diam,
+                head_depth=pillar_hole_head_depth,
+                sections=max(24, rings // 2))
+            reflector = _difference_or_original(reflector, ref_cuts + heads, "reflector")
+            if pillars_fused:
+                deflector = _difference_or_original(deflector, def_cuts, "deflector/pillars")
+            elif pillars is not None:
+                pillars = _difference_or_original(pillars, def_cuts, "pillars")
 
     return {"deflector": deflector, "reflector": reflector, "pillars": pillars}
 
@@ -374,19 +854,41 @@ def generate_omni_horn(
     bend_scale: float = 1.0,
     thickness: float = 4.0,
     n: int = 300,
-    standoffs: int = 0,
+    standoffs: int | None = None,
     standoff_width: float = 3.0,
     ribs_fused: bool = True,
+    vert_cov_deg: float = 0.0,
+    preserve_area_law: bool = True,
+    pillar_count: int | None = None,
+    pillars_fused: bool | None = None,
+    pillar_hole_diam: float = 0.0,
+    pillar_hole_ref_diam: float | None = None,
+    pillar_hole_def_diam: float | None = None,
+    pillar_hole_pos: float = 0.55,
+    pillar_hole_depth: float = 4.0,
+    pillar_hole_head_diam: float = 0.0,
+    pillar_hole_head_depth: float = 0.0,
 ):
     """Generate the deflector + reflector STLs, each Z-aligned for printing.
 
-    Thin CLI/test wrapper over `build_omni_parts`: fuses the ribs by default,
+    Thin CLI/test wrapper over `build_omni_parts`: fuses the pillars by default,
     drops each part to Z=0, and writes `omni_deflector.stl` /
-    `omni_reflector.stl` (+ `omni_pillars.stl` when ribs are separate).
+    `omni_reflector.stl` (+ `omni_pillars.stl` when pillars are separate).
     """
-    parts = build_omni_parts(throat_diam, mouth_diam, fc, rings, profile,
-                             lip_angle_deg, bend_scale, thickness, n,
-                             standoffs, standoff_width, ribs_fused)
+    parts = build_omni_parts(
+        throat_diam=throat_diam, mouth_diam=mouth_diam, fc=fc, rings=rings,
+        profile=profile, lip_angle_deg=lip_angle_deg, bend_scale=bend_scale,
+        thickness=thickness, n=n, standoffs=standoffs,
+        standoff_width=standoff_width, ribs_fused=ribs_fused,
+        vert_cov_deg=vert_cov_deg, preserve_area_law=preserve_area_law,
+        pillar_count=pillar_count, pillars_fused=pillars_fused,
+        pillar_hole_diam=pillar_hole_diam,
+        pillar_hole_ref_diam=pillar_hole_ref_diam,
+        pillar_hole_def_diam=pillar_hole_def_diam,
+        pillar_hole_pos=pillar_hole_pos,
+        pillar_hole_depth=pillar_hole_depth,
+        pillar_hole_head_diam=pillar_hole_head_diam,
+        pillar_hole_head_depth=pillar_hole_head_depth)
     out = {}
     for name, tm in parts.items():
         if tm is None:

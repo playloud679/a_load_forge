@@ -34,9 +34,9 @@ class ThreadSpec:
 
 | Key | Name | Major Diam (mm) | Acoustic Bore (mm) | Pitch (mm) | TPI |
 |---|---|---|---|---|---|
-| `"1_375in"` | 1⅜"-18 | 34.925 | 25.00 | 1.411 | 18 |
+| `"1_375in"` | 1⅜"-18 | 34.925 | 25.40 | 1.411 | 18 |
 
-The nominal `1⅜"` dimension describes the female thread, not the acoustic opening. The integrated transition starts from a clear 25 mm bore.
+The nominal `1⅜"` dimension describes the female thread, not the acoustic opening. 1⅜"-18 is the mounting thread of a **1" (25.4 mm) exit** compression driver, so the clear acoustic bore is the driver's true 1" throat = **25.4 mm** (a rounded 25.0 left a 0.4 mm choke/step against a 25.4 mm horn throat — "flare 25.4, bore 25").
 
 ---
 
@@ -203,7 +203,7 @@ Morph a circular throat into an elliptical cross-section over Z. **Area-first de
 
 ## Public API
 
-### `make_adapter(driver_R: float, horn_shape: str, horn_w: float, horn_h: float, horn_n_sides: int, horn_R_eq: float, horn_circumR: float, axial_steps: int, adapter_length: float, wall_thickness: float, thread_key: str | None = None, socket_length: float = 0.0, collar_overlap: float = 5.0, thread_clearance: float = 0.05, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, custom_pts: np.ndarray | None = None, custom_outer_pts: np.ndarray | None = None, custom_pts_z: np.ndarray | None = None, custom_match_from_z: float | None = None, return_cutter: bool = False, output_path: str | None = None) -> trimesh.Trimesh | tuple[trimesh.Trimesh, trimesh.Trimesh]`
+### `make_adapter(driver_R: float, horn_shape: str, horn_w: float, horn_h: float, horn_n_sides: int, horn_R_eq: float, horn_circumR: float, axial_steps: int, adapter_length: float, wall_thickness: float, driver_exit_angle_deg: float = 0.0, thread_key: str | None = None, socket_length: float = 0.0, collar_overlap: float = 5.0, thread_clearance: float = 0.05, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, custom_pts: np.ndarray | None = None, custom_outer_pts: np.ndarray | None = None, custom_pts_z: np.ndarray | None = None, custom_match_from_z: float | None = None, return_cutter: bool = False, output_path: str | None = None) -> trimesh.Trimesh | tuple[trimesh.Trimesh, trimesh.Trimesh]`
 
 Builds the morphing transition section, optionally with an integrated threaded extension at the circular (driver) end.
 
@@ -221,10 +221,11 @@ Builds the morphing transition section, optionally with an integrated threaded e
 | `axial_steps` | `int` | Number of Z slices for the loft |
 | `adapter_length` | `float` | Axial length of the transition (mm) |
 | `wall_thickness` | `float` | Wall thickness for outer offset (mm) |
+| `driver_exit_angle_deg` | `float` | Total included compression-driver exit angle (degrees). The adapter launches with `dr/dz = tan(driver_exit_angle_deg / 2)`, so a 15° setting matches a 7.5°-per-side driver. The solver clamps this launch slope when the available radius growth is too small; matched-bore mounts stay cylindrical instead of expanding and then choking back to the same throat radius |
 | `thread_key` | `str \| None` | One of `THREAD_SPECS` keys — enables threaded mode |
 | `socket_length` | `float` | Depth of the threaded section (mm), must be > 0.5 to activate threads |
 | `collar_overlap` | `float` | Threaded mode only (default 5.0): the socket's outer cylinder continues this many mm ABOVE the throat plane, wrapping the cone wall, then tapers at 45° until it merges into the flare outer skin — a printable lap joint instead of the bare butt joint at z=0. Outer wall only; the airway is untouched. Clamped to half the smooth-morph span so the taper always lands before the handoff plane. `0` disables it |
-| `thread_clearance` | `float` | Threaded mode only (default `0.05`): radial clearance added to the internal thread profile; it loosens the mechanical thread without changing the 25 mm acoustic bore at the throat plane |
+| `thread_clearance` | `float` | Threaded mode only (default `0.05`): radial clearance added to the internal thread profile; it loosens the mechanical thread without changing the 25.4 mm acoustic bore at the throat plane |
 | `outer_target_R` | `float \| None` | Outer equivalent radius for threaded mode outer profile (matches horn outer dimensions) |
 | `outer_rect_w` | `float \| None` | Outer rectangle width (threaded mode) |
 | `outer_rect_h` | `float \| None` | Outer rectangle height (threaded mode) |
@@ -265,8 +266,8 @@ section` and `OS-SE embedded adapter welds with no junction step`.
 **A. Threaded mode** (`thread_key` is not None AND `socket_length > 0.5`):
 1. Z range: `[-thread_len, adapter_length]` where `thread_len = n_turns * pitch`
 2. **Thread section** (`z < 0`): 1⅜"-18 circular socket with sinusoidal thread profile `r_thread = major_R − (major_R − minor_R) · 0.5 · (1 − cos(2π · turn_frac))`, where `major_R` includes `thread_clearance`. Outer wall is a smooth cylinder at `outer_R = major_R + wall_thickness`.
-3. **Acoustic handoff** (`z = 0`): the inner passage reduces to the specified 25 mm bore.
-4. **Transition section** (`z ≥ 0`): Inner morphs from the 25 mm bore to the inner target via `_morph_slice`; the outer is a true **parallel (miter) offset** of that inner via `_offset_polygon_outward(inner, wall_thickness)`. The threaded collar (outer `≈ major_R + wt`) therefore steps down to a thin-walled funnel at `z = 0`.
+3. **Acoustic handoff** (`z = 0`): the inner passage reduces to the specified 25.4 mm bore.
+4. **Transition section** (`z ≥ 0`): Inner morphs from the 25.4 mm bore to the inner target via `_morph_slice`; the outer is a true **parallel (miter) offset** of that inner via `_offset_polygon_outward(inner, wall_thickness)`. The threaded collar (outer `≈ major_R + wt`) therefore steps down to a thin-walled funnel at `z = 0`.
 
 **B. Flanged mode** (`thread_key` is None):
 1. Z range: `[0, adapter_length]`
@@ -308,7 +309,7 @@ Returns a watertight `trimesh.Trimesh`.
 
 ---
 
-### `make_adapter_assembly(driver_type: str, driver_diam: float | None, thread_key: str | None, horn_shape: str, rect_w: float, rect_h: float, poly_n_sides: int, poly_circumR: float, horn_R_eq: float, adapter_length: float, wall_thickness: float, axial_steps: int = 50, flange_R: float = 0.0, flange_thickness: float = 6.0, flange_bolt_R: float = 0.0, flange_bolt_n: int = 4, flange_bolt_d: float = 3.5, flange_bolt_phase: float = 0.0, flange_outer_n: int = 0, driver_clearance: float = 0.3, socket_length: float = 15.0, collar_overlap: float = 5.0, thread_clearance: float = 0.05, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, custom_pts: np.ndarray | None = None, custom_outer_pts: np.ndarray | None = None, custom_pts_z: np.ndarray | None = None, custom_match_from_z: float | None = None, z_offset: float = 0.0, return_cutter: bool = False, output_path: str | None = None) -> trimesh.Trimesh | tuple[trimesh.Trimesh, trimesh.Trimesh]`
+### `make_adapter_assembly(driver_type: str, driver_diam: float | None, thread_key: str | None, horn_shape: str, rect_w: float, rect_h: float, poly_n_sides: int, poly_circumR: float, horn_R_eq: float, adapter_length: float, wall_thickness: float, axial_steps: int = 50, driver_exit_angle_deg: float = 0.0, flange_R: float = 0.0, flange_thickness: float = 6.0, flange_bolt_R: float = 0.0, flange_bolt_n: int = 4, flange_bolt_d: float = 3.5, flange_bolt_phase: float = 0.0, flange_outer_n: int = 0, driver_clearance: float = 0.3, socket_length: float = 15.0, collar_overlap: float = 5.0, thread_clearance: float = 0.05, outer_target_R: float | None = None, outer_rect_w: float | None = None, outer_rect_h: float | None = None, target_slope: float | None = None, outer_target_slope: float | None = None, target_curv: float | None = None, outer_target_curv: float | None = None, custom_pts: np.ndarray | None = None, custom_outer_pts: np.ndarray | None = None, custom_pts_z: np.ndarray | None = None, custom_match_from_z: float | None = None, bolt_flange_airway_cut: bool = True, z_offset: float = 0.0, return_cutter: bool = False, output_path: str | None = None) -> trimesh.Trimesh | tuple[trimesh.Trimesh, trimesh.Trimesh]`
 
 Assembles the complete throat adapter: driver interface + morphing transition.
 
@@ -334,6 +335,7 @@ When the driver interface includes a flange, the flange overlaps the first porti
 | `adapter_length` | `float` | — | Transition length (mm) |
 | `wall_thickness` | `float` | — | Wall thickness (mm) |
 | `axial_steps` | `int` | `50` | Z slices for the loft |
+| `driver_exit_angle_deg` | `float` | `0.0` | Total included compression-driver exit angle; forwarded to `make_adapter()` so bolt-on, custom-flanged, and threaded mounts share the same driver-side slope condition |
 | `flange_R` | `float` | `0.0` | Flange radius (flanged mode) |
 | `flange_thickness` | `float` | `6.0` | Flange thickness (flanged mode) |
 | `flange_bolt_R` | `float` | `0.0` | Bolt circle radius (flanged mode) |
@@ -341,7 +343,7 @@ When the driver interface includes a flange, the flange overlaps the first porti
 | `flange_bolt_d` | `float` | `3.5` | Bolt hole diameter |
 | `flange_bolt_phase` | `float` | `0.0` | Bolt pattern rotation (radians) |
 | `flange_outer_n` | `int` | `0` | Outer polygon sides (0 = circular) |
-| `driver_clearance` | `float` | `0.3` | Added to a standard bolt-on preset's nominal throat diameter |
+| `driver_clearance` | `float` | `0.3` | Mechanical clearance added to a standard bolt-on flange bore. It does **not** enlarge the acoustic transition; the loft still starts from the preset's nominal throat diameter. |
 | `socket_length` | `float` | `15.0` | Threaded socket depth (mm) |
 | `collar_overlap` | `float` | `5.0` | Lap collar above the throat plane in threaded mode (see `make_adapter`); `0` = legacy butt joint |
 | `thread_clearance` | `float` | `0.05` | Radial clearance added to the internal thread profile in threaded mode |
@@ -356,13 +358,14 @@ When the driver interface includes a flange, the flange overlaps the first porti
 | `custom_outer_pts` | `np.ndarray \| None` | `None` | Exact outer-wall contour(s) for `horn_shape="custom"` — passed through to `make_adapter` |
 | `custom_pts_z` | `np.ndarray \| None` | `None` | Local-z stations for a `(K, m, 2)` `custom_pts` stack — passed through to `make_adapter` |
 | `custom_match_from_z` | `float \| None` | `None` | Start of exact stacked-contour matching / weld overlap — passed through to `make_adapter` |
+| `bolt_flange_airway_cut` | `bool` | `True` | For standard bolt-on flanges, subtract the adapter airway cutter from the flange before unioning. Omni's smooth custom stack disables this because the bore remains nominal through the flange/neck and the extra cut removes the needed flange-neck overlap. |
 | `z_offset` | `float` | `0.0` | Z position of horn-throat end of transition |
 | `return_cutter` | `bool` | `False` | If True, returns `(assembly, cutter_mesh)` |
 | `output_path` | `str \| None` | `None` | Optional STL export path |
 
 **Algorithm:**
 1. Builds the adapter (transition + optional integrated threads) via `make_adapter()`.
-2. For custom flanged mode: if `flange_R > 0`, creates a custom bolt flange. For a standard bolt-on `driver_type`, loads the fixed industrial pattern from `flange_generator.DRIVER_FLANGE_SPECS` and creates it via `generate_driver_mounting_flange()`. The adapter rotates the 2-hole preset vertical (`+π/2`) and computes a phase override for the asymmetric 3-hole preset by maximizing the minimum distance between the bolt holes and the adapter's outer flare contour; this keeps screws away from the tighter side of non-round throats. The flange overlaps the first portion of the transition so the overall length still measures from the flange bottom face without compressing the morph.
+2. For custom flanged mode: if `flange_R > 0`, creates a custom bolt flange. For a standard bolt-on `driver_type`, loads the fixed industrial pattern from `flange_generator.DRIVER_FLANGE_SPECS` and creates it via `generate_driver_mounting_flange()`. The acoustic loft starts at the preset's nominal throat diameter; `driver_clearance` only opens the flange bore mechanically. The adapter rotates the 2-hole preset vertical (`+π/2`) and computes a phase override for the asymmetric 3-hole preset by maximizing the minimum distance between the bolt holes and the adapter's outer flare contour; this keeps screws away from the tighter side of non-round throats. The flange overlaps the first portion of the transition so the overall length still measures from the flange bottom face without compressing the morph.
 3. Translates the full assembly so the horn-throat end is at `z = z_offset`.
 4. Returns a single watertight `trimesh.Trimesh` (or `None` on failure).
 
@@ -377,9 +380,10 @@ at `r ≈ bore`, `z = 0`** that the slicer renders as surface "irregolarità" on
 flange face (measured 21 faces < 1e-5 mm², 97 < 1e-3 mm²). Biting the bore 0.5 mm
 inside the wall turns the tangency into a clean interpenetration → **0 slivers** for
 circular and elliptical custom-stack flanges; the bore still clears the airway by the
-full wall thickness, so nothing protrudes into the passage. Bolt-on flanges are
-unaffected (their bore is cut by the actual airway `cutter_tm`, not a fixed radius);
-threaded mode has no flange union (the collar is built into the mesh). For the
+full wall thickness, so nothing protrudes into the passage. Bolt-on flanges use
+their nominal acoustic throat for the loft, add `driver_clearance` only to the
+mounting bore, and are then trimmed by the actual airway `cutter_tm`; threaded
+mode has no flange union (the collar is built into the mesh). For the
 standard bolt-on presets, the adapter rotates the 2-hole pattern by `+π/2`
 and searches the 3-hole phase against the final outer contour, choosing the
 rotation with the largest minimum screw clearance. Regression test:

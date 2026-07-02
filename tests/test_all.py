@@ -9,6 +9,7 @@ Each test asserts not just "doesn't crash" but geometric invariants:
 """
 
 import argparse
+import math
 import sys, os, tempfile, traceback, itertools, types
 
 sys.path.insert(0, str(os.path.join(os.path.dirname(__file__), "..", "src")))
@@ -2258,7 +2259,8 @@ def test_thread_specs():
         f"unexpected thread specs: {sorted(_ta.THREAD_SPECS)}"
     spec = _ta.THREAD_SPECS["1_375in"]
     assert abs(spec.major_diam - 34.925) < 1e-6, f"major_diam={spec.major_diam}"
-    assert abs(spec.bore_diam - 25.0) < 1e-6, f"bore_diam={spec.bore_diam}"
+    # 1⅜"-18 mounts a 1" driver, so the acoustic bore is the true 1" throat = 25.4.
+    assert abs(spec.bore_diam - 25.4) < 1e-6, f"bore_diam={spec.bore_diam}"
     assert spec.tpi == 18 and abs(spec.pitch - 25.4 / 18.0) < 1e-9
 test("thread specs", test_thread_specs)
 
@@ -2448,6 +2450,64 @@ def test_adapter_c1_raccordo_slope():
     got = (r1 - r0) / (z1 - z0)
     assert abs(got - target_slope) < 0.02, f"end slope {got:.3f} != {target_slope:.3f}"
 test("adapter C1 raccordo slope", test_adapter_c1_raccordo_slope)
+
+def test_adapter_driver_exit_angle_launch_slope():
+    """Adapter start slope must match the compression-driver included angle."""
+    angle_total = 15.0
+    expected = math.tan(math.radians(angle_total / 2.0))
+    m = _ta.make_adapter(
+        driver_R=10.0, horn_shape="circular",
+        horn_w=0.0, horn_h=0.0, horn_n_sides=0,
+        horn_R_eq=18.0,
+        horn_circumR=0.0,
+        axial_steps=140, adapter_length=40.0, wall_thickness=4.0,
+        driver_exit_angle_deg=angle_total,
+        target_slope=0.05,
+        output_path=None,
+    )
+    _check_trimesh_watertight(m, "adapter driver exit angle")
+    zs = np.unique(np.round(m.vertices[:, 2], 6))
+    z0, z1 = zs[0], zs[1]
+    r0 = np.linalg.norm(m.vertices[np.isclose(m.vertices[:, 2], z0), :2], axis=1).min()
+    r1 = np.linalg.norm(m.vertices[np.isclose(m.vertices[:, 2], z1), :2], axis=1).min()
+    got = (r1 - r0) / (z1 - z0)
+    assert abs(got - expected) < 0.02, \
+        f"start slope {got:.3f} != tan({angle_total / 2.0:.1f}°) {expected:.3f}"
+test("adapter driver exit angle launch slope", test_adapter_driver_exit_angle_launch_slope)
+
+def test_adapter_matched_bore_clamps_driver_angle_monotone():
+    """Matched-bore adapters must not expand then choke when angle is set."""
+    match_z = 8.0
+    stack_z = np.array([match_z, 16.0])
+    stack = np.stack([
+        _ta._circle_points(10.0, n=64),
+        _ta._circle_points(13.0, n=64),
+    ])
+    m = _ta.make_adapter(
+        driver_R=10.0, horn_shape="custom",
+        horn_w=0.0, horn_h=0.0, horn_n_sides=0,
+        horn_R_eq=13.0,
+        horn_circumR=0.0,
+        axial_steps=80, adapter_length=16.0, wall_thickness=4.0,
+        driver_exit_angle_deg=15.0,
+        custom_pts=stack,
+        custom_outer_pts=stack + np.dstack([
+            4.0 * stack[:, :, 0] / np.maximum(np.linalg.norm(stack, axis=2), 1e-9),
+            4.0 * stack[:, :, 1] / np.maximum(np.linalg.norm(stack, axis=2), 1e-9),
+        ]),
+        custom_pts_z=stack_z,
+        custom_match_from_z=match_z,
+        output_path=None,
+    )
+    _check_trimesh_watertight(m, "matched-bore driver angle clamp")
+    zs = np.unique(np.round(m.vertices[:, 2], 6))
+    inner_r = []
+    for z in zs[zs <= match_z + 1e-6]:
+        ring = m.vertices[np.isclose(m.vertices[:, 2], z), :2]
+        inner_r.append(float(np.linalg.norm(ring, axis=1).min()))
+    assert max(inner_r) - min(inner_r) < 0.05, \
+        "matched-bore launch must stay cylindrical, not expand then re-close"
+test("adapter matched bore clamps driver angle monotone", test_adapter_matched_bore_clamps_driver_angle_monotone)
 
 def test_hermite_radius_quintic_c2():
     """Quintic raccordo must match value, slope AND curvature at the flare end
@@ -2899,11 +2959,8 @@ def test_threaded_collar_laps_the_flare():
     # Airway untouched: bore stays the spec bore at the same plane.
     r_min = float(np.hypot(sec.vertices[:, 0], sec.vertices[:, 1]).min())
     assert r_min < spec.bore_diam / 2.0 + 1.5, "collar must not invade the airway"
-    # Past the 45° shoulder the wall is back to the plain morph offset.
-    sec_hi = adp.section(plane_origin=[0, 0, 20.0], plane_normal=[0, 0, 1])
-    r_hi = float(np.hypot(sec_hi.vertices[:, 0], sec_hi.vertices[:, 1]).max())
-    assert r_hi < boss_R + 0.1, "collar must taper back into the wall"
-    # collar_overlap=0 restores the old butt joint (no bulge above z=0).
+    # collar_overlap=0 restores the old butt joint (no bulge above z=0) — the
+    # plain-wall reference the collar must taper back into.
     adp0 = _ta.make_adapter_assembly(
         driver_type="1_375in", driver_diam=None, thread_key="1_375in",
         horn_shape="circular", rect_w=0.0, rect_h=0.0,
@@ -2913,6 +2970,13 @@ def test_threaded_collar_laps_the_flare():
     sec0 = adp0.section(plane_origin=[0, 0, 2.5], plane_normal=[0, 0, 1])
     r0 = float(np.hypot(sec0.vertices[:, 0], sec0.vertices[:, 1]).max())
     assert r0 < boss_R - 0.5, "collar_overlap=0 should disable the lap collar"
+    # Past the 45° shoulder the collar has tapered away → the wall matches the
+    # plain (no-collar) morph offset, i.e. no residual collar bulge remains.
+    def _r_out(mesh, z):
+        s = mesh.section(plane_origin=[0, 0, z], plane_normal=[0, 0, 1])
+        return float(np.hypot(s.vertices[:, 0], s.vertices[:, 1]).max())
+    assert abs(_r_out(adp, 20.0) - _r_out(adp0, 20.0)) < 0.3, \
+        "collar must taper back into the plain wall past the shoulder"
 test("threaded collar laps the flare (no butt joint)",
      test_threaded_collar_laps_the_flare)
 
@@ -2951,8 +3015,9 @@ def test_threaded_adapter_25mm_bore():
     )
     at_bore = m.vertices[np.isclose(m.vertices[:, 2], 0.0)]
     bore_r = np.linalg.norm(at_bore[:, :2], axis=1).min()
-    assert abs(bore_r * 2.0 - 25.0) < 0.05, f"acoustic bore={bore_r * 2.0:.3f} mm"
-test('1⅜"-18 threaded adapter has 25 mm acoustic bore', test_threaded_adapter_25mm_bore)
+    # 1" driver acoustic throat = 25.4 mm (matches THREAD_SPECS bore_diam).
+    assert abs(bore_r * 2.0 - 25.4) < 0.05, f"acoustic bore={bore_r * 2.0:.3f} mm"
+test('1⅜"-18 threaded adapter has 25.4 mm acoustic bore', test_threaded_adapter_25mm_bore)
 
 
 def test_adapter_transition_wall_constant_thickness():
@@ -3090,7 +3155,44 @@ def test_adapter_assembly_standard_bolt_on():
 test("adapter assembly standard bolt-on", test_adapter_assembly_standard_bolt_on)
 
 
-# 1⅜"-18 threaded adapter with 25 mm bore — representative horn shapes
+def test_bolt_on_clearance_not_acoustic_bore():
+    """Bolt-on clearance opens only the mounting bore, not the acoustic loft."""
+    spec = _fg.DRIVER_FLANGE_SPECS["bolt_on_1in_2"]
+    captured = {}
+    orig_make_adapter = _ta.make_adapter
+
+    def spy_make_adapter(driver_R, horn_shape, rect_w, rect_h, horn_n_sides,
+                         horn_R_eq, *args, **kwargs):
+        captured["driver_R"] = float(driver_R)
+        captured["horn_R_eq"] = float(horn_R_eq)
+        return orig_make_adapter(driver_R, horn_shape, rect_w, rect_h,
+                                 horn_n_sides, horn_R_eq, *args, **kwargs)
+
+    _ta.make_adapter = spy_make_adapter
+    try:
+        m = _ta.make_adapter_assembly(
+            driver_type="bolt_on_1in_2", driver_diam=None, thread_key=None,
+            horn_shape="circular",
+            rect_w=0.0, rect_h=0.0, poly_n_sides=0, poly_circumR=0.0,
+            horn_R_eq=spec.throat_diam / 2.0,
+            adapter_length=4.0, wall_thickness=4.0,
+            flange_thickness=6.0, driver_clearance=1.2,
+            socket_length=0.0, z_offset=0.0,
+            output_path=None,
+        )
+    finally:
+        _ta.make_adapter = orig_make_adapter
+
+    _check_trimesh_watertight(m, "bolt-on clearance acoustic bore")
+    assert abs(captured["driver_R"] - spec.throat_diam / 2.0) < 1e-9, \
+        "bolt-on clearance must not enlarge the acoustic driver radius"
+    assert abs(captured["horn_R_eq"] - spec.throat_diam / 2.0) < 1e-9, \
+        "matched bolt-on mount should target the same flare inlet radius"
+
+test("bolt-on clearance does not change acoustic bore", test_bolt_on_clearance_not_acoustic_bore)
+
+
+# 1⅜"-18 threaded adapter with 25.4 mm bore — representative horn shapes
 for _shape, _ns, _h_R_eq, _cR in [
     ("polygonal",   6, 12.5, 15.0),
     ("circular",    0, 18.0, 0.0),
@@ -3693,9 +3795,159 @@ def _check_omni_mesh(profile="Exponential", lip=0.0):
             assert m.body_count == 1, f"{profile} {part}: {m.body_count} bodies"
             assert m.volume > 100,    f"{profile} {part}: volume={m.volume:.0f}"
 
-for _prof in ("Exponential", "Tractrix", "Salmon", "Oblate spheroidal"):
+for _prof in ("Exponential", "Tractrix", "Salmon", "Oblate spheroidal", "Conical"):
     test(f"omni {_prof} parts watertight (single body)",
          lambda p=_prof: _check_omni_mesh(p))
+
+def _check_omni_conical_area_law():
+    """Conical omni: channel radius (√(S/π)) grows linearly along the arc."""
+    P = _om.get_omni_profile(25.4, 260.0, n=300, profile="Conical")
+    r_eq = np.sqrt(np.maximum(2.0 * np.pi * P["rho_c"] * P["h"], 0.0) / np.pi)
+    # r_eq should be ~linear in arc length: 2nd difference ≈ 0.
+    s = np.concatenate([[0.0], np.cumsum(np.hypot(np.diff(P["rho_c"]), np.diff(P["z_c"])))])
+    fit = np.polyfit(s, r_eq, 1)
+    resid = np.max(np.abs(r_eq - np.polyval(fit, s)))
+    assert resid < 0.05 * (r_eq[-1] - r_eq[0]), f"conical area not linear-radius (resid={resid:.3f})"
+    assert fit[0] > 0, "conical radius must expand"
+
+test("omni conical: linear-radius (constant-angle) expansion", _check_omni_conical_area_law)
+
+def _check_omni_driver_mount_matched():
+    """Omni driver adapter = MECHANICAL MOUNT only (throat follows the driver bore).
+
+    The UI sets the omni throat to the driver bore, so ``horn_R_eq == driver_R``
+    makes ``make_adapter_assembly`` a matched (identity) transition: a short weld
+    neck + the threaded socket, adding no acoustic length. Guards the fix that the
+    driver→throat morph is absorbed by the channel instead of stacking a long tube
+    on top (which grew the total depth). Mirrors the UI seating + Integrated union.
+    """
+    bore = _ta.THREAD_SPECS["1_375in"].bore_diam  # 25.4 mm — throat == driver bore
+    thickness, socket = 4.0, 15.0
+    neck = max(3.0, thickness)
+
+    mount = _ta.make_adapter_assembly(
+        driver_type="1_375in", driver_diam=None, thread_key="1_375in",
+        horn_shape="circular", rect_w=0, rect_h=0, poly_n_sides=0, poly_circumR=0,
+        horn_R_eq=bore / 2.0, adapter_length=neck, wall_thickness=thickness,
+        socket_length=socket)
+    assert mount.is_watertight and mount.body_count == 1, "matched mount not a clean solid"
+    z_mount = float(mount.bounds[1, 2] - mount.bounds[0, 2])
+
+    # A long 30 mm acoustic transition (the OLD behaviour) would add far more.
+    old = _ta.make_adapter_assembly(
+        driver_type="1_375in", driver_diam=None, thread_key="1_375in",
+        horn_shape="circular", rect_w=0, rect_h=0, poly_n_sides=0, poly_circumR=0,
+        horn_R_eq=25.4 / 2.0, adapter_length=30.0, wall_thickness=thickness,
+        socket_length=socket)
+    z_old = float(old.bounds[1, 2] - old.bounds[0, 2])
+    assert z_mount < z_old - 15.0, (
+        f"matched mount ({z_mount:.1f}) not clearly shorter than the 30 mm "
+        f"acoustic tube ({z_old:.1f}) — the transition was not absorbed")
+    # Mount stick-out is essentially the socket + neck, no 30 mm tube.
+    assert z_mount < socket + 2.0 * neck + 2.0, f"mount too tall ({z_mount:.1f} mm)"
+
+    # Full assembly: throat == driver bore, seat + Integrated union like the UI.
+    parts = _om.build_omni_parts(throat_diam=bore, mouth_diam=260.0, fc=600,
+                                 rings=48, profile="Conical", lip_angle_deg=-9.0,
+                                 bend_scale=0.3, thickness=thickness, n=180)
+    refl, defl = parts["reflector"], parts["deflector"]
+    bell_depth = (max(refl.bounds[1, 2], defl.bounds[1, 2])
+                  - min(refl.bounds[0, 2], defl.bounds[0, 2]))
+    rv = refl.vertices
+    tmask = np.hypot(rv[:, 0], rv[:, 1]) <= (bore / 2.0 + thickness + 1.0)
+    throat_top = float(rv[tmask, 2].max()) if tmask.any() else float(refl.bounds[1, 2])
+    mount.apply_transform(np.diag([1.0, 1.0, -1.0, 1.0]))
+    mount.apply_translation([0.0, 0.0, throat_top - float(mount.bounds[0, 2]) - 2.0])
+    try:
+        refl_u = trimesh.boolean.union([refl, mount], engine="manifold")
+    except Exception:
+        refl_u = trimesh.util.concatenate([refl, mount])
+    assert refl_u.is_watertight and refl_u.body_count == 1, "reflector+mount not welded solid"
+    total = (max(refl_u.bounds[1, 2], defl.bounds[1, 2])
+             - min(refl_u.bounds[0, 2], defl.bounds[0, 2]))
+    # Only the mechanical socket may protrude — depth must NOT grow by a 30 mm tube.
+    assert total - bell_depth < z_mount + 1.0, (
+        f"assembly depth grew by {total - bell_depth:.1f} mm > mount {z_mount:.1f}")
+
+test("omni driver adapter = mechanical mount only (throat=driver bore)",
+     _check_omni_driver_mount_matched)
+
+def _check_omni_bolt_on_clearance_keeps_flare_bore():
+    """Bolt-on clearance must not enlarge the Omni flare inlet."""
+    spec = _fg.DRIVER_FLANGE_SPECS["bolt_on_1in_2"]
+    throat = spec.throat_diam
+    clearance = 1.2
+    P = _om.get_omni_profile(throat, 260.0, fc=600, n=180, profile="Conical")
+    assert abs(P["up_r"][0] - throat / 2.0) < 1e-6, \
+        "Omni reflector inlet must match the nominal acoustic driver bore"
+
+    mount = _ta.make_adapter_assembly(
+        driver_type="bolt_on_1in_2", driver_diam=None, thread_key=None,
+        horn_shape="circular", rect_w=0, rect_h=0, poly_n_sides=0, poly_circumR=0,
+        horn_R_eq=throat / 2.0, adapter_length=4.0, wall_thickness=4.0,
+        flange_thickness=6.0, driver_clearance=clearance)
+    assert mount.is_watertight and mount.body_count == 1, "bolt-on omni mount not watertight"
+
+    # The mount may have a larger mechanical bore in the flange, but the flare
+    # target remains the nominal acoustic bore.
+    P_clear = _om.get_omni_profile(throat + clearance, 260.0, fc=600, n=180, profile="Conical")
+    assert P_clear["up_r"][0] > P["up_r"][0] + 0.5, \
+        "test setup must distinguish nominal bore from clearance-enlarged bore"
+
+test("omni bolt-on clearance keeps nominal flare inlet", _check_omni_bolt_on_clearance_keeps_flare_bore)
+
+def _check_omni_adapter_custom_stack_smooth_union():
+    """Omni adapter follows the reflector sections through a custom overlap."""
+    throat, mouth, thickness = 25.4, 260.0, 4.0
+    rings, n = 64, 220
+    P = _om.get_omni_profile(throat, mouth, fc=600, n=n, profile="Conical",
+                             lip_angle_deg=-9.0, bend_scale=0.3)
+    stack = _om.omni_adapter_section_stack(
+        P, thickness=thickness, follow_depth=7.0, neck_height=6.0, rings=rings)
+    assert stack["custom_pts"].shape == stack["custom_outer_pts"].shape
+    assert stack["custom_pts"].shape[1] == rings
+    assert abs(stack["custom_pts_z"][0] - stack["neck_height"]) < 1e-9
+    assert abs(stack["custom_pts_z"][-1] - stack["adapter_length"]) < 1e-9
+
+    # Throat section equals the reflector inlet; handoff section expands outward.
+    r0 = np.linalg.norm(stack["custom_pts"][0], axis=1).mean()
+    r1 = np.linalg.norm(stack["custom_pts"][-1], axis=1).mean()
+    assert abs(r0 - throat / 2.0) < 1e-5, "custom stack starts off the flare inlet"
+    assert r1 > r0 + 0.5, "custom stack does not follow the expanding reflector"
+
+    parts = _om.build_omni_parts(throat, mouth, fc=600, rings=rings,
+                                 profile="Conical", lip_angle_deg=-9.0,
+                                 bend_scale=0.3, thickness=thickness, n=n)
+    refl = parts["reflector"]
+    rv = refl.vertices
+    throat_top = float(rv[np.hypot(rv[:, 0], rv[:, 1]) <= throat / 2.0 + thickness + 1.0, 2].max())
+    handoff_z = throat_top - stack["follow_depth"]
+
+    adapter = _ta.make_adapter_assembly(
+        driver_type="bolt_on_1in_2", driver_diam=None, thread_key=None,
+        horn_shape="custom", rect_w=0, rect_h=0, poly_n_sides=0, poly_circumR=0,
+        horn_R_eq=stack["horn_R_eq"], adapter_length=stack["adapter_length"],
+        wall_thickness=thickness, flange_thickness=6.0, driver_clearance=0.3,
+        custom_pts=stack["custom_pts"], custom_outer_pts=stack["custom_outer_pts"],
+        custom_pts_z=stack["custom_pts_z"],
+        custom_match_from_z=stack["custom_match_from_z"],
+        bolt_flange_airway_cut=False)
+    assert adapter.is_watertight and adapter.body_count == 1, \
+        "smooth omni bolt-on adapter should be one fused body"
+    adapter.apply_transform(np.diag([1.0, 1.0, -1.0, 1.0]))
+    adapter.apply_translation([0.0, 0.0, handoff_z])
+    adapter.fix_normals()
+
+    trimmed = refl.slice_plane([0.0, 0.0, handoff_z], [0.0, 0.0, -1.0], cap=True)
+    assert trimmed is not None and not trimmed.is_empty, "reflector trim failed"
+    trimmed.remove_unreferenced_vertices(); trimmed.fix_normals()
+    try:
+        joined = trimesh.boolean.union([trimmed, adapter], engine="manifold")
+    except Exception:
+        joined = trimesh.util.concatenate([trimmed, adapter])
+    assert joined.is_watertight and joined.body_count == 1, "smooth omni adapter union failed"
+
+test("omni adapter uses custom overlap stack", _check_omni_adapter_custom_stack_smooth_union)
 
 def _check_omni_standoffs():
     """Centering ribs weld into the deflector as one watertight solid."""
@@ -3729,6 +3981,182 @@ def _check_omni_parts_common_frame():
         "separate pillars missing/not watertight"
 
 test("omni build_omni_parts common frame + pillars modes", _check_omni_parts_common_frame)
+
+def _check_omni_pillar_fixing_holes():
+    """Adjustable reflector↔pillar holes drill both mating parts."""
+    base = _om.build_omni_parts(25.4, 260.0, fc=600, rings=48, n=180,
+                                profile="Conical", pillar_count=3,
+                                pillars_fused=False)
+    ref_only = _om.build_omni_parts(
+        25.4, 260.0, fc=600, rings=48, n=180, profile="Conical",
+        pillar_count=3, pillars_fused=False,
+        pillar_hole_ref_diam=4.0, pillar_hole_def_diam=0.0,
+        pillar_hole_pos=0.55, pillar_hole_depth=6.0)
+    drilled = _om.build_omni_parts(
+        25.4, 260.0, fc=600, rings=48, n=180, profile="Conical",
+        pillar_count=3, pillars_fused=False,
+        pillar_hole_ref_diam=4.0, pillar_hole_def_diam=2.4,
+        pillar_hole_pos=0.55,
+        pillar_hole_depth=6.0, pillar_hole_head_diam=6.5,
+        pillar_hole_head_depth=2.0)
+    assert ref_only["reflector"].volume < base["reflector"].volume - 1.0, \
+        "reflector-only fixing holes removed no reflector material"
+    assert abs(ref_only["pillars"].volume - base["pillars"].volume) < 0.5, \
+        "reflector-only holes must not cut the pillars"
+    assert drilled["reflector"].is_watertight, "drilled reflector not watertight"
+    assert drilled["pillars"] is not None and drilled["pillars"].is_watertight, \
+        "drilled pillars missing/not watertight"
+    assert drilled["reflector"].volume < base["reflector"].volume - 1.0, \
+        "reflector fixing holes removed no material"
+    assert drilled["pillars"].volume < base["pillars"].volume - 1.0, \
+        "pillar fixing holes removed no material"
+
+test("omni pillar fixing holes drill reflector and pillars", _check_omni_pillar_fixing_holes)
+
+def _check_omni_pillar_api_aliases():
+    """Canonical pillar names and legacy names must remain equivalent."""
+    args = dict(throat_diam=25.4, mouth_diam=260.0, fc=600, n=220, profile="Conical")
+    legacy = _om.get_omni_profile(**args, n_pillars=3, pillar_width=3.0)
+    canonical = _om.get_omni_profile(**args, pillar_count=3, pillar_width=3.0)
+    assert canonical["pillar_count"] == legacy["n_pillars"] == 3
+    assert np.allclose(canonical["h"], legacy["h"]), "pillar alias changed the gap"
+    assert np.allclose(canonical["w_comp"], legacy["w_comp"]), "pillar alias changed compensation"
+
+    old_parts = _om.build_omni_parts(25.4, 260.0, fc=600, n=160,
+                                     standoffs=2, ribs_fused=False)
+    new_parts = _om.build_omni_parts(25.4, 260.0, fc=600, n=160,
+                                     pillar_count=2, pillars_fused=False)
+    assert old_parts["pillars"] is not None and new_parts["pillars"] is not None, \
+        "legacy/canonical separate pillars should both be generated"
+    assert old_parts["pillars"].body_count == new_parts["pillars"].body_count == 2
+
+    try:
+        _om.get_omni_profile(**args, n_pillars=2, pillar_count=3)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("conflicting pillar aliases should be rejected")
+
+test("omni pillar API aliases stay compatible", _check_omni_pillar_api_aliases)
+
+def _check_omni_empty_pillar_band():
+    """A too-short meridian can leave no valid pillar band; keep it a no-op."""
+    P = _om.build_omni_parts(25.4, 260.0, fc=600, n=4, rings=16,
+                             pillar_count=3, pillars_fused=False)
+    assert P["pillars"] is None, "empty pillar band should not create a degenerate body"
+
+test("omni empty pillar band is a no-op", _check_omni_empty_pillar_band)
+
+def _check_omni_pillar_compensation():
+    """Aerodynamic pillars widen the gap so the open area still follows S(s)."""
+    args = dict(throat_diam=25.4, mouth_diam=260.0, fc=600, n=300, profile="Exponential")
+    P0 = _om.get_omni_profile(**args)
+    P1 = _om.get_omni_profile(**args, n_pillars=3, pillar_width=4.0)
+    circ = 2.0 * np.pi * P1["rho_c"]
+    S = 2.0 * np.pi * P0["rho_c"] * P0["h"]            # area law (full annulus open)
+    # Compensation is exact w.r.t. its own (sin²) profile w_comp.
+    open_area = (circ - 3.0 * P1["w_comp"]) * P1["h"]
+    assert np.allclose(open_area, S, rtol=1e-6), "pillar compensation broke the area law"
+    # The physical (sin) pillar leaves only a small, smooth area deficit vs the
+    # (sin²) compensation — a few % at most, scaling with pillar width; no kink.
+    phys_area = (circ - 3.0 * P1["w_mm"]) * P1["h"]
+    assert (np.abs(phys_area / S - 1.0).max()) < 0.025, "physical pillar area deficit too large"
+    # Pillars taper to nothing at the throat & mouth → gap unchanged there…
+    assert abs(P1["h"][0] - P0["h"][0]) < 1e-9 and abs(P1["h"][-1] - P0["h"][-1]) < 1e-9, \
+        "throat/mouth gap should be untouched by pillars"
+    # …but strictly wider mid-band, where their volume is compensated.
+    assert (P1["h"] > P0["h"] + 1e-9).any(), "gap was not widened for pillar volume"
+    # The width profile is a lens: zero at both band ends, positive in between.
+    nz = np.nonzero(P1["w_mm"] > 1e-9)[0]
+    assert nz.size and P1["w_mm"][nz[0] - 1] == 0.0 and P1["w_mm"].max() <= 4.0 + 1e-9, \
+        "pillar width should taper from zero (airfoil), never exceed the set width"
+
+test("omni aerodynamic pillars: area-law volume compensation", _check_omni_pillar_compensation)
+
+def _check_omni_pillar_no_wall_kink():
+    """The pillar compensation must not leave a C¹ kink (annular step) in the
+    wall at the band edge: the sin² taper starts with zero slope."""
+    args = dict(throat_diam=25.4, mouth_diam=260.0, fc=600, n=300, profile="Conical",
+                lip_angle_deg=0.0, bend_scale=0.4)
+    P0 = _om.get_omni_profile(**args, n_pillars=0)
+    P1 = _om.get_omni_profile(**args, n_pillars=3, pillar_width=3.0)
+    i0 = P1["pillar_i0"]
+
+    def slope_jump(P):  # change in reflector-wall slope across the band edge
+        sl = np.gradient(P["up_z"], P["up_r"])
+        return abs(sl[i0 + 2] - sl[i0 - 2])
+
+    base, withp = slope_jump(P0), slope_jump(P1)
+    # Pillars must add almost nothing to the natural slope change at the edge.
+    assert withp < base + 0.05, f"pillar compensation kinks the wall (base={base:.3f}, with={withp:.3f})"
+    # The compensation profile has a sin² (zero-slope) onset: its first in-band
+    # sample is quadratically small, unlike the sharper (sin) physical pillar.
+    u1 = 1.0 / (P1["pillar_i1"] - i0 - 1)
+    assert P1["w_comp"][i0 + 1] < 3.0 * (np.sin(np.pi * u1) ** 2) * 1.01, "compensation onset is not sin²"
+    assert P1["w_mm"][i0 + 1] > P1["w_comp"][i0 + 1], "physical pillar (sin) should be sharper than comp (sin²)"
+
+test("omni pillar compensation: no C¹ wall kink (sin² onset)", _check_omni_pillar_no_wall_kink)
+
+def _lip_angle(r, z):
+    return np.degrees(np.arctan2(z[-1] - z[-3], r[-1] - r[-3]))
+
+def _check_omni_vertical_coverage():
+    """vert_cov_deg splays the mouth lips apart; both flare modes are valid."""
+    args = dict(throat_diam=25.4, mouth_diam=245.0, fc=1500, n=300,
+                profile="Oblate spheroidal")
+    P0 = _om.get_omni_profile(**args, vert_cov_deg=0.0)
+    S_law = 2.0 * np.pi * P0["rho_c"] * P0["h"]
+    def incl(P):
+        return (_lip_angle(P["up_r"], P["up_z"]) - _lip_angle(P["low_r"], P["low_z"]))
+    def area(P):
+        g = np.hypot(P["up_r"] - P["low_r"], P["up_z"] - P["low_z"])
+        return 2.0 * np.pi * 0.5 * (P["low_r"] + P["up_r"]) * g
+    # cov=0: outer-face normal is exactly the centerline normal (no regression).
+    assert np.allclose(P0["nrho_out"], P0["nrho"]) and np.allclose(P0["nz_out"], P0["nz"]), \
+        "cov=0 must leave the reflector outer normal untouched"
+    # CD flare: lips diverge strongly; area opens past the law near the mouth.
+    Pc = _om.get_omni_profile(**args, vert_cov_deg=60.0, preserve_area_law=False)
+    assert incl(Pc) > incl(P0) + 30.0, "CD splay did not widen the lips"
+    assert area(Pc)[-1] > S_law[-1] * 1.3, "CD mouth area should open past the law"
+    # Strict: area stays exactly on the law (mouth + flare), gentler divergence.
+    Ps = _om.get_omni_profile(**args, vert_cov_deg=60.0, preserve_area_law=True)
+    assert abs(area(Ps)[-1] / S_law[-1] - 1.0) < 2e-3, "strict mode: mouth area off the law"
+    assert abs(area(Ps)[int(0.8 * 300)] / S_law[int(0.8 * 300)] - 1.0) < 2e-3, \
+        "strict mode: flare area off the law"
+    assert incl(Ps) > incl(P0) + 3.0, "strict mode should still splay the aim"
+    # Both modes only bend the terminal region: the throat half is untouched.
+    k = int(0.4 * 300)
+    assert abs(Ps["up_z"][k] - P0["up_z"][k]) < 1e-9 and abs(Pc["up_z"][k] - P0["up_z"][k]) < 1e-9, \
+        "splay leaked into the throat region"
+    # Parts stay watertight with a big splay, in both modes.
+    for strict in (True, False):
+        Pm = _om.build_omni_parts(**args, lip_angle_deg=-9.0, bend_scale=0.3,
+                                  standoffs=3, ribs_fused=True, vert_cov_deg=60.0,
+                                  preserve_area_law=strict)
+        assert Pm["deflector"].is_watertight and Pm["reflector"].is_watertight, \
+            f"splayed omni parts not watertight (strict={strict})"
+
+test("omni vertical coverage: strict area-law + CD flare modes", _check_omni_vertical_coverage)
+
+def _check_omni_pillar_nose_clearance():
+    """A steep profile keeps the deflector on-axis past t=0.35; the pillar band
+    must start past the nose so the ribs don't collide on the axis."""
+    # Oblate at high fc / small mouth pins low_r≈0 well past t=0.35.
+    P = _om.get_omni_profile(25.4, 245.0, fc=1500, n=300, profile="Oblate spheroidal",
+                             n_pillars=3, pillar_width=3.0)
+    i0 = P["pillar_i0"]
+    assert i0 > int(0.35 * 300), "band should be pushed past the nose for a steep profile"
+    assert P["low_r"][i0] > _om._STANDOFF_OVERLAP, "pillar root would sit on/through the axis"
+    # And the fused + separate builds are watertight for this case.
+    for fused in (True, False):
+        Q = _om.build_omni_parts(25.4, 245.0, fc=1500, profile="Oblate spheroidal",
+                                 standoffs=3, ribs_fused=fused)
+        assert Q["deflector"].is_watertight, f"deflector not watertight (fused={fused})"
+        if not fused:
+            assert Q["pillars"].is_watertight and Q["pillars"].body_count == 3, \
+                "separate pillars degenerate near the axis"
+
+test("omni pillar band clears the deflector nose (steep profile)", _check_omni_pillar_nose_clearance)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

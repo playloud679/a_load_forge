@@ -130,6 +130,20 @@ def _sync_throat_ar():
         st.session_state["throat_h_key"] = st.session_state["throat_w_key"] / ar
     _on_horn_change()
 
+def _mesh_slice_sig(m):
+    """Content-aware fingerprint of a mesh for the slice caches.
+
+    Bounds alone miss *internal* geometry changes — e.g. changing the omni pillar
+    count adds ribs inside the deflector without moving the bounding box, so a
+    bounds-only signature would keep serving the previously sliced pieces. Fold
+    in the face count and volume so any regeneration invalidates the slice cache.
+    """
+    try:
+        vol = round(float(m.volume), 3)
+    except Exception:
+        vol = None
+    return (tuple(np.round(m.bounds.reshape(-1), 4)), int(len(m.faces)), vol)
+
 if _BANNER_PATH.exists():
     st.image(str(_BANNER_PATH), width="stretch")
 st.caption(f":gray[v{_VERSION}] · Acoustic profile + mounting flanges · watertight assembly for 3D printing")
@@ -399,6 +413,7 @@ with st.sidebar:
     _ta_driver_clearance = 0.3
     _ta_thread_clearance = 0.05
     _ta_adapter_len = 0.0
+    _ta_driver_exit_angle = 0.0
     _ta_socket_depth = 0.0
     _ta_flange_sp = 6.0
     _ft_driver_d = None
@@ -413,8 +428,10 @@ with st.sidebar:
         _ta_include_adapter = st.checkbox(
             "Include shape adapter", True,
             key=f"ta_incl_adapter{_adapter_suffix}",
-            help=("Adapter from the driver to the omni throat, exported as a "
-                  "separate mating part." if is_omni else
+            help=("Sets the acoustic throat to the driver bore (the channel starts "
+                  "from the driver, so no acoustic length is added) and builds the "
+                  "mechanical driver mount — only the socket/flange sits behind the "
+                  "throat plane." if is_omni else
                   "Transitions from the driver throat to the horn profile. "
                   "When enabled, the acoustic profile starts from this driver-side area."),
         )
@@ -432,7 +449,7 @@ with st.sidebar:
             _driver_options = [
                 "Flanged custom",
                 *_adapter_driver_labels,
-                'Threaded 1\u215c"-18 (25 mm bore)',
+                'Threaded 1\u215c"-18 (25.4 mm bore)',
             ]
             _ta_driver_type = st.radio(
                 "Driver interface", _driver_options,
@@ -448,15 +465,32 @@ with st.sidebar:
                 else "1_375in" if _driver_is_threaded else "flanged"
             )
             _ta_thread_key = "1_375in" if _driver_is_threaded else None
-
-            _ta_adapter_len = st.number_input(
-                "Adapter length (mm)" if is_omni else "Morph length inside horn (mm)",
-                5.0, 200.0, 30.0, 5.0,
-                key=f"ta_adapter_len{_adapter_suffix}",
-                help=("Length of the driver→throat transition part." if is_omni else
-                      "Length of the round-to-shape transition. It replaces the first "
-                      "part of the flare, so it does not increase horn depth."),
+            _ta_driver_exit_angle = st.number_input(
+                "Throat opening (total \u00b0)", 0.0, 90.0, 0.0, 1.0,
+                key=f"ta_driver_exit_angle{_adapter_suffix}",
+                help=("Total included acoustic exit angle of the compression driver. "
+                      "The adapter launches with tan(angle/2); use 15\u00b0 for a "
+                      "typical 7.5\u00b0-per-side driver."),
             )
+
+            if is_omni:
+                # Omni throat now equals the driver bore, so the channel itself is
+                # the driver→throat transition — there is no separate acoustic tube
+                # to size. Only the mechanical mount (threaded socket / flange) sits
+                # behind the throat; a short fixed neck welds it to the reflector.
+                _ta_adapter_len = max(3.0, thickness)
+                st.caption(
+                    "Throat follows the driver bore, so the mount adds **no acoustic "
+                    "length** — only the socket/flange sits behind the throat plane "
+                    "(mount depth = socket depth / flange thickness).")
+            else:
+                _ta_adapter_len = st.number_input(
+                    "Morph length inside horn (mm)",
+                    5.0, 200.0, 30.0, 5.0,
+                    key=f"ta_adapter_len{_adapter_suffix}",
+                    help="Length of the round-to-shape transition. It replaces the first "
+                         "part of the flare, so it does not increase horn depth.",
+                )
             _ta_flange_sp = st.number_input(
                 "Flange thickness (mm)", 2.0, 20.0, 6.0, 0.5,
                 key=f"ta_flange_sp{_adapter_suffix}",
@@ -484,11 +518,13 @@ with st.sidebar:
                 _ta_driver_clearance = st.number_input(
                     "Throat clearance (mm)", 0.0, 2.0, 0.3, 0.1,
                     key=f"ta_driver_clearance{_adapter_suffix}",
-                    help="Added to the nominal driver throat diameter.",
+                    help=("Mechanical clearance on the bolt-on flange bore. "
+                          "It does not change the acoustic flare inlet."),
                 )
-                _ft_driver_d = float(_driver_spec.throat_diam + _ta_driver_clearance)
+                _ft_driver_d = float(_driver_spec.throat_diam)
                 st.caption(
-                    f"{_driver_spec.name}: acoustic throat \u00d8{_ft_driver_d:.1f} mm.")
+                    f"{_driver_spec.name}: acoustic throat \u00d8{_ft_driver_d:.1f} mm "
+                    f"(mount bore \u00d8{_ft_driver_d + _ta_driver_clearance:.1f} mm).")
                 _ta_socket_depth = 0.0
             else:
                 _default_driver_d = float(st.session_state.get(
@@ -503,10 +539,14 @@ with st.sidebar:
                 )
                 _ta_socket_depth = 0.0
 
-    # Omni keeps its user throat Ø (the adapter morphs driver→throat as a
-    # separate part), so the adapter must NOT redefine the throat for omni.
+    # When an adapter is present the driver bore defines the acoustic throat: the
+    # flare/channel starts from the driver so the transition is absorbed and no
+    # length is added. Omni is included — its throat becomes the driver bore and
+    # only the mechanical mount (socket/flange) sits behind the throat plane (see
+    # the omni adapter build). Iwata is intrinsic (throat is a scale input), so it
+    # is excluded.
     _adapter_controls_throat = bool(_ta_include_adapter and _ft_driver_d
-                                    and not is_iwata and not is_omni)
+                                    and not is_iwata)
 
     st.markdown("##### Dimensions")
 
@@ -532,14 +572,25 @@ with st.sidebar:
     osse_throat_angle, osse_mouth_exp = 0.0, 6.0
     osse_morph_start, osse_morph_rate = 0.0, 2.0
     # Omni (CD 360°) defaults; overridden by the is_omni input block below.
-    omni_law, omni_lip, omni_bend = "Exponential", 0.0, 1.0
+    omni_law, omni_lip, omni_bend, omni_vcov = "Exponential", 0.0, 1.0, 0.0
+    omni_preserve_area = True
     omni_standoffs, omni_standoff_w, omni_ribs_fused = 3, 3.0, True
+    omni_pillar_holes = False
+    omni_pillar_ref_hole_d = 3.4
+    omni_pillar_def_hole_d = 2.6
+    omni_pillar_hole_pos = 0.55
+    omni_pillar_hole_depth = 4.0
+    omni_pillar_head_d = 0.0
+    omni_pillar_head_depth = 0.0
     with col_in:
         st.markdown("**You set**")
         if is_osse:
             if _adapter_controls_throat:
                 throat_d = float(_ft_driver_d)
                 st.caption(
+                    f"Throat = driver bore \u00d8{throat_d:.1f} mm: the channel starts "
+                    f"from the driver, so the adapter adds no acoustic depth."
+                    if is_omni else
                     f"Throat is computed at the adapter exit from driver "
                     f"\u00d8{throat_d:.1f} mm and the expansion profile.")
             else:
@@ -629,6 +680,9 @@ with st.sidebar:
             if _adapter_controls_throat:
                 throat_d = float(_ft_driver_d)
                 st.caption(
+                    f"Throat = driver bore \u00d8{throat_d:.1f} mm: the channel starts "
+                    f"from the driver, so the adapter adds no acoustic depth."
+                    if is_omni else
                     f"Throat is computed at the adapter exit from driver "
                     f"\u00d8{throat_d:.1f} mm and the expansion profile.")
             else:
@@ -658,35 +712,95 @@ with st.sidebar:
 
         if is_omni:
             omni_law = st.selectbox("Expansion law",
-                ["Exponential", "Tractrix", "Salmon", "Oblate spheroidal"],
+                ["Exponential", "Tractrix", "Salmon", "Oblate spheroidal", "Conical"],
                 index=0, key="omni_law",
-                help="Area law for the radial channel gap S(s) along the bend")
+                help="Area law for the radial channel gap S(s) along the bend. "
+                     "Conical = constant expansion angle (constant-directivity "
+                     "reference; poor low-frequency loading).")
             _olc = st.columns(2)
             with _olc[0]:
                 omni_lip = st.number_input("Mouth lip angle (°)", -45.0, 60.0, 0.0, 1.0,
                     key="omni_lip",
-                    help="Flow angle at the mouth. 0 = fires purely radial (clean omni); "
-                         "<0 = upturned morning-glory bell.")
+                    help="Vertical AIM: flow angle at the mouth. 0 = fires purely radial "
+                         "(clean omni); <0 = upturned morning-glory bell.")
             with _olc[1]:
                 omni_bend = st.number_input("Bend height ×", 0.3, 3.0, 1.0, 0.1,
                     key="omni_bend",
                     help="Vertical stretch of the deflector/bend (taller = >1)")
+            omni_vcov = st.number_input("Vertical coverage (°)", 0.0, 120.0, 0.0, 5.0,
+                key="omni_vcov",
+                help="Vertical DIRECTIVITY: splays the two mouth lips apart by this angle "
+                     "(reflector lip up, deflector lip down) so the 360° output fans out "
+                     "vertically. 0 = collimated (narrow vertical beam); larger = wider "
+                     "vertical dispersion. `Mouth lip angle` still aims the fan up/down.")
+            if omni_vcov > 0:
+                omni_preserve_area = st.radio("Flare expansion",
+                    ["Keep area law (exact loading)", "CD flare (wider coverage)"],
+                    index=0, horizontal=True, key="omni_preserve_area",
+                    help="How the splay interacts with the expansion law. Keep area law: "
+                         "the gap is re-set after splaying so S(s) stays exactly on the "
+                         "chosen law (mouth doesn't balloon) — coverage is gentler. CD "
+                         "flare: the mouth opens freely for stronger coverage, so the area "
+                         "grows faster than the law in the last ~45% (standard CD mouth).") \
+                    == "Keep area law (exact loading)"
             _osc = st.columns(2)
             with _osc[0]:
                 omni_standoffs = int(st.number_input("Centering ribs", 0, 6, 3, 1,
                     key="omni_standoffs",
-                    help="Self-centering struts welded onto the deflector so it seats "
-                         "concentrically against the reflector. 0 = none."))
+                    help="Aerodynamic self-centering struts across the channel: each is a "
+                         "streamlined lens (width tapers to a knife edge at the leading/"
+                         "trailing edge → near-zero diffraction), and the gap is widened "
+                         "locally so their volume doesn't disturb the area law. 0 = none."))
             with _osc[1]:
                 omni_standoff_w = st.number_input("Rib width (mm)", 1.0, 12.0, 3.0, 0.5,
                     key="omni_standoff_w",
-                    help="Tangential width of each rib (thinner = less channel obstruction)")
+                    help="Max tangential width of each pillar mid-chord (it tapers to zero "
+                         "at both ends). Thinner = less blockage to compensate.")
             if omni_standoffs > 0:
                 omni_ribs_fused = st.radio("Pillars", ["Fused to deflector", "Separate part"],
                     index=0, horizontal=True, key="omni_ribs_fused",
                     help="Fused: ribs welded into the deflector (prints as one). "
                          "Separate: deflector stays smooth and the ribs export as a "
                          "separate 'pillars' part.") == "Fused to deflector"
+                omni_pillar_holes = st.checkbox(
+                    "Pillar fixing holes", False, key="omni_pillar_holes",
+                    help="Drill one screw hole per pillar from the reflector/flare into "
+                         "the pillar, aligned to the local wall normal.")
+                if omni_pillar_holes:
+                    _ohc1, _ohc2 = st.columns(2)
+                    with _ohc1:
+                        omni_pillar_ref_hole_d = st.number_input(
+                            "Reflector hole Ø (mm)", 1.0, 10.0, 3.4, 0.1,
+                            key="omni_pillar_ref_hole_d",
+                            help="Clearance/pass-through hole in the reflector/flare wall.")
+                    with _ohc2:
+                        omni_pillar_def_hole_d = st.number_input(
+                            "Deflector/pillar hole Ø (mm)", 1.0, 10.0, 2.6, 0.1,
+                            key="omni_pillar_def_hole_d",
+                            help="Pilot/thread/insert hole in the pillar or fused deflector.")
+                    _ohc3, _ohc4 = st.columns(2)
+                    with _ohc3:
+                        omni_pillar_hole_pos = st.number_input(
+                            "Hole position (%)", 10, 90, 55, 5,
+                            key="omni_pillar_hole_pos",
+                            help="Position along each pillar: 10 = throat-side, "
+                                 "90 = mouth-side.") / 100.0
+                    with _ohc4:
+                        omni_pillar_hole_depth = st.number_input(
+                            "Thread depth (mm)", 1.0, 20.0, 4.0, 0.5,
+                            key="omni_pillar_hole_depth",
+                            help="How far the through-hole continues into the pillar "
+                                 "after crossing the reflector wall.")
+                    _ohc4, _ohc5 = st.columns(2)
+                    with _ohc4:
+                        omni_pillar_head_d = st.number_input(
+                            "Counterbore Ø (mm)", 0.0, 16.0, 0.0, 0.5,
+                            key="omni_pillar_head_d",
+                            help="0 disables the screw-head pocket.")
+                    with _ohc5:
+                        omni_pillar_head_depth = st.number_input(
+                            "Counterbore depth (mm)", 0.0, 10.0, 0.0, 0.5,
+                            key="omni_pillar_head_depth")
 
         if not is_osse:            # OS-SE already set its own H/V coverage above
             coverage_h = coverage_v = 90.0
@@ -811,7 +925,11 @@ with st.sidebar:
             _Rr, _Zb, _Zt = _rd.get_radial_profiles(throat_d, mouth_d, fc, 50, profile_type)
             _gap_t = _Zt[0] - _Zb[0]; _gap_m = _Zt[-1] - _Zb[-1]
         elif is_omni:
-            _Pom = _om.get_omni_profile(throat_d, mouth_d, fc, 120, omni_law, omni_lip, omni_bend)
+            _Pom = _om.get_omni_profile(
+                throat_diam=throat_d, mouth_diam=mouth_d, fc=fc, n=120,
+                profile=omni_law, lip_angle_deg=omni_lip, bend_scale=omni_bend,
+                pillar_count=omni_standoffs, pillar_width=omni_standoff_w,
+                vert_cov_deg=omni_vcov, preserve_area_law=omni_preserve_area)
             _gap_t = float(_Pom["h"][0]); _gap_m = float(_Pom["h"][-1])
             _mouth_d_eff = mouth_d
         elif is_rect:
@@ -1108,7 +1226,11 @@ with st.container():
             ax.fill_between(Rr, Zb, Zt, alpha=.15, color="#4CAF50")
             ax.set_xlabel("R (mm)")
         elif is_omni:
-            _Po = _om.get_omni_profile(throat_d, mouth_d, fc, segments, omni_law, omni_lip, omni_bend)
+            _Po = _om.get_omni_profile(
+                throat_diam=throat_d, mouth_diam=mouth_d, fc=fc, n=segments,
+                profile=omni_law, lip_angle_deg=omni_lip, bend_scale=omni_bend,
+                pillar_count=omni_standoffs, pillar_width=omni_standoff_w,
+                vert_cov_deg=omni_vcov, preserve_area_law=omni_preserve_area)
             ax.plot(_Po["low_r"], _Po["low_z"], label="Deflector wall", c="#FF5722")
             ax.plot(_Po["up_r"], _Po["up_z"], label="Reflector wall", c="#2196F3")
             ax.plot(_Po["rho_c"], _Po["z_c"], "--", c="#9aa0a6", alpha=.6, label="Centerline")
@@ -2610,23 +2732,61 @@ if gen_btn:
                     throat_diam=throat_d, mouth_diam=mouth_d, fc=fc,
                     rings=rings_n, profile=omni_law, lip_angle_deg=omni_lip,
                     bend_scale=omni_bend, thickness=thickness, n=segments,
-                    standoffs=omni_standoffs, standoff_width=omni_standoff_w,
-                    ribs_fused=omni_ribs_fused)
+                    pillar_count=omni_standoffs, standoff_width=omni_standoff_w,
+                    pillars_fused=omni_ribs_fused, vert_cov_deg=omni_vcov,
+                    preserve_area_law=omni_preserve_area,
+                    pillar_hole_ref_diam=omni_pillar_ref_hole_d if omni_pillar_holes else 0.0,
+                    pillar_hole_def_diam=omni_pillar_def_hole_d if omni_pillar_holes else 0.0,
+                    pillar_hole_pos=omni_pillar_hole_pos,
+                    pillar_hole_depth=omni_pillar_hole_depth,
+                    pillar_hole_head_diam=omni_pillar_head_d,
+                    pillar_hole_head_depth=omni_pillar_head_depth)
                 _o_reflector = _oparts["reflector"]
                 _o_deflector = _oparts["deflector"]
                 _o_pillars = _oparts["pillars"]
 
-                # Throat adapter (driver → circular throat Ø = throat_d).
+                # Driver MOUNT only. throat_d now equals the driver bore (the adapter
+                # controls the throat), so horn_R_eq == driver_R makes this a matched
+                # (identity) transition: a short weld neck + the mechanical socket/
+                # flange. It adds NO acoustic length — only the mount sits behind the
+                # throat plane. The driver→throat "morph" is absorbed by the channel,
+                # which starts from the driver bore (see _adapter_controls_throat).
                 _o_adapter = None
+                _rv = _o_reflector.vertices
+                _rr = np.hypot(_rv[:, 0], _rv[:, 1])
+                _throat_mask = _rr <= (throat_d / 2.0 + thickness + 1.0)
+                _throat_top = (float(_rv[_throat_mask, 2].max())
+                               if _throat_mask.any()
+                               else float(_o_reflector.bounds[1, 2]))
                 if _ta_include_adapter and _ft_driver_d and _ta_adapter_len > 0.5:
                     try:
+                        _Pad = _om.get_omni_profile(
+                            throat_diam=throat_d, mouth_diam=mouth_d, fc=fc, n=segments,
+                            profile=omni_law, lip_angle_deg=omni_lip, bend_scale=omni_bend,
+                            pillar_count=omni_standoffs, pillar_width=omni_standoff_w,
+                            vert_cov_deg=omni_vcov, preserve_area_law=omni_preserve_area)
+                        _omni_follow_depth = min(
+                            max(6.0, 1.75 * thickness),
+                            max(0.5, 0.45 * (_throat_top - float(_o_reflector.bounds[0, 2]))),
+                        )
+                        _omni_neck_height = (
+                            max(_ta_flange_sp, thickness)
+                            if _driver_is_flanged else max(3.0, thickness)
+                        )
+                        _ostack = _om.omni_adapter_section_stack(
+                            _Pad, thickness=thickness,
+                            follow_depth=_omni_follow_depth,
+                            neck_height=_omni_neck_height,
+                            rings=rings_n)
                         _o_adapter = _ta.make_adapter_assembly(
                             driver_type=_ta_driver_key,
                             driver_diam=_ft_driver_d if _driver_is_custom_flange else None,
-                            thread_key=_ta_thread_key, horn_shape="circular",
+                            thread_key=_ta_thread_key, horn_shape="custom",
                             rect_w=0.0, rect_h=0.0, poly_n_sides=0, poly_circumR=0.0,
-                            horn_R_eq=throat_d / 2.0, adapter_length=_ta_adapter_len,
+                            horn_R_eq=_ostack["horn_R_eq"],
+                            adapter_length=_ostack["adapter_length"],
                             wall_thickness=thickness,
+                            driver_exit_angle_deg=_ta_driver_exit_angle,
                             flange_R=_ft_od / 2.0 if _driver_is_custom_flange else 0.0,
                             flange_thickness=_ta_flange_sp if _driver_is_flanged else 0.0,
                             flange_bolt_R=_ft_bc / 2.0 if _driver_is_custom_flange else 0.0,
@@ -2636,23 +2796,39 @@ if gen_btn:
                             flange_outer_n=_ft_outer_n if _driver_is_custom_flange else 0,
                             driver_clearance=_ta_driver_clearance,
                             socket_length=_ta_socket_depth if _driver_is_threaded else 0.0,
-                            thread_clearance=_ta_thread_clearance if _driver_is_threaded else 0.05)
+                            thread_clearance=_ta_thread_clearance if _driver_is_threaded else 0.05,
+                            custom_pts=_ostack["custom_pts"],
+                            custom_outer_pts=_ostack["custom_outer_pts"],
+                            custom_pts_z=_ostack["custom_pts_z"],
+                            custom_match_from_z=_ostack["custom_match_from_z"],
+                            bolt_flange_airway_cut=False)
                     except Exception as _aexc:
                         st.warning(f"Throat adapter could not be built: {_aexc}")
                         _o_adapter = None
 
-                # Seat the adapter at the reflector throat (top of the part):
-                # mirror Z so the driver side points away from the mouth, drop the
-                # throat face onto the reflector throat with a 2 mm overlap.
+                # Seat the adapter on the reflector THROAT rim (central hole,
+                # ρ≈Rt) — NOT the global Z bounds: a negative lip angle curves the
+                # outer mouth rim up above the throat, so bounds[1,2] would leave
+                # the adapter floating above the actual throat (detached in
+                # Integrated mode). Mirror Z so the driver side points away from
+                # the mouth, then place the adapter's custom handoff inside the
+                # reflector: its tail follows the exact Omni inner/outer sections
+                # through the overlap, like the OS-SE/R-OSSE adapter path.
                 if _o_adapter is not None:
-                    _throat_top = float(_o_reflector.bounds[1, 2])
                     _o_adapter.apply_transform(np.diag([1.0, 1.0, -1.0, 1.0]))
-                    _o_adapter.apply_translation(
-                        [0.0, 0.0, _throat_top - float(_o_adapter.bounds[0, 2]) - 2.0])
+                    _follow_depth = float(_ostack["follow_depth"]) if "_ostack" in locals() else 2.0
+                    _handoff_z = _throat_top - _follow_depth
+                    _o_adapter.apply_translation([0.0, 0.0, _handoff_z])
                     _o_adapter.fix_normals()
 
                 _o_adapter_separated = bool(_o_adapter is not None and _ta_is_separated)
                 if _o_adapter is not None and not _ta_is_separated:
+                    _trimmed_reflector = _o_reflector.slice_plane(
+                        [0.0, 0.0, _handoff_z], [0.0, 0.0, -1.0], cap=True)
+                    if _trimmed_reflector is not None and not _trimmed_reflector.is_empty:
+                        _o_reflector = _trimmed_reflector
+                        _o_reflector.remove_unreferenced_vertices()
+                        _o_reflector.fix_normals()
                     try:
                         _o_reflector = _tm.boolean.union(
                             [_o_reflector, _o_adapter], engine="manifold")
@@ -3223,6 +3399,7 @@ if gen_btn:
                         horn_R_eq=horn_R_eq,
                         adapter_length=_adapter_length_actual,
                         wall_thickness=thickness,
+                        driver_exit_angle_deg=_ta_driver_exit_angle,
                         flange_R=_ft_od / 2.0 if _driver_is_custom_flange else 0.0,
                         flange_thickness=_ta_flange_sp if _driver_is_flanged else 0.0,
                         flange_bolt_R=_ft_bc / 2.0 if _driver_is_custom_flange else 0.0,
@@ -4252,7 +4429,7 @@ with st.sidebar:
 
         _pv_keep_z = _throat_keep_z if (_keep_throat and _throat_keep_z is not None) else _manual_keep_z
         _pv_sig = (
-            tuple(np.round(mesh_to_slice.bounds.reshape(-1), 4)),
+            _mesh_slice_sig(mesh_to_slice),
             round(float(_pv_x), 4), round(float(_pv_y), 4), round(float(_pv_z), 4),
             None if _pv_keep_z is None else round(float(_pv_keep_z), 4),
             _pv_strategy,
@@ -4309,7 +4486,7 @@ with st.sidebar:
 
     _slice_sig = (
         3,  # slicer algorithm cache version
-        tuple(np.round(mesh_to_slice.bounds.reshape(-1), 4)),
+        _mesh_slice_sig(mesh_to_slice),
         bool(_joint), float(_joint_w),
         bool(_flange_joint), None if not _flange_params else tuple(_flange_params.values()),
         bool(_cut_adapter_segment),

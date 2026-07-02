@@ -1,5 +1,21 @@
 # Changelog
 
+## 2.30.0 (2026-07-02)
+
+- **Omni CD geometry**: normalizzata la pipeline di mount/adapter per bolt-on e
+  threaded, con bore acustico nominale coerente col throat flare e raccordo
+  custom-stack smooth sul reflector.
+- **Omni pillar fixing**: aggiunti fori regolabili tra reflector/flare e pillar,
+  con diametri separati per clearance lato reflector e foro pilota/thread/inserto
+  lato deflector/pillar, posizione lungo il pillar, profondità e counterbore.
+- **Adapter throat opening**: aggiunto controllo comune `Throat opening (total °)`
+  per il match con l'uscita del compression driver; nei mount bore-matched il
+  solver limita la pendenza per evitare gobbe/strozzature.
+- **Docs/Test**: aggiornati `docs/omni_horn.md`, `docs/throat_adapter.md`,
+  `CLAUDE.md`, `VERSION`, `pyproject.toml` e test di regressione Omni/adapter.
+  Suite completa verificata: `tests/test_all.py` 262 pass,
+  `tests/test_geometry.py` 33 pass.
+
 ## 2.20.11 (2026-06-29)
 
 - **STL downloads**: i pulsanti Streamlit per assembly, adapter separato e
