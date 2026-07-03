@@ -6,6 +6,22 @@ Editing any `src/*.py` REQUIRES updating its `docs/<module>.md` in the same
 change. The docs are read instead of the source to save tokens — a stale doc
 misleads every future agent. No exceptions; create the doc if missing.
 
+## ⛔ Rule 1: targeted tests while patching, fresh full suites before commit
+
+- **While patching**: after every meaningful change to `src/*.py` or
+  `ui_app.py`, immediately run the targeted tests for the touched area —
+  `.venv/bin/python tests/test_all.py -m "<keyword>"` (e.g. `-m poly`,
+  `-m omni`, `-m flange`, `-m adapter`, `-m slicer`). New/changed behaviour
+  REQUIRES a new/updated test in the same change. `ui_app.py` is not covered
+  by the suite: its targeted test is a `streamlit.testing.v1.AppTest` run
+  that exercises the touched path (set `session_state`, click **Generate
+  Assembly STL**, assert `not at.exception`).
+- **Before EVERY commit touching any `*.py`**: run BOTH full suites fresh,
+  after the last edit (earlier session results do not count, even for
+  "UI-only" changes): `.venv/bin/python tests/test_all.py` AND
+  `.venv/bin/python tests/test_geometry.py` (or `make test`). Commit only on
+  0 failures and record the pass counts in the `CHANGELOG.md` entry.
+
 ## Critical Rule: Web UI must stay in sync with Python modules
 
 Whenever you modify a Python module under `src/` (add a new profile, change a function signature, add a new generator, etc.), you **must** update the Streamlit UI in `ui_app.py` accordingly:

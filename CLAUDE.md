@@ -12,6 +12,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > behaviour change. No exceptions. If a `docs/<module>.md` does not yet exist for
 > a module you touched, create it. Treat an out-of-sync doc as a broken build.
 
+> ## ⛔ MANDATORY — TESTS DURING THE PATCH, FULL SUITES BEFORE THE COMMIT
+> **While patching** — after every meaningful change to `src/*.py` or
+> `ui_app.py`, immediately run the targeted tests for the touched area:
+> `.venv/bin/python tests/test_all.py -m "<keyword>"` (e.g. `-m poly`,
+> `-m omni`, `-m flange`, `-m adapter`, `-m slicer`). New or changed behaviour
+> REQUIRES a new/updated test in the same change. `ui_app.py` paths are NOT
+> covered by the suite: for UI changes the targeted test is a
+> `streamlit.testing.v1.AppTest` run that exercises the touched path (set the
+> relevant `session_state` keys, click **Generate Assembly STL**, assert
+> `not at.exception`).
+>
+> **Before EVERY commit that touches any `*.py`** — run BOTH full suites
+> **fresh, after the last edit** (results from earlier in the session do not
+> count, even for "UI-only" changes):
+> `.venv/bin/python tests/test_all.py` **and**
+> `.venv/bin/python tests/test_geometry.py` (or `make test`, which runs both).
+> Commit only on 0 failures, and record the pass counts in the `CHANGELOG.md`
+> entry (existing convention). A commit without a fresh green full-suite run is
+> a broken build — same severity as an out-of-sync doc.
+
 ## Commands
 
 ```bash
@@ -28,7 +48,11 @@ python -m src.main --throat 20 --fc 800
 python -m src.main --profile salmon --throat 20 --fc 600 --length 80
 
 # Run tests
-.venv/bin/python tests/test_all.py
+.venv/bin/python tests/test_all.py                 # full suite (required pre-commit)
+.venv/bin/python tests/test_geometry.py            # geometry suite (required pre-commit)
+make test                                          # both of the above
+.venv/bin/python tests/test_all.py -m "omni"       # targeted (while patching)
+.venv/bin/python tests/test_all.py --list -m poly  # list matching test labels
 ```
 
 ## Architecture
