@@ -107,7 +107,7 @@ Generates a circular-inner flange via CSG boolean difference.
 
 ---
 
-## `generate_polygonal_flange(inner_circumR: float, n_sides: int, flange_R: float, thickness: float = 6.0, bolt_R: float = 22.0, bolt_n: int = 4, bolt_d: float = 3.5, offset: float = 0.0, seg: int = 64, output_path: str | None = None, outer_n_sides: int = 0, bolt_phase: float = 0.0) -> trimesh.Trimesh | None`
+## `generate_polygonal_flange(inner_circumR: float, n_sides: int, flange_R: float, thickness: float = 6.0, bolt_R: float = 22.0, bolt_n: int = 4, bolt_d: float = 3.5, offset: float = 0.0, seg: int = 64, output_path: str | None = None, outer_n_sides: int = 0, bolt_phase: float = 0.0, inner_fillet: float = 0.0) -> trimesh.Trimesh | None`
 
 Generates a flange with a polygonal (N-gon) inner hole matching the horn cross-section.
 
@@ -129,14 +129,15 @@ Same coordinate system as `generate_flange`: top face at `z = offset`, grows dow
 | `output_path` | `str \| None` | `None` | Optional STL export path |
 | `outer_n_sides` | `int` | `0` | Outer body shape: `0` = circular disc; `≥3` = regular N-gon prism |
 | `bolt_phase` | `float` | `0.0` | Angular offset (radians) for bolt pattern |
+| `inner_fillet` | `float` | `0.0` | Corner fillet radius of the hole — matches a **rounded** polygonal horn section (`polygonal_horn.rounded_polygon_ring`, `arc_seg=16`). `inner_circumR` then means **across corners**; hole core circumradius = `inner_circumR − inner_fillet`. `0` = sharp N-gon hole (legacy). |
 
 **Algorithm:**
 
-1. **Outer body:** Same as `generate_flange` (circular cylinder or polygon prism). For polygonal outer, `flange_R` is clamped to `max(flange_R, inner_circumR / cos(π/outer_n_sides) + 1)`.
+1. **Outer body:** Same as `generate_flange` (circular cylinder or polygon prism). For polygonal outer, `flange_R` is clamped to `max(flange_R, inner_circumR / cos(π/outer_n_sides) + 1)` (valid for the rounded hole too — across-corners is its max extent).
 
 2. **Bolt clamping:** For polygonal outer, `bolt_R ≤ inradius - bolt_d/2 - 1`. For circular outer, `bolt_R ≤ flange_R - bolt_d/2 - 1`.
 
-3. **Inner hole subtraction:** An N-gon prism is extruded from `shapely.geometry.Polygon` with vertices at `inner_circumR · (cos θ, sin θ)` where `θ = linspace(0, 2π, n_sides) + π/2` (same rotation as the horn). Extruded `thickness + 2` and translated to overlap the flange body.
+3. **Inner hole subtraction:** An N-gon prism is extruded from `shapely.geometry.Polygon` with vertices at `inner_circumR · (cos θ, sin θ)` where `θ = linspace(0, 2π, n_sides) + π/2` (same rotation as the horn); with `inner_fillet > 0` the vertices come from `rounded_polygon_ring` instead. Extruded `thickness + 2` and translated to overlap the flange body.
 
 4. **Bolt holes:** Same as `generate_flange`, placed on the bolt circle with `bolt_phase` offset.
 
@@ -152,10 +153,15 @@ Common outward-flange generator used by the UI for **Mouth** and **Mid**. The
 throat flange continues to use the legacy generators above.
 
 - Inner opening types: `circular`, `polygonal`, `rectangular`, `elliptical`.
+- `inner_fillet` / `outer_fillet` round the corners of a **polygonal**
+  inner/outer shape (rounded regular N-gon matching the rounded polygonal horn
+  section). `inner_R` / `outer_diam` keep their across-corners meaning; the
+  rounded shape's core circumradius is `R − fillet`.
 - `outer_mode="offset"` automatically follows the opening shape and grows it by
-  `outer_offset`. For **elliptical** inner openings this produces a **true
-  geometric offset** (parallel curve via Shapely `buffer()`), giving constant
-  ring width all around — not a scaled copy of the inner ellipse.
+  `outer_offset`. For **elliptical** inner openings — and for **polygonal ones
+  with `inner_fillet > 0`** — this produces a **true geometric offset**
+  (parallel curve via Shapely `buffer()`), giving constant ring width all
+  around — not a scaled copy of the inner shape.
 - `outer_mode="custom"` accepts `circular`, `polygonal`, or `rectangular`
   explicit outer dimensions.
 - `bolt_mode="auto"` places every hole halfway between the **actual** inner and

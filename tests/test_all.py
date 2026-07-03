@@ -617,6 +617,90 @@ for _ns in (4, 6, 8):
          lambda n=_ns: _adherence_polygonal(n))
 
 
+def _rounded_poly_core_invariants():
+    """Analytic core solution: area-matched for any fillet, degrades to the
+    sharp circumradius at f=0 and to the equivalent circle at f>=r_eq."""
+    for n in (3, 4, 6, 8, 12):
+        for r_eq in (10.0, 50.0, 130.0):
+            # f=0 → sharp N-gon circumradius
+            Rc0, f0 = _ph.rounded_poly_core(r_eq, n, 0.0)
+            assert f0 == 0.0
+            assert abs(Rc0 - _ph._r_to_circumradius(np.array([r_eq]), n)[0]) < 1e-9
+            for f in (2.0, 0.4 * r_eq, 5.0 * r_eq):
+                Rc, fe = _ph.rounded_poly_core(r_eq, n, f)
+                assert fe <= 0.995 * r_eq + 1e-12   # clamp
+                ring = _ph.rounded_polygon_ring(Rc, fe, n, arc_seg=256)
+                a = _ShPoly(ring).area
+                assert abs(a - np.pi * r_eq**2) / (np.pi * r_eq**2) < 2e-3, \
+                    f"{n}-gon r_eq={r_eq} f={f}: area {a:.2f}"
+            # radius-at-angle: vertex = Rc+f, face centre = apothem
+            Rc, fe = _ph.rounded_poly_core(r_eq, n, 0.3 * r_eq)
+            rv = _ph.rounded_poly_radius_at_angle(Rc, fe, n, np.pi / 2.0)
+            rf = _ph.rounded_poly_radius_at_angle(Rc, fe, n, np.pi / 2.0 + np.pi / n)
+            assert abs(rv - (Rc + fe)) < 1e-9
+            assert abs(rf - (Rc * np.cos(np.pi / n) + fe)) < 1e-9
+test("rounded poly core: area-matched, clamped, sharp/circle limits",
+     _rounded_poly_core_invariants)
+
+
+def _adherence_polygonal_rounded(n_sides, fillet):
+    """Rounded N-gon horn: airway still area-matched, corners actually round
+    (radial max/min ratio below the sharp N-gon's 1/cos(π/N))."""
+    z, r = _c.get_exponential(THROAT, MOUTH, FC, N)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _ph.generate_polygonal_3d_mesh(z, r, n_sides, 4.0, p, corner_radius=fillet)
+    m = trimesh.load(p, file_type="stl"); os.unlink(p)
+    m.merge_vertices()
+    assert m.is_watertight, f"rounded {n_sides}-gon not watertight"
+    assert m.volume > 0
+    span = z[-1] - z[0]
+    for frac in (0.25, 0.5, 0.75):
+        zq = z[0] + frac * span
+        got = _airway_section(m, zq)
+        assert got is not None, f"rounded {n_sides}-gon: no airway at z={zq:.1f}"
+        r_math = float(np.interp(zq, z, r))
+        assert abs(got[0] - r_math) < 0.4, \
+            f"rounded {n_sides}-gon r_eq {got[0]:.3f} != math {r_math:.3f} at z={zq:.1f}"
+    # near the mouth the corners must be visibly rounded
+    zq = z[0] + 0.9 * span
+    sec = m.section(plane_origin=[0, 0, float(zq)], plane_normal=[0, 0, 1])
+    pl, _ = sec.to_planar()
+    poly = max(pl.polygons_full, key=lambda q: q.area)
+    ring = np.asarray(max(poly.interiors, key=lambda rr: _ShPoly(rr).area).coords)
+    rr = np.hypot(ring[:, 0], ring[:, 1])
+    r_eq_q = float(np.interp(zq, z, r))
+    Rc, fe = _ph.rounded_poly_core(r_eq_q, n_sides, fillet)
+    assert abs(rr.max() - (Rc + fe)) < 0.3, \
+        f"across-corners {rr.max():.2f} != {Rc + fe:.2f}"
+    sharp_ratio = 1.0 / np.cos(np.pi / n_sides)
+    got_ratio = rr.max() / rr.min()
+    assert got_ratio < sharp_ratio - 0.005, \
+        f"corners not rounded: max/min {got_ratio:.4f} vs sharp {sharp_ratio:.4f}"
+for _ns, _fr in ((4, 6.0), (6, 10.0), (8, 4.0)):
+    test(f"rounded {_ns}-gon (r={_fr:g}) watertight + area-matched + round corners",
+         lambda n=_ns, f=_fr: _adherence_polygonal_rounded(n, f))
+
+
+def _rounded_poly_round_throat():
+    """A fillet larger than the local r_eq collapses the section to the
+    equivalent circle — the throat comes out circular, the mouth polygonal."""
+    z, r = _c.get_exponential(THROAT, MOUTH, FC, N)
+    with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: p = t.name
+    _ph.generate_polygonal_3d_mesh(z, r, 6, 4.0, p, corner_radius=THROAT)  # >> r_throat
+    m = trimesh.load(p, file_type="stl"); os.unlink(p)
+    m.merge_vertices()
+    assert m.is_watertight
+    sec = m.section(plane_origin=[0, 0, 1.0], plane_normal=[0, 0, 1])
+    pl, _ = sec.to_planar()
+    poly = max(pl.polygons_full, key=lambda q: q.area)
+    ring = np.asarray(max(poly.interiors, key=lambda rr: _ShPoly(rr).area).coords)
+    rr = np.hypot(ring[:, 0], ring[:, 1])
+    assert rr.max() / rr.min() < 1.02, \
+        f"throat not circular: max/min {rr.max()/rr.min():.4f}"
+test("rounded poly: oversize fillet → circular throat, watertight",
+     _rounded_poly_round_throat)
+
+
 def _adherence_embedded_morph():
     """With the morph adapter embedded, (a) the untouched flare above the join
     still follows the math curve, (b) the airway is continuous (the adapter
@@ -925,6 +1009,80 @@ for n_inner, n_outer in POLY_FLANGE_CASES:
             output_path=None)
         _check_flange(m, lbl)
     test(label, make)
+
+
+def _flange_bore_ring(m, z=3.0):
+    """Largest inner ring (the bore) of a flange section as an (N,2) array."""
+    section = m.section(
+        plane_origin=[0.0, 0.0, z], plane_normal=[0.0, 0.0, 1.0]).to_2D()[0]
+    poly = max(section.polygons_full, key=lambda q: q.area)
+    ring = max(poly.interiors, key=lambda r: _ShPoly(r).area)
+    return np.asarray(ring.coords, dtype=float)[:, :2]
+
+
+def _polygonal_flange_rounded_bore():
+    """inner_fillet rounds the bore: across-corner extent stays at
+    inner_circumR, but the corner region pulls in vs the sharp N-gon."""
+    for ni, no in ((6, 0), (4, 6)):
+        m = _fg.generate_polygonal_flange(
+            inner_circumR=20.0, n_sides=ni,
+            flange_R=40.0, thickness=6.0,
+            bolt_R=30.0, bolt_n=4, bolt_d=3.5,
+            offset=6.0, outer_n_sides=no,
+            inner_fillet=5.0, output_path=None)
+        _check_flange(m, f"rounded bore {ni}-gon")
+        ring = _flange_bore_ring(m)
+        rr = np.hypot(ring[:, 0], ring[:, 1])
+        assert abs(rr.max() - 20.0) < 0.2, f"bore across corners {rr.max():.2f}"
+        # rounded bore has more area than the sharp N-gon of same circumR
+        a_sharp = 0.5 * ni * 20.0**2 * np.sin(2 * np.pi / ni)
+        a_round = _ShPoly(ring).area
+        assert a_round > a_sharp + 1.0, \
+            f"bore not rounded: area {a_round:.1f} vs sharp {a_sharp:.1f}"
+        # and matches the analytic rounded-polygon area
+        a_want = float(_ph.rounded_poly_area(15.0, 5.0, ni))
+        assert abs(a_round - a_want) / a_want < 5e-3, \
+            f"bore area {a_round:.1f} != analytic {a_want:.1f}"
+test("polygonal flange rounded bore (inner_fillet)",
+     _polygonal_flange_rounded_bore)
+
+
+def _profile_flange_rounded_poly():
+    """profile flange with a rounded polygonal opening: offset mode gives a
+    true parallel ring (constant width, like elliptical); custom outers and
+    the inward-style rounded outer stay watertight."""
+    # offset mode → outer = shapely buffer → constant ring width
+    m = _fg.generate_profile_flange(
+        inner_type="polygonal", inner_R=30.0, inner_n_sides=6,
+        inner_fillet=8.0,
+        thickness=6.0, bolt_n=8, bolt_d=3.5, offset=6.0,
+        outer_mode="offset", outer_offset=15.0)
+    _check_flange(m, "profile flange offset rounded 6-gon")
+    sec = m.section(plane_origin=[0, 0, 3.0], plane_normal=[0, 0, 1]).to_2D()[0]
+    poly = max(sec.polygons_full, key=lambda q: q.area)
+    bore = _ShPoly(max(poly.interiors, key=lambda r: _ShPoly(r).area))
+    pts = np.asarray(poly.exterior.coords, dtype=float)[::3, :2]
+    from shapely.geometry import Point as _ShPoint
+    dist = np.array([bore.exterior.distance(_ShPoint(p)) for p in pts])
+    assert np.allclose(dist, 15.0, atol=0.2), \
+        f"rounded-poly ring not parallel: {dist.min():.2f}..{dist.max():.2f}"
+    # custom outer (sharp N-gon) around a rounded opening
+    m2 = _fg.generate_profile_flange(
+        inner_type="polygonal", inner_R=20.0, inner_n_sides=6,
+        inner_fillet=6.0,
+        thickness=6.0, bolt_n=4, bolt_d=3.5, offset=6.0,
+        outer_mode="custom", outer_type="polygonal",
+        outer_diam=110.0, outer_n_sides=6)
+    _check_flange(m2, "profile flange rounded 6-gon / sharp outer")
+    # rounded inner AND rounded outer (the inward roll-back plate case)
+    m3 = _fg.generate_profile_flange(
+        inner_type="polygonal", inner_R=40.0, inner_n_sides=6,
+        inner_fillet=4.0,
+        thickness=6.0, bolt_n=0, bolt_d=3.5, offset=6.0,
+        outer_mode="custom", outer_type="polygonal",
+        outer_diam=120.0, outer_n_sides=6, outer_fillet=10.0)
+    _check_flange(m3, "profile flange rounded inner+outer")
+test("profile flange rounded polygonal opening", _profile_flange_rounded_poly)
 
 
 def _assert_parallel_ellipse_ring(mesh, inner_w, inner_h, ring, z=3.0):
@@ -2414,6 +2572,51 @@ def test_adapter_poly():
     )
     _check_trimesh_watertight(m, "adapter poly")
 test("adapter circle→poly watertight", test_adapter_poly)
+
+def test_adapter_rounded_poly_stack():
+    """Circle→rounded-poly adapter via a custom section stack (the UI path
+    for a filleted polygonal section): watertight, exit section rounded."""
+    z, r = _c.get_exponential(30.0, 200.0, FC, 80)
+    fillet, ns, t = 6.0, 6, 4.0
+    W = _ph.rounded_poly_wall(z, r, ns, t, fillet)
+    z_hand = 12.0
+    z_st = np.array([0.0, 6.0, z_hand])
+    inner = np.stack([
+        _ph.rounded_poly_ring_resampled(
+            float(np.interp(zq, z, W["core"])),
+            float(np.interp(zq, z, W["f_in"])), ns, 96)
+        for zq in z_st])
+    outer = np.stack([
+        _ph.rounded_poly_ring_resampled(
+            float(np.interp(zq, W["z_out"], W["core_out"])),
+            float(np.interp(zq, W["z_out"], W["f_out"])), ns, 96)
+        for zq in z_st])
+    m = _ta.make_adapter(
+        driver_R=12.5, horn_shape="polygonal",
+        horn_w=0.0, horn_h=0.0, horn_n_sides=ns,
+        horn_R_eq=float(np.interp(z_hand, z, r)),
+        horn_circumR=float(np.interp(z_hand, z, W["R_in"])),
+        axial_steps=40, adapter_length=30.0, wall_thickness=t,
+        custom_pts=inner, custom_outer_pts=outer, custom_pts_z=z_st + 18.0,
+        custom_match_from_z=18.0,
+        output_path=None,
+    )
+    _check_trimesh_watertight(m, "adapter rounded poly")
+    # exit section must be the rounded polygon, not the sharp one
+    z_top = float(m.bounds[1, 2])
+    sec = m.section(plane_origin=[0, 0, z_top - 0.1], plane_normal=[0, 0, 1])
+    pl, _ = sec.to_planar()
+    poly = max(pl.polygons_full, key=lambda q: q.area)
+    ring = np.asarray(max(poly.interiors,
+                          key=lambda rr: _ShPoly(rr).area).coords)
+    rr = np.hypot(ring[:, 0], ring[:, 1])
+    want_max = float(np.interp(z_hand, z, W["R_in"]))
+    assert abs(rr.max() - want_max) < 0.4, \
+        f"exit across-corners {rr.max():.2f} != {want_max:.2f}"
+    sharp_ratio = 1.0 / np.cos(np.pi / ns)
+    assert rr.max() / rr.min() < sharp_ratio - 0.005, \
+        "adapter exit corners are not rounded"
+test("adapter circle→rounded-poly stack watertight", test_adapter_rounded_poly_stack)
 
 def test_adapter_circular():
     """Circle→circle adapter: tapered circular transition, watertight."""
@@ -4013,6 +4216,21 @@ def _check_omni_pillar_fixing_holes():
 
 test("omni pillar fixing holes drill reflector and pillars", _check_omni_pillar_fixing_holes)
 
+def _check_compact_omni_fused_pillar_holes_single_body():
+    """Compact fused Omni preset must not split pillars into separate bodies."""
+    parts = _om.build_omni_parts(
+        25.4, 100.0, fc=1000, rings=64, n=300, profile="Salmon",
+        bend_scale=0.3, pillar_count=3, pillars_fused=True,
+        pillar_hole_ref_diam=2.0, pillar_hole_def_diam=2.0,
+        pillar_hole_pos=0.55, pillar_hole_depth=4.0)
+    assert parts["reflector"].is_watertight and parts["reflector"].body_count == 1, \
+        "compact drilled reflector not a clean single body"
+    assert parts["deflector"].is_watertight and parts["deflector"].body_count == 1, \
+        "compact drilled fused deflector/pillars split into separate bodies"
+
+test("compact omni fused pillar holes stay single-body",
+     _check_compact_omni_fused_pillar_holes_single_body)
+
 def _check_omni_pillar_api_aliases():
     """Canonical pillar names and legacy names must remain equivalent."""
     args = dict(throat_diam=25.4, mouth_diam=260.0, fc=600, n=220, profile="Conical")
@@ -4157,6 +4375,59 @@ def _check_omni_pillar_nose_clearance():
                 "separate pillars degenerate near the axis"
 
 test("omni pillar band clears the deflector nose (steep profile)", _check_omni_pillar_nose_clearance)
+
+
+def _check_omni_plan_shape_math():
+    """Polygonal plan: perimeter-matched σ(φ) (area law preserved with the
+    unchanged gap) and graceful degeneration to the circle."""
+    dev = _om._plan_sigma_dev_fn(6, 15.0, 130.0)
+    phi = np.linspace(0.0, 2.0 * np.pi, 20000, endpoint=False)
+    sig = 1.0 + dev(phi)
+    dphi = phi[1] - phi[0]
+    per = float(np.sum(np.sqrt(sig**2 + np.gradient(sig, dphi)**2)) * dphi)
+    assert abs(per / (2.0 * np.pi) - 1.0) < 5e-3, f"perimeter ratio {per/(2*np.pi):.4f}"
+    assert dev.sigma_max > 1.0 > dev.sigma_min
+    # corner fillet ≥ mouth radius → exactly the circle again
+    dev_c = _om._plan_sigma_dev_fn(6, 500.0, 130.0)
+    assert abs(dev_c.sigma_max - 1.0) < 1e-9 and abs(dev_c.sigma_min - 1.0) < 1e-9
+    # blend: circular throat region, full polygon at the mouth
+    w = _om._plan_blend(np.array([0.0, _om._PLAN_BLEND_T0, 1.0]))
+    assert w[0] == 0.0 and w[1] == 0.0 and abs(w[2] - 1.0) < 1e-12
+
+test("omni polygonal plan: perimeter-matched σ(φ), circle limits", _check_omni_plan_shape_math)
+
+
+def _check_omni_plan_shape_parts():
+    """Polygonal-plan build: watertight parts, exact circular throat hole,
+    corners past / flats inside the circular footprint, pillars both modes."""
+    Rm = 130.0
+    dev = _om._plan_sigma_dev_fn(6, 25.0, Rm)
+    for fused in (True, False):
+        Q = _om.build_omni_parts(25.4, 2 * Rm, fc=800.0, rings=128, n=200,
+                                 standoffs=3, ribs_fused=fused,
+                                 pillar_hole_ref_diam=3.4, pillar_hole_def_diam=2.6,
+                                 plan_sides=6, plan_corner_radius=25.0)
+        assert Q["deflector"].is_watertight, f"plan deflector (fused={fused})"
+        assert Q["reflector"].is_watertight, f"plan reflector (fused={fused})"
+        if not fused:
+            assert Q["pillars"].is_watertight and Q["pillars"].body_count == 3
+    v = Q["reflector"].vertices
+    r = np.hypot(v[:, 0], v[:, 1])
+    # throat hole: min-radius ring must be the full circular driver bore
+    hole = v[np.abs(r - 12.7) < 0.02]
+    assert r.min() > 12.65 and len(hole) >= 128, "throat hole not circular"
+    # mouth footprint: corners poke out to ~Rm·σ_max (+ wall), flats pull in
+    assert r.max() > Rm + 3.0, f"corners not past circular mouth ({r.max():.1f})"
+    assert r.max() < Rm * dev.sigma_max + 6.0
+    # per-azimuth extent: radial extent toward a face < toward a corner
+    ang = np.arctan2(v[:, 1], v[:, 0])
+    d_vertex = np.abs((ang - np.pi/2 + np.pi/6) % (np.pi/3) - np.pi/6)
+    at_corner = r[d_vertex < 0.05]
+    at_face = r[d_vertex > np.pi/6 - 0.05]
+    assert at_corner.max() > at_face.max() + 3.0, "plan is not polygonal"
+
+test("omni polygonal plan: watertight parts, circular throat, hex footprint",
+     _check_omni_plan_shape_parts)
 
 
 # ══════════════════════════════════════════════════════════════════════════════

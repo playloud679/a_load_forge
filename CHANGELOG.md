@@ -1,5 +1,44 @@
 # Changelog
 
+## 2.31.0 (2026-07-03)
+
+- **Sezione poligonale: raccordo spigoli** (`Corner radius (mm)` accanto a
+  `Sides`, chiave `poly_fillet` nei `.flr`): la sezione diventa un N-gon
+  raccordato **area-matched** (nucleo ⊕ disco, soluzione chiusa in
+  `polygonal_horn.rounded_poly_core`); dove il raggio supera il r_eq locale la
+  sezione degenera nel cerchio, quindi gola circolare → bocca poligonale
+  raccordata in automatico. Parete = offset parallelo vero (fillet esterno
+  `f + t·n_r`). Fori flangia gola/bocca/intermedia raccordati
+  (`inner_fillet`/`outer_fillet` in `flange_generator`), piastre inward sui
+  rollback con erosione esatta, adapter loft su sezioni raccordate
+  (`rounded_poly_ring_resampled`, stessa fase di `_poly_points`), preview 2D e
+  caption fillet-aware. `corner_radius = 0` = percorso sharp identico a prima.
+- **Omni: forma in pianta poligonale** (`Plan shape` → Polygonal, `Plan sides`
+  3–12 + `Plan corner radius`): la campana diventa un N-gon raccordato in
+  pianta, **a perimetro equivalente** per stazione così l'area law S(s) resta
+  esatta col gap invariato. Shift additivo della sola linea media
+  (`ρ_c·w(t)·(σ(φ)−1)`) applicato nei builder dei solidi: gola, foro del
+  reflector e innesto adapter restano esattamente circolari
+  (`_PLAN_BLEND_T0 = 0.25`); gap, spessore parete, affondo/gioco pilastri e
+  fori di fissaggio preservati. Raccordo ≥ raggio bocca = di nuovo cerchio.
+- **Omni: S_m reale nel pannello Computed** (`S_m (360° slot)`): la superficie
+  della bocca radiale è ora perimetro × apertura reale labbro-labbro
+  (= area law senza splay; col CD flare riporta l'apertura maggiorata reale),
+  non più il disco π·(Ø/2)² (~+79% sui default). Anche `Mouth gap` e il
+  warning di adeguatezza bocca usano i valori reali.
+- **Fix flangia mouth ellittica**: sui profili ellittici la flangia bocca
+  usciva affondata verso la gola (bug report da slicer): gli array della
+  parete esterna (offset 3D vero) ora ri-pinnano le stazioni estreme al piano
+  interno come il ramo rettangolare, così `_rim_weld` appoggia il piatto a
+  filo del labbro. Fix in entrambi i blocchi (sidebar + generazione).
+- **Fix `omni._union_or_concat`**: il `merge_vertices` post-unione viene
+  mantenuto solo se non degrada la watertightness (con la pianta poligonale
+  collassava triangoli sottili alla punta dei pilastri).
+- **Docs/Test**: aggiornati `docs/polygonal_horn.md`, `docs/flange_generator.md`,
+  `docs/omni_horn.md`, `docs/INDEX.md`, `CLAUDE.md`, `VERSION`,
+  `pyproject.toml`; 11 nuovi test. Suite completa verificata:
+  `tests/test_all.py` 273 pass, `tests/test_geometry.py` 33 pass.
+
 ## 2.30.0 (2026-07-02)
 
 - **Omni CD geometry**: normalizzata la pipeline di mount/adapter per bolt-on e

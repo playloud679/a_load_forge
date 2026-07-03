@@ -46,6 +46,45 @@ _STANDOFF_OVERLAP = 1.0    # mm the rib root sinks into the deflector body (clea
 _STANDOFF_CLEARANCE = 0.2  # mm air gap between the rib tip and the reflector wall
 _STANDOFF_T0, _STANDOFF_T1 = 0.35, 0.95  # rib spans this fraction of the meridian
 
+# Polygonal plan shape: the morph from circular starts at this meridian
+# fraction, so the throat, the reflector's central hole and the adapter
+# handoff region (all near t=0) stay exactly circular.
+_PLAN_BLEND_T0 = 0.25
+
+
+def _plan_blend(t: np.ndarray) -> np.ndarray:
+    """Smoothstep weight of the plan morph along the meridian: 0 (circle) for
+    t ≤ _PLAN_BLEND_T0, 1 (full plan polygon) at the mouth."""
+    u = np.clip((np.asarray(t, float) - _PLAN_BLEND_T0)
+                / (1.0 - _PLAN_BLEND_T0), 0.0, 1.0)
+    return u * u * (3.0 - 2.0 * u)
+
+
+def _plan_sigma_dev_fn(plan_sides: int, plan_corner_radius: float,
+                       mouth_R: float):
+    """Radial deviation σ(φ)−1 of the plan shape from the unit circle.
+
+    The plan is a rounded regular N-gon (vertices at π/2 + k·2π/N, like
+    `polygonal_horn`) **perimeter-matched** to the circle: with the same
+    per-station perimeter the open cross-section S = perimeter·gap stays
+    exactly on the area law with the unchanged axisymmetric gap `h`. Faces
+    pull in (σ<1), corners poke out (σ>1); `plan_corner_radius` is the mouth
+    corner fillet in mm — at ≥ mouth_R the shape degenerates back to the
+    circle. Returns a callable dev(angles)->σ−1 valid at any azimuth.
+    """
+    from polygonal_horn import rounded_poly_radius_at_angle
+    ns = int(plan_sides)
+    f1 = float(np.clip(plan_corner_radius / max(mouth_R, 1e-9), 0.0, 1.0))
+    # unit-perimeter core: 2n·Rc·sin(π/n) + 2π·f = 2π
+    Rc1 = np.pi * (1.0 - f1) / (ns * np.sin(np.pi / ns))
+
+    def dev(angles):
+        return rounded_poly_radius_at_angle(Rc1, f1, ns, angles) - 1.0
+
+    dev.sigma_max = Rc1 + f1                       # across corners
+    dev.sigma_min = Rc1 * np.cos(np.pi / ns) + f1  # across flats
+    return dev
+
 
 def _pillar_band(n, low_r=None, r_safe=None):
     """[i0, i1) meridian index range the pillars occupy.
@@ -449,15 +488,28 @@ def get_omni_profile(
 # ======================================================================
 
 def _revolve_polygon(r_poly: np.ndarray, z_poly: np.ndarray, rings: int = 64,
-                     align: bool = True) -> mesh.Mesh:
+                     align: bool = True, plan_dev: np.ndarray | None = None,
+                     plan_amp: np.ndarray | None = None) -> mesh.Mesh:
     """Revolve a CLOSED 2-D meridian polygon (r, z) around the Z axis.
 
     `align=False` keeps the mesh in its input frame (needed when the deflector
     and reflector must stay in one common assembled frame).
+
+    Polygonal plan (`plan_dev`/`plan_amp`, both or none): the vertex radius at
+    ring azimuth j becomes ``r_i + plan_amp[i]·plan_dev[j]``. `plan_dev` is the
+    per-ring shape deviation σ(φ_j)−1 and `plan_amp` the per-meridian-point
+    amplitude ρ_c(station)·w(station) — an **additive centerline shift**, so
+    gap and wall thickness measured in each meridian half-plane are unchanged.
     """
     n_pts = len(r_poly)
     theta = np.linspace(0.0, 2.0 * np.pi, rings, endpoint=False)
     ct, st = np.cos(theta), np.sin(theta)
+    if plan_dev is None or plan_amp is None:
+        dev = np.zeros(rings)
+        amp = np.zeros(n_pts)
+    else:
+        dev = np.asarray(plan_dev, dtype=float)
+        amp = np.asarray(plan_amp, dtype=float)
 
     n_tri = 2 * rings * (n_pts - 1)
     data = np.zeros(n_tri, dtype=mesh.Mesh.dtype)
@@ -465,12 +517,15 @@ def _revolve_polygon(r_poly: np.ndarray, z_poly: np.ndarray, rings: int = 64,
     for i in range(n_pts - 1):
         r0, r1 = r_poly[i], r_poly[i + 1]
         z0, z1 = z_poly[i], z_poly[i + 1]
+        a0, a1 = amp[i], amp[i + 1]
         for j in range(rings):
             jj = (j + 1) % rings
-            a = [r0 * ct[j], r0 * st[j], z0]
-            b = [r1 * ct[j], r1 * st[j], z1]
-            c = [r1 * ct[jj], r1 * st[jj], z1]
-            d = [r0 * ct[jj], r0 * st[jj], z0]
+            r0j, r0jj = r0 + a0 * dev[j], r0 + a0 * dev[jj]
+            r1j, r1jj = r1 + a1 * dev[j], r1 + a1 * dev[jj]
+            a = [r0j * ct[j], r0j * st[j], z0]
+            b = [r1j * ct[j], r1j * st[j], z1]
+            c = [r1jj * ct[jj], r1jj * st[jj], z1]
+            d = [r0jj * ct[jj], r0jj * st[jj], z0]
             data["vectors"][tri] = [a, d, b]; tri += 1
             data["vectors"][tri] = [b, d, c]; tri += 1
     assert tri == n_tri
@@ -487,7 +542,8 @@ def _revolve_polygon(r_poly: np.ndarray, z_poly: np.ndarray, rings: int = 64,
 # ======================================================================
 
 def _sector_wedge(low: np.ndarray, up: np.ndarray,
-                  phi_c: float, half_ang: np.ndarray, a_steps: int):
+                  phi_c: float, half_ang: np.ndarray, a_steps: int,
+                  plan_dev_fn=None, plan_amp: np.ndarray | None = None):
     """Triangulate one aerodynamic pillar: the channel band (low→up) swept over a
     tangential sector whose half-width VARIES per meridian station.
 
@@ -497,6 +553,10 @@ def _sector_wedge(low: np.ndarray, up: np.ndarray,
     planform (near-zero diffraction) instead of a bluff slab. The closed band loop is
     swept over [phi_c−half_ang[k], phi_c+half_ang[k]] and capped at both angular
     extremes → a watertight wedge. Returns (verts, faces).
+
+    `plan_dev_fn`/`plan_amp`: polygonal-plan support — each vertex radius gets
+    the same additive shift ``plan_amp[k]·(σ(angle)−1)`` applied to the walls,
+    so the pillar keeps its root overlap and tip clearance.
     """
     K = len(low)
     loop = np.vstack([low, up[::-1]])          # (2K, 2) closed meridian loop
@@ -505,13 +565,18 @@ def _sector_wedge(low: np.ndarray, up: np.ndarray,
     # so each point's tangential half-angle follows the airfoil taper.
     kidx = np.concatenate([np.arange(K), np.arange(K)[::-1]])
     ha_loop = np.asarray(half_ang, dtype=float)[kidx]   # (L,)
+    amp_loop = (np.asarray(plan_amp, dtype=float)[kidx]
+                if plan_amp is not None else None)
     frac = np.linspace(-1.0, 1.0, a_steps)
 
     verts = np.empty((a_steps * L, 3), dtype=float)
     for a in range(a_steps):
         ang = phi_c + frac[a] * ha_loop        # (L,) per-station tangential angle
-        verts[a * L:(a + 1) * L, 0] = loop[:, 0] * np.cos(ang)
-        verts[a * L:(a + 1) * L, 1] = loop[:, 0] * np.sin(ang)
+        r_a = loop[:, 0]
+        if plan_dev_fn is not None and amp_loop is not None:
+            r_a = r_a + amp_loop * plan_dev_fn(ang)
+        verts[a * L:(a + 1) * L, 0] = r_a * np.cos(ang)
+        verts[a * L:(a + 1) * L, 1] = r_a * np.sin(ang)
         verts[a * L:(a + 1) * L, 2] = loop[:, 1]
 
     def vid(a, l):
@@ -548,7 +613,7 @@ def _trimesh_to_mesh(tm) -> mesh.Mesh:
     return mesh.Mesh(data)
 
 
-def _build_wedges(P: dict, count: int, rings: int):
+def _build_wedges(P: dict, count: int, rings: int, plan_dev_fn=None):
     """Build the `count` aerodynamic pillars as a list of watertight trimeshes.
 
     The tangential half-width follows `P["w_mm"]` (a `sin` taper: zero at the
@@ -558,6 +623,7 @@ def _build_wedges(P: dict, count: int, rings: int):
     compensate its volume.
     Wedges are returned in the profile's design frame (no Z shift), so they sit
     correctly against the deflector/reflector built with `align=False`.
+    `plan_dev_fn` applies the polygonal-plan radial shift (see `_sector_wedge`).
     """
     import trimesh
 
@@ -570,6 +636,10 @@ def _build_wedges(P: dict, count: int, rings: int):
     if i1 - i0 < 3:
         return []
     sl = slice(i0, i1)
+    plan_amp_band = None
+    if plan_dev_fn is not None:
+        n_st = len(rho_c)
+        plan_amp_band = (rho_c * _plan_blend(np.linspace(0.0, 1.0, n_st)))[sl]
 
     # Rib root sinks into the deflector (−N), tip stops short of the reflector.
     low_band = np.column_stack([low_r[sl] - _STANDOFF_OVERLAP * nrho[sl],
@@ -587,7 +657,8 @@ def _build_wedges(P: dict, count: int, rings: int):
     wedges = []
     for k in range(count):
         v, f = _sector_wedge(low_band, up_band, 2.0 * np.pi * k / count,
-                             half_ang, a_steps)
+                             half_ang, a_steps,
+                             plan_dev_fn=plan_dev_fn, plan_amp=plan_amp_band)
         w = trimesh.Trimesh(vertices=v, faces=f, process=True)
         w.update_faces(w.nondegenerate_faces())   # drop zero-area knife-tip slivers
         w.remove_unreferenced_vertices()
@@ -607,7 +678,14 @@ def _union_or_concat(parts):
     except Exception as exc:  # pragma: no cover - engine-dependent
         logger.warning("Boolean union failed (%s); concatenating", exc)
         merged = trimesh.util.concatenate(parts)
-    merged.merge_vertices()
+    # Vertex-merge only if it doesn't DEGRADE the mesh: near the tapered
+    # pillar tips (especially with a polygonal plan shift) merging can weld
+    # knife-edge triangles into non-manifold pinches on an otherwise
+    # watertight boolean result.
+    compact = merged.copy()
+    compact.merge_vertices()
+    if compact.is_watertight or not merged.is_watertight:
+        return compact
     return merged
 
 
@@ -658,11 +736,14 @@ def _pillar_fastener_cutters(
     head_diam: float = 0.0,
     head_depth: float = 0.0,
     sections: int = 32,
+    plan_dev_fn=None,
 ):
     """Return ``(reflector_cutters, deflector_cutters, head_cutters)``.
 
     Cutters are placed at each pillar centreline azimuth and at one meridian
-    station inside the pillar band. Their axes follow the local reflector normal.
+    station inside the pillar band. Their axes follow the local reflector normal
+    (with a polygonal plan the position gets the plan radial shift; the axis
+    keeps the meridian normal — the small azimuthal wall tilt is neglected).
     Reflector and deflector/pillar cutters are split so the outer flare can have
     a screw-clearance hole while the pillar/deflector has a smaller pilot or
     heat-set insert hole. The optional head cutter counterbores only the
@@ -693,10 +774,15 @@ def _pillar_fastener_cutters(
     deflector = []
     heads = []
 
+    rho_c = np.asarray(P["rho_c"], dtype=float)
+    w_blend = _plan_blend(np.linspace(0.0, 1.0, len(rho_c)))
     for k in range(count):
         phi = 2.0 * np.pi * k / count
         cp, sp = np.cos(phi), np.sin(phi)
-        p_inner = np.array([up_r[idx] * cp, up_r[idx] * sp, up_z[idx]])
+        r_hole = up_r[idx]
+        if plan_dev_fn is not None:
+            r_hole = r_hole + rho_c[idx] * w_blend[idx] * float(plan_dev_fn(phi))
+        p_inner = np.array([r_hole * cp, r_hole * sp, up_z[idx]])
         normal = np.array([nrho[idx] * cp, nrho[idx] * sp, nz[idx]])
         normal /= max(float(np.linalg.norm(normal)), 1e-12)
 
@@ -704,7 +790,7 @@ def _pillar_fastener_cutters(
         # Stop the reflector cutter inside the air gap, before it reaches the
         # pillar tip. The deflector/pillar cutter starts just beyond that tip.
         ref_end = p_inner - normal * (0.5 * _STANDOFF_CLEARANCE)
-        def_start = p_inner - normal * (_STANDOFF_CLEARANCE + 0.05)
+        def_start = p_inner - normal * max(_STANDOFF_CLEARANCE - 0.05, 0.0)
         def_end = p_inner - normal * (_STANDOFF_CLEARANCE + depth)
         if ref_r > 0.0:
             cyl = _axis_cylinder(start, ref_end, ref_r, sections)
@@ -736,6 +822,11 @@ def _difference_or_original(body, cutters, label: str):
         if out is not None and not out.is_empty:
             out.remove_unreferenced_vertices()
             out.fix_normals()
+            if float(out.volume) > float(body.volume) + 1e-3:
+                logger.warning(
+                    "Boolean difference on %s increased volume; leaving part uncut",
+                    label)
+                return body
             return out
     except Exception as exc:  # pragma: no cover - engine-dependent
         logger.warning("Omni pillar fastener cut failed on %s (%s); leaving part uncut",
@@ -771,6 +862,8 @@ def build_omni_parts(
     pillar_hole_depth: float = 4.0,
     pillar_hole_head_diam: float = 0.0,
     pillar_hole_head_depth: float = 0.0,
+    plan_sides: int = 0,
+    plan_corner_radius: float = 0.0,
 ) -> dict:
     """Build the omni parts as trimeshes in ONE common (assembled) frame.
 
@@ -783,6 +876,17 @@ def build_omni_parts(
     ``pillar_hole_diam > 0`` drills one adjustable reflector↔pillar fixing hole
     per pillar; ``pillar_hole_ref_diam`` and ``pillar_hole_def_diam`` override
     that legacy/common diameter independently.
+
+    ``plan_sides ≥ 3`` gives the bell a **polygonal plan shape** (rounded
+    regular N-gon seen from above, corner fillet ``plan_corner_radius`` in mm)
+    instead of the circular revolution. The morph blends from an exactly
+    circular throat (``t ≤ _PLAN_BLEND_T0`` — driver bore, reflector hole and
+    adapter handoff untouched) to the full plan polygon at the mouth. The plan
+    is perimeter-matched per station, so the open cross-section stays on the
+    area law with the unchanged gap; the shift is applied to the local
+    centerline only, so gap and wall thickness in each meridian half-plane are
+    preserved. ``plan_corner_radius ≥ mouth radius`` degenerates back to the
+    circle; ``0`` = sharp corners.
     """
     pillar_count = _resolve_pillar_count(pillar_count, standoffs=standoffs)
     pillars_fused = _resolve_pillars_fused(ribs_fused, pillars_fused)
@@ -795,15 +899,32 @@ def build_omni_parts(
     up_r, up_z = P["up_r"], P["up_z"]
     nrho_out, nz_out = P["nrho_out"], P["nz_out"]
 
+    # ---- polygonal plan shape (optional) ------------------------------------
+    plan_dev_fn = None
+    ring_dev = None
+    amp = None
+    if int(plan_sides) >= 3:
+        plan_dev_fn = _plan_sigma_dev_fn(
+            plan_sides, plan_corner_radius, float(P["rho_c"][-1]))
+        ring_dev = plan_dev_fn(
+            np.linspace(0.0, 2.0 * np.pi, rings, endpoint=False))
+        amp = P["rho_c"] * _plan_blend(np.linspace(0.0, 1.0, n))
+
     logger.info("Omni parts:  throat=%.0f  mouth=%.0f  fc=%s  profile=%s  "
-                "pillars=%d  pillars_fused=%s", throat_diam, mouth_diam, fc,
-                profile, pillar_count, pillars_fused)
+                "pillars=%d  pillars_fused=%s  plan=%s", throat_diam,
+                mouth_diam, fc, profile, pillar_count, pillars_fused,
+                f"{plan_sides}-gon r={plan_corner_radius:g}"
+                if plan_dev_fn is not None else "circular")
 
     # ---- Deflector (solid central body under the inner wall) — common frame -
     z_base = float(min(low_z.min(), up_z.min())) - thickness
     r_def = np.concatenate([low_r, [low_r[-1], _EPS, _EPS]])
     z_def = np.concatenate([low_z, [z_base, z_base, low_z[0]]])
-    deflector = _mesh_to_trimesh(_revolve_polygon(r_def, z_def, rings, align=False))
+    # Base rim follows the mouth plan; axis/closure points carry no amplitude.
+    amp_def = (np.concatenate([amp, [amp[-1], 0.0, 0.0]])
+               if amp is not None else None)
+    deflector = _mesh_to_trimesh(_revolve_polygon(
+        r_def, z_def, rings, align=False, plan_dev=ring_dev, plan_amp=amp_def))
     deflector.fix_normals()
 
     # ---- Reflector (outer shell, central throat hole) — common frame --------
@@ -813,12 +934,16 @@ def build_omni_parts(
     out_z = up_z + thickness * nz_out
     r_ref = np.concatenate([up_r, out_r[::-1], [up_r[0]]])
     z_ref = np.concatenate([up_z, out_z[::-1], [up_z[0]]])
-    reflector = _mesh_to_trimesh(_revolve_polygon(r_ref, z_ref, rings, align=False))
+    # Inner and outer skin share the station amplitude → constant wall thickness.
+    amp_ref = (np.concatenate([amp, amp[::-1], [amp[0]]])
+               if amp is not None else None)
+    reflector = _mesh_to_trimesh(_revolve_polygon(
+        r_ref, z_ref, rings, align=False, plan_dev=ring_dev, plan_amp=amp_ref))
     reflector.fix_normals()
 
     pillars = None
     if pillar_count > 0:
-        wedges = _build_wedges(P, pillar_count, rings)
+        wedges = _build_wedges(P, pillar_count, rings, plan_dev_fn=plan_dev_fn)
         if wedges and pillars_fused:
             deflector = _union_or_concat([deflector] + wedges)
         elif wedges:
@@ -833,7 +958,8 @@ def build_omni_parts(
                 pillar_hole_pos, pillar_hole_depth,
                 head_diam=pillar_hole_head_diam,
                 head_depth=pillar_hole_head_depth,
-                sections=max(24, rings // 2))
+                sections=max(24, rings // 2),
+                plan_dev_fn=plan_dev_fn)
             reflector = _difference_or_original(reflector, ref_cuts + heads, "reflector")
             if pillars_fused:
                 deflector = _difference_or_original(deflector, def_cuts, "deflector/pillars")
@@ -868,6 +994,8 @@ def generate_omni_horn(
     pillar_hole_depth: float = 4.0,
     pillar_hole_head_diam: float = 0.0,
     pillar_hole_head_depth: float = 0.0,
+    plan_sides: int = 0,
+    plan_corner_radius: float = 0.0,
 ):
     """Generate the deflector + reflector STLs, each Z-aligned for printing.
 
@@ -888,7 +1016,9 @@ def generate_omni_horn(
         pillar_hole_pos=pillar_hole_pos,
         pillar_hole_depth=pillar_hole_depth,
         pillar_hole_head_diam=pillar_hole_head_diam,
-        pillar_hole_head_depth=pillar_hole_head_depth)
+        pillar_hole_head_depth=pillar_hole_head_depth,
+        plan_sides=plan_sides,
+        plan_corner_radius=plan_corner_radius)
     out = {}
     for name, tm in parts.items():
         if tm is None:

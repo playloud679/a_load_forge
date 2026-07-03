@@ -162,7 +162,7 @@ st.caption(f":gray[User: {ga.user_forum or 'guest'}]")
 # ── Parameter persistence (.flr) ────────────────────────────────────
 _PARAM_PREFIXES = (
     "profile_type", "section_type", "throat", "mouth", "axial", "fc",
-    "coverage", "rect_ar", "n_sides", "salmon_T", "lecleach",
+    "coverage", "rect_ar", "n_sides", "poly_fillet", "salmon_T", "lecleach",
     "rollback", "thickness", "rings", "segments", "osse_", "omni_",
     "ta_", "ft_", "fm_", "fj_", "gen_", "bolt_", "flange_",
     "slice_strategy", "pv_", "joint", "radial_",
@@ -297,6 +297,7 @@ with st.sidebar:
                    "Section selector ignored.")
     # ── Section / flare modifiers — only those relevant to the current shape
     rect_ar, n_sides, salmon_T, lecleach_angle = 2.0, 4, 0.707, 160.0
+    poly_fillet = 0.0
     rollback_complete, rollback_angle = False, 330.0
     _mods = (["ar"] if (is_rect and not is_iwata) else []) + (["sides"] if is_poly else []) \
             + (["T"] if is_T_variable else []) + (["angle"] if is_lecleach else []) \
@@ -312,6 +313,14 @@ with st.sidebar:
                 elif _mk == "sides":
                     n_sides = st.select_slider("Sides", options=list(range(3, 13)),
                         value=4, key="n_sides")
+                    poly_fillet = st.number_input("Corner radius (mm)",
+                        0.0, 500.0, 0.0, 0.5, key="poly_fillet",
+                        help="Fillet radius of the section corners. 0 = sharp "
+                             "N-gon. The section stays area-matched; where the "
+                             "radius exceeds the local equivalent radius (e.g. "
+                             "at the throat) the section becomes a circle, so "
+                             "the horn morphs round throat → rounded-polygon "
+                             "mouth.")
                 elif _mk == "T":
                     salmon_T = st.number_input("Flare parameter T", 0.0, 10.0, 0.707, 0.01,
                         key="salmon_T", on_change=_on_horn_change,
@@ -582,6 +591,8 @@ with st.sidebar:
     omni_pillar_hole_depth = 4.0
     omni_pillar_head_d = 0.0
     omni_pillar_head_depth = 0.0
+    omni_plan_sides = 0
+    omni_plan_corner = 30.0
     with col_in:
         st.markdown("**You set**")
         if is_osse:
@@ -733,6 +744,28 @@ with st.sidebar:
                      "(reflector lip up, deflector lip down) so the 360° output fans out "
                      "vertically. 0 = collimated (narrow vertical beam); larger = wider "
                      "vertical dispersion. `Mouth lip angle` still aims the fan up/down.")
+            omni_plan_shape = st.radio("Plan shape", ["Circular", "Polygonal"],
+                index=0, horizontal=True, key="omni_plan_shape",
+                help="Footprint of the bell seen from above. Polygonal morphs the "
+                     "circular revolution into a rounded regular N-gon toward the "
+                     "mouth; the throat, the driver mount and the acoustic area "
+                     "law stay exact (the plan is perimeter-matched per station).")
+            if omni_plan_shape == "Polygonal":
+                _opc = st.columns(2)
+                with _opc[0]:
+                    omni_plan_sides = int(st.select_slider("Plan sides",
+                        options=list(range(3, 13)), value=6,
+                        key="omni_plan_sides"))
+                with _opc[1]:
+                    omni_plan_corner = st.number_input("Plan corner radius (mm)",
+                        0.0, 500.0, 30.0, 5.0, key="omni_plan_corner",
+                        help="Corner fillet of the plan polygon at the mouth. "
+                             "0 = sharp corners; ≥ mouth radius = back to a circle.")
+                _opdev = _om._plan_sigma_dev_fn(
+                    omni_plan_sides, omni_plan_corner, mouth_d / 2.0)
+                st.caption(f"Mouth footprint: Ø{mouth_d * _opdev.sigma_max:.0f} "
+                           f"across corners · Ø{mouth_d * _opdev.sigma_min:.0f} "
+                           f"across flats (perimeter-matched to Ø{mouth_d:.0f})")
             if omni_vcov > 0:
                 omni_preserve_area = st.radio("Flare expansion",
                     ["Keep area law (exact loading)", "CD flare (wider coverage)"],
@@ -886,6 +919,7 @@ with st.sidebar:
     _mouth_d_eff = mouth_d or mouth_w  # circular-equivalent mouth diameter
     _fc_eff = fc
     _gap_t = _gap_m = None
+    _Pom = None  # omni meridian profile (set in the is_omni branch)
     _err = False
     _zw = _zh = None  # rectangular profile arrays
     _iwata_mw = _iwata_mh = None  # iwata mouth W, H (mm)
@@ -930,7 +964,12 @@ with st.sidebar:
                 profile=omni_law, lip_angle_deg=omni_lip, bend_scale=omni_bend,
                 pillar_count=omni_standoffs, pillar_width=omni_standoff_w,
                 vert_cov_deg=omni_vcov, preserve_area_law=omni_preserve_area)
-            _gap_t = float(_Pom["h"][0]); _gap_m = float(_Pom["h"][-1])
+            _gap_t = float(_Pom["h"][0])
+            # Actual mouth opening between the two (possibly splayed) lips:
+            # = h[-1] without vertical coverage; with the CD-flare mode it
+            # exceeds the area-law gap (the mouth opens past the law).
+            _gap_m = float(np.hypot(_Pom["up_r"][-1] - _Pom["low_r"][-1],
+                                    _Pom["up_z"][-1] - _Pom["low_z"][-1]))
             _mouth_d_eff = mouth_d
         elif is_rect:
             if is_tractrix:
@@ -1007,6 +1046,15 @@ with st.sidebar:
                 _z_o_rect = np.mean(_Vo_e[:, :, 2], axis=1)
                 _w_o_rect = 2.0 * np.max(np.abs(_Vo_e[:, :, 0]), axis=1)
                 _h_o_rect = 2.0 * np.max(np.abs(_Vo_e[:, :, 1]), axis=1)
+                # Pin the end stations to the inner planes, like the rect path
+                # above: the true offset leaves the outer mouth rim BELOW the
+                # inner lip (slanted rim, constant-thickness invariant), and an
+                # unpinned end made _rim_weld seat the mouth flange on that
+                # lower outer rim — sunk toward the throat with the lip poking
+                # past the plate. Flush reference = the inner mouth plane.
+                _z_o_rect = np.clip(_z_o_rect, zr.min(), zr.max())
+                _z_o_rect[0] = zr[0]
+                _z_o_rect[-1] = zr[-1]
             # At the throat: take the max width among all slices whose outer Z == zr[0]
             # (the clip flattens several slices onto the base plane)
             _throat_mask = np.abs(_z_o_rect - zr[0]) < 1e-6
@@ -1086,10 +1134,21 @@ with st.sidebar:
             _S_t_label = "S_t @ adapter"
         except Exception:
             _adapter_handoff_z = None
+    _S_m_label = "S_m"
     if _err or _mouth_d_eff is None:
         _S_m_cm2 = None
     elif is_iwata and _iwata_mw is not None:
         _S_m_cm2 = _iwata_mw * _iwata_mh / 100.0   # true rectangular mouth area
+    elif is_omni and _Pom is not None:
+        # True acoustic mouth area of the omni: the 360° radial slot,
+        # S_m = mouth perimeter × actual lip-to-lip gap. Equals the area law
+        # Sm without splay (and with "Keep area law"); with the CD-flare mode
+        # it reports the real, larger opening. NOT the π·(Ø/2)² disk of the
+        # footprint. Plan-shape independent: the polygonal plan is
+        # perimeter-matched per station.
+        _rho_m_mid = 0.5 * float(_Pom["up_r"][-1] + _Pom["low_r"][-1])
+        _S_m_cm2 = 2.0 * np.pi * _rho_m_mid * _gap_m / 100.0
+        _S_m_label = "S_m (360° slot)"
     elif is_rect and _mouth_w_eff is not None:
         _S_m_cm2 = _mouth_w_eff * _mouth_h_eff / 100.0
     elif is_rect:
@@ -1127,13 +1186,19 @@ with st.sidebar:
                 _mets.append(("Throat @ adapter", _adapter_handoff_value))
             _mets.append((_S_t_label, f"{_S_t_cm2:.2f} cm²"))
             if _S_m_cm2:
-                _mets.append(("S_m", f"{_S_m_cm2:.2f} cm²"))
+                _mets.append((_S_m_label, f"{_S_m_cm2:.2f} cm²"))
             for _lbl, _val in _mets:
                 st.metric(_lbl, _val)
             if is_poly and _mouth_d_eff:
-                from polygonal_horn import _r_to_circumradius
-                _Rp = _r_to_circumradius(_mouth_d_eff / 2.0, n_sides)
-                st.caption(f"Polygonal mouth: Ø{2*_Rp:.0f} across corners ({n_sides}-gon)")
+                if poly_fillet > 0:
+                    _Rpc, _Rpf = _ph.rounded_poly_core(
+                        _mouth_d_eff / 2.0, n_sides, poly_fillet)
+                    st.caption(f"Polygonal mouth: Ø{2*(_Rpc+_Rpf):.0f} across "
+                               f"corners ({n_sides}-gon, corner r={_Rpf:.1f})")
+                else:
+                    from polygonal_horn import _r_to_circumradius
+                    _Rp = _r_to_circumradius(_mouth_d_eff / 2.0, n_sides)
+                    st.caption(f"Polygonal mouth: Ø{2*_Rp:.0f} across corners ({n_sides}-gon)")
             if _adapter_handoff_z is not None:
                 st.caption(
                     f"Adapter start: Ø{_adapter_profile_start_d:.1f} mm · "
@@ -1178,18 +1243,29 @@ with st.container():
                 zp, rp = _cd_fn(throat_d, coverage_h, axial_len, segments)
             elif is_exp:
                 zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
-            from polygonal_horn import _r_to_circumradius
-            R_poly_arr = _r_to_circumradius(rp, n_sides)
-            # Parallel offset along the meridian normal — matches the poly engine
-            # (R_o = R_i + t/cos·n_r, z_o = z + t·n_z, ends pinned), so the outer
-            # wall stays parallel instead of a constant-z radial offset.
-            _nml = _uts.compute_profile_normals(zp, R_poly_arr, flip_if_negative=True)
-            R_poly_o = R_poly_arr + thickness / np.cos(np.pi / n_sides) * _nml[:, 1]
-            z_poly_o = zp + thickness * _nml[:, 0]
-            z_poly_o = np.clip(z_poly_o, np.min(zp), np.max(zp))
-            z_poly_o[0] = zp[0]; z_poly_o[-1] = zp[-1]
-            ax.plot(zp, R_poly_arr, label=f"Inner ({n_sides}-gon)", c="#2196F3")
-            ax.plot(z_poly_o, R_poly_o, label="+ wall", c="#FF5722", alpha=.5, linestyle="--")
+            if poly_fillet > 0:
+                # Rounded N-gon: across-corner extents from the shared wall
+                # helper (same math as the mesh engine).
+                _Wpp = _ph.rounded_poly_wall(zp, rp, n_sides, thickness,
+                                             poly_fillet)
+                ax.plot(zp, _Wpp["R_in"],
+                        label=f"Inner ({n_sides}-gon, r={poly_fillet:g})",
+                        c="#2196F3")
+                ax.plot(_Wpp["z_out"], _Wpp["R_out"], label="+ wall",
+                        c="#FF5722", alpha=.5, linestyle="--")
+            else:
+                from polygonal_horn import _r_to_circumradius
+                R_poly_arr = _r_to_circumradius(rp, n_sides)
+                # Parallel offset along the meridian normal — matches the poly engine
+                # (R_o = R_i + t/cos·n_r, z_o = z + t·n_z, ends pinned), so the outer
+                # wall stays parallel instead of a constant-z radial offset.
+                _nml = _uts.compute_profile_normals(zp, R_poly_arr, flip_if_negative=True)
+                R_poly_o = R_poly_arr + thickness / np.cos(np.pi / n_sides) * _nml[:, 1]
+                z_poly_o = zp + thickness * _nml[:, 0]
+                z_poly_o = np.clip(z_poly_o, np.min(zp), np.max(zp))
+                z_poly_o[0] = zp[0]; z_poly_o[-1] = zp[-1]
+                ax.plot(zp, R_poly_arr, label=f"Inner ({n_sides}-gon)", c="#2196F3")
+                ax.plot(z_poly_o, R_poly_o, label="+ wall", c="#FF5722", alpha=.5, linestyle="--")
             ax.set_xlabel("Z (mm)")
         elif is_osse:
             # Half-width / half-height envelopes of the morphed OS-SE field.
@@ -1413,13 +1489,19 @@ def _rollback_mouth_geometry():
         z, r = _get_exp_profile(throat_d, mouth_d, fc, segments)
 
     if is_poly:
-        from polygonal_horn import _r_to_circumradius
-        inner_R = _r_to_circumradius(r, n_sides)
-        normals = _uts.compute_profile_normals(z, inner_R, flip_if_negative=True)
-        z_o = np.clip(z + thickness * normals[:, 0], np.min(z), np.max(z))
-        z_o[0] = z[0]
-        z_o[-1] = z[-1]
-        outer_R = inner_R + thickness / np.cos(np.pi / n_sides) * normals[:, 1]
+        if poly_fillet > 0:
+            _Wb = _ph.rounded_poly_wall(z, r, n_sides, thickness, poly_fillet)
+            inner_R = _Wb["R_in"]
+            outer_R = _Wb["R_out"]
+            z_o = _Wb["z_out"]
+        else:
+            from polygonal_horn import _r_to_circumradius
+            inner_R = _r_to_circumradius(r, n_sides)
+            normals = _uts.compute_profile_normals(z, inner_R, flip_if_negative=True)
+            z_o = np.clip(z + thickness * normals[:, 0], np.min(z), np.max(z))
+            z_o[0] = z[0]
+            z_o[-1] = z[-1]
+            outer_R = inner_R + thickness / np.cos(np.pi / n_sides) * normals[:, 1]
         shape = "polygonal"
     else:
         normals = _uts.compute_profile_normals(z, r)
@@ -1444,8 +1526,14 @@ def _rollback_mouth_geometry():
     }
 
 
-def _polygon_radius_at_angle(circum_R, sides, angle):
-    """Ray distance to a regular polygon with the project's +pi/2 phase."""
+def _polygon_radius_at_angle(circum_R, sides, angle, fillet=0.0):
+    """Ray distance to a regular polygon with the project's +pi/2 phase.
+
+    With ``fillet`` > 0 the polygon is the rounded N-gon (``circum_R`` is
+    across corners, core = R − fillet)."""
+    if fillet > 0.0:
+        return _ph.rounded_poly_radius_at_angle(
+            max(circum_R - fillet, 1e-6), fillet, sides, angle)
     rel = (angle - np.pi / 2.0 + np.pi / sides) % (2.0 * np.pi / sides)
     return circum_R * np.cos(np.pi / sides) / np.cos(rel - np.pi / sides)
 
@@ -1510,7 +1598,6 @@ def _calc_flange_dims():
             *_outer_wh_at_z(_z_o_rect, _w_o_rect, _h_o_rect, _l * pct / 100.0))
     elif is_poly:
         from polygonal_horn import _r_to_circumradius
-        ir_throat = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
         if is_tractrix:
             zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
         elif is_salmon:
@@ -1523,15 +1610,26 @@ def _calc_flange_dims():
             zp, rp = _cd_fn(throat_d, coverage_h, axial_len, segments)
         elif is_exp:
             zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
-        R_i = _r_to_circumradius(rp, n_sides)
-        nml = _uts.compute_profile_normals(zp, R_i, flip_if_negative=True)
-        R_o = R_i + thickness / np.cos(np.pi / n_sides) * nml[:, 1]
+        if poly_fillet > 0:
+            # Rounded N-gon: across-corner extents from the shared helper.
+            _Wf = _ph.rounded_poly_wall(zp, rp, n_sides, thickness, poly_fillet)
+            _tc, _tf = _ph.rounded_poly_core(throat_d / 2.0, n_sides, poly_fillet)
+            ir_throat = _tc + _tf
+            R_i, R_o = _Wf["R_in"], _Wf["R_out"]
+            _get_mid_r = lambda pct: float(
+                sum(_ph.rounded_poly_core(rp[int(len(rp)*pct/100)],
+                                          n_sides, poly_fillet)))
+        else:
+            ir_throat = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
+            R_i = _r_to_circumradius(rp, n_sides)
+            nml = _uts.compute_profile_normals(zp, R_i, flip_if_negative=True)
+            R_o = R_i + thickness / np.cos(np.pi / n_sides) * nml[:, 1]
+            _get_mid_r = lambda pct: _r_to_circumradius(np.array([rp[int(len(rp)*pct/100)]]), n_sides)[0]
         # Same rim-bite rule as _circular_mouth_hole_R; rollback-complete
         # profiles use the maximum envelope, not the inward curl tip.
         _rim_poly = int(np.argmax(np.maximum(R_o, R_i)))
         ir_mouth = float(max(R_o[_rim_poly], R_i[_rim_poly]) - _FLANGE_WALL_BITE)
         mouth_dz = _mouth_wall_dz(zp, rp)
-        _get_mid_r = lambda pct: _r_to_circumradius(np.array([rp[int(len(rp)*pct/100)]]), n_sides)[0]
     elif is_radial or is_omni:
         ir_throat = throat_d / 2; ir_mouth = mouth_d / 2
         _get_mid_r = lambda pct: None
@@ -2063,12 +2161,21 @@ with fg1:
                     st.caption(f"Hole: {_ft_inner_w:.1f}\u00d7{_ft_inner_h:.1f} mm "
                                f"({'elliptical' if is_ellip else 'rectangular'})")
                 elif is_poly:
-                    from polygonal_horn import _r_to_circumradius
-                    _R_poly_g     = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
-                    _R_o_g_approx = _R_poly_g + thickness / np.cos(np.pi / n_sides)
-                    _ft_inner_R   = _R_o_g_approx
-                    _ft_inner_w = _ft_inner_h = 0.0
-                    st.caption(f"Hole: {n_sides}-gon, R={_ft_inner_R:.1f} mm")
+                    if poly_fillet > 0:
+                        _pc_g, _pf_g = _ph.rounded_poly_core(
+                            throat_d / 2.0, n_sides, poly_fillet)
+                        _ft_inner_R = _pc_g + _pf_g + thickness
+                        _ft_inner_w = _ft_inner_h = 0.0
+                        st.caption(f"Hole: rounded {n_sides}-gon "
+                                   f"(r={_pf_g + thickness:.1f}), "
+                                   f"R={_ft_inner_R:.1f} mm")
+                    else:
+                        from polygonal_horn import _r_to_circumradius
+                        _R_poly_g     = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
+                        _R_o_g_approx = _R_poly_g + thickness / np.cos(np.pi / n_sides)
+                        _ft_inner_R   = _R_o_g_approx
+                        _ft_inner_w = _ft_inner_h = 0.0
+                        st.caption(f"Hole: {n_sides}-gon, R={_ft_inner_R:.1f} mm")
                 else:
                     _ft_inner_R = throat_d / 2 + thickness
                     _ft_inner_w = _ft_inner_h = 0.0
@@ -2303,11 +2410,21 @@ with fg2:
                     st.caption(f"Hole: {_fm_inner_w:.1f}×{_fm_inner_h:.1f} mm "
                                f"({'elliptical' if is_ellip else 'rectangular'})")
             elif is_poly:
-                _fm_inner_R = (
-                    max(_fm_rim_R - _fm_ring / np.cos(np.pi / n_sides), 1.0)
-                    if _fm_inward else ir_mouth)
+                if _fm_inward and poly_fillet > 0:
+                    # Erode the rounded rim by the ring width (true inset).
+                    _rc_h, _rf_h = _ph.offset_rounded_poly(
+                        max(_fm_rim_R - poly_fillet, 1e-6), poly_fillet,
+                        -_fm_ring, n_sides)
+                    _fm_inner_R = max(float(_rc_h + _rf_h), 1.0)
+                elif _fm_inward:
+                    _fm_inner_R = max(
+                        _fm_rim_R - _fm_ring / np.cos(np.pi / n_sides), 1.0)
+                else:
+                    _fm_inner_R = ir_mouth
                 _hole_note = "inset from rim" if _fm_inward else "bites wall"
-                st.caption(f"Hole: {n_sides}-gon, R≈{_fm_inner_R:.1f} mm ({_hole_note})")
+                _gon_lbl = (f"rounded {n_sides}-gon" if poly_fillet > 0
+                            else f"{n_sides}-gon")
+                st.caption(f"Hole: {_gon_lbl}, R≈{_fm_inner_R:.1f} mm ({_hole_note})")
             else:
                 _fm_inner_R = max(_fm_rim_R - _fm_ring, 1.0) if _fm_inward else ir_mouth
                 _hole_note = "inset from rim" if _fm_inward else "bites wall"
@@ -2417,9 +2534,17 @@ with fg2:
                 _fm_od = max(_fm_outer_w, _fm_outer_h)
                 st.caption(f"True offset contour: {_fm_outer_w:.0f}×{_fm_outer_h:.0f} mm extents")
             elif is_poly:
-                _fm_flange_R = _fm_hole_R + _fm_ring / np.cos(np.pi / n_sides)
-                _fm_od = 2.0 * _fm_flange_R
-                st.caption(f"Offset {n_sides}-gon · across corners Ø {_fm_od:.1f} mm")
+                if poly_fillet > 0:
+                    # Offset-mode outer is a true parallel offset (buffer):
+                    # across corners grows by exactly the ring width.
+                    _fm_flange_R = _fm_hole_R + _fm_ring
+                    _fm_od = 2.0 * _fm_flange_R
+                    st.caption(f"Offset rounded {n_sides}-gon · "
+                               f"across corners Ø {_fm_od:.1f} mm")
+                else:
+                    _fm_flange_R = _fm_hole_R + _fm_ring / np.cos(np.pi / n_sides)
+                    _fm_od = 2.0 * _fm_flange_R
+                    st.caption(f"Offset {n_sides}-gon · across corners Ø {_fm_od:.1f} mm")
             else:
                 _fm_flange_R = _fm_hole_R + _fm_ring
                 _fm_od = 2.0 * _fm_flange_R
@@ -2505,7 +2630,9 @@ with fg3:
                            f"({'elliptical' if is_ellip else 'rectangular'})")
             elif is_poly:
                 _mid_inner_R = mid_r
-                st.caption(f"Hole: {n_sides}-gon, R≈{_mid_inner_R:.0f} mm")
+                _mid_gon_lbl = (f"rounded {n_sides}-gon" if poly_fillet > 0
+                                else f"{n_sides}-gon")
+                st.caption(f"Hole: {_mid_gon_lbl}, R≈{_mid_inner_R:.0f} mm")
             else:
                 _mid_inner_R = mid_r + thickness
                 st.caption(f"Hole: Ø{_mid_inner_R*2:.0f} mm (circular)")
@@ -2571,9 +2698,15 @@ with fg3:
                 else:
                     st.caption(f"Offset rectangle: {_mid_outer_w:.0f}×{_mid_outer_h:.0f} mm")
             elif is_poly:
-                _mid_flange_R = _mid_inner_R + _mid_ring / np.cos(np.pi / n_sides)
-                _mid_od = 2.0 * _mid_flange_R
-                st.caption(f"Offset {n_sides}-gon · across corners Ø {_mid_od:.1f} mm")
+                if poly_fillet > 0:
+                    _mid_flange_R = _mid_inner_R + _mid_ring
+                    _mid_od = 2.0 * _mid_flange_R
+                    st.caption(f"Offset rounded {n_sides}-gon · "
+                               f"across corners Ø {_mid_od:.1f} mm")
+                else:
+                    _mid_flange_R = _mid_inner_R + _mid_ring / np.cos(np.pi / n_sides)
+                    _mid_od = 2.0 * _mid_flange_R
+                    st.caption(f"Offset {n_sides}-gon · across corners Ø {_mid_od:.1f} mm")
             else:
                 _mid_flange_R = _mid_inner_R + _mid_ring
                 _mid_od = 2.0 * _mid_flange_R
@@ -2740,7 +2873,9 @@ if gen_btn:
                     pillar_hole_pos=omni_pillar_hole_pos,
                     pillar_hole_depth=omni_pillar_hole_depth,
                     pillar_hole_head_diam=omni_pillar_head_d,
-                    pillar_hole_head_depth=omni_pillar_head_depth)
+                    pillar_hole_head_depth=omni_pillar_head_depth,
+                    plan_sides=omni_plan_sides,
+                    plan_corner_radius=omni_plan_corner)
                 _o_reflector = _oparts["reflector"]
                 _o_deflector = _oparts["deflector"]
                 _o_pillars = _oparts["pillars"]
@@ -2870,7 +3005,14 @@ if gen_btn:
 
                 # Skip flange sections 3b-3d for omni.
                 gen_throat = False
-                mouth_bx = mouth_by = float(mouth_d)
+                if omni_plan_sides >= 3:
+                    # Polygonal plan: footprint = across-corners of the
+                    # perimeter-matched rounded N-gon.
+                    _opdev_g = _om._plan_sigma_dev_fn(
+                        omni_plan_sides, omni_plan_corner, mouth_d / 2.0)
+                    mouth_bx = mouth_by = float(mouth_d * _opdev_g.sigma_max)
+                else:
+                    mouth_bx = mouth_by = float(mouth_d)
                 _rp_mouth = float(mouth_d) / 2.0
                 _zp_mouth = float(horn.bounds[1, 2])
             elif is_osse:
@@ -2908,19 +3050,32 @@ if gen_btn:
                 elif is_exp:
                     zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
                 with tempfile.NamedTemporaryFile(suffix=".stl", delete=False) as t: tp = t.name
-                _ph.generate_polygonal_3d_mesh(zp, rp, n_sides, thickness, tp)
+                _ph.generate_polygonal_3d_mesh(zp, rp, n_sides, thickness, tp,
+                                               corner_radius=poly_fillet)
                 horn = _tm.load(tp, file_type="stl"); os.unlink(tp)
                 horn.fix_normals()
-                from polygonal_horn import _r_to_circumradius
-                _R_i_arr   = _r_to_circumradius(rp, n_sides)
-                _nml_poly  = _uts.compute_profile_normals(zp, _R_i_arr, flip_if_negative=True)
-                _cos_pn    = np.cos(np.pi / n_sides)
-                _R_o_arr   = _R_i_arr + thickness / _cos_pn * _nml_poly[:, 1]
-                _z_o_poly  = zp + thickness * _nml_poly[:, 0]
-                _z_o_poly  = np.clip(_z_o_poly, np.min(zp), np.max(zp))
-                _z_o_poly[0] = zp[0]; _z_o_poly[-1] = zp[-1]
-                _R_o_eq_arr = np.sqrt(
-                    (0.5 * n_sides * _R_o_arr**2 * np.sin(2*np.pi/n_sides)) / np.pi)
+                if poly_fillet > 0:
+                    # Rounded N-gon: station arrays from the shared wall helper
+                    # (same math as the mesh engine). _R_*_arr keep their
+                    # across-corner meaning for every consumer below.
+                    _poly_wall_gen = _ph.rounded_poly_wall(
+                        zp, rp, n_sides, thickness, poly_fillet)
+                    _R_i_arr   = _poly_wall_gen["R_in"]
+                    _R_o_arr   = _poly_wall_gen["R_out"]
+                    _z_o_poly  = _poly_wall_gen["z_out"]
+                    _R_o_eq_arr = _poly_wall_gen["r_eq_out"]
+                else:
+                    _poly_wall_gen = None
+                    from polygonal_horn import _r_to_circumradius
+                    _R_i_arr   = _r_to_circumradius(rp, n_sides)
+                    _nml_poly  = _uts.compute_profile_normals(zp, _R_i_arr, flip_if_negative=True)
+                    _cos_pn    = np.cos(np.pi / n_sides)
+                    _R_o_arr   = _R_i_arr + thickness / _cos_pn * _nml_poly[:, 1]
+                    _z_o_poly  = zp + thickness * _nml_poly[:, 0]
+                    _z_o_poly  = np.clip(_z_o_poly, np.min(zp), np.max(zp))
+                    _z_o_poly[0] = zp[0]; _z_o_poly[-1] = zp[-1]
+                    _R_o_eq_arr = np.sqrt(
+                        (0.5 * n_sides * _R_o_arr**2 * np.sin(2*np.pi/n_sides)) / np.pi)
                 _R_o_throat_poly = _R_o_arr[0]
                 _i_rim_poly = int(np.argmax(np.maximum(_R_o_arr, _R_i_arr)))
                 _R_o_mouth_poly  = _R_o_arr[_i_rim_poly]
@@ -2989,6 +3144,12 @@ if gen_btn:
                     _z_o_rect = np.mean(_V_o_ellip[:, :, 2], axis=1)
                     _w_o_rect = 2.0 * np.max(np.abs(_V_o_ellip[:, :, 0]), axis=1)
                     _h_o_rect = 2.0 * np.max(np.abs(_V_o_ellip[:, :, 1]), axis=1)
+                    # Pin the end stations to the inner planes (same reason as
+                    # the sidebar block): the slanted outer mouth rim otherwise
+                    # drags _rim_weld's flange seat below the inner lip.
+                    _z_o_rect = np.clip(_z_o_rect, zr.min(), zr.max())
+                    _z_o_rect[0] = zr[0]
+                    _z_o_rect[-1] = zr[-1]
                     _inner_eq_rect = np.sqrt(wr * hr) / 2.0
                     _outer_eq_rect = np.sqrt(_w_o_rect * _h_o_rect) / 2.0
                 else:
@@ -3283,10 +3444,24 @@ if gen_btn:
                             _z_o_poly, _R_o_eq_arr, _handoff_local_z)
                         _outer_rw = _outer_rh = None
                         def _poly_section(z_loc):
+                            if poly_fillet > 0:
+                                _cz, _ = _profile_value_slope(
+                                    zp, _poly_wall_gen["core"], z_loc)
+                                _fz, _ = _profile_value_slope(
+                                    zp, _poly_wall_gen["f_in"], z_loc)
+                                return _ph.rounded_poly_ring_resampled(
+                                    _cz, _fz, n_sides, _adapter_n)
                             _Rz, _ = _profile_value_slope(zp, _R_i_arr, z_loc)
                             return _ta._poly_points(n_sides, _Rz, n=_adapter_n)
 
                         def _poly_outer_section(z_loc):
+                            if poly_fillet > 0:
+                                _cz, _ = _profile_value_slope(
+                                    _z_o_poly, _poly_wall_gen["core_out"], z_loc)
+                                _fz, _ = _profile_value_slope(
+                                    _z_o_poly, _poly_wall_gen["f_out"], z_loc)
+                                return _ph.rounded_poly_ring_resampled(
+                                    _cz, _fz, n_sides, _adapter_n)
                             _Rz, _ = _profile_value_slope(_z_o_poly, _R_o_arr, z_loc)
                             return _ta._poly_points(n_sides, _Rz, n=_adapter_n)
 
@@ -3526,7 +3701,9 @@ if gen_btn:
                         bolt_n=int(_ft_nb), bolt_d=_ft_db,
                         bolt_phase=_ft_bphase,
                         offset=z_min + _ft_off + _ft_sp,
-                        outer_n_sides=_ft_outer_n)
+                        outer_n_sides=_ft_outer_n,
+                        inner_fillet=(float(_poly_wall_gen["f_out"][0])
+                                      if poly_fillet > 0 else 0.0))
                 else:
                     f_throat = _fg.generate_flange(
                         throat_R=fiw_g/2, flange_R=_ft_od/2,
@@ -3662,17 +3839,31 @@ if gen_btn:
                                 output_path=None,
                             )
                     else:
+                        # Rounded polygonal rim: exact erosion of the rim ring by
+                        # the land width gives the hole (across corners + fillet).
+                        _fm_rim_fillet = _fm_hole_fillet = 0.0
+                        _fm_hole_R_gen = _fm_hole_R
+                        if is_poly and poly_fillet > 0:
+                            _rim_i = int(np.argmax(np.maximum(_R_o_arr, _R_i_arr)))
+                            _fm_rim_fillet = float(_poly_wall_gen["f_out"][_rim_i])
+                            _rc_h, _rf_h = _ph.offset_rounded_poly(
+                                max(_fm_rim_R - _fm_rim_fillet, 1e-6),
+                                _fm_rim_fillet, -_fm_ring, n_sides)
+                            _fm_hole_R_gen = float(_rc_h + _rf_h)
+                            _fm_hole_fillet = float(_rf_h)
                         f_mouth = _fg.generate_profile_flange(
                             inner_type=_fm_inward_shape,
-                            inner_R=_fm_hole_R,
+                            inner_R=_fm_hole_R_gen,
                             inner_w=_fm_inner_w if is_rect else 0.0,
                             inner_h=_fm_inner_h if is_rect else 0.0,
                             inner_n_sides=n_sides if is_poly else 0,
+                            inner_fillet=_fm_hole_fillet,
                             outer_mode="custom",
                             outer_type=_fm_inward_shape,
                             outer_diam=2.0 * _fm_rim_R,
                             outer_w=_fm_rim_w, outer_h=_fm_rim_h,
                             outer_n_sides=n_sides if is_poly else 0,
+                            outer_fillet=_fm_rim_fillet,
                             # Plate bottom must stay exactly at the rim plane: the
                             # horn mounts on it. The weld does not need a sunk
                             # plate (the old +0.5 thickness left a 0.5 mm step
@@ -3716,7 +3907,8 @@ if gen_btn:
                                 _fm_rim_h / 2.0 - _fm_pillar_R))
                         elif is_poly:
                             _edge_R = _polygon_radius_at_angle(
-                                _fm_rim_R, n_sides, _a)
+                                _fm_rim_R, n_sides, _a,
+                                fillet=_fm_rim_fillet if poly_fillet > 0 else 0.0)
                             _bolt_R = max(_edge_R - _fm_pillar_R, 1.0)
                             _cx, _cy = _bolt_R * np.cos(_a), _bolt_R * np.sin(_a)
                         else:
@@ -3896,12 +4088,19 @@ if gen_btn:
                     _fm_top = (
                         _fm_rim_off + _fm_off + _fm_sp if is_rect
                         else z_mouth + _fm_off)
+                    if is_poly and poly_fillet > 0:
+                        # Hole bites the rounded outer wall at the rim station.
+                        _rim_i = int(np.argmax(np.maximum(_R_o_arr, _R_i_arr)))
+                        _fm_hole_fillet = float(_poly_wall_gen["f_out"][_rim_i])
+                    else:
+                        _fm_hole_fillet = 0.0
                     f_mouth = _fg.generate_profile_flange(
                         inner_type=_fm_inner_type,
                         inner_R=_fm_hole_R,
                         inner_w=_fm_inner_w if (is_rect or is_ellip) else 0.0,
                         inner_h=_fm_inner_h if (is_rect or is_ellip) else 0.0,
                         inner_n_sides=n_sides if is_poly else 0,
+                        inner_fillet=_fm_hole_fillet,
                         outer_mode="custom" if _fm_custom else "offset",
                         outer_type=mouth_outer.lower(),
                         outer_offset=_fm_ring,
@@ -3922,8 +4121,12 @@ if gen_btn:
                 z_mid = z_min + _mid_pos + _mid_off
                 if is_poly:
                     _R_o_mid_poly = float(np.interp(_mid_pos, zp, _R_o_arr))
+                    _mid_hole_fillet = (
+                        float(np.interp(_mid_pos, zp, _poly_wall_gen["f_out"]))
+                        if poly_fillet > 0 else 0.0)
                 else:
                     _R_o_mid_poly = _mid_inner_R
+                    _mid_hole_fillet = 0.0
                 _mid_inner_type = (
                     "elliptical" if is_ellip else
                     "rectangular" if is_rect else
@@ -3951,6 +4154,7 @@ if gen_btn:
                         inner_w=_mid_inner_w if is_rect else 0.0,
                         inner_h=_mid_inner_h if is_rect else 0.0,
                         inner_n_sides=n_sides if is_poly else 0,
+                        inner_fillet=_mid_hole_fillet,
                         outer_mode="custom" if _mid_custom else "offset",
                         outer_type=mid_out.lower(),
                         outer_offset=_mid_ring,

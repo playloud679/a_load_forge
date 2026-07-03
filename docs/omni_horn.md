@@ -29,7 +29,8 @@ def build_omni_parts(throat_diam=25.0, mouth_diam=200.0, fc=None, rings=64,
                      pillar_hole_ref_diam=None, pillar_hole_def_diam=None,
                      pillar_hole_pos=0.55, pillar_hole_depth=4.0,
                      pillar_hole_head_diam=0.0,
-                     pillar_hole_head_depth=0.0) -> dict
+                     pillar_hole_head_depth=0.0,
+                     plan_sides=0, plan_corner_radius=0.0) -> dict
 ```
 
 Returns `{"deflector": Trimesh, "reflector": Trimesh, "pillars": Trimesh|None}`,
@@ -108,6 +109,8 @@ def generate_omni_horn(
     pillar_hole_depth: float = 4.0,
     pillar_hole_head_diam: float = 0.0,
     pillar_hole_head_depth: float = 0.0,
+    plan_sides: int = 0,
+    plan_corner_radius: float = 0.0,
 ) -> tuple[mesh.Mesh, mesh.Mesh]:
 ```
 
@@ -143,6 +146,38 @@ objects. Accepts both canonical pillar names and the legacy `standoffs` /
 | `pillar_hole_depth` | `float` | `4.0` | Extra depth drilled into the pillar after the cutter crosses the reflector wall. |
 | `pillar_hole_head_diam` | `float` | `0.0` | Optional counterbore diameter on the reflector/flare outside. `0` disables the head pocket. |
 | `pillar_hole_head_depth` | `float` | `0.0` | Optional counterbore depth into the reflector/flare wall. |
+| `plan_sides` | `int` | `0` | Plan (top-view) shape of the bell: `0` = circular revolution; `≥3` = rounded regular N-gon plan (see *Polygonal plan shape*). |
+| `plan_corner_radius` | `float` | `0.0` | Corner fillet (mm) of the plan polygon at the mouth. `0` = sharp corners; `≥ mouth radius` degenerates back to the circle. |
+
+### Polygonal plan shape (`plan_sides ≥ 3`)
+
+Gives the bell a **rounded regular N-gon footprint** (top view) instead of the
+circular revolution — an aesthetic option that preserves the acoustics:
+
+- **σ(φ)** (`_plan_sigma_dev_fn`): the plan is a rounded N-gon (vertices at
+  `π/2 + k·2π/N`, fillet `plan_corner_radius`, radial function from
+  `polygonal_horn.rounded_poly_radius_at_angle`) **perimeter-matched** to the
+  circle — unit-perimeter core `Rc₁ = π(1−f₁)/(N·sin(π/N))`, `f₁ =
+  corner_radius/Rm` clamped to `[0,1]`. Because `S = perimeter·gap`, the open
+  cross-section stays exactly on the area law with the unchanged axisymmetric
+  gap `h`. Faces pull in (`σ_min = Rc₁cos(π/N)+f₁ < 1`), corners poke out
+  (`σ_max = Rc₁+f₁ > 1`); the UI shows both footprint diameters. At
+  `f₁ = 1` the shape IS the circle (graceful degeneration).
+- **Blend** (`_plan_blend`): smoothstep weight `w(t)` = 0 for meridian
+  `t ≤ _PLAN_BLEND_T0 = 0.25` → the throat, the reflector's central hole and
+  the **adapter handoff region stay exactly circular** (the driver-mount
+  path and `omni_adapter_section_stack` are untouched); `w = 1` at the mouth.
+- **Application**: an **additive centerline shift** per vertex,
+  `Δr = ρ_c(station)·w(station)·(σ(φ)−1)` — `get_omni_profile` is unchanged
+  (the meridian math never sees the plan). Since inner wall, outer skin and
+  pillar band all shift by the same Δ at the same (station, azimuth), the gap,
+  the wall thickness in each meridian half-plane, the pillar root overlap and
+  tip clearance are all preserved. Implemented in `_revolve_polygon(plan_dev,
+  plan_amp)`, `_sector_wedge(plan_dev_fn, plan_amp)` and the fastener cutters
+  (position shifted; the cutter axis keeps the meridian normal — the small
+  azimuthal wall tilt at the corners is neglected).
+- Corners are sampled by the revolve rings: use a higher `rings` (Fine
+  preset) for smooth plan corners.
 
 ### Vertical coverage (`vert_cov_deg > 0`)
 
@@ -232,9 +267,12 @@ as one part).
 `pillar_hole_pos` selects the meridian station inside the aerodynamic pillar
 band. The cutter axis follows the local reflector normal. The reflector cutter
 starts outside the flare and stops in the built-in 0.2 mm air gap before the
-pillar, while the deflector/pillar cutter starts after that gap and continues
-into the pillar by `pillar_hole_depth`. This lets the reflector use a larger
-clearance hole and the pillar/deflector use a smaller pilot/thread/insert hole.
+    pillar, while the deflector/pillar cutter starts in the same gap just before
+the pillar tip and continues into the pillar by `pillar_hole_depth`. Starting in
+the air gap is intentional: a pilot cutter that starts fully inside the pillar
+creates an internal blind subtraction and can split compact fused pillars into
+separate slicer bodies. This lets the reflector use a larger clearance hole and
+the pillar/deflector use a smaller pilot/thread/insert hole.
 The optional `pillar_hole_head_diam` / `pillar_hole_head_depth` counterbore is
 applied only to the reflector. In the Streamlit UI these controls appear under
 **Omni → Pillar fixing holes** as **Reflector hole Ø** and

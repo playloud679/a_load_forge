@@ -232,6 +232,8 @@ def generate_profile_flange(
     bolt_phase: float = 0.0,
     seg: int = 128,
     output_path: str | None = None,
+    inner_fillet: float = 0.0,
+    outer_fillet: float = 0.0,
 ) -> trimesh.Trimesh | None:
     """Generate an outward Mouth/Mid flange around any supported flare opening.
 
@@ -240,6 +242,13 @@ def generate_profile_flange(
     (circular, polygonal, or rectangular outer dimensions). ``bolt_mode`` is
     either ``"auto"`` (each hole is centred radially in the available material)
     or ``"fixed"`` (all holes use the requested ``bolt_R``).
+
+    ``inner_fillet``/``outer_fillet`` round the corners of a *polygonal*
+    inner/outer shape (rounded regular N-gon, matching the rounded polygonal
+    horn section). ``inner_R``/``outer_diam`` keep their across-corners
+    meaning: the rounded shape's core circumradius is R − fillet. In
+    ``offset`` mode a filleted inner uses a true shapely parallel offset for
+    the outer boundary (constant ring width), like the elliptical case.
     """
     from shapely.geometry import Polygon as _ShapelyPolygon
 
@@ -254,10 +263,16 @@ def generate_profile_flange(
     if bolt_mode not in {"auto", "fixed"}:
         raise ValueError("bolt_mode must be 'auto' or 'fixed'")
 
-    def _shape_points(shape: str, R: float, w: float, h: float, n: int) -> np.ndarray:
+    def _shape_points(shape: str, R: float, w: float, h: float, n: int,
+                      fillet: float = 0.0) -> np.ndarray:
         if shape == "rectangular":
             return np.array([[-w / 2, -h / 2], [w / 2, -h / 2],
                              [w / 2, h / 2], [-w / 2, h / 2]], dtype=float)
+        if shape == "polygonal" and fillet > 0.0:
+            # Rounded N-gon: R is across corners, core circumradius = R − f.
+            import polygonal_horn as _pg
+            core = max(R - fillet, 1e-6)
+            return _pg.rounded_polygon_ring(core, fillet, n, arc_seg=16)
         count = n if shape == "polygonal" else seg
         phase = np.pi / 2.0 if shape == "polygonal" else 0.0
         angles = np.linspace(0.0, 2.0 * np.pi, count, endpoint=False) + phase
@@ -300,19 +315,24 @@ def generate_profile_flange(
 
     outer_R = outer_diam / 2.0
     inner_pts = _shape_points(
-        inner_type, inner_R, inner_w, inner_h, inner_n_sides)
+        inner_type, inner_R, inner_w, inner_h, inner_n_sides,
+        fillet=inner_fillet)
     inner_poly = _ShapelyPolygon(inner_pts)
     bolt_mid_poly = None
-    if outer_mode == "offset" and inner_type == "elliptical":
+    if outer_mode == "offset" and (
+            inner_type == "elliptical"
+            or (inner_type == "polygonal" and inner_fillet > 0.0)):
         # True geometric offset of an ellipse is a parallel curve, NOT an
         # ellipse. Shapely buffer() produces constant ring width all around;
         # the old outer_w/h = inner + 2·ring built a scaled ellipse that
-        # thins at the diagonals.
+        # thins at the diagonals. Same for a rounded N-gon: the parallel
+        # offset keeps the core and grows the fillet by the ring width.
         outer_poly = inner_poly.buffer(outer_offset)
         bolt_mid_poly = inner_poly.buffer(outer_offset / 2.0)
     else:
         outer_pts = _shape_points(
-            outer_type, outer_R, outer_w, outer_h, outer_n_sides)
+            outer_type, outer_R, outer_w, outer_h, outer_n_sides,
+            fillet=outer_fillet)
         outer_poly = _ShapelyPolygon(outer_pts)
     if not outer_poly.buffer(1e-7).contains(inner_poly):
         raise ValueError("outer flange dimensions do not contain the flare opening")
@@ -378,12 +398,16 @@ def generate_polygonal_flange(
     output_path: str | None = None,
     outer_n_sides: int = 0,
     bolt_phase: float = 0.0,
+    inner_fillet: float = 0.0,
 ) -> trimesh.Trimesh | None:
     """
     Polygonal flange — N-gon inner hole matching the horn cross-section.
 
-    inner_circumR  — circumradius of the N-gon inner hole.
+    inner_circumR  — circumradius of the N-gon inner hole (across corners
+                     when ``inner_fillet`` > 0).
     n_sides        — sides of the inner hole (matches horn).
+    inner_fillet   — corner fillet radius of the hole (matches a rounded
+                     polygonal horn section; hole core = circumR − fillet).
     outer_n_sides  — sides of the outer body: 0 = circular, ≥3 = N-gon prism.
     flange_R       — circumradius of the outer boundary.
     """
@@ -426,8 +450,15 @@ def generate_polygonal_flange(
     to_sub: list[trimesh.Trimesh] = []
 
     # N-gon inner hole — same vertex rotation as the horn (offset π/2)
-    theta_ngon = np.linspace(0, 2 * np.pi, n_sides, endpoint=False) + np.pi / 2
-    verts_2d = [[inner_circumR * np.cos(t), inner_circumR * np.sin(t)] for t in theta_ngon]
+    if inner_fillet > 0.0:
+        import polygonal_horn as _pg
+        verts_2d = _pg.rounded_polygon_ring(
+            max(inner_circumR - inner_fillet, 1e-6), inner_fillet,
+            n_sides, arc_seg=16)
+    else:
+        theta_ngon = np.linspace(0, 2 * np.pi, n_sides, endpoint=False) + np.pi / 2
+        verts_2d = [[inner_circumR * np.cos(t), inner_circumR * np.sin(t)]
+                    for t in theta_ngon]
     ngon_poly = _ShapelyPolygon(verts_2d)
     ngon_prism = trimesh.creation.extrude_polygon(ngon_poly, height=hole_h)
     ngon_prism.apply_translation([0, 0, zb - 1])
