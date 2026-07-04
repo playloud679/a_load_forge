@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "flare_forge"
-version = "2.33.0"
+version = "2.34.0"
 description = "Parametric STL generator for acoustic horns"
 readme = "README.md"
 license = { text = "Proprietary" }

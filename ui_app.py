@@ -953,6 +953,13 @@ with st.sidebar:
     # plus a visible ledge. Shrinking the hole by this much (per side) makes
     # the flange bite *into* the wall so the union is a clean volumetric weld.
     _FLANGE_WALL_BITE = 0.5  # mm per side
+    # Bite for mouth-flange holes cut on the INNER aperture edge (ordinary,
+    # non-rollback terminations): it shows as a small lip protruding into the
+    # mouth, so keep it just big enough to clear the chordal gap between the
+    # flange hole polygon and the horn's discretized wall (~0.1–0.16 mm at
+    # default resolutions). The volumetric weld comes from the slanted rim
+    # band buried in the plate, not from this bite.
+    _MOUTH_LIP_BITE = 0.25  # mm per side
     _osse_mouth_w = _osse_mouth_h = None
     try:
         if is_osse:
@@ -1570,13 +1577,22 @@ def _calc_flange_dims():
         return float(max(0.1, zp[-1] - z_o[-1]))
 
     def _circular_mouth_hole_R(zp, rp):
-        """Mouth flange hole: outermost wall radius at the acoustic rim.
+        """Mouth flange hole radius.
 
-        Rollback-complete profiles end at an inward curl tip, so the rim is the
-        maximum envelope station, not necessarily the last sample. Near-90°
-        ordinary terminations still resolve to the last sample. Bite the rim
-        inward so the flange welds volumetrically instead of touching coplanar.
+        Ordinary (monotonic-Z) terminations: the mesh engine's parallel offset
+        leaves a SLANTED mouth rim (the outer skin stops n_z·t below the inner
+        edge), so a hole sized on the outer radius leaves an open V wedge
+        between the plate's cylindrical hole face and the slanted rim, welded
+        only along a ~bite-sized sliver at its base. Size the hole on the
+        INNER mouth radius minus the bite instead: the plate fills the whole
+        slant and bites the lip along the rim (the airway below the mouth is
+        narrower, so the plate never intrudes into the air path).
+
+        Rollback-complete profiles end at an inward curl tip: keep the maximum
+        envelope station (the curled lip dives through the plate and welds).
         """
+        if float(zp[-1]) >= float(np.max(zp)) - 1e-9:  # ordinary termination
+            return float(rp[-1] - _MOUTH_LIP_BITE)
         nml = _uts.compute_profile_normals(zp, rp)
         r_o = rp + nml[:, 1] * thickness
         rim = int(np.argmax(np.maximum(r_o, rp)))
@@ -1672,10 +1688,15 @@ def _calc_flange_dims():
                 float(np.interp(np.clip(z_bot, _z[0], _z[-1]), _z, _R))
                 - _FLANGE_WALL_BITE,
                 0.0)
-        # Same rim-bite rule as _circular_mouth_hole_R; rollback-complete
-        # profiles use the maximum envelope, not the inward curl tip.
-        _rim_poly = int(np.argmax(np.maximum(R_o, R_i)))
-        ir_mouth = float(max(R_o[_rim_poly], R_i[_rim_poly]) - _FLANGE_WALL_BITE)
+        # Same slant-rim rule as _circular_mouth_hole_R: ordinary terminations
+        # take the inner mouth section (the plate fills the slanted rim, no
+        # open V wedge); rollback-complete profiles keep the maximum envelope
+        # (the curled lip dives through the plate and welds).
+        if float(zp[-1]) >= float(np.max(zp)) - 1e-9:
+            ir_mouth = float(R_i[-1] - _MOUTH_LIP_BITE)
+        else:
+            _rim_poly = int(np.argmax(np.maximum(R_o, R_i)))
+            ir_mouth = float(max(R_o[_rim_poly], R_i[_rim_poly]) - _FLANGE_WALL_BITE)
         mouth_dz = _mouth_wall_dz(zp, rp)
     elif is_radial or is_omni:
         ir_throat = throat_d / 2; ir_mouth = mouth_d / 2
@@ -2422,6 +2443,17 @@ with fg2:
                 if _fm_inward:
                     _fm_inner_w = max(_fm_rim_w - 2.0 * _fm_ring, 1.0)
                     _fm_inner_h = max(_fm_rim_h - 2.0 * _fm_ring, 1.0)
+                elif is_ellip and not _fm_is_rollback:
+                    # Elliptical loft: the parallel offset leaves a SLANTED
+                    # mouth rim (no end pinning like the rect engine), so a
+                    # hole cut on the outer wall leaves an open V wedge
+                    # against it (same slant-rim rule as
+                    # _circular_mouth_hole_R). Hole = inner mouth ellipse −
+                    # bite: the plate fills the slant and welds along the
+                    # whole rim; the airway below is narrower, so the plate
+                    # never intrudes into the air path.
+                    _fm_inner_w = max(wr[-1] - 2 * _MOUTH_LIP_BITE, 1.0)
+                    _fm_inner_h = max(hr[-1] - 2 * _MOUTH_LIP_BITE, 1.0)
                 else:
                     _fm_inner_w = max(_fm_w_o - 2 * _FLANGE_WALL_BITE, 1.0)
                     _fm_inner_h = max(_fm_h_o - 2 * _FLANGE_WALL_BITE, 1.0)
@@ -4115,14 +4147,32 @@ if gen_btn:
                                 [_cx, _cy, (_seat_top + _seat_floor) / 2.0])
                             _mouth_head_seat_cuts.append(_seat_cut)
                 elif is_ellip and not _fm_custom:
-                    _fm_contour = _mesh_outer_section_xy(horn, _fm_rim_off)
+                    if not _fm_is_rollback:
+                        # Ordinary termination: the elliptical loft's mouth
+                        # rim is SLANTED (see the sidebar note), so build the
+                        # flange from the INNER mouth ellipse — hole = airway
+                        # − bite fills the slant and welds along the whole
+                        # rim; outer = airway + wall + ring keeps the OD
+                        # clear of the flare skin. 96 points keep the boolean
+                        # clean (see the elliptical-flange offset gotcha).
+                        _fm_t = np.linspace(0.0, 2.0 * np.pi, 96,
+                                            endpoint=False)
+                        _fm_contour = np.column_stack([
+                            (wr[-1] / 2.0) * np.cos(_fm_t),
+                            (hr[-1] / 2.0) * np.sin(_fm_t)])
+                        _fm_wall = float(thickness)
+                        _fm_bite = _MOUTH_LIP_BITE
+                    else:
+                        _fm_contour = _mesh_outer_section_xy(horn, _fm_rim_off)
+                        _fm_wall = 0.0
+                        _fm_bite = _FLANGE_WALL_BITE
                     if _fm_contour is not None:
                         f_mouth = _fg.generate_contour_flange(
                             inner_xy=_fm_contour,
                             thickness=_fm_sp,
-                            wall=0.0,
+                            wall=_fm_wall,
                             ring=_fm_ring,
-                            bite=_FLANGE_WALL_BITE,
+                            bite=_fm_bite,
                             bolt_n=int(_fm_nb),
                             bolt_d=_fm_db,
                             bolt_phase=_fm_bphase,
@@ -4138,9 +4188,15 @@ if gen_btn:
                         _fm_rim_off + _fm_off + _fm_sp if is_rect
                         else z_mouth + _fm_off)
                     if is_poly and poly_fillet > 0:
-                        # Hole bites the rounded outer wall at the rim station.
-                        _rim_i = int(np.argmax(np.maximum(_R_o_arr, _R_i_arr)))
-                        _fm_hole_fillet = float(_poly_wall_gen["f_out"][_rim_i])
+                        if float(zp[-1]) >= float(np.max(zp)) - 1e-9:
+                            # Ordinary termination: hole = inner mouth section
+                            # (fills the slanted rim) with the inner fillet.
+                            _fm_hole_fillet = float(_poly_wall_gen["f_in"][-1])
+                        else:
+                            # Rollback: hole bites the rounded outer wall at
+                            # the rim station.
+                            _rim_i = int(np.argmax(np.maximum(_R_o_arr, _R_i_arr)))
+                            _fm_hole_fillet = float(_poly_wall_gen["f_out"][_rim_i])
                     else:
                         _fm_hole_fillet = 0.0
                     f_mouth = _fg.generate_profile_flange(

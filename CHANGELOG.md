@@ -1,5 +1,34 @@
 # Changelog
 
+## 2.34.0 (2026-07-04)
+
+- **Fix flangia bocca: cuneo a "V" contro il bordo obliquo della bocca**
+  (bug report da slicer su Exponential, sezioni Circolare/Poligonale ed
+  Ellittica). I motori assialsimmetrico ed ellittico fanno l'offset parallelo
+  della parete, quindi il rim della bocca è *obliquo* (la pelle esterna finisce
+  `n_z·t` sotto il bordo interno); il foro della flangia — dimensionato sulla
+  parete esterna — lasciava una gola a "V" aperta tutt'attorno (fino a ~2×2,5
+  mm), saldata solo su uno spicchio alla base. Per le terminazioni ordinarie
+  (Z monotona) il foro ora è la **sezione interna della bocca − bite**: la
+  piastra riempie l'intero bordo obliquo e salda in volume lungo tutto il rim,
+  senza mai sporgere nel condotto. Circolare (`_circular_mouth_hole_R`),
+  poligonale (`ir_mouth` + fillet foro `f_in[-1]` per gli N-gon raccordati) ed
+  ellittica (flangia costruita dall'ellisse interna della bocca a 96 punti con
+  `wall=thickness`, pattern della bocca OS-SE; vale anche per il sizing
+  Custom). I profili rollback mantengono la regola dell'inviluppo (labbro che
+  attraversa la piastra), invariata. Il ramo rettangolare era già corretto
+  (il motore rect pinna i frame estremi → rim piatto).
+- **Nuovo `_MOUTH_LIP_BITE = 0.25 mm`**: il bite del foro sul bordo
+  dell'apertura (visibile come labbrino sporgente nel condotto alla bocca) è
+  dimezzato rispetto al bite parete (0,5 mm, invariato altrove) — basta a
+  coprire il gap cordale foro↔parete discretizzata; la saldatura volumetrica
+  la fa la banda obliqua annegata nella piastra.
+  Verificato con `AppTest` (preset utente Exponential ellittico 320×160 con
+  adapter, exp circolare, exp poligonale 6 lati r12, tractrix): sezione fusa a
+  ogni quota nello spessore della piastra, labbro 0,25 mm esatto, watertight,
+  1 componente. Suite completa verificata: `tests/test_all.py` 273 pass,
+  `tests/test_geometry.py` 33 pass.
+
 ## 2.33.0 (2026-07-04)
 
 - **Fix flangia intermedia (Circolare/Poligonale): saldatura volumetrica al
