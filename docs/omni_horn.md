@@ -13,6 +13,13 @@ to `lip_angle` at the mouth.
 All dimensions in mm. The meridian revolution uses `numpy-stl`
 (`_revolve_polygon`, own engine); part assembly / boolean welds use `trimesh`.
 
+> **UI gate (private feature)**: the "Omni (CD 360°)" entry in `ui_app.py`'s
+> Profile selectbox is visible by default (local runs need no config) and is
+> hidden only where `public_deploy = true` is set in `st.secrets` — i.e. in
+> the Streamlit Cloud dashboard secrets of the public app. The module itself
+> and its tests are always active. A stale Omni `profile_type` (e.g. a shared
+> `.flr` preset) is snapped back to "OS-SE (ATH)" on public deploys.
+
 ---
 
 ## Public API

@@ -51,6 +51,18 @@ export_step = _step.export_step
 mesh_to_flange_dxf = _dxf.mesh_to_flange_dxf
 ga = _anl.ga
 
+# ── Private-feature gate ────────────────────────────────────────────────
+# Features still under wraps (currently the Omni CD 360° profile) are shown
+# by DEFAULT (local runs need no config, nothing gitignored to back up) and
+# hidden only where `public_deploy = true` is set in secrets — i.e. in the
+# Streamlit Cloud dashboard (Settings → Secrets) of the public app. The flag
+# lives in the Streamlit account, so it survives redeploys and machine loss.
+# Same branch everywhere, no fork needed.
+try:
+    _PRIVATE_UI = not bool(st.secrets.get("public_deploy", False))
+except Exception:  # no secrets file at all → private/local run
+    _PRIVATE_UI = True
+
 _STL_MIME = "application/octet-stream"
 
 
@@ -224,10 +236,18 @@ with st.sidebar:
     st.subheader("Acoustic Profile")
 
     # ── Shape — the two primary design choices ───────────────────────────
+    _profiles = ["Tractrix", "Salmon", "Iwata", "Le Cléac'h (isophase)",
+                 "Oblate spheroidal", "Conical", "R-OSSE", "OS-SE (ATH)",
+                 "Exponential"]
+    if _PRIVATE_UI:
+        _profiles.append("Omni (CD 360°)")
+    elif str(st.session_state.get("profile_type", "")).startswith("Omni"):
+        # A stale Omni selection (e.g. a shared .flr preset) on a deployment
+        # without the flag would crash the selectbox — snap back to default.
+        st.session_state["profile_type"] = "OS-SE (ATH)"
     sh1, sh2 = st.columns([1, 1])
     with sh1:
-        profile_type = st.selectbox("Profile",
-            ["Tractrix", "Salmon", "Iwata", "Le Cléac'h (isophase)", "Oblate spheroidal", "Conical", "R-OSSE", "OS-SE (ATH)", "Exponential", "Omni (CD 360°)"], index=7,
+        profile_type = st.selectbox("Profile", _profiles, index=7,
             on_change=_on_horn_change, key="profile_type")
     with sh2:
         section_type = st.radio("Section", ["Circular", "Polygonal", "Rectangular", "Elliptical"],

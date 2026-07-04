@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.32.0 (2026-07-04)
+
+- **Gate feature private** (`public_deploy` nei secrets): il profilo
+  `Omni (CD 360°)` è ora una feature privata — visibile di default (in locale
+  non serve alcuna configurazione, niente file gitignorati da backuppare) e
+  nascosto solo dove `st.secrets` contiene `public_deploy = true`, da
+  impostare nel dashboard Streamlit Cloud della app pubblica
+  (Settings → Secrets): il flag vive nell'account Streamlit e sopravvive a
+  redeploy e cambio macchina. Un `profile_type` Omni stantio (es. preset
+  `.flr` condiviso caricato sulla app pubblica) viene riportato a
+  "OS-SE (ATH)" invece di far crashare la selectbox. `src/omni_horn.py` e i
+  suoi test restano sempre attivi. Documentato in
+  `.streamlit/secrets.toml.example` e `docs/omni_horn.md`; verificato con
+  `AppTest` (flag assente → visibile/selezionabile; flag attivo → assente,
+  preset stantio sanitizzato). Suite completa verificata:
+  `tests/test_all.py` 273 pass, `tests/test_geometry.py` 33 pass.
+
 ## 2.31.0 (2026-07-03)
 
 - **Sezione poligonale: raccordo spigoli** (`Corner radius (mm)` accanto a
