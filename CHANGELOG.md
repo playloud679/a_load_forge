@@ -1,5 +1,29 @@
 # Changelog
 
+## 2.33.0 (2026-07-04)
+
+- **Fix flangia intermedia (Circolare/Poligonale): saldatura volumetrica al
+  flare** (bug report da slicer: piastra staccata dalla campana con fessura a
+  cuneo — 1,4 mm alla base sul preset R-OSSE). Il foro era dimensionato alla
+  faccia *superiore* della piastra senza `_FLANGE_WALL_BITE` (e il caso
+  circolare usava `r_interno + spessore` radiale invece dell'offset parallelo
+  vero lungo la normale), quindi il contatto con la parete era una linea a
+  filo del bordo superiore. Nuova closure `_get_mid_hole(z_bot)` in
+  `_calc_flange_dims` (`ui_app.py`): parete esterna reale campionata alla
+  faccia *inferiore* della piastra (`_mid_pos − _mid_sp`) sul ramo di andata
+  (rollback-safe, `_outgoing_leg`/`_outer_wh_at_z`) meno il bite — stessa
+  regola del ramo rect/ellittico già corretto; per il poligonale interp di
+  `z_out`/`R_out`/`f_out` da `rounded_poly_wall` (prima i raggi esterni erano
+  interpolati contro l'asse z *interno* e alla quota sbagliata). Il ramo di
+  generazione riusa il valore della sidebar, così caption e mesh coincidono.
+  Verificato con `AppTest` (R-OSSE circolare / poligonale 8 lati fillet 12 /
+  poligonale 6 lati sharp, Le Cléac'h): sezione fusa a ogni quota dentro lo
+  spessore della piastra, watertight, 1 componente. Nota per verifiche future:
+  sui profili rollback il labbro della bocca può scendere alle quote della
+  piastra come anello esterno separato — geometria legittima, non mancata
+  saldatura. Suite completa verificata: `tests/test_all.py` 273 pass,
+  `tests/test_geometry.py` 33 pass.
+
 ## 2.32.0 (2026-07-04)
 
 - **Gate feature private** (`public_deploy` nei secrets): il profilo

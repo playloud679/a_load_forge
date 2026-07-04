@@ -1582,6 +1582,22 @@ def _calc_flange_dims():
         rim = int(np.argmax(np.maximum(r_o, rp)))
         return float(max(r_o[rim], rp[rim]) - _FLANGE_WALL_BITE)
 
+    def _circular_mid_hole(zp, rp):
+        """Mid-flange hole sizer: outer wall at a given Z minus the weld bite.
+
+        The mid plate grows DOWNWARD from its Z offset and the wall widens
+        toward the mouth, so the hole must be sized at the plate's BOTTOM
+        face: the wall then pokes through the whole plate thickness and the
+        union is a volumetric weld (same rule as the rect path). Sizing at
+        the top face leaves a wedge crack below a knife-edge contact."""
+        nml = _uts.compute_profile_normals(zp, rp)
+        z_o = zp + nml[:, 0] * thickness
+        d_o = 2.0 * (rp + nml[:, 1] * thickness)
+        def _hole(z_bot, _z=z_o, _d=d_o):
+            w, _ = _outer_wh_at_z(_z, _d, _d, z_bot)
+            return max(w / 2.0 - _FLANGE_WALL_BITE, 1.0), 0.0
+        return _hole
+
     mouth_dz = float(thickness)
     if is_osse:
         # OS-SE: round throat, superelliptical mouth; flanges are disabled but
@@ -1589,7 +1605,7 @@ def _calc_flange_dims():
         ir_throat = throat_d / 2.0 + thickness
         ir_mouth = (max(_osse_mouth_w or throat_d, _osse_mouth_h or throat_d) / 2.0
                     + thickness)
-        _get_mid_r = lambda pct: None
+        _get_mid_hole = lambda z_bot: (None, 0.0)
     elif is_rect:
         ir_throat = throat_w / 2 + thickness
         if is_tractrix:
@@ -1613,9 +1629,9 @@ def _calc_flange_dims():
         # curled-back last array element.
         _im, _ = _mouth_station(_z_o_rect, _w_o_rect, _h_o_rect)
         ir_mouth = max(_w_o_rect[_im], _h_o_rect[_im]) / 2 - _FLANGE_WALL_BITE
-        # Mid radius sampled by physical Z on the outgoing leg (pct·_len == Z mm).
-        _get_mid_r = lambda pct, _l=(_len or 1.0): (lambda w, h: max(w, h) / 2)(
-            *_outer_wh_at_z(_z_o_rect, _w_o_rect, _h_o_rect, _l * pct / 100.0))
+        # Rect/ellip mid holes are sized inline in the flange section
+        # (_outer_wh_at_z at the plate's bottom face minus the bite).
+        _get_mid_hole = lambda z_bot: (None, 0.0)
     elif is_poly:
         from polygonal_horn import _r_to_circumradius
         if is_tractrix:
@@ -1636,15 +1652,26 @@ def _calc_flange_dims():
             _tc, _tf = _ph.rounded_poly_core(throat_d / 2.0, n_sides, poly_fillet)
             ir_throat = _tc + _tf
             R_i, R_o = _Wf["R_in"], _Wf["R_out"]
-            _get_mid_r = lambda pct: float(
-                sum(_ph.rounded_poly_core(rp[int(len(rp)*pct/100)],
-                                          n_sides, poly_fillet)))
+            # Hole = outer wall (across corners) at the plate's bottom face
+            # minus the weld bite, on the outgoing leg (rollback-safe); the
+            # matching outer fillet keeps the rounded hole parallel to the wall.
+            _zb_m, _Rb_m, _fb_m = _outgoing_leg(
+                _Wf["z_out"], _Wf["R_out"], _Wf["f_out"])
+            _get_mid_hole = lambda z_bot, _z=_zb_m, _R=_Rb_m, _f=_fb_m: (
+                float(np.interp(np.clip(z_bot, _z[0], _z[-1]), _z, _R))
+                - _FLANGE_WALL_BITE,
+                float(np.interp(np.clip(z_bot, _z[0], _z[-1]), _z, _f)))
         else:
             ir_throat = _r_to_circumradius(np.array([throat_d/2]), n_sides)[0]
             R_i = _r_to_circumradius(rp, n_sides)
             nml = _uts.compute_profile_normals(zp, R_i, flip_if_negative=True)
             R_o = R_i + thickness / np.cos(np.pi / n_sides) * nml[:, 1]
-            _get_mid_r = lambda pct: _r_to_circumradius(np.array([rp[int(len(rp)*pct/100)]]), n_sides)[0]
+            _z_o_m = np.clip(zp + thickness * nml[:, 0], np.min(zp), np.max(zp))
+            _zb_m, _Rb_m, _ = _outgoing_leg(_z_o_m, R_o, R_o)
+            _get_mid_hole = lambda z_bot, _z=_zb_m, _R=_Rb_m: (
+                float(np.interp(np.clip(z_bot, _z[0], _z[-1]), _z, _R))
+                - _FLANGE_WALL_BITE,
+                0.0)
         # Same rim-bite rule as _circular_mouth_hole_R; rollback-complete
         # profiles use the maximum envelope, not the inward curl tip.
         _rim_poly = int(np.argmax(np.maximum(R_o, R_i)))
@@ -1652,32 +1679,31 @@ def _calc_flange_dims():
         mouth_dz = _mouth_wall_dz(zp, rp)
     elif is_radial or is_omni:
         ir_throat = throat_d / 2; ir_mouth = mouth_d / 2
-        _get_mid_r = lambda pct: None
+        _get_mid_hole = lambda z_bot: (None, 0.0)
     elif is_tractrix:
         ir_throat = throat_d / 2
         zp, rp = _core.get_tractrix(throat_d, mouth_d, segments)
         ir_mouth = _circular_mouth_hole_R(zp, rp)
         mouth_dz = _mouth_wall_dz(zp, rp)
-        _get_mid_r = lambda pct: rp[int(np.searchsorted(zp, zp[-1]*pct/100))]
+        _get_mid_hole = _circular_mid_hole(zp, rp)
     elif is_exp:
         zp, rp = _get_exp_profile(throat_d, mouth_d, fc, segments)
         ir_throat = throat_d / 2
         ir_mouth = _circular_mouth_hole_R(zp, rp)
         mouth_dz = _mouth_wall_dz(zp, rp)
-        _get_mid_r = lambda pct: rp[min(int(np.searchsorted(zp, zp[-1]*pct/100)), len(rp)-1)]
+        _get_mid_hole = _circular_mid_hole(zp, rp)
     elif is_cd:
         zp, rp = _cd_fn(throat_d, coverage_h, axial_len, segments)
         ir_throat = throat_d / 2
         ir_mouth = _circular_mouth_hole_R(zp, rp)
         mouth_dz = _mouth_wall_dz(zp, rp)
-        _get_mid_r = lambda pct: rp[min(int(np.searchsorted(zp, zp[-1]*pct/100)), len(rp)-1)]
+        _get_mid_hole = _circular_mid_hole(zp, rp)
     elif is_rosse:
         zp, rp = _get_rosse_profile(throat_d, mouth_d, segments)
         ir_throat = throat_d / 2
         ir_mouth = _circular_mouth_hole_R(zp, rp)
         mouth_dz = _mouth_wall_dz(zp, rp)
-        _z_len = zp.max()
-        _get_mid_r = lambda pct, _zp=zp, _rp=rp, _zl=_z_len: _rp[np.argmin(np.abs(_zp - _zl*pct/100))]
+        _get_mid_hole = _circular_mid_hole(zp, rp)
     else:  # salmon / lecleach
         if is_salmon:
             zp, rp = _core.get_salmon(throat_d, fc, axial_len, segments, T=salmon_T)
@@ -1686,13 +1712,12 @@ def _calc_flange_dims():
         ir_throat = throat_d / 2
         ir_mouth = _circular_mouth_hole_R(zp, rp)
         mouth_dz = _mouth_wall_dz(zp, rp)
-        _z_len = zp.max()  # for roll-back profiles, use max z (axial extent)
-        _get_mid_r = lambda pct, _zp=zp, _rp=rp, _zl=_z_len: _rp[np.argmin(np.abs(_zp - _zl*pct/100))]
+        _get_mid_hole = _circular_mid_hole(zp, rp)
 
-    return ir_throat, ir_mouth, _get_mid_r, mouth_dz
+    return ir_throat, ir_mouth, _get_mid_hole, mouth_dz
 
 
-ir_throat, ir_mouth, _get_mid_r, _mouth_wall_dz = _calc_flange_dims()
+ir_throat, ir_mouth, _get_mid_hole, _mouth_wall_dz = _calc_flange_dims()
 
 if st.sidebar.button("🔧 Recalculate flanges", use_container_width=True,
                      help="Update all flange diameters based on current horn parameters"):
@@ -2634,8 +2659,12 @@ with fg3:
             _mid_sp  = st.number_input("Thickness (mm)", 2.0, 20.0, 4.0, 0.5, key="mid_spess")
             _mid_nb = st.number_input("Bolt count", 0, 24, _bolt_n, 1, key="mid_nb")
             _mid_db = st.number_input("Bolt hole Ø (mm)", 1.0, 12.0, _bolt_d, 0.1, key="mid_db")
-            _mid_pct = min(100.0, _mid_pos / max(_len or 1, 1) * 100)
-            mid_r = _get_mid_r(_mid_pct) if _len else 10
+            # Circular/poly hole from the real outer wall at the plate's bottom
+            # face (throat-relative Z ≈ _mid_pos − thickness) minus the weld
+            # bite, so the widening wall pokes through the whole plate and the
+            # union is a volumetric weld — same rule as the rect branch below.
+            _mid_hole_R, _mid_hole_f = (_get_mid_hole(_mid_pos - _mid_sp)
+                                        if _len else (None, 0.0))
             if is_rect:
                 # Hole sized from the real outer wall at the plate's bottom face
                 # (throat-relative Z ≈ _mid_pos − thickness) on the outgoing leg, so
@@ -2649,12 +2678,12 @@ with fg3:
                 st.caption(f"Hole: {_mid_inner_w:.0f}×{_mid_inner_h:.0f} mm "
                            f"({'elliptical' if is_ellip else 'rectangular'})")
             elif is_poly:
-                _mid_inner_R = mid_r
+                _mid_inner_R = _mid_hole_R if _mid_hole_R is not None else 10.0
                 _mid_gon_lbl = (f"rounded {n_sides}-gon" if poly_fillet > 0
                                 else f"{n_sides}-gon")
                 st.caption(f"Hole: {_mid_gon_lbl}, R≈{_mid_inner_R:.0f} mm")
             else:
-                _mid_inner_R = mid_r + thickness
+                _mid_inner_R = _mid_hole_R if _mid_hole_R is not None else 10.0
                 st.caption(f"Hole: Ø{_mid_inner_R*2:.0f} mm (circular)")
             _mid_sizing = _flange_sizing_selector("mid_sizing")
             _mid_custom = _mid_sizing == "Custom dimensions"
@@ -4139,14 +4168,12 @@ if gen_btn:
 
             if gen_mid and not is_radial and not is_osse:
                 z_mid = z_min + _mid_pos + _mid_off
-                if is_poly:
-                    _R_o_mid_poly = float(np.interp(_mid_pos, zp, _R_o_arr))
-                    _mid_hole_fillet = (
-                        float(np.interp(_mid_pos, zp, _poly_wall_gen["f_out"]))
-                        if poly_fillet > 0 else 0.0)
-                else:
-                    _R_o_mid_poly = _mid_inner_R
-                    _mid_hole_fillet = 0.0
+                # Hole sized in the sidebar via _get_mid_hole: outer wall at
+                # the plate's BOTTOM face minus _FLANGE_WALL_BITE, so the
+                # widening wall pokes through the whole plate and the union is
+                # a volumetric weld (not a knife-edge touch at the top face).
+                _R_o_mid_poly = _mid_inner_R
+                _mid_hole_fillet = _mid_hole_f if is_poly else 0.0
                 _mid_inner_type = (
                     "elliptical" if is_ellip else
                     "rectangular" if is_rect else

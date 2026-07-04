@@ -98,7 +98,7 @@ Each mounting flange (throat, mouth, mid) can also be downloaded as a flat 2-D *
     .venv/bin/python tests/test_all.py
     .venv/bin/python tests/test_geometry.py
 
-`test_all.py` (197 tests) covers the profile × section matrix, requested-dimension regressions, standard driver bolt-on presets, flanges, DXF drilling templates, inward-flange pillars and screw seats across roll-back section shapes, slicing, radial and box tongue-and-groove joints, print-volume chunks, and the throat adapter C1/C2 raccordo. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
+`test_all.py` (273 tests) covers the profile × section matrix, requested-dimension regressions, standard driver bolt-on presets, flanges, DXF drilling templates, inward-flange pillars and screw seats across roll-back section shapes, slicing, radial and box tongue-and-groove joints, print-volume chunks, and the throat adapter C1/C2 raccordo. `test_geometry.py` (33 tests) checks the *shape* of the output the way you would in a slicer — it sections the mesh, isolates the outer contour, and measures `max_r / min_r` (1.0 for a circle, `1/cos(π/N)` for an N-gon). That second file exists because the failures worth catching aren't crashes: they're a flange that came out round when you asked for a square, or a "wall" that isn't actually the thickness you typed.
 
 ## Known limitations
 
@@ -106,6 +106,10 @@ For very low cutoff frequencies (below roughly 200 Hz) the Le Cléac'h ODE integ
 
 A polygonal flange with few sides and a large hole gets big: holding a uniform flat-face wall on a triangle means the corners reach a long way out. That's geometry, not a bug — switch to more sides or a circular outer if the footprint matters.
 
-## License
+## License and use
 
-MIT
+Flare Forge is proprietary beta software. Generated STL/STEP/DXF files are
+intended for personal, educational, and non-commercial use only.
+
+See `TERMS_OF_SERVICE.md` for the full terms, usage restrictions, and warranty
+disclaimer.
