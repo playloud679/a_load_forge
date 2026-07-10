@@ -50,6 +50,9 @@
   specification screenshot.
 - **Turbosound preset**: added `Turbosound TS-12W350/8W` from the manufacturer
   specification PDF linked in the working session.
+- **Cursor labels**: enlarged F3/F6/F10 response-plot labels, included the
+  interpolated total SPL in dB and moved labels into a separated top-left
+  readout block while keeping cursor rules on their exact frequencies.
 - **Verification**: `.venv/bin/python tests/test_all.py` passes with 10 passed,
   0 failed and 0 skipped tests.
 - **Design nudges**: added `-3%` / `+3%` buttons for `Vh`, `fh`, `Vl` and `fl`,

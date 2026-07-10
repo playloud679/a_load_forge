@@ -407,17 +407,40 @@ def _cursor_rows(result: _dccav.SimulationResult, thresholds: dict[int, float]) 
     if st.session_state.get("cursor_manual_enabled", False):
         rows.append(_cursor_row(result, "M1", float(st.session_state["cursor_manual_1_hz"]), "manual"))
         rows.append(_cursor_row(result, "M2", float(st.session_state["cursor_manual_2_hz"]), "manual"))
+    _place_cursor_labels_above_response(result, rows)
     return rows
+
+
+def _place_cursor_labels_above_response(result: _dccav.SimulationResult, rows: list[dict]) -> None:
+    if not rows:
+        return
+    selected = _response_series(result)
+    arrays = [
+        np.asarray(values, dtype=float)
+        for values in selected.values()
+        if np.asarray(values, dtype=float).size
+    ]
+    finite_chunks = [values[np.isfinite(values)] for values in arrays]
+    finite = np.concatenate(finite_chunks) if finite_chunks else np.array([])
+    top_db = float(np.max(finite)) if finite.size else float(np.nanmax(result.spl_total_db))
+    f_min = float(result.frequency_hz[0])
+    f_max = float(result.frequency_hz[-1])
+    label_x_hz = float(np.clip(f_min * 1.08, f_min, f_max))
+    lane_gap_db = 6.0
+    for lane, row in enumerate(rows):
+        row["label_x_hz"] = label_x_hz
+        row["label_y_db"] = top_db + 3.0 + lane_gap_db * (len(rows) - lane - 1)
 
 
 def _cursor_row(result: _dccav.SimulationResult, label: str, frequency_hz: float, mode: str) -> dict:
     f = float(np.clip(frequency_hz, result.frequency_hz[0], result.frequency_hz[-1]))
+    spl_total_db = _interp(result.frequency_hz, result.spl_total_db, f)
     return {
         "label": label,
-        "display_label": f"{label} {f:.1f} Hz",
+        "display_label": f"{label} {f:.1f} Hz {spl_total_db:.1f} dB",
         "mode": mode,
         "frequency_hz": f,
-        "spl_total_db": _interp(result.frequency_hz, result.spl_total_db, f),
+        "spl_total_db": spl_total_db,
         "impedance_ohm": _interp(result.frequency_hz, result.impedance_ohm, f),
         "excursion_mm": _interp(result.frequency_hz, result.excursion_mm, f),
     }
@@ -457,11 +480,11 @@ def _cursor_layer(rows: list[dict]) -> alt.LayerChart | None:
         baseline="bottom",
         dx=5,
         dy=-6,
-        fontSize=12,
+        fontSize=18,
         fontWeight="bold",
     ).encode(
-        x="frequency_hz:Q",
-        y="spl_total_db:Q",
+        x="label_x_hz:Q",
+        y="label_y_db:Q",
         text="display_label:N",
         color=color,
     )
