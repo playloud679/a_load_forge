@@ -1,4 +1,4 @@
-# flare_forge — Streamlit configuration
+# Load Forge — Streamlit configuration
 #
 # Keep the app's Python source server-side only. The two settings below stop
 # uncaught-exception tracebacks (which embed source-code snippets) from being

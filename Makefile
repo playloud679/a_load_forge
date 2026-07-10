@@ -1,4 +1,4 @@
-.PHONY: venv install dev run test test-all test-geometry test-match lint format clean
+.PHONY: venv install dev run test test-match lint format clean
 
 VENV_DIR := .venv
 PYTHON  := python3
@@ -22,16 +22,9 @@ run:
 
 test:
 	$(VENV_DIR)/bin/python tests/test_all.py
-	$(VENV_DIR)/bin/python tests/test_geometry.py
-
-test-all:
-	$(VENV_DIR)/bin/python tests/test_all.py
-
-test-geometry:
-	$(VENV_DIR)/bin/python tests/test_geometry.py
 
 test-match:
-	@if [ -z "$(MATCH)" ]; then echo "Usage: make test-match MATCH='complete rollback'"; exit 2; fi
+	@if [ -z "$(MATCH)" ]; then echo "Usage: make test-match MATCH='dccav'"; exit 2; fi
 	$(VENV_DIR)/bin/python tests/test_all.py --match "$(MATCH)"
 
 lint:
@@ -41,7 +34,5 @@ format:
 	$(VENV_DIR)/bin/python -m ruff format src tests ui_app.py
 
 clean:
-	rm -rf $(VENV_DIR)
-	rm -rf io/*.xyz io/*.stl io/*.gcode
-	rm -rf __pycache__ */__pycache__ .pytest_cache
+	rm -rf __pycache__ src/__pycache__ tests/__pycache__ .pytest_cache
 	@echo "Cleaned."

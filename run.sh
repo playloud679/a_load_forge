@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Launch flare_forge and open it in Safari (instead of the default browser).
+# Launch Load Forge and open it in Safari (instead of the default browser).
 set -e
 cd "$(dirname "$0")"
 

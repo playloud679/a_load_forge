@@ -1,280 +1,163 @@
-# flare_forge — Guida Utente / User Guide
+# Load Forge User Guide
 
-> Per chi **usa l'app**, non per chi la programma. Niente codice: solo come
-> ottenere una tromba acustica stampabile dai controlli dello schermo.
-> (Il manuale tecnico per sviluppatori è `MANUAL.md`.)
->
-> For people who **use the app**, not who code it. No code: just how to get a
-> printable acoustic horn from the on-screen controls.
-> (The developer manual is `MANUAL.md`.)
+Load Forge simulates acoustic loudspeaker loads from driver Thiele/Small
+parameters.  It supports DCCAV, a double asymmetric reflex / double resonator in
+series, and a conventional one-box bass reflex.
 
----
+## Inputs
 
-## In due righe / In two lines
+### Driver T/S
 
-**IT** — Imposti tre o quattro numeri (gola, bocca o frequenza di taglio,
-lunghezza), scegli la forma, premi un bottone e scarichi un file `.stl` pronto
-per la stampante 3D. L'app pensa lei a fare le pareti chiuse e i fori dei bulloni.
+Enter the driver parameters in the sidebar:
 
-**EN** — You set three or four numbers (throat, mouth or cutoff frequency,
-length), pick a shape, press a button and download a printable `.stl`. The app
-handles the watertight walls and the bolt holes for you.
+- `Fs`
+- `Vas`
+- `Qts`
+- `Qms`
+- `Re`
+- piston diameter or `Sd`
+- optional `Le`, `Xmax`, `Pe`
 
-La pagina è un'unica schermata, dall'alto in basso, nell'ordine in cui lavori:
+Optional measured values `Mms`, `Cms` and `Bl` can be supplied in the optional
+parameters panel.  If they are left at zero, the simulator derives them from the
+T/S set.
 
+`Qms` must be greater than `Qts`; otherwise `Qes` cannot be derived.
+
+The **Load type** selector switches between `DCCAV` and `Bass reflex`.  The
+**Driver preset** selector loads built-in examples immediately.  When
+**Auto-align box from T/S** is enabled, changing a preset, load type or T/S
+value also updates the active box controls, so the plots follow the selected
+driver without an extra apply step.
+
+`Beyma 12CMV2` uses the manufacturer T/S values from the supplied datasheet
+screenshot, including `Sd=0.053 m2`; the nominal 300 mm diameter is not used as
+piston area.
+
+The preset list also includes selected Beyma 12" low/mid and woofer models from
+Beyma's official XLS catalog.  Catalog units are converted internally to the
+simulator units.
+
+### DCCAV Alignment
+
+The app computes a first-pass alignment:
+
+```text
+Vh = 2.05 * Qts^2 * Vas
+Vl = 4.13 * Qts^2 * Vas
+fh = 1.22 * Fs / Qts
+fl = 0.466 * Fs / Qts
+f3 = 0.83 * fl
 ```
-1. Acoustic Profile   →   2. Mounting Flanges   →   3. Generate Assembly   →   4. Slice STL
-   (che tromba)            (come si attacca)         (crea il file)            (taglia per la stampa)
+
+Use **Apply suggested alignment** to copy those values into the editable box
+controls.  The editable `Vh`, `fh`, `Vl` and `fl` controls also include `-3%`
+and `+3%` buttons for quick tuning around the current design point.
+
+### Bass Reflex Alignment
+
+The normal reflex path starts from:
+
+```text
+Vb = Vas
+Fb = Fs
 ```
 
-Segui le sezioni in quest'ordine e non puoi sbagliare.
+Use **Apply suggested reflex** to copy those values into the editable `Vb` and
+`Fb` controls.  This is a plain starting point, not a named QB3/SBB4/EBS
+alignment.
 
----
+The suggested alignment is an empirical small-signal starting point, not a full
+mechanical enclosure design.  For low-Qts pro 12" drivers it can produce very
+small volumes; the UI warns when the total suggested `Vh+Vl` is likely too small
+to treat as a practical final box without checking port displacement, air speed,
+compression and maximum SPL.
 
-## 1. Acoustic Profile — che tromba vuoi / which horn
+### Box Controls
 
-### Profile (il profilo acustico / the acoustic curve)
+The DCCAV topology is:
 
-| Profilo | IT — quando sceglierlo | EN — when to pick it |
-|---|---|---|
-| **Tractrix** | Classico, carico dolce. Imposti gola + bocca. | Classic, gentle loading. Set throat + mouth. |
-| **Salmon** | Ipex (T=0.707), molto usato. Imposti gola + Fc + lunghezza. | Hypex, very common. Throat + Fc + length. |
-| **Le Cléac'h** | Fronte d'onda isofase con roll-back definito dall'angolo di terminazione. | Isophase wavefront with roll-back defined by the termination angle. |
-| **Oblate spheroidal** | Waveguide orientato alla direttività costante: scegli l'angolo nominale/asintotico. | Constant-directivity-oriented waveguide: choose the nominal/asymptotic angle. |
-| **Conical** | Cono dritto con angolo nominale. La risposta reale dipende anche da frequenza e driver. | Straight cone with a nominal angle. Actual response also depends on frequency and driver. |
-| **R-OSSE** | Waveguide CD parametrico con bordo che torna indietro dolcemente nello spazio libero. Imposta gola, diametro esterno e copertura; i fattori avanzati regolano la forma. | Parametric CD waveguide with a smooth free-space roll-back. Set throat, outer diameter and coverage; advanced factors tune the shape. |
-| **Exponential** | Il più semplice: gola + bocca + Fc (tasso di flare). | Simplest: throat + mouth + Fc (flare rate). |
-| **Iwata** | La tromba vera del piano l'Audiophile. Solo gola + lunghezza. | The real l'Audiophile horn. Throat + length only. |
-| **OS-SE (ATH)** | Waveguide ATH gola tonda → bocca superellittica con copertura H/V indipendente: i ridge diagonali nascono da sé. Imposta gola, lunghezza e coperture H/V. Flange gola/bocca/mid disponibili (la bocca segue il contorno reale). | ATH waveguide, round throat → superelliptical mouth with independent H/V coverage; the diagonal ridges emerge by themselves. Set throat, length and H/V coverage. Throat/mouth/mid flanges available (mouth follows the real contour). |
+```text
+driver -> upper volume || upper port -> lower volume || lower port
+```
 
-> **Iwata è speciale.** È una forma fissa rettangolare: quando la scegli, il
-> selettore **Section** viene ignorato e ti restano solo gola + lunghezza. Tutto
-> il resto (bocca, Fc) te lo calcola lei.
-> **Iwata is special:** a fixed rectangular shape; the Section selector is
-> ignored and you only set throat + length.
+Controls:
 
-### Section (la forma della bocca / the mouth shape)
+- `Vh upper`: upper chamber volume
+- `fh upper`: upper port tuning
+- `Vl lower`: lower chamber volume
+- `fl lower`: lower port tuning
+- `Qabs`: absorber losses
+- `Qleak`: enclosure leakage losses
+- `Qport`: port losses
 
-- **Circular** — tonda. La più semplice. / round, the simplest.
-- **Polygonal** — a N lati (3–12). Scegli quanti lati. / N-gon, you pick the side count.
-- **Rectangular** — rettangolare. Imposti larghezza/altezza (aspect ratio). / set width/height.
-- **Elliptical** — sezione a **ellisse vera** (stessi input del rettangolare:
-  W/H o copertura H/V per i profili CD). È la forma giusta per i waveguide
-  asimmetrici. Le flange usano un foro ellittico dedicato e lo shape adapter
-  raccorda il driver all'ellisse senza allungare la tromba. / true ellipse
-  cross-section, with elliptical-hole flanges and an embedded shape adapter.
-### I numeri / the numbers — "You set" vs "Computed"
+For `Bass reflex`, controls are:
 
-**IT** — A sinistra (**You set**) metti i pochi numeri che guidano la tromba che
-hai scelto. A destra (**Computed**) l'app ti **mostra** quello che ne deriva
-(lunghezza, Fc, area di gola/bocca) — quelli non si toccano, sono risultati. La
-frasetta sotto "Dimensions" ti dice ogni volta *quali* campi servono.
+- `Vb box`: single enclosure volume
+- `Fb tuning`: vent tuning
+- `Qabs`, `Qleak`, `Qport`: box, leakage and port losses
 
-**EN** — On the left (**You set**) you enter the few numbers that drive your
-chosen horn. On the right (**Computed**) the app **shows** what follows (length,
-Fc, throat/mouth area) — those aren't editable, they're results. The hint under
-"Dimensions" tells you each time *which* fields are needed.
+Higher Q means lower loss for leakage/ports.  Very low Q values intentionally
+damp the response.
 
-> ⚠️ **Avviso bocca piccola / small-mouth warning.** La regola della circonferenza
-> pari a una lunghezza d'onda è una guida pratica per la terminazione, non una
-> previsione completa della risposta. L'avviso indica possibili riflessioni più
-> forti o caricamento più debole vicino alla frequenza indicata.
-> The one-wavelength mouth-circumference rule is a practical termination
-> guideline, not a complete response prediction.
+## Outputs
 
-### ⚙️ Advanced settings (di solito lasciali stare / usually leave them)
+### Metrics
 
-- **Wall thickness** — spessore parete (default 4 mm). / wall thickness.
-- **Profile points** — stazioni lungo il profilo (direzione z): liscia il flare
-  in lunghezza. / stations along the profile (z direction).
-- **Angular segments** — facce attorno all'asse per le trombe rotonde: è questo
-  che elimina la sfaccettatura visibile nello slicer (usa 128–256 per bocche
-  grandi). / facets around the axis for round horns; raise to 128–256 for
-  large mouths to remove visible faceting.
-- **Speed of sound** — velocità del suono (344 m/s a ~20 °C; alzala col caldo).
-  Cambia i calcoli di Fc/bocca. / speed of sound; affects Fc/mouth math.
+The top metrics show:
 
-### 2D Preview
+- peak low-frequency SPL estimate
+- estimated `F3`, `F6` and `F10`
+- maximum cone excursion
+- minimum electrical impedance
 
-A destra vedi la **sezione** della tromba in tempo reale: linea interna + parete.
-È solo un'anteprima, non un file. Serve a capire se la forma è quella che volevi
-prima di generare. / Live cross-section preview; not a file, just a sanity check.
+Suggested alignment metrics are shown separately for comparison.
 
----
+### LF Load Response
 
-## 2. Mounting Flanges — come si attacca / how it mounts
+The response plot shows the low-frequency acoustic-load estimate:
 
-**IT** — Le flange sono gli anelli con i fori per i bulloni. Tre possibili:
-- **Throat / Adapter** — lato driver (l'altoparlante).
-- **Mouth** — lato bocca (il baffle / pannello).
-- **Mid** — una flangia intermedia, utile per trombe lunghe da stampare a pezzi.
+- total estimated response
+- direct driver contribution
+- lower external port contribution
 
-Ogni flangia ha una casella **Include**: spegnila se non la vuoi.
+For DCCAV, the lower-port branch naturally rolls off above the tuned range even
+without an electrical crossover.  For bass reflex, the port trace is the vent
+output.  The SPL scale is an internal estimate for comparing alignments, not a
+calibrated far-field or full-range front-driver radiation model.
 
-**EN** — Flanges are the bolt-hole rings. Three of them: **Throat/Adapter**
-(driver side), **Mouth** (baffle side), **Mid** (an intermediate ring, handy for
-long horns printed in parts). Each has an **Include** checkbox.
+### Plot Tools
 
-### I campi che contano / the fields that matter
+The `Plot Tools` section above the response plot selects visible response and
+port traces and enables cursors.  Pen controls can all be off for a plot.
+Automatic cursors mark `F3`, `F6` and `F10`; manual cursors `M1` and `M2` can be
+placed at any frequency in the simulated range.  The cursor table reports
+frequency, total SPL, impedance and excursion at each cursor.
 
-Per **Mouth** e **Mid**, **Sizing** offre due modalità:
-- **Offset from flare** — mostra solo l'offset, segue automaticamente la forma
-  reale del flare e centra i fori nel materiale disponibile.
-- **Custom dimensions** — mostra **Flange shape** con Circular, Polygonal e
-  Rectangular, quindi le dimensioni esterne. **Hole placement** può centrare
-  automaticamente i fori oppure disporli a distanza fissa dal centro tramite
-  il Bolt circle Ø.
+### Cone Excursion
 
-La mouth flange inward resta vincolata al bordo del roll-back e quindi usa
-sempre la sua dimensione strutturale. È disponibile su ogni sezione roll-back
-rilevata (Circular, Polygonal, Rectangular, Elliptical); quando la cavità è
-troppo poco profonda, l'opzione Inward non compare. La throat flange
-mantiene il precedente controllo **Outer shape** dentro **Advanced**.
-L'apertura centrale continua sempre a seguire la sezione della tromba.
+The excursion plot shows cone movement.  If `Xmax` is supplied, a reference line
+is drawn.
 
-| Campo | IT | EN |
-|---|---|---|
-| **Bolt count** | quanti bulloni | number of bolts |
-| **Bolt hole Ø** | diametro del foro bullone | bolt hole diameter |
-| **Ring width** | larghezza dell'anello attorno al foro: **è questo che decide la dimensione della flangia**. Allargalo per far stare i bulloni più in fuori. | width of the ring around the hole — **this sets the flange size**. Widen it to push bolts further out. |
-| **Bolt circle Ø** | su che cerchio stanno i bulloni | the circle the bolts sit on |
+### Electrical Impedance
 
-Sotto **Advanced** (apri solo se serve): `Z offset`, posizione bulloni
-(spigoli/facce) e, per la flangia bocca inward, le sedi delle teste.
+The impedance plot is an approximate electrical input impedance derived from
+the same acoustic load.
 
-> **Mouth flange inward.** Quando la flangia di bocca rientra sotto un
-> roll-back circolare, poligonale, rettangolare o ellittico, l'app costruisce
-> piloni pieni fino alla battuta delle viti e li
-> rifila sulla superficie curva reale: dal flare non sporge nulla. Il foro
-> visibile resta tondo e largo quanto il gambo vite. Abilitando
-> **Screw-head seat**, `Head Ø` imposta il diametro della testa e `Head depth`
-> la quota del fondo; tutte le sedi sono assiali ai fori e terminano sullo
-> stesso piano. / For an inward mouth flange, full pillars reach the screw
-> bearing face and are clipped to the real flare surface, with nothing
-> protruding outside. The visible opening stays round at shaft diameter.
-> Optional screw-head seats are axial, concentric, and share one flat floor.
+### Port Volume Velocity
 
-> **Throat — adattatore driver.** Se spunti **Include shape adapter** puoi
-> collegare un driver **a vite 1⅜"-18 con foro acustico da 25 mm** oppure
-> **flangiato custom** o bolt-on standard **1" 2-fori**, **1" 3-fori**,
-> **1.4" 4-fori** e **2" 4-fori**, e
-> l'app costruisce la transizione dalla gola tonda alla forma della tromba.
-> **Morph length inside horn** sostituisce i primi millimetri del flare: non
-> allunga la tromba. Solo flangia o socket possono sporgere dietro la gola.
-> **Throat — driver adapter.** Tick **Include shape adapter** to connect a
-> **1⅜"-18 threaded driver with a 25 mm acoustic bore**, a custom flange, or
-> a standard **1" / 1.4" / 2" bolt-on** driver; the app builds the
-> round-to-shape transition. **Morph length inside horn** replaces the first
-> part of the flare, so it does not increase horn depth. Only the flange or
-> threaded socket may protrude behind the throat plane.
-> **Flange thickness** in this block controls the adapter-side flange. When the
-> shape adapter is enabled, the separate **Throat Flange** block is only a status
-> note because the adapter owns that driver-side geometry.
+The port plot compares upper and lower port volume velocity.  Peaks identify
+where each resonator is doing most of the acoustic work.
 
-**Note / notes:**
-- Per **Iwata** alcune flange non sono disponibili perché la bocca è curva.
-- Il bottone **🔧 Recalculate flanges** riallinea le misure delle flange dopo
-  che hai cambiato la tromba. / re-aligns flange sizes after you change the horn.
+## Presets and Export
 
----
+- **Save preset** downloads current parameters as `.lfp` JSON.
+- **Load preset** reloads `.lfp` or JSON parameter files.
+- **Download response CSV** exports all simulated arrays.
 
-## 3. Generate Assembly — crea il file / build the file
+## Validation Status
 
-**IT** —
-1. Lascia **Include horn** spuntato (la tromba vera e propria).
-2. Premi **Generate Assembly STL**.
-3. Aspetta lo spinner: l'app fonde tromba + flange + adattatore in **un solo
-   pezzo a tenuta stagna**.
-4. Scarica con **📥 Download STL** (o **STEP** per il CAD).
-5. Per ogni flangia compare anche **📥 … flange DXF**: un disegno 2D (fori,
-   foro centrale, contorno su layer separati) da usare come dima di foratura o
-   per tagliare una piastra al laser/CNC. I fori-bullone escono come cerchi
-   esatti al diametro nominale sul pattern reale, anche per flange ellittiche,
-   flange sottili sopra adapter lunghi e flange bocca inward.
-
-**EN** —
-1. Keep **Include horn** ticked.
-2. Press **Generate Assembly STL**.
-3. Wait for the spinner: horn + flanges + adapter are merged into **one
-   watertight piece**.
-4. Download with **📥 Download STL** (or **STEP** for CAD).
-5. Each flange also offers **📥 … flange DXF**: a 2-D drawing (bolt holes,
-   bore and outline on separate layers) to use as a drilling template or to
-   laser/CNC-cut a mounting plate. Bolt holes come out as exact nominal
-   circles on the real pattern, including elliptical flanges, thin plates on
-   tall adapters, and inward mouth flanges.
-
-Se compare un errore rosso, cambia leggermente i parametri (spesso una flangia
-troppo grande o una bocca troppo piccola) e rigenera. / On a red error, nudge the
-parameters (often an oversized flange or a tiny mouth) and regenerate.
-
----
-
-## 4. Slice STL — taglia per la stampa / cut it for printing
-
-Serve quando la tromba **non ci sta** nel piatto della stampante. / For when the
-horn doesn't fit the print bed.
-
-**Source:** usa l'**assembly appena generato** oppure **carica un tuo .stl**.
-
-Due modi di taglio / two slicing modes:
-
-### A) Axial / petals — anelli e spicchi
-- **❶ Slice axially** — taglia la tromba in **fette** lungo l'asse. Scegli per
-  *numero* di segmenti o *ogni quanti mm*. / cut into stacked rings; by count or by mm.
-- **❷ Apply petals** — divide ogni fetta in **spicchi** (petali) verticali, per
-  trombe larghe. / split each ring into vertical petals.
-- **Seam angle** — puoi impostare manualmente l'angolo dei tagli disattivando **Auto-avoid bolt holes** (utile per forzare tagli allineati agli assi). / manually set petal rotation angle by disabling **Auto-avoid bolt holes** (handy to force axis-aligned cuts).
-- **Axial joint lip** e **Radial joint (tongue & groove)** aggiungono incastri
-  maschio-femmina ai piani di divisione. Nelle impostazioni base inserisci
-  solo la **profondità**; il resto è sotto *Advanced*. / joints add male/female
-  interlocks. In basic mode set only depth.
-- **Axial bolted flange**: in alternativa al labbro a incastro (joint lip), genera una vera e propria flangia esterna forata lungo i tagli orizzontali per permettere di imbullonare tra loro i segmenti assiali.
-
-### B) Print volume boxes — scatole a misura di stampante
-- Imposti **Max X / Y / Z** = il tuo volume di stampa.
-- Scegli il **Packing** (consigliato: *Center-up core first*).
-- **Box joints** opzionali per gli incastri.
-- Premi **Slice to print volume**.
-
-### Scaricare i pezzi / download the pieces
-- **📦 Download all as ZIP** — tutti i pezzi in un colpo. / all pieces at once.
-- Oppure ogni pezzo singolarmente, con la sua altezza Z indicata. / or each piece
-  individually, with its Z range.
-
-> Il bottone **Reset slicer cache** svuota i pezzi calcolati se qualcosa sembra
-> "rimasto indietro" dopo che hai cambiato i parametri. / clears cached pieces if
-> something looks stale after you changed parameters.
-
----
-
-## Ricetta veloce / quick recipe
-
-**IT** — Una tromba Salmon tonda, pronta in un minuto:
-1. Profile = **Salmon**, Section = **Circular**.
-2. Throat Ø = 25, Fc = 600, Axial length = 90.
-3. Lascia le flange di default, premi **Generate Assembly STL**.
-4. **📥 Download STL** → in slicer di stampa → stampa.
-
-**EN** — A round Salmon horn in a minute:
-1. Profile = **Salmon**, Section = **Circular**.
-2. Throat Ø = 25, Fc = 600, Axial length = 90.
-3. Keep default flanges, press **Generate Assembly STL**.
-4. **📥 Download STL** → into your print slicer → print.
-
----
-
-## Problemi comuni / common issues
-
-| Sintomo / Symptom | IT | EN |
-|---|---|---|
-| Avviso giallo sulla bocca | Bocca troppo piccola per la Fc: allargala o alza Fc. | Mouth too small for the Fc: enlarge it or raise Fc. |
-| Errore rosso alla generazione | Parametro estremo (flangia enorme, bocca minuscola): aggiusta e rigenera. | Extreme parameter: adjust and regenerate. |
-| La tromba non entra in stampante | Usa **Slice STL** (petali o print-volume boxes). | Use **Slice STL** (petals or print-volume boxes). |
-| Le misure delle flange sembrano vecchie | Premi **🔧 Recalculate flanges**. | Press **🔧 Recalculate flanges**. |
-| I pezzi tagliati sembrano vecchi | Premi **Reset slicer cache**. | Press **Reset slicer cache**. |
-| "Mesh non chiusa" nello slicer di stampa | Spesso ok per stampa; se buca, rigenera con parametri leggermente diversi. | Often fine; if it leaks, regenerate with slightly different params. |
-
----
-
-Buona stampa. / Happy printing.
+The DCCAV module has regression tests for the PCPaudio article example, T/S
+derivation, finite simulation arrays and input validation.  The model is still a
+first engineering pass; measured prototypes should be used to calibrate losses
+and radiation assumptions.
