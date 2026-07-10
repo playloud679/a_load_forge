@@ -86,6 +86,7 @@ Current presets:
 - `Beyma 12LEX1000Fe`
 - `Beyma 12LEX1300Nd`
 - `Beyma 12CMV3`
+- `Turbosound TS-12W350/8W`
 - `Turbosound TS-15W300/8A`
 - `LaVoce WSF122.02`
 - `LaVoce WSF122.50`
@@ -121,6 +122,12 @@ converted for the simulator: `Sd` from m^2 to cm^2, moving mass from kg to g and
 
 `LaVoce WSF122.02` and `LaVoce WSF122.50` are transcribed from technical-specification screenshots
 provided in the working session.
+
+`Turbosound TS-12W350/8W` is transcribed from the manufacturer specification
+PDF linked by Gear4music in the working session: `Fs=61 Hz`, `Re=5.5 ohm`,
+`Qms=11.37`, `Qes=0.45`, `Qts=0.43`, `Mms=67.78 g`, `Cms=0.1 mm/N`,
+`Bl=17.9 Tm`, `Vas=19.26 L`, `Xmax=3.8 mm`, `Sd=551.55 cm^2`, `Le=1.6 mH`,
+`Pe=350 W`.
 
 `Turbosound TS-15W300/8A` is transcribed from the specification-sheet screenshot
 provided in the working session: `Fs=46 Hz`, `Re=6.5 ohm`, `Qms=16.6`,

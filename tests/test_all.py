@@ -97,6 +97,7 @@ def _check_presets_are_available():
         "Beyma 12LEX1000Fe",
         "Beyma 12LEX1300Nd",
         "Beyma 12CMV3",
+        "Turbosound TS-12W350/8W",
         "Turbosound TS-15W300/8A",
         "LaVoce WSF122.02",
         "LaVoce WSF122.50",
@@ -108,6 +109,9 @@ def _check_presets_are_available():
     assert _dccav.get_driver_preset("Beyma 12MCS500").le_mh == 1.1
     assert _dccav.get_driver_preset("Beyma 12WRS400").qts == 0.29
     assert _dccav.get_driver_preset("Beyma 12LEX1300Nd").xmax_mm == 11.0
+    assert _dccav.get_driver_preset("Turbosound TS-12W350/8W").fs_hz == 61.0
+    assert _dccav.get_driver_preset("Turbosound TS-12W350/8W").vas_l == 19.26
+    assert _dccav.get_driver_preset("Turbosound TS-12W350/8W").pe_w == 350.0
     assert _dccav.get_driver_preset("Turbosound TS-15W300/8A").vas_l == 130.2
     assert _dccav.get_driver_preset("Turbosound TS-15W300/8A").sd_cm2 == 865.7
     assert _dccav.get_driver_preset("Turbosound TS-15W300/8A").pe_w == 300.0
