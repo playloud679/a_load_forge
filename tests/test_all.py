@@ -105,6 +105,25 @@ def _check_presets_are_available():
         "SB Audience BIANCO-12OB150-01",
         "LaVoce WSF122.02",
         "LaVoce WSF122.50",
+        "Aiyima 4ohm 5w 40mm black",
+        "Aiyima 6ohm 8w 56mm",
+        "Aiyima 4ohm 20w 58mm",
+        "Aiyima 4ohm 20w 1.75in",
+        "Aiyima 4ohm 5w 40mm zinc",
+        "Aiyima 4ohm 10w 40mm",
+        "Aiyima 8ohm 15w 3in flat",
+        "Aiyima 8ohm 4w 1in for harman",
+        "Aiyima 4ohm 12w 2in",
+        "Aiyima 8ohm 3w 40mm",
+        "Aiyima 4ohm 3w 1in",
+        "Aiyima 4ohm 3w 36mm",
+        "Aiyima 4ohm 10w 53mm",
+        "Aiyima 10ohm 10w 50mm",
+        "Aiyima 4ohm 10w 53mm LY1124-2",
+        "Aiyima 4ohm 2w 33mm",
+        "Aiyima 8ohm 1w 25mm altavoz portatil",
+        "Aiyima 8ohm 3w 30mm altavoz portatil",
+        "Aiyima 4ohm 5w 1.5in",
         "MarkAudio CHR-70",
     }
     assert expected.issubset(names), set(names)
@@ -131,9 +150,22 @@ def _check_presets_are_available():
     assert _dccav.get_driver_preset("SB Audience BIANCO-12OB150-01").sd_cm2 == 539.1
     assert _dccav.get_driver_preset("LaVoce WSF122.02").re_ohm == 5.2
     assert _dccav.get_driver_preset("LaVoce WSF122.50").bl_tm == 17.1
+    assert _dccav.get_driver_preset("Aiyima 4ohm 5w 40mm black").fs_hz == 153.6
+    assert abs(_dccav.get_driver_preset("Aiyima 4ohm 5w 40mm black").sd_cm2 - 7.40229915) < 1e-9
+    assert _dccav.get_driver_preset("Aiyima 4ohm 10w 53mm LY1124-2").vas_l == 0.22
+    assert _dccav.get_driver_preset("Aiyima 4ohm 5w 1.5in").bl_tm == 2.937
     assert _dccav.get_driver_preset("MarkAudio CHR-70").sd_cm2 == 50.2
     assert _dccav.get_driver_preset("MarkAudio CHR-70").cms_mm_per_n == 1.44
     assert _dccav.get_driver_preset("MarkAudio CHR-70").pe_w == 20.0
+    beyma_info = _dccav.driver_preset_info("Beyma 12CMV2")
+    assert beyma_info.source == "Built-in"
+    assert beyma_info.brand == "Beyma"
+    lsdb_names = [name for name in names if name.startswith("LSDB: ")]
+    if lsdb_names:
+        lsdb_info = _dccav.driver_preset_info(lsdb_names[0])
+        assert lsdb_info.source == "Loudspeaker Database"
+        assert lsdb_info.brand
+        _dccav.complete_driver(_dccav.get_driver_preset(lsdb_names[0]))
     try:
         _dccav.get_driver_preset("missing")
     except ValueError as exc:
@@ -405,6 +437,47 @@ def _check_response_chart_has_click_marker():
 
 
 test("UI response chart has a clickable moving marker", _check_response_chart_has_click_marker)
+
+
+def _check_ui_driver_preset_filters_reduce_list():
+    import ui_app as _ui
+
+    names = _dccav.driver_preset_names()
+    filtered = _ui._filter_driver_preset_names(
+        names,
+        source="Built-in",
+        family="Aiyima",
+        size="Mini <= 2 in",
+        search="53mm",
+    )
+    assert "Aiyima 4ohm 10w 53mm" in filtered, filtered
+    assert "Aiyima 4ohm 10w 53mm LY1124-2" in filtered, filtered
+    assert not any(name.startswith("Beyma") for name in filtered), filtered
+
+    kept_selected = _ui._filter_driver_preset_names(
+        names,
+        source="Built-in",
+        family="Beyma",
+        size="12 in",
+        search="",
+        selected="Aiyima 4ohm 10w 53mm",
+    )
+    assert kept_selected[0] == "Aiyima 4ohm 10w 53mm", kept_selected[:3]
+    assert "Beyma 12LX60V2" in kept_selected, kept_selected
+
+    if any(name.startswith("LSDB: ") for name in names):
+        lsdb = _ui._filter_driver_preset_names(
+            names,
+            source="Loudspeaker Database",
+            family="GRS",
+            size="12 in",
+            search="12SW",
+        )
+        assert all(name.startswith("LSDB: GRS") for name in lsdb), lsdb[:5]
+        assert any("12SW" in name for name in lsdb), lsdb[:5]
+
+
+test("UI driver preset filters reduce long speaker lists", _check_ui_driver_preset_filters_reduce_list)
 
 
 def _check_simulation_rejects_bad_frequency_grid():

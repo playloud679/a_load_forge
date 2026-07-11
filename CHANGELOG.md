@@ -68,9 +68,36 @@
   increased.
 - **Clickable marker**: the main SPL chart now has a click-to-place moving
   marker on the total response, with its own rule, point and Hz/dB readout.
-- **Verification**: `.venv/bin/python tests/test_all.py` passes with 13 passed,
+- **Driver presets**: imported 19 complete Aiyima mini-driver T/S rows from
+  `/Users/marcoderossi/Downloads/driver data.xlsx`, converting piston area from
+  `mm2` to simulator `cm2`.
+- **Driver preset filtering**: added brand, approximate size and text filters
+  above the preset selector so long speaker lists stay navigable.
+- **Verification**: `.venv/bin/python tests/test_all.py` passes with 14 passed,
   0 failed and 0 skipped tests.
 - **Design nudges**: added `-3%` / `+3%` buttons for `Vh`, `fh`, `Vl` and `fl`,
   and increased the response chart height.
 - **Alignment sanity**: show suggested total volume and warn when the empirical
   DCCAV formula returns a very small 12" alignment.
+- **Loudspeaker Database import**: added a resumable
+  `tools/import_loudspeaker_database.py` importer that partitions downloads by
+  brand, writes a checkpoint after completed partitions, exits with code 75 on
+  rate-limit/runtime-budget stops and writes partial datasets instead of
+  blocking indefinitely.
+- **Loudspeaker Database safeguards**: the importer now keeps a local brand
+  cache, merges existing dataset records back into the checkpoint and defers
+  brand partitions that return product pages or other non-search HTML so bad
+  responses cannot pollute the preset dataset.
+- **Loudspeaker Database retry runner**: added
+  `tools/run_loudspeaker_database_import_until_complete.py` to run the importer
+  in fresh process windows with growing pauses between attempts until the
+  dataset is complete or a configured attempt limit is reached.
+- **Loudspeaker Database dataset**: completed the local
+  `data/loudspeaker_database_drivers.json` import with 6178 usable presets,
+  102 completed brand partitions and no deferred partitions remaining.
+- **External preset filtering**: `src/dccav.py` now lazily loads optional
+  `LSDB:` presets from `data/loudspeaker_database_drivers.json`, exposes
+  preset source/brand/size metadata and the UI adds a `Source` filter for large
+  imported lists.
+- **Verification**: `.venv/bin/python tests/test_all.py` passes with 14 passed,
+  0 failed and 0 skipped tests after the LSDB importer and filtering changes.

@@ -79,6 +79,28 @@ _TRACE_COLORS = {
     "Impedance": "#355070",
     "Excursion": "#b35c00",
 }
+_PRESET_FAMILY_ORDER = (
+    "All",
+    "Aiyima",
+    "Beyma",
+    "Turbosound",
+    "Scan-Speak",
+    "Dayton Audio",
+    "SB Audience",
+    "LaVoce",
+    "MarkAudio",
+    "KEF",
+    "Other",
+)
+_PRESET_SIZE_FILTERS = (
+    "All",
+    "Mini <= 2 in",
+    "Small 2-6 in",
+    "8-10 in",
+    "12 in",
+    "15 in+",
+)
+_PRESET_SOURCE_FILTERS = ("All", "Built-in", "Loudspeaker Database")
 
 
 def _collect_params() -> dict:
@@ -235,6 +257,101 @@ def _fmt_hz(value: float) -> str:
 
 def _fmt_db(value: float) -> str:
     return f"{value:.1f} dB" if np.isfinite(float(value)) else "n/a"
+
+
+def _driver_preset_family(name: str) -> str:
+    try:
+        return _dccav.driver_preset_info(name).brand
+    except ValueError:
+        return "Other"
+
+
+def _driver_preset_source(name: str) -> str:
+    try:
+        return _dccav.driver_preset_info(name).source
+    except ValueError:
+        return "Built-in"
+
+
+def _size_bucket(size_in: float) -> str:
+    if size_in <= 2.0:
+        return "Mini <= 2 in"
+    if size_in <= 6.5:
+        return "Small 2-6 in"
+    if size_in <= 10.5:
+        return "8-10 in"
+    if size_in <= 13.5:
+        return "12 in"
+    return "15 in+"
+
+
+def _driver_preset_size(name: str) -> str:
+    try:
+        info = _dccav.driver_preset_info(name)
+        if info.size_in is not None:
+            return _size_bucket(info.size_in)
+    except ValueError:
+        pass
+    lower = name.lower()
+    if lower.startswith("turbosound ts-15"):
+        return "15 in+"
+    if (
+        lower.startswith("beyma 12")
+        or lower.startswith("turbosound ts-12")
+        or lower.startswith("sb audience bianco-12")
+        or lower.startswith("lavoce wsf122")
+        or "rss315" in lower
+        or "30w/4558" in lower
+    ):
+        return "12 in"
+    try:
+        driver = _dccav.get_driver_preset(name)
+    except ValueError:
+        return "Other"
+    piston_diameter_mm = float(np.sqrt(driver.sd_cm2 / 10_000.0 * 4.0 / np.pi) * 1000.0)
+    piston_inches = piston_diameter_mm / 25.4
+    if piston_inches <= 2.0:
+        return "Mini <= 2 in"
+    if piston_inches <= 6.5:
+        return "Small 2-6 in"
+    if piston_inches <= 10.5:
+        return "8-10 in"
+    if piston_inches <= 13.5:
+        return "12 in"
+    return "15 in+"
+
+
+def _available_preset_families(names: list[str]) -> list[str]:
+    present = {_driver_preset_family(name) for name in names}
+    ordered = [family for family in _PRESET_FAMILY_ORDER if family == "All" or family in present]
+    extras = sorted(present.difference(ordered), key=str.casefold)
+    return [*ordered, *extras]
+
+
+def _filter_driver_preset_names(
+    names: list[str],
+    *,
+    source: str,
+    family: str,
+    size: str,
+    search: str,
+    selected: str | None = None,
+) -> list[str]:
+    query = search.strip().casefold()
+    filtered = []
+    for name in names:
+        if source != "All" and _driver_preset_source(name) != source:
+            continue
+        if family != "All" and _driver_preset_family(name) != family:
+            continue
+        if size != "All" and _driver_preset_size(name) != size:
+            continue
+        if query and query not in name.casefold():
+            continue
+        filtered.append(name)
+    if selected and selected != "Custom" and selected in names and selected not in filtered:
+        filtered.insert(0, selected)
+    return filtered
 
 
 def _apply_driver_preset(driver: _dccav.DriverTS):
@@ -642,6 +759,10 @@ _default("driver_pe_w", 60.0)
 _default("driver_mms_g", 0.0)
 _default("driver_cms_mm_n", 0.0)
 _default("driver_bl_tm", 0.0)
+_default("preset_family_filter", "All")
+_default("preset_source_filter", "All")
+_default("preset_size_filter", "All")
+_default("preset_search", "")
 _default("loss_q_abs_h", 15.0)
 _default("loss_q_abs_l", 15.0)
 _default("loss_q_leak_h", 1000.0)
@@ -732,10 +853,37 @@ with st.sidebar:
         key="load_type",
         on_change=_on_load_type_change,
     )
+    all_preset_names = _dccav.driver_preset_names()
+    f0, f1, f2 = st.columns([1, 1, 1])
+    with f0:
+        st.selectbox("Source", _PRESET_SOURCE_FILTERS, key="preset_source_filter")
+    with f1:
+        st.selectbox(
+            "Brand",
+            _available_preset_families(all_preset_names),
+            key="preset_family_filter",
+        )
+    with f2:
+        st.selectbox("Size", _PRESET_SIZE_FILTERS, key="preset_size_filter")
+    st.text_input("Search preset", key="preset_search")
+    filtered_preset_names = _filter_driver_preset_names(
+        all_preset_names,
+        source=st.session_state["preset_source_filter"],
+        family=st.session_state["preset_family_filter"],
+        size=st.session_state["preset_size_filter"],
+        search=st.session_state["preset_search"],
+        selected=st.session_state.get("driver_preset_name"),
+    )
+    current_preset = st.session_state.get("driver_preset_name", "Custom")
+    preset_options = ["Custom", *filtered_preset_names]
+    if current_preset not in preset_options:
+        st.session_state["driver_preset_name"] = "Custom"
+        current_preset = "Custom"
+    st.caption(f"{len(filtered_preset_names)} / {len(all_preset_names)} presets")
     preset_name = st.selectbox(
         "Driver preset",
-        ["Custom", *_dccav.driver_preset_names()],
-        index=0,
+        preset_options,
+        index=preset_options.index(current_preset),
         key="driver_preset_name",
         on_change=_on_driver_preset_change,
     )

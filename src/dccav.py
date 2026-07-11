@@ -12,7 +12,10 @@ for the UI.
 
 from __future__ import annotations
 
+import json
+from functools import lru_cache
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -21,6 +24,9 @@ RHO_AIR = 1.18
 SPEED_OF_SOUND = 344.0
 P_REF = 20e-6
 EPS = 1e-30
+LOUDSPEAKER_DATABASE_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "loudspeaker_database_drivers.json"
+)
 
 
 @dataclass(frozen=True)
@@ -39,6 +45,19 @@ class DriverTS:
     mms_g: float | None = None
     cms_mm_per_n: float | None = None
     bl_tm: float | None = None
+
+
+@dataclass(frozen=True)
+class DriverPresetInfo:
+    """Metadata used to filter a named driver preset in the UI."""
+
+    name: str
+    source: str
+    brand: str
+    model: str
+    size_in: float | None = None
+    kind: str = ""
+    url: str = ""
 
 
 @dataclass(frozen=True)
@@ -419,6 +438,234 @@ DRIVER_PRESETS: dict[str, DriverTS] = {
         cms_mm_per_n=0.18,
         bl_tm=17.1,
     ),
+    "Aiyima 4ohm 5w 40mm black": DriverTS(
+        fs_hz=153.6,
+        vas_l=0.1,
+        qts=0.459,
+        qms=6.015,
+        re_ohm=3.56,
+        sd_cm2=7.40229915,
+        pe_w=5.0,
+        mms_g=0.87,
+        cms_mm_per_n=1.235,
+        bl_tm=2.486,
+    ),
+    "Aiyima 6ohm 8w 56mm": DriverTS(
+        fs_hz=187.6,
+        vas_l=0.05,
+        qts=0.56,
+        qms=4.524,
+        re_ohm=6.1,
+        sd_cm2=8.24479576,
+        pe_w=8.0,
+        mms_g=1.39,
+        cms_mm_per_n=0.519,
+        bl_tm=3.977,
+    ),
+    "Aiyima 4ohm 20w 58mm": DriverTS(
+        fs_hz=156.6,
+        vas_l=0.18,
+        qts=0.874,
+        qms=3.912,
+        re_ohm=3.5,
+        sd_cm2=16.4029621,
+        pe_w=20.0,
+        mms_g=2.2,
+        cms_mm_per_n=0.47,
+        bl_tm=2.62,
+    ),
+    "Aiyima 4ohm 20w 1.75in": DriverTS(
+        fs_hz=168.4,
+        vas_l=0.11,
+        qts=1.281,
+        qms=7.916,
+        re_ohm=4.08,
+        sd_cm2=8.552985999,
+        pe_w=20.0,
+        mms_g=0.87,
+        cms_mm_per_n=1.025,
+        bl_tm=1.565,
+    ),
+    "Aiyima 4ohm 5w 40mm zinc": DriverTS(
+        fs_hz=149.1,
+        vas_l=0.1,
+        qts=0.389,
+        qms=2.739,
+        re_ohm=3.0,
+        sd_cm2=7.694467267,
+        pe_w=5.0,
+        mms_g=0.98,
+        cms_mm_per_n=1.16,
+        bl_tm=2.527,
+    ),
+    "Aiyima 4ohm 10w 40mm": DriverTS(
+        fs_hz=155.6,
+        vas_l=0.05,
+        qts=0.48,
+        qms=3.728,
+        re_ohm=4.0,
+        sd_cm2=7.258335667,
+        pe_w=10.0,
+        mms_g=1.7,
+        cms_mm_per_n=0.614,
+        bl_tm=3.599,
+    ),
+    "Aiyima 8ohm 15w 3in flat": DriverTS(
+        fs_hz=152.5,
+        vas_l=0.28,
+        qts=0.912,
+        qms=2.352,
+        re_ohm=7.0,
+        sd_cm2=30.48358038,
+        pe_w=15.0,
+        mms_g=5.14,
+        cms_mm_per_n=0.212,
+        bl_tm=4.993,
+    ),
+    "Aiyima 8ohm 4w 1in for harman": DriverTS(
+        fs_hz=552.0,
+        vas_l=0.01,
+        qts=1.451,
+        qms=3.993,
+        re_ohm=6.79,
+        sd_cm2=4.523893421,
+        pe_w=4.0,
+        mms_g=0.39,
+        cms_mm_per_n=0.212,
+        bl_tm=2.01,
+    ),
+    "Aiyima 4ohm 12w 2in": DriverTS(
+        fs_hz=188.5,
+        vas_l=0.1,
+        qts=1.244,
+        qms=5.724,
+        re_ohm=3.35,
+        sd_cm2=12.19220693,
+        pe_w=12.0,
+        mms_g=1.56,
+        cms_mm_per_n=0.458,
+        bl_tm=1.964,
+    ),
+    "Aiyima 8ohm 3w 40mm": DriverTS(
+        fs_hz=239.2,
+        vas_l=0.04,
+        qts=3.758,
+        qms=8.05,
+        re_ohm=7.21,
+        sd_cm2=6.6966189,
+        pe_w=3.0,
+        mms_g=0.65,
+        cms_mm_per_n=0.683,
+        bl_tm=1.002,
+    ),
+    "Aiyima 4ohm 3w 1in": DriverTS(
+        fs_hz=478.3,
+        vas_l=0.01,
+        qts=0.933,
+        qms=1.742,
+        re_ohm=3.57,
+        sd_cm2=5.027255104,
+        pe_w=3.0,
+        mms_g=0.61,
+        cms_mm_per_n=0.182,
+        bl_tm=1.823,
+    ),
+    "Aiyima 4ohm 3w 36mm": DriverTS(
+        fs_hz=172.1,
+        vas_l=0.07,
+        qts=0.623,
+        qms=5.192,
+        re_ohm=3.68,
+        sd_cm2=6.026281568,
+        pe_w=3.0,
+        mms_g=0.65,
+        cms_mm_per_n=1.319,
+        bl_tm=1.927,
+    ),
+    "Aiyima 4ohm 10w 53mm": DriverTS(
+        fs_hz=142.6,
+        vas_l=0.16,
+        qts=0.43,
+        qms=4.86,
+        re_ohm=4.07,
+        sd_cm2=12.37858191,
+        pe_w=10.0,
+        mms_g=1.74,
+        cms_mm_per_n=0.716,
+        bl_tm=3.668,
+    ),
+    "Aiyima 10ohm 10w 50mm": DriverTS(
+        fs_hz=191.9,
+        vas_l=0.1,
+        qts=1.738,
+        qms=5.938,
+        re_ohm=9.28,
+        sd_cm2=12.37858191,
+        pe_w=10.0,
+        mms_g=1.57,
+        cms_mm_per_n=0.439,
+        bl_tm=2.686,
+    ),
+    "Aiyima 4ohm 10w 53mm LY1124-2": DriverTS(
+        fs_hz=140.7,
+        vas_l=0.22,
+        qts=0.534,
+        qms=3.245,
+        re_ohm=3.14,
+        sd_cm2=13.7885287,
+        pe_w=10.0,
+        mms_g=1.58,
+        cms_mm_per_n=0.807,
+        bl_tm=2.667,
+    ),
+    "Aiyima 4ohm 2w 33mm": DriverTS(
+        fs_hz=310.0,
+        vas_l=0.02,
+        qts=1.207,
+        qms=5.734,
+        re_ohm=3.52,
+        sd_cm2=5.309291585,
+        pe_w=2.0,
+        mms_g=0.42,
+        cms_mm_per_n=0.623,
+        bl_tm=1.397,
+    ),
+    "Aiyima 8ohm 1w 25mm altavoz portatil": DriverTS(
+        fs_hz=348.0,
+        vas_l=0.01,
+        qts=0.82,
+        qms=3.61,
+        re_ohm=7.28,
+        sd_cm2=3.204738666,
+        pe_w=1.0,
+        mms_g=0.3,
+        cms_mm_per_n=0.702,
+        bl_tm=2.12,
+    ),
+    "Aiyima 8ohm 3w 30mm altavoz portatil": DriverTS(
+        fs_hz=286.4,
+        vas_l=0.02,
+        qts=1.411,
+        qms=6.584,
+        re_ohm=7.13,
+        sd_cm2=3.870756308,
+        pe_w=3.0,
+        mms_g=0.36,
+        cms_mm_per_n=0.854,
+        bl_tm=1.63,
+    ),
+    "Aiyima 4ohm 5w 1.5in": DriverTS(
+        fs_hz=221.2,
+        vas_l=0.05,
+        qts=0.419,
+        qms=1.693,
+        re_ohm=3.47,
+        sd_cm2=8.193980499,
+        pe_w=5.0,
+        mms_g=1.0,
+        cms_mm_per_n=0.52,
+        bl_tm=2.937,
+    ),
     "MarkAudio CHR-70": DriverTS(
         fs_hz=65.4,
         vas_l=5.17,
@@ -436,15 +683,112 @@ DRIVER_PRESETS: dict[str, DriverTS] = {
 }
 
 
+_BUILT_IN_PRESET_BRANDS = (
+    "Aiyima",
+    "Beyma",
+    "Turbosound",
+    "Scan-Speak",
+    "Dayton Audio",
+    "SB Audience",
+    "LaVoce",
+    "MarkAudio",
+    "KEF",
+)
+
+
+def _built_in_preset_brand(name: str) -> str:
+    for brand in _BUILT_IN_PRESET_BRANDS:
+        if name.startswith(brand):
+            return brand
+    return "Other"
+
+
+def _driver_ts_from_mapping(values: dict) -> DriverTS:
+    return DriverTS(
+        fs_hz=float(values["fs_hz"]),
+        vas_l=float(values["vas_l"]),
+        qts=float(values["qts"]),
+        qms=float(values["qms"]),
+        re_ohm=float(values["re_ohm"]),
+        sd_cm2=float(values["sd_cm2"]),
+        le_mh=float(values.get("le_mh", 0.0)),
+        xmax_mm=float(values.get("xmax_mm", 0.0)),
+        pe_w=float(values.get("pe_w", 0.0)),
+        mms_g=float(values["mms_g"]) if values.get("mms_g") is not None else None,
+        cms_mm_per_n=(
+            float(values["cms_mm_per_n"]) if values.get("cms_mm_per_n") is not None else None
+        ),
+        bl_tm=float(values["bl_tm"]) if values.get("bl_tm") is not None else None,
+    )
+
+
+@lru_cache(maxsize=1)
+def _load_loudspeaker_database_presets() -> tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]:
+    """Load optional loudspeakerdatabase.com presets generated into data/."""
+    if not LOUDSPEAKER_DATABASE_PATH.exists():
+        return {}, {}
+
+    payload = json.loads(LOUDSPEAKER_DATABASE_PATH.read_text(encoding="utf-8"))
+    presets: dict[str, DriverTS] = {}
+    info: dict[str, DriverPresetInfo] = {}
+    for item in payload.get("presets", []):
+        base_name = str(item["name"])
+        name = base_name
+        if name in DRIVER_PRESETS or name in presets:
+            suffix = str(item.get("lsdb_id") or len(presets) + 1)
+            name = f"{base_name} [LSDB {suffix}]"
+        while name in DRIVER_PRESETS or name in presets:
+            name = f"{base_name} [LSDB {len(presets) + 1}]"
+        try:
+            presets[name] = _driver_ts_from_mapping(item["driver"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        info[name] = DriverPresetInfo(
+            name=name,
+            source="Loudspeaker Database",
+            brand=str(item.get("brand") or "Other"),
+            model=str(item.get("model") or name.removeprefix("LSDB: ")),
+            size_in=(
+                float(item["size_in"])
+                if item.get("size_in") is not None
+                else None
+            ),
+            kind=str(item.get("kind") or ""),
+            url=str(item.get("url") or ""),
+        )
+    return presets, info
+
+
 def driver_preset_names() -> list[str]:
-    """Return built-in driver preset names in display order."""
-    return list(DRIVER_PRESETS)
+    """Return driver preset names in display order."""
+    external, _info = _load_loudspeaker_database_presets()
+    return [*DRIVER_PRESETS, *external]
+
+
+def driver_preset_info(name: str) -> DriverPresetInfo:
+    """Return source, brand and sizing metadata for a driver preset."""
+    if name in DRIVER_PRESETS:
+        brand = _built_in_preset_brand(name)
+        return DriverPresetInfo(
+            name=name,
+            source="Built-in",
+            brand=brand,
+            model=name.removeprefix(brand).strip() if brand != "Other" else name,
+        )
+    _external, info = _load_loudspeaker_database_presets()
+    try:
+        return info[name]
+    except KeyError as exc:
+        raise ValueError(f"Unknown driver preset: {name}") from exc
 
 
 def get_driver_preset(name: str) -> DriverTS:
-    """Return a built-in driver preset by name."""
-    try:
+    """Return a driver preset by name."""
+    if name in DRIVER_PRESETS:
         return DRIVER_PRESETS[name]
+    external, _info = _load_loudspeaker_database_presets()
+    try:
+        return external[name]
     except KeyError as exc:
         raise ValueError(f"Unknown driver preset: {name}") from exc
 
