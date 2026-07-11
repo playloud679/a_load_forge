@@ -53,7 +53,13 @@
 - **Cursor labels**: enlarged F3/F6/F10 response-plot labels, included the
   interpolated total SPL in dB and moved labels into a separated top-left
   readout block while keeping cursor rules on their exact frequencies.
-- **Verification**: `.venv/bin/python tests/test_all.py` passes with 10 passed,
+- **Bass-reflex losses**: surfaced the current reflex loss factors next to
+  `Vb/Fb`, added a reset button, and made custom loss values opt-in so stale
+  hidden low-Q settings cannot overdamp the vent while editing presets or
+  volume.  The missing-impedance-peaks warning reports the active loss values.
+- **Driver presets**: added `Scan-Speak 30W/4558T00`,
+  `Dayton Audio RSS315HO-4` and `SB Audience BIANCO-12OB150-01`.
+- **Verification**: `.venv/bin/python tests/test_all.py` passes with 11 passed,
   0 failed and 0 skipped tests.
 - **Design nudges**: added `-3%` / `+3%` buttons for `Vh`, `fh`, `Vl` and `fl`,
   and increased the response chart height.

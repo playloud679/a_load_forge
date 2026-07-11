@@ -88,6 +88,9 @@ Current presets:
 - `Beyma 12CMV3`
 - `Turbosound TS-12W350/8W`
 - `Turbosound TS-15W300/8A`
+- `Scan-Speak 30W/4558T00`
+- `Dayton Audio RSS315HO-4`
+- `SB Audience BIANCO-12OB150-01`
 - `LaVoce WSF122.02`
 - `LaVoce WSF122.50`
 - `MarkAudio CHR-70`
@@ -133,6 +136,21 @@ PDF linked by Gear4music in the working session: `Fs=61 Hz`, `Re=5.5 ohm`,
 provided in the working session: `Fs=46 Hz`, `Re=6.5 ohm`, `Qms=16.6`,
 `Qes=0.49`, `Qts=0.47`, `Mms=96.4 g`, `Cms=0.12 mm/N`, `Bl=19.3 Tm`,
 `Vas=130.2 L`, `Xmax=4.9 mm`, `Sd=865.7 cm^2`, `Le=1.2 mH`, `Pe=300 W`.
+
+`Scan-Speak 30W/4558T00` is transcribed from Scan-Speak's official Discovery
+datasheet, updated 2022-12-07: `Fs=17 Hz`, `Re=2.6 ohm`, `Qms=5.01`,
+`Qes=0.34`, `Qts=0.32`, `Mms=135 g`, `Cms=0.65 mm/N`, `Bl=10.5 Tm`,
+`Vas=197 L`, `Xmax=12.5 mm`, `Sd=466 cm^2`, `Le=0.83 mH`, `Pe=150 W`.
+
+`Dayton Audio RSS315HO-4` is transcribed from Dayton Audio's official product
+page/specification sheet: `Fs=26.2 Hz`, `Re=3.2 ohm`, `Qms=3.63`, `Qes=0.33`,
+`Qts=0.31`, `Mms=251 g`, `Cms=0.15 mm/N`, `Bl=20 Tm`, `Vas=53.7 L`,
+`Xmax=12.3 mm`, `Sd=514.7 cm^2`, `Le=1.75 mH`, `Pe=700 W`.
+
+`SB Audience BIANCO-12OB150-01` is transcribed from the specification screenshot
+provided in the working session: `Fs=44 Hz`, `Re=7.2 ohm`, `Qms=6.39`,
+`Qes=0.69`, `Qts=0.63`, `Mms=52.4 g`, `Cms=0.25 mm/N`, `Bl=12.2 Tm`,
+`Vas=103.8 L`, `Xmax=6.79 mm`, `Sd=539.1 cm^2`, `Le=1.18 mH`, `Pe=150 W`.
 
 `MarkAudio CHR-70` is transcribed from the Markaudio parameter screenshot
 provided in the working session: `Fs=65.4 Hz`, `Re=7.2 ohm`, `Sd=50.2 cm^2`,

@@ -65,6 +65,9 @@ st.markdown(
 _PARAM_PREFIXES = ("driver_", "box_", "reflex_", "loss_", "sim_")
 _RESPONSE_TRACE_OPTIONS = ("Total", "Cone", "Lower port")
 _PORT_TRACE_OPTIONS = ("Upper port", "Lower port")
+_DEFAULT_REFLEX_Q_ABS = 15.0
+_DEFAULT_REFLEX_Q_LEAK = 1000.0
+_DEFAULT_REFLEX_Q_PORT = 15.0
 _TRACE_COLORS = {
     "Total": "#f28e8e",
     "Cone": "#7cc7ff",
@@ -153,12 +156,13 @@ def _box_from_state() -> _dccav.DccavBox:
 
 
 def _reflex_box_from_state() -> _dccav.ReflexBox:
+    use_custom_losses = bool(st.session_state.get("reflex_custom_losses", False))
     return _dccav.ReflexBox(
         vb_l=float(st.session_state["reflex_vb_l"]),
         fb_hz=float(st.session_state["reflex_fb_hz"]),
-        q_abs=float(st.session_state["reflex_q_abs"]),
-        q_leak=float(st.session_state["reflex_q_leak"]),
-        q_port=float(st.session_state["reflex_q_port"]),
+        q_abs=float(st.session_state["reflex_q_abs"]) if use_custom_losses else _DEFAULT_REFLEX_Q_ABS,
+        q_leak=float(st.session_state["reflex_q_leak"]) if use_custom_losses else _DEFAULT_REFLEX_Q_LEAK,
+        q_port=float(st.session_state["reflex_q_port"]) if use_custom_losses else _DEFAULT_REFLEX_Q_PORT,
     )
 
 
@@ -181,6 +185,13 @@ def _apply_alignment(alignment: _dccav.DccavAlignment):
 def _apply_reflex_alignment(alignment: _dccav.ReflexAlignment):
     st.session_state["reflex_vb_l"] = float(alignment.vb_l)
     st.session_state["reflex_fb_hz"] = float(alignment.fb_hz)
+
+
+def _reset_reflex_losses():
+    st.session_state["reflex_q_abs"] = _DEFAULT_REFLEX_Q_ABS
+    st.session_state["reflex_q_leak"] = _DEFAULT_REFLEX_Q_LEAK
+    st.session_state["reflex_q_port"] = _DEFAULT_REFLEX_Q_PORT
+    st.session_state["reflex_custom_losses"] = False
 
 
 def _nudge_state(key: str, factor: float):
@@ -584,9 +595,10 @@ _default("loss_q_leak_h", 1000.0)
 _default("loss_q_leak_l", 1000.0)
 _default("loss_q_port_h", 15.0)
 _default("loss_q_port_l", 15.0)
-_default("reflex_q_abs", 15.0)
-_default("reflex_q_leak", 1000.0)
-_default("reflex_q_port", 15.0)
+_default("reflex_q_abs", _DEFAULT_REFLEX_Q_ABS)
+_default("reflex_q_leak", _DEFAULT_REFLEX_Q_LEAK)
+_default("reflex_q_port", _DEFAULT_REFLEX_Q_PORT)
+_default("reflex_custom_losses", False)
 _default("load_type", "DCCAV")
 _default("sim_f_min", 10.0)
 _default("sim_f_max", 500.0)
@@ -761,10 +773,27 @@ with st.sidebar:
             "Vb box (L)", "reflex_vb_l", min_value=0.05, max_value=1000.0, step=0.01)
         _box_number_with_nudge(
             "Fb tuning (Hz)", "reflex_fb_hz", min_value=1.0, max_value=1000.0, step=0.1)
+        active_reflex_losses = _reflex_box_from_state()
+        loss_mode = "custom" if st.session_state.get("reflex_custom_losses", False) else "normal"
+        st.caption(
+            f"Reflex losses ({loss_mode}): "
+            f"Qabs {active_reflex_losses.q_abs:.1f} / "
+            f"Qport {active_reflex_losses.q_port:.1f} / "
+            f"Qleak {active_reflex_losses.q_leak:.0f}"
+        )
+        st.button("Reset reflex losses", on_click=_reset_reflex_losses, use_container_width=True)
         with st.expander("Loss factors"):
-            st.number_input("Qabs box", min_value=0.2, max_value=500.0, step=0.5, key="reflex_q_abs")
-            st.number_input("Qleak box", min_value=1.0, max_value=10000.0, step=10.0, key="reflex_q_leak")
-            st.number_input("Qport", min_value=0.2, max_value=500.0, step=0.5, key="reflex_q_port")
+            st.checkbox("Custom reflex losses", key="reflex_custom_losses")
+            disabled = not st.session_state.get("reflex_custom_losses", False)
+            st.number_input(
+                "Qabs box", min_value=0.2, max_value=500.0, step=0.5,
+                key="reflex_q_abs", disabled=disabled)
+            st.number_input(
+                "Qleak box", min_value=1.0, max_value=10000.0, step=10.0,
+                key="reflex_q_leak", disabled=disabled)
+            st.number_input(
+                "Qport", min_value=0.2, max_value=500.0, step=0.5,
+                key="reflex_q_port", disabled=disabled)
     else:
         b1, b2 = st.columns(2)
         with b1:
@@ -826,7 +855,11 @@ try:
     if is_reflex and len(z_peak_freqs) < 2:
         model_warnings.append(
             "Bass reflex should show two impedance peaks in the simulated range; "
-            "widen F min/F max or check Vb, Fb and loss factors."
+            f"currently found {len(z_peak_freqs)}. "
+            f"Check F min/F max, Vb, Fb and reflex losses "
+            f"(Qabs={box.q_abs:.1f}, Qport={box.q_port:.1f}, Qleak={box.q_leak:.0f}). "
+            "Low Qabs/Qport values overdamp the vent resonance; use Reset reflex losses "
+            "for a normal starter alignment."
         )
     cursor_rows = _cursor_rows(result, thresholds)
 

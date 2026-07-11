@@ -99,6 +99,9 @@ def _check_presets_are_available():
         "Beyma 12CMV3",
         "Turbosound TS-12W350/8W",
         "Turbosound TS-15W300/8A",
+        "Scan-Speak 30W/4558T00",
+        "Dayton Audio RSS315HO-4",
+        "SB Audience BIANCO-12OB150-01",
         "LaVoce WSF122.02",
         "LaVoce WSF122.50",
         "MarkAudio CHR-70",
@@ -115,6 +118,13 @@ def _check_presets_are_available():
     assert _dccav.get_driver_preset("Turbosound TS-15W300/8A").vas_l == 130.2
     assert _dccav.get_driver_preset("Turbosound TS-15W300/8A").sd_cm2 == 865.7
     assert _dccav.get_driver_preset("Turbosound TS-15W300/8A").pe_w == 300.0
+    assert _dccav.get_driver_preset("Scan-Speak 30W/4558T00").fs_hz == 17.0
+    assert _dccav.get_driver_preset("Scan-Speak 30W/4558T00").vas_l == 197.0
+    assert _dccav.get_driver_preset("Scan-Speak 30W/4558T00").xmax_mm == 12.5
+    assert _dccav.get_driver_preset("Dayton Audio RSS315HO-4").re_ohm == 3.2
+    assert _dccav.get_driver_preset("Dayton Audio RSS315HO-4").pe_w == 700.0
+    assert _dccav.get_driver_preset("SB Audience BIANCO-12OB150-01").qts == 0.63
+    assert _dccav.get_driver_preset("SB Audience BIANCO-12OB150-01").sd_cm2 == 539.1
     assert _dccav.get_driver_preset("LaVoce WSF122.02").re_ohm == 5.2
     assert _dccav.get_driver_preset("LaVoce WSF122.50").bl_tm == 17.1
     assert _dccav.get_driver_preset("MarkAudio CHR-70").sd_cm2 == 50.2
@@ -287,6 +297,54 @@ def _check_response_metrics_are_sane():
 
 
 test("DCCAV response metrics are positive", _check_response_metrics_are_sane)
+
+
+def _check_ui_reflex_volume_keeps_impedance_peaks():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    state = at.session_state
+    state["load_type"] = "Bass reflex"
+    state["driver_preset_name"] = "Beyma 12LX60V2"
+    state["driver_fs_hz"] = 49.0
+    state["driver_vas_l"] = 43.0
+    state["driver_qts"] = 0.38
+    state["driver_qms"] = 15.3
+    state["driver_re_ohm"] = 5.1
+    state["driver_sd_mode"] = "Sd"
+    state["driver_sd_cm2"] = 550.0
+    state["driver_le_mh"] = 2.1
+    state["driver_xmax_mm"] = 9.0
+    state["driver_pe_w"] = 700.0
+    state["driver_mms_g"] = 102.0
+    state["driver_cms_mm_n"] = 0.099
+    state["driver_bl_tm"] = 20.0
+    state["reflex_vb_l"] = 35.82
+    state["reflex_fb_hz"] = 49.0
+    state["reflex_q_abs"] = 15.0
+    state["reflex_q_leak"] = 1000.0
+    state["reflex_q_port"] = 15.0
+    state["reflex_custom_losses"] = False
+    state["sim_auto_align"] = False
+    at.run()
+    assert not at.exception, at.exception
+    metrics = {metric.label: metric.value for metric in at.metric}
+    assert metrics["Z peaks"] == "29, 84", metrics["Z peaks"]
+    assert not any("Bass reflex should show two impedance peaks" in warning.value for warning in at.warning)
+
+    state["reflex_q_abs"] = 1.0
+    state["reflex_q_port"] = 1.0
+    at.run()
+    metrics = {metric.label: metric.value for metric in at.metric}
+    assert metrics["Z peaks"] == "29, 84", metrics["Z peaks"]
+    assert not any("Bass reflex should show two impedance peaks" in warning.value for warning in at.warning)
+
+    state["reflex_custom_losses"] = True
+    at.run()
+    assert any("Qabs=1.0, Qport=1.0" in warning.value for warning in at.warning)
+
+
+test("UI bass-reflex volume edits preserve resonance diagnostics", _check_ui_reflex_volume_keeps_impedance_peaks)
 
 
 def _check_simulation_rejects_bad_frequency_grid():
