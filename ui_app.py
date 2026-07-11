@@ -354,6 +354,7 @@ def _line_chart(
     *,
     height: int,
     legend: bool = True,
+    y_domain: list[float] | None = None,
 ) -> alt.Chart:
     series_names = list(dict.fromkeys(data["series"].tolist()))
     color_scale = alt.Scale(
@@ -373,7 +374,11 @@ def _line_chart(
             scale=alt.Scale(type="log", nice=False),
             axis=alt.Axis(format="~g"),
         ),
-        y=alt.Y("value:Q", title=y_title),
+        y=alt.Y(
+            "value:Q",
+            title=y_title,
+            scale=alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined,
+        ),
         color=color,
         tooltip=[
             alt.Tooltip("frequency_hz:Q", title="Hz", format=".2f"),
@@ -397,6 +402,21 @@ def _response_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
     return series
 
 
+def _response_y_domain(result: _dccav.SimulationResult, series: dict[str, np.ndarray]) -> list[float] | None:
+    arrays = [np.asarray(values, dtype=float) for values in series.values()]
+    finite_chunks = [values[np.isfinite(values)] for values in arrays if values.size]
+    finite = np.concatenate(finite_chunks) if finite_chunks else np.array([])
+    if not finite.size:
+        return None
+    bottom = _interp(result.frequency_hz, result.spl_total_db, 10.0)
+    top = float(np.max(finite)) + 5.0
+    if not np.isfinite(bottom) or not np.isfinite(top):
+        return None
+    if top <= bottom:
+        top = bottom + 10.0
+    return [float(bottom), float(top)]
+
+
 def _port_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
     series = {}
     if st.session_state.get("plot_port_upper", True) and st.session_state.get("load_type") != "Bass reflex":
@@ -418,29 +438,14 @@ def _cursor_rows(result: _dccav.SimulationResult, thresholds: dict[int, float]) 
     if st.session_state.get("cursor_manual_enabled", False):
         rows.append(_cursor_row(result, "M1", float(st.session_state["cursor_manual_1_hz"]), "manual"))
         rows.append(_cursor_row(result, "M2", float(st.session_state["cursor_manual_2_hz"]), "manual"))
-    _place_cursor_labels_above_response(result, rows)
+    _place_cursor_labels(rows)
     return rows
 
 
-def _place_cursor_labels_above_response(result: _dccav.SimulationResult, rows: list[dict]) -> None:
-    if not rows:
-        return
-    selected = _response_series(result)
-    arrays = [
-        np.asarray(values, dtype=float)
-        for values in selected.values()
-        if np.asarray(values, dtype=float).size
-    ]
-    finite_chunks = [values[np.isfinite(values)] for values in arrays]
-    finite = np.concatenate(finite_chunks) if finite_chunks else np.array([])
-    top_db = float(np.max(finite)) if finite.size else float(np.nanmax(result.spl_total_db))
-    f_min = float(result.frequency_hz[0])
-    f_max = float(result.frequency_hz[-1])
-    label_x_hz = float(np.clip(f_min * 1.08, f_min, f_max))
-    lane_gap_db = 6.0
+def _place_cursor_labels(rows: list[dict]) -> None:
+    lane_gap_px = 24
     for lane, row in enumerate(rows):
-        row["label_x_hz"] = label_x_hz
-        row["label_y_db"] = top_db + 3.0 + lane_gap_db * (len(rows) - lane - 1)
+        row["label_y_px"] = 24 + lane_gap_px * lane
 
 
 def _cursor_row(result: _dccav.SimulationResult, label: str, frequency_hz: float, mode: str) -> dict:
@@ -488,18 +493,60 @@ def _cursor_layer(rows: list[dict]) -> alt.LayerChart | None:
     )
     labels = alt.Chart(data).mark_text(
         align="left",
-        baseline="bottom",
-        dx=5,
-        dy=-6,
-        fontSize=18,
+        baseline="top",
+        fontSize=19,
         fontWeight="bold",
     ).encode(
-        x="label_x_hz:Q",
-        y="label_y_db:Q",
+        x=alt.value(22),
+        y=alt.Y("label_y_px:Q", axis=None, scale=None),
         text="display_label:N",
         color=color,
     )
     return rules + labels
+
+
+def _click_marker_layer(result: _dccav.SimulationResult) -> alt.LayerChart:
+    marker_data = pd.DataFrame({
+        "frequency_hz": result.frequency_hz.astype(float),
+        "spl_total_db": result.spl_total_db.astype(float),
+    })
+    marker_data["display_label"] = marker_data.apply(
+        lambda row: f"Click {row['frequency_hz']:.1f} Hz {row['spl_total_db']:.1f} dB",
+        axis=1,
+    )
+    click_marker = alt.selection_point(
+        name="click_marker",
+        fields=["frequency_hz"],
+        nearest=True,
+        on="click",
+        clear="dblclick",
+        empty=False,
+    )
+    base = alt.Chart(marker_data).encode(
+        x=alt.X("frequency_hz:Q", scale=alt.Scale(type="log", nice=False)),
+        y=alt.Y("spl_total_db:Q"),
+    )
+    selectors = base.mark_point(filled=True, size=180, opacity=0.001).add_params(click_marker)
+    rule = base.mark_rule(color="#06d6a0", strokeWidth=2.0).transform_filter(click_marker)
+    point = base.mark_point(
+        filled=True,
+        size=95,
+        color="#06d6a0",
+        stroke="#0b1018",
+        strokeWidth=1.5,
+    ).transform_filter(click_marker)
+    label = base.mark_text(
+        align="left",
+        baseline="bottom",
+        dx=9,
+        dy=-10,
+        fontSize=18,
+        fontWeight="bold",
+        color="#06d6a0",
+    ).encode(
+        text="display_label:N",
+    ).transform_filter(click_marker)
+    return selectors + rule + point + label
 
 
 def _plot_response(result: _dccav.SimulationResult, cursor_rows: list[dict]) -> alt.Chart:
@@ -507,7 +554,13 @@ def _plot_response(result: _dccav.SimulationResult, cursor_rows: list[dict]) -> 
     if not series:
         raise ValueError("No response traces selected")
     data = _series_frame(result, series)
-    chart = _line_chart(data, "LF pressure estimate (dB)", height=520)
+    chart = _line_chart(
+        data,
+        "LF pressure estimate (dB)",
+        height=700,
+        y_domain=_response_y_domain(result, series),
+    )
+    chart = chart + _click_marker_layer(result)
     cursors = _cursor_layer(cursor_rows)
     if cursors is None:
         return chart

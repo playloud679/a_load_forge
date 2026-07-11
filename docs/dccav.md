@@ -89,6 +89,7 @@ Current presets:
 - `Turbosound TS-12W350/8W`
 - `Turbosound TS-15W300/8A`
 - `Scan-Speak 30W/4558T00`
+- `Scan-Speak 15W/4531G00`
 - `Dayton Audio RSS315HO-4`
 - `SB Audience BIANCO-12OB150-01`
 - `LaVoce WSF122.02`
@@ -141,6 +142,12 @@ provided in the working session: `Fs=46 Hz`, `Re=6.5 ohm`, `Qms=16.6`,
 datasheet, updated 2022-12-07: `Fs=17 Hz`, `Re=2.6 ohm`, `Qms=5.01`,
 `Qes=0.34`, `Qts=0.32`, `Mms=135 g`, `Cms=0.65 mm/N`, `Bl=10.5 Tm`,
 `Vas=197 L`, `Xmax=12.5 mm`, `Sd=466 cm^2`, `Le=0.83 mH`, `Pe=150 W`.
+
+`Scan-Speak 15W/4531G00` is transcribed from the Scan-Speak Revelator datasheet
+provided as a local PDF in the working session, updated 2013-01-30: `Fs=40 Hz`,
+`Re=3.4 ohm`, `Qms=4.60`, `Qes=0.34`, `Qts=0.32`, `Mms=13 g`,
+`Cms=1.25 mm/N`, `Bl=5.7 Tm`, `Vas=15.8 L`, `Xmax=6.5 mm`, `Sd=95 cm^2`,
+`Le=0.25 mH`, `Pe=60 W`.
 
 `Dayton Audio RSS315HO-4` is transcribed from Dayton Audio's official product
 page/specification sheet: `Fs=26.2 Hz`, `Re=3.2 ohm`, `Qms=3.63`, `Qes=0.33`,

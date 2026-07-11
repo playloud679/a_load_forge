@@ -59,7 +59,16 @@
   volume.  The missing-impedance-peaks warning reports the active loss values.
 - **Driver presets**: added `Scan-Speak 30W/4558T00`,
   `Dayton Audio RSS315HO-4` and `SB Audience BIANCO-12OB150-01`.
-- **Verification**: `.venv/bin/python tests/test_all.py` passes with 11 passed,
+- **Driver preset**: added `Scan-Speak 15W/4531G00` from the supplied local
+  Scan-Speak datasheet PDF.
+- **Response zoom**: the SPL chart now auto-zooms from the total-response level
+  at 10 Hz up to 5 dB above the maximum visible response pen.
+- **Response plot sizing**: cursor labels now use fixed pixel overlay positions
+  so they cannot expand the response dB scale, and the SPL chart height is
+  increased.
+- **Clickable marker**: the main SPL chart now has a click-to-place moving
+  marker on the total response, with its own rule, point and Hz/dB readout.
+- **Verification**: `.venv/bin/python tests/test_all.py` passes with 13 passed,
   0 failed and 0 skipped tests.
 - **Design nudges**: added `-3%` / `+3%` buttons for `Vh`, `fh`, `Vl` and `fl`,
   and increased the response chart height.

@@ -100,6 +100,7 @@ def _check_presets_are_available():
         "Turbosound TS-12W350/8W",
         "Turbosound TS-15W300/8A",
         "Scan-Speak 30W/4558T00",
+        "Scan-Speak 15W/4531G00",
         "Dayton Audio RSS315HO-4",
         "SB Audience BIANCO-12OB150-01",
         "LaVoce WSF122.02",
@@ -121,6 +122,9 @@ def _check_presets_are_available():
     assert _dccav.get_driver_preset("Scan-Speak 30W/4558T00").fs_hz == 17.0
     assert _dccav.get_driver_preset("Scan-Speak 30W/4558T00").vas_l == 197.0
     assert _dccav.get_driver_preset("Scan-Speak 30W/4558T00").xmax_mm == 12.5
+    assert _dccav.get_driver_preset("Scan-Speak 15W/4531G00").fs_hz == 40.0
+    assert _dccav.get_driver_preset("Scan-Speak 15W/4531G00").sd_cm2 == 95.0
+    assert _dccav.get_driver_preset("Scan-Speak 15W/4531G00").pe_w == 60.0
     assert _dccav.get_driver_preset("Dayton Audio RSS315HO-4").re_ohm == 3.2
     assert _dccav.get_driver_preset("Dayton Audio RSS315HO-4").pe_w == 700.0
     assert _dccav.get_driver_preset("SB Audience BIANCO-12OB150-01").qts == 0.63
@@ -345,6 +349,62 @@ def _check_ui_reflex_volume_keeps_impedance_peaks():
 
 
 test("UI bass-reflex volume edits preserve resonance diagnostics", _check_ui_reflex_volume_keeps_impedance_peaks)
+
+
+def _check_response_chart_domain_tracks_10hz_and_peak():
+    import ui_app as _ui
+
+    result = _dccav.SimulationResult(
+        frequency_hz=np.array([10.0, 20.0, 40.0]),
+        spl_total_db=np.array([40.0, 70.0, 80.0]),
+        spl_driver_db=np.array([39.0, 69.0, 78.0]),
+        spl_port_db=np.array([30.0, 60.0, 83.0]),
+        excursion_mm=np.ones(3),
+        impedance_ohm=np.ones(3),
+        port_h_velocity=np.ones(3),
+        port_l_velocity=np.ones(3),
+        mil_w=np.ones(3),
+        mol_db=np.array([90.0, 90.0, 90.0]),
+        driver_volume_velocity=np.ones(3, dtype=complex),
+        port_volume_velocity=np.ones(3, dtype=complex),
+    )
+    domain = _ui._response_y_domain(result, {"Total": result.spl_total_db, "Vent": result.spl_port_db})
+    assert domain == [40.0, 88.0], domain
+
+
+test("UI response chart zoom uses 10 Hz floor and peak headroom", _check_response_chart_domain_tracks_10hz_and_peak)
+
+
+def _check_response_chart_has_click_marker():
+    import ui_app as _ui
+
+    result = _dccav.SimulationResult(
+        frequency_hz=np.array([10.0, 20.0, 40.0]),
+        spl_total_db=np.array([40.0, 70.0, 80.0]),
+        spl_driver_db=np.array([39.0, 69.0, 78.0]),
+        spl_port_db=np.array([30.0, 60.0, 83.0]),
+        excursion_mm=np.ones(3),
+        impedance_ohm=np.ones(3),
+        port_h_velocity=np.ones(3),
+        port_l_velocity=np.ones(3),
+        mil_w=np.ones(3),
+        mol_db=np.array([90.0, 90.0, 90.0]),
+        driver_volume_velocity=np.ones(3, dtype=complex),
+        port_volume_velocity=np.ones(3, dtype=complex),
+    )
+    chart = _ui._plot_response(result, [])
+    spec = chart.to_dict()
+    params = spec.get("params", [])
+    click_params = [param for param in params if param.get("name") == "click_marker"]
+    assert click_params, params
+    select = click_params[0]["select"]
+    assert select["type"] == "point", select
+    assert select["on"] == "click", select
+    assert select["nearest"] is True, select
+    assert click_params[0]["views"], click_params[0]
+
+
+test("UI response chart has a clickable moving marker", _check_response_chart_has_click_marker)
 
 
 def _check_simulation_rejects_bad_frequency_grid():
