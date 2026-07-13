@@ -28,6 +28,8 @@ skills/
 
 # Analytics database (local tracking)
 .analytics.db
+data/driver_prices.json.lock
+data/driver_prices.json.tmp
 
 # Streamlit secrets (contains API keys — keep local)
 .streamlit/secrets.toml
