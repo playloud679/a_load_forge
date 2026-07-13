@@ -1,9 +1,82 @@
 # Changelog
 
-## 0.2.0 (2026-07-13)
+## 0.3.0 (2026-07-14)
 
 - **Brand identity**: added the official Load Forge artwork as the application
   header and repository banner.
+- **Dedicated driver finder**: separated catalog ranking from enclosure design
+  into a goal-first `Find a driver` workspace with its own exact comparison
+  volume, voltage, ranking goal and advanced constraints. Independent widget
+  state prevents stale Batch minima; explicit first-render values start a
+  balanced 40 L / 2.83 V quick scan with deepest-available F3, 3 dB ripple,
+  1x Xmax and a clearly labelled 10-300 Hz range.
+- **Workspace-first flow**: the app now opens in the `Find a driver` workspace
+  with the sealed load preselected. The workspace bar orders `Find a driver`,
+  `Design a box` and `Project`, and the load selector lists `Infinite baffle`,
+  `Sealed`, `Bass reflex`, `DCCAV` from top to bottom.
+- **`Sealed` load name**: renamed `Acoustic suspension` to `Sealed` across the
+  UI, engine and docs. Legacy `.lfp` presets and share links using the old
+  labels are migrated automatically, and `optimize_alignment` canonicalizes
+  the legacy values for backward compatibility.
+- **Box strategy**: replaced the overlapping auto-align and optimizer modes
+  with one `Suggested` / `Optimized` / `Manual` control. Suggested designs
+  track driver and load changes, Optimized exposes goals and applies a result,
+  and Manual unlocks direct enclosure editing and reset actions.
+- **Response workflow**: the `Design a box` workspace now keeps only Response,
+  Excursion, Impedance, Ports and Group Delay tabs; added response pinning,
+  four-load comparison and share-via-URL design links.
+- **Progressive disclosure**: moved preset save/load/share actions into a
+  `Project` popover, collapsed preset T/S fields and advanced sweep controls,
+  hid manual cursor positions until requested, and reduced the always-visible
+  result summary to headline decision metrics with detail expanders.
+- **Candidate comparison polish**: each ranked result includes a normalized
+  response sparkline, class metadata and CSV export. Selecting a row opens a
+  preview; only `Apply candidate to design` replaces the active design and
+  switches it to Manual strategy.
+- **Port diagnostics**: added Helmholtz-based port geometry estimates, peak
+  air-speed reporting, chuffing warnings and explicit impossible-tuning
+  messages with zero-length tuning ceilings and minimum feasible diameters.
+- **Reference driver metrics**: added `Eta0 ref`, SPL at 1 W / 1 m, SPL at
+  2.83 V / 1 m, EBP, voice-coil inductive corner and T/S-based bandwidth
+  classification (`Subwoofer` / `Woofer` / `Midbass-capable`) in the UI and
+  candidate-ranking output.
+- **Series resistance**: added a series-resistance input to the simulators and
+  UI so source impedance, cable resistance and crossover DCR affect drive
+  level, damping, impedance and thermal-limit reporting.
+- **FRD/ZMA export**: added `Download FRD (response)` and `Download ZMA
+  (impedance)` next to the response CSV, in the text formats read by
+  VituixCAD, XSim and REW. The FRD carries the true acoustic phase
+  (`response_phase_deg`, including the radiation term) and the ZMA the true
+  electrical impedance phase via the new
+  `SimulationResult.impedance_phase_deg` field.
+- **Charts keep every trace visible**: the response zoom ceiling now follows
+  all displayed traces (MOL, load comparison) instead of clipping them, while
+  the floor stays anchored to the total response at 10 Hz.
+- **Nudge safety**: the `-3% / +3%` box buttons clamp to the widget bounds; a
+  nudge past the maximum no longer silently resets the input to its minimum.
+- **Finder clarity**: goal constraints (target F3, ripple, excursion, group
+  delay) are disabled with an explanation while the per-candidate optimizer
+  is off, the evaluation range stays always active, and applying a candidate
+  confirms with a toast. The Finder also renders safely outside a Streamlit
+  runtime via explicit widget-default fallbacks.
+- **Share links**: the `Project` popover now shows the full share URL in a
+  copyable code block instead of pointing at the address bar.
+- **Microcopy and theming**: pinned the dark base theme the chart palette is
+  tuned for; added help texts for MOL, the MIL chart, the box strategy and
+  the load type; click-marker hint, labelled Xmax and group-delay limit
+  lines, a `Box volume` headline metric, typographic units and a friendlier
+  driver-error message.
+- **Price enrichment cycle**: the scheduled enrichment cycle runs all four
+  providers concurrently against isolated shards, then performs a locked
+  atomic merge into the shared dataset.
+- **CI**: added a GitHub Actions workflow replicating the test contract
+  (compile, ruff lint, full suite, Streamlit AppTest smoke) and brought the
+  codebase to ruff-clean (import sorting, `zip(strict=True)`, lint config).
+- **Verification**: `.venv/bin/python tests/test_all.py` passes with 61
+  passed, 0 failed and 0 skipped tests.
+
+## 0.2.0 (2026-07-13)
+
 - **New acoustic loads**: added acoustic suspension (sealed box) and ideal
   infinite baffle alongside DCCAV and conventional bass reflex, with matching
   alignment metrics, plots, exports, Batch LF Finder routing and preset
@@ -12,9 +85,8 @@
   F3, ripple, excursion, group-delay and volume constraints for DCCAV, reflex
   and sealed boxes, backed by a faster vectorized DCCAV solver.
 - **Exact Batch volume**: optimized Batch LF Finder results now use the exact
-  optimizer max-volume value; its duplicate Batch volume input was removed.
-  DCCAV keeps `Vh+Vl` fixed and reflex/sealed keep `Vb` fixed while their
-  remaining alignment parameters are optimized.
+  requested enclosure volume; DCCAV keeps `Vh+Vl` fixed and reflex/sealed keep
+  `Vb` fixed while their remaining alignment parameters are optimized.
 - **Optimizer UI consistency**: apply buttons respect optimized alignment mode,
   active-box metrics report the simulated enclosure, and stale optimizer
   summaries are hidden when the driver, load, goals, voltage or box changes.
@@ -24,31 +96,13 @@
 - **Price enrichment tools**: added validated enrichment for SoundImports, Blue
   Aran, Madisound and Parts Express, including sitemap/category crawling,
   provider-specific extraction, accessory rejection and safe model matching.
-  The scheduled enrichment cycle runs all four providers concurrently against
-  isolated shards, then performs a locked atomic merge into the shared dataset.
 - **Chart robustness**: filter non-finite points, keep SPL zoom anchored to the
   total response and protect plot scaling from cursor labels and port spikes.
-- **Response workflow**: reorganized the UI into tabs for Response, Excursion,
-  Impedance, Ports, Group Delay and Batch LF Finder; added response pinning,
-  four-load comparison and share-via-URL design links.
-- **Port diagnostics**: added Helmholtz-based port geometry estimates, peak
-  air-speed reporting, chuffing warnings and explicit impossible-tuning
-  messages with zero-length tuning ceilings and minimum feasible diameters.
-- **Reference driver metrics**: added `Eta0 ref`, SPL at 1 W / 1 m, SPL at
-  2.83 V / 1 m, EBP, voice-coil inductive corner and T/S-based bandwidth
-  classification (`Subwoofer` / `Woofer` / `Midbass-capable`) in the UI and
-  Batch output.
-- **Series resistance**: added `Series R (ohm)` to the simulators and UI so
-  source impedance, cable resistance and crossover DCR affect drive level,
-  damping, impedance and thermal-limit reporting.
-- **Batch comparison polish**: each result row now includes a normalized
-  response sparkline, class metadata and CSV export of the visible table
-  columns.
 - **Terminology and compatibility**: use the standard English term `Acoustic
   suspension` while migrating presets saved with the former label.
 - **Documentation**: synchronized README, user guide, module contracts, agent
   guidance and changelog with the four supported acoustic loads and workflows.
-- **Verification**: `.venv/bin/python tests/test_all.py` passes with 55 passed,
+- **Verification**: `.venv/bin/python tests/test_all.py` passes with 42 passed,
   0 failed and 0 skipped tests.
 
 ## 0.1.0 (2026-07-07)
