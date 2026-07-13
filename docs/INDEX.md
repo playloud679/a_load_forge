@@ -11,19 +11,19 @@ in sync in the same change.
 
 | Module/File | Doc | Role |
 |---|---|---|
-| `ui_app.py` | source only | Streamlit DCCAV/reflex dashboard: T/S inputs, alignment controls, plots, preset save/load and CSV export |
+| `ui_app.py` | source only | Streamlit DCCAV/reflex/sealed/infinite-baffle dashboard: T/S inputs, alignment controls, plots, preset save/load and CSV export |
 | `src/__init__.py` | [__init__.md](__init__.md) | Public package exports for acoustic-load helpers |
-| `src/dccav.py` | [dccav.md](dccav.md) | DCCAV/reflex alignment formulas, T/S derivation and lumped acoustic-circuit simulation |
-| `tests/test_all.py` | source only | Focused 10-test runner for the active acoustic-load models |
+| `src/dccav.py` | [dccav.md](dccav.md) | DCCAV/reflex/sealed/infinite-baffle formulas, T/S derivation and lumped acoustic-circuit simulation |
+| `tests/test_all.py` | source only | Focused 42-test runner for the active acoustic-load models |
 
 ## Data Flow
 
 ```text
-T/S parameters -> derived driver components -> DCCAV/reflex alignment
+T/S parameters -> derived driver components -> selected acoustic-load alignment
         -> acoustic impedance network -> response arrays -> plots / CSV
 ```
 
-## DCCAV UI Contract
+## Acoustic-load UI Contract
 
 When changing `src/dccav.py`:
 

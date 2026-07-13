@@ -1,8 +1,8 @@
 # Load Forge User Guide
 
 Load Forge simulates acoustic loudspeaker loads from driver Thiele/Small
-parameters.  It supports DCCAV, a double asymmetric reflex / double resonator in
-series, and a conventional one-box bass reflex.
+parameters.  It supports DCCAV, conventional bass reflex, acoustic suspension
+(sealed box) and ideal infinite baffle.
 
 ## Inputs
 
@@ -24,7 +24,8 @@ T/S set.
 
 `Qms` must be greater than `Qts`; otherwise `Qes` cannot be derived.
 
-The **Load type** selector switches between `DCCAV` and `Bass reflex`.  The
+The **Load type** selector switches between `DCCAV`, `Bass reflex`,
+`Acoustic suspension` and `Infinite baffle`.  The
 **Driver preset** selector loads built-in examples immediately.  When
 **Auto-align box from T/S** is enabled, changing a preset, load type or T/S
 value also updates the active box controls, so the plots follow the selected
@@ -67,6 +68,18 @@ Use **Apply suggested reflex** to copy those values into the editable `Vb` and
 `Fb` controls.  This is a plain starting point, not a named QB3/SBB4/EBS
 alignment.
 
+### Acoustic Suspension Alignment
+
+The sealed-box starter targets `Qtc=0.707` when that is possible from the
+driver's `Qts`, and displays `Vb`, `Fc` and achieved `Qtc`.  `Vb`, `Qabs` and
+`Qleak` remain editable; there are no port controls or port traces.
+
+### Infinite Baffle
+
+Infinite baffle has no box or optimizer controls.  It keeps the driver's
+free-air `Fs` and `Qts` and assumes the rear wave is perfectly isolated.  The
+ideal model does not include finite-panel diffraction, baffle step or leakage.
+
 The suggested alignment is an empirical small-signal starting point, not a full
 mechanical enclosure design.  For low-Qts pro 12" drivers it can produce very
 small volumes; the UI warns when the total suggested `Vh+Vl` is likely too small
@@ -97,8 +110,18 @@ For `Bass reflex`, controls are:
 - `Fb tuning`: vent tuning
 - `Qabs`, `Qleak`, `Qport`: box, leakage and port losses
 
+For `Acoustic suspension`, controls are sealed `Vb`, `Qabs` and `Qleak`.
+`Infinite baffle` has no enclosure controls.
+
 Higher Q means lower loss for leakage/ports.  Very low Q values intentionally
 damp the response.
+
+### Batch LF Finder
+
+`Box volume (L)` is an exact comparison volume, including when **Optimize each
+driver box** is enabled.  A 50 L batch therefore returns `Vh+Vl=50 L` for every
+DCCAV candidate or `Vb=50 L` for every bass-reflex/acoustic-suspension
+candidate.  Infinite baffle ignores this field because it has no enclosure.
 
 ## Outputs
 
@@ -123,7 +146,8 @@ The response plot shows the low-frequency acoustic-load estimate:
 
 For DCCAV, the lower-port branch naturally rolls off above the tuned range even
 without an electrical crossover.  For bass reflex, the port trace is the vent
-output.  The SPL scale is an internal estimate for comparing alignments, not a
+output.  Sealed and infinite-baffle total response is the exposed cone front
+alone.  The SPL scale is an internal estimate for comparing alignments, not a
 calibrated far-field or full-range front-driver radiation model.
 
 ### Plot Tools
@@ -146,18 +170,19 @@ the same acoustic load.
 
 ### Port Volume Velocity
 
-The port plot compares upper and lower port volume velocity.  Peaks identify
-where each resonator is doing most of the acoustic work.
+The port plot compares upper and lower port volume velocity for ported loads.
+It is disabled for sealed and infinite-baffle simulations.
 
 ## Presets and Export
 
-- **Save preset** downloads current parameters as `.lfp` JSON.
+- **Save preset** downloads current parameters, including the selected load type,
+  as `.lfp` JSON.
 - **Load preset** reloads `.lfp` or JSON parameter files.
 - **Download response CSV** exports all simulated arrays.
 
 ## Validation Status
 
-The DCCAV module has regression tests for the PCPaudio article example, T/S
-derivation, finite simulation arrays and input validation.  The model is still a
-first engineering pass; measured prototypes should be used to calibrate losses
-and radiation assumptions.
+The acoustic-load module has regression tests for the PCPaudio article example,
+reflex, sealed and infinite-baffle paths, T/S derivation, finite arrays and
+input validation.  The model is still a first engineering pass; measured
+prototypes should be used to calibrate losses and radiation assumptions.

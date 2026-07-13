@@ -39,11 +39,14 @@ Load Forge is a Streamlit acoustic-load simulator.
 ui_app.py -> src/dccav.py -> docs/dccav.md -> tests/test_all.py
 ```
 
-The current simulator is DCCAV / double asymmetric reflex:
+The current simulator supports DCCAV / double asymmetric reflex:
 
 ```text
 driver -> upper volume || upper port -> lower volume || lower port
 ```
+
+plus conventional bass reflex, acoustic suspension / sealed box and ideal
+infinite baffle.
 
 Inputs are driver T/S parameters plus chamber/tuning/loss controls.  Outputs are
 response plots, metrics and CSV export.
@@ -62,9 +65,9 @@ make test
 | Module/File | Role |
 |---|---|
 | `ui_app.py` | Streamlit single-page dashboard |
-| `src/dccav.py` | DCCAV formulas, T/S derivation and acoustic-circuit simulation |
+| `src/dccav.py` | DCCAV/reflex/sealed/infinite-baffle formulas and simulation |
 | `docs/dccav.md` | Public API, formulas, assumptions and tests |
-| `tests/test_all.py` | Focused custom runner with 10 DCCAV tests |
+| `tests/test_all.py` | Focused custom runner with 42 acoustic-load tests |
 
 ## Streamlit Reload Rule
 

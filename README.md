@@ -1,17 +1,18 @@
 # Load Forge
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
-**DCCAV** / double resonator in series and a conventional **bass reflex** load,
-both derived from driver Thiele/Small parameters.
+**DCCAV** / double resonator in series, conventional **bass reflex**,
+**acoustic suspension** (sealed box) and ideal **infinite baffle**, all derived
+from driver Thiele/Small parameters.
 
 The app starts from a T/S set, proposes an editable first-pass alignment, then
 simulates the lumped acoustic circuit and plots:
 
 - estimated total SPL
-- driver and lower-port contributions
+- driver and port contributions when present
 - cone excursion
 - electrical impedance
-- port volume velocity
+- port volume velocity for ported loads
 - MIL/MOL limit curves when `Xmax` or `Pe` are available
 
 The current model is a frequency-domain engineering simulator.  It is useful
@@ -66,11 +67,16 @@ driver -> box volume || vent
 Its automatic starting point is intentionally conservative: `Vb = Vas` and
 `Fb = Fs`, with manual controls for final tuning.
 
+The acoustic-suspension path uses a closed `Vb` and reports its classical
+`Fc` and `Qtc`; its starter targets `Qtc=0.707` when the driver's `Qts` permits.
+Infinite baffle has no box or tuning controls and assumes perfect isolation of
+the rear wave.
+
 ## Project Structure
 
 ```text
 ui_app.py          Streamlit dashboard
-src/dccav.py       DCCAV/reflex alignment and simulation engine
+src/dccav.py       DCCAV/reflex/sealed/infinite-baffle simulation engine
 docs/dccav.md      module contract and formulas
 tests/test_all.py  custom test runner, including acoustic-load tests
 ```

@@ -5,11 +5,15 @@ Defines the public package surface for Load Forge's active audio simulator.
 Exports the acoustic-load dataclasses and helpers from `src/dccav.py`:
 
 - `DriverTS`, `DerivedDriver`, `DccavAlignment`, `DccavBox`,
-  `ReflexAlignment`, `ReflexBox`, `SimulationResult`
+  `ReflexAlignment`, `ReflexBox`, `SealedAlignment`, `SealedBox`,
+  `OptimizationGoals`, `OptimizedAlignment`, `SimulationResult`
 - `driver_preset_names()`, `get_driver_preset()`
 - `sd_from_diameter()`, `complete_driver()`, `suggest_alignment()`,
-  `suggest_reflex_alignment()`
-- `simulate()`, `simulate_reflex()`, `response_metrics()`,
+  `suggest_reflex_alignment()`, `suggest_sealed_alignment()`,
+  `sealed_system_metrics()`
+- `simulate()`, `simulate_reflex()`, `simulate_sealed()`,
+  `simulate_infinite_baffle()`, `optimize_alignment()`, `group_delay_ms()`,
+  `response_metrics()`,
   `response_threshold_frequencies()`, `impedance_peak_frequencies()`,
   `equivalent_sealed_fc_hz()`
 

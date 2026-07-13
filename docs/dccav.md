@@ -2,7 +2,8 @@
 
 Implements the audio-domain simulators for the app: DCCAV / double series
 resonator based on the PCPaudio/G.P. Matarazzo article `Teoría y práctica del
-doble resonador en serie`, plus a conventional one-box bass-reflex load.
+doble resonador en serie`, conventional bass reflex, closed-box acoustic
+suspension and infinite baffle.
 
 The module works in the frequency domain with lumped acoustic impedances and
 returns arrays for plotting SPL, cone excursion, impedance and port volume
@@ -50,6 +51,23 @@ driver -> box volume || vent
 `simulate_reflex()` uses the same driver model, exposed front cone radiation,
 box compliance, port mass/loss and electrical impedance calculation as the
 DCCAV solver, but with a single acoustic node.
+
+The acoustic-suspension topology is a sealed compliance behind the driver:
+
+```text
+driver -> closed box volume
+```
+
+`simulate_sealed()` returns only the exposed front-cone radiation.  Its
+classical system metrics are `Fc = Fs*sqrt(1+Vas/Vb)` and
+`Qtc = Qts*sqrt(1+Vas/Vb)`; `Qabs` and `Qleak` add acoustic loss to the closed
+volume.
+
+`simulate_infinite_baffle()` assumes a perfectly isolating partition with no
+finite rear volume, leakage or rear radiation reaching the listener.  The
+driver therefore retains its free-air `Fs`/`Qts`, has no port output and has no
+box parameter to optimize.  Finite-panel diffraction and baffle step are not
+part of this ideal model.
 
 ## Public API
 
@@ -118,8 +136,16 @@ Current presets:
 `driver_preset_names()` returns the names in display order.
 `get_driver_preset(name)` returns the matching `DriverTS` or raises
 `ValueError`.
-`driver_preset_info(name)` returns source, brand, model, nominal size and URL
-metadata used by the UI filters.
+`driver_preset_info(name)` returns source, brand, model, nominal size, optional
+price/currency and URL metadata used by the UI filters.  Prices are volatile:
+the loader first uses the optional `data/driver_prices.json` enrichment file
+and then falls back to any price embedded in the preset dataset.  Enriched
+retailer records are checked against their matched product fields before they
+enter the UI, so coherent low prices are allowed while accessory/part matches
+(including kits, crossovers and grilles) are ignored.  Because enriched offers
+may use different currencies, the UI requires a currency selection before it
+applies the maximum-price filter; amounts in EUR and GBP are never compared as
+if they shared a unit.
 
 ### Loudspeaker Database presets
 
@@ -130,6 +156,31 @@ lazily and appends the external names after the built-in presets with the
 single imported row is invalid; bad rows are skipped during load.  If multiple
 imported rows have the same display name, the later rows receive an
 `[LSDB id]` suffix so the UI does not silently drop duplicate model variants.
+External presets may also carry optional `price` and `currency` fields.  The
+current local Loudspeaker Database import has no embedded prices, but the
+separate local enrichment file supplies retailer prices and enables the UI
+filter.  Without either source, the max-price controls remain disabled.
+Generated presets also preserve a `website_fields` block with the original
+card metadata, all raw `data-woofer` keys, image/link metadata and detected
+commerce links.  The importer derives `price`/`currency` from explicit raw
+price fields or visible price text/link text when the site exposes it.
+
+Retailer prices are generated separately by `tools/enrich_driver_prices.py`.
+Supported providers are SoundImports (JSON-LD search/product/category pages),
+Blue Aran (JSON-LD product sitemap), Madisound (CollectionPage JSON-LD category
+pages with `?page=N` pagination) and Parts Express (public SuiteCommerce items
+API driven by the product sitemap), selected with `--provider` plus
+`--sitemap`.  The output file is
+`data/driver_prices.json` and stores `price`, `currency`, seller URL,
+availability, matched product fields, confidence and fetch timestamp per preset.
+This keeps pricing refreshes independent from the acoustic T/S dataset.
+For bulk refreshes, run the tool with `--soundimports-sitemap`; it reads the
+public English sitemap, skips non-product paths, respects the site's
+`Crawl-delay` through `--sleep`, stores every product offer in a SoundImports
+catalog section, and links high-confidence matches back to driver preset names.
+Use `--prune-prices` to revalidate an existing price file with the current
+matcher and remove stale, low-confidence or invalid preset price matches; its
+optional `--min-price` argument is off by default.
 
 The importer partitions requests by the site's brand filters, writes
 `data/loudspeaker_database_checkpoint.json` after each completed brand, and
@@ -140,6 +191,8 @@ completed brand list instead of restarting from zero.  The importer also keeps
 brand URL returns a product page or any non-search response, that brand is
 stored in the checkpoint's `deferred_brands` list and the run moves on without
 adding those unrelated cards.
+Use `--rebuild-from-checkpoint` to regenerate the output JSON from the local
+checkpoint without new network requests.
 
 For unattended retry windows, `tools/run_loudspeaker_database_import_until_complete.py`
 wraps the importer in fresh Python processes.  Each window gets a new cookie
@@ -261,11 +314,66 @@ Fb = Fs
 This is intentionally plain; it is meant as an editable starting point rather
 than a named classic alignment.
 
+### `suggest_sealed_alignment(ts, target_qtc=0.707) -> SealedAlignment`
+
+Returns the classical closed-box volume for the requested `Qtc` when
+`target_qtc > Qts`, together with achieved `Fc` and `Qtc`.  When a passive box
+cannot reduce `Qtc` below the driver's `Qts`, the starter uses `Vb=4*Vas` as a
+finite approximation to an infinite enclosure.  Starter volume is clamped to
+the UI/optimizer minimum of 0.05 L.
+
+### `sealed_system_metrics(ts, box) -> tuple[float, float]`
+
+Returns `(Fc, Qtc)` for a `SealedBox` using the classical `Vas/Vb` relations.
+
+### `optimize_alignment(ts, goals, load_type="DCCAV", box_template=None, voltage_v=2.83, max_evaluations=260, fixed_total_volume_l=None) -> OptimizedAlignment`
+
+Goal-driven box optimizer used by the UI's `Optimized (goals)` alignment mode.
+It runs a bounded compass pattern search in log-space, starting from the
+empirical article alignment (DCCAV: `Vh`, `Vl`, `fl`, `fh/fl`), reflex starting
+point (`Vb`, `Fb`) or classical sealed alignment (`Vb`).  Loss factors are
+copied from `box_template` when one is provided, otherwise defaults are used.
+Infinite baffle is intentionally rejected because it has no box parameter.
+The optional `fixed_total_volume_l` argument constrains every candidate to the
+exact `Vh+Vl` (or `Vb`) requested by Batch LF Finder.
+
+`OptimizationGoals` fields:
+
+- `objective`: `"extension"` (lowest F3), `"balanced"` or `"flat"` — weight
+  presets that trade simulated F3 against passband ripple
+- `max_total_volume_l`: hard cap on `Vh+Vl` (or `Vb`); every search candidate
+  is projected onto the feasible volume boundary.  The minimum usable cap is
+  0.10 L for DCCAV (two 0.05 L chambers) and 0.05 L for reflex/sealed
+- `target_f3_hz`: pushing extension below the target earns nothing, and once
+  the target is met a stronger size regularizer prefers the compact box
+- `max_ripple_db`: allowed peak-to-valley SPL spread in the passband window
+  `[1.2*F3, min(fmax, max(200, 2*F3))]`; excess is penalized
+- `max_excursion_ratio`: cap on max excursion vs `Xmax` at the simulation
+  voltage, evaluated for `f >= F10` (only when `Xmax` is known; `0`/`None`
+  disables)
+- `max_group_delay_ms`: cap on the maximum total-output group delay in the
+  passband (`None` disables)
+
+The score also re-applies the `response_sanity_warnings()` credibility limits
+(`F3 >= 0.65*fl` for DCCAV and `F3 >= 0.5*sealed Fc`) as penalties so the
+optimizer cannot chase loss-free fake extension, and the DCCAV `fh/fl` ratio is
+bounded to `[1.2, 4.5]` so the load keeps its double-resonator character.
+
+`OptimizedAlignment` returns the winning `DccavBox`/`ReflexBox`/`SealedBox` plus achieved
+`f3_hz`, `f10_hz`, `ripple_db`, `excursion_ratio`, `group_delay_ms`,
+`total_volume_l`, the final score and the evaluation count.
+
+### `group_delay_ms(result) -> np.ndarray`
+
+Total-output group delay in milliseconds, computed as `-dφ/dω` from the
+complex sum of `driver_volume_velocity` and `port_volume_velocity`.
+
 ### `simulate(ts, box, freq_hz=None, voltage_v=2.83) -> SimulationResult`
 
 Solves the two-node acoustic circuit across the frequency array.  The source
 pressure is approximated as `Eg*Bl/(Re*Sd)` and drives the network through
-`Zas`.
+`Zas`.  The symmetric 2x2 nodal system is solved in closed form (vectorized
+over frequency), which keeps the optimizer's repeated simulations fast.
 
 Returned arrays:
 
@@ -307,6 +415,19 @@ array.  The returned `SimulationResult` uses the same fields as DCCAV:
 `spl_total_db` is exposed cone front plus vent, `spl_port_db` is the vent alone,
 `port_l_velocity` is the vent volume velocity and `port_h_velocity` is zero.
 
+### `simulate_sealed(ts, box, freq_hz=None, voltage_v=2.83) -> SimulationResult`
+
+Solves the driver against one closed acoustic compliance.  Total and cone SPL
+are identical because there is no external port; all port velocity fields are
+zero.  Electrical impedance includes the closed-box acoustic load and normally
+shows one resonance peak near the achieved `Fc`.
+
+### `simulate_infinite_baffle(ts, freq_hz=None, voltage_v=2.83) -> SimulationResult`
+
+Solves free-air driver motion while assuming perfect front/rear isolation.
+Total and cone SPL are identical, all port fields are zero, and electrical
+impedance normally shows one resonance peak near `Fs`.
+
 ### `response_metrics(result) -> dict`
 
 Returns compact UI metrics: peak SPL, estimated `F3`, maximum excursion and
@@ -322,9 +443,9 @@ frequency range.
 
 ### `equivalent_sealed_fc_hz(ts, box) -> float`
 
-Returns the closed-box resonance frequency that the same driver would have in
-the total DCCAV chamber volume `Vh+Vl`.  This is used only as a sanity check; it
-is not a replacement for the DCCAV simulation.
+Returns the closed-box resonance frequency for a `SealedBox`, `ReflexBox` volume
+or the total DCCAV chamber volume `Vh+Vl`.  For non-sealed loads this remains a
+sanity comparison rather than their simulated resonance.
 
 ### `alignment_diagnostics(ts, box) -> list[str]`
 
@@ -352,7 +473,7 @@ If no true rising crossing exists in the simulated range, the returned value is
 
 ## Tests
 
-`tests/test_all.py` contains DCCAV coverage for:
+`tests/test_all.py` contains acoustic-load coverage for:
 
 - article alignment regression
 - built-in driver presets, including Beyma 12CMV2
@@ -360,7 +481,12 @@ If no true rising crossing exists in the simulated range, the returned value is
 - finite response arrays and sane metric signs
 - three local impedance crests for the DCCAV load
 - two local impedance crests for the bass-reflex load
+- one local impedance crest plus zero port output for sealed and infinite-baffle loads
 - F3/F6/F10 threshold ordering for cursor placement
 - no fabricated F3 when a true threshold crossing is absent
 - response sanity warnings for impossible F3 values
 - input validation for invalid `Qms <= Qts`
+- optimizer volume-cap, target-F3 compactness and extension-vs-empirical checks
+  for DCCAV plus reflex/sealed volume-cap checks
+- UI `Optimized (goals)` alignment mode applying goal-driven boxes
+- UI and Batch LF Finder routing for sealed and infinite-baffle loads

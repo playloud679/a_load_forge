@@ -53,6 +53,14 @@ and conventional bass reflex:
 driver -> box volume || vent
 ```
 
+acoustic suspension / sealed box:
+
+```text
+driver -> closed box volume
+```
+
+and ideal infinite baffle (rear radiation isolated, no box parameters).
+
 The app starts from driver T/S parameters, suggests an editable alignment,
 solves the lumped acoustic circuit and plots SPL estimate, cone excursion,
 impedance, port volume velocity and MIL/MOL limits.
@@ -64,7 +72,7 @@ Whenever `src/dccav.py` changes:
 | Python change | Required UI/doc/test update |
 |---|---|
 | New input parameter | Add or update the matching sidebar control in `ui_app.py` |
-| Changed `DriverTS` or `DccavBox` field | Update UI state keys, preset collection and tests |
+| Changed acoustic-load dataclass field | Update UI state keys, preset collection and tests |
 | Changed alignment formula | Update displayed suggested metrics, `docs/dccav.md`, and regression tests |
 | Changed simulation output | Update plots, CSV export, metrics and tests |
 | Changed validation behavior | Update user-facing errors and regression tests |
@@ -97,5 +105,5 @@ make run
 ## Scope
 
 This repository is scoped to acoustic-load simulation.  Keep new work inside
-the active DCCAV/reflex simulation surface unless the user explicitly changes
+the active DCCAV/reflex/sealed/infinite-baffle simulation surface unless the user explicitly changes
 the product direction.  Do not push unless explicitly requested.

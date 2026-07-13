@@ -14,7 +14,7 @@ import sys
 import time
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urljoin
 from urllib.error import HTTPError, URLError
 from urllib.request import HTTPCookieProcessor, Request, build_opener
 
@@ -59,6 +59,10 @@ class WooferCardParser(HTMLParser):
         self._h4_spans: list[str] = []
         self._h4_span_text: list[str] = []
         self._size_text: list[str] = []
+        self._article_text: list[str] = []
+        self._links: list[dict] = []
+        self._link_stack: list[dict] = []
+        self._images: list[dict] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]):
         attrs_dict = {key: value or "" for key, value in attrs}
@@ -68,7 +72,16 @@ class WooferCardParser(HTMLParser):
                 self._current = {
                     "id": attrs_dict.get("data-woofer-id", ""),
                     "raw": json.loads(html.unescape(raw)),
+                    "html_attrs": {
+                        key: value
+                        for key, value in attrs_dict.items()
+                        if key != "data-woofer"
+                    },
                 }
+                self._article_text = []
+                self._links = []
+                self._link_stack = []
+                self._images = []
         elif self._current is not None and tag == "h4":
             self._in_h4 = True
             self._h4_parts = []
@@ -79,6 +92,22 @@ class WooferCardParser(HTMLParser):
         elif self._current is not None and tag == "td" and "size_type" in attrs_dict.get("class", "").split():
             self._in_size_type = True
             self._size_text = []
+        if self._current is not None and tag == "a":
+            self._link_stack.append({
+                "href": attrs_dict.get("href", ""),
+                "title": attrs_dict.get("title", ""),
+                "class": attrs_dict.get("class", ""),
+                "rel": attrs_dict.get("rel", ""),
+                "target": attrs_dict.get("target", ""),
+                "text_parts": [],
+            })
+        elif self._current is not None and tag == "img":
+            self._images.append({
+                "src": attrs_dict.get("src", ""),
+                "alt": attrs_dict.get("alt", ""),
+                "title": attrs_dict.get("title", ""),
+                "class": attrs_dict.get("class", ""),
+            })
 
     def handle_endtag(self, tag: str):
         if self._current is None:
@@ -94,22 +123,34 @@ class WooferCardParser(HTMLParser):
             if span_text:
                 self._h4_spans.append(span_text)
             self._in_h4_span = False
+        elif tag == "a" and self._link_stack:
+            link = self._link_stack.pop()
+            text = " ".join(part.strip() for part in link.pop("text_parts") if part.strip())
+            link["text"] = text
+            if any(link.values()):
+                self._links.append(link)
         elif tag == "td" and self._in_size_type:
             self._current["size_type"] = " ".join(part.strip() for part in self._size_text if part.strip())
             self._in_size_type = False
         elif tag == "article":
+            self._current["text"] = " ".join(part.strip() for part in self._article_text if part.strip())
+            self._current["links"] = self._links
+            self._current["images"] = self._images
             self.records.append(self._current)
             self._current = None
 
     def handle_data(self, data: str):
         if self._current is None:
             return
+        self._article_text.append(data)
         if self._in_h4:
             self._h4_parts.append(data)
         if self._in_h4_span:
             self._h4_span_text.append(data)
         if self._in_size_type:
             self._size_text.append(data)
+        if self._link_stack:
+            self._link_stack[-1]["text_parts"].append(data)
 
 
 def log(message: str):
@@ -194,6 +235,128 @@ def parse_size_type(text: str) -> tuple[float | None, str]:
     return size, kind
 
 
+def parse_price(raw: dict) -> tuple[float | None, str]:
+    for key in ("price", "price_eur", "price_usd", "cost", "msrp"):
+        value = number(raw.get(key))
+        if value is not None and value >= 0:
+            if key.endswith("_eur"):
+                return value, "EUR"
+            if key.endswith("_usd"):
+                return value, "USD"
+            return value, str(raw.get("currency") or raw.get("price_currency") or "")
+    return None, ""
+
+
+def parse_price_text(text: str) -> tuple[float | None, str]:
+    patterns = (
+        (r"€\s*([0-9]+(?:[.,][0-9]{1,2})?)", "EUR"),
+        (r"\$\s*([0-9]+(?:[.,][0-9]{1,2})?)", "USD"),
+        (r"£\s*([0-9]+(?:[.,][0-9]{1,2})?)", "GBP"),
+        (r"\b([0-9]+(?:[.,][0-9]{1,2})?)\s*(?:eur|euro)\b", "EUR"),
+        (r"\b([0-9]+(?:[.,][0-9]{1,2})?)\s*usd\b", "USD"),
+        (r"\b([0-9]+(?:[.,][0-9]{1,2})?)\s*gbp\b", "GBP"),
+    )
+    for pattern, currency in patterns:
+        match = re.search(pattern, text, re.I)
+        if not match:
+            continue
+        value = number(match.group(1).replace(",", "."))
+        if value is not None and value >= 0:
+            return value, currency
+    return None, ""
+
+
+def clean_mapping(values: dict) -> dict:
+    return {
+        key: value
+        for key, value in values.items()
+        if value not in (None, "", [], {})
+    }
+
+
+def normalize_links(links: list[dict]) -> list[dict]:
+    normalized = []
+    for link in links:
+        item = clean_mapping({
+            "href": urljoin(BASE_URL, str(link.get("href") or "")),
+            "text": str(link.get("text") or ""),
+            "title": str(link.get("title") or ""),
+            "class": str(link.get("class") or ""),
+            "rel": str(link.get("rel") or ""),
+            "target": str(link.get("target") or ""),
+        })
+        if item:
+            normalized.append(item)
+    return normalized
+
+
+def normalize_images(images: list[dict]) -> list[dict]:
+    normalized = []
+    for image in images:
+        item = clean_mapping({
+            "src": urljoin(BASE_URL, str(image.get("src") or "")),
+            "alt": str(image.get("alt") or ""),
+            "title": str(image.get("title") or ""),
+            "class": str(image.get("class") or ""),
+        })
+        if item:
+            normalized.append(item)
+    return normalized
+
+
+def commerce_links(links: list[dict]) -> list[dict]:
+    commerce_terms = (
+        "amazon",
+        "parts-express",
+        "partsexpress",
+        "parts express",
+        "affiliate",
+        "buy",
+        "shop",
+        "store",
+    )
+    out = []
+    for link in links:
+        haystack = " ".join(str(link.get(key, "")) for key in ("href", "text", "title", "class")).casefold()
+        if any(term in haystack for term in commerce_terms):
+            out.append(link)
+    return out
+
+
+def card_website_fields(card: dict, size_in: float | None, kind: str, url: str) -> dict:
+    raw = dict(card.get("raw") or {})
+    links = normalize_links(list(card.get("links") or []))
+    images = normalize_images(list(card.get("images") or []))
+    fields = {
+        "lsdb_id": card.get("id", ""),
+        "title": card.get("title", ""),
+        "brand": card.get("brand", ""),
+        "model": card.get("model", ""),
+        "size_type": card.get("size_type", ""),
+        "size_in": size_in,
+        "kind": kind,
+        "url": url,
+        "text": card.get("text", ""),
+        "html_attrs": dict(card.get("html_attrs") or {}),
+        "links": links,
+        "commerce_links": commerce_links(links),
+        "images": images,
+        "raw": raw,
+        "raw_keys": sorted(raw.keys()),
+    }
+    return clean_mapping(fields)
+
+
+def card_price(card: dict) -> tuple[float | None, str]:
+    raw_price, raw_currency = parse_price(dict(card.get("raw") or {}))
+    if raw_price is not None:
+        return raw_price, raw_currency
+    text_chunks = [str(card.get("text") or "")]
+    for link in card.get("links") or []:
+        text_chunks.extend(str(link.get(key) or "") for key in ("href", "text", "title", "class"))
+    return parse_price_text(" ".join(text_chunks))
+
+
 def make_preset(card: dict) -> dict | None:
     raw = card["raw"]
     fs = positive(raw.get("fs"))
@@ -221,9 +384,10 @@ def make_preset(card: dict) -> dict | None:
         brand, model = split_title(title)
     size_in, kind = parse_size_type(card.get("size_type", ""))
     url = f"{BASE_URL}/{brand}/{model}".replace(" ", "%20")
+    price, currency = card_price(card)
     name = f"LSDB: {title}"
 
-    return {
+    preset = {
         "name": name,
         "brand": brand,
         "model": model,
@@ -246,7 +410,12 @@ def make_preset(card: dict) -> dict | None:
             "bl_tm": round(bl, 6),
         },
         "raw": raw,
+        "website_fields": card_website_fields(card, size_in, kind, url),
     }
+    if price is not None:
+        preset["price"] = round(price, 2)
+        preset["currency"] = currency
+    return preset
 
 
 def card_from_preset(item: dict) -> dict:
@@ -254,6 +423,7 @@ def card_from_preset(item: dict) -> dict:
     size = item.get("size_in")
     kind = str(item.get("kind") or "").strip()
     size_type = f"{size}″ {kind}".strip() if size is not None else kind
+    website_fields = dict(item.get("website_fields") or {})
     return {
         "id": str(item.get("lsdb_id") or ""),
         "raw": dict(item.get("raw") or {}),
@@ -261,6 +431,10 @@ def card_from_preset(item: dict) -> dict:
         "brand": str(item.get("brand") or ""),
         "model": str(item.get("model") or ""),
         "size_type": size_type,
+        "text": str(website_fields.get("text") or ""),
+        "html_attrs": dict(website_fields.get("html_attrs") or {}),
+        "links": list(website_fields.get("links") or []),
+        "images": list(website_fields.get("images") or []),
     }
 
 
@@ -507,7 +681,17 @@ def main() -> int:
         help="Stop cleanly after this many seconds. Use 0 for no runtime budget.",
     )
     parser.add_argument("--max-cards", default=None, type=int)
+    parser.add_argument(
+        "--rebuild-from-checkpoint",
+        action="store_true",
+        help="Regenerate the output JSON from the local checkpoint without network requests.",
+    )
     args = parser.parse_args()
+
+    if args.rebuild_from_checkpoint:
+        cards, completed_brands = load_checkpoint(args.checkpoint, args.output)
+        write_dataset(cards, args.output, complete=bool(completed_brands))
+        return 0
 
     try:
         cards, _completed_brands, complete = download_cards(

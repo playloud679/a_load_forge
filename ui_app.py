@@ -1,8 +1,8 @@
 """
 Load Forge — acoustic-load simulator.
 
-Single-page Streamlit dashboard: T/S parameters and DCCAV box controls in the
-sidebar, response plots and derived data in the main workspace.
+Single-page Streamlit dashboard for DCCAV, bass-reflex, acoustic-suspension and
+infinite-baffle loads, with response plots and derived data in the workspace.
 """
 
 from __future__ import annotations
@@ -62,7 +62,9 @@ st.markdown(
 )
 
 
-_PARAM_PREFIXES = ("driver_", "box_", "reflex_", "loss_", "sim_")
+_PARAM_PREFIXES = (
+    "driver_", "box_", "reflex_", "sealed_", "loss_", "sim_", "opt_", "load_type"
+)
 _RESPONSE_TRACE_OPTIONS = ("Total", "Cone", "Lower port")
 _PORT_TRACE_OPTIONS = ("Upper port", "Lower port")
 _DEFAULT_REFLEX_Q_ABS = 15.0
@@ -119,13 +121,17 @@ def _apply_loaded_params(data: dict) -> int:
     applied = 0
     for key, value in data.items():
         if any(key.startswith(prefix) for prefix in _PARAM_PREFIXES):
+            if key == "load_type" and value == "Suspension pneumatic":
+                value = "Acoustic suspension"
             st.session_state[key] = value
             applied += 1
     return applied
 
 
 def _chart_signature() -> str:
-    prefixes = ("driver_", "box_", "reflex_", "loss_", "sim_", "plot_", "cursor_", "load_type")
+    prefixes = (
+        "driver_", "box_", "reflex_", "sealed_", "loss_", "sim_", "plot_", "cursor_", "load_type"
+    )
     data = {}
     for key, value in st.session_state.items():
         if not any(key.startswith(prefix) for prefix in prefixes):
@@ -188,6 +194,14 @@ def _reflex_box_from_state() -> _dccav.ReflexBox:
     )
 
 
+def _sealed_box_from_state() -> _dccav.SealedBox:
+    return _dccav.SealedBox(
+        vb_l=float(st.session_state["sealed_vb_l"]),
+        q_abs=float(st.session_state["sealed_q_abs"]),
+        q_leak=float(st.session_state["sealed_q_leak"]),
+    )
+
+
 def _optional_positive(key: str) -> float | None:
     value = float(st.session_state.get(key, 0.0) or 0.0)
     return value if value > 0 else None
@@ -207,6 +221,146 @@ def _apply_alignment(alignment: _dccav.DccavAlignment):
 def _apply_reflex_alignment(alignment: _dccav.ReflexAlignment):
     st.session_state["reflex_vb_l"] = float(alignment.vb_l)
     st.session_state["reflex_fb_hz"] = float(alignment.fb_hz)
+
+
+def _apply_sealed_alignment(alignment: _dccav.SealedAlignment):
+    st.session_state["sealed_vb_l"] = float(alignment.vb_l)
+
+
+_OPT_OBJECTIVE_LABELS = {
+    "Max extension": "extension",
+    "Balanced": "balanced",
+    "Flattest": "flat",
+}
+
+
+def _optimizer_goals_from_state() -> _dccav.OptimizationGoals:
+    return _dccav.OptimizationGoals(
+        objective=_OPT_OBJECTIVE_LABELS[st.session_state.get("opt_objective", "Balanced")],
+        max_total_volume_l=float(st.session_state.get("opt_max_volume_l", 0.0)) or None,
+        target_f3_hz=float(st.session_state.get("opt_target_f3_hz", 0.0)) or None,
+        max_ripple_db=float(st.session_state.get("opt_max_ripple_db", 3.0)),
+        max_excursion_ratio=float(st.session_state.get("opt_excursion_ratio", 1.0)),
+        max_group_delay_ms=float(st.session_state.get("opt_max_gd_ms", 0.0)) or None,
+    )
+
+
+def _alignment_uses_optimizer() -> bool:
+    return (
+        st.session_state.get("load_type", "DCCAV") != "Infinite baffle"
+        and st.session_state.get("opt_align_mode", "Empirical (article)") == "Optimized (goals)"
+    )
+
+
+def _apply_optimized_box(box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.SealedBox):
+    if isinstance(box, _dccav.ReflexBox):
+        st.session_state["reflex_vb_l"] = float(box.vb_l)
+        st.session_state["reflex_fb_hz"] = float(box.fb_hz)
+    elif isinstance(box, _dccav.SealedBox):
+        st.session_state["sealed_vb_l"] = float(box.vb_l)
+    else:
+        st.session_state["box_vh_l"] = float(box.vh_l)
+        st.session_state["box_fh_hz"] = float(box.fh_hz)
+        st.session_state["box_vl_l"] = float(box.vl_l)
+        st.session_state["box_fl_hz"] = float(box.fl_hz)
+
+
+def _optimized_summary(optimized: _dccav.OptimizedAlignment) -> str:
+    parts = [
+        f"Optimized: F3 {optimized.f3_hz:.1f} Hz",
+        f"ripple {optimized.ripple_db:.1f} dB" if np.isfinite(optimized.ripple_db) else "ripple n/a",
+        f"Vtot {optimized.total_volume_l:.1f} L",
+    ]
+    if np.isfinite(optimized.excursion_ratio):
+        parts.append(f"exc {optimized.excursion_ratio:.2f}x Xmax")
+    if np.isfinite(optimized.group_delay_ms):
+        parts.append(f"GD {optimized.group_delay_ms:.1f} ms")
+    return " · ".join(parts)
+
+
+def _optimizer_box_signature(
+    box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.SealedBox,
+) -> tuple:
+    if isinstance(box, _dccav.ReflexBox):
+        return ("reflex", box.vb_l, box.fb_hz, box.q_abs, box.q_leak, box.q_port)
+    if isinstance(box, _dccav.SealedBox):
+        return ("sealed", box.vb_l, box.q_abs, box.q_leak)
+    return (
+        "dccav", box.vh_l, box.fh_hz, box.vl_l, box.fl_hz,
+        box.q_abs_h, box.q_abs_l, box.q_leak_h, box.q_leak_l,
+        box.q_port_h, box.q_port_l,
+    )
+
+
+def _optimizer_result_context(
+    driver: _dccav.DriverTS,
+    load_type: str,
+    box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.SealedBox,
+) -> tuple:
+    goals = _optimizer_goals_from_state()
+    return (
+        load_type,
+        driver,
+        goals,
+        round(float(st.session_state.get("sim_voltage", 2.83)), 9),
+        _optimizer_box_signature(box),
+    )
+
+
+def _current_optimizer_summary(driver: _dccav.DriverTS) -> str | None:
+    load_type = st.session_state.get("load_type", "DCCAV")
+    if load_type == "Bass reflex":
+        box = _reflex_box_from_state()
+    elif load_type == "Acoustic suspension":
+        box = _sealed_box_from_state()
+    elif load_type == "DCCAV":
+        box = _box_from_state()
+    else:
+        return None
+    context = _optimizer_result_context(driver, load_type, box)
+    if st.session_state.get("_opt_last_context") != context:
+        return None
+    return st.session_state.get("opt_last_summary")
+
+
+def _run_box_optimizer(driver: _dccav.DriverTS) -> _dccav.OptimizedAlignment:
+    load_type = st.session_state.get("load_type", "DCCAV")
+    if load_type == "Bass reflex":
+        template = _reflex_box_from_state()
+    elif load_type == "Acoustic suspension":
+        template = _sealed_box_from_state()
+    elif load_type == "Infinite baffle":
+        raise ValueError("Infinite baffle has no box to optimize")
+    else:
+        template = _box_from_state()
+    optimized = _dccav.optimize_alignment(
+        driver,
+        _optimizer_goals_from_state(),
+        load_type=load_type,
+        box_template=template,
+        voltage_v=float(st.session_state.get("sim_voltage", 2.83)),
+    )
+    st.session_state["opt_last_summary"] = _optimized_summary(optimized)
+    st.session_state["_opt_last_context"] = _optimizer_result_context(
+        driver, load_type, optimized.box,
+    )
+    return optimized
+
+
+def _apply_suggested_box_for(driver: _dccav.DriverTS):
+    """Apply the alignment the current mode suggests (empirical or optimized)."""
+    if _alignment_uses_optimizer():
+        _apply_optimized_box(_run_box_optimizer(driver).box)
+        return
+    load_type = st.session_state.get("load_type", "DCCAV")
+    if load_type == "Bass reflex":
+        _apply_reflex_alignment(_dccav.suggest_reflex_alignment(driver))
+    elif load_type == "Acoustic suspension":
+        _apply_sealed_alignment(_dccav.suggest_sealed_alignment(driver))
+    elif load_type == "Infinite baffle":
+        return
+    else:
+        _apply_alignment(_dccav.suggest_alignment(driver))
 
 
 def _reset_reflex_losses():
@@ -273,6 +427,55 @@ def _driver_preset_source(name: str) -> str:
         return "Built-in"
 
 
+def _driver_preset_price(name: str) -> float | None:
+    try:
+        return _dccav.driver_preset_info(name).price
+    except ValueError:
+        return None
+
+
+def _driver_preset_currency(name: str) -> str:
+    try:
+        return _dccav.driver_preset_info(name).currency
+    except ValueError:
+        return ""
+
+
+def _preset_price_currencies(names: list[str]) -> list[str]:
+    return sorted(
+        {
+            _driver_preset_currency(name)
+            for name in names
+            if _driver_preset_price(name) is not None and _driver_preset_currency(name)
+        }
+    )
+
+
+def _preset_price_values(names: list[str], currency: str | None = None) -> list[float]:
+    values = []
+    for name in names:
+        price = _driver_preset_price(name)
+        if (
+            price is not None
+            and np.isfinite(float(price))
+            and (currency is None or _driver_preset_currency(name) == currency)
+        ):
+            values.append(float(price))
+    return values
+
+
+def _purchase_markdown(info: _dccav.DriverPresetInfo) -> str | None:
+    """Return a markdown purchase link for a preset, or None without a URL."""
+    if not info.url:
+        return None
+    host = info.url.split("//", 1)[-1].split("/", 1)[0].removeprefix("www.")
+    if info.price is not None and np.isfinite(float(info.price)):
+        label = f"Buy · {float(info.price):.2f} {info.currency}".rstrip() + f" · {host}"
+    else:
+        label = f"Buy · {host}"
+    return f"[{label}]({info.url})"
+
+
 def _size_bucket(size_in: float) -> str:
     if size_in <= 2.0:
         return "Mini <= 2 in"
@@ -335,6 +538,8 @@ def _filter_driver_preset_names(
     family: str,
     size: str,
     search: str,
+    max_price: float | None = None,
+    max_price_currency: str | None = None,
     selected: str | None = None,
 ) -> list[str]:
     query = search.strip().casefold()
@@ -347,6 +552,17 @@ def _filter_driver_preset_names(
         if size != "All" and _driver_preset_size(name) != size:
             continue
         if query and query not in name.casefold():
+            continue
+        price = _driver_preset_price(name)
+        if (
+            max_price is not None
+            and max_price_currency
+            and _driver_preset_currency(name) != max_price_currency
+        ):
+            continue
+        if max_price is not None and price is not None and float(price) > float(max_price):
+            continue
+        if max_price is not None and price is None:
             continue
         filtered.append(name)
     if selected and selected != "Custom" and selected in names and selected not in filtered:
@@ -376,19 +592,33 @@ def _auto_align_current_driver():
         return
     try:
         driver = _driver_from_state()
-        if st.session_state.get("load_type", "DCCAV") == "Bass reflex":
-            _apply_reflex_alignment(_dccav.suggest_reflex_alignment(driver))
-        else:
-            _apply_alignment(_dccav.suggest_alignment(driver))
+        _apply_suggested_box_for(driver)
         _mark_auto_alignment_synced(driver)
     except Exception:
         pass
+
+
+def _optimizer_goals_signature() -> tuple:
+    if not _alignment_uses_optimizer():
+        return ()
+    goals = _optimizer_goals_from_state()
+    return (
+        "optimized",
+        goals.objective,
+        goals.max_total_volume_l,
+        goals.target_f3_hz,
+        goals.max_ripple_db,
+        goals.max_excursion_ratio,
+        goals.max_group_delay_ms,
+        round(float(st.session_state.get("sim_voltage", 2.83)), 3),
+    )
 
 
 def _auto_alignment_signature(driver: _dccav.DriverTS | None = None) -> tuple:
     driver = driver or _driver_from_state()
     return (
         st.session_state.get("load_type", "DCCAV"),
+        *_optimizer_goals_signature(),
         round(float(driver.fs_hz), 6),
         round(float(driver.vas_l), 6),
         round(float(driver.qts), 6),
@@ -419,10 +649,7 @@ def _sync_auto_alignment_if_needed():
         signature = _auto_alignment_signature(driver)
         if st.session_state.get("_auto_align_signature") == signature:
             return
-        if st.session_state.get("load_type", "DCCAV") == "Bass reflex":
-            _apply_reflex_alignment(_dccav.suggest_reflex_alignment(driver))
-        else:
-            _apply_alignment(_dccav.suggest_alignment(driver))
+        _apply_suggested_box_for(driver)
         st.session_state["_auto_align_signature"] = signature
     except Exception:
         pass
@@ -436,10 +663,7 @@ def _on_driver_preset_change():
         driver = _dccav.get_driver_preset(preset_name)
         _apply_driver_preset(driver)
         if st.session_state.get("sim_auto_align", True):
-            if st.session_state.get("load_type", "DCCAV") == "Bass reflex":
-                _apply_reflex_alignment(_dccav.suggest_reflex_alignment(driver))
-            else:
-                _apply_alignment(_dccav.suggest_alignment(driver))
+            _apply_suggested_box_for(driver)
             _mark_auto_alignment_synced(driver)
     except Exception:
         logger.exception("Could not apply driver preset")
@@ -457,11 +681,16 @@ def _on_load_type_change():
 def _series_frame(result: _dccav.SimulationResult, series: dict[str, np.ndarray]) -> pd.DataFrame:
     rows = []
     for name, values in series.items():
-        rows.extend({
-            "frequency_hz": float(freq),
-            "series": name,
-            "value": float(value),
-        } for freq, value in zip(result.frequency_hz, values))
+        for freq, value in zip(result.frequency_hz, values):
+            freq_f = float(freq)
+            value_f = float(value)
+            if not np.isfinite(freq_f) or not np.isfinite(value_f):
+                continue
+            rows.append({
+                "frequency_hz": freq_f,
+                "series": name,
+                "value": value_f,
+            })
     return pd.DataFrame(rows)
 
 
@@ -484,7 +713,7 @@ def _line_chart(
         legend=None if not legend else alt.Legend(title=None),
         scale=color_scale,
     )
-    return alt.Chart(data).mark_line(point=False).encode(
+    return alt.Chart(data).mark_line(point=False, clip=True, strokeWidth=2.2).encode(
         x=alt.X(
             "frequency_hz:Q",
             title="Frequency (Hz)",
@@ -507,12 +736,13 @@ def _line_chart(
 
 def _response_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
     series = {}
+    load_type = st.session_state.get("load_type", "DCCAV")
     if st.session_state.get("plot_response_total", True):
         series["Total"] = result.spl_total_db
     if st.session_state.get("plot_response_driver", True):
         series["Cone"] = result.spl_driver_db
-    if st.session_state.get("plot_response_lower_port", True):
-        label = "Vent" if st.session_state.get("load_type") == "Bass reflex" else "Lower port"
+    if st.session_state.get("plot_response_lower_port", True) and load_type in {"DCCAV", "Bass reflex"}:
+        label = "Vent" if load_type == "Bass reflex" else "Lower port"
         series[label] = result.spl_port_db
     if st.session_state.get("plot_response_mol", False):
         series["MOL"] = result.mol_db
@@ -520,14 +750,15 @@ def _response_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
 
 
 def _response_y_domain(result: _dccav.SimulationResult, series: dict[str, np.ndarray]) -> list[float] | None:
-    arrays = [np.asarray(values, dtype=float) for values in series.values()]
-    finite_chunks = [values[np.isfinite(values)] for values in arrays if values.size]
-    finite = np.concatenate(finite_chunks) if finite_chunks else np.array([])
+    total = np.asarray(result.spl_total_db, dtype=float)
+    finite = total[np.isfinite(total)]
     if not finite.size:
         return None
     bottom = _interp(result.frequency_hz, result.spl_total_db, 10.0)
+    if not np.isfinite(bottom):
+        bottom = float(np.min(finite))
     top = float(np.max(finite)) + 5.0
-    if not np.isfinite(bottom) or not np.isfinite(top):
+    if not np.isfinite(top):
         return None
     if top <= bottom:
         top = bottom + 10.0
@@ -536,10 +767,13 @@ def _response_y_domain(result: _dccav.SimulationResult, series: dict[str, np.nda
 
 def _port_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
     series = {}
-    if st.session_state.get("plot_port_upper", True) and st.session_state.get("load_type") != "Bass reflex":
+    load_type = st.session_state.get("load_type", "DCCAV")
+    if load_type not in {"DCCAV", "Bass reflex"}:
+        return series
+    if st.session_state.get("plot_port_upper", True) and load_type == "DCCAV":
         series["Upper port"] = result.port_h_velocity
     if st.session_state.get("plot_port_lower", True):
-        label = "Vent" if st.session_state.get("load_type") == "Bass reflex" else "Lower port"
+        label = "Vent" if load_type == "Bass reflex" else "Lower port"
         series[label] = result.port_l_velocity
     return series
 
@@ -555,14 +789,29 @@ def _cursor_rows(result: _dccav.SimulationResult, thresholds: dict[int, float]) 
     if st.session_state.get("cursor_manual_enabled", False):
         rows.append(_cursor_row(result, "M1", float(st.session_state["cursor_manual_1_hz"]), "manual"))
         rows.append(_cursor_row(result, "M2", float(st.session_state["cursor_manual_2_hz"]), "manual"))
-    _place_cursor_labels(rows)
     return rows
 
 
-def _place_cursor_labels(rows: list[dict]) -> None:
-    lane_gap_px = 24
+def _cursor_label_rows(rows: list[dict], y_domain: list[float] | None) -> list[dict]:
+    if not rows:
+        return rows
+    if y_domain is None:
+        finite_spl = [
+            float(row["spl_total_db"])
+            for row in rows
+            if np.isfinite(float(row.get("spl_total_db", np.nan)))
+        ]
+        top = max(finite_spl) if finite_spl else 100.0
+        bottom = top - 20.0
+    else:
+        bottom, top = y_domain
+    span = max(float(top) - float(bottom), 1.0)
+    out = []
     for lane, row in enumerate(rows):
-        row["label_y_px"] = 24 + lane_gap_px * lane
+        label_row = dict(row)
+        label_row["label_y_db"] = top - span * (0.06 + lane * 0.055)
+        out.append(label_row)
+    return out
 
 
 def _cursor_row(result: _dccav.SimulationResult, label: str, frequency_hz: float, mode: str) -> dict:
@@ -583,10 +832,10 @@ def _interp(x: np.ndarray, y: np.ndarray, value: float) -> float:
     return float(np.interp(float(value), np.asarray(x, dtype=float), np.asarray(y, dtype=float)))
 
 
-def _cursor_layer(rows: list[dict]) -> alt.LayerChart | None:
+def _cursor_layer(rows: list[dict], y_domain: list[float] | None = None) -> alt.LayerChart | None:
     if not rows:
         return None
-    data = pd.DataFrame(rows)
+    data = pd.DataFrame(_cursor_label_rows(rows, y_domain))
     color = alt.Color(
         "label:N",
         title="Cursor",
@@ -613,13 +862,27 @@ def _cursor_layer(rows: list[dict]) -> alt.LayerChart | None:
         baseline="top",
         fontSize=19,
         fontWeight="bold",
+        stroke="#0b1018",
+        strokeWidth=3,
+        strokeOpacity=0.85,
     ).encode(
         x=alt.value(22),
-        y=alt.Y("label_y_px:Q", axis=None, scale=None),
+        y=alt.Y("label_y_db:Q", axis=None),
         text="display_label:N",
         color=color,
     )
-    return rules + labels
+    labels_fill = alt.Chart(data).mark_text(
+        align="left",
+        baseline="top",
+        fontSize=19,
+        fontWeight="bold",
+    ).encode(
+        x=alt.value(22),
+        y=alt.Y("label_y_db:Q", axis=None),
+        text="display_label:N",
+        color=color,
+    )
+    return rules + labels + labels_fill
 
 
 def _click_marker_layer(result: _dccav.SimulationResult) -> alt.LayerChart:
@@ -627,6 +890,7 @@ def _click_marker_layer(result: _dccav.SimulationResult) -> alt.LayerChart:
         "frequency_hz": result.frequency_hz.astype(float),
         "spl_total_db": result.spl_total_db.astype(float),
     })
+    marker_data = marker_data[np.isfinite(marker_data["frequency_hz"]) & np.isfinite(marker_data["spl_total_db"])]
     marker_data["display_label"] = marker_data.apply(
         lambda row: f"Click {row['frequency_hz']:.1f} Hz {row['spl_total_db']:.1f} dB",
         axis=1,
@@ -651,6 +915,7 @@ def _click_marker_layer(result: _dccav.SimulationResult) -> alt.LayerChart:
         color="#06d6a0",
         stroke="#0b1018",
         strokeWidth=1.5,
+        clip=True,
     ).transform_filter(click_marker)
     label = base.mark_text(
         align="left",
@@ -671,14 +936,15 @@ def _plot_response(result: _dccav.SimulationResult, cursor_rows: list[dict]) -> 
     if not series:
         raise ValueError("No response traces selected")
     data = _series_frame(result, series)
+    y_domain = _response_y_domain(result, series)
     chart = _line_chart(
         data,
         "LF pressure estimate (dB)",
-        height=700,
-        y_domain=_response_y_domain(result, series),
+        height=760,
+        y_domain=y_domain,
     )
     chart = chart + _click_marker_layer(result)
-    cursors = _cursor_layer(cursor_rows)
+    cursors = _cursor_layer(cursor_rows, y_domain)
     if cursors is None:
         return chart
     return (chart + cursors).resolve_scale(color="independent", strokeDash="independent")
@@ -712,6 +978,182 @@ def _plot_ports(result: _dccav.SimulationResult) -> alt.Chart:
         raise ValueError("No port traces selected")
     data = _series_frame(result, series)
     return _line_chart(data, "Volume velocity (m3/s)", height=320)
+
+
+def _rank_value(value: float) -> float:
+    return float(value) if np.isfinite(float(value)) else float("inf")
+
+
+def _batch_dccav_box(ts: _dccav.DriverTS, total_volume_l: float) -> _dccav.DccavBox:
+    alignment = _dccav.suggest_alignment(ts)
+    suggested_total = max(float(alignment.vh_l + alignment.vl_l), 1e-9)
+    vh_ratio = float(np.clip(alignment.vh_l / suggested_total, 0.05, 0.95))
+    vh_l = max(float(total_volume_l) * vh_ratio, 0.05)
+    vl_l = max(float(total_volume_l) - vh_l, 0.05)
+    if vh_l + vl_l > float(total_volume_l) and float(total_volume_l) >= 0.1:
+        scale = float(total_volume_l) / (vh_l + vl_l)
+        vh_l *= scale
+        vl_l *= scale
+    return _dccav.DccavBox(vh_l=vh_l, fh_hz=alignment.fh_hz, vl_l=vl_l, fl_hz=alignment.fl_hz)
+
+
+@st.cache_data(show_spinner=False)
+def _batch_rank_presets(
+    preset_names: tuple[str, ...],
+    load_type: str,
+    target_volume_l: float,
+    voltage_v: float,
+    f_min_hz: float,
+    f_max_hz: float,
+    points: int,
+    candidate_limit: int,
+    goals: _dccav.OptimizationGoals | None = None,
+) -> list[dict]:
+    if load_type == "Suspension pneumatic":
+        load_type = "Acoustic suspension"
+    freq = np.geomspace(float(f_min_hz), float(f_max_hz), int(points))
+    batch_goals = None
+    if goals is not None and load_type != "Infinite baffle":
+        # Batch compares drivers at the exact requested enclosure volume.
+        batch_goals = _dccav.OptimizationGoals(
+            objective=goals.objective,
+            max_total_volume_l=float(target_volume_l),
+            target_f3_hz=goals.target_f3_hz,
+            max_ripple_db=goals.max_ripple_db,
+            max_excursion_ratio=goals.max_excursion_ratio,
+            max_group_delay_ms=goals.max_group_delay_ms,
+        )
+    rows: list[dict] = []
+    for name in preset_names[:int(candidate_limit)]:
+        try:
+            ts = _dccav.get_driver_preset(name)
+            info = _dccav.driver_preset_info(name)
+            ripple_db = np.nan
+            if batch_goals is not None:
+                optimized = _dccav.optimize_alignment(
+                    ts,
+                    batch_goals,
+                    load_type=load_type,
+                    voltage_v=float(voltage_v),
+                    max_evaluations=140,
+                    fixed_total_volume_l=float(target_volume_l),
+                )
+                box = optimized.box
+                ripple_db = float(optimized.ripple_db)
+            elif load_type == "Bass reflex":
+                alignment = _dccav.suggest_reflex_alignment(ts)
+                box = _dccav.ReflexBox(vb_l=float(target_volume_l), fb_hz=alignment.fb_hz)
+            elif load_type == "Acoustic suspension":
+                box = _dccav.SealedBox(vb_l=float(target_volume_l))
+            elif load_type == "Infinite baffle":
+                box = None
+            else:
+                box = _batch_dccav_box(ts, float(target_volume_l))
+            if load_type == "Bass reflex":
+                result = _dccav.simulate_reflex(ts, box, freq, float(voltage_v))
+                box_values = {
+                    "Vb L": box.vb_l,
+                    "Fb Hz": box.fb_hz,
+                    "Vh L": np.nan,
+                    "fh Hz": np.nan,
+                    "Vl L": np.nan,
+                    "fl Hz": np.nan,
+                    "Fc Hz": np.nan,
+                    "Qtc": np.nan,
+                }
+            elif load_type == "Acoustic suspension":
+                result = _dccav.simulate_sealed(ts, box, freq, float(voltage_v))
+                fc_hz, qtc = _dccav.sealed_system_metrics(ts, box)
+                box_values = {
+                    "Vb L": box.vb_l,
+                    "Fb Hz": np.nan,
+                    "Vh L": np.nan,
+                    "fh Hz": np.nan,
+                    "Vl L": np.nan,
+                    "fl Hz": np.nan,
+                    "Fc Hz": fc_hz,
+                    "Qtc": qtc,
+                }
+            elif load_type == "Infinite baffle":
+                result = _dccav.simulate_infinite_baffle(ts, freq, float(voltage_v))
+                box_values = {
+                    "Vb L": np.nan,
+                    "Fb Hz": np.nan,
+                    "Vh L": np.nan,
+                    "fh Hz": np.nan,
+                    "Vl L": np.nan,
+                    "fl Hz": np.nan,
+                    "Fc Hz": ts.fs_hz,
+                    "Qtc": ts.qts,
+                }
+            else:
+                result = _dccav.simulate(ts, box, freq, float(voltage_v))
+                box_values = {
+                    "Vb L": np.nan,
+                    "Fb Hz": np.nan,
+                    "Vh L": box.vh_l,
+                    "fh Hz": box.fh_hz,
+                    "Vl L": box.vl_l,
+                    "fl Hz": box.fl_hz,
+                    "Fc Hz": np.nan,
+                    "Qtc": np.nan,
+                }
+            thresholds = _dccav.response_threshold_frequencies(result)
+            rows.append({
+                "Driver": name,
+                "Source": info.source,
+                "Brand": info.brand or "Other",
+                "Size in": info.size_in if info.size_in is not None else np.nan,
+                "Price": info.price if info.price is not None else np.nan,
+                "Currency": info.currency,
+                "Buy": info.url or "",
+                "F3 Hz": thresholds[3],
+                "F6 Hz": thresholds[6],
+                "F10 Hz": thresholds[10],
+                "Peak dB": float(np.nanmax(result.spl_total_db)),
+                "Ripple dB": ripple_db,
+                "Max excursion mm": float(np.nanmax(result.excursion_mm)),
+                "Min ohm": float(np.nanmin(result.impedance_ohm)),
+                **box_values,
+            })
+        except Exception:
+            continue
+    rows.sort(key=lambda row: (
+        _rank_value(row["F3 Hz"]),
+        _rank_value(row["F6 Hz"]),
+        _rank_value(row["F10 Hz"]),
+        -float(row["Peak dB"]) if np.isfinite(float(row["Peak dB"])) else 0.0,
+    ))
+    return rows
+
+
+def _apply_batch_result(row: dict, load_type: str) -> None:
+    if load_type == "Suspension pneumatic":
+        load_type = "Acoustic suspension"
+    name = str(row["Driver"])
+    driver = _dccav.get_driver_preset(name)
+    st.session_state["load_type"] = load_type
+    st.session_state["driver_preset_name"] = name
+    _apply_driver_preset(driver)
+    st.session_state["sim_auto_align"] = False
+    if load_type == "Bass reflex":
+        st.session_state["reflex_vb_l"] = float(row["Vb L"])
+        st.session_state["reflex_fb_hz"] = float(row["Fb Hz"])
+    elif load_type == "Acoustic suspension":
+        st.session_state["sealed_vb_l"] = float(row["Vb L"])
+    elif load_type == "DCCAV":
+        st.session_state["box_vh_l"] = float(row["Vh L"])
+        st.session_state["box_fh_hz"] = float(row["fh Hz"])
+        st.session_state["box_vl_l"] = float(row["Vl L"])
+        st.session_state["box_fl_hz"] = float(row["fl Hz"])
+    _mark_auto_alignment_synced(driver)
+
+
+def _apply_pending_batch_result() -> None:
+    pending = st.session_state.pop("batch_pending_result", None)
+    if not pending:
+        return
+    _apply_batch_result(pending["row"], str(pending["load_type"]))
 
 
 def _csv_bytes(result: _dccav.SimulationResult) -> bytes:
@@ -763,6 +1205,9 @@ _default("preset_family_filter", "All")
 _default("preset_source_filter", "All")
 _default("preset_size_filter", "All")
 _default("preset_search", "")
+_default("preset_price_enabled", False)
+_default("preset_max_price", 0.0)
+_default("preset_price_currency", "")
 _default("loss_q_abs_h", 15.0)
 _default("loss_q_abs_l", 15.0)
 _default("loss_q_leak_h", 1000.0)
@@ -773,7 +1218,11 @@ _default("reflex_q_abs", _DEFAULT_REFLEX_Q_ABS)
 _default("reflex_q_leak", _DEFAULT_REFLEX_Q_LEAK)
 _default("reflex_q_port", _DEFAULT_REFLEX_Q_PORT)
 _default("reflex_custom_losses", False)
+_default("sealed_q_abs", 15.0)
+_default("sealed_q_leak", 1000.0)
 _default("load_type", "DCCAV")
+if st.session_state["load_type"] == "Suspension pneumatic":
+    st.session_state["load_type"] = "Acoustic suspension"
 _default("sim_f_min", 10.0)
 _default("sim_f_max", 500.0)
 _default("sim_points", 600)
@@ -801,24 +1250,43 @@ _default("cursor_auto_f10", True)
 _default("cursor_manual_enabled", False)
 _default("cursor_manual_1_hz", 50.0)
 _default("cursor_manual_2_hz", 100.0)
+_default("batch_volume_l", 50.0)
+_default("batch_candidate_limit", 800)
+_default("batch_result_count", 25)
+_default("batch_points", 260)
+_default("batch_use_optimizer", True)
+_default("opt_align_mode", "Empirical (article)")
+_default("opt_objective", "Balanced")
+_default("opt_max_volume_l", 0.0)
+_default("opt_target_f3_hz", 0.0)
+_default("opt_max_ripple_db", 3.0)
+_default("opt_excursion_ratio", 1.0)
+_default("opt_max_gd_ms", 0.0)
+_apply_pending_batch_result()
 
 try:
     _seed_alignment = _dccav.suggest_alignment(_driver_from_state())
     _seed_reflex = _dccav.suggest_reflex_alignment(_driver_from_state())
+    _seed_sealed = _dccav.suggest_sealed_alignment(_driver_from_state())
 except Exception:
     _seed_alignment = _dccav.DccavAlignment(3.1, 162.0, 6.25, 62.0, 51.5)
     _seed_reflex = _dccav.ReflexAlignment(11.52, 48.14)
+    _seed_sealed = _dccav.SealedAlignment(11.52, 68.1, 0.512)
 _default("box_vh_l", float(_seed_alignment.vh_l))
 _default("box_fh_hz", float(_seed_alignment.fh_hz))
 _default("box_vl_l", float(_seed_alignment.vl_l))
 _default("box_fl_hz", float(_seed_alignment.fl_hz))
 _default("reflex_vb_l", float(_seed_reflex.vb_l))
 _default("reflex_fb_hz", float(_seed_reflex.fb_hz))
+_default("sealed_vb_l", float(_seed_sealed.vb_l))
 _sync_auto_alignment_if_needed()
 
 
 st.title("Load Forge")
-st.caption(f"v{_VERSION} · DCCAV / bass-reflex acoustic-load simulator · T/S driven response model")
+st.caption(
+    f"v{_VERSION} · DCCAV / bass reflex / acoustic suspension / infinite baffle · "
+    "T/S driven response model"
+)
 
 save_col, load_col = st.columns([1, 1])
 with save_col:
@@ -848,7 +1316,7 @@ with st.sidebar:
     st.subheader("Driver T/S")
     st.radio(
         "Load type",
-        ["DCCAV", "Bass reflex"],
+        ["DCCAV", "Bass reflex", "Acoustic suspension", "Infinite baffle"],
         horizontal=True,
         key="load_type",
         on_change=_on_load_type_change,
@@ -866,12 +1334,49 @@ with st.sidebar:
     with f2:
         st.selectbox("Size", _PRESET_SIZE_FILTERS, key="preset_size_filter")
     st.text_input("Search preset", key="preset_search")
+    preset_currencies = _preset_price_currencies(all_preset_names)
+    if preset_currencies:
+        if st.session_state["preset_price_currency"] not in preset_currencies:
+            st.session_state["preset_price_currency"] = preset_currencies[0]
+        st.selectbox("Price currency", preset_currencies, key="preset_price_currency")
+        price_currency = str(st.session_state["preset_price_currency"])
+        preset_prices = _preset_price_values(all_preset_names, price_currency)
+        price_max_available = max(preset_prices)
+        if st.session_state["preset_max_price"] <= 0.0:
+            st.session_state["preset_max_price"] = float(price_max_available)
+        st.session_state["preset_max_price"] = min(
+            float(price_max_available),
+            max(0.0, float(st.session_state["preset_max_price"])),
+        )
+        st.checkbox("Filter by max price", key="preset_price_enabled")
+        st.number_input(
+            f"Max price ({price_currency})",
+            min_value=0.0,
+            max_value=float(price_max_available),
+            step=1.0,
+            key="preset_max_price",
+            disabled=not st.session_state["preset_price_enabled"],
+        )
+    else:
+        st.session_state["preset_price_enabled"] = False
+        st.checkbox("Filter by max price", key="preset_price_enabled", disabled=True)
+        st.caption("Price unavailable in the current preset dataset.")
     filtered_preset_names = _filter_driver_preset_names(
         all_preset_names,
         source=st.session_state["preset_source_filter"],
         family=st.session_state["preset_family_filter"],
         size=st.session_state["preset_size_filter"],
         search=st.session_state["preset_search"],
+        max_price=(
+            float(st.session_state["preset_max_price"])
+            if st.session_state.get("preset_price_enabled", False)
+            else None
+        ),
+        max_price_currency=(
+            str(st.session_state["preset_price_currency"])
+            if st.session_state.get("preset_price_enabled", False)
+            else None
+        ),
         selected=st.session_state.get("driver_preset_name"),
     )
     current_preset = st.session_state.get("driver_preset_name", "Custom")
@@ -888,8 +1393,21 @@ with st.sidebar:
         on_change=_on_driver_preset_change,
     )
     st.checkbox("Auto-align box from T/S", key="sim_auto_align")
+    st.radio(
+        "Alignment mode",
+        ["Empirical (article)", "Optimized (goals)"],
+        horizontal=True,
+        key="opt_align_mode",
+        disabled=st.session_state["load_type"] == "Infinite baffle",
+    )
     if preset_name != "Custom":
         st.caption("Preset values are applied immediately.")
+        try:
+            purchase = _purchase_markdown(_dccav.driver_preset_info(preset_name))
+        except ValueError:
+            purchase = None
+        if purchase:
+            st.markdown(purchase)
 
     c1, c2 = st.columns(2)
     with c1:
@@ -939,16 +1457,40 @@ with st.sidebar:
         current_ts = _driver_from_state()
         current_alignment = _dccav.suggest_alignment(current_ts)
         current_reflex_alignment = _dccav.suggest_reflex_alignment(current_ts)
+        current_sealed_alignment = _dccav.suggest_sealed_alignment(current_ts)
         derived = _dccav.complete_driver(current_ts)
-        if st.session_state["load_type"] == "Bass reflex":
+        load_type = st.session_state["load_type"]
+        if load_type == "Bass reflex":
             st.subheader("Bass Reflex Alignment")
             st.caption(
-                f"Suggested: Vb {current_reflex_alignment.vb_l:.2f} L / "
+                f"Starting point (Vb=Vas, Fb=Fs): Vb {current_reflex_alignment.vb_l:.2f} L / "
                 f"Fb {current_reflex_alignment.fb_hz:.1f} Hz"
             )
-            if st.button("Apply suggested reflex", use_container_width=True):
-                _apply_reflex_alignment(current_reflex_alignment)
+            apply_label = (
+                "Apply optimized box" if _alignment_uses_optimizer() else "Apply suggested reflex"
+            )
+            if st.button(apply_label, use_container_width=True, key="apply_box_reflex"):
+                _apply_suggested_box_for(current_ts)
+                _mark_auto_alignment_synced(current_ts)
                 st.rerun()
+        elif load_type == "Acoustic suspension":
+            st.subheader("Acoustic Suspension Alignment")
+            st.caption(
+                f"Qtc starter: Vb {current_sealed_alignment.vb_l:.2f} L · "
+                f"Fc {current_sealed_alignment.fc_hz:.1f} Hz · "
+                f"Qtc {current_sealed_alignment.qtc:.3f}"
+            )
+            apply_label = "Apply optimized box" if _alignment_uses_optimizer() else "Apply sealed starter"
+            if st.button(apply_label, use_container_width=True, key="apply_box_sealed"):
+                _apply_suggested_box_for(current_ts)
+                _mark_auto_alignment_synced(current_ts)
+                st.rerun()
+        elif load_type == "Infinite baffle":
+            st.subheader("Infinite Baffle")
+            st.caption(
+                f"No enclosure or tuning: free-air Fs {current_ts.fs_hz:.1f} Hz · "
+                f"Qts {current_ts.qts:.3f}. Rear radiation is assumed fully isolated."
+            )
         else:
             st.subheader("DCCAV Alignment")
             st.caption(
@@ -959,13 +1501,43 @@ with st.sidebar:
             alignment_warning = _alignment_warning(current_ts, current_alignment)
             if alignment_warning:
                 st.warning(alignment_warning)
-            if st.button("Apply suggested alignment", use_container_width=True):
-                _apply_alignment(current_alignment)
+            apply_label = (
+                "Apply optimized box" if _alignment_uses_optimizer() else "Apply suggested alignment"
+            )
+            if st.button(apply_label, use_container_width=True, key="apply_box_dccav"):
+                _apply_suggested_box_for(current_ts)
+                _mark_auto_alignment_synced(current_ts)
                 st.rerun()
+        if load_type != "Infinite baffle":
+            with st.expander("Optimizer goals", expanded=_alignment_uses_optimizer()):
+                st.selectbox("Goal", list(_OPT_OBJECTIVE_LABELS), key="opt_objective")
+                g1, g2 = st.columns(2)
+                with g1:
+                    st.number_input("Max total volume (L, 0 = off)", min_value=0.0, max_value=2000.0,
+                                    step=1.0, key="opt_max_volume_l")
+                    st.number_input("Max ripple (dB)", min_value=0.0, max_value=12.0,
+                                    step=0.5, key="opt_max_ripple_db")
+                    st.number_input("Excursion limit (x Xmax, 0 = off)", min_value=0.0, max_value=3.0,
+                                    step=0.05, key="opt_excursion_ratio")
+                with g2:
+                    st.number_input("Target F3 (Hz, 0 = lowest)", min_value=0.0, max_value=500.0,
+                                    step=1.0, key="opt_target_f3_hz")
+                    st.number_input("Max group delay (ms, 0 = off)", min_value=0.0, max_value=100.0,
+                                    step=1.0, key="opt_max_gd_ms")
+                if st.button("Optimize box now", use_container_width=True):
+                    with st.spinner("Optimizing box..."):
+                        optimized = _run_box_optimizer(current_ts)
+                    _apply_optimized_box(optimized.box)
+                    _mark_auto_alignment_synced(current_ts)
+                    st.rerun()
+                current_optimizer_summary = _current_optimizer_summary(current_ts)
+                if current_optimizer_summary:
+                    st.caption(current_optimizer_summary)
     except Exception as exc:
         current_ts = None
         current_alignment = None
         current_reflex_alignment = None
+        current_sealed_alignment = None
         derived = None
         st.error(str(exc))
 
@@ -995,6 +1567,21 @@ with st.sidebar:
             st.number_input(
                 "Qport", min_value=0.2, max_value=500.0, step=0.5,
                 key="reflex_q_port", disabled=disabled)
+    elif st.session_state["load_type"] == "Acoustic suspension":
+        _box_number_with_nudge(
+            "Vb sealed (L)", "sealed_vb_l", min_value=0.05, max_value=100000.0, step=0.01)
+        if current_ts is not None:
+            fc_hz, qtc = _dccav.sealed_system_metrics(current_ts, _sealed_box_from_state())
+            st.caption(f"Closed-box Fc {fc_hz:.1f} Hz · Qtc {qtc:.3f}")
+        with st.expander("Sealed loss factors"):
+            st.number_input(
+                "Qabs sealed", min_value=0.2, max_value=500.0, step=0.5,
+                key="sealed_q_abs")
+            st.number_input(
+                "Qleak sealed", min_value=1.0, max_value=10000.0, step=10.0,
+                key="sealed_q_leak")
+    elif st.session_state["load_type"] == "Infinite baffle":
+        st.caption("No box controls: the rear wave is assumed to be fully isolated by an infinite partition.")
     else:
         b1, b2 = st.columns(2)
         with b1:
@@ -1034,9 +1621,19 @@ try:
         raise ValueError("Driver parameters are incomplete")
     if st.session_state["sim_f_max"] <= st.session_state["sim_f_min"]:
         raise ValueError("F max must be greater than F min")
-    is_reflex = st.session_state["load_type"] == "Bass reflex"
+    load_type = st.session_state["load_type"]
+    is_reflex = load_type == "Bass reflex"
+    is_sealed = load_type == "Acoustic suspension"
+    is_infinite_baffle = load_type == "Infinite baffle"
     chart_sig = _chart_signature()
-    box = _reflex_box_from_state() if is_reflex else _box_from_state()
+    if is_reflex:
+        box = _reflex_box_from_state()
+    elif is_sealed:
+        box = _sealed_box_from_state()
+    elif is_infinite_baffle:
+        box = None
+    else:
+        box = _box_from_state()
     freq = np.geomspace(
         float(st.session_state["sim_f_min"]),
         float(st.session_state["sim_f_max"]),
@@ -1044,12 +1641,16 @@ try:
     )
     if is_reflex:
         result = _dccav.simulate_reflex(current_ts, box, freq, float(st.session_state["sim_voltage"]))
+    elif is_sealed:
+        result = _dccav.simulate_sealed(current_ts, box, freq, float(st.session_state["sim_voltage"]))
+    elif is_infinite_baffle:
+        result = _dccav.simulate_infinite_baffle(current_ts, freq, float(st.session_state["sim_voltage"]))
     else:
         result = _dccav.simulate(current_ts, box, freq, float(st.session_state["sim_voltage"]))
     metrics = _dccav.response_metrics(result)
     thresholds = _dccav.response_threshold_frequencies(result)
     z_peak_freqs = _dccav.impedance_peak_frequencies(result)
-    model_warnings = [] if is_reflex else (
+    model_warnings = [] if load_type != "DCCAV" else (
         _dccav.alignment_diagnostics(current_ts, box)
         + _dccav.response_sanity_warnings(current_ts, box, thresholds)
     )
@@ -1076,42 +1677,60 @@ try:
     for warning in model_warnings:
         st.warning(warning)
 
-    if is_reflex and current_reflex_alignment is not None:
-        a1, a2, a3 = st.columns(3)
-        a1.metric("Suggested Vb", f"{current_reflex_alignment.vb_l:.2f} L")
-        a2.metric("Suggested Fb", f"{current_reflex_alignment.fb_hz:.1f} Hz")
+    if is_reflex:
+        a1, a2, a3, a4 = st.columns(4)
+        a1.metric("Vb (active)", f"{box.vb_l:.2f} L")
+        a2.metric("Fb (active)", f"{box.fb_hz:.1f} Hz")
         a3.metric("Eq sealed Fc", f"{_dccav.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
-    elif current_alignment is not None:
-        a1, a2, a3, a4, a5, a6 = st.columns(6)
-        a1.metric("Suggested Vh", f"{current_alignment.vh_l:.2f} L")
-        a2.metric("Suggested fh", f"{current_alignment.fh_hz:.1f} Hz")
-        a3.metric("Suggested Vl", f"{current_alignment.vl_l:.2f} L")
-        a4.metric("Suggested fl", f"{current_alignment.fl_hz:.1f} Hz")
-        a5.metric("Suggested Vtot", f"{current_alignment.vh_l + current_alignment.vl_l:.2f} L")
-        a6.metric("Article F3", f"{current_alignment.f3_hz:.1f} Hz")
+        if current_reflex_alignment is not None:
+            a4.metric("Starter Vb=Vas", f"{current_reflex_alignment.vb_l:.2f} L")
+    elif is_sealed:
+        fc_hz, qtc = _dccav.sealed_system_metrics(current_ts, box)
+        a1, a2, a3, a4 = st.columns(4)
+        a1.metric("Vb sealed (active)", f"{box.vb_l:.2f} L")
+        a2.metric("Fc (active)", f"{fc_hz:.1f} Hz")
+        a3.metric("Qtc (active)", f"{qtc:.3f}")
+        if current_sealed_alignment is not None:
+            a4.metric("Starter Vb", f"{current_sealed_alignment.vb_l:.2f} L")
+    elif is_infinite_baffle:
+        a1, a2, a3 = st.columns(3)
+        a1.metric("Infinite baffle Fs", f"{current_ts.fs_hz:.1f} Hz")
+        a2.metric("Infinite baffle Qts", f"{current_ts.qts:.3f}")
+        a3.metric("Rear radiation", "Isolated")
+    else:
+        a1, a2, a3, a4, a5, a6, a7 = st.columns(7)
+        a1.metric("Vh (active)", f"{box.vh_l:.2f} L")
+        a2.metric("fh (active)", f"{box.fh_hz:.1f} Hz")
+        a3.metric("Vl (active)", f"{box.vl_l:.2f} L")
+        a4.metric("fl (active)", f"{box.fl_hz:.1f} Hz")
+        a5.metric("Vtot (active)", f"{box.vh_l + box.vl_l:.2f} L")
+        a6.metric("Eq sealed Fc", f"{_dccav.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
+        if current_alignment is not None:
+            a7.metric("Article Vtot", f"{current_alignment.vh_l + current_alignment.vl_l:.2f} L")
 
     st.subheader("Plot Tools")
+    has_ports = load_type in {"DCCAV", "Bass reflex"}
     r1, r2, r3, r4, r5, r6, r7, r8, r9, r10 = st.columns(10)
     with r1:
         st.checkbox("Total", key="plot_response_total")
     with r2:
         st.checkbox("Cone", key="plot_response_driver")
     with r3:
-        st.checkbox("Lower port", key="plot_response_lower_port")
+        st.checkbox("Lower port", key="plot_response_lower_port", disabled=not has_ports)
     with r4:
         st.checkbox("MOL", key="plot_response_mol")
     with r5:
         st.checkbox("MIL", key="plot_show_mil")
     with r6:
-        st.checkbox("Upper port", key="plot_port_upper")
+        st.checkbox("Upper port", key="plot_port_upper", disabled=load_type != "DCCAV")
     with r7:
-        st.checkbox("Lower port V", key="plot_port_lower")
+        st.checkbox("Lower port V", key="plot_port_lower", disabled=not has_ports)
     with r8:
         st.checkbox("Exc.", key="plot_show_excursion")
     with r9:
         st.checkbox("Z", key="plot_show_impedance")
     with r10:
-        st.checkbox("Ports", key="plot_show_ports")
+        st.checkbox("Ports", key="plot_show_ports", disabled=not has_ports)
 
     c0, c1, c2, c3, c4, c5 = st.columns([1.1, 1, 1, 1, 1.2, 1.2])
     with c0:
@@ -1139,12 +1758,183 @@ try:
             key="cursor_manual_2_hz",
         )
 
+    with st.expander("Batch LF Finder"):
+        st.caption(
+            "Ranks the currently filtered presets in the selected load type. "
+            "Every candidate uses the exact requested volume: DCCAV splits it between Vh/Vl, "
+            "while bass reflex and acoustic suspension use it as Vb. Infinite baffle ignores volume."
+        )
+        max_batch_candidates = max(len(filtered_preset_names), 1)
+        if int(st.session_state["batch_candidate_limit"]) > max_batch_candidates:
+            st.session_state["batch_candidate_limit"] = max_batch_candidates
+        b0, b1, b2, b3 = st.columns([1, 1, 1, 1])
+        with b0:
+            st.number_input(
+                "Box volume (L)",
+                min_value=0.1,
+                max_value=2000.0,
+                step=1.0,
+                key="batch_volume_l",
+                disabled=is_infinite_baffle,
+            )
+        with b1:
+            st.number_input(
+                "Scan presets",
+                min_value=1,
+                max_value=max_batch_candidates,
+                step=50,
+                key="batch_candidate_limit",
+            )
+        with b2:
+            st.number_input(
+                "Results",
+                min_value=1,
+                max_value=200,
+                step=5,
+                key="batch_result_count",
+            )
+        with b3:
+            st.number_input(
+                "Batch points",
+                min_value=80,
+                max_value=1000,
+                step=20,
+                key="batch_points",
+            )
+        scan_count = min(int(st.session_state["batch_candidate_limit"]), len(filtered_preset_names))
+        st.checkbox(
+            "Optimize each driver box (Optimizer goals, fixed batch volume)",
+            key="batch_use_optimizer",
+            disabled=is_infinite_baffle,
+        )
+        if st.button("Find lowest drivers", use_container_width=True, disabled=not filtered_preset_names):
+            batch_goals = (
+                _optimizer_goals_from_state()
+                if st.session_state.get("batch_use_optimizer", True) and not is_infinite_baffle
+                else None
+            )
+            spinner_text = (
+                f"Optimizing {scan_count} presets" if batch_goals is not None
+                else f"Scanning {scan_count} presets"
+            )
+            with st.spinner(spinner_text):
+                batch_rows = _batch_rank_presets(
+                    tuple(filtered_preset_names),
+                    st.session_state["load_type"],
+                    float(st.session_state["batch_volume_l"]),
+                    float(st.session_state["sim_voltage"]),
+                    float(st.session_state["sim_f_min"]),
+                    float(st.session_state["sim_f_max"]),
+                    int(st.session_state["batch_points"]),
+                    scan_count,
+                    goals=batch_goals,
+                )
+            st.session_state["batch_results"] = batch_rows
+            st.session_state["batch_result_context"] = (
+                st.session_state["load_type"],
+                float(st.session_state["batch_volume_l"]),
+                scan_count,
+            )
+        batch_rows = st.session_state.get("batch_results", [])
+        if batch_rows:
+            context = st.session_state.get("batch_result_context", ("", 0.0, 0))
+            result_load_type = str(context[0] or st.session_state["load_type"])
+            st.caption(f"{len(batch_rows)} usable candidates from {context[2]} scanned presets")
+            batch_df = pd.DataFrame(batch_rows).head(int(st.session_state["batch_result_count"]))
+            if "Price" not in batch_df.columns:
+                batch_df["Price"] = np.nan
+            if "Currency" not in batch_df.columns:
+                batch_df["Currency"] = ""
+            if "Buy" not in batch_df.columns:
+                batch_df["Buy"] = ""
+            if "Ripple dB" not in batch_df.columns:
+                batch_df["Ripple dB"] = np.nan
+            columns = [
+                "Driver", "Brand", "Size in", "F3 Hz", "F6 Hz", "F10 Hz",
+                "Peak dB", "Max excursion mm", "Min ohm",
+            ]
+            if batch_df["Ripple dB"].notna().any():
+                columns.insert(columns.index("Peak dB") + 1, "Ripple dB")
+            if batch_df["Price"].notna().any():
+                columns.insert(3, "Price")
+                columns.insert(4, "Currency")
+            if result_load_type == "Bass reflex":
+                columns += ["Vb L", "Fb Hz"]
+            elif result_load_type == "Acoustic suspension":
+                columns += ["Vb L", "Fc Hz", "Qtc"]
+            elif result_load_type == "Infinite baffle":
+                columns += ["Fc Hz", "Qtc"]
+            else:
+                columns += ["Vh L", "fh Hz", "Vl L", "fl Hz"]
+            if batch_df["Buy"].fillna("").astype(bool).any():
+                columns.append("Buy")
+            table_state = st.dataframe(
+                batch_df[columns],
+                width="stretch",
+                hide_index=True,
+                key="batch_results_table",
+                on_select="rerun",
+                selection_mode="single-row",
+                column_config={
+                    "F3 Hz": st.column_config.NumberColumn(format="%.1f"),
+                    "F6 Hz": st.column_config.NumberColumn(format="%.1f"),
+                    "F10 Hz": st.column_config.NumberColumn(format="%.1f"),
+                    "Peak dB": st.column_config.NumberColumn(format="%.1f"),
+                    "Ripple dB": st.column_config.NumberColumn(format="%.1f"),
+                    "Price": st.column_config.NumberColumn(format="%.2f"),
+                    "Max excursion mm": st.column_config.NumberColumn(format="%.2f"),
+                    "Min ohm": st.column_config.NumberColumn(format="%.2f"),
+                    "Size in": st.column_config.NumberColumn(format="%.1f"),
+                    "Vb L": st.column_config.NumberColumn(format="%.2f"),
+                    "Fb Hz": st.column_config.NumberColumn(format="%.1f"),
+                    "Fc Hz": st.column_config.NumberColumn(format="%.1f"),
+                    "Qtc": st.column_config.NumberColumn(format="%.3f"),
+                    "Vh L": st.column_config.NumberColumn(format="%.2f"),
+                    "fh Hz": st.column_config.NumberColumn(format="%.1f"),
+                    "Vl L": st.column_config.NumberColumn(format="%.2f"),
+                    "fl Hz": st.column_config.NumberColumn(format="%.1f"),
+                    "Buy": st.column_config.LinkColumn(display_text="Buy"),
+                },
+            )
+            selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
+            if selected_rows:
+                selected_index = int(selected_rows[0])
+                if 0 <= selected_index < len(batch_df):
+                    selected_row = batch_df.iloc[selected_index].to_dict()
+                    selection_key = (
+                        result_load_type,
+                        str(selected_row["Driver"]),
+                        float(context[1] or st.session_state["batch_volume_l"]),
+                        selected_index,
+                    )
+                    if st.session_state.get("batch_applied_selection") != selection_key:
+                        st.session_state["batch_applied_selection"] = selection_key
+                        st.session_state["batch_pending_result"] = {
+                            "row": selected_row,
+                            "load_type": result_load_type,
+                        }
+                        st.rerun()
+        elif filtered_preset_names:
+            st.caption(f"Ready to scan {scan_count} of {len(filtered_preset_names)} filtered presets.")
+        else:
+            st.caption("No presets match the current filters.")
+
     st.subheader("LF Load Response")
     if is_reflex:
         st.caption(
             "Bass-reflex total response is the vector sum of the exposed cone "
             "front radiation and the vent. The model is low-frequency only; "
             "it does not include baffle step, breakup, room gain or crossover behaviour."
+        )
+    elif is_sealed:
+        st.caption(
+            "Acoustic-suspension response is the exposed cone front with the rear wave enclosed. "
+            "The model includes closed-box compliance and losses, but not room gain or baffle step."
+        )
+    elif is_infinite_baffle:
+        st.caption(
+            "Infinite-baffle response is the exposed cone front with perfect rear-wave isolation. "
+            "Finite-panel diffraction, rear leakage, room gain and baffle step are not included."
         )
     else:
         st.caption(
@@ -1195,7 +1985,7 @@ try:
                 st.subheader("Electrical Impedance")
                 st.altair_chart(_plot_impedance(result), width="stretch", key=f"impedance_chart_{chart_sig}")
 
-    if st.session_state.get("plot_show_ports", True):
+    if st.session_state.get("plot_show_ports", True) and has_ports:
         st.subheader("Port Volume Velocity")
         if _port_series(result):
             st.altair_chart(_plot_ports(result), width="stretch", key=f"ports_chart_{chart_sig}")

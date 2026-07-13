@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.2.0 (2026-07-13)
+
+- **New acoustic loads**: added acoustic suspension (sealed box) and ideal
+  infinite baffle alongside DCCAV and conventional bass reflex, with matching
+  alignment metrics, plots, exports, Batch LF Finder routing and preset
+  persistence.
+- **Goal-driven optimizer**: added extension/balanced/flat objectives, target
+  F3, ripple, excursion, group-delay and volume constraints for DCCAV, reflex
+  and sealed boxes, backed by a faster vectorized DCCAV solver.
+- **Exact Batch volume**: optimized Batch LF Finder results now use the exact
+  requested enclosure volume; DCCAV keeps `Vh+Vl` fixed and reflex/sealed keep
+  `Vb` fixed while their remaining alignment parameters are optimized.
+- **Optimizer UI consistency**: apply buttons respect optimized alignment mode,
+  active-box metrics report the simulated enclosure, and stale optimizer
+  summaries are hidden when the driver, load, goals, voltage or box changes.
+- **Driver catalog and pricing**: expanded Loudspeaker Database records, added
+  runtime price metadata, currency-aware filtering, purchase links and Batch
+  price columns.
+- **Price enrichment tools**: added validated enrichment for SoundImports, Blue
+  Aran, Madisound and Parts Express, including sitemap/category crawling,
+  provider-specific extraction, accessory rejection and safe model matching.
+- **Chart robustness**: filter non-finite points, keep SPL zoom anchored to the
+  total response and protect plot scaling from cursor labels and port spikes.
+- **Terminology and compatibility**: use the standard English term `Acoustic
+  suspension` while migrating presets saved with the former label.
+- **Documentation**: synchronized README, user guide, module contracts, agent
+  guidance and changelog with the four supported acoustic loads and workflows.
+- **Verification**: `.venv/bin/python tests/test_all.py` passes with 42 passed,
+  0 failed and 0 skipped tests.
+
 ## 0.1.0 (2026-07-07)
 
 - **Load Forge DCCAV**: transformed the app into a Streamlit simulator for
