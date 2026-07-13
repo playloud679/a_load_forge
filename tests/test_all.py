@@ -20,7 +20,6 @@ if str(ROOT) not in sys.path:
 
 from src import dccav as _dccav
 
-
 PASS = 0
 FAIL = 0
 SKIP = 0
@@ -388,10 +387,65 @@ def _check_group_delay_is_finite_and_exported():
 test("DCCAV group delay is finite and exported to CSV", _check_group_delay_is_finite_and_exported)
 
 
+def _parse_export_rows(text: str) -> np.ndarray:
+    rows = [line.split("\t") for line in text.splitlines() if not line.startswith("*")]
+    return np.array([[float(value) for value in row] for row in rows])
+
+
+def _check_frd_zma_exports():
+    import dataclasses
+
+    ts = _kef_b110_ts()
+    a = _dccav.suggest_alignment(ts)
+    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    freq = np.geomspace(10.0, 500.0, 240)
+    result = _dccav.simulate(ts, box, freq, 2.83)
+
+    frd_text = _dccav.export_frd_text(result)
+    assert frd_text.splitlines()[0].startswith("*"), "FRD must open with comment lines"
+    frd = _parse_export_rows(frd_text)
+    assert frd.shape == (len(freq), 3), frd.shape
+    np.testing.assert_allclose(frd[:, 0], freq, atol=5e-4)
+    np.testing.assert_allclose(frd[:, 1], result.spl_total_db, atol=5e-4)
+    assert np.all(np.abs(frd[:, 2]) <= 180.0 + 1e-9), "FRD phase must be wrapped to ±180"
+    assert np.ptp(frd[:, 2]) > 90.0, "response phase must actually rotate over the sweep"
+
+    zma = _parse_export_rows(_dccav.export_zma_text(result))
+    assert zma.shape == (len(freq), 3), zma.shape
+    np.testing.assert_allclose(zma[:, 0], freq, atol=5e-4)
+    np.testing.assert_allclose(zma[:, 1], result.impedance_ohm, atol=5e-4)
+    assert np.all(np.abs(zma[:, 2]) <= 90.0 + 1e-9), "passive impedance phase stays within ±90"
+    assert np.ptp(zma[:, 2]) > 30.0, "impedance phase must swing across the resonances"
+
+    reflex = _dccav.simulate_reflex(ts, _dccav.ReflexBox(vb_l=ts.vas_l, fb_hz=ts.fs_hz), freq)
+    sealed = _dccav.simulate_sealed(ts, _dccav.SealedBox(vb_l=ts.vas_l), freq)
+    baffle = _dccav.simulate_infinite_baffle(ts, freq)
+    for run in (reflex, sealed, baffle):
+        assert run.impedance_phase_deg is not None
+        assert np.all(np.isfinite(run.impedance_phase_deg))
+
+    legacy = dataclasses.replace(result, impedance_phase_deg=None)
+    legacy_zma = _parse_export_rows(_dccav.export_zma_text(legacy))
+    assert np.all(legacy_zma[:, 2] == 0.0), "legacy results must degrade to zero phase"
+
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Design a box"
+    at.run()
+    assert not at.exception, at.exception
+    labels = {button.label for button in at.get("download_button")}
+    assert {"Download FRD (response)", "Download ZMA (impedance)"} <= labels, labels
+
+
+test("DCCAV FRD/ZMA exports match the simulated arrays", _check_frd_zma_exports)
+
+
 def _check_ui_group_delay_chart_renders():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Design a box"
     at.run()
     assert not at.exception, at.exception
     assert any(sub.value == "Group Delay" for sub in at.subheader), (
@@ -451,6 +505,7 @@ def _check_ui_port_geometry_warns_on_small_vent():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     state = at.session_state
+    state["workspace_mode"] = "Design a box"
     state["load_type"] = "Bass reflex"
     state["sim_auto_align"] = False
     state["reflex_vb_l"] = 76.0
@@ -492,6 +547,7 @@ def _check_ui_reference_metrics_row():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Design a box"
     at.run()
     assert not at.exception, at.exception
     labels = {metric.label for metric in at.metric}
@@ -553,6 +609,7 @@ def _check_ui_series_resistance_input():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Design a box"
     at.run()
     assert not at.exception, at.exception
     metrics = {metric.label: metric.value for metric in at.metric}
@@ -573,6 +630,8 @@ def _check_ui_pin_response_overlay():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Design a box"
+    at.session_state["load_type"] = "DCCAV"
     at.run()
     assert not at.exception, at.exception
 
@@ -585,7 +644,7 @@ def _check_ui_pin_response_overlay():
     assert len(pinned["frequency_hz"]) == len(pinned["spl_total_db"]) > 0
     assert any("Pinned (dashed grey)" in caption.value for caption in at.caption)
 
-    at.session_state["load_type"] = "Acoustic suspension"
+    at.session_state["load_type"] = "Sealed"
     at.run()
     assert not at.exception, "pinned overlay must survive a load-type change"
     assert at.session_state["pinned_response"]["label"].startswith("DCCAV")
@@ -608,7 +667,7 @@ def _check_ui_load_comparison_overlay():
     freq = np.geomspace(10.0, 500.0, 300)
     vtot, series = _ui._topology_comparison_series(ts, "DCCAV", box, freq, 2.83, 0.0)
     assert abs(vtot - (a.vh_l + a.vl_l)) < 1e-9, vtot
-    assert set(series) == {"DCCAV", "Bass reflex", "Acoustic suspension", "Infinite baffle"}
+    assert set(series) == {"DCCAV", "Bass reflex", "Sealed", "Infinite baffle"}
     for name, values in series.items():
         assert values.shape == freq.shape, name
         assert np.all(np.isfinite(values)), f"{name} comparison response must be finite"
@@ -622,6 +681,7 @@ def _check_ui_load_comparison_overlay():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Design a box"
     at.session_state["plot_compare_loads"] = True
     at.run()
     assert not at.exception, at.exception
@@ -635,8 +695,9 @@ test("UI load comparison simulates the four topologies at equal volume", _check_
 
 
 def _check_ui_share_link_roundtrip():
-    import ui_app as _ui
     from streamlit.testing.v1 import AppTest
+
+    import ui_app as _ui
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.run()
@@ -716,6 +777,7 @@ def _check_ui_class_filter():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Design a box"
     at.session_state["preset_class_filter"] = "Midbass-capable"
     at.run()
     assert not at.exception, at.exception
@@ -736,6 +798,7 @@ def _check_ui_reflex_volume_keeps_impedance_peaks():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     state = at.session_state
+    state["workspace_mode"] = "Design a box"
     state["load_type"] = "Bass reflex"
     state["driver_preset_name"] = "Beyma 12LX60V2"
     state["driver_fs_hz"] = 49.0
@@ -796,11 +859,16 @@ def _check_response_chart_domain_tracks_10hz_and_peak():
         driver_volume_velocity=np.ones(3, dtype=complex),
         port_volume_velocity=np.ones(3, dtype=complex),
     )
-    domain = _ui._response_y_domain(result, {"Total": result.spl_total_db, "Vent": result.spl_port_db})
+    domain = _ui._response_y_domain(result, {"Total": result.spl_total_db})
     assert domain == [40.0, 85.0], domain
 
+    # The floor stays anchored to the total at 10 Hz, but the ceiling must
+    # follow every displayed trace so none is clipped out of the chart.
+    domain = _ui._response_y_domain(result, {"Total": result.spl_total_db, "Vent": result.spl_port_db})
+    assert domain == [40.0, 185.0], domain
 
-test("UI response chart zoom uses total 10 Hz floor and peak headroom", _check_response_chart_domain_tracks_10hz_and_peak)
+
+test("UI response chart zoom anchors at 10 Hz and keeps displayed traces visible", _check_response_chart_domain_tracks_10hz_and_peak)
 
 
 def _check_response_chart_drops_non_finite_points_and_keeps_label_scale_clean():
@@ -1546,7 +1614,7 @@ def _check_ui_batch_finder_supports_reflex_volume():
     assert all(np.isfinite(row["Fb Hz"]) for row in rows), rows
     sealed_rows = _ui._batch_rank_presets(
         ("KEF B110B article example", "Beyma 12CMV2"),
-        "Acoustic suspension", 25.0, 2.83, 10.0, 300.0, 120, 2,
+        "Sealed", 25.0, 2.83, 10.0, 300.0, 120, 2,
     )
     assert sealed_rows
     assert all(abs(row["Vb L"] - 25.0) < 1e-9 for row in sealed_rows)
@@ -1590,7 +1658,7 @@ def _check_ui_batch_finder_optimizes_each_driver():
         assert abs(row["Vb L"] - 30.0) < 1e-9, row
 
     sealed_rows = _ui._batch_rank_presets(
-        names, "Acoustic suspension", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals
+        names, "Sealed", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals
     )
     assert sealed_rows
     for row in sealed_rows:
@@ -1602,6 +1670,7 @@ test("UI batch finder optimizes each driver with goals", _check_ui_batch_finder_
 
 def _check_ui_batch_result_applies_selected_driver_and_box():
     import streamlit as st
+
     import ui_app as _ui
 
     row = {
@@ -1615,6 +1684,8 @@ def _check_ui_batch_result_applies_selected_driver_and_box():
     assert st.session_state["load_type"] == "DCCAV"
     assert st.session_state["driver_preset_name"] == "KEF B110B article example"
     assert st.session_state["sim_auto_align"] is False
+    assert st.session_state["box_strategy"] == "Manual"
+    assert st.session_state["workspace_mode"] == "Design a box"
     assert st.session_state["box_vh_l"] == 7.0
     assert st.session_state["box_fh_hz"] == 100.0
     assert st.session_state["box_vl_l"] == 13.0
@@ -1633,18 +1704,19 @@ def _check_ui_batch_result_applies_selected_driver_and_box():
     assert st.session_state["reflex_fb_hz"] == 51.0
     assert abs(st.session_state["driver_fs_hz"] - 49.0) < 1e-9
     sealed_row = {"Driver": "KEF B110B article example", "Vb L": 16.0}
-    _ui._apply_batch_result(sealed_row, "Acoustic suspension")
-    assert st.session_state["load_type"] == "Acoustic suspension"
+    _ui._apply_batch_result(sealed_row, "Sealed")
+    assert st.session_state["load_type"] == "Sealed"
     assert st.session_state["sealed_vb_l"] == 16.0
     _ui._apply_batch_result({"Driver": "Beyma 12CMV2"}, "Infinite baffle")
     assert st.session_state["load_type"] == "Infinite baffle"
 
 
-test("UI batch result click applies selected driver and box", _check_ui_batch_result_applies_selected_driver_and_box)
+test("UI candidate apply opens a manual design", _check_ui_batch_result_applies_selected_driver_and_box)
 
 
 def _check_ui_batch_pending_result_applies_before_widgets():
     import streamlit as st
+
     import ui_app as _ui
 
     st.session_state["batch_pending_result"] = {
@@ -1726,7 +1798,7 @@ def _check_optimizer_supports_bass_reflex():
     sealed = _dccav.optimize_alignment(
         ts,
         _dccav.OptimizationGoals(objective="balanced", max_total_volume_l=50.0),
-        load_type="Acoustic suspension",
+        load_type="Sealed",
     )
     assert isinstance(sealed.box, _dccav.SealedBox)
     assert sealed.total_volume_l <= 50.0 + 1e-9, sealed.total_volume_l
@@ -1735,7 +1807,7 @@ def _check_optimizer_supports_bass_reflex():
     for load_type, volume_l in (
         ("DCCAV", 40.0),
         ("Bass reflex", 45.0),
-        ("Acoustic suspension", 50.0),
+        ("Sealed", 50.0),
     ):
         fixed = _dccav.optimize_alignment(
             ts,
@@ -1754,13 +1826,16 @@ def _check_ui_supports_sealed_and_infinite_baffle():
 
     import ui_app as _ui
     assert _ui._apply_loaded_params({"load_type": "Suspension pneumatic"}) == 1
-    assert _ui.st.session_state["load_type"] == "Acoustic suspension"
+    assert _ui.st.session_state["load_type"] == "Sealed"
+    assert _ui._apply_loaded_params({"load_type": "Acoustic suspension"}) == 1
+    assert _ui.st.session_state["load_type"] == "Sealed"
 
     for load_type, expected_metric in (
-        ("Acoustic suspension", "Vb sealed (active)"),
+        ("Sealed", "Vb sealed (active)"),
         ("Infinite baffle", "Infinite baffle Fs"),
     ):
         at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+        at.session_state["workspace_mode"] = "Design a box"
         at.session_state["load_type"] = load_type
         at.run()
         assert not at.exception, at.exception
@@ -1768,18 +1843,68 @@ def _check_ui_supports_sealed_and_infinite_baffle():
         assert expected_metric in metrics, (load_type, metrics)
         assert not any(control.label == "Box volume (L)" for control in at.number_input)
         if load_type == "Infinite baffle":
-            assert not any(button.label == "Optimize box now" for button in at.button)
-        else:
-            batch_button = next(button for button in at.button if button.label == "Find lowest drivers")
-            assert batch_button.disabled
-            at.session_state["opt_max_volume_l"] = 50.0
-            at.run()
-            assert not at.exception, at.exception
-            batch_button = next(button for button in at.button if button.label == "Find lowest drivers")
-            assert not batch_button.disabled
+            assert not any(button.label == "Run optimizer and apply" for button in at.button)
+
+        at.session_state["workspace_mode"] = "Find a driver"
+        at.run()
+        assert not at.exception, at.exception
+        assert not at.tabs, "driver ranking must be a separate workspace, not a design tab"
+        assert not any(box.label == "Driver preset" for box in at.selectbox)
+        rank_button = next(button for button in at.button if button.label == "Rank candidates")
+        assert not rank_button.disabled
+        if load_type == "Infinite baffle":
+            volume = next(n for n in at.number_input if n.label == "Comparison volume (L)")
+            assert volume.disabled
 
 
-test("UI supports sealed and infinite-baffle loads", _check_ui_supports_sealed_and_infinite_baffle)
+test("UI separates design and driver-finder workflows", _check_ui_supports_sealed_and_infinite_baffle)
+
+
+def _check_ui_finder_starts_from_practical_defaults():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.run()
+    assert not at.exception, at.exception
+
+    # Pre-workspace Batch widgets could leave their implicit minima in a live
+    # Streamlit session. The redesigned Finder uses independent widget keys.
+    for key, value in (
+        ("batch_volume_l", 0.1),
+        ("batch_voltage", 0.01),
+        ("batch_candidate_limit", 1),
+        ("batch_result_count", 1),
+        ("batch_points", 80),
+        ("batch_f_min", 1.0),
+        ("batch_f_max", 10.0),
+    ):
+        at.session_state[key] = value
+    at.session_state["workspace_mode"] = "Find a driver"
+    at.run()
+    assert not at.exception, at.exception
+
+    numbers = {control.label: control.value for control in at.number_input}
+    assert numbers["Comparison volume (L)"] == 40.0, numbers
+    assert numbers["Comparison voltage (V)"] == 2.83, numbers
+    assert numbers["Desired bass extension F3 (Hz, 0 = deepest)"] == 0.0, numbers
+    assert numbers["Allowed response ripple (dB)"] == 3.0, numbers
+    assert numbers["Maximum excursion (× driver Xmax)"] == 1.0, numbers
+    assert numbers["Maximum group delay (ms)"] == 30.0, numbers
+    assert numbers["Evaluation range start (Hz)"] == 10.0, numbers
+    assert numbers["Evaluation range end (Hz)"] == 300.0, numbers
+    assert numbers["Drivers to evaluate"] == 500, numbers
+    assert numbers["Top results to show"] == 20, numbers
+    assert numbers["Simulation resolution (points)"] == 240, numbers
+    goal = next(box for box in at.selectbox if box.label == "Ranking goal")
+    assert goal.value == "Balanced", goal.value
+    optimize = next(
+        box for box in at.checkbox
+        if box.label == "Optimize each candidate at the comparison volume"
+    )
+    assert optimize.value is False
+
+
+test("UI Finder starts from practical independent defaults", _check_ui_finder_starts_from_practical_defaults)
 
 
 def _check_ui_purchase_links():
@@ -1820,6 +1945,7 @@ test("UI shows purchase links for enriched presets", _check_ui_purchase_links)
 
 def _check_ui_optimized_alignment_mode():
     import streamlit as st
+
     import ui_app as _ui
 
     driver = _dccav.get_driver_preset("KEF B110B article example")
@@ -1869,17 +1995,18 @@ def _check_ui_apply_button_respects_optimizer_mode():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Design a box"
     at.run()
     assert not at.exception, at.exception
     at.session_state["sim_auto_align"] = False
     at.session_state["load_type"] = "Bass reflex"
+    at.session_state["box_strategy"] = "Optimized"
     at.session_state["opt_align_mode"] = "Optimized (goals)"
     at.session_state["opt_objective"] = "Max extension"
     at.run()
     assert not at.exception, at.exception
     vas_l = float(at.session_state["driver_vas_l"])
-    button = next(b for b in at.button if b.key == "apply_box_reflex")
-    assert button.label == "Apply optimized box", button.label
+    button = next(b for b in at.button if b.label == "Run optimizer and apply")
     button.click()
     at.run()
     assert not at.exception, at.exception
@@ -1887,13 +2014,13 @@ def _check_ui_apply_button_respects_optimizer_mode():
     assert vb_l > vas_l * 1.15, (vb_l, vas_l)
     metrics = {m.label: m.value for m in at.metric}
     assert metrics.get("Vb (active)") == f"{vb_l:.2f} L", metrics
-    at.session_state["load_type"] = "Acoustic suspension"
+    at.session_state["load_type"] = "Sealed"
+    at.session_state["box_strategy"] = "Optimized"
     at.session_state["opt_align_mode"] = "Optimized (goals)"
     at.session_state["opt_max_volume_l"] = 40.0
     at.run()
     assert not at.exception, at.exception
-    sealed_button = next(b for b in at.button if b.key == "apply_box_sealed")
-    assert sealed_button.label == "Apply optimized box", sealed_button.label
+    sealed_button = next(b for b in at.button if b.label == "Run optimizer and apply")
     sealed_button.click()
     at.run()
     assert not at.exception, at.exception
@@ -1903,7 +2030,134 @@ def _check_ui_apply_button_respects_optimizer_mode():
     assert metrics.get("Vb sealed (active)") == f"{sealed_vb_l:.2f} L", metrics
 
 
-test("UI apply button respects the optimizer mode", _check_ui_apply_button_respects_optimizer_mode)
+test("UI optimized strategy applies goal-driven boxes", _check_ui_apply_button_respects_optimizer_mode)
+
+
+def _check_ui_progressive_disclosure():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.run()
+    assert not at.exception, at.exception
+    # New sessions land on the Finder workspace with the sealed load.
+    assert at.session_state["workspace_mode"] == "Find a driver"
+    assert at.session_state["load_type"] == "Sealed"
+    assert not at.tabs, "the Finder landing must not show the design tabs"
+    assert any(b.label == "Rank candidates" for b in at.button)
+    assert at.session_state["driver_preset_name"] == "KEF B110B article example"
+
+    at.session_state["workspace_mode"] = "Design a box"
+    at.session_state["load_type"] = "DCCAV"
+    at.run()
+    assert not at.exception, at.exception
+    assert [tab.label for tab in at.tabs] == [
+        "Response", "Excursion", "Impedance", "Ports", "Group Delay",
+    ]
+    assert not any(n.label in {"M1 (Hz)", "M2 (Hz)"} for n in at.number_input)
+    assert not any(n.label == "Series R (Ω)" for n in at.number_input)
+    vh = next(n for n in at.number_input if n.label == "Vh upper (L)")
+    assert vh.disabled, "suggested strategy must protect automatically managed box values"
+
+    at.session_state["cursor_manual_enabled"] = True
+    at.session_state["ui_show_advanced"] = True
+    at.session_state["box_strategy"] = "Manual"
+    at.session_state["sim_auto_align"] = False
+    at.run()
+    assert not at.exception, at.exception
+    labels = {n.label for n in at.number_input}
+    assert {"M1 (Hz)", "M2 (Hz)", "Series R (Ω)"} <= labels
+    vh = next(n for n in at.number_input if n.label == "Vh upper (L)")
+    assert not vh.disabled, "manual strategy must expose editable box values"
+
+
+test("UI progressively reveals manual and advanced controls", _check_ui_progressive_disclosure)
+
+
+def _check_ui_nudge_buttons_clamp_to_widget_bounds():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Design a box"
+    at.session_state["load_type"] = "DCCAV"
+    at.run()
+    at.session_state["box_strategy"] = "Manual"
+    at.session_state["sim_auto_align"] = False
+    at.session_state["box_vh_l"] = 999.0
+    at.run()
+    assert not at.exception, at.exception
+    plus = next(b for b in at.sidebar.button if b.key == "box_vh_l_plus_3")
+    plus.click().run()
+    assert not at.exception, at.exception
+    assert float(at.session_state["box_vh_l"]) == 1000.0, (
+        "a nudge past the widget maximum must clamp there, not reset the input",
+        at.session_state["box_vh_l"],
+    )
+
+    at.session_state["box_vh_l"] = 0.05
+    at.run()
+    minus = next(b for b in at.sidebar.button if b.key == "box_vh_l_minus_3")
+    minus.click().run()
+    assert not at.exception, at.exception
+    assert float(at.session_state["box_vh_l"]) == 0.05, at.session_state["box_vh_l"]
+
+
+test("UI nudge buttons clamp to the widget bounds", _check_ui_nudge_buttons_clamp_to_widget_bounds)
+
+
+def _check_ui_response_window_includes_mol_trace():
+    import ui_app as _ui
+
+    ts = _kef_b110_ts()
+    a = _dccav.suggest_alignment(ts)
+    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    freq = np.geomspace(10.0, 500.0, 300)
+    result = _dccav.simulate(ts, box, freq, 2.83)
+    mol = np.asarray(result.mol_db, dtype=float)
+    mol_top = float(np.max(mol[np.isfinite(mol)]))
+
+    series = {"Total": result.spl_total_db, "MOL": result.mol_db}
+    domain = _ui._response_y_domain(result, series)
+    assert domain is not None
+    assert domain[1] >= mol_top, ("MOL must stay inside the y window", domain, mol_top)
+
+    total_only = _ui._response_y_domain(result, {"Total": result.spl_total_db})
+    assert total_only is not None
+    assert domain[1] > total_only[1], "MOL must widen the window beyond the total trace"
+
+
+test("UI response window widens to keep the MOL trace visible", _check_ui_response_window_includes_mol_trace)
+
+
+def _check_ui_finder_goal_inputs_follow_optimizer_toggle():
+    from streamlit.testing.v1 import AppTest
+
+    goal_labels = (
+        "Desired bass extension F3 (Hz, 0 = deepest)",
+        "Allowed response ripple (dB)",
+        "Maximum excursion (× driver Xmax)",
+        "Maximum group delay (ms)",
+    )
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Find a driver"
+    at.run()
+    assert not at.exception, at.exception
+    inputs = {n.label: n for n in at.number_input}
+    for label in goal_labels:
+        assert inputs[label].disabled, (
+            "goal constraints must read as inactive without the optimizer", label)
+    assert not inputs["Evaluation range start (Hz)"].disabled
+    assert not inputs["Evaluation range end (Hz)"].disabled
+
+    at.session_state["finder_use_optimizer"] = True
+    at.run()
+    assert not at.exception, at.exception
+    inputs = {n.label: n for n in at.number_input}
+    for label in goal_labels:
+        assert not inputs[label].disabled, (
+            "goal constraints must unlock with the optimizer", label)
+
+
+test("UI Finder goal constraints follow the optimizer toggle", _check_ui_finder_goal_inputs_follow_optimizer_toggle)
 
 
 def _check_simulation_rejects_bad_frequency_grid():

@@ -27,3 +27,8 @@ target-version = "py310"
 # Lenient on purpose: keep the simulator code honest without churning style.
 select = ["E", "F", "I", "UP", "B"]
 ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+# Both files must extend sys.path before importing the src modules.
+"ui_app.py" = ["E402"]
+"tests/test_all.py" = ["E402"]

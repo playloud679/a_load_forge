@@ -14,12 +14,11 @@ from __future__ import annotations
 
 import json
 import re
-from functools import lru_cache
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
-
 
 RHO_AIR = 1.18
 SPEED_OF_SOUND = 344.0
@@ -167,7 +166,7 @@ class OptimizationGoals:
 class OptimizedAlignment:
     """Optimizer result: the box plus the achieved response figures."""
 
-    box: "DccavBox | ReflexBox | SealedBox"
+    box: DccavBox | ReflexBox | SealedBox
     f3_hz: float
     f10_hz: float
     ripple_db: float
@@ -194,6 +193,9 @@ class SimulationResult:
     mol_db: np.ndarray
     driver_volume_velocity: np.ndarray
     port_volume_velocity: np.ndarray
+    # Electrical impedance phase in degrees; None on results built before the
+    # field existed (ZMA export then degrades to zero phase).
+    impedance_phase_deg: np.ndarray | None = None
 
 
 def sd_from_diameter(diameter_mm: float) -> float:
@@ -1095,6 +1097,52 @@ def group_delay_ms(result: SimulationResult) -> np.ndarray:
     return -np.gradient(phase, w) * 1000.0
 
 
+def response_phase_deg(result: SimulationResult) -> np.ndarray:
+    """Return the total acoustic-output phase in degrees, wrapped to ±180.
+
+    The far-field pressure is proportional to ``jw * (Ud + Up)``, so the
+    exported phase includes the +90 degree radiation term.
+    """
+    u_total = result.driver_volume_velocity + result.port_volume_velocity
+    w = 2.0 * np.pi * np.asarray(result.frequency_hz, dtype=float)
+    return np.degrees(np.angle(1j * w * u_total))
+
+
+def _export_rows_text(header: str, columns: tuple[np.ndarray, ...]) -> str:
+    lines = ["* Load Forge export", f"* {header}"]
+    for row in zip(*columns, strict=True):
+        values = [float(value) for value in row]
+        if all(np.isfinite(value) for value in values):
+            lines.append("\t".join(f"{value:.4f}" for value in values))
+    return "\n".join(lines) + "\n"
+
+
+def export_frd_text(result: SimulationResult) -> str:
+    """Format the total response as FRD text (freq, SPL dB, phase deg)."""
+    return _export_rows_text(
+        "freq(Hz)\tSPL(dB)\tphase(deg)",
+        (
+            np.asarray(result.frequency_hz, dtype=float),
+            np.asarray(result.spl_total_db, dtype=float),
+            response_phase_deg(result),
+        ),
+    )
+
+
+def export_zma_text(result: SimulationResult) -> str:
+    """Format the electrical impedance as ZMA text (freq, ohm, phase deg)."""
+    magnitude = np.asarray(result.impedance_ohm, dtype=float)
+    phase = (
+        np.zeros_like(magnitude)
+        if result.impedance_phase_deg is None
+        else np.asarray(result.impedance_phase_deg, dtype=float)
+    )
+    return _export_rows_text(
+        "freq(Hz)\timpedance(ohm)\tphase(deg)",
+        (np.asarray(result.frequency_hz, dtype=float), magnitude, phase),
+    )
+
+
 PORT_VELOCITY_GUIDELINE_MS = 0.05 * SPEED_OF_SOUND
 
 
@@ -1401,9 +1449,12 @@ def _score_alignment(metrics: dict[str, float], goals: OptimizationGoals, ts: Dr
     return float(score)
 
 
+_DEFAULT_GOALS = OptimizationGoals()
+
+
 def optimize_alignment(
     ts: DriverTS,
-    goals: OptimizationGoals = OptimizationGoals(),
+    goals: OptimizationGoals = _DEFAULT_GOALS,
     load_type: str = "DCCAV",
     box_template: DccavBox | ReflexBox | SealedBox | None = None,
     voltage_v: float = 2.83,
@@ -1419,18 +1470,18 @@ def optimize_alignment(
     """
     if goals.objective not in _OBJECTIVE_WEIGHTS:
         raise ValueError(f"Unknown optimizer objective: {goals.objective}")
-    if load_type == "Suspension pneumatic":
-        # Backward compatibility with .lfp/API values written using the brief,
-        # incorrect English label that preceded the standard term.
-        load_type = "Acoustic suspension"
+    if load_type in {"Suspension pneumatic", "Acoustic suspension"}:
+        # Backward compatibility with .lfp/API values written before the
+        # closed-box load was renamed to the plain "Sealed" label.
+        load_type = "Sealed"
     _require_positive("Voltage", voltage_v)
     freq = np.geomspace(min(10.0, ts.fs_hz / 4.0), max(400.0, 4.0 * ts.fs_hz), 160)
-    if load_type not in {"DCCAV", "Bass reflex", "Acoustic suspension"}:
+    if load_type not in {"DCCAV", "Bass reflex", "Sealed"}:
         if load_type == "Infinite baffle":
             raise ValueError("Infinite baffle has no box parameters to optimize")
         raise ValueError(f"Unknown load type: {load_type}")
     is_reflex = load_type == "Bass reflex"
-    is_sealed = load_type == "Acoustic suspension"
+    is_sealed = load_type == "Sealed"
     is_dccav = load_type == "DCCAV"
     cap = goals.max_total_volume_l
     minimum_volume_l = 0.10 if is_dccav else 0.05
@@ -1654,6 +1705,7 @@ def simulate(
         spl_port_db=spl_port,
         excursion_mm=excursion,
         impedance_ohm=np.abs(z_e),
+        impedance_phase_deg=np.degrees(np.angle(z_e)),
         port_h_velocity=np.abs(u_port_h),
         port_l_velocity=np.abs(u_port_l),
         mil_w=mil_w,
@@ -1716,6 +1768,7 @@ def simulate_reflex(
         spl_port_db=spl_port,
         excursion_mm=excursion,
         impedance_ohm=np.abs(z_e),
+        impedance_phase_deg=np.degrees(np.angle(z_e)),
         port_h_velocity=np.zeros_like(f),
         port_l_velocity=np.abs(u_port),
         mil_w=mil_w,
@@ -1755,6 +1808,7 @@ def _unported_result(
         spl_port_db=_spl_from_volume_velocity(zero_complex, f),
         excursion_mm=excursion,
         impedance_ohm=np.abs(z_e),
+        impedance_phase_deg=np.degrees(np.angle(z_e)),
         port_h_velocity=zero_real.copy(),
         port_l_velocity=zero_real.copy(),
         mil_w=mil_w,

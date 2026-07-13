@@ -4,6 +4,19 @@ Load Forge simulates acoustic loudspeaker loads from driver Thiele/Small
 parameters.  It supports DCCAV, conventional bass reflex, acoustic suspension
 (sealed box) and ideal infinite baffle.
 
+## Workspaces
+
+The switch below the header separates two different jobs:
+
+- **Design a box** starts from one driver, chooses an alignment strategy and
+  exposes the simulation results and plots.
+- **Find a driver** starts from enclosure and ranking constraints, evaluates
+  only the catalog candidates allowed by the sidebar filters, and preserves the
+  current design until a candidate is explicitly applied.
+
+The **Project** popover contains preset save/load and URL sharing so these
+occasional actions do not compete with the main workflow.
+
 ## Inputs
 
 ### Driver T/S
@@ -24,12 +37,14 @@ T/S set.
 
 `Qms` must be greater than `Qts`; otherwise `Qes` cannot be derived.
 
-The **Load type** selector switches between `DCCAV`, `Bass reflex`,
-`Acoustic suspension` and `Infinite baffle`.  The
-**Driver preset** selector loads built-in examples immediately.  When
-**Auto-align box from T/S** is enabled, changing a preset, load type or T/S
-value also updates the active box controls, so the plots follow the selected
-driver without an extra apply step.
+The **Load type** selector switches between `Infinite baffle`, `Sealed`,
+`Bass reflex` and `DCCAV`. Search, source, brand, size, class
+and price filters narrow the driver library in both workspaces.
+
+In **Design a box**, the **Driver preset** selector loads built-in examples
+immediately. **Driver T/S values** stays collapsed for catalog presets and
+opens automatically for `Custom`; expand it whenever the values need to be
+inspected or overridden.
 
 `Beyma 12CMV2` uses the manufacturer T/S values from the supplied datasheet
 screenshot, including `Sd=0.053 m2`; the nominal 300 mm diameter is not used as
@@ -38,6 +53,19 @@ piston area.
 The preset list also includes selected Beyma 12" low/mid and woofer models from
 Beyma's official XLS catalog.  Catalog units are converted internally to the
 simulator units.
+
+### Box Strategy
+
+Boxed loads use one three-state control:
+
+- **Suggested** follows the current driver and load automatically. Box volume
+  and tuning fields remain visible but locked.
+- **Optimized** exposes extension, ripple, excursion, group-delay and volume
+  goals. **Run optimizer and apply** updates the active box.
+- **Manual** unlocks direct volume and tuning edits, `-3%` / `+3%` nudges and a
+  reset action for the selected load.
+
+Infinite baffle has no enclosure, so the strategy control is disabled.
 
 ### DCCAV Alignment
 
@@ -51,9 +79,10 @@ fl = 0.466 * Fs / Qts
 f3 = 0.83 * fl
 ```
 
-Use **Apply suggested alignment** to copy those values into the editable box
-controls.  The editable `Vh`, `fh`, `Vl` and `fl` controls also include `-3%`
-and `+3%` buttons for quick tuning around the current design point.
+With **Suggested**, these values are applied and kept synchronized
+automatically. With **Manual**, **Reset to suggested alignment** restores them;
+the editable `Vh`, `fh`, `Vl` and `fl` controls also provide `-3%` and `+3%`
+nudges.
 
 ### Bass Reflex Alignment
 
@@ -64,9 +93,9 @@ Vb = Vas
 Fb = Fs
 ```
 
-Use **Apply suggested reflex** to copy those values into the editable `Vb` and
-`Fb` controls.  This is a plain starting point, not a named QB3/SBB4/EBS
-alignment.
+With **Suggested**, these values are applied automatically. With **Manual**,
+**Reset to suggested reflex** restores them. This is a plain starting point,
+not a named QB3/SBB4/EBS alignment.
 
 ### Acoustic Suspension Alignment
 
@@ -110,7 +139,7 @@ For `Bass reflex`, controls are:
 - `Fb tuning`: vent tuning
 - `Qabs`, `Qleak`, `Qport`: box, leakage and port losses
 
-For `Acoustic suspension`, controls are sealed `Vb`, `Qabs` and `Qleak`.
+For `Sealed`, controls are sealed `Vb`, `Qabs` and `Qleak`.
 `Infinite baffle` has no enclosure controls.
 
 Higher Q means lower loss for leakage/ports.  Very low Q values intentionally
@@ -118,11 +147,12 @@ damp the response.
 
 ### Simulation Controls
 
-The simulation section sets sweep range, point count and drive voltage.
-`Series R (ohm)` models amplifier output impedance, cable resistance and
-crossover-coil DCR in series with the driver.  Raising it reduces drive,
-reduces electrical damping, raises the effective system `Qes/Qts` and raises
-the impedance seen by the source.
+The **Drive** section keeps voltage visible because it directly affects output
+and excursion. **Advanced controls** reveals sweep limits, point count and
+`Series R (ohm)`. Series resistance models amplifier output impedance, cable
+resistance and crossover-coil DCR in series with the driver. Raising it reduces
+drive, reduces electrical damping, raises the effective system `Qes/Qts` and
+raises the impedance seen by the source.
 
 ### Port Geometry
 
@@ -138,36 +168,55 @@ peak air speed and warns when:
 - the requested volume/tuning pair is impossible for the selected diameter,
   quoting the zero-length tuning ceiling and the minimum feasible diameter
 
-### Batch LF Finder
+### Find a Driver
 
-Batch LF Finder reuses **Optimizer goals → Max total volume** as its exact
-comparison volume, including when **Optimize each driver box** is enabled.  A
-50 L optimizer value therefore returns `Vh+Vl=50 L` for every DCCAV candidate
-or `Vb=50 L` for every bass-reflex/acoustic-suspension candidate.  A positive
-value is required for boxed loads; infinite baffle ignores it.
+The **Find a driver** workspace has independent search constraints; it does not
+reuse or alter the active design controls:
 
-Each Batch row can also show:
+- **Comparison volume** is exact: `Vh+Vl` for DCCAV or `Vb` for reflex and
+  acoustic suspension. Infinite baffle ignores it.
+- **Ranking goal** and **Comparison voltage** define the main comparison.
+- **Optimize each candidate at the comparison volume** keeps the volume fixed
+  while tuning the remaining alignment parameters.
+- **Advanced ranking constraints** reveals desired bass extension F3, allowed
+  ripple, maximum excursion relative to each driver's Xmax, group delay and the
+  clearly labelled evaluation-frequency range.
+- **Drivers to evaluate**, **Top results to show** and **Simulation resolution**
+  control search cost and output size.
 
-- driver `Class`
-- response sparkline
-- price/currency when pricing data is available
+A new Finder starts with a practical quick-scan profile: 40 L, `Balanced`,
+2.83 V, F3 target 0 Hz (deepest available extension), 3 dB ripple, 1× Xmax,
+30 ms group delay, a 10-300 Hz evaluation range, 500 evaluated drivers, 20
+results and 240 simulation points.
+Per-candidate optimization is initially off because it is substantially
+slower; enable it after filters have produced a useful shortlist. **Reset
+defaults** restores this profile without changing the active design.
 
-**Download batch CSV** exports the visible table columns except the sparkline.
+**Rank candidates** evaluates only the presets currently admitted by the
+sidebar filters. Each result can include class, price, purchase link and a
+normalized response sparkline. Selecting a row opens a preview without
+changing the active design. **Apply candidate to design** is the only action
+that replaces it; the app then returns to **Design a box** in **Manual** mode so
+the ranked enclosure is preserved exactly.
+
+**Download candidate CSV** exports the visible table columns except the
+sparkline.
 
 ## Outputs
 
 ### Metrics
 
-The top metrics show:
+The always-visible decision summary contains four metrics:
 
+- estimated `F3`
 - peak low-frequency SPL estimate
-- estimated `F3`, `F6` and `F10`
 - maximum cone excursion
 - minimum electrical impedance
 
-Suggested alignment metrics are shown separately for comparison.
+**Design details** contains `F6`, `F10`, impedance peaks, active enclosure
+values and suggested-alignment context.
 
-A second metrics row shows driver reference values derived from the T/S set:
+**Driver details** contains reference values derived from the T/S set:
 
 - `Eta0 ref`
 - `SPL 1W/1m`
@@ -196,14 +245,15 @@ calibrated far-field or full-range front-driver radiation model.
 
 ### Response Tab Tools
 
-The main plots are organized into tabs: `Response`, `Excursion`, `Impedance`,
-`Ports`, `Group Delay` and `Batch LF Finder`.
+The **Design a box** plots are organized into five tabs: `Response`,
+`Excursion`, `Impedance`, `Ports` and `Group Delay`. Driver ranking lives in its
+own workspace instead of a sixth tab.
 
 Inside the `Response` tab:
 
 - response pens select visible traces
 - automatic cursors mark `F3`, `F6` and `F10`
-- manual cursors `M1` and `M2` can be placed anywhere in range
+- enabling the **Manual** cursor toggle reveals `M1` and `M2` positions
 - **Pin response** stores the current total-response curve for A/B overlay
 - **Compare loads** overlays DCCAV, bass reflex, acoustic suspension and
   infinite baffle at equal comparison volume
@@ -233,11 +283,12 @@ same `group_delay_ms` data is also exported in the response CSV.
 
 ## Presets and Export
 
-- **Save preset** downloads current parameters, including the selected load type,
-  as `.lfp` JSON.
-- **Load preset** reloads `.lfp` or JSON parameter files.
+- In the **Project** popover, **Save preset** downloads current parameters,
+  including load and box strategy, as `.lfp` JSON.
+- In the same popover, **Load preset** reloads `.lfp` or JSON parameter files.
 - **Share via URL** serializes the current design into the browser URL so the
-  same state can be reopened or sent to someone else.
+  same state can be reopened or sent to someone else; older presets using the
+  former auto-align fields remain compatible.
 - **Download response CSV** exports all simulated arrays.
 
 ## Validation Status

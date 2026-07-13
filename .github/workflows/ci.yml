@@ -1,0 +1,40 @@
+# Replicates the CLAUDE.md test contract: compile, lint, full suite, AppTest.
+name: CI
+
+on:
+  push:
+    branches: [master, experimental]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt ruff
+
+      - name: Compile
+        run: python -m py_compile ui_app.py src/dccav.py tests/test_all.py
+
+      - name: Lint
+        run: python -m ruff check src tests ui_app.py
+
+      - name: Test suite
+        run: python tests/test_all.py
+
+      - name: Streamlit AppTest smoke
+        run: >
+          python -c 'from streamlit.testing.v1 import AppTest;
+          at = AppTest.from_file("ui_app.py", default_timeout=60);
+          at.run();
+          assert not at.exception, at.exception;
+          print("AppTest OK")'

@@ -25,14 +25,21 @@ far-field measurement substitute.
 
 Current UI highlights:
 
-- response, excursion, impedance, ports, group-delay and batch tabs
+- separate `Design a box` and `Find a driver` workspaces
+- one `Suggested` / `Optimized` / `Manual` box strategy instead of overlapping
+  alignment modes
+- response, excursion, impedance, ports and group-delay design tabs
 - response pinning for A/B overlays
 - one-click comparison across DCCAV, bass reflex, acoustic suspension and
   infinite baffle at equal volume
-- URL-based design sharing
+- preset save/load and URL-based sharing grouped in the `Project` menu
 - port-geometry estimates and chuffing diagnostics
 - driver reference metrics, voice-coil corner and T/S-based bandwidth class
-- batch sparklines and CSV export
+- goal-first driver ranking with strict catalog filters, candidate preview,
+  explicit apply, practical quick-scan defaults, response sparklines and CSV
+  export
+- progressive disclosure for T/S data, sweep settings, cursor positions and
+  secondary result metrics
 
 Retail prices in `data/driver_prices.json` can be refreshed concurrently from
 SoundImports, Blue Aran, Madisound and Parts Express with

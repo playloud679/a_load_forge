@@ -328,15 +328,20 @@ Returns `(Fc, Qtc)` for a `SealedBox` using the classical `Vas/Vb` relations.
 
 ### `optimize_alignment(ts, goals, load_type="DCCAV", box_template=None, voltage_v=2.83, max_evaluations=260, fixed_total_volume_l=None) -> OptimizedAlignment`
 
-Goal-driven box optimizer used by the UI's `Optimized (goals)` alignment mode.
+Goal-driven box optimizer used by the UI's `Optimized` box strategy.
 It runs a bounded compass pattern search in log-space, starting from the
 empirical article alignment (DCCAV: `Vh`, `Vl`, `fl`, `fh/fl`), reflex starting
 point (`Vb`, `Fb`) or classical sealed alignment (`Vb`).  Loss factors are
 copied from `box_template` when one is provided, otherwise defaults are used.
+Accepted `load_type` values are `"DCCAV"`, `"Bass reflex"` and `"Sealed"`;
+the legacy labels `"Acoustic suspension"` and `"Suspension pneumatic"` are
+canonicalized to `"Sealed"` for backward compatibility with old `.lfp` files
+and callers.
 Infinite baffle is intentionally rejected because it has no box parameter.
-The optional `fixed_total_volume_l` argument constrains every candidate to the
-exact `Vh+Vl` (or `Vb`) that Batch LF Finder takes from the optimizer's
-`max_total_volume_l` control.
+The optional `fixed_total_volume_l` argument constrains every candidate to an
+exact `Vh+Vl` (or `Vb`). The `Find a driver` workspace supplies this from its
+independent `Comparison volume` control; it is not coupled to the active
+design optimizer goals.
 
 `OptimizationGoals` fields:
 
@@ -371,6 +376,25 @@ complex sum of `driver_volume_velocity` and `port_volume_velocity`.  The UI
 plots it in the Group Delay tab and exports it in the response CSV as the
 `group_delay_ms` column.
 
+### `response_phase_deg(result) -> np.ndarray`
+
+Total acoustic-output phase in degrees, wrapped to ±180.  The far-field
+pressure is proportional to `jw * (Ud + Up)`, so the phase includes the
++90 degree radiation term on top of the volume-velocity phase.
+
+### `export_frd_text(result) -> str` / `export_zma_text(result) -> str`
+
+Text exports in the de-facto standard formats read by VituixCAD, XSim and
+REW.  Both start with two `*` comment lines followed by tab-separated data
+rows (`%.4f`), skipping rows with non-finite values:
+
+- FRD: `frequency_hz`, `spl_total_db`, `response_phase_deg`
+- ZMA: `frequency_hz`, `impedance_ohm`, `impedance_phase_deg` (zero phase
+  when the result predates the `impedance_phase_deg` field)
+
+The UI offers both next to the response CSV as `Download FRD (response)` and
+`Download ZMA (impedance)`.
+
 ### `driver_reference_metrics(ts) -> DriverReferenceMetrics`
 
 Classical small-signal reference metrics from the T/S set:
@@ -404,7 +428,7 @@ returned `DriverBandwidthClass` carries `driver_class`, `f_le_hz` (or `None`),
 by the UI caption.  Cone breakup and directivity are not in the T/S set, so
 this is a catalog-screening aid, not a substitute for the manufacturer's
 measured response.  The UI uses it for the sidebar `Class` preset filter, the
-`VC corner`/`Class` metrics and the Batch `Class` column.
+`VC corner`/`Class` metrics and the `Find a driver` result column.
 
 ### `port_air_velocity_ms(result, port_area_cm2, port="lower") -> np.ndarray`
 
@@ -452,8 +476,9 @@ cable and crossover-coil DCR in series with the driver; negative values raise
 `Re+Rs`, the electrical damping term becomes `Bl^2/(Re+Rs)` (raising the
 effective Qes/Qts of the system), and `impedance_ohm` reports the load seen
 from the source terminals, i.e. it includes `Rs`.  The goal optimizer and the
-Batch LF Finder always evaluate at `series_r_ohm=0`.  The symmetric 2x2 nodal system is solved in closed form (vectorized
-over frequency), which keeps the optimizer's repeated simulations fast.
+`Find a driver` ranking always evaluate at `series_r_ohm=0`. The symmetric 2x2
+nodal system is solved in closed form (vectorized over frequency), which keeps
+the optimizer's repeated simulations fast.
 
 Returned arrays:
 
@@ -463,6 +488,8 @@ Returned arrays:
 - `spl_port_db`: lower port radiation alone
 - `excursion_mm`
 - `impedance_ohm`
+- `impedance_phase_deg`: electrical impedance phase in degrees (used by the
+  ZMA export; `None` on results built before the field existed)
 - `mil_w`: maximum input power by frequency, limited by `Xmax` and/or `Pe`
   when those driver fields are available
 - `mol_db`: maximum output level estimate, produced by scaling `spl_total_db`
@@ -569,16 +596,23 @@ If no true rising crossing exists in the simulated range, the returned value is
 - input validation for invalid `Qms <= Qts`
 - optimizer volume-cap, target-F3 compactness and extension-vs-empirical checks
   for DCCAV plus reflex/sealed volume-cap checks
-- UI `Optimized (goals)` alignment mode applying goal-driven boxes
-- UI and Batch LF Finder routing for sealed and infinite-baffle loads
+- UI `Suggested` / `Optimized` / `Manual` box strategies applying and locking
+  the expected controls
+- independent `Find a driver` workspace routing for sealed and infinite-baffle
+  loads, including practical defaults, candidate preview and explicit
+  application
 - finite non-zero group delay, its CSV export column and the UI Group Delay
   tab
 - port length Helmholtz round-trip, impossible tiny-diameter flagging, air
   speed area scaling and the UI small-vent chuffing warning, including the
   quoted tuning ceiling and minimum feasible diameter
-- reference efficiency/sensitivity/EBP formulas and their UI metrics row with
-  the EBP topology hint
+- reference efficiency/sensitivity/EBP formulas and their UI `Driver details`
+  panel with the EBP topology hint
 - series-resistance effects: impedance shift at the source terminals, reduced
-  drive, damping change, driver-side thermal cap and the UI `Series R` input
+  drive, damping change, driver-side thermal cap and the advanced UI `Series R`
+  input
 - bandwidth classifier: known subwoofer/midbass presets, voice-coil corner
   value, unknown-Le fallback and the UI class filter
+- FRD/ZMA exports: column round-trip against the simulated arrays, wrapped
+  phase ranges, impedance phase on all four loads, zero-phase fallback for
+  legacy results and the UI download buttons
