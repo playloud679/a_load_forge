@@ -335,7 +335,8 @@ point (`Vb`, `Fb`) or classical sealed alignment (`Vb`).  Loss factors are
 copied from `box_template` when one is provided, otherwise defaults are used.
 Infinite baffle is intentionally rejected because it has no box parameter.
 The optional `fixed_total_volume_l` argument constrains every candidate to the
-exact `Vh+Vl` (or `Vb`) requested by Batch LF Finder.
+exact `Vh+Vl` (or `Vb`) that Batch LF Finder takes from the optimizer's
+`max_total_volume_l` control.
 
 `OptimizationGoals` fields:
 
@@ -366,13 +367,92 @@ bounded to `[1.2, 4.5]` so the load keeps its double-resonator character.
 ### `group_delay_ms(result) -> np.ndarray`
 
 Total-output group delay in milliseconds, computed as `-dφ/dω` from the
-complex sum of `driver_volume_velocity` and `port_volume_velocity`.
+complex sum of `driver_volume_velocity` and `port_volume_velocity`.  The UI
+plots it in the Group Delay tab and exports it in the response CSV as the
+`group_delay_ms` column.
 
-### `simulate(ts, box, freq_hz=None, voltage_v=2.83) -> SimulationResult`
+### `driver_reference_metrics(ts) -> DriverReferenceMetrics`
+
+Classical small-signal reference metrics from the T/S set:
+
+- `eta0 = 4*pi^2 * Fs^3 * Vas / (c^3 * Qes)` — half-space reference
+  efficiency as a fraction
+- `spl_1w_db` — SPL at 1 W / 1 m, derived from `eta0` with the module's
+  `RHO_AIR`/`SPEED_OF_SOUND`/`P_REF` constants (~112.1 dB offset)
+- `spl_2v83_db` — the same rescaled to 2.83 V across `Re`
+- `ebp_hz = Fs / Qes` — efficiency bandwidth product; the UI shows the
+  classical reading (< 50 sealed/infinite baffle, > 100 ported, in between
+  either) as a caption under the derived-driver metrics
+
+### `classify_driver_bandwidth(ts) -> DriverBandwidthClass`
+
+Heuristic screening of the usable driver bandwidth, answering "pure subwoofer
+or woofer that can reach the mids?" from the T/S set alone.  Indicators and
+weights:
+
+- voice-coil corner `f_Le = Re / (2*pi*Le)`: `< 400 Hz` counts 2 sub points,
+  `> 800 Hz` counts 2 midbass points; unknown `Le` skips this indicator
+- `Fs <= 35 Hz` sub / `Fs >= 45 Hz` midbass (1 point)
+- moving-mass surface density `Mms/Sd >= 0.30 g/cm^2` sub / `<= 0.15` midbass
+  (1 point)
+- reference sensitivity `SPL(1 W) <= 90 dB` sub / `>= 94 dB` midbass (1 point)
+
+A two-point margin yields `Subwoofer` or `Midbass-capable`; otherwise the
+class is the neutral `Woofer`.  `DRIVER_CLASSES` lists the three values.  The
+returned `DriverBandwidthClass` carries `driver_class`, `f_le_hz` (or `None`),
+`mass_density_g_cm2`, `spl_1w_db` and the human-readable `reasons` tuple shown
+by the UI caption.  Cone breakup and directivity are not in the T/S set, so
+this is a catalog-screening aid, not a substitute for the manufacturer's
+measured response.  The UI uses it for the sidebar `Class` preset filter, the
+`VC corner`/`Class` metrics and the Batch `Class` column.
+
+### `port_air_velocity_ms(result, port_area_cm2, port="lower") -> np.ndarray`
+
+Linear port air speed `|U|/S` in m/s for the requested port: `"lower"` (also
+the reflex vent) uses `port_l_velocity`, `"upper"` uses `port_h_velocity`; any
+other name raises `ValueError`.  `PORT_VELOCITY_GUIDELINE_MS` (5% of the speed
+of sound, ~17 m/s) is the module-level chuffing guideline: speeds above it
+commonly produce audible port noise and compression that the lumped model does
+not simulate.  The UI shows per-port peaks in the Port Geometry table and
+appends a chuffing warning when the peak exceeds the guideline.
+
+### `port_length_cm(volume_l, fb_hz, port_diameter_cm, end_correction=1.463) -> float`
+
+Physical tube length in cm of a circular port, from the Helmholtz relation
+`L_eff = c^2 * S / (w^2 * V)` minus the end correction
+`end_correction * radius`.  The default 1.463 models one flanged plus one free
+end (a vent flush in a panel); the UI uses 1.7 for the DCCAV upper port, which
+joins two chambers with two flanged ends.  A non-positive result means the
+opening's end corrections alone exceed the required acoustic mass — the
+diameter is too small for the volume/tuning pair — and the UI reports it as a
+warning that quotes `port_max_tuning_hz()` and `port_min_diameter_cm()`
+instead of a usable length.
+
+### `port_max_tuning_hz(volume_l, port_diameter_cm, end_correction=1.463) -> float`
+
+The tuning ceiling of a zero-length opening: with no duct at all, the port's
+acoustic mass is just the end corrections, so this is the highest `fb` the
+diameter can reach on the given volume.
+
+### `port_min_diameter_cm(volume_l, fb_hz, end_correction=1.463) -> float`
+
+The smallest circular-port diameter that can reach `fb_hz` on the given
+volume, i.e. the diameter at which `port_length_cm()` crosses zero.  Both
+helpers are exact inverses of `port_length_cm()` at the zero-length boundary.
+
+### `simulate(ts, box, freq_hz=None, voltage_v=2.83, series_r_ohm=0.0) -> SimulationResult`
 
 Solves the two-node acoustic circuit across the frequency array.  The source
 pressure is approximated as `Eg*Bl/(Re*Sd)` and drives the network through
-`Zas`.  The symmetric 2x2 nodal system is solved in closed form (vectorized
+`Zas`.
+
+All four simulators accept an optional `series_r_ohm` (amplifier output,
+cable and crossover-coil DCR in series with the driver; negative values raise
+`ValueError`).  It enters the model in three places: the drive pressure uses
+`Re+Rs`, the electrical damping term becomes `Bl^2/(Re+Rs)` (raising the
+effective Qes/Qts of the system), and `impedance_ohm` reports the load seen
+from the source terminals, i.e. it includes `Rs`.  The goal optimizer and the
+Batch LF Finder always evaluate at `series_r_ohm=0`.  The symmetric 2x2 nodal system is solved in closed form (vectorized
 over frequency), which keeps the optimizer's repeated simulations fast.
 
 Returned arrays:
@@ -393,10 +473,11 @@ Returned arrays:
   `port_volume_velocity` for the lower port
 
 `MIL` is computed from the linear excursion result at the requested simulation
-voltage.  The excursion-limited RMS voltage is `voltage * Xmax / excursion`;
-the thermal RMS voltage is approximated as `sqrt(Pe * Re)`.  The lower
-available voltage limit is converted to watts as `V^2 / Re` for display and
-CSV export.  `MOL` uses the same voltage ratio to scale SPL.  If neither `Xmax`
+voltage.  Limit voltages are at the source terminals: the excursion-limited
+RMS voltage is `voltage * Xmax / excursion`; the thermal RMS voltage is
+approximated as `sqrt(Pe * Re) * (Re+Rs)/Re`.  The lower available voltage
+limit is converted to watts as the share reaching the driver's `Re` through
+the resistive divider (`V^2 / Re` when `Rs=0`) for display and CSV export.  `MOL` uses the same voltage ratio to scale SPL.  If neither `Xmax`
 nor `Pe` is known, `MIL` and `MOL` are returned as `NaN` and the UI reports them
 as unavailable.
 
@@ -408,21 +489,21 @@ directivity, or electrical crossover behaviour.
 The electrical impedance should show the expected multi-resonance DCCAV shape;
 the built-in Beyma alignment regression checks for three local impedance crests.
 
-### `simulate_reflex(ts, box, freq_hz=None, voltage_v=2.83) -> SimulationResult`
+### `simulate_reflex(ts, box, freq_hz=None, voltage_v=2.83, series_r_ohm=0.0) -> SimulationResult`
 
 Solves the conventional one-box reflex acoustic circuit across the frequency
 array.  The returned `SimulationResult` uses the same fields as DCCAV:
 `spl_total_db` is exposed cone front plus vent, `spl_port_db` is the vent alone,
 `port_l_velocity` is the vent volume velocity and `port_h_velocity` is zero.
 
-### `simulate_sealed(ts, box, freq_hz=None, voltage_v=2.83) -> SimulationResult`
+### `simulate_sealed(ts, box, freq_hz=None, voltage_v=2.83, series_r_ohm=0.0) -> SimulationResult`
 
 Solves the driver against one closed acoustic compliance.  Total and cone SPL
 are identical because there is no external port; all port velocity fields are
 zero.  Electrical impedance includes the closed-box acoustic load and normally
 shows one resonance peak near the achieved `Fc`.
 
-### `simulate_infinite_baffle(ts, freq_hz=None, voltage_v=2.83) -> SimulationResult`
+### `simulate_infinite_baffle(ts, freq_hz=None, voltage_v=2.83, series_r_ohm=0.0) -> SimulationResult`
 
 Solves free-air driver motion while assuming perfect front/rear isolation.
 Total and cone SPL are identical, all port fields are zero, and electrical
@@ -490,3 +571,14 @@ If no true rising crossing exists in the simulated range, the returned value is
   for DCCAV plus reflex/sealed volume-cap checks
 - UI `Optimized (goals)` alignment mode applying goal-driven boxes
 - UI and Batch LF Finder routing for sealed and infinite-baffle loads
+- finite non-zero group delay, its CSV export column and the UI Group Delay
+  tab
+- port length Helmholtz round-trip, impossible tiny-diameter flagging, air
+  speed area scaling and the UI small-vent chuffing warning, including the
+  quoted tuning ceiling and minimum feasible diameter
+- reference efficiency/sensitivity/EBP formulas and their UI metrics row with
+  the EBP topology hint
+- series-resistance effects: impedance shift at the source terminals, reduced
+  drive, damping change, driver-side thermal cap and the UI `Series R` input
+- bandwidth classifier: known subwoofer/midbass presets, voice-coil corner
+  value, unknown-Le fallback and the UI class filter

@@ -1013,6 +1013,26 @@ def complete_driver(ts: DriverTS) -> DerivedDriver:
     )
 
 
+def _electrical_source(
+    ts: DriverTS,
+    drv: DerivedDriver,
+    voltage_v: float,
+    series_r_ohm: float,
+) -> tuple[float, float, float]:
+    """Return `(re_total, rat, p_source)` seen from the source terminals.
+
+    A non-zero `series_r_ohm` (amplifier output, cable and crossover-coil DCR)
+    reduces both the drive pressure and the electrical damping `Bl^2/Re`,
+    raising the effective Qes/Qts of the system.
+    """
+    if series_r_ohm < 0:
+        raise ValueError("Series resistance must be >= 0")
+    re_total = ts.re_ohm + float(series_r_ohm)
+    rat = (drv.rms_n_s_m + drv.bl_tm**2 / re_total) / drv.sd_m2**2
+    p_source = voltage_v * drv.bl_tm / (re_total * drv.sd_m2)
+    return re_total, rat, p_source
+
+
 def suggest_alignment(ts: DriverTS) -> DccavAlignment:
     """Return the empirical first-pass DCCAV alignment from the article."""
     _require_positive("Fs", ts.fs_hz)
@@ -1073,6 +1093,222 @@ def group_delay_ms(result: SimulationResult) -> np.ndarray:
     w = 2.0 * np.pi * np.asarray(result.frequency_hz, dtype=float)
     phase = np.unwrap(np.angle(u_total))
     return -np.gradient(phase, w) * 1000.0
+
+
+PORT_VELOCITY_GUIDELINE_MS = 0.05 * SPEED_OF_SOUND
+
+
+def port_air_velocity_ms(
+    result: SimulationResult,
+    port_area_cm2: float,
+    port: str = "lower",
+) -> np.ndarray:
+    """Return the linear port air speed `|U|/S` in m/s for the requested port.
+
+    `port` selects `port_l_velocity` (`"lower"`, also the reflex vent) or
+    `port_h_velocity` (`"upper"`).  Speeds above `PORT_VELOCITY_GUIDELINE_MS`
+    (5% of the speed of sound, ~17 m/s) commonly produce audible chuffing and
+    port compression that the lumped model does not simulate.
+    """
+    _require_positive("port_area_cm2", port_area_cm2)
+    if port == "lower":
+        u = result.port_l_velocity
+    elif port == "upper":
+        u = result.port_h_velocity
+    else:
+        raise ValueError(f"port must be 'lower' or 'upper', got {port!r}")
+    return np.abs(np.asarray(u)) / (float(port_area_cm2) * 1e-4)
+
+
+def port_length_cm(
+    volume_l: float,
+    fb_hz: float,
+    port_diameter_cm: float,
+    end_correction: float = 1.463,
+) -> float:
+    """Return the physical tube length in cm of a circular port.
+
+    Solves the Helmholtz relation `L_eff = c^2 * S / (w^2 * V)` for the
+    requested chamber volume and tuning, then subtracts the end correction
+    `end_correction * radius`.  The default 1.463 models one flanged plus one
+    free end (a vent flush in a panel); use 1.7 for a port flanged on both
+    ends, such as the DCCAV upper port joining two chambers.
+
+    A non-positive return value means the opening's end corrections alone
+    already exceed the required acoustic mass: the diameter is too small for
+    this volume/tuning combination and must be increased.
+    """
+    _require_positive("volume_l", volume_l)
+    _require_positive("fb_hz", fb_hz)
+    _require_positive("port_diameter_cm", port_diameter_cm)
+    radius_m = float(port_diameter_cm) / 200.0
+    area_m2 = np.pi * radius_m**2
+    w = 2.0 * np.pi * float(fb_hz)
+    l_eff_m = SPEED_OF_SOUND**2 * area_m2 / (w**2 * (float(volume_l) / 1000.0))
+    return float((l_eff_m - float(end_correction) * radius_m) * 100.0)
+
+
+def port_max_tuning_hz(
+    volume_l: float,
+    port_diameter_cm: float,
+    end_correction: float = 1.463,
+) -> float:
+    """Return the highest tuning a zero-length opening of this diameter reaches.
+
+    With no duct at all, the port's acoustic mass is just the end corrections
+    `end_correction * radius`; this is the tuning ceiling for the diameter on
+    the given volume.  Requesting a higher `fb` needs a larger diameter.
+    """
+    _require_positive("volume_l", volume_l)
+    _require_positive("port_diameter_cm", port_diameter_cm)
+    radius_m = float(port_diameter_cm) / 200.0
+    area_m2 = np.pi * radius_m**2
+    l_eff_m = float(end_correction) * radius_m
+    volume_m3 = float(volume_l) / 1000.0
+    return float(
+        SPEED_OF_SOUND / (2.0 * np.pi) * np.sqrt(area_m2 / (volume_m3 * l_eff_m))
+    )
+
+
+@dataclass(frozen=True)
+class DriverReferenceMetrics:
+    """Classical small-signal reference metrics derived from the T/S set."""
+
+    eta0: float
+    spl_1w_db: float
+    spl_2v83_db: float
+    ebp_hz: float
+
+
+def driver_reference_metrics(ts: DriverTS) -> DriverReferenceMetrics:
+    """Return reference efficiency, sensitivity and EBP for the driver.
+
+    `eta0 = 4*pi^2 * Fs^3 * Vas / (c^3 * Qes)` is the half-space reference
+    efficiency (fraction).  `spl_1w_db` converts it to SPL at 1 W / 1 m using
+    the module's `RHO_AIR`/`SPEED_OF_SOUND`/`P_REF`; `spl_2v83_db` rescales to
+    2.83 V across `Re`.  `ebp_hz = Fs / Qes` is the efficiency bandwidth
+    product: below ~50 the driver favours sealed/infinite-baffle loads, above
+    ~100 ported loads, in between either.
+    """
+    drv = complete_driver(ts)
+    vas_m3 = ts.vas_l / 1000.0
+    eta0 = 4.0 * np.pi**2 * ts.fs_hz**3 * vas_m3 / (SPEED_OF_SOUND**3 * drv.qes)
+    spl_ref_db = 10.0 * np.log10(RHO_AIR * SPEED_OF_SOUND / (2.0 * np.pi * P_REF**2))
+    spl_1w_db = spl_ref_db + 10.0 * np.log10(eta0)
+    spl_2v83_db = spl_1w_db + 10.0 * np.log10(2.83**2 / ts.re_ohm)
+    return DriverReferenceMetrics(
+        eta0=float(eta0),
+        spl_1w_db=float(spl_1w_db),
+        spl_2v83_db=float(spl_2v83_db),
+        ebp_hz=float(ts.fs_hz / drv.qes),
+    )
+
+
+@dataclass(frozen=True)
+class DriverBandwidthClass:
+    """Heuristic usable-bandwidth classification of a driver from its T/S set."""
+
+    driver_class: str
+    f_le_hz: float | None
+    mass_density_g_cm2: float
+    spl_1w_db: float
+    reasons: tuple[str, ...]
+
+
+DRIVER_CLASSES = ("Subwoofer", "Woofer", "Midbass-capable")
+
+
+def classify_driver_bandwidth(ts: DriverTS) -> DriverBandwidthClass:
+    """Classify a driver as pure subwoofer, generic woofer or midbass-capable.
+
+    The strongest available indicator is the voice-coil corner
+    `f_Le = Re / (2*pi*Le)`: above it the coil inductance rolls the response
+    off, so a low corner marks a sub that cannot reach the mids.  Supporting
+    indicators are the moving-mass surface density `Mms/Sd`, the free-air
+    resonance `Fs` and the 1 W / 1 m reference sensitivity.  Points:
+
+    - `f_Le < 400 Hz` -> sub (weight 2); `f_Le > 800 Hz` -> midbass (weight 2)
+    - `Fs <= 35 Hz` -> sub; `Fs >= 45 Hz` -> midbass
+    - `Mms/Sd >= 0.30 g/cm^2` -> sub; `<= 0.15 g/cm^2` -> midbass
+    - `SPL(1 W) <= 90 dB` -> sub; `>= 94 dB` -> midbass
+
+    The verdict requires a margin of two points; otherwise the driver is a
+    generic `Woofer`.  When `Le` is unknown (0), `f_le_hz` is `None` and the
+    class relies on the remaining indicators.  Cone breakup and directivity
+    are not part of the T/S set, so this is a catalog-screening heuristic,
+    not a substitute for the manufacturer's frequency response.
+    """
+    drv = complete_driver(ts)
+    ref = driver_reference_metrics(ts)
+    f_le_hz = None
+    if ts.le_mh and ts.le_mh > 0:
+        f_le_hz = float(ts.re_ohm / (2.0 * np.pi * ts.le_mh / 1000.0))
+    mass_density = float(drv.mms_kg * 1000.0 / ts.sd_cm2)
+
+    sub_points = 0
+    mid_points = 0
+    reasons: list[str] = []
+    if f_le_hz is not None:
+        if f_le_hz < 400.0:
+            sub_points += 2
+            reasons.append(f"voice-coil corner {f_le_hz:.0f} Hz")
+        elif f_le_hz > 800.0:
+            mid_points += 2
+            reasons.append(f"voice-coil corner {f_le_hz:.0f} Hz")
+    else:
+        reasons.append("Le unknown")
+    if ts.fs_hz <= 35.0:
+        sub_points += 1
+        reasons.append(f"Fs {ts.fs_hz:.0f} Hz")
+    elif ts.fs_hz >= 45.0:
+        mid_points += 1
+        reasons.append(f"Fs {ts.fs_hz:.0f} Hz")
+    if mass_density >= 0.30:
+        sub_points += 1
+        reasons.append(f"heavy cone {mass_density:.2f} g/cm2")
+    elif mass_density <= 0.15:
+        mid_points += 1
+        reasons.append(f"light cone {mass_density:.2f} g/cm2")
+    if ref.spl_1w_db <= 90.0:
+        sub_points += 1
+        reasons.append(f"sensitivity {ref.spl_1w_db:.1f} dB/1W")
+    elif ref.spl_1w_db >= 94.0:
+        mid_points += 1
+        reasons.append(f"sensitivity {ref.spl_1w_db:.1f} dB/1W")
+
+    if sub_points - mid_points >= 2:
+        driver_class = "Subwoofer"
+    elif mid_points - sub_points >= 2:
+        driver_class = "Midbass-capable"
+    else:
+        driver_class = "Woofer"
+    return DriverBandwidthClass(
+        driver_class=driver_class,
+        f_le_hz=f_le_hz,
+        mass_density_g_cm2=mass_density,
+        spl_1w_db=float(ref.spl_1w_db),
+        reasons=tuple(reasons),
+    )
+
+
+def port_min_diameter_cm(
+    volume_l: float,
+    fb_hz: float,
+    end_correction: float = 1.463,
+) -> float:
+    """Return the smallest circular-port diameter that can reach `fb_hz`.
+
+    Solves `c^2 * S / (w^2 * V) = end_correction * radius` for the diameter at
+    which the physical duct length becomes zero; any smaller opening tunes
+    below `fb_hz` even with no tube.
+    """
+    _require_positive("volume_l", volume_l)
+    _require_positive("fb_hz", fb_hz)
+    w = 2.0 * np.pi * float(fb_hz)
+    radius_m = float(end_correction) * w**2 * (float(volume_l) / 1000.0) / (
+        SPEED_OF_SOUND**2 * np.pi
+    )
+    return float(radius_m * 200.0)
 
 
 def _optimizer_metrics(
@@ -1356,6 +1592,7 @@ def simulate(
     box: DccavBox,
     freq_hz: np.ndarray | None = None,
     voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0,
 ) -> SimulationResult:
     """Simulate DCCAV SPL, cone excursion and electrical impedance."""
     drv = complete_driver(ts)
@@ -1370,13 +1607,13 @@ def simulate(
     w = 2.0 * np.pi * f
     jw = 1j * w
 
-    z_as = drv.rat + jw * drv.mas + 1.0 / (jw * drv.cas)
+    re_total, rat, p_source = _electrical_source(ts, drv, voltage_v, series_r_ohm)
+    z_as = rat + jw * drv.mas + 1.0 / (jw * drv.cas)
     z_ab_h = _box_impedance(box.vh_l, box.fh_hz, box.q_abs_h, box.q_leak_h, w)
     z_ab_l = _box_impedance(box.vl_l, box.fl_hz, box.q_abs_l, box.q_leak_l, w)
     z_ap_h = _port_impedance(box.vh_l, box.fh_hz, box.q_port_h, w)
     z_ap_l = _port_impedance(box.vl_l, box.fl_hz, box.q_port_l, w)
 
-    p_source = voltage_v * drv.bl_tm / (ts.re_ohm * drv.sd_m2)
     ya = 1.0 / z_as
     yab_h = 1.0 / z_ab_h
     yab_l = 1.0 / z_ab_l
@@ -1404,11 +1641,11 @@ def simulate(
     spl_driver = _spl_from_volume_velocity(u_front_driver, f)
     spl_port = _spl_from_volume_velocity(u_port_l, f)
     excursion = np.abs(u_rear_driver / (jw * drv.sd_m2)) * 1000.0
-    mil_w, mol_db = _limit_curves(ts, voltage_v, spl_total, excursion)
+    mil_w, mol_db = _limit_curves(ts, voltage_v, spl_total, excursion, series_r_ohm)
 
     z_mech = drv.rms_n_s_m + jw * drv.mms_kg + 1.0 / (jw * drv.cms_m_per_n)
     z_load = _parallel(z_ab_h, z_ap_h + _parallel(z_ab_l, z_ap_l)) * drv.sd_m2**2
-    z_e = ts.re_ohm + jw * (ts.le_mh / 1000.0) + drv.bl_tm**2 / (z_mech + z_load)
+    z_e = re_total + jw * (ts.le_mh / 1000.0) + drv.bl_tm**2 / (z_mech + z_load)
 
     return SimulationResult(
         frequency_hz=f,
@@ -1431,6 +1668,7 @@ def simulate_reflex(
     box: ReflexBox,
     freq_hz: np.ndarray | None = None,
     voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0,
 ) -> SimulationResult:
     """Simulate a normal one-volume bass-reflex load."""
     drv = complete_driver(ts)
@@ -1445,11 +1683,11 @@ def simulate_reflex(
     w = 2.0 * np.pi * f
     jw = 1j * w
 
-    z_as = drv.rat + jw * drv.mas + 1.0 / (jw * drv.cas)
+    re_total, rat, p_source = _electrical_source(ts, drv, voltage_v, series_r_ohm)
+    z_as = rat + jw * drv.mas + 1.0 / (jw * drv.cas)
     z_ab = _box_impedance(box.vb_l, box.fb_hz, box.q_abs, box.q_leak, w)
     z_ap = _port_impedance(box.vb_l, box.fb_hz, box.q_port, w)
 
-    p_source = voltage_v * drv.bl_tm / (ts.re_ohm * drv.sd_m2)
     ya = 1.0 / z_as
     yab = 1.0 / z_ab
     yap = 1.0 / z_ap
@@ -1465,11 +1703,11 @@ def simulate_reflex(
     spl_driver = _spl_from_volume_velocity(u_front_driver, f)
     spl_port = _spl_from_volume_velocity(u_port, f)
     excursion = np.abs(u_rear_driver / (jw * drv.sd_m2)) * 1000.0
-    mil_w, mol_db = _limit_curves(ts, voltage_v, spl_total, excursion)
+    mil_w, mol_db = _limit_curves(ts, voltage_v, spl_total, excursion, series_r_ohm)
 
     z_mech = drv.rms_n_s_m + jw * drv.mms_kg + 1.0 / (jw * drv.cms_m_per_n)
     z_load = _parallel(z_ab, z_ap) * drv.sd_m2**2
-    z_e = ts.re_ohm + jw * (ts.le_mh / 1000.0) + drv.bl_tm**2 / (z_mech + z_load)
+    z_e = re_total + jw * (ts.le_mh / 1000.0) + drv.bl_tm**2 / (z_mech + z_load)
 
     return SimulationResult(
         frequency_hz=f,
@@ -1494,6 +1732,7 @@ def _unported_result(
     voltage_v: float,
     u_rear_driver: np.ndarray,
     z_load: np.ndarray | complex | float,
+    series_r_ohm: float = 0.0,
 ) -> SimulationResult:
     """Build common sealed/IB outputs from rearward cone volume velocity."""
     w = 2.0 * np.pi * f
@@ -1501,9 +1740,12 @@ def _unported_result(
     u_front_driver = -u_rear_driver
     spl_driver = _spl_from_volume_velocity(u_front_driver, f)
     excursion = np.abs(u_rear_driver / (jw * drv.sd_m2)) * 1000.0
-    mil_w, mol_db = _limit_curves(ts, voltage_v, spl_driver, excursion)
+    mil_w, mol_db = _limit_curves(ts, voltage_v, spl_driver, excursion, series_r_ohm)
     z_mech = drv.rms_n_s_m + jw * drv.mms_kg + 1.0 / (jw * drv.cms_m_per_n)
-    z_e = ts.re_ohm + jw * (ts.le_mh / 1000.0) + drv.bl_tm**2 / (z_mech + z_load)
+    z_e = (
+        ts.re_ohm + float(series_r_ohm)
+        + jw * (ts.le_mh / 1000.0) + drv.bl_tm**2 / (z_mech + z_load)
+    )
     zero_real = np.zeros_like(f)
     zero_complex = np.zeros_like(f, dtype=complex)
     return SimulationResult(
@@ -1527,6 +1769,7 @@ def simulate_sealed(
     box: SealedBox,
     freq_hz: np.ndarray | None = None,
     voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0,
 ) -> SimulationResult:
     """Simulate a closed-box (acoustic-suspension) loudspeaker."""
     drv = complete_driver(ts)
@@ -1540,10 +1783,10 @@ def simulate_sealed(
 
     w = 2.0 * np.pi * f
     jw = 1j * w
-    z_as = drv.rat + jw * drv.mas + 1.0 / (jw * drv.cas)
+    re_total, rat, p_source = _electrical_source(ts, drv, voltage_v, series_r_ohm)
+    z_as = rat + jw * drv.mas + 1.0 / (jw * drv.cas)
     fc_hz, _qtc = sealed_system_metrics(ts, box)
     z_ab = _box_impedance(box.vb_l, fc_hz, box.q_abs, box.q_leak, w)
-    p_source = voltage_v * drv.bl_tm / (ts.re_ohm * drv.sd_m2)
     node = (p_source / z_as) / (1.0 / z_as + 1.0 / z_ab)
     u_rear_driver = (p_source - node) / z_as
     return _unported_result(
@@ -1553,6 +1796,7 @@ def simulate_sealed(
         voltage_v,
         u_rear_driver,
         z_ab * drv.sd_m2**2,
+        series_r_ohm,
     )
 
 
@@ -1560,6 +1804,7 @@ def simulate_infinite_baffle(
     ts: DriverTS,
     freq_hz: np.ndarray | None = None,
     voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0,
 ) -> SimulationResult:
     """Simulate free-air driver motion with rear radiation fully isolated."""
     drv = complete_driver(ts)
@@ -1571,10 +1816,10 @@ def simulate_infinite_baffle(
     _require_positive("Voltage", voltage_v)
     w = 2.0 * np.pi * f
     jw = 1j * w
-    z_as = drv.rat + jw * drv.mas + 1.0 / (jw * drv.cas)
-    p_source = voltage_v * drv.bl_tm / (ts.re_ohm * drv.sd_m2)
+    re_total, rat, p_source = _electrical_source(ts, drv, voltage_v, series_r_ohm)
+    z_as = rat + jw * drv.mas + 1.0 / (jw * drv.cas)
     u_rear_driver = p_source / z_as
-    return _unported_result(ts, drv, f, voltage_v, u_rear_driver, 0.0)
+    return _unported_result(ts, drv, f, voltage_v, u_rear_driver, 0.0, series_r_ohm)
 
 
 def response_metrics(result: SimulationResult) -> dict[str, float]:
@@ -1746,21 +1991,28 @@ def _limit_curves(
     voltage_v: float,
     spl_total_db: np.ndarray,
     excursion_mm: np.ndarray,
+    series_r_ohm: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray]:
+    # Limit voltages are at the source terminals; with a series resistance the
+    # thermal ceiling scales by the resistive divider (Re+Rs)/Re and the power
+    # reported is the share reaching the driver's Re.
+    re_total = ts.re_ohm + float(series_r_ohm)
     limits: list[np.ndarray] = []
     shape = np.asarray(spl_total_db, dtype=float).shape
     if ts.xmax_mm > 0:
         excursion = np.maximum(np.asarray(excursion_mm, dtype=float), EPS)
         limits.append(float(voltage_v) * ts.xmax_mm / excursion)
     if ts.pe_w > 0:
-        limits.append(np.full(shape, np.sqrt(ts.pe_w * ts.re_ohm), dtype=float))
+        thermal_v = np.sqrt(ts.pe_w * ts.re_ohm) * re_total / ts.re_ohm
+        limits.append(np.full(shape, thermal_v, dtype=float))
 
     if not limits:
         nan = np.full(shape, np.nan, dtype=float)
         return nan, nan
 
     mil_v = np.minimum.reduce(limits)
-    mil_w = mil_v**2 / ts.re_ohm
+    driver_v = mil_v * ts.re_ohm / re_total
+    mil_w = driver_v**2 / ts.re_ohm
     gain_db = 20.0 * np.log10(np.maximum(mil_v, EPS) / float(voltage_v))
     mol_db = np.asarray(spl_total_db, dtype=float) + gain_db
     return mil_w, mol_db

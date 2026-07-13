@@ -365,6 +365,372 @@ def _check_response_metrics_are_sane():
 test("DCCAV response metrics are positive", _check_response_metrics_are_sane)
 
 
+def _check_group_delay_is_finite_and_exported():
+    ts = _beyma_ts()
+    a = _dccav.suggest_alignment(ts)
+    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    result = _dccav.simulate(ts, box, np.geomspace(10.0, 500.0, 600))
+    gd = _dccav.group_delay_ms(result)
+    assert gd.shape == result.frequency_hz.shape, gd.shape
+    assert np.all(np.isfinite(gd)), "group delay must be finite across the sweep"
+    assert np.nanmax(np.abs(gd)) > 0.1, "group delay should not be identically zero"
+
+    import ui_app as _ui
+
+    csv_text = _ui._csv_bytes(result).decode("utf-8")
+    header = csv_text.splitlines()[0].split(",")
+    assert "group_delay_ms" in header, header
+    first_row = csv_text.splitlines()[1].split(",")
+    gd_value = float(first_row[header.index("group_delay_ms")])
+    assert np.isfinite(gd_value), gd_value
+
+
+test("DCCAV group delay is finite and exported to CSV", _check_group_delay_is_finite_and_exported)
+
+
+def _check_ui_group_delay_chart_renders():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.run()
+    assert not at.exception, at.exception
+    assert any(sub.value == "Group Delay" for sub in at.subheader), (
+        "Group Delay tab subheader missing"
+    )
+
+
+test("UI group-delay tab renders the Group Delay chart", _check_ui_group_delay_chart_renders)
+
+
+def _check_port_geometry_helpers():
+    volume_l, fb_hz, diameter_cm = 50.0, 40.0, 10.0
+    length_cm = _dccav.port_length_cm(volume_l, fb_hz, diameter_cm)
+    assert 15.0 < length_cm < 35.0, length_cm
+
+    radius_m = diameter_cm / 200.0
+    l_eff_m = length_cm / 100.0 + 1.463 * radius_m
+    fb_check = (
+        _dccav.SPEED_OF_SOUND / (2.0 * np.pi)
+        * np.sqrt(np.pi * radius_m**2 / ((volume_l / 1000.0) * l_eff_m))
+    )
+    assert abs(fb_check - fb_hz) < 1e-9, fb_check
+
+    assert _dccav.port_length_cm(volume_l, fb_hz, 5.0) < length_cm
+    assert _dccav.port_length_cm(100.0, 30.0, 1.0) <= 0.0, "tiny port must be flagged impossible"
+
+    max_hz = _dccav.port_max_tuning_hz(16.70, 4.0, 1.7)
+    assert 80.0 < max_hz < 83.0, max_hz
+    min_d_cm = _dccav.port_min_diameter_cm(16.70, 127.59, 1.7)
+    assert 9.5 < min_d_cm < 10.2, min_d_cm
+    assert abs(_dccav.port_length_cm(16.70, max_hz, 4.0, 1.7)) < 1e-9
+    assert abs(_dccav.port_length_cm(16.70, 127.59, min_d_cm, 1.7)) < 1e-9
+
+    ts = _beyma_ts()
+    reflex = _dccav.suggest_reflex_alignment(ts)
+    box = _dccav.ReflexBox(vb_l=reflex.vb_l, fb_hz=reflex.fb_hz)
+    result = _dccav.simulate_reflex(ts, box, np.geomspace(10.0, 500.0, 400))
+    area_cm2 = np.pi * (diameter_cm / 2.0) ** 2
+    velocity = _dccav.port_air_velocity_ms(result, area_cm2, "lower")
+    assert velocity.shape == result.frequency_hz.shape
+    assert np.all(np.isfinite(velocity)), "port air speed must be finite"
+    assert np.nanmax(velocity) > 0.0
+    halved = _dccav.port_air_velocity_ms(result, area_cm2 / 2.0, "lower")
+    np.testing.assert_allclose(halved, 2.0 * velocity)
+    try:
+        _dccav.port_air_velocity_ms(result, area_cm2, "middle")
+        raise AssertionError("invalid port name must raise")
+    except ValueError:
+        pass
+
+
+test("DCCAV port geometry length round-trips and air speed scales", _check_port_geometry_helpers)
+
+
+def _check_ui_port_geometry_warns_on_small_vent():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    state = at.session_state
+    state["load_type"] = "Bass reflex"
+    state["sim_auto_align"] = False
+    state["reflex_vb_l"] = 76.0
+    state["reflex_fb_hz"] = 49.0
+    state["reflex_port_d_cm"] = 1.0
+    at.run()
+    assert not at.exception, at.exception
+    assert any("chuffing" in warning.value for warning in at.warning), (
+        "a 1 cm vent must trigger the air-speed warning"
+    )
+    assert any("needs a diameter of at least" in warning.value for warning in at.warning), (
+        "a 1 cm vent on 76 L @ 49 Hz must report the minimum feasible diameter"
+    )
+
+    state["reflex_port_d_cm"] = 0.0
+    at.run()
+    assert not at.exception, at.exception
+    assert not any("chuffing" in warning.value for warning in at.warning)
+
+
+test("UI port geometry warns about small-vent air speed", _check_ui_port_geometry_warns_on_small_vent)
+
+
+def _check_driver_reference_metrics():
+    ts = _kef_b110_ts()
+    drv = _dccav.complete_driver(ts)
+    ref = _dccav.driver_reference_metrics(ts)
+    assert abs(ref.ebp_hz - ts.fs_hz / drv.qes) < 1e-9, ref.ebp_hz
+    assert 0.002 < ref.eta0 < 0.004, ref.eta0
+    assert 85.0 < ref.spl_1w_db < 89.0, ref.spl_1w_db
+    assert ref.spl_2v83_db > ref.spl_1w_db, "Re < 8 ohm must gain SPL at 2.83 V"
+    assert 105.0 < ref.ebp_hz < 120.0, "article driver EBP should suggest a ported load"
+
+
+test("DCCAV driver reference metrics match classical formulas", _check_driver_reference_metrics)
+
+
+def _check_ui_reference_metrics_row():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.run()
+    assert not at.exception, at.exception
+    labels = {metric.label for metric in at.metric}
+    for expected in ("Eta0 ref", "SPL 1W/1m", "SPL 2.83V/1m", "EBP"):
+        assert expected in labels, f"missing reference metric {expected}"
+    assert any("EBP" in caption.value for caption in at.caption), (
+        "EBP topology hint caption missing"
+    )
+
+
+test("UI shows reference efficiency, sensitivity and EBP metrics", _check_ui_reference_metrics_row)
+
+
+def _check_series_resistance_effects():
+    ts = _beyma_ts()
+    reflex = _dccav.suggest_reflex_alignment(ts)
+    box = _dccav.ReflexBox(vb_l=reflex.vb_l, fb_hz=reflex.fb_hz)
+    freq = np.geomspace(10.0, 500.0, 500)
+    base = _dccav.simulate_reflex(ts, box, freq)
+    zero_rs = _dccav.simulate_reflex(ts, box, freq, series_r_ohm=0.0)
+    np.testing.assert_allclose(zero_rs.spl_total_db, base.spl_total_db)
+    np.testing.assert_allclose(zero_rs.impedance_ohm, base.impedance_ohm)
+
+    with_rs = _dccav.simulate_reflex(ts, box, freq, series_r_ohm=2.0)
+    z_min_shift = np.min(with_rs.impedance_ohm) - np.min(base.impedance_ohm)
+    assert 1.5 < z_min_shift < 2.5, f"source must see ~2 ohm more, got {z_min_shift:.2f}"
+    assert np.nanmax(with_rs.spl_total_db) < np.nanmax(base.spl_total_db), (
+        "series R must reduce the drive level"
+    )
+    diff = base.spl_total_db - with_rs.spl_total_db
+    assert np.nanmax(diff) - np.nanmin(diff) > 0.5, (
+        "series R must change damping, not apply a flat attenuation"
+    )
+    assert np.nanmax(with_rs.mil_w) <= np.nanmax(base.mil_w) + 1e-9, (
+        "driver-side thermal power must not grow with series R"
+    )
+
+    a = _dccav.suggest_alignment(ts)
+    dccav_box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    for run in (
+        _dccav.simulate(ts, dccav_box, freq, 2.83, 2.0),
+        _dccav.simulate_sealed(ts, _dccav.SealedBox(vb_l=40.0), freq, 2.83, 2.0),
+        _dccav.simulate_infinite_baffle(ts, freq, 2.83, 2.0),
+    ):
+        assert np.all(np.isfinite(run.spl_total_db)), "series R runs must stay finite"
+        assert np.min(run.impedance_ohm) > ts.re_ohm + 1.5, "impedance must include series R"
+
+    try:
+        _dccav.simulate_reflex(ts, box, freq, series_r_ohm=-1.0)
+        raise AssertionError("negative series resistance must raise")
+    except ValueError:
+        pass
+
+
+test("DCCAV series resistance shifts impedance, drive and damping", _check_series_resistance_effects)
+
+
+def _check_ui_series_resistance_input():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.run()
+    assert not at.exception, at.exception
+    metrics = {metric.label: metric.value for metric in at.metric}
+    z_min_base = float(str(metrics["Min impedance"]).split()[0])
+
+    at.session_state["sim_series_r_ohm"] = 4.0
+    at.run()
+    assert not at.exception, at.exception
+    metrics = {metric.label: metric.value for metric in at.metric}
+    z_min_rs = float(str(metrics["Min impedance"]).split()[0])
+    assert 3.0 < (z_min_rs - z_min_base) < 5.0, (z_min_base, z_min_rs)
+
+
+test("UI series resistance raises the minimum impedance metric", _check_ui_series_resistance_input)
+
+
+def _check_ui_pin_response_overlay():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.run()
+    assert not at.exception, at.exception
+
+    pin = next(b for b in at.button if b.label == "Pin response")
+    pin.click().run()
+    assert not at.exception, at.exception
+    pinned = at.session_state["pinned_response"]
+    assert pinned, "pin button must store the current response snapshot"
+    assert pinned["label"].startswith("DCCAV"), pinned["label"]
+    assert len(pinned["frequency_hz"]) == len(pinned["spl_total_db"]) > 0
+    assert any("Pinned (dashed grey)" in caption.value for caption in at.caption)
+
+    at.session_state["load_type"] = "Acoustic suspension"
+    at.run()
+    assert not at.exception, "pinned overlay must survive a load-type change"
+    assert at.session_state["pinned_response"]["label"].startswith("DCCAV")
+
+    clear = next(b for b in at.button if b.label == "Clear pin")
+    clear.click().run()
+    assert not at.exception, at.exception
+    assert not at.session_state["pinned_response"], "clear must drop the pinned snapshot"
+
+
+test("UI pin overlay stores, survives load changes and clears", _check_ui_pin_response_overlay)
+
+
+def _check_ui_load_comparison_overlay():
+    import ui_app as _ui
+
+    ts = _beyma_ts()
+    a = _dccav.suggest_alignment(ts)
+    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    freq = np.geomspace(10.0, 500.0, 300)
+    vtot, series = _ui._topology_comparison_series(ts, "DCCAV", box, freq, 2.83, 0.0)
+    assert abs(vtot - (a.vh_l + a.vl_l)) < 1e-9, vtot
+    assert set(series) == {"DCCAV", "Bass reflex", "Acoustic suspension", "Infinite baffle"}
+    for name, values in series.items():
+        assert values.shape == freq.shape, name
+        assert np.all(np.isfinite(values)), f"{name} comparison response must be finite"
+
+    reflex_box = _dccav.ReflexBox(vb_l=40.0, fb_hz=45.0)
+    vtot_r, series_r = _ui._topology_comparison_series(ts, "Bass reflex", reflex_box, freq, 2.83, 0.0)
+    assert abs(vtot_r - 40.0) < 1e-9, vtot_r
+    direct = _dccav.simulate_reflex(ts, reflex_box, freq, 2.83, 0.0)
+    np.testing.assert_allclose(series_r["Bass reflex"], direct.spl_total_db)
+
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["plot_compare_loads"] = True
+    at.run()
+    assert not at.exception, at.exception
+    assert any(
+        "Comparing the total response of the four loads" in caption.value
+        for caption in at.caption
+    ), "comparison caption missing on the main response chart"
+
+
+test("UI load comparison simulates the four topologies at equal volume", _check_ui_load_comparison_overlay)
+
+
+def _check_ui_share_link_roundtrip():
+    import ui_app as _ui
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.run()
+    at.session_state["load_type"] = "Bass reflex"
+    at.session_state["driver_fs_hz"] = 33.0
+    at.session_state["reflex_vb_l"] = 55.5
+    at.session_state["sim_auto_align"] = False
+    at.run()
+    share = next(b for b in at.button if b.label == "Share via URL")
+    share.click().run()
+    assert not at.exception, at.exception
+    token = at.query_params.get("d")
+    if isinstance(token, list):
+        token = token[0] if token else None
+    assert token, "share button must write the encoded design into the URL"
+
+    decoded = _ui._decode_share_payload(token)
+    assert decoded["load_type"] == "Bass reflex"
+    assert abs(float(decoded["driver_fs_hz"]) - 33.0) < 1e-9
+    assert abs(float(decoded["reflex_vb_l"]) - 55.5) < 1e-9
+
+    at2 = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at2.query_params["d"] = token
+    at2.run()
+    assert not at2.exception, at2.exception
+    assert at2.session_state["load_type"] == "Bass reflex"
+    assert abs(float(at2.session_state["driver_fs_hz"]) - 33.0) < 1e-9
+    assert abs(float(at2.session_state["reflex_vb_l"]) - 55.5) < 1e-9
+
+    at3 = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at3.query_params["d"] = "not-a-valid-token"
+    at3.run()
+    assert not at3.exception, at3.exception
+    assert any("could not be decoded" in warning.value for warning in at3.warning), (
+        "an invalid share token must degrade gracefully with a warning"
+    )
+
+
+test("UI share link round-trips the design through the URL", _check_ui_share_link_roundtrip)
+
+
+def _check_driver_bandwidth_classifier():
+    sub = _dccav.classify_driver_bandwidth(_dccav.get_driver_preset("Dayton Audio RSS315HO-4"))
+    assert sub.driver_class == "Subwoofer", sub
+    assert sub.f_le_hz is not None and 250.0 < sub.f_le_hz < 330.0, sub.f_le_hz
+
+    mid = _dccav.classify_driver_bandwidth(_beyma_ts())
+    assert mid.driver_class == "Midbass-capable", mid
+    expected_f_le = 6.0 / (2.0 * np.pi * 0.001)
+    assert abs(mid.f_le_hz - expected_f_le) < 1e-6, mid.f_le_hz
+    assert mid.reasons, "classification must expose its indicators"
+
+    tiny = _dccav.classify_driver_bandwidth(_dccav.get_driver_preset("Aiyima 4ohm 5w 40mm black"))
+    assert tiny.f_le_hz is None, "Le=0 must map to an unknown voice-coil corner"
+    assert tiny.driver_class in _dccav.DRIVER_CLASSES, tiny
+
+
+test("DCCAV bandwidth classifier separates subwoofers from midbass drivers", _check_driver_bandwidth_classifier)
+
+
+def _check_ui_class_filter():
+    import ui_app as _ui
+
+    names = tuple(
+        name for name in _dccav.driver_preset_names()
+        if not name.startswith("LSDB:")
+    )
+    subs = _ui._filter_driver_preset_names(
+        names, source="All", family="All", size="All", search="", driver_class="Subwoofer")
+    assert "Dayton Audio RSS315HO-4" in subs, subs
+    assert "Beyma 12CMV2" not in subs, subs
+    mids = _ui._filter_driver_preset_names(
+        names, source="All", family="All", size="All", search="", driver_class="Midbass-capable")
+    assert "Beyma 12CMV2" in mids, mids
+    assert "Dayton Audio RSS315HO-4" not in mids, mids
+
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["preset_class_filter"] = "Midbass-capable"
+    at.run()
+    assert not at.exception, at.exception
+    preset_box = next(s for s in at.selectbox if s.label == "Driver preset")
+    assert "Beyma 12CMV2" in preset_box.options, "midbass filter must keep the Beyma 12CMV2"
+    assert "Dayton Audio RSS315HO-4" not in preset_box.options, (
+        "midbass filter must drop the pure subwoofer"
+    )
+    labels = {metric.label for metric in at.metric}
+    assert {"VC corner", "Class"} <= labels, labels
+
+
+test("UI class filter separates subwoofers from midbass presets", _check_ui_class_filter)
+
+
 def _check_ui_reflex_volume_keeps_impedance_peaks():
     from streamlit.testing.v1 import AppTest
 
@@ -1153,6 +1519,10 @@ def _check_ui_batch_finder_ranks_presets_in_requested_volume():
     first = rows[0]
     assert abs(first["Vh L"] + first["Vl L"] - 20.0) < 1e-6, first
     assert np.isfinite(first["Peak dB"]), first
+    spark = first.get("Response")
+    assert isinstance(spark, list) and len(spark) > 10, "rows must carry a response sparkline"
+    assert max(spark) <= 1e-9 and min(spark) >= -30.0 - 1e-9, (min(spark), max(spark))
+    assert any(value < -1.0 for value in spark), "sparkline must show the LF roll-off"
 
 
 test("UI batch finder ranks drivers in a requested DCCAV volume", _check_ui_batch_finder_ranks_presets_in_requested_volume)
@@ -1396,8 +1766,17 @@ def _check_ui_supports_sealed_and_infinite_baffle():
         assert not at.exception, at.exception
         metrics = {metric.label: metric.value for metric in at.metric}
         assert expected_metric in metrics, (load_type, metrics)
+        assert not any(control.label == "Box volume (L)" for control in at.number_input)
         if load_type == "Infinite baffle":
             assert not any(button.label == "Optimize box now" for button in at.button)
+        else:
+            batch_button = next(button for button in at.button if button.label == "Find lowest drivers")
+            assert batch_button.disabled
+            at.session_state["opt_max_volume_l"] = 50.0
+            at.run()
+            assert not at.exception, at.exception
+            batch_button = next(button for button in at.button if button.label == "Find lowest drivers")
+            assert not batch_button.disabled
 
 
 test("UI supports sealed and infinite-baffle loads", _check_ui_supports_sealed_and_infinite_baffle)

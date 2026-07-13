@@ -116,12 +116,43 @@ For `Acoustic suspension`, controls are sealed `Vb`, `Qabs` and `Qleak`.
 Higher Q means lower loss for leakage/ports.  Very low Q values intentionally
 damp the response.
 
+### Simulation Controls
+
+The simulation section sets sweep range, point count and drive voltage.
+`Series R (ohm)` models amplifier output impedance, cable resistance and
+crossover-coil DCR in series with the driver.  Raising it reduces drive,
+reduces electrical damping, raises the effective system `Qes/Qts` and raises
+the impedance seen by the source.
+
+### Port Geometry
+
+Ported loads expose a **Port geometry** panel:
+
+- bass reflex: vent diameter
+- DCCAV: upper-port and lower-port diameters
+
+The app estimates physical tube length from the Helmholtz relation, reports the
+peak air speed and warns when:
+
+- the air speed exceeds the ~17 m/s chuffing guideline
+- the requested volume/tuning pair is impossible for the selected diameter,
+  quoting the zero-length tuning ceiling and the minimum feasible diameter
+
 ### Batch LF Finder
 
-`Box volume (L)` is an exact comparison volume, including when **Optimize each
-driver box** is enabled.  A 50 L batch therefore returns `Vh+Vl=50 L` for every
-DCCAV candidate or `Vb=50 L` for every bass-reflex/acoustic-suspension
-candidate.  Infinite baffle ignores this field because it has no enclosure.
+Batch LF Finder reuses **Optimizer goals → Max total volume** as its exact
+comparison volume, including when **Optimize each driver box** is enabled.  A
+50 L optimizer value therefore returns `Vh+Vl=50 L` for every DCCAV candidate
+or `Vb=50 L` for every bass-reflex/acoustic-suspension candidate.  A positive
+value is required for boxed loads; infinite baffle ignores it.
+
+Each Batch row can also show:
+
+- driver `Class`
+- response sparkline
+- price/currency when pricing data is available
+
+**Download batch CSV** exports the visible table columns except the sparkline.
 
 ## Outputs
 
@@ -135,6 +166,19 @@ The top metrics show:
 - minimum electrical impedance
 
 Suggested alignment metrics are shown separately for comparison.
+
+A second metrics row shows driver reference values derived from the T/S set:
+
+- `Eta0 ref`
+- `SPL 1W/1m`
+- `SPL 2.83V/1m`
+- `EBP`
+- `VC corner`
+- `Class`
+
+`VC corner` is `Re/(2*pi*Le)`: above this frequency the voice-coil inductance
+starts to roll the response off.  `Class` is a T/S-based screening heuristic:
+`Subwoofer`, `Woofer` or `Midbass-capable`.
 
 ### LF Load Response
 
@@ -150,13 +194,22 @@ output.  Sealed and infinite-baffle total response is the exposed cone front
 alone.  The SPL scale is an internal estimate for comparing alignments, not a
 calibrated far-field or full-range front-driver radiation model.
 
-### Plot Tools
+### Response Tab Tools
 
-The `Plot Tools` section above the response plot selects visible response and
-port traces and enables cursors.  Pen controls can all be off for a plot.
-Automatic cursors mark `F3`, `F6` and `F10`; manual cursors `M1` and `M2` can be
-placed at any frequency in the simulated range.  The cursor table reports
-frequency, total SPL, impedance and excursion at each cursor.
+The main plots are organized into tabs: `Response`, `Excursion`, `Impedance`,
+`Ports`, `Group Delay` and `Batch LF Finder`.
+
+Inside the `Response` tab:
+
+- response pens select visible traces
+- automatic cursors mark `F3`, `F6` and `F10`
+- manual cursors `M1` and `M2` can be placed anywhere in range
+- **Pin response** stores the current total-response curve for A/B overlay
+- **Compare loads** overlays DCCAV, bass reflex, acoustic suspension and
+  infinite baffle at equal comparison volume
+
+The cursor table reports frequency, total SPL, impedance and excursion at each
+cursor.
 
 ### Cone Excursion
 
@@ -173,11 +226,18 @@ the same acoustic load.
 The port plot compares upper and lower port volume velocity for ported loads.
 It is disabled for sealed and infinite-baffle simulations.
 
+### Group Delay
+
+The Group Delay tab plots the total-output group delay in milliseconds.  The
+same `group_delay_ms` data is also exported in the response CSV.
+
 ## Presets and Export
 
 - **Save preset** downloads current parameters, including the selected load type,
   as `.lfp` JSON.
 - **Load preset** reloads `.lfp` or JSON parameter files.
+- **Share via URL** serializes the current design into the browser URL so the
+  same state can be reopened or sent to someone else.
 - **Download response CSV** exports all simulated arrays.
 
 ## Validation Status

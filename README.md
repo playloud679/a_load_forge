@@ -1,5 +1,9 @@
 # Load Forge
 
+<p align="center">
+  <img src="assets/load_forge_header.png" alt="Load Forge" width="900">
+</p>
+
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, conventional **bass reflex**,
 **acoustic suspension** (sealed box) and ideal **infinite baffle**, all derived
@@ -18,6 +22,23 @@ simulates the lumped acoustic circuit and plots:
 The current model is a frequency-domain engineering simulator.  It is useful
 for comparing alignments and understanding trends; it is not a calibrated
 far-field measurement substitute.
+
+Current UI highlights:
+
+- response, excursion, impedance, ports, group-delay and batch tabs
+- response pinning for A/B overlays
+- one-click comparison across DCCAV, bass reflex, acoustic suspension and
+  infinite baffle at equal volume
+- URL-based design sharing
+- port-geometry estimates and chuffing diagnostics
+- driver reference metrics, voice-coil corner and T/S-based bandwidth class
+- batch sparklines and CSV export
+
+Retail prices in `data/driver_prices.json` can be refreshed concurrently from
+SoundImports, Blue Aran, Madisound and Parts Express with
+`tools/run_price_enrichment_cycle.py`.  The four providers run concurrently
+against independent checkpoints under `io/price_shards/`; a locked atomic merge
+updates the shared JSON only after their enrichment windows finish.
 
 ## Running it
 
@@ -71,6 +92,10 @@ The acoustic-suspension path uses a closed `Vb` and reports its classical
 `Fc` and `Qtc`; its starter targets `Qtc=0.707` when the driver's `Qts` permits.
 Infinite baffle has no box or tuning controls and assumes perfect isolation of
 the rear wave.
+
+Simulation controls also include an optional `Series R (ohm)` so amplifier
+output impedance, cable resistance and crossover DCR can be included in the
+drive, damping and impedance estimate.
 
 ## Project Structure
 

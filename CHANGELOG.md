@@ -2,6 +2,8 @@
 
 ## 0.2.0 (2026-07-13)
 
+- **Brand identity**: added the official Load Forge artwork as the application
+  header and repository banner.
 - **New acoustic loads**: added acoustic suspension (sealed box) and ideal
   infinite baffle alongside DCCAV and conventional bass reflex, with matching
   alignment metrics, plots, exports, Batch LF Finder routing and preset
@@ -10,8 +12,9 @@
   F3, ripple, excursion, group-delay and volume constraints for DCCAV, reflex
   and sealed boxes, backed by a faster vectorized DCCAV solver.
 - **Exact Batch volume**: optimized Batch LF Finder results now use the exact
-  requested enclosure volume; DCCAV keeps `Vh+Vl` fixed and reflex/sealed keep
-  `Vb` fixed while their remaining alignment parameters are optimized.
+  optimizer max-volume value; its duplicate Batch volume input was removed.
+  DCCAV keeps `Vh+Vl` fixed and reflex/sealed keep `Vb` fixed while their
+  remaining alignment parameters are optimized.
 - **Optimizer UI consistency**: apply buttons respect optimized alignment mode,
   active-box metrics report the simulated enclosure, and stale optimizer
   summaries are hidden when the driver, load, goals, voltage or box changes.
@@ -21,13 +24,31 @@
 - **Price enrichment tools**: added validated enrichment for SoundImports, Blue
   Aran, Madisound and Parts Express, including sitemap/category crawling,
   provider-specific extraction, accessory rejection and safe model matching.
+  The scheduled enrichment cycle runs all four providers concurrently against
+  isolated shards, then performs a locked atomic merge into the shared dataset.
 - **Chart robustness**: filter non-finite points, keep SPL zoom anchored to the
   total response and protect plot scaling from cursor labels and port spikes.
+- **Response workflow**: reorganized the UI into tabs for Response, Excursion,
+  Impedance, Ports, Group Delay and Batch LF Finder; added response pinning,
+  four-load comparison and share-via-URL design links.
+- **Port diagnostics**: added Helmholtz-based port geometry estimates, peak
+  air-speed reporting, chuffing warnings and explicit impossible-tuning
+  messages with zero-length tuning ceilings and minimum feasible diameters.
+- **Reference driver metrics**: added `Eta0 ref`, SPL at 1 W / 1 m, SPL at
+  2.83 V / 1 m, EBP, voice-coil inductive corner and T/S-based bandwidth
+  classification (`Subwoofer` / `Woofer` / `Midbass-capable`) in the UI and
+  Batch output.
+- **Series resistance**: added `Series R (ohm)` to the simulators and UI so
+  source impedance, cable resistance and crossover DCR affect drive level,
+  damping, impedance and thermal-limit reporting.
+- **Batch comparison polish**: each result row now includes a normalized
+  response sparkline, class metadata and CSV export of the visible table
+  columns.
 - **Terminology and compatibility**: use the standard English term `Acoustic
   suspension` while migrating presets saved with the former label.
 - **Documentation**: synchronized README, user guide, module contracts, agent
   guidance and changelog with the four supported acoustic loads and workflows.
-- **Verification**: `.venv/bin/python tests/test_all.py` passes with 42 passed,
+- **Verification**: `.venv/bin/python tests/test_all.py` passes with 55 passed,
   0 failed and 0 skipped tests.
 
 ## 0.1.0 (2026-07-07)
