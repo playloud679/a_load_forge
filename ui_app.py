@@ -1,8 +1,8 @@
 """
 Load Forge — acoustic-load simulator.
 
-Single-page Streamlit dashboard for DCCAV, bass-reflex, acoustic-suspension and
-infinite-baffle loads, with response plots and derived data in the workspace.
+Single-page Streamlit dashboard for DCCAV, fourth-order bandpass, bass-reflex,
+acoustic-suspension and infinite-baffle loads, with response plots and derived data.
 """
 
 from __future__ import annotations
@@ -75,7 +75,7 @@ st.markdown(
 
 
 _PARAM_PREFIXES = (
-    "driver_", "box_", "reflex_", "sealed_", "loss_", "sim_", "opt_", "load_type"
+    "driver_", "box_", "reflex_", "bandpass4_", "sealed_", "loss_", "sim_", "opt_", "load_type"
 )
 _RESPONSE_TRACE_OPTIONS = ("Total", "Cone", "Lower port")
 _PORT_TRACE_OPTIONS = ("Upper port", "Lower port")
@@ -94,6 +94,7 @@ _TRACE_COLORS = {
     "Impedance": "#355070",
     "Excursion": "#b35c00",
     "DCCAV": "#f28e8e",
+    "Bandpass 4th order": "#58d68d",
     "Bass reflex": "#7cc7ff",
     "Sealed": "#b8f26d",
     "Infinite baffle": "#e0aaff",
@@ -301,6 +302,19 @@ def _sealed_box_from_state() -> _dccav.SealedBox:
     )
 
 
+def _bandpass4_box_from_state() -> _dccav.Bandpass4Box:
+    return _dccav.Bandpass4Box(
+        vs_l=float(st.session_state["bandpass4_vs_l"]),
+        vp_l=float(st.session_state["bandpass4_vp_l"]),
+        fp_hz=float(st.session_state["bandpass4_fp_hz"]),
+        q_abs_s=float(st.session_state["bandpass4_q_abs_s"]),
+        q_abs_p=float(st.session_state["bandpass4_q_abs_p"]),
+        q_leak_s=float(st.session_state["bandpass4_q_leak_s"]),
+        q_leak_p=float(st.session_state["bandpass4_q_leak_p"]),
+        q_port=float(st.session_state["bandpass4_q_port"]),
+    )
+
+
 def _optional_positive(key: str) -> float | None:
     value = float(st.session_state.get(key, 0.0) or 0.0)
     return value if value > 0 else None
@@ -380,6 +394,12 @@ def _apply_sealed_alignment(alignment: _dccav.SealedAlignment):
     st.session_state["sealed_vb_l"] = float(alignment.vb_l)
 
 
+def _apply_bandpass4_alignment(alignment: _dccav.Bandpass4Alignment):
+    st.session_state["bandpass4_vs_l"] = float(alignment.vs_l)
+    st.session_state["bandpass4_vp_l"] = float(alignment.vp_l)
+    st.session_state["bandpass4_fp_hz"] = float(alignment.fp_hz)
+
+
 _OPT_OBJECTIVE_LABELS = {
     "Max extension": "extension",
     "Balanced": "balanced",
@@ -405,12 +425,18 @@ def _alignment_uses_optimizer() -> bool:
     )
 
 
-def _apply_optimized_box(box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.SealedBox):
+def _apply_optimized_box(
+    box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.Bandpass4Box | _dccav.SealedBox,
+):
     if isinstance(box, _dccav.ReflexBox):
         st.session_state["reflex_vb_l"] = float(box.vb_l)
         st.session_state["reflex_fb_hz"] = float(box.fb_hz)
     elif isinstance(box, _dccav.SealedBox):
         st.session_state["sealed_vb_l"] = float(box.vb_l)
+    elif isinstance(box, _dccav.Bandpass4Box):
+        st.session_state["bandpass4_vs_l"] = float(box.vs_l)
+        st.session_state["bandpass4_vp_l"] = float(box.vp_l)
+        st.session_state["bandpass4_fp_hz"] = float(box.fp_hz)
     else:
         st.session_state["box_vh_l"] = float(box.vh_l)
         st.session_state["box_fh_hz"] = float(box.fh_hz)
@@ -432,12 +458,17 @@ def _optimized_summary(optimized: _dccav.OptimizedAlignment) -> str:
 
 
 def _optimizer_box_signature(
-    box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.SealedBox,
+    box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.Bandpass4Box | _dccav.SealedBox,
 ) -> tuple:
     if isinstance(box, _dccav.ReflexBox):
         return ("reflex", box.vb_l, box.fb_hz, box.q_abs, box.q_leak, box.q_port)
     if isinstance(box, _dccav.SealedBox):
         return ("sealed", box.vb_l, box.q_abs, box.q_leak)
+    if isinstance(box, _dccav.Bandpass4Box):
+        return (
+            "bandpass4", box.vs_l, box.vp_l, box.fp_hz,
+            box.q_abs_s, box.q_abs_p, box.q_leak_s, box.q_leak_p, box.q_port,
+        )
     return (
         "dccav", box.vh_l, box.fh_hz, box.vl_l, box.fl_hz,
         box.q_abs_h, box.q_abs_l, box.q_leak_h, box.q_leak_l,
@@ -448,7 +479,7 @@ def _optimizer_box_signature(
 def _optimizer_result_context(
     driver: _dccav.DriverTS,
     load_type: str,
-    box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.SealedBox,
+    box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.Bandpass4Box | _dccav.SealedBox,
 ) -> tuple:
     goals = _optimizer_goals_from_state()
     return (
@@ -466,6 +497,8 @@ def _current_optimizer_summary(driver: _dccav.DriverTS) -> str | None:
         box = _reflex_box_from_state()
     elif load_type == "Sealed":
         box = _sealed_box_from_state()
+    elif load_type == "Bandpass 4th order":
+        box = _bandpass4_box_from_state()
     elif load_type == "DCCAV":
         box = _box_from_state()
     else:
@@ -482,6 +515,8 @@ def _run_box_optimizer(driver: _dccav.DriverTS) -> _dccav.OptimizedAlignment:
         template = _reflex_box_from_state()
     elif load_type == "Sealed":
         template = _sealed_box_from_state()
+    elif load_type == "Bandpass 4th order":
+        template = _bandpass4_box_from_state()
     elif load_type == "Infinite baffle":
         raise ValueError("Infinite baffle has no box to optimize")
     else:
@@ -510,6 +545,8 @@ def _apply_suggested_box_for(driver: _dccav.DriverTS):
         _apply_reflex_alignment(_dccav.suggest_reflex_alignment(driver))
     elif load_type == "Sealed":
         _apply_sealed_alignment(_dccav.suggest_sealed_alignment(driver))
+    elif load_type == "Bandpass 4th order":
+        _apply_bandpass4_alignment(_dccav.suggest_bandpass4_alignment(driver))
     elif load_type == "Infinite baffle":
         return
     else:
@@ -523,6 +560,8 @@ def _apply_empirical_box_for(driver: _dccav.DriverTS) -> None:
         _apply_reflex_alignment(_dccav.suggest_reflex_alignment(driver))
     elif load_type == "Sealed":
         _apply_sealed_alignment(_dccav.suggest_sealed_alignment(driver))
+    elif load_type == "Bandpass 4th order":
+        _apply_bandpass4_alignment(_dccav.suggest_bandpass4_alignment(driver))
     elif load_type == "DCCAV":
         _apply_alignment(_dccav.suggest_alignment(driver))
 
@@ -951,8 +990,10 @@ def _response_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
         series["Total"] = result.spl_total_db
     if st.session_state.get("plot_response_driver", True):
         series["Cone"] = result.spl_driver_db
-    if st.session_state.get("plot_response_lower_port", True) and load_type in {"DCCAV", "Bass reflex"}:
-        label = "Vent" if load_type == "Bass reflex" else "Lower port"
+    if st.session_state.get("plot_response_lower_port", True) and load_type in {
+        "DCCAV", "Bass reflex", "Bandpass 4th order",
+    }:
+        label = "Vent" if load_type in {"Bass reflex", "Bandpass 4th order"} else "Lower port"
         series[label] = result.spl_port_db
     if st.session_state.get("plot_response_mol", False):
         series["MOL"] = result.mol_db
@@ -986,12 +1027,12 @@ def _response_y_domain(result: _dccav.SimulationResult, series: dict[str, np.nda
 def _port_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
     series = {}
     load_type = st.session_state.get("load_type", "DCCAV")
-    if load_type not in {"DCCAV", "Bass reflex"}:
+    if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order"}:
         return series
     if st.session_state.get("plot_port_upper", True) and load_type == "DCCAV":
         series["Upper port"] = result.port_h_velocity
     if st.session_state.get("plot_port_lower", True):
-        label = "Vent" if load_type == "Bass reflex" else "Lower port"
+        label = "Vent" if load_type in {"Bass reflex", "Bandpass 4th order"} else "Lower port"
         series[label] = result.port_l_velocity
     return series
 
@@ -1239,6 +1280,8 @@ def _pin_label(load_type: str, box) -> str:
         preset = f"{preset} ({config})"
     if load_type == "Bass reflex":
         box_txt = f"Vb {box.vb_l:.1f} L · Fb {box.fb_hz:.1f} Hz"
+    elif load_type == "Bandpass 4th order":
+        box_txt = f"Vs {box.vs_l:.1f} L / Vp {box.vp_l:.1f} L · Fp {box.fp_hz:.1f} Hz"
     elif load_type == "Sealed":
         box_txt = f"Vb {box.vb_l:.1f} L"
     elif load_type == "Infinite baffle":
@@ -1284,7 +1327,7 @@ def _topology_comparison_series(
     voltage_v: float,
     series_r_ohm: float,
 ) -> tuple[float, dict[str, np.ndarray]]:
-    """Simulate the four loads at a shared total volume for the overlay chart.
+    """Simulate the loads at a shared total volume for the overlay chart.
 
     The active load keeps its exact box; the other topologies use their
     standard starters constrained to the same total volume.  Infinite baffle
@@ -1293,6 +1336,8 @@ def _topology_comparison_series(
     """
     if load_type in {"Bass reflex", "Sealed"}:
         vtot = float(box.vb_l)
+    elif load_type == "Bandpass 4th order":
+        vtot = float(box.vs_l + box.vp_l)
     elif load_type == "Infinite baffle":
         vtot = float(ts.vas_l)
     else:
@@ -1303,6 +1348,14 @@ def _topology_comparison_series(
         series["DCCAV"] = _dccav.simulate(ts, d_box, freq, voltage_v, series_r_ohm).spl_total_db
     except Exception:
         logger.exception("Comparison DCCAV simulation failed")
+    try:
+        bp_start = _dccav.suggest_bandpass4_alignment(ts)
+        bp_box = box if load_type == "Bandpass 4th order" else _dccav.design_space_box(
+            ts, "Bandpass 4th order", vtot, bp_start.fp_hz)
+        series["Bandpass 4th order"] = _dccav.simulate_bandpass4(
+            ts, bp_box, freq, voltage_v, series_r_ohm).spl_total_db
+    except Exception:
+        logger.exception("Comparison bandpass simulation failed")
     try:
         r_box = box if load_type == "Bass reflex" else _dccav.ReflexBox(
             vb_l=vtot, fb_hz=_dccav.suggest_reflex_alignment(ts).fb_hz)
@@ -1470,6 +1523,10 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
     if load_type == "Bass reflex":
         st.session_state["reflex_vb_l"] = float(row["Vb L"])
         st.session_state["reflex_fb_hz"] = float(row["Fb Hz"])
+    elif load_type == "Bandpass 4th order":
+        st.session_state["bandpass4_vs_l"] = float(row["Vs L"])
+        st.session_state["bandpass4_vp_l"] = float(row["Vp L"])
+        st.session_state["bandpass4_fp_hz"] = float(row["Fp Hz"])
     elif load_type == "Sealed":
         st.session_state["sealed_vb_l"] = float(row["Vb L"])
     elif load_type == "DCCAV":
@@ -1497,6 +1554,8 @@ def _apply_pending_atlas_point() -> None:
         driver = _driver_from_state()
         if load_type == "Bass reflex":
             template = _reflex_box_from_state()
+        elif load_type == "Bandpass 4th order":
+            template = _bandpass4_box_from_state()
         elif load_type == "Sealed":
             template = _sealed_box_from_state()
         else:
@@ -1515,6 +1574,8 @@ def _apply_pending_atlas_point() -> None:
 def _atlas_loss_signature(load_type: str, box) -> tuple:
     if load_type == "Bass reflex":
         return (box.q_abs, box.q_leak, box.q_port)
+    if load_type == "Bandpass 4th order":
+        return (box.q_abs_s, box.q_abs_p, box.q_leak_s, box.q_leak_p, box.q_port)
     if load_type == "Sealed":
         return (box.q_abs, box.q_leak)
     return (
@@ -1534,6 +1595,11 @@ def _design_space_cached(
             q_abs=losses[0], q_leak=losses[1], q_port=losses[2])
     elif load_type == "Sealed":
         template = _dccav.SealedBox(vb_l=ts.vas_l, q_abs=losses[0], q_leak=losses[1])
+    elif load_type == "Bandpass 4th order":
+        template = _dccav.Bandpass4Box(
+            vs_l=1.0, vp_l=1.0, fp_hz=80.0,
+            q_abs_s=losses[0], q_abs_p=losses[1],
+            q_leak_s=losses[2], q_leak_p=losses[3], q_port=losses[4])
     else:
         template = _dccav.DccavBox(
             vh_l=1.0, fh_hz=100.0, vl_l=1.0, fl_hz=50.0,
@@ -1904,6 +1970,8 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             columns.insert(5, "Value")
     if load_type == "Bass reflex":
         columns += ["Vb L", "Fb Hz"]
+    elif load_type == "Bandpass 4th order":
+        columns += ["Vs L", "Vp L", "Fp Hz"]
     elif load_type == "Sealed":
         columns += ["Vb L", "Fc Hz", "Qtc"]
     elif load_type == "Infinite baffle":
@@ -1938,6 +2006,9 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             "Fb Hz": st.column_config.NumberColumn(format="%.1f"),
             "Fc Hz": st.column_config.NumberColumn(format="%.1f"),
             "Qtc": st.column_config.NumberColumn(format="%.3f"),
+            "Vs L": st.column_config.NumberColumn(format="%.2f"),
+            "Vp L": st.column_config.NumberColumn(format="%.2f"),
+            "Fp Hz": st.column_config.NumberColumn(format="%.1f"),
             "Vh L": st.column_config.NumberColumn(format="%.2f"),
             "fh Hz": st.column_config.NumberColumn(format="%.1f"),
             "Vl L": st.column_config.NumberColumn(format="%.2f"),
@@ -1984,6 +2055,12 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                 f"Vb {float(selected_row['Vb L']):.2f} L · "
                 f"Fb {float(selected_row['Fb Hz']):.1f} Hz"
             )
+        elif load_type == "Bandpass 4th order":
+            st.caption(
+                f"Vs sealed {float(selected_row['Vs L']):.2f} L · "
+                f"Vp ported {float(selected_row['Vp L']):.2f} L · "
+                f"Fp {float(selected_row['Fp Hz']):.1f} Hz"
+            )
         elif load_type == "Sealed":
             st.caption(
                 f"Vb {float(selected_row['Vb L']):.2f} L · "
@@ -2026,7 +2103,7 @@ def _render_response_tab(
     sim_series_r: float,
 ) -> None:
     chart_sig = _chart_signature()
-    has_ports = load_type in {"DCCAV", "Bass reflex"}
+    has_ports = load_type in {"DCCAV", "Bass reflex", "Bandpass 4th order"}
     compare_loads_on = bool(st.session_state.get("plot_compare_loads", False))
     r1, r2, r3, r4, r5 = st.columns(5)
     with r1:
@@ -2080,6 +2157,12 @@ def _render_response_tab(
             "Bass-reflex total response is the vector sum of the exposed cone "
             "front radiation and the vent. The model is low-frequency only; "
             "it does not include baffle step, breakup, room gain or crossover behaviour."
+        )
+    elif load_type == "Bandpass 4th order":
+        st.caption(
+            "Fourth-order bandpass total response is the front vent only: the cone is "
+            "enclosed between a sealed rear chamber and a ported front chamber. The "
+            "cone trace shows internal motion and is not an additional radiating source."
         )
     elif load_type == "Sealed":
         st.caption(
@@ -2135,7 +2218,7 @@ def _render_response_tab(
         if comp_series:
             compare_series = comp_series
             st.caption(
-                f"Comparing the total response of the four loads at ~{comp_vtot:.1f} L. "
+                f"Comparing total response at ~{comp_vtot:.1f} L. "
                 f"The active load ({load_type}) uses its exact box; the others use their "
                 "standard starter alignments at the same total volume. Infinite baffle "
                 "ignores volume. Trace pens are suspended while comparing."
@@ -2202,14 +2285,14 @@ def _render_ports_tab(
     load_type: str,
 ) -> None:
     chart_sig = _chart_signature()
-    if load_type not in {"DCCAV", "Bass reflex"}:
+    if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order"}:
         st.caption("The current load type has no ports.")
         return
     p1, p2 = st.columns(2)
     with p1:
         st.checkbox("Upper port", key="plot_port_upper", disabled=load_type != "DCCAV")
     with p2:
-        st.checkbox("Lower port V", key="plot_port_lower")
+        st.checkbox("Vent volume velocity", key="plot_port_lower")
     st.subheader("Port Volume Velocity")
     if _port_series(result):
         st.altair_chart(_plot_ports(result), width="stretch", key=f"ports_chart_{chart_sig}")
@@ -2304,6 +2387,12 @@ _default("reflex_q_leak", _DEFAULT_REFLEX_Q_LEAK)
 _default("reflex_q_port", _DEFAULT_REFLEX_Q_PORT)
 _default("reflex_custom_losses", False)
 _default("reflex_port_d_cm", 5.0)
+_default("bandpass4_q_abs_s", 15.0)
+_default("bandpass4_q_abs_p", 15.0)
+_default("bandpass4_q_leak_s", 1000.0)
+_default("bandpass4_q_leak_p", 1000.0)
+_default("bandpass4_q_port", 15.0)
+_default("bandpass4_port_d_cm", 5.0)
 _default("box_port_d_h_cm", 5.0)
 _default("box_port_d_l_cm", 5.0)
 _default("sealed_q_abs", 15.0)
@@ -2375,10 +2464,12 @@ if _share_token and st.session_state.get("_applied_share_token") != _share_token
 try:
     _seed_alignment = _dccav.suggest_alignment(_driver_from_state())
     _seed_reflex = _dccav.suggest_reflex_alignment(_driver_from_state())
+    _seed_bandpass4 = _dccav.suggest_bandpass4_alignment(_driver_from_state())
     _seed_sealed = _dccav.suggest_sealed_alignment(_driver_from_state())
 except Exception:
     _seed_alignment = _dccav.DccavAlignment(3.1, 162.0, 6.25, 62.0, 51.5)
     _seed_reflex = _dccav.ReflexAlignment(11.52, 48.14)
+    _seed_bandpass4 = _dccav.Bandpass4Alignment(4.09, 11.52, 94.0)
     _seed_sealed = _dccav.SealedAlignment(11.52, 68.1, 0.512)
 _default("box_vh_l", float(_seed_alignment.vh_l))
 _default("box_fh_hz", float(_seed_alignment.fh_hz))
@@ -2386,6 +2477,9 @@ _default("box_vl_l", float(_seed_alignment.vl_l))
 _default("box_fl_hz", float(_seed_alignment.fl_hz))
 _default("reflex_vb_l", float(_seed_reflex.vb_l))
 _default("reflex_fb_hz", float(_seed_reflex.fb_hz))
+_default("bandpass4_vs_l", float(_seed_bandpass4.vs_l))
+_default("bandpass4_vp_l", float(_seed_bandpass4.vp_l))
+_default("bandpass4_fp_hz", float(_seed_bandpass4.fp_hz))
 _default("sealed_vb_l", float(_seed_sealed.vb_l))
 _sync_auto_alignment_if_needed()
 
@@ -2395,7 +2489,7 @@ if _BRAND_IMAGE.exists():
 else:
     st.title("Load Forge")
 st.caption(
-    f"v{_VERSION} · DCCAV / bass reflex / acoustic suspension / infinite baffle · "
+    f"v{_VERSION} · DCCAV / bandpass 4th / bass reflex / sealed / infinite baffle · "
     "T/S driven response model"
 )
 
@@ -2451,6 +2545,7 @@ with project_col:
 current_ts = None
 current_alignment = None
 current_reflex_alignment = None
+current_bandpass4_alignment = None
 current_sealed_alignment = None
 derived = None
 
@@ -2459,7 +2554,7 @@ with st.sidebar:
     st.subheader("1 · Driver" if workspace_mode == "Design a box" else "Candidate library")
     st.selectbox(
         "Load type",
-        ["Infinite baffle", "Sealed", "Bass reflex", "DCCAV"],
+        ["Infinite baffle", "Sealed", "Bass reflex", "Bandpass 4th order", "DCCAV"],
         key="load_type",
         on_change=_on_load_type_change,
         help="Acoustic load simulated in the Design workspace and used to rank "
@@ -2641,6 +2736,7 @@ with st.sidebar:
             current_ts = _driver_from_state()
             current_alignment = _dccav.suggest_alignment(current_ts)
             current_reflex_alignment = _dccav.suggest_reflex_alignment(current_ts)
+            current_bandpass4_alignment = _dccav.suggest_bandpass4_alignment(current_ts)
             current_sealed_alignment = _dccav.suggest_sealed_alignment(current_ts)
             derived = _dccav.complete_driver(current_ts)
             load_type = st.session_state["load_type"]
@@ -2666,6 +2762,21 @@ with st.sidebar:
                 )
                 if box_strategy == "Manual" and st.button(
                     "Reset to sealed starter", use_container_width=True, key="apply_box_sealed"
+                ):
+                    _apply_empirical_box_for(current_ts)
+                    _mark_auto_alignment_synced(current_ts)
+                    st.rerun()
+            elif load_type == "Bandpass 4th order":
+                st.subheader("4th-order Bandpass Alignment")
+                st.caption(
+                    f"Qbp starter: sealed rear Vs {current_bandpass4_alignment.vs_l:.2f} L · "
+                    f"ported front Vp {current_bandpass4_alignment.vp_l:.2f} L / "
+                    f"Fp {current_bandpass4_alignment.fp_hz:.1f} Hz · "
+                    f"Vtot {current_bandpass4_alignment.vs_l + current_bandpass4_alignment.vp_l:.2f} L"
+                )
+                if box_strategy == "Manual" and st.button(
+                    "Reset to bandpass starter", use_container_width=True,
+                    key="apply_box_bandpass4",
                 ):
                     _apply_empirical_box_for(current_ts)
                     _mark_auto_alignment_synced(current_ts)
@@ -2724,6 +2835,7 @@ with st.sidebar:
             current_ts = None
             current_alignment = None
             current_reflex_alignment = None
+            current_bandpass4_alignment = None
             current_sealed_alignment = None
             derived = None
             st.error(f"Driver parameters are invalid - check the T/S values. ({exc})")
@@ -2779,6 +2891,41 @@ with st.sidebar:
                 st.number_input(
                     "Qleak sealed", min_value=1.0, max_value=10000.0, step=10.0,
                     key="sealed_q_leak")
+        elif st.session_state["load_type"] == "Bandpass 4th order":
+            b1, b2 = st.columns(2)
+            with b1:
+                _box_number_with_nudge(
+                    "Vs sealed rear (L)", "bandpass4_vs_l", min_value=0.05,
+                    max_value=100000.0, step=0.01, disabled=box_edit_disabled)
+            with b2:
+                _box_number_with_nudge(
+                    "Vp ported front (L)", "bandpass4_vp_l", min_value=0.05,
+                    max_value=100000.0, step=0.01, disabled=box_edit_disabled)
+            _box_number_with_nudge(
+                "Fp front tuning (Hz)", "bandpass4_fp_hz", min_value=1.0,
+                max_value=5000.0, step=0.1, disabled=box_edit_disabled)
+            with st.expander("Bandpass loss factors"):
+                l1, l2 = st.columns(2)
+                with l1:
+                    st.number_input("Qabs sealed rear", min_value=0.2, max_value=500.0,
+                                    step=0.5, key="bandpass4_q_abs_s")
+                    st.number_input("Qleak sealed rear", min_value=1.0, max_value=10000.0,
+                                    step=10.0, key="bandpass4_q_leak_s")
+                with l2:
+                    st.number_input("Qabs ported front", min_value=0.2, max_value=500.0,
+                                    step=0.5, key="bandpass4_q_abs_p")
+                    st.number_input("Qleak ported front", min_value=1.0, max_value=10000.0,
+                                    step=10.0, key="bandpass4_q_leak_p")
+                    st.number_input("Qport front", min_value=0.2, max_value=500.0,
+                                    step=0.5, key="bandpass4_q_port")
+            with st.expander("Port geometry"):
+                st.number_input(
+                    "Front vent diameter (cm, 0 = off)", min_value=0.0,
+                    max_value=60.0, step=0.5, key="bandpass4_port_d_cm")
+                st.caption(
+                    "Only the front-chamber vent radiates externally; length uses "
+                    "one flanged and one free end."
+                )
         elif st.session_state["load_type"] == "Infinite baffle":
             st.caption("No box controls: the rear wave is assumed to be fully isolated by an infinite partition.")
         else:
@@ -2871,11 +3018,14 @@ try:
         raise ValueError("F max must be greater than F min")
     load_type = st.session_state["load_type"]
     is_reflex = load_type == "Bass reflex"
+    is_bandpass4 = load_type == "Bandpass 4th order"
     is_sealed = load_type == "Sealed"
     is_infinite_baffle = load_type == "Infinite baffle"
     chart_sig = _chart_signature()
     if is_reflex:
         box = _reflex_box_from_state()
+    elif is_bandpass4:
+        box = _bandpass4_box_from_state()
     elif is_sealed:
         box = _sealed_box_from_state()
     elif is_infinite_baffle:
@@ -2891,6 +3041,8 @@ try:
     sim_series_r = float(st.session_state.get("sim_series_r_ohm", 0.0))
     if is_reflex:
         result = _dccav.simulate_reflex(current_ts, box, freq, sim_voltage, sim_series_r)
+    elif is_bandpass4:
+        result = _dccav.simulate_bandpass4(current_ts, box, freq, sim_voltage, sim_series_r)
     elif is_sealed:
         result = _dccav.simulate_sealed(current_ts, box, freq, sim_voltage, sim_series_r)
     elif is_infinite_baffle:
@@ -2904,6 +3056,8 @@ try:
         _dccav.alignment_diagnostics(current_ts, box)
         + _dccav.response_sanity_warnings(current_ts, box, thresholds)
     )
+    if is_bandpass4:
+        model_warnings.extend(_dccav.bandpass4_diagnostics(current_ts, box, result))
     if is_reflex and len(z_peak_freqs) < 2:
         model_warnings.append(
             "Bass reflex should show two impedance peaks in the simulated range; "
@@ -2919,6 +3073,11 @@ try:
         if vent_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
                 "Vent", vent_d_cm, box.vb_l, box.fb_hz, 1.463, result, "lower"))
+    elif is_bandpass4:
+        vent_d_cm = float(st.session_state.get("bandpass4_port_d_cm", 0.0))
+        if vent_d_cm > 0.0:
+            port_geometry_rows.append(_port_geometry_row(
+                "Front vent", vent_d_cm, box.vp_l, box.fp_hz, 1.463, result, "lower"))
     elif load_type == "DCCAV":
         upper_d_cm = float(st.session_state.get("box_port_d_h_cm", 0.0))
         lower_d_cm = float(st.session_state.get("box_port_d_l_cm", 0.0))
@@ -2962,7 +3121,12 @@ try:
     m3.metric("Max excursion", f"{metrics['max_excursion_mm']:.2f} mm")
     m4.metric("Min impedance", f"{metrics['min_impedance_ohm']:.2f} Ω")
     if m5 is not None:
-        vtot_l = box.vb_l if (is_reflex or is_sealed) else box.vh_l + box.vl_l
+        if is_reflex or is_sealed:
+            vtot_l = box.vb_l
+        elif is_bandpass4:
+            vtot_l = box.vs_l + box.vp_l
+        else:
+            vtot_l = box.vh_l + box.vl_l
         m5.metric("Box volume", f"{vtot_l:.1f} L")
 
     for warning in model_warnings:
@@ -2980,6 +3144,17 @@ try:
             a3.metric("Eq sealed Fc", f"{_dccav.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
             if current_reflex_alignment is not None:
                 a4.metric("Starter Vb=Vas", f"{current_reflex_alignment.vb_l:.2f} L")
+        elif is_bandpass4:
+            a1, a2, a3, a4, a5 = st.columns(5)
+            a1.metric("Vs sealed (active)", f"{box.vs_l:.2f} L")
+            a2.metric("Vp ported (active)", f"{box.vp_l:.2f} L")
+            a3.metric("Fp (active)", f"{box.fp_hz:.1f} Hz")
+            a4.metric("Vtot (active)", f"{box.vs_l + box.vp_l:.2f} L")
+            if current_bandpass4_alignment is not None:
+                a5.metric(
+                    "Starter Vtot",
+                    f"{current_bandpass4_alignment.vs_l + current_bandpass4_alignment.vp_l:.2f} L",
+                )
         elif is_sealed:
             fc_hz, qtc = _dccav.sealed_system_metrics(current_ts, box)
             a1, a2, a3, a4 = st.columns(4)

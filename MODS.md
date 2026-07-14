@@ -13,11 +13,21 @@ Traccia operativa multi-sessione. Regole d'uso:
 
 ## 2. Backend
 
-- [ ] **2.3 Nuove topologie: bandpass 4°/6° ordine + radiatore passivo**
+- [~] **2.3 Nuove topologie: bandpass 4°/6° ordine + radiatore passivo**
   Riusare il solver a 2 nodi vettorizzato del DCCAV: bandpass = camera sealed
   + camera ported; PR = ramo porto con massa+compliance+perdita propria.
   Estendere optimizer, Find a driver, preset `.lfp`, metriche e warning.
   Lavoro grosso: spezzare in sotto-sessioni (4° ordine → PR → 6° ordine).
+  **Tranche 1 completata nel working tree — 2026-07-14:** bandpass 4° ordine
+  end-to-end. Nuovi `Bandpass4Alignment` / `Bandpass4Box`, starter Qbp,
+  `simulate_bandpass4` (cono interamente racchiuso, solo vent frontale
+  radiante), optimizer a `Vs+Vp` fisso, atlante Vtot/Fp, Monte Carlo,
+  confronto carichi e Finder con righe/apply `Vs`/`Vp`/`Fp`. UI completa con
+  Suggested/Optimized/Manual, perdite delle due camere, geometria vent,
+  metriche, warning e persistenza `.lfp`/share. Facciata/package, README,
+  user guide e doc modulo aggiornati. Verifica: py_compile OK, ruff OK,
+  AppTest bandpass OK, suite completa 74 pass / 0 fail / 0 skip.
+  **Prossima tranche: radiatore passivo; poi bandpass 6° ordine.**
 
 ## 4. Funzioni innovative
 

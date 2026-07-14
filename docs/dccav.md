@@ -2,8 +2,8 @@
 
 Public API reference for the acoustic-load simulators: DCCAV / double series
 resonator based on the PCPaudio/G.P. Matarazzo article `Teoría y práctica del
-doble resonador en serie`, conventional bass reflex, closed-box acoustic
-suspension and infinite baffle.
+doble resonador en serie`, fourth-order bandpass, conventional bass reflex,
+closed-box acoustic suspension and infinite baffle.
 
 `src/dccav.py` is a compatibility facade: the implementation lives in
 `src/engine.py` (physics, simulation, optimizer, analysis — see
@@ -59,6 +59,16 @@ driver -> box volume || vent
 `simulate_reflex()` uses the same driver model, exposed front cone radiation,
 box compliance, port mass/loss and electrical impedance calculation as the
 DCCAV solver, but with a single acoustic node.
+
+The fourth-order bandpass topology encloses the driver between two chambers:
+
+```text
+sealed rear chamber -> driver -> ported front chamber || vent -> listener
+```
+
+Both chamber impedances load the cone in series. Only the front vent radiates
+externally; the returned cone SPL is an internal-motion diagnostic and is not
+summed into total response.
 
 The acoustic-suspension topology is a sealed compliance behind the driver:
 
@@ -322,6 +332,14 @@ Fb = Fs
 This is intentionally plain; it is meant as an editable starting point rather
 than a named classic alignment.
 
+### `suggest_bandpass4_alignment(ts, target_qbp=0.707) -> Bandpass4Alignment`
+
+Returns a symmetrical fourth-order starter with sealed rear volume
+`Vs = Vas / ((Qbp/Qts)^2 - 1)` when feasible (otherwise `4*Vas`), ported
+front volume `Vp = 2*Qbp^2*Vas`, and front tuning `Fp = Fs*Qbp/Qts`.
+`Bandpass4Box` adds independent absorption/leakage factors for both chambers
+and `Qport` for the front vent.
+
 ### `suggest_sealed_alignment(ts, target_qtc=0.707) -> SealedAlignment`
 
 Returns the classical closed-box volume for the requested `Qtc` when
@@ -338,16 +356,18 @@ Returns `(Fc, Qtc)` for a `SealedBox` using the classical `Vas/Vb` relations.
 
 Goal-driven box optimizer used by the UI's `Optimized` box strategy.
 It runs a bounded compass pattern search in log-space, starting from the
-empirical article alignment (DCCAV: `Vh`, `Vl`, `fl`, `fh/fl`), reflex starting
-point (`Vb`, `Fb`) or classical sealed alignment (`Vb`).  Loss factors are
+empirical article alignment (DCCAV: `Vh`, `Vl`, `fl`, `fh/fl`), bandpass
+starter (`Vs`, `Vp`, `Fp`), reflex starting point (`Vb`, `Fb`) or classical
+sealed alignment (`Vb`).  Loss factors are
 copied from `box_template` when one is provided, otherwise defaults are used.
-Accepted `load_type` values are `"DCCAV"`, `"Bass reflex"` and `"Sealed"`;
+Accepted `load_type` values are `"DCCAV"`, `"Bandpass 4th order"`,
+`"Bass reflex"` and `"Sealed"`;
 the legacy labels `"Acoustic suspension"` and `"Suspension pneumatic"` are
 canonicalized to `"Sealed"` for backward compatibility with old `.lfp` files
 and callers.
 Infinite baffle is intentionally rejected because it has no box parameter.
 The optional `fixed_total_volume_l` argument constrains every candidate to an
-exact `Vh+Vl` (or `Vb`). The `Find a driver` workspace supplies this from its
+exact `Vh+Vl`, `Vs+Vp` or `Vb`. The `Find a driver` workspace supplies this from its
 independent `Comparison volume` control; it is not coupled to the active
 design optimizer goals.
 
@@ -357,7 +377,7 @@ design optimizer goals.
   presets that trade simulated F3 against passband ripple
 - `max_total_volume_l`: hard cap on `Vh+Vl` (or `Vb`); every search candidate
   is projected onto the feasible volume boundary.  The minimum usable cap is
-  0.10 L for DCCAV (two 0.05 L chambers) and 0.05 L for reflex/sealed
+  0.10 L for DCCAV/bandpass (two 0.05 L chambers) and 0.05 L for reflex/sealed
 - `target_f3_hz`: pushing extension below the target earns nothing, and once
   the target is met a stronger size regularizer prefers the compact box
 - `max_ripple_db`: allowed peak-to-valley SPL spread in the passband window
@@ -373,7 +393,11 @@ The score also re-applies the `response_sanity_warnings()` credibility limits
 optimizer cannot chase loss-free fake extension, and the DCCAV `fh/fl` ratio is
 bounded to `[1.2, 4.5]` so the load keeps its double-resonator character.
 
-`OptimizedAlignment` returns the winning `DccavBox`/`ReflexBox`/`SealedBox` plus achieved
+For bandpass, ripple/group delay stop at 90% of the upper -3 dB edge and the
+score rejects a missing edge or passband narrower than 1.4:1.
+
+`OptimizedAlignment` returns the winning `DccavBox`/`Bandpass4Box`/
+`ReflexBox`/`SealedBox` plus achieved
 `f3_hz`, `f10_hz`, `ripple_db`, `excursion_ratio`, `group_delay_ms`,
 `total_volume_l`, the final score and the evaluation count.
 
@@ -418,11 +442,11 @@ the band onto the nominal response.  The UI exposes it as the `Tolerance
 band` toggle in the Response tab (cached per parameter set, shaded area
 under the traces, disabled while comparing loads).
 
-### `design_space_box(ts, load_type, x, y, box_template=None) -> DccavBox | ReflexBox | SealedBox`
+### `design_space_box(ts, load_type, x, y, box_template=None) -> DccavBox | Bandpass4Box | ReflexBox | SealedBox`
 
 Builds the box for one point of the atlas plane.  `x`/`y` follow the atlas
-axes: reflex `Vb`/`Fb`, sealed `Vb` (y ignored), DCCAV total volume/`fl`
-with the Vh/Vl split and fh/fl ratio taken from the empirical starter.
+axes: reflex `Vb`/`Fb`, sealed `Vb` (y ignored), bandpass total `Vs+Vp`/`Fp`,
+or DCCAV total volume/`fl`. Two-chamber splits come from their starters.
 Loss factors are copied from a matching-type `box_template`.  Shared by the
 grid sweep and by the UI's click-to-apply so an applied point reproduces its
 cell exactly.
@@ -432,7 +456,8 @@ cell exactly.
 Sweeps the box plane and reports achievable `F3`/ripple per grid point via
 the optimizer metrics.  Log-spaced axes around the empirical starter:
 reflex `Vb` (0.3-3x starter) vs `Fb` (0.55-1.6x), DCCAV total volume vs
-`fl` (same spans), sealed a 1-D `Vb` sweep (0.2-4x Vas, `y_values` collapsed
+`fl`, bandpass total volume vs `Fp` (same spans), sealed a 1-D `Vb` sweep
+(0.2-4x Vas, `y_values` collapsed
 to one row).  Like the optimizer, evaluation is at `voltage_v` with zero
 series resistance; invalid grid cells stay `NaN`; infinite baffle and
 `resolution < 3` raise `ValueError`.  The UI exposes it as the `Atlas` tab:
@@ -609,6 +634,12 @@ array.  The returned `SimulationResult` uses the same fields as DCCAV:
 `spl_total_db` is exposed cone front plus vent, `spl_port_db` is the vent alone,
 `port_l_velocity` is the vent volume velocity and `port_h_velocity` is zero.
 
+### `simulate_bandpass4(ts, box, freq_hz=None, voltage_v=2.83, series_r_ohm=0.0) -> SimulationResult`
+
+Solves the enclosed driver against the summed sealed-rear and vented-front
+acoustic loads. Total SPL/phase/group delay come from the front vent alone;
+cone excursion and electrical impedance include both chamber loads.
+
 ### `simulate_sealed(ts, box, freq_hz=None, voltage_v=2.83, series_r_ohm=0.0) -> SimulationResult`
 
 Solves the driver against one closed acoustic compliance.  Total and cone SPL
@@ -637,8 +668,9 @@ frequency range.
 
 ### `equivalent_sealed_fc_hz(ts, box) -> float`
 
-Returns the closed-box resonance frequency for a `SealedBox`, `ReflexBox` volume
-or the total DCCAV chamber volume `Vh+Vl`.  For non-sealed loads this remains a
+Returns the closed-box resonance frequency for a `SealedBox`, `ReflexBox`
+volume, total bandpass volume `Vs+Vp` or DCCAV volume `Vh+Vl`. For non-sealed
+loads this remains a
 sanity comparison rather than their simulated resonance.
 
 ### `alignment_diagnostics(ts, box) -> list[str]`
@@ -653,6 +685,11 @@ Returns warnings when the computed low-frequency crossings contradict the box
 tuning constraints.  For example, an `F3` far below the lower tuning `fl` or far
 below the equivalent sealed `Fc` is flagged instead of being treated as a
 credible design result.
+
+### `bandpass4_diagnostics(ts, box, result=None) -> list[str]`
+
+Flags a front tuning far outside `0.5*Fs..4*Fs` and, when a result is supplied,
+a missing upper -3 dB edge that requires a wider simulation range.
 
 ### `response_threshold_frequencies(result, drops_db=(3, 6, 10)) -> dict`
 
@@ -675,6 +712,8 @@ If no true rising crossing exists in the simulated range, the returned value is
 - finite response arrays and sane metric signs
 - three local impedance crests for the DCCAV load
 - two local impedance crests for the bass-reflex load
+- fourth-order bandpass starter/simulation, two-chamber optimizer and exact
+  fixed-volume Finder row, plus UI selection/persistence controls
 - one local impedance crest plus zero port output for sealed and infinite-baffle loads
 - F3/F6/F10 threshold ordering for cursor placement
 - no fabricated F3 when a true threshold crossing is absent

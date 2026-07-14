@@ -97,6 +97,10 @@ def rank_preset_row(
             box = engine.ReflexBox(vb_l=float(target_volume_l), fb_hz=alignment.fb_hz)
         elif load_type == "Sealed":
             box = engine.SealedBox(vb_l=float(target_volume_l))
+        elif load_type == "Bandpass 4th order":
+            start = engine.suggest_bandpass4_alignment(ts)
+            box = engine.design_space_box(
+                ts, load_type, float(target_volume_l), start.fp_hz)
         elif load_type == "Infinite baffle":
             box = None
         else:
@@ -115,6 +119,9 @@ def rank_preset_row(
                 "fl Hz": np.nan,
                 "Fc Hz": np.nan,
                 "Qtc": np.nan,
+                "Vs L": np.nan,
+                "Vp L": np.nan,
+                "Fp Hz": np.nan,
             }
         elif load_type == "Sealed":
             result = engine.simulate_sealed(ts, box, freq, float(voltage_v))
@@ -128,6 +135,24 @@ def rank_preset_row(
                 "fl Hz": np.nan,
                 "Fc Hz": fc_hz,
                 "Qtc": qtc,
+                "Vs L": np.nan,
+                "Vp L": np.nan,
+                "Fp Hz": np.nan,
+            }
+        elif load_type == "Bandpass 4th order":
+            result = engine.simulate_bandpass4(ts, box, freq, float(voltage_v))
+            box_values = {
+                "Vb L": np.nan,
+                "Fb Hz": np.nan,
+                "Vh L": np.nan,
+                "fh Hz": np.nan,
+                "Vl L": np.nan,
+                "fl Hz": np.nan,
+                "Fc Hz": np.nan,
+                "Qtc": np.nan,
+                "Vs L": box.vs_l,
+                "Vp L": box.vp_l,
+                "Fp Hz": box.fp_hz,
             }
         elif load_type == "Infinite baffle":
             result = engine.simulate_infinite_baffle(ts, freq, float(voltage_v))
@@ -140,6 +165,9 @@ def rank_preset_row(
                 "fl Hz": np.nan,
                 "Fc Hz": ts.fs_hz,
                 "Qtc": ts.qts,
+                "Vs L": np.nan,
+                "Vp L": np.nan,
+                "Fp Hz": np.nan,
             }
         else:
             result = engine.simulate(ts, box, freq, float(voltage_v))
@@ -152,6 +180,9 @@ def rank_preset_row(
                 "fl Hz": box.fl_hz,
                 "Fc Hz": np.nan,
                 "Qtc": np.nan,
+                "Vs L": np.nan,
+                "Vp L": np.nan,
+                "Fp Hz": np.nan,
             }
         thresholds = engine.response_threshold_frequencies(result)
         return {

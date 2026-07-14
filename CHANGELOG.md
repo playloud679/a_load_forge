@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 (2026-07-14)
+
+- **Fourth-order bandpass (MODS 2.3, tranche 1)**: added a sealed-rear / vented-front
+  acoustic model where only the front vent radiates, with a Qbp starter,
+  two-chamber loss controls, excursion/impedance/MIL/MOL outputs, port geometry
+  and passband diagnostics. The topology is integrated with Suggested / Optimized /
+  Manual design, exact-volume Finder ranking, `.lfp` and share persistence,
+  Monte Carlo tolerance bands, the design-space atlas and equal-volume load
+  comparison. Verification: py_compile and ruff clean, Bandpass AppTest clean,
+  full suite 74 passed / 0 failed / 0 skipped.
+
 ## 0.3.0 (2026-07-14)
 
 - **Brand identity**: added the official Load Forge artwork as the application

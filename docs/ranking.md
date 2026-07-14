@@ -9,8 +9,8 @@ detailed contracts live in `docs/dccav.md`.
 
 - `rank_preset_row(name, load_type, target_volume_l, voltage_v, f_min_hz,
   f_max_hz, points, goals=None) -> dict | None`: simulates one preset at the
-  exact comparison volume (reflex `Vb`, sealed `Vb`, DCCAV starter-shaped
-  split via `engine.design_space_box`; goal mode optimizes at the fixed
+  exact comparison volume (reflex/sealed `Vb`, bandpass `Vs+Vp`, DCCAV
+  starter-shaped split via `engine.design_space_box`; goal mode optimizes at the fixed
   volume with `max_evaluations=140`) and returns the ranking-table row;
   unusable presets return `None` instead of raising
 - `sort_ranked_rows(rows)`: deepest F3 first, then F6/F10 and loudest peak

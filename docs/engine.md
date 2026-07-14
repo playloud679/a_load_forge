@@ -1,7 +1,7 @@
 # src/engine.py — acoustic-load engine
 
-Physics, simulation and analysis for the four supported loads (DCCAV, bass
-reflex, sealed, infinite baffle).  `src/dccav.py` re-exports this module's
+Physics, simulation and analysis for the supported loads (DCCAV, fourth-order
+bandpass, bass reflex, sealed, infinite baffle).  `src/dccav.py` re-exports this module's
 public API; the full reference — formulas, assumptions, per-function
 contracts and the test list — lives in `docs/dccav.md`.
 
@@ -9,14 +9,16 @@ contracts and the test list — lives in `docs/dccav.md`.
 
 - Physical constants (`RHO_AIR`, `SPEED_OF_SOUND`, `P_REF`, `EPS`,
   `PORT_VELOCITY_GUIDELINE_MS`) and every dataclass except
-  `DriverPresetInfo`: `DriverTS`, `DerivedDriver`, alignments, boxes,
+  `DriverPresetInfo`: `DriverTS`, `DerivedDriver`, alignments and boxes
+  (including `Bandpass4Alignment` / `Bandpass4Box`),
   `OptimizationGoals`, `OptimizedAlignment`, `SimulationResult`,
   `ToleranceBand`, `DesignSpaceMap`, `DriverReferenceMetrics`,
   `DriverBandwidthClass`
 - Derivation and alignment: `sd_from_diameter`, `complete_driver`,
   `suggest_alignment`, `suggest_reflex_alignment`,
-  `suggest_sealed_alignment`, `sealed_system_metrics`
-- Simulators: `simulate`, `simulate_reflex`, `simulate_sealed`,
+  `suggest_bandpass4_alignment`, `suggest_sealed_alignment`,
+  `sealed_system_metrics`
+- Simulators: `simulate`, `simulate_reflex`, `simulate_bandpass4`, `simulate_sealed`,
   `simulate_infinite_baffle` (shared `_electrical_source`, `_limit_curves`,
   `_unported_result` internals)
 - Optimizer: `optimize_alignment` with `_optimizer_metrics` /
@@ -28,9 +30,25 @@ contracts and the test list — lives in `docs/dccav.md`.
   `driver_reference_metrics`, `classify_driver_bandwidth`,
   `apply_driver_configuration`, diagnostics and sanity warnings
 
+The fourth-order bandpass starter uses target `Qbp=0.707`: rear sealed volume
+from the classical target-Q relation, front volume `2*Qbp²*Vas`, and vent
+tuning `Fs*Qbp/Qts`. The atlas preserves that starter chamber ratio while it
+sweeps total volume and `Fp`.
+
+`optimize_alignment(..., load_type="Bandpass 4th order")` searches sealed
+volume, ported volume and front tuning; fixed-volume Finder searches project
+both chamber volumes onto the exact requested total.
+Bandpass optimizer ripple/group-delay metrics stop at the upper -3 dB edge,
+and scoring penalizes a missing edge or a passband narrower than 1.4:1.
+`bandpass4_diagnostics()` flags extreme tuning and a missing upper -3 dB
+crossing when the simulated range is too short to verify the passband.
+
 ## Invariants
 
 - No knowledge of presets or prices: functions take `DriverTS`/box values.
 - SI units internally; litre/Hz/mm/cm² at the API boundary.
+- Fourth-order bandpass uses an enclosed driver between a sealed rear chamber
+  and vented front chamber. Only the front vent enters the far-field total;
+  the cone trace is retained as an internal-motion diagnostic.
 - Importable both as `src.engine` (package) and `engine` (top-level with
   `src/` on `sys.path`); it must not import `presets`/`pricing`.

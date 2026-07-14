@@ -2,7 +2,8 @@
 Load Forge focused test suite.
 
 The project is an acoustic-load simulator, so this runner covers the active
-DCCAV, bass-reflex, acoustic-suspension and infinite-baffle paths.
+DCCAV, fourth-order bandpass, bass-reflex, acoustic-suspension and
+infinite-baffle paths.
 """
 
 from __future__ import annotations
@@ -308,6 +309,103 @@ def _check_sealed_and_infinite_baffle_models():
 
 
 test("Sealed and infinite-baffle models expose unported responses", _check_sealed_and_infinite_baffle_models)
+
+
+def _check_bandpass4_model_and_starter():
+    import src as package_api
+
+    assert package_api.Bandpass4Box is _dccav.Bandpass4Box
+    assert package_api.simulate_bandpass4 is _dccav.simulate_bandpass4
+    ts = _kef_b110_ts()
+    alignment = _dccav.suggest_bandpass4_alignment(ts)
+    assert abs(alignment.vp_l - 2.0 * 0.707**2 * ts.vas_l) < 1e-9
+    assert abs(alignment.fp_hz - ts.fs_hz * 0.707 / ts.qts) < 1e-9
+    assert alignment.vs_l > 0.05
+    box = _dccav.Bandpass4Box(
+        vs_l=alignment.vs_l, vp_l=alignment.vp_l, fp_hz=alignment.fp_hz)
+    freq = np.geomspace(5.0, 1000.0, 2000)
+    result = _dccav.simulate_bandpass4(ts, box, freq)
+    for name in (
+        "spl_total_db", "spl_driver_db", "spl_port_db", "excursion_mm",
+        "impedance_ohm", "port_h_velocity", "port_l_velocity", "mil_w", "mol_db",
+    ):
+        values = getattr(result, name)
+        assert values.shape == freq.shape
+        assert np.all(np.isfinite(values)), name
+    assert np.allclose(result.spl_total_db, result.spl_port_db)
+    assert np.all(result.driver_volume_velocity == 0.0)
+    assert np.all(result.port_h_velocity == 0.0)
+    assert np.any(result.port_l_velocity > 0.0)
+    assert len(_dccav.impedance_peak_frequencies(result)) >= 2
+    assert not _dccav.bandpass4_diagnostics(ts, box, result)
+
+
+test("Fourth-order bandpass starter and simulation are coherent", _check_bandpass4_model_and_starter)
+
+
+def _check_bandpass4_optimizer_atlas_and_ranking():
+    ts = _beyma_ts()
+    goals = _dccav.OptimizationGoals(max_total_volume_l=40.0)
+    optimized = _dccav.optimize_alignment(
+        ts, goals, load_type="Bandpass 4th order", max_evaluations=80,
+        fixed_total_volume_l=40.0)
+    assert isinstance(optimized.box, _dccav.Bandpass4Box)
+    assert abs(optimized.box.vs_l + optimized.box.vp_l - 40.0) < 1e-9
+    assert np.isfinite(optimized.f3_hz)
+    assert np.isfinite(optimized.ripple_db)
+
+    space = _dccav.design_space_map(
+        ts, load_type="Bandpass 4th order", resolution=5)
+    assert space.f3_hz.shape == (5, 5)
+    assert np.any(np.isfinite(space.f3_hz))
+    box = _dccav.design_space_box(
+        ts, "Bandpass 4th order", float(space.x_values[2]), float(space.y_values[2]))
+    assert abs(box.vs_l + box.vp_l - float(space.x_values[2])) < 1e-9
+
+    row = _dccav.rank_preset_row(
+        "Beyma 12CMV2", "Bandpass 4th order", 40.0, 2.83, 10.0, 500.0, 240)
+    assert row is not None
+    assert abs(row["Vs L"] + row["Vp L"] - 40.0) < 1e-9
+    assert np.isfinite(row["Fp Hz"])
+    assert np.isfinite(row["F3 Hz"])
+
+
+test("Fourth-order bandpass optimizer, atlas and Finder preserve volume", _check_bandpass4_optimizer_atlas_and_ranking)
+
+
+def _check_ui_bandpass4_design_and_persistence():
+    from streamlit.testing.v1 import AppTest
+
+    import ui_app as _ui
+
+    assert _ui._is_param_key("bandpass4_vs_l")
+    payload = {
+        "load_type": "Bandpass 4th order",
+        "bandpass4_vs_l": 12.0,
+        "bandpass4_vp_l": 18.0,
+        "bandpass4_fp_hz": 72.0,
+    }
+    assert _ui._apply_loaded_params(payload) == len(payload)
+    saved = _ui._collect_params()
+    for key, value in payload.items():
+        assert saved[key] == value
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
+    at.session_state["workspace_mode"] = "Design a box"
+    at.session_state["load_type"] = "Bandpass 4th order"
+    at.run()
+    assert not at.exception, at.exception
+    labels = {item.label for item in at.number_input}
+    assert {"Vs sealed rear (L)", "Vp ported front (L)", "Fp front tuning (Hz)"} <= labels
+    metrics = {metric.label for metric in at.metric}
+    assert {"Box volume", "Vs sealed (active)", "Vp ported (active)", "Fp (active)"} <= metrics
+    assert any(
+        "Fourth-order bandpass total response is the front vent only" in caption.value
+        for caption in at.caption
+    )
+
+
+test("UI fourth-order bandpass controls persist and render", _check_ui_bandpass4_design_and_persistence)
 
 
 def _check_response_metrics_are_sane():
@@ -674,7 +772,9 @@ def _check_ui_load_comparison_overlay():
     freq = np.geomspace(10.0, 500.0, 300)
     vtot, series = _ui._topology_comparison_series(ts, "DCCAV", box, freq, 2.83, 0.0)
     assert abs(vtot - (a.vh_l + a.vl_l)) < 1e-9, vtot
-    assert set(series) == {"DCCAV", "Bass reflex", "Sealed", "Infinite baffle"}
+    assert set(series) == {
+        "DCCAV", "Bandpass 4th order", "Bass reflex", "Sealed", "Infinite baffle",
+    }
     for name, values in series.items():
         assert values.shape == freq.shape, name
         assert np.all(np.isfinite(values)), f"{name} comparison response must be finite"
@@ -693,12 +793,12 @@ def _check_ui_load_comparison_overlay():
     at.run()
     assert not at.exception, at.exception
     assert any(
-        "Comparing the total response of the four loads" in caption.value
+        "Comparing total response" in caption.value
         for caption in at.caption
     ), "comparison caption missing on the main response chart"
 
 
-test("UI load comparison simulates the four topologies at equal volume", _check_ui_load_comparison_overlay)
+test("UI load comparison simulates all topologies at equal volume", _check_ui_load_comparison_overlay)
 
 
 def _check_ui_share_link_roundtrip():

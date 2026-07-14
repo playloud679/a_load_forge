@@ -1,6 +1,8 @@
 """Load Forge audio simulation package."""
 
 from .dccav import (
+    Bandpass4Alignment,
+    Bandpass4Box,
     DccavAlignment,
     DccavBox,
     DerivedDriver,
@@ -24,15 +26,19 @@ from .dccav import (
     sd_from_diameter,
     sealed_system_metrics,
     simulate,
+    simulate_bandpass4,
     simulate_infinite_baffle,
     simulate_reflex,
     simulate_sealed,
     suggest_alignment,
+    suggest_bandpass4_alignment,
     suggest_reflex_alignment,
     suggest_sealed_alignment,
 )
 
 __all__ = [
+    "Bandpass4Alignment",
+    "Bandpass4Box",
     "DccavAlignment",
     "DccavBox",
     "DerivedDriver",
@@ -56,10 +62,12 @@ __all__ = [
     "sd_from_diameter",
     "sealed_system_metrics",
     "simulate",
+    "simulate_bandpass4",
     "simulate_infinite_baffle",
     "simulate_reflex",
     "simulate_sealed",
     "suggest_alignment",
+    "suggest_bandpass4_alignment",
     "suggest_reflex_alignment",
     "suggest_sealed_alignment",
 ]

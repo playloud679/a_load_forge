@@ -5,8 +5,8 @@
 </p>
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
-**DCCAV** / double resonator in series, conventional **bass reflex**,
-**acoustic suspension** (sealed box) and ideal **infinite baffle**, all derived
+**DCCAV** / double resonator in series, **fourth-order bandpass**, conventional
+**bass reflex**, **acoustic suspension** (sealed box) and ideal **infinite baffle**, all derived
 from driver Thiele/Small parameters.
 
 The app starts from a T/S set, proposes an editable first-pass alignment, then
@@ -30,8 +30,7 @@ Current UI highlights:
   alignment modes
 - response, excursion, impedance, ports and group-delay design tabs
 - response pinning for A/B overlays
-- one-click comparison across DCCAV, bass reflex, acoustic suspension and
-  infinite baffle at equal volume
+- one-click comparison across all five loads at equal volume
 - preset save/load and URL-based sharing grouped in the `Project` menu
 - port-geometry estimates and chuffing diagnostics
 - driver reference metrics, voice-coil corner and T/S-based bandwidth class
@@ -95,6 +94,10 @@ driver -> box volume || vent
 Its automatic starting point is intentionally conservative: `Vb = Vas` and
 `Fb = Fs`, with manual controls for final tuning.
 
+The fourth-order bandpass encloses the cone between a sealed rear chamber and
+a vented front chamber; only the front vent radiates. Its starter exposes
+`Vs`, `Vp` and `Fp`, with the same optimizer/Finder/project workflows.
+
 The acoustic-suspension path uses a closed `Vb` and reports its classical
 `Fc` and `Qtc`; its starter targets `Qtc=0.707` when the driver's `Qts` permits.
 Infinite baffle has no box or tuning controls and assumes perfect isolation of
@@ -108,7 +111,7 @@ drive, damping and impedance estimate.
 
 ```text
 ui_app.py          Streamlit dashboard
-src/dccav.py       DCCAV/reflex/sealed/infinite-baffle simulation engine
+src/dccav.py       public facade for all acoustic-load models
 docs/dccav.md      module contract and formulas
 tests/test_all.py  custom test runner, including acoustic-load tests
 ```

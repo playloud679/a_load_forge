@@ -1,8 +1,8 @@
 # Load Forge User Guide
 
 Load Forge simulates acoustic loudspeaker loads from driver Thiele/Small
-parameters.  It supports DCCAV, conventional bass reflex, acoustic suspension
-(sealed box) and ideal infinite baffle.
+parameters. It supports DCCAV, fourth-order bandpass, conventional bass reflex,
+acoustic suspension (sealed box) and ideal infinite baffle.
 
 ## Workspaces
 
@@ -38,7 +38,7 @@ T/S set.
 `Qms` must be greater than `Qts`; otherwise `Qes` cannot be derived.
 
 The **Load type** selector switches between `Infinite baffle`, `Sealed`,
-`Bass reflex` and `DCCAV`. Search, source, brand, size, class
+`Bass reflex`, `Bandpass 4th order` and `DCCAV`. Search, source, brand, size, class
 and price filters narrow the driver library in both workspaces.
 
 In **Design a box**, the **Driver preset** selector loads built-in examples
@@ -103,6 +103,13 @@ The sealed-box starter targets `Qtc=0.707` when that is possible from the
 driver's `Qts`, and displays `Vb`, `Fc` and achieved `Qtc`.  `Vb`, `Qabs` and
 `Qleak` remain editable; there are no port controls or port traces.
 
+### Fourth-order Bandpass Alignment
+
+The driver is enclosed between a sealed rear chamber `Vs` and ported front
+chamber `Vp`; only the front vent radiates. The symmetrical starter targets
+`Qbp=0.707` and exposes `Vs`, `Vp` and `Fp`. Suggested keeps it synchronized,
+Optimized searches both chamber volumes and tuning, and Manual unlocks them.
+
 ### Infinite Baffle
 
 Infinite baffle has no box or optimizer controls.  It keeps the driver's
@@ -140,6 +147,8 @@ For `Bass reflex`, controls are:
 - `Qabs`, `Qleak`, `Qport`: box, leakage and port losses
 
 For `Sealed`, controls are sealed `Vb`, `Qabs` and `Qleak`.
+For `Bandpass 4th order`, controls are rear `Vs`, front `Vp`, `Fp`, independent
+chamber loss factors, front `Qport` and front-vent diameter.
 `Infinite baffle` has no enclosure controls.
 
 Higher Q means lower loss for leakage/ports.  Very low Q values intentionally
@@ -159,6 +168,7 @@ raises the impedance seen by the source.
 Ported loads expose a **Port geometry** panel:
 
 - bass reflex: vent diameter
+- fourth-order bandpass: front-vent diameter
 - DCCAV: upper-port and lower-port diameters
 
 The app estimates physical tube length from the Helmholtz relation, reports the
@@ -173,7 +183,7 @@ peak air speed and warns when:
 The **Find a driver** workspace has independent search constraints; it does not
 reuse or alter the active design controls:
 
-- **Comparison volume** is exact: `Vh+Vl` for DCCAV or `Vb` for reflex and
+- **Comparison volume** is exact: `Vh+Vl` for DCCAV, `Vs+Vp` for bandpass, or `Vb` for reflex and
   acoustic suspension. Infinite baffle ignores it.
 - **Ranking goal** and **Comparison voltage** define the main comparison.
 - **Optimize each candidate at the comparison volume** keeps the volume fixed
@@ -239,7 +249,9 @@ The response plot shows the low-frequency acoustic-load estimate:
 
 For DCCAV, the lower-port branch naturally rolls off above the tuned range even
 without an electrical crossover.  For bass reflex, the port trace is the vent
-output.  Sealed and infinite-baffle total response is the exposed cone front
+output. For fourth-order bandpass, total response is the front vent alone and
+the cone trace is internal motion, not another radiating source. Sealed and
+infinite-baffle total response is the exposed cone front
 alone.  The SPL scale is an internal estimate for comparing alignments, not a
 calibrated far-field or full-range front-driver radiation model.
 
@@ -255,8 +267,7 @@ Inside the `Response` tab:
 - automatic cursors mark `F3`, `F6` and `F10`
 - enabling the **Manual** cursor toggle reveals `M1` and `M2` positions
 - **Pin response** stores the current total-response curve for A/B overlay
-- **Compare loads** overlays DCCAV, bass reflex, acoustic suspension and
-  infinite baffle at equal comparison volume
+- **Compare loads** overlays all five loads at equal comparison volume
 
 The cursor table reports frequency, total SPL, impedance and excursion at each
 cursor.

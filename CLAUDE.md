@@ -46,8 +46,9 @@ The current simulator supports DCCAV / double asymmetric reflex:
 driver -> upper volume || upper port -> lower volume || lower port
 ```
 
-plus conventional bass reflex, acoustic suspension / sealed box and ideal
-infinite baffle.
+plus fourth-order bandpass (sealed rear chamber + vented front chamber),
+conventional bass reflex, acoustic suspension / sealed box and ideal infinite
+baffle.
 
 Inputs are driver T/S parameters plus chamber/tuning/loss controls.  Outputs are
 response plots, metrics and CSV export.
