@@ -17,9 +17,11 @@ try:
     from .presets import _load_loudspeaker_database_presets  # noqa: F401
     from .pricing import *  # noqa: F401,F403
     from .pricing import _load_driver_price_records  # noqa: F401
+    from .ranking import *  # noqa: F401,F403
 except ImportError:  # top-level import with src/ on sys.path (ui_app)
     from engine import *  # noqa: F401,F403
     from presets import *  # noqa: F401,F403
     from presets import _load_loudspeaker_database_presets  # noqa: F401
     from pricing import *  # noqa: F401,F403
     from pricing import _load_driver_price_records  # noqa: F401
+    from ranking import *  # noqa: F401,F403

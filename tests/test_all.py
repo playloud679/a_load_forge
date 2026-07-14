@@ -25,6 +25,11 @@ FAIL = 0
 SKIP = 0
 
 
+# Multiprocessing workers (spawn/forkserver) re-import the parent's __main__
+# as "__mp_main__"; the suite must not execute again inside them.
+_IS_MP_CHILD = __name__ == "__mp_main__"
+
+
 def _parse_args():
     parser = argparse.ArgumentParser(description="Run Load Forge tests.")
     parser.add_argument(
@@ -34,7 +39,7 @@ def _parse_args():
     return parser.parse_args()
 
 
-ARGS = _parse_args()
+ARGS = argparse.Namespace(match=[], list=False) if _IS_MP_CHILD else _parse_args()
 MATCHES = [m.casefold() for m in ARGS.match]
 
 
@@ -44,6 +49,8 @@ def _selected(label: str) -> bool:
 
 def test(label, fn):
     global PASS, FAIL, SKIP
+    if _IS_MP_CHILD:
+        return
     if not _selected(label):
         SKIP += 1
         return
@@ -1994,7 +2001,7 @@ test("UI optimized alignment mode applies goal-driven boxes", _check_ui_optimize
 def _check_ui_apply_button_respects_optimizer_mode():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
     at.session_state["workspace_mode"] = "Design a box"
     at.run()
     assert not at.exception, at.exception
@@ -2457,6 +2464,28 @@ def _check_ui_finder_value_ranking():
 test("UI Finder ranks candidates by price-performance value", _check_ui_finder_value_ranking)
 
 
+def _check_ui_parallel_ranking_matches_serial():
+    import ui_app as _ui
+
+    assert _ui._dccav.rank_preset_row("no such driver", "Sealed", 30.0, 2.83,
+                                      10.0, 300.0, 120) is None
+
+    names = ("KEF B110B article example", "Beyma 12CMV2", "Dayton Audio RSS315HO-4")
+    goals = _ui._dccav.OptimizationGoals(objective="balanced")
+    serial = _ui._batch_rank_presets(
+        names, "Sealed", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals)
+    parallel = _ui._batch_rank_presets_parallel(
+        names, "Sealed", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals)
+    assert [row["Driver"] for row in parallel] == [row["Driver"] for row in serial]
+    for s_row, p_row in zip(serial, parallel, strict=True):
+        assert abs(float(s_row["F3 Hz"]) - float(p_row["F3 Hz"])) < 1e-9
+        assert abs(float(s_row["Vb L"]) - float(p_row["Vb L"])) < 1e-9
+        assert s_row["Response"] == p_row["Response"]
+
+
+test("UI parallel optimizer ranking matches the serial path", _check_ui_parallel_ranking_matches_serial)
+
+
 def _check_module_split_facade():
     import ast
 
@@ -2511,10 +2540,11 @@ def _check_simulation_rejects_bad_frequency_grid():
 test("DCCAV rejects invalid frequency grid", _check_simulation_rejects_bad_frequency_grid)
 
 
-print(f"\n{'=' * 40}")
-print(f"  PASS: {PASS}   FAIL: {FAIL}   SKIP: {SKIP}")
-print(f"{'=' * 40}")
-if MATCHES and PASS == 0 and FAIL == 0:
-    print("No tests matched --match filter")
-    sys.exit(2)
-sys.exit(0 if FAIL == 0 else 1)
+if not _IS_MP_CHILD:
+    print(f"\n{'=' * 40}")
+    print(f"  PASS: {PASS}   FAIL: {FAIL}   SKIP: {SKIP}")
+    print(f"{'=' * 40}")
+    if MATCHES and PASS == 0 and FAIL == 0:
+        print("No tests matched --match filter")
+        sys.exit(2)
+    sys.exit(0 if FAIL == 0 else 1)

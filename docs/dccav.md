@@ -440,6 +440,19 @@ computation is gated behind a `Compute atlas` toggle, cached per driver,
 losses and voltage, colored by F3 or ripple, and clicking a cell offers
 `Apply selected box` (switches the design to Manual strategy).
 
+### `rank_preset_row(name, load_type, target_volume_l, voltage_v, f_min_hz, f_max_hz, points, goals=None) -> dict | None` / `sort_ranked_rows(rows)` / `response_sparkline(spl)`
+
+Candidate-ranking primitives (implemented in `src/ranking.py`) used by the
+`Find a driver` workspace.  `rank_preset_row` simulates one preset at the
+exact comparison volume (goal mode optimizes at that fixed volume) and
+returns the table row or `None`; `sort_ranked_rows` orders by deepest
+F3/F6/F10 with the loudest peak as tie-breaker; `response_sparkline`
+downsamples the total response to a peak-relative 48-point sparkline
+clipped at `SPARKLINE_FLOOR_DB`.  The UI runs the quick scan serially
+(cached) and fans optimizer scans of more than 8 candidates out to a
+`ProcessPoolExecutor` with a real progress bar; both paths produce
+identical rows because the optimizer is deterministic.
+
 ### `price_extension_score(f3_hz, price) -> float`
 
 Lower-is-better value score for the price-aware `Find a driver` ranking:
@@ -703,5 +716,7 @@ If no true rising crossing exists in the simulated range, the returned value is
   infinite-baffle/resolution rejection and the UI Atlas tab with gated
   computation and pending click-to-apply
 - module split: the `dccav` facade re-exports the same objects as
-  `engine`/`presets`/`pricing` (including the cached loaders the price
-  tests clear) and the engine imports neither catalog nor pricing
+  `engine`/`presets`/`pricing`/`ranking` (including the cached loaders the
+  price tests clear) and the engine imports neither catalog nor pricing
+- parallel ranking: worker rows for junk names degrade to `None` and the
+  process-pool optimizer path returns rows identical to the serial one

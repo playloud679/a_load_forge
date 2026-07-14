@@ -14,8 +14,11 @@ import importlib
 import io
 import json
 import logging
+import multiprocessing
+import os
 import sys
 import zlib
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from functools import cache
 from pathlib import Path
 
@@ -31,9 +34,10 @@ import dccav as _dccav
 import engine as _engine
 import presets as _presets
 import pricing as _pricing
+import ranking as _ranking
 
 # Reload dependencies before the facade so it rebinds to the fresh modules.
-for _module in (_engine, _pricing, _presets, _dccav):
+for _module in (_engine, _pricing, _presets, _ranking, _dccav):
     importlib.reload(_module)
 
 
@@ -1368,39 +1372,13 @@ def _plot_ports(result: _dccav.SimulationResult) -> alt.Chart:
 
 
 def _rank_value(value: float) -> float:
-    return float(value) if np.isfinite(float(value)) else float("inf")
+    return _dccav.rank_sort_value(value)
 
 
 def _batch_dccav_box(ts: _dccav.DriverTS, total_volume_l: float) -> _dccav.DccavBox:
-    alignment = _dccav.suggest_alignment(ts)
-    suggested_total = max(float(alignment.vh_l + alignment.vl_l), 1e-9)
-    vh_ratio = float(np.clip(alignment.vh_l / suggested_total, 0.05, 0.95))
-    vh_l = max(float(total_volume_l) * vh_ratio, 0.05)
-    vl_l = max(float(total_volume_l) - vh_l, 0.05)
-    if vh_l + vl_l > float(total_volume_l) and float(total_volume_l) >= 0.1:
-        scale = float(total_volume_l) / (vh_l + vl_l)
-        vh_l *= scale
-        vl_l *= scale
-    return _dccav.DccavBox(vh_l=vh_l, fh_hz=alignment.fh_hz, vl_l=vl_l, fl_hz=alignment.fl_hz)
-
-
-_BATCH_SPARK_POINTS = 48
-_BATCH_SPARK_FLOOR_DB = -30.0
-
-
-def _batch_sparkline(spl_total_db: np.ndarray) -> list[float]:
-    """Downsample the total response to a peak-relative sparkline in dB."""
-    spl = np.asarray(spl_total_db, dtype=float)
-    finite = spl[np.isfinite(spl)]
-    if not finite.size:
-        return []
-    rel = spl - float(np.max(finite))
-    idx = np.linspace(0, len(rel) - 1, min(_BATCH_SPARK_POINTS, len(rel))).astype(int)
-    return [
-        float(np.clip(value, _BATCH_SPARK_FLOOR_DB, 0.0))
-        if np.isfinite(value) else _BATCH_SPARK_FLOOR_DB
-        for value in rel[idx]
-    ]
+    """Starter-shaped DCCAV box constrained to an exact total volume."""
+    return _dccav.design_space_box(
+        ts, "DCCAV", float(total_volume_l), _dccav.suggest_alignment(ts).fl_hz)
 
 
 @st.cache_data(show_spinner=False)
@@ -1415,125 +1393,66 @@ def _batch_rank_presets(
     candidate_limit: int,
     goals: _dccav.OptimizationGoals | None = None,
 ) -> list[dict]:
-    if load_type in ("Suspension pneumatic", "Acoustic suspension"):
-        load_type = "Sealed"
-    freq = np.geomspace(float(f_min_hz), float(f_max_hz), int(points))
-    batch_goals = None
-    if goals is not None and load_type != "Infinite baffle":
-        # Driver ranking compares candidates at the exact requested enclosure volume.
-        batch_goals = _dccav.OptimizationGoals(
-            objective=goals.objective,
-            max_total_volume_l=float(target_volume_l),
-            target_f3_hz=goals.target_f3_hz,
-            max_ripple_db=goals.max_ripple_db,
-            max_excursion_ratio=goals.max_excursion_ratio,
-            max_group_delay_ms=goals.max_group_delay_ms,
-        )
     rows: list[dict] = []
     for name in preset_names[:int(candidate_limit)]:
-        try:
-            ts = _dccav.get_driver_preset(name)
-            info = _dccav.driver_preset_info(name)
-            driver_class = _dccav.classify_driver_bandwidth(ts).driver_class
-            ripple_db = np.nan
-            if batch_goals is not None:
-                optimized = _dccav.optimize_alignment(
-                    ts,
-                    batch_goals,
-                    load_type=load_type,
-                    voltage_v=float(voltage_v),
-                    max_evaluations=140,
-                    fixed_total_volume_l=float(target_volume_l),
+        row = _dccav.rank_preset_row(
+            name, load_type, float(target_volume_l), float(voltage_v),
+            float(f_min_hz), float(f_max_hz), int(points), goals,
+        )
+        if row is not None:
+            rows.append(row)
+    return _dccav.sort_ranked_rows(rows)
+
+
+def _batch_rank_presets_parallel(
+    preset_names: tuple[str, ...],
+    load_type: str,
+    target_volume_l: float,
+    voltage_v: float,
+    f_min_hz: float,
+    f_max_hz: float,
+    points: int,
+    candidate_limit: int,
+    goals: _dccav.OptimizationGoals,
+) -> list[dict]:
+    """Optimizer ranking across worker processes with a real progress bar."""
+    names = list(preset_names)[:int(candidate_limit)]
+    total = max(len(names), 1)
+    workers = max(1, min(os.cpu_count() or 2, 8, total))
+    # forkserver: no re-import of the caller's __main__ in the workers (the
+    # spawn method would re-execute entrypoint scripts) and no fork of a
+    # thread-filled Streamlit process.
+    mp_context = multiprocessing.get_context(
+        "forkserver" if "forkserver" in multiprocessing.get_all_start_methods()
+        else "spawn"
+    )
+    progress = st.progress(0.0, text=f"Optimizing 0/{total} candidates")
+    rows: list[dict] = []
+    done = 0
+    try:
+        with ProcessPoolExecutor(max_workers=workers, mp_context=mp_context) as pool:
+            futures = [
+                pool.submit(
+                    _dccav.rank_preset_row, name, load_type,
+                    float(target_volume_l), float(voltage_v),
+                    float(f_min_hz), float(f_max_hz), int(points), goals,
                 )
-                box = optimized.box
-                ripple_db = float(optimized.ripple_db)
-            elif load_type == "Bass reflex":
-                alignment = _dccav.suggest_reflex_alignment(ts)
-                box = _dccav.ReflexBox(vb_l=float(target_volume_l), fb_hz=alignment.fb_hz)
-            elif load_type == "Sealed":
-                box = _dccav.SealedBox(vb_l=float(target_volume_l))
-            elif load_type == "Infinite baffle":
-                box = None
-            else:
-                box = _batch_dccav_box(ts, float(target_volume_l))
-            if load_type == "Bass reflex":
-                result = _dccav.simulate_reflex(ts, box, freq, float(voltage_v))
-                box_values = {
-                    "Vb L": box.vb_l,
-                    "Fb Hz": box.fb_hz,
-                    "Vh L": np.nan,
-                    "fh Hz": np.nan,
-                    "Vl L": np.nan,
-                    "fl Hz": np.nan,
-                    "Fc Hz": np.nan,
-                    "Qtc": np.nan,
-                }
-            elif load_type == "Sealed":
-                result = _dccav.simulate_sealed(ts, box, freq, float(voltage_v))
-                fc_hz, qtc = _dccav.sealed_system_metrics(ts, box)
-                box_values = {
-                    "Vb L": box.vb_l,
-                    "Fb Hz": np.nan,
-                    "Vh L": np.nan,
-                    "fh Hz": np.nan,
-                    "Vl L": np.nan,
-                    "fl Hz": np.nan,
-                    "Fc Hz": fc_hz,
-                    "Qtc": qtc,
-                }
-            elif load_type == "Infinite baffle":
-                result = _dccav.simulate_infinite_baffle(ts, freq, float(voltage_v))
-                box_values = {
-                    "Vb L": np.nan,
-                    "Fb Hz": np.nan,
-                    "Vh L": np.nan,
-                    "fh Hz": np.nan,
-                    "Vl L": np.nan,
-                    "fl Hz": np.nan,
-                    "Fc Hz": ts.fs_hz,
-                    "Qtc": ts.qts,
-                }
-            else:
-                result = _dccav.simulate(ts, box, freq, float(voltage_v))
-                box_values = {
-                    "Vb L": np.nan,
-                    "Fb Hz": np.nan,
-                    "Vh L": box.vh_l,
-                    "fh Hz": box.fh_hz,
-                    "Vl L": box.vl_l,
-                    "fl Hz": box.fl_hz,
-                    "Fc Hz": np.nan,
-                    "Qtc": np.nan,
-                }
-            thresholds = _dccav.response_threshold_frequencies(result)
-            rows.append({
-                "Driver": name,
-                "Source": info.source,
-                "Brand": info.brand or "Other",
-                "Class": driver_class,
-                "Size in": info.size_in if info.size_in is not None else np.nan,
-                "Price": info.price if info.price is not None else np.nan,
-                "Currency": info.currency,
-                "Buy": info.url or "",
-                "F3 Hz": thresholds[3],
-                "F6 Hz": thresholds[6],
-                "F10 Hz": thresholds[10],
-                "Peak dB": float(np.nanmax(result.spl_total_db)),
-                "Ripple dB": ripple_db,
-                "Max excursion mm": float(np.nanmax(result.excursion_mm)),
-                "Min ohm": float(np.nanmin(result.impedance_ohm)),
-                "Response": _batch_sparkline(result.spl_total_db),
-                **box_values,
-            })
-        except Exception:
-            continue
-    rows.sort(key=lambda row: (
-        _rank_value(row["F3 Hz"]),
-        _rank_value(row["F6 Hz"]),
-        _rank_value(row["F10 Hz"]),
-        -float(row["Peak dB"]) if np.isfinite(float(row["Peak dB"])) else 0.0,
-    ))
-    return rows
+                for name in names
+            ]
+            for future in as_completed(futures):
+                done += 1
+                progress.progress(
+                    done / total, text=f"Optimizing {done}/{total} candidates")
+                try:
+                    row = future.result()
+                except Exception:
+                    logger.exception("Ranking worker failed")
+                    row = None
+                if row is not None:
+                    rows.append(row)
+    finally:
+        progress.empty()
+    return _dccav.sort_ranked_rows(rows)
 
 
 def _apply_batch_result(row: dict, load_type: str) -> None:
@@ -1899,22 +1818,26 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             if st.session_state.get("finder_use_optimizer", False) and not is_infinite_baffle
             else None
         )
-        spinner_text = (
-            f"Optimizing {scan_count} candidates" if goals is not None
-            else f"Scanning {scan_count} candidates"
+        rank_args = (
+            tuple(filtered_preset_names),
+            load_type,
+            finder_volume_l,
+            float(_finder_value("finder_voltage")),
+            float(_finder_value("finder_f_min")),
+            float(_finder_value("finder_f_max")),
+            int(_finder_value("finder_points")),
+            scan_count,
         )
-        with st.spinner(spinner_text):
-            batch_rows = _batch_rank_presets(
-                tuple(filtered_preset_names),
-                load_type,
-                finder_volume_l,
-                float(_finder_value("finder_voltage")),
-                float(_finder_value("finder_f_min")),
-                float(_finder_value("finder_f_max")),
-                int(_finder_value("finder_points")),
-                scan_count,
-                goals=goals,
+        if goals is not None and scan_count > 8:
+            # Heavy per-candidate optimization: fan out to worker processes.
+            batch_rows = _batch_rank_presets_parallel(*rank_args, goals)
+        else:
+            spinner_text = (
+                f"Optimizing {scan_count} candidates" if goals is not None
+                else f"Scanning {scan_count} candidates"
             )
+            with st.spinner(spinner_text):
+                batch_rows = _batch_rank_presets(*rank_args, goals=goals)
         st.session_state["batch_results"] = batch_rows
         st.session_state["batch_result_context"] = (
             load_type,
@@ -2021,7 +1944,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             "fl Hz": st.column_config.NumberColumn(format="%.1f"),
             "Buy": st.column_config.LinkColumn(display_text="Buy"),
             "Response": st.column_config.LineChartColumn(
-                "Response (rel dB)", y_min=_BATCH_SPARK_FLOOR_DB, y_max=0.0,
+                "Response (rel dB)", y_min=_dccav.SPARKLINE_FLOOR_DB, y_max=0.0,
             ),
         },
     )

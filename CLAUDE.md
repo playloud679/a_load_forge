@@ -70,6 +70,7 @@ make test
 | `src/engine.py` | Physics, simulation, optimizer, atlas, Monte Carlo, exports, classification |
 | `src/presets.py` | Built-in + Loudspeaker Database driver catalog and metadata |
 | `src/pricing.py` | Retailer price records, safe matching and value scoring |
+| `src/ranking.py` | Find-a-driver candidate rows (worker-process safe) |
 | `docs/dccav.md` | Public API, formulas, assumptions and tests (facade-level reference) |
 | `docs/engine.md`, `docs/presets.md`, `docs/pricing.md` | Per-module contracts |
 | `tests/test_all.py` | Focused custom runner with the acoustic-load suite |
@@ -84,8 +85,9 @@ import dccav as _dccav
 import engine as _engine
 import presets as _presets
 import pricing as _pricing
+import ranking as _ranking
 
-for _module in (_engine, _pricing, _presets, _dccav):
+for _module in (_engine, _pricing, _presets, _ranking, _dccav):
     importlib.reload(_module)
 ```
 

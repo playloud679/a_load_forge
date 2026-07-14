@@ -19,11 +19,6 @@ Traccia operativa multi-sessione. Regole d'uso:
   Estendere optimizer, Find a driver, preset `.lfp`, metriche e warning.
   Lavoro grosso: spezzare in sotto-sessioni (4° ordine → PR → 6° ordine).
 
-- [ ] **2.4 Find a driver parallelo + cache**
-  `ProcessPoolExecutor` per il ranking con optimizer, progress bar reale,
-  `st.cache_data` sulle simulazioni ripetute (chiave = firma parametri).
-  File: `ui_app.py` (+ eventuale helper in `src/`).
-
 ## 4. Funzioni innovative
 
 - [ ] **4.4 Import impedenza misurata → estrazione T/S**
@@ -111,6 +106,30 @@ Traccia operativa multi-sessione. Regole d'uso:
 ---
 
 ## Fatto
+
+- [x] **2.4 Find a driver parallelo + cache** — 2026-07-14. Nuovo modulo
+  `src/ranking.py` (esposto dalla facciata, doc `docs/ranking.md`):
+  `rank_preset_row()` (una riga di ranking per preset, worker-safe: niente
+  Streamlit/stato, box DCCAV via `design_space_box`, preset inutilizzabili →
+  `None`), `sort_ranked_rows()`, `rank_sort_value()` e `response_sparkline()`
+  con le costanti `SPARKLINE_*` (spostati da ui_app; `_batch_dccav_box` e
+  `_rank_value` restano come deleghe sottili per i test). In `ui_app`:
+  `_batch_rank_presets` (cachato) ora è il percorso seriale; nuovo
+  `_batch_rank_presets_parallel` con `ProcessPoolExecutor` e **progress bar
+  reale** (N/total via `as_completed`), usato dal bottone Rank quando
+  l'optimizer è attivo su >8 candidati; risultati identici al seriale
+  (optimizer deterministico, verificato nel test). Contesto multiprocessing
+  **forkserver** (fallback spawn): niente re-import del `__main__` chiamante
+  né fork di un processo Streamlit pieno di thread. Trappola trovata:
+  spawn/forkserver re-importano il `__main__` del padre come `__mp_main__` —
+  il runner dei test eseguiva l'intera suite dentro i worker; ora
+  `tests/test_all.py` ha la guardia `_IS_MP_CHILD` (registrazione test,
+  argparse e summary/exit saltati nei figli). Flakiness da carico sistemata
+  alzando a 60 s il timeout dell'AppTest optimizer. Reload-rule e tabella
+  moduli aggiornate (CLAUDE.md), doc API + elenco test in `docs/dccav.md`.
+  Test nuovi: worker su nome inesistente → None, parallelo ≡ seriale
+  (driver/F3/Vb/sparkline). Verifica: py_compile OK, ruff OK, suite completa
+  71 pass / 0 fail / 0 skip. **Sezione 2 completa.**
 
 - [x] **2.1 Split di `src/dccav.py` in moduli** — 2026-07-14. Il file
   (2377 righe) è stato tagliato per slicing meccanico in:
