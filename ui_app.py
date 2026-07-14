@@ -28,6 +28,7 @@ import pandas as pd
 import streamlit as st
 
 logger = logging.getLogger("load_forge.ui")
+_OPTIMIZER_ENGINE_REVISION = 2
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 import dccav as _dccav
@@ -2743,6 +2744,11 @@ if "box_strategy" not in st.session_state:
         st.session_state["box_strategy"] = "Optimized"
     else:
         st.session_state["box_strategy"] = "Manual"
+if "_optimizer_engine_revision" not in st.session_state:
+    st.session_state["_optimizer_engine_revision"] = (
+        0 if st.session_state.get("box_strategy") == "Optimized"
+        else _OPTIMIZER_ENGINE_REVISION
+    )
 _apply_pending_batch_result()
 _apply_pending_atlas_point()
 
@@ -3063,6 +3069,22 @@ with st.sidebar:
             derived = _dccav.complete_driver(current_ts)
             load_type = st.session_state["load_type"]
             box_strategy = str(st.session_state.get("box_strategy", "Suggested"))
+            if (
+                box_strategy == "Optimized"
+                and st.session_state.get("_optimizer_engine_revision", 0)
+                != _OPTIMIZER_ENGINE_REVISION
+            ):
+                try:
+                    refreshed = _run_box_optimizer(current_ts)
+                    _apply_optimized_box(refreshed.box)
+                    _mark_auto_alignment_synced(current_ts)
+                    st.toast("Optimized alignment refreshed with the current physics engine")
+                except ValueError as exc:
+                    _apply_empirical_box_for(current_ts)
+                    st.session_state["opt_last_summary"] = None
+                    st.warning(f"Stored optimized box was discarded: {exc}")
+                st.session_state["_optimizer_engine_revision"] = (
+                    _OPTIMIZER_ENGINE_REVISION)
             if load_type == "Bass reflex":
                 st.subheader("Bass Reflex Alignment")
                 st.caption(
@@ -3145,11 +3167,17 @@ with st.sidebar:
                         st.number_input("Max group delay (ms, 0 = off)", min_value=0.0, max_value=100.0,
                                         step=1.0, key="opt_max_gd_ms")
                     if st.button("Run optimizer and apply", type="primary", use_container_width=True):
-                        with st.spinner("Optimizing box..."):
-                            optimized = _run_box_optimizer(current_ts)
-                        _apply_optimized_box(optimized.box)
-                        _mark_auto_alignment_synced(current_ts)
-                        st.rerun()
+                        try:
+                            with st.spinner("Optimizing box..."):
+                                optimized = _run_box_optimizer(current_ts)
+                        except ValueError as exc:
+                            st.error(f"No buildable optimized box: {exc}")
+                        else:
+                            _apply_optimized_box(optimized.box)
+                            _mark_auto_alignment_synced(current_ts)
+                            st.session_state["_optimizer_engine_revision"] = (
+                                _OPTIMIZER_ENGINE_REVISION)
+                            st.rerun()
                     current_optimizer_summary = _current_optimizer_summary(current_ts)
                     if current_optimizer_summary:
                         st.caption(current_optimizer_summary)

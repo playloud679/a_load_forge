@@ -641,6 +641,7 @@ PORT_VELOCITY_GUIDELINE_MS = 0.05 * SPEED_OF_SOUND
 # a positive physical duct length instead of a zero-length opening.
 OPTIMIZER_MAX_PORT_DIAMETER_CM = 60.0
 _OPTIMIZER_PORT_FEASIBILITY_RATIO = 0.95
+_OPTIMIZER_DCCAV_F3_RATIO = 0.67
 
 
 def port_air_velocity_ms(
@@ -908,18 +909,28 @@ def _optimizer_metrics(
     voltage_v: float,
 ) -> dict[str, float]:
     is_bandpass4 = isinstance(box, Bandpass4Box)
+
+    def velocity_diameter_cm(volume_velocity: np.ndarray) -> float:
+        peak_u = float(np.nanmax(np.abs(volume_velocity)))
+        area_cm2 = peak_u / PORT_VELOCITY_GUIDELINE_MS * 1e4
+        return float(2.0 * np.sqrt(max(area_cm2, 0.0) / np.pi))
+
     if isinstance(box, ReflexBox):
         result = simulate_reflex(ts, box, freq, voltage_v)
         vtot = box.vb_l
         fl = box.fb_hz
-        required_port_diameter_cm = port_min_diameter_cm(
-            box.vb_l, box.fb_hz, 1.463)
+        required_port_diameter_cm = max(
+            port_min_diameter_cm(box.vb_l, box.fb_hz, 1.463),
+            velocity_diameter_cm(result.port_l_velocity),
+        )
     elif isinstance(box, Bandpass4Box):
         result = simulate_bandpass4(ts, box, freq, voltage_v)
         vtot = box.vs_l + box.vp_l
         fl = box.fp_hz
-        required_port_diameter_cm = port_min_diameter_cm(
-            box.vp_l, box.fp_hz, 1.463)
+        required_port_diameter_cm = max(
+            port_min_diameter_cm(box.vp_l, box.fp_hz, 1.463),
+            velocity_diameter_cm(result.port_l_velocity),
+        )
     elif isinstance(box, SealedBox):
         result = simulate_sealed(ts, box, freq, voltage_v)
         vtot = box.vb_l
@@ -932,6 +943,8 @@ def _optimizer_metrics(
         required_port_diameter_cm = max(
             port_min_diameter_cm(box.vh_l, box.fh_hz, 1.7),
             port_min_diameter_cm(box.vl_l, box.fl_hz, 1.463),
+            velocity_diameter_cm(result.port_h_velocity),
+            velocity_diameter_cm(result.port_l_velocity),
         )
     thresholds = response_threshold_frequencies(result)
     f3 = thresholds[3]
@@ -993,7 +1006,7 @@ def _score_alignment(
     required_port_diameter_cm = metrics["required_port_diameter_cm"]
     if required_port_diameter_cm > port_limit_cm:
         return 1e5 + required_port_diameter_cm / port_limit_cm
-    if is_dccav and f3 < 0.65 * metrics["fl_hz"]:
+    if is_dccav and f3 < _OPTIMIZER_DCCAV_F3_RATIO * metrics["fl_hz"]:
         return 1e5 + metrics["fl_hz"] / max(f3, EPS)
     weights = _OBJECTIVE_WEIGHTS[goals.objective]
     ripple = metrics["ripple_db"]
@@ -1244,6 +1257,12 @@ def optimize_alignment(
                     improved = True
         if not improved:
             step *= 0.5
+
+    if best_score >= 1e5:
+        raise ValueError(
+            "No credible alignment with buildable, low-velocity ports was found; "
+            "relax the volume/response goals or reduce drive voltage"
+        )
 
     return OptimizedAlignment(
         box=best_box,

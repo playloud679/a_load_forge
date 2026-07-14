@@ -45,9 +45,12 @@ crossing when the simulated range is too short to verify the passband.
 
 Ported optimizer candidates are construction-aware: the Helmholtz zero-length
 diameter is calculated for every vent (both DCCAV ports), and candidates needing
-more than 95% of the UI's 60 cm diameter ceiling are treated as infeasible.
-DCCAV candidates below the `F3 >= 0.65*fl` credibility boundary are likewise
-excluded from normal objective trade-offs rather than receiving a weak penalty.
+more than 95% of the UI's 60 cm diameter ceiling are treated as infeasible. The
+required diameter also includes the area needed to keep peak air speed at or
+below 5% of sound speed at the optimization voltage. DCCAV candidates below
+`F3 >= 0.67*fl` are likewise excluded from normal objective trade-offs. If the
+search never reaches the feasible region it raises an explicit optimizer error
+instead of returning its least-bad invalid candidate.
 
 ## Invariants
 

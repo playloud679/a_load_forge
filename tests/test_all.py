@@ -2012,12 +2012,35 @@ def _check_optimizer_respects_volume_cap():
         _dccav.response_threshold_frequencies(_dccav.simulate(ts, opt.box)),
     )
     assert not warnings, warnings
+    max_area_cm2 = np.pi * (max_buildable_cm / 2.0) ** 2
+    optimized_result = _dccav.simulate(ts, opt.box)
+    assert np.nanmax(_dccav.port_air_velocity_ms(
+        optimized_result, max_area_cm2, "upper")) <= (
+            _dccav.PORT_VELOCITY_GUIDELINE_MS * 1.001)
+    assert np.nanmax(_dccav.port_air_velocity_ms(
+        optimized_result, max_area_cm2, "lower")) <= (
+            _dccav.PORT_VELOCITY_GUIDELINE_MS * 1.001)
     assert opt.evaluations > 10
     low_cap = _dccav.optimize_alignment(
         _dccav.get_driver_preset("Beyma 12BR70"),
         _dccav.OptimizationGoals(objective="extension", max_total_volume_l=1.0),
     )
     assert low_cap.total_volume_l <= 1.0 + 1e-9, low_cap.total_volume_l
+
+    grs = _dccav.get_driver_preset("LSDB: GRS 8SW-4HE")
+    grs_opt = _dccav.optimize_alignment(
+        grs,
+        _dccav.OptimizationGoals(
+            objective="extension", max_ripple_db=0.0,
+            max_excursion_ratio=0.0,
+        ),
+    )
+    assert grs_opt.f3_hz >= 0.67 * grs_opt.box.fl_hz, grs_opt
+    grs_result = _dccav.simulate(grs, grs_opt.box)
+    grs_warnings = _dccav.alignment_diagnostics(grs, grs_opt.box)
+    grs_warnings += _dccav.response_sanity_warnings(
+        grs, grs_opt.box, _dccav.response_threshold_frequencies(grs_result))
+    assert not grs_warnings, grs_warnings
 
 
 test("DCCAV optimizer respects a total volume cap", _check_optimizer_respects_volume_cap)
@@ -2339,6 +2362,15 @@ def _check_ui_optimized_alignment_mode():
         optimized_box.vh_l, optimized_box.fh_hz, upper_d_cm, 1.7) >= 5.0
     assert _dccav.port_length_cm(
         optimized_box.vl_l, optimized_box.fl_hz, lower_d_cm, 1.463) >= 5.0
+    optimized_result = _dccav.simulate(driver, optimized_box)
+    upper_area_cm2 = np.pi * (upper_d_cm / 2.0) ** 2
+    lower_area_cm2 = np.pi * (lower_d_cm / 2.0) ** 2
+    assert np.nanmax(_dccav.port_air_velocity_ms(
+        optimized_result, upper_area_cm2, "upper")) <= (
+            _dccav.PORT_VELOCITY_GUIDELINE_MS * 1.001)
+    assert np.nanmax(_dccav.port_air_velocity_ms(
+        optimized_result, lower_area_cm2, "lower")) <= (
+            _dccav.PORT_VELOCITY_GUIDELINE_MS * 1.001)
     assert str(st.session_state["opt_last_summary"]).startswith("Optimized"), (
         st.session_state.get("opt_last_summary")
     )
@@ -2395,6 +2427,46 @@ def _check_ui_apply_button_respects_optimizer_mode():
 
 
 test("UI optimized strategy applies goal-driven boxes", _check_ui_apply_button_respects_optimizer_mode)
+
+
+def _check_ui_grs_extension_optimizer_applies_without_model_warnings():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
+    at.session_state["workspace_mode"] = "Design a box"
+    at.run()
+    assert not at.exception, at.exception
+    next(s for s in at.selectbox if s.label == "Load type").set_value("DCCAV").run()
+    next(
+        s for s in at.selectbox if s.label == "Driver preset"
+    ).set_value("LSDB: GRS 8SW-4HE").run()
+    at.session_state["box_strategy"] = "Optimized"
+    at.session_state["opt_align_mode"] = "Optimized (goals)"
+    at.session_state["opt_objective"] = "Max extension"
+    at.session_state["opt_max_volume_l"] = 0.0
+    at.session_state["opt_target_f3_hz"] = 0.0
+    at.session_state["opt_max_ripple_db"] = 0.0
+    at.session_state["opt_excursion_ratio"] = 0.0
+    at.session_state["opt_max_gd_ms"] = 0.0
+    at.session_state["_optimizer_engine_revision"] = 2
+    at.run()
+    assert not at.exception, at.exception
+    next(
+        button for button in at.button
+        if button.label == "Run optimizer and apply"
+    ).click().run()
+    assert not at.exception, at.exception
+    warnings = [warning.value for warning in at.warning]
+    assert not any(
+        "not credible" in warning or "air speed peaks" in warning
+        for warning in warnings
+    ), warnings
+
+
+test(
+    "UI GRS max-extension optimizer returns a credible low-velocity design",
+    _check_ui_grs_extension_optimizer_applies_without_model_warnings,
+)
 
 
 def _check_ui_progressive_disclosure():

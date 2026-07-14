@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.3 (2026-07-14)
+
+- **Strict optimizer feasibility**: DCCAV F3 credibility, Helmholtz geometry and
+  5%-of-c port air speed are now hard result conditions. An infeasible search
+  reports no buildable result instead of applying its least-bad candidate, and
+  optimized sessions saved by an older engine are refreshed automatically.
+- **Verification**: py_compile, Ruff, the exact GRS max-extension AppTest and
+  Streamlit smoke test clean; full suite 80 passed / 0 failed / 0 skipped.
+
 ## 0.4.2 (2026-07-14)
 
 - **Buildable optimized ports**: ported optimizer candidates now obey the

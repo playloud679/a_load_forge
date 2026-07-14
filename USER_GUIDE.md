@@ -63,7 +63,10 @@ Boxed loads use one three-state control:
 - **Optimized** exposes extension, ripple, excursion, group-delay and volume
   goals. **Run optimizer and apply** updates the active box and recalculates
   every active vent diameter for a positive Helmholtz length and the 5%-of-c
-  air-speed guideline; geometry from the previous preset is not reused.
+  air-speed guideline; geometry from the previous preset is not reused. Stored
+  optimized boxes are recalculated automatically after a physics-engine update.
+  If no candidate satisfies credibility, geometry and air-speed limits, the app
+  reports that no buildable result exists instead of applying a warning-laden box.
 - **Manual** unlocks direct volume and tuning edits, `-3%` / `+3%` nudges and a
   reset action for the selected load.
 
