@@ -33,12 +33,6 @@ Traccia operativa multi-sessione. Regole d'uso:
 
 ## 4. Funzioni innovative
 
-- [ ] **4.3 Atlante del design space**
-  Heatmap F3/ripple sul piano Vb–Fb (reflex/sealed) o Vtot–fl (DCCAV),
-  cliccabile per applicare il punto scelto. Griglia calcolata col solver
-  vettorizzato. File: `src/dccav.py`, `ui_app.py`, `docs/dccav.md`,
-  `tests/test_all.py`.
-
 - [ ] **4.4 Import impedenza misurata → estrazione T/S**
   Upload ZMA/CSV (REW/DATS), fit di Fs/Qms/Qes/Re; metodo massa aggiunta o
   volume noto per Vas. Confronto curva misurata vs simulata.
@@ -124,6 +118,26 @@ Traccia operativa multi-sessione. Regole d'uso:
 ---
 
 ## Fatto
+
+- [x] **4.3 Atlante del design space** — 2026-07-14. Backend:
+  `design_space_box()` (costruzione del box per un punto del piano — assi:
+  reflex Vb/Fb, sealed Vb 1-D, DCCAV Vtot/fl con split Vh/Vl e rapporto
+  fh/fl dallo starter empirico; perdite dal template) e `design_space_map()`
+  → `DesignSpaceMap` con griglie F3/ripple via `_optimizer_metrics`
+  (assi log 0.3–3× starter, 0.55–1.6× tuning; sealed 0.2–4× Vas; celle
+  invalide NaN; IB e resolution<3 rifiutati; valutazione a `voltage_v`,
+  0 Ω serie come optimizer). UI: nuovo tab **Atlas** nel Design; la
+  computazione (~225 sim) è gated dal toggle "Compute atlas" così i rerun
+  normali non la pagano, cache per driver+perdite+tensione; heatmap
+  `mark_rect` (viridis inverso, "Color by" F3/Ripple) o linea F3–Vb per il
+  sealed; click sul punto → riepilogo + "Apply selected box" via pending
+  point pre-widget (`_apply_pending_atlas_point`, strategia Manual,
+  stesso `design_space_box` della griglia quindi cella riprodotta esatta).
+  Doc: sezioni API + elenco test. Test: shape/finitezza griglie, round-trip
+  cella↔box, minimo F3 ≤ starter, sweep sealed monotono, rifiuti IB/res,
+  AppTest su tab gated + radio + apply pendente (Vb/Fb applicati, Manual).
+  Aggiornata l'asserzione dei tab nel test di progressive disclosure.
+  Verifica: py_compile OK, ruff OK, suite completa 69 pass / 0 fail / 0 skip.
 
 - [x] **2.2 Configurazioni multi-driver** — 2026-07-14. Backend:
   `DRIVER_CONFIGURATIONS` + `apply_driver_configuration()` (Single /

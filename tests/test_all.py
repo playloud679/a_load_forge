@@ -2051,7 +2051,7 @@ def _check_ui_progressive_disclosure():
     at.run()
     assert not at.exception, at.exception
     assert [tab.label for tab in at.tabs] == [
-        "Response", "Excursion", "Impedance", "Ports", "Group Delay",
+        "Response", "Excursion", "Impedance", "Ports", "Group Delay", "Atlas",
     ]
     assert not any(n.label in {"M1 (Hz)", "M2 (Hz)"} for n in at.number_input)
     assert not any(n.label == "Series R (Ω)" for n in at.number_input)
@@ -2158,6 +2158,93 @@ def _check_ui_finder_goal_inputs_follow_optimizer_toggle():
 
 
 test("UI Finder goal constraints follow the optimizer toggle", _check_ui_finder_goal_inputs_follow_optimizer_toggle)
+
+
+def _check_design_space_map():
+    ts = _kef_b110_ts()
+    space = _dccav.design_space_map(ts, "Bass reflex", resolution=7)
+    assert space.f3_hz.shape == (7, 7) and space.ripple_db.shape == (7, 7)
+    assert space.x_values[0] < space.x_values[-1]
+    assert np.isfinite(space.f3_hz).mean() > 0.6, (
+        "most of the reflex plane must produce a valid F3")
+
+    start = _dccav.suggest_reflex_alignment(ts)
+    freq = np.geomspace(min(10.0, ts.fs_hz / 4.0), max(400.0, 4.0 * ts.fs_hz), 160)
+    base = _dccav.simulate_reflex(
+        ts, _dccav.ReflexBox(vb_l=start.vb_l, fb_hz=start.fb_hz), freq)
+    start_f3 = _dccav.response_threshold_frequencies(base)[3]
+    assert np.nanmin(space.f3_hz) <= start_f3 + 0.5, (
+        "the atlas must reach at least the starter's extension")
+
+    ix, iy = 3, 2
+    box = _dccav.design_space_box(
+        ts, "Bass reflex", float(space.x_values[ix]), float(space.y_values[iy]))
+    cell = _dccav.response_threshold_frequencies(
+        _dccav.simulate_reflex(ts, box, freq))[3]
+    got = float(space.f3_hz[iy, ix])
+    assert (np.isnan(got) and np.isnan(cell)) or abs(got - cell) < 1e-6, (got, cell)
+
+    sealed = _dccav.design_space_map(ts, "Sealed", resolution=9)
+    assert sealed.y_values.shape == (1,)
+    assert sealed.f3_hz[0, -1] < sealed.f3_hz[0, 0], (
+        "a bigger sealed box must reach deeper bass")
+
+    dccav_map = _dccav.design_space_map(ts, "DCCAV", resolution=5)
+    assert dccav_map.f3_hz.shape == (5, 5)
+    assert np.isfinite(dccav_map.f3_hz).any()
+
+    try:
+        _dccav.design_space_map(ts, "Infinite baffle")
+    except ValueError as exc:
+        assert "no box" in str(exc)
+    else:
+        raise AssertionError("infinite baffle must be rejected")
+    try:
+        _dccav.design_space_map(ts, "Bass reflex", resolution=2)
+    except ValueError as exc:
+        assert "resolution" in str(exc).casefold()
+    else:
+        raise AssertionError("a 2-point grid must be rejected")
+
+
+test("DCCAV design-space atlas maps F3 and ripple over the box plane", _check_design_space_map)
+
+
+def _check_ui_atlas_tab():
+    from streamlit.testing.v1 import AppTest
+
+    import ui_app as _ui
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
+    at.session_state["workspace_mode"] = "Design a box"
+    at.session_state["load_type"] = "Bass reflex"
+    at.run()
+    assert not at.exception, at.exception
+    assert [tab.label for tab in at.tabs] == [
+        "Response", "Excursion", "Impedance", "Ports", "Group Delay", "Atlas",
+    ]
+    assert any("Enable to map" in caption.value for caption in at.caption), (
+        "atlas computation must stay gated behind the toggle")
+
+    at.session_state["atlas_enabled"] = True
+    at.run()
+    assert not at.exception, at.exception
+    assert any(
+        "grid around the empirical starter" in caption.value
+        for caption in at.caption
+    ), "the enabled atlas must describe its grid"
+    assert any(r.label == "Color by" for r in at.radio)
+
+    state = _ui.st.session_state
+    state["load_type"] = "Bass reflex"
+    state["atlas_pending_point"] = {"load_type": "Bass reflex", "x": 25.0, "y": 40.0}
+    _ui._apply_pending_atlas_point()
+    assert float(state["reflex_vb_l"]) == 25.0
+    assert float(state["reflex_fb_hz"]) == 40.0
+    assert state["box_strategy"] == "Manual", "an applied atlas point must unlock the box"
+
+
+test("UI Atlas tab gates the design-space map and applies clicked points", _check_ui_atlas_tab)
 
 
 def _check_driver_configurations():

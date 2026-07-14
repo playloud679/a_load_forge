@@ -1209,6 +1209,131 @@ def monte_carlo_response_band(
     )
 
 
+@dataclass(frozen=True)
+class DesignSpaceMap:
+    """Grid of achievable F3/ripple over the box plane for one load type."""
+
+    load_type: str
+    x_label: str
+    y_label: str
+    x_values: np.ndarray
+    y_values: np.ndarray
+    f3_hz: np.ndarray
+    ripple_db: np.ndarray
+
+
+def _design_space_axes(
+    ts: DriverTS, load_type: str, resolution: int,
+) -> tuple[np.ndarray, np.ndarray, str, str]:
+    n = int(resolution)
+    if load_type == "Bass reflex":
+        start = suggest_reflex_alignment(ts)
+        return (
+            np.geomspace(0.3 * start.vb_l, 3.0 * start.vb_l, n),
+            np.geomspace(0.55 * start.fb_hz, 1.6 * start.fb_hz, n),
+            "Vb (L)", "Fb (Hz)",
+        )
+    if load_type == "Sealed":
+        return (
+            np.geomspace(0.2 * ts.vas_l, 4.0 * ts.vas_l, n),
+            np.array([0.0]),
+            "Vb (L)", "",
+        )
+    start = suggest_alignment(ts)
+    vtot = max(start.vh_l + start.vl_l, EPS)
+    return (
+        np.geomspace(0.3 * vtot, 3.0 * vtot, n),
+        np.geomspace(0.55 * start.fl_hz, 1.6 * start.fl_hz, n),
+        "Vtot (L)", "fl (Hz)",
+    )
+
+
+def design_space_box(
+    ts: DriverTS,
+    load_type: str,
+    x: float,
+    y: float,
+    box_template: DccavBox | ReflexBox | SealedBox | None = None,
+) -> DccavBox | ReflexBox | SealedBox:
+    """Build the box for one point of the design-space plane.
+
+    ``x``/``y`` follow the atlas axes: reflex `Vb`/`Fb`, sealed `Vb` (y is
+    ignored), DCCAV total volume/`fl` with the Vh/Vl split and fh/fl ratio
+    taken from the empirical starter.  Loss factors are copied from
+    ``box_template`` when one of the matching type is provided.
+    """
+    if load_type in {"Suspension pneumatic", "Acoustic suspension"}:
+        load_type = "Sealed"
+    if load_type == "Bass reflex":
+        t = box_template if isinstance(box_template, ReflexBox) else ReflexBox(
+            vb_l=ts.vas_l, fb_hz=ts.fs_hz)
+        return ReflexBox(
+            vb_l=float(x), fb_hz=float(y),
+            q_abs=t.q_abs, q_leak=t.q_leak, q_port=t.q_port,
+        )
+    if load_type == "Sealed":
+        t = box_template if isinstance(box_template, SealedBox) else SealedBox(
+            vb_l=ts.vas_l)
+        return SealedBox(vb_l=float(x), q_abs=t.q_abs, q_leak=t.q_leak)
+    if load_type == "Infinite baffle":
+        raise ValueError("Infinite baffle has no box parameters to map")
+    start = suggest_alignment(ts)
+    vtot = max(start.vh_l + start.vl_l, EPS)
+    vh_ratio = float(np.clip(start.vh_l / vtot, 0.05, 0.95))
+    fh_ratio = start.fh_hz / max(start.fl_hz, EPS)
+    t = box_template if isinstance(box_template, DccavBox) else DccavBox(
+        vh_l=start.vh_l, fh_hz=start.fh_hz, vl_l=start.vl_l, fl_hz=start.fl_hz)
+    vh = max(float(x) * vh_ratio, 0.05)
+    return DccavBox(
+        vh_l=vh, fh_hz=float(y) * fh_ratio,
+        vl_l=max(float(x) - vh, 0.05), fl_hz=float(y),
+        q_abs_h=t.q_abs_h, q_abs_l=t.q_abs_l,
+        q_leak_h=t.q_leak_h, q_leak_l=t.q_leak_l,
+        q_port_h=t.q_port_h, q_port_l=t.q_port_l,
+    )
+
+
+def design_space_map(
+    ts: DriverTS,
+    load_type: str = "Bass reflex",
+    box_template: DccavBox | ReflexBox | SealedBox | None = None,
+    resolution: int = 15,
+    voltage_v: float = 2.83,
+) -> DesignSpaceMap:
+    """Sweep the box plane and report F3/ripple per grid point.
+
+    Log-spaced axes around the empirical starter: reflex `Vb` (0.3-3x) vs
+    `Fb` (0.55-1.6x), DCCAV total volume vs `fl` (same spans, starter Vh/Vl
+    split and fh/fl ratio), sealed a 1-D `Vb` sweep (0.2-4x Vas, collapsed y
+    axis).  Like the optimizer, the map is evaluated at ``voltage_v`` with
+    zero series resistance.  Infinite baffle raises ``ValueError``.
+    """
+    if load_type in {"Suspension pneumatic", "Acoustic suspension"}:
+        load_type = "Sealed"
+    if load_type == "Infinite baffle":
+        raise ValueError("Infinite baffle has no box parameters to map")
+    if int(resolution) < 3:
+        raise ValueError("Atlas resolution must be at least 3")
+    freq = np.geomspace(min(10.0, ts.fs_hz / 4.0), max(400.0, 4.0 * ts.fs_hz), 160)
+    x_values, y_values, x_label, y_label = _design_space_axes(ts, load_type, resolution)
+    f3_grid = np.full((len(y_values), len(x_values)), np.nan)
+    ripple_grid = np.full_like(f3_grid, np.nan)
+    for iy, y in enumerate(y_values):
+        for ix, x in enumerate(x_values):
+            try:
+                box = design_space_box(ts, load_type, float(x), float(y), box_template)
+                metrics = _optimizer_metrics(ts, box, freq, voltage_v)
+            except ValueError:
+                continue
+            f3_grid[iy, ix] = metrics["f3_hz"]
+            ripple_grid[iy, ix] = metrics["ripple_db"]
+    return DesignSpaceMap(
+        load_type=load_type, x_label=x_label, y_label=y_label,
+        x_values=x_values, y_values=y_values,
+        f3_hz=f3_grid, ripple_db=ripple_grid,
+    )
+
+
 def price_extension_score(f3_hz: float, price: float) -> float:
     """Lower-is-better value score: bass extension weighted by driver price.
 

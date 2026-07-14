@@ -1564,6 +1564,162 @@ def _apply_pending_batch_result() -> None:
     st.toast(f"Applied {pending['row']['Driver']} to the design")
 
 
+def _apply_pending_atlas_point() -> None:
+    pending = st.session_state.pop("atlas_pending_point", None)
+    if not pending:
+        return
+    load_type = str(pending["load_type"])
+    try:
+        driver = _driver_from_state()
+        if load_type == "Bass reflex":
+            template = _reflex_box_from_state()
+        elif load_type == "Sealed":
+            template = _sealed_box_from_state()
+        else:
+            template = _box_from_state()
+        box = _dccav.design_space_box(
+            driver, load_type, float(pending["x"]), float(pending["y"]), template)
+    except Exception:
+        logger.exception("Could not apply the atlas point")
+        return
+    _use_manual_box_strategy()
+    _apply_optimized_box(box)
+    _mark_auto_alignment_synced(driver)
+    st.toast("Applied the atlas box to the design (Manual strategy)")
+
+
+def _atlas_loss_signature(load_type: str, box) -> tuple:
+    if load_type == "Bass reflex":
+        return (box.q_abs, box.q_leak, box.q_port)
+    if load_type == "Sealed":
+        return (box.q_abs, box.q_leak)
+    return (
+        box.q_abs_h, box.q_abs_l, box.q_leak_h, box.q_leak_l,
+        box.q_port_h, box.q_port_l,
+    )
+
+
+@st.cache_data(show_spinner="Mapping the design space...")
+def _design_space_cached(
+    ts: _dccav.DriverTS, load_type: str, losses: tuple, voltage_v: float,
+) -> _dccav.DesignSpaceMap:
+    # The map only reads loss factors from the template; geometry is swept.
+    if load_type == "Bass reflex":
+        template = _dccav.ReflexBox(
+            vb_l=ts.vas_l, fb_hz=ts.fs_hz,
+            q_abs=losses[0], q_leak=losses[1], q_port=losses[2])
+    elif load_type == "Sealed":
+        template = _dccav.SealedBox(vb_l=ts.vas_l, q_abs=losses[0], q_leak=losses[1])
+    else:
+        template = _dccav.DccavBox(
+            vh_l=1.0, fh_hz=100.0, vl_l=1.0, fl_hz=50.0,
+            q_abs_h=losses[0], q_abs_l=losses[1],
+            q_leak_h=losses[2], q_leak_l=losses[3],
+            q_port_h=losses[4], q_port_l=losses[5])
+    return _dccav.design_space_map(
+        ts, load_type=load_type, box_template=template, voltage_v=voltage_v)
+
+
+def _atlas_frame(space: _dccav.DesignSpaceMap) -> pd.DataFrame:
+    rows = []
+    for iy, y in enumerate(space.y_values):
+        for ix, x in enumerate(space.x_values):
+            rows.append({
+                "x_value": round(float(x), 3),
+                "y_value": round(float(y), 3),
+                "f3_hz": float(space.f3_hz[iy, ix]),
+                "ripple_db": float(space.ripple_db[iy, ix]),
+            })
+    return pd.DataFrame(rows)
+
+
+def _render_atlas_tab(current_ts, load_type: str, box, sim_voltage: float) -> None:
+    st.subheader("Design Space Atlas")
+    if load_type == "Infinite baffle":
+        st.caption("Infinite baffle has no box parameters to map.")
+        return
+    st.toggle(
+        "Compute atlas", key="atlas_enabled",
+        help="Simulates a grid of boxes around the empirical starter "
+             "(a few hundred runs, cached per driver, losses and voltage).",
+    )
+    if not st.session_state.get("atlas_enabled", False):
+        st.caption(
+            "Enable to map F3 and ripple over the box plane and apply any "
+            "point to the design with a click."
+        )
+        return
+    space = _design_space_cached(
+        current_ts, load_type, _atlas_loss_signature(load_type, box), sim_voltage)
+    frame = _atlas_frame(space)
+    metric = st.radio(
+        "Color by", ("F3 (Hz)", "Ripple (dB)"), horizontal=True, key="atlas_metric")
+    field = "f3_hz" if str(metric).startswith("F3") else "ripple_db"
+    picker = alt.selection_point(
+        name="atlas_point", fields=["x_value", "y_value"], on="click", empty=False)
+    color = alt.Color(
+        f"{field}:Q", title=str(metric),
+        scale=alt.Scale(scheme="viridis", reverse=True))
+    tooltips = [
+        alt.Tooltip("x_value:Q", title=space.x_label, format=".2f"),
+        alt.Tooltip("y_value:Q", title=space.y_label or "-", format=".2f"),
+        alt.Tooltip("f3_hz:Q", title="F3 (Hz)", format=".1f"),
+        alt.Tooltip("ripple_db:Q", title="Ripple (dB)", format=".2f"),
+    ]
+    if len(space.y_values) > 1:
+        chart = alt.Chart(frame).mark_rect().encode(
+            x=alt.X(
+                "x_value:O", title=space.x_label,
+                axis=alt.Axis(format="~g", labelAngle=-45, labelOverlap="greedy"),
+            ),
+            y=alt.Y(
+                "y_value:O", title=space.y_label, sort="descending",
+                axis=alt.Axis(format="~g"),
+            ),
+            color=color,
+            tooltip=tooltips,
+        ).add_params(picker).properties(height=520)
+    else:
+        chart = alt.Chart(frame).mark_line(point=True).encode(
+            x=alt.X(
+                "x_value:Q", title=space.x_label,
+                scale=alt.Scale(type="log", nice=False),
+            ),
+            y=alt.Y("f3_hz:Q", title="F3 (Hz)"),
+            tooltip=tooltips,
+        ).add_params(picker).properties(height=420)
+    event = st.altair_chart(
+        chart, width="stretch", key="atlas_chart", on_select="rerun")
+    st.caption(
+        f"{len(space.x_values)}×{len(space.y_values)} grid around the empirical "
+        f"starter, evaluated at {sim_voltage:.2f} V with 0 Ω series resistance "
+        "and the current loss factors."
+    )
+    try:
+        picked = list(event.selection["atlas_point"])
+    except Exception:
+        picked = []
+    if not picked:
+        st.caption("Click a point to inspect it, then apply it to the design.")
+        return
+    point = picked[0]
+    x_sel = float(point.get("x_value", 0.0))
+    y_sel = float(point.get("y_value", 0.0))
+    match = frame[(frame["x_value"] == x_sel) & (frame["y_value"] == y_sel)]
+    if match.empty:
+        return
+    row = match.iloc[0]
+    y_txt = f" · {space.y_label} {y_sel:.2f}" if space.y_label else ""
+    st.markdown(
+        f"**Selected:** {space.x_label} {x_sel:.2f}{y_txt} · "
+        f"F3 {_fmt_hz(row['f3_hz'])} · ripple {_fmt_db(row['ripple_db'])}"
+    )
+    if st.button("Apply selected box", type="primary", use_container_width=True):
+        st.session_state["atlas_pending_point"] = {
+            "load_type": load_type, "x": x_sel, "y": y_sel}
+        st.rerun()
+
+
 def _finder_price_currency(df: pd.DataFrame) -> str:
     """Currency used for value ranking: sidebar choice, else the most common."""
     priced = df[df["Price"].notna() & df["Currency"].astype(bool)]
@@ -2247,6 +2403,8 @@ _default("plot_show_mil", False)
 _default("plot_compare_loads", False)
 _default("plot_tolerance_band", False)
 _default("plot_tolerance_pct", 15.0)
+_default("atlas_enabled", False)
+_default("atlas_metric", "F3 (Hz)")
 _default("plot_port_upper", "Upper port" in st.session_state["plot_port_traces"])
 _default("plot_port_lower", "Lower port" in st.session_state["plot_port_traces"])
 _default("cursor_auto_f3", True)
@@ -2273,6 +2431,7 @@ if "box_strategy" not in st.session_state:
     else:
         st.session_state["box_strategy"] = "Manual"
 _apply_pending_batch_result()
+_apply_pending_atlas_point()
 
 _share_token = st.query_params.get("d")
 if _share_token and st.session_state.get("_applied_share_token") != _share_token:
@@ -2923,7 +3082,8 @@ try:
         tab_impedance,
         tab_ports,
         tab_gd,
-    ) = st.tabs(["Response", "Excursion", "Impedance", "Ports", "Group Delay"])
+        tab_atlas,
+    ) = st.tabs(["Response", "Excursion", "Impedance", "Ports", "Group Delay", "Atlas"])
 
     with tab_response:
         _render_response_tab(
@@ -2958,6 +3118,8 @@ try:
         )
         if gd_limit_ms > 0.0:
             st.caption(f"Dashed red line: optimizer group-delay limit = {gd_limit_ms:.0f} ms.")
+    with tab_atlas:
+        _render_atlas_tab(current_ts, load_type, box, sim_voltage)
 
     if derived is not None:
         with st.expander("Driver details"):

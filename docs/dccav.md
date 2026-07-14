@@ -410,6 +410,28 @@ the band onto the nominal response.  The UI exposes it as the `Tolerance
 band` toggle in the Response tab (cached per parameter set, shaded area
 under the traces, disabled while comparing loads).
 
+### `design_space_box(ts, load_type, x, y, box_template=None) -> DccavBox | ReflexBox | SealedBox`
+
+Builds the box for one point of the atlas plane.  `x`/`y` follow the atlas
+axes: reflex `Vb`/`Fb`, sealed `Vb` (y ignored), DCCAV total volume/`fl`
+with the Vh/Vl split and fh/fl ratio taken from the empirical starter.
+Loss factors are copied from a matching-type `box_template`.  Shared by the
+grid sweep and by the UI's click-to-apply so an applied point reproduces its
+cell exactly.
+
+### `design_space_map(ts, load_type="Bass reflex", box_template=None, resolution=15, voltage_v=2.83) -> DesignSpaceMap`
+
+Sweeps the box plane and reports achievable `F3`/ripple per grid point via
+the optimizer metrics.  Log-spaced axes around the empirical starter:
+reflex `Vb` (0.3-3x starter) vs `Fb` (0.55-1.6x), DCCAV total volume vs
+`fl` (same spans), sealed a 1-D `Vb` sweep (0.2-4x Vas, `y_values` collapsed
+to one row).  Like the optimizer, evaluation is at `voltage_v` with zero
+series resistance; invalid grid cells stay `NaN`; infinite baffle and
+`resolution < 3` raise `ValueError`.  The UI exposes it as the `Atlas` tab:
+computation is gated behind a `Compute atlas` toggle, cached per driver,
+losses and voltage, colored by F3 or ripple, and clicking a cell offers
+`Apply selected box` (switches the design to Manual strategy).
+
 ### `price_extension_score(f3_hz, price) -> float`
 
 Lower-is-better value score for the price-aware `Find a driver` ranking:
@@ -668,3 +690,7 @@ If no true rising crossing exists in the simulated range, the returned value is
 - driver configurations: exact parallel/series/isobaric T/S scaling,
   invariant Fs/Q, dropped measured overrides, classical ±3 dB efficiency
   shifts and the UI selector re-aligning the suggested box
+- design-space atlas: grid shapes and axis ranges, cell/`design_space_box`
+  round-trip, deeper-than-starter minimum F3, sealed 1-D monotonic sweep,
+  infinite-baffle/resolution rejection and the UI Atlas tab with gated
+  computation and pending click-to-apply
