@@ -2457,6 +2457,45 @@ def _check_ui_finder_value_ranking():
 test("UI Finder ranks candidates by price-performance value", _check_ui_finder_value_ranking)
 
 
+def _check_module_split_facade():
+    import ast
+
+    from src import engine, presets, pricing
+
+    assert _dccav.DriverTS is engine.DriverTS
+    assert _dccav.SimulationResult is engine.SimulationResult
+    assert _dccav.simulate is engine.simulate
+    assert _dccav.optimize_alignment is engine.optimize_alignment
+    assert _dccav.design_space_map is engine.design_space_map
+    assert _dccav.get_driver_preset is presets.get_driver_preset
+    assert _dccav.driver_preset_info is presets.driver_preset_info
+    assert _dccav.DRIVER_PRESETS is presets.DRIVER_PRESETS
+    assert _dccav.price_extension_score is pricing.price_extension_score
+    assert _dccav.DRIVER_PRICES_PATH is pricing.DRIVER_PRICES_PATH
+    assert _dccav._load_driver_price_records is pricing._load_driver_price_records
+    assert (
+        _dccav._load_loudspeaker_database_presets
+        is presets._load_loudspeaker_database_presets
+    )
+
+    # The engine must stay free of catalog and pricing knowledge.
+    tree = ast.parse((ROOT / "src" / "engine.py").read_text(encoding="utf-8"))
+    imported = {
+        node.module for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and node.module
+    }
+    imported |= {
+        alias.name
+        for node in ast.walk(tree) if isinstance(node, ast.Import)
+        for alias in node.names
+    }
+    forbidden = {"presets", "pricing", "src.presets", "src.pricing"}
+    assert not forbidden & imported, imported
+
+
+test("Module split keeps dccav a faithful facade", _check_module_split_facade)
+
+
 def _check_simulation_rejects_bad_frequency_grid():
     ts = _kef_b110_ts()
     a = _dccav.suggest_alignment(ts)

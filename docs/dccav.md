@@ -1,11 +1,19 @@
-# `src/dccav.py` — acoustic-load simulators
+# `src/dccav.py` — acoustic-load public API
 
-Implements the audio-domain simulators for the app: DCCAV / double series
+Public API reference for the acoustic-load simulators: DCCAV / double series
 resonator based on the PCPaudio/G.P. Matarazzo article `Teoría y práctica del
 doble resonador en serie`, conventional bass reflex, closed-box acoustic
 suspension and infinite baffle.
 
-The module works in the frequency domain with lumped acoustic impedances and
+`src/dccav.py` is a compatibility facade: the implementation lives in
+`src/engine.py` (physics, simulation, optimizer, analysis — see
+`docs/engine.md`), `src/presets.py` (driver catalog — `docs/presets.md`) and
+`src/pricing.py` (retailer prices — `docs/pricing.md`).  Importing `dccav`
+exposes everything documented here, both as a top-level module (`import
+dccav` with `src/` on `sys.path`, used by `ui_app.py`) and as part of the
+package (`from src import dccav`, used by the tests).
+
+The engine works in the frequency domain with lumped acoustic impedances and
 returns arrays for plotting SPL, cone excursion, impedance and port volume
 velocities.
 
@@ -694,3 +702,6 @@ If no true rising crossing exists in the simulated range, the returned value is
   round-trip, deeper-than-starter minimum F3, sealed 1-D monotonic sweep,
   infinite-baffle/resolution rejection and the UI Atlas tab with gated
   computation and pending click-to-apply
+- module split: the `dccav` facade re-exports the same objects as
+  `engine`/`presets`/`pricing` (including the cached loaders the price
+  tests clear) and the engine imports neither catalog nor pricing

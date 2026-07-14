@@ -13,7 +13,7 @@ agents.  A stale doc is treated as a broken build.
 While patching Python:
 
 ```bash
-.venv/bin/python -m py_compile ui_app.py src/dccav.py tests/test_all.py
+.venv/bin/python -m py_compile ui_app.py src/*.py tests/test_all.py
 .venv/bin/python tests/test_all.py -m dccav
 ```
 
@@ -36,7 +36,8 @@ Do not claim a test passed unless it was actually run.
 Load Forge is a Streamlit acoustic-load simulator.
 
 ```text
-ui_app.py -> src/dccav.py -> docs/dccav.md -> tests/test_all.py
+ui_app.py -> src/dccav.py (facade) -> src/engine.py + src/presets.py + src/pricing.py
+          -> docs/dccav.md (+ docs/<module>.md) -> tests/test_all.py
 ```
 
 The current simulator supports DCCAV / double asymmetric reflex:
@@ -65,18 +66,27 @@ make test
 | Module/File | Role |
 |---|---|
 | `ui_app.py` | Streamlit single-page dashboard |
-| `src/dccav.py` | DCCAV/reflex/sealed/infinite-baffle formulas and simulation |
-| `docs/dccav.md` | Public API, formulas, assumptions and tests |
-| `tests/test_all.py` | Focused custom runner with 42 acoustic-load tests |
+| `src/dccav.py` | Compatibility facade re-exporting the public API of the three modules below |
+| `src/engine.py` | Physics, simulation, optimizer, atlas, Monte Carlo, exports, classification |
+| `src/presets.py` | Built-in + Loudspeaker Database driver catalog and metadata |
+| `src/pricing.py` | Retailer price records, safe matching and value scoring |
+| `docs/dccav.md` | Public API, formulas, assumptions and tests (facade-level reference) |
+| `docs/engine.md`, `docs/presets.md`, `docs/pricing.md` | Per-module contracts |
+| `tests/test_all.py` | Focused custom runner with the acoustic-load suite |
 
 ## Streamlit Reload Rule
 
-Any `src/` module used in `ui_app.py` must be imported as a module and reloaded:
+Any `src/` module used in `ui_app.py` must be imported as a module and
+reloaded, dependencies first and the `dccav` facade last:
 
 ```python
 import dccav as _dccav
-import importlib
-importlib.reload(_dccav)
+import engine as _engine
+import presets as _presets
+import pricing as _pricing
+
+for _module in (_engine, _pricing, _presets, _dccav):
+    importlib.reload(_module)
 ```
 
 Add new imports/reloads when adding new active helper modules.

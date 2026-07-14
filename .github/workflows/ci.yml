@@ -23,7 +23,7 @@ jobs:
           pip install -r requirements.txt ruff
 
       - name: Compile
-        run: python -m py_compile ui_app.py src/dccav.py tests/test_all.py
+        run: python -m py_compile ui_app.py src/*.py tests/test_all.py
 
       - name: Lint
         run: python -m ruff check src tests ui_app.py

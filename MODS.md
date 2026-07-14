@@ -13,13 +13,6 @@ Traccia operativa multi-sessione. Regole d'uso:
 
 ## 2. Backend
 
-- [ ] **2.1 Split di `src/dccav.py` in moduli**
-  Separare motore acustico / catalogo preset / pricing in
-  `src/engine.py`, `src/presets.py`, `src/pricing.py` (o simili), mantenendo
-  `dccav.py` come facciata compatibile. Aggiornare doc contract
-  (`docs/<modulo>.md` per ogni nuovo modulo) e reload-rule Streamlit in
-  `ui_app.py`.
-
 - [ ] **2.3 Nuove topologie: bandpass 4°/6° ordine + radiatore passivo**
   Riusare il solver a 2 nodi vettorizzato del DCCAV: bandpass = camera sealed
   + camera ported; PR = ramo porto con massa+compliance+perdita propria.
@@ -118,6 +111,31 @@ Traccia operativa multi-sessione. Regole d'uso:
 ---
 
 ## Fatto
+
+- [x] **2.1 Split di `src/dccav.py` in moduli** — 2026-07-14. Il file
+  (2377 righe) è stato tagliato per slicing meccanico in:
+  `src/engine.py` (~1580 righe: costanti fisiche, dataclass tranne
+  `DriverPresetInfo`, derivazione/allineamenti, 4 simulatori, optimizer,
+  porte, export FRD/ZMA, Monte Carlo, atlante, classificazione,
+  configurazioni multi-driver, diagnostica), `src/presets.py` (~700:
+  `DRIVER_PRESETS`, loader LSDB cachato, `driver_preset_names/info/get`,
+  `DriverPresetInfo`) e `src/pricing.py` (~140: loader prezzi cachato,
+  matching sicuro, `_preset_price`, `price_extension_score`).
+  `src/dccav.py` è ora una facciata di 25 righe con doppio contesto di
+  import (try relativo / except top-level, perché ui_app importa `dccav`
+  con `src/` su sys.path mentre i test usano `from src import dccav`);
+  ri-esporta anche i due loader privati cachati usati dai test price.
+  Dipendenze pulite: engine non importa nulla del catalogo/prezzi
+  (verificato via AST nel test di facciata), presets dipende da
+  engine+pricing, pricing è foglia. Reload-rule Streamlit aggiornata in
+  `ui_app.py` (deps prima, facciata ultima) e in CLAUDE.md (anche tabella
+  moduli, architettura e comando py_compile con `src/*.py`); CI aggiornata.
+  Doc nuove: `docs/engine.md`, `docs/presets.md`, `docs/pricing.md`
+  (contratti per modulo); `docs/dccav.md` resta il riferimento API completo
+  con intro da facciata. Test nuovo: identità facciata↔moduli + purezza
+  import dell'engine. Nessun cambio di comportamento: suite completa
+  70 pass / 0 fail / 0 skip, ruff pulito, entrambi i contesti di import
+  verificati end-to-end. **Sblocca il 2.4** (worker paralleli importabili).
 
 - [x] **4.3 Atlante del design space** — 2026-07-14. Backend:
   `design_space_box()` (costruzione del box per un punto del piano — assi:

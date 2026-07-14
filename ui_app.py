@@ -28,8 +28,13 @@ logger = logging.getLogger("load_forge.ui")
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 import dccav as _dccav
+import engine as _engine
+import presets as _presets
+import pricing as _pricing
 
-importlib.reload(_dccav)
+# Reload dependencies before the facade so it rebinds to the fresh modules.
+for _module in (_engine, _pricing, _presets, _dccav):
+    importlib.reload(_module)
 
 
 try:

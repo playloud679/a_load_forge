@@ -1,0 +1,1578 @@
+"""
+Acoustic-load engine: physics, simulation, optimization and analysis.
+
+The lumped DCCAV model follows the PCPaudio/G.P. Matarazzo "doppio resonador
+en serie" article:
+
+    driver -> upper volume || upper port -> lower volume || lower port
+
+All calculations use SI units internally and expose litre/Hz/mm-friendly
+helpers for the UI.  ``src/dccav.py`` re-exports this module's public API.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+import numpy as np
+
+RHO_AIR = 1.18
+SPEED_OF_SOUND = 344.0
+P_REF = 20e-6
+EPS = 1e-30
+
+
+@dataclass(frozen=True)
+class DriverTS:
+    """Thiele/Small parameters needed by the DCCAV simulator."""
+
+    fs_hz: float
+    vas_l: float
+    qts: float
+    qms: float
+    re_ohm: float
+    sd_cm2: float
+    le_mh: float = 0.0
+    xmax_mm: float = 0.0
+    pe_w: float = 0.0
+    mms_g: float | None = None
+    cms_mm_per_n: float | None = None
+    bl_tm: float | None = None
+
+
+
+@dataclass(frozen=True)
+class DerivedDriver:
+    """Driver values converted to SI/acoustic-domain components."""
+
+    sd_m2: float
+    vas_m3: float
+    cms_m_per_n: float
+    mms_kg: float
+    rms_n_s_m: float
+    qes: float
+    bl_tm: float
+    rat: float
+    cas: float
+    mas: float
+
+
+@dataclass(frozen=True)
+class DccavAlignment:
+    """Empirical DCCAV alignment suggested by the PCPaudio article."""
+
+    vh_l: float
+    fh_hz: float
+    vl_l: float
+    fl_hz: float
+    f3_hz: float
+
+
+@dataclass(frozen=True)
+class DccavBox:
+    """Two series resonator volumes and their loss factors."""
+
+    vh_l: float
+    fh_hz: float
+    vl_l: float
+    fl_hz: float
+    q_abs_h: float = 15.0
+    q_abs_l: float = 15.0
+    q_leak_h: float = 1000.0
+    q_leak_l: float = 1000.0
+    q_port_h: float = 15.0
+    q_port_l: float = 15.0
+
+
+@dataclass(frozen=True)
+class ReflexAlignment:
+    """Conservative one-box bass-reflex starter alignment."""
+
+    vb_l: float
+    fb_hz: float
+
+
+@dataclass(frozen=True)
+class ReflexBox:
+    """Single vented-box volume, tuning and loss factors."""
+
+    vb_l: float
+    fb_hz: float
+    q_abs: float = 15.0
+    q_leak: float = 1000.0
+    q_port: float = 15.0
+
+
+@dataclass(frozen=True)
+class SealedAlignment:
+    """Classical closed-box starter alignment."""
+
+    vb_l: float
+    fc_hz: float
+    qtc: float
+
+
+@dataclass(frozen=True)
+class SealedBox:
+    """Closed-box volume and acoustic loss factors."""
+
+    vb_l: float
+    q_abs: float = 15.0
+    q_leak: float = 1000.0
+
+
+@dataclass(frozen=True)
+class OptimizationGoals:
+    """User-settable goals for :func:`optimize_alignment`.
+
+    ``objective`` weighs extension against flatness; the remaining fields are
+    optional constraints enforced through score penalties.  ``None`` (or a
+    non-positive UI value mapped to ``None``) disables a constraint.
+    """
+
+    objective: str = "balanced"  # "extension" | "balanced" | "flat"
+    max_total_volume_l: float | None = None
+    target_f3_hz: float | None = None
+    max_ripple_db: float = 3.0
+    max_excursion_ratio: float = 1.0
+    max_group_delay_ms: float | None = None
+
+
+@dataclass(frozen=True)
+class OptimizedAlignment:
+    """Optimizer result: the box plus the achieved response figures."""
+
+    box: DccavBox | ReflexBox | SealedBox
+    f3_hz: float
+    f10_hz: float
+    ripple_db: float
+    excursion_ratio: float
+    group_delay_ms: float
+    total_volume_l: float
+    score: float
+    evaluations: int
+
+
+@dataclass(frozen=True)
+class SimulationResult:
+    """Frequency-domain response arrays returned by :func:`simulate`."""
+
+    frequency_hz: np.ndarray
+    spl_total_db: np.ndarray
+    spl_driver_db: np.ndarray
+    spl_port_db: np.ndarray
+    excursion_mm: np.ndarray
+    impedance_ohm: np.ndarray
+    port_h_velocity: np.ndarray
+    port_l_velocity: np.ndarray
+    mil_w: np.ndarray
+    mol_db: np.ndarray
+    driver_volume_velocity: np.ndarray
+    port_volume_velocity: np.ndarray
+    # Electrical impedance phase in degrees; None on results built before the
+    # field existed (ZMA export then degrades to zero phase).
+    impedance_phase_deg: np.ndarray | None = None
+
+
+def sd_from_diameter(diameter_mm: float) -> float:
+    """Return piston area in cm^2 from an effective piston diameter in mm."""
+    d_m = float(diameter_mm) / 1000.0
+    return float(np.pi * (d_m / 2.0) ** 2 * 10_000.0)
+
+
+
+def complete_driver(ts: DriverTS) -> DerivedDriver:
+    """Convert a T/S set to derived mechanical and acoustic components."""
+    _require_positive("Fs", ts.fs_hz)
+    _require_positive("Vas", ts.vas_l)
+    _require_positive("Qts", ts.qts)
+    _require_positive("Qms", ts.qms)
+    _require_positive("Re", ts.re_ohm)
+    _require_positive("Sd", ts.sd_cm2)
+    if ts.qms <= ts.qts:
+        raise ValueError("Qms must be greater than Qts so Qes can be derived")
+
+    sd_m2 = ts.sd_cm2 / 10_000.0
+    vas_m3 = ts.vas_l / 1000.0
+    cms = (
+        ts.cms_mm_per_n / 1000.0
+        if ts.cms_mm_per_n is not None and ts.cms_mm_per_n > 0
+        else vas_m3 / (RHO_AIR * SPEED_OF_SOUND**2 * sd_m2**2)
+    )
+    mms = (
+        ts.mms_g / 1000.0
+        if ts.mms_g is not None and ts.mms_g > 0
+        else 1.0 / ((2.0 * np.pi * ts.fs_hz) ** 2 * cms)
+    )
+    rms = 2.0 * np.pi * ts.fs_hz * mms / ts.qms
+    qes = 1.0 / (1.0 / ts.qts - 1.0 / ts.qms)
+    bl = (
+        ts.bl_tm
+        if ts.bl_tm is not None and ts.bl_tm > 0
+        else float(np.sqrt(2.0 * np.pi * ts.fs_hz * mms * ts.re_ohm / qes))
+    )
+
+    cas = cms * sd_m2**2
+    mas = mms / sd_m2**2
+    rat = (rms + bl**2 / ts.re_ohm) / sd_m2**2
+    return DerivedDriver(
+        sd_m2=sd_m2,
+        vas_m3=vas_m3,
+        cms_m_per_n=float(cms),
+        mms_kg=float(mms),
+        rms_n_s_m=float(rms),
+        qes=float(qes),
+        bl_tm=float(bl),
+        rat=float(rat),
+        cas=float(cas),
+        mas=float(mas),
+    )
+
+
+def _electrical_source(
+    ts: DriverTS,
+    drv: DerivedDriver,
+    voltage_v: float,
+    series_r_ohm: float,
+) -> tuple[float, float, float]:
+    """Return `(re_total, rat, p_source)` seen from the source terminals.
+
+    A non-zero `series_r_ohm` (amplifier output, cable and crossover-coil DCR)
+    reduces both the drive pressure and the electrical damping `Bl^2/Re`,
+    raising the effective Qes/Qts of the system.
+    """
+    if series_r_ohm < 0:
+        raise ValueError("Series resistance must be >= 0")
+    re_total = ts.re_ohm + float(series_r_ohm)
+    rat = (drv.rms_n_s_m + drv.bl_tm**2 / re_total) / drv.sd_m2**2
+    p_source = voltage_v * drv.bl_tm / (re_total * drv.sd_m2)
+    return re_total, rat, p_source
+
+
+def suggest_alignment(ts: DriverTS) -> DccavAlignment:
+    """Return the empirical first-pass DCCAV alignment from the article."""
+    _require_positive("Fs", ts.fs_hz)
+    _require_positive("Vas", ts.vas_l)
+    _require_positive("Qts", ts.qts)
+    vh = 2.05 * ts.qts**2 * ts.vas_l
+    vl = 4.13 * ts.qts**2 * ts.vas_l
+    fh = 1.22 * ts.fs_hz / ts.qts
+    fl = 0.466 * ts.fs_hz / ts.qts
+    return DccavAlignment(vh_l=vh, fh_hz=fh, vl_l=vl, fl_hz=fl, f3_hz=0.83 * fl)
+
+
+def suggest_reflex_alignment(ts: DriverTS) -> ReflexAlignment:
+    """Return a conservative bass-reflex starting point."""
+    _require_positive("Fs", ts.fs_hz)
+    _require_positive("Vas", ts.vas_l)
+    return ReflexAlignment(vb_l=ts.vas_l, fb_hz=ts.fs_hz)
+
+
+def sealed_system_metrics(ts: DriverTS, box: SealedBox) -> tuple[float, float]:
+    """Return the classical closed-box ``(Fc, Qtc)`` pair."""
+    _require_positive("Fs", ts.fs_hz)
+    _require_positive("Vas", ts.vas_l)
+    _require_positive("Qts", ts.qts)
+    _validate_sealed_box(box)
+    ratio = float(np.sqrt(1.0 + ts.vas_l / box.vb_l))
+    return float(ts.fs_hz * ratio), float(ts.qts * ratio)
+
+
+def suggest_sealed_alignment(ts: DriverTS, target_qtc: float = 0.707) -> SealedAlignment:
+    """Return a closed-box starter near the requested Qtc when feasible."""
+    _require_positive("Target Qtc", target_qtc)
+    _require_positive("Qts", ts.qts)
+    _require_positive("Vas", ts.vas_l)
+    if target_qtc > ts.qts:
+        denominator = (target_qtc / ts.qts) ** 2 - 1.0
+        vb_l = ts.vas_l / denominator
+    else:
+        # A passive closed box cannot reduce Qtc below Qts.  Four Vas is a
+        # practical finite approximation to an infinite enclosure.
+        vb_l = 4.0 * ts.vas_l
+    vb_l = max(0.05, float(vb_l))
+    box = SealedBox(vb_l=float(vb_l))
+    fc_hz, qtc = sealed_system_metrics(ts, box)
+    return SealedAlignment(vb_l=float(vb_l), fc_hz=fc_hz, qtc=qtc)
+
+
+_OBJECTIVE_WEIGHTS = {
+    "extension": {"f3": 1.0, "ripple": 0.15},
+    "balanced": {"f3": 0.55, "ripple": 0.55},
+    "flat": {"f3": 0.2, "ripple": 1.1},
+}
+
+
+def group_delay_ms(result: SimulationResult) -> np.ndarray:
+    """Return the total-output group delay in milliseconds."""
+    u_total = result.driver_volume_velocity + result.port_volume_velocity
+    w = 2.0 * np.pi * np.asarray(result.frequency_hz, dtype=float)
+    phase = np.unwrap(np.angle(u_total))
+    return -np.gradient(phase, w) * 1000.0
+
+
+def response_phase_deg(result: SimulationResult) -> np.ndarray:
+    """Return the total acoustic-output phase in degrees, wrapped to ±180.
+
+    The far-field pressure is proportional to ``jw * (Ud + Up)``, so the
+    exported phase includes the +90 degree radiation term.
+    """
+    u_total = result.driver_volume_velocity + result.port_volume_velocity
+    w = 2.0 * np.pi * np.asarray(result.frequency_hz, dtype=float)
+    return np.degrees(np.angle(1j * w * u_total))
+
+
+def _export_rows_text(header: str, columns: tuple[np.ndarray, ...]) -> str:
+    lines = ["* Load Forge export", f"* {header}"]
+    for row in zip(*columns, strict=True):
+        values = [float(value) for value in row]
+        if all(np.isfinite(value) for value in values):
+            lines.append("\t".join(f"{value:.4f}" for value in values))
+    return "\n".join(lines) + "\n"
+
+
+def export_frd_text(result: SimulationResult) -> str:
+    """Format the total response as FRD text (freq, SPL dB, phase deg)."""
+    return _export_rows_text(
+        "freq(Hz)\tSPL(dB)\tphase(deg)",
+        (
+            np.asarray(result.frequency_hz, dtype=float),
+            np.asarray(result.spl_total_db, dtype=float),
+            response_phase_deg(result),
+        ),
+    )
+
+
+@dataclass(frozen=True)
+class ToleranceBand:
+    """Percentile SPL band from Monte Carlo T/S perturbation."""
+
+    frequency_hz: np.ndarray
+    lower_db: np.ndarray
+    upper_db: np.ndarray
+    runs: int
+
+
+def monte_carlo_response_band(
+    ts: DriverTS,
+    load_type: str = "DCCAV",
+    box: DccavBox | ReflexBox | SealedBox | None = None,
+    freq_hz: np.ndarray | None = None,
+    voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0,
+    tolerance: float = 0.15,
+    runs: int = 120,
+    seed: int = 20260714,
+    percentiles: tuple[float, float] = (5.0, 95.0),
+) -> ToleranceBand:
+    """Simulate T/S manufacturing spread as an SPL percentile band.
+
+    Each run multiplies Fs, Vas, Qts and Qms by independent uniform factors in
+    ``[1 - tolerance, 1 + tolerance]`` and re-derives the driver; measured
+    Mms/Cms/Bl overrides are dropped so the perturbed small-signal set stays
+    self-consistent, and Qts is capped just below the perturbed Qms.  The
+    enclosure is kept fixed: the band answers "same box, driver unit spread".
+    """
+    if load_type in {"Suspension pneumatic", "Acoustic suspension"}:
+        load_type = "Sealed"
+    if not 0.0 <= float(tolerance) < 1.0:
+        raise ValueError("Tolerance must be in [0, 1)")
+    if int(runs) < 2:
+        raise ValueError("Monte Carlo needs at least 2 runs")
+    if freq_hz is None:
+        freq_hz = np.geomspace(10.0, 500.0, 240)
+    freq = np.asarray(freq_hz, dtype=float)
+    rng = np.random.default_rng(int(seed))
+    curves: list[np.ndarray] = []
+    for _ in range(int(runs)):
+        f_fs, f_vas, f_qts, f_qms = rng.uniform(
+            1.0 - float(tolerance), 1.0 + float(tolerance), size=4)
+        qms = ts.qms * f_qms
+        sample = DriverTS(
+            fs_hz=ts.fs_hz * f_fs,
+            vas_l=ts.vas_l * f_vas,
+            qts=min(ts.qts * f_qts, qms * 0.99),
+            qms=qms,
+            re_ohm=ts.re_ohm,
+            sd_cm2=ts.sd_cm2,
+            le_mh=ts.le_mh,
+            xmax_mm=ts.xmax_mm,
+            pe_w=ts.pe_w,
+        )
+        try:
+            if load_type == "Bass reflex":
+                result = simulate_reflex(sample, box, freq, voltage_v, series_r_ohm)
+            elif load_type == "Sealed":
+                result = simulate_sealed(sample, box, freq, voltage_v, series_r_ohm)
+            elif load_type == "Infinite baffle":
+                result = simulate_infinite_baffle(sample, freq, voltage_v, series_r_ohm)
+            else:
+                result = simulate(sample, box, freq, voltage_v, series_r_ohm)
+        except ValueError:
+            continue
+        curves.append(np.asarray(result.spl_total_db, dtype=float))
+    if len(curves) < max(2, int(runs) // 4):
+        raise ValueError("Too few Monte Carlo runs produced a valid simulation")
+    stack = np.vstack(curves)
+    lower, upper = np.nanpercentile(stack, list(percentiles), axis=0)
+    return ToleranceBand(
+        frequency_hz=freq,
+        lower_db=np.asarray(lower, dtype=float),
+        upper_db=np.asarray(upper, dtype=float),
+        runs=len(curves),
+    )
+
+
+@dataclass(frozen=True)
+class DesignSpaceMap:
+    """Grid of achievable F3/ripple over the box plane for one load type."""
+
+    load_type: str
+    x_label: str
+    y_label: str
+    x_values: np.ndarray
+    y_values: np.ndarray
+    f3_hz: np.ndarray
+    ripple_db: np.ndarray
+
+
+def _design_space_axes(
+    ts: DriverTS, load_type: str, resolution: int,
+) -> tuple[np.ndarray, np.ndarray, str, str]:
+    n = int(resolution)
+    if load_type == "Bass reflex":
+        start = suggest_reflex_alignment(ts)
+        return (
+            np.geomspace(0.3 * start.vb_l, 3.0 * start.vb_l, n),
+            np.geomspace(0.55 * start.fb_hz, 1.6 * start.fb_hz, n),
+            "Vb (L)", "Fb (Hz)",
+        )
+    if load_type == "Sealed":
+        return (
+            np.geomspace(0.2 * ts.vas_l, 4.0 * ts.vas_l, n),
+            np.array([0.0]),
+            "Vb (L)", "",
+        )
+    start = suggest_alignment(ts)
+    vtot = max(start.vh_l + start.vl_l, EPS)
+    return (
+        np.geomspace(0.3 * vtot, 3.0 * vtot, n),
+        np.geomspace(0.55 * start.fl_hz, 1.6 * start.fl_hz, n),
+        "Vtot (L)", "fl (Hz)",
+    )
+
+
+def design_space_box(
+    ts: DriverTS,
+    load_type: str,
+    x: float,
+    y: float,
+    box_template: DccavBox | ReflexBox | SealedBox | None = None,
+) -> DccavBox | ReflexBox | SealedBox:
+    """Build the box for one point of the design-space plane.
+
+    ``x``/``y`` follow the atlas axes: reflex `Vb`/`Fb`, sealed `Vb` (y is
+    ignored), DCCAV total volume/`fl` with the Vh/Vl split and fh/fl ratio
+    taken from the empirical starter.  Loss factors are copied from
+    ``box_template`` when one of the matching type is provided.
+    """
+    if load_type in {"Suspension pneumatic", "Acoustic suspension"}:
+        load_type = "Sealed"
+    if load_type == "Bass reflex":
+        t = box_template if isinstance(box_template, ReflexBox) else ReflexBox(
+            vb_l=ts.vas_l, fb_hz=ts.fs_hz)
+        return ReflexBox(
+            vb_l=float(x), fb_hz=float(y),
+            q_abs=t.q_abs, q_leak=t.q_leak, q_port=t.q_port,
+        )
+    if load_type == "Sealed":
+        t = box_template if isinstance(box_template, SealedBox) else SealedBox(
+            vb_l=ts.vas_l)
+        return SealedBox(vb_l=float(x), q_abs=t.q_abs, q_leak=t.q_leak)
+    if load_type == "Infinite baffle":
+        raise ValueError("Infinite baffle has no box parameters to map")
+    start = suggest_alignment(ts)
+    vtot = max(start.vh_l + start.vl_l, EPS)
+    vh_ratio = float(np.clip(start.vh_l / vtot, 0.05, 0.95))
+    fh_ratio = start.fh_hz / max(start.fl_hz, EPS)
+    t = box_template if isinstance(box_template, DccavBox) else DccavBox(
+        vh_l=start.vh_l, fh_hz=start.fh_hz, vl_l=start.vl_l, fl_hz=start.fl_hz)
+    vh = max(float(x) * vh_ratio, 0.05)
+    return DccavBox(
+        vh_l=vh, fh_hz=float(y) * fh_ratio,
+        vl_l=max(float(x) - vh, 0.05), fl_hz=float(y),
+        q_abs_h=t.q_abs_h, q_abs_l=t.q_abs_l,
+        q_leak_h=t.q_leak_h, q_leak_l=t.q_leak_l,
+        q_port_h=t.q_port_h, q_port_l=t.q_port_l,
+    )
+
+
+def design_space_map(
+    ts: DriverTS,
+    load_type: str = "Bass reflex",
+    box_template: DccavBox | ReflexBox | SealedBox | None = None,
+    resolution: int = 15,
+    voltage_v: float = 2.83,
+) -> DesignSpaceMap:
+    """Sweep the box plane and report F3/ripple per grid point.
+
+    Log-spaced axes around the empirical starter: reflex `Vb` (0.3-3x) vs
+    `Fb` (0.55-1.6x), DCCAV total volume vs `fl` (same spans, starter Vh/Vl
+    split and fh/fl ratio), sealed a 1-D `Vb` sweep (0.2-4x Vas, collapsed y
+    axis).  Like the optimizer, the map is evaluated at ``voltage_v`` with
+    zero series resistance.  Infinite baffle raises ``ValueError``.
+    """
+    if load_type in {"Suspension pneumatic", "Acoustic suspension"}:
+        load_type = "Sealed"
+    if load_type == "Infinite baffle":
+        raise ValueError("Infinite baffle has no box parameters to map")
+    if int(resolution) < 3:
+        raise ValueError("Atlas resolution must be at least 3")
+    freq = np.geomspace(min(10.0, ts.fs_hz / 4.0), max(400.0, 4.0 * ts.fs_hz), 160)
+    x_values, y_values, x_label, y_label = _design_space_axes(ts, load_type, resolution)
+    f3_grid = np.full((len(y_values), len(x_values)), np.nan)
+    ripple_grid = np.full_like(f3_grid, np.nan)
+    for iy, y in enumerate(y_values):
+        for ix, x in enumerate(x_values):
+            try:
+                box = design_space_box(ts, load_type, float(x), float(y), box_template)
+                metrics = _optimizer_metrics(ts, box, freq, voltage_v)
+            except ValueError:
+                continue
+            f3_grid[iy, ix] = metrics["f3_hz"]
+            ripple_grid[iy, ix] = metrics["ripple_db"]
+    return DesignSpaceMap(
+        load_type=load_type, x_label=x_label, y_label=y_label,
+        x_values=x_values, y_values=y_values,
+        f3_hz=f3_grid, ripple_db=ripple_grid,
+    )
+
+
+
+def export_zma_text(result: SimulationResult) -> str:
+    """Format the electrical impedance as ZMA text (freq, ohm, phase deg)."""
+    magnitude = np.asarray(result.impedance_ohm, dtype=float)
+    phase = (
+        np.zeros_like(magnitude)
+        if result.impedance_phase_deg is None
+        else np.asarray(result.impedance_phase_deg, dtype=float)
+    )
+    return _export_rows_text(
+        "freq(Hz)\timpedance(ohm)\tphase(deg)",
+        (np.asarray(result.frequency_hz, dtype=float), magnitude, phase),
+    )
+
+
+PORT_VELOCITY_GUIDELINE_MS = 0.05 * SPEED_OF_SOUND
+
+
+def port_air_velocity_ms(
+    result: SimulationResult,
+    port_area_cm2: float,
+    port: str = "lower",
+) -> np.ndarray:
+    """Return the linear port air speed `|U|/S` in m/s for the requested port.
+
+    `port` selects `port_l_velocity` (`"lower"`, also the reflex vent) or
+    `port_h_velocity` (`"upper"`).  Speeds above `PORT_VELOCITY_GUIDELINE_MS`
+    (5% of the speed of sound, ~17 m/s) commonly produce audible chuffing and
+    port compression that the lumped model does not simulate.
+    """
+    _require_positive("port_area_cm2", port_area_cm2)
+    if port == "lower":
+        u = result.port_l_velocity
+    elif port == "upper":
+        u = result.port_h_velocity
+    else:
+        raise ValueError(f"port must be 'lower' or 'upper', got {port!r}")
+    return np.abs(np.asarray(u)) / (float(port_area_cm2) * 1e-4)
+
+
+def port_length_cm(
+    volume_l: float,
+    fb_hz: float,
+    port_diameter_cm: float,
+    end_correction: float = 1.463,
+) -> float:
+    """Return the physical tube length in cm of a circular port.
+
+    Solves the Helmholtz relation `L_eff = c^2 * S / (w^2 * V)` for the
+    requested chamber volume and tuning, then subtracts the end correction
+    `end_correction * radius`.  The default 1.463 models one flanged plus one
+    free end (a vent flush in a panel); use 1.7 for a port flanged on both
+    ends, such as the DCCAV upper port joining two chambers.
+
+    A non-positive return value means the opening's end corrections alone
+    already exceed the required acoustic mass: the diameter is too small for
+    this volume/tuning combination and must be increased.
+    """
+    _require_positive("volume_l", volume_l)
+    _require_positive("fb_hz", fb_hz)
+    _require_positive("port_diameter_cm", port_diameter_cm)
+    radius_m = float(port_diameter_cm) / 200.0
+    area_m2 = np.pi * radius_m**2
+    w = 2.0 * np.pi * float(fb_hz)
+    l_eff_m = SPEED_OF_SOUND**2 * area_m2 / (w**2 * (float(volume_l) / 1000.0))
+    return float((l_eff_m - float(end_correction) * radius_m) * 100.0)
+
+
+def port_max_tuning_hz(
+    volume_l: float,
+    port_diameter_cm: float,
+    end_correction: float = 1.463,
+) -> float:
+    """Return the highest tuning a zero-length opening of this diameter reaches.
+
+    With no duct at all, the port's acoustic mass is just the end corrections
+    `end_correction * radius`; this is the tuning ceiling for the diameter on
+    the given volume.  Requesting a higher `fb` needs a larger diameter.
+    """
+    _require_positive("volume_l", volume_l)
+    _require_positive("port_diameter_cm", port_diameter_cm)
+    radius_m = float(port_diameter_cm) / 200.0
+    area_m2 = np.pi * radius_m**2
+    l_eff_m = float(end_correction) * radius_m
+    volume_m3 = float(volume_l) / 1000.0
+    return float(
+        SPEED_OF_SOUND / (2.0 * np.pi) * np.sqrt(area_m2 / (volume_m3 * l_eff_m))
+    )
+
+
+@dataclass(frozen=True)
+class DriverReferenceMetrics:
+    """Classical small-signal reference metrics derived from the T/S set."""
+
+    eta0: float
+    spl_1w_db: float
+    spl_2v83_db: float
+    ebp_hz: float
+
+
+def driver_reference_metrics(ts: DriverTS) -> DriverReferenceMetrics:
+    """Return reference efficiency, sensitivity and EBP for the driver.
+
+    `eta0 = 4*pi^2 * Fs^3 * Vas / (c^3 * Qes)` is the half-space reference
+    efficiency (fraction).  `spl_1w_db` converts it to SPL at 1 W / 1 m using
+    the module's `RHO_AIR`/`SPEED_OF_SOUND`/`P_REF`; `spl_2v83_db` rescales to
+    2.83 V across `Re`.  `ebp_hz = Fs / Qes` is the efficiency bandwidth
+    product: below ~50 the driver favours sealed/infinite-baffle loads, above
+    ~100 ported loads, in between either.
+    """
+    drv = complete_driver(ts)
+    vas_m3 = ts.vas_l / 1000.0
+    eta0 = 4.0 * np.pi**2 * ts.fs_hz**3 * vas_m3 / (SPEED_OF_SOUND**3 * drv.qes)
+    spl_ref_db = 10.0 * np.log10(RHO_AIR * SPEED_OF_SOUND / (2.0 * np.pi * P_REF**2))
+    spl_1w_db = spl_ref_db + 10.0 * np.log10(eta0)
+    spl_2v83_db = spl_1w_db + 10.0 * np.log10(2.83**2 / ts.re_ohm)
+    return DriverReferenceMetrics(
+        eta0=float(eta0),
+        spl_1w_db=float(spl_1w_db),
+        spl_2v83_db=float(spl_2v83_db),
+        ebp_hz=float(ts.fs_hz / drv.qes),
+    )
+
+
+@dataclass(frozen=True)
+class DriverBandwidthClass:
+    """Heuristic usable-bandwidth classification of a driver from its T/S set."""
+
+    driver_class: str
+    f_le_hz: float | None
+    mass_density_g_cm2: float
+    spl_1w_db: float
+    reasons: tuple[str, ...]
+
+
+DRIVER_CLASSES = ("Subwoofer", "Woofer", "Midbass-capable")
+
+DRIVER_CONFIGURATIONS = (
+    "Single driver",
+    "2 × parallel",
+    "2 × series",
+    "Isobaric pair (parallel)",
+    "Isobaric pair (series)",
+)
+
+
+def apply_driver_configuration(ts: DriverTS, configuration: str) -> DriverTS:
+    """Return the composite T/S set for identical drivers sharing one box.
+
+    The small-signal alignment parameters (Fs, Qts, Qms) are invariant for
+    identical drivers; the composite scales the size-, power- and
+    impedance-related fields:
+
+    - ``2 ×``: Sd, Vas and Pe double; Re and Le halve in parallel wiring and
+      double in series; per-driver Xmax is unchanged.
+    - ``Isobaric pair``: two drivers coupled behind one radiating cone —
+      Vas halves, Sd stays, Pe doubles, wiring sets Re/Le.
+
+    Measured Mms/Cms/Bl overrides are dropped so the composite set is
+    re-derived self-consistently.
+    """
+    if configuration not in DRIVER_CONFIGURATIONS:
+        raise ValueError(f"Unknown driver configuration: {configuration}")
+    if configuration == "Single driver":
+        return ts
+    electrical = 2.0 if "series" in configuration else 0.5
+    if configuration.startswith("Isobaric"):
+        sd_scale, vas_scale = 1.0, 0.5
+    else:
+        sd_scale, vas_scale = 2.0, 2.0
+    return DriverTS(
+        fs_hz=ts.fs_hz,
+        vas_l=ts.vas_l * vas_scale,
+        qts=ts.qts,
+        qms=ts.qms,
+        re_ohm=ts.re_ohm * electrical,
+        sd_cm2=ts.sd_cm2 * sd_scale,
+        le_mh=ts.le_mh * electrical,
+        xmax_mm=ts.xmax_mm,
+        pe_w=ts.pe_w * 2.0,
+    )
+
+
+def classify_driver_bandwidth(ts: DriverTS) -> DriverBandwidthClass:
+    """Classify a driver as pure subwoofer, generic woofer or midbass-capable.
+
+    The strongest available indicator is the voice-coil corner
+    `f_Le = Re / (2*pi*Le)`: above it the coil inductance rolls the response
+    off, so a low corner marks a sub that cannot reach the mids.  Supporting
+    indicators are the moving-mass surface density `Mms/Sd`, the free-air
+    resonance `Fs` and the 1 W / 1 m reference sensitivity.  Points:
+
+    - `f_Le < 400 Hz` -> sub (weight 2); `f_Le > 800 Hz` -> midbass (weight 2)
+    - `Fs <= 35 Hz` -> sub; `Fs >= 45 Hz` -> midbass
+    - `Mms/Sd >= 0.30 g/cm^2` -> sub; `<= 0.15 g/cm^2` -> midbass
+    - `SPL(1 W) <= 90 dB` -> sub; `>= 94 dB` -> midbass
+
+    The verdict requires a margin of two points; otherwise the driver is a
+    generic `Woofer`.  When `Le` is unknown (0), `f_le_hz` is `None` and the
+    class relies on the remaining indicators.  Cone breakup and directivity
+    are not part of the T/S set, so this is a catalog-screening heuristic,
+    not a substitute for the manufacturer's frequency response.
+    """
+    drv = complete_driver(ts)
+    ref = driver_reference_metrics(ts)
+    f_le_hz = None
+    if ts.le_mh and ts.le_mh > 0:
+        f_le_hz = float(ts.re_ohm / (2.0 * np.pi * ts.le_mh / 1000.0))
+    mass_density = float(drv.mms_kg * 1000.0 / ts.sd_cm2)
+
+    sub_points = 0
+    mid_points = 0
+    reasons: list[str] = []
+    if f_le_hz is not None:
+        if f_le_hz < 400.0:
+            sub_points += 2
+            reasons.append(f"voice-coil corner {f_le_hz:.0f} Hz")
+        elif f_le_hz > 800.0:
+            mid_points += 2
+            reasons.append(f"voice-coil corner {f_le_hz:.0f} Hz")
+    else:
+        reasons.append("Le unknown")
+    if ts.fs_hz <= 35.0:
+        sub_points += 1
+        reasons.append(f"Fs {ts.fs_hz:.0f} Hz")
+    elif ts.fs_hz >= 45.0:
+        mid_points += 1
+        reasons.append(f"Fs {ts.fs_hz:.0f} Hz")
+    if mass_density >= 0.30:
+        sub_points += 1
+        reasons.append(f"heavy cone {mass_density:.2f} g/cm2")
+    elif mass_density <= 0.15:
+        mid_points += 1
+        reasons.append(f"light cone {mass_density:.2f} g/cm2")
+    if ref.spl_1w_db <= 90.0:
+        sub_points += 1
+        reasons.append(f"sensitivity {ref.spl_1w_db:.1f} dB/1W")
+    elif ref.spl_1w_db >= 94.0:
+        mid_points += 1
+        reasons.append(f"sensitivity {ref.spl_1w_db:.1f} dB/1W")
+
+    if sub_points - mid_points >= 2:
+        driver_class = "Subwoofer"
+    elif mid_points - sub_points >= 2:
+        driver_class = "Midbass-capable"
+    else:
+        driver_class = "Woofer"
+    return DriverBandwidthClass(
+        driver_class=driver_class,
+        f_le_hz=f_le_hz,
+        mass_density_g_cm2=mass_density,
+        spl_1w_db=float(ref.spl_1w_db),
+        reasons=tuple(reasons),
+    )
+
+
+def port_min_diameter_cm(
+    volume_l: float,
+    fb_hz: float,
+    end_correction: float = 1.463,
+) -> float:
+    """Return the smallest circular-port diameter that can reach `fb_hz`.
+
+    Solves `c^2 * S / (w^2 * V) = end_correction * radius` for the diameter at
+    which the physical duct length becomes zero; any smaller opening tunes
+    below `fb_hz` even with no tube.
+    """
+    _require_positive("volume_l", volume_l)
+    _require_positive("fb_hz", fb_hz)
+    w = 2.0 * np.pi * float(fb_hz)
+    radius_m = float(end_correction) * w**2 * (float(volume_l) / 1000.0) / (
+        SPEED_OF_SOUND**2 * np.pi
+    )
+    return float(radius_m * 200.0)
+
+
+def _optimizer_metrics(
+    ts: DriverTS,
+    box: DccavBox | ReflexBox | SealedBox,
+    freq: np.ndarray,
+    voltage_v: float,
+) -> dict[str, float]:
+    if isinstance(box, ReflexBox):
+        result = simulate_reflex(ts, box, freq, voltage_v)
+        vtot = box.vb_l
+        fl = box.fb_hz
+    elif isinstance(box, SealedBox):
+        result = simulate_sealed(ts, box, freq, voltage_v)
+        vtot = box.vb_l
+        fl = sealed_system_metrics(ts, box)[0]
+    else:
+        result = simulate(ts, box, freq, voltage_v)
+        vtot = box.vh_l + box.vl_l
+        fl = box.fl_hz
+    thresholds = response_threshold_frequencies(result)
+    f3 = thresholds[3]
+    f10 = thresholds[10]
+    f = result.frequency_hz
+    spl = result.spl_total_db
+
+    ripple = float("nan")
+    gd_max = float("nan")
+    if np.isfinite(f3):
+        upper = min(float(f.max()), max(200.0, 2.0 * f3))
+        band = (f >= 1.2 * f3) & (f <= upper)
+        if np.any(band):
+            ripple = float(np.nanmax(spl[band]) - np.nanmin(spl[band]))
+            gd = group_delay_ms(result)
+            gd_band = (f >= f3) & (f <= upper)
+            gd_max = float(np.nanmax(gd[gd_band])) if np.any(gd_band) else float("nan")
+
+    exc_ratio = float("nan")
+    if ts.xmax_mm > 0:
+        exc_floor = f10 if np.isfinite(f10) else (f3 if np.isfinite(f3) else float(f.min()))
+        exc_band = f >= exc_floor
+        if np.any(exc_band):
+            exc_ratio = float(np.nanmax(result.excursion_mm[exc_band]) / ts.xmax_mm)
+
+    return {
+        "f3_hz": f3,
+        "f10_hz": f10,
+        "ripple_db": ripple,
+        "excursion_ratio": exc_ratio,
+        "group_delay_ms": gd_max,
+        "total_volume_l": float(vtot),
+        "fl_hz": float(fl),
+        "sealed_fc_hz": equivalent_sealed_fc_hz(ts, box),
+    }
+
+
+def _score_alignment(metrics: dict[str, float], goals: OptimizationGoals, ts: DriverTS, is_dccav: bool) -> float:
+    f3 = metrics["f3_hz"]
+    if not np.isfinite(f3):
+        return 1e6
+    weights = _OBJECTIVE_WEIGHTS[goals.objective]
+    ripple = metrics["ripple_db"]
+    score = weights["f3"] * (max(f3, goals.target_f3_hz) if goals.target_f3_hz else f3) / ts.fs_hz
+    if np.isfinite(ripple):
+        score += weights["ripple"] * ripple / 6.0
+        if goals.max_ripple_db and goals.max_ripple_db > 0 and ripple > goals.max_ripple_db:
+            score += 2.0 * (ripple - goals.max_ripple_db)
+    if goals.target_f3_hz and f3 > goals.target_f3_hz:
+        score += 0.5 * (f3 - goals.target_f3_hz) / goals.target_f3_hz
+    exc_ratio = metrics["excursion_ratio"]
+    if goals.max_excursion_ratio and goals.max_excursion_ratio > 0 and np.isfinite(exc_ratio):
+        if exc_ratio > goals.max_excursion_ratio:
+            score += 4.0 * (exc_ratio - goals.max_excursion_ratio)
+    gd = metrics["group_delay_ms"]
+    if goals.max_group_delay_ms and np.isfinite(gd) and gd > goals.max_group_delay_ms:
+        score += 1.0 * (gd / goals.max_group_delay_ms - 1.0)
+    if goals.max_total_volume_l and metrics["total_volume_l"] > goals.max_total_volume_l:
+        score += 20.0 * (metrics["total_volume_l"] / goals.max_total_volume_l - 1.0)
+    # Keep the optimizer inside the same credibility region flagged by
+    # response_sanity_warnings so it cannot chase fake loss-free extension.
+    if is_dccav and f3 < 0.65 * metrics["fl_hz"]:
+        score += 5.0
+    if f3 < 0.50 * metrics["sealed_fc_hz"]:
+        score += 5.0
+    # Size regularizer so equal-scoring boxes prefer the smaller build; once a
+    # requested F3 target is met, extra litres stop buying score elsewhere, so
+    # push harder toward the compact solution.
+    target_met = bool(goals.target_f3_hz) and f3 <= goals.target_f3_hz
+    score += (0.15 if target_met else 0.02) * metrics["total_volume_l"] / max(ts.vas_l, EPS)
+    return float(score)
+
+
+_DEFAULT_GOALS = OptimizationGoals()
+
+
+def optimize_alignment(
+    ts: DriverTS,
+    goals: OptimizationGoals = _DEFAULT_GOALS,
+    load_type: str = "DCCAV",
+    box_template: DccavBox | ReflexBox | SealedBox | None = None,
+    voltage_v: float = 2.83,
+    max_evaluations: int = 260,
+    fixed_total_volume_l: float | None = None,
+) -> OptimizedAlignment:
+    """Search box parameters that best meet the requested goals.
+
+    The search is a bounded compass pattern search in log-space, started from
+    the empirical article alignment (DCCAV), Vas/Fs reflex starting point or
+    classical closed-box alignment.  Loss factors are copied from
+    ``box_template`` when provided.
+    """
+    if goals.objective not in _OBJECTIVE_WEIGHTS:
+        raise ValueError(f"Unknown optimizer objective: {goals.objective}")
+    if load_type in {"Suspension pneumatic", "Acoustic suspension"}:
+        # Backward compatibility with .lfp/API values written before the
+        # closed-box load was renamed to the plain "Sealed" label.
+        load_type = "Sealed"
+    _require_positive("Voltage", voltage_v)
+    freq = np.geomspace(min(10.0, ts.fs_hz / 4.0), max(400.0, 4.0 * ts.fs_hz), 160)
+    if load_type not in {"DCCAV", "Bass reflex", "Sealed"}:
+        if load_type == "Infinite baffle":
+            raise ValueError("Infinite baffle has no box parameters to optimize")
+        raise ValueError(f"Unknown load type: {load_type}")
+    is_reflex = load_type == "Bass reflex"
+    is_sealed = load_type == "Sealed"
+    is_dccav = load_type == "DCCAV"
+    cap = goals.max_total_volume_l
+    minimum_volume_l = 0.10 if is_dccav else 0.05
+    if cap is not None:
+        _require_positive("Max total volume", cap)
+        if cap < minimum_volume_l:
+            raise ValueError(
+                f"Max total volume must be at least {minimum_volume_l:.2f} L for {load_type}"
+            )
+    if fixed_total_volume_l is not None:
+        _require_positive("Fixed total volume", fixed_total_volume_l)
+        if fixed_total_volume_l < minimum_volume_l:
+            raise ValueError(
+                f"Fixed total volume must be at least {minimum_volume_l:.2f} L for {load_type}"
+            )
+        if cap is not None and fixed_total_volume_l > cap + EPS:
+            raise ValueError("Fixed total volume cannot exceed the maximum total volume")
+
+    if is_reflex:
+        start = suggest_reflex_alignment(ts)
+        vb0, fb0 = start.vb_l, start.fb_hz
+        if fixed_total_volume_l is not None:
+            vb0 = float(fixed_total_volume_l)
+        elif cap and vb0 > cap:
+            vb0 = 0.95 * cap
+        template = box_template if isinstance(box_template, ReflexBox) else ReflexBox(vb_l=vb0, fb_hz=fb0)
+
+        def build(p: np.ndarray) -> ReflexBox:
+            vb, fb = np.exp(p)
+            if fixed_total_volume_l is not None:
+                vb = float(fixed_total_volume_l)
+            elif cap is not None:
+                vb = min(float(vb), float(cap))
+            return ReflexBox(
+                vb_l=float(vb), fb_hz=float(fb),
+                q_abs=template.q_abs, q_leak=template.q_leak, q_port=template.q_port,
+            )
+
+        p0 = np.log([vb0, fb0])
+        lower = np.log([max(0.05, vb0 / 8.0), max(5.0, fb0 / 3.0)])
+        upper = np.log([vb0 * 8.0, fb0 * 2.5])
+    elif is_sealed:
+        start = suggest_sealed_alignment(ts)
+        vb0 = start.vb_l
+        if fixed_total_volume_l is not None:
+            vb0 = float(fixed_total_volume_l)
+        elif cap and vb0 > cap:
+            vb0 = 0.95 * cap
+        template = box_template if isinstance(box_template, SealedBox) else SealedBox(vb_l=vb0)
+
+        def build(p: np.ndarray) -> SealedBox:
+            vb = float(np.exp(p[0]))
+            if fixed_total_volume_l is not None:
+                vb = float(fixed_total_volume_l)
+            elif cap is not None:
+                vb = min(vb, float(cap))
+            return SealedBox(vb_l=vb, q_abs=template.q_abs, q_leak=template.q_leak)
+
+        p0 = np.log([vb0])
+        lower = np.log([max(0.05, vb0 / 12.0)])
+        upper = np.log([vb0 * 12.0])
+    else:
+        start = suggest_alignment(ts)
+        vh0, vl0, fl0 = start.vh_l, start.vl_l, start.fl_hz
+        # The fh/fl ratio stays in a band around the article's 2.6 so the load
+        # keeps its double-resonator character instead of degenerating into a
+        # single reflex volume with an extreme upper tuning.
+        ratio0 = float(np.clip(start.fh_hz / start.fl_hz, 1.2, 4.5))
+        if fixed_total_volume_l is not None:
+            scale = float(fixed_total_volume_l) / (vh0 + vl0)
+            vh0 *= scale
+            vl0 *= scale
+        elif cap and vh0 + vl0 > cap:
+            scale = 0.98 * cap / (vh0 + vl0)
+            vh0 *= scale
+            vl0 *= scale
+        template = box_template if isinstance(box_template, DccavBox) else DccavBox(
+            vh_l=vh0, fh_hz=fl0 * ratio0, vl_l=vl0, fl_hz=fl0
+        )
+
+        def build(p: np.ndarray) -> DccavBox:
+            vh, vl, fl, ratio = np.exp(p)
+            projected_volume_l = fixed_total_volume_l
+            if projected_volume_l is None and cap is not None and vh + vl > cap:
+                projected_volume_l = float(cap)
+            if projected_volume_l is not None:
+                # Preserve both positive chamber minima while projecting every
+                # candidate onto the requested total-volume boundary.
+                available = float(projected_volume_l) - 0.10
+                weights = np.maximum(np.array([vh, vl], dtype=float) - 0.05, 0.0)
+                weight_total = float(weights.sum())
+                if weight_total <= 0.0:
+                    weights[:] = 0.5
+                else:
+                    weights /= weight_total
+                vh, vl = 0.05 + available * weights
+            return DccavBox(
+                vh_l=float(vh), fh_hz=float(fl * ratio), vl_l=float(vl), fl_hz=float(fl),
+                q_abs_h=template.q_abs_h, q_abs_l=template.q_abs_l,
+                q_leak_h=template.q_leak_h, q_leak_l=template.q_leak_l,
+                q_port_h=template.q_port_h, q_port_l=template.q_port_l,
+            )
+
+        p0 = np.log([vh0, vl0, fl0, ratio0])
+        lower = np.log([max(0.05, vh0 / 6.0), max(0.05, vl0 / 6.0), max(5.0, fl0 / 3.0), 1.2])
+        upper = np.log([vh0 * 6.0, vl0 * 6.0, fl0 * 3.0, 4.5])
+
+    evaluations = 0
+
+    def evaluate(p: np.ndarray):
+        nonlocal evaluations
+        evaluations += 1
+        box = build(np.clip(p, lower, upper))
+        try:
+            metrics = _optimizer_metrics(ts, box, freq, voltage_v)
+        except (ValueError, FloatingPointError):
+            return box, None, float("inf")
+        return box, metrics, _score_alignment(metrics, goals, ts, is_dccav)
+
+    best_p = np.clip(p0, lower, upper)
+    best_box, best_metrics, best_score = evaluate(best_p)
+    if best_metrics is None:
+        raise ValueError("The starting alignment could not be simulated")
+
+    step = 0.4
+    while step >= 0.02 and evaluations < max_evaluations:
+        improved = False
+        for axis in range(len(best_p)):
+            for sign in (1.0, -1.0):
+                if evaluations >= max_evaluations:
+                    break
+                candidate = best_p.copy()
+                candidate[axis] += sign * step
+                candidate = np.clip(candidate, lower, upper)
+                if np.allclose(candidate, best_p):
+                    continue
+                box, metrics, score = evaluate(candidate)
+                if metrics is not None and score < best_score - 1e-9:
+                    best_p, best_box, best_metrics, best_score = candidate, box, metrics, score
+                    improved = True
+        if not improved:
+            step *= 0.5
+
+    return OptimizedAlignment(
+        box=best_box,
+        f3_hz=float(best_metrics["f3_hz"]),
+        f10_hz=float(best_metrics["f10_hz"]),
+        ripple_db=float(best_metrics["ripple_db"]),
+        excursion_ratio=float(best_metrics["excursion_ratio"]),
+        group_delay_ms=float(best_metrics["group_delay_ms"]),
+        total_volume_l=float(best_metrics["total_volume_l"]),
+        score=float(best_score),
+        evaluations=evaluations,
+    )
+
+
+def simulate(
+    ts: DriverTS,
+    box: DccavBox,
+    freq_hz: np.ndarray | None = None,
+    voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0,
+) -> SimulationResult:
+    """Simulate DCCAV SPL, cone excursion and electrical impedance."""
+    drv = complete_driver(ts)
+    if freq_hz is None:
+        freq_hz = np.geomspace(10.0, 500.0, 500)
+    f = np.asarray(freq_hz, dtype=float)
+    if np.any(f <= 0):
+        raise ValueError("Frequencies must be positive")
+    _require_positive("Voltage", voltage_v)
+    _validate_box(box)
+
+    w = 2.0 * np.pi * f
+    jw = 1j * w
+
+    re_total, rat, p_source = _electrical_source(ts, drv, voltage_v, series_r_ohm)
+    z_as = rat + jw * drv.mas + 1.0 / (jw * drv.cas)
+    z_ab_h = _box_impedance(box.vh_l, box.fh_hz, box.q_abs_h, box.q_leak_h, w)
+    z_ab_l = _box_impedance(box.vl_l, box.fl_hz, box.q_abs_l, box.q_leak_l, w)
+    z_ap_h = _port_impedance(box.vh_l, box.fh_hz, box.q_port_h, w)
+    z_ap_l = _port_impedance(box.vl_l, box.fl_hz, box.q_port_l, w)
+
+    ya = 1.0 / z_as
+    yab_h = 1.0 / z_ab_h
+    yab_l = 1.0 / z_ab_l
+    yap_h = 1.0 / z_ap_h
+    yap_l = 1.0 / z_ap_l
+    i_source = p_source / z_as
+
+    # Closed-form solve of the symmetric 2x2 nodal system
+    # [[y11, -yph], [-yph, y22]] @ [node_a, node_b] = [i_source, 0].
+    y11 = ya + yab_h + yap_h
+    y22 = yap_h + yab_l + yap_l
+    det = y11 * y22 - yap_h * yap_h
+    node_a = i_source * y22 / det
+    node_b = i_source * yap_h / det
+
+    # The solved driver flow enters the rear DCCAV load. The exposed cone front
+    # radiates with the opposite sign and is what must be summed externally.
+    u_rear_driver = (p_source - node_a) / z_as
+    u_front_driver = -u_rear_driver
+    u_port_h = (node_a - node_b) / z_ap_h
+    u_port_l = node_b / z_ap_l
+    u_total = u_front_driver + u_port_l
+
+    spl_total = _spl_from_volume_velocity(u_total, f)
+    spl_driver = _spl_from_volume_velocity(u_front_driver, f)
+    spl_port = _spl_from_volume_velocity(u_port_l, f)
+    excursion = np.abs(u_rear_driver / (jw * drv.sd_m2)) * 1000.0
+    mil_w, mol_db = _limit_curves(ts, voltage_v, spl_total, excursion, series_r_ohm)
+
+    z_mech = drv.rms_n_s_m + jw * drv.mms_kg + 1.0 / (jw * drv.cms_m_per_n)
+    z_load = _parallel(z_ab_h, z_ap_h + _parallel(z_ab_l, z_ap_l)) * drv.sd_m2**2
+    z_e = re_total + jw * (ts.le_mh / 1000.0) + drv.bl_tm**2 / (z_mech + z_load)
+
+    return SimulationResult(
+        frequency_hz=f,
+        spl_total_db=spl_total,
+        spl_driver_db=spl_driver,
+        spl_port_db=spl_port,
+        excursion_mm=excursion,
+        impedance_ohm=np.abs(z_e),
+        impedance_phase_deg=np.degrees(np.angle(z_e)),
+        port_h_velocity=np.abs(u_port_h),
+        port_l_velocity=np.abs(u_port_l),
+        mil_w=mil_w,
+        mol_db=mol_db,
+        driver_volume_velocity=u_front_driver,
+        port_volume_velocity=u_port_l,
+    )
+
+
+def simulate_reflex(
+    ts: DriverTS,
+    box: ReflexBox,
+    freq_hz: np.ndarray | None = None,
+    voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0,
+) -> SimulationResult:
+    """Simulate a normal one-volume bass-reflex load."""
+    drv = complete_driver(ts)
+    if freq_hz is None:
+        freq_hz = np.geomspace(10.0, 500.0, 500)
+    f = np.asarray(freq_hz, dtype=float)
+    if np.any(f <= 0):
+        raise ValueError("Frequencies must be positive")
+    _require_positive("Voltage", voltage_v)
+    _validate_reflex_box(box)
+
+    w = 2.0 * np.pi * f
+    jw = 1j * w
+
+    re_total, rat, p_source = _electrical_source(ts, drv, voltage_v, series_r_ohm)
+    z_as = rat + jw * drv.mas + 1.0 / (jw * drv.cas)
+    z_ab = _box_impedance(box.vb_l, box.fb_hz, box.q_abs, box.q_leak, w)
+    z_ap = _port_impedance(box.vb_l, box.fb_hz, box.q_port, w)
+
+    ya = 1.0 / z_as
+    yab = 1.0 / z_ab
+    yap = 1.0 / z_ap
+    i_source = p_source / z_as
+    node = i_source / (ya + yab + yap)
+
+    u_rear_driver = (p_source - node) / z_as
+    u_front_driver = -u_rear_driver
+    u_port = node / z_ap
+    u_total = u_front_driver + u_port
+
+    spl_total = _spl_from_volume_velocity(u_total, f)
+    spl_driver = _spl_from_volume_velocity(u_front_driver, f)
+    spl_port = _spl_from_volume_velocity(u_port, f)
+    excursion = np.abs(u_rear_driver / (jw * drv.sd_m2)) * 1000.0
+    mil_w, mol_db = _limit_curves(ts, voltage_v, spl_total, excursion, series_r_ohm)
+
+    z_mech = drv.rms_n_s_m + jw * drv.mms_kg + 1.0 / (jw * drv.cms_m_per_n)
+    z_load = _parallel(z_ab, z_ap) * drv.sd_m2**2
+    z_e = re_total + jw * (ts.le_mh / 1000.0) + drv.bl_tm**2 / (z_mech + z_load)
+
+    return SimulationResult(
+        frequency_hz=f,
+        spl_total_db=spl_total,
+        spl_driver_db=spl_driver,
+        spl_port_db=spl_port,
+        excursion_mm=excursion,
+        impedance_ohm=np.abs(z_e),
+        impedance_phase_deg=np.degrees(np.angle(z_e)),
+        port_h_velocity=np.zeros_like(f),
+        port_l_velocity=np.abs(u_port),
+        mil_w=mil_w,
+        mol_db=mol_db,
+        driver_volume_velocity=u_front_driver,
+        port_volume_velocity=u_port,
+    )
+
+
+def _unported_result(
+    ts: DriverTS,
+    drv: DerivedDriver,
+    f: np.ndarray,
+    voltage_v: float,
+    u_rear_driver: np.ndarray,
+    z_load: np.ndarray | complex | float,
+    series_r_ohm: float = 0.0,
+) -> SimulationResult:
+    """Build common sealed/IB outputs from rearward cone volume velocity."""
+    w = 2.0 * np.pi * f
+    jw = 1j * w
+    u_front_driver = -u_rear_driver
+    spl_driver = _spl_from_volume_velocity(u_front_driver, f)
+    excursion = np.abs(u_rear_driver / (jw * drv.sd_m2)) * 1000.0
+    mil_w, mol_db = _limit_curves(ts, voltage_v, spl_driver, excursion, series_r_ohm)
+    z_mech = drv.rms_n_s_m + jw * drv.mms_kg + 1.0 / (jw * drv.cms_m_per_n)
+    z_e = (
+        ts.re_ohm + float(series_r_ohm)
+        + jw * (ts.le_mh / 1000.0) + drv.bl_tm**2 / (z_mech + z_load)
+    )
+    zero_real = np.zeros_like(f)
+    zero_complex = np.zeros_like(f, dtype=complex)
+    return SimulationResult(
+        frequency_hz=f,
+        spl_total_db=spl_driver.copy(),
+        spl_driver_db=spl_driver,
+        spl_port_db=_spl_from_volume_velocity(zero_complex, f),
+        excursion_mm=excursion,
+        impedance_ohm=np.abs(z_e),
+        impedance_phase_deg=np.degrees(np.angle(z_e)),
+        port_h_velocity=zero_real.copy(),
+        port_l_velocity=zero_real.copy(),
+        mil_w=mil_w,
+        mol_db=mol_db,
+        driver_volume_velocity=u_front_driver,
+        port_volume_velocity=zero_complex,
+    )
+
+
+def simulate_sealed(
+    ts: DriverTS,
+    box: SealedBox,
+    freq_hz: np.ndarray | None = None,
+    voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0,
+) -> SimulationResult:
+    """Simulate a closed-box (acoustic-suspension) loudspeaker."""
+    drv = complete_driver(ts)
+    if freq_hz is None:
+        freq_hz = np.geomspace(10.0, 500.0, 500)
+    f = np.asarray(freq_hz, dtype=float)
+    if np.any(f <= 0):
+        raise ValueError("Frequencies must be positive")
+    _require_positive("Voltage", voltage_v)
+    _validate_sealed_box(box)
+
+    w = 2.0 * np.pi * f
+    jw = 1j * w
+    re_total, rat, p_source = _electrical_source(ts, drv, voltage_v, series_r_ohm)
+    z_as = rat + jw * drv.mas + 1.0 / (jw * drv.cas)
+    fc_hz, _qtc = sealed_system_metrics(ts, box)
+    z_ab = _box_impedance(box.vb_l, fc_hz, box.q_abs, box.q_leak, w)
+    node = (p_source / z_as) / (1.0 / z_as + 1.0 / z_ab)
+    u_rear_driver = (p_source - node) / z_as
+    return _unported_result(
+        ts,
+        drv,
+        f,
+        voltage_v,
+        u_rear_driver,
+        z_ab * drv.sd_m2**2,
+        series_r_ohm,
+    )
+
+
+def simulate_infinite_baffle(
+    ts: DriverTS,
+    freq_hz: np.ndarray | None = None,
+    voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0,
+) -> SimulationResult:
+    """Simulate free-air driver motion with rear radiation fully isolated."""
+    drv = complete_driver(ts)
+    if freq_hz is None:
+        freq_hz = np.geomspace(10.0, 500.0, 500)
+    f = np.asarray(freq_hz, dtype=float)
+    if np.any(f <= 0):
+        raise ValueError("Frequencies must be positive")
+    _require_positive("Voltage", voltage_v)
+    w = 2.0 * np.pi * f
+    jw = 1j * w
+    re_total, rat, p_source = _electrical_source(ts, drv, voltage_v, series_r_ohm)
+    z_as = rat + jw * drv.mas + 1.0 / (jw * drv.cas)
+    u_rear_driver = p_source / z_as
+    return _unported_result(ts, drv, f, voltage_v, u_rear_driver, 0.0, series_r_ohm)
+
+
+def response_metrics(result: SimulationResult) -> dict[str, float]:
+    """Compute compact response metrics for the UI and tests."""
+    spl = result.spl_total_db
+    thresholds = response_threshold_frequencies(result)
+    return {
+        "max_spl_db": float(np.nanmax(spl)),
+        "f3_hz": thresholds[3],
+        "max_excursion_mm": float(np.nanmax(result.excursion_mm)),
+        "min_impedance_ohm": float(np.nanmin(result.impedance_ohm)),
+    }
+
+
+def impedance_peak_frequencies(
+    result: SimulationResult,
+    min_ratio_to_minimum: float = 1.2,
+) -> list[float]:
+    """Return local impedance peak frequencies above a minimum-relative threshold."""
+    z = np.asarray(result.impedance_ohm, dtype=float)
+    f = np.asarray(result.frequency_hz, dtype=float)
+    if f.ndim != 1 or z.ndim != 1 or len(f) != len(z) or len(f) < 3:
+        raise ValueError("Impedance arrays must be one-dimensional and aligned")
+    threshold = float(np.nanmin(z)) * float(min_ratio_to_minimum)
+    peaks = [
+        float(f[i])
+        for i in range(1, len(z) - 1)
+        if z[i] > z[i - 1] and z[i] >= z[i + 1] and z[i] > threshold
+    ]
+    return peaks
+
+
+def response_threshold_frequencies(
+    result: SimulationResult,
+    drops_db: tuple[int, ...] = (3, 6, 10),
+    reference_band_hz: tuple[float, float] = (40.0, 200.0),
+) -> dict[int, float]:
+    """Return low-frequency response crossings at ref - drop dB."""
+    f = np.asarray(result.frequency_hz, dtype=float)
+    spl = np.asarray(result.spl_total_db, dtype=float)
+    if f.ndim != 1 or spl.ndim != 1 or len(f) != len(spl) or len(f) < 2:
+        raise ValueError("Response arrays must be one-dimensional and aligned")
+
+    f_min, f_max = reference_band_hz
+    band = (f >= f_min) & (f <= f_max)
+    ref_values = spl[band] if np.any(band) else spl
+    ref = float(np.nanmax(ref_values))
+    ref_idx = int(np.nanargmax(np.where(band, spl, -np.inf))) if np.any(band) else int(np.nanargmax(spl))
+    low_f = f[:ref_idx + 1]
+    low_spl = spl[:ref_idx + 1]
+
+    out: dict[int, float] = {}
+    for drop in drops_db:
+        target = ref - float(drop)
+        out[int(drop)] = _low_side_crossing(low_f, low_spl, target)
+    return out
+
+
+def equivalent_sealed_fc_hz(ts: DriverTS, box: DccavBox | ReflexBox | SealedBox) -> float:
+    """Return the closed-box Fc for the same total chamber volume."""
+    _require_positive("Fs", ts.fs_hz)
+    _require_positive("Vas", ts.vas_l)
+    if isinstance(box, SealedBox):
+        _validate_sealed_box(box)
+        v_total = box.vb_l
+    elif isinstance(box, ReflexBox):
+        _validate_reflex_box(box)
+        v_total = box.vb_l
+    else:
+        _validate_box(box)
+        v_total = box.vh_l + box.vl_l
+    return float(ts.fs_hz * np.sqrt(1.0 + ts.vas_l / v_total))
+
+
+def alignment_diagnostics(ts: DriverTS, box: DccavBox) -> list[str]:
+    """Return practical warnings for empirical DCCAV alignments."""
+    _require_positive("Qts", ts.qts)
+    _require_positive("Sd", ts.sd_cm2)
+    _validate_box(box)
+    v_total = box.vh_l + box.vl_l
+    messages: list[str] = []
+    if ts.qts < 0.30:
+        messages.append(
+            "Qts is below 0.30: the article alignment is being extrapolated "
+            "toward a very small high-motor pro-driver box."
+        )
+    if ts.sd_cm2 >= 500.0 and v_total < 25.0:
+        messages.append(
+            f"Very small 12 in alignment: Vh+Vl = {v_total:.1f} L. "
+            "Treat the empirical Qts^2*Vas result as a starting point only; "
+            "port displacement, compression and target SPL can dominate."
+        )
+    return messages
+
+
+def response_sanity_warnings(
+    ts: DriverTS,
+    box: DccavBox,
+    thresholds: dict[int, float],
+) -> list[str]:
+    """Return warnings when F3/F6/F10 contradict the box tuning constraints."""
+    _validate_box(box)
+    messages: list[str] = []
+    f3 = float(thresholds.get(3, np.nan))
+    if not np.isfinite(f3):
+        messages.append("No real low-side F3 crossing was found in the simulated frequency range.")
+        return messages
+
+    if f3 < 0.65 * box.fl_hz:
+        messages.append(
+            f"F3 {f3:.1f} Hz is below 0.65*fl ({0.65 * box.fl_hz:.1f} Hz); "
+            "this is not credible for the selected DCCAV tuning."
+        )
+
+    sealed_fc = equivalent_sealed_fc_hz(ts, box)
+    if f3 < 0.50 * sealed_fc:
+        messages.append(
+            f"F3 {f3:.1f} Hz is below half the equivalent sealed Fc "
+            f"({sealed_fc:.1f} Hz), so the alignment is physically suspect."
+        )
+    return messages
+
+
+def _low_side_crossing(f: np.ndarray, y: np.ndarray, target: float) -> float:
+    diff = y - target
+    crossings = np.where((diff[:-1] <= 0.0) & (diff[1:] >= 0.0))[0]
+    if len(crossings):
+        idx = int(crossings[0])
+        x0, x1 = float(f[idx]), float(f[idx + 1])
+        y0, y1 = float(y[idx]), float(y[idx + 1])
+        if y1 == y0:
+            return x0
+        frac = (float(target) - y0) / (y1 - y0)
+        return x0 + frac * (x1 - x0)
+    return float("nan")
+
+
+def _box_impedance(volume_l: float, fb_hz: float, q_abs: float, q_leak: float, w):
+    cab = _cab(volume_l)
+    rab = 1.0 / (2.0 * np.pi * fb_hz * q_abs * cab)
+    ral = q_leak / (2.0 * np.pi * fb_hz * cab)
+    z_series_loss = rab + 1.0 / (1j * w * cab)
+    return _parallel(z_series_loss, ral)
+
+
+def _port_impedance(volume_l: float, fb_hz: float, q_port: float, w):
+    cab = _cab(volume_l)
+    map_ = 1.0 / ((2.0 * np.pi * fb_hz) ** 2 * cab)
+    rap = 1.0 / (2.0 * np.pi * fb_hz * cab * q_port)
+    return rap + 1j * w * map_
+
+
+def _cab(volume_l: float) -> float:
+    _require_positive("Volume", volume_l)
+    return (volume_l / 1000.0) / (RHO_AIR * SPEED_OF_SOUND**2)
+
+
+def _parallel(a, b):
+    return 1.0 / (1.0 / (a + EPS) + 1.0 / (b + EPS))
+
+
+def _spl_from_volume_velocity(u, f):
+    pressure = np.maximum(np.abs(u) * np.asarray(f) * RHO_AIR, EPS)
+    return 20.0 * np.log10(pressure / P_REF)
+
+
+def _limit_curves(
+    ts: DriverTS,
+    voltage_v: float,
+    spl_total_db: np.ndarray,
+    excursion_mm: np.ndarray,
+    series_r_ohm: float = 0.0,
+) -> tuple[np.ndarray, np.ndarray]:
+    # Limit voltages are at the source terminals; with a series resistance the
+    # thermal ceiling scales by the resistive divider (Re+Rs)/Re and the power
+    # reported is the share reaching the driver's Re.
+    re_total = ts.re_ohm + float(series_r_ohm)
+    limits: list[np.ndarray] = []
+    shape = np.asarray(spl_total_db, dtype=float).shape
+    if ts.xmax_mm > 0:
+        excursion = np.maximum(np.asarray(excursion_mm, dtype=float), EPS)
+        limits.append(float(voltage_v) * ts.xmax_mm / excursion)
+    if ts.pe_w > 0:
+        thermal_v = np.sqrt(ts.pe_w * ts.re_ohm) * re_total / ts.re_ohm
+        limits.append(np.full(shape, thermal_v, dtype=float))
+
+    if not limits:
+        nan = np.full(shape, np.nan, dtype=float)
+        return nan, nan
+
+    mil_v = np.minimum.reduce(limits)
+    driver_v = mil_v * ts.re_ohm / re_total
+    mil_w = driver_v**2 / ts.re_ohm
+    gain_db = 20.0 * np.log10(np.maximum(mil_v, EPS) / float(voltage_v))
+    mol_db = np.asarray(spl_total_db, dtype=float) + gain_db
+    return mil_w, mol_db
+
+
+def _validate_box(box: DccavBox) -> None:
+    for name, value in (
+        ("Vh", box.vh_l),
+        ("Fh", box.fh_hz),
+        ("Vl", box.vl_l),
+        ("Fl", box.fl_hz),
+        ("Qabs h", box.q_abs_h),
+        ("Qabs l", box.q_abs_l),
+        ("Qleak h", box.q_leak_h),
+        ("Qleak l", box.q_leak_l),
+        ("Qport h", box.q_port_h),
+        ("Qport l", box.q_port_l),
+    ):
+        _require_positive(name, value)
+
+
+def _validate_reflex_box(box: ReflexBox) -> None:
+    for name, value in (
+        ("Vb", box.vb_l),
+        ("Fb", box.fb_hz),
+        ("Qabs", box.q_abs),
+        ("Qleak", box.q_leak),
+        ("Qport", box.q_port),
+    ):
+        _require_positive(name, value)
+
+
+def _validate_sealed_box(box: SealedBox) -> None:
+    for name, value in (
+        ("Vb", box.vb_l),
+        ("Qabs", box.q_abs),
+        ("Qleak", box.q_leak),
+    ):
+        _require_positive(name, value)
+
+
+def _require_positive(name: str, value: float) -> None:
+    if not np.isfinite(value) or value <= 0:
+        raise ValueError(f"{name} must be positive")
