@@ -79,6 +79,7 @@ _PARAM_PREFIXES = (
 )
 _RESPONSE_TRACE_OPTIONS = ("Total", "Cone", "Lower port")
 _PORT_TRACE_OPTIONS = ("Upper port", "Lower port")
+_AUTO_CURSOR_OPTIONS = ("F3", "F6", "F10")
 _DEFAULT_REFLEX_Q_ABS = 15.0
 _DEFAULT_REFLEX_Q_LEAK = 1000.0
 _DEFAULT_REFLEX_Q_PORT = 15.0
@@ -328,8 +329,8 @@ def _reset_response_zoom(full_window: tuple[int, int]) -> None:
     st.session_state["plot_response_window_hz"] = tuple(full_window)
 
 
-def _ensure_response_pen_state() -> None:
-    """Keep response-pen choices alive across conditionally rendered workspaces."""
+def _ensure_plot_control_state() -> None:
+    """Keep plot choices alive across conditionally rendered workspaces."""
     # The total response is the baseline for every design and must never vanish.
     st.session_state["plot_response_total"] = True
     # Self-assignment detaches these values from Streamlit's widget cleanup when
@@ -338,9 +339,26 @@ def _ensure_response_pen_state() -> None:
         "plot_response_driver",
         "plot_response_lower_port",
         "plot_response_mol",
+        "plot_show_mil",
+        "plot_compare_loads",
+        "plot_tolerance_band",
+        "plot_port_upper",
+        "plot_port_lower",
+        "cursor_manual_enabled",
+        "atlas_enabled",
     ):
         if key in st.session_state:
             st.session_state[key] = bool(st.session_state[key])
+    for key in (
+        "plot_response_window_hz",
+        "plot_tolerance_pct",
+        "cursor_auto_markers",
+        "cursor_manual_1_hz",
+        "cursor_manual_2_hz",
+        "atlas_metric",
+    ):
+        if key in st.session_state:
+            st.session_state[key] = st.session_state[key]
 
 
 def _reset_finder_defaults() -> None:
@@ -365,6 +383,21 @@ def _ensure_finder_defaults() -> None:
         for key in _FINDER_DEFAULTS:
             if key in st.session_state:
                 st.session_state[key] = st.session_state[key]
+
+
+def _preserve_library_filters() -> None:
+    """Keep Finder-only catalog filters while the Design workspace is open."""
+    for key in (
+        "preset_family_filter",
+        "preset_source_filter",
+        "preset_size_filter",
+        "preset_class_filter",
+        "preset_price_enabled",
+        "preset_max_price",
+        "preset_price_currency",
+    ):
+        if key in st.session_state:
+            st.session_state[key] = st.session_state[key]
 
 
 def _finder_value(key: str):
@@ -463,6 +496,73 @@ def _apply_optimized_box(
         st.session_state["box_fl_hz"] = float(box.fl_hz)
 
 
+def _optimized_port_diameter_cm(
+    result: _dccav.SimulationResult,
+    volume_l: float,
+    tuning_hz: float,
+    end_correction: float,
+    port: str,
+) -> float:
+    """Size an optimized circular vent for positive length and safe air speed."""
+    minimum_cm = _dccav.port_min_diameter_cm(
+        volume_l, tuning_hz, end_correction)
+    maximum_cm = float(_dccav.OPTIMIZER_MAX_PORT_DIAMETER_CM)
+    target_length_cm = 5.0
+    # Above the zero-length boundary, duct length grows monotonically with
+    # diameter. Find the smallest diameter that leaves a practical 5 cm tube.
+    low_cm = minimum_cm
+    high_cm = maximum_cm
+    if _dccav.port_length_cm(
+        volume_l, tuning_hz, high_cm, end_correction) >= target_length_cm:
+        for _ in range(40):
+            midpoint_cm = 0.5 * (low_cm + high_cm)
+            if _dccav.port_length_cm(
+                volume_l, tuning_hz, midpoint_cm, end_correction,
+            ) < target_length_cm:
+                low_cm = midpoint_cm
+            else:
+                high_cm = midpoint_cm
+        length_cm = high_cm
+    else:
+        length_cm = maximum_cm
+    volume_velocity = (
+        result.port_h_velocity if port == "upper" else result.port_l_velocity)
+    peak_volume_velocity = float(np.nanmax(np.abs(volume_velocity)))
+    required_area_cm2 = (
+        peak_volume_velocity / _dccav.PORT_VELOCITY_GUIDELINE_MS * 1e4)
+    velocity_cm = 2.0 * np.sqrt(max(required_area_cm2, 0.0) / np.pi)
+    # The half-centimetre rounding matches the sidebar control resolution.
+    diameter_cm = max(1.0, length_cm, 1.05 * velocity_cm)
+    diameter_cm = np.ceil(diameter_cm * 2.0) / 2.0
+    return float(min(diameter_cm, maximum_cm))
+
+
+def _apply_optimized_port_geometry(
+    driver: _dccav.DriverTS,
+    box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.Bandpass4Box | _dccav.SealedBox,
+) -> None:
+    """Replace stale preset diameters with geometry for the optimized box."""
+    if isinstance(box, _dccav.SealedBox):
+        return
+    freq = np.geomspace(
+        min(10.0, driver.fs_hz / 4.0), max(400.0, 4.0 * driver.fs_hz), 240)
+    voltage_v = float(st.session_state.get("sim_voltage", 2.83))
+    if isinstance(box, _dccav.ReflexBox):
+        result = _dccav.simulate_reflex(driver, box, freq, voltage_v)
+        st.session_state["reflex_port_d_cm"] = _optimized_port_diameter_cm(
+            result, box.vb_l, box.fb_hz, 1.463, "lower")
+    elif isinstance(box, _dccav.Bandpass4Box):
+        result = _dccav.simulate_bandpass4(driver, box, freq, voltage_v)
+        st.session_state["bandpass4_port_d_cm"] = _optimized_port_diameter_cm(
+            result, box.vp_l, box.fp_hz, 1.463, "lower")
+    else:
+        result = _dccav.simulate(driver, box, freq, voltage_v)
+        st.session_state["box_port_d_h_cm"] = _optimized_port_diameter_cm(
+            result, box.vh_l, box.fh_hz, 1.7, "upper")
+        st.session_state["box_port_d_l_cm"] = _optimized_port_diameter_cm(
+            result, box.vl_l, box.fl_hz, 1.463, "lower")
+
+
 def _optimized_summary(optimized: _dccav.OptimizedAlignment) -> str:
     parts = [
         f"Optimized: F3 {optimized.f3_hz:.1f} Hz",
@@ -547,6 +647,7 @@ def _run_box_optimizer(driver: _dccav.DriverTS) -> _dccav.OptimizedAlignment:
         box_template=template,
         voltage_v=float(st.session_state.get("sim_voltage", 2.83)),
     )
+    _apply_optimized_port_geometry(driver, optimized.box)
     st.session_state["opt_last_summary"] = _optimized_summary(optimized)
     st.session_state["_opt_last_context"] = _optimizer_result_context(
         driver, load_type, optimized.box,
@@ -604,13 +705,6 @@ def _use_manual_box_strategy() -> None:
     st.session_state["box_strategy"] = "Manual"
     st.session_state["sim_auto_align"] = False
     st.session_state["opt_align_mode"] = "Empirical (article)"
-
-
-def _reset_reflex_losses():
-    st.session_state["reflex_q_abs"] = _DEFAULT_REFLEX_Q_ABS
-    st.session_state["reflex_q_leak"] = _DEFAULT_REFLEX_Q_LEAK
-    st.session_state["reflex_q_port"] = _DEFAULT_REFLEX_Q_PORT
-    st.session_state["reflex_custom_losses"] = False
 
 
 def _nudge_state(key: str, factor: float, min_value: float, max_value: float):
@@ -968,6 +1062,23 @@ def _log_frequency_scale(domain: list[float] | None = None) -> alt.Scale:
     return alt.Scale(type="log", domain=domain, nice=False)
 
 
+def _response_amplitude_axis() -> alt.Axis:
+    """Keep the numbered dB scale visible across every response overlay."""
+    return alt.Axis(
+        title="Amplitude (dB)",
+        orient="left",
+        format=".0f",
+        tickCount=7,
+        labels=True,
+        ticks=True,
+        domain=True,
+        grid=True,
+        labelPadding=6,
+        titlePadding=10,
+        zindex=1,
+    )
+
+
 def _line_chart(
     data: pd.DataFrame,
     y_title: str,
@@ -976,6 +1087,7 @@ def _line_chart(
     legend: bool = True,
     x_domain: list[float] | None = None,
     y_domain: list[float] | None = None,
+    y_axis: alt.Axis | None = None,
 ) -> alt.Chart:
     series_names = list(dict.fromkeys(data["series"].tolist()))
     color_scale = alt.Scale(
@@ -999,6 +1111,7 @@ def _line_chart(
             "value:Q",
             title=y_title,
             scale=alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined,
+            axis=y_axis if y_axis is not None else alt.Undefined,
         ),
         color=color,
         tooltip=[
@@ -1093,11 +1206,12 @@ def _port_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
 
 def _cursor_rows(result: _dccav.SimulationResult, thresholds: dict[int, float]) -> list[dict]:
     rows = []
-    if st.session_state.get("cursor_auto_f3", True) and np.isfinite(thresholds[3]):
+    auto_markers = set(st.session_state.get("cursor_auto_markers", _AUTO_CURSOR_OPTIONS))
+    if "F3" in auto_markers and np.isfinite(thresholds[3]):
         rows.append(_cursor_row(result, "F3", thresholds[3], "auto"))
-    if st.session_state.get("cursor_auto_f6", True) and np.isfinite(thresholds[6]):
+    if "F6" in auto_markers and np.isfinite(thresholds[6]):
         rows.append(_cursor_row(result, "F6", thresholds[6], "auto"))
-    if st.session_state.get("cursor_auto_f10", True) and np.isfinite(thresholds[10]):
+    if "F10" in auto_markers and np.isfinite(thresholds[10]):
         rows.append(_cursor_row(result, "F10", thresholds[10], "auto"))
     if st.session_state.get("cursor_manual_enabled", False):
         rows.append(_cursor_row(result, "M1", float(st.session_state["cursor_manual_1_hz"]), "manual"))
@@ -1159,6 +1273,7 @@ def _cursor_layer(
     if not rows:
         return None
     data = pd.DataFrame(_cursor_label_rows(rows, y_domain))
+    y_scale = alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined
     color = alt.Color(
         "label:N",
         title="Cursor",
@@ -1193,7 +1308,11 @@ def _cursor_layer(
         strokeOpacity=0.85,
     ).encode(
         x=alt.value(22),
-        y=alt.Y("label_y_db:Q", axis=None),
+        y=alt.Y(
+            "label_y_db:Q",
+            scale=y_scale,
+            axis=_response_amplitude_axis(),
+        ),
         text="display_label:N",
         color=color,
     )
@@ -1204,7 +1323,11 @@ def _cursor_layer(
         fontWeight="bold",
     ).encode(
         x=alt.value(22),
-        y=alt.Y("label_y_db:Q", axis=None),
+        y=alt.Y(
+            "label_y_db:Q",
+            scale=y_scale,
+            axis=_response_amplitude_axis(),
+        ),
         text="display_label:N",
         color=color,
     )
@@ -1214,6 +1337,7 @@ def _cursor_layer(
 def _click_marker_layer(
     result: _dccav.SimulationResult,
     x_domain: list[float] | None = None,
+    y_domain: list[float] | None = None,
 ) -> alt.LayerChart:
     marker_data = pd.DataFrame({
         "frequency_hz": result.frequency_hz.astype(float),
@@ -1237,7 +1361,11 @@ def _click_marker_layer(
             "frequency_hz:Q",
             scale=_log_frequency_scale(x_domain),
         ),
-        y=alt.Y("spl_total_db:Q"),
+        y=alt.Y(
+            "spl_total_db:Q",
+            scale=alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined,
+            axis=_response_amplitude_axis(),
+        ),
     )
     selectors = base.mark_point(filled=True, size=180, opacity=0.001).add_params(click_marker)
     rule = base.mark_rule(color="#06d6a0", strokeWidth=2.0).transform_filter(click_marker)
@@ -1285,7 +1413,11 @@ def _band_layer(
             "frequency_hz:Q",
             scale=_log_frequency_scale(x_domain),
         ),
-        y=alt.Y("lower_db:Q", scale=y_scale, title=None),
+        y=alt.Y(
+            "lower_db:Q",
+            scale=y_scale,
+            axis=_response_amplitude_axis(),
+        ),
         y2="upper_db:Q",
         tooltip=[
             alt.Tooltip("frequency_hz:Q", title="Hz", format=".2f"),
@@ -1318,13 +1450,14 @@ def _plot_response(
         height=420,
         x_domain=frequency_window,
         y_domain=y_domain,
+        y_axis=_response_amplitude_axis(),
     )
     if band is not None:
         band_area = _band_layer(band, y_domain, frequency_window)
         if band_area is not None:
             chart = band_area + chart
-    chart = chart + _click_marker_layer(result, frequency_window)
-    pinned = _pinned_layer(frequency_window)
+    chart = chart + _click_marker_layer(result, frequency_window, y_domain)
+    pinned = _pinned_layer(frequency_window, y_domain)
     if pinned is not None:
         chart = chart + pinned
     cursors = _cursor_layer(cursor_rows, y_domain, frequency_window)
@@ -1376,7 +1509,10 @@ def _pin_label(load_type: str, box) -> str:
     return f"{load_type} · {preset} · {box_txt}"
 
 
-def _pinned_layer(x_domain: list[float] | None = None) -> alt.Chart | None:
+def _pinned_layer(
+    x_domain: list[float] | None = None,
+    y_domain: list[float] | None = None,
+) -> alt.Chart | None:
     pinned = st.session_state.get("pinned_response")
     if not pinned:
         return None
@@ -1395,7 +1531,11 @@ def _pinned_layer(x_domain: list[float] | None = None) -> alt.Chart | None:
             "frequency_hz:Q",
             scale=_log_frequency_scale(x_domain),
         ),
-        y="value:Q",
+        y=alt.Y(
+            "value:Q",
+            scale=alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined,
+            axis=_response_amplitude_axis(),
+        ),
         tooltip=[
             alt.Tooltip("frequency_hz:Q", title="Hz", format=".2f"),
             alt.Tooltip("label:N", title="Pinned"),
@@ -1630,6 +1770,17 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
         st.session_state["box_fh_hz"] = float(row["fh Hz"])
         st.session_state["box_vl_l"] = float(row["Vl L"])
         st.session_state["box_fl_hz"] = float(row["fl Hz"])
+    if st.session_state.get("finder_use_optimizer", False):
+        if load_type == "Bass reflex":
+            optimized_box = _reflex_box_from_state()
+        elif load_type == "Bandpass 4th order":
+            optimized_box = _bandpass4_box_from_state()
+        elif load_type == "DCCAV":
+            optimized_box = _box_from_state()
+        else:
+            optimized_box = None
+        if optimized_box is not None:
+            _apply_optimized_port_geometry(driver, optimized_box)
     _mark_auto_alignment_synced(driver)
 
 
@@ -1919,43 +2070,39 @@ def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
         disabled=is_infinite_baffle,
         help="Slower. Start with the quick scan, then enable this to refine a filtered shortlist.",
     )
-    _finder_selectbox(
-        "Optimization goal", list(_OPT_OBJECTIVE_LABELS), key="finder_objective",
-        disabled=is_infinite_baffle or not bool(use_optimizer),
-        help="Used during optimization; Balanced trades extension against smoothness and box practicality.",
-    )
-    goals_inactive = is_infinite_baffle or not bool(use_optimizer)
-    with st.expander("Optimization constraints"):
-        st.caption(
-            "These targets become active only when per-candidate optimization is enabled."
+    if bool(use_optimizer) and not is_infinite_baffle:
+        _finder_selectbox(
+            "Optimization goal", list(_OPT_OBJECTIVE_LABELS), key="finder_objective",
+            help="Balanced trades extension against smoothness and box practicality.",
         )
-        _finder_number_input(
-            "Desired bass extension F3 (Hz, 0 = deepest)", min_value=0.0, max_value=500.0,
-            step=1.0, key="finder_target_f3_hz", disabled=goals_inactive,
-            help="Desired -3 dB cutoff. Lower values ask for deeper bass; enter 0 for no target.",
-        )
-        _finder_number_input(
-            "Allowed response ripple (dB)", min_value=0.0, max_value=12.0,
-            step=0.5, key="finder_max_ripple_db", disabled=goals_inactive,
-            help="Maximum peak-to-valley variation in the evaluated low-frequency passband.",
-        )
-        _finder_number_input(
-            "Maximum excursion (× driver Xmax)", min_value=0.0, max_value=3.0,
-            step=0.05, key="finder_excursion_ratio", disabled=goals_inactive,
-            help="1.0 means cone travel stays within published Xmax; 0 disables the constraint.",
-        )
-        _finder_number_input(
-            "Maximum group delay (ms)", min_value=0.0, max_value=100.0,
-            step=1.0, key="finder_max_gd_ms", disabled=goals_inactive,
-            help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
-        )
+        with st.expander("Optimization constraints"):
+            _finder_number_input(
+                "Desired bass extension F3 (Hz, 0 = deepest)", min_value=0.0,
+                max_value=500.0, step=1.0, key="finder_target_f3_hz",
+                help="Desired -3 dB cutoff. Lower values ask for deeper bass; enter 0 for no target.",
+            )
+            _finder_number_input(
+                "Allowed response ripple (dB)", min_value=0.0, max_value=12.0,
+                step=0.5, key="finder_max_ripple_db",
+                help="Maximum peak-to-valley variation in the evaluated low-frequency passband.",
+            )
+            _finder_number_input(
+                "Maximum excursion (× driver Xmax)", min_value=0.0, max_value=3.0,
+                step=0.05, key="finder_excursion_ratio",
+                help="1.0 means cone travel stays within published Xmax; 0 disables the constraint.",
+            )
+            _finder_number_input(
+                "Maximum group delay (ms)", min_value=0.0, max_value=100.0,
+                step=1.0, key="finder_max_gd_ms",
+                help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
+            )
 
     max_batch_candidates = max(len(filtered_preset_names), 1)
     if int(st.session_state.get(
         "finder_candidate_limit", _FINDER_DEFAULTS["finder_candidate_limit"]
     )) > max_batch_candidates:
         st.session_state["finder_candidate_limit"] = max_batch_candidates
-    with st.expander("Scan settings"):
+    with st.expander("Advanced scan"):
         _finder_number_input(
             "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
             step=1.0, key="finder_f_min",
@@ -1978,6 +2125,13 @@ def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
             "Simulation resolution (points)", min_value=80, max_value=1000,
             step=20, key="finder_points",
         )
+        st.button(
+            "Reset Finder defaults",
+            key="finder_reset_defaults",
+            on_click=_reset_finder_defaults,
+            use_container_width=True,
+            help="Restore the practical quick-scan profile without changing the active design.",
+        )
 
     finder_volume_l = float(_finder_value("finder_volume_l"))
     st.caption(
@@ -1994,13 +2148,6 @@ def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
         disabled=batch_blocked, key="finder_run_search",
     ):
         _run_find_driver_search(filtered_preset_names)
-    st.button(
-        "Reset Finder defaults",
-        key="finder_reset_defaults",
-        on_click=_reset_finder_defaults,
-        use_container_width=True,
-        help="Restore the practical quick-scan profile without changing the active design.",
-    )
 
 
 def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
@@ -2207,52 +2354,54 @@ def _render_response_tab(
     chart_sig = _chart_signature()
     has_ports = load_type in {"DCCAV", "Bass reflex", "Bandpass 4th order"}
     compare_loads_on = bool(st.session_state.get("plot_compare_loads", False))
-    r1, r2, r3, r4, r5 = st.columns(5)
-    with r1:
-        st.checkbox(
-            "Total", key="plot_response_total", disabled=True,
-            help="The total response is always shown as the baseline pen.",
-        )
-    with r2:
+    pen_columns = st.columns(2 if has_ports else 1)
+    with pen_columns[0]:
         st.checkbox("Cone", key="plot_response_driver", disabled=compare_loads_on)
-    with r3:
-        st.checkbox(
-            "Lower port", key="plot_response_lower_port",
-            disabled=not has_ports or compare_loads_on,
-        )
-    with r4:
-        st.checkbox(
-            "MOL", key="plot_response_mol", disabled=compare_loads_on,
-            help="Maximum Output Level: the highest SPL the driver can reach within "
-                 "Xmax and Pe at each frequency. Needs Xmax or Pe.",
-        )
-    with r5:
-        st.checkbox(
-            "MIL chart", key="plot_show_mil",
-            help="Maximum Input Level: the input-power ceiling within Xmax and Pe, "
-                 "drawn as a separate chart below the response.",
-        )
-
-    c0, c1, c2, c3 = st.columns([1.1, 1, 1, 1])
-    with c0:
-        st.toggle("Manual", key="cursor_manual_enabled")
-    with c1:
-        st.checkbox("F3", key="cursor_auto_f3")
-    with c2:
-        st.checkbox("F6", key="cursor_auto_f6")
-    with c3:
-        st.checkbox("F10", key="cursor_auto_f10")
-    if st.session_state.get("cursor_manual_enabled", False):
-        c4, c5 = st.columns(2)
-        with c4:
-            st.number_input(
-                "M1 (Hz)", min_value=1.0, max_value=5000.0,
-                step=1.0, key="cursor_manual_1_hz",
+    if has_ports:
+        with pen_columns[1]:
+            st.checkbox(
+                "Lower port", key="plot_response_lower_port",
+                disabled=compare_loads_on,
             )
-        with c5:
-            st.number_input(
-                "M2 (Hz)", min_value=1.0, max_value=5000.0,
-                step=1.0, key="cursor_manual_2_hz",
+    st.caption("Total response is always shown as the baseline.")
+
+    with st.expander("Markers & analysis"):
+        st.multiselect(
+            "Automatic markers",
+            _AUTO_CURSOR_OPTIONS,
+            key="cursor_auto_markers",
+            help="Select the response thresholds to label and include in the cursor table.",
+        )
+        st.toggle("Manual markers", key="cursor_manual_enabled")
+        if st.session_state.get("cursor_manual_enabled", False):
+            c1, c2 = st.columns(2)
+            with c1:
+                st.number_input(
+                    "M1 (Hz)", min_value=1.0, max_value=5000.0,
+                    step=1.0, key="cursor_manual_1_hz",
+                )
+            with c2:
+                st.number_input(
+                    "M2 (Hz)", min_value=1.0, max_value=5000.0,
+                    step=1.0, key="cursor_manual_2_hz",
+                )
+        a1, a2, a3, a4 = st.columns(4)
+        with a1:
+            st.checkbox(
+                "MOL", key="plot_response_mol", disabled=compare_loads_on,
+                help="Maximum Output Level within Xmax and Pe at each frequency.",
+            )
+        with a2:
+            st.checkbox(
+                "MIL chart", key="plot_show_mil",
+                help="Input-power ceiling within Xmax and Pe, drawn below the response.",
+            )
+        with a3:
+            st.toggle("Compare loads", key="plot_compare_loads")
+        with a4:
+            st.toggle(
+                "Tolerance band", key="plot_tolerance_band", disabled=compare_loads_on,
+                help="Monte Carlo 5-95th percentile spread from T/S tolerances.",
             )
 
     cursor_rows = _cursor_rows(result, thresholds)
@@ -2285,35 +2434,24 @@ def _render_response_tab(
             "radiation and the lower port. The load model is low-frequency only; "
             "it is not an electrical crossover or breakup/directivity predictor."
         )
-    pin_col, clear_col, compare_col, band_col, pin_info = st.columns([1, 1, 1, 1, 1.4])
-    with compare_col:
-        st.toggle("Compare loads", key="plot_compare_loads")
-    with band_col:
-        st.toggle(
-            "Tolerance band", key="plot_tolerance_band", disabled=compare_loads_on,
-            help="Monte Carlo spread of the driver T/S (Fs, Vas, Qts, Qms): "
-                 "shaded 5-95th percentile band of the total response with "
-                 "the current box kept fixed.",
-        )
+    pinned_state = st.session_state.get("pinned_response")
+    pin_columns = st.columns([1, 1, 2]) if pinned_state else st.columns([1, 3])
+    pin_col = pin_columns[0]
     with pin_col:
-        if st.button("Pin response", use_container_width=True):
+        pin_label = "Replace pin" if pinned_state else "Pin response"
+        if st.button(pin_label, use_container_width=True):
             st.session_state["pinned_response"] = {
                 "label": _pin_label(load_type, box),
                 "frequency_hz": [float(v) for v in result.frequency_hz],
                 "spl_total_db": [float(v) for v in result.spl_total_db],
             }
             st.rerun()
-    with clear_col:
-        if st.button(
-            "Clear pin",
-            use_container_width=True,
-            disabled=not st.session_state.get("pinned_response"),
-        ):
-            st.session_state["pinned_response"] = None
-            st.rerun()
-    pinned_state = st.session_state.get("pinned_response")
     if pinned_state:
-        with pin_info:
+        with pin_columns[1]:
+            if st.button("Clear pin", use_container_width=True):
+                st.session_state["pinned_response"] = None
+                st.rerun()
+        with pin_columns[2]:
             st.caption(f"Pinned (dashed grey): {pinned_state['label']}")
 
     compare_series = None
@@ -2442,10 +2580,13 @@ def _render_ports_tab(
     if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order"}:
         st.caption("The current load type has no ports.")
         return
-    p1, p2 = st.columns(2)
-    with p1:
-        st.checkbox("Upper port", key="plot_port_upper", disabled=load_type != "DCCAV")
-    with p2:
+    if load_type == "DCCAV":
+        p1, p2 = st.columns(2)
+        with p1:
+            st.checkbox("Upper port", key="plot_port_upper")
+        with p2:
+            st.checkbox("Vent volume velocity", key="plot_port_lower")
+    else:
         st.checkbox("Vent volume velocity", key="plot_port_lower")
     st.subheader("Port Volume Velocity")
     if _port_series(result):
@@ -2570,7 +2711,6 @@ _default(
 )
 _default("plot_response_lower_port", "Lower port" in st.session_state["plot_response_traces"])
 _default("plot_response_mol", False)
-_ensure_response_pen_state()
 _default("plot_response_window_hz", (10, 500))
 _default("plot_show_mil", False)
 _default("plot_compare_loads", False)
@@ -2580,12 +2720,11 @@ _default("atlas_enabled", False)
 _default("atlas_metric", "F3 (Hz)")
 _default("plot_port_upper", "Upper port" in st.session_state["plot_port_traces"])
 _default("plot_port_lower", "Lower port" in st.session_state["plot_port_traces"])
-_default("cursor_auto_f3", True)
-_default("cursor_auto_f6", True)
-_default("cursor_auto_f10", True)
+_default("cursor_auto_markers", list(_AUTO_CURSOR_OPTIONS))
 _default("cursor_manual_enabled", False)
 _default("cursor_manual_1_hz", 50.0)
 _default("cursor_manual_2_hz", 100.0)
+_ensure_plot_control_state()
 _default("opt_align_mode", "Empirical (article)")
 _default("opt_objective", "Balanced")
 _default("opt_max_volume_l", 0.0)
@@ -2596,6 +2735,7 @@ _default("opt_max_gd_ms", 0.0)
 _default("workspace_mode", "Find a driver")
 _default("ui_show_advanced", False)
 _ensure_finder_defaults()
+_preserve_library_filters()
 if "box_strategy" not in st.session_state:
     if st.session_state.get("sim_auto_align", True):
         st.session_state["box_strategy"] = "Suggested"
@@ -2721,65 +2861,68 @@ with st.sidebar:
         st.subheader("2 · Candidate library")
     all_preset_names = _dccav.driver_preset_names()
     st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
-    with st.expander("Library filters"):
-        f0, f1 = st.columns(2)
-        with f0:
-            st.selectbox("Source", _PRESET_SOURCE_FILTERS, key="preset_source_filter")
-            st.selectbox("Size", _PRESET_SIZE_FILTERS, key="preset_size_filter")
-        with f1:
-            st.selectbox(
-                "Brand",
-                _available_preset_families(all_preset_names),
-                key="preset_family_filter",
-            )
-            st.selectbox(
-                "Class",
-                _PRESET_CLASS_FILTERS,
-                key="preset_class_filter",
-                help="Heuristic bandwidth class from T/S: pure subwoofers vs woofers "
-                     "that can reach the mids (voice-coil corner, cone mass, Fs, sensitivity).",
-            )
-        preset_currencies = _preset_price_currencies(all_preset_names)
-        if preset_currencies:
-            if st.session_state["preset_price_currency"] not in preset_currencies:
-                st.session_state["preset_price_currency"] = preset_currencies[0]
-            st.selectbox("Price currency", preset_currencies, key="preset_price_currency")
-            price_currency = str(st.session_state["preset_price_currency"])
-            preset_prices = _preset_price_values(all_preset_names, price_currency)
-            price_max_available = max(preset_prices)
-            if st.session_state["preset_max_price"] <= 0.0:
-                st.session_state["preset_max_price"] = float(price_max_available)
-            st.session_state["preset_max_price"] = min(
-                float(price_max_available),
-                max(0.0, float(st.session_state["preset_max_price"])),
-            )
-            st.checkbox("Filter by max price", key="preset_price_enabled")
-            st.number_input(
-                f"Max price ({price_currency})",
-                min_value=0.0,
-                max_value=float(price_max_available),
-                step=1.0,
-                key="preset_max_price",
-                disabled=not st.session_state["preset_price_enabled"],
-            )
-        else:
-            st.session_state["preset_price_enabled"] = False
-            st.checkbox("Filter by max price", key="preset_price_enabled", disabled=True)
-            st.caption("Price unavailable in the current preset dataset.")
+    if workspace_mode == "Find a driver":
+        with st.expander("Library filters"):
+            f0, f1 = st.columns(2)
+            with f0:
+                st.selectbox("Source", _PRESET_SOURCE_FILTERS, key="preset_source_filter")
+                st.selectbox("Size", _PRESET_SIZE_FILTERS, key="preset_size_filter")
+            with f1:
+                st.selectbox(
+                    "Brand",
+                    _available_preset_families(all_preset_names),
+                    key="preset_family_filter",
+                )
+                st.selectbox(
+                    "Class",
+                    _PRESET_CLASS_FILTERS,
+                    key="preset_class_filter",
+                    help="Heuristic bandwidth class from T/S: pure subwoofers vs woofers "
+                         "that can reach the mids (voice-coil corner, cone mass, Fs, sensitivity).",
+                )
+            preset_currencies = _preset_price_currencies(all_preset_names)
+            if preset_currencies:
+                if st.session_state["preset_price_currency"] not in preset_currencies:
+                    st.session_state["preset_price_currency"] = preset_currencies[0]
+                st.selectbox("Price currency", preset_currencies, key="preset_price_currency")
+                price_currency = str(st.session_state["preset_price_currency"])
+                preset_prices = _preset_price_values(all_preset_names, price_currency)
+                price_max_available = max(preset_prices)
+                if st.session_state["preset_max_price"] <= 0.0:
+                    st.session_state["preset_max_price"] = float(price_max_available)
+                st.session_state["preset_max_price"] = min(
+                    float(price_max_available),
+                    max(0.0, float(st.session_state["preset_max_price"])),
+                )
+                st.checkbox("Filter by max price", key="preset_price_enabled")
+                st.number_input(
+                    f"Max price ({price_currency})",
+                    min_value=0.0,
+                    max_value=float(price_max_available),
+                    step=1.0,
+                    key="preset_max_price",
+                    disabled=not st.session_state["preset_price_enabled"],
+                )
+            else:
+                st.session_state["preset_price_enabled"] = False
+                st.checkbox("Filter by max price", key="preset_price_enabled", disabled=True)
+                st.caption("Price unavailable in the current preset dataset.")
     filtered_preset_names = _filter_driver_preset_names(
         all_preset_names,
-        source=st.session_state["preset_source_filter"],
-        family=st.session_state["preset_family_filter"],
-        size=st.session_state["preset_size_filter"],
+        source=(st.session_state["preset_source_filter"] if workspace_mode == "Find a driver" else "All"),
+        family=(st.session_state["preset_family_filter"] if workspace_mode == "Find a driver" else "All"),
+        size=(st.session_state["preset_size_filter"] if workspace_mode == "Find a driver" else "All"),
         search=st.session_state["preset_search"],
         max_price=(
             float(st.session_state["preset_max_price"])
-            if st.session_state.get("preset_price_enabled", False)
+            if workspace_mode == "Find a driver"
+            and st.session_state.get("preset_price_enabled", False)
             else None
         ),
         max_price_currency=(
             str(st.session_state["preset_price_currency"])
-            if st.session_state.get("preset_price_enabled", False)
+            if workspace_mode == "Find a driver"
+            and st.session_state.get("preset_price_enabled", False)
             else None
         ),
         selected=(
@@ -2787,8 +2930,26 @@ with st.sidebar:
             if workspace_mode == "Design a box"
             else None
         ),
-        driver_class=str(st.session_state.get("preset_class_filter", "All")),
+        driver_class=(
+            str(st.session_state.get("preset_class_filter", "All"))
+            if workspace_mode == "Find a driver" else "All"
+        ),
     )
+    preset_query = str(st.session_state.get("preset_search", "")).strip()
+    if preset_query:
+        query_folded = preset_query.casefold()
+        search_matches = [
+            name for name in filtered_preset_names
+            if query_folded in name.casefold()
+        ]
+        if search_matches:
+            preview_limit = 6
+            preview = " · ".join(search_matches[:preview_limit])
+            remaining = len(search_matches) - preview_limit
+            suffix = f" · +{remaining} more" if remaining > 0 else ""
+            st.caption(f"{len(search_matches)} matching presets: {preview}{suffix}")
+        else:
+            st.warning(f'No preset matches "{preset_query}" with the active filters.')
     if workspace_mode == "Find a driver":
         _render_find_driver_sidebar(filtered_preset_names)
     if workspace_mode == "Design a box":
@@ -3017,9 +3178,12 @@ with st.sidebar:
                 f"Qport {active_reflex_losses.q_port:.1f} / "
                 f"Qleak {active_reflex_losses.q_leak:.0f}"
             )
-            st.button("Reset reflex losses", on_click=_reset_reflex_losses, use_container_width=True)
             with st.expander("Loss factors"):
-                st.checkbox("Custom reflex losses", key="reflex_custom_losses")
+                st.checkbox(
+                    "Use custom reflex losses",
+                    key="reflex_custom_losses",
+                    help="Turn off to use the standard loss model without changing your saved custom values.",
+                )
                 disabled = not st.session_state.get("reflex_custom_losses", False)
                 st.number_input(
                     "Qabs box", min_value=0.2, max_value=500.0, step=0.5,
@@ -3035,6 +3199,7 @@ with st.sidebar:
                     "Vent diameter (cm, 0 = off)", min_value=0.0, max_value=60.0,
                     step=0.5, key="reflex_port_d_cm")
                 st.caption(
+                    "Optimized strategy recalculates vent diameter from tuning and air speed. "
                     "Duct length uses the Helmholtz relation with one flanged and "
                     "one free end; air-speed warnings use the ~5% of c guideline."
                 )
@@ -3084,6 +3249,7 @@ with st.sidebar:
                     "Front vent diameter (cm, 0 = off)", min_value=0.0,
                     max_value=60.0, step=0.5, key="bandpass4_port_d_cm")
                 st.caption(
+                    "Optimized strategy recalculates vent diameter from tuning and air speed. "
                     "Only the front-chamber vent radiates externally; length uses "
                     "one flanged and one free end."
                 )
@@ -3128,6 +3294,7 @@ with st.sidebar:
                         "Lower port diameter (cm, 0 = off)", min_value=0.0, max_value=60.0,
                         step=0.5, key="box_port_d_l_cm")
                 st.caption(
+                    "Optimized strategy recalculates both diameters from tuning and air speed. "
                     "Duct lengths use the Helmholtz relation: the upper port counts "
                     "two flanged ends, the lower vent one flanged and one free end; "
                     "air-speed warnings use the ~5% of c guideline."
@@ -3225,8 +3392,8 @@ try:
             f"currently found {len(z_peak_freqs)}. "
             f"Check F min/F max, Vb, Fb and reflex losses "
             f"(Qabs={box.q_abs:.1f}, Qport={box.q_port:.1f}, Qleak={box.q_leak:.0f}). "
-            "Low Qabs/Qport values overdamp the vent resonance; use Reset reflex losses "
-            "for a normal starter alignment."
+            "Low Qabs/Qport values overdamp the vent resonance; turn off custom reflex "
+            "losses for a normal starter alignment."
         )
     port_geometry_rows = []
     if is_reflex:

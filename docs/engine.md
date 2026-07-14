@@ -8,7 +8,7 @@ contracts and the test list — lives in `docs/dccav.md`.
 ## Owns
 
 - Physical constants (`RHO_AIR`, `SPEED_OF_SOUND`, `P_REF`, `EPS`,
-  `PORT_VELOCITY_GUIDELINE_MS`) and every dataclass except
+  `PORT_VELOCITY_GUIDELINE_MS`, `OPTIMIZER_MAX_PORT_DIAMETER_CM`) and every dataclass except
   `DriverPresetInfo`: `DriverTS`, `DerivedDriver`, alignments and boxes
   (including `Bandpass4Alignment` / `Bandpass4Box`),
   `OptimizationGoals`, `OptimizedAlignment`, `SimulationResult`,
@@ -42,6 +42,12 @@ Bandpass optimizer ripple/group-delay metrics stop at the upper -3 dB edge,
 and scoring penalizes a missing edge or a passband narrower than 1.4:1.
 `bandpass4_diagnostics()` flags extreme tuning and a missing upper -3 dB
 crossing when the simulated range is too short to verify the passband.
+
+Ported optimizer candidates are construction-aware: the Helmholtz zero-length
+diameter is calculated for every vent (both DCCAV ports), and candidates needing
+more than 95% of the UI's 60 cm diameter ceiling are treated as infeasible.
+DCCAV candidates below the `F3 >= 0.65*fl` credibility boundary are likewise
+excluded from normal objective trade-offs rather than receiving a weak penalty.
 
 ## Invariants
 

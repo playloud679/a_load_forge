@@ -636,6 +636,11 @@ def export_zma_text(result: SimulationResult) -> str:
 
 
 PORT_VELOCITY_GUIDELINE_MS = 0.05 * SPEED_OF_SOUND
+# Optimized alignments must remain buildable with the geometry controls exposed
+# by the UI.  A small reserve below this limit leaves enough diameter to obtain
+# a positive physical duct length instead of a zero-length opening.
+OPTIMIZER_MAX_PORT_DIAMETER_CM = 60.0
+_OPTIMIZER_PORT_FEASIBILITY_RATIO = 0.95
 
 
 def port_air_velocity_ms(
@@ -907,18 +912,27 @@ def _optimizer_metrics(
         result = simulate_reflex(ts, box, freq, voltage_v)
         vtot = box.vb_l
         fl = box.fb_hz
+        required_port_diameter_cm = port_min_diameter_cm(
+            box.vb_l, box.fb_hz, 1.463)
     elif isinstance(box, Bandpass4Box):
         result = simulate_bandpass4(ts, box, freq, voltage_v)
         vtot = box.vs_l + box.vp_l
         fl = box.fp_hz
+        required_port_diameter_cm = port_min_diameter_cm(
+            box.vp_l, box.fp_hz, 1.463)
     elif isinstance(box, SealedBox):
         result = simulate_sealed(ts, box, freq, voltage_v)
         vtot = box.vb_l
         fl = sealed_system_metrics(ts, box)[0]
+        required_port_diameter_cm = 0.0
     else:
         result = simulate(ts, box, freq, voltage_v)
         vtot = box.vh_l + box.vl_l
         fl = box.fl_hz
+        required_port_diameter_cm = max(
+            port_min_diameter_cm(box.vh_l, box.fh_hz, 1.7),
+            port_min_diameter_cm(box.vl_l, box.fl_hz, 1.463),
+        )
     thresholds = response_threshold_frequencies(result)
     f3 = thresholds[3]
     f10 = thresholds[10]
@@ -959,6 +973,7 @@ def _optimizer_metrics(
         "f_high_hz": f_high,
         "total_volume_l": float(vtot),
         "fl_hz": float(fl),
+        "required_port_diameter_cm": float(required_port_diameter_cm),
         "sealed_fc_hz": equivalent_sealed_fc_hz(ts, box),
     }
 
@@ -970,6 +985,16 @@ def _score_alignment(
     f3 = metrics["f3_hz"]
     if not np.isfinite(f3):
         return 1e6
+    # These are construction/credibility boundaries, not soft preferences.
+    # Keeping them above every normal objective score prevents the search from
+    # buying fake extension with an impossible port or an invalid DCCAV F3.
+    port_limit_cm = (
+        _OPTIMIZER_PORT_FEASIBILITY_RATIO * OPTIMIZER_MAX_PORT_DIAMETER_CM)
+    required_port_diameter_cm = metrics["required_port_diameter_cm"]
+    if required_port_diameter_cm > port_limit_cm:
+        return 1e5 + required_port_diameter_cm / port_limit_cm
+    if is_dccav and f3 < 0.65 * metrics["fl_hz"]:
+        return 1e5 + metrics["fl_hz"] / max(f3, EPS)
     weights = _OBJECTIVE_WEIGHTS[goals.objective]
     ripple = metrics["ripple_db"]
     score = weights["f3"] * (max(f3, goals.target_f3_hz) if goals.target_f3_hz else f3) / ts.fs_hz
@@ -988,10 +1013,6 @@ def _score_alignment(
         score += 1.0 * (gd / goals.max_group_delay_ms - 1.0)
     if goals.max_total_volume_l and metrics["total_volume_l"] > goals.max_total_volume_l:
         score += 20.0 * (metrics["total_volume_l"] / goals.max_total_volume_l - 1.0)
-    # Keep the optimizer inside the same credibility region flagged by
-    # response_sanity_warnings so it cannot chase fake loss-free extension.
-    if is_dccav and f3 < 0.65 * metrics["fl_hz"]:
-        score += 5.0
     if is_bandpass4:
         f_high = metrics["f_high_hz"]
         if not np.isfinite(f_high):

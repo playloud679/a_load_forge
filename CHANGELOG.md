@@ -1,6 +1,22 @@
 # Changelog
 
-## Unreleased
+## 0.4.2 (2026-07-14)
+
+- **Buildable optimized ports**: ported optimizer candidates now obey the
+  DCCAV credibility boundary and the 60 cm geometry ceiling. Applying an
+  optimized box automatically recalculates its vent diameters for positive
+  Helmholtz length and the air-speed guideline instead of reusing stale preset
+  values.
+- **Visible search and dB scale**: Search preset now previews matching driver
+  names immediately, while every response overlay explicitly preserves numbered
+  ticks and the `Amplitude (dB)` axis title.
+- **UI control cleanup**: removed the disabled Total pen and duplicate reflex-loss
+  reset, made pin and port actions contextual, hid Design-only catalog clutter,
+  grouped response markers/analysis and revealed Finder optimizer goals only when
+  optimization is active. Verification: py_compile, ruff and Streamlit AppTest
+  clean; full suite 79 passed / 0 failed / 0 skipped.
+- **Verification**: py_compile, Ruff and Streamlit AppTest clean; full suite
+  79 passed / 0 failed / 0 skipped.
 
 ## 0.4.1 (2026-07-14)
 

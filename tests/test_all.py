@@ -741,6 +741,7 @@ def _check_ui_pin_response_overlay():
     assert not at.exception, at.exception
 
     pin = next(b for b in at.button if b.label == "Pin response")
+    assert not any(b.label == "Clear pin" for b in at.button)
     pin.click().run()
     assert not at.exception, at.exception
     pinned = at.session_state["pinned_response"]
@@ -884,15 +885,27 @@ def _check_ui_class_filter():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
-    at.session_state["workspace_mode"] = "Design a box"
+    at.session_state["workspace_mode"] = "Find a driver"
+    at.run()
     at.session_state["preset_class_filter"] = "Midbass-capable"
+    at.session_state["preset_search"] = "Dayton Audio RSS315HO-4"
     at.run()
     assert not at.exception, at.exception
+    find_button = next(b for b in at.button if b.label == "Find drivers")
+    assert find_button.disabled, "midbass filter must drop the pure subwoofer"
+
+    at.session_state["preset_search"] = "Beyma 12CMV2"
+    at.run()
+    find_button = next(b for b in at.button if b.label == "Find drivers")
+    assert not find_button.disabled, "midbass filter must keep the Beyma 12CMV2"
+
+    # Catalog filters are Finder-only and must not silently constrain Design.
+    at.session_state["preset_search"] = ""
+    at.session_state["workspace_mode"] = "Design a box"
+    at.run()
     preset_box = next(s for s in at.selectbox if s.label == "Driver preset")
-    assert "Beyma 12CMV2" in preset_box.options, "midbass filter must keep the Beyma 12CMV2"
-    assert "Dayton Audio RSS315HO-4" not in preset_box.options, (
-        "midbass filter must drop the pure subwoofer"
-    )
+    assert "Beyma 12CMV2" in preset_box.options
+    assert "Dayton Audio RSS315HO-4" in preset_box.options
     labels = {metric.label for metric in at.metric}
     assert {"VC corner", "Class"} <= labels, labels
 
@@ -1034,7 +1047,10 @@ def _check_ui_response_pens_survive_workspace_and_preset_changes():
     def pen(label):
         return next(box for box in at.checkbox if box.label == label)
 
-    assert pen("Total").value and pen("Total").disabled
+    assert at.session_state["plot_response_total"]
+    assert not any(box.label == "Total" for box in at.checkbox)
+    markers = next(box for box in at.multiselect if box.label == "Automatic markers")
+    markers.set_value(["F3"]).run()
     pen("Cone").set_value(False).run()
     pen("Lower port").set_value(False).run()
     pen("MOL").set_value(True).run()
@@ -1049,7 +1065,8 @@ def _check_ui_response_pens_survive_workspace_and_preset_changes():
     workspace.set_value("Design a box").run()
     assert not at.exception, at.exception
 
-    assert pen("Total").value and pen("Total").disabled
+    assert at.session_state["plot_response_total"]
+    assert list(at.session_state["cursor_auto_markers"]) == ["F3"]
     assert not pen("Cone").value
     assert not pen("Lower port").value
     assert pen("MOL").value
@@ -1057,7 +1074,7 @@ def _check_ui_response_pens_survive_workspace_and_preset_changes():
     preset = next(box for box in at.selectbox if box.label == "Driver preset")
     preset.set_value("Beyma 12CMV2").run()
     assert not at.exception, at.exception
-    assert pen("Total").value
+    assert at.session_state["plot_response_total"]
     assert not pen("Cone").value
     assert not pen("Lower port").value
     assert pen("MOL").value
@@ -1065,7 +1082,7 @@ def _check_ui_response_pens_survive_workspace_and_preset_changes():
     # Even stale or externally seeded state cannot remove the baseline pen.
     at.session_state["plot_response_total"] = False
     at.run()
-    assert next(box for box in at.checkbox if box.label == "Total").value
+    assert at.session_state["plot_response_total"]
 
 
 test(
@@ -1101,6 +1118,28 @@ def _check_response_chart_drops_non_finite_points_and_keeps_label_scale_clean():
     spec_text = str(spec)
     assert "label_y_px" not in spec_text
     assert "label_y_db" in spec_text
+    response_axis = spec["layer"][0]["encoding"]["y"]["axis"]
+    assert response_axis["labels"] is True
+    assert response_axis["format"] == ".0f"
+    assert response_axis["title"] == "Amplitude (dB)"
+
+    def _response_y_encodings(node):
+        if isinstance(node, dict):
+            encoding = node.get("encoding")
+            if isinstance(encoding, dict) and "y" in encoding:
+                yield encoding["y"]
+            for value in node.values():
+                yield from _response_y_encodings(value)
+        elif isinstance(node, list):
+            for value in node:
+                yield from _response_y_encodings(value)
+
+    y_encodings = list(_response_y_encodings(spec))
+    assert y_encodings
+    assert not any(
+        isinstance(encoding, dict) and encoding.get("axis", "missing") is None
+        for encoding in y_encodings
+    ), y_encodings
 
 
 test("UI response chart filters invalid points and keeps cursor labels on the dB scale", _check_response_chart_drops_non_finite_points_and_keeps_label_scale_clean)
@@ -1174,6 +1213,18 @@ def _check_ui_driver_preset_filters_reduce_list():
         )
         assert all(name.startswith("LSDB: GRS") for name in lsdb), lsdb[:5]
         assert any("12SW" in name for name in lsdb), lsdb[:5]
+
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Find a driver"
+    at.session_state["preset_search"] = "12CMV2"
+    at.run()
+    assert not at.exception, at.exception
+    assert any(
+        "Beyma 12CMV2" in caption.value
+        for caption in at.sidebar.caption
+    ), "typed preset searches must show their matching names immediately"
 
 
 test("UI driver preset filters reduce long speaker lists", _check_ui_driver_preset_filters_reduce_list)
@@ -1950,6 +2001,17 @@ def _check_optimizer_respects_volume_cap():
     assert np.isfinite(opt.f3_hz), opt
     assert np.isfinite(opt.group_delay_ms), opt
     assert opt.box.fh_hz > opt.box.fl_hz, opt.box
+    max_buildable_cm = 0.95 * _dccav.OPTIMIZER_MAX_PORT_DIAMETER_CM
+    assert _dccav.port_min_diameter_cm(
+        opt.box.vh_l, opt.box.fh_hz, 1.7) <= max_buildable_cm
+    assert _dccav.port_min_diameter_cm(
+        opt.box.vl_l, opt.box.fl_hz, 1.463) <= max_buildable_cm
+    warnings = _dccav.alignment_diagnostics(ts, opt.box)
+    warnings += _dccav.response_sanity_warnings(
+        ts, opt.box,
+        _dccav.response_threshold_frequencies(_dccav.simulate(ts, opt.box)),
+    )
+    assert not warnings, warnings
     assert opt.evaluations > 10
     low_cap = _dccav.optimize_alignment(
         _dccav.get_driver_preset("Beyma 12BR70"),
@@ -2045,6 +2107,8 @@ def _check_ui_supports_sealed_and_infinite_baffle():
         metrics = {metric.label: metric.value for metric in at.metric}
         assert expected_metric in metrics, (load_type, metrics)
         assert not any(control.label == "Box volume (L)" for control in at.number_input)
+        design_filter_labels = {"Source", "Size", "Brand", "Class", "Price currency"}
+        assert not any(box.label in design_filter_labels for box in at.selectbox)
         if load_type == "Infinite baffle":
             assert not any(button.label == "Run optimizer and apply" for button in at.button)
 
@@ -2089,22 +2153,27 @@ def _check_ui_finder_starts_from_practical_defaults():
     numbers = {control.label: control.value for control in at.number_input}
     assert numbers["Comparison volume (L)"] == 40.0, numbers
     assert numbers["Comparison voltage (V)"] == 2.83, numbers
-    assert numbers["Desired bass extension F3 (Hz, 0 = deepest)"] == 0.0, numbers
-    assert numbers["Allowed response ripple (dB)"] == 3.0, numbers
-    assert numbers["Maximum excursion (× driver Xmax)"] == 1.0, numbers
-    assert numbers["Maximum group delay (ms)"] == 30.0, numbers
     assert numbers["Evaluation range start (Hz)"] == 10.0, numbers
     assert numbers["Evaluation range end (Hz)"] == 300.0, numbers
     assert numbers["Drivers to evaluate"] == 500, numbers
     assert numbers["Top results to show"] == 20, numbers
     assert numbers["Simulation resolution (points)"] == 240, numbers
-    goal = next(box for box in at.selectbox if box.label == "Optimization goal")
-    assert goal.value == "Balanced", goal.value
+    assert not any(box.label == "Optimization goal" for box in at.selectbox)
     optimize = next(
         box for box in at.checkbox
         if box.label == "Optimize enclosure per candidate"
     )
     assert optimize.value is False
+
+    optimize.set_value(True).run()
+    assert not at.exception, at.exception
+    numbers = {control.label: control.value for control in at.number_input}
+    assert numbers["Desired bass extension F3 (Hz, 0 = deepest)"] == 0.0, numbers
+    assert numbers["Allowed response ripple (dB)"] == 3.0, numbers
+    assert numbers["Maximum excursion (× driver Xmax)"] == 1.0, numbers
+    assert numbers["Maximum group delay (ms)"] == 30.0, numbers
+    goal = next(box for box in at.selectbox if box.label == "Optimization goal")
+    assert goal.value == "Balanced", goal.value
 
 
 test("UI Finder starts from practical independent defaults", _check_ui_finder_starts_from_practical_defaults)
@@ -2115,6 +2184,8 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.session_state["workspace_mode"] = "Find a driver"
+    at.run()
+    at.session_state["finder_use_optimizer"] = True
     at.run()
     assert not at.exception, at.exception
 
@@ -2239,6 +2310,7 @@ def _check_ui_optimized_alignment_mode():
         ("loss_q_abs_h", 15.0), ("loss_q_abs_l", 15.0),
         ("loss_q_leak_h", 1000.0), ("loss_q_leak_l", 1000.0),
         ("loss_q_port_h", 15.0), ("loss_q_port_l", 15.0),
+        ("box_port_d_h_cm", 5.0), ("box_port_d_l_cm", 5.0),
         ("sim_voltage", 2.83),
         ("opt_align_mode", "Optimized (goals)"),
         ("opt_objective", "Balanced"),
@@ -2258,6 +2330,15 @@ def _check_ui_optimized_alignment_mode():
     _ui._apply_suggested_box_for(driver)
     vtot = float(st.session_state["box_vh_l"]) + float(st.session_state["box_vl_l"])
     assert vtot <= 6.0 * 1.001, vtot
+    optimized_box = _ui._box_from_state()
+    upper_d_cm = float(st.session_state["box_port_d_h_cm"])
+    lower_d_cm = float(st.session_state["box_port_d_l_cm"])
+    assert 0.0 < upper_d_cm <= _dccav.OPTIMIZER_MAX_PORT_DIAMETER_CM
+    assert 0.0 < lower_d_cm <= _dccav.OPTIMIZER_MAX_PORT_DIAMETER_CM
+    assert _dccav.port_length_cm(
+        optimized_box.vh_l, optimized_box.fh_hz, upper_d_cm, 1.7) >= 5.0
+    assert _dccav.port_length_cm(
+        optimized_box.vl_l, optimized_box.fl_hz, lower_d_cm, 1.463) >= 5.0
     assert str(st.session_state["opt_last_summary"]).startswith("Optimized"), (
         st.session_state.get("opt_last_summary")
     )
@@ -2426,10 +2507,8 @@ def _check_ui_finder_goal_inputs_follow_optimizer_toggle():
     assert not at.exception, at.exception
     inputs = {n.label: n for n in at.number_input}
     for label in goal_labels:
-        assert inputs[label].disabled, (
-            "goal constraints must read as inactive without the optimizer", label)
-    goal = next(box for box in at.selectbox if box.label == "Optimization goal")
-    assert goal.disabled, "the optimization goal must be inactive during a quick scan"
+        assert label not in inputs, ("inactive goal constraint must stay hidden", label)
+    assert not any(box.label == "Optimization goal" for box in at.selectbox)
     assert not inputs["Evaluation range start (Hz)"].disabled
     assert not inputs["Evaluation range end (Hz)"].disabled
 
@@ -2438,10 +2517,9 @@ def _check_ui_finder_goal_inputs_follow_optimizer_toggle():
     assert not at.exception, at.exception
     inputs = {n.label: n for n in at.number_input}
     for label in goal_labels:
-        assert not inputs[label].disabled, (
-            "goal constraints must unlock with the optimizer", label)
+        assert label in inputs and not inputs[label].disabled, label
     goal = next(box for box in at.selectbox if box.label == "Optimization goal")
-    assert not goal.disabled, "the optimization goal must unlock with the optimizer"
+    assert not goal.disabled
 
 
 test("UI Finder goal constraints follow the optimizer toggle", _check_ui_finder_goal_inputs_follow_optimizer_toggle)

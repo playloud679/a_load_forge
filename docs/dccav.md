@@ -388,10 +388,13 @@ design optimizer goals.
 - `max_group_delay_ms`: cap on the maximum total-output group delay in the
   passband (`None` disables)
 
-The score also re-applies the `response_sanity_warnings()` credibility limits
-(`F3 >= 0.65*fl` for DCCAV and `F3 >= 0.5*sealed Fc`) as penalties so the
-optimizer cannot chase loss-free fake extension, and the DCCAV `fh/fl` ratio is
-bounded to `[1.2, 4.5]` so the load keeps its double-resonator character.
+The score also re-applies the `response_sanity_warnings()` credibility limits.
+`F3 >= 0.65*fl` is a hard DCCAV feasibility boundary, while
+`F3 >= 0.5*sealed Fc` remains penalized, so the optimizer cannot chase
+loss-free fake extension. The DCCAV `fh/fl` ratio is bounded to `[1.2, 4.5]`
+so the load keeps its double-resonator character. Ported candidates also derive
+the zero-length Helmholtz diameter for every active vent; candidates requiring
+more than 95% of `OPTIMIZER_MAX_PORT_DIAMETER_CM` (60 cm) are infeasible.
 
 For bandpass, ripple/group delay stop at 90% of the upper -3 dB edge and the
 score rejects a missing edge or passband narrower than 1.4:1.

@@ -61,7 +61,9 @@ Boxed loads use one three-state control:
 - **Suggested** follows the current driver and load automatically. Box volume
   and tuning fields remain visible but locked.
 - **Optimized** exposes extension, ripple, excursion, group-delay and volume
-  goals. **Run optimizer and apply** updates the active box.
+  goals. **Run optimizer and apply** updates the active box and recalculates
+  every active vent diameter for a positive Helmholtz length and the 5%-of-c
+  air-speed guideline; geometry from the previous preset is not reused.
 - **Manual** unlocks direct volume and tuning edits, `-3%` / `+3%` nudges and a
   reset action for the selected load.
 
@@ -187,9 +189,12 @@ to results, candidate preview and application:
 
 1. **Target enclosure** selects the load, exact comparison volume and voltage.
 2. **Candidate library** filters the catalog by text, source, size, brand,
-   bandwidth class and optional price ceiling.
+   bandwidth class and optional price ceiling. Typing in **Search preset**
+   immediately lists the first matching driver names before a scan is started.
 3. **Ranking** selects quick scan or per-driver optimization, its optional
    goals, scan range and search size, then starts the search with **Find drivers**.
+   Optimizer goals appear only after optimization is enabled; technical range,
+   result-count and resolution controls stay inside **Advanced scan**.
 
 - **Comparison volume** is exact: `Vh+Vl` for DCCAV, `Vs+Vp` for bandpass, or `Vb` for reflex and
   acoustic suspension. Infinite baffle ignores it.
@@ -265,22 +270,21 @@ calibrated far-field or full-range front-driver radiation model.
 
 ### Response Tab Tools
 
-The **Design a box** plots are organized into five tabs: `Response`,
-`Excursion`, `Impedance`, `Ports` and `Group Delay`. Driver ranking lives in its
-own workspace instead of a sixth tab.
+The **Design a box** plots are organized into six tabs: `Response`, `Excursion`,
+`Impedance`, `Ports`, `Group Delay` and `Atlas`. Driver ranking lives in its own
+workspace.
 
 Inside the `Response` tab:
 
-- the **Total** response pen is always on as the baseline; optional **Cone**,
-  **Lower port** and **MOL** choices are remembered across workspace, preset and
-  load changes
+- **Total** is always shown as the baseline without a redundant checkbox;
+  optional **Cone** and **Lower port** pens remain immediately available
 - **Response frequency window** zooms the log-frequency chart with two handles;
-  the dB axis auto-fits the selected band and **Reset zoom** restores the full
-  simulation range
-- automatic cursors mark `F3`, `F6` and `F10`
-- enabling the **Manual** cursor toggle reveals `M1` and `M2` positions
-- **Pin response** stores the current total-response curve for A/B overlay
-- **Compare loads** overlays all five loads at equal comparison volume
+  the numbered **Amplitude (dB)** axis remains visible, auto-fits the selected band and
+  **Reset zoom** restores the full simulation range
+- **Markers & analysis** collects the `F3`/`F6`/`F10` selector, manual `M1`/`M2`
+  positions, MOL/MIL limits, load comparison and the tolerance band
+- **Pin response** stores the current total-response curve for A/B overlay;
+  replace/clear actions appear only when a pin exists
 
 The cursor table reports frequency, total SPL, impedance and excursion at each
 cursor.
