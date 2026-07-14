@@ -20,12 +20,6 @@ Traccia operativa multi-sessione. Regole d'uso:
   (`docs/<modulo>.md` per ogni nuovo modulo) e reload-rule Streamlit in
   `ui_app.py`.
 
-- [ ] **2.2 Configurazioni multi-driver**
-  N driver in parallelo/serie e isobarico (trasformazioni T/S: isobarico
-  dimezza Vas, parallelo raddoppia Sd/Pe e dimezza Re, ecc.).
-  Selettore configurazione in sidebar.
-  File: `src/dccav.py`, `ui_app.py`, `docs/dccav.md`, `tests/test_all.py`.
-
 - [ ] **2.3 Nuove topologie: bandpass 4°/6° ordine + radiatore passivo**
   Riusare il solver a 2 nodi vettorizzato del DCCAV: bandpass = camera sealed
   + camera ported; PR = ramo porto con massa+compliance+perdita propria.
@@ -130,6 +124,27 @@ Traccia operativa multi-sessione. Regole d'uso:
 ---
 
 ## Fatto
+
+- [x] **2.2 Configurazioni multi-driver** — 2026-07-14. Backend:
+  `DRIVER_CONFIGURATIONS` + `apply_driver_configuration()` (Single /
+  2× parallelo / 2× serie / coppia isobarica parallelo-serie): Fs/Qts/Qms
+  invarianti; 2× raddoppia Sd/Vas/Pe con Re/Le dimezzati (parallelo) o
+  raddoppiati (serie); isobarico dimezza Vas a Sd invariato con Pe×2;
+  override Mms/Cms/Bl scartati per ri-derivazione auto-consistente.
+  Verificati gli shift classici: coppia parallela +3 dB η₀ esatto,
+  isobarico −3 dB per mezza cassa. UI: selettore "Driver configuration" in
+  sidebar (chiave `driver_config`, persistita in .lfp/share con il prefisso
+  driver_), composito applicato dentro `_driver_from_state()` così
+  allineamenti/optimizer/metriche/grafici lo vedono ovunque; caption con
+  Sd/Vas/Re/Pe compositi; on_change ri-allinea il box suggerito; il callback
+  del preset usa il composito (non il singolo); pin e caption di design
+  riportano la configurazione. Finder invariato (ranking su driver singoli,
+  documentato nell'help) e "Apply candidate" resetta a Single driver per
+  coerenza col box applicato. Doc: sezione API + elenco test. Test:
+  scaling esatti, invarianti, override scartati, η₀ ±3 dB, config ignota
+  rifiutata; AppTest: 2× parallelo → Min impedance dimezzata, Box volume
+  raddoppiato, caption composita. Verifica: py_compile OK, ruff OK, suite
+  completa 67 pass / 0 fail / 0 skip.
 
 - [x] **4.2 Bande di tolleranza Monte Carlo** — 2026-07-14, nel working tree.
   Backend: `monte_carlo_response_band()` → `ToleranceBand(frequency_hz,

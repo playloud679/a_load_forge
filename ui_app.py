@@ -228,6 +228,14 @@ def _chart_signature() -> str:
 
 
 def _driver_from_state() -> _dccav.DriverTS:
+    """Composite driver: per-driver T/S state plus the configuration."""
+    return _dccav.apply_driver_configuration(
+        _single_driver_from_state(),
+        str(st.session_state.get("driver_config", "Single driver")),
+    )
+
+
+def _single_driver_from_state() -> _dccav.DriverTS:
     mode = st.session_state.get("driver_sd_mode", "Diameter")
     sd_cm2 = (
         _dccav.sd_from_diameter(float(st.session_state["driver_diameter_mm"]))
@@ -851,11 +859,13 @@ def _on_driver_preset_change():
     if preset_name == "Custom":
         return
     try:
-        driver = _dccav.get_driver_preset(preset_name)
-        _apply_driver_preset(driver)
+        _apply_driver_preset(_dccav.get_driver_preset(preset_name))
+        # Re-read through the configuration so multi-driver setups get a box
+        # sized for the composite Vas/Sd, not the single unit.
+        composite = _driver_from_state()
         if st.session_state.get("sim_auto_align", True):
-            _apply_suggested_box_for(driver)
-            _mark_auto_alignment_synced(driver)
+            _apply_suggested_box_for(composite)
+            _mark_auto_alignment_synced(composite)
     except Exception:
         logger.exception("Could not apply driver preset")
 
@@ -1215,6 +1225,9 @@ def _plot_mil(result: _dccav.SimulationResult) -> alt.Chart:
 
 def _pin_label(load_type: str, box) -> str:
     preset = str(st.session_state.get("driver_preset_name", "Custom"))
+    config = str(st.session_state.get("driver_config", "Single driver"))
+    if config != "Single driver":
+        preset = f"{preset} ({config})"
     if load_type == "Bass reflex":
         box_txt = f"Vb {box.vb_l:.1f} L · Fb {box.fb_hz:.1f} Hz"
     elif load_type == "Sealed":
@@ -1525,6 +1538,8 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
     driver = _dccav.get_driver_preset(name)
     st.session_state["load_type"] = load_type
     st.session_state["driver_preset_name"] = name
+    # Candidates are ranked as single drivers; the applied box matches that.
+    st.session_state["driver_config"] = "Single driver"
     _apply_driver_preset(driver)
     _use_manual_box_strategy()
     st.session_state["workspace_mode"] = "Design a box"
@@ -2185,6 +2200,7 @@ _default("driver_mms_g", 0.0)
 _default("driver_cms_mm_n", 0.0)
 _default("driver_bl_tm", 0.0)
 _default("driver_preset_name", "KEF B110B article example")
+_default("driver_config", "Single driver")
 _default("preset_family_filter", "All")
 _default("preset_source_filter", "All")
 _default("preset_size_filter", "All")
@@ -2445,6 +2461,26 @@ with st.sidebar:
             key="driver_preset_name",
             on_change=_on_driver_preset_change,
         )
+        st.selectbox(
+            "Driver configuration",
+            list(_dccav.DRIVER_CONFIGURATIONS),
+            key="driver_config",
+            on_change=_auto_align_current_driver,
+            help="Identical drivers sharing one enclosure. Parallel/series "
+                 "sets the wiring; an isobaric pair couples two drivers "
+                 "behind one radiating cone (halves Vas). The Finder always "
+                 "ranks single drivers.",
+        )
+        if st.session_state.get("driver_config", "Single driver") != "Single driver":
+            try:
+                _composite = _driver_from_state()
+                st.caption(
+                    f"Composite: Sd {_composite.sd_cm2:.0f} cm² · "
+                    f"Vas {_composite.vas_l:.1f} L · "
+                    f"Re {_composite.re_ohm:.2f} Ω · Pe {_composite.pe_w:.0f} W"
+                )
+            except Exception:
+                pass
         st.subheader("2 · Load & box")
         st.segmented_control(
             "Box strategy",
@@ -2824,6 +2860,9 @@ try:
                 "enlarge the port or reduce drive level."
             )
     design_name = str(st.session_state.get("driver_preset_name", "Custom"))
+    design_config = str(st.session_state.get("driver_config", "Single driver"))
+    if design_config != "Single driver":
+        design_name = f"{design_name} ({design_config})"
     design_strategy = str(st.session_state.get("box_strategy", "Suggested"))
     st.caption(f"{design_name} · {load_type} · {design_strategy} · {sim_voltage:.2f} V")
     if is_infinite_baffle:

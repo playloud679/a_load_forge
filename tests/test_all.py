@@ -2160,6 +2160,79 @@ def _check_ui_finder_goal_inputs_follow_optimizer_toggle():
 test("UI Finder goal constraints follow the optimizer toggle", _check_ui_finder_goal_inputs_follow_optimizer_toggle)
 
 
+def _check_driver_configurations():
+    ts = _kef_b110_ts()
+    assert _dccav.apply_driver_configuration(ts, "Single driver") == ts
+
+    par = _dccav.apply_driver_configuration(ts, "2 × parallel")
+    assert par.sd_cm2 == ts.sd_cm2 * 2 and par.vas_l == ts.vas_l * 2
+    assert par.re_ohm == ts.re_ohm / 2 and par.le_mh == ts.le_mh / 2
+    assert par.pe_w == ts.pe_w * 2 and par.xmax_mm == ts.xmax_mm
+    assert (par.fs_hz, par.qts, par.qms) == (ts.fs_hz, ts.qts, ts.qms)
+
+    ser = _dccav.apply_driver_configuration(ts, "2 × series")
+    assert ser.re_ohm == ts.re_ohm * 2 and ser.le_mh == ts.le_mh * 2
+    assert ser.sd_cm2 == ts.sd_cm2 * 2 and ser.vas_l == ts.vas_l * 2
+
+    iso = _dccav.apply_driver_configuration(ts, "Isobaric pair (parallel)")
+    assert iso.sd_cm2 == ts.sd_cm2 and iso.vas_l == ts.vas_l / 2
+    assert iso.re_ohm == ts.re_ohm / 2 and iso.pe_w == ts.pe_w * 2
+    iso_s = _dccav.apply_driver_configuration(ts, "Isobaric pair (series)")
+    assert iso_s.re_ohm == ts.re_ohm * 2 and iso_s.vas_l == ts.vas_l / 2
+
+    measured = _dccav.DriverTS(
+        fs_hz=40.0, vas_l=50.0, qts=0.4, qms=4.0, re_ohm=6.0, sd_cm2=200.0,
+        mms_g=25.0, cms_mm_per_n=1.0, bl_tm=10.0)
+    composite = _dccav.apply_driver_configuration(measured, "2 × parallel")
+    assert composite.mms_g is None
+    assert composite.cms_mm_per_n is None
+    assert composite.bl_tm is None
+
+    base_eta = _dccav.driver_reference_metrics(ts).eta0
+    assert abs(_dccav.driver_reference_metrics(par).eta0 / base_eta - 2.0) < 0.05, (
+        "a parallel pair must gain the classical +3 dB reference efficiency")
+    assert abs(_dccav.driver_reference_metrics(iso).eta0 / base_eta - 0.5) < 0.05, (
+        "an isobaric pair must trade -3 dB efficiency for half the box")
+
+    try:
+        _dccav.apply_driver_configuration(ts, "3 × weird")
+    except ValueError as exc:
+        assert "configuration" in str(exc)
+    else:
+        raise AssertionError("unknown configuration was accepted")
+
+
+test("DCCAV driver configurations scale the composite T/S set", _check_driver_configurations)
+
+
+def _check_ui_driver_configuration_selector():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Design a box"
+    at.session_state["load_type"] = "DCCAV"
+    at.run()
+    assert not at.exception, at.exception
+    metrics = {m.label: m.value for m in at.metric}
+    z_single = float(str(metrics["Min impedance"]).split()[0])
+    vtot_single = float(str(metrics["Box volume"]).split()[0])
+
+    config = next(s for s in at.selectbox if s.label == "Driver configuration")
+    config.select("2 × parallel").run()
+    assert not at.exception, at.exception
+    metrics = {m.label: m.value for m in at.metric}
+    z_par = float(str(metrics["Min impedance"]).split()[0])
+    vtot_par = float(str(metrics["Box volume"]).split()[0])
+    assert z_par < 0.6 * z_single, (z_single, z_par)
+    assert vtot_par > 1.5 * vtot_single, (vtot_single, vtot_par)
+    assert any("Composite: Sd" in caption.value for caption in at.caption), (
+        "the sidebar must summarize the composite driver"
+    )
+
+
+test("UI driver configuration re-aligns the box to the composite", _check_ui_driver_configuration_selector)
+
+
 def _check_monte_carlo_tolerance_band():
     ts = _kef_b110_ts()
     a = _dccav.suggest_alignment(ts)

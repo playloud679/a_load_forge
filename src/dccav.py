@@ -1359,6 +1359,51 @@ class DriverBandwidthClass:
 
 DRIVER_CLASSES = ("Subwoofer", "Woofer", "Midbass-capable")
 
+DRIVER_CONFIGURATIONS = (
+    "Single driver",
+    "2 × parallel",
+    "2 × series",
+    "Isobaric pair (parallel)",
+    "Isobaric pair (series)",
+)
+
+
+def apply_driver_configuration(ts: DriverTS, configuration: str) -> DriverTS:
+    """Return the composite T/S set for identical drivers sharing one box.
+
+    The small-signal alignment parameters (Fs, Qts, Qms) are invariant for
+    identical drivers; the composite scales the size-, power- and
+    impedance-related fields:
+
+    - ``2 ×``: Sd, Vas and Pe double; Re and Le halve in parallel wiring and
+      double in series; per-driver Xmax is unchanged.
+    - ``Isobaric pair``: two drivers coupled behind one radiating cone —
+      Vas halves, Sd stays, Pe doubles, wiring sets Re/Le.
+
+    Measured Mms/Cms/Bl overrides are dropped so the composite set is
+    re-derived self-consistently.
+    """
+    if configuration not in DRIVER_CONFIGURATIONS:
+        raise ValueError(f"Unknown driver configuration: {configuration}")
+    if configuration == "Single driver":
+        return ts
+    electrical = 2.0 if "series" in configuration else 0.5
+    if configuration.startswith("Isobaric"):
+        sd_scale, vas_scale = 1.0, 0.5
+    else:
+        sd_scale, vas_scale = 2.0, 2.0
+    return DriverTS(
+        fs_hz=ts.fs_hz,
+        vas_l=ts.vas_l * vas_scale,
+        qts=ts.qts,
+        qms=ts.qms,
+        re_ohm=ts.re_ohm * electrical,
+        sd_cm2=ts.sd_cm2 * sd_scale,
+        le_mh=ts.le_mh * electrical,
+        xmax_mm=ts.xmax_mm,
+        pe_w=ts.pe_w * 2.0,
+    )
+
 
 def classify_driver_bandwidth(ts: DriverTS) -> DriverBandwidthClass:
     """Classify a driver as pure subwoofer, generic woofer or midbass-capable.

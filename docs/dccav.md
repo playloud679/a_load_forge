@@ -455,6 +455,24 @@ this is a catalog-screening aid, not a substitute for the manufacturer's
 measured response.  The UI uses it for the sidebar `Class` preset filter, the
 `VC corner`/`Class` metrics and the `Find a driver` result column.
 
+### `apply_driver_configuration(ts, configuration) -> DriverTS`
+
+Composite T/S set for identical drivers sharing one enclosure, selected from
+`DRIVER_CONFIGURATIONS` (`Single driver`, `2 × parallel`, `2 × series`,
+`Isobaric pair (parallel)`, `Isobaric pair (series)`).  Fs, Qts and Qms are
+invariant for identical drivers; the composite scales the rest:
+
+- `2 ×`: Sd, Vas and Pe double; Re and Le halve (parallel) or double
+  (series); per-driver Xmax is unchanged
+- `Isobaric pair`: Vas halves, Sd stays, Pe doubles, wiring sets Re/Le —
+  the classical -3 dB efficiency trade for half the box
+
+Measured Mms/Cms/Bl overrides are dropped so the composite is re-derived
+self-consistently.  The UI applies the sidebar `Driver configuration`
+selector inside `_driver_from_state()`, so alignments, the optimizer,
+metrics and plots all see the composite; the `Find a driver` ranking always
+evaluates single drivers and applying a candidate resets the configuration.
+
 ### `port_air_velocity_ms(result, port_area_cm2, port="lower") -> np.ndarray`
 
 Linear port air speed `|U|/S` in m/s for the requested port: `"lower"` (also
@@ -647,3 +665,6 @@ If no true rising crossing exists in the simulated range, the returned value is
 - Monte Carlo tolerance band: nominal response inside the band, deterministic
   seed, zero-tolerance collapse, width growing with tolerance, sealed and
   infinite-baffle smoke and the UI `Tolerance band` toggle
+- driver configurations: exact parallel/series/isobaric T/S scaling,
+  invariant Fs/Q, dropped measured overrides, classical ±3 dB efficiency
+  shifts and the UI selector re-aligning the suggested box
