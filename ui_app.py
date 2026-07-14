@@ -324,6 +324,25 @@ def _default(key: str, value):
     st.session_state.setdefault(key, value)
 
 
+def _reset_response_zoom(full_window: tuple[int, int]) -> None:
+    st.session_state["plot_response_window_hz"] = tuple(full_window)
+
+
+def _ensure_response_pen_state() -> None:
+    """Keep response-pen choices alive across conditionally rendered workspaces."""
+    # The total response is the baseline for every design and must never vanish.
+    st.session_state["plot_response_total"] = True
+    # Self-assignment detaches these values from Streamlit's widget cleanup when
+    # Find a driver is open and the Response fragment is not rendered.
+    for key in (
+        "plot_response_driver",
+        "plot_response_lower_port",
+        "plot_response_mol",
+    ):
+        if key in st.session_state:
+            st.session_state[key] = bool(st.session_state[key])
+
+
 def _reset_finder_defaults() -> None:
     """Restore a practical, quick first-pass driver search."""
     for key, value in _FINDER_DEFAULTS.items():
@@ -943,12 +962,19 @@ def _series_frame(result: _dccav.SimulationResult, series: dict[str, np.ndarray]
     return pd.DataFrame(rows)
 
 
+def _log_frequency_scale(domain: list[float] | None = None) -> alt.Scale:
+    if domain is None:
+        return alt.Scale(type="log", nice=False)
+    return alt.Scale(type="log", domain=domain, nice=False)
+
+
 def _line_chart(
     data: pd.DataFrame,
     y_title: str,
     *,
     height: int,
     legend: bool = True,
+    x_domain: list[float] | None = None,
     y_domain: list[float] | None = None,
 ) -> alt.Chart:
     series_names = list(dict.fromkeys(data["series"].tolist()))
@@ -966,7 +992,7 @@ def _line_chart(
         x=alt.X(
             "frequency_hz:Q",
             title="Frequency (Hz)",
-            scale=alt.Scale(type="log", nice=False),
+            scale=_log_frequency_scale(x_domain),
             axis=alt.Axis(format="~g"),
         ),
         y=alt.Y(
@@ -1000,11 +1026,39 @@ def _response_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
     return series
 
 
-def _response_y_domain(result: _dccav.SimulationResult, series: dict[str, np.ndarray]) -> list[float] | None:
+def _response_y_domain(
+    result: _dccav.SimulationResult,
+    series: dict[str, np.ndarray],
+    frequency_window: list[float] | None = None,
+) -> list[float] | None:
     total = np.asarray(result.spl_total_db, dtype=float)
     finite = total[np.isfinite(total)]
     if not finite.size:
         return None
+    frequencies = np.asarray(result.frequency_hz, dtype=float)
+    zoomed = False
+    visible = np.isfinite(frequencies)
+    if frequency_window is not None:
+        low_hz, high_hz = map(float, frequency_window)
+        visible &= (frequencies >= low_hz) & (frequencies <= high_hz)
+        zoomed = low_hz > float(frequencies[0]) or high_hz < float(frequencies[-1])
+    visible_total = total[visible & np.isfinite(total)]
+    if not visible_total.size:
+        visible_total = finite
+
+    if zoomed:
+        bottom = float(np.min(visible_total)) - 2.0
+        top = float(np.max(visible_total)) + 2.0
+        for values in series.values():
+            trace = np.asarray(values, dtype=float)
+            trace = trace[visible & np.isfinite(trace)]
+            if trace.size:
+                top = max(top, float(np.max(trace)) + 2.0)
+        if top - bottom < 12.0:
+            midpoint = (top + bottom) / 2.0
+            bottom, top = midpoint - 6.0, midpoint + 6.0
+        return [float(bottom), float(top)]
+
     bottom = _interp(result.frequency_hz, result.spl_total_db, 10.0)
     if not np.isfinite(bottom):
         bottom = float(np.min(finite))
@@ -1068,7 +1122,7 @@ def _cursor_label_rows(rows: list[dict], y_domain: list[float] | None) -> list[d
     out = []
     for lane, row in enumerate(rows):
         label_row = dict(row)
-        label_row["label_y_db"] = top - span * (0.06 + lane * 0.055)
+        label_row["label_y_db"] = top - span * (0.05 + lane * 0.09)
         out.append(label_row)
     return out
 
@@ -1091,7 +1145,17 @@ def _interp(x: np.ndarray, y: np.ndarray, value: float) -> float:
     return float(np.interp(float(value), np.asarray(x, dtype=float), np.asarray(y, dtype=float)))
 
 
-def _cursor_layer(rows: list[dict], y_domain: list[float] | None = None) -> alt.LayerChart | None:
+def _cursor_layer(
+    rows: list[dict],
+    y_domain: list[float] | None = None,
+    x_domain: list[float] | None = None,
+) -> alt.LayerChart | None:
+    if x_domain is not None:
+        low_hz, high_hz = map(float, x_domain)
+        rows = [
+            row for row in rows
+            if low_hz <= float(row["frequency_hz"]) <= high_hz
+        ]
     if not rows:
         return None
     data = pd.DataFrame(_cursor_label_rows(rows, y_domain))
@@ -1104,7 +1168,10 @@ def _cursor_layer(rows: list[dict], y_domain: list[float] | None = None) -> alt.
         ),
     )
     rules = alt.Chart(data).mark_rule(strokeWidth=1.5).encode(
-        x="frequency_hz:Q",
+        x=alt.X(
+            "frequency_hz:Q",
+            scale=_log_frequency_scale(x_domain),
+        ),
         color=color,
         strokeDash=alt.StrokeDash("mode:N", title=None),
         tooltip=[
@@ -1119,7 +1186,7 @@ def _cursor_layer(rows: list[dict], y_domain: list[float] | None = None) -> alt.
     labels = alt.Chart(data).mark_text(
         align="left",
         baseline="top",
-        fontSize=19,
+        fontSize=16,
         fontWeight="bold",
         stroke="#0b1018",
         strokeWidth=3,
@@ -1133,7 +1200,7 @@ def _cursor_layer(rows: list[dict], y_domain: list[float] | None = None) -> alt.
     labels_fill = alt.Chart(data).mark_text(
         align="left",
         baseline="top",
-        fontSize=19,
+        fontSize=16,
         fontWeight="bold",
     ).encode(
         x=alt.value(22),
@@ -1144,7 +1211,10 @@ def _cursor_layer(rows: list[dict], y_domain: list[float] | None = None) -> alt.
     return rules + labels + labels_fill
 
 
-def _click_marker_layer(result: _dccav.SimulationResult) -> alt.LayerChart:
+def _click_marker_layer(
+    result: _dccav.SimulationResult,
+    x_domain: list[float] | None = None,
+) -> alt.LayerChart:
     marker_data = pd.DataFrame({
         "frequency_hz": result.frequency_hz.astype(float),
         "spl_total_db": result.spl_total_db.astype(float),
@@ -1163,7 +1233,10 @@ def _click_marker_layer(result: _dccav.SimulationResult) -> alt.LayerChart:
         empty=False,
     )
     base = alt.Chart(marker_data).encode(
-        x=alt.X("frequency_hz:Q", scale=alt.Scale(type="log", nice=False)),
+        x=alt.X(
+            "frequency_hz:Q",
+            scale=_log_frequency_scale(x_domain),
+        ),
         y=alt.Y("spl_total_db:Q"),
     )
     selectors = base.mark_point(filled=True, size=180, opacity=0.001).add_params(click_marker)
@@ -1190,7 +1263,11 @@ def _click_marker_layer(result: _dccav.SimulationResult) -> alt.LayerChart:
     return selectors + rule + point + label
 
 
-def _band_layer(band: _dccav.ToleranceBand, y_domain: list[float] | None) -> alt.Chart | None:
+def _band_layer(
+    band: _dccav.ToleranceBand,
+    y_domain: list[float] | None,
+    x_domain: list[float] | None = None,
+) -> alt.Chart | None:
     data = pd.DataFrame({
         "frequency_hz": np.asarray(band.frequency_hz, dtype=float),
         "lower_db": np.asarray(band.lower_db, dtype=float),
@@ -1204,7 +1281,10 @@ def _band_layer(band: _dccav.ToleranceBand, y_domain: list[float] | None) -> alt
     return alt.Chart(data).mark_area(
         opacity=0.22, color=_TRACE_COLORS["Total"], clip=True,
     ).encode(
-        x=alt.X("frequency_hz:Q", scale=alt.Scale(type="log", nice=False)),
+        x=alt.X(
+            "frequency_hz:Q",
+            scale=_log_frequency_scale(x_domain),
+        ),
         y=alt.Y("lower_db:Q", scale=y_scale, title=None),
         y2="upper_db:Q",
         tooltip=[
@@ -1220,12 +1300,13 @@ def _plot_response(
     cursor_rows: list[dict],
     series_override: dict[str, np.ndarray] | None = None,
     band: _dccav.ToleranceBand | None = None,
+    frequency_window: list[float] | None = None,
 ) -> alt.Chart:
     series = series_override if series_override else _response_series(result)
     if not series:
         raise ValueError("No response traces selected")
     data = _series_frame(result, series)
-    y_domain = _response_y_domain(result, series)
+    y_domain = _response_y_domain(result, series, frequency_window)
     if band is not None and y_domain is not None:
         finite_upper = np.asarray(band.upper_db, dtype=float)
         finite_upper = finite_upper[np.isfinite(finite_upper)]
@@ -1234,18 +1315,19 @@ def _plot_response(
     chart = _line_chart(
         data,
         "LF pressure estimate (dB)",
-        height=760,
+        height=420,
+        x_domain=frequency_window,
         y_domain=y_domain,
     )
     if band is not None:
-        band_area = _band_layer(band, y_domain)
+        band_area = _band_layer(band, y_domain, frequency_window)
         if band_area is not None:
             chart = band_area + chart
-    chart = chart + _click_marker_layer(result)
-    pinned = _pinned_layer()
+    chart = chart + _click_marker_layer(result, frequency_window)
+    pinned = _pinned_layer(frequency_window)
     if pinned is not None:
         chart = chart + pinned
-    cursors = _cursor_layer(cursor_rows, y_domain)
+    cursors = _cursor_layer(cursor_rows, y_domain, frequency_window)
     if cursors is None:
         return chart
     return (chart + cursors).resolve_scale(color="independent", strokeDash="independent")
@@ -1294,7 +1376,7 @@ def _pin_label(load_type: str, box) -> str:
     return f"{load_type} · {preset} · {box_txt}"
 
 
-def _pinned_layer() -> alt.Chart | None:
+def _pinned_layer(x_domain: list[float] | None = None) -> alt.Chart | None:
     pinned = st.session_state.get("pinned_response")
     if not pinned:
         return None
@@ -1309,7 +1391,10 @@ def _pinned_layer() -> alt.Chart | None:
     return alt.Chart(data).mark_line(
         strokeDash=[6, 4], strokeWidth=1.8, color="#9aa0a6", clip=True,
     ).encode(
-        x=alt.X("frequency_hz:Q", scale=alt.Scale(type="log", nice=False)),
+        x=alt.X(
+            "frequency_hz:Q",
+            scale=_log_frequency_scale(x_domain),
+        ),
         y="value:Q",
         tooltip=[
             alt.Tooltip("frequency_hz:Q", title="Hz", format=".2f"),
@@ -1503,6 +1588,17 @@ def _batch_rank_presets_parallel(
                     row = None
                 if row is not None:
                     rows.append(row)
+    except Exception:
+        logger.warning(
+            "Parallel Finder optimization unavailable; falling back to serial ranking",
+            exc_info=True,
+        )
+        progress.progress(
+            0.0, text="Parallel optimization unavailable; continuing in safe mode")
+        return _batch_rank_presets(
+            tuple(names), load_type, float(target_volume_l), float(voltage_v),
+            float(f_min_hz), float(f_max_hz), int(points), len(names), goals=goals,
+        )
     finally:
         progress.empty()
     return _dccav.sort_ranked_rows(rows)
@@ -1750,176 +1846,181 @@ def _finder_optimizer_goals_from_state() -> _dccav.OptimizationGoals:
     )
 
 
-def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
-    """Render the goal-first catalog workflow, separate from box editing."""
+def _render_find_driver_target_sidebar() -> None:
+    """Render the enclosure conditions used for every Finder candidate."""
     load_type = str(st.session_state.get("load_type", "DCCAV"))
     is_infinite_baffle = load_type == "Infinite baffle"
 
-    st.subheader("Find a driver")
-    st.caption(
-        "Set the available enclosure and rank only the catalog candidates selected by "
-        "the sidebar filters. Selecting a row previews it; the current design changes "
-        "only after Apply candidate to design."
+    _finder_number_input(
+        "Comparison volume (L)",
+        min_value=0.1,
+        max_value=2000.0,
+        step=1.0,
+        key="finder_volume_l",
+        disabled=is_infinite_baffle,
+        help="Exact Vh+Vl for DCCAV, Vs+Vp for bandpass, or Vb for reflex/sealed candidates.",
+    )
+    _finder_number_input(
+        "Comparison voltage (V)", min_value=0.01, max_value=200.0,
+        step=0.01, key="finder_voltage",
+        help="All candidates are compared at the same input voltage; 2.83 V is the standard reference.",
     )
 
-    with st.container(border=True):
-        header_col, reset_col = st.columns([4, 1])
-        with header_col:
-            st.markdown("##### Search constraints")
-        with reset_col:
-            st.button(
-                "Reset defaults",
-                key="finder_reset_defaults",
-                on_click=_reset_finder_defaults,
-                use_container_width=True,
-                help="40 L, 2.83 V, deepest available F3, 3 dB ripple, 1× Xmax, 10-300 Hz.",
-            )
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            _finder_number_input(
-                "Comparison volume (L)",
-                min_value=0.1,
-                max_value=2000.0,
-                step=1.0,
-                key="finder_volume_l",
-                disabled=is_infinite_baffle,
-                help="Exact Vh+Vl for DCCAV or Vb for reflex/sealed candidates.",
-            )
-        with c2:
-            _finder_selectbox(
-                "Ranking goal", list(_OPT_OBJECTIVE_LABELS), key="finder_objective",
-                help="Balanced trades bass extension against response smoothness and box practicality.",
-            )
-        with c3:
-            _finder_number_input(
-                "Comparison voltage (V)", min_value=0.01, max_value=200.0,
-                step=0.01, key="finder_voltage",
-                help="All candidates are compared at the same input voltage; 2.83 V is the standard reference.",
-            )
 
-        use_optimizer = _finder_checkbox(
-            "Optimize each candidate at the comparison volume",
-            key="finder_use_optimizer",
-            disabled=is_infinite_baffle,
-            help="Slower. Start with the quick scan, then enable this to refine a filtered shortlist.",
-        )
-        goals_inactive = is_infinite_baffle or not bool(use_optimizer)
-        with st.expander("Advanced ranking constraints"):
-            st.caption(
-                "F3, ripple, excursion and group-delay limits act only when each "
-                "candidate is optimized; the evaluation range always applies."
-            )
-            a1, a2 = st.columns(2)
-            with a1:
-                _finder_number_input(
-                    "Desired bass extension F3 (Hz, 0 = deepest)", min_value=0.0, max_value=500.0,
-                    step=1.0, key="finder_target_f3_hz", disabled=goals_inactive,
-                    help="Desired -3 dB cutoff. Lower values ask for deeper bass; enter 0 for no target.",
-                )
-                _finder_number_input(
-                    "Allowed response ripple (dB)", min_value=0.0, max_value=12.0,
-                    step=0.5, key="finder_max_ripple_db", disabled=goals_inactive,
-                    help="Maximum peak-to-valley variation in the evaluated low-frequency passband.",
-                )
-                _finder_number_input(
-                    "Maximum excursion (× driver Xmax)", min_value=0.0, max_value=3.0,
-                    step=0.05, key="finder_excursion_ratio", disabled=goals_inactive,
-                    help="1.0 means the simulated cone travel must stay within the driver's published Xmax; 0 disables it.",
-                )
-            with a2:
-                _finder_number_input(
-                    "Maximum group delay (ms)", min_value=0.0, max_value=100.0,
-                    step=1.0, key="finder_max_gd_ms", disabled=goals_inactive,
-                    help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
-                )
-                _finder_number_input(
-                    "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
-                    step=1.0, key="finder_f_min",
-                    help="Lowest frequency included in response, excursion and delay evaluation.",
-                )
-                _finder_number_input(
-                    "Evaluation range end (Hz)", min_value=10.0, max_value=5000.0,
-                    step=10.0, key="finder_f_max",
-                    help="Highest frequency included in the low-frequency comparison.",
-                )
-
-        max_batch_candidates = max(len(filtered_preset_names), 1)
-        if int(st.session_state.get(
-            "finder_candidate_limit", _FINDER_DEFAULTS["finder_candidate_limit"]
-        )) > max_batch_candidates:
-            st.session_state["finder_candidate_limit"] = max_batch_candidates
-        b1, b2, b3 = st.columns(3)
-        with b1:
-            _finder_number_input(
-                "Drivers to evaluate", min_value=1, max_value=max_batch_candidates,
-                step=50, key="finder_candidate_limit",
-            )
-        with b2:
-            _finder_number_input(
-                "Top results to show", min_value=1, max_value=200,
-                step=5, key="finder_result_count",
-            )
-        with b3:
-            _finder_number_input(
-                "Simulation resolution (points)", min_value=80, max_value=1000,
-                step=20, key="finder_points",
-            )
-
-    finder_volume_l = float(st.session_state.get("finder_volume_l", 0.0))
+def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
+    """Rank the filtered candidates from the current Finder sidebar state."""
+    load_type = str(st.session_state.get("load_type", "DCCAV"))
+    is_infinite_baffle = load_type == "Infinite baffle"
+    finder_volume_l = float(_finder_value("finder_volume_l"))
     scan_count = min(int(_finder_value("finder_candidate_limit")), len(filtered_preset_names))
+    goals = (
+        _finder_optimizer_goals_from_state()
+        if st.session_state.get("finder_use_optimizer", False) and not is_infinite_baffle
+        else None
+    )
+    rank_args = (
+        tuple(filtered_preset_names),
+        load_type,
+        finder_volume_l,
+        float(_finder_value("finder_voltage")),
+        float(_finder_value("finder_f_min")),
+        float(_finder_value("finder_f_max")),
+        int(_finder_value("finder_points")),
+        scan_count,
+    )
+    if goals is not None and scan_count > 8:
+        batch_rows = _batch_rank_presets_parallel(*rank_args, goals)
+    else:
+        spinner_text = (
+            f"Optimizing {scan_count} candidates" if goals is not None
+            else f"Scanning {scan_count} candidates"
+        )
+        with st.spinner(spinner_text):
+            batch_rows = _batch_rank_presets(*rank_args, goals=goals)
+    st.session_state["batch_results"] = batch_rows
+    st.session_state["batch_result_context"] = (
+        load_type,
+        finder_volume_l,
+        scan_count,
+        bool(goals),
+        str(st.session_state.get("finder_objective", "Balanced")),
+    )
+
+
+def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
+    """Complete the Finder workflow and run it without leaving the sidebar."""
+    load_type = str(st.session_state.get("load_type", "DCCAV"))
+    is_infinite_baffle = load_type == "Infinite baffle"
+
+    st.subheader("3 · Ranking")
+    use_optimizer = _finder_checkbox(
+        "Optimize enclosure per candidate",
+        key="finder_use_optimizer",
+        disabled=is_infinite_baffle,
+        help="Slower. Start with the quick scan, then enable this to refine a filtered shortlist.",
+    )
+    _finder_selectbox(
+        "Optimization goal", list(_OPT_OBJECTIVE_LABELS), key="finder_objective",
+        disabled=is_infinite_baffle or not bool(use_optimizer),
+        help="Used during optimization; Balanced trades extension against smoothness and box practicality.",
+    )
+    goals_inactive = is_infinite_baffle or not bool(use_optimizer)
+    with st.expander("Optimization constraints"):
+        st.caption(
+            "These targets become active only when per-candidate optimization is enabled."
+        )
+        _finder_number_input(
+            "Desired bass extension F3 (Hz, 0 = deepest)", min_value=0.0, max_value=500.0,
+            step=1.0, key="finder_target_f3_hz", disabled=goals_inactive,
+            help="Desired -3 dB cutoff. Lower values ask for deeper bass; enter 0 for no target.",
+        )
+        _finder_number_input(
+            "Allowed response ripple (dB)", min_value=0.0, max_value=12.0,
+            step=0.5, key="finder_max_ripple_db", disabled=goals_inactive,
+            help="Maximum peak-to-valley variation in the evaluated low-frequency passband.",
+        )
+        _finder_number_input(
+            "Maximum excursion (× driver Xmax)", min_value=0.0, max_value=3.0,
+            step=0.05, key="finder_excursion_ratio", disabled=goals_inactive,
+            help="1.0 means cone travel stays within published Xmax; 0 disables the constraint.",
+        )
+        _finder_number_input(
+            "Maximum group delay (ms)", min_value=0.0, max_value=100.0,
+            step=1.0, key="finder_max_gd_ms", disabled=goals_inactive,
+            help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
+        )
+
+    max_batch_candidates = max(len(filtered_preset_names), 1)
+    if int(st.session_state.get(
+        "finder_candidate_limit", _FINDER_DEFAULTS["finder_candidate_limit"]
+    )) > max_batch_candidates:
+        st.session_state["finder_candidate_limit"] = max_batch_candidates
+    with st.expander("Scan settings"):
+        _finder_number_input(
+            "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
+            step=1.0, key="finder_f_min",
+            help="Lowest frequency included in response, excursion and delay evaluation.",
+        )
+        _finder_number_input(
+            "Evaluation range end (Hz)", min_value=10.0, max_value=5000.0,
+            step=10.0, key="finder_f_max",
+            help="Highest frequency included in the low-frequency comparison.",
+        )
+        _finder_number_input(
+            "Drivers to evaluate", min_value=1, max_value=max_batch_candidates,
+            step=50, key="finder_candidate_limit",
+        )
+        _finder_number_input(
+            "Top results to show", min_value=1, max_value=200,
+            step=5, key="finder_result_count",
+        )
+        _finder_number_input(
+            "Simulation resolution (points)", min_value=80, max_value=1000,
+            step=20, key="finder_points",
+        )
+
+    finder_volume_l = float(_finder_value("finder_volume_l"))
+    st.caption(
+        f"{len(filtered_preset_names)} matching presets · {load_type}"
+        + ("" if is_infinite_baffle else f" · {finder_volume_l:.1f} L")
+    )
     batch_blocked = (
         not filtered_preset_names
         or float(_finder_value("finder_f_max")) <= float(_finder_value("finder_f_min"))
         or (not is_infinite_baffle and finder_volume_l <= 0.0)
     )
-    st.caption(
-        f"{len(filtered_preset_names)} matching presets · {load_type}"
-        + ("" if is_infinite_baffle else f" · {finder_volume_l:.1f} L")
-    )
     if st.button(
-        "Rank candidates", type="primary", use_container_width=True, disabled=batch_blocked,
+        "Find drivers", type="primary", use_container_width=True,
+        disabled=batch_blocked, key="finder_run_search",
     ):
-        goals = (
-            _finder_optimizer_goals_from_state()
-            if st.session_state.get("finder_use_optimizer", False) and not is_infinite_baffle
-            else None
-        )
-        rank_args = (
-            tuple(filtered_preset_names),
-            load_type,
-            finder_volume_l,
-            float(_finder_value("finder_voltage")),
-            float(_finder_value("finder_f_min")),
-            float(_finder_value("finder_f_max")),
-            int(_finder_value("finder_points")),
-            scan_count,
-        )
-        if goals is not None and scan_count > 8:
-            # Heavy per-candidate optimization: fan out to worker processes.
-            batch_rows = _batch_rank_presets_parallel(*rank_args, goals)
-        else:
-            spinner_text = (
-                f"Optimizing {scan_count} candidates" if goals is not None
-                else f"Scanning {scan_count} candidates"
-            )
-            with st.spinner(spinner_text):
-                batch_rows = _batch_rank_presets(*rank_args, goals=goals)
-        st.session_state["batch_results"] = batch_rows
-        st.session_state["batch_result_context"] = (
-            load_type,
-            finder_volume_l,
-            scan_count,
-            bool(goals),
-            str(st.session_state.get("finder_objective", "Balanced")),
-        )
+        _run_find_driver_search(filtered_preset_names)
+    st.button(
+        "Reset Finder defaults",
+        key="finder_reset_defaults",
+        on_click=_reset_finder_defaults,
+        use_container_width=True,
+        help="Restore the practical quick-scan profile without changing the active design.",
+    )
 
+
+def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
+    """Render Finder results and candidate application, separate from inputs."""
+    load_type = str(st.session_state.get("load_type", "DCCAV"))
+
+    st.subheader("Driver matches")
+    st.caption(
+        "Configure the three Finder steps in the sidebar. Select a result to preview "
+        "it; the current design changes only after Apply candidate to design."
+    )
+
+    finder_volume_l = float(st.session_state.get("finder_volume_l", 0.0))
     batch_rows = st.session_state.get("batch_results", [])
     context = st.session_state.get("batch_result_context", ())
     if len(context) < 2 or tuple(context[:2]) != (load_type, finder_volume_l):
         batch_rows = []
     if not batch_rows:
         if filtered_preset_names:
-            st.info("Set the constraints, then rank candidates. Your current design is preserved.")
+            st.info("Complete the three sidebar steps, then select Find drivers.")
         else:
             st.warning("No presets match the current library filters.")
         return
@@ -1936,7 +2037,8 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     value_currency = _finder_price_currency(full_df)
     rank_mode = _FINDER_RANK_F3
     if value_currency:
-        rank_mode = st.radio(
+        st.sidebar.subheader("4 · Results")
+        rank_mode = st.sidebar.radio(
             "Rank by",
             _FINDER_RANK_MODES,
             horizontal=True,
@@ -2107,7 +2209,10 @@ def _render_response_tab(
     compare_loads_on = bool(st.session_state.get("plot_compare_loads", False))
     r1, r2, r3, r4, r5 = st.columns(5)
     with r1:
-        st.checkbox("Total", key="plot_response_total", disabled=compare_loads_on)
+        st.checkbox(
+            "Total", key="plot_response_total", disabled=True,
+            help="The total response is always shown as the baseline pen.",
+        )
     with r2:
         st.checkbox("Cone", key="plot_response_driver", disabled=compare_loads_on)
     with r3:
@@ -2244,13 +2349,62 @@ def _render_response_tab(
             logger.exception("Tolerance band computation failed")
             st.caption("Tolerance band unavailable for the current parameters.")
 
+    full_window = (
+        max(1, int(np.ceil(float(freq[0])))),
+        max(2, int(np.floor(float(freq[-1])))),
+    )
+    if full_window[1] <= full_window[0]:
+        full_window = (full_window[0], full_window[0] + 1)
+    raw_window = st.session_state.get("plot_response_window_hz", full_window)
+    try:
+        raw_tuple = tuple(raw_window)
+        raw_low, raw_high = map(int, raw_tuple)
+    except (TypeError, ValueError):
+        raw_tuple = full_window
+        raw_low, raw_high = full_window
+    normalized_window = (
+        min(max(raw_low, full_window[0]), full_window[1] - 1),
+        max(min(raw_high, full_window[1]), full_window[0] + 1),
+    )
+    if normalized_window[0] >= normalized_window[1]:
+        normalized_window = full_window
+    if raw_tuple != normalized_window:
+        st.session_state["plot_response_window_hz"] = normalized_window
+
+    zoom_col, reset_zoom_col = st.columns([5, 1])
+    with zoom_col:
+        selected_window = st.slider(
+            "Response frequency window (Hz)",
+            min_value=full_window[0],
+            max_value=full_window[1],
+            step=1,
+            key="plot_response_window_hz",
+            help="Move either handle to zoom. The vertical scale automatically fits the selected band.",
+        )
+    with reset_zoom_col:
+        st.button(
+            "Reset zoom",
+            key="plot_response_reset_zoom",
+            use_container_width=True,
+            disabled=tuple(selected_window) == full_window,
+            on_click=_reset_response_zoom,
+            args=(full_window,),
+        )
+    frequency_window = [float(selected_window[0]), float(selected_window[1])]
+
     if compare_series or _response_series(result):
         st.altair_chart(
-            _plot_response(result, cursor_rows, compare_series, band),
+            _plot_response(
+                result, cursor_rows, compare_series, band,
+                frequency_window=frequency_window,
+            ),
             width="stretch",
             key=f"response_chart_{chart_sig}",
         )
-        st.caption("Click the chart to place a point marker; double-click to clear it.")
+        st.caption(
+            "Use the frequency slider to zoom; click the chart to place a point marker "
+            "and double-click to clear it."
+        )
     else:
         st.caption("Response pens off.")
 
@@ -2416,6 +2570,8 @@ _default(
 )
 _default("plot_response_lower_port", "Lower port" in st.session_state["plot_response_traces"])
 _default("plot_response_mol", False)
+_ensure_response_pen_state()
+_default("plot_response_window_hz", (10, 500))
 _default("plot_show_mil", False)
 _default("plot_compare_loads", False)
 _default("plot_tolerance_band", False)
@@ -2551,7 +2707,7 @@ derived = None
 
 with st.sidebar:
     workspace_mode = str(st.session_state.get("workspace_mode", "Design a box"))
-    st.subheader("1 · Driver" if workspace_mode == "Design a box" else "Candidate library")
+    st.subheader("1 · Driver" if workspace_mode == "Design a box" else "1 · Target enclosure")
     st.selectbox(
         "Load type",
         ["Infinite baffle", "Sealed", "Bass reflex", "Bandpass 4th order", "DCCAV"],
@@ -2560,9 +2716,12 @@ with st.sidebar:
         help="Acoustic load simulated in the Design workspace and used to rank "
              "Find-a-driver candidates.",
     )
+    if workspace_mode == "Find a driver":
+        _render_find_driver_target_sidebar()
+        st.subheader("2 · Candidate library")
     all_preset_names = _dccav.driver_preset_names()
     st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
-    with st.expander("Library filters", expanded=workspace_mode == "Find a driver"):
+    with st.expander("Library filters"):
         f0, f1 = st.columns(2)
         with f0:
             st.selectbox("Source", _PRESET_SOURCE_FILTERS, key="preset_source_filter")
@@ -2630,6 +2789,8 @@ with st.sidebar:
         ),
         driver_class=str(st.session_state.get("preset_class_filter", "All")),
     )
+    if workspace_mode == "Find a driver":
+        _render_find_driver_sidebar(filtered_preset_names)
     if workspace_mode == "Design a box":
         current_preset = st.session_state.get("driver_preset_name", "Custom")
         preset_options = ["Custom", *filtered_preset_names]

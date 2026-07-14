@@ -757,5 +757,6 @@ If no true rising crossing exists in the simulated range, the returned value is
 - module split: the `dccav` facade re-exports the same objects as
   `engine`/`presets`/`pricing`/`ranking` (including the cached loaders the
   price tests clear) and the engine imports neither catalog nor pricing
-- parallel ranking: worker rows for junk names degrade to `None` and the
-  process-pool optimizer path returns rows identical to the serial one
+- parallel ranking: worker rows for junk names degrade to `None`, the
+  process-pool optimizer path returns rows identical to the serial one, and
+  process/semaphore denial automatically falls back to the safe serial path

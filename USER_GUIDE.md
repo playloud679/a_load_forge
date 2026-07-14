@@ -181,14 +181,22 @@ peak air speed and warns when:
 ### Find a Driver
 
 The **Find a driver** workspace has independent search constraints; it does not
-reuse or alter the active design controls:
+reuse or alter the active design controls. All Finder inputs live in the
+sidebar in a three-step workflow, while the main workspace remains dedicated
+to results, candidate preview and application:
+
+1. **Target enclosure** selects the load, exact comparison volume and voltage.
+2. **Candidate library** filters the catalog by text, source, size, brand,
+   bandwidth class and optional price ceiling.
+3. **Ranking** selects quick scan or per-driver optimization, its optional
+   goals, scan range and search size, then starts the search with **Find drivers**.
 
 - **Comparison volume** is exact: `Vh+Vl` for DCCAV, `Vs+Vp` for bandpass, or `Vb` for reflex and
   acoustic suspension. Infinite baffle ignores it.
-- **Ranking goal** and **Comparison voltage** define the main comparison.
-- **Optimize each candidate at the comparison volume** keeps the volume fixed
+- **Optimization goal** and **Comparison voltage** define the optimized comparison.
+- **Optimize enclosure per candidate** keeps the volume fixed
   while tuning the remaining alignment parameters.
-- **Advanced ranking constraints** reveals desired bass extension F3, allowed
+- **Optimization constraints** reveals desired bass extension F3, allowed
   ripple, maximum excursion relative to each driver's Xmax, group delay and the
   clearly labelled evaluation-frequency range.
 - **Drivers to evaluate**, **Top results to show** and **Simulation resolution**
@@ -200,10 +208,10 @@ A new Finder starts with a practical quick-scan profile: 40 L, `Balanced`,
 results and 240 simulation points.
 Per-candidate optimization is initially off because it is substantially
 slower; enable it after filters have produced a useful shortlist. **Reset
-defaults** restores this profile without changing the active design.
+Finder defaults** restores this profile without changing the active design.
 
-**Rank candidates** evaluates only the presets currently admitted by the
-sidebar filters. Each result can include class, price, purchase link and a
+**Find drivers** evaluates only the presets currently admitted by the sidebar
+filters. Each result can include class, price, purchase link and a
 normalized response sparkline. Selecting a row opens a preview without
 changing the active design. **Apply candidate to design** is the only action
 that replaces it; the app then returns to **Design a box** in **Manual** mode so
@@ -263,7 +271,12 @@ own workspace instead of a sixth tab.
 
 Inside the `Response` tab:
 
-- response pens select visible traces
+- the **Total** response pen is always on as the baseline; optional **Cone**,
+  **Lower port** and **MOL** choices are remembered across workspace, preset and
+  load changes
+- **Response frequency window** zooms the log-frequency chart with two handles;
+  the dB axis auto-fits the selected band and **Reset zoom** restores the full
+  simulation range
 - automatic cursors mark `F3`, `F6` and `F10`
 - enabling the **Manual** cursor toggle reveals `M1` and `M2` positions
 - **Pin response** stores the current total-response curve for A/B overlay

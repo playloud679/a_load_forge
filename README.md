@@ -29,13 +29,15 @@ Current UI highlights:
 - one `Suggested` / `Optimized` / `Manual` box strategy instead of overlapping
   alignment modes
 - response, excursion, impedance, ports and group-delay design tabs
+- explicit response frequency-window zoom with automatic vertical fit and reset
 - response pinning for A/B overlays
 - one-click comparison across all five loads at equal volume
 - preset save/load and URL-based sharing grouped in the `Project` menu
 - port-geometry estimates and chuffing diagnostics
 - driver reference metrics, voice-coil corner and T/S-based bandwidth class
 - goal-first driver ranking with strict catalog filters, candidate preview,
-  explicit apply, practical quick-scan defaults, response sparklines and CSV
+  a three-step sidebar workflow, explicit apply, practical quick-scan defaults,
+  response sparklines and CSV
   export
 - progressive disclosure for T/S data, sweep settings, cursor positions and
   secondary result metrics

@@ -974,8 +974,104 @@ def _check_response_chart_domain_tracks_10hz_and_peak():
     domain = _ui._response_y_domain(result, {"Total": result.spl_total_db, "Vent": result.spl_port_db})
     assert domain == [40.0, 185.0], domain
 
+    zoom_domain = _ui._response_y_domain(
+        result, {"Total": result.spl_total_db}, [20.0, 40.0])
+    assert zoom_domain == [68.0, 82.0], zoom_domain
+    chart = _ui._plot_response(result, [], frequency_window=[20.0, 40.0])
+    spec = chart.to_dict()
+    assert spec["height"] == 420, spec.get("height")
+    assert "'domain': [20.0, 40.0]" in str(spec), spec
+
 
 test("UI response chart zoom anchors at 10 Hz and keeps displayed traces visible", _check_response_chart_domain_tracks_10hz_and_peak)
+
+
+def _check_ui_response_zoom_slider_and_reset():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.run()
+    at.session_state["workspace_mode"] = "Design a box"
+    at.session_state["load_type"] = "Bandpass 4th order"
+    at.run()
+    assert not at.exception, at.exception
+
+    zoom = next(
+        slider for slider in at.slider
+        if slider.label == "Response frequency window (Hz)"
+    )
+    assert tuple(zoom.value) == (10, 500), zoom.value
+    reset = next(button for button in at.button if button.label == "Reset zoom")
+    assert reset.disabled
+
+    at.session_state["plot_response_window_hz"] = (20, 200)
+    at.run()
+    assert not at.exception, at.exception
+    zoom = next(
+        slider for slider in at.slider
+        if slider.label == "Response frequency window (Hz)"
+    )
+    assert tuple(zoom.value) == (20, 200), zoom.value
+    reset = next(button for button in at.button if button.label == "Reset zoom")
+    assert not reset.disabled
+    reset.click().run()
+    assert not at.exception, at.exception
+    assert tuple(at.session_state["plot_response_window_hz"]) == (10, 500)
+
+
+test("UI response zoom has a frequency window and reliable reset", _check_ui_response_zoom_slider_and_reset)
+
+
+def _check_ui_response_pens_survive_workspace_and_preset_changes():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Design a box"
+    at.session_state["load_type"] = "Bandpass 4th order"
+    at.run()
+    assert not at.exception, at.exception
+
+    def pen(label):
+        return next(box for box in at.checkbox if box.label == label)
+
+    assert pen("Total").value and pen("Total").disabled
+    pen("Cone").set_value(False).run()
+    pen("Lower port").set_value(False).run()
+    pen("MOL").set_value(True).run()
+
+    workspace = next(
+        control for control in at.segmented_control if control.label == "Workspace"
+    )
+    workspace.set_value("Find a driver").run()
+    workspace = next(
+        control for control in at.segmented_control if control.label == "Workspace"
+    )
+    workspace.set_value("Design a box").run()
+    assert not at.exception, at.exception
+
+    assert pen("Total").value and pen("Total").disabled
+    assert not pen("Cone").value
+    assert not pen("Lower port").value
+    assert pen("MOL").value
+
+    preset = next(box for box in at.selectbox if box.label == "Driver preset")
+    preset.set_value("Beyma 12CMV2").run()
+    assert not at.exception, at.exception
+    assert pen("Total").value
+    assert not pen("Cone").value
+    assert not pen("Lower port").value
+    assert pen("MOL").value
+
+    # Even stale or externally seeded state cannot remove the baseline pen.
+    at.session_state["plot_response_total"] = False
+    at.run()
+    assert next(box for box in at.checkbox if box.label == "Total").value
+
+
+test(
+    "UI response pens persist across workspace and preset changes",
+    _check_ui_response_pens_survive_workspace_and_preset_changes,
+)
 
 
 def _check_response_chart_drops_non_finite_points_and_keeps_label_scale_clean():
@@ -1957,7 +2053,7 @@ def _check_ui_supports_sealed_and_infinite_baffle():
         assert not at.exception, at.exception
         assert not at.tabs, "driver ranking must be a separate workspace, not a design tab"
         assert not any(box.label == "Driver preset" for box in at.selectbox)
-        rank_button = next(button for button in at.button if button.label == "Rank candidates")
+        rank_button = next(button for button in at.sidebar.button if button.label == "Find drivers")
         assert not rank_button.disabled
         if load_type == "Infinite baffle":
             volume = next(n for n in at.number_input if n.label == "Comparison volume (L)")
@@ -2002,16 +2098,96 @@ def _check_ui_finder_starts_from_practical_defaults():
     assert numbers["Drivers to evaluate"] == 500, numbers
     assert numbers["Top results to show"] == 20, numbers
     assert numbers["Simulation resolution (points)"] == 240, numbers
-    goal = next(box for box in at.selectbox if box.label == "Ranking goal")
+    goal = next(box for box in at.selectbox if box.label == "Optimization goal")
     assert goal.value == "Balanced", goal.value
     optimize = next(
         box for box in at.checkbox
-        if box.label == "Optimize each candidate at the comparison volume"
+        if box.label == "Optimize enclosure per candidate"
     )
     assert optimize.value is False
 
 
 test("UI Finder starts from practical independent defaults", _check_ui_finder_starts_from_practical_defaults)
+
+
+def _check_ui_finder_parameters_are_all_in_sidebar():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Find a driver"
+    at.run()
+    assert not at.exception, at.exception
+
+    number_labels = {
+        "Comparison volume (L)",
+        "Comparison voltage (V)",
+        "Desired bass extension F3 (Hz, 0 = deepest)",
+        "Allowed response ripple (dB)",
+        "Maximum excursion (× driver Xmax)",
+        "Maximum group delay (ms)",
+        "Evaluation range start (Hz)",
+        "Evaluation range end (Hz)",
+        "Drivers to evaluate",
+        "Top results to show",
+        "Simulation resolution (points)",
+    }
+    sidebar_numbers = {control.label for control in at.sidebar.number_input}
+    main_numbers = {control.label for control in at.main.number_input}
+    assert number_labels <= sidebar_numbers, number_labels - sidebar_numbers
+    assert number_labels.isdisjoint(main_numbers), number_labels & main_numbers
+    assert any(box.label == "Optimization goal" for box in at.sidebar.selectbox)
+    assert any(
+        box.label == "Optimize enclosure per candidate"
+        for box in at.sidebar.checkbox
+    )
+    assert any(button.label == "Reset Finder defaults" for button in at.sidebar.button)
+    assert any(button.label == "Find drivers" for button in at.sidebar.button)
+    assert not any(button.label == "Find drivers" for button in at.main.button)
+
+    at.session_state["batch_results"] = [{
+        "Driver": "Priced test driver", "Brand": "Test", "Size in": 8.0,
+        "F3 Hz": 40.0, "F6 Hz": 32.0, "F10 Hz": 25.0,
+        "Peak dB": 90.0, "Max excursion mm": 1.0, "Min ohm": 6.0,
+        "Vb L": 40.0, "Fc Hz": 50.0, "Qtc": 0.707,
+        "Price": 100.0, "Currency": "EUR", "Buy": "",
+        "Ripple dB": 1.0, "Response": [], "Class": "Woofer",
+    }]
+    at.session_state["batch_result_context"] = (
+        "Sealed", 40.0, 1, False, "Balanced",
+    )
+    at.run()
+    assert not at.exception, at.exception
+    assert any(radio.label == "Rank by" for radio in at.sidebar.radio)
+    assert not any(radio.label == "Rank by" for radio in at.main.radio)
+
+
+test("UI keeps every Finder parameter in the sidebar", _check_ui_finder_parameters_are_all_in_sidebar)
+
+
+def _check_ui_finder_sidebar_action_runs_search():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.run()
+    assert not at.exception, at.exception
+    at.session_state["workspace_mode"] = "Find a driver"
+    at.session_state["preset_search"] = "KEF B110B article example"
+    at.session_state["finder_candidate_limit"] = 1
+    at.session_state["finder_result_count"] = 1
+    at.session_state["finder_points"] = 80
+    at.run()
+    assert not at.exception, at.exception
+
+    find_button = next(
+        button for button in at.sidebar.button if button.label == "Find drivers"
+    )
+    find_button.click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["batch_results"], "sidebar action must produce ranked rows"
+    assert at.dataframe, "ranked rows must appear in the main workspace"
+
+
+test("UI Finder sidebar action runs the driver search", _check_ui_finder_sidebar_action_runs_search)
 
 
 def _check_ui_purchase_links():
@@ -2150,7 +2326,7 @@ def _check_ui_progressive_disclosure():
     assert at.session_state["workspace_mode"] == "Find a driver"
     assert at.session_state["load_type"] == "Sealed"
     assert not at.tabs, "the Finder landing must not show the design tabs"
-    assert any(b.label == "Rank candidates" for b in at.button)
+    assert any(b.label == "Find drivers" for b in at.sidebar.button)
     assert at.session_state["driver_preset_name"] == "KEF B110B article example"
 
     at.session_state["workspace_mode"] = "Design a box"
@@ -2252,6 +2428,8 @@ def _check_ui_finder_goal_inputs_follow_optimizer_toggle():
     for label in goal_labels:
         assert inputs[label].disabled, (
             "goal constraints must read as inactive without the optimizer", label)
+    goal = next(box for box in at.selectbox if box.label == "Optimization goal")
+    assert goal.disabled, "the optimization goal must be inactive during a quick scan"
     assert not inputs["Evaluation range start (Hz)"].disabled
     assert not inputs["Evaluation range end (Hz)"].disabled
 
@@ -2262,6 +2440,8 @@ def _check_ui_finder_goal_inputs_follow_optimizer_toggle():
     for label in goal_labels:
         assert not inputs[label].disabled, (
             "goal constraints must unlock with the optimizer", label)
+    goal = next(box for box in at.selectbox if box.label == "Optimization goal")
+    assert not goal.disabled, "the optimization goal must unlock with the optimizer"
 
 
 test("UI Finder goal constraints follow the optimizer toggle", _check_ui_finder_goal_inputs_follow_optimizer_toggle)
@@ -2584,6 +2764,36 @@ def _check_ui_parallel_ranking_matches_serial():
 
 
 test("UI parallel optimizer ranking matches the serial path", _check_ui_parallel_ranking_matches_serial)
+
+
+def _check_ui_parallel_ranking_falls_back_when_processes_are_denied():
+    import ui_app as _ui
+
+    names = ("KEF B110B article example", "Beyma 12CMV2")
+    goals = _ui._dccav.OptimizationGoals(objective="balanced")
+    expected = _ui._batch_rank_presets(
+        names, "Sealed", 30.0, 2.83, 10.0, 300.0, 80, len(names), goals=goals)
+    original_executor = _ui.ProcessPoolExecutor
+
+    class DeniedProcessPool:
+        def __init__(self, *args, **kwargs):
+            raise PermissionError("process semaphores denied")
+
+    try:
+        _ui.ProcessPoolExecutor = DeniedProcessPool
+        actual = _ui._batch_rank_presets_parallel(
+            names, "Sealed", 30.0, 2.83, 10.0, 300.0, 80, len(names), goals)
+    finally:
+        _ui.ProcessPoolExecutor = original_executor
+
+    assert [row["Driver"] for row in actual] == [row["Driver"] for row in expected]
+    for expected_row, actual_row in zip(expected, actual, strict=True):
+        assert abs(float(expected_row["F3 Hz"]) - float(actual_row["F3 Hz"])) < 1e-9
+        assert abs(float(expected_row["Vb L"]) - float(actual_row["Vb L"])) < 1e-9
+        assert expected_row["Response"] == actual_row["Response"]
+
+
+test("UI parallel Finder falls back when worker processes are denied", _check_ui_parallel_ranking_falls_back_when_processes_are_denied)
 
 
 def _check_module_split_facade():

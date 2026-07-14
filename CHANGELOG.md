@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+## 0.4.1 (2026-07-14)
+
+- **Persistent response pens**: the Total response is now always enabled for
+  every preset, while optional Cone, Lower port and MOL selections survive
+  workspace, preset and load changes.
+- **Finder workflow**: reorganized every Find-a-driver input into three numbered
+  sidebar steps — target enclosure, candidate library and ranking — with the
+  primary `Find drivers` action beside its parameters. Advanced optimization and
+  scan controls use progressive disclosure; the main workspace is reserved for
+  results and candidate preview/application. If the host denies multiprocessing
+  semaphores, optimized scans now fall back to serial ranking instead of crashing.
+- **Response zoom**: replaced the oversized response canvas with a compact 420 px
+  chart, an explicit two-handle frequency window, automatic dB fitting within the
+  selected band and a reliable reset. Cursor rules/readouts outside the zoomed
+  window no longer clutter the chart.
+- **Verification**: py_compile, ruff and Streamlit AppTest clean; full suite
+  79 passed / 0 failed / 0 skipped.
+
 ## 0.4.0 (2026-07-14)
 
 - **Fourth-order bandpass (MODS 2.3, tranche 1)**: added a sealed-rear / vented-front
