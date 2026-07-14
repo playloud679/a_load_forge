@@ -2160,6 +2160,143 @@ def _check_ui_finder_goal_inputs_follow_optimizer_toggle():
 test("UI Finder goal constraints follow the optimizer toggle", _check_ui_finder_goal_inputs_follow_optimizer_toggle)
 
 
+def _check_monte_carlo_tolerance_band():
+    ts = _kef_b110_ts()
+    a = _dccav.suggest_alignment(ts)
+    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    freq = np.geomspace(10.0, 500.0, 120)
+
+    band = _dccav.monte_carlo_response_band(ts, "DCCAV", box, freq, runs=40, seed=7)
+    assert band.frequency_hz.shape == freq.shape
+    assert band.runs == 40
+    assert np.all(band.lower_db <= band.upper_db + 1e-9)
+    nominal = _dccav.simulate(ts, box, freq).spl_total_db
+    inside = (nominal >= band.lower_db - 1e-6) & (nominal <= band.upper_db + 1e-6)
+    assert inside.mean() > 0.9, "nominal response must sit inside the band"
+
+    again = _dccav.monte_carlo_response_band(ts, "DCCAV", box, freq, runs=40, seed=7)
+    np.testing.assert_allclose(band.lower_db, again.lower_db)
+    np.testing.assert_allclose(band.upper_db, again.upper_db)
+
+    collapsed = _dccav.monte_carlo_response_band(
+        ts, "DCCAV", box, freq, tolerance=0.0, runs=8)
+    np.testing.assert_allclose(collapsed.lower_db, nominal, atol=1e-9)
+    np.testing.assert_allclose(collapsed.upper_db, nominal, atol=1e-9)
+
+    narrow = _dccav.monte_carlo_response_band(
+        ts, "DCCAV", box, freq, tolerance=0.05, runs=40, seed=7)
+    wide = _dccav.monte_carlo_response_band(
+        ts, "DCCAV", box, freq, tolerance=0.20, runs=40, seed=7)
+    assert (
+        np.mean(wide.upper_db - wide.lower_db)
+        > np.mean(narrow.upper_db - narrow.lower_db)
+    ), "the band must widen with the tolerance"
+
+    sealed = _dccav.monte_carlo_response_band(
+        ts, "Sealed", _dccav.SealedBox(vb_l=ts.vas_l), freq, runs=12, seed=3)
+    baffle = _dccav.monte_carlo_response_band(
+        ts, "Infinite baffle", None, freq, runs=12, seed=3)
+    for run in (sealed, baffle):
+        assert np.all(np.isfinite(run.lower_db)) and np.all(np.isfinite(run.upper_db))
+
+    try:
+        _dccav.monte_carlo_response_band(ts, "DCCAV", box, freq, tolerance=1.5)
+    except ValueError as exc:
+        assert "Tolerance" in str(exc)
+    else:
+        raise AssertionError("tolerance >= 1 must be rejected")
+
+
+test("DCCAV Monte Carlo band brackets the nominal response", _check_monte_carlo_tolerance_band)
+
+
+def _check_ui_tolerance_band_toggle():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
+    at.session_state["workspace_mode"] = "Design a box"
+    at.session_state["load_type"] = "DCCAV"
+    at.session_state["plot_tolerance_band"] = True
+    at.run()
+    assert not at.exception, at.exception
+    assert any(
+        "Monte Carlo on Fs/Vas/Qts/Qms" in caption.value for caption in at.caption
+    ), "the band caption must describe the perturbation"
+    tol = next(n for n in at.number_input if n.label == "T/S tolerance (%)")
+    assert float(tol.value) == 15.0
+
+
+test("UI tolerance band toggle renders the Monte Carlo caption", _check_ui_tolerance_band_toggle)
+
+
+def _check_price_extension_score():
+    assert _dccav.price_extension_score(30.0, 100.0) == 3000.0
+    cheap_deep = _dccav.price_extension_score(40.0, 80.0)
+    pricey_deeper = _dccav.price_extension_score(30.0, 400.0)
+    assert cheap_deep < pricey_deeper, "the cheap driver must win on value"
+    for bad in (float("nan"), 0.0, -5.0):
+        assert _dccav.price_extension_score(bad, 100.0) == float("inf")
+        assert _dccav.price_extension_score(30.0, bad) == float("inf")
+
+
+test("DCCAV price-extension score prefers cheap deep drivers", _check_price_extension_score)
+
+
+def _check_ui_finder_value_ranking():
+    import ui_app as _ui
+
+    rows = [
+        {"Driver": "deep pricey", "F3 Hz": 30.0, "Price": 400.0, "Currency": "EUR"},
+        {"Driver": "value pick", "F3 Hz": 40.0, "Price": 80.0, "Currency": "EUR"},
+        {"Driver": "wrong currency", "F3 Hz": 25.0, "Price": 10.0, "Currency": "USD"},
+        {"Driver": "unpriced", "F3 Hz": 20.0, "Price": float("nan"), "Currency": ""},
+    ]
+    df = _ui.pd.DataFrame(rows)
+    out = _ui._value_sorted_frame(df, "EUR")
+    assert list(out["Driver"]) == [
+        "value pick", "deep pricey", "unpriced", "wrong currency",
+    ], list(out["Driver"])
+    assert float(out["Value"].iloc[0]) == 3200.0
+    assert _ui.np.isnan(float(out["Value"].iloc[2])), "no-price rows must not show a score"
+
+    _ui.st.session_state["preset_price_currency"] = "USD"
+    assert _ui._finder_price_currency(df) == "USD"
+    _ui.st.session_state["preset_price_currency"] = ""
+    assert _ui._finder_price_currency(df) == "EUR", "fallback must pick the modal currency"
+
+    from streamlit.testing.v1 import AppTest
+
+    box_values = {"Vb L": 40.0, "Fc Hz": 55.0, "Qtc": 0.7}
+    seeded = [
+        {
+            "Driver": name, "Source": "Built-in", "Brand": "Other", "Class": "Woofer",
+            "Size in": 12.0, "Price": price, "Currency": "EUR", "Buy": "",
+            "F3 Hz": f3, "F6 Hz": f3 - 5.0, "F10 Hz": f3 - 10.0,
+            "Peak dB": 90.0, "Ripple dB": 1.0, "Max excursion mm": 3.0,
+            "Min ohm": 6.0, "Response": [0.0, -3.0], **box_values,
+        }
+        for name, f3, price in (("A deep", 30.0, 400.0), ("B value", 40.0, 80.0))
+    ]
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["workspace_mode"] = "Find a driver"
+    # Match the live defaults version so the seeded results survive migration.
+    at.session_state["_finder_defaults_version"] = _ui._FINDER_DEFAULTS_VERSION
+    at.session_state["batch_results"] = seeded
+    at.session_state["batch_result_context"] = ("Sealed", 40.0, 2, False, "Balanced")
+    at.run()
+    assert not at.exception, at.exception
+    rank = next(r for r in at.radio if r.label == "Rank by")
+    rank.set_value("Best value (F3 × price)").run()
+    assert not at.exception, at.exception
+    assert any(
+        "Best value = lowest F3 × price in EUR" in caption.value
+        for caption in at.caption
+    ), "value mode must explain the currency-consistent score"
+
+
+test("UI Finder ranks candidates by price-performance value", _check_ui_finder_value_ranking)
+
+
 def _check_simulation_rejects_bad_frequency_grid():
     ts = _kef_b110_ts()
     a = _dccav.suggest_alignment(ts)

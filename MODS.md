@@ -39,17 +39,6 @@ Traccia operativa multi-sessione. Regole d'uso:
 
 ## 4. Funzioni innovative
 
-- [ ] **4.1 Ottimizzatore price-aware — "miglior basso per euro"**
-  Feature distintiva: ranking Find a driver per €/Hz di estensione, vincolo di budget
-  nei goal dell'optimizer, score combinato F3×prezzo (valuta coerente,
-  riusare la logica currency-aware esistente).
-  File: `src/dccav.py`, `ui_app.py`, `docs/dccav.md`, `tests/test_all.py`.
-
-- [ ] **4.2 Bande di tolleranza Monte Carlo**
-  Perturbazione T/S ±10–20% (100–200 run vettorizzati), risposta come banda
-  percentile 5–95 attorno alla curva nominale. Toggle in Plot Tools.
-  File: `src/dccav.py`, `ui_app.py`, `docs/dccav.md`, `tests/test_all.py`.
-
 - [ ] **4.3 Atlante del design space**
   Heatmap F3/ripple sul piano Vb–Fb (reflex/sealed) o Vtot–fl (DCCAV),
   cliccabile per applicare il punto scelto. Griglia calcolata col solver
@@ -141,6 +130,44 @@ Traccia operativa multi-sessione. Regole d'uso:
 ---
 
 ## Fatto
+
+- [x] **4.2 Bande di tolleranza Monte Carlo** — 2026-07-14, nel working tree.
+  Backend: `monte_carlo_response_band()` → `ToleranceBand(frequency_hz,
+  lower_db, upper_db, runs)`: perturbazione uniforme ±tolleranza su
+  Fs/Vas/Qts/Qms (override Mms/Cms/Bl scartati per auto-consistenza, Qts
+  cappato sotto il Qms perturbato), box fissa ("stessa cassa, spread dei
+  driver"), 120 run default, percentili 5–95, seed fisso riproducibile,
+  run invalidi saltati (<runs/4 validi → ValueError), tolerance=0 collassa
+  sulla nominale (verificato esatto). UI: toggle "Tolerance band" nel tab
+  Response (disabilitato in Compare loads), input "T/S tolerance (%)"
+  5–30%, banda come `mark_area` sotto le tracce con tooltip P5/P95,
+  dominio Y esteso al bordo superiore della banda, calcolo con
+  `@st.cache_data` (niente ricalcolo per interazioni del fragment).
+  Doc: sezione API + elenco test. Test: banda contiene la nominale,
+  determinismo del seed, collasso a tolleranza zero, larghezza crescente
+  con la tolleranza, smoke sealed/IB, rifiuto tolerance≥1, AppTest su
+  toggle + caption. Verifica: py_compile OK, ruff OK, suite completa
+  65 pass / 0 fail / 0 skip.
+
+- [x] **4.1 Ottimizzatore price-aware — "miglior basso per euro"** —
+  2026-07-14, nel working tree. Backend: `price_extension_score(f3, price)`
+  = `F3 × prezzo` (più basso = meglio; input mancanti/non positivi → `inf`).
+  UI Finder: radio "Rank by" (`Deepest bass (F3)` / `Best value (F3 × price)`)
+  visibile quando i risultati hanno prezzi; il value-sort ri-ordina lo scan già
+  simulato senza rilanciarlo (`_value_sorted_frame`, ordinamento stabile con
+  fallback F3 per i senza-prezzo in coda), valuta coerente
+  (`_finder_price_currency`: valuta sidebar se presente tra i risultati,
+  altrimenti la moda), colonna "Value (F3 × price)" e caption esplicativa.
+  Vincolo di budget = filtro prezzo currency-aware già in sidebar (richiamato
+  nell'help, nessuno stato duplicato). Chiave tabella distinta per modalità
+  così la selezione non punta alla riga sbagliata dopo il ri-ordino. Doc:
+  sezione API + elenco test. Test: score puro, ri-ordino sintetico multi-valuta
+  (unpriced/valuta-diversa in coda, Value NaN), fallback valuta, AppTest con
+  risultati seminati (radio + caption; fix: allineare
+  `_finder_defaults_version` per non far cancellare i seed dalla migrazione).
+  Rifinitura collaterale: variabili design inizializzate a monte della sidebar
+  (niente NameError loggato nel bare import col default Finder).
+  Verifica: py_compile OK, ruff OK, suite completa 63 pass / 0 fail / 0 skip.
 
 - [x] **2.5 CI GitHub Actions** — 2026-07-14, commit `bf239e2`
   (release v0.3.0). `.github/workflows/ci.yml` su push

@@ -1129,6 +1129,100 @@ def export_frd_text(result: SimulationResult) -> str:
     )
 
 
+@dataclass(frozen=True)
+class ToleranceBand:
+    """Percentile SPL band from Monte Carlo T/S perturbation."""
+
+    frequency_hz: np.ndarray
+    lower_db: np.ndarray
+    upper_db: np.ndarray
+    runs: int
+
+
+def monte_carlo_response_band(
+    ts: DriverTS,
+    load_type: str = "DCCAV",
+    box: DccavBox | ReflexBox | SealedBox | None = None,
+    freq_hz: np.ndarray | None = None,
+    voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0,
+    tolerance: float = 0.15,
+    runs: int = 120,
+    seed: int = 20260714,
+    percentiles: tuple[float, float] = (5.0, 95.0),
+) -> ToleranceBand:
+    """Simulate T/S manufacturing spread as an SPL percentile band.
+
+    Each run multiplies Fs, Vas, Qts and Qms by independent uniform factors in
+    ``[1 - tolerance, 1 + tolerance]`` and re-derives the driver; measured
+    Mms/Cms/Bl overrides are dropped so the perturbed small-signal set stays
+    self-consistent, and Qts is capped just below the perturbed Qms.  The
+    enclosure is kept fixed: the band answers "same box, driver unit spread".
+    """
+    if load_type in {"Suspension pneumatic", "Acoustic suspension"}:
+        load_type = "Sealed"
+    if not 0.0 <= float(tolerance) < 1.0:
+        raise ValueError("Tolerance must be in [0, 1)")
+    if int(runs) < 2:
+        raise ValueError("Monte Carlo needs at least 2 runs")
+    if freq_hz is None:
+        freq_hz = np.geomspace(10.0, 500.0, 240)
+    freq = np.asarray(freq_hz, dtype=float)
+    rng = np.random.default_rng(int(seed))
+    curves: list[np.ndarray] = []
+    for _ in range(int(runs)):
+        f_fs, f_vas, f_qts, f_qms = rng.uniform(
+            1.0 - float(tolerance), 1.0 + float(tolerance), size=4)
+        qms = ts.qms * f_qms
+        sample = DriverTS(
+            fs_hz=ts.fs_hz * f_fs,
+            vas_l=ts.vas_l * f_vas,
+            qts=min(ts.qts * f_qts, qms * 0.99),
+            qms=qms,
+            re_ohm=ts.re_ohm,
+            sd_cm2=ts.sd_cm2,
+            le_mh=ts.le_mh,
+            xmax_mm=ts.xmax_mm,
+            pe_w=ts.pe_w,
+        )
+        try:
+            if load_type == "Bass reflex":
+                result = simulate_reflex(sample, box, freq, voltage_v, series_r_ohm)
+            elif load_type == "Sealed":
+                result = simulate_sealed(sample, box, freq, voltage_v, series_r_ohm)
+            elif load_type == "Infinite baffle":
+                result = simulate_infinite_baffle(sample, freq, voltage_v, series_r_ohm)
+            else:
+                result = simulate(sample, box, freq, voltage_v, series_r_ohm)
+        except ValueError:
+            continue
+        curves.append(np.asarray(result.spl_total_db, dtype=float))
+    if len(curves) < max(2, int(runs) // 4):
+        raise ValueError("Too few Monte Carlo runs produced a valid simulation")
+    stack = np.vstack(curves)
+    lower, upper = np.nanpercentile(stack, list(percentiles), axis=0)
+    return ToleranceBand(
+        frequency_hz=freq,
+        lower_db=np.asarray(lower, dtype=float),
+        upper_db=np.asarray(upper, dtype=float),
+        runs=len(curves),
+    )
+
+
+def price_extension_score(f3_hz: float, price: float) -> float:
+    """Lower-is-better value score: bass extension weighted by driver price.
+
+    ``F3 * price`` rewards drivers that are simultaneously cheap and deep.
+    Missing or non-positive inputs return ``inf`` so unpriced candidates sink
+    to the bottom of a value-sorted ranking.
+    """
+    f3 = float(f3_hz)
+    value = float(price)
+    if not (np.isfinite(f3) and np.isfinite(value)) or f3 <= 0.0 or value <= 0.0:
+        return float("inf")
+    return f3 * value
+
+
 def export_zma_text(result: SimulationResult) -> str:
     """Format the electrical impedance as ZMA text (freq, ohm, phase deg)."""
     magnitude = np.asarray(result.impedance_ohm, dtype=float)

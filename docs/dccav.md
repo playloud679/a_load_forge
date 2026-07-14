@@ -395,6 +395,31 @@ rows (`%.4f`), skipping rows with non-finite values:
 The UI offers both next to the response CSV as `Download FRD (response)` and
 `Download ZMA (impedance)`.
 
+### `monte_carlo_response_band(ts, load_type="DCCAV", box=None, freq_hz=None, voltage_v=2.83, series_r_ohm=0.0, tolerance=0.15, runs=120, seed=20260714, percentiles=(5.0, 95.0)) -> ToleranceBand`
+
+Monte Carlo estimate of driver manufacturing spread.  Each run multiplies
+Fs, Vas, Qts and Qms by independent uniform factors in
+`[1 - tolerance, 1 + tolerance]`; measured Mms/Cms/Bl overrides are dropped
+so the perturbed set stays self-consistent and Qts is capped just below the
+perturbed Qms.  The enclosure is kept fixed ("same box, driver unit
+spread").  Runs that fail validation are skipped; fewer than `runs/4` valid
+runs raise `ValueError`.  Returns `ToleranceBand(frequency_hz, lower_db,
+upper_db, runs)` with the requested percentiles (default 5-95) of the total
+SPL.  The seed is fixed so bands are reproducible; `tolerance=0` collapses
+the band onto the nominal response.  The UI exposes it as the `Tolerance
+band` toggle in the Response tab (cached per parameter set, shaded area
+under the traces, disabled while comparing loads).
+
+### `price_extension_score(f3_hz, price) -> float`
+
+Lower-is-better value score for the price-aware `Find a driver` ranking:
+`F3 * price` rewards candidates that are simultaneously cheap and deep.
+Missing or non-positive F3/price returns `inf`, so unpriced candidates sink
+below every priced one.  The UI applies it per currency — the sidebar price
+currency when present among the ranked rows, otherwise the most common
+currency — and re-sorts the already-simulated scan without re-running it;
+the sidebar max-price filter acts as the budget constraint.
+
 ### `driver_reference_metrics(ts) -> DriverReferenceMetrics`
 
 Classical small-signal reference metrics from the T/S set:
@@ -616,3 +641,9 @@ If no true rising crossing exists in the simulated range, the returned value is
 - FRD/ZMA exports: column round-trip against the simulated arrays, wrapped
   phase ranges, impedance phase on all four loads, zero-phase fallback for
   legacy results and the UI download buttons
+- price-aware value ranking: score ordering and missing-input handling,
+  currency-consistent re-sort with unpriced candidates at the bottom and the
+  UI `Rank by` control on ranked results
+- Monte Carlo tolerance band: nominal response inside the band, deterministic
+  seed, zero-tolerance collapse, width growing with tolerance, sealed and
+  infinite-baffle smoke and the UI `Tolerance band` toggle

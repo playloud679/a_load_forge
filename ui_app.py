@@ -114,8 +114,12 @@ _PRESET_SOURCE_FILTERS = ("All", "Built-in", "Loudspeaker Database")
 _PRESET_CLASS_FILTERS = ("All", *_dccav.DRIVER_CLASSES)
 _WORKSPACES = ("Find a driver", "Design a box")
 _BOX_STRATEGIES = ("Suggested", "Optimized", "Manual")
+_FINDER_RANK_F3 = "Deepest bass (F3)"
+_FINDER_RANK_VALUE = "Best value (F3 × price)"
+_FINDER_RANK_MODES = (_FINDER_RANK_F3, _FINDER_RANK_VALUE)
 _FINDER_DEFAULTS_VERSION = 3
 _FINDER_DEFAULTS = {
+    "finder_rank_mode": _FINDER_RANK_F3,
     "finder_volume_l": 40.0,
     "finder_objective": "Balanced",
     "finder_voltage": 2.83,
@@ -1126,22 +1130,57 @@ def _click_marker_layer(result: _dccav.SimulationResult) -> alt.LayerChart:
     return selectors + rule + point + label
 
 
+def _band_layer(band: _dccav.ToleranceBand, y_domain: list[float] | None) -> alt.Chart | None:
+    data = pd.DataFrame({
+        "frequency_hz": np.asarray(band.frequency_hz, dtype=float),
+        "lower_db": np.asarray(band.lower_db, dtype=float),
+        "upper_db": np.asarray(band.upper_db, dtype=float),
+    })
+    data = data[np.isfinite(data["frequency_hz"])
+                & np.isfinite(data["lower_db"]) & np.isfinite(data["upper_db"])]
+    if data.empty:
+        return None
+    y_scale = alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined
+    return alt.Chart(data).mark_area(
+        opacity=0.22, color=_TRACE_COLORS["Total"], clip=True,
+    ).encode(
+        x=alt.X("frequency_hz:Q", scale=alt.Scale(type="log", nice=False)),
+        y=alt.Y("lower_db:Q", scale=y_scale, title=None),
+        y2="upper_db:Q",
+        tooltip=[
+            alt.Tooltip("frequency_hz:Q", title="Hz", format=".2f"),
+            alt.Tooltip("lower_db:Q", title="P5 dB", format=".2f"),
+            alt.Tooltip("upper_db:Q", title="P95 dB", format=".2f"),
+        ],
+    )
+
+
 def _plot_response(
     result: _dccav.SimulationResult,
     cursor_rows: list[dict],
     series_override: dict[str, np.ndarray] | None = None,
+    band: _dccav.ToleranceBand | None = None,
 ) -> alt.Chart:
     series = series_override if series_override else _response_series(result)
     if not series:
         raise ValueError("No response traces selected")
     data = _series_frame(result, series)
     y_domain = _response_y_domain(result, series)
+    if band is not None and y_domain is not None:
+        finite_upper = np.asarray(band.upper_db, dtype=float)
+        finite_upper = finite_upper[np.isfinite(finite_upper)]
+        if finite_upper.size:
+            y_domain[1] = max(y_domain[1], float(np.max(finite_upper)) + 2.0)
     chart = _line_chart(
         data,
         "LF pressure estimate (dB)",
         height=760,
         y_domain=y_domain,
     )
+    if band is not None:
+        band_area = _band_layer(band, y_domain)
+        if band_area is not None:
+            chart = band_area + chart
     chart = chart + _click_marker_layer(result)
     pinned = _pinned_layer()
     if pinned is not None:
@@ -1510,6 +1549,33 @@ def _apply_pending_batch_result() -> None:
     st.toast(f"Applied {pending['row']['Driver']} to the design")
 
 
+def _finder_price_currency(df: pd.DataFrame) -> str:
+    """Currency used for value ranking: sidebar choice, else the most common."""
+    priced = df[df["Price"].notna() & df["Currency"].astype(bool)]
+    if priced.empty:
+        return ""
+    currencies = priced["Currency"].astype(str)
+    sidebar = str(st.session_state.get("preset_price_currency", ""))
+    if sidebar and (currencies == sidebar).any():
+        return sidebar
+    return str(currencies.mode().iloc[0])
+
+
+def _value_sorted_frame(df: pd.DataFrame, currency: str) -> pd.DataFrame:
+    """Sort by F3 × price in one currency; rows without it keep F3 order below."""
+    scored = df.copy()
+    scored["Value"] = [
+        _dccav.price_extension_score(
+            f3, price if str(cur) == currency else float("nan"))
+        for f3, price, cur in zip(
+            scored["F3 Hz"], scored["Price"], scored["Currency"], strict=True)
+    ]
+    scored = scored.sort_values(
+        ["Value", "F3 Hz"], kind="stable").reset_index(drop=True)
+    scored["Value"] = scored["Value"].replace(np.inf, np.nan)
+    return scored
+
+
 def _finder_optimizer_goals_from_state() -> _dccav.OptimizationGoals:
     return _dccav.OptimizationGoals(
         objective=_OPT_OBJECTIVE_LABELS[
@@ -1694,13 +1760,33 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         return
 
     st.caption(f"{len(batch_rows)} usable candidates from {context[2]} scanned presets")
-    batch_df = pd.DataFrame(batch_rows).head(int(_finder_value("finder_result_count")))
+    full_df = pd.DataFrame(batch_rows)
     for name, default in (
         ("Price", np.nan), ("Currency", ""), ("Buy", ""),
         ("Ripple dB", np.nan), ("Response", None), ("Class", ""),
     ):
-        if name not in batch_df.columns:
-            batch_df[name] = default
+        if name not in full_df.columns:
+            full_df[name] = default
+
+    value_currency = _finder_price_currency(full_df)
+    rank_mode = _FINDER_RANK_F3
+    if value_currency:
+        rank_mode = st.radio(
+            "Rank by",
+            _FINDER_RANK_MODES,
+            horizontal=True,
+            key="finder_rank_mode",
+            help="Best value re-sorts the scan by F3 × price: the cheapest way "
+                 "to reach deep bass ranks first. Use the sidebar price filter "
+                 "to cap the budget.",
+        )
+    if rank_mode == _FINDER_RANK_VALUE and value_currency:
+        full_df = _value_sorted_frame(full_df, value_currency)
+        st.caption(
+            f"Best value = lowest F3 × price in {value_currency}; candidates "
+            f"without a {value_currency} price keep the F3 order at the bottom."
+        )
+    batch_df = full_df.head(int(_finder_value("finder_result_count")))
 
     columns = [
         "Driver", "Brand", "Size in", "F3 Hz", "F6 Hz", "F10 Hz",
@@ -1715,6 +1801,8 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     if batch_df["Price"].notna().any():
         columns.insert(3, "Price")
         columns.insert(4, "Currency")
+        if "Value" in batch_df.columns and batch_df["Value"].notna().any():
+            columns.insert(5, "Value")
     if load_type == "Bass reflex":
         columns += ["Vb L", "Fb Hz"]
     elif load_type == "Sealed":
@@ -1730,7 +1818,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         batch_df[columns],
         width="stretch",
         hide_index=True,
-        key="batch_results_table",
+        key=f"batch_results_table_{'value' if 'Value' in columns else 'f3'}",
         on_select="rerun",
         selection_mode="single-row",
         column_config={
@@ -1740,6 +1828,10 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             "Peak dB": st.column_config.NumberColumn(format="%.1f"),
             "Ripple dB": st.column_config.NumberColumn(format="%.1f"),
             "Price": st.column_config.NumberColumn(format="%.2f"),
+            "Value": st.column_config.NumberColumn(
+                "Value (F3 × price)", format="%.0f",
+                help="Lower is better: cheapest path to deep bass.",
+            ),
             "Max excursion mm": st.column_config.NumberColumn(format="%.2f"),
             "Min ohm": st.column_config.NumberColumn(format="%.2f"),
             "Size in": st.column_config.NumberColumn(format="%.1f"),
@@ -1805,6 +1897,22 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                 "load_type": load_type,
             }
             st.rerun()
+
+
+@st.cache_data(show_spinner="Simulating T/S tolerance band...")
+def _tolerance_band_cached(
+    ts: _dccav.DriverTS,
+    load_type: str,
+    box,
+    freq: np.ndarray,
+    voltage_v: float,
+    series_r_ohm: float,
+    tolerance: float,
+) -> _dccav.ToleranceBand:
+    return _dccav.monte_carlo_response_band(
+        ts, load_type=load_type, box=box, freq_hz=freq,
+        voltage_v=voltage_v, series_r_ohm=series_r_ohm, tolerance=tolerance,
+    )
 
 
 @st.fragment
@@ -1890,9 +1998,16 @@ def _render_response_tab(
             "radiation and the lower port. The load model is low-frequency only; "
             "it is not an electrical crossover or breakup/directivity predictor."
         )
-    pin_col, clear_col, compare_col, pin_info = st.columns([1, 1, 1, 2])
+    pin_col, clear_col, compare_col, band_col, pin_info = st.columns([1, 1, 1, 1, 1.4])
     with compare_col:
         st.toggle("Compare loads", key="plot_compare_loads")
+    with band_col:
+        st.toggle(
+            "Tolerance band", key="plot_tolerance_band", disabled=compare_loads_on,
+            help="Monte Carlo spread of the driver T/S (Fs, Vas, Qts, Qms): "
+                 "shaded 5-95th percentile band of the total response with "
+                 "the current box kept fixed.",
+        )
     with pin_col:
         if st.button("Pin response", use_container_width=True):
             st.session_state["pinned_response"] = {
@@ -1929,9 +2044,27 @@ def _render_response_tab(
         else:
             st.caption("No comparison load could be simulated; showing the normal traces.")
 
+    band = None
+    if st.session_state.get("plot_tolerance_band", False) and not compare_series:
+        st.number_input(
+            "T/S tolerance (%)", min_value=5.0, max_value=30.0, step=1.0,
+            key="plot_tolerance_pct",
+        )
+        tolerance = float(st.session_state.get("plot_tolerance_pct", 15.0)) / 100.0
+        try:
+            band = _tolerance_band_cached(
+                current_ts, load_type, box, freq, sim_voltage, sim_series_r, tolerance)
+            st.caption(
+                f"Shaded band: ±{tolerance * 100.0:.0f}% Monte Carlo on "
+                f"Fs/Vas/Qts/Qms, {band.runs} runs, 5-95th percentile."
+            )
+        except Exception:
+            logger.exception("Tolerance band computation failed")
+            st.caption("Tolerance band unavailable for the current parameters.")
+
     if compare_series or _response_series(result):
         st.altair_chart(
-            _plot_response(result, cursor_rows, compare_series),
+            _plot_response(result, cursor_rows, compare_series, band),
             width="stretch",
             key=f"response_chart_{chart_sig}",
         )
@@ -2096,6 +2229,8 @@ _default("plot_response_lower_port", "Lower port" in st.session_state["plot_resp
 _default("plot_response_mol", False)
 _default("plot_show_mil", False)
 _default("plot_compare_loads", False)
+_default("plot_tolerance_band", False)
+_default("plot_tolerance_pct", 15.0)
 _default("plot_port_upper", "Upper port" in st.session_state["plot_port_traces"])
 _default("plot_port_lower", "Lower port" in st.session_state["plot_port_traces"])
 _default("cursor_auto_f3", True)
@@ -2209,6 +2344,12 @@ with project_col:
                 logger.exception("Invalid preset")
                 st.error(f"Invalid preset: {exc}")
 
+
+current_ts = None
+current_alignment = None
+current_reflex_alignment = None
+current_sealed_alignment = None
+derived = None
 
 with st.sidebar:
     workspace_mode = str(st.session_state.get("workspace_mode", "Design a box"))
