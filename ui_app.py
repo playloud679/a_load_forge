@@ -2059,47 +2059,56 @@ def _render_find_driver_target_sidebar() -> None:
 
 def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
     """Rank the filtered candidates from the current Finder sidebar state."""
-    load_type = str(st.session_state.get("load_type", "DCCAV"))
-    is_infinite_baffle = load_type == "Infinite baffle"
+    finder_load_types = list(st.session_state.get("finder_load_types", []))
+    if not finder_load_types:
+        finder_load_types = [str(st.session_state.get("load_type", "DCCAV"))]
     finder_volume_l = float(_finder_value("finder_volume_l"))
     scan_count = len(filtered_preset_names)
-    goals = None if is_infinite_baffle else _finder_optimizer_goals_from_state()
-    rank_args = (
-        tuple(filtered_preset_names),
-        load_type,
-        finder_volume_l,
-        float(_finder_value("finder_voltage")),
-        float(_finder_value("finder_f_min")),
-        float(_finder_value("finder_f_max")),
-        int(_finder_value("finder_points")),
-        scan_count,
-    )
-    if goals is not None and scan_count > 8:
-        batch_rows = _batch_rank_presets_parallel(*rank_args, goals)
-    else:
-        spinner_text = (
-            f"Optimizing {scan_count} candidates" if goals is not None
-            else f"Scanning {scan_count} candidates"
+    all_rows: list[dict] = []
+    for lt in finder_load_types:
+        is_infinite_baffle = lt == "Infinite baffle"
+        goals = None if is_infinite_baffle else _finder_optimizer_goals_from_state()
+        rank_args = (
+            tuple(filtered_preset_names),
+            lt,
+            finder_volume_l,
+            float(_finder_value("finder_voltage")),
+            float(_finder_value("finder_f_min")),
+            float(_finder_value("finder_f_max")),
+            int(_finder_value("finder_points")),
+            scan_count,
         )
-        with st.spinner(spinner_text):
-            batch_rows = _batch_rank_presets(*rank_args, goals=goals)
-    st.session_state["batch_results"] = batch_rows
+        if goals is not None and scan_count > 8:
+            batch_rows = _batch_rank_presets_parallel(*rank_args, goals)
+        else:
+            spinner_text = (
+                f"Optimizing {scan_count} candidates · {lt}" if goals is not None
+                else f"Scanning {scan_count} candidates · {lt}"
+            )
+            with st.spinner(spinner_text):
+                batch_rows = _batch_rank_presets(*rank_args, goals=goals)
+        all_rows.extend(batch_rows)
+    all_rows = _dccav.sort_ranked_rows(all_rows)
+    st.session_state["batch_results"] = all_rows
     st.session_state["batch_result_context"] = (
-        load_type,
+        tuple(finder_load_types),
         finder_volume_l,
         scan_count,
-        bool(goals),
+        bool(_finder_optimizer_goals_from_state()),
         str(st.session_state.get("finder_objective", "Balanced")),
     )
 
 
 def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
     """Complete the Finder workflow and run it without leaving the sidebar."""
-    load_type = str(st.session_state.get("load_type", "DCCAV"))
-    is_infinite_baffle = load_type == "Infinite baffle"
+    finder_load_types = list(st.session_state.get("finder_load_types", []))
+    if not finder_load_types:
+        finder_load_types = [str(st.session_state.get("load_type", "DCCAV"))]
+    has_infinite_baffle = "Infinite baffle" in finder_load_types
+    only_infinite_baffle = has_infinite_baffle and len(finder_load_types) == 1
 
     st.subheader("3 · Ranking")
-    if is_infinite_baffle:
+    if only_infinite_baffle:
         st.caption(
             "Infinite baffle has no enclosure to optimize; candidates are "
             "ranked on their free-air response."
@@ -2161,14 +2170,15 @@ def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
         )
 
     finder_volume_l = float(_finder_value("finder_volume_l"))
+    load_label = " + ".join(finder_load_types) if len(finder_load_types) <= 2 else f"{len(finder_load_types)} loads"
     st.caption(
-        f"Scans all {len(filtered_preset_names)} matching presets · {load_type}"
-        + ("" if is_infinite_baffle else f" · {finder_volume_l:.1f} L")
+        f"Scans all {len(filtered_preset_names)} matching presets · {load_label}"
+        + ("" if only_infinite_baffle else f" · {finder_volume_l:.1f} L")
     )
     batch_blocked = (
         not filtered_preset_names
         or float(_finder_value("finder_f_max")) <= float(_finder_value("finder_f_min"))
-        or (not is_infinite_baffle and finder_volume_l <= 0.0)
+        or (not only_infinite_baffle and finder_volume_l <= 0.0)
     )
     if st.button(
         "Find drivers", type="primary", use_container_width=True,
@@ -2188,9 +2198,10 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     )
 
     finder_volume_l = float(st.session_state.get("finder_volume_l", 0.0))
+    finder_loads = tuple(st.session_state.get("finder_load_types", []))
     batch_rows = st.session_state.get("batch_results", [])
     context = st.session_state.get("batch_result_context", ())
-    if len(context) < 2 or tuple(context[:2]) != (load_type, finder_volume_l):
+    if len(context) < 2 or tuple(context[:2]) != (finder_loads, finder_volume_l):
         batch_rows = []
     if not batch_rows:
         if filtered_preset_names:
@@ -2201,8 +2212,10 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
 
     st.caption(f"{len(batch_rows)} usable candidates from {context[2]} scanned presets")
     full_df = pd.DataFrame(batch_rows)
+    if "_load_type" in full_df.columns:
+        full_df = full_df.rename(columns={"_load_type": "Load"})
     for name, default in (
-        ("Price", np.nan), ("Currency", ""), ("Buy", ""),
+        ("Load", ""), ("Price", np.nan), ("Currency", ""), ("Buy", ""),
         ("Ripple dB", np.nan), ("Response", None), ("Class", ""),
     ):
         if name not in full_df.columns:
@@ -2230,7 +2243,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     batch_df = full_df.head(int(_finder_value("finder_result_count")))
 
     columns = [
-        "Driver", "Brand", "Size in", "F3 Hz", "F6 Hz", "F10 Hz",
+        "Load", "Driver", "Brand", "Size in", "F3 Hz", "F6 Hz", "F10 Hz",
         "Peak dB", "Max excursion mm", "Min ohm",
     ]
     if batch_df["Class"].fillna("").astype(bool).any():
@@ -2244,7 +2257,10 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         columns.insert(4, "Currency")
         if "Value" in batch_df.columns and batch_df["Value"].notna().any():
             columns.insert(5, "Value")
-    if load_type == "Bass reflex":
+    if len(finder_loads) > 1:
+        columns += ["Vb L", "Fb Hz", "Vh L", "fh Hz", "Vl L", "fl Hz",
+                     "Vs L", "Vp L", "Fp Hz", "Fc Hz", "Qtc"]
+    elif load_type == "Bass reflex":
         columns += ["Vb L", "Fb Hz"]
     elif load_type == "Bandpass 4th order":
         columns += ["Vs L", "Vp L", "Fp Hz"]
@@ -2312,32 +2328,33 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     if not 0 <= selected_index < len(batch_df):
         return
     selected_row = batch_df.iloc[selected_index].to_dict()
+    row_load_type = str(selected_row.get("Load", load_type))
     with st.container(border=True):
-        st.markdown(f"#### Candidate preview · {selected_row['Driver']}")
+        st.markdown(f"#### Candidate preview · {selected_row['Driver']} · {row_load_type}")
         p1, p2, p3, p4 = st.columns(4)
         p1.metric("F3", f"{float(selected_row['F3 Hz']):.1f} Hz")
         p2.metric("Peak LF SPL", f"{float(selected_row['Peak dB']):.1f} dB")
         p3.metric("Max excursion", f"{float(selected_row['Max excursion mm']):.2f} mm")
         p4.metric("Min impedance", f"{float(selected_row['Min ohm']):.2f} Ω")
-        if load_type == "DCCAV":
+        if row_load_type == "DCCAV":
             st.caption(
                 f"Vh {float(selected_row['Vh L']):.2f} L / "
                 f"{float(selected_row['fh Hz']):.1f} Hz · "
                 f"Vl {float(selected_row['Vl L']):.2f} L / "
                 f"{float(selected_row['fl Hz']):.1f} Hz"
             )
-        elif load_type == "Bass reflex":
+        elif row_load_type == "Bass reflex":
             st.caption(
                 f"Vb {float(selected_row['Vb L']):.2f} L · "
                 f"Fb {float(selected_row['Fb Hz']):.1f} Hz"
             )
-        elif load_type == "Bandpass 4th order":
+        elif row_load_type == "Bandpass 4th order":
             st.caption(
                 f"Vs sealed {float(selected_row['Vs L']):.2f} L · "
                 f"Vp ported {float(selected_row['Vp L']):.2f} L · "
                 f"Fp {float(selected_row['Fp Hz']):.1f} Hz"
             )
-        elif load_type == "Sealed":
+        elif row_load_type == "Sealed":
             st.caption(
                 f"Vb {float(selected_row['Vb L']):.2f} L · "
                 f"Fc {float(selected_row['Fc Hz']):.1f} Hz · "
@@ -2346,7 +2363,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         if st.button("Apply candidate to design", type="primary", use_container_width=True):
             st.session_state["batch_pending_result"] = {
                 "row": selected_row,
-                "load_type": load_type,
+                "load_type": row_load_type,
             }
             st.rerun()
 
@@ -2887,9 +2904,19 @@ with st.sidebar:
         ["Infinite baffle", "Sealed", "Bass reflex", "Bandpass 4th order", "DCCAV"],
         key="load_type",
         on_change=_on_load_type_change,
-        help="Acoustic load simulated in the Design workspace and used to rank "
-             "Find-a-driver candidates.",
+        help="Acoustic load for the Design workspace.",
     )
+    if workspace_mode == "Find a driver":
+        current_lt = str(st.session_state.get("load_type", "DCCAV"))
+        if "finder_load_types" not in st.session_state:
+            st.session_state["finder_load_types"] = [current_lt]
+        st.multiselect(
+            "Compare loads",
+            ["Infinite baffle", "Sealed", "Bass reflex", "Bandpass 4th order", "DCCAV"],
+            key="finder_load_types",
+            help="Rank candidates across every selected load type; the design load "
+                 "is applied when you click Apply candidate to design.",
+        )
     if workspace_mode == "Find a driver":
         _render_find_driver_target_sidebar()
         st.subheader("2 · Candidate library")

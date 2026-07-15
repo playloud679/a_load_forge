@@ -2604,7 +2604,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
         "Ripple dB": 1.0, "Response": [], "Class": "Woofer",
     }]
     at.session_state["batch_result_context"] = (
-        "Sealed", 40.0, 1, False, "Balanced",
+        ("Sealed",), 40.0, 1, False, "Balanced",
     )
     at.run()
     assert not at.exception, at.exception
@@ -2979,6 +2979,7 @@ def _check_ui_finder_goal_inputs_always_active():
     assert not inputs["Evaluation range end (Hz)"].disabled
 
     at.session_state["load_type"] = "Infinite baffle"
+    at.session_state["finder_load_types"] = ["Infinite baffle"]
     at.run()
     assert not at.exception, at.exception
     inputs = {n.label: n for n in at.number_input}
@@ -3272,7 +3273,7 @@ def _check_ui_finder_value_ranking():
     # Match the live defaults version so the seeded results survive migration.
     at.session_state["_finder_defaults_version"] = _ui._FINDER_DEFAULTS_VERSION
     at.session_state["batch_results"] = seeded
-    at.session_state["batch_result_context"] = ("Sealed", 40.0, 2, False, "Balanced")
+    at.session_state["batch_result_context"] = (("Sealed",), 40.0, 2, False, "Balanced")
     at.run()
     assert not at.exception, at.exception
     rank = next(r for r in at.radio if r.label == "Rank by")

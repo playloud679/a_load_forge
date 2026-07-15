@@ -204,6 +204,7 @@ def rank_preset_row(
             "Max excursion mm": float(np.nanmax(result.excursion_mm)),
             "Min ohm": float(np.nanmin(result.impedance_ohm)),
             "Response": response_sparkline(result.spl_total_db),
+            "_load_type": load_type,
             **box_values,
         }
     except Exception:

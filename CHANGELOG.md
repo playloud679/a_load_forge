@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.7 (2026-07-15)
+
+- **Multi-load Finder**: the Finder sidebar now exposes a "Compare loads"
+  multiselect so candidates can be ranked across several load types
+  simultaneously (e.g. reflex, DCCAV and sealed in one scan).  Each result
+  row carries a "Load" column; applying a candidate switches the Design
+  workspace to that load type.
+- **`rank_preset_row`** tags every returned row with `_load_type` so the UI
+  can interleave results from different loads in a single sorted table.
+- **Tests**: 90 passed / 0 failed / 0 skipped.
+
 ## 0.4.6 (2026-07-15)
 
 - **Port sizing follows the gold standard** (`dimensionamento_bass_reflex.md`):
