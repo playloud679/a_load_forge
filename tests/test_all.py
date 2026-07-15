@@ -2251,10 +2251,6 @@ def _check_ui_batch_finder_optimizes_each_driver():
 
     names = ("KEF B110B article example", "Beyma 12CMV2")
     goals = _dccav.OptimizationGoals(objective="extension")
-    heuristic = {
-        row["Driver"]: row
-        for row in _ui._batch_rank_presets(names, "DCCAV", 30.0, 2.83, 10.0, 300.0, 120, len(names))
-    }
     optimized = _ui._batch_rank_presets(
         names, "DCCAV", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals
     )

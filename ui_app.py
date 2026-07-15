@@ -562,7 +562,6 @@ def _optimized_port_diameter_cm(
         voltage_v = float(st.session_state.get("sim_voltage", 2.83))
     volume_velocity = (
         result.port_h_velocity if port == "upper" else result.port_l_velocity)
-    peak_volume_velocity = float(np.nanmax(np.abs(volume_velocity)))
     floor_cm = max(
         _dccav.port_min_diameter_cm(volume_l, tuning_hz, end_correction),
         _dccav.port_displacement_min_diameter_cm(driver, tuning_hz),

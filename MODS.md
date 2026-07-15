@@ -113,6 +113,39 @@ Traccia operativa multi-sessione. Regole d'uso:
   Response in popover per dare più spazio al grafico; cursore manuale
   singolo (M1 senza M2); palette theme-aware invece del tema forzato.
 
+- [x] **1.9 Direttiva lunghezza assoluta porta vs dimensione cassa +
+  optimizer multi-start (segnalazione utente: "porta 47cm per un 12"
+  in 40L???")** — 2026-07-15. Il fix 1.8 chiudeva i casi in cui il condotto
+  "mangiava" troppo volume della camera (>10%), ma un condotto sottile
+  accordato molto basso può restare una frazione minuscola del volume (qui
+  2,8%) pur essendo fisicamente più lungo della cassa stessa — 47,5 cm di
+  condotto in un box da 40 L (lato stimato ~34 cm). Nuovo
+  `port_max_straight_length_cm(volume_l)` (cassa approssimata a cubo,
+  `side_cm = (volume_l·1000)^(1/3)`): direttiva indipendente dalla frazione
+  di volume, entra come terzo tier di rejection in `_score_alignment`
+  (`port_length_over_box_ratio`, calcolato sullo stesso `sized_port` di 1.8 —
+  nessun nuovo doppione UI/optimizer) e come nuovo warning in Port Geometry
+  ("needs an L-shaped/slot fold... a bigger box, or a higher tuning").
+  **Bug trovato verificando il fix**: lo stesso isobarico PowerBass in reflex
+  è tornato infattibile a quasi tutti i cap di volume — non un flat-score
+  come in 1.8 (lo score era già continuo), ma lo stallo intrinseco della
+  compass search: da un unico punto di partenza (Vas/Fs) può bloccarsi in un
+  minimo locale infattibile anche con gradiente pulito, mentre una regione
+  fattibile esiste altrove nei bound di ricerca (verificato con uno sweep
+  esaustivo: score 1,06 raggiungibile a Vb≈40L/Fb≈20Hz, mai trovato dal
+  singolo avvio). Fix: **restart deterministici** in `optimize_alignment` —
+  se l'avvio primario resta nel tier infattibile, ritenta da punti fissi
+  lungo la diagonale del box di ricerca (frazioni 0.75/0.25/0.5, niente
+  casualità, budget `max_evaluations` condiviso), tiene il migliore. Verificato:
+  tutti i 6 cap di volume ora risolvono per il driver problematico; il caso
+  DCCAV originale (1.7/1.8) converge ancora bene (length_ratio 0,996, F3
+  22,0 Hz). Doc engine.md/dccav.md. Test nuovi: direttiva lunghezza (ceiling
+  esatto, caso reale sotto al 10% ma sopra la direttiva, rejection score,
+  optimizer reale che la evita), AppTest sul warning che appare/scompare
+  con l'accordatura, arricchito il test 1.8 sul multi-start con la seconda
+  causa trovata. Verifica: py_compile OK, ruff OK, AppTest smoke OK, suite
+  completa 90 pass / 0 fail / 0 skip.
+
 - [x] **1.8 Fix: sizing porte ancora sbagliato dopo 1.7 (segnalazione
   utente: "trovo duct di 85cm")** — 2026-07-15. Il fix 1.7 aveva chiuso il
   caso singolo ma non il bug strutturale: `_optimizer_metrics` (engine, usato
