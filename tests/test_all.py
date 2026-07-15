@@ -408,6 +408,105 @@ def _check_ui_bandpass4_design_and_persistence():
 test("UI fourth-order bandpass controls persist and render", _check_ui_bandpass4_design_and_persistence)
 
 
+def _check_bandpass6_model_and_starter():
+    import src as package_api
+
+    assert package_api.Bandpass6Box is _dccav.Bandpass6Box
+    assert package_api.simulate_bandpass6 is _dccav.simulate_bandpass6
+    ts = _kef_b110_ts()
+    alignment = _dccav.suggest_bandpass6_alignment(ts)
+    assert abs(alignment.vp_l - 2.0 * 0.707**2 * ts.vas_l) < 1e-9
+    assert abs(alignment.fp_hz - ts.fs_hz * 0.707 / ts.qts) < 1e-9
+    assert alignment.vr_l > 0.05
+    assert alignment.vp_l > 0.05
+    box = _dccav.Bandpass6Box(
+        vr_l=alignment.vr_l, fr_hz=alignment.fr_hz,
+        vp_l=alignment.vp_l, fp_hz=alignment.fp_hz)
+    freq = np.geomspace(5.0, 1000.0, 2000)
+    result = _dccav.simulate_bandpass6(ts, box, freq)
+    for name in (
+        "spl_total_db", "spl_driver_db", "spl_port_db", "excursion_mm",
+        "impedance_ohm", "port_h_velocity", "port_l_velocity", "mil_w", "mol_db",
+    ):
+        values = getattr(result, name)
+        assert values.shape == freq.shape
+        assert np.all(np.isfinite(values)), name
+    assert np.any(result.port_h_velocity > 0.0)
+    assert np.any(result.port_l_velocity > 0.0)
+    assert len(_dccav.impedance_peak_frequencies(result)) >= 2
+    assert not _dccav.bandpass6_diagnostics(ts, box, result)
+
+
+test("Sixth-order bandpass starter and simulation are coherent", _check_bandpass6_model_and_starter)
+
+
+def _check_bandpass6_optimizer_atlas_and_ranking():
+    ts = _beyma_ts()
+    goals = _dccav.OptimizationGoals(max_total_volume_l=40.0)
+    optimized = _dccav.optimize_alignment(
+        ts, goals, load_type="Bandpass 6th order", max_evaluations=80,
+        fixed_total_volume_l=40.0)
+    assert isinstance(optimized.box, _dccav.Bandpass6Box)
+    assert abs(optimized.box.vr_l + optimized.box.vp_l - 40.0) < 1e-9
+    assert np.isfinite(optimized.f3_hz)
+    assert np.isfinite(optimized.ripple_db)
+
+    space = _dccav.design_space_map(
+        ts, load_type="Bandpass 6th order", resolution=5)
+    assert space.f3_hz.shape == (5, 5)
+    assert np.any(np.isfinite(space.f3_hz))
+    box = _dccav.design_space_box(
+        ts, "Bandpass 6th order", float(space.x_values[2]), float(space.y_values[2]))
+    assert abs(box.vr_l + box.vp_l - float(space.x_values[2])) < 1e-9
+
+    row = _dccav.rank_preset_row(
+        "Beyma 12CMV2", "Bandpass 6th order", 40.0, 2.83, 10.0, 500.0, 240)
+    assert row is not None
+    assert abs(row["Vr L"] + row["Vp L"] - 40.0) < 1e-9
+    assert np.isfinite(row["Fr Hz"])
+    assert np.isfinite(row["Fp Hz"])
+    assert np.isfinite(row["F3 Hz"])
+
+
+test("Sixth-order bandpass optimizer, atlas and Finder preserve volume", _check_bandpass6_optimizer_atlas_and_ranking)
+
+
+def _check_ui_bandpass6_design_and_persistence():
+    from streamlit.testing.v1 import AppTest
+
+    import ui_app as _ui
+
+    assert _ui._is_param_key("bandpass6_vr_l")
+    payload = {
+        "load_type": "Bandpass 6th order",
+        "bandpass6_vr_l": 8.0,
+        "bandpass6_fr_hz": 50.0,
+        "bandpass6_vp_l": 12.0,
+        "bandpass6_fp_hz": 70.0,
+    }
+    assert _ui._apply_loaded_params(payload) == len(payload)
+    saved = _ui._collect_params()
+    for key, value in payload.items():
+        assert saved[key] == value
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
+    at.session_state["workspace_mode"] = "Design a box"
+    at.session_state["load_type"] = "Bandpass 6th order"
+    at.run()
+    assert not at.exception, at.exception
+    labels = {item.label for item in at.number_input}
+    assert {"Vr rear ported (L)", "Fr rear tuning (Hz)", "Vp front ported (L)", "Fp front tuning (Hz)"} <= labels
+    metrics = {metric.label for metric in at.metric}
+    assert {"Box volume", "Vr rear (active)", "Fr rear (active)", "Vp front (active)", "Fp front (active)"} <= metrics
+    assert any(
+        "Sixth-order bandpass total response is the vector sum of both vents" in caption.value
+        for caption in at.caption
+    )
+
+
+test("UI sixth-order bandpass controls persist and render", _check_ui_bandpass6_design_and_persistence)
+
+
 def _check_response_metrics_are_sane():
     ts = _beyma_ts()
     a = _dccav.suggest_alignment(ts)
@@ -1135,7 +1234,7 @@ def _check_ui_load_comparison_overlay():
     vtot, series = _ui._topology_comparison_series(ts, "DCCAV", box, freq, 2.83, 0.0)
     assert abs(vtot - (a.vh_l + a.vl_l)) < 1e-9, vtot
     assert set(series) == {
-        "DCCAV", "Bandpass 4th order", "Bass reflex", "Sealed", "Infinite baffle",
+        "DCCAV", "Bandpass 4th order", "Bandpass 6th order", "Bass reflex", "Sealed", "Infinite baffle",
     }
     for name, values in series.items():
         assert values.shape == freq.shape, name
@@ -1582,10 +1681,10 @@ def _check_ui_driver_preset_filters_reduce_list():
     at.session_state["preset_search"] = "12CMV2"
     at.run()
     assert not at.exception, at.exception
-    assert any(
-        "Beyma 12CMV2" in caption.value
-        for caption in at.sidebar.caption
-    ), "typed preset searches must show their matching names immediately"
+    assert at.dataframe, "Filtered presets must render as a table"
+    table = at.dataframe[0].value
+    assert "12CMV2" in str(table.to_dict()), (
+        "typed preset searches must show their matching names in the results table")
 
 
 test("UI driver preset filters reduce long speaker lists", _check_ui_driver_preset_filters_reduce_list)
@@ -2510,8 +2609,7 @@ def _check_ui_supports_sealed_and_infinite_baffle():
         rank_button = next(button for button in at.sidebar.button if button.label == "Find drivers")
         assert not rank_button.disabled
         if load_type == "Infinite baffle":
-            volume = next(n for n in at.number_input if n.label == "Comparison volume (L)")
-            assert volume.disabled
+            assert not any(n.label == "Volume (L)" for n in at.number_input)
 
 
 test("UI separates design and driver-finder workflows", _check_ui_supports_sealed_and_infinite_baffle)
@@ -2541,7 +2639,7 @@ def _check_ui_finder_starts_from_practical_defaults():
     assert not at.exception, at.exception
 
     numbers = {control.label: control.value for control in at.number_input}
-    assert numbers["Comparison volume (L)"] == 40.0, numbers
+    assert numbers["Volume (L)"] == 40.0, numbers
     assert numbers["Comparison voltage (V)"] == 2.83, numbers
     assert numbers["Evaluation range start (Hz)"] == 10.0, numbers
     assert numbers["Evaluation range end (Hz)"] == 300.0, numbers
@@ -2571,7 +2669,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
     assert not at.exception, at.exception
 
     number_labels = {
-        "Comparison volume (L)",
+        "Volume (L)",
         "Comparison voltage (V)",
         "Desired bass extension F3 (Hz, 0 = deepest)",
         "Allowed response ripple (dB)",

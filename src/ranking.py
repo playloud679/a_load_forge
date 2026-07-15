@@ -114,6 +114,10 @@ def rank_preset_row(
             start = engine.suggest_bandpass4_alignment(ts)
             box = engine.design_space_box(
                 ts, load_type, float(target_volume_l), start.fp_hz)
+        elif load_type == "Bandpass 6th order":
+            start = engine.suggest_bandpass6_alignment(ts)
+            box = engine.design_space_box(
+                ts, load_type, float(target_volume_l), start.fp_hz)
         elif load_type == "Infinite baffle":
             box = None
         else:
@@ -135,6 +139,8 @@ def rank_preset_row(
                 "Vs L": np.nan,
                 "Vp L": np.nan,
                 "Fp Hz": np.nan,
+                "Vr L": np.nan,
+                "Fr Hz": np.nan,
             }
         elif load_type == "Passive radiator":
             result = engine.simulate_passive_radiator(ts, box, freq, float(voltage_v))
@@ -150,6 +156,8 @@ def rank_preset_row(
                 "Vs L": np.nan,
                 "Vp L": np.nan,
                 "Fp Hz": np.nan,
+                "Vr L": np.nan,
+                "Fr Hz": np.nan,
             }
         elif load_type == "Sealed":
             result = engine.simulate_sealed(ts, box, freq, float(voltage_v))
@@ -166,6 +174,8 @@ def rank_preset_row(
                 "Vs L": np.nan,
                 "Vp L": np.nan,
                 "Fp Hz": np.nan,
+                "Vr L": np.nan,
+                "Fr Hz": np.nan,
             }
         elif load_type == "Bandpass 4th order":
             result = engine.simulate_bandpass4(ts, box, freq, float(voltage_v))
@@ -181,6 +191,25 @@ def rank_preset_row(
                 "Vs L": box.vs_l,
                 "Vp L": box.vp_l,
                 "Fp Hz": box.fp_hz,
+                "Vr L": np.nan,
+                "Fr Hz": np.nan,
+            }
+        elif load_type == "Bandpass 6th order":
+            result = engine.simulate_bandpass6(ts, box, freq, float(voltage_v))
+            box_values = {
+                "Vb L": np.nan,
+                "Fb Hz": np.nan,
+                "Vh L": np.nan,
+                "fh Hz": np.nan,
+                "Vl L": np.nan,
+                "fl Hz": np.nan,
+                "Fc Hz": np.nan,
+                "Qtc": np.nan,
+                "Vs L": np.nan,
+                "Vp L": box.vp_l,
+                "Fp Hz": box.fp_hz,
+                "Vr L": box.vr_l,
+                "Fr Hz": box.fr_hz,
             }
         elif load_type == "Infinite baffle":
             result = engine.simulate_infinite_baffle(ts, freq, float(voltage_v))
@@ -196,6 +225,8 @@ def rank_preset_row(
                 "Vs L": np.nan,
                 "Vp L": np.nan,
                 "Fp Hz": np.nan,
+                "Vr L": np.nan,
+                "Fr Hz": np.nan,
             }
         else:
             result = engine.simulate(ts, box, freq, float(voltage_v))
@@ -211,6 +242,8 @@ def rank_preset_row(
                 "Vs L": np.nan,
                 "Vp L": np.nan,
                 "Fp Hz": np.nan,
+                "Vr L": np.nan,
+                "Fr Hz": np.nan,
             }
         thresholds = engine.response_threshold_frequencies(result)
         return {

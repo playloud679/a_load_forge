@@ -1,7 +1,7 @@
 # src/engine.py — acoustic-load engine
 
 Physics, simulation and analysis for the supported loads (DCCAV, fourth-order
-bandpass, bass reflex, sealed, infinite baffle).  `src/dccav.py` re-exports this module's
+bandpass, sixth-order bandpass, bass reflex, sealed, infinite baffle, passive radiator).  `src/dccav.py` re-exports this module's
 public API; the full reference — formulas, assumptions, per-function
 contracts and the test list — lives in `docs/dccav.md`.
 
@@ -12,15 +12,16 @@ contracts and the test list — lives in `docs/dccav.md`.
   `PORT_MAX_VOLUME_FRACTION`,
   `PORT_PIPE_RESONANCE_GUARD`) and every dataclass except
   `DriverPresetInfo`: `DriverTS`, `DerivedDriver`, alignments and boxes
-  (including `Bandpass4Alignment` / `Bandpass4Box`),
+  (including `Bandpass4Alignment` / `Bandpass4Box`, `Bandpass6Alignment` / `Bandpass6Box`),
   `OptimizationGoals`, `OptimizedAlignment`, `SimulationResult`,
   `ToleranceBand`, `DesignSpaceMap`, `DriverReferenceMetrics`,
   `DriverBandwidthClass`
 - Derivation and alignment: `sd_from_diameter`, `complete_driver`,
   `suggest_alignment`, `suggest_reflex_alignment`,
-  `suggest_bandpass4_alignment`, `suggest_sealed_alignment`,
+  `suggest_bandpass4_alignment`, `suggest_bandpass6_alignment`, `suggest_sealed_alignment`,
+  `suggest_pr_alignment`,
   `sealed_system_metrics`
-- Simulators: `simulate`, `simulate_reflex`, `simulate_bandpass4`, `simulate_sealed`,
+- Simulators: `simulate`, `simulate_reflex`, `simulate_bandpass4`, `simulate_bandpass6`, `simulate_passive_radiator`, `simulate_sealed`,
   `simulate_infinite_baffle` (shared `_electrical_source`, `_limit_curves`,
   `_unported_result` internals)
 - Optimizer: `optimize_alignment` with `_optimizer_metrics` /
@@ -101,5 +102,14 @@ instead of returning its least-bad invalid candidate.
 - Fourth-order bandpass uses an enclosed driver between a sealed rear chamber
   and vented front chamber. Only the front vent enters the far-field total;
   the cone trace is retained as an internal-motion diagnostic.
+- Sixth-order bandpass uses an enclosed driver between two ported chambers.
+  Both vents (rear and front) sum to the far-field total; the cone trace is
+  internal-motion diagnostic.
+  `suggest_bandpass6_alignment` returns `Bandpass6Alignment` with symmetrical
+  rear/front volumes and tunings from the classical target-Qbp relation;
+  `simulate_bandpass6()` solves the coupled acoustic circuit (rear port+box,
+  front port+box in series with the driver acoustic impedance).
+  `optimize_alignment(load_type="Bandpass 6th order")` searches rear volume,
+  rear tuning, front volume and front tuning in log-space.
 - Importable both as `src.engine` (package) and `engine` (top-level with
   `src/` on `sys.path`); it must not import `presets`/`pricing`.

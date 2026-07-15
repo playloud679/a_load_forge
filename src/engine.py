@@ -127,6 +127,32 @@ class Bandpass4Box:
 
 
 @dataclass(frozen=True)
+class Bandpass6Alignment:
+    """Conservative sixth-order dual-vented bandpass starter alignment."""
+
+    vr_l: float
+    fr_hz: float
+    vp_l: float
+    fp_hz: float
+
+
+@dataclass(frozen=True)
+class Bandpass6Box:
+    """Sixth-order dual-vented bandpass: ported rear + ported front chamber."""
+
+    vr_l: float
+    fr_hz: float
+    vp_l: float
+    fp_hz: float
+    q_abs_r: float = 15.0
+    q_abs_p: float = 15.0
+    q_leak_r: float = 1000.0
+    q_leak_p: float = 1000.0
+    q_port_r: float = 15.0
+    q_port_p: float = 15.0
+
+
+@dataclass(frozen=True)
 class PassiveRadiatorBox:
     """Vented box loaded by a passive radiator instead of a duct."""
 
@@ -180,7 +206,7 @@ class OptimizationGoals:
 class OptimizedAlignment:
     """Optimizer result: the box plus the achieved response figures."""
 
-    box: DccavBox | ReflexBox | Bandpass4Box | SealedBox
+    box: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox
     f3_hz: float
     f10_hz: float
     ripple_db: float
@@ -469,6 +495,8 @@ def monte_carlo_response_band(
                 result = simulate_reflex(sample, box, freq, voltage_v, series_r_ohm)
             elif load_type == "Bandpass 4th order":
                 result = simulate_bandpass4(sample, box, freq, voltage_v, series_r_ohm)
+            elif load_type == "Bandpass 6th order":
+                result = simulate_bandpass6(sample, box, freq, voltage_v, series_r_ohm)
             elif load_type == "Sealed":
                 result = simulate_sealed(sample, box, freq, voltage_v, series_r_ohm)
             elif load_type == "Infinite baffle":
@@ -528,6 +556,14 @@ def _design_space_axes(
             np.geomspace(0.55 * start.fp_hz, 1.6 * start.fp_hz, n),
             "Vtot (L)", "Fp (Hz)",
         )
+    if load_type == "Bandpass 6th order":
+        start = suggest_bandpass6_alignment(ts)
+        return (
+            np.geomspace(0.3 * (start.vr_l + start.vp_l),
+                         3.0 * (start.vr_l + start.vp_l), n),
+            np.geomspace(0.55 * start.fp_hz, 1.6 * start.fp_hz, n),
+            "Vtot (L)", "Fp (Hz)",
+        )
     start = suggest_alignment(ts)
     vtot = max(start.vh_l + start.vl_l, EPS)
     return (
@@ -542,8 +578,8 @@ def design_space_box(
     load_type: str,
     x: float,
     y: float,
-    box_template: DccavBox | ReflexBox | Bandpass4Box | SealedBox | None = None,
-) -> DccavBox | ReflexBox | Bandpass4Box | SealedBox:
+    box_template: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox | None = None,
+) -> DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox:
     """Build the box for one point of the design-space plane.
 
     ``x``/``y`` follow the atlas axes: reflex `Vb`/`Fb`, sealed `Vb` (y is
@@ -576,6 +612,20 @@ def design_space_box(
             q_abs_s=t.q_abs_s, q_abs_p=t.q_abs_p,
             q_leak_s=t.q_leak_s, q_leak_p=t.q_leak_p, q_port=t.q_port,
         )
+    if load_type == "Bandpass 6th order":
+        start = suggest_bandpass6_alignment(ts)
+        vtot = max(start.vr_l + start.vp_l, EPS)
+        vr_ratio = float(np.clip(start.vr_l / vtot, 0.05, 0.95))
+        t = box_template if isinstance(box_template, Bandpass6Box) else Bandpass6Box(
+            vr_l=start.vr_l, fr_hz=start.fr_hz, vp_l=start.vp_l, fp_hz=start.fp_hz)
+        vr_l = max(float(x) * vr_ratio, 0.05)
+        return Bandpass6Box(
+            vr_l=vr_l, fr_hz=float(y) / max(start.fr_hz, EPS) * start.fr_hz,
+            vp_l=max(float(x) - vr_l, 0.05), fp_hz=float(y),
+            q_abs_r=t.q_abs_r, q_abs_p=t.q_abs_p,
+            q_leak_r=t.q_leak_r, q_leak_p=t.q_leak_p,
+            q_port_r=t.q_port_r, q_port_p=t.q_port_p,
+        )
     if load_type == "Infinite baffle":
         raise ValueError("Infinite baffle has no box parameters to map")
     start = suggest_alignment(ts)
@@ -597,7 +647,7 @@ def design_space_box(
 def design_space_map(
     ts: DriverTS,
     load_type: str = "Bass reflex",
-    box_template: DccavBox | ReflexBox | Bandpass4Box | SealedBox | None = None,
+    box_template: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox | None = None,
     resolution: int = 15,
     voltage_v: float = 2.83,
 ) -> DesignSpaceMap:
@@ -1114,11 +1164,12 @@ def port_diameter_for_load(
 
 def _optimizer_metrics(
     ts: DriverTS,
-    box: DccavBox | ReflexBox | Bandpass4Box | SealedBox,
+    box: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox,
     freq: np.ndarray,
     voltage_v: float,
 ) -> dict[str, float]:
     is_bandpass4 = isinstance(box, Bandpass4Box)
+    is_bandpass6 = isinstance(box, Bandpass6Box)
 
     def velocity_diameter_cm(volume_velocity: np.ndarray) -> float:
         return rated_velocity_diameter_cm(ts, result, voltage_v, volume_velocity)
@@ -1177,6 +1228,25 @@ def _optimizer_metrics(
         )
         required_port_diameter_cm, port_volume_fraction_max, port_length_ratio_max = sized_port(
             box.vp_l, box.fp_hz, 1.43, floor_cm)
+    elif isinstance(box, Bandpass6Box):
+        result = simulate_bandpass6(ts, box, freq, voltage_v)
+        vtot = box.vr_l + box.vp_l
+        fl = min(box.fr_hz, box.fp_hz)
+        rear_floor_cm = max(
+            port_min_diameter_cm(box.vr_l, box.fr_hz, 1.43),
+            port_displacement_min_diameter_cm(ts, box.fr_hz),
+            velocity_diameter_cm(result.port_h_velocity),
+        )
+        front_floor_cm = max(
+            port_min_diameter_cm(box.vp_l, box.fp_hz, 1.43),
+            port_displacement_min_diameter_cm(ts, box.fp_hz),
+            velocity_diameter_cm(result.port_l_velocity),
+        )
+        rear_d, rear_f, rear_lr = sized_port(box.vr_l, box.fr_hz, 1.43, rear_floor_cm)
+        front_d, front_f, front_lr = sized_port(box.vp_l, box.fp_hz, 1.43, front_floor_cm)
+        required_port_diameter_cm = max(rear_d, front_d)
+        port_volume_fraction_max = max(rear_f, front_f)
+        port_length_ratio_max = max(rear_lr, front_lr)
     elif isinstance(box, SealedBox):
         result = simulate_sealed(ts, box, freq, voltage_v)
         vtot = box.vb_l
@@ -1217,7 +1287,7 @@ def _optimizer_metrics(
     gd_max = float("nan")
     f_high = float("nan")
     if np.isfinite(f3):
-        if is_bandpass4:
+        if is_bandpass4 or is_bandpass6:
             peak_idx = int(np.nanargmax(spl))
             f_high = _high_side_crossing(
                 f[peak_idx:], spl[peak_idx:], float(spl[peak_idx]) - 3.0)
@@ -1329,7 +1399,7 @@ def optimize_alignment(
     ts: DriverTS,
     goals: OptimizationGoals = _DEFAULT_GOALS,
     load_type: str = "DCCAV",
-    box_template: DccavBox | ReflexBox | Bandpass4Box | SealedBox | None = None,
+    box_template: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox | None = None,
     voltage_v: float = 2.83,
     max_evaluations: int = 260,
     fixed_total_volume_l: float | None = None,
@@ -1349,16 +1419,17 @@ def optimize_alignment(
         load_type = "Sealed"
     _require_positive("Voltage", voltage_v)
     freq = np.geomspace(min(10.0, ts.fs_hz / 4.0), max(400.0, 4.0 * ts.fs_hz), 160)
-    if load_type not in {"DCCAV", "Bandpass 4th order", "Bass reflex", "Sealed"}:
+    if load_type not in {"DCCAV", "Bandpass 4th order", "Bandpass 6th order", "Bass reflex", "Sealed"}:
         if load_type == "Infinite baffle":
             raise ValueError("Infinite baffle has no box parameters to optimize")
         raise ValueError(f"Unknown load type: {load_type}")
     is_reflex = load_type == "Bass reflex"
     is_bandpass4 = load_type == "Bandpass 4th order"
+    is_bandpass6 = load_type == "Bandpass 6th order"
     is_sealed = load_type == "Sealed"
     is_dccav = load_type == "DCCAV"
     cap = goals.max_total_volume_l
-    minimum_volume_l = 0.10 if (is_dccav or is_bandpass4) else 0.05
+    minimum_volume_l = 0.10 if (is_dccav or is_bandpass4 or is_bandpass6) else 0.05
     if cap is not None:
         _require_positive("Max total volume", cap)
         if cap < minimum_volume_l:
@@ -1435,6 +1506,46 @@ def optimize_alignment(
         lower = np.log([
             max(0.05, vs0 / 8.0), max(0.05, vp0 / 8.0), max(5.0, fp0 / 3.0)])
         upper = np.log([vs0 * 8.0, vp0 * 8.0, fp0 * 2.5])
+    elif is_bandpass6:
+        start = suggest_bandpass6_alignment(ts)
+        vr0, fr0, vp0, fp0 = start.vr_l, start.fr_hz, start.vp_l, start.fp_hz
+        if fixed_total_volume_l is not None:
+            scale = float(fixed_total_volume_l) / (vr0 + vp0)
+            vr0 *= scale
+            vp0 *= scale
+        elif cap and vr0 + vp0 > cap:
+            scale = 0.98 * cap / (vr0 + vp0)
+            vr0 *= scale
+            vp0 *= scale
+        template = box_template if isinstance(box_template, Bandpass6Box) else Bandpass6Box(
+            vr_l=vr0, fr_hz=fr0, vp_l=vp0, fp_hz=fp0)
+
+        def build(p: np.ndarray) -> Bandpass6Box:
+            vr_l, fr_hz, vp_l, fp_hz = np.exp(p)
+            projected_volume_l = fixed_total_volume_l
+            if projected_volume_l is None and cap is not None and vr_l + vp_l > cap:
+                projected_volume_l = float(cap)
+            if projected_volume_l is not None:
+                available = float(projected_volume_l) - 0.10
+                weights = np.maximum(np.array([vr_l, vp_l]) - 0.05, 0.0)
+                if float(weights.sum()) <= 0.0:
+                    weights[:] = 0.5
+                else:
+                    weights /= float(weights.sum())
+                vr_l, vp_l = 0.05 + available * weights
+            return Bandpass6Box(
+                vr_l=float(vr_l), fr_hz=float(fr_hz),
+                vp_l=float(vp_l), fp_hz=float(fp_hz),
+                q_abs_r=template.q_abs_r, q_abs_p=template.q_abs_p,
+                q_leak_r=template.q_leak_r, q_leak_p=template.q_leak_p,
+                q_port_r=template.q_port_r, q_port_p=template.q_port_p,
+            )
+
+        p0 = np.log([vr0, fr0, vp0, fp0])
+        lower = np.log([
+            max(0.05, vr0 / 8.0), max(5.0, fr0 / 3.0),
+            max(0.05, vp0 / 8.0), max(5.0, fp0 / 3.0)])
+        upper = np.log([vr0 * 8.0, fr0 * 2.5, vp0 * 8.0, fp0 * 2.5])
     elif is_sealed:
         start = suggest_sealed_alignment(ts)
         vb0 = start.vb_l
@@ -1819,6 +1930,96 @@ def _validate_pr_box(box: PassiveRadiatorBox) -> None:
     _require_positive("PR Mmp", box.pr_mmp_g)
 
 
+def suggest_bandpass6_alignment(
+    ts: DriverTS, target_qbp: float = 0.707,
+) -> Bandpass6Alignment:
+    """Symmetrical sixth-order dual-vented bandpass starter."""
+    vb = 2.0 * target_qbp ** 2 * ts.vas_l
+    fb = ts.fs_hz * target_qbp / ts.qts
+    return Bandpass6Alignment(
+        vr_l=max(0.05, vb),
+        fr_hz=fb,
+        vp_l=max(0.05, vb),
+        fp_hz=fb,
+    )
+
+
+def simulate_bandpass6(
+    ts: DriverTS,
+    box: Bandpass6Box,
+    freq_hz: np.ndarray | None = None,
+    voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0,
+) -> SimulationResult:
+    """Simulate a sixth-order bandpass (ported rear, ported front).
+
+    Both chambers are vented; their ports are the only external radiators.
+    ``spl_driver_db`` is an internal-cone diagnostic kept for completeness.
+    """
+    drv = complete_driver(ts)
+    if freq_hz is None:
+        freq_hz = np.geomspace(10.0, 500.0, 500)
+    f = np.asarray(freq_hz, dtype=float)
+    if np.any(f <= 0):
+        raise ValueError("Frequencies must be positive")
+    _require_positive("Voltage", voltage_v)
+    _validate_bandpass6_box(box)
+
+    w = 2.0 * np.pi * f
+    jw = 1j * w
+    re_total, rat, p_source = _electrical_source(ts, drv, voltage_v, series_r_ohm)
+    z_as = rat + jw * drv.mas + 1.0 / (jw * drv.cas)
+
+    z_rear_box = _box_impedance(box.vr_l, box.fr_hz, box.q_abs_r, box.q_leak_r, w)
+    z_rear_port = _port_impedance(box.vr_l, box.fr_hz, box.q_port_r, w)
+    z_rear = _parallel(z_rear_box, z_rear_port)
+
+    z_front_box = _box_impedance(box.vp_l, box.fp_hz, box.q_abs_p, box.q_leak_p, w)
+    z_front_port = _port_impedance(box.vp_l, box.fp_hz, box.q_port_p, w)
+    z_front = _parallel(z_front_box, z_front_port)
+
+    u_cone = p_source / (z_as + z_rear + z_front)
+    p_rear = u_cone * z_rear
+    p_front = u_cone * z_front
+
+    u_rear_port = p_rear / z_rear_port
+    u_front_port = p_front / z_front_port
+    u_total = u_rear_port + u_front_port
+
+    spl_total = _spl_from_volume_velocity(u_total, f)
+    spl_front = _spl_from_volume_velocity(u_front_port, f)
+    spl_rear = _spl_from_volume_velocity(u_rear_port, f)
+    excursion = np.abs(u_cone / (jw * drv.sd_m2)) * 1000.0
+    mil_w, mol_db = _limit_curves(ts, voltage_v, spl_total, excursion, series_r_ohm)
+
+    z_mech = drv.rms_n_s_m + jw * drv.mms_kg + 1.0 / (jw * drv.cms_m_per_n)
+    z_load = (z_rear + z_front) * drv.sd_m2 ** 2
+    z_e = re_total + jw * (ts.le_mh / 1000.0) + drv.bl_tm ** 2 / (z_mech + z_load)
+
+    return SimulationResult(
+        frequency_hz=f,
+        spl_total_db=spl_total,
+        spl_driver_db=spl_front,
+        spl_port_db=spl_rear,
+        excursion_mm=excursion,
+        impedance_ohm=np.abs(z_e),
+        impedance_phase_deg=np.degrees(np.angle(z_e)),
+        port_h_velocity=np.abs(u_rear_port),
+        port_l_velocity=np.abs(u_front_port),
+        mil_w=mil_w,
+        mol_db=mol_db,
+        driver_volume_velocity=u_cone,
+        port_volume_velocity=u_front_port,
+    )
+
+
+def _validate_bandpass6_box(box: Bandpass6Box) -> None:
+    _require_positive("Vr", box.vr_l)
+    _require_positive("Fr", box.fr_hz)
+    _require_positive("Vp", box.vp_l)
+    _require_positive("Fp", box.fp_hz)
+
+
 def simulate_bandpass4(
     ts: DriverTS,
     box: Bandpass4Box,
@@ -2044,7 +2245,7 @@ def response_threshold_frequencies(
 
 
 def equivalent_sealed_fc_hz(
-    ts: DriverTS, box: DccavBox | ReflexBox | Bandpass4Box | SealedBox,
+    ts: DriverTS, box: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox,
 ) -> float:
     """Return the closed-box Fc for the same total chamber volume."""
     _require_positive("Fs", ts.fs_hz)
@@ -2058,6 +2259,9 @@ def equivalent_sealed_fc_hz(
     elif isinstance(box, Bandpass4Box):
         _validate_bandpass4_box(box)
         v_total = box.vs_l + box.vp_l
+    elif isinstance(box, Bandpass6Box):
+        _validate_bandpass6_box(box)
+        v_total = box.vr_l + box.vp_l
     else:
         _validate_box(box)
         v_total = box.vh_l + box.vl_l
@@ -2122,6 +2326,14 @@ def bandpass4_diagnostics(
     _require_positive("Fs", ts.fs_hz)
     _validate_bandpass4_box(box)
     messages: list[str] = []
+    vtot = box.vs_l + box.vp_l
+    if vtot < 0.5 * ts.vas_l:
+        messages.append(
+            f"Box volume {vtot:.1f} L is far below the driver's Vas "
+            f"({ts.vas_l:.1f} L): the air spring dominates, sensitivity "
+            "collapses, and the bandpass character is lost. "
+            f"The starter alignment needs at least ~{0.5 * ts.vas_l:.0f} L total."
+        )
     if box.fp_hz < 0.5 * ts.fs_hz or box.fp_hz > 4.0 * ts.fs_hz:
         messages.append(
             f"Front tuning Fp {box.fp_hz:.1f} Hz is far from driver Fs "
@@ -2138,6 +2350,82 @@ def bandpass4_diagnostics(
                 messages.append(
                     "No upper -3 dB crossing was found: extend F max to verify the "
                     "bandpass high-frequency roll-off."
+                )
+            low = _low_side_crossing(f[:peak_idx + 1], spl[:peak_idx + 1], target)
+            if np.isfinite(low) and np.isfinite(high):
+                bw = high / low
+                if bw > 4.0:
+                    messages.append(
+                        f"Passband bandwidth {bw:.1f}:1 is extremely wide — "
+                        "the box volume is likely far too small for this driver. "
+                        "The reported F3 is a shallow crossing, not a real bandpass corner."
+                    )
+            ref = driver_reference_metrics(ts)
+            if float(spl[peak_idx]) < ref.spl_2v83_db - 9.0:
+                messages.append(
+                    f"Peak sensitivity {spl[peak_idx]:.1f} dB is "
+                    f"{ref.spl_2v83_db - spl[peak_idx]:.0f} dB below the driver's "
+                    f"reference ({ref.spl_2v83_db:.1f} dB at 2.83 V): the tiny box "
+                    "is wasting most of the driver's output capability."
+                )
+    return messages
+
+
+def bandpass6_diagnostics(
+    ts: DriverTS,
+    box: Bandpass6Box,
+    result: SimulationResult | None = None,
+) -> list[str]:
+    """Return practical build/passband warnings for a sixth-order bandpass."""
+    _require_positive("Fs", ts.fs_hz)
+    _validate_bandpass6_box(box)
+    messages: list[str] = []
+    vtot = box.vr_l + box.vp_l
+    if vtot < 0.5 * ts.vas_l:
+        messages.append(
+            f"Box volume {vtot:.1f} L is far below the driver's Vas "
+            f"({ts.vas_l:.1f} L): the air spring dominates, sensitivity "
+            "collapses, and the bandpass character is lost. "
+            f"The starter alignment needs at least ~{0.5 * ts.vas_l:.0f} L total."
+        )
+    if box.fr_hz < 0.5 * ts.fs_hz or box.fr_hz > 4.0 * ts.fs_hz:
+        messages.append(
+            f"Rear tuning Fr {box.fr_hz:.1f} Hz is far from driver Fs "
+            f"{ts.fs_hz:.1f} Hz; verify the intended passband and port geometry."
+        )
+    if box.fp_hz < 0.5 * ts.fs_hz or box.fp_hz > 4.0 * ts.fs_hz:
+        messages.append(
+            f"Front tuning Fp {box.fp_hz:.1f} Hz is far from driver Fs "
+            f"{ts.fs_hz:.1f} Hz; verify the intended passband and port geometry."
+        )
+    if result is not None:
+        f = np.asarray(result.frequency_hz, dtype=float)
+        spl = np.asarray(result.spl_total_db, dtype=float)
+        if f.size >= 3 and np.any(np.isfinite(spl)):
+            peak_idx = int(np.nanargmax(spl))
+            target = float(spl[peak_idx]) - 3.0
+            high = _high_side_crossing(f[peak_idx:], spl[peak_idx:], target)
+            if not np.isfinite(high):
+                messages.append(
+                    "No upper -3 dB crossing was found: extend F max to verify the "
+                    "bandpass high-frequency roll-off."
+                )
+            low = _low_side_crossing(f[:peak_idx + 1], spl[:peak_idx + 1], target)
+            if np.isfinite(low) and np.isfinite(high):
+                bw = high / low
+                if bw > 4.0:
+                    messages.append(
+                        f"Passband bandwidth {bw:.1f}:1 is extremely wide — "
+                        "the box volume is likely far too small for this driver. "
+                        "The reported F3 is a shallow crossing, not a real bandpass corner."
+                    )
+            ref = driver_reference_metrics(ts)
+            if float(spl[peak_idx]) < ref.spl_2v83_db - 9.0:
+                messages.append(
+                    f"Peak sensitivity {spl[peak_idx]:.1f} dB is "
+                    f"{ref.spl_2v83_db - spl[peak_idx]:.0f} dB below the driver's "
+                    f"reference ({ref.spl_2v83_db:.1f} dB at 2.83 V): the tiny box "
+                    "is wasting most of the driver's output capability."
                 )
     return messages
 

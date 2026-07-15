@@ -1,6 +1,25 @@
 # Changelog
 
 
+## 0.5.0 (2026-07-15)
+
+- **Sixth-order bandpass topology**: new `Bandpass6Alignment` / `Bandpass6Box` with
+  dual-vented chambers (ported rear + ported front). `simulate_bandpass6()` solves
+  the coupled acoustic circuit; `suggest_bandpass6_alignment()` returns a symmetrical
+  starter from the classical Qbp relation. Full integration in Design workspace sidebar
+  (Vr/Fr/Vp/Fp, loss factors, dual port geometry), Response/Ports tabs, Finder ranking,
+  optimizer, atlas, and Monte Carlo.
+- **Bandpass diagnostics**: both 4th and 6th order now flag undersized boxes
+  (< 50 % Vas), collapsed sensitivity (> 9 dB below driver reference), and
+  excessively wide passband (> 4:1) that indicates the bandpass character is lost.
+- **Finder UI restructure**: the single load-type selectbox is removed in Finder mode;
+  the "Loads to compare" multiselect is the sole load selector. Comparison volume moved
+  into always-visible constraints. Library filters always visible (no expander).
+- **Finder results table**: before running the ranking, the main area shows the
+  filtered preset list as a sortable dataframe with key T/S values.
+- **Tests**: 94 passed / 0 failed / 0 skipped.
+
+
 ## 0.4.9 (2026-07-15)
 
 - **Passive radiator topology**: new `PassiveRadiatorBox` dataclass with
