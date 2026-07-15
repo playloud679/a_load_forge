@@ -605,6 +605,163 @@ def _check_port_geometry_helpers():
 test("DCCAV port geometry length round-trips and air speed scales", _check_port_geometry_helpers)
 
 
+def _check_port_displacement_golden_rule():
+    import dataclasses
+
+    import ui_app as _ui
+
+    ts = dataclasses.replace(_beyma_ts(), sd_cm2=530.0, xmax_mm=8.0)
+    # Vd = 530 cm² * 0.8 cm = 0.424 L → 20.3 * (0.424² / 30)^0.25 ≈ 5.648 cm.
+    golden_cm = _dccav.port_displacement_min_diameter_cm(ts, 30.0)
+    assert abs(golden_cm - 5.648) < 0.01, golden_cm
+    assert _dccav.port_displacement_min_diameter_cm(ts, 60.0) < golden_cm, (
+        "higher tuning must relax the minimum-area floor"
+    )
+    no_xmax = dataclasses.replace(ts, xmax_mm=0.0)
+    assert _dccav.port_displacement_min_diameter_cm(no_xmax, 30.0) == 0.0
+    try:
+        _dccav.port_displacement_min_diameter_cm(ts, 0.0)
+        raise AssertionError("non-positive tuning must raise")
+    except ValueError:
+        pass
+
+    # The applied vent sizing must respect the floor even when a tiny drive
+    # voltage silences the 5%-of-c air-speed requirement.
+    box = _dccav.ReflexBox(vb_l=76.0, fb_hz=30.0)
+    result = _dccav.simulate_reflex(ts, box, np.geomspace(10.0, 500.0, 240), 0.01)
+    applied_cm = _ui._optimized_port_diameter_cm(
+        ts, result, box.vb_l, box.fb_hz, 1.463, "lower")
+    assert applied_cm >= golden_cm - 1e-9, (applied_cm, golden_cm)
+
+    # The optimizer feasibility metric carries the same floor.
+    from src import engine as _engine
+
+    metrics = _engine._optimizer_metrics(
+        ts, box, np.geomspace(10.0, 500.0, 240), 0.01)
+    assert metrics["required_port_diameter_cm"] >= golden_cm - 1e-9, metrics
+
+
+test("DCCAV displacement golden rule floors vent sizing", _check_port_displacement_golden_rule)
+
+
+def _check_port_duct_volume_directive():
+    from src import engine as _engine
+
+    # Exact cylinder fraction for the reported 4.5 cm duct in 4.57 L @ 34.47 Hz.
+    volume_l, fb_hz, d_cm = 4.57, 34.47, 4.5
+    length_cm = _dccav.port_length_cm(volume_l, fb_hz, d_cm)
+    expected = np.pi * (d_cm / 2.0) ** 2 * length_cm / 1000.0 / volume_l
+    fraction = _dccav.port_volume_fraction(volume_l, fb_hz, d_cm)
+    assert abs(fraction - expected) < 1e-12, (fraction, expected)
+    assert fraction > _dccav.PORT_MAX_VOLUME_FRACTION, fraction
+    assert _dccav.port_volume_fraction(100.0, 30.0, 1.0) == 0.0, (
+        "an unreachable tuning is the zero-length warning's job, not this one"
+    )
+
+    pipe_hz = _dccav.port_pipe_resonance_hz(84.6)
+    assert abs(pipe_hz - _dccav.SPEED_OF_SOUND / (2.0 * 0.846)) < 1e-9, pipe_hz
+    try:
+        _dccav.port_pipe_resonance_hz(0.0)
+        raise AssertionError("non-positive length must raise")
+    except ValueError:
+        pass
+
+    # The user-reported case: an isobaric 12" pair squeezed into 4.57 L at
+    # 34.5 Hz needs a duct that displaces ~25% of the chamber - infeasible.
+    ts = _dccav.apply_driver_configuration(
+        _dccav.get_driver_preset("LSDB: PowerBass PBX1-12D2"),
+        "Isobaric pair (parallel)",
+    )
+    freq = np.geomspace(10.0, 500.0, 240)
+    bad_box = _dccav.DccavBox(vh_l=5.43, fh_hz=155.12, vl_l=4.57, fl_hz=34.47)
+    bad = _engine._optimizer_metrics(ts, bad_box, freq, 2.83)
+    assert bad["port_volume_fraction"] > _dccav.PORT_MAX_VOLUME_FRACTION, bad
+    assert _engine._score_alignment(
+        bad, _dccav.OptimizationGoals(), ts, True) >= 1e5, (
+        "an oversized duct must land in the infeasible score tier"
+    )
+
+    optimized = _dccav.optimize_alignment(
+        ts, _dccav.OptimizationGoals(objective="balanced"),
+        load_type="DCCAV", box_template=bad_box, voltage_v=2.83,
+    )
+    good = _engine._optimizer_metrics(ts, optimized.box, freq, 2.83)
+    assert good["port_volume_fraction"] <= _dccav.PORT_MAX_VOLUME_FRACTION + 1e-9, good
+
+
+test("DCCAV duct-volume directive rejects oversized ports", _check_port_duct_volume_directive)
+
+
+def _check_ui_port_duct_volume_and_pipe_warnings():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    state = at.session_state
+    state["workspace_mode"] = "Design a box"
+    state["load_type"] = "Bass reflex"
+    state["sim_auto_align"] = False
+    state["reflex_vb_l"] = 5.0
+    state["reflex_fb_hz"] = 60.0
+    state["reflex_port_d_cm"] = 10.0
+    at.run()
+    assert not at.exception, at.exception
+    warnings = [w.value for w in at.warning]
+    assert any("reflex directive" in w for w in warnings), warnings
+    assert any("pipe resonance" in w for w in warnings), warnings
+
+    state["reflex_port_d_cm"] = 3.0
+    at.run()
+    assert not at.exception, at.exception
+    warnings = [w.value for w in at.warning]
+    assert not any("reflex directive" in w for w in warnings), warnings
+    assert not any("pipe resonance" in w for w in warnings), warnings
+
+
+test(
+    "UI port geometry warns on oversized ducts and in-band pipe resonance",
+    _check_ui_port_duct_volume_and_pipe_warnings,
+)
+
+
+def _check_ui_port_geometry_warns_below_golden_rule():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    state = at.session_state
+    state["workspace_mode"] = "Design a box"
+    state["load_type"] = "Bass reflex"
+    state["sim_auto_align"] = False
+    state["driver_sd_mode"] = "Sd"
+    state["driver_sd_cm2"] = 530.0
+    state["driver_xmax_mm"] = 8.0
+    state["reflex_vb_l"] = 76.0
+    state["reflex_fb_hz"] = 30.0
+    state["reflex_port_d_cm"] = 4.0
+    state["sim_voltage"] = 0.01
+    at.run()
+    assert not at.exception, at.exception
+    assert any("minimum-area golden rule" in w.value for w in at.warning), (
+        [w.value for w in at.warning]
+    )
+    assert not any("air speed peaks" in w.value for w in at.warning), (
+        "at 0.01 V the velocity guideline must stay quiet: the golden rule is "
+        "the drive-independent floor"
+    )
+
+    state["reflex_port_d_cm"] = 7.0
+    at.run()
+    assert not at.exception, at.exception
+    assert not any("minimum-area golden rule" in w.value for w in at.warning), (
+        [w.value for w in at.warning]
+    )
+
+
+test(
+    "UI port geometry warns below the minimum-area golden rule",
+    _check_ui_port_geometry_warns_below_golden_rule,
+)
+
+
 def _check_ui_port_geometry_warns_on_small_vent():
     from streamlit.testing.v1 import AppTest
 
@@ -812,7 +969,7 @@ def _check_ui_share_link_roundtrip():
     at.session_state["load_type"] = "Bass reflex"
     at.session_state["driver_fs_hz"] = 33.0
     at.session_state["reflex_vb_l"] = 55.5
-    at.session_state["sim_auto_align"] = False
+    at.session_state["box_strategy"] = "Manual"
     at.run()
     share = next(b for b in at.button if b.label == "Share via URL")
     share.click().run()
@@ -2023,9 +2180,20 @@ def _check_optimizer_respects_volume_cap():
     assert opt.evaluations > 10
     low_cap = _dccav.optimize_alignment(
         _dccav.get_driver_preset("Beyma 12BR70"),
-        _dccav.OptimizationGoals(objective="extension", max_total_volume_l=1.0),
+        _dccav.OptimizationGoals(objective="extension", max_total_volume_l=5.0),
     )
-    assert low_cap.total_volume_l <= 1.0 + 1e-9, low_cap.total_volume_l
+    assert low_cap.total_volume_l <= 5.0 + 1e-9, low_cap.total_volume_l
+    try:
+        _dccav.optimize_alignment(
+            _dccav.get_driver_preset("Beyma 12BR70"),
+            _dccav.OptimizationGoals(objective="extension", max_total_volume_l=1.0),
+        )
+        raise AssertionError(
+            "a 12-inch driver in 1 L cannot host a real duct: the duct-volume "
+            "directive must reject every candidate"
+        )
+    except ValueError:
+        pass
 
     grs = _dccav.get_driver_preset("LSDB: GRS 8SW-4HE")
     grs_opt = _dccav.optimize_alignment(
@@ -2178,25 +2346,18 @@ def _check_ui_finder_starts_from_practical_defaults():
     assert numbers["Comparison voltage (V)"] == 2.83, numbers
     assert numbers["Evaluation range start (Hz)"] == 10.0, numbers
     assert numbers["Evaluation range end (Hz)"] == 300.0, numbers
-    assert numbers["Drivers to evaluate"] == 500, numbers
+    assert "Drivers to evaluate" not in numbers, numbers
     assert numbers["Top results to show"] == 20, numbers
     assert numbers["Simulation resolution (points)"] == 240, numbers
-    assert not any(box.label == "Optimization goal" for box in at.selectbox)
-    optimize = next(
-        box for box in at.checkbox
-        if box.label == "Optimize enclosure per candidate"
-    )
-    assert optimize.value is False
-
-    optimize.set_value(True).run()
-    assert not at.exception, at.exception
-    numbers = {control.label: control.value for control in at.number_input}
     assert numbers["Desired bass extension F3 (Hz, 0 = deepest)"] == 0.0, numbers
     assert numbers["Allowed response ripple (dB)"] == 3.0, numbers
     assert numbers["Maximum excursion (× driver Xmax)"] == 1.0, numbers
     assert numbers["Maximum group delay (ms)"] == 30.0, numbers
     goal = next(box for box in at.selectbox if box.label == "Optimization goal")
     assert goal.value == "Balanced", goal.value
+    assert not any(
+        box.label == "Optimize enclosure per candidate" for box in at.checkbox
+    ), "ranking always uses the optimizer; the quick-scan toggle is retired"
 
 
 test("UI Finder starts from practical independent defaults", _check_ui_finder_starts_from_practical_defaults)
@@ -2207,8 +2368,6 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.session_state["workspace_mode"] = "Find a driver"
-    at.run()
-    at.session_state["finder_use_optimizer"] = True
     at.run()
     assert not at.exception, at.exception
 
@@ -2221,7 +2380,6 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
         "Maximum group delay (ms)",
         "Evaluation range start (Hz)",
         "Evaluation range end (Hz)",
-        "Drivers to evaluate",
         "Top results to show",
         "Simulation resolution (points)",
     }
@@ -2230,10 +2388,10 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
     assert number_labels <= sidebar_numbers, number_labels - sidebar_numbers
     assert number_labels.isdisjoint(main_numbers), number_labels & main_numbers
     assert any(box.label == "Optimization goal" for box in at.sidebar.selectbox)
-    assert any(
+    assert not any(
         box.label == "Optimize enclosure per candidate"
         for box in at.sidebar.checkbox
-    )
+    ), "ranking always uses the optimizer; the quick-scan toggle is retired"
     assert any(button.label == "Reset Finder defaults" for button in at.sidebar.button)
     assert any(button.label == "Find drivers" for button in at.sidebar.button)
     assert not any(button.label == "Find drivers" for button in at.main.button)
@@ -2266,7 +2424,6 @@ def _check_ui_finder_sidebar_action_runs_search():
     assert not at.exception, at.exception
     at.session_state["workspace_mode"] = "Find a driver"
     at.session_state["preset_search"] = "KEF B110B article example"
-    at.session_state["finder_candidate_limit"] = 1
     at.session_state["finder_result_count"] = 1
     at.session_state["finder_points"] = 80
     at.run()
@@ -2279,9 +2436,46 @@ def _check_ui_finder_sidebar_action_runs_search():
     assert not at.exception, at.exception
     assert at.session_state["batch_results"], "sidebar action must produce ranked rows"
     assert at.dataframe, "ranked rows must appear in the main workspace"
+    scanned = at.session_state["batch_result_context"][2]
+    assert scanned == 1, (
+        f"the scan must cover the whole filtered library (1 match), got {scanned}"
+    )
 
 
 test("UI Finder sidebar action runs the driver search", _check_ui_finder_sidebar_action_runs_search)
+
+
+def _check_ui_design_state_survives_workspace_roundtrip():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
+    at.session_state["workspace_mode"] = "Design a box"
+    at.run()
+    assert not at.exception, at.exception
+    # Widget-bound edits (not programmatic ones) are what Streamlit cleans up
+    # when the Finder workspace skips rendering the Design widgets.
+    next(c for c in at.segmented_control if c.label == "Box strategy").set_value("Manual").run()
+    next(n for n in at.number_input if n.label == "Voltage (V)").set_value(5.55).run()
+    next(n for n in at.number_input if n.label == "Vb sealed (L)").set_value(33.0).run()
+    assert not at.exception, at.exception
+
+    next(c for c in at.segmented_control if c.label == "Workspace").set_value("Find a driver").run()
+    assert not at.exception, at.exception
+    next(c for c in at.segmented_control if c.label == "Workspace").set_value("Design a box").run()
+    assert not at.exception, at.exception
+
+    voltage = next(n for n in at.number_input if n.label == "Voltage (V)")
+    vb = next(n for n in at.number_input if n.label == "Vb sealed (L)")
+    strategy = next(c for c in at.segmented_control if c.label == "Box strategy")
+    assert voltage.value == 5.55, ("a Finder visit must not reset the drive voltage", voltage.value)
+    assert vb.value == 33.0, ("a Finder visit must not reset the manual box", vb.value)
+    assert strategy.value == "Manual", strategy.value
+
+
+test(
+    "UI design edits survive a Finder workspace round trip",
+    _check_ui_design_state_survives_workspace_roundtrip,
+)
 
 
 def _check_ui_purchase_links():
@@ -2335,8 +2529,7 @@ def _check_ui_optimized_alignment_mode():
         ("loss_q_port_h", 15.0), ("loss_q_port_l", 15.0),
         ("box_port_d_h_cm", 5.0), ("box_port_d_l_cm", 5.0),
         ("sim_voltage", 2.83),
-        ("opt_align_mode", "Optimized (goals)"),
-        ("opt_objective", "Balanced"),
+        ("box_strategy", "Balanced"),
         ("opt_max_volume_l", 6.0),
         ("opt_target_f3_hz", 0.0),
         ("opt_max_ripple_db", 3.0),
@@ -2378,46 +2571,44 @@ def _check_ui_optimized_alignment_mode():
     st.session_state["box_vl_l"] = float(st.session_state["box_vl_l"]) + 1.0
     assert _ui._current_optimizer_summary(driver) is None
 
-    st.session_state["opt_align_mode"] = "Empirical (article)"
-    _ui._apply_suggested_box_for(driver)
-    expected = _dccav.suggest_alignment(driver)
-    assert abs(float(st.session_state["box_vh_l"]) - expected.vh_l) < 1e-9
+    # The strategy IS the objective: no separate goal selector remains.
+    st.session_state["box_strategy"] = "Max extension"
+    assert _ui._optimizer_goals_from_state().objective == "extension"
+    st.session_state["box_strategy"] = "Flattest"
+    assert _ui._optimizer_goals_from_state().objective == "flat"
+
+    # v0.3 strategies collapse onto the objective-based ones.
+    st.session_state["opt_objective"] = "Max extension"
+    assert _ui._normalize_box_strategy("Optimized") == "Max extension"
+    assert _ui._normalize_box_strategy("Suggested") == "Balanced"
+    assert _ui._normalize_box_strategy("Manual") == "Manual"
+    assert _ui._normalize_box_strategy("garbage") == "Balanced"
 
 
 test("UI optimized alignment mode applies goal-driven boxes", _check_ui_optimized_alignment_mode)
 
 
-def _check_ui_apply_button_respects_optimizer_mode():
+def _check_ui_auto_strategy_applies_optimizer_boxes():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
     at.session_state["workspace_mode"] = "Design a box"
     at.run()
     assert not at.exception, at.exception
-    at.session_state["sim_auto_align"] = False
+    assert not any(b.label == "Run optimizer and apply" for b in at.button), (
+        "auto strategies re-apply the optimizer without a manual run button"
+    )
     at.session_state["load_type"] = "Bass reflex"
-    at.session_state["box_strategy"] = "Optimized"
-    at.session_state["opt_align_mode"] = "Optimized (goals)"
-    at.session_state["opt_objective"] = "Max extension"
+    at.session_state["box_strategy"] = "Max extension"
     at.run()
     assert not at.exception, at.exception
     vas_l = float(at.session_state["driver_vas_l"])
-    button = next(b for b in at.button if b.label == "Run optimizer and apply")
-    button.click()
-    at.run()
-    assert not at.exception, at.exception
     vb_l = float(at.session_state["reflex_vb_l"])
     assert vb_l > vas_l * 1.15, (vb_l, vas_l)
     metrics = {m.label: m.value for m in at.metric}
     assert metrics.get("Vb (active)") == f"{vb_l:.2f} L", metrics
     at.session_state["load_type"] = "Sealed"
-    at.session_state["box_strategy"] = "Optimized"
-    at.session_state["opt_align_mode"] = "Optimized (goals)"
     at.session_state["opt_max_volume_l"] = 40.0
-    at.run()
-    assert not at.exception, at.exception
-    sealed_button = next(b for b in at.button if b.label == "Run optimizer and apply")
-    sealed_button.click()
     at.run()
     assert not at.exception, at.exception
     sealed_vb_l = float(at.session_state["sealed_vb_l"])
@@ -2426,7 +2617,7 @@ def _check_ui_apply_button_respects_optimizer_mode():
     assert metrics.get("Vb sealed (active)") == f"{sealed_vb_l:.2f} L", metrics
 
 
-test("UI optimized strategy applies goal-driven boxes", _check_ui_apply_button_respects_optimizer_mode)
+test("UI auto strategy applies goal-driven boxes", _check_ui_auto_strategy_applies_optimizer_boxes)
 
 
 def _check_ui_grs_extension_optimizer_applies_without_model_warnings():
@@ -2440,21 +2631,13 @@ def _check_ui_grs_extension_optimizer_applies_without_model_warnings():
     next(
         s for s in at.selectbox if s.label == "Driver preset"
     ).set_value("LSDB: GRS 8SW-4HE").run()
-    at.session_state["box_strategy"] = "Optimized"
-    at.session_state["opt_align_mode"] = "Optimized (goals)"
-    at.session_state["opt_objective"] = "Max extension"
+    at.session_state["box_strategy"] = "Max extension"
     at.session_state["opt_max_volume_l"] = 0.0
     at.session_state["opt_target_f3_hz"] = 0.0
     at.session_state["opt_max_ripple_db"] = 0.0
     at.session_state["opt_excursion_ratio"] = 0.0
     at.session_state["opt_max_gd_ms"] = 0.0
-    at.session_state["_optimizer_engine_revision"] = 2
     at.run()
-    assert not at.exception, at.exception
-    next(
-        button for button in at.button
-        if button.label == "Run optimizer and apply"
-    ).click().run()
     assert not at.exception, at.exception
     warnings = [warning.value for warning in at.warning]
     assert not any(
@@ -2564,7 +2747,7 @@ def _check_ui_response_window_includes_mol_trace():
 test("UI response window widens to keep the MOL trace visible", _check_ui_response_window_includes_mol_trace)
 
 
-def _check_ui_finder_goal_inputs_follow_optimizer_toggle():
+def _check_ui_finder_goal_inputs_always_active():
     from streamlit.testing.v1 import AppTest
 
     goal_labels = (
@@ -2579,22 +2762,22 @@ def _check_ui_finder_goal_inputs_follow_optimizer_toggle():
     assert not at.exception, at.exception
     inputs = {n.label: n for n in at.number_input}
     for label in goal_labels:
-        assert label not in inputs, ("inactive goal constraint must stay hidden", label)
-    assert not any(box.label == "Optimization goal" for box in at.selectbox)
+        assert label in inputs and not inputs[label].disabled, label
+    goal = next(box for box in at.selectbox if box.label == "Optimization goal")
+    assert not goal.disabled
     assert not inputs["Evaluation range start (Hz)"].disabled
     assert not inputs["Evaluation range end (Hz)"].disabled
 
-    at.session_state["finder_use_optimizer"] = True
+    at.session_state["load_type"] = "Infinite baffle"
     at.run()
     assert not at.exception, at.exception
     inputs = {n.label: n for n in at.number_input}
     for label in goal_labels:
-        assert label in inputs and not inputs[label].disabled, label
-    goal = next(box for box in at.selectbox if box.label == "Optimization goal")
-    assert not goal.disabled
+        assert label not in inputs, ("infinite baffle has nothing to optimize", label)
+    assert not any(box.label == "Optimization goal" for box in at.selectbox)
 
 
-test("UI Finder goal constraints follow the optimizer toggle", _check_ui_finder_goal_inputs_follow_optimizer_toggle)
+test("UI Finder optimizer goal and constraints are always active", _check_ui_finder_goal_inputs_always_active)
 
 
 def _check_design_space_map():

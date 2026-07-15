@@ -113,6 +113,95 @@ Traccia operativa multi-sessione. Regole d'uso:
   Response in popover per dare più spazio al grafico; cursore manuale
   singolo (M1 senza M2); palette theme-aware invece del tema forzato.
 
+- [x] **1.7 Porte reflex: direttiva volume condotto + risonanza di canna
+  (segnalazione utente: porta 4,5 × 84,6 cm)** — 2026-07-15. Il sizing
+  poteva richiedere condotti lunghissimi in camere piccole accordate basse
+  (caso reale: isobarico 12" in Vl 4,57 L @ 34,5 Hz → 4,5 × 84,6 cm = 29%
+  della camera). Nuovi in engine: `port_volume_fraction()` (volume del
+  cilindro Helmholtz / camera) con `PORT_MAX_VOLUME_FRACTION = 0.10` e
+  `port_pipe_resonance_hz()` (`c/2L`) con `PORT_PIPE_RESONANCE_GUARD = 4`.
+  L'optimizer valuta la frazione per-porta al diametro minimo richiesto di
+  quella porta (feasibility tier 1e5, come il tetto dei 60 cm): il box
+  incriminato ora è scartato e l'optimizer ripiega su Vl 12,9 L @ 25,5 Hz
+  (condotto 8%, canna a 300 Hz). UI: due nuovi warning in Port Geometry
+  (condotto > 10% della camera; prima risonanza di canna sotto 4× accordo).
+  Doc engine/dccav/USER_GUIDE. Test: frazione esatta del cilindro, caso
+  utente respinto + box alternativo conforme, helper canna, AppTest sui due
+  warning; adattato il test del cap 1 L (ora correttamente infeasible con
+  ValueError, cap fattibile 5 L verificato). Verifica: py_compile OK, ruff
+  OK, suite completa 85 pass / 0 fail / 0 skip.
+
+- [x] **1.6 Porte reflex: golden rule dell'area minima (richiesta utente)** —
+  2026-07-15. Nuovo `port_displacement_min_diameter_cm(ts, fb_hz)` in engine
+  (+ costante `PORT_DISPLACEMENT_COEFFICIENT_CM = 20.3`): regola classica
+  Small/Dickason `Dmin = 20.3·(Vd²/Fb)^0.25` cm con `Vd = Sd·Xmax` in litri;
+  0.0 se Xmax non pubblicato. A differenza del criterio 5%-di-c è
+  indipendente dal drive: prima, a tensioni basse (es. il caso 0,01 V del
+  5.5) il sizing automatico poteva produrre vent minuscoli. Applicata in tre
+  punti: floor nel sizing UI `_optimized_port_diameter_cm` (reflex, bandpass,
+  entrambi i porti DCCAV, driver composito incluso), nel
+  `required_port_diameter_cm` di `_optimizer_metrics` (feasibility optimizer)
+  e nuovo warning Port Geometry quando un porto attivo è sotto la regola.
+  Doc engine.md/dccav.md + USER_GUIDE. Test: valore esatto a mano (5,648 cm
+  per Sd 530/Xmax 8 a 30 Hz), monotonia col tuning, Xmax mancante → 0,
+  fb non positivo → ValueError, floor su sizing e metrica a 0,01 V, AppTest
+  warning sotto/sopra la soglia. Verifica: py_compile OK, ruff OK, suite
+  completa 83 pass / 0 fail / 0 skip.
+
+- [x] **5.5 Fix: i valori del Design sopravvivono al Finder (segnalazione
+  utente)** — 2026-07-15. Nel browser reale Streamlit cancella lo stato dei
+  widget keyed non renderizzati in un rerun: un giro nel workspace Finder
+  resettava in silenzio tensione (2,83 → default, o 0,01 V dal minimo del
+  widget), box Manual, T/S editati e perdite. Il sintomo segnalato
+  ("2× parallel dimezza l'ampiezza") era tensione a 0,01 V + i legittimi
+  ±6 dB del cablaggio parallelo a pari tensione. Nuovo
+  `_preserve_design_state()`: self-assignment di tutte le chiavi
+  `_is_param_key()` (prefissi driver_/box_/reflex_/bandpass4_/sealed_/
+  loss_/sim_/opt_/load_type, nudge esclusi) accanto ai keep-alive già
+  esistenti di plot/Finder/filtri. Riproduzione via AppTest con widget-bound
+  `set_value` (le assegnazioni programmatiche non subiscono il cleanup) e
+  test di regressione sul round-trip Design→Finder→Design (tensione, Vb
+  Manual, strategia). Verifica: suite completa 81 pass / 0 fail / 0 skip.
+
+- [x] **5.4 Un solo algoritmo di box: optimizer con 3 obiettivi (richiesta
+  utente)** — 2026-07-15. Eliminata la doppia natura starter/optimizer
+  percepita come "5 modalità di calcolo". Il selettore **Box strategy** ora è
+  `Max extension / Balanced / Flattest / Manual`: i tre obiettivi sono lo
+  stesso `optimize_alignment` (objective extension/balanced/flat) e il box si
+  ri-applica da solo a ogni cambio di driver/carico/vincolo (l'auto-align
+  legge `box_strategy`, non più `sim_auto_align`; il bottone "Run optimizer
+  and apply" e i bottoni/caption "Reset to suggested/starter" sono rimossi;
+  optimizer infeasible → fallback allo starter con warning `_auto_box_error`).
+  Lo starter empirico resta solo come seed interno (optimizer, Atlas, compare
+  loads, seeds widget). Finder: rimosso il toggle "Optimize enclosure per
+  candidate" — il ranking passa SEMPRE dall'optimizer (goal + vincoli sempre
+  visibili, IB escluso con caption); benchmark: scan intera libreria (6219)
+  ~3–25 s via pool parallelo con progress bar. Migrazione: `.lfp`/share/live
+  session con "Suggested"→"Balanced", "Optimized"→label di `opt_objective`
+  (`_normalize_box_strategy`/`_set_box_strategy_state`, legacy keys
+  `sim_auto_align`/`opt_align_mode`/`opt_objective` tenute in sync per il
+  round-trip); load con strategia auto forza il re-derive via
+  `_optimizer_engine_revision=0`. `_FINDER_DEFAULTS_VERSION`=4 ora popa anche
+  `finder_use_optimizer`. Solo `ui_app.py` + test + USER_GUIDE/README
+  (niente src/). Test riscritti: auto-strategy applica box goal-driven senza
+  bottone, GRS max-extension senza warning, vincoli Finder sempre attivi +
+  nascosti su IB, normalizzazione legacy, share pin via Manual. Verifica:
+  py_compile OK, ruff OK, suite completa 80 pass / 0 fail / 0 skip.
+
+- [x] **5.3 Finder: scan sempre su tutta la libreria filtrata (richiesta
+  utente)** — 2026-07-15. Rimosso l'input manuale "Drivers to evaluate"
+  (`finder_candidate_limit`): `_run_find_driver_search` ora usa
+  `len(filtered_preset_names)`, quindi lo scan copre sempre l'intera libreria
+  dopo i filtri e il conteggio si auto-aggiorna a ogni modifica (caption
+  "Scans all N matching presets"). `_FINDER_DEFAULTS_VERSION` → 4 con pop
+  esplicito della chiave legacy nella migrazione (vecchi .lfp/share con la
+  chiave degradano senza effetto). Le funzioni cached `_batch_rank_presets*`
+  mantengono il parametro `candidate_limit` (usato dai test); la UI passa la
+  dimensione piena. Solo `ui_app.py` + test + USER_GUIDE (niente src/).
+  Test: widget assente nei default e nella mappa sidebar, scan count ==
+  libreria filtrata dopo "Find drivers". Verifica: py_compile OK, ruff OK,
+  suite completa 80 pass / 0 fail / 0 skip.
+
 ---
 
 ## Fatto

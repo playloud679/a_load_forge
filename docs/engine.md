@@ -8,7 +8,9 @@ contracts and the test list — lives in `docs/dccav.md`.
 ## Owns
 
 - Physical constants (`RHO_AIR`, `SPEED_OF_SOUND`, `P_REF`, `EPS`,
-  `PORT_VELOCITY_GUIDELINE_MS`, `OPTIMIZER_MAX_PORT_DIAMETER_CM`) and every dataclass except
+  `PORT_VELOCITY_GUIDELINE_MS`, `OPTIMIZER_MAX_PORT_DIAMETER_CM`,
+  `PORT_DISPLACEMENT_COEFFICIENT_CM`, `PORT_MAX_VOLUME_FRACTION`,
+  `PORT_PIPE_RESONANCE_GUARD`) and every dataclass except
   `DriverPresetInfo`: `DriverTS`, `DerivedDriver`, alignments and boxes
   (including `Bandpass4Alignment` / `Bandpass4Box`),
   `OptimizationGoals`, `OptimizedAlignment`, `SimulationResult`,
@@ -47,7 +49,17 @@ Ported optimizer candidates are construction-aware: the Helmholtz zero-length
 diameter is calculated for every vent (both DCCAV ports), and candidates needing
 more than 95% of the UI's 60 cm diameter ceiling are treated as infeasible. The
 required diameter also includes the area needed to keep peak air speed at or
-below 5% of sound speed at the optimization voltage. DCCAV candidates below
+below 5% of sound speed at the optimization voltage, plus the drive-independent
+displacement floor `port_displacement_min_diameter_cm()` (the Small/Dickason
+minimum-area golden rule `20.3*(Vd²/Fb)^0.25` cm with `Vd = Sd*Xmax` in litres;
+0 when Xmax is unpublished). A second reflex directive rejects candidates whose
+smallest workable duct would displace more than `PORT_MAX_VOLUME_FRACTION`
+(10%) of the chamber it tunes (`port_volume_fraction()`, evaluated per port at
+that port's own required diameter): small chambers tuned low would otherwise
+demand metre-long ducts that invalidate the lumped Helmholtz model.
+`port_pipe_resonance_hz()` reports the duct's first half-wave resonance
+(`c/2L`); the UI warns when it falls below `PORT_PIPE_RESONANCE_GUARD` (4×)
+times the tuning. DCCAV candidates below
 `F3 >= 0.67*fl` are likewise excluded from normal objective trade-offs. If the
 search never reaches the feasible region it raises an explicit optimizer error
 instead of returning its least-bad invalid candidate.

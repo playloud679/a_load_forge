@@ -125,24 +125,29 @@ _PRESET_SIZE_FILTERS = (
 _PRESET_SOURCE_FILTERS = ("All", "Built-in", "Loudspeaker Database")
 _PRESET_CLASS_FILTERS = ("All", *_dccav.DRIVER_CLASSES)
 _WORKSPACES = ("Find a driver", "Design a box")
-_BOX_STRATEGIES = ("Suggested", "Optimized", "Manual")
+# One box algorithm: the optimizer, with three selectable objectives.  The
+# labels map onto engine OptimizationGoals.objective; Manual unlocks fields.
+_OPT_OBJECTIVE_LABELS = {
+    "Max extension": "extension",
+    "Balanced": "balanced",
+    "Flattest": "flat",
+}
+_BOX_STRATEGIES = (*_OPT_OBJECTIVE_LABELS, "Manual")
 _FINDER_RANK_F3 = "Deepest bass (F3)"
 _FINDER_RANK_VALUE = "Best value (F3 × price)"
 _FINDER_RANK_MODES = (_FINDER_RANK_F3, _FINDER_RANK_VALUE)
-_FINDER_DEFAULTS_VERSION = 3
+_FINDER_DEFAULTS_VERSION = 4
 _FINDER_DEFAULTS = {
     "finder_rank_mode": _FINDER_RANK_F3,
     "finder_volume_l": 40.0,
     "finder_objective": "Balanced",
     "finder_voltage": 2.83,
-    "finder_use_optimizer": False,
     "finder_target_f3_hz": 0.0,
     "finder_max_ripple_db": 3.0,
     "finder_excursion_ratio": 1.0,
     "finder_max_gd_ms": 30.0,
     "finder_f_min": 10.0,
     "finder_f_max": 300.0,
-    "finder_candidate_limit": 500,
     "finder_result_count": 20,
     "finder_points": 240,
 }
@@ -157,6 +162,34 @@ def _is_param_key(key: str) -> bool:
     # Nudge-button keys share the box_/reflex_/sealed_ prefixes but are
     # widget-event state: they cannot be assigned back via session_state.
     return not key.endswith(_NUDGE_KEY_SUFFIXES)
+
+
+def _normalize_box_strategy(value) -> str:
+    """Map v0.3 strategy names onto the objective-based strategies."""
+    value = str(value)
+    if value in _BOX_STRATEGIES:
+        return value
+    if value == "Optimized":
+        objective = str(st.session_state.get("opt_objective", "Balanced"))
+        return objective if objective in _OPT_OBJECTIVE_LABELS else "Balanced"
+    # v0.3 "Suggested" (empirical starter) and unknown values.
+    return "Balanced"
+
+
+def _set_box_strategy_state(strategy: str) -> None:
+    """Store a strategy plus the legacy keys older .lfp files round-trip."""
+    st.session_state["box_strategy"] = strategy
+    auto = strategy in _OPT_OBJECTIVE_LABELS
+    st.session_state["sim_auto_align"] = auto
+    st.session_state["opt_align_mode"] = (
+        "Optimized (goals)" if auto else "Empirical (article)"
+    )
+    if auto:
+        st.session_state["opt_objective"] = strategy
+
+
+def _box_strategy_is_auto() -> bool:
+    return str(st.session_state.get("box_strategy", "Balanced")) in _OPT_OBJECTIVE_LABELS
 
 
 def _collect_params() -> dict:
@@ -179,21 +212,24 @@ def _apply_loaded_params(data: dict) -> int:
                 value = "Sealed"
             st.session_state[key] = value
             applied += 1
-    # v0.2 presets used two overlapping controls for the same decision.
-    # Preserve those files while exposing one clear box strategy in the UI.
+    # v0.2 presets used two overlapping controls for the same decision and
+    # v0.3 offered a starter-based "Suggested" next to one "Optimized" mode.
+    # Both collapse onto the single optimizer-objective strategy control.
     if "box_strategy" not in data:
         if st.session_state.get("sim_auto_align", True):
-            st.session_state["box_strategy"] = "Suggested"
+            strategy = "Balanced"
         elif st.session_state.get("opt_align_mode") == "Optimized (goals)":
-            st.session_state["box_strategy"] = "Optimized"
+            strategy = _normalize_box_strategy("Optimized")
         else:
-            st.session_state["box_strategy"] = "Manual"
+            strategy = "Manual"
     else:
-        strategy = str(st.session_state.get("box_strategy", "Suggested"))
-        st.session_state["sim_auto_align"] = strategy == "Suggested"
-        st.session_state["opt_align_mode"] = (
-            "Optimized (goals)" if strategy == "Optimized" else "Empirical (article)"
-        )
+        strategy = _normalize_box_strategy(st.session_state.get("box_strategy", "Balanced"))
+    _set_box_strategy_state(strategy)
+    if strategy in _OPT_OBJECTIVE_LABELS:
+        # A loaded auto box may predate the current engine or come from the
+        # retired starter algorithm: force the sidebar refresh to re-derive
+        # it with the one active optimizer.
+        st.session_state["_optimizer_engine_revision"] = 0
     return applied
 
 
@@ -374,7 +410,9 @@ def _reset_finder_defaults() -> None:
 def _ensure_finder_defaults() -> None:
     """Migrate stale Finder widgets without pre-seeding implicit UI minima."""
     if st.session_state.get("_finder_defaults_version") != _FINDER_DEFAULTS_VERSION:
-        for key in _FINDER_DEFAULTS:
+        # Retired v3 widgets: the scan now always covers the whole filtered
+        # library and every candidate goes through the optimizer.
+        for key in (*_FINDER_DEFAULTS, "finder_candidate_limit", "finder_use_optimizer"):
             st.session_state.pop(key, None)
         st.session_state["_finder_defaults_version"] = _FINDER_DEFAULTS_VERSION
         st.session_state.pop("batch_results", None)
@@ -384,6 +422,18 @@ def _ensure_finder_defaults() -> None:
         for key in _FINDER_DEFAULTS:
             if key in st.session_state:
                 st.session_state[key] = st.session_state[key]
+
+
+def _preserve_design_state() -> None:
+    """Keep design widget values alive while the Finder workspace is open.
+
+    Streamlit drops widget-bound state for keyed widgets that skip a rerun:
+    without this, one trip through Find a driver silently resets voltage,
+    manual box values and T/S edits back to their defaults or widget minima.
+    """
+    for key in list(st.session_state):
+        if _is_param_key(key):
+            st.session_state[key] = st.session_state[key]
 
 
 def _preserve_library_filters() -> None:
@@ -424,13 +474,6 @@ def _finder_selectbox(label: str, options: list[str], key: str, **kwargs):
     return st.selectbox(label, options, key=key, **kwargs)
 
 
-def _finder_checkbox(label: str, key: str, **kwargs):
-    """Render the intended initial boolean without overriding later edits."""
-    if key not in st.session_state:
-        kwargs["value"] = bool(_FINDER_DEFAULTS[key])
-    return st.checkbox(label, key=key, **kwargs)
-
-
 def _apply_alignment(alignment: _dccav.DccavAlignment):
     st.session_state["box_vh_l"] = float(alignment.vh_l)
     st.session_state["box_fh_hz"] = float(alignment.fh_hz)
@@ -453,16 +496,17 @@ def _apply_bandpass4_alignment(alignment: _dccav.Bandpass4Alignment):
     st.session_state["bandpass4_fp_hz"] = float(alignment.fp_hz)
 
 
-_OPT_OBJECTIVE_LABELS = {
-    "Max extension": "extension",
-    "Balanced": "balanced",
-    "Flattest": "flat",
-}
+def _design_objective_label() -> str:
+    strategy = str(st.session_state.get("box_strategy", "Balanced"))
+    if strategy in _OPT_OBJECTIVE_LABELS:
+        return strategy
+    fallback = str(st.session_state.get("opt_objective", "Balanced"))
+    return fallback if fallback in _OPT_OBJECTIVE_LABELS else "Balanced"
 
 
 def _optimizer_goals_from_state() -> _dccav.OptimizationGoals:
     return _dccav.OptimizationGoals(
-        objective=_OPT_OBJECTIVE_LABELS[st.session_state.get("opt_objective", "Balanced")],
+        objective=_OPT_OBJECTIVE_LABELS[_design_objective_label()],
         max_total_volume_l=float(st.session_state.get("opt_max_volume_l", 0.0)) or None,
         target_f3_hz=float(st.session_state.get("opt_target_f3_hz", 0.0)) or None,
         max_ripple_db=float(st.session_state.get("opt_max_ripple_db", 3.0)),
@@ -474,7 +518,7 @@ def _optimizer_goals_from_state() -> _dccav.OptimizationGoals:
 def _alignment_uses_optimizer() -> bool:
     return (
         st.session_state.get("load_type", "DCCAV") != "Infinite baffle"
-        and st.session_state.get("opt_align_mode", "Empirical (article)") == "Optimized (goals)"
+        and _box_strategy_is_auto()
     )
 
 
@@ -498,13 +542,19 @@ def _apply_optimized_box(
 
 
 def _optimized_port_diameter_cm(
+    driver: _dccav.DriverTS,
     result: _dccav.SimulationResult,
     volume_l: float,
     tuning_hz: float,
     end_correction: float,
     port: str,
 ) -> float:
-    """Size an optimized circular vent for positive length and safe air speed."""
+    """Size an optimized circular vent for positive length and safe air speed.
+
+    The result is floored at the displacement-based minimum-area golden rule
+    so low simulation voltages cannot shrink the vent below what the driver's
+    rated excursion needs.
+    """
     minimum_cm = _dccav.port_min_diameter_cm(
         volume_l, tuning_hz, end_correction)
     maximum_cm = float(_dccav.OPTIMIZER_MAX_PORT_DIAMETER_CM)
@@ -532,8 +582,9 @@ def _optimized_port_diameter_cm(
     required_area_cm2 = (
         peak_volume_velocity / _dccav.PORT_VELOCITY_GUIDELINE_MS * 1e4)
     velocity_cm = 2.0 * np.sqrt(max(required_area_cm2, 0.0) / np.pi)
+    golden_cm = _dccav.port_displacement_min_diameter_cm(driver, tuning_hz)
     # The half-centimetre rounding matches the sidebar control resolution.
-    diameter_cm = max(1.0, length_cm, 1.05 * velocity_cm)
+    diameter_cm = max(1.0, length_cm, 1.05 * velocity_cm, golden_cm)
     diameter_cm = np.ceil(diameter_cm * 2.0) / 2.0
     return float(min(diameter_cm, maximum_cm))
 
@@ -551,17 +602,17 @@ def _apply_optimized_port_geometry(
     if isinstance(box, _dccav.ReflexBox):
         result = _dccav.simulate_reflex(driver, box, freq, voltage_v)
         st.session_state["reflex_port_d_cm"] = _optimized_port_diameter_cm(
-            result, box.vb_l, box.fb_hz, 1.463, "lower")
+            driver, result, box.vb_l, box.fb_hz, 1.463, "lower")
     elif isinstance(box, _dccav.Bandpass4Box):
         result = _dccav.simulate_bandpass4(driver, box, freq, voltage_v)
         st.session_state["bandpass4_port_d_cm"] = _optimized_port_diameter_cm(
-            result, box.vp_l, box.fp_hz, 1.463, "lower")
+            driver, result, box.vp_l, box.fp_hz, 1.463, "lower")
     else:
         result = _dccav.simulate(driver, box, freq, voltage_v)
         st.session_state["box_port_d_h_cm"] = _optimized_port_diameter_cm(
-            result, box.vh_l, box.fh_hz, 1.7, "upper")
+            driver, result, box.vh_l, box.fh_hz, 1.7, "upper")
         st.session_state["box_port_d_l_cm"] = _optimized_port_diameter_cm(
-            result, box.vl_l, box.fl_hz, 1.463, "lower")
+            driver, result, box.vl_l, box.fl_hz, 1.463, "lower")
 
 
 def _optimized_summary(optimized: _dccav.OptimizedAlignment) -> str:
@@ -657,21 +708,20 @@ def _run_box_optimizer(driver: _dccav.DriverTS) -> _dccav.OptimizedAlignment:
 
 
 def _apply_suggested_box_for(driver: _dccav.DriverTS):
-    """Apply the alignment the current mode suggests (empirical or optimized)."""
-    if _alignment_uses_optimizer():
-        _apply_optimized_box(_run_box_optimizer(driver).box)
+    """Apply the optimizer box for the active objective strategy."""
+    if st.session_state.get("load_type", "DCCAV") == "Infinite baffle":
         return
-    load_type = st.session_state.get("load_type", "DCCAV")
-    if load_type == "Bass reflex":
-        _apply_reflex_alignment(_dccav.suggest_reflex_alignment(driver))
-    elif load_type == "Sealed":
-        _apply_sealed_alignment(_dccav.suggest_sealed_alignment(driver))
-    elif load_type == "Bandpass 4th order":
-        _apply_bandpass4_alignment(_dccav.suggest_bandpass4_alignment(driver))
-    elif load_type == "Infinite baffle":
+    try:
+        optimized = _run_box_optimizer(driver)
+    except ValueError as exc:
+        # Infeasible goal/constraints: keep a buildable starter box and
+        # surface the reason in the sidebar instead of failing silently.
+        _apply_empirical_box_for(driver)
+        st.session_state["opt_last_summary"] = None
+        st.session_state["_auto_box_error"] = str(exc)
         return
-    else:
-        _apply_alignment(_dccav.suggest_alignment(driver))
+    st.session_state.pop("_auto_box_error", None)
+    _apply_optimized_box(optimized.box)
 
 
 def _apply_empirical_box_for(driver: _dccav.DriverTS) -> None:
@@ -688,24 +738,19 @@ def _apply_empirical_box_for(driver: _dccav.DriverTS) -> None:
 
 
 def _on_box_strategy_change() -> None:
-    strategy = str(st.session_state.get("box_strategy", "Suggested"))
-    st.session_state["sim_auto_align"] = strategy == "Suggested"
-    st.session_state["opt_align_mode"] = (
-        "Optimized (goals)" if strategy == "Optimized" else "Empirical (article)"
-    )
-    if strategy == "Suggested":
+    strategy = str(st.session_state.get("box_strategy", "Balanced"))
+    _set_box_strategy_state(strategy)
+    if strategy in _OPT_OBJECTIVE_LABELS:
         try:
             driver = _driver_from_state()
-            _apply_empirical_box_for(driver)
+            _apply_suggested_box_for(driver)
             _mark_auto_alignment_synced(driver)
         except Exception:
-            logger.exception("Could not apply the suggested box strategy")
+            logger.exception("Could not apply the selected box strategy")
 
 
 def _use_manual_box_strategy() -> None:
-    st.session_state["box_strategy"] = "Manual"
-    st.session_state["sim_auto_align"] = False
-    st.session_state["opt_align_mode"] = "Empirical (article)"
+    _set_box_strategy_state("Manual")
 
 
 def _nudge_state(key: str, factor: float, min_value: float, max_value: float):
@@ -949,7 +994,7 @@ def _apply_driver_preset(driver: _dccav.DriverTS):
 
 
 def _auto_align_current_driver():
-    if not st.session_state.get("sim_auto_align", True):
+    if not _box_strategy_is_auto():
         return
     try:
         driver = _driver_from_state()
@@ -1003,7 +1048,7 @@ def _mark_auto_alignment_synced(driver: _dccav.DriverTS | None = None):
 
 
 def _sync_auto_alignment_if_needed():
-    if not st.session_state.get("sim_auto_align", True):
+    if not _box_strategy_is_auto():
         return
     try:
         driver = _driver_from_state()
@@ -1025,7 +1070,7 @@ def _on_driver_preset_change():
         # Re-read through the configuration so multi-driver setups get a box
         # sized for the composite Vas/Sd, not the single unit.
         composite = _driver_from_state()
-        if st.session_state.get("sim_auto_align", True):
+        if _box_strategy_is_auto():
             _apply_suggested_box_for(composite)
             _mark_auto_alignment_synced(composite)
     except Exception:
@@ -1771,17 +1816,16 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
         st.session_state["box_fh_hz"] = float(row["fh Hz"])
         st.session_state["box_vl_l"] = float(row["Vl L"])
         st.session_state["box_fl_hz"] = float(row["fl Hz"])
-    if st.session_state.get("finder_use_optimizer", False):
-        if load_type == "Bass reflex":
-            optimized_box = _reflex_box_from_state()
-        elif load_type == "Bandpass 4th order":
-            optimized_box = _bandpass4_box_from_state()
-        elif load_type == "DCCAV":
-            optimized_box = _box_from_state()
-        else:
-            optimized_box = None
-        if optimized_box is not None:
-            _apply_optimized_port_geometry(driver, optimized_box)
+    if load_type == "Bass reflex":
+        optimized_box = _reflex_box_from_state()
+    elif load_type == "Bandpass 4th order":
+        optimized_box = _bandpass4_box_from_state()
+    elif load_type == "DCCAV":
+        optimized_box = _box_from_state()
+    else:
+        optimized_box = None
+    if optimized_box is not None:
+        _apply_optimized_port_geometry(driver, optimized_box)
     _mark_auto_alignment_synced(driver)
 
 
@@ -2024,12 +2068,8 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
     load_type = str(st.session_state.get("load_type", "DCCAV"))
     is_infinite_baffle = load_type == "Infinite baffle"
     finder_volume_l = float(_finder_value("finder_volume_l"))
-    scan_count = min(int(_finder_value("finder_candidate_limit")), len(filtered_preset_names))
-    goals = (
-        _finder_optimizer_goals_from_state()
-        if st.session_state.get("finder_use_optimizer", False) and not is_infinite_baffle
-        else None
-    )
+    scan_count = len(filtered_preset_names)
+    goals = None if is_infinite_baffle else _finder_optimizer_goals_from_state()
     rank_args = (
         tuple(filtered_preset_names),
         load_type,
@@ -2065,16 +2105,17 @@ def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
     is_infinite_baffle = load_type == "Infinite baffle"
 
     st.subheader("3 · Ranking")
-    use_optimizer = _finder_checkbox(
-        "Optimize enclosure per candidate",
-        key="finder_use_optimizer",
-        disabled=is_infinite_baffle,
-        help="Slower. Start with the quick scan, then enable this to refine a filtered shortlist.",
-    )
-    if bool(use_optimizer) and not is_infinite_baffle:
+    if is_infinite_baffle:
+        st.caption(
+            "Infinite baffle has no enclosure to optimize; candidates are "
+            "ranked on their free-air response."
+        )
+    else:
         _finder_selectbox(
             "Optimization goal", list(_OPT_OBJECTIVE_LABELS), key="finder_objective",
-            help="Balanced trades extension against smoothness and box practicality.",
+            help="Every candidate box is derived by the same optimizer as the "
+                 "Design workspace, at the fixed comparison volume. Balanced "
+                 "trades extension against smoothness and box practicality.",
         )
         with st.expander("Optimization constraints"):
             _finder_number_input(
@@ -2098,11 +2139,6 @@ def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
                 help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
             )
 
-    max_batch_candidates = max(len(filtered_preset_names), 1)
-    if int(st.session_state.get(
-        "finder_candidate_limit", _FINDER_DEFAULTS["finder_candidate_limit"]
-    )) > max_batch_candidates:
-        st.session_state["finder_candidate_limit"] = max_batch_candidates
     with st.expander("Advanced scan"):
         _finder_number_input(
             "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
@@ -2113,10 +2149,6 @@ def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
             "Evaluation range end (Hz)", min_value=10.0, max_value=5000.0,
             step=10.0, key="finder_f_max",
             help="Highest frequency included in the low-frequency comparison.",
-        )
-        _finder_number_input(
-            "Drivers to evaluate", min_value=1, max_value=max_batch_candidates,
-            step=50, key="finder_candidate_limit",
         )
         _finder_number_input(
             "Top results to show", min_value=1, max_value=200,
@@ -2136,7 +2168,7 @@ def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
 
     finder_volume_l = float(_finder_value("finder_volume_l"))
     st.caption(
-        f"{len(filtered_preset_names)} matching presets · {load_type}"
+        f"Scans all {len(filtered_preset_names)} matching presets · {load_type}"
         + ("" if is_infinite_baffle else f" · {finder_volume_l:.1f} L")
     )
     batch_blocked = (
@@ -2737,18 +2769,20 @@ _default("workspace_mode", "Find a driver")
 _default("ui_show_advanced", False)
 _ensure_finder_defaults()
 _preserve_library_filters()
+_preserve_design_state()
 if "box_strategy" not in st.session_state:
     if st.session_state.get("sim_auto_align", True):
-        st.session_state["box_strategy"] = "Suggested"
+        _set_box_strategy_state("Balanced")
     elif st.session_state.get("opt_align_mode") == "Optimized (goals)":
-        st.session_state["box_strategy"] = "Optimized"
+        _set_box_strategy_state(_normalize_box_strategy("Optimized"))
     else:
-        st.session_state["box_strategy"] = "Manual"
+        _set_box_strategy_state("Manual")
+else:
+    # Live sessions may still carry v0.3 "Suggested"/"Optimized" values.
+    _set_box_strategy_state(
+        _normalize_box_strategy(st.session_state["box_strategy"]))
 if "_optimizer_engine_revision" not in st.session_state:
-    st.session_state["_optimizer_engine_revision"] = (
-        0 if st.session_state.get("box_strategy") == "Optimized"
-        else _OPTIMIZER_ENGINE_REVISION
-    )
+    st.session_state["_optimizer_engine_revision"] = _OPTIMIZER_ENGINE_REVISION
 _apply_pending_batch_result()
 _apply_pending_atlas_point()
 
@@ -2999,10 +3033,12 @@ with st.sidebar:
             on_change=_on_box_strategy_change,
             disabled=st.session_state["load_type"] == "Infinite baffle",
             width="stretch",
-            help="Suggested applies the empirical starter box and re-applies it "
-                 "automatically when the driver or load changes. Optimized "
-                 "derives the box from the optimizer goals. Manual unlocks "
-                 "volumes and tuning for direct editing.",
+            help="One optimizer drives every goal: Max extension favors the "
+                 "deepest F3, Balanced trades extension against smoothness "
+                 "and practicality, Flattest favors the smoothest passband. "
+                 "The box re-applies automatically when the driver, load or "
+                 "constraints change. Manual unlocks volumes and tuning for "
+                 "direct editing.",
         )
         if preset_name != "Custom":
             st.caption("Preset values are applied immediately.")
@@ -3068,9 +3104,9 @@ with st.sidebar:
             current_sealed_alignment = _dccav.suggest_sealed_alignment(current_ts)
             derived = _dccav.complete_driver(current_ts)
             load_type = st.session_state["load_type"]
-            box_strategy = str(st.session_state.get("box_strategy", "Suggested"))
+            box_strategy = str(st.session_state.get("box_strategy", "Balanced"))
             if (
-                box_strategy == "Optimized"
+                box_strategy in _OPT_OBJECTIVE_LABELS
                 and st.session_state.get("_optimizer_engine_revision", 0)
                 != _OPTIMIZER_ENGINE_REVISION
             ):
@@ -3087,44 +3123,10 @@ with st.sidebar:
                     _OPTIMIZER_ENGINE_REVISION)
             if load_type == "Bass reflex":
                 st.subheader("Bass Reflex Alignment")
-                st.caption(
-                    f"Starting point (Vb=Vas, Fb=Fs): Vb {current_reflex_alignment.vb_l:.2f} L / "
-                    f"Fb {current_reflex_alignment.fb_hz:.1f} Hz"
-                )
-                if box_strategy == "Manual" and st.button(
-                    "Reset to suggested reflex", use_container_width=True, key="apply_box_reflex"
-                ):
-                    _apply_empirical_box_for(current_ts)
-                    _mark_auto_alignment_synced(current_ts)
-                    st.rerun()
             elif load_type == "Sealed":
                 st.subheader("Sealed Alignment")
-                st.caption(
-                    f"Qtc starter: Vb {current_sealed_alignment.vb_l:.2f} L · "
-                    f"Fc {current_sealed_alignment.fc_hz:.1f} Hz · "
-                    f"Qtc {current_sealed_alignment.qtc:.3f}"
-                )
-                if box_strategy == "Manual" and st.button(
-                    "Reset to sealed starter", use_container_width=True, key="apply_box_sealed"
-                ):
-                    _apply_empirical_box_for(current_ts)
-                    _mark_auto_alignment_synced(current_ts)
-                    st.rerun()
             elif load_type == "Bandpass 4th order":
                 st.subheader("4th-order Bandpass Alignment")
-                st.caption(
-                    f"Qbp starter: sealed rear Vs {current_bandpass4_alignment.vs_l:.2f} L · "
-                    f"ported front Vp {current_bandpass4_alignment.vp_l:.2f} L / "
-                    f"Fp {current_bandpass4_alignment.fp_hz:.1f} Hz · "
-                    f"Vtot {current_bandpass4_alignment.vs_l + current_bandpass4_alignment.vp_l:.2f} L"
-                )
-                if box_strategy == "Manual" and st.button(
-                    "Reset to bandpass starter", use_container_width=True,
-                    key="apply_box_bandpass4",
-                ):
-                    _apply_empirical_box_for(current_ts)
-                    _mark_auto_alignment_synced(current_ts)
-                    st.rerun()
             elif load_type == "Infinite baffle":
                 st.subheader("Infinite Baffle")
                 st.caption(
@@ -3133,26 +3135,21 @@ with st.sidebar:
                 )
             else:
                 st.subheader("DCCAV Alignment")
-                st.caption(
-                    f"Suggested: Vh {current_alignment.vh_l:.2f} L / {current_alignment.fh_hz:.1f} Hz · "
-                    f"Vl {current_alignment.vl_l:.2f} L / {current_alignment.fl_hz:.1f} Hz · "
-                    f"Vtot {current_alignment.vh_l + current_alignment.vl_l:.2f} L"
-                )
                 alignment_warning = _alignment_warning(current_ts, current_alignment)
                 if alignment_warning:
                     st.warning(alignment_warning)
-                if box_strategy == "Manual" and st.button(
-                    "Reset to suggested alignment", use_container_width=True, key="apply_box_dccav"
-                ):
-                    _apply_empirical_box_for(current_ts)
-                    _mark_auto_alignment_synced(current_ts)
-                    st.rerun()
-            if load_type != "Infinite baffle" and box_strategy == "Suggested":
-                st.caption("Suggested strategy is active: driver or load changes update the box automatically.")
-            if load_type != "Infinite baffle" and box_strategy == "Optimized":
-                with st.container(border=True):
-                    st.markdown("##### Optimizer goals")
-                    st.selectbox("Goal", list(_OPT_OBJECTIVE_LABELS), key="opt_objective")
+            if load_type != "Infinite baffle" and box_strategy in _OPT_OBJECTIVE_LABELS:
+                st.caption(
+                    "The optimizer re-applies this goal automatically when the "
+                    "driver, load or constraints change."
+                )
+                auto_box_error = st.session_state.get("_auto_box_error")
+                if auto_box_error:
+                    st.warning(
+                        "No buildable optimized box for the current goal; the "
+                        f"starter box is shown instead. ({auto_box_error})"
+                    )
+                with st.expander("Optimization constraints"):
                     g1, g2 = st.columns(2)
                     with g1:
                         st.number_input("Max total volume (L, 0 = off)", min_value=0.0, max_value=2000.0,
@@ -3166,21 +3163,9 @@ with st.sidebar:
                                         step=1.0, key="opt_target_f3_hz")
                         st.number_input("Max group delay (ms, 0 = off)", min_value=0.0, max_value=100.0,
                                         step=1.0, key="opt_max_gd_ms")
-                    if st.button("Run optimizer and apply", type="primary", use_container_width=True):
-                        try:
-                            with st.spinner("Optimizing box..."):
-                                optimized = _run_box_optimizer(current_ts)
-                        except ValueError as exc:
-                            st.error(f"No buildable optimized box: {exc}")
-                        else:
-                            _apply_optimized_box(optimized.box)
-                            _mark_auto_alignment_synced(current_ts)
-                            st.session_state["_optimizer_engine_revision"] = (
-                                _OPTIMIZER_ENGINE_REVISION)
-                            st.rerun()
-                    current_optimizer_summary = _current_optimizer_summary(current_ts)
-                    if current_optimizer_summary:
-                        st.caption(current_optimizer_summary)
+                current_optimizer_summary = _current_optimizer_summary(current_ts)
+                if current_optimizer_summary:
+                    st.caption(current_optimizer_summary)
         except Exception as exc:
             current_ts = None
             current_alignment = None
@@ -3190,7 +3175,7 @@ with st.sidebar:
             derived = None
             st.error(f"Driver parameters are invalid - check the T/S values. ({exc})")
 
-        box_edit_disabled = st.session_state.get("box_strategy", "Suggested") != "Manual"
+        box_edit_disabled = st.session_state.get("box_strategy", "Balanced") != "Manual"
         if st.session_state["load_type"] == "Bass reflex":
             _box_number_with_nudge(
                 "Vb box (L)", "reflex_vb_l", min_value=0.05, max_value=1000.0, step=0.01,
@@ -3227,7 +3212,8 @@ with st.sidebar:
                     "Vent diameter (cm, 0 = off)", min_value=0.0, max_value=60.0,
                     step=0.5, key="reflex_port_d_cm")
                 st.caption(
-                    "Optimized strategy recalculates vent diameter from tuning and air speed. "
+                    "Auto strategies recalculate the vent from tuning, air speed and "
+                    "the displacement minimum-area golden rule. "
                     "Duct length uses the Helmholtz relation with one flanged and "
                     "one free end; air-speed warnings use the ~5% of c guideline."
                 )
@@ -3277,7 +3263,8 @@ with st.sidebar:
                     "Front vent diameter (cm, 0 = off)", min_value=0.0,
                     max_value=60.0, step=0.5, key="bandpass4_port_d_cm")
                 st.caption(
-                    "Optimized strategy recalculates vent diameter from tuning and air speed. "
+                    "Auto strategies recalculate the vent from tuning, air speed and "
+                    "the displacement minimum-area golden rule. "
                     "Only the front-chamber vent radiates externally; length uses "
                     "one flanged and one free end."
                 )
@@ -3322,7 +3309,8 @@ with st.sidebar:
                         "Lower port diameter (cm, 0 = off)", min_value=0.0, max_value=60.0,
                         step=0.5, key="box_port_d_l_cm")
                 st.caption(
-                    "Optimized strategy recalculates both diameters from tuning and air speed. "
+                    "Auto strategies recalculate both diameters from tuning, air speed and "
+                    "the displacement minimum-area golden rule. "
                     "Duct lengths use the Helmholtz relation: the upper port counts "
                     "two flanged ends, the lower vent one flanged and one free end; "
                     "air-speed warnings use the ~5% of c guideline."
@@ -3461,11 +3449,42 @@ try:
                 f"the ~{_dccav.PORT_VELOCITY_GUIDELINE_MS:.0f} m/s (5% of c) chuffing guideline; "
                 "enlarge the port or reduce drive level."
             )
+        golden_cm = _dccav.port_displacement_min_diameter_cm(
+            current_ts, row["_fb_hz"])
+        if 0.0 < row["Diameter cm"] < golden_cm:
+            model_warnings.append(
+                f"{row['Port']}: {row['Diameter cm']:.1f} cm is below the minimum-area "
+                f"golden rule for this driver's displacement (needs ≥ {golden_cm:.1f} cm "
+                f"at {row['_fb_hz']:.1f} Hz); expect compression at rated excursion "
+                "regardless of the simulated drive level."
+            )
+        if row["Length cm"] > 0.0:
+            duct_fraction = _dccav.port_volume_fraction(
+                row["_volume_l"], row["_fb_hz"], row["Diameter cm"],
+                row["_end_correction"])
+            if duct_fraction > _dccav.PORT_MAX_VOLUME_FRACTION:
+                duct_l = duct_fraction * row["_volume_l"]
+                model_warnings.append(
+                    f"{row['Port']}: the {row['Diameter cm']:.1f} × {row['Length cm']:.1f} cm "
+                    f"duct occupies {duct_l:.2f} L = {duct_fraction:.0%} of the "
+                    f"{row['_volume_l']:.1f} L chamber (reflex directive ≤ "
+                    f"{_dccav.PORT_MAX_VOLUME_FRACTION:.0%}); the box is too small for "
+                    "this tuning and diameter - enlarge the chamber, raise the tuning "
+                    "or reduce the port."
+                )
+            pipe_hz = _dccav.port_pipe_resonance_hz(row["Length cm"])
+            if pipe_hz < _dccav.PORT_PIPE_RESONANCE_GUARD * row["_fb_hz"]:
+                model_warnings.append(
+                    f"{row['Port']}: the {row['Length cm']:.1f} cm duct has its first "
+                    f"pipe resonance at ~{pipe_hz:.0f} Hz, inside the working band "
+                    f"(< {_dccav.PORT_PIPE_RESONANCE_GUARD:.0f}× the {row['_fb_hz']:.1f} Hz "
+                    "tuning); shorten the duct with a smaller diameter or higher tuning."
+                )
     design_name = str(st.session_state.get("driver_preset_name", "Custom"))
     design_config = str(st.session_state.get("driver_config", "Single driver"))
     if design_config != "Single driver":
         design_name = f"{design_name} ({design_config})"
-    design_strategy = str(st.session_state.get("box_strategy", "Suggested"))
+    design_strategy = str(st.session_state.get("box_strategy", "Balanced"))
     st.caption(f"{design_name} · {load_type} · {design_strategy} · {sim_voltage:.2f} V")
     if is_infinite_baffle:
         m1, m2, m3, m4 = st.columns(4)

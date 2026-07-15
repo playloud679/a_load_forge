@@ -902,6 +902,62 @@ def port_min_diameter_cm(
     return float(radius_m * 200.0)
 
 
+PORT_DISPLACEMENT_COEFFICIENT_CM = 20.3
+PORT_MAX_VOLUME_FRACTION = 0.10
+PORT_PIPE_RESONANCE_GUARD = 4.0
+
+
+def port_displacement_min_diameter_cm(ts: DriverTS, fb_hz: float) -> float:
+    """Return the golden-rule minimum vent diameter for the driver displacement.
+
+    Classic minimum-area guideline (Small 1972, popularized by Dickason):
+    ``Dmin = 20.3 * (Vd^2 / Fb)^0.25`` cm with ``Vd = Sd * Xmax`` in litres.
+    Unlike the 5%-of-c air-speed check this floor is drive-independent: it
+    protects the vent from compression and turbulence at rated excursion even
+    when the simulated voltage is low.  Drivers without a published Xmax
+    return 0.0 (guideline unavailable).
+    """
+    _require_positive("fb_hz", fb_hz)
+    vd_l = float(ts.sd_cm2) * float(ts.xmax_mm) / 10_000.0
+    if vd_l <= 0.0:
+        return 0.0
+    return float(
+        PORT_DISPLACEMENT_COEFFICIENT_CM * (vd_l**2 / float(fb_hz)) ** 0.25)
+
+
+def port_volume_fraction(
+    volume_l: float,
+    fb_hz: float,
+    diameter_cm: float,
+    end_correction: float = 1.463,
+) -> float:
+    """Fraction of the chamber volume occupied by the duct itself.
+
+    The duct is the Helmholtz cylinder `port_length_cm()` requires for the
+    given tuning.  Classic reflex practice keeps this below
+    `PORT_MAX_VOLUME_FRACTION` (~10%): a longer/fatter duct displaces the
+    chamber it tunes and the lumped model stops being reliable.  Returns 0.0
+    when the diameter cannot reach the tuning at all (negative length, flagged
+    separately by the zero-length warning).
+    """
+    length_cm = port_length_cm(volume_l, fb_hz, diameter_cm, end_correction)
+    if length_cm <= 0.0:
+        return 0.0
+    duct_l = np.pi * (float(diameter_cm) / 2.0) ** 2 * length_cm / 1000.0
+    return float(duct_l / float(volume_l))
+
+
+def port_pipe_resonance_hz(length_cm: float) -> float:
+    """First half-wave (organ-pipe) resonance of the duct, `c / (2 L)`.
+
+    Approximation on the physical length; keeping it above
+    `PORT_PIPE_RESONANCE_GUARD` times the tuning keeps the duct's own
+    standing wave out of the vented passband.
+    """
+    _require_positive("length_cm", length_cm)
+    return float(SPEED_OF_SOUND / (2.0 * float(length_cm) / 100.0))
+
+
 def _optimizer_metrics(
     ts: DriverTS,
     box: DccavBox | ReflexBox | Bandpass4Box | SealedBox,
@@ -921,30 +977,48 @@ def _optimizer_metrics(
         fl = box.fb_hz
         required_port_diameter_cm = max(
             port_min_diameter_cm(box.vb_l, box.fb_hz, 1.463),
+            port_displacement_min_diameter_cm(ts, box.fb_hz),
             velocity_diameter_cm(result.port_l_velocity),
         )
+        port_volume_fraction_max = port_volume_fraction(
+            box.vb_l, box.fb_hz, required_port_diameter_cm, 1.463)
     elif isinstance(box, Bandpass4Box):
         result = simulate_bandpass4(ts, box, freq, voltage_v)
         vtot = box.vs_l + box.vp_l
         fl = box.fp_hz
         required_port_diameter_cm = max(
             port_min_diameter_cm(box.vp_l, box.fp_hz, 1.463),
+            port_displacement_min_diameter_cm(ts, box.fp_hz),
             velocity_diameter_cm(result.port_l_velocity),
         )
+        port_volume_fraction_max = port_volume_fraction(
+            box.vp_l, box.fp_hz, required_port_diameter_cm, 1.463)
     elif isinstance(box, SealedBox):
         result = simulate_sealed(ts, box, freq, voltage_v)
         vtot = box.vb_l
         fl = sealed_system_metrics(ts, box)[0]
         required_port_diameter_cm = 0.0
+        port_volume_fraction_max = 0.0
     else:
         result = simulate(ts, box, freq, voltage_v)
         vtot = box.vh_l + box.vl_l
         fl = box.fl_hz
-        required_port_diameter_cm = max(
+        # Each port must satisfy its own minima; the duct-volume directive is
+        # then checked against the chamber that hosts each duct.
+        upper_diameter_cm = max(
             port_min_diameter_cm(box.vh_l, box.fh_hz, 1.7),
-            port_min_diameter_cm(box.vl_l, box.fl_hz, 1.463),
+            port_displacement_min_diameter_cm(ts, box.fh_hz),
             velocity_diameter_cm(result.port_h_velocity),
+        )
+        lower_diameter_cm = max(
+            port_min_diameter_cm(box.vl_l, box.fl_hz, 1.463),
+            port_displacement_min_diameter_cm(ts, box.fl_hz),
             velocity_diameter_cm(result.port_l_velocity),
+        )
+        required_port_diameter_cm = max(upper_diameter_cm, lower_diameter_cm)
+        port_volume_fraction_max = max(
+            port_volume_fraction(box.vh_l, box.fh_hz, upper_diameter_cm, 1.7),
+            port_volume_fraction(box.vl_l, box.fl_hz, lower_diameter_cm, 1.463),
         )
     thresholds = response_threshold_frequencies(result)
     f3 = thresholds[3]
@@ -987,6 +1061,7 @@ def _optimizer_metrics(
         "total_volume_l": float(vtot),
         "fl_hz": float(fl),
         "required_port_diameter_cm": float(required_port_diameter_cm),
+        "port_volume_fraction": float(port_volume_fraction_max),
         "sealed_fc_hz": equivalent_sealed_fc_hz(ts, box),
     }
 
@@ -1006,6 +1081,11 @@ def _score_alignment(
     required_port_diameter_cm = metrics["required_port_diameter_cm"]
     if required_port_diameter_cm > port_limit_cm:
         return 1e5 + required_port_diameter_cm / port_limit_cm
+    # Reflex directive: the smallest workable duct must not displace more
+    # than PORT_MAX_VOLUME_FRACTION of the chamber it tunes.
+    port_fraction = metrics.get("port_volume_fraction", 0.0)
+    if port_fraction > PORT_MAX_VOLUME_FRACTION:
+        return 1e5 + port_fraction / PORT_MAX_VOLUME_FRACTION
     if is_dccav and f3 < _OPTIMIZER_DCCAV_F3_RATIO * metrics["fl_hz"]:
         return 1e5 + metrics["fl_hz"] / max(f3, EPS)
     weights = _OBJECTIVE_WEIGHTS[goals.objective]

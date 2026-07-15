@@ -581,6 +581,38 @@ The smallest circular-port diameter that can reach `fb_hz` on the given
 volume, i.e. the diameter at which `port_length_cm()` crosses zero.  Both
 helpers are exact inverses of `port_length_cm()` at the zero-length boundary.
 
+### `port_volume_fraction(volume_l, fb_hz, diameter_cm, end_correction=1.463) -> float`
+
+Fraction of the chamber volume occupied by the Helmholtz duct itself (the
+cylinder `port_length_cm()` requires for the tuning).  Classic reflex practice
+keeps it at or below `PORT_MAX_VOLUME_FRACTION` (10%): beyond that the duct
+displaces the chamber it tunes and the lumped model stops being reliable.
+Returns 0.0 when the diameter cannot reach the tuning at all (that case is
+flagged by the zero-length warning instead).  The optimizer evaluates it per
+port at each port's own required minimum diameter and rejects candidates above
+the directive as infeasible; the UI warns on the actual entered geometry.
+
+### `port_pipe_resonance_hz(length_cm) -> float`
+
+First half-wave (organ-pipe) resonance of the duct, `c / (2 L)` on the
+physical length.  The UI warns when it falls below
+`PORT_PIPE_RESONANCE_GUARD` (4×) times the port tuning, i.e. when the duct's
+own standing wave lands inside the vented passband.  Non-positive lengths
+raise `ValueError`.
+
+### `port_displacement_min_diameter_cm(ts, fb_hz) -> float`
+
+The classic minimum-area golden rule (Small 1972 / Dickason):
+`Dmin = PORT_DISPLACEMENT_COEFFICIENT_CM * (Vd^2 / Fb)^0.25` cm with
+`Vd = Sd*Xmax` in litres and the coefficient at `20.3`.  Unlike the 5%-of-c
+air-speed check this floor is drive-independent: it sizes the vent for the
+driver's rated displacement even when the simulated voltage is low.  Returns
+`0.0` when the driver has no published `Xmax`; non-positive `fb_hz` raises
+`ValueError`.  It enters the optimizer's `required_port_diameter_cm`
+feasibility metric for every ported load, floors the automatic vent sizing in
+the UI, and drives a Port Geometry warning when an active vent is smaller
+than the rule for the composite driver.
+
 ### `simulate(ts, box, freq_hz=None, voltage_v=2.83, series_r_ohm=0.0) -> SimulationResult`
 
 Solves the two-node acoustic circuit across the frequency array.  The source
@@ -737,6 +769,13 @@ If no true rising crossing exists in the simulated range, the returned value is
 - port length Helmholtz round-trip, impossible tiny-diameter flagging, air
   speed area scaling and the UI small-vent chuffing warning, including the
   quoted tuning ceiling and minimum feasible diameter
+- displacement minimum-area golden rule: exact hand-computed diameter,
+  tuning monotonicity, missing-Xmax and invalid-tuning handling, the floor in
+  the applied vent sizing and optimizer feasibility metric at low drive, and
+  the UI warning below/at the rule
+- duct-volume directive: exact cylinder fraction, optimizer rejection above
+  10% with a feasible box elsewhere, pipe-resonance helper value and the UI
+  warnings for an oversized duct and an in-band pipe resonance
 - reference efficiency/sensitivity/EBP formulas and their UI `Driver details`
   panel with the EBP topology hint
 - series-resistance effects: impedance shift at the source terminals, reduced

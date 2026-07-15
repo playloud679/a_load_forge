@@ -26,8 +26,8 @@ far-field measurement substitute.
 Current UI highlights:
 
 - separate `Design a box` and `Find a driver` workspaces
-- one `Suggested` / `Optimized` / `Manual` box strategy instead of overlapping
-  alignment modes
+- one optimizer behind every automatic box: a `Max extension` / `Balanced` /
+  `Flattest` / `Manual` strategy control instead of overlapping alignment modes
 - response, excursion, impedance, ports and group-delay design tabs
 - explicit response frequency-window zoom with automatic vertical fit and reset
 - response pinning for A/B overlays

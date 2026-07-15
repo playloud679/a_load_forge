@@ -56,25 +56,32 @@ simulator units.
 
 ### Box Strategy
 
-Boxed loads use one three-state control:
+One optimizer computes every automatic box; the strategy control only selects
+its objective:
 
-- **Suggested** follows the current driver and load automatically. Box volume
-  and tuning fields remain visible but locked.
-- **Optimized** exposes extension, ripple, excursion, group-delay and volume
-  goals. **Run optimizer and apply** updates the active box and recalculates
-  every active vent diameter for a positive Helmholtz length and the 5%-of-c
-  air-speed guideline; geometry from the previous preset is not reused. Stored
-  optimized boxes are recalculated automatically after a physics-engine update.
-  If no candidate satisfies credibility, geometry and air-speed limits, the app
-  reports that no buildable result exists instead of applying a warning-laden box.
-- **Manual** unlocks direct volume and tuning edits, `-3%` / `+3%` nudges and a
-  reset action for the selected load.
+- **Max extension** favors the deepest F3 the constraints allow.
+- **Balanced** trades extension against smoothness and box practicality.
+- **Flattest** favors the smoothest passband.
+- **Manual** unlocks direct volume and tuning edits with `-3%` / `+3%` nudges.
+
+With an objective selected the box re-applies automatically whenever the
+driver, load or an optimization constraint changes; the **Optimization
+constraints** expander sets max volume, target F3, ripple, excursion and group
+delay. Every result recalculates the active vent diameters for a positive
+Helmholtz length and the 5%-of-c air-speed guideline; stored boxes are
+recalculated automatically after a physics-engine update. If no candidate
+satisfies credibility, geometry and air-speed limits, the app keeps a starter
+box and reports why instead of applying a warning-laden result.
+
+Projects saved by earlier versions load transparently: the old **Suggested**
+strategy maps to **Balanced** and the old **Optimized** strategy maps to its
+stored goal.
 
 Infinite baffle has no enclosure, so the strategy control is disabled.
 
 ### DCCAV Alignment
 
-The app computes a first-pass alignment:
+The empirical first-pass alignment seeds the optimizer search:
 
 ```text
 Vh = 2.05 * Qts^2 * Vas
@@ -84,23 +91,18 @@ fl = 0.466 * Fs / Qts
 f3 = 0.83 * fl
 ```
 
-With **Suggested**, these values are applied and kept synchronized
-automatically. With **Manual**, **Reset to suggested alignment** restores them;
-the editable `Vh`, `fh`, `Vl` and `fl` controls also provide `-3%` and `+3%`
-nudges.
+The selected objective refines it automatically; with **Manual** the editable
+`Vh`, `fh`, `Vl` and `fl` controls also provide `-3%` and `+3%` nudges.
 
 ### Bass Reflex Alignment
 
-The normal reflex path starts from:
+The reflex optimizer search is seeded from the plain starting point (not a
+named QB3/SBB4/EBS alignment):
 
 ```text
 Vb = Vas
 Fb = Fs
 ```
-
-With **Suggested**, these values are applied automatically. With **Manual**,
-**Reset to suggested reflex** restores them. This is a plain starting point,
-not a named QB3/SBB4/EBS alignment.
 
 ### Acoustic Suspension Alignment
 
@@ -112,8 +114,8 @@ driver's `Qts`, and displays `Vb`, `Fc` and achieved `Qtc`.  `Vb`, `Qabs` and
 
 The driver is enclosed between a sealed rear chamber `Vs` and ported front
 chamber `Vp`; only the front vent radiates. The symmetrical starter targets
-`Qbp=0.707` and exposes `Vs`, `Vp` and `Fp`. Suggested keeps it synchronized,
-Optimized searches both chamber volumes and tuning, and Manual unlocks them.
+`Qbp=0.707` and seeds the optimizer, which searches both chamber volumes and
+the tuning for the selected objective; Manual unlocks `Vs`, `Vp` and `Fp`.
 
 ### Infinite Baffle
 
@@ -121,7 +123,7 @@ Infinite baffle has no box or optimizer controls.  It keeps the driver's
 free-air `Fs` and `Qts` and assumes the rear wave is perfectly isolated.  The
 ideal model does not include finite-panel diffraction, baffle step or leakage.
 
-The suggested alignment is an empirical small-signal starting point, not a full
+The empirical starter is a small-signal starting point, not a full
 mechanical enclosure design.  For low-Qts pro 12" drivers it can produce very
 small volumes; the UI warns when the total suggested `Vh+Vl` is likely too small
 to treat as a practical final box without checking port displacement, air speed,
@@ -182,6 +184,20 @@ peak air speed and warns when:
 - the air speed exceeds the ~17 m/s chuffing guideline
 - the requested volume/tuning pair is impossible for the selected diameter,
   quoting the zero-length tuning ceiling and the minimum feasible diameter
+- the diameter is below the minimum-area golden rule
+  `Dmin = 20.3 · (Vd²/Fb)^0.25` cm (Vd = Sd·Xmax in litres): unlike the
+  air-speed check this floor does not depend on the simulated voltage, so a
+  quiet simulation cannot hide an undersized vent
+- the duct itself occupies more than 10% of the chamber it tunes: the box is
+  too small for that tuning/diameter pair and the Helmholtz model is no longer
+  reliable
+- the duct's first pipe resonance `c/2L` falls below 4× the tuning, i.e. the
+  port's own standing wave lands inside the working band
+
+Automatic vent sizing (the objective strategies and the Finder) always applies
+the largest of the tuning-feasibility, air-speed and golden-rule diameters,
+and the optimizer rejects boxes whose smallest workable duct would break the
+10% duct-volume directive.
 
 ### Find a Driver
 
@@ -194,31 +210,31 @@ to results, candidate preview and application:
 2. **Candidate library** filters the catalog by text, source, size, brand,
    bandwidth class and optional price ceiling. Typing in **Search preset**
    immediately lists the first matching driver names before a scan is started.
-3. **Ranking** selects quick scan or per-driver optimization, its optional
-   goals, scan range and search size, then starts the search with **Find drivers**.
-   Optimizer goals appear only after optimization is enabled; technical range,
+3. **Ranking** selects the optimization goal and constraints, plus the scan
+   range, then starts the search with **Find drivers**. Technical range,
    result-count and resolution controls stay inside **Advanced scan**.
 
 - **Comparison volume** is exact: `Vh+Vl` for DCCAV, `Vs+Vp` for bandpass, or `Vb` for reflex and
   acoustic suspension. Infinite baffle ignores it.
-- **Optimization goal** and **Comparison voltage** define the optimized comparison.
-- **Optimize enclosure per candidate** keeps the volume fixed
-  while tuning the remaining alignment parameters.
-- **Optimization constraints** reveals desired bass extension F3, allowed
+- **Optimization goal** selects the same optimizer objective as the Design
+  workspace — `Max extension`, `Balanced` or `Flattest`. Every candidate box
+  is derived by that one optimizer at the fixed comparison volume and the
+  comparison voltage; infinite baffle candidates are ranked in free air.
+- **Optimization constraints** sets desired bass extension F3, allowed
   ripple, maximum excursion relative to each driver's Xmax, group delay and the
   clearly labelled evaluation-frequency range.
-- **Drivers to evaluate**, **Top results to show** and **Simulation resolution**
-  control search cost and output size.
+- **Top results to show** and **Simulation resolution** control output size
+  and search cost. Every scan evaluates the entire filtered library; the
+  matching-preset count above **Find drivers** updates live as filters change.
+  Large optimized scans run across worker processes with a live progress bar.
 
-A new Finder starts with a practical quick-scan profile: 40 L, `Balanced`,
-2.83 V, F3 target 0 Hz (deepest available extension), 3 dB ripple, 1× Xmax,
-30 ms group delay, a 10-300 Hz evaluation range, 500 evaluated drivers, 20
-results and 240 simulation points.
-Per-candidate optimization is initially off because it is substantially
-slower; enable it after filters have produced a useful shortlist. **Reset
-Finder defaults** restores this profile without changing the active design.
+A new Finder starts with a practical profile: 40 L, `Balanced`, 2.83 V, F3
+target 0 Hz (deepest available extension), 3 dB ripple, 1× Xmax, 30 ms group
+delay, a 10-300 Hz evaluation range, 20 results and 240 simulation points.
+**Reset Finder defaults** restores this profile without changing the active
+design.
 
-**Find drivers** evaluates only the presets currently admitted by the sidebar
+**Find drivers** evaluates every preset currently admitted by the sidebar
 filters. Each result can include class, price, purchase link and a
 normalized response sparkline. Selecting a row opens a preview without
 changing the active design. **Apply candidate to design** is the only action

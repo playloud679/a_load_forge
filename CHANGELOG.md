@@ -1,5 +1,34 @@
 # Changelog
 
+## 0.4.4 (2026-07-15)
+
+- **One box algorithm, three objectives**: replaced the overlapping
+  `Suggested` / `Optimized` empirical-vs-optimizer split with a single
+  optimizer-driven `Max extension` / `Balanced` / `Flattest` / `Manual`
+  strategy. Every automatic box re-applies on driver, load or constraint
+  changes; the empirical starter now only seeds the search. The Finder's
+  "Optimize enclosure per candidate" toggle is retired — ranking always goes
+  through the same optimizer at the fixed comparison volume, and always scans
+  every preset the sidebar filters admit (the manual "Drivers to evaluate"
+  cap is gone). Older `.lfp` files, share links and live sessions migrate
+  automatically onto the new strategy names.
+- **Fix: Design values surviving a Finder visit**: a round trip through the
+  `Find a driver` workspace was silently resetting drive voltage, manual box
+  edits and driver T/S values to their widget defaults/minima (reported as
+  "changing driver configuration halves the amplitude" - the real cause was
+  voltage collapsing to 0.01 V). Design state now persists across workspace
+  switches.
+- **Port sizing directives**: automatic vent sizing and the optimizer's
+  feasibility check now enforce, alongside the existing Helmholtz-length and
+  5%-of-c air-speed checks, two more reflex directives: the classic
+  minimum-area golden rule (`Dmin = 20.3*(Vd^2/Fb)^0.25`, drive-independent)
+  and a 10% cap on the duct's own volume relative to the chamber it tunes.
+  The Port Geometry panel warns when an entered vent is undersized by the
+  golden rule, when the duct displaces too much of its chamber, or when the
+  duct's own pipe resonance falls inside the working band.
+- **Verification**: py_compile, Ruff and Streamlit AppTest clean; full suite
+  85 passed / 0 failed / 0 skipped.
+
 ## 0.4.3 (2026-07-14)
 
 - **Strict optimizer feasibility**: DCCAV F3 credibility, Helmholtz geometry and
