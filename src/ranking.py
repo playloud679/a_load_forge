@@ -69,6 +69,8 @@ def rank_preset_row(
     freq = np.geomspace(float(f_min_hz), float(f_max_hz), int(points))
     try:
         ts = presets.get_driver_preset(name)
+        if load_type not in ("Sealed", "Infinite baffle") and ts.xmax_mm <= 0:
+            return None
         info = presets.driver_preset_info(name)
         driver_class = engine.classify_driver_bandwidth(ts).driver_class
         ripple_db = float("nan")

@@ -557,31 +557,31 @@ commonly produce audible port noise and compression that the lumped model does
 not simulate.  The UI shows per-port peaks in the Port Geometry table and
 appends a chuffing warning when the peak exceeds the guideline.
 
-### `port_length_cm(volume_l, fb_hz, port_diameter_cm, end_correction=1.463) -> float`
+### `port_length_cm(volume_l, fb_hz, port_diameter_cm, end_correction=1.43) -> float`
 
 Physical tube length in cm of a circular port, from the Helmholtz relation
 `L_eff = c^2 * S / (w^2 * V)` minus the end correction
-`end_correction * radius`.  The default 1.463 models one flanged plus one free
-end (a vent flush in a panel); the UI uses 1.7 for the DCCAV upper port, which
+`end_correction * radius`.  The default 1.43 models one flanged (k=0.82) plus one free
+end (k=0.61); the UI uses 1.64 (k=0.82+0.82) for the DCCAV upper port, which
 joins two chambers with two flanged ends.  A non-positive result means the
 opening's end corrections alone exceed the required acoustic mass — the
 diameter is too small for the volume/tuning pair — and the UI reports it as a
 warning that quotes `port_max_tuning_hz()` and `port_min_diameter_cm()`
 instead of a usable length.
 
-### `port_max_tuning_hz(volume_l, port_diameter_cm, end_correction=1.463) -> float`
+### `port_max_tuning_hz(volume_l, port_diameter_cm, end_correction=1.43) -> float`
 
 The tuning ceiling of a zero-length opening: with no duct at all, the port's
 acoustic mass is just the end corrections, so this is the highest `fb` the
 diameter can reach on the given volume.
 
-### `port_min_diameter_cm(volume_l, fb_hz, end_correction=1.463) -> float`
+### `port_min_diameter_cm(volume_l, fb_hz, end_correction=1.43) -> float`
 
 The smallest circular-port diameter that can reach `fb_hz` on the given
 volume, i.e. the diameter at which `port_length_cm()` crosses zero.  Both
 helpers are exact inverses of `port_length_cm()` at the zero-length boundary.
 
-### `port_volume_fraction(volume_l, fb_hz, diameter_cm, end_correction=1.463) -> float`
+### `port_volume_fraction(volume_l, fb_hz, diameter_cm, end_correction=1.43) -> float`
 
 Fraction of the chamber volume occupied by the Helmholtz duct itself (the
 cylinder `port_length_cm()` requires for the tuning).  Classic reflex practice
@@ -601,6 +601,16 @@ the same port at the same diameter — before this helper existed, the two call
 sites computed the velocity floor slightly differently (only the UI applied
 the margin), which was enough on its own to make the optimizer approve a
 diameter the UI would then round up past the duct-volume cap.
+
+### `rated_velocity_diameter_cm(ts, result, sim_voltage_v, volume_velocity) -> float`
+
+Velocity floor at the driver's excursion limit instead of the simulation
+voltage.  When the simulation runs at a low voltage (e.g. 2.83 V) a powerful
+driver barely moves, making the raw ``port_velocity_diameter_cm`` floor
+negligible.  This helper scales the peak port volume velocity to the
+excursion-limited drive level (``Xmax / max_excursion``) so the port is sized
+for real-world usage.  Falls back to ``port_velocity_diameter_cm`` when the
+simulation voltage is below 2.83 V or when ``Xmax`` is unpublished.
 
 ### `port_diameter_for_load(volume_l, fb_hz, end_correction, floor_cm, max_diameter_cm=OPTIMIZER_MAX_PORT_DIAMETER_CM, target_length_cm=5.0, grid_cm=0.5) -> float | None`
 
@@ -645,11 +655,27 @@ physical length.  The UI warns when it falls below
 own standing wave lands inside the vented passband.  Non-positive lengths
 raise `ValueError`.
 
+### `port_max_straight_length_cm(volume_l) -> float`
+
+Rough ceiling for a straight duct inside a box of `volume_l`, treating the
+enclosure as a cube (`side_cm = (volume_l*1000)**(1/3)`; real external
+dimensions aren't modeled).  A duct can pass `port_volume_fraction()`'s 10%
+cap while still being far longer than the box can plausibly hold in a
+straight run — a thin, deeply-tuned vent moves little air per length, so its
+volume stays low even as length grows unboundedly (found via a 5.5 cm ×
+47.5 cm reflex vent in a 40 L box occupying only 2.8% of the chamber).
+`_optimizer_metrics`'s `port_length_over_box_ratio` (length at the sized
+diameter, divided by this ceiling) is a second, independent rejection tier in
+`_score_alignment`, and the UI warns whenever an active vent's length exceeds
+it, recommending an L-shaped/slot fold (not modeled here), a bigger box, or a
+higher tuning.  Non-positive `volume_l` raises `ValueError`.
+
 ### `port_displacement_min_diameter_cm(ts, fb_hz) -> float`
 
-The classic minimum-area golden rule (Small 1972 / Dickason):
-`Dmin = PORT_DISPLACEMENT_COEFFICIENT_CM * (Vd^2 / Fb)^0.25` cm with
-`Vd = Sd*Xmax` in litres and the coefficient at `20.3`.  Unlike the 5%-of-c
+Drive-independent minimum vent diameter from the port-area gold standard
+``S >= K * (2*pi*Fb*Sd*Xmax) / v_amm`` where ``K = PORT_K_FACTOR`` (default
+1.0, ideal simplified estimate) and ``v_amm = PORT_VELOCITY_GUIDELINE_MS``
+(5% of the speed of sound, ~17 m/s).  Unlike the 5%-of-c
 air-speed check this floor is drive-independent: it sizes the vent for the
 driver's rated displacement even when the simulated voltage is low.  Returns
 `0.0` when the driver has no published `Xmax`; non-positive `fb_hz` raises
@@ -830,7 +856,12 @@ If no true rising crossing exists in the simulated range, the returned value is
   compliant-looking box round up, in the UI, past 10%)
 - reflex optimizer reaches a buildable box across a range of volume caps
   when the empirical starting point sits in an infeasible neighborhood
-  (regression for a flat infinite-score plateau that stalled the search)
+  (regression for a flat infinite-score plateau that stalled the search, and
+  for local search stalling even with a smooth score - fixed by the
+  deterministic diagonal restarts in `optimize_alignment`)
+- port-length-vs-box directive: exact cube-root ceiling, a compliant duct
+  fraction that still exceeds it, optimizer rejection and a real optimized
+  box steering clear of it, the UI warning appearing/disappearing with tuning
 - reference efficiency/sensitivity/EBP formulas and their UI `Driver details`
   panel with the EBP topology hint
 - series-resistance effects: impedance shift at the source terminals, reduced

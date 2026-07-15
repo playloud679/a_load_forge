@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.4.6 (2026-07-15)
+
+- **Port sizing follows the gold standard** (`dimensionamento_bass_reflex.md`):
+  replaced the Small/Dickason golden rule `Dmin = 20.3 * (Vd²/Fb)^0.25` with
+  `S = K * (2π·Fb·Sd·Xmax) / v_amm` (K = `PORT_K_FACTOR`, v_amm = 5% of c).
+  The new formula grows with tuning frequency (D ∝ √Fb) because the cone
+  cycles faster and produces more volumetric flow at higher Fb.
+- **End correction tuned to the gold standard**: flanged end k=0.82, free end
+  k=0.61 → defaults change from 1.463→1.43 (one flanged + one free) and
+  1.7→1.64 (two flanged).
+- **Port velocity floor scales to the excursion limit**: `rated_velocity_diameter_cm`
+  scales the peak port volume velocity to the driver's Xmax-limited drive
+  level instead of the simulation voltage. At 2.83 V a powerful driver barely
+  moves, making the raw velocity floor negligible — the new floor reflects
+  real-world usage.
+- **Finder excludes drivers without published Xmax** from ported-load
+  rankings (DCCAV, reflex, bandpass). Sealed and infinite-baffle loads are
+  unaffected.
+- **Tests**: 90 passed / 0 failed / 0 skipped.
+
 ## 0.4.5 (2026-07-15)
 
 - **Fix: reflex/DCCAV port sizing could still exceed the duct-volume

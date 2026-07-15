@@ -8,8 +8,8 @@ contracts and the test list — lives in `docs/dccav.md`.
 ## Owns
 
 - Physical constants (`RHO_AIR`, `SPEED_OF_SOUND`, `P_REF`, `EPS`,
-  `PORT_VELOCITY_GUIDELINE_MS`, `OPTIMIZER_MAX_PORT_DIAMETER_CM`,
-  `PORT_DISPLACEMENT_COEFFICIENT_CM`, `PORT_MAX_VOLUME_FRACTION`,
+  `PORT_VELOCITY_GUIDELINE_MS`, `PORT_K_FACTOR`, `OPTIMIZER_MAX_PORT_DIAMETER_CM`,
+  `PORT_MAX_VOLUME_FRACTION`,
   `PORT_PIPE_RESONANCE_GUARD`) and every dataclass except
   `DriverPresetInfo`: `DriverTS`, `DerivedDriver`, alignments and boxes
   (including `Bandpass4Alignment` / `Bandpass4Box`),
@@ -49,10 +49,11 @@ Ported optimizer candidates are construction-aware, and one function decides
 every automatic vent diameter: `port_diameter_for_load()`, called identically
 by the optimizer's feasibility metric and by the UI's applied port sizing.
 Its floor is `max(port_min_diameter_cm(), port_displacement_min_diameter_cm(),
-port_velocity_diameter_cm())` — Helmholtz zero-length, the drive-independent
-Small/Dickason golden rule `20.3*(Vd²/Fb)^0.25` cm (`Vd = Sd*Xmax`, 0 when
+rated_velocity_diameter_cm())` — Helmholtz zero-length, the drive-independent
+gold standard `K*(2*pi*Fb*Sd*Xmax)/v_amm` (`K = PORT_K_FACTOR`, 0 when
 Xmax is unpublished), and the diameter keeping peak air speed at or below 5%
-of sound speed with a 5% margin. Above that floor it grows toward a
+of sound speed at the driver's excursion-limited voltage (scaled from the
+simulation voltage to the level that reaches Xmax). Above that floor it grows toward a
 fabricable ~5 cm duct, but stops at `PORT_MAX_VOLUME_FRACTION` (10%) of the
 chamber even if that leaves a shorter duct: small chambers tuned low would
 otherwise demand metre-long ducts that invalidate the lumped Helmholtz model.
@@ -71,9 +72,26 @@ Candidates needing more than 95% of the 60 cm diameter ceiling, or whose
 `port_diameter_for_load` diameter breaks the duct-volume cap, are treated as
 infeasible. `port_pipe_resonance_hz()` reports the duct's first half-wave
 resonance (`c/2L`); the UI warns when it falls below
-`PORT_PIPE_RESONANCE_GUARD` (4×) times the tuning. DCCAV candidates below
-`F3 >= 0.67*fl` are likewise excluded from normal objective trade-offs. If the
-search never reaches the feasible region it raises an explicit optimizer error
+`PORT_PIPE_RESONANCE_GUARD` (4×) times the tuning. A third, independent
+rejection tier compares the sized duct's length against
+`port_max_straight_length_cm()` (the box treated as a cube): a duct can stay
+a small fraction of a large chamber's *volume* while still being longer than
+the chamber can hold in a straight *run* — a thin, deeply-tuned vent moves
+little air per length, so `port_volume_fraction()` alone misses it. DCCAV
+candidates below `F3 >= 0.67*fl` are likewise excluded from normal objective
+trade-offs.
+
+If the primary search (from the empirical starting alignment) lands in the
+infeasible score tier, `optimize_alignment` retries from a handful of
+deterministic points spread along the search box's diagonal (fixed fractions
+`0.75, 0.25, 0.5` of the log-space bounds, no randomness) before giving up:
+local coordinate descent can stall in an infeasible neighborhood even with a
+fully smooth score, when the compliant region sits far from the starting
+point (found via a reflex box search that stayed stuck for a driver whose
+golden-rule/velocity port floor made every box near the empirical Vas/Fs
+starting point need an over-long duct, while a compliant box existed
+elsewhere in the search bounds). If every attempt still lands in the
+infeasible tier, `optimize_alignment` raises an explicit optimizer error
 instead of returning its least-bad invalid candidate.
 
 ## Invariants

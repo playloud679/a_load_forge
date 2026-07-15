@@ -548,6 +548,7 @@ def _optimized_port_diameter_cm(
     tuning_hz: float,
     end_correction: float,
     port: str,
+    voltage_v: float | None = None,
 ) -> float:
     """Size an optimized circular vent honoring every reflex sizing directive.
 
@@ -557,13 +558,17 @@ def _optimized_port_diameter_cm(
     (`port_diameter_for_load`) — a fatter port to chase a "nice" length is
     counterproductive once it starts eating the chamber it tunes.
     """
+    if voltage_v is None:
+        voltage_v = float(st.session_state.get("sim_voltage", 2.83))
     volume_velocity = (
         result.port_h_velocity if port == "upper" else result.port_l_velocity)
     peak_volume_velocity = float(np.nanmax(np.abs(volume_velocity)))
     floor_cm = max(
         _dccav.port_min_diameter_cm(volume_l, tuning_hz, end_correction),
         _dccav.port_displacement_min_diameter_cm(driver, tuning_hz),
-        _dccav.port_velocity_diameter_cm(peak_volume_velocity),
+        _dccav.rated_velocity_diameter_cm(
+            driver, result, voltage_v,
+            volume_velocity),
     )
     sized_cm = _dccav.port_diameter_for_load(
         volume_l, tuning_hz, end_correction, floor_cm)
@@ -592,17 +597,17 @@ def _apply_optimized_port_geometry(
     if isinstance(box, _dccav.ReflexBox):
         result = _dccav.simulate_reflex(driver, box, freq, voltage_v)
         st.session_state["reflex_port_d_cm"] = _optimized_port_diameter_cm(
-            driver, result, box.vb_l, box.fb_hz, 1.463, "lower")
+            driver, result, box.vb_l, box.fb_hz, 1.43, "lower")
     elif isinstance(box, _dccav.Bandpass4Box):
         result = _dccav.simulate_bandpass4(driver, box, freq, voltage_v)
         st.session_state["bandpass4_port_d_cm"] = _optimized_port_diameter_cm(
-            driver, result, box.vp_l, box.fp_hz, 1.463, "lower")
+            driver, result, box.vp_l, box.fp_hz, 1.43, "lower")
     else:
         result = _dccav.simulate(driver, box, freq, voltage_v)
         st.session_state["box_port_d_h_cm"] = _optimized_port_diameter_cm(
-            driver, result, box.vh_l, box.fh_hz, 1.7, "upper")
+            driver, result, box.vh_l, box.fh_hz, 1.64, "upper")
         st.session_state["box_port_d_l_cm"] = _optimized_port_diameter_cm(
-            driver, result, box.vl_l, box.fl_hz, 1.463, "lower")
+            driver, result, box.vl_l, box.fl_hz, 1.43, "lower")
 
 
 def _optimized_summary(optimized: _dccav.OptimizedAlignment) -> str:
@@ -3406,21 +3411,21 @@ try:
         vent_d_cm = float(st.session_state.get("reflex_port_d_cm", 0.0))
         if vent_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
-                "Vent", vent_d_cm, box.vb_l, box.fb_hz, 1.463, result, "lower"))
+                "Vent", vent_d_cm, box.vb_l, box.fb_hz, 1.43, result, "lower"))
     elif is_bandpass4:
         vent_d_cm = float(st.session_state.get("bandpass4_port_d_cm", 0.0))
         if vent_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
-                "Front vent", vent_d_cm, box.vp_l, box.fp_hz, 1.463, result, "lower"))
+                "Front vent", vent_d_cm, box.vp_l, box.fp_hz, 1.43, result, "lower"))
     elif load_type == "DCCAV":
         upper_d_cm = float(st.session_state.get("box_port_d_h_cm", 0.0))
         lower_d_cm = float(st.session_state.get("box_port_d_l_cm", 0.0))
         if upper_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
-                "Upper port", upper_d_cm, box.vh_l, box.fh_hz, 1.7, result, "upper"))
+                "Upper port", upper_d_cm, box.vh_l, box.fh_hz, 1.64, result, "upper"))
         if lower_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
-                "Lower port", lower_d_cm, box.vl_l, box.fl_hz, 1.463, result, "lower"))
+                "Lower port", lower_d_cm, box.vl_l, box.fl_hz, 1.43, result, "lower"))
     for row in port_geometry_rows:
         if row["Length cm"] <= 0.0:
             max_hz = _dccav.port_max_tuning_hz(
@@ -3469,6 +3474,14 @@ try:
                     f"pipe resonance at ~{pipe_hz:.0f} Hz, inside the working band "
                     f"(< {_dccav.PORT_PIPE_RESONANCE_GUARD:.0f}× the {row['_fb_hz']:.1f} Hz "
                     "tuning); shorten the duct with a smaller diameter or higher tuning."
+                )
+            max_straight_cm = _dccav.port_max_straight_length_cm(row["_volume_l"])
+            if row["Length cm"] > max_straight_cm:
+                model_warnings.append(
+                    f"{row['Port']}: the {row['Length cm']:.1f} cm duct is longer than a "
+                    f"{row['_volume_l']:.1f} L box (~{max_straight_cm:.0f} cm on a side) can "
+                    "plausibly hold in a straight run; it needs an L-shaped/slot fold "
+                    "(not modeled here), a bigger box, or a higher tuning."
                 )
     design_name = str(st.session_state.get("driver_preset_name", "Custom"))
     design_config = str(st.session_state.get("driver_config", "Single driver"))
