@@ -127,6 +127,20 @@ class Bandpass4Box:
 
 
 @dataclass(frozen=True)
+class PassiveRadiatorBox:
+    """Vented box loaded by a passive radiator instead of a duct."""
+
+    vb_l: float
+    pr_sp_cm2: float
+    pr_fp_hz: float
+    pr_qmp: float = 5.0
+    pr_mmp_g: float = 100.0
+    pr_xmax_mm: float = 0.0
+    q_abs: float = 15.0
+    q_leak: float = 1000.0
+
+
+@dataclass(frozen=True)
 class SealedAlignment:
     """Classical closed-box starter alignment."""
 
@@ -1705,6 +1719,104 @@ def simulate_reflex(
         driver_volume_velocity=u_front_driver,
         port_volume_velocity=u_port,
     )
+
+
+def _pr_impedance(box: PassiveRadiatorBox, w: np.ndarray) -> np.ndarray:
+    """Passive radiator acoustic impedance Rap + jw*Map + 1/(jw*Cap)."""
+    sp_m2 = box.pr_sp_cm2 / 10_000.0
+    mmp_kg = box.pr_mmp_g / 1_000.0
+    cmp_m_per_n = 1.0 / ((2.0 * np.pi * box.pr_fp_hz) ** 2 * mmp_kg)
+    rmp = 2.0 * np.pi * box.pr_fp_hz * mmp_kg / max(box.pr_qmp, 0.1)
+    cap = cmp_m_per_n * sp_m2 ** 2
+    map_ = mmp_kg / sp_m2 ** 2
+    rap = rmp / sp_m2 ** 2
+    return rap + 1j * w * map_ + 1.0 / (1j * w * cap)
+
+
+def simulate_passive_radiator(
+    ts: DriverTS,
+    box: PassiveRadiatorBox,
+    freq_hz: np.ndarray | None = None,
+    voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0,
+) -> SimulationResult:
+    """Simulate a driver in a vented box loaded by a passive radiator."""
+    drv = complete_driver(ts)
+    if freq_hz is None:
+        freq_hz = np.geomspace(10.0, 500.0, 500)
+    f = np.asarray(freq_hz, dtype=float)
+    if np.any(f <= 0):
+        raise ValueError("Frequencies must be positive")
+    _require_positive("Voltage", voltage_v)
+    _validate_pr_box(box)
+
+    w = 2.0 * np.pi * f
+    jw = 1j * w
+
+    re_total, rat, p_source = _electrical_source(ts, drv, voltage_v, series_r_ohm)
+    z_as = rat + jw * drv.mas + 1.0 / (jw * drv.cas)
+    z_ab = _box_impedance(box.vb_l, box.pr_fp_hz, box.q_abs, box.q_leak, w)
+    z_pr = _pr_impedance(box, w)
+
+    ya = 1.0 / z_as
+    yab = 1.0 / z_ab
+    ypr = 1.0 / z_pr
+    i_source = p_source / z_as
+    node = i_source / (ya + yab + ypr)
+
+    u_rear_driver = (p_source - node) / z_as
+    u_front_driver = -u_rear_driver
+    u_radiator = node / z_pr
+    u_total = u_front_driver + u_radiator
+
+    spl_total = _spl_from_volume_velocity(u_total, f)
+    spl_driver = _spl_from_volume_velocity(u_front_driver, f)
+    spl_radiator = _spl_from_volume_velocity(u_radiator, f)
+    excursion = np.abs(u_rear_driver / (jw * drv.sd_m2)) * 1000.0
+    mil_w, mol_db = _limit_curves(ts, voltage_v, spl_total, excursion, series_r_ohm)
+
+    z_mech = drv.rms_n_s_m + jw * drv.mms_kg + 1.0 / (jw * drv.cms_m_per_n)
+    z_load = _parallel(z_ab, z_pr) * drv.sd_m2**2
+    z_e = re_total + jw * (ts.le_mh / 1000.0) + drv.bl_tm**2 / (z_mech + z_load)
+
+    return SimulationResult(
+        frequency_hz=f,
+        spl_total_db=spl_total,
+        spl_driver_db=spl_driver,
+        spl_port_db=spl_radiator,
+        excursion_mm=excursion,
+        impedance_ohm=np.abs(z_e),
+        impedance_phase_deg=np.degrees(np.angle(z_e)),
+        port_h_velocity=np.zeros_like(f),
+        port_l_velocity=np.abs(u_radiator),
+        mil_w=mil_w,
+        mol_db=mol_db,
+        driver_volume_velocity=u_front_driver,
+        port_volume_velocity=u_radiator,
+    )
+
+
+def suggest_pr_alignment(ts: DriverTS, pr_box: PassiveRadiatorBox | None = None) -> PassiveRadiatorBox:
+    """Suggest a PR-loaded box tuned near Fs, reusing supplied PR parameters."""
+    vb_l = float(ts.vas_l)
+    if pr_box is not None:
+        return PassiveRadiatorBox(
+            vb_l=vb_l,
+            pr_sp_cm2=pr_box.pr_sp_cm2,
+            pr_fp_hz=pr_box.pr_fp_hz,
+            pr_qmp=pr_box.pr_qmp,
+            pr_mmp_g=pr_box.pr_mmp_g,
+            pr_xmax_mm=pr_box.pr_xmax_mm,
+        )
+    return PassiveRadiatorBox(vb_l=vb_l, pr_sp_cm2=ts.sd_cm2, pr_fp_hz=ts.fs_hz)
+
+
+def _validate_pr_box(box: PassiveRadiatorBox) -> None:
+    _require_positive("Vb", box.vb_l)
+    _require_positive("PR Sp", box.pr_sp_cm2)
+    _require_positive("PR Fp", box.pr_fp_hz)
+    _require_positive("PR Qmp", box.pr_qmp)
+    _require_positive("PR Mmp", box.pr_mmp_g)
 
 
 def simulate_bandpass4(

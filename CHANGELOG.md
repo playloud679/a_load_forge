@@ -1,6 +1,18 @@
 # Changelog
 
 
+## 0.4.9 (2026-07-15)
+
+- **Passive radiator topology**: new `PassiveRadiatorBox` dataclass with
+  `simulate_passive_radiator()` replacing the Helmholtz port by a suspended
+  diaphragm (Sp, Fp, Qmp, Mmp). The PR adds a compliance branch to the
+  vented-box acoustic circuit, producing two impedance peaks. `suggest_pr_alignment()`
+  returns a starter box tuned near Fs. PR is available in the Design workspace
+  sidebar with dedicated controls, in the Finder, and in the Ports tab
+  (radiator volume velocity + excursion warning).
+- **Tests**: 91 passed / 0 failed / 0 skipped.
+
+
 ## 0.4.8 (2026-07-15)
 
 - **Finder "Minimum SPL" constraint**: restricts ranked candidates to those

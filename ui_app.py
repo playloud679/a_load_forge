@@ -333,6 +333,19 @@ def _reflex_box_from_state() -> _dccav.ReflexBox:
     )
 
 
+def _pr_box_from_state() -> _dccav.PassiveRadiatorBox:
+    return _dccav.PassiveRadiatorBox(
+        vb_l=float(st.session_state.get("pr_vb_l", 40.0)),
+        pr_sp_cm2=float(st.session_state.get("pr_sp_cm2", 200.0)),
+        pr_fp_hz=float(st.session_state.get("pr_fp_hz", 20.0)),
+        pr_qmp=float(st.session_state.get("pr_qmp", 5.0)),
+        pr_mmp_g=float(st.session_state.get("pr_mmp_g", 100.0)),
+        pr_xmax_mm=float(st.session_state.get("pr_xmax_mm", 0.0)),
+        q_abs=float(st.session_state.get("pr_q_abs", 15.0)),
+        q_leak=float(st.session_state.get("pr_q_leak", 1000.0)),
+    )
+
+
 def _sealed_box_from_state() -> _dccav.SealedBox:
     return _dccav.SealedBox(
         vb_l=float(st.session_state["sealed_vb_l"]),
@@ -1806,6 +1819,8 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
         st.session_state["bandpass4_fp_hz"] = float(row["Fp Hz"])
     elif load_type == "Sealed":
         st.session_state["sealed_vb_l"] = float(row["Vb L"])
+    elif load_type == "Passive radiator":
+        st.session_state["pr_vb_l"] = float(row["Vb L"])
     elif load_type == "DCCAV":
         st.session_state["box_vh_l"] = float(row["Vh L"])
         st.session_state["box_fh_hz"] = float(row["fh Hz"])
@@ -2267,7 +2282,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     if len(finder_loads) > 1:
         columns += ["Vb L", "Fb Hz", "Vh L", "fh Hz", "Vl L", "fl Hz",
                      "Vs L", "Vp L", "Fp Hz", "Fc Hz", "Qtc"]
-    elif load_type == "Bass reflex":
+    elif load_type == "Bass reflex" or load_type == "Passive radiator":
         columns += ["Vb L", "Fb Hz"]
     elif load_type == "Bandpass 4th order":
         columns += ["Vs L", "Vp L", "Fp Hz"]
@@ -2355,6 +2370,11 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                 f"Vb {float(selected_row['Vb L']):.2f} L · "
                 f"Fb {float(selected_row['Fb Hz']):.1f} Hz"
             )
+        elif row_load_type == "Passive radiator":
+            st.caption(
+                f"Vb {float(selected_row['Vb L']):.2f} L · "
+                f"PR Fp {float(selected_row.get('Fb Hz', float('nan'))):.1f} Hz"
+            )
         elif row_load_type == "Bandpass 4th order":
             st.caption(
                 f"Vs sealed {float(selected_row['Vs L']):.2f} L · "
@@ -2403,7 +2423,7 @@ def _render_response_tab(
     sim_series_r: float,
 ) -> None:
     chart_sig = _chart_signature()
-    has_ports = load_type in {"DCCAV", "Bass reflex", "Bandpass 4th order"}
+    has_ports = load_type in {"DCCAV", "Bass reflex", "Bandpass 4th order", "Passive radiator"}
     compare_loads_on = bool(st.session_state.get("plot_compare_loads", False))
     pen_columns = st.columns(2 if has_ports else 1)
     with pen_columns[0]:
@@ -2628,10 +2648,12 @@ def _render_ports_tab(
     load_type: str,
 ) -> None:
     chart_sig = _chart_signature()
-    if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order"}:
+    if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order", "Passive radiator"}:
         st.caption("The current load type has no ports.")
         return
-    if load_type == "DCCAV":
+    if load_type == "Passive radiator":
+        st.checkbox("Passive radiator", key="plot_port_lower")
+        st.subheader("Radiator Volume Velocity")
         p1, p2 = st.columns(2)
         with p1:
             st.checkbox("Upper port", key="plot_port_upper")
@@ -2908,7 +2930,7 @@ with st.sidebar:
     st.subheader("1 · Driver" if workspace_mode == "Design a box" else "1 · Target enclosure")
     st.selectbox(
         "Load type",
-        ["Infinite baffle", "Sealed", "Bass reflex", "Bandpass 4th order", "DCCAV"],
+        ["Infinite baffle", "Sealed", "Bass reflex", "Passive radiator", "Bandpass 4th order", "DCCAV"],
         key="load_type",
         on_change=_on_load_type_change,
         help="Acoustic load for the Design workspace.",
@@ -2919,7 +2941,7 @@ with st.sidebar:
             st.session_state["finder_load_types"] = [current_lt]
         st.multiselect(
             "Compare loads",
-            ["Infinite baffle", "Sealed", "Bass reflex", "Bandpass 4th order", "DCCAV"],
+            ["Infinite baffle", "Sealed", "Bass reflex", "Passive radiator", "Bandpass 4th order", "DCCAV"],
             key="finder_load_types",
             help="Rank candidates across every selected load type; the design load "
                  "is applied when you click Apply candidate to design.",
@@ -3245,6 +3267,40 @@ with st.sidebar:
                     "Duct length uses the Helmholtz relation with one flanged and "
                     "one free end; air-speed warnings use the ~5% of c guideline."
                 )
+        elif st.session_state["load_type"] == "Passive radiator":
+            _box_number_with_nudge(
+                "Vb box (L)", "pr_vb_l", min_value=0.05, max_value=1000.0, step=0.01,
+                disabled=box_edit_disabled)
+            with st.expander("Passive radiator parameters"):
+                st.number_input(
+                    "PR area Sp (cm²)", min_value=1.0, max_value=5000.0, step=1.0,
+                    key="pr_sp_cm2")
+                st.number_input(
+                    "PR free-air Fp (Hz)", min_value=1.0, max_value=500.0, step=0.1,
+                    key="pr_fp_hz")
+                st.number_input(
+                    "PR mechanical Qmp", min_value=0.5, max_value=50.0, step=0.1,
+                    key="pr_qmp")
+                st.number_input(
+                    "PR moving mass Mmp (g)", min_value=1.0, max_value=5000.0, step=1.0,
+                    key="pr_mmp_g")
+                st.number_input(
+                    "PR Xmax (mm, 0 = unknown)", min_value=0.0, max_value=50.0, step=0.1,
+                    key="pr_xmax_mm")
+            with st.expander("Loss factors"):
+                st.number_input(
+                    "Qabs box", min_value=0.2, max_value=500.0, step=0.5, key="pr_q_abs")
+                st.number_input(
+                    "Qleak box", min_value=1.0, max_value=10000.0, step=10.0, key="pr_q_leak")
+            active_pr = _pr_box_from_state()
+            cab = _dccav._cab(active_pr.vb_l)
+            pr_sp_m2 = active_pr.pr_sp_cm2 / 10_000.0
+            pr_cmp = 1.0 / ((2 * np.pi * active_pr.pr_fp_hz) ** 2 * (active_pr.pr_mmp_g / 1000.0))
+            pr_cap = pr_cmp * pr_sp_m2 ** 2
+            f_sys = active_pr.pr_fp_hz * np.sqrt(1.0 + pr_cap / cab) if cab > 0 else active_pr.pr_fp_hz
+            st.caption(
+                f"Box+PR system tuning ~{f_sys:.1f} Hz"
+            )
         elif st.session_state["load_type"] == "Sealed":
             _box_number_with_nudge(
                 "Vb sealed (L)", "sealed_vb_l", min_value=0.05, max_value=100000.0, step=0.01,
@@ -3390,12 +3446,15 @@ try:
         raise ValueError("F max must be greater than F min")
     load_type = st.session_state["load_type"]
     is_reflex = load_type == "Bass reflex"
+    is_pr = load_type == "Passive radiator"
     is_bandpass4 = load_type == "Bandpass 4th order"
     is_sealed = load_type == "Sealed"
     is_infinite_baffle = load_type == "Infinite baffle"
     chart_sig = _chart_signature()
     if is_reflex:
         box = _reflex_box_from_state()
+    elif is_pr:
+        box = _pr_box_from_state()
     elif is_bandpass4:
         box = _bandpass4_box_from_state()
     elif is_sealed:
@@ -3413,6 +3472,8 @@ try:
     sim_series_r = float(st.session_state.get("sim_series_r_ohm", 0.0))
     if is_reflex:
         result = _dccav.simulate_reflex(current_ts, box, freq, sim_voltage, sim_series_r)
+    elif is_pr:
+        result = _dccav.simulate_passive_radiator(current_ts, box, freq, sim_voltage, sim_series_r)
     elif is_bandpass4:
         result = _dccav.simulate_bandpass4(current_ts, box, freq, sim_voltage, sim_series_r)
     elif is_sealed:
@@ -3445,6 +3506,25 @@ try:
         if vent_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
                 "Vent", vent_d_cm, box.vb_l, box.fb_hz, 1.43, result, "lower"))
+    elif is_pr:
+        pr_box = box
+        pr_sp_cm2 = pr_box.pr_sp_cm2
+        pr_xmax = pr_box.pr_xmax_mm
+        velocity = _dccav.port_air_velocity_ms(result, pr_sp_cm2, "lower")
+        peak_idx = int(np.nanargmax(velocity))
+        pr_exc_peak = float(np.nanmax(np.abs(result.port_l_velocity) / (2 * np.pi * result.frequency_hz * pr_sp_cm2 / 10_000.0))) * 1000.0
+        port_geometry_rows.append({
+            "Port": "Passive radiator",
+            "Diameter cm": float(np.sqrt(4 * pr_sp_cm2 / np.pi)),
+            "Length cm": float("nan"),
+            "Peak m/s": float(velocity[peak_idx]),
+            "Peak at Hz": float(result.frequency_hz[peak_idx]),
+        })
+        if pr_xmax > 0 and pr_exc_peak > pr_xmax:
+            model_warnings.append(
+                f"Passive radiator excursion {pr_exc_peak:.1f} mm exceeds "
+                f"rated Xmax {pr_xmax:.1f} mm at {sim_voltage:.2f} V"
+            )
     elif is_bandpass4:
         vent_d_cm = float(st.session_state.get("bandpass4_port_d_cm", 0.0))
         if vent_d_cm > 0.0:

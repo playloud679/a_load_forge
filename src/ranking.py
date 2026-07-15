@@ -97,6 +97,17 @@ def rank_preset_row(
         elif load_type == "Bass reflex":
             alignment = engine.suggest_reflex_alignment(ts)
             box = engine.ReflexBox(vb_l=float(target_volume_l), fb_hz=alignment.fb_hz)
+        elif load_type == "Passive radiator":
+            alignment = engine.suggest_pr_alignment(ts)
+            box = alignment  # PassiveRadiatorBox already has vb_l set
+            box = engine.PassiveRadiatorBox(
+                vb_l=float(target_volume_l),
+                pr_sp_cm2=box.pr_sp_cm2,
+                pr_fp_hz=box.pr_fp_hz,
+                pr_qmp=box.pr_qmp,
+                pr_mmp_g=box.pr_mmp_g,
+                pr_xmax_mm=box.pr_xmax_mm,
+            )
         elif load_type == "Sealed":
             box = engine.SealedBox(vb_l=float(target_volume_l))
         elif load_type == "Bandpass 4th order":
@@ -115,6 +126,21 @@ def rank_preset_row(
             box_values = {
                 "Vb L": box.vb_l,
                 "Fb Hz": box.fb_hz,
+                "Vh L": np.nan,
+                "fh Hz": np.nan,
+                "Vl L": np.nan,
+                "fl Hz": np.nan,
+                "Fc Hz": np.nan,
+                "Qtc": np.nan,
+                "Vs L": np.nan,
+                "Vp L": np.nan,
+                "Fp Hz": np.nan,
+            }
+        elif load_type == "Passive radiator":
+            result = engine.simulate_passive_radiator(ts, box, freq, float(voltage_v))
+            box_values = {
+                "Vb L": box.vb_l,
+                "Fb Hz": box.pr_fp_hz * np.sqrt(1 + (box.pr_sp_cm2/10000)**2 / (engine.RHO_AIR * engine.SPEED_OF_SOUND**2 * (box.vb_l/1000)) * (1/((2*np.pi*box.pr_fp_hz)**2 * box.pr_mmp_g/1000) * (box.pr_sp_cm2/10000)**2)),
                 "Vh L": np.nan,
                 "fh Hz": np.nan,
                 "Vl L": np.nan,

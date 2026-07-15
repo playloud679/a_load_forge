@@ -3396,6 +3396,40 @@ def _check_simulation_rejects_bad_frequency_grid():
 test("DCCAV rejects invalid frequency grid", _check_simulation_rejects_bad_frequency_grid)
 
 
+def _check_passive_radiator_simulation():
+    ts = _beyma_ts()
+    box = _dccav.PassiveRadiatorBox(
+        vb_l=50.0, pr_sp_cm2=500.0, pr_fp_hz=15.0, pr_qmp=5.0, pr_mmp_g=200.0)
+    freq = np.geomspace(10.0, 500.0, 300)
+    result = _dccav.simulate_passive_radiator(ts, box, freq, 2.83)
+    assert np.all(np.isfinite(result.spl_total_db))
+    assert np.nanmax(result.spl_total_db) > 70
+    assert np.nanmax(result.excursion_mm) > 0
+    assert np.nanmax(result.port_l_velocity) > 0
+    assert np.nanmin(result.impedance_ohm) > 0
+    assert np.nanmax(result.port_h_velocity) == 0
+    peaks = _dccav.impedance_peak_frequencies(result)
+    assert len(peaks) >= 2, f"PR should show >=2 impedance peaks, got {peaks}"
+    assert np.nanmax(result.spl_port_db) > 50, "PR must radiate externally"
+    sugg = _dccav.suggest_pr_alignment(ts)
+    assert sugg.vb_l == ts.vas_l
+    assert sugg.pr_sp_cm2 == ts.sd_cm2
+    custom = _dccav.PassiveRadiatorBox(
+        vb_l=30.0, pr_sp_cm2=300.0, pr_fp_hz=20.0, pr_qmp=7.0, pr_mmp_g=150.0)
+    sugg2 = _dccav.suggest_pr_alignment(ts, custom)
+    assert sugg2.vb_l == ts.vas_l
+    assert sugg2.pr_sp_cm2 == 300.0
+    assert sugg2.pr_qmp == 7.0
+    try:
+        _dccav.simulate_passive_radiator(ts, box, np.array([10.0, 0.0, 100.0]))
+        raise AssertionError("non-positive frequency must be rejected")
+    except ValueError:
+        pass
+
+
+test("Passive radiator simulation returns finite output", _check_passive_radiator_simulation)
+
+
 if not _IS_MP_CHILD:
     print(f"\n{'=' * 40}")
     print(f"  PASS: {PASS}   FAIL: {FAIL}   SKIP: {SKIP}")
