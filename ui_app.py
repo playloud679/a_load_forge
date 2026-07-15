@@ -84,6 +84,76 @@ _AUTO_CURSOR_OPTIONS = ("F3", "F6", "F10")
 _DEFAULT_REFLEX_Q_ABS = 15.0
 _DEFAULT_REFLEX_Q_LEAK = 1000.0
 _DEFAULT_REFLEX_Q_PORT = 15.0
+_LOAD_TYPE_ICONS = {
+    "Infinite baffle": "🌊",
+    "Sealed": "📦",
+    "Bass reflex": "📯",
+    "Passive radiator": "🔄",
+    "Bandpass 4th order": "④",
+    "Bandpass 6th order": "⑥",
+    "DCCAV": "⚡",
+}
+
+_LOAD_TYPE_SHORT = {
+    "Infinite baffle": "Infinite baffle",
+    "Sealed": "Sealed",
+    "Bass reflex": "Reflex",
+    "Passive radiator": "PR",
+    "Bandpass 4th order": "BP4",
+    "Bandpass 6th order": "BP6",
+    "DCCAV": "DCCAV",
+}
+
+_ALL_LOAD_TYPES = ["Infinite baffle", "Sealed", "Bass reflex", "Passive radiator",
+                   "Bandpass 4th order", "Bandpass 6th order", "DCCAV"]
+
+
+def _render_load_type_buttons(active_set: set[str], single_select: bool = False) -> set[str]:
+    """Grid of load-type icon buttons.
+
+    In single-select mode clicking a new button *replaces* the set (radio behaviour).
+    In multi-select mode each click toggles the load.
+    Returns the (possibly modified) set.
+    """
+    modified = set(active_set)
+    row1_cols = st.columns(4)
+    row2_cols = st.columns(3)
+    for i, lt in enumerate(_ALL_LOAD_TYPES[:4]):
+        with row1_cols[i]:
+            active = lt in active_set
+            if st.button(
+                f"{_LOAD_TYPE_ICONS[lt]} {_LOAD_TYPE_SHORT[lt]}",
+                key=f"load_btn_{lt}",
+                type="primary" if active else "secondary",
+                use_container_width=True,
+                help=lt,
+            ):
+                if single_select:
+                    modified = {lt}
+                else:
+                    if lt in modified:
+                        modified.discard(lt)
+                    else:
+                        modified.add(lt)
+    for i, lt in enumerate(_ALL_LOAD_TYPES[4:]):
+        with row2_cols[i]:
+            active = lt in active_set
+            if st.button(
+                f"{_LOAD_TYPE_ICONS[lt]} {_LOAD_TYPE_SHORT[lt]}",
+                key=f"load_btn_{lt}",
+                type="primary" if active else "secondary",
+                use_container_width=True,
+                help=lt,
+            ):
+                if single_select:
+                    modified = {lt}
+                else:
+                    if lt in modified:
+                        modified.discard(lt)
+                    else:
+                        modified.add(lt)
+    return modified
+
 _TRACE_COLORS = {
     "Total": "#f28e8e",
     "Cone": "#7cc7ff",
@@ -3078,21 +3148,23 @@ with st.sidebar:
         if "finder_load_types" not in st.session_state:
             st.session_state["finder_load_types"] = [
                 str(st.session_state.get("load_type", "DCCAV"))]
-        st.multiselect(
-            "Loads to compare",
-            ["Infinite baffle", "Sealed", "Bass reflex", "Passive radiator", "Bandpass 4th order", "Bandpass 6th order", "DCCAV"],
-            key="finder_load_types",
-            help="Rank candidates across every selected load type; the design load "
-                 "is applied when you click Apply candidate to design.",
-        )
+        _finder_load_set = set(st.session_state["finder_load_types"])
+        new_set = _render_load_type_buttons(_finder_load_set, single_select=False)
+        if new_set != _finder_load_set:
+            if not new_set:
+                new_set = {"Sealed"}
+            st.session_state["finder_load_types"] = sorted(
+                new_set, key=lambda x: _ALL_LOAD_TYPES.index(x))
+            st.rerun()
+        st.caption("Toggle the loads you want to compare. At least one must stay active.")
     else:
-        st.selectbox(
-            "Load type",
-            ["Infinite baffle", "Sealed", "Bass reflex", "Passive radiator", "Bandpass 4th order", "Bandpass 6th order", "DCCAV"],
-            key="load_type",
-            on_change=_on_load_type_change,
-            help="Acoustic load for the Design workspace.",
-        )
+        _load_set = {st.session_state.get("load_type", "Sealed")}
+        new_set = _render_load_type_buttons(_load_set, single_select=True)
+        if new_set != _load_set:
+            new_lt = next(iter(new_set), "Sealed")
+            st.session_state["load_type"] = new_lt
+            _on_load_type_change()
+            st.rerun()
     if workspace_mode == "Find a driver":
         _render_find_driver_target_sidebar()
         st.subheader("2 · Candidate library")

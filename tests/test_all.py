@@ -2934,9 +2934,8 @@ def _check_ui_grs_extension_optimizer_applies_without_model_warnings():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
     at.session_state["workspace_mode"] = "Design a box"
+    at.session_state["load_type"] = "DCCAV"
     at.run()
-    assert not at.exception, at.exception
-    next(s for s in at.selectbox if s.label == "Load type").set_value("DCCAV").run()
     next(
         s for s in at.selectbox if s.label == "Driver preset"
     ).set_value("LSDB: GRS 8SW-4HE").run()
