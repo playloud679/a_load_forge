@@ -3520,6 +3520,10 @@ try:
             "Length cm": float("nan"),
             "Peak m/s": float(velocity[peak_idx]),
             "Peak at Hz": float(result.frequency_hz[peak_idx]),
+            "_volume_l": float(pr_box.vb_l),
+            "_fb_hz": float(pr_box.pr_fp_hz),
+            "_end_correction": 0.0,
+            "_is_pr": True,
         })
         if pr_xmax > 0 and pr_exc_peak > pr_xmax:
             model_warnings.append(
@@ -3541,7 +3545,8 @@ try:
             port_geometry_rows.append(_port_geometry_row(
                 "Lower port", lower_d_cm, box.vl_l, box.fl_hz, 1.43, result, "lower"))
     for row in port_geometry_rows:
-        if row["Length cm"] <= 0.0:
+        is_pr_row = row.get("_is_pr", False)
+        if not is_pr_row and row["Length cm"] <= 0.0:
             max_hz = _dccav.port_max_tuning_hz(
                 row["_volume_l"], row["Diameter cm"], row["_end_correction"])
             min_d_cm = _dccav.port_min_diameter_cm(
@@ -3558,16 +3563,17 @@ try:
                 f"the ~{_dccav.PORT_VELOCITY_GUIDELINE_MS:.0f} m/s (5% of c) chuffing guideline; "
                 "enlarge the port or reduce drive level."
             )
-        golden_cm = _dccav.port_displacement_min_diameter_cm(
-            current_ts, row["_fb_hz"])
-        if 0.0 < row["Diameter cm"] < golden_cm:
-            model_warnings.append(
-                f"{row['Port']}: {row['Diameter cm']:.1f} cm is below the minimum-area "
-                f"golden rule for this driver's displacement (needs ≥ {golden_cm:.1f} cm "
-                f"at {row['_fb_hz']:.1f} Hz); expect compression at rated excursion "
-                "regardless of the simulated drive level."
-            )
-        if row["Length cm"] > 0.0:
+        if not is_pr_row:
+            golden_cm = _dccav.port_displacement_min_diameter_cm(
+                current_ts, row["_fb_hz"])
+            if 0.0 < row["Diameter cm"] < golden_cm:
+                model_warnings.append(
+                    f"{row['Port']}: {row['Diameter cm']:.1f} cm is below the minimum-area "
+                    f"golden rule for this driver's displacement (needs ≥ {golden_cm:.1f} cm "
+                    f"at {row['_fb_hz']:.1f} Hz); expect compression at rated excursion "
+                    "regardless of the simulated drive level."
+                )
+        if not is_pr_row and row["Length cm"] > 0.0:
             duct_fraction = _dccav.port_volume_fraction(
                 row["_volume_l"], row["_fb_hz"], row["Diameter cm"],
                 row["_end_correction"])
@@ -3613,7 +3619,7 @@ try:
     m3.metric("Max excursion", f"{metrics['max_excursion_mm']:.2f} mm")
     m4.metric("Min impedance", f"{metrics['min_impedance_ohm']:.2f} Ω")
     if m5 is not None:
-        if is_reflex or is_sealed:
+        if is_reflex or is_sealed or is_pr:
             vtot_l = box.vb_l
         elif is_bandpass4:
             vtot_l = box.vs_l + box.vp_l
@@ -3636,6 +3642,12 @@ try:
             a3.metric("Eq sealed Fc", f"{_dccav.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
             if current_reflex_alignment is not None:
                 a4.metric("Starter Vb=Vas", f"{current_reflex_alignment.vb_l:.2f} L")
+        elif is_pr:
+            a1, a2, a3, a4 = st.columns(4)
+            a1.metric("Vb (active)", f"{box.vb_l:.2f} L")
+            a2.metric("PR Fp", f"{box.pr_fp_hz:.1f} Hz")
+            a3.metric("PR Sp", f"{box.pr_sp_cm2:.0f} cm²")
+            a4.metric("PR Qmp", f"{box.pr_qmp:.1f}")
         elif is_bandpass4:
             a1, a2, a3, a4, a5 = st.columns(5)
             a1.metric("Vs sealed (active)", f"{box.vs_l:.2f} L")
