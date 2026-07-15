@@ -2577,6 +2577,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
         "Allowed response ripple (dB)",
         "Maximum excursion (× driver Xmax)",
         "Maximum group delay (ms)",
+        "Minimum SPL (dB, 0 = off)",
         "Evaluation range start (Hz)",
         "Evaluation range end (Hz)",
         "Top results to show",
@@ -2965,6 +2966,7 @@ def _check_ui_finder_goal_inputs_always_active():
         "Allowed response ripple (dB)",
         "Maximum excursion (× driver Xmax)",
         "Maximum group delay (ms)",
+        "Minimum SPL (dB, 0 = off)",
     )
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.session_state["workspace_mode"] = "Find a driver"

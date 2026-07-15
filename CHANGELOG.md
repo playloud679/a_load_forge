@@ -1,5 +1,14 @@
 # Changelog
 
+
+## 0.4.8 (2026-07-15)
+
+- **Finder "Minimum SPL" constraint**: restricts ranked candidates to those
+  reaching at least the requested peak SPL at the comparison voltage.
+  `OptimizationGoals.min_spl_db` penalises boxes whose `max_spl_db` falls
+  below the target (0 disables).
+- **Tests**: 90 passed / 0 failed / 0 skipped.
+
 ## 0.4.7 (2026-07-15)
 
 - **Multi-load Finder**: the Finder sidebar now exposes a "Compare loads"

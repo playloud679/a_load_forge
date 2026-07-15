@@ -146,6 +146,7 @@ _FINDER_DEFAULTS = {
     "finder_max_ripple_db": 3.0,
     "finder_excursion_ratio": 1.0,
     "finder_max_gd_ms": 30.0,
+    "finder_min_spl_db": 0.0,
     "finder_f_min": 10.0,
     "finder_f_max": 300.0,
     "finder_result_count": 20,
@@ -2033,6 +2034,7 @@ def _finder_optimizer_goals_from_state() -> _dccav.OptimizationGoals:
         max_ripple_db=float(st.session_state.get("finder_max_ripple_db", 3.0)),
         max_excursion_ratio=float(st.session_state.get("finder_excursion_ratio", 1.0)),
         max_group_delay_ms=float(st.session_state.get("finder_max_gd_ms", 0.0)) or None,
+        min_spl_db=float(st.session_state.get("finder_min_spl_db", 0.0)) or None,
     )
 
 
@@ -2140,6 +2142,11 @@ def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
                 "Maximum group delay (ms)", min_value=0.0, max_value=100.0,
                 step=1.0, key="finder_max_gd_ms",
                 help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
+            )
+            _finder_number_input(
+                "Minimum SPL (dB, 0 = off)", min_value=0.0, max_value=150.0,
+                step=0.5, key="finder_min_spl_db",
+                help="Require the candidate to reach at least this peak SPL at the comparison voltage; 0 disables.",
             )
 
     with st.expander("Advanced scan"):

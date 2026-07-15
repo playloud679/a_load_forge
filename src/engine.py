@@ -159,6 +159,7 @@ class OptimizationGoals:
     max_ripple_db: float = 3.0
     max_excursion_ratio: float = 1.0
     max_group_delay_ms: float | None = None
+    min_spl_db: float | None = None
 
 
 @dataclass(frozen=True)
@@ -1232,6 +1233,7 @@ def _optimizer_metrics(
         "f_high_hz": f_high,
         "total_volume_l": float(vtot),
         "fl_hz": float(fl),
+        "max_spl_db": float(np.nanmax(spl)),
         "required_port_diameter_cm": float(required_port_diameter_cm),
         "port_volume_fraction": float(port_volume_fraction_max),
         "port_length_over_box_ratio": float(port_length_ratio_max),
@@ -1286,6 +1288,10 @@ def _score_alignment(
         score += 1.0 * (gd / goals.max_group_delay_ms - 1.0)
     if goals.max_total_volume_l and metrics["total_volume_l"] > goals.max_total_volume_l:
         score += 20.0 * (metrics["total_volume_l"] / goals.max_total_volume_l - 1.0)
+    if goals.min_spl_db:
+        peak_spl = metrics.get("max_spl_db", float("-inf"))
+        if peak_spl < goals.min_spl_db:
+            score += 4.0 * (goals.min_spl_db - peak_spl) / goals.min_spl_db
     if is_bandpass4:
         f_high = metrics["f_high_hz"]
         if not np.isfinite(f_high):
