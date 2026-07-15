@@ -958,6 +958,97 @@ def port_pipe_resonance_hz(length_cm: float) -> float:
     return float(SPEED_OF_SOUND / (2.0 * float(length_cm) / 100.0))
 
 
+def port_velocity_diameter_cm(peak_volume_velocity_m3s: float, margin: float = 1.05) -> float:
+    """Minimum port diameter keeping peak volume velocity within the guideline.
+
+    `margin` (default 1.05, a 5% pad) keeps the applied diameter from sitting
+    exactly on the `PORT_VELOCITY_GUIDELINE_MS` edge.  Shared by the optimizer
+    feasibility metric and the UI's applied port sizing so both floor the
+    same port at the same diameter.
+    """
+    area_cm2 = float(peak_volume_velocity_m3s) / PORT_VELOCITY_GUIDELINE_MS * 1e4
+    return float(margin * 2.0 * np.sqrt(max(area_cm2, 0.0) / np.pi))
+
+
+def port_diameter_for_load(
+    volume_l: float,
+    fb_hz: float,
+    end_correction: float,
+    floor_cm: float,
+    max_diameter_cm: float = OPTIMIZER_MAX_PORT_DIAMETER_CM,
+    target_length_cm: float = 5.0,
+    grid_cm: float = 0.5,
+) -> float | None:
+    """Pick the diameter actually applied to one duct, honoring every directive.
+
+    `floor_cm` bundles the mandatory minima this port must clear (the
+    zero-length tuning boundary, the displacement golden rule, the 5%-of-c
+    air-speed requirement): the returned diameter is never smaller.  Above
+    that floor, the diameter grows toward `target_length_cm` (a fabricable
+    physical tube instead of a flush hole) - but `port_length_cm()` and
+    `port_volume_fraction()` both grow monotonically with diameter for
+    `diameter_cm >= port_min_diameter_cm(...)`, so growing purely to reach a
+    "nice" length can just as easily blow the duct past
+    `PORT_MAX_VOLUME_FRACTION` of the chamber.  This function stops that
+    growth at the volume-fraction cap even if the resulting duct stays
+    shorter than `target_length_cm`.
+
+    The result is snapped to `grid_cm` (the sidebar's 0.5 cm control step).
+    Snapping rounds *down* whenever that stays at or above the (grid-aligned)
+    floor: the duct-volume cap is a soft ceiling that rounding up would
+    silently re-break, since the raw optimum can sit exactly on that
+    boundary and the fraction curve is steep there.  Only when the raw
+    optimum has no headroom above the floor does the mandatory floor win
+    over the cap.
+
+    Returns `None` when `floor_cm` alone already exceeds the volume-fraction
+    cap: no diameter can satisfy every directive for this volume/tuning
+    pair, and the box itself (not the port) needs to change.
+    """
+    _require_positive("volume_l", volume_l)
+    _require_positive("fb_hz", fb_hz)
+    floor_cm = np.ceil(max(float(floor_cm), 1.0) / grid_cm) * grid_cm
+    if port_volume_fraction(
+            volume_l, fb_hz, floor_cm, end_correction) > PORT_MAX_VOLUME_FRACTION:
+        return None
+    # Duct fraction grows monotonically with diameter above the floor:
+    # bisect for the diameter where it crosses the cap.
+    if port_volume_fraction(
+            volume_l, fb_hz, max_diameter_cm, end_correction,
+    ) <= PORT_MAX_VOLUME_FRACTION:
+        fraction_cap_cm = max_diameter_cm
+    else:
+        low_cm, high_cm = floor_cm, max_diameter_cm
+        for _ in range(40):
+            mid_cm = 0.5 * (low_cm + high_cm)
+            if port_volume_fraction(
+                    volume_l, fb_hz, mid_cm, end_correction,
+            ) <= PORT_MAX_VOLUME_FRACTION:
+                low_cm = mid_cm
+            else:
+                high_cm = mid_cm
+        fraction_cap_cm = low_cm
+    if port_length_cm(
+            volume_l, fb_hz, fraction_cap_cm, end_correction) < target_length_cm:
+        # Even the largest fraction-compliant diameter yields a short duct;
+        # that is the best available compromise.
+        raw_cm = fraction_cap_cm
+    else:
+        # Smallest diameter in [floor_cm, fraction_cap_cm] reaching the length target.
+        low_cm, high_cm = floor_cm, fraction_cap_cm
+        for _ in range(40):
+            mid_cm = 0.5 * (low_cm + high_cm)
+            if port_length_cm(volume_l, fb_hz, mid_cm, end_correction) < target_length_cm:
+                low_cm = mid_cm
+            else:
+                high_cm = mid_cm
+        raw_cm = high_cm
+    floor_rounded_cm = np.floor(raw_cm / grid_cm) * grid_cm
+    if floor_rounded_cm >= floor_cm:
+        return float(floor_rounded_cm)
+    return float(np.ceil(raw_cm / grid_cm) * grid_cm)
+
+
 def _optimizer_metrics(
     ts: DriverTS,
     box: DccavBox | ReflexBox | Bandpass4Box | SealedBox,
@@ -967,32 +1058,58 @@ def _optimizer_metrics(
     is_bandpass4 = isinstance(box, Bandpass4Box)
 
     def velocity_diameter_cm(volume_velocity: np.ndarray) -> float:
-        peak_u = float(np.nanmax(np.abs(volume_velocity)))
-        area_cm2 = peak_u / PORT_VELOCITY_GUIDELINE_MS * 1e4
-        return float(2.0 * np.sqrt(max(area_cm2, 0.0) / np.pi))
+        return port_velocity_diameter_cm(float(np.nanmax(np.abs(volume_velocity))))
+
+    def sized_port(
+        volume_l: float, tuning_hz: float, end_correction: float, floor_cm: float,
+    ) -> tuple[float, float]:
+        """Diameter this port would actually get, and its duct-volume fraction.
+
+        Mirrors the UI's `_optimized_port_diameter_cm`: growing toward a
+        fabricable ~5 cm duct never overrides the 10% duct-volume directive.
+        When even the mandatory floor breaks that directive, report the floor
+        itself (a normal, finite, buildable diameter) rather than `inf`: the
+        smoothly-varying fraction at that floor is what should reject the
+        box, via the existing `port_volume_fraction` score check below.
+        Collapsing this case to an infinite diameter would flatten the score
+        across the whole infeasible region and blind the pattern search to
+        which direction actually reduces the duct - exactly the plateau that
+        stalled the search on tight reflex boxes.
+        """
+        sized_cm = port_diameter_for_load(volume_l, tuning_hz, end_correction, floor_cm)
+        if sized_cm is None:
+            # port_diameter_for_load rejects on the *grid-rounded* floor (the
+            # diameter that would actually be built); report the fraction at
+            # that same rounded value, not the raw floor, or a floor whose
+            # continuous fraction looks compliant can still round up to a
+            # duct that breaks the directive without the score reflecting it.
+            floor_grid_cm = np.ceil(max(float(floor_cm), 1.0) / 0.5) * 0.5
+            return floor_grid_cm, port_volume_fraction(
+                volume_l, tuning_hz, floor_grid_cm, end_correction)
+        return sized_cm, port_volume_fraction(volume_l, tuning_hz, sized_cm, end_correction)
 
     if isinstance(box, ReflexBox):
         result = simulate_reflex(ts, box, freq, voltage_v)
         vtot = box.vb_l
         fl = box.fb_hz
-        required_port_diameter_cm = max(
+        floor_cm = max(
             port_min_diameter_cm(box.vb_l, box.fb_hz, 1.463),
             port_displacement_min_diameter_cm(ts, box.fb_hz),
             velocity_diameter_cm(result.port_l_velocity),
         )
-        port_volume_fraction_max = port_volume_fraction(
-            box.vb_l, box.fb_hz, required_port_diameter_cm, 1.463)
+        required_port_diameter_cm, port_volume_fraction_max = sized_port(
+            box.vb_l, box.fb_hz, 1.463, floor_cm)
     elif isinstance(box, Bandpass4Box):
         result = simulate_bandpass4(ts, box, freq, voltage_v)
         vtot = box.vs_l + box.vp_l
         fl = box.fp_hz
-        required_port_diameter_cm = max(
+        floor_cm = max(
             port_min_diameter_cm(box.vp_l, box.fp_hz, 1.463),
             port_displacement_min_diameter_cm(ts, box.fp_hz),
             velocity_diameter_cm(result.port_l_velocity),
         )
-        port_volume_fraction_max = port_volume_fraction(
-            box.vp_l, box.fp_hz, required_port_diameter_cm, 1.463)
+        required_port_diameter_cm, port_volume_fraction_max = sized_port(
+            box.vp_l, box.fp_hz, 1.463, floor_cm)
     elif isinstance(box, SealedBox):
         result = simulate_sealed(ts, box, freq, voltage_v)
         vtot = box.vb_l
@@ -1005,21 +1122,22 @@ def _optimizer_metrics(
         fl = box.fl_hz
         # Each port must satisfy its own minima; the duct-volume directive is
         # then checked against the chamber that hosts each duct.
-        upper_diameter_cm = max(
+        upper_floor_cm = max(
             port_min_diameter_cm(box.vh_l, box.fh_hz, 1.7),
             port_displacement_min_diameter_cm(ts, box.fh_hz),
             velocity_diameter_cm(result.port_h_velocity),
         )
-        lower_diameter_cm = max(
+        lower_floor_cm = max(
             port_min_diameter_cm(box.vl_l, box.fl_hz, 1.463),
             port_displacement_min_diameter_cm(ts, box.fl_hz),
             velocity_diameter_cm(result.port_l_velocity),
         )
+        upper_diameter_cm, upper_fraction = sized_port(
+            box.vh_l, box.fh_hz, 1.7, upper_floor_cm)
+        lower_diameter_cm, lower_fraction = sized_port(
+            box.vl_l, box.fl_hz, 1.463, lower_floor_cm)
         required_port_diameter_cm = max(upper_diameter_cm, lower_diameter_cm)
-        port_volume_fraction_max = max(
-            port_volume_fraction(box.vh_l, box.fh_hz, upper_diameter_cm, 1.7),
-            port_volume_fraction(box.vl_l, box.fl_hz, lower_diameter_cm, 1.463),
-        )
+        port_volume_fraction_max = max(upper_fraction, lower_fraction)
     thresholds = response_threshold_frequencies(result)
     f3 = thresholds[3]
     f10 = thresholds[10]

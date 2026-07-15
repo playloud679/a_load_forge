@@ -113,6 +113,53 @@ Traccia operativa multi-sessione. Regole d'uso:
   Response in popover per dare più spazio al grafico; cursore manuale
   singolo (M1 senza M2); palette theme-aware invece del tema forzato.
 
+- [x] **1.8 Fix: sizing porte ancora sbagliato dopo 1.7 (segnalazione
+  utente: "trovo duct di 85cm")** — 2026-07-15. Il fix 1.7 aveva chiuso il
+  caso singolo ma non il bug strutturale: `_optimizer_metrics` (engine, usato
+  per la feasibility) e `_optimized_port_diameter_cm` (ui_app, usato per il
+  diametro davvero applicato) erano **due implementazioni indipendenti** con
+  tre disallineamenti — nessuna condivideva il margine di sicurezza 1,05× sulla
+  velocità, nessuna delle due faceva rispettare il cap del 10% quando il
+  target di lunghezza pratica (~5 cm) veniva raggiunto crescendo il diametro,
+  e l'arrotondamento a 0,5 cm (risoluzione widget) avveniva SEMPRE per
+  eccesso, il che da solo bastava a far superare di nuovo il 10% su un
+  ottimo teorico esattamente al limite. Sweep di verifica: 27 combinazioni
+  Vb/Fb "approvate" dall'optimizer producevano comunque un condotto reale
+  oltre il 10% una volta applicato. Fix: un solo sizer condiviso in engine,
+  `port_diameter_for_load(volume_l, fb_hz, end_correction, floor_cm,
+  max_diameter_cm, target_length_cm=5.0, grid_cm=0.5)`, usato identico da
+  entrambe le parti — cresce verso il target di lunghezza ma non oltre il
+  cap del 10% (bisezione sulla frazione, monotona per costruzione), arrotonda
+  alla griglia **per difetto** quando resta sopra il floor obbligatorio (mai
+  per eccesso, che riaprirebbe il cap), `None` quando il floor stesso (dopo
+  arrotondamento a griglia) è già oltre il 10% — nessun diametro soddisfa
+  tutte le direttive, va cambiato il box non la porta. Nuovo
+  `port_velocity_diameter_cm(peak_volume_velocity, margin=1.05)` condiviso
+  per il floor di velocità (prima il margine 1,05× era solo lato UI).
+  **Secondo bug trovato durante la verifica**: il primo tentativo di
+  `sized_port` (helper interno a `_optimizer_metrics`) codificava il caso
+  "nessun diametro va bene" come `required_port_diameter_cm = inf`, il che
+  appiattiva lo score del pattern search optimizer a un valore costante su
+  tutta la regione infattibile, togliendo il gradiente e facendo fallire
+  `optimize_alignment` con "no buildable box" anche quando esisteva un box
+  valido appena fuori dal vicinato di partenza (riprodotto: lo stesso
+  isobarico PowerBass in reflex, infattibile a QUALSIASI cap di volume incluso
+  nessun cap, quando prima funzionava). Corretto riportando la frazione
+  (continua) calcolata al floor arrotondato a griglia, non `inf` — ripristina
+  il gradiente, lo score resta comunque nel tier infattibile (≥1e5) tramite
+  il check esistente sulla frazione. Verificato: il box esatto segnalato
+  dall'utente (Vh 5,43/Vl 4,57 @ 34,47 Hz) resta respinto (score infattibile,
+  29% del volume), l'optimizer converge su un'alternativa conforme (lower
+  port 9,6%); sweep di 1480 combinazioni Vb/Fb → 0 discrepanze
+  optimizer↔UI; optimizer reflex trovato feasible su 6 cap di volume diversi
+  (prima: 6/6 falliva). Test nuovi: sizer condiviso sui tre rami (target di
+  lunghezza, floor-già-infattibile pre/post arrotondamento, arrotondamento
+  per difetto), coerenza optimizer↔UI su sweep, non-stallo della ricerca su
+  vicinato di partenza infattibile. Adattato un assert obsoleto (porta
+  sempre ≥5 cm) che non teneva conto del nuovo compromesso corretto
+  (lunghezza più corta quando il cap del 10% vince). Verifica: py_compile
+  OK, ruff OK, suite completa 88 pass / 0 fail / 0 skip.
+
 - [x] **1.7 Porte reflex: direttiva volume condotto + risonanza di canna
   (segnalazione utente: porta 4,5 × 84,6 cm)** — 2026-07-15. Il sizing
   poteva richiedere condotti lunghissimi in camere piccole accordate basse

@@ -549,44 +549,34 @@ def _optimized_port_diameter_cm(
     end_correction: float,
     port: str,
 ) -> float:
-    """Size an optimized circular vent for positive length and safe air speed.
+    """Size an optimized circular vent honoring every reflex sizing directive.
 
-    The result is floored at the displacement-based minimum-area golden rule
-    so low simulation voltages cannot shrink the vent below what the driver's
-    rated excursion needs.
+    Floors on the zero-length tuning boundary, the displacement golden rule
+    and the 5%-of-c air-speed guideline; above that floor, grows toward a
+    fabricable ~5 cm duct without breaking the 10% duct-volume directive
+    (`port_diameter_for_load`) — a fatter port to chase a "nice" length is
+    counterproductive once it starts eating the chamber it tunes.
     """
-    minimum_cm = _dccav.port_min_diameter_cm(
-        volume_l, tuning_hz, end_correction)
-    maximum_cm = float(_dccav.OPTIMIZER_MAX_PORT_DIAMETER_CM)
-    target_length_cm = 5.0
-    # Above the zero-length boundary, duct length grows monotonically with
-    # diameter. Find the smallest diameter that leaves a practical 5 cm tube.
-    low_cm = minimum_cm
-    high_cm = maximum_cm
-    if _dccav.port_length_cm(
-        volume_l, tuning_hz, high_cm, end_correction) >= target_length_cm:
-        for _ in range(40):
-            midpoint_cm = 0.5 * (low_cm + high_cm)
-            if _dccav.port_length_cm(
-                volume_l, tuning_hz, midpoint_cm, end_correction,
-            ) < target_length_cm:
-                low_cm = midpoint_cm
-            else:
-                high_cm = midpoint_cm
-        length_cm = high_cm
-    else:
-        length_cm = maximum_cm
     volume_velocity = (
         result.port_h_velocity if port == "upper" else result.port_l_velocity)
     peak_volume_velocity = float(np.nanmax(np.abs(volume_velocity)))
-    required_area_cm2 = (
-        peak_volume_velocity / _dccav.PORT_VELOCITY_GUIDELINE_MS * 1e4)
-    velocity_cm = 2.0 * np.sqrt(max(required_area_cm2, 0.0) / np.pi)
-    golden_cm = _dccav.port_displacement_min_diameter_cm(driver, tuning_hz)
-    # The half-centimetre rounding matches the sidebar control resolution.
-    diameter_cm = max(1.0, length_cm, 1.05 * velocity_cm, golden_cm)
-    diameter_cm = np.ceil(diameter_cm * 2.0) / 2.0
-    return float(min(diameter_cm, maximum_cm))
+    floor_cm = max(
+        _dccav.port_min_diameter_cm(volume_l, tuning_hz, end_correction),
+        _dccav.port_displacement_min_diameter_cm(driver, tuning_hz),
+        _dccav.port_velocity_diameter_cm(peak_volume_velocity),
+    )
+    sized_cm = _dccav.port_diameter_for_load(
+        volume_l, tuning_hz, end_correction, floor_cm)
+    maximum_cm = float(_dccav.OPTIMIZER_MAX_PORT_DIAMETER_CM)
+    # sized_cm is already snapped to the sidebar's 0.5 cm grid; sized_cm is
+    # only None for a box the optimizer should already have rejected, so
+    # keep the (grid-rounded) mandatory floor and let the Port Geometry
+    # warnings flag the mismatch instead of silently applying an undersized vent.
+    if sized_cm is not None:
+        diameter_cm = sized_cm
+    else:
+        diameter_cm = np.ceil(max(1.0, floor_cm) * 2.0) / 2.0
+    return float(min(max(1.0, diameter_cm), maximum_cm))
 
 
 def _apply_optimized_port_geometry(

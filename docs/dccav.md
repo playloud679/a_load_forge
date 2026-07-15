@@ -588,9 +588,54 @@ cylinder `port_length_cm()` requires for the tuning).  Classic reflex practice
 keeps it at or below `PORT_MAX_VOLUME_FRACTION` (10%): beyond that the duct
 displaces the chamber it tunes and the lumped model stops being reliable.
 Returns 0.0 when the diameter cannot reach the tuning at all (that case is
-flagged by the zero-length warning instead).  The optimizer evaluates it per
-port at each port's own required minimum diameter and rejects candidates above
-the directive as infeasible; the UI warns on the actual entered geometry.
+flagged by the zero-length warning instead).  Both `port_length_cm()` and this
+function grow monotonically with diameter above `port_min_diameter_cm()`,
+which is what makes `port_diameter_for_load()`'s bisections well-defined.
+
+### `port_velocity_diameter_cm(peak_volume_velocity_m3s, margin=1.05) -> float`
+
+Minimum port diameter keeping peak volume velocity within
+`PORT_VELOCITY_GUIDELINE_MS`, with a 5% safety margin.  Shared by the
+optimizer's feasibility metric and the UI's applied port sizing so both floor
+the same port at the same diameter — before this helper existed, the two call
+sites computed the velocity floor slightly differently (only the UI applied
+the margin), which was enough on its own to make the optimizer approve a
+diameter the UI would then round up past the duct-volume cap.
+
+### `port_diameter_for_load(volume_l, fb_hz, end_correction, floor_cm, max_diameter_cm=OPTIMIZER_MAX_PORT_DIAMETER_CM, target_length_cm=5.0, grid_cm=0.5) -> float | None`
+
+The single sizer behind every automatic vent, used identically by
+`_optimizer_metrics` (optimizer feasibility scoring) and the UI's
+`_optimized_port_diameter_cm` (the diameter actually applied) — this is a
+deliberate consolidation: a "practical ~5 cm duct" preference and a "duct
+≤10% of the chamber" cap pull in opposite directions once a chamber is small
+(growing diameter to reach 5 cm can just as easily blow past 10%, since both
+grow together), so having two independent implementations of that trade-off
+is how a box could look feasible to the optimizer and still round, in the
+UI, to an oversized duct. `floor_cm` bundles every mandatory minimum (zero-
+length boundary, `port_displacement_min_diameter_cm`,
+`port_velocity_diameter_cm`) and is never violated; above it, diameter grows
+toward `target_length_cm` but stops at the `PORT_MAX_VOLUME_FRACTION`
+boundary even if the resulting duct stays short. The result is snapped to
+`grid_cm` (the sidebar's 0.5 cm control step), rounding *down* whenever that
+still clears the floor — rounding up is what silently re-broke the cap when
+the raw optimum sat exactly on it. Returns `None` when `floor_cm` itself
+(after grid rounding) already exceeds the cap: no diameter satisfies every
+directive for this volume/tuning pair, so the box itself needs to change, not
+the port. Callers reporting a "None" case for scoring purposes must recompute
+the fraction at the *grid-rounded* floor, not the raw one, or the reported
+value looks compliant while the diameter that would actually be built is not.
+
+`_optimizer_metrics`'s `required_port_diameter_cm`/`port_volume_fraction`
+call this sizer per port and reject a candidate (score tier `1e5+`) when
+`required_port_diameter_cm` exceeds the construction ceiling — deliberately
+*not* by collapsing an unsatisfiable port straight to an infinite diameter:
+that flattened the pattern search's score gradient across the entire
+infeasible region (every candidate scored identically `inf`), stalling
+`optimize_alignment` into a false "no buildable box" even when a compliant
+box existed just outside the search's starting neighborhood. The
+floor's own (smoothly-varying) `port_volume_fraction` is what actually drives
+rejection and gradient in that region.
 
 ### `port_pipe_resonance_hz(length_cm) -> float`
 
@@ -759,8 +804,9 @@ If no true rising crossing exists in the simulated range, the returned value is
 - input validation for invalid `Qms <= Qts`
 - optimizer volume-cap, target-F3 compactness and extension-vs-empirical checks
   for DCCAV plus reflex/sealed volume-cap checks
-- UI `Suggested` / `Optimized` / `Manual` box strategies applying and locking
-  the expected controls
+- UI `Max extension` / `Balanced` / `Flattest` / `Manual` box strategies
+  applying and locking the expected controls, and legacy `Suggested`/
+  `Optimized` strategy names normalizing onto them
 - independent `Find a driver` workspace routing for sealed and infinite-baffle
   loads, including practical defaults, candidate preview and explicit
   application
@@ -776,6 +822,15 @@ If no true rising crossing exists in the simulated range, the returned value is
 - duct-volume directive: exact cylinder fraction, optimizer rejection above
   10% with a feasible box elsewhere, pipe-resonance helper value and the UI
   warnings for an oversized duct and an in-band pipe resonance
+- shared port sizer `port_diameter_for_load`: length-target and cap-bound
+  branches, 0.5 cm grid rounding that never re-breaks the cap, `None` on an
+  infeasible floor
+- optimizer feasibility and UI applied port sizing agree on the duct-volume
+  cap across a volume/tuning sweep (regression for a mismatch that let a
+  compliant-looking box round up, in the UI, past 10%)
+- reflex optimizer reaches a buildable box across a range of volume caps
+  when the empirical starting point sits in an infeasible neighborhood
+  (regression for a flat infinite-score plateau that stalled the search)
 - reference efficiency/sensitivity/EBP formulas and their UI `Driver details`
   panel with the EBP topology hint
 - series-resistance effects: impedance shift at the source terminals, reduced

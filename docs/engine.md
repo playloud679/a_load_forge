@@ -45,21 +45,33 @@ and scoring penalizes a missing edge or a passband narrower than 1.4:1.
 `bandpass4_diagnostics()` flags extreme tuning and a missing upper -3 dB
 crossing when the simulated range is too short to verify the passband.
 
-Ported optimizer candidates are construction-aware: the Helmholtz zero-length
-diameter is calculated for every vent (both DCCAV ports), and candidates needing
-more than 95% of the UI's 60 cm diameter ceiling are treated as infeasible. The
-required diameter also includes the area needed to keep peak air speed at or
-below 5% of sound speed at the optimization voltage, plus the drive-independent
-displacement floor `port_displacement_min_diameter_cm()` (the Small/Dickason
-minimum-area golden rule `20.3*(Vd²/Fb)^0.25` cm with `Vd = Sd*Xmax` in litres;
-0 when Xmax is unpublished). A second reflex directive rejects candidates whose
-smallest workable duct would displace more than `PORT_MAX_VOLUME_FRACTION`
-(10%) of the chamber it tunes (`port_volume_fraction()`, evaluated per port at
-that port's own required diameter): small chambers tuned low would otherwise
-demand metre-long ducts that invalidate the lumped Helmholtz model.
-`port_pipe_resonance_hz()` reports the duct's first half-wave resonance
-(`c/2L`); the UI warns when it falls below `PORT_PIPE_RESONANCE_GUARD` (4×)
-times the tuning. DCCAV candidates below
+Ported optimizer candidates are construction-aware, and one function decides
+every automatic vent diameter: `port_diameter_for_load()`, called identically
+by the optimizer's feasibility metric and by the UI's applied port sizing.
+Its floor is `max(port_min_diameter_cm(), port_displacement_min_diameter_cm(),
+port_velocity_diameter_cm())` — Helmholtz zero-length, the drive-independent
+Small/Dickason golden rule `20.3*(Vd²/Fb)^0.25` cm (`Vd = Sd*Xmax`, 0 when
+Xmax is unpublished), and the diameter keeping peak air speed at or below 5%
+of sound speed with a 5% margin. Above that floor it grows toward a
+fabricable ~5 cm duct, but stops at `PORT_MAX_VOLUME_FRACTION` (10%) of the
+chamber even if that leaves a shorter duct: small chambers tuned low would
+otherwise demand metre-long ducts that invalidate the lumped Helmholtz model.
+The result snaps to the sidebar's 0.5 cm grid, rounding *down* whenever that
+still clears the floor so grid rounding cannot itself re-break the 10% cap —
+rounding up was the exact gap that first let a compliant-looking box round,
+in the UI, to an oversized duct. Returns `None` when even the (grid-rounded)
+floor breaks the cap: no diameter works for that volume/tuning pair, and
+`_optimizer_metrics` reports the *floor's own* smoothly-varying
+`port_volume_fraction` for scoring rather than collapsing straight to an
+infinite diameter — an earlier version did that and flattened the pattern
+search's gradient across the whole infeasible region, making
+`optimize_alignment` falsely report "no buildable box" whenever the empirical
+starting point sat in that region, even with a compliant box nearby.
+Candidates needing more than 95% of the 60 cm diameter ceiling, or whose
+`port_diameter_for_load` diameter breaks the duct-volume cap, are treated as
+infeasible. `port_pipe_resonance_hz()` reports the duct's first half-wave
+resonance (`c/2L`); the UI warns when it falls below
+`PORT_PIPE_RESONANCE_GUARD` (4×) times the tuning. DCCAV candidates below
 `F3 >= 0.67*fl` are likewise excluded from normal objective trade-offs. If the
 search never reaches the feasible region it raises an explicit optimizer error
 instead of returning its least-bad invalid candidate.

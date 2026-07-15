@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.4.5 (2026-07-15)
+
+- **Fix: reflex/DCCAV port sizing could still exceed the duct-volume
+  directive** (user report: "duct of 4.5 x 84.6 cm" persisting after 0.4.4).
+  The optimizer's feasibility metric and the UI's applied port diameter were
+  two independent sizing implementations that disagreed on the air-speed
+  safety margin, on whether reaching a fabricable ~5 cm duct length could
+  override the 10% duct-volume cap, and on which direction to round to the
+  sidebar's 0.5 cm grid (rounding up alone was enough to re-break a
+  boundary-case optimum). A sweep found 27 volume/tuning pairs the optimizer
+  called compliant that the UI still applied over the cap. Both call sites
+  now share one sizer, `port_diameter_for_load()`, which grows toward a
+  fabricable duct but never past the 10% cap and rounds down to the grid
+  whenever that stays within the mandatory floor.
+- **Fix: optimizer falsely reporting "no buildable box"**, found while
+  verifying the sizing fix above: encoding "no diameter satisfies every
+  directive" as an infinite score flattened the pattern search's gradient
+  across the whole infeasible region, so `optimize_alignment` could fail to
+  find a bass-reflex box that clearly existed just outside the empirical
+  starting point (reproduced across every volume cap for one real driver).
+  The infeasible score now stays a smoothly-varying quantity, restoring the
+  search's ability to descend out of that region.
+- **Verification**: py_compile, Ruff and Streamlit AppTest clean; full suite
+  88 passed / 0 failed / 0 skipped.
+
 ## 0.4.4 (2026-07-15)
 
 - **One box algorithm, three objectives**: replaced the overlapping

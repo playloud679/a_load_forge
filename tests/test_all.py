@@ -692,6 +692,116 @@ def _check_port_duct_volume_directive():
 test("DCCAV duct-volume directive rejects oversized ports", _check_port_duct_volume_directive)
 
 
+def _check_port_diameter_for_load_shared_sizer():
+    # A comfortably large chamber: the length target wins, the cap is slack.
+    # Rounding to the 0.5 cm grid always rounds *down* toward the floor when
+    # that stays compliant, so the resulting length can undershoot the 5 cm
+    # target by less than one grid step - by design, since that keeps the
+    # cap intact instead of overshooting it.
+    d = _dccav.port_diameter_for_load(76.0, 30.0, 1.463, floor_cm=4.47)
+    assert d is not None and d >= 4.47, d
+    assert _dccav.port_length_cm(76.0, 30.0, d, 1.463) >= 4.5, d
+    assert _dccav.port_volume_fraction(76.0, 30.0, d, 1.463) <= _dccav.PORT_MAX_VOLUME_FRACTION
+
+    # A floor that itself breaks the cap even after grid rounding: no
+    # diameter can satisfy every directive for this volume/tuning pair (the
+    # exact PowerBass isobaric case from the duct-volume-directive test).
+    assert _dccav.port_diameter_for_load(4.57, 34.47, 1.463, floor_cm=4.47) is None
+    # A floor just above one where the *grid-rounded* floor alone already
+    # exceeds the cap (5 L @ 44 Hz, floor 4.06 cm rounds up to 4.5 cm =
+    # 14.6%): confirms rejection is decided post-rounding, not pre-rounding.
+    assert _dccav.port_diameter_for_load(5.0, 44.0, 1.463, floor_cm=4.06) is None
+    assert _dccav.port_volume_fraction(5.0, 44.0, 4.06, 1.463) <= 0.10, (
+        "the raw (unrounded) floor must look compliant on its own - the "
+        "rejection only appears after grid-rounding to a buildable diameter"
+    )
+
+    # Grid rounding must round DOWN when that still clears the floor (never
+    # silently re-break the cap by rounding up into it) - this was the exact
+    # gap that let a 4.5 cm/14.6%-fraction duct through despite a compliant
+    # continuous optimum. `d` above (5.0 cm) is itself the down-rounded
+    # result of a raw optimum between 4.5 and 5.0 cm.
+    assert abs(d / 0.5 - round(d / 0.5)) < 1e-9, d  # on the 0.5 cm grid
+    assert _dccav.port_length_cm(76.0, 30.0, d - 0.5, 1.463) < 5.0, (
+        "the next grid step down must miss the length target - otherwise "
+        "the function overshot instead of rounding to the nearest compliant point"
+    )
+
+
+test("port_diameter_for_load sizes within every directive on the 0.5 cm grid",
+     _check_port_diameter_for_load_shared_sizer)
+
+
+def _check_optimizer_and_ui_port_sizing_agree():
+    """Regression: the UI's applied port must never exceed the duct-volume
+    cap on a box the optimizer's own metrics report as compliant.
+
+    Found via user report ("duct of 4.5 x 84.6 cm") after the golden-rule/
+    duct-volume-directive rollout: `_optimizer_metrics` and the UI's
+    `_optimized_port_diameter_cm` independently derived the port diameter
+    with a slightly different velocity margin and un-synchronized 0.5 cm
+    grid rounding, so a box the optimizer scored as feasible (<=10%) could
+    still round up, in the UI, to a duct that broke the 10% cap.
+    """
+    import ui_app as _ui
+    from src import engine as _engine
+
+    ts = _dccav.apply_driver_configuration(
+        _dccav.get_driver_preset("LSDB: PowerBass PBX1-12D2"),
+        "Isobaric pair (parallel)",
+    )
+    freq = np.geomspace(10.0, 500.0, 240)
+    mismatches = []
+    for vb in np.arange(3.0, 15.0, 1.0):
+        for fb in np.arange(20.0, 55.0, 1.0):
+            box = _dccav.ReflexBox(vb_l=float(vb), fb_hz=float(fb))
+            try:
+                result = _dccav.simulate_reflex(ts, box, freq, 2.83)
+            except ValueError:
+                continue
+            applied_cm = _ui._optimized_port_diameter_cm(
+                ts, result, box.vb_l, box.fb_hz, 1.463, "lower")
+            applied_fraction = _dccav.port_volume_fraction(
+                box.vb_l, box.fb_hz, applied_cm, 1.463)
+            opt_fraction = _engine._optimizer_metrics(
+                ts, box, freq, 2.83)["port_volume_fraction"]
+            if opt_fraction <= _dccav.PORT_MAX_VOLUME_FRACTION + 1e-9 and (
+                    applied_fraction > _dccav.PORT_MAX_VOLUME_FRACTION + 1e-6):
+                mismatches.append((vb, fb, opt_fraction, applied_fraction, applied_cm))
+    assert not mismatches, mismatches
+
+
+test(
+    "Optimizer feasibility and UI applied port sizing agree on the duct-volume cap",
+    _check_optimizer_and_ui_port_sizing_agree,
+)
+
+
+def _check_reflex_optimizer_survives_infeasible_starting_neighborhood():
+    """Regression: encoding "no valid diameter" as an infinite score flattened
+    the pattern search's gradient across the whole infeasible plateau,
+    causing `optimize_alignment` to report "no buildable box" even when a
+    perfectly good reflex box existed just outside the starting neighborhood.
+    """
+    ts = _dccav.apply_driver_configuration(
+        _dccav.get_driver_preset("LSDB: PowerBass PBX1-12D2"),
+        "Isobaric pair (parallel)",
+    )
+    for cap in (None, 4.0, 5.0, 8.0, 20.0, 40.0):
+        goals = _dccav.OptimizationGoals(objective="extension", max_total_volume_l=cap)
+        opt = _dccav.optimize_alignment(ts, goals, load_type="Bass reflex")
+        assert np.isfinite(opt.f3_hz), (cap, opt)
+        freq = np.geomspace(10.0, 500.0, 240)
+        result = _dccav.simulate_reflex(ts, opt.box, freq, 2.83)
+        assert result is not None, cap
+
+
+test(
+    "Reflex optimizer escapes an infeasible starting neighborhood",
+    _check_reflex_optimizer_survives_infeasible_starting_neighborhood,
+)
+
+
 def _check_ui_port_duct_volume_and_pipe_warnings():
     from streamlit.testing.v1 import AppTest
 
@@ -2551,10 +2661,21 @@ def _check_ui_optimized_alignment_mode():
     lower_d_cm = float(st.session_state["box_port_d_l_cm"])
     assert 0.0 < upper_d_cm <= _dccav.OPTIMIZER_MAX_PORT_DIAMETER_CM
     assert 0.0 < lower_d_cm <= _dccav.OPTIMIZER_MAX_PORT_DIAMETER_CM
-    assert _dccav.port_length_cm(
-        optimized_box.vh_l, optimized_box.fh_hz, upper_d_cm, 1.7) >= 5.0
-    assert _dccav.port_length_cm(
-        optimized_box.vl_l, optimized_box.fl_hz, lower_d_cm, 1.463) >= 5.0
+    # A fabricable ~5 cm duct is the target, but the 10% duct-volume
+    # directive can cap growth first on a tight (6 L) DCCAV box: a shorter
+    # duct is then the correct, directive-respecting trade-off.
+    upper_fraction = _dccav.port_volume_fraction(
+        optimized_box.vh_l, optimized_box.fh_hz, upper_d_cm, 1.7)
+    lower_fraction = _dccav.port_volume_fraction(
+        optimized_box.vl_l, optimized_box.fl_hz, lower_d_cm, 1.463)
+    assert (
+        _dccav.port_length_cm(optimized_box.vh_l, optimized_box.fh_hz, upper_d_cm, 1.7) >= 5.0
+        or upper_fraction <= _dccav.PORT_MAX_VOLUME_FRACTION + 1e-6
+    ), (upper_d_cm, upper_fraction)
+    assert (
+        _dccav.port_length_cm(optimized_box.vl_l, optimized_box.fl_hz, lower_d_cm, 1.463) >= 5.0
+        or lower_fraction <= _dccav.PORT_MAX_VOLUME_FRACTION + 1e-6
+    ), (lower_d_cm, lower_fraction)
     optimized_result = _dccav.simulate(driver, optimized_box)
     upper_area_cm2 = np.pi * (upper_d_cm / 2.0) ** 2
     lower_area_cm2 = np.pi * (lower_d_cm / 2.0) ** 2
