@@ -3293,7 +3293,8 @@ with st.sidebar:
                 st.number_input(
                     "Qleak box", min_value=1.0, max_value=10000.0, step=10.0, key="pr_q_leak")
             active_pr = _pr_box_from_state()
-            cab = _dccav._cab(active_pr.vb_l)
+            rho_c2 = 1.18 * 344.0 ** 2
+            cab = (active_pr.vb_l / 1000.0) / rho_c2
             pr_sp_m2 = active_pr.pr_sp_cm2 / 10_000.0
             pr_cmp = 1.0 / ((2 * np.pi * active_pr.pr_fp_hz) ** 2 * (active_pr.pr_mmp_g / 1000.0))
             pr_cap = pr_cmp * pr_sp_m2 ** 2
