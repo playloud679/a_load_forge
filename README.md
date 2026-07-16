@@ -6,8 +6,8 @@
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth- and sixth-order bandpass**,
-conventional **bass reflex**, **passive radiator**, **acoustic suspension**
-(sealed box) and ideal **infinite baffle**, all derived from driver
+conventional **bass reflex** with either a vent or passive-radiator resonator,
+**acoustic suspension** (sealed box) and ideal **infinite baffle**, all derived from driver
 Thiele/Small parameters.
 
 The app starts from a T/S set, proposes an editable first-pass alignment, then
@@ -27,11 +27,15 @@ far-field measurement substitute.
 Current UI highlights:
 
 - separate `Design a box` and `Find a driver` workspaces
-- compact three-column load picker whose illustrated cards are directly
-  clickable, with overlaid labels and a highlighted active load
+- compact 3+3 load picker whose illustrated cards are directly clickable,
+  with overlaid labels, keyboard focus and a red checked active state
+- a `Ports → Resonator type` submenu for choosing a vent or passive radiator
+  without misclassifying the radiator as a separate acoustic load
 - one optimizer behind every automatic box: a `Max extension` / `Balanced` /
   `Flattest` / `Manual` strategy control instead of overlapping alignment modes
-- response, excursion, impedance, ports and group-delay design tabs
+- contextual response, excursion, impedance, ports, group-delay and atlas tabs;
+  Ports is omitted for sealed/infinite-baffle loads, while Atlas is omitted for
+  infinite baffle and the passive-radiator resonator
 - explicit response frequency-window zoom with automatic vertical fit and reset
 - response pinning for A/B overlays
 - one-click comparison across the supported enclosure loads at equal volume
@@ -39,8 +43,8 @@ Current UI highlights:
 - port-geometry estimates and chuffing diagnostics
 - driver reference metrics, voice-coil corner and T/S-based bandwidth class
 - goal-first driver ranking with strict catalog filters, candidate preview,
-  a three-step sidebar workflow, explicit apply, practical quick-scan defaults,
-  response sparklines and CSV
+  a target → performance → library sidebar workflow, sticky and in-workspace
+  search actions, practical quick-scan defaults, response sparklines and CSV
   export
 - progressive disclosure for T/S data, sweep settings, cursor positions and
   secondary result metrics

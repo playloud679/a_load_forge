@@ -1,19 +1,28 @@
 # Changelog
 
 
-## 0.5.1 (2026-07-16)
+## 0.5.2 (2026-07-16)
 
 - **Illustrated load picker**: replaced the emoji load buttons with compact,
   directly clickable diagram cards in a three-column grid. Load names are
-  overlaid on the images, the active selection has a blue outline, and the
-  current Design load is echoed by a 72 px preview beside the result metrics.
+  overlaid on the images, the active selection has a red checked outline, and
+  the current Design load is echoed by a 44 px preview beside the result metrics.
 - **Bundled load artwork**: added optimized local diagrams for infinite baffle,
-  sealed, bass reflex, fourth- and sixth-order bandpass, and DCCAV. The passive
-  radiator retains a neutral text card until dedicated artwork is supplied.
+  sealed, bass reflex, fourth- and sixth-order bandpass, and DCCAV. Refreshed
+  the sealed, reflex, BP4, BP6 and DCCAV cards with the supplied revised icons.
+- **Full-bleed brand header**: the 1200×100 banner now breaks out of Streamlit's
+  content gutters on desktop and mobile, reaching both edges of the main page.
+- **Correct resonator hierarchy**: passive radiator is no longer presented as
+  a seventh load topology. Bass reflex now exposes `Ports → Resonator type`
+  (`Port` or `Passive radiator`) in Design and Finder, while old PR presets are
+  migrated to the new state automatically.
+- **Finder minimum-SPL constraint**: forwards the threshold into each candidate
+  optimization and removes rows whose simulated Peak LF SPL is below it. An
+  explicit no-match state replaces the stale or unfiltered candidate table.
 - **Documentation**: synchronized the README, user guide and module index with
-  all seven supported load types and the new visual selector.
+  all six supported load types, the new visual selector and PR submenu.
 - **Verification**: py_compile and Streamlit AppTest clean; full suite
-  94 passed / 0 failed / 0 skipped.
+  95 passed / 0 failed / 0 skipped.
 
 
 ## 0.5.0 (2026-07-15)

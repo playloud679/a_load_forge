@@ -2639,7 +2639,7 @@ def _check_ui_finder_starts_from_practical_defaults():
     assert not at.exception, at.exception
 
     numbers = {control.label: control.value for control in at.number_input}
-    assert numbers["Volume (L)"] == 40.0, numbers
+    assert numbers["Target volume (L)"] == 40.0, numbers
     assert numbers["Comparison voltage (V)"] == 2.83, numbers
     assert numbers["Evaluation range start (Hz)"] == 10.0, numbers
     assert numbers["Evaluation range end (Hz)"] == 300.0, numbers
@@ -2669,7 +2669,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
     assert not at.exception, at.exception
 
     number_labels = {
-        "Volume (L)",
+        "Target volume (L)",
         "Comparison voltage (V)",
         "Desired bass extension F3 (Hz, 0 = deepest)",
         "Allowed response ripple (dB)",
@@ -2692,7 +2692,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
     ), "ranking always uses the optimizer; the quick-scan toggle is retired"
     assert any(button.label == "Reset Finder defaults" for button in at.sidebar.button)
     assert any(button.label == "Find drivers" for button in at.sidebar.button)
-    assert not any(button.label == "Find drivers" for button in at.main.button)
+    assert any(button.label == "Find drivers" for button in at.main.button)
 
     at.session_state["batch_results"] = [{
         "Driver": "Priced test driver", "Brand": "Test", "Size in": 8.0,
@@ -3491,6 +3491,227 @@ def _check_simulation_rejects_bad_frequency_grid():
 
 
 test("DCCAV rejects invalid frequency grid", _check_simulation_rejects_bad_frequency_grid)
+
+
+def _check_ui_finder_comprehensive_ux_regression():
+    """Cover Finder UI contracts:
+
+    1. Logical order of sidebar sections (1, 2, 3 / 4 after search)
+    2. Clicking the six load-type cards
+    3. Multi-select (Finder) vs single-select (Design) behaviour
+    4. CTA "Find drivers" presence and state
+    5. Title/caption before and after the search
+    6. Price column is conditional on price data
+    7. No literal "None" in the results table
+    8. Minimum SPL removes non-compliant candidates
+    9. Contextual tabs for sealed, infinite baffle, reflex and PR resonator
+    10. State persistence through Finder ↔ Design round-trip
+    """
+    from streamlit.testing.v1 import AppTest
+
+    import ui_app as _ui
+
+    # -- 1. Logical order of Finder sidebar sections -------------------------
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
+    at.run()
+    assert not at.exception, at.exception
+
+    sidebar_subs_raw = [sub.value for sub in at.sidebar.subheader]
+    ordered_markers = [s for s in sidebar_subs_raw if s.startswith(("1 ·", "2 ·", "3 ·", "4 ·"))]
+    assert ordered_markers[:3] == [
+        "1 · Target enclosure", "2 · Performance goal", "3 · Candidate library",
+    ], ordered_markers
+    assert not any(s.startswith("4 ·") for s in ordered_markers), (
+        "4 · Results must only appear after a search returns results",
+        ordered_markers,
+    )
+
+    # -- 2. All six load-type cards are clickable buttons --------------------
+    card_buttons = [b for b in at.sidebar.button if b.key.startswith("load_btn_")]
+    assert len(card_buttons) == 6, [b.key for b in card_buttons]
+    expected_labels = {"Infinite baffle", "Sealed", "Reflex", "BP4", "BP6", "DCCAV"}
+    assert {b.label for b in card_buttons} == expected_labels
+
+    # Toggle all six to active in the Finder (re-acquire after each run)
+    for lt in _ui._ALL_LOAD_TYPES:
+        current = set(at.session_state["finder_load_types"])
+        if lt not in current:
+            btn = next(b for b in at.sidebar.button if b.key == f"load_btn_{lt}")
+            btn.click().run()
+            assert not at.exception, at.exception
+    assert len(at.session_state["finder_load_types"]) == 6
+    resonator_select = next(
+        widget for widget in at.sidebar.selectbox
+        if widget.label == "Bass-reflex resonator"
+    )
+    resonator_select.select("Passive radiator").run()
+    assert not at.exception, at.exception
+    assert at.session_state["finder_reflex_resonator_type"] == "Passive radiator"
+
+    # -- 3. Multi-select vs single-select ----------------------------------
+    # Finder: deselect one, others stay active
+    sealed_btn = next(b for b in at.sidebar.button if b.key == "load_btn_Sealed")
+    sealed_btn.click().run()
+    assert not at.exception, at.exception
+    assert "Sealed" not in at.session_state["finder_load_types"]
+    assert len(at.session_state["finder_load_types"]) == 5
+
+    # Design single-select: fresh AppTest, click cards one by one
+    at_design = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at_design.session_state["workspace_mode"] = "Design a box"
+    at_design.run()
+    assert not at_design.exception, at_design.exception
+    # In Design, clicking a load card replaces the selection
+    for lt in ("Bass reflex", "DCCAV"):
+        btn = next(b for b in at_design.sidebar.button if b.key == f"load_btn_{lt}")
+        btn.click().run()
+        assert not at_design.exception, at_design.exception
+        assert at_design.session_state["load_type"] == lt, lt
+
+    # -- 4. CTA "Find drivers" -----------------------------------------------
+    at.session_state["preset_search"] = "KEF B110B article example"
+    at.session_state["finder_volume_l"] = 40.0
+    at.session_state["finder_result_count"] = 5
+    at.session_state["finder_points"] = 80
+    at.run()
+    assert not at.exception, at.exception
+
+    find_btn = next(b for b in at.sidebar.button if b.label == "Find drivers")
+    assert find_btn.proto.type == "primary"
+    assert not find_btn.disabled
+    main_find_btn = next(
+        b for b in at.button
+        if b.label == "Find drivers" and b.key == "finder_run_search_main"
+    )
+    assert main_find_btn.proto.type == "primary"
+    assert not main_find_btn.disabled
+
+    # -- 5. Title / caption before and after the search ----------------------
+    main_subs = [s.value for s in at.subheader]
+    assert "Candidate library" in main_subs, main_subs
+    caps_before = [c.value for c in at.caption]
+    assert any("Configure the three Finder steps" in c for c in caps_before), caps_before
+
+    find_btn.click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["batch_results"], "search must produce results"
+    assert "Recommended drivers" in [s.value for s in at.subheader]
+    caps_after = [c.value for c in at.caption]
+    assert any("usable candidates" in c for c in caps_after), caps_after
+    assert at.dataframe, "ranked table must render"
+
+    # -- 6. Price input/column are conditional -------------------------------
+    at_price = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at_price.run()
+    assert not at_price.exception, at_price.exception
+    max_price_inputs = [n for n in at_price.sidebar.number_input if n.label.startswith("Max price")]
+    assert not max_price_inputs, "Max price must stay hidden until its checkbox is active"
+    price_toggle = next(
+        c for c in at_price.sidebar.checkbox if c.label == "Filter by max price"
+    )
+    if not price_toggle.disabled:
+        price_toggle.check().run()
+        assert not at_price.exception, at_price.exception
+        assert any(
+            n.label.startswith("Max price") for n in at_price.sidebar.number_input
+        )
+
+    result_df = at.dataframe[0].value
+    assert result_df is not None
+    cols = list(result_df.columns)
+    assert "Driver" in cols and "F3 Hz" in cols, cols
+
+    # -- 7. No literal "None" in the table -----------------------------------
+    table_html = result_df.to_html() if hasattr(result_df, "to_html") else str(result_df)
+    assert "None" not in table_html, f"table contains 'None': {table_html[:400]}"
+
+    # -- 8. Minimum SPL is a hard result-list constraint ---------------------
+    at.session_state["finder_load_types"] = ["Sealed"]
+    at.session_state["finder_min_spl_db"] = 150.0
+    at.run()
+    assert not at.exception, at.exception
+    min_spl_find = next(b for b in at.sidebar.button if b.label == "Find drivers")
+    min_spl_find.click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["batch_results"] == []
+    assert "No matching drivers" in [sub.value for sub in at.subheader]
+    assert any(
+        "minimum SPL of 150.0 dB" in warning.value for warning in at.warning
+    )
+
+    # -- 9. Contextual tabs; PR stays a Bass-reflex resonator ----------------
+    expected_tabs = {
+        "Sealed": ["Response", "Excursion", "Impedance", "Group Delay", "Atlas"],
+        "Infinite baffle": ["Response", "Excursion", "Impedance", "Group Delay"],
+        "Bass reflex": ["Response", "Excursion", "Impedance", "Ports", "Group Delay", "Atlas"],
+    }
+    for load_type, expected in expected_tabs.items():
+        at_tabs = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+        at_tabs.session_state["workspace_mode"] = "Design a box"
+        at_tabs.session_state["load_type"] = load_type
+        at_tabs.run()
+        assert not at_tabs.exception, at_tabs.exception
+        tabs = [t.label for t in at_tabs.tabs]
+        assert tabs == expected, f"{load_type}: got {tabs}, expected {expected}"
+
+    at_pr = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at_pr.session_state["workspace_mode"] = "Design a box"
+    at_pr.session_state["load_type"] = "Bass reflex"
+    at_pr.session_state["reflex_resonator_type"] = "Passive radiator"
+    at_pr.session_state["box_strategy"] = "Balanced"
+    at_pr.run()
+    assert not at_pr.exception, at_pr.exception
+    assert at_pr.session_state["load_type"] == "Bass reflex"
+    assert at_pr.session_state["box_strategy"] == "Manual"
+    assert any(
+        widget.label == "Resonator type" and widget.value == "Passive radiator"
+        for widget in at_pr.sidebar.selectbox
+    )
+    assert [tab.label for tab in at_pr.tabs] == [
+        "Response", "Excursion", "Impedance", "Ports", "Group Delay",
+    ]
+
+    at_legacy_pr = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at_legacy_pr.session_state["workspace_mode"] = "Design a box"
+    at_legacy_pr.session_state["load_type"] = "Passive radiator"
+    at_legacy_pr.session_state["pr_vb_l"] = 37.5
+    at_legacy_pr.session_state["box_strategy"] = "Manual"
+    at_legacy_pr.session_state["sim_auto_align"] = False
+    at_legacy_pr.run()
+    assert not at_legacy_pr.exception, at_legacy_pr.exception
+    assert at_legacy_pr.session_state["load_type"] == "Bass reflex"
+    assert at_legacy_pr.session_state["reflex_resonator_type"] == "Passive radiator"
+    assert np.isclose(at_legacy_pr.session_state["reflex_vb_l"], 37.5)
+
+    # -- 10. State persistence through Finder ↔ Design round-trip -----------
+    at_persist = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at_persist.session_state["workspace_mode"] = "Design a box"
+    at_persist.session_state["load_type"] = "Bass reflex"
+    at_persist.session_state["box_strategy"] = "Manual"
+    at_persist.session_state["sim_auto_align"] = False
+    at_persist.session_state["reflex_vb_l"] = 42.5
+    at_persist.session_state["reflex_fb_hz"] = 55.0
+    at_persist.session_state["sim_voltage"] = 5.55
+    at_persist.run()
+    assert not at_persist.exception, at_persist.exception
+
+    ws = next(c for c in at_persist.segmented_control if c.label == "Workspace")
+    ws.set_value("Find a driver").run()
+    assert not at_persist.exception, at_persist.exception
+    ws = next(c for c in at_persist.segmented_control if c.label == "Workspace")
+    ws.set_value("Design a box").run()
+    assert not at_persist.exception, at_persist.exception
+
+    assert at_persist.session_state["load_type"] == "Bass reflex"
+    assert at_persist.session_state["reflex_vb_l"] == 42.5
+    assert at_persist.session_state["reflex_fb_hz"] == 55.0
+    assert at_persist.session_state["sim_voltage"] == 5.55
+
+
+test(
+    "UI Finder UX regression: sections, cards, selects, CTA, title, price, no-None, tabs, persistence",
+    _check_ui_finder_comprehensive_ux_regression,
+)
 
 
 def _check_passive_radiator_simulation():

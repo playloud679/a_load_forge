@@ -69,6 +69,57 @@ st.markdown(
             min-width: 100vw !important;
             max-width: 100vw !important;
         }
+        .st-key-finder_sticky_action { width: 100vw; }
+    }
+    .st-key-brand_banner,
+    .st-key-brand_banner div[data-testid="stMarkdownContainer"] {
+        max-width: none !important;
+        width: 100% !important;
+    }
+    .st-key-brand_banner {
+        margin-left: -5rem;
+        margin-right: -5rem;
+        width: calc(100% + 10rem) !important;
+    }
+    .st-key-brand_banner .load-forge-brand-banner {
+        display: block;
+        height: auto !important;
+        max-height: none !important;
+        object-fit: contain;
+        object-position: center;
+        width: 100% !important;
+    }
+    .st-key-brand_banner { margin-bottom: -.35rem; }
+    @media (max-width: 768px) {
+        .st-key-brand_banner {
+            margin-left: -1rem;
+            margin-right: -1rem;
+            width: calc(100% + 2rem) !important;
+        }
+    }
+    .st-key-finder_sticky_action {
+        background: color-mix(in srgb, var(--background-color) 92%, #20242a);
+        border-top: 1px solid rgba(127,127,127,.34);
+        bottom: 0;
+        left: 0;
+        padding: .65rem .75rem .75rem;
+        position: fixed;
+        width: min(21rem, 100vw);
+        z-index: 20;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stSidebarContent"] {
+        padding-bottom: 5rem;
+    }
+    .st-key-active_load_summary {
+        border: 1px solid rgba(127,127,127,.22);
+        border-radius: .55rem;
+        padding: .45rem .6rem .6rem;
+    }
+    .st-key-active_load_summary img {
+        border-radius: .3rem;
+        height: 2.75rem !important;
+        object-fit: cover;
+        width: 2.75rem !important;
     }
     .stMetric { border: 1px solid rgba(127,127,127,.22); padding: .75rem; }
     </style>
@@ -78,7 +129,7 @@ st.markdown(
 
 
 _PARAM_PREFIXES = (
-    "driver_", "box_", "reflex_", "bandpass4_", "bandpass6_", "sealed_", "loss_", "sim_", "opt_", "load_type"
+    "driver_", "box_", "reflex_", "pr_", "bandpass4_", "bandpass6_", "sealed_", "loss_", "sim_", "opt_", "load_type"
 )
 _RESPONSE_TRACE_OPTIONS = ("Total", "Cone", "Lower port")
 _PORT_TRACE_OPTIONS = ("Upper port", "Lower port")
@@ -99,7 +150,6 @@ _LOAD_TYPE_SLUGS = {
     "Infinite baffle": "infinite_baffle",
     "Sealed": "sealed",
     "Bass reflex": "bass_reflex",
-    "Passive radiator": "passive_radiator",
     "Bandpass 4th order": "bandpass_4th",
     "Bandpass 6th order": "bandpass_6th",
     "DCCAV": "dccav",
@@ -109,14 +159,22 @@ _LOAD_TYPE_SHORT = {
     "Infinite baffle": "Infinite baffle",
     "Sealed": "Sealed",
     "Bass reflex": "Reflex",
-    "Passive radiator": "PR",
     "Bandpass 4th order": "BP4",
     "Bandpass 6th order": "BP6",
     "DCCAV": "DCCAV",
 }
 
-_ALL_LOAD_TYPES = ["Infinite baffle", "Sealed", "Bass reflex", "Passive radiator",
+_ALL_LOAD_TYPES = ["Infinite baffle", "Sealed", "Bass reflex",
                    "Bandpass 4th order", "Bandpass 6th order", "DCCAV"]
+_RESONATOR_PORT = "Port"
+_RESONATOR_PR = "Passive radiator"
+_RESONATOR_TYPES = (_RESONATOR_PORT, _RESONATOR_PR)
+
+
+def _reflex_uses_passive_radiator(*, finder: bool = False) -> bool:
+    """Return whether the bass-reflex resonator is a passive diaphragm."""
+    key = "finder_reflex_resonator_type" if finder else "reflex_resonator_type"
+    return st.session_state.get(key, _RESONATOR_PORT) == _RESONATOR_PR
 
 
 @cache
@@ -132,8 +190,8 @@ def _load_type_card_styles() -> str:
             background-size: cover;
             border: 1px solid rgba(127,127,127,.28);
             border-radius: .45rem;
-            height: 4.5rem;
-            min-height: 4.5rem;
+            height: 4.25rem;
+            min-height: 4.25rem;
             overflow: hidden;
             padding: 0;
             position: relative;
@@ -152,7 +210,7 @@ def _load_type_card_styles() -> str:
         [class*="st-key-load_card_"] div[data-testid="stButton"] button p {
             bottom: .22rem;
             color: white;
-            font-size: .68rem;
+            font-size: .75rem;
             font-weight: 700;
             left: .18rem;
             line-height: .78rem;
@@ -165,13 +223,33 @@ def _load_type_card_styles() -> str:
             z-index: 1;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button:hover {
-            border-color: #2f80ed;
+            border-color: #ff3b30;
             filter: brightness(1.08);
-            transform: translateY(-1px);
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button[data-testid="stBaseButton-primary"] {
-            border: 2px solid #2f80ed;
-            box-shadow: 0 0 0 2px rgba(47,128,237,.22);
+            border: 2px solid #ff3b30;
+            box-shadow: 0 0 0 2px rgba(255,59,48,.2);
+        }
+        [class*="st-key-load_card_"] div[data-testid="stButton"] button[data-testid="stBaseButton-primary"]::before {
+            align-items: center;
+            background: #ff3b30;
+            border-radius: 50%;
+            color: white;
+            content: "\\2713";
+            display: flex;
+            font-size: .62rem;
+            font-weight: 900;
+            height: 1rem;
+            justify-content: center;
+            position: absolute;
+            right: .2rem;
+            top: .2rem;
+            width: 1rem;
+            z-index: 2;
+        }
+        [class*="st-key-load_card_"] div[data-testid="stButton"] button:focus-visible {
+            outline: 3px solid rgba(255,59,48,.72);
+            outline-offset: 2px;
         }
         """
     ]
@@ -184,10 +262,6 @@ def _load_type_card_styles() -> str:
             f'.st-key-load_card_{slug} button '
             f'{{ background-image: url("data:image/png;base64,{encoded}"); }}'
         )
-    rules.append(
-        ".st-key-load_card_passive_radiator button {"
-        "background-image: linear-gradient(135deg, #252b33, #101216); }"
-    )
     rules.append("</style>")
     return "".join(rules)
 
@@ -201,9 +275,10 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
     """
     modified = set(active_set)
     st.markdown(_load_type_card_styles(), unsafe_allow_html=True)
-    for row_start in range(0, len(_ALL_LOAD_TYPES), 3):
-        row_cols = st.columns(3)
-        for offset, lt in enumerate(_ALL_LOAD_TYPES[row_start:row_start + 3]):
+    for row_start, row_end in ((0, 3), (3, len(_ALL_LOAD_TYPES))):
+        row_load_types = _ALL_LOAD_TYPES[row_start:row_end]
+        row_cols = st.columns(len(row_load_types))
+        for offset, lt in enumerate(row_load_types):
             with row_cols[offset]:
                 with st.container(key=f"load_card_{_LOAD_TYPE_SLUGS[lt]}"):
                     active = lt in active_set
@@ -276,7 +351,7 @@ _BOX_STRATEGIES = (*_OPT_OBJECTIVE_LABELS, "Manual")
 _FINDER_RANK_F3 = "Deepest bass (F3)"
 _FINDER_RANK_VALUE = "Best value (F3 × price)"
 _FINDER_RANK_MODES = (_FINDER_RANK_F3, _FINDER_RANK_VALUE)
-_FINDER_DEFAULTS_VERSION = 4
+_FINDER_DEFAULTS_VERSION = 5
 _FINDER_DEFAULTS = {
     "finder_rank_mode": _FINDER_RANK_F3,
     "finder_volume_l": 40.0,
@@ -291,6 +366,7 @@ _FINDER_DEFAULTS = {
     "finder_f_max": 300.0,
     "finder_result_count": 20,
     "finder_points": 240,
+    "finder_reflex_resonator_type": _RESONATOR_PORT,
 }
 
 
@@ -346,13 +422,20 @@ def _collect_params() -> dict:
 
 
 def _apply_loaded_params(data: dict) -> int:
+    legacy_passive_radiator = data.get("load_type") == "Passive radiator"
     applied = 0
     for key, value in data.items():
         if _is_param_key(key):
             if key == "load_type" and value in ("Suspension pneumatic", "Acoustic suspension"):
                 value = "Sealed"
+            elif key == "load_type" and value == "Passive radiator":
+                value = "Bass reflex"
             st.session_state[key] = value
             applied += 1
+    if legacy_passive_radiator:
+        st.session_state["reflex_resonator_type"] = _RESONATOR_PR
+        if "pr_vb_l" in data and "reflex_vb_l" not in data:
+            st.session_state["reflex_vb_l"] = float(data["pr_vb_l"])
     # v0.2 presets used two overlapping controls for the same decision and
     # v0.3 offered a starter-based "Suggested" next to one "Optimized" mode.
     # Both collapse onto the single optimizer-objective strategy control.
@@ -475,7 +558,8 @@ def _reflex_box_from_state() -> _dccav.ReflexBox:
 
 def _pr_box_from_state() -> _dccav.PassiveRadiatorBox:
     return _dccav.PassiveRadiatorBox(
-        vb_l=float(st.session_state.get("pr_vb_l", 40.0)),
+        vb_l=float(st.session_state.get(
+            "reflex_vb_l", st.session_state.get("pr_vb_l", 40.0))),
         pr_sp_cm2=float(st.session_state.get("pr_sp_cm2", 200.0)),
         pr_fp_hz=float(st.session_state.get("pr_fp_hz", 20.0)),
         pr_qmp=float(st.session_state.get("pr_qmp", 5.0)),
@@ -574,6 +658,7 @@ def _reset_finder_defaults() -> None:
     st.session_state["_finder_defaults_version"] = _FINDER_DEFAULTS_VERSION
     st.session_state.pop("batch_results", None)
     st.session_state.pop("batch_result_context", None)
+    st.session_state.pop("batch_search_completed", None)
 
 
 def _ensure_finder_defaults() -> None:
@@ -586,6 +671,7 @@ def _ensure_finder_defaults() -> None:
         st.session_state["_finder_defaults_version"] = _FINDER_DEFAULTS_VERSION
         st.session_state.pop("batch_results", None)
         st.session_state.pop("batch_result_context", None)
+        st.session_state.pop("batch_search_completed", None)
     else:
         # Keep conditionally rendered Finder values alive while Design is open.
         for key in _FINDER_DEFAULTS:
@@ -770,6 +856,8 @@ def _apply_optimized_port_geometry(
 ) -> None:
     """Replace stale preset diameters with geometry for the optimized box."""
     if isinstance(box, _dccav.SealedBox):
+        return
+    if isinstance(box, _dccav.ReflexBox) and _reflex_uses_passive_radiator():
         return
     freq = np.geomspace(
         min(10.0, driver.fs_hz / 4.0), max(400.0, 4.0 * driver.fs_hz), 240)
@@ -1217,6 +1305,7 @@ def _auto_alignment_signature(driver: _dccav.DriverTS | None = None) -> tuple:
     driver = driver or _driver_from_state()
     return (
         st.session_state.get("load_type", "DCCAV"),
+        st.session_state.get("reflex_resonator_type", _RESONATOR_PORT),
         *_optimizer_goals_signature(),
         round(float(driver.fs_hz), 6),
         round(float(driver.vas_l), 6),
@@ -1371,7 +1460,10 @@ def _response_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
     if st.session_state.get("plot_response_lower_port", True) and load_type in {
         "DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order",
     }:
-        label = "Vent" if load_type in {"Bass reflex", "Bandpass 4th order"} else "Lower port"
+        if load_type == "Bass reflex" and _reflex_uses_passive_radiator():
+            label = "Passive radiator"
+        else:
+            label = "Vent" if load_type in {"Bass reflex", "Bandpass 4th order"} else "Lower port"
         series[label] = result.spl_port_db
     if st.session_state.get("plot_response_mol", False):
         series["MOL"] = result.mol_db
@@ -1438,7 +1530,10 @@ def _port_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
     if st.session_state.get("plot_port_upper", True) and load_type in ("DCCAV", "Bandpass 6th order"):
         series["Upper port"] = result.port_h_velocity
     if st.session_state.get("plot_port_lower", True):
-        label = "Vent" if load_type in {"Bass reflex", "Bandpass 4th order"} else "Lower port"
+        if load_type == "Bass reflex" and _reflex_uses_passive_radiator():
+            label = "Passive radiator"
+        else:
+            label = "Vent" if load_type in {"Bass reflex", "Bandpass 4th order"} else "Lower port"
         series[label] = result.port_l_velocity
     return series
 
@@ -1733,7 +1828,10 @@ def _pin_label(load_type: str, box) -> str:
     if config != "Single driver":
         preset = f"{preset} ({config})"
     if load_type == "Bass reflex":
-        box_txt = f"Vb {box.vb_l:.1f} L · Fb {box.fb_hz:.1f} Hz"
+        if isinstance(box, _dccav.PassiveRadiatorBox):
+            box_txt = f"Vb {box.vb_l:.1f} L · PR Fp {box.pr_fp_hz:.1f} Hz"
+        else:
+            box_txt = f"Vb {box.vb_l:.1f} L · Fb {box.fb_hz:.1f} Hz"
     elif load_type == "Bandpass 4th order":
         box_txt = f"Vs {box.vs_l:.1f} L / Vp {box.vp_l:.1f} L · Fp {box.fp_hz:.1f} Hz"
     elif load_type == "Bandpass 6th order":
@@ -1833,10 +1931,14 @@ def _topology_comparison_series(
     except Exception:
         logger.exception("Comparison bandpass6 simulation failed")
     try:
-        r_box = box if load_type == "Bass reflex" else _dccav.ReflexBox(
-            vb_l=vtot, fb_hz=_dccav.suggest_reflex_alignment(ts).fb_hz)
-        series["Bass reflex"] = _dccav.simulate_reflex(
-            ts, r_box, freq, voltage_v, series_r_ohm).spl_total_db
+        if load_type == "Bass reflex" and isinstance(box, _dccav.PassiveRadiatorBox):
+            series["Bass reflex"] = _dccav.simulate_passive_radiator(
+                ts, box, freq, voltage_v, series_r_ohm).spl_total_db
+        else:
+            r_box = box if load_type == "Bass reflex" else _dccav.ReflexBox(
+                vb_l=vtot, fb_hz=_dccav.suggest_reflex_alignment(ts).fb_hz)
+            series["Bass reflex"] = _dccav.simulate_reflex(
+                ts, r_box, freq, voltage_v, series_r_ohm).spl_total_db
     except Exception:
         logger.exception("Comparison reflex simulation failed")
     try:
@@ -1998,6 +2100,9 @@ def _batch_rank_presets_parallel(
 def _apply_batch_result(row: dict, load_type: str) -> None:
     if load_type in ("Suspension pneumatic", "Acoustic suspension"):
         load_type = "Sealed"
+    legacy_pr = load_type == "Passive radiator"
+    if legacy_pr:
+        load_type = "Bass reflex"
     name = str(row["Driver"])
     driver = _dccav.get_driver_preset(name)
     st.session_state["load_type"] = load_type
@@ -2009,7 +2114,18 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
     st.session_state["workspace_mode"] = "Design a box"
     if load_type == "Bass reflex":
         st.session_state["reflex_vb_l"] = float(row["Vb L"])
-        st.session_state["reflex_fb_hz"] = float(row["Fb Hz"])
+        resonator = str(row.get(
+            "Resonator", _RESONATOR_PR if legacy_pr else _RESONATOR_PORT))
+        st.session_state["reflex_resonator_type"] = resonator
+        if resonator == _RESONATOR_PR:
+            pr = _dccav.suggest_pr_alignment(driver)
+            st.session_state["pr_sp_cm2"] = float(pr.pr_sp_cm2)
+            st.session_state["pr_fp_hz"] = float(pr.pr_fp_hz)
+            st.session_state["pr_qmp"] = float(pr.pr_qmp)
+            st.session_state["pr_mmp_g"] = float(pr.pr_mmp_g)
+            st.session_state["pr_xmax_mm"] = float(pr.pr_xmax_mm)
+        else:
+            st.session_state["reflex_fb_hz"] = float(row["Fb Hz"])
     elif load_type == "Bandpass 4th order":
         st.session_state["bandpass4_vs_l"] = float(row["Vs L"])
         st.session_state["bandpass4_vp_l"] = float(row["Vp L"])
@@ -2021,14 +2137,12 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
         st.session_state["bandpass6_fp_hz"] = float(row["Fp Hz"])
     elif load_type == "Sealed":
         st.session_state["sealed_vb_l"] = float(row["Vb L"])
-    elif load_type == "Passive radiator":
-        st.session_state["pr_vb_l"] = float(row["Vb L"])
     elif load_type == "DCCAV":
         st.session_state["box_vh_l"] = float(row["Vh L"])
         st.session_state["box_fh_hz"] = float(row["fh Hz"])
         st.session_state["box_vl_l"] = float(row["Vl L"])
         st.session_state["box_fl_hz"] = float(row["fl Hz"])
-    if load_type == "Bass reflex":
+    if load_type == "Bass reflex" and not _reflex_uses_passive_radiator():
         optimized_box = _reflex_box_from_state()
     elif load_type == "Bandpass 4th order":
         optimized_box = _bandpass4_box_from_state()
@@ -2270,8 +2384,36 @@ def _finder_optimizer_goals_from_state() -> _dccav.OptimizationGoals:
     )
 
 
+def _finder_load_context() -> tuple[list[str], bool]:
+    """Return active Finder loads and whether infinite baffle is the only one."""
+    finder_load_types = list(st.session_state.get("finder_load_types", []))
+    if not finder_load_types:
+        finder_load_types = [str(st.session_state.get("load_type", "DCCAV"))]
+    return finder_load_types, finder_load_types == ["Infinite baffle"]
+
+
 def _render_find_driver_target_sidebar() -> None:
     """Render the enclosure conditions used for every Finder candidate."""
+    finder_load_types, only_infinite_baffle = _finder_load_context()
+    _finder_number_input(
+        "Target volume (L)",
+        min_value=0.1,
+        max_value=2000.0,
+        step=1.0,
+        key="finder_volume_l",
+        disabled=only_infinite_baffle,
+        help="Exact Vh+Vl for DCCAV, Vs+Vp for bandpass, or Vb for reflex/sealed candidates.",
+    )
+    if only_infinite_baffle:
+        st.caption("Infinite baffle does not use a box volume.")
+    if "Bass reflex" in finder_load_types:
+        with st.expander("Ports", expanded=True):
+            _finder_selectbox(
+                "Bass-reflex resonator",
+                list(_RESONATOR_TYPES),
+                key="finder_reflex_resonator_type",
+                help="Rank the reflex enclosure with an air vent or a passive radiator.",
+            )
     _finder_number_input(
         "Comparison voltage (V)", min_value=0.01, max_value=200.0,
         step=0.01, key="finder_voltage",
@@ -2289,10 +2431,17 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
     all_rows: list[dict] = []
     for lt in finder_load_types:
         is_infinite_baffle = lt == "Infinite baffle"
-        goals = None if is_infinite_baffle else _finder_optimizer_goals_from_state()
+        uses_pr = lt == "Bass reflex" and _reflex_uses_passive_radiator(finder=True)
+        ranking_load_type = "Passive radiator" if uses_pr else lt
+        # PR ranking uses the dedicated physical starter because the generic
+        # enclosure optimizer currently sweeps vented-box geometry only.
+        goals = (
+            None if is_infinite_baffle or uses_pr
+            else _finder_optimizer_goals_from_state()
+        )
         rank_args = (
             tuple(filtered_preset_names),
-            lt,
+            ranking_load_type,
             finder_volume_l,
             float(_finder_value("finder_voltage")),
             float(_finder_value("finder_f_min")),
@@ -2306,51 +2455,64 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
             spinner_text = (
                 f"Optimizing {scan_count} candidates · {lt}" if goals is not None
                 else f"Scanning {scan_count} candidates · {lt}"
+                + (" · passive radiator" if uses_pr else "")
             )
             with st.spinner(spinner_text):
                 batch_rows = _batch_rank_presets(*rank_args, goals=goals)
+        if lt == "Bass reflex":
+            for row in batch_rows:
+                row["_load_type"] = "Bass reflex"
+                row["Resonator"] = _RESONATOR_PR if uses_pr else _RESONATOR_PORT
         all_rows.extend(batch_rows)
+    min_spl_db = float(st.session_state.get("finder_min_spl_db", 0.0) or 0.0)
+    if min_spl_db > 0.0:
+        all_rows = [
+            row for row in all_rows
+            if np.isfinite(float(row.get("Peak dB", np.nan)))
+            and float(row["Peak dB"]) >= min_spl_db
+        ]
     all_rows = _dccav.sort_ranked_rows(all_rows)
     st.session_state["batch_results"] = all_rows
+    st.session_state["batch_search_completed"] = True
     st.session_state["batch_result_context"] = (
         tuple(finder_load_types),
         finder_volume_l,
         scan_count,
         bool(_finder_optimizer_goals_from_state()),
         str(st.session_state.get("finder_objective", "Balanced")),
+        str(st.session_state.get("finder_reflex_resonator_type", _RESONATOR_PORT)),
+        min_spl_db,
     )
 
 
-def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
-    """Complete the Finder workflow and run it without leaving the sidebar."""
-    finder_load_types = list(st.session_state.get("finder_load_types", []))
-    if not finder_load_types:
-        finder_load_types = [str(st.session_state.get("load_type", "DCCAV"))]
-    has_infinite_baffle = "Infinite baffle" in finder_load_types
-    only_infinite_baffle = has_infinite_baffle and len(finder_load_types) == 1
-
-    st.subheader("3 · Ranking")
+def _render_find_driver_goal_sidebar() -> None:
+    """Render Finder objective and constraints as the second workflow step."""
+    finder_load_types, only_infinite_baffle = _finder_load_context()
+    only_passive_radiator = (
+        finder_load_types == ["Bass reflex"]
+        and _reflex_uses_passive_radiator(finder=True)
+    )
     if only_infinite_baffle:
         st.caption(
             "Infinite baffle has no enclosure to optimize; candidates are "
             "ranked on their free-air response."
         )
+    elif only_passive_radiator:
+        st.caption(
+            "Passive-radiator candidates use the dedicated physical starter at "
+            "the target Vb and are ranked by the resulting response."
+        )
     else:
+        if "Bass reflex" in finder_load_types and _reflex_uses_passive_radiator(finder=True):
+            st.caption(
+                "The selected objective optimizes the other loads; passive-radiator "
+                "candidates use their dedicated starter at the same target volume."
+            )
         _finder_selectbox(
             "Optimization goal", list(_OPT_OBJECTIVE_LABELS), key="finder_objective",
             help="Every candidate box is derived by the same optimizer as the "
                  "Design workspace, at the fixed comparison volume. Balanced "
                  "trades extension against smoothness and box practicality.",
-        )
-        st.caption("Constraints")
-        _finder_number_input(
-            "Volume (L)",
-            min_value=0.1,
-            max_value=2000.0,
-            step=1.0,
-            key="finder_volume_l",
-            disabled=only_infinite_baffle,
-            help="Exact Vh+Vl for DCCAV, Vs+Vp for bandpass, or Vb for reflex/sealed candidates.",
         )
         _finder_number_input(
             "Desired bass extension F3 (Hz, 0 = deepest)", min_value=0.0,
@@ -2362,20 +2524,21 @@ def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
             step=0.5, key="finder_max_ripple_db",
             help="Maximum peak-to-valley variation in the evaluated low-frequency passband.",
         )
-        _finder_number_input(
-            "Maximum excursion (× driver Xmax)", min_value=0.0, max_value=3.0,
-            step=0.05, key="finder_excursion_ratio",
-            help="1.0 means cone travel stays within published Xmax; 0 disables the constraint.",
-        )
-        _finder_number_input(
-            "Maximum group delay (ms)", min_value=0.0, max_value=100.0,
-            step=1.0, key="finder_max_gd_ms",
-            help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
-        )
-        _finder_number_input(
-            "Minimum SPL (dB, 0 = off)", min_value=0.0, max_value=150.0,
-            step=0.5, key="finder_min_spl_db",
-            help="Require the candidate to reach at least this peak SPL at the comparison voltage; 0 disables.",
+        with st.expander("Advanced constraints"):
+            _finder_number_input(
+                "Maximum excursion (× driver Xmax)", min_value=0.0, max_value=3.0,
+                step=0.05, key="finder_excursion_ratio",
+                help="1.0 means cone travel stays within published Xmax; 0 disables the constraint.",
+            )
+            _finder_number_input(
+                "Maximum group delay (ms)", min_value=0.0, max_value=100.0,
+                step=1.0, key="finder_max_gd_ms",
+                help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
+            )
+            _finder_number_input(
+                "Minimum SPL (dB, 0 = off)", min_value=0.0, max_value=150.0,
+                step=0.5, key="finder_min_spl_db",
+                help="Require the candidate to reach at least this peak SPL at the comparison voltage; 0 disables.",
             )
 
     with st.expander("Advanced scan"):
@@ -2405,46 +2568,145 @@ def _render_find_driver_sidebar(filtered_preset_names: list[str]) -> None:
             help="Restore the practical quick-scan profile without changing the active design.",
         )
 
+
+def _finder_search_blocked(filtered_preset_names: list[str]) -> bool:
+    """Return whether the Finder inputs are insufficient for a valid search."""
+    _, only_infinite_baffle = _finder_load_context()
+    return (
+        not filtered_preset_names
+        or float(_finder_value("finder_f_max")) <= float(_finder_value("finder_f_min"))
+        or (
+            not only_infinite_baffle
+            and float(_finder_value("finder_volume_l")) <= 0.0
+        )
+    )
+
+
+def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
+    """Render a persistent Finder summary and primary action."""
+    finder_load_types, only_infinite_baffle = _finder_load_context()
+
     finder_volume_l = float(_finder_value("finder_volume_l"))
-    load_label = " + ".join(finder_load_types) if len(finder_load_types) <= 2 else f"{len(finder_load_types)} loads"
+    display_loads = [
+        "Bass reflex (PR)"
+        if item == "Bass reflex" and _reflex_uses_passive_radiator(finder=True)
+        else item
+        for item in finder_load_types
+    ]
+    load_label = " + ".join(display_loads) if len(display_loads) <= 2 else f"{len(display_loads)} loads"
     st.caption(
         f"Scans all {len(filtered_preset_names)} matching presets · {load_label}"
         + ("" if only_infinite_baffle else f" · {finder_volume_l:.1f} L")
     )
-    batch_blocked = (
-        not filtered_preset_names
-        or float(_finder_value("finder_f_max")) <= float(_finder_value("finder_f_min"))
-        or (not only_infinite_baffle and finder_volume_l <= 0.0)
-    )
-    if st.button(
-        "Find drivers", type="primary", use_container_width=True,
-        disabled=batch_blocked, key="finder_run_search",
-    ):
-        _run_find_driver_search(filtered_preset_names)
+    with st.container(key="finder_sticky_action"):
+        if st.button(
+            "Find drivers", type="primary", use_container_width=True,
+            disabled=_finder_search_blocked(filtered_preset_names),
+            key="finder_run_search",
+        ):
+            _run_find_driver_search(filtered_preset_names)
+
+
+_TABLE_NUMBER_FORMATS = {
+    "Size in": ".1f", "Fs Hz": ".1f", "Qts": ".3f", "Vas L": ".1f",
+    "SPL dB": ".0f", "F3 Hz": ".1f", "F6 Hz": ".1f", "F10 Hz": ".1f",
+    "Peak dB": ".1f", "Ripple dB": ".1f", "Price": ".2f", "Value": ".0f",
+    "Max excursion mm": ".2f", "Min ohm": ".2f", "Vb L": ".2f",
+    "Fb Hz": ".1f", "Fc Hz": ".1f", "Qtc": ".3f", "Vs L": ".2f",
+    "Vp L": ".2f", "Fp Hz": ".1f", "Vr L": ".2f", "Fr Hz": ".1f",
+    "Vh L": ".2f", "fh Hz": ".1f", "Vl L": ".2f", "fl Hz": ".1f",
+}
+
+
+def _table_value_missing(value: object) -> bool:
+    """Return true for values that must not be shown as None/nan in a table."""
+    if value is None:
+        return True
+    if isinstance(value, str):
+        return not value.strip()
+    return isinstance(value, (float, np.floating)) and not np.isfinite(value)
+
+
+def _clean_display_table_frame(frame: pd.DataFrame) -> pd.DataFrame:
+    """Hide empty columns and render partial missing values as an em dash."""
+    display = frame.copy()
+    empty_columns = [
+        name for name in display.columns
+        if display[name].map(_table_value_missing).all()
+    ]
+    if empty_columns:
+        display = display.drop(columns=empty_columns)
+    for name in display.columns:
+        missing = display[name].map(_table_value_missing)
+        if not missing.any():
+            continue
+        if name in _TABLE_NUMBER_FORMATS:
+            spec = _TABLE_NUMBER_FORMATS[name]
+            display[name] = [
+                "—" if is_missing else format(float(value), spec)
+                for value, is_missing in zip(display[name], missing, strict=True)
+            ]
+        elif name != "Response":
+            display[name] = [
+                "—" if is_missing else value
+                for value, is_missing in zip(display[name], missing, strict=True)
+            ]
+    return display
 
 
 def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     """Render Finder results and candidate application, separate from inputs."""
     load_type = str(st.session_state.get("load_type", "DCCAV"))
 
-    st.subheader("Driver matches")
-    st.caption(
-        "Configure the three Finder steps in the sidebar. Select a result to preview "
-        "it; the current design changes only after Apply candidate to design."
-    )
-
     finder_volume_l = float(st.session_state.get("finder_volume_l", 0.0))
     finder_loads = tuple(st.session_state.get("finder_load_types", []))
+    finder_resonator = str(st.session_state.get(
+        "finder_reflex_resonator_type", _RESONATOR_PORT))
     batch_rows = st.session_state.get("batch_results", [])
     context = st.session_state.get("batch_result_context", ())
-    if len(context) < 2 or tuple(context[:2]) != (finder_loads, finder_volume_l):
+    current_min_spl_db = float(
+        st.session_state.get("finder_min_spl_db", 0.0) or 0.0)
+    context_matches = not (
+        len(context) < 2
+        or tuple(context[:2]) != (finder_loads, finder_volume_l)
+        or (len(context) > 5 and str(context[5]) != finder_resonator)
+        or (len(context) > 6 and float(context[6]) != current_min_spl_db)
+        or (len(context) <= 6 and current_min_spl_db > 0.0)
+    )
+    if not context_matches:
         batch_rows = []
     if not batch_rows:
+        if st.session_state.get("batch_search_completed", False) and context_matches:
+            st.subheader("No matching drivers")
+            if current_min_spl_db > 0.0:
+                st.warning(
+                    f"No candidate reached the minimum SPL of "
+                    f"{current_min_spl_db:.1f} dB with the current enclosure, "
+                    "voltage and filters. Lower Minimum SPL or raise the comparison voltage."
+                )
+            else:
+                st.warning(
+                    "No usable candidate satisfies the current enclosure and constraints."
+                )
+            return
+        st.subheader("Candidate library")
+        st.caption(
+            "Configure the three Finder steps in the sidebar, then rank the filtered library."
+        )
         if filtered_preset_names:
             st.caption(
                 f"{len(filtered_preset_names)} presets match the current filters. "
-                "Select Find drivers in the sidebar to rank them."
+                "Run Find drivers to compare them with the same enclosure target."
             )
+            if st.button(
+                "Find drivers",
+                type="primary",
+                use_container_width=True,
+                disabled=_finder_search_blocked(filtered_preset_names),
+                key="finder_run_search_main",
+            ):
+                _run_find_driver_search(filtered_preset_names)
+                st.rerun()
             rows = []
             for name in filtered_preset_names[:500]:
                 try:
@@ -2463,8 +2725,9 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                 except Exception:
                     rows.append({"Driver": name})
             if rows:
+                preview_df = _clean_display_table_frame(pd.DataFrame(rows))
                 st.dataframe(
-                    pd.DataFrame(rows),
+                    preview_df,
                     width="stretch",
                     hide_index=True,
                     column_config={
@@ -2478,15 +2741,32 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         else:
             st.warning("No presets match the current library filters.")
         return
-        return
 
-    st.caption(f"{len(batch_rows)} usable candidates from {context[2]} scanned presets")
+    st.subheader("Recommended drivers")
+    display_finder_loads = [
+        "Bass reflex (PR)"
+        if item == "Bass reflex" and finder_resonator == _RESONATOR_PR
+        else item
+        for item in finder_loads
+    ]
+    load_summary = (
+        " + ".join(display_finder_loads)
+        if len(display_finder_loads) <= 2
+        else f"{len(display_finder_loads)} loads"
+    )
+    objective = str(context[4]) if len(context) > 4 else str(st.session_state.get("finder_objective", "Balanced"))
+    volume_summary = "" if finder_loads == ("Infinite baffle",) else f" · {finder_volume_l:.1f} L"
+    st.caption(
+        f"{len(batch_rows)} usable candidates from {context[2]} scanned presets · "
+        f"{load_summary}{volume_summary} · {objective}"
+    )
     full_df = pd.DataFrame(batch_rows)
     if "_load_type" in full_df.columns:
         full_df = full_df.rename(columns={"_load_type": "Load"})
     for name, default in (
         ("Load", ""), ("Price", np.nan), ("Currency", ""), ("Buy", ""),
         ("Ripple dB", np.nan), ("Response", None), ("Class", ""),
+        ("Resonator", ""),
     ):
         if name not in full_df.columns:
             full_df[name] = default
@@ -2516,6 +2796,8 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         "Load", "Driver", "Brand", "Size in", "F3 Hz", "F6 Hz", "F10 Hz",
         "Peak dB", "Max excursion mm", "Min ohm",
     ]
+    if batch_df["Resonator"].fillna("").astype(bool).any():
+        columns.insert(1, "Resonator")
     if batch_df["Class"].fillna("").astype(bool).any():
         columns.insert(columns.index("Size in") + 1, "Class")
     if batch_df["Response"].map(lambda v: bool(v) if isinstance(v, list) else False).any():
@@ -2530,23 +2812,25 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     if len(finder_loads) > 1:
         columns += ["Vb L", "Fb Hz", "Vh L", "fh Hz", "Vl L", "fl Hz",
                      "Vs L", "Vp L", "Fp Hz", "Vr L", "Fr Hz", "Fc Hz", "Qtc"]
-    elif load_type == "Bass reflex" or load_type == "Passive radiator":
+    elif finder_loads == ("Bass reflex",):
         columns += ["Vb L", "Fb Hz"]
-    elif load_type == "Bandpass 4th order":
+    elif finder_loads == ("Bandpass 4th order",):
         columns += ["Vs L", "Vp L", "Fp Hz"]
-    elif load_type == "Bandpass 6th order":
+    elif finder_loads == ("Bandpass 6th order",):
         columns += ["Vr L", "Fr Hz", "Vp L", "Fp Hz"]
-    elif load_type == "Sealed":
+    elif finder_loads == ("Sealed",):
         columns += ["Vb L", "Fc Hz", "Qtc"]
-    elif load_type == "Infinite baffle":
+    elif finder_loads == ("Infinite baffle",):
         columns += ["Fc Hz", "Qtc"]
     else:
         columns += ["Vh L", "fh Hz", "Vl L", "fl Hz"]
     if batch_df["Buy"].fillna("").astype(bool).any():
         columns.append("Buy")
 
+    display_df = _clean_display_table_frame(batch_df[columns])
+    columns = list(display_df.columns)
     table_state = st.dataframe(
-        batch_df[columns],
+        display_df,
         width="stretch",
         hide_index=True,
         key=f"batch_results_table_{'value' if 'Value' in columns else 'f3'}",
@@ -2618,14 +2902,11 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                 f"{float(selected_row['fl Hz']):.1f} Hz"
             )
         elif row_load_type == "Bass reflex":
+            resonator = str(selected_row.get("Resonator", _RESONATOR_PORT))
+            tuning_label = "PR system tuning" if resonator == _RESONATOR_PR else "Fb"
             st.caption(
-                f"Vb {float(selected_row['Vb L']):.2f} L · "
-                f"Fb {float(selected_row['Fb Hz']):.1f} Hz"
-            )
-        elif row_load_type == "Passive radiator":
-            st.caption(
-                f"Vb {float(selected_row['Vb L']):.2f} L · "
-                f"PR Fp {float(selected_row.get('Fb Hz', float('nan'))):.1f} Hz"
+                f"{resonator} · Vb {float(selected_row['Vb L']):.2f} L · "
+                f"{tuning_label} {float(selected_row['Fb Hz']):.1f} Hz"
             )
         elif row_load_type == "Bandpass 4th order":
             st.caption(
@@ -2690,7 +2971,12 @@ def _render_response_tab(
     if has_ports:
         with pen_columns[1]:
             st.checkbox(
-                "Lower port", key="plot_response_lower_port",
+                (
+                    "Passive radiator"
+                    if load_type == "Bass reflex" and _reflex_uses_passive_radiator()
+                    else "Lower port"
+                ),
+                key="plot_response_lower_port",
                 disabled=compare_loads_on,
             )
     st.caption("Total response is always shown as the baseline.")
@@ -2737,9 +3023,10 @@ def _render_response_tab(
     cursor_rows = _cursor_rows(result, thresholds)
 
     if load_type == "Bass reflex":
+        resonator = "passive radiator" if _reflex_uses_passive_radiator() else "vent"
         st.caption(
             "Bass-reflex total response is the vector sum of the exposed cone "
-            "front radiation and the vent. The model is low-frequency only; "
+            f"front radiation and the {resonator}. The model is low-frequency only; "
             "it does not include baffle step, breakup, room gain or crossover behaviour."
         )
     elif load_type == "Bandpass 4th order":
@@ -2813,8 +3100,14 @@ def _render_response_tab(
         )
         tolerance = float(st.session_state.get("plot_tolerance_pct", 15.0)) / 100.0
         try:
+            tolerance_load_type = (
+                "Passive radiator"
+                if load_type == "Bass reflex" and _reflex_uses_passive_radiator()
+                else load_type
+            )
             band = _tolerance_band_cached(
-                current_ts, load_type, box, freq, sim_voltage, sim_series_r, tolerance)
+                current_ts, tolerance_load_type, box, freq,
+                sim_voltage, sim_series_r, tolerance)
             st.caption(
                 f"Shaded band: ±{tolerance * 100.0:.0f}% Monte Carlo on "
                 f"Fs/Vas/Qts/Qms, {band.runs} runs, 5-95th percentile."
@@ -2911,19 +3204,14 @@ def _render_ports_tab(
     result: _dccav.SimulationResult,
     port_geometry_rows: list[dict],
     load_type: str,
+    passive_radiator: bool = False,
 ) -> None:
     chart_sig = _chart_signature()
-    if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order", "Passive radiator"}:
+    if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order"}:
         st.caption("The current load type has no ports.")
         return
-    if load_type == "Passive radiator":
+    if passive_radiator:
         st.checkbox("Passive radiator", key="plot_port_lower")
-        st.subheader("Radiator Volume Velocity")
-        p1, p2 = st.columns(2)
-        with p1:
-            st.checkbox("Upper port", key="plot_port_upper")
-        with p2:
-            st.checkbox("Vent volume velocity", key="plot_port_lower")
     elif load_type == "Bandpass 6th order":
         p1, p2 = st.columns(2)
         with p1:
@@ -2932,18 +3220,29 @@ def _render_ports_tab(
             st.checkbox("Front port", key="plot_port_lower")
     else:
         st.checkbox("Vent volume velocity", key="plot_port_lower")
-    st.subheader("Port Volume Velocity")
+    st.subheader(
+        "Radiator Volume Velocity"
+        if passive_radiator
+        else "Port Volume Velocity"
+    )
     if _port_series(result):
         st.altair_chart(_plot_ports(result), width="stretch", key=f"ports_chart_{chart_sig}")
     else:
         st.caption("Port pens off.")
 
     if port_geometry_rows:
-        st.subheader("Port Geometry")
-        st.caption(
-            f"Circular ducts at {float(st.session_state['sim_voltage']):.2f} V; "
-            f"air-speed guideline {_dccav.PORT_VELOCITY_GUIDELINE_MS:.0f} m/s (5% of c)."
-        )
+        if passive_radiator:
+            st.subheader("Radiator Geometry")
+            st.caption(
+                "Equivalent diaphragm diameter and simulated radiator motion "
+                f"at {float(st.session_state['sim_voltage']):.2f} V."
+            )
+        else:
+            st.subheader("Port Geometry")
+            st.caption(
+                f"Circular ducts at {float(st.session_state['sim_voltage']):.2f} V; "
+                f"air-speed guideline {_dccav.PORT_VELOCITY_GUIDELINE_MS:.0f} m/s (5% of c)."
+            )
         st.dataframe(
             pd.DataFrame(port_geometry_rows)[list(_PORT_GEOMETRY_COLUMNS)],
             width="stretch",
@@ -3026,6 +3325,14 @@ _default("reflex_q_leak", _DEFAULT_REFLEX_Q_LEAK)
 _default("reflex_q_port", _DEFAULT_REFLEX_Q_PORT)
 _default("reflex_custom_losses", False)
 _default("reflex_port_d_cm", 5.0)
+_default("reflex_resonator_type", _RESONATOR_PORT)
+_default("pr_sp_cm2", 200.0)
+_default("pr_fp_hz", 20.0)
+_default("pr_qmp", 5.0)
+_default("pr_mmp_g", 100.0)
+_default("pr_xmax_mm", 0.0)
+_default("pr_q_abs", 15.0)
+_default("pr_q_leak", 1000.0)
 _default("bandpass4_q_abs_s", 15.0)
 _default("bandpass4_q_abs_p", 15.0)
 _default("bandpass4_q_leak_s", 1000.0)
@@ -3047,6 +3354,12 @@ _default("sealed_q_leak", 1000.0)
 _default("load_type", "Sealed")
 if st.session_state["load_type"] in ("Suspension pneumatic", "Acoustic suspension"):
     st.session_state["load_type"] = "Sealed"
+elif st.session_state["load_type"] == "Passive radiator":
+    # Compatibility for pre-0.5.2 sessions: PR is a resonator choice, not a load.
+    st.session_state["load_type"] = "Bass reflex"
+    st.session_state["reflex_resonator_type"] = _RESONATOR_PR
+    if "pr_vb_l" in st.session_state:
+        st.session_state["reflex_vb_l"] = float(st.session_state["pr_vb_l"])
 _default("sim_f_min", 10.0)
 _default("sim_f_max", 500.0)
 _default("sim_points", 600)
@@ -3087,6 +3400,14 @@ _default("opt_max_gd_ms", 0.0)
 _default("workspace_mode", "Find a driver")
 _default("ui_show_advanced", False)
 _ensure_finder_defaults()
+if "finder_load_types" in st.session_state:
+    legacy_finder_loads = list(st.session_state["finder_load_types"])
+    if "Passive radiator" in legacy_finder_loads:
+        st.session_state["finder_reflex_resonator_type"] = _RESONATOR_PR
+        st.session_state["finder_load_types"] = list(dict.fromkeys(
+            "Bass reflex" if item == "Passive radiator" else item
+            for item in legacy_finder_loads
+        ))
 _preserve_library_filters()
 _preserve_design_state()
 if "box_strategy" not in st.session_state:
@@ -3100,6 +3421,14 @@ else:
     # Live sessions may still carry v0.3 "Suggested"/"Optimized" values.
     _set_box_strategy_state(
         _normalize_box_strategy(st.session_state["box_strategy"]))
+if (
+    st.session_state.get("load_type") == "Bass reflex"
+    and _reflex_uses_passive_radiator()
+    and _box_strategy_is_auto()
+):
+    # The generic optimizer sweeps duct tuning, which is not the PR mass and
+    # suspension problem. Keep the radiator controls explicitly editable.
+    _set_box_strategy_state("Manual")
 if "_optimizer_engine_revision" not in st.session_state:
     st.session_state["_optimizer_engine_revision"] = _OPTIMIZER_ENGINE_REVISION
 _apply_pending_batch_result()
@@ -3146,7 +3475,13 @@ _sync_auto_alignment_if_needed()
 
 
 if _BRAND_IMAGE.exists():
-    st.image(str(_BRAND_IMAGE), width="stretch")
+    with st.container(key="brand_banner"):
+        _brand_data = base64.b64encode(_BRAND_IMAGE.read_bytes()).decode("ascii")
+        st.markdown(
+            '<img class="load-forge-brand-banner" '
+            f'src="data:image/png;base64,{_brand_data}" alt="Load Forge">',
+            unsafe_allow_html=True,
+        )
 else:
     st.title("Load Forge")
 st.caption(
@@ -3236,7 +3571,9 @@ with st.sidebar:
             st.rerun()
     if workspace_mode == "Find a driver":
         _render_find_driver_target_sidebar()
-        st.subheader("2 · Candidate library")
+        st.subheader("2 · Performance goal")
+        _render_find_driver_goal_sidebar()
+        st.subheader("3 · Candidate library")
     all_preset_names = _dccav.driver_preset_names()
     st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
     if workspace_mode == "Find a driver":
@@ -3273,14 +3610,14 @@ with st.sidebar:
                 max(0.0, float(st.session_state["preset_max_price"])),
             )
             st.checkbox("Filter by max price", key="preset_price_enabled")
-            st.number_input(
-                f"Max price ({price_currency})",
-                min_value=0.0,
-                max_value=float(price_max_available),
-                step=1.0,
-                key="preset_max_price",
-                disabled=not st.session_state["preset_price_enabled"],
-            )
+            if st.session_state["preset_price_enabled"]:
+                st.number_input(
+                    f"Max price ({price_currency})",
+                    min_value=0.0,
+                    max_value=float(price_max_available),
+                    step=1.0,
+                    key="preset_max_price",
+                )
         else:
             st.session_state["preset_price_enabled"] = False
             st.checkbox("Filter by max price", key="preset_price_enabled", disabled=True)
@@ -3314,7 +3651,7 @@ with st.sidebar:
         ),
     )
     if workspace_mode == "Find a driver":
-        _render_find_driver_sidebar(filtered_preset_names)
+        _render_find_driver_actions(filtered_preset_names)
     if workspace_mode == "Design a box":
         current_preset = st.session_state.get("driver_preset_name", "Custom")
         preset_options = ["Custom", *filtered_preset_names]
@@ -3507,78 +3844,91 @@ with st.sidebar:
             _box_number_with_nudge(
                 "Vb box (L)", "reflex_vb_l", min_value=0.05, max_value=1000.0, step=0.01,
                 disabled=box_edit_disabled)
-            _box_number_with_nudge(
-                "Fb tuning (Hz)", "reflex_fb_hz", min_value=1.0, max_value=1000.0, step=0.1,
-                disabled=box_edit_disabled)
-            active_reflex_losses = _reflex_box_from_state()
-            loss_mode = "custom" if st.session_state.get("reflex_custom_losses", False) else "normal"
-            st.caption(
-                f"Reflex losses ({loss_mode}): "
-                f"Qabs {active_reflex_losses.q_abs:.1f} / "
-                f"Qport {active_reflex_losses.q_port:.1f} / "
-                f"Qleak {active_reflex_losses.q_leak:.0f}"
-            )
-            with st.expander("Loss factors"):
-                st.checkbox(
-                    "Use custom reflex losses",
-                    key="reflex_custom_losses",
-                    help="Turn off to use the standard loss model without changing your saved custom values.",
+            with st.expander("Ports", expanded=True):
+                st.selectbox(
+                    "Resonator type",
+                    _RESONATOR_TYPES,
+                    key="reflex_resonator_type",
+                    help="Choose an air vent or a passive diaphragm for the same bass-reflex load.",
                 )
-                disabled = not st.session_state.get("reflex_custom_losses", False)
-                st.number_input(
-                    "Qabs box", min_value=0.2, max_value=500.0, step=0.5,
-                    key="reflex_q_abs", disabled=disabled)
-                st.number_input(
-                    "Qleak box", min_value=1.0, max_value=10000.0, step=10.0,
-                    key="reflex_q_leak", disabled=disabled)
-                st.number_input(
-                    "Qport", min_value=0.2, max_value=500.0, step=0.5,
-                    key="reflex_q_port", disabled=disabled)
-            with st.expander("Port geometry"):
-                st.number_input(
-                    "Vent diameter (cm, 0 = off)", min_value=0.0, max_value=60.0,
-                    step=0.5, key="reflex_port_d_cm")
+                if _reflex_uses_passive_radiator():
+                    st.caption("Passive radiator resonator")
+                    st.number_input(
+                        "PR area Sp (cm²)", min_value=1.0, max_value=5000.0,
+                        step=1.0, key="pr_sp_cm2")
+                    st.number_input(
+                        "PR free-air Fp (Hz)", min_value=1.0, max_value=500.0,
+                        step=0.1, key="pr_fp_hz")
+                    st.number_input(
+                        "PR mechanical Qmp", min_value=0.5, max_value=50.0,
+                        step=0.1, key="pr_qmp")
+                    st.number_input(
+                        "PR moving mass Mmp (g)", min_value=1.0, max_value=5000.0,
+                        step=1.0, key="pr_mmp_g")
+                    st.number_input(
+                        "PR Xmax (mm, 0 = unknown)", min_value=0.0, max_value=50.0,
+                        step=0.1, key="pr_xmax_mm")
+                    active_pr = _pr_box_from_state()
+                    rho_c2 = 1.18 * 344.0 ** 2
+                    cab = (active_pr.vb_l / 1000.0) / rho_c2
+                    pr_sp_m2 = active_pr.pr_sp_cm2 / 10_000.0
+                    pr_cmp = 1.0 / (
+                        (2 * np.pi * active_pr.pr_fp_hz) ** 2
+                        * (active_pr.pr_mmp_g / 1000.0)
+                    )
+                    pr_cap = pr_cmp * pr_sp_m2 ** 2
+                    f_sys = (
+                        active_pr.pr_fp_hz * np.sqrt(1.0 + pr_cap / cab)
+                        if cab > 0 else active_pr.pr_fp_hz
+                    )
+                    st.caption(f"Box + PR system tuning ~{f_sys:.1f} Hz")
+                else:
+                    _box_number_with_nudge(
+                        "Fb tuning (Hz)", "reflex_fb_hz", min_value=1.0,
+                        max_value=1000.0, step=0.1, disabled=box_edit_disabled)
+                    st.number_input(
+                        "Vent diameter (cm, 0 = off)", min_value=0.0,
+                        max_value=60.0, step=0.5, key="reflex_port_d_cm")
+                    st.caption(
+                        "Auto strategies size the vent from tuning, air speed and "
+                        "the displacement minimum-area rule."
+                    )
+            if _reflex_uses_passive_radiator():
+                with st.expander("Loss factors"):
+                    st.number_input(
+                        "Qabs box", min_value=0.2, max_value=500.0,
+                        step=0.5, key="pr_q_abs")
+                    st.number_input(
+                        "Qleak box", min_value=1.0, max_value=10000.0,
+                        step=10.0, key="pr_q_leak")
+            else:
+                active_reflex_losses = _reflex_box_from_state()
+                loss_mode = (
+                    "custom" if st.session_state.get("reflex_custom_losses", False)
+                    else "normal"
+                )
                 st.caption(
-                    "Auto strategies recalculate the vent from tuning, air speed and "
-                    "the displacement minimum-area golden rule. "
-                    "Duct length uses the Helmholtz relation with one flanged and "
-                    "one free end; air-speed warnings use the ~5% of c guideline."
+                    f"Reflex losses ({loss_mode}): "
+                    f"Qabs {active_reflex_losses.q_abs:.1f} / "
+                    f"Qport {active_reflex_losses.q_port:.1f} / "
+                    f"Qleak {active_reflex_losses.q_leak:.0f}"
                 )
-        elif st.session_state["load_type"] == "Passive radiator":
-            _box_number_with_nudge(
-                "Vb box (L)", "pr_vb_l", min_value=0.05, max_value=1000.0, step=0.01,
-                disabled=box_edit_disabled)
-            with st.expander("Passive radiator parameters"):
-                st.number_input(
-                    "PR area Sp (cm²)", min_value=1.0, max_value=5000.0, step=1.0,
-                    key="pr_sp_cm2")
-                st.number_input(
-                    "PR free-air Fp (Hz)", min_value=1.0, max_value=500.0, step=0.1,
-                    key="pr_fp_hz")
-                st.number_input(
-                    "PR mechanical Qmp", min_value=0.5, max_value=50.0, step=0.1,
-                    key="pr_qmp")
-                st.number_input(
-                    "PR moving mass Mmp (g)", min_value=1.0, max_value=5000.0, step=1.0,
-                    key="pr_mmp_g")
-                st.number_input(
-                    "PR Xmax (mm, 0 = unknown)", min_value=0.0, max_value=50.0, step=0.1,
-                    key="pr_xmax_mm")
-            with st.expander("Loss factors"):
-                st.number_input(
-                    "Qabs box", min_value=0.2, max_value=500.0, step=0.5, key="pr_q_abs")
-                st.number_input(
-                    "Qleak box", min_value=1.0, max_value=10000.0, step=10.0, key="pr_q_leak")
-            active_pr = _pr_box_from_state()
-            rho_c2 = 1.18 * 344.0 ** 2
-            cab = (active_pr.vb_l / 1000.0) / rho_c2
-            pr_sp_m2 = active_pr.pr_sp_cm2 / 10_000.0
-            pr_cmp = 1.0 / ((2 * np.pi * active_pr.pr_fp_hz) ** 2 * (active_pr.pr_mmp_g / 1000.0))
-            pr_cap = pr_cmp * pr_sp_m2 ** 2
-            f_sys = active_pr.pr_fp_hz * np.sqrt(1.0 + pr_cap / cab) if cab > 0 else active_pr.pr_fp_hz
-            st.caption(
-                f"Box+PR system tuning ~{f_sys:.1f} Hz"
-            )
+                with st.expander("Loss factors"):
+                    st.checkbox(
+                        "Use custom reflex losses",
+                        key="reflex_custom_losses",
+                        help="Turn off to use the standard loss model without changing saved values.",
+                    )
+                    disabled = not st.session_state.get("reflex_custom_losses", False)
+                    st.number_input(
+                        "Qabs box", min_value=0.2, max_value=500.0,
+                        step=0.5, key="reflex_q_abs", disabled=disabled)
+                    st.number_input(
+                        "Qleak box", min_value=1.0, max_value=10000.0,
+                        step=10.0, key="reflex_q_leak", disabled=disabled)
+                    st.number_input(
+                        "Qport", min_value=0.2, max_value=500.0,
+                        step=0.5, key="reflex_q_port", disabled=disabled)
         elif st.session_state["load_type"] == "Sealed":
             _box_number_with_nudge(
                 "Vb sealed (L)", "sealed_vb_l", min_value=0.05, max_value=100000.0, step=0.01,
@@ -3770,17 +4120,18 @@ try:
     if st.session_state["sim_f_max"] <= st.session_state["sim_f_min"]:
         raise ValueError("F max must be greater than F min")
     load_type = st.session_state["load_type"]
-    is_reflex = load_type == "Bass reflex"
-    is_pr = load_type == "Passive radiator"
+    is_reflex_load = load_type == "Bass reflex"
+    is_pr = is_reflex_load and _reflex_uses_passive_radiator()
+    is_reflex = is_reflex_load and not is_pr
     is_bandpass4 = load_type == "Bandpass 4th order"
     is_bandpass6 = load_type == "Bandpass 6th order"
     is_sealed = load_type == "Sealed"
     is_infinite_baffle = load_type == "Infinite baffle"
     chart_sig = _chart_signature()
-    if is_reflex:
-        box = _reflex_box_from_state()
-    elif is_pr:
+    if is_pr:
         box = _pr_box_from_state()
+    elif is_reflex:
+        box = _reflex_box_from_state()
     elif is_bandpass4:
         box = _bandpass4_box_from_state()
     elif is_bandpass6:
@@ -3798,10 +4149,10 @@ try:
     )
     sim_voltage = float(st.session_state["sim_voltage"])
     sim_series_r = float(st.session_state.get("sim_series_r_ohm", 0.0))
-    if is_reflex:
-        result = _dccav.simulate_reflex(current_ts, box, freq, sim_voltage, sim_series_r)
-    elif is_pr:
+    if is_pr:
         result = _dccav.simulate_passive_radiator(current_ts, box, freq, sim_voltage, sim_series_r)
+    elif is_reflex:
+        result = _dccav.simulate_reflex(current_ts, box, freq, sim_voltage, sim_series_r)
     elif is_bandpass4:
         result = _dccav.simulate_bandpass4(current_ts, box, freq, sim_voltage, sim_series_r)
     elif is_bandpass6:
@@ -3949,21 +4300,20 @@ try:
         design_name = f"{design_name} ({design_config})"
     design_strategy = str(st.session_state.get("box_strategy", "Balanced"))
     active_load_image = _LOAD_TYPE_IMAGES.get(load_type)
-    if active_load_image is not None and active_load_image.exists():
+    with st.container(key="active_load_summary"):
         load_visual_col, load_summary_col = st.columns(
-            [1, 12], vertical_alignment="center")
+            [0.65, 11.35], vertical_alignment="center")
         with load_visual_col:
-            st.image(
-                str(active_load_image),
-                width=72,
+            if active_load_image is not None and active_load_image.exists():
+                st.image(str(active_load_image), width=44)
+        with load_summary_col:
+            st.markdown(f"**{load_type}** · {design_name}")
+            resonator_caption = (
+                "Passive radiator resonator · " if is_pr else ""
             )
-    else:
-        load_summary_col = st.container()
-    with load_summary_col:
-        st.caption(
-            f"{design_name} · {load_type} · {design_strategy} · "
-            f"{sim_voltage:.2f} V"
-        )
+            st.caption(
+                f"{resonator_caption}{design_strategy} alignment · {sim_voltage:.2f} V"
+            )
         if is_infinite_baffle:
             m1, m2, m3, m4 = st.columns(4)
             m5 = None
@@ -4053,19 +4403,18 @@ try:
             if current_alignment is not None:
                 a7.metric("Article Vtot", f"{current_alignment.vh_l + current_alignment.vl_l:.2f} L")
 
-    (
-        tab_response,
-        tab_excursion,
-        tab_impedance,
-        tab_ports,
-        tab_gd,
-        tab_atlas,
-    ) = st.tabs(["Response", "Excursion", "Impedance", "Ports", "Group Delay", "Atlas"])
+    tab_labels = ["Response", "Excursion", "Impedance"]
+    if not (is_sealed or is_infinite_baffle):
+        tab_labels.append("Ports")
+    tab_labels.append("Group Delay")
+    if not is_infinite_baffle and not is_pr:
+        tab_labels.append("Atlas")
+    design_tabs = dict(zip(tab_labels, st.tabs(tab_labels), strict=True))
 
-    with tab_response:
+    with design_tabs["Response"]:
         _render_response_tab(
             current_ts, load_type, box, result, thresholds, freq, sim_voltage, sim_series_r)
-    with tab_excursion:
+    with design_tabs["Excursion"]:
         st.subheader("Cone Excursion")
         xmax_mm = float(st.session_state.get("driver_xmax_mm", 0.0))
         st.altair_chart(
@@ -4077,12 +4426,16 @@ try:
             st.caption(f"Dashed red line: driver Xmax = {xmax_mm:.1f} mm.")
         else:
             st.caption("Set the driver Xmax to draw the excursion limit line.")
-    with tab_impedance:
+    with design_tabs["Impedance"]:
         st.subheader("Electrical Impedance")
         st.altair_chart(_plot_impedance(result), width="stretch", key=f"impedance_chart_{chart_sig}")
-    with tab_ports:
-        _render_ports_tab(result, port_geometry_rows, load_type)
-    with tab_gd:
+    if "Ports" in design_tabs:
+        with design_tabs["Ports"]:
+            _render_ports_tab(
+                result, port_geometry_rows, load_type,
+                passive_radiator=is_pr,
+            )
+    with design_tabs["Group Delay"]:
         st.subheader("Group Delay")
         gd_limit_ms = (
             float(st.session_state.get("opt_max_gd_ms", 0.0))
@@ -4095,8 +4448,9 @@ try:
         )
         if gd_limit_ms > 0.0:
             st.caption(f"Dashed red line: optimizer group-delay limit = {gd_limit_ms:.0f} ms.")
-    with tab_atlas:
-        _render_atlas_tab(current_ts, load_type, box, sim_voltage)
+    if "Atlas" in design_tabs:
+        with design_tabs["Atlas"]:
+            _render_atlas_tab(current_ts, load_type, box, sim_voltage)
 
     if derived is not None:
         with st.expander("Driver details"):

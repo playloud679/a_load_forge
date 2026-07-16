@@ -11,7 +11,8 @@ detailed contracts live in `docs/dccav.md`.
   f_max_hz, points, goals=None) -> dict | None`: simulates one preset at the
   exact comparison volume (reflex/sealed `Vb`, bandpass `Vs+Vp`, DCCAV
   starter-shaped split via `engine.design_space_box`; goal mode optimizes at the fixed
-  volume with `max_evaluations=140`) and returns the ranking-table row;
+  volume with `max_evaluations=140` and forwards every Finder constraint,
+  including minimum peak SPL) and returns the ranking-table row;
   unusable presets return `None` instead of raising
 - `sort_ranked_rows(rows)`: deepest F3 first, then F6/F10 and loudest peak
 - `rank_sort_value(value)`: `inf` for non-finite sort keys
@@ -27,3 +28,6 @@ detailed contracts live in `docs/dccav.md`.
   `_batch_rank_presets_parallel` (uncached, real progress bar, used for
   optimizer scans of more than 8 candidates) must produce identical rows for
   identical inputs — the optimizer is deterministic.
+- The UI applies `OptimizationGoals.min_spl_db` as a hard result-list filter
+  after simulation; the optimizer also receives it as a soft scoring penalty
+  so it can prefer a compliant alignment before the row is accepted or rejected.

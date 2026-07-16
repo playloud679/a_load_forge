@@ -2,8 +2,8 @@
 
 Load Forge simulates acoustic loudspeaker loads from driver Thiele/Small
 parameters. It supports DCCAV, fourth- and sixth-order bandpass, conventional
-bass reflex, passive radiator, acoustic suspension (sealed box) and ideal
-infinite baffle.
+bass reflex with either a port or passive radiator, acoustic suspension
+(sealed box) and ideal infinite baffle.
 
 ## Workspaces
 
@@ -39,11 +39,12 @@ T/S set.
 `Qms` must be greater than `Qts`; otherwise `Qes` cannot be derived.
 
 The compact **Load type** cards switch between `Infinite baffle`, `Sealed`,
-`Bass reflex`, `Passive radiator`, `Bandpass 4th order`, `Bandpass 6th order`
-and `DCCAV`. Each small diagram is itself clickable, its name is overlaid on
-the image and the active load has a blue outline. In the Finder the same cards
-toggle multiple loads for comparison. Search, source, brand, size, class and
-price filters narrow the driver library in both workspaces.
+`Bass reflex`, `Bandpass 4th order`, `Bandpass 6th order` and `DCCAV`.
+Each small diagram is itself clickable, its name is overlaid on
+the image and the active load has a red outline plus a check indicator. The
+cards use a compact 3+3 grid and remain keyboard-focusable. In the Finder the
+same cards toggle multiple loads for comparison. Search, source, brand, size,
+class and price filters narrow the driver library in both workspaces.
 
 In **Design a box**, the **Driver preset** selector loads built-in examples
 immediately. **Driver T/S values** stays collapsed for catalog presets and
@@ -129,12 +130,16 @@ while their geometry and volume velocity are reported separately. The starter
 uses symmetrical chamber targets and the optimizer searches the four active
 box parameters within the selected constraints.
 
-### Passive Radiator Alignment
+### Passive Radiator Resonator
 
-The passive-radiator load replaces a bass-reflex duct with a suspended
-diaphragm. Manual controls expose box `Vb`, radiator area `Sp`, resonance `Fp`,
-mechanical `Qmp`, moving mass `Mmp` and radiator `Xmax`. The Ports tab reports
-radiator volume velocity and warns when simulated travel exceeds its rating.
+Inside a Bass-reflex design, **Ports → Resonator type** replaces the duct with
+a suspended passive diaphragm without changing the acoustic-load topology.
+Manual controls expose box `Vb`, radiator area `Sp`, resonance `Fp`, mechanical
+`Qmp`, moving mass `Mmp` and radiator `Xmax`. The Ports tab reports radiator
+volume velocity and warns when simulated travel exceeds its rating. Legacy
+presets saved with `load_type="Passive radiator"` are migrated automatically.
+Selecting the PR switches Box strategy to `Manual`, because the generic Atlas
+optimizer sweeps duct tuning rather than radiator mass and suspension.
 
 ### Infinite Baffle
 
@@ -169,16 +174,16 @@ Controls:
 For `Bass reflex`, controls are:
 
 - `Vb box`: single enclosure volume
-- `Fb tuning`: vent tuning
-- `Qabs`, `Qleak`, `Qport`: box, leakage and port losses
+- `Ports → Resonator type`: `Port` or `Passive radiator`
+- for a port: `Fb tuning`, vent diameter and `Qport`
+- for a passive radiator: `Sp`, `Fp`, `Qmp`, `Mmp` and radiator `Xmax`
+- `Qabs`, `Qleak`: box and leakage losses
 
 For `Sealed`, controls are sealed `Vb`, `Qabs` and `Qleak`.
 For `Bandpass 4th order`, controls are rear `Vs`, front `Vp`, `Fp`, independent
 chamber loss factors, front `Qport` and front-vent diameter.
 For `Bandpass 6th order`, controls are rear `Vr` / `Fr`, front `Vp` / `Fp`,
 independent losses and both vent diameters.
-For `Passive radiator`, controls are `Vb`, `Sp`, `Fp`, `Qmp`, `Mmp` and radiator
-`Xmax` rather than a duct diameter.
 `Infinite baffle` has no enclosure controls.
 
 Higher Q means lower loss for leakage/ports.  Very low Q values intentionally
@@ -200,7 +205,7 @@ Ported loads expose a **Port geometry** panel:
 - bass reflex: vent diameter
 - fourth-order bandpass: front-vent diameter
 - sixth-order bandpass: rear- and front-vent diameters
-- passive radiator: equivalent diaphragm diameter and travel
+- bass reflex with passive radiator: equivalent diaphragm diameter and travel
 - DCCAV: upper-port and lower-port diameters
 
 The app estimates physical tube length from the Helmholtz relation, reports the
@@ -232,12 +237,25 @@ sidebar in a three-step workflow, while the main workspace remains dedicated
 to results, candidate preview and application:
 
 1. **Target enclosure** selects the load, exact comparison volume and voltage.
-2. **Candidate library** filters the catalog by text, source, size, brand,
-   bandwidth class and optional price ceiling. Typing in **Search preset**
-   immediately lists the first matching driver names before a scan is started.
-3. **Ranking** selects the optimization goal and constraints, plus the scan
-   range, then starts the search with **Find drivers**. Technical range,
-   result-count and resolution controls stay inside **Advanced scan**.
+2. **Performance goal** selects the optimization objective, F3 target and
+   ripple allowance. Excursion, group-delay and minimum-SPL limits stay in
+   **Advanced constraints**; scan range, result count and resolution stay in
+   **Advanced scan**.
+3. **Candidate library** filters the catalog by text, source, size, brand,
+   bandwidth class and optional price ceiling. The numeric price limit appears
+   only when its checkbox is active. Typing in **Search preset** immediately
+   lists the first matching driver names before a scan is started.
+
+**Find drivers** remains pinned to the bottom of the sidebar and is duplicated
+as the primary action above the pre-search candidate table. Before a scan, the
+workspace is titled **Candidate library**; completed scans use
+**Recommended drivers** and show the active load, target volume and objective.
+Missing values render as em dashes and columns with no data are omitted, while
+the CSV keeps the underlying numeric data.
+
+`Minimum SPL` is evaluated against each row's simulated **Peak LF SPL** at the
+selected comparison voltage. Values below the threshold are excluded from the
+result list; when none remain, Finder shows a dedicated no-match message.
 
 - **Comparison volume** is exact: `Vh+Vl` for DCCAV, `Vs+Vp` for bandpass, or `Vb` for reflex and
   acoustic suspension. Infinite baffle ignores it.
@@ -314,9 +332,11 @@ calibrated far-field or full-range front-driver radiation model.
 
 ### Response Tab Tools
 
-The **Design a box** plots are organized into six tabs: `Response`, `Excursion`,
-`Impedance`, `Ports`, `Group Delay` and `Atlas`. Driver ranking lives in its own
-workspace.
+The **Design a box** plots use contextual tabs. `Response`, `Excursion`,
+`Impedance` and `Group Delay` are always available. `Ports` appears only for
+ported, passive-radiator and bandpass loads; `Atlas` is hidden for infinite
+baffle and passive-radiator designs because the generic design-space sweep is
+defined for duct geometry. Driver ranking lives in its own workspace.
 
 Inside the `Response` tab:
 

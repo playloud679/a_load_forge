@@ -83,6 +83,7 @@ def rank_preset_row(
                 max_ripple_db=goals.max_ripple_db,
                 max_excursion_ratio=goals.max_excursion_ratio,
                 max_group_delay_ms=goals.max_group_delay_ms,
+                min_spl_db=goals.min_spl_db,
             )
             optimized = engine.optimize_alignment(
                 ts,
