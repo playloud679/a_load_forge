@@ -236,7 +236,7 @@ reuse or alter the active design controls. All Finder inputs live in the
 sidebar in a three-step workflow, while the main workspace remains dedicated
 to results, candidate preview and application:
 
-1. **Target enclosure** selects the load, exact comparison volume and voltage.
+1. **Target enclosure** selects the load, maximum enclosure volume and voltage.
 2. **Performance goal** selects the optimization objective, F3 target and
    ripple allowance. Excursion, group-delay and minimum-SPL limits stay in
    **Advanced constraints**; scan range, result count and resolution stay in
@@ -249,7 +249,7 @@ to results, candidate preview and application:
 **Find drivers** remains pinned to the bottom of the sidebar and is duplicated
 as the primary action above the pre-search candidate table. Before a scan, the
 workspace is titled **Candidate library**; completed scans use
-**Recommended drivers** and show the active load, target volume and objective.
+**Recommended drivers** and show the active load, volume cap and objective.
 Missing values render as em dashes and columns with no data are omitted, while
 the CSV keeps the underlying numeric data.
 
@@ -257,12 +257,14 @@ the CSV keeps the underlying numeric data.
 selected comparison voltage. Values below the threshold are excluded from the
 result list; when none remain, Finder shows a dedicated no-match message.
 
-- **Comparison volume** is exact: `Vh+Vl` for DCCAV, `Vs+Vp` for bandpass, or `Vb` for reflex and
-  acoustic suspension. Infinite baffle ignores it.
+- **Maximum volume** is a ceiling, not a forced size. Finder optimizes each
+  driver independently and may return a smaller `Vh+Vl` for DCCAV, chamber
+  total for bandpass, or `Vb` for reflex/sealed when that alignment scores
+  better. Infinite baffle ignores the setting.
 - **Optimization goal** selects the same optimizer objective as the Design
   workspace — `Max extension`, `Balanced` or `Flattest`. Every candidate box
-  is derived by that one optimizer at the fixed comparison volume and the
-  comparison voltage; infinite baffle candidates are ranked in free air.
+  is derived by that one optimizer without exceeding the maximum volume and at
+  the comparison voltage; infinite baffle candidates are ranked in free air.
 - **Optimization constraints** sets desired bass extension F3, allowed
   ripple, maximum excursion relative to each driver's Xmax, group delay and the
   clearly labelled evaluation-frequency range.

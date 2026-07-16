@@ -1,6 +1,18 @@
 # Changelog
 
 
+## 0.5.3 (2026-07-16)
+
+- **Finder volume-cap regression**: restored Maximum volume as an upper bound
+  instead of forcing every candidate onto the selected litre value. Optimized
+  rows may use a smaller enclosure when it produces the better alignment.
+- **Result migration**: Finder ranking revision 2 invalidates cached/session
+  rows produced by the old exact-volume behavior, so existing local sessions
+  cannot continue displaying the obsolete full-cap enclosures.
+- **Verification**: py_compile and Streamlit AppTest clean; full suite
+  95 passed / 0 failed / 0 skipped.
+
+
 ## 0.5.2 (2026-07-16)
 
 - **Illustrated load picker**: replaced the emoji load buttons with compact,

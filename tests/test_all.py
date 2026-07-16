@@ -2281,7 +2281,7 @@ def _check_price_enricher_keeps_existing_record_across_currencies():
 test("Price enricher keeps existing records across currencies", _check_price_enricher_keeps_existing_record_across_currencies)
 
 
-def _check_ui_batch_finder_ranks_presets_in_requested_volume():
+def _check_ui_batch_finder_ranks_presets_under_volume_cap():
     import ui_app as _ui
 
     names = ("KEF B110B article example", "Beyma 12CMV2", "Scan-Speak 15W/4531G00")
@@ -2298,8 +2298,11 @@ def _check_ui_batch_finder_ranks_presets_in_requested_volume():
     assert rows, rows
     f3_values = [_ui._rank_value(row["F3 Hz"]) for row in rows]
     assert f3_values == sorted(f3_values), f3_values
+    totals = [row["Vh L"] + row["Vl L"] for row in rows]
+    assert all(total <= 20.0 + 1e-6 for total in totals), totals
+    assert any(total < 19.0 for total in totals), (
+        "the maximum must not force every candidate to use the full volume", totals)
     first = rows[0]
-    assert abs(first["Vh L"] + first["Vl L"] - 20.0) < 1e-6, first
     assert np.isfinite(first["Peak dB"]), first
     spark = first.get("Response")
     assert isinstance(spark, list) and len(spark) > 10, "rows must carry a response sparkline"
@@ -2307,7 +2310,7 @@ def _check_ui_batch_finder_ranks_presets_in_requested_volume():
     assert any(value < -1.0 for value in spark), "sparkline must show the LF roll-off"
 
 
-test("UI batch finder ranks drivers in a requested DCCAV volume", _check_ui_batch_finder_ranks_presets_in_requested_volume)
+test("UI batch finder ranks drivers under a DCCAV volume cap", _check_ui_batch_finder_ranks_presets_under_volume_cap)
 
 
 def _check_ui_batch_finder_supports_reflex_volume():
@@ -2324,14 +2327,16 @@ def _check_ui_batch_finder_supports_reflex_volume():
         2,
     )
     assert rows, rows
-    assert all(abs(row["Vb L"] - 30.0) < 1e-9 for row in rows), rows
+    assert all(row["Vb L"] <= 30.0 + 1e-9 for row in rows), rows
+    assert any(row["Vb L"] < 29.0 for row in rows), rows
     assert all(np.isfinite(row["Fb Hz"]) for row in rows), rows
     sealed_rows = _ui._batch_rank_presets(
         ("KEF B110B article example", "Beyma 12CMV2"),
         "Sealed", 25.0, 2.83, 10.0, 300.0, 120, 2,
     )
     assert sealed_rows
-    assert all(abs(row["Vb L"] - 25.0) < 1e-9 for row in sealed_rows)
+    assert all(row["Vb L"] <= 25.0 + 1e-9 for row in sealed_rows)
+    assert any(row["Vb L"] < 24.0 for row in sealed_rows)
     assert all(np.isfinite(row["Fc Hz"]) and np.isfinite(row["Qtc"]) for row in sealed_rows)
     ib_rows = _ui._batch_rank_presets(
         ("KEF B110B article example", "Beyma 12CMV2"),
@@ -2354,27 +2359,42 @@ def _check_ui_batch_finder_optimizes_each_driver():
         names, "DCCAV", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals
     )
     assert len(optimized) == len(names), optimized
+    optimized_totals = []
     for row in optimized:
-        assert abs(row["Vh L"] + row["Vl L"] - 30.0) < 1e-6, row
+        total = row["Vh L"] + row["Vl L"]
+        optimized_totals.append(total)
+        assert total <= 30.0 + 1e-6, row
         assert np.isfinite(row["Ripple dB"]), row
         assert np.isfinite(row["F3 Hz"]), row
+    assert any(total < 29.0 for total in optimized_totals), optimized_totals
+
+    large_cap = _ui._batch_rank_presets(
+        names, "DCCAV", 1000.0, 2.83, 10.0, 300.0, 120, len(names),
+        goals=_dccav.OptimizationGoals(objective="balanced"),
+    )
+    large_cap_totals = [row["Vh L"] + row["Vl L"] for row in large_cap]
+    assert large_cap_totals
+    assert all(total < 999.0 for total in large_cap_totals), (
+        "a 1000 L cap must not become an exact 1000 L enclosure",
+        large_cap_totals,
+    )
 
     reflex_rows = _ui._batch_rank_presets(
         names, "Bass reflex", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals
     )
     assert reflex_rows
     for row in reflex_rows:
-        assert abs(row["Vb L"] - 30.0) < 1e-9, row
+        assert row["Vb L"] <= 30.0 + 1e-9, row
 
     sealed_rows = _ui._batch_rank_presets(
         names, "Sealed", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals
     )
     assert sealed_rows
     for row in sealed_rows:
-        assert abs(row["Vb L"] - 30.0) < 1e-9, row
+        assert row["Vb L"] <= 30.0 + 1e-9, row
 
 
-test("UI batch finder optimizes each driver with goals", _check_ui_batch_finder_optimizes_each_driver)
+test("UI batch finder optimizes each driver below the volume cap", _check_ui_batch_finder_optimizes_each_driver)
 
 
 def _check_ui_batch_result_applies_selected_driver_and_box():
@@ -2639,7 +2659,7 @@ def _check_ui_finder_starts_from_practical_defaults():
     assert not at.exception, at.exception
 
     numbers = {control.label: control.value for control in at.number_input}
-    assert numbers["Target volume (L)"] == 40.0, numbers
+    assert numbers["Maximum volume (L)"] == 40.0, numbers
     assert numbers["Comparison voltage (V)"] == 2.83, numbers
     assert numbers["Evaluation range start (Hz)"] == 10.0, numbers
     assert numbers["Evaluation range end (Hz)"] == 300.0, numbers
@@ -2662,6 +2682,7 @@ test("UI Finder starts from practical independent defaults", _check_ui_finder_st
 
 def _check_ui_finder_parameters_are_all_in_sidebar():
     from streamlit.testing.v1 import AppTest
+    import ui_app as _ui
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.session_state["workspace_mode"] = "Find a driver"
@@ -2669,7 +2690,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
     assert not at.exception, at.exception
 
     number_labels = {
-        "Target volume (L)",
+        "Maximum volume (L)",
         "Comparison voltage (V)",
         "Desired bass extension F3 (Hz, 0 = deepest)",
         "Allowed response ripple (dB)",
@@ -2703,7 +2724,8 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
         "Ripple dB": 1.0, "Response": [], "Class": "Woofer",
     }]
     at.session_state["batch_result_context"] = (
-        ("Sealed",), 40.0, 1, False, "Balanced",
+        ("Sealed",), 40.0, 1, False, "Balanced", "Port", 0.0,
+        _ui._FINDER_RANKING_VERSION,
     )
     at.run()
     assert not at.exception, at.exception
@@ -3372,7 +3394,10 @@ def _check_ui_finder_value_ranking():
     # Match the live defaults version so the seeded results survive migration.
     at.session_state["_finder_defaults_version"] = _ui._FINDER_DEFAULTS_VERSION
     at.session_state["batch_results"] = seeded
-    at.session_state["batch_result_context"] = (("Sealed",), 40.0, 2, False, "Balanced")
+    at.session_state["batch_result_context"] = (
+        ("Sealed",), 40.0, 2, False, "Balanced", "Port", 0.0,
+        _ui._FINDER_RANKING_VERSION,
+    )
     at.run()
     assert not at.exception, at.exception
     rank = next(r for r in at.radio if r.label == "Rank by")

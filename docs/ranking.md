@@ -7,12 +7,15 @@ detailed contracts live in `docs/dccav.md`.
 
 ## Owns
 
-- `rank_preset_row(name, load_type, target_volume_l, voltage_v, f_min_hz,
+- `rank_preset_row(name, load_type, max_volume_l, voltage_v, f_min_hz,
   f_max_hz, points, goals=None) -> dict | None`: simulates one preset at the
-  exact comparison volume (reflex/sealed `Vb`, bandpass `Vs+Vp`, DCCAV
-  starter-shaped split via `engine.design_space_box`; goal mode optimizes at the fixed
-  volume with `max_evaluations=140` and forwards every Finder constraint,
-  including minimum peak SPL) and returns the ranking-table row;
+  best optimized volume at or below the requested cap (reflex/sealed `Vb`,
+  bandpass chamber total, DCCAV `Vh+Vl`). Goal mode uses
+  `max_total_volume_l`, never `fixed_total_volume_l`, with
+  `max_evaluations=140` and forwards every Finder constraint, including
+  minimum peak SPL. Without goals, the physical starter is retained when it
+  already fits and is reduced only when it exceeds the cap;
+  the function returns the ranking-table row;
   unusable presets return `None` instead of raising
 - `sort_ranked_rows(rows)`: deepest F3 first, then F6/F10 and loudest peak
 - `rank_sort_value(value)`: `inf` for non-finite sort keys
@@ -31,3 +34,5 @@ detailed contracts live in `docs/dccav.md`.
 - The UI applies `OptimizationGoals.min_spl_db` as a hard result-list filter
   after simulation; the optimizer also receives it as a soft scoring penalty
   so it can prefer a compliant alignment before the row is accepted or rejected.
+- Finder volume is always an upper bound. Rows may therefore report different
+  enclosure volumes, but no finite-box result may exceed the selected maximum.

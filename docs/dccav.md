@@ -367,9 +367,10 @@ canonicalized to `"Sealed"` for backward compatibility with old `.lfp` files
 and callers.
 Infinite baffle is intentionally rejected because it has no box parameter.
 The optional `fixed_total_volume_l` argument constrains every candidate to an
-exact `Vh+Vl`, `Vs+Vp` or `Vb`. The `Find a driver` workspace supplies this from its
-independent `Comparison volume` control; it is not coupled to the active
-design optimizer goals.
+exact `Vh+Vl`, `Vs+Vp` or `Vb` for callers that explicitly need an equality
+constraint. The `Find a driver` workspace does not use it: Finder passes its
+**Maximum volume** through `OptimizationGoals.max_total_volume_l`, allowing
+each driver to retain a better, smaller alignment.
 
 `OptimizationGoals` fields:
 
@@ -471,12 +472,13 @@ computation is gated behind a `Compute atlas` toggle, cached per driver,
 losses and voltage, colored by F3 or ripple, and clicking a cell offers
 `Apply selected box` (switches the design to Manual strategy).
 
-### `rank_preset_row(name, load_type, target_volume_l, voltage_v, f_min_hz, f_max_hz, points, goals=None) -> dict | None` / `sort_ranked_rows(rows)` / `response_sparkline(spl)`
+### `rank_preset_row(name, load_type, max_volume_l, voltage_v, f_min_hz, f_max_hz, points, goals=None) -> dict | None` / `sort_ranked_rows(rows)` / `response_sparkline(spl)`
 
 Candidate-ranking primitives (implemented in `src/ranking.py`) used by the
-`Find a driver` workspace.  `rank_preset_row` simulates one preset at the
-exact comparison volume (goal mode optimizes at that fixed volume) and
-returns the table row or `None`; `sort_ranked_rows` orders by deepest
+`Find a driver` workspace. `rank_preset_row` simulates one preset at its
+best alignment no larger than the maximum volume (goal mode passes a cap,
+not an exact-volume constraint) and returns the table row or `None`;
+`sort_ranked_rows` orders by deepest
 F3/F6/F10 with the loudest peak as tie-breaker; `response_sparkline`
 downsamples the total response to a peak-relative 48-point sparkline
 clipped at `SPARKLINE_FLOOR_DB`.  The UI runs the quick scan serially

@@ -2,8 +2,8 @@
 Candidate-ranking rows for the `Find a driver` workspace.
 
 Pure functions importable by worker processes: each row simulates one preset
-at the requested comparison volume (optionally goal-optimized at that exact
-volume) and reports the metrics shown by the ranking table.
+within the requested maximum enclosure volume and reports the metrics shown by
+the ranking table.
 """
 
 from __future__ import annotations
@@ -56,7 +56,7 @@ def sort_ranked_rows(rows: list[dict]) -> list[dict]:
 def rank_preset_row(
     name: str,
     load_type: str,
-    target_volume_l: float,
+    max_volume_l: float,
     voltage_v: float,
     f_min_hz: float,
     f_max_hz: float,
@@ -75,10 +75,11 @@ def rank_preset_row(
         driver_class = engine.classify_driver_bandwidth(ts).driver_class
         ripple_db = float("nan")
         if goals is not None and load_type != "Infinite baffle":
-            # Candidates are compared at the exact requested enclosure volume.
+            # Finder volume is a ceiling: each driver keeps the best alignment
+            # found at or below it instead of being projected onto the ceiling.
             batch_goals = engine.OptimizationGoals(
                 objective=goals.objective,
-                max_total_volume_l=float(target_volume_l),
+                max_total_volume_l=float(max_volume_l),
                 target_f3_hz=goals.target_f3_hz,
                 max_ripple_db=goals.max_ripple_db,
                 max_excursion_ratio=goals.max_excursion_ratio,
@@ -91,18 +92,20 @@ def rank_preset_row(
                 load_type=load_type,
                 voltage_v=float(voltage_v),
                 max_evaluations=140,
-                fixed_total_volume_l=float(target_volume_l),
             )
             box = optimized.box
             ripple_db = float(optimized.ripple_db)
         elif load_type == "Bass reflex":
             alignment = engine.suggest_reflex_alignment(ts)
-            box = engine.ReflexBox(vb_l=float(target_volume_l), fb_hz=alignment.fb_hz)
+            box = engine.ReflexBox(
+                vb_l=min(float(alignment.vb_l), float(max_volume_l)),
+                fb_hz=alignment.fb_hz,
+            )
         elif load_type == "Passive radiator":
             alignment = engine.suggest_pr_alignment(ts)
             box = alignment  # PassiveRadiatorBox already has vb_l set
             box = engine.PassiveRadiatorBox(
-                vb_l=float(target_volume_l),
+                vb_l=min(float(box.vb_l), float(max_volume_l)),
                 pr_sp_cm2=box.pr_sp_cm2,
                 pr_fp_hz=box.pr_fp_hz,
                 pr_qmp=box.pr_qmp,
@@ -110,21 +113,27 @@ def rank_preset_row(
                 pr_xmax_mm=box.pr_xmax_mm,
             )
         elif load_type == "Sealed":
-            box = engine.SealedBox(vb_l=float(target_volume_l))
+            alignment = engine.suggest_sealed_alignment(ts)
+            box = engine.SealedBox(
+                vb_l=min(float(alignment.vb_l), float(max_volume_l)))
         elif load_type == "Bandpass 4th order":
             start = engine.suggest_bandpass4_alignment(ts)
+            starter_volume_l = float(start.vs_l + start.vp_l)
             box = engine.design_space_box(
-                ts, load_type, float(target_volume_l), start.fp_hz)
+                ts, load_type, min(starter_volume_l, float(max_volume_l)), start.fp_hz)
         elif load_type == "Bandpass 6th order":
             start = engine.suggest_bandpass6_alignment(ts)
+            starter_volume_l = float(start.vr_l + start.vp_l)
             box = engine.design_space_box(
-                ts, load_type, float(target_volume_l), start.fp_hz)
+                ts, load_type, min(starter_volume_l, float(max_volume_l)), start.fp_hz)
         elif load_type == "Infinite baffle":
             box = None
         else:
+            start = engine.suggest_alignment(ts)
+            starter_volume_l = float(start.vh_l + start.vl_l)
             box = engine.design_space_box(
-                ts, "DCCAV", float(target_volume_l),
-                engine.suggest_alignment(ts).fl_hz,
+                ts, "DCCAV", min(starter_volume_l, float(max_volume_l)),
+                start.fl_hz,
             )
         if load_type == "Bass reflex":
             result = engine.simulate_reflex(ts, box, freq, float(voltage_v))

@@ -351,6 +351,7 @@ _BOX_STRATEGIES = (*_OPT_OBJECTIVE_LABELS, "Manual")
 _FINDER_RANK_F3 = "Deepest bass (F3)"
 _FINDER_RANK_VALUE = "Best value (F3 × price)"
 _FINDER_RANK_MODES = (_FINDER_RANK_F3, _FINDER_RANK_VALUE)
+_FINDER_RANKING_VERSION = 2
 _FINDER_DEFAULTS_VERSION = 5
 _FINDER_DEFAULTS = {
     "finder_rank_mode": _FINDER_RANK_F3,
@@ -2016,18 +2017,21 @@ def _batch_dccav_box(ts: _dccav.DriverTS, total_volume_l: float) -> _dccav.Dccav
 def _batch_rank_presets(
     preset_names: tuple[str, ...],
     load_type: str,
-    target_volume_l: float,
+    max_volume_l: float,
     voltage_v: float,
     f_min_hz: float,
     f_max_hz: float,
     points: int,
     candidate_limit: int,
     goals: _dccav.OptimizationGoals | None = None,
+    ranking_version: int = _FINDER_RANKING_VERSION,
 ) -> list[dict]:
+    if ranking_version != _FINDER_RANKING_VERSION:
+        raise ValueError("Unsupported Finder ranking revision")
     rows: list[dict] = []
     for name in preset_names[:int(candidate_limit)]:
         row = _dccav.rank_preset_row(
-            name, load_type, float(target_volume_l), float(voltage_v),
+            name, load_type, float(max_volume_l), float(voltage_v),
             float(f_min_hz), float(f_max_hz), int(points), goals,
         )
         if row is not None:
@@ -2038,7 +2042,7 @@ def _batch_rank_presets(
 def _batch_rank_presets_parallel(
     preset_names: tuple[str, ...],
     load_type: str,
-    target_volume_l: float,
+    max_volume_l: float,
     voltage_v: float,
     f_min_hz: float,
     f_max_hz: float,
@@ -2065,7 +2069,7 @@ def _batch_rank_presets_parallel(
             futures = [
                 pool.submit(
                     _dccav.rank_preset_row, name, load_type,
-                    float(target_volume_l), float(voltage_v),
+                    float(max_volume_l), float(voltage_v),
                     float(f_min_hz), float(f_max_hz), int(points), goals,
                 )
                 for name in names
@@ -2089,7 +2093,7 @@ def _batch_rank_presets_parallel(
         progress.progress(
             0.0, text="Parallel optimization unavailable; continuing in safe mode")
         return _batch_rank_presets(
-            tuple(names), load_type, float(target_volume_l), float(voltage_v),
+            tuple(names), load_type, float(max_volume_l), float(voltage_v),
             float(f_min_hz), float(f_max_hz), int(points), len(names), goals=goals,
         )
     finally:
@@ -2396,13 +2400,14 @@ def _render_find_driver_target_sidebar() -> None:
     """Render the enclosure conditions used for every Finder candidate."""
     finder_load_types, only_infinite_baffle = _finder_load_context()
     _finder_number_input(
-        "Target volume (L)",
+        "Maximum volume (L)",
         min_value=0.1,
         max_value=2000.0,
         step=1.0,
         key="finder_volume_l",
         disabled=only_infinite_baffle,
-        help="Exact Vh+Vl for DCCAV, Vs+Vp for bandpass, or Vb for reflex/sealed candidates.",
+        help="Upper limit for Vh+Vl (DCCAV), chamber total (bandpass), or Vb "
+             "(reflex/sealed). Finder may choose a smaller optimal volume.",
     )
     if only_infinite_baffle:
         st.caption("Infinite baffle does not use a box volume.")
@@ -2458,7 +2463,11 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
                 + (" · passive radiator" if uses_pr else "")
             )
             with st.spinner(spinner_text):
-                batch_rows = _batch_rank_presets(*rank_args, goals=goals)
+                batch_rows = _batch_rank_presets(
+                    *rank_args,
+                    goals=goals,
+                    ranking_version=_FINDER_RANKING_VERSION,
+                )
         if lt == "Bass reflex":
             for row in batch_rows:
                 row["_load_type"] = "Bass reflex"
@@ -2482,6 +2491,7 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
         str(st.session_state.get("finder_objective", "Balanced")),
         str(st.session_state.get("finder_reflex_resonator_type", _RESONATOR_PORT)),
         min_spl_db,
+        _FINDER_RANKING_VERSION,
     )
 
 
@@ -2499,19 +2509,19 @@ def _render_find_driver_goal_sidebar() -> None:
         )
     elif only_passive_radiator:
         st.caption(
-            "Passive-radiator candidates use the dedicated physical starter at "
-            "the target Vb and are ranked by the resulting response."
+            "Passive-radiator candidates use the dedicated physical starter, "
+            "capped by the selected maximum Vb, and are ranked by the resulting response."
         )
     else:
         if "Bass reflex" in finder_load_types and _reflex_uses_passive_radiator(finder=True):
             st.caption(
                 "The selected objective optimizes the other loads; passive-radiator "
-                "candidates use their dedicated starter at the same target volume."
+                "candidates use their dedicated starter under the same volume cap."
             )
         _finder_selectbox(
             "Optimization goal", list(_OPT_OBJECTIVE_LABELS), key="finder_objective",
             help="Every candidate box is derived by the same optimizer as the "
-                 "Design workspace, at the fixed comparison volume. Balanced "
+                 "Design workspace, without exceeding Maximum volume. Balanced "
                  "trades extension against smoothness and box practicality.",
         )
         _finder_number_input(
@@ -2596,7 +2606,7 @@ def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
     load_label = " + ".join(display_loads) if len(display_loads) <= 2 else f"{len(display_loads)} loads"
     st.caption(
         f"Scans all {len(filtered_preset_names)} matching presets · {load_label}"
-        + ("" if only_infinite_baffle else f" · {finder_volume_l:.1f} L")
+        + ("" if only_infinite_baffle else f" · ≤ {finder_volume_l:.1f} L")
     )
     with st.container(key="finder_sticky_action"):
         if st.button(
@@ -2672,6 +2682,8 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         or (len(context) > 5 and str(context[5]) != finder_resonator)
         or (len(context) > 6 and float(context[6]) != current_min_spl_db)
         or (len(context) <= 6 and current_min_spl_db > 0.0)
+        or len(context) <= 7
+        or int(context[7]) != _FINDER_RANKING_VERSION
     )
     if not context_matches:
         batch_rows = []
@@ -2696,7 +2708,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         if filtered_preset_names:
             st.caption(
                 f"{len(filtered_preset_names)} presets match the current filters. "
-                "Run Find drivers to compare them with the same enclosure target."
+                "Run Find drivers to optimize them under the same enclosure-volume cap."
             )
             if st.button(
                 "Find drivers",
@@ -2755,7 +2767,10 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         else f"{len(display_finder_loads)} loads"
     )
     objective = str(context[4]) if len(context) > 4 else str(st.session_state.get("finder_objective", "Balanced"))
-    volume_summary = "" if finder_loads == ("Infinite baffle",) else f" · {finder_volume_l:.1f} L"
+    volume_summary = (
+        "" if finder_loads == ("Infinite baffle",)
+        else f" · ≤ {finder_volume_l:.1f} L"
+    )
     st.caption(
         f"{len(batch_rows)} usable candidates from {context[2]} scanned presets · "
         f"{load_summary}{volume_summary} · {objective}"
