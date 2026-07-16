@@ -11,10 +11,10 @@ in sync in the same change.
 
 | Module/File | Doc | Role |
 |---|---|---|
-| `ui_app.py` | source only | Streamlit DCCAV/reflex/sealed/infinite-baffle dashboard: T/S inputs, alignment controls, plots, preset save/load and CSV export |
+| `ui_app.py` | source only | Streamlit acoustic-load dashboard with compact illustrated load cards, T/S inputs, alignment controls, plots, preset save/load and CSV export |
 | `src/__init__.py` | [__init__.md](__init__.md) | Public package exports for acoustic-load helpers |
 | `src/dccav.py` | [dccav.md](dccav.md) | DCCAV/reflex/sealed/infinite-baffle formulas, T/S derivation and lumped acoustic-circuit simulation |
-| `tests/test_all.py` | source only | Focused 42-test runner for the active acoustic-load models |
+| `tests/test_all.py` | source only | Active regression runner for the acoustic-load models and Streamlit workflows |
 
 ## Data Flow
 

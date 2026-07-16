@@ -1,8 +1,9 @@
 # Load Forge User Guide
 
 Load Forge simulates acoustic loudspeaker loads from driver Thiele/Small
-parameters. It supports DCCAV, fourth-order bandpass, conventional bass reflex,
-acoustic suspension (sealed box) and ideal infinite baffle.
+parameters. It supports DCCAV, fourth- and sixth-order bandpass, conventional
+bass reflex, passive radiator, acoustic suspension (sealed box) and ideal
+infinite baffle.
 
 ## Workspaces
 
@@ -37,9 +38,12 @@ T/S set.
 
 `Qms` must be greater than `Qts`; otherwise `Qes` cannot be derived.
 
-The **Load type** selector switches between `Infinite baffle`, `Sealed`,
-`Bass reflex`, `Bandpass 4th order` and `DCCAV`. Search, source, brand, size, class
-and price filters narrow the driver library in both workspaces.
+The compact **Load type** cards switch between `Infinite baffle`, `Sealed`,
+`Bass reflex`, `Passive radiator`, `Bandpass 4th order`, `Bandpass 6th order`
+and `DCCAV`. Each small diagram is itself clickable, its name is overlaid on
+the image and the active load has a blue outline. In the Finder the same cards
+toggle multiple loads for comparison. Search, source, brand, size, class and
+price filters narrow the driver library in both workspaces.
 
 In **Design a box**, the **Driver preset** selector loads built-in examples
 immediately. **Driver T/S values** stays collapsed for catalog presets and
@@ -117,6 +121,21 @@ chamber `Vp`; only the front vent radiates. The symmetrical starter targets
 `Qbp=0.707` and seeds the optimizer, which searches both chamber volumes and
 the tuning for the selected objective; Manual unlocks `Vs`, `Vp` and `Fp`.
 
+### Sixth-order Bandpass Alignment
+
+The driver separates two vented chambers. The rear chamber uses `Vr` / `Fr`
+and the front chamber uses `Vp` / `Fp`; both vents contribute acoustic loading,
+while their geometry and volume velocity are reported separately. The starter
+uses symmetrical chamber targets and the optimizer searches the four active
+box parameters within the selected constraints.
+
+### Passive Radiator Alignment
+
+The passive-radiator load replaces a bass-reflex duct with a suspended
+diaphragm. Manual controls expose box `Vb`, radiator area `Sp`, resonance `Fp`,
+mechanical `Qmp`, moving mass `Mmp` and radiator `Xmax`. The Ports tab reports
+radiator volume velocity and warns when simulated travel exceeds its rating.
+
 ### Infinite Baffle
 
 Infinite baffle has no box or optimizer controls.  It keeps the driver's
@@ -156,6 +175,10 @@ For `Bass reflex`, controls are:
 For `Sealed`, controls are sealed `Vb`, `Qabs` and `Qleak`.
 For `Bandpass 4th order`, controls are rear `Vs`, front `Vp`, `Fp`, independent
 chamber loss factors, front `Qport` and front-vent diameter.
+For `Bandpass 6th order`, controls are rear `Vr` / `Fr`, front `Vp` / `Fp`,
+independent losses and both vent diameters.
+For `Passive radiator`, controls are `Vb`, `Sp`, `Fp`, `Qmp`, `Mmp` and radiator
+`Xmax` rather than a duct diameter.
 `Infinite baffle` has no enclosure controls.
 
 Higher Q means lower loss for leakage/ports.  Very low Q values intentionally
@@ -176,6 +199,8 @@ Ported loads expose a **Port geometry** panel:
 
 - bass reflex: vent diameter
 - fourth-order bandpass: front-vent diameter
+- sixth-order bandpass: rear- and front-vent diameters
+- passive radiator: equivalent diaphragm diameter and travel
 - DCCAV: upper-port and lower-port diameters
 
 The app estimates physical tube length from the Helmholtz relation, reports the

@@ -5,9 +5,10 @@
 </p>
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
-**DCCAV** / double resonator in series, **fourth-order bandpass**, conventional
-**bass reflex**, **acoustic suspension** (sealed box) and ideal **infinite baffle**, all derived
-from driver Thiele/Small parameters.
+**DCCAV** / double resonator in series, **fourth- and sixth-order bandpass**,
+conventional **bass reflex**, **passive radiator**, **acoustic suspension**
+(sealed box) and ideal **infinite baffle**, all derived from driver
+Thiele/Small parameters.
 
 The app starts from a T/S set, proposes an editable first-pass alignment, then
 simulates the lumped acoustic circuit and plots:
@@ -26,12 +27,14 @@ far-field measurement substitute.
 Current UI highlights:
 
 - separate `Design a box` and `Find a driver` workspaces
+- compact three-column load picker whose illustrated cards are directly
+  clickable, with overlaid labels and a highlighted active load
 - one optimizer behind every automatic box: a `Max extension` / `Balanced` /
   `Flattest` / `Manual` strategy control instead of overlapping alignment modes
 - response, excursion, impedance, ports and group-delay design tabs
 - explicit response frequency-window zoom with automatic vertical fit and reset
 - response pinning for A/B overlays
-- one-click comparison across all five loads at equal volume
+- one-click comparison across the supported enclosure loads at equal volume
 - preset save/load and URL-based sharing grouped in the `Project` menu
 - port-geometry estimates and chuffing diagnostics
 - driver reference metrics, voice-coil corner and T/S-based bandwidth class
@@ -99,6 +102,11 @@ Its automatic starting point is intentionally conservative: `Vb = Vas` and
 The fourth-order bandpass encloses the cone between a sealed rear chamber and
 a vented front chamber; only the front vent radiates. Its starter exposes
 `Vs`, `Vp` and `Fp`, with the same optimizer/Finder/project workflows.
+
+The sixth-order bandpass vents both the rear and front chambers. Its starter
+exposes `Vr`, `Fr`, `Vp` and `Fp`, and the Ports tab reports both vent paths.
+The passive-radiator topology uses a suspended diaphragm in place of a reflex
+duct and models its area, resonance, mechanical Q, moving mass and excursion.
 
 The acoustic-suspension path uses a closed `Vb` and reports its classical
 `Fc` and `Qtc`; its starter targets `Qtc=0.707` when the driver's `Qts` permits.

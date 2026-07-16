@@ -1,6 +1,21 @@
 # Changelog
 
 
+## 0.5.1 (2026-07-16)
+
+- **Illustrated load picker**: replaced the emoji load buttons with compact,
+  directly clickable diagram cards in a three-column grid. Load names are
+  overlaid on the images, the active selection has a blue outline, and the
+  current Design load is echoed by a 72 px preview beside the result metrics.
+- **Bundled load artwork**: added optimized local diagrams for infinite baffle,
+  sealed, bass reflex, fourth- and sixth-order bandpass, and DCCAV. The passive
+  radiator retains a neutral text card until dedicated artwork is supplied.
+- **Documentation**: synchronized the README, user guide and module index with
+  all seven supported load types and the new visual selector.
+- **Verification**: py_compile and Streamlit AppTest clean; full suite
+  94 passed / 0 failed / 0 skipped.
+
+
 ## 0.5.0 (2026-07-15)
 
 - **Sixth-order bandpass topology**: new `Bandpass6Alignment` / `Bandpass6Box` with

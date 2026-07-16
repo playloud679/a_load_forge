@@ -1,8 +1,9 @@
 """
 Load Forge — acoustic-load simulator.
 
-Single-page Streamlit dashboard for DCCAV, fourth-order bandpass, bass-reflex,
-acoustic-suspension and infinite-baffle loads, with response plots and derived data.
+Single-page Streamlit dashboard for DCCAV, fourth/sixth-order bandpass,
+bass-reflex, passive-radiator, sealed and infinite-baffle loads, with response
+plots and derived data.
 """
 
 from __future__ import annotations
@@ -47,6 +48,7 @@ try:
 except OSError:
     _VERSION = "dev"
 _BRAND_IMAGE = Path(__file__).parent / "assets" / "load_forge_header.png"
+_LOAD_IMAGE_DIR = Path(__file__).parent / "assets" / "load_types"
 
 
 st.set_page_config(
@@ -84,14 +86,23 @@ _AUTO_CURSOR_OPTIONS = ("F3", "F6", "F10")
 _DEFAULT_REFLEX_Q_ABS = 15.0
 _DEFAULT_REFLEX_Q_LEAK = 1000.0
 _DEFAULT_REFLEX_Q_PORT = 15.0
-_LOAD_TYPE_ICONS = {
-    "Infinite baffle": "🌊",
-    "Sealed": "📦",
-    "Bass reflex": "📯",
-    "Passive radiator": "🔄",
-    "Bandpass 4th order": "④",
-    "Bandpass 6th order": "⑥",
-    "DCCAV": "⚡",
+_LOAD_TYPE_IMAGES = {
+    "Infinite baffle": _LOAD_IMAGE_DIR / "infinite_baffle.png",
+    "Sealed": _LOAD_IMAGE_DIR / "sealed.png",
+    "Bass reflex": _LOAD_IMAGE_DIR / "bass_reflex.png",
+    "Bandpass 4th order": _LOAD_IMAGE_DIR / "bandpass_4th.png",
+    "Bandpass 6th order": _LOAD_IMAGE_DIR / "bandpass_6th.png",
+    "DCCAV": _LOAD_IMAGE_DIR / "dccav.png",
+}
+
+_LOAD_TYPE_SLUGS = {
+    "Infinite baffle": "infinite_baffle",
+    "Sealed": "sealed",
+    "Bass reflex": "bass_reflex",
+    "Passive radiator": "passive_radiator",
+    "Bandpass 4th order": "bandpass_4th",
+    "Bandpass 6th order": "bandpass_6th",
+    "DCCAV": "dccav",
 }
 
 _LOAD_TYPE_SHORT = {
@@ -108,50 +119,108 @@ _ALL_LOAD_TYPES = ["Infinite baffle", "Sealed", "Bass reflex", "Passive radiator
                    "Bandpass 4th order", "Bandpass 6th order", "DCCAV"]
 
 
+@cache
+def _load_type_card_styles() -> str:
+    """Return compact clickable-card CSS with the supplied diagrams embedded."""
+    rules = [
+        """
+        <style>
+        [class*="st-key-load_card_"] div[data-testid="stButton"] button {
+            background-color: #16191d;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            border: 1px solid rgba(127,127,127,.28);
+            border-radius: .45rem;
+            height: 4.5rem;
+            min-height: 4.5rem;
+            overflow: hidden;
+            padding: 0;
+            position: relative;
+            width: 100%;
+        }
+        [class*="st-key-load_card_"] div[data-testid="stButton"] button::after {
+            background: linear-gradient(transparent, rgba(0,0,0,.88));
+            bottom: 0;
+            content: "";
+            height: 55%;
+            left: 0;
+            pointer-events: none;
+            position: absolute;
+            right: 0;
+        }
+        [class*="st-key-load_card_"] div[data-testid="stButton"] button p {
+            bottom: .22rem;
+            color: white;
+            font-size: .68rem;
+            font-weight: 700;
+            left: .18rem;
+            line-height: .78rem;
+            margin: 0;
+            position: absolute;
+            right: .18rem;
+            text-align: center;
+            text-shadow: 0 1px 3px black;
+            white-space: normal;
+            z-index: 1;
+        }
+        [class*="st-key-load_card_"] div[data-testid="stButton"] button:hover {
+            border-color: #2f80ed;
+            filter: brightness(1.08);
+            transform: translateY(-1px);
+        }
+        [class*="st-key-load_card_"] div[data-testid="stButton"] button[data-testid="stBaseButton-primary"] {
+            border: 2px solid #2f80ed;
+            box-shadow: 0 0 0 2px rgba(47,128,237,.22);
+        }
+        """
+    ]
+    for load_type, image_path in _LOAD_TYPE_IMAGES.items():
+        if not image_path.exists():
+            continue
+        encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
+        slug = _LOAD_TYPE_SLUGS[load_type]
+        rules.append(
+            f'.st-key-load_card_{slug} button '
+            f'{{ background-image: url("data:image/png;base64,{encoded}"); }}'
+        )
+    rules.append(
+        ".st-key-load_card_passive_radiator button {"
+        "background-image: linear-gradient(135deg, #252b33, #101216); }"
+    )
+    rules.append("</style>")
+    return "".join(rules)
+
+
 def _render_load_type_buttons(active_set: set[str], single_select: bool = False) -> set[str]:
-    """Grid of load-type icon buttons.
+    """Grid of compact load diagrams that are themselves clickable buttons.
 
     In single-select mode clicking a new button *replaces* the set (radio behaviour).
     In multi-select mode each click toggles the load.
     Returns the (possibly modified) set.
     """
     modified = set(active_set)
-    row1_cols = st.columns(4)
-    row2_cols = st.columns(3)
-    for i, lt in enumerate(_ALL_LOAD_TYPES[:4]):
-        with row1_cols[i]:
-            active = lt in active_set
-            if st.button(
-                f"{_LOAD_TYPE_ICONS[lt]} {_LOAD_TYPE_SHORT[lt]}",
-                key=f"load_btn_{lt}",
-                type="primary" if active else "secondary",
-                use_container_width=True,
-                help=lt,
-            ):
-                if single_select:
-                    modified = {lt}
-                else:
-                    if lt in modified:
-                        modified.discard(lt)
-                    else:
-                        modified.add(lt)
-    for i, lt in enumerate(_ALL_LOAD_TYPES[4:]):
-        with row2_cols[i]:
-            active = lt in active_set
-            if st.button(
-                f"{_LOAD_TYPE_ICONS[lt]} {_LOAD_TYPE_SHORT[lt]}",
-                key=f"load_btn_{lt}",
-                type="primary" if active else "secondary",
-                use_container_width=True,
-                help=lt,
-            ):
-                if single_select:
-                    modified = {lt}
-                else:
-                    if lt in modified:
-                        modified.discard(lt)
-                    else:
-                        modified.add(lt)
+    st.markdown(_load_type_card_styles(), unsafe_allow_html=True)
+    for row_start in range(0, len(_ALL_LOAD_TYPES), 3):
+        row_cols = st.columns(3)
+        for offset, lt in enumerate(_ALL_LOAD_TYPES[row_start:row_start + 3]):
+            with row_cols[offset]:
+                with st.container(key=f"load_card_{_LOAD_TYPE_SLUGS[lt]}"):
+                    active = lt in active_set
+                    if st.button(
+                        _LOAD_TYPE_SHORT[lt],
+                        key=f"load_btn_{lt}",
+                        type="primary" if active else "secondary",
+                        use_container_width=True,
+                        help=lt,
+                    ):
+                        if single_select:
+                            modified = {lt}
+                        else:
+                            if lt in modified:
+                                modified.discard(lt)
+                            else:
+                                modified.add(lt)
     return modified
 
 _TRACE_COLORS = {
@@ -3081,7 +3150,7 @@ if _BRAND_IMAGE.exists():
 else:
     st.title("Load Forge")
 st.caption(
-    f"v{_VERSION} · DCCAV / bandpass 4th / bass reflex / sealed / infinite baffle · "
+    f"v{_VERSION} · DCCAV / bandpass 4th & 6th / reflex / PR / sealed / infinite baffle · "
     "T/S driven response model"
 )
 
@@ -3879,26 +3948,41 @@ try:
     if design_config != "Single driver":
         design_name = f"{design_name} ({design_config})"
     design_strategy = str(st.session_state.get("box_strategy", "Balanced"))
-    st.caption(f"{design_name} · {load_type} · {design_strategy} · {sim_voltage:.2f} V")
-    if is_infinite_baffle:
-        m1, m2, m3, m4 = st.columns(4)
-        m5 = None
+    active_load_image = _LOAD_TYPE_IMAGES.get(load_type)
+    if active_load_image is not None and active_load_image.exists():
+        load_visual_col, load_summary_col = st.columns(
+            [1, 12], vertical_alignment="center")
+        with load_visual_col:
+            st.image(
+                str(active_load_image),
+                width=72,
+            )
     else:
-        m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("F3", _fmt_hz(thresholds[3]))
-    m2.metric("Peak LF SPL", _fmt_db(metrics["max_spl_db"]))
-    m3.metric("Max excursion", f"{metrics['max_excursion_mm']:.2f} mm")
-    m4.metric("Min impedance", f"{metrics['min_impedance_ohm']:.2f} Ω")
-    if m5 is not None:
-        if is_reflex or is_sealed or is_pr:
-            vtot_l = box.vb_l
-        elif is_bandpass4:
-            vtot_l = box.vs_l + box.vp_l
-        elif is_bandpass6:
-            vtot_l = box.vr_l + box.vp_l
+        load_summary_col = st.container()
+    with load_summary_col:
+        st.caption(
+            f"{design_name} · {load_type} · {design_strategy} · "
+            f"{sim_voltage:.2f} V"
+        )
+        if is_infinite_baffle:
+            m1, m2, m3, m4 = st.columns(4)
+            m5 = None
         else:
-            vtot_l = box.vh_l + box.vl_l
-        m5.metric("Box volume", f"{vtot_l:.1f} L")
+            m1, m2, m3, m4, m5 = st.columns(5)
+        m1.metric("F3", _fmt_hz(thresholds[3]))
+        m2.metric("Peak LF SPL", _fmt_db(metrics["max_spl_db"]))
+        m3.metric("Max excursion", f"{metrics['max_excursion_mm']:.2f} mm")
+        m4.metric("Min impedance", f"{metrics['min_impedance_ohm']:.2f} Ω")
+        if m5 is not None:
+            if is_reflex or is_sealed or is_pr:
+                vtot_l = box.vb_l
+            elif is_bandpass4:
+                vtot_l = box.vs_l + box.vp_l
+            elif is_bandpass6:
+                vtot_l = box.vr_l + box.vp_l
+            else:
+                vtot_l = box.vh_l + box.vl_l
+            m5.metric("Box volume", f"{vtot_l:.1f} L")
 
     for warning in model_warnings:
         st.warning(warning)
