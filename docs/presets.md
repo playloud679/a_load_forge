@@ -1,7 +1,7 @@
 # src/presets.py — driver preset catalog
 
-Built-in driver presets plus the optional Loudspeaker Database import, with
-brand/size metadata and retailer price enrichment.  `src/dccav.py`
+Built-in driver presets plus the optional Loudspeaker Database and generic web
+crawler imports, with brand/size metadata and retailer price enrichment. `src/dccav.py`
 re-exports the public API; detailed contracts live in `docs/dccav.md`.
 
 ## Owns
@@ -12,7 +12,9 @@ re-exports the public API; detailed contracts live in `docs/dccav.md`.
   Aiyima minis, …)
 - `_load_loudspeaker_database_presets()` (`lru_cache(maxsize=1)`): lazy
   loader for `data/loudspeaker_database_drivers.json`; missing or invalid
-  files degrade to the built-in catalog only
+  files degrade to the built-in catalog only. Imported rows use their optional
+  `source` value (for example `Web crawler`), falling back to
+  `Loudspeaker Database` for legacy datasets
 - Public catalog API: `driver_preset_names()`, `driver_preset_info(name)`,
   `get_driver_preset(name)`
 
@@ -24,3 +26,6 @@ re-exports the public API; detailed contracts live in `docs/dccav.md`.
   up after `_load_loudspeaker_database_presets.cache_clear()` (tests rely
   on clearing both this cache and the pricing loader's).
 - Importable both as `src.presets` and top-level `presets`.
+- Generic crawler records remain compatible with the existing JSON loader;
+  source-specific provenance stays in `website_fields` rather than being
+  mislabelled as Loudspeaker Database data.

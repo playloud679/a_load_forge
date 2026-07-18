@@ -1,6 +1,51 @@
 # Changelog
 
 
+## 0.5.4 (2026-07-18)
+
+- **Generic Thiele/Small crawler**: added a resumable, robots-aware crawler for
+  manufacturer pages, catalog links, XML sitemaps and optional PDF datasheets.
+  It extracts T/S data from visible text and JSON-LD, normalizes engineering
+  units, derives compatible missing values and rejects incomplete or physically
+  implausible records.
+- **Safe catalog population**: crawler results are deduplicated by brand/model
+  and merged atomically into the driver database without replacing curated
+  values by default. Each imported row retains its URL, timestamp, confidence,
+  extraction method and raw source measurements.
+- **Catalog integration and documentation**: the UI can filter `Web crawler`
+  entries, the preset loader preserves per-row source provenance, and the new
+  workflow is documented with dry-run and production examples.
+- **Real-source qualification**: added support for storefront labels such as
+  `Surface Area of Cone` and typographic units including `cm²` and `ft³`.
+  A robots-compliant 100-page SoundImports qualification identified nine
+  validated Dayton Audio part-number aliases at 0.925 extraction confidence.
+- **PDF-first datasheet library**: added external PDF discovery, SHA-256
+  content-addressed storage, a SQLite provenance/observation index and strict
+  PDF-backed alias matching. Manufacturer part numbers can now be attached to
+  existing marketing-name records without fuzzy-merging the whole catalog. The
+  first nine archived datasheets consolidated all provisional Dayton rows into
+  their existing Apollo records.
+- **Retailer URL resilience**: price enrichment now percent-encodes Unicode
+  characters from retailer sitemaps without double-encoding existing escapes;
+  typographic size fractions can no longer crash an entire provider worker.
+- **AFW comparison parity**: the sealed-project bridge now uses the active
+  Load Forge engine and reports the panel-loaded result (+0.057% for the FE126)
+  alongside the historical classical +4.942% delta.
+- **AFW BP4/BP6 validation**: extended the read-only AFW bridge to load codes
+  3 and 4, added loss-aware bandpass simulations and reproducible impedance,
+  response and F3 diagnostics. The real FE126 BP6 project now agrees at the
+  three observed impedance resonances (48.10, 110.98 and 239.80 Hz).
+- **Sixth-order acoustic polarity**: corrected the two opposite-side vents to
+  combine as a vector difference, eliminating the artificial mid-band notch;
+  equal branches now cancel and the starter alignment is asymmetric.
+- **Multiple-driver panel loading**: composite drivers track the number of
+  externally radiating pistons, preserving per-cone mounted Fs for ordinary
+  pairs while retaining one radiating piston for isobaric pairs. AFW bandpass
+  reports can project all supported series/parallel/isobaric configurations.
+- **Verification**: py_compile, Ruff and Streamlit AppTest clean; full suite
+  101 passed / 0 failed / 0 skipped.
+
+
 ## 0.5.3 (2026-07-16)
 
 - **Finder volume-cap regression**: restored Maximum volume as an upper bound

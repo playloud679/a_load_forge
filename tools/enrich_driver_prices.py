@@ -29,7 +29,6 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urljoin
 from urllib.request import Request, urlopen
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PRESETS = ROOT / "data" / "loudspeaker_database_drivers.json"
 DEFAULT_OUTPUT = ROOT / "data" / "driver_prices.json"
@@ -54,6 +53,7 @@ USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 )
 FETCH_ERRORS = (HTTPError, URLError, TimeoutError, OSError)
+URL_SAFE_CHARACTERS = ":/?#[]@!$&'()*+,;=%"
 
 
 @dataclass(frozen=True)
@@ -114,9 +114,14 @@ def log(message: str):
     print(message, flush=True)
 
 
+def ascii_url(url: str) -> str:
+    """Percent-encode non-ASCII URL characters without double-encoding escapes."""
+    return quote(url, safe=URL_SAFE_CHARACTERS)
+
+
 def fetch_text(url: str, timeout_s: float) -> str:
     req = Request(
-        url,
+        ascii_url(url),
         headers={
             "User-Agent": USER_AGENT,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",

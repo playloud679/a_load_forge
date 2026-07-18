@@ -1,4 +1,4 @@
-.PHONY: venv install dev run test test-match lint format clean
+.PHONY: venv install dev run test test-match crawl-ts crawl-datasheets lint format clean
 
 VENV_DIR := .venv
 PYTHON  := python3
@@ -26,6 +26,14 @@ test:
 test-match:
 	@if [ -z "$(MATCH)" ]; then echo "Usage: make test-match MATCH='dccav'"; exit 2; fi
 	$(VENV_DIR)/bin/python tests/test_all.py --match "$(MATCH)"
+
+crawl-ts:
+	@if [ -z "$(ARGS)" ]; then echo "Usage: make crawl-ts ARGS='--seed URL --fresh --dry-run'"; exit 2; fi
+	$(VENV_DIR)/bin/python tools/crawl_thiele_small.py $(ARGS)
+
+crawl-datasheets:
+	@if [ -z "$(ARGS)" ]; then echo "Usage: make crawl-datasheets ARGS='--seed PRODUCT_URL'"; exit 2; fi
+	$(VENV_DIR)/bin/python tools/crawl_driver_datasheets.py $(ARGS)
 
 lint:
 	$(VENV_DIR)/bin/python -m ruff check src tests ui_app.py

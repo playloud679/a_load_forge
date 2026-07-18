@@ -31,5 +31,10 @@ skills/
 data/driver_prices.json.lock
 data/driver_prices.json.tmp
 
+# Downloaded datasheet library (large, reproducible and content-addressed)
+data/datasheets/
+data/driver_datasheets.sqlite3
+data/driver_datasheets.sqlite3-*
+
 # Streamlit secrets (contains API keys — keep local)
 .streamlit/secrets.toml

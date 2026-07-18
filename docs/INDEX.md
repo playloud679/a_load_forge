@@ -15,6 +15,9 @@ in sync in the same change.
 | `src/__init__.py` | [__init__.md](__init__.md) | Public package exports for acoustic-load helpers |
 | `src/dccav.py` | [dccav.md](dccav.md) | DCCAV/reflex/sealed/infinite-baffle formulas, T/S derivation and lumped acoustic-circuit simulation |
 | `tests/test_all.py` | source only | Active regression runner for the acoustic-load models and Streamlit workflows |
+| `tools/crawl_thiele_small.py` | [crawl_thiele_small.md](crawl_thiele_small.md) | Robots-aware sitemap/seed crawler, T/S parser, unit normalizer, validator and safe database merger |
+| `tools/crawl_driver_datasheets.py` | [crawl_driver_datasheets.md](crawl_driver_datasheets.md) | PDF discovery, SHA-256 archive, SQLite provenance index and alias-aware catalog merge |
+| `tools/compare_afw_sealed.py` | [afw_validation.md](afw_validation.md) | Read-only AFW v2 sealed/BP4/BP6 parser, response diagnostics and identical-driver projection bridge |
 
 ## Data Flow
 

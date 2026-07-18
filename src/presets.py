@@ -641,10 +641,11 @@ def _load_loudspeaker_database_presets() -> tuple[dict[str, DriverTS], dict[str,
         item_currency = str(item.get("currency") or "")
         item_brand = str(item.get("brand") or "Other")
         item_model = str(item.get("model") or name.removeprefix("LSDB: "))
+        item_source = str(item.get("source") or "Loudspeaker Database")
         enriched_price, enriched_currency, enriched_url = _preset_price(name, item_model, item_brand)
         info[name] = DriverPresetInfo(
             name=name,
-            source="Loudspeaker Database",
+            source=item_source,
             brand=item_brand,
             model=item_model,
             size_in=(
@@ -697,5 +698,4 @@ def get_driver_preset(name: str) -> DriverTS:
         return external[name]
     except KeyError as exc:
         raise ValueError(f"Unknown driver preset: {name}") from exc
-
 

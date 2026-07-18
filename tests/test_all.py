@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import sys
 import traceback
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -185,7 +186,7 @@ test("DCCAV driver presets are named and validated", _check_presets_are_availabl
 
 
 def _check_article_alignment():
-    a = _dccav.suggest_alignment(_kef_b110_ts())
+    a = _dccav.suggest_alignment(replace(_kef_b110_ts(), panel_air_load=False))
     assert abs(a.vh_l - 3.09) < 0.03, f"Vh={a.vh_l:.2f} L"
     assert abs(a.vl_l - 6.23) < 0.05, f"Vl={a.vl_l:.2f} L"
     assert abs(a.fh_hz - 162.2) < 0.2, f"fh={a.fh_hz:.2f} Hz"
@@ -197,7 +198,7 @@ test("DCCAV article alignment regression", _check_article_alignment)
 
 
 def _check_beyma_preset_alignment():
-    ts = _beyma_ts()
+    ts = replace(_beyma_ts(), panel_air_load=False)
     assert ts.sd_cm2 == 530.0
     assert ts.mms_g == 54.0
     assert ts.cms_mm_per_n == 0.193
@@ -224,13 +225,146 @@ test("DCCAV derives driver components from minimal T/S", _check_derived_driver_f
 
 
 def _check_measured_driver_values_are_used():
-    d = _dccav.complete_driver(_beyma_ts())
+    d = _dccav.complete_driver(replace(_beyma_ts(), panel_air_load=False))
     assert abs(d.mms_kg - 0.054) < 1e-9
     assert abs(d.cms_m_per_n - 0.000193) < 1e-12
     assert abs(d.bl_tm - 13.7) < 1e-12
 
 
 test("DCCAV uses measured optional driver values", _check_measured_driver_values_are_used)
+
+
+def _check_panel_air_load_matches_afw_fe126():
+    ts = _dccav.DriverTS(
+        fs_hz=89.4,
+        vas_l=6.942334,
+        qts=0.3789999649445698,
+        qms=5.32,
+        re_ohm=7.12,
+        sd_cm2=63.61727,
+    )
+    added_mass_g, loaded_fs_hz = _dccav.panel_air_load_metrics(ts)
+    assert ts.panel_air_load is True
+    assert 0.25 < added_mass_g < 0.27, added_mass_g
+    assert abs(loaded_fs_hz - 85.2385) < 0.001, loaded_fs_hz
+    fc_hz, qtc = _dccav.sealed_system_metrics(ts, _dccav.SealedBox(vb_l=3.0))
+    assert abs(fc_hz - 155.1741) < 0.001, fc_hz
+    assert abs(fc_hz / 155.0854 - 1.0) < 0.001, fc_hz
+    assert abs(qtc - 0.6899581) < 1e-6, qtc
+    disabled = replace(ts, panel_air_load=False)
+    assert _dccav.panel_air_load_metrics(disabled) == (0.0, 89.4)
+    assert _dccav.sealed_system_metrics(disabled, _dccav.SealedBox(vb_l=3.0))[0] > fc_hz
+
+
+test("DCCAV panel air load defaults on and matches AFW FE126", _check_panel_air_load_matches_afw_fe126)
+
+
+def _check_afw_comparator_reports_panel_loaded_delta():
+    from tools import compare_afw_sealed as comparator
+
+    qts = 0.3789999649445698
+    qms = 5.32
+    driver = comparator.AfwDriver(
+        name="Fostex FE126",
+        re_ohm=7.12,
+        fs_hz=89.4,
+        qms=qms,
+        qes=qts * qms / (qms - qts),
+        qts=qts,
+        vas_l=6.942334,
+        le_10khz_mh=0.0,
+        le_exponent=0.0,
+        le_phase_factor=0.0,
+        xmax_mm=0.0,
+        pe_w=0.0,
+        sd_cm2=63.61727,
+    )
+    sealed = comparator.AfwSealed(
+        volume_l=3.0,
+        volume_factor=1.0,
+        resonance_hz=155.0854,
+        qt=0.69,
+        q_loss=10.0,
+    )
+    report = comparator.compare(driver, sealed)
+    load_forge = report["load_forge"]
+    delta = report["delta_percent"]
+    assert abs(load_forge["panel_loaded_fc_hz"] - 155.1741) < 0.001
+    assert abs(delta["classical_fc_vs_afw"] - 4.9422) < 0.001
+    assert abs(delta["panel_loaded_fc_vs_afw"] - 0.0572) < 0.001
+
+
+test("AFW comparator reports the corrected panel-loaded delta", _check_afw_comparator_reports_panel_loaded_delta)
+
+
+def _check_afw_bandpass_comparator_and_multi_driver_projection():
+    import tempfile
+    from pathlib import Path
+
+    from tools import compare_afw_sealed as comparator
+
+    qts = 0.3789999649445698
+    qms = 5.32
+    driver = comparator.AfwDriver(
+        name="Fostex FE126", re_ohm=7.12, fs_hz=89.4, qms=qms,
+        qes=qts * qms / (qms - qts), qts=qts, vas_l=6.942334,
+        le_10khz_mh=0.2156641, le_exponent=0.0, le_phase_factor=0.0,
+        xmax_mm=0.35, pe_w=80.0, sd_cm2=63.61727)
+    bp6 = comparator.AfwBandpass(
+        order=6, rear_volume_l=6.252466, rear_volume_factor=1.1,
+        rear_frequency_hz=87.66233, front_volume_l=2.258567,
+        front_volume_factor=1.1, front_tuning_hz=170.5266,
+        q_abs_rear=28.0, q_leak_rear=14.0, q_abs_front=28.0,
+        q_leak_front=14.0, q_port_rear=55.19641, q_port_front=94.12212)
+    single = comparator.compare_bandpass(driver, bp6)
+    peaks = single["load_forge_simulation"]["impedance_peaks_hz"]
+    assert len(peaks) == 3
+    assert np.allclose(peaks, [48.1, 111.0, 240.0], rtol=0.03)
+
+    pair = comparator.compare_bandpass(driver, bp6, "2 × parallel")
+    assert pair["composite_driver"]["radiating_pistons"] == 2
+    assert abs(
+        pair["load_forge_simulation"]["panel_loaded_fs_hz"]
+        / single["load_forge_simulation"]["panel_loaded_fs_hz"] - 1.0
+    ) < 1e-12
+
+    bp4 = replace(bp6, order=4)
+    fourth = comparator.compare_bandpass(driver, bp4)
+    assert fourth["afw_bandpass"]["order"] == 4
+    assert len(fourth["load_forge_simulation"]["impedance_peaks_hz"]) >= 2
+
+    # Minimal AFW-format slot-1 fixture: exercise load-code 3 and the actual
+    # bandpass-block offsets without depending on a writable XP guest.
+    driver_at = 1200
+    lines = ["0"] * (driver_at + 1 + 201 * 5 + 11)
+    lines[driver_at - 490] = "3"
+    block = [0.0] * 26
+    block[0:10] = [0.00231, 163.0, 1.0, 10.0, 10.0,
+                   0.00158, 163.0, 1.1, 50.0, 14.0]
+    block[14] = 100.0
+    block[25] = 100.0
+    lines[driver_at - 230:driver_at - 204] = [str(value) for value in block]
+    lines[driver_at] = "Fostex FE126 synthetic BP4"
+    params_at = driver_at + 1 + 201 * 5
+    params = [7.12, 89.4, qms, driver.qes, 0.006942334, 0.0002156641,
+              0.0, 0.0, 0.00035, 80.0, 0.006361727]
+    lines[params_at:params_at + 11] = [str(value) for value in params]
+    with tempfile.TemporaryDirectory() as directory:
+        fixture = Path(directory) / "bp4.afw"
+        fixture.write_text("\n".join(lines), encoding="latin-1")
+        parsed_driver, parsed_bp4 = comparator.parse_afw_project(fixture)
+    assert parsed_driver.name == "Fostex FE126 synthetic BP4"
+    assert isinstance(parsed_bp4, comparator.AfwBandpass)
+    assert parsed_bp4.order == 4
+    assert np.isclose(parsed_bp4.rear_volume_l, 2.31)
+    assert np.isclose(parsed_bp4.front_volume_l * parsed_bp4.front_volume_factor, 1.738)
+    assert parsed_bp4.front_tuning_hz == 163.0
+
+
+test(
+    "AFW comparator covers BP4, BP6 and multi-driver projections",
+    _check_afw_bandpass_comparator_and_multi_driver_projection,
+)
 
 
 def _check_rejects_invalid_q_values():
@@ -305,7 +439,8 @@ def _check_sealed_and_infinite_baffle_models():
         assert np.all(result.port_volume_velocity == 0.0)
         assert len(_dccav.impedance_peak_frequencies(result)) == 1
     ib_peak = _dccav.impedance_peak_frequencies(infinite)[0]
-    assert abs(ib_peak - ts.fs_hz) / ts.fs_hz < 0.05, ib_peak
+    mounted_fs_hz = _dccav.panel_loaded_fs_hz(ts)
+    assert abs(ib_peak - mounted_fs_hz) / mounted_fs_hz < 0.05, ib_peak
 
 
 test("Sealed and infinite-baffle models expose unported responses", _check_sealed_and_infinite_baffle_models)
@@ -319,7 +454,9 @@ def _check_bandpass4_model_and_starter():
     ts = _kef_b110_ts()
     alignment = _dccav.suggest_bandpass4_alignment(ts)
     assert abs(alignment.vp_l - 2.0 * 0.707**2 * ts.vas_l) < 1e-9
-    assert abs(alignment.fp_hz - ts.fs_hz * 0.707 / ts.qts) < 1e-9
+    assert abs(
+        alignment.fp_hz - _dccav.panel_loaded_fs_hz(ts) * 0.707 / ts.qts
+    ) < 1e-9
     assert alignment.vs_l > 0.05
     box = _dccav.Bandpass4Box(
         vs_l=alignment.vs_l, vp_l=alignment.vp_l, fp_hz=alignment.fp_hz)
@@ -415,8 +552,12 @@ def _check_bandpass6_model_and_starter():
     assert package_api.simulate_bandpass6 is _dccav.simulate_bandpass6
     ts = _kef_b110_ts()
     alignment = _dccav.suggest_bandpass6_alignment(ts)
-    assert abs(alignment.vp_l - 2.0 * 0.707**2 * ts.vas_l) < 1e-9
-    assert abs(alignment.fp_hz - ts.fs_hz * 0.707 / ts.qts) < 1e-9
+    expected_rear_l = 2.0 * 0.707**2 * ts.vas_l
+    mounted_fs_hz = _dccav.panel_loaded_fs_hz(ts)
+    assert abs(alignment.vr_l - expected_rear_l) < 1e-9
+    assert abs(alignment.vp_l - 0.5 * expected_rear_l) < 1e-9
+    assert alignment.fr_hz == mounted_fs_hz
+    assert alignment.fp_hz == 2.0 * mounted_fs_hz
     assert alignment.vr_l > 0.05
     assert alignment.vp_l > 0.05
     box = _dccav.Bandpass6Box(
@@ -435,6 +576,13 @@ def _check_bandpass6_model_and_starter():
     assert np.any(result.port_l_velocity > 0.0)
     assert len(_dccav.impedance_peak_frequencies(result)) >= 2
     assert not _dccav.bandpass6_diagnostics(ts, box, result)
+
+    # AFW's double-reflex model and the physical topology both require
+    # opposite port polarity: identical branches cancel in the far field.
+    equal_box = _dccav.Bandpass6Box(
+        vr_l=10.0, fr_hz=80.0, vp_l=10.0, fp_hz=80.0)
+    cancelled = _dccav.simulate_bandpass6(ts, equal_box, freq)
+    assert np.max(cancelled.spl_total_db) < -200.0
 
 
 test("Sixth-order bandpass starter and simulation are coherent", _check_bandpass6_model_and_starter)
@@ -499,7 +647,7 @@ def _check_ui_bandpass6_design_and_persistence():
     metrics = {metric.label for metric in at.metric}
     assert {"Box volume", "Vr rear (active)", "Fr rear (active)", "Vp front (active)", "Fp front (active)"} <= metrics
     assert any(
-        "Sixth-order bandpass total response is the vector sum of both vents" in caption.value
+        "Sixth-order bandpass total response is the polarity-correct vector difference" in caption.value
         for caption in at.caption
     )
 
@@ -1095,7 +1243,7 @@ test("UI port geometry warns about small-vent air speed", _check_ui_port_geometr
 
 
 def _check_driver_reference_metrics():
-    ts = _kef_b110_ts()
+    ts = replace(_kef_b110_ts(), panel_air_load=False)
     drv = _dccav.complete_driver(ts)
     ref = _dccav.driver_reference_metrics(ts)
     assert abs(ref.ebp_hz - ts.fs_hz / drv.qes) < 1e-9, ref.ebp_hz
@@ -1404,14 +1552,14 @@ def _check_ui_reflex_volume_keeps_impedance_peaks():
     at.run()
     assert not at.exception, at.exception
     metrics = {metric.label: metric.value for metric in at.metric}
-    assert metrics["Z peaks"] == "29, 84", metrics["Z peaks"]
+    assert metrics["Z peaks"] == "29, 82", metrics["Z peaks"]
     assert not any("Bass reflex should show two impedance peaks" in warning.value for warning in at.warning)
 
     state["reflex_q_abs"] = 1.0
     state["reflex_q_port"] = 1.0
     at.run()
     metrics = {metric.label: metric.value for metric in at.metric}
-    assert metrics["Z peaks"] == "29, 84", metrics["Z peaks"]
+    assert metrics["Z peaks"] == "29, 82", metrics["Z peaks"]
     assert not any("Bass reflex should show two impedance peaks" in warning.value for warning in at.warning)
 
     state["reflex_custom_losses"] = True
@@ -1640,6 +1788,7 @@ test("UI response chart has a clickable moving marker", _check_response_chart_ha
 def _check_ui_driver_preset_filters_reduce_list():
     import ui_app as _ui
 
+    assert "Web crawler" in _ui._PRESET_SOURCE_FILTERS
     names = _dccav.driver_preset_names()
     filtered = _ui._filter_driver_preset_names(
         names,
@@ -1821,6 +1970,217 @@ def _check_lsdb_importer_preserves_website_fields_and_prices():
 test("LSDB importer preserves website fields and prices", _check_lsdb_importer_preserves_website_fields_and_prices)
 
 
+def _check_generic_ts_crawler_discovers_normalizes_and_merges():
+    import json
+    import tempfile
+    from pathlib import Path
+
+    from tools import crawl_thiele_small as crawler
+
+    product_html = b"""
+    <html><head>
+      <title>Acme Thunder 12</title>
+      <meta property="product:brand" content="Acme">
+      <script type="application/ld+json">
+      {
+        "@type": "Product",
+        "name": "Acme Thunder 12",
+        "brand": {"@type": "Brand", "name": "Acme"},
+        "model": "TH12",
+        "additionalProperty": [
+          {"name": "Fs", "value": "31 Hz"},
+          {"name": "Vas", "value": "2.1 ft3"},
+          {"name": "Qts", "value": "0.40"},
+          {"name": "Qms", "value": "5.10"},
+          {"name": "Re", "value": "5.7 ohm"},
+          {"name": "Sd", "value": "0.053 m2"},
+          {"name": "Le", "value": "0.0012 H"},
+          {"name": "Xmax", "value": "0.8 cm"},
+          {"name": "Pe", "value": "0.4 kW"},
+          {"name": "Mms", "value": "0.1 kg"},
+          {"name": "Cms", "value": "250 um/N"},
+          {"name": "BL", "value": "14 Tm"}
+        ]
+      }
+      </script>
+    </head><body>12 inch loudspeaker driver</body></html>
+    """
+    page = crawler.parse_html(product_html)
+    preset, errors = crawler.build_preset(page, "https://www.example.test/products/th12")
+    assert not errors and preset is not None, errors
+    assert preset["brand"] == "Acme"
+    assert preset["model"] == "TH12"
+    assert preset["source"] == "Web crawler"
+    assert preset["size_in"] == 12.0
+    driver = preset["driver"]
+    assert np.isclose(driver["vas_l"], 2.1 * 28.316846592)
+    assert np.isclose(driver["sd_cm2"], 530.0)
+    assert np.isclose(driver["le_mh"], 1.2)
+    assert np.isclose(driver["xmax_mm"], 8.0)
+    assert np.isclose(driver["pe_w"], 400.0)
+    assert np.isclose(driver["mms_g"], 100.0)
+    assert np.isclose(driver["cms_mm_per_n"], 0.25)
+
+    storefront_page = crawler.parse_html(b"""
+    <html><head><title>Dayton Audio 10MB250N-8</title></head><body><dl>
+      <div><dt>DC Resistance (Re)</dt><dd>7.4 ohm</dd></div>
+      <div><dt>Resonant Frequency (Fs)</dt><dd>54 Hz</dd></div>
+      <div><dt>Mechanical Q (Qms)</dt><dd>6.73</dd></div>
+      <div><dt>Total Q (Qts)</dt><dd>0.22</dd></div>
+      <div><dt>Surface Area of Cone (Sd)</dt><dd>333.12cm\xc2\xb2</dd></div>
+      <div><dt>Compliance Equivalent Volume (Vas)</dt><dd>1.53ft\xc2\xb3</dd></div>
+    </dl></body></html>
+    """)
+    storefront, errors = crawler.build_preset(
+        storefront_page,
+        "https://www.soundimports.eu/en/dayton-audio-10mb250n-8.html",
+        brand_hint="Dayton Audio",
+    )
+    assert not errors and storefront is not None, errors
+    assert np.isclose(storefront["driver"]["sd_cm2"], 333.12)
+    assert np.isclose(storefront["driver"]["vas_l"], 1.53 * 28.316846592)
+
+    text_page = crawler.PageData(
+        title="Beta W8",
+        text="Fs: 40 Hz Vas: 20 L Qts: 0.40 Qes: 0.45 Re: 6 ohm Sd: 220 cm2",
+    )
+    derived, errors = crawler.build_preset(
+        text_page, "https://beta.example.test/w8", brand_hint="Beta")
+    assert not errors and derived is not None, errors
+    assert np.isclose(derived["driver"]["qms"], 3.6)
+
+    urlset = b"""<?xml version="1.0"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+      <url><loc>https://www.example.test/products/th12</loc></url>
+    </urlset>"""
+    urls, nested = crawler.parse_sitemap(urlset)
+    assert urls == ["https://www.example.test/products/th12"] and not nested
+
+    catalog_html = b'<html><body><a href="/products/th12">Thunder 12</a></body></html>'
+    responses = {
+        "https://www.example.test/catalog": crawler.FetchResult(
+            "https://www.example.test/catalog", "text/html", catalog_html),
+        "https://www.example.test/products/th12": crawler.FetchResult(
+            "https://www.example.test/products/th12", "text/html", product_html),
+    }
+
+    def fake_fetch(url, _timeout, _agent):
+        return responses[url]
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        config = crawler.CrawlConfig(
+            seeds=["https://www.example.test/catalog"],
+            sitemaps=[],
+            output=root / "drivers.json",
+            checkpoint=root / "checkpoint.json",
+            allowed_domains={"example.test"},
+            max_pages=5,
+            max_depth=1,
+            sleep_s=0.0,
+            fresh=True,
+            dry_run=True,
+        )
+        crawled, failures, visited = crawler.crawl(
+            config, fetcher=fake_fetch, robots_allowed=lambda _url: True)
+        assert not failures, failures
+        assert len(visited) == 2, visited
+        assert [item["model"] for item in crawled] == ["TH12"]
+
+        existing = json.loads(json.dumps(crawled[0]))
+        existing["driver"]["le_mh"] = 0.0
+        existing["driver"]["fs_hz"] = 32.0
+        merged, stats = crawler.merge_presets([existing], crawled)
+        assert stats == {"added": 0, "updated": 1, "unchanged": 0}, stats
+        assert merged[0]["driver"]["le_mh"] == 1.2
+        assert merged[0]["driver"]["fs_hz"] == 32.0, "default merge must preserve curated core data"
+
+
+test("Generic T/S crawler discovers, normalizes and safely merges drivers", _check_generic_ts_crawler_discovers_normalizes_and_merges)
+
+
+def _check_pdf_datasheet_library_archives_indexes_and_merges_aliases():
+    import sqlite3
+    import tempfile
+    from pathlib import Path
+
+    from tools import crawl_driver_datasheets as library
+
+    page = library.ts.parse_html(b"""
+    <html><body>
+      <a href="https://docs.example.test/specs/driver-a.pdf">Data sheet</a>
+      <a href="/manual.txt">Manual</a>
+    </body></html>
+    """)
+    assert library.discover_pdf_links(page, "https://shop.example.test/a") == [
+        "https://docs.example.test/specs/driver-a.pdf"]
+
+    apollo = {
+        "brand": "Dayton Audio", "model": "Apollo 10N", "source": "Loudspeaker Database",
+        "driver": {
+            "fs_hz": 54.0, "vas_l": 39.98, "qts": 0.22, "qms": 5.84,
+            "re_ohm": 7.4, "sd_cm2": 333.12, "bl_tm": 0.0,
+        },
+        "website_fields": {},
+    }
+    duplicate = {
+        "brand": "Dayton Audio", "model": "10MB250N-8", "source": "Web crawler",
+        "driver": {
+            "fs_hz": 54.0, "vas_l": 43.32, "qts": 0.22, "qms": 6.73,
+            "re_ohm": 7.4, "sd_cm2": 333.12, "bl_tm": 0.0,
+        },
+        "website_fields": {},
+    }
+    observation = {
+        "brand": "Dayton Audio", "model": "10MB250N-8", "source": "Manufacturer datasheet",
+        "url": "https://docs.example.test/10mb250n-8.pdf",
+        "driver": {
+            "fs_hz": 54.0, "vas_l": 43.49, "qts": 0.22, "qms": 6.73,
+            "re_ohm": 7.4, "sd_cm2": 333.12, "bl_tm": 19.2,
+        },
+        "website_fields": {
+            "pdf_sha256": "a" * 64,
+            "product_url": "https://shop.example.test/10mb250n-8",
+            "fetched_at": "2026-07-17T00:00:00+00:00",
+            "confidence": 0.975,
+        },
+    }
+    merged, stats = library.merge_observations([apollo, duplicate], [observation])
+    assert len(merged) == 1
+    assert stats["merged_alias"] == 1 and stats["removed_duplicates"] == 1
+    assert merged[0]["model"] == "Apollo 10N"
+    assert merged[0]["driver"]["bl_tm"] == 19.2
+    assert "10MB250N-8" in merged[0]["website_fields"]["aliases"]
+    assert merged[0]["website_fields"]["datasheets"][0]["sha256"] == "a" * 64
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        digest, relative = library.archive_pdf(root / "pdfs", b"%PDF-1.4 test")
+        again, same_relative = library.archive_pdf(root / "pdfs", b"%PDF-1.4 test")
+        assert digest == again and relative == same_relative
+        assert (root / "pdfs" / relative).read_bytes() == b"%PDF-1.4 test"
+
+        index_path = root / "index.sqlite3"
+        index = library.DatasheetIndex(index_path)
+        index.record_document(
+            sha256=digest, local_path=relative, byte_count=13,
+            url=observation["url"], discovered_from=observation["website_fields"]["product_url"],
+            status="parsed", title="10MB250N-8",
+        )
+        index.record_observation(digest, observation, "Apollo 10N")
+        known = index.known_document(observation["url"])
+        assert known == (digest, relative, "parsed")
+        index.close()
+        connection = sqlite3.connect(index_path)
+        assert connection.execute("SELECT COUNT(*) FROM documents").fetchone()[0] == 1
+        assert connection.execute("SELECT COUNT(*) FROM observations").fetchone()[0] == 1
+        assert connection.execute("SELECT COUNT(*) FROM aliases").fetchone()[0] == 1
+        connection.close()
+
+
+test("PDF datasheet library archives, indexes and merges aliases", _check_pdf_datasheet_library_archives_indexes_and_merges_aliases)
+
+
 def _check_price_enricher_extracts_jsonld_product_offer():
     from tools import enrich_driver_prices as enricher
 
@@ -1859,6 +2219,47 @@ def _check_price_enricher_extracts_jsonld_product_offer():
 
 
 test("Price enricher extracts JSON-LD product offers", _check_price_enricher_extracts_jsonld_product_offer)
+
+
+def _check_price_enricher_percent_encodes_unicode_urls():
+    from tools import enrich_driver_prices as enricher
+
+    requested = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        @staticmethod
+        def read():
+            return b"ok"
+
+    def fake_urlopen(request, timeout):
+        requested["url"] = request.full_url
+        requested["timeout"] = timeout
+        return FakeResponse()
+
+    original_urlopen = enricher.urlopen
+    try:
+        enricher.urlopen = fake_urlopen
+        text = enricher.fetch_text(
+            "https://shop.example.test/6%C2%BD-woofer/6\u00bc-inch/?page=1&sort=name",
+            3.5,
+        )
+    finally:
+        enricher.urlopen = original_urlopen
+
+    assert text == "ok"
+    assert requested == {
+        "url": "https://shop.example.test/6%C2%BD-woofer/6%C2%BC-inch/?page=1&sort=name",
+        "timeout": 3.5,
+    }
+
+
+test("Price enricher percent-encodes Unicode retailer URLs", _check_price_enricher_percent_encodes_unicode_urls)
 
 
 def _check_price_enricher_falls_back_on_dirty_jsonld_product_text():
@@ -2606,7 +3007,7 @@ def _check_ui_supports_sealed_and_infinite_baffle():
 
     for load_type, expected_metric in (
         ("Sealed", "Vb sealed (active)"),
-        ("Infinite baffle", "Infinite baffle Fs"),
+        ("Infinite baffle", "Mounted Fs"),
     ):
         at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
         at.session_state["workspace_mode"] = "Design a box"
@@ -2682,6 +3083,7 @@ test("UI Finder starts from practical independent defaults", _check_ui_finder_st
 
 def _check_ui_finder_parameters_are_all_in_sidebar():
     from streamlit.testing.v1 import AppTest
+
     import ui_app as _ui
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
@@ -3208,6 +3610,10 @@ def _check_driver_configurations():
     assert par.re_ohm == ts.re_ohm / 2 and par.le_mh == ts.le_mh / 2
     assert par.pe_w == ts.pe_w * 2 and par.xmax_mm == ts.xmax_mm
     assert (par.fs_hz, par.qts, par.qms) == (ts.fs_hz, ts.qts, ts.qms)
+    assert par.radiating_pistons == 2
+    assert abs(
+        _dccav.panel_loaded_fs_hz(par) / _dccav.panel_loaded_fs_hz(ts) - 1.0
+    ) < 1e-12, "separate identical cones must retain the same mounted Fs"
 
     ser = _dccav.apply_driver_configuration(ts, "2 × series")
     assert ser.re_ohm == ts.re_ohm * 2 and ser.le_mh == ts.le_mh * 2
@@ -3216,6 +3622,7 @@ def _check_driver_configurations():
     iso = _dccav.apply_driver_configuration(ts, "Isobaric pair (parallel)")
     assert iso.sd_cm2 == ts.sd_cm2 and iso.vas_l == ts.vas_l / 2
     assert iso.re_ohm == ts.re_ohm / 2 and iso.pe_w == ts.pe_w * 2
+    assert iso.radiating_pistons == 1
     iso_s = _dccav.apply_driver_configuration(ts, "Isobaric pair (series)")
     assert iso_s.re_ohm == ts.re_ohm * 2 and iso_s.vas_l == ts.vas_l / 2
 

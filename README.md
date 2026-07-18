@@ -49,6 +49,34 @@ Current UI highlights:
 - progressive disclosure for T/S data, sweep settings, cursor positions and
   secondary result metrics
 
+## Populate the T/S catalog
+
+The generic crawler can discover driver pages from a seed URL or sitemap,
+extract HTML/JSON-LD/PDF Thiele/Small data, normalize units and safely merge
+validated rows into the existing catalog:
+
+```bash
+.venv/bin/python tools/crawl_thiele_small.py \
+  --sitemap https://manufacturer.example/sitemap.xml \
+  --include '/(woofer|subwoofer|speaker)/' \
+  --fresh --dry-run
+```
+
+Remove `--dry-run` after reviewing the extracted records. Full options and
+merge semantics are documented in [docs/crawl_thiele_small.md](docs/crawl_thiele_small.md).
+
+For a durable PDF-first library, archive linked datasheets and merge their
+validated observations into the catalog:
+
+```bash
+make crawl-datasheets ARGS="--seed https://manufacturer.example/product/woofer-12 --sleep 2"
+```
+
+Each distinct PDF is stored once by SHA-256 under `data/datasheets/`; its URLs,
+source page, extraction status and aliases are indexed in
+`data/driver_datasheets.sqlite3`. Both generated stores are excluded from Git.
+See [docs/crawl_driver_datasheets.md](docs/crawl_driver_datasheets.md).
+
 Retail prices in `data/driver_prices.json` can be refreshed concurrently from
 SoundImports, Blue Aran, Madisound and Parts Express with
 `tools/run_price_enrichment_cycle.py`.  The four providers run concurrently

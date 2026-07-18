@@ -29,7 +29,7 @@ import pandas as pd
 import streamlit as st
 
 logger = logging.getLogger("load_forge.ui")
-_OPTIMIZER_ENGINE_REVISION = 2
+_OPTIMIZER_ENGINE_REVISION = 3
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 import dccav as _dccav
@@ -337,7 +337,7 @@ _PRESET_SIZE_FILTERS = (
     "12 in",
     "15 in+",
 )
-_PRESET_SOURCE_FILTERS = ("All", "Built-in", "Loudspeaker Database")
+_PRESET_SOURCE_FILTERS = ("All", "Built-in", "Loudspeaker Database", "Web crawler")
 _PRESET_CLASS_FILTERS = ("All", *_dccav.DRIVER_CLASSES)
 _WORKSPACES = ("Find a driver", "Design a box")
 # One box algorithm: the optimizer, with three selectable objectives.  The
@@ -528,6 +528,8 @@ def _single_driver_from_state() -> _dccav.DriverTS:
         mms_g=_optional_positive("driver_mms_g"),
         cms_mm_per_n=_optional_positive("driver_cms_mm_n"),
         bl_tm=_optional_positive("driver_bl_tm"),
+        panel_air_load=bool(st.session_state.get("driver_panel_air_load", True)),
+        panel_coupling=float(st.session_state.get("driver_panel_coupling", 0.90)),
     )
 
 
@@ -1320,6 +1322,8 @@ def _auto_alignment_signature(driver: _dccav.DriverTS | None = None) -> tuple:
         round(float(driver.mms_g or 0.0), 6),
         round(float(driver.cms_mm_per_n or 0.0), 6),
         round(float(driver.bl_tm or 0.0), 6),
+        bool(driver.panel_air_load),
+        round(float(driver.panel_coupling), 6),
     )
 
 
@@ -3052,9 +3056,9 @@ def _render_response_tab(
         )
     elif load_type == "Bandpass 6th order":
         st.caption(
-            "Sixth-order bandpass total response is the vector sum of both vents: the cone is "
-            "enclosed between two ported chambers. The cone trace shows internal motion and "
-            "is not an additional radiating source."
+            "Sixth-order bandpass total response is the polarity-correct vector difference "
+            "of both vents: the cone is enclosed between two ported chambers. The cone trace "
+            "shows internal motion and is not an additional radiating source."
         )
     elif load_type == "Sealed":
         st.caption(
@@ -3319,6 +3323,8 @@ _default("driver_pe_w", 60.0)
 _default("driver_mms_g", 0.0)
 _default("driver_cms_mm_n", 0.0)
 _default("driver_bl_tm", 0.0)
+_default("driver_panel_air_load", True)
+_default("driver_panel_coupling", 0.90)
 _default("driver_preset_name", "KEF B110B article example")
 _default("driver_config", "Single driver")
 _default("preset_family_filter", "All")
@@ -3754,6 +3760,35 @@ with st.sidebar:
                 st.number_input("Sd (cm²)", min_value=1.0, max_value=5000.0, step=1.0,
                                 key="driver_sd_cm2", on_change=_on_driver_param_change)
 
+            st.checkbox(
+                "Panel air loading",
+                key="driver_panel_air_load",
+                on_change=_on_driver_param_change,
+                help="Enabled by default. Adds the air mass coupled to a diaphragm "
+                     "mounted on a finite baffle, lowering mounted Fs and sensitivity. "
+                     "Disable it for classical free-air T/S comparisons.",
+            )
+            if st.session_state["driver_panel_air_load"]:
+                st.slider(
+                    "Panel coupling",
+                    min_value=0.0,
+                    max_value=1.0,
+                    step=0.01,
+                    key="driver_panel_coupling",
+                    on_change=_on_driver_param_change,
+                    help="Fraction of the low-frequency baffled-piston air-mass "
+                         "increment. 0.90 is the standard partial-baffle approximation.",
+                )
+                try:
+                    _panel_mass_g, _panel_fs_hz = _dccav.panel_air_load_metrics(
+                        _driver_from_state())
+                    st.caption(
+                        f"Mounted Fs {_panel_fs_hz:.2f} Hz · added air mass "
+                        f"{_panel_mass_g:.3f} g"
+                    )
+                except (KeyError, ValueError):
+                    pass
+
             d3, d4 = st.columns(2)
             with d3:
                 st.number_input("Xmax (mm)", min_value=0.0, max_value=100.0, step=0.1,
@@ -3779,6 +3814,7 @@ with st.sidebar:
             current_bandpass6_alignment = _dccav.suggest_bandpass6_alignment(current_ts)
             current_sealed_alignment = _dccav.suggest_sealed_alignment(current_ts)
             derived = _dccav.complete_driver(current_ts)
+            panel_added_mass_g, panel_fs_hz = _dccav.panel_air_load_metrics(current_ts)
             load_type = st.session_state["load_type"]
             box_strategy = str(st.session_state.get("box_strategy", "Balanced"))
             if (
@@ -3808,7 +3844,8 @@ with st.sidebar:
             elif load_type == "Infinite baffle":
                 st.subheader("Infinite Baffle")
                 st.caption(
-                    f"No enclosure or tuning: free-air Fs {current_ts.fs_hz:.1f} Hz · "
+                    f"No enclosure or tuning: mounted Fs {panel_fs_hz:.1f} Hz "
+                    f"(free-air {current_ts.fs_hz:.1f} Hz) · "
                     f"Qts {current_ts.qts:.3f}. Rear radiation is assumed fully isolated."
                 )
             else:
@@ -4404,7 +4441,11 @@ try:
                 a4.metric("Starter Vb", f"{current_sealed_alignment.vb_l:.2f} L")
         elif is_infinite_baffle:
             a1, a2, a3 = st.columns(3)
-            a1.metric("Infinite baffle Fs", f"{current_ts.fs_hz:.1f} Hz")
+            a1.metric(
+                "Mounted Fs",
+                f"{_dccav.panel_loaded_fs_hz(current_ts):.1f} Hz",
+                help=f"Free-air Fs: {current_ts.fs_hz:.1f} Hz",
+            )
             a2.metric("Infinite baffle Qts", f"{current_ts.qts:.3f}")
             a3.metric("Rear radiation", "Isolated")
         else:

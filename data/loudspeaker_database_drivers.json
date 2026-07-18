@@ -1,6 +1,9 @@
 {
   "complete": true,
-  "downloaded_at": "2026-07-12T14:05:04+00:00",
+  "crawl_sources": [
+    "https://www.soundimports.eu"
+  ],
+  "downloaded_at": "2026-07-17T07:23:42+00:00",
   "presets": [
     {
       "brand": "STX",
@@ -358284,7 +358287,19 @@
       "size_in": 8.0,
       "url": "https://loudspeakerdatabase.com/Dayton%20Audio/Apollo%208N",
       "website_fields": {
+        "aliases": [
+          "8MB200N-8"
+        ],
         "brand": "Dayton Audio",
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-17T07:09:54+00:00",
+            "product_url": "https://www.soundimports.eu/en/dayton-audio-8mb200n-8.html",
+            "sha256": "b771613fb843c360489ee12e081a50f74f3d5948ab23c72a74d9fcca5de91818",
+            "url": "https://doc.soundimports.nl/pdf/brands/Dayton%20Audio/8MB200N-8/dayton-audio-apollo-8n.pdf"
+          }
+        ],
         "kind": "Woofer",
         "lsdb_id": "4441",
         "model": "Apollo 8N",
@@ -358368,7 +358383,19 @@
       "size_in": 6.5,
       "url": "https://loudspeakerdatabase.com/Dayton%20Audio/Apollo%206.5N",
       "website_fields": {
+        "aliases": [
+          "6MB200N-8"
+        ],
         "brand": "Dayton Audio",
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-17T07:09:49+00:00",
+            "product_url": "https://www.soundimports.eu/en/dayton-audio-6mb200n-8.html",
+            "sha256": "b7f469230c11ac4a079a8059e1bbb56d34a6c2b9369285eb2897c2b071f77499",
+            "url": "https://doc.soundimports.nl/pdf/brands/Dayton%20Audio/6MB200N-8/dayton-audio-apollo-6n.pdf"
+          }
+        ],
         "kind": "Woofer",
         "lsdb_id": "4440",
         "model": "Apollo 6.5N",
@@ -358452,7 +358479,19 @@
       "size_in": 18.0,
       "url": "https://loudspeakerdatabase.com/Dayton%20Audio/Apollo%2018N",
       "website_fields": {
+        "aliases": [
+          "18SW1200N-8"
+        ],
         "brand": "Dayton Audio",
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-17T07:09:44+00:00",
+            "product_url": "https://www.soundimports.eu/en/dayton-audio-18sw1200n-8.html",
+            "sha256": "c5f6982b77469ec342149a4e8d075e4896e7f7b6ae4bfff02dc3cb4a74e0681f",
+            "url": "https://doc.soundimports.nl/pdf/brands/Dayton%20Audio/18SW1200N-8/dayton-audio-apollo-18n.pdf"
+          }
+        ],
         "kind": "Subwoofer",
         "lsdb_id": "4439",
         "model": "Apollo 18N",
@@ -358536,7 +358575,19 @@
       "size_in": 18.0,
       "url": "https://loudspeakerdatabase.com/Dayton%20Audio/Apollo%2018F",
       "website_fields": {
+        "aliases": [
+          "18SW1200F-8"
+        ],
         "brand": "Dayton Audio",
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-17T07:13:16+00:00",
+            "product_url": "https://www.soundimports.eu/en/dayton-audio-18sw1200f-8.html",
+            "sha256": "d3d6ab93524643115faacc7aa93500e559984f2ba0ea101bc59fec34f059f519",
+            "url": "https://doc.soundimports.nl/pdf/brands/Dayton%20Audio/18SW1200F-8/dayton-audio-apollo-18f.pdf"
+          }
+        ],
         "kind": "Subwoofer",
         "lsdb_id": "4438",
         "model": "Apollo 18F",
@@ -358620,7 +358671,19 @@
       "size_in": 15.0,
       "url": "https://loudspeakerdatabase.com/Dayton%20Audio/Apollo%2015N",
       "website_fields": {
+        "aliases": [
+          "15MB500N-8"
+        ],
         "brand": "Dayton Audio",
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-17T07:09:34+00:00",
+            "product_url": "https://www.soundimports.eu/en/dayton-audio-15mb500n-8.html",
+            "sha256": "893b25ff662575d9a7123480cee8dc5cc1b2f5d9c09e0bbf017c127f2efdd88d",
+            "url": "https://doc.soundimports.nl/pdf/brands/Dayton%20Audio/15MB500N-8/dayton-audio-apollo-15n.pdf"
+          }
+        ],
         "kind": "Woofer",
         "lsdb_id": "4437",
         "model": "Apollo 15N",
@@ -358704,7 +358767,19 @@
       "size_in": 15.0,
       "url": "https://loudspeakerdatabase.com/Dayton%20Audio/Apollo%2015LF",
       "website_fields": {
+        "aliases": [
+          "15LF500-8"
+        ],
         "brand": "Dayton Audio",
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-17T07:09:27+00:00",
+            "product_url": "https://www.soundimports.eu/en/dayton-audio-15lf500-8.html",
+            "sha256": "9c13ad429c05834e854e80e7e3b245b4f6e0426aaad4b0cbc6439e5d997d91c3",
+            "url": "https://doc.soundimports.nl/pdf/brands/Dayton%20Audio/15LF500-8/odeum-apollo-15lf-datasheet.pdf"
+          }
+        ],
         "kind": "Subwoofer",
         "lsdb_id": "4436",
         "model": "Apollo 15LF",
@@ -358788,7 +358863,19 @@
       "size_in": 12.0,
       "url": "https://loudspeakerdatabase.com/Dayton%20Audio/Apollo%2012N",
       "website_fields": {
+        "aliases": [
+          "12MB400N-8"
+        ],
         "brand": "Dayton Audio",
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-17T07:09:22+00:00",
+            "product_url": "https://www.soundimports.eu/en/dayton-audio-12mb400n-8.html",
+            "sha256": "da425676fa64df50a54027454619659738ed953c6d4abcd9cac03b20b52a6574",
+            "url": "https://doc.soundimports.nl/pdf/brands/Dayton%20Audio/12MB400N-8%20/dayton-audio-apollo-12n.pdf"
+          }
+        ],
         "kind": "Woofer",
         "lsdb_id": "4435",
         "model": "Apollo 12N",
@@ -358872,7 +358959,19 @@
       "size_in": 12.0,
       "url": "https://loudspeakerdatabase.com/Dayton%20Audio/Apollo%2012LF",
       "website_fields": {
+        "aliases": [
+          "12LF400-8"
+        ],
         "brand": "Dayton Audio",
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-17T07:09:17+00:00",
+            "product_url": "https://www.soundimports.eu/en/dayton-audio-12lf400-8.html",
+            "sha256": "8524029b056556d59e67668dafbdf73128ebe59d6168933793933ce22bdd731f",
+            "url": "https://doc.soundimports.nl/pdf/brands/Dayton%20Audio/12LF400-8/odeum-apollo-12lf-datasheet.pdf"
+          }
+        ],
         "kind": "Subwoofer",
         "lsdb_id": "4434",
         "model": "Apollo 12LF",
@@ -358956,7 +359055,19 @@
       "size_in": 10.0,
       "url": "https://loudspeakerdatabase.com/Dayton%20Audio/Apollo%2010N",
       "website_fields": {
+        "aliases": [
+          "10MB250N-8"
+        ],
         "brand": "Dayton Audio",
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-17T07:09:12+00:00",
+            "product_url": "https://www.soundimports.eu/en/dayton-audio-10mb250n-8.html",
+            "sha256": "49c5c9a6be02d5e81dae023940dbb2656ffab7ed7d3331f1d032d279a1eebe4e",
+            "url": "https://doc.soundimports.nl/pdf/brands/Dayton%20Audio/10MB250N-8/dayton-audio-apollo-10n.pdf"
+          }
+        ],
         "kind": "Woofer",
         "lsdb_id": "4433",
         "model": "Apollo 10N",

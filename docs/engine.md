@@ -16,7 +16,8 @@ contracts and the test list — lives in `docs/dccav.md`.
   `OptimizationGoals`, `OptimizedAlignment`, `SimulationResult`,
   `ToleranceBand`, `DesignSpaceMap`, `DriverReferenceMetrics`,
   `DriverBandwidthClass`
-- Derivation and alignment: `sd_from_diameter`, `complete_driver`,
+- Derivation and alignment: `sd_from_diameter`, `panel_air_load_metrics`,
+  `panel_loaded_fs_hz`, `complete_driver`,
   `suggest_alignment`, `suggest_reflex_alignment`,
   `suggest_bandpass4_alignment`, `suggest_bandpass6_alignment`, `suggest_sealed_alignment`,
   `suggest_pr_alignment`,
@@ -32,6 +33,31 @@ contracts and the test list — lives in `docs/dccav.md`.
   `design_space_box`, `design_space_map`, port geometry helpers,
   `driver_reference_metrics`, `classify_driver_bandwidth`,
   `apply_driver_configuration`, diagnostics and sanity warnings
+
+## Panel air loading
+
+`DriverTS.panel_air_load` defaults to `True`; `panel_coupling` defaults to
+`0.90`.  The engine calculates the finite-baffle air-mass increment from the
+equivalent piston radius as
+
+```text
+Mair = panel_coupling * (8/3) * rho * a^3
+a = sqrt(Sd/pi)
+Fs,mounted = Fs / sqrt((Mms + Mair)/Mms)
+```
+
+The 0.90 coupling is the conventional partial-baffle approximation.  It is a
+dimensionless finite-panel proxy rather than a hard-coded frequency offset:
+the effect changes with `Sd/Mms`.  Alignment frequencies, simulations,
+sealed metrics, reference sensitivity and EBP use mounted Fs.  `Vas`, `Qts`
+and `Qms` remain the supplied T/S values; internal Mms/Rms/Bl are re-derived
+consistently so the specified Q values remain the model's damping reference.
+Set `panel_air_load=False` for the classical free-air equations.
+For composite identical-driver sets, `radiating_pistons` keeps the per-cone
+area explicit: separate cones each receive their own local `a^3` air mass,
+while an isobaric pair still has one externally radiating piston. Monte Carlo
+samples preserve that piston count, so tolerance bands do not silently revert
+a multiple-driver system to the single-cone radiation-mass model.
 
 The fourth-order bandpass starter uses target `Qbp=0.707`: rear sealed volume
 from the classical target-Q relation, front volume `2*Qbp²*Vas`, and vent
@@ -103,10 +129,11 @@ instead of returning its least-bad invalid candidate.
   and vented front chamber. Only the front vent enters the far-field total;
   the cone trace is retained as an internal-motion diagnostic.
 - Sixth-order bandpass uses an enclosed driver between two ported chambers.
-  Both vents (rear and front) sum to the far-field total; the cone trace is
-  internal-motion diagnostic.
-  `suggest_bandpass6_alignment` returns `Bandpass6Alignment` with symmetrical
-  rear/front volumes and tunings from the classical target-Qbp relation;
+  The rear and front vents have opposite acoustic polarity and their vector
+  difference forms the far-field total; the cone trace is an internal-motion
+  diagnostic. Equal chambers/tunings cancel externally.
+  `suggest_bandpass6_alignment` returns an asymmetric `Bandpass6Alignment`
+  with rear/front volume ratio 2:1 and tuning ratio 1:2;
   `simulate_bandpass6()` solves the coupled acoustic circuit (rear port+box,
   front port+box in series with the driver acoustic impedance).
   `optimize_alignment(load_type="Bandpass 6th order")` searches rear volume,

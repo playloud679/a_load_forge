@@ -38,6 +38,9 @@ class DriverTS:
     mms_g: float | None = None
     cms_mm_per_n: float | None = None
     bl_tm: float | None = None
+    panel_air_load: bool = True
+    panel_coupling: float = 0.90
+    radiating_pistons: int = 1
 
 
 
@@ -244,6 +247,59 @@ def sd_from_diameter(diameter_mm: float) -> float:
     return float(np.pi * (d_m / 2.0) ** 2 * 10_000.0)
 
 
+def panel_air_load_metrics(ts: DriverTS) -> tuple[float, float]:
+    """Return ``(added_mass_g, panel_loaded_fs_hz)`` for the driver.
+
+    Free-air T/S moving mass already includes the radiation load present during
+    the parameter measurement.  Mounting the piston on a baffle increases the
+    coupled air mass.  The low-frequency baffled-piston increment is
+    ``8*rho*a^3/3``; ``panel_coupling`` represents the finite panel as a
+    fraction of that limiting increment.  A value of 0.90 is the conventional
+    partial-baffle approximation and reproduces the AFW FE126 validation case
+    to better than 0.1% in resonance frequency.
+    """
+    _require_positive("Fs", ts.fs_hz)
+    _require_positive("Vas", ts.vas_l)
+    _require_positive("Sd", ts.sd_cm2)
+    coupling = float(ts.panel_coupling)
+    if not 0.0 <= coupling <= 1.0:
+        raise ValueError("Panel coupling must be between 0 and 1")
+    if not ts.panel_air_load or coupling == 0.0:
+        return 0.0, float(ts.fs_hz)
+
+    piston_count = int(ts.radiating_pistons)
+    if piston_count < 1 or piston_count != ts.radiating_pistons:
+        raise ValueError("Radiating piston count must be a positive integer")
+    sd_m2 = ts.sd_cm2 / 10_000.0
+    cms = (
+        ts.cms_mm_per_n / 1000.0
+        if ts.cms_mm_per_n is not None and ts.cms_mm_per_n > 0
+        else (ts.vas_l / 1000.0) / (RHO_AIR * SPEED_OF_SOUND**2 * sd_m2**2)
+    )
+    mms_kg = (
+        ts.mms_g / 1000.0
+        if ts.mms_g is not None and ts.mms_g > 0
+        else 1.0 / ((2.0 * np.pi * ts.fs_hz) ** 2 * cms)
+    )
+    # Separate cones each carry their own local radiation mass.  Treating a
+    # pair as one large equivalent piston would overstate the a^3 term by
+    # sqrt(2), even though the composite Sd and moving mass are otherwise the
+    # correct representation for the shared acoustic load.
+    piston_area_m2 = sd_m2 / piston_count
+    piston_radius_m = float(np.sqrt(piston_area_m2 / np.pi))
+    added_mass_kg = (
+        piston_count * coupling * (8.0 / 3.0) * RHO_AIR * piston_radius_m**3
+    )
+    mass_ratio = (mms_kg + added_mass_kg) / mms_kg
+    loaded_fs_hz = ts.fs_hz / float(np.sqrt(mass_ratio))
+    return float(added_mass_kg * 1000.0), float(loaded_fs_hz)
+
+
+def panel_loaded_fs_hz(ts: DriverTS) -> float:
+    """Return the effective mounted resonance, or free-air Fs when disabled."""
+    return panel_air_load_metrics(ts)[1]
+
+
 
 def complete_driver(ts: DriverTS) -> DerivedDriver:
     """Convert a T/S set to derived mechanical and acoustic components."""
@@ -263,17 +319,20 @@ def complete_driver(ts: DriverTS) -> DerivedDriver:
         if ts.cms_mm_per_n is not None and ts.cms_mm_per_n > 0
         else vas_m3 / (RHO_AIR * SPEED_OF_SOUND**2 * sd_m2**2)
     )
-    mms = (
+    free_air_mms = (
         ts.mms_g / 1000.0
         if ts.mms_g is not None and ts.mms_g > 0
         else 1.0 / ((2.0 * np.pi * ts.fs_hz) ** 2 * cms)
     )
-    rms = 2.0 * np.pi * ts.fs_hz * mms / ts.qms
+    added_mass_g, effective_fs = panel_air_load_metrics(ts)
+    mms = free_air_mms + added_mass_g / 1000.0
+    rms = 2.0 * np.pi * effective_fs * mms / ts.qms
     qes = 1.0 / (1.0 / ts.qts - 1.0 / ts.qms)
+    mass_ratio = mms / free_air_mms
     bl = (
-        ts.bl_tm
+        ts.bl_tm * mass_ratio**0.25
         if ts.bl_tm is not None and ts.bl_tm > 0
-        else float(np.sqrt(2.0 * np.pi * ts.fs_hz * mms * ts.re_ohm / qes))
+        else float(np.sqrt(2.0 * np.pi * effective_fs * mms * ts.re_ohm / qes))
     )
 
     cas = cms * sd_m2**2
@@ -320,8 +379,9 @@ def suggest_alignment(ts: DriverTS) -> DccavAlignment:
     _require_positive("Qts", ts.qts)
     vh = 2.05 * ts.qts**2 * ts.vas_l
     vl = 4.13 * ts.qts**2 * ts.vas_l
-    fh = 1.22 * ts.fs_hz / ts.qts
-    fl = 0.466 * ts.fs_hz / ts.qts
+    effective_fs = panel_loaded_fs_hz(ts)
+    fh = 1.22 * effective_fs / ts.qts
+    fl = 0.466 * effective_fs / ts.qts
     return DccavAlignment(vh_l=vh, fh_hz=fh, vl_l=vl, fl_hz=fl, f3_hz=0.83 * fl)
 
 
@@ -329,7 +389,7 @@ def suggest_reflex_alignment(ts: DriverTS) -> ReflexAlignment:
     """Return a conservative bass-reflex starting point."""
     _require_positive("Fs", ts.fs_hz)
     _require_positive("Vas", ts.vas_l)
-    return ReflexAlignment(vb_l=ts.vas_l, fb_hz=ts.fs_hz)
+    return ReflexAlignment(vb_l=ts.vas_l, fb_hz=panel_loaded_fs_hz(ts))
 
 
 def suggest_bandpass4_alignment(
@@ -351,7 +411,7 @@ def suggest_bandpass4_alignment(
     else:
         vs_l = 4.0 * ts.vas_l
     vp_l = 2.0 * target_qbp**2 * ts.vas_l
-    fp_hz = ts.fs_hz * target_qbp / ts.qts
+    fp_hz = panel_loaded_fs_hz(ts) * target_qbp / ts.qts
     return Bandpass4Alignment(
         vs_l=max(0.05, float(vs_l)),
         vp_l=max(0.05, float(vp_l)),
@@ -366,7 +426,7 @@ def sealed_system_metrics(ts: DriverTS, box: SealedBox) -> tuple[float, float]:
     _require_positive("Qts", ts.qts)
     _validate_sealed_box(box)
     ratio = float(np.sqrt(1.0 + ts.vas_l / box.vb_l))
-    return float(ts.fs_hz * ratio), float(ts.qts * ratio)
+    return float(panel_loaded_fs_hz(ts) * ratio), float(ts.qts * ratio)
 
 
 def suggest_sealed_alignment(ts: DriverTS, target_qtc: float = 0.707) -> SealedAlignment:
@@ -489,6 +549,9 @@ def monte_carlo_response_band(
             le_mh=ts.le_mh,
             xmax_mm=ts.xmax_mm,
             pe_w=ts.pe_w,
+            panel_air_load=ts.panel_air_load,
+            panel_coupling=ts.panel_coupling,
+            radiating_pistons=ts.radiating_pistons,
         )
         try:
             if load_type == "Bass reflex":
@@ -591,7 +654,7 @@ def design_space_box(
         load_type = "Sealed"
     if load_type == "Bass reflex":
         t = box_template if isinstance(box_template, ReflexBox) else ReflexBox(
-            vb_l=ts.vas_l, fb_hz=ts.fs_hz)
+            vb_l=ts.vas_l, fb_hz=panel_loaded_fs_hz(ts))
         return ReflexBox(
             vb_l=float(x), fb_hz=float(y),
             q_abs=t.q_abs, q_leak=t.q_leak, q_port=t.q_port,
@@ -665,7 +728,8 @@ def design_space_map(
         raise ValueError("Infinite baffle has no box parameters to map")
     if int(resolution) < 3:
         raise ValueError("Atlas resolution must be at least 3")
-    freq = np.geomspace(min(10.0, ts.fs_hz / 4.0), max(400.0, 4.0 * ts.fs_hz), 160)
+    effective_fs = panel_loaded_fs_hz(ts)
+    freq = np.geomspace(min(10.0, effective_fs / 4.0), max(400.0, 4.0 * effective_fs), 160)
     x_values, y_values, x_label, y_label = _design_space_axes(ts, load_type, resolution)
     f3_grid = np.full((len(y_values), len(x_values)), np.nan)
     ripple_grid = np.full_like(f3_grid, np.nan)
@@ -804,7 +868,8 @@ def driver_reference_metrics(ts: DriverTS) -> DriverReferenceMetrics:
     """
     drv = complete_driver(ts)
     vas_m3 = ts.vas_l / 1000.0
-    eta0 = 4.0 * np.pi**2 * ts.fs_hz**3 * vas_m3 / (SPEED_OF_SOUND**3 * drv.qes)
+    effective_fs = panel_loaded_fs_hz(ts)
+    eta0 = 4.0 * np.pi**2 * effective_fs**3 * vas_m3 / (SPEED_OF_SOUND**3 * drv.qes)
     spl_ref_db = 10.0 * np.log10(RHO_AIR * SPEED_OF_SOUND / (2.0 * np.pi * P_REF**2))
     spl_1w_db = spl_ref_db + 10.0 * np.log10(eta0)
     spl_2v83_db = spl_1w_db + 10.0 * np.log10(2.83**2 / ts.re_ohm)
@@ -812,7 +877,7 @@ def driver_reference_metrics(ts: DriverTS) -> DriverReferenceMetrics:
         eta0=float(eta0),
         spl_1w_db=float(spl_1w_db),
         spl_2v83_db=float(spl_2v83_db),
-        ebp_hz=float(ts.fs_hz / drv.qes),
+        ebp_hz=float(effective_fs / drv.qes),
     )
 
 
@@ -872,6 +937,13 @@ def apply_driver_configuration(ts: DriverTS, configuration: str) -> DriverTS:
         le_mh=ts.le_mh * electrical,
         xmax_mm=ts.xmax_mm,
         pe_w=ts.pe_w * 2.0,
+        panel_air_load=ts.panel_air_load,
+        panel_coupling=ts.panel_coupling,
+        radiating_pistons=(
+            ts.radiating_pistons
+            if configuration.startswith("Isobaric")
+            else ts.radiating_pistons * 2
+        ),
     )
 
 
@@ -1356,7 +1428,11 @@ def _score_alignment(
         return 1e5 + metrics["fl_hz"] / max(f3, EPS)
     weights = _OBJECTIVE_WEIGHTS[goals.objective]
     ripple = metrics["ripple_db"]
-    score = weights["f3"] * (max(f3, goals.target_f3_hz) if goals.target_f3_hz else f3) / ts.fs_hz
+    score = (
+        weights["f3"]
+        * (max(f3, goals.target_f3_hz) if goals.target_f3_hz else f3)
+        / panel_loaded_fs_hz(ts)
+    )
     if np.isfinite(ripple):
         score += weights["ripple"] * ripple / 6.0
         if goals.max_ripple_db and goals.max_ripple_db > 0 and ripple > goals.max_ripple_db:
@@ -1418,7 +1494,8 @@ def optimize_alignment(
         # closed-box load was renamed to the plain "Sealed" label.
         load_type = "Sealed"
     _require_positive("Voltage", voltage_v)
-    freq = np.geomspace(min(10.0, ts.fs_hz / 4.0), max(400.0, 4.0 * ts.fs_hz), 160)
+    effective_fs = panel_loaded_fs_hz(ts)
+    freq = np.geomspace(min(10.0, effective_fs / 4.0), max(400.0, 4.0 * effective_fs), 160)
     if load_type not in {"DCCAV", "Bandpass 4th order", "Bandpass 6th order", "Bass reflex", "Sealed"}:
         if load_type == "Infinite baffle":
             raise ValueError("Infinite baffle has no box parameters to optimize")
@@ -1919,7 +1996,8 @@ def suggest_pr_alignment(ts: DriverTS, pr_box: PassiveRadiatorBox | None = None)
             pr_mmp_g=pr_box.pr_mmp_g,
             pr_xmax_mm=pr_box.pr_xmax_mm,
         )
-    return PassiveRadiatorBox(vb_l=vb_l, pr_sp_cm2=ts.sd_cm2, pr_fp_hz=ts.fs_hz)
+    return PassiveRadiatorBox(
+        vb_l=vb_l, pr_sp_cm2=ts.sd_cm2, pr_fp_hz=panel_loaded_fs_hz(ts))
 
 
 def _validate_pr_box(box: PassiveRadiatorBox) -> None:
@@ -1933,14 +2011,23 @@ def _validate_pr_box(box: PassiveRadiatorBox) -> None:
 def suggest_bandpass6_alignment(
     ts: DriverTS, target_qbp: float = 0.707,
 ) -> Bandpass6Alignment:
-    """Symmetrical sixth-order dual-vented bandpass starter."""
+    """Return an asymmetric sixth-order dual-vented starter alignment.
+
+    The two ports radiate from opposite sides of the enclosed cone.  Equal
+    chambers and tunings therefore cancel externally instead of forming a
+    usable passband.  A practical first pass uses a rear chamber near Vas and
+    a front chamber about half that size, with tunings around mounted Fs and
+    twice mounted Fs respectively.  ``target_qbp`` retains the established
+    volume scaling while avoiding the invalid symmetrical starter.
+    """
+    _require_positive("Target Qbp", target_qbp)
     vb = 2.0 * target_qbp ** 2 * ts.vas_l
-    fb = ts.fs_hz * target_qbp / ts.qts
+    fb = panel_loaded_fs_hz(ts)
     return Bandpass6Alignment(
         vr_l=max(0.05, vb),
         fr_hz=fb,
-        vp_l=max(0.05, vb),
-        fp_hz=fb,
+        vp_l=max(0.05, 0.5 * vb),
+        fp_hz=2.0 * fb,
     )
 
 
@@ -1984,7 +2071,10 @@ def simulate_bandpass6(
 
     u_rear_port = p_rear / z_rear_port
     u_front_port = p_front / z_front_port
-    u_total = u_rear_port + u_front_port
+    # The ports radiate opposite sides of the diaphragm.  Their external
+    # pressures therefore have opposite acoustic polarity; AFW likewise
+    # predicts complete cancellation when chambers and tunings are equal.
+    u_total = u_rear_port - u_front_port
 
     spl_total = _spl_from_volume_velocity(u_total, f)
     spl_front = _spl_from_volume_velocity(u_front_port, f)
@@ -2265,7 +2355,7 @@ def equivalent_sealed_fc_hz(
     else:
         _validate_box(box)
         v_total = box.vh_l + box.vl_l
-    return float(ts.fs_hz * np.sqrt(1.0 + ts.vas_l / v_total))
+    return float(panel_loaded_fs_hz(ts) * np.sqrt(1.0 + ts.vas_l / v_total))
 
 
 def alignment_diagnostics(ts: DriverTS, box: DccavBox) -> list[str]:

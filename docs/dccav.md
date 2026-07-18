@@ -82,10 +82,10 @@ classical system metrics are `Fc = Fs*sqrt(1+Vas/Vb)` and
 volume.
 
 `simulate_infinite_baffle()` assumes a perfectly isolating partition with no
-finite rear volume, leakage or rear radiation reaching the listener.  The
-driver therefore retains its free-air `Fs`/`Qts`, has no port output and has no
-box parameter to optimize.  Finite-panel diffraction and baffle step are not
-part of this ideal model.
+finite rear volume, leakage or rear radiation reaching the listener.  It has
+no port output and no box parameter to optimize.  The default panel-air-load
+correction lowers the mounted resonance; finite-panel diffraction and baffle
+step remain outside this ideal model.
 
 ## Public API
 
@@ -94,10 +94,28 @@ part of this ideal model.
 Dataclass for the input Thiele/Small parameters:
 
 - required: `fs_hz`, `vas_l`, `qts`, `qms`, `re_ohm`, `sd_cm2`
-- optional: `le_mh`, `xmax_mm`, `pe_w`, `mms_g`, `cms_mm_per_n`, `bl_tm`
+- optional: `le_mh`, `xmax_mm`, `pe_w`, `mms_g`, `cms_mm_per_n`, `bl_tm`,
+  `panel_air_load` (default `True`), `panel_coupling` (default `0.90`) and
+  `radiating_pistons` (default `1`)
 
 If optional `Mms`, `Cms` or `Bl` are not supplied, they are derived from
 `Fs`, `Vas`, `Qts`, `Qms`, `Re` and `Sd`.
+
+### `panel_air_load_metrics(ts) -> tuple[float, float]`
+
+Returns added panel-coupled air mass in grams and mounted resonance in Hz.
+The increment is `panel_coupling * (8/3) * rho * a^3`, where
+`a=sqrt(Sd/pi)`.  It is enabled by default and uses a 90% partial-baffle
+coupling.  The UI exposes both the on/off choice and coupling; disabling it
+restores the classical free-air T/S results.  This models the resonance and
+sensitivity change from diaphragm air loading, but not diffraction or baffle
+step. For a composite set of separate identical drivers, the total `Sd` is
+split across `radiating_pistons` before applying the cubic radius term and the
+per-cone air masses are summed. Isobaric pairs keep one radiating piston.
+
+The AFW FE126 validation (`Fs=89.4 Hz`, `Sd=63.61727 cm²`) gives 0.2581 g of
+additional mass, mounted Fs 85.2385 Hz and sealed Fc 155.1741 Hz at 3 L,
+within 0.1% of AFW's saved 155.0854 Hz result.
 
 ### `sd_from_diameter(diameter_mm) -> float`
 
@@ -182,6 +200,20 @@ Generated presets also preserve a `website_fields` block with the original
 card metadata, all raw `data-woofer` keys, image/link metadata and detected
 commerce links.  The importer derives `price`/`currency` from explicit raw
 price fields or visible price text/link text when the site exposes it.
+
+`tools/crawl_thiele_small.py` can add validated records from other manufacturer
+or catalog sites to the same compatible dataset. It discovers pages from seeds
+or XML sitemaps, extracts HTML/JSON-LD/PDF measurements, normalizes units,
+derives missing `Qms`, `Qts` or `Vas` when possible, and merges by brand/model
+without overwriting populated values unless `--overwrite` is requested. These
+rows carry `source="Web crawler"`; exact URLs, confidence and raw measurements
+remain in `website_fields`. See [crawl_thiele_small.md](crawl_thiele_small.md).
+
+`tools/crawl_driver_datasheets.py` supplies the PDF-first document layer. It
+follows external datasheet links, archives unique PDF bytes by SHA-256, records
+provenance and observations in SQLite, and merges part-number/marketing-name
+aliases only when stable T/S identity fields agree. See
+[crawl_driver_datasheets.md](crawl_driver_datasheets.md).
 
 Retailer prices are generated separately by `tools/enrich_driver_prices.py`.
 Supported providers are SoundImports (JSON-LD search/product/category pages),
@@ -311,12 +343,12 @@ First-pass empirical DCCAV alignment from the article:
 ```text
 Vh = 2.05 * Qts^2 * Vas
 Vl = 4.13 * Qts^2 * Vas
-fh = 1.22 * Fs / Qts
-fl = 0.466 * Fs / Qts
+fh = 1.22 * Fs,mounted / Qts
+fl = 0.466 * Fs,mounted / Qts
 f3 = 0.83 * fl
 ```
 
-For the KEF B110-like example in the article (`Fs=48.14`, `Qts=0.362`,
+With panel loading disabled, the KEF B110-like example in the article (`Fs=48.14`, `Qts=0.362`,
 `Vas=11.52`) this yields approximately `Vh=3.1 L`, `Vl=6.2 L`,
 `fh=162 Hz`, `fl=62 Hz`.
 
@@ -326,7 +358,7 @@ Returns a conservative normal bass-reflex starting point:
 
 ```text
 Vb = Vas
-Fb = Fs
+Fb = Fs,mounted
 ```
 
 This is intentionally plain; it is meant as an editable starting point rather
@@ -336,7 +368,8 @@ than a named classic alignment.
 
 Returns a symmetrical fourth-order starter with sealed rear volume
 `Vs = Vas / ((Qbp/Qts)^2 - 1)` when feasible (otherwise `4*Vas`), ported
-front volume `Vp = 2*Qbp^2*Vas`, and front tuning `Fp = Fs*Qbp/Qts`.
+front volume `Vp = 2*Qbp^2*Vas`, and front tuning
+`Fp = Fs,mounted*Qbp/Qts`.
 `Bandpass4Box` adds independent absorption/leakage factors for both chambers
 and `Qport` for the front vent.
 
@@ -350,7 +383,8 @@ the UI/optimizer minimum of 0.05 L.
 
 ### `sealed_system_metrics(ts, box) -> tuple[float, float]`
 
-Returns `(Fc, Qtc)` for a `SealedBox` using the classical `Vas/Vb` relations.
+Returns `(Fc, Qtc)` for a `SealedBox` using the classical `Vas/Vb` relations,
+with mounted Fs when panel loading is enabled.
 
 ### `optimize_alignment(ts, goals, load_type="DCCAV", box_template=None, voltage_v=2.83, max_evaluations=260, fixed_total_volume_l=None) -> OptimizedAlignment`
 
@@ -538,13 +572,15 @@ Composite T/S set for identical drivers sharing one enclosure, selected from
 `Isobaric pair (parallel)`, `Isobaric pair (series)`).  Fs, Qts and Qms are
 invariant for identical drivers; the composite scales the rest:
 
-- `2 ×`: Sd, Vas and Pe double; Re and Le halve (parallel) or double
-  (series); per-driver Xmax is unchanged
+- `2 ×`: Sd, Vas, Pe and radiating-piston count double; Re and Le halve
+  (parallel) or double (series); per-driver Xmax is unchanged
 - `Isobaric pair`: Vas halves, Sd stays, Pe doubles, wiring sets Re/Le —
-  the classical -3 dB efficiency trade for half the box
+  the classical -3 dB efficiency trade for half the box — and one piston
+  remains externally radiating
 
 Measured Mms/Cms/Bl overrides are dropped so the composite is re-derived
-self-consistently.  The UI applies the sidebar `Driver configuration`
+self-consistently. Per-cone air loading therefore leaves mounted Fs invariant
+for separate identical cones. The UI applies the sidebar `Driver configuration`
 selector inside `_driver_from_state()`, so alignments, the optimizer,
 metrics and plots all see the composite; the `Find a driver` ranking always
 evaluates single drivers and applying a candidate resets the configuration.
@@ -760,9 +796,10 @@ shows one resonance peak near the achieved `Fc`.
 
 ### `simulate_infinite_baffle(ts, freq_hz=None, voltage_v=2.83, series_r_ohm=0.0) -> SimulationResult`
 
-Solves free-air driver motion while assuming perfect front/rear isolation.
+Solves driver motion while assuming perfect front/rear isolation.
 Total and cone SPL are identical, all port fields are zero, and electrical
-impedance normally shows one resonance peak near `Fs`.
+impedance normally shows one resonance peak near mounted Fs (or free-air Fs
+when panel loading is disabled).
 
 ### `response_metrics(result) -> dict`
 
