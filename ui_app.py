@@ -134,6 +134,12 @@ _PARAM_PREFIXES = (
 _RESPONSE_TRACE_OPTIONS = ("Total", "Cone", "Lower port")
 _PORT_TRACE_OPTIONS = ("Upper port", "Lower port")
 _AUTO_CURSOR_OPTIONS = ("F3", "F6", "F10")
+_MAX_PINNED_RESPONSES = 8
+_MAX_PINNED_CHART_ROWS = 4800
+_PIN_TRACE_COLORS = (
+    "#9aa0a6", "#ffb703", "#8ecae6", "#fb8500",
+    "#c77dff", "#80ed99", "#ff758f", "#a8dadc",
+)
 _DEFAULT_REFLEX_Q_ABS = 15.0
 _DEFAULT_REFLEX_Q_LEAK = 1000.0
 _DEFAULT_REFLEX_Q_PORT = 15.0
@@ -190,8 +196,10 @@ def _load_type_card_styles() -> str:
             background-size: cover;
             border: 1px solid rgba(127,127,127,.28);
             border-radius: .45rem;
+            filter: grayscale(25%) brightness(0.9);
             height: 4.25rem;
             min-height: 4.25rem;
+            opacity: .85;
             overflow: hidden;
             padding: 0;
             position: relative;
@@ -224,11 +232,14 @@ def _load_type_card_styles() -> str:
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button:hover {
             border-color: #ff3b30;
-            filter: brightness(1.08);
+            filter: brightness(1.05);
+            opacity: 1;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button[data-testid="stBaseButton-primary"] {
-            border: 2px solid #ff3b30;
-            box-shadow: 0 0 0 2px rgba(255,59,48,.2);
+            border: 3px solid #ff3b30;
+            box-shadow: 0 0 0 3px rgba(255,59,48,.25), inset 0 4px 0 #ff3b30;
+            filter: none;
+            opacity: 1;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button[data-testid="stBaseButton-primary"]::before {
             align-items: center;
@@ -396,7 +407,9 @@ def _normalize_box_strategy(value) -> str:
 
 def _set_box_strategy_state(strategy: str) -> None:
     """Store a strategy plus the legacy keys older .lfp files round-trip."""
+    previous = str(st.session_state.get("box_strategy", "Balanced"))
     st.session_state["box_strategy"] = strategy
+    st.session_state["_previous_box_strategy"] = previous
     auto = strategy in _OPT_OBJECTIVE_LABELS
     st.session_state["sim_auto_align"] = auto
     st.session_state["opt_align_mode"] = (
@@ -408,6 +421,86 @@ def _set_box_strategy_state(strategy: str) -> None:
 
 def _box_strategy_is_auto() -> bool:
     return str(st.session_state.get("box_strategy", "Balanced")) in _OPT_OBJECTIVE_LABELS
+
+
+def _manual_box_keys_for_load_type(load_type: str) -> tuple[str, ...]:
+    """Return the state keys that constitute the editable box for a load type."""
+    if load_type == "Bass reflex":
+        if _reflex_uses_passive_radiator():
+            return (
+                "reflex_vb_l",
+                "pr_sp_cm2",
+                "pr_fp_hz",
+                "pr_qmp",
+                "pr_mmp_g",
+                "pr_xmax_mm",
+            )
+        return ("reflex_vb_l", "reflex_fb_hz", "reflex_port_d_cm")
+    if load_type == "Sealed":
+        return ("sealed_vb_l",)
+    if load_type == "Bandpass 4th order":
+        return (
+            "bandpass4_vs_l",
+            "bandpass4_vp_l",
+            "bandpass4_fp_hz",
+            "bandpass4_port_d_cm",
+        )
+    if load_type == "Bandpass 6th order":
+        return (
+            "bandpass6_vr_l",
+            "bandpass6_fr_hz",
+            "bandpass6_vp_l",
+            "bandpass6_fp_hz",
+            "bandpass6_port_d_r_cm",
+            "bandpass6_port_d_p_cm",
+        )
+    if load_type == "Infinite baffle":
+        return ()
+    # DCCAV
+    return (
+        "box_vh_l",
+        "box_fh_hz",
+        "box_vl_l",
+        "box_fl_hz",
+        "box_port_d_h_cm",
+        "box_port_d_l_cm",
+    )
+
+
+def _snapshot_manual_box(load_type: str) -> None:
+    """Save the current editable box values so Manual can restore them later."""
+    snapshots = st.session_state.get("_manual_box_snapshots", {})
+    snapshots[load_type] = {
+        key: st.session_state.get(key)
+        for key in _manual_box_keys_for_load_type(load_type)
+    }
+    st.session_state["_manual_box_snapshots"] = snapshots
+
+
+def _restore_manual_box(load_type: str) -> bool:
+    """Restore the last Manual box values for this load type, if any."""
+    snapshots = st.session_state.get("_manual_box_snapshots", {})
+    snapshot = snapshots.get(load_type)
+    if not snapshot:
+        return False
+    for key, value in snapshot.items():
+        st.session_state[key] = value
+    return True
+
+
+def _snapshot_design_state() -> None:
+    """Save the full parameter set before a preset/share link overwrites it."""
+    st.session_state["_design_state_backup"] = _collect_params()
+
+
+def _restore_design_state() -> bool:
+    """Restore the last pre-load parameter set, if one was saved."""
+    backup = st.session_state.get("_design_state_backup")
+    if not backup:
+        return False
+    _apply_loaded_params(backup)
+    st.session_state.pop("_design_state_backup", None)
+    return True
 
 
 def _collect_params() -> dict:
@@ -1023,7 +1116,15 @@ def _apply_empirical_box_for(driver: _dccav.DriverTS) -> None:
 
 def _on_box_strategy_change() -> None:
     strategy = str(st.session_state.get("box_strategy", "Balanced"))
+    previous = str(st.session_state.get("_previous_box_strategy", "Balanced"))
+    load_type = str(st.session_state.get("load_type", "DCCAV"))
     _set_box_strategy_state(strategy)
+    if previous == "Manual" and strategy in _OPT_OBJECTIVE_LABELS:
+        # Remember the user's hand-tuned box before the optimizer overwrites it.
+        _snapshot_manual_box(load_type)
+    elif previous in _OPT_OBJECTIVE_LABELS and strategy == "Manual":
+        # Returning to Manual: bring back the last hand-tuned values.
+        _restore_manual_box(load_type)
     if strategy in _OPT_OBJECTIVE_LABELS:
         try:
             driver = _driver_from_state()
@@ -1061,15 +1162,17 @@ def _box_number_with_nudge(
         )
     with n2:
         st.button(
-            "-3%", key=f"{key}_minus_3", on_click=_nudge_state,
+            "−", key=f"{key}_minus_3", on_click=_nudge_state,
             args=(key, 0.97, min_value, max_value),
             use_container_width=True, disabled=disabled,
+            help=f"Decrease {label} by 3%",
         )
     with n3:
         st.button(
-            "+3%", key=f"{key}_plus_3", on_click=_nudge_state,
+            "+", key=f"{key}_plus_3", on_click=_nudge_state,
             args=(key, 1.03, min_value, max_value),
             use_container_width=True, disabled=disabled,
+            help=f"Increase {label} by 3%",
         )
 
 
@@ -1778,6 +1881,7 @@ def _plot_response(
         raise ValueError("No response traces selected")
     data = _series_frame(result, series)
     y_domain = _response_y_domain(result, series, frequency_window)
+    y_domain = _expand_y_domain_for_pins(y_domain, frequency_window)
     if band is not None and y_domain is not None:
         finite_upper = np.asarray(band.upper_db, dtype=float)
         finite_upper = finite_upper[np.isfinite(finite_upper)]
@@ -1800,9 +1904,11 @@ def _plot_response(
     if pinned is not None:
         chart = chart + pinned
     cursors = _cursor_layer(cursor_rows, y_domain, frequency_window)
-    if cursors is None:
-        return chart
-    return (chart + cursors).resolve_scale(color="independent", strokeDash="independent")
+    if cursors is not None:
+        chart = chart + cursors
+    if pinned is not None or cursors is not None:
+        return chart.resolve_scale(color="independent", strokeDash="independent")
+    return chart
 
 
 def _plot_excursion(result: _dccav.SimulationResult, xmax_mm: float) -> alt.Chart:
@@ -1814,17 +1920,31 @@ def _plot_excursion(result: _dccav.SimulationResult, xmax_mm: float) -> alt.Char
             strokeDash=[6, 4],
         ).encode(y="xmax_mm:Q")
         chart = chart + xmax_rule
+    pinned = _pinned_metric_layer("excursion_mm", "Excursion (mm)", ".3f")
+    if pinned is not None:
+        chart = (chart + pinned).resolve_scale(
+            color="independent", strokeDash="independent")
     return chart
 
 
 def _plot_impedance(result: _dccav.SimulationResult) -> alt.Chart:
     data = _series_frame(result, {"Impedance": result.impedance_ohm})
-    return _line_chart(data, "Impedance (Ω)", height=285, legend=False)
+    chart = _line_chart(data, "Impedance (Ω)", height=285, legend=False)
+    pinned = _pinned_metric_layer("impedance_ohm", "Impedance (Ω)", ".3f")
+    if pinned is not None:
+        chart = (chart + pinned).resolve_scale(
+            color="independent", strokeDash="independent")
+    return chart
 
 
 def _plot_mil(result: _dccav.SimulationResult) -> alt.Chart:
     data = _series_frame(result, {"MIL": result.mil_w})
-    return _line_chart(data, "Max input power (W)", height=240, legend=False)
+    chart = _line_chart(data, "Max input power (W)", height=240, legend=False)
+    pinned = _pinned_metric_layer("mil_w", "Max input power (W)", ".3f")
+    if pinned is not None:
+        chart = (chart + pinned).resolve_scale(
+            color="independent", strokeDash="independent")
+    return chart
 
 
 def _pin_label(load_type: str, box) -> str:
@@ -1853,38 +1973,229 @@ def _pin_label(load_type: str, box) -> str:
     return f"{load_type} · {preset} · {box_txt}"
 
 
+def _pinned_responses() -> list[dict]:
+    """Return all response pins, migrating the legacy single-pin state."""
+    pins = st.session_state.get("pinned_responses")
+    if pins is None:
+        legacy = st.session_state.get("pinned_response")
+        pins = [legacy] if isinstance(legacy, dict) and legacy else []
+        st.session_state["pinned_responses"] = pins
+    if not isinstance(pins, list):
+        pins = []
+        st.session_state["pinned_responses"] = pins
+    valid_pins = [pin for pin in pins if isinstance(pin, dict)]
+    for pin in valid_pins:
+        pin.setdefault("visible", True)
+    return valid_pins
+
+
+def _pinned_response_snapshot(
+    load_type: str,
+    box,
+    result: _dccav.SimulationResult,
+) -> dict:
+    """Capture every comparable curve independently of later UI changes."""
+    if load_type == "DCCAV":
+        port_traces = {
+            "Upper port": [float(v) for v in result.port_h_velocity],
+            "Lower port": [float(v) for v in result.port_l_velocity],
+        }
+    elif load_type == "Bandpass 6th order":
+        port_traces = {
+            "Rear port": [float(v) for v in result.port_h_velocity],
+            "Front port": [float(v) for v in result.port_l_velocity],
+        }
+    elif load_type in {"Bass reflex", "Bandpass 4th order"}:
+        port_label = (
+            "Passive radiator"
+            if isinstance(box, _dccav.PassiveRadiatorBox)
+            else "Vent"
+        )
+        port_traces = {
+            port_label: [float(v) for v in result.port_l_velocity],
+        }
+    else:
+        port_traces = {}
+    return {
+        "label": _pin_label(load_type, box),
+        "load_type": load_type,
+        "visible": True,
+        "frequency_hz": [float(v) for v in result.frequency_hz],
+        "spl_total_db": [float(v) for v in result.spl_total_db],
+        "excursion_mm": [float(v) for v in result.excursion_mm],
+        "impedance_ohm": [float(v) for v in result.impedance_ohm],
+        "mil_w": [float(v) for v in result.mil_w],
+        "group_delay_ms": [float(v) for v in _dccav.group_delay_ms(result)],
+        "port_traces": port_traces,
+    }
+
+
+def _remove_pinned_response(index: int) -> None:
+    pins = _pinned_responses()
+    if 0 <= index < len(pins):
+        pins.pop(index)
+    st.session_state["pinned_responses"] = pins
+
+
+def _set_pinned_response_visible(index: int, visible: bool) -> None:
+    pins = _pinned_responses()
+    if 0 <= index < len(pins):
+        pins[index]["visible"] = bool(visible)
+    st.session_state["pinned_responses"] = pins
+
+
+def _clear_pinned_responses() -> None:
+    st.session_state["pinned_responses"] = []
+    # Do not let a pre-0.5 session migrate the already-cleared legacy pin again.
+    st.session_state["pinned_response"] = None
+
+
+def _pinned_metric_frame(value_key: str) -> tuple[pd.DataFrame, list[str]]:
+    """Flatten one stored metric across valid pins and preserve legend order."""
+    frames = []
+    labels = []
+    pinned_responses = _pinned_responses()
+    visible_pins = [pin for pin in pinned_responses if pin.get("visible", True)]
+    trace_budget = 2 if value_key == "port_traces" else 1
+    rows_per_pin = max(
+        1,
+        _MAX_PINNED_CHART_ROWS // max(1, len(visible_pins) * trace_budget),
+    )
+    for index, pinned in enumerate(pinned_responses):
+        if not pinned.get("visible", True):
+            continue
+        frequencies = np.asarray(pinned.get("frequency_hz", []), dtype=float)
+        trace_label = f"{index + 1} · {pinned.get('label', 'Pinned response')}"
+        stored = pinned.get(value_key, {})
+        stored_traces = stored if isinstance(stored, dict) else {"Pinned": stored}
+        pin_has_data = False
+        for series_name, stored_values in stored_traces.items():
+            values = np.asarray(stored_values, dtype=float)
+            count = min(frequencies.size, values.size)
+            if not count:
+                continue
+            data = pd.DataFrame({
+                "frequency_hz": frequencies[:count],
+                "value": values[:count],
+                "label": trace_label,
+                "trace": str(series_name),
+            })
+            data = data[
+                np.isfinite(data["frequency_hz"]) & np.isfinite(data["value"])
+            ]
+            if data.empty:
+                continue
+            if len(data) > rows_per_pin:
+                sampled = np.linspace(0, len(data) - 1, rows_per_pin).round().astype(int)
+                data = data.iloc[np.unique(sampled)]
+            frames.append(data)
+            pin_has_data = True
+        if pin_has_data:
+            labels.append(trace_label)
+    if not frames:
+        return pd.DataFrame(
+            columns=("frequency_hz", "value", "label", "trace")
+        ), []
+    return pd.concat(frames, ignore_index=True), labels
+
+
+def _pinned_response_frame() -> tuple[pd.DataFrame, list[str]]:
+    """Return the legacy total-response view of the generic pin store."""
+    return _pinned_metric_frame("spl_total_db")
+
+
+def _expand_y_domain_for_pins(
+    y_domain: list[float] | None,
+    frequency_window: list[float] | None,
+) -> list[float] | None:
+    """Keep every pinned trace visible in the selected response window."""
+    if y_domain is None:
+        return None
+    data, _ = _pinned_response_frame()
+    if frequency_window is not None and not data.empty:
+        low_hz, high_hz = map(float, frequency_window)
+        data = data[
+            (data["frequency_hz"] >= low_hz) & (data["frequency_hz"] <= high_hz)
+        ]
+    if data.empty:
+        return y_domain
+    padding = 2.0 if frequency_window is not None else 5.0
+    return [
+        min(float(y_domain[0]), float(data["value"].min()) - padding),
+        max(float(y_domain[1]), float(data["value"].max()) + padding),
+    ]
+
+
+def _pinned_metric_layer(
+    value_key: str,
+    y_title: str,
+    tooltip_format: str,
+    x_domain: list[float] | None = None,
+    y_domain: list[float] | None = None,
+    y_axis: alt.Axis | None = None,
+) -> alt.Chart | None:
+    data, labels = _pinned_metric_frame(value_key)
+    if data.empty:
+        return None
+    traces = list(dict.fromkeys(data["trace"].tolist()))
+    line = alt.Chart(data)
+    if len(traces) > 1:
+        line = line.mark_line(strokeWidth=2.0, clip=True)
+    else:
+        line = line.mark_line(strokeDash=[6, 4], strokeWidth=2.0, clip=True)
+    encodings = {
+        "x": alt.X(
+            "frequency_hz:Q",
+            scale=_log_frequency_scale(x_domain),
+        ),
+        "y": alt.Y(
+            "value:Q",
+            title=y_title,
+            scale=alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined,
+            axis=y_axis if y_axis is not None else alt.Undefined,
+        ),
+        "color": alt.Color(
+            "label:N",
+            title="Pinned simulations",
+            scale=alt.Scale(
+                domain=labels,
+                range=[
+                    _PIN_TRACE_COLORS[index % len(_PIN_TRACE_COLORS)]
+                    for index in range(len(labels))
+                ],
+            ),
+        ),
+        "detail": alt.Detail("trace:N"),
+        "tooltip": [
+            alt.Tooltip("frequency_hz:Q", title="Hz", format=".2f"),
+            alt.Tooltip("label:N", title="Pinned"),
+            alt.Tooltip("trace:N", title="Trace"),
+            alt.Tooltip("value:Q", title=y_title, format=tooltip_format),
+        ],
+    }
+    if len(traces) > 1:
+        encodings["strokeDash"] = alt.StrokeDash(
+            "trace:N",
+            title="Pinned trace",
+            scale=alt.Scale(
+                domain=traces,
+                range=[[3, 3], [9, 4], [12, 3], [6, 2]],
+            ),
+        )
+    return line.encode(**encodings)
+
+
 def _pinned_layer(
     x_domain: list[float] | None = None,
     y_domain: list[float] | None = None,
 ) -> alt.Chart | None:
-    pinned = st.session_state.get("pinned_response")
-    if not pinned:
-        return None
-    data = pd.DataFrame({
-        "frequency_hz": pinned["frequency_hz"],
-        "value": pinned["spl_total_db"],
-    })
-    data = data[np.isfinite(data["frequency_hz"]) & np.isfinite(data["value"])]
-    if data.empty:
-        return None
-    data["label"] = pinned["label"]
-    return alt.Chart(data).mark_line(
-        strokeDash=[6, 4], strokeWidth=1.8, color="#9aa0a6", clip=True,
-    ).encode(
-        x=alt.X(
-            "frequency_hz:Q",
-            scale=_log_frequency_scale(x_domain),
-        ),
-        y=alt.Y(
-            "value:Q",
-            scale=alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined,
-            axis=_response_amplitude_axis(),
-        ),
-        tooltip=[
-            alt.Tooltip("frequency_hz:Q", title="Hz", format=".2f"),
-            alt.Tooltip("label:N", title="Pinned"),
-            alt.Tooltip("value:Q", title="Pinned dB", format=".3f"),
-        ],
+    return _pinned_metric_layer(
+        "spl_total_db",
+        "LF pressure estimate (dB)",
+        ".3f",
+        x_domain,
+        y_domain,
+        _response_amplitude_axis(),
     )
 
 
@@ -1996,6 +2307,10 @@ def _plot_group_delay(result: _dccav.SimulationResult, limit_ms: float = 0.0) ->
             strokeDash=[6, 4],
         ).encode(y="limit_ms:Q")
         chart = chart + limit_rule
+    pinned = _pinned_metric_layer("group_delay_ms", "Group delay (ms)", ".3f")
+    if pinned is not None:
+        chart = (chart + pinned).resolve_scale(
+            color="independent", strokeDash="independent")
     return chart
 
 
@@ -2004,7 +2319,13 @@ def _plot_ports(result: _dccav.SimulationResult) -> alt.Chart:
     if not series:
         raise ValueError("No port traces selected")
     data = _series_frame(result, series)
-    return _line_chart(data, "Volume velocity (m³/s)", height=320)
+    chart = _line_chart(data, "Volume velocity (m³/s)", height=320)
+    pinned = _pinned_metric_layer(
+        "port_traces", "Volume velocity (m³/s)", ".6f")
+    if pinned is not None:
+        chart = (chart + pinned).resolve_scale(
+            color="independent", strokeDash="independent")
+    return chart
 
 
 def _rank_value(value: float) -> float:
@@ -2171,6 +2492,18 @@ def _apply_pending_batch_result() -> None:
         return
     _apply_batch_result(pending["row"], str(pending["load_type"]))
     st.toast(f"Applied {pending['row']['Driver']} to the design")
+
+
+def _apply_library_driver(name: str) -> None:
+    """Load one library preset into the current simulation workspace."""
+    driver = _dccav.get_driver_preset(name)
+    st.session_state["driver_preset_name"] = name
+    st.session_state["driver_config"] = "Single driver"
+    _apply_driver_preset(driver)
+    if _box_strategy_is_auto():
+        _apply_suggested_box_for(driver)
+        _mark_auto_alignment_synced(driver)
+    st.session_state["workspace_mode"] = "Design a box"
 
 
 def _apply_pending_atlas_point() -> None:
@@ -2668,6 +3001,93 @@ def _clean_display_table_frame(frame: pd.DataFrame) -> pd.DataFrame:
     return display
 
 
+@st.cache_data(show_spinner=False)
+def _driver_library_frame(preset_names: tuple[str, ...]) -> pd.DataFrame:
+    """Build the complete filtered driver library table once per filter set."""
+    rows = []
+    for name in preset_names:
+        try:
+            info = _dccav.driver_preset_info(name)
+            ts_p = _dccav.get_driver_preset(name)
+            ref = _dccav.driver_reference_metrics(ts_p)
+            rows.append({
+                "Driver": name,
+                "Size in": info.size_in,
+                "Fs Hz": ts_p.fs_hz,
+                "Qts": ts_p.qts,
+                "Vas L": ts_p.vas_l,
+                "SPL dB": ref.spl_2v83_db,
+                "Source": info.source,
+            })
+        except Exception:
+            rows.append({"Driver": name})
+    if not rows:
+        return pd.DataFrame(columns=(
+            "Driver", "Size in", "Fs Hz", "Qts", "Vas L", "SPL dB", "Source",
+        ))
+    return _clean_display_table_frame(pd.DataFrame(rows))
+
+
+def _render_driver_library(filtered_preset_names: list[str]) -> None:
+    """Render every filtered driver in a scrollable, selectable library."""
+    st.subheader("Candidate library")
+    st.caption(
+        "All matching loudspeakers are shown below. Select a row to use that driver "
+        "directly in the simulation, or run Finder to rank optimized enclosures."
+    )
+    if not filtered_preset_names:
+        st.warning("No presets match the current library filters.")
+        return
+
+    st.caption(
+        f"{len(filtered_preset_names)} presets match the current filters. "
+        "Scroll the table to browse the complete library."
+    )
+    if st.button(
+        "Find drivers",
+        type="primary",
+        use_container_width=True,
+        disabled=_finder_search_blocked(filtered_preset_names),
+        key="finder_run_search_main",
+    ):
+        _run_find_driver_search(filtered_preset_names)
+        st.rerun()
+
+    library_df = _driver_library_frame(tuple(filtered_preset_names))
+    table_state = st.dataframe(
+        library_df,
+        width="stretch",
+        height=520,
+        hide_index=True,
+        key="finder_driver_library_table",
+        on_select="rerun",
+        selection_mode="single-row",
+        column_config={
+            "Size in": st.column_config.NumberColumn(format="%.1f"),
+            "Fs Hz": st.column_config.NumberColumn(format="%.1f"),
+            "Qts": st.column_config.NumberColumn(format="%.3f"),
+            "Vas L": st.column_config.NumberColumn(format="%.1f"),
+            "SPL dB": st.column_config.NumberColumn(format="%.0f"),
+        },
+    )
+    selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
+    if not selected_rows:
+        st.info("Select a loudspeaker row to load it into the simulation.")
+        return
+    selected_index = int(selected_rows[0])
+    if not 0 <= selected_index < len(library_df):
+        return
+    selected_name = str(library_df.iloc[selected_index]["Driver"])
+    st.button(
+        f"Use {selected_name} in simulation",
+        type="primary",
+        use_container_width=True,
+        key="finder_use_library_driver",
+        on_click=_apply_library_driver,
+        args=(selected_name,),
+    )
+
+
 def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     """Render Finder results and candidate application, separate from inputs."""
     load_type = str(st.session_state.get("load_type", "DCCAV"))
@@ -2691,6 +3111,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     )
     if not context_matches:
         batch_rows = []
+    _render_driver_library(filtered_preset_names)
     if not batch_rows:
         if st.session_state.get("batch_search_completed", False) and context_matches:
             st.subheader("No matching drivers")
@@ -2705,57 +3126,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                     "No usable candidate satisfies the current enclosure and constraints."
                 )
             return
-        st.subheader("Candidate library")
-        st.caption(
-            "Configure the three Finder steps in the sidebar, then rank the filtered library."
-        )
-        if filtered_preset_names:
-            st.caption(
-                f"{len(filtered_preset_names)} presets match the current filters. "
-                "Run Find drivers to optimize them under the same enclosure-volume cap."
-            )
-            if st.button(
-                "Find drivers",
-                type="primary",
-                use_container_width=True,
-                disabled=_finder_search_blocked(filtered_preset_names),
-                key="finder_run_search_main",
-            ):
-                _run_find_driver_search(filtered_preset_names)
-                st.rerun()
-            rows = []
-            for name in filtered_preset_names[:500]:
-                try:
-                    info = _dccav.driver_preset_info(name)
-                    ts_p = _dccav.get_driver_preset(name)
-                    ref = _dccav.driver_reference_metrics(ts_p)
-                    rows.append({
-                        "Driver": name,
-                        "Size in": info.size_in,
-                        "Fs Hz": ts_p.fs_hz,
-                        "Qts": ts_p.qts,
-                        "Vas L": ts_p.vas_l,
-                        "SPL dB": ref.spl_2v83_db,
-                        "Source": info.source,
-                    })
-                except Exception:
-                    rows.append({"Driver": name})
-            if rows:
-                preview_df = _clean_display_table_frame(pd.DataFrame(rows))
-                st.dataframe(
-                    preview_df,
-                    width="stretch",
-                    hide_index=True,
-                    column_config={
-                        "Size in": st.column_config.NumberColumn(format="%.1f"),
-                        "Fs Hz": st.column_config.NumberColumn(format="%.1f"),
-                        "Qts": st.column_config.NumberColumn(format="%.3f"),
-                        "Vas L": st.column_config.NumberColumn(format="%.1f"),
-                        "SPL dB": st.column_config.NumberColumn(format="%.0f"),
-                    },
-                )
-        else:
-            st.warning("No presets match the current library filters.")
         return
 
     st.subheader("Recommended drivers")
@@ -2793,8 +3163,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     value_currency = _finder_price_currency(full_df)
     rank_mode = _FINDER_RANK_F3
     if value_currency:
-        st.sidebar.subheader("4 · Results")
-        rank_mode = st.sidebar.radio(
+        rank_mode = st.radio(
             "Rank by",
             _FINDER_RANK_MODES,
             horizontal=True,
@@ -3023,12 +3392,12 @@ def _render_response_tab(
         a1, a2, a3, a4 = st.columns(4)
         with a1:
             st.checkbox(
-                "MOL", key="plot_response_mol", disabled=compare_loads_on,
+                "Max output level (MOL)", key="plot_response_mol", disabled=compare_loads_on,
                 help="Maximum Output Level within Xmax and Pe at each frequency.",
             )
         with a2:
             st.checkbox(
-                "MIL chart", key="plot_show_mil",
+                "Max input level (MIL)", key="plot_show_mil",
                 help="Input-power ceiling within Xmax and Pe, drawn below the response.",
             )
         with a3:
@@ -3038,6 +3407,13 @@ def _render_response_tab(
                 "Tolerance band", key="plot_tolerance_band", disabled=compare_loads_on,
                 help="Monte Carlo 5-95th percentile spread from T/S tolerances.",
             )
+    if compare_loads_on:
+        st.info(
+            "Compare loads shows only the total response of each topology at the same "
+            "total volume. Cone, port traces, MOL and the tolerance band are suspended "
+            "while comparing.",
+            icon="ℹ️",
+        )
 
     cursor_rows = _cursor_rows(result, thresholds)
 
@@ -3076,25 +3452,65 @@ def _render_response_tab(
             "radiation and the lower port. The load model is low-frequency only; "
             "it is not an electrical crossover or breakup/directivity predictor."
         )
-    pinned_state = st.session_state.get("pinned_response")
+    pinned_state = _pinned_responses()
     pin_columns = st.columns([1, 1, 2]) if pinned_state else st.columns([1, 3])
     pin_col = pin_columns[0]
     with pin_col:
-        pin_label = "Replace pin" if pinned_state else "Pin response"
-        if st.button(pin_label, use_container_width=True):
-            st.session_state["pinned_response"] = {
-                "label": _pin_label(load_type, box),
-                "frequency_hz": [float(v) for v in result.frequency_hz],
-                "spl_total_db": [float(v) for v in result.spl_total_db],
-            }
+        if st.button(
+            "Pin response",
+            use_container_width=True,
+            disabled=len(pinned_state) >= _MAX_PINNED_RESPONSES,
+            help=f"Keep up to {_MAX_PINNED_RESPONSES} response traces while changing load or box.",
+        ):
+            st.session_state["pinned_responses"] = [
+                *pinned_state,
+                _pinned_response_snapshot(load_type, box, result),
+            ]
             st.rerun()
     if pinned_state:
         with pin_columns[1]:
-            if st.button("Clear pin", use_container_width=True):
-                st.session_state["pinned_response"] = None
+            if st.button("Clear all pins", use_container_width=True):
+                _clear_pinned_responses()
                 st.rerun()
         with pin_columns[2]:
-            st.caption(f"Pinned (dashed grey): {pinned_state['label']}")
+            visible_pin_count = sum(
+                bool(pin.get("visible", True)) for pin in pinned_state)
+            st.caption(
+                f"Pinned responses: {len(pinned_state)}/{_MAX_PINNED_RESPONSES} · "
+                f"{visible_pin_count} visible · dashed colored traces"
+            )
+        with st.expander("Manage pinned responses"):
+            for index, pinned in enumerate(pinned_state):
+                is_visible = bool(pinned.get("visible", True))
+                label_col, visibility_col, remove_col = st.columns([5, 1, 1])
+                with label_col:
+                    visibility_text = "visible" if is_visible else "hidden"
+                    st.caption(
+                        f"{index + 1}. {pinned.get('label', 'Pinned response')} · "
+                        f"{visibility_text}"
+                    )
+                with visibility_col:
+                    if st.button(
+                        "Hide" if is_visible else "Show",
+                        key=f"toggle_pinned_response_{index}",
+                        help=(
+                            f"Hide pinned simulation {index + 1} without clearing it"
+                            if is_visible
+                            else f"Show pinned simulation {index + 1} on every chart"
+                        ),
+                        use_container_width=True,
+                    ):
+                        _set_pinned_response_visible(index, not is_visible)
+                        st.rerun()
+                with remove_col:
+                    if st.button(
+                        "Clear",
+                        key=f"remove_pinned_response_{index}",
+                        help=f"Clear pinned simulation {index + 1}",
+                        use_container_width=True,
+                    ):
+                        _remove_pinned_response(index)
+                        st.rerun()
 
     compare_series = None
     if st.session_state.get("plot_compare_loads", False):
@@ -3160,12 +3576,13 @@ def _render_response_tab(
     zoom_col, reset_zoom_col = st.columns([5, 1])
     with zoom_col:
         selected_window = st.slider(
-            "Response frequency window (Hz)",
+            "Chart zoom (Hz)",
             min_value=full_window[0],
             max_value=full_window[1],
             step=1,
             key="plot_response_window_hz",
-            help="Move either handle to zoom. The vertical scale automatically fits the selected band.",
+            help="Move either handle to zoom the chart. This only changes the plot window, "
+                 "not the simulation frequency range set in the sidebar.",
         )
     with reset_zoom_col:
         st.button(
@@ -3248,6 +3665,60 @@ def _render_ports_tab(
         st.altair_chart(_plot_ports(result), width="stretch", key=f"ports_chart_{chart_sig}")
     else:
         st.caption("Port pens off.")
+
+    st.subheader("Duct sizing")
+    if load_type == "DCCAV":
+        p1, p2 = st.columns(2)
+        with p1:
+            st.number_input(
+                "Upper port diameter (cm, 0 = off)", min_value=0.0, max_value=60.0,
+                step=0.5, key="box_port_d_h_cm")
+        with p2:
+            st.number_input(
+                "Lower port diameter (cm, 0 = off)", min_value=0.0, max_value=60.0,
+                step=0.5, key="box_port_d_l_cm")
+        st.caption(
+            "Auto strategies recalculate both diameters from tuning, air speed and "
+            "the displacement minimum-area golden rule. "
+            "Duct lengths use the Helmholtz relation: the upper port counts "
+            "two flanged ends, the lower vent one flanged and one free end; "
+            "air-speed warnings use the ~5% of c guideline."
+        )
+    elif load_type == "Bandpass 4th order":
+        st.number_input(
+            "Front vent diameter (cm, 0 = off)", min_value=0.0,
+            max_value=60.0, step=0.5, key="bandpass4_port_d_cm")
+        st.caption(
+            "Auto strategies recalculate the vent from tuning, air speed and "
+            "the displacement minimum-area golden rule. "
+            "Only the front-chamber vent radiates externally; length uses "
+            "one flanged and one free end."
+        )
+    elif load_type == "Bandpass 6th order":
+        p1, p2 = st.columns(2)
+        with p1:
+            st.number_input(
+                "Rear vent diam (cm, 0 = off)", min_value=0.0,
+                max_value=60.0, step=0.5, key="bandpass6_port_d_r_cm")
+        with p2:
+            st.number_input(
+                "Front vent diam (cm, 0 = off)", min_value=0.0,
+                max_value=60.0, step=0.5, key="bandpass6_port_d_p_cm")
+        st.caption(
+            "Auto strategies recalculate both vents from tuning, air speed and "
+            "the displacement minimum-area golden rule. "
+            "Both vents use one flanged and one free end."
+        )
+    elif load_type == "Bass reflex" and not passive_radiator:
+        st.number_input(
+            "Vent diameter (cm, 0 = off)", min_value=0.0,
+            max_value=60.0, step=0.5, key="reflex_port_d_cm")
+        st.caption(
+            "Auto strategies size the vent from tuning, air speed and "
+            "the displacement minimum-area rule."
+        )
+    elif passive_radiator:
+        st.caption("The passive radiator is sized in the sidebar with area, mass and suspension.")
 
     if port_geometry_rows:
         if passive_radiator:
@@ -3372,7 +3843,7 @@ _default("box_port_d_h_cm", 5.0)
 _default("box_port_d_l_cm", 5.0)
 _default("sealed_q_abs", 15.0)
 _default("sealed_q_leak", 1000.0)
-_default("load_type", "Sealed")
+_default("load_type", "DCCAV")
 if st.session_state["load_type"] in ("Suspension pneumatic", "Acoustic suspension"):
     st.session_state["load_type"] = "Sealed"
 elif st.session_state["load_type"] == "Passive radiator":
@@ -3459,6 +3930,7 @@ _share_token = st.query_params.get("d")
 if _share_token and st.session_state.get("_applied_share_token") != _share_token:
     st.session_state["_applied_share_token"] = _share_token
     try:
+        _snapshot_design_state()
         _share_count = _apply_loaded_params(_decode_share_payload(_share_token))
         _mark_auto_alignment_synced()
         st.toast(f"Loaded {_share_count} parameters from the shared link")
@@ -3551,12 +4023,22 @@ with project_col:
             try:
                 payload = json.loads(upload.getvalue().decode("utf-8"))
                 payload.pop("_load_forge_meta", None)
+                _snapshot_design_state()
                 count = _apply_loaded_params(payload)
                 st.toast(f"Loaded {count} parameters")
                 st.rerun()
             except Exception as exc:
                 logger.exception("Invalid preset")
                 st.error(f"Invalid preset: {exc}")
+        if st.session_state.get("_design_state_backup"):
+            if st.button(
+                "Restore previous design",
+                use_container_width=True,
+                help="Undo the last preset or shared-link load and restore the previous parameters.",
+            ):
+                _restore_design_state()
+                st.toast("Previous design restored")
+                st.rerun()
 
 
 current_ts = None
@@ -3938,13 +4420,6 @@ with st.sidebar:
                     _box_number_with_nudge(
                         "Fb tuning (Hz)", "reflex_fb_hz", min_value=1.0,
                         max_value=1000.0, step=0.1, disabled=box_edit_disabled)
-                    st.number_input(
-                        "Vent diameter (cm, 0 = off)", min_value=0.0,
-                        max_value=60.0, step=0.5, key="reflex_port_d_cm")
-                    st.caption(
-                        "Auto strategies size the vent from tuning, air speed and "
-                        "the displacement minimum-area rule."
-                    )
             if _reflex_uses_passive_radiator():
                 with st.expander("Loss factors"):
                     st.number_input(
@@ -4022,16 +4497,6 @@ with st.sidebar:
                                     step=10.0, key="bandpass4_q_leak_p")
                     st.number_input("Qport front", min_value=0.2, max_value=500.0,
                                     step=0.5, key="bandpass4_q_port")
-            with st.expander("Port geometry"):
-                st.number_input(
-                    "Front vent diameter (cm, 0 = off)", min_value=0.0,
-                    max_value=60.0, step=0.5, key="bandpass4_port_d_cm")
-                st.caption(
-                    "Auto strategies recalculate the vent from tuning, air speed and "
-                    "the displacement minimum-area golden rule. "
-                    "Only the front-chamber vent radiates externally; length uses "
-                    "one flanged and one free end."
-                )
         elif st.session_state["load_type"] == "Bandpass 6th order":
             b1, b2 = st.columns(2)
             with b1:
@@ -4064,21 +4529,6 @@ with st.sidebar:
                                     step=10.0, key="bandpass6_q_leak_p")
                     st.number_input("Qport front", min_value=0.2, max_value=500.0,
                                     step=0.5, key="bandpass6_q_port_p")
-            with st.expander("Port geometry"):
-                p1, p2 = st.columns(2)
-                with p1:
-                    st.number_input(
-                        "Rear vent diam (cm, 0 = off)", min_value=0.0,
-                        max_value=60.0, step=0.5, key="bandpass6_port_d_r_cm")
-                with p2:
-                    st.number_input(
-                        "Front vent diam (cm, 0 = off)", min_value=0.0,
-                        max_value=60.0, step=0.5, key="bandpass6_port_d_p_cm")
-                st.caption(
-                    "Auto strategies recalculate both vents from tuning, air speed and "
-                    "the displacement minimum-area golden rule. "
-                    "Both vents use one flanged and one free end."
-                )
         elif st.session_state["load_type"] == "Infinite baffle":
             st.caption("No box controls: the rear wave is assumed to be fully isolated by an infinite partition.")
         else:
@@ -4109,24 +4559,6 @@ with st.sidebar:
                     st.number_input("Qleak lower", min_value=1.0, max_value=10000.0, step=10.0, key="loss_q_leak_l")
                     st.number_input("Qport lower", min_value=0.2, max_value=500.0, step=0.5, key="loss_q_port_l")
 
-            with st.expander("Port geometry"):
-                p1, p2 = st.columns(2)
-                with p1:
-                    st.number_input(
-                        "Upper port diameter (cm, 0 = off)", min_value=0.0, max_value=60.0,
-                        step=0.5, key="box_port_d_h_cm")
-                with p2:
-                    st.number_input(
-                        "Lower port diameter (cm, 0 = off)", min_value=0.0, max_value=60.0,
-                        step=0.5, key="box_port_d_l_cm")
-                st.caption(
-                    "Auto strategies recalculate both diameters from tuning, air speed and "
-                    "the displacement minimum-area golden rule. "
-                    "Duct lengths use the Helmholtz relation: the upper port counts "
-                    "two flanged ends, the lower vent one flanged and one free end; "
-                    "air-speed warnings use the ~5% of c guideline."
-                )
-
         if st.session_state["load_type"] != "Infinite baffle" and box_edit_disabled:
             st.caption("Switch Box strategy to Manual to edit volumes and tuning directly.")
 
@@ -4141,7 +4573,7 @@ with st.sidebar:
                 s1, s2 = st.columns(2)
                 with s1:
                     st.number_input(
-                        "F min (Hz)", min_value=1.0, max_value=1000.0,
+                        "Simulation F min (Hz)", min_value=1.0, max_value=1000.0,
                         step=1.0, key="sim_f_min",
                     )
                     st.number_input(
@@ -4150,7 +4582,7 @@ with st.sidebar:
                     )
                 with s2:
                     st.number_input(
-                        "F max (Hz)", min_value=10.0, max_value=5000.0,
+                        "Simulation F max (Hz)", min_value=10.0, max_value=5000.0,
                         step=10.0, key="sim_f_max",
                     )
                     st.number_input(
@@ -4566,6 +4998,17 @@ try:
             help="Electrical impedance as freq/ohm/phase text for VituixCAD, XSim or REW.",
         )
 
+except ValueError as exc:
+    logger.exception("Simulation failed")
+    msg = str(exc)
+    if "Qms" in msg or "Qts" in msg or "DriverTS" in msg or "complete driver" in msg.lower():
+        st.error(f"Driver parameters are invalid: {exc}")
+    elif "F max" in msg and "F min" in msg:
+        st.error(str(exc))
+    elif "Infinite baffle has no box" in msg:
+        st.error(str(exc))
+    else:
+        st.error(f"Simulation failed: {exc}")
 except Exception as exc:
     logger.exception("Simulation failed")
     st.error(f"Simulation failed: {exc}")

@@ -1,6 +1,31 @@
 # Changelog
 
 
+## 0.5.5 (2026-07-18)
+
+- **Multi-simulation pins**: up to eight load/driver/box simulations can be
+  pinned together with stable colors. Pinned curves now follow every compatible
+  analysis view: SPL response, cone excursion, impedance, MIL, port/radiator
+  volume velocity and group delay.
+- **Per-pin controls**: each pinned simulation can be hidden and shown again
+  without deleting it, or cleared individually; a separate action still clears
+  the full collection. Legacy single-response pins remain readable.
+- **Complete interactive driver library**: the Finder now renders every
+  filtered loudspeaker in a fixed-height scrolling table instead of truncating
+  the catalog at 500 rows. Selecting a row exposes a direct action to load that
+  driver into the Design simulation, and the library remains visible alongside
+  ranked Finder results.
+- **Workspace and manual-design resilience**: driver application is performed
+  before Streamlit recreates workspace widgets, fixing the redacted state error
+  seen after selecting a library row. Manual box values and the active design
+  are preserved more reliably across strategy and Finder/Design transitions.
+- **UI consolidation**: response analysis, port controls and project restore
+  behavior were tightened while keeping long-lived Streamlit sessions and the
+  previous pin format compatible.
+- **Verification**: py_compile and Streamlit AppTest clean; full suite
+  101 passed / 0 failed / 0 skipped.
+
+
 ## 0.5.4 (2026-07-18)
 
 - **Generic Thiele/Small crawler**: added a resumable, robots-aware crawler for

@@ -1349,27 +1349,83 @@ def _check_ui_pin_response_overlay():
     assert not at.exception, at.exception
 
     pin = next(b for b in at.button if b.label == "Pin response")
-    assert not any(b.label == "Clear pin" for b in at.button)
+    assert not any(b.label == "Clear all pins" for b in at.button)
     pin.click().run()
     assert not at.exception, at.exception
-    pinned = at.session_state["pinned_response"]
-    assert pinned, "pin button must store the current response snapshot"
-    assert pinned["label"].startswith("DCCAV"), pinned["label"]
-    assert len(pinned["frequency_hz"]) == len(pinned["spl_total_db"]) > 0
-    assert any("Pinned (dashed grey)" in caption.value for caption in at.caption)
+    pinned = at.session_state["pinned_responses"]
+    assert len(pinned) == 1, "pin button must append the current response snapshot"
+    assert pinned[0]["label"].startswith("DCCAV"), pinned[0]["label"]
+    assert pinned[0]["load_type"] == "DCCAV"
+    assert pinned[0]["visible"] is True
+    assert len(pinned[0]["frequency_hz"]) == len(pinned[0]["spl_total_db"]) > 0
+    for metric in ("excursion_mm", "impedance_ohm", "mil_w", "group_delay_ms"):
+        assert len(pinned[0][metric]) == len(pinned[0]["frequency_hz"]), metric
+    assert set(pinned[0]["port_traces"]) == {"Upper port", "Lower port"}
+    assert all(
+        len(values) == len(pinned[0]["frequency_hz"])
+        for values in pinned[0]["port_traces"].values()
+    )
+    assert any("Pinned responses: 1/8" in caption.value for caption in at.caption)
 
     at.session_state["load_type"] = "Sealed"
     at.run()
     assert not at.exception, "pinned overlay must survive a load-type change"
-    assert at.session_state["pinned_response"]["label"].startswith("DCCAV")
+    assert at.session_state["pinned_responses"][0]["label"].startswith("DCCAV")
 
-    clear = next(b for b in at.button if b.label == "Clear pin")
+    next(b for b in at.button if b.label == "Pin response").click().run()
+    assert not at.exception, at.exception
+    pinned = at.session_state["pinned_responses"]
+    assert len(pinned) == 2, pinned
+    assert [item["load_type"] for item in pinned] == ["DCCAV", "Sealed"]
+    assert any("Pinned responses: 2/8" in caption.value for caption in at.caption)
+
+    hide_first = next(
+        b for b in at.button if b.key == "toggle_pinned_response_0"
+    )
+    assert hide_first.label == "Hide"
+    hide_first.click().run()
+    assert not at.exception, at.exception
+    pinned = at.session_state["pinned_responses"]
+    assert pinned[0]["visible"] is False and pinned[1]["visible"] is True
+    assert any("1 visible" in caption.value for caption in at.caption)
+
+    show_first = next(
+        b for b in at.button if b.key == "toggle_pinned_response_0"
+    )
+    assert show_first.label == "Show"
+    show_first.click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["pinned_responses"][0]["visible"] is True
+
+    remove_first = next(
+        b for b in at.button if b.key == "remove_pinned_response_0"
+    )
+    assert remove_first.label == "Clear"
+    remove_first.click().run()
+    assert not at.exception, at.exception
+    pinned = at.session_state["pinned_responses"]
+    assert len(pinned) == 1 and pinned[0]["load_type"] == "Sealed", pinned
+
+    clear = next(b for b in at.button if b.label == "Clear all pins")
     clear.click().run()
     assert not at.exception, at.exception
-    assert not at.session_state["pinned_response"], "clear must drop the pinned snapshot"
+    assert not at.session_state["pinned_responses"], "clear must drop every pinned snapshot"
+
+    legacy = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    legacy.session_state["workspace_mode"] = "Design a box"
+    legacy.session_state["load_type"] = "Sealed"
+    legacy.session_state["pinned_response"] = {
+        "label": "Legacy DCCAV pin",
+        "frequency_hz": [10.0, 20.0],
+        "spl_total_db": [70.0, 80.0],
+    }
+    legacy.run()
+    assert not legacy.exception, legacy.exception
+    migrated = legacy.session_state["pinned_responses"]
+    assert len(migrated) == 1 and migrated[0]["label"] == "Legacy DCCAV pin", migrated
 
 
-test("UI pin overlay stores, survives load changes and clears", _check_ui_pin_response_overlay)
+test("UI pin overlay stores multiple loads and clears them", _check_ui_pin_response_overlay)
 
 
 def _check_ui_load_comparison_overlay():
@@ -1619,7 +1675,7 @@ def _check_ui_response_zoom_slider_and_reset():
 
     zoom = next(
         slider for slider in at.slider
-        if slider.label == "Response frequency window (Hz)"
+        if slider.label == "Chart zoom (Hz)"
     )
     assert tuple(zoom.value) == (10, 500), zoom.value
     reset = next(button for button in at.button if button.label == "Reset zoom")
@@ -1630,7 +1686,7 @@ def _check_ui_response_zoom_slider_and_reset():
     assert not at.exception, at.exception
     zoom = next(
         slider for slider in at.slider
-        if slider.label == "Response frequency window (Hz)"
+        if slider.label == "Chart zoom (Hz)"
     )
     assert tuple(zoom.value) == (20, 200), zoom.value
     reset = next(button for button in at.button if button.label == "Reset zoom")
@@ -1661,7 +1717,7 @@ def _check_ui_response_pens_survive_workspace_and_preset_changes():
     markers.set_value(["F3"]).run()
     pen("Cone").set_value(False).run()
     pen("Lower port").set_value(False).run()
-    pen("MOL").set_value(True).run()
+    pen("Max output level (MOL)").set_value(True).run()
 
     workspace = next(
         control for control in at.segmented_control if control.label == "Workspace"
@@ -1677,7 +1733,7 @@ def _check_ui_response_pens_survive_workspace_and_preset_changes():
     assert list(at.session_state["cursor_auto_markers"]) == ["F3"]
     assert not pen("Cone").value
     assert not pen("Lower port").value
-    assert pen("MOL").value
+    assert pen("Max output level (MOL)").value
 
     preset = next(box for box in at.selectbox if box.label == "Driver preset")
     preset.set_value("Beyma 12CMV2").run()
@@ -1685,7 +1741,7 @@ def _check_ui_response_pens_survive_workspace_and_preset_changes():
     assert at.session_state["plot_response_total"]
     assert not pen("Cone").value
     assert not pen("Lower port").value
-    assert pen("MOL").value
+    assert pen("Max output level (MOL)").value
 
     # Even stale or externally seeded state cannot remove the baseline pen.
     at.session_state["plot_response_total"] = False
@@ -1834,6 +1890,28 @@ def _check_ui_driver_preset_filters_reduce_list():
     table = at.dataframe[0].value
     assert "12CMV2" in str(table.to_dict()), (
         "typed preset searches must show their matching names in the results table")
+
+    at.session_state["finder_driver_library_table"] = {
+        "selection": {"rows": [0], "columns": [], "cells": []},
+    }
+    at.run()
+    assert not at.exception, at.exception
+    use_driver = next(
+        button for button in at.button
+        if button.key == "finder_use_library_driver"
+    )
+    selected_driver = str(at.dataframe[0].value.iloc[0]["Driver"])
+    use_driver.click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["workspace_mode"] == "Design a box"
+    assert at.session_state["driver_preset_name"] == selected_driver
+
+    complete_library = _ui._driver_library_frame(tuple(names))
+    assert len(complete_library) == len(names), (
+        "the on-screen library must not truncate the preset collection",
+        len(complete_library), len(names),
+    )
+    assert complete_library["Driver"].nunique() == len(names)
 
 
 test("UI driver preset filters reduce long speaker lists", _check_ui_driver_preset_filters_reduce_list)
@@ -2840,6 +2918,13 @@ def _check_ui_batch_result_applies_selected_driver_and_box():
     _ui._apply_batch_result({"Driver": "Beyma 12CMV2"}, "Infinite baffle")
     assert st.session_state["load_type"] == "Infinite baffle"
 
+    st.session_state["box_strategy"] = "Manual"
+    _ui._apply_library_driver("KEF B110B article example")
+    assert st.session_state["workspace_mode"] == "Design a box"
+    assert st.session_state["driver_config"] == "Single driver"
+    assert st.session_state["driver_preset_name"] == "KEF B110B article example"
+    assert abs(st.session_state["driver_fs_hz"] - 48.14) < 1e-9
+
 
 test("UI candidate apply opens a manual design", _check_ui_batch_result_applies_selected_driver_and_box)
 
@@ -3129,10 +3214,11 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
         ("Sealed",), 40.0, 1, False, "Balanced", "Port", 0.0,
         _ui._FINDER_RANKING_VERSION,
     )
+    at.session_state["finder_load_types"] = ["Sealed"]
     at.run()
     assert not at.exception, at.exception
-    assert any(radio.label == "Rank by" for radio in at.sidebar.radio)
-    assert not any(radio.label == "Rank by" for radio in at.main.radio)
+    assert not any(radio.label == "Rank by" for radio in at.sidebar.radio)
+    assert any(radio.label == "Rank by" for radio in at.main.radio)
 
 
 test("UI keeps every Finder parameter in the sidebar", _check_ui_finder_parameters_are_all_in_sidebar)
@@ -3172,6 +3258,7 @@ def _check_ui_design_state_survives_workspace_roundtrip():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
     at.session_state["workspace_mode"] = "Design a box"
+    at.session_state["load_type"] = "Sealed"
     at.run()
     assert not at.exception, at.exception
     # Widget-bound edits (not programmatic ones) are what Streamlit cleans up
@@ -3390,9 +3477,9 @@ def _check_ui_progressive_disclosure():
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
-    # New sessions land on the Finder workspace with the sealed load.
+    # New sessions land on the Finder workspace with the active DCCAV load.
     assert at.session_state["workspace_mode"] == "Find a driver"
-    assert at.session_state["load_type"] == "Sealed"
+    assert at.session_state["load_type"] == "DCCAV"
     assert not at.tabs, "the Finder landing must not show the design tabs"
     assert any(b.label == "Find drivers" for b in at.sidebar.button)
     assert at.session_state["driver_preset_name"] == "KEF B110B article example"
@@ -3798,6 +3885,8 @@ def _check_ui_finder_value_ranking():
     ]
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.session_state["workspace_mode"] = "Find a driver"
+    at.session_state["load_type"] = "Sealed"
+    at.session_state["finder_load_types"] = ["Sealed"]
     # Match the live defaults version so the seeded results survive migration.
     at.session_state["_finder_defaults_version"] = _ui._FINDER_DEFAULTS_VERSION
     at.session_state["batch_results"] = seeded
@@ -4022,7 +4111,7 @@ def _check_ui_finder_comprehensive_ux_regression():
     main_subs = [s.value for s in at.subheader]
     assert "Candidate library" in main_subs, main_subs
     caps_before = [c.value for c in at.caption]
-    assert any("Configure the three Finder steps" in c for c in caps_before), caps_before
+    assert any("All matching loudspeakers" in c for c in caps_before), caps_before
 
     find_btn.click().run()
     assert not at.exception, at.exception
@@ -4048,7 +4137,10 @@ def _check_ui_finder_comprehensive_ux_regression():
             n.label.startswith("Max price") for n in at_price.sidebar.number_input
         )
 
-    result_df = at.dataframe[0].value
+    result_df = next(
+        table.value for table in at.dataframe
+        if "F3 Hz" in list(table.value.columns)
+    )
     assert result_df is not None
     cols = list(result_df.columns)
     assert "Driver" in cols and "F3 Hz" in cols, cols
