@@ -47,6 +47,26 @@ make crawl-datasheets ARGS="\
   --max-pages 500 --max-pdfs 500 --sleep 2"
 ```
 
+When a manufacturer omits structured brand metadata, scope the run with an
+authoritative brand hint. This also removes a matching `| Brand` suffix from
+page-title-derived model names:
+
+```bash
+make crawl-datasheets ARGS="\
+  --sitemap https://manufacturer.example/sitemap.xml \
+  --include '/products/.+/' --brand 'Example Audio'"
+```
+
+Already archived PDFs are reloaded from the SQLite observation index and
+re-canonicalized with the current product page and brand hint. Incremental
+runs therefore still update the catalog instead of silently skipping known
+documents.
+
+Use `--reparse-known` after improving extraction rules. It reads the
+content-addressed local PDF archive again, refreshes parsed and formerly
+rejected index entries, and merges newly recognized fields without downloading
+the documents a second time.
+
 The crawler respects `robots.txt` independently for product pages and external
 PDF hosts. Scanned documents without an embedded text layer are archived and
 marked rejected until an OCR stage is available; they are not converted into

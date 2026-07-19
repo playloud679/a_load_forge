@@ -5217,6 +5217,26 @@ try:
                     "(not modeled here), a bigger box, or a higher tuning."
                 )
 
+    design_name = str(st.session_state.get("driver_preset_name", "Custom"))
+    design_config = str(st.session_state.get("driver_config", "Single driver"))
+    if design_config != "Single driver":
+        design_name = f"{design_name} ({design_config})"
+    design_strategy = str(st.session_state.get("box_strategy", "Balanced"))
+
+    st.markdown(
+        f"<div style='font-weight: 700; font-size: 1.15rem; margin-top: 0; margin-bottom: 0.1rem; color: rgba(250,250,250,.95);'>"
+        f"{load_type} &middot; {design_name}"
+        f"</div>",
+        unsafe_allow_html=True
+    )
+    resonator_caption = "Passive radiator &middot; " if is_pr else ""
+    st.markdown(
+        f"<div style='font-size: 0.8rem; color: rgba(250,250,250,.65); margin-bottom: 0.8rem;'>"
+        f"{resonator_caption}{design_strategy} alignment &middot; {sim_voltage:.2f} V"
+        f"</div>",
+        unsafe_allow_html=True
+    )
+
     tab_labels = ["Response", "Excursion", "Impedance"]
     if not (is_sealed or is_infinite_baffle):
         tab_labels.append("Ports")
@@ -5266,12 +5286,6 @@ try:
         with design_tabs["Atlas"]:
             _render_atlas_tab(current_ts, load_type, box, sim_voltage)
 
-
-    design_name = str(st.session_state.get("driver_preset_name", "Custom"))
-    design_config = str(st.session_state.get("driver_config", "Single driver"))
-    if design_config != "Single driver":
-        design_name = f"{design_name} ({design_config})"
-    design_strategy = str(st.session_state.get("box_strategy", "Balanced"))
     active_load_image = _LOAD_TYPE_IMAGES.get(load_type)
     with st.container(key="active_load_summary"):
         # Left: active load schematic, Right: Dense info
@@ -5284,17 +5298,23 @@ try:
         
         with data_col:
             st.markdown(
-                f"<div style='font-weight: 700; font-size: 1.15rem; margin-top: 0; margin-bottom: 0.1rem; color: rgba(250,250,250,.95);'>"
-                f"{load_type} &middot; {design_name}"
-                f"</div>",
-                unsafe_allow_html=True
-            )
-            resonator_caption = "Passive radiator &middot; " if is_pr else ""
-            
-            st.markdown(
-                f"<div style='font-size: 0.8rem; color: rgba(250,250,250,.65); margin-bottom: 0.8rem;'>"
-                f"{resonator_caption}{design_strategy} alignment &middot; {sim_voltage:.2f} V"
-                f"</div>",
+                """
+                <style>
+                .st-key-active_load_summary [data-testid="stMetricValue"] {
+                    font-size: 1.25rem !important;
+                }
+                .st-key-active_load_summary [data-testid="stMetricLabel"] {
+                    font-size: 0.75rem !important;
+                    margin-bottom: 0.1rem !important;
+                }
+                .st-key-active_load_summary [data-testid="stVerticalBlock"] {
+                    gap: 0.4rem !important;
+                }
+                .st-key-active_load_summary [data-testid="stMetric"] {
+                    padding-bottom: 0 !important;
+                }
+                </style>
+                """,
                 unsafe_allow_html=True
             )
             

@@ -1,9 +1,10 @@
 {
   "complete": true,
   "crawl_sources": [
+    "https://www.markaudio.com",
     "https://www.soundimports.eu"
   ],
-  "downloaded_at": "2026-07-17T07:23:42+00:00",
+  "downloaded_at": "2026-07-19T10:37:48+00:00",
   "presets": [
     {
       "brand": "STX",
@@ -13236,7 +13237,17 @@
       "size_in": 8.0,
       "url": "https://loudspeakerdatabase.com/Markaudio/MA200-P%20MICA",
       "website_fields": {
+        "aliases": [],
         "brand": "Markaudio",
+        "datasheets": [
+          {
+            "confidence": 0.875,
+            "fetched_at": "2026-07-19T09:43:31+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/20-cm/ma200-p-mica/",
+            "sha256": "3250405f90f59b4ce712b8b31be7d62bc1004c5e4bd07c8943d2ab7b236d0468",
+            "url": "https://www.markaudio.com/wp-content/uploads/2026/03/MA200_P-MICA-30-Mar-2026-Sample-3-data.pdf"
+          }
+        ],
         "kind": "Fullrange",
         "lsdb_id": "6416",
         "model": "MA200-P MICA",
@@ -508418,9 +508429,4550 @@
         "title": "SICA 10 C 2 CP",
         "url": "https://loudspeakerdatabase.com/SICA/10%20C%202%20CP"
       }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 94.5428,
+        "le_mh": 0.0399,
+        "mms_g": 1.9328,
+        "pe_w": 5.0,
+        "qms": 2.301,
+        "qts": 0.4986,
+        "re_ohm": 3.4,
+        "sd_cm2": 28.0,
+        "vas_l": 1.7845,
+        "xmax_mm": 3.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 5.3",
+      "name": "PDF: Markaudio Alpair 5.3",
+      "raw": {
+        "fs_hz": 94.5428,
+        "mms_g": 1.9328,
+        "qes": 0.6366,
+        "qms": 2.301,
+        "qts": 0.4986,
+        "re_ohm": 3.4,
+        "sd_cm2": 28.0,
+        "vas_l": 1.7845
+      },
+      "size_in": null,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2019/06/Alpair-5-Gen-3-spec-sheet.pdf",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "datasheets": [
+          {
+            "confidence": 0.95,
+            "fetched_at": "2026-07-19T10:37:00+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/alpair/alpair-5-3/",
+            "sha256": "3698052539f6e466dc34eaee9d67a82110722da67cf7b3613bfc35dab18faf17",
+            "url": "https://www.markaudio.com/wp-content/uploads/2019/06/Alpair-5-Gen-3-spec-sheet.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:39:19+00:00",
+        "model": "Alpair 5.3",
+        "pdf_sha256": "3698052539f6e466dc34eaee9d67a82110722da67cf7b3613bfc35dab18faf17",
+        "product_title": "Alpair 5.3 | Markaudio",
+        "product_url": "https://www.markaudio.com/online_shop/alpair/alpair-5-3/",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "94.5428",
+            "unit": "Hz",
+            "value": 94.5428
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "1.9328",
+            "unit": "g",
+            "value": 1.9328
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.6366",
+            "unit": "",
+            "value": 0.6366
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "2.301",
+            "unit": "",
+            "value": 2.301
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.4986",
+            "unit": "",
+            "value": 0.4986
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "3.4000",
+            "unit": "Ohm",
+            "value": 3.4
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0028",
+            "unit": "m2",
+            "value": 28.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "1.7845",
+            "unit": "L",
+            "value": 1.7845
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "Alpair 5 G3-PDF",
+        "url": "https://www.markaudio.com/wp-content/uploads/2019/06/Alpair-5-Gen-3-spec-sheet.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 72.5494,
+        "le_mh": 0.0,
+        "mms_g": 3.839,
+        "pe_w": 20.0,
+        "qms": 3.1446,
+        "qts": 0.584,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.0,
+        "vas_l": 4.4227,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Pluvia 7.2 HD",
+      "name": "PDF: Markaudio Pluvia 7.2 HD",
+      "raw": {
+        "fs_hz": 72.5494,
+        "mms_g": 3.839,
+        "qes": 0.7173,
+        "qms": 3.1446,
+        "qts": 0.584,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.0,
+        "vas_l": 4.4227
+      },
+      "size_in": null,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2019/06/Pluvia-Seven-HD-gen-2-spec-sheet.pdf",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "datasheets": [
+          {
+            "confidence": 0.925,
+            "fetched_at": "2026-07-19T10:37:02+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/pluvia/pluvia-7-2-hd/",
+            "sha256": "f69dbb8b4dff98a6fbb042ad5dbce7638c89c51c7fd1b3df0b42e3498eaa2a5f",
+            "url": "https://www.markaudio.com/wp-content/uploads/2019/06/Pluvia-Seven-HD-gen-2-spec-sheet.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:39:22+00:00",
+        "model": "Pluvia 7.2 HD",
+        "pdf_sha256": "f69dbb8b4dff98a6fbb042ad5dbce7638c89c51c7fd1b3df0b42e3498eaa2a5f",
+        "product_title": "Pluvia 7.2 HD",
+        "product_url": "https://www.markaudio.com/online_shop/pluvia/pluvia-7-2-hd/",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "72.5494",
+            "unit": "Hz",
+            "value": 72.5494
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "3.8390",
+            "unit": "g",
+            "value": 3.839
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.7173",
+            "unit": "",
+            "value": 0.7173
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "3.1446",
+            "unit": "",
+            "value": 3.1446
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.584",
+            "unit": "",
+            "value": 0.584
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "5.4000",
+            "unit": "Ohm",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0050",
+            "unit": "m2",
+            "value": 50.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "4.4227",
+            "unit": "L",
+            "value": 4.4227
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "Pluvia Seven HD",
+        "url": "https://www.markaudio.com/wp-content/uploads/2019/06/Pluvia-Seven-HD-gen-2-spec-sheet.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 113.1594,
+        "le_mh": 0.06,
+        "mms_g": 2.0871,
+        "pe_w": 7.0,
+        "qms": 2.8318,
+        "qts": 0.5526,
+        "re_ohm": 3.4,
+        "sd_cm2": 28.0,
+        "vas_l": 1.0965,
+        "xmax_mm": 3.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "CHN-50",
+      "name": "PDF: Markaudio CHN-50",
+      "raw": {
+        "fs_hz": 113.1594,
+        "mms_g": 2.0871,
+        "qes": 0.6865,
+        "qms": 2.8318,
+        "qts": 0.5526,
+        "re_ohm": 3.4,
+        "sd_cm2": 28.0,
+        "vas_l": 1.0965
+      },
+      "size_in": 3.0,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2026/07/CHN50-word-R2.pdf",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "datasheets": [
+          {
+            "confidence": 0.95,
+            "fetched_at": "2026-07-19T10:37:04+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/ch/chn-50/",
+            "sha256": "9737777fbeea0f954acf4ad4a3162b0beda46e475774840127d48352338eed7d",
+            "url": "https://www.markaudio.com/wp-content/uploads/2026/07/CHN50-word-R2.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:39:26+00:00",
+        "model": "CHN-50",
+        "pdf_sha256": "9737777fbeea0f954acf4ad4a3162b0beda46e475774840127d48352338eed7d",
+        "product_title": "CHN-50 | Markaudio",
+        "product_url": "https://www.markaudio.com/online_shop/ch/chn-50/",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "113.1594",
+            "unit": "Hz",
+            "value": 113.1594
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "2.0871",
+            "unit": "g",
+            "value": 2.0871
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.6865",
+            "unit": "",
+            "value": 0.6865
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "2.8318",
+            "unit": "",
+            "value": 2.8318
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.5526",
+            "unit": "",
+            "value": 0.5526
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "3.4000",
+            "unit": "Ohm",
+            "value": 3.4
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0028",
+            "unit": "m2",
+            "value": 28.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "1.0965",
+            "unit": "L",
+            "value": 1.0965
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "markaudio.com CHN50-word-R2",
+        "url": "https://www.markaudio.com/wp-content/uploads/2026/07/CHN50-word-R2.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 2.9146,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 77.7903,
+        "le_mh": 0.0274,
+        "mms_g": 3.2888,
+        "pe_w": 15.0,
+        "qms": 2.7968,
+        "qts": 0.5355,
+        "re_ohm": 3.5,
+        "sd_cm2": 50.0,
+        "vas_l": 4.4905,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Pluvia 7 PHD",
+      "name": "PDF: Markaudio Pluvia 7 PHD",
+      "raw": {
+        "fs_hz": 77.7903,
+        "mms_g": 3.2888,
+        "qes": 0.6623,
+        "qms": 2.7968,
+        "qts": 0.5355,
+        "re_ohm": 3.5,
+        "sd_cm2": 50.0,
+        "vas_l": 4.4905
+      },
+      "size_in": null,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2019/06/Pluvia-Seven-PHD-spec-sheet.pdf",
+      "website_fields": {
+        "additional_sources": [
+          "https://www.markaudio.com/online_shop/archive/pluvia-7-phd/"
+        ],
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "datasheets": [
+          {
+            "confidence": 0.925,
+            "fetched_at": "2026-07-19T10:37:05+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/archive/pluvia-7-phd/",
+            "sha256": "697d6184b0a3f9eb6a34abe5a13c1bbd048a5ea6ee7ead3a727a0f4abfedc16a",
+            "url": "https://www.markaudio.com/wp-content/uploads/2019/06/Pluvia-Seven-PHD-spec-sheet.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:39:31+00:00",
+        "model": "Pluvia 7 PHD",
+        "pdf_sha256": "697d6184b0a3f9eb6a34abe5a13c1bbd048a5ea6ee7ead3a727a0f4abfedc16a",
+        "product_title": "Pluvia 7 PHD",
+        "product_url": "https://www.markaudio.com/online_shop/archive/pluvia-7-phd/",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "77.7903",
+            "unit": "Hz",
+            "value": 77.7903
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "3.2888",
+            "unit": "g",
+            "value": 3.2888
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.6623",
+            "unit": "",
+            "value": 0.6623
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "2.7968",
+            "unit": "",
+            "value": 2.7968
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.5355",
+            "unit": "",
+            "value": 0.5355
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "3.5000",
+            "unit": "Ohm",
+            "value": 3.5
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0050",
+            "unit": "m2",
+            "value": 50.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "4.4905",
+            "unit": "L",
+            "value": 4.4905
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "Pluvia Seven PHD",
+        "url": "https://www.markaudio.com/wp-content/uploads/2019/06/Pluvia-Seven-PHD-spec-sheet.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 44.1601,
+        "le_mh": 0.2771,
+        "mms_g": 8.77,
+        "pe_w": 45.0,
+        "qms": 2.86,
+        "qts": 0.4172,
+        "re_ohm": 6.8,
+        "sd_cm2": 109.0,
+        "vas_l": 24.7335,
+        "xmax_mm": 8.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "CHN-110",
+      "name": "PDF: Markaudio CHN-110",
+      "raw": {
+        "fs_hz": 44.1601,
+        "mms_g": 8.77,
+        "qes": 0.4884,
+        "qms": 2.86,
+        "qts": 0.4172,
+        "re_ohm": 6.8,
+        "sd_cm2": 109.0,
+        "vas_l": 24.7335
+      },
+      "size_in": null,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2019/12/CHN110.pdf",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "datasheets": [
+          {
+            "confidence": 0.875,
+            "fetched_at": "2026-07-19T09:39:43+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/ch/chn-110-2/",
+            "sha256": "4c1d3459886522da244ec81f2703671ec8f8ac652d06a1b2efc552d93e32af5e",
+            "url": "https://www.markaudio.com/wp-content/uploads/2019/12/CHN110-with-plans.pdf"
+          },
+          {
+            "confidence": 0.95,
+            "fetched_at": "2026-07-19T10:37:13+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/ch/chn-110-2/",
+            "sha256": "e683166450d7ccdf8d5eb47fa7b752a9b9cc2fc5d6e7348dcb72b8f1d7fff046",
+            "url": "https://www.markaudio.com/wp-content/uploads/2019/12/CHN110.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:39:41+00:00",
+        "model": "CHN-110",
+        "pdf_sha256": "e683166450d7ccdf8d5eb47fa7b752a9b9cc2fc5d6e7348dcb72b8f1d7fff046",
+        "product_title": "CHN-110",
+        "product_url": "https://www.markaudio.com/online_shop/ch/chn-110-2/",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "44.1601",
+            "unit": "Hz",
+            "value": 44.1601
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "8.7700",
+            "unit": "g",
+            "value": 8.77
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.4884",
+            "unit": "",
+            "value": 0.4884
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "2.86",
+            "unit": "",
+            "value": 2.86
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.4172",
+            "unit": "",
+            "value": 0.4172
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "6.8000",
+            "unit": "\u03a9",
+            "value": 6.8
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0109",
+            "unit": "m2",
+            "value": 109.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "24.7335",
+            "unit": "L",
+            "value": 24.7335
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "CHN110",
+        "url": "https://www.markaudio.com/wp-content/uploads/2019/12/CHN110.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 7.54,
+        "cms_mm_per_n": 1.396,
+        "fs_hz": 34.2417,
+        "le_mh": 0.053952,
+        "mms_g": 11.131,
+        "pe_w": 50.0,
+        "qms": 2.3823,
+        "qts": 0.3722,
+        "re_ohm": 7.2,
+        "sd_cm2": 147.0,
+        "vas_l": 58.8923,
+        "xmax_mm": 9.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "CHR-120",
+      "name": "PDF: Markaudio CHR-120",
+      "raw": {
+        "fs_hz": 34.2417,
+        "mms_g": 11.131,
+        "qes": 0.4411,
+        "qms": 2.3823,
+        "qts": 0.3722,
+        "re_ohm": 7.2,
+        "sd_cm2": 147.0,
+        "vas_l": 58.8923
+      },
+      "size_in": null,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2022/05/CHR120-1-5-May-2022.pdf",
+      "website_fields": {
+        "additional_sources": [
+          "https://www.markaudio.com/online_shop/ch/chr-120/"
+        ],
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "datasheets": [
+          {
+            "confidence": 0.95,
+            "fetched_at": "2026-07-19T10:37:15+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/ch/chr-120/",
+            "sha256": "e3a11515617d2b1c8c666b764897afb017a26595c478bd5cb54ea908d1dc4cca",
+            "url": "https://www.markaudio.com/wp-content/uploads/2022/05/CHR120-1-5-May-2022.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:39:48+00:00",
+        "model": "CHR-120",
+        "pdf_sha256": "e3a11515617d2b1c8c666b764897afb017a26595c478bd5cb54ea908d1dc4cca",
+        "product_title": "CHR-120 | Markaudio",
+        "product_url": "https://www.markaudio.com/online_shop/ch/chr-120/",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "34.2417",
+            "unit": "Hz",
+            "value": 34.2417
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "11.1310",
+            "unit": "g",
+            "value": 11.131
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.4411",
+            "unit": "",
+            "value": 0.4411
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "2.3823",
+            "unit": "",
+            "value": 2.3823
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.3722",
+            "unit": "",
+            "value": 0.3722
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "7.2000",
+            "unit": "\u03a9",
+            "value": 7.2
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0147",
+            "unit": "m2",
+            "value": 147.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "58.8923",
+            "unit": "L",
+            "value": 58.8923
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "markaudio.com CHR120-1-5-May-2022",
+        "url": "https://www.markaudio.com/wp-content/uploads/2022/05/CHR120-1-5-May-2022.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 4.726,
+        "cms_mm_per_n": 1.396,
+        "fs_hz": 44.3,
+        "le_mh": 0.053952,
+        "mms_g": 4.9661,
+        "pe_w": 40.0,
+        "qms": 2.4647,
+        "qts": 0.3598,
+        "re_ohm": 6.8,
+        "sd_cm2": 85.0,
+        "vas_l": 26.0,
+        "xmax_mm": 7.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "CHR90",
+      "name": "PDF: Markaudio CHR90",
+      "raw": {
+        "bl_tm": 4.726,
+        "fs_hz": 44.3,
+        "mms_g": 4.9661,
+        "qes": 0.4212,
+        "qms": 2.4647,
+        "qts": 0.3598,
+        "re_ohm": 6.8,
+        "sd_cm2": 85.0,
+        "vas_l": 26.0
+      },
+      "size_in": null,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2022/05/CHR90-1-5-May-2022.pdf",
+      "website_fields": {
+        "additional_sources": [
+          "https://www.markaudio.com/online_shop/ch/chr-90/"
+        ],
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.9,
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-19T10:37:19+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/ch/chr-90/",
+            "sha256": "57e4be3b6b90e5b14874346cd2ae8ad3ff384e5b39f7092095cd84a5743ab770",
+            "url": "https://www.markaudio.com/wp-content/uploads/2022/05/CHR90-1-5-May-2022.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:39:57+00:00",
+        "model": "CHR90",
+        "pdf_sha256": "57e4be3b6b90e5b14874346cd2ae8ad3ff384e5b39f7092095cd84a5743ab770",
+        "product_title": "CHR90 | Markaudio",
+        "product_url": "https://www.markaudio.com/online_shop/ch/chr-90/",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "pdf.text",
+            "raw_value": "4.7260",
+            "unit": "",
+            "value": 4.726
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "44.3",
+            "unit": "Hz",
+            "value": 44.3
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "4.9661",
+            "unit": "g",
+            "value": 4.9661
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.4212",
+            "unit": "",
+            "value": 0.4212
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "2.4647",
+            "unit": "",
+            "value": 2.4647
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.3598",
+            "unit": "",
+            "value": 0.3598
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "6.8000",
+            "unit": "\u03a9",
+            "value": 6.8
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0085",
+            "unit": "m2",
+            "value": 85.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "+26",
+            "unit": "Litres",
+            "value": 26.0
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "markaudio.com CHR90-1-5-May-2022",
+        "url": "https://www.markaudio.com/wp-content/uploads/2022/05/CHR90-1-5-May-2022.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 7.54,
+        "cms_mm_per_n": 1.396,
+        "fs_hz": 97.4826,
+        "le_mh": 0.053952,
+        "mms_g": 1.6942,
+        "pe_w": 7.0,
+        "qms": 3.7689,
+        "qts": 0.6429,
+        "re_ohm": 6.8,
+        "sd_cm2": 23.0,
+        "vas_l": 1.1523,
+        "xmax_mm": 3.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "CHN40",
+      "name": "PDF: Markaudio CHN40",
+      "raw": {
+        "fs_hz": 97.4826,
+        "mms_g": 1.6942,
+        "qes": 0.7752,
+        "qms": 3.7689,
+        "qts": 0.6429,
+        "re_ohm": 6.8,
+        "sd_cm2": 23.0,
+        "vas_l": 1.1523
+      },
+      "size_in": 2.5,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2021/11/CHN40-word-Final-2-Nov-2021.pdf",
+      "website_fields": {
+        "additional_sources": [
+          "https://www.markaudio.com/online_shop/ch/chn-40/"
+        ],
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "datasheets": [
+          {
+            "confidence": 0.95,
+            "fetched_at": "2026-07-19T10:37:21+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/ch/chn-40/",
+            "sha256": "856daa8a8e22103f240ccecf53e21a767575bf88bfcafa922e4c4ff6e3277101",
+            "url": "https://www.markaudio.com/wp-content/uploads/2021/11/CHN40-word-Final-2-Nov-2021.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:40:02+00:00",
+        "model": "CHN40",
+        "pdf_sha256": "856daa8a8e22103f240ccecf53e21a767575bf88bfcafa922e4c4ff6e3277101",
+        "product_title": "CHN40 | Markaudio",
+        "product_url": "https://www.markaudio.com/online_shop/ch/chn-40/",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "97.4826",
+            "unit": "Hz",
+            "value": 97.4826
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "1.6942",
+            "unit": "g",
+            "value": 1.6942
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.7752",
+            "unit": "",
+            "value": 0.7752
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "3.7689",
+            "unit": "",
+            "value": 3.7689
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.6429",
+            "unit": "",
+            "value": 0.6429
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "6.8000",
+            "unit": "Ohm",
+            "value": 6.8
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0023",
+            "unit": "m2",
+            "value": 23.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "1.1523",
+            "unit": "L",
+            "value": 1.1523
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "markaudio.com CHN40-word-Final-2-Nov-2021",
+        "url": "https://www.markaudio.com/wp-content/uploads/2021/11/CHN40-word-Final-2-Nov-2021.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 7.54,
+        "cms_mm_per_n": 1.396,
+        "fs_hz": 48.53,
+        "le_mh": 0.053952,
+        "mms_g": 5.4051,
+        "pe_w": 40.0,
+        "qms": 2.2008,
+        "qts": 0.3635,
+        "re_ohm": 6.2,
+        "sd_cm2": 85.0,
+        "vas_l": 20.0,
+        "xmax_mm": 7.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "CHP-90 MICA",
+      "name": "PDF: Markaudio CHP-90 MICA",
+      "raw": {
+        "fs_hz": 48.53,
+        "mms_g": 5.4051,
+        "qes": 0.4354,
+        "qms": 2.2008,
+        "qts": 0.3635,
+        "re_ohm": 6.2,
+        "sd_cm2": 85.0,
+        "vas_l": 20.0
+      },
+      "size_in": null,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2025/09/CHP90-MICA-word-with-default-data-set-10-Sept-2025.pdf",
+      "website_fields": {
+        "additional_sources": [
+          "https://www.markaudio.com/online_shop/ch/chp-90-mica/"
+        ],
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "datasheets": [
+          {
+            "confidence": 0.95,
+            "fetched_at": "2026-07-19T10:37:23+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/ch/chp-90-mica/",
+            "sha256": "7b2f3028b12306ccf3bf66d0e0a3ea59d74212d152c98ba9a5da08d6990958f5",
+            "url": "https://www.markaudio.com/wp-content/uploads/2025/09/CHP90-MICA-word-with-default-data-set-10-Sept-2025.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:40:05+00:00",
+        "model": "CHP-90 MICA",
+        "pdf_sha256": "7b2f3028b12306ccf3bf66d0e0a3ea59d74212d152c98ba9a5da08d6990958f5",
+        "product_title": "CHP-90 MICA",
+        "product_url": "https://www.markaudio.com/online_shop/ch/chp-90-mica/",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "48.53",
+            "unit": "Hz",
+            "value": 48.53
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "5.4051",
+            "unit": "g",
+            "value": 5.4051
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.4354",
+            "unit": "",
+            "value": 0.4354
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "2.2008",
+            "unit": "",
+            "value": 2.2008
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.3635",
+            "unit": "",
+            "value": 0.3635
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "6.2000",
+            "unit": "Ohm",
+            "value": 6.2
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0085",
+            "unit": "m2",
+            "value": 85.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "+20",
+            "unit": "Litres",
+            "value": 20.0
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "markaudio.com CHP90-MICA-word-with-default-data-set-10-Sept-2025",
+        "url": "https://www.markaudio.com/wp-content/uploads/2025/09/CHP90-MICA-word-with-default-data-set-10-Sept-2025.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 126.2361,
+        "le_mh": 0.0,
+        "mms_g": 1.4224,
+        "pe_w": 7.0,
+        "qms": 2.723,
+        "qts": 0.5621,
+        "re_ohm": 3.3,
+        "sd_cm2": 28.0,
+        "vas_l": 1.24,
+        "xmax_mm": 3.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "CHN-50P MICA",
+      "name": "PDF: Markaudio CHN-50P MICA",
+      "raw": {
+        "fs_hz": 126.2361,
+        "mms_g": 1.4224,
+        "qes": 0.7084,
+        "qms": 2.723,
+        "qts": 0.5621,
+        "re_ohm": 3.3,
+        "sd_cm2": 28.0,
+        "vas_l": 1.24
+      },
+      "size_in": 3.0,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2025/09/CHN50P-MICA-word-10-Sept-2025-r1.pdf",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "datasheets": [
+          {
+            "confidence": 0.925,
+            "fetched_at": "2026-07-19T10:37:29+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/ch/chn-50p-mica/",
+            "sha256": "cfd0563a075ddf7912a3cd76fd975ca779a054431605879566eea2f6ff6a2aff",
+            "url": "https://www.markaudio.com/wp-content/uploads/2025/09/CHN50P-MICA-word-10-Sept-2025-r1.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:42:58+00:00",
+        "model": "CHN-50P MICA",
+        "pdf_sha256": "cfd0563a075ddf7912a3cd76fd975ca779a054431605879566eea2f6ff6a2aff",
+        "product_title": "CHN-50P MICA | Markaudio",
+        "product_url": "https://www.markaudio.com/online_shop/ch/chn-50p-mica/",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "126.2361",
+            "unit": "Hz",
+            "value": 126.2361
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "1.4224",
+            "unit": "g",
+            "value": 1.4224
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.7084",
+            "unit": "",
+            "value": 0.7084
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "2.723",
+            "unit": "",
+            "value": 2.723
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.5621",
+            "unit": "",
+            "value": 0.5621
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "3.3000",
+            "unit": "Ohm",
+            "value": 3.3
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0028",
+            "unit": "m2",
+            "value": 28.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "+1.24",
+            "unit": "Litres",
+            "value": 1.24
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "Markaudio CHN50P-MICA-word-10-Sept-2025-r1",
+        "url": "https://www.markaudio.com/wp-content/uploads/2025/09/CHN50P-MICA-word-10-Sept-2025-r1.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 8.546,
+        "cms_mm_per_n": 1.468,
+        "fs_hz": 33.0003,
+        "le_mh": 0.0493,
+        "mms_g": 21.1652,
+        "pe_w": 50.0,
+        "qms": 2.239,
+        "qts": 0.3455,
+        "re_ohm": 6.8,
+        "sd_cm2": 206.0,
+        "vas_l": 65.1957,
+        "xmax_mm": 9.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "MA200-M Multi Midnight Copper",
+      "name": "PDF: Markaudio MA200-M Multi Midnight Copper",
+      "raw": {
+        "fs_hz": 33.0003,
+        "mms_g": 21.1652,
+        "qes": 0.4086,
+        "qms": 2.239,
+        "qts": 0.3455,
+        "re_ohm": 6.8,
+        "sd_cm2": 206.0,
+        "vas_l": 65.1957
+      },
+      "size_in": null,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2024/08/MA200_M-Multi-FINAL-25-Jul-2024-50-cm-measurement-distance.pdf",
+      "website_fields": {
+        "additional_sources": [
+          "https://www.markaudio.com/online_shop/20-cm/ma200-m-multi-midnight-copper/"
+        ],
+        "aliases": [
+          "MA200-M Multi Stealth Grey"
+        ],
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "datasheets": [
+          {
+            "confidence": 0.875,
+            "fetched_at": "2026-07-19T09:43:15+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/20-cm/ma200-m-multi-stealth-grey/",
+            "sha256": "b27e0e9b35a62e676a26f087d5b253fc1f2586e59ccde2dbcb3c11cf8bfbb310",
+            "url": "https://www.markaudio.com/wp-content/uploads/2024/12/MA200_M-Multi-Grey-6-Dec-2024-50-cm-measurement-distance.pdf"
+          },
+          {
+            "confidence": 0.95,
+            "fetched_at": "2026-07-19T10:37:30+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/20-cm/ma200-m-multi-midnight-copper/",
+            "sha256": "e9a4b965eec3c3f9ec13e903ea1118d97328a03548764fbe7ffcf07ae6622c11",
+            "url": "https://www.markaudio.com/wp-content/uploads/2024/08/MA200_M-Multi-FINAL-25-Jul-2024-50-cm-measurement-distance.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:43:03+00:00",
+        "model": "MA200-M Multi Midnight Copper",
+        "pdf_sha256": "e9a4b965eec3c3f9ec13e903ea1118d97328a03548764fbe7ffcf07ae6622c11",
+        "product_title": "MA200-M Multi Midnight Copper | Markaudio",
+        "product_url": "https://www.markaudio.com/online_shop/20-cm/ma200-m-multi-midnight-copper/",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "33.0003",
+            "unit": "Hz",
+            "value": 33.0003
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "21.1652",
+            "unit": "g",
+            "value": 21.1652
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.4086",
+            "unit": "",
+            "value": 0.4086
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "2.239",
+            "unit": "",
+            "value": 2.239
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.3455",
+            "unit": "",
+            "value": 0.3455
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "6.80",
+            "unit": "ohms",
+            "value": 6.8
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0206",
+            "unit": "m2",
+            "value": 206.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "65.1957",
+            "unit": "L",
+            "value": 65.1957
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "Markaudio MA200_M-Multi-FINAL-25-Jul-2024-50-cm-measurement-distance",
+        "url": "https://www.markaudio.com/wp-content/uploads/2024/08/MA200_M-Multi-FINAL-25-Jul-2024-50-cm-measurement-distance.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.0616,
+        "cms_mm_per_n": 1.468,
+        "fs_hz": 106.691,
+        "le_mh": 0.0493,
+        "mms_g": 1.3944,
+        "pe_w": 7.0,
+        "qms": 2.8554,
+        "qts": 0.548,
+        "re_ohm": 6.8,
+        "sd_cm2": 23.0,
+        "vas_l": 1.168,
+        "xmax_mm": 3.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "CHN40P MICA",
+      "name": "PDF: Markaudio CHN40P MICA",
+      "raw": {
+        "fs_hz": 106.691,
+        "mms_g": 1.3944,
+        "qes": 0.6781,
+        "qms": 2.8554,
+        "qts": 0.548,
+        "re_ohm": 6.8,
+        "sd_cm2": 23.0,
+        "vas_l": 1.168
+      },
+      "size_in": null,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2025/09/CHN40P-MICA-word-FINAL-25-Jul-2024.pdf",
+      "website_fields": {
+        "additional_sources": [
+          "https://www.markaudio.com/online_shop/ch/chn40p-mica/"
+        ],
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "datasheets": [
+          {
+            "confidence": 0.95,
+            "fetched_at": "2026-07-19T10:37:32+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/ch/chn40p-mica/",
+            "sha256": "fe4f7031cc9cd20b0262c242a19668f507897702e6d2e27569d42de51d1707a9",
+            "url": "https://www.markaudio.com/wp-content/uploads/2025/09/CHN40P-MICA-word-FINAL-25-Jul-2024.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:43:07+00:00",
+        "model": "CHN40P MICA",
+        "pdf_sha256": "fe4f7031cc9cd20b0262c242a19668f507897702e6d2e27569d42de51d1707a9",
+        "product_title": "CHN40P MICA | Markaudio",
+        "product_url": "https://www.markaudio.com/online_shop/ch/chn40p-mica/",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "106.6910",
+            "unit": "Hz",
+            "value": 106.691
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "1.3944",
+            "unit": "g",
+            "value": 1.3944
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.6781",
+            "unit": "",
+            "value": 0.6781
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "2.8554",
+            "unit": "",
+            "value": 2.8554
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.548",
+            "unit": "",
+            "value": 0.548
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "6.8000",
+            "unit": "Ohm",
+            "value": 6.8
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0023",
+            "unit": "m2",
+            "value": 23.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "+1.168",
+            "unit": "Litres",
+            "value": 1.168
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "Markaudio CHN40P-MICA-word-FINAL-25-Jul-2024",
+        "url": "https://www.markaudio.com/wp-content/uploads/2025/09/CHN40P-MICA-word-FINAL-25-Jul-2024.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.9577,
+        "cms_mm_per_n": 1.468,
+        "fs_hz": 68.4996,
+        "le_mh": 0.0493,
+        "mms_g": 4.0311,
+        "pe_w": 20.0,
+        "qms": 2.9476,
+        "qts": 0.4972,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.0,
+        "vas_l": 4.7247,
+        "xmax_mm": 4.3
+      },
+      "kind": "Loudspeaker driver",
+      "model": "CHN-719",
+      "name": "PDF: Markaudio CHN-719",
+      "raw": {
+        "fs_hz": 68.4996,
+        "mms_g": 4.0311,
+        "qes": 0.5981,
+        "qms": 2.9476,
+        "qts": 0.4972,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.0,
+        "vas_l": 4.7247
+      },
+      "size_in": null,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2024/10/CHN719-spec-final-24-Oct-2024.pdf",
+      "website_fields": {
+        "additional_sources": [
+          "https://www.markaudio.com/online_shop/ch/chn-719/"
+        ],
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "datasheets": [
+          {
+            "confidence": 0.95,
+            "fetched_at": "2026-07-19T10:37:34+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/ch/chn-719/",
+            "sha256": "e970375cd0a549432346db741d96425e24d1ed96b0fae4328b93cb496373a362",
+            "url": "https://www.markaudio.com/wp-content/uploads/2024/10/CHN719-spec-final-24-Oct-2024.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:43:11+00:00",
+        "model": "CHN-719",
+        "pdf_sha256": "e970375cd0a549432346db741d96425e24d1ed96b0fae4328b93cb496373a362",
+        "product_title": "CHN-719 | Markaudio",
+        "product_url": "https://www.markaudio.com/online_shop/ch/chn-719/",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "68.4996",
+            "unit": "Hz",
+            "value": 68.4996
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "4.0311",
+            "unit": "g",
+            "value": 4.0311
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.5981",
+            "unit": "",
+            "value": 0.5981
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "2.9476",
+            "unit": "",
+            "value": 2.9476
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.4972",
+            "unit": "",
+            "value": 0.4972
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "5.4",
+            "unit": "Ohm",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0050",
+            "unit": "m2",
+            "value": 50.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "4.7247",
+            "unit": "L",
+            "value": 4.7247
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "Markaudio CHN719-spec-final-24-Oct-2024",
+        "url": "https://www.markaudio.com/wp-content/uploads/2024/10/CHN719-spec-final-24-Oct-2024.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.2386,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 72.2524,
+        "le_mh": 0.0274,
+        "mms_g": 3.839,
+        "pe_w": 20.0,
+        "qms": 3.3897,
+        "qts": 0.472,
+        "re_ohm": 3.3,
+        "sd_cm2": 50.0,
+        "vas_l": 4.5,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Pluvia 7 P MICA",
+      "name": "PDF: Markaudio Pluvia 7 P MICA",
+      "raw": {
+        "bl_tm": 3.2386,
+        "fs_hz": 72.2524,
+        "mms_g": 3.839,
+        "qes": 0.5483,
+        "qms": 3.3897,
+        "qts": 0.472,
+        "re_ohm": 3.3,
+        "sd_cm2": 50.0,
+        "vas_l": 4.5
+      },
+      "size_in": null,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2026/01/Pluvia-7-P-MICA-word-data-set-3-Dec-2025.pdf",
+      "website_fields": {
+        "additional_sources": [
+          "https://www.markaudio.com/online_shop/pluvia/pluvia-7-p-mica/"
+        ],
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.9,
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-19T10:37:42+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/pluvia/pluvia-7-p-mica/",
+            "sha256": "ffc4e70ca0d75257789f2c280bb47ad7486313e48a1c6397b2beb519997b94b2",
+            "url": "https://www.markaudio.com/wp-content/uploads/2026/01/Pluvia-7-P-MICA-word-data-set-3-Dec-2025.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:43:23+00:00",
+        "model": "Pluvia 7 P MICA",
+        "pdf_sha256": "ffc4e70ca0d75257789f2c280bb47ad7486313e48a1c6397b2beb519997b94b2",
+        "product_title": "Pluvia 7 P MICA | Markaudio",
+        "product_url": "https://www.markaudio.com/online_shop/pluvia/pluvia-7-p-mica/",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "pdf.text",
+            "raw_value": "3.2386",
+            "unit": "",
+            "value": 3.2386
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "72.2524",
+            "unit": "Hz",
+            "value": 72.2524
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "3.8390",
+            "unit": "g",
+            "value": 3.839
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.5483",
+            "unit": "",
+            "value": 0.5483
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "3.3897",
+            "unit": "",
+            "value": 3.3897
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.472",
+            "unit": "",
+            "value": 0.472
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "3.3",
+            "unit": "ohms",
+            "value": 3.3
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0050",
+            "unit": "m2",
+            "value": 50.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "+4.5",
+            "unit": "Liters",
+            "value": 4.5
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "Markaudio Pluvia-7-P-MICA-word-data-set-3-Dec-2025",
+        "url": "https://www.markaudio.com/wp-content/uploads/2026/01/Pluvia-7-P-MICA-word-data-set-3-Dec-2025.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 2.6966,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 104.5246,
+        "le_mh": 0.0452,
+        "mms_g": 2.2159,
+        "pe_w": 7.0,
+        "qms": 2.7967,
+        "qts": 0.5473,
+        "re_ohm": 3.4,
+        "sd_cm2": 28.0,
+        "vas_l": 1.168,
+        "xmax_mm": 3.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 5G",
+      "name": "PDF: Markaudio Alpair 5G",
+      "raw": {
+        "bl_tm": 2.6966,
+        "fs_hz": 104.5246,
+        "mms_g": 2.2159,
+        "qes": 0.6805,
+        "qms": 2.7967,
+        "qts": 0.5473,
+        "re_ohm": 3.4,
+        "sd_cm2": 28.0,
+        "vas_l": 1.168
+      },
+      "size_in": null,
+      "source": "Manufacturer datasheet",
+      "url": "https://www.markaudio.com/wp-content/uploads/2026/01/Alpair-5-G-PDF-31-Dec-2025-7-Watt.pdf",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.9,
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-19T10:37:44+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/alpair/alpair-5g/",
+            "sha256": "8d776d0c57b430089c029780e0e99e22480abc40407cb13200cb18136ba7fcd6",
+            "url": "https://www.markaudio.com/wp-content/uploads/2026/01/Alpair-5-G-PDF-31-Dec-2025-7-Watt.pdf"
+          }
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-07-19T09:43:27+00:00",
+        "model": "Alpair 5G",
+        "pdf_sha256": "8d776d0c57b430089c029780e0e99e22480abc40407cb13200cb18136ba7fcd6",
+        "product_title": "Alpair 5G | Markaudio",
+        "product_url": "https://www.markaudio.com/online_shop/alpair/alpair-5g/",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "pdf.text",
+            "raw_value": "2.6966",
+            "unit": "",
+            "value": 2.6966
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "pdf.text",
+            "raw_value": "104.5246",
+            "unit": "Hz",
+            "value": 104.5246
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "pdf.text",
+            "raw_value": "2.2159",
+            "unit": "g",
+            "value": 2.2159
+          },
+          "qes": {
+            "label": "QES",
+            "method": "pdf.text",
+            "raw_value": "0.6805",
+            "unit": "",
+            "value": 0.6805
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "pdf.text",
+            "raw_value": "2.7967",
+            "unit": "",
+            "value": 2.7967
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "pdf.text",
+            "raw_value": "0.5473",
+            "unit": "",
+            "value": 0.5473
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "pdf.text",
+            "raw_value": "3.4",
+            "unit": "ohms",
+            "value": 3.4
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "pdf.text",
+            "raw_value": "0.0028",
+            "unit": "m2",
+            "value": 28.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "pdf.text",
+            "raw_value": "1.1680",
+            "unit": "L",
+            "value": 1.168
+          }
+        },
+        "source": "Manufacturer datasheet",
+        "title": "Markaudio Alpair-5-G-PDF-31-Dec-2025-7-Watt",
+        "url": "https://www.markaudio.com/wp-content/uploads/2026/01/Alpair-5-G-PDF-31-Dec-2025-7-Watt.pdf"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 2.81,
+        "cms_mm_per_n": 0.00258,
+        "fs_hz": 63.0,
+        "le_mh": 0.1287,
+        "mms_g": 2.48,
+        "pe_w": 0.0,
+        "qms": 2.76,
+        "qts": 0.38,
+        "re_ohm": 3.6,
+        "sd_cm2": 36.3,
+        "vas_l": 4.8,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 6.2",
+      "name": "WEB: Markaudio Alpair 6.2",
+      "raw": {
+        "bl_tm": 2.81,
+        "cms_mm_per_n": 0.0025800000000000003,
+        "fs_hz": 63.0,
+        "le_mh": 0.12869999999999998,
+        "mms_g": 2.48,
+        "qes": 0.45,
+        "qms": 2.76,
+        "qts": 0.38,
+        "re_ohm": 3.6,
+        "sd_cm2": 36.3,
+        "vas_l": 4.8
+      },
+      "size_in": 2.0,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-6-2/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:52:23+00:00",
+        "model": "Alpair 6.2",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "2.81",
+            "unit": "T\u00b7M",
+            "value": 2.81
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "2.58",
+            "unit": "\u00b5M/N",
+            "value": 0.0025800000000000003
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "63",
+            "unit": "Hz",
+            "value": 63.0
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "128.7",
+            "unit": "\u00b5H",
+            "value": 0.12869999999999998
+          },
+          "mms_g": {
+            "label": "MMD",
+            "method": "html.text",
+            "raw_value": "2.48",
+            "unit": "g",
+            "value": 2.48
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.45",
+            "unit": "",
+            "value": 0.45
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "2.76",
+            "unit": "",
+            "value": 2.76
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.38",
+            "unit": "L",
+            "value": 0.38
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "3.6",
+            "unit": "Ohm",
+            "value": 3.6
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "36.3",
+            "unit": "Cm\u00b2",
+            "value": 36.3
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "4.8",
+            "unit": "L",
+            "value": 4.8
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "Alpair 6.2 | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-6-2/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.83,
+        "cms_mm_per_n": 0.00127,
+        "fs_hz": 70.9,
+        "le_mh": 0.0213,
+        "mms_g": 3.74,
+        "pe_w": 20.0,
+        "qms": 3.07,
+        "qts": 0.54,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.2,
+        "vas_l": 4.58,
+        "xmax_mm": 4.2
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 7.3",
+      "name": "WEB: Markaudio Alpair 7.3",
+      "raw": {
+        "bl_tm": 3.83,
+        "cms_mm_per_n": 0.00127,
+        "fs_hz": 70.9,
+        "le_mh": 0.0213,
+        "mms_g": 3.74,
+        "qes": 0.65,
+        "qms": 3.07,
+        "qts": 0.54,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.199999999999996,
+        "vas_l": 4.58
+      },
+      "size_in": null,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-7-3/",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-19T10:36:09+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/archive/alpair-7-3/",
+            "sha256": "22f581c6389c1a6ac84ab59a896de3d874e305deba8cdb32565dd7894689e661",
+            "url": "https://www.markaudio.com/wp-content/uploads/2019/07/Alp7_Gen3-grey-info-sheet-Eng.pdf"
+          }
+        ],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:52:26+00:00",
+        "model": "Alpair 7.3",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "3.83",
+            "unit": "T*M",
+            "value": 3.83
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "1.27",
+            "unit": "uM/N",
+            "value": 0.00127
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "70.9",
+            "unit": "Hz",
+            "value": 70.9
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "21.3",
+            "unit": "uH",
+            "value": 0.0213
+          },
+          "mms_g": {
+            "label": "Mmd",
+            "method": "html.text",
+            "raw_value": "3.74",
+            "unit": "g",
+            "value": 3.74
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.65",
+            "unit": "",
+            "value": 0.65
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.07",
+            "unit": "",
+            "value": 3.07
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.54",
+            "unit": "L",
+            "value": 0.54
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohm",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "5.02",
+            "unit": "K mm/2",
+            "value": 50.199999999999996
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "4.58",
+            "unit": "L",
+            "value": 4.58
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "Alpair 7.3 | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-7-3/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 4.741,
+        "cms_mm_per_n": 2.701,
+        "fs_hz": 42.398,
+        "le_mh": 0.050196,
+        "mms_g": 4.719,
+        "pe_w": 0.0,
+        "qms": 2.425,
+        "qts": 0.33,
+        "re_ohm": 6.2,
+        "sd_cm2": 88.25,
+        "vas_l": 29.995,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 10P",
+      "name": "WEB: Markaudio Alpair 10P",
+      "raw": {
+        "bl_tm": 4.741,
+        "cms_mm_per_n": 2.701,
+        "fs_hz": 42.398,
+        "le_mh": 0.050196,
+        "mms_g": 4.719,
+        "qes": 0.382,
+        "qms": 2.425,
+        "qts": 0.33,
+        "re_ohm": 6.2,
+        "sd_cm2": 88.25,
+        "vas_l": 29.995
+      },
+      "size_in": 5.0,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-10p/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:52:31+00:00",
+        "model": "Alpair 10P",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "4.741",
+            "unit": "TM",
+            "value": 4.741
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "2.701",
+            "unit": "",
+            "value": 2.701
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "42.398",
+            "unit": "Hz",
+            "value": 42.398
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "50.196",
+            "unit": "uH",
+            "value": 0.050196
+          },
+          "mms_g": {
+            "label": "Mmd",
+            "method": "html.text",
+            "raw_value": "4.719",
+            "unit": "g",
+            "value": 4.719
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.382",
+            "unit": "",
+            "value": 0.382
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.425",
+            "unit": "",
+            "value": 2.425
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.330",
+            "unit": "L",
+            "value": 0.33
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "6.2",
+            "unit": "Ohm",
+            "value": 6.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "88.250",
+            "unit": "cm\u00b2",
+            "value": 88.25
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "29.995",
+            "unit": "L",
+            "value": 29.995
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "Alpair 10P",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-10p/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 7.54,
+        "cms_mm_per_n": 1.369,
+        "fs_hz": 42.149,
+        "le_mh": 0.053952,
+        "mms_g": 9.188,
+        "pe_w": 30.0,
+        "qms": 1.981,
+        "qts": 0.285,
+        "re_ohm": 7.0,
+        "sd_cm2": 147.41,
+        "vas_l": 43.06,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 12P",
+      "name": "WEB: Markaudio Alpair 12P",
+      "raw": {
+        "bl_tm": 7.54,
+        "cms_mm_per_n": 1.369,
+        "fs_hz": 42.149,
+        "le_mh": 0.053952,
+        "mms_g": 9.188,
+        "pe_w": 30.0,
+        "qes": 0.333,
+        "qms": 1.981,
+        "qts": 0.285,
+        "re_ohm": 7.0,
+        "sd_cm2": 147.41,
+        "vas_l": 43.06
+      },
+      "size_in": 7.0,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/alpair/alpair-12p-single-driver/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.975,
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:52:33+00:00",
+        "model": "Alpair 12P",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "7.540",
+            "unit": "",
+            "value": 7.54
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "1.369",
+            "unit": "",
+            "value": 1.369
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "42.149",
+            "unit": "",
+            "value": 42.149
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "53.952",
+            "unit": "uH",
+            "value": 0.053952
+          },
+          "mms_g": {
+            "label": "MMD",
+            "method": "html.text",
+            "raw_value": "9.188",
+            "unit": "g",
+            "value": 9.188
+          },
+          "pe_w": {
+            "label": "power handling",
+            "method": "html.text",
+            "raw_value": "30",
+            "unit": "Watts",
+            "value": 30.0
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.333",
+            "unit": "",
+            "value": 0.333
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "1.981",
+            "unit": "",
+            "value": 1.981
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.285",
+            "unit": "L",
+            "value": 0.285
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "7",
+            "unit": "Ohms",
+            "value": 7.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "147.410",
+            "unit": "cm\u00b2",
+            "value": 147.41
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "43.060",
+            "unit": "L",
+            "value": 43.06
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "Alpair 12P",
+        "url": "https://www.markaudio.com/online_shop/alpair/alpair-12p-single-driver/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 6.556,
+        "cms_mm_per_n": 1.457,
+        "fs_hz": 39.118,
+        "le_mh": 0.06855,
+        "mms_g": 11.358,
+        "pe_w": 0.0,
+        "qms": 1.797,
+        "qts": 0.293,
+        "re_ohm": 5.4,
+        "sd_cm2": 109.359,
+        "vas_l": 24.751,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Pluvia 11",
+      "name": "WEB: Markaudio Pluvia 11",
+      "raw": {
+        "bl_tm": 6.556,
+        "cms_mm_per_n": 1.457,
+        "fs_hz": 39.118,
+        "le_mh": 0.06855,
+        "mms_g": 11.358,
+        "qes": 0.351,
+        "qms": 1.797,
+        "qts": 0.293,
+        "re_ohm": 5.4,
+        "sd_cm2": 109.359,
+        "vas_l": 24.751
+      },
+      "size_in": 4.0,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/pluvia/pluvia-11-soft-chrome-vintage-gold-single-driver/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:52:36+00:00",
+        "model": "Pluvia 11",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "6.556",
+            "unit": "TM",
+            "value": 6.556
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "1.457",
+            "unit": "",
+            "value": 1.457
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "39.118",
+            "unit": "",
+            "value": 39.118
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "68.550",
+            "unit": "uH",
+            "value": 0.06855
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "html.text",
+            "raw_value": "11.358",
+            "unit": "g",
+            "value": 11.358
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": ".351",
+            "unit": "",
+            "value": 0.351
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "1.797",
+            "unit": "",
+            "value": 1.797
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": ".293",
+            "unit": "L",
+            "value": 0.293
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohms",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "109.359",
+            "unit": "cm\u00b2",
+            "value": 109.359
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "html.text",
+            "raw_value": "24.751",
+            "unit": "l",
+            "value": 24.751
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "Pluvia 11 | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/pluvia/pluvia-11-soft-chrome-vintage-gold-single-driver/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 4.2,
+        "cms_mm_per_n": 0.00144,
+        "fs_hz": 65.4,
+        "le_mh": 0.03244,
+        "mms_g": 3.9,
+        "pe_w": 20.0,
+        "qms": 2.66,
+        "qts": 0.55,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.2,
+        "vas_l": 5.17,
+        "xmax_mm": 4.3
+      },
+      "kind": "Loudspeaker driver",
+      "model": "CHR-70",
+      "name": "WEB: Markaudio CHR-70",
+      "raw": {
+        "bl_tm": 4.2,
+        "cms_mm_per_n": 0.0014399999999999999,
+        "fs_hz": 65.4,
+        "le_mh": 0.03244,
+        "mms_g": 3.9,
+        "qes": 0.69,
+        "qms": 2.66,
+        "qts": 0.55,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.199999999999996,
+        "vas_l": 5.17
+      },
+      "size_in": 4.0,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/ch/chr-70/",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-19T10:36:34+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/ch/chr-70/",
+            "sha256": "c4eddefb35f92bcf2a6c3aa196de2620f8f83aa33e3dbc344a18f4d6161079b0",
+            "url": "https://www.kjfaudio.com/wp-content/uploads/2016/12/CHR-70A_Gen.3_champ_Eng.pdf"
+          }
+        ],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:52:37+00:00",
+        "model": "CHR-70",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "4.20",
+            "unit": "T*M",
+            "value": 4.2
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "1.44",
+            "unit": "uM/N",
+            "value": 0.0014399999999999999
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "65.4",
+            "unit": "Hz",
+            "value": 65.4
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "32.44",
+            "unit": "uH",
+            "value": 0.03244
+          },
+          "mms_g": {
+            "label": "Mmd",
+            "method": "html.text",
+            "raw_value": "3.90",
+            "unit": "g",
+            "value": 3.9
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.69",
+            "unit": "",
+            "value": 0.69
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.66",
+            "unit": "",
+            "value": 2.66
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.55",
+            "unit": "L",
+            "value": 0.55
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "7.2",
+            "unit": "Ohm",
+            "value": 7.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "5.02",
+            "unit": "K mm/2",
+            "value": 50.199999999999996
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "5.17",
+            "unit": "L",
+            "value": 5.17
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "CHR-70",
+        "url": "https://www.markaudio.com/online_shop/ch/chr-70/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.968,
+        "cms_mm_per_n": 1.545,
+        "fs_hz": 67.863,
+        "le_mh": 35.057,
+        "mms_g": 3.561,
+        "pe_w": 22.0,
+        "qms": 2.391,
+        "qts": 0.538,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.27,
+        "vas_l": 5.543,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Pluvia 7",
+      "name": "WEB: Markaudio Pluvia 7",
+      "raw": {
+        "bl_tm": 3.968,
+        "cms_mm_per_n": 1.545,
+        "fs_hz": 67.863,
+        "le_mh": 35.057,
+        "mms_g": 3.561,
+        "qes": 0.695,
+        "qms": 2.391,
+        "qts": 0.538,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.27,
+        "vas_l": 5.543
+      },
+      "size_in": null,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/archive/pluvia-7-soft-chrome-vintage-gold-pair/",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-19T10:36:41+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/archive/pluvia-7-soft-chrome-vintage-gold-pair/",
+            "sha256": "bcc9b902c3c4a9ce335a9f623f151087d0d39a7b0ff9fbfdbcc95cc70ac4d7a6",
+            "url": "https://www.kjfaudio.com/wp-content/uploads/2016/11/Pluvia-Seven.pdf"
+          }
+        ],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:52:39+00:00",
+        "model": "Pluvia 7",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "3.968",
+            "unit": "TM",
+            "value": 3.968
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "1.545",
+            "unit": "",
+            "value": 1.545
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "67.863",
+            "unit": "Hz",
+            "value": 67.863
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "35.057",
+            "unit": "",
+            "value": 35.057
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "3.561",
+            "unit": "g",
+            "value": 3.561
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.695",
+            "unit": "",
+            "value": 0.695
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.391",
+            "unit": "",
+            "value": 2.391
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.538",
+            "unit": "L",
+            "value": 0.538
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "7.200",
+            "unit": "Ohm",
+            "value": 7.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "50.270",
+            "unit": "cm\u00b2",
+            "value": 50.27
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "5.543",
+            "unit": "L",
+            "value": 5.543
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "Pluvia 7",
+        "url": "https://www.markaudio.com/online_shop/archive/pluvia-7-soft-chrome-vintage-gold-pair/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.403,
+        "cms_mm_per_n": 1.479,
+        "fs_hz": 71.62,
+        "le_mh": 0.0,
+        "mms_g": 3.339,
+        "pe_w": 18.0,
+        "qms": 1.848,
+        "qts": 0.48,
+        "re_ohm": 5.0,
+        "sd_cm2": 50.27,
+        "vas_l": 5.31,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "CHN-70",
+      "name": "WEB: Markaudio CHN-70",
+      "raw": {
+        "bl_tm": 3.403,
+        "cms_mm_per_n": 1.479,
+        "fs_hz": 71.62,
+        "mms_g": 3.339,
+        "qes": 0.649,
+        "qms": 1.848,
+        "qts": 0.48,
+        "re_ohm": 5.0,
+        "sd_cm2": 50.27,
+        "vas_l": 5.31,
+        "xmax_mm": 4.0
+      },
+      "size_in": 4.0,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/archive/chn-70-paper-pair/",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-19T10:36:43+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/archive/chn-70-paper-pair/",
+            "sha256": "dd07ffed9695ba39401f6b990b7cb86f81a57703472b2cf94ee4a04de2a08cbf",
+            "url": "https://www.markaudio.com/wp-content/uploads/2019/07/CHN-70-gen1-Eng.pdf"
+          }
+        ],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:52:41+00:00",
+        "model": "CHN-70",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "3.403",
+            "unit": "TM",
+            "value": 3.403
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "1.479",
+            "unit": "",
+            "value": 1.479
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "71.62",
+            "unit": "",
+            "value": 71.62
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "3.339",
+            "unit": "g",
+            "value": 3.339
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.649",
+            "unit": "",
+            "value": 0.649
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "1.848",
+            "unit": "",
+            "value": 1.848
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.480",
+            "unit": "L",
+            "value": 0.48
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "5",
+            "unit": "Ohm",
+            "value": 5.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "50.270",
+            "unit": "cm\u00b2",
+            "value": 50.27
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "5.31",
+            "unit": "L",
+            "value": 5.31
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "4",
+            "unit": "mm",
+            "value": 4.0
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "CHN-70 | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/archive/chn-70-paper-pair/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 4.24,
+        "cms_mm_per_n": 0.00131,
+        "fs_hz": 72.3,
+        "le_mh": 0.03061,
+        "mms_g": 3.49,
+        "pe_w": 20.0,
+        "qms": 2.3,
+        "qts": 0.52,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.2,
+        "vas_l": 4.7,
+        "xmax_mm": 4.2
+      },
+      "kind": "Loudspeaker driver",
+      "model": "CHP-70 Generation 2",
+      "name": "WEB: Markaudio CHP-70 Generation 2",
+      "raw": {
+        "bl_tm": 4.24,
+        "cms_mm_per_n": 0.0013100000000000002,
+        "fs_hz": 72.3,
+        "le_mh": 0.030610000000000002,
+        "mms_g": 3.49,
+        "qes": 0.67,
+        "qms": 2.3,
+        "qts": 0.52,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.199999999999996,
+        "vas_l": 4.7
+      },
+      "size_in": 4.0,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/ch/chp-70-generation-2/",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-19T10:36:46+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/ch/chp-70-generation-2/",
+            "sha256": "7d15fdb0998652b5d152e5ab731f7492c8824b8d38fb6725cf9af7e5edc6c7ee",
+            "url": "https://www.kjfaudio.com/wp-content/uploads/2016/09/CHP-70_Gen.2_natural_Eng.pdf"
+          }
+        ],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:55:40+00:00",
+        "model": "CHP-70 Generation 2",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "4.24",
+            "unit": "Tm",
+            "value": 4.24
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "1.31",
+            "unit": "\u00b5M/N",
+            "value": 0.0013100000000000002
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "72.3",
+            "unit": "Hz",
+            "value": 72.3
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "30.61",
+            "unit": "\u00b5H",
+            "value": 0.030610000000000002
+          },
+          "mms_g": {
+            "label": "MMD",
+            "method": "html.text",
+            "raw_value": "3.49",
+            "unit": "g",
+            "value": 3.49
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": ".67",
+            "unit": "",
+            "value": 0.67
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "2.3",
+            "unit": "",
+            "value": 2.3
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": ".52",
+            "unit": "L",
+            "value": 0.52
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "7.2",
+            "unit": "Ohm",
+            "value": 7.2
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "5.02",
+            "unit": "K/mm/2",
+            "value": 50.199999999999996
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "html.text",
+            "raw_value": "4.7",
+            "unit": "L",
+            "value": 4.7
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "CHP-70 Generation 2 | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/ch/chp-70-generation-2/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.968,
+        "cms_mm_per_n": 1.545,
+        "fs_hz": 101.22,
+        "le_mh": 0.038886,
+        "mms_g": 3.561,
+        "pe_w": 0.0,
+        "qms": 2.391,
+        "qts": 0.538,
+        "re_ohm": 3.6,
+        "sd_cm2": 50.27,
+        "vas_l": 5.543,
+        "xmax_mm": 3.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 5 Generation 2",
+      "name": "WEB: Markaudio Alpair 5 Generation 2",
+      "raw": {
+        "bl_tm": 3.968,
+        "cms_mm_per_n": 1.545,
+        "fs_hz": 101.22,
+        "le_mh": 0.038886000000000004,
+        "mms_g": 3.561,
+        "qes": 0.695,
+        "qms": 2.391,
+        "qts": 0.538,
+        "re_ohm": 3.6,
+        "sd_cm2": 50.27,
+        "vas_l": 5.543
+      },
+      "size_in": null,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-5-generation-2-gold-grey-pair/",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "datasheets": [
+          {
+            "confidence": 0.95,
+            "fetched_at": "2026-07-19T10:36:53+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/archive/alpair-5-generation-2-gold-grey-pair/",
+            "sha256": "5e2c37d6775cf7e7789e4aefc09be5b8ff5ab8cfa5f186a7e1a722e5dab84484",
+            "url": "https://www.kjfaudio.com/wp-content/uploads/2016/09/Alpair-5-g2.pdf"
+          }
+        ],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:52:44+00:00",
+        "model": "Alpair 5 Generation 2",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "3.968",
+            "unit": "TM",
+            "value": 3.968
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "1.545",
+            "unit": "",
+            "value": 1.545
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "101.220",
+            "unit": "Hz",
+            "value": 101.22
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "38.886",
+            "unit": "uH",
+            "value": 0.038886000000000004
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "3.561",
+            "unit": "g",
+            "value": 3.561
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.695",
+            "unit": "",
+            "value": 0.695
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.391",
+            "unit": "",
+            "value": 2.391
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.538",
+            "unit": "L",
+            "value": 0.538
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "3.6",
+            "unit": "Ohm",
+            "value": 3.6
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "50.270",
+            "unit": "cm\u00b2",
+            "value": 50.27
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "5.543",
+            "unit": "L",
+            "value": 5.543
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "Alpair 5 Generation 2 | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-5-generation-2-gold-grey-pair/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 5.308,
+        "cms_mm_per_n": 1.468,
+        "fs_hz": 38.4,
+        "le_mh": 0.0493,
+        "mms_g": 10.658,
+        "pe_w": 0.0,
+        "qms": 1.44,
+        "qts": 0.393,
+        "re_ohm": 5.4,
+        "sd_cm2": 147.41,
+        "vas_l": 44.54293607,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 12PW",
+      "name": "WEB: Markaudio Alpair 12PW",
+      "raw": {
+        "bl_tm": 5.308,
+        "cms_mm_per_n": 1.468,
+        "fs_hz": 38.4,
+        "le_mh": 0.0493,
+        "mms_g": 10.658,
+        "qes": 0.541,
+        "qms": 1.44,
+        "qts": 0.393,
+        "re_ohm": 5.4,
+        "sd_cm2": 147.41
+      },
+      "size_in": 7.0,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-12pw/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.9,
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:52:46+00:00",
+        "model": "Alpair 12PW",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "5.308",
+            "unit": "",
+            "value": 5.308
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "1.468",
+            "unit": "",
+            "value": 1.468
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "38.4",
+            "unit": "",
+            "value": 38.4
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "49.3",
+            "unit": "uH",
+            "value": 0.0493
+          },
+          "mms_g": {
+            "label": "MMD",
+            "method": "html.text",
+            "raw_value": "10.658",
+            "unit": "g",
+            "value": 10.658
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.541",
+            "unit": "",
+            "value": 0.541
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "1.440",
+            "unit": "",
+            "value": 1.44
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.393",
+            "unit": "L",
+            "value": 0.393
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohms",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "147.410",
+            "unit": "",
+            "value": 147.41
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "Alpair 12PW | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-12pw/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 7.812,
+        "cms_mm_per_n": 8.0,
+        "fs_hz": 43.748,
+        "le_mh": 0.063087,
+        "mms_g": 12.005,
+        "pe_w": 35.0,
+        "qms": 2.215,
+        "qts": 0.344,
+        "re_ohm": 7.2,
+        "sd_cm2": 111.22,
+        "vas_l": 17.709,
+        "xmax_mm": 8.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 11 MS",
+      "name": "WEB: Markaudio Alpair 11 MS",
+      "raw": {
+        "bl_tm": 7.812,
+        "cms_mm_per_n": 8.0,
+        "fs_hz": 43.748,
+        "le_mh": 0.063087,
+        "mms_g": 12.005,
+        "qes": 0.407,
+        "qms": 2.215,
+        "qts": 0.344,
+        "re_ohm": 7.2,
+        "sd_cm2": 111.22,
+        "vas_l": 17.709
+      },
+      "size_in": 6.0,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/alpair/alpair-11-ms/",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-19T10:36:56+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/alpair/alpair-11-ms/",
+            "sha256": "14e1d2c551bc4350b932d7c1babb850307572f0157455e8f8b6f4dad55140ff1",
+            "url": "https://www.markaudio.com/wp-content/uploads/2019/06/Alpair-11MS-spec-final.pdf"
+          }
+        ],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:52:49+00:00",
+        "model": "Alpair 11 MS",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "7.812",
+            "unit": "TM",
+            "value": 7.812
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "0.008",
+            "unit": "M/N",
+            "value": 8.0
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "43.748",
+            "unit": "",
+            "value": 43.748
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "63.087",
+            "unit": "uH",
+            "value": 0.063087
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "html.text",
+            "raw_value": "12.005",
+            "unit": "g",
+            "value": 12.005
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": ".407",
+            "unit": "",
+            "value": 0.407
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "2.215",
+            "unit": "",
+            "value": 2.215
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": ".344",
+            "unit": "L",
+            "value": 0.344
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "7.2",
+            "unit": "Ohm",
+            "value": 7.2
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "111.22",
+            "unit": "cm\u00b2",
+            "value": 111.22
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "html.text",
+            "raw_value": "17.709",
+            "unit": "L",
+            "value": 17.709
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "Alpair 11 MS",
+        "url": "https://www.markaudio.com/online_shop/alpair/alpair-11-ms/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.859,
+        "cms_mm_per_n": 1.384,
+        "fs_hz": 74.724,
+        "le_mh": 0.124716,
+        "mms_g": 3.277,
+        "pe_w": 15.0,
+        "qms": 2.35,
+        "qts": 0.565,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.27,
+        "vas_l": 4.968,
+        "xmax_mm": 4.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 7 MS",
+      "name": "WEB: Markaudio Alpair 7 MS",
+      "raw": {
+        "bl_tm": 3.859,
+        "cms_mm_per_n": 1.384,
+        "fs_hz": 74.724,
+        "le_mh": 0.124716,
+        "mms_g": 3.277,
+        "qes": 0.744,
+        "qms": 2.35,
+        "qts": 0.565,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.27,
+        "vas_l": 4.968
+      },
+      "size_in": 4.0,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/alpair/alpair-7-ms/",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-19T10:36:58+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/alpair/alpair-7-ms/",
+            "sha256": "a5b43f8c1993e3ca73681c329a4efeef87821a2d2ef4d1d6a727a4053d57f121",
+            "url": "https://www.markaudio.com/wp-content/uploads/2019/06/Alpair-7MS-spec-final.pdf"
+          }
+        ],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:52:51+00:00",
+        "model": "Alpair 7 MS",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "3.859",
+            "unit": "TM",
+            "value": 3.859
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "1.384",
+            "unit": "",
+            "value": 1.384
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "74.724",
+            "unit": "",
+            "value": 74.724
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "124.716",
+            "unit": "uH",
+            "value": 0.124716
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "html.text",
+            "raw_value": "3.277",
+            "unit": "g",
+            "value": 3.277
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.744",
+            "unit": "",
+            "value": 0.744
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "2.350",
+            "unit": "",
+            "value": 2.35
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": ".565",
+            "unit": "L",
+            "value": 0.565
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "7.2",
+            "unit": "Ohm",
+            "value": 7.2
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "50.270",
+            "unit": "cm\u00b2",
+            "value": 50.27
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "html.text",
+            "raw_value": "4.968",
+            "unit": "L",
+            "value": 4.968
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "Alpair 7 MS",
+        "url": "https://www.markaudio.com/online_shop/alpair/alpair-7-ms/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 44.3146,
+        "le_mh": 0.0,
+        "mms_g": 12.0624,
+        "pe_w": 0.0,
+        "qms": 2.0043,
+        "qts": 0.2996,
+        "re_ohm": 6.8,
+        "sd_cm2": 111.0,
+        "vas_l": 18.4481,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "MAOP 11",
+      "name": "WEB: Markaudio MAOP 11",
+      "raw": {
+        "fs_hz": 44.3146,
+        "mms_g": 12.0624,
+        "qes": 0.3523,
+        "qms": 2.0043,
+        "qts": 0.2996,
+        "re_ohm": 6.8,
+        "sd_cm2": 111.0,
+        "vas_l": 18.4481
+      },
+      "size_in": null,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/archive/maop-11/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:53:43+00:00",
+        "model": "MAOP 11",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "44.3146",
+            "unit": "Hz",
+            "value": 44.3146
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "html.text",
+            "raw_value": "12.0624",
+            "unit": "g",
+            "value": 12.0624
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.3523",
+            "unit": "",
+            "value": 0.3523
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "2.0043",
+            "unit": "",
+            "value": 2.0043
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.2996",
+            "unit": "",
+            "value": 0.2996
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "6.8",
+            "unit": "\u03a9",
+            "value": 6.8
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "0.0111",
+            "unit": "m \u00b2",
+            "value": 111.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "html.text",
+            "raw_value": "18.4481",
+            "unit": "L",
+            "value": 18.4481
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "MAOP 11 | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/archive/maop-11/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.525,
+        "cms_mm_per_n": 0.00127,
+        "fs_hz": 70.9,
+        "le_mh": 0.0213,
+        "mms_g": 3.019,
+        "pe_w": 20.0,
+        "qms": 2.824,
+        "qts": 0.498,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.27,
+        "vas_l": 5.587,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 7p",
+      "name": "WEB: Markaudio Alpair 7p",
+      "raw": {
+        "bl_tm": 3.525,
+        "cms_mm_per_n": 0.00127,
+        "fs_hz": 70.9,
+        "le_mh": 0.0213,
+        "mms_g": 3.019,
+        "qes": 0.605,
+        "qms": 2.824,
+        "qts": 0.498,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.27,
+        "vas_l": 5.587
+      },
+      "size_in": null,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-7p/",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "datasheets": [
+          {
+            "confidence": 0.975,
+            "fetched_at": "2026-07-19T10:37:11+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/archive/alpair-7p/",
+            "sha256": "4c4f8a9183a9f9339a31a1c93698bee66930ecf318c5c96b705ac06ced0083c7",
+            "url": "https://www.markaudio.com/wp-content/uploads/2019/09/Alp7P.pdf"
+          }
+        ],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:53:47+00:00",
+        "model": "Alpair 7p",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "3.525",
+            "unit": "TM",
+            "value": 3.525
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "1.27",
+            "unit": "uM/N",
+            "value": 0.00127
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "70.9",
+            "unit": "Hz",
+            "value": 70.9
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "21.3",
+            "unit": "uH",
+            "value": 0.0213
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "3.019",
+            "unit": "g",
+            "value": 3.019
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.605",
+            "unit": "",
+            "value": 0.605
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.824",
+            "unit": "",
+            "value": 2.824
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.498",
+            "unit": "L",
+            "value": 0.498
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohm",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "50.270",
+            "unit": "cm\u00b2",
+            "value": 50.27
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "5.587",
+            "unit": "L",
+            "value": 5.587
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "Alpair 7p | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-7p/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 8.546,
+        "cms_mm_per_n": 1.468,
+        "fs_hz": 38.4,
+        "le_mh": 0.0493,
+        "mms_g": 19.4093,
+        "pe_w": 50.0,
+        "qms": 2.239,
+        "qts": 0.3455,
+        "re_ohm": 6.8,
+        "sd_cm2": 206.0,
+        "vas_l": 65.1957,
+        "xmax_mm": 9.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "MA200-M Multi Stealth Grey",
+      "name": "WEB: Markaudio MA200-M Multi Stealth Grey",
+      "raw": {
+        "bl_tm": 8.546,
+        "cms_mm_per_n": 1.468,
+        "fs_hz": 38.4,
+        "le_mh": 0.0493,
+        "mms_g": 19.4093,
+        "qes": 0.4086,
+        "qms": 2.239,
+        "qts": 0.3455,
+        "re_ohm": 6.8,
+        "sd_cm2": 206.0,
+        "vas_l": 65.1957
+      },
+      "size_in": null,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/20-cm/ma200-m-multi-stealth-grey/",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "datasheets": [
+          {
+            "confidence": 0.95,
+            "fetched_at": "2026-07-19T10:37:37+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/20-cm/ma200-m-multi-stealth-grey/",
+            "sha256": "b27e0e9b35a62e676a26f087d5b253fc1f2586e59ccde2dbcb3c11cf8bfbb310",
+            "url": "https://www.markaudio.com/wp-content/uploads/2024/12/MA200_M-Multi-Grey-6-Dec-2024-50-cm-measurement-distance.pdf"
+          }
+        ],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:54:10+00:00",
+        "model": "MA200-M Multi Stealth Grey",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "8.5460",
+            "unit": "",
+            "value": 8.546
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "1.468",
+            "unit": "",
+            "value": 1.468
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "38.4",
+            "unit": "",
+            "value": 38.4
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "49.3",
+            "unit": "uH",
+            "value": 0.0493
+          },
+          "mms_g": {
+            "label": "MMD",
+            "method": "html.text",
+            "raw_value": "19.4093",
+            "unit": "g",
+            "value": 19.4093
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.4086",
+            "unit": "",
+            "value": 0.4086
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "2.239",
+            "unit": "",
+            "value": 2.239
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.3455",
+            "unit": "",
+            "value": 0.3455
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "6.8",
+            "unit": "Ohms",
+            "value": 6.8
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "0.0206",
+            "unit": "m2",
+            "value": 206.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "html.text",
+            "raw_value": "65.1957",
+            "unit": "L",
+            "value": 65.1957
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "MA200-M Multi Stealth Grey | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/20-cm/ma200-m-multi-stealth-grey/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 43.7992,
+        "le_mh": 0.0,
+        "mms_g": 9.0799,
+        "pe_w": 0.0,
+        "qms": 2.1613,
+        "qts": 0.3,
+        "re_ohm": 6.8,
+        "sd_cm2": 111.0,
+        "vas_l": 25.1186,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "MAOP 11MS",
+      "name": "WEB: Markaudio MAOP 11MS",
+      "raw": {
+        "fs_hz": 43.7992,
+        "mms_g": 9.0799,
+        "qes": 0.3483,
+        "qms": 2.1613,
+        "qts": 0.3,
+        "re_ohm": 6.8,
+        "sd_cm2": 111.0,
+        "vas_l": 25.1186
+      },
+      "size_in": null,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/11-cm/maop-11ms/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.875,
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T09:54:12+00:00",
+        "model": "MAOP 11MS",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "43.7992",
+            "unit": "Hz",
+            "value": 43.7992
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "html.text",
+            "raw_value": "9.0799",
+            "unit": "g",
+            "value": 9.0799
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.3483",
+            "unit": "",
+            "value": 0.3483
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "2.1613",
+            "unit": "",
+            "value": 2.1613
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.3",
+            "unit": "",
+            "value": 0.3
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "6.8",
+            "unit": "\u03a9",
+            "value": 6.8
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "0.0111",
+            "unit": "m \u00b2",
+            "value": 111.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "html.text",
+            "raw_value": "25.1186",
+            "unit": "L",
+            "value": 25.1186
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "MAOP 11MS | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/11-cm/maop-11ms/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 2.67,
+        "cms_mm_per_n": 1.97,
+        "fs_hz": 74.0,
+        "le_mh": 0.0,
+        "mms_g": 2.2,
+        "pe_w": 0.0,
+        "qms": 1.78,
+        "qts": 0.43,
+        "re_ohm": 3.8,
+        "sd_cm2": 36.3,
+        "vas_l": 3.6,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 6P",
+      "name": "WEB: Markaudio Alpair 6P",
+      "raw": {
+        "bl_tm": 2.67,
+        "cms_mm_per_n": 1.97,
+        "fs_hz": 74.0,
+        "mms_g": 2.2,
+        "qes": 0.57,
+        "qms": 1.78,
+        "qts": 0.43,
+        "re_ohm": 3.8,
+        "sd_cm2": 36.3,
+        "vas_l": 3.6
+      },
+      "size_in": null,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-6p/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.925,
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T10:14:16+00:00",
+        "model": "Alpair 6P",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "2.67",
+            "unit": "",
+            "value": 2.67
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "1.97",
+            "unit": "",
+            "value": 1.97
+          },
+          "fs_hz": {
+            "label": "F0",
+            "method": "html.text",
+            "raw_value": "74",
+            "unit": "Hz",
+            "value": 74.0
+          },
+          "mms_g": {
+            "label": "MMD",
+            "method": "html.text",
+            "raw_value": "2.2",
+            "unit": "g",
+            "value": 2.2
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.57",
+            "unit": "",
+            "value": 0.57
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "1.78",
+            "unit": "",
+            "value": 1.78
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.43",
+            "unit": "L",
+            "value": 0.43
+          },
+          "re_ohm": {
+            "label": "ReVc",
+            "method": "html.text",
+            "raw_value": "3.8",
+            "unit": "Ohm",
+            "value": 3.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "36.3",
+            "unit": "Cm\u00b2",
+            "value": 36.3
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "3.6",
+            "unit": "L",
+            "value": 3.6
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "Alpair 6P | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-6p/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 5.772,
+        "cms_mm_per_n": 2.38,
+        "fs_hz": 38.266,
+        "le_mh": 0.0,
+        "mms_g": 6.792,
+        "pe_w": 0.0,
+        "qms": 1.93,
+        "qts": 0.316,
+        "re_ohm": 7.2,
+        "sd_cm2": 88.25,
+        "vas_l": 26.32,
+        "xmax_mm": 7.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 10.3",
+      "name": "WEB: Markaudio Alpair 10.3",
+      "raw": {
+        "bl_tm": 5.772,
+        "fs_hz": 38.266,
+        "mms_g": 6.792,
+        "qes": 0.378,
+        "qms": 1.93,
+        "qts": 0.316,
+        "re_ohm": 7.2,
+        "sd_cm2": 88.25,
+        "vas_l": 26.32,
+        "xmax_mm": 7.5
+      },
+      "size_in": 5.0,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-10-3/",
+      "website_fields": {
+        "aliases": [],
+        "brand": "Markaudio",
+        "confidence": 0.925,
+        "datasheets": [
+          {
+            "confidence": 0.95,
+            "fetched_at": "2026-07-19T10:36:11+00:00",
+            "product_url": "https://www.markaudio.com/online_shop/archive/alpair-10-3/",
+            "sha256": "5dc4784cc025e00dddada1387f6fb0525bf39c544aabf77b261e0167d2784878",
+            "url": "https://www.kjfaudio.com/wp-content/uploads/2014/11/Alpair10M_Gold_Gen3.pdf"
+          }
+        ],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T10:14:18+00:00",
+        "model": "Alpair 10.3",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "5.772",
+            "unit": "",
+            "value": 5.772
+          },
+          "fs_hz": {
+            "label": "F0",
+            "method": "html.text",
+            "raw_value": "38.266",
+            "unit": "Hz",
+            "value": 38.266
+          },
+          "mms_g": {
+            "label": "MMD",
+            "method": "html.text",
+            "raw_value": "6.792",
+            "unit": "g",
+            "value": 6.792
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": ".378",
+            "unit": "",
+            "value": 0.378
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "1.930",
+            "unit": "",
+            "value": 1.93
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.316",
+            "unit": "L",
+            "value": 0.316
+          },
+          "re_ohm": {
+            "label": "ReVc",
+            "method": "html.text",
+            "raw_value": "7.2",
+            "unit": "Ohms",
+            "value": 7.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "8.825",
+            "unit": "K mm2",
+            "value": 88.25
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "26.320",
+            "unit": "",
+            "value": 26.32
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "7.5",
+            "unit": "mm",
+            "value": 7.5
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "Alpair 10.3",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-10-3/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.805,
+        "cms_mm_per_n": 1.091,
+        "fs_hz": 76.533,
+        "le_mh": 0.0,
+        "mms_g": 3.963,
+        "pe_w": 0.0,
+        "qms": 2.556,
+        "qts": 0.556,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.265,
+        "vas_l": 3.915,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "MAOP 7",
+      "name": "WEB: Markaudio MAOP 7",
+      "raw": {
+        "bl_tm": 3.805,
+        "cms_mm_per_n": 1.091,
+        "fs_hz": 76.533,
+        "mms_g": 3.963,
+        "qes": 0.711,
+        "qms": 2.556,
+        "qts": 0.556,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.265,
+        "vas_l": 3.915
+      },
+      "size_in": null,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/7-cm/maop-7/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.925,
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T10:14:20+00:00",
+        "model": "MAOP 7",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "3.805",
+            "unit": "",
+            "value": 3.805
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "1.091",
+            "unit": "",
+            "value": 1.091
+          },
+          "fs_hz": {
+            "label": "Fo",
+            "method": "html.text",
+            "raw_value": "76.533",
+            "unit": "Hz",
+            "value": 76.533
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "3.963",
+            "unit": "g",
+            "value": 3.963
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.711",
+            "unit": "",
+            "value": 0.711
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.556",
+            "unit": "",
+            "value": 2.556
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.556",
+            "unit": "L",
+            "value": 0.556
+          },
+          "re_ohm": {
+            "label": "Revc",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohm",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "50.265",
+            "unit": "cm \u00b2",
+            "value": 50.265
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "3.915",
+            "unit": "L",
+            "value": 3.915
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "MAOP 7 | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/7-cm/maop-7/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 2.2555,
+        "cms_mm_per_n": 1.3445,
+        "fs_hz": 114.3982,
+        "le_mh": 0.0,
+        "mms_g": 1.3545,
+        "pe_w": 0.0,
+        "qms": 1.7096,
+        "qts": 0.4924,
+        "re_ohm": 3.4,
+        "sd_cm2": 28.0,
+        "vas_l": 1.5008,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "MAOP 5",
+      "name": "WEB: Markaudio MAOP 5",
+      "raw": {
+        "bl_tm": 2.2555,
+        "cms_mm_per_n": 1.3445,
+        "fs_hz": 114.3982,
+        "mms_g": 1.3545,
+        "qes": 0.6916,
+        "qms": 1.7096,
+        "qts": 0.4924,
+        "re_ohm": 3.4,
+        "sd_cm2": 28.0,
+        "vas_l": 1.5008
+      },
+      "size_in": null,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/5-cm/maop-5-2/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.925,
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T10:14:22+00:00",
+        "model": "MAOP 5",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "2.2555",
+            "unit": "",
+            "value": 2.2555
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "1.3445",
+            "unit": "",
+            "value": 1.3445
+          },
+          "fs_hz": {
+            "label": "Fo",
+            "method": "html.text",
+            "raw_value": "114.3982",
+            "unit": "Hz",
+            "value": 114.3982
+          },
+          "mms_g": {
+            "label": "Mmd",
+            "method": "html.text",
+            "raw_value": "1.3545",
+            "unit": "g",
+            "value": 1.3545
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.6916",
+            "unit": "",
+            "value": 0.6916
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "1.7096",
+            "unit": "",
+            "value": 1.7096
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.4924",
+            "unit": "L",
+            "value": 0.4924
+          },
+          "re_ohm": {
+            "label": "Revc",
+            "method": "html.text",
+            "raw_value": "3.4",
+            "unit": "Ohm",
+            "value": 3.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "0.0028",
+            "unit": "m \u00b2",
+            "value": 28.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "1.5008",
+            "unit": "L",
+            "value": 1.5008
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "MAOP 5 | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/5-cm/maop-5-2/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 5.6521,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 39.8664,
+        "le_mh": 0.0,
+        "mms_g": 4.9224,
+        "pe_w": 0.0,
+        "qms": 2.0048,
+        "qts": 0.3673,
+        "re_ohm": 7.2,
+        "sd_cm2": 90.0,
+        "vas_l": 26.1871,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "MAOP 10",
+      "name": "WEB: Markaudio MAOP 10",
+      "raw": {
+        "bl_tm": 5.6521,
+        "fs_hz": 39.8664,
+        "mms_g": 4.9224,
+        "qes": 0.4497,
+        "qms": 2.0048,
+        "qts": 0.3673,
+        "re_ohm": 7.2,
+        "sd_cm2": 90.0,
+        "vas_l": 26.1871
+      },
+      "size_in": null,
+      "source": "Manufacturer website",
+      "url": "https://www.markaudio.com/online_shop/maop/maop-10/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.9,
+        "extraction_method": "html",
+        "fetched_at": "2026-07-19T10:14:24+00:00",
+        "model": "MAOP 10",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "5.6521",
+            "unit": "",
+            "value": 5.6521
+          },
+          "fs_hz": {
+            "label": "Fo",
+            "method": "html.text",
+            "raw_value": "39.8664",
+            "unit": "Hz",
+            "value": 39.8664
+          },
+          "mms_g": {
+            "label": "Mmd",
+            "method": "html.text",
+            "raw_value": "4.9224",
+            "unit": "g",
+            "value": 4.9224
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.4497",
+            "unit": "",
+            "value": 0.4497
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.0048",
+            "unit": "",
+            "value": 2.0048
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.3673",
+            "unit": "L",
+            "value": 0.3673
+          },
+          "re_ohm": {
+            "label": "Revc",
+            "method": "html.text",
+            "raw_value": "7.2",
+            "unit": "Ohm",
+            "value": 7.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "0.009",
+            "unit": "m \u00b2",
+            "value": 90.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "26.1871",
+            "unit": "L",
+            "value": 26.1871
+          }
+        },
+        "source": "Manufacturer website",
+        "title": "MAOP 10 | Markaudio",
+        "url": "https://www.markaudio.com/online_shop/maop/maop-10/"
+      }
     }
   ],
   "source": "https://loudspeakerdatabase.com",
   "total_cards": 6178,
-  "usable_presets": 6178
+  "usable_presets": 6215
 }

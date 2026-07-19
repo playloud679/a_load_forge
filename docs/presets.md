@@ -29,3 +29,7 @@ re-exports the public API; detailed contracts live in `docs/dccav.md`.
 - Generic crawler records remain compatible with the existing JSON loader;
   source-specific provenance stays in `website_fields` rather than being
   mislabelled as Loudspeaker Database data.
+- Imported rows whose case-insensitive brand and model match a curated
+  built-in preset are omitted from the runtime list. The generated catalog
+  keeps their crawl provenance, while the app exposes the richer built-in
+  record only once.

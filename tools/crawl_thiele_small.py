@@ -44,20 +44,36 @@ class ParameterSpec:
 
 
 PARAMETERS = (
-    ParameterSpec("fs_hz", ("fs", "resonant frequency", "resonance frequency", "free air resonance"), "hz"),
+    ParameterSpec(
+        "fs_hz",
+        ("fs", "fo", "f0", "resonant frequency", "resonance frequency", "free air resonance"),
+        "hz",
+    ),
     ParameterSpec("vas_l", ("vas", "equivalent compliance volume", "equivalent volume"), "l"),
     ParameterSpec("qts", ("qts", "total q")),
     ParameterSpec("qms", ("qms", "mechanical q")),
     ParameterSpec("qes", ("qes", "electrical q")),
-    ParameterSpec("re_ohm", ("re", "dc resistance", "voice coil resistance", "dcr"), "ohm"),
+    ParameterSpec(
+        "re_ohm",
+        ("re", "revc", "dc resistance", "voice coil resistance", "dcr"),
+        "ohm",
+    ),
     ParameterSpec(
         "sd_cm2",
         ("sd", "effective cone area", "effective piston area", "surface area of cone"),
         "cm2",
     ),
-    ParameterSpec("le_mh", ("le", "voice coil inductance", "inductance"), "mh"),
-    ParameterSpec("xmax_mm", ("xmax", "linear excursion", "maximum linear excursion"), "mm"),
-    ParameterSpec("pe_w", ("pe", "pmax", "power handling", "rated power", "rms power"), "w"),
+    ParameterSpec(
+        "le_mh", ("le", "l1khz", "l1k", "voice coil inductance", "inductance"), "mh"
+    ),
+    ParameterSpec(
+        "xmax_mm",
+        ("xmax", "x max", "x-max", "linear excursion", "maximum linear excursion"),
+        "mm",
+    ),
+    ParameterSpec(
+        "pe_w", ("pe", "pmax", "pwr", "power handling", "rated power", "rms power"), "w"
+    ),
     ParameterSpec("mms_g", ("mms", "mmd", "moving mass", "diaphragm mass"), "g"),
     ParameterSpec("cms_mm_per_n", ("cms", "mechanical compliance", "suspension compliance"), "mm/n"),
     ParameterSpec("bl_tm", ("bl", "force factor", "motor strength"), "tm"),
@@ -67,7 +83,7 @@ PARAMETER_BY_KEY = {item.key: item for item in PARAMETERS}
 REQUIRED_DRIVER_FIELDS = ("fs_hz", "vas_l", "qts", "qms", "re_ohm", "sd_cm2")
 OPTIONAL_DRIVER_FIELDS = ("le_mh", "xmax_mm", "pe_w", "mms_g", "cms_mm_per_n", "bl_tm")
 NUMBER_RE = r"[-+]?(?:\d+(?:[.,]\d+)?|[.,]\d+)(?:[eE][-+]?\d+)?"
-UNIT_RE = r"(?:khz|hz|m(?:\^?3|³)|dm(?:\^?3|³)|cm(?:\^?2|²)|mm(?:\^?2|²)|m(?:\^?2|²)|in(?:\^?2|²)|ft(?:\^?3|³)|lit(?:er|re)s?|[lL]|k?ohms?|Ω|mΩ|mh|µh|μh|uh|henry|h|mm|cm|inch(?:es)?|in|kw|watts?|w|kg|grams?|g|mg|m/n|mm/n|µm/n|μm/n|um/n|t\s*[·*]?\s*m|tm|n/a|n\s*s/m|kg/s)?"
+UNIT_RE = r"(?:k\s*hz|hz|m(?:\^?3|³)|dm(?:\^?3|³)|cm\s*(?:\^?2|²)|k\s*/?\s*mm\s*(?:\^?2|²|/2)|mm\s*(?:\^?2|²)|m\s*(?:\^?2|²)|in(?:\^?2|²)|ft(?:\^?3|³)|lit(?:er|re)s?|[lL]|k?ohms?|Ω|mΩ|mh|µh|μh|uh|henry|h|mm|cm|inch(?:es)?|in|kw|watts?|w|kg|grams?|g|mg|m/n|mm/n|µm/n|μm/n|um/n|t\s*[·*]?\s*m|tm|n/a|n\s*s/m|kg/s)?"
 
 RANGES = {
     "fs_hz": (1.0, 2000.0),
@@ -131,6 +147,7 @@ class CrawlConfig:
     min_confidence: float = 0.75
     follow_links: bool = True
     overwrite: bool = False
+    refresh_source: str = ""
     fresh: bool = False
     dry_run: bool = False
     user_agent: str = DEFAULT_USER_AGENT
@@ -275,6 +292,8 @@ def normalize_unit(raw: str) -> str:
     unit = raw.casefold().strip().replace("μ", "µ").replace("ω", "ohm").replace("Ω", "ohm")
     unit = unit.replace("²", "2").replace("³", "3").replace("^", "")
     unit = unit.replace("·", "").replace("*", "").replace(" ", "")
+    unit = unit.replace("/2", "2")
+    unit = unit.replace("k/mm", "kmm")
     aliases = {
         "liter": "l", "liters": "l", "litre": "l", "litres": "l", "dm3": "l",
         "ohms": "ohm", "ohm": "ohm", "milliohm": "mohm", "mω": "mohm",
@@ -294,7 +313,10 @@ def convert_measurement(key: str, raw_value: object, raw_unit: str = "") -> floa
         "fs_hz": {"hz": 1.0, "khz": 1000.0},
         "vas_l": {"l": 1.0, "m3": 1000.0, "ft3": 28.316846592},
         "re_ohm": {"ohm": 1.0, "mohm": 0.001},
-        "sd_cm2": {"cm2": 1.0, "m2": 10_000.0, "mm2": 0.01, "in2": 6.4516},
+        "sd_cm2": {
+            "cm2": 1.0, "m2": 10_000.0, "kmm2": 10.0,
+            "mm2": 0.01, "in2": 6.4516,
+        },
         "le_mh": {"mh": 1.0, "h": 1000.0, "uh": 0.001},
         "xmax_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
         "pe_w": {"w": 1.0, "kw": 1000.0},
@@ -380,7 +402,7 @@ def text_measurements(text: str) -> list[Measurement]:
         pattern = re.compile(
             rf"(?<![A-Za-z0-9])(?P<label>{alias_pattern})(?![A-Za-z0-9])"
             rf"\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?\s*(?:[:=\-–—]|is)?\s*"
-            rf"(?P<value>{NUMBER_RE})\s*(?P<unit>{UNIT_RE})",
+            rf"(?:[+±]\s*/?\s*[-−]\s*)?(?P<value>{NUMBER_RE})\s*(?P<unit>{UNIT_RE})",
             re.I,
         )
         for match in pattern.finditer(text):
@@ -396,10 +418,16 @@ def text_measurements(text: str) -> list[Measurement]:
 
 def choose_measurements(items: Iterable[Measurement]) -> dict[str, Measurement]:
     priority = {"jsonld.additionalProperty": 3, "jsonld.field": 2, "html.text": 1, "pdf.text": 1}
+    unitless_keys = {"qts", "qms", "qes"}
+
+    def quality(item: Measurement) -> tuple[int, int]:
+        explicit_unit = int(bool(normalize_unit(item.unit))) if item.key not in unitless_keys else 0
+        return priority.get(item.method, 0), explicit_unit
+
     chosen: dict[str, Measurement] = {}
     for item in items:
         current = chosen.get(item.key)
-        if current is None or priority.get(item.method, 0) > priority.get(current.method, 0):
+        if current is None or quality(item) > quality(current):
             chosen[item.key] = item
     return chosen
 
@@ -462,11 +490,23 @@ def product_metadata(page: PageData, url: str, brand_hint: str = "") -> tuple[st
         model = name
         if brand and model.casefold().startswith(brand.casefold()):
             model = model[len(brand):].strip(" -–—|")
+    if brand:
+        model = re.sub(
+            rf"\s*[|–—]\s*{re.escape(brand)}\s*$",
+            "",
+            model,
+            flags=re.I,
+        ).strip()
     if not brand:
         brand = urlparse(url).hostname.removeprefix("www.") if urlparse(url).hostname else "Unknown"
     if not model:
         model = Path(urlparse(url).path).stem or "Unknown"
     return name or f"{brand} {model}".strip(), brand, model
+
+
+def is_standalone_lf_driver_model(model: str) -> bool:
+    """Reject obvious assemblies and tweeters from the LF driver catalog."""
+    return not re.search(r"\b(?:kit|tweeter)\b", str(model), re.I)
 
 
 def infer_size_in(text: str) -> float | None:
@@ -494,6 +534,8 @@ def build_preset(
         return None, errors
 
     name, brand, model = product_metadata(page, url, brand_hint)
+    if not is_standalone_lf_driver_model(model):
+        return None, ["not a standalone low-frequency driver"]
     direct_required = sum(1 for key in REQUIRED_DRIVER_FIELDS if key in chosen)
     optional_count = sum(1 for key in OPTIONAL_DRIVER_FIELDS if values.get(key) is not None)
     confidence = min(1.0, 0.55 + 0.05 * direct_required + 0.025 * optional_count)
@@ -721,7 +763,10 @@ def preset_key(item: dict) -> tuple[str, str]:
     return clean(item.get("brand")), clean(item.get("model"))
 
 
-def merge_presets(existing: list[dict], discovered: list[dict], overwrite: bool = False) -> tuple[list[dict], dict[str, int]]:
+def merge_presets(
+    existing: list[dict], discovered: list[dict], overwrite: bool = False,
+    refresh_source: str = "",
+) -> tuple[list[dict], dict[str, int]]:
     merged = list(existing)
     index = {preset_key(item): pos for pos, item in enumerate(merged)}
     stats = {"added": 0, "updated": 0, "unchanged": 0}
@@ -733,7 +778,11 @@ def merge_presets(existing: list[dict], discovered: list[dict], overwrite: bool 
             stats["added"] += 1
             continue
         pos = index[key]
-        if overwrite:
+        if overwrite or (
+            refresh_source
+            and str(merged[pos].get("source") or "").casefold()
+            == refresh_source.casefold()
+        ):
             merged[pos] = item
             stats["updated"] += 1
             continue
@@ -766,7 +815,20 @@ def populate_database(config: CrawlConfig, presets: list[dict]) -> dict[str, int
         payload = json.loads(config.output.read_text(encoding="utf-8"))
     else:
         payload = {"presets": []}
-    merged, stats = merge_presets(list(payload.get("presets", [])), presets, config.overwrite)
+    existing = list(payload.get("presets", []))
+    if config.refresh_source:
+        existing = [
+            item for item in existing
+            if not (
+                str(item.get("source") or "").casefold()
+                == config.refresh_source.casefold()
+                and not is_standalone_lf_driver_model(str(item.get("model") or ""))
+            )
+        ]
+    merged, stats = merge_presets(
+        existing, presets, config.overwrite,
+        config.refresh_source,
+    )
     payload["presets"] = merged
     payload["downloaded_at"] = utc_now()
     payload["usable_presets"] = len(merged)
@@ -806,6 +868,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--min-confidence", type=float, default=0.75)
     parser.add_argument("--no-follow-links", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
+    parser.add_argument(
+        "--refresh-source", default="",
+        help="Replace matching records only when their current source has this name.",
+    )
     parser.add_argument("--fresh", action="store_true", help="Ignore an existing checkpoint.")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--user-agent", default=DEFAULT_USER_AGENT)
@@ -832,6 +898,7 @@ def main() -> int:
         max_depth=args.max_depth, timeout_s=args.timeout, sleep_s=args.sleep,
         min_confidence=args.min_confidence, follow_links=not args.no_follow_links,
         overwrite=args.overwrite, fresh=args.fresh, dry_run=args.dry_run,
+        refresh_source=args.refresh_source,
         user_agent=args.user_agent,
     )
     presets, failures, visited = crawl(config)

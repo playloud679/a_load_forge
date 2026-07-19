@@ -240,6 +240,19 @@ class DatasheetIndex:
         ).fetchone()
         return (str(row[0]), Path(row[1]), str(row[2])) if row else None
 
+    def observation(self, sha256: str) -> dict | None:
+        row = self.connection.execute(
+            "SELECT preset_json FROM observations WHERE sha256 = ?",
+            (sha256,),
+        ).fetchone()
+        if not row:
+            return None
+        try:
+            value = json.loads(str(row[0]))
+        except json.JSONDecodeError:
+            return None
+        return value if isinstance(value, dict) else None
+
     def record_document(
         self, *, sha256: str, local_path: Path, byte_count: int, url: str,
         discovered_from: str, status: str, title: str = "", error: str = "",
@@ -312,6 +325,8 @@ class LibraryConfig:
     timeout_s: float = 30.0
     sleep_s: float = 2.0
     user_agent: str = ts.DEFAULT_USER_AGENT
+    brand_hint: str = ""
+    reparse_known: bool = False
     dry_run: bool = False
 
 
@@ -345,9 +360,19 @@ def product_urls(config: LibraryConfig, fetcher=ts.fetch_resource) -> list[str]:
 
 def canonicalize_pdf_preset(
     preset: dict, *, product_page: ts.PageData, product_url: str,
-    pdf_url: str, sha256: str,
+    pdf_url: str, sha256: str, brand_hint: str = "",
 ) -> tuple[dict, str]:
-    product_name, product_brand, product_model = ts.product_metadata(product_page, product_url)
+    product_name, product_brand, product_model = ts.product_metadata(
+        product_page, product_url, brand_hint
+    )
+    if brand_hint:
+        product_brand = brand_hint
+        product_model = re.sub(
+            rf"\s*[|–—]\s*{re.escape(brand_hint)}\s*$",
+            "",
+            product_model,
+            flags=re.I,
+        ).strip()
     pdf_model = str(preset.get("model") or "")
     preset["brand"] = product_brand or preset.get("brand")
     preset["model"] = product_model or preset.get("model")
@@ -378,6 +403,40 @@ def run_library_crawl(config: LibraryConfig, fetcher=ts.fetch_resource) -> tuple
     manual_by_page: dict[str, list[str]] = {}
     for page_url, pdf_url in config.manual_documents:
         manual_by_page.setdefault(page_url, []).append(pdf_url)
+
+    def parse_and_index(
+        content: bytes, *, digest: str, relative: Path, pdf_url: str,
+        product_url: str, page: ts.PageData,
+    ) -> None:
+        pdf_page = ts.parse_pdf(content)
+        product_name, product_brand, _product_model = ts.product_metadata(
+            page, product_url, config.brand_hint
+        )
+        preset, errors = ts.build_preset(
+            pdf_page, pdf_url, "Manufacturer datasheet", product_brand, "pdf"
+        )
+        if preset is None:
+            stats.rejected += 1
+            index.record_document(
+                sha256=digest, local_path=relative, byte_count=len(content),
+                url=pdf_url, discovered_from=product_url, status="rejected",
+                title=product_name, error="; ".join(errors),
+            )
+            return
+        preset, pdf_alias = canonicalize_pdf_preset(
+            preset, product_page=page, product_url=product_url,
+            pdf_url=pdf_url, sha256=digest, brand_hint=config.brand_hint,
+        )
+        index.record_document(
+            sha256=digest, local_path=relative, byte_count=len(content),
+            url=pdf_url, discovered_from=product_url, status="parsed",
+            title=(preset.get("website_fields") or {}).get("title", ""),
+        )
+        index.record_observation(digest, preset, pdf_alias)
+        observations.append(preset)
+        stats.parsed += 1
+        ts.log(f"indexed {preset['brand']} {preset['model']} {digest[:12]}")
+
     try:
         for page_url in product_urls(config, fetcher)[:config.max_pages]:
             stats.pages += 1
@@ -398,6 +457,26 @@ def run_library_crawl(config: LibraryConfig, fetcher=ts.fetch_resource) -> tuple
                         known = index.known_document(pdf_url)
                         if known and (config.archive_dir / known[1]).is_file():
                             stats.pdf_deduplicated += 1
+                            if config.reparse_known:
+                                parse_and_index(
+                                    (config.archive_dir / known[1]).read_bytes(),
+                                    digest=known[0], relative=known[1], pdf_url=pdf_url,
+                                    product_url=result.url, page=page,
+                                )
+                                continue
+                            preset = index.observation(known[0])
+                            if preset is not None:
+                                preset, pdf_alias = canonicalize_pdf_preset(
+                                    preset,
+                                    product_page=page,
+                                    product_url=result.url,
+                                    pdf_url=pdf_url,
+                                    sha256=known[0],
+                                    brand_hint=config.brand_hint,
+                                )
+                                index.record_observation(known[0], preset, pdf_alias)
+                                observations.append(preset)
+                                stats.parsed += 1
                             continue
                         if not pdf_robots.allowed(pdf_url):
                             raise RuntimeError("PDF blocked by robots.txt")
@@ -409,31 +488,10 @@ def run_library_crawl(config: LibraryConfig, fetcher=ts.fetch_resource) -> tuple
                         if digest in seen_pdf_hashes:
                             stats.pdf_deduplicated += 1
                         seen_pdf_hashes.add(digest)
-                        pdf_page = ts.parse_pdf(pdf.content)
-                        product_name, product_brand, _product_model = ts.product_metadata(
-                            page, result.url)
-                        preset, errors = ts.build_preset(
-                            pdf_page, pdf.url, "Manufacturer datasheet", product_brand, "pdf")
-                        if preset is None:
-                            stats.rejected += 1
-                            index.record_document(
-                                sha256=digest, local_path=relative, byte_count=len(pdf.content),
-                                url=pdf.url, discovered_from=result.url, status="rejected",
-                                title=product_name, error="; ".join(errors),
-                            )
-                            continue
-                        preset, pdf_alias = canonicalize_pdf_preset(
-                            preset, product_page=page, product_url=result.url,
-                            pdf_url=pdf.url, sha256=digest)
-                        index.record_document(
-                            sha256=digest, local_path=relative, byte_count=len(pdf.content),
-                            url=pdf.url, discovered_from=result.url, status="parsed",
-                            title=(preset.get("website_fields") or {}).get("title", ""),
+                        parse_and_index(
+                            pdf.content, digest=digest, relative=relative,
+                            pdf_url=pdf.url, product_url=result.url, page=page,
                         )
-                        index.record_observation(digest, preset, pdf_alias)
-                        observations.append(preset)
-                        stats.parsed += 1
-                        ts.log(f"archived {preset['brand']} {preset['model']} {digest[:12]}")
                     except (HTTPError, URLError, TimeoutError, OSError, RuntimeError) as exc:
                         stats.failures.append({"url": pdf_url, "error": str(exc)})
                     if config.sleep_s:
@@ -467,6 +525,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="Attach a corrected/direct PDF URL to its product page; repeatable.",
     )
     parser.add_argument("--include", action="append", help="Product-page URL regex; repeatable.")
+    parser.add_argument("--brand", default="", help="Fallback/authoritative brand for this source.")
     parser.add_argument("--archive", type=Path, default=DEFAULT_ARCHIVE)
     parser.add_argument("--index", type=Path, default=DEFAULT_INDEX)
     parser.add_argument("--catalog", type=Path, default=DEFAULT_CATALOG)
@@ -475,6 +534,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--timeout", type=float, default=30.0)
     parser.add_argument("--sleep", type=float, default=2.0)
     parser.add_argument("--user-agent", default=ts.DEFAULT_USER_AGENT)
+    parser.add_argument(
+        "--reparse-known", action="store_true",
+        help="Reparse locally archived PDFs with the current extractor.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     return parser
 
@@ -495,7 +558,8 @@ def main() -> int:
         index_path=args.index, catalog_path=args.catalog,
         include_patterns=ts.compiled_patterns(args.include), max_pages=args.max_pages,
         max_pdfs=args.max_pdfs, timeout_s=args.timeout, sleep_s=args.sleep,
-        user_agent=args.user_agent, dry_run=args.dry_run,
+        user_agent=args.user_agent, brand_hint=args.brand,
+        reparse_known=args.reparse_known, dry_run=args.dry_run,
     )
     observations, stats = run_library_crawl(config)
     merge_stats = update_catalog(config.catalog_path, observations, config.dry_run)

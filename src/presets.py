@@ -596,6 +596,11 @@ def _built_in_preset_brand(name: str) -> str:
     return "Other"
 
 
+def _preset_identity(brand: str, model: str) -> tuple[str, str]:
+    """Return the case-insensitive catalog identity used for deduplication."""
+    return brand.strip().casefold(), model.strip().casefold()
+
+
 def _driver_ts_from_mapping(values: dict) -> DriverTS:
     return DriverTS(
         fs_hz=float(values["fs_hz"]),
@@ -625,8 +630,19 @@ def _load_loudspeaker_database_presets() -> tuple[dict[str, DriverTS], dict[str,
     payload = json.loads(LOUDSPEAKER_DATABASE_PATH.read_text(encoding="utf-8"))
     presets: dict[str, DriverTS] = {}
     info: dict[str, DriverPresetInfo] = {}
+    built_in_identities = {
+        _preset_identity(
+            brand := _built_in_preset_brand(name),
+            name.removeprefix(brand).strip() if brand != "Other" else name,
+        )
+        for name in DRIVER_PRESETS
+    }
     for item in payload.get("presets", []):
         base_name = str(item["name"])
+        item_brand = str(item.get("brand") or "Other")
+        item_model = str(item.get("model") or base_name.removeprefix("LSDB: "))
+        if _preset_identity(item_brand, item_model) in built_in_identities:
+            continue
         name = base_name
         if name in DRIVER_PRESETS or name in presets:
             suffix = str(item.get("lsdb_id") or len(presets) + 1)
@@ -639,8 +655,6 @@ def _load_loudspeaker_database_presets() -> tuple[dict[str, DriverTS], dict[str,
             continue
         item_price = _valid_price(item.get("price"))
         item_currency = str(item.get("currency") or "")
-        item_brand = str(item.get("brand") or "Other")
-        item_model = str(item.get("model") or name.removeprefix("LSDB: "))
         item_source = str(item.get("source") or "Loudspeaker Database")
         enriched_price, enriched_currency, enriched_url = _preset_price(name, item_model, item_brand)
         info[name] = DriverPresetInfo(
@@ -698,4 +712,3 @@ def get_driver_preset(name: str) -> DriverTS:
         return external[name]
     except KeyError as exc:
         raise ValueError(f"Unknown driver preset: {name}") from exc
-

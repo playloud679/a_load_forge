@@ -178,10 +178,12 @@ the loader first uses the optional `data/driver_prices.json` enrichment file
 and then falls back to any price embedded in the preset dataset.  Enriched
 retailer records are checked against their matched product fields before they
 enter the UI, so coherent low prices are allowed while accessory/part matches
-(including kits, crossovers and grilles) are ignored.  Because enriched offers
-may use different currencies, the UI requires a currency selection before it
-applies the maximum-price filter; amounts in EUR and GBP are never compared as
-if they shared a unit.
+(including kits, crossovers and grilles) are ignored. When enriched offers use
+different currencies, the UI converts them to the selected display currency
+with the latest available ECB daily reference rates before showing the
+library, applying the maximum-price filter or calculating the price-aware
+ranking. The UI shows the reference date; if the live feed is unavailable,
+only prices already denominated in the selected currency remain comparable.
 
 ### Loudspeaker Database presets
 

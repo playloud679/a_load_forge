@@ -9,11 +9,16 @@ import json
 import re
 from functools import lru_cache
 from pathlib import Path
+from urllib.request import Request, urlopen
+from xml.etree import ElementTree
 
 import numpy as np
 
 DRIVER_PRICES_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "driver_prices.json"
+)
+ECB_DAILY_RATES_URL = (
+    "https://www.ecb.europa.eu/stats/eurofxref/eurofxref-daily.xml"
 )
 
 
@@ -121,6 +126,75 @@ def _preset_price(name: str, model: str = "", brand: str = "") -> tuple[float | 
     return None, "", ""
 
 
+def parse_ecb_reference_rates(payload: bytes | str) -> tuple[dict[str, float], str]:
+    """Parse the ECB daily XML feed into EUR-based currency rates.
+
+    Returned values are currency units per EUR and always include ``EUR: 1``.
+    The date is the reference date published in the feed.
+    """
+    root = ElementTree.fromstring(payload)
+    dated_cube = next(
+        (element for element in root.iter() if element.attrib.get("time")),
+        None,
+    )
+    if dated_cube is None:
+        raise ValueError("ECB reference-rate date is missing")
+    rates = {"EUR": 1.0}
+    for element in dated_cube:
+        currency = str(element.attrib.get("currency", "")).upper()
+        try:
+            rate = float(element.attrib["rate"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if currency and np.isfinite(rate) and rate > 0.0:
+            rates[currency] = rate
+    if len(rates) == 1:
+        raise ValueError("ECB reference rates are missing")
+    return rates, str(dated_cube.attrib["time"])
+
+
+def load_ecb_reference_rates(timeout_s: float = 3.0) -> tuple[dict[str, float], str]:
+    """Download the latest ECB reference rates without making prices mandatory."""
+    try:
+        request = Request(
+            ECB_DAILY_RATES_URL,
+            headers={"User-Agent": "LoadForge/price-normalization"},
+        )
+        with urlopen(request, timeout=float(timeout_s)) as response:
+            payload = response.read(512_000)
+        return parse_ecb_reference_rates(payload)
+    except (OSError, ValueError, ElementTree.ParseError):
+        return {}, ""
+
+
+def convert_price(
+    price: float | None,
+    source_currency: str,
+    target_currency: str,
+    rates: dict[str, float],
+) -> float | None:
+    """Convert a price through the EUR-based ECB reference-rate table."""
+    value = _valid_price(price)
+    source = str(source_currency or "").upper()
+    target = str(target_currency or "").upper()
+    if value is None or not source or not target:
+        return None
+    if source == target:
+        return value
+    try:
+        source_rate = float(rates[source])
+        target_rate = float(rates[target])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if not (
+        np.isfinite(source_rate)
+        and source_rate > 0.0
+        and np.isfinite(target_rate)
+        and target_rate > 0.0
+    ):
+        return None
+    return value / source_rate * target_rate
+
 
 def price_extension_score(f3_hz: float, price: float) -> float:
     """Lower-is-better value score: bass extension weighted by driver price.
@@ -134,5 +208,3 @@ def price_extension_score(f3_hz: float, price: float) -> float:
     if not (np.isfinite(f3) and np.isfinite(value)) or f3 <= 0.0 or value <= 0.0:
         return float("inf")
     return f3 * value
-
-
