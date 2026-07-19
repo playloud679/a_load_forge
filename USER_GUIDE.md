@@ -7,16 +7,19 @@ bass reflex with either a port or passive radiator, acoustic suspension
 
 ## Workspaces
 
-The switch below the header separates two different jobs:
+The two large image tabs below the header separate two different jobs. The red
+**Bass Match** artwork and blue **Box Design** artwork are themselves clickable;
+the active workspace has a matching illuminated outline.
 
 - **Design a box** starts from one driver, chooses an alignment strategy and
   exposes the simulation results and plots.
-- **Find a driver** starts from enclosure and ranking constraints, evaluates
+- **Bass Match** starts from enclosure and ranking constraints, evaluates
   only the catalog candidates allowed by the sidebar filters, and preserves the
   current design until a candidate is explicitly applied.
 
-The **Project** popover contains preset save/load and URL sharing so these
-occasional actions do not compete with the main workflow.
+The **Project** popover sits at the top of the sidebar and contains preset
+save/load and URL sharing. The two primary workspace tabs therefore use the
+full width below the header.
 
 ## Inputs
 
@@ -229,26 +232,27 @@ the largest of the tuning-feasibility, air-speed and golden-rule diameters,
 and the optimizer rejects boxes whose smallest workable duct would break the
 10% duct-volume directive.
 
-### Find a Driver
+### Bass Match
 
-The **Find a driver** workspace has independent search constraints; it does not
-reuse or alter the active design controls. All Finder inputs live in the
-sidebar in a three-step workflow, while the main workspace remains dedicated
-to results, candidate preview and application:
+The **Bass Match** workspace has independent search constraints; it does not
+reuse or alter the active design controls. Target and performance controls use
+the sidebar, while the denser library filters use the wider main workspace in
+a three-step workflow:
 
 1. **Target enclosure** selects the load, maximum enclosure volume and voltage.
 2. **Performance goal** selects the optimization objective, F3 target and
    ripple allowance. Excursion, group-delay and minimum-SPL limits stay in
    **Advanced constraints**; scan range, result count and resolution stay in
    **Advanced scan**.
-3. **Candidate library** filters the catalog by text, source, size, brand,
-   bandwidth class and optional price ceiling. The numeric price limit appears
-   only when its checkbox is active. Typing in **Search preset** immediately
-   lists the first matching driver names before a scan is started.
+3. **Candidate library** filters the catalog in the main workspace by text,
+   source, size, brand, bandwidth class and optional price ceiling. The numeric
+   price limit appears only when its checkbox is active. Typing in **Search
+   preset** immediately lists the first matching driver names before a scan is
+   started.
 
-**Find drivers** remains pinned to the bottom of the sidebar and is duplicated
-as the primary action above the pre-search candidate table. Before a scan, the
-workspace is titled **Candidate library**; completed scans use
+**Run a Match** appears once as the primary action above the candidate-library
+table; it is not duplicated in the sidebar. Before a scan, the workspace is
+titled **Candidate library**; completed scans use
 **Recommended drivers** and show the active load, volume cap and objective.
 Missing values render as em dashes and columns with no data are omitted, while
 the CSV keeps the underlying numeric data.
@@ -270,8 +274,10 @@ result list; when none remain, Finder shows a dedicated no-match message.
   clearly labelled evaluation-frequency range.
 - **Top results to show** and **Simulation resolution** control output size
   and search cost. Every scan evaluates the entire filtered library; the
-  matching-preset count above **Find drivers** updates live as filters change.
-  Large optimized scans run across worker processes with a live progress bar.
+  matching-preset count above **Run a Match** updates live as filters change.
+  Every match shows a live per-candidate progress bar. Small scans advance on
+  the serial path; scans above eight candidates use worker processes and keep
+  the same progress indicator through every selected load.
 
 A new Finder starts with a practical profile: 40 L, `Balanced`, 2.83 V, F3
 target 0 Hz (deepest available extension), 3 dB ripple, 1× Xmax, 30 ms group
@@ -279,7 +285,7 @@ delay, a 10-300 Hz evaluation range, 20 results and 240 simulation points.
 **Reset Finder defaults** restores this profile without changing the active
 design.
 
-**Find drivers** evaluates every preset currently admitted by the sidebar
+**Run a Match** evaluates every preset currently admitted by the active library
 filters. Each result can include class, price, purchase link and a
 normalized response sparkline. Selecting a row opens a preview without
 changing the active design. **Apply candidate to design** is the only action

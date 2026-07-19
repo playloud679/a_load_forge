@@ -1,6 +1,6 @@
-# src/ranking.py — Find-a-driver candidate rows
+# src/ranking.py — Bass Match candidate rows
 
-Pure ranking functions for the `Find a driver` workspace, importable by
+Pure ranking functions for the `Bass Match` workspace, importable by
 worker processes (the module is picklable-by-name in both the package and
 top-level import contexts).  `src/dccav.py` re-exports the public API;
 detailed contracts live in `docs/dccav.md`.
@@ -27,10 +27,11 @@ detailed contracts live in `docs/dccav.md`.
 
 - Depends on `engine` and `presets`; no Streamlit imports, no session state:
   everything a `ProcessPoolExecutor` worker needs comes in as arguments.
-- `ui_app._batch_rank_presets` (cached, serial) and
-  `_batch_rank_presets_parallel` (uncached, real progress bar, used for
-  optimizer scans of more than 8 candidates) must produce identical rows for
-  identical inputs — the optimizer is deterministic.
+- `ui_app._batch_rank_presets` (cached reference path),
+  `_batch_rank_presets_with_progress` (serial UI path up to 8 candidates) and
+  `_batch_rank_presets_parallel` (worker-process UI path above 8 candidates)
+  must produce identical rows for identical inputs. Both UI paths feed one
+  live progress bar across every selected load; the optimizer is deterministic.
 - The UI applies `OptimizationGoals.min_spl_db` as a hard result-list filter
   after simulation; the optimizer also receives it as a soft scoring penalty
   so it can prefer a compliant alignment before the row is accepted or rejected.

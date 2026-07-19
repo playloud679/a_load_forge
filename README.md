@@ -26,9 +26,12 @@ far-field measurement substitute.
 
 Current UI highlights:
 
-- separate `Design a box` and `Find a driver` workspaces
+- separate `Design a box` and `Bass Match` workspaces selected through large,
+  directly clickable branded tabs
 - compact 3+3 load picker whose illustrated cards are directly clickable,
-  with overlaid labels, keyboard focus and a red checked active state
+  with labels beneath the diagrams, keyboard focus and a red checked active state
+- a single main `Run a Match` action with live serial/parallel progress, plus
+  library filters arranged in the wider results workspace
 - a `Ports → Resonator type` submenu for choosing a vent or passive radiator
   without misclassifying the radiator as a separate acoustic load
 - one optimizer behind every automatic box: a `Max extension` / `Balanced` /

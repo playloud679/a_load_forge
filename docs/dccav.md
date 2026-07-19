@@ -402,7 +402,7 @@ and callers.
 Infinite baffle is intentionally rejected because it has no box parameter.
 The optional `fixed_total_volume_l` argument constrains every candidate to an
 exact `Vh+Vl`, `Vs+Vp` or `Vb` for callers that explicitly need an equality
-constraint. The `Find a driver` workspace does not use it: Finder passes its
+constraint. The `Bass Match` workspace does not use it: Finder passes its
 **Maximum volume** through `OptimizationGoals.max_total_volume_l`, allowing
 each driver to retain a better, smaller alignment.
 
@@ -509,7 +509,7 @@ losses and voltage, colored by F3 or ripple, and clicking a cell offers
 ### `rank_preset_row(name, load_type, max_volume_l, voltage_v, f_min_hz, f_max_hz, points, goals=None) -> dict | None` / `sort_ranked_rows(rows)` / `response_sparkline(spl)`
 
 Candidate-ranking primitives (implemented in `src/ranking.py`) used by the
-`Find a driver` workspace. `rank_preset_row` simulates one preset at its
+`Bass Match` workspace. `rank_preset_row` simulates one preset at its
 best alignment no larger than the maximum volume (goal mode passes a cap,
 not an exact-volume constraint) and returns the table row or `None`;
 `sort_ranked_rows` orders by deepest
@@ -522,7 +522,7 @@ identical rows because the optimizer is deterministic.
 
 ### `price_extension_score(f3_hz, price) -> float`
 
-Lower-is-better value score for the price-aware `Find a driver` ranking:
+Lower-is-better value score for the price-aware `Bass Match` ranking:
 `F3 * price` rewards candidates that are simultaneously cheap and deep.
 Missing or non-positive F3/price returns `inf`, so unpriced candidates sink
 below every priced one.  The UI applies it per currency — the sidebar price
@@ -562,8 +562,8 @@ returned `DriverBandwidthClass` carries `driver_class`, `f_le_hz` (or `None`),
 `mass_density_g_cm2`, `spl_1w_db` and the human-readable `reasons` tuple shown
 by the UI caption.  Cone breakup and directivity are not in the T/S set, so
 this is a catalog-screening aid, not a substitute for the manufacturer's
-measured response.  The UI uses it for the sidebar `Class` preset filter, the
-`VC corner`/`Class` metrics and the `Find a driver` result column.
+measured response.  The UI uses it for the main-workspace `Class` preset filter, the
+`VC corner`/`Class` metrics and the `Bass Match` result column.
 
 ### `apply_driver_configuration(ts, configuration) -> DriverTS`
 
@@ -582,7 +582,7 @@ Measured Mms/Cms/Bl overrides are dropped so the composite is re-derived
 self-consistently. Per-cone air loading therefore leaves mounted Fs invariant
 for separate identical cones. The UI applies the sidebar `Driver configuration`
 selector inside `_driver_from_state()`, so alignments, the optimizer,
-metrics and plots all see the composite; the `Find a driver` ranking always
+metrics and plots all see the composite; the `Bass Match` ranking always
 evaluates single drivers and applying a candidate resets the configuration.
 
 ### `port_air_velocity_ms(result, port_area_cm2, port="lower") -> np.ndarray`
@@ -734,7 +734,7 @@ cable and crossover-coil DCR in series with the driver; negative values raise
 `Re+Rs`, the electrical damping term becomes `Bl^2/(Re+Rs)` (raising the
 effective Qes/Qts of the system), and `impedance_ohm` reports the load seen
 from the source terminals, i.e. it includes `Rs`.  The goal optimizer and the
-`Find a driver` ranking always evaluate at `series_r_ohm=0`. The symmetric 2x2
+`Bass Match` ranking always evaluate at `series_r_ohm=0`. The symmetric 2x2
 nodal system is solved in closed form (vectorized over frequency), which keeps
 the optimizer's repeated simulations fast.
 
@@ -872,7 +872,7 @@ If no true rising crossing exists in the simulated range, the returned value is
 - UI `Max extension` / `Balanced` / `Flattest` / `Manual` box strategies
   applying and locking the expected controls, and legacy `Suggested`/
   `Optimized` strategy names normalizing onto them
-- independent `Find a driver` workspace routing for sealed and infinite-baffle
+- independent `Bass Match` workspace routing for sealed and infinite-baffle
   loads, including practical defaults, candidate preview and explicit
   application
 - finite non-zero group delay, its CSV export column and the UI Group Delay

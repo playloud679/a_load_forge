@@ -1,6 +1,30 @@
 # Changelog
 
 
+## 0.5.6 (2026-07-19)
+
+- **Bass Match and Box Design workspaces**: replaced the compatibility-first
+  workspace switch with large, directly clickable branded tabs while retaining
+  the hidden state-compatible control for existing sessions and automated
+  clients.
+- **Finder workflow and feedback**: consolidated driver matching around one
+  main `Run a Match` action, moved dense library filters into the wider main
+  workspace and added one live progress indicator across serial and parallel
+  candidate ranking, including the worker-process fallback path.
+- **Sidebar and control polish**: enlarged illustrated load cards, moved their
+  labels below the diagrams, improved spacing and responsive behavior, and
+  standardized number-input steppers so every field shows one aligned `-/+`
+  pair without duplicated or wrapping controls.
+- **Catalog and examples**: refreshed the retailer price dataset and bundled
+  reference Bass Match projects in Load Forge and AFW-compatible collections,
+  together with their distributable archives and usage notes.
+- **Documentation and product-design guidance**: synchronized the README, user
+  guide, DCCAV/ranking references and package metadata with the 0.5.6 UI, and
+  added the reusable UX/UI audit and redesign prompt.
+- **Verification**: py_compile, targeted 29-test DCCAV run and Streamlit AppTest
+  clean; fresh full suite 101 passed / 0 failed / 0 skipped.
+
+
 ## 0.5.5 (2026-07-18)
 
 - **Multi-simulation pins**: up to eight load/driver/box simulations can be

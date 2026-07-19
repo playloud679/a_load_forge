@@ -1555,12 +1555,12 @@ def _check_ui_class_filter():
     at.session_state["preset_search"] = "Dayton Audio RSS315HO-4"
     at.run()
     assert not at.exception, at.exception
-    find_button = next(b for b in at.button if b.label == "Find drivers")
+    find_button = next(b for b in at.main.button if b.label == _ui._FINDER_CTA_LABEL)
     assert find_button.disabled, "midbass filter must drop the pure subwoofer"
 
     at.session_state["preset_search"] = "Beyma 12CMV2"
     at.run()
-    find_button = next(b for b in at.button if b.label == "Find drivers")
+    find_button = next(b for b in at.main.button if b.label == _ui._FINDER_CTA_LABEL)
     assert not find_button.disabled, "midbass filter must keep the Beyma 12CMV2"
 
     # Catalog filters are Finder-only and must not silently constrain Design.
@@ -3112,7 +3112,10 @@ def _check_ui_supports_sealed_and_infinite_baffle():
         assert not at.exception, at.exception
         assert not at.tabs, "driver ranking must be a separate workspace, not a design tab"
         assert not any(box.label == "Driver preset" for box in at.selectbox)
-        rank_button = next(button for button in at.sidebar.button if button.label == "Find drivers")
+        rank_button = next(
+            button for button in at.main.button
+            if button.label == _ui._FINDER_CTA_LABEL
+        )
         assert not rank_button.disabled
         if load_type == "Infinite baffle":
             assert not any(n.label == "Volume (L)" for n in at.number_input)
@@ -3199,8 +3202,12 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
         for box in at.sidebar.checkbox
     ), "ranking always uses the optimizer; the quick-scan toggle is retired"
     assert any(button.label == "Reset Finder defaults" for button in at.sidebar.button)
-    assert any(button.label == "Find drivers" for button in at.sidebar.button)
-    assert any(button.label == "Find drivers" for button in at.main.button)
+    assert not any(
+        button.label == _ui._FINDER_CTA_LABEL for button in at.sidebar.button
+    )
+    assert sum(
+        button.label == _ui._FINDER_CTA_LABEL for button in at.main.button
+    ) == 1
 
     at.session_state["batch_results"] = [{
         "Driver": "Priced test driver", "Brand": "Test", "Size in": 8.0,
@@ -3224,8 +3231,10 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
 test("UI keeps every Finder parameter in the sidebar", _check_ui_finder_parameters_are_all_in_sidebar)
 
 
-def _check_ui_finder_sidebar_action_runs_search():
+def _check_ui_finder_main_action_runs_search():
     from streamlit.testing.v1 import AppTest
+
+    import ui_app as _ui
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.run()
@@ -3238,11 +3247,16 @@ def _check_ui_finder_sidebar_action_runs_search():
     assert not at.exception, at.exception
 
     find_button = next(
-        button for button in at.sidebar.button if button.label == "Find drivers"
+        button for button in at.main.button
+        if button.label == _ui._FINDER_CTA_LABEL
     )
     find_button.click().run()
     assert not at.exception, at.exception
-    assert at.session_state["batch_results"], "sidebar action must produce ranked rows"
+    assert at.session_state["batch_results"], "main action must produce ranked rows"
+    progress = at.get("progress")
+    assert progress, "every match must leave its completed progress bar visible"
+    assert progress[0].proto.value == 100, progress[0].proto.value
+    assert "Match complete" in progress[0].proto.text, progress[0].proto.text
     assert at.dataframe, "ranked rows must appear in the main workspace"
     scanned = at.session_state["batch_result_context"][2]
     assert scanned == 1, (
@@ -3250,7 +3264,7 @@ def _check_ui_finder_sidebar_action_runs_search():
     )
 
 
-test("UI Finder sidebar action runs the driver search", _check_ui_finder_sidebar_action_runs_search)
+test("UI Finder single main action runs the driver search", _check_ui_finder_main_action_runs_search)
 
 
 def _check_ui_design_state_survives_workspace_roundtrip():
@@ -3481,7 +3495,8 @@ def _check_ui_progressive_disclosure():
     assert at.session_state["workspace_mode"] == "Find a driver"
     assert at.session_state["load_type"] == "DCCAV"
     assert not at.tabs, "the Finder landing must not show the design tabs"
-    assert any(b.label == "Find drivers" for b in at.sidebar.button)
+    assert not any(b.label == "Run a Match" for b in at.sidebar.button)
+    assert sum(b.label == "Run a Match" for b in at.main.button) == 1
     assert at.session_state["driver_preset_name"] == "KEF B110B article example"
 
     at.session_state["workspace_mode"] = "Design a box"
@@ -3511,35 +3526,32 @@ def _check_ui_progressive_disclosure():
 test("UI progressively reveals manual and advanced controls", _check_ui_progressive_disclosure)
 
 
-def _check_ui_nudge_buttons_clamp_to_widget_bounds():
+def _check_ui_box_inputs_have_one_stepper():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.session_state["workspace_mode"] = "Design a box"
     at.session_state["load_type"] = "DCCAV"
     at.run()
+    assert not at.exception, at.exception
+    assert not any(
+        button.key and button.key.endswith(("_minus_3", "_plus_3"))
+        for button in at.sidebar.button
+    ), "box inputs must rely on one integrated number-input stepper"
+
     at.session_state["box_strategy"] = "Manual"
     at.session_state["sim_auto_align"] = False
-    at.session_state["box_vh_l"] = 999.0
     at.run()
     assert not at.exception, at.exception
-    plus = next(b for b in at.sidebar.button if b.key == "box_vh_l_plus_3")
-    plus.click().run()
-    assert not at.exception, at.exception
-    assert float(at.session_state["box_vh_l"]) == 1000.0, (
-        "a nudge past the widget maximum must clamp there, not reset the input",
-        at.session_state["box_vh_l"],
-    )
-
-    at.session_state["box_vh_l"] = 0.05
-    at.run()
-    minus = next(b for b in at.sidebar.button if b.key == "box_vh_l_minus_3")
-    minus.click().run()
-    assert not at.exception, at.exception
-    assert float(at.session_state["box_vh_l"]) == 0.05, at.session_state["box_vh_l"]
+    vh = next(n for n in at.sidebar.number_input if n.key == "box_vh_l")
+    assert not vh.disabled
+    assert not any(
+        button.key and button.key.endswith(("_minus_3", "_plus_3"))
+        for button in at.sidebar.button
+    ), "manual mode must not add a second pair of stepper buttons"
 
 
-test("UI nudge buttons clamp to the widget bounds", _check_ui_nudge_buttons_clamp_to_widget_bounds)
+test("UI box inputs use one integrated stepper", _check_ui_box_inputs_have_one_stepper)
 
 
 def _check_ui_response_window_includes_mol_trace():
@@ -4017,10 +4029,10 @@ test("DCCAV rejects invalid frequency grid", _check_simulation_rejects_bad_frequ
 def _check_ui_finder_comprehensive_ux_regression():
     """Cover Finder UI contracts:
 
-    1. Logical order of sidebar sections (1, 2, 3 / 4 after search)
+    1. Visual workspace tabs and logical sidebar order (1, 2, 3 / 4 after search)
     2. Clicking the six load-type cards
     3. Multi-select (Finder) vs single-select (Design) behaviour
-    4. CTA "Find drivers" presence and state
+    4. Single CTA "Run a Match" presence and state
     5. Title/caption before and after the search
     6. Price column is conditional on price data
     7. No literal "None" in the results table
@@ -4032,20 +4044,46 @@ def _check_ui_finder_comprehensive_ux_regression():
 
     import ui_app as _ui
 
-    # -- 1. Logical order of Finder sidebar sections -------------------------
+    # -- 1. Finder sidebar stays focused; library filters use the main area ---
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
     at.run()
     assert not at.exception, at.exception
+    workspace_picker = next(
+        control for control in at.segmented_control if control.label == "Workspace"
+    )
+    assert workspace_picker.options == ["Bass Match", "Design a box"]
+    workspace_tabs = {
+        button.key: button for button in at.button
+        if (button.key or "").startswith("workspace_tab_button_")
+    }
+    assert set(workspace_tabs) == {
+        "workspace_tab_button_bass_match",
+        "workspace_tab_button_box_design",
+    }
+    workspace_tabs["workspace_tab_button_box_design"].click().run()
+    assert at.session_state["workspace_mode"] == "Design a box"
+    workspace_tabs = {
+        button.key: button for button in at.button
+        if (button.key or "").startswith("workspace_tab_button_")
+    }
+    workspace_tabs["workspace_tab_button_bass_match"].click().run()
+    assert at.session_state["workspace_mode"] == "Find a driver"
+    assert not at.exception, at.exception
+    assert any(b.key == "project_share_url" for b in at.sidebar.button)
+    assert not any(b.key == "project_share_url" for b in at.main.button)
 
     sidebar_subs_raw = [sub.value for sub in at.sidebar.subheader]
     ordered_markers = [s for s in sidebar_subs_raw if s.startswith(("1 ·", "2 ·", "3 ·", "4 ·"))]
-    assert ordered_markers[:3] == [
-        "1 · Target enclosure", "2 · Performance goal", "3 · Candidate library",
+    assert ordered_markers[:2] == [
+        "1 · Target enclosure", "2 · Performance goal",
     ], ordered_markers
-    assert not any(s.startswith("4 ·") for s in ordered_markers), (
-        "4 · Results must only appear after a search returns results",
+    assert not any(s.startswith(("3 ·", "4 ·")) for s in ordered_markers), (
+        "The library and results belong in the roomier main workspace",
         ordered_markers,
     )
+    assert any(
+        item.label == "Search preset" for item in at.main.text_input
+    ), "Finder library filters must render in the main workspace"
 
     # -- 2. All six load-type cards are clickable buttons --------------------
     card_buttons = [b for b in at.sidebar.button if b.key.startswith("load_btn_")]
@@ -4089,7 +4127,7 @@ def _check_ui_finder_comprehensive_ux_regression():
         assert not at_design.exception, at_design.exception
         assert at_design.session_state["load_type"] == lt, lt
 
-    # -- 4. CTA "Find drivers" -----------------------------------------------
+    # -- 4. Single CTA "Run a Match" -----------------------------------------
     at.session_state["preset_search"] = "KEF B110B article example"
     at.session_state["finder_volume_l"] = 40.0
     at.session_state["finder_result_count"] = 5
@@ -4097,15 +4135,17 @@ def _check_ui_finder_comprehensive_ux_regression():
     at.run()
     assert not at.exception, at.exception
 
-    find_btn = next(b for b in at.sidebar.button if b.label == "Find drivers")
+    assert not any(
+        b.label == _ui._FINDER_CTA_LABEL for b in at.sidebar.button
+    )
+    match_buttons = [
+        b for b in at.main.button if b.label == _ui._FINDER_CTA_LABEL
+    ]
+    assert len(match_buttons) == 1, match_buttons
+    find_btn = match_buttons[0]
+    assert find_btn.key == "finder_run_search_main"
     assert find_btn.proto.type == "primary"
     assert not find_btn.disabled
-    main_find_btn = next(
-        b for b in at.button
-        if b.label == "Find drivers" and b.key == "finder_run_search_main"
-    )
-    assert main_find_btn.proto.type == "primary"
-    assert not main_find_btn.disabled
 
     # -- 5. Title / caption before and after the search ----------------------
     main_subs = [s.value for s in at.subheader]
@@ -4116,7 +4156,11 @@ def _check_ui_finder_comprehensive_ux_regression():
     find_btn.click().run()
     assert not at.exception, at.exception
     assert at.session_state["batch_results"], "search must produce results"
-    assert "Recommended drivers" in [s.value for s in at.subheader]
+    result_subheaders = [s.value for s in at.subheader]
+    assert "Recommended drivers" in result_subheaders
+    assert result_subheaders.index("Recommended drivers") < result_subheaders.index(
+        "Candidate library"
+    ), result_subheaders
     caps_after = [c.value for c in at.caption]
     assert any("usable candidates" in c for c in caps_after), caps_after
     assert at.dataframe, "ranked table must render"
@@ -4125,16 +4169,16 @@ def _check_ui_finder_comprehensive_ux_regression():
     at_price = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at_price.run()
     assert not at_price.exception, at_price.exception
-    max_price_inputs = [n for n in at_price.sidebar.number_input if n.label.startswith("Max price")]
+    max_price_inputs = [n for n in at_price.main.number_input if n.label.startswith("Max price")]
     assert not max_price_inputs, "Max price must stay hidden until its checkbox is active"
     price_toggle = next(
-        c for c in at_price.sidebar.checkbox if c.label == "Filter by max price"
+        c for c in at_price.main.checkbox if c.label == "Filter by max price"
     )
     if not price_toggle.disabled:
         price_toggle.check().run()
         assert not at_price.exception, at_price.exception
         assert any(
-            n.label.startswith("Max price") for n in at_price.sidebar.number_input
+            n.label.startswith("Max price") for n in at_price.main.number_input
         )
 
     result_df = next(
@@ -4154,7 +4198,9 @@ def _check_ui_finder_comprehensive_ux_regression():
     at.session_state["finder_min_spl_db"] = 150.0
     at.run()
     assert not at.exception, at.exception
-    min_spl_find = next(b for b in at.sidebar.button if b.label == "Find drivers")
+    min_spl_find = next(
+        b for b in at.main.button if b.label == _ui._FINDER_CTA_LABEL
+    )
     min_spl_find.click().run()
     assert not at.exception, at.exception
     assert at.session_state["batch_results"] == []

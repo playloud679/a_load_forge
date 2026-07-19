@@ -49,6 +49,10 @@ except OSError:
     _VERSION = "dev"
 _BRAND_IMAGE = Path(__file__).parent / "assets" / "load_forge_header.png"
 _LOAD_IMAGE_DIR = Path(__file__).parent / "assets" / "load_types"
+_WORKSPACE_TAB_IMAGES = {
+    "Find a driver": Path(__file__).parent / "assets" / "bass_match_tab.png",
+    "Design a box": Path(__file__).parent / "assets" / "box_design_tab.png",
+}
 
 
 st.set_page_config(
@@ -69,7 +73,79 @@ st.markdown(
             min-width: 100vw !important;
             max-width: 100vw !important;
         }
-        .st-key-finder_sticky_action { width: 100vw; }
+    }
+    html {
+        font-size: 18px !important;
+    }
+    .block-container,
+    [data-testid="stMainBlockContainer"] {
+        padding-top: 1.5rem !important;
+        padding-bottom: 2rem !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+        padding-top: 1.15rem !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
+        border-top: 1px solid rgba(255,255,255,.10);
+        color: rgba(255,255,255,.96);
+        font-size: 1rem;
+        line-height: 1.25;
+        margin: .55rem 0 .35rem !important;
+        padding-top: .8rem !important;
+        padding-bottom: .3rem !important;
+    }
+    [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] {
+        gap: .9rem !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+        gap: .62rem !important;
+    }
+    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h1,
+    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h2,
+    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h3,
+    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h4 {
+        padding-top: 0.35rem !important;
+        padding-bottom: 0.2rem !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
+    section[data-testid="stSidebar"] label p {
+        line-height: 1.3 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
+        line-height: 1.45 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stNumberInput"]
+    div[data-baseweb="input"] {
+        border-radius: .72rem;
+        min-height: 3.15rem;
+        overflow: hidden;
+    }
+    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button {
+        align-items: center !important;
+        align-self: stretch !important;
+        background: rgba(255,255,255,.035) !important;
+        border-left: 1px solid rgba(255,255,255,.09) !important;
+        border-radius: 0 !important;
+        color: rgba(255,255,255,.94) !important;
+        display: flex !important;
+        height: auto !important;
+        justify-content: center !important;
+        margin: 0 !important;
+        min-width: 2.55rem !important;
+        padding: 0 !important;
+        transition: background-color .15s ease, color .15s ease;
+    }
+    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button:hover:not(:disabled) {
+        background: rgba(255,59,48,.16) !important;
+        color: white !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button svg {
+        height: 1.15rem !important;
+        width: 1.15rem !important;
+    }
+    hr {
+        margin-top: 0.5rem !important;
+        margin-bottom: 0.5rem !important;
     }
     .st-key-brand_banner,
     .st-key-brand_banner div[data-testid="stMarkdownContainer"] {
@@ -77,6 +153,8 @@ st.markdown(
         width: 100% !important;
     }
     .st-key-brand_banner {
+        background: #030405;
+        border-bottom: 1px solid rgba(255,255,255,.08);
         margin-left: -5rem;
         margin-right: -5rem;
         width: calc(100% + 10rem) !important;
@@ -84,31 +162,34 @@ st.markdown(
     .st-key-brand_banner .load-forge-brand-banner {
         display: block;
         height: auto !important;
+        margin-inline: auto;
         max-height: none !important;
+        max-width: 68rem !important;
         object-fit: contain;
         object-position: center;
         width: 100% !important;
     }
-    .st-key-brand_banner { margin-bottom: -.35rem; }
+    header[data-testid="stHeader"] {
+        background-color: transparent !important;
+    }
+    .st-key-brand_banner { margin-bottom: -.45rem; }
+    [data-testid="stCaptionContainer"] {
+        color: rgba(250,250,250,.72);
+    }
+    .st-key-finder_library_filters {
+        background: rgba(255,255,255,.025);
+        border-color: rgba(255,255,255,.10) !important;
+        margin-block: .25rem .55rem;
+    }
+    .st-key-finder_library_filters [data-testid="stVerticalBlock"] {
+        gap: .55rem !important;
+    }
     @media (max-width: 768px) {
         .st-key-brand_banner {
             margin-left: -1rem;
             margin-right: -1rem;
             width: calc(100% + 2rem) !important;
         }
-    }
-    .st-key-finder_sticky_action {
-        background: color-mix(in srgb, var(--background-color) 92%, #20242a);
-        border-top: 1px solid rgba(127,127,127,.34);
-        bottom: 0;
-        left: 0;
-        padding: .65rem .75rem .75rem;
-        position: fixed;
-        width: min(21rem, 100vw);
-        z-index: 20;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stSidebarContent"] {
-        padding-bottom: 5rem;
     }
     .st-key-active_load_summary {
         border: 1px solid rgba(127,127,127,.22);
@@ -121,7 +202,48 @@ st.markdown(
         object-fit: cover;
         width: 2.75rem !important;
     }
+    .st-key-finder_run_search_main div[data-testid="stButton"] button {
+        background: linear-gradient(180deg, #f02a35 0%, #cf111c 100%);
+        border: 1px solid rgba(255,255,255,.12);
+        box-shadow: 0 .35rem 1rem rgba(207,17,28,.18);
+        min-height: 2.8rem;
+        transition: filter .16s ease, transform .16s ease, box-shadow .16s ease;
+    }
+    .st-key-finder_run_search_main div[data-testid="stButton"] button p {
+        font-size: clamp(1.02rem, 1.25vw, 1.2rem);
+        font-weight: 750;
+        letter-spacing: .01em;
+    }
+    .st-key-finder_run_search_main div[data-testid="stButton"] button:hover {
+        box-shadow: 0 .45rem 1.25rem rgba(207,17,28,.28);
+        filter: brightness(1.06);
+        transform: translateY(-1px);
+    }
+    .st-key-finder_match_progress [role="progressbar"],
+    .st-key-finder_match_progress [data-testid="stProgressBar"] > div {
+        border-radius: .6rem !important;
+        height: 1.1rem !important;
+        min-height: 1.1rem !important;
+    }
+    .st-key-finder_match_progress [role="progressbar"] > div {
+        border-radius: inherit !important;
+        height: 100% !important;
+    }
     .stMetric { border: 1px solid rgba(127,127,127,.22); padding: .75rem; }
+    @media (max-width: 768px) {
+        html {
+            font-size: 16px !important;
+        }
+        .block-container,
+        [data-testid="stMainBlockContainer"] {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            padding-top: 1rem !important;
+        }
+        section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+            padding-top: .75rem !important;
+        }
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -189,55 +311,54 @@ def _load_type_card_styles() -> str:
     rules = [
         """
         <style>
+        [class*="st-key-load_card_"] {
+            min-height: 6rem;
+        }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button {
-            background-color: #16191d;
+            background-color: #f2f2f0;
             background-position: center;
             background-repeat: no-repeat;
             background-size: cover;
-            border: 1px solid rgba(127,127,127,.28);
-            border-radius: .45rem;
-            filter: grayscale(25%) brightness(0.9);
-            height: 4.25rem;
-            min-height: 4.25rem;
-            opacity: .85;
+            border: 1px solid rgba(255,255,255,.16);
+            border-radius: .58rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
+            filter: saturate(.72) brightness(.82) contrast(1.04);
+            height: 4.55rem;
+            min-height: 4.55rem;
+            opacity: .88;
             overflow: hidden;
             padding: 0;
             position: relative;
+            transition: border-color .16s ease, box-shadow .16s ease,
+                        filter .16s ease, transform .16s ease;
             width: 100%;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button::after {
-            background: linear-gradient(transparent, rgba(0,0,0,.88));
-            bottom: 0;
-            content: "";
-            height: 55%;
-            left: 0;
-            pointer-events: none;
-            position: absolute;
-            right: 0;
+            display: none;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button p {
-            bottom: .22rem;
-            color: white;
-            font-size: .75rem;
-            font-weight: 700;
-            left: .18rem;
-            line-height: .78rem;
-            margin: 0;
-            position: absolute;
-            right: .18rem;
+            opacity: 0;
+        }
+        .load-card-label {
+            color: rgba(250,250,250,.88);
+            font-size: .7rem;
+            font-weight: 650;
+            line-height: .9rem;
+            margin: .2rem 0 .15rem;
+            min-height: .9rem;
             text-align: center;
-            text-shadow: 0 1px 3px black;
-            white-space: normal;
-            z-index: 1;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button:hover {
             border-color: #ff3b30;
-            filter: brightness(1.05);
+            box-shadow: 0 .35rem .9rem rgba(0,0,0,.25);
+            filter: saturate(.9) brightness(1.02);
             opacity: 1;
+            transform: translateY(-1px);
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button[data-testid="stBaseButton-primary"] {
-            border: 3px solid #ff3b30;
-            box-shadow: 0 0 0 3px rgba(255,59,48,.25), inset 0 4px 0 #ff3b30;
+            border: 2px solid #ff3b30;
+            box-shadow: 0 0 0 2px rgba(255,59,48,.20),
+                        0 .35rem 1rem rgba(255,59,48,.16);
             filter: none;
             opacity: 1;
         }
@@ -293,13 +414,18 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
             with row_cols[offset]:
                 with st.container(key=f"load_card_{_LOAD_TYPE_SLUGS[lt]}"):
                     active = lt in active_set
-                    if st.button(
+                    clicked = st.button(
                         _LOAD_TYPE_SHORT[lt],
                         key=f"load_btn_{lt}",
                         type="primary" if active else "secondary",
                         use_container_width=True,
                         help=lt,
-                    ):
+                    )
+                    st.markdown(
+                        f'<div class="load-card-label">{_LOAD_TYPE_SHORT[lt]}</div>',
+                        unsafe_allow_html=True,
+                    )
+                    if clicked:
                         if single_select:
                             modified = {lt}
                         else:
@@ -308,6 +434,139 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
                             else:
                                 modified.add(lt)
     return modified
+
+
+@cache
+def _workspace_tab_styles() -> str:
+    """Return the two full-image workspace-tab styles with embedded assets."""
+    rules = [
+        """
+        <style>
+        [class*="st-key-workspace_tab_"] div[data-testid="stButton"] button {
+            background-color: #030405;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: contain;
+            border: 1px solid rgba(127,127,127,.30);
+            border-radius: .7rem;
+            filter: grayscale(18%) brightness(.72);
+            height: clamp(3.5rem, 6vw, 5rem);
+            min-height: 3.5rem;
+            overflow: hidden;
+            padding: 0;
+            transition: border-color .16s ease, box-shadow .16s ease,
+                        filter .16s ease, transform .16s ease;
+            width: 100%;
+        }
+        [class*="st-key-workspace_tab_"] div[data-testid="stButton"] button p {
+            opacity: 0;
+        }
+        [class*="st-key-workspace_tab_"] div[data-testid="stButton"] button:hover {
+            border-color: rgba(255,255,255,.70);
+            filter: brightness(.94);
+            transform: translateY(-1px);
+        }
+        .st-key-workspace_tab_bass_match div[data-testid="stButton"]
+        button[data-testid="stBaseButton-primary"] {
+            border: 2px solid #ff202b;
+            box-shadow: 0 0 0 1px rgba(255,32,43,.22), 0 0 18px rgba(255,32,43,.16);
+            filter: none;
+        }
+        .st-key-workspace_tab_box_design div[data-testid="stButton"]
+        button[data-testid="stBaseButton-primary"] {
+            border: 2px solid #00a8ff;
+            box-shadow: 0 0 0 1px rgba(0,168,255,.22), 0 0 18px rgba(0,168,255,.16);
+            filter: none;
+        }
+        [class*="st-key-workspace_tab_"] div[data-testid="stButton"]
+        button:focus-visible {
+            outline: 3px solid rgba(255,255,255,.82);
+            outline-offset: 2px;
+        }
+        .st-key-workspace_compat_control {
+            display: none;
+        }
+        .st-key-workspace_tab_bass_match,
+        .st-key-workspace_tab_box_design {
+            margin-bottom: -0.75rem;
+        }
+        .workspace-tab-desc {
+            color: rgba(250,250,250,.78);
+            font-size: 1rem;
+            margin-top: .1rem;
+        }
+        @media (max-width: 768px) {
+            div[data-testid="stHorizontalBlock"]:has(.st-key-workspace_tab_bass_match) {
+                flex-direction: column;
+            }
+            div[data-testid="stHorizontalBlock"]:has(.st-key-workspace_tab_bass_match)
+            > div[data-testid="stColumn"] {
+                min-width: 100% !important;
+                width: 100% !important;
+            }
+            [class*="st-key-workspace_tab_"] div[data-testid="stButton"] button {
+                height: 4.2rem;
+                min-height: 4.2rem;
+            }
+        }
+        """
+    ]
+    for workspace, image_path in _WORKSPACE_TAB_IMAGES.items():
+        if not image_path.exists():
+            continue
+        encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
+        slug = _WORKSPACE_TAB_SLUGS[workspace]
+        rules.append(
+            f'.st-key-workspace_tab_{slug} button '
+            f'{{ background-image: url("data:image/png;base64,{encoded}"); }}'
+        )
+    rules.append("</style>")
+    return "".join(rules)
+
+
+def _select_workspace(workspace: str) -> None:
+    """Select a workspace from one of the large visual tabs."""
+    if workspace in _WORKSPACES:
+        st.session_state["workspace_mode"] = workspace
+
+
+def _render_workspace_tabs() -> None:
+    """Render image tabs while retaining the state-compatible control."""
+    st.markdown(_workspace_tab_styles(), unsafe_allow_html=True)
+    active = str(st.session_state.get("workspace_mode", "Find a driver"))
+    descriptions = {
+        "Find a driver": "Find the right driver for your performance target.",
+        "Design a box": "Simulate and refine your acoustic alignment.",
+    }
+    tab_columns = st.columns(2, gap="small")
+    for column, workspace in zip(tab_columns, _WORKSPACES, strict=True):
+        slug = _WORKSPACE_TAB_SLUGS[workspace]
+        with column:
+            with st.container(key=f"workspace_tab_{slug}"):
+                st.button(
+                    _WORKSPACE_DISPLAY_LABELS[workspace],
+                    key=f"workspace_tab_button_{slug}",
+                    type="primary" if workspace == active else "secondary",
+                    use_container_width=True,
+                    help=f"Open {_WORKSPACE_DISPLAY_LABELS[workspace]}",
+                    on_click=_select_workspace,
+                    args=(workspace,),
+                )
+            st.markdown(
+                f'<div class="workspace-tab-desc">{descriptions[workspace]}</div>',
+                unsafe_allow_html=True,
+            )
+    # Keep this widget in the app tree for old sessions and automated clients.
+    # CSS hides it from people because the image tabs are the primary control.
+    with st.container(key="workspace_compat_control"):
+        st.segmented_control(
+            "Workspace",
+            _WORKSPACES,
+            format_func=lambda value: _WORKSPACE_DISPLAY_LABELS.get(value, value),
+            key="workspace_mode",
+            label_visibility="collapsed",
+            width="stretch",
+        )
 
 _TRACE_COLORS = {
     "Total": "#f28e8e",
@@ -351,6 +610,14 @@ _PRESET_SIZE_FILTERS = (
 _PRESET_SOURCE_FILTERS = ("All", "Built-in", "Loudspeaker Database", "Web crawler")
 _PRESET_CLASS_FILTERS = ("All", *_dccav.DRIVER_CLASSES)
 _WORKSPACES = ("Find a driver", "Design a box")
+_WORKSPACE_DISPLAY_LABELS = {
+    "Find a driver": "Bass Match",
+    "Design a box": "Design a box",
+}
+_WORKSPACE_TAB_SLUGS = {
+    "Find a driver": "bass_match",
+    "Design a box": "box_design",
+}
 # One box algorithm: the optimizer, with three selectable objectives.  The
 # labels map onto engine OptimizationGoals.objective; Manual unlocks fields.
 _OPT_OBJECTIVE_LABELS = {
@@ -362,6 +629,7 @@ _BOX_STRATEGIES = (*_OPT_OBJECTIVE_LABELS, "Manual")
 _FINDER_RANK_F3 = "Deepest bass (F3)"
 _FINDER_RANK_VALUE = "Best value (F3 × price)"
 _FINDER_RANK_MODES = (_FINDER_RANK_F3, _FINDER_RANK_VALUE)
+_FINDER_CTA_LABEL = "Run a Match"
 _FINDER_RANKING_VERSION = 2
 _FINDER_DEFAULTS_VERSION = 5
 _FINDER_DEFAULTS = {
@@ -388,8 +656,8 @@ _NUDGE_KEY_SUFFIXES = ("_minus_3", "_plus_3")
 def _is_param_key(key: str) -> bool:
     if not any(key.startswith(prefix) for prefix in _PARAM_PREFIXES):
         return False
-    # Nudge-button keys share the box_/reflex_/sealed_ prefixes but are
-    # widget-event state: they cannot be assigned back via session_state.
+    # Ignore legacy nudge-button state left by sessions/projects created
+    # before box fields switched to the integrated number-input stepper.
     return not key.endswith(_NUDGE_KEY_SUFFIXES)
 
 
@@ -573,6 +841,63 @@ def _decode_share_payload(token: str) -> dict:
     if not isinstance(data, dict):
         raise ValueError("Share payload must be a parameter mapping")
     return data
+
+
+def _render_project_menu() -> None:
+    """Keep occasional project actions in the sidebar, away from workspaces."""
+    with st.popover("Project", use_container_width=True):
+        preset = {"_load_forge_meta": {"version": _VERSION, "format": 1}, **_collect_params()}
+        st.download_button(
+            "Save preset",
+            json.dumps(preset, indent=2).encode("utf-8"),
+            "load_forge.lfp",
+            "application/json",
+            use_container_width=True,
+        )
+        if st.button(
+            "Share via URL",
+            key="project_share_url",
+            use_container_width=True,
+            help="Encodes the current design into the page URL and shows the "
+                 "link below, ready to copy.",
+        ):
+            token = _encode_share_payload()
+            st.session_state["_applied_share_token"] = token
+            st.query_params["d"] = token
+            st.toast("Share link ready - copy it below")
+        active_share_token = st.query_params.get("d")
+        if active_share_token:
+            st.code(_share_link_url(str(active_share_token)), language=None)
+            if st.button(
+                "Clear share link",
+                key="project_clear_share_url",
+                use_container_width=True,
+            ):
+                st.session_state["_applied_share_token"] = None
+                st.query_params.pop("d", None)
+                st.rerun()
+        upload = st.file_uploader("Load preset", type=["lfp", "json"])
+        if upload is not None:
+            try:
+                payload = json.loads(upload.getvalue().decode("utf-8"))
+                payload.pop("_load_forge_meta", None)
+                _snapshot_design_state()
+                count = _apply_loaded_params(payload)
+                st.toast(f"Loaded {count} parameters")
+                st.rerun()
+            except Exception as exc:
+                logger.exception("Invalid preset")
+                st.error(f"Invalid preset: {exc}")
+        if st.session_state.get("_design_state_backup"):
+            if st.button(
+                "Restore previous design",
+                key="project_restore_previous_design",
+                use_container_width=True,
+                help="Undo the last preset or shared-link load and restore the previous parameters.",
+            ):
+                _restore_design_state()
+                st.toast("Previous design restored")
+                st.rerun()
 
 
 def _chart_signature() -> str:
@@ -1138,13 +1463,6 @@ def _use_manual_box_strategy() -> None:
     _set_box_strategy_state("Manual")
 
 
-def _nudge_state(key: str, factor: float, min_value: float, max_value: float):
-    # Clamp to the widget bounds: a value outside [min, max] makes Streamlit
-    # drop the widget state and silently reset the input to its minimum.
-    value = float(st.session_state.get(key, 0.0) or 0.0)
-    st.session_state[key] = float(np.clip(value * factor, min_value, max_value))
-
-
 def _box_number_with_nudge(
     label: str,
     key: str,
@@ -1154,26 +1472,14 @@ def _box_number_with_nudge(
     step: float,
     disabled: bool = False,
 ):
-    n1, n2, n3 = st.columns([5, 1, 1])
-    with n1:
-        st.number_input(
-            label, min_value=min_value, max_value=max_value, step=step, key=key,
-            disabled=disabled,
-        )
-    with n2:
-        st.button(
-            "−", key=f"{key}_minus_3", on_click=_nudge_state,
-            args=(key, 0.97, min_value, max_value),
-            use_container_width=True, disabled=disabled,
-            help=f"Decrease {label} by 3%",
-        )
-    with n3:
-        st.button(
-            "+", key=f"{key}_plus_3", on_click=_nudge_state,
-            args=(key, 1.03, min_value, max_value),
-            use_container_width=True, disabled=disabled,
-            help=f"Increase {label} by 3%",
-        )
+    st.number_input(
+        label,
+        min_value=min_value,
+        max_value=max_value,
+        step=step,
+        key=key,
+        disabled=disabled,
+    )
 
 
 def _alignment_warning(ts: _dccav.DriverTS, alignment: _dccav.DccavAlignment) -> str | None:
@@ -1311,6 +1617,79 @@ def _available_preset_families(names: list[str]) -> list[str]:
     ordered = [family for family in _PRESET_FAMILY_ORDER if family == "All" or family in present]
     extras = sorted(present.difference(ordered), key=str.casefold)
     return [*ordered, *extras]
+
+
+def _render_finder_library_filters(all_preset_names: list[str]) -> None:
+    """Render Finder library filters in the roomy main workspace."""
+    with st.container(key="finder_library_filters", border=True):
+        st.markdown("**Library filters**")
+        search_col, source_col, brand_col, size_col, class_col = st.columns(
+            [2.2, 1, 1, 1, 1], gap="small"
+        )
+        with search_col:
+            st.text_input(
+                "Search preset", key="preset_search", placeholder="Brand or model"
+            )
+        with source_col:
+            st.selectbox(
+                "Source", _PRESET_SOURCE_FILTERS, key="preset_source_filter"
+            )
+        with brand_col:
+            st.selectbox(
+                "Brand",
+                _available_preset_families(all_preset_names),
+                key="preset_family_filter",
+            )
+        with size_col:
+            st.selectbox("Size", _PRESET_SIZE_FILTERS, key="preset_size_filter")
+        with class_col:
+            st.selectbox(
+                "Class",
+                _PRESET_CLASS_FILTERS,
+                key="preset_class_filter",
+                help="Heuristic bandwidth class from T/S: pure subwoofers vs woofers "
+                     "that can reach the mids (voice-coil corner, cone mass, Fs, sensitivity).",
+            )
+
+        preset_currencies = _preset_price_currencies(all_preset_names)
+        price_currency_col, price_toggle_col, price_limit_col, _ = st.columns(
+            [1, 1.25, 1, 2.75], gap="small"
+        )
+        if preset_currencies:
+            if st.session_state["preset_price_currency"] not in preset_currencies:
+                st.session_state["preset_price_currency"] = preset_currencies[0]
+            with price_currency_col:
+                st.selectbox(
+                    "Price currency", preset_currencies, key="preset_price_currency"
+                )
+            price_currency = str(st.session_state["preset_price_currency"])
+            preset_prices = _preset_price_values(all_preset_names, price_currency)
+            price_max_available = max(preset_prices)
+            if st.session_state["preset_max_price"] <= 0.0:
+                st.session_state["preset_max_price"] = float(price_max_available)
+            st.session_state["preset_max_price"] = min(
+                float(price_max_available),
+                max(0.0, float(st.session_state["preset_max_price"])),
+            )
+            with price_toggle_col:
+                st.checkbox("Filter by max price", key="preset_price_enabled")
+            if st.session_state["preset_price_enabled"]:
+                with price_limit_col:
+                    st.number_input(
+                        f"Max price ({price_currency})",
+                        min_value=0.0,
+                        max_value=float(price_max_available),
+                        step=1.0,
+                        key="preset_max_price",
+                    )
+        else:
+            st.session_state["preset_price_enabled"] = False
+            with price_toggle_col:
+                st.checkbox(
+                    "Filter by max price", key="preset_price_enabled", disabled=True
+                )
+            with price_limit_col:
+                st.caption("Price unavailable in the current preset dataset.")
 
 
 def _filter_driver_preset_names(
@@ -2373,11 +2752,15 @@ def _batch_rank_presets_parallel(
     f_max_hz: float,
     points: int,
     candidate_limit: int,
-    goals: _dccav.OptimizationGoals,
+    goals: _dccav.OptimizationGoals | None,
+    progress_widget: object | None = None,
+    completed_offset: int = 0,
+    progress_total: int | None = None,
 ) -> list[dict]:
-    """Optimizer ranking across worker processes with a real progress bar."""
+    """Rank candidates across worker processes with a real progress bar."""
     names = list(preset_names)[:int(candidate_limit)]
     total = max(len(names), 1)
+    overall_total = max(int(progress_total or total), 1)
     workers = max(1, min(os.cpu_count() or 2, 8, total))
     # forkserver: no re-import of the caller's __main__ in the workers (the
     # spawn method would re-execute entrypoint scripts) and no fork of a
@@ -2386,7 +2769,14 @@ def _batch_rank_presets_parallel(
         "forkserver" if "forkserver" in multiprocessing.get_all_start_methods()
         else "spawn"
     )
-    progress = st.progress(0.0, text=f"Optimizing 0/{total} candidates")
+    owns_progress = progress_widget is None
+    if progress_widget is None:
+        progress = st.progress(
+            completed_offset / overall_total,
+            text=f"Matching {completed_offset}/{overall_total} simulations",
+        )
+    else:
+        progress = progress_widget
     rows: list[dict] = []
     done = 0
     try:
@@ -2402,7 +2792,12 @@ def _batch_rank_presets_parallel(
             for future in as_completed(futures):
                 done += 1
                 progress.progress(
-                    done / total, text=f"Optimizing {done}/{total} candidates")
+                    min((completed_offset + done) / overall_total, 1.0),
+                    text=(
+                        f"Matching {completed_offset + done}/{overall_total} simulations"
+                        f" · {load_type}"
+                    ),
+                )
                 try:
                     row = future.result()
                 except Exception:
@@ -2416,13 +2811,50 @@ def _batch_rank_presets_parallel(
             exc_info=True,
         )
         progress.progress(
-            0.0, text="Parallel optimization unavailable; continuing in safe mode")
-        return _batch_rank_presets(
+            completed_offset / overall_total,
+            text="Parallel matching unavailable; continuing in safe mode",
+        )
+        return _batch_rank_presets_with_progress(
             tuple(names), load_type, float(max_volume_l), float(voltage_v),
-            float(f_min_hz), float(f_max_hz), int(points), len(names), goals=goals,
+            float(f_min_hz), float(f_max_hz), int(points), len(names), goals,
+            progress, completed_offset, overall_total,
         )
     finally:
-        progress.empty()
+        if owns_progress:
+            progress.empty()
+    return _dccav.sort_ranked_rows(rows)
+
+
+def _batch_rank_presets_with_progress(
+    preset_names: tuple[str, ...],
+    load_type: str,
+    max_volume_l: float,
+    voltage_v: float,
+    f_min_hz: float,
+    f_max_hz: float,
+    points: int,
+    candidate_limit: int,
+    goals: _dccav.OptimizationGoals | None,
+    progress: object,
+    completed_offset: int,
+    progress_total: int,
+) -> list[dict]:
+    """Serial ranking path that reports real per-candidate progress."""
+    names = list(preset_names)[:int(candidate_limit)]
+    overall_total = max(int(progress_total), 1)
+    rows: list[dict] = []
+    for done, name in enumerate(names, start=1):
+        row = _dccav.rank_preset_row(
+            name, load_type, float(max_volume_l), float(voltage_v),
+            float(f_min_hz), float(f_max_hz), int(points), goals,
+        )
+        if row is not None:
+            rows.append(row)
+        current = completed_offset + done
+        progress.progress(
+            min(current / overall_total, 1.0),
+            text=f"Matching {current}/{overall_total} simulations · {load_type}",
+        )
     return _dccav.sort_ranked_rows(rows)
 
 
@@ -2770,8 +3202,13 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
         finder_load_types = [str(st.session_state.get("load_type", "DCCAV"))]
     finder_volume_l = float(_finder_value("finder_volume_l"))
     scan_count = len(filtered_preset_names)
+    progress_total = max(scan_count * len(finder_load_types), 1)
+    with st.container(key="finder_match_progress"):
+        progress = st.progress(
+            0.0, text=f"Matching 0/{progress_total} simulations")
+    st.session_state.pop("_finder_match_completion", None)
     all_rows: list[dict] = []
-    for lt in finder_load_types:
+    for load_index, lt in enumerate(finder_load_types):
         is_infinite_baffle = lt == "Infinite baffle"
         uses_pr = lt == "Bass reflex" and _reflex_uses_passive_radiator(finder=True)
         ranking_load_type = "Passive radiator" if uses_pr else lt
@@ -2791,20 +3228,23 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
             int(_finder_value("finder_points")),
             scan_count,
         )
-        if goals is not None and scan_count > 8:
-            batch_rows = _batch_rank_presets_parallel(*rank_args, goals)
-        else:
-            spinner_text = (
-                f"Optimizing {scan_count} candidates · {lt}" if goals is not None
-                else f"Scanning {scan_count} candidates · {lt}"
-                + (" · passive radiator" if uses_pr else "")
+        completed_offset = load_index * scan_count
+        if scan_count > 8:
+            batch_rows = _batch_rank_presets_parallel(
+                *rank_args,
+                goals,
+                progress,
+                completed_offset,
+                progress_total,
             )
-            with st.spinner(spinner_text):
-                batch_rows = _batch_rank_presets(
-                    *rank_args,
-                    goals=goals,
-                    ranking_version=_FINDER_RANKING_VERSION,
-                )
+        else:
+            batch_rows = _batch_rank_presets_with_progress(
+                *rank_args,
+                goals,
+                progress,
+                completed_offset,
+                progress_total,
+            )
         if lt == "Bass reflex":
             for row in batch_rows:
                 row["_load_type"] = "Bass reflex"
@@ -2818,6 +3258,12 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
             and float(row["Peak dB"]) >= min_spl_db
         ]
     all_rows = _dccav.sort_ranked_rows(all_rows)
+    completion_text = (
+        f"Match complete · {progress_total}/{progress_total} simulations · "
+        f"{len(all_rows)} usable candidates"
+    )
+    progress.progress(1.0, text=completion_text)
+    st.session_state["_finder_match_completion"] = completion_text
     st.session_state["batch_results"] = all_rows
     st.session_state["batch_search_completed"] = True
     st.session_state["batch_result_context"] = (
@@ -2930,7 +3376,7 @@ def _finder_search_blocked(filtered_preset_names: list[str]) -> bool:
 
 
 def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
-    """Render a persistent Finder summary and primary action."""
+    """Render the live Finder summary; the workspace owns the single CTA."""
     finder_load_types, only_infinite_baffle = _finder_load_context()
 
     finder_volume_l = float(_finder_value("finder_volume_l"))
@@ -2945,13 +3391,6 @@ def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
         f"Scans all {len(filtered_preset_names)} matching presets · {load_label}"
         + ("" if only_infinite_baffle else f" · ≤ {finder_volume_l:.1f} L")
     )
-    with st.container(key="finder_sticky_action"):
-        if st.button(
-            "Find drivers", type="primary", use_container_width=True,
-            disabled=_finder_search_blocked(filtered_preset_names),
-            key="finder_run_search",
-        ):
-            _run_find_driver_search(filtered_preset_names)
 
 
 _TABLE_NUMBER_FORMATS = {
@@ -3033,18 +3472,10 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
     st.subheader("Candidate library")
     st.caption(
         "All matching loudspeakers are shown below. Select a row to use that driver "
-        "directly in the simulation, or run Finder to rank optimized enclosures."
-    )
-    if not filtered_preset_names:
-        st.warning("No presets match the current library filters.")
-        return
-
-    st.caption(
-        f"{len(filtered_preset_names)} presets match the current filters. "
-        "Scroll the table to browse the complete library."
+        "directly in the simulation, or run a match to rank optimized enclosures."
     )
     if st.button(
-        "Find drivers",
+        _FINDER_CTA_LABEL,
         type="primary",
         use_container_width=True,
         disabled=_finder_search_blocked(filtered_preset_names),
@@ -3053,6 +3484,14 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         _run_find_driver_search(filtered_preset_names)
         st.rerun()
 
+    if not filtered_preset_names:
+        st.warning("No presets match the current library filters.")
+        return
+
+    st.caption(
+        f"{len(filtered_preset_names)} presets match the current filters. "
+        "Scroll the table to browse the complete library."
+    )
     library_df = _driver_library_frame(tuple(filtered_preset_names))
     table_state = st.dataframe(
         library_df,
@@ -3092,6 +3531,11 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     """Render Finder results and candidate application, separate from inputs."""
     load_type = str(st.session_state.get("load_type", "DCCAV"))
 
+    match_completion = st.session_state.pop("_finder_match_completion", None)
+    if match_completion:
+        with st.container(key="finder_match_progress"):
+            st.progress(1.0, text=str(match_completion))
+
     finder_volume_l = float(st.session_state.get("finder_volume_l", 0.0))
     finder_loads = tuple(st.session_state.get("finder_load_types", []))
     finder_resonator = str(st.session_state.get(
@@ -3111,8 +3555,8 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     )
     if not context_matches:
         batch_rows = []
-    _render_driver_library(filtered_preset_names)
     if not batch_rows:
+        _render_driver_library(filtered_preset_names)
         if st.session_state.get("batch_search_completed", False) and context_matches:
             st.subheader("No matching drivers")
             if current_min_spl_db > 0.0:
@@ -3269,9 +3713,11 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
     if not selected_rows:
         st.info("Select one candidate to inspect it without replacing the current design.")
+        _render_driver_library(filtered_preset_names)
         return
     selected_index = int(selected_rows[0])
     if not 0 <= selected_index < len(batch_df):
+        _render_driver_library(filtered_preset_names)
         return
     selected_row = batch_df.iloc[selected_index].to_dict()
     row_load_type = str(selected_row.get("Load", load_type))
@@ -3321,6 +3767,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                 "load_type": row_load_type,
             }
             st.rerun()
+    _render_driver_library(filtered_preset_names)
 
 
 @st.cache_data(show_spinner="Simulating T/S tolerance band...")
@@ -3982,63 +4429,8 @@ st.caption(
     "T/S driven response model"
 )
 
-workspace_col, project_col = st.columns([4, 1])
-with workspace_col:
-    st.segmented_control(
-        "Workspace",
-        _WORKSPACES,
-        key="workspace_mode",
-        label_visibility="collapsed",
-        width="stretch",
-    )
-with project_col:
-    with st.popover("Project", use_container_width=True):
-        preset = {"_load_forge_meta": {"version": _VERSION, "format": 1}, **_collect_params()}
-        st.download_button(
-            "Save preset",
-            json.dumps(preset, indent=2).encode("utf-8"),
-            "load_forge.lfp",
-            "application/json",
-            use_container_width=True,
-        )
-        if st.button(
-            "Share via URL",
-            use_container_width=True,
-            help="Encodes the current design into the page URL and shows the "
-                 "link below, ready to copy.",
-        ):
-            _token = _encode_share_payload()
-            st.session_state["_applied_share_token"] = _token
-            st.query_params["d"] = _token
-            st.toast("Share link ready - copy it below")
-        _active_share_token = st.query_params.get("d")
-        if _active_share_token:
-            st.code(_share_link_url(str(_active_share_token)), language=None)
-            if st.button("Clear share link", use_container_width=True):
-                st.session_state["_applied_share_token"] = None
-                st.query_params.pop("d", None)
-                st.rerun()
-        upload = st.file_uploader("Load preset", type=["lfp", "json"])
-        if upload is not None:
-            try:
-                payload = json.loads(upload.getvalue().decode("utf-8"))
-                payload.pop("_load_forge_meta", None)
-                _snapshot_design_state()
-                count = _apply_loaded_params(payload)
-                st.toast(f"Loaded {count} parameters")
-                st.rerun()
-            except Exception as exc:
-                logger.exception("Invalid preset")
-                st.error(f"Invalid preset: {exc}")
-        if st.session_state.get("_design_state_backup"):
-            if st.button(
-                "Restore previous design",
-                use_container_width=True,
-                help="Undo the last preset or shared-link load and restore the previous parameters.",
-            ):
-                _restore_design_state()
-                st.toast("Previous design restored")
-                st.rerun()
+_render_workspace_tabs()
+finder_library_filters_slot = st.empty()
 
 
 current_ts = None
@@ -4049,6 +4441,8 @@ current_sealed_alignment = None
 derived = None
 
 with st.sidebar:
+    _render_project_menu()
+    st.divider()
     workspace_mode = str(st.session_state.get("workspace_mode", "Design a box"))
     st.subheader("1 · Driver" if workspace_mode == "Design a box" else "1 · Target enclosure")
     if workspace_mode == "Find a driver":
@@ -4076,55 +4470,12 @@ with st.sidebar:
         _render_find_driver_target_sidebar()
         st.subheader("2 · Performance goal")
         _render_find_driver_goal_sidebar()
-        st.subheader("3 · Candidate library")
     all_preset_names = _dccav.driver_preset_names()
-    st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
     if workspace_mode == "Find a driver":
-        st.caption("Library filters")
-        f0, f1 = st.columns(2)
-        with f0:
-            st.selectbox("Source", _PRESET_SOURCE_FILTERS, key="preset_source_filter")
-            st.selectbox("Size", _PRESET_SIZE_FILTERS, key="preset_size_filter")
-        with f1:
-            st.selectbox(
-                "Brand",
-                _available_preset_families(all_preset_names),
-                key="preset_family_filter",
-            )
-            st.selectbox(
-                "Class",
-                _PRESET_CLASS_FILTERS,
-                key="preset_class_filter",
-                help="Heuristic bandwidth class from T/S: pure subwoofers vs woofers "
-                     "that can reach the mids (voice-coil corner, cone mass, Fs, sensitivity).",
-            )
-        preset_currencies = _preset_price_currencies(all_preset_names)
-        if preset_currencies:
-            if st.session_state["preset_price_currency"] not in preset_currencies:
-                st.session_state["preset_price_currency"] = preset_currencies[0]
-            st.selectbox("Price currency", preset_currencies, key="preset_price_currency")
-            price_currency = str(st.session_state["preset_price_currency"])
-            preset_prices = _preset_price_values(all_preset_names, price_currency)
-            price_max_available = max(preset_prices)
-            if st.session_state["preset_max_price"] <= 0.0:
-                st.session_state["preset_max_price"] = float(price_max_available)
-            st.session_state["preset_max_price"] = min(
-                float(price_max_available),
-                max(0.0, float(st.session_state["preset_max_price"])),
-            )
-            st.checkbox("Filter by max price", key="preset_price_enabled")
-            if st.session_state["preset_price_enabled"]:
-                st.number_input(
-                    f"Max price ({price_currency})",
-                    min_value=0.0,
-                    max_value=float(price_max_available),
-                    step=1.0,
-                    key="preset_max_price",
-                )
-        else:
-            st.session_state["preset_price_enabled"] = False
-            st.checkbox("Filter by max price", key="preset_price_enabled", disabled=True)
-            st.caption("Price unavailable in the current preset dataset.")
+        with finder_library_filters_slot.container():
+            _render_finder_library_filters(all_preset_names)
+    else:
+        st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
     filtered_preset_names = _filter_driver_preset_names(
         all_preset_names,
         source=(st.session_state["preset_source_filter"] if workspace_mode == "Find a driver" else "All"),
