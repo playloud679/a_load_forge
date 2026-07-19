@@ -11,7 +11,7 @@ in sync in the same change.
 
 | Module/File | Doc | Role |
 |---|---|---|
-| `ui_app.py` | source only | Streamlit dashboard with compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, target/performance/library Finder flow, contextual design tabs, T/S controls, plots, project state and CSV export |
+| `ui_app.py` | source only | Streamlit dashboard with compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, target/performance/library Finder flow, contextual design tabs, T/S controls, plots, project state and CSV export.  Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
 | `src/__init__.py` | [__init__.md](__init__.md) | Public package exports for acoustic-load helpers |
 | `src/dccav.py` | [dccav.md](dccav.md) | DCCAV/reflex/sealed/infinite-baffle formulas, T/S derivation and lumped acoustic-circuit simulation |
 | `tests/test_all.py` | source only | Active regression runner for the acoustic-load models and Streamlit workflows |

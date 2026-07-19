@@ -904,6 +904,10 @@ def _chart_signature() -> str:
     for key, value in st.session_state.items():
         if not any(key.startswith(prefix) for prefix in prefixes):
             continue
+        # Zooming must update the mounted chart in place: remounting inside the
+        # response fragment makes Vega measure a collapsed container width.
+        if key == "plot_response_window_hz":
+            continue
         try:
             json.dumps(value)
         except (TypeError, ValueError):
@@ -2020,12 +2024,12 @@ def _response_y_domain(
 
     if zoomed:
         bottom = float(np.min(visible_total)) - 2.0
-        top = float(np.max(visible_total)) + 2.0
+        top = float(np.max(visible_total)) + 5.0
         for values in series.values():
             trace = np.asarray(values, dtype=float)
             trace = trace[visible & np.isfinite(trace)]
             if trace.size:
-                top = max(top, float(np.max(trace)) + 2.0)
+                top = max(top, float(np.max(trace)) + 5.0)
         if top - bottom < 12.0:
             midpoint = (top + bottom) / 2.0
             bottom, top = midpoint - 6.0, midpoint + 6.0
@@ -2224,6 +2228,14 @@ def _click_marker_layer(
         "mol_db": result.mol_db.astype(float),
     })
     marker_data = marker_data[np.isfinite(marker_data["frequency_hz"]) & np.isfinite(marker_data["spl_total_db"])]
+    if x_domain is not None:
+        # Unclipped selector points beyond the zoom window would make Vega
+        # shrink the plot area to fit them inside the container width.
+        low_hz, high_hz = map(float, x_domain)
+        marker_data = marker_data[
+            (marker_data["frequency_hz"] >= low_hz)
+            & (marker_data["frequency_hz"] <= high_hz)
+        ]
     marker_data["display_label"] = [
         (
             f"{frequency_hz:.1f} Hz {total_db:.1f} dB"
@@ -4000,7 +4012,7 @@ def _render_response_tab(
                 frequency_window=frequency_window,
                 show_legend=show_legend,
             ),
-            use_container_width=True,
+            width="stretch",
             key=f"response_chart_{chart_sig}",
         )
         st.caption(
