@@ -192,15 +192,9 @@ st.markdown(
         }
     }
     .st-key-active_load_summary {
-        border: 1px solid rgba(127,127,127,.22);
-        border-radius: .55rem;
-        padding: .45rem .6rem .6rem;
-    }
-    .st-key-active_load_summary img {
-        border-radius: .3rem;
-        height: 2.75rem !important;
-        object-fit: cover;
-        width: 2.75rem !important;
+        border: 1px solid rgba(127,127,127,.22) !important;
+        border-radius: .55rem !important;
+        padding: .45rem .6rem 1.35rem !important;
     }
     .st-key-finder_run_search_main div[data-testid="stButton"] button {
         background: linear-gradient(180deg, #f02a35 0%, #cf111c 100%);
@@ -256,6 +250,7 @@ _PARAM_PREFIXES = (
 _RESPONSE_TRACE_OPTIONS = ("Total", "Cone", "Lower port")
 _PORT_TRACE_OPTIONS = ("Upper port", "Lower port")
 _AUTO_CURSOR_OPTIONS = ("F3", "F6", "F10")
+_RESPONSE_DEFAULTS_VERSION = 1
 _MAX_PINNED_RESPONSES = 8
 _MAX_PINNED_CHART_ROWS = 4800
 _PIN_TRACE_COLORS = (
@@ -1055,7 +1050,6 @@ def _ensure_plot_control_state() -> None:
         "plot_tolerance_band",
         "plot_port_upper",
         "plot_port_lower",
-        "cursor_manual_enabled",
         "atlas_enabled",
     ):
         if key in st.session_state:
@@ -1064,8 +1058,6 @@ def _ensure_plot_control_state() -> None:
         "plot_response_window_hz",
         "plot_tolerance_pct",
         "cursor_auto_markers",
-        "cursor_manual_1_hz",
-        "cursor_manual_2_hz",
         "atlas_metric",
     ):
         if key in st.session_state:
@@ -1530,6 +1522,22 @@ def _driver_preset_currency(name: str) -> str:
         return ""
 
 
+@st.cache_data(ttl=6 * 60 * 60, show_spinner=False)
+def _current_exchange_rates() -> tuple[dict[str, float], str]:
+    """Return current EUR-based ECB rates and their published reference date."""
+    return _pricing.load_ecb_reference_rates()
+
+
+def _normalized_preset_price(name: str, target_currency: str) -> float | None:
+    rates, _ = _current_exchange_rates()
+    return _pricing.convert_price(
+        _driver_preset_price(name),
+        _driver_preset_currency(name),
+        target_currency,
+        rates,
+    )
+
+
 def _preset_price_currencies(names: list[str]) -> list[str]:
     return sorted(
         {
@@ -1543,12 +1551,12 @@ def _preset_price_currencies(names: list[str]) -> list[str]:
 def _preset_price_values(names: list[str], currency: str | None = None) -> list[float]:
     values = []
     for name in names:
-        price = _driver_preset_price(name)
-        if (
-            price is not None
-            and np.isfinite(float(price))
-            and (currency is None or _driver_preset_currency(name) == currency)
-        ):
+        price = (
+            _normalized_preset_price(name, currency)
+            if currency
+            else _driver_preset_price(name)
+        )
+        if price is not None and np.isfinite(float(price)):
             values.append(float(price))
     return values
 
@@ -1664,6 +1672,7 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
                     "Price currency", preset_currencies, key="preset_price_currency"
                 )
             price_currency = str(st.session_state["preset_price_currency"])
+            rates, rates_date = _current_exchange_rates()
             preset_prices = _preset_price_values(all_preset_names, price_currency)
             price_max_available = max(preset_prices)
             if st.session_state["preset_max_price"] <= 0.0:
@@ -1682,6 +1691,17 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
                         max_value=float(price_max_available),
                         step=1.0,
                         key="preset_max_price",
+                    )
+            if len(preset_currencies) > 1:
+                if rates and rates_date:
+                    st.caption(
+                        f"Prices normalized to {price_currency} · ECB reference rates "
+                        f"{rates_date}."
+                    )
+                else:
+                    st.warning(
+                        f"ECB rates unavailable: only prices already in "
+                        f"{price_currency} can be compared."
                     )
         else:
             st.session_state["preset_price_enabled"] = False
@@ -1718,17 +1738,10 @@ def _filter_driver_preset_names(
             continue
         if query and query not in name.casefold():
             continue
-        price = _driver_preset_price(name)
-        if (
-            max_price is not None
-            and max_price_currency
-            and _driver_preset_currency(name) != max_price_currency
-        ):
-            continue
-        if max_price is not None and price is not None and float(price) > float(max_price):
-            continue
-        if max_price is not None and price is None:
-            continue
+        if max_price is not None:
+            price = _normalized_preset_price(name, str(max_price_currency or ""))
+            if price is None or float(price) > float(max_price):
+                continue
         filtered.append(name)
     if selected and selected != "Custom" and selected in names and selected not in filtered:
         filtered.insert(0, selected)
@@ -1913,39 +1926,66 @@ def _line_chart(
     color = alt.Color(
         "series:N",
         title=None,
-        legend=None if not legend else alt.Legend(title=None),
+        legend=None if not legend else alt.Legend(title=None, orient="bottom", direction="horizontal"),
         scale=color_scale,
     )
-    return alt.Chart(data).mark_line(point=False, clip=True, strokeWidth=2.2).encode(
-        x=alt.X(
-            "frequency_hz:Q",
-            title="Frequency (Hz)",
-            scale=_log_frequency_scale(x_domain),
-            axis=alt.Axis(format="~g"),
-        ),
-        y=alt.Y(
-            "value:Q",
-            title=y_title,
-            scale=alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined,
-            axis=y_axis if y_axis is not None else alt.Undefined,
-        ),
-        color=color,
-        tooltip=[
-            alt.Tooltip("frequency_hz:Q", title="Hz", format=".2f"),
-            alt.Tooltip("series:N", title="Trace"),
-            alt.Tooltip("value:Q", title=y_title, format=".3f"),
-        ],
-    ).properties(height=height)
+    
+    chart = alt.Chart(data).mark_line(point=False, clip=True, strokeWidth=2.2)
+    
+    if legend:
+        selection = alt.selection_point(fields=['series'], bind='legend')
+        opacity = alt.condition(selection, alt.value(1), alt.value(0.1))
+        chart = chart.encode(
+            x=alt.X(
+                "frequency_hz:Q",
+                title="Frequency (Hz)",
+                scale=_log_frequency_scale(x_domain),
+                axis=alt.Axis(format="~g"),
+            ),
+            y=alt.Y(
+                "value:Q",
+                title=y_title,
+                scale=alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined,
+                axis=y_axis if y_axis is not None else alt.Undefined,
+            ),
+            color=color,
+            opacity=opacity,
+            tooltip=[
+                alt.Tooltip("frequency_hz:Q", title="Hz", format=".2f"),
+                alt.Tooltip("series:N", title="Trace"),
+                alt.Tooltip("value:Q", title=y_title, format=".3f"),
+            ],
+        ).add_params(selection)
+    else:
+        chart = chart.encode(
+            x=alt.X(
+                "frequency_hz:Q",
+                title="Frequency (Hz)",
+                scale=_log_frequency_scale(x_domain),
+                axis=alt.Axis(format="~g"),
+            ),
+            y=alt.Y(
+                "value:Q",
+                title=y_title,
+                scale=alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined,
+                axis=y_axis if y_axis is not None else alt.Undefined,
+            ),
+            color=color,
+            tooltip=[
+                alt.Tooltip("frequency_hz:Q", title="Hz", format=".2f"),
+                alt.Tooltip("series:N", title="Trace"),
+                alt.Tooltip("value:Q", title=y_title, format=".3f"),
+            ],
+        )
+    return chart.properties(height=height, width="container")
 
 
 def _response_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
     series = {}
     load_type = st.session_state.get("load_type", "DCCAV")
-    if st.session_state.get("plot_response_total", True):
-        series["Total"] = result.spl_total_db
-    if st.session_state.get("plot_response_driver", True):
-        series["Cone"] = result.spl_driver_db
-    if st.session_state.get("plot_response_lower_port", True) and load_type in {
+    series["Total"] = result.spl_total_db
+    series["Cone"] = result.spl_driver_db
+    if load_type in {
         "DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order",
     }:
         if load_type == "Bass reflex" and _reflex_uses_passive_radiator():
@@ -1953,7 +1993,7 @@ def _response_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
         else:
             label = "Vent" if load_type in {"Bass reflex", "Bandpass 4th order"} else "Lower port"
         series[label] = result.spl_port_db
-    if st.session_state.get("plot_response_mol", False):
+    if not st.session_state.get("plot_compare_loads", False):
         series["MOL"] = result.mol_db
     return series
 
@@ -2030,18 +2070,30 @@ def _cursor_rows(result: _dccav.SimulationResult, thresholds: dict[int, float]) 
     rows = []
     auto_markers = set(st.session_state.get("cursor_auto_markers", _AUTO_CURSOR_OPTIONS))
     if "F3" in auto_markers and np.isfinite(thresholds[3]):
-        rows.append(_cursor_row(result, "F3", thresholds[3], "auto"))
+        rows.append(_cursor_row(result, "F3", thresholds[3]))
     if "F6" in auto_markers and np.isfinite(thresholds[6]):
-        rows.append(_cursor_row(result, "F6", thresholds[6], "auto"))
+        rows.append(_cursor_row(result, "F6", thresholds[6]))
     if "F10" in auto_markers and np.isfinite(thresholds[10]):
-        rows.append(_cursor_row(result, "F10", thresholds[10], "auto"))
-    if st.session_state.get("cursor_manual_enabled", False):
-        rows.append(_cursor_row(result, "M1", float(st.session_state["cursor_manual_1_hz"]), "manual"))
-        rows.append(_cursor_row(result, "M2", float(st.session_state["cursor_manual_2_hz"]), "manual"))
+        rows.append(_cursor_row(result, "F10", thresholds[10]))
     return rows
 
 
-def _cursor_label_rows(rows: list[dict], y_domain: list[float] | None) -> list[dict]:
+def _marker_display_label(row: dict, show_mol: bool) -> str:
+    label = (
+        f"{row['label']} {float(row['frequency_hz']):.1f} Hz "
+        f"{float(row['spl_total_db']):.1f} dB"
+    )
+    mol_db = float(row.get("mol_db", np.nan))
+    if show_mol and np.isfinite(mol_db):
+        label += f" · MOL {mol_db:.1f} dB"
+    return label
+
+
+def _cursor_label_rows(
+    rows: list[dict],
+    y_domain: list[float] | None,
+    show_mol: bool = False,
+) -> list[dict]:
     if not rows:
         return rows
     if y_domain is None:
@@ -2058,20 +2110,20 @@ def _cursor_label_rows(rows: list[dict], y_domain: list[float] | None) -> list[d
     out = []
     for lane, row in enumerate(rows):
         label_row = dict(row)
+        label_row["display_label"] = _marker_display_label(label_row, show_mol)
         label_row["label_y_db"] = top - span * (0.05 + lane * 0.09)
         out.append(label_row)
     return out
 
 
-def _cursor_row(result: _dccav.SimulationResult, label: str, frequency_hz: float, mode: str) -> dict:
+def _cursor_row(result: _dccav.SimulationResult, label: str, frequency_hz: float) -> dict:
     f = float(np.clip(frequency_hz, result.frequency_hz[0], result.frequency_hz[-1]))
     spl_total_db = _interp(result.frequency_hz, result.spl_total_db, f)
     return {
         "label": label,
-        "display_label": f"{label} {f:.1f} Hz {spl_total_db:.1f} dB",
-        "mode": mode,
         "frequency_hz": f,
         "spl_total_db": spl_total_db,
+        "mol_db": _interp(result.frequency_hz, result.mol_db, f),
         "impedance_ohm": _interp(result.frequency_hz, result.impedance_ohm, f),
         "excursion_mm": _interp(result.frequency_hz, result.excursion_mm, f),
     }
@@ -2085,6 +2137,8 @@ def _cursor_layer(
     rows: list[dict],
     y_domain: list[float] | None = None,
     x_domain: list[float] | None = None,
+    show_mol: bool = False,
+    show_legend: bool = False,
 ) -> alt.LayerChart | None:
     if x_domain is not None:
         low_hz, high_hz = map(float, x_domain)
@@ -2094,31 +2148,33 @@ def _cursor_layer(
         ]
     if not rows:
         return None
-    data = pd.DataFrame(_cursor_label_rows(rows, y_domain))
+    data = pd.DataFrame(_cursor_label_rows(rows, y_domain, show_mol))
     y_scale = alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined
     color = alt.Color(
         "label:N",
         title="Cursor",
         scale=alt.Scale(
-            domain=["F3", "F6", "F10", "M1", "M2"],
-            range=["#ffd166", "#f77f00", "#d62828", "#06d6a0", "#48cae4"],
+            domain=["F3", "F6", "F10"],
+            range=["#ffd166", "#f77f00", "#d62828"],
         ),
+        legend=None if not show_legend else alt.Legend(title="Cursor", orient="bottom", direction="horizontal"),
     )
+    tooltips = [
+        alt.Tooltip("label:N", title="Cursor"),
+        alt.Tooltip("frequency_hz:Q", title="Hz", format=".2f"),
+        alt.Tooltip("spl_total_db:Q", title="Total dB", format=".2f"),
+        alt.Tooltip("impedance_ohm:Q", title="Ω", format=".2f"),
+        alt.Tooltip("excursion_mm:Q", title="mm", format=".3f"),
+    ]
+    if show_mol:
+        tooltips.insert(3, alt.Tooltip("mol_db:Q", title="MOL dB", format=".2f"))
     rules = alt.Chart(data).mark_rule(strokeWidth=1.5).encode(
         x=alt.X(
             "frequency_hz:Q",
             scale=_log_frequency_scale(x_domain),
         ),
         color=color,
-        strokeDash=alt.StrokeDash("mode:N", title=None),
-        tooltip=[
-            alt.Tooltip("label:N", title="Cursor"),
-            alt.Tooltip("display_label:N", title="Marker"),
-            alt.Tooltip("frequency_hz:Q", title="Hz", format=".2f"),
-            alt.Tooltip("spl_total_db:Q", title="Total dB", format=".2f"),
-            alt.Tooltip("impedance_ohm:Q", title="Ω", format=".2f"),
-            alt.Tooltip("excursion_mm:Q", title="mm", format=".3f"),
-        ],
+        tooltip=tooltips,
     )
     labels = alt.Chart(data).mark_text(
         align="left",
@@ -2160,16 +2216,23 @@ def _click_marker_layer(
     result: _dccav.SimulationResult,
     x_domain: list[float] | None = None,
     y_domain: list[float] | None = None,
+    show_mol: bool = False,
 ) -> alt.LayerChart:
     marker_data = pd.DataFrame({
         "frequency_hz": result.frequency_hz.astype(float),
         "spl_total_db": result.spl_total_db.astype(float),
+        "mol_db": result.mol_db.astype(float),
     })
     marker_data = marker_data[np.isfinite(marker_data["frequency_hz"]) & np.isfinite(marker_data["spl_total_db"])]
-    marker_data["display_label"] = marker_data.apply(
-        lambda row: f"Click {row['frequency_hz']:.1f} Hz {row['spl_total_db']:.1f} dB",
-        axis=1,
-    )
+    marker_data["display_label"] = [
+        (
+            f"{frequency_hz:.1f} Hz {total_db:.1f} dB"
+            + (f" · MOL {mol_db:.1f} dB" if show_mol and np.isfinite(mol_db) else "")
+        )
+        for frequency_hz, total_db, mol_db in marker_data[
+            ["frequency_hz", "spl_total_db", "mol_db"]
+        ].itertuples(index=False, name=None)
+    ]
     click_marker = alt.selection_point(
         name="click_marker",
         fields=["frequency_hz"],
@@ -2255,6 +2318,7 @@ def _plot_response(
     series_override: dict[str, np.ndarray] | None = None,
     band: _dccav.ToleranceBand | None = None,
     frequency_window: list[float] | None = None,
+    show_legend: bool = False,
 ) -> alt.Chart:
     series = series_override if series_override else _response_series(result)
     if not series:
@@ -2270,7 +2334,8 @@ def _plot_response(
     chart = _line_chart(
         data,
         "LF pressure estimate (dB)",
-        height=420,
+        height=600,
+        legend=show_legend,
         x_domain=frequency_window,
         y_domain=y_domain,
         y_axis=_response_amplitude_axis(),
@@ -2279,11 +2344,16 @@ def _plot_response(
         band_area = _band_layer(band, y_domain, frequency_window)
         if band_area is not None:
             chart = band_area + chart
-    chart = chart + _click_marker_layer(result, frequency_window, y_domain)
-    pinned = _pinned_layer(frequency_window, y_domain)
+    show_mol = "MOL" in series
+    chart = chart + _click_marker_layer(
+        result, frequency_window, y_domain, show_mol=show_mol
+    )
+    pinned = _pinned_layer(frequency_window, y_domain, show_legend=show_legend)
     if pinned is not None:
         chart = chart + pinned
-    cursors = _cursor_layer(cursor_rows, y_domain, frequency_window)
+    cursors = _cursor_layer(
+        cursor_rows, y_domain, frequency_window, show_mol=show_mol, show_legend=show_legend
+    )
     if cursors is not None:
         chart = chart + cursors
     if pinned is not None or cursors is not None:
@@ -2513,6 +2583,7 @@ def _pinned_metric_layer(
     x_domain: list[float] | None = None,
     y_domain: list[float] | None = None,
     y_axis: alt.Axis | None = None,
+    show_legend: bool = False,
 ) -> alt.Chart | None:
     data, labels = _pinned_metric_frame(value_key)
     if data.empty:
@@ -2537,6 +2608,7 @@ def _pinned_metric_layer(
         "color": alt.Color(
             "label:N",
             title="Pinned simulations",
+            legend=None if not show_legend else alt.Legend(title="Pinned simulations", orient="bottom", direction="horizontal"),
             scale=alt.Scale(
                 domain=labels,
                 range=[
@@ -2568,6 +2640,7 @@ def _pinned_metric_layer(
 def _pinned_layer(
     x_domain: list[float] | None = None,
     y_domain: list[float] | None = None,
+    show_legend: bool = False,
 ) -> alt.Chart | None:
     return _pinned_metric_layer(
         "spl_total_db",
@@ -2576,6 +2649,7 @@ def _pinned_layer(
         x_domain,
         y_domain,
         _response_amplitude_axis(),
+        show_legend=show_legend,
     )
 
 
@@ -3086,7 +3160,7 @@ def _render_atlas_tab(current_ts, load_type: str, box, sim_voltage: float) -> No
             tooltip=tooltips,
         ).add_params(picker).properties(height=420)
     event = st.altair_chart(
-        chart, width="stretch", key="atlas_chart", on_select="rerun")
+        chart, use_container_width=True, key="atlas_chart", on_select="rerun")
     st.caption(
         f"{len(space.x_values)}×{len(space.y_values)} grid around the empirical "
         f"starter, evaluated at {sim_voltage:.2f} V with 0 Ω series resistance "
@@ -3142,6 +3216,25 @@ def _value_sorted_frame(df: pd.DataFrame, currency: str) -> pd.DataFrame:
         ["Value", "F3 Hz"], kind="stable").reset_index(drop=True)
     scored["Value"] = scored["Value"].replace(np.inf, np.nan)
     return scored
+
+
+def _normalize_price_frame(df: pd.DataFrame, target_currency: str) -> pd.DataFrame:
+    """Return a copy whose available prices share one display currency."""
+    normalized = df.copy()
+    rates, _ = _current_exchange_rates()
+    converted = [
+        _pricing.convert_price(price, source, target_currency, rates)
+        for price, source in zip(
+            normalized["Price"], normalized["Currency"], strict=True
+        )
+    ]
+    normalized["Price"] = [
+        value if value is not None else np.nan for value in converted
+    ]
+    normalized["Currency"] = [
+        target_currency if value is not None else "" for value in converted
+    ]
+    return normalized
 
 
 def _finder_optimizer_goals_from_state() -> _dccav.OptimizationGoals:
@@ -3442,14 +3535,26 @@ def _clean_display_table_frame(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 @st.cache_data(show_spinner=False)
-def _driver_library_frame(preset_names: tuple[str, ...]) -> pd.DataFrame:
+def _driver_library_frame(
+    preset_names: tuple[str, ...],
+    target_currency: str = "",
+    exchange_rates: tuple[tuple[str, float], ...] = (),
+) -> pd.DataFrame:
     """Build the complete filtered driver library table once per filter set."""
+    rates = dict(exchange_rates)
     rows = []
     for name in preset_names:
         try:
             info = _dccav.driver_preset_info(name)
             ts_p = _dccav.get_driver_preset(name)
             ref = _dccav.driver_reference_metrics(ts_p)
+            price = (
+                _pricing.convert_price(
+                    info.price, info.currency, target_currency, rates
+                )
+                if target_currency
+                else info.price
+            )
             rows.append({
                 "Driver": name,
                 "Size in": info.size_in,
@@ -3457,15 +3562,30 @@ def _driver_library_frame(preset_names: tuple[str, ...]) -> pd.DataFrame:
                 "Qts": ts_p.qts,
                 "Vas L": ts_p.vas_l,
                 "SPL dB": ref.spl_2v83_db,
+                "Price": price if price is not None else np.nan,
+                "Currency": (
+                    target_currency if target_currency and price is not None
+                    else info.currency if not target_currency and price is not None
+                    else ""
+                ),
                 "Source": info.source,
             })
         except Exception:
             rows.append({"Driver": name})
+    library_columns = [
+        "Driver", "Size in", "Fs Hz", "Qts", "Vas L", "SPL dB",
+        "Price", "Currency", "Source",
+    ]
     if not rows:
         return pd.DataFrame(columns=(
-            "Driver", "Size in", "Fs Hz", "Qts", "Vas L", "SPL dB", "Source",
+            *library_columns,
         ))
-    return _clean_display_table_frame(pd.DataFrame(rows))
+    display = _clean_display_table_frame(pd.DataFrame(rows))
+    if "Price" not in display:
+        display["Price"] = np.nan
+    if "Currency" not in display:
+        display["Currency"] = ""
+    return display[[name for name in library_columns if name in display]]
 
 
 def _render_driver_library(filtered_preset_names: list[str]) -> None:
@@ -3493,10 +3613,19 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         f"{len(filtered_preset_names)} presets match the current filters. "
         "Scroll the table to browse the complete library."
     )
-    library_df = _driver_library_frame(tuple(filtered_preset_names))
+    price_currency = str(st.session_state.get("preset_price_currency", ""))
+    rates, rates_date = _current_exchange_rates()
+    library_df = _driver_library_frame(
+        tuple(filtered_preset_names),
+        price_currency,
+        tuple(sorted(rates.items())),
+    )
+    if price_currency:
+        rate_note = f" · ECB {rates_date}" if rates_date else ""
+        st.caption(f"Library prices shown in {price_currency}{rate_note}.")
     table_state = st.dataframe(
         library_df,
-        width="stretch",
+        use_container_width=True,
         height=520,
         hide_index=True,
         key="finder_driver_library_table",
@@ -3508,6 +3637,11 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
             "Qts": st.column_config.NumberColumn(format="%.3f"),
             "Vas L": st.column_config.NumberColumn(format="%.1f"),
             "SPL dB": st.column_config.NumberColumn(format="%.0f"),
+            "Price": st.column_config.NumberColumn(
+                f"Price ({price_currency})" if price_currency else "Price",
+                format="%.2f",
+            ),
+            "Currency": None,
         },
     )
     selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
@@ -3605,6 +3739,12 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         if name not in full_df.columns:
             full_df[name] = default
 
+    selected_price_currency = str(
+        st.session_state.get("preset_price_currency", "")
+    )
+    if selected_price_currency:
+        full_df = _normalize_price_frame(full_df, selected_price_currency)
+
     value_currency = _finder_price_currency(full_df)
     rank_mode = _FINDER_RANK_F3
     if value_currency:
@@ -3664,7 +3804,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     columns = list(display_df.columns)
     table_state = st.dataframe(
         display_df,
-        width="stretch",
+        use_container_width=True,
         hide_index=True,
         key=f"batch_results_table_{'value' if 'Value' in columns else 'f3'}",
         on_select="rerun",
@@ -3801,70 +3941,158 @@ def _render_response_tab(
     chart_sig = _chart_signature()
     has_ports = load_type in {"DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order", "Passive radiator"}
     compare_loads_on = bool(st.session_state.get("plot_compare_loads", False))
-    pen_columns = st.columns(2 if has_ports else 1)
-    with pen_columns[0]:
-        st.checkbox("Cone", key="plot_response_driver", disabled=compare_loads_on)
-    if has_ports:
-        with pen_columns[1]:
-            st.checkbox(
-                (
-                    "Passive radiator"
-                    if load_type == "Bass reflex" and _reflex_uses_passive_radiator()
-                    else "Lower port"
-                ),
-                key="plot_response_lower_port",
-                disabled=compare_loads_on,
-            )
-    st.caption("Total response is always shown as the baseline.")
 
-    with st.expander("Markers & analysis"):
-        st.multiselect(
-            "Automatic markers",
-            _AUTO_CURSOR_OPTIONS,
-            key="cursor_auto_markers",
-            help="Select the response thresholds to label and include in the cursor table.",
-        )
-        st.toggle("Manual markers", key="cursor_manual_enabled")
-        if st.session_state.get("cursor_manual_enabled", False):
-            c1, c2 = st.columns(2)
-            with c1:
-                st.number_input(
-                    "M1 (Hz)", min_value=1.0, max_value=5000.0,
-                    step=1.0, key="cursor_manual_1_hz",
-                )
-            with c2:
-                st.number_input(
-                    "M2 (Hz)", min_value=1.0, max_value=5000.0,
-                    step=1.0, key="cursor_manual_2_hz",
-                )
-        a1, a2, a3, a4 = st.columns(4)
-        with a1:
-            st.checkbox(
-                "Max output level (MOL)", key="plot_response_mol", disabled=compare_loads_on,
-                help="Maximum Output Level within Xmax and Pe at each frequency.",
-            )
-        with a2:
-            st.checkbox(
-                "Max input level (MIL)", key="plot_show_mil",
-                help="Input-power ceiling within Xmax and Pe, drawn below the response.",
-            )
-        with a3:
-            st.toggle("Compare loads", key="plot_compare_loads")
-        with a4:
-            st.toggle(
-                "Tolerance band", key="plot_tolerance_band", disabled=compare_loads_on,
-                help="Monte Carlo 5-95th percentile spread from T/S tolerances.",
-            )
-    if compare_loads_on:
-        st.info(
-            "Compare loads shows only the total response of each topology at the same "
-            "total volume. Cone, port traces, MOL and the tolerance band are suspended "
-            "while comparing.",
-            icon="ℹ️",
-        )
-
+    # --- 1. Compute state needed for charts ---
     cursor_rows = _cursor_rows(result, thresholds)
 
+    compare_series = None
+    if compare_loads_on:
+        comp_vtot, comp_series = _topology_comparison_series(
+            current_ts, load_type, box, freq, sim_voltage, sim_series_r)
+        if comp_series:
+            compare_series = comp_series
+
+    band = None
+    if st.session_state.get("plot_tolerance_band", False) and not compare_series:
+        tolerance = float(st.session_state.get("plot_tolerance_pct", 15.0)) / 100.0
+        try:
+            tolerance_load_type = (
+                "Passive radiator"
+                if load_type == "Bass reflex" and _reflex_uses_passive_radiator()
+                else load_type
+            )
+            band = _tolerance_band_cached(
+                current_ts, tolerance_load_type, box, freq,
+                sim_voltage, sim_series_r, tolerance)
+        except Exception:
+            logger.exception("Tolerance band computation failed")
+
+    full_window = (
+        max(1, int(np.ceil(float(freq[0])))),
+        max(2, int(np.floor(float(freq[-1])))),
+    )
+    if full_window[1] <= full_window[0]:
+        full_window = (full_window[0], full_window[0] + 1)
+    raw_window = st.session_state.get("plot_response_window_hz", full_window)
+    try:
+        raw_tuple = tuple(raw_window)
+        raw_low, raw_high = map(int, raw_tuple)
+    except (TypeError, ValueError):
+        raw_tuple = full_window
+        raw_low, raw_high = full_window
+    normalized_window = (
+        min(max(raw_low, full_window[0]), full_window[1] - 1),
+        max(min(raw_high, full_window[1]), full_window[0] + 1),
+    )
+    if normalized_window[0] >= normalized_window[1]:
+        normalized_window = full_window
+    if raw_tuple != normalized_window:
+        st.session_state["plot_response_window_hz"] = normalized_window
+
+    frequency_window = [float(normalized_window[0]), float(normalized_window[1])]
+
+    # --- 2. Render Charts ---
+    if compare_series or _response_series(result):
+        show_legend = st.session_state.get("plot_show_legend", False)
+        st.altair_chart(
+            _plot_response(
+                result, cursor_rows, compare_series, band,
+                frequency_window=frequency_window,
+                show_legend=show_legend,
+            ),
+            use_container_width=True,
+            key=f"response_chart_{chart_sig}",
+        )
+        st.caption(
+            "Use the frequency slider below to zoom; click the chart to place a point marker "
+            "and double-click to clear it. Enable the legend to toggle individual traces."
+        )
+    else:
+        st.caption("Response pens off.")
+
+    st.divider()
+
+    # --- 3. Render Analysis Options & Actions ---
+    pinned_state = _pinned_responses()
+    num_cols = 6 if pinned_state else 5
+    ctrl_cols = st.columns(num_cols)
+    
+    with ctrl_cols[0]:
+        st.toggle("Show traces legend", key="plot_show_legend")
+    with ctrl_cols[1]:
+        st.toggle("Compare loads", key="plot_compare_loads")
+    with ctrl_cols[2]:
+        st.toggle(
+            "Tolerance band", key="plot_tolerance_band", disabled=compare_loads_on,
+            help="Monte Carlo 5-95th percentile spread from T/S tolerances.",
+        )
+    with ctrl_cols[3]:
+        if st.button(
+            "Pin response",
+            use_container_width=True,
+            disabled=len(pinned_state) >= _MAX_PINNED_RESPONSES,
+            help=f"Keep up to {_MAX_PINNED_RESPONSES} response traces while changing load or box.",
+        ):
+            st.session_state["pinned_responses"] = [
+                *pinned_state,
+                _pinned_response_snapshot(load_type, box, result),
+            ]
+            st.rerun()
+
+    if pinned_state:
+        with ctrl_cols[4]:
+            if st.button("Clear all pins", use_container_width=True):
+                _clear_pinned_responses()
+                st.rerun()
+        with ctrl_cols[5]:
+            st.button(
+                "Reset zoom",
+                key="plot_response_reset_zoom",
+                use_container_width=True,
+                disabled=tuple(st.session_state.get("plot_response_window_hz", full_window)) == full_window,
+                on_click=_reset_response_zoom,
+                args=(full_window,),
+            )
+    else:
+        with ctrl_cols[4]:
+            st.button(
+                "Reset zoom",
+                key="plot_response_reset_zoom",
+                use_container_width=True,
+                disabled=tuple(st.session_state.get("plot_response_window_hz", full_window)) == full_window,
+                on_click=_reset_response_zoom,
+                args=(full_window,),
+            )
+    
+    if st.session_state.get("plot_tolerance_band", False) and not compare_series:
+        st.number_input(
+            "T/S tolerance (%)", min_value=5.0, max_value=30.0, step=1.0,
+            key="plot_tolerance_pct",
+        )
+        if band is not None:
+            st.caption(f"±{float(st.session_state.get('plot_tolerance_pct', 15.0)):.0f}% MC, {band.runs} runs.")
+        else:
+            st.caption("Unavailable for current params.")
+    
+    if compare_loads_on:
+        if compare_series:
+            st.caption(f"Comparing total response at ~{comp_vtot:.1f} L. Other pens suspended.")
+        else:
+            st.caption("No comparison load available.")
+
+    # --- 4. Render Zoom Slider ---
+    st.slider(
+        "Chart zoom (Hz)",
+        min_value=full_window[0],
+        max_value=full_window[1],
+        step=1,
+        key="plot_response_window_hz",
+        label_visibility="collapsed",
+        help="Move either handle to zoom the chart. This only changes the plot window, "
+             "not the simulation frequency range set in the sidebar.",
+    )
+
+    # --- 5. Render Captions and Pinned List ---
     if load_type == "Bass reflex":
         resonator = "passive radiator" if _reflex_uses_passive_radiator() else "vent"
         st.caption(
@@ -3900,33 +4128,14 @@ def _render_response_tab(
             "radiation and the lower port. The load model is low-frequency only; "
             "it is not an electrical crossover or breakup/directivity predictor."
         )
-    pinned_state = _pinned_responses()
-    pin_columns = st.columns([1, 1, 2]) if pinned_state else st.columns([1, 3])
-    pin_col = pin_columns[0]
-    with pin_col:
-        if st.button(
-            "Pin response",
-            use_container_width=True,
-            disabled=len(pinned_state) >= _MAX_PINNED_RESPONSES,
-            help=f"Keep up to {_MAX_PINNED_RESPONSES} response traces while changing load or box.",
-        ):
-            st.session_state["pinned_responses"] = [
-                *pinned_state,
-                _pinned_response_snapshot(load_type, box, result),
-            ]
-            st.rerun()
+
     if pinned_state:
-        with pin_columns[1]:
-            if st.button("Clear all pins", use_container_width=True):
-                _clear_pinned_responses()
-                st.rerun()
-        with pin_columns[2]:
-            visible_pin_count = sum(
-                bool(pin.get("visible", True)) for pin in pinned_state)
-            st.caption(
-                f"Pinned responses: {len(pinned_state)}/{_MAX_PINNED_RESPONSES} · "
-                f"{visible_pin_count} visible · dashed colored traces"
-            )
+        visible_pin_count = sum(
+            bool(pin.get("visible", True)) for pin in pinned_state)
+        st.caption(
+            f"Pinned responses: {len(pinned_state)}/{_MAX_PINNED_RESPONSES} · "
+            f"{visible_pin_count} visible · dashed colored traces"
+        )
         with st.expander("Manage pinned responses"):
             for index, pinned in enumerate(pinned_state):
                 is_visible = bool(pinned.get("visible", True))
@@ -3960,130 +4169,7 @@ def _render_response_tab(
                         _remove_pinned_response(index)
                         st.rerun()
 
-    compare_series = None
-    if st.session_state.get("plot_compare_loads", False):
-        comp_vtot, comp_series = _topology_comparison_series(
-            current_ts, load_type, box, freq, sim_voltage, sim_series_r)
-        if comp_series:
-            compare_series = comp_series
-            st.caption(
-                f"Comparing total response at ~{comp_vtot:.1f} L. "
-                f"The active load ({load_type}) uses its exact box; the others use their "
-                "standard starter alignments at the same total volume. Infinite baffle "
-                "ignores volume. Trace pens are suspended while comparing."
-            )
-        else:
-            st.caption("No comparison load could be simulated; showing the normal traces.")
 
-    band = None
-    if st.session_state.get("plot_tolerance_band", False) and not compare_series:
-        st.number_input(
-            "T/S tolerance (%)", min_value=5.0, max_value=30.0, step=1.0,
-            key="plot_tolerance_pct",
-        )
-        tolerance = float(st.session_state.get("plot_tolerance_pct", 15.0)) / 100.0
-        try:
-            tolerance_load_type = (
-                "Passive radiator"
-                if load_type == "Bass reflex" and _reflex_uses_passive_radiator()
-                else load_type
-            )
-            band = _tolerance_band_cached(
-                current_ts, tolerance_load_type, box, freq,
-                sim_voltage, sim_series_r, tolerance)
-            st.caption(
-                f"Shaded band: ±{tolerance * 100.0:.0f}% Monte Carlo on "
-                f"Fs/Vas/Qts/Qms, {band.runs} runs, 5-95th percentile."
-            )
-        except Exception:
-            logger.exception("Tolerance band computation failed")
-            st.caption("Tolerance band unavailable for the current parameters.")
-
-    full_window = (
-        max(1, int(np.ceil(float(freq[0])))),
-        max(2, int(np.floor(float(freq[-1])))),
-    )
-    if full_window[1] <= full_window[0]:
-        full_window = (full_window[0], full_window[0] + 1)
-    raw_window = st.session_state.get("plot_response_window_hz", full_window)
-    try:
-        raw_tuple = tuple(raw_window)
-        raw_low, raw_high = map(int, raw_tuple)
-    except (TypeError, ValueError):
-        raw_tuple = full_window
-        raw_low, raw_high = full_window
-    normalized_window = (
-        min(max(raw_low, full_window[0]), full_window[1] - 1),
-        max(min(raw_high, full_window[1]), full_window[0] + 1),
-    )
-    if normalized_window[0] >= normalized_window[1]:
-        normalized_window = full_window
-    if raw_tuple != normalized_window:
-        st.session_state["plot_response_window_hz"] = normalized_window
-
-    zoom_col, reset_zoom_col = st.columns([5, 1])
-    with zoom_col:
-        selected_window = st.slider(
-            "Chart zoom (Hz)",
-            min_value=full_window[0],
-            max_value=full_window[1],
-            step=1,
-            key="plot_response_window_hz",
-            help="Move either handle to zoom the chart. This only changes the plot window, "
-                 "not the simulation frequency range set in the sidebar.",
-        )
-    with reset_zoom_col:
-        st.button(
-            "Reset zoom",
-            key="plot_response_reset_zoom",
-            use_container_width=True,
-            disabled=tuple(selected_window) == full_window,
-            on_click=_reset_response_zoom,
-            args=(full_window,),
-        )
-    frequency_window = [float(selected_window[0]), float(selected_window[1])]
-
-    if compare_series or _response_series(result):
-        st.altair_chart(
-            _plot_response(
-                result, cursor_rows, compare_series, band,
-                frequency_window=frequency_window,
-            ),
-            width="stretch",
-            key=f"response_chart_{chart_sig}",
-        )
-        st.caption(
-            "Use the frequency slider to zoom; click the chart to place a point marker "
-            "and double-click to clear it."
-        )
-    else:
-        st.caption("Response pens off.")
-
-    if st.session_state.get("plot_show_mil", False):
-        if np.all(np.isnan(result.mil_w)):
-            st.caption("MIL unavailable: set Xmax or Pe for this driver.")
-        else:
-            st.subheader("MIL")
-            st.altair_chart(_plot_mil(result), width="stretch", key=f"mil_chart_{chart_sig}")
-
-    if cursor_rows:
-        cursor_table = pd.DataFrame(cursor_rows).rename(columns={
-            "label": "Cursor",
-            "display_label": "Marker",
-            "mode": "Mode",
-            "frequency_hz": "Hz",
-            "spl_total_db": "Total dB",
-            "impedance_ohm": "Ω",
-            "excursion_mm": "Excursion mm",
-        })
-        st.dataframe(
-            cursor_table[["Cursor", "Mode", "Hz", "Total dB", "Ω", "Excursion mm"]],
-            width="stretch",
-            hide_index=True,
-        )
-
-
-@st.fragment
 def _render_ports_tab(
     result: _dccav.SimulationResult,
     port_geometry_rows: list[dict],
@@ -4110,7 +4196,7 @@ def _render_ports_tab(
         else "Port Volume Velocity"
     )
     if _port_series(result):
-        st.altair_chart(_plot_ports(result), width="stretch", key=f"ports_chart_{chart_sig}")
+        st.altair_chart(_plot_ports(result), use_container_width=True, key=f"ports_chart_{chart_sig}")
     else:
         st.caption("Port pens off.")
 
@@ -4183,7 +4269,7 @@ def _render_ports_tab(
             )
         st.dataframe(
             pd.DataFrame(port_geometry_rows)[list(_PORT_GEOMETRY_COLUMNS)],
-            width="stretch",
+            use_container_width=True,
             hide_index=True,
             column_config={
                 "Diameter cm": st.column_config.NumberColumn(format="%.1f"),
@@ -4315,7 +4401,10 @@ _default(
     or "Driver" in st.session_state["plot_response_traces"],
 )
 _default("plot_response_lower_port", "Lower port" in st.session_state["plot_response_traces"])
-_default("plot_response_mol", False)
+_default("plot_response_mol", True)
+if int(st.session_state.get("_response_defaults_version", 0) or 0) < _RESPONSE_DEFAULTS_VERSION:
+    st.session_state["plot_response_mol"] = True
+    st.session_state["_response_defaults_version"] = _RESPONSE_DEFAULTS_VERSION
 _default("plot_response_window_hz", (10, 500))
 _default("plot_show_mil", False)
 _default("plot_compare_loads", False)
@@ -4326,9 +4415,6 @@ _default("atlas_metric", "F3 (Hz)")
 _default("plot_port_upper", "Upper port" in st.session_state["plot_port_traces"])
 _default("plot_port_lower", "Lower port" in st.session_state["plot_port_traces"])
 _default("cursor_auto_markers", list(_AUTO_CURSOR_OPTIONS))
-_default("cursor_manual_enabled", False)
-_default("cursor_manual_1_hz", 50.0)
-_default("cursor_manual_2_hz", 100.0)
 _ensure_plot_control_state()
 _default("opt_align_mode", "Empirical (article)")
 _default("opt_objective", "Balanced")
@@ -5130,6 +5216,57 @@ try:
                     "plausibly hold in a straight run; it needs an L-shaped/slot fold "
                     "(not modeled here), a bigger box, or a higher tuning."
                 )
+
+    tab_labels = ["Response", "Excursion", "Impedance"]
+    if not (is_sealed or is_infinite_baffle):
+        tab_labels.append("Ports")
+    tab_labels.append("Group Delay")
+    if not is_infinite_baffle and not is_pr:
+        tab_labels.append("Atlas")
+    design_tabs = dict(zip(tab_labels, st.tabs(tab_labels), strict=True))
+
+    with design_tabs["Response"]:
+        _render_response_tab(
+            current_ts, load_type, box, result, thresholds, freq, sim_voltage, sim_series_r)
+    with design_tabs["Excursion"]:
+        st.subheader("Cone Excursion")
+        xmax_mm = float(st.session_state.get("driver_xmax_mm", 0.0))
+        st.altair_chart(
+            _plot_excursion(result, xmax_mm),
+            use_container_width=True,
+            key=f"excursion_chart_{chart_sig}",
+        )
+        if xmax_mm > 0.0:
+            st.caption(f"Dashed red line: driver Xmax = {xmax_mm:.1f} mm.")
+        else:
+            st.caption("Set the driver Xmax to draw the excursion limit line.")
+    with design_tabs["Impedance"]:
+        st.subheader("Electrical Impedance")
+        st.altair_chart(_plot_impedance(result), use_container_width=True, key=f"impedance_chart_{chart_sig}")
+    if "Ports" in design_tabs:
+        with design_tabs["Ports"]:
+            _render_ports_tab(
+                result, port_geometry_rows, load_type,
+                passive_radiator=is_pr,
+            )
+    with design_tabs["Group Delay"]:
+        st.subheader("Group Delay")
+        gd_limit_ms = (
+            float(st.session_state.get("opt_max_gd_ms", 0.0))
+            if _alignment_uses_optimizer() else 0.0
+        )
+        st.altair_chart(
+            _plot_group_delay(result, gd_limit_ms),
+            use_container_width=True,
+            key=f"gd_chart_{chart_sig}",
+        )
+        if gd_limit_ms > 0.0:
+            st.caption(f"Dashed red line: optimizer group-delay limit = {gd_limit_ms:.0f} ms.")
+    if "Atlas" in design_tabs:
+        with design_tabs["Atlas"]:
+            _render_atlas_tab(current_ts, load_type, box, sim_voltage)
+
+
     design_name = str(st.session_state.get("driver_preset_name", "Custom"))
     design_config = str(st.session_state.get("driver_config", "Single driver"))
     if design_config != "Single driver":
@@ -5137,29 +5274,116 @@ try:
     design_strategy = str(st.session_state.get("box_strategy", "Balanced"))
     active_load_image = _LOAD_TYPE_IMAGES.get(load_type)
     with st.container(key="active_load_summary"):
-        load_visual_col, load_summary_col = st.columns(
-            [0.65, 11.35], vertical_alignment="center")
-        with load_visual_col:
-            if active_load_image is not None and active_load_image.exists():
-                st.image(str(active_load_image), width=44)
-        with load_summary_col:
-            st.markdown(f"**{load_type}** · {design_name}")
-            resonator_caption = (
-                "Passive radiator resonator · " if is_pr else ""
-            )
-            st.caption(
-                f"{resonator_caption}{design_strategy} alignment · {sim_voltage:.2f} V"
-            )
-        if is_infinite_baffle:
-            m1, m2, m3, m4 = st.columns(4)
-            m5 = None
+        # Left: active load schematic, Right: Dense info
+        if active_load_image is not None and active_load_image.exists():
+            img_col, data_col = st.columns([1, 2.5], vertical_alignment="center")
+            with img_col:
+                st.image(str(active_load_image), use_container_width=True)
         else:
-            m1, m2, m3, m4, m5 = st.columns(5)
-        m1.metric("F3", _fmt_hz(thresholds[3]))
-        m2.metric("Peak LF SPL", _fmt_db(metrics["max_spl_db"]))
-        m3.metric("Max excursion", f"{metrics['max_excursion_mm']:.2f} mm")
-        m4.metric("Min impedance", f"{metrics['min_impedance_ohm']:.2f} Ω")
-        if m5 is not None:
+            data_col = st.container()
+        
+        with data_col:
+            st.markdown(
+                f"<div style='font-weight: 700; font-size: 1.15rem; margin-top: 0; margin-bottom: 0.1rem; color: rgba(250,250,250,.95);'>"
+                f"{load_type} &middot; {design_name}"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+            resonator_caption = "Passive radiator &middot; " if is_pr else ""
+            
+            st.markdown(
+                f"<div style='font-size: 0.8rem; color: rgba(250,250,250,.65); margin-bottom: 0.8rem;'>"
+                f"{resonator_caption}{design_strategy} alignment &middot; {sim_voltage:.2f} V"
+                f"</div>",
+                unsafe_allow_html=True
+            )
+            
+            # Calculate Forge Score (0-100)
+            score_val = 100
+            warning_deductions = len(model_warnings) * 12
+            score_val -= warning_deductions
+            for row in port_geometry_rows:
+                if row.get("Peak m/s", 0.0) > _dccav.PORT_VELOCITY_GUIDELINE_MS:
+                    score_val -= 15
+                if not row.get("_is_pr", False):
+                    golden_cm = _dccav.port_displacement_min_diameter_cm(current_ts, row["_fb_hz"])
+                    if 0.0 < row["Diameter cm"] < golden_cm:
+                        score_val -= 10
+                    if row["Length cm"] <= 0.0:
+                        score_val -= 20
+            if current_ts and current_ts.xmax_mm and metrics["max_excursion_mm"] > current_ts.xmax_mm:
+                score_val -= 25
+            score_val = max(10, min(100, score_val))
+
+            rows = [
+                [("F3", _fmt_hz(thresholds[3])),
+                 ("Peak LF SPL", _fmt_db(metrics["max_spl_db"])),
+                 ("Max excursion", f"{metrics['max_excursion_mm']:.2f} mm")]
+            ]
+
+            row2 = [("Min impedance", f"{metrics['min_impedance_ohm']:.2f} Ω")]
+            if not is_infinite_baffle:
+                if load_type == "Bandpass 4th order":
+                    row2.append(("Box volume", f"{box.vs_l + box.vp_l:.1f} L"))
+                elif load_type == "Bandpass 6th order":
+                    row2.append(("Box volume", f"{box.vr_l + box.vp_l:.1f} L"))
+                elif load_type == "DCCAV":
+                    row2.append(("Box volume", f"{box.vh_l + box.vl_l:.1f} L"))
+                else:
+                    row2.append(("Box volume", f"{box.vb_l:.1f} L"))
+            else:
+                row2.append(None)
+            row2.append(("Forge Score", f"{score_val}/100"))
+            rows.append(row2)
+
+            if not is_infinite_baffle:
+                ports = {row["Port"]: row for row in port_geometry_rows if not row.get("_is_pr", False)}
+                
+                def _port_metrics(lbl):
+                    if lbl in ports:
+                        pr = ports[lbl]
+                        return [
+                            (f"{lbl} tuning", f"{pr['_fb_hz']:.1f} Hz"),
+                            (f"{lbl} size", f"Ø{pr['Diameter cm']:.1f} x {pr['Length cm']:.1f} cm")
+                        ]
+                    return [None, None]
+
+                if load_type == "Bandpass 4th order":
+                    rows.append([("Closed vol (Vs)", f"{box.vs_l:.1f} L"), None, None])
+                    rows.append([("Ported vol (Vp)", f"{box.vp_l:.1f} L")] + _port_metrics("Front vent"))
+                elif load_type == "Bandpass 6th order":
+                    rows.append([("Rear vol (Vr)", f"{box.vr_l:.1f} L")] + _port_metrics("Rear vent"))
+                    rows.append([("Front vol (Vp)", f"{box.vp_l:.1f} L")] + _port_metrics("Front vent"))
+                elif load_type == "DCCAV":
+                    rows.append([("High vol (Vh)", f"{box.vh_l:.1f} L")] + _port_metrics("Upper port"))
+                    rows.append([("Low vol (Vl)", f"{box.vl_l:.1f} L")] + _port_metrics("Lower port"))
+                else:
+                    if "Vent" in ports:
+                        rows.append([None] + _port_metrics("Vent"))
+
+            for row_metrics in rows:
+                cols = st.columns(3)
+                for i, metric in enumerate(row_metrics):
+                    if metric is not None:
+                        cols[i].metric(metric[0], metric[1])
+
+        # Gamification / Performance Badges
+        badges = []
+        if not is_infinite_baffle and not is_sealed:
+            has_port_issues = any(
+                "chuffing" in w.lower() or "minimum-area" in w.lower() or "tunes at most" in w.lower()
+                for w in model_warnings
+            )
+            if len(port_geometry_rows) > 0 and not has_port_issues:
+                badges.append((
+                    "🛡️ Safe from Chuffing",
+                    "rgba(46, 204, 113, 0.08)",
+                    "rgba(46, 204, 113, 0.3)",
+                    "#2ecc71"
+                ))
+        
+        f3_val = thresholds[3]
+        if not np.isnan(f3_val) and not is_infinite_baffle:
             if is_reflex or is_sealed or is_pr:
                 vtot_l = box.vb_l
             elif is_bandpass4:
@@ -5168,7 +5392,46 @@ try:
                 vtot_l = box.vr_l + box.vp_l
             else:
                 vtot_l = box.vh_l + box.vl_l
-            m5.metric("Box volume", f"{vtot_l:.1f} L")
+            
+            if f3_val < 30.0 and vtot_l < 35.0:
+                badges.append((
+                    "🏆 Legendary Extension",
+                    "rgba(0, 110, 219, 0.08)",
+                    "rgba(0, 110, 219, 0.3)",
+                    "#006edb"
+                ))
+            elif f3_val < 40.0 and vtot_l < 50.0:
+                badges.append((
+                    "🔊 Deep Bass Accord",
+                    "rgba(0, 110, 219, 0.08)",
+                    "rgba(0, 110, 219, 0.3)",
+                    "#006edb"
+                ))
+            elif f3_val < 50.0:
+                badges.append((
+                    "🎵 Tight Bass",
+                    "rgba(0, 110, 219, 0.08)",
+                    "rgba(0, 110, 219, 0.3)",
+                    "#006edb"
+                ))
+
+        if not any("sanity" in w.lower() or "warning" in w.lower() for w in model_warnings):
+            badges.append((
+                "✅ Acoustically Sane",
+                "rgba(26, 188, 156, 0.08)",
+                "rgba(26, 188, 156, 0.3)",
+                "#1abc9c"
+            ))
+
+        if badges:
+            badge_html = " ".join([
+                f'<span style="display: inline-block; background-color: {bg}; '
+                f'border: 1px solid {border}; border-radius: 0.35rem; '
+                f'padding: 0.15rem 0.45rem; margin-right: 0.35rem; font-size: 0.72rem; '
+                f'font-weight: 600; color: {color};">{text}</span>'
+                for text, bg, border, color in badges
+            ])
+            st.markdown(f'<div style="margin-top: 0.45rem; padding-bottom: 0.45rem; margin-bottom: 0.2rem;">{badge_html}</div>', unsafe_allow_html=True)
 
     for warning in model_warnings:
         st.warning(warning)
@@ -5243,54 +5506,6 @@ try:
             if current_alignment is not None:
                 a7.metric("Article Vtot", f"{current_alignment.vh_l + current_alignment.vl_l:.2f} L")
 
-    tab_labels = ["Response", "Excursion", "Impedance"]
-    if not (is_sealed or is_infinite_baffle):
-        tab_labels.append("Ports")
-    tab_labels.append("Group Delay")
-    if not is_infinite_baffle and not is_pr:
-        tab_labels.append("Atlas")
-    design_tabs = dict(zip(tab_labels, st.tabs(tab_labels), strict=True))
-
-    with design_tabs["Response"]:
-        _render_response_tab(
-            current_ts, load_type, box, result, thresholds, freq, sim_voltage, sim_series_r)
-    with design_tabs["Excursion"]:
-        st.subheader("Cone Excursion")
-        xmax_mm = float(st.session_state.get("driver_xmax_mm", 0.0))
-        st.altair_chart(
-            _plot_excursion(result, xmax_mm),
-            width="stretch",
-            key=f"excursion_chart_{chart_sig}",
-        )
-        if xmax_mm > 0.0:
-            st.caption(f"Dashed red line: driver Xmax = {xmax_mm:.1f} mm.")
-        else:
-            st.caption("Set the driver Xmax to draw the excursion limit line.")
-    with design_tabs["Impedance"]:
-        st.subheader("Electrical Impedance")
-        st.altair_chart(_plot_impedance(result), width="stretch", key=f"impedance_chart_{chart_sig}")
-    if "Ports" in design_tabs:
-        with design_tabs["Ports"]:
-            _render_ports_tab(
-                result, port_geometry_rows, load_type,
-                passive_radiator=is_pr,
-            )
-    with design_tabs["Group Delay"]:
-        st.subheader("Group Delay")
-        gd_limit_ms = (
-            float(st.session_state.get("opt_max_gd_ms", 0.0))
-            if _alignment_uses_optimizer() else 0.0
-        )
-        st.altair_chart(
-            _plot_group_delay(result, gd_limit_ms),
-            width="stretch",
-            key=f"gd_chart_{chart_sig}",
-        )
-        if gd_limit_ms > 0.0:
-            st.caption(f"Dashed red line: optimizer group-delay limit = {gd_limit_ms:.0f} ms.")
-    if "Atlas" in design_tabs:
-        with design_tabs["Atlas"]:
-            _render_atlas_tab(current_ts, load_type, box, sim_voltage)
 
     if derived is not None:
         with st.expander("Driver details"):

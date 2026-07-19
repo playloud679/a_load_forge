@@ -165,6 +165,16 @@ def _check_presets_are_available():
     assert _dccav.get_driver_preset("MarkAudio CHR-70").sd_cm2 == 50.2
     assert _dccav.get_driver_preset("MarkAudio CHR-70").cms_mm_per_n == 1.44
     assert _dccav.get_driver_preset("MarkAudio CHR-70").pe_w == 20.0
+    markaudio_chr70 = [
+        name
+        for name in names
+        if (
+            _dccav.driver_preset_info(name).brand.casefold(),
+            _dccav.driver_preset_info(name).model.casefold(),
+        )
+        == ("markaudio", "chr-70")
+    ]
+    assert markaudio_chr70 == ["MarkAudio CHR-70"]
     beyma_info = _dccav.driver_preset_info("Beyma 12CMV2")
     assert beyma_info.source == "Built-in"
     assert beyma_info.brand == "Beyma"
@@ -535,7 +545,7 @@ def _check_ui_bandpass4_design_and_persistence():
     labels = {item.label for item in at.number_input}
     assert {"Vs sealed rear (L)", "Vp ported front (L)", "Fp front tuning (Hz)"} <= labels
     metrics = {metric.label for metric in at.metric}
-    assert {"Box volume", "Vs sealed (active)", "Vp ported (active)", "Fp (active)"} <= metrics
+    assert {"Box volume", "Closed vol (Vs)", "Ported vol (Vp)", "Front vent tuning"} <= metrics
     assert any(
         "Fourth-order bandpass total response is the front vent only" in caption.value
         for caption in at.caption
@@ -645,7 +655,7 @@ def _check_ui_bandpass6_design_and_persistence():
     labels = {item.label for item in at.number_input}
     assert {"Vr rear ported (L)", "Fr rear tuning (Hz)", "Vp front ported (L)", "Fp front tuning (Hz)"} <= labels
     metrics = {metric.label for metric in at.metric}
-    assert {"Box volume", "Vr rear (active)", "Fr rear (active)", "Vp front (active)", "Fp front (active)"} <= metrics
+    assert {"Box volume", "Rear vol (Vr)", "Rear vent tuning", "Front vol (Vp)", "Front vent tuning"} <= metrics
     assert any(
         "Sixth-order bandpass total response is the polarity-correct vector difference" in caption.value
         for caption in at.caption
@@ -1680,7 +1690,7 @@ def _check_response_chart_domain_tracks_10hz_and_peak():
     assert zoom_domain == [68.0, 82.0], zoom_domain
     chart = _ui._plot_response(result, [], frequency_window=[20.0, 40.0])
     spec = chart.to_dict()
-    assert spec["height"] == 420, spec.get("height")
+    assert spec["height"] == 600, spec.get("height")
     assert "'domain': [20.0, 40.0]" in str(spec), spec
 
 
@@ -1723,7 +1733,7 @@ def _check_ui_response_zoom_slider_and_reset():
 test("UI response zoom has a frequency window and reliable reset", _check_ui_response_zoom_slider_and_reset)
 
 
-def _check_ui_response_pens_survive_workspace_and_preset_changes():
+def _check_ui_response_toggles_survive_workspace_and_preset_changes():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
@@ -1732,16 +1742,11 @@ def _check_ui_response_pens_survive_workspace_and_preset_changes():
     at.run()
     assert not at.exception, at.exception
 
-    def pen(label):
-        return next(box for box in at.checkbox if box.label == label)
+    def toggle(label):
+        return next(box for box in at.toggle if box.label == label)
 
-    assert at.session_state["plot_response_total"]
-    assert not any(box.label == "Total" for box in at.checkbox)
-    markers = next(box for box in at.multiselect if box.label == "Automatic markers")
-    markers.set_value(["F3"]).run()
-    pen("Cone").set_value(False).run()
-    pen("Lower port").set_value(False).run()
-    pen("Max output level (MOL)").set_value(True).run()
+    toggle("Compare loads").set_value(True).run()
+    assert toggle("Tolerance band").disabled
 
     workspace = next(
         control for control in at.segmented_control if control.label == "Workspace"
@@ -1753,29 +1758,17 @@ def _check_ui_response_pens_survive_workspace_and_preset_changes():
     workspace.set_value("Design a box").run()
     assert not at.exception, at.exception
 
-    assert at.session_state["plot_response_total"]
-    assert list(at.session_state["cursor_auto_markers"]) == ["F3"]
-    assert not pen("Cone").value
-    assert not pen("Lower port").value
-    assert pen("Max output level (MOL)").value
+    assert toggle("Compare loads").value
 
     preset = next(box for box in at.selectbox if box.label == "Driver preset")
     preset.set_value("Beyma 12CMV2").run()
     assert not at.exception, at.exception
-    assert at.session_state["plot_response_total"]
-    assert not pen("Cone").value
-    assert not pen("Lower port").value
-    assert pen("Max output level (MOL)").value
-
-    # Even stale or externally seeded state cannot remove the baseline pen.
-    at.session_state["plot_response_total"] = False
-    at.run()
-    assert at.session_state["plot_response_total"]
+    assert toggle("Compare loads").value
 
 
 test(
-    "UI response pens persist across workspace and preset changes",
-    _check_ui_response_pens_survive_workspace_and_preset_changes,
+    "UI response toggles persist across workspace and preset changes",
+    _check_ui_response_toggles_survive_workspace_and_preset_changes,
 )
 
 
@@ -1800,7 +1793,10 @@ def _check_response_chart_drops_non_finite_points_and_keeps_label_scale_clean():
     assert len(frame) == 4, frame
     assert np.isfinite(frame["value"]).all()
 
-    rows = [_ui._cursor_row(result, "F3", 10.0, "auto")]
+    rows = [_ui._cursor_row(result, "F3", 10.0)]
+    assert rows[0]["mol_db"] == 90.0
+    cursor_spec = _ui._cursor_layer(rows, show_mol=True).to_dict()
+    assert "MOL 90.0 dB" in str(cursor_spec), cursor_spec
     chart = _ui._plot_response(result, rows)
     spec = chart.to_dict()
     spec_text = str(spec)
@@ -1850,8 +1846,10 @@ def _check_response_chart_has_click_marker():
         driver_volume_velocity=np.ones(3, dtype=complex),
         port_volume_velocity=np.ones(3, dtype=complex),
     )
-    chart = _ui._plot_response(result, [])
+    chart = _ui._click_marker_layer(result, show_mol=True)
     spec = chart.to_dict()
+    assert "Click " not in str(spec), spec
+    assert "MOL 90.0 dB" in str(spec), spec
     params = spec.get("params", [])
     click_params = [param for param in params if param.get("name") == "click_marker"]
     assert click_params, params
@@ -1936,6 +1934,8 @@ def _check_ui_driver_preset_filters_reduce_list():
         len(complete_library), len(names),
     )
     assert complete_library["Driver"].nunique() == len(names)
+    assert "Price" in complete_library.columns
+    assert "Currency" in complete_library.columns
 
 
 test("UI driver preset filters reduce long speaker lists", _check_ui_driver_preset_filters_reduce_list)
@@ -1946,11 +1946,15 @@ def _check_ui_driver_preset_price_filter_uses_optional_metadata():
 
     original = _ui._driver_preset_price
     original_currency = _ui._driver_preset_currency
+    original_rates = _ui._current_exchange_rates
     try:
         prices = {"cheap": 50.0, "cheap_gbp": 40.0, "expensive": 500.0, "unknown": None}
         currencies = {"cheap": "EUR", "cheap_gbp": "GBP", "expensive": "EUR", "unknown": ""}
         _ui._driver_preset_price = lambda name: prices[name]
         _ui._driver_preset_currency = lambda name: currencies[name]
+        _ui._current_exchange_rates = lambda: (
+            {"EUR": 1.0, "GBP": 0.8, "USD": 1.2}, "2026-07-17"
+        )
         filtered = _ui._filter_driver_preset_names(
             ["cheap", "cheap_gbp", "expensive", "unknown"],
             source="All",
@@ -1960,10 +1964,15 @@ def _check_ui_driver_preset_price_filter_uses_optional_metadata():
             max_price=100.0,
             max_price_currency="EUR",
         )
-        assert filtered == ["cheap"], filtered
+        assert filtered == ["cheap", "cheap_gbp"], filtered
+        assert np.allclose(
+            _ui._preset_price_values(["cheap", "cheap_gbp"], "EUR"),
+            [50.0, 50.0],
+        )
     finally:
         _ui._driver_preset_price = original
         _ui._driver_preset_currency = original_currency
+        _ui._current_exchange_rates = original_rates
 
     info = _dccav.DriverPresetInfo(
         name="priced",
@@ -1978,6 +1987,44 @@ def _check_ui_driver_preset_price_filter_uses_optional_metadata():
 
 
 test("UI driver preset price filter uses optional metadata", _check_ui_driver_preset_price_filter_uses_optional_metadata)
+
+
+def _check_ecb_rates_normalize_library_prices():
+    import ui_app as _ui
+    from src import pricing
+
+    payload = b'''<?xml version="1.0" encoding="UTF-8"?>
+    <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01"
+      xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+      <Cube><Cube time="2026-07-17">
+        <Cube currency="USD" rate="1.20"/>
+        <Cube currency="GBP" rate="0.80"/>
+      </Cube></Cube>
+    </gesmes:Envelope>'''
+    rates, rates_date = pricing.parse_ecb_reference_rates(payload)
+    assert rates_date == "2026-07-17"
+    assert rates == {"EUR": 1.0, "USD": 1.2, "GBP": 0.8}
+    assert np.isclose(pricing.convert_price(80.0, "GBP", "EUR", rates), 100.0)
+    assert np.isclose(pricing.convert_price(80.0, "GBP", "USD", rates), 120.0)
+    assert pricing.convert_price(80.0, "GBP", "CHF", rates) is None
+    assert pricing.convert_price(80.0, "GBP", "GBP", {}) == 80.0
+
+    original_rates = _ui._current_exchange_rates
+    try:
+        _ui._current_exchange_rates = lambda: (rates, rates_date)
+        native = _ui.pd.DataFrame({
+            "Driver": ["EUR driver", "GBP driver", "unknown"],
+            "Price": [100.0, 80.0, np.nan],
+            "Currency": ["EUR", "GBP", ""],
+        })
+        normalized = _ui._normalize_price_frame(native, "USD")
+    finally:
+        _ui._current_exchange_rates = original_rates
+    assert np.allclose(normalized["Price"].iloc[:2], [120.0, 120.0])
+    assert normalized["Currency"].tolist() == ["USD", "USD", ""]
+
+
+test("ECB rates normalize Finder library prices", _check_ecb_rates_normalize_library_prices)
 
 
 def _check_dccav_loads_external_price_records(tmp_path=None):
@@ -2079,6 +2126,23 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
 
     from tools import crawl_thiele_small as crawler
 
+    assert np.isclose(crawler.convert_measurement("sd_cm2", "5.02", "K mm/2"), 50.2)
+    assert np.isclose(crawler.convert_measurement("sd_cm2", "5.02", "K/mm/2"), 50.2)
+    assert np.isclose(crawler.convert_measurement("sd_cm2", "0.0111", "m ²"), 111.0)
+    assert np.isclose(crawler.convert_measurement("fs_hz", "1.7", "K Hz"), 1700.0)
+    assert crawler.canonical_parameter("Fo") == "fs_hz"
+    assert crawler.canonical_parameter("F0") == "fs_hz"
+    assert crawler.canonical_parameter("ReVc") == "re_ohm"
+    assert crawler.canonical_parameter("L1kHz") == "le_mh"
+    assert crawler.canonical_parameter("X Max") == "xmax_mm"
+    assert crawler.canonical_parameter("Pwr") == "pe_w"
+    markaudio_optional = crawler.choose_measurements(crawler.text_measurements(
+        "L1kHz 0.2283 mH X Max (Mech) +/- 9mm Pwr 50 Watts (Nom)"
+    ))
+    assert np.isclose(markaudio_optional["le_mh"].value, 0.2283)
+    assert np.isclose(markaudio_optional["xmax_mm"].value, 9.0)
+    assert np.isclose(markaudio_optional["pe_w"].value, 50.0)
+
     product_html = b"""
     <html><head>
       <title>Acme Thunder 12</title>
@@ -2151,6 +2215,24 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
     assert not errors and derived is not None, errors
     assert np.isclose(derived["driver"]["qms"], 3.6)
 
+    titled_page = crawler.PageData(
+        title="Alpair 6.2 | Markaudio",
+        text="Fs: 80 Hz Vas: 3 L Qts: 0.4 Qms: 3 Re: 6 ohm Sd: 40 cm2",
+    )
+    _name, brand, model = crawler.product_metadata(
+        titled_page, "https://www.markaudio.com/product", "Markaudio"
+    )
+    assert brand == "Markaudio" and model == "Alpair 6.2"
+    assert crawler.is_standalone_lf_driver_model("Alpair 6.2")
+    assert not crawler.is_standalone_lf_driver_model("Tozzi One Kit")
+    assert not crawler.is_standalone_lf_driver_model("TW 6 Metal Dome Tweeter")
+
+    measurements = crawler.choose_measurements([
+        crawler.Measurement("sd_cm2", 5.02, "5.02", "", "Sd", "html.text"),
+        crawler.Measurement("sd_cm2", 50.2, "50.2", "cm2", "SD", "html.text"),
+    ])
+    assert measurements["sd_cm2"].value == 50.2
+
     urlset = b"""<?xml version="1.0"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
       <url><loc>https://www.example.test/products/th12</loc></url>
@@ -2196,12 +2278,18 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
         assert stats == {"added": 0, "updated": 1, "unchanged": 0}, stats
         assert merged[0]["driver"]["le_mh"] == 1.2
         assert merged[0]["driver"]["fs_hz"] == 32.0, "default merge must preserve curated core data"
+        refreshed, stats = crawler.merge_presets(
+            [existing], crawled, refresh_source="Web crawler"
+        )
+        assert stats["updated"] == 1
+        assert refreshed[0]["driver"]["fs_hz"] == crawled[0]["driver"]["fs_hz"]
 
 
 test("Generic T/S crawler discovers, normalizes and safely merges drivers", _check_generic_ts_crawler_discovers_normalizes_and_merges)
 
 
 def _check_pdf_datasheet_library_archives_indexes_and_merges_aliases():
+    import json
     import sqlite3
     import tempfile
     from pathlib import Path
@@ -2272,12 +2360,27 @@ def _check_pdf_datasheet_library_archives_indexes_and_merges_aliases():
         index.record_observation(digest, observation, "Apollo 10N")
         known = index.known_document(observation["url"])
         assert known == (digest, relative, "parsed")
+        assert index.observation(digest) == observation
         index.close()
         connection = sqlite3.connect(index_path)
         assert connection.execute("SELECT COUNT(*) FROM documents").fetchone()[0] == 1
         assert connection.execute("SELECT COUNT(*) FROM observations").fetchone()[0] == 1
         assert connection.execute("SELECT COUNT(*) FROM aliases").fetchone()[0] == 1
         connection.close()
+
+    markaudio_page = library.ts.parse_html(b"""
+    <html><head><title>Alpair 5.3 | Markaudio</title></head><body></body></html>
+    """)
+    canonical, _alias = library.canonicalize_pdf_preset(
+        json.loads(json.dumps(observation)),
+        product_page=markaudio_page,
+        product_url="https://www.markaudio.com/online_shop/alpair/alpair-5-3/",
+        pdf_url=observation["url"],
+        sha256="b" * 64,
+        brand_hint="Markaudio",
+    )
+    assert canonical["brand"] == "Markaudio"
+    assert canonical["model"] == "Alpair 5.3"
 
 
 test("PDF datasheet library archives, indexes and merges aliases", _check_pdf_datasheet_library_archives_indexes_and_merges_aliases)
@@ -3535,14 +3638,15 @@ def _check_ui_progressive_disclosure():
     vh = next(n for n in at.number_input if n.label == "Vh upper (L)")
     assert vh.disabled, "suggested strategy must protect automatically managed box values"
 
-    at.session_state["cursor_manual_enabled"] = True
     at.session_state["ui_show_advanced"] = True
     at.session_state["box_strategy"] = "Manual"
     at.session_state["sim_auto_align"] = False
     at.run()
     assert not at.exception, at.exception
     labels = {n.label for n in at.number_input}
-    assert {"M1 (Hz)", "M2 (Hz)", "Series R (Ω)"} <= labels
+    assert "Series R (Ω)" in labels
+    assert not {"M1 (Hz)", "M2 (Hz)"} & labels
+    assert not any(toggle.label == "Manual markers" for toggle in at.toggle)
     vh = next(n for n in at.number_input if n.label == "Vh upper (L)")
     assert not vh.disabled, "manual strategy must expose editable box values"
 
@@ -3862,7 +3966,7 @@ def _check_ui_tolerance_band_toggle():
     at.run()
     assert not at.exception, at.exception
     assert any(
-        "Monte Carlo on Fs/Vas/Qts/Qms" in caption.value for caption in at.caption
+        "MC, " in caption.value for caption in at.caption
     ), "the band caption must describe the perturbation"
     tol = next(n for n in at.number_input if n.label == "T/S tolerance (%)")
     assert float(tol.value) == 15.0

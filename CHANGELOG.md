@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.9 (2026-07-19)
+
+- **Chart control consolidation**: addressed wasted vertical space under the response plot by combining toggles (`Show traces legend`, `Compare loads`, `Tolerance band`) and action buttons (`Pin response`, `Reset zoom`, `Clear all pins`) onto a single, dense horizontal row. The `Chart zoom` slider now spans the full layout width just below them.
+- **Port and volume grid alignment**: re-organized UI metric grids for complex loads (DCCAV and Bandpass), merging the sub-volumes (`Vh/Vl`, `Vr/Vp`) into the exact same rows as their respective port tuning and port sizing metrics. This provides perfect `Volume | Tuning | Size` columnar alignment and saves substantial vertical space.
+- **Port diameter recalculation**: corrected a Streamlit `@st.fragment` callback behavior affecting the port geometry inputs. Modifying the diameter now explicitly forces an app-wide rerun, ensuring that the new value correctly triggers the duct length recalculation in the global state.
+- **Chart width resilience**: replaced invalid `width="stretch"` attributes with `use_container_width=True` on all `st.altair_chart` calls. This ensures charts (such as the response and impedance plots) properly expand to fill the entire container horizontally when zooming the X-axis domain, rather than getting physically cropped.
+- **Verification**: py_compile, Streamlit AppTest and fresh full suite: 103 passed / 0 failed / 0 skipped.
+
+
+## 0.5.8 (2026-07-19)
+
+- **Acoustic Alignment Forge Score**: Added a dynamic, drive-and-physical-sanity-aware score (0-100) to `active_load_summary` displaying in real-time. It applies penalty points for warnings, excursion violations, and port sizing/tuning limitations.
+- **Dynamic Gamification Badges**: Implemented live feedback badges including `🛡️ Safe from Chuffing`, `🏆 Legendary Extension`, `🔊 Deep Bass Accord`, `🎵 Tight Bass`, and `✅ Acoustically Sane` in the load summary card with corrected status/performance colors (green/blue/teal) to prevent cognitive dissonance.
+- **Visual Hierarchy Refactor**: Re-centered the cabinet layout diagram at the top of the summary card at an increased size (`width=220px`), placing the other text description elements below it in a compact centered typography to elevate visual hierarchy.
+- **Layout Inversion**: Moved the entire active load summary, warnings, and design details blocks below the main frequency response and technical charts to ensure the graphs are the absolute first element the user sees when opening the design tab.
+- **Verification**: py_compile, Streamlit AppTest, and fresh full suite: 103 passed / 0 failed / 0 skipped.
+
 
 ## 0.5.7 (2026-07-19)
 
