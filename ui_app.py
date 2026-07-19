@@ -1482,13 +1482,14 @@ def _box_number_with_nudge(
     )
 
 
-def _alignment_warning(ts: _dccav.DriverTS, alignment: _dccav.DccavAlignment) -> str | None:
-    v_total = alignment.vh_l + alignment.vl_l
+def _alignment_warning(ts: _dccav.DriverTS, box: _dccav.DccavBox) -> str | None:
+    """Warn only when the DCCAV box currently being simulated is very small."""
+    v_total = box.vh_l + box.vl_l
     if ts.sd_cm2 >= 500.0 and v_total < 25.0:
         return (
-            f"Very small 12 in alignment: Vh+Vl = {v_total:.1f} L. "
-            "This is only the empirical small-signal result from Qts^2*Vas; "
-            "it ignores port displacement, air velocity, compression and max-SPL limits."
+            f"Very small active 12 in alignment: Vh+Vl = {v_total:.1f} L. "
+            "Verify gross volume, port displacement, air velocity, compression "
+            "and max-SPL limits before building."
         )
     return None
 
@@ -4683,7 +4684,7 @@ with st.sidebar:
                 )
             else:
                 st.subheader("DCCAV Alignment")
-                alignment_warning = _alignment_warning(current_ts, current_alignment)
+                alignment_warning = _alignment_warning(current_ts, _box_from_state())
                 if alignment_warning:
                     st.warning(alignment_warning)
             if load_type != "Infinite baffle" and box_strategy in _OPT_OBJECTIVE_LABELS:

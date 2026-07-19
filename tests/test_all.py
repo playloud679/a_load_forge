@@ -852,6 +852,30 @@ def _check_port_geometry_helpers():
 test("DCCAV port geometry length round-trips and air speed scales", _check_port_geometry_helpers)
 
 
+def _check_ui_small_alignment_warning_uses_active_box():
+    import ui_app as _ui
+
+    ts = _beyma_ts()
+    small_active = _dccav.DccavBox(
+        vh_l=10.7, fh_hz=128.0, vl_l=10.7, fl_hz=48.0
+    )
+    large_active = _dccav.DccavBox(
+        vh_l=34.68, fh_hz=128.0, vl_l=40.32, fl_hz=48.0
+    )
+
+    warning = _ui._alignment_warning(ts, small_active)
+    assert warning is not None and "active" in warning and "21.4 L" in warning
+    assert _ui._alignment_warning(ts, large_active) is None, (
+        "a 75 L active box must not inherit a warning from the smaller empirical starter"
+    )
+
+
+test(
+    "UI small 12-inch alignment warning uses the active box",
+    _check_ui_small_alignment_warning_uses_active_box,
+)
+
+
 def _check_port_displacement_golden_rule():
     import dataclasses
 

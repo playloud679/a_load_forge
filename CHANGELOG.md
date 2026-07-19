@@ -1,6 +1,21 @@
 # Changelog
 
 
+## 0.5.7 (2026-07-19)
+
+- **Active DCCAV volume warning**: the small-12-inch warning now evaluates the
+  box currently being simulated instead of the smaller empirical starter.
+  Optimized boxes such as `34.68 + 40.32 = 75.00 L` no longer display a
+  misleading `21.4 L` warning.
+- **Context-safe guidance**: genuinely small active boxes still warn about
+  gross volume, port displacement, air velocity, compression and max-SPL
+  verification without incorrectly attributing manual or optimized values to
+  the empirical formula.
+- **Verification**: py_compile, dedicated active-box regression, targeted
+  29-test DCCAV run and Streamlit AppTest clean; fresh full suite 102 passed /
+  0 failed / 0 skipped.
+
+
 ## 0.5.6 (2026-07-19)
 
 - **Bass Match and Box Design workspaces**: replaced the compatibility-first
