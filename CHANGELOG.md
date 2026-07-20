@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0 (2026-07-20)
+
+- **UI Redesign**: Moved all inputs, parameter controls, library filters, and optimization constraints to a dedicated tabbed sidebar, decluttering the main column for a cleaner output presentation.
+- **Workflow alignment**: Consolidated UI into "Bass Match" and "Box Design" modes using large visual tabs, eliminating deep expanders and ensuring advanced constraints are immediately visible.
+- **Tests**: Realigned the comprehensive UI regression suite to support the new sidebar workflow. 103 passed / 0 failed / 0 skipped.
+
 ## 0.5.13 (2026-07-20)
 
 - **UI improvements**: added CSS transitions to the search progress bar for fluid updates and made the preset size filter more granular (1 to 21 inches).

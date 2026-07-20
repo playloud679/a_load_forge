@@ -50,8 +50,8 @@ except OSError:
 _BRAND_IMAGE = Path(__file__).parent / "assets" / "load_forge_header.png"
 _LOAD_IMAGE_DIR = Path(__file__).parent / "assets" / "load_types"
 _WORKSPACE_TAB_IMAGES = {
-    "Find a driver": Path(__file__).parent / "assets" / "bass_match_tab.png",
-    "Design a box": Path(__file__).parent / "assets" / "box_design_tab.png",
+    "Bass Match": Path(__file__).parent / "assets" / "bass_match_tab.png",
+    "Box Design": Path(__file__).parent / "assets" / "box_design_tab.png",
 }
 
 
@@ -528,10 +528,10 @@ def _select_workspace(workspace: str) -> None:
 def _render_workspace_tabs() -> None:
     """Render image tabs while retaining the state-compatible control."""
     st.markdown(_workspace_tab_styles(), unsafe_allow_html=True)
-    active = str(st.session_state.get("workspace_mode", "Find a driver"))
+    active = str(st.session_state.get("workspace_mode", "Bass Match"))
     descriptions = {
-        "Find a driver": "Find the right driver for your performance target.",
-        "Design a box": "Simulate and refine your acoustic alignment.",
+        "Bass Match": "Find the right driver for your performance target.",
+        "Box Design": "Simulate and refine your acoustic alignment.",
     }
     tab_columns = st.columns(2, gap="small")
     for column, workspace in zip(tab_columns, _WORKSPACES, strict=True):
@@ -543,14 +543,10 @@ def _render_workspace_tabs() -> None:
                     key=f"workspace_tab_button_{slug}",
                     type="primary" if workspace == active else "secondary",
                     use_container_width=True,
-                    help=f"Open {_WORKSPACE_DISPLAY_LABELS[workspace]}",
+                    help=descriptions[workspace],
                     on_click=_select_workspace,
                     args=(workspace,),
                 )
-            st.markdown(
-                f'<div class="workspace-tab-desc">{descriptions[workspace]}</div>',
-                unsafe_allow_html=True,
-            )
     # Keep this widget in the app tree for old sessions and automated clients.
     # CSS hides it from people because the image tabs are the primary control.
     with st.container(key="workspace_compat_control"):
@@ -616,14 +612,14 @@ _PRESET_SOURCE_FILTERS = ("All", "Built-in", "Loudspeaker Database", "Manufactur
 # default "Web crawler") falls into "Manufacturer".
 _PRESET_SOURCE_EXACT_BUCKETS = {"Built-in", "Loudspeaker Database"}
 _PRESET_CLASS_FILTERS = ("All", *_dccav.DRIVER_CLASSES)
-_WORKSPACES = ("Find a driver", "Design a box")
+_WORKSPACES = ("Bass Match", "Box Design")
 _WORKSPACE_DISPLAY_LABELS = {
-    "Find a driver": "Bass Match",
-    "Design a box": "Design a box",
+    "Bass Match": "Bass Match",
+    "Box Design": "Box Design",
 }
 _WORKSPACE_TAB_SLUGS = {
-    "Find a driver": "bass_match",
-    "Design a box": "box_design",
+    "Bass Match": "bass_match",
+    "Box Design": "box_design",
 }
 # One box algorithm: the optimizer, with three selectable objectives.  The
 # labels map onto engine OptimizationGoals.objective; Manual unlocks fields.
@@ -1652,88 +1648,58 @@ def _available_preset_families(names: list[str]) -> list[str]:
 
 
 def _render_finder_library_filters(all_preset_names: list[str]) -> None:
-    """Render Finder library filters in the roomy main workspace."""
-    with st.container(key="finder_library_filters", border=True):
-        st.markdown("**Library filters**")
-        search_col, source_col, brand_col, size_col, class_col = st.columns(
-            [2.2, 1, 1, 1, 1], gap="small"
-        )
-        with search_col:
-            st.text_input(
-                "Search preset", key="preset_search", placeholder="Brand or model"
-            )
-        with source_col:
-            st.selectbox(
-                "Source", _PRESET_SOURCE_FILTERS, key="preset_source_filter"
-            )
-        with brand_col:
-            st.selectbox(
-                "Brand",
-                _available_preset_families(all_preset_names),
-                key="preset_family_filter",
-            )
-        with size_col:
-            st.selectbox("Size", _PRESET_SIZE_FILTERS, key="preset_size_filter")
-        with class_col:
-            st.selectbox(
-                "Class",
-                _PRESET_CLASS_FILTERS,
-                key="preset_class_filter",
-                help="Heuristic bandwidth class from T/S: pure subwoofers vs woofers "
-                     "that can reach the mids (voice-coil corner, cone mass, Fs, sensitivity).",
-            )
+    """Render Finder library filters."""
+    st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
+    st.selectbox("Source", _PRESET_SOURCE_FILTERS, key="preset_source_filter")
+    st.selectbox("Brand", _available_preset_families(all_preset_names), key="preset_family_filter")
+    st.selectbox("Size", _PRESET_SIZE_FILTERS, key="preset_size_filter")
+    st.selectbox(
+        "Class",
+        _PRESET_CLASS_FILTERS,
+        key="preset_class_filter",
+        help="Heuristic bandwidth class from T/S: pure subwoofers vs woofers "
+             "that can reach the mids (voice-coil corner, cone mass, Fs, sensitivity).",
+    )
 
-        preset_currencies = _preset_price_currencies(all_preset_names)
-        price_currency_col, price_toggle_col, price_limit_col, _ = st.columns(
-            [1, 1.25, 1, 2.75], gap="small"
+    preset_currencies = _preset_price_currencies(all_preset_names)
+    if preset_currencies:
+        if st.session_state["preset_price_currency"] not in preset_currencies:
+            st.session_state["preset_price_currency"] = preset_currencies[0]
+        st.selectbox("Price currency", preset_currencies, key="preset_price_currency")
+        price_currency = str(st.session_state["preset_price_currency"])
+        rates, rates_date = _current_exchange_rates()
+        preset_prices = _preset_price_values(all_preset_names, price_currency)
+        price_max_available = max(preset_prices)
+        if st.session_state["preset_max_price"] <= 0.0:
+            st.session_state["preset_max_price"] = float(price_max_available)
+        st.session_state["preset_max_price"] = min(
+            float(price_max_available),
+            max(0.0, float(st.session_state["preset_max_price"])),
         )
-        if preset_currencies:
-            if st.session_state["preset_price_currency"] not in preset_currencies:
-                st.session_state["preset_price_currency"] = preset_currencies[0]
-            with price_currency_col:
-                st.selectbox(
-                    "Price currency", preset_currencies, key="preset_price_currency"
-                )
-            price_currency = str(st.session_state["preset_price_currency"])
-            rates, rates_date = _current_exchange_rates()
-            preset_prices = _preset_price_values(all_preset_names, price_currency)
-            price_max_available = max(preset_prices)
-            if st.session_state["preset_max_price"] <= 0.0:
-                st.session_state["preset_max_price"] = float(price_max_available)
-            st.session_state["preset_max_price"] = min(
-                float(price_max_available),
-                max(0.0, float(st.session_state["preset_max_price"])),
+        st.checkbox("Filter by max price", key="preset_price_enabled")
+        if st.session_state["preset_price_enabled"]:
+            st.number_input(
+                f"Max price ({price_currency})",
+                min_value=0.0,
+                max_value=float(price_max_available),
+                step=1.0,
+                key="preset_max_price",
             )
-            with price_toggle_col:
-                st.checkbox("Filter by max price", key="preset_price_enabled")
-            if st.session_state["preset_price_enabled"]:
-                with price_limit_col:
-                    st.number_input(
-                        f"Max price ({price_currency})",
-                        min_value=0.0,
-                        max_value=float(price_max_available),
-                        step=1.0,
-                        key="preset_max_price",
-                    )
-            if len(preset_currencies) > 1:
-                if rates and rates_date:
-                    st.caption(
-                        f"Prices normalized to {price_currency} · ECB reference rates "
-                        f"{rates_date}."
-                    )
-                else:
-                    st.warning(
-                        f"ECB rates unavailable: only prices already in "
-                        f"{price_currency} can be compared."
-                    )
-        else:
-            st.session_state["preset_price_enabled"] = False
-            with price_toggle_col:
-                st.checkbox(
-                    "Filter by max price", key="preset_price_enabled", disabled=True
+        if len(preset_currencies) > 1:
+            if rates and rates_date:
+                st.caption(
+                    f"Prices normalized to {price_currency} · ECB reference rates "
+                    f"{rates_date}."
                 )
-            with price_limit_col:
-                st.caption("Price unavailable in the current preset dataset.")
+            else:
+                st.warning(
+                    f"ECB rates unavailable: only prices already in "
+                    f"{price_currency} can be compared."
+                )
+    else:
+        st.session_state["preset_price_enabled"] = False
+        st.checkbox("Filter by max price", key="preset_price_enabled", disabled=True)
+        st.caption("Price unavailable in the current preset dataset.")
 
 
 def _filter_driver_preset_names(
@@ -2980,7 +2946,7 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
     st.session_state["driver_config"] = "Single driver"
     _apply_driver_preset(driver)
     _use_manual_box_strategy()
-    st.session_state["workspace_mode"] = "Design a box"
+    st.session_state["workspace_mode"] = "Box Design"
     if load_type == "Bass reflex":
         st.session_state["reflex_vb_l"] = float(row["Vb L"])
         resonator = str(row.get(
@@ -3043,7 +3009,7 @@ def _apply_library_driver(name: str) -> None:
     if _box_strategy_is_auto():
         _apply_suggested_box_for(driver)
         _mark_auto_alignment_synced(driver)
-    st.session_state["workspace_mode"] = "Design a box"
+    st.session_state["workspace_mode"] = "Box Design"
 
 
 def _apply_pending_atlas_point() -> None:
@@ -3448,49 +3414,47 @@ def _render_find_driver_goal_sidebar() -> None:
             step=0.5, key="finder_max_ripple_db",
             help="Maximum peak-to-valley variation in the evaluated low-frequency passband.",
         )
-        with st.expander("Advanced constraints"):
-            _finder_number_input(
-                "Maximum excursion (× driver Xmax)", min_value=0.0, max_value=3.0,
-                step=0.05, key="finder_excursion_ratio",
-                help="1.0 means cone travel stays within published Xmax; 0 disables the constraint.",
-            )
-            _finder_number_input(
-                "Maximum group delay (ms)", min_value=0.0, max_value=100.0,
-                step=1.0, key="finder_max_gd_ms",
-                help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
-            )
-            _finder_number_input(
-                "Minimum SPL (dB, 0 = off)", min_value=0.0, max_value=150.0,
-                step=0.5, key="finder_min_spl_db",
-                help="Require the candidate to reach at least this peak SPL at the comparison voltage; 0 disables.",
-            )
+        _finder_number_input(
+            "Maximum excursion (× driver Xmax)", min_value=0.0, max_value=3.0,
+            step=0.05, key="finder_excursion_ratio",
+            help="1.0 means cone travel stays within published Xmax; 0 disables the constraint.",
+        )
+        _finder_number_input(
+            "Maximum group delay (ms)", min_value=0.0, max_value=100.0,
+            step=1.0, key="finder_max_gd_ms",
+            help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
+        )
+        _finder_number_input(
+            "Minimum SPL (dB, 0 = off)", min_value=0.0, max_value=150.0,
+            step=0.5, key="finder_min_spl_db",
+            help="Require the candidate to reach at least this peak SPL at the comparison voltage; 0 disables.",
+        )
 
-    with st.expander("Advanced scan"):
-        _finder_number_input(
-            "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
-            step=1.0, key="finder_f_min",
-            help="Lowest frequency included in response, excursion and delay evaluation.",
-        )
-        _finder_number_input(
-            "Evaluation range end (Hz)", min_value=10.0, max_value=5000.0,
-            step=10.0, key="finder_f_max",
-            help="Highest frequency included in the low-frequency comparison.",
-        )
-        _finder_number_input(
-            "Top results to show", min_value=1, max_value=200,
-            step=5, key="finder_result_count",
-        )
-        _finder_number_input(
-            "Simulation resolution (points)", min_value=80, max_value=1000,
-            step=20, key="finder_points",
-        )
-        st.button(
-            "Reset Finder defaults",
-            key="finder_reset_defaults",
-            on_click=_reset_finder_defaults,
-            use_container_width=True,
-            help="Restore the practical quick-scan profile without changing the active design.",
-        )
+    _finder_number_input(
+        "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
+        step=1.0, key="finder_f_min",
+        help="Lowest frequency included in response, excursion and delay evaluation.",
+    )
+    _finder_number_input(
+        "Evaluation range end (Hz)", min_value=10.0, max_value=5000.0,
+        step=10.0, key="finder_f_max",
+        help="Highest frequency included in the low-frequency comparison.",
+    )
+    _finder_number_input(
+        "Top results to show", min_value=1, max_value=200,
+        step=5, key="finder_result_count",
+    )
+    _finder_number_input(
+        "Simulation resolution (points)", min_value=80, max_value=1000,
+        step=20, key="finder_points",
+    )
+    st.button(
+        "Reset Finder defaults",
+        key="finder_reset_defaults",
+        on_click=_reset_finder_defaults,
+        use_container_width=True,
+        help="Restore the practical quick-scan profile without changing the active design.",
+    )
 
 
 def _finder_search_blocked(filtered_preset_names: list[str]) -> bool:
@@ -4459,7 +4423,7 @@ _default("opt_target_f3_hz", 0.0)
 _default("opt_max_ripple_db", 3.0)
 _default("opt_excursion_ratio", 1.0)
 _default("opt_max_gd_ms", 0.0)
-_default("workspace_mode", "Find a driver")
+_default("workspace_mode", "Bass Match")
 _default("ui_show_advanced", False)
 _ensure_finder_defaults()
 if "finder_load_types" in st.session_state:
@@ -4552,7 +4516,6 @@ st.caption(
     "T/S driven response model"
 )
 
-_render_workspace_tabs()
 finder_library_filters_slot = st.empty()
 
 
@@ -4566,127 +4529,91 @@ derived = None
 with st.sidebar:
     _render_project_menu()
     st.divider()
-    workspace_mode = str(st.session_state.get("workspace_mode", "Design a box"))
-    st.subheader("1 · Driver" if workspace_mode == "Design a box" else "1 · Target enclosure")
-    if workspace_mode == "Find a driver":
-        if "finder_load_types" not in st.session_state:
-            st.session_state["finder_load_types"] = [
-                str(st.session_state.get("load_type", "DCCAV"))]
-        _finder_load_set = set(st.session_state["finder_load_types"])
-        new_set = _render_load_type_buttons(_finder_load_set, single_select=False)
-        if new_set != _finder_load_set:
-            if not new_set:
-                new_set = {"Sealed"}
-            st.session_state["finder_load_types"] = sorted(
-                new_set, key=lambda x: _ALL_LOAD_TYPES.index(x))
-            st.rerun()
-        st.caption("Toggle the loads you want to compare. At least one must stay active.")
-    else:
-        _load_set = {st.session_state.get("load_type", "Sealed")}
-        new_set = _render_load_type_buttons(_load_set, single_select=True)
-        if new_set != _load_set:
-            new_lt = next(iter(new_set), "Sealed")
-            st.session_state["load_type"] = new_lt
-            _on_load_type_change()
-            st.rerun()
-    if workspace_mode == "Find a driver":
-        _render_find_driver_target_sidebar()
-        st.subheader("2 · Performance goal")
-        _render_find_driver_goal_sidebar()
-    all_preset_names = _dccav.driver_preset_names()
-    if workspace_mode == "Find a driver":
-        with finder_library_filters_slot.container():
+    _render_workspace_tabs()
+    workspace_mode = str(st.session_state.get("workspace_mode", "Bass Match"))
+    
+    if workspace_mode == "Bass Match":
+        bm_tab1, bm_tab2, bm_tab3 = st.tabs(["Load type", "Performance", "Library Filters"])
+        
+        with bm_tab1:
+            if "finder_load_types" not in st.session_state:
+                st.session_state["finder_load_types"] = [
+                    str(st.session_state.get("load_type", "DCCAV"))]
+            _finder_load_set = set(st.session_state["finder_load_types"])
+            new_set = _render_load_type_buttons(_finder_load_set, single_select=False)
+            if new_set != _finder_load_set:
+                if not new_set:
+                    new_set = {"Sealed"}
+                st.session_state["finder_load_types"] = sorted(
+                    new_set, key=lambda x: _ALL_LOAD_TYPES.index(x))
+                st.rerun()
+            st.caption("Toggle the loads you want to compare. At least one must stay active.")
+            _render_find_driver_target_sidebar()
+
+        with bm_tab2:
+            _render_find_driver_goal_sidebar()
+            
+        with bm_tab3:
+            all_preset_names = _dccav.driver_preset_names()
             _render_finder_library_filters(all_preset_names)
+            filtered_preset_names = _filter_driver_preset_names(
+                all_preset_names,
+                source=st.session_state.get("preset_source_filter", "All"),
+                family=st.session_state.get("preset_family_filter", "All"),
+                size=st.session_state.get("preset_size_filter", "All"),
+                search=st.session_state.get("preset_search", ""),
+                max_price=(
+                    float(st.session_state["preset_max_price"])
+                    if st.session_state.get("preset_price_enabled", False) else None
+                ),
+                max_price_currency=(
+                    str(st.session_state["preset_price_currency"])
+                    if st.session_state.get("preset_price_enabled", False) else None
+                ),
+                selected=None,
+                driver_class=str(st.session_state.get("preset_class_filter", "All"))
+            )
+            _render_find_driver_actions(filtered_preset_names)
+
     else:
+        bd_tab1, bd_tab2, bd_tab3 = st.tabs(["Driver", "Load Selection", "Enclosure Parameters"])
+        
+        all_preset_names = _dccav.driver_preset_names()
         st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
-    filtered_preset_names = _filter_driver_preset_names(
-        all_preset_names,
-        source=(st.session_state["preset_source_filter"] if workspace_mode == "Find a driver" else "All"),
-        family=(st.session_state["preset_family_filter"] if workspace_mode == "Find a driver" else "All"),
-        size=(st.session_state["preset_size_filter"] if workspace_mode == "Find a driver" else "All"),
-        search=st.session_state["preset_search"],
-        max_price=(
-            float(st.session_state["preset_max_price"])
-            if workspace_mode == "Find a driver"
-            and st.session_state.get("preset_price_enabled", False)
-            else None
-        ),
-        max_price_currency=(
-            str(st.session_state["preset_price_currency"])
-            if workspace_mode == "Find a driver"
-            and st.session_state.get("preset_price_enabled", False)
-            else None
-        ),
-        selected=(
-            st.session_state.get("driver_preset_name")
-            if workspace_mode == "Design a box"
-            else None
-        ),
-        driver_class=(
-            str(st.session_state.get("preset_class_filter", "All"))
-            if workspace_mode == "Find a driver" else "All"
-        ),
-    )
-    if workspace_mode == "Find a driver":
-        _render_find_driver_actions(filtered_preset_names)
-    if workspace_mode == "Design a box":
+        filtered_preset_names = _filter_driver_preset_names(
+            all_preset_names,
+            source="All",
+            family="All",
+            size="All",
+            search=st.session_state.get("preset_search", ""),
+            max_price=None,
+            max_price_currency=None,
+            selected=st.session_state.get("driver_preset_name"),
+            driver_class="All"
+        )
         current_preset = st.session_state.get("driver_preset_name", "Custom")
         preset_options = ["Custom", *filtered_preset_names]
         if current_preset not in preset_options:
             st.session_state["driver_preset_name"] = "Custom"
             current_preset = "Custom"
-        st.caption(f"{len(filtered_preset_names)} / {len(all_preset_names)} presets")
-        preset_name = st.selectbox(
-            "Driver preset",
-            preset_options,
-            key="driver_preset_name",
-            on_change=_on_driver_preset_change,
-        )
-        st.selectbox(
-            "Driver configuration",
-            list(_dccav.DRIVER_CONFIGURATIONS),
-            key="driver_config",
-            on_change=_auto_align_current_driver,
-            help="Identical drivers sharing one enclosure. Parallel/series "
-                 "sets the wiring; an isobaric pair couples two drivers "
-                 "behind one radiating cone (halves Vas). The Finder always "
-                 "ranks single drivers.",
-        )
-        if st.session_state.get("driver_config", "Single driver") != "Single driver":
-            try:
-                _composite = _driver_from_state()
-                st.caption(
-                    f"Composite: Sd {_composite.sd_cm2:.0f} cm² · "
-                    f"Vas {_composite.vas_l:.1f} L · "
-                    f"Re {_composite.re_ohm:.2f} Ω · Pe {_composite.pe_w:.0f} W"
-                )
-            except Exception:
-                pass
-        st.subheader("2 · Load & box")
-        st.segmented_control(
-            "Box strategy",
-            _BOX_STRATEGIES,
-            key="box_strategy",
-            on_change=_on_box_strategy_change,
-            disabled=st.session_state["load_type"] == "Infinite baffle",
-            width="stretch",
-            help="One optimizer drives every goal: Max extension favors the "
-                 "deepest F3, Balanced trades extension against smoothness "
-                 "and practicality, Flattest favors the smoothest passband. "
-                 "The box re-applies automatically when the driver, load or "
-                 "constraints change. Manual unlocks volumes and tuning for "
-                 "direct editing.",
-        )
-        if preset_name != "Custom":
-            st.caption("Preset values are applied immediately.")
-            try:
-                purchase = _purchase_markdown(_dccav.driver_preset_info(preset_name))
-            except ValueError:
-                purchase = None
-            if purchase:
-                st.markdown(purchase)
-
-        with st.expander("Driver T/S values", expanded=preset_name == "Custom"):
+            
+        with bd_tab1:
+            st.caption(f"{len(filtered_preset_names)} / {len(all_preset_names)} presets")
+            preset_name = st.selectbox(
+                "Driver preset",
+                preset_options,
+                key="driver_preset_name",
+                on_change=_on_driver_preset_change,
+            )
+            if preset_name != "Custom":
+                st.caption("Preset values are applied immediately.")
+                try:
+                    purchase = _purchase_markdown(_dccav.driver_preset_info(preset_name))
+                except ValueError:
+                    purchase = None
+                if purchase:
+                    st.markdown(purchase)
+                    
             c1, c2 = st.columns(2)
             with c1:
                 st.number_input("Fs (Hz)", min_value=1.0, max_value=500.0, step=0.1,
@@ -4705,12 +4632,12 @@ with st.sidebar:
 
             st.radio("Piston input", ["Diameter", "Sd"], horizontal=True, key="driver_sd_mode",
                      on_change=_on_driver_param_change)
-            if st.session_state["driver_sd_mode"] == "Diameter":
+            if st.session_state.get("driver_sd_mode", "Diameter") == "Diameter":
                 st.number_input("Piston diameter (mm)", min_value=10.0, max_value=1000.0,
                                 step=0.1, key="driver_diameter_mm",
                                 on_change=_on_driver_param_change)
                 st.caption(
-                    f"Sd = {_dccav.sd_from_diameter(st.session_state['driver_diameter_mm']):.1f} cm²"
+                    f"Sd = {_dccav.sd_from_diameter(st.session_state.get('driver_diameter_mm', 100)):.1f} cm²"
                 )
             else:
                 st.number_input("Sd (cm²)", min_value=1.0, max_value=5000.0, step=1.0,
@@ -4724,7 +4651,7 @@ with st.sidebar:
                      "mounted on a finite baffle, lowering mounted Fs and sensitivity. "
                      "Disable it for classical free-air T/S comparisons.",
             )
-            if st.session_state["driver_panel_air_load"]:
+            if st.session_state.get("driver_panel_air_load", True):
                 st.slider(
                     "Panel coupling",
                     min_value=0.0,
@@ -4761,313 +4688,337 @@ with st.sidebar:
                                 on_change=_on_driver_param_change)
                 st.number_input("Bl (T·m)", min_value=0.0, max_value=100.0, step=0.01,
                                 key="driver_bl_tm", on_change=_on_driver_param_change)
-
-        try:
-            current_ts = _driver_from_state()
-            current_alignment = _dccav.suggest_alignment(current_ts)
-            current_reflex_alignment = _dccav.suggest_reflex_alignment(current_ts)
-            current_bandpass4_alignment = _dccav.suggest_bandpass4_alignment(current_ts)
-            current_bandpass6_alignment = _dccav.suggest_bandpass6_alignment(current_ts)
-            current_sealed_alignment = _dccav.suggest_sealed_alignment(current_ts)
-            derived = _dccav.complete_driver(current_ts)
-            panel_added_mass_g, panel_fs_hz = _dccav.panel_air_load_metrics(current_ts)
-            load_type = st.session_state["load_type"]
-            box_strategy = str(st.session_state.get("box_strategy", "Balanced"))
-            if (
-                box_strategy in _OPT_OBJECTIVE_LABELS
-                and st.session_state.get("_optimizer_engine_revision", 0)
-                != _OPTIMIZER_ENGINE_REVISION
-            ):
+                                
+        with bd_tab2:
+            _load_set = {st.session_state.get("load_type", "Sealed")}
+            new_set = _render_load_type_buttons(_load_set, single_select=True)
+            if new_set != _load_set:
+                new_lt = next(iter(new_set), "Sealed")
+                st.session_state["load_type"] = new_lt
+                _on_load_type_change()
+                st.rerun()
+            st.selectbox(
+                "Driver configuration",
+                list(_dccav.DRIVER_CONFIGURATIONS),
+                key="driver_config",
+                on_change=_auto_align_current_driver,
+                help="Identical drivers sharing one enclosure. Parallel/series "
+                     "sets the wiring; an isobaric pair couples two drivers "
+                     "behind one radiating cone (halves Vas). The Finder always "
+                     "ranks single drivers.",
+            )
+            if st.session_state.get("driver_config", "Single driver") != "Single driver":
                 try:
-                    refreshed = _run_box_optimizer(current_ts)
-                    _apply_optimized_box(refreshed.box)
-                    _mark_auto_alignment_synced(current_ts)
-                    st.toast("Optimized alignment refreshed with the current physics engine")
-                except ValueError as exc:
-                    _apply_empirical_box_for(current_ts)
-                    st.session_state["opt_last_summary"] = None
-                    st.warning(f"Stored optimized box was discarded: {exc}")
-                st.session_state["_optimizer_engine_revision"] = (
-                    _OPTIMIZER_ENGINE_REVISION)
-            if load_type == "Bass reflex":
-                st.subheader("Bass Reflex Alignment")
-            elif load_type == "Sealed":
-                st.subheader("Sealed Alignment")
-            elif load_type == "Bandpass 4th order":
-                st.subheader("4th-order Bandpass Alignment")
-            elif load_type == "Bandpass 6th order":
-                st.subheader("6th-order Bandpass Alignment")
-            elif load_type == "Infinite baffle":
-                st.subheader("Infinite Baffle")
-                st.caption(
-                    f"No enclosure or tuning: mounted Fs {panel_fs_hz:.1f} Hz "
-                    f"(free-air {current_ts.fs_hz:.1f} Hz) · "
-                    f"Qts {current_ts.qts:.3f}. Rear radiation is assumed fully isolated."
-                )
-            else:
-                st.subheader("DCCAV Alignment")
-                alignment_warning = _alignment_warning(current_ts, _box_from_state())
-                if alignment_warning:
-                    st.warning(alignment_warning)
-            if load_type != "Infinite baffle" and box_strategy in _OPT_OBJECTIVE_LABELS:
-                st.caption(
-                    "The optimizer re-applies this goal automatically when the "
-                    "driver, load or constraints change."
-                )
-                auto_box_error = st.session_state.get("_auto_box_error")
-                if auto_box_error:
-                    st.warning(
-                        "No buildable optimized box for the current goal; the "
-                        f"starter box is shown instead. ({auto_box_error})"
+                    _composite = _driver_from_state()
+                    st.caption(
+                        f"Composite: Sd {_composite.sd_cm2:.0f} cm² · "
+                        f"Vas {_composite.vas_l:.1f} L · "
+                        f"Re {_composite.re_ohm:.2f} Ω · Pe {_composite.pe_w:.0f} W"
                     )
-                with st.expander("Optimization constraints"):
-                    g1, g2 = st.columns(2)
-                    with g1:
-                        st.number_input("Max total volume (L, 0 = off)", min_value=0.0, max_value=2000.0,
-                                        step=1.0, key="opt_max_volume_l")
-                        st.number_input("Max ripple (dB)", min_value=0.0, max_value=12.0,
-                                        step=0.5, key="opt_max_ripple_db")
-                        st.number_input("Excursion limit (x Xmax, 0 = off)", min_value=0.0, max_value=3.0,
-                                        step=0.05, key="opt_excursion_ratio")
-                    with g2:
-                        st.number_input("Target F3 (Hz, 0 = lowest)", min_value=0.0, max_value=500.0,
-                                        step=1.0, key="opt_target_f3_hz")
-                        st.number_input("Max group delay (ms, 0 = off)", min_value=0.0, max_value=100.0,
-                                        step=1.0, key="opt_max_gd_ms")
-                current_optimizer_summary = _current_optimizer_summary(current_ts)
-                if current_optimizer_summary:
-                    st.caption(current_optimizer_summary)
-        except Exception as exc:
-            current_ts = None
-            current_alignment = None
-            current_reflex_alignment = None
-            current_bandpass4_alignment = None
-            current_bandpass6_alignment = None
-            current_sealed_alignment = None
-            derived = None
-            st.error(f"Driver parameters are invalid - check the T/S values. ({exc})")
+                except Exception:
+                    pass
+                    
+        with bd_tab3:
+            st.segmented_control(
+                "Box strategy",
+                _BOX_STRATEGIES,
+                key="box_strategy",
+                on_change=_on_box_strategy_change,
+                disabled=st.session_state.get("load_type", "Sealed") == "Infinite baffle",
+                width="stretch",
+                help="One optimizer drives every goal: Max extension favors the "
+                     "deepest F3, Balanced trades extension against smoothness "
+                     "and practicality, Flattest favors the smoothest passband. "
+                     "The box re-applies automatically when the driver, load or "
+                     "constraints change. Manual unlocks volumes and tuning for "
+                     "direct editing.",
+            )
+            # Simulate Inputs
+            st.number_input(
+                "Voltage (V)", min_value=0.01, max_value=200.0, step=0.01,
+                key="sim_voltage",
+            )
+            st.toggle("Advanced controls", key="ui_show_advanced")
+            if st.session_state.get("ui_show_advanced", False):
+                with st.container(border=True):
+                    s1, s2 = st.columns(2)
+                    with s1:
+                        st.number_input(
+                            "Simulation F min (Hz)", min_value=1.0, max_value=1000.0,
+                            step=1.0, key="sim_f_min",
+                        )
+                        st.number_input(
+                            "Points", min_value=80, max_value=4000,
+                            step=20, key="sim_points",
+                        )
+                    with s2:
+                        st.number_input(
+                            "Simulation F max (Hz)", min_value=10.0, max_value=5000.0,
+                            step=10.0, key="sim_f_max",
+                        )
+                        st.number_input(
+                            "Series R (Ω)", min_value=0.0, max_value=100.0,
+                            step=0.1, key="sim_series_r_ohm",
+                            help="Amplifier output + cable + crossover-coil DCR in series with the "
+                                 "driver. Optimizer and driver ranking evaluate at 0 Ω.",
+                        )
+            
+            try:
+                current_ts = _driver_from_state()
+                current_alignment = _dccav.suggest_alignment(current_ts)
+                current_reflex_alignment = _dccav.suggest_reflex_alignment(current_ts)
+                current_bandpass4_alignment = _dccav.suggest_bandpass4_alignment(current_ts)
+                current_bandpass6_alignment = _dccav.suggest_bandpass6_alignment(current_ts)
+                current_sealed_alignment = _dccav.suggest_sealed_alignment(current_ts)
+                derived = _dccav.complete_driver(current_ts)
+                panel_added_mass_g, panel_fs_hz = _dccav.panel_air_load_metrics(current_ts)
+                load_type = st.session_state.get("load_type", "Sealed")
+                box_strategy = str(st.session_state.get("box_strategy", "Balanced"))
+                if (
+                    box_strategy in _OPT_OBJECTIVE_LABELS
+                    and st.session_state.get("_optimizer_engine_revision", 0)
+                    != _OPTIMIZER_ENGINE_REVISION
+                ):
+                    try:
+                        refreshed = _run_box_optimizer(current_ts)
+                        _apply_optimized_box(refreshed.box)
+                        _mark_auto_alignment_synced(current_ts)
+                        st.toast("Optimized alignment refreshed with the current physics engine")
+                    except ValueError as exc:
+                        _apply_empirical_box_for(current_ts)
+                        st.session_state["opt_last_summary"] = None
+                        st.warning(f"Stored optimized box was discarded: {exc}")
+                    st.session_state["_optimizer_engine_revision"] = (
+                        _OPTIMIZER_ENGINE_REVISION)
 
-        box_edit_disabled = st.session_state.get("box_strategy", "Balanced") != "Manual"
-        if st.session_state["load_type"] == "Bass reflex":
-            _box_number_with_nudge(
-                "Vb box (L)", "reflex_vb_l", min_value=0.05, max_value=1000.0, step=0.01,
-                disabled=box_edit_disabled)
-            with st.expander("Ports", expanded=True):
-                st.selectbox(
-                    "Resonator type",
-                    _RESONATOR_TYPES,
-                    key="reflex_resonator_type",
-                    help="Choose an air vent or a passive diaphragm for the same bass-reflex load.",
-                )
-                if _reflex_uses_passive_radiator():
-                    st.caption("Passive radiator resonator")
-                    st.number_input(
-                        "PR area Sp (cm²)", min_value=1.0, max_value=5000.0,
-                        step=1.0, key="pr_sp_cm2")
-                    st.number_input(
-                        "PR free-air Fp (Hz)", min_value=1.0, max_value=500.0,
-                        step=0.1, key="pr_fp_hz")
-                    st.number_input(
-                        "PR mechanical Qmp", min_value=0.5, max_value=50.0,
-                        step=0.1, key="pr_qmp")
-                    st.number_input(
-                        "PR moving mass Mmp (g)", min_value=1.0, max_value=5000.0,
-                        step=1.0, key="pr_mmp_g")
-                    st.number_input(
-                        "PR Xmax (mm, 0 = unknown)", min_value=0.0, max_value=50.0,
-                        step=0.1, key="pr_xmax_mm")
-                    active_pr = _pr_box_from_state()
-                    rho_c2 = 1.18 * 344.0 ** 2
-                    cab = (active_pr.vb_l / 1000.0) / rho_c2
-                    pr_sp_m2 = active_pr.pr_sp_cm2 / 10_000.0
-                    pr_cmp = 1.0 / (
-                        (2 * np.pi * active_pr.pr_fp_hz) ** 2
-                        * (active_pr.pr_mmp_g / 1000.0)
+                if load_type != "Infinite baffle" and box_strategy in _OPT_OBJECTIVE_LABELS:
+                    st.caption(
+                        "The optimizer re-applies this goal automatically when the "
+                        "driver, load or constraints change."
                     )
-                    pr_cap = pr_cmp * pr_sp_m2 ** 2
-                    f_sys = (
-                        active_pr.pr_fp_hz * np.sqrt(1.0 + pr_cap / cab)
-                        if cab > 0 else active_pr.pr_fp_hz
-                    )
-                    st.caption(f"Box + PR system tuning ~{f_sys:.1f} Hz")
-                else:
-                    _box_number_with_nudge(
-                        "Fb tuning (Hz)", "reflex_fb_hz", min_value=1.0,
-                        max_value=1000.0, step=0.1, disabled=box_edit_disabled)
-            if _reflex_uses_passive_radiator():
-                with st.expander("Loss factors"):
-                    st.number_input(
-                        "Qabs box", min_value=0.2, max_value=500.0,
-                        step=0.5, key="pr_q_abs")
-                    st.number_input(
-                        "Qleak box", min_value=1.0, max_value=10000.0,
-                        step=10.0, key="pr_q_leak")
-            else:
-                active_reflex_losses = _reflex_box_from_state()
-                loss_mode = (
-                    "custom" if st.session_state.get("reflex_custom_losses", False)
-                    else "normal"
-                )
-                st.caption(
-                    f"Reflex losses ({loss_mode}): "
-                    f"Qabs {active_reflex_losses.q_abs:.1f} / "
-                    f"Qport {active_reflex_losses.q_port:.1f} / "
-                    f"Qleak {active_reflex_losses.q_leak:.0f}"
-                )
-                with st.expander("Loss factors"):
-                    st.checkbox(
-                        "Use custom reflex losses",
-                        key="reflex_custom_losses",
-                        help="Turn off to use the standard loss model without changing saved values.",
-                    )
-                    disabled = not st.session_state.get("reflex_custom_losses", False)
-                    st.number_input(
-                        "Qabs box", min_value=0.2, max_value=500.0,
-                        step=0.5, key="reflex_q_abs", disabled=disabled)
-                    st.number_input(
-                        "Qleak box", min_value=1.0, max_value=10000.0,
-                        step=10.0, key="reflex_q_leak", disabled=disabled)
-                    st.number_input(
-                        "Qport", min_value=0.2, max_value=500.0,
-                        step=0.5, key="reflex_q_port", disabled=disabled)
-        elif st.session_state["load_type"] == "Sealed":
-            _box_number_with_nudge(
-                "Vb sealed (L)", "sealed_vb_l", min_value=0.05, max_value=100000.0, step=0.01,
-                disabled=box_edit_disabled)
+                    auto_box_error = st.session_state.get("_auto_box_error")
+                    if auto_box_error:
+                        st.warning(
+                            "No buildable optimized box for the current goal; the "
+                            f"starter box is shown instead. ({auto_box_error})"
+                        )
+                    st.markdown("**Optimization constraints**")
+                    st.number_input("Max total volume (L, 0 = off)", min_value=0.0, max_value=2000.0,
+                                    step=1.0, key="opt_max_volume_l")
+                    st.number_input("Max ripple (dB)", min_value=0.0, max_value=12.0,
+                                    step=0.5, key="opt_max_ripple_db")
+                    st.number_input("Excursion limit (x Xmax, 0 = off)", min_value=0.0, max_value=3.0,
+                                    step=0.05, key="opt_excursion_ratio")
+                    st.number_input("Target F3 (Hz, 0 = lowest)", min_value=0.0, max_value=500.0,
+                                    step=1.0, key="opt_target_f3_hz")
+                    st.number_input("Max group delay (ms, 0 = off)", min_value=0.0, max_value=100.0,
+                                    step=1.0, key="opt_max_gd_ms")
+                    current_optimizer_summary = _current_optimizer_summary(current_ts)
+                    if current_optimizer_summary:
+                        st.caption(current_optimizer_summary)
+                        
+            except Exception as exc:
+                current_ts = None
+                current_alignment = None
+                current_reflex_alignment = None
+                current_bandpass4_alignment = None
+                current_bandpass6_alignment = None
+                current_sealed_alignment = None
+                derived = None
+                st.error(f"Driver parameters are invalid - check the T/S values. ({exc})")
+
             if current_ts is not None:
-                fc_hz, qtc = _dccav.sealed_system_metrics(current_ts, _sealed_box_from_state())
-                st.caption(f"Closed-box Fc {fc_hz:.1f} Hz · Qtc {qtc:.3f}")
-            with st.expander("Sealed loss factors"):
-                st.number_input(
-                    "Qabs sealed", min_value=0.2, max_value=500.0, step=0.5,
-                    key="sealed_q_abs")
-                st.number_input(
-                    "Qleak sealed", min_value=1.0, max_value=10000.0, step=10.0,
-                    key="sealed_q_leak")
-        elif st.session_state["load_type"] == "Bandpass 4th order":
-            b1, b2 = st.columns(2)
-            with b1:
-                _box_number_with_nudge(
-                    "Vs sealed rear (L)", "bandpass4_vs_l", min_value=0.05,
-                    max_value=100000.0, step=0.01, disabled=box_edit_disabled)
-            with b2:
-                _box_number_with_nudge(
-                    "Vp ported front (L)", "bandpass4_vp_l", min_value=0.05,
-                    max_value=100000.0, step=0.01, disabled=box_edit_disabled)
-            _box_number_with_nudge(
-                "Fp front tuning (Hz)", "bandpass4_fp_hz", min_value=1.0,
-                max_value=5000.0, step=0.1, disabled=box_edit_disabled)
-            with st.expander("Bandpass loss factors"):
-                l1, l2 = st.columns(2)
-                with l1:
-                    st.number_input("Qabs sealed rear", min_value=0.2, max_value=500.0,
-                                    step=0.5, key="bandpass4_q_abs_s")
-                    st.number_input("Qleak sealed rear", min_value=1.0, max_value=10000.0,
-                                    step=10.0, key="bandpass4_q_leak_s")
-                with l2:
-                    st.number_input("Qabs ported front", min_value=0.2, max_value=500.0,
-                                    step=0.5, key="bandpass4_q_abs_p")
-                    st.number_input("Qleak ported front", min_value=1.0, max_value=10000.0,
-                                    step=10.0, key="bandpass4_q_leak_p")
-                    st.number_input("Qport front", min_value=0.2, max_value=500.0,
-                                    step=0.5, key="bandpass4_q_port")
-        elif st.session_state["load_type"] == "Bandpass 6th order":
-            b1, b2 = st.columns(2)
-            with b1:
-                _box_number_with_nudge(
-                    "Vr rear ported (L)", "bandpass6_vr_l", min_value=0.05,
-                    max_value=100000.0, step=0.01, disabled=box_edit_disabled)
-                _box_number_with_nudge(
-                    "Fr rear tuning (Hz)", "bandpass6_fr_hz", min_value=1.0,
-                    max_value=5000.0, step=0.1, disabled=box_edit_disabled)
-            with b2:
-                _box_number_with_nudge(
-                    "Vp front ported (L)", "bandpass6_vp_l", min_value=0.05,
-                    max_value=100000.0, step=0.01, disabled=box_edit_disabled)
-                _box_number_with_nudge(
-                    "Fp front tuning (Hz)", "bandpass6_fp_hz", min_value=1.0,
-                    max_value=5000.0, step=0.1, disabled=box_edit_disabled)
-            with st.expander("Bandpass loss factors"):
-                l1, l2 = st.columns(2)
-                with l1:
-                    st.number_input("Qabs rear", min_value=0.2, max_value=500.0,
-                                    step=0.5, key="bandpass6_q_abs_r")
-                    st.number_input("Qleak rear", min_value=1.0, max_value=10000.0,
-                                    step=10.0, key="bandpass6_q_leak_r")
-                    st.number_input("Qport rear", min_value=0.2, max_value=500.0,
-                                    step=0.5, key="bandpass6_q_port_r")
-                with l2:
-                    st.number_input("Qabs front", min_value=0.2, max_value=500.0,
-                                    step=0.5, key="bandpass6_q_abs_p")
-                    st.number_input("Qleak front", min_value=1.0, max_value=10000.0,
-                                    step=10.0, key="bandpass6_q_leak_p")
-                    st.number_input("Qport front", min_value=0.2, max_value=500.0,
-                                    step=0.5, key="bandpass6_q_port_p")
-        elif st.session_state["load_type"] == "Infinite baffle":
-            st.caption("No box controls: the rear wave is assumed to be fully isolated by an infinite partition.")
-        else:
-            b1, b2 = st.columns(2)
-            with b1:
-                _box_number_with_nudge(
-                    "Vh upper (L)", "box_vh_l", min_value=0.05, max_value=1000.0, step=0.01,
-                    disabled=box_edit_disabled)
-                _box_number_with_nudge(
-                    "fh upper (Hz)", "box_fh_hz", min_value=1.0, max_value=1000.0, step=0.1,
-                    disabled=box_edit_disabled)
-            with b2:
-                _box_number_with_nudge(
-                    "Vl lower (L)", "box_vl_l", min_value=0.05, max_value=1000.0, step=0.01,
-                    disabled=box_edit_disabled)
-                _box_number_with_nudge(
-                    "fl lower (Hz)", "box_fl_hz", min_value=1.0, max_value=1000.0, step=0.1,
-                    disabled=box_edit_disabled)
+                box_edit_disabled = st.session_state.get("box_strategy", "Balanced") != "Manual"
+                if load_type == "Bass reflex":
+                    _box_number_with_nudge(
+                        "Vb box (L)", "reflex_vb_l", min_value=0.05, max_value=1000.0, step=0.01,
+                        disabled=box_edit_disabled)
+                    with st.expander("Ports", expanded=True):
+                        st.selectbox(
+                            "Resonator type",
+                            _RESONATOR_TYPES,
+                            key="reflex_resonator_type",
+                            help="Choose an air vent or a passive diaphragm for the same bass-reflex load.",
+                        )
+                        if _reflex_uses_passive_radiator():
+                            st.caption("Passive radiator resonator")
+                            st.number_input(
+                                "PR area Sp (cm²)", min_value=1.0, max_value=5000.0,
+                                step=1.0, key="pr_sp_cm2")
+                            st.number_input(
+                                "PR free-air Fp (Hz)", min_value=1.0, max_value=500.0,
+                                step=0.1, key="pr_fp_hz")
+                            st.number_input(
+                                "PR mechanical Qmp", min_value=0.5, max_value=50.0,
+                                step=0.1, key="pr_qmp")
+                            st.number_input(
+                                "PR moving mass Mmp (g)", min_value=1.0, max_value=5000.0,
+                                step=1.0, key="pr_mmp_g")
+                            st.number_input(
+                                "PR Xmax (mm, 0 = unknown)", min_value=0.0, max_value=50.0,
+                                step=0.1, key="pr_xmax_mm")
+                            active_pr = _pr_box_from_state()
+                            rho_c2 = 1.18 * 344.0 ** 2
+                            cab = (active_pr.vb_l / 1000.0) / rho_c2
+                            pr_sp_m2 = active_pr.pr_sp_cm2 / 10_000.0
+                            pr_cmp = 1.0 / (
+                                (2 * np.pi * active_pr.pr_fp_hz) ** 2
+                                * (active_pr.pr_mmp_g / 1000.0)
+                            )
+                            pr_cap = pr_cmp * pr_sp_m2 ** 2
+                            f_sys = (
+                                active_pr.pr_fp_hz * np.sqrt(1.0 + pr_cap / cab)
+                                if cab > 0 else active_pr.pr_fp_hz
+                            )
+                            st.caption(f"Box + PR system tuning ~{f_sys:.1f} Hz")
+                        else:
+                            _box_number_with_nudge(
+                                "Fb tuning (Hz)", "reflex_fb_hz", min_value=1.0,
+                                max_value=1000.0, step=0.1, disabled=box_edit_disabled)
+                    if _reflex_uses_passive_radiator():
+                        with st.expander("Loss factors"):
+                            st.number_input(
+                                "Qabs box", min_value=0.2, max_value=500.0,
+                                step=0.5, key="pr_q_abs")
+                            st.number_input(
+                                "Qleak box", min_value=1.0, max_value=10000.0,
+                                step=10.0, key="pr_q_leak")
+                    else:
+                        active_reflex_losses = _reflex_box_from_state()
+                        loss_mode = (
+                            "custom" if st.session_state.get("reflex_custom_losses", False)
+                            else "normal"
+                        )
+                        st.caption(
+                            f"Reflex losses ({loss_mode}): "
+                            f"Qabs {active_reflex_losses.q_abs:.1f} / "
+                            f"Qport {active_reflex_losses.q_port:.1f} / "
+                            f"Qleak {active_reflex_losses.q_leak:.0f}"
+                        )
+                        with st.expander("Loss factors"):
+                            st.checkbox(
+                                "Use custom reflex losses",
+                                key="reflex_custom_losses",
+                                help="Turn off to use the standard loss model without changing saved values.",
+                            )
+                            disabled = not st.session_state.get("reflex_custom_losses", False)
+                            st.number_input(
+                                "Qabs box", min_value=0.2, max_value=500.0,
+                                step=0.5, key="reflex_q_abs", disabled=disabled)
+                            st.number_input(
+                                "Qleak box", min_value=1.0, max_value=10000.0,
+                                step=10.0, key="reflex_q_leak", disabled=disabled)
+                            st.number_input(
+                                "Qport", min_value=0.2, max_value=500.0,
+                                step=0.5, key="reflex_q_port", disabled=disabled)
+                elif load_type == "Sealed":
+                    _box_number_with_nudge(
+                        "Vb sealed (L)", "sealed_vb_l", min_value=0.05, max_value=100000.0, step=0.01,
+                        disabled=box_edit_disabled)
+                    if current_ts is not None:
+                        fc_hz, qtc = _dccav.sealed_system_metrics(current_ts, _sealed_box_from_state())
+                        st.caption(f"Closed-box Fc {fc_hz:.1f} Hz · Qtc {qtc:.3f}")
+                    with st.expander("Sealed loss factors"):
+                        st.number_input(
+                            "Qabs sealed", min_value=0.2, max_value=500.0, step=0.5,
+                            key="sealed_q_abs")
+                        st.number_input(
+                            "Qleak sealed", min_value=1.0, max_value=10000.0, step=10.0,
+                            key="sealed_q_leak")
+                elif load_type == "Bandpass 4th order":
+                    b1, b2 = st.columns(2)
+                    with b1:
+                        _box_number_with_nudge(
+                            "Vs sealed rear (L)", "bandpass4_vs_l", min_value=0.05,
+                            max_value=100000.0, step=0.01, disabled=box_edit_disabled)
+                    with b2:
+                        _box_number_with_nudge(
+                            "Vp ported front (L)", "bandpass4_vp_l", min_value=0.05,
+                            max_value=100000.0, step=0.01, disabled=box_edit_disabled)
+                    _box_number_with_nudge(
+                        "Fp front tuning (Hz)", "bandpass4_fp_hz", min_value=1.0,
+                        max_value=5000.0, step=0.1, disabled=box_edit_disabled)
+                    with st.expander("Bandpass loss factors"):
+                        l1, l2 = st.columns(2)
+                        with l1:
+                            st.number_input("Qabs sealed rear", min_value=0.2, max_value=500.0,
+                                            step=0.5, key="bandpass4_q_abs_s")
+                            st.number_input("Qleak sealed rear", min_value=1.0, max_value=10000.0,
+                                            step=10.0, key="bandpass4_q_leak_s")
+                        with l2:
+                            st.number_input("Qabs ported front", min_value=0.2, max_value=500.0,
+                                            step=0.5, key="bandpass4_q_abs_p")
+                            st.number_input("Qleak ported front", min_value=1.0, max_value=10000.0,
+                                            step=10.0, key="bandpass4_q_leak_p")
+                            st.number_input("Qport front", min_value=0.2, max_value=500.0,
+                                            step=0.5, key="bandpass4_q_port")
+                elif load_type == "Bandpass 6th order":
+                    b1, b2 = st.columns(2)
+                    with b1:
+                        _box_number_with_nudge(
+                            "Vr rear ported (L)", "bandpass6_vr_l", min_value=0.05,
+                            max_value=100000.0, step=0.01, disabled=box_edit_disabled)
+                        _box_number_with_nudge(
+                            "Fr rear tuning (Hz)", "bandpass6_fr_hz", min_value=1.0,
+                            max_value=5000.0, step=0.1, disabled=box_edit_disabled)
+                    with b2:
+                        _box_number_with_nudge(
+                            "Vp front ported (L)", "bandpass6_vp_l", min_value=0.05,
+                            max_value=100000.0, step=0.01, disabled=box_edit_disabled)
+                        _box_number_with_nudge(
+                            "Fp front tuning (Hz)", "bandpass6_fp_hz", min_value=1.0,
+                            max_value=5000.0, step=0.1, disabled=box_edit_disabled)
+                    with st.expander("Bandpass loss factors"):
+                        l1, l2 = st.columns(2)
+                        with l1:
+                            st.number_input("Qabs rear", min_value=0.2, max_value=500.0,
+                                            step=0.5, key="bandpass6_q_abs_r")
+                            st.number_input("Qleak rear", min_value=1.0, max_value=10000.0,
+                                            step=10.0, key="bandpass6_q_leak_r")
+                            st.number_input("Qport rear", min_value=0.2, max_value=500.0,
+                                            step=0.5, key="bandpass6_q_port_r")
+                        with l2:
+                            st.number_input("Qabs front", min_value=0.2, max_value=500.0,
+                                            step=0.5, key="bandpass6_q_abs_p")
+                            st.number_input("Qleak front", min_value=1.0, max_value=10000.0,
+                                            step=10.0, key="bandpass6_q_leak_p")
+                            st.number_input("Qport front", min_value=0.2, max_value=500.0,
+                                            step=0.5, key="bandpass6_q_port_p")
+                elif load_type == "Infinite baffle":
+                    st.caption("No box controls: the rear wave is assumed to be fully isolated by an infinite partition.")
+                else:
+                    b1, b2 = st.columns(2)
+                    with b1:
+                        _box_number_with_nudge(
+                            "Vh upper (L)", "box_vh_l", min_value=0.05, max_value=1000.0, step=0.01,
+                            disabled=box_edit_disabled)
+                        _box_number_with_nudge(
+                            "fh upper (Hz)", "box_fh_hz", min_value=1.0, max_value=1000.0, step=0.1,
+                            disabled=box_edit_disabled)
+                    with b2:
+                        _box_number_with_nudge(
+                            "Vl lower (L)", "box_vl_l", min_value=0.05, max_value=1000.0, step=0.01,
+                            disabled=box_edit_disabled)
+                        _box_number_with_nudge(
+                            "fl lower (Hz)", "box_fl_hz", min_value=1.0, max_value=1000.0, step=0.1,
+                            disabled=box_edit_disabled)
 
-            with st.expander("Loss factors"):
-                l1, l2 = st.columns(2)
-                with l1:
-                    st.number_input("Qabs upper", min_value=0.2, max_value=500.0, step=0.5, key="loss_q_abs_h")
-                    st.number_input("Qleak upper", min_value=1.0, max_value=10000.0, step=10.0, key="loss_q_leak_h")
-                    st.number_input("Qport upper", min_value=0.2, max_value=500.0, step=0.5, key="loss_q_port_h")
-                with l2:
-                    st.number_input("Qabs lower", min_value=0.2, max_value=500.0, step=0.5, key="loss_q_abs_l")
-                    st.number_input("Qleak lower", min_value=1.0, max_value=10000.0, step=10.0, key="loss_q_leak_l")
-                    st.number_input("Qport lower", min_value=0.2, max_value=500.0, step=0.5, key="loss_q_port_l")
+                    with st.expander("Loss factors"):
+                        l1, l2 = st.columns(2)
+                        with l1:
+                            st.number_input("Qabs upper", min_value=0.2, max_value=500.0, step=0.5, key="loss_q_abs_h")
+                            st.number_input("Qleak upper", min_value=1.0, max_value=10000.0, step=10.0, key="loss_q_leak_h")
+                            st.number_input("Qport upper", min_value=0.2, max_value=500.0, step=0.5, key="loss_q_port_h")
+                        with l2:
+                            st.number_input("Qabs lower", min_value=0.2, max_value=500.0, step=0.5, key="loss_q_abs_l")
+                            st.number_input("Qleak lower", min_value=1.0, max_value=10000.0, step=10.0, key="loss_q_leak_l")
+                            st.number_input("Qport lower", min_value=0.2, max_value=500.0, step=0.5, key="loss_q_port_l")
 
-        if st.session_state["load_type"] != "Infinite baffle" and box_edit_disabled:
-            st.caption("Switch Box strategy to Manual to edit volumes and tuning directly.")
-
-        st.subheader("3 · Drive")
-        st.number_input(
-            "Voltage (V)", min_value=0.01, max_value=200.0, step=0.01,
-            key="sim_voltage",
-        )
-        st.toggle("Advanced controls", key="ui_show_advanced")
-        if st.session_state.get("ui_show_advanced", False):
-            with st.container(border=True):
-                s1, s2 = st.columns(2)
-                with s1:
-                    st.number_input(
-                        "Simulation F min (Hz)", min_value=1.0, max_value=1000.0,
-                        step=1.0, key="sim_f_min",
-                    )
-                    st.number_input(
-                        "Points", min_value=80, max_value=4000,
-                        step=20, key="sim_points",
-                    )
-                with s2:
-                    st.number_input(
-                        "Simulation F max (Hz)", min_value=10.0, max_value=5000.0,
-                        step=10.0, key="sim_f_max",
-                    )
-                    st.number_input(
-                        "Series R (Ω)", min_value=0.0, max_value=100.0,
-                        step=0.1, key="sim_series_r_ohm",
-                        help="Amplifier output + cable + crossover-coil DCR in series with the "
-                             "driver. Optimizer and driver ranking evaluate at 0 Ω.",
-                    )
+                if load_type != "Infinite baffle" and box_edit_disabled:
+                    st.caption("Switch Box strategy to Manual to edit volumes and tuning directly.")
 
 
-if st.session_state.get("workspace_mode") == "Find a driver":
+if workspace_mode == "Bass Match":
     _render_find_driver_workspace(filtered_preset_names)
     st.stop()
 
