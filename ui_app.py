@@ -222,7 +222,6 @@ st.markdown(
     .st-key-finder_match_progress [role="progressbar"] > div {
         border-radius: inherit !important;
         height: 100% !important;
-        transition: width 0.25s ease-out !important;
     }
     .stMetric { border: 1px solid rgba(127,127,127,.22); padding: .75rem; }
     @media (max-width: 768px) {
@@ -2898,12 +2897,13 @@ def _batch_rank_presets_parallel(
             ]
             for future in as_completed(futures):
                 done += 1
-                progress.progress(min((completed_offset + done) / overall_total, 1.0))
-                if progress_text_widget is not None:
-                    progress_text_widget.caption(
-                        f"Matching {completed_offset + done}/{overall_total} simulations"
-                        f" · {load_type}"
-                    )
+                if done % max(1, overall_total // 20) == 0 or done == len(names):
+                    progress.progress(min((completed_offset + done) / overall_total, 1.0))
+                    if progress_text_widget is not None:
+                        progress_text_widget.caption(
+                            f"Matching {completed_offset + done}/{overall_total} simulations"
+                            f" · {load_type}"
+                        )
                 try:
                     row = future.result()
                 except Exception:
@@ -2959,9 +2959,10 @@ def _batch_rank_presets_with_progress(
         if row is not None:
             rows.append(row)
         current = completed_offset + done
-        progress.progress(min(current / overall_total, 1.0))
-        if progress_text is not None:
-            progress_text.caption(f"Matching {current}/{overall_total} simulations · {load_type}")
+        if done % max(1, overall_total // 20) == 0 or done == len(names):
+            progress.progress(min(current / overall_total, 1.0))
+            if progress_text is not None:
+                progress_text.caption(f"Matching {current}/{overall_total} simulations · {load_type}")
     return _dccav.sort_ranked_rows(rows)
 
 
