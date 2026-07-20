@@ -3957,7 +3957,6 @@ def _render_response_tab(
     sim_series_r: float,
 ) -> None:
     chart_sig = _chart_signature()
-    has_ports = load_type in {"DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order", "Passive radiator"}
     compare_loads_on = bool(st.session_state.get("plot_compare_loads", False))
 
     # --- 1. Compute state needed for charts ---
