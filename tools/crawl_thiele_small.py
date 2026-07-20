@@ -70,7 +70,7 @@ PARAMETERS = (
         "cm2",
     ),
     ParameterSpec(
-        "le_mh", ("le", "l1khz", "l1k", "voice coil inductance", "inductance"), "mh"
+        "le_mh", ("le", "l1khz", "l1k", "voice coil inductance", "inductance", "le @1 khz", "le @ 1 khz"), "mh"
     ),
     ParameterSpec(
         "xmax_mm",
@@ -78,11 +78,11 @@ PARAMETERS = (
         "mm",
     ),
     ParameterSpec(
-        "pe_w", ("pe", "pmax", "pwr", "power handling", "rated power", "rms power"), "w"
+        "pe_w", ("pe", "pmax", "pwr", "power handling", "rated power", "rms power", "power capacity"), "w"
     ),
     ParameterSpec("mms_g", ("mms", "mmd", "moving mass", "diaphragm mass"), "g"),
     ParameterSpec("cms_mm_per_n", ("cms", "mechanical compliance", "suspension compliance"), "mm/n"),
-    ParameterSpec("bl_tm", ("bl", "force factor", "motor strength"), "tm"),
+    ParameterSpec("bl_tm", ("bl", "force factor", "motor strength", "bl factor"), "tm"),
     ParameterSpec("rms_kg_s", ("rms", "mechanical resistance"), "kg/s"),
 )
 PARAMETER_BY_KEY = {item.key: item for item in PARAMETERS}
@@ -483,7 +483,7 @@ def product_metadata(page: PageData, url: str, brand_hint: str = "") -> tuple[st
         if any(str(item).casefold() == "product" for item in types):
             product = node
             break
-    name = str(product.get("name") or page.meta.get("og:title") or page.title or "").strip()
+    name = str(product.get("name") or page.title or page.meta.get("og:title") or "").strip()
     raw_brand = product.get("brand", "")
     if isinstance(raw_brand, dict):
         raw_brand = raw_brand.get("name", "")
