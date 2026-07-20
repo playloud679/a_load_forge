@@ -1,8 +1,12 @@
 # Generic Thiele/Small crawler
 
-`tools/crawl_thiele_small.py` discovers loudspeaker product pages, extracts
-validated Thiele/Small parameters and merges compatible presets into
-`data/loudspeaker_database_drivers.json`.
+`tools/crawl_thiele_small.py` discovers manufacturer loudspeaker product
+pages, extracts validated Thiele/Small parameters and merges compatible
+presets into `data/manufacturer_drivers.json` by default — the LSDB-free
+catalog safe to redistribute publicly (see `docs/presets.md`). Point
+`--output` elsewhere for a one-off crawl; never point it at
+`data/loudspeaker_database_drivers.json`, which is a separate, non-redistributable
+import from loudspeakerdatabase.com.
 
 ## Discovery
 
@@ -16,7 +20,9 @@ The crawler accepts repeatable inputs:
 - `--include REGEX` / `--exclude REGEX`: limit large catalogs to likely driver
   paths
 
-It removes fragments, rejects non-HTTP URLs, remains on allowed domains,
+It removes fragments, percent-encodes characters that `http.client` rejects
+(such as spaces in datasheet filenames), rejects non-HTTP URLs, remains on
+allowed domains,
 respects `robots.txt`, uses a descriptive user agent, sleeps between requests
 and stops at `--max-pages`. Progress is written atomically to
 `data/thiele_small_crawler_checkpoint.json`; omit `--fresh` to resume it.
@@ -28,7 +34,10 @@ HTML pages are read from visible text and schema.org JSON-LD, including
 installed. Recognized fields are `Fs/Fo/F0`, `Vas`, `Qts`, `Qms`, `Qes`,
 `Re/ReVc`, `Sd`,
 `Le/L1kHz`, `Xmax/X Max`, `Pe/Pmax/Pwr`, `Mms/Mmd`, `Cms`, `BL` and
-mechanical `Rms`. Markaudio's `L1kHz` value is treated as the voice-coil
+mechanical `Rms`. Storefront synonyms are folded in: `Qt` counts as `Qts`,
+`Equivalent Air Volume` as `Vas` and `Diaphragm Area` as `Sd`, and a stray
+closing parenthesis directly after a label (`... (Qms) 8.82` rendered as
+`Qms)\n8.82`) is tolerated. Markaudio's `L1kHz` value is treated as the voice-coil
 inductance used by the simulator, while its nominal `Pwr` is stored as `Pe`.
 One-way values written as `X Max +/- N mm` are normalized to the positive
 excursion magnitude `N`.

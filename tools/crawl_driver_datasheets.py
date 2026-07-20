@@ -29,7 +29,9 @@ except ModuleNotFoundError:  # Direct execution adds tools/, not the repository 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_ARCHIVE = ROOT / "data" / "datasheets"
 DEFAULT_INDEX = ROOT / "data" / "driver_datasheets.sqlite3"
-DEFAULT_CATALOG = ROOT / "data" / "loudspeaker_database_drivers.json"
+# Datasheet PDFs are fetched from manufacturer sites, never from
+# loudspeakerdatabase.com; keep the catalog LSDB-free and safe to redistribute.
+DEFAULT_CATALOG = ROOT / "data" / "manufacturer_drivers.json"
 
 
 def utc_now() -> str:

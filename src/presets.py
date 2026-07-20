@@ -20,6 +20,12 @@ except ImportError:  # top-level import with src/ on sys.path (ui_app)
 LOUDSPEAKER_DATABASE_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "loudspeaker_database_drivers.json"
 )
+# Presets extracted directly from manufacturer sites (HTML/PDF/API), kept in a
+# separate file from the loudspeakerdatabase.com import above: this file is
+# safe to ship in a public build, the LSDB one is not (see docs/presets.md).
+MANUFACTURER_DATABASE_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "manufacturer_drivers.json"
+)
 
 
 @dataclass(frozen=True)
@@ -621,13 +627,22 @@ def _driver_ts_from_mapping(values: dict) -> DriverTS:
 
 
 
-@lru_cache(maxsize=1)
-def _load_loudspeaker_database_presets() -> tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]:
-    """Load optional loudspeakerdatabase.com presets generated into data/."""
-    if not LOUDSPEAKER_DATABASE_PATH.exists():
+def _load_external_presets(
+    path: Path,
+    *,
+    default_source: str,
+    dedupe_tag: str,
+    reserved: dict[str, DriverTS],
+) -> tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]:
+    """Load one optional external preset file (LSDB import or manufacturer crawl).
+
+    ``reserved`` holds every name already claimed by an earlier tier (built-in,
+    then LSDB, then manufacturer) so later tiers dedupe against all of them.
+    """
+    if not path.exists():
         return {}, {}
 
-    payload = json.loads(LOUDSPEAKER_DATABASE_PATH.read_text(encoding="utf-8"))
+    payload = json.loads(path.read_text(encoding="utf-8"))
     presets: dict[str, DriverTS] = {}
     info: dict[str, DriverPresetInfo] = {}
     built_in_identities = {
@@ -637,6 +652,7 @@ def _load_loudspeaker_database_presets() -> tuple[dict[str, DriverTS], dict[str,
         )
         for name in DRIVER_PRESETS
     }
+    taken = {*reserved, *DRIVER_PRESETS}
     for item in payload.get("presets", []):
         base_name = str(item["name"])
         item_brand = str(item.get("brand") or "Other")
@@ -644,18 +660,18 @@ def _load_loudspeaker_database_presets() -> tuple[dict[str, DriverTS], dict[str,
         if _preset_identity(item_brand, item_model) in built_in_identities:
             continue
         name = base_name
-        if name in DRIVER_PRESETS or name in presets:
+        if name in taken or name in presets:
             suffix = str(item.get("lsdb_id") or len(presets) + 1)
-            name = f"{base_name} [LSDB {suffix}]"
-        while name in DRIVER_PRESETS or name in presets:
-            name = f"{base_name} [LSDB {len(presets) + 1}]"
+            name = f"{base_name} [{dedupe_tag} {suffix}]"
+        while name in taken or name in presets:
+            name = f"{base_name} [{dedupe_tag} {len(presets) + 1}]"
         try:
             presets[name] = _driver_ts_from_mapping(item["driver"])
         except (KeyError, TypeError, ValueError):
             continue
         item_price = _valid_price(item.get("price"))
         item_currency = str(item.get("currency") or "")
-        item_source = str(item.get("source") or "Loudspeaker Database")
+        item_source = str(item.get("source") or default_source)
         enriched_price, enriched_currency, enriched_url = _preset_price(name, item_model, item_brand)
         info[name] = DriverPresetInfo(
             name=name,
@@ -675,10 +691,46 @@ def _load_loudspeaker_database_presets() -> tuple[dict[str, DriverTS], dict[str,
     return presets, info
 
 
+@lru_cache(maxsize=1)
+def _load_loudspeaker_database_presets() -> tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]:
+    """Load optional loudspeakerdatabase.com presets generated into data/.
+
+    This file is not safe to redistribute in a public build (see
+    docs/presets.md); it is expected to be absent outside local development.
+    """
+    return _load_external_presets(
+        LOUDSPEAKER_DATABASE_PATH,
+        default_source="Loudspeaker Database",
+        dedupe_tag="LSDB",
+        reserved={},
+    )
+
+
+@lru_cache(maxsize=1)
+def _load_manufacturer_presets() -> tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]:
+    """Load presets crawled directly from manufacturer sites (HTML/PDF/API).
+
+    Independent of loudspeakerdatabase.com and safe to ship publicly.
+    """
+    lsdb_presets, _lsdb_info = _load_loudspeaker_database_presets()
+    return _load_external_presets(
+        MANUFACTURER_DATABASE_PATH,
+        default_source="Manufacturer crawl",
+        dedupe_tag="MFR",
+        reserved=lsdb_presets,
+    )
+
+
+def _external_tiers() -> list[tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]]:
+    return [_load_loudspeaker_database_presets(), _load_manufacturer_presets()]
+
+
 def driver_preset_names() -> list[str]:
     """Return driver preset names in display order."""
-    external, _info = _load_loudspeaker_database_presets()
-    return [*DRIVER_PRESETS, *external]
+    names = list(DRIVER_PRESETS)
+    for presets, _info in _external_tiers():
+        names.extend(presets)
+    return names
 
 
 def driver_preset_info(name: str) -> DriverPresetInfo:
@@ -696,19 +748,17 @@ def driver_preset_info(name: str) -> DriverPresetInfo:
             currency=currency,
             url=url,
         )
-    _external, info = _load_loudspeaker_database_presets()
-    try:
-        return info[name]
-    except KeyError as exc:
-        raise ValueError(f"Unknown driver preset: {name}") from exc
+    for _presets, info in _external_tiers():
+        if name in info:
+            return info[name]
+    raise ValueError(f"Unknown driver preset: {name}")
 
 
 def get_driver_preset(name: str) -> DriverTS:
     """Return a driver preset by name."""
     if name in DRIVER_PRESETS:
         return DRIVER_PRESETS[name]
-    external, _info = _load_loudspeaker_database_presets()
-    try:
-        return external[name]
-    except KeyError as exc:
-        raise ValueError(f"Unknown driver preset: {name}") from exc
+    for presets, _info in _external_tiers():
+        if name in presets:
+            return presets[name]
+    raise ValueError(f"Unknown driver preset: {name}")

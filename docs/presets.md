@@ -1,20 +1,41 @@
 # src/presets.py — driver preset catalog
 
-Built-in driver presets plus the optional Loudspeaker Database and generic web
-crawler imports, with brand/size metadata and retailer price enrichment. `src/dccav.py`
-re-exports the public API; detailed contracts live in `docs/dccav.md`.
+Built-in driver presets plus two optional external catalogs, with brand/size
+metadata and retailer price enrichment. `src/dccav.py` re-exports the public
+API; detailed contracts live in `docs/dccav.md`.
+
+## Two external catalogs — do not merge them
+
+- `data/loudspeaker_database_drivers.json` (`LOUDSPEAKER_DATABASE_PATH`):
+  the loudspeakerdatabase.com import (`tools/import_loudspeaker_database.py`).
+  **Not safe to redistribute in a public build** — it is third-party
+  aggregated data, not manufacturer-original. Keep it out of any public
+  export/release artifact; it stays fine as a tracked file in this private repo.
+- `data/manufacturer_drivers.json` (`MANUFACTURER_DATABASE_PATH`): presets
+  extracted directly from manufacturer sites — HTML product pages, PDF
+  datasheets, public JSON APIs — by `tools/crawl_thiele_small.py` and
+  `tools/crawl_driver_datasheets.py`, whose catalog defaults both point here.
+  Independent of LSDB and safe to ship publicly.
+
+Never write LSDB-sourced fields into a manufacturer-catalog row or vice versa;
+if a fix needs to move data between them, do it through the crawler tools'
+own merge functions, not a hand edit, so provenance in `website_fields` stays
+correct.
 
 ## Owns
 
-- `DriverPresetInfo` dataclass and `LOUDSPEAKER_DATABASE_PATH`
+- `DriverPresetInfo` dataclass, `LOUDSPEAKER_DATABASE_PATH`, `MANUFACTURER_DATABASE_PATH`
 - `DRIVER_PRESETS`: the curated built-in catalog (KEF article example,
   Beyma, Turbosound, Scan-Speak, Dayton, SB Audience, LaVoce, MarkAudio,
   Aiyima minis, …)
-- `_load_loudspeaker_database_presets()` (`lru_cache(maxsize=1)`): lazy
-  loader for `data/loudspeaker_database_drivers.json`; missing or invalid
-  files degrade to the built-in catalog only. Imported rows use their optional
-  `source` value (for example `Web crawler`), falling back to
-  `Loudspeaker Database` for legacy datasets
+- `_load_external_presets(path, ...)`: shared lazy loader used by both
+  catalogs; missing or invalid files degrade to whatever tiers remain.
+- `_load_loudspeaker_database_presets()` / `_load_manufacturer_presets()`
+  (`lru_cache(maxsize=1)` each): the two catalog-specific loaders. The
+  manufacturer loader dedupes its names against the LSDB tier's, so a name
+  never collides across catalogs.
+- `_external_tiers()`: the ordered list `[LSDB, manufacturer]` that
+  `driver_preset_names/info/get_driver_preset` walk after the built-ins.
 - Public catalog API: `driver_preset_names()`, `driver_preset_info(name)`,
   `get_driver_preset(name)`
 
@@ -23,13 +44,12 @@ re-exports the public API; detailed contracts live in `docs/dccav.md`.
 - Depends on `engine` (for `DriverTS`/`sd_from_diameter`) and `pricing`
   (for `_preset_price`/`_valid_price`); never the other way around.
 - Preset info enriches prices at read time, so refreshed price data shows
-  up after `_load_loudspeaker_database_presets.cache_clear()` (tests rely
-  on clearing both this cache and the pricing loader's).
+  up after clearing both external-loader caches and the pricing loader's.
 - Importable both as `src.presets` and top-level `presets`.
-- Generic crawler records remain compatible with the existing JSON loader;
-  source-specific provenance stays in `website_fields` rather than being
-  mislabelled as Loudspeaker Database data.
+- Provenance stays in each row's `source` / `website_fields`, never
+  mislabelled as the other catalog's origin.
 - Imported rows whose case-insensitive brand and model match a curated
   built-in preset are omitted from the runtime list. The generated catalog
   keeps their crawl provenance, while the app exposes the richer built-in
-  record only once.
+  record only once. The same identity check runs LSDB-then-manufacturer, so a
+  manufacturer row matching an LSDB entry is skipped rather than duplicated.

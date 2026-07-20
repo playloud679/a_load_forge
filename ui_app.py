@@ -602,7 +602,12 @@ _PRESET_SIZE_FILTERS = (
     "12 in",
     "15 in+",
 )
-_PRESET_SOURCE_FILTERS = ("All", "Built-in", "Loudspeaker Database", "Web crawler")
+_PRESET_SOURCE_FILTERS = ("All", "Built-in", "Loudspeaker Database", "Manufacturer")
+# Raw preset "source" values bucketed for the filter dropdown above. Anything
+# not "Built-in" or "Loudspeaker Database" (e.g. "Manufacturer website",
+# "Manufacturer datasheet", "Manufacturer crawl", the generic crawler
+# default "Web crawler") falls into "Manufacturer".
+_PRESET_SOURCE_EXACT_BUCKETS = {"Built-in", "Loudspeaker Database"}
 _PRESET_CLASS_FILTERS = ("All", *_dccav.DRIVER_CLASSES)
 _WORKSPACES = ("Find a driver", "Design a box")
 _WORKSPACE_DISPLAY_LABELS = {
@@ -1507,9 +1512,10 @@ def _driver_preset_family(name: str) -> str:
 
 def _driver_preset_source(name: str) -> str:
     try:
-        return _dccav.driver_preset_info(name).source
+        raw = _dccav.driver_preset_info(name).source
     except ValueError:
         return "Built-in"
+    return raw if raw in _PRESET_SOURCE_EXACT_BUCKETS else "Manufacturer"
 
 
 def _driver_preset_price(name: str) -> float | None:

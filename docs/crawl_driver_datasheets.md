@@ -10,8 +10,11 @@ datasheets are downloaded, hashed, archived, indexed and parsed.
   PDF. Identical documents exposed by several URLs use the same file.
 - `data/driver_datasheets.sqlite3` records document URLs, discovery pages,
   timestamps, parsing status, extracted observations and model aliases.
-- `data/loudspeaker_database_drivers.json` remains the application-facing
-  catalog. PDF observations fill missing parameters and attach provenance.
+- `data/manufacturer_drivers.json` is the application-facing catalog for this
+  crawler's output — LSDB-free and safe to redistribute (see `docs/presets.md`).
+  PDF observations fill missing parameters and attach provenance. Never merge
+  observations into `data/loudspeaker_database_drivers.json`; that file is a
+  separate, non-redistributable import from loudspeakerdatabase.com.
 
 The PDF archive and SQLite index are reproducible local data and are excluded
 from Git because a broad library can become very large.

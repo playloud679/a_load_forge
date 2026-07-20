@@ -184,6 +184,14 @@ def _check_presets_are_available():
         assert lsdb_info.source == "Loudspeaker Database"
         assert lsdb_info.brand
         _dccav.complete_driver(_dccav.get_driver_preset(lsdb_names[0]))
+    manufacturer_names = [
+        name for name in names if name.startswith("WEB: ") or name.startswith("PDF: ")
+    ]
+    if manufacturer_names:
+        mfr_info = _dccav.driver_preset_info(manufacturer_names[0])
+        assert mfr_info.source in ("Manufacturer website", "Manufacturer datasheet", "Manufacturer crawl")
+        assert mfr_info.brand
+        _dccav.complete_driver(_dccav.get_driver_preset(manufacturer_names[0]))
     try:
         _dccav.get_driver_preset("missing")
     except ValueError as exc:
@@ -1866,7 +1874,7 @@ test("UI response chart has a clickable moving marker", _check_response_chart_ha
 def _check_ui_driver_preset_filters_reduce_list():
     import ui_app as _ui
 
-    assert "Web crawler" in _ui._PRESET_SOURCE_FILTERS
+    assert "Manufacturer" in _ui._PRESET_SOURCE_FILTERS
     names = _dccav.driver_preset_names()
     filtered = _ui._filter_driver_preset_names(
         names,
@@ -2046,6 +2054,7 @@ def _check_dccav_loads_external_price_records(tmp_path=None):
         )
         _dccav._load_driver_price_records.cache_clear()
         _dccav._load_loudspeaker_database_presets.cache_clear()
+        _dccav._load_manufacturer_presets.cache_clear()
         info = _dccav.driver_preset_info("Beyma 12CMV2")
         assert info.price == 321.5
         assert info.currency == "EUR"
@@ -2063,6 +2072,7 @@ def _check_dccav_loads_external_price_records(tmp_path=None):
                 pass
         _dccav._load_driver_price_records.cache_clear()
         _dccav._load_loudspeaker_database_presets.cache_clear()
+        _dccav._load_manufacturer_presets.cache_clear()
 
 
 test("DCCAV loads external price records", _check_dccav_loads_external_price_records)
@@ -4120,6 +4130,8 @@ def _check_module_split_facade():
         _dccav._load_loudspeaker_database_presets
         is presets._load_loudspeaker_database_presets
     )
+    assert _dccav._load_manufacturer_presets is presets._load_manufacturer_presets
+    assert _dccav.MANUFACTURER_DATABASE_PATH is presets.MANUFACTURER_DATABASE_PATH
 
     # The engine must stay free of catalog and pricing knowledge.
     tree = ast.parse((ROOT / "src" / "engine.py").read_text(encoding="utf-8"))

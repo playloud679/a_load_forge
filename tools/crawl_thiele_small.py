@@ -25,11 +25,13 @@ from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.error import HTTPError, URLError
-from urllib.parse import urldefrag, urljoin, urlparse
+from urllib.parse import quote, urldefrag, urljoin, urlparse
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_OUTPUT = ROOT / "data" / "loudspeaker_database_drivers.json"
+# Manufacturer-site crawls are LSDB-free and safe to redistribute; they merge
+# into their own catalog, never into the loudspeakerdatabase.com import.
+DEFAULT_OUTPUT = ROOT / "data" / "manufacturer_drivers.json"
 DEFAULT_CHECKPOINT = ROOT / "data" / "thiele_small_crawler_checkpoint.json"
 DEFAULT_USER_AGENT = "LoadForge-TS-Crawler/1.0 (+https://github.com/playloud679/a_load_forge)"
 RHO_AIR = 1.18
@@ -49,18 +51,22 @@ PARAMETERS = (
         ("fs", "fo", "f0", "resonant frequency", "resonance frequency", "free air resonance"),
         "hz",
     ),
-    ParameterSpec("vas_l", ("vas", "equivalent compliance volume", "equivalent volume"), "l"),
-    ParameterSpec("qts", ("qts", "total q")),
+    ParameterSpec(
+        "vas_l",
+        ("vas", "equivalent compliance volume", "equivalent volume", "equivalent air volume"),
+        "l",
+    ),
+    ParameterSpec("qts", ("qts", "qt", "total q")),
     ParameterSpec("qms", ("qms", "mechanical q")),
     ParameterSpec("qes", ("qes", "electrical q")),
     ParameterSpec(
         "re_ohm",
-        ("re", "revc", "dc resistance", "voice coil resistance", "dcr"),
+        ("re", "revc", "dc resistance", "voice coil resistance", "dcr", "rdc"),
         "ohm",
     ),
     ParameterSpec(
         "sd_cm2",
-        ("sd", "effective cone area", "effective piston area", "surface area of cone"),
+        ("sd", "effective cone area", "effective piston area", "surface area of cone", "diaphragm area"),
         "cm2",
     ),
     ParameterSpec(
@@ -401,7 +407,7 @@ def text_measurements(text: str) -> list[Measurement]:
         alias_pattern = "|".join(re.escape(alias) for alias in aliases)
         pattern = re.compile(
             rf"(?<![A-Za-z0-9])(?P<label>{alias_pattern})(?![A-Za-z0-9])"
-            rf"\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?\s*(?:[:=\-–—]|is)?\s*"
+            rf"\)?\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?\s*(?:[:=\-–—]|is)?\s*"
             rf"(?:[+±]\s*/?\s*[-−]\s*)?(?P<value>{NUMBER_RE})\s*(?P<unit>{UNIT_RE})",
             re.I,
         )
@@ -590,7 +596,18 @@ def parse_pdf(content: bytes) -> PageData:
     except ImportError as exc:
         raise RuntimeError("PDF found but pypdf is not installed") from exc
     reader = PdfReader(io.BytesIO(content))
-    text = "\n".join(page.extract_text() or "" for page in reader.pages)
+    # Layout mode keeps table labels and values on one line, which is required
+    # for column-formatted datasheets (e.g. SB Acoustics) whose plain reading
+    # order lists every label before every value. It goes first so its correct
+    # pairings win; mispaired plain-order matches fail unit conversion anyway.
+    try:
+        layout = "\n".join(
+            page.extract_text(extraction_mode="layout") or "" for page in reader.pages
+        )
+    except Exception:
+        layout = ""
+    plain = "\n".join(page.extract_text() or "" for page in reader.pages)
+    text = f"{layout}\n{plain}" if layout else plain
     metadata = reader.metadata or {}
     return PageData(title=str(metadata.get("/Title") or ""), text=text)
 
@@ -598,6 +615,9 @@ def parse_pdf(content: bytes) -> PageData:
 def normalize_url(url: str, base: str = "") -> str | None:
     absolute = urljoin(base, url.strip())
     absolute, _fragment = urldefrag(absolute)
+    # Percent-encode characters (such as spaces) that http.client rejects;
+    # keep existing escapes intact instead of double-encoding them.
+    absolute = quote(absolute, safe=":/?#[]@!$&'()*+,;=%")
     parsed = urlparse(absolute)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return None
@@ -676,7 +696,11 @@ def sitemap_urls(
         visited.add(url)
         result = fetcher(url, config.timeout_s, config.user_agent)
         urls, nested = parse_sitemap(result.content)
-        product_urls.extend(item for item in urls if url_allowed(item, config))
+        normalized = (normalize_url(item) for item in urls)
+        product_urls.extend(
+            item for item in normalized
+            if item is not None and url_allowed(item, config)
+        )
         pending.extend(item for item in nested if item not in visited)
     return product_urls
 

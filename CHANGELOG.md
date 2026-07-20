@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.11 (2026-07-20)
+
+- **Manufacturer presets**: added `_load_manufacturer_presets()` to load presets crawled directly from manufacturer sites, ensuring they are independent and safe to ship publicly.
+- **Price enrichment**: fetched and updated the latest driver pricing data.
+- **Data crawling tools**: updated T/S data and datasheet crawling scripts and their accompanying documentation.
+- **Verification**: py_compile, Streamlit AppTest and fresh full suite: 103 passed / 0 failed / 0 skipped.
+
+
 ## 0.5.9 (2026-07-19)
 
 - **Chart control consolidation**: addressed wasted vertical space under the response plot by combining toggles (`Show traces legend`, `Compare loads`, `Tolerance band`) and action buttons (`Pin response`, `Reset zoom`, `Clear all pins`) onto a single, dense horizontal row. The `Chart zoom` slider now spans the full layout width just below them.
