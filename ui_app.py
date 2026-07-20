@@ -222,6 +222,7 @@ st.markdown(
     .st-key-finder_match_progress [role="progressbar"] > div {
         border-radius: inherit !important;
         height: 100% !important;
+        transition: width 0.25s ease-out !important;
     }
     .stMetric { border: 1px solid rgba(127,127,127,.22); padding: .75rem; }
     @media (max-width: 768px) {
@@ -2860,6 +2861,7 @@ def _batch_rank_presets_parallel(
     candidate_limit: int,
     goals: _dccav.OptimizationGoals | None,
     progress_widget: object | None = None,
+    progress_text_widget: object | None = None,
     completed_offset: int = 0,
     progress_total: int | None = None,
 ) -> list[dict]:
@@ -2877,10 +2879,9 @@ def _batch_rank_presets_parallel(
     )
     owns_progress = progress_widget is None
     if progress_widget is None:
-        progress = st.progress(
-            completed_offset / overall_total,
-            text=f"Matching {completed_offset}/{overall_total} simulations",
-        )
+        progress_text_widget = st.empty()
+        progress = st.progress(completed_offset / overall_total)
+        progress_text_widget.caption(f"Matching {completed_offset}/{overall_total} simulations")
     else:
         progress = progress_widget
     rows: list[dict] = []
@@ -2897,13 +2898,12 @@ def _batch_rank_presets_parallel(
             ]
             for future in as_completed(futures):
                 done += 1
-                progress.progress(
-                    min((completed_offset + done) / overall_total, 1.0),
-                    text=(
+                progress.progress(min((completed_offset + done) / overall_total, 1.0))
+                if progress_text_widget is not None:
+                    progress_text_widget.caption(
                         f"Matching {completed_offset + done}/{overall_total} simulations"
                         f" · {load_type}"
-                    ),
-                )
+                    )
                 try:
                     row = future.result()
                 except Exception:
@@ -2916,18 +2916,19 @@ def _batch_rank_presets_parallel(
             "Parallel Finder optimization unavailable; falling back to serial ranking",
             exc_info=True,
         )
-        progress.progress(
-            completed_offset / overall_total,
-            text="Parallel matching unavailable; continuing in safe mode",
-        )
+        progress.progress(completed_offset / overall_total)
+        if progress_text_widget is not None:
+            progress_text_widget.caption("Parallel matching unavailable; continuing in safe mode")
         return _batch_rank_presets_with_progress(
             tuple(names), load_type, float(max_volume_l), float(voltage_v),
             float(f_min_hz), float(f_max_hz), int(points), len(names), goals,
-            progress, completed_offset, overall_total,
+            progress, progress_text_widget, completed_offset, overall_total,
         )
     finally:
         if owns_progress:
             progress.empty()
+            if progress_text_widget is not None:
+                progress_text_widget.empty()
     return _dccav.sort_ranked_rows(rows)
 
 
@@ -2942,6 +2943,7 @@ def _batch_rank_presets_with_progress(
     candidate_limit: int,
     goals: _dccav.OptimizationGoals | None,
     progress: object,
+    progress_text: object | None,
     completed_offset: int,
     progress_total: int,
 ) -> list[dict]:
@@ -2957,10 +2959,9 @@ def _batch_rank_presets_with_progress(
         if row is not None:
             rows.append(row)
         current = completed_offset + done
-        progress.progress(
-            min(current / overall_total, 1.0),
-            text=f"Matching {current}/{overall_total} simulations · {load_type}",
-        )
+        progress.progress(min(current / overall_total, 1.0))
+        if progress_text is not None:
+            progress_text.caption(f"Matching {current}/{overall_total} simulations · {load_type}")
     return _dccav.sort_ranked_rows(rows)
 
 
@@ -3329,8 +3330,9 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
     scan_count = len(filtered_preset_names)
     progress_total = max(scan_count * len(finder_load_types), 1)
     with st.container(key="finder_match_progress"):
-        progress = st.progress(
-            0.0, text=f"Matching 0/{progress_total} simulations")
+        progress_text = st.empty()
+        progress = st.progress(0.0)
+        progress_text.caption(f"Matching 0/{progress_total} simulations")
     st.session_state.pop("_finder_match_completion", None)
     all_rows: list[dict] = []
     for load_index, lt in enumerate(finder_load_types):
@@ -3359,6 +3361,7 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
                 *rank_args,
                 goals,
                 progress,
+                progress_text,
                 completed_offset,
                 progress_total,
             )
@@ -3367,6 +3370,7 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
                 *rank_args,
                 goals,
                 progress,
+                progress_text,
                 completed_offset,
                 progress_total,
             )
@@ -3387,7 +3391,8 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
         f"Match complete · {progress_total}/{progress_total} simulations · "
         f"{len(all_rows)} usable candidates"
     )
-    progress.progress(1.0, text=completion_text)
+    progress.progress(1.0)
+    progress_text.caption(completion_text)
     st.session_state["_finder_match_completion"] = completion_text
     st.session_state["batch_results"] = all_rows
     st.session_state["batch_search_completed"] = True
