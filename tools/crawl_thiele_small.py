@@ -498,7 +498,13 @@ def product_metadata(page: PageData, url: str, brand_hint: str = "") -> tuple[st
             model = model[len(brand):].strip(" -–—|")
     if brand:
         model = re.sub(
-            rf"\s*[|–—]\s*{re.escape(brand)}\s*$",
+            rf"\s*[-|–—]\s*{re.escape(brand)}\s*$",
+            "",
+            model,
+            flags=re.I,
+        ).strip()
+        model = re.sub(
+            r"\s*[-|–—]\s*(?:LF Drivers|High Frequency Drivers|Coaxials|Subwoofers)\s*$",
             "",
             model,
             flags=re.I,
