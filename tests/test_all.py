@@ -3396,10 +3396,9 @@ def _check_ui_finder_main_action_runs_search():
     find_button.click().run()
     assert not at.exception, at.exception
     assert at.session_state["batch_results"], "main action must produce ranked rows"
-    progress = at.get("progress")
-    assert progress, "every match must leave its completed progress bar visible"
-    assert progress[0].proto.value == 100, progress[0].proto.value
-    assert "Match complete" in progress[0].proto.text, progress[0].proto.text
+    successes = at.get("success")
+    assert successes, "every match must leave its completed success banner visible"
+    assert "Match complete" in successes[0].proto.body, successes[0].proto.body
     assert at.dataframe, "ranked rows must appear in the main workspace"
     scanned = at.session_state["batch_result_context"][2]
     assert scanned == 1, (

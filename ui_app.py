@@ -18,6 +18,7 @@ import logging
 import multiprocessing
 import os
 import sys
+import time
 import zlib
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from functools import cache
@@ -2853,15 +2854,19 @@ def _batch_rank_presets_parallel(
     done = 0
     try:
         with ProcessPoolExecutor(max_workers=workers, mp_context=mp_context) as pool:
-            futures = [
-                pool.submit(
-                    _dccav.rank_preset_row, name, load_type,
-                    float(max_volume_l), float(voltage_v),
-                    float(f_min_hz), float(f_max_hz), int(points), goals,
-                )
-                for name in names
-            ]
-            for future in as_completed(futures):
+            results = pool.map(
+                _dccav.rank_preset_row,
+                names,
+                [load_type] * len(names),
+                [float(max_volume_l)] * len(names),
+                [float(voltage_v)] * len(names),
+                [float(f_min_hz)] * len(names),
+                [float(f_max_hz)] * len(names),
+                [int(points)] * len(names),
+                [goals] * len(names),
+                chunksize=max(1, len(names) // (workers * 4))
+            )
+            for row in results:
                 done += 1
                 if done % max(1, overall_total // 20) == 0 or done == len(names):
                     progress.progress(min((completed_offset + done) / overall_total, 1.0))
@@ -2870,11 +2875,6 @@ def _batch_rank_presets_parallel(
                             f"Matching {completed_offset + done}/{overall_total} simulations"
                             f" · {load_type}"
                         )
-                try:
-                    row = future.result()
-                except Exception:
-                    logger.exception("Ranking worker failed")
-                    row = None
                 if row is not None:
                     rows.append(row)
     except Exception:
@@ -3296,6 +3296,7 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
     finder_volume_l = float(_finder_value("finder_volume_l"))
     scan_count = len(filtered_preset_names)
     progress_total = max(scan_count * len(finder_load_types), 1)
+    t_start = time.perf_counter()
     with st.container(key="finder_match_progress"):
         progress_text = st.empty()
         progress = st.progress(0.0)
@@ -3354,9 +3355,13 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
             and float(row["Peak dB"]) >= min_spl_db
         ]
     all_rows = _dccav.sort_ranked_rows(all_rows)
+    t_end = time.perf_counter()
+    elapsed_s = t_end - t_start
+    elapsed_ms_per_driver = (elapsed_s * 1000) / progress_total if progress_total > 0 else 0.0
     completion_text = (
         f"Match complete · {progress_total}/{progress_total} simulations · "
-        f"{len(all_rows)} usable candidates"
+        f"{len(all_rows)} usable candidates · "
+        f"Elapsed: {elapsed_s:.1f} s ({elapsed_ms_per_driver:.1f} ms/driver)"
     )
     progress.progress(1.0)
     progress_text.caption(completion_text)
@@ -3669,8 +3674,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
 
     match_completion = st.session_state.pop("_finder_match_completion", None)
     if match_completion:
-        with st.container(key="finder_match_progress"):
-            st.progress(1.0, text=str(match_completion))
+        st.success(str(match_completion), icon="✅")
 
     finder_volume_l = float(st.session_state.get("finder_volume_l", 0.0))
     finder_loads = tuple(st.session_state.get("finder_load_types", []))
