@@ -122,6 +122,7 @@ class Measurement:
 @dataclass
 class PageData:
     title: str = ""
+    h1: str = ""
     text: str = ""
     links: list[str] = field(default_factory=list)
     meta: dict[str, str] = field(default_factory=dict)
@@ -165,18 +166,20 @@ class DocumentParser(HTMLParser):
     def __init__(self):
         super().__init__(convert_charrefs=True)
         self.title_parts: list[str] = []
+        self.h1_parts: list[str] = []
         self.text_parts: list[str] = []
         self.links: list[str] = []
         self.meta: dict[str, str] = {}
         self.jsonld_texts: list[str] = []
         self._in_title = False
+        self._in_h1 = False
         self._ignored_depth = 0
         self._jsonld_depth = 0
         self._jsonld_parts: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]):
         values = {key.casefold(): value or "" for key, value in attrs}
-        if tag in {"style", "noscript"}:
+        if tag in {"style", "noscript", "sup"}:
             self._ignored_depth += 1
         elif tag == "script":
             if "ld+json" in values.get("type", "").casefold():
@@ -186,6 +189,8 @@ class DocumentParser(HTMLParser):
                 self._ignored_depth += 1
         elif tag == "title":
             self._in_title = True
+        elif tag == "h1" and not self.h1_parts: # only first h1
+            self._in_h1 = True
         elif tag == "a" and values.get("href"):
             self.links.append(values["href"])
         elif tag == "meta":
@@ -196,7 +201,7 @@ class DocumentParser(HTMLParser):
             self.text_parts.append("\n")
 
     def handle_endtag(self, tag: str):
-        if tag in {"style", "noscript"} and self._ignored_depth:
+        if tag in {"style", "noscript", "sup"} and self._ignored_depth:
             self._ignored_depth -= 1
         elif tag == "script":
             if self._jsonld_depth:
@@ -209,6 +214,8 @@ class DocumentParser(HTMLParser):
                 self._ignored_depth -= 1
         elif tag == "title":
             self._in_title = False
+        elif tag == "h1":
+            self._in_h1 = False
         if tag in {"p", "div", "li", "tr", "td", "th", "dt", "dd", "section", "article"}:
             self.text_parts.append("\n")
 
@@ -225,6 +232,8 @@ class DocumentParser(HTMLParser):
         self.text_parts.append(" ")
         if self._in_title:
             self.title_parts.append(value)
+        if self._in_h1:
+            self.h1_parts.append(value)
 
     def page(self) -> PageData:
         nodes: list[object] = []
@@ -238,6 +247,7 @@ class DocumentParser(HTMLParser):
         )
         return PageData(
             title=" ".join(self.title_parts).strip(),
+            h1=" ".join(self.h1_parts).strip(),
             text=text,
             links=self.links,
             meta=self.meta,
@@ -322,6 +332,7 @@ def convert_measurement(key: str, raw_value: object, raw_unit: str = "") -> floa
         "sd_cm2": {
             "cm2": 1.0, "m2": 10_000.0, "kmm2": 10.0,
             "mm2": 0.01, "in2": 6.4516,
+            "cm": 1.0, "in": 6.4516, "m": 10_000.0, "mm": 0.01,
         },
         "le_mh": {"mh": 1.0, "h": 1000.0, "uh": 0.001},
         "xmax_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
@@ -483,7 +494,16 @@ def product_metadata(page: PageData, url: str, brand_hint: str = "") -> tuple[st
         if any(str(item).casefold() == "product" for item in types):
             product = node
             break
-    name = str(product.get("name") or page.title or page.meta.get("og:title") or "").strip()
+    
+    # 18 Sound sets generic title, use h1 if available
+    name_candidates = [
+        product.get("name"),
+        page.h1,
+        page.title,
+        page.meta.get("og:title")
+    ]
+    name = next((str(n).strip() for n in name_candidates if n and str(n).strip()), "")
+    
     raw_brand = product.get("brand", "")
     if isinstance(raw_brand, dict):
         raw_brand = raw_brand.get("name", "")
@@ -505,6 +525,12 @@ def product_metadata(page: PageData, url: str, brand_hint: str = "") -> tuple[st
         ).strip()
         model = re.sub(
             r"\s*[-|–—]\s*(?:LF Drivers|High Frequency Drivers|Coaxials|Subwoofers)\s*$",
+            "",
+            model,
+            flags=re.I,
+        ).strip()
+        model = re.sub(
+            r"^(?:FaitalPRO\s*\|\s*)?(?:LF Loudspeakers|High Frequency Drivers|Coaxial Loudspeakers|Subwoofers)\s*\|\s*",
             "",
             model,
             flags=re.I,
