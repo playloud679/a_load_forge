@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.12 (2026-07-20)
+
+- **Performance regression**: restored parametric search speed and tab switching fluidity by properly caching the new manufacturer presets aggregator (`_external_tiers`).
+- **Tests**: 103 passed / 0 failed / 0 skipped.
+
 ## 0.5.11 (2026-07-20)
 
 - **Manufacturer presets**: added `_load_manufacturer_presets()` to load presets crawled directly from manufacturer sites, ensuring they are independent and safe to ship publicly.

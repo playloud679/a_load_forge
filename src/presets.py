@@ -721,10 +721,12 @@ def _load_manufacturer_presets() -> tuple[dict[str, DriverTS], dict[str, DriverP
     )
 
 
+@lru_cache(maxsize=1)
 def _external_tiers() -> list[tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]]:
     return [_load_loudspeaker_database_presets(), _load_manufacturer_presets()]
 
 
+@lru_cache(maxsize=1)
 def driver_preset_names() -> list[str]:
     """Return driver preset names in display order."""
     names = list(DRIVER_PRESETS)
