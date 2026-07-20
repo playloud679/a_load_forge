@@ -735,6 +735,7 @@ def driver_preset_names() -> list[str]:
     return names
 
 
+@lru_cache(maxsize=8192)
 def driver_preset_info(name: str) -> DriverPresetInfo:
     """Return source, brand and sizing metadata for a driver preset."""
     if name in DRIVER_PRESETS:
@@ -756,6 +757,7 @@ def driver_preset_info(name: str) -> DriverPresetInfo:
     raise ValueError(f"Unknown driver preset: {name}")
 
 
+@lru_cache(maxsize=8192)
 def get_driver_preset(name: str) -> DriverTS:
     """Return a driver preset by name."""
     if name in DRIVER_PRESETS:

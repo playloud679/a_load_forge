@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1 (2026-07-20)
+
+- **Performance Fix**: Added aggressive LRU caching to driver metadata and pricing resolution to prevent the UI from locking up during real-time filtering, restoring instantaneous responsiveness.
+- **Parallel Optimization**: Restored the high-performance parallel driver search engine for matching presets, which is now fast again thanks to the caching fixes.
+- **Tests**: 103 passed / 0 failed / 0 skipped.
+
 ## 0.6.0 (2026-07-20)
 
 - **UI Redesign**: Moved all inputs, parameter controls, library filters, and optimization constraints to a dedicated tabbed sidebar, decluttering the main column for a cleaner output presentation.

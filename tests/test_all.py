@@ -2055,6 +2055,8 @@ def _check_dccav_loads_external_price_records(tmp_path=None):
         _dccav._load_driver_price_records.cache_clear()
         _dccav._load_loudspeaker_database_presets.cache_clear()
         _dccav._load_manufacturer_presets.cache_clear()
+        _dccav.driver_preset_info.cache_clear()
+        _dccav.get_driver_preset.cache_clear()
         info = _dccav.driver_preset_info("Beyma 12CMV2")
         assert info.price == 321.5
         assert info.currency == "EUR"
@@ -2073,6 +2075,8 @@ def _check_dccav_loads_external_price_records(tmp_path=None):
         _dccav._load_driver_price_records.cache_clear()
         _dccav._load_loudspeaker_database_presets.cache_clear()
         _dccav._load_manufacturer_presets.cache_clear()
+        _dccav.driver_preset_info.cache_clear()
+        _dccav.get_driver_preset.cache_clear()
 
 
 test("DCCAV loads external price records", _check_dccav_loads_external_price_records)
