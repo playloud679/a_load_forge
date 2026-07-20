@@ -2807,8 +2807,13 @@ def _batch_rank_presets(
         raise ValueError("Unsupported Finder ranking revision")
     rows: list[dict] = []
     for name in preset_names[:int(candidate_limit)]:
+        try:
+            ts = _dccav.presets.get_driver_preset(name)
+            info = _dccav.presets.driver_preset_info(name)
+        except ValueError:
+            continue
         row = _dccav.rank_preset_row(
-            name, load_type, float(max_volume_l), float(voltage_v),
+            name, ts, info, load_type, float(max_volume_l), float(voltage_v),
             float(f_min_hz), float(f_max_hz), int(points), goals,
         )
         if row is not None:
@@ -2853,18 +2858,31 @@ def _batch_rank_presets_parallel(
     rows: list[dict] = []
     done = 0
     try:
+        valid_names = []
+        valid_ts = []
+        valid_info = []
+        for name in names:
+            try:
+                valid_ts.append(_dccav.presets.get_driver_preset(name))
+                valid_info.append(_dccav.presets.driver_preset_info(name))
+                valid_names.append(name)
+            except ValueError:
+                pass
+                
         with ProcessPoolExecutor(max_workers=workers, mp_context=mp_context) as pool:
             results = pool.map(
                 _dccav.rank_preset_row,
-                names,
-                [load_type] * len(names),
-                [float(max_volume_l)] * len(names),
-                [float(voltage_v)] * len(names),
-                [float(f_min_hz)] * len(names),
-                [float(f_max_hz)] * len(names),
-                [int(points)] * len(names),
-                [goals] * len(names),
-                chunksize=max(1, len(names) // (workers * 4))
+                valid_names,
+                valid_ts,
+                valid_info,
+                [load_type] * len(valid_names),
+                [float(max_volume_l)] * len(valid_names),
+                [float(voltage_v)] * len(valid_names),
+                [float(f_min_hz)] * len(valid_names),
+                [float(f_max_hz)] * len(valid_names),
+                [int(points)] * len(valid_names),
+                [goals] * len(valid_names),
+                chunksize=max(1, len(valid_names) // (workers * 4))
             )
             for row in results:
                 done += 1
@@ -2918,8 +2936,13 @@ def _batch_rank_presets_with_progress(
     overall_total = max(int(progress_total), 1)
     rows: list[dict] = []
     for done, name in enumerate(names, start=1):
+        try:
+            ts = _dccav.presets.get_driver_preset(name)
+            info = _dccav.presets.driver_preset_info(name)
+        except ValueError:
+            continue
         row = _dccav.rank_preset_row(
-            name, load_type, float(max_volume_l), float(voltage_v),
+            name, ts, info, load_type, float(max_volume_l), float(voltage_v),
             float(f_min_hz), float(f_max_hz), int(points), goals,
         )
         if row is not None:

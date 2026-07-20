@@ -518,7 +518,8 @@ def _check_bandpass4_optimizer_atlas_and_ranking():
     assert abs(box.vs_l + box.vp_l - float(space.x_values[2])) < 1e-9
 
     row = _dccav.rank_preset_row(
-        "Beyma 12CMV2", "Bandpass 4th order", 40.0, 2.83, 10.0, 500.0, 240)
+        "Beyma 12CMV2", _dccav.presets.get_driver_preset("Beyma 12CMV2"), _dccav.presets.driver_preset_info("Beyma 12CMV2"),
+        "Bandpass 4th order", 40.0, 2.83, 10.0, 500.0, 240)
     assert row is not None
     assert abs(row["Vs L"] + row["Vp L"] - 40.0) < 1e-9
     assert np.isfinite(row["Fp Hz"])
@@ -626,7 +627,8 @@ def _check_bandpass6_optimizer_atlas_and_ranking():
     assert abs(box.vr_l + box.vp_l - float(space.x_values[2])) < 1e-9
 
     row = _dccav.rank_preset_row(
-        "Beyma 12CMV2", "Bandpass 6th order", 40.0, 2.83, 10.0, 500.0, 240)
+        "Beyma 12CMV2", _dccav.presets.get_driver_preset("Beyma 12CMV2"), _dccav.presets.driver_preset_info("Beyma 12CMV2"),
+        "Bandpass 6th order", 40.0, 2.83, 10.0, 500.0, 240)
     assert row is not None
     assert abs(row["Vr L"] + row["Vp L"] - 40.0) < 1e-9
     assert np.isfinite(row["Fr Hz"])
@@ -4068,8 +4070,11 @@ test("UI Finder ranks candidates by price-performance value", _check_ui_finder_v
 def _check_ui_parallel_ranking_matches_serial():
     import ui_app as _ui
 
-    assert _ui._dccav.rank_preset_row("no such driver", "Sealed", 30.0, 2.83,
-                                      10.0, 300.0, 120) is None
+    try:
+        _ui._dccav.presets.get_driver_preset("no such driver")
+        assert False, "Should raise ValueError"
+    except ValueError:
+        pass
 
     names = ("KEF B110B article example", "Beyma 12CMV2", "Dayton Audio RSS315HO-4")
     goals = _ui._dccav.OptimizationGoals(objective="balanced")
