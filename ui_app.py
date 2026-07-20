@@ -222,7 +222,6 @@ st.markdown(
     .st-key-finder_match_progress [role="progressbar"] > div {
         border-radius: inherit !important;
         height: 100% !important;
-        transition: width 0.25s ease-out !important;
     }
     .stMetric { border: 1px solid rgba(127,127,127,.22); padding: .75rem; }
     @media (max-width: 768px) {
