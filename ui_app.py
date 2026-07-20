@@ -222,6 +222,7 @@ st.markdown(
     .st-key-finder_match_progress [role="progressbar"] > div {
         border-radius: inherit !important;
         height: 100% !important;
+        transition: width 0.25s ease-out !important;
     }
     .stMetric { border: 1px solid rgba(127,127,127,.22); padding: .75rem; }
     @media (max-width: 768px) {
@@ -596,11 +597,18 @@ _PRESET_FAMILY_ORDER = (
 )
 _PRESET_SIZE_FILTERS = (
     "All",
-    "Mini <= 2 in",
-    "Small 2-6 in",
-    "8-10 in",
+    "1 in",
+    "2 in",
+    "3 in",
+    "4 in",
+    "5 in",
+    "6 in",
+    "8 in",
+    "10 in",
     "12 in",
-    "15 in+",
+    "15 in",
+    "18 in",
+    "21 in",
 )
 _PRESET_SOURCE_FILTERS = ("All", "Built-in", "Loudspeaker Database", "Manufacturer")
 # Raw preset "source" values bucketed for the filter dropdown above. Anything
@@ -1584,15 +1592,29 @@ def _purchase_markdown(info: _dccav.DriverPresetInfo) -> str | None:
 
 
 def _size_bucket(size_in: float) -> str:
-    if size_in <= 2.0:
-        return "Mini <= 2 in"
-    if size_in <= 6.5:
-        return "Small 2-6 in"
-    if size_in <= 10.5:
-        return "8-10 in"
+    if size_in <= 1.5:
+        return "1 in"
+    if size_in <= 2.5:
+        return "2 in"
+    if size_in <= 3.5:
+        return "3 in"
+    if size_in <= 4.5:
+        return "4 in"
+    if size_in <= 5.5:
+        return "5 in"
+    if size_in <= 7.0:
+        return "6 in"
+    if size_in <= 9.0:
+        return "8 in"
+    if size_in <= 11.0:
+        return "10 in"
     if size_in <= 13.5:
         return "12 in"
-    return "15 in+"
+    if size_in <= 16.5:
+        return "15 in"
+    if size_in <= 19.5:
+        return "18 in"
+    return "21 in"
 
 
 def _driver_preset_size(name: str) -> str:
@@ -1604,7 +1626,7 @@ def _driver_preset_size(name: str) -> str:
         pass
     lower = name.lower()
     if lower.startswith("turbosound ts-15"):
-        return "15 in+"
+        return "15 in"
     if (
         lower.startswith("beyma 12")
         or lower.startswith("turbosound ts-12")
@@ -1620,15 +1642,7 @@ def _driver_preset_size(name: str) -> str:
         return "Other"
     piston_diameter_mm = float(np.sqrt(driver.sd_cm2 / 10_000.0 * 4.0 / np.pi) * 1000.0)
     piston_inches = piston_diameter_mm / 25.4
-    if piston_inches <= 2.0:
-        return "Mini <= 2 in"
-    if piston_inches <= 6.5:
-        return "Small 2-6 in"
-    if piston_inches <= 10.5:
-        return "8-10 in"
-    if piston_inches <= 13.5:
-        return "12 in"
-    return "15 in+"
+    return _size_bucket(piston_inches)
 
 
 def _available_preset_families(names: list[str]) -> list[str]:

@@ -1880,7 +1880,7 @@ def _check_ui_driver_preset_filters_reduce_list():
         names,
         source="Built-in",
         family="Aiyima",
-        size="Mini <= 2 in",
+        size="2 in",
         search="53mm",
     )
     assert "Aiyima 4ohm 10w 53mm" in filtered, filtered

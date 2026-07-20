@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.13 (2026-07-20)
+
+- **UI improvements**: added CSS transitions to the search progress bar for fluid updates and made the preset size filter more granular (1 to 21 inches).
+- **Tests**: 103 passed / 0 failed / 0 skipped.
+
 ## 0.5.12 (2026-07-20)
 
 - **Performance regression**: restored parametric search speed and tab switching fluidity by properly caching the new manufacturer presets aggregator (`_external_tiers`).
