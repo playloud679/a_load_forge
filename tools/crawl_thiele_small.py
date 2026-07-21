@@ -48,7 +48,8 @@ class ParameterSpec:
 PARAMETERS = (
     ParameterSpec(
         "fs_hz",
-        ("fs", "fo", "f0", "resonant frequency", "resonance frequency", "free air resonance"),
+        ("fs", "fo", "f0", "resonant frequency", "resonance frequency", "free air resonance",
+         "fréquence de résonance", "frequence de resonance"),
         "hz",
     ),
     ParameterSpec(
@@ -56,17 +57,19 @@ PARAMETERS = (
         ("vas", "equivalent compliance volume", "equivalent volume", "equivalent air volume"),
         "l",
     ),
-    ParameterSpec("qts", ("qts", "qt", "total q")),
-    ParameterSpec("qms", ("qms", "mechanical q")),
-    ParameterSpec("qes", ("qes", "electrical q")),
+    ParameterSpec("qts", ("qts", "qt", "total q", "total factor")),
+    ParameterSpec("qms", ("qms", "mechanical q", "mechanical factor")),
+    ParameterSpec("qes", ("qes", "electrical q", "electrical factor")),
     ParameterSpec(
         "re_ohm",
-        ("re", "revc", "dc resistance", "voice coil resistance", "dcr", "rdc"),
+        ("re", "revc", "dc resistance", "voice coil resistance", "dcr", "rdc",
+         "dcr impedance", "résistance au cc", "resistance au cc"),
         "ohm",
     ),
     ParameterSpec(
         "sd_cm2",
-        ("sd", "effective cone area", "effective piston area", "surface area of cone", "diaphragm area"),
+        ("sd", "effective cone area", "effective piston area", "surface area of cone", "diaphragm area",
+         "surface émissive", "surface emissive"),
         "cm2",
     ),
     ParameterSpec(
@@ -90,6 +93,10 @@ REQUIRED_DRIVER_FIELDS = ("fs_hz", "vas_l", "qts", "qms", "re_ohm", "sd_cm2")
 OPTIONAL_DRIVER_FIELDS = ("le_mh", "xmax_mm", "pe_w", "mms_g", "cms_mm_per_n", "bl_tm")
 NUMBER_RE = r"[-+]?(?:\d+(?:[.,]\d+)?|[.,]\d+)(?:[eE][-+]?\d+)?"
 UNIT_RE = r"(?:k\s*hz|hz|m(?:\^?3|³)|dm(?:\^?3|³)|cm\s*(?:\^?2|²)|k\s*/?\s*mm\s*(?:\^?2|²|/2)|mm\s*(?:\^?2|²)|m\s*(?:\^?2|²)|in(?:\^?2|²)|ft(?:\^?3|³)|lit(?:er|re)s?|[lL]|k?ohms?|Ω|mΩ|mh|µh|μh|uh|henry|h|mm|cm|inch(?:es)?|in|kw|watts?|w|kg|grams?|g|mg|m/n|mm/n|µm/n|μm/n|um/n|t\s*[·*]?\s*m|tm|n/a|n\s*s/m|kg/s)?"
+# Same alternation as UNIT_RE but mandatory (no trailing "?"), for datasheets
+# that print "Label Unit Value" instead of "Label Value Unit" (e.g. BMS PDFs:
+# "Fs Hz 29.8").
+UNIT_RE_REQUIRED = UNIT_RE[:-1]
 
 RANGES = {
     "fs_hz": (1.0, 2000.0),
@@ -171,11 +178,14 @@ class DocumentParser(HTMLParser):
         self.links: list[str] = []
         self.meta: dict[str, str] = {}
         self.jsonld_texts: list[str] = []
+        self.raw_script_texts: list[str] = []
         self._in_title = False
         self._in_h1 = False
         self._ignored_depth = 0
         self._jsonld_depth = 0
         self._jsonld_parts: list[str] = []
+        self._script_depth = 0
+        self._script_parts: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]):
         values = {key.casefold(): value or "" for key, value in attrs}
@@ -187,6 +197,11 @@ class DocumentParser(HTMLParser):
                 self._jsonld_parts = []
             else:
                 self._ignored_depth += 1
+                # SPA hydration blobs (window.__remixContext/__NUXT__/etc.)
+                # sometimes carry T/S data as JS that isn't application/ld+json;
+                # capture raw script bodies too so page() can try to parse them.
+                self._script_depth += 1
+                self._script_parts = []
         elif tag == "title":
             self._in_title = True
         elif tag == "h1" and not self.h1_parts: # only first h1
@@ -212,6 +227,12 @@ class DocumentParser(HTMLParser):
                 self._jsonld_parts = []
             elif self._ignored_depth:
                 self._ignored_depth -= 1
+            if self._script_depth:
+                self._script_depth -= 1
+                raw_script = "".join(self._script_parts).strip()
+                if raw_script:
+                    self.raw_script_texts.append(raw_script)
+                self._script_parts = []
         elif tag == "title":
             self._in_title = False
         elif tag == "h1":
@@ -220,6 +241,8 @@ class DocumentParser(HTMLParser):
             self.text_parts.append("\n")
 
     def handle_data(self, data: str):
+        if self._script_depth:
+            self._script_parts.append(data)
         if self._jsonld_depth:
             self._jsonld_parts.append(data)
             return
@@ -242,6 +265,7 @@ class DocumentParser(HTMLParser):
                 nodes.append(json.loads(raw))
             except json.JSONDecodeError:
                 continue
+        nodes.extend(embedded_js_objects(self.raw_script_texts))
         text = "\n".join(
             line.strip() for line in "".join(self.text_parts).splitlines() if line.strip()
         )
@@ -386,6 +410,31 @@ def walk_json(value: object) -> Iterable[dict]:
             yield from walk_json(child)
 
 
+def embedded_js_objects(raw_script_texts: list[str]) -> list[object]:
+    """Parse SPA hydration blobs like ``window.__remixContext = {...};``.
+
+    Many modern storefronts (Remix/Nuxt/Next) render the product page
+    server-side but only put the *visible* spec table in a summary form,
+    with the full structured data (including T/S params) embedded as a
+    JSON-serialized object assigned to a ``window.*`` global. This looks for
+    that pattern and parses it the same way as JSON-LD, so it flows through
+    the existing ``jsonld_measurements`` extraction.
+    """
+    found: list[object] = []
+    for text in raw_script_texts:
+        if not re.search(r"window\.\w+\s*=\s*\{", text):
+            continue
+        start = text.find("{")
+        end = text.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            continue
+        try:
+            found.append(json.loads(text[start : end + 1]))
+        except (json.JSONDecodeError, ValueError):
+            continue
+    return found
+
+
 def jsonld_measurements(nodes: list[object]) -> list[Measurement]:
     found: list[Measurement] = []
     for root in nodes:
@@ -408,6 +457,19 @@ def jsonld_measurements(nodes: list[object]) -> list[Measurement]:
                     continue
                 if item := measurement_from_pair(str(key), raw, "", "jsonld.field"):
                     found.append(item)
+                # SPA hydration blobs (see embedded_js_objects) often nest each
+                # parameter as {"label": "Fs", "value": 122, "units": {"default": "Hz"}}
+                # instead of a flat name/value pair — handle that shape too.
+                if (
+                    isinstance(raw, dict)
+                    and isinstance(raw.get("label"), str)
+                    and "value" in raw
+                    and not isinstance(raw["value"], (dict, list))
+                ):
+                    units = raw.get("units")
+                    unit = units.get("default", "") if isinstance(units, dict) else str(units or "")
+                    if item := measurement_from_pair(raw["label"], raw["value"], unit, "jsonld.field"):
+                        found.append(item)
     return found
 
 
@@ -418,11 +480,31 @@ def text_measurements(text: str) -> list[Measurement]:
         alias_pattern = "|".join(re.escape(alias) for alias in aliases)
         pattern = re.compile(
             rf"(?<![A-Za-z0-9])(?P<label>{alias_pattern})(?![A-Za-z0-9])"
-            rf"\)?\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?\s*(?:[:=\-–—]|is)?\s*"
-            rf"(?:[+±]\s*/?\s*[-−]\s*)?(?P<value>{NUMBER_RE})\s*(?P<unit>{UNIT_RE})",
+            rf"\)?\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?\s*(?:[:=\-–—：]|is)?\s*"
+            rf"(?:[+±]\s*/?\s*[-−]\s*)?(?P<value>{NUMBER_RE})[ \t]*(?P<unit>{UNIT_RE})",
             re.I,
         )
         for match in pattern.finditer(text):
+            unit = match.group("unit") or ""
+            value = convert_measurement(spec.key, match.group("value"), unit)
+            if value is not None:
+                found.append(Measurement(
+                    spec.key, value, match.group("value"), unit,
+                    match.group("label"), "html.text",
+                ))
+
+        # Fallback for "Label Unit Value" column layouts (unit printed right
+        # after the label, before the number) instead of the usual
+        # "Label Value Unit". Requires an explicit, unambiguous unit token so
+        # it can't misfire on ordinary "Label: Value Unit" text.
+        pattern_lu = re.compile(
+            rf"(?<![A-Za-z0-9])(?P<label>{alias_pattern})(?![A-Za-z0-9])"
+            rf"\)?\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?\s*(?:[:=]\s*)?"
+            rf"(?P<unit>{UNIT_RE_REQUIRED})\s+"
+            rf"(?:[+±]\s*/?\s*[-−]\s*)?(?P<value>{NUMBER_RE})(?![A-Za-z0-9])",
+            re.I,
+        )
+        for match in pattern_lu.finditer(text):
             unit = match.group("unit") or ""
             value = convert_measurement(spec.key, match.group("value"), unit)
             if value is not None:
@@ -507,7 +589,12 @@ def product_metadata(page: PageData, url: str, brand_hint: str = "") -> tuple[st
     raw_brand = product.get("brand", "")
     if isinstance(raw_brand, dict):
         raw_brand = raw_brand.get("name", "")
-    brand = str(raw_brand or page.meta.get("product:brand") or brand_hint).strip()
+    # A caller-supplied brand hint means "I already know which manufacturer's
+    # site this is" (every crawl invocation targets one brand). Trust it over
+    # page-declared brand data, which is sometimes wrong at the source (e.g.
+    # DS18's Shopify theme puts the product's own SKU in JSON-LD brand.name
+    # instead of "DS18").
+    brand = str(brand_hint or raw_brand or page.meta.get("product:brand")).strip()
     model = str(
         product.get("model") or product.get("mpn") or product.get("sku")
         or page.meta.get("product:retailer_item_id") or ""
