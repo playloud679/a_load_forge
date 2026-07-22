@@ -12,10 +12,13 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+import html
 import io
 import json
 import math
 import re
+import ssl
+import subprocess
 import time
 import urllib.robotparser
 import xml.etree.ElementTree as ET
@@ -28,6 +31,11 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urldefrag, urljoin, urlparse
 from urllib.request import Request, urlopen
 
+try:
+    import certifi
+except ImportError:  # pragma: no cover - system CA fallback
+    certifi = None
+
 ROOT = Path(__file__).resolve().parents[1]
 # Manufacturer-site crawls are LSDB-free and safe to redistribute; they merge
 # into their own catalog, never into the loudspeakerdatabase.com import.
@@ -36,6 +44,7 @@ DEFAULT_CHECKPOINT = ROOT / "data" / "thiele_small_crawler_checkpoint.json"
 DEFAULT_USER_AGENT = "LoadForge-TS-Crawler/1.0 (+https://github.com/playloud679/a_load_forge)"
 RHO_AIR = 1.18
 SPEED_OF_SOUND = 344.0
+SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where() if certifi else None)
 
 
 @dataclass(frozen=True)
@@ -73,26 +82,70 @@ PARAMETERS = (
         "cm2",
     ),
     ParameterSpec(
-        "le_mh", ("le", "l1khz", "l1k", "voice coil inductance", "inductance", "le @1 khz", "le @ 1 khz"), "mh"
+        "le_mh",
+        (
+            "le", "le1k", "l1khz", "l1k", "voice coil inductance",
+            "voice coil inductance @ 1khz", "voice coil inductance @ 1 khz",
+            "inductance of the voice coil l", "inductance of the voice coil",
+            "inductance", "le at 1khz",
+            "le at 1 khz", "le @1 khz", "le @ 1 khz",
+        ),
+        "mh",
+    ),
+    ParameterSpec(
+        "le10k_mh",
+        (
+            "le10k", "l10khz", "l10k", "le at 10khz", "le at 10 khz",
+            "le @10 khz", "le @ 10 khz", "voice coil inductance @ 10khz",
+            "voice coil inductance @ 10 khz",
+        ),
+        "mh",
     ),
     ParameterSpec(
         "xmax_mm",
-        ("xmax", "x max", "x-max", "linear excursion", "maximum linear excursion"),
+        (
+            "xmax", "x max", "x-max", "linear excursion", "maximum linear excursion",
+            "max linear excursion", "max. linear excursion", "excursion limit",
+        ),
         "mm",
     ),
     ParameterSpec(
-        "pe_w", ("pe", "pmax", "pwr", "power handling", "rated power", "rms power", "power capacity"), "w"
+        "pe_w",
+        (
+            "pe", "pmax", "pwr", "aes power rating", "rated power aes",
+            "rated power handling", "rms power handling", "rms power",
+            "power handling capacity", "power capacity aes", "power capacity",
+            "power handling p", "power rating", "power handling", "rated power",
+            "potência", "potencia", "watts",
+        ),
+        "w",
     ),
+    ParameterSpec("linear_travel_pp_mm", ("linear coil travel",), "mm"),
     ParameterSpec("mms_g", ("mms", "mmd", "moving mass", "diaphragm mass"), "g"),
     ParameterSpec("cms_mm_per_n", ("cms", "mechanical compliance", "suspension compliance"), "mm/n"),
     ParameterSpec("bl_tm", ("bl", "force factor", "motor strength", "bl factor"), "tm"),
     ParameterSpec("rms_kg_s", ("rms", "mechanical resistance"), "kg/s"),
+    ParameterSpec(
+        "effective_radius_mm",
+        ("equivalent diaphragm radius", "effective diaphragm radius", "effective piston radius"),
+        "mm",
+    ),
+    ParameterSpec(
+        "effective_diameter_mm",
+        ("effective diaphragm diameter", "effective piston diameter"),
+        "mm",
+    ),
+    ParameterSpec(
+        "vd_l",
+        ("vd", "linear displacement volume", "volume displacement", "displacement volume"),
+        "l",
+    ),
 )
 PARAMETER_BY_KEY = {item.key: item for item in PARAMETERS}
 REQUIRED_DRIVER_FIELDS = ("fs_hz", "vas_l", "qts", "qms", "re_ohm", "sd_cm2")
-OPTIONAL_DRIVER_FIELDS = ("le_mh", "xmax_mm", "pe_w", "mms_g", "cms_mm_per_n", "bl_tm")
+OPTIONAL_DRIVER_FIELDS = ("le_mh", "le10k_mh", "xmax_mm", "pe_w", "mms_g", "cms_mm_per_n", "bl_tm")
 NUMBER_RE = r"[-+]?(?:\d+(?:[.,]\d+)?|[.,]\d+)(?:[eE][-+]?\d+)?"
-UNIT_RE = r"(?:k\s*hz|hz|m(?:\^?3|³)|dm(?:\^?3|³)|cm\s*(?:\^?2|²)|k\s*/?\s*mm\s*(?:\^?2|²|/2)|mm\s*(?:\^?2|²)|m\s*(?:\^?2|²)|in(?:\^?2|²)|ft(?:\^?3|³)|lit(?:er|re)s?|[lL]|k?ohms?|Ω|mΩ|mh|µh|μh|uh|henry|h|mm|cm|inch(?:es)?|in|kw|watts?|w|kg|grams?|g|mg|m/n|mm/n|µm/n|μm/n|um/n|t\s*[·*]?\s*m|tm|n/a|n\s*s/m|kg/s)?"
+UNIT_RE = r"(?:k\s*hz|hz|m(?:\s*\^?\s*3|³)|dm(?:\s*\^?\s*3|³)|cm\s*(?:\^?\s*2|²)|k\s*/?\s*mm\s*(?:\^?\s*2|²|/2)|mm\s*(?:\^?\s*2|²)|m\s*(?:\^?\s*2|²)|in(?:\s*\^?\s*2|²)|ft\s*\.?\s*(?:\^?\s*3|³)|lit(?:er|re)s?|[lL]|k?ohms?|Ω|mΩ|mh|µh|μh|uh|henry|h|mm|cm|inch(?:es)?|in|kw|w\s*_?\s*rms|watts?|w|kg|grams?|g|mg|m/n|mm/n|µm/n|μm/n|um/n|t\s*[·*]?\s*m|tm|n/a|n\s*s/m|kg/s)?"
 # Same alternation as UNIT_RE but mandatory (no trailing "?"), for datasheets
 # that print "Label Unit Value" instead of "Label Value Unit" (e.g. BMS PDFs:
 # "Fs Hz 29.8").
@@ -107,12 +160,17 @@ RANGES = {
     "re_ohm": (0.01, 1000.0),
     "sd_cm2": (0.01, 100_000.0),
     "le_mh": (0.0, 1000.0),
+    "le10k_mh": (0.0, 1000.0),
     "xmax_mm": (0.0, 500.0),
     "pe_w": (0.0, 100_000.0),
     "mms_g": (0.001, 100_000.0),
     "cms_mm_per_n": (0.000001, 1000.0),
     "bl_tm": (0.0, 1000.0),
     "rms_kg_s": (0.000001, 100_000.0),
+    "effective_radius_mm": (0.01, 5000.0),
+    "effective_diameter_mm": (0.01, 10_000.0),
+    "vd_l": (0.000001, 100_000.0),
+    "linear_travel_pp_mm": (0.0, 1000.0),
 }
 
 
@@ -189,7 +247,7 @@ class DocumentParser(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]):
         values = {key.casefold(): value or "" for key, value in attrs}
-        if tag in {"style", "noscript", "sup"}:
+        if tag in {"style", "noscript"}:
             self._ignored_depth += 1
         elif tag == "script":
             if "ld+json" in values.get("type", "").casefold():
@@ -216,7 +274,7 @@ class DocumentParser(HTMLParser):
             self.text_parts.append("\n")
 
     def handle_endtag(self, tag: str):
-        if tag in {"style", "noscript", "sup"} and self._ignored_depth:
+        if tag in {"style", "noscript"} and self._ignored_depth:
             self._ignored_depth -= 1
         elif tag == "script":
             if self._jsonld_depth:
@@ -262,7 +320,13 @@ class DocumentParser(HTMLParser):
         nodes: list[object] = []
         for raw in self.jsonld_texts:
             try:
-                nodes.append(json.loads(raw))
+                try:
+                    nodes.append(json.loads(raw))
+                except json.JSONDecodeError:
+                    # Some otherwise valid storefront JSON-LD contains literal
+                    # newlines/tabs inside description strings.  Python's
+                    # non-strict mode preserves the structured Product data.
+                    nodes.append(json.loads(raw, strict=False))
             except json.JSONDecodeError:
                 continue
         nodes.extend(embedded_js_objects(self.raw_script_texts))
@@ -319,6 +383,8 @@ def parse_number(raw: object) -> float | None:
             token = token.replace(".", "").replace(",", ".")
         else:
             token = token.replace(",", "")
+    elif "," in token and re.fullmatch(r"[-+]?\d{1,3}(?:,\d{3})+", token):
+        token = token.replace(",", "")
     else:
         token = token.replace(",", ".")
     try:
@@ -331,13 +397,13 @@ def parse_number(raw: object) -> float | None:
 def normalize_unit(raw: str) -> str:
     unit = raw.casefold().strip().replace("μ", "µ").replace("ω", "ohm").replace("Ω", "ohm")
     unit = unit.replace("²", "2").replace("³", "3").replace("^", "")
-    unit = unit.replace("·", "").replace("*", "").replace(" ", "")
+    unit = unit.replace("·", "").replace("*", "").replace("_", "").replace(" ", "").replace(".", "")
     unit = unit.replace("/2", "2")
     unit = unit.replace("k/mm", "kmm")
     aliases = {
         "liter": "l", "liters": "l", "litre": "l", "litres": "l", "dm3": "l",
         "ohms": "ohm", "ohm": "ohm", "milliohm": "mohm", "mω": "mohm",
-        "henry": "h", "watts": "w", "watt": "w", "grams": "g", "gram": "g",
+        "henry": "h", "watts": "w", "watt": "w", "wrms": "w", "grams": "g", "gram": "g",
         "inch": "in", "inches": "in", "µh": "uh", "µm/n": "um/n",
         "tsm": "tm", "n/a": "tm", "ns/m": "kg/s",
     }
@@ -359,12 +425,17 @@ def convert_measurement(key: str, raw_value: object, raw_unit: str = "") -> floa
             "cm": 1.0, "in": 6.4516, "m": 10_000.0, "mm": 0.01,
         },
         "le_mh": {"mh": 1.0, "h": 1000.0, "uh": 0.001},
+        "le10k_mh": {"mh": 1.0, "h": 1000.0, "uh": 0.001},
         "xmax_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
         "pe_w": {"w": 1.0, "kw": 1000.0},
         "mms_g": {"g": 1.0, "kg": 1000.0, "mg": 0.001},
         "cms_mm_per_n": {"mm/n": 1.0, "m/n": 1000.0, "um/n": 0.001},
         "bl_tm": {"tm": 1.0},
         "rms_kg_s": {"kg/s": 1.0},
+        "effective_radius_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
+        "effective_diameter_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
+        "vd_l": {"l": 1.0, "m3": 1000.0, "ft3": 28.316846592},
+        "linear_travel_pp_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
         "qts": {"": 1.0}, "qms": {"": 1.0}, "qes": {"": 1.0},
     }
     allowed = factors.get(key, {"": 1.0})
@@ -394,6 +465,8 @@ def measurement_from_pair(label: str, raw: object, unit: str, method: str) -> Me
     if not key:
         return None
     raw_value, parsed_unit = split_value_and_unit(raw, unit)
+    if key == "pe_w" and not normalize_unit(parsed_unit):
+        return None
     value = convert_measurement(key, raw_value, parsed_unit)
     if value is None:
         return None
@@ -429,7 +502,10 @@ def embedded_js_objects(raw_script_texts: list[str]) -> list[object]:
         if start == -1 or end == -1 or end <= start:
             continue
         try:
-            found.append(json.loads(text[start : end + 1]))
+            try:
+                found.append(json.loads(text[start : end + 1]))
+            except json.JSONDecodeError:
+                found.append(json.loads(text[start : end + 1], strict=False))
         except (json.JSONDecodeError, ValueError):
             continue
     return found
@@ -439,6 +515,16 @@ def jsonld_measurements(nodes: list[object]) -> list[Measurement]:
     found: list[Measurement] = []
     for root in nodes:
         for node in walk_json(root):
+            # SPA hydration blobs frequently store one measurement per object.
+            if (
+                isinstance(node.get("label"), str)
+                and "value" in node
+                and not isinstance(node["value"], (dict, list))
+            ):
+                units = node.get("units")
+                unit = units.get("default", "") if isinstance(units, dict) else str(units or "")
+                if item := measurement_from_pair(node["label"], node["value"], unit, "jsonld.field"):
+                    found.append(item)
             for prop_key in ("additionalProperty", "additionalProperties"):
                 props = node.get(prop_key, [])
                 if isinstance(props, dict):
@@ -457,19 +543,68 @@ def jsonld_measurements(nodes: list[object]) -> list[Measurement]:
                     continue
                 if item := measurement_from_pair(str(key), raw, "", "jsonld.field"):
                     found.append(item)
-                # SPA hydration blobs (see embedded_js_objects) often nest each
-                # parameter as {"label": "Fs", "value": 122, "units": {"default": "Hz"}}
-                # instead of a flat name/value pair — handle that shape too.
-                if (
-                    isinstance(raw, dict)
-                    and isinstance(raw.get("label"), str)
-                    and "value" in raw
-                    and not isinstance(raw["value"], (dict, list))
-                ):
-                    units = raw.get("units")
-                    unit = units.get("default", "") if isinstance(units, dict) else str(units or "")
-                    if item := measurement_from_pair(raw["label"], raw["value"], unit, "jsonld.field"):
-                        found.append(item)
+    return found
+
+
+def table_measurements(text: str, method: str = "html.table") -> list[Measurement]:
+    """Extract row tables and paired label/value columns from flattened text."""
+    found: list[Measurement] = []
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+
+    # Layout-preserving PDF extraction commonly yields:
+    # ``DC Resistance    Re    W    5.6 (+/-0.6)``.
+    for line in lines:
+        columns = [part.strip() for part in re.split(r"\s{2,}", line) if part.strip()]
+        if len(columns) < 2:
+            continue
+        key_index = next(
+            (index for index, part in enumerate(columns[:3]) if canonical_parameter(part)),
+            None,
+        )
+        if key_index is None:
+            continue
+        label = columns[key_index]
+        key = canonical_parameter(label)
+        for value_index in range(key_index + 1, len(columns)):
+            token = columns[value_index]
+            if (
+                token == "1"
+                or token.casefold() == "w"
+                or re.fullmatch(UNIT_RE_REQUIRED, token, re.I)
+            ):
+                continue
+            if parse_number(token) is None:
+                continue
+            unit = columns[value_index - 1] if value_index > key_index + 1 else ""
+            if key in {"qts", "qms", "qes"} and unit == "1":
+                unit = ""
+            # Some PHL PDFs map the ohm glyph to W in their embedded font.
+            if key == "re_ohm" and unit.casefold() == "w":
+                unit = "ohm"
+            if item := measurement_from_pair(label, token, unit, method):
+                found.append(item)
+            break
+
+    # Responsive HTML often renders the labels in one div and all values in
+    # the adjacent div (Oberton). Pair both blocks by position.
+    for marker_index, marker in enumerate(lines):
+        marker_normalized = normalized_label(marker)
+        if "thiele" not in marker.casefold() and marker_normalized != "specifications":
+            continue
+        block = lines[marker_index + 1 : marker_index + 80]
+        first_value = next(
+            (index for index, line in enumerate(block) if re.match(rf"^[+±]?\s*{NUMBER_RE}", line)),
+            None,
+        )
+        if first_value is None or first_value < 3:
+            continue
+        labels = block[:first_value]
+        values = block[first_value : first_value + len(labels)]
+        for label, raw_value in zip(labels, values):
+            if canonical_parameter(label) and (
+                item := measurement_from_pair(label, raw_value, "", method)
+            ):
+                found.append(item)
     return found
 
 
@@ -477,15 +612,26 @@ def text_measurements(text: str) -> list[Measurement]:
     found: list[Measurement] = []
     for spec in PARAMETERS:
         aliases = sorted(spec.aliases, key=len, reverse=True)
-        alias_pattern = "|".join(re.escape(alias) for alias in aliases)
+        alias_pattern = "|".join(re.escape(alias).replace(r"\ ", r"\s+") for alias in aliases)
         pattern = re.compile(
             rf"(?<![A-Za-z0-9])(?P<label>{alias_pattern})(?![A-Za-z0-9])"
-            rf"\)?\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?\s*(?:[:=\-–—：]|is)?\s*"
-            rf"(?:[+±]\s*/?\s*[-−]\s*)?(?P<value>{NUMBER_RE})[ \t]*(?P<unit>{UNIT_RE})",
+            rf"(?:\)|\.)?\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?"
+            rf"\s*(?:[*¹²³]+)?\s*(?:[:=\-–—：]|is)?\s*"
+            rf"(?:[+±]\s*/?\s*[-−]\s*)?(?P<value>{NUMBER_RE})[\t \r\n]{{0,16}}(?P<unit>{UNIT_RE})",
             re.I,
         )
         for match in pattern.finditer(text):
+            # A generic ``power rating`` substring inside ``continuous power
+            # rating`` or ``program power rating`` is not Pe/AES/RMS power.
+            # Those values are usually 2x the thermal rating and must not win
+            # merely because they occur first on the page.
+            if spec.key == "pe_w":
+                prefix = text[max(0, match.start() - 24):match.start()].casefold()
+                if re.search(r"(?:continuous|program|maximum|max\.?)[ \t]+$", prefix):
+                    continue
             unit = match.group("unit") or ""
+            if spec.key == "pe_w" and not normalize_unit(unit):
+                continue
             value = convert_measurement(spec.key, match.group("value"), unit)
             if value is not None:
                 found.append(Measurement(
@@ -499,7 +645,7 @@ def text_measurements(text: str) -> list[Measurement]:
         # it can't misfire on ordinary "Label: Value Unit" text.
         pattern_lu = re.compile(
             rf"(?<![A-Za-z0-9])(?P<label>{alias_pattern})(?![A-Za-z0-9])"
-            rf"\)?\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?\s*(?:[:=]\s*)?"
+            rf"(?:\)|\.)?\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?\s*(?:[:=]\s*)?"
             rf"(?P<unit>{UNIT_RE_REQUIRED})\s+"
             rf"(?:[+±]\s*/?\s*[-−]\s*)?(?P<value>{NUMBER_RE})(?![A-Za-z0-9])",
             re.I,
@@ -516,11 +662,20 @@ def text_measurements(text: str) -> list[Measurement]:
 
 
 def choose_measurements(items: Iterable[Measurement]) -> dict[str, Measurement]:
-    priority = {"jsonld.additionalProperty": 3, "jsonld.field": 2, "html.text": 1, "pdf.text": 1}
+    priority = {
+        "jsonld.additionalProperty": 4,
+        "jsonld.field": 3,
+        "html.table": 2,
+        "pdf.table": 2,
+        "html.text": 1,
+        "pdf.text": 1,
+    }
     unitless_keys = {"qts", "qms", "qes"}
 
     def quality(item: Measurement) -> tuple[int, int]:
         explicit_unit = int(bool(normalize_unit(item.unit))) if item.key not in unitless_keys else 0
+        if item.key == "pe_w":
+            return explicit_unit, priority.get(item.method, 0)
         return priority.get(item.method, 0), explicit_unit
 
     chosen: dict[str, Measurement] = {}
@@ -533,6 +688,8 @@ def choose_measurements(items: Iterable[Measurement]) -> dict[str, Measurement]:
 
 def derive_driver_values(values: dict[str, float]) -> dict[str, float]:
     out = dict(values)
+    if out.get("xmax_mm") is None and out.get("linear_travel_pp_mm"):
+        out["xmax_mm"] = out["linear_travel_pp_mm"] / 2.0
     qts, qms, qes = out.get("qts"), out.get("qms"), out.get("qes")
     if qts is None and qms and qes:
         out["qts"] = qms * qes / (qms + qes)
@@ -548,6 +705,27 @@ def derive_driver_values(values: dict[str, float]) -> dict[str, float]:
         cms_m_per_n = out["cms_mm_per_n"] / 1000.0
         sd_m2 = out["sd_cm2"] / 10_000.0
         out["vas_l"] = cms_m_per_n * RHO_AIR * SPEED_OF_SOUND**2 * sd_m2**2 * 1000.0
+    if out.get("sd_cm2") is None and out.get("effective_radius_mm"):
+        radius_cm = out["effective_radius_mm"] / 10.0
+        out["sd_cm2"] = math.pi * radius_cm**2
+    if out.get("sd_cm2") is None and out.get("effective_diameter_mm"):
+        radius_cm = out["effective_diameter_mm"] / 20.0
+        out["sd_cm2"] = math.pi * radius_cm**2
+    if out.get("sd_cm2") is None and out.get("vd_l") and out.get("xmax_mm"):
+        out["sd_cm2"] = out["vd_l"] * 10_000.0 / out["xmax_mm"]
+    if out.get("sd_cm2") is None and out.get("vas_l") and out.get("cms_mm_per_n"):
+        vas_m3 = out["vas_l"] / 1000.0
+        cms_m_per_n = out["cms_mm_per_n"] / 1000.0
+        sd_m2 = math.sqrt(vas_m3 / (cms_m_per_n * RHO_AIR * SPEED_OF_SOUND**2))
+        out["sd_cm2"] = sd_m2 * 10_000.0
+    if out.get("re_ohm") is None and all(
+        out.get(key) for key in ("qes", "bl_tm", "fs_hz", "mms_g")
+    ):
+        mms_kg = out["mms_g"] / 1000.0
+        out["re_ohm"] = (
+            out["qes"] * out["bl_tm"] ** 2
+            / (2.0 * math.pi * out["fs_hz"] * mms_kg)
+        )
     return out
 
 
@@ -584,7 +762,10 @@ def product_metadata(page: PageData, url: str, brand_hint: str = "") -> tuple[st
         page.title,
         page.meta.get("og:title")
     ]
-    name = next((str(n).strip() for n in name_candidates if n and str(n).strip()), "")
+    name = next(
+        (html.unescape(str(n)).strip() for n in name_candidates if n and str(n).strip()),
+        "",
+    )
     
     raw_brand = product.get("brand", "")
     if isinstance(raw_brand, dict):
@@ -594,15 +775,39 @@ def product_metadata(page: PageData, url: str, brand_hint: str = "") -> tuple[st
     # page-declared brand data, which is sometimes wrong at the source (e.g.
     # DS18's Shopify theme puts the product's own SKU in JSON-LD brand.name
     # instead of "DS18").
-    brand = str(brand_hint or raw_brand or page.meta.get("product:brand")).strip()
+    brand = html.unescape(
+        str(brand_hint or raw_brand or page.meta.get("product:brand") or "")
+    ).strip()
     model = str(
         product.get("model") or product.get("mpn") or product.get("sku")
         or page.meta.get("product:retailer_item_id") or ""
     ).strip()
+    model = html.unescape(model)
+    if re.search(r"(?:spec(?:ification)?[_ -]?sheet|datasheet)", model, re.I):
+        url_model = Path(urlparse(url).path).stem
+        model = re.sub(
+            r"(?:[_ -]?(?:spec(?:ification)?[_ -]?sheet|datasheet).*)$",
+            "",
+            url_model,
+            flags=re.I,
+        ).strip(" _-") or model
     if not model:
         model = name
         if brand and model.casefold().startswith(brand.casefold()):
             model = model[len(brand):].strip(" -–—|")
+    if model.casefold() in {"discontinued product", "product", "speaker unit"}:
+        url_model = Path(urlparse(url).path).stem
+        url_model = re.sub(r"^\d+-", "", url_model).strip(" _-")
+        if url_model:
+            model = url_model.upper()
+    if re.search(r"(?:spec(?:ification)?[_ -]?sheet|datasheet)", model, re.I):
+        url_model = Path(urlparse(url).path).stem
+        model = re.sub(
+            r"(?:[_ -]?(?:spec(?:ification)?[_ -]?sheet|datasheet).*)$",
+            "",
+            url_model,
+            flags=re.I,
+        ).strip(" _-") or model
     if brand:
         model = re.sub(
             rf"\s*[-|–—]\s*{re.escape(brand)}\s*$",
@@ -626,6 +831,13 @@ def product_metadata(page: PageData, url: str, brand_hint: str = "") -> tuple[st
         brand = urlparse(url).hostname.removeprefix("www.") if urlparse(url).hostname else "Unknown"
     if not model:
         model = Path(urlparse(url).path).stem or "Unknown"
+    model = re.sub(
+        r"(?:[_ -]?(?:spec(?:ification)?[_ -]?sheet|datasheet).*)$",
+        "",
+        model,
+        flags=re.I,
+    ).strip(" _-") or model
+    model = re.sub(r"\.xlsx?$", "", model, flags=re.I).strip() or model
     return name or f"{brand} {model}".strip(), brand, model
 
 
@@ -634,9 +846,34 @@ def is_standalone_lf_driver_model(model: str) -> bool:
     return not re.search(r"\b(?:kit|tweeter)\b", str(model), re.I)
 
 
-def infer_size_in(text: str) -> float | None:
-    match = re.search(r"\b(\d+(?:[.,]\d+)?)\s*(?:inch(?:es)?|in\.?|[\"″])\b", text, re.I)
-    return float(match.group(1).replace(",", ".")) if match else None
+def infer_size_in(name: str, text: str = "") -> float | None:
+    labelled = re.search(
+        r"\b(?:nominal\s+(?:diameter|size)|effective\s+diameter)\b[^\n]{0,40}?"
+        r"(\d+(?:[.,]\d+)?)\s*(?:inch(?:es)?|in\.?|[\"″])(?=\s|$|[),/])",
+        text,
+        re.I,
+    )
+    if labelled:
+        return float(labelled.group(1).replace(",", "."))
+    # Titles are product-specific; arbitrary body text may start with sizes
+    # from navigation menus or related products and must not be trusted.
+    match = re.search(
+        r"\b(\d+(?:[.,]\d+)?)\s*(?:inch(?:es)?|in\.?|[\"″])(?=\s|$|[),/])",
+        name,
+        re.I,
+    )
+    if match:
+        return float(match.group(1).replace(",", "."))
+    model_prefix = re.match(r"^(?:[A-Za-z][A-Za-z .&+-]*\s+)?(\d{1,2})(?=[A-Za-z])", name)
+    if model_prefix and 2 <= int(model_prefix.group(1)) <= 32:
+        return float(model_prefix.group(1))
+    described = re.search(
+        r"\b(\d+(?:[.,]\d+)?)\s*(?:inch(?:es)?|in\.?|[\"″])\s+"
+        r"(?:loudspeaker\s+)?(?:driver|woofer|subwoofer|midbass|full[- ]?range)\b",
+        text,
+        re.I,
+    )
+    return float(described.group(1).replace(",", ".")) if described else None
 
 
 def build_preset(
@@ -648,12 +885,20 @@ def build_preset(
 ) -> tuple[dict | None, list[str]]:
     measurements = jsonld_measurements(page.jsonld)
     text_items = text_measurements(page.text)
+    table_items = table_measurements(
+        page.text,
+        "pdf.table" if extraction_method == "pdf" else "html.table",
+    )
     if extraction_method == "pdf":
         text_items = [Measurement(
             item.key, item.value, item.raw_value, item.unit, item.label, "pdf.text"
         ) for item in text_items]
-    chosen = choose_measurements([*measurements, *text_items])
+    chosen = choose_measurements([*measurements, *table_items, *text_items])
     values = derive_driver_values({key: item.value for key, item in chosen.items()})
+    derived_fields = sorted(
+        key for key in (*REQUIRED_DRIVER_FIELDS, *OPTIONAL_DRIVER_FIELDS)
+        if key not in chosen and values.get(key) is not None
+    )
     errors = validate_driver(values)
     if errors:
         return None, errors
@@ -678,11 +923,18 @@ def build_preset(
         }
         for key, item in chosen.items()
     }
+    derivations = {}
+    if "xmax_mm" in derived_fields and "linear_travel_pp_mm" in chosen:
+        derivations["xmax_mm"] = {
+            "formula": "linear_travel_pp_mm / 2",
+            "source_fields": ["linear_travel_pp_mm"],
+            "confidence": "high",
+        }
     preset = {
         "name": f"WEB: {brand} {model}".strip(),
         "brand": brand,
         "model": model,
-        "size_in": infer_size_in(" ".join((name, page.text[:2000]))),
+        "size_in": infer_size_in(name, page.text),
         "kind": "Loudspeaker driver",
         "url": url,
         "source": source_name,
@@ -698,6 +950,8 @@ def build_preset(
             "extraction_method": extraction_method,
             "confidence": round(confidence, 3),
             "raw_measurements": raw_measurements,
+            "derived_fields": derived_fields,
+            "derivations": derivations,
         },
     }
     return preset, []
@@ -759,12 +1013,33 @@ def fetch_resource(url: str, timeout_s: float, user_agent: str) -> FetchResult:
         "User-Agent": user_agent,
         "Accept": "text/html,application/xhtml+xml,application/xml,application/pdf;q=0.9,*/*;q=0.5",
     })
-    with urlopen(request, timeout=timeout_s) as response:
-        return FetchResult(
-            url=response.geturl(),
-            content_type=response.headers.get_content_type(),
-            content=response.read(),
+    try:
+        with urlopen(request, timeout=timeout_s, context=SSL_CONTEXT) as response:
+            return FetchResult(
+                url=response.geturl(),
+                content_type=response.headers.get_content_type(),
+                content=response.read(),
+            )
+    except URLError as exc:
+        if not isinstance(exc.reason, ssl.SSLCertVerificationError):
+            raise
+        # macOS curl uses the system trust store and can validate a few legacy
+        # certificate chains that OpenSSL/certifi cannot. Verification remains
+        # enabled; this is not an insecure-certificate bypass.
+        result = subprocess.run(
+            [
+                "curl", "--fail", "--silent", "--show-error", "--location",
+                "--max-time", str(timeout_s), "--user-agent", user_agent, url,
+            ],
+            check=True,
+            capture_output=True,
         )
+        content_type = (
+            "application/pdf" if result.stdout.startswith(b"%PDF")
+            else "application/xml" if result.stdout.lstrip().startswith(b"<?xml")
+            else "text/html"
+        )
+        return FetchResult(url=url, content_type=content_type, content=result.stdout)
 
 
 class RobotsPolicy:
@@ -781,7 +1056,7 @@ class RobotsPolicy:
             parser = urllib.robotparser.RobotFileParser(robots_url)
             try:
                 request = Request(robots_url, headers={"User-Agent": self.user_agent})
-                with urlopen(request, timeout=self.timeout_s) as response:
+                with urlopen(request, timeout=self.timeout_s, context=SSL_CONTEXT) as response:
                     parser.parse(
                         response.read().decode("utf-8", errors="replace").splitlines())
                 self._parsers[origin] = parser
@@ -912,10 +1187,25 @@ def merge_presets(
 ) -> tuple[list[dict], dict[str, int]]:
     merged = list(existing)
     index = {preset_key(item): pos for pos, item in enumerate(merged)}
+    source_urls = {
+        str(item.get("url") or ""): pos
+        for pos, item in enumerate(merged)
+        if refresh_source
+        and str(item.get("source") or "").casefold() == refresh_source.casefold()
+        and item.get("url")
+    }
     stats = {"added": 0, "updated": 0, "unchanged": 0}
     for item in discovered:
         key = preset_key(item)
         if not all(key) or key not in index:
+            source_url = str(item.get("url") or "")
+            if source_url and source_url in source_urls:
+                pos = source_urls[source_url]
+                index.pop(preset_key(merged[pos]), None)
+                merged[pos] = item
+                index[key] = pos
+                stats["updated"] += 1
+                continue
             index[key] = len(merged)
             merged.append(item)
             stats["added"] += 1

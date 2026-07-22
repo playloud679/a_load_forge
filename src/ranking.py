@@ -265,6 +265,8 @@ def rank_preset_row(
             "Price": info.price if info.price is not None else np.nan,
             "Currency": info.currency,
             "Buy": info.url or "",
+            "Mms g": ts.mms_g if ts.mms_g is not None else np.nan,
+            "Le10k mH": ts.le10k_mh if ts.le10k_mh is not None else np.nan,
             "F3 Hz": thresholds[3],
             "F6 Hz": thresholds[6],
             "F10 Hz": thresholds[10],

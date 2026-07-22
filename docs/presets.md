@@ -53,3 +53,7 @@ correct.
   keeps their crawl provenance, while the app exposes the richer built-in
   record only once. The same identity check runs LSDB-then-manufacturer, so a
   manufacturer row matching an LSDB entry is skipped rather than duplicated.
+- `_driver_ts_from_mapping(values)` reads a JSON "driver" record into
+  `DriverTS`; optional fields (`le10k_mh`, `mms_g`, `cms_mm_per_n`, `bl_tm`)
+  stay `None` when absent rather than defaulting to `0.0`, matching how
+  `engine.DriverTS` distinguishes "not measured" from "measured as zero".

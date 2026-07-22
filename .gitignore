@@ -36,5 +36,10 @@ data/datasheets/
 data/driver_datasheets.sqlite3
 data/driver_datasheets.sqlite3-*
 
+# Manufacturer crawler resume state (ephemeral, regenerated on each run)
+data/*_crawler_checkpoint.json
+data/*_checkpoint.json
+data/*_checkpoint_*.json
+
 # Streamlit secrets (contains API keys — keep local)
 .streamlit/secrets.toml

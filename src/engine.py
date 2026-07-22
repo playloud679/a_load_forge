@@ -33,6 +33,7 @@ class DriverTS:
     re_ohm: float
     sd_cm2: float
     le_mh: float = 0.0
+    le10k_mh: float | None = None
     xmax_mm: float = 0.0
     pe_w: float = 0.0
     mms_g: float | None = None

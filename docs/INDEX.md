@@ -18,6 +18,23 @@ in sync in the same change.
 | `tools/crawl_thiele_small.py` | [crawl_thiele_small.md](crawl_thiele_small.md) | Robots-aware sitemap/seed crawler, T/S parser, unit normalizer, validator and safe database merger |
 | `tools/crawl_driver_datasheets.py` | [crawl_driver_datasheets.md](crawl_driver_datasheets.md) | PDF discovery, SHA-256 archive, SQLite provenance index and alias-aware catalog merge |
 | `tools/compare_afw_sealed.py` | [afw_validation.md](afw_validation.md) | Read-only AFW v2 sealed/BP4/BP6 parser, response diagnostics and identical-driver projection bridge |
+| `tools/generate_afw_dccav.py` | [afw_validation.md](afw_validation.md) | Write-side counterpart: clones a verified DCAAV `.afw` template and injects a Load Forge DCCAV `.lfp` design's driver/chamber values |
+
+## Scraping Playbook
+
+[scraping-strategies.md](scraping-strategies.md) ranks the manufacturer/
+retailer scraping approaches used to build `data/manufacturer_drivers.json`
+by yield-per-effort — read it before starting a new site instead of
+re-deriving the same routes from scratch.
+
+## Manufacturer Database Audit
+
+[manufacturer-database-status.md](manufacturer-database-status.md) is the
+generated current status report for catalog coverage, prices, provenance,
+quality, deduplication and remaining manufacturer gaps. Regenerate it with
+`tools/generate_manufacturer_database_report.py`; implementation and usage are
+documented in
+[manufacturer-database-report.md](manufacturer-database-report.md).
 
 ## Data Flow
 

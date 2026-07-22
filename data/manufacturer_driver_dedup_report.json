@@ -1,0 +1,4651 @@
+{
+  "after": 4424,
+  "applied": true,
+  "before": 4697,
+  "database": "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json",
+  "decisions": [
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB12PFC25-4-COAX",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/11/4in-SB12PFC25-4-COAX-OEM-only.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "4\u2033 SB12PFC25-4-COAX / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/4in-sb12pfc25-4-coax-paper/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB13PFC25-4-COAX",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/11/5in-SB13PFC25-4-COAX-OEM-only.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5\u2033 SB13PFC25-4-COAX / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/5in-sb13pfc25-4-coax-paper/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB16PFCR25-4-COAX",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb16pfcr25-4-coax.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u2033 SB16PFCR25-4-COAX",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6-sb16pfcr25-4-coax/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB16PFC25-4-COAX",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/11/6in-SB16PFC25-4-COAX-OEM-only.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u2033 SB16PFC25-4-COAX / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6in-sb16pfc25-4-coax-paper/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB16PFCR25-4-COAX",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb16pfcr25-4-coax.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6in SB16PFCR25-4-COAX-R1.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2022/11/6in-SB16PFCR25-4-COAX.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SW26DAC76-3-DV",
+        "parameter_count": 12,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/09/10in-SW26DAC76-3-DV-OEM-only.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "10\u2033 SW26DAC76-3-DV / Aluminum",
+        "parameter_count": 8,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/10in-sw26dac76-3-dv/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW16PF-4",
+        "parameter_count": 9,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/02/6.5in-SATORI-MW16PF-4-OEM-only.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u00bd\u2033 SATORI MW16PF-4 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6%c2%bd-satori-mw16pf-4-paper/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW16PF-8",
+        "parameter_count": 9,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/02/6.5in-SATORI-MW16PF-8-OEM-only.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u00bd\u2033 SATORI MW16PF-8 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6%c2%bd-satori-mw16pf-8-paper/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW19PF-4",
+        "parameter_count": 9,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/02/7.5in-SATORI-MW19PF-4-OEM-only.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "7\u00bd\u2033 SATORI MW19PF-4 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/7%c2%bd%e2%80%b3-satori-mw19pf-4-paper/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW19PF-8",
+        "parameter_count": 9,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/02/7.5in-SATORI-MW19PF-8-OEM-only.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "7\u00bd\u2033 SATORI MW19PF-8 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/7%c2%bd%e2%80%b3-satori-mw19pf-4-paper-2/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "WO34HC-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2026/03/13.5-inch-SATORI-WO34HC-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "13\u00bd\u2033 SATORI WO34HC-4 / Honeycomb",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/satori-wo34hc-4/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "WO34HC-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2026/03/13.5-inch-SATORI-WO34HC-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "Data Sheet 13.5in SATORI WO34HC-4-R0 (Preliminary Data).cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2026/03/13.5-inch-SATORI-WO34HC-4.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "WO34HC-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2026/03/13.5-inch-SATORI-WO34HC-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "13\u00bd\u2033 SATORI WO34HC-8 / Honeycomb",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/satori-wo34hc-8/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "WO34HC-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2026/03/13.5-inch-SATORI-WO34HC-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "Data Sheet 13.5in SATORI WO34HC-8-R0 (Preliminary Data).cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2026/03/13.5-inch-SATORI-WO34HC-8.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MR13TX-4",
+        "parameter_count": 10,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/05/5in-SATORI-MR13TX-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5\u2033 SATORI MR13TX-4 / TeXtreme",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/5-satori-mr13tx-4-textreme/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MR13TX-4",
+        "parameter_count": 10,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/05/5in-SATORI-MR13TX-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5in SATORI MR13TX-4 - Ulrik revised.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/05/5in-SATORI-MR13TX-4.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MR16TX-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/05/6%C2%BDin-SATORI-MR16TX-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u00bd\u2033 SATORI MR16TX-8 / TeXtreme",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6%c2%bd-satori-mr16tx-8-textreme/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MR16TX-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/05/6%C2%BDin-SATORI-MR16TX-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6.5in SATORI MR16TX-8-R1 (Preliminary Data).cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/05/6%C2%BDin-SATORI-MR16TX-8.pdf"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB20FRPC30-8",
+        "parameter_count": 9,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2022/04/8in-SB20FRPC30-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "8\u2033 SB20FRPC30-8 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/8in-sb20frpc30-8-paper/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW13TX-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2025/12/5-inch-SATORI-MW13TX-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5in SATORI MW13TX-8-R1.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2025/12/5-inch-SATORI-MW13TX-8.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW13TX-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2025/12/5-inch-SATORI-MW13TX-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5\u2033 SATORI MW13TX-8 / TeXtreme",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/5-satori-mw13tx-8-textreme/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW13TX-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2025/12/5-inch-SATORI-MW13TX-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5\u2033 SATORI MW13TX-4 / TeXtreme",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/5-satori-mw13tx-4-textreme/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW13TX-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2025/12/5-inch-SATORI-MW13TX-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "Data Sheet 5in SATORI MW13TX-4-R1.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2025/12/5-inch-SATORI-MW13TX-4.pdf"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB12PACR25-4-COAX",
+        "parameter_count": 9,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2023/06/4in-SB12PACR25-4-COAX.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "4\u2033 SB12PACR25-4-COAX",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/4-sb12pacr25-4-coax/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB12PACR25-4-COAX",
+        "parameter_count": 9,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2023/06/4in-SB12PACR25-4-COAX.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "4in SB12PACR25-4-COAX-R2.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2023/06/4in-SB12PACR25-4-COAX.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW19PNW-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/10/7.5in-SATORI-MW19PNW-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "7\u00bd\u2033 SATORI MW19PNW-8 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/7%c2%bdin-satori-mw19pnw-8/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW19PNW-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/10/7.5in-SATORI-MW19PNW-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "Data Sheet 7.5in SATORI MW19PNW-8-R5.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/10/7.5in-SATORI-MW19PNW-8.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW19PNW-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/10/7.5in-SATORI-MW19PNW-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "7\u00bd\u2033 SATORI MW19PNW-4 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/7%c2%bdin-satori-mw19pnw-4/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW19PNW-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/10/7.5in-SATORI-MW19PNW-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "Data Sheet 7.5in SATORI MW19PNW-4-R5.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/10/7.5in-SATORI-MW19PNW-4.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW19TX-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/04/7.5in-SATORI-MW19TX-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "7\u00bd\u2033 SATORI MW19TX-8 / TeXtreme",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/7%c2%bd-satori-mw19tx-8-textreme/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW19TX-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/04/7.5in-SATORI-MW19TX-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "7.5in SATORI MW19TX-8-R1 (Prototype data).cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/04/7.5in-SATORI-MW19TX-8.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW19TX-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/04/7.5in-SATORI-MW19TX-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "7\u00bd\u2033 SATORI MW19TX-4 / TeXtreme",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/7%c2%bd-satori-mw19tx-4-textreme/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW19TX-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/04/7.5in-SATORI-MW19TX-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "7.5in SATORI MW19TX-4-R1 ( Prototype data).cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/04/7.5in-SATORI-MW19TX-4.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW16TX-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/04/6.5in-SATORI-MW16TX-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u00bd\u2033 SATORI MW16TX-8 / TeXtreme",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6-5-satori-mw16tx-8-textreme/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW16TX-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/04/6.5in-SATORI-MW16TX-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6.5in SATORI MW16TX-8-R2 ( Prototype data).cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/04/6.5in-SATORI-MW16TX-8.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW16TX-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/04/6.5in-SATORI-MW16TX-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u00bd\u2033 SATORI MW16TX-4 / TeXtreme",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6-5-satori-mw16tx-4-textreme/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW16TX-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/04/6.5in-SATORI-MW16TX-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6.5in SATORI MW16TX-4-R2 ( Prototype data).cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/04/6.5in-SATORI-MW16TX-4.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB42FHCL75-6",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/03/15in-SB42FHCL75-6.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "15\u2033 SB42FHCL75-6 / Honeycomb",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/15in-sb42fhcl75-6/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB34SWNRX-S75-6",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/11/12in-SB34SWNRX-S75-6.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "H-118 (12in SB34SWNRX-S75-6).cdr",
+        "parameter_count": 8,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/11/12in-SB34SWNRX-S75-6.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB34NRX75-16",
+        "parameter_count": 12,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/02/12in-SB34NRX75-16.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "12\u2033 SB34NRX75-16 / Norex",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/12-sb34nrx75-16-norex/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW13PNW-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/5in-SATORI-MW13PNW-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5in SATORI MW13PNW-8.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/5in-SATORI-MW13PNW-8.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW13PNW-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/5in-SATORI-MW13PNW-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5\u2033 SATORI MW13PNW-8 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/5-satori-mw13pnw-8/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW13PNW-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/5in-SATORI-MW13PNW-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5in SATORI MW13PNW-4.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/5in-SATORI-MW13PNW-4.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW13PNW-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/5in-SATORI-MW13PNW-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5\u2033 SATORI MW13PNW-4 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/5in-satori-mw13pnw-4/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "5\u2033 SATORI MW13P-4 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/5in-satori-mw13p-4/"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5in SATORI MW13P-4- REV-5.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/5in-SATORI-MW13P-4.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB12PACR25-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/04/4in-SB12PACR25-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "4\u2033 SB12PACR25-4 / Aluminum",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/4-sb12pacr25-4-aluminum/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB17NRX2C35-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/02/6in-SB17NRX2C35-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u2033 SB17NRX2C35-4 / Norex",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6in-sb17nrx2c35-4-norex/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB17CRC35-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/02/6in-SB17CRC35-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u2033 SB17CRC35-8 / Carbon",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6in-sb17crc35-8/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB17CRC35-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/02/6in-SB17CRC35-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u2033 SB17CRC35-4 / Carbon",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6in-sb17crc35-4/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB15CRC30-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/03/5in-SB15CRC30-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5\u2033 SB15CRC30-8 / Carbon",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/5-sb15crc30-8-carbon/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB15CRC30-4",
+        "parameter_count": 9,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/03/5in-SB15CRC30-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5\u2033 SB15CRC30-4 / Carbon",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6-sb15crc30-4-carbon/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB12CACS25-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/02/4in-SB12CACS25-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "4\u2033 SB12CACS25-8 / Ceramic",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/4in-sb12cacs25-8/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB12CACS25-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/02/4in-SB12CACS25-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "4\u2033 SB12CACS25-4 / Ceramic",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/4in-sb12cacs25-4/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MR16PNW-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/6%C2%BDin-SATORI-MR16PNW-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u00bd\u2033 SATORI MR16PNW-8 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6%c2%bdin-satori-mr16pnw-8/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MR16PNW-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/6%C2%BDin-SATORI-MR16PNW-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6.5in SATORI MR16PNW-8-Rev-2.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/6%C2%BDin-SATORI-MR16PNW-8.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MR16PNW-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/6%C2%BDin-SATORI-MR16PNW-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6.5in SATORI MR16PNW-4.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/6%C2%BDin-SATORI-MR16PNW-4.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MR16PNW-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/6%C2%BDin-SATORI-MR16PNW-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u00bd\u2033 SATORI MR16PNW-4 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6%c2%bdin-satori-mr16pnw-4/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MR16P-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/6%C2%BDin-SATORI-MR16P-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u00bd\u2033 SATORI MR16P-8 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6%c2%bdin-satori-mr16p-8/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MR16P-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/6%C2%BDin-SATORI-MR16P-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6.5in SATORI MR16P-8.cdr",
+        "parameter_count": 8,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/6%C2%BDin-SATORI-MR16P-8.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MR13P-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/5in-SATORI-MR13P-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5in SATORI MR13P-4-Rev-2.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/5in-SATORI-MR13P-4.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MR13P-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/5in-SATORI-MR13P-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5\u2033 SATORI MR13P-8 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/5-satori-mr13p-8/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MR13P-8",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/5in-SATORI-MR13P-8.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5in SATORI MR13P-8-Rev-1.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/5in-SATORI-MR13P-8.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB65WBAC25-4",
+        "parameter_count": 11,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/02/2%C2%BDin-SB65WBAC25-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "2\u00bd\u2033 SB65WBAC25-4 / Aluminum",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/2-5in-sb65wbac25-4/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB10PGC21-4",
+        "parameter_count": 9,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/02/3in-SB10PGC21-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "3\u2033 SB10PGC21-4 / Fiberglass",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/3in-sb10pgc21-4/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB36WBAC21-4",
+        "parameter_count": 9,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/03/1in-SB36WBAC21-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "H-35 (1in SB36WBAC21-4) Rev1 (Mass Production)",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/03/1in-SB36WBAC21-4.pdf"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB36WBAC21-4",
+        "parameter_count": 9,
+        "source": "Manufacturer datasheet",
+        "url": "https://sbacoustics.com/wp-content/uploads/2020/03/1in-SB36WBAC21-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "1\u2033 SB36WBAC21-4 / Aluminum",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/1-sb36wbac21-4-aluminum/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "CE28MB-8 1.1\" Polyimide Full-Range Speaker Driver 8 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-CE28MB-8-1.1-Mylar-Full-Range-Driver-285-147"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "CE28MB-8",
+        "parameter_count": 11,
+        "source": "Manufacturer website",
+        "url": "https://www.daytonaudio.com/product/1787/ce28mb-8-1-1-polyimide-full-range-speaker-driver-8-ohm"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "21QLEX1600Fe",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-21qlex1600fe.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 21QLEX1600Fe 8 OH",
+        "parameter_count": 12,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/121QLEX16FE8/altavoz-21qlex1600fe-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "18LEX1200Nd",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-18lex1200nd.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 18LEX1200Nd 8 OH",
+        "parameter_count": 11,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/118LEX12ND8/altavoz-18lex1200nd-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "18LEX1200Fe",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-18lex1200fe.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 18LEX1200Fe 8 OH",
+        "parameter_count": 11,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/118LEX12FE8/altavoz-18lex1200fe-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "18LEX1000Fe",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-18lex1000fe.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 18LEX1000Fe 8 OH",
+        "parameter_count": 12,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/118LEX10FE8/altavoz-18lex1000fe-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "15LEX1600Fe",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-15lex1600fe.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 15LEX1600Fe 8 OH",
+        "parameter_count": 12,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/115LEX16FE8/altavoz-15lex1600fe-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "15LEX1200Nd",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-15lex1200nd.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 15LEX1200Nd 8 OH",
+        "parameter_count": 11,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/115LEX12ND8/altavoz-15lex1200nd-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "15MLEX1000Nd",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-15mlex1000nd.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 15MLEX1000Nd 8 OH",
+        "parameter_count": 11,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/115MLEX10ND8/altavoz-15mlex1000nd-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "15LEX1000Fe",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-15lex1000fe.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 15LEX1000Fe 8 OH",
+        "parameter_count": 12,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/115LEX10FE8/altavoz-15lex1000fe-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "15MC500",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-15mc500.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 15MC500 8 OH",
+        "parameter_count": 12,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/115MC508/altavoz-15mc500-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "15CMV2",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-15cmv2.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 15CM V2 8 OH",
+        "parameter_count": 12,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/615CMV28/altavoz-15cmv2-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "14MLEX1000Nd",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-14mlex1000nd.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 14MLEX1000Nd 8 OH",
+        "parameter_count": 11,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/114MLEX10ND8/altavoz-14mlex1000nd-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "14MC700Nd",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-14mc700nd.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 14MC700Nd 8 OH",
+        "parameter_count": 12,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/114MC70ND8/altavoz-14mc700nd-8-oh/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Beyma",
+        "model": "12P80Nd/V2",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-12p80ndv2.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 12P80Nd/V2 8 OH",
+        "parameter_count": 11,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/112P80NDV28/altavoz-12p80nd-v2-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "12MC700Nd",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-12mc700nd.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 12MC700Nd 8 OH",
+        "parameter_count": 12,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/112MC70ND8/altavoz-12mc700nd-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "10MCS500",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-10mcs500.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 10MCS 500 8 OH",
+        "parameter_count": 12,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/110MCS508/altavoz-10mcs500-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Beyma",
+        "model": "10NMFS",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-10nmfs.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 10NMFS 8 OH",
+        "parameter_count": 12,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/low-mid-frequency/210NMFS8/altavoz-10nmfs-8-oh/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Beyma",
+        "model": "15CXA400Nd",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-15cxa400nd.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 15CXA400Nd 8 OH",
+        "parameter_count": 11,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/coaxial/115CXA4ND8/altavoz-15cxa400nd-8-oh/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Beyma",
+        "model": "12CXA400Fe",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-12cxa400fe.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 12CXA400Fe 8 OH",
+        "parameter_count": 11,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/coaxial/112CXA4FE8/altavoz-12cxa400fe-8-oh/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Beyma",
+        "model": "8CFX260Nd",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/beyma-8cfx260nd.html"
+      },
+      "removed": {
+        "brand": "Beyma",
+        "model": "LOUDSPEAKER 8CFX260Nd 8 OH",
+        "parameter_count": 11,
+        "source": "Beyma Catalog",
+        "url": "https://www.beyma.com/en/products/c/coaxial/108CFX26ND8/altavoz-8cfx260nd-8-oh/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "4NDF34",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/4/-/4NDF34"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "4NDF34 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/4/8/4NDF34"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "4NDF34",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/4/-/4NDF34"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "4NDF34 8\u03a9 - LF Drivers - B&C Speakers",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/4/8/4NDF34"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "4NDS34",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/4/-/4NDS34"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "4NDS34 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/4/8/4NDS34"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "5FG44",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/5/-/5FG44"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "5FG44 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/5/8/5FG44"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "5NSM38",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/5/-/5NSM38"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "5NSM38 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/5/8/5NSM38"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "5MDN38",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/5/-/5MDN38"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "5MDN38 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/5/8/5MDN38"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "5NDL38",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/5/-/5NDL38"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "5NDL38 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/5/8/5NDL38"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "6MD38",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/-/6MD38"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "6MD38 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/8/6MD38"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "6PEV13",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/-/6PEV13"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "6PEV13 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/8/6PEV13"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "6PS38",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/-/6PS38"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "6PS38 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/8/6PS38"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "6PS44",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/-/6PS44"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "6PS44 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/8/6PS44"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "6MDN44",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/-/6MDN44"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "6MDN44 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/8/6MDN44"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "6NSM51",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/-/6NSM51"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "6NSM51 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/8/6NSM51"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "6MBX44",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/-/6MBX44"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "6MBX44 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/8/6MBX44"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "6NDL38",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/-/6NDL38"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "6NDL38 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/4/6NDL38"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "6CLA51",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/-/6CLA51"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "6CLA51 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/6.5/8/6CLA51"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8PE21",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8PE21"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8PE21 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/8/8PE21"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8PS21",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8PS21"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8PS21 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/8/8PS21"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8FMB51",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8FMB51"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8FMB51 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/8/8FMB51"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8FW51",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8FW51"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8FW51 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/8/8FW51"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8FG51",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8FG51"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8FG51 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/8/8FG51"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8FG64",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8FG64"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8FG64 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/8/8FG64"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8NSM64",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8NSM64"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8NSM64 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/8/8NSM64"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8MDN51",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8MDN51"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8MDN51 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/8/8MDN51"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8MBX51",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8MBX51"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8MBX51 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/8/8MBX51"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8CL51",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8CL51"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8CL51 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/8/8CL51"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8NDL51",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8NDL51"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8NDL51 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/4/8NDL51"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8NW51",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8NW51"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8NW51 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/4/8NW51"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8BG51",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8BG51"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8BG51 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/8/8BG51"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8CLA64",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8CLA64"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8CLA64 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/8/8CLA64"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "8NDL64",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/-/8NDL64"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "8NDL64 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/8/8/8NDL64"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10FW64",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10FW64"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10FW64 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/8/10FW64"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10MD26",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10MD26"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10MD26 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/8/10MD26"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10PS26",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10PS26"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10PS26 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/8/10PS26"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10NSM76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10NSM76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10NSM76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/8/10NSM76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10CL51",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10CL51"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10CL51 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/8/10CL51"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10CL64",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10CL64"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10CL64 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/8/10CL64"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10CLA64",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10CLA64"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10CLA64 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/8/10CLA64"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10MBX64",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10MBX64"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10MBX64 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/8/10MBX64"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10NDL64",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10NDL64"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10NDL64 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/8/10NDL64"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10NW64",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10NW64"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10NW64 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/8/10NW64"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10CLA76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10CLA76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10CLA76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/8/10CLA76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10NW76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10NW76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10NW76 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/4/10NW76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10NDL88",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10NDL88"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10NDL88 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/8/10NDL88"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "10BG76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10BG76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "10BG76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/8/10BG76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12PE32",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12PE32"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12PE32 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/8/12PE32"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12MH32",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12MH32"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12MH32 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/8/12MH32"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12FW64",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12FW64"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12FW64 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/8/12FW64"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12PLB76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12PLB76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12PLB76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/8/12PLB76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12FL76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12FL76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12FL76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/8/12FL76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12FW76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12FW76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12FW76 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/4/12FW76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12FW88",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12FW88"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12FW88 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/8/12FW88"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12PLB100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12PLB100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12PLB100 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/8/12PLB100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12PS100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12PS100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12PS100 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/8/12PS100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12TBX100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12TBX100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12TBX100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/4/12TBX100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12FG100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12FG100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12FG100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/4/12FG100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12CL64",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12CL64"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12CL64 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/8/12CL64"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12CL76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12CL76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12CL76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/8/12CL76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12CLA76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12CLA76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12CLA76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/8/12CLA76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12NDL76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12NDL76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12NDL76 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/4/12NDL76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12NW76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12NW76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12NW76 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/4/12NW76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12NDL88",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12NDL88"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12NDL88 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/4/12NDL88"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12BG76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12BG76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12BG76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/8/12BG76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12NW100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12NW100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12NW100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/4/12NW100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12NBX100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12NBX100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12NBX100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/4/12NBX100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12BG100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12BG100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12BG100 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/8/12BG100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "12SW115",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12SW115"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "12SW115 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/4/12SW115"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "14NDL76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/13.5/-/14NDL76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "14NDL76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/13.5/8/14NDL76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "14NDL88",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/13.5/-/14NDL88"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "14NDL88 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/13.5/4/14NDL88"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "14DS88",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/13.5/-/14DS88"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "14DS88 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/13.5/8/14DS88"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "14NA100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/13.5/-/14NA100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "14NA100 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/13.5/8/14NA100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15PLB76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15PLB76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15PLB76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/8/15PLB76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15FW76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15FW76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15FW76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/8/15FW76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15FW88",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15FW88"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15FW88 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/8/15FW88"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15PS100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15PS100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15PS100 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/8/15PS100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15PZB100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15PZB100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15PZB100 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/8/15PZB100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15TBX100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15TBX100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15TBX100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/4/15TBX100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15TBW100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15TBW100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15TBW100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/4/15TBW100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15CL76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15CL76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15CL76 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/4/15CL76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15CLA76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15CLA76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15CLA76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/8/15CLA76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15NDL76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15NDL76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15NDL76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/8/15NDL76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15NW76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15NW76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15NW76 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/4/15NW76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15NDL88",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15NDL88"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15NDL88 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/4/15NDL88"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15NA100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15NA100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15NA100 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/8/15NA100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15BG76",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15BG76"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15BG76 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/8/15BG76"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15NW100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15NW100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15NW100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/4/15NW100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15NBX100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15NBX100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15NBX100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/4/15NBX100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15SW100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15SW100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15SW100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/4/15SW100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15DS100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15DS100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15DS100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/4/15DS100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15BG100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15BG100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15BG100 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/8/15BG100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15SW115",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15SW115"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15SW115 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/4/15SW115"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "15DS115",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15DS115"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "15DS115 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/4/15DS115"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "18PS100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18PS100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "18PS100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/4/18PS100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "18PZB100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18PZB100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "18PZB100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/4/18PZB100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "18PZW100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18PZW100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "18PZW100 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/8/18PZW100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "18TBX100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18TBX100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "18TBX100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/4/18TBX100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "18TBW100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18TBW100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "18TBW100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/4/18TBW100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "18NBX100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18NBX100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "18NBX100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/4/18NBX100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "18NW100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18NW100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "18NW100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/4/18NW100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "18SW100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18SW100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "18SW100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/4/18SW100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "18DS100",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18DS100"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "18DS100 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/4/18DS100"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "18SW115",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18SW115"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "18SW115 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/4/18SW115"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "18DS115",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18DS115"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "18DS115 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/4/18DS115"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "18RS115",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18RS115"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "18RS115 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/8/18RS115"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "18IPAL",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18IPAL"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "18IPAL 2\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/2/18IPAL"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "19RS115",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/19/-/19RS115"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "19RS115 8\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/19/8/19RS115"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "21SW115",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/21/-/21SW115"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "21SW115 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/21/4/21SW115"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "21DS115",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/21/-/21DS115"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "21DS115 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/21/4/21DS115"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "21SW152",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/21/-/21SW152"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "21SW152 4\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/21/4/21SW152"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "B&C Speakers",
+        "model": "21IPAL",
+        "parameter_count": 11,
+        "source": "B&C Speakers Remix crawler",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/21/-/21IPAL"
+      },
+      "removed": {
+        "brand": "B&C Speakers",
+        "model": "21IPAL 1\u03a9",
+        "parameter_count": 11,
+        "source": "B&C Catalog",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/21/1/21IPAL"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "5in SATORI MR13PNW-4.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2021/01/5in-SATORI-MR13PNW-4.pdf"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "5\u2033 SATORI MR13PNW-4 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/5-satori-mr13pnw-4/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB17MFC35-4",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb17mfc35-4.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u2033 SB17MFC35-4 / Polypropylene",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6in-sb17mfc35-4/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB17MFC35-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb17mfc35-8.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u2033 SB17MFC35-8 / Polypropylene",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/6in-sb17mfc35-8/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB17NRX2L35-4",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb17nrx2l35-4.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u2033 SB17NRX2L35-4 / Norex",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/sb17nrx2l35-4-norex/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB17NRX2L35-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb17nrx2l35-8.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u2033 SB17NRX2L35-8 / Norex",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/sb17nrx2l35-8-norex/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB12PFCR25-4",
+        "parameter_count": 10,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb12pfcr25-4.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "4\u2033 SB12PFCR25-4 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/4-sb12pfcr25-4-paper/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MW16P-12",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-mw16p-12.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u00bd\u2033 SATORI MW16P-12 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/satori-mw16p-12-paper/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB23CACS45-4",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb23cacs45-4.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "8\u2033 SB23CACS45-4 / Ceramic",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/8in-sb23cacs45-4/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB20PFCS30-7",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb20pfcs30-7.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "8\u2033 SB20PFCS30-7 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/sb20pfcs30-7/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB20PFCR30-4",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb20pfcr30-4.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "8\u2033 SB20PFCR30-4 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/8-sb20pfcr30-4-paper/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB26SFCL38-4",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb26sfcl38-4.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "10\u2033 SB26SFCL38-4 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/10-sb26sfcl38-4-paper/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB26SFCL38-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb26sfcl38-8.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "10\u2033 SB26SFCL38-8 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/10-sb26sfcl38-8-paper/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB29NRX75-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb29nrx75-8.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "10\u2033 SB29NRX75-8 / Norex",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/10-sb29nrx75-8-norex/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "WO24TX-4",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-wo24tx-4.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "9\u00bd\u2033 SATORI WO24TX-4 / Textreme",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/95-satori-wo24tx-4-textreme/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "WO24TX-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-wo24tx-8.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "9\u00bd\u2033 SATORI WO24TX-8 / Textreme",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/95-satori-wo24tx-8-textreme/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB16FRPC25-7",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb16frpc25-7.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "6\u2033 SB16FRPC25-7 / Paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/sb16frpc25-7/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB23MFCL45-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb23mfcl45-8.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "8\u2033 SB23MFCL45-8 / Polypropylene",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/8in-sb23mfcl45-8/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SB29SWNRX-S75-6",
+        "parameter_count": 12,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sb29swnrx-s75-6.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "10\u2033 SB29SWNRX-S75-6 / Norex",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/10in-sb29swnrx-s75-6-norex/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SW26SFC38-4",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sw26sfc38-4.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "10\u2033 SW26SFC38-4 / Paper",
+        "parameter_count": 8,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/10-sw26sfc38-4-paper/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SW26SFC38-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sw26sfc38-8.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "10\u2033 SW26SFC38-8 / Paper",
+        "parameter_count": 8,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/10%e2%80%b3-sw26sfc38-8-paper/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SW26DBAC76-4",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sw26dbac76-4.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "10\u2033 SW26DBAC76-4 / Aluminum",
+        "parameter_count": 8,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/10in-sw26dbac76-4/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "SW26DBAC76-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-sw26dbac76-8.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "10\u2033 SW26DBAC76-8 / Aluminum",
+        "parameter_count": 8,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/10in-sw26dbac76-8/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MT19CP-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-mt19cp-8.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "7\u00bd\u2033 SATORI MT19CP-8 / paper",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/product/7%c2%bd-satori-mt19cp-8-paper/"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "SB Acoustics",
+        "model": "MT19CP-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/sb-acoustics-mt19cp-8.html"
+      },
+      "removed": {
+        "brand": "SB Acoustics",
+        "model": "7.5in SATORI MT19CP-8-R2.cdr",
+        "parameter_count": 9,
+        "source": "SB Acoustics crawler",
+        "url": "https://sbacoustics.com/wp-content/uploads/2024/04/7.5in-SATORI-MT19CP-8.pdf"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "SC 13",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-sc-13.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "SC 13 - 8 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/sc-13-8-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "WF 130 ND",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-wf-130-nd.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "WF 130 ND - 8 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/bass-midranges/wf-130-nd-8-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "WS 13 E",
+        "parameter_count": 10,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-ws-13-e.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "WS 13 E - 8 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/ws-13-e-8-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "B 100",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-b-100.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "B 100 - 6 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/b-100-6-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "B 200",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-b-200.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "B 200 - 6 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/b-200-6-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "B 80",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-b-80.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "B 80 - 8 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/b-80-8-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "BG 17",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/bg-17-full-range-woofer.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "BG 17 - 8 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/bg-17-8-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "BG 20",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-bg-20.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "BG 20 - 8 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/bg-20-8-ohm"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Visaton",
+        "model": "FR 10 WP - 4 Ohm (black)",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/fr-10-wp-4-ohm-black"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "FR 10 WP - 4 Ohm (white)",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/fr-10-wp-4-ohm-white"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Visaton",
+        "model": "FR 13 WP - 4 Ohm (black)",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/fr-13-wp-4-ohm-black"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "FR 13 WP - 4 Ohm (white)",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/fr-13-wp-4-ohm-white"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Visaton",
+        "model": "FR 16 WP - 4 Ohm (black)",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/fr-16-wp-4-ohm-black"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "FR 16 WP - 4 Ohm (white)",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/fr-16-wp-4-ohm-white"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Visaton",
+        "model": "FR 8 WP - 4 Ohm (black)",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/fr-8-wp-4-ohm-black"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "FR 8 WP - 4 Ohm (white)",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/fr-8-wp-4-ohm-white"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Visaton",
+        "model": "FRS 10 WP - 4 Ohm (black)",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/frs-10-wp-4-ohm-black"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "FRS 10 WP - 4 Ohm (white)",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/frs-10-wp-4-ohm-white"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Visaton",
+        "model": "FRS 10 WP - 8 Ohm (black)",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/frs-10-wp-8-ohm-black"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "FRS 10 WP - 8 Ohm (white)",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/frs-10-wp-8-ohm-white"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "FRS 8 M",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-frs-8-m.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "FRS 8 M - 8 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/fullrange-systems/frs-8-m-8-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "AL 170",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-al-170.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "AL 170 - 8 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/woofers/al-170-8-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "AL 200",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-al-200.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "AL 200 - 8 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/woofers/al-200-8-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "TIW 200 XS",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-tiw-200-xs.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "TIW 200 XS - 8 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/woofers/tiw-200-xs-8-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "TIW 250 XS",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-tiw-250-xs.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "TIW 250 XS - 8 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/woofers/tiw-250-xs-8-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "TIW 300",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-tiw-300.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "TIW 300 - 8 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/woofers/tiw-300-8-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Visaton",
+        "model": "W 170",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/visaton-w-170.html"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "W 170 - 8 Ohm",
+        "parameter_count": 8,
+        "source": "Visaton crawler",
+        "url": "https://www.visaton.de/en/products/drivers/woofers/w-170-8-ohm"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "GRS",
+        "model": "15SSW-4HE 15\" High Excursion Super Subwoofer 4 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/GRS-15SSW-4HE-15-Paper-Cone-Rubber-Surround-High-Excursion-Super-Subwoofer-4-Ohm-292-822"
+      },
+      "removed": {
+        "brand": "GRS",
+        "model": "15SSW-4HE",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/grs-15ssw-4he.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Tang Band",
+        "model": "W4-2142 4\" Paper Cone Full Range Driver 8 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Tang-Band-W4-2142-4-Paper-Cone-Full-Range-Driver-8-Ohm-264-957"
+      },
+      "removed": {
+        "brand": "Tang Band",
+        "model": "W4-2142",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/tang-band-w4-2142.html"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Morel",
+        "model": "TiCW1258Ft",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/morel-ticw-1258ft.html"
+      },
+      "removed": {
+        "brand": "Morel",
+        "model": "TiCW 1258Ft Titanium Series 12\" Subwoofer 8 Ohm",
+        "parameter_count": 11,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Morel-TiCW-1258Ft-Titanium-Series-12-Subwoofer-8-Ohm-297-110"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Morel",
+        "model": "TSCM 634 Titanium Supreme Series 6\" Midrange 4 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Morel-TSCM-634-Titanium-Supreme-Series-6-Midrange-4-Ohm-297-106"
+      },
+      "removed": {
+        "brand": "Morel",
+        "model": "TSCM634",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/morel-tscm-634.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Morel",
+        "model": "CAW938 9\" Cast Frame Woofer",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Morel-CAW938-9-Cast-Frame-Woofer-297-086"
+      },
+      "removed": {
+        "brand": "Morel",
+        "model": "CAW938",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/morel-caw938.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Morel",
+        "model": "CAW538 5\" Cast Frame Woofer",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Morel-CAW538-5-Cast-Frame-Woofer-297-082"
+      },
+      "removed": {
+        "brand": "Morel",
+        "model": "CAW538",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/morel-caw-538.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Morel",
+        "model": "CAW638 6\" Cast Frame Woofer",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Morel-CAW638-6-Cast-Frame-Woofer-297-084"
+      },
+      "removed": {
+        "brand": "Morel",
+        "model": "CAW638",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/morel-caw-638.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Morel",
+        "model": "MW 1258 Classic Series 12\" Paper/Carbon Fiber Cone Subwoofer",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Morel-MW-1258-Classic-Series-12-Paper-Carbon-Fiber-Cone-Subwoofer-297-140"
+      },
+      "removed": {
+        "brand": "Morel",
+        "model": "MW1258",
+        "parameter_count": 9,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/morel-mw1258.html"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Morel",
+        "model": "TSCW636",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/morel-tscw-636.html"
+      },
+      "removed": {
+        "brand": "Morel",
+        "model": "TSCW 636 Titanium Supreme Series 6\" Woofer 6 Ohm",
+        "parameter_count": 11,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Morel-TSCW-636-Titanium-Supreme-Series-6-Woofer-6-Ohm-297-107"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Morel",
+        "model": "Supreme SCW 636 6\" Woofer",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Morel-Supreme-SCW-636-6-Woofer-297-114"
+      },
+      "removed": {
+        "brand": "Morel",
+        "model": "SCW636",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/morel-scw-636.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "Odeum Apollo 10N 10MB250N-8 10\" Professional Neodymium Midbass Woofer 8 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-10MB250N-8-10-Professional-Neodymium-Mid-Bass-295-640"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "10MB250N-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-10mb250n-8.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "Odeum Apollo 18N 18SW1200N-8 18\" Professional Neodymium 8 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-18SW1200N-8-18-Professional-Neodymium-295-644"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "18SW1200N-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-18sw1200n-8.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "DC130B-8 5-1/4\" Classic Woofer Speaker",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-DC130B-8-5-1-4-Classic-Woofer-Speaker-295-304"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "DC130B-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-dc130b-8.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "GF180-8 6-1/2\" Glass Fiber Cone Woofer 8 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-GF180-8-6-1-2-Glass-Fiber-Cone-Woofer-8-Ohm-295-418"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "GF180-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-gf180-8.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "DMA80-4 3\" Dual Magnet Aluminum Cone Full-Range Driver 4 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-DMA80-4-3-Dual-Magnet-Aluminum-Cone-Full-Range-Driver-4-Ohm-295-586"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "DMA80-4",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-dma80-4.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "ND64-4 2-1/2\" Aluminum Magnesium Cone Full-Range Driver 4 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-ND64-4-2-1-2-Aluminum-Magnesium-Cone-Full-Range-Driver-4-Ohm-295-520"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "ND64-4",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-nd64-4.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "Odeum Apollo 12N 12MB400N-8 12\"  Professional Neodymium Midbass Woofer 8 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-12MB400N-8-12-Professional-Neodymium-Mid-Bass-295-642"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "12MB400N-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-12mb400n-8.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "DMA105-8 4\" Dual Magnet Aluminum Cone Full-Range Driver 8 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-DMA105-8-4-Dual-Magnet-Aluminum-Cone-Full-Range-Driver-8-Ohm-295-591"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "DMA105-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-dma105-8.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "PC105-4 4\" Full-Range Poly Cone Driver",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-PC105-4-4-Full-Range-Poly-Cone-Driver-295-158"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "PC105-4",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-pc105-4.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "Odeum Apollo 8N 8MB200N-8 8\" Professional Neodymium Midbass Woofer 8 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-8MB200N-8-8-Professional-Neodymium-Mid-Bass-295-639"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "8MB200N-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-8mb200n-8.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "GF180-4 6-1/2\" Glass Fiber Cone Woofer 4 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-GF180-4-6-1-2-Glass-Fiber-Cone-Woofer-4-Ohm-295-417"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "GF180-4",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-gf180-4.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "MB820-8 8\" Professional High Power Midbass Driver 8 Ohm",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-MB820-8-8-Professional-High-Power-Midbass-Driver-8-Ohm-295-636"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "MB820-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-mb820-8.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "PC105-8 4\" Full-Range Poly Cone Driver",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-PC105-8-4-Full-Range-Poly-Cone-Driver-295-160"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "PC105-8",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-pc105-8.html"
+      }
+    },
+    {
+      "criterion": "removed driver parameters are an identical subset of kept driver",
+      "kept": {
+        "brand": "Dayton Audio",
+        "model": "RSS265HO-44 10\" Reference Series HO DVC Subwoofer",
+        "parameter_count": 12,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Dayton-Audio-RSS265HO-44-10-Reference-Series-HO-DVC-Subwoofer-295-463"
+      },
+      "removed": {
+        "brand": "Dayton Audio",
+        "model": "RSS265HO-44",
+        "parameter_count": 11,
+        "source": "SoundImports retailer",
+        "url": "https://www.soundimports.eu/en/dayton-audio-rss265ho-44.html"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Visaton",
+        "model": "FR8WP-4 3.3\" Full-Range Driver 4 Ohm Black",
+        "parameter_count": 11,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Visaton-FR8WP-4-3.3-Full-Range-Driver-4-Ohm-Black-292-625"
+      },
+      "removed": {
+        "brand": "Visaton",
+        "model": "FR8WP-4 3.3\" Full-Range Driver 4 Ohm White",
+        "parameter_count": 11,
+        "source": "Parts Express API",
+        "url": "https://www.parts-express.com/Visaton-FR8WP-4-3.3-Full-Range-Driver-4-Ohm-White-292-7846"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "SICA",
+        "model": "18 S 4 CP",
+        "parameter_count": 10,
+        "source": "SICA official",
+        "url": "https://sica.it/prodotto/18-s-4-cp/"
+      },
+      "removed": {
+        "brand": "SICA",
+        "model": "18 S 4 CP (Copy)",
+        "parameter_count": 10,
+        "source": "SICA official",
+        "url": "https://sica.it/prodotto/18-s-4-cp-copy/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Bomber",
+        "model": "WOOFER 12\u2033 ATRACK 5K 4\u2126 2500 WATTS RMS",
+        "parameter_count": 9,
+        "source": "Bomber official",
+        "url": "https://www.bomber.com.br/produto/woofer-12-atrack-5k-4%cf%89-2500-watts-rms/"
+      },
+      "removed": {
+        "brand": "Bomber",
+        "model": "WOOFER 12\u2033 ATRACK 5K 4\u2126 2500 WATTS RMS \u2013 BRANCO",
+        "parameter_count": 9,
+        "source": "Bomber official",
+        "url": "https://www.bomber.com.br/produto/woofer-12-atrack-5k-4%cf%89-2500-watts-rms-branco/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Bomber",
+        "model": "WOOFER 15\u2033 ATRACK 5K 4\u2126 2500 WATTS RMS",
+        "parameter_count": 9,
+        "source": "Bomber official",
+        "url": "https://www.bomber.com.br/produto/woofer-15-atrack-5k-4%cf%89-2500-watts-rms/"
+      },
+      "removed": {
+        "brand": "Bomber",
+        "model": "WOOFER 15\u2033 ATRACK 5K 4\u2126 2500 WATTS RMS \u2013 BRANCO",
+        "parameter_count": 9,
+        "source": "Bomber official",
+        "url": "https://www.bomber.com.br/produto/woofer-15-atrack-5k-4%cf%89-2500-watts-rms-branco/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Bomber",
+        "model": "WOOFER 15\u2033 ATRACK 5K 2\u2126 2500 WATTS RMS",
+        "parameter_count": 9,
+        "source": "Bomber official",
+        "url": "https://www.bomber.com.br/produto/woofer-15-atrack-5k-2%cf%89-2500-watts-rms/"
+      },
+      "removed": {
+        "brand": "Bomber",
+        "model": "WOOFER 15\u2033 ATRACK 5K 2\u2126 2500 WATTS RMS \u2013 BRANCO",
+        "parameter_count": 9,
+        "source": "Bomber official",
+        "url": "https://www.bomber.com.br/produto/woofer-15-atrack-5k-2%cf%89-2500-watts-rms-branco/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Bomber",
+        "model": "WOOFER 12\u2033 ATRACK 5K 2\u2126 2500 WATTS RMS",
+        "parameter_count": 9,
+        "source": "Bomber official",
+        "url": "https://www.bomber.com.br/produto/woofer-12-atrack-5k-2%cf%89-2500-watts-rms/"
+      },
+      "removed": {
+        "brand": "Bomber",
+        "model": "WOOFER 12\u2033 ATRACK 5K 2\u2126 2500 WATTS RMS \u2013 BRANCO",
+        "parameter_count": 9,
+        "source": "Bomber official",
+        "url": "https://www.bomber.com.br/produto/woofer-12-atrack-5k-2%cf%89-2500-watts-rms-branco/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Bomber",
+        "model": "WOOFER 15\u2033 ATRACK BASS 3.8K 4\u2126 PRETO",
+        "parameter_count": 9,
+        "source": "Bomber official",
+        "url": "https://www.bomber.com.br/produto/woofer-15-atrack-bass-3-8k-4%cf%89-preto/"
+      },
+      "removed": {
+        "brand": "Bomber",
+        "model": "WOOFER 15\u2033 ATRACK BASS 3.8K 4\u2126 VERMELHO",
+        "parameter_count": 9,
+        "source": "Bomber official",
+        "url": "https://www.bomber.com.br/produto/woofer-15-atrack-bass-3-8k-4%cf%89-vermelho/"
+      }
+    },
+    {
+      "criterion": "all non-zero driver parameters identical",
+      "kept": {
+        "brand": "Bomber",
+        "model": "MEDIO GRAVE 10\u2033 ATRACK 800 WATTS RMS 8\u2126 PRETO",
+        "parameter_count": 9,
+        "source": "Bomber official",
+        "url": "https://www.bomber.com.br/produto/medio-grave-10-atrack-800-watts-rms-8%cf%89-preto/"
+      },
+      "removed": {
+        "brand": "Bomber",
+        "model": "MEDIO GRAVE 10\u2033 ATRACK 800 WATTS RMS 8\u2126 QUADRADO",
+        "parameter_count": 9,
+        "source": "Bomber official",
+        "url": "https://www.bomber.com.br/produto/medio-grave-10-atrack-800-watts-rms-8%cf%89-quadrado/"
+      }
+    }
+  ],
+  "generated_at": "2026-07-22T12:58:57+00:00",
+  "removed": 273
+}

@@ -16,6 +16,7 @@ and availability are volatile.  Current provider support:
 from __future__ import annotations
 
 import argparse
+from collections import defaultdict
 import datetime as dt
 import html
 import json
@@ -62,6 +63,7 @@ class PresetCandidate:
     brand: str
     model: str
     query: str
+    url: str = ""
 
 
 @dataclass(frozen=True)
@@ -414,9 +416,17 @@ def brand_compacts(brand: str) -> set[str]:
 def model_compacts(model: str) -> set[str]:
     compacts = set()
     for variant in {model, IMPEDANCE_SUFFIX.sub("", model)}:
-        compact = "".join(tokenize(variant))
+        tokens = tokenize(variant)
+        compact = "".join(tokens)
         if compact:
             compacts.add(compact)
+        for sequence in compact_token_sequences(tokens):
+            if (
+                len(sequence) >= 5
+                and any(character.isalpha() for character in sequence)
+                and any(character.isdigit() for character in sequence)
+            ):
+                compacts.add(sequence)
     return compacts
 
 
@@ -458,8 +468,16 @@ def match_score(candidate: PresetCandidate, product: dict) -> float:
     models = model_compacts(candidate.model)
     brands = brand_compacts(candidate.brand)
     strong_sequences, all_sequences = product_match_sequences(product)
+    product_fields = [
+        normalize_token(str(product.get(key, "")))
+        for key in ("name", "brand", "mpn", "sku", "url")
+    ]
     score = 0.0
-    model_matched = any(model in all_sequences for model in models)
+    model_matched = any(
+        model in all_sequences
+        or (len(model) >= 8 and any(model in field for field in product_fields))
+        for model in models
+    )
     brand_matched = any(brand in all_sequences for brand in brands)
     query_matched = bool(query and query in strong_sequences)
     if model_matched:
@@ -470,6 +488,10 @@ def match_score(candidate: PresetCandidate, product: dict) -> float:
         score += 0.15
     if candidate.brand and not brand_matched and candidate_model_is_weak(candidate.model):
         score = min(score, 0.59)
+    elif candidate.brand and not brand_matched:
+        # Model codes are not globally unique (for example 8MB500 exists under
+        # multiple manufacturers), so a known brand must also be evidenced.
+        score = min(score, 0.79)
     return min(score, 1.0)
 
 
@@ -519,6 +541,196 @@ def best_candidate_match(candidates: list[PresetCandidate], product: dict) -> tu
             best_candidate = candidate
             best_score = score
     return best_candidate, best_score
+
+
+def _candidate_catalog_indexes(
+    candidates: list[PresetCandidate],
+) -> tuple[dict[str, list[PresetCandidate]], dict[str, list[PresetCandidate]]]:
+    """Build exact-name and model-token indexes for cached-catalog rematching."""
+    exact: dict[str, list[PresetCandidate]] = defaultdict(list)
+    models: dict[str, list[PresetCandidate]] = defaultdict(list)
+    for candidate in candidates:
+        display_name = re.sub(r"^(?:WEB|PDF|LSDB):\s*", "", candidate.name, flags=re.I)
+        for value in (
+            display_name,
+            f"{candidate.brand} {candidate.model}",
+            candidate.model,
+            candidate.url,
+        ):
+            key = normalize_token(value)
+            if key and candidate not in exact[key]:
+                exact[key].append(candidate)
+        for key in model_compacts(candidate.model):
+            if key and candidate not in models[key]:
+                models[key].append(candidate)
+    return exact, models
+
+
+def _catalog_candidate_pool(
+    product: dict,
+    exact_index: dict[str, list[PresetCandidate]],
+    model_index: dict[str, list[PresetCandidate]],
+) -> list[PresetCandidate]:
+    candidates: set[PresetCandidate] = set()
+    exact_values = (
+        product.get("name", ""),
+        f"{product.get('brand', '')} {product.get('mpn', '')}",
+        product.get("mpn", ""),
+        product.get("sku", ""),
+        product.get("url", ""),
+    )
+    for value in exact_values:
+        candidates.update(exact_index.get(normalize_token(str(value)), ()))
+    _strong, sequences = product_match_sequences(product)
+    for sequence in sequences:
+        candidates.update(model_index.get(sequence, ()))
+    return list(candidates)
+
+
+def _prefer_rematched_price(existing: object, candidate: dict) -> bool:
+    if not isinstance(existing, dict):
+        return True
+    old_confidence = number(existing.get("confidence")) or 0.0
+    new_confidence = number(candidate.get("confidence")) or 0.0
+    if new_confidence > old_confidence:
+        return True
+    if new_confidence < old_confidence:
+        return False
+    if str(existing.get("currency") or "") != str(candidate.get("currency") or ""):
+        return False
+    old_price = number(existing.get("price"))
+    new_price = number(candidate.get("price"))
+    return new_price is not None and (old_price is None or new_price < old_price)
+
+
+def _candidate_has_exact_product_identity(candidate: PresetCandidate, product: dict) -> bool:
+    display_name = re.sub(r"^(?:WEB|PDF|LSDB):\s*", "", candidate.name, flags=re.I)
+    candidate_keys = {
+        normalize_token(display_name),
+        normalize_token(f"{candidate.brand} {candidate.model}"),
+        normalize_token(candidate.model),
+        normalize_token(candidate.url),
+    }
+    product_keys = {
+        normalize_token(str(product.get("name", ""))),
+        normalize_token(f"{product.get('brand', '')} {product.get('mpn', '')}"),
+        normalize_token(str(product.get("mpn", ""))),
+        normalize_token(str(product.get("sku", ""))),
+        normalize_token(str(product.get("url", ""))),
+    }
+    candidate_keys.discard("")
+    product_keys.discard("")
+    return bool(candidate_keys & product_keys)
+
+
+def rematch_cached_catalog(
+    candidates: list[PresetCandidate],
+    payload: dict,
+    min_confidence: float = 0.8,
+) -> dict[str, int]:
+    """Link cached retailer offers to a new preset catalog without networking."""
+    exact_index, model_index = _candidate_catalog_indexes(candidates)
+    prices = payload.setdefault("prices", {})
+    stats = {
+        "products_scanned": 0,
+        "products_matched": 0,
+        "candidates_priced": 0,
+        "new_prices": 0,
+        "replaced_prices": 0,
+    }
+    matched_names: set[str] = set()
+    catalogs = payload.get("catalog", {})
+    seller_order = ("SoundImports", "BlueAran", "Madisound", "PartsExpress")
+    remaining_sellers = sorted(set(catalogs) - set(seller_order))
+    for seller in (*seller_order, *remaining_sellers):
+        catalog = catalogs.get(seller, {})
+        if not isinstance(catalog, dict):
+            continue
+        for product in catalog.values():
+            if not isinstance(product, dict):
+                continue
+            stats["products_scanned"] += 1
+            pool = _catalog_candidate_pool(product, exact_index, model_index)
+            candidate, score = best_candidate_match(pool, product)
+            if candidate is None or score < min_confidence:
+                continue
+            stats["products_matched"] += 1
+            selected = {candidate: score}
+            for exact_candidate in pool:
+                exact_score = match_score(exact_candidate, product)
+                if (
+                    exact_score >= min_confidence
+                    and _candidate_has_exact_product_identity(exact_candidate, product)
+                ):
+                    selected[exact_candidate] = exact_score
+            for selected_candidate, selected_score in selected.items():
+                matched_names.add(selected_candidate.name)
+                record = price_record(selected_candidate, product, seller, selected_score)
+                existing = prices.get(selected_candidate.name)
+                if _prefer_rematched_price(existing, record):
+                    prices[selected_candidate.name] = record
+                    if isinstance(existing, dict):
+                        stats["replaced_prices"] += 1
+                    else:
+                        stats["new_prices"] += 1
+    stats["candidates_priced"] = len(matched_names)
+    return stats
+
+
+def retailer_provider_for_url(url: str) -> Provider | None:
+    host = str(url or "").casefold()
+    for provider in PROVIDERS.values():
+        if provider.base_url.casefold().removeprefix("https://www.").split("/", 1)[0] in host:
+            return provider
+    return None
+
+
+def enrich_preset_product_urls(
+    candidates: list[PresetCandidate],
+    payload: dict,
+    output_path: Path,
+    timeout_s: float,
+    sleep_s: float,
+    limit: int,
+    min_confidence: float,
+) -> dict[str, int]:
+    """Refresh missing prices from retailer URLs already attached to presets."""
+    prices = payload.setdefault("prices", {})
+    stats = {"scanned": 0, "matched": 0, "missed": 0}
+    for candidate in candidates:
+        if limit > 0 and stats["scanned"] >= limit:
+            break
+        if candidate.name in prices:
+            continue
+        provider = retailer_provider_for_url(candidate.url)
+        if provider is None:
+            continue
+        stats["scanned"] += 1
+        try:
+            products, _next = provider_page_products(provider, candidate.url, timeout_s)
+        except FETCH_ERRORS as exc:
+            stats["missed"] += 1
+            log(f"preset url miss {candidate.name}: {exc}")
+            time.sleep(sleep_s)
+            continue
+        ranked = sorted(
+            ((match_score(candidate, product), product) for product in products),
+            key=lambda pair: pair[0],
+            reverse=True,
+        )
+        if not ranked or ranked[0][0] < min_confidence:
+            stats["missed"] += 1
+            log(f"preset url no confident offer {candidate.name}")
+        else:
+            score, product = ranked[0]
+            prices[candidate.name] = price_record(candidate, product, provider.seller, score)
+            catalog = payload.setdefault("catalog", {}).setdefault(provider.seller, {})
+            catalog[candidate.url] = catalog_record(product, provider.seller)
+            stats["matched"] += 1
+            log(f"preset url price {candidate.name}: {product['price']} {product['currency']}")
+            write_output(output_path, payload)
+        time.sleep(sleep_s)
+    return stats
 
 
 def ingest_product(
@@ -633,7 +845,13 @@ def load_candidates(path: Path) -> list[PresetCandidate]:
         brand = str(item.get("brand") or "")
         model = str(item.get("model") or name.removeprefix("LSDB: ").strip())
         query = model or name
-        candidates.append(PresetCandidate(name=name, brand=brand, model=model, query=query))
+        candidates.append(PresetCandidate(
+            name=name,
+            brand=brand,
+            model=model,
+            query=query,
+            url=str(item.get("url") or ""),
+        ))
     return candidates
 
 
@@ -882,6 +1100,16 @@ def main() -> int:
     parser.add_argument("--soundimports-sitemap", action="store_true", help="Deprecated alias of --sitemap.")
     parser.add_argument("--soundimports-driver-categories", action="store_true")
     parser.add_argument("--prune-prices", action="store_true", help="Remove stale price records that no longer match presets confidently.")
+    parser.add_argument(
+        "--rematch-catalog",
+        action="store_true",
+        help="Match already cached retailer catalogs against --presets without network requests.",
+    )
+    parser.add_argument(
+        "--refresh-preset-urls",
+        action="store_true",
+        help="Fetch missing prices from recognized retailer URLs already stored in --presets.",
+    )
     parser.add_argument("--min-price", type=float, default=0.0, help="Optional lowest price kept by --prune-prices; default keeps coherent low prices.")
     parser.add_argument("--category-url", action="append", default=[], help="Category URL to parse via JSON-LD ItemList.")
     parser.add_argument("--query", action="append", default=[], help="Explicit search query to price.")
@@ -897,6 +1125,26 @@ def main() -> int:
         removed = prune_price_matches(candidates, payload, float(args.min_confidence), float(args.min_price))
         write_output(args.output, payload)
         log(f"pruned {removed} stale or implausible price records")
+        return 0
+
+    if args.rematch_catalog:
+        stats = rematch_cached_catalog(candidates, payload, float(args.min_confidence))
+        write_output(args.output, payload)
+        log("cached catalog rematch: " + " ".join(f"{key}={value}" for key, value in stats.items()))
+        return 0
+
+    if args.refresh_preset_urls:
+        stats = enrich_preset_product_urls(
+            candidates,
+            payload,
+            args.output,
+            float(args.timeout),
+            float(args.sleep),
+            int(args.limit),
+            float(args.min_confidence),
+        )
+        write_output(args.output, payload)
+        log("preset URL refresh: " + " ".join(f"{key}={value}" for key, value in stats.items()))
         return 0
 
     if args.sitemap or args.soundimports_sitemap:
@@ -977,6 +1225,9 @@ def main() -> int:
                 prices[candidate.name] = {**record, "confidence": round(score, 3)}
             log(f"direct {key}: {record['price']} {record['currency']} {record['seller']}")
             write_output(args.output, payload)
+
+    if args.url and not args.query:
+        return 0
 
     if args.provider != "soundimports":
         if args.url:

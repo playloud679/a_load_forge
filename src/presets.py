@@ -616,6 +616,7 @@ def _driver_ts_from_mapping(values: dict) -> DriverTS:
         re_ohm=float(values["re_ohm"]),
         sd_cm2=float(values["sd_cm2"]),
         le_mh=float(values.get("le_mh", 0.0)),
+        le10k_mh=float(values["le10k_mh"]) if values.get("le10k_mh") is not None else None,
         xmax_mm=float(values.get("xmax_mm", 0.0)),
         pe_w=float(values.get("pe_w", 0.0)),
         mms_g=float(values["mms_g"]) if values.get("mms_g") is not None else None,

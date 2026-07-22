@@ -1,0 +1,18 @@
+{
+  "applied": true,
+  "derived": {},
+  "driver_field_coverage": {
+    "bl_tm": 4423,
+    "cms_mm_per_n": 4423,
+    "le_mh": 4252,
+    "mms_g": 4421,
+    "pe_w": 4260,
+    "qes": 4424,
+    "xmax_mm": 4206
+  },
+  "generated_at": "2026-07-22T14:34:07+00:00",
+  "priced": 2860,
+  "rows": 4424,
+  "size_coverage": 4424,
+  "unpriced": 1564
+}

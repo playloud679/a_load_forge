@@ -2133,6 +2133,63 @@ def _check_lsdb_importer_preserves_website_fields_and_prices():
 test("LSDB importer preserves website fields and prices", _check_lsdb_importer_preserves_website_fields_and_prices)
 
 
+def _check_manufacturer_optional_refresh_preserves_values_and_provenance():
+    from tools import refresh_manufacturer_optionals as refresh
+
+    record = {
+        "driver": {"xmax_mm": 0.0, "pe_w": 100.0, "le_mh": 0.0},
+        "website_fields": {},
+    }
+    preset = {
+        "url": "https://manufacturer.example/woofer-12",
+        "source": "Manufacturer optional refresh",
+        "driver": {"xmax_mm": 6.0, "pe_w": 250.0, "le_mh": 1.2},
+        "website_fields": {
+            "fetched_at": "2026-07-22T00:00:00+00:00",
+            "raw_measurements": {
+                "le_mh": {"label": "Le1k", "value": 1.2, "unit": "mH"},
+                "linear_travel_pp_mm": {"label": "Linear coil travel (p-p)", "value": 12.0, "unit": "mm"},
+            },
+            "derivations": {
+                "xmax_mm": {"formula": "linear_travel_pp_mm / 2", "source_fields": ["linear_travel_pp_mm"]},
+            },
+        },
+    }
+    changed = refresh.apply_preset_to_record(record, preset)
+    assert changed == ["xmax_mm", "le_mh"], changed
+    assert record["driver"]["pe_w"] == 100.0
+    provenance = record["website_fields"]["field_provenance"]
+    assert provenance["xmax_mm"]["derivation"]["formula"] == "linear_travel_pp_mm / 2"
+    assert provenance["le_mh"]["measurement"]["label"] == "Le1k"
+    bad_thousands = {
+        "url": "https://manufacturer.example/big-sub",
+        "driver": {"pe_w": 2.0},
+        "website_fields": {"raw_measurements": {
+            "pe_w": {"label": "Power Handling", "raw_value": "2,000", "unit": "watts"},
+        }},
+    }
+    assert refresh.repair_reparsable_power(bad_thousands)
+    assert bad_thousands["driver"]["pe_w"] == 2000.0
+    bad_unitless = {
+        "driver": {"pe_w": 98.5},
+        "website_fields": {"raw_measurements": {
+            "pe_w": {"label": "power handling", "raw_value": "98.5", "unit": ""},
+        }},
+    }
+    assert refresh.invalidate_unitless_power(bad_unitless)
+    assert bad_unitless["driver"]["pe_w"] == 0.0
+    interleaved = refresh.round_robin_by_host([
+        (1, {"url": "https://a.example/1"}),
+        (2, {"url": "https://a.example/2"}),
+        (3, {"url": "https://b.example/1"}),
+        (4, {"url": "https://b.example/2"}),
+    ])
+    assert [item[0] for item in interleaved] == [1, 3, 2, 4]
+
+
+test("Manufacturer optional refresh preserves values and provenance", _check_manufacturer_optional_refresh_preserves_values_and_provenance)
+
+
 def _check_generic_ts_crawler_discovers_normalizes_and_merges():
     import json
     import tempfile
@@ -2150,12 +2207,50 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
     assert crawler.canonical_parameter("L1kHz") == "le_mh"
     assert crawler.canonical_parameter("X Max") == "xmax_mm"
     assert crawler.canonical_parameter("Pwr") == "pe_w"
+    assert crawler.parse_number("2,000") == 2000.0
+    assert np.isclose(crawler.parse_number("2,5"), 2.5)
+    assert "pe_w" not in crawler.choose_measurements(crawler.text_measurements("Power handling 4"))
+    assert crawler.measurement_from_pair("Power handling", "98.5", "", "html.table") is None
+    hydration = crawler.jsonld_measurements([{
+        "parameters": [
+            {"label": "Fs", "value": 42, "units": {"default": "Hz"}},
+            {"label": "Qts", "value": 0.31, "units": {"default": ""}},
+        ]
+    }])
+    assert {item.key for item in hydration} == {"fs_hz", "qts"}
     markaudio_optional = crawler.choose_measurements(crawler.text_measurements(
         "L1kHz 0.2283 mH X Max (Mech) +/- 9mm Pwr 50 Watts (Nom)"
     ))
     assert np.isclose(markaudio_optional["le_mh"].value, 0.2283)
     assert np.isclose(markaudio_optional["xmax_mm"].value, 9.0)
     assert np.isclose(markaudio_optional["pe_w"].value, 50.0)
+    manufacturer_optional = crawler.choose_measurements(crawler.text_measurements(
+        "Excursion limit +/-8.5 mm Inductance of the voice coil L 0.9 mH "
+        "Continuous power rating 60 W Power rating 30 W"
+    ))
+    assert np.isclose(manufacturer_optional["xmax_mm"].value, 8.5)
+    assert np.isclose(manufacturer_optional["le_mh"].value, 0.9)
+    assert np.isclose(manufacturer_optional["pe_w"].value, 30.0)
+    rcf_optional = crawler.choose_measurements(crawler.text_measurements(
+        "Power handling capacity 300 W Voice coil inductance @ 1kHz (Le1k) 0.50 mH"
+    ))
+    assert np.isclose(rcf_optional["pe_w"].value, 300.0)
+    assert np.isclose(rcf_optional["le_mh"].value, 0.5)
+    sb_values = crawler.derive_driver_values({
+        item.key: item.value for item in crawler.text_measurements(
+            "Linear coil travel (p-p) 11 mm Rated power handling* 60 W"
+        )
+    })
+    assert np.isclose(sb_values["xmax_mm"], 5.5)
+    assert np.isclose(sb_values["pe_w"], 60.0)
+    localized_power = crawler.choose_measurements(crawler.text_measurements(
+        "Potência (RMS) 400 W_RMS Watts 20 W Power handling P 250 W"
+    ))
+    assert np.isclose(localized_power["pe_w"].value, 400.0)
+    multiline_power = crawler.choose_measurements(crawler.text_measurements(
+        "Power handling\nP\n250\nW"
+    ))
+    assert np.isclose(multiline_power["pe_w"].value, 250.0)
 
     product_html = b"""
     <html><head>
@@ -2200,6 +2295,119 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
     assert np.isclose(driver["pe_w"], 400.0)
     assert np.isclose(driver["mms_g"], 100.0)
     assert np.isclose(driver["cms_mm_per_n"], 0.25)
+
+    dirty_storefront = crawler.parse_html(b"""
+    <html><head><title>Scan-Speak Example 4&quot; Woofer</title>
+      <script type="application/ld+json">
+      [{"@type":"Product","name":"Scan-Speak Example 4 inch Woofer",
+        "brand":{"name":"Scan-Speak"},"mpn":"EX4",
+        "description":"line one
+line two"}]
+      </script></head><body>
+      Fs 90 Hz Vas 0.07 ft.<sup>3</sup> Qts 0.29 Qms 3.2
+      Re 3.2 ohms Sd 36 cm<sup>2</sup>
+    </body></html>
+    """)
+    dirty_preset, errors = crawler.build_preset(
+        dirty_storefront, "https://shop.example.test/scan-speak-ex4")
+    assert not errors and dirty_preset is not None, errors
+    assert dirty_preset["brand"] == "Scan-Speak"
+    assert dirty_preset["model"] == "EX4"
+    assert np.isclose(dirty_preset["driver"]["vas_l"], 0.07 * 28.316846592)
+    assert np.isclose(dirty_preset["driver"]["sd_cm2"], 36.0)
+
+    parallel_table = crawler.PageData(
+        title="12NB400",
+        text="""THIELE-SMALL PARAMETERS
+Fs
+Qms
+Qes
+Qts
+Vas
+Mms
+Re
+Sd
+43.58 Hz
+10.39
+0.183
+0.180
+70.45 litres
+59.82 grams
+5.00 Ohms
+514.7 cm2""",
+    )
+    parallel_preset, errors = crawler.build_preset(
+        parallel_table, "https://oberton.example/12nb400", brand_hint="Oberton")
+    assert not errors and parallel_preset is not None, errors
+    assert np.isclose(parallel_preset["driver"]["vas_l"], 70.45)
+
+    parallel_specs = crawler.table_measurements("""SPECIFICATIONS
+Nominal Diameter
+Impedance
+Power Capacity AES
+Program Power
+Sensitivity
+18 inch
+8 Ohm
+1600 W
+3200 W
+97 dB""")
+    parallel_specs_chosen = crawler.choose_measurements(parallel_specs)
+    assert np.isclose(parallel_specs_chosen["pe_w"].value, 1600.0)
+
+    phl_table = crawler.PageData(
+        title="4031 12 inches bass driver",
+        text="""Thiele-Small parameters
+Resonance frequency                    Fs                 Hz         44 (+/-6)
+DC Resistance                          Re                  W        5.6 (+/-0.6)
+Mechanical quality factor              Qms                 1           5.36
+Electrical quality factor              Qes                 1           0.29
+Total quality factor                   Qts                 1           0.27
+Effective piston area                  Sd                 m2         0.0539
+Equivalent Cas air load                Vas                m3         0.0700""",
+    )
+    phl_preset, errors = crawler.build_preset(
+        phl_table, "https://phl.example/4031.pdf", brand_hint="PHL Audio",
+        extraction_method="pdf")
+    assert not errors and phl_preset is not None, errors
+    assert np.isclose(phl_preset["driver"]["re_ohm"], 5.6)
+    assert np.isclose(phl_preset["driver"]["sd_cm2"], 539.0)
+
+    fostex_page = crawler.PageData(
+        title="FE108NS 4 inch Full Range",
+        text=("Fs 75 Hz Vas 5.37 L Qts 0.32 Qms 3.11 Re 7.4 ohm "
+              "Equivalent Diaphragm Radius 39.5 mm"),
+    )
+    fostex_preset, errors = crawler.build_preset(
+        fostex_page, "https://fostex.example/fe108ns", brand_hint="Fostex")
+    assert not errors and fostex_preset is not None, errors
+    assert np.isclose(fostex_preset["driver"]["sd_cm2"], np.pi * 3.95**2)
+    assert fostex_preset["website_fields"]["derived_fields"] == ["sd_cm2"]
+    assert crawler.infer_size_in("18FT-100SW", 'menu 8" item') == 18.0
+    assert crawler.infer_size_in("18FT-100SW", 'Nominal Diameter 18"') == 18.0
+    generic_title = crawler.PageData(
+        title="Discontinued product",
+        h1="Discontinued product",
+        text="Fs 37.2 Hz Vas 111.02 L Qts 0.3 Qms 4.2 Re 5.1 ohm Sd 855 cm2",
+    )
+    generic_preset, errors = crawler.build_preset(
+        generic_title,
+        "https://oberton.example/products/ferrite-loudspeakers/164-15xb700.html",
+        brand_hint="Oberton",
+    )
+    assert not errors and generic_preset is not None, errors
+    assert generic_preset["model"] == "15XB700"
+    empty_pdf_title = crawler.PageData(
+        text="Fs 44 Hz Vas 70 L Qts 0.27 Qms 5.36 Re 5.6 ohm Sd 539 cm2",
+    )
+    pdf_preset, errors = crawler.build_preset(
+        empty_pdf_title,
+        "https://phl.example/fileadmin/4031NdU-19_SpecSheet.pdf",
+        brand_hint="PHL Audio",
+        extraction_method="pdf",
+    )
+    assert not errors and pdf_preset is not None, errors
+    assert pdf_preset["model"] == "4031NdU-19"
 
     storefront_page = crawler.parse_html(b"""
     <html><head><title>Dayton Audio 10MB250N-8</title></head><body><dl>
@@ -2297,9 +2505,110 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
         )
         assert stats["updated"] == 1
         assert refreshed[0]["driver"]["fs_hz"] == crawled[0]["driver"]["fs_hz"]
+        stale_identity = json.loads(json.dumps(crawled[0]))
+        stale_identity["model"] = "Discontinued product"
+        renamed, stats = crawler.merge_presets(
+            [stale_identity], crawled, refresh_source="Web crawler"
+        )
+        assert stats == {"added": 0, "updated": 1, "unchanged": 0}, stats
+        assert renamed[0]["model"] == "TH12"
 
 
 test("Generic T/S crawler discovers, normalizes and safely merges drivers", _check_generic_ts_crawler_discovers_normalizes_and_merges)
+
+
+def _check_manufacturer_deduper_only_removes_identical_subsets():
+    from tools import dedupe_manufacturer_drivers as deduper
+
+    def row(model, driver, source="Manufacturer website"):
+        return {
+            "name": f"WEB: Acme {model}",
+            "brand": "Acme",
+            "model": model,
+            "source": source,
+            "url": f"https://acme.example/{model}",
+            "driver": driver,
+            "website_fields": {},
+        }
+
+    required = {
+        "fs_hz": 40.0, "vas_l": 50.0, "qts": 0.35,
+        "qms": 5.0, "re_ohm": 5.6, "sd_cm2": 330.0,
+    }
+    full = row("W12", {**required, "bl_tm": 15.0, "xmax_mm": 8.0})
+    verbose = row('LOUDSPEAKER 12" W12 8 OH', dict(required), "Retailer")
+    conflicting = row("W12-special", {**required, "bl_tm": 16.0})
+    other = row("W12-4", {**required, "re_ohm": 3.2})
+    same_numbers_different_model = row("W13", {**required, "bl_tm": 15.0, "xmax_mm": 8.0})
+    impedance_variant_4 = row(
+        "LOUDSPEAKER X12 4 OHM", {**required, "bl_tm": 15.0, "xmax_mm": 8.0}
+    )
+    impedance_variant_8 = row(
+        "LOUDSPEAKER X12 8 OHM", {**required, "bl_tm": 15.0, "xmax_mm": 8.0}
+    )
+
+    result, report = deduper.deduplicate_presets([
+        verbose, conflicting, other, same_numbers_different_model,
+        impedance_variant_4, impedance_variant_8, full,
+    ])
+    assert report["removed"] == 1, report
+    assert [item["model"] for item in result] == [
+        "W12-special", "W12-4", "W13", "LOUDSPEAKER X12 4 OHM",
+        "LOUDSPEAKER X12 8 OHM", "W12",
+    ]
+    assert result[-1]["website_fields"]["aliases"] == ['LOUDSPEAKER 12" W12 8 OH']
+    assert result[-1]["website_fields"]["merged_duplicates"][0]["source"] == "Retailer"
+
+
+test(
+    "Manufacturer deduper removes only identical parameter subsets",
+    _check_manufacturer_deduper_only_removes_identical_subsets,
+)
+
+
+def _check_manufacturer_metadata_enrichment_uses_physics_and_verified_prices():
+    from tools import enrich_manufacturer_metadata as enricher
+
+    row = {
+        "name": "WEB: Acme W12",
+        "brand": "Acme",
+        "model": "W12",
+        "url": "https://acme.example/w12",
+        "driver": {
+            "fs_hz": 30.0, "vas_l": 100.0, "qts": 0.35,
+            "qms": 5.0, "re_ohm": 5.6, "sd_cm2": 500.0,
+        },
+    }
+    price = {
+        "WEB: Acme W12": {
+            "price": 199.95,
+            "currency": "EUR",
+            "seller": "Example",
+            "url": "https://shop.example/acme-w12",
+            "availability": "https://schema.org/InStock",
+            "matched_name": "Acme W12 woofer",
+            "matched_brand": "Acme",
+            "matched_mpn": "W12",
+            "confidence": 0.9,
+            "fetched_at": "2026-07-22T00:00:00+00:00",
+        }
+    }
+    result, report = enricher.enrich_presets([row], price)
+    item = result[0]
+    assert item["size_in"] == 12.0
+    assert item["driver"]["qes"] > item["driver"]["qts"]
+    assert item["driver"]["cms_mm_per_n"] > 0.0
+    assert item["driver"]["mms_g"] > 0.0
+    assert item["driver"]["bl_tm"] > 0.0
+    assert item["price"] == 199.95 and item["currency"] == "EUR"
+    assert report["priced"] == 1 and report["unpriced"] == 0
+    assert set(report["derived"]) == {"bl_tm", "cms_mm_per_n", "mms_g", "qes", "size_in"}
+
+
+test(
+    "Manufacturer metadata enrichment uses physics and verified prices",
+    _check_manufacturer_metadata_enrichment_uses_physics_and_verified_prices,
+)
 
 
 def _check_pdf_datasheet_library_archives_indexes_and_merges_aliases():
@@ -2598,6 +2907,23 @@ def _check_price_enricher_rejects_weak_substring_matches():
     }
     removed = enricher.prune_price_matches([candidate], payload, 0.8, 0.0)
     assert removed == 1
+
+    brand_collision = enricher.PresetCandidate(
+        name="WEB: Eighteen Sound 8MB500",
+        brand="Eighteen Sound",
+        model="8MB500",
+        query="8MB500",
+    )
+    prv_product = {
+        "name": "PRV Audio 8MB500 Bass-midwoofer",
+        "brand": "PRV Audio",
+        "mpn": "8MB500",
+        "sku": "8MB500",
+        "url": "https://example.test/prv-8mb500",
+        "price": 49.95,
+        "currency": "EUR",
+    }
+    assert enricher.match_score(brand_collision, prv_product) < 0.8
     assert payload["prices"]["LP 10"]["price"] == 5.95
 
 
@@ -2899,6 +3225,45 @@ def _check_price_enricher_keeps_existing_record_across_currencies():
 
 
 test("Price enricher keeps existing records across currencies", _check_price_enricher_keeps_existing_record_across_currencies)
+
+
+def _check_price_enricher_rematches_cached_catalog_without_network():
+    from tools import enrich_driver_prices as enricher
+
+    candidate = enricher.PresetCandidate(
+        name='WEB: GRS 5-1/4" Woofer Surface Mount Poly Cone 4 Ohm 5SMP-4',
+        brand="GRS",
+        model='5-1/4" Woofer Surface Mount Poly Cone 4 Ohm 5SMP-4',
+        query="5SMP-4",
+        url="https://example.test/5smp-4",
+    )
+    product = {
+        "name": 'GRS 5-1/4" Woofer Surface Mount Poly Cone 4 Ohm 5SMP-4',
+        "brand": "GRS",
+        "mpn": "5SMP-4",
+        "sku": "292-858",
+        "url": "https://example.test/5smp-4",
+        "price": 24.98,
+        "currency": "USD",
+        "availability": "https://schema.org/InStock",
+        "price_valid_until": "",
+    }
+    payload = {"prices": {}, "catalog": {"PartsExpress": {product["url"]: product}}}
+    stats = enricher.rematch_cached_catalog([candidate], payload)
+    assert stats == {
+        "products_scanned": 1,
+        "products_matched": 1,
+        "candidates_priced": 1,
+        "new_prices": 1,
+        "replaced_prices": 0,
+    }, stats
+    assert payload["prices"][candidate.name]["price"] == 24.98
+
+
+test(
+    "Price enricher rematches cached catalogs without network",
+    _check_price_enricher_rematches_cached_catalog_without_network,
+)
 
 
 def _check_ui_batch_finder_ranks_presets_under_volume_cap():

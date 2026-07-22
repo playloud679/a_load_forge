@@ -36,6 +36,11 @@ contracts and the test list — lives in `docs/dccav.md`.
 
 ## Panel air loading
 
+`DriverTS.le10k_mh` is an optional, display-only voice-coil inductance
+measured at 10 kHz (some pro-audio datasheets publish it alongside the usual
+1 kHz `le_mh`, e.g. to flag impedance rise at high frequency). It is not used
+by any impedance/response formula in this module.
+
 `DriverTS.panel_air_load` defaults to `True`; `panel_coupling` defaults to
 `0.90`.  The engine calculates the finite-baffle air-mass increment from the
 equivalent piston radius as

@@ -1,0 +1,29 @@
+{
+  "candidates": 0,
+  "coverage_after": {
+    "le_mh": {
+      "missing": 172,
+      "percent": 96.11,
+      "present": 4252
+    },
+    "pe_w": {
+      "missing": 164,
+      "percent": 96.29,
+      "present": 4260
+    },
+    "xmax_mm": {
+      "missing": 218,
+      "percent": 95.07,
+      "present": 4206
+    }
+  },
+  "database": "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json",
+  "failures": [],
+  "fields_filled": {},
+  "local_power_repairs": 0,
+  "mode": "apply",
+  "processed": 0,
+  "records_updated": 0,
+  "records_updated_by_host": {},
+  "unitless_power_invalidations": 0
+}

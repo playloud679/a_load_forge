@@ -73,7 +73,17 @@ def _price_record_matches_preset(record: dict, name: str, brand: str, model: str
     for key in ("matched_name", "matched_brand", "matched_mpn", "url"):
         product_tokens.extend(_preset_match_tokens(str(record.get(key, ""))))
     product_sequences = _compact_token_sequences(product_tokens)
-    model_ok = bool(model_key and model_key in product_sequences)
+    product_fields = [
+        "".join(_preset_match_tokens(str(record.get(key, ""))))
+        for key in ("matched_name", "matched_brand", "matched_mpn", "url")
+    ]
+    model_ok = bool(
+        model_key
+        and (
+            model_key in product_sequences
+            or (len(model_key) >= 8 and any(model_key in field for field in product_fields))
+        )
+    )
     brand_ok = bool(not brand_key or brand_key in product_sequences)
     if _model_needs_brand(model or name) and not brand_ok:
         return False

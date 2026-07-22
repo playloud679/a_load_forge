@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.6.2 (2026-07-22)
+
+- **Performance fix**: eliminated the multi-second "Run match" startup stall by
+  keeping the parallel Finder worker pool warm across reruns (previously
+  recreated, and its workers re-imported the stack and rebuilt the driver
+  catalog, on every click) and pre-warming it as soon as the Bass Match
+  sidebar opens. Chunk size and progress-update cadence were also tightened
+  so the progress bar starts moving immediately instead of stalling on the
+  first batch.
+- **Performance fix**: sidebar catalog filtering (price and driver-class
+  filters) no longer re-fetches the cached ECB exchange rates once per preset
+  across the ~10k-entry catalog, and the driver-class classifier cache now
+  survives Streamlit reruns instead of restarting cold every time.
+- **Manufacturer catalog**: expanded the manufacturer-crawled driver database
+  to 28 brands with dedicated dedupe, metadata-enrichment and optional-field
+  refresh tools, plus a regeneratable coverage/quality status report.
+- **Tests**: 107 passed / 0 failed / 0 skipped.
+
 ## 0.6.1 (2026-07-20)
 
 - **Performance Fix**: Added aggressive LRU caching to driver metadata and pricing resolution to prevent the UI from locking up during real-time filtering, restoring instantaneous responsiveness.

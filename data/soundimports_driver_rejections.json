@@ -1,0 +1,449 @@
+{
+  "candidate_count": 1219,
+  "crawler_failures": [
+    {
+      "error": "missing qts",
+      "url": "https://www.soundimports.eu/en/accuton-c220-11-221.html"
+    },
+    {
+      "error": "missing fs_hz",
+      "url": "https://www.soundimports.eu/en/accuton-c220-11-227.html"
+    },
+    {
+      "error": "missing fs_hz",
+      "url": "https://www.soundimports.eu/en/beyma-8cmv2.html"
+    },
+    {
+      "error": "missing vas_l",
+      "url": "https://www.soundimports.eu/en/bliesma-m74a-6.html"
+    },
+    {
+      "error": "missing vas_l",
+      "url": "https://www.soundimports.eu/en/bliesma-m74b-6.html"
+    },
+    {
+      "error": "missing vas_l",
+      "url": "https://www.soundimports.eu/en/bliesma-m74p-6.html"
+    },
+    {
+      "error": "missing vas_l",
+      "url": "https://www.soundimports.eu/en/bliesma-m74s-6.html"
+    },
+    {
+      "error": "missing vas_l",
+      "url": "https://www.soundimports.eu/en/chn-50p-full-range-woofer.html"
+    },
+    {
+      "error": "missing vas_l",
+      "url": "https://www.soundimports.eu/en/dayton-audio-ce70-30p-8.html"
+    },
+    {
+      "error": "missing vas_l",
+      "url": "https://www.soundimports.eu/en/dayton-audio-ce81pf-8.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/dynavox-204204.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/dynavox-204205.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/dynavox-206158.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/dynavox-206159.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/dynavox-206160.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/eton-3-312-c8-25-hex.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/eton-5-612-c8-25-rp.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/eton-7-212-c8-32-hex.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/faitalpro-15fh500-4p.html"
+    },
+    {
+      "error": "missing vas_l",
+      "url": "https://www.soundimports.eu/en/faitalpro-15hx500-8p.html"
+    },
+    {
+      "error": "missing vas_l",
+      "url": "https://www.soundimports.eu/en/faitalpro-18hp1030-4p.html"
+    },
+    {
+      "error": "missing vas_l",
+      "url": "https://www.soundimports.eu/en/faitalpro-18xl2000-8p.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/faitalpro-6pr122-8f.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-10pf-8.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-10pr-8.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-10sfpc-b.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-12pf-8.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-12pr-8.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-12sfpc-b.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-15pf-8.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-3fr-4.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-4fr-8.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-5pf-8.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-5sbm-8.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-5sbm1-8.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-6pf-8.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-8pf-8.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-8pr-8.html"
+    },
+    {
+      "error": "The read operation timed out",
+      "url": "https://www.soundimports.eu/en/grs-8smp-4.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/grs-rsrmo-8.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/hivi-m3n-b.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/hivi-m8n-1b.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/hivi-m8n.html"
+    },
+    {
+      "error": "missing vas_l; missing qms",
+      "url": "https://www.soundimports.eu/en/markaudio-chn-40.html"
+    },
+    {
+      "error": "missing fs_hz; missing re_ohm",
+      "url": "https://www.soundimports.eu/en/markaudio-maop-11ms.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/morel-caw634.html"
+    },
+    {
+      "error": "missing vas_l",
+      "url": "https://www.soundimports.eu/en/morel-mdm-55.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/morel-mw144.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/morel-ticw958ft.html"
+    },
+    {
+      "error": "missing fs_hz",
+      "url": "https://www.soundimports.eu/en/morel-uw1054.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/prv-audio-8mr500-4-bullet.html"
+    },
+    {
+      "error": "missing qms",
+      "url": "https://www.soundimports.eu/en/purifi-ptt525x08-nfa-01.html"
+    },
+    {
+      "error": "Qms must be greater than Qts",
+      "url": "https://www.soundimports.eu/en/redcatt-82fhw.html"
+    },
+    {
+      "error": "missing fs_hz; missing re_ohm",
+      "url": "https://www.soundimports.eu/en/redcatt-cx10f140f.html"
+    },
+    {
+      "error": "missing fs_hz; missing re_ohm",
+      "url": "https://www.soundimports.eu/en/redcatt-cx12f140f.html"
+    },
+    {
+      "error": "missing fs_hz; missing re_ohm",
+      "url": "https://www.soundimports.eu/en/redcatt-cx6f140f.html"
+    },
+    {
+      "error": "missing fs_hz; missing re_ohm",
+      "url": "https://www.soundimports.eu/en/redcatt-cx8f140f.html"
+    },
+    {
+      "error": "Qms must be greater than Qts",
+      "url": "https://www.soundimports.eu/en/redcatt-twiggy12.html"
+    },
+    {
+      "error": "missing vas_l",
+      "url": "https://www.soundimports.eu/en/sb-acoustics-sb12pac25-4.html"
+    },
+    {
+      "error": "missing vas_l; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/sb-acoustics-sb15crc30-4.html"
+    },
+    {
+      "error": "missing vas_l",
+      "url": "https://www.soundimports.eu/en/sb-audience-bianco-15w200.html"
+    },
+    {
+      "error": "missing fs_hz; missing vas_l; missing qts; missing qms",
+      "url": "https://www.soundimports.eu/en/sb-audience-nero-5ccn125d.html"
+    },
+    {
+      "error": "missing fs_hz",
+      "url": "https://www.soundimports.eu/en/scan-speak-discovery-820013.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/seas-c16n001-f.html"
+    },
+    {
+      "error": "missing vas_l; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/seas-c16nx001x.html"
+    },
+    {
+      "error": "HTTP Error 404: Not Found",
+      "url": "https://www.soundimports.eu/en/seas-c18en001m.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/seas-c18en002-a.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/seas-l16rnx-8.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/seas-l18rnx-p.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/seas-l22rn4x-p.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/seas-l26rfx-p.html"
+    },
+    {
+      "error": "missing fs_hz; missing re_ohm",
+      "url": "https://www.soundimports.eu/en/seas-w16nx001-8.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/seas-w18e-001.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/seas-w18nx001.html"
+    },
+    {
+      "error": "missing qms",
+      "url": "https://www.soundimports.eu/en/sica-5-c-1-cs-4.html"
+    },
+    {
+      "error": "missing qms",
+      "url": "https://www.soundimports.eu/en/sica-6-c-1-cs-4.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/sure-electronics-aa-sp15113.html"
+    },
+    {
+      "error": "missing vas_l; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/tang-band-50-1426se.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/tang-band-t3-2190s.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/tectonic-elements-tebm65c20f-8.html"
+    },
+    {
+      "error": "missing vas_l; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-al-130.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-bf-30-r-4.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-bf-32-4.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-bf-32-s-8.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-bf-32-s-wp-8.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-bf-32.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-fr-10-4.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-fr-10-8.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-fr-10-hmp.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-fr-13130-8.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-fr-58-4.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-pam-13.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-sl-87-wpm-4.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-sl-87-xa-8.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-w-150-x-4.html"
+    },
+    {
+      "error": "missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/visaton-w-165-a.html"
+    },
+    {
+      "error": "missing sd_cm2",
+      "url": "https://www.soundimports.eu/en/volt-loudspeakers-b2518.html"
+    },
+    {
+      "error": "missing fs_hz",
+      "url": "https://www.soundimports.eu/en/volt-loudspeakers-cx1601.html"
+    }
+  ],
+  "quality_rejections": [
+    {
+      "error": "required dimensional field sd_cm2 has no explicit unit",
+      "url": "https://www.soundimports.eu/en/dayton-audio-pa460-8.html"
+    },
+    {
+      "error": "required dimensional field re_ohm has no explicit unit",
+      "url": "https://www.soundimports.eu/en/faitalpro-10fe400-4f.html"
+    },
+    {
+      "error": "required dimensional field vas_l has no explicit unit",
+      "url": "https://www.soundimports.eu/en/hivi-b2s.html"
+    },
+    {
+      "error": "required dimensional field sd_cm2 has no explicit unit",
+      "url": "https://www.soundimports.eu/en/jantzen-audio-ja-8008hmq.html"
+    },
+    {
+      "error": "required dimensional field vas_l has no explicit unit",
+      "url": "https://www.soundimports.eu/en/markaudio-chn-50.html"
+    },
+    {
+      "error": "required dimensional field vas_l has no explicit unit",
+      "url": "https://www.soundimports.eu/en/markaudio-pluvia-7-phd.html"
+    },
+    {
+      "error": "required dimensional field fs_hz has no explicit unit",
+      "url": "https://www.soundimports.eu/en/peerless-by-tymphany-gbx-65x140n25al00-04.html"
+    },
+    {
+      "error": "required dimensional field vas_l has no explicit unit",
+      "url": "https://www.soundimports.eu/en/sb-acoustics-sb12nrxf25-4.html"
+    },
+    {
+      "error": "required dimensional field re_ohm has no explicit unit",
+      "url": "https://www.soundimports.eu/en/sb-acoustics-sb12pacr25-4-coax.html"
+    },
+    {
+      "error": "required dimensional field vas_l has no explicit unit",
+      "url": "https://www.soundimports.eu/en/visaton-gf-200.html"
+    },
+    {
+      "error": "required dimensional field re_ohm has no explicit unit",
+      "url": "https://www.soundimports.eu/en/visaton-w-100-x.html"
+    },
+    {
+      "error": "required dimensional field vas_l has no explicit unit",
+      "url": "https://www.soundimports.eu/en/visaton-w-130-x.html"
+    }
+  ],
+  "source": "SoundImports",
+  "visited_count": 1219
+}

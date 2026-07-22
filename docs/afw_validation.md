@@ -2,7 +2,9 @@
 
 `tools/compare_afw_sealed.py` is a read-only bridge between Load Forge and the
 trusted legacy **AUDIO per Windows pro v2** (AFW) simulator running in an x86
-Windows XP guest. The historical filename is retained, but the tool now parses
+Windows XP guest. AFW has no export path Load Forge could read directly, so
+the relationship only goes one way — this tool never writes `.afw` files.
+The historical filename is retained, but the tool now parses
 the first transducer slot for three AFW load codes:
 
 - `1`: suspension / sealed box;
@@ -105,6 +107,63 @@ with impedance peaks at 38.69, 112.92 and 291.99 Hz. This is a same-box
 multi-driver projection, not a claim that AFW selected that enclosure for two
 drivers. Direct multi-driver AFW curve comparison still requires a separately
 saved multi-driver reference project.
+
+## DCCAV/DCAAV: template-based project generation
+
+AFW load code `6` (`doppio reflex parallelo` / DCAAV, Load Forge's DCCAV) is
+rejected by `parse_afw_project` as an explicit scope choice, but real DCAAV
+`.afw` files exist in `examples/afw_bass_match_9/` (`08_dayton_um12_dcaav.afw`,
+`09_fostex_fe126_dcaav.afw`) and the byte layout turns out to be **identical**
+to BP4/BP6 (same `driver_at - 490` load-code offset, same `driver_at - 230`
+26-value chamber block) — only the load code and the circuit topology AFW
+builds around it differ. `tools/generate_afw_dccav.py` uses this to go the
+other direction: given a Load Forge DCCAV `.lfp` file, it clones one of the
+verified DCAAV examples as a byte-level template and overwrites only the
+fields Load Forge's own model unambiguously determines — driver T/S set
+(`Re/Fs/Qms/Qes/Vas/Le/Xmax/Pe/Sd`), both chamber volumes and tunings
+(`Vh/Fh`, `Vl/Fl`) and their loss-Q values. Fields at chamber-block offsets
+10–13 and 15–24 look like AFW-computed port geometry (diameter/length/area)
+whose exact semantics were not reverse-engineered; the tool copies them
+verbatim from the template and says so in its output, rather than guessing.
+The embedded 201-point CRW curve is likewise inherited unchanged, same
+"ideal projection, not measured" caveat as the original 9 examples.
+
+A first PR310 round-trip through the real AFW software (screenshot-verified
+by the user) showed Re/Fs/Qms/Qes/Qts/Vas/Xmax/Pe all correct but Sd wrong
+(63.62 cm² instead of 348) and a stale "Nome Trasduttore". Root cause: AFW's
+"Definizione trasduttore" dialog does not read `sd_m2` from the T/S tail
+block to display Sd — it derives Sd geometrically from two independent
+transducer *shape* fields, Larghezza and Altezza (`driver_at - 3044` and
+`driver_at - 3043`, both metres; AFW computes
+`pi * (Larghezza / 2) * (Altezza / 2)`, since AFW also supports oval
+drivers where width and height differ). Both reference templates leave
+these at a near-circular ~9 cm default (`0.09` / `0.095`, giving
+`pi * 4.5 * 4.75 ≈ 67.2 cm²` — close to, though not exactly, the 63.62 cm²
+first observed, since the template values aren't perfectly equal) regardless
+of the template driver's real Sd — confirmed by diffing the Dayton UM12 and
+Fostex FE126 templates, whose real Sd values differ 7x with zero differing
+lines in that region. The generator now writes the same diameter implied by
+`driver_sd_cm2` to *both* Larghezza and Altezza (this tool only builds round
+drivers, so leaving Altezza at its template default would silently produce
+an oval shape instead), plus `driver_at - 3039` ("Nome Trasduttore") with
+the driver's own name, instead of leaving all three at the template's
+generic defaults.
+
+```bash
+.venv/bin/python tools/generate_afw_dccav.py path/to/design.lfp --output out.afw
+```
+
+This produces a project openable in the real AFW software for a manual
+side-by-side, and/or usable as a future template once `parse_afw_project`
+gains real code-6 support (it would need only the guard clause removed, since
+the block layout is already proven identical to BP4/BP6).
+
+`generate_afw_text(lfp, template_path, title)` builds the same project text
+in memory (no file write), and is what `ui_app.py` calls for a "Download AFW
+project" button next to the response CSV/FRD/ZMA downloads, visible whenever
+the active load type is DCCAV. It feeds the button `_collect_params()`
+directly (the same dict shape as a saved `.lfp` file), so the exported
+project always matches whatever is currently on screen.
 
 ## Remaining curve-level limitation
 

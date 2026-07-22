@@ -8,6 +8,7 @@ plots and derived data.
 
 from __future__ import annotations
 
+import atexit
 import base64
 import csv
 import hashlib
@@ -39,9 +40,36 @@ import presets as _presets
 import pricing as _pricing
 import ranking as _ranking
 
+sys.path.insert(0, str(Path(__file__).parent / "tools"))
+import generate_afw_dccav as _afw_export
+
+
+def _reload_if_source_changed(module) -> None:
+    """Reload only when the module's file actually changed on disk.
+
+    Streamlit reruns this whole script on every interaction, so an
+    unconditional ``importlib.reload`` here would re-execute
+    ``src/presets.py`` and ``src/pricing.py`` every rerun too — wiping their
+    module-level ``lru_cache`` driver-catalog/price-matching caches (tens of
+    MB of JSON, multi-second to rebuild) even when nothing changed. The
+    module objects themselves persist in ``sys.modules`` across reruns
+    (unlike this script's own top-level locals), so stashing the last-seen
+    mtime directly on the module survives to the next rerun and lets normal
+    usage stay warm while still hot-reloading on real edits.
+    """
+    try:
+        mtime = Path(module.__file__).stat().st_mtime
+    except OSError:
+        importlib.reload(module)
+        return
+    if getattr(module, "_load_forge_reload_mtime", None) != mtime:
+        importlib.reload(module)
+        module._load_forge_reload_mtime = mtime
+
+
 # Reload dependencies before the facade so it rebinds to the fresh modules.
-for _module in (_engine, _pricing, _presets, _ranking, _dccav):
-    importlib.reload(_module)
+for _module in (_engine, _pricing, _presets, _ranking, _dccav, _afw_export):
+    _reload_if_source_changed(_module)
 
 
 try:
@@ -634,7 +662,7 @@ _FINDER_RANK_F3 = "Deepest bass (F3)"
 _FINDER_RANK_VALUE = "Best value (F3 × price)"
 _FINDER_RANK_MODES = (_FINDER_RANK_F3, _FINDER_RANK_VALUE)
 _FINDER_CTA_LABEL = "Run a Match"
-_FINDER_RANKING_VERSION = 2
+_FINDER_RANKING_VERSION = 3
 _FINDER_DEFAULTS_VERSION = 5
 _FINDER_DEFAULTS = {
     "finder_rank_mode": _FINDER_RANK_F3,
@@ -949,6 +977,7 @@ def _single_driver_from_state() -> _dccav.DriverTS:
         re_ohm=float(st.session_state["driver_re_ohm"]),
         sd_cm2=sd_cm2,
         le_mh=float(st.session_state.get("driver_le_mh", 0.0)),
+        le10k_mh=_optional_positive("driver_le10k_mh"),
         xmax_mm=float(st.session_state.get("driver_xmax_mm", 0.0)),
         pe_w=float(st.session_state.get("driver_pe_w", 0.0)),
         mms_g=_optional_positive("driver_mms_g"),
@@ -1542,8 +1571,14 @@ def _current_exchange_rates() -> tuple[dict[str, float], str]:
     return _pricing.load_ecb_reference_rates()
 
 
-def _normalized_preset_price(name: str, target_currency: str) -> float | None:
-    rates, _ = _current_exchange_rates()
+def _normalized_preset_price(
+    name: str, target_currency: str, rates: dict[str, float] | None = None
+) -> float | None:
+    # Callers iterating the full preset catalog must pass ``rates``: hitting
+    # the st.cache_data-backed rates once per preset costs ~0.5 s of pure
+    # cache overhead per rerun.
+    if rates is None:
+        rates, _ = _current_exchange_rates()
     return _pricing.convert_price(
         _driver_preset_price(name),
         _driver_preset_currency(name),
@@ -1564,9 +1599,10 @@ def _preset_price_currencies(names: list[str]) -> list[str]:
 
 def _preset_price_values(names: list[str], currency: str | None = None) -> list[float]:
     values = []
+    rates = _current_exchange_rates()[0] if currency else None
     for name in names:
         price = (
-            _normalized_preset_price(name, currency)
+            _normalized_preset_price(name, currency, rates)
             if currency
             else _driver_preset_price(name)
         )
@@ -1716,6 +1752,7 @@ def _filter_driver_preset_names(
     driver_class: str = "All",
 ) -> list[str]:
     query = search.strip().casefold()
+    rates = _current_exchange_rates()[0] if max_price is not None else None
     filtered = []
     for name in names:
         if source != "All" and _driver_preset_source(name) != source:
@@ -1729,7 +1766,7 @@ def _filter_driver_preset_names(
         if query and query not in name.casefold():
             continue
         if max_price is not None:
-            price = _normalized_preset_price(name, str(max_price_currency or ""))
+            price = _normalized_preset_price(name, str(max_price_currency or ""), rates)
             if price is None or float(price) > float(max_price):
                 continue
         filtered.append(name)
@@ -1738,12 +1775,20 @@ def _filter_driver_preset_names(
     return filtered
 
 
-@cache
 def _driver_preset_class(name: str) -> str:
-    try:
-        return _dccav.classify_driver_bandwidth(_dccav.get_driver_preset(name)).driver_class
-    except Exception:
-        return "Woofer"
+    # functools.cache would restart cold on every Streamlit rerun (this whole
+    # script is re-executed, redefining the function); the session_state dict
+    # survives reruns so the 10k-preset catalog is classified once per session.
+    class_cache = st.session_state.setdefault("_driver_class_cache", {})
+    cached = class_cache.get(name)
+    if cached is None:
+        try:
+            cached = _dccav.classify_driver_bandwidth(
+                _dccav.get_driver_preset(name)).driver_class
+        except Exception:
+            cached = "Woofer"
+        class_cache[name] = cached
+    return cached
 
 
 def _apply_driver_preset(driver: _dccav.DriverTS):
@@ -1756,6 +1801,7 @@ def _apply_driver_preset(driver: _dccav.DriverTS):
     st.session_state["driver_sd_cm2"] = float(driver.sd_cm2)
     st.session_state["driver_diameter_mm"] = float(np.sqrt(driver.sd_cm2 / 10_000.0 * 4.0 / np.pi) * 1000.0)
     st.session_state["driver_le_mh"] = float(driver.le_mh)
+    st.session_state["driver_le10k_mh"] = float(driver.le10k_mh or 0.0)
     st.session_state["driver_xmax_mm"] = float(driver.xmax_mm)
     st.session_state["driver_pe_w"] = float(driver.pe_w)
     st.session_state["driver_mms_g"] = float(driver.mms_g or 0.0)
@@ -2816,6 +2862,71 @@ def _batch_rank_presets(
     return _dccav.sort_ranked_rows(rows)
 
 
+def _finder_pool_fingerprint(workers: int) -> tuple:
+    """Identity of the code+data the Finder workers hold in memory."""
+    paths = [
+        Path(module.__file__)
+        for module in (_engine, _presets, _pricing, _ranking, _dccav)
+    ]
+    paths.extend([
+        _presets.MANUFACTURER_DATABASE_PATH,
+        _presets.LOUDSPEAKER_DATABASE_PATH,
+        _pricing.DRIVER_PRICES_PATH,
+    ])
+    mtimes = tuple(
+        path.stat().st_mtime if path.exists() else None for path in paths
+    )
+    return (_FINDER_RANKING_VERSION, workers, *mtimes)
+
+
+def _finder_worker_pool(workers: int) -> ProcessPoolExecutor:
+    """Return the process-wide match worker pool, warming it on first use.
+
+    Spawning the pool and cold-importing the simulation stack in every worker
+    costs seconds per Run match when the executor is recreated on each click.
+    The pool is stashed on the persistent ``ranking`` module (this script's
+    own globals are wiped by every Streamlit rerun, and one pool per session
+    would leak workers across sessions/AppTest runs), and it is rebuilt
+    whenever the src modules or driver/price datasets change on disk so the
+    workers never serve stale code or catalogs.
+    """
+    key = _finder_pool_fingerprint(workers)
+    pool = getattr(_ranking, "_finder_shared_pool", None)
+    if pool is not None and getattr(_ranking, "_finder_shared_pool_key", None) == key:
+        return pool
+    if pool is not None:
+        pool.shutdown(wait=False, cancel_futures=True)
+    # forkserver: no re-import of the caller's __main__ in the workers (the
+    # spawn method would re-execute entrypoint scripts) and no fork of a
+    # thread-filled Streamlit process.
+    mp_context = multiprocessing.get_context(
+        "forkserver" if "forkserver" in multiprocessing.get_all_start_methods()
+        else "spawn"
+    )
+    pool = ProcessPoolExecutor(max_workers=workers, mp_context=mp_context)
+    try:
+        # Fire-and-forget warm-up: force each worker to import the stack and
+        # build the preset catalog now, while the user is still reading the UI.
+        for _ in range(workers):
+            pool.submit(_presets.driver_preset_names)
+    except Exception:
+        logger.warning("Finder worker warm-up submit failed", exc_info=True)
+    _ranking._finder_shared_pool = pool
+    _ranking._finder_shared_pool_key = key
+    if not getattr(_ranking, "_finder_pool_atexit_registered", False):
+        atexit.register(_drop_finder_worker_pool)
+        _ranking._finder_pool_atexit_registered = True
+    return pool
+
+
+def _drop_finder_worker_pool() -> None:
+    pool = getattr(_ranking, "_finder_shared_pool", None)
+    _ranking._finder_shared_pool = None
+    _ranking._finder_shared_pool_key = None
+    if pool is not None:
+        pool.shutdown(wait=False, cancel_futures=True)
+
+
 def _batch_rank_presets_parallel(
     preset_names: tuple[str, ...],
     load_type: str,
@@ -2835,14 +2946,7 @@ def _batch_rank_presets_parallel(
     names = list(preset_names)[:int(candidate_limit)]
     total = max(len(names), 1)
     overall_total = max(int(progress_total or total), 1)
-    workers = max(1, min(os.cpu_count() or 2, 8, total))
-    # forkserver: no re-import of the caller's __main__ in the workers (the
-    # spawn method would re-execute entrypoint scripts) and no fork of a
-    # thread-filled Streamlit process.
-    mp_context = multiprocessing.get_context(
-        "forkserver" if "forkserver" in multiprocessing.get_all_start_methods()
-        else "spawn"
-    )
+    workers = max(1, min(os.cpu_count() or 2, 8))
     owns_progress = progress_widget is None
     if progress_widget is None:
         progress_text_widget = st.empty()
@@ -2853,31 +2957,35 @@ def _batch_rank_presets_parallel(
     rows: list[dict] = []
     done = 0
     try:
-        with ProcessPoolExecutor(max_workers=workers, mp_context=mp_context) as pool:
-            results = pool.map(
-                _dccav.rank_preset_row,
-                names,
-                [load_type] * len(names),
-                [float(max_volume_l)] * len(names),
-                [float(voltage_v)] * len(names),
-                [float(f_min_hz)] * len(names),
-                [float(f_max_hz)] * len(names),
-                [int(points)] * len(names),
-                [goals] * len(names),
-                chunksize=max(1, len(names) // (workers * 4))
-            )
-            for row in results:
-                done += 1
-                if done % max(1, overall_total // 20) == 0 or done == len(names):
-                    progress.progress(min((completed_offset + done) / overall_total, 1.0))
-                    if progress_text_widget is not None:
-                        progress_text_widget.caption(
-                            f"Matching {completed_offset + done}/{overall_total} simulations"
-                            f" · {load_type}"
-                        )
-                if row is not None:
-                    rows.append(row)
+        pool = _finder_worker_pool(workers)
+        # Small chunks keep the ordered map streaming: with large chunks the
+        # first result (and the progress bar) stalls until a whole chunk of
+        # hundreds of simulations completes, which reads as a hung start.
+        results = pool.map(
+            _dccav.rank_preset_row,
+            names,
+            [load_type] * len(names),
+            [float(max_volume_l)] * len(names),
+            [float(voltage_v)] * len(names),
+            [float(f_min_hz)] * len(names),
+            [float(f_max_hz)] * len(names),
+            [int(points)] * len(names),
+            [goals] * len(names),
+            chunksize=max(1, min(32, len(names) // (workers * 4))),
+        )
+        for row in results:
+            done += 1
+            if done % max(1, overall_total // 100) == 0 or done == len(names):
+                progress.progress(min((completed_offset + done) / overall_total, 1.0))
+                if progress_text_widget is not None:
+                    progress_text_widget.caption(
+                        f"Matching {completed_offset + done}/{overall_total} simulations"
+                        f" · {load_type}"
+                    )
+            if row is not None:
+                rows.append(row)
     except Exception:
+        _drop_finder_worker_pool()
         logger.warning(
             "Parallel Finder optimization unavailable; falling back to serial ranking",
             exc_info=True,
@@ -3477,6 +3585,12 @@ def _finder_search_blocked(filtered_preset_names: list[str]) -> bool:
 
 def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
     """Render the live Finder summary; the workspace owns the single CTA."""
+    try:
+        # Spin up and warm the match workers while the user is still browsing
+        # so Run match starts immediately instead of paying worker cold-start.
+        _finder_worker_pool(max(1, min(os.cpu_count() or 2, 8)))
+    except Exception:
+        logger.warning("Finder worker pool warm-up failed", exc_info=True)
     finder_load_types, only_infinite_baffle = _finder_load_context()
 
     finder_volume_l = float(_finder_value("finder_volume_l"))
@@ -3739,7 +3853,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     for name, default in (
         ("Load", ""), ("Price", np.nan), ("Currency", ""), ("Buy", ""),
         ("Ripple dB", np.nan), ("Response", None), ("Class", ""),
-        ("Resonator", ""),
+        ("Resonator", ""), ("Mms g", np.nan), ("Le10k mH", np.nan),
     ):
         if name not in full_df.columns:
             full_df[name] = default
@@ -3787,6 +3901,10 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         columns.insert(4, "Currency")
         if "Value" in batch_df.columns and batch_df["Value"].notna().any():
             columns.insert(5, "Value")
+    if batch_df["Mms g"].notna().any():
+        columns.insert(columns.index("Size in") + 1, "Mms g")
+    if batch_df["Le10k mH"].notna().any():
+        columns.insert(columns.index("Min ohm") + 1, "Le10k mH")
     if len(finder_loads) > 1:
         columns += ["Vb L", "Fb Hz", "Vh L", "fh Hz", "Vl L", "fl Hz",
                      "Vs L", "Vp L", "Fp Hz", "Vr L", "Fr Hz", "Fc Hz", "Qtc"]
@@ -3828,6 +3946,8 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             "Max excursion mm": st.column_config.NumberColumn(format="%.2f"),
             "Min ohm": st.column_config.NumberColumn(format="%.2f"),
             "Size in": st.column_config.NumberColumn(format="%.1f"),
+            "Mms g": st.column_config.NumberColumn(format="%.1f"),
+            "Le10k mH": st.column_config.NumberColumn(format="%.3f"),
             "Vb L": st.column_config.NumberColumn(format="%.2f"),
             "Fb Hz": st.column_config.NumberColumn(format="%.1f"),
             "Fc Hz": st.column_config.NumberColumn(format="%.1f"),
@@ -4327,6 +4447,7 @@ _default("driver_sd_mode", "Diameter")
 _default("driver_diameter_mm", 104.0)
 _default("driver_sd_cm2", _dccav.sd_from_diameter(104.0))
 _default("driver_le_mh", 0.421)
+_default("driver_le10k_mh", 0.0)
 _default("driver_xmax_mm", 3.1)
 _default("driver_pe_w", 60.0)
 _default("driver_mms_g", 0.0)
@@ -4692,7 +4813,14 @@ with st.sidebar:
                                 on_change=_on_driver_param_change)
                 st.number_input("Bl (T·m)", min_value=0.0, max_value=100.0, step=0.01,
                                 key="driver_bl_tm", on_change=_on_driver_param_change)
-                                
+                st.number_input("Le10k (mH)", min_value=0.0, max_value=20.0, step=0.001,
+                                format="%.3f", key="driver_le10k_mh",
+                                on_change=_on_driver_param_change,
+                                help="Voice coil inductance measured at 10 kHz, as "
+                                     "reported alongside Le (1 kHz) on some pro-audio "
+                                     "datasheets. Informational only — not used in the "
+                                     "impedance/response simulation.")
+
         with bd_tab2:
             _load_set = {st.session_state.get("load_type", "Sealed")}
             new_set = _render_load_type_buttons(_load_set, single_select=True)
@@ -5548,7 +5676,8 @@ try:
                 ebp_hint = "EBP 50-100: this driver works in both sealed and ported loads."
             st.caption(f"{ebp_hint} Class indicators: {', '.join(bandwidth.reasons)}.")
 
-    dl_csv, dl_frd, dl_zma = st.columns(3)
+    dl_cols = st.columns(4) if load_type == "DCCAV" else st.columns(3)
+    dl_csv, dl_frd, dl_zma = dl_cols[:3]
     with dl_csv:
         st.download_button(
             "Download response CSV",
@@ -5575,6 +5704,31 @@ try:
             use_container_width=True,
             help="Electrical impedance as freq/ohm/phase text for VituixCAD, XSim or REW.",
         )
+    if load_type == "DCCAV":
+        with dl_cols[3]:
+            try:
+                afw_text = _afw_export.generate_afw_text(_collect_params())
+                afw_bytes = afw_text.encode("latin-1")
+                afw_error = None
+            except Exception as exc:
+                afw_bytes = b""
+                afw_error = str(exc)
+            st.download_button(
+                "Download AFW project",
+                afw_bytes,
+                "load_forge_dccav.afw",
+                "application/octet-stream",
+                use_container_width=True,
+                disabled=afw_error is not None,
+                help=(
+                    f"Could not build the AFW file: {afw_error}" if afw_error else
+                    "AUDIO per Windows pro v2 (AFW) project cloned from a "
+                    "verified DCAAV template with this design's driver T/S "
+                    "and chamber values. Port geometry fields are inherited "
+                    "from the template and are not this project's actual "
+                    "port dimensions."
+                ),
+            )
 
 except ValueError as exc:
     logger.exception("Simulation failed")
