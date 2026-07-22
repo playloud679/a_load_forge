@@ -3607,6 +3607,13 @@ def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
     )
 
 
+# Frontend payload caps: tables/dropdowns above these sizes make every rerun
+# (row selection, workspace switch, any widget change) take seconds in the
+# browser even when the server-side work is already cached.
+_LIBRARY_TABLE_MAX_ROWS = 500
+_PRESET_SELECT_MAX_OPTIONS = 1000
+
+
 _TABLE_NUMBER_FORMATS = {
     "Size in": ".1f", "Fs Hz": ".1f", "Qts": ".3f", "Vas L": ".1f",
     "SPL dB": ".0f", "F3 Hz": ".1f", "F6 Hz": ".1f", "F10 Hz": ".1f",
@@ -3729,14 +3736,25 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         st.warning("No presets match the current library filters.")
         return
 
-    st.caption(
-        f"{len(filtered_preset_names)} presets match the current filters. "
-        "Scroll the table to browse the complete library."
-    )
+    # Re-serializing the full 10k-row catalog to the browser on every rerun
+    # (each row selection or widget change) costs seconds of frontend time;
+    # cap the table and let search/filters narrow the rest.
+    shown_names = filtered_preset_names[:_LIBRARY_TABLE_MAX_ROWS]
+    if len(shown_names) < len(filtered_preset_names):
+        st.caption(
+            f"{len(filtered_preset_names)} presets match the current filters · "
+            f"showing the first {len(shown_names)}. Use the search box or the "
+            "library filters to narrow the list."
+        )
+    else:
+        st.caption(
+            f"{len(filtered_preset_names)} presets match the current filters. "
+            "Scroll the table to browse the complete library."
+        )
     price_currency = str(st.session_state.get("preset_price_currency", ""))
     rates, rates_date = _current_exchange_rates()
     library_df = _driver_library_frame(
-        tuple(filtered_preset_names),
+        tuple(shown_names),
         price_currency,
         tuple(sorted(rates.items())),
     )
@@ -4717,13 +4735,29 @@ with st.sidebar:
             driver_class="All"
         )
         current_preset = st.session_state.get("driver_preset_name", "Custom")
-        preset_options = ["Custom", *filtered_preset_names]
+        # A 10k-option dropdown re-serialized on every rerun makes workspace
+        # switches take seconds in the browser; cap it and keep the current
+        # selection pinned so it never disappears from the widget.
+        select_names = filtered_preset_names[:_PRESET_SELECT_MAX_OPTIONS]
+        if (
+            current_preset != "Custom"
+            and current_preset in filtered_preset_names
+            and current_preset not in select_names
+        ):
+            select_names = [current_preset, *select_names]
+        preset_options = ["Custom", *select_names]
         if current_preset not in preset_options:
             st.session_state["driver_preset_name"] = "Custom"
             current_preset = "Custom"
-            
+
         with bd_tab1:
-            st.caption(f"{len(filtered_preset_names)} / {len(all_preset_names)} presets")
+            if len(select_names) < len(filtered_preset_names):
+                st.caption(
+                    f"{len(filtered_preset_names)} / {len(all_preset_names)} presets · "
+                    f"listing the first {len(select_names)}; type in Search preset to narrow"
+                )
+            else:
+                st.caption(f"{len(filtered_preset_names)} / {len(all_preset_names)} presets")
             preset_name = st.selectbox(
                 "Driver preset",
                 preset_options,

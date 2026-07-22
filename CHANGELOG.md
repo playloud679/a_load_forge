@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.6.3 (2026-07-22)
+
+- **Performance fix (interaction lag)**: every rerun — selecting a candidate
+  row, switching Bass Match ↔ Box Design, any widget change — was shipping
+  ~8 MB of base64-embedded PNGs to the browser inside the load-type card and
+  workspace-tab CSS. The assets are now sized for their actual on-screen
+  rendering (~580 KB total inline payload), which removes the multi-second
+  stall on each interaction.
+- **Frontend payload caps**: the candidate library table now shows at most
+  500 rows and the Box Design driver-preset dropdown at most 1000 options
+  (the current selection stays pinned); search and library filters narrow
+  the rest. This keeps per-rerun serialization of the 10k-preset catalog
+  from dominating interaction time.
+- **Tests**: 107 passed / 0 failed / 0 skipped.
+
 ## 0.6.2 (2026-07-22)
 
 - **Performance fix**: eliminated the multi-second "Run match" startup stall by
