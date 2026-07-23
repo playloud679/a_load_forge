@@ -3751,7 +3751,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
         "Simulation resolution (points)",
     }
     sidebar_numbers = {control.label for control in at.sidebar.number_input}
-    main_numbers = {control.label for control in at.number_input}
+    {control.label for control in at.number_input}
     assert number_labels <= sidebar_numbers, number_labels - sidebar_numbers
     
     assert any(box.label == "Optimization goal" for box in at.sidebar.selectbox)
@@ -4622,7 +4622,7 @@ def _check_ui_finder_comprehensive_ux_regression():
     assert not at.exception, at.exception
 
     sidebar_subs_raw = [sub.value for sub in at.sidebar.subheader]
-    ordered_markers = [s for s in sidebar_subs_raw if s.startswith(("1 ·", "2 ·", "3 ·", "4 ·"))]
+    [s for s in sidebar_subs_raw if s.startswith(("1 ·", "2 ·", "3 ·", "4 ·"))]
     # assert ordered_markers[:2] == [
     #     "1 · Target enclosure", "2 · Performance goal",
     # ], ordered_markers
