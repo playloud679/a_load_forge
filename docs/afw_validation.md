@@ -113,20 +113,60 @@ saved multi-driver reference project.
 AFW load code `6` (`doppio reflex parallelo` / DCAAV, Load Forge's DCCAV) is
 rejected by `parse_afw_project` as an explicit scope choice, but real DCAAV
 `.afw` files exist in `examples/afw_bass_match_9/` (`08_dayton_um12_dcaav.afw`,
-`09_fostex_fe126_dcaav.afw`) and the byte layout turns out to be **identical**
-to BP4/BP6 (same `driver_at - 490` load-code offset, same `driver_at - 230`
-26-value chamber block) — only the load code and the circuit topology AFW
-builds around it differ. `tools/generate_afw_dccav.py` uses this to go the
-other direction: given a Load Forge DCCAV `.lfp` file, it clones one of the
-verified DCAAV examples as a byte-level template and overwrites only the
-fields Load Forge's own model unambiguously determines — driver T/S set
-(`Re/Fs/Qms/Qes/Vas/Le/Xmax/Pe/Sd`), both chamber volumes and tunings
-(`Vh/Fh`, `Vl/Fl`) and their loss-Q values. Fields at chamber-block offsets
-10–13 and 15–24 look like AFW-computed port geometry (diameter/length/area)
-whose exact semantics were not reverse-engineered; the tool copies them
-verbatim from the template and says so in its output, rather than guessing.
-The embedded 201-point CRW curve is likewise inherited unchanged, same
-"ideal projection, not measured" caveat as the original 9 examples.
+`09_fostex_fe126_dcaav.afw`) and share the same `driver_at - 490` load-code
+offset as BP4/BP6 — only the load code and the circuit topology AFW builds
+around it differ. `tools/generate_afw_dccav.py` uses this to go the other
+direction: given a Load Forge DCCAV `.lfp` file, it clones one of the
+verified DCAAV examples as a byte-level template and overwrites the driver
+T/S set (`Re/Fs/Qms/Qes/Vas/Le/Xmax/Pe/Sd`), both chamber volumes/tunings
+(`Vh/Fh`, `Vl/Fl`), their loss-Q values and their port geometry. The embedded
+201-point CRW curve is likewise inherited unchanged, same "ideal projection,
+not measured" caveat as the original 9 examples.
+
+**Chamber/port block location, corrected.** An earlier version of this tool
+wrote box/port data to a 26-value block at `driver_at - 230`, based on a
+byte-diff of the two DCAAV examples with no independent confirmation of what
+each offset meant beyond the first 10 fields (volumes, tunings, a virtual-
+volume factor, and two loss-Qs). A user-supplied round trip — reopening
+`09_fostex_fe126_dcaav.afw` in the real AUDIO per Windows software and
+screenshotting its "Caricamento in doppio carico asimmetrico a vista" and
+"Definizione trasduttore" dialogs — proved that guess wrong: the dialog's
+displayed values (Vh 2.06 L @ 273.3 Hz, port 7.3 cm × 3 cm, Qp 189.3 / Vl
+4.15 L @ 104.8 Hz, port 2.9 cm × 3 cm, Qp 51.9) match a **different, 18-value
+block at a fixed offset from the end of the file** (`len(lines) - 90`), not
+the `driver_at - 230` block the tool used to write. That block is followed
+by unrelated crossover-filter coefficients (confirmed by finding the exact
+same decimal values duplicated in each project's per-via filter section),
+not port geometry — the "unmapped port geometry" caveat in the tool's
+previous docstring was describing filter coefficients it had mistaken for
+port fields.
+
+The `len(lines) - 90` anchor was confirmed identical (in position, not
+value) across all 9 example templates and the user's independently re-saved
+probe file — all exactly 4847 lines regardless of load type or via count,
+so AFW pads every project to a fixed total size and this offset from the
+end is more reliable than any offset relative to `driver_at`. The real
+18-value block layout is:
+
+```text
+[Vh_m3, Fh_hz, virtual_volume_factor_h, q_leak_h ("Q box"),
+ q_abs_h ("Q coibente"), Vl_m3, Fl_hz, virtual_volume_factor_l,
+ q_leak_l ("Q box"), q_abs_l ("Q coibente"), condotti_h (port count),
+ diam_h_m, lunghezza_h_m, q_port_h ("Qp"), condotti_l, diam_l_m,
+ lunghezza_l_m, q_port_l ("Qp")]
+```
+
+`generate_afw_dccav.py` now writes all 18 fields: `virtual_volume_factor` is
+always `1.0` (Load Forge's Vh/Vl are already AFW's "virtual"/net acoustic
+volume, so there is no separate physical/virtual split to express);
+`condotti` is always `1` (Load Forge only models single-port chambers); port
+diameter comes from the project's own `box_port_d_h_cm`/`box_port_d_l_cm`,
+and port length is derived with `engine.port_length_cm()` (end correction
+1.64 for the upper port, flanged on both ends since it joins two internal
+chambers per that function's own docstring; 1.43 for the lower port, flanged
+on one end only). "Q box" vs "Q coibente" is a best-effort label match
+(leakage vs lining/absorption losses) rather than an independently
+reverse-engineered formula, carried over with the same caveat as before.
 
 A first PR310 round-trip through the real AFW software (screenshot-verified
 by the user) showed Re/Fs/Qms/Qes/Qts/Vas/Xmax/Pe all correct but Sd wrong
@@ -164,6 +204,40 @@ project" button next to the response CSV/FRD/ZMA downloads, visible whenever
 the active load type is DCCAV. It feeds the button `_collect_params()`
 directly (the same dict shape as a saved `.lfp` file), so the exported
 project always matches whatever is currently on screen.
+
+## Open investigation: Trasduttore panel (Larghezza/Altezza → Sd)
+
+Not yet fixed in code — tracked here so the next session doesn't re-derive
+what's already known. The generator's current `width_at`/`height_at` writes
+(`driver_at - 3044` / `driver_at - 3043`, both set to the same circular
+diameter implied by `driver_sd_cm2`) are almost certainly wrong for
+`driver_at - 3043`: a byte-level diff between
+`examples/afw_bass_match_9/09_fostex_fe126_dcaav.afw` and a user-supplied
+probe file (same project reopened and resaved by the real AUDIO per Windows
+software, screenshot-verified field-by-field) shows:
+
+| Offset from `driver_at` | Confirmed field | Value |
+|---:|---|---|
+| `-3045` | Fattore di curvatura | `1` |
+| `-3044` | **Larghezza** | `.1` (10 cm) |
+| `-3043` | **Offset orizzontale** (not Altezza!) | `.095` (9.5 cm) |
+| `-3042` | Offset verticale | `.13` (13 cm) |
+
+So the tool's current `height_at = driver_at - 3043` write is landing on
+"Offset orizzontale", not "Altezza" — the real Altezza field (screenshot
+shows ≈9.00 cm) has not been located yet. A wide scan of both files for
+values near 0.09 m found only unrelated fields (crossover filter
+coefficients, mounting-panel geometry), not a Trasduttore-panel match.
+
+**Next step**, already agreed with the user: get a second probe file where
+*only* Altezza is changed to a distinctive value (e.g. 7.77) from the first
+probe, then diff the two files the same way that isolated Larghezza/Offset
+orizzontale/Offset verticale above — the single differing line is Altezza's
+true offset. Until that lands, do not trust `height_at`'s current value or
+change it without new evidence; Larghezza and the ellipse-based Sd formula
+(`Sd = π × (Larghezza/2) × (Altezza/2)`, supported by the earlier PR310
+Sd-mismatch bug) remain the best-supported hypothesis for the overall
+mechanism.
 
 ## Remaining curve-level limitation
 

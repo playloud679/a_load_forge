@@ -385,6 +385,56 @@ test(
 )
 
 
+def _check_afw_dccav_generator_writes_the_real_chamber_block():
+    import json
+
+    from tools import generate_afw_dccav as writer
+
+    lfp_path = ROOT / "examples" / "bass_match_9" / "09_dayton_um12_dccav.lfp"
+    lfp = json.loads(lfp_path.read_text(encoding="utf-8"))
+    text = writer.generate_afw_text(lfp, writer.DEFAULT_TEMPLATE)
+    lines = text.splitlines()
+
+    # Regression guard for the bug this test was added for: an earlier
+    # version of this tool wrote box/port data to a 26-value block at
+    # driver_at - 230, which the real AUDIO per Windows software's own
+    # "Caricamento in doppio carico" dialog does not read (confirmed via a
+    # user-supplied screenshot round trip). The real block is 18 values at a
+    # fixed offset from the end of the file (see docs/afw_validation.md).
+    block_at = len(lines) - writer._CHAMBER_BLOCK_FROM_END
+    values = [float(lines[block_at + i]) for i in range(18)]
+
+    assert np.isclose(values[0] * 1000.0, float(lfp["box_vh_l"]))
+    assert np.isclose(values[1], float(lfp["box_fh_hz"]))
+    assert values[2] == 1.0  # virtual_volume_factor: no physical/virtual split to express
+    assert values[3] == float(lfp["loss_q_leak_h"])
+    assert values[4] == float(lfp["loss_q_abs_h"])
+    assert np.isclose(values[5] * 1000.0, float(lfp["box_vl_l"]))
+    assert np.isclose(values[6], float(lfp["box_fl_hz"]))
+    assert values[7] == 1.0
+    assert values[8] == float(lfp["loss_q_leak_l"])
+    assert values[9] == float(lfp["loss_q_abs_l"])
+    assert values[10] == 1.0  # single port per chamber
+    assert np.isclose(values[11] * 100.0, float(lfp["box_port_d_h_cm"]))
+    assert values[12] > 0.0  # physical port length, derived not copied
+    assert values[13] == float(lfp["loss_q_port_h"])
+    assert values[14] == 1.0
+    assert np.isclose(values[15] * 100.0, float(lfp["box_port_d_l_cm"]))
+    assert values[16] > 0.0
+    assert values[17] == float(lfp["loss_q_port_l"])
+
+    # The stale driver_at - 230 block must be left at the template's own
+    # values (the generator no longer writes there at all).
+    driver_at, _ = writer.afw._find_driver_block(lines)
+    assert lines[driver_at - 230].strip() == "0.00198150021"
+
+
+test(
+    "AFW DCCAV generator writes the real end-of-file chamber/port block",
+    _check_afw_dccav_generator_writes_the_real_chamber_block,
+)
+
+
 def _check_rejects_invalid_q_values():
     try:
         _dccav.complete_driver(_dccav.DriverTS(

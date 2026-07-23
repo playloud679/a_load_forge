@@ -15,18 +15,39 @@ walking backward, the same technique ``compare_afw_sealed.py`` uses for
 sealed/BP4/BP6 — confirmed identical for the DCAAV files in
 ``examples/afw_bass_match_9/``):
 
-- ``driver_at - 490``: AFW load code (``6`` for DCAAV/DCCAV)
-- ``driver_at - 230`` .. ``+25``: the 26-value chamber/tuning block, shared
-  byte-for-byte with BP4/BP6 (only the circuit topology differs):
-  ``[Vh_m3, Fh_hz, virtual_volume_factor, q_abs_h, q_leak_h,
-    Vl_m3, Fl_hz, virtual_volume_factor, q_abs_l, q_leak_l,
-    1, 1, <port geometry, unmapped>, ..., q_port_h(@14), ...,
-    q_port_l(@25), <port geometry, unmapped>]``
-  Fields at offsets 10-13 and 15-24 look like derived port geometry (AFW's
-  own computed diameter/length/area terms) whose exact semantics are not
-  reverse-engineered here — they are copied verbatim from the template and
-  will not match this project's actual port dimensions. Only the fields
-  Load Forge's own T/S/box model unambiguously determines are overwritten.
+- ``driver_at - 490``: AFW load code (``6`` for DCAAV/DCCAV). Verified to
+  vary correctly across all 9 example templates (1=sealed, 3=BP4, 4=BP6,
+  6=DCAAV), unlike the chamber block below.
+- ``len(lines) - 90`` .. ``+ 17``: the real 18-value "Caricamento in doppio
+  carico asimmetrico a vista" dialog block, a FIXED offset from the end of
+  the file (confirmed identical across all 9 example templates AND an
+  independent file re-saved by the real AUDIO per Windows software — this
+  AFW format pads every project to a constant total line count regardless
+  of driver/via count, so this anchor is more reliable than any offset
+  relative to ``driver_at``):
+  ``[Vh_m3, Fh_hz, virtual_volume_factor_h, q_leak_h ("Q box"),
+    q_abs_h ("Q coibente"), Vl_m3, Fl_hz, virtual_volume_factor_l,
+    q_leak_l ("Q box"), q_abs_l ("Q coibente"), condotti_h (port count,
+    always 1), diam_h_m, lunghezza_h_m, q_port_h ("Qp"), condotti_l
+    (always 1), diam_l_m, lunghezza_l_m, q_port_l ("Qp")]``
+  Ground truth for every field above was confirmed digit-for-digit against
+  the real software's own "Caricamento" dialog screenshots (Vh 2.06 L @
+  273.3 Hz, port 7.3 cm x 3 cm Qp 189.3 / Vl 4.15 L @ 104.8 Hz, port 2.9 cm
+  x 3 cm Qp 51.9) using ``09_fostex_fe126_dcaav.afw`` re-opened and re-saved
+  in the real software as a probe. There is a SECOND, superficially similar
+  10-value block at ``driver_at - 230`` (the previous version of this tool
+  wrote there) that the real software's dialog does NOT read — its values
+  differ from the dialog's actual display and it is followed by unrelated
+  crossover-filter coefficients, not port geometry; do not use it.
+  ``virtual_volume_factor`` ("Coeff. correttivo volume") is always written
+  as ``1.0`` — Load Forge's own Vh/Vl are already the net acoustic volume
+  AFW calls "virtual", so there is no separate physical/virtual split to
+  express. "Q box" vs "Q coibente" is a best-effort label match (box/leakage
+  losses vs lining/absorption losses respectively) rather than an
+  independently reverse-engineered formula — the values are close enough in
+  magnitude to Load Forge's own ``q_leak``/``q_abs`` defaults to support
+  this pairing, but treat it with the same caution as any single-example
+  mapping.
 - ``driver_at``: CRW curve title line
 - ``driver_at + 1`` .. ``+ 1005``: 201 points x 5 values, copied verbatim
   from the template (not recomputed) — same "ideal projection, not a real
@@ -64,9 +85,14 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
+sys.path.insert(0, str(ROOT / "src"))
 import compare_afw_sealed as afw  # noqa: E402
+import engine as _engine  # noqa: E402
 
 DEFAULT_TEMPLATE = ROOT / "examples" / "afw_bass_match_9" / "09_fostex_fe126_dcaav.afw"
+# Fixed distance from the end of the file to the 18-value chamber/port block;
+# see the module docstring for how this was confirmed.
+_CHAMBER_BLOCK_FROM_END = 90
 
 
 def _lfp_driver_ts(lfp: dict) -> dict:
@@ -102,18 +128,38 @@ def generate_afw_text(lfp: dict, template_path: Path = DEFAULT_TEMPLATE, title: 
     if int(afw._number(lines[code_at])) != 6:
         raise ValueError(f"{template_path} is not an AFW load-code-6 (DCAAV) template")
 
-    block_at = driver_at - 230
+    vh_l = float(lfp["box_vh_l"])
+    fh_hz = float(lfp["box_fh_hz"])
+    vl_l = float(lfp["box_vl_l"])
+    fl_hz = float(lfp["box_fl_hz"])
+    port_d_h_cm = float(lfp.get("box_port_d_h_cm", 5.0))
+    port_d_l_cm = float(lfp.get("box_port_d_l_cm", 5.0))
+    # Upper DCCAV port is flanged on both ends (joins two internal chambers,
+    # per engine.port_length_cm's own docstring); lower port is flanged on
+    # one end, free on the other (opens to the outside).
+    port_len_h_cm = _engine.port_length_cm(vh_l, fh_hz, port_d_h_cm, end_correction=1.64)
+    port_len_l_cm = _engine.port_length_cm(vl_l, fl_hz, port_d_l_cm, end_correction=1.43)
+
+    block_at = len(lines) - _CHAMBER_BLOCK_FROM_END
     box = {
-        0: float(lfp["box_vh_l"]) / 1000.0,
-        1: float(lfp["box_fh_hz"]),
-        3: float(lfp.get("loss_q_abs_h", 15.0)),
-        4: float(lfp.get("loss_q_leak_h", 1000.0)),
-        5: float(lfp["box_vl_l"]) / 1000.0,
-        6: float(lfp["box_fl_hz"]),
-        8: float(lfp.get("loss_q_abs_l", 15.0)),
-        9: float(lfp.get("loss_q_leak_l", 1000.0)),
-        14: float(lfp.get("loss_q_port_h", 15.0)),
-        25: float(lfp.get("loss_q_port_l", 15.0)),
+        0: vh_l / 1000.0,
+        1: fh_hz,
+        2: 1.0,
+        3: float(lfp.get("loss_q_leak_h", 1000.0)),
+        4: float(lfp.get("loss_q_abs_h", 15.0)),
+        5: vl_l / 1000.0,
+        6: fl_hz,
+        7: 1.0,
+        8: float(lfp.get("loss_q_leak_l", 1000.0)),
+        9: float(lfp.get("loss_q_abs_l", 15.0)),
+        10: 1,
+        11: port_d_h_cm / 100.0,
+        12: max(port_len_h_cm, 0.0) / 100.0,
+        13: float(lfp.get("loss_q_port_h", 15.0)),
+        14: 1,
+        15: port_d_l_cm / 100.0,
+        16: max(port_len_l_cm, 0.0) / 100.0,
+        17: float(lfp.get("loss_q_port_l", 15.0)),
     }
     for offset, value in box.items():
         lines[block_at + offset] = f" {value:.8g}"
@@ -169,10 +215,10 @@ def generate(lfp_path: Path, template_path: Path, output_path: Path, title: str 
         f"Vl={float(lfp['box_vl_l']):.2f} L @ {float(lfp['box_fl_hz']):.1f} Hz"
     )
     print(
-        "Port geometry fields (offsets 10-13, 15-24 of the chamber block) are "
-        "copied from the template unchanged and do NOT reflect this project's "
-        "actual port dimensions -- re-tune ports manually inside AFW if that "
-        "detail matters for your comparison."
+        "Port diameter/length are now written from this project's own "
+        "box_port_d_h_cm/box_port_d_l_cm and engine.port_length_cm(); "
+        "single-port (Condotti=1) per chamber, matching Load Forge's own "
+        "DCCAV port model."
     )
 
 
