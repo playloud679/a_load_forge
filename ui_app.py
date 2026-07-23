@@ -103,9 +103,6 @@ st.markdown(
             max-width: 100vw !important;
         }
     }
-    html {
-        font-size: 18px !important;
-    }
     .block-container,
     [data-testid="stMainBlockContainer"] {
         padding-top: 1.5rem !important;
