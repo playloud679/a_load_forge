@@ -4702,7 +4702,6 @@ with st.sidebar:
         st.title("Load Forge")
         st.caption(f"v{_VERSION}")
     _render_project_menu()
-    st.divider()
     _render_workspace_tabs()
     workspace_mode = str(st.session_state.get("workspace_mode", "Bass Match"))
     
