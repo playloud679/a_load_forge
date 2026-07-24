@@ -139,7 +139,7 @@ st.markdown(
         gap: .65rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-        gap: 0.45rem !important;
+        gap: 0.25rem !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stNumberInput"] {
         margin-bottom: 0 !important;
@@ -158,7 +158,7 @@ st.markdown(
     section[data-testid="stSidebar"] label p {
         font-size: 0.83rem !important;
         line-height: 1.3 !important;
-        margin-bottom: 0.15rem !important;
+        margin-bottom: 0.05rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
         line-height: 1.45 !important;
@@ -193,8 +193,8 @@ st.markdown(
         width: 1.15rem !important;
     }
     hr {
-        margin-top: 0.4rem !important;
-        margin-bottom: 0.4rem !important;
+        margin-top: 0.2rem !important;
+        margin-bottom: 0.2rem !important;
     }
 
     header[data-testid="stHeader"] {
