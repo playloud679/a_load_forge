@@ -127,7 +127,13 @@ st.markdown(
         gap: .9rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-        gap: .62rem !important;
+        gap: 0.2rem !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stNumberInput"] {
+        margin-bottom: -0.5rem !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stSelectbox"] {
+        margin-bottom: -0.5rem !important;
     }
     [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h1,
     [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h2,
@@ -4692,13 +4698,7 @@ with st.sidebar:
             current_preset = "Custom"
 
         with bd_tab1:
-            if len(select_names) < len(filtered_preset_names):
-                st.caption(
-                    f"{len(filtered_preset_names)} / {len(all_preset_names)} presets · "
-                    f"listing the first {len(select_names)}; type in Search preset to narrow"
-                )
-            else:
-                st.caption(f"{len(filtered_preset_names)} / {len(all_preset_names)} presets")
+            # Captions removed to save vertical space
             preset_name = st.selectbox(
                 "Driver preset",
                 preset_options,
@@ -4706,7 +4706,6 @@ with st.sidebar:
                 on_change=_on_driver_preset_change,
             )
             if preset_name != "Custom":
-                st.caption("Preset values are applied immediately.")
                 try:
                     purchase = _purchase_markdown(_dccav.driver_preset_info(preset_name))
                 except ValueError:
