@@ -498,10 +498,6 @@ def _workspace_tab_styles() -> str:
             box-shadow: 0 0 0 1px rgba(255,32,43,.22), 0 0 18px rgba(255,32,43,.16);
             filter: none;
         }
-        .st-key-workspace_tab_box_design div[data-testid="stButton"] button {
-            background-position: center 30% !important;
-            background-size: 104% !important;
-        }
         .st-key-workspace_tab_box_design div[data-testid="stButton"]
         button[data-testid="stBaseButton-primary"] {
             background-color: #000000 !important;
