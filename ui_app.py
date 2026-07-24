@@ -152,6 +152,13 @@ st.markdown(
         padding-top: 0.35rem !important;
         padding-bottom: 0.2rem !important;
     }
+    [data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] {
+        padding-bottom: 0.1rem !important;
+        margin-top: 0.55rem !important;
+    }
+    [data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] p {
+        margin-bottom: 0 !important;
+    }
     section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
     section[data-testid="stSidebar"] label p {
         font-size: 0.83rem !important;
@@ -3553,6 +3560,11 @@ def _render_find_driver_goal_sidebar() -> None:
         finder_load_types == ["Bass reflex"]
         and _reflex_uses_passive_radiator(finder=True)
     )
+    _finder_number_input(
+        "Minimum SPL (dB, 0 = off)", min_value=0.0, max_value=150.0,
+        step=0.5, key="finder_min_spl_db",
+        help="Require the candidate to reach at least this peak SPL at the comparison voltage; 0 disables.",
+    )
     if only_infinite_baffle:
         st.caption(
             "Infinite baffle has no enclosure to optimize; candidates are "
@@ -3595,11 +3607,7 @@ def _render_find_driver_goal_sidebar() -> None:
             step=1.0, key="finder_max_gd_ms",
             help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
         )
-        _finder_number_input(
-            "Minimum SPL (dB, 0 = off)", min_value=0.0, max_value=150.0,
-            step=0.5, key="finder_min_spl_db",
-            help="Require the candidate to reach at least this peak SPL at the comparison voltage; 0 disables.",
-        )
+
 
     _finder_number_input(
         "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
@@ -4707,7 +4715,7 @@ with st.sidebar:
     workspace_mode = str(st.session_state.get("workspace_mode", "Bass Match"))
     
     if workspace_mode == "Bass Match":
-        bm_tab1, bm_tab2, bm_tab3 = st.tabs(["Load type", "Performance", "Library Filters"])
+        bm_tab1, bm_tab2, bm_tab3 = st.tabs(["Load type", "Performance filters", "Library Filters"])
         
         with bm_tab1:
             if "finder_load_types" not in st.session_state:
