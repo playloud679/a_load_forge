@@ -1895,7 +1895,10 @@ def _step5(key, default, calc_val=None):
             if val > 0:
                 s_default = str(default)
                 decimals = len(s_default.split('.')[1]) if '.' in s_default else 0
-                return max(default, round(val * 0.05, decimals))
+                step_val = round(val * 0.05, decimals)
+                if isinstance(default, int):
+                    return max(default, int(step_val))
+                return max(default, step_val)
         except (ValueError, TypeError):
             pass
     return default
