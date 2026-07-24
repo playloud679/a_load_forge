@@ -196,7 +196,7 @@ st.markdown(
     .st-key-active_load_summary {
         border: 1px solid rgba(127,127,127,.22) !important;
         border-radius: .55rem !important;
-        padding: .45rem .6rem 1.35rem !important;
+        padding: .45rem .6rem .45rem !important;
     }
     .st-key-finder_run_search_main div[data-testid="stButton"] button {
         background: linear-gradient(180deg, #f02a35 0%, #cf111c 100%);
@@ -5410,7 +5410,7 @@ try:
     with st.container(key="active_load_summary"):
         # Left: active load schematic, Right: Dense info
         if active_load_image is not None and active_load_image.exists():
-            img_col, data_col = st.columns([1, 2.5], vertical_alignment="center")
+            img_col, data_col = st.columns([1, 5], vertical_alignment="center")
             with img_col:
                 st.image(str(active_load_image), use_container_width=True)
         else:
@@ -5421,14 +5421,14 @@ try:
                 """
                 <style>
                 .st-key-active_load_summary [data-testid="stMetricValue"] {
-                    font-size: 1.25rem !important;
+                    font-size: 1.15rem !important;
                 }
                 .st-key-active_load_summary [data-testid="stMetricLabel"] {
-                    font-size: 0.75rem !important;
-                    margin-bottom: 0.1rem !important;
+                    font-size: 0.7rem !important;
+                    margin-bottom: 0.05rem !important;
                 }
                 .st-key-active_load_summary [data-testid="stVerticalBlock"] {
-                    gap: 0.4rem !important;
+                    gap: 0rem !important;
                 }
                 .st-key-active_load_summary [data-testid="stMetric"] {
                     padding-bottom: 0 !important;
@@ -5455,57 +5455,55 @@ try:
                 score_val -= 25
             score_val = max(10, min(100, score_val))
 
-            rows = [
-                [("F3", _fmt_hz(thresholds[3])),
-                 ("Peak LF SPL", _fmt_db(metrics["max_spl_db"])),
-                 ("Max excursion", f"{metrics['max_excursion_mm']:.2f} mm")]
+            flat_metrics = [
+                ("F3", _fmt_hz(thresholds[3])),
+                ("Peak LF SPL", _fmt_db(metrics["max_spl_db"])),
+                ("Max exc.", f"{metrics['max_excursion_mm']:.2f} mm"),
+                ("Min imp.", f"{metrics['min_impedance_ohm']:.2f} Ω"),
             ]
-
-            row2 = [("Min impedance", f"{metrics['min_impedance_ohm']:.2f} Ω")]
             if not is_infinite_baffle:
                 if load_type == "Bandpass 4th order":
-                    row2.append(("Box volume", f"{box.vs_l + box.vp_l:.1f} L"))
+                    flat_metrics.append(("Box vol", f"{box.vs_l + box.vp_l:.1f} L"))
                 elif load_type == "Bandpass 6th order":
-                    row2.append(("Box volume", f"{box.vr_l + box.vp_l:.1f} L"))
+                    flat_metrics.append(("Box vol", f"{box.vr_l + box.vp_l:.1f} L"))
                 elif load_type == "DCCAV":
-                    row2.append(("Box volume", f"{box.vh_l + box.vl_l:.1f} L"))
+                    flat_metrics.append(("Box vol", f"{box.vh_l + box.vl_l:.1f} L"))
                 else:
-                    row2.append(("Box volume", f"{box.vb_l:.1f} L"))
-            else:
-                row2.append(None)
-            row2.append(("Forge Score", f"{score_val}/100"))
-            rows.append(row2)
+                    flat_metrics.append(("Box vol", f"{box.vb_l:.1f} L"))
+            flat_metrics.append(("Forge Score", f"{score_val}/100"))
 
             if not is_infinite_baffle:
                 ports = {row["Port"]: row for row in port_geometry_rows if not row.get("_is_pr", False)}
                 
-                def _port_metrics(lbl):
+                def _add_port(lbl):
                     if lbl in ports:
                         pr = ports[lbl]
-                        return [
-                            (f"{lbl} tuning", f"{pr['_fb_hz']:.1f} Hz"),
-                            (f"{lbl} size", f"Ø{pr['Diameter cm']:.1f} x {pr['Length cm']:.1f} cm")
-                        ]
-                    return [None, None]
+                        flat_metrics.extend([
+                            (f"{lbl} fb", f"{pr['_fb_hz']:.1f} Hz"),
+                            (f"{lbl} size", f"Ø{pr['Diameter cm']:.1f}x{pr['Length cm']:.1f}")
+                        ])
 
                 if load_type == "Bandpass 4th order":
-                    rows.append([("Closed vol (Vs)", f"{box.vs_l:.1f} L"), None, None])
-                    rows.append([("Ported vol (Vp)", f"{box.vp_l:.1f} L")] + _port_metrics("Front vent"))
+                    flat_metrics.append(("Vs", f"{box.vs_l:.1f} L"))
+                    flat_metrics.append(("Vp", f"{box.vp_l:.1f} L"))
+                    _add_port("Front vent")
                 elif load_type == "Bandpass 6th order":
-                    rows.append([("Rear vol (Vr)", f"{box.vr_l:.1f} L")] + _port_metrics("Rear vent"))
-                    rows.append([("Front vol (Vp)", f"{box.vp_l:.1f} L")] + _port_metrics("Front vent"))
+                    flat_metrics.append(("Vr", f"{box.vr_l:.1f} L"))
+                    _add_port("Rear vent")
+                    flat_metrics.append(("Vp", f"{box.vp_l:.1f} L"))
+                    _add_port("Front vent")
                 elif load_type == "DCCAV":
-                    rows.append([("High vol (Vh)", f"{box.vh_l:.1f} L")] + _port_metrics("Upper port"))
-                    rows.append([("Low vol (Vl)", f"{box.vl_l:.1f} L")] + _port_metrics("Lower port"))
+                    flat_metrics.append(("Vh", f"{box.vh_l:.1f} L"))
+                    _add_port("Upper port")
+                    flat_metrics.append(("Vl", f"{box.vl_l:.1f} L"))
+                    _add_port("Lower port")
                 else:
-                    if "Vent" in ports:
-                        rows.append([None] + _port_metrics("Vent"))
+                    _add_port("Vent")
 
-            for row_metrics in rows:
-                cols = st.columns(3)
-                for i, metric in enumerate(row_metrics):
-                    if metric is not None:
-                        cols[i].metric(metric[0], metric[1])
+            for i in range(0, len(flat_metrics), 4):
+                cols = st.columns(4)
+                for j, metric in enumerate(flat_metrics[i:i+4]):
+                    cols[j].metric(metric[0], metric[1])
 
         # Gamification / Performance Badges
         badges = []
