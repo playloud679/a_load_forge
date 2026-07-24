@@ -4508,7 +4508,7 @@ _default("sim_points", 600)
 _default("sim_voltage", 2.83)
 _default("sim_series_r_ohm", 0.0)
 _default("sim_auto_align", True)
-_default("plot_response_traces", list(_RESPONSE_TRACE_OPTIONS))
+_default("plot_response_traces", ["Total"])
 _default("plot_port_traces", list(_PORT_TRACE_OPTIONS))
 _default("plot_response_total", "Total" in st.session_state["plot_response_traces"])
 _default(
