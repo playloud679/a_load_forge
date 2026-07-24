@@ -105,7 +105,7 @@ st.markdown(
     }
     .block-container,
     [data-testid="stMainBlockContainer"] {
-        padding-top: 1.5rem !important;
+        padding-top: 0.2rem !important;
         padding-bottom: 0.2rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
@@ -5355,7 +5355,7 @@ try:
     )
     resonator_caption = "Passive radiator &middot; " if is_pr else ""
     st.markdown(
-        f"<div style='font-size: 0.8rem; color: rgba(250,250,250,.65); margin-bottom: 0.8rem;'>"
+        f"<div style='font-size: 0.8rem; color: rgba(250,250,250,.65); margin-bottom: 0.2rem;'>"
         f"{resonator_caption}{design_strategy} alignment &middot; {sim_voltage:.2f} V"
         f"</div>",
         unsafe_allow_html=True
@@ -5414,7 +5414,7 @@ try:
     with st.container(key="active_load_summary"):
         # Left: active load schematic, Right: Dense info
         if active_load_image is not None and active_load_image.exists():
-            img_col, data_col = st.columns([1, 5], vertical_alignment="center")
+            img_col, data_col = st.columns([0.65, 5], vertical_alignment="center")
             with img_col:
                 st.image(str(active_load_image), use_container_width=True)
         else:
