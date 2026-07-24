@@ -4874,34 +4874,19 @@ with st.sidebar:
                      "direct editing.",
             )
             # Simulate Inputs
-            st.number_input(
-                "Voltage (V)", min_value=0.01, max_value=200.0, step=0.01,
-                key="sim_voltage",
-            )
-            st.toggle("Advanced controls", key="ui_show_advanced")
-            if st.session_state.get("ui_show_advanced", False):
-                with st.container(border=True):
-                    s1, s2 = st.columns(2)
-                    with s1:
-                        st.number_input(
-                            "Simulation F min (Hz)", min_value=1.0, max_value=1000.0,
-                            step=1.0, key="sim_f_min",
-                        )
-                        st.number_input(
-                            "Points", min_value=80, max_value=4000,
-                            step=_step5("sim_points", 20), key="sim_points",
-                        )
-                    with s2:
-                        st.number_input(
-                            "Simulation F max (Hz)", min_value=10.0, max_value=5000.0,
-                            step=10.0, key="sim_f_max",
-                        )
-                        st.number_input(
-                            "Series R (Ω)", min_value=0.0, max_value=100.0,
-                            step=0.1, key="sim_series_r_ohm",
-                            help="Amplifier output + cable + crossover-coil DCR in series with the "
-                                 "driver. Optimizer and driver ranking evaluate at 0 Ω.",
-                        )
+            sim_c1, sim_c2 = st.columns(2)
+            with sim_c1:
+                st.number_input(
+                    "Voltage (V)", min_value=0.01, max_value=200.0, step=_step5("sim_voltage", 0.01),
+                    key="sim_voltage",
+                )
+            with sim_c2:
+                st.number_input(
+                    "Series R (Ω)", min_value=0.0, max_value=100.0,
+                    step=_step5("sim_series_r_ohm", 0.1), key="sim_series_r_ohm",
+                    help="Amplifier output + cable + crossover-coil DCR in series with the "
+                         "driver. Optimizer and driver ranking evaluate at 0 Ω.",
+                )
             
             try:
                 current_ts = _driver_from_state()
