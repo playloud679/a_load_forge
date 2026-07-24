@@ -173,32 +173,11 @@ st.markdown(
         margin-top: 0.5rem !important;
         margin-bottom: 0.5rem !important;
     }
-    .st-key-brand_banner,
-    .st-key-brand_banner div[data-testid="stMarkdownContainer"] {
-        max-width: none !important;
-        width: 100% !important;
-    }
-    .st-key-brand_banner {
-        background: #030405;
-        border-bottom: 1px solid rgba(255,255,255,.08);
-        margin-left: -5rem;
-        margin-right: -5rem;
-        width: calc(100% + 10rem) !important;
-    }
-    .st-key-brand_banner .load-forge-brand-banner {
-        display: block;
-        height: auto !important;
-        margin-inline: auto;
-        max-height: 6.5rem !important;
-        max-width: 100% !important;
-        object-fit: contain;
-        object-position: center;
-        width: 100% !important;
-    }
+
     header[data-testid="stHeader"] {
         background-color: transparent !important;
     }
-    .st-key-brand_banner { margin-bottom: -.45rem; }
+
     [data-testid="stCaptionContainer"] {
         color: rgba(250,250,250,.72);
     }
@@ -210,13 +189,7 @@ st.markdown(
     .st-key-finder_library_filters [data-testid="stVerticalBlock"] {
         gap: .55rem !important;
     }
-    @media (max-width: 768px) {
-        .st-key-brand_banner {
-            margin-left: -1rem;
-            margin-right: -1rem;
-            width: calc(100% + 2rem) !important;
-        }
-    }
+
     .st-key-active_load_summary {
         border: 1px solid rgba(127,127,127,.22) !important;
         border-radius: .55rem !important;
@@ -4642,13 +4615,7 @@ _sync_auto_alignment_if_needed()
 
 
 if _BRAND_IMAGE.exists():
-    with st.container(key="brand_banner"):
-        _brand_data = base64.b64encode(_BRAND_IMAGE.read_bytes()).decode("ascii")
-        st.markdown(
-            '<img class="load-forge-brand-banner" '
-            f'src="data:image/png;base64,{_brand_data}" alt="Load Forge">',
-            unsafe_allow_html=True,
-        )
+    st.logo(str(_BRAND_IMAGE))
 else:
     st.title("Load Forge")
 st.caption(
