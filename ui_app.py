@@ -4209,28 +4209,27 @@ def _render_response_tab(
     st.divider()
 
     # --- 3. Render Analysis Options & Actions ---
-    st.pills(
-        "Traces",
-        available_traces if (compare_series or _response_series(result)) else ["Total"],
-        selection_mode="multi",
-        default=selected_traces if (compare_series or _response_series(result)) else ["Total"],
-        key="plot_response_traces",
-        label_visibility="collapsed",
-    )
-
     pinned_state = _pinned_responses()
-    # Use an empty column at the end to absorb extra width and prevent buttons from stretching too much
-    col_widths = [1.6, 1.6, 1.4, 1.4, 1.2, 2.8] if pinned_state else [1.6, 1.6, 1.4, 1.2, 4.2]
-    ctrl_cols = st.columns(col_widths, vertical_alignment="center")
+    col_widths = [2.8, 1.3, 1.4, 1.1, 1.1, 1.0] if pinned_state else [2.8, 1.3, 1.4, 1.1, 1.0]
+    ctrl_cols = st.columns(col_widths, vertical_alignment="center", gap="small")
     
     with ctrl_cols[0]:
-        st.toggle("Compare loads", key="plot_compare_loads")
+        st.pills(
+            "Traces",
+            available_traces if (compare_series or _response_series(result)) else ["Total"],
+            selection_mode="multi",
+            default=selected_traces if (compare_series or _response_series(result)) else ["Total"],
+            key="plot_response_traces",
+            label_visibility="collapsed",
+        )
     with ctrl_cols[1]:
+        st.toggle("Compare loads", key="plot_compare_loads")
+    with ctrl_cols[2]:
         st.toggle(
             "Tolerance band", key="plot_tolerance_band", disabled=compare_loads_on,
             help="Monte Carlo 5-95th percentile spread from T/S tolerances.",
         )
-    with ctrl_cols[2]:
+    with ctrl_cols[3]:
         if st.button(
             "Pin response",
             use_container_width=True,
@@ -4244,11 +4243,11 @@ def _render_response_tab(
             st.rerun()
 
     if pinned_state:
-        with ctrl_cols[3]:
+        with ctrl_cols[4]:
             if st.button("Clear all pins", use_container_width=True):
                 _clear_pinned_responses()
                 st.rerun()
-        with ctrl_cols[4]:
+        with ctrl_cols[5]:
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
@@ -4258,7 +4257,7 @@ def _render_response_tab(
                 args=(full_window,),
             )
     else:
-        with ctrl_cols[3]:
+        with ctrl_cols[4]:
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
