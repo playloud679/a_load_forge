@@ -1890,7 +1890,10 @@ def _step5(key, default):
     if val is not None:
         try:
             val = float(val)
-            if val > 0: return val * 0.05
+            if val > 0:
+                s_default = str(default)
+                decimals = len(s_default.split('.')[1]) if '.' in s_default else 0
+                return max(default, round(val * 0.05, decimals))
         except (ValueError, TypeError):
             pass
     return default
@@ -4788,18 +4791,16 @@ with st.sidebar:
             with d3:
                 st.number_input("Xmax (mm)", min_value=0.0, max_value=100.0, step=_step5("driver_xmax_mm", 0.1),
                                 key="driver_xmax_mm", on_change=_on_driver_param_change)
+                st.number_input("Mms (g)", min_value=0.0, max_value=1000.0, step=_step5("driver_mms_g", 0.01),
+                                key="driver_mms_g", on_change=_on_driver_param_change)
+                st.number_input("Bl (T·m)", min_value=0.0, max_value=100.0, step=_step5("driver_bl_tm", 0.01),
+                                key="driver_bl_tm", on_change=_on_driver_param_change)
             with d4:
                 st.number_input("Pe (W)", min_value=0.0, max_value=5000.0, step=_step5("driver_pe_w", 1.0),
                                 key="driver_pe_w", on_change=_on_driver_param_change)
-
-            with st.expander("Measured optional parameters"):
-                st.number_input("Mms (g)", min_value=0.0, max_value=1000.0, step=_step5("driver_mms_g", 0.01),
-                                key="driver_mms_g", on_change=_on_driver_param_change)
                 st.number_input("Cms (mm/N)", min_value=0.0, max_value=100.0, step=_step5("driver_cms_mm_n", 0.001),
                                 format="%.3f", key="driver_cms_mm_n",
                                 on_change=_on_driver_param_change)
-                st.number_input("Bl (T·m)", min_value=0.0, max_value=100.0, step=_step5("driver_bl_tm", 0.01),
-                                key="driver_bl_tm", on_change=_on_driver_param_change)
                 st.number_input("Le10k (mH)", min_value=0.0, max_value=20.0, step=_step5("driver_le10k_mh", 0.001),
                                 format="%.3f", key="driver_le10k_mh",
                                 on_change=_on_driver_param_change,
