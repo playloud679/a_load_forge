@@ -5505,74 +5505,79 @@ try:
                 for j, metric in enumerate(flat_metrics[i:i+4]):
                     cols[j].metric(metric[0], metric[1])
 
-        # Gamification / Performance Badges
-        badges = []
-        if not is_infinite_baffle and not is_sealed:
-            has_port_issues = any(
-                "chuffing" in w.lower() or "minimum-area" in w.lower() or "tunes at most" in w.lower()
-                for w in model_warnings
-            )
-            if len(port_geometry_rows) > 0 and not has_port_issues:
-                badges.append((
-                    "🛡️ Safe from Chuffing",
-                    "rgba(46, 204, 113, 0.08)",
-                    "rgba(46, 204, 113, 0.3)",
-                    "#2ecc71"
-                ))
-        
-        f3_val = thresholds[3]
-        if not np.isnan(f3_val) and not is_infinite_baffle:
-            if is_reflex or is_sealed or is_pr:
-                vtot_l = box.vb_l
-            elif is_bandpass4:
-                vtot_l = box.vs_l + box.vp_l
-            elif is_bandpass6:
-                vtot_l = box.vr_l + box.vp_l
-            else:
-                vtot_l = box.vh_l + box.vl_l
+            # Gamification / Performance Badges
+            badges = []
+            if not is_infinite_baffle and not is_sealed:
+                has_port_issues = any(
+                    "chuffing" in w.lower() or "minimum-area" in w.lower() or "tunes at most" in w.lower()
+                    for w in model_warnings
+                )
+                if len(port_geometry_rows) > 0 and not has_port_issues:
+                    badges.append((
+                        "🛡️ Safe from Chuffing",
+                        "rgba(46, 204, 113, 0.08)",
+                        "rgba(46, 204, 113, 0.3)",
+                        "#2ecc71"
+                    ))
             
-            if f3_val < 30.0 and vtot_l < 35.0:
+            f3_val = thresholds[3]
+            if not np.isnan(f3_val) and not is_infinite_baffle:
+                if is_reflex or is_sealed or is_pr:
+                    vtot_l = box.vb_l
+                elif is_bandpass4:
+                    vtot_l = box.vs_l + box.vp_l
+                elif is_bandpass6:
+                    vtot_l = box.vr_l + box.vp_l
+                else:
+                    vtot_l = box.vh_l + box.vl_l
+                
+                if f3_val < 30.0 and vtot_l < 35.0:
+                    badges.append((
+                        "🏆 Legendary Extension",
+                        "rgba(0, 110, 219, 0.08)",
+                        "rgba(0, 110, 219, 0.3)",
+                        "#006edb"
+                    ))
+                elif f3_val < 40.0 and vtot_l < 50.0:
+                    badges.append((
+                        "🔊 Deep Bass Accord",
+                        "rgba(0, 110, 219, 0.08)",
+                        "rgba(0, 110, 219, 0.3)",
+                        "#006edb"
+                    ))
+                elif f3_val < 50.0:
+                    badges.append((
+                        "🎵 Tight Bass",
+                        "rgba(0, 110, 219, 0.08)",
+                        "rgba(0, 110, 219, 0.3)",
+                        "#006edb"
+                    ))
+
+            if not any("sanity" in w.lower() or "warning" in w.lower() for w in model_warnings):
                 badges.append((
-                    "🏆 Legendary Extension",
-                    "rgba(0, 110, 219, 0.08)",
-                    "rgba(0, 110, 219, 0.3)",
-                    "#006edb"
-                ))
-            elif f3_val < 40.0 and vtot_l < 50.0:
-                badges.append((
-                    "🔊 Deep Bass Accord",
-                    "rgba(0, 110, 219, 0.08)",
-                    "rgba(0, 110, 219, 0.3)",
-                    "#006edb"
-                ))
-            elif f3_val < 50.0:
-                badges.append((
-                    "🎵 Tight Bass",
-                    "rgba(0, 110, 219, 0.08)",
-                    "rgba(0, 110, 219, 0.3)",
-                    "#006edb"
+                    "✅ Acoustically Sane",
+                    "rgba(26, 188, 156, 0.08)",
+                    "rgba(26, 188, 156, 0.3)",
+                    "#1abc9c"
                 ))
 
-        if not any("sanity" in w.lower() or "warning" in w.lower() for w in model_warnings):
-            badges.append((
-                "✅ Acoustically Sane",
-                "rgba(26, 188, 156, 0.08)",
-                "rgba(26, 188, 156, 0.3)",
-                "#1abc9c"
-            ))
+            if badges:
+                badge_html = " ".join([
+                    f'<span style="display: inline-block; background-color: {bg}; '
+                    f'border: 1px solid {border}; border-radius: 0.35rem; '
+                    f'padding: 0.15rem 0.45rem; margin-right: 0.35rem; font-size: 0.72rem; '
+                    f'font-weight: 600; color: {color};">{text}</span>'
+                    for text, bg, border, color in badges
+                ])
+                st.markdown(f'<div style="margin-top: 0.45rem; padding-bottom: 0.45rem; margin-bottom: 0.2rem;">{badge_html}</div>', unsafe_allow_html=True)
 
-        if badges:
-            badge_html = " ".join([
-                f'<span style="display: inline-block; background-color: {bg}; '
-                f'border: 1px solid {border}; border-radius: 0.35rem; '
-                f'padding: 0.15rem 0.45rem; margin-right: 0.35rem; font-size: 0.72rem; '
-                f'font-weight: 600; color: {color};">{text}</span>'
-                for text, bg, border, color in badges
-            ])
-            st.markdown(f'<div style="margin-top: 0.45rem; padding-bottom: 0.45rem; margin-bottom: 0.2rem;">{badge_html}</div>', unsafe_allow_html=True)
+            if model_warnings:
+                st.markdown(
+                    "".join(f'<div style="background: rgba(255, 170, 0, 0.1); border-left: 3px solid #ffaa00; padding: 0.3rem 0.6rem; font-size: 0.8rem; margin-top: 0.3rem; color: #ffbc3d;">• {w}</div>' for w in model_warnings),
+                    unsafe_allow_html=True
+                )
 
-    for warning in model_warnings:
-        st.warning(warning)
+    # Warnings are now rendered inside data_col compactly
 
     with st.expander("Design details"):
         s1, s2, s3 = st.columns(3)
