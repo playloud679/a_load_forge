@@ -1962,6 +1962,9 @@ def _line_chart(
     y_axis: alt.Axis | None = None,
     default_visible: list[str] | None = None,
 ) -> alt.Chart:
+    if not legend and default_visible is not None:
+        data = data[data["series"].isin(default_visible)]
+    
     series_names = list(dict.fromkeys(data["series"].tolist()))
     color_scale = alt.Scale(
         domain=series_names,
@@ -1981,7 +1984,7 @@ def _line_chart(
         if default_visible is not None:
             kwargs["value"] = [{"series": name} for name in default_visible]
         selection = alt.selection_point(**kwargs)
-        opacity = alt.condition(selection, alt.value(1), alt.value(0.1))
+        opacity = alt.condition(selection, alt.value(1), alt.value(0))
         chart = chart.encode(
             x=alt.X(
                 "frequency_hz:Q",
