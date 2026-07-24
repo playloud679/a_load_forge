@@ -2045,6 +2045,7 @@ def _response_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
         series[label] = result.spl_port_db
     if not st.session_state.get("plot_compare_loads", False):
         series["MOL"] = result.mol_db
+        series["MIL"] = result.mil_w
     return series
 
 
@@ -2377,12 +2378,15 @@ def _plot_response(
     band: _dccav.ToleranceBand | None = None,
     frequency_window: list[float] | None = None,
     show_legend: bool = False,
+    default_visible: list[str] | None = None,
 ) -> alt.Chart:
-    series = series_override if series_override else _response_series(result)
-    if not series:
-        raise ValueError("No response traces selected")
-    data = _series_frame(result, series)
-    y_domain = _response_y_domain(result, series, frequency_window)
+    series = dict(series_override if series_override else _response_series(result))
+    mil_w_data = series.pop("MIL", None)
+    
+    db_series_to_plot = series if series else {"Total": result.spl_total_db}
+    
+    data = _series_frame(result, db_series_to_plot)
+    y_domain = _response_y_domain(result, db_series_to_plot, frequency_window)
     y_domain = _expand_y_domain_for_pins(y_domain, frequency_window)
     if band is not None and y_domain is not None:
         finite_upper = np.asarray(band.upper_db, dtype=float)
@@ -2397,8 +2401,26 @@ def _plot_response(
         x_domain=frequency_window,
         y_domain=y_domain,
         y_axis=_response_amplitude_axis(),
-        default_visible=["Total"],
+        default_visible=default_visible,
     )
+    
+    if mil_w_data is not None and (default_visible is None or "MIL" in default_visible):
+        mil_data = _series_frame(result, {"MIL": mil_w_data})
+        mil_chart = _line_chart(
+            mil_data,
+            "Max input power (W)",
+            height=600,
+            legend=show_legend,
+            x_domain=frequency_window,
+            y_axis=alt.Axis(
+                orient="right",
+                titleColor=_TRACE_COLORS.get("MIL", "#e0aaff"),
+                labelColor=_TRACE_COLORS.get("MIL", "#e0aaff")
+            ),
+            default_visible=["MIL"],
+        )
+        chart = alt.layer(chart, mil_chart).resolve_scale(y="independent")
+
     if band is not None:
         band_area = _band_layer(band, y_domain, frequency_window)
         if band_area is not None:
@@ -4150,19 +4172,27 @@ def _render_response_tab(
 
     # --- 2. Render Charts ---
     if compare_series or _response_series(result):
-        show_legend = True
+        current_series = compare_series if compare_series else _response_series(result)
+        available_traces = list(current_series.keys())
+        # Filter session state to only valid traces
+        saved_traces = st.session_state.get("plot_response_traces", ["Total"])
+        selected_traces = [t for t in saved_traces if t in available_traces]
+        if not selected_traces and available_traces:
+            selected_traces = [available_traces[0]]
+
         st.altair_chart(
             _plot_response(
                 result, cursor_rows, compare_series, band,
                 frequency_window=frequency_window,
-                show_legend=show_legend,
+                show_legend=False,
+                default_visible=selected_traces,
             ),
             width="stretch",
             key=f"response_chart_{chart_sig}",
         )
         st.caption(
             "Use the frequency slider below to zoom; click the chart to place a point marker "
-            "and double-click to clear it. Click legend entries to toggle individual traces."
+            "and double-click to clear it."
         )
     else:
         st.caption("Response pens off.")
@@ -4171,17 +4201,26 @@ def _render_response_tab(
 
     # --- 3. Render Analysis Options & Actions ---
     pinned_state = _pinned_responses()
-    num_cols = 5 if pinned_state else 4
+    num_cols = 6 if pinned_state else 5
     ctrl_cols = st.columns(num_cols)
     
     with ctrl_cols[0]:
-        st.toggle("Compare loads", key="plot_compare_loads")
+        st.pills(
+            "Traces",
+            available_traces if (compare_series or _response_series(result)) else ["Total"],
+            selection_mode="multi",
+            default=selected_traces if (compare_series or _response_series(result)) else ["Total"],
+            key="plot_response_traces",
+            label_visibility="collapsed",
+        )
     with ctrl_cols[1]:
+        st.toggle("Compare loads", key="plot_compare_loads")
+    with ctrl_cols[2]:
         st.toggle(
             "Tolerance band", key="plot_tolerance_band", disabled=compare_loads_on,
             help="Monte Carlo 5-95th percentile spread from T/S tolerances.",
         )
-    with ctrl_cols[2]:
+    with ctrl_cols[3]:
         if st.button(
             "Pin response",
             use_container_width=True,
@@ -4195,11 +4234,11 @@ def _render_response_tab(
             st.rerun()
 
     if pinned_state:
-        with ctrl_cols[3]:
+        with ctrl_cols[4]:
             if st.button("Clear all pins", use_container_width=True):
                 _clear_pinned_responses()
                 st.rerun()
-        with ctrl_cols[4]:
+        with ctrl_cols[5]:
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
@@ -4209,7 +4248,7 @@ def _render_response_tab(
                 args=(full_window,),
             )
     else:
-        with ctrl_cols[3]:
+        with ctrl_cols[4]:
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
