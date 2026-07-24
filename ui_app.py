@@ -4676,9 +4676,6 @@ _default("bandpass6_fp_hz", float(_seed_bandpass6.fp_hz))
 _default("sealed_vb_l", float(_seed_sealed.vb_l))
 _sync_auto_alignment_if_needed()
 
-
-if not _BRAND_IMAGE.exists():
-
 finder_library_filters_slot = st.empty()
 
 
