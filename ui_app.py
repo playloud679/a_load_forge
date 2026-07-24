@@ -4004,7 +4004,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     table_state = st.dataframe(
         display_df,
         use_container_width=True,
-        height=720,
+        height=540,
         hide_index=True,
         key=f"batch_results_table_{'value' if 'Value' in columns else 'f3'}",
         on_select="rerun",
