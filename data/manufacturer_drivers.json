@@ -18,6 +18,7 @@
     "https://www.bmsspeakers.com",
     "https://www.bomber.com.br",
     "https://www.ciare.com",
+    "https://www.dcsoundlab.com",
     "https://www.eighteensound.it",
     "https://www.fostex.jp",
     "https://www.madisoundspeakerstore.com",
@@ -26,7 +27,7 @@
     "https://www.soundimports.eu",
     "https://www.visaton.de"
   ],
-  "downloaded_at": "2026-07-22T14:34:07+00:00",
+  "downloaded_at": "2026-07-24T15:45:50+00:00",
   "note": "No loudspeakerdatabase.com content. Each record's website_fields.url points at the manufacturer page/document/API it was extracted from.",
   "presets": [
     {
@@ -198811,7 +198812,7 @@
         "qms": 5.7779,
         "qts": 0.3576,
         "re_ohm": 5.8,
-        "sd_cm2": 0.09079,
+        "sd_cm2": 907.9,
         "vas_l": 232.9744
       },
       "size_in": 1.0,
@@ -279363,7 +279364,7 @@
         "qms": 7.1,
         "qts": 0.3,
         "re_ohm": 6.2,
-        "sd_cm2": 0.038,
+        "sd_cm2": 380.0,
         "vas_l": 48.98814460416,
         "xmax_mm": 7.0
       },
@@ -279440,7 +279441,7 @@
         "qms": 10.1,
         "qts": 0.31,
         "re_ohm": 5.6,
-        "sd_cm2": 0.035,
+        "sd_cm2": 350.00000000000006,
         "vas_l": 24.0693196032,
         "xmax_mm": 8.0
       },
@@ -279594,7 +279595,7 @@
         "qms": 7.8,
         "qts": 0.34,
         "re_ohm": 5.6,
-        "sd_cm2": 0.055,
+        "sd_cm2": 550.0,
         "vas_l": 56.916861649919994,
         "xmax_mm": 8.0
       },
@@ -279671,7 +279672,7 @@
         "qms": 5.5,
         "qts": 0.22,
         "re_ohm": 6.3,
-        "sd_cm2": 0.053,
+        "sd_cm2": 530.0,
         "vas_l": 63.99607329792,
         "xmax_mm": 3.0
       },
@@ -279748,7 +279749,7 @@
         "qms": 3.3,
         "qts": 0.28,
         "re_ohm": 5.3,
-        "sd_cm2": 0.07,
+        "sd_cm2": 700.0000000000001,
         "vas_l": 77.871328128,
         "xmax_mm": 7.0
       },
@@ -279825,7 +279826,7 @@
         "qms": 6.9,
         "qts": 0.33,
         "re_ohm": 5.3,
-        "sd_cm2": 0.088,
+        "sd_cm2": 880.0,
         "vas_l": 107.88718551552,
         "xmax_mm": 13.0
       },
@@ -279898,7 +279899,7 @@
         "qms": 5.4,
         "qts": 0.34,
         "re_ohm": 5.3,
-        "sd_cm2": 0.088,
+        "sd_cm2": 880.0,
         "vas_l": 148.09710767616002,
         "xmax_mm": 7.0
       },
@@ -279967,7 +279968,7 @@
         "qms": 6.3,
         "qts": 0.21,
         "re_ohm": 5.3,
-        "sd_cm2": 0.088,
+        "sd_cm2": 880.0,
         "vas_l": 101.9406477312,
         "xmax_mm": 13.0
       },
@@ -280105,7 +280106,7 @@
         "qms": 11.6,
         "qts": 0.25,
         "re_ohm": 3.6,
-        "sd_cm2": 0.1255,
+        "sd_cm2": 1255.0,
         "vas_l": 177.26345966592,
         "xmax_mm": 13.0
       },
@@ -280174,7 +280175,7 @@
         "qms": 8.6,
         "qts": 0.51,
         "re_ohm": 6.0,
-        "sd_cm2": 0.014,
+        "sd_cm2": 140.0,
         "vas_l": 3.086536278528,
         "xmax_mm": 3.0
       },
@@ -280251,7 +280252,7 @@
         "qms": 3.7,
         "qts": 0.29,
         "re_ohm": 5.3,
-        "sd_cm2": 0.0135,
+        "sd_cm2": 135.0,
         "vas_l": 11.89307556864,
         "xmax_mm": 5.5
       },
@@ -280328,7 +280329,7 @@
         "qms": 13.0,
         "qts": 0.29,
         "re_ohm": 5.4,
-        "sd_cm2": 0.022,
+        "sd_cm2": 220.0,
         "vas_l": 22.936645739520003,
         "xmax_mm": 6.0
       },
@@ -280405,7 +280406,7 @@
         "qms": 7.5,
         "qts": 0.45,
         "re_ohm": 6.0,
-        "sd_cm2": 0.022,
+        "sd_cm2": 220.0,
         "vas_l": 11.89307556864,
         "xmax_mm": 3.0
       },
@@ -290373,7 +290374,7 @@
         "qms": 7.5,
         "qts": 0.29,
         "re_ohm": 5.6,
-        "sd_cm2": 0.035,
+        "sd_cm2": 350.00000000000006,
         "vas_l": 24.0693196032,
         "xmax_mm": 8.0
       },
@@ -290442,7 +290443,7 @@
         "qms": 6.6,
         "qts": 0.21,
         "re_ohm": 6.3,
-        "sd_cm2": 0.038,
+        "sd_cm2": 380.0,
         "vas_l": 54.08517699072,
         "xmax_mm": 4.5
       },
@@ -290519,7 +290520,7 @@
         "qms": 11.6,
         "qts": 0.3,
         "re_ohm": 6.0,
-        "sd_cm2": 0.053,
+        "sd_cm2": 530.0,
         "vas_l": 80.98618125312,
         "xmax_mm": 7.0
       },
@@ -290596,7 +290597,7 @@
         "qms": 4.1,
         "qts": 0.24,
         "re_ohm": 5.2,
-        "sd_cm2": 0.055,
+        "sd_cm2": 550.0,
         "vas_l": 58.0495355136,
         "xmax_mm": 7.0
       },
@@ -290673,7 +290674,7 @@
         "qms": 6.5,
         "qts": 0.21,
         "re_ohm": 5.0,
-        "sd_cm2": 0.055,
+        "sd_cm2": 550.0,
         "vas_l": 60.8812201728,
         "xmax_mm": 7.5
       },
@@ -290750,7 +290751,7 @@
         "qms": 4.1,
         "qts": 0.49,
         "re_ohm": 6.0,
-        "sd_cm2": 0.088,
+        "sd_cm2": 880.0,
         "vas_l": 103.92282699264,
         "xmax_mm": 7.0
       },
@@ -290827,7 +290828,7 @@
         "qms": 6.6,
         "qts": 0.36,
         "re_ohm": 5.5,
-        "sd_cm2": 0.088,
+        "sd_cm2": 880.0,
         "vas_l": 90.89707756032,
         "xmax_mm": 14.5
       },
@@ -290904,7 +290905,7 @@
         "qms": 7.8,
         "qts": 0.48,
         "re_ohm": 5.6,
-        "sd_cm2": 0.088,
+        "sd_cm2": 880.0,
         "vas_l": 133.93868438016003,
         "xmax_mm": 8.0
       },
@@ -290981,7 +290982,7 @@
         "qms": 8.2,
         "qts": 0.3,
         "re_ohm": 5.6,
-        "sd_cm2": 0.088,
+        "sd_cm2": 880.0,
         "vas_l": 235.87933211136001,
         "xmax_mm": 6.3
       },
@@ -291135,7 +291136,7 @@
         "qms": 6.5,
         "qts": 0.23,
         "re_ohm": 5.3,
-        "sd_cm2": 0.1255,
+        "sd_cm2": 1255.0,
         "vas_l": 195.10307301888,
         "xmax_mm": 13.0
       },
@@ -291212,7 +291213,7 @@
         "qms": 1.4,
         "qts": 0.34,
         "re_ohm": 5.3,
-        "sd_cm2": 0.014,
+        "sd_cm2": 140.0,
         "vas_l": 6.484557869568,
         "xmax_mm": 5.7
       },
@@ -291289,7 +291290,7 @@
         "qms": 7.5,
         "qts": 0.34,
         "re_ohm": 5.8,
-        "sd_cm2": 0.0154,
+        "sd_cm2": 154.0,
         "vas_l": 11.04357017088,
         "xmax_mm": 9.0
       },
@@ -291366,7 +291367,7 @@
         "qms": 4.8,
         "qts": 0.35,
         "re_ohm": 5.2,
-        "sd_cm2": 0.022,
+        "sd_cm2": 220.0,
         "vas_l": 7.928717045760001,
         "xmax_mm": 6.0
       },
@@ -291443,7 +291444,7 @@
         "qms": 6.8,
         "qts": 0.36,
         "re_ohm": 6.0,
-        "sd_cm2": 0.022,
+        "sd_cm2": 220.0,
         "vas_l": 16.9901079552,
         "xmax_mm": 6.5
       },
@@ -291520,7 +291521,7 @@
         "qms": 7.6,
         "qts": 0.37,
         "re_ohm": 5.7,
-        "sd_cm2": 0.0227,
+        "sd_cm2": 227.00000000000003,
         "vas_l": 26.9010042624,
         "xmax_mm": 9.0
       },
@@ -300849,7 +300850,7 @@
         "qms": 3.8,
         "qts": 0.22,
         "re_ohm": 5.2,
-        "sd_cm2": 0.035,
+        "sd_cm2": 350.00000000000006,
         "vas_l": 20.10496108032,
         "xmax_mm": 7.0
       },
@@ -300926,7 +300927,7 @@
         "qms": 5.9,
         "qts": 0.42,
         "re_ohm": 5.9,
-        "sd_cm2": 0.037,
+        "sd_cm2": 370.0,
         "vas_l": 45.02378608128,
         "xmax_mm": 14.5
       },
@@ -301003,7 +301004,7 @@
         "qms": 3.6,
         "qts": 0.3,
         "re_ohm": 5.4,
-        "sd_cm2": 0.055,
+        "sd_cm2": 550.0,
         "vas_l": 38.51091136512,
         "xmax_mm": 11.0
       },
@@ -301080,7 +301081,7 @@
         "qms": 3.9,
         "qts": 0.27,
         "re_ohm": 5.4,
-        "sd_cm2": 0.055,
+        "sd_cm2": 550.0,
         "vas_l": 13.308917898239999,
         "xmax_mm": 7.0
       },
@@ -301157,7 +301158,7 @@
         "qms": 5.2,
         "qts": 0.19,
         "re_ohm": 5.0,
-        "sd_cm2": 0.055,
+        "sd_cm2": 550.0,
         "vas_l": 65.1287471616,
         "xmax_mm": 7.5
       },
@@ -301234,7 +301235,7 @@
         "qms": 5.1,
         "qts": 0.34,
         "re_ohm": 5.4,
-        "sd_cm2": 0.088,
+        "sd_cm2": 880.0,
         "vas_l": 116.0990710272,
         "xmax_mm": 11.0
       },
@@ -301311,7 +301312,7 @@
         "qms": 7.8,
         "qts": 0.45,
         "re_ohm": 5.6,
-        "sd_cm2": 0.088,
+        "sd_cm2": 880.0,
         "vas_l": 133.93868438016003,
         "xmax_mm": 8.0
       },
@@ -301384,7 +301385,7 @@
         "qms": 5.5,
         "qts": 0.18,
         "re_ohm": 5.3,
-        "sd_cm2": 0.088,
+        "sd_cm2": 880.0,
         "vas_l": 304.97243779584,
         "xmax_mm": 7.5
       },
@@ -301453,7 +301454,7 @@
         "qms": 7.3,
         "qts": 0.38,
         "re_ohm": 5.4,
-        "sd_cm2": 0.1255,
+        "sd_cm2": 1255.0,
         "vas_l": 250.03775540736,
         "xmax_mm": 11.0
       },
@@ -301530,7 +301531,7 @@
         "qms": 7.4,
         "qts": 0.38,
         "re_ohm": 5.3,
-        "sd_cm2": 0.1255,
+        "sd_cm2": 1255.0,
         "vas_l": 188.02386137087998,
         "xmax_mm": 13.0
       },
@@ -301607,7 +301608,7 @@
         "qms": 8.6,
         "qts": 0.29,
         "re_ohm": 5.4,
-        "sd_cm2": 0.1734,
+        "sd_cm2": 1734.0,
         "vas_l": 304.97243779584,
         "xmax_mm": 14.0
       },
@@ -301684,7 +301685,7 @@
         "qms": 3.7,
         "qts": 0.33,
         "re_ohm": 6.0,
-        "sd_cm2": 0.014,
+        "sd_cm2": 140.0,
         "vas_l": 6.994261108224,
         "xmax_mm": 3.0
       },
@@ -301761,7 +301762,7 @@
         "qms": 4.3,
         "qts": 0.35,
         "re_ohm": 9.9,
-        "sd_cm2": 0.0135,
+        "sd_cm2": 135.0,
         "vas_l": 8.77822244352,
         "xmax_mm": 4.0
       },
@@ -301838,7 +301839,7 @@
         "qms": 7.7,
         "qts": 0.52,
         "re_ohm": 5.1,
-        "sd_cm2": 0.022,
+        "sd_cm2": 220.0,
         "vas_l": 14.724760227840001,
         "xmax_mm": 5.7
       },
@@ -301915,7 +301916,7 @@
         "qms": 3.8,
         "qts": 0.22,
         "re_ohm": 6.1,
-        "sd_cm2": 0.022,
+        "sd_cm2": 220.0,
         "vas_l": 1.812278181888,
         "xmax_mm": 6.0
       },
@@ -301992,7 +301993,7 @@
         "qms": 14.3,
         "qts": 0.31,
         "re_ohm": 5.2,
-        "sd_cm2": 0.022,
+        "sd_cm2": 220.0,
         "vas_l": 24.918825000960002,
         "xmax_mm": 6.0
       },
@@ -311962,7 +311963,7 @@
         "qms": 3.8,
         "qts": 0.42,
         "re_ohm": 5.9,
-        "sd_cm2": 0.038,
+        "sd_cm2": 380.0,
         "vas_l": 43.8911122176,
         "xmax_mm": 6.5
       },
@@ -312039,7 +312040,7 @@
         "qms": 4.9,
         "qts": 0.33,
         "re_ohm": 5.3,
-        "sd_cm2": 0.035,
+        "sd_cm2": 350.00000000000006,
         "vas_l": 13.308917898239999,
         "xmax_mm": 7.0
       },
@@ -312111,7 +312112,7 @@
         "qms": 3.9,
         "qts": 0.35,
         "re_ohm": 6.1,
-        "sd_cm2": 0.035,
+        "sd_cm2": 350.00000000000006,
         "vas_l": 41.90893295616
       },
       "size_in": 10.0,
@@ -312184,7 +312185,7 @@
         "qms": 4.2,
         "qts": 0.24,
         "re_ohm": 5.0,
-        "sd_cm2": 0.055,
+        "sd_cm2": 550.0,
         "vas_l": 43.041606819840005,
         "xmax_mm": 11.0
       },
@@ -312261,7 +312262,7 @@
         "qms": 7.8,
         "qts": 0.36,
         "re_ohm": 5.6,
-        "sd_cm2": 0.055,
+        "sd_cm2": 550.0,
         "vas_l": 56.916861649919994,
         "xmax_mm": 8.0
       },
@@ -312338,7 +312339,7 @@
         "qms": 5.6,
         "qts": 0.27,
         "re_ohm": 5.6,
-        "sd_cm2": 0.053,
+        "sd_cm2": 530.0,
         "vas_l": 90.89707756032,
         "xmax_mm": 6.3
       },
@@ -312415,7 +312416,7 @@
         "qms": 3.9,
         "qts": 0.37,
         "re_ohm": 5.2,
-        "sd_cm2": 0.088,
+        "sd_cm2": 880.0,
         "vas_l": 112.98421790208,
         "xmax_mm": 11.0
       },
@@ -312492,7 +312493,7 @@
         "qms": 3.6,
         "qts": 0.31,
         "re_ohm": 5.2,
-        "sd_cm2": 0.088,
+        "sd_cm2": 880.0,
         "vas_l": 105.05550085632001,
         "xmax_mm": 7.0
       },
@@ -312569,7 +312570,7 @@
         "qms": 5.1,
         "qts": 0.21,
         "re_ohm": 5.1,
-        "sd_cm2": 0.088,
+        "sd_cm2": 880.0,
         "vas_l": 184.059502848,
         "xmax_mm": 7.5
       },
@@ -312646,7 +312647,7 @@
         "qms": 5.6,
         "qts": 0.39,
         "re_ohm": 5.1,
-        "sd_cm2": 0.1255,
+        "sd_cm2": 1255.0,
         "vas_l": 259.94865171456,
         "xmax_mm": 11.0
       },
@@ -312723,7 +312724,7 @@
         "qms": 11.4,
         "qts": 0.43,
         "re_ohm": 5.8,
-        "sd_cm2": 0.1255,
+        "sd_cm2": 1255.0,
         "vas_l": 231.06546819072003,
         "xmax_mm": 14.5
       },
@@ -312796,7 +312797,7 @@
         "qms": 4.5,
         "qts": 0.28,
         "re_ohm": 5.4,
-        "sd_cm2": 0.1734,
+        "sd_cm2": 1734.0,
         "vas_l": 308.93679631872004,
         "xmax_mm": 13.0
       },
@@ -312865,7 +312866,7 @@
         "qms": 10.3,
         "qts": 0.72,
         "re_ohm": 6.2,
-        "sd_cm2": 0.014,
+        "sd_cm2": 140.0,
         "vas_l": 0.254851619328,
         "xmax_mm": 2.5
       },
@@ -312942,7 +312943,7 @@
         "qms": 4.6,
         "qts": 0.26,
         "re_ohm": 4.9,
-        "sd_cm2": 0.0135,
+        "sd_cm2": 135.0,
         "vas_l": 11.04357017088,
         "xmax_mm": 5.0
       },
@@ -313019,7 +313020,7 @@
         "qms": 4.2,
         "qts": 0.55,
         "re_ohm": 5.2,
-        "sd_cm2": 0.022,
+        "sd_cm2": 220.0,
         "vas_l": 10.760401704960001,
         "xmax_mm": 6.0
       },
@@ -313096,7 +313097,7 @@
         "qms": 2.6,
         "qts": 0.18,
         "re_ohm": 5.3,
-        "sd_cm2": 0.022,
+        "sd_cm2": 220.0,
         "vas_l": 15.857434091520002,
         "xmax_mm": 5.0
       },
@@ -322421,7 +322422,7 @@
         "qms": 19.89,
         "qts": 1.9,
         "re_ohm": 6.21,
-        "sd_cm2": 0.035,
+        "sd_cm2": 350.00000000000006,
         "vas_l": 28.316846592,
         "xmax_mm": 5.4
       },
@@ -326993,7 +326994,7 @@
         "qms": 3.94,
         "qts": 0.46,
         "re_ohm": 6.8,
-        "sd_cm2": 0.08,
+        "sd_cm2": 800.0,
         "vas_l": 195.66940995072002,
         "xmax_mm": 8.0
       },
@@ -331188,7 +331189,7 @@
         "qms": 20.12,
         "qts": 1.05,
         "re_ohm": 6.26,
-        "sd_cm2": 0.092,
+        "sd_cm2": 920.0,
         "vas_l": 157.72483551744003,
         "xmax_mm": 5.0
       },
@@ -336164,7 +336165,7 @@
         "qms": 19.3,
         "qts": 0.66,
         "re_ohm": 5.8,
-        "sd_cm2": 0.0241,
+        "sd_cm2": 241.0,
         "vas_l": 27.18417272832
       },
       "size_in": 8.0,
@@ -340459,7 +340460,7 @@
         "qms": 7.53,
         "qts": 1.02,
         "re_ohm": 6.67,
-        "sd_cm2": 0.025,
+        "sd_cm2": 250.0,
         "vas_l": 17.27327642112,
         "xmax_mm": 3.9
       },
@@ -348568,7 +348569,7 @@
         "qms": 123.0,
         "qts": 0.87,
         "re_ohm": 5.33,
-        "sd_cm2": 0.054,
+        "sd_cm2": 540.0,
         "vas_l": 51.53666079744001,
         "xmax_mm": 4.0
       },
@@ -411911,7 +411912,7 @@
         "qms": 14.8,
         "qts": 1.16,
         "re_ohm": 6.2,
-        "sd_cm2": 0.053,
+        "sd_cm2": 530.0,
         "vas_l": 34.0,
         "xmax_mm": 3.0
       },
@@ -418426,7 +418427,7 @@
         "qms": 5.1,
         "qts": 0.32,
         "re_ohm": 4.9,
-        "sd_cm2": 0.0135,
+        "sd_cm2": 135.0,
         "vas_l": 10.5,
         "xmax_mm": 5.0
       },
@@ -418592,7 +418593,7 @@
         "qms": 3.9,
         "qts": 0.27,
         "re_ohm": 5.0,
-        "sd_cm2": 0.0135,
+        "sd_cm2": 135.0,
         "vas_l": 9.4,
         "xmax_mm": 5.5
       },
@@ -439733,7 +439734,7 @@
         "qms": 4.05,
         "qts": 0.7,
         "re_ohm": 4.3,
-        "sd_cm2": 1.219,
+        "sd_cm2": 1219.0,
         "vas_l": 144.7,
         "vd_l": 2.681,
         "xmax_mm": 22.0
@@ -592002,8 +592003,2537 @@
         "title": "7321Nd_SpecSheet.xlsx",
         "url": "https://www.phlaudio.com/fileadmin/user_upload/phl_audio/7321Nd_SpecSheet.pdf"
       }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.14,
+        "fs_hz": 111.27,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0,
+        "mms_g": 13.64,
+        "pe_w": 50.0,
+        "qms": 10.3,
+        "qts": 0.5378,
+        "re_ohm": 5.8,
+        "sd_cm2": 0.0133,
+        "vas_l": 3.698,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "NEO Pro Audio Mid 6.5\"",
+      "name": "WEB: DC Audio NEO Pro Audio Mid 6.5\"",
+      "raw": {
+        "cms_mm_per_n": 0.14,
+        "fs_hz": 111.27,
+        "mms_g": 13.64,
+        "pe_w": 50.0,
+        "qes": 0.56,
+        "qms": 10.3,
+        "qts": 0.5378,
+        "re_ohm": 5.8,
+        "sd_cm2": 0.0133,
+        "vas_l": 3.698
+      },
+      "size_in": 6.5,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/coaxial-neo-pro-audio-65",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.925,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:44:53+00:00",
+        "model": "NEO Pro Audio Mid 6.5\"",
+        "raw_measurements": {
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "0.14",
+            "unit": "",
+            "value": 0.14
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "111.27",
+            "unit": "",
+            "value": 111.27
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "html.text",
+            "raw_value": "13.64",
+            "unit": "",
+            "value": 13.64
+          },
+          "pe_w": {
+            "label": "watts",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "watts",
+            "value": 50.0
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.56",
+            "unit": "CM",
+            "value": 0.56
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "10.30",
+            "unit": "",
+            "value": 10.3
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.5378",
+            "unit": "",
+            "value": 0.5378
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "5.8",
+            "unit": "ohm",
+            "value": 5.8
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "0.0133",
+            "unit": "",
+            "value": 0.0133
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "html.text",
+            "raw_value": "3.698",
+            "unit": "",
+            "value": 3.698
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio NEO Pro Audio Mid 6.5\" \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/coaxial-neo-pro-audio-65"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.2336,
+        "fs_hz": 78.69,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0,
+        "mms_g": 17.51,
+        "pe_w": 50.0,
+        "qms": 6.975,
+        "qts": 0.4378,
+        "re_ohm": 5.8,
+        "sd_cm2": 0.0227,
+        "vas_l": 16.8023,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Coaxial NEO Pro Audio Mid 8\"",
+      "name": "WEB: DC Audio Coaxial NEO Pro Audio Mid 8\"",
+      "raw": {
+        "cms_mm_per_n": 0.2336,
+        "fs_hz": 78.69,
+        "mms_g": 17.51,
+        "pe_w": 50.0,
+        "qes": 0.4672,
+        "qms": 6.975,
+        "qts": 0.4378,
+        "re_ohm": 5.8,
+        "sd_cm2": 0.0227,
+        "vas_l": 16.8023
+      },
+      "size_in": 8.0,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/coaxial-neo-pro-audio-8",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.925,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:44:55+00:00",
+        "model": "Coaxial NEO Pro Audio Mid 8\"",
+        "raw_measurements": {
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "0.2336",
+            "unit": "",
+            "value": 0.2336
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "78.69",
+            "unit": "",
+            "value": 78.69
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "html.text",
+            "raw_value": "17.51",
+            "unit": "",
+            "value": 17.51
+          },
+          "pe_w": {
+            "label": "watts",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "watts",
+            "value": 50.0
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.4672",
+            "unit": "CM",
+            "value": 0.4672
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "6.975",
+            "unit": "",
+            "value": 6.975
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.4378",
+            "unit": "",
+            "value": 0.4378
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "5.8",
+            "unit": "ohm",
+            "value": 5.8
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "0.0227",
+            "unit": "",
+            "value": 0.0227
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "html.text",
+            "raw_value": "16.8023",
+            "unit": "",
+            "value": 16.8023
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio Coaxial NEO Pro Audio Mid 8\" \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/coaxial-neo-pro-audio-8"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 23.2,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 37.0,
+        "le10k_mh": 0.0,
+        "le_mh": 3.88,
+        "mms_g": 146.8,
+        "pe_w": 0.0,
+        "qms": 3.15,
+        "qts": 0.45,
+        "re_ohm": 8.0,
+        "sd_cm2": 324.0,
+        "vas_l": 17.1,
+        "xmax_mm": 19.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "level 1 Subwoofers",
+      "name": "WEB: DC Audio level 1 Subwoofers",
+      "raw": {
+        "bl_tm": 23.2,
+        "fs_hz": 37.0,
+        "le_mh": 3.88,
+        "mms_g": 146.8,
+        "qes": 0.52,
+        "qms": 3.15,
+        "qts": 0.45,
+        "re_ohm": 8.0,
+        "sd_cm2": 324.0,
+        "vas_l": 17.1,
+        "xmax_mm": 19.0
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/level-1",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:12+00:00",
+        "model": "level 1 Subwoofers",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "23.2",
+            "unit": "",
+            "value": 23.2
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "37",
+            "unit": "",
+            "value": 37.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "3.88",
+            "unit": "mH",
+            "value": 3.88
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "146.8",
+            "unit": "",
+            "value": 146.8
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.52",
+            "unit": "",
+            "value": 0.52
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.15",
+            "unit": "",
+            "value": 3.15
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.45",
+            "unit": "",
+            "value": 0.45
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "8",
+            "unit": "",
+            "value": 8.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "324",
+            "unit": "cm",
+            "value": 324.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "17.1",
+            "unit": "",
+            "value": 17.1
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "19",
+            "unit": "mm",
+            "value": 19.0
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio level 1 Subwoofers \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/level-1"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 15.678,
+        "cms_mm_per_n": 121.51,
+        "fs_hz": 45.5,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0,
+        "mms_g": 218.5,
+        "pe_w": 0.0,
+        "qms": 4.382,
+        "qts": 0.69,
+        "re_ohm": 7.0,
+        "sd_cm2": 346.0,
+        "vas_l": 7.17,
+        "xmax_mm": 14.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Shortie Subwoofers",
+      "name": "WEB: DC Audio Shortie Subwoofers",
+      "raw": {
+        "bl_tm": 15.678,
+        "cms_mm_per_n": 121.51,
+        "fs_hz": 45.5,
+        "mms_g": 218.5,
+        "qes": 0.819,
+        "qms": 4.382,
+        "qts": 0.69,
+        "re_ohm": 7.0,
+        "sd_cm2": 346.0,
+        "vas_l": 7.17,
+        "xmax_mm": 14.0
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/level-1-1",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:13+00:00",
+        "model": "Shortie Subwoofers",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "15.678",
+            "unit": "N/A",
+            "value": 15.678
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "121.51",
+            "unit": "",
+            "value": 121.51
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "45.5",
+            "unit": "Hz",
+            "value": 45.5
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "218.5",
+            "unit": "g",
+            "value": 218.5
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.819",
+            "unit": "",
+            "value": 0.819
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.382",
+            "unit": "",
+            "value": 4.382
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.690",
+            "unit": "",
+            "value": 0.69
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "7",
+            "unit": "",
+            "value": 7.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "346",
+            "unit": "cm\u00b2",
+            "value": 346.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "7.17",
+            "unit": "L",
+            "value": 7.17
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "14",
+            "unit": "mm",
+            "value": 14.0
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio Shortie Subwoofers \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/level-1-1"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 24.0,
+        "cms_mm_per_n": 60.895,
+        "fs_hz": 35.6,
+        "le10k_mh": 0.0,
+        "le_mh": 7.0,
+        "mms_g": 210.0,
+        "pe_w": 0.0,
+        "qms": 8.96,
+        "qts": 0.555,
+        "re_ohm": 7.2,
+        "sd_cm2": 324.0,
+        "vas_l": 13.89,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "level 2 Subwoofers",
+      "name": "WEB: DC Audio level 2 Subwoofers",
+      "raw": {
+        "bl_tm": 24.0,
+        "fs_hz": 35.6,
+        "le_mh": 7.0,
+        "mms_g": 210.0,
+        "qes": 0.592,
+        "qms": 8.96,
+        "qts": 0.555,
+        "re_ohm": 7.2,
+        "sd_cm2": 324.0,
+        "vas_l": 13.89
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/level-2",
+      "website_fields": {
+        "additional_sources": [
+          "https://www.dcsoundlab.com/level-2-subwoofer"
+        ],
+        "brand": "DC Audio",
+        "confidence": 0.925,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:14+00:00",
+        "model": "level 2 Subwoofers",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "24",
+            "unit": "",
+            "value": 24.0
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "35.6",
+            "unit": "Hz",
+            "value": 35.6
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "7",
+            "unit": "",
+            "value": 7.0
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "210",
+            "unit": "g",
+            "value": 210.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.592",
+            "unit": "",
+            "value": 0.592
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "8.96",
+            "unit": "",
+            "value": 8.96
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.555",
+            "unit": "",
+            "value": 0.555
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "7.2",
+            "unit": "",
+            "value": 7.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "324",
+            "unit": "",
+            "value": 324.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "13.89",
+            "unit": "",
+            "value": 13.89
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio level 2 Subwoofers \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/level-2"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 17.2,
+        "cms_mm_per_n": 0.0731,
+        "fs_hz": 38.5,
+        "le10k_mh": 0.0,
+        "le_mh": 3.5,
+        "mms_g": 190.0,
+        "pe_w": 0.0,
+        "qms": 7.66,
+        "qts": 0.528,
+        "re_ohm": 3.6,
+        "sd_cm2": 324.0,
+        "vas_l": 13.16,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "level 3 Subwoofers",
+      "name": "WEB: DC Audio level 3 Subwoofers",
+      "raw": {
+        "bl_tm": 17.2,
+        "fs_hz": 38.5,
+        "le_mh": 3.5,
+        "mms_g": 190.0,
+        "qes": 0.567,
+        "qms": 7.66,
+        "qts": 0.528,
+        "re_ohm": 3.6,
+        "sd_cm2": 324.0,
+        "vas_l": 13.16
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/level-3",
+      "website_fields": {
+        "additional_sources": [
+          "https://www.dcsoundlab.com/level-3-m3"
+        ],
+        "brand": "DC Audio",
+        "confidence": 0.925,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:15+00:00",
+        "model": "level 3 Subwoofers",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "17.2",
+            "unit": "N/A",
+            "value": 17.2
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "38.5",
+            "unit": "Hz",
+            "value": 38.5
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "3.5",
+            "unit": "mH",
+            "value": 3.5
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "190",
+            "unit": "g",
+            "value": 190.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.567",
+            "unit": "",
+            "value": 0.567
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "7.66",
+            "unit": "",
+            "value": 7.66
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.528",
+            "unit": "",
+            "value": 0.528
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "3.6",
+            "unit": "Ohm",
+            "value": 3.6
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "324",
+            "unit": "cm\u00b2",
+            "value": 324.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "13.16",
+            "unit": "L",
+            "value": 13.16
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio level 3 Subwoofers \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/level-3"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 19.18,
+        "cms_mm_per_n": 0.05314,
+        "fs_hz": 40.2,
+        "le10k_mh": 0.0,
+        "le_mh": 3.78,
+        "mms_g": 184.5,
+        "pe_w": 0.0,
+        "qms": 7.77,
+        "qts": 0.461,
+        "re_ohm": 3.82,
+        "sd_cm2": 324.0,
+        "vas_l": 12.42,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "level 4 Subwoofers",
+      "name": "WEB: DC Audio level 4 Subwoofers",
+      "raw": {
+        "bl_tm": 19.18,
+        "fs_hz": 40.2,
+        "le_mh": 3.78,
+        "mms_g": 184.5,
+        "qes": 0.49,
+        "qms": 7.77,
+        "qts": 0.461,
+        "re_ohm": 3.82,
+        "sd_cm2": 324.0,
+        "vas_l": 12.42
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/level-4",
+      "website_fields": {
+        "additional_sources": [
+          "https://www.dcsoundlab.com/level-4-1"
+        ],
+        "brand": "DC Audio",
+        "confidence": 0.925,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:17+00:00",
+        "model": "level 4 Subwoofers",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "19.18",
+            "unit": "N/A",
+            "value": 19.18
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "40.2",
+            "unit": "Hz",
+            "value": 40.2
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "3.78",
+            "unit": "mH",
+            "value": 3.78
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "184.5",
+            "unit": "g",
+            "value": 184.5
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.49",
+            "unit": "",
+            "value": 0.49
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "7.77",
+            "unit": "",
+            "value": 7.77
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.461",
+            "unit": "",
+            "value": 0.461
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "3.82",
+            "unit": "Ohm",
+            "value": 3.82
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "324",
+            "unit": "cm\u00b2",
+            "value": 324.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "12.42",
+            "unit": "L",
+            "value": 12.42
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio level 4 Subwoofers \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/level-4"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 29.21,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 30.59,
+        "le10k_mh": 0.0,
+        "le_mh": 4.2,
+        "mms_g": 442.0,
+        "pe_w": 3500.0,
+        "qms": 8.56,
+        "qts": 0.38,
+        "re_ohm": 4.01,
+        "sd_cm2": 494.0,
+        "vas_l": 18.19,
+        "xmax_mm": 34.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "level 5 Subwoofers",
+      "name": "WEB: DC Audio level 5 Subwoofers",
+      "raw": {
+        "bl_tm": 29.21,
+        "fs_hz": 30.59,
+        "le_mh": 4.2,
+        "mms_g": 442.0,
+        "pe_w": 3500.0,
+        "qes": 0.39,
+        "qms": 8.56,
+        "qts": 0.38,
+        "re_ohm": 4.01,
+        "sd_cm2": 494.0,
+        "vas_l": 18.19,
+        "xmax_mm": 34.0
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/level-5",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:19+00:00",
+        "model": "level 5 Subwoofers",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "29.21",
+            "unit": "N/A",
+            "value": 29.21
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "30.59",
+            "unit": "Hz",
+            "value": 30.59
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "4.2",
+            "unit": "mH",
+            "value": 4.2
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "442.0",
+            "unit": "g",
+            "value": 442.0
+          },
+          "pe_w": {
+            "label": "watts",
+            "method": "html.text",
+            "raw_value": "3500",
+            "unit": "watts",
+            "value": 3500.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.39",
+            "unit": "",
+            "value": 0.39
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "8.56",
+            "unit": "",
+            "value": 8.56
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.38",
+            "unit": "",
+            "value": 0.38
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "4.01",
+            "unit": "Ohm",
+            "value": 4.01
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "494",
+            "unit": "cm\u00b2",
+            "value": 494.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "18.19",
+            "unit": "L",
+            "value": 18.19
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "34",
+            "unit": "mm",
+            "value": 34.0
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio level 5 Subwoofers \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/level-5"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 38.97,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 28.78,
+        "le10k_mh": 0.0,
+        "le_mh": 5.1,
+        "mms_g": 724.0,
+        "pe_w": 4500.0,
+        "qms": 7.45,
+        "qts": 0.33,
+        "re_ohm": 4.07,
+        "sd_cm2": 791.0,
+        "vas_l": 37.6,
+        "xmax_mm": 34.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "level 6 Subwoofers",
+      "name": "WEB: DC Audio level 6 Subwoofers",
+      "raw": {
+        "bl_tm": 38.97,
+        "fs_hz": 28.78,
+        "le_mh": 5.1,
+        "mms_g": 724.0,
+        "pe_w": 4500.0,
+        "qes": 0.35,
+        "qms": 7.45,
+        "qts": 0.33,
+        "re_ohm": 4.07,
+        "sd_cm2": 791.0,
+        "vas_l": 37.6,
+        "xmax_mm": 34.0
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/level-6",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:21+00:00",
+        "model": "level 6 Subwoofers",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "38.97",
+            "unit": "N/A",
+            "value": 38.97
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "28.78",
+            "unit": "Hz",
+            "value": 28.78
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "5.1",
+            "unit": "mH",
+            "value": 5.1
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "724.0",
+            "unit": "g",
+            "value": 724.0
+          },
+          "pe_w": {
+            "label": "watts",
+            "method": "html.text",
+            "raw_value": "4500",
+            "unit": "watts",
+            "value": 4500.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.35",
+            "unit": "",
+            "value": 0.35
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "7.45",
+            "unit": "",
+            "value": 7.45
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.33",
+            "unit": "",
+            "value": 0.33
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "4.07",
+            "unit": "Ohm",
+            "value": 4.07
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "791",
+            "unit": "cm\u00b2",
+            "value": 791.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "37.6",
+            "unit": "L",
+            "value": 37.6
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "34",
+            "unit": "mm",
+            "value": 34.0
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio level 6 Subwoofers \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/level-6"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 14.4,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 47.9,
+        "le10k_mh": 0.0,
+        "le_mh": 1.86,
+        "mms_g": 92.57,
+        "pe_w": 0.0,
+        "qms": 3.126,
+        "qts": 0.456,
+        "re_ohm": 4.0,
+        "sd_cm2": 143.14,
+        "vas_l": 3.464,
+        "xmax_mm": 16.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "6.5\" Subwoofer",
+      "name": "WEB: DC Audio 6.5\" Subwoofer",
+      "raw": {
+        "bl_tm": 14.4,
+        "fs_hz": 47.9,
+        "le_mh": 1.86,
+        "mms_g": 92.57,
+        "qes": 0.537,
+        "qms": 3.126,
+        "qts": 0.456,
+        "re_ohm": 4.0,
+        "sd_cm2": 143.14,
+        "vas_l": 3.464,
+        "xmax_mm": 16.0
+      },
+      "size_in": 6.5,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/m3-65",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:22+00:00",
+        "model": "6.5\" Subwoofer",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "14.4",
+            "unit": "N/A",
+            "value": 14.4
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "47.9",
+            "unit": "Hz",
+            "value": 47.9
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "1.86",
+            "unit": "mH",
+            "value": 1.86
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "92.57",
+            "unit": "g",
+            "value": 92.57
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.537",
+            "unit": "",
+            "value": 0.537
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.126",
+            "unit": "",
+            "value": 3.126
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.456",
+            "unit": "",
+            "value": 0.456
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "4",
+            "unit": "Ohm",
+            "value": 4.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "143.14",
+            "unit": "cm\u00b2",
+            "value": 143.14
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "3.464",
+            "unit": "L",
+            "value": 3.464
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "16",
+            "unit": "mm",
+            "value": 16.0
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio 6.5\" Subwoofer \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/m3-65"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 20.72,
+        "cms_mm_per_n": 0.034184,
+        "fs_hz": 44.5,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0,
+        "mms_g": 248.83,
+        "pe_w": 0.0,
+        "qms": 4.54,
+        "qts": 0.538,
+        "re_ohm": 4.0,
+        "sd_cm2": 188.69,
+        "vas_l": 1.728,
+        "xmax_mm": 19.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "M4 8\" Subwoofer",
+      "name": "WEB: DC Audio M4 8\" Subwoofer",
+      "raw": {
+        "bl_tm": 20.72,
+        "cms_mm_per_n": 0.034184,
+        "fs_hz": 44.5,
+        "le_mh": 0.0,
+        "mms_g": 248.83,
+        "qes": 0.614,
+        "qms": 4.54,
+        "qts": 0.538,
+        "re_ohm": 4.0,
+        "sd_cm2": 188.69,
+        "vas_l": 1.728,
+        "xmax_mm": 19.0
+      },
+      "size_in": 8.0,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/m4-8-1",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:25+00:00",
+        "model": "M4 8\" Subwoofer",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "20.72",
+            "unit": "N/A",
+            "value": 20.72
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "34.184",
+            "unit": "uM/N",
+            "value": 0.034184
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "44.5",
+            "unit": "Hz",
+            "value": 44.5
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "0.00",
+            "unit": "mH",
+            "value": 0.0
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "248.83",
+            "unit": "g",
+            "value": 248.83
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.614",
+            "unit": "",
+            "value": 0.614
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.54",
+            "unit": "",
+            "value": 4.54
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.538",
+            "unit": "",
+            "value": 0.538
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "4.0",
+            "unit": "Ohm",
+            "value": 4.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "188.69",
+            "unit": "cm\u00b2",
+            "value": 188.69
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "1.728",
+            "unit": "L",
+            "value": 1.728
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "19",
+            "unit": "mm",
+            "value": 19.0
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio M4 8\" Subwoofer \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/m4-8-1"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 46.26,
+        "cms_mm_per_n": 0.03706,
+        "fs_hz": 41.59,
+        "le10k_mh": 0.0,
+        "le_mh": 7.01,
+        "mms_g": 394.93,
+        "pe_w": 2200.0,
+        "qms": 7.54,
+        "qts": 0.36,
+        "re_ohm": 7.98,
+        "sd_cm2": 791.0,
+        "vas_l": 33.0,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Neo 3.0 Subwoofers",
+      "name": "WEB: DC Audio Neo 3.0 Subwoofers",
+      "raw": {
+        "bl_tm": 46.26,
+        "cms_mm_per_n": 0.03706,
+        "fs_hz": 41.59,
+        "le_mh": 7.01,
+        "mms_g": 394.93,
+        "pe_w": 2200.0,
+        "qes": 0.38,
+        "qms": 7.54,
+        "qts": 0.36,
+        "re_ohm": 7.98,
+        "sd_cm2": 791.0,
+        "vas_l": 33.0
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/neo-30",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:26+00:00",
+        "model": "Neo 3.0 Subwoofers",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "46.26",
+            "unit": "N/A",
+            "value": 46.26
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "37.06",
+            "unit": "uM/n",
+            "value": 0.03706
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "41.59",
+            "unit": "Hz",
+            "value": 41.59
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "7.01",
+            "unit": "mH",
+            "value": 7.01
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "394.93",
+            "unit": "g",
+            "value": 394.93
+          },
+          "pe_w": {
+            "label": "watts",
+            "method": "html.text",
+            "raw_value": "2200",
+            "unit": "watts",
+            "value": 2200.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.38",
+            "unit": "",
+            "value": 0.38
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "7.54",
+            "unit": "",
+            "value": 7.54
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.36",
+            "unit": "",
+            "value": 0.36
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "7.98",
+            "unit": "Ohm",
+            "value": 7.98
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "791",
+            "unit": "cm\u00b2",
+            "value": 791.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "33.00",
+            "unit": "L",
+            "value": 33.0
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio Neo 3.0 Subwoofers \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/neo-30"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 30.91,
+        "cms_mm_per_n": 0.03186,
+        "fs_hz": 40.32,
+        "le10k_mh": 0.0,
+        "le_mh": 2.73,
+        "mms_g": 488.77,
+        "pe_w": 3500.0,
+        "qms": 8.92,
+        "qts": 0.25,
+        "re_ohm": 1.99,
+        "sd_cm2": 494.0,
+        "vas_l": 9.87,
+        "xmax_mm": 34.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Neo 3.5 Subwoofers",
+      "name": "WEB: DC Audio Neo 3.5 Subwoofers",
+      "raw": {
+        "bl_tm": 30.91,
+        "cms_mm_per_n": 0.03186,
+        "fs_hz": 40.32,
+        "le_mh": 2.73,
+        "mms_g": 488.77,
+        "pe_w": 3500.0,
+        "qes": 0.25,
+        "qms": 8.92,
+        "qts": 0.25,
+        "re_ohm": 1.99,
+        "sd_cm2": 494.0,
+        "vas_l": 9.87,
+        "xmax_mm": 34.0
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/neo-30-1",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 1.0,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:27+00:00",
+        "model": "Neo 3.5 Subwoofers",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "30.91",
+            "unit": "N/A",
+            "value": 30.91
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "31.86",
+            "unit": "Um/n",
+            "value": 0.03186
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "40.32",
+            "unit": "Hz",
+            "value": 40.32
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "2.73",
+            "unit": "mH",
+            "value": 2.73
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "488.77",
+            "unit": "g",
+            "value": 488.77
+          },
+          "pe_w": {
+            "label": "watts",
+            "method": "html.text",
+            "raw_value": "3500",
+            "unit": "watts",
+            "value": 3500.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.25",
+            "unit": "",
+            "value": 0.25
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "8.92",
+            "unit": "",
+            "value": 8.92
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.25",
+            "unit": "",
+            "value": 0.25
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "1.99",
+            "unit": "Ohm",
+            "value": 1.99
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "494",
+            "unit": "cm\u00b2",
+            "value": 494.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "9.87",
+            "unit": "L",
+            "value": 9.87
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "34",
+            "unit": "mm",
+            "value": 34.0
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio Neo 3.5 Subwoofers \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/neo-30-1"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.1706,
+        "fs_hz": 54.21,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0,
+        "mms_g": 50.51,
+        "pe_w": 400.0,
+        "qms": 4.28,
+        "qts": 0.37,
+        "re_ohm": 6.8,
+        "sd_cm2": 0.0346,
+        "vas_l": 25.58,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "NEO/Carbon Fiber Pro Audio Mid 8\"",
+      "name": "WEB: DC Audio NEO/Carbon Fiber Pro Audio Mid 8\"",
+      "raw": {
+        "cms_mm_per_n": 0.1706,
+        "fs_hz": 54.21,
+        "mms_g": 50.51,
+        "pe_w": 400.0,
+        "qes": 0.4126,
+        "qms": 4.28,
+        "qts": 0.37,
+        "re_ohm": 6.8,
+        "sd_cm2": 0.0346,
+        "vas_l": 25.58
+      },
+      "size_in": 8.0,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/neo-pro-audio-10",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.925,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:28+00:00",
+        "model": "NEO/Carbon Fiber Pro Audio Mid 8\"",
+        "raw_measurements": {
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "0.1706",
+            "unit": "",
+            "value": 0.1706
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "54.21",
+            "unit": "",
+            "value": 54.21
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "html.text",
+            "raw_value": "50.51",
+            "unit": "",
+            "value": 50.51
+          },
+          "pe_w": {
+            "label": "Power Rating",
+            "method": "html.text",
+            "raw_value": "400",
+            "unit": "watts",
+            "value": 400.0
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.4126",
+            "unit": "CM",
+            "value": 0.4126
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "4.28",
+            "unit": "",
+            "value": 4.28
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.37",
+            "unit": "",
+            "value": 0.37
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "6.8",
+            "unit": "",
+            "value": 6.8
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "0.0346",
+            "unit": "",
+            "value": 0.0346
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "html.text",
+            "raw_value": "25.58",
+            "unit": "",
+            "value": 25.58
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio NEO/Carbon Fiber Pro Audio Mid 8\" \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/neo-pro-audio-10"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 57.36,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0,
+        "mms_g": 33.2,
+        "pe_w": 350.0,
+        "qms": 7.8,
+        "qts": 0.26,
+        "re_ohm": 5.5,
+        "sd_cm2": 0.0346,
+        "vas_l": 38.83,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Pro Audio Destroyer 10",
+      "name": "WEB: DC Audio Pro Audio Destroyer 10",
+      "raw": {
+        "fs_hz": 57.36,
+        "mms_g": 33.2,
+        "pe_w": 350.0,
+        "qes": 0.27,
+        "qms": 7.8,
+        "qts": 0.26,
+        "re_ohm": 5.5,
+        "sd_cm2": 0.0346,
+        "vas_l": 38.83
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/pro-audio-destroyer-10",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.9,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:40+00:00",
+        "model": "Pro Audio Destroyer 10",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "57.36",
+            "unit": "",
+            "value": 57.36
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "html.text",
+            "raw_value": "33.20",
+            "unit": "",
+            "value": 33.2
+          },
+          "pe_w": {
+            "label": "Power Rating",
+            "method": "html.text",
+            "raw_value": "350",
+            "unit": "watts",
+            "value": 350.0
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.27",
+            "unit": "",
+            "value": 0.27
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "7.80",
+            "unit": "",
+            "value": 7.8
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.26",
+            "unit": "",
+            "value": 0.26
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "5.5",
+            "unit": "",
+            "value": 5.5
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "0.0346",
+            "unit": "",
+            "value": 0.0346
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "html.text",
+            "raw_value": "38.83",
+            "unit": "",
+            "value": 38.83
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio Pro Audio Destroyer 10 \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/pro-audio-destroyer-10"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 42.4,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0,
+        "mms_g": 166.7,
+        "pe_w": 1000.0,
+        "qms": 5.57,
+        "qts": 0.63,
+        "re_ohm": 1.7,
+        "sd_cm2": 50.3,
+        "vas_l": 0.43,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Pro Audio MB-10",
+      "name": "WEB: DC Audio Pro Audio MB-10",
+      "raw": {
+        "fs_hz": 42.4,
+        "mms_g": 166.7,
+        "pe_w": 1000.0,
+        "qes": 0.71,
+        "qms": 5.57,
+        "qts": 0.63,
+        "re_ohm": 1.7,
+        "sd_cm2": 50.3,
+        "vas_l": 0.43
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/pro-audio-mb10",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.9,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:41+00:00",
+        "model": "Pro Audio MB-10",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "42.4",
+            "unit": "",
+            "value": 42.4
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "html.text",
+            "raw_value": "166.7",
+            "unit": "g",
+            "value": 166.7
+          },
+          "pe_w": {
+            "label": "Power Rating",
+            "method": "html.text",
+            "raw_value": "1000",
+            "unit": "watts",
+            "value": 1000.0
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.71",
+            "unit": "",
+            "value": 0.71
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "5.57",
+            "unit": "",
+            "value": 5.57
+          },
+          "qts": {
+            "label": "QTS:",
+            "method": "html.table",
+            "raw_value": "0.63",
+            "unit": "",
+            "value": 0.63
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "1.7",
+            "unit": "ohm",
+            "value": 1.7
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "50.3",
+            "unit": "",
+            "value": 50.3
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "html.text",
+            "raw_value": "0.43",
+            "unit": "",
+            "value": 0.43
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio Pro Audio MB-10 \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/pro-audio-mb10"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 21.77,
+        "cms_mm_per_n": 0.04571,
+        "fs_hz": 39.6,
+        "le10k_mh": 0.0,
+        "le_mh": 2.81,
+        "mms_g": 352.94,
+        "pe_w": 0.0,
+        "qms": 9.11,
+        "qts": 0.703,
+        "re_ohm": 4.11,
+        "sd_cm2": 303.0,
+        "vas_l": 6.02,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "PS3 Subwoofers",
+      "name": "WEB: DC Audio PS3 Subwoofers",
+      "raw": {
+        "bl_tm": 21.77,
+        "cms_mm_per_n": 0.04571,
+        "fs_hz": 39.6,
+        "le_mh": 2.81,
+        "mms_g": 352.94,
+        "qes": 0.76,
+        "qms": 9.11,
+        "qts": 0.703,
+        "re_ohm": 4.11,
+        "sd_cm2": 303.0,
+        "vas_l": 6.02
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/ps3",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:43+00:00",
+        "model": "PS3 Subwoofers",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "21.77",
+            "unit": "N/A",
+            "value": 21.77
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "45.71",
+            "unit": "uM/n",
+            "value": 0.04571
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "39.60",
+            "unit": "Hz",
+            "value": 39.6
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "2.81",
+            "unit": "mH",
+            "value": 2.81
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "352.94",
+            "unit": "g",
+            "value": 352.94
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.76",
+            "unit": "",
+            "value": 0.76
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "9.11",
+            "unit": "",
+            "value": 9.11
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.703",
+            "unit": "",
+            "value": 0.703
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "4.11",
+            "unit": "Ohm",
+            "value": 4.11
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "303",
+            "unit": "cm\u00b2",
+            "value": 303.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "6.02",
+            "unit": "L",
+            "value": 6.02
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio PS3 Subwoofers \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/ps3"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 24.16,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 31.63,
+        "le10k_mh": 0.0,
+        "le_mh": 5.5,
+        "mms_g": 332.5,
+        "pe_w": 2200.0,
+        "qms": 6.2,
+        "qts": 0.43,
+        "re_ohm": 4.16,
+        "sd_cm2": 494.0,
+        "vas_l": 22.36,
+        "xmax_mm": 34.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "XL Elite Subwoofers",
+      "name": "WEB: DC Audio XL Elite Subwoofers",
+      "raw": {
+        "bl_tm": 24.16,
+        "fs_hz": 31.63,
+        "le_mh": 5.5,
+        "mms_g": 332.5,
+        "pe_w": 2200.0,
+        "qes": 0.47,
+        "qms": 6.2,
+        "qts": 0.43,
+        "re_ohm": 4.16,
+        "sd_cm2": 494.0,
+        "vas_l": 22.36,
+        "xmax_mm": 34.0
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/xl-elite",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:47+00:00",
+        "model": "XL Elite Subwoofers",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "24.16",
+            "unit": "N/A",
+            "value": 24.16
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "31.63",
+            "unit": "Hz",
+            "value": 31.63
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "5.5",
+            "unit": "mH",
+            "value": 5.5
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "332.5",
+            "unit": "g",
+            "value": 332.5
+          },
+          "pe_w": {
+            "label": "watts",
+            "method": "html.text",
+            "raw_value": "2200",
+            "unit": "watts",
+            "value": 2200.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.47",
+            "unit": "",
+            "value": 0.47
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "6.20",
+            "unit": "",
+            "value": 6.2
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.43",
+            "unit": "",
+            "value": 0.43
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "4.16",
+            "unit": "Ohm",
+            "value": 4.16
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "494",
+            "unit": "cm\u00b2",
+            "value": 494.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "22.36",
+            "unit": "L",
+            "value": 22.36
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "34",
+            "unit": "mm",
+            "value": 34.0
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio XL Elite Subwoofers \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/xl-elite"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 22.73,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 41.7,
+        "le10k_mh": 0.0,
+        "le_mh": 5.2,
+        "mms_g": 171.77,
+        "pe_w": 0.0,
+        "qms": 11.24,
+        "qts": 0.34,
+        "re_ohm": 3.98,
+        "sd_cm2": 3241.0,
+        "vas_l": 12.42,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "XL SPL Subwoofers",
+      "name": "WEB: DC Audio XL SPL Subwoofers",
+      "raw": {
+        "bl_tm": 22.73,
+        "fs_hz": 41.7,
+        "le_mh": 5.2,
+        "mms_g": 171.77,
+        "qes": 0.35,
+        "qms": 11.24,
+        "qts": 0.34,
+        "re_ohm": 3.98,
+        "sd_cm2": 3241.0,
+        "vas_l": 12.42
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/xl-spl",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.925,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:49+00:00",
+        "model": "XL SPL Subwoofers",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "22.73",
+            "unit": "N/A",
+            "value": 22.73
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "41.7",
+            "unit": "Hz",
+            "value": 41.7
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "5.2",
+            "unit": "mH",
+            "value": 5.2
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "171.77",
+            "unit": "g",
+            "value": 171.77
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.35",
+            "unit": "",
+            "value": 0.35
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "11.24",
+            "unit": "",
+            "value": 11.24
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.34",
+            "unit": "",
+            "value": 0.34
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "3.98",
+            "unit": "Ohm",
+            "value": 3.98
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "3241",
+            "unit": "cm\u00b2",
+            "value": 3241.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "12.42",
+            "unit": "L",
+            "value": 12.42
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio XL SPL Subwoofers \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/xl-spl"
+      }
+    },
+    {
+      "brand": "DC Audio",
+      "driver": {
+        "bl_tm": 30.72,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 41.59,
+        "le10k_mh": 0.0,
+        "le_mh": 4.54,
+        "mms_g": 405.41,
+        "pe_w": 0.0,
+        "qms": 8.19,
+        "qts": 0.408,
+        "re_ohm": 3.83,
+        "sd_cm2": 324.29,
+        "vas_l": 5.39,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "RS Subwoofers",
+      "name": "WEB: DC Audio RS Subwoofers",
+      "raw": {
+        "bl_tm": 30.72,
+        "fs_hz": 41.59,
+        "le_mh": 4.54,
+        "mms_g": 405.41,
+        "qes": 0.43,
+        "qms": 8.19,
+        "qts": 0.408,
+        "re_ohm": 3.83,
+        "sd_cm2": 324.29,
+        "vas_l": 5.39
+      },
+      "size_in": null,
+      "source": "Web crawler",
+      "url": "https://www.dcsoundlab.com/xl-spl-1",
+      "website_fields": {
+        "brand": "DC Audio",
+        "confidence": 0.925,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-24T15:45:49+00:00",
+        "model": "RS Subwoofers",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "30.72",
+            "unit": "N/A",
+            "value": 30.72
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "41.59",
+            "unit": "Hz",
+            "value": 41.59
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "4.54",
+            "unit": "mH",
+            "value": 4.54
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "405.41",
+            "unit": "g",
+            "value": 405.41
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.43",
+            "unit": "",
+            "value": 0.43
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "8.19",
+            "unit": "",
+            "value": 8.19
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.408",
+            "unit": "",
+            "value": 0.408
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "3.83",
+            "unit": "Ohm",
+            "value": 3.83
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "324.29",
+            "unit": "cm\u00b2",
+            "value": 324.29
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "5.39",
+            "unit": "L",
+            "value": 5.39
+          }
+        },
+        "source": "Web crawler",
+        "title": "DC Audio RS Subwoofers \u2014 DC Audio",
+        "url": "https://www.dcsoundlab.com/xl-spl-1"
+      }
     }
   ],
   "source": "manufacturer crawl (HTML product pages, PDF datasheets, public JSON APIs)",
-  "usable_presets": 4424
+  "usable_presets": 4444
 }
