@@ -4150,7 +4150,7 @@ def _render_response_tab(
 
     # --- 2. Render Charts ---
     if compare_series or _response_series(result):
-        show_legend = st.session_state.get("plot_show_legend", False)
+        show_legend = True
         st.altair_chart(
             _plot_response(
                 result, cursor_rows, compare_series, band,
@@ -4162,7 +4162,7 @@ def _render_response_tab(
         )
         st.caption(
             "Use the frequency slider below to zoom; click the chart to place a point marker "
-            "and double-click to clear it. Enable the legend to toggle individual traces."
+            "and double-click to clear it. Click legend entries to toggle individual traces."
         )
     else:
         st.caption("Response pens off.")
@@ -4171,19 +4171,17 @@ def _render_response_tab(
 
     # --- 3. Render Analysis Options & Actions ---
     pinned_state = _pinned_responses()
-    num_cols = 6 if pinned_state else 5
+    num_cols = 5 if pinned_state else 4
     ctrl_cols = st.columns(num_cols)
     
     with ctrl_cols[0]:
-        st.toggle("Show traces legend", key="plot_show_legend")
-    with ctrl_cols[1]:
         st.toggle("Compare loads", key="plot_compare_loads")
-    with ctrl_cols[2]:
+    with ctrl_cols[1]:
         st.toggle(
             "Tolerance band", key="plot_tolerance_band", disabled=compare_loads_on,
             help="Monte Carlo 5-95th percentile spread from T/S tolerances.",
         )
-    with ctrl_cols[3]:
+    with ctrl_cols[2]:
         if st.button(
             "Pin response",
             use_container_width=True,
@@ -4197,11 +4195,11 @@ def _render_response_tab(
             st.rerun()
 
     if pinned_state:
-        with ctrl_cols[4]:
+        with ctrl_cols[3]:
             if st.button("Clear all pins", use_container_width=True):
                 _clear_pinned_responses()
                 st.rerun()
-        with ctrl_cols[5]:
+        with ctrl_cols[4]:
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
@@ -4211,7 +4209,7 @@ def _render_response_tab(
                 args=(full_window,),
             )
     else:
-        with ctrl_cols[4]:
+        with ctrl_cols[3]:
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
