@@ -94,6 +94,9 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    html {
+        font-size: 85% !important;
+    }
     @media (max-width: 768px) {
         section[data-testid="stSidebar"],
         section[data-testid="stSidebar"] > div,
