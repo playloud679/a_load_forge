@@ -4614,9 +4614,7 @@ _default("sealed_vb_l", float(_seed_sealed.vb_l))
 _sync_auto_alignment_if_needed()
 
 
-if _BRAND_IMAGE.exists():
-    st.logo(str(_BRAND_IMAGE))
-else:
+if not _BRAND_IMAGE.exists():
     st.title("Load Forge")
 st.caption(
     f"v{_VERSION} · DCCAV / bandpass 4th & 6th / reflex / PR / sealed / infinite baffle · "
@@ -4634,6 +4632,8 @@ current_sealed_alignment = None
 derived = None
 
 with st.sidebar:
+    if _BRAND_IMAGE.exists():
+        st.image(str(_BRAND_IMAGE), use_container_width=True)
     _render_project_menu()
     st.divider()
     _render_workspace_tabs()
