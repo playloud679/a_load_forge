@@ -110,10 +110,12 @@ st.markdown(
         }
     }
     .block-container,
-    [data-testid="stMainBlockContainer"] {
+    [data-testid="stMainBlockContainer"],
+    [data-testid="stAppViewContainer"] {
         padding-top: 0.2rem !important;
         padding-bottom: 0.2rem !important;
         overflow-x: hidden !important;
+        overflow-y: hidden !important;
     }
     section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
         padding-top: 0 !important;
@@ -4691,7 +4693,7 @@ with st.sidebar:
     if _BRAND_IMAGE.exists():
         st.image(str(_BRAND_IMAGE), use_container_width=True)
         st.markdown(
-            f"<div style='text-align: right; color: rgba(255,255,255,0.4); font-size: 0.75rem; margin-top: -1.2rem; margin-bottom: 0.5rem; padding-right: 0.2rem;'>v{_VERSION}</div>", 
+            f"<div style='text-align: right; color: rgba(255,255,255,0.4); font-size: 0.75rem;'>v{_VERSION}</div>", 
             unsafe_allow_html=True
         )
     else:
