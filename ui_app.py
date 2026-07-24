@@ -124,7 +124,7 @@ st.markdown(
     }
     section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
         padding-top: 0 !important;
-        margin-top: -4.0rem !important;
+        margin-top: -3.8rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
         border-top: 1px solid rgba(255,255,255,.10);
@@ -139,13 +139,13 @@ st.markdown(
         gap: .65rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-        gap: 0.1rem !important;
+        gap: 0.45rem !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stNumberInput"] {
-        margin-bottom: -0.3rem !important;
+        margin-bottom: 0 !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stSelectbox"] {
-        margin-bottom: -0.3rem !important;
+        margin-bottom: 0 !important;
     }
     [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h1,
     [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h2,
@@ -158,7 +158,7 @@ st.markdown(
     section[data-testid="stSidebar"] label p {
         font-size: 0.83rem !important;
         line-height: 1.3 !important;
-        margin-bottom: 0.6rem !important;
+        margin-bottom: 0.15rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
         line-height: 1.45 !important;
@@ -193,8 +193,8 @@ st.markdown(
         width: 1.15rem !important;
     }
     hr {
-        margin-top: 0.25rem !important;
-        margin-bottom: 0.25rem !important;
+        margin-top: 0.4rem !important;
+        margin-bottom: 0.4rem !important;
     }
 
     header[data-testid="stHeader"] {
