@@ -4678,11 +4678,6 @@ _sync_auto_alignment_if_needed()
 
 
 if not _BRAND_IMAGE.exists():
-    st.title("Load Forge")
-st.caption(
-    f"v{_VERSION} · DCCAV / bandpass 4th & 6th / reflex / PR / sealed / infinite baffle · "
-    "T/S driven response model"
-)
 
 finder_library_filters_slot = st.empty()
 
@@ -4697,6 +4692,13 @@ derived = None
 with st.sidebar:
     if _BRAND_IMAGE.exists():
         st.image(str(_BRAND_IMAGE), use_container_width=True)
+        st.markdown(
+            f"<div style='text-align: right; color: rgba(255,255,255,0.4); font-size: 0.75rem; margin-top: -1.2rem; margin-bottom: 0.5rem; padding-right: 0.2rem;'>v{_VERSION}</div>", 
+            unsafe_allow_html=True
+        )
+    else:
+        st.title("Load Forge")
+        st.caption(f"v{_VERSION}")
     _render_project_menu()
     st.divider()
     _render_workspace_tabs()
