@@ -2406,12 +2406,16 @@ def _plot_response(
     
     if mil_w_data is not None and (default_visible is None or "MIL" in default_visible):
         mil_data = _series_frame(result, {"MIL": mil_w_data})
+        mil_max = float(np.max(mil_w_data[np.isfinite(mil_w_data)]))
+        mil_y_domain = [0.0, max(1.0, mil_max * 1.05)]
+        
         mil_chart = _line_chart(
             mil_data,
             "Max input power (W)",
             height=600,
             legend=show_legend,
             x_domain=frequency_window,
+            y_domain=mil_y_domain,
             y_axis=alt.Axis(
                 orient="right",
                 titleColor=_TRACE_COLORS.get("MIL", "#e0aaff"),
@@ -2470,7 +2474,10 @@ def _plot_impedance(result: _dccav.SimulationResult) -> alt.Chart:
 
 def _plot_mil(result: _dccav.SimulationResult) -> alt.Chart:
     data = _series_frame(result, {"MIL": result.mil_w})
-    chart = _line_chart(data, "Max input power (W)", height=240, legend=False)
+    mil_w_data = result.mil_w
+    mil_max = float(np.max(mil_w_data[np.isfinite(mil_w_data)]))
+    mil_y_domain = [0.0, max(1.0, mil_max * 1.05)]
+    chart = _line_chart(data, "Max input power (W)", height=240, legend=False, y_domain=mil_y_domain)
     pinned = _pinned_metric_layer("mil_w", "Max input power (W)", ".3f")
     if pinned is not None:
         chart = (chart + pinned).resolve_scale(
@@ -4201,8 +4208,8 @@ def _render_response_tab(
 
     # --- 3. Render Analysis Options & Actions ---
     pinned_state = _pinned_responses()
-    num_cols = 6 if pinned_state else 5
-    ctrl_cols = st.columns(num_cols)
+    col_widths = [2.8, 1.2, 1.2, 1.2, 1.2, 1.0] if pinned_state else [2.8, 1.2, 1.2, 1.2, 1.0]
+    ctrl_cols = st.columns(col_widths)
     
     with ctrl_cols[0]:
         st.pills(
