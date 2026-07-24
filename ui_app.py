@@ -114,6 +114,8 @@ st.markdown(
     [data-testid="stAppViewContainer"] {
         padding-top: 0.2rem !important;
         padding-bottom: 0.2rem !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
         overflow-x: hidden !important;
         overflow-y: hidden !important;
     }
@@ -122,7 +124,7 @@ st.markdown(
     }
     section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
         padding-top: 0 !important;
-        margin-top: -4.75rem !important;
+        margin-top: -3.3rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
         border-top: 1px solid rgba(255,255,255,.10);
@@ -4694,7 +4696,7 @@ with st.sidebar:
     if _BRAND_IMAGE.exists():
         st.image(str(_BRAND_IMAGE), use_container_width=True)
         st.markdown(
-            f"<div style='text-align: right; color: rgba(255,255,255,0.4); font-size: 0.75rem;'>v{_VERSION}</div>", 
+            f"<div style='text-align: right; color: rgba(255,255,255,0.4); font-size: 0.75rem; margin-top: -0.5rem; margin-bottom: 1rem;'>v{_VERSION}</div>", 
             unsafe_allow_html=True
         )
     else:
