@@ -1499,7 +1499,7 @@ def _box_number_with_nudge(
         label,
         min_value=min_value,
         max_value=max_value,
-        step=step,
+        step=_step5(key, step),
         key=key,
         disabled=disabled,
     )
@@ -4886,7 +4886,7 @@ with st.sidebar:
                         )
                         st.number_input(
                             "Points", min_value=80, max_value=4000,
-                            step=20, key="sim_points",
+                            step=_step5("sim_points", 20), key="sim_points",
                         )
                     with s2:
                         st.number_input(
@@ -4987,7 +4987,7 @@ with st.sidebar:
                                 step=0.1, key="pr_fp_hz")
                             st.number_input(
                                 "PR mechanical Qmp", min_value=0.5, max_value=50.0,
-                                step=0.1, key="pr_qmp")
+                                step=_step5("pr_qmp", 0.1), key="pr_qmp")
                             st.number_input(
                                 "PR moving mass Mmp (g)", min_value=1.0, max_value=5000.0,
                                 step=1.0, key="pr_mmp_g")
@@ -5016,10 +5016,10 @@ with st.sidebar:
                         with st.expander("Loss factors"):
                             st.number_input(
                                 "Qabs box", min_value=0.2, max_value=500.0,
-                                step=0.5, key="pr_q_abs")
+                                step=_step5("pr_q_abs", 0.5), key="pr_q_abs")
                             st.number_input(
                                 "Qleak box", min_value=1.0, max_value=10000.0,
-                                step=10.0, key="pr_q_leak")
+                                step=_step5("pr_q_leak", 10.0), key="pr_q_leak")
                     else:
                         active_reflex_losses = _reflex_box_from_state()
                         loss_mode = (
@@ -5041,13 +5041,13 @@ with st.sidebar:
                             disabled = not st.session_state.get("reflex_custom_losses", False)
                             st.number_input(
                                 "Qabs box", min_value=0.2, max_value=500.0,
-                                step=0.5, key="reflex_q_abs", disabled=disabled)
+                                step=_step5("reflex_q_abs", 0.5), key="reflex_q_abs", disabled=disabled)
                             st.number_input(
                                 "Qleak box", min_value=1.0, max_value=10000.0,
-                                step=10.0, key="reflex_q_leak", disabled=disabled)
+                                step=_step5("reflex_q_leak", 10.0), key="reflex_q_leak", disabled=disabled)
                             st.number_input(
                                 "Qport", min_value=0.2, max_value=500.0,
-                                step=0.5, key="reflex_q_port", disabled=disabled)
+                                step=_step5("reflex_q_port", 0.5), key="reflex_q_port", disabled=disabled)
                 elif load_type == "Sealed":
                     _box_number_with_nudge(
                         "Vb sealed (L)", "sealed_vb_l", min_value=0.05, max_value=100000.0, step=0.01,
@@ -5057,10 +5057,10 @@ with st.sidebar:
                         st.caption(f"Closed-box Fc {fc_hz:.1f} Hz · Qtc {qtc:.3f}")
                     with st.expander("Sealed loss factors"):
                         st.number_input(
-                            "Qabs sealed", min_value=0.2, max_value=500.0, step=0.5,
+                            "Qabs sealed", min_value=0.2, max_value=500.0, step=_step5("sealed_q_abs", 0.5),
                             key="sealed_q_abs")
                         st.number_input(
-                            "Qleak sealed", min_value=1.0, max_value=10000.0, step=10.0,
+                            "Qleak sealed", min_value=1.0, max_value=10000.0, step=_step5("sealed_q_leak", 10.0),
                             key="sealed_q_leak")
                 elif load_type == "Bandpass 4th order":
                     b1, b2 = st.columns(2)
@@ -5079,16 +5079,16 @@ with st.sidebar:
                         l1, l2 = st.columns(2)
                         with l1:
                             st.number_input("Qabs sealed rear", min_value=0.2, max_value=500.0,
-                                            step=0.5, key="bandpass4_q_abs_s")
+                                            step=_step5("bandpass4_q_abs_s", 0.5), key="bandpass4_q_abs_s")
                             st.number_input("Qleak sealed rear", min_value=1.0, max_value=10000.0,
-                                            step=10.0, key="bandpass4_q_leak_s")
+                                            step=_step5("bandpass4_q_leak_s", 10.0), key="bandpass4_q_leak_s")
                         with l2:
                             st.number_input("Qabs ported front", min_value=0.2, max_value=500.0,
-                                            step=0.5, key="bandpass4_q_abs_p")
+                                            step=_step5("bandpass4_q_abs_p", 0.5), key="bandpass4_q_abs_p")
                             st.number_input("Qleak ported front", min_value=1.0, max_value=10000.0,
-                                            step=10.0, key="bandpass4_q_leak_p")
+                                            step=_step5("bandpass4_q_leak_p", 10.0), key="bandpass4_q_leak_p")
                             st.number_input("Qport front", min_value=0.2, max_value=500.0,
-                                            step=0.5, key="bandpass4_q_port")
+                                            step=_step5("bandpass4_q_port", 0.5), key="bandpass4_q_port")
                 elif load_type == "Bandpass 6th order":
                     b1, b2 = st.columns(2)
                     with b1:
@@ -5109,18 +5109,18 @@ with st.sidebar:
                         l1, l2 = st.columns(2)
                         with l1:
                             st.number_input("Qabs rear", min_value=0.2, max_value=500.0,
-                                            step=0.5, key="bandpass6_q_abs_r")
+                                            step=_step5("bandpass6_q_abs_r", 0.5), key="bandpass6_q_abs_r")
                             st.number_input("Qleak rear", min_value=1.0, max_value=10000.0,
-                                            step=10.0, key="bandpass6_q_leak_r")
+                                            step=_step5("bandpass6_q_leak_r", 10.0), key="bandpass6_q_leak_r")
                             st.number_input("Qport rear", min_value=0.2, max_value=500.0,
-                                            step=0.5, key="bandpass6_q_port_r")
+                                            step=_step5("bandpass6_q_port_r", 0.5), key="bandpass6_q_port_r")
                         with l2:
                             st.number_input("Qabs front", min_value=0.2, max_value=500.0,
-                                            step=0.5, key="bandpass6_q_abs_p")
+                                            step=_step5("bandpass6_q_abs_p", 0.5), key="bandpass6_q_abs_p")
                             st.number_input("Qleak front", min_value=1.0, max_value=10000.0,
-                                            step=10.0, key="bandpass6_q_leak_p")
+                                            step=_step5("bandpass6_q_leak_p", 10.0), key="bandpass6_q_leak_p")
                             st.number_input("Qport front", min_value=0.2, max_value=500.0,
-                                            step=0.5, key="bandpass6_q_port_p")
+                                            step=_step5("bandpass6_q_port_p", 0.5), key="bandpass6_q_port_p")
                 elif load_type == "Infinite baffle":
                     st.caption("No box controls: the rear wave is assumed to be fully isolated by an infinite partition.")
                 else:
@@ -5143,13 +5143,13 @@ with st.sidebar:
                     with st.expander("Loss factors"):
                         l1, l2 = st.columns(2)
                         with l1:
-                            st.number_input("Qabs upper", min_value=0.2, max_value=500.0, step=0.5, key="loss_q_abs_h")
-                            st.number_input("Qleak upper", min_value=1.0, max_value=10000.0, step=10.0, key="loss_q_leak_h")
-                            st.number_input("Qport upper", min_value=0.2, max_value=500.0, step=0.5, key="loss_q_port_h")
+                            st.number_input("Qabs upper", min_value=0.2, max_value=500.0, step=_step5("loss_q_abs_h", 0.5), key="loss_q_abs_h")
+                            st.number_input("Qleak upper", min_value=1.0, max_value=10000.0, step=_step5("loss_q_leak_h", 10.0), key="loss_q_leak_h")
+                            st.number_input("Qport upper", min_value=0.2, max_value=500.0, step=_step5("loss_q_port_h", 0.5), key="loss_q_port_h")
                         with l2:
-                            st.number_input("Qabs lower", min_value=0.2, max_value=500.0, step=0.5, key="loss_q_abs_l")
-                            st.number_input("Qleak lower", min_value=1.0, max_value=10000.0, step=10.0, key="loss_q_leak_l")
-                            st.number_input("Qport lower", min_value=0.2, max_value=500.0, step=0.5, key="loss_q_port_l")
+                            st.number_input("Qabs lower", min_value=0.2, max_value=500.0, step=_step5("loss_q_abs_l", 0.5), key="loss_q_abs_l")
+                            st.number_input("Qleak lower", min_value=1.0, max_value=10000.0, step=_step5("loss_q_leak_l", 10.0), key="loss_q_leak_l")
+                            st.number_input("Qport lower", min_value=0.2, max_value=500.0, step=_step5("loss_q_port_l", 0.5), key="loss_q_port_l")
 
                 if load_type != "Infinite baffle" and box_edit_disabled:
                     st.caption("Switch Box strategy to Manual to edit volumes and tuning directly.")
