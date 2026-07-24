@@ -122,6 +122,7 @@ st.markdown(
     }
     section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
         padding-top: 0 !important;
+        margin-top: -1.5rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
         border-top: 1px solid rgba(255,255,255,.10);
