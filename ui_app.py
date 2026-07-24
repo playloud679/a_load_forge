@@ -225,7 +225,11 @@ st.markdown(
         border-radius: inherit !important;
         height: 100% !important;
     }
-    .stMetric { border: 1px solid rgba(127,127,127,.22); padding: .75rem; }
+    .stMetric { border: 1px solid rgba(127,127,127,.22); padding: .3rem .5rem !important; }
+    .stMetric label { font-size: 0.72rem !important; margin-bottom: -0.2rem !important; }
+    .stMetric div[data-testid="stMetricValue"] { font-size: 1.05rem !important; line-height: 1.2 !important; padding-bottom: 0.1rem !important; }
+    div[data-testid="stTabs"] { gap: 0 !important; }
+    button[data-baseweb="tab"] { padding-top: 0.2rem !important; padding-bottom: 0.2rem !important; }
     div[data-testid="stExpander"] details {
         margin-top: 0 !important;
         margin-bottom: 0.2rem !important;
@@ -4212,41 +4216,7 @@ def _render_response_tab(
     )
 
     # --- 5. Render Captions and Pinned List ---
-    if load_type == "Bass reflex":
-        resonator = "passive radiator" if _reflex_uses_passive_radiator() else "vent"
-        st.caption(
-            "Bass-reflex total response is the vector sum of the exposed cone "
-            f"front radiation and the {resonator}. The model is low-frequency only; "
-            "it does not include baffle step, breakup, room gain or crossover behaviour."
-        )
-    elif load_type == "Bandpass 4th order":
-        st.caption(
-            "Fourth-order bandpass total response is the front vent only: the cone is "
-            "enclosed between a sealed rear chamber and a ported front chamber. The "
-            "cone trace shows internal motion and is not an additional radiating source."
-        )
-    elif load_type == "Bandpass 6th order":
-        st.caption(
-            "Sixth-order bandpass total response is the polarity-correct vector difference "
-            "of both vents: the cone is enclosed between two ported chambers. The cone trace "
-            "shows internal motion and is not an additional radiating source."
-        )
-    elif load_type == "Sealed":
-        st.caption(
-            "Sealed-box response is the exposed cone front with the rear wave enclosed. "
-            "The model includes closed-box compliance and losses, but not room gain or baffle step."
-        )
-    elif load_type == "Infinite baffle":
-        st.caption(
-            "Infinite-baffle response is the exposed cone front with perfect rear-wave isolation. "
-            "Finite-panel diffraction, rear leakage, room gain and baffle step are not included."
-        )
-    else:
-        st.caption(
-            "DCCAV total response is the vector sum of the exposed cone front "
-            "radiation and the lower port. The load model is low-frequency only; "
-            "it is not an electrical crossover or breakup/directivity predictor."
-        )
+    # Captions removed to save vertical space!
 
     if pinned_state:
         visible_pin_count = sum(
