@@ -1960,6 +1960,7 @@ def _line_chart(
     x_domain: list[float] | None = None,
     y_domain: list[float] | None = None,
     y_axis: alt.Axis | None = None,
+    default_visible: list[str] | None = None,
 ) -> alt.Chart:
     series_names = list(dict.fromkeys(data["series"].tolist()))
     color_scale = alt.Scale(
@@ -1976,7 +1977,10 @@ def _line_chart(
     chart = alt.Chart(data).mark_line(point=False, clip=True, strokeWidth=2.2)
     
     if legend:
-        selection = alt.selection_point(fields=['series'], bind='legend')
+        kwargs = {"fields": ["series"], "bind": "legend"}
+        if default_visible is not None:
+            kwargs["value"] = [{"series": name} for name in default_visible]
+        selection = alt.selection_point(**kwargs)
         opacity = alt.condition(selection, alt.value(1), alt.value(0.1))
         chart = chart.encode(
             x=alt.X(
@@ -2390,6 +2394,7 @@ def _plot_response(
         x_domain=frequency_window,
         y_domain=y_domain,
         y_axis=_response_amplitude_axis(),
+        default_visible=["Total"],
     )
     if band is not None:
         band_area = _band_layer(band, y_domain, frequency_window)
