@@ -1885,11 +1885,13 @@ def _on_driver_preset_change():
         logger.exception("Could not apply driver preset")
 
 
-def _step5(key, default):
+def _step5(key, default, calc_val=None):
     val = st.session_state.get(key)
     if val is not None:
         try:
             val = float(val)
+            if val == 0.0 and calc_val is not None:
+                val = float(calc_val)
             if val > 0:
                 s_default = str(default)
                 decimals = len(s_default.split('.')[1]) if '.' in s_default else 0
@@ -4799,18 +4801,21 @@ with st.sidebar:
                     pass
 
                 lbl_mms = f"Mms (g) [calc: {derived.mms_kg*1000:.1f}]" if (derived and not st.session_state.get("driver_mms_g")) else "Mms (g)"
-                st.number_input(lbl_mms, min_value=0.0, max_value=1000.0, step=_step5("driver_mms_g", 0.01),
+                step_mms = _step5("driver_mms_g", 0.01, derived.mms_kg*1000 if derived else None)
+                st.number_input(lbl_mms, min_value=0.0, max_value=1000.0, step=step_mms,
                                 key="driver_mms_g", on_change=_on_driver_param_change)
                 
                 lbl_bl = f"Bl (T·m) [calc: {derived.bl_tm:.2f}]" if (derived and not st.session_state.get("driver_bl_tm")) else "Bl (T·m)"
-                st.number_input(lbl_bl, min_value=0.0, max_value=100.0, step=_step5("driver_bl_tm", 0.01),
+                step_bl = _step5("driver_bl_tm", 0.01, derived.bl_tm if derived else None)
+                st.number_input(lbl_bl, min_value=0.0, max_value=100.0, step=step_bl,
                                 key="driver_bl_tm", on_change=_on_driver_param_change)
             with d4:
                 st.number_input("Pe (W)", min_value=0.0, max_value=5000.0, step=_step5("driver_pe_w", 1.0),
                                 key="driver_pe_w", on_change=_on_driver_param_change)
                 
                 lbl_cms = f"Cms (mm/N) [calc: {derived.cms_m_per_n*1000:.3f}]" if (derived and not st.session_state.get("driver_cms_mm_n")) else "Cms (mm/N)"
-                st.number_input(lbl_cms, min_value=0.0, max_value=100.0, step=_step5("driver_cms_mm_n", 0.001),
+                step_cms = _step5("driver_cms_mm_n", 0.001, derived.cms_m_per_n*1000 if derived else None)
+                st.number_input(lbl_cms, min_value=0.0, max_value=100.0, step=step_cms,
                                 format="%.3f", key="driver_cms_mm_n",
                                 on_change=_on_driver_param_change)
                 st.number_input("Le10k (mH)", min_value=0.0, max_value=20.0, step=_step5("driver_le10k_mh", 0.001),
