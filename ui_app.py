@@ -106,7 +106,7 @@ st.markdown(
     .block-container,
     [data-testid="stMainBlockContainer"] {
         padding-top: 1.5rem !important;
-        padding-bottom: 2rem !important;
+        padding-bottom: 0.2rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
         padding-top: 0 !important;
@@ -226,6 +226,10 @@ st.markdown(
         height: 100% !important;
     }
     .stMetric { border: 1px solid rgba(127,127,127,.22); padding: .75rem; }
+    div[data-testid="stExpander"] details {
+        margin-top: 0 !important;
+        margin-bottom: 0.2rem !important;
+    }
     @media (max-width: 768px) {
         html {
             font-size: 16px !important;
@@ -5579,106 +5583,109 @@ try:
 
     # Warnings are now rendered inside data_col compactly
 
-    with st.expander("Design details"):
-        s1, s2, s3 = st.columns(3)
-        s1.metric("F6", _fmt_hz(thresholds[6]))
-        s2.metric("F10", _fmt_hz(thresholds[10]))
-        s3.metric("Z peaks", ", ".join(f"{f:.0f}" for f in z_peak_freqs[:3]) or "n/a")
-        if is_reflex:
-            a1, a2, a3, a4 = st.columns(4)
-            a1.metric("Vb (active)", f"{box.vb_l:.2f} L")
-            a2.metric("Fb (active)", f"{box.fb_hz:.1f} Hz")
-            a3.metric("Eq sealed Fc", f"{_dccav.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
-            if current_reflex_alignment is not None:
-                a4.metric("Starter Vb=Vas", f"{current_reflex_alignment.vb_l:.2f} L")
-        elif is_pr:
-            a1, a2, a3, a4 = st.columns(4)
-            a1.metric("Vb (active)", f"{box.vb_l:.2f} L")
-            a2.metric("PR Fp", f"{box.pr_fp_hz:.1f} Hz")
-            a3.metric("PR Sp", f"{box.pr_sp_cm2:.0f} cm²")
-            a4.metric("PR Qmp", f"{box.pr_qmp:.1f}")
-        elif is_bandpass4:
-            a1, a2, a3, a4, a5 = st.columns(5)
-            a1.metric("Vs sealed (active)", f"{box.vs_l:.2f} L")
-            a2.metric("Vp ported (active)", f"{box.vp_l:.2f} L")
-            a3.metric("Fp (active)", f"{box.fp_hz:.1f} Hz")
-            a4.metric("Vtot (active)", f"{box.vs_l + box.vp_l:.2f} L")
-            if current_bandpass4_alignment is not None:
-                a5.metric(
-                    "Starter Vtot",
-                    f"{current_bandpass4_alignment.vs_l + current_bandpass4_alignment.vp_l:.2f} L",
+    exp_c1, exp_c2 = st.columns(2)
+    with exp_c1:
+        with st.expander("Design details"):
+            s1, s2, s3 = st.columns(3)
+            s1.metric("F6", _fmt_hz(thresholds[6]))
+            s2.metric("F10", _fmt_hz(thresholds[10]))
+            s3.metric("Z peaks", ", ".join(f"{f:.0f}" for f in z_peak_freqs[:3]) or "n/a")
+            if is_reflex:
+                a1, a2, a3, a4 = st.columns(4)
+                a1.metric("Vb (active)", f"{box.vb_l:.2f} L")
+                a2.metric("Fb (active)", f"{box.fb_hz:.1f} Hz")
+                a3.metric("Eq sealed Fc", f"{_dccav.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
+                if current_reflex_alignment is not None:
+                    a4.metric("Starter Vb=Vas", f"{current_reflex_alignment.vb_l:.2f} L")
+            elif is_pr:
+                a1, a2, a3, a4 = st.columns(4)
+                a1.metric("Vb (active)", f"{box.vb_l:.2f} L")
+                a2.metric("PR Fp", f"{box.pr_fp_hz:.1f} Hz")
+                a3.metric("PR Sp", f"{box.pr_sp_cm2:.0f} cm²")
+                a4.metric("PR Qmp", f"{box.pr_qmp:.1f}")
+            elif is_bandpass4:
+                a1, a2, a3, a4, a5 = st.columns(5)
+                a1.metric("Vs sealed (active)", f"{box.vs_l:.2f} L")
+                a2.metric("Vp ported (active)", f"{box.vp_l:.2f} L")
+                a3.metric("Fp (active)", f"{box.fp_hz:.1f} Hz")
+                a4.metric("Vtot (active)", f"{box.vs_l + box.vp_l:.2f} L")
+                if current_bandpass4_alignment is not None:
+                    a5.metric(
+                        "Starter Vtot",
+                        f"{current_bandpass4_alignment.vs_l + current_bandpass4_alignment.vp_l:.2f} L",
+                    )
+            elif is_bandpass6:
+                a1, a2, a3, a4, a5, a6, a7 = st.columns(7)
+                a1.metric("Vr rear (active)", f"{box.vr_l:.2f} L")
+                a2.metric("Fr rear (active)", f"{box.fr_hz:.1f} Hz")
+                a3.metric("Vp front (active)", f"{box.vp_l:.2f} L")
+                a4.metric("Fp front (active)", f"{box.fp_hz:.1f} Hz")
+                a5.metric("Vtot (active)", f"{box.vr_l + box.vp_l:.2f} L")
+                a6.metric("Eq sealed Fc", f"{_dccav.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
+                if current_bandpass6_alignment is not None:
+                    a7.metric(
+                        "Starter Vtot",
+                        f"{current_bandpass6_alignment.vr_l + current_bandpass6_alignment.vp_l:.2f} L",
+                    )
+            elif is_sealed:
+                fc_hz, qtc = _dccav.sealed_system_metrics(current_ts, box)
+                a1, a2, a3, a4 = st.columns(4)
+                a1.metric("Vb sealed (active)", f"{box.vb_l:.2f} L")
+                a2.metric("Fc (active)", f"{fc_hz:.1f} Hz")
+                a3.metric("Qtc (active)", f"{qtc:.3f}")
+                if current_sealed_alignment is not None:
+                    a4.metric("Starter Vb", f"{current_sealed_alignment.vb_l:.2f} L")
+            elif is_infinite_baffle:
+                a1, a2, a3 = st.columns(3)
+                a1.metric(
+                    "Mounted Fs",
+                    f"{_dccav.panel_loaded_fs_hz(current_ts):.1f} Hz",
+                    help=f"Free-air Fs: {current_ts.fs_hz:.1f} Hz",
                 )
-        elif is_bandpass6:
-            a1, a2, a3, a4, a5, a6, a7 = st.columns(7)
-            a1.metric("Vr rear (active)", f"{box.vr_l:.2f} L")
-            a2.metric("Fr rear (active)", f"{box.fr_hz:.1f} Hz")
-            a3.metric("Vp front (active)", f"{box.vp_l:.2f} L")
-            a4.metric("Fp front (active)", f"{box.fp_hz:.1f} Hz")
-            a5.metric("Vtot (active)", f"{box.vr_l + box.vp_l:.2f} L")
-            a6.metric("Eq sealed Fc", f"{_dccav.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
-            if current_bandpass6_alignment is not None:
-                a7.metric(
-                    "Starter Vtot",
-                    f"{current_bandpass6_alignment.vr_l + current_bandpass6_alignment.vp_l:.2f} L",
-                )
-        elif is_sealed:
-            fc_hz, qtc = _dccav.sealed_system_metrics(current_ts, box)
-            a1, a2, a3, a4 = st.columns(4)
-            a1.metric("Vb sealed (active)", f"{box.vb_l:.2f} L")
-            a2.metric("Fc (active)", f"{fc_hz:.1f} Hz")
-            a3.metric("Qtc (active)", f"{qtc:.3f}")
-            if current_sealed_alignment is not None:
-                a4.metric("Starter Vb", f"{current_sealed_alignment.vb_l:.2f} L")
-        elif is_infinite_baffle:
-            a1, a2, a3 = st.columns(3)
-            a1.metric(
-                "Mounted Fs",
-                f"{_dccav.panel_loaded_fs_hz(current_ts):.1f} Hz",
-                help=f"Free-air Fs: {current_ts.fs_hz:.1f} Hz",
-            )
-            a2.metric("Infinite baffle Qts", f"{current_ts.qts:.3f}")
-            a3.metric("Rear radiation", "Isolated")
-        else:
-            a1, a2, a3, a4, a5, a6, a7 = st.columns(7)
-            a1.metric("Vh (active)", f"{box.vh_l:.2f} L")
-            a2.metric("fh (active)", f"{box.fh_hz:.1f} Hz")
-            a3.metric("Vl (active)", f"{box.vl_l:.2f} L")
-            a4.metric("fl (active)", f"{box.fl_hz:.1f} Hz")
-            a5.metric("Vtot (active)", f"{box.vh_l + box.vl_l:.2f} L")
-            a6.metric("Eq sealed Fc", f"{_dccav.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
-            if current_alignment is not None:
-                a7.metric("Article Vtot", f"{current_alignment.vh_l + current_alignment.vl_l:.2f} L")
-
-
-    if derived is not None:
-        with st.expander("Driver details"):
-            d1, d2, d3, d4, d5 = st.columns(5)
-            d1.metric("Qes", f"{derived.qes:.3f}")
-            d2.metric("Bl", f"{derived.bl_tm:.2f} T·m")
-            d3.metric("Mms", f"{derived.mms_kg * 1000.0:.2f} g")
-            d4.metric("Cms", f"{derived.cms_m_per_n * 1000.0:.3f} mm/N")
-            d5.metric("Sd", f"{derived.sd_m2 * 10000.0:.1f} cm²")
-
-            ref = _dccav.driver_reference_metrics(current_ts)
-            bandwidth = _dccav.classify_driver_bandwidth(current_ts)
-            e1, e2, e3, e4, e5, e6 = st.columns(6)
-            e1.metric("Eta0 ref", f"{ref.eta0 * 100.0:.2f} %")
-            e2.metric("SPL 1W/1m", f"{ref.spl_1w_db:.1f} dB")
-            e3.metric("SPL 2.83V/1m", f"{ref.spl_2v83_db:.1f} dB")
-            e4.metric("EBP", f"{ref.ebp_hz:.0f} Hz")
-            e5.metric(
-                "VC corner",
-                "n/a" if bandwidth.f_le_hz is None else f"{bandwidth.f_le_hz:.0f} Hz",
-                help="Re/(2*pi*Le): above this frequency the voice-coil inductance rolls the response off.",
-            )
-            e6.metric("Class", bandwidth.driver_class)
-            if ref.ebp_hz < 50.0:
-                ebp_hint = "EBP < 50: this driver classically favours sealed or infinite-baffle loads."
-            elif ref.ebp_hz > 100.0:
-                ebp_hint = "EBP > 100: this driver classically favours ported loads (bass reflex / DCCAV)."
+                a2.metric("Infinite baffle Qts", f"{current_ts.qts:.3f}")
+                a3.metric("Rear radiation", "Isolated")
             else:
-                ebp_hint = "EBP 50-100: this driver works in both sealed and ported loads."
-            st.caption(f"{ebp_hint} Class indicators: {', '.join(bandwidth.reasons)}.")
+                a1, a2, a3, a4, a5, a6, a7 = st.columns(7)
+                a1.metric("Vh (active)", f"{box.vh_l:.2f} L")
+                a2.metric("fh (active)", f"{box.fh_hz:.1f} Hz")
+                a3.metric("Vl (active)", f"{box.vl_l:.2f} L")
+                a4.metric("fl (active)", f"{box.fl_hz:.1f} Hz")
+                a5.metric("Vtot (active)", f"{box.vh_l + box.vl_l:.2f} L")
+                a6.metric("Eq sealed Fc", f"{_dccav.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
+                if current_alignment is not None:
+                    a7.metric("Article Vtot", f"{current_alignment.vh_l + current_alignment.vl_l:.2f} L")
+
+
+    with exp_c2:
+        if derived is not None:
+            with st.expander("Driver details"):
+                d1, d2, d3, d4, d5 = st.columns(5)
+                d1.metric("Qes", f"{derived.qes:.3f}")
+                d2.metric("Bl", f"{derived.bl_tm:.2f} T·m")
+                d3.metric("Mms", f"{derived.mms_kg * 1000.0:.2f} g")
+                d4.metric("Cms", f"{derived.cms_m_per_n * 1000.0:.3f} mm/N")
+                d5.metric("Sd", f"{derived.sd_m2 * 10000.0:.1f} cm²")
+
+                ref = _dccav.driver_reference_metrics(current_ts)
+                bandwidth = _dccav.classify_driver_bandwidth(current_ts)
+                e1, e2, e3, e4, e5, e6 = st.columns(6)
+                e1.metric("Eta0 ref", f"{ref.eta0 * 100.0:.2f} %")
+                e2.metric("SPL 1W/1m", f"{ref.spl_1w_db:.1f} dB")
+                e3.metric("SPL 2.83V/1m", f"{ref.spl_2v83_db:.1f} dB")
+                e4.metric("EBP", f"{ref.ebp_hz:.0f} Hz")
+                e5.metric(
+                    "VC corner",
+                    "n/a" if bandwidth.f_le_hz is None else f"{bandwidth.f_le_hz:.0f} Hz",
+                    help="Re/(2*pi*Le): above this frequency the voice-coil inductance rolls the response off.",
+                )
+                e6.metric("Class", bandwidth.driver_class)
+                if ref.ebp_hz < 50.0:
+                    ebp_hint = "EBP < 50: this driver classically favours sealed or infinite-baffle loads."
+                elif ref.ebp_hz > 100.0:
+                    ebp_hint = "EBP > 100: this driver classically favours ported loads (bass reflex / DCCAV)."
+                else:
+                    ebp_hint = "EBP 50-100: this driver works in both sealed and ported loads."
+                st.caption(f"{ebp_hint} Class indicators: {', '.join(bandwidth.reasons)}.")
 
     dl_cols = st.columns(4) if load_type == "DCCAV" else st.columns(3)
     dl_csv, dl_frd, dl_zma = dl_cols[:3]
