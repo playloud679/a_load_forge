@@ -130,10 +130,10 @@ st.markdown(
         gap: 0.2rem !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stNumberInput"] {
-        margin-bottom: -0.5rem !important;
+        margin-bottom: -0.2rem !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stSelectbox"] {
-        margin-bottom: -0.5rem !important;
+        margin-bottom: -0.2rem !important;
     }
     [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h1,
     [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h2,
@@ -144,7 +144,9 @@ st.markdown(
     }
     section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
     section[data-testid="stSidebar"] label p {
+        font-size: 0.83rem !important;
         line-height: 1.3 !important;
+        margin-bottom: 0.4rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
         line-height: 1.45 !important;
@@ -1882,6 +1884,16 @@ def _on_driver_preset_change():
     except Exception:
         logger.exception("Could not apply driver preset")
 
+
+def _step5(key, default):
+    val = st.session_state.get(key)
+    if val is not None:
+        try:
+            val = float(val)
+            if val > 0: return val * 0.05
+        except (ValueError, TypeError):
+            pass
+    return default
 
 def _on_driver_param_change():
     st.session_state["driver_preset_name"] = "Custom"
@@ -4669,7 +4681,8 @@ with st.sidebar:
         bd_tab1, bd_tab2, bd_tab3 = st.tabs(["Driver", "Load Selection", "Enclosure Parameters"])
         
         all_preset_names = _dccav.driver_preset_names()
-        st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
+        with bd_tab1:
+            st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
         filtered_preset_names = _filter_driver_preset_names(
             all_preset_names,
             source="All",
@@ -4715,31 +4728,31 @@ with st.sidebar:
                     
             c1, c2 = st.columns(2)
             with c1:
-                st.number_input("Fs (Hz)", min_value=1.0, max_value=500.0, step=0.1,
+                st.number_input("Fs (Hz)", min_value=1.0, max_value=500.0, step=_step5("driver_fs_hz", 0.1),
                                 key="driver_fs_hz", on_change=_on_driver_param_change)
-                st.number_input("Qts", min_value=0.05, max_value=2.0, step=0.001,
+                st.number_input("Qts", min_value=0.05, max_value=2.0, step=_step5("driver_qts", 0.001),
                                 format="%.3f", key="driver_qts", on_change=_on_driver_param_change)
-                st.number_input("Re (Ω)", min_value=0.1, max_value=64.0, step=0.01,
+                st.number_input("Re (Ω)", min_value=0.1, max_value=64.0, step=_step5("driver_re_ohm", 0.01),
                                 key="driver_re_ohm", on_change=_on_driver_param_change)
             with c2:
-                st.number_input("Vas (L)", min_value=0.1, max_value=1000.0, step=0.1,
+                st.number_input("Vas (L)", min_value=0.1, max_value=1000.0, step=_step5("driver_vas_l", 0.1),
                                 key="driver_vas_l", on_change=_on_driver_param_change)
-                st.number_input("Qms", min_value=0.051, max_value=50.0, step=0.001,
+                st.number_input("Qms", min_value=0.051, max_value=50.0, step=_step5("driver_qms", 0.001),
                                 format="%.3f", key="driver_qms", on_change=_on_driver_param_change)
-                st.number_input("Le (mH)", min_value=0.0, max_value=20.0, step=0.001,
+                st.number_input("Le (mH)", min_value=0.0, max_value=20.0, step=_step5("driver_le_mh", 0.001),
                                 format="%.3f", key="driver_le_mh", on_change=_on_driver_param_change)
 
             st.radio("Piston input", ["Diameter", "Sd"], horizontal=True, key="driver_sd_mode",
                      on_change=_on_driver_param_change)
             if st.session_state.get("driver_sd_mode", "Diameter") == "Diameter":
                 st.number_input("Piston diameter (mm)", min_value=10.0, max_value=1000.0,
-                                step=0.1, key="driver_diameter_mm",
+                                step=_step5("driver_diameter_mm", 0.1), key="driver_diameter_mm",
                                 on_change=_on_driver_param_change)
                 st.caption(
                     f"Sd = {_dccav.sd_from_diameter(st.session_state.get('driver_diameter_mm', 100)):.1f} cm²"
                 )
             else:
-                st.number_input("Sd (cm²)", min_value=1.0, max_value=5000.0, step=1.0,
+                st.number_input("Sd (cm²)", min_value=1.0, max_value=5000.0, step=_step5("driver_sd_cm2", 1.0),
                                 key="driver_sd_cm2", on_change=_on_driver_param_change)
 
             st.checkbox(
@@ -4773,21 +4786,21 @@ with st.sidebar:
 
             d3, d4 = st.columns(2)
             with d3:
-                st.number_input("Xmax (mm)", min_value=0.0, max_value=100.0, step=0.1,
+                st.number_input("Xmax (mm)", min_value=0.0, max_value=100.0, step=_step5("driver_xmax_mm", 0.1),
                                 key="driver_xmax_mm", on_change=_on_driver_param_change)
             with d4:
-                st.number_input("Pe (W)", min_value=0.0, max_value=5000.0, step=1.0,
+                st.number_input("Pe (W)", min_value=0.0, max_value=5000.0, step=_step5("driver_pe_w", 1.0),
                                 key="driver_pe_w", on_change=_on_driver_param_change)
 
             with st.expander("Measured optional parameters"):
-                st.number_input("Mms (g)", min_value=0.0, max_value=1000.0, step=0.01,
+                st.number_input("Mms (g)", min_value=0.0, max_value=1000.0, step=_step5("driver_mms_g", 0.01),
                                 key="driver_mms_g", on_change=_on_driver_param_change)
-                st.number_input("Cms (mm/N)", min_value=0.0, max_value=100.0, step=0.001,
+                st.number_input("Cms (mm/N)", min_value=0.0, max_value=100.0, step=_step5("driver_cms_mm_n", 0.001),
                                 format="%.3f", key="driver_cms_mm_n",
                                 on_change=_on_driver_param_change)
-                st.number_input("Bl (T·m)", min_value=0.0, max_value=100.0, step=0.01,
+                st.number_input("Bl (T·m)", min_value=0.0, max_value=100.0, step=_step5("driver_bl_tm", 0.01),
                                 key="driver_bl_tm", on_change=_on_driver_param_change)
-                st.number_input("Le10k (mH)", min_value=0.0, max_value=20.0, step=0.001,
+                st.number_input("Le10k (mH)", min_value=0.0, max_value=20.0, step=_step5("driver_le10k_mh", 0.001),
                                 format="%.3f", key="driver_le10k_mh",
                                 on_change=_on_driver_param_change,
                                 help="Voice coil inductance measured at 10 kHz, as "
