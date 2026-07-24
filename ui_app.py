@@ -4814,45 +4814,47 @@ with st.sidebar:
                 st.number_input("Le (mH)", min_value=0.0, max_value=20.0, step=_step5("driver_le_mh", 0.001),
                                 format="%.3f", key="driver_le_mh", on_change=_on_driver_param_change)
 
-            st.radio("Piston input", ["Diameter", "Sd"], horizontal=True, key="driver_sd_mode",
-                     on_change=_on_driver_param_change)
-            if st.session_state.get("driver_sd_mode", "Diameter") == "Diameter":
-                st.number_input("Piston diameter (mm)", min_value=10.0, max_value=1000.0,
-                                step=_step5("driver_diameter_mm", 0.1), key="driver_diameter_mm",
-                                on_change=_on_driver_param_change)
-                st.caption(
-                    f"Sd = {_dccav.sd_from_diameter(st.session_state.get('driver_diameter_mm', 100)):.1f} cm²"
-                )
-            else:
-                st.number_input("Sd (cm²)", min_value=1.0, max_value=5000.0, step=_step5("driver_sd_cm2", 1.0),
-                                key="driver_sd_cm2", on_change=_on_driver_param_change)
+            p_col1, p_col2 = st.columns([1, 1], vertical_alignment="bottom")
+            with p_col1:
+                st.radio("Piston mode", ["Diameter", "Sd"], horizontal=True, key="driver_sd_mode",
+                         on_change=_on_driver_param_change, label_visibility="collapsed")
+            with p_col2:
+                if st.session_state.get("driver_sd_mode", "Diameter") == "Diameter":
+                    st.number_input("Piston diameter (mm)", min_value=10.0, max_value=1000.0,
+                                    step=_step5("driver_diameter_mm", 0.1), key="driver_diameter_mm",
+                                    on_change=_on_driver_param_change)
+                else:
+                    st.number_input("Sd (cm²)", min_value=1.0, max_value=5000.0, step=_step5("driver_sd_cm2", 1.0),
+                                    key="driver_sd_cm2", on_change=_on_driver_param_change)
 
-            st.checkbox(
-                "Panel air loading",
-                key="driver_panel_air_load",
-                on_change=_on_driver_param_change,
-                help="Enabled by default. Adds the air mass coupled to a diaphragm "
-                     "mounted on a finite baffle, lowering mounted Fs and sensitivity. "
-                     "Disable it for classical free-air T/S comparisons.",
-            )
-            if st.session_state.get("driver_panel_air_load", True):
-                st.slider(
-                    "Panel coupling",
-                    min_value=0.0,
-                    max_value=1.0,
-                    step=0.01,
-                    key="driver_panel_coupling",
+            if st.session_state.get("driver_sd_mode", "Diameter") == "Diameter":
+                st.caption(f"Sd = {_dccav.sd_from_diameter(st.session_state.get('driver_diameter_mm', 100)):.1f} cm²")
+
+            c_col1, c_col2 = st.columns([1.2, 1.8], vertical_alignment="center")
+            with c_col1:
+                st.checkbox(
+                    "Panel air loading",
+                    key="driver_panel_air_load",
                     on_change=_on_driver_param_change,
-                    help="Fraction of the low-frequency baffled-piston air-mass "
-                         "increment. 0.90 is the standard partial-baffle approximation.",
+                    help="Adds the air mass coupled to a diaphragm mounted on a finite baffle."
                 )
-                try:
-                    _panel_mass_g, _panel_fs_hz = _dccav.panel_air_load_metrics(
-                        _driver_from_state())
-                    st.caption(
-                        f"Mounted Fs {_panel_fs_hz:.2f} Hz · added air mass "
-                        f"{_panel_mass_g:.3f} g"
+            with c_col2:
+                if st.session_state.get("driver_panel_air_load", True):
+                    st.slider(
+                        "Panel coupling",
+                        min_value=0.0,
+                        max_value=1.0,
+                        step=0.01,
+                        key="driver_panel_coupling",
+                        on_change=_on_driver_param_change,
+                        help="Fraction of the low-frequency baffled-piston air-mass increment.",
+                        label_visibility="collapsed"
                     )
+            
+            if st.session_state.get("driver_panel_air_load", True):
+                try:
+                    _panel_mass_g, _panel_fs_hz = _dccav.panel_air_load_metrics(_driver_from_state())
+                    st.caption(f"Mounted Fs {_panel_fs_hz:.2f} Hz · added air mass {_panel_mass_g:.3f} g")
                 except (KeyError, ValueError):
                     pass
 
