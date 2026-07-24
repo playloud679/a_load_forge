@@ -116,8 +116,6 @@ st.markdown(
         padding-bottom: 0.2rem !important;
         padding-left: 1.0rem !important;
         padding-right: 1.0rem !important;
-        overflow-x: hidden !important;
-        overflow-y: hidden !important;
     }
     section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
         padding-top: 0 !important;
