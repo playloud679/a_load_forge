@@ -612,3 +612,9 @@
   imported lists.
 - **Verification**: `.venv/bin/python tests/test_all.py` passes with 14 passed,
   0 failed and 0 skipped tests after the LSDB importer and filtering changes.
+
+## 0.6.4
+
+- Fix sidebar logo and version overlap
+- Reduce side padding in main container
+
