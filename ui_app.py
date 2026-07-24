@@ -114,8 +114,8 @@ st.markdown(
     [data-testid="stAppViewContainer"] {
         padding-top: 0.2rem !important;
         padding-bottom: 0.2rem !important;
-        padding-left: 1.5rem !important;
-        padding-right: 1.5rem !important;
+        padding-left: 1.0rem !important;
+        padding-right: 1.0rem !important;
         overflow-x: hidden !important;
         overflow-y: hidden !important;
     }
@@ -124,7 +124,7 @@ st.markdown(
     }
     section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
         padding-top: 0 !important;
-        margin-top: -3.3rem !important;
+        margin-top: -4.0rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
         border-top: 1px solid rgba(255,255,255,.10);
@@ -158,7 +158,7 @@ st.markdown(
     section[data-testid="stSidebar"] label p {
         font-size: 0.83rem !important;
         line-height: 1.3 !important;
-        margin-bottom: 0.4rem !important;
+        margin-bottom: 0.6rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
         line-height: 1.45 !important;
@@ -166,7 +166,7 @@ st.markdown(
     section[data-testid="stSidebar"] [data-testid="stNumberInput"]
     div[data-baseweb="input"] {
         border-radius: .72rem;
-        min-height: 3.15rem;
+        min-height: 2.85rem;
         overflow: hidden;
     }
     section[data-testid="stSidebar"] [data-testid="stNumberInput"] button {
