@@ -94,6 +94,9 @@ st.set_page_config(
 st.markdown(
     """
     <style>
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
     html {
         font-size: 85% !important;
     }
@@ -2400,7 +2403,7 @@ def _plot_response(
     chart = _line_chart(
         data,
         "LF pressure estimate (dB)",
-        height=320,
+        height=460,
         legend=show_legend,
         x_domain=frequency_window,
         y_domain=y_domain,
@@ -2416,7 +2419,7 @@ def _plot_response(
         mil_chart = _line_chart(
             mil_data,
             "Max input power (W)",
-            height=320,
+            height=460,
             legend=show_legend,
             x_domain=frequency_window,
             y_domain=mil_y_domain,
@@ -5549,9 +5552,9 @@ try:
                 else:
                     _add_port("Vent")
 
-            for i in range(0, len(flat_metrics), 4):
-                cols = st.columns(4)
-                for j, metric in enumerate(flat_metrics[i:i+4]):
+            for i in range(0, len(flat_metrics), 6):
+                cols = st.columns(6)
+                for j, metric in enumerate(flat_metrics[i:i+6]):
                     cols[j].metric(metric[0], metric[1])
 
             # Gamification / Performance Badges
