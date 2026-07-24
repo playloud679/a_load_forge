@@ -189,7 +189,7 @@ st.markdown(
         display: block;
         height: auto !important;
         margin-inline: auto;
-        max-height: none !important;
+        max-height: 4.5rem !important;
         max-width: 100% !important;
         object-fit: contain;
         object-position: center;
