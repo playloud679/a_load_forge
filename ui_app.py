@@ -136,7 +136,7 @@ st.markdown(
         padding-bottom: .3rem !important;
     }
     [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] {
-        gap: .9rem !important;
+        gap: .4rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
         gap: 0.2rem !important;
@@ -2409,7 +2409,7 @@ def _plot_response(
     chart = _line_chart(
         data,
         "LF pressure estimate (dB)",
-        height=460,
+        height=410,
         legend=show_legend,
         x_domain=frequency_window,
         y_domain=y_domain,
@@ -2425,7 +2425,7 @@ def _plot_response(
         mil_chart = _line_chart(
             mil_data,
             "Max input power (W)",
-            height=460,
+            height=410,
             legend=show_legend,
             x_domain=frequency_window,
             y_domain=mil_y_domain,
@@ -4218,7 +4218,6 @@ def _render_response_tab(
     else:
         st.caption("Response pens off.")
 
-    st.divider()
 
     # --- 3. Render Analysis Options & Actions ---
     pinned_state = _pinned_responses()
