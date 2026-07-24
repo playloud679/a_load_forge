@@ -4243,11 +4243,11 @@ def _render_response_tab(
             st.rerun()
 
     if pinned_state:
-        with ctrl_cols[4]:
+        with ctrl_cols[3]:
             if st.button("Clear all pins", use_container_width=True):
                 _clear_pinned_responses()
                 st.rerun()
-        with ctrl_cols[5]:
+        with ctrl_cols[4]:
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
@@ -4257,7 +4257,7 @@ def _render_response_tab(
                 args=(full_window,),
             )
     else:
-        with ctrl_cols[4]:
+        with ctrl_cols[3]:
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
