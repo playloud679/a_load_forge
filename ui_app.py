@@ -131,21 +131,21 @@ st.markdown(
         color: rgba(255,255,255,.96);
         font-size: 1rem;
         line-height: 1.25;
-        margin: .55rem 0 .35rem !important;
-        padding-top: .8rem !important;
-        padding-bottom: .3rem !important;
+        margin: .35rem 0 .2rem !important;
+        padding-top: .5rem !important;
+        padding-bottom: .2rem !important;
     }
     [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] {
-        gap: .4rem !important;
+        gap: .65rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-        gap: 0.2rem !important;
+        gap: 0.1rem !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stNumberInput"] {
-        margin-bottom: -0.2rem !important;
+        margin-bottom: -0.3rem !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stSelectbox"] {
-        margin-bottom: -0.2rem !important;
+        margin-bottom: -0.3rem !important;
     }
     [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h1,
     [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h2,
@@ -166,7 +166,7 @@ st.markdown(
     section[data-testid="stSidebar"] [data-testid="stNumberInput"]
     div[data-baseweb="input"] {
         border-radius: .72rem;
-        min-height: 2.85rem;
+        min-height: 2.65rem;
         overflow: hidden;
     }
     section[data-testid="stSidebar"] [data-testid="stNumberInput"] button {
@@ -193,8 +193,8 @@ st.markdown(
         width: 1.15rem !important;
     }
     hr {
-        margin-top: 0.5rem !important;
-        margin-bottom: 0.5rem !important;
+        margin-top: 0.25rem !important;
+        margin-bottom: 0.25rem !important;
     }
 
     header[data-testid="stHeader"] {
@@ -2409,7 +2409,7 @@ def _plot_response(
     chart = _line_chart(
         data,
         "LF pressure estimate (dB)",
-        height=410,
+        height=435,
         legend=show_legend,
         x_domain=frequency_window,
         y_domain=y_domain,
@@ -2425,7 +2425,7 @@ def _plot_response(
         mil_chart = _line_chart(
             mil_data,
             "Max input power (W)",
-            height=410,
+            height=435,
             legend=show_legend,
             x_domain=frequency_window,
             y_domain=mil_y_domain,
