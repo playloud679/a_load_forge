@@ -109,7 +109,10 @@ st.markdown(
         padding-bottom: 2rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
-        padding-top: 1.15rem !important;
+        padding-top: 0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
+        padding-top: 0 !important;
     }
     section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
         border-top: 1px solid rgba(255,255,255,.10);
