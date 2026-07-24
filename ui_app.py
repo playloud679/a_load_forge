@@ -437,7 +437,7 @@ def _workspace_tab_styles() -> str:
         """
         <style>
         [class*="st-key-workspace_tab_"] div[data-testid="stButton"] button {
-            background-color: #030405;
+            background-color: transparent;
             background-position: center;
             background-repeat: no-repeat;
             background-size: contain;
