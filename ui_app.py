@@ -1961,6 +1961,7 @@ def _line_chart(
     y_domain: list[float] | None = None,
     y_axis: alt.Axis | None = None,
     default_visible: list[str] | None = None,
+    y_field: str = "value",
 ) -> alt.Chart:
     if not legend and default_visible is not None:
         data = data[data["series"].isin(default_visible)]
@@ -1993,7 +1994,7 @@ def _line_chart(
                 axis=alt.Axis(format="~g"),
             ),
             y=alt.Y(
-                "value:Q",
+                f"{y_field}:Q",
                 title=y_title,
                 scale=alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined,
                 axis=y_axis if y_axis is not None else alt.Undefined,
@@ -2015,7 +2016,7 @@ def _line_chart(
                 axis=alt.Axis(format="~g"),
             ),
             y=alt.Y(
-                "value:Q",
+                f"{y_field}:Q",
                 title=y_title,
                 scale=alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined,
                 axis=y_axis if y_axis is not None else alt.Undefined,
@@ -2024,7 +2025,7 @@ def _line_chart(
             tooltip=[
                 alt.Tooltip("frequency_hz:Q", title="Hz", format=".2f"),
                 alt.Tooltip("series:N", title="Trace"),
-                alt.Tooltip("value:Q", title=y_title, format=".3f"),
+                alt.Tooltip(f"{y_field}:Q", title=y_title, format=".3f"),
             ],
         )
     return chart.properties(height=height, width="container")
@@ -2405,7 +2406,7 @@ def _plot_response(
     )
     
     if mil_w_data is not None and (default_visible is None or "MIL" in default_visible):
-        mil_data = _series_frame(result, {"MIL": mil_w_data})
+        mil_data = _series_frame(result, {"MIL": mil_w_data}).rename(columns={"value": "mil_value"})
         mil_max = float(np.max(mil_w_data[np.isfinite(mil_w_data)]))
         mil_y_domain = [0.0, max(1.0, mil_max * 1.05)]
         
@@ -2422,6 +2423,7 @@ def _plot_response(
                 labelColor=_TRACE_COLORS.get("MIL", "#e0aaff")
             ),
             default_visible=["MIL"],
+            y_field="mil_value",
         )
         chart = alt.layer(chart, mil_chart).resolve_scale(y="independent")
 
@@ -2473,11 +2475,11 @@ def _plot_impedance(result: _dccav.SimulationResult) -> alt.Chart:
 
 
 def _plot_mil(result: _dccav.SimulationResult) -> alt.Chart:
-    data = _series_frame(result, {"MIL": result.mil_w})
     mil_w_data = result.mil_w
+    data = _series_frame(result, {"MIL": mil_w_data}).rename(columns={"value": "mil_value"})
     mil_max = float(np.max(mil_w_data[np.isfinite(mil_w_data)]))
     mil_y_domain = [0.0, max(1.0, mil_max * 1.05)]
-    chart = _line_chart(data, "Max input power (W)", height=240, legend=False, y_domain=mil_y_domain)
+    chart = _line_chart(data, "Max input power (W)", height=240, legend=False, y_domain=mil_y_domain, y_field="mil_value")
     pinned = _pinned_metric_layer("mil_w", "Max input power (W)", ".3f")
     if pinned is not None:
         chart = (chart + pinned).resolve_scale(
@@ -4207,27 +4209,27 @@ def _render_response_tab(
     st.divider()
 
     # --- 3. Render Analysis Options & Actions ---
+    st.pills(
+        "Traces",
+        available_traces if (compare_series or _response_series(result)) else ["Total"],
+        selection_mode="multi",
+        default=selected_traces if (compare_series or _response_series(result)) else ["Total"],
+        key="plot_response_traces",
+        label_visibility="collapsed",
+    )
+    
     pinned_state = _pinned_responses()
-    col_widths = [2.8, 1.2, 1.2, 1.2, 1.2, 1.0] if pinned_state else [2.8, 1.2, 1.2, 1.2, 1.0]
-    ctrl_cols = st.columns(col_widths)
+    num_cols = 5 if pinned_state else 4
+    ctrl_cols = st.columns(num_cols)
     
     with ctrl_cols[0]:
-        st.pills(
-            "Traces",
-            available_traces if (compare_series or _response_series(result)) else ["Total"],
-            selection_mode="multi",
-            default=selected_traces if (compare_series or _response_series(result)) else ["Total"],
-            key="plot_response_traces",
-            label_visibility="collapsed",
-        )
-    with ctrl_cols[1]:
         st.toggle("Compare loads", key="plot_compare_loads")
-    with ctrl_cols[2]:
+    with ctrl_cols[1]:
         st.toggle(
             "Tolerance band", key="plot_tolerance_band", disabled=compare_loads_on,
             help="Monte Carlo 5-95th percentile spread from T/S tolerances.",
         )
-    with ctrl_cols[3]:
+    with ctrl_cols[2]:
         if st.button(
             "Pin response",
             use_container_width=True,
