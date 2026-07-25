@@ -3788,17 +3788,8 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
     st.subheader("Candidate library")
     st.caption(
         "All matching loudspeakers are shown below. Select a row to use that driver "
-        "directly in the simulation, or run a match to rank optimized enclosures."
+        "directly in the simulation, or select multiple rows and run a match to rank only those enclosures."
     )
-    if st.button(
-        _FINDER_CTA_LABEL,
-        type="primary",
-        use_container_width=True,
-        disabled=_finder_search_blocked(filtered_preset_names),
-        key="finder_run_search_main",
-    ):
-        _run_find_driver_search(filtered_preset_names)
-        st.rerun()
 
     if not filtered_preset_names:
         st.warning("No presets match the current library filters.")
@@ -3808,6 +3799,28 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
     # (each row selection or widget change) costs seconds of frontend time;
     # cap the table and let search/filters narrow the rest.
     shown_names = filtered_preset_names[:_LIBRARY_TABLE_MAX_ROWS]
+    
+    selected_preset_names = []
+    table_state_dict = st.session_state.get("finder_driver_library_table")
+    if isinstance(table_state_dict, dict):
+        selection = table_state_dict.get("selection", {})
+        selected_rows = selection.get("rows", [])
+        selected_preset_names = [shown_names[i] for i in selected_rows if 0 <= i < len(shown_names)]
+
+    match_preset_names = selected_preset_names if selected_preset_names else filtered_preset_names
+
+    button_label = f"{_FINDER_CTA_LABEL} ({len(match_preset_names)} selected)" if selected_preset_names else _FINDER_CTA_LABEL
+
+    if st.button(
+        button_label,
+        type="primary",
+        use_container_width=True,
+        disabled=_finder_search_blocked(match_preset_names),
+        key="finder_run_search_main",
+    ):
+        _run_find_driver_search(match_preset_names)
+        st.rerun()
+
     if len(shown_names) < len(filtered_preset_names):
         st.caption(
             f"{len(filtered_preset_names)} presets match the current filters · "
@@ -3836,7 +3849,7 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         hide_index=True,
         key="finder_driver_library_table",
         on_select="rerun",
-        selection_mode="single-row",
+        selection_mode="multi-row",
         column_config={
             "Size in": st.column_config.NumberColumn(format="%.1f"),
             "Fs Hz": st.column_config.NumberColumn(format="%.1f"),
@@ -3850,10 +3863,16 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
             "Currency": None,
         },
     )
+    
     selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
     if not selected_rows:
         st.info("Select a loudspeaker row to load it into the simulation.")
         return
+        
+    if len(selected_rows) > 1:
+        st.info(f"{len(selected_rows)} loudspeakers selected. Click '{button_label}' above to compare them.")
+        return
+        
     selected_index = int(selected_rows[0])
     if not 0 <= selected_index < len(library_df):
         return
