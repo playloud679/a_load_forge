@@ -3802,12 +3802,8 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
     # cap the table and let search/filters narrow the rest.
     shown_names = filtered_preset_names[:_LIBRARY_TABLE_MAX_ROWS]
     
-    finder_load_types, _ = _finder_load_context()
-    load_type_str = "_".join(finder_load_types).replace(" ", "_")
-    table_key = f"finder_driver_library_table_{load_type_str}"
-    
     selected_preset_names = []
-    table_state_dict = st.session_state.get(table_key)
+    table_state_dict = st.session_state.get("finder_driver_library_table")
     if isinstance(table_state_dict, dict):
         selection = table_state_dict.get("selection", {})
         selected_rows = selection.get("rows", [])
@@ -3853,7 +3849,7 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         use_container_width=True,
         height=720,
         hide_index=True,
-        key=table_key,
+        key="finder_driver_library_table",
         on_select="rerun",
         selection_mode="multi-row",
         column_config={
