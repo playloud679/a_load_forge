@@ -36,6 +36,7 @@ SOURCES = {
     "topservicepro": (ROOT / "data" / "topservicepro_harvest_checkpoint.json", "TopServicePro"),
     "kjfaudio": (ROOT / "data" / "kjfaudio_harvest_checkpoint.json", "KJFAudio"),
     "hogtalarshoppen": (ROOT / "data" / "hogtalarshoppen_harvest_checkpoint.json", "Hogtalarshoppen"),
+    "diyspeakerseu": (ROOT / "data" / "diyspeakerseu_harvest_checkpoint.json", "DIYSpeakersEU"),
 }
 
 

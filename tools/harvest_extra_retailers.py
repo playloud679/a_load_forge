@@ -158,6 +158,21 @@ HOGTALARSHOPPEN_CATEGORY_ALLOW = {
     "coaxial", "passive membranes", "cone tweeters", "sound exciter",
 }
 
+DIYSPEAKERSEU_CHECKPOINT = DATA_DIR / "diyspeakerseu_harvest_checkpoint.json"
+DIYSPEAKERSEU_BASE = "https://diyspeakers.eu"
+# Fourth confirmed WooCommerce Store API source (2026-07-25 round 9 sweep) --
+# found via a Poland/general-EU DIY-driver-shop search. Small (126 products)
+# but clean single-category catalog (Woofers/Tweeters/Midranges/Subwoofers/
+# Fullrange/Passive radiator/Car audio) already dominated by real raw
+# drivers (Scan-Speak, SEAS, Dayton Audio etc.), same `brands` taxonomy
+# shape as Hogtalarshoppen/KJF Audio/TopServicePro -- allow-listed to the
+# same effect as a safety net in case the catalog grows non-driver
+# categories later.
+DIYSPEAKERSEU_CATEGORY_ALLOW = {
+    "woofers", "tweeters", "midranges", "subwoofers", "fullrange",
+    "passive radiator", "car audio",
+}
+
 
 def _get_json(url: str, timeout_s: float) -> dict:
     text = epd.fetch_text(url, timeout_s)
@@ -821,6 +836,73 @@ def harvest_hogtalarshoppen(sleep_s: float, timeout_s: float, limit_pages: int =
     return records
 
 
+def _diyspeakerseu_is_driver_category(name: str) -> bool:
+    return name.casefold() in DIYSPEAKERSEU_CATEGORY_ALLOW
+
+
+def _parse_diyspeakerseu_product(product: dict) -> dict | None:
+    categories = [str(c.get("name") or "") for c in product.get("categories", [])]
+    if not any(_diyspeakerseu_is_driver_category(name) for name in categories):
+        return None
+    prices = product.get("prices") or {}
+    raw_price = epd.number(prices.get("price"))
+    if raw_price is None:
+        return None
+    minor_unit = prices.get("currency_minor_unit")
+    try:
+        minor_unit = int(minor_unit)
+    except (TypeError, ValueError):
+        minor_unit = 2
+    price = raw_price / (10 ** minor_unit)
+    if price <= 0:
+        return None
+    name = epd.clean_product_text(epd.html_entity_decode(str(product.get("name") or "")))
+    if not name:
+        return None
+    brands = product.get("brands") or []
+    brand = epd.html_entity_decode(str(brands[0].get("name") or "")) if brands else ""
+    sku = str(product.get("sku") or "")
+    url = str(product.get("permalink") or "")
+    if not url:
+        return None
+    currency = str(prices.get("currency_code") or "EUR")
+    return {
+        "name": name,
+        "brand": brand,
+        "mpn": sku,
+        "sku": sku,
+        "url": url,
+        "price": round(price, 2),
+        "currency": currency,
+        "availability": "",
+        "price_valid_until": "",
+    }
+
+
+def harvest_diyspeakerseu(sleep_s: float, timeout_s: float, limit_pages: int = 20) -> list[dict]:
+    records = []
+    page = 1
+    while limit_pages is None or page <= limit_pages:
+        url = f"{DIYSPEAKERSEU_BASE}/wp-json/wc/store/v1/products?per_page=100&page={page}"
+        try:
+            payload = _get_json(url, timeout_s)
+        except epd.FETCH_ERRORS as exc:
+            epd.log(f"diyspeakerseu: fetch failed page={page}: {exc}")
+            break
+        if not payload:
+            break
+        for product in payload:
+            record = _parse_diyspeakerseu_product(product)
+            if record:
+                records.append(record)
+        epd.log(f"diyspeakerseu: page={page} products={len(payload)} kept={len(records)}")
+        if len(payload) < 100:
+            break
+        page += 1
+        time.sleep(sleep_s)
+    return records
+
+
 HARVESTERS = {
     "cinergyaudio": (harvest_cinergy, CINERGY_CHECKPOINT),
     "audiophonics": (harvest_audiophonics, AUDIOPHONICS_CHECKPOINT),
@@ -831,10 +913,12 @@ HARVESTERS = {
     "topservicepro": (harvest_topservicepro, TOPSERVICEPRO_CHECKPOINT),
     "kjfaudio": (harvest_kjfaudio, KJFAUDIO_CHECKPOINT),
     "hogtalarshoppen": (harvest_hogtalarshoppen, HOGTALARSHOPPEN_CHECKPOINT),
+    "diyspeakerseu": (harvest_diyspeakerseu, DIYSPEAKERSEU_CHECKPOINT),
 }
 
 PAGE_LIMIT_SOURCES = {
     "cinergyaudio", "willyshifi", "topservicepro", "kjfaudio", "hogtalarshoppen",
+    "diyspeakerseu",
 }
 
 
