@@ -123,7 +123,7 @@ PARAMETERS = (
     ParameterSpec("linear_travel_pp_mm", ("linear coil travel",), "mm"),
     ParameterSpec("mms_g", ("mms", "mmd", "moving mass", "diaphragm mass"), "g"),
     ParameterSpec("cms_mm_per_n", ("cms", "mechanical compliance", "suspension compliance"), "mm/n"),
-    ParameterSpec("bl_tm", ("bl", "force factor", "motor strength", "bl factor"), "tm"),
+    ParameterSpec("bl_tm", ("bl", "bxl", "force factor", "motor strength", "bl factor"), "tm"),
     ParameterSpec("rms_kg_s", ("rms", "mechanical resistance"), "kg/s"),
     ParameterSpec(
         "effective_radius_mm",
@@ -145,7 +145,7 @@ PARAMETER_BY_KEY = {item.key: item for item in PARAMETERS}
 REQUIRED_DRIVER_FIELDS = ("fs_hz", "vas_l", "qts", "qms", "re_ohm", "sd_cm2")
 OPTIONAL_DRIVER_FIELDS = ("le_mh", "le10k_mh", "xmax_mm", "pe_w", "mms_g", "cms_mm_per_n", "bl_tm")
 NUMBER_RE = r"[-+]?(?:\d+(?:[.,]\d+)?|[.,]\d+)(?:[eE][-+]?\d+)?"
-UNIT_RE = r"(?:k\s*hz|hz|m(?:\s*\^?\s*3|³)|dm(?:\s*\^?\s*3|³)|cm\s*(?:\^?\s*2|²)|k\s*/?\s*mm\s*(?:\^?\s*2|²|/2)|mm\s*(?:\^?\s*2|²)|m\s*(?:\^?\s*2|²)|in(?:\s*\^?\s*2|²)|ft\s*\.?\s*(?:\^?\s*3|³)|lit(?:er|re)s?|[lL]|k?ohms?|Ω|mΩ|mh|µh|μh|uh|henry|h|mm|cm|inch(?:es)?|in|kw|w\s*_?\s*rms|watts?|w|kg|grams?|g|mg|m/n|mm/n|µm/n|μm/n|um/n|t\s*[·*]?\s*m|tm|n/a|n\s*s/m|kg/s)?"
+UNIT_RE = r"(?:k\s*hz|hz|sq\s*\.?\s*in(?:ches)?|sq\s*\.?\s*m(?:eters?)?|m(?:\s*\^?\s*3|³)|dm(?:\s*\^?\s*3|³)|ml|cm\s*(?:\^?\s*2|²)|k\s*/?\s*mm\s*(?:\^?\s*2|²|/2)|mm\s*(?:\^?\s*2|²)|m\s*(?:\^?\s*2|²)|in(?:\s*\^?\s*2|²)|ft\s*\.?\s*(?:\^?\s*3|³)|lit(?:er|re)s?|[lL]|k?ohms?|Ω|mΩ|mh|µh|μh|uh|henry|h|mm|cm|inch(?:es)?|in|kw|w\s*_?\s*rms|watts?|w|kg|grams?|g|mg|m/n|mm/n|µm/n|μm/n|um/n|t\s*[·*]?\s*m|tm|n/a|n\s*s/m|kg/s)?"
 # Same alternation as UNIT_RE but mandatory (no trailing "?"), for datasheets
 # that print "Label Unit Value" instead of "Label Value Unit" (e.g. BMS PDFs:
 # "Fs Hz 29.8").
@@ -406,6 +406,7 @@ def normalize_unit(raw: str) -> str:
         "henry": "h", "watts": "w", "watt": "w", "wrms": "w", "grams": "g", "gram": "g",
         "inch": "in", "inches": "in", "µh": "uh", "µm/n": "um/n",
         "tsm": "tm", "n/a": "tm", "ns/m": "kg/s",
+        "sqin": "in2", "sqinches": "in2", "sqm": "m2", "sqmeters": "m2", "sqmeter": "m2",
     }
     return aliases.get(unit, unit)
 
@@ -417,7 +418,7 @@ def convert_measurement(key: str, raw_value: object, raw_unit: str = "") -> floa
     unit = normalize_unit(raw_unit) or PARAMETER_BY_KEY[key].default_unit
     factors = {
         "fs_hz": {"hz": 1.0, "khz": 1000.0},
-        "vas_l": {"l": 1.0, "m3": 1000.0, "ft3": 28.316846592},
+        "vas_l": {"l": 1.0, "m3": 1000.0, "ft3": 28.316846592, "ml": 0.001},
         "re_ohm": {"ohm": 1.0, "mohm": 0.001},
         "sd_cm2": {
             "cm2": 1.0, "m2": 10_000.0, "kmm2": 10.0,
@@ -434,7 +435,7 @@ def convert_measurement(key: str, raw_value: object, raw_unit: str = "") -> floa
         "rms_kg_s": {"kg/s": 1.0},
         "effective_radius_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
         "effective_diameter_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
-        "vd_l": {"l": 1.0, "m3": 1000.0, "ft3": 28.316846592},
+        "vd_l": {"l": 1.0, "m3": 1000.0, "ft3": 28.316846592, "ml": 0.001},
         "linear_travel_pp_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
         "qts": {"": 1.0}, "qms": {"": 1.0}, "qes": {"": 1.0},
     }
@@ -617,7 +618,8 @@ def text_measurements(text: str) -> list[Measurement]:
             rf"(?<![A-Za-z0-9])(?P<label>{alias_pattern})(?![A-Za-z0-9])"
             rf"(?:\)|\.)?\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?"
             rf"\s*(?:[*¹²³]+)?\s*(?:[:=\-–—：]|is)?\s*"
-            rf"(?:[+±]\s*/?\s*[-−]\s*)?(?P<value>{NUMBER_RE})[\t \r\n]{{0,16}}(?P<unit>{UNIT_RE})",
+            rf"(?:[+±]\s*/?\s*[-−]\s*)?(?P<value>{NUMBER_RE})[\t \r\n]{{0,16}}"
+            rf"\[?(?P<unit>{UNIT_RE})\]?",
             re.I,
         )
         for match in pattern.finditer(text):

@@ -413,6 +413,31 @@ def brand_compacts(brand: str) -> set[str]:
     return compacts
 
 
+# 2026-07-24 QA sweep: presets that never got a clean part number (their
+# `model` field is a fallback full descriptive title, e.g. "Eminence
+# Delta-12B 12\" Driver 16 Ohm") were matching completely unrelated products
+# of the same brand purely because a short spec fragment like "16ohm" is a
+# 2-token compact that satisfies model_compacts()'s "len>=5, has a letter and
+# a digit" test -- "16ohm"/"8ohm"/"100w" etc. are generic wattage/impedance
+# text present on nearly every product in a catalog, not a real model
+# fragment, so they must never count as a model match on their own. Confirmed
+# via a 2026-07-24 price-outlier scan (Eminence Delta-12B priced from an
+# unrelated Alpha 3-16, two FaitalPRO woofers priced from an unrelated 3FE25)
+# -- all three shared only a brand match plus one of these generic compacts.
+_GENERIC_SPEC_COMPACT_RE = re.compile(
+    r"^(?:\d+(?:ohm|ohms|w|watt|watts|hz|khz|db|mm|cm|in)|(?:ohm|ohms|w|watt|watts|hz|khz|db|mm|cm|in)\d+)$"
+)
+
+
+def _is_code_like_token(token: str) -> bool:
+    """True for tokens that look like a genuine part-number fragment (mixes
+    a letter and a digit in the *same* token, e.g. "12pr310"/"3fe25") as
+    opposed to plain descriptive words ("professional", "woofer") or plain
+    numbers ("8", "16") that happen to sit next to each other in a title.
+    """
+    return any(c.isalpha() for c in token) and any(c.isdigit() for c in token)
+
+
 def model_compacts(model: str) -> set[str]:
     compacts = set()
     for variant in {model, IMPEDANCE_SUFFIX.sub("", model)}:
@@ -420,13 +445,26 @@ def model_compacts(model: str) -> set[str]:
         compact = "".join(tokens)
         if compact:
             compacts.add(compact)
-        for sequence in compact_token_sequences(tokens):
-            if (
-                len(sequence) >= 5
-                and any(character.isalpha() for character in sequence)
-                and any(character.isdigit() for character in sequence)
-            ):
-                compacts.add(sequence)
+        for start in range(len(tokens)):
+            for end in range(start + 2, min(len(tokens), start + 4) + 1):
+                span = tokens[start:end]
+                sequence = "".join(span)
+                if (
+                    len(sequence) >= 5
+                    and any(character.isalpha() for character in sequence)
+                    and any(character.isdigit() for character in sequence)
+                    and not _GENERIC_SPEC_COMPACT_RE.match(sequence)
+                    # 2026-07-24 QA sweep continued: a multi-token span like
+                    # "professional woofer 8" also passes the checks above
+                    # (mixed alpha/digit once joined, not a bare spec unit)
+                    # purely because "8" sits next to two descriptive words
+                    # -- require at least one token in the span to itself be
+                    # code-like (mix a letter and digit), the actual
+                    # fingerprint of a real part number, not a coincidence of
+                    # adjacent generic words and a spec number.
+                    and any(_is_code_like_token(token) for token in span)
+                ):
+                    compacts.add(sequence)
     return compacts
 
 
@@ -457,12 +495,109 @@ def product_looks_like_driver(product: dict) -> bool:
         "-kit",
         "crossover",
         "grill",
+        # 2026-07-24 QA sweep: a Visaton preset was being priced from
+        # PartsExpress's "Watertight Mounting Gasket for FR8WP Series"
+        # listing -- a rubber gasket accessory, not the driver itself. Also
+        # caught a Fostex driver preset priced from "P800E Box for P800K"
+        # (an empty enclosure sold for that driver, not the driver).
+        "mounting gasket",
+        "box for",
+        "enclosure for",
+        "replacement box",
     )
     return not any(pattern in text for pattern in accessory_patterns)
 
 
+# 2026-07-24 QA sweep: BlueAran sells both a single-unit listing and a
+# separate bulk "_4PK"-style listing for the same model, and the bare
+# (non brand-prefixed) preset key sometimes matched the bulk listing instead
+# of the single unit -- e.g. a "Fane Colossus Prime 18XS" preset priced at
+# the Four Pack's total price (~3.9x the real single-unit price). A preset
+# never represents a multi-unit bundle, so any product whose own text claims
+# to be a multi-unit pack is rejected outright.
+_PACK_QUANTITY_RE = re.compile(
+    r"\b(?:"
+    r"\d+\s*[- ]?pack"
+    r"|pack\s+of\s+\d+"
+    r"|(?:twin|four|six|eight|value)\s*[- ]?pack"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def product_is_multi_unit_pack(product: dict) -> bool:
+    text = " ".join(str(product.get(key, "")) for key in ("name", "url")).casefold()
+    return bool(_PACK_QUANTITY_RE.search(text))
+
+
+DRIVER_TYPE_PATTERNS = {
+    "tweeter": ("tweeter",),
+    "midrange": ("midrange", "mid-range"),
+    "woofer": ("woofer", "midwoofer", "midbass", "mid-bass", "mid bass"),
+    "subwoofer": ("subwoofer", "sub-woofer"),
+    "fullrange": ("full range", "full-range", "fullrange", "full-band", "broadband"),
+    "radiator": ("passive radiator",),
+    "compression": ("compression driver", "compression horn"),
+    "exciter": ("exciter", "bass shaker"),
+    "coaxial": ("coaxial", "co-axial"),
+}
+
+# Model-number suffix convention (Dayton Audio and others use a bare "-PR"
+# model suffix for passive radiators without ever spelling out "passive
+# radiator" in the product/preset text) -- found 2026-07-24 via a Hogtalar-
+# shoppen.se spot-check where a Dayton "DSA135-8 ... Woofer" preset was
+# priced from the site's "Dayton Audio DSA135-PR" passive-radiator listing:
+# driver_types_conflict() didn't fire because the product side ("DSA135-PR")
+# has no *word* the literal "passive radiator" substring check recognizes.
+# Anchored with a trailing word boundary (re, not a plain substring) so it
+# matches "...-PR", "...-PR 8", "...-PR)" etc. but not "-PRO"/"-PRESET"/
+# other longer tokens that merely start with "pr".
+_RADIATOR_SUFFIX_RE = re.compile(r"-pr\b", re.IGNORECASE)
+
+
+def driver_types(text: str) -> set[str]:
+    """Infer which driver-type tags (woofer/tweeter/...) a text mentions.
+
+    Same lexicon and lookup approach as tools/fix_extra_retailer_matches.py's
+    point-fix guard, kept in sync so both tools agree on what counts as a
+    cross-type mismatch.
+    """
+    lowered = text.casefold()
+    tags = {tag for tag, patterns in DRIVER_TYPE_PATTERNS.items() if any(p in lowered for p in patterns)}
+    if _RADIATOR_SUFFIX_RE.search(lowered):
+        tags.add("radiator")
+    return tags
+
+
+def driver_types_conflict(candidate_text: str, product_text: str) -> bool:
+    """True when the candidate preset and matched product name disagree on
+    driver type (a woofer preset priced from a tweeter product listing, etc).
+
+    Absence of any recognized type tag on either side is not treated as a
+    conflict -- most preset/product names don't spell out a category at all,
+    and this guard should only reject matches where both sides *do* state a
+    type and those types disagree, not silently narrow every match to only
+    the names carrying an explicit type word.
+    """
+    candidate_types = driver_types(candidate_text)
+    product_types = driver_types(product_text)
+    if not candidate_types or not product_types:
+        return False
+    # A passive radiator has no motor/voice coil and must never stand in for
+    # (or be stood in for by) any active driver type.
+    if "radiator" in candidate_types or "radiator" in product_types:
+        return candidate_types != product_types
+    return candidate_types.isdisjoint(product_types)
+
+
 def match_score(candidate: PresetCandidate, product: dict) -> float:
     if not product_looks_like_driver(product):
+        return 0.0
+    candidate_text = f"{candidate.brand} {candidate.model} {candidate.name}"
+    if product_is_multi_unit_pack(product) and not _PACK_QUANTITY_RE.search(candidate_text.casefold()):
+        return 0.0
+    product_text = f"{product.get('name', '')} {product.get('url', '')}"
+    if driver_types_conflict(candidate_text, product_text):
         return 0.0
     query = "".join(tokenize(candidate.query))
     models = model_compacts(candidate.model)
