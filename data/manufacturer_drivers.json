@@ -28,7 +28,7 @@
     "https://www.soundimports.eu",
     "https://www.visaton.de"
   ],
-  "downloaded_at": "2026-07-25T10:39:26+00:00",
+  "downloaded_at": "2026-07-25T10:45:40+00:00",
   "note": "No loudspeakerdatabase.com content. Each record's website_fields.url points at the manufacturer page/document/API it was extracted from.",
   "presets": [
     {
@@ -616932,8 +616932,7136 @@
         "title": "15CX40",
         "url": "https://www.bcspeakers.com/en/products/coaxial/15/-/15CX40"
       }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 5.64,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 40.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.85,
+        "mms_g": 8.8,
+        "pe_w": 60.0,
+        "qms": 5.19,
+        "qts": 0.36,
+        "re_ohm": 5.6,
+        "sd_cm2": 78.5,
+        "vas_l": 15.6,
+        "xmax_mm": 17.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "AL 130 A 8 OHM",
+      "name": "WEB: Visaton AL 130 A 8 OHM",
+      "raw": {
+        "bl_tm": 5.64,
+        "fs_hz": 40.0,
+        "le_mh": 0.85,
+        "mms_g": 8.8,
+        "pe_w": 60.0,
+        "qes": 0.39,
+        "qms": 5.19,
+        "qts": 0.36,
+        "re_ohm": 5.6,
+        "sd_cm2": 78.5,
+        "vas_l": 15.6,
+        "xmax_mm": 17.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/al-130-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:42:41+00:00",
+        "model": "AL 130 A 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "5.64",
+            "unit": "T m",
+            "value": 5.64
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "40",
+            "unit": "Hz",
+            "value": 40.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.85",
+            "unit": "mH",
+            "value": 0.85
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "8.8",
+            "unit": "g",
+            "value": 8.8
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "60",
+            "unit": "Watt",
+            "value": 60.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.39",
+            "unit": "",
+            "value": 0.39
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "5.19",
+            "unit": "",
+            "value": 5.19
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.36",
+            "unit": "",
+            "value": 0.36
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "5.6",
+            "unit": "Ohm",
+            "value": 5.6
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "78.5",
+            "unit": "cm2",
+            "value": 78.5
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "15.6",
+            "unit": "l",
+            "value": 15.6
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "17",
+            "unit": "mm",
+            "value": 17.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "AL 130 A 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/al-130-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 6.93,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 38.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.91,
+        "mms_g": 13.0,
+        "pe_w": 70.0,
+        "qms": 4.47,
+        "qts": 0.34,
+        "re_ohm": 5.6,
+        "sd_cm2": 133.0,
+        "vas_l": 33.0,
+        "xmax_mm": 22.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "AL 170 A 8 OHM",
+      "name": "WEB: Visaton AL 170 A 8 OHM",
+      "raw": {
+        "bl_tm": 6.93,
+        "fs_hz": 38.0,
+        "le_mh": 0.91,
+        "mms_g": 13.0,
+        "pe_w": 70.0,
+        "qes": 0.36,
+        "qms": 4.47,
+        "qts": 0.34,
+        "re_ohm": 5.6,
+        "sd_cm2": 133.0,
+        "vas_l": 33.0,
+        "xmax_mm": 22.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/al-170-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:42:42+00:00",
+        "model": "AL 170 A 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "6.93",
+            "unit": "T m",
+            "value": 6.93
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "38",
+            "unit": "Hz",
+            "value": 38.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.91",
+            "unit": "mH",
+            "value": 0.91
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "13",
+            "unit": "g",
+            "value": 13.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "70",
+            "unit": "Watt",
+            "value": 70.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.36",
+            "unit": "",
+            "value": 0.36
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.47",
+            "unit": "",
+            "value": 4.47
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.34",
+            "unit": "",
+            "value": 0.34
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "5.6",
+            "unit": "Ohm",
+            "value": 5.6
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "133",
+            "unit": "cm2",
+            "value": 133.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "33",
+            "unit": "l",
+            "value": 33.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "22",
+            "unit": "mm",
+            "value": 22.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "AL 170 A 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/al-170-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 5.95,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 34.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.3,
+        "mms_g": 21.0,
+        "pe_w": 120.0,
+        "qms": 4.19,
+        "qts": 0.4,
+        "re_ohm": 3.2,
+        "sd_cm2": 216.0,
+        "vas_l": 68.0,
+        "xmax_mm": 20.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "AL 200 DV 2x8 OHM",
+      "name": "WEB: Visaton AL 200 DV 2x8 OHM",
+      "raw": {
+        "bl_tm": 5.95,
+        "fs_hz": 34.0,
+        "le_mh": 0.3,
+        "mms_g": 21.0,
+        "pe_w": 120.0,
+        "qes": 0.44,
+        "qms": 4.19,
+        "qts": 0.4,
+        "re_ohm": 3.2,
+        "sd_cm2": 216.0,
+        "vas_l": 68.0,
+        "xmax_mm": 20.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/al-200-dv-2x8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:42:45+00:00",
+        "model": "AL 200 DV 2x8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "5.95",
+            "unit": "T m",
+            "value": 5.95
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "34",
+            "unit": "Hz",
+            "value": 34.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.3",
+            "unit": "mH",
+            "value": 0.3
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "21",
+            "unit": "g",
+            "value": 21.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "120",
+            "unit": "Watt",
+            "value": 120.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.44",
+            "unit": "",
+            "value": 0.44
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.19",
+            "unit": "",
+            "value": 4.19
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.4",
+            "unit": "",
+            "value": 0.4
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.2",
+            "unit": "Ohm",
+            "value": 3.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "216",
+            "unit": "cm2",
+            "value": 216.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "68",
+            "unit": "l",
+            "value": 68.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "mm",
+            "value": 20.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "AL 200 DV 2x8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/al-200-dv-2x8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 3.15,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 170.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.4,
+        "mms_g": 4.5,
+        "pe_w": 20.0,
+        "qms": 4.22,
+        "qts": 1.68,
+        "re_ohm": 6.5,
+        "sd_cm2": 75.0,
+        "vas_l": 1.55,
+        "xmax_mm": 3.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "BG 13 8 OHM",
+      "name": "WEB: Visaton BG 13 8 OHM",
+      "raw": {
+        "bl_tm": 3.15,
+        "fs_hz": 170.0,
+        "le_mh": 0.4,
+        "mms_g": 4.5,
+        "pe_w": 20.0,
+        "qes": 2.8,
+        "qms": 4.22,
+        "qts": 1.68,
+        "re_ohm": 6.5,
+        "sd_cm2": 75.0,
+        "vas_l": 1.55,
+        "xmax_mm": 3.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/bg-13-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:42:46+00:00",
+        "model": "BG 13 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "3.15",
+            "unit": "T m",
+            "value": 3.15
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "170",
+            "unit": "Hz",
+            "value": 170.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.4",
+            "unit": "mH",
+            "value": 0.4
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "4.5",
+            "unit": "g",
+            "value": 4.5
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "Watt",
+            "value": 20.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "2.8",
+            "unit": "",
+            "value": 2.8
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.22",
+            "unit": "",
+            "value": 4.22
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "1.68",
+            "unit": "",
+            "value": 1.68
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.5",
+            "unit": "Ohm",
+            "value": 6.5
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "75",
+            "unit": "cm2",
+            "value": 75.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "1.55",
+            "unit": "l",
+            "value": 1.55
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "3",
+            "unit": "mm",
+            "value": 3.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "BG 13 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/bg-13-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 10.8,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 50.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.6,
+        "mms_g": 40.0,
+        "pe_w": 150.0,
+        "qms": 3.13,
+        "qts": 0.58,
+        "re_ohm": 6.5,
+        "sd_cm2": 511.0,
+        "vas_l": 89.0,
+        "xmax_mm": 14.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "BG 30 NG 8 OHM",
+      "name": "WEB: Visaton BG 30 NG 8 OHM",
+      "raw": {
+        "bl_tm": 10.8,
+        "fs_hz": 50.0,
+        "le_mh": 1.6,
+        "mms_g": 40.0,
+        "pe_w": 150.0,
+        "qes": 0.7,
+        "qms": 3.13,
+        "qts": 0.58,
+        "re_ohm": 6.5,
+        "sd_cm2": 511.0,
+        "vas_l": 89.0,
+        "xmax_mm": 14.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/bg-30-ng-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:42:47+00:00",
+        "model": "BG 30 NG 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "10.8",
+            "unit": "T \u00b7 m",
+            "value": 10.8
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "Hz",
+            "value": 50.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "1.6",
+            "unit": "mH",
+            "value": 1.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "40",
+            "unit": "g",
+            "value": 40.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "150",
+            "unit": "Watt",
+            "value": 150.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.7",
+            "unit": "",
+            "value": 0.7
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.13",
+            "unit": "",
+            "value": 3.13
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.58",
+            "unit": "",
+            "value": 0.58
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.5",
+            "unit": "Ohm",
+            "value": 6.5
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "511",
+            "unit": "cm2",
+            "value": 511.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "89",
+            "unit": "l",
+            "value": 89.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "14",
+            "unit": "mm",
+            "value": 14.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "BG 30 NG 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/bg-30-ng-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 16.8,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 40.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.55,
+        "mms_g": 80.0,
+        "pe_w": 200.0,
+        "qms": 3.13,
+        "qts": 0.42,
+        "re_ohm": 6.5,
+        "sd_cm2": 855.0,
+        "vas_l": 263.0,
+        "xmax_mm": 8.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "BGS 40 - 8 Ohm",
+      "name": "WEB: Visaton BGS 40 - 8 Ohm",
+      "raw": {
+        "bl_tm": 16.8,
+        "fs_hz": 40.0,
+        "le_mh": 1.55,
+        "mms_g": 80.0,
+        "pe_w": 200.0,
+        "qes": 0.49,
+        "qms": 3.13,
+        "qts": 0.42,
+        "re_ohm": 6.5,
+        "sd_cm2": 855.0,
+        "vas_l": 263.0,
+        "xmax_mm": 8.0
+      },
+      "size_in": 15.0,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/bgs-40-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:42:47+00:00",
+        "model": "BGS 40 - 8 Ohm",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "16.8",
+            "unit": "Tm",
+            "value": 16.8
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "40",
+            "unit": "Hz",
+            "value": 40.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "1.55",
+            "unit": "mH",
+            "value": 1.55
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "80",
+            "unit": "g",
+            "value": 80.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "200",
+            "unit": "W",
+            "value": 200.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.49",
+            "unit": "",
+            "value": 0.49
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.13",
+            "unit": "",
+            "value": 3.13
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.42",
+            "unit": "",
+            "value": 0.42
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.5",
+            "unit": "Ohm",
+            "value": 6.5
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "855",
+            "unit": "cm\u00b2",
+            "value": 855.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "263",
+            "unit": "l",
+            "value": 263.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "8",
+            "unit": "mm",
+            "value": 8.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "BGS 40 - 8 Ohm",
+        "url": "https://www.visaton.de/en/products/drivers/archive/bgs-40-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 5.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 70.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.45,
+        "mms_g": 7.9,
+        "pe_w": 60.0,
+        "qms": 4.17,
+        "qts": 0.41,
+        "re_ohm": 3.5,
+        "sd_cm2": 75.0,
+        "vas_l": 5.2,
+        "xmax_mm": 9.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "BZ 130 4 OHM",
+      "name": "WEB: Visaton BZ 130 4 OHM",
+      "raw": {
+        "bl_tm": 5.0,
+        "fs_hz": 70.0,
+        "le_mh": 0.45,
+        "mms_g": 7.9,
+        "pe_w": 60.0,
+        "qes": 0.45,
+        "qms": 4.17,
+        "qts": 0.41,
+        "re_ohm": 3.5,
+        "sd_cm2": 75.0,
+        "vas_l": 5.2,
+        "xmax_mm": 9.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/bz-130-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:42:49+00:00",
+        "model": "BZ 130 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "5.0",
+            "unit": "T \u00b7 m",
+            "value": 5.0
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "70",
+            "unit": "Hz",
+            "value": 70.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.45",
+            "unit": "mH",
+            "value": 0.45
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "7.9",
+            "unit": "g",
+            "value": 7.9
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "60",
+            "unit": "Watt",
+            "value": 60.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.45",
+            "unit": "",
+            "value": 0.45
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.17",
+            "unit": "",
+            "value": 4.17
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.41",
+            "unit": "",
+            "value": 0.41
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.5",
+            "unit": "Ohm",
+            "value": 3.5
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "75",
+            "unit": "cm2",
+            "value": 75.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "5.2",
+            "unit": "l",
+            "value": 5.2
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "9",
+            "unit": "mm",
+            "value": 9.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "BZ 130 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/bz-130-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 4.1,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 70.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0,
+        "mms_g": 6.0,
+        "pe_w": 60.0,
+        "qms": 2.34,
+        "qts": 0.32,
+        "re_ohm": 3.2,
+        "sd_cm2": 79.0,
+        "vas_l": 13.0,
+        "xmax_mm": 16.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "BZ 130 P 4 OHM",
+      "name": "WEB: Visaton BZ 130 P 4 OHM",
+      "raw": {
+        "bl_tm": 4.1,
+        "fs_hz": 70.0,
+        "mms_g": 6.0,
+        "pe_w": 60.0,
+        "qes": 0.37,
+        "qms": 2.34,
+        "qts": 0.32,
+        "re_ohm": 3.2,
+        "sd_cm2": 79.0,
+        "vas_l": 13.0,
+        "xmax_mm": 16.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/bz-130-p-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:42:51+00:00",
+        "model": "BZ 130 P 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "4.1",
+            "unit": "T m",
+            "value": 4.1
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "70",
+            "unit": "Hz",
+            "value": 70.0
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "6",
+            "unit": "g",
+            "value": 6.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "60",
+            "unit": "Watt",
+            "value": 60.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.37",
+            "unit": "",
+            "value": 0.37
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.34",
+            "unit": "",
+            "value": 2.34
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.32",
+            "unit": "",
+            "value": 0.32
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.2",
+            "unit": "Ohm",
+            "value": 3.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "79",
+            "unit": "cm2",
+            "value": 79.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "13",
+            "unit": "l",
+            "value": 13.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "16",
+            "unit": "mm",
+            "value": 16.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "BZ 130 P 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/bz-130-p-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 6.5,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 55.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0,
+        "mms_g": 11.0,
+        "pe_w": 50.0,
+        "qms": 2.29,
+        "qts": 0.34,
+        "re_ohm": 3.3,
+        "sd_cm2": 129.0,
+        "vas_l": 33.0,
+        "xmax_mm": 18.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "BZ 160 P 4 OHM",
+      "name": "WEB: Visaton BZ 160 P 4 OHM",
+      "raw": {
+        "bl_tm": 6.5,
+        "fs_hz": 55.0,
+        "mms_g": 11.0,
+        "pe_w": 50.0,
+        "qes": 0.39,
+        "qms": 2.29,
+        "qts": 0.34,
+        "re_ohm": 3.3,
+        "sd_cm2": 129.0,
+        "vas_l": 33.0,
+        "xmax_mm": 18.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/bz-160-p-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:42:52+00:00",
+        "model": "BZ 160 P 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "6.5",
+            "unit": "T m",
+            "value": 6.5
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "55",
+            "unit": "Hz",
+            "value": 55.0
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "11",
+            "unit": "g",
+            "value": 11.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "Watt",
+            "value": 50.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.39",
+            "unit": "",
+            "value": 0.39
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.29",
+            "unit": "",
+            "value": 2.29
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.34",
+            "unit": "",
+            "value": 0.34
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.3",
+            "unit": "Ohm",
+            "value": 3.3
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "129",
+            "unit": "cm2",
+            "value": 129.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "33",
+            "unit": "l",
+            "value": 33.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "18",
+            "unit": "mm",
+            "value": 18.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "BZ 160 P 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/bz-160-p-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 9.26,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 36.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.93,
+        "mms_g": 53.3,
+        "pe_w": 350.0,
+        "qms": 5.46,
+        "qts": 0.4,
+        "re_ohm": 3.6,
+        "sd_cm2": 510.0,
+        "vas_l": 129.0,
+        "xmax_mm": 20.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "BZ 300 4 OHM",
+      "name": "WEB: Visaton BZ 300 4 OHM",
+      "raw": {
+        "bl_tm": 9.26,
+        "fs_hz": 36.0,
+        "le_mh": 0.93,
+        "mms_g": 53.3,
+        "pe_w": 350.0,
+        "qes": 0.53,
+        "qms": 5.46,
+        "qts": 0.4,
+        "re_ohm": 3.6,
+        "sd_cm2": 510.0,
+        "vas_l": 129.0,
+        "xmax_mm": 20.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/bz-300-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:42:54+00:00",
+        "model": "BZ 300 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "9.26",
+            "unit": "T \u00b7 m",
+            "value": 9.26
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "36",
+            "unit": "Hz",
+            "value": 36.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.93",
+            "unit": "mH",
+            "value": 0.93
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "53.3",
+            "unit": "g",
+            "value": 53.3
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "350",
+            "unit": "Watt",
+            "value": 350.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.53",
+            "unit": "",
+            "value": 0.53
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "5.46",
+            "unit": "",
+            "value": 5.46
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.4",
+            "unit": "",
+            "value": 0.4
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.6",
+            "unit": "Ohm",
+            "value": 3.6
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "510",
+            "unit": "cm2",
+            "value": 510.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "129",
+            "unit": "l",
+            "value": 129.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "mm",
+            "value": 20.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "BZ 300 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/bz-300-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 75.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.75,
+        "mms_g": 5.9,
+        "pe_w": 0.0,
+        "qms": 4.94,
+        "qts": 1.96,
+        "re_ohm": 6.8,
+        "sd_cm2": 129.0,
+        "vas_l": 16.0,
+        "xmax_mm": 6.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "DL 17 100 V",
+      "name": "WEB: Visaton DL 17 100 V",
+      "raw": {
+        "fs_hz": 75.0,
+        "le_mh": 0.75,
+        "mms_g": 5.9,
+        "qes": 3.26,
+        "qms": 4.94,
+        "qts": 1.96,
+        "re_ohm": 6.8,
+        "sd_cm2": 129.0,
+        "vas_l": 16.0,
+        "xmax_mm": 6.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/dl-17-100-v",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.925,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:43:07+00:00",
+        "model": "DL 17 100 V",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "75",
+            "unit": "Hz",
+            "value": 75.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.75",
+            "unit": "mH",
+            "value": 0.75
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "5.9",
+            "unit": "g",
+            "value": 5.9
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "3.26",
+            "unit": "",
+            "value": 3.26
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.94",
+            "unit": "",
+            "value": 4.94
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "1.96",
+            "unit": "",
+            "value": 1.96
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.8",
+            "unit": "Ohm",
+            "value": 6.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "129",
+            "unit": "cm2",
+            "value": 129.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "16",
+            "unit": "l",
+            "value": 16.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "6",
+            "unit": "mm",
+            "value": 6.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "DL 17 100 V",
+        "url": "https://www.visaton.de/en/products/drivers/archive/dl-17-100-v"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 75.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.75,
+        "mms_g": 5.9,
+        "pe_w": 40.0,
+        "qms": 4.94,
+        "qts": 1.96,
+        "re_ohm": 6.8,
+        "sd_cm2": 129.0,
+        "vas_l": 16.0,
+        "xmax_mm": 6.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "DL 17 8 OHM",
+      "name": "WEB: Visaton DL 17 8 OHM",
+      "raw": {
+        "fs_hz": 75.0,
+        "le_mh": 0.75,
+        "mms_g": 5.9,
+        "pe_w": 40.0,
+        "qes": 3.26,
+        "qms": 4.94,
+        "qts": 1.96,
+        "re_ohm": 6.8,
+        "sd_cm2": 129.0,
+        "vas_l": 16.0,
+        "xmax_mm": 6.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/dl-17-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:43:08+00:00",
+        "model": "DL 17 8 OHM",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "75",
+            "unit": "Hz",
+            "value": 75.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.75",
+            "unit": "mH",
+            "value": 0.75
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "5.9",
+            "unit": "g",
+            "value": 5.9
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "40",
+            "unit": "Watt",
+            "value": 40.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "3.26",
+            "unit": "",
+            "value": 3.26
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.94",
+            "unit": "",
+            "value": 4.94
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "1.96",
+            "unit": "",
+            "value": 1.96
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.8",
+            "unit": "Ohm",
+            "value": 6.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "129",
+            "unit": "cm2",
+            "value": 129.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "16",
+            "unit": "l",
+            "value": 16.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "6",
+            "unit": "mm",
+            "value": 6.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "DL 17 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/dl-17-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 0.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 90.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.75,
+        "mms_g": 7.9,
+        "pe_w": 50.0,
+        "qms": 2.68,
+        "qts": 1.03,
+        "re_ohm": 6.9,
+        "sd_cm2": 129.0,
+        "vas_l": 15.0,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "DL 18/2 8 OHM",
+      "name": "WEB: Visaton DL 18/2 8 OHM",
+      "raw": {
+        "fs_hz": 90.0,
+        "le_mh": 0.75,
+        "mms_g": 7.9,
+        "pe_w": 50.0,
+        "qes": 1.68,
+        "qms": 2.68,
+        "qts": 1.03,
+        "re_ohm": 6.9,
+        "sd_cm2": 129.0,
+        "vas_l": 15.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/dl-182-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.925,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:43:15+00:00",
+        "model": "DL 18/2 8 OHM",
+        "raw_measurements": {
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "90",
+            "unit": "Hz",
+            "value": 90.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.75",
+            "unit": "mH",
+            "value": 0.75
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "7.9",
+            "unit": "g",
+            "value": 7.9
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "W",
+            "value": 50.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "1.68",
+            "unit": "",
+            "value": 1.68
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.68",
+            "unit": "",
+            "value": 2.68
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "1.03",
+            "unit": "",
+            "value": 1.03
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.9",
+            "unit": "Ohm",
+            "value": 6.9
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "129",
+            "unit": "cm\u00b2",
+            "value": 129.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "15",
+            "unit": "l",
+            "value": 15.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "DL 18/2 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/dl-182-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 2.1,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 103.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.18,
+        "mms_g": 2.2,
+        "pe_w": 20.0,
+        "qms": 3.03,
+        "qts": 1.01,
+        "re_ohm": 3.4,
+        "sd_cm2": 30.0,
+        "vas_l": 1.4,
+        "xmax_mm": 2.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "F 8 SC 4 OHM",
+      "name": "WEB: Visaton F 8 SC 4 OHM",
+      "raw": {
+        "bl_tm": 2.1,
+        "fs_hz": 103.0,
+        "le_mh": 0.18,
+        "mms_g": 2.2,
+        "pe_w": 20.0,
+        "qes": 1.52,
+        "qms": 3.03,
+        "qts": 1.01,
+        "re_ohm": 3.4,
+        "sd_cm2": 30.0,
+        "vas_l": 1.4,
+        "xmax_mm": 2.5
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/f-8-sc-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:43:30+00:00",
+        "model": "F 8 SC 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "2.1",
+            "unit": "T m",
+            "value": 2.1
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "103",
+            "unit": "Hz",
+            "value": 103.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.18",
+            "unit": "mH",
+            "value": 0.18
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "2.2",
+            "unit": "g",
+            "value": 2.2
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "W",
+            "value": 20.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "1.52",
+            "unit": "",
+            "value": 1.52
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.03",
+            "unit": "",
+            "value": 3.03
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "1.01",
+            "unit": "",
+            "value": 1.01
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.4",
+            "unit": "Ohm",
+            "value": 3.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "30",
+            "unit": "cm\u00b2",
+            "value": 30.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "1.4",
+            "unit": "l",
+            "value": 1.4
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "2.5",
+            "unit": "mm",
+            "value": 2.5
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "F 8 SC 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/f-8-sc-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 2.06,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 120.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.15,
+        "mms_g": 2.6,
+        "pe_w": 20.0,
+        "qms": 5.11,
+        "qts": 1.25,
+        "re_ohm": 3.4,
+        "sd_cm2": 50.0,
+        "vas_l": 2.0,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "FR 10 H 4 OHM",
+      "name": "WEB: Visaton FR 10 H 4 OHM",
+      "raw": {
+        "bl_tm": 2.06,
+        "fs_hz": 120.0,
+        "le_mh": 0.15,
+        "mms_g": 2.6,
+        "pe_w": 20.0,
+        "qes": 1.66,
+        "qms": 5.11,
+        "qts": 1.25,
+        "re_ohm": 3.4,
+        "sd_cm2": 50.0,
+        "vas_l": 2.0,
+        "xmax_mm": 4.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/fr-10-h-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:43:32+00:00",
+        "model": "FR 10 H 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "2.06",
+            "unit": "Tm",
+            "value": 2.06
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "120",
+            "unit": "Hz",
+            "value": 120.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.15",
+            "unit": "mH",
+            "value": 0.15
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "2.6",
+            "unit": "g",
+            "value": 2.6
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "Watt",
+            "value": 20.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "1.66",
+            "unit": "",
+            "value": 1.66
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "5.11",
+            "unit": "",
+            "value": 5.11
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "1.25",
+            "unit": "",
+            "value": 1.25
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.4",
+            "unit": "Ohm",
+            "value": 3.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "cm2",
+            "value": 50.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "2",
+            "unit": "l",
+            "value": 2.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "4",
+            "unit": "mm",
+            "value": 4.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "FR 10 H 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/fr-10-h-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 3.09,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 120.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.17,
+        "mms_g": 2.8,
+        "pe_w": 20.0,
+        "qms": 4.78,
+        "qts": 1.27,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.0,
+        "vas_l": 1.9,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "FR 10 H 8 OHM",
+      "name": "WEB: Visaton FR 10 H 8 OHM",
+      "raw": {
+        "bl_tm": 3.09,
+        "fs_hz": 120.0,
+        "le_mh": 0.17,
+        "mms_g": 2.8,
+        "pe_w": 20.0,
+        "qes": 1.73,
+        "qms": 4.78,
+        "qts": 1.27,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.0,
+        "vas_l": 1.9,
+        "xmax_mm": 4.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/fr-10-h-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:43:33+00:00",
+        "model": "FR 10 H 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "3.09",
+            "unit": "Tm",
+            "value": 3.09
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "120",
+            "unit": "Hz",
+            "value": 120.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.17",
+            "unit": "mH",
+            "value": 0.17
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "2.8",
+            "unit": "g",
+            "value": 2.8
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "Watt",
+            "value": 20.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "1.73",
+            "unit": "",
+            "value": 1.73
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.78",
+            "unit": "",
+            "value": 4.78
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "1.27",
+            "unit": "",
+            "value": 1.27
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "7.2",
+            "unit": "Ohm",
+            "value": 7.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "cm2",
+            "value": 50.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "1.9",
+            "unit": "l",
+            "value": 1.9
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "4",
+            "unit": "mm",
+            "value": 4.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "FR 10 H 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/fr-10-h-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 2.8,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 94.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.6,
+        "mms_g": 2.5,
+        "pe_w": 30.0,
+        "qms": 4.55,
+        "qts": 0.96,
+        "re_ohm": 6.6,
+        "sd_cm2": 32.0,
+        "vas_l": 1.7,
+        "xmax_mm": 6.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "SC 8 8 OHM",
+      "name": "WEB: Visaton SC 8 8 OHM",
+      "raw": {
+        "bl_tm": 2.8,
+        "fs_hz": 94.0,
+        "le_mh": 0.6,
+        "mms_g": 2.5,
+        "pe_w": 30.0,
+        "qes": 1.21,
+        "qms": 4.55,
+        "qts": 0.96,
+        "re_ohm": 6.6,
+        "sd_cm2": 32.0,
+        "vas_l": 1.7,
+        "xmax_mm": 6.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/sc-8-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:07+00:00",
+        "model": "SC 8 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "2.8",
+            "unit": "T \u00b7 m",
+            "value": 2.8
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "94",
+            "unit": "Hz",
+            "value": 94.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.6",
+            "unit": "mH",
+            "value": 0.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "2.5",
+            "unit": "g",
+            "value": 2.5
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "30",
+            "unit": "Watt",
+            "value": 30.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "1.21",
+            "unit": "",
+            "value": 1.21
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.55",
+            "unit": "",
+            "value": 4.55
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.96",
+            "unit": "",
+            "value": 0.96
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.6",
+            "unit": "Ohm",
+            "value": 6.6
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "32",
+            "unit": "cm2",
+            "value": 32.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "1.7",
+            "unit": "l",
+            "value": 1.7
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "6",
+            "unit": "mm",
+            "value": 6.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "SC 8 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/sc-8-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 2.68,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 270.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.47,
+        "mms_g": 2.1,
+        "pe_w": 20.0,
+        "qms": 6.91,
+        "qts": 2.16,
+        "re_ohm": 3.8,
+        "sd_cm2": 41.0,
+        "vas_l": 0.37,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "SL 87 WP 4 OHM",
+      "name": "WEB: Visaton SL 87 WP 4 OHM",
+      "raw": {
+        "bl_tm": 2.68,
+        "fs_hz": 270.0,
+        "le_mh": 0.47,
+        "mms_g": 2.1,
+        "pe_w": 20.0,
+        "qes": 3.14,
+        "qms": 6.91,
+        "qts": 2.16,
+        "re_ohm": 3.8,
+        "sd_cm2": 41.0,
+        "vas_l": 0.37
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/sl-87-wp-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:10+00:00",
+        "model": "SL 87 WP 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "2.68",
+            "unit": "Tm",
+            "value": 2.68
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "270",
+            "unit": "Hz",
+            "value": 270.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.47",
+            "unit": "mH",
+            "value": 0.47
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "2.1",
+            "unit": "g",
+            "value": 2.1
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "Watt",
+            "value": 20.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "3.14",
+            "unit": "",
+            "value": 3.14
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "6.91",
+            "unit": "",
+            "value": 6.91
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "2.16",
+            "unit": "",
+            "value": 2.16
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.8",
+            "unit": "Ohm",
+            "value": 3.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "41",
+            "unit": "cm2",
+            "value": 41.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "0.37",
+            "unit": "l",
+            "value": 0.37
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "SL 87 WP 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/sl-87-wp-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 2.68,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 270.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.47,
+        "mms_g": 0.0,
+        "pe_w": 20.0,
+        "qms": 8.01,
+        "qts": 2.88,
+        "re_ohm": 7.3,
+        "sd_cm2": 41.0,
+        "vas_l": 0.37,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "SL 87 WP 8 OHM",
+      "name": "WEB: Visaton SL 87 WP 8 OHM",
+      "raw": {
+        "bl_tm": 2.68,
+        "fs_hz": 270.0,
+        "le_mh": 0.47,
+        "pe_w": 20.0,
+        "qes": 4.5,
+        "qms": 8.01,
+        "qts": 2.88,
+        "re_ohm": 7.3,
+        "sd_cm2": 41.0,
+        "vas_l": 0.37
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/sl-87-wp-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.925,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:11+00:00",
+        "model": "SL 87 WP 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "2.68",
+            "unit": "Tm",
+            "value": 2.68
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "270",
+            "unit": "Hz",
+            "value": 270.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.47",
+            "unit": "mH",
+            "value": 0.47
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "Watt",
+            "value": 20.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "4.5",
+            "unit": "",
+            "value": 4.5
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "8.01",
+            "unit": "",
+            "value": 8.01
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "2.88",
+            "unit": "",
+            "value": 2.88
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "7.3",
+            "unit": "Ohm",
+            "value": 7.3
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "41",
+            "unit": "cm2",
+            "value": 41.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "0.37",
+            "unit": "l",
+            "value": 0.37
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "SL 87 WP 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/sl-87-wp-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 4.75,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 80.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.57,
+        "mms_g": 7.6,
+        "pe_w": 50.0,
+        "qms": 3.08,
+        "qts": 0.85,
+        "re_ohm": 3.5,
+        "sd_cm2": 69.0,
+        "vas_l": 3.3,
+        "xmax_mm": 12.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "T 130 4 OHM",
+      "name": "WEB: Visaton T 130 4 OHM",
+      "raw": {
+        "bl_tm": 4.75,
+        "fs_hz": 80.0,
+        "le_mh": 0.57,
+        "mms_g": 7.6,
+        "pe_w": 50.0,
+        "qes": 1.18,
+        "qms": 3.08,
+        "qts": 0.85,
+        "re_ohm": 3.5,
+        "sd_cm2": 69.0,
+        "vas_l": 3.3,
+        "xmax_mm": 12.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/t-130-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:13+00:00",
+        "model": "T 130 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "4.75",
+            "unit": "T m",
+            "value": 4.75
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "80",
+            "unit": "Hz",
+            "value": 80.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.57",
+            "unit": "mH",
+            "value": 0.57
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "7.6",
+            "unit": "g",
+            "value": 7.6
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "Watt",
+            "value": 50.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "1.18",
+            "unit": "",
+            "value": 1.18
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.08",
+            "unit": "",
+            "value": 3.08
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.85",
+            "unit": "",
+            "value": 0.85
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.5",
+            "unit": "Ohm",
+            "value": 3.5
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "69",
+            "unit": "cm2",
+            "value": 69.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "3.3",
+            "unit": "l",
+            "value": 3.3
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "12",
+            "unit": "mm",
+            "value": 12.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "T 130 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/t-130-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 5.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 43.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.6,
+        "mms_g": 18.0,
+        "pe_w": 80.0,
+        "qms": 3.51,
+        "qts": 0.58,
+        "re_ohm": 3.6,
+        "sd_cm2": 211.0,
+        "vas_l": 49.0,
+        "xmax_mm": 20.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "T 200 4 OHM",
+      "name": "WEB: Visaton T 200 4 OHM",
+      "raw": {
+        "bl_tm": 5.0,
+        "fs_hz": 43.0,
+        "le_mh": 0.6,
+        "mms_g": 18.0,
+        "pe_w": 80.0,
+        "qes": 0.69,
+        "qms": 3.51,
+        "qts": 0.58,
+        "re_ohm": 3.6,
+        "sd_cm2": 211.0,
+        "vas_l": 49.0,
+        "xmax_mm": 20.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/t-200-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:14+00:00",
+        "model": "T 200 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "5.0",
+            "unit": "T m",
+            "value": 5.0
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "43",
+            "unit": "Hz",
+            "value": 43.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.6",
+            "unit": "mH",
+            "value": 0.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "18",
+            "unit": "g",
+            "value": 18.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "80",
+            "unit": "W",
+            "value": 80.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.69",
+            "unit": "",
+            "value": 0.69
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.51",
+            "unit": "",
+            "value": 3.51
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.58",
+            "unit": "",
+            "value": 0.58
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.6",
+            "unit": "Ohm",
+            "value": 3.6
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "211",
+            "unit": "cm\u00b2",
+            "value": 211.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "49",
+            "unit": "l",
+            "value": 49.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "mm",
+            "value": 20.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "T 200 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/t-200-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 5.2,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 31.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.52,
+        "mms_g": 29.0,
+        "pe_w": 90.0,
+        "qms": 3.31,
+        "qts": 0.63,
+        "re_ohm": 3.8,
+        "sd_cm2": 353.0,
+        "vas_l": 159.0,
+        "xmax_mm": 20.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "T 250 4 OHM",
+      "name": "WEB: Visaton T 250 4 OHM",
+      "raw": {
+        "bl_tm": 5.2,
+        "fs_hz": 31.0,
+        "le_mh": 0.52,
+        "mms_g": 29.0,
+        "pe_w": 90.0,
+        "qes": 0.78,
+        "qms": 3.31,
+        "qts": 0.63,
+        "re_ohm": 3.8,
+        "sd_cm2": 353.0,
+        "vas_l": 159.0,
+        "xmax_mm": 20.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/t-250-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:15+00:00",
+        "model": "T 250 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "5.2",
+            "unit": "T \u00b7 m",
+            "value": 5.2
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "31",
+            "unit": "Hz",
+            "value": 31.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.52",
+            "unit": "mH",
+            "value": 0.52
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "29",
+            "unit": "g",
+            "value": 29.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "90",
+            "unit": "Watt",
+            "value": 90.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.78",
+            "unit": "",
+            "value": 0.78
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.31",
+            "unit": "",
+            "value": 3.31
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.63",
+            "unit": "",
+            "value": 0.63
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.8",
+            "unit": "Ohm",
+            "value": 3.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "353",
+            "unit": "cm2",
+            "value": 353.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "159",
+            "unit": "l",
+            "value": 159.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "mm",
+            "value": 20.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "T 250 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/t-250-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 5.27,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 24.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.6,
+        "mms_g": 45.0,
+        "pe_w": 120.0,
+        "qms": 3.66,
+        "qts": 0.66,
+        "re_ohm": 3.3,
+        "sd_cm2": 515.0,
+        "vas_l": 361.0,
+        "xmax_mm": 22.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "T 300 4 OHM",
+      "name": "WEB: Visaton T 300 4 OHM",
+      "raw": {
+        "bl_tm": 5.27,
+        "fs_hz": 24.0,
+        "le_mh": 0.6,
+        "mms_g": 45.0,
+        "pe_w": 120.0,
+        "qes": 0.8,
+        "qms": 3.66,
+        "qts": 0.66,
+        "re_ohm": 3.3,
+        "sd_cm2": 515.0,
+        "vas_l": 361.0,
+        "xmax_mm": 22.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/t-300-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:16+00:00",
+        "model": "T 300 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "5.27",
+            "unit": "T \u00b7 m",
+            "value": 5.27
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "24",
+            "unit": "Hz",
+            "value": 24.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.6",
+            "unit": "mH",
+            "value": 0.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "45",
+            "unit": "g",
+            "value": 45.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "120",
+            "unit": "Watt",
+            "value": 120.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.8",
+            "unit": "",
+            "value": 0.8
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.66",
+            "unit": "",
+            "value": 3.66
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.66",
+            "unit": "",
+            "value": 0.66
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.3",
+            "unit": "Ohm",
+            "value": 3.3
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "515",
+            "unit": "cm2",
+            "value": 515.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "361",
+            "unit": "l",
+            "value": 361.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "22",
+            "unit": "mm",
+            "value": 22.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "T 300 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/t-300-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 4.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 84.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.6,
+        "mms_g": 3.0,
+        "pe_w": 30.0,
+        "qms": 6.33,
+        "qts": 0.55,
+        "re_ohm": 6.0,
+        "sd_cm2": 54.0,
+        "vas_l": 4.9,
+        "xmax_mm": 3.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "TI 100 M 8 OHM",
+      "name": "WEB: Visaton TI 100 M 8 OHM",
+      "raw": {
+        "bl_tm": 4.0,
+        "fs_hz": 84.0,
+        "le_mh": 0.6,
+        "mms_g": 3.0,
+        "pe_w": 30.0,
+        "qes": 0.61,
+        "qms": 6.33,
+        "qts": 0.55,
+        "re_ohm": 6.0,
+        "sd_cm2": 54.0,
+        "vas_l": 4.9,
+        "xmax_mm": 3.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/ti-100-m-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:17+00:00",
+        "model": "TI 100 M 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "4.0",
+            "unit": "T m",
+            "value": 4.0
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "84",
+            "unit": "Hz",
+            "value": 84.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.6",
+            "unit": "mH",
+            "value": 0.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "3.0",
+            "unit": "g",
+            "value": 3.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "30",
+            "unit": "Watt",
+            "value": 30.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.61",
+            "unit": "",
+            "value": 0.61
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "6.33",
+            "unit": "",
+            "value": 6.33
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.55",
+            "unit": "",
+            "value": 0.55
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.0",
+            "unit": "Ohm",
+            "value": 6.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "54",
+            "unit": "cm2",
+            "value": 54.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "4.9",
+            "unit": "l",
+            "value": 4.9
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "3",
+            "unit": "mm",
+            "value": 3.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "TI 100 M 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/ti-100-m-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 12.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 31.0,
+        "le10k_mh": 0.0,
+        "le_mh": 2.35,
+        "mms_g": 45.0,
+        "pe_w": 200.0,
+        "qms": 4.39,
+        "qts": 0.32,
+        "re_ohm": 5.8,
+        "sd_cm2": 315.0,
+        "vas_l": 80.0,
+        "xmax_mm": 20.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "TIW 250 8 OHM",
+      "name": "WEB: Visaton TIW 250 8 OHM",
+      "raw": {
+        "bl_tm": 12.0,
+        "fs_hz": 31.0,
+        "le_mh": 2.35,
+        "mms_g": 45.0,
+        "pe_w": 200.0,
+        "qes": 0.35,
+        "qms": 4.39,
+        "qts": 0.32,
+        "re_ohm": 5.8,
+        "sd_cm2": 315.0,
+        "vas_l": 80.0,
+        "xmax_mm": 20.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/tiw-250-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:17+00:00",
+        "model": "TIW 250 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "12",
+            "unit": "T \u00b7 m",
+            "value": 12.0
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "31",
+            "unit": "Hz",
+            "value": 31.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "2.35",
+            "unit": "mH",
+            "value": 2.35
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "45",
+            "unit": "g",
+            "value": 45.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "200",
+            "unit": "Watt",
+            "value": 200.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.35",
+            "unit": "",
+            "value": 0.35
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.39",
+            "unit": "",
+            "value": 4.39
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.32",
+            "unit": "",
+            "value": 0.32
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "5.8",
+            "unit": "Ohm",
+            "value": 5.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "315",
+            "unit": "cm2",
+            "value": 315.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "80",
+            "unit": "l",
+            "value": 80.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "mm",
+            "value": 20.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "TIW 250 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/tiw-250-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 15.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 28.0,
+        "le10k_mh": 0.0,
+        "le_mh": 2.6,
+        "mms_g": 70.0,
+        "pe_w": 300.0,
+        "qms": 4.11,
+        "qts": 0.28,
+        "re_ohm": 5.8,
+        "sd_cm2": 450.0,
+        "vas_l": 135.0,
+        "xmax_mm": 24.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "TIW 360 8 OHM",
+      "name": "WEB: Visaton TIW 360 8 OHM",
+      "raw": {
+        "bl_tm": 15.0,
+        "fs_hz": 28.0,
+        "le_mh": 2.6,
+        "mms_g": 70.0,
+        "pe_w": 300.0,
+        "qes": 0.31,
+        "qms": 4.11,
+        "qts": 0.28,
+        "re_ohm": 5.8,
+        "sd_cm2": 450.0,
+        "vas_l": 135.0,
+        "xmax_mm": 24.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/tiw-360-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:19+00:00",
+        "model": "TIW 360 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "15",
+            "unit": "T \u00b7 m",
+            "value": 15.0
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "28",
+            "unit": "Hz",
+            "value": 28.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "2.6",
+            "unit": "mH",
+            "value": 2.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "70",
+            "unit": "g",
+            "value": 70.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "300",
+            "unit": "Watt",
+            "value": 300.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.31",
+            "unit": "",
+            "value": 0.31
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.11",
+            "unit": "",
+            "value": 4.11
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.28",
+            "unit": "",
+            "value": 0.28
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "5.8",
+            "unit": "Ohm",
+            "value": 5.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "450",
+            "unit": "cm2",
+            "value": 450.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "135",
+            "unit": "l",
+            "value": 135.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "24",
+            "unit": "mm",
+            "value": 24.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "TIW 360 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/tiw-360-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 15.89,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 21.0,
+        "le10k_mh": 0.0,
+        "le_mh": 2.6,
+        "mms_g": 116.0,
+        "pe_w": 300.0,
+        "qms": 3.68,
+        "qts": 0.34,
+        "re_ohm": 5.8,
+        "sd_cm2": 450.0,
+        "vas_l": 140.0,
+        "xmax_mm": 24.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "TIW 360 X 8 OHM",
+      "name": "WEB: Visaton TIW 360 X 8 OHM",
+      "raw": {
+        "bl_tm": 15.89,
+        "fs_hz": 21.0,
+        "le_mh": 2.6,
+        "mms_g": 116.0,
+        "pe_w": 300.0,
+        "qes": 0.37,
+        "qms": 3.68,
+        "qts": 0.34,
+        "re_ohm": 5.8,
+        "sd_cm2": 450.0,
+        "vas_l": 140.0,
+        "xmax_mm": 24.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/tiw-360-x-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:22+00:00",
+        "model": "TIW 360 X 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "15.89",
+            "unit": "T \u00b7 m",
+            "value": 15.89
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "21",
+            "unit": "Hz",
+            "value": 21.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "2.6",
+            "unit": "mH",
+            "value": 2.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "116",
+            "unit": "g",
+            "value": 116.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "300",
+            "unit": "Watt",
+            "value": 300.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.37",
+            "unit": "",
+            "value": 0.37
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.68",
+            "unit": "",
+            "value": 3.68
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.34",
+            "unit": "",
+            "value": 0.34
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "5.8",
+            "unit": "Ohm",
+            "value": 5.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "450",
+            "unit": "cm2",
+            "value": 450.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "140",
+            "unit": "l",
+            "value": 140.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "24",
+            "unit": "mm",
+            "value": 24.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "TIW 360 X 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/tiw-360-x-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 17.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 23.0,
+        "le10k_mh": 0.0,
+        "le_mh": 2.6,
+        "mms_g": 120.0,
+        "pe_w": 300.0,
+        "qms": 5.97,
+        "qts": 0.35,
+        "re_ohm": 5.8,
+        "sd_cm2": 755.0,
+        "vas_l": 300.0,
+        "xmax_mm": 27.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "TIW 400 8 OHM",
+      "name": "WEB: Visaton TIW 400 8 OHM",
+      "raw": {
+        "bl_tm": 17.0,
+        "fs_hz": 23.0,
+        "le_mh": 2.6,
+        "mms_g": 120.0,
+        "pe_w": 300.0,
+        "qes": 0.37,
+        "qms": 5.97,
+        "qts": 0.35,
+        "re_ohm": 5.8,
+        "sd_cm2": 755.0,
+        "vas_l": 300.0,
+        "xmax_mm": 27.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/tiw-400-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:22+00:00",
+        "model": "TIW 400 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "17",
+            "unit": "T \u00b7 m",
+            "value": 17.0
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "23",
+            "unit": "Hz",
+            "value": 23.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "2.6",
+            "unit": "mH",
+            "value": 2.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "120",
+            "unit": "g",
+            "value": 120.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "300",
+            "unit": "Watt",
+            "value": 300.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.37",
+            "unit": "",
+            "value": 0.37
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "5.97",
+            "unit": "",
+            "value": 5.97
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.35",
+            "unit": "",
+            "value": 0.35
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "5.8",
+            "unit": "Ohm",
+            "value": 5.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "755",
+            "unit": "cm2",
+            "value": 755.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "300",
+            "unit": "l",
+            "value": 300.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "27",
+            "unit": "mm",
+            "value": 27.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "TIW 400 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/tiw-400-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 4.16,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 66.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.47,
+        "mms_g": 4.6,
+        "pe_w": 30.0,
+        "qms": 1.85,
+        "qts": 0.34,
+        "re_ohm": 3.4,
+        "sd_cm2": 53.0,
+        "vas_l": 5.0,
+        "xmax_mm": 13.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 100 SC 4 OHM",
+      "name": "WEB: Visaton W 100 SC 4 OHM",
+      "raw": {
+        "bl_tm": 4.16,
+        "fs_hz": 66.0,
+        "le_mh": 0.47,
+        "mms_g": 4.6,
+        "pe_w": 30.0,
+        "qes": 0.42,
+        "qms": 1.85,
+        "qts": 0.34,
+        "re_ohm": 3.4,
+        "sd_cm2": 53.0,
+        "vas_l": 5.0,
+        "xmax_mm": 13.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-100-sc-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:34+00:00",
+        "model": "W 100 SC 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "4.16",
+            "unit": "T \u00b7 m",
+            "value": 4.16
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "66",
+            "unit": "Hz",
+            "value": 66.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.47",
+            "unit": "mH",
+            "value": 0.47
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "4.6",
+            "unit": "g",
+            "value": 4.6
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "30",
+            "unit": "Watt",
+            "value": 30.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.42",
+            "unit": "",
+            "value": 0.42
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "1.85",
+            "unit": "",
+            "value": 1.85
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.34",
+            "unit": "",
+            "value": 0.34
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.4",
+            "unit": "Ohm",
+            "value": 3.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "53",
+            "unit": "cm2",
+            "value": 53.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "5",
+            "unit": "l",
+            "value": 5.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "13",
+            "unit": "mm",
+            "value": 13.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 100 SC 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-100-sc-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 4.38,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 66.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.85,
+        "mms_g": 4.7,
+        "pe_w": 30.0,
+        "qms": 1.65,
+        "qts": 0.38,
+        "re_ohm": 6.6,
+        "sd_cm2": 53.0,
+        "vas_l": 4.9,
+        "xmax_mm": 13.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 100 SC 8 OHM",
+      "name": "WEB: Visaton W 100 SC 8 OHM",
+      "raw": {
+        "bl_tm": 4.38,
+        "fs_hz": 66.0,
+        "le_mh": 0.85,
+        "mms_g": 4.7,
+        "pe_w": 30.0,
+        "qes": 0.49,
+        "qms": 1.65,
+        "qts": 0.38,
+        "re_ohm": 6.6,
+        "sd_cm2": 53.0,
+        "vas_l": 4.9,
+        "xmax_mm": 13.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-100-sc-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:45+00:00",
+        "model": "W 100 SC 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "4.38",
+            "unit": "T \u00b7 m",
+            "value": 4.38
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "66",
+            "unit": "Hz",
+            "value": 66.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.85",
+            "unit": "mH",
+            "value": 0.85
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "4.7",
+            "unit": "g",
+            "value": 4.7
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "30",
+            "unit": "Watt",
+            "value": 30.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.49",
+            "unit": "",
+            "value": 0.49
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "1.65",
+            "unit": "",
+            "value": 1.65
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.38",
+            "unit": "",
+            "value": 0.38
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.6",
+            "unit": "Ohm",
+            "value": 6.6
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "53",
+            "unit": "cm2",
+            "value": 53.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "4.9",
+            "unit": "l",
+            "value": 4.9
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "13",
+            "unit": "mm",
+            "value": 13.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 100 SC 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-100-sc-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 4.2,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 49.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.6,
+        "mms_g": 7.3,
+        "pe_w": 50.0,
+        "qms": 2.13,
+        "qts": 0.32,
+        "re_ohm": 3.3,
+        "sd_cm2": 74.0,
+        "vas_l": 14.0,
+        "xmax_mm": 16.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 130 SC 4 OHM",
+      "name": "WEB: Visaton W 130 SC 4 OHM",
+      "raw": {
+        "bl_tm": 4.2,
+        "fs_hz": 49.0,
+        "le_mh": 0.6,
+        "mms_g": 7.3,
+        "pe_w": 50.0,
+        "qes": 0.38,
+        "qms": 2.13,
+        "qts": 0.32,
+        "re_ohm": 3.3,
+        "sd_cm2": 74.0,
+        "vas_l": 14.0,
+        "xmax_mm": 16.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-130-sc-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:46+00:00",
+        "model": "W 130 SC 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "4.2",
+            "unit": "T m",
+            "value": 4.2
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "49",
+            "unit": "Hz",
+            "value": 49.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.6",
+            "unit": "mH",
+            "value": 0.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "7.3",
+            "unit": "g",
+            "value": 7.3
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "W",
+            "value": 50.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.38",
+            "unit": "",
+            "value": 0.38
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.13",
+            "unit": "",
+            "value": 2.13
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.32",
+            "unit": "",
+            "value": 0.32
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.3",
+            "unit": "Ohm",
+            "value": 3.3
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "74",
+            "unit": "cm\u00b2",
+            "value": 74.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "14",
+            "unit": "l",
+            "value": 14.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "16",
+            "unit": "mm",
+            "value": 16.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 130 SC 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-130-sc-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 4.6,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 49.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.6,
+        "mms_g": 5.5,
+        "pe_w": 50.0,
+        "qms": 2.08,
+        "qts": 0.39,
+        "re_ohm": 6.0,
+        "sd_cm2": 74.0,
+        "vas_l": 12.0,
+        "xmax_mm": 8.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 130 SC 8 OHM",
+      "name": "WEB: Visaton W 130 SC 8 OHM",
+      "raw": {
+        "bl_tm": 4.6,
+        "fs_hz": 49.0,
+        "le_mh": 0.6,
+        "mms_g": 5.5,
+        "pe_w": 50.0,
+        "qes": 0.48,
+        "qms": 2.08,
+        "qts": 0.39,
+        "re_ohm": 6.0,
+        "sd_cm2": 74.0,
+        "vas_l": 12.0,
+        "xmax_mm": 8.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-130-sc-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:44:54+00:00",
+        "model": "W 130 SC 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "4.6",
+            "unit": "Tm",
+            "value": 4.6
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "49",
+            "unit": "Hz",
+            "value": 49.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.6",
+            "unit": "mH",
+            "value": 0.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "5.5",
+            "unit": "g",
+            "value": 5.5
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "W",
+            "value": 50.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.48",
+            "unit": "",
+            "value": 0.48
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.08",
+            "unit": "",
+            "value": 2.08
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.39",
+            "unit": "",
+            "value": 0.39
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6",
+            "unit": "Ohm",
+            "value": 6.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "74",
+            "unit": "cm\u00b2",
+            "value": 74.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "12",
+            "unit": "l",
+            "value": 12.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "8",
+            "unit": "mm",
+            "value": 8.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 130 SC 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-130-sc-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 4.6,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 52.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.6,
+        "mms_g": 6.0,
+        "pe_w": 50.0,
+        "qms": 2.26,
+        "qts": 0.47,
+        "re_ohm": 6.0,
+        "sd_cm2": 74.0,
+        "vas_l": 12.0,
+        "xmax_mm": 8.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 130 SE - 8 Ohm",
+      "name": "WEB: Visaton W 130 SE - 8 Ohm",
+      "raw": {
+        "bl_tm": 4.6,
+        "fs_hz": 52.0,
+        "le_mh": 0.6,
+        "mms_g": 6.0,
+        "pe_w": 50.0,
+        "qes": 0.59,
+        "qms": 2.26,
+        "qts": 0.47,
+        "re_ohm": 6.0,
+        "sd_cm2": 74.0,
+        "vas_l": 12.0,
+        "xmax_mm": 8.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-130-se-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:02+00:00",
+        "model": "W 130 SE - 8 Ohm",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "4.6",
+            "unit": "Tm",
+            "value": 4.6
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "52",
+            "unit": "Hz",
+            "value": 52.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.6",
+            "unit": "mH",
+            "value": 0.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "6",
+            "unit": "g",
+            "value": 6.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "W",
+            "value": 50.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.59",
+            "unit": "",
+            "value": 0.59
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.26",
+            "unit": "",
+            "value": 2.26
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.47",
+            "unit": "",
+            "value": 0.47
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.0",
+            "unit": "Ohm",
+            "value": 6.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "74",
+            "unit": "cm\u00b2",
+            "value": 74.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "12",
+            "unit": "l",
+            "value": 12.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "8",
+            "unit": "mm",
+            "value": 8.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 130 SE - 8 Ohm",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-130-se-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 3.7,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 68.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.47,
+        "mms_g": 8.3,
+        "pe_w": 40.0,
+        "qms": 3.84,
+        "qts": 0.76,
+        "re_ohm": 3.7,
+        "sd_cm2": 137.0,
+        "vas_l": 17.3,
+        "xmax_mm": 15.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 170 4 OHM",
+      "name": "WEB: Visaton W 170 4 OHM",
+      "raw": {
+        "bl_tm": 3.7,
+        "fs_hz": 68.0,
+        "le_mh": 0.47,
+        "mms_g": 8.3,
+        "pe_w": 40.0,
+        "qes": 0.95,
+        "qms": 3.84,
+        "qts": 0.76,
+        "re_ohm": 3.7,
+        "sd_cm2": 137.0,
+        "vas_l": 17.3,
+        "xmax_mm": 15.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-170-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:04+00:00",
+        "model": "W 170 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "3.7",
+            "unit": "T m",
+            "value": 3.7
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "68",
+            "unit": "Hz",
+            "value": 68.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.47",
+            "unit": "mH",
+            "value": 0.47
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "8.3",
+            "unit": "g",
+            "value": 8.3
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "40",
+            "unit": "W",
+            "value": 40.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.95",
+            "unit": "",
+            "value": 0.95
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.84",
+            "unit": "",
+            "value": 3.84
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.76",
+            "unit": "",
+            "value": 0.76
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.7",
+            "unit": "Ohm",
+            "value": 3.7
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "137",
+            "unit": "cm\u00b2",
+            "value": 137.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "17.3",
+            "unit": "l",
+            "value": 17.3
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "15",
+            "unit": "mm",
+            "value": 15.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 170 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-170-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 4.7,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 39.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.61,
+        "mms_g": 12.0,
+        "pe_w": 50.0,
+        "qms": 2.04,
+        "qts": 0.35,
+        "re_ohm": 3.2,
+        "sd_cm2": 129.0,
+        "vas_l": 33.0,
+        "xmax_mm": 20.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 170 SC 4 OHM",
+      "name": "WEB: Visaton W 170 SC 4 OHM",
+      "raw": {
+        "bl_tm": 4.7,
+        "fs_hz": 39.0,
+        "le_mh": 0.61,
+        "mms_g": 12.0,
+        "pe_w": 50.0,
+        "qes": 0.42,
+        "qms": 2.04,
+        "qts": 0.35,
+        "re_ohm": 3.2,
+        "sd_cm2": 129.0,
+        "vas_l": 33.0,
+        "xmax_mm": 20.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-170-sc-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:04+00:00",
+        "model": "W 170 SC 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "4.7",
+            "unit": "T \u00b7 m",
+            "value": 4.7
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "39",
+            "unit": "Hz",
+            "value": 39.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.61",
+            "unit": "mH",
+            "value": 0.61
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "12",
+            "unit": "g",
+            "value": 12.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "Watt",
+            "value": 50.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.42",
+            "unit": "",
+            "value": 0.42
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.04",
+            "unit": "",
+            "value": 2.04
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.35",
+            "unit": "",
+            "value": 0.35
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.2",
+            "unit": "Ohm",
+            "value": 3.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "129",
+            "unit": "cm2",
+            "value": 129.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "33",
+            "unit": "l",
+            "value": 33.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "mm",
+            "value": 20.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 170 SC 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-170-sc-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 5.15,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 36.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.2,
+        "mms_g": 12.0,
+        "pe_w": 50.0,
+        "qms": 1.59,
+        "qts": 0.36,
+        "re_ohm": 6.0,
+        "sd_cm2": 129.0,
+        "vas_l": 38.0,
+        "xmax_mm": 20.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 170 SC 8 OHM",
+      "name": "WEB: Visaton W 170 SC 8 OHM",
+      "raw": {
+        "bl_tm": 5.15,
+        "fs_hz": 36.0,
+        "le_mh": 1.2,
+        "mms_g": 12.0,
+        "pe_w": 50.0,
+        "qes": 0.47,
+        "qms": 1.59,
+        "qts": 0.36,
+        "re_ohm": 6.0,
+        "sd_cm2": 129.0,
+        "vas_l": 38.0,
+        "xmax_mm": 20.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-170-sc-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:05+00:00",
+        "model": "W 170 SC 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "5.15",
+            "unit": "T \u00b7 m",
+            "value": 5.15
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "36",
+            "unit": "Hz",
+            "value": 36.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "1.2",
+            "unit": "mH",
+            "value": 1.2
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "12",
+            "unit": "g",
+            "value": 12.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "Watt",
+            "value": 50.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.47",
+            "unit": "",
+            "value": 0.47
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "1.59",
+            "unit": "",
+            "value": 1.59
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.36",
+            "unit": "",
+            "value": 0.36
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6",
+            "unit": "Ohm",
+            "value": 6.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "129",
+            "unit": "cm2",
+            "value": 129.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "38",
+            "unit": "l",
+            "value": 38.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "mm",
+            "value": 20.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 170 SC 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-170-sc-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 5.3,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 45.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.6,
+        "mms_g": 16.0,
+        "pe_w": 75.0,
+        "qms": 3.3,
+        "qts": 0.5,
+        "re_ohm": 3.8,
+        "sd_cm2": 213.0,
+        "vas_l": 50.0,
+        "xmax_mm": 18.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 200 NG 4 OHM",
+      "name": "WEB: Visaton W 200 NG 4 OHM",
+      "raw": {
+        "bl_tm": 5.3,
+        "fs_hz": 45.0,
+        "le_mh": 0.6,
+        "mms_g": 16.0,
+        "pe_w": 75.0,
+        "qes": 0.6,
+        "qms": 3.3,
+        "qts": 0.5,
+        "re_ohm": 3.8,
+        "sd_cm2": 213.0,
+        "vas_l": 50.0,
+        "xmax_mm": 18.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-200-ng-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:07+00:00",
+        "model": "W 200 NG 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "5.3",
+            "unit": "T \u00b7 m",
+            "value": 5.3
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "45",
+            "unit": "Hz",
+            "value": 45.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.6",
+            "unit": "mH",
+            "value": 0.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "16",
+            "unit": "g",
+            "value": 16.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "75",
+            "unit": "Watt",
+            "value": 75.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.6",
+            "unit": "",
+            "value": 0.6
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.3",
+            "unit": "",
+            "value": 3.3
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.5",
+            "unit": "",
+            "value": 0.5
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.8",
+            "unit": "Ohm",
+            "value": 3.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "213",
+            "unit": "cm2",
+            "value": 213.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "l",
+            "value": 50.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "18",
+            "unit": "mm",
+            "value": 18.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 200 NG 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-200-ng-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 6.4,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 45.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.2,
+        "mms_g": 16.0,
+        "pe_w": 75.0,
+        "qms": 3.66,
+        "qts": 0.63,
+        "re_ohm": 6.8,
+        "sd_cm2": 213.0,
+        "vas_l": 50.0,
+        "xmax_mm": 18.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 200 NG 8 OHM",
+      "name": "WEB: Visaton W 200 NG 8 OHM",
+      "raw": {
+        "bl_tm": 6.4,
+        "fs_hz": 45.0,
+        "le_mh": 1.2,
+        "mms_g": 16.0,
+        "pe_w": 75.0,
+        "qes": 0.76,
+        "qms": 3.66,
+        "qts": 0.63,
+        "re_ohm": 6.8,
+        "sd_cm2": 213.0,
+        "vas_l": 50.0,
+        "xmax_mm": 18.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-200-ng-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:08+00:00",
+        "model": "W 200 NG 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "6.4",
+            "unit": "T \u00b7 m",
+            "value": 6.4
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "45",
+            "unit": "Hz",
+            "value": 45.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "1.2",
+            "unit": "mH",
+            "value": 1.2
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "16",
+            "unit": "g",
+            "value": 16.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "75",
+            "unit": "Watt",
+            "value": 75.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.76",
+            "unit": "",
+            "value": 0.76
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.66",
+            "unit": "",
+            "value": 3.66
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.63",
+            "unit": "",
+            "value": 0.63
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.8",
+            "unit": "Ohm",
+            "value": 6.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "213",
+            "unit": "cm2",
+            "value": 213.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "l",
+            "value": 50.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "18",
+            "unit": "mm",
+            "value": 18.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 200 NG 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-200-ng-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 7.61,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 27.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.5,
+        "mms_g": 27.0,
+        "pe_w": 75.0,
+        "qms": 3.41,
+        "qts": 0.28,
+        "re_ohm": 3.3,
+        "sd_cm2": 214.0,
+        "vas_l": 71.0,
+        "xmax_mm": 20.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 200 SC 4 OHM",
+      "name": "WEB: Visaton W 200 SC 4 OHM",
+      "raw": {
+        "bl_tm": 7.61,
+        "fs_hz": 27.0,
+        "le_mh": 1.5,
+        "mms_g": 27.0,
+        "pe_w": 75.0,
+        "qes": 0.31,
+        "qms": 3.41,
+        "qts": 0.28,
+        "re_ohm": 3.3,
+        "sd_cm2": 214.0,
+        "vas_l": 71.0,
+        "xmax_mm": 20.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-200-sc-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:08+00:00",
+        "model": "W 200 SC 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "7.61",
+            "unit": "T \u00b7 m",
+            "value": 7.61
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "27",
+            "unit": "Hz",
+            "value": 27.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "1.5",
+            "unit": "mH",
+            "value": 1.5
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "27",
+            "unit": "g",
+            "value": 27.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "75",
+            "unit": "Watt",
+            "value": 75.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.31",
+            "unit": "",
+            "value": 0.31
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.41",
+            "unit": "",
+            "value": 3.41
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.28",
+            "unit": "",
+            "value": 0.28
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.3",
+            "unit": "Ohm",
+            "value": 3.3
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "214",
+            "unit": "cm2",
+            "value": 214.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "71",
+            "unit": "l",
+            "value": 71.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "mm",
+            "value": 20.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 200 SC 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-200-sc-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 10.56,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 27.0,
+        "le10k_mh": 0.0,
+        "le_mh": 2.24,
+        "mms_g": 27.0,
+        "pe_w": 75.0,
+        "qms": 3.4,
+        "qts": 0.29,
+        "re_ohm": 5.8,
+        "sd_cm2": 214.0,
+        "vas_l": 63.0,
+        "xmax_mm": 20.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 200 SC 8 OHM",
+      "name": "WEB: Visaton W 200 SC 8 OHM",
+      "raw": {
+        "bl_tm": 10.56,
+        "fs_hz": 27.0,
+        "le_mh": 2.24,
+        "mms_g": 27.0,
+        "pe_w": 75.0,
+        "qes": 0.32,
+        "qms": 3.4,
+        "qts": 0.29,
+        "re_ohm": 5.8,
+        "sd_cm2": 214.0,
+        "vas_l": 63.0,
+        "xmax_mm": 20.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-200-sc-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:09+00:00",
+        "model": "W 200 SC 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "10.56",
+            "unit": "T \u00b7 m",
+            "value": 10.56
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "27",
+            "unit": "Hz",
+            "value": 27.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "2.24",
+            "unit": "mH",
+            "value": 2.24
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "27",
+            "unit": "g",
+            "value": 27.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "75",
+            "unit": "Watt",
+            "value": 75.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.32",
+            "unit": "",
+            "value": 0.32
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.4",
+            "unit": "",
+            "value": 3.4
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.29",
+            "unit": "",
+            "value": 0.29
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "5.8",
+            "unit": "Ohm",
+            "value": 5.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "214",
+            "unit": "cm2",
+            "value": 214.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "63",
+            "unit": "l",
+            "value": 63.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "mm",
+            "value": 20.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 200 SC 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-200-sc-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 4.8,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 37.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.6,
+        "mms_g": 27.0,
+        "pe_w": 80.0,
+        "qms": 4.3,
+        "qts": 0.87,
+        "re_ohm": 3.7,
+        "sd_cm2": 360.0,
+        "vas_l": 120.0,
+        "xmax_mm": 18.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 250 NG 4 OHM",
+      "name": "WEB: Visaton W 250 NG 4 OHM",
+      "raw": {
+        "bl_tm": 4.8,
+        "fs_hz": 37.0,
+        "le_mh": 0.6,
+        "mms_g": 27.0,
+        "pe_w": 80.0,
+        "qes": 1.1,
+        "qms": 4.3,
+        "qts": 0.87,
+        "re_ohm": 3.7,
+        "sd_cm2": 360.0,
+        "vas_l": 120.0,
+        "xmax_mm": 18.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-250-ng-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:10+00:00",
+        "model": "W 250 NG 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "4.8",
+            "unit": "T \u00b7 m",
+            "value": 4.8
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "37",
+            "unit": "Hz",
+            "value": 37.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.6",
+            "unit": "mH",
+            "value": 0.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "27",
+            "unit": "g",
+            "value": 27.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "80",
+            "unit": "Watt",
+            "value": 80.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "1.1",
+            "unit": "",
+            "value": 1.1
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.3",
+            "unit": "",
+            "value": 4.3
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.87",
+            "unit": "",
+            "value": 0.87
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.7",
+            "unit": "Ohm",
+            "value": 3.7
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "360",
+            "unit": "cm2",
+            "value": 360.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "120",
+            "unit": "l",
+            "value": 120.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "18",
+            "unit": "mm",
+            "value": 18.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 250 NG 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-250-ng-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 6.2,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 37.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.2,
+        "mms_g": 27.0,
+        "pe_w": 80.0,
+        "qms": 4.3,
+        "qts": 0.87,
+        "re_ohm": 6.7,
+        "sd_cm2": 360.0,
+        "vas_l": 120.0,
+        "xmax_mm": 18.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 250 NG 8 OHM",
+      "name": "WEB: Visaton W 250 NG 8 OHM",
+      "raw": {
+        "bl_tm": 6.2,
+        "fs_hz": 37.0,
+        "le_mh": 1.2,
+        "mms_g": 27.0,
+        "pe_w": 80.0,
+        "qes": 1.1,
+        "qms": 4.3,
+        "qts": 0.87,
+        "re_ohm": 6.7,
+        "sd_cm2": 360.0,
+        "vas_l": 120.0,
+        "xmax_mm": 18.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-250-ng-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:11+00:00",
+        "model": "W 250 NG 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "6.2",
+            "unit": "T \u00b7 m",
+            "value": 6.2
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "37",
+            "unit": "Hz",
+            "value": 37.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "1.2",
+            "unit": "mH",
+            "value": 1.2
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "27",
+            "unit": "g",
+            "value": 27.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "80",
+            "unit": "Watt",
+            "value": 80.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "1.1",
+            "unit": "",
+            "value": 1.1
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.3",
+            "unit": "",
+            "value": 4.3
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.87",
+            "unit": "",
+            "value": 0.87
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.7",
+            "unit": "Ohm",
+            "value": 6.7
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "360",
+            "unit": "cm2",
+            "value": 360.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "120",
+            "unit": "l",
+            "value": 120.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "18",
+            "unit": "mm",
+            "value": 18.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 250 NG 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-250-ng-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 8.3,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 32.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.07,
+        "mms_g": 43.0,
+        "pe_w": 120.0,
+        "qms": 2.77,
+        "qts": 0.46,
+        "re_ohm": 3.8,
+        "sd_cm2": 490.0,
+        "vas_l": 190.0,
+        "xmax_mm": 28.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 300 4 OHM",
+      "name": "WEB: Visaton W 300 4 OHM",
+      "raw": {
+        "bl_tm": 8.3,
+        "fs_hz": 32.0,
+        "le_mh": 1.07,
+        "mms_g": 43.0,
+        "pe_w": 120.0,
+        "qes": 0.56,
+        "qms": 2.77,
+        "qts": 0.46,
+        "re_ohm": 3.8,
+        "sd_cm2": 490.0,
+        "vas_l": 190.0,
+        "xmax_mm": 28.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-300-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:12+00:00",
+        "model": "W 300 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "8.3",
+            "unit": "T \u00b7 m",
+            "value": 8.3
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "32",
+            "unit": "Hz",
+            "value": 32.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "1.07",
+            "unit": "mH",
+            "value": 1.07
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "43",
+            "unit": "g",
+            "value": 43.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "120",
+            "unit": "Watt",
+            "value": 120.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.56",
+            "unit": "",
+            "value": 0.56
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.77",
+            "unit": "",
+            "value": 2.77
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.46",
+            "unit": "",
+            "value": 0.46
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.8",
+            "unit": "Ohm",
+            "value": 3.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "490",
+            "unit": "cm2",
+            "value": 490.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "190",
+            "unit": "l",
+            "value": 190.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "28",
+            "unit": "mm",
+            "value": 28.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 300 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-300-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 8.22,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 29.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.9,
+        "mms_g": 40.0,
+        "pe_w": 120.0,
+        "qms": 2.08,
+        "qts": 0.33,
+        "re_ohm": 3.5,
+        "sd_cm2": 490.0,
+        "vas_l": 265.0,
+        "xmax_mm": 28.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 300 NG 4 OHM",
+      "name": "WEB: Visaton W 300 NG 4 OHM",
+      "raw": {
+        "bl_tm": 8.22,
+        "fs_hz": 29.0,
+        "le_mh": 0.9,
+        "mms_g": 40.0,
+        "pe_w": 120.0,
+        "qes": 0.4,
+        "qms": 2.08,
+        "qts": 0.33,
+        "re_ohm": 3.5,
+        "sd_cm2": 490.0,
+        "vas_l": 265.0,
+        "xmax_mm": 28.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-300-ng-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:12+00:00",
+        "model": "W 300 NG 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "8.22",
+            "unit": "T \u00b7 m",
+            "value": 8.22
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "29",
+            "unit": "Hz",
+            "value": 29.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.9",
+            "unit": "mH",
+            "value": 0.9
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "40",
+            "unit": "g",
+            "value": 40.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "120",
+            "unit": "Watt",
+            "value": 120.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.4",
+            "unit": "",
+            "value": 0.4
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.08",
+            "unit": "",
+            "value": 2.08
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.33",
+            "unit": "",
+            "value": 0.33
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.5",
+            "unit": "Ohm",
+            "value": 3.5
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "490",
+            "unit": "cm2",
+            "value": 490.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "265",
+            "unit": "l",
+            "value": 265.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "28",
+            "unit": "mm",
+            "value": 28.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 300 NG 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-300-ng-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 8.4,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 23.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.1,
+        "mms_g": 62.0,
+        "pe_w": 150.0,
+        "qms": 1.6,
+        "qts": 0.25,
+        "re_ohm": 3.5,
+        "sd_cm2": 507.0,
+        "vas_l": 300.0,
+        "xmax_mm": 14.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 300 S - 4 Ohm",
+      "name": "WEB: Visaton W 300 S - 4 Ohm",
+      "raw": {
+        "bl_tm": 8.4,
+        "fs_hz": 23.0,
+        "le_mh": 1.1,
+        "mms_g": 62.0,
+        "pe_w": 150.0,
+        "qes": 0.3,
+        "qms": 1.6,
+        "qts": 0.25,
+        "re_ohm": 3.5,
+        "sd_cm2": 507.0,
+        "vas_l": 300.0,
+        "xmax_mm": 14.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-300-s-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:13+00:00",
+        "model": "W 300 S - 4 Ohm",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "8.4",
+            "unit": "Tm",
+            "value": 8.4
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "23",
+            "unit": "Hz",
+            "value": 23.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "1.1",
+            "unit": "mH",
+            "value": 1.1
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "62",
+            "unit": "g",
+            "value": 62.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "150",
+            "unit": "W",
+            "value": 150.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.3",
+            "unit": "",
+            "value": 0.3
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "1.6",
+            "unit": "",
+            "value": 1.6
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.25",
+            "unit": "",
+            "value": 0.25
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.5",
+            "unit": "Ohm",
+            "value": 3.5
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "507",
+            "unit": "cm\u00b2",
+            "value": 507.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "300",
+            "unit": "l",
+            "value": 300.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "14",
+            "unit": "mm",
+            "value": 14.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 300 S - 4 Ohm",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-300-s-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 11.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 23.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.8,
+        "mms_g": 57.0,
+        "pe_w": 150.0,
+        "qms": 1.65,
+        "qts": 0.33,
+        "re_ohm": 6.7,
+        "sd_cm2": 507.0,
+        "vas_l": 340.0,
+        "xmax_mm": 14.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 300 S - 8 Ohm",
+      "name": "WEB: Visaton W 300 S - 8 Ohm",
+      "raw": {
+        "bl_tm": 11.0,
+        "fs_hz": 23.0,
+        "le_mh": 1.8,
+        "mms_g": 57.0,
+        "pe_w": 150.0,
+        "qes": 0.42,
+        "qms": 1.65,
+        "qts": 0.33,
+        "re_ohm": 6.7,
+        "sd_cm2": 507.0,
+        "vas_l": 340.0,
+        "xmax_mm": 14.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-300-s-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:20+00:00",
+        "model": "W 300 S - 8 Ohm",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "11.0",
+            "unit": "Tm",
+            "value": 11.0
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "23",
+            "unit": "Hz",
+            "value": 23.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "1.8",
+            "unit": "mH",
+            "value": 1.8
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "57",
+            "unit": "g",
+            "value": 57.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "150",
+            "unit": "W",
+            "value": 150.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.42",
+            "unit": "",
+            "value": 0.42
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "1.65",
+            "unit": "",
+            "value": 1.65
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.33",
+            "unit": "",
+            "value": 0.33
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.7",
+            "unit": "Ohm",
+            "value": 6.7
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "507",
+            "unit": "cm\u00b2",
+            "value": 507.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "340",
+            "unit": "l",
+            "value": 340.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "14",
+            "unit": "mm",
+            "value": 14.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 300 S - 8 Ohm",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-300-s-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 9.67,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 22.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.72,
+        "mms_g": 77.0,
+        "pe_w": 200.0,
+        "qms": 3.71,
+        "qts": 0.4,
+        "re_ohm": 3.9,
+        "sd_cm2": 840.0,
+        "vas_l": 680.0,
+        "xmax_mm": 25.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 400 S 4 OHM",
+      "name": "WEB: Visaton W 400 S 4 OHM",
+      "raw": {
+        "bl_tm": 9.67,
+        "fs_hz": 22.0,
+        "le_mh": 0.72,
+        "mms_g": 77.0,
+        "pe_w": 200.0,
+        "qes": 0.44,
+        "qms": 3.71,
+        "qts": 0.4,
+        "re_ohm": 3.9,
+        "sd_cm2": 840.0,
+        "vas_l": 680.0,
+        "xmax_mm": 25.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-400-s-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:21+00:00",
+        "model": "W 400 S 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "9.67",
+            "unit": "T m",
+            "value": 9.67
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "22",
+            "unit": "Hz",
+            "value": 22.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.72",
+            "unit": "mH",
+            "value": 0.72
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "77",
+            "unit": "g",
+            "value": 77.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "200",
+            "unit": "Watt",
+            "value": 200.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.44",
+            "unit": "",
+            "value": 0.44
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.71",
+            "unit": "",
+            "value": 3.71
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.4",
+            "unit": "",
+            "value": 0.4
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.9",
+            "unit": "Ohm",
+            "value": 3.9
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "840",
+            "unit": "cm2",
+            "value": 840.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "680",
+            "unit": "l",
+            "value": 680.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "25",
+            "unit": "mm",
+            "value": 25.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 400 S 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-400-s-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 11.44,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 22.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.4,
+        "mms_g": 79.0,
+        "pe_w": 200.0,
+        "qms": 3.29,
+        "qts": 0.48,
+        "re_ohm": 6.3,
+        "sd_cm2": 840.0,
+        "vas_l": 651.0,
+        "xmax_mm": 25.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W 400 S 8 OHM",
+      "name": "WEB: Visaton W 400 S 8 OHM",
+      "raw": {
+        "bl_tm": 11.44,
+        "fs_hz": 22.0,
+        "le_mh": 1.4,
+        "mms_g": 79.0,
+        "pe_w": 200.0,
+        "qes": 0.57,
+        "qms": 3.29,
+        "qts": 0.48,
+        "re_ohm": 6.3,
+        "sd_cm2": 840.0,
+        "vas_l": 651.0,
+        "xmax_mm": 25.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/w-400-s-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:22+00:00",
+        "model": "W 400 S 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "11.44",
+            "unit": "T m",
+            "value": 11.44
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "22",
+            "unit": "Hz",
+            "value": 22.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "1.4",
+            "unit": "mH",
+            "value": 1.4
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "79",
+            "unit": "g",
+            "value": 79.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "200",
+            "unit": "Watt",
+            "value": 200.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.57",
+            "unit": "",
+            "value": 0.57
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.29",
+            "unit": "",
+            "value": 3.29
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.48",
+            "unit": "",
+            "value": 0.48
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "6.3",
+            "unit": "Ohm",
+            "value": 6.3
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "840",
+            "unit": "cm2",
+            "value": 840.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "651",
+            "unit": "l",
+            "value": 651.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "25",
+            "unit": "mm",
+            "value": 25.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "W 400 S 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/w-400-s-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 5.2,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 51.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.76,
+        "mms_g": 8.0,
+        "pe_w": 40.0,
+        "qms": 2.65,
+        "qts": 0.5,
+        "re_ohm": 5.4,
+        "sd_cm2": 85.0,
+        "vas_l": 12.0,
+        "xmax_mm": 16.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "WS 13 BF 8 OHM",
+      "name": "WEB: Visaton WS 13 BF 8 OHM",
+      "raw": {
+        "bl_tm": 5.2,
+        "fs_hz": 51.0,
+        "le_mh": 0.76,
+        "mms_g": 8.0,
+        "pe_w": 40.0,
+        "qes": 0.61,
+        "qms": 2.65,
+        "qts": 0.5,
+        "re_ohm": 5.4,
+        "sd_cm2": 85.0,
+        "vas_l": 12.0,
+        "xmax_mm": 16.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/ws-13-bf-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:34+00:00",
+        "model": "WS 13 BF 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "5.2",
+            "unit": "T \u00b7 m",
+            "value": 5.2
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "51",
+            "unit": "Hz",
+            "value": 51.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.76",
+            "unit": "mH",
+            "value": 0.76
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "8",
+            "unit": "g",
+            "value": 8.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "40",
+            "unit": "Watt",
+            "value": 40.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.61",
+            "unit": "",
+            "value": 0.61
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.65",
+            "unit": "",
+            "value": 2.65
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.5",
+            "unit": "",
+            "value": 0.5
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohm",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "85",
+            "unit": "cm2",
+            "value": 85.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "12",
+            "unit": "l",
+            "value": 12.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "16",
+            "unit": "mm",
+            "value": 16.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "WS 13 BF 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/ws-13-bf-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 2.93,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 83.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.4,
+        "mms_g": 5.5,
+        "pe_w": 40.0,
+        "qms": 3.69,
+        "qts": 0.92,
+        "re_ohm": 3.7,
+        "sd_cm2": 86.5,
+        "vas_l": 7.1,
+        "xmax_mm": 15.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "WS 13 E 4 OHM",
+      "name": "WEB: Visaton WS 13 E 4 OHM",
+      "raw": {
+        "bl_tm": 2.93,
+        "fs_hz": 83.0,
+        "le_mh": 0.4,
+        "mms_g": 5.5,
+        "pe_w": 40.0,
+        "qes": 1.23,
+        "qms": 3.69,
+        "qts": 0.92,
+        "re_ohm": 3.7,
+        "sd_cm2": 86.5,
+        "vas_l": 7.1,
+        "xmax_mm": 15.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/ws-13-e-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:35+00:00",
+        "model": "WS 13 E 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "2.93",
+            "unit": "T \u00b7 m",
+            "value": 2.93
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "83",
+            "unit": "Hz",
+            "value": 83.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.4",
+            "unit": "mH",
+            "value": 0.4
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "5.5",
+            "unit": "g",
+            "value": 5.5
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "40",
+            "unit": "Watt",
+            "value": 40.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "1.23",
+            "unit": "",
+            "value": 1.23
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.69",
+            "unit": "",
+            "value": 3.69
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.92",
+            "unit": "",
+            "value": 0.92
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.7",
+            "unit": "Ohm",
+            "value": 3.7
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "86.5",
+            "unit": "cm2",
+            "value": 86.5
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "7.1",
+            "unit": "l",
+            "value": 7.1
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "15",
+            "unit": "mm",
+            "value": 15.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "WS 13 E 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/ws-13-e-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 3.8,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 32.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.6,
+        "mms_g": 33.0,
+        "pe_w": 80.0,
+        "qms": 2.84,
+        "qts": 1.09,
+        "re_ohm": 3.3,
+        "sd_cm2": 346.0,
+        "vas_l": 107.0,
+        "xmax_mm": 6.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "WS 25 E 4 OHM",
+      "name": "WEB: Visaton WS 25 E 4 OHM",
+      "raw": {
+        "bl_tm": 3.8,
+        "fs_hz": 32.0,
+        "le_mh": 0.6,
+        "mms_g": 33.0,
+        "pe_w": 80.0,
+        "qes": 1.78,
+        "qms": 2.84,
+        "qts": 1.09,
+        "re_ohm": 3.3,
+        "sd_cm2": 346.0,
+        "vas_l": 107.0,
+        "xmax_mm": 6.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/ws-25-e-4-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:37+00:00",
+        "model": "WS 25 E 4 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "3.8",
+            "unit": "T m",
+            "value": 3.8
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "32",
+            "unit": "Hz",
+            "value": 32.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "0.6",
+            "unit": "mH",
+            "value": 0.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "33",
+            "unit": "g",
+            "value": 33.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "80",
+            "unit": "W",
+            "value": 80.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "1.78",
+            "unit": "",
+            "value": 1.78
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.84",
+            "unit": "",
+            "value": 2.84
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "1.09",
+            "unit": "",
+            "value": 1.09
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "3.3",
+            "unit": "Ohm",
+            "value": 3.3
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "346",
+            "unit": "cm\u00b2",
+            "value": 346.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "107",
+            "unit": "l",
+            "value": 107.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "6",
+            "unit": "mm",
+            "value": 6.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "WS 25 E 4 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/ws-25-e-4-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 9.3,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 28.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.2,
+        "mms_g": 26.0,
+        "pe_w": 100.0,
+        "qms": 3.86,
+        "qts": 0.28,
+        "re_ohm": 5.7,
+        "sd_cm2": 213.0,
+        "vas_l": 80.0,
+        "xmax_mm": 19.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "WSP 21 S 8 OHM",
+      "name": "WEB: Visaton WSP 21 S 8 OHM",
+      "raw": {
+        "bl_tm": 9.3,
+        "fs_hz": 28.0,
+        "le_mh": 1.2,
+        "mms_g": 26.0,
+        "pe_w": 100.0,
+        "qes": 0.3,
+        "qms": 3.86,
+        "qts": 0.28,
+        "re_ohm": 5.7,
+        "sd_cm2": 213.0,
+        "vas_l": 80.0,
+        "xmax_mm": 19.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/wsp-21-s-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:38+00:00",
+        "model": "WSP 21 S 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "9.3",
+            "unit": "T \u00b7 m",
+            "value": 9.3
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "28",
+            "unit": "Hz",
+            "value": 28.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "1.2",
+            "unit": "mH",
+            "value": 1.2
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "26",
+            "unit": "g",
+            "value": 26.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "100",
+            "unit": "Watt",
+            "value": 100.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.3",
+            "unit": "",
+            "value": 0.3
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.86",
+            "unit": "",
+            "value": 3.86
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.28",
+            "unit": "",
+            "value": 0.28
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "5.7",
+            "unit": "Ohm",
+            "value": 5.7
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "213",
+            "unit": "cm2",
+            "value": 213.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "80",
+            "unit": "l",
+            "value": 80.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "19",
+            "unit": "mm",
+            "value": 19.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "WSP 21 S 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/wsp-21-s-8-ohm"
+      }
+    },
+    {
+      "brand": "Visaton",
+      "driver": {
+        "bl_tm": 8.7,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 19.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.2,
+        "mms_g": 42.0,
+        "pe_w": 110.0,
+        "qms": 3.19,
+        "qts": 0.34,
+        "re_ohm": 5.7,
+        "sd_cm2": 330.0,
+        "vas_l": 230.0,
+        "xmax_mm": 22.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "WSP 26 S 8 OHM",
+      "name": "WEB: Visaton WSP 26 S 8 OHM",
+      "raw": {
+        "bl_tm": 8.7,
+        "fs_hz": 19.0,
+        "le_mh": 1.2,
+        "mms_g": 42.0,
+        "pe_w": 110.0,
+        "qes": 0.38,
+        "qms": 3.19,
+        "qts": 0.34,
+        "re_ohm": 5.7,
+        "sd_cm2": 330.0,
+        "vas_l": 230.0,
+        "xmax_mm": 22.0
+      },
+      "size_in": null,
+      "source": "Visaton Archive",
+      "url": "https://www.visaton.de/en/products/drivers/archive/wsp-26-s-8-ohm",
+      "website_fields": {
+        "brand": "Visaton",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:45:40+00:00",
+        "model": "WSP 26 S 8 OHM",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bxl",
+            "method": "html.text",
+            "raw_value": "8.7",
+            "unit": "T \u00b7 m",
+            "value": 8.7
+          },
+          "fs_hz": {
+            "label": "fs",
+            "method": "html.text",
+            "raw_value": "19",
+            "unit": "Hz",
+            "value": 19.0
+          },
+          "le_mh": {
+            "label": "Inductance of the voice coil L",
+            "method": "html.text",
+            "raw_value": "1.2",
+            "unit": "mH",
+            "value": 1.2
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "42",
+            "unit": "g",
+            "value": 42.0
+          },
+          "pe_w": {
+            "label": "Rated power",
+            "method": "html.text",
+            "raw_value": "110",
+            "unit": "Watt",
+            "value": 110.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.38",
+            "unit": "",
+            "value": 0.38
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.19",
+            "unit": "",
+            "value": 3.19
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.34",
+            "unit": "",
+            "value": 0.34
+          },
+          "re_ohm": {
+            "label": "Rdc",
+            "method": "html.text",
+            "raw_value": "5.7",
+            "unit": "Ohm",
+            "value": 5.7
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "330",
+            "unit": "cm2",
+            "value": 330.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "230",
+            "unit": "l",
+            "value": 230.0
+          },
+          "xmax_mm": {
+            "label": "Excursion limit",
+            "method": "html.text",
+            "raw_value": "22",
+            "unit": "mm",
+            "value": 22.0
+          }
+        },
+        "source": "Visaton Archive",
+        "title": "WSP 26 S 8 OHM",
+        "url": "https://www.visaton.de/en/products/drivers/archive/wsp-26-s-8-ohm"
+      }
     }
   ],
   "source": "manufacturer crawl (HTML product pages, PDF datasheets, public JSON APIs)",
-  "usable_presets": 4640
+  "usable_presets": 4693
 }
