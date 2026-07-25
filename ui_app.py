@@ -2903,7 +2903,7 @@ def _batch_dccav_box(ts: _dccav.DriverTS, total_volume_l: float) -> _dccav.Dccav
 
 @st.cache_data(show_spinner=False)
 def _batch_rank_presets(
-    # Cache busted to reflect JSON DB fixes 2
+    # Cache busted to reflect JSON DB fixes 3
     preset_names: tuple[str, ...],
     load_type: str,
     max_volume_l: float,
@@ -3730,7 +3730,7 @@ def _clean_display_table_frame(frame: pd.DataFrame) -> pd.DataFrame:
 
 @st.cache_data(show_spinner=False)
 def _driver_library_frame(
-    # Cache busted to reflect JSON DB fixes 2
+    # Cache busted to reflect JSON DB fixes 3
     preset_names: tuple[str, ...],
     target_currency: str = "",
     exchange_rates: tuple[tuple[str, float], ...] = (),
