@@ -27,6 +27,12 @@ enrich_driver_prices.py's built-in providers:
 * Hogtalarshoppen (hogtalarshoppen.se) -- third confirmed WooCommerce Store
   API source, Swedish multi-brand DIY driver retailer (Scan-Speak, Monacor,
   Visaton, Dayton Audio, Jantzen Audio, SB Acoustics, SEAS, Tang-Band).
+* DIYSpeakersEU (diyspeakers.eu) -- fourth WooCommerce Store API source,
+  small clean multi-brand catalog (Scan-Speak, SEAS, Dayton Audio).
+* AnalogHiFi (analoghifi.no) -- fifth WooCommerce Store API source,
+  Norwegian SEAS/Scan-Speak/Mark Audio/Dayton/Peerless reseller; brand and
+  driver-vs-accessory identification both go through the category link
+  path since the `brands` taxonomy field is empty on every product.
 
 Each harvester writes an independent JSON checkpoint under data/ so a partial
 run can be resumed/merged without re-fetching everything. merge_extra_retailers
@@ -171,6 +177,33 @@ DIYSPEAKERSEU_BASE = "https://diyspeakers.eu"
 DIYSPEAKERSEU_CATEGORY_ALLOW = {
     "woofers", "tweeters", "midranges", "subwoofers", "fullrange",
     "passive radiator", "car audio",
+}
+
+ANALOGHIFI_CHECKPOINT = DATA_DIR / "analoghifi_harvest_checkpoint.json"
+ANALOGHIFI_BASE = "https://analoghifi.no"
+# Fifth confirmed WooCommerce Store API source (2026-07-25 round 10 sweep) --
+# found via a Norwegian-language search, resolving the standing Scandinavian
+# gap for Norway specifically (round 7 only found Sweden's Hogtalarshoppen).
+# Real multi-brand SEAS/Scan-Speak/Mark Audio/Dayton/Peerless by Tymphany
+# reseller, but the catalog is dominated by crossover components (Jantzen
+# capacitors/coils/binding posts) and SEAS repair kits/DIY build kits, not
+# raw drivers -- unlike the taxonomy-based allow-lists above, this site's
+# `brands` product field is empty on every product sampled, so driver
+# identification and brand assignment both go through the WooCommerce
+# category *link path* instead: every genuine standalone driver category
+# lives under .../product-category/hoyttalerelementer/<brand-slug>/... ,
+# while "seas-rep-kits" (repair parts, not full drivers) is the one
+# sub-category under that same tree that must be denied explicitly.
+ANALOGHIFI_CATEGORY_ALLOW_PATH = "/product-category/hoyttalerelementer/"
+ANALOGHIFI_CATEGORY_DENY_SLUGS = {"seas-rep-kits"}
+ANALOGHIFI_BRAND_BY_SLUG = {
+    "seas": "SEAS",
+    "scan-speak": "Scan-Speak",
+    "dayton": "Dayton Audio",
+    "mark-audio": "Markaudio",
+    "peerless-by-thymphany": "Peerless",
+    "mundorf": "Mundorf",
+    "jantzen": "Jantzen Audio",
 }
 
 
@@ -903,6 +936,87 @@ def harvest_diyspeakerseu(sleep_s: float, timeout_s: float, limit_pages: int = 2
     return records
 
 
+def _analoghifi_category_brand(product: dict) -> tuple[bool, str]:
+    """Return (is_driver_category, brand) derived from the category link path."""
+    brand = ""
+    is_driver = False
+    for category in product.get("categories", []) or []:
+        slug = str(category.get("slug") or "")
+        link = str(category.get("link") or "")
+        if slug in ANALOGHIFI_CATEGORY_DENY_SLUGS:
+            continue
+        if ANALOGHIFI_CATEGORY_ALLOW_PATH not in link:
+            continue
+        is_driver = True
+        tail = link.split(ANALOGHIFI_CATEGORY_ALLOW_PATH, 1)[1]
+        brand_slug = tail.strip("/").split("/", 1)[0] if tail else ""
+        mapped = ANALOGHIFI_BRAND_BY_SLUG.get(brand_slug)
+        if mapped:
+            brand = mapped
+    return is_driver, brand
+
+
+def _parse_analoghifi_product(product: dict) -> dict | None:
+    is_driver, brand = _analoghifi_category_brand(product)
+    if not is_driver:
+        return None
+    prices = product.get("prices") or {}
+    raw_price = epd.number(prices.get("price"))
+    if raw_price is None:
+        return None
+    minor_unit = prices.get("currency_minor_unit")
+    try:
+        minor_unit = int(minor_unit)
+    except (TypeError, ValueError):
+        minor_unit = 2
+    price = raw_price / (10 ** minor_unit)
+    if price <= 0:
+        return None
+    name = epd.clean_product_text(epd.html_entity_decode(str(product.get("name") or "")))
+    if not name:
+        return None
+    sku = str(product.get("sku") or "")
+    url = str(product.get("permalink") or "")
+    if not url:
+        return None
+    currency = str(prices.get("currency_code") or "NOK")
+    return {
+        "name": name,
+        "brand": brand,
+        "mpn": sku,
+        "sku": sku,
+        "url": url,
+        "price": round(price, 2),
+        "currency": currency,
+        "availability": "",
+        "price_valid_until": "",
+    }
+
+
+def harvest_analoghifi(sleep_s: float, timeout_s: float, limit_pages: int = 50) -> list[dict]:
+    records = []
+    page = 1
+    while limit_pages is None or page <= limit_pages:
+        url = f"{ANALOGHIFI_BASE}/wp-json/wc/store/v1/products?per_page=100&page={page}"
+        try:
+            payload = _get_json(url, timeout_s)
+        except epd.FETCH_ERRORS as exc:
+            epd.log(f"analoghifi: fetch failed page={page}: {exc}")
+            break
+        if not payload:
+            break
+        for product in payload:
+            record = _parse_analoghifi_product(product)
+            if record:
+                records.append(record)
+        epd.log(f"analoghifi: page={page} products={len(payload)} kept={len(records)}")
+        if len(payload) < 100:
+            break
+        page += 1
+        time.sleep(sleep_s)
+    return records
+
+
 HARVESTERS = {
     "cinergyaudio": (harvest_cinergy, CINERGY_CHECKPOINT),
     "audiophonics": (harvest_audiophonics, AUDIOPHONICS_CHECKPOINT),
@@ -914,11 +1028,12 @@ HARVESTERS = {
     "kjfaudio": (harvest_kjfaudio, KJFAUDIO_CHECKPOINT),
     "hogtalarshoppen": (harvest_hogtalarshoppen, HOGTALARSHOPPEN_CHECKPOINT),
     "diyspeakerseu": (harvest_diyspeakerseu, DIYSPEAKERSEU_CHECKPOINT),
+    "analoghifi": (harvest_analoghifi, ANALOGHIFI_CHECKPOINT),
 }
 
 PAGE_LIMIT_SOURCES = {
     "cinergyaudio", "willyshifi", "topservicepro", "kjfaudio", "hogtalarshoppen",
-    "diyspeakerseu",
+    "diyspeakerseu", "analoghifi",
 }
 
 

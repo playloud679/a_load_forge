@@ -37,6 +37,7 @@ SOURCES = {
     "kjfaudio": (ROOT / "data" / "kjfaudio_harvest_checkpoint.json", "KJFAudio"),
     "hogtalarshoppen": (ROOT / "data" / "hogtalarshoppen_harvest_checkpoint.json", "Hogtalarshoppen"),
     "diyspeakerseu": (ROOT / "data" / "diyspeakerseu_harvest_checkpoint.json", "DIYSpeakersEU"),
+    "analoghifi": (ROOT / "data" / "analoghifi_harvest_checkpoint.json", "AnalogHiFi"),
 }
 
 
