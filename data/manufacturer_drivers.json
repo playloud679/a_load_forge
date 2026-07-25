@@ -28,7 +28,7 @@
     "https://www.soundimports.eu",
     "https://www.visaton.de"
   ],
-  "downloaded_at": "2026-07-24T17:22:35+00:00",
+  "downloaded_at": "2026-07-25T10:39:26+00:00",
   "note": "No loudspeakerdatabase.com content. Each record's website_fields.url points at the manufacturer page/document/API it was extracted from.",
   "presets": [
     {
@@ -612053,39 +612053,4887 @@
       }
     },
     {
-      "name": "USER: Focal 27K",
-      "model": "27K",
       "brand": "Focal",
-      "price": 0.0,
-      "size_in": 11.0,
-      "source": "User Specification",
       "driver": {
         "fs_hz": 50.1,
-        "re_ohm": 4.5,
-        "qts": 0.6,
-        "qes": 0.67,
-        "qms": 5.61,
         "le_mh": 1.79,
         "mms_g": 76.0,
-        "vas_l": 22.3,
+        "qes": 0.67,
+        "qms": 5.61,
+        "qts": 0.6,
+        "re_ohm": 4.5,
         "sd_cm2": 346.4,
+        "vas_l": 22.3,
         "xmax_mm": 9.0
       },
+      "model": "27K",
+      "name": "USER: Focal 27K",
+      "price": 0.0,
       "raw": {
+        "bl_tm": 12.7,
         "fs_hz": 50.1,
-        "re_ohm": 4.5,
-        "qts": 0.6,
-        "qes": 0.67,
-        "qms": 5.61,
         "le_mh": 1.79,
         "mms_g": 76.0,
-        "vas_l": 22.3,
+        "qes": 0.67,
+        "qms": 5.61,
+        "qts": 0.6,
+        "re_ohm": 4.5,
         "sd_cm2": 346.4,
-        "xmax_mm": 9.0,
-        "bl_tm": 12.7
+        "vas_l": 22.3,
+        "xmax_mm": 9.0
+      },
+      "size_in": 11.0,
+      "source": "User Specification"
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 24.5,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 38.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.36,
+        "mms_g": 163.0,
+        "pe_w": 1000.0,
+        "qms": 8.75,
+        "qts": 0.34,
+        "re_ohm": 5.5,
+        "sd_cm2": 1134.0,
+        "vas_l": 196.3,
+        "xmax_mm": 9.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "18HP1040",
+      "name": "WEB: FaitalPRO 18HP1040",
+      "raw": {
+        "bl_tm": 24.5,
+        "fs_hz": 38.0,
+        "le_mh": 1.36,
+        "mms_g": 163.0,
+        "pe_w": 1000.0,
+        "qes": 0.35,
+        "qms": 8.75,
+        "qts": 0.34,
+        "re_ohm": 5.5,
+        "sd_cm2": 1134.0,
+        "vas_l": 196.3,
+        "xmax_mm": 9.0
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201070120",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:41+00:00",
+        "model": "18HP1040",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "24.5",
+            "unit": "N/A",
+            "value": 24.5
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "38",
+            "unit": "Hz",
+            "value": 38.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "1.36",
+            "unit": "mH",
+            "value": 1.36
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "163.0",
+            "unit": "g",
+            "value": 163.0
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "1000",
+            "unit": "W",
+            "value": 1000.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.35",
+            "unit": "",
+            "value": 0.35
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "8.75",
+            "unit": "",
+            "value": 8.75
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.34",
+            "unit": "",
+            "value": 0.34
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.5",
+            "unit": "Ohm",
+            "value": 5.5
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "1134",
+            "unit": "cm^2",
+            "value": 1134.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "196.3",
+            "unit": "dm^3",
+            "value": 196.3
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "9.00",
+            "unit": "mm",
+            "value": 9.0
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | 18HP1040",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201070120"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 28.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 35.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.7,
+        "mms_g": 182.0,
+        "pe_w": 1000.0,
+        "qms": 9.74,
+        "qts": 0.27,
+        "re_ohm": 5.4,
+        "sd_cm2": 1134.0,
+        "vas_l": 207.2,
+        "xmax_mm": 9.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "18HP1020",
+      "name": "WEB: FaitalPRO 18HP1020",
+      "raw": {
+        "bl_tm": 28.0,
+        "fs_hz": 35.0,
+        "le_mh": 1.7,
+        "mms_g": 182.0,
+        "pe_w": 1000.0,
+        "qes": 0.28,
+        "qms": 9.74,
+        "qts": 0.27,
+        "re_ohm": 5.4,
+        "sd_cm2": 1134.0,
+        "vas_l": 207.2,
+        "xmax_mm": 9.5
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201070110",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:42+00:00",
+        "model": "18HP1020",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "28",
+            "unit": "N/A",
+            "value": 28.0
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "35",
+            "unit": "Hz",
+            "value": 35.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "1.7",
+            "unit": "mH",
+            "value": 1.7
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "182.0",
+            "unit": "g",
+            "value": 182.0
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "1000",
+            "unit": "W",
+            "value": 1000.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.28",
+            "unit": "",
+            "value": 0.28
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "9.74",
+            "unit": "",
+            "value": 9.74
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.27",
+            "unit": "",
+            "value": 0.27
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohm",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "1134",
+            "unit": "cm^2",
+            "value": 1134.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "207.2",
+            "unit": "dm^3",
+            "value": 207.2
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "9.50",
+            "unit": "mm",
+            "value": 9.5
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | 18HP1020",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201070110"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 27.6,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 35.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.6,
+        "mms_g": 178.7,
+        "pe_w": 1000.0,
+        "qms": 10.6,
+        "qts": 0.27,
+        "re_ohm": 5.4,
+        "sd_cm2": 1136.0,
+        "vas_l": 211.8,
+        "xmax_mm": 9.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W18N8-1000",
+      "name": "WEB: FaitalPRO W18N8-1000",
+      "raw": {
+        "bl_tm": 27.6,
+        "fs_hz": 35.0,
+        "le_mh": 1.6,
+        "mms_g": 178.7,
+        "pe_w": 1000.0,
+        "qes": 0.28,
+        "qms": 10.6,
+        "qts": 0.27,
+        "re_ohm": 5.4,
+        "sd_cm2": 1136.0,
+        "vas_l": 211.8,
+        "xmax_mm": 9.5
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201070100",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:43+00:00",
+        "model": "W18N8-1000",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "27.6",
+            "unit": "N/A",
+            "value": 27.6
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "35",
+            "unit": "Hz",
+            "value": 35.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "1.6",
+            "unit": "mH",
+            "value": 1.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "178.7",
+            "unit": "g",
+            "value": 178.7
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "1000",
+            "unit": "W",
+            "value": 1000.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.28",
+            "unit": "",
+            "value": 0.28
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "10.60",
+            "unit": "",
+            "value": 10.6
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.27",
+            "unit": "",
+            "value": 0.27
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohm",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "1136",
+            "unit": "cm^2",
+            "value": 1136.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "211.8",
+            "unit": "dm^3",
+            "value": 211.8
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "9.50",
+            "unit": "mm",
+            "value": 9.5
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | W18N8-1000",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201070100"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 28.1,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 31.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.45,
+        "mms_g": 236.0,
+        "pe_w": 1500.0,
+        "qms": 7.4,
+        "qts": 0.31,
+        "re_ohm": 5.4,
+        "sd_cm2": 1174.0,
+        "vas_l": 205.0,
+        "xmax_mm": 12.9
+      },
+      "kind": "Loudspeaker driver",
+      "model": "18XL1500",
+      "name": "WEB: FaitalPRO 18XL1500",
+      "raw": {
+        "bl_tm": 28.1,
+        "fs_hz": 31.0,
+        "le_mh": 1.45,
+        "mms_g": 236.0,
+        "pe_w": 1500.0,
+        "qes": 0.33,
+        "qms": 7.4,
+        "qts": 0.31,
+        "re_ohm": 5.4,
+        "sd_cm2": 1174.0,
+        "vas_l": 205.0,
+        "xmax_mm": 12.9
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201070130",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:44+00:00",
+        "model": "18XL1500",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "28.1",
+            "unit": "N/A",
+            "value": 28.1
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "31",
+            "unit": "Hz",
+            "value": 31.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "1.45",
+            "unit": "mH",
+            "value": 1.45
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "236",
+            "unit": "g",
+            "value": 236.0
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "1500",
+            "unit": "W",
+            "value": 1500.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.33",
+            "unit": "",
+            "value": 0.33
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "7.40",
+            "unit": "",
+            "value": 7.4
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.31",
+            "unit": "",
+            "value": 0.31
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohm",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "1174",
+            "unit": "cm^2",
+            "value": 1174.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "205",
+            "unit": "dm^3",
+            "value": 205.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "12.90",
+            "unit": "mm",
+            "value": 12.9
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | 18XL1500",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201070130"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 26.9,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 35.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.6,
+        "mms_g": 125.0,
+        "pe_w": 700.0,
+        "qms": 9.48,
+        "qts": 0.2,
+        "re_ohm": 5.4,
+        "sd_cm2": 756.2,
+        "vas_l": 134.2,
+        "xmax_mm": 9.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W15N8-700",
+      "name": "WEB: FaitalPRO W15N8-700",
+      "raw": {
+        "bl_tm": 26.9,
+        "fs_hz": 35.0,
+        "le_mh": 1.6,
+        "mms_g": 125.0,
+        "pe_w": 700.0,
+        "qes": 0.2,
+        "qms": 9.48,
+        "qts": 0.2,
+        "re_ohm": 5.4,
+        "sd_cm2": 756.2,
+        "vas_l": 134.2,
+        "xmax_mm": 9.5
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201060100",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:45+00:00",
+        "model": "W15N8-700",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "26.9",
+            "unit": "N/A",
+            "value": 26.9
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "35",
+            "unit": "Hz",
+            "value": 35.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "1.6",
+            "unit": "mH",
+            "value": 1.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "125",
+            "unit": "g",
+            "value": 125.0
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "700",
+            "unit": "W",
+            "value": 700.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.20",
+            "unit": "",
+            "value": 0.2
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "9.48",
+            "unit": "",
+            "value": 9.48
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.20",
+            "unit": "",
+            "value": 0.2
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohm",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "756.2",
+            "unit": "cm^2",
+            "value": 756.2
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "134.2",
+            "unit": "dm^3",
+            "value": 134.2
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "9.50",
+            "unit": "mm",
+            "value": 9.5
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | W15N8-700",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201060100"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 16.1,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 50.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.78,
+        "mms_g": 52.3,
+        "pe_w": 350.0,
+        "qms": 6.91,
+        "qts": 0.3,
+        "re_ohm": 5.1,
+        "sd_cm2": 486.5,
+        "vas_l": 65.0,
+        "xmax_mm": 5.75
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W12N8-350",
+      "name": "WEB: FaitalPRO W12N8-350",
+      "raw": {
+        "bl_tm": 16.1,
+        "fs_hz": 50.0,
+        "le_mh": 0.78,
+        "mms_g": 52.3,
+        "pe_w": 350.0,
+        "qes": 0.32,
+        "qms": 6.91,
+        "qts": 0.3,
+        "re_ohm": 5.1,
+        "sd_cm2": 486.5,
+        "vas_l": 65.0,
+        "xmax_mm": 5.75
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101050150",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:46+00:00",
+        "model": "W12N8-350",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "16.1",
+            "unit": "N/A",
+            "value": 16.1
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "Hz",
+            "value": 50.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "0.78",
+            "unit": "mH",
+            "value": 0.78
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "52.3",
+            "unit": "g",
+            "value": 52.3
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "350",
+            "unit": "W",
+            "value": 350.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.32",
+            "unit": "",
+            "value": 0.32
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "6.91",
+            "unit": "",
+            "value": 6.91
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.30",
+            "unit": "",
+            "value": 0.3
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.1",
+            "unit": "Ohm",
+            "value": 5.1
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "486.5",
+            "unit": "cm^2",
+            "value": 486.5
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "65",
+            "unit": "dm^3",
+            "value": 65.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "5.75",
+            "unit": "mm",
+            "value": 5.75
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | W12N8-350",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101050150"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 13.7,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 50.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.56,
+        "mms_g": 44.7,
+        "pe_w": 200.0,
+        "qms": 7.2,
+        "qts": 0.38,
+        "re_ohm": 5.4,
+        "sd_cm2": 490.4,
+        "vas_l": 77.3,
+        "xmax_mm": 4.92
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W12N8-200",
+      "name": "WEB: FaitalPRO W12N8-200",
+      "raw": {
+        "bl_tm": 13.7,
+        "fs_hz": 50.0,
+        "le_mh": 0.56,
+        "mms_g": 44.7,
+        "pe_w": 200.0,
+        "qes": 0.4,
+        "qms": 7.2,
+        "qts": 0.38,
+        "re_ohm": 5.4,
+        "sd_cm2": 490.4,
+        "vas_l": 77.3,
+        "xmax_mm": 4.92
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101050100",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:47+00:00",
+        "model": "W12N8-200",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "13.7",
+            "unit": "N/A",
+            "value": 13.7
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "50",
+            "unit": "Hz",
+            "value": 50.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "0.56",
+            "unit": "mH",
+            "value": 0.56
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "44.7",
+            "unit": "g",
+            "value": 44.7
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "200",
+            "unit": "W",
+            "value": 200.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.40",
+            "unit": "",
+            "value": 0.4
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "7.2",
+            "unit": "",
+            "value": 7.2
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.38",
+            "unit": "",
+            "value": 0.38
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohm",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "490.4",
+            "unit": "cm^2",
+            "value": 490.4
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "77.3",
+            "unit": "dm^3",
+            "value": 77.3
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "4.92",
+            "unit": "mm",
+            "value": 4.92
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | W12N8-200",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101050100"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 27.2,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 48.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.5,
+        "mms_g": 102.0,
+        "pe_w": 700.0,
+        "qms": 9.62,
+        "qts": 0.22,
+        "re_ohm": 5.4,
+        "sd_cm2": 520.0,
+        "vas_l": 41.3,
+        "xmax_mm": 9.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W12N8-700",
+      "name": "WEB: FaitalPRO W12N8-700",
+      "raw": {
+        "bl_tm": 27.2,
+        "fs_hz": 48.0,
+        "le_mh": 1.5,
+        "mms_g": 102.0,
+        "pe_w": 700.0,
+        "qes": 0.22,
+        "qms": 9.62,
+        "qts": 0.22,
+        "re_ohm": 5.4,
+        "sd_cm2": 520.0,
+        "vas_l": 41.3,
+        "xmax_mm": 9.5
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201050100",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:48+00:00",
+        "model": "W12N8-700",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "27.2",
+            "unit": "N/A",
+            "value": 27.2
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "48",
+            "unit": "Hz",
+            "value": 48.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "1.5",
+            "unit": "mH",
+            "value": 1.5
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "102",
+            "unit": "g",
+            "value": 102.0
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "700",
+            "unit": "W",
+            "value": 700.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.22",
+            "unit": "",
+            "value": 0.22
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "9.62",
+            "unit": "",
+            "value": 9.62
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.22",
+            "unit": "",
+            "value": 0.22
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohm",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "520",
+            "unit": "cm^2",
+            "value": 520.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "41.3",
+            "unit": "dm^3",
+            "value": 41.3
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "9.50",
+            "unit": "mm",
+            "value": 9.5
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | W12N8-700",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201050100"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 13.8,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 60.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.56,
+        "mms_g": 34.4,
+        "pe_w": 200.0,
+        "qms": 6.21,
+        "qts": 0.35,
+        "re_ohm": 5.4,
+        "sd_cm2": 319.0,
+        "vas_l": 29.5,
+        "xmax_mm": 4.92
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W10N8-200",
+      "name": "WEB: FaitalPRO W10N8-200",
+      "raw": {
+        "bl_tm": 13.8,
+        "fs_hz": 60.0,
+        "le_mh": 0.56,
+        "mms_g": 34.4,
+        "pe_w": 200.0,
+        "qes": 0.37,
+        "qms": 6.21,
+        "qts": 0.35,
+        "re_ohm": 5.4,
+        "sd_cm2": 319.0,
+        "vas_l": 29.5,
+        "xmax_mm": 4.92
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101040100",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:49+00:00",
+        "model": "W10N8-200",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "13.8",
+            "unit": "N/A",
+            "value": 13.8
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "60",
+            "unit": "Hz",
+            "value": 60.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "0.56",
+            "unit": "mH",
+            "value": 0.56
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "34.4",
+            "unit": "g",
+            "value": 34.4
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "200",
+            "unit": "W",
+            "value": 200.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.37",
+            "unit": "",
+            "value": 0.37
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "6.21",
+            "unit": "",
+            "value": 6.21
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.35",
+            "unit": "",
+            "value": 0.35
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohm",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "319",
+            "unit": "cm^2",
+            "value": 319.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "29.5",
+            "unit": "dm^3",
+            "value": 29.5
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "4.92",
+            "unit": "mm",
+            "value": 4.92
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | W10N8-200",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101040100"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 24.7,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 56.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.95,
+        "mms_g": 64.8,
+        "pe_w": 700.0,
+        "qms": 7.32,
+        "qts": 0.2,
+        "re_ohm": 5.5,
+        "sd_cm2": 319.0,
+        "vas_l": 18.0,
+        "xmax_mm": 9.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W10N8-700",
+      "name": "WEB: FaitalPRO W10N8-700",
+      "raw": {
+        "bl_tm": 24.7,
+        "fs_hz": 56.0,
+        "le_mh": 0.95,
+        "mms_g": 64.8,
+        "pe_w": 700.0,
+        "qes": 0.2,
+        "qms": 7.32,
+        "qts": 0.2,
+        "re_ohm": 5.5,
+        "sd_cm2": 319.0,
+        "vas_l": 18.0,
+        "xmax_mm": 9.0
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201040100",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:50+00:00",
+        "model": "W10N8-700",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "24.7",
+            "unit": "N/A",
+            "value": 24.7
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "56",
+            "unit": "Hz",
+            "value": 56.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "0.95",
+            "unit": "mH",
+            "value": 0.95
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "64.8",
+            "unit": "g",
+            "value": 64.8
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "700",
+            "unit": "W",
+            "value": 700.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.20",
+            "unit": "",
+            "value": 0.2
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "7.32",
+            "unit": "",
+            "value": 7.32
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.20",
+            "unit": "",
+            "value": 0.2
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.5",
+            "unit": "Ohm",
+            "value": 5.5
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "319",
+            "unit": "cm^2",
+            "value": 319.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "18",
+            "unit": "dm^3",
+            "value": 18.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "9.00",
+            "unit": "mm",
+            "value": 9.0
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | W10N8-700",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=201040100"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 15.5,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 60.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.71,
+        "mms_g": 32.2,
+        "pe_w": 350.0,
+        "qms": 6.18,
+        "qts": 0.25,
+        "re_ohm": 5.1,
+        "sd_cm2": 319.0,
+        "vas_l": 31.5,
+        "xmax_mm": 5.75
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W10N8-350",
+      "name": "WEB: FaitalPRO W10N8-350",
+      "raw": {
+        "bl_tm": 15.5,
+        "fs_hz": 60.0,
+        "le_mh": 0.71,
+        "mms_g": 32.2,
+        "pe_w": 350.0,
+        "qes": 0.26,
+        "qms": 6.18,
+        "qts": 0.25,
+        "re_ohm": 5.1,
+        "sd_cm2": 319.0,
+        "vas_l": 31.5,
+        "xmax_mm": 5.75
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101040150",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:51+00:00",
+        "model": "W10N8-350",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "15.5",
+            "unit": "N/A",
+            "value": 15.5
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "60",
+            "unit": "Hz",
+            "value": 60.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "0.71",
+            "unit": "mH",
+            "value": 0.71
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "32.2",
+            "unit": "g",
+            "value": 32.2
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "350",
+            "unit": "W",
+            "value": 350.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.26",
+            "unit": "",
+            "value": 0.26
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "6.18",
+            "unit": "",
+            "value": 6.18
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.25",
+            "unit": "",
+            "value": 0.25
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.1",
+            "unit": "Ohm",
+            "value": 5.1
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "319",
+            "unit": "cm^2",
+            "value": 319.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "31.5",
+            "unit": "dm^3",
+            "value": 31.5
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "5.75",
+            "unit": "mm",
+            "value": 5.75
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | W10N8-350",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101040150"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 8.9,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 74.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.6,
+        "mms_g": 23.0,
+        "pe_w": 200.0,
+        "qms": 5.3,
+        "qts": 0.61,
+        "re_ohm": 5.1,
+        "sd_cm2": 177.0,
+        "vas_l": 9.0,
+        "xmax_mm": 8.48
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W8N8-200",
+      "name": "WEB: FaitalPRO W8N8-200",
+      "raw": {
+        "bl_tm": 8.9,
+        "fs_hz": 74.0,
+        "le_mh": 0.6,
+        "mms_g": 23.0,
+        "pe_w": 200.0,
+        "qes": 0.69,
+        "qms": 5.3,
+        "qts": 0.61,
+        "re_ohm": 5.1,
+        "sd_cm2": 177.0,
+        "vas_l": 9.0,
+        "xmax_mm": 8.48
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101030150",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:52+00:00",
+        "model": "W8N8-200",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "8.9",
+            "unit": "N/A",
+            "value": 8.9
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "74",
+            "unit": "Hz",
+            "value": 74.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "0.6",
+            "unit": "mH",
+            "value": 0.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "23.0",
+            "unit": "g",
+            "value": 23.0
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "200",
+            "unit": "W",
+            "value": 200.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.69",
+            "unit": "",
+            "value": 0.69
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "5.3",
+            "unit": "",
+            "value": 5.3
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.61",
+            "unit": "",
+            "value": 0.61
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.1",
+            "unit": "Ohm",
+            "value": 5.1
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "177",
+            "unit": "cm^2",
+            "value": 177.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "9",
+            "unit": "dm^3",
+            "value": 9.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "8.48",
+            "unit": "mm",
+            "value": 8.48
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | W8N8-200",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101030150"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 9.9,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 76.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.55,
+        "mms_g": 20.9,
+        "pe_w": 150.0,
+        "qms": 4.7,
+        "qts": 0.52,
+        "re_ohm": 5.8,
+        "sd_cm2": 222.0,
+        "vas_l": 14.4,
+        "xmax_mm": 5.52
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W8N8-150",
+      "name": "WEB: FaitalPRO W8N8-150",
+      "raw": {
+        "bl_tm": 9.9,
+        "fs_hz": 76.0,
+        "le_mh": 0.55,
+        "mms_g": 20.9,
+        "pe_w": 150.0,
+        "qes": 0.59,
+        "qms": 4.7,
+        "qts": 0.52,
+        "re_ohm": 5.8,
+        "sd_cm2": 222.0,
+        "vas_l": 14.4,
+        "xmax_mm": 5.52
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101030100",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:53+00:00",
+        "model": "W8N8-150",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "9.9",
+            "unit": "N/A",
+            "value": 9.9
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "76",
+            "unit": "Hz",
+            "value": 76.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "0.55",
+            "unit": "mH",
+            "value": 0.55
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "20.9",
+            "unit": "g",
+            "value": 20.9
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "150",
+            "unit": "W",
+            "value": 150.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.59",
+            "unit": "",
+            "value": 0.59
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.7",
+            "unit": "",
+            "value": 4.7
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.52",
+            "unit": "",
+            "value": 0.52
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.8",
+            "unit": "Ohm",
+            "value": 5.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "222",
+            "unit": "cm^2",
+            "value": 222.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "14.4",
+            "unit": "dm^3",
+            "value": 14.4
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "5.52",
+            "unit": "mm",
+            "value": 5.52
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | W8N8-150",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101030100"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 10.8,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 100.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.25,
+        "mms_g": 12.0,
+        "pe_w": 150.0,
+        "qms": 5.8,
+        "qts": 0.32,
+        "re_ohm": 5.3,
+        "sd_cm2": 114.0,
+        "vas_l": 3.89,
+        "xmax_mm": 3.9
+      },
+      "kind": "Loudspeaker driver",
+      "model": "M6N8-150",
+      "name": "WEB: FaitalPRO M6N8-150",
+      "raw": {
+        "bl_tm": 10.8,
+        "fs_hz": 100.0,
+        "le_mh": 0.25,
+        "mms_g": 12.0,
+        "pe_w": 150.0,
+        "qes": 0.34,
+        "qms": 5.8,
+        "qts": 0.32,
+        "re_ohm": 5.3,
+        "sd_cm2": 114.0,
+        "vas_l": 3.89,
+        "xmax_mm": 3.9
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101020100",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:54+00:00",
+        "model": "M6N8-150",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "10.8",
+            "unit": "N/A",
+            "value": 10.8
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "100",
+            "unit": "Hz",
+            "value": 100.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "0.25",
+            "unit": "mH",
+            "value": 0.25
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "12",
+            "unit": "g",
+            "value": 12.0
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "150",
+            "unit": "W",
+            "value": 150.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.34",
+            "unit": "",
+            "value": 0.34
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "5.8",
+            "unit": "",
+            "value": 5.8
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.32",
+            "unit": "",
+            "value": 0.32
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.3",
+            "unit": "Ohm",
+            "value": 5.3
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "114",
+            "unit": "cm^2",
+            "value": 114.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "3.89",
+            "unit": "dm^3",
+            "value": 3.89
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "3.90",
+            "unit": "mm",
+            "value": 3.9
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | M6N8-150",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101020100"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 10.3,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 100.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.35,
+        "mms_g": 11.7,
+        "pe_w": 120.0,
+        "qms": 6.8,
+        "qts": 0.38,
+        "re_ohm": 5.9,
+        "sd_cm2": 113.0,
+        "vas_l": 3.9,
+        "xmax_mm": 5.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "W6N8-120",
+      "name": "WEB: FaitalPRO W6N8-120",
+      "raw": {
+        "bl_tm": 10.3,
+        "fs_hz": 100.0,
+        "le_mh": 0.35,
+        "mms_g": 11.7,
+        "pe_w": 120.0,
+        "qes": 0.41,
+        "qms": 6.8,
+        "qts": 0.38,
+        "re_ohm": 5.9,
+        "sd_cm2": 113.0,
+        "vas_l": 3.9,
+        "xmax_mm": 5.0
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101020150",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:55+00:00",
+        "model": "W6N8-120",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "10.3",
+            "unit": "N/A",
+            "value": 10.3
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "100",
+            "unit": "Hz",
+            "value": 100.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "0.35",
+            "unit": "mH",
+            "value": 0.35
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "11.7",
+            "unit": "g",
+            "value": 11.7
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "120",
+            "unit": "W",
+            "value": 120.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.41",
+            "unit": "",
+            "value": 0.41
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "6.8",
+            "unit": "",
+            "value": 6.8
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.38",
+            "unit": "",
+            "value": 0.38
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.9",
+            "unit": "Ohm",
+            "value": 5.9
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "113",
+            "unit": "cm^2",
+            "value": 113.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "3.9",
+            "unit": "dm^3",
+            "value": 3.9
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "5.00",
+            "unit": "mm",
+            "value": 5.0
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | W6N8-120",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101020150"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 9.6,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 180.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.22,
+        "mms_g": 6.8,
+        "pe_w": 80.0,
+        "qms": 1.9,
+        "qts": 0.36,
+        "re_ohm": 5.5,
+        "sd_cm2": 102.0,
+        "vas_l": 1.7,
+        "xmax_mm": 2.75
+      },
+      "kind": "Loudspeaker driver",
+      "model": "M5N8-80",
+      "name": "WEB: FaitalPRO M5N8-80",
+      "raw": {
+        "bl_tm": 9.6,
+        "fs_hz": 180.0,
+        "le_mh": 0.22,
+        "mms_g": 6.8,
+        "pe_w": 80.0,
+        "qes": 0.45,
+        "qms": 1.9,
+        "qts": 0.36,
+        "re_ohm": 5.5,
+        "sd_cm2": 102.0,
+        "vas_l": 1.7,
+        "xmax_mm": 2.75
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101010100",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:56+00:00",
+        "model": "M5N8-80",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "9.6",
+            "unit": "N/A",
+            "value": 9.6
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "180",
+            "unit": "Hz",
+            "value": 180.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "0.22",
+            "unit": "mH",
+            "value": 0.22
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "6.8",
+            "unit": "g",
+            "value": 6.8
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "80",
+            "unit": "W",
+            "value": 80.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.45",
+            "unit": "",
+            "value": 0.45
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "1.9",
+            "unit": "",
+            "value": 1.9
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.36",
+            "unit": "",
+            "value": 0.36
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "5.5",
+            "unit": "Ohm",
+            "value": 5.5
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "102",
+            "unit": "cm^2",
+            "value": 102.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "1.7",
+            "unit": "dm^3",
+            "value": 1.7
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "2.75",
+            "unit": "mm",
+            "value": 2.75
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | M5N8-80",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101010100"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 4.8,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 100.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.18,
+        "mms_g": 4.2,
+        "pe_w": 30.0,
+        "qms": 4.9,
+        "qts": 0.6,
+        "re_ohm": 6.5,
+        "sd_cm2": 48.0,
+        "vas_l": 2.0,
+        "xmax_mm": 2.73
+      },
+      "kind": "Loudspeaker driver",
+      "model": "4FE30",
+      "name": "WEB: FaitalPRO 4FE30",
+      "raw": {
+        "bl_tm": 4.8,
+        "fs_hz": 100.0,
+        "le_mh": 0.18,
+        "mms_g": 4.2,
+        "pe_w": 30.0,
+        "qes": 0.7,
+        "qms": 4.9,
+        "qts": 0.6,
+        "re_ohm": 6.5,
+        "sd_cm2": 48.0,
+        "vas_l": 2.0,
+        "xmax_mm": 2.73
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=401005090",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:57+00:00",
+        "model": "4FE30",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "4.8",
+            "unit": "N/A",
+            "value": 4.8
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "100",
+            "unit": "Hz",
+            "value": 100.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "0.18",
+            "unit": "mH",
+            "value": 0.18
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "4.2",
+            "unit": "g",
+            "value": 4.2
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "30",
+            "unit": "W",
+            "value": 30.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.70",
+            "unit": "",
+            "value": 0.7
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "4.9",
+            "unit": "",
+            "value": 4.9
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.60",
+            "unit": "",
+            "value": 0.6
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "6.5",
+            "unit": "Ohm",
+            "value": 6.5
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "48",
+            "unit": "cm^2",
+            "value": 48.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "2",
+            "unit": "dm^3",
+            "value": 2.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "2.73",
+            "unit": "mm",
+            "value": 2.73
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | 4FE30",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=401005090"
+      }
+    },
+    {
+      "brand": "FaitalPRO",
+      "driver": {
+        "bl_tm": 4.5,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 110.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.15,
+        "mms_g": 2.5,
+        "pe_w": 20.0,
+        "qms": 5.0,
+        "qts": 0.47,
+        "re_ohm": 6.2,
+        "sd_cm2": 30.2,
+        "vas_l": 1.1,
+        "xmax_mm": 1.83
+      },
+      "kind": "Loudspeaker driver",
+      "model": "3FE20",
+      "name": "WEB: FaitalPRO 3FE20",
+      "raw": {
+        "bl_tm": 4.5,
+        "fs_hz": 110.0,
+        "le_mh": 0.15,
+        "mms_g": 2.5,
+        "pe_w": 20.0,
+        "qes": 0.5,
+        "qms": 5.0,
+        "qts": 0.47,
+        "re_ohm": 6.2,
+        "sd_cm2": 30.2,
+        "vas_l": 1.1,
+        "xmax_mm": 1.83
+      },
+      "size_in": null,
+      "source": "FaitalPRO Archived Products",
+      "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=401000090",
+      "website_fields": {
+        "brand": "FaitalPRO",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:30:58+00:00",
+        "model": "3FE20",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "html.text",
+            "raw_value": "4.5",
+            "unit": "N/A",
+            "value": 4.5
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "html.text",
+            "raw_value": "110",
+            "unit": "Hz",
+            "value": 110.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "html.text",
+            "raw_value": "0.15",
+            "unit": "mH",
+            "value": 0.15
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "2.5",
+            "unit": "g",
+            "value": 2.5
+          },
+          "pe_w": {
+            "label": "Power Handling",
+            "method": "html.text",
+            "raw_value": "20",
+            "unit": "W",
+            "value": 20.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.50",
+            "unit": "",
+            "value": 0.5
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "5.0",
+            "unit": "",
+            "value": 5.0
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.47",
+            "unit": "",
+            "value": 0.47
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "html.text",
+            "raw_value": "6.2",
+            "unit": "Ohm",
+            "value": 6.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "30.2",
+            "unit": "cm^2",
+            "value": 30.2
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "1.10",
+            "unit": "dm^3",
+            "value": 1.1
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "1.83",
+            "unit": "mm",
+            "value": 1.83
+          }
+        },
+        "source": "FaitalPRO Archived Products",
+        "title": "FaitalPRO | LF Loudspeakers | 3FE20",
+        "url": "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=401000090"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 16.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 63.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.7,
+        "mms_g": 38.0,
+        "pe_w": 250.0,
+        "qms": 5.4,
+        "qts": 0.32,
+        "re_ohm": 5.6,
+        "sd_cm2": 320.0,
+        "vas_l": 23.0,
+        "xmax_mm": 5.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "10FL64",
+      "name": "WEB: B&C Speakers 10FL64",
+      "raw": {
+        "bl_tm": 16.0,
+        "fs_hz": 63.0,
+        "le_mh": 0.7,
+        "mms_g": 38.0,
+        "pe_w": 250.0,
+        "qes": 0.34,
+        "qms": 5.4,
+        "qts": 0.32,
+        "re_ohm": 5.6,
+        "sd_cm2": 320.0,
+        "vas_l": 23.0,
+        "xmax_mm": 5.0
+      },
+      "size_in": 10.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10FL64",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:37:36+00:00",
+        "model": "10FL64",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "16",
+            "unit": "Tm",
+            "value": 16.0
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "63",
+            "unit": "Hz",
+            "value": 63.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "0.7",
+            "unit": "mH",
+            "value": 0.7
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "38",
+            "unit": "g",
+            "value": 38.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "250",
+            "unit": "W",
+            "value": 250.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.34",
+            "unit": "",
+            "value": 0.34
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "5.4",
+            "unit": "",
+            "value": 5.4
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.32",
+            "unit": "",
+            "value": 0.32
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5.6",
+            "unit": "\u03a9",
+            "value": 5.6
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "320",
+            "unit": "cm\u00b2",
+            "value": 320.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "23",
+            "unit": "dm\u00b3",
+            "value": 23.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "jsonld.field",
+            "raw_value": "5",
+            "unit": "mm",
+            "value": 5.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "10FL64",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10FL64"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 18.4,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 52.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.32,
+        "mms_g": 43.0,
+        "pe_w": 400.0,
+        "qms": 3.4,
+        "qts": 0.19,
+        "re_ohm": 4.8,
+        "sd_cm2": 320.0,
+        "vas_l": 31.0,
+        "xmax_mm": 6.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "10PLB76",
+      "name": "WEB: B&C Speakers 10PLB76",
+      "raw": {
+        "bl_tm": 18.4,
+        "fs_hz": 52.0,
+        "le_mh": 0.32,
+        "mms_g": 43.0,
+        "pe_w": 400.0,
+        "qes": 0.2,
+        "qms": 3.4,
+        "qts": 0.19,
+        "re_ohm": 4.8,
+        "sd_cm2": 320.0,
+        "vas_l": 31.0,
+        "xmax_mm": 6.0
+      },
+      "size_in": 10.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10PLB76",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:37:40+00:00",
+        "model": "10PLB76",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "18.4",
+            "unit": "Tm",
+            "value": 18.4
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "52",
+            "unit": "Hz",
+            "value": 52.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "0.32",
+            "unit": "mH",
+            "value": 0.32
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "43",
+            "unit": "g",
+            "value": 43.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "400",
+            "unit": "W",
+            "value": 400.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.2",
+            "unit": "",
+            "value": 0.2
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "3.4",
+            "unit": "",
+            "value": 3.4
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.19",
+            "unit": "",
+            "value": 0.19
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "4.8",
+            "unit": "\u03a9",
+            "value": 4.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "320",
+            "unit": "cm\u00b2",
+            "value": 320.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "31",
+            "unit": "dm\u00b3",
+            "value": 31.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "jsonld.field",
+            "raw_value": "6",
+            "unit": "mm",
+            "value": 6.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "10PLB76",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10PLB76"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 15.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 61.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.5,
+        "mms_g": 29.0,
+        "pe_w": 200.0,
+        "qms": 4.5,
+        "qts": 0.31,
+        "re_ohm": 5.4,
+        "sd_cm2": 320.0,
+        "vas_l": 32.0,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "10HPL64",
+      "name": "WEB: B&C Speakers 10HPL64",
+      "raw": {
+        "bl_tm": 15.0,
+        "fs_hz": 61.0,
+        "le_mh": 0.5,
+        "mms_g": 29.0,
+        "pe_w": 200.0,
+        "qes": 0.33,
+        "qms": 4.5,
+        "qts": 0.31,
+        "re_ohm": 5.4,
+        "sd_cm2": 320.0,
+        "vas_l": 32.0,
+        "xmax_mm": 4.0
+      },
+      "size_in": 10.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10HPL64",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:37:43+00:00",
+        "model": "10HPL64",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "15",
+            "unit": "Tm",
+            "value": 15.0
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "61",
+            "unit": "Hz",
+            "value": 61.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "0.5",
+            "unit": "mH",
+            "value": 0.5
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "29",
+            "unit": "g",
+            "value": 29.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "200",
+            "unit": "W",
+            "value": 200.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.33",
+            "unit": "",
+            "value": 0.33
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "4.5",
+            "unit": "",
+            "value": 4.5
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.31",
+            "unit": "",
+            "value": 0.31
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5.4",
+            "unit": "\u03a9",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "320",
+            "unit": "cm\u00b2",
+            "value": 320.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "32",
+            "unit": "dm\u00b3",
+            "value": 32.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "jsonld.field",
+            "raw_value": "4",
+            "unit": "mm",
+            "value": 4.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "10HPL64",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/10/-/10HPL64"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 20.2,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 51.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.6,
+        "mms_g": 75.0,
+        "pe_w": 250.0,
+        "qms": 6.6,
+        "qts": 0.32,
+        "re_ohm": 5.7,
+        "sd_cm2": 522.0,
+        "vas_l": 50.0,
+        "xmax_mm": 5.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "12FL64",
+      "name": "WEB: B&C Speakers 12FL64",
+      "raw": {
+        "bl_tm": 20.2,
+        "fs_hz": 51.0,
+        "le_mh": 1.6,
+        "mms_g": 75.0,
+        "pe_w": 250.0,
+        "qes": 0.34,
+        "qms": 6.6,
+        "qts": 0.32,
+        "re_ohm": 5.7,
+        "sd_cm2": 522.0,
+        "vas_l": 50.0,
+        "xmax_mm": 5.0
+      },
+      "size_in": 12.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12FL64",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:37:45+00:00",
+        "model": "12FL64",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "20.2",
+            "unit": "Tm",
+            "value": 20.2
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "51",
+            "unit": "Hz",
+            "value": 51.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.6",
+            "unit": "mH",
+            "value": 1.6
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "75",
+            "unit": "g",
+            "value": 75.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "250",
+            "unit": "W",
+            "value": 250.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.34",
+            "unit": "",
+            "value": 0.34
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "6.6",
+            "unit": "",
+            "value": 6.6
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.32",
+            "unit": "",
+            "value": 0.32
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5.7",
+            "unit": "\u03a9",
+            "value": 5.7
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "522",
+            "unit": "cm\u00b2",
+            "value": 522.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "50",
+            "unit": "dm\u00b3",
+            "value": 50.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "jsonld.field",
+            "raw_value": "5",
+            "unit": "mm",
+            "value": 5.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "12FL64",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12FL64"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 14.9,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 52.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.1,
+        "mms_g": 42.0,
+        "pe_w": 200.0,
+        "qms": 3.3,
+        "qts": 0.32,
+        "re_ohm": 6.0,
+        "sd_cm2": 522.0,
+        "vas_l": 85.0,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "12HPL64",
+      "name": "WEB: B&C Speakers 12HPL64",
+      "raw": {
+        "bl_tm": 14.9,
+        "fs_hz": 52.0,
+        "le_mh": 1.1,
+        "mms_g": 42.0,
+        "pe_w": 200.0,
+        "qes": 0.35,
+        "qms": 3.3,
+        "qts": 0.32,
+        "re_ohm": 6.0,
+        "sd_cm2": 522.0,
+        "vas_l": 85.0,
+        "xmax_mm": 4.0
+      },
+      "size_in": 12.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12HPL64",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:37:56+00:00",
+        "model": "12HPL64",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "14.9",
+            "unit": "Tm",
+            "value": 14.9
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "52",
+            "unit": "Hz",
+            "value": 52.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.1",
+            "unit": "mH",
+            "value": 1.1
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "42",
+            "unit": "g",
+            "value": 42.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "200",
+            "unit": "W",
+            "value": 200.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.35",
+            "unit": "",
+            "value": 0.35
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "3.3",
+            "unit": "",
+            "value": 3.3
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.32",
+            "unit": "",
+            "value": 0.32
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "6",
+            "unit": "\u03a9",
+            "value": 6.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "522",
+            "unit": "cm\u00b2",
+            "value": 522.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "85",
+            "unit": "dm\u00b3",
+            "value": 85.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "jsonld.field",
+            "raw_value": "4",
+            "unit": "mm",
+            "value": 4.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "12HPL64",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12HPL64"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 17.3,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 49.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.5,
+        "mms_g": 43.0,
+        "pe_w": 350.0,
+        "qms": 2.5,
+        "qts": 0.25,
+        "re_ohm": 6.0,
+        "sd_cm2": 522.0,
+        "vas_l": 91.0,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "12HPL76",
+      "name": "WEB: B&C Speakers 12HPL76",
+      "raw": {
+        "bl_tm": 17.3,
+        "fs_hz": 49.0,
+        "le_mh": 1.5,
+        "mms_g": 43.0,
+        "pe_w": 350.0,
+        "qes": 0.26,
+        "qms": 2.5,
+        "qts": 0.25,
+        "re_ohm": 6.0,
+        "sd_cm2": 522.0,
+        "vas_l": 91.0,
+        "xmax_mm": 4.0
+      },
+      "size_in": 12.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12HPL76",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:37:57+00:00",
+        "model": "12HPL76",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "17.3",
+            "unit": "Tm",
+            "value": 17.3
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "49",
+            "unit": "Hz",
+            "value": 49.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.5",
+            "unit": "mH",
+            "value": 1.5
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "43",
+            "unit": "g",
+            "value": 43.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "350",
+            "unit": "W",
+            "value": 350.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.26",
+            "unit": "",
+            "value": 0.26
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "2.5",
+            "unit": "",
+            "value": 2.5
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.25",
+            "unit": "",
+            "value": 0.25
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "6",
+            "unit": "\u03a9",
+            "value": 6.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "522",
+            "unit": "cm\u00b2",
+            "value": 522.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "91",
+            "unit": "dm\u00b3",
+            "value": 91.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "jsonld.field",
+            "raw_value": "4",
+            "unit": "mm",
+            "value": 4.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "12HPL76",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/12/-/12HPL76"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 22.1,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 38.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.3,
+        "mms_g": 106.0,
+        "pe_w": 550.0,
+        "qms": 5.2,
+        "qts": 0.26,
+        "re_ohm": 5.0,
+        "sd_cm2": 855.0,
+        "vas_l": 164.0,
+        "xmax_mm": 7.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "15PS76",
+      "name": "WEB: B&C Speakers 15PS76",
+      "raw": {
+        "bl_tm": 22.1,
+        "fs_hz": 38.0,
+        "le_mh": 1.3,
+        "mms_g": 106.0,
+        "pe_w": 550.0,
+        "qes": 0.28,
+        "qms": 5.2,
+        "qts": 0.26,
+        "re_ohm": 5.0,
+        "sd_cm2": 855.0,
+        "vas_l": 164.0,
+        "xmax_mm": 7.5
+      },
+      "size_in": 15.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15PS76",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:38:00+00:00",
+        "model": "15PS76",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "22.1",
+            "unit": "Tm",
+            "value": 22.1
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "38",
+            "unit": "Hz",
+            "value": 38.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.3",
+            "unit": "mH",
+            "value": 1.3
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "106",
+            "unit": "g",
+            "value": 106.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "550",
+            "unit": "W",
+            "value": 550.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.28",
+            "unit": "",
+            "value": 0.28
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "5.2",
+            "unit": "",
+            "value": 5.2
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.26",
+            "unit": "",
+            "value": 0.26
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5",
+            "unit": "\u03a9",
+            "value": 5.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "855",
+            "unit": "cm\u00b2",
+            "value": 855.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "164",
+            "unit": "dm\u00b3",
+            "value": 164.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "jsonld.field",
+            "raw_value": "7.5",
+            "unit": "mm",
+            "value": 7.5
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "15PS76",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15PS76"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 26.8,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 37.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.7,
+        "mms_g": 121.0,
+        "pe_w": 700.0,
+        "qms": 6.6,
+        "qts": 0.2,
+        "re_ohm": 5.0,
+        "sd_cm2": 855.0,
+        "vas_l": 154.0,
+        "xmax_mm": 7.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "15PL100",
+      "name": "WEB: B&C Speakers 15PL100",
+      "raw": {
+        "bl_tm": 26.8,
+        "fs_hz": 37.0,
+        "le_mh": 1.7,
+        "mms_g": 121.0,
+        "pe_w": 700.0,
+        "qes": 0.21,
+        "qms": 6.6,
+        "qts": 0.2,
+        "re_ohm": 5.0,
+        "sd_cm2": 855.0,
+        "vas_l": 154.0,
+        "xmax_mm": 7.0
+      },
+      "size_in": 15.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15PL100",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:38:07+00:00",
+        "model": "15PL100",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "26.8",
+            "unit": "Tm",
+            "value": 26.8
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "37",
+            "unit": "Hz",
+            "value": 37.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.7",
+            "unit": "mH",
+            "value": 1.7
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "121",
+            "unit": "g",
+            "value": 121.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "700",
+            "unit": "W",
+            "value": 700.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.21",
+            "unit": "",
+            "value": 0.21
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "6.6",
+            "unit": "",
+            "value": 6.6
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.2",
+            "unit": "",
+            "value": 0.2
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5",
+            "unit": "\u03a9",
+            "value": 5.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "855",
+            "unit": "cm\u00b2",
+            "value": 855.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "154",
+            "unit": "dm\u00b3",
+            "value": 154.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "jsonld.field",
+            "raw_value": "7",
+            "unit": "mm",
+            "value": 7.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "15PL100",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15PL100"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 24.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 44.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.2,
+        "mms_g": 154.0,
+        "pe_w": 1000.0,
+        "qms": 5.65,
+        "qts": 0.38,
+        "re_ohm": 5.3,
+        "sd_cm2": 908.0,
+        "vas_l": 100.0,
+        "xmax_mm": 9.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "15RBX100",
+      "name": "WEB: B&C Speakers 15RBX100",
+      "raw": {
+        "bl_tm": 24.0,
+        "fs_hz": 44.0,
+        "le_mh": 1.2,
+        "mms_g": 154.0,
+        "pe_w": 1000.0,
+        "qes": 0.4,
+        "qms": 5.65,
+        "qts": 0.38,
+        "re_ohm": 5.3,
+        "sd_cm2": 908.0,
+        "vas_l": 100.0,
+        "xmax_mm": 9.0
+      },
+      "size_in": 15.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15RBX100",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:38:15+00:00",
+        "model": "15RBX100",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "24",
+            "unit": "Tm",
+            "value": 24.0
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "44",
+            "unit": "Hz",
+            "value": 44.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.2",
+            "unit": "mH",
+            "value": 1.2
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "154",
+            "unit": "g",
+            "value": 154.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "1000",
+            "unit": "W",
+            "value": 1000.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.4",
+            "unit": "",
+            "value": 0.4
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "5.65",
+            "unit": "",
+            "value": 5.65
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.38",
+            "unit": "",
+            "value": 0.38
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5.3",
+            "unit": "\u03a9",
+            "value": 5.3
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "908",
+            "unit": "cm\u00b2",
+            "value": 908.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "100",
+            "unit": "dm\u00b3",
+            "value": 100.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "jsonld.field",
+            "raw_value": "9",
+            "unit": "mm",
+            "value": 9.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "15RBX100",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/15/-/15RBX100"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 25.8,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 39.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.9,
+        "mms_g": 149.0,
+        "pe_w": 600.0,
+        "qms": 6.1,
+        "qts": 0.27,
+        "re_ohm": 5.0,
+        "sd_cm2": 1210.0,
+        "vas_l": 207.0,
+        "xmax_mm": 7.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "18PS76",
+      "name": "WEB: B&C Speakers 18PS76",
+      "raw": {
+        "bl_tm": 25.8,
+        "fs_hz": 39.0,
+        "le_mh": 1.9,
+        "mms_g": 149.0,
+        "pe_w": 600.0,
+        "qes": 0.29,
+        "qms": 6.1,
+        "qts": 0.27,
+        "re_ohm": 5.0,
+        "sd_cm2": 1210.0,
+        "vas_l": 207.0,
+        "xmax_mm": 7.0
+      },
+      "size_in": 18.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18PS76",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:38:20+00:00",
+        "model": "18PS76",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "25.8",
+            "unit": "Tm",
+            "value": 25.8
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "39",
+            "unit": "Hz",
+            "value": 39.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.9",
+            "unit": "mH",
+            "value": 1.9
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "149",
+            "unit": "g",
+            "value": 149.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "600",
+            "unit": "W",
+            "value": 600.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.29",
+            "unit": "",
+            "value": 0.29
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "6.1",
+            "unit": "",
+            "value": 6.1
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.27",
+            "unit": "",
+            "value": 0.27
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5",
+            "unit": "\u03a9",
+            "value": 5.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "1210",
+            "unit": "cm\u00b2",
+            "value": 1210.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "207",
+            "unit": "dm\u00b3",
+            "value": 207.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "jsonld.field",
+            "raw_value": "7",
+            "unit": "mm",
+            "value": 7.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "18PS76",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18PS76"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 25.1,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 40.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.5,
+        "mms_g": 199.0,
+        "pe_w": 1000.0,
+        "qms": 7.3,
+        "qts": 0.34,
+        "re_ohm": 5.1,
+        "sd_cm2": 1225.0,
+        "vas_l": 220.0,
+        "xmax_mm": 10.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "18RBX100",
+      "name": "WEB: B&C Speakers 18RBX100",
+      "raw": {
+        "bl_tm": 25.1,
+        "fs_hz": 40.0,
+        "le_mh": 1.5,
+        "mms_g": 199.0,
+        "pe_w": 1000.0,
+        "qes": 0.36,
+        "qms": 7.3,
+        "qts": 0.34,
+        "re_ohm": 5.1,
+        "sd_cm2": 1225.0,
+        "vas_l": 220.0,
+        "xmax_mm": 10.0
+      },
+      "size_in": 18.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18RBX100",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:38:27+00:00",
+        "model": "18RBX100",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "25.1",
+            "unit": "Tm",
+            "value": 25.1
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "40",
+            "unit": "Hz",
+            "value": 40.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.5",
+            "unit": "mH",
+            "value": 1.5
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "199",
+            "unit": "g",
+            "value": 199.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "1000",
+            "unit": "W",
+            "value": 1000.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.36",
+            "unit": "",
+            "value": 0.36
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "7.3",
+            "unit": "",
+            "value": 7.3
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.34",
+            "unit": "",
+            "value": 0.34
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5.1",
+            "unit": "\u03a9",
+            "value": 5.1
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "1225",
+            "unit": "cm\u00b2",
+            "value": 1225.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "220",
+            "unit": "dm\u00b3",
+            "value": 220.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "jsonld.field",
+            "raw_value": "10",
+            "unit": "mm",
+            "value": 10.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "18RBX100",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/18/-/18RBX100"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 32.6,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 29.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.3,
+        "mms_g": 494.0,
+        "pe_w": 1500.0,
+        "qms": 8.1,
+        "qts": 0.26,
+        "re_ohm": 3.0,
+        "sd_cm2": 1680.0,
+        "vas_l": 254.0,
+        "xmax_mm": 15.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "21SW150",
+      "name": "WEB: B&C Speakers 21SW150",
+      "raw": {
+        "bl_tm": 32.6,
+        "fs_hz": 29.0,
+        "le_mh": 1.3,
+        "mms_g": 494.0,
+        "pe_w": 1500.0,
+        "qes": 0.27,
+        "qms": 8.1,
+        "qts": 0.26,
+        "re_ohm": 3.0,
+        "sd_cm2": 1680.0,
+        "vas_l": 254.0,
+        "xmax_mm": 15.0
+      },
+      "size_in": 21.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/lf-driver/21/-/21SW150",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:38:28+00:00",
+        "model": "21SW150",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "32.6",
+            "unit": "Tm",
+            "value": 32.6
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "29",
+            "unit": "Hz",
+            "value": 29.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.3",
+            "unit": "mH",
+            "value": 1.3
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "494",
+            "unit": "g",
+            "value": 494.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "1500",
+            "unit": "W",
+            "value": 1500.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.27",
+            "unit": "",
+            "value": 0.27
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "8.1",
+            "unit": "",
+            "value": 8.1
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.26",
+            "unit": "",
+            "value": 0.26
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "3",
+            "unit": "\u03a9",
+            "value": 3.0
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "1680",
+            "unit": "cm\u00b2",
+            "value": 1680.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "254",
+            "unit": "dm\u00b3",
+            "value": 254.0
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "jsonld.field",
+            "raw_value": "15",
+            "unit": "mm",
+            "value": 15.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "21SW150",
+        "url": "https://www.bcspeakers.com/en/products/lf-driver/21/-/21SW150"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 13.0,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 76.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.11,
+        "mms_g": 25.0,
+        "pe_w": 50.0,
+        "qms": 5.0,
+        "qts": 0.34,
+        "re_ohm": 5.1,
+        "sd_cm2": 220.0,
+        "vas_l": 11.5,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "8CXT",
+      "name": "WEB: B&C Speakers 8CXT",
+      "raw": {
+        "bl_tm": 13.0,
+        "fs_hz": 76.0,
+        "le_mh": 0.11,
+        "mms_g": 25.0,
+        "pe_w": 50.0,
+        "qes": 0.36,
+        "qms": 5.0,
+        "qts": 0.34,
+        "re_ohm": 5.1,
+        "sd_cm2": 220.0,
+        "vas_l": 11.5
+      },
+      "size_in": 8.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/coaxial/8/-/8CXT",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:39:12+00:00",
+        "model": "8CXT",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "13",
+            "unit": "Tm",
+            "value": 13.0
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "76",
+            "unit": "Hz",
+            "value": 76.0
+          },
+          "le_mh": {
+            "label": "Inductance",
+            "method": "jsonld.field",
+            "raw_value": "0.11",
+            "unit": "mH",
+            "value": 0.11
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "25",
+            "unit": "g",
+            "value": 25.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "50",
+            "unit": "W",
+            "value": 50.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.36",
+            "unit": "",
+            "value": 0.36
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "5",
+            "unit": "",
+            "value": 5.0
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.34",
+            "unit": "",
+            "value": 0.34
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5.1",
+            "unit": "\u03a9",
+            "value": 5.1
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "220",
+            "unit": "cm\u00b2",
+            "value": 220.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "11.5",
+            "unit": "dm\u00b3",
+            "value": 11.5
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "8CXT",
+        "url": "https://www.bcspeakers.com/en/products/coaxial/8/-/8CXT"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 12.7,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 57.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.2,
+        "mms_g": 28.0,
+        "pe_w": 50.0,
+        "qms": 3.7,
+        "qts": 0.32,
+        "re_ohm": 5.6,
+        "sd_cm2": 320.0,
+        "vas_l": 40.0,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "10NCX",
+      "name": "WEB: B&C Speakers 10NCX",
+      "raw": {
+        "bl_tm": 12.7,
+        "fs_hz": 57.0,
+        "le_mh": 1.2,
+        "mms_g": 28.0,
+        "pe_w": 50.0,
+        "qes": 0.35,
+        "qms": 3.7,
+        "qts": 0.32,
+        "re_ohm": 5.6,
+        "sd_cm2": 320.0,
+        "vas_l": 40.0
+      },
+      "size_in": 10.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/coaxial/10/-/10NCX",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:39:14+00:00",
+        "model": "10NCX",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "12.7",
+            "unit": "Tm",
+            "value": 12.7
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "57",
+            "unit": "Hz",
+            "value": 57.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.2",
+            "unit": "mH",
+            "value": 1.2
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "28",
+            "unit": "g",
+            "value": 28.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "50",
+            "unit": "W",
+            "value": 50.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.35",
+            "unit": "",
+            "value": 0.35
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "3.7",
+            "unit": "",
+            "value": 3.7
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.32",
+            "unit": "",
+            "value": 0.32
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5.6",
+            "unit": "\u03a9",
+            "value": 5.6
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "320",
+            "unit": "cm\u00b2",
+            "value": 320.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "40",
+            "unit": "dm\u00b3",
+            "value": 40.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "10NCX",
+        "url": "https://www.bcspeakers.com/en/products/coaxial/10/-/10NCX"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 14.4,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 49.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.2,
+        "mms_g": 43.0,
+        "pe_w": 25.0,
+        "qms": 3.9,
+        "qts": 0.32,
+        "re_ohm": 5.3,
+        "sd_cm2": 522.0,
+        "vas_l": 91.0,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "12CXT",
+      "name": "WEB: B&C Speakers 12CXT",
+      "raw": {
+        "bl_tm": 14.4,
+        "fs_hz": 49.0,
+        "le_mh": 1.2,
+        "mms_g": 43.0,
+        "pe_w": 25.0,
+        "qes": 0.35,
+        "qms": 3.9,
+        "qts": 0.32,
+        "re_ohm": 5.3,
+        "sd_cm2": 522.0,
+        "vas_l": 91.0
+      },
+      "size_in": 12.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/coaxial/12/-/12CXT",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:39:15+00:00",
+        "model": "12CXT",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "14.4",
+            "unit": "Tm",
+            "value": 14.4
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "49",
+            "unit": "Hz",
+            "value": 49.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.2",
+            "unit": "mH",
+            "value": 1.2
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "43",
+            "unit": "g",
+            "value": 43.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "25",
+            "unit": "W",
+            "value": 25.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.35",
+            "unit": "",
+            "value": 0.35
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "3.9",
+            "unit": "",
+            "value": 3.9
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.32",
+            "unit": "",
+            "value": 0.32
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5.3",
+            "unit": "\u03a9",
+            "value": 5.3
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "522",
+            "unit": "cm\u00b2",
+            "value": 522.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "91",
+            "unit": "dm\u00b3",
+            "value": 91.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "12CXT",
+        "url": "https://www.bcspeakers.com/en/products/coaxial/12/-/12CXT"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 15.3,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 57.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.2,
+        "mms_g": 38.0,
+        "pe_w": 80.0,
+        "qms": 5.2,
+        "qts": 0.28,
+        "re_ohm": 5.1,
+        "sd_cm2": 522.0,
+        "vas_l": 79.0,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "12CX32",
+      "name": "WEB: B&C Speakers 12CX32",
+      "raw": {
+        "bl_tm": 15.3,
+        "fs_hz": 57.0,
+        "le_mh": 1.2,
+        "mms_g": 38.0,
+        "pe_w": 80.0,
+        "qes": 0.3,
+        "qms": 5.2,
+        "qts": 0.28,
+        "re_ohm": 5.1,
+        "sd_cm2": 522.0,
+        "vas_l": 79.0
+      },
+      "size_in": 12.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/coaxial/12/-/12CX32",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:39:17+00:00",
+        "model": "12CX32",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "15.3",
+            "unit": "Tm",
+            "value": 15.3
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "57",
+            "unit": "Hz",
+            "value": 57.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.2",
+            "unit": "mH",
+            "value": 1.2
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "38",
+            "unit": "g",
+            "value": 38.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "80",
+            "unit": "W",
+            "value": 80.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.3",
+            "unit": "",
+            "value": 0.3
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "5.2",
+            "unit": "",
+            "value": 5.2
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.28",
+            "unit": "",
+            "value": 0.28
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5.1",
+            "unit": "\u03a9",
+            "value": 5.1
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "522",
+            "unit": "cm\u00b2",
+            "value": 522.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "79",
+            "unit": "dm\u00b3",
+            "value": 79.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "12CX32",
+        "url": "https://www.bcspeakers.com/en/products/coaxial/12/-/12CX32"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 12.8,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 59.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.2,
+        "mms_g": 44.0,
+        "pe_w": 50.0,
+        "qms": 4.2,
+        "qts": 0.51,
+        "re_ohm": 5.8,
+        "sd_cm2": 522.0,
+        "vas_l": 64.0,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "12NCX",
+      "name": "WEB: B&C Speakers 12NCX",
+      "raw": {
+        "bl_tm": 12.8,
+        "fs_hz": 59.0,
+        "le_mh": 1.2,
+        "mms_g": 44.0,
+        "pe_w": 50.0,
+        "qes": 0.58,
+        "qms": 4.2,
+        "qts": 0.51,
+        "re_ohm": 5.8,
+        "sd_cm2": 522.0,
+        "vas_l": 64.0
+      },
+      "size_in": 12.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/coaxial/12/-/12NCX",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:39:21+00:00",
+        "model": "12NCX",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "12.8",
+            "unit": "Tm",
+            "value": 12.8
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "59",
+            "unit": "Hz",
+            "value": 59.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.2",
+            "unit": "mH",
+            "value": 1.2
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "44",
+            "unit": "g",
+            "value": 44.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "50",
+            "unit": "W",
+            "value": 50.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.58",
+            "unit": "",
+            "value": 0.58
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "4.2",
+            "unit": "",
+            "value": 4.2
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.51",
+            "unit": "",
+            "value": 0.51
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5.8",
+            "unit": "\u03a9",
+            "value": 5.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "522",
+            "unit": "cm\u00b2",
+            "value": 522.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "64",
+            "unit": "dm\u00b3",
+            "value": 64.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "12NCX",
+        "url": "https://www.bcspeakers.com/en/products/coaxial/12/-/12NCX"
+      }
+    },
+    {
+      "brand": "B&C Speakers",
+      "driver": {
+        "bl_tm": 15.9,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 44.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.1,
+        "mms_g": 84.0,
+        "pe_w": 80.0,
+        "qms": 6.7,
+        "qts": 0.43,
+        "re_ohm": 5.1,
+        "sd_cm2": 855.0,
+        "vas_l": 162.0,
+        "xmax_mm": 0.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "15CX40",
+      "name": "WEB: B&C Speakers 15CX40",
+      "raw": {
+        "bl_tm": 15.9,
+        "fs_hz": 44.0,
+        "le_mh": 1.1,
+        "mms_g": 84.0,
+        "pe_w": 80.0,
+        "qes": 0.46,
+        "qms": 6.7,
+        "qts": 0.43,
+        "re_ohm": 5.1,
+        "sd_cm2": 855.0,
+        "vas_l": 162.0
+      },
+      "size_in": 15.0,
+      "source": "B&C Speakers Archive",
+      "url": "https://www.bcspeakers.com/en/products/coaxial/15/-/15CX40",
+      "website_fields": {
+        "brand": "B&C Speakers",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T10:39:22+00:00",
+        "model": "15CX40",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "Bl",
+            "method": "jsonld.field",
+            "raw_value": "15.9",
+            "unit": "Tm",
+            "value": 15.9
+          },
+          "fs_hz": {
+            "label": "Fs",
+            "method": "jsonld.field",
+            "raw_value": "44",
+            "unit": "Hz",
+            "value": 44.0
+          },
+          "le_mh": {
+            "label": "Le",
+            "method": "jsonld.field",
+            "raw_value": "1.1",
+            "unit": "mH",
+            "value": 1.1
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "jsonld.field",
+            "raw_value": "84",
+            "unit": "g",
+            "value": 84.0
+          },
+          "pe_w": {
+            "label": "Nominal Power Handling",
+            "method": "jsonld.field",
+            "raw_value": "80",
+            "unit": "W",
+            "value": 80.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "jsonld.field",
+            "raw_value": "0.46",
+            "unit": "",
+            "value": 0.46
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "jsonld.field",
+            "raw_value": "6.7",
+            "unit": "",
+            "value": 6.7
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "jsonld.field",
+            "raw_value": "0.43",
+            "unit": "",
+            "value": 0.43
+          },
+          "re_ohm": {
+            "label": "Re",
+            "method": "jsonld.field",
+            "raw_value": "5.1",
+            "unit": "\u03a9",
+            "value": 5.1
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "jsonld.field",
+            "raw_value": "855",
+            "unit": "cm\u00b2",
+            "value": 855.0
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "jsonld.field",
+            "raw_value": "162",
+            "unit": "dm\u00b3",
+            "value": 162.0
+          }
+        },
+        "source": "B&C Speakers Archive",
+        "title": "15CX40",
+        "url": "https://www.bcspeakers.com/en/products/coaxial/15/-/15CX40"
       }
     }
   ],
   "source": "manufacturer crawl (HTML product pages, PDF datasheets, public JSON APIs)",
-  "usable_presets": 4697
+  "usable_presets": 4640
 }
