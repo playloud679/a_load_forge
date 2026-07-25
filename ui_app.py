@@ -3800,8 +3800,11 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
     # cap the table and let search/filters narrow the rest.
     shown_names = filtered_preset_names[:_LIBRARY_TABLE_MAX_ROWS]
     
+    current_load_type = st.session_state.get("load_type", "DCCAV").replace(" ", "_")
+    table_key = f"finder_driver_library_table_{current_load_type}"
+    
     selected_preset_names = []
-    table_state_dict = st.session_state.get("finder_driver_library_table")
+    table_state_dict = st.session_state.get(table_key)
     if isinstance(table_state_dict, dict):
         selection = table_state_dict.get("selection", {})
         selected_rows = selection.get("rows", [])
@@ -3847,7 +3850,7 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         use_container_width=True,
         height=720,
         hide_index=True,
-        key="finder_driver_library_table",
+        key=table_key,
         on_select="rerun",
         selection_mode="multi-row",
         column_config={
