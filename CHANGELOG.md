@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.6.6 (2026-07-25)
+
+- **Emerald visual system**: replaced red selection/action accents with a
+  consistent emerald palette across workspace tabs, load cards, Run controls,
+  primary response traces and engineering limit markers.
+- **Dark sidebar and branding**: made the complete sidebar black and increased
+  logo contrast while keeping Bass Match and Box Design at the same visual
+  intensity.
+- **Instruction bands**: replaced Streamlit's default blue information bands
+  with emerald actionable guidance and neutral-gray secondary instructions.
+- **Above-the-fold response view**: reduced the main response/MIL chart from
+  600 px to 420 px so its controls and active-load summary fit typical desktop
+  viewport heights without main-page scrolling.
+- **Release metadata and docs**: synchronized `VERSION`, package metadata,
+  README and the UI contract for 0.6.6.
+- **Tests**: 108 passed / 0 failed / 0 skipped.
+
 ## 0.6.5 (2026-07-25)
 
 - **UI regression fixes**: restored stable acoustic metric labels, native

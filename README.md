@@ -29,7 +29,10 @@ Current UI highlights:
 - separate `Design a box` and `Bass Match` workspaces selected through large,
   directly clickable branded tabs
 - compact 3+3 load picker whose illustrated cards are directly clickable,
-  with labels beneath the diagrams, keyboard focus and a red checked active state
+  with labels beneath the diagrams, keyboard focus and an emerald checked active state
+- a black sidebar and unified emerald primary-action palette across workspace
+  selection, load cards, Run controls, response traces and actionable guidance;
+  secondary instruction bands use neutral gray
 - a single main `Run a Match` action with live serial/parallel progress, plus
   library filters arranged in the wider results workspace
 - a `Ports → Resonator type` submenu for choosing a vent or passive radiator
@@ -40,6 +43,8 @@ Current UI highlights:
   Ports is omitted for sealed/infinite-baffle loads, while Atlas is omitted for
   infinite baffle and the passive-radiator resonator
 - explicit response frequency-window zoom with automatic vertical fit and reset
+- a compact 420 px main response chart that keeps its controls and active-load
+  summary above the fold on desktop viewports
 - response pinning for A/B overlays
 - one-click comparison across the supported enclosure loads at equal volume
 - preset save/load and URL-based sharing grouped in the `Project` menu

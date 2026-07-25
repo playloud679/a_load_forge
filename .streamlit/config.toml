@@ -14,6 +14,7 @@ showErrorDetails = "none"
 # click markers) is tuned for a dark canvas; pin the base theme so systems
 # in light mode don't render it washed out.
 base = "dark"
+primaryColor = "#10B981"
 
 [server]
 # We never serve files from a static/ folder; keep it off so source/assets

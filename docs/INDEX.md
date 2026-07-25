@@ -52,9 +52,13 @@ When changing `src/dccav.py`:
 - update [dccav.md](dccav.md)
 - run a Streamlit `AppTest` for the touched UI path
 
-The UI keeps selection/action semantics red and plot/data semantics blue. Load
-cards are fully clickable with overlaid labels, a checked active state and
-keyboard focus; the full-width 1200×100 app header preserves its native ratio and the active design uses a
-44 px topology chip so controls and metrics remain above the fold. The Finder
-follows target enclosure → performance goal → candidate library, keeps its
-primary action pinned to the sidebar bottom, and hides empty result columns.
+The UI keeps selection, primary-action and main-response semantics emerald,
+with neutral-gray secondary guidance and a fully black sidebar. Information
+bands must never fall back to Streamlit blue: actionable selection instructions
+use emerald, while secondary instructions use gray. Load cards are fully
+clickable with overlaid labels, a checked active state and keyboard focus; the
+full-width 1200×100 app header preserves its native ratio and the active design
+uses a 44 px topology chip. The 420 px main response chart keeps its controls
+and active-load summary above the fold on desktop viewports. The Finder follows
+target enclosure → performance goal → candidate library, keeps its primary
+action pinned to the sidebar bottom, and hides empty result columns.

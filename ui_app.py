@@ -97,6 +97,12 @@ st.markdown(
     header[data-testid="stHeader"] {
         display: none !important;
     }
+    section[data-testid="stSidebar"],
+    section[data-testid="stSidebar"] > div,
+    section[data-testid="stSidebar"] [data-testid="stSidebarContent"],
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
+        background: #000 !important;
+    }
     html {
         font-size: 85% !important;
     }
@@ -123,6 +129,30 @@ st.markdown(
     section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
         padding-top: 0 !important;
         margin-top: -3.8rem !important;
+    }
+    .st-key-brand_logo {
+        background: #000;
+    }
+    .st-key-brand_logo img {
+        filter: hue-rotate(150deg) saturate(2.4) contrast(1.55) brightness(1.04);
+    }
+    /* Instruction bands: neutral by default, emerald for actionable selection hints. */
+    [data-testid="stAlertContainer"]:has([data-testid="stAlertContentInfo"]) {
+        background-color: rgba(107,114,128,.16) !important;
+        border: 1px solid rgba(156,163,175,.34) !important;
+        color: #e5e7eb !important;
+    }
+    [data-testid="stAlertContainer"] [data-testid="stAlertContentInfo"] {
+        color: inherit !important;
+    }
+    [class*="st-key-emerald_info_"] [data-testid="stAlertContainer"] {
+        background-color: rgba(16,185,129,.13) !important;
+        border: 1px solid rgba(16,185,129,.34) !important;
+        color: #d1fae5 !important;
+    }
+    [class*="st-key-emerald_info_"] [data-testid="stAlertContainer"] svg {
+        color: #10b981 !important;
+        fill: #10b981 !important;
     }
     section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
         border-top: 1px solid rgba(255,255,255,.10);
@@ -190,7 +220,7 @@ st.markdown(
         transition: background-color .15s ease, color .15s ease;
     }
     section[data-testid="stSidebar"] [data-testid="stNumberInput"] button:hover:not(:disabled) {
-        background: rgba(255,59,48,.16) !important;
+        background: rgba(16,185,129,.16) !important;
         color: white !important;
     }
     section[data-testid="stSidebar"] [data-testid="stNumberInput"] button svg {
@@ -224,9 +254,9 @@ st.markdown(
         padding: .45rem .6rem .45rem !important;
     }
     .st-key-finder_run_search_main div[data-testid="stButton"] button {
-        background: linear-gradient(180deg, #f02a35 0%, #cf111c 100%);
-        border: 1px solid rgba(255,255,255,.12);
-        box-shadow: 0 .35rem 1rem rgba(207,17,28,.18);
+        background: #10b981;
+        border: 1px solid #10b981;
+        box-shadow: 0 .35rem 1rem rgba(16,185,129,.18);
         min-height: 2.8rem;
         transition: filter .16s ease, transform .16s ease, box-shadow .16s ease;
     }
@@ -236,7 +266,7 @@ st.markdown(
         letter-spacing: .01em;
     }
     .st-key-finder_run_search_main div[data-testid="stButton"] button:hover {
-        box-shadow: 0 .45rem 1.25rem rgba(207,17,28,.28);
+        box-shadow: 0 .45rem 1.25rem rgba(16,185,129,.28);
         filter: brightness(1.06);
         transform: translateY(-1px);
     }
@@ -290,7 +320,7 @@ _MAX_PINNED_RESPONSES = 8
 _MAX_PINNED_CHART_ROWS = 4800
 _PIN_TRACE_COLORS = (
     "#9aa0a6", "#ffb703", "#8ecae6", "#fb8500",
-    "#c77dff", "#80ed99", "#ff758f", "#a8dadc",
+    "#c77dff", "#80ed99", "#10b981", "#a8dadc",
 )
 _DEFAULT_REFLEX_Q_ABS = 15.0
 _DEFAULT_REFLEX_Q_LEAK = 1000.0
@@ -379,22 +409,22 @@ def _load_type_card_styles() -> str:
             text-align: center;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button:hover {
-            border-color: #ff3b30;
+            border-color: #10b981;
             box-shadow: 0 .35rem .9rem rgba(0,0,0,.25);
             filter: saturate(.9) brightness(1.02);
             opacity: 1;
             transform: translateY(-1px);
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button[data-testid="stBaseButton-primary"] {
-            border: 2px solid #ff3b30;
-            box-shadow: 0 0 0 2px rgba(255,59,48,.20),
-                        0 .35rem 1rem rgba(255,59,48,.16);
+            border: 2px solid #10b981;
+            box-shadow: 0 0 0 2px rgba(16,185,129,.20),
+                        0 .35rem 1rem rgba(16,185,129,.16);
             filter: none;
             opacity: 1;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button[data-testid="stBaseButton-primary"]::before {
             align-items: center;
-            background: #ff3b30;
+            background: #10b981;
             border-radius: 50%;
             color: white;
             content: "\\2713";
@@ -410,7 +440,7 @@ def _load_type_card_styles() -> str:
             z-index: 2;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button:focus-visible {
-            outline: 3px solid rgba(255,59,48,.72);
+            outline: 3px solid rgba(16,185,129,.72);
             outline-offset: 2px;
         }
         """
@@ -474,41 +504,72 @@ def _workspace_tab_styles() -> str:
         <style>
         [class*="st-key-workspace_tab_"] div[data-testid="stButton"] button {
             background-color: transparent;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-size: contain;
-            border: 1px solid rgba(127,127,127,.30);
+            border: 1px solid rgba(16,185,129,.46);
             border-radius: .7rem;
-            filter: grayscale(18%) brightness(.72);
             height: clamp(3.5rem, 6vw, 5rem);
             min-height: 3.5rem;
             overflow: hidden;
             padding: 0;
+            position: relative;
             transition: border-color .16s ease, box-shadow .16s ease,
-                        filter .16s ease, transform .16s ease;
+                        transform .16s ease;
             width: 100%;
+        }
+        [class*="st-key-workspace_tab_"] div[data-testid="stButton"] button::before {
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: contain;
+            border-radius: calc(.7rem - 2px);
+            content: "";
+            filter: grayscale(18%) brightness(.72);
+            inset: 0;
+            pointer-events: none;
+            position: absolute;
+            transition: filter .16s ease;
         }
         [class*="st-key-workspace_tab_"] div[data-testid="stButton"] button p {
             opacity: 0;
+            position: relative;
+            z-index: 1;
         }
         [class*="st-key-workspace_tab_"] div[data-testid="stButton"] button:hover {
-            border-color: rgba(255,255,255,.70);
-            filter: brightness(.94);
+            border-color: #10b981;
             transform: translateY(-1px);
+        }
+        [class*="st-key-workspace_tab_"] div[data-testid="stButton"] button:hover::before {
+            filter: brightness(.94);
+        }
+        .st-key-workspace_tab_bass_match div[data-testid="stButton"] button::before {
+            filter: hue-rotate(150deg) grayscale(18%) brightness(.72);
+        }
+        .st-key-workspace_tab_bass_match div[data-testid="stButton"] button:hover::before {
+            filter: hue-rotate(150deg) brightness(.94);
+        }
+        .st-key-workspace_tab_box_design div[data-testid="stButton"] button::before {
+            filter: hue-rotate(290deg) saturate(.88) grayscale(18%) brightness(.72);
+        }
+        .st-key-workspace_tab_box_design div[data-testid="stButton"] button:hover::before {
+            filter: hue-rotate(290deg) saturate(.88) brightness(.94);
         }
         .st-key-workspace_tab_bass_match div[data-testid="stButton"]
         button[data-testid="stBaseButton-primary"] {
             background-color: #000000 !important;
-            border: 2px solid #ff202b;
-            box-shadow: 0 0 0 1px rgba(255,32,43,.22), 0 0 18px rgba(255,32,43,.16);
-            filter: none;
+            border: 2px solid #10b981;
+            box-shadow: 0 0 0 1px rgba(16,185,129,.22), 0 0 18px rgba(16,185,129,.16);
+        }
+        .st-key-workspace_tab_bass_match div[data-testid="stButton"]
+        button[data-testid="stBaseButton-primary"]::before {
+            filter: hue-rotate(150deg);
         }
         .st-key-workspace_tab_box_design div[data-testid="stButton"]
         button[data-testid="stBaseButton-primary"] {
             background-color: #000000 !important;
-            border: 2px solid #00a8ff;
-            box-shadow: 0 0 0 1px rgba(0,168,255,.22), 0 0 18px rgba(0,168,255,.16);
-            filter: none;
+            border: 2px solid #10b981;
+            box-shadow: 0 0 0 1px rgba(16,185,129,.22), 0 0 18px rgba(16,185,129,.16);
+        }
+        .st-key-workspace_tab_box_design div[data-testid="stButton"]
+        button[data-testid="stBaseButton-primary"]::before {
+            filter: hue-rotate(290deg) saturate(.88);
         }
         [class*="st-key-workspace_tab_"] div[data-testid="stButton"]
         button:focus-visible {
@@ -549,7 +610,7 @@ def _workspace_tab_styles() -> str:
         encoded = base64.b64encode(image_path.read_bytes()).decode("ascii")
         slug = _WORKSPACE_TAB_SLUGS[workspace]
         rules.append(
-            f'.st-key-workspace_tab_{slug} button '
+            f'.st-key-workspace_tab_{slug} button::before '
             f'{{ background-image: url("data:image/png;base64,{encoded}"); }}'
         )
     rules.append("</style>")
@@ -597,7 +658,7 @@ def _render_workspace_tabs() -> None:
         )
 
 _TRACE_COLORS = {
-    "Total": "#f28e8e",
+    "Total": "#10b981",
     "Cone": "#7cc7ff",
     "Lower port": "#006edb",
     "Vent": "#006edb",
@@ -607,7 +668,7 @@ _TRACE_COLORS = {
     "Upper port": "#8ecaff",
     "Impedance": "#355070",
     "Excursion": "#b35c00",
-    "DCCAV": "#f28e8e",
+    "DCCAV": "#10b981",
     "Bandpass 4th order": "#58d68d",
     "Bandpass 6th order": "#f2c14e",
     "Bass reflex": "#7cc7ff",
@@ -2228,7 +2289,7 @@ def _cursor_layer(
         title="Cursor",
         scale=alt.Scale(
             domain=["F3", "F6", "F10"],
-            range=["#ffd166", "#f77f00", "#d62828"],
+            range=["#ffd166", "#f77f00", "#10b981"],
         ),
         legend=None if not show_legend else alt.Legend(title="Cursor", orient="bottom", direction="horizontal"),
     )
@@ -2418,7 +2479,7 @@ def _plot_response(
     chart = _line_chart(
         data,
         "LF pressure estimate (dB)",
-        height=600,
+        height=420,
         legend=show_legend,
         x_domain=frequency_window,
         y_domain=y_domain,
@@ -2434,7 +2495,7 @@ def _plot_response(
         mil_chart = _line_chart(
             mil_data,
             "Max input power (W)",
-            height=600,
+            height=420,
             legend=show_legend,
             x_domain=frequency_window,
             y_domain=mil_y_domain,
@@ -2474,7 +2535,7 @@ def _plot_excursion(result: _dccav.SimulationResult, xmax_mm: float) -> alt.Char
     chart = _line_chart(data, "Excursion (mm)", height=285, legend=False)
     if xmax_mm > 0:
         xmax_rule = alt.Chart(pd.DataFrame({"xmax_mm": [float(xmax_mm)]})).mark_rule(
-            color="#9b2226",
+            color="#10b981",
             strokeDash=[6, 4],
         ).encode(y="xmax_mm:Q")
         chart = chart + xmax_rule
@@ -2868,7 +2929,7 @@ def _plot_group_delay(result: _dccav.SimulationResult, limit_ms: float = 0.0) ->
     chart = _line_chart(data, "Group delay (ms)", height=240, legend=False)
     if limit_ms > 0.0:
         limit_rule = alt.Chart(pd.DataFrame({"limit_ms": [float(limit_ms)]})).mark_rule(
-            color="#9b2226",
+            color="#10b981",
             strokeDash=[6, 4],
         ).encode(y="limit_ms:Q")
         chart = chart + limit_rule
@@ -3868,11 +3929,16 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
     
     selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
     if not selected_rows:
-        st.info("Select a loudspeaker row to load it into the simulation.")
+        with st.container(key="emerald_info_library_selection"):
+            st.info("Select a loudspeaker row to load it into the simulation.")
         return
         
     if len(selected_rows) > 1:
-        st.info(f"{len(selected_rows)} loudspeakers selected. Click '{button_label}' above to compare them.")
+        with st.container(key="emerald_info_library_multi_selection"):
+            st.info(
+                f"{len(selected_rows)} loudspeakers selected. "
+                f"Click '{button_label}' above to compare them."
+            )
         return
         
     selected_index = int(selected_rows[0])
@@ -4086,7 +4152,10 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
 
     selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
     if not selected_rows:
-        st.info("Select one candidate to inspect it without replacing the current design.")
+        with st.container(key="emerald_info_candidate_selection"):
+            st.info(
+                "Select one candidate to inspect it without replacing the current design."
+            )
         _render_driver_library(filtered_preset_names)
         return
     selected_index = int(selected_rows[0])
@@ -4759,7 +4828,8 @@ derived = None
 
 with st.sidebar:
     if _BRAND_IMAGE.exists():
-        st.image(str(_BRAND_IMAGE), use_container_width=True)
+        with st.container(key="brand_logo"):
+            st.image(str(_BRAND_IMAGE), use_container_width=True)
         st.markdown(
             f"<div style='text-align: right; color: rgba(255,255,255,0.4); font-size: 0.75rem; margin-top: -0.5rem; margin-bottom: 1rem;'>v{_VERSION}</div>", 
             unsafe_allow_html=True
@@ -5500,7 +5570,7 @@ try:
             key=f"excursion_chart_{chart_sig}",
         )
         if xmax_mm > 0.0:
-            st.caption(f"Dashed red line: driver Xmax = {xmax_mm:.1f} mm.")
+            st.caption(f"Dashed emerald line: driver Xmax = {xmax_mm:.1f} mm.")
         else:
             st.caption("Set the driver Xmax to draw the excursion limit line.")
     with design_tabs["Impedance"]:
@@ -5524,7 +5594,9 @@ try:
             key=f"gd_chart_{chart_sig}",
         )
         if gd_limit_ms > 0.0:
-            st.caption(f"Dashed red line: optimizer group-delay limit = {gd_limit_ms:.0f} ms.")
+            st.caption(
+                f"Dashed emerald line: optimizer group-delay limit = {gd_limit_ms:.0f} ms."
+            )
     if "Atlas" in design_tabs:
         with design_tabs["Atlas"]:
             _render_atlas_tab(current_ts, load_type, box, sim_voltage)

@@ -1748,7 +1748,7 @@ def _check_response_chart_domain_tracks_10hz_and_peak():
     assert zoom_domain == [68.0, 85.0], zoom_domain
     chart = _ui._plot_response(result, [], frequency_window=[20.0, 40.0])
     spec = chart.to_dict()
-    assert spec["height"] == 600, spec.get("height")
+    assert spec["height"] == 420, spec.get("height")
     assert "'domain': [20.0, 40.0]" in str(spec), spec
 
 
