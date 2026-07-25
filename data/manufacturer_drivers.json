@@ -23,12 +23,13 @@
     "https://www.eighteensound.it",
     "https://www.fostex.jp",
     "https://www.madisoundspeakerstore.com",
+    "https://www.markaudio.com",
     "https://www.phlaudio.com",
     "https://www.rcf.it",
     "https://www.soundimports.eu",
     "https://www.visaton.de"
   ],
-  "downloaded_at": "2026-07-25T11:47:30+00:00",
+  "downloaded_at": "2026-07-25T11:56:58+00:00",
   "note": "No loudspeakerdatabase.com content. Each record's website_fields.url points at the manufacturer page/document/API it was extracted from.",
   "presets": [
     {
@@ -337251,6 +337252,7 @@
         "bl_tm": 8.0545,
         "cms_mm_per_n": 1.41622905,
         "fs_hz": 39.6919,
+        "le10k_mh": 0.1202,
         "le_mh": 0.4199,
         "mms_g": 11.3528,
         "pe_w": 35.0,
@@ -337283,7 +337285,8 @@
       "url": "https://www.madisoundspeakerstore.com/mark-audio-maop/mark-audio-maop-11-172mm-magnetic-arc-oxidized-full-range-matched-pair/",
       "website_fields": {
         "additional_sources": [
-          "https://www.soundimports.eu/en/markaudio-maop-11.html"
+          "https://www.soundimports.eu/en/markaudio-maop-11.html",
+          "https://www.markaudio.com/online_shop/archive/maop-11/"
         ],
         "brand": "Markaudio",
         "confidence": 0.9,
@@ -630340,8 +630343,1354 @@
         "title": "12\" Prime 4-Ohm SVC Subwoofer",
         "url": "https://rockfordfosgate.com/products/details/r1s412/"
       }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 5.772,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 38.266,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0,
+        "mms_g": 6.792,
+        "pe_w": 0.0,
+        "qms": 1.93,
+        "qts": 0.316,
+        "re_ohm": 7.2,
+        "sd_cm2": 88.25,
+        "vas_l": 26.32,
+        "xmax_mm": 7.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 10.3",
+      "name": "WEB: Markaudio Alpair 10.3",
+      "raw": {
+        "bl_tm": 5.772,
+        "fs_hz": 38.266,
+        "mms_g": 6.792,
+        "qes": 0.378,
+        "qms": 1.93,
+        "qts": 0.316,
+        "re_ohm": 7.2,
+        "sd_cm2": 88.25,
+        "vas_l": 26.32,
+        "xmax_mm": 7.5
+      },
+      "size_in": 6.0,
+      "source": "Markaudio Archive",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-10-3/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.925,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T11:56:44+00:00",
+        "model": "Alpair 10.3",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "5.772",
+            "unit": "",
+            "value": 5.772
+          },
+          "fs_hz": {
+            "label": "F0",
+            "method": "html.text",
+            "raw_value": "38.266",
+            "unit": "Hz",
+            "value": 38.266
+          },
+          "mms_g": {
+            "label": "MMD",
+            "method": "html.text",
+            "raw_value": "6.792",
+            "unit": "g",
+            "value": 6.792
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": ".378",
+            "unit": "",
+            "value": 0.378
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "1.930",
+            "unit": "",
+            "value": 1.93
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.316",
+            "unit": "L",
+            "value": 0.316
+          },
+          "re_ohm": {
+            "label": "ReVc",
+            "method": "html.text",
+            "raw_value": "7.2",
+            "unit": "Ohms",
+            "value": 7.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "8.825",
+            "unit": "K mm2",
+            "value": 88.25
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "26.320",
+            "unit": "",
+            "value": 26.32
+          },
+          "xmax_mm": {
+            "label": "Xmax",
+            "method": "html.text",
+            "raw_value": "7.5",
+            "unit": "mm",
+            "value": 7.5
+          }
+        },
+        "source": "Markaudio Archive",
+        "title": "Alpair 10.3",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-10-3/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 4.741,
+        "cms_mm_per_n": 2.701,
+        "fs_hz": 42.398,
+        "le10k_mh": 0.0,
+        "le_mh": 0.050196,
+        "mms_g": 4.719,
+        "pe_w": 0.0,
+        "qms": 2.425,
+        "qts": 0.33,
+        "re_ohm": 6.2,
+        "sd_cm2": 88.25,
+        "vas_l": 29.995,
+        "xmax_mm": 7.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 10P",
+      "name": "WEB: Markaudio Alpair 10P",
+      "raw": {
+        "bl_tm": 4.741,
+        "cms_mm_per_n": 2.701,
+        "fs_hz": 42.398,
+        "le_mh": 0.050196,
+        "mms_g": 4.719,
+        "qes": 0.382,
+        "qms": 2.425,
+        "qts": 0.33,
+        "re_ohm": 6.2,
+        "sd_cm2": 88.25,
+        "vas_l": 29.995,
+        "xmax_mm": 7.0
+      },
+      "size_in": 10.0,
+      "source": "Markaudio Archive",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-10p/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T11:56:45+00:00",
+        "model": "Alpair 10P",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "4.741",
+            "unit": "TM",
+            "value": 4.741
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "2.701",
+            "unit": "",
+            "value": 2.701
+          },
+          "fs_hz": {
+            "label": "F0",
+            "method": "html.text",
+            "raw_value": "42.398",
+            "unit": "Hz",
+            "value": 42.398
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "50.196",
+            "unit": "uH",
+            "value": 0.050196
+          },
+          "mms_g": {
+            "label": "Mmd",
+            "method": "html.text",
+            "raw_value": "4.719",
+            "unit": "g",
+            "value": 4.719
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.382",
+            "unit": "",
+            "value": 0.382
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.425",
+            "unit": "",
+            "value": 2.425
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.330",
+            "unit": "L",
+            "value": 0.33
+          },
+          "re_ohm": {
+            "label": "ReVc",
+            "method": "html.text",
+            "raw_value": "6.2",
+            "unit": "Ohm",
+            "value": 6.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "88.250",
+            "unit": "cm\u00b2",
+            "value": 88.25
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "29.995",
+            "unit": "L",
+            "value": 29.995
+          },
+          "xmax_mm": {
+            "label": "X-max",
+            "method": "html.text",
+            "raw_value": "7",
+            "unit": "mm",
+            "value": 7.0
+          }
+        },
+        "source": "Markaudio Archive",
+        "title": "Alpair 10P",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-10p/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 5.308,
+        "cms_mm_per_n": 1.468,
+        "fs_hz": 38.4,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0493,
+        "mms_g": 10.658,
+        "pe_w": 0.0,
+        "qms": 1.44,
+        "qts": 0.393,
+        "re_ohm": 5.4,
+        "sd_cm2": 147.41,
+        "vas_l": 44.54293607,
+        "xmax_mm": 8.5
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 12PW",
+      "name": "WEB: Markaudio Alpair 12PW",
+      "raw": {
+        "bl_tm": 5.308,
+        "cms_mm_per_n": 1.468,
+        "fs_hz": 38.4,
+        "le_mh": 0.0493,
+        "mms_g": 10.658,
+        "qes": 0.541,
+        "qms": 1.44,
+        "qts": 0.393,
+        "re_ohm": 5.4,
+        "sd_cm2": 147.41,
+        "xmax_mm": 8.5
+      },
+      "size_in": 12.0,
+      "source": "Markaudio Archive",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-12pw/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.925,
+        "derivations": {},
+        "derived_fields": [
+          "vas_l"
+        ],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T11:56:46+00:00",
+        "model": "Alpair 12PW",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "5.308",
+            "unit": "",
+            "value": 5.308
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "1.468",
+            "unit": "",
+            "value": 1.468
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "38.4",
+            "unit": "",
+            "value": 38.4
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "49.3",
+            "unit": "uH",
+            "value": 0.0493
+          },
+          "mms_g": {
+            "label": "MMD",
+            "method": "html.text",
+            "raw_value": "10.658",
+            "unit": "g",
+            "value": 10.658
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.541",
+            "unit": "",
+            "value": 0.541
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "1.440",
+            "unit": "",
+            "value": 1.44
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.393",
+            "unit": "L",
+            "value": 0.393
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohms",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "147.410",
+            "unit": "",
+            "value": 147.41
+          },
+          "xmax_mm": {
+            "label": "X MAX",
+            "method": "html.text",
+            "raw_value": "8.5",
+            "unit": "mm",
+            "value": 8.5
+          }
+        },
+        "source": "Markaudio Archive",
+        "title": "Alpair 12PW",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-12pw/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.968,
+        "cms_mm_per_n": 1.545,
+        "fs_hz": 67.863,
+        "le10k_mh": 0.0,
+        "le_mh": 0.038886,
+        "mms_g": 3.561,
+        "pe_w": 22.0,
+        "qms": 2.391,
+        "qts": 0.538,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.27,
+        "vas_l": 5.543,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 5 Generation 2",
+      "name": "WEB: Markaudio Alpair 5 Generation 2",
+      "raw": {
+        "bl_tm": 3.968,
+        "cms_mm_per_n": 1.545,
+        "fs_hz": 67.863,
+        "le_mh": 0.038886000000000004,
+        "mms_g": 3.561,
+        "pe_w": 22.0,
+        "qes": 0.695,
+        "qms": 2.391,
+        "qts": 0.538,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.27,
+        "vas_l": 5.543,
+        "xmax_mm": 4.0
+      },
+      "size_in": null,
+      "source": "Markaudio Archive",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-5-generation-2-gold-grey-pair/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 1.0,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T11:56:47+00:00",
+        "model": "Alpair 5 Generation 2",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "3.968",
+            "unit": "TM",
+            "value": 3.968
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "1.545",
+            "unit": "",
+            "value": 1.545
+          },
+          "fs_hz": {
+            "label": "Fo",
+            "method": "html.text",
+            "raw_value": "67.863",
+            "unit": "Hz",
+            "value": 67.863
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "38.886",
+            "unit": "uH",
+            "value": 0.038886000000000004
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "3.561",
+            "unit": "g",
+            "value": 3.561
+          },
+          "pe_w": {
+            "label": "Pwr",
+            "method": "html.text",
+            "raw_value": "22",
+            "unit": "watts",
+            "value": 22.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.695",
+            "unit": "",
+            "value": 0.695
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.391",
+            "unit": "",
+            "value": 2.391
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.538",
+            "unit": "L",
+            "value": 0.538
+          },
+          "re_ohm": {
+            "label": "Revc",
+            "method": "html.text",
+            "raw_value": "7.200",
+            "unit": "Ohm",
+            "value": 7.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "50.270",
+            "unit": "cm\u00b2",
+            "value": 50.27
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "5.543",
+            "unit": "L",
+            "value": 5.543
+          },
+          "xmax_mm": {
+            "label": "X max",
+            "method": "html.text",
+            "raw_value": "4",
+            "unit": "mm",
+            "value": 4.0
+          }
+        },
+        "source": "Markaudio Archive",
+        "title": "Alpair 5 Generation 2",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-5-generation-2-gold-grey-pair/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 2.81,
+        "cms_mm_per_n": 0.00258,
+        "fs_hz": 63.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.1287,
+        "mms_g": 2.48,
+        "pe_w": 0.0,
+        "qms": 2.76,
+        "qts": 0.38,
+        "re_ohm": 3.6,
+        "sd_cm2": 36.3,
+        "vas_l": 4.8,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 6.2",
+      "name": "WEB: Markaudio Alpair 6.2",
+      "raw": {
+        "bl_tm": 2.81,
+        "cms_mm_per_n": 0.0025800000000000003,
+        "fs_hz": 63.0,
+        "le_mh": 0.12869999999999998,
+        "mms_g": 2.48,
+        "qes": 0.45,
+        "qms": 2.76,
+        "qts": 0.38,
+        "re_ohm": 3.6,
+        "sd_cm2": 36.3,
+        "vas_l": 4.8,
+        "xmax_mm": 4.0
+      },
+      "size_in": null,
+      "source": "Markaudio Archive",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-6-2/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T11:56:48+00:00",
+        "model": "Alpair 6.2",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "2.81",
+            "unit": "T\u00b7M",
+            "value": 2.81
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "2.58",
+            "unit": "\u00b5M/N",
+            "value": 0.0025800000000000003
+          },
+          "fs_hz": {
+            "label": "F0",
+            "method": "html.text",
+            "raw_value": "63",
+            "unit": "Hz",
+            "value": 63.0
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "128.7",
+            "unit": "\u00b5H",
+            "value": 0.12869999999999998
+          },
+          "mms_g": {
+            "label": "MMD",
+            "method": "html.text",
+            "raw_value": "2.48",
+            "unit": "g",
+            "value": 2.48
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.45",
+            "unit": "",
+            "value": 0.45
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "2.76",
+            "unit": "",
+            "value": 2.76
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.38",
+            "unit": "L",
+            "value": 0.38
+          },
+          "re_ohm": {
+            "label": "ReVc",
+            "method": "html.text",
+            "raw_value": "3.6",
+            "unit": "Ohm",
+            "value": 3.6
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "36.3",
+            "unit": "Cm\u00b2",
+            "value": 36.3
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "4.8",
+            "unit": "L",
+            "value": 4.8
+          },
+          "xmax_mm": {
+            "label": "X-Max",
+            "method": "html.text",
+            "raw_value": "4",
+            "unit": "mm",
+            "value": 4.0
+          }
+        },
+        "source": "Markaudio Archive",
+        "title": "Alpair 6.2",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-6-2/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 2.67,
+        "cms_mm_per_n": 1.97,
+        "fs_hz": 74.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0,
+        "mms_g": 2.2,
+        "pe_w": 0.0,
+        "qms": 1.78,
+        "qts": 0.43,
+        "re_ohm": 3.8,
+        "sd_cm2": 36.3,
+        "vas_l": 3.6,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 6P",
+      "name": "WEB: Markaudio Alpair 6P",
+      "raw": {
+        "bl_tm": 2.67,
+        "cms_mm_per_n": 1.97,
+        "fs_hz": 74.0,
+        "mms_g": 2.2,
+        "qes": 0.57,
+        "qms": 1.78,
+        "qts": 0.43,
+        "re_ohm": 3.8,
+        "sd_cm2": 36.3,
+        "vas_l": 3.6,
+        "xmax_mm": 4.0
+      },
+      "size_in": 6.0,
+      "source": "Markaudio Archive",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-6p/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.95,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T11:56:50+00:00",
+        "model": "Alpair 6P",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "2.67",
+            "unit": "",
+            "value": 2.67
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "1.97",
+            "unit": "",
+            "value": 1.97
+          },
+          "fs_hz": {
+            "label": "F0",
+            "method": "html.text",
+            "raw_value": "74",
+            "unit": "Hz",
+            "value": 74.0
+          },
+          "mms_g": {
+            "label": "MMD",
+            "method": "html.text",
+            "raw_value": "2.2",
+            "unit": "g",
+            "value": 2.2
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.57",
+            "unit": "",
+            "value": 0.57
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "1.78",
+            "unit": "",
+            "value": 1.78
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.43",
+            "unit": "L",
+            "value": 0.43
+          },
+          "re_ohm": {
+            "label": "ReVc",
+            "method": "html.text",
+            "raw_value": "3.8",
+            "unit": "Ohm",
+            "value": 3.8
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "36.3",
+            "unit": "Cm\u00b2",
+            "value": 36.3
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "3.6",
+            "unit": "L",
+            "value": 3.6
+          },
+          "xmax_mm": {
+            "label": "X-max",
+            "method": "html.text",
+            "raw_value": "4",
+            "unit": "mm",
+            "value": 4.0
+          }
+        },
+        "source": "Markaudio Archive",
+        "title": "Alpair 6P",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-6p/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.83,
+        "cms_mm_per_n": 0.00127,
+        "fs_hz": 70.9,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0213,
+        "mms_g": 3.74,
+        "pe_w": 0.0,
+        "qms": 3.07,
+        "qts": 0.54,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.2,
+        "vas_l": 4.58,
+        "xmax_mm": 4.2
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 7.3",
+      "name": "WEB: Markaudio Alpair 7.3",
+      "raw": {
+        "bl_tm": 3.83,
+        "cms_mm_per_n": 0.00127,
+        "fs_hz": 70.9,
+        "le_mh": 0.0213,
+        "mms_g": 3.74,
+        "qes": 0.65,
+        "qms": 3.07,
+        "qts": 0.54,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.199999999999996,
+        "vas_l": 4.58,
+        "xmax_mm": 4.2
+      },
+      "size_in": 4.0,
+      "source": "Markaudio Archive",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-7-3/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T11:56:51+00:00",
+        "model": "Alpair 7.3",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "3.83",
+            "unit": "T*M",
+            "value": 3.83
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "1.27",
+            "unit": "uM/N",
+            "value": 0.00127
+          },
+          "fs_hz": {
+            "label": "F0",
+            "method": "html.text",
+            "raw_value": "70.9",
+            "unit": "Hz",
+            "value": 70.9
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "21.3",
+            "unit": "uH",
+            "value": 0.0213
+          },
+          "mms_g": {
+            "label": "Mmd",
+            "method": "html.text",
+            "raw_value": "3.74",
+            "unit": "g",
+            "value": 3.74
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.65",
+            "unit": "",
+            "value": 0.65
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "3.07",
+            "unit": "",
+            "value": 3.07
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.54",
+            "unit": "L",
+            "value": 0.54
+          },
+          "re_ohm": {
+            "label": "ReVc",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohms",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "5.02",
+            "unit": "K mm/2",
+            "value": 50.199999999999996
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "4.58",
+            "unit": "L",
+            "value": 4.58
+          },
+          "xmax_mm": {
+            "label": "X max",
+            "method": "html.text",
+            "raw_value": "4.2",
+            "unit": "mm",
+            "value": 4.2
+          }
+        },
+        "source": "Markaudio Archive",
+        "title": "Alpair 7.3",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-7-3/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.525,
+        "cms_mm_per_n": 0.00127,
+        "fs_hz": 73.412,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0213,
+        "mms_g": 3.019,
+        "pe_w": 0.0,
+        "qms": 2.824,
+        "qts": 0.498,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.27,
+        "vas_l": 5.587,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Alpair 7p",
+      "name": "WEB: Markaudio Alpair 7p",
+      "raw": {
+        "bl_tm": 3.525,
+        "cms_mm_per_n": 0.00127,
+        "fs_hz": 73.412,
+        "le_mh": 0.0213,
+        "mms_g": 3.019,
+        "qes": 0.605,
+        "qms": 2.824,
+        "qts": 0.498,
+        "re_ohm": 5.4,
+        "sd_cm2": 50.27,
+        "vas_l": 5.587,
+        "xmax_mm": 4.0
+      },
+      "size_in": 7.0,
+      "source": "Markaudio Archive",
+      "url": "https://www.markaudio.com/online_shop/archive/alpair-7p/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T11:56:52+00:00",
+        "model": "Alpair 7p",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "3.525",
+            "unit": "TM",
+            "value": 3.525
+          },
+          "cms_mm_per_n": {
+            "label": "CMS",
+            "method": "html.text",
+            "raw_value": "1.27",
+            "unit": "uM/N",
+            "value": 0.00127
+          },
+          "fs_hz": {
+            "label": "F0",
+            "method": "html.text",
+            "raw_value": "73.412",
+            "unit": "Hz",
+            "value": 73.412
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "21.3",
+            "unit": "uH",
+            "value": 0.0213
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "3.019",
+            "unit": "g",
+            "value": 3.019
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.605",
+            "unit": "",
+            "value": 0.605
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.824",
+            "unit": "",
+            "value": 2.824
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.498",
+            "unit": "L",
+            "value": 0.498
+          },
+          "re_ohm": {
+            "label": "ReVc",
+            "method": "html.text",
+            "raw_value": "5.4",
+            "unit": "Ohms",
+            "value": 5.4
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "50.270",
+            "unit": "cm\u00b2",
+            "value": 50.27
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "5.587",
+            "unit": "L",
+            "value": 5.587
+          },
+          "xmax_mm": {
+            "label": "X max",
+            "method": "html.text",
+            "raw_value": "4",
+            "unit": "mm",
+            "value": 4.0
+          }
+        },
+        "source": "Markaudio Archive",
+        "title": "Alpair 7p",
+        "url": "https://www.markaudio.com/online_shop/archive/alpair-7p/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 2.9146,
+        "cms_mm_per_n": 0.0,
+        "fs_hz": 77.7903,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0274,
+        "mms_g": 3.2888,
+        "pe_w": 15.0,
+        "qms": 2.968,
+        "qts": 0.5355,
+        "re_ohm": 3.5,
+        "sd_cm2": 50.0,
+        "vas_l": 4.4905,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Pluvia 7 PHD",
+      "name": "WEB: Markaudio Pluvia 7 PHD",
+      "raw": {
+        "bl_tm": 2.9146,
+        "fs_hz": 77.7903,
+        "le_mh": 0.0274,
+        "mms_g": 3.2888,
+        "pe_w": 15.0,
+        "qes": 0.6623,
+        "qms": 2.968,
+        "qts": 0.5355,
+        "re_ohm": 3.5,
+        "sd_cm2": 50.0,
+        "vas_l": 4.4905,
+        "xmax_mm": 4.0
+      },
+      "size_in": null,
+      "source": "Markaudio Archive",
+      "url": "https://www.markaudio.com/online_shop/archive/pluvia-7-phd/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T11:56:55+00:00",
+        "model": "Pluvia 7 PHD",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "2.9146",
+            "unit": "",
+            "value": 2.9146
+          },
+          "fs_hz": {
+            "label": "FS",
+            "method": "html.text",
+            "raw_value": "77.7903",
+            "unit": "Hz",
+            "value": 77.7903
+          },
+          "le_mh": {
+            "label": "L1kHz",
+            "method": "html.text",
+            "raw_value": "0.0274",
+            "unit": "mH",
+            "value": 0.0274
+          },
+          "mms_g": {
+            "label": "MMS",
+            "method": "html.text",
+            "raw_value": "3.2888",
+            "unit": "g",
+            "value": 3.2888
+          },
+          "pe_w": {
+            "label": "PWR",
+            "method": "html.text",
+            "raw_value": "15",
+            "unit": "Watts",
+            "value": 15.0
+          },
+          "qes": {
+            "label": "QES",
+            "method": "html.text",
+            "raw_value": "0.6623",
+            "unit": "",
+            "value": 0.6623
+          },
+          "qms": {
+            "label": "QMS",
+            "method": "html.text",
+            "raw_value": "2.968",
+            "unit": "",
+            "value": 2.968
+          },
+          "qts": {
+            "label": "QTS",
+            "method": "html.text",
+            "raw_value": "0.5355",
+            "unit": "",
+            "value": 0.5355
+          },
+          "re_ohm": {
+            "label": "RE",
+            "method": "html.text",
+            "raw_value": "3.5000",
+            "unit": "Ohm",
+            "value": 3.5
+          },
+          "sd_cm2": {
+            "label": "SD",
+            "method": "html.text",
+            "raw_value": "0.0050",
+            "unit": "m2",
+            "value": 50.0
+          },
+          "vas_l": {
+            "label": "VAS",
+            "method": "html.text",
+            "raw_value": "4.4905",
+            "unit": "L",
+            "value": 4.4905
+          },
+          "xmax_mm": {
+            "label": "X max",
+            "method": "html.text",
+            "raw_value": "4",
+            "unit": "mm",
+            "value": 4.0
+          }
+        },
+        "source": "Markaudio Archive",
+        "title": "Pluvia 7 PHD",
+        "url": "https://www.markaudio.com/online_shop/archive/pluvia-7-phd/"
+      }
+    },
+    {
+      "brand": "Markaudio",
+      "driver": {
+        "bl_tm": 3.968,
+        "cms_mm_per_n": 1.545,
+        "fs_hz": 67.863,
+        "le10k_mh": 0.0,
+        "le_mh": 35.057,
+        "mms_g": 3.561,
+        "pe_w": 22.0,
+        "qms": 2.391,
+        "qts": 0.538,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.27,
+        "vas_l": 5.543,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "model": "Pluvia 7",
+      "name": "WEB: Markaudio Pluvia 7",
+      "raw": {
+        "bl_tm": 3.968,
+        "cms_mm_per_n": 1.545,
+        "fs_hz": 67.863,
+        "le_mh": 35.057,
+        "mms_g": 3.561,
+        "pe_w": 22.0,
+        "qes": 0.695,
+        "qms": 2.391,
+        "qts": 0.538,
+        "re_ohm": 7.2,
+        "sd_cm2": 50.27,
+        "vas_l": 5.543,
+        "xmax_mm": 4.0
+      },
+      "size_in": 4.0,
+      "source": "Markaudio Archive",
+      "url": "https://www.markaudio.com/online_shop/archive/pluvia-7-soft-chrome-vintage-gold-pair/",
+      "website_fields": {
+        "brand": "Markaudio",
+        "confidence": 1.0,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "html",
+        "fetched_at": "2026-07-25T11:56:56+00:00",
+        "model": "Pluvia 7",
+        "raw_measurements": {
+          "bl_tm": {
+            "label": "BL",
+            "method": "html.text",
+            "raw_value": "3.968",
+            "unit": "TM",
+            "value": 3.968
+          },
+          "cms_mm_per_n": {
+            "label": "Cms",
+            "method": "html.text",
+            "raw_value": "1.545",
+            "unit": "",
+            "value": 1.545
+          },
+          "fs_hz": {
+            "label": "Fo",
+            "method": "html.text",
+            "raw_value": "67.863",
+            "unit": "Hz",
+            "value": 67.863
+          },
+          "le_mh": {
+            "label": "LE",
+            "method": "html.text",
+            "raw_value": "35.057",
+            "unit": "",
+            "value": 35.057
+          },
+          "mms_g": {
+            "label": "Mms",
+            "method": "html.text",
+            "raw_value": "3.561",
+            "unit": "g",
+            "value": 3.561
+          },
+          "pe_w": {
+            "label": "Pwr",
+            "method": "html.text",
+            "raw_value": "22",
+            "unit": "watts",
+            "value": 22.0
+          },
+          "qes": {
+            "label": "Qes",
+            "method": "html.text",
+            "raw_value": "0.695",
+            "unit": "",
+            "value": 0.695
+          },
+          "qms": {
+            "label": "Qms",
+            "method": "html.text",
+            "raw_value": "2.391",
+            "unit": "",
+            "value": 2.391
+          },
+          "qts": {
+            "label": "Qts",
+            "method": "html.text",
+            "raw_value": "0.538",
+            "unit": "L",
+            "value": 0.538
+          },
+          "re_ohm": {
+            "label": "Revc",
+            "method": "html.text",
+            "raw_value": "7.200",
+            "unit": "Ohm",
+            "value": 7.2
+          },
+          "sd_cm2": {
+            "label": "Sd",
+            "method": "html.text",
+            "raw_value": "50.270",
+            "unit": "cm\u00b2",
+            "value": 50.27
+          },
+          "vas_l": {
+            "label": "Vas",
+            "method": "html.text",
+            "raw_value": "5.543",
+            "unit": "L",
+            "value": 5.543
+          },
+          "xmax_mm": {
+            "label": "X max",
+            "method": "html.text",
+            "raw_value": "4",
+            "unit": "mm",
+            "value": 4.0
+          }
+        },
+        "source": "Markaudio Archive",
+        "title": "Pluvia 7",
+        "url": "https://www.markaudio.com/online_shop/archive/pluvia-7-soft-chrome-vintage-gold-pair/"
+      }
     }
   ],
   "source": "manufacturer crawl (HTML product pages, PDF datasheets, public JSON APIs)",
-  "usable_presets": 4740
+  "usable_presets": 4750
 }
