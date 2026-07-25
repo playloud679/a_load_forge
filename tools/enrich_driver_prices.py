@@ -504,6 +504,19 @@ def product_looks_like_driver(product: dict) -> bool:
         "box for",
         "enclosure for",
         "replacement box",
+        # 2026-07-25 QA sweep (round 11): BlueAran also sells downloadable
+        # cabinet-design-plan documents named "<Brand> <Model> ... Design
+        # Plans for ..."/"Design Plans for <n>-way speaker with a <Model>
+        # woofer"/"Design fee for ..." -- all priced 0.0 (free download), not
+        # the driver itself. One had already slipped through and priced a
+        # B&C 18SW115 preset at GBP 0.00. 27 such listings found in
+        # BlueAran's cached catalog alone, all correctly excluded by these
+        # patterns with zero false positives against any real driver name
+        # checked across every cached seller catalog.
+        "design plan",
+        "design fee",
+        "cabinet design",
+        "design for",
     )
     return not any(pattern in text for pattern in accessory_patterns)
 
