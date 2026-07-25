@@ -1157,6 +1157,8 @@ def _preserve_design_state() -> None:
 def _preserve_library_filters() -> None:
     """Keep Finder-only catalog filters while the Design workspace is open."""
     for key in (
+        "preset_search",
+        "finder_load_types",
         "preset_family_filter",
         "preset_source_filter",
         "preset_size_filter",
