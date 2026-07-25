@@ -380971,7 +380971,8 @@
     "re_ohm": 3.59,
     "sd_cm2": 779.0,
     "vas_l": 103.85,
-    "xmax_mm": 18.0
+    "xmax_mm": 18.0,
+    "le10k_mh": 2.0
    },
    "kind": "Loudspeaker driver",
    "model": "SUBWOOFER 15″ BICHO PAPÃO 1200 WRMS 4+4 OHMS",
@@ -381112,7 +381113,10 @@
     },
     "source": "Bomber official",
     "title": "SUBWOOFER 15″ BICHO PAPÃO 1200 WRMS 4+4 OHMS – Bomber",
-    "url": "https://www.bomber.com.br/produto/subwoofer-15-bicho-papao-1200-wrms-44-ohms/"
+    "url": "https://www.bomber.com.br/produto/subwoofer-15-bicho-papao-1200-wrms-44-ohms/",
+    "additional_sources": [
+     "https://www.bomber.com.br/produto/subwoofer-15-bicho-papao-1200-wrms-4-4-ohms/"
+    ]
    }
   },
   {
@@ -381130,7 +381134,8 @@
     "re_ohm": 3.71,
     "sd_cm2": 779.0,
     "vas_l": 114.3,
-    "xmax_mm": 13.0
+    "xmax_mm": 13.0,
+    "le10k_mh": 1.66
    },
    "kind": "Loudspeaker driver",
    "model": "SUBWOOFER 15″ BICHO PAPÃO 800 WRMS 4+4 OHMS",
@@ -381271,7 +381276,10 @@
     },
     "source": "Bomber official",
     "title": "SUBWOOFER 15″ BICHO PAPÃO 800 WRMS 4+4 OHMS – Bomber",
-    "url": "https://www.bomber.com.br/produto/subwoofer-15-bicho-papao-800-wrms-44-ohms/"
+    "url": "https://www.bomber.com.br/produto/subwoofer-15-bicho-papao-800-wrms-44-ohms/",
+    "additional_sources": [
+     "https://www.bomber.com.br/produto/subwoofer-15-bicho-papao-800-wrms-4-4-ohms/"
+    ]
    }
   },
   {
@@ -381448,7 +381456,8 @@
     "re_ohm": 3.54,
     "sd_cm2": 453.0,
     "vas_l": 33.59,
-    "xmax_mm": 13.0
+    "xmax_mm": 13.0,
+    "le10k_mh": 1.15
    },
    "kind": "Loudspeaker driver",
    "model": "SUBWOOFER 12″ BICHO PAPÃO 800 WRMS 4+4 OHMS",
@@ -381589,7 +381598,10 @@
     },
     "source": "Bomber official",
     "title": "SUBWOOFER 12″ BICHO PAPÃO 800 WRMS 4+4 OHMS – Bomber",
-    "url": "https://www.bomber.com.br/produto/subwoofer-12-bicho-papao-800-wrms-44-ohms/"
+    "url": "https://www.bomber.com.br/produto/subwoofer-12-bicho-papao-800-wrms-44-ohms/",
+    "additional_sources": [
+     "https://www.bomber.com.br/produto/subwoofer-12-bicho-papao-800-wrms-4-4-ohms/"
+    ]
    }
   },
   {
@@ -381766,7 +381778,8 @@
     "re_ohm": 3.58,
     "sd_cm2": 523.0,
     "vas_l": 84.42,
-    "xmax_mm": 6.1
+    "xmax_mm": 6.1,
+    "le10k_mh": 0.4
    },
    "kind": "Loudspeaker driver",
    "model": "SUBWOOFER 12″ OUTDOOR 300 WRMS 4 OHMS",
@@ -381907,7 +381920,10 @@
     },
     "source": "Bomber official",
     "title": "SUBWOOFER 12″ OUTDOOR 300 WRMS 4 OHMS – Bomber",
-    "url": "https://www.bomber.com.br/produto/subwoofer-12-outdoor-300-wrms-4-ohms-2/"
+    "url": "https://www.bomber.com.br/produto/subwoofer-12-outdoor-300-wrms-4-ohms-2/",
+    "additional_sources": [
+     "https://www.bomber.com.br/produto/subwoofer-12-outdoor-300-wrms-4-ohms/"
+    ]
    }
   },
   {
@@ -381925,7 +381941,8 @@
     "re_ohm": 3.24,
     "sd_cm2": 326.0,
     "vas_l": 49.8,
-    "xmax_mm": 6.1
+    "xmax_mm": 6.1,
+    "le10k_mh": 0.43
    },
    "kind": "Loudspeaker driver",
    "model": "SUBWOOFER 10″ OUTDOOR 300 WRMS 4 OHMS",
@@ -382066,7 +382083,10 @@
     },
     "source": "Bomber official",
     "title": "SUBWOOFER 10″ OUTDOOR 300 WRMS 4 OHMS – Bomber",
-    "url": "https://www.bomber.com.br/produto/subwoofer-10-outdoor-300-wrms-4-ohms-2/"
+    "url": "https://www.bomber.com.br/produto/subwoofer-10-outdoor-300-wrms-4-ohms-2/",
+    "additional_sources": [
+     "https://www.bomber.com.br/produto/subwoofer-10-outdoor-300-wrms-4-ohms/"
+    ]
    }
   },
   {
@@ -389155,7 +389175,8 @@
     "re_ohm": 4.25,
     "sd_cm2": 506.0,
     "vas_l": 36.0,
-    "xmax_mm": 12.0
+    "xmax_mm": 12.0,
+    "le10k_mh": 1.04
    },
    "kind": "Loudspeaker driver",
    "model": "SUBWOOFER 12″ BICHO PAPÃO 700 WRMS 4 OHMS (EDIÇÃO ESPECIAL)",
@@ -389296,7 +389317,10 @@
     },
     "source": "Bomber official",
     "title": "SUBWOOFER 12″ BICHO PAPÃO 700 WRMS 4 OHMS (EDIÇÃO ESPECIAL) – Bomber",
-    "url": "https://www.bomber.com.br/produto/subwoofer-12-bicho-papao-700-wrms-4-ohms-edicao-especial/"
+    "url": "https://www.bomber.com.br/produto/subwoofer-12-bicho-papao-700-wrms-4-ohms-edicao-especial/",
+    "additional_sources": [
+     "https://www.bomber.com.br/produto/subwoofer-12-bicho-papao-700-wrms-4-ohms-edicao-especial/"
+    ]
    }
   },
   {
@@ -389906,7 +389930,8 @@
     "re_ohm": 2.95,
     "sd_cm2": 487.0,
     "vas_l": 63.0,
-    "xmax_mm": 13.0
+    "xmax_mm": 13.0,
+    "le10k_mh": 1.11
    },
    "kind": "Loudspeaker driver",
    "model": "SUBWOOFER 12″ BICHO PAPÃO 800 WRMS 4 OHMS",
@@ -390047,7 +390072,10 @@
     },
     "source": "Bomber official",
     "title": "SUBWOOFER 12″ BICHO PAPÃO 800 WRMS 4 OHMS – Bomber",
-    "url": "https://www.bomber.com.br/produto/subwoofer-12-bicho-papao-800-wrms-4-ohms/"
+    "url": "https://www.bomber.com.br/produto/subwoofer-12-bicho-papao-800-wrms-4-ohms/",
+    "additional_sources": [
+     "https://www.bomber.com.br/produto/subwoofer-12-bicho-papao-800-wrms-4-ohms/"
+    ]
    }
   },
   {
@@ -390065,7 +390093,8 @@
     "re_ohm": 3.18,
     "sd_cm2": 819.0,
     "vas_l": 169.0,
-    "xmax_mm": 13.0
+    "xmax_mm": 13.0,
+    "le10k_mh": 0.96
    },
    "kind": "Loudspeaker driver",
    "model": "SUBWOOFER 15″ BICHO PAPÃO 800 WRMS 4 OHMS",
@@ -390206,7 +390235,10 @@
     },
     "source": "Bomber official",
     "title": "SUBWOOFER 15″ BICHO PAPÃO 800 WRMS 4 OHMS – Bomber",
-    "url": "https://www.bomber.com.br/produto/subwoofer-15-bicho-papao-800-wrms-4-ohms/"
+    "url": "https://www.bomber.com.br/produto/subwoofer-15-bicho-papao-800-wrms-4-ohms/",
+    "additional_sources": [
+     "https://www.bomber.com.br/produto/subwoofer-15-bicho-papao-800-wrms-4-ohms/"
+    ]
    }
   },
   {
@@ -390224,7 +390256,8 @@
     "re_ohm": 3.3,
     "sd_cm2": 855.0,
     "vas_l": 294.0,
-    "xmax_mm": 9.5
+    "xmax_mm": 9.5,
+    "le10k_mh": 1.0
    },
    "kind": "Loudspeaker driver",
    "model": "SUBWOOFER 15″ UPGRADE 350 WRMS 4 OHMS",
@@ -390365,7 +390398,10 @@
     },
     "source": "Bomber official",
     "title": "SUBWOOFER 15″ UPGRADE 350 WRMS 4 OHMS – Bomber",
-    "url": "https://www.bomber.com.br/produto/subwoofer-15-upgrade-350-wrms-4-ohms/"
+    "url": "https://www.bomber.com.br/produto/subwoofer-15-upgrade-350-wrms-4-ohms/",
+    "additional_sources": [
+     "https://www.bomber.com.br/produto/subwoofer-15-upgrade-350-wrms-4-ohms/"
+    ]
    }
   },
   {
@@ -390685,7 +390721,8 @@
     "re_ohm": 3.24,
     "sd_cm2": 543.0,
     "vas_l": 90.57,
-    "xmax_mm": 9.5
+    "xmax_mm": 9.5,
+    "le10k_mh": 0.77
    },
    "kind": "Loudspeaker driver",
    "model": "SUBWOOFER 12″ UPGRADE 375 WRMS 4 OHMS",
@@ -390826,7 +390863,10 @@
     },
     "source": "Bomber official",
     "title": "SUBWOOFER 12″ UPGRADE 375 WRMS 4 OHMS – Bomber",
-    "url": "https://www.bomber.com.br/produto/subwoofer-12-upgrade-375-wrms-4-ohms/"
+    "url": "https://www.bomber.com.br/produto/subwoofer-12-upgrade-375-wrms-4-ohms/",
+    "additional_sources": [
+     "https://www.bomber.com.br/produto/subwoofer-12-upgrade-375-wrms-4-ohms/"
+    ]
    }
   },
   {
@@ -391321,7 +391361,8 @@
     "re_ohm": 3.33,
     "sd_cm2": 366.0,
     "vas_l": 67.0,
-    "xmax_mm": 9.5
+    "xmax_mm": 9.5,
+    "le10k_mh": 0.84
    },
    "kind": "Loudspeaker driver",
    "model": "SUBWOOFER 10″ UPGRADE 350 WRMS 4 OHMS",
@@ -391462,7 +391503,10 @@
     },
     "source": "Bomber official",
     "title": "SUBWOOFER 10″ UPGRADE 350 WRMS 4 OHMS – Bomber",
-    "url": "https://www.bomber.com.br/produto/subwoofer-10-upgrade-350-wrms-4-ohms/"
+    "url": "https://www.bomber.com.br/produto/subwoofer-10-upgrade-350-wrms-4-ohms/",
+    "additional_sources": [
+     "https://www.bomber.com.br/produto/subwoofer-10-upgrade-350-wrms-4-ohms/"
+    ]
    }
   },
   {
@@ -391480,7 +391524,8 @@
     "re_ohm": 3.29,
     "sd_cm2": 543.0,
     "vas_l": 214.0,
-    "xmax_mm": 9.5
+    "xmax_mm": 9.5,
+    "le10k_mh": 0.91
    },
    "kind": "Loudspeaker driver",
    "model": "SUBWOOFER 12″ UPGRADE 350 WRMS 4 OHMS",
@@ -391621,7 +391666,10 @@
     },
     "source": "Bomber official",
     "title": "SUBWOOFER 12″ UPGRADE 350 WRMS 4 OHMS – Bomber",
-    "url": "https://www.bomber.com.br/produto/subwoofer-12-upgrade-350-wrms-4-ohms/"
+    "url": "https://www.bomber.com.br/produto/subwoofer-12-upgrade-350-wrms-4-ohms/",
+    "additional_sources": [
+     "https://www.bomber.com.br/produto/subwoofer-12-upgrade-350-wrms-4-ohms/"
+    ]
    }
   },
   {
@@ -628726,6 +628774,1206 @@
       "raw_value": "21.0",
       "unit": "",
       "label": "Bl",
+      "method": "html.text"
+     }
+    },
+    "derived_fields": [],
+    "derivations": {}
+   }
+  },
+  {
+   "name": "WEB: Bomber PENTAXIAL 6X9″ BICHO PAPÃO 300 WRMS 4 OHMS PAR",
+   "brand": "Bomber",
+   "model": "PENTAXIAL 6X9″ BICHO PAPÃO 300 WRMS 4 OHMS PAR",
+   "size_in": 6.0,
+   "kind": "Loudspeaker driver",
+   "url": "https://www.bomber.com.br/produto/pentaxial-6x9-bicho-papao-300-wrms-4-ohms-par/",
+   "source": "Bomber (discontinued line)",
+   "driver": {
+    "fs_hz": 60.0,
+    "vas_l": 19.12,
+    "qts": 0.91,
+    "qms": 3.68,
+    "re_ohm": 3.3,
+    "sd_cm2": 204.2,
+    "le_mh": 0.0,
+    "le10k_mh": 0.0,
+    "xmax_mm": 2.0,
+    "pe_w": 150.0,
+    "mms_g": 0.0,
+    "cms_mm_per_n": 0.0,
+    "bl_tm": 0.0
+   },
+   "raw": {
+    "fs_hz": 60.0,
+    "vas_l": 19.12,
+    "qts": 0.91,
+    "qms": 3.68,
+    "qes": 1.21,
+    "re_ohm": 3.3,
+    "sd_cm2": 204.2,
+    "xmax_mm": 2.0,
+    "pe_w": 150.0
+   },
+   "website_fields": {
+    "title": "PENTAXIAL 6X9″ BICHO PAPÃO 300 WRMS 4 OHMS PAR – Bomber",
+    "brand": "Bomber",
+    "model": "PENTAXIAL 6X9″ BICHO PAPÃO 300 WRMS 4 OHMS PAR",
+    "url": "https://www.bomber.com.br/produto/pentaxial-6x9-bicho-papao-300-wrms-4-ohms-par/",
+    "source": "Bomber (discontinued line)",
+    "fetched_at": "2026-07-25T11:20:04+00:00",
+    "extraction_method": "html",
+    "confidence": 0.9,
+    "raw_measurements": {
+     "fs_hz": {
+      "value": 60.0,
+      "raw_value": "60",
+      "unit": "Hz",
+      "label": "Fs",
+      "method": "html.text"
+     },
+     "vas_l": {
+      "value": 19.12,
+      "raw_value": "19,12",
+      "unit": "L",
+      "label": "Vas",
+      "method": "html.text"
+     },
+     "qts": {
+      "value": 0.91,
+      "raw_value": "0,91",
+      "unit": "",
+      "label": "Qts",
+      "method": "html.text"
+     },
+     "qms": {
+      "value": 3.68,
+      "raw_value": "3,68",
+      "unit": "",
+      "label": "Qms",
+      "method": "html.text"
+     },
+     "qes": {
+      "value": 1.21,
+      "raw_value": "1,21",
+      "unit": "",
+      "label": "Qes",
+      "method": "html.text"
+     },
+     "re_ohm": {
+      "value": 3.3,
+      "raw_value": "3,3",
+      "unit": "Ohms",
+      "label": "Re",
+      "method": "html.text"
+     },
+     "sd_cm2": {
+      "value": 204.2,
+      "raw_value": "204,2",
+      "unit": "cm²",
+      "label": "Sd",
+      "method": "html.text"
+     },
+     "xmax_mm": {
+      "value": 2.0,
+      "raw_value": "2",
+      "unit": "mm",
+      "label": "Xmax",
+      "method": "html.text"
+     },
+     "pe_w": {
+      "value": 150.0,
+      "raw_value": "150",
+      "unit": "W RMS",
+      "label": "Potência",
+      "method": "html.text"
+     }
+    },
+    "derived_fields": [],
+    "derivations": {}
+   }
+  },
+  {
+   "name": "WEB: Bomber MÉDIO GRAVE 6X9″ OUTDOOR 400 WRMS 4 OHMS PAR",
+   "brand": "Bomber",
+   "model": "MÉDIO GRAVE 6X9″ OUTDOOR 400 WRMS 4 OHMS PAR",
+   "size_in": null,
+   "kind": "Loudspeaker driver",
+   "url": "https://www.bomber.com.br/produto/medios-grave-6x9-outdoor-400-wrms-4-ohms-par/",
+   "source": "Bomber (discontinued line)",
+   "driver": {
+    "fs_hz": 89.0,
+    "vas_l": 14.3,
+    "qts": 0.51,
+    "qms": 3.43,
+    "re_ohm": 3.4,
+    "sd_cm2": 204.0,
+    "le_mh": 0.42,
+    "le10k_mh": 0.16,
+    "xmax_mm": 1.75,
+    "pe_w": 200.0,
+    "mms_g": 12.95,
+    "cms_mm_per_n": 0.0,
+    "bl_tm": 0.0
+   },
+   "raw": {
+    "fs_hz": 89.0,
+    "vas_l": 14.3,
+    "qts": 0.51,
+    "qms": 3.43,
+    "qes": 0.6,
+    "re_ohm": 3.4,
+    "sd_cm2": 204.0,
+    "le_mh": 0.42,
+    "le10k_mh": 0.16,
+    "xmax_mm": 1.75,
+    "pe_w": 200.0,
+    "mms_g": 12.95
+   },
+   "website_fields": {
+    "title": "MÉDIO GRAVE 6X9″ OUTDOOR 400 WRMS 4 OHMS PAR – Bomber",
+    "brand": "Bomber",
+    "model": "MÉDIO GRAVE 6X9″ OUTDOOR 400 WRMS 4 OHMS PAR",
+    "url": "https://www.bomber.com.br/produto/medios-grave-6x9-outdoor-400-wrms-4-ohms-par/",
+    "source": "Bomber (discontinued line)",
+    "fetched_at": "2026-07-25T11:20:04+00:00",
+    "extraction_method": "html",
+    "confidence": 0.975,
+    "raw_measurements": {
+     "fs_hz": {
+      "value": 89.0,
+      "raw_value": "89",
+      "unit": "Hz",
+      "label": "Fs",
+      "method": "html.text"
+     },
+     "vas_l": {
+      "value": 14.3,
+      "raw_value": "14,3",
+      "unit": "L",
+      "label": "Vas",
+      "method": "html.text"
+     },
+     "qts": {
+      "value": 0.51,
+      "raw_value": "0,51",
+      "unit": "",
+      "label": "Qts",
+      "method": "html.text"
+     },
+     "qms": {
+      "value": 3.43,
+      "raw_value": "3,43",
+      "unit": "",
+      "label": "Qms",
+      "method": "html.text"
+     },
+     "qes": {
+      "value": 0.6,
+      "raw_value": "0,60",
+      "unit": "",
+      "label": "Qes",
+      "method": "html.text"
+     },
+     "re_ohm": {
+      "value": 3.4,
+      "raw_value": "3,4",
+      "unit": "Ohms",
+      "label": "Re",
+      "method": "html.text"
+     },
+     "sd_cm2": {
+      "value": 204.0,
+      "raw_value": "204",
+      "unit": "cm²",
+      "label": "Sd",
+      "method": "html.text"
+     },
+     "le_mh": {
+      "value": 0.42,
+      "raw_value": "0,42",
+      "unit": "mH",
+      "label": "Le @ 1 kHz",
+      "method": "html.text"
+     },
+     "le10k_mh": {
+      "value": 0.16,
+      "raw_value": "0,16",
+      "unit": "mH",
+      "label": "Le @ 10 kHz",
+      "method": "html.text"
+     },
+     "xmax_mm": {
+      "value": 1.75,
+      "raw_value": "1,75",
+      "unit": "mm",
+      "label": "Xmax",
+      "method": "html.text"
+     },
+     "pe_w": {
+      "value": 200.0,
+      "raw_value": "200",
+      "unit": "W RMS",
+      "label": "Potência",
+      "method": "html.text"
+     },
+     "mms_g": {
+      "value": 12.95,
+      "raw_value": "12,95",
+      "unit": "g",
+      "label": "Mms",
+      "method": "html.text"
+     }
+    },
+    "derived_fields": [],
+    "derivations": {}
+   }
+  },
+  {
+   "name": "WEB: Bomber QUADRIAXIAL 6X9″ BBMAX 120 WRMS 4 OHMS PAR",
+   "brand": "Bomber",
+   "model": "QUADRIAXIAL 6X9″ BBMAX 120 WRMS 4 OHMS PAR",
+   "size_in": 6.0,
+   "kind": "Loudspeaker driver",
+   "url": "https://www.bomber.com.br/produto/quadriaxial-6x9-bbmax-120-wrms-4-ohms-par/",
+   "source": "Bomber (discontinued line)",
+   "driver": {
+    "fs_hz": 74.0,
+    "vas_l": 15.93,
+    "qts": 2.8,
+    "qms": 4.71,
+    "re_ohm": 3.88,
+    "sd_cm2": 204.2,
+    "le_mh": 0.19,
+    "le10k_mh": 0.07,
+    "xmax_mm": 1.55,
+    "pe_w": 60.0,
+    "mms_g": 16.84,
+    "cms_mm_per_n": 0.0,
+    "bl_tm": 0.0
+   },
+   "raw": {
+    "fs_hz": 74.0,
+    "vas_l": 15.93,
+    "qts": 2.8,
+    "qms": 4.71,
+    "qes": 6.9,
+    "re_ohm": 3.88,
+    "sd_cm2": 204.2,
+    "le_mh": 0.19,
+    "le10k_mh": 0.07,
+    "xmax_mm": 1.55,
+    "pe_w": 60.0,
+    "mms_g": 16.84
+   },
+   "website_fields": {
+    "title": "QUADRIAXIAL 6X9″ BBMAX 120 WRMS 4 OHMS PAR – Bomber",
+    "brand": "Bomber",
+    "model": "QUADRIAXIAL 6X9″ BBMAX 120 WRMS 4 OHMS PAR",
+    "url": "https://www.bomber.com.br/produto/quadriaxial-6x9-bbmax-120-wrms-4-ohms-par/",
+    "source": "Bomber (discontinued line)",
+    "fetched_at": "2026-07-25T11:20:04+00:00",
+    "extraction_method": "html",
+    "confidence": 0.975,
+    "raw_measurements": {
+     "fs_hz": {
+      "value": 74.0,
+      "raw_value": "74",
+      "unit": "Hz",
+      "label": "Fs",
+      "method": "html.text"
+     },
+     "vas_l": {
+      "value": 15.93,
+      "raw_value": "15,93",
+      "unit": "L",
+      "label": "Vas",
+      "method": "html.text"
+     },
+     "qts": {
+      "value": 2.8,
+      "raw_value": "2,80",
+      "unit": "",
+      "label": "Qts",
+      "method": "html.text"
+     },
+     "qms": {
+      "value": 4.71,
+      "raw_value": "4,71",
+      "unit": "",
+      "label": "Qms",
+      "method": "html.text"
+     },
+     "qes": {
+      "value": 6.9,
+      "raw_value": "6,90",
+      "unit": "",
+      "label": "Qes",
+      "method": "html.text"
+     },
+     "re_ohm": {
+      "value": 3.88,
+      "raw_value": "3,88",
+      "unit": "Ohms",
+      "label": "Re",
+      "method": "html.text"
+     },
+     "sd_cm2": {
+      "value": 204.2,
+      "raw_value": "204,2",
+      "unit": "cm²",
+      "label": "Sd",
+      "method": "html.text"
+     },
+     "le_mh": {
+      "value": 0.19,
+      "raw_value": "0,19",
+      "unit": "mH",
+      "label": "Le @ 1 kHz",
+      "method": "html.text"
+     },
+     "le10k_mh": {
+      "value": 0.07,
+      "raw_value": "0,07",
+      "unit": "mH",
+      "label": "Le @ 10 kHz",
+      "method": "html.text"
+     },
+     "xmax_mm": {
+      "value": 1.55,
+      "raw_value": "1,55",
+      "unit": "mm",
+      "label": "Xmax",
+      "method": "html.text"
+     },
+     "pe_w": {
+      "value": 60.0,
+      "raw_value": "60",
+      "unit": "W RMS",
+      "label": "Potência",
+      "method": "html.text"
+     },
+     "mms_g": {
+      "value": 16.84,
+      "raw_value": "16,84",
+      "unit": "g",
+      "label": "Mms",
+      "method": "html.text"
+     }
+    },
+    "derived_fields": [],
+    "derivations": {}
+   }
+  },
+  {
+   "name": "WEB: Bomber TRIAXIAL 6″ BBR 100W 4 OHMS TELADO PAR – CARCAÇA PLÁSTICA",
+   "brand": "Bomber",
+   "model": "TRIAXIAL 6″ BBR 100W 4 OHMS TELADO PAR – CARCAÇA PLÁSTICA",
+   "size_in": 6.0,
+   "kind": "Loudspeaker driver",
+   "url": "https://www.bomber.com.br/produto/triaxial-6-bbr-100w-4-ohms-telado-par-carcaca-plastica/",
+   "source": "Bomber (discontinued line)",
+   "driver": {
+    "fs_hz": 67.0,
+    "vas_l": 13.26,
+    "qts": 1.33,
+    "qms": 4.34,
+    "re_ohm": 3.6,
+    "sd_cm2": 121.0,
+    "le_mh": 0.59,
+    "le10k_mh": 0.04,
+    "xmax_mm": 1.15,
+    "pe_w": 50.0,
+    "mms_g": 8.72,
+    "cms_mm_per_n": 0.0,
+    "bl_tm": 0.0
+   },
+   "raw": {
+    "fs_hz": 67.0,
+    "vas_l": 13.26,
+    "qts": 1.33,
+    "qms": 4.34,
+    "qes": 1.92,
+    "re_ohm": 3.6,
+    "sd_cm2": 121.0,
+    "le_mh": 0.59,
+    "le10k_mh": 0.04,
+    "xmax_mm": 1.15,
+    "pe_w": 50.0,
+    "mms_g": 8.72
+   },
+   "website_fields": {
+    "title": "TRIAXIAL 6″ BBR 100W 4 OHMS TELADO PAR – CARCAÇA PLÁSTICA – Bomber",
+    "brand": "Bomber",
+    "model": "TRIAXIAL 6″ BBR 100W 4 OHMS TELADO PAR – CARCAÇA PLÁSTICA",
+    "url": "https://www.bomber.com.br/produto/triaxial-6-bbr-100w-4-ohms-telado-par-carcaca-plastica/",
+    "source": "Bomber (discontinued line)",
+    "fetched_at": "2026-07-25T11:20:04+00:00",
+    "extraction_method": "html",
+    "confidence": 0.975,
+    "raw_measurements": {
+     "fs_hz": {
+      "value": 67.0,
+      "raw_value": "67",
+      "unit": "Hz",
+      "label": "Fs",
+      "method": "html.text"
+     },
+     "vas_l": {
+      "value": 13.26,
+      "raw_value": "13,26",
+      "unit": "L",
+      "label": "Vas",
+      "method": "html.text"
+     },
+     "qts": {
+      "value": 1.33,
+      "raw_value": "1,33",
+      "unit": "",
+      "label": "Qts",
+      "method": "html.text"
+     },
+     "qms": {
+      "value": 4.34,
+      "raw_value": "4,34",
+      "unit": "",
+      "label": "Qms",
+      "method": "html.text"
+     },
+     "qes": {
+      "value": 1.92,
+      "raw_value": "1,92",
+      "unit": "",
+      "label": "Qes",
+      "method": "html.text"
+     },
+     "re_ohm": {
+      "value": 3.6,
+      "raw_value": "3,60",
+      "unit": "Ohms",
+      "label": "Re",
+      "method": "html.text"
+     },
+     "sd_cm2": {
+      "value": 121.0,
+      "raw_value": "121",
+      "unit": "cm²",
+      "label": "Sd",
+      "method": "html.text"
+     },
+     "le_mh": {
+      "value": 0.59,
+      "raw_value": "0,59",
+      "unit": "mH",
+      "label": "Le @ 1 kHz",
+      "method": "html.text"
+     },
+     "le10k_mh": {
+      "value": 0.04,
+      "raw_value": "0,04",
+      "unit": "mH",
+      "label": "Le @ 10 kHz",
+      "method": "html.text"
+     },
+     "xmax_mm": {
+      "value": 1.15,
+      "raw_value": "1,15",
+      "unit": "mm",
+      "label": "Xmax",
+      "method": "html.text"
+     },
+     "pe_w": {
+      "value": 50.0,
+      "raw_value": "50",
+      "unit": "W RMS",
+      "label": "Potência",
+      "method": "html.text"
+     },
+     "mms_g": {
+      "value": 8.72,
+      "raw_value": "8,72",
+      "unit": "g",
+      "label": "Mms",
+      "method": "html.text"
+     }
+    },
+    "derived_fields": [],
+    "derivations": {}
+   }
+  },
+  {
+   "name": "WEB: Bomber TRIAXIAL 6″ BBR 100W 4 OHMS PAR – CARCAÇA PLÁSTICA",
+   "brand": "Bomber",
+   "model": "TRIAXIAL 6″ BBR 100W 4 OHMS PAR – CARCAÇA PLÁSTICA",
+   "size_in": 6.0,
+   "kind": "Loudspeaker driver",
+   "url": "https://www.bomber.com.br/produto/triaxial-6-bbr-100w-4-ohms-par-carcaca-plastica/",
+   "source": "Bomber (discontinued line)",
+   "driver": {
+    "fs_hz": 67.0,
+    "vas_l": 13.26,
+    "qts": 1.33,
+    "qms": 4.34,
+    "re_ohm": 3.6,
+    "sd_cm2": 121.0,
+    "le_mh": 0.59,
+    "le10k_mh": 0.04,
+    "xmax_mm": 1.15,
+    "pe_w": 50.0,
+    "mms_g": 8.72,
+    "cms_mm_per_n": 0.0,
+    "bl_tm": 0.0
+   },
+   "raw": {
+    "fs_hz": 67.0,
+    "vas_l": 13.26,
+    "qts": 1.33,
+    "qms": 4.34,
+    "qes": 1.92,
+    "re_ohm": 3.6,
+    "sd_cm2": 121.0,
+    "le_mh": 0.59,
+    "le10k_mh": 0.04,
+    "xmax_mm": 1.15,
+    "pe_w": 50.0,
+    "mms_g": 8.72
+   },
+   "website_fields": {
+    "title": "TRIAXIAL 6″ BBR 100W 4 OHMS PAR – CARCAÇA PLÁSTICA – Bomber",
+    "brand": "Bomber",
+    "model": "TRIAXIAL 6″ BBR 100W 4 OHMS PAR – CARCAÇA PLÁSTICA",
+    "url": "https://www.bomber.com.br/produto/triaxial-6-bbr-100w-4-ohms-par-carcaca-plastica/",
+    "source": "Bomber (discontinued line)",
+    "fetched_at": "2026-07-25T11:20:04+00:00",
+    "extraction_method": "html",
+    "confidence": 0.975,
+    "raw_measurements": {
+     "fs_hz": {
+      "value": 67.0,
+      "raw_value": "67",
+      "unit": "Hz",
+      "label": "Fs",
+      "method": "html.text"
+     },
+     "vas_l": {
+      "value": 13.26,
+      "raw_value": "13,26",
+      "unit": "L",
+      "label": "Vas",
+      "method": "html.text"
+     },
+     "qts": {
+      "value": 1.33,
+      "raw_value": "1,33",
+      "unit": "",
+      "label": "Qts",
+      "method": "html.text"
+     },
+     "qms": {
+      "value": 4.34,
+      "raw_value": "4,34",
+      "unit": "",
+      "label": "Qms",
+      "method": "html.text"
+     },
+     "qes": {
+      "value": 1.92,
+      "raw_value": "1,92",
+      "unit": "",
+      "label": "Qes",
+      "method": "html.text"
+     },
+     "re_ohm": {
+      "value": 3.6,
+      "raw_value": "3,60",
+      "unit": "Ohms",
+      "label": "Re",
+      "method": "html.text"
+     },
+     "sd_cm2": {
+      "value": 121.0,
+      "raw_value": "121",
+      "unit": "cm²",
+      "label": "Sd",
+      "method": "html.text"
+     },
+     "le_mh": {
+      "value": 0.59,
+      "raw_value": "0,59",
+      "unit": "mH",
+      "label": "Le @ 1 kHz",
+      "method": "html.text"
+     },
+     "le10k_mh": {
+      "value": 0.04,
+      "raw_value": "0,04",
+      "unit": "mH",
+      "label": "Le @ 10 kHz",
+      "method": "html.text"
+     },
+     "xmax_mm": {
+      "value": 1.15,
+      "raw_value": "1,15",
+      "unit": "mm",
+      "label": "Xmax",
+      "method": "html.text"
+     },
+     "pe_w": {
+      "value": 50.0,
+      "raw_value": "50",
+      "unit": "W RMS",
+      "label": "Potência",
+      "method": "html.text"
+     },
+     "mms_g": {
+      "value": 8.72,
+      "raw_value": "8,72",
+      "unit": "g",
+      "label": "Mms",
+      "method": "html.text"
+     }
+    },
+    "derived_fields": [],
+    "derivations": {}
+   }
+  },
+  {
+   "name": "WEB: Bomber TRIAXIAL 5″ BBR 100W 4 OHMS PAR – CARCAÇA PLÁSTICA",
+   "brand": "Bomber",
+   "model": "TRIAXIAL 5″ BBR 100W 4 OHMS PAR – CARCAÇA PLÁSTICA",
+   "size_in": 5.0,
+   "kind": "Loudspeaker driver",
+   "url": "https://www.bomber.com.br/produto/triaxial-5-bbr-100w-4-ohms-par-carcaca-plastica/",
+   "source": "Bomber (discontinued line)",
+   "driver": {
+    "fs_hz": 76.0,
+    "vas_l": 4.84,
+    "qts": 1.67,
+    "qms": 5.67,
+    "re_ohm": 3.8,
+    "sd_cm2": 73.9,
+    "le_mh": 0.24,
+    "le10k_mh": 0.03,
+    "xmax_mm": 1.15,
+    "pe_w": 50.0,
+    "mms_g": 6.9,
+    "cms_mm_per_n": 0.0,
+    "bl_tm": 0.0
+   },
+   "raw": {
+    "fs_hz": 76.0,
+    "vas_l": 4.84,
+    "qts": 1.67,
+    "qms": 5.67,
+    "qes": 2.36,
+    "re_ohm": 3.8,
+    "sd_cm2": 73.9,
+    "le_mh": 0.24,
+    "le10k_mh": 0.03,
+    "xmax_mm": 1.15,
+    "pe_w": 50.0,
+    "mms_g": 6.9
+   },
+   "website_fields": {
+    "title": "TRIAXIAL 5″ BBR 100W 4 OHMS PAR – CARCAÇA PLÁSTICA – Bomber",
+    "brand": "Bomber",
+    "model": "TRIAXIAL 5″ BBR 100W 4 OHMS PAR – CARCAÇA PLÁSTICA",
+    "url": "https://www.bomber.com.br/produto/triaxial-5-bbr-100w-4-ohms-par-carcaca-plastica/",
+    "source": "Bomber (discontinued line)",
+    "fetched_at": "2026-07-25T11:20:04+00:00",
+    "extraction_method": "html",
+    "confidence": 0.975,
+    "raw_measurements": {
+     "fs_hz": {
+      "value": 76.0,
+      "raw_value": "76",
+      "unit": "Hz",
+      "label": "Fs",
+      "method": "html.text"
+     },
+     "vas_l": {
+      "value": 4.84,
+      "raw_value": "4,84",
+      "unit": "L",
+      "label": "Vas",
+      "method": "html.text"
+     },
+     "qts": {
+      "value": 1.67,
+      "raw_value": "1,67",
+      "unit": "",
+      "label": "Qts",
+      "method": "html.text"
+     },
+     "qms": {
+      "value": 5.67,
+      "raw_value": "5,67",
+      "unit": "",
+      "label": "Qms",
+      "method": "html.text"
+     },
+     "qes": {
+      "value": 2.36,
+      "raw_value": "2,36",
+      "unit": "",
+      "label": "Qes",
+      "method": "html.text"
+     },
+     "re_ohm": {
+      "value": 3.8,
+      "raw_value": "3,8",
+      "unit": "Ohms",
+      "label": "Re",
+      "method": "html.text"
+     },
+     "sd_cm2": {
+      "value": 73.9,
+      "raw_value": "73,9",
+      "unit": "cm²",
+      "label": "Sd",
+      "method": "html.text"
+     },
+     "le_mh": {
+      "value": 0.24,
+      "raw_value": "0,24",
+      "unit": "mH",
+      "label": "Le @ 1 kHz",
+      "method": "html.text"
+     },
+     "le10k_mh": {
+      "value": 0.03,
+      "raw_value": "0,03",
+      "unit": "mH",
+      "label": "Le @ 10 kHz",
+      "method": "html.text"
+     },
+     "xmax_mm": {
+      "value": 1.15,
+      "raw_value": "1,15",
+      "unit": "mm",
+      "label": "Xmax",
+      "method": "html.text"
+     },
+     "pe_w": {
+      "value": 50.0,
+      "raw_value": "50",
+      "unit": "W RMS",
+      "label": "Potência",
+      "method": "html.text"
+     },
+     "mms_g": {
+      "value": 6.9,
+      "raw_value": "6,90",
+      "unit": "g",
+      "label": "Mms",
+      "method": "html.text"
+     }
+    },
+    "derived_fields": [],
+    "derivations": {}
+   }
+  },
+  {
+   "name": "WEB: Bomber TRIAXIAL 6″ BBR 100W 4 OHMS TELADO PAR – CARCAÇA METÁLICA",
+   "brand": "Bomber",
+   "model": "TRIAXIAL 6″ BBR 100W 4 OHMS TELADO PAR – CARCAÇA METÁLICA",
+   "size_in": 6.0,
+   "kind": "Loudspeaker driver",
+   "url": "https://www.bomber.com.br/produto/triaxial-6-bbr-100w-4-ohms-telado-par-carcaca-metalica/",
+   "source": "Bomber (discontinued line)",
+   "driver": {
+    "fs_hz": 67.0,
+    "vas_l": 13.26,
+    "qts": 1.33,
+    "qms": 4.34,
+    "re_ohm": 3.6,
+    "sd_cm2": 121.0,
+    "le_mh": 0.59,
+    "le10k_mh": 0.04,
+    "xmax_mm": 1.15,
+    "pe_w": 50.0,
+    "mms_g": 8.72,
+    "cms_mm_per_n": 0.0,
+    "bl_tm": 0.0
+   },
+   "raw": {
+    "fs_hz": 67.0,
+    "vas_l": 13.26,
+    "qts": 1.33,
+    "qms": 4.34,
+    "qes": 1.92,
+    "re_ohm": 3.6,
+    "sd_cm2": 121.0,
+    "le_mh": 0.59,
+    "le10k_mh": 0.04,
+    "xmax_mm": 1.15,
+    "pe_w": 50.0,
+    "mms_g": 8.72
+   },
+   "website_fields": {
+    "title": "TRIAXIAL 6″ BBR 100W 4 OHMS TELADO PAR – CARCAÇA METÁLICA – Bomber",
+    "brand": "Bomber",
+    "model": "TRIAXIAL 6″ BBR 100W 4 OHMS TELADO PAR – CARCAÇA METÁLICA",
+    "url": "https://www.bomber.com.br/produto/triaxial-6-bbr-100w-4-ohms-telado-par-carcaca-metalica/",
+    "source": "Bomber (discontinued line)",
+    "fetched_at": "2026-07-25T11:20:04+00:00",
+    "extraction_method": "html",
+    "confidence": 0.975,
+    "raw_measurements": {
+     "fs_hz": {
+      "value": 67.0,
+      "raw_value": "67",
+      "unit": "Hz",
+      "label": "Fs",
+      "method": "html.text"
+     },
+     "vas_l": {
+      "value": 13.26,
+      "raw_value": "13,26",
+      "unit": "L",
+      "label": "Vas",
+      "method": "html.text"
+     },
+     "qts": {
+      "value": 1.33,
+      "raw_value": "1,33",
+      "unit": "",
+      "label": "Qts",
+      "method": "html.text"
+     },
+     "qms": {
+      "value": 4.34,
+      "raw_value": "4,34",
+      "unit": "",
+      "label": "Qms",
+      "method": "html.text"
+     },
+     "qes": {
+      "value": 1.92,
+      "raw_value": "1,92",
+      "unit": "",
+      "label": "Qes",
+      "method": "html.text"
+     },
+     "re_ohm": {
+      "value": 3.6,
+      "raw_value": "3,60",
+      "unit": "Ohms",
+      "label": "Re",
+      "method": "html.text"
+     },
+     "sd_cm2": {
+      "value": 121.0,
+      "raw_value": "121",
+      "unit": "cm²",
+      "label": "Sd",
+      "method": "html.text"
+     },
+     "le_mh": {
+      "value": 0.59,
+      "raw_value": "0,59",
+      "unit": "mH",
+      "label": "Le @ 1 kHz",
+      "method": "html.text"
+     },
+     "le10k_mh": {
+      "value": 0.04,
+      "raw_value": "0,04",
+      "unit": "mH",
+      "label": "Le @ 10 kHz",
+      "method": "html.text"
+     },
+     "xmax_mm": {
+      "value": 1.15,
+      "raw_value": "1,15",
+      "unit": "mm",
+      "label": "Xmax",
+      "method": "html.text"
+     },
+     "pe_w": {
+      "value": 50.0,
+      "raw_value": "50",
+      "unit": "W RMS",
+      "label": "Potência",
+      "method": "html.text"
+     },
+     "mms_g": {
+      "value": 8.72,
+      "raw_value": "8,72",
+      "unit": "g",
+      "label": "Mms",
+      "method": "html.text"
+     }
+    },
+    "derived_fields": [],
+    "derivations": {}
+   }
+  },
+  {
+   "name": "WEB: Bomber TRIAXIAL 6″ BBR 100W 4 OHMS PAR – CARCAÇA METÁLICA",
+   "brand": "Bomber",
+   "model": "TRIAXIAL 6″ BBR 100W 4 OHMS PAR – CARCAÇA METÁLICA",
+   "size_in": 6.0,
+   "kind": "Loudspeaker driver",
+   "url": "https://www.bomber.com.br/produto/triaxial-6-bbr-100w-4-ohms-par-carcaca-metalica/",
+   "source": "Bomber (discontinued line)",
+   "driver": {
+    "fs_hz": 67.0,
+    "vas_l": 13.26,
+    "qts": 1.33,
+    "qms": 4.34,
+    "re_ohm": 3.6,
+    "sd_cm2": 121.0,
+    "le_mh": 0.59,
+    "le10k_mh": 0.04,
+    "xmax_mm": 1.15,
+    "pe_w": 50.0,
+    "mms_g": 8.72,
+    "cms_mm_per_n": 0.0,
+    "bl_tm": 0.0
+   },
+   "raw": {
+    "fs_hz": 67.0,
+    "vas_l": 13.26,
+    "qts": 1.33,
+    "qms": 4.34,
+    "qes": 1.92,
+    "re_ohm": 3.6,
+    "sd_cm2": 121.0,
+    "le_mh": 0.59,
+    "le10k_mh": 0.04,
+    "xmax_mm": 1.15,
+    "pe_w": 50.0,
+    "mms_g": 8.72
+   },
+   "website_fields": {
+    "title": "TRIAXIAL 6″ BBR 100W 4 OHMS PAR – CARCAÇA METÁLICA – Bomber",
+    "brand": "Bomber",
+    "model": "TRIAXIAL 6″ BBR 100W 4 OHMS PAR – CARCAÇA METÁLICA",
+    "url": "https://www.bomber.com.br/produto/triaxial-6-bbr-100w-4-ohms-par-carcaca-metalica/",
+    "source": "Bomber (discontinued line)",
+    "fetched_at": "2026-07-25T11:20:04+00:00",
+    "extraction_method": "html",
+    "confidence": 0.975,
+    "raw_measurements": {
+     "fs_hz": {
+      "value": 67.0,
+      "raw_value": "67",
+      "unit": "Hz",
+      "label": "Fs",
+      "method": "html.text"
+     },
+     "vas_l": {
+      "value": 13.26,
+      "raw_value": "13,26",
+      "unit": "L",
+      "label": "Vas",
+      "method": "html.text"
+     },
+     "qts": {
+      "value": 1.33,
+      "raw_value": "1,33",
+      "unit": "",
+      "label": "Qts",
+      "method": "html.text"
+     },
+     "qms": {
+      "value": 4.34,
+      "raw_value": "4,34",
+      "unit": "",
+      "label": "Qms",
+      "method": "html.text"
+     },
+     "qes": {
+      "value": 1.92,
+      "raw_value": "1,92",
+      "unit": "",
+      "label": "Qes",
+      "method": "html.text"
+     },
+     "re_ohm": {
+      "value": 3.6,
+      "raw_value": "3,60",
+      "unit": "Ohms",
+      "label": "Re",
+      "method": "html.text"
+     },
+     "sd_cm2": {
+      "value": 121.0,
+      "raw_value": "121",
+      "unit": "cm²",
+      "label": "Sd",
+      "method": "html.text"
+     },
+     "le_mh": {
+      "value": 0.59,
+      "raw_value": "0,59",
+      "unit": "mH",
+      "label": "Le @ 1 kHz",
+      "method": "html.text"
+     },
+     "le10k_mh": {
+      "value": 0.04,
+      "raw_value": "0,04",
+      "unit": "mH",
+      "label": "Le @ 10 kHz",
+      "method": "html.text"
+     },
+     "xmax_mm": {
+      "value": 1.15,
+      "raw_value": "1,15",
+      "unit": "mm",
+      "label": "Xmax",
+      "method": "html.text"
+     },
+     "pe_w": {
+      "value": 50.0,
+      "raw_value": "50",
+      "unit": "W RMS",
+      "label": "Potência",
+      "method": "html.text"
+     },
+     "mms_g": {
+      "value": 8.72,
+      "raw_value": "8,72",
+      "unit": "g",
+      "label": "Mms",
+      "method": "html.text"
+     }
+    },
+    "derived_fields": [],
+    "derivations": {}
+   }
+  },
+  {
+   "name": "WEB: Bomber TRIAXIAL 4″ BBR 100W 4 OHMS PAR",
+   "brand": "Bomber",
+   "model": "TRIAXIAL 4″ BBR 100W 4 OHMS PAR",
+   "size_in": 4.0,
+   "kind": "Loudspeaker driver",
+   "url": "https://www.bomber.com.br/produto/triaxial-4-bbr-100w-4-ohms-par/",
+   "source": "Bomber (discontinued line)",
+   "driver": {
+    "fs_hz": 122.0,
+    "vas_l": 0.87,
+    "qts": 1.36,
+    "qms": 10.21,
+    "re_ohm": 3.54,
+    "sd_cm2": 40.7,
+    "le_mh": 0.21,
+    "le10k_mh": 0.13,
+    "xmax_mm": 1.15,
+    "pe_w": 50.0,
+    "mms_g": 4.56,
+    "cms_mm_per_n": 0.0,
+    "bl_tm": 0.0
+   },
+   "raw": {
+    "fs_hz": 122.0,
+    "vas_l": 0.87,
+    "qts": 1.36,
+    "qms": 10.21,
+    "qes": 1.56,
+    "re_ohm": 3.54,
+    "sd_cm2": 40.7,
+    "le_mh": 0.21,
+    "le10k_mh": 0.13,
+    "xmax_mm": 1.15,
+    "pe_w": 50.0,
+    "mms_g": 4.56
+   },
+   "website_fields": {
+    "title": "TRIAXIAL 4″ BBR 100W 4 OHMS PAR – Bomber",
+    "brand": "Bomber",
+    "model": "TRIAXIAL 4″ BBR 100W 4 OHMS PAR",
+    "url": "https://www.bomber.com.br/produto/triaxial-4-bbr-100w-4-ohms-par/",
+    "source": "Bomber (discontinued line)",
+    "fetched_at": "2026-07-25T11:20:04+00:00",
+    "extraction_method": "html",
+    "confidence": 0.975,
+    "raw_measurements": {
+     "fs_hz": {
+      "value": 122.0,
+      "raw_value": "122",
+      "unit": "Hz",
+      "label": "Fs",
+      "method": "html.text"
+     },
+     "vas_l": {
+      "value": 0.87,
+      "raw_value": "0,87",
+      "unit": "L",
+      "label": "Vas",
+      "method": "html.text"
+     },
+     "qts": {
+      "value": 1.36,
+      "raw_value": "1,36",
+      "unit": "",
+      "label": "Qts",
+      "method": "html.text"
+     },
+     "qms": {
+      "value": 10.21,
+      "raw_value": "10,21",
+      "unit": "",
+      "label": "Qms",
+      "method": "html.text"
+     },
+     "qes": {
+      "value": 1.56,
+      "raw_value": "1,56",
+      "unit": "",
+      "label": "Qes",
+      "method": "html.text"
+     },
+     "re_ohm": {
+      "value": 3.54,
+      "raw_value": "3,54",
+      "unit": "Ohms",
+      "label": "Re",
+      "method": "html.text"
+     },
+     "sd_cm2": {
+      "value": 40.7,
+      "raw_value": "40,7",
+      "unit": "cm²",
+      "label": "Sd",
+      "method": "html.text"
+     },
+     "le_mh": {
+      "value": 0.21,
+      "raw_value": "0,21",
+      "unit": "mH",
+      "label": "Le @ 1 kHz",
+      "method": "html.text"
+     },
+     "le10k_mh": {
+      "value": 0.13,
+      "raw_value": "0,13",
+      "unit": "mH",
+      "label": "Le @ 10 kHz",
+      "method": "html.text"
+     },
+     "xmax_mm": {
+      "value": 1.15,
+      "raw_value": "1,15",
+      "unit": "mm",
+      "label": "Xmax",
+      "method": "html.text"
+     },
+     "pe_w": {
+      "value": 50.0,
+      "raw_value": "50",
+      "unit": "W RMS",
+      "label": "Potência",
+      "method": "html.text"
+     },
+     "mms_g": {
+      "value": 4.56,
+      "raw_value": "4,56",
+      "unit": "g",
+      "label": "Mms",
       "method": "html.text"
      }
     },
