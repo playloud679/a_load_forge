@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.6.5 (2026-07-25)
+
+- **UI regression fixes**: restored stable acoustic metric labels, native
+  diagnostic warnings and topology explanations for DCCAV, bandpass,
+  bass-reflex, sealed and infinite-baffle designs.
+- **Finder fixes**: keep the Run a Match action visible and disabled when
+  catalog filters return no candidates, and hide enclosure-only optimization
+  constraints when matching infinite-baffle drivers.
+- **Response chart**: restored the full 600 px analysis height so zoomed and
+  overlaid traces remain readable.
+- **Tests**: 108 passed / 0 failed / 0 skipped.
+
 ## 0.6.3 (2026-07-22)
 
 - **Performance fix (interaction lag)**: every rerun — selecting a candidate
@@ -617,4 +629,3 @@
 
 - Fix sidebar logo and version overlap
 - Reduce side padding in main container
-

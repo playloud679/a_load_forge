@@ -2418,7 +2418,7 @@ def _plot_response(
     chart = _line_chart(
         data,
         "LF pressure estimate (dB)",
-        height=435,
+        height=600,
         legend=show_legend,
         x_domain=frequency_window,
         y_domain=y_domain,
@@ -2434,7 +2434,7 @@ def _plot_response(
         mil_chart = _line_chart(
             mil_data,
             "Max input power (W)",
-            height=435,
+            height=600,
             legend=show_legend,
             x_domain=frequency_window,
             y_domain=mil_y_domain,
@@ -3563,53 +3563,54 @@ def _render_find_driver_goal_sidebar() -> None:
         finder_load_types == ["Bass reflex"]
         and _reflex_uses_passive_radiator(finder=True)
     )
-    _finder_number_input(
-        "Minimum SPL (dB, 0 = off)", min_value=0.0, max_value=150.0,
-        step=0.5, key="finder_min_spl_db",
-        help="Require the candidate to reach at least this peak SPL at the comparison voltage; 0 disables.",
-    )
     if only_infinite_baffle:
         st.caption(
             "Infinite baffle has no enclosure to optimize; candidates are "
             "ranked on their free-air response."
         )
-    elif only_passive_radiator:
-        st.caption(
-            "Passive-radiator candidates use the dedicated physical starter, "
-            "capped by the selected maximum Vb, and are ranked by the resulting response."
-        )
     else:
-        if "Bass reflex" in finder_load_types and _reflex_uses_passive_radiator(finder=True):
+        _finder_number_input(
+            "Minimum SPL (dB, 0 = off)", min_value=0.0, max_value=150.0,
+            step=0.5, key="finder_min_spl_db",
+            help="Require the candidate to reach at least this peak SPL at the comparison voltage; 0 disables.",
+        )
+        if only_passive_radiator:
             st.caption(
-                "The selected objective optimizes the other loads; passive-radiator "
-                "candidates use their dedicated starter under the same volume cap."
+                "Passive-radiator candidates use the dedicated physical starter, "
+                "capped by the selected maximum Vb, and are ranked by the resulting response."
             )
-        _finder_selectbox(
-            "Optimization goal", list(_OPT_OBJECTIVE_LABELS), key="finder_objective",
-            help="Every candidate box is derived by the same optimizer as the "
-                 "Design workspace, without exceeding Maximum volume. Balanced "
-                 "trades extension against smoothness and box practicality.",
-        )
-        _finder_number_input(
-            "Desired bass extension F3 (Hz, 0 = deepest)", min_value=0.0,
-            max_value=500.0, step=1.0, key="finder_target_f3_hz",
-            help="Desired -3 dB cutoff. Lower values ask for deeper bass; enter 0 for no target.",
-        )
-        _finder_number_input(
-            "Allowed response ripple (dB)", min_value=0.0, max_value=12.0,
-            step=0.5, key="finder_max_ripple_db",
-            help="Maximum peak-to-valley variation in the evaluated low-frequency passband.",
-        )
-        _finder_number_input(
-            "Maximum excursion (× driver Xmax)", min_value=0.0, max_value=3.0,
-            step=0.05, key="finder_excursion_ratio",
-            help="1.0 means cone travel stays within published Xmax; 0 disables the constraint.",
-        )
-        _finder_number_input(
-            "Maximum group delay (ms)", min_value=0.0, max_value=100.0,
-            step=1.0, key="finder_max_gd_ms",
-            help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
-        )
+        else:
+            if "Bass reflex" in finder_load_types and _reflex_uses_passive_radiator(finder=True):
+                st.caption(
+                    "The selected objective optimizes the other loads; passive-radiator "
+                    "candidates use their dedicated starter under the same volume cap."
+                )
+            _finder_selectbox(
+                "Optimization goal", list(_OPT_OBJECTIVE_LABELS), key="finder_objective",
+                help="Every candidate box is derived by the same optimizer as the "
+                     "Design workspace, without exceeding Maximum volume. Balanced "
+                     "trades extension against smoothness and box practicality.",
+            )
+            _finder_number_input(
+                "Desired bass extension F3 (Hz, 0 = deepest)", min_value=0.0,
+                max_value=500.0, step=1.0, key="finder_target_f3_hz",
+                help="Desired -3 dB cutoff. Lower values ask for deeper bass; enter 0 for no target.",
+            )
+            _finder_number_input(
+                "Allowed response ripple (dB)", min_value=0.0, max_value=12.0,
+                step=0.5, key="finder_max_ripple_db",
+                help="Maximum peak-to-valley variation in the evaluated low-frequency passband.",
+            )
+            _finder_number_input(
+                "Maximum excursion (× driver Xmax)", min_value=0.0, max_value=3.0,
+                step=0.05, key="finder_excursion_ratio",
+                help="1.0 means cone travel stays within published Xmax; 0 disables the constraint.",
+            )
+            _finder_number_input(
+                "Maximum group delay (ms)", min_value=0.0, max_value=100.0,
+                step=1.0, key="finder_max_gd_ms",
+                help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
+            )
 
 
     _finder_number_input(
@@ -3793,10 +3794,6 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         "directly in the simulation, or select multiple rows and run a match to rank only those enclosures."
     )
 
-    if not filtered_preset_names:
-        st.warning("No presets match the current library filters.")
-        return
-
     # Re-serializing the full 10k-row catalog to the browser on every rerun
     # (each row selection or widget change) costs seconds of frontend time;
     # cap the table and let search/filters narrow the rest.
@@ -3810,7 +3807,6 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         selected_preset_names = [shown_names[i] for i in selected_rows if 0 <= i < len(shown_names)]
 
     match_preset_names = selected_preset_names if selected_preset_names else filtered_preset_names
-
     button_label = f"{_FINDER_CTA_LABEL} ({len(match_preset_names)} selected)" if selected_preset_names else _FINDER_CTA_LABEL
 
     if st.button(
@@ -3822,6 +3818,10 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
     ):
         _run_find_driver_search(match_preset_names)
         st.rerun()
+
+    if not filtered_preset_names:
+        st.warning("No presets match the current library filters.")
+        return
 
     if len(shown_names) < len(filtered_preset_names):
         st.caption(
@@ -4339,7 +4339,41 @@ def _render_response_tab(
     )
 
     # --- 5. Render Captions and Pinned List ---
-    # Captions removed to save vertical space!
+    if load_type == "Bass reflex":
+        resonator = "passive radiator" if _reflex_uses_passive_radiator() else "vent"
+        st.caption(
+            "Bass-reflex total response is the vector sum of the exposed cone "
+            f"front radiation and the {resonator}. The model is low-frequency only; "
+            "it does not include baffle step, breakup, room gain or crossover behaviour."
+        )
+    elif load_type == "Bandpass 4th order":
+        st.caption(
+            "Fourth-order bandpass total response is the front vent only: the cone is "
+            "enclosed between a sealed rear chamber and a ported front chamber. The "
+            "cone trace shows internal motion and is not an additional radiating source."
+        )
+    elif load_type == "Bandpass 6th order":
+        st.caption(
+            "Sixth-order bandpass total response is the polarity-correct vector difference "
+            "of both vents: the cone is enclosed between two ported chambers. The cone trace "
+            "shows internal motion and is not an additional radiating source."
+        )
+    elif load_type == "Sealed":
+        st.caption(
+            "Sealed-box response is the exposed cone front with the rear wave enclosed. "
+            "The model includes closed-box compliance and losses, but not room gain or baffle step."
+        )
+    elif load_type == "Infinite baffle":
+        st.caption(
+            "Infinite-baffle response is the exposed cone front with perfect rear-wave isolation. "
+            "Finite-panel diffraction, rear leakage, room gain and baffle step are not included."
+        )
+    else:
+        st.caption(
+            "DCCAV total response is the vector sum of the exposed cone front "
+            "radiation and the lower port. The load model is low-frequency only; "
+            "it is not an electrical crossover or breakup/directivity predictor."
+        )
 
     if pinned_state:
         visible_pin_count = sum(
@@ -5547,18 +5581,18 @@ try:
             flat_metrics = [
                 ("F3", _fmt_hz(thresholds[3])),
                 ("Peak LF SPL", _fmt_db(metrics["max_spl_db"])),
-                ("Max exc.", f"{metrics['max_excursion_mm']:.2f} mm"),
-                ("Min imp.", f"{metrics['min_impedance_ohm']:.2f} Ω"),
+                ("Max excursion", f"{metrics['max_excursion_mm']:.2f} mm"),
+                ("Min impedance", f"{metrics['min_impedance_ohm']:.2f} Ω"),
             ]
             if not is_infinite_baffle:
                 if load_type == "Bandpass 4th order":
-                    flat_metrics.append(("Box vol", f"{box.vs_l + box.vp_l:.1f} L"))
+                    flat_metrics.append(("Box volume", f"{box.vs_l + box.vp_l:.1f} L"))
                 elif load_type == "Bandpass 6th order":
-                    flat_metrics.append(("Box vol", f"{box.vr_l + box.vp_l:.1f} L"))
+                    flat_metrics.append(("Box volume", f"{box.vr_l + box.vp_l:.1f} L"))
                 elif load_type == "DCCAV":
-                    flat_metrics.append(("Box vol", f"{box.vh_l + box.vl_l:.1f} L"))
+                    flat_metrics.append(("Box volume", f"{box.vh_l + box.vl_l:.1f} L"))
                 else:
-                    flat_metrics.append(("Box vol", f"{box.vb_l:.1f} L"))
+                    flat_metrics.append(("Box volume", f"{box.vb_l:.1f} L"))
             flat_metrics.append(("Forge Score", f"{score_val}/100"))
 
             if not is_infinite_baffle:
@@ -5568,23 +5602,23 @@ try:
                     if lbl in ports:
                         pr = ports[lbl]
                         flat_metrics.extend([
-                            (f"{lbl} fb", f"{pr['_fb_hz']:.1f} Hz"),
+                            (f"{lbl} tuning", f"{pr['_fb_hz']:.1f} Hz"),
                             (f"{lbl} size", f"Ø{pr['Diameter cm']:.1f}x{pr['Length cm']:.1f}")
                         ])
 
                 if load_type == "Bandpass 4th order":
-                    flat_metrics.append(("Vs", f"{box.vs_l:.1f} L"))
-                    flat_metrics.append(("Vp", f"{box.vp_l:.1f} L"))
+                    flat_metrics.append(("Closed vol (Vs)", f"{box.vs_l:.1f} L"))
+                    flat_metrics.append(("Ported vol (Vp)", f"{box.vp_l:.1f} L"))
                     _add_port("Front vent")
                 elif load_type == "Bandpass 6th order":
-                    flat_metrics.append(("Vr", f"{box.vr_l:.1f} L"))
+                    flat_metrics.append(("Rear vol (Vr)", f"{box.vr_l:.1f} L"))
                     _add_port("Rear vent")
-                    flat_metrics.append(("Vp", f"{box.vp_l:.1f} L"))
+                    flat_metrics.append(("Front vol (Vp)", f"{box.vp_l:.1f} L"))
                     _add_port("Front vent")
                 elif load_type == "DCCAV":
-                    flat_metrics.append(("Vh", f"{box.vh_l:.1f} L"))
+                    flat_metrics.append(("High vol (Vh)", f"{box.vh_l:.1f} L"))
                     _add_port("Upper port")
-                    flat_metrics.append(("Vl", f"{box.vl_l:.1f} L"))
+                    flat_metrics.append(("Low vol (Vl)", f"{box.vl_l:.1f} L"))
                     _add_port("Lower port")
                 else:
                     _add_port("Vent")
@@ -5661,10 +5695,8 @@ try:
                 st.markdown(f'<div style="margin-top: 0.45rem; padding-bottom: 0.45rem; margin-bottom: 0.2rem;">{badge_html}</div>', unsafe_allow_html=True)
 
             if model_warnings:
-                st.markdown(
-                    "".join(f'<div style="background: rgba(255, 170, 0, 0.1); border-left: 3px solid #ffaa00; padding: 0.3rem 0.6rem; font-size: 0.8rem; margin-top: 0.3rem; color: #ffbc3d;">• {w}</div>' for w in model_warnings),
-                    unsafe_allow_html=True
-                )
+                for warning in model_warnings:
+                    st.warning(warning)
 
     # Warnings are now rendered inside data_col compactly
 
