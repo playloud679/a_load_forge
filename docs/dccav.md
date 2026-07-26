@@ -952,3 +952,6 @@ If no true rising crossing exists in the simulated range, the returned value is
 - parallel ranking: worker rows for junk names degrade to `None`, the
   process-pool optimizer path returns rows identical to the serial one, and
   process/semaphore denial automatically falls back to the safe serial path
+
+Cloud Run Finder optimization uses 24 evaluations per candidate and caps the
+response grid at 80 points; local runs retain the original profile.

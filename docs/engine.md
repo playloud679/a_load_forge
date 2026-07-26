@@ -145,3 +145,6 @@ instead of returning its least-bad invalid candidate.
   rear tuning, front volume and front tuning in log-space.
 - Importable both as `src.engine` (package) and `engine` (top-level with
   `src/` on `sys.path`); it must not import `presets`/`pricing`.
+
+Cloud Run Finder optimization uses an adaptive 80-point frequency grid around
+the loaded resonance; local runs retain the original 160-point grid.

@@ -8,6 +8,8 @@ the ranking table.
 
 from __future__ import annotations
 
+import os
+
 import numpy as np
 
 try:
@@ -91,7 +93,7 @@ def rank_preset_row(
                 batch_goals,
                 load_type=load_type,
                 voltage_v=float(voltage_v),
-                max_evaluations=140,
+                max_evaluations=24 if os.getenv("K_SERVICE") else 140,
             )
             box = optimized.box
             ripple_db = float(optimized.ripple_db)

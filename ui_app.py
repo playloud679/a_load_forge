@@ -21,7 +21,7 @@ import os
 import sys
 import time
 import zlib
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from functools import cache
 from pathlib import Path
 
@@ -1758,16 +1758,33 @@ def _available_preset_families(names: list[str]) -> list[str]:
 def _render_finder_library_filters(all_preset_names: list[str]) -> None:
     """Render Finder library filters."""
     st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
-    st.selectbox("Source", _PRESET_SOURCE_FILTERS, key="preset_source_filter")
-    st.selectbox("Brand", _available_preset_families(all_preset_names), key="preset_family_filter")
-    st.selectbox("Size", _PRESET_SIZE_FILTERS, key="preset_size_filter")
-    st.selectbox(
-        "Class",
-        _PRESET_CLASS_FILTERS,
-        key="preset_class_filter",
-        help="Heuristic bandwidth class from T/S: pure subwoofers vs woofers "
-             "that can reach the mids (voice-coil corner, cone mass, Fs, sensitivity).",
+    filter_options = (
+        ("preset_source_filter", "Source", list(_PRESET_SOURCE_FILTERS)),
+        ("preset_family_filter", "Brand", _available_preset_families(all_preset_names)),
+        ("preset_size_filter", "Size", list(_PRESET_SIZE_FILTERS)),
+        ("preset_class_filter", "Class", list(_PRESET_CLASS_FILTERS)),
     )
+    for key, label, options in filter_options:
+        raw_current = st.session_state.get(key, ["All"])
+        current = raw_current
+        if isinstance(raw_current, str):
+            current = [raw_current]
+            # Backward compatibility for saved sessions/tests that still set
+            # the former single-select value directly.
+            for index, option in enumerate(options):
+                st.session_state[f"{key}__{index}"] = option in current
+        current = set(current or ["All"])
+        with st.expander(label, expanded=False):
+            checked = []
+            for index, option in enumerate(options):
+                checkbox_key = f"{key}__{index}"
+                if checkbox_key not in st.session_state:
+                    st.session_state[checkbox_key] = option in current
+                if st.checkbox(option, key=checkbox_key):
+                    checked.append(option)
+            # Selecting concrete values overrides All; no selection means All.
+            concrete = [option for option in checked if option != "All"]
+            st.session_state[key] = concrete or ["All"]
 
     preset_currencies = _preset_price_currencies(all_preset_names)
     if preset_currencies:
@@ -1813,26 +1830,34 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
 def _filter_driver_preset_names(
     names: list[str],
     *,
-    source: str,
-    family: str,
-    size: str,
+    source: str | list[str],
+    family: str | list[str],
+    size: str | list[str],
     search: str,
     max_price: float | None = None,
     max_price_currency: str | None = None,
     selected: str | None = None,
-    driver_class: str = "All",
+    driver_class: str | list[str] = "All",
 ) -> list[str]:
+    def selected_values(value: str | list[str]) -> set[str]:
+        values = {str(item) for item in ([value] if isinstance(value, str) else value)}
+        return set() if not values or "All" in values else values
+
+    source_values = selected_values(source)
+    family_values = selected_values(family)
+    size_values = selected_values(size)
+    class_values = selected_values(driver_class)
     query = search.strip().casefold()
     rates = _current_exchange_rates()[0] if max_price is not None else None
     filtered = []
     for name in names:
-        if source != "All" and _driver_preset_source(name) != source:
+        if source_values and _driver_preset_source(name) not in source_values:
             continue
-        if family != "All" and _driver_preset_family(name) != family:
+        if family_values and _driver_preset_family(name) not in family_values:
             continue
-        if size != "All" and _driver_preset_size(name) != size:
+        if size_values and _driver_preset_size(name) not in size_values:
             continue
-        if driver_class != "All" and _driver_preset_class(name) != driver_class:
+        if class_values and _driver_preset_class(name) not in class_values:
             continue
         if query and query not in name.casefold():
             continue
@@ -3025,6 +3050,14 @@ def _finder_worker_pool(workers: int) -> ProcessPoolExecutor:
         return pool
     if pool is not None:
         pool.shutdown(wait=False, cancel_futures=True)
+    # Cloud Run Streamlit server uses threads to avoid process-spawn failures.
+    if os.getenv("K_SERVICE"):
+        pool = ThreadPoolExecutor(max_workers=workers)
+        for _ in range(workers):
+            pool.submit(_presets.driver_preset_names)
+        _ranking._finder_shared_pool = pool
+        _ranking._finder_shared_pool_key = key
+        return pool
     # forkserver: no re-import of the caller's __main__ in the workers (the
     # spawn method would re-execute entrypoint scripts) and no fork of a
     # thread-filled Streamlit process.
@@ -3557,7 +3590,8 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
             float(_finder_value("finder_voltage")),
             float(_finder_value("finder_f_min")),
             float(_finder_value("finder_f_max")),
-            int(_finder_value("finder_points")),
+            min(int(_finder_value("finder_points")), 80)
+            if os.getenv("K_SERVICE") else int(_finder_value("finder_points")),
             scan_count,
         )
         completed_offset = load_index * scan_count
@@ -4648,10 +4682,10 @@ _default("driver_panel_air_load", True)
 _default("driver_panel_coupling", 0.90)
 _default("driver_preset_name", "KEF B110B article example")
 _default("driver_config", "Single driver")
-_default("preset_family_filter", "All")
-_default("preset_source_filter", "All")
-_default("preset_size_filter", "All")
-_default("preset_class_filter", "All")
+_default("preset_family_filter", ["All"])
+_default("preset_source_filter", ["All"])
+_default("preset_size_filter", ["All"])
+_default("preset_class_filter", ["All"])
 _default("preset_search", "")
 _default("preset_price_enabled", False)
 _default("preset_max_price", 0.0)
@@ -4880,7 +4914,7 @@ with st.sidebar:
                     if st.session_state.get("preset_price_enabled", False) else None
                 ),
                 selected=None,
-                driver_class=str(st.session_state.get("preset_class_filter", "All"))
+                driver_class=st.session_state.get("preset_class_filter", ["All"])
             )
             _render_find_driver_actions(filtered_preset_names)
 

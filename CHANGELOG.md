@@ -646,3 +646,11 @@
 
 - Fix sidebar logo and version overlap
 - Reduce side padding in main container
+## 0.6.7 (2026-07-27)
+
+- Add multi-select checkbox filters for source, brand, size and class in the
+  Candidate Library.
+- Add adaptive Cloud Run Finder optimization with reduced evaluations and
+  resonance-focused frequency sampling.
+- Add reproducible Cloud Run deployment files and documentation.
+- Verification: 108 passed, 0 failed, 0 skipped tests.

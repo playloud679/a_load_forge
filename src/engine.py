@@ -12,6 +12,8 @@ helpers for the UI.  ``src/dccav.py`` re-exports this module's public API.
 
 from __future__ import annotations
 
+import os
+
 from dataclasses import dataclass
 
 import numpy as np
@@ -20,6 +22,20 @@ RHO_AIR = 1.18
 SPEED_OF_SOUND = 344.0
 P_REF = 20e-6
 EPS = 1e-30
+
+
+def adaptive_frequency_grid(
+    f_min_hz: float, f_max_hz: float, points: int,
+    anchors: tuple[float, ...] = (),
+) -> np.ndarray:
+    """Build a compact log grid with extra samples around resonance anchors."""
+    if f_min_hz <= 0 or f_max_hz <= f_min_hz or points < 8:
+        raise ValueError("Invalid adaptive frequency-grid limits")
+    valid = sorted({float(x) for x in anchors if f_min_hz < float(x) < f_max_hz})
+    grid = list(np.geomspace(float(f_min_hz), float(f_max_hz), max(8, points // 2)))
+    for anchor in valid:
+        grid.extend(np.geomspace(max(f_min_hz, anchor / 2), min(f_max_hz, anchor * 2), max(8, points // (2 * len(valid)))))
+    return np.unique(np.asarray(grid, dtype=float))
 
 
 @dataclass(frozen=True)
@@ -730,7 +746,10 @@ def design_space_map(
     if int(resolution) < 3:
         raise ValueError("Atlas resolution must be at least 3")
     effective_fs = panel_loaded_fs_hz(ts)
-    freq = np.geomspace(min(10.0, effective_fs / 4.0), max(400.0, 4.0 * effective_fs), 160)
+    freq_min = min(10.0, effective_fs / 4.0)
+    freq_max = max(400.0, 4.0 * effective_fs)
+    freq = (adaptive_frequency_grid(freq_min, freq_max, 80, (effective_fs,))
+            if os.getenv("K_SERVICE") else np.geomspace(freq_min, freq_max, 160))
     x_values, y_values, x_label, y_label = _design_space_axes(ts, load_type, resolution)
     f3_grid = np.full((len(y_values), len(x_values)), np.nan)
     ripple_grid = np.full_like(f3_grid, np.nan)
