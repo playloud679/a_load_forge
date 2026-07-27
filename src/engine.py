@@ -13,6 +13,7 @@ helpers for the UI.  ``src/dccav.py`` re-exports this module's public API.
 from __future__ import annotations
 
 import os
+import re
 
 from dataclasses import dataclass
 
@@ -914,13 +915,25 @@ class DriverBandwidthClass:
 
 DRIVER_CLASSES = ("Subwoofer", "Woofer", "Midbass-capable")
 
-DRIVER_CONFIGURATIONS = (
-    "Single driver",
-    "2 × parallel",
-    "2 × series",
-    "Isobaric pair (parallel)",
-    "Isobaric pair (series)",
+_driver_configurations = ["Single driver"]
+_driver_configurations.extend(
+    f"{count} × {wiring}"
+    for count in range(2, 9)
+    for wiring in ("parallel", "series")
 )
+_driver_configurations.extend(
+    f"{series}S × {parallel}P mixed"
+    for series in range(2, 9)
+    for parallel in range(2, 9)
+    if series * parallel <= 8
+)
+_driver_configurations.extend(("Isobaric pair (parallel)", "Isobaric pair (series)"))
+_driver_configurations.extend(
+    f"{count} × isobaric ({wiring})"
+    for count in range(4, 17, 2)
+    for wiring in ("parallel", "series")
+)
+DRIVER_CONFIGURATIONS = tuple(_driver_configurations)
 
 
 def apply_driver_configuration(ts: DriverTS, configuration: str) -> DriverTS:
@@ -942,11 +955,33 @@ def apply_driver_configuration(ts: DriverTS, configuration: str) -> DriverTS:
         raise ValueError(f"Unknown driver configuration: {configuration}")
     if configuration == "Single driver":
         return ts
-    electrical = 2.0 if "series" in configuration else 0.5
-    if configuration.startswith("Isobaric"):
-        sd_scale, vas_scale = 1.0, 0.5
+    legacy_isobaric = configuration.startswith("Isobaric")
+    isobaric = legacy_isobaric or "isobaric" in configuration
+    if legacy_isobaric:
+        driver_count = 2
     else:
-        sd_scale, vas_scale = 2.0, 2.0
+        match = re.match(r"(\d+)\s*×", configuration)
+        driver_count = int(match.group(1)) if match else 1
+    if isobaric and driver_count % 2:
+        raise ValueError("Isobaric configurations require an even driver count")
+    if "mixed" in configuration:
+        mixed = re.match(r"(\d+)S\s*×\s*(\d+)P", configuration)
+        if mixed is None:
+            raise ValueError(f"Invalid mixed configuration: {configuration}")
+        series_count, parallel_count = map(int, mixed.groups())
+        driver_count = series_count * parallel_count
+        electrical = series_count / parallel_count
+    elif "series" in configuration:
+        electrical = float(driver_count)
+    else:
+        electrical = 1.0 / float(driver_count)
+    if isobaric:
+        pair_count = driver_count // 2
+        sd_scale, vas_scale = float(pair_count), float(pair_count) / 2.0
+        radiating_pistons = pair_count
+    else:
+        sd_scale, vas_scale = float(driver_count), float(driver_count)
+        radiating_pistons = driver_count
     return DriverTS(
         fs_hz=ts.fs_hz,
         vas_l=ts.vas_l * vas_scale,
@@ -959,11 +994,7 @@ def apply_driver_configuration(ts: DriverTS, configuration: str) -> DriverTS:
         pe_w=ts.pe_w * 2.0,
         panel_air_load=ts.panel_air_load,
         panel_coupling=ts.panel_coupling,
-        radiating_pistons=(
-            ts.radiating_pistons
-            if configuration.startswith("Isobaric")
-            else ts.radiating_pistons * 2
-        ),
+        radiating_pistons=ts.radiating_pistons * radiating_pistons,
     )
 
 
