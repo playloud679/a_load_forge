@@ -6,6 +6,7 @@ Database import, with brand/size metadata and retailer price enrichment.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -607,6 +608,21 @@ def _preset_identity(brand: str, model: str) -> tuple[str, str]:
     return brand.strip().casefold(), model.strip().casefold()
 
 
+def _external_catalog_identity(brand: str, model: str, driver: DriverTS) -> tuple[str, str, float]:
+    """Return a tolerant identity for duplicate web/retailer listings.
+
+    Retailers frequently omit impedance, inch marks or generic words from the
+    model title.  The electrical resistance remains in the key so real 4/8 Ω
+    variants are not collapsed accidentally.
+    """
+    clean = model.casefold().replace("″", '"').replace("–", "-").replace("—", "-")
+    clean = re.sub(r"\b\d+(?:\.\d+)?\s*(?:ohm|ohms|ω)\b", " ", clean)
+    clean = re.sub(r"\b\d+(?:\.\d+)?\s*(?:in|inch|inches)\b", " ", clean)
+    clean = re.sub(r"\b(?:woofer|speaker|driver|loudspeaker)\b", " ", clean)
+    clean = re.sub(r"[^a-z0-9]+", "", clean)
+    return brand.strip().casefold(), clean, round(float(driver.re_ohm), 1)
+
+
 def _driver_ts_from_mapping(values: dict) -> DriverTS:
     return DriverTS(
         fs_hz=float(values["fs_hz"]),
@@ -654,6 +670,8 @@ def _load_external_presets(
         for name in DRIVER_PRESETS
     }
     taken = {*reserved, *DRIVER_PRESETS}
+    identity_to_name: dict[tuple[str, str, float], str] = {}
+    identity_score: dict[tuple[str, str, float], tuple[int, float]] = {}
     for item in payload.get("presets", []):
         base_name = str(item["name"])
         item_brand = str(item.get("brand") or "Other")
@@ -667,14 +685,14 @@ def _load_external_presets(
         while name in taken or name in presets:
             name = f"{base_name} [{dedupe_tag} {len(presets) + 1}]"
         try:
-            presets[name] = _driver_ts_from_mapping(item["driver"])
+            driver = _driver_ts_from_mapping(item["driver"])
         except (KeyError, TypeError, ValueError):
             continue
         item_price = _valid_price(item.get("price"))
         item_currency = str(item.get("currency") or "")
         item_source = str(item.get("source") or default_source)
         enriched_price, enriched_currency, enriched_url = _preset_price(name, item_model, item_brand)
-        info[name] = DriverPresetInfo(
+        item_info = DriverPresetInfo(
             name=name,
             source=item_source,
             brand=item_brand,
@@ -689,6 +707,24 @@ def _load_external_presets(
             kind=str(item.get("kind") or ""),
             url=enriched_url or str(item.get("url") or ""),
         )
+        identity = _external_catalog_identity(item_brand, item_model, driver)
+        score = (
+            sum(value is not None and float(value or 0.0) != 0.0 for value in (
+                driver.le_mh, driver.le10k_mh, driver.xmax_mm, driver.pe_w,
+                driver.mms_g, driver.cms_mm_per_n, driver.bl_tm,
+            )),
+            -float(item_info.price) if item_info.price is not None else float("inf"),
+        )
+        previous = identity_to_name.get(identity)
+        if previous is not None and score <= identity_score[identity]:
+            continue
+        if previous is not None:
+            presets.pop(previous, None)
+            info.pop(previous, None)
+        presets[name] = driver
+        info[name] = item_info
+        identity_to_name[identity] = name
+        identity_score[identity] = score
     return presets, info
 
 
