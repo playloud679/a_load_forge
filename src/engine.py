@@ -1444,7 +1444,8 @@ def _score_alignment(
     port_length_ratio = metrics.get("port_length_over_box_ratio", 0.0)
     if port_length_ratio > 1.0:
         return 1e5 + port_length_ratio
-    if is_dccav and f3 < _OPTIMIZER_DCCAV_F3_RATIO * metrics["fl_hz"]:
+    dccav_f3_ratio = 0.65 if goals.objective == "extension" else _OPTIMIZER_DCCAV_F3_RATIO
+    if is_dccav and f3 < dccav_f3_ratio * metrics["fl_hz"]:
         return 1e5 + metrics["fl_hz"] / max(f3, EPS)
     weights = _OBJECTIVE_WEIGHTS[goals.objective]
     ripple = metrics["ripple_db"]

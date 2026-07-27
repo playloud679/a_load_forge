@@ -110,7 +110,7 @@ rejection tier compares the sized duct's length against
 a small fraction of a large chamber's *volume* while still being longer than
 the chamber can hold in a straight *run* — a thin, deeply-tuned vent moves
 little air per length, so `port_volume_fraction()` alone misses it. DCCAV
-candidates below `F3 >= 0.67*fl` are likewise excluded from normal objective
+candidates below `F3 >= 0.67*fl` are likewise excluded from normal objectives
 trade-offs.
 
 If the primary search (from the empirical starting alignment) lands in the

@@ -446,8 +446,9 @@ each driver to retain a better, smaller alignment.
   passband (`None` disables)
 
 The score also re-applies the `response_sanity_warnings()` credibility limits.
-`F3 >= 0.67*fl` is a hard DCCAV feasibility boundary with reserve above the
-user-facing 0.65 diagnostic threshold, while
+`F3 >= 0.67*fl` is the hard DCCAV feasibility boundary for balanced/flat
+alignments. The explicit `Max extension` objective permits `F3 >= 0.65*fl`
+to reach the deeper AFW-like alignment, while
 `F3 >= 0.5*sealed Fc` remains penalized, so the optimizer cannot chase
 loss-free fake extension. The DCCAV `fh/fl` ratio is bounded to `[1.2, 4.5]`
 so the load keeps its double-resonator character. Ported candidates also derive
