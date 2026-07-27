@@ -4,6 +4,9 @@
 trusted legacy **AUDIO per Windows pro v2** (AFW) simulator running in an x86
 Windows XP guest. AFW has no export path Load Forge could read directly, so
 the relationship only goes one way — this tool never writes `.afw` files.
+Standalone `.crw` response files are parsed by `parse_crw()` (or
+`parse_crw_text()` for uploaded content), and the Project menu can load their
+trailing T/S values as a Custom driver.
 The historical filename is retained, but the tool now parses
 the first transducer slot for three AFW load codes:
 

@@ -42,6 +42,7 @@ import ranking as _ranking
 
 sys.path.insert(0, str(Path(__file__).parent / "tools"))
 import generate_afw_dccav as _afw_export
+import compare_afw_sealed as _afw_compare
 
 
 def _reload_if_source_changed(module) -> None:
@@ -68,7 +69,7 @@ def _reload_if_source_changed(module) -> None:
 
 
 # Reload dependencies before the facade so it rebinds to the fresh modules.
-for _module in (_engine, _pricing, _presets, _ranking, _dccav, _afw_export):
+for _module in (_engine, _pricing, _presets, _ranking, _dccav, _afw_export, _afw_compare):
     _reload_if_source_changed(_module)
 
 
@@ -977,9 +978,21 @@ def _render_project_menu() -> None:
                 st.session_state["_applied_share_token"] = None
                 st.query_params.pop("d", None)
                 st.rerun()
-        upload = st.file_uploader("Load preset", type=["lfp", "json"])
+        upload = st.file_uploader("Load preset or CRW driver", type=["lfp", "json", "crw"])
         if upload is not None:
             try:
+                if upload.name.casefold().endswith(".crw"):
+                    crw = _afw_compare.parse_crw_text(upload.getvalue().decode("latin-1"))
+                    _snapshot_design_state()
+                    driver = _dccav.DriverTS(
+                        fs_hz=crw.fs_hz, vas_l=crw.vas_l, qts=crw.qts,
+                        qms=crw.qms, re_ohm=crw.re_ohm, sd_cm2=crw.sd_cm2,
+                        le_mh=crw.le_10khz_mh, xmax_mm=crw.xmax_mm, pe_w=crw.pe_w,
+                    )
+                    _apply_driver_preset(driver)
+                    st.session_state["driver_preset_name"] = "Custom driver"
+                    st.toast(f"Loaded CRW driver: {crw.name}")
+                    st.rerun()
                 payload = json.loads(upload.getvalue().decode("utf-8"))
                 payload.pop("_load_forge_meta", None)
                 _snapshot_design_state()

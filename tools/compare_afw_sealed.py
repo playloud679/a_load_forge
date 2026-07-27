@@ -125,6 +125,17 @@ def _find_driver_block(lines: list[str]) -> tuple[int, AfwDriver]:
     raise ValueError("No embedded AFW/CRW driver block found")
 
 
+def parse_crw_text(text: str) -> AfwDriver:
+    """Parse a standalone AUDIO per Windows ``.crw`` response file."""
+    _title_at, driver = _find_driver_block(text.splitlines())
+    return driver
+
+
+def parse_crw(path: Path) -> AfwDriver:
+    """Parse a standalone CRW file exported by AUDIO per Windows."""
+    return parse_crw_text(path.read_text(encoding="latin-1"))
+
+
 def parse_afw_sealed(path: Path) -> tuple[AfwDriver, AfwSealed]:
     lines = path.read_text(encoding="latin-1").splitlines()
     driver_at, driver = _find_driver_block(lines)
