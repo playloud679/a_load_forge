@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Max extension alignment**: relax the DCCAV deep-extension feasibility floor
+  to `F3 >= 0.65*fl` for the explicit Max extension objective; balanced and
+  flat objectives retain the conservative `0.67*fl` boundary.
+- **Tests**: 108 passed / 0 failed / 0 skipped.
+
 ## 0.6.6 (2026-07-25)
 
 - **Emerald visual system**: replaced red selection/action accents with a
