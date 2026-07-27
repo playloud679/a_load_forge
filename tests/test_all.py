@@ -4292,14 +4292,6 @@ def _check_driver_configurations():
     iso_s = _dccav.apply_driver_configuration(ts, "Isobaric pair (series)")
     assert iso_s.re_ohm == ts.re_ohm * 2 and iso_s.vas_l == ts.vas_l / 2
 
-    eight = _dccav.apply_driver_configuration(ts, "8 × parallel")
-    assert eight.sd_cm2 == ts.sd_cm2 * 8 and eight.re_ohm == ts.re_ohm / 8
-    mixed = _dccav.apply_driver_configuration(ts, "2S × 4P mixed")
-    assert mixed.sd_cm2 == ts.sd_cm2 * 8 and mixed.re_ohm == ts.re_ohm / 2
-    iso16 = _dccav.apply_driver_configuration(ts, "16 × isobaric (parallel)")
-    assert iso16.sd_cm2 == ts.sd_cm2 * 8 and iso16.vas_l == ts.vas_l * 4
-    assert iso16.re_ohm == ts.re_ohm / 16 and iso16.radiating_pistons == 8
-
     measured = _dccav.DriverTS(
         fs_hz=40.0, vas_l=50.0, qts=0.4, qms=4.0, re_ohm=6.0, sd_cm2=200.0,
         mms_g=25.0, cms_mm_per_n=1.0, bl_tm=10.0)

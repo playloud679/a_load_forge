@@ -7,8 +7,6 @@
   flat objectives retain the conservative `0.67*fl` boundary.
 - **Finder multi-driver**: added single, wired-pair and isobaric-pair
   configuration to candidate ranking and result application.
-- **Scalable driver arrays**: added series, parallel and mixed arrays up to
-  eight drivers, plus isobaric arrays up to 16 total drivers.
 - **Tests**: 108 passed / 0 failed / 0 skipped.
 
 ## 0.6.6 (2026-07-25)

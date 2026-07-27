@@ -34,11 +34,6 @@ contracts and the test list — lives in `docs/dccav.md`.
   `driver_reference_metrics`, `classify_driver_bandwidth`,
   `apply_driver_configuration`, diagnostics and sanity warnings
 
-`apply_driver_configuration` supports one driver, 2–8-driver parallel or
-series arrays, mixed `S × P` arrays up to eight drivers, and isobaric arrays up
-to 16 total drivers (eight isobaric pairs). Isobaric volume and radiating area
-are scaled per pair; the selected electrical topology scales Re and Le.
-
 ## Panel air loading
 
 `DriverTS.le10k_mh` is an optional, display-only voice-coil inductance
