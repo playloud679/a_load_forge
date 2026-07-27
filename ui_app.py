@@ -956,6 +956,22 @@ def _render_project_menu() -> None:
             "application/json",
             use_container_width=True,
         )
+        try:
+            crw_text = _afw_export.generate_crw_text(_collect_params())
+            crw_error = None
+        except Exception as exc:
+            crw_text = ""
+            crw_error = str(exc)
+        st.download_button(
+            "Download CRW driver",
+            crw_text.encode("latin-1"),
+            "load_forge_driver.crw",
+            "application/octet-stream",
+            use_container_width=True,
+            disabled=crw_error is not None,
+            help=(f"Could not build the CRW file: {crw_error}" if crw_error else
+                  "Standalone AUDIO per Windows CRW driver file with the current T/S values."),
+        )
         if st.button(
             "Share via URL",
             key="project_share_url",

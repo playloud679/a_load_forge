@@ -203,6 +203,24 @@ def generate_afw_text(lfp: dict, template_path: Path = DEFAULT_TEMPLATE, title: 
     return "\r\n".join(lines) + "\r\n"
 
 
+def generate_crw_text(lfp: dict, template_path: Path = DEFAULT_TEMPLATE, title: str | None = None) -> str:
+    """Build a standalone CRW file with the current driver's T/S values."""
+    lines = template_path.read_text(encoding="latin-1").splitlines()
+    driver_at, _template_driver = afw._find_driver_block(lines)
+    ts = _lfp_driver_ts(lfp)
+    ascii_name = str(lfp.get("driver_preset_name") or "Custom driver").replace("Ω", "Ohm")
+    lines[driver_at] = title or f"Load Forge - {ascii_name}"
+    params_at = driver_at + 1 + 201 * 5
+    values = (
+        ts["re_ohm"], ts["fs_hz"], ts["qms"], ts["qes"], ts["vas_m3"],
+        ts["le_h"], ts["le_exponent"], ts["le_phase_factor"], ts["xmax_m"],
+        ts["pe_w"], ts["sd_m2"],
+    )
+    for offset, value in enumerate(values):
+        lines[params_at + offset] = f" {value:.8g}"
+    return "\r\n".join(lines[driver_at:params_at + len(values)]) + "\r\n"
+
+
 def generate(lfp_path: Path, template_path: Path, output_path: Path, title: str | None) -> None:
     lfp = json.loads(lfp_path.read_text(encoding="utf-8"))
     text = generate_afw_text(lfp, template_path, title)
