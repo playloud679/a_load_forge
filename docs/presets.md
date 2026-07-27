@@ -58,7 +58,7 @@ correct.
   stay `None` when absent rather than defaulting to `0.0`, matching how
   `engine.DriverTS` distinguishes "not measured" from "measured as zero".
 External web listings are deduplicated by normalized brand/model and nominal
-electrical resistance.  Impedance, inch and generic product words are removed
-from the comparison key, while the resistance keeps real 4/8-ohm variants
-separate.  When duplicate listings remain, the record with more complete T/S
+electrical resistance.  Inch and generic product words are removed from the
+comparison key, while explicit or inferred nominal impedance keeps real
+4/8-ohm variants separate.  When duplicate listings remain, the record with more complete T/S
 data is retained, then the lower valid price breaks ties.

@@ -608,7 +608,7 @@ def _preset_identity(brand: str, model: str) -> tuple[str, str]:
     return brand.strip().casefold(), model.strip().casefold()
 
 
-def _external_catalog_identity(brand: str, model: str, driver: DriverTS) -> tuple[str, str, float]:
+def _external_catalog_identity(brand: str, model: str, driver: DriverTS) -> tuple[str, str, str]:
     """Return a tolerant identity for duplicate web/retailer listings.
 
     Retailers frequently omit impedance, inch marks or generic words from the
@@ -616,11 +616,19 @@ def _external_catalog_identity(brand: str, model: str, driver: DriverTS) -> tupl
     variants are not collapsed accidentally.
     """
     clean = model.casefold().replace("″", '"').replace("–", "-").replace("—", "-")
+    impedance = re.search(r"\b(\d+(?:\.\d+)?)\s*(?:ohm|ohms|ω)\b", clean)
+    if impedance:
+        nominal_ohm = f"{float(impedance.group(1)):g}"
+    else:
+        # Re is retained as a fallback when a retailer omitted impedance from
+        # the title; map it to the nearest common nominal voice-coil value.
+        re_ohm = float(driver.re_ohm)
+        nominal_ohm = "8" if re_ohm >= 5.0 else "4"
     clean = re.sub(r"\b\d+(?:\.\d+)?\s*(?:ohm|ohms|ω)\b", " ", clean)
     clean = re.sub(r"\b\d+(?:\.\d+)?\s*(?:in|inch|inches)\b", " ", clean)
     clean = re.sub(r"\b(?:woofer|speaker|driver|loudspeaker)\b", " ", clean)
     clean = re.sub(r"[^a-z0-9]+", "", clean)
-    return brand.strip().casefold(), clean, round(float(driver.re_ohm), 1)
+    return brand.strip().casefold(), clean, nominal_ohm
 
 
 def _driver_ts_from_mapping(values: dict) -> DriverTS:

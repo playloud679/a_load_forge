@@ -15,6 +15,7 @@ COPY src ./src
 COPY tools ./tools
 COPY data ./data
 COPY assets ./assets
+COPY examples ./examples
 
 EXPOSE 8080
 CMD exec streamlit run ui_app.py --server.address=0.0.0.0 --server.port=${PORT:-8080}
