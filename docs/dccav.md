@@ -596,22 +596,23 @@ measured response.  The UI uses it for the main-workspace `Class` preset filter,
 ### `apply_driver_configuration(ts, configuration) -> DriverTS`
 
 Composite T/S set for identical drivers sharing one enclosure, selected from
-`DRIVER_CONFIGURATIONS` (`Single driver`, `2 × parallel`, `2 × series`,
-`Isobaric pair (parallel)`, `Isobaric pair (series)`).  Fs, Qts and Qms are
-invariant for identical drivers; the composite scales the rest:
+`DRIVER_CONFIGURATIONS`: single driver; 2–8-driver parallel/series arrays;
+mixed `S × P` arrays up to eight drivers; and isobaric arrays up to 16 total
+drivers. Fs, Qts and Qms are invariant for identical drivers; the composite
+scales the rest:
 
-- `2 ×`: Sd, Vas, Pe and radiating-piston count double; Re and Le halve
-  (parallel) or double (series); per-driver Xmax is unchanged
-- `Isobaric pair`: Vas halves, Sd stays, Pe doubles, wiring sets Re/Le —
-  the classical -3 dB efficiency trade for half the box — and one piston
-  remains externally radiating
+- ordinary arrays: Sd, Vas, Pe and radiating-piston count scale with physical
+  driver count; all-series, all-parallel or mixed wiring determines Re and Le
+- isobaric arrays: every physical pair contributes one radiating piston,
+  `0.5 × Vas`, `1 × Sd` and `2 × Pe`; wiring determines Re and Le
 
 Measured Mms/Cms/Bl overrides are dropped so the composite is re-derived
 self-consistently. Per-cone air loading therefore leaves mounted Fs invariant
 for separate identical cones. The UI applies the sidebar `Driver configuration`
 selector inside `_driver_from_state()`, so alignments, the optimizer,
-metrics and plots all see the composite; the `Bass Match` ranking always
-evaluates single drivers and applying a candidate resets the configuration.
+metrics and plots all see the composite. `Bass Match` ranks every candidate
+with its selected configuration and preserves that configuration when the
+candidate is applied to Box Design.
 
 ### `port_air_velocity_ms(result, port_area_cm2, port="lower") -> np.ndarray`
 

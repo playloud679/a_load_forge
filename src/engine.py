@@ -13,6 +13,7 @@ helpers for the UI.  ``src/dccav.py`` re-exports this module's public API.
 from __future__ import annotations
 
 import os
+import re
 
 from dataclasses import dataclass
 
@@ -914,13 +915,25 @@ class DriverBandwidthClass:
 
 DRIVER_CLASSES = ("Subwoofer", "Woofer", "Midbass-capable")
 
-DRIVER_CONFIGURATIONS = (
-    "Single driver",
-    "2 × parallel",
-    "2 × series",
-    "Isobaric pair (parallel)",
-    "Isobaric pair (series)",
+_driver_configurations = ["Single driver"]
+_driver_configurations.extend(
+    f"{count} × {wiring}"
+    for count in range(2, 9)
+    for wiring in ("parallel", "series")
 )
+_driver_configurations.extend(
+    f"{series}S × {parallel}P mixed"
+    for series in range(2, 9)
+    for parallel in range(2, 9)
+    if series * parallel <= 8
+)
+_driver_configurations.extend(("Isobaric pair (parallel)", "Isobaric pair (series)"))
+_driver_configurations.extend(
+    f"{count} × isobaric ({wiring})"
+    for count in range(4, 17, 2)
+    for wiring in ("parallel", "series")
+)
+DRIVER_CONFIGURATIONS = tuple(_driver_configurations)
 
 
 def apply_driver_configuration(ts: DriverTS, configuration: str) -> DriverTS:
@@ -930,10 +943,10 @@ def apply_driver_configuration(ts: DriverTS, configuration: str) -> DriverTS:
     identical drivers; the composite scales the size-, power- and
     impedance-related fields:
 
-    - ``2 ×``: Sd, Vas and Pe double; Re and Le halve in parallel wiring and
-      double in series; per-driver Xmax is unchanged.
-    - ``Isobaric pair``: two drivers coupled behind one radiating cone —
-      Vas halves, Sd stays, Pe doubles, wiring sets Re/Le.
+    - ordinary arrays: Sd, Vas, Pe and radiating-piston count scale with the
+      number of drivers; the selected series/parallel network sets Re and Le
+    - isobaric arrays: every coupled pair contributes one radiating piston,
+      half one driver's Vas and twice one driver's thermal power
 
     Measured Mms/Cms/Bl overrides are dropped so the composite set is
     re-derived self-consistently.
@@ -942,28 +955,50 @@ def apply_driver_configuration(ts: DriverTS, configuration: str) -> DriverTS:
         raise ValueError(f"Unknown driver configuration: {configuration}")
     if configuration == "Single driver":
         return ts
-    electrical = 2.0 if "series" in configuration else 0.5
-    if configuration.startswith("Isobaric"):
-        sd_scale, vas_scale = 1.0, 0.5
+    legacy_isobaric = configuration.startswith("Isobaric")
+    isobaric = legacy_isobaric or "isobaric" in configuration
+    if legacy_isobaric:
+        driver_count = 2
+    elif "mixed" in configuration:
+        mixed_match = re.match(r"(\d+)S\s*×\s*(\d+)P", configuration)
+        if mixed_match is None:
+            raise ValueError(f"Invalid mixed configuration: {configuration}")
+        series_count, parallel_count = map(int, mixed_match.groups())
+        driver_count = series_count * parallel_count
     else:
-        sd_scale, vas_scale = 2.0, 2.0
+        count_match = re.match(r"(\d+)\s*×", configuration)
+        if count_match is None:
+            raise ValueError(f"Invalid driver configuration: {configuration}")
+        driver_count = int(count_match.group(1))
+    if isobaric and driver_count % 2:
+        raise ValueError("Isobaric configurations require an even driver count")
+    if "mixed" in configuration:
+        electrical_scale = series_count / parallel_count
+    elif "series" in configuration:
+        electrical_scale = float(driver_count)
+    else:
+        electrical_scale = 1.0 / float(driver_count)
+    if isobaric:
+        pair_count = driver_count // 2
+        sd_scale = float(pair_count)
+        vas_scale = float(pair_count) / 2.0
+        radiating_pistons = pair_count
+    else:
+        sd_scale = vas_scale = float(driver_count)
+        radiating_pistons = driver_count
     return DriverTS(
         fs_hz=ts.fs_hz,
         vas_l=ts.vas_l * vas_scale,
         qts=ts.qts,
         qms=ts.qms,
-        re_ohm=ts.re_ohm * electrical,
+        re_ohm=ts.re_ohm * electrical_scale,
         sd_cm2=ts.sd_cm2 * sd_scale,
-        le_mh=ts.le_mh * electrical,
+        le_mh=ts.le_mh * electrical_scale,
         xmax_mm=ts.xmax_mm,
-        pe_w=ts.pe_w * 2.0,
+        pe_w=ts.pe_w * driver_count,
         panel_air_load=ts.panel_air_load,
         panel_coupling=ts.panel_coupling,
-        radiating_pistons=(
-            ts.radiating_pistons
-            if configuration.startswith("Isobaric")
-            else ts.radiating_pistons * 2
-        ),
+        radiating_pistons=ts.radiating_pistons * radiating_pistons,
     )
 
 

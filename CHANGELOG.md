@@ -7,10 +7,16 @@
   flat objectives retain the conservative `0.67*fl` boundary.
 - **Finder multi-driver**: added single, wired-pair and isobaric-pair
   configuration to candidate ranking and result application.
+- **Scalable driver arrays**: restored series, parallel and mixed arrays up to
+  eight drivers plus isobaric arrays up to 16 total drivers; thermal power now
+  scales with the complete physical driver count.
 - **Max-extension preset search**: start untargeted DCCAV extension searches in
   the deep-alignment basin and make credible F3 dominant over advisory
   compactness/response penalties.
-- **Tests**: 109 passed / 0 failed / 0 skipped.
+- **Finder MOL at F3**: calculate the excursion/thermal limited output at each
+  candidate's interpolated F3, show it in results and previews, and expose a
+  hard minimum-MOL performance filter.
+- **Tests**: 110 passed / 0 failed / 0 skipped.
 
 ## 0.6.6 (2026-07-25)
 

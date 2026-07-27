@@ -3339,6 +3339,7 @@ def _check_ui_batch_finder_ranks_presets_under_volume_cap():
         "the maximum must not force every candidate to use the full volume", totals)
     first = rows[0]
     assert np.isfinite(first["Peak dB"]), first
+    assert np.isfinite(first["MOL @ F3 dB"]), first
     spark = first.get("Response")
     assert isinstance(spark, list) and len(spark) > 10, "rows must carry a response sparkline"
     assert max(spark) <= 1e-9 and min(spark) >= -30.0 - 1e-9, (min(spark), max(spark))
@@ -3346,6 +3347,26 @@ def _check_ui_batch_finder_ranks_presets_under_volume_cap():
 
 
 test("UI batch finder ranks drivers under a DCCAV volume cap", _check_ui_batch_finder_ranks_presets_under_volume_cap)
+
+
+def _check_ui_finder_filters_minimum_mol_at_f3():
+    import ui_app as _ui
+
+    rows = [
+        {"Driver": "compliant", "Peak dB": 90.0, "MOL @ F3 dB": 82.0},
+        {"Driver": "too little MOL", "Peak dB": 95.0, "MOL @ F3 dB": 79.9},
+        {"Driver": "missing MOL", "Peak dB": 95.0},
+        {"Driver": "too little SPL", "Peak dB": 84.9, "MOL @ F3 dB": 90.0},
+    ]
+    filtered = _ui._filter_finder_performance_rows(rows, 85.0, 80.0)
+    assert [row["Driver"] for row in filtered] == ["compliant"], filtered
+    assert _ui._filter_finder_performance_rows(rows, 0.0, 0.0) == rows
+
+
+test(
+    "UI Finder filters candidates by minimum MOL at F3",
+    _check_ui_finder_filters_minimum_mol_at_f3,
+)
 
 
 def _check_ui_batch_finder_supports_reflex_volume():
@@ -3808,6 +3829,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
     }]
     at.session_state["batch_result_context"] = (
         ("Sealed",), 40.0, 1, False, "Balanced", "Port", 0.0,
+        0.0,
         _ui._FINDER_RANKING_VERSION,
     )
     at.session_state["finder_load_types"] = ["Sealed"]
@@ -4171,6 +4193,7 @@ test("UI response window widens to keep the MOL trace visible", _check_ui_respon
 def _check_ui_finder_goal_inputs_always_active():
     from streamlit.testing.v1 import AppTest
 
+    mol_label = "Minimum MOL at F3 (dB, 0 = off)"
     goal_labels = (
         "Desired bass extension F3 (Hz, 0 = deepest)",
         "Allowed response ripple (dB)",
@@ -4183,6 +4206,7 @@ def _check_ui_finder_goal_inputs_always_active():
     at.run()
     assert not at.exception, at.exception
     inputs = {n.label: n for n in at.sidebar.number_input}
+    assert mol_label in inputs and not inputs[mol_label].disabled
     for label in goal_labels:
         assert label in inputs and not inputs[label].disabled, label
     goal = next(box for box in at.sidebar.selectbox if box.label == "Optimization goal")
@@ -4195,6 +4219,7 @@ def _check_ui_finder_goal_inputs_always_active():
     at.run()
     assert not at.exception, at.exception
     inputs = {n.label: n for n in at.sidebar.number_input}
+    assert mol_label in inputs and not inputs[mol_label].disabled
     for label in goal_labels:
         assert label not in inputs, ("infinite baffle has nothing to optimize", label)
     assert not any(box.label == "Optimization goal" for box in at.selectbox)
@@ -4315,6 +4340,21 @@ def _check_driver_configurations():
     assert iso.radiating_pistons == 1
     iso_s = _dccav.apply_driver_configuration(ts, "Isobaric pair (series)")
     assert iso_s.re_ohm == ts.re_ohm * 2 and iso_s.vas_l == ts.vas_l / 2
+
+    eight = _dccav.apply_driver_configuration(ts, "8 × parallel")
+    assert eight.sd_cm2 == ts.sd_cm2 * 8 and eight.vas_l == ts.vas_l * 8
+    assert eight.re_ohm == ts.re_ohm / 8 and eight.le_mh == ts.le_mh / 8
+    assert eight.pe_w == ts.pe_w * 8 and eight.radiating_pistons == 8
+
+    mixed = _dccav.apply_driver_configuration(ts, "2S × 4P mixed")
+    assert mixed.sd_cm2 == ts.sd_cm2 * 8 and mixed.vas_l == ts.vas_l * 8
+    assert mixed.re_ohm == ts.re_ohm / 2 and mixed.le_mh == ts.le_mh / 2
+    assert mixed.pe_w == ts.pe_w * 8 and mixed.radiating_pistons == 8
+
+    iso16 = _dccav.apply_driver_configuration(ts, "16 × isobaric (parallel)")
+    assert iso16.sd_cm2 == ts.sd_cm2 * 8 and iso16.vas_l == ts.vas_l * 4
+    assert iso16.re_ohm == ts.re_ohm / 16 and iso16.le_mh == ts.le_mh / 16
+    assert iso16.pe_w == ts.pe_w * 16 and iso16.radiating_pistons == 8
 
     measured = _dccav.DriverTS(
         fs_hz=40.0, vas_l=50.0, qts=0.4, qms=4.0, re_ohm=6.0, sd_cm2=200.0,
@@ -4495,6 +4535,7 @@ def _check_ui_finder_value_ranking():
     at.session_state["batch_results"] = seeded
     at.session_state["batch_result_context"] = (
         ("Sealed",), 40.0, 2, False, "Balanced", "Port", 0.0,
+        0.0,
         _ui._FINDER_RANKING_VERSION,
     )
     at.run()

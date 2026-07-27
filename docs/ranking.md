@@ -17,7 +17,9 @@ detailed contracts live in `docs/dccav.md`.
   `max_evaluations=140` and forwards every Finder constraint, including
   minimum peak SPL. Without goals, the physical starter is retained when it
   already fits and is reduced only when it exceeds the cap;
-  the function returns the ranking-table row;
+  the function returns the ranking-table row, including `MOL @ F3 dB`
+  interpolated at the candidate's actual -3 dB frequency from the simulated
+  excursion/thermal maximum-output curve;
   unusable presets return `None` instead of raising
 - `sort_ranked_rows(rows)`: deepest F3 first, then F6/F10 and loudest peak
 - `rank_sort_value(value)`: `inf` for non-finite sort keys
@@ -37,5 +39,7 @@ detailed contracts live in `docs/dccav.md`.
 - The UI applies `OptimizationGoals.min_spl_db` as a hard result-list filter
   after simulation; the optimizer also receives it as a soft scoring penalty
   so it can prefer a compliant alignment before the row is accepted or rejected.
+- The UI's minimum `MOL @ F3` constraint is a hard post-simulation filter.
+  Missing/non-finite MOL values cannot satisfy a non-zero minimum.
 - Finder volume is always an upper bound. Rows may therefore report different
   enclosure volumes, but no finite-box result may exceed the selected maximum.

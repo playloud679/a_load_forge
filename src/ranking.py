@@ -261,6 +261,15 @@ def rank_preset_row(
                 "Fr Hz": np.nan,
             }
         thresholds = engine.response_threshold_frequencies(result)
+        f3_hz = float(thresholds[3])
+        mol_frequency = np.asarray(result.frequency_hz, dtype=float)
+        mol_db = np.asarray(result.mol_db, dtype=float)
+        finite_mol = np.isfinite(mol_frequency) & np.isfinite(mol_db)
+        mol_at_f3_db = (
+            float(np.interp(f3_hz, mol_frequency[finite_mol], mol_db[finite_mol]))
+            if np.isfinite(f3_hz) and np.any(finite_mol)
+            else float("nan")
+        )
         return {
             "Driver": name,
             "Driver configuration": driver_configuration,
@@ -273,9 +282,10 @@ def rank_preset_row(
             "Buy": info.url or "",
             "Mms g": ts.mms_g if ts.mms_g is not None else np.nan,
             "Le10k mH": ts.le10k_mh if ts.le10k_mh is not None else np.nan,
-            "F3 Hz": thresholds[3],
+            "F3 Hz": f3_hz,
             "F6 Hz": thresholds[6],
             "F10 Hz": thresholds[10],
+            "MOL @ F3 dB": mol_at_f3_db,
             "Peak dB": float(np.nanmax(result.spl_total_db)),
             "Ripple dB": ripple_db,
             "Max excursion mm": float(np.nanmax(result.excursion_mm)),

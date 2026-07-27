@@ -732,8 +732,8 @@ _FINDER_RANK_F3 = "Deepest bass (F3)"
 _FINDER_RANK_VALUE = "Best value (F3 × price)"
 _FINDER_RANK_MODES = (_FINDER_RANK_F3, _FINDER_RANK_VALUE)
 _FINDER_CTA_LABEL = "Run a Match"
-_FINDER_RANKING_VERSION = 4
-_FINDER_DEFAULTS_VERSION = 6
+_FINDER_RANKING_VERSION = 5
+_FINDER_DEFAULTS_VERSION = 7
 _FINDER_DEFAULTS = {
     "finder_rank_mode": _FINDER_RANK_F3,
     "finder_volume_l": 40.0,
@@ -744,6 +744,7 @@ _FINDER_DEFAULTS = {
     "finder_excursion_ratio": 1.0,
     "finder_max_gd_ms": 30.0,
     "finder_min_spl_db": 0.0,
+    "finder_min_mol_f3_db": 0.0,
     "finder_f_min": 10.0,
     "finder_f_max": 300.0,
     "finder_result_count": 20,
@@ -3566,6 +3567,28 @@ def _finder_load_context() -> tuple[list[str], bool]:
     return finder_load_types, finder_load_types == ["Infinite baffle"]
 
 
+def _filter_finder_performance_rows(
+    rows: list[dict],
+    min_spl_db: float,
+    min_mol_f3_db: float,
+) -> list[dict]:
+    """Apply Finder's hard output constraints to simulated candidate rows."""
+    filtered = rows
+    if min_spl_db > 0.0:
+        filtered = [
+            row for row in filtered
+            if np.isfinite(float(row.get("Peak dB", np.nan)))
+            and float(row["Peak dB"]) >= min_spl_db
+        ]
+    if min_mol_f3_db > 0.0:
+        filtered = [
+            row for row in filtered
+            if np.isfinite(float(row.get("MOL @ F3 dB", np.nan)))
+            and float(row["MOL @ F3 dB"]) >= min_mol_f3_db
+        ]
+    return filtered
+
+
 def _render_find_driver_target_sidebar() -> None:
     """Render the enclosure conditions used for every Finder candidate."""
     finder_load_types, only_infinite_baffle = _finder_load_context()
@@ -3573,7 +3596,8 @@ def _render_find_driver_target_sidebar() -> None:
         "Driver configuration",
         list(_dccav.DRIVER_CONFIGURATIONS),
         key="finder_driver_configuration",
-        help="Rank every candidate as one driver, a wired pair, or an isobaric pair.",
+        help="Rank every candidate as one driver; a 2–8-driver series, "
+             "parallel or mixed array; or an isobaric array up to 16 total drivers.",
     )
     _finder_number_input(
         "Maximum volume (L)",
@@ -3668,12 +3692,12 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
                 row["Resonator"] = _RESONATOR_PR if uses_pr else _RESONATOR_PORT
         all_rows.extend(batch_rows)
     min_spl_db = float(st.session_state.get("finder_min_spl_db", 0.0) or 0.0)
-    if min_spl_db > 0.0:
-        all_rows = [
-            row for row in all_rows
-            if np.isfinite(float(row.get("Peak dB", np.nan)))
-            and float(row["Peak dB"]) >= min_spl_db
-        ]
+    min_mol_f3_db = float(
+        st.session_state.get("finder_min_mol_f3_db", 0.0) or 0.0
+    )
+    all_rows = _filter_finder_performance_rows(
+        all_rows, min_spl_db, min_mol_f3_db
+    )
     all_rows = _dccav.sort_ranked_rows(all_rows)
     t_end = time.perf_counter()
     elapsed_s = t_end - t_start
@@ -3696,6 +3720,7 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
         str(st.session_state.get("finder_objective", "Balanced")),
         str(st.session_state.get("finder_reflex_resonator_type", _RESONATOR_PORT)),
         min_spl_db,
+        min_mol_f3_db,
         _FINDER_RANKING_VERSION,
     )
 
@@ -3706,6 +3731,15 @@ def _render_find_driver_goal_sidebar() -> None:
     only_passive_radiator = (
         finder_load_types == ["Bass reflex"]
         and _reflex_uses_passive_radiator(finder=True)
+    )
+    _finder_number_input(
+        "Minimum MOL at F3 (dB, 0 = off)",
+        min_value=0.0,
+        max_value=150.0,
+        step=0.5,
+        key="finder_min_mol_f3_db",
+        help="Require the excursion/thermal limited maximum output at the "
+             "candidate's F3 to reach this level; 0 disables.",
     )
     if only_infinite_baffle:
         st.caption(
@@ -3831,7 +3865,8 @@ _PRESET_SELECT_MAX_OPTIONS = 1000
 _TABLE_NUMBER_FORMATS = {
     "Size in": ".1f", "Fs Hz": ".1f", "Qts": ".3f", "Vas L": ".1f",
     "SPL dB": ".0f", "F3 Hz": ".1f", "F6 Hz": ".1f", "F10 Hz": ".1f",
-    "Peak dB": ".1f", "Ripple dB": ".1f", "Price": ".2f", "Value": ".0f",
+    "MOL @ F3 dB": ".1f", "Peak dB": ".1f", "Ripple dB": ".1f",
+    "Price": ".2f", "Value": ".0f",
     "Max excursion mm": ".2f", "Min ohm": ".2f", "Vb L": ".2f",
     "Fb Hz": ".1f", "Fc Hz": ".1f", "Qtc": ".3f", "Vs L": ".2f",
     "Vp L": ".2f", "Fp Hz": ".1f", "Vr L": ".2f", "Fr Hz": ".1f",
@@ -4054,14 +4089,18 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     context = st.session_state.get("batch_result_context", ())
     current_min_spl_db = float(
         st.session_state.get("finder_min_spl_db", 0.0) or 0.0)
+    current_min_mol_f3_db = float(
+        st.session_state.get("finder_min_mol_f3_db", 0.0) or 0.0)
     context_matches = not (
         len(context) < 2
         or tuple(context[:2]) != (finder_loads, finder_volume_l)
         or (len(context) > 5 and str(context[5]) != finder_resonator)
         or (len(context) > 6 and float(context[6]) != current_min_spl_db)
         or (len(context) <= 6 and current_min_spl_db > 0.0)
-        or len(context) <= 7
-        or int(context[7]) != _FINDER_RANKING_VERSION
+        or (len(context) > 7 and float(context[7]) != current_min_mol_f3_db)
+        or (len(context) <= 7 and current_min_mol_f3_db > 0.0)
+        or len(context) <= 8
+        or int(context[8]) != _FINDER_RANKING_VERSION
     )
     if not context_matches:
         batch_rows = []
@@ -4074,6 +4113,12 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                     f"No candidate reached the minimum SPL of "
                     f"{current_min_spl_db:.1f} dB with the current enclosure, "
                     "voltage and filters. Lower Minimum SPL or raise the comparison voltage."
+                )
+            elif current_min_mol_f3_db > 0.0:
+                st.warning(
+                    f"No candidate reached the minimum MOL at F3 of "
+                    f"{current_min_mol_f3_db:.1f} dB with the current enclosure, "
+                    "voltage and filters. Lower Minimum MOL at F3 or relax the filters."
                 )
             else:
                 st.warning(
@@ -4110,6 +4155,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         ("Load", ""), ("Price", np.nan), ("Currency", ""), ("Buy", ""),
         ("Ripple dB", np.nan), ("Response", None), ("Class", ""),
         ("Resonator", ""), ("Mms g", np.nan), ("Le10k mH", np.nan),
+        ("MOL @ F3 dB", np.nan),
     ):
         if name not in full_df.columns:
             full_df[name] = default
@@ -4142,7 +4188,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
 
     columns = [
         "Load", "Driver", "Brand", "Size in", "F3 Hz", "F6 Hz", "F10 Hz",
-        "Peak dB", "Max excursion mm", "Min ohm",
+        "MOL @ F3 dB", "Peak dB", "Max excursion mm", "Min ohm",
     ]
     if batch_df["Resonator"].fillna("").astype(bool).any():
         columns.insert(1, "Resonator")
@@ -4193,6 +4239,11 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             "F3 Hz": st.column_config.NumberColumn(format="%.1f"),
             "F6 Hz": st.column_config.NumberColumn(format="%.1f"),
             "F10 Hz": st.column_config.NumberColumn(format="%.1f"),
+            "MOL @ F3 dB": st.column_config.NumberColumn(
+                "MOL @ F3 (dB)",
+                format="%.1f",
+                help="Maximum excursion/thermal limited output interpolated at F3.",
+            ),
             "Peak dB": st.column_config.NumberColumn(format="%.1f"),
             "Ripple dB": st.column_config.NumberColumn(format="%.1f"),
             "Price": st.column_config.NumberColumn(format="%.2f"),
@@ -4249,11 +4300,16 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     row_load_type = str(selected_row.get("Load", load_type))
     with st.container(border=True):
         st.markdown(f"#### Candidate preview · {selected_row['Driver']} · {row_load_type}")
-        p1, p2, p3, p4 = st.columns(4)
+        p1, p2, p3, p4, p5 = st.columns(5)
         p1.metric("F3", f"{float(selected_row['F3 Hz']):.1f} Hz")
-        p2.metric("Peak LF SPL", f"{float(selected_row['Peak dB']):.1f} dB")
-        p3.metric("Max excursion", f"{float(selected_row['Max excursion mm']):.2f} mm")
-        p4.metric("Min impedance", f"{float(selected_row['Min ohm']):.2f} Ω")
+        mol_at_f3 = float(selected_row.get("MOL @ F3 dB", np.nan))
+        p2.metric(
+            "MOL @ F3",
+            f"{mol_at_f3:.1f} dB" if np.isfinite(mol_at_f3) else "—",
+        )
+        p3.metric("Peak LF SPL", f"{float(selected_row['Peak dB']):.1f} dB")
+        p4.metric("Max excursion", f"{float(selected_row['Max excursion mm']):.2f} mm")
+        p5.metric("Min impedance", f"{float(selected_row['Min ohm']):.2f} Ω")
         if row_load_type == "DCCAV":
             st.caption(
                 f"Vh {float(selected_row['Vh L']):.2f} L / "
@@ -5126,10 +5182,10 @@ with st.sidebar:
                 list(_dccav.DRIVER_CONFIGURATIONS),
                 key="driver_config",
                 on_change=_auto_align_current_driver,
-                help="Identical drivers sharing one enclosure. Parallel/series "
-                     "sets the wiring; an isobaric pair couples two drivers "
-                     "behind one radiating cone (halves Vas). The Finder always "
-                     "ranks single drivers.",
+                help="Identical drivers sharing one enclosure: series, parallel "
+                     "or mixed arrays up to eight drivers, or isobaric arrays "
+                     "up to 16 total drivers. Each isobaric pair contributes one "
+                     "radiating piston and half one driver's Vas.",
             )
             if st.session_state.get("driver_config", "Single driver") != "Single driver":
                 try:
