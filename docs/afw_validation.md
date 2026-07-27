@@ -8,6 +8,9 @@ Standalone `.crw` response files are parsed by `parse_crw()` (or
 `parse_crw_text()` for uploaded content), and the Project menu can load their
 trailing T/S values as a Custom driver.
 The same menu exports a standalone `load_forge_driver.crw` file.
+Generated CRW curves now use the current driver's 201-point Load Forge
+infinite-baffle response rather than retaining the Fostex template curve;
+AFW applies its own DCCAV loading on top of that driver data.
 The historical filename is retained, but the tool now parses
 the first transducer slot for three AFW load codes:
 

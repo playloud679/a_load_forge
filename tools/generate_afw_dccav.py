@@ -49,9 +49,10 @@ sealed/BP4/BP6 — confirmed identical for the DCAAV files in
   this pairing, but treat it with the same caution as any single-example
   mapping.
 - ``driver_at``: CRW curve title line
-- ``driver_at + 1`` .. ``+ 1005``: 201 points x 5 values, copied verbatim
-  from the template (not recomputed) — same "ideal projection, not a real
-  curve" caveat the original 9 examples' README already states.
+- ``driver_at + 1`` .. ``+ 1005``: 201 points x 5 values generated from the
+  current driver's Load Forge infinite-baffle response (frequency, SPL,
+  acoustic phase, impedance and impedance phase). AFW then applies its own
+  DCCAV loading to this driver curve.
 - ``driver_at + 1006`` .. ``+ 1016``: the 11 trailing T/S values
   ``[re_ohm, fs_hz, qms, qes, vas_m3, le_h, le_exponent, le_phase_factor,
     xmax_m, pe_w, sd_m2]``
@@ -82,6 +83,8 @@ import json
 import math
 import sys
 from pathlib import Path
+
+import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
@@ -114,6 +117,33 @@ def _lfp_driver_ts(lfp: dict) -> dict:
         "pe_w": float(lfp.get("driver_pe_w", 0.0)),
         "sd_m2": float(lfp["driver_sd_cm2"]) / 10_000.0,
     }
+
+
+def _crw_curve_values(lfp: dict) -> list[tuple[float, float, float, float, float]]:
+    """Generate AFW's five CRW columns from the current driver simulation."""
+    ts = _engine.DriverTS(
+        fs_hz=float(lfp["driver_fs_hz"]), vas_l=float(lfp["driver_vas_l"]),
+        qts=float(lfp["driver_qts"]), qms=float(lfp["driver_qms"]),
+        re_ohm=float(lfp["driver_re_ohm"]), sd_cm2=float(lfp["driver_sd_cm2"]),
+        le_mh=float(lfp.get("driver_le_mh", 0.0)),
+        xmax_mm=float(lfp.get("driver_xmax_mm", 0.0)),
+        pe_w=float(lfp.get("driver_pe_w", 0.0)),
+    )
+    frequency = np.geomspace(2.0, 200_000.0, 201)
+    result = _engine.simulate_infinite_baffle(ts, frequency, voltage_v=2.83)
+    phase = _engine.response_phase_deg(result)
+    zphase = np.asarray(result.impedance_phase_deg, dtype=float)
+    return list(zip(
+        frequency, result.spl_total_db, phase, result.impedance_ohm, zphase,
+        strict=True,
+    ))
+
+
+def _write_crw_curve(lines: list[str], driver_at: int, lfp: dict) -> None:
+    for index, values in enumerate(_crw_curve_values(lfp)):
+        start = driver_at + 1 + index * 5
+        for offset, value in enumerate(values):
+            lines[start + offset] = f" {float(value):.8g}"
 
 
 def generate_afw_text(lfp: dict, template_path: Path = DEFAULT_TEMPLATE, title: str | None = None) -> str:
@@ -169,6 +199,7 @@ def generate_afw_text(lfp: dict, template_path: Path = DEFAULT_TEMPLATE, title: 
     # characters outside that codepage can't round-trip, so ASCII-fold them.
     ascii_name = driver_name.replace("Ω", "Ohm").encode("latin-1", "replace").decode("latin-1")
     lines[driver_at] = title or f"Load Forge Bass Match - DCCAV - {ascii_name}"
+    _write_crw_curve(lines, driver_at, lfp)
 
     # AFW's "Definizione trasduttore" dialog does NOT read Sd from the T/S
     # tail block below -- it displays Sd = pi * (Larghezza / 2) * (Altezza / 2),
@@ -210,6 +241,7 @@ def generate_crw_text(lfp: dict, template_path: Path = DEFAULT_TEMPLATE, title: 
     ts = _lfp_driver_ts(lfp)
     ascii_name = str(lfp.get("driver_preset_name") or "Custom driver").replace("Ω", "Ohm")
     lines[driver_at] = title or f"Load Forge - {ascii_name}"
+    _write_crw_curve(lines, driver_at, lfp)
     params_at = driver_at + 1 + 201 * 5
     values = (
         ts["re_ohm"], ts["fs_hz"], ts["qms"], ts["qes"], ts["vas_m3"],
