@@ -5,6 +5,8 @@
 - **Max extension alignment**: relax the DCCAV deep-extension feasibility floor
   to `F3 >= 0.65*fl` for the explicit Max extension objective; balanced and
   flat objectives retain the conservative `0.67*fl` boundary.
+- **Finder multi-driver**: added single, wired-pair and isobaric-pair
+  configuration to candidate ranking and result application.
 - **Tests**: 108 passed / 0 failed / 0 skipped.
 
 ## 0.6.6 (2026-07-25)

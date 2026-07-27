@@ -64,13 +64,16 @@ def rank_preset_row(
     f_max_hz: float,
     points: int,
     goals: engine.OptimizationGoals | None = None,
+    driver_configuration: str = "Single driver",
 ) -> dict | None:
-    """Build one ranking-table row; ``None`` when the preset is unusable."""
+    """Build one ranking-table row for a single or composite driver."""
     if load_type in ("Suspension pneumatic", "Acoustic suspension"):
         load_type = "Sealed"
     freq = np.geomspace(float(f_min_hz), float(f_max_hz), int(points))
     try:
-        ts = presets.get_driver_preset(name)
+        ts = engine.apply_driver_configuration(
+            presets.get_driver_preset(name), driver_configuration
+        )
         if load_type not in ("Sealed", "Infinite baffle") and ts.xmax_mm <= 0:
             return None
         info = presets.driver_preset_info(name)
@@ -260,6 +263,7 @@ def rank_preset_row(
         thresholds = engine.response_threshold_frequencies(result)
         return {
             "Driver": name,
+            "Driver configuration": driver_configuration,
             "Source": info.source,
             "Brand": info.brand or "Other",
             "Class": driver_class,

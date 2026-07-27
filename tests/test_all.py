@@ -3403,6 +3403,12 @@ def _check_ui_batch_finder_optimizes_each_driver():
         assert np.isfinite(row["F3 Hz"]), row
     assert any(total < 30.0 for total in optimized_totals), optimized_totals
 
+    isobaric = _ui._batch_rank_presets(
+        ("KEF B110B article example",), "DCCAV", 30.0, 2.83, 10.0, 300.0,
+        120, 1, goals=goals, driver_configuration="Isobaric pair (parallel)",
+    )
+    assert isobaric and isobaric[0]["Driver configuration"] == "Isobaric pair (parallel)"
+
     large_cap = _ui._batch_rank_presets(
         names, "DCCAV", 1000.0, 2.83, 10.0, 300.0, 120, len(names),
         goals=_dccav.OptimizationGoals(objective="balanced"),

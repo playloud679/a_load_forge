@@ -8,7 +8,9 @@ detailed contracts live in `docs/dccav.md`.
 ## Owns
 
 - `rank_preset_row(name, load_type, max_volume_l, voltage_v, f_min_hz,
-  f_max_hz, points, goals=None) -> dict | None`: simulates one preset at the
+  f_max_hz, points, goals=None, driver_configuration="Single driver") -> dict | None`:
+  applies the selected single/pair/isobaric configuration to the preset, then
+  simulates one candidate at the
   best optimized volume at or below the requested cap (reflex/sealed `Vb`,
   bandpass chamber total, DCCAV `Vh+Vl`). Goal mode uses
   `max_total_volume_l`, never `fixed_total_volume_l`, with

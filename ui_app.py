@@ -732,8 +732,8 @@ _FINDER_RANK_F3 = "Deepest bass (F3)"
 _FINDER_RANK_VALUE = "Best value (F3 × price)"
 _FINDER_RANK_MODES = (_FINDER_RANK_F3, _FINDER_RANK_VALUE)
 _FINDER_CTA_LABEL = "Run a Match"
-_FINDER_RANKING_VERSION = 3
-_FINDER_DEFAULTS_VERSION = 5
+_FINDER_RANKING_VERSION = 4
+_FINDER_DEFAULTS_VERSION = 6
 _FINDER_DEFAULTS = {
     "finder_rank_mode": _FINDER_RANK_F3,
     "finder_volume_l": 40.0,
@@ -749,6 +749,7 @@ _FINDER_DEFAULTS = {
     "finder_result_count": 20,
     "finder_points": 240,
     "finder_reflex_resonator_type": _RESONATOR_PORT,
+    "finder_driver_configuration": "Single driver",
 }
 
 
@@ -3030,6 +3031,7 @@ def _batch_rank_presets(
     points: int,
     candidate_limit: int,
     goals: _dccav.OptimizationGoals | None = None,
+    driver_configuration: str = "Single driver",
     ranking_version: int = _FINDER_RANKING_VERSION,
 ) -> list[dict]:
     if ranking_version != _FINDER_RANKING_VERSION:
@@ -3039,6 +3041,7 @@ def _batch_rank_presets(
         row = _dccav.rank_preset_row(
             name, load_type, float(max_volume_l), float(voltage_v),
             float(f_min_hz), float(f_max_hz), int(points), goals,
+            driver_configuration,
         )
         if row is not None:
             rows.append(row)
@@ -3132,6 +3135,7 @@ def _batch_rank_presets_parallel(
     progress_text_widget: object | None = None,
     completed_offset: int = 0,
     progress_total: int | None = None,
+    driver_configuration: str = "Single driver",
 ) -> list[dict]:
     """Rank candidates across worker processes with a real progress bar."""
     names = list(preset_names)[:int(candidate_limit)]
@@ -3162,6 +3166,7 @@ def _batch_rank_presets_parallel(
             [float(f_max_hz)] * len(names),
             [int(points)] * len(names),
             [goals] * len(names),
+            [driver_configuration] * len(names),
             chunksize=max(1, min(32, len(names) // (workers * 4))),
         )
         for row in results:
@@ -3188,6 +3193,7 @@ def _batch_rank_presets_parallel(
             tuple(names), load_type, float(max_volume_l), float(voltage_v),
             float(f_min_hz), float(f_max_hz), int(points), len(names), goals,
             progress, progress_text_widget, completed_offset, overall_total,
+            driver_configuration,
         )
     finally:
         if owns_progress:
@@ -3211,6 +3217,7 @@ def _batch_rank_presets_with_progress(
     progress_text: object | None,
     completed_offset: int,
     progress_total: int,
+    driver_configuration: str = "Single driver",
 ) -> list[dict]:
     """Serial ranking path that reports real per-candidate progress."""
     names = list(preset_names)[:int(candidate_limit)]
@@ -3220,6 +3227,7 @@ def _batch_rank_presets_with_progress(
         row = _dccav.rank_preset_row(
             name, load_type, float(max_volume_l), float(voltage_v),
             float(f_min_hz), float(f_max_hz), int(points), goals,
+            driver_configuration,
         )
         if row is not None:
             rows.append(row)
@@ -3241,8 +3249,9 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
     driver = _dccav.get_driver_preset(name)
     st.session_state["load_type"] = load_type
     st.session_state["driver_preset_name"] = name
-    # Candidates are ranked as single drivers; the applied box matches that.
-    st.session_state["driver_config"] = "Single driver"
+    st.session_state["driver_config"] = str(
+        row.get("Driver configuration", "Single driver")
+    )
     _apply_driver_preset(driver)
     _use_manual_box_strategy()
     st.session_state["workspace_mode"] = "Box Design"
@@ -3560,6 +3569,12 @@ def _finder_load_context() -> tuple[list[str], bool]:
 def _render_find_driver_target_sidebar() -> None:
     """Render the enclosure conditions used for every Finder candidate."""
     finder_load_types, only_infinite_baffle = _finder_load_context()
+    _finder_selectbox(
+        "Driver configuration",
+        list(_dccav.DRIVER_CONFIGURATIONS),
+        key="finder_driver_configuration",
+        help="Rank every candidate as one driver, a wired pair, or an isobaric pair.",
+    )
     _finder_number_input(
         "Maximum volume (L)",
         min_value=0.1,
@@ -3593,6 +3608,9 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
     if not finder_load_types:
         finder_load_types = [str(st.session_state.get("load_type", "DCCAV"))]
     finder_volume_l = float(_finder_value("finder_volume_l"))
+    finder_driver_configuration = str(
+        _finder_value("finder_driver_configuration")
+    )
     scan_count = len(filtered_preset_names)
     progress_total = max(scan_count * len(finder_load_types), 1)
     t_start = time.perf_counter()
@@ -3632,6 +3650,7 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
                 progress_text,
                 completed_offset,
                 progress_total,
+                finder_driver_configuration,
             )
         else:
             batch_rows = _batch_rank_presets_with_progress(
@@ -3641,6 +3660,7 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
                 progress_text,
                 completed_offset,
                 progress_total,
+                finder_driver_configuration,
             )
         if lt == "Bass reflex":
             for row in batch_rows:
