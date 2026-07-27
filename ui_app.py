@@ -31,7 +31,7 @@ import pandas as pd
 import streamlit as st
 
 logger = logging.getLogger("load_forge.ui")
-_OPTIMIZER_ENGINE_REVISION = 3
+_OPTIMIZER_ENGINE_REVISION = 4
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 import dccav as _dccav
