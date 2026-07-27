@@ -26,7 +26,9 @@ contracts and the test list — lives in `docs/dccav.md`.
   `simulate_infinite_baffle` (shared `_electrical_source`, `_limit_curves`,
   `_unported_result` internals)
 - Optimizer: `optimize_alignment` with `_optimizer_metrics` /
-  `_score_alignment`
+  `_score_alignment`; untargeted `extension` searches scale advisory ripple,
+  excursion and group-delay excesses to 1% and use a 0.002 volume regularizer
+  so the lowest credible F3 dominates compactness
 - Analysis: `response_metrics`, `response_threshold_frequencies`,
   `impedance_peak_frequencies`, `group_delay_ms`, `response_phase_deg`,
   `export_frd_text`, `export_zma_text`, `monte_carlo_response_band`,

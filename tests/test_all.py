@@ -3593,6 +3593,30 @@ def _check_optimizer_extension_beats_empirical():
 test("DCCAV optimizer extension goal reaches at least the empirical F3", _check_optimizer_extension_beats_empirical)
 
 
+def _check_isobaric_max_extension_escapes_compact_basin():
+    ts = _dccav.apply_driver_configuration(
+        _dccav.get_driver_preset("WEB: Visaton KT 100 V"),
+        "Isobaric pair (parallel)",
+    )
+    optimized = _dccav.optimize_alignment(
+        ts,
+        _dccav.OptimizationGoals(
+            objective="extension",
+            max_ripple_db=3.0,
+            max_excursion_ratio=1.0,
+        ),
+        max_evaluations=24,
+    )
+    assert optimized.f3_hz <= 25.0, optimized
+    assert optimized.total_volume_l >= 18.0, optimized
+
+
+test(
+    "DCCAV isobaric Max extension escapes the compact mid-bass basin",
+    _check_isobaric_max_extension_escapes_compact_basin,
+)
+
+
 def _check_optimizer_target_f3_prefers_compact_box():
     ts = _dccav.get_driver_preset("Beyma 12CMV2")
     opt = _dccav.optimize_alignment(

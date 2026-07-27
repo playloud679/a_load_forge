@@ -446,6 +446,11 @@ each driver to retain a better, smaller alignment.
   passband (`None` disables)
 
 The score also re-applies the `response_sanity_warnings()` credibility limits.
+With `Max extension` and no explicit target F3, F3 is dominant: ripple,
+excursion and group-delay excesses remain advisory but are scaled to 1%, and
+the size regularizer drops to 0.002. Physical port and response-credibility
+boundaries remain hard. Setting a target F3 restores normal constraint
+weighting and prefers the smallest box that reaches the target.
 `F3 >= 0.67*fl` is the hard DCCAV feasibility boundary for balanced/flat
 alignments. The explicit `Max extension` objective permits `F3 >= 0.65*fl`
 to reach the deeper AFW-like alignment, while

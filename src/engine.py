@@ -1448,6 +1448,12 @@ def _score_alignment(
     if is_dccav and f3 < dccav_f3_ratio * metrics["fl_hz"]:
         return 1e5 + metrics["fl_hz"] / max(f3, EPS)
     weights = _OBJECTIVE_WEIGHTS[goals.objective]
+    deepest_extension = (
+        goals.objective == "extension" and not goals.target_f3_hz
+    )
+    # Once the hard construction/credibility boundaries above are satisfied,
+    # Max extension must let lower F3 dominate advisory response penalties.
+    advisory_scale = 0.01 if deepest_extension else 1.0
     ripple = metrics["ripple_db"]
     score = (
         weights["f3"]
@@ -1457,16 +1463,19 @@ def _score_alignment(
     if np.isfinite(ripple):
         score += weights["ripple"] * ripple / 6.0
         if goals.max_ripple_db and goals.max_ripple_db > 0 and ripple > goals.max_ripple_db:
-            score += 2.0 * (ripple - goals.max_ripple_db)
+            score += advisory_scale * 2.0 * (
+                ripple - goals.max_ripple_db)
     if goals.target_f3_hz and f3 > goals.target_f3_hz:
         score += 0.5 * (f3 - goals.target_f3_hz) / goals.target_f3_hz
     exc_ratio = metrics["excursion_ratio"]
     if goals.max_excursion_ratio and goals.max_excursion_ratio > 0 and np.isfinite(exc_ratio):
         if exc_ratio > goals.max_excursion_ratio:
-            score += 4.0 * (exc_ratio - goals.max_excursion_ratio)
+            score += advisory_scale * 4.0 * (
+                exc_ratio - goals.max_excursion_ratio)
     gd = metrics["group_delay_ms"]
     if goals.max_group_delay_ms and np.isfinite(gd) and gd > goals.max_group_delay_ms:
-        score += 1.0 * (gd / goals.max_group_delay_ms - 1.0)
+        score += advisory_scale * (
+            gd / goals.max_group_delay_ms - 1.0)
     if goals.max_total_volume_l and metrics["total_volume_l"] > goals.max_total_volume_l:
         score += 20.0 * (metrics["total_volume_l"] / goals.max_total_volume_l - 1.0)
     if goals.min_spl_db:
@@ -1485,7 +1494,8 @@ def _score_alignment(
     # requested F3 target is met, extra litres stop buying score elsewhere, so
     # push harder toward the compact solution.
     target_met = bool(goals.target_f3_hz) and f3 <= goals.target_f3_hz
-    score += (0.15 if target_met else 0.02) * metrics["total_volume_l"] / max(ts.vas_l, EPS)
+    size_weight = 0.15 if target_met else (0.002 if deepest_extension else 0.02)
+    score += size_weight * metrics["total_volume_l"] / max(ts.vas_l, EPS)
     return float(score)
 
 
@@ -1749,7 +1759,24 @@ def optimize_alignment(
                 step *= 0.5
         return cur_p, cur_box, cur_metrics, cur_score
 
-    _, best_box, best_metrics, best_score = compass_search(np.clip(p0, lower, upper))
+    # Untargeted DCCAV extension has a second, physically meaningful basin:
+    # larger chambers at approximately the empirical tuning. Coordinate
+    # descent cannot cross the compact mid-bass basin to reach it. Make that
+    # the primary seed so even the Finder's short optimization budget searches
+    # the correct region; keep the empirical compact seed as a fallback.
+    restart_points: list[np.ndarray] = []
+    primary_p = np.clip(p0, lower, upper)
+    if is_dccav and goals.objective == "extension" and not goals.target_f3_hz:
+        deep_p = p0.copy()
+        deep_p[0] += np.log(3.0)
+        deep_p[1] += np.log(3.0)
+        deep_p = np.clip(deep_p, lower, upper)
+        _, deep_metrics, deep_score = evaluate(deep_p)
+        if deep_metrics is not None and deep_score < 1e5:
+            primary_p = deep_p
+            restart_points.append(np.clip(p0, lower, upper))
+
+    _, best_box, best_metrics, best_score = compass_search(primary_p)
     if best_metrics is None:
         raise ValueError("The starting alignment could not be simulated")
 
@@ -1761,15 +1788,16 @@ def optimize_alignment(
     # box's diagonal costs little and reliably reaches those regions without
     # sacrificing reproducibility (no randomness).
     if best_score >= 1e5:
-        for fraction in (0.75, 0.25, 0.5):
-            if evaluations >= max_evaluations:
-                break
-            restart_p = lower + fraction * (upper - lower)
-            _, box, metrics, score = compass_search(restart_p)
-            if metrics is not None and score < best_score:
-                best_box, best_metrics, best_score = box, metrics, score
-                if best_score < 1e5:
-                    break
+        restart_points.extend(
+            lower + fraction * (upper - lower)
+            for fraction in (0.75, 0.25, 0.5)
+        )
+    for restart_p in restart_points:
+        if evaluations >= max_evaluations:
+            break
+        _, box, metrics, score = compass_search(restart_p)
+        if metrics is not None and score < best_score:
+            best_box, best_metrics, best_score = box, metrics, score
 
     if best_score >= 1e5:
         raise ValueError(
