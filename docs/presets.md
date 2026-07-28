@@ -40,7 +40,13 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
   Beyma, Turbosound, Scan-Speak, Dayton, SB Audience, LaVoce, MarkAudio,
   Aiyima minis, …)
 - `_load_external_presets(path, ...)`: shared lazy loader used by all four
-  catalogs; missing or invalid files degrade to whatever tiers remain.
+  catalogs; missing or invalid files degrade to whatever tiers remain. Within
+  the Load Forge manufacturer tier, decorated SB Acoustics titles are
+  canonicalized by their actual product code: for example the official
+  `9½″ SATORI WO24P-8 / Paper` and retailer `WO24P-8` observations become one
+  row. The impedance suffix remains part of the identity, official
+  SB Acoustics crawler data wins over retailer copies, and an exact retailer
+  price can still enrich the retained row.
 - `_load_loudspeaker_database_presets()` / `_load_manufacturer_presets()` /
   `_load_vituixcad_presets()` / `_load_speakerboxlite_presets()`
   (`lru_cache(maxsize=1)` each): the four catalog-specific loaders. The
@@ -57,18 +63,17 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
 `driver_preset_provenance_category(name)` maps the exact source retained in
 `DriverPresetInfo.source` to one stable UI category:
 
-- `Built-in`
-- `Official manufacturer site`
-- `Official archive / heritage`
-- `Retailer / distributor`
+- `Load Forge database` — built-ins, direct manufacturer crawls and
+  datasheets, official archives, retailer/distributor observations and
+  user-supplied records
 - `LSDB`
 - `VituixCAD`
 - `Speaker Box Lite`
-- `User supplied`
 
-The categories make primary and third-party sources independently filterable;
-they do not replace the exact source label or URL and do not themselves assert
-a redistribution licence.
+The compact categories separate Load Forge's own catalog work from the three
+third-party aggregate databases. They do not merge or rewrite the underlying
+tiers, replace the exact source label/URL, or themselves assert a
+redistribution licence.
 
 ## Invariants
 

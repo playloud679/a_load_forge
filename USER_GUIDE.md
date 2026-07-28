@@ -254,12 +254,13 @@ a three-step workflow:
    range, result count and resolution stay in **Advanced scan**.
 3. **Candidate library** filters the catalog in the main workspace by text,
    provenance, size, brand, bandwidth class and optional price ceiling.
-   Provenance separates official manufacturer sites, official
-   archives/heritage, retailers/distributors, LSDB, VituixCAD, Speaker Box
-   Lite, built-ins and user-supplied records. The table retains the exact
-   source beside the category. The numeric price limit appears only when its
-   checkbox is active. Typing in **Search preset** immediately lists the first
-   matching driver names before a scan is started.
+   Provenance groups built-ins, direct manufacturer sources, official
+   archives, retailer observations and user-supplied records under **Load
+   Forge database**. LSDB, VituixCAD and Speaker Box Lite remain separate
+   external database choices. The table retains the exact source beside the
+   compact category. The numeric price limit appears only when its checkbox is
+   active. Typing in **Search preset** immediately lists the first matching
+   driver names before a scan is started.
 
    In each checkbox group, **All** is a true group toggle. When active, every
    option is visibly checked. Unchecking one option clears **All** while
@@ -272,7 +273,9 @@ table; it is not duplicated in the sidebar. Before a scan, the workspace is
 titled **Candidate library**; completed scans use
 **Recommended drivers** and show the active load, volume cap and objective.
 Missing values render as em dashes and columns with no data are omitted, while
-the CSV keeps the underlying numeric data.
+the ranked table and candidate CSV expose only the total enclosure volume.
+Individual chamber volumes, tuning/system frequencies and alignment details
+remain internal so a selected candidate can still be applied to Design.
 
 `Minimum SPL` is evaluated against each row's simulated **Peak LF SPL** at the
 selected comparison voltage. Values below the threshold are excluded from the
@@ -304,10 +307,13 @@ design.
 
 **Run a Match** evaluates every preset currently admitted by the active library
 filters. Each result can include class, price, purchase link and a
-normalized response sparkline. Selecting a row opens a preview without
-changing the active design. **Apply candidate to design** is the only action
-that replaces it; the app then returns to **Design a box** in **Manual** mode so
-the ranked enclosure is preserved exactly.
+normalized response sparkline. The compact result table omits brand, nominal
+size, F6, F10, ripple and maximum excursion; these values still participate in
+the underlying simulation and constraints where applicable. Selecting a row
+opens a preview focused on F3, MOL at F3, peak LF SPL and minimum impedance
+without changing the active design. **Apply candidate to design** is the only
+action that replaces it; the app then returns to **Design a box** in
+**Manual** mode so the ranked enclosure is preserved exactly.
 
 **Download candidate CSV** exports the visible table columns except the
 sparkline.

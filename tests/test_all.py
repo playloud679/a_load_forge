@@ -135,6 +135,24 @@ def _check_presets_are_available():
         "MarkAudio CHR-70",
     }
     assert expected.issubset(names), set(names)
+    own_wo24p8 = [
+        name
+        for name in names
+        if name.startswith("WEB: SB Acoustics") and "WO24P-8" in name
+    ]
+    assert own_wo24p8 == [
+        "WEB: SB Acoustics 9½″ SATORI WO24P-8 / Paper"
+    ], own_wo24p8
+    wo24p8_info = _dccav.driver_preset_info(own_wo24p8[0])
+    assert wo24p8_info.source == "SB Acoustics crawler", wo24p8_info
+    assert any(
+        name.startswith("LSDB: SB Acoustics") and "WO24P-8" in name
+        for name in names
+    ), "the separate LSDB observation must remain visible"
+    assert any(
+        name.startswith("VCD: SB Acoustics") and "WO24P-8" in name
+        for name in names
+    ), "the separate VituixCAD observation must remain visible"
     assert _dccav.get_driver_preset("Beyma 12G40").sd_cm2 == 530.0
     assert _dccav.get_driver_preset("Beyma 12BR70").fs_hz == 31.0
     assert _dccav.get_driver_preset("Beyma 12MCS500").le_mh == 1.1
@@ -1938,14 +1956,30 @@ test("UI response chart has a clickable moving marker", _check_response_chart_ha
 def _check_ui_driver_preset_filters_reduce_list():
     import ui_app as _ui
 
-    assert "Official manufacturer site" in _ui._PRESET_SOURCE_FILTERS
-    assert "Official archive / heritage" in _ui._PRESET_SOURCE_FILTERS
-    assert "Retailer / distributor" in _ui._PRESET_SOURCE_FILTERS
-    assert "LSDB" in _ui._PRESET_SOURCE_FILTERS
-    assert "VituixCAD" in _ui._PRESET_SOURCE_FILTERS
-    assert "Speaker Box Lite" in _ui._PRESET_SOURCE_FILTERS
+    assert _ui._PRESET_SOURCE_FILTERS == (
+        "All",
+        "Load Forge database",
+        "LSDB",
+        "VituixCAD",
+        "Speaker Box Lite",
+    )
+    assert all(
+        _ui._PRESET_SOURCE_FILTER_ALIASES[legacy]
+        == "Load Forge database"
+        for legacy in (
+            "Manufacturer",
+            "Built-in",
+            "Official manufacturer site",
+            "Official archive / heritage",
+            "Retailer / distributor",
+            "User supplied",
+        )
+    )
     names = _dccav.driver_preset_names()
-    assert _ui._driver_preset_source("Beyma 12CMV2") == "Built-in"
+    assert (
+        _ui._driver_preset_source("Beyma 12CMV2")
+        == "Load Forge database"
+    )
     callback_all_key = "_test_filter_all"
     callback_item_keys = (
         "_test_filter_a",
@@ -1977,9 +2011,9 @@ def _check_ui_driver_preset_filters_reduce_list():
         ("Loudspeaker Database", "LSDB"),
         ("VituixCAD online database", "VituixCAD"),
         ("Speaker Box Lite public database", "Speaker Box Lite"),
-        ("Parts Express API", "Retailer / distributor"),
-        ("Altec Technical Letter 267B archive", "Official archive / heritage"),
-        ("Manufacturer website", "Official manufacturer site"),
+        ("Parts Express API", "Load Forge database"),
+        ("Altec Technical Letter 267B archive", "Load Forge database"),
+        ("Manufacturer website", "Load Forge database"),
     ):
         if exact_source in category_examples:
             assert (
@@ -1988,7 +2022,7 @@ def _check_ui_driver_preset_filters_reduce_list():
             )
     filtered = _ui._filter_driver_preset_names(
         names,
-        source="Built-in",
+        source="Load Forge database",
         family="Aiyima",
         size="2 in",
         search="53mm",
@@ -1999,7 +2033,7 @@ def _check_ui_driver_preset_filters_reduce_list():
 
     kept_selected = _ui._filter_driver_preset_names(
         names,
-        source="Built-in",
+        source="Load Forge database",
         family="Beyma",
         size="12 in",
         search="",
@@ -2038,10 +2072,13 @@ def _check_ui_driver_preset_filters_reduce_list():
         checkbox
         for checkbox in at.sidebar.checkbox
         if str(checkbox.key).startswith(
-            "preset_source_filter__toggle_v3__"
+            "preset_source_filter__toggle_v4__"
         )
     ]
     assert len(provenance_boxes) == len(_ui._PRESET_SOURCE_FILTERS)
+    assert [checkbox.label for checkbox in provenance_boxes] == list(
+        _ui._PRESET_SOURCE_FILTERS
+    )
     assert all(checkbox.value for checkbox in provenance_boxes), (
         "All must visibly select every provenance option",
         [(checkbox.label, checkbox.value) for checkbox in provenance_boxes],
@@ -2057,7 +2094,7 @@ def _check_ui_driver_preset_filters_reduce_list():
         checkbox
         for checkbox in at.sidebar.checkbox
         if str(checkbox.key).startswith(
-            "preset_source_filter__toggle_v3__"
+            "preset_source_filter__toggle_v4__"
         )
     ]
     assert not next(
@@ -2253,6 +2290,8 @@ test("ECB rates normalize Finder library prices", _check_ecb_rates_normalize_lib
 
 
 def _check_dccav_loads_external_price_records(tmp_path=None):
+    from src import presets as _presets
+
     price_path = _dccav.DRIVER_PRICES_PATH
     original_exists = price_path.exists()
     original_text = price_path.read_text(encoding="utf-8") if original_exists else None
@@ -2264,7 +2303,8 @@ def _check_dccav_loads_external_price_records(tmp_path=None):
             '    "Beyma 12CMV2": {"price": 321.5, "currency": "EUR", "url": "https://example.test/beyma"},\n'
             '    "Beyma 12G40": {"price": 0.29, "currency": "EUR", "matched_name": "Beyma 12G40 woofer", "matched_brand": "Beyma", "matched_mpn": "12G40", "url": "https://example.test/beyma-12g40"},\n'
             '    "Beyma 12BR70": {"price": 0.29, "currency": "EUR", "matched_name": "Intertechnik Distance holders", "matched_brand": "Intertechnik", "matched_mpn": "DHLP/100", "url": "https://example.test/bad"},\n'
-            '    "Beyma 12MCS500": {"price": 29.0, "currency": "GBP", "matched_name": "2-way crossover for Beyma 12MCS500", "matched_brand": "Beyma", "matched_mpn": "XO12MCS500", "url": "https://example.test/crossover"}\n'
+            '    "Beyma 12MCS500": {"price": 29.0, "currency": "GBP", "matched_name": "2-way crossover for Beyma 12MCS500", "matched_brand": "Beyma", "matched_mpn": "XO12MCS500", "url": "https://example.test/crossover"},\n'
+            '    "WO24P-8": {"price": 239.95, "currency": "EUR", "matched_name": "SB Acoustics WO24P-8", "matched_brand": "SB Acoustics", "matched_mpn": "WO24P-8", "url": "https://example.test/wo24p-8"}\n'
             '  }\n'
             '}\n',
             encoding="utf-8",
@@ -2272,6 +2312,10 @@ def _check_dccav_loads_external_price_records(tmp_path=None):
         _dccav._load_driver_price_records.cache_clear()
         _dccav._load_loudspeaker_database_presets.cache_clear()
         _dccav._load_manufacturer_presets.cache_clear()
+        _dccav._load_vituixcad_presets.cache_clear()
+        _dccav._load_speakerboxlite_presets.cache_clear()
+        _presets._external_tiers.cache_clear()
+        _dccav.driver_preset_names.cache_clear()
         _dccav.driver_preset_info.cache_clear()
         _dccav.get_driver_preset.cache_clear()
         info = _dccav.driver_preset_info("Beyma 12CMV2")
@@ -2281,6 +2325,16 @@ def _check_dccav_loads_external_price_records(tmp_path=None):
         assert _dccav.driver_preset_info("Beyma 12G40").price == 0.29
         assert _dccav.driver_preset_info("Beyma 12BR70").price is None
         assert _dccav.driver_preset_info("Beyma 12MCS500").price is None
+        own_wo24p8 = [
+            name
+            for name in _dccav.driver_preset_names()
+            if name.startswith("WEB: SB Acoustics") and "WO24P-8" in name
+        ]
+        assert len(own_wo24p8) == 1, own_wo24p8
+        sb_info = _dccav.driver_preset_info(own_wo24p8[0])
+        assert sb_info.source == "SB Acoustics crawler", sb_info
+        assert sb_info.price == 239.95 and sb_info.currency == "EUR", sb_info
+        assert sb_info.url == "https://example.test/wo24p-8", sb_info
     finally:
         if original_exists:
             price_path.write_text(original_text or "", encoding="utf-8")
@@ -2292,6 +2346,10 @@ def _check_dccav_loads_external_price_records(tmp_path=None):
         _dccav._load_driver_price_records.cache_clear()
         _dccav._load_loudspeaker_database_presets.cache_clear()
         _dccav._load_manufacturer_presets.cache_clear()
+        _dccav._load_vituixcad_presets.cache_clear()
+        _dccav._load_speakerboxlite_presets.cache_clear()
+        _presets._external_tiers.cache_clear()
+        _dccav.driver_preset_names.cache_clear()
         _dccav.driver_preset_info.cache_clear()
         _dccav.get_driver_preset.cache_clear()
 
@@ -5018,6 +5076,22 @@ test("DCCAV price-extension score prefers cheap deep drivers", _check_price_exte
 def _check_ui_finder_value_ranking():
     import ui_app as _ui
 
+    assert _ui._finder_total_volume_l(
+        {"Load": "DCCAV", "Vh L": 12.0, "Vl L": 18.0}
+    ) == 30.0
+    assert _ui._finder_total_volume_l(
+        {"Load": "Bandpass 4th order", "Vs L": 8.0, "Vp L": 22.0}
+    ) == 30.0
+    assert _ui._finder_total_volume_l(
+        {"Load": "Bandpass 6th order", "Vr L": 19.0, "Vp L": 11.0}
+    ) == 30.0
+    assert _ui._finder_total_volume_l(
+        {"Load": "Bass reflex", "Vb L": 30.0}
+    ) == 30.0
+    assert _ui.np.isnan(
+        _ui._finder_total_volume_l({"Load": "Infinite baffle"})
+    )
+
     rows = [
         {"Driver": "deep pricey", "F3 Hz": 30.0, "Price": 400.0, "Currency": "EUR"},
         {"Driver": "value pick", "F3 Hz": 40.0, "Price": 80.0, "Currency": "EUR"},
@@ -5044,8 +5118,10 @@ def _check_ui_finder_value_ranking():
         {
             "Driver": name, "Source": "Built-in", "Brand": "Other", "Class": "Woofer",
             "Size in": 12.0, "Price": price, "Currency": "EUR", "Buy": "",
+            "_load_type": "Sealed",
             "F3 Hz": f3, "F6 Hz": f3 - 5.0, "F10 Hz": f3 - 10.0,
-            "Peak dB": 90.0, "Ripple dB": 1.0, "Max excursion mm": 3.0,
+            "MOL @ F3 dB": 85.0, "Peak dB": 90.0,
+            "Ripple dB": 1.0, "Max excursion mm": 3.0,
             "Min ohm": 6.0, "Response": [0.0, -3.0], **box_values,
         }
         for name, f3, price in (("A deep", 30.0, 400.0), ("B value", 40.0, 80.0))
@@ -5064,6 +5140,41 @@ def _check_ui_finder_value_ranking():
     )
     at.run()
     assert not at.exception, at.exception
+    results_frame = next(
+        dataframe.value
+        for dataframe in at.dataframe
+        if "F3 Hz" in dataframe.value.columns
+    )
+    assert {
+        "F6 Hz",
+        "F10 Hz",
+        "Brand",
+        "Size in",
+        "Ripple dB",
+        "Max excursion mm",
+        "Vb L",
+        "Fb Hz",
+        "Fc Hz",
+        "Qtc",
+        "Vs L",
+        "Vp L",
+        "Fp Hz",
+        "Vr L",
+        "Fr Hz",
+        "Vh L",
+        "fh Hz",
+        "Vl L",
+        "fl Hz",
+    }.isdisjoint(results_frame.columns), results_frame.columns
+    assert {
+        "Driver",
+        "F3 Hz",
+        "MOL @ F3 dB",
+        "Peak dB",
+        "Min ohm",
+        "Total volume L",
+    } <= set(results_frame.columns), results_frame.columns
+    assert list(results_frame["Total volume L"]) == [40.0, 40.0]
     rank = next(r for r in at.radio if r.label == "Rank by")
     rank.set_value("Best value (F3 × price)").run()
     assert not at.exception, at.exception

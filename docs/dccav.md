@@ -221,11 +221,12 @@ max-price controls remain disabled. Generated presets also preserve a
 `website_fields` block with the original card/page metadata and detected
 commerce links.
 
-The Finder exposes a separate provenance-category filter backed by
-`driver_preset_provenance_category()`: built-ins, official manufacturer sites,
-official archives/heritage, retailers/distributors, LSDB, VituixCAD, Speaker
-Box Lite and user-supplied records remain independently selectable. The
-candidate library shows both this category and the exact source string.
+The Finder exposes a compact provenance-category filter backed by
+`driver_preset_provenance_category()`: Load Forge's built-ins, direct crawls,
+official archives, retailer observations and user-supplied records share the
+`Load Forge database` category, while LSDB, VituixCAD and Speaker Box Lite
+remain independently selectable third-party databases. The candidate library
+still shows both the compact category and the exact source string.
 
 `tools/crawl_thiele_small.py` discovers manufacturer pages from seeds or XML
 sitemaps, extracts HTML/JSON-LD/PDF measurements, normalizes units, derives

@@ -41,29 +41,10 @@ SPEAKERBOXLITE_DATABASE_PATH = (
 )
 
 PRESET_PROVENANCE_CATEGORIES = (
-    "Built-in",
-    "Official manufacturer site",
-    "Official archive / heritage",
-    "Retailer / distributor",
+    "Load Forge database",
     "LSDB",
     "VituixCAD",
     "Speaker Box Lite",
-    "User supplied",
-)
-
-_RETAILER_SOURCE_MARKERS = (
-    "parts express",
-    "soundimports",
-    "madisound",
-    "retailer",
-    "distributor",
-)
-_ARCHIVE_SOURCE_MARKERS = (
-    "archive",
-    "archived",
-    "technical letter",
-    "discontinued",
-    "heritage",
 )
 
 
@@ -646,6 +627,21 @@ def _preset_identity(brand: str, model: str) -> tuple[str, str]:
     return brand.strip().casefold(), model.strip().casefold()
 
 
+def _external_catalog_model_code(brand: str, model: str) -> str:
+    """Extract a stable manufacturer part number from decorated model titles."""
+    brand_key = re.sub(r"[^a-z0-9]+", "", brand.casefold())
+    if brand_key != "sbacoustics":
+        return ""
+    codes = re.findall(
+        r"(?<![a-z0-9])"
+        r"((?:sb|sw|mw|mr|wo)[a-z0-9]*(?:-[a-z0-9]+)+)"
+        r"(?![a-z0-9])",
+        model,
+        flags=re.IGNORECASE,
+    )
+    return re.sub(r"-rev-\d+$", "", codes[-1], flags=re.IGNORECASE) if codes else ""
+
+
 def _external_catalog_identity(brand: str, model: str, driver: DriverTS) -> tuple[str, str, str]:
     """Return a tolerant identity for duplicate web/retailer listings.
 
@@ -653,6 +649,17 @@ def _external_catalog_identity(brand: str, model: str, driver: DriverTS) -> tupl
     model title.  The electrical resistance remains in the key so real 4/8 Ω
     variants are not collapsed accidentally.
     """
+    brand_key = brand.strip().casefold()
+    model_code = _external_catalog_model_code(brand, model)
+    if model_code:
+        # SB Acoustics product pages decorate the actual part number with
+        # nominal size, SATORI series and cone material. The final numeric
+        # segment is impedance, including suffixes such as ``-4-COAX``.
+        code_impedances = re.findall(r"-(\d{1,2})(?=-|$)", model_code)
+        if code_impedances:
+            clean_code = re.sub(r"[^a-z0-9]+", "", model_code.casefold())
+            return brand_key, clean_code, code_impedances[-1]
+
     clean = model.casefold().replace("″", '"').replace("–", "-").replace("—", "-")
     impedance = re.search(r"\b(\d+(?:\.\d+)?)\s*(?:ohm|ohms|ω)\b", clean)
     if impedance:
@@ -666,7 +673,7 @@ def _external_catalog_identity(brand: str, model: str, driver: DriverTS) -> tupl
     clean = re.sub(r"\b\d+(?:\.\d+)?\s*(?:in|inch|inches)\b", " ", clean)
     clean = re.sub(r"\b(?:woofer|speaker|driver|loudspeaker)\b", " ", clean)
     clean = re.sub(r"[^a-z0-9]+", "", clean)
-    return brand.strip().casefold(), clean, nominal_ohm
+    return brand_key, clean, nominal_ohm
 
 
 def _driver_ts_from_mapping(values: dict) -> DriverTS:
@@ -716,8 +723,8 @@ def _load_external_presets(
         for name in DRIVER_PRESETS
     }
     taken = {*reserved, *DRIVER_PRESETS}
-    identity_to_name: dict[tuple[str, str, float], str] = {}
-    identity_score: dict[tuple[str, str, float], tuple[int, float]] = {}
+    identity_to_name: dict[tuple[str, str, str], str] = {}
+    identity_score: dict[tuple[str, str, str], tuple[int, int, float]] = {}
     for item in payload.get("presets", []):
         if (
             (item.get("website_fields") or {}).get("quality_status")
@@ -742,7 +749,10 @@ def _load_external_presets(
         item_price = _valid_price(item.get("price"))
         item_currency = str(item.get("currency") or "")
         item_source = str(item.get("source") or default_source)
-        enriched_price, enriched_currency, enriched_url = _preset_price(name, item_model, item_brand)
+        model_code = _external_catalog_model_code(item_brand, item_model)
+        enriched_price, enriched_currency, enriched_url = _preset_price(
+            name, model_code or item_model, item_brand
+        )
         item_info = DriverPresetInfo(
             name=name,
             source=item_source,
@@ -759,7 +769,22 @@ def _load_external_presets(
             url=enriched_url or str(item.get("url") or ""),
         )
         identity = _external_catalog_identity(item_brand, item_model, driver)
+        source_key = item_source.casefold()
+        source_priority = 0
+        if (
+            dedupe_tag == "MFR"
+            and re.sub(r"[^a-z0-9]+", "", item_brand.casefold())
+            == "sbacoustics"
+        ):
+            if "sb acoustics crawler" in source_key:
+                source_priority = 2
+            elif (
+                "retailer" not in source_key
+                and "distributor" not in source_key
+            ):
+                source_priority = 1
         score = (
+            source_priority,
             sum(value is not None and float(value or 0.0) != 0.0 for value in (
                 driver.le_mh, driver.le10k_mh, driver.xmax_mm, driver.pe_w,
                 driver.mms_g, driver.cms_mm_per_n, driver.bl_tm,
@@ -885,29 +910,20 @@ def driver_preset_info(name: str) -> DriverPresetInfo:
 def driver_preset_provenance_category(name: str) -> str:
     """Return a stable, user-facing provenance bucket for one preset.
 
-    This classification deliberately keeps third-party databases separate
-    from manufacturer pages, archives, retailers and user-entered records.
-    It does not imply a redistribution licence; exact source and URL remain
-    available through :func:`driver_preset_info`.
+    Load Forge's curated, crawled and user-supplied rows share one category,
+    while the three third-party aggregate databases remain independently
+    selectable. Exact source and URL remain available through
+    :func:`driver_preset_info`.
     """
     info = driver_preset_info(name)
     source = info.source.strip()
-    source_key = source.casefold()
-    if source == "Built-in":
-        return "Built-in"
     if source == "Loudspeaker Database":
         return "LSDB"
     if source == "VituixCAD online database":
         return "VituixCAD"
     if source == "Speaker Box Lite public database":
         return "Speaker Box Lite"
-    if name.startswith("USER: ") or "user" in source_key or "measurement" in source_key:
-        return "User supplied"
-    if any(marker in source_key for marker in _RETAILER_SOURCE_MARKERS):
-        return "Retailer / distributor"
-    if any(marker in source_key for marker in _ARCHIVE_SOURCE_MARKERS):
-        return "Official archive / heritage"
-    return "Official manufacturer site"
+    return "Load Forge database"
 
 
 @lru_cache(maxsize=8192)

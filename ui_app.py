@@ -706,8 +706,13 @@ _PRESET_SIZE_FILTERS = (
 )
 _PRESET_SOURCE_FILTERS = ("All", *_dccav.PRESET_PROVENANCE_CATEGORIES)
 _PRESET_SOURCE_FILTER_ALIASES = {
-    # Saved sessions from before provenance categories were introduced.
-    "Manufacturer": "Official manufacturer site",
+    # Saved sessions from before Load Forge-owned sources were consolidated.
+    "Manufacturer": "Load Forge database",
+    "Built-in": "Load Forge database",
+    "Official manufacturer site": "Load Forge database",
+    "Official archive / heritage": "Load Forge database",
+    "Retailer / distributor": "Load Forge database",
+    "User supplied": "Load Forge database",
     "Loudspeaker Database": "LSDB",
 }
 _PRESET_FILTER_NONE = "__none__"
@@ -1652,7 +1657,7 @@ def _driver_preset_source(name: str) -> str:
     try:
         return _dccav.driver_preset_provenance_category(name)
     except ValueError:
-        return "Built-in"
+        return "Load Forge database"
 
 
 def _driver_preset_exact_source(name: str) -> str:
@@ -1835,13 +1840,13 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
             ]
         current = set(current or ["All"])
         concrete_options = [option for option in options if option != "All"]
-        all_key = f"{key}__toggle_v3__all"
+        all_key = f"{key}__toggle_v4__all"
         item_keys = tuple(
-            f"{key}__toggle_v3__{index}"
+            f"{key}__toggle_v4__{index}"
             for index, _option in enumerate(concrete_options)
         )
-        initialized_key = f"{key}__toggle_v3__initialized"
-        emitted_key = f"{key}__toggle_v3__emitted"
+        initialized_key = f"{key}__toggle_v4__initialized"
+        emitted_key = f"{key}__toggle_v4__emitted"
         requested_state = tuple(sorted(current))
         if (
             not st.session_state.get(initialized_key, False)
@@ -3992,14 +3997,39 @@ _PRESET_SELECT_MAX_OPTIONS = 1000
 _TABLE_NUMBER_FORMATS = {
     "Nominal in": ".2f", "Sd cm²": ".1f", "Effective Ø in": ".2f",
     "Fs Hz": ".1f", "Qts": ".3f", "Vas L": ".1f",
-    "SPL dB": ".0f", "F3 Hz": ".1f", "F6 Hz": ".1f", "F10 Hz": ".1f",
-    "MOL @ F3 dB": ".1f", "Peak dB": ".1f", "Ripple dB": ".1f",
+    "SPL dB": ".0f", "F3 Hz": ".1f",
+    "MOL @ F3 dB": ".1f", "Peak dB": ".1f",
     "Price": ".2f", "Value": ".0f",
-    "Max excursion mm": ".2f", "Min ohm": ".2f", "Vb L": ".2f",
+    "Min ohm": ".2f", "Vb L": ".2f",
+    "Total volume L": ".2f",
     "Fb Hz": ".1f", "Fc Hz": ".1f", "Qtc": ".3f", "Vs L": ".2f",
     "Vp L": ".2f", "Fp Hz": ".1f", "Vr L": ".2f", "Fr Hz": ".1f",
     "Vh L": ".2f", "fh Hz": ".1f", "Vl L": ".2f", "fl Hz": ".1f",
 }
+
+
+def _finder_total_volume_l(row: dict | pd.Series) -> float:
+    """Return one comparable enclosure-volume value for a Finder result."""
+    load_type = str(row.get("Load", row.get("_load_type", "")))
+
+    def finite_value(name: str) -> float:
+        try:
+            value = float(row.get(name, np.nan))
+        except (TypeError, ValueError):
+            return float("nan")
+        return value if np.isfinite(value) else float("nan")
+
+    if load_type in {"Bass reflex", "Sealed"}:
+        return finite_value("Vb L")
+    if load_type == "Bandpass 4th order":
+        values = (finite_value("Vs L"), finite_value("Vp L"))
+    elif load_type == "Bandpass 6th order":
+        values = (finite_value("Vr L"), finite_value("Vp L"))
+    elif load_type == "DCCAV":
+        values = (finite_value("Vh L"), finite_value("Vl L"))
+    else:
+        return float("nan")
+    return float(sum(values)) if all(np.isfinite(values)) else float("nan")
 
 
 def _table_value_missing(value: object) -> bool:
@@ -4293,6 +4323,9 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     full_df = pd.DataFrame(batch_rows)
     if "_load_type" in full_df.columns:
         full_df = full_df.rename(columns={"_load_type": "Load"})
+    full_df["Total volume L"] = full_df.apply(
+        _finder_total_volume_l, axis=1
+    )
     for name, default in (
         ("Load", ""), ("Price", np.nan), ("Currency", ""), ("Buy", ""),
         ("Ripple dB", np.nan), ("Response", None), ("Class", ""),
@@ -4329,41 +4362,30 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     batch_df = full_df.head(int(_finder_value("finder_result_count")))
 
     columns = [
-        "Load", "Driver", "Brand", "Size in", "F3 Hz", "F6 Hz", "F10 Hz",
-        "MOL @ F3 dB", "Peak dB", "Max excursion mm", "Min ohm",
+        "Load", "Driver", "F3 Hz", "MOL @ F3 dB", "Peak dB", "Min ohm",
     ]
     if batch_df["Resonator"].fillna("").astype(bool).any():
         columns.insert(1, "Resonator")
+    driver_metadata_index = columns.index("Driver") + 1
     if batch_df["Class"].fillna("").astype(bool).any():
-        columns.insert(columns.index("Size in") + 1, "Class")
+        columns.insert(driver_metadata_index, "Class")
+        driver_metadata_index += 1
+    if batch_df["Mms g"].notna().any():
+        columns.insert(driver_metadata_index, "Mms g")
+        driver_metadata_index += 1
+    if batch_df["Price"].notna().any():
+        columns.insert(driver_metadata_index, "Price")
+        driver_metadata_index += 1
+        columns.insert(driver_metadata_index, "Currency")
+        driver_metadata_index += 1
+        if "Value" in batch_df.columns and batch_df["Value"].notna().any():
+            columns.insert(driver_metadata_index, "Value")
     if batch_df["Response"].map(lambda v: bool(v) if isinstance(v, list) else False).any():
         columns.insert(columns.index("F3 Hz"), "Response")
-    if batch_df["Ripple dB"].notna().any():
-        columns.insert(columns.index("Peak dB") + 1, "Ripple dB")
-    if batch_df["Price"].notna().any():
-        columns.insert(3, "Price")
-        columns.insert(4, "Currency")
-        if "Value" in batch_df.columns and batch_df["Value"].notna().any():
-            columns.insert(5, "Value")
-    if batch_df["Mms g"].notna().any():
-        columns.insert(columns.index("Size in") + 1, "Mms g")
     if batch_df["Le10k mH"].notna().any():
         columns.insert(columns.index("Min ohm") + 1, "Le10k mH")
-    if len(finder_loads) > 1:
-        columns += ["Vb L", "Fb Hz", "Vh L", "fh Hz", "Vl L", "fl Hz",
-                     "Vs L", "Vp L", "Fp Hz", "Vr L", "Fr Hz", "Fc Hz", "Qtc"]
-    elif finder_loads == ("Bass reflex",):
-        columns += ["Vb L", "Fb Hz"]
-    elif finder_loads == ("Bandpass 4th order",):
-        columns += ["Vs L", "Vp L", "Fp Hz"]
-    elif finder_loads == ("Bandpass 6th order",):
-        columns += ["Vr L", "Fr Hz", "Vp L", "Fp Hz"]
-    elif finder_loads == ("Sealed",):
-        columns += ["Vb L", "Fc Hz", "Qtc"]
-    elif finder_loads == ("Infinite baffle",):
-        columns += ["Fc Hz", "Qtc"]
-    else:
-        columns += ["Vh L", "fh Hz", "Vl L", "fl Hz"]
+    if batch_df["Total volume L"].notna().any():
+        columns.append("Total volume L")
     if batch_df["Buy"].fillna("").astype(bool).any():
         columns.append("Buy")
 
@@ -4379,38 +4401,23 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         selection_mode="single-row",
         column_config={
             "F3 Hz": st.column_config.NumberColumn(format="%.1f"),
-            "F6 Hz": st.column_config.NumberColumn(format="%.1f"),
-            "F10 Hz": st.column_config.NumberColumn(format="%.1f"),
             "MOL @ F3 dB": st.column_config.NumberColumn(
                 "MOL @ F3 (dB)",
                 format="%.1f",
                 help="Maximum excursion/thermal limited output interpolated at F3.",
             ),
             "Peak dB": st.column_config.NumberColumn(format="%.1f"),
-            "Ripple dB": st.column_config.NumberColumn(format="%.1f"),
             "Price": st.column_config.NumberColumn(format="%.2f"),
             "Value": st.column_config.NumberColumn(
                 "Value (F3 × price)", format="%.0f",
                 help="Lower is better: cheapest path to deep bass.",
             ),
-            "Max excursion mm": st.column_config.NumberColumn(format="%.2f"),
             "Min ohm": st.column_config.NumberColumn(format="%.2f"),
-            "Size in": st.column_config.NumberColumn(format="%.1f"),
             "Mms g": st.column_config.NumberColumn(format="%.1f"),
             "Le10k mH": st.column_config.NumberColumn(format="%.3f"),
-            "Vb L": st.column_config.NumberColumn(format="%.2f"),
-            "Fb Hz": st.column_config.NumberColumn(format="%.1f"),
-            "Fc Hz": st.column_config.NumberColumn(format="%.1f"),
-            "Qtc": st.column_config.NumberColumn(format="%.3f"),
-            "Vs L": st.column_config.NumberColumn(format="%.2f"),
-            "Vp L": st.column_config.NumberColumn(format="%.2f"),
-            "Fp Hz": st.column_config.NumberColumn(format="%.1f"),
-            "Vr L": st.column_config.NumberColumn(format="%.2f"),
-            "Fr Hz": st.column_config.NumberColumn(format="%.1f"),
-            "Vh L": st.column_config.NumberColumn(format="%.2f"),
-            "fh Hz": st.column_config.NumberColumn(format="%.1f"),
-            "Vl L": st.column_config.NumberColumn(format="%.2f"),
-            "fl Hz": st.column_config.NumberColumn(format="%.1f"),
+            "Total volume L": st.column_config.NumberColumn(
+                "Total volume (L)", format="%.2f"
+            ),
             "Buy": st.column_config.LinkColumn(display_text="Buy"),
             "Response": st.column_config.LineChartColumn(
                 "Response (rel dB)", y_min=_dccav.SPARKLINE_FLOOR_DB, y_max=0.0,
@@ -4442,7 +4449,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     row_load_type = str(selected_row.get("Load", load_type))
     with st.container(border=True):
         st.markdown(f"#### Candidate preview · {selected_row['Driver']} · {row_load_type}")
-        p1, p2, p3, p4, p5 = st.columns(5)
+        p1, p2, p3, p4 = st.columns(4)
         p1.metric("F3", f"{float(selected_row['F3 Hz']):.1f} Hz")
         mol_at_f3 = float(selected_row.get("MOL @ F3 dB", np.nan))
         p2.metric(
@@ -4450,41 +4457,12 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             f"{mol_at_f3:.1f} dB" if np.isfinite(mol_at_f3) else "—",
         )
         p3.metric("Peak LF SPL", f"{float(selected_row['Peak dB']):.1f} dB")
-        p4.metric("Max excursion", f"{float(selected_row['Max excursion mm']):.2f} mm")
-        p5.metric("Min impedance", f"{float(selected_row['Min ohm']):.2f} Ω")
-        if row_load_type == "DCCAV":
-            st.caption(
-                f"Vh {float(selected_row['Vh L']):.2f} L / "
-                f"{float(selected_row['fh Hz']):.1f} Hz · "
-                f"Vl {float(selected_row['Vl L']):.2f} L / "
-                f"{float(selected_row['fl Hz']):.1f} Hz"
-            )
-        elif row_load_type == "Bass reflex":
-            resonator = str(selected_row.get("Resonator", _RESONATOR_PORT))
-            tuning_label = "PR system tuning" if resonator == _RESONATOR_PR else "Fb"
-            st.caption(
-                f"{resonator} · Vb {float(selected_row['Vb L']):.2f} L · "
-                f"{tuning_label} {float(selected_row['Fb Hz']):.1f} Hz"
-            )
-        elif row_load_type == "Bandpass 4th order":
-            st.caption(
-                f"Vs sealed {float(selected_row['Vs L']):.2f} L · "
-                f"Vp ported {float(selected_row['Vp L']):.2f} L · "
-                f"Fp {float(selected_row['Fp Hz']):.1f} Hz"
-            )
-        elif row_load_type == "Bandpass 6th order":
-            st.caption(
-                f"Vr rear {float(selected_row['Vr L']):.2f} L / "
-                f"Fr {float(selected_row['Fr Hz']):.1f} Hz · "
-                f"Vp front {float(selected_row['Vp L']):.2f} L / "
-                f"Fp {float(selected_row['Fp Hz']):.1f} Hz"
-            )
-        elif row_load_type == "Sealed":
-            st.caption(
-                f"Vb {float(selected_row['Vb L']):.2f} L · "
-                f"Fc {float(selected_row['Fc Hz']):.1f} Hz · "
-                f"Qtc {float(selected_row['Qtc']):.3f}"
-            )
+        p4.metric("Min impedance", f"{float(selected_row['Min ohm']):.2f} Ω")
+        total_volume_l = _finder_total_volume_l(selected_row)
+        if np.isfinite(total_volume_l):
+            st.caption(f"Total volume {total_volume_l:.2f} L")
+        elif row_load_type == "Infinite baffle":
+            st.caption("Infinite baffle · no enclosure volume")
         if st.button("Apply candidate to design", type="primary", use_container_width=True):
             st.session_state["batch_pending_result"] = {
                 "row": selected_row,

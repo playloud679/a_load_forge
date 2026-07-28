@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- **Compact Finder results**: removed brand, nominal size, F6, F10, ripple and
+  maximum excursion from the ranked-results table/CSV, and reduced candidate
+  preview metrics to F3, MOL at F3, peak LF SPL and minimum impedance; all
+  per-chamber volumes, tuning/system frequencies and alignment details are now
+  represented by one total-volume field, while hidden engineering values
+  remain available to ranking, constraints and applying a candidate.
+- **Compact database provenance**: grouped built-ins, direct manufacturer
+  sources, official archives, retailer observations and user-supplied records
+  under one `Load Forge database` Finder choice, while keeping LSDB,
+  VituixCAD and Speaker Box Lite independently selectable and preserving the
+  exact source on every row.
+- **SB Acoustics identity deduplication**: collapsed 72 duplicate Load Forge
+  observations by stable manufacturer part number, including decorated
+  SATORI product titles, revision PDFs and retailer copies; official crawler
+  T/S data wins, exact retailer prices still enrich the retained row, and
+  LSDB/VituixCAD/Speaker Box Lite observations remain separate.
+- **Validation**: full active suite passes 117/117 with zero failures and zero
+  skips; the standalone Streamlit AppTest also completes without exceptions.
+
 ## 0.6.8 (2026-07-28)
 
 - **Catalog provenance categories**: kept all catalog tiers while making
@@ -19,7 +38,8 @@
   after rejecting incomplete records, enforcing the `Qts/Qes/Qms` identity,
   resolving mixed `Sd` units and cross-checking `Sd` against `Vas/Cms`.
   Together with VituixCAD and the heritage imports below, this raises runtime
-  coverage by 3,063 models to exactly 14,000 selectable driver presets across
+  coverage by 3,063 models to 13,928 selectable driver presets after current
+  manufacturer-identity deduplication, across
   four separate external provenance tiers.
 - **Altec and TAD heritage catalogs**: imported 63 Altec Lansing models from
   the corrected Technical Letter 267B table and 10 TAD professional LF models
