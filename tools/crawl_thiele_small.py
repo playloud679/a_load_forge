@@ -116,6 +116,7 @@ PARAMETERS = (
             "rated power handling", "rms power handling", "rms power",
             "power handling capacity", "power capacity aes", "power capacity",
             "power handling p", "power rating", "power handling", "rated power",
+            "rated power iec268-5",
             "potência", "potencia", "watts",
         ),
         "w",
@@ -143,8 +144,18 @@ PARAMETERS = (
 )
 PARAMETER_BY_KEY = {item.key: item for item in PARAMETERS}
 REQUIRED_DRIVER_FIELDS = ("fs_hz", "vas_l", "qts", "qms", "re_ohm", "sd_cm2")
-OPTIONAL_DRIVER_FIELDS = ("le_mh", "le10k_mh", "xmax_mm", "pe_w", "mms_g", "cms_mm_per_n", "bl_tm")
+OPTIONAL_DRIVER_FIELDS = (
+    "qes", "le_mh", "le10k_mh", "xmax_mm", "pe_w", "mms_g",
+    "cms_mm_per_n", "bl_tm",
+)
 NUMBER_RE = r"[-+]?(?:\d+(?:[.,]\d+)?|[.,]\d+)(?:[eE][-+]?\d+)?"
+INCH_SIZE_RE = re.compile(
+    r"(?<![\d./])"
+    r"(?P<whole>\d+(?:[.,]\d+)?)"
+    r"(?:\s*[- ]\s*(?P<numerator>\d+)\s*/\s*(?P<denominator>\d+))?"
+    r"\s*(?:inch(?:es)?|in\.?|[\"″])(?=\s|$|[),/x×])",
+    re.I,
+)
 UNIT_RE = r"(?:k\s*hz|hz|sq\s*\.?\s*in(?:ches)?|sq\s*\.?\s*m(?:eters?)?|m(?:\s*\^?\s*3|³)|dm(?:\s*\^?\s*3|³)|ml|cm\s*(?:\^?\s*2|²)|k\s*/?\s*mm\s*(?:\^?\s*2|²|/2)|mm\s*(?:\^?\s*2|²)|m\s*(?:\^?\s*2|²)|in(?:\s*\^?\s*2|²)|ft\s*\.?\s*(?:\^?\s*3|³)|lit(?:er|re)s?|[lL]|k?ohms?|Ω|mΩ|mh|µh|μh|uh|henry|h|mm|cm|inch(?:es)?|in|kw|w\s*_?\s*rms|watts?|w|kg|grams?|g|mg|m/n|mm/n|µm/n|μm/n|um/n|t\s*[·*]?\s*m|tm|n/a|n\s*s/m|kg/s)?"
 # Same alternation as UNIT_RE but mandatory (no trailing "?"), for datasheets
 # that print "Label Unit Value" instead of "Label Value Unit" (e.g. BMS PDFs:
@@ -614,11 +625,22 @@ def text_measurements(text: str) -> list[Measurement]:
     for spec in PARAMETERS:
         aliases = sorted(spec.aliases, key=len, reverse=True)
         alias_pattern = "|".join(re.escape(alias).replace(r"\ ", r"\s+") for alias in aliases)
+        signed_value_prefix = r"(?:(?:±|\+\s*/\s*[-−])\s*)?"
+        # MISCO prints ``Fs (Hz) +/- 15% 23``: the first number is the
+        # production tolerance, not the resonance frequency. Restrict this
+        # exception to Fs so one-way excursion such as ``Xmax +/- 9 mm``
+        # continues to mean 9 mm.
+        tolerance_prefix = (
+            rf"(?:(?:±|\+\s*/\s*[-−])\s*{NUMBER_RE}\s*%\s*)?"
+            if spec.key == "fs_hz"
+            else ""
+        )
         pattern = re.compile(
             rf"(?<![A-Za-z0-9])(?P<label>{alias_pattern})(?![A-Za-z0-9])"
             rf"(?:\)|\.)?\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?"
             rf"\s*(?:[*¹²³]+)?\s*(?:[:=\-–—：]|is)?\s*"
-            rf"(?:[+±]\s*/?\s*[-−]\s*)?(?P<value>{NUMBER_RE})[\t \r\n]{{0,16}}"
+            rf"{tolerance_prefix}{signed_value_prefix}"
+            rf"(?P<value>{NUMBER_RE})[\t \r\n]{{0,16}}"
             rf"\[?(?P<unit>{UNIT_RE})\]?",
             re.I,
         )
@@ -649,7 +671,8 @@ def text_measurements(text: str) -> list[Measurement]:
             rf"(?<![A-Za-z0-9])(?P<label>{alias_pattern})(?![A-Za-z0-9])"
             rf"(?:\)|\.)?\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?\s*(?:[:=]\s*)?"
             rf"(?P<unit>{UNIT_RE_REQUIRED})\s+"
-            rf"(?:[+±]\s*/?\s*[-−]\s*)?(?P<value>{NUMBER_RE})(?![A-Za-z0-9])",
+            rf"{tolerance_prefix}{signed_value_prefix}"
+            rf"(?P<value>{NUMBER_RE})(?![A-Za-z0-9])",
             re.I,
         )
         for match in pattern_lu.finditer(text):
@@ -698,6 +721,8 @@ def derive_driver_values(values: dict[str, float]) -> dict[str, float]:
         qts = out["qts"]
     if qms is None and qts and qes and qes > qts:
         out["qms"] = 1.0 / (1.0 / qts - 1.0 / qes)
+    if qes is None and qts and qms and qms > qts:
+        out["qes"] = 1.0 / (1.0 / qts - 1.0 / qms)
     if out.get("qms") is None and all(out.get(key) for key in ("fs_hz", "mms_g", "rms_kg_s")):
         out["qms"] = (
             2.0 * math.pi * out["fs_hz"] * (out["mms_g"] / 1000.0)
@@ -785,6 +810,17 @@ def product_metadata(page: PageData, url: str, brand_hint: str = "") -> tuple[st
         or page.meta.get("product:retailer_item_id") or ""
     ).strip()
     model = html.unescape(model)
+    if not model:
+        # Some storefronts expose their stable manufacturer identity only as
+        # visible specification rows, e.g. MISCO's ``Model #`` followed by
+        # ``305-WF08-01``. Prefer that over a descriptive product title.
+        labelled_model = re.search(
+            r"(?im)^\s*model(?:\s*(?:number|no\.?))?\s*#?\s*:?\s*"
+            r"(?:\n\s*)?(?P<model>[A-Z0-9][A-Z0-9._/+ -]{1,79})\s*$",
+            page.text,
+        )
+        if labelled_model:
+            model = labelled_model.group("model").strip()
     if re.search(r"(?:spec(?:ification)?[_ -]?sheet|datasheet)", model, re.I):
         url_model = Path(urlparse(url).path).stem
         model = re.sub(
@@ -843,39 +879,86 @@ def product_metadata(page: PageData, url: str, brand_hint: str = "") -> tuple[st
     return name or f"{brand} {model}".strip(), brand, model
 
 
-def is_standalone_lf_driver_model(model: str) -> bool:
+def is_standalone_lf_driver_model(model: str, title: str = "") -> bool:
     """Reject obvious assemblies and tweeters from the LF driver catalog."""
-    return not re.search(r"\b(?:kit|tweeter)\b", str(model), re.I)
+    identity = f"{model} {title}".strip()
+    return not re.search(r"\b(?:kit|tweeter)\b", identity, re.I)
 
 
-def infer_size_in(name: str, text: str = "") -> float | None:
+def first_inch_size(value: object) -> float | None:
+    """Return the first complete inch dimension, including mixed fractions."""
+    text = (
+        str(value or "")
+        .replace("¼", " 1/4")
+        .replace("½", " 1/2")
+        .replace("¾", " 3/4")
+    )
+    compound = re.search(
+        r"(?<![\d.])(?P<first>\d+(?:[.,]\d+)?)\s*[x×]\s*"
+        r"\d+(?:[.,]\d+)?\s*(?:inch(?:es)?|in\.?|[\"″])",
+        text,
+        re.I,
+    )
+    if compound:
+        size = float(compound.group("first").replace(",", "."))
+        return round(size, 3) if 0.5 <= size <= 32.0 else None
+    match = INCH_SIZE_RE.search(text)
+    if not match:
+        return None
+    size = float(match.group("whole").replace(",", "."))
+    if match.group("numerator") and match.group("denominator"):
+        denominator = float(match.group("denominator"))
+        if denominator:
+            size += float(match.group("numerator")) / denominator
+    return round(size, 3) if 0.5 <= size <= 32.0 else None
+
+
+def _size_matches_sd(size_in: float, sd_cm2: float | None) -> bool:
+    """Reject model-number guesses that cannot be the frame diameter."""
+    if not sd_cm2 or sd_cm2 <= 0.0:
+        return True
+    effective_diameter_in = math.sqrt(4.0 * sd_cm2 / math.pi) / 2.54
+    # Model codes are weaker evidence than an explicitly labelled dimension,
+    # so require a conventional cone/frame proportion here. The broader audit
+    # tolerance is reserved for already published nominal sizes.
+    return 0.55 <= effective_diameter_in / size_in <= 1.35
+
+
+def infer_size_in(
+    name: str,
+    text: str = "",
+    sd_cm2: float | None = None,
+) -> float | None:
     labelled = re.search(
-        r"\b(?:nominal\s+(?:diameter|size)|effective\s+diameter)\b[^\n]{0,40}?"
-        r"(\d+(?:[.,]\d+)?)\s*(?:inch(?:es)?|in\.?|[\"″])(?=\s|$|[),/])",
+        r"\b(?:nominal\s+(?:diameter|size)|effective\s+diameter)\b[^\n]{0,60}",
         text,
         re.I,
     )
     if labelled:
-        return float(labelled.group(1).replace(",", "."))
+        size = first_inch_size(labelled.group(0))
+        if size is not None:
+            return size
     # Titles are product-specific; arbitrary body text may start with sizes
     # from navigation menus or related products and must not be trusted.
-    match = re.search(
-        r"\b(\d+(?:[.,]\d+)?)\s*(?:inch(?:es)?|in\.?|[\"″])(?=\s|$|[),/])",
-        name,
-        re.I,
-    )
-    if match:
-        return float(match.group(1).replace(",", "."))
-    model_prefix = re.match(r"^(?:[A-Za-z][A-Za-z .&+-]*\s+)?(\d{1,2})(?=[A-Za-z])", name)
+    title_size = first_inch_size(name)
+    if title_size is not None:
+        return title_size
+    model_prefix = re.match(r"^(?:[A-Za-z][A-Za-z .&+-]*\s*)?(\d{1,2})(?=[A-Za-z])", name)
     if model_prefix and 2 <= int(model_prefix.group(1)) <= 32:
-        return float(model_prefix.group(1))
+        size = float(model_prefix.group(1))
+        if _size_matches_sd(size, sd_cm2):
+            return size
     described = re.search(
-        r"\b(\d+(?:[.,]\d+)?)\s*(?:inch(?:es)?|in\.?|[\"″])\s+"
+        r"\b[^\n]{0,16}(?:inch(?:es)?|in\.?|[\"″])\s+"
         r"(?:loudspeaker\s+)?(?:driver|woofer|subwoofer|midbass|full[- ]?range)\b",
         text,
         re.I,
     )
-    return float(described.group(1).replace(",", ".")) if described else None
+    if described:
+        size = first_inch_size(described.group(0))
+        if size is not None and _size_matches_sd(size, sd_cm2):
+            return size
+    return None
 
 
 def build_preset(
@@ -906,7 +989,7 @@ def build_preset(
         return None, errors
 
     name, brand, model = product_metadata(page, url, brand_hint)
-    if not is_standalone_lf_driver_model(model):
+    if not is_standalone_lf_driver_model(model, name):
         return None, ["not a standalone low-frequency driver"]
     direct_required = sum(1 for key in REQUIRED_DRIVER_FIELDS if key in chosen)
     optional_count = sum(1 for key in OPTIONAL_DRIVER_FIELDS if values.get(key) is not None)
@@ -936,7 +1019,7 @@ def build_preset(
         "name": f"WEB: {brand} {model}".strip(),
         "brand": brand,
         "model": model,
-        "size_in": infer_size_in(name, page.text),
+        "size_in": infer_size_in(name, page.text, driver.get("sd_cm2")),
         "kind": "Loudspeaker driver",
         "url": url,
         "source": source_name,
@@ -1246,6 +1329,13 @@ def merge_presets(
 
 
 def populate_database(config: CrawlConfig, presets: list[dict]) -> dict[str, int]:
+    presets = [
+        item for item in presets
+        if is_standalone_lf_driver_model(
+            str(item.get("model") or ""),
+            str((item.get("website_fields") or {}).get("title") or item.get("name") or ""),
+        )
+    ]
     if config.output.exists():
         payload = json.loads(config.output.read_text(encoding="utf-8"))
     else:
@@ -1257,7 +1347,14 @@ def populate_database(config: CrawlConfig, presets: list[dict]) -> dict[str, int
             if not (
                 str(item.get("source") or "").casefold()
                 == config.refresh_source.casefold()
-                and not is_standalone_lf_driver_model(str(item.get("model") or ""))
+                and not is_standalone_lf_driver_model(
+                    str(item.get("model") or ""),
+                    str(
+                        (item.get("website_fields") or {}).get("title")
+                        or item.get("name")
+                        or ""
+                    ),
+                )
             )
         ]
     merged, stats = merge_presets(

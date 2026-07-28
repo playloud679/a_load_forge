@@ -1,6 +1,7 @@
 """
-Driver preset catalog: built-in presets plus the optional Loudspeaker
-Database import, with brand/size metadata and retailer price enrichment.
+Driver preset catalog: built-ins plus optional Loudspeaker Database,
+manufacturer-crawl, VituixCAD and Speaker Box Lite imports, with brand/size
+metadata and retailer price enrichment.
 """
 
 from __future__ import annotations
@@ -26,6 +27,43 @@ LOUDSPEAKER_DATABASE_PATH = (
 # safe to ship in a public build, the LSDB one is not (see docs/presets.md).
 MANUFACTURER_DATABASE_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "manufacturer_drivers.json"
+)
+# Publicly reachable but third-party aggregated VituixCAD online database.
+# Keep it separate from manufacturer-original data and review upstream terms
+# before including the generated file in a public redistribution.
+VITUIXCAD_DATABASE_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "vituixcad_drivers.json"
+)
+# Community-edited public aggregate. Its importer enforces the Q identity and
+# checks Sd against Vas/Cms physics before this optional tier is generated.
+SPEAKERBOXLITE_DATABASE_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "speakerboxlite_drivers.json"
+)
+
+PRESET_PROVENANCE_CATEGORIES = (
+    "Built-in",
+    "Official manufacturer site",
+    "Official archive / heritage",
+    "Retailer / distributor",
+    "LSDB",
+    "VituixCAD",
+    "Speaker Box Lite",
+    "User supplied",
+)
+
+_RETAILER_SOURCE_MARKERS = (
+    "parts express",
+    "soundimports",
+    "madisound",
+    "retailer",
+    "distributor",
+)
+_ARCHIVE_SOURCE_MARKERS = (
+    "archive",
+    "archived",
+    "technical letter",
+    "discontinued",
+    "heritage",
 )
 
 
@@ -681,6 +719,11 @@ def _load_external_presets(
     identity_to_name: dict[tuple[str, str, float], str] = {}
     identity_score: dict[tuple[str, str, float], tuple[int, float]] = {}
     for item in payload.get("presets", []):
+        if (
+            (item.get("website_fields") or {}).get("quality_status")
+            == "rejected_size_sd_conflict"
+        ):
+            continue
         base_name = str(item["name"])
         item_brand = str(item.get("brand") or "Other")
         item_model = str(item.get("model") or base_name.removeprefix("LSDB: "))
@@ -767,8 +810,44 @@ def _load_manufacturer_presets() -> tuple[dict[str, DriverTS], dict[str, DriverP
 
 
 @lru_cache(maxsize=1)
+def _load_vituixcad_presets() -> tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]:
+    """Load the optional, separately generated VituixCAD online database tier."""
+    lsdb_presets, _lsdb_info = _load_loudspeaker_database_presets()
+    manufacturer_presets, _manufacturer_info = _load_manufacturer_presets()
+    return _load_external_presets(
+        VITUIXCAD_DATABASE_PATH,
+        default_source="VituixCAD online database",
+        dedupe_tag="VCD",
+        reserved={**lsdb_presets, **manufacturer_presets},
+    )
+
+
+@lru_cache(maxsize=1)
+def _load_speakerboxlite_presets() -> tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]:
+    """Load the physically validated Speaker Box Lite community tier."""
+    lsdb_presets, _lsdb_info = _load_loudspeaker_database_presets()
+    manufacturer_presets, _manufacturer_info = _load_manufacturer_presets()
+    vituixcad_presets, _vituixcad_info = _load_vituixcad_presets()
+    return _load_external_presets(
+        SPEAKERBOXLITE_DATABASE_PATH,
+        default_source="Speaker Box Lite public database",
+        dedupe_tag="SBL",
+        reserved={
+            **lsdb_presets,
+            **manufacturer_presets,
+            **vituixcad_presets,
+        },
+    )
+
+
+@lru_cache(maxsize=1)
 def _external_tiers() -> list[tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]]:
-    return [_load_loudspeaker_database_presets(), _load_manufacturer_presets()]
+    return [
+        _load_loudspeaker_database_presets(),
+        _load_manufacturer_presets(),
+        _load_vituixcad_presets(),
+        _load_speakerboxlite_presets(),
+    ]
 
 
 @lru_cache(maxsize=1)
@@ -800,6 +879,35 @@ def driver_preset_info(name: str) -> DriverPresetInfo:
         if name in info:
             return info[name]
     raise ValueError(f"Unknown driver preset: {name}")
+
+
+@lru_cache(maxsize=8192)
+def driver_preset_provenance_category(name: str) -> str:
+    """Return a stable, user-facing provenance bucket for one preset.
+
+    This classification deliberately keeps third-party databases separate
+    from manufacturer pages, archives, retailers and user-entered records.
+    It does not imply a redistribution licence; exact source and URL remain
+    available through :func:`driver_preset_info`.
+    """
+    info = driver_preset_info(name)
+    source = info.source.strip()
+    source_key = source.casefold()
+    if source == "Built-in":
+        return "Built-in"
+    if source == "Loudspeaker Database":
+        return "LSDB"
+    if source == "VituixCAD online database":
+        return "VituixCAD"
+    if source == "Speaker Box Lite public database":
+        return "Speaker Box Lite"
+    if name.startswith("USER: ") or "user" in source_key or "measurement" in source_key:
+        return "User supplied"
+    if any(marker in source_key for marker in _RETAILER_SOURCE_MARKERS):
+        return "Retailer / distributor"
+    if any(marker in source_key for marker in _ARCHIVE_SOURCE_MARKERS):
+        return "Official archive / heritage"
+    return "Official manufacturer site"
 
 
 @lru_cache(maxsize=8192)

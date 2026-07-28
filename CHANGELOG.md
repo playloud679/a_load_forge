@@ -2,6 +2,44 @@
 
 ## Unreleased
 
+## 0.6.8 (2026-07-28)
+
+- **Catalog provenance categories**: kept all catalog tiers while making
+  official manufacturer sites, official archives/heritage,
+  retailers/distributors, LSDB, VituixCAD, Speaker Box Lite, built-ins and
+  user-supplied records independently visible and filterable in Finder.
+- **Library-filter All toggle**: `All` now visibly selects or clears every
+  option in Provenance, Brand, Size and Class; excluding one item preserves
+  all remaining selections instead of collapsing the group back to `All`.
+- **Massive VituixCAD catalog tier**: added a validated, provenance-preserving
+  importer for VituixCAD's 1,879-row public online database and exposed 1,038
+  LF models not already present in manufacturer or LSDB tiers.
+- **Physically validated car/pro catalog expansion**: added a separate
+  Speaker Box Lite community tier with 1,952 new LF models across 283 brands
+  after rejecting incomplete records, enforcing the `Qts/Qes/Qms` identity,
+  resolving mixed `Sd` units and cross-checking `Sd` against `Vas/Cms`.
+  Together with VituixCAD and the heritage imports below, this raises runtime
+  coverage by 3,063 models to exactly 14,000 selectable driver presets across
+  four separate external provenance tiers.
+- **Altec and TAD heritage catalogs**: imported 63 Altec Lansing models from
+  the corrected Technical Letter 267B table and 10 TAD professional LF models
+  from Pioneer/TAD's official specification table, with exact unit conversions
+  and source-field derivations retained.
+- **MISCO official catalog crawl**: added 50 validated woofer, subwoofer,
+  midbass, midrange and full-range drivers with stable manufacturer model
+  numbers, complete core T/S data and official provenance; hardened the
+  generic crawler against inline `Fs` tolerances, related-product tweeters,
+  missing visible `Model #` metadata, IEC268-5 power rows and dropped `Qes`.
+- **Sd/nominal-size audit**: reconciled the manufacturer catalog against
+  equivalent piston diameter, fixed 26 damaged `Sd` values and 591 nominal
+  sizes with traceable provenance, and excluded 11 unresolved contradictory
+  records from runtime selection.
+- **Driver size visibility**: the selected-driver summary and Finder library
+  now show nominal frame size, `Sd` and equivalent effective-piston diameter
+  together.
+- **Crawler size parsing**: mixed inch fractions are parsed as complete values
+  and numeric model prefixes must agree with `Sd`, preventing `6-1/2"` from
+  becoming 2 inches and metric family codes from becoming inch sizes.
 - **Max extension alignment**: relax the DCCAV deep-extension feasibility floor
   to `F3 >= 0.65*fl` for the explicit Max extension objective; balanced and
   flat objectives retain the conservative `0.67*fl` boundary.
@@ -16,7 +54,10 @@
 - **Finder MOL at F3**: calculate the excursion/thermal limited output at each
   candidate's interpolated F3, show it in results and previews, and expose a
   hard minimum-MOL performance filter.
-- **Tests**: 110 passed / 0 failed / 0 skipped.
+- **Finder Mms/Le filters**: added optional maximum moving-mass and nominal
+  voice-coil-inductance limits to Performance filters; active limits exclude
+  candidates whose corresponding published value is missing.
+- **Tests**: 117 passed / 0 failed / 0 skipped.
 
 ## 0.6.6 (2026-07-25)
 

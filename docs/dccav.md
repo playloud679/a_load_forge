@@ -185,11 +185,12 @@ library, applying the maximum-price filter or calculating the price-aware
 ranking. The UI shows the reference date; if the live feed is unavailable,
 only prices already denominated in the selected currency remain comparable.
 
-### Two external preset catalogs — kept separate, never merged
+### Four external preset catalogs — kept separate, never merged
 
-`src/presets.py` loads built-ins, then two independent optional catalogs, in
-this order: Loudspeaker Database, then manufacturer crawl. See
-`docs/presets.md` for the loader contract; the key point for both catalogs:
+`src/presets.py` loads built-ins, then four independent optional catalogs, in
+this order: Loudspeaker Database, manufacturer crawl, VituixCAD online
+database, then the physically validated Speaker Box Lite tier. See
+`docs/presets.md` for the loader contract:
 
 - `data/loudspeaker_database_drivers.json` (`tools/import_loudspeaker_database.py`)
   — third-party aggregated data. **Not safe to redistribute in a public
@@ -198,18 +199,33 @@ this order: Loudspeaker Database, then manufacturer crawl. See
   `tools/crawl_driver_datasheets.py`) — extracted directly from manufacturer
   HTML/PDF/JSON-API sources. Safe to redistribute publicly. Names get the
   `WEB: ...` or `PDF: ...` prefix depending on extraction method.
+- `data/vituixcad_drivers.json` (`tools/import_vituixcad_database.py`) —
+  validated additions from VituixCAD's public online Enclosure-driver
+  database. It remains a third-party aggregate in its own optional tier;
+  names get the `VCD: ...` prefix.
+- `data/speakerboxlite_drivers.json`
+  (`tools/import_speakerboxlite_database.py`) — community records that pass
+  LF bounds, the `Qts/Qes/Qms` identity, and unit-aware `Sd` validation
+  against `Vas/Cms`; names get the `SBL: ...` prefix.
 
-Either loader keeps the app usable if its file is missing or a single row is
+Each loader keeps the app usable if its file is missing or a single row is
 invalid; bad rows are skipped during load. If multiple imported rows in the
 same catalog share a display name, the later ones receive an `[LSDB id]` /
-`[MFR id]` suffix so the UI does not silently drop duplicate model variants,
-and a manufacturer-catalog row is skipped outright if its name already exists
-in the LSDB tier. External presets may also carry optional `price` and
+`[MFR id]` / `[VCD id]` / `[SBL id]` suffix so the UI does not silently drop
+duplicate model variants. Aggregate importers remove normalized brand/model
+matches already present in earlier tiers before generating their files.
+External presets may also carry optional `price` and
 `currency` fields; the separate local price-enrichment file supplies
 retailer prices when the catalog itself has none. Without either source, the
 max-price controls remain disabled. Generated presets also preserve a
 `website_fields` block with the original card/page metadata and detected
 commerce links.
+
+The Finder exposes a separate provenance-category filter backed by
+`driver_preset_provenance_category()`: built-ins, official manufacturer sites,
+official archives/heritage, retailers/distributors, LSDB, VituixCAD, Speaker
+Box Lite and user-supplied records remain independently selectable. The
+candidate library shows both this category and the exact source string.
 
 `tools/crawl_thiele_small.py` discovers manufacturer pages from seeds or XML
 sitemaps, extracts HTML/JSON-LD/PDF measurements, normalizes units, derives

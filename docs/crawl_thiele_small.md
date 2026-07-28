@@ -45,7 +45,10 @@ closing parenthesis directly after a label (`... (Qms) 8.82` rendered as
 `Qms)\n8.82`) is tolerated. Markaudio's `L1kHz` value is treated as the voice-coil
 inductance used by the simulator, while its nominal `Pwr` is stored as `Pe`.
 One-way values written as `X Max +/- N mm` are normalized to the positive
-excursion magnitude `N`.
+excursion magnitude `N`. An inline production tolerance after `Fs`, such as
+MISCO's `Fs (Hz) +/- 15% 23`, is skipped so the following value (`23 Hz`) is
+stored as resonance frequency; this rule is deliberately limited to `Fs` so
+signed excursion notation keeps its existing meaning.
 Manufacturer wording that explicitly reports `Linear coil travel (p-p)` is
 stored as one-way `Xmax = travel / 2`, with the formula and source field kept
 in `website_fields.derivations`. Program, continuous-program, maximum and peak
@@ -53,7 +56,8 @@ power are not substituted for the AES/RMS/rated thermal power stored as `Pe`.
 Footnote markers after labels (`Xmax*`, `Power Capacity AES¹`) are ignored.
 Localized/brand-specific power rows are recognized where their meaning is
 unambiguous: Bomber `Potência (RMS) ... W_RMS`, Eminence `Watts N W`, and
-Accuton `Power handling P N W`.
+Accuton `Power handling P N W`. MISCO's explicitly rated
+`Rated Power IEC268-5 (W)` row is treated as thermal `Pe`.
 
 Units are converted to the Load Forge schema:
 
@@ -93,8 +97,11 @@ and all values in an adjacent column, both for T/S and general specification
 blocks. A known PHL embedded-font substitution
 that exposes the ohm glyph as `W` is accepted only for a DC-resistance row.
 
-The crawler can derive `Qts` from `Qms+Qes`, `Qms` from `Qts+Qes` or
-`Fs+Mms+Rms`, and `Vas` from `Cms+Sd`. A record is accepted only when the six
+The crawler can derive any missing electrical/mechanical Q relation:
+`Qts` from `Qms+Qes`, `Qms` from `Qts+Qes`, or `Qes` from `Qts+Qms`;
+`Qms` can also come from `Fs+Mms+Rms`, and `Vas` from `Cms+Sd`.
+Published or derived `Qes` is retained in the operational driver record, not
+only in raw provenance. A record is accepted only when the six
 simulation inputs `Fs`, `Vas`, `Qts`, `Qms`, `Re` and `Sd` are present after
 derivation, values are physically bounded, `Qms > Qts`, and extraction
 confidence reaches `--min-confidence` (default `0.75`).
@@ -106,9 +113,19 @@ piston diameter. HTTPS requests use certifi and securely fall back to the
 system `curl` trust store for legacy certificate chains; certificate checking
 is never disabled.
 
+Nominal inch sizes are parsed as complete values, including mixed fractions:
+`6-1/2"` becomes 6.5 rather than 2, and `1-1/8"` becomes 1.125. A bare numeric
+model prefix is used only when its proposed frame size is compatible with the
+record's `Sd`-equivalent effective diameter. This prevents metric family codes
+such as Scan-Speak `15W` from becoming 15-inch drivers while preserving
+compatible pro-driver codes such as `18FT`.
+
 Every preset stores the original URL, timestamp, extraction method,
 confidence and raw measurement labels/units in `website_fields`. Its catalog
 source is `Web crawler`, while the exact origin remains attached to the row.
+When structured product metadata omits model/MPN/SKU, a visible `Model #`,
+`Model No.` or `Model Number` specification row supplies the stable model
+identity before falling back to the descriptive page title.
 When metadata falls back to the HTML title, a trailing `| Brand`, `– Brand` or
 `— Brand` site-name suffix is removed from the model identity before merge.
 Generic archive headings such as `Discontinued product` are replaced by the
@@ -131,8 +148,9 @@ so an interrupted write cannot truncate the database.
 replaces a matching row only when that row already has the named source. This
 lets an HTML recrawl correct earlier HTML extraction without replacing a more
 authoritative PDF or curated record. During this scoped refresh, obvious kits
-and tweeters are pruned: their pages can contain valid-looking T/S values from
-related products but they are not standalone low-frequency load candidates.
+and tweeters are pruned by inspecting both stable model code and descriptive
+product title: their pages can contain valid-looking T/S values from related
+products but they are not standalone low-frequency load candidates.
 
 When duplicate measurements have the same extraction priority, fields that
 require units prefer the occurrence with an explicit recognized unit. This is

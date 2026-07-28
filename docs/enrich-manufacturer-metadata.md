@@ -15,11 +15,29 @@ Published non-zero values always win. Every generated field is listed under
 `website_fields.derived_fields` and its formula is retained in
 `website_fields.derivations`.
 
-Missing `size_in` first uses an explicitly labelled inch dimension in the
-model/title (including mixed fractions), then falls back to the nearest
-conventional frame-size class from `Sd`. For example, an effective piston area
-near 530 cm² maps to 12 in. The fallback is stored explicitly as an estimate
-with confidence, not as a published dimension. `Sd` itself is never changed.
+`size_in` is reconciled even when an earlier crawler supplied a value. Complete
+mixed fractions such as `6-1/2"` are parsed as 6.5 in (never as the denominator
+`2"`), and model-number guesses are accepted only when the effective diameter
+represented by `Sd` is physically compatible. Otherwise the nearest
+conventional frame-size class is estimated from `Sd`; for example, an
+effective piston area near 530 cm² maps to 12 in. Every replacement retains the
+old value, reason and confidence under
+`website_fields.field_corrections`/`derivations`.
+
+`Sd` is corrected only with traceable evidence:
+
+- a rechecked manufacturer page/datasheet;
+- reparsing the stored raw value with its unit and decimal/thousands separator;
+- restoring a missing power of ten when the result is independently
+  corroborated by `Fs`, published `Vas`, published `Mms` and the nominal frame
+  size.
+
+The audit compares nominal frame diameter with the circular effective-piston
+diameter `sqrt(4*Sd/pi)`. These are deliberately not treated as equal: the
+effective piston is normally smaller. Round-driver records that remain
+physically incompatible are marked
+`quality_status=rejected_size_sd_conflict` and excluded by the runtime catalog;
+compound rectangular dimensions are not subjected to the circular check.
 Generated mechanical values must also remain inside the crawler's physical
 bounds; inconsistent source inputs are flagged by remaining unfilled instead
 of propagating an implausible unit conversion.
@@ -48,14 +66,8 @@ The audit is written to
 
 ## Latest run
 
-The 2026-07-22 run enriched 4,424 manufacturer presets. It derived 4,321
-`Qes`, 2,654 `Cms`, 176 `Mms`, 701 `BL` and 2,157 nominal-size values. Final
-coverage is 100% for `Qes` and `size_in`, 99.98% for `Cms`/`BL`, and 99.93%
-for `Mms`. Three small-driver/source-unit conflicts remain unfilled rather
-than forcing implausible mechanical values.
-
-Cached-catalog rematching plus a live refresh of 97 retailer URLs attached
-verified price snapshots to 2,860 presets (64.6%). The other 1,564 rows carry
-an explicit no-confident-match status. A missing price is not replaced with a
+The current applied run and its exact correction/coverage counts are stored in
+`data/manufacturer_metadata_enrichment_report.json` and summarized in
+`docs/manufacturer-database-status.md`. A missing price is not replaced with a
 brand average because model, impedance, region and availability materially
 change real purchase prices.

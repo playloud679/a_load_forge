@@ -17,6 +17,8 @@ try:
     from .presets import (
         _load_loudspeaker_database_presets,  # noqa: F401
         _load_manufacturer_presets,  # noqa: F401
+        _load_speakerboxlite_presets,  # noqa: F401
+        _load_vituixcad_presets,  # noqa: F401
     )
     from .pricing import *  # noqa: F401,F403
     from .pricing import _load_driver_price_records  # noqa: F401
@@ -27,6 +29,8 @@ except ImportError:  # top-level import with src/ on sys.path (ui_app)
     from presets import (
         _load_loudspeaker_database_presets,  # noqa: F401
         _load_manufacturer_presets,  # noqa: F401
+        _load_speakerboxlite_presets,  # noqa: F401
+        _load_vituixcad_presets,  # noqa: F401
     )
     from pricing import *  # noqa: F401,F403
     from pricing import _load_driver_price_records  # noqa: F401

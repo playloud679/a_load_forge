@@ -192,6 +192,20 @@ def _check_presets_are_available():
         assert mfr_info.source in ("Manufacturer website", "Manufacturer datasheet", "Manufacturer crawl")
         assert mfr_info.brand
         _dccav.complete_driver(_dccav.get_driver_preset(manufacturer_names[0]))
+    vituixcad_names = [name for name in names if name.startswith("VCD: ")]
+    if vituixcad_names:
+        vcd_info = _dccav.driver_preset_info(vituixcad_names[0])
+        assert vcd_info.source == "VituixCAD online database"
+        assert vcd_info.brand
+        _dccav.complete_driver(_dccav.get_driver_preset(vituixcad_names[0]))
+    speakerboxlite_names = [name for name in names if name.startswith("SBL: ")]
+    if speakerboxlite_names:
+        sbl_info = _dccav.driver_preset_info(speakerboxlite_names[0])
+        assert sbl_info.source == "Speaker Box Lite public database"
+        assert sbl_info.brand
+        _dccav.complete_driver(
+            _dccav.get_driver_preset(speakerboxlite_names[0])
+        )
     try:
         _dccav.get_driver_preset("missing")
     except ValueError as exc:
@@ -1924,8 +1938,54 @@ test("UI response chart has a clickable moving marker", _check_response_chart_ha
 def _check_ui_driver_preset_filters_reduce_list():
     import ui_app as _ui
 
-    assert "Manufacturer" in _ui._PRESET_SOURCE_FILTERS
+    assert "Official manufacturer site" in _ui._PRESET_SOURCE_FILTERS
+    assert "Official archive / heritage" in _ui._PRESET_SOURCE_FILTERS
+    assert "Retailer / distributor" in _ui._PRESET_SOURCE_FILTERS
+    assert "LSDB" in _ui._PRESET_SOURCE_FILTERS
+    assert "VituixCAD" in _ui._PRESET_SOURCE_FILTERS
+    assert "Speaker Box Lite" in _ui._PRESET_SOURCE_FILTERS
     names = _dccav.driver_preset_names()
+    assert _ui._driver_preset_source("Beyma 12CMV2") == "Built-in"
+    callback_all_key = "_test_filter_all"
+    callback_item_keys = (
+        "_test_filter_a",
+        "_test_filter_b",
+        "_test_filter_c",
+    )
+    _ui.st.session_state[callback_all_key] = False
+    for item_key in callback_item_keys:
+        _ui.st.session_state[item_key] = True
+    _ui._sync_filter_group_all(callback_all_key, callback_item_keys)
+    assert _ui.st.session_state[callback_all_key] is True
+    _ui.st.session_state[callback_item_keys[1]] = False
+    _ui._sync_filter_group_all(callback_all_key, callback_item_keys)
+    assert _ui.st.session_state[callback_all_key] is False
+    _ui._set_filter_group_from_all(callback_all_key, callback_item_keys)
+    assert not any(
+        _ui.st.session_state[item_key] for item_key in callback_item_keys
+    )
+    _ui.st.session_state[callback_all_key] = True
+    _ui._set_filter_group_from_all(callback_all_key, callback_item_keys)
+    assert all(
+        _ui.st.session_state[item_key] for item_key in callback_item_keys
+    )
+    category_examples = {
+        _dccav.driver_preset_info(name).source: name
+        for name in names
+    }
+    for exact_source, expected_category in (
+        ("Loudspeaker Database", "LSDB"),
+        ("VituixCAD online database", "VituixCAD"),
+        ("Speaker Box Lite public database", "Speaker Box Lite"),
+        ("Parts Express API", "Retailer / distributor"),
+        ("Altec Technical Letter 267B archive", "Official archive / heritage"),
+        ("Manufacturer website", "Official manufacturer site"),
+    ):
+        if exact_source in category_examples:
+            assert (
+                _ui._driver_preset_source(category_examples[exact_source])
+                == expected_category
+            )
     filtered = _ui._filter_driver_preset_names(
         names,
         source="Built-in",
@@ -1951,13 +2011,21 @@ def _check_ui_driver_preset_filters_reduce_list():
     if any(name.startswith("LSDB: ") for name in names):
         lsdb = _ui._filter_driver_preset_names(
             names,
-            source="Loudspeaker Database",
+            source="LSDB",
             family="GRS",
             size="12 in",
             search="12SW",
         )
         assert all(name.startswith("LSDB: GRS") for name in lsdb), lsdb[:5]
         assert any("12SW" in name for name in lsdb), lsdb[:5]
+        legacy_lsdb = _ui._filter_driver_preset_names(
+            names,
+            source="Loudspeaker Database",
+            family="GRS",
+            size="12 in",
+            search="12SW",
+        )
+        assert legacy_lsdb == lsdb
 
     from streamlit.testing.v1 import AppTest
 
@@ -1966,6 +2034,45 @@ def _check_ui_driver_preset_filters_reduce_list():
     at.session_state["preset_search"] = "12CMV2"
     at.run()
     assert not at.exception, at.exception
+    provenance_boxes = [
+        checkbox
+        for checkbox in at.sidebar.checkbox
+        if str(checkbox.key).startswith(
+            "preset_source_filter__toggle_v3__"
+        )
+    ]
+    assert len(provenance_boxes) == len(_ui._PRESET_SOURCE_FILTERS)
+    assert all(checkbox.value for checkbox in provenance_boxes), (
+        "All must visibly select every provenance option",
+        [(checkbox.label, checkbox.value) for checkbox in provenance_boxes],
+    )
+    sbl_box = next(
+        checkbox
+        for checkbox in provenance_boxes
+        if checkbox.label == "Speaker Box Lite"
+    )
+    sbl_box.uncheck().run()
+    assert not at.exception, at.exception
+    provenance_boxes = [
+        checkbox
+        for checkbox in at.sidebar.checkbox
+        if str(checkbox.key).startswith(
+            "preset_source_filter__toggle_v3__"
+        )
+    ]
+    assert not next(
+        checkbox for checkbox in provenance_boxes if checkbox.label == "All"
+    ).value
+    assert not next(
+        checkbox
+        for checkbox in provenance_boxes
+        if checkbox.label == "Speaker Box Lite"
+    ).value
+    assert all(
+        checkbox.value
+        for checkbox in provenance_boxes
+        if checkbox.label not in {"All", "Speaker Box Lite"}
+    )
     assert at.dataframe, "Filtered presets must render as a table"
     table = at.dataframe[0].value
     assert "12CMV2" in str(table.to_dict()), (
@@ -1997,6 +2104,46 @@ def _check_ui_driver_preset_filters_reduce_list():
 
 
 test("UI driver preset filters reduce long speaker lists", _check_ui_driver_preset_filters_reduce_list)
+
+
+def _check_ui_driver_performance_filters_limit_mms_and_le():
+    import ui_app as _ui
+
+    names = [
+        "KEF B110B article example",
+        "Beyma 12CMV2",
+        "Beyma 12G40",
+        "Beyma 12LX60V2",
+    ]
+    common = {
+        "source": "All",
+        "family": "All",
+        "size": "All",
+        "search": "",
+    }
+    light_cones = _ui._filter_driver_preset_names(
+        names, **common, max_mms_g=60.0
+    )
+    assert light_cones == ["Beyma 12CMV2"], light_cones
+
+    low_inductance = _ui._filter_driver_preset_names(
+        names, **common, max_le_mh=1.0
+    )
+    assert low_inductance == [
+        "KEF B110B article example",
+        "Beyma 12CMV2",
+    ], low_inductance
+
+    combined = _ui._filter_driver_preset_names(
+        names, **common, max_mms_g=60.0, max_le_mh=1.0
+    )
+    assert combined == ["Beyma 12CMV2"], combined
+
+
+test(
+    "UI Finder filters driver presets by maximum Mms and Le",
+    _check_ui_driver_performance_filters_limit_mms_and_le,
+)
 
 
 def _check_ui_driver_preset_price_filter_uses_optional_metadata():
@@ -2045,6 +2192,26 @@ def _check_ui_driver_preset_price_filter_uses_optional_metadata():
 
 
 test("UI driver preset price filter uses optional metadata", _check_ui_driver_preset_price_filter_uses_optional_metadata)
+
+
+def _check_ui_driver_library_compares_nominal_size_and_sd():
+    import ui_app as _ui
+
+    frame = _ui._driver_library_frame(("WEB: Dayton Audio DS175-8",))
+    assert {"Nominal in", "Sd cm²", "Effective Ø in"} <= set(frame.columns)
+    row = frame.iloc[0]
+    assert row["Nominal in"] == 6.5
+    assert row["Sd cm²"] == 128.7
+    assert np.isclose(
+        row["Effective Ø in"],
+        np.sqrt(4.0 * row["Sd cm²"] / np.pi) / 2.54,
+    )
+
+
+test(
+    "UI driver library compares nominal size and Sd",
+    _check_ui_driver_library_compares_nominal_size_and_sd,
+)
 
 
 def _check_ecb_rates_normalize_library_prices():
@@ -2130,6 +2297,179 @@ def _check_dccav_loads_external_price_records(tmp_path=None):
 
 
 test("DCCAV loads external price records", _check_dccav_loads_external_price_records)
+
+
+def _check_vituixcad_importer_validates_and_deduplicates():
+    import csv
+    import io
+
+    from tools import import_vituixcad_database as importer
+
+    columns = sorted(importer.REQUIRED_COLUMNS | {"Status", "Revision", "Updated"})
+    common = {
+        "Type": "W",
+        "Size [in]": "15",
+        "Re [ohm]": "5",
+        "fs [Hz]": "40",
+        "Qms": "5.7",
+        "Qes": "",
+        "Qts": "0.32",
+        "Mms [g]": "98.08",
+        "Cms [mm/N]": "0.16",
+        "Vas [l]": "175",
+        "Sd [cm2]": "880",
+        "BL [Tm]": "19.2",
+        "Pmax [W]": "600",
+        "Xmax [mm]": "7.6",
+        "Le [mH]": "1.75",
+        "Status": "Active",
+        "Revision": "",
+        "Updated": "2026-07-28/Test",
+    }
+    rows = [
+        {**common, "Manufacturer": "Vifa", "Model": "NEW15"},
+        {**common, "Manufacturer": "JBL", "Model": "2226H"},
+        {**common, "Manufacturer": "Demo", "Model": "T25", "Type": "T"},
+    ]
+    stream = io.StringIO()
+    writer = csv.DictWriter(stream, fieldnames=columns, delimiter="\t")
+    writer.writeheader()
+    writer.writerows(rows)
+    presets, stats = importer.import_database(
+        stream.getvalue(),
+        source_url=importer.DEFAULT_URL,
+        existing_identities={importer.identity("JBL Professional", "2226H")},
+    )
+    assert stats["source_rows"] == 3
+    assert stats["accepted"] == 1
+    assert stats["duplicates_existing"] == 1
+    assert stats["rejected"] == {"non-LF driver type": 1}
+    assert presets[0]["name"] == "VCD: Vifa NEW15"
+    assert np.isclose(
+        presets[0]["driver"]["qes"],
+        1.0 / (1.0 / 0.32 - 1.0 / 5.7),
+    )
+    assert presets[0]["website_fields"]["source_url"] == importer.DEFAULT_URL
+
+
+test(
+    "VituixCAD importer validates, derives and deduplicates drivers",
+    _check_vituixcad_importer_validates_and_deduplicates,
+)
+
+
+def _check_heritage_importer_parses_altec_and_tad_tables():
+    from tools import import_heritage_drivers as heritage
+
+    header = [
+        "Model No:", "Xmax (inch)", "Re (ohms)", "Vd - (cu. In.)",
+        "Fs (Hz)", "Vas - (cu. ft.)", "Ref (%)", "Qts", "Qms", "Qes", "Vid",
+    ]
+    row = [
+        "416-8B", "0.15", "6.90", "19.20", "25.10", "26.47",
+        "2.70", "0.32", "7.05", "0.33", "0.20",
+    ]
+    html_rows = "".join(
+        "<tr>" + "".join(
+            f'<td data-original-value="{value}">{value}</td>' for value in values
+        ) + "</tr>"
+        for values in (header, row)
+    )
+    presets, failures = heritage.altec_presets(
+        f'<table id="supsystic-table-6">{html_rows}</table>',
+        "2026-07-28T00:00:00+00:00",
+    )
+    assert not failures and len(presets) == 1
+    altec = presets[0]
+    assert altec["model"] == "416-8B"
+    assert np.isclose(altec["driver"]["vas_l"], 26.47 * 28.316846592)
+    assert np.isclose(altec["driver"]["sd_cm2"], 19.20 / 0.15 * 6.4516)
+    assert np.isclose(altec["driver"]["xmax_mm"], 0.15 * 25.4)
+    assert altec["size_in"] == 15.0
+    tad = heritage.tad_presets("2026-07-28T00:00:00+00:00")
+    assert len(tad) == 10
+    tl1601b = next(item for item in tad if item["model"] == "TL-1601b")
+    assert tl1601b["driver"]["sd_cm2"] == 881.0
+    assert tl1601b["driver"]["pe_w"] == 300.0
+    assert np.isclose(tl1601b["driver"]["cms_mm_per_n"], 0.2785)
+
+
+test(
+    "Heritage importer parses Altec and TAD official tables",
+    _check_heritage_importer_parses_altec_and_tad_tables,
+)
+
+
+def _check_speakerboxlite_importer_validates_units_physics_and_dedupes():
+    from tools import import_speakerboxlite_database as importer
+
+    common = {
+        "id": 1,
+        "textId": "demo-w12",
+        "manufName": "Demo Audio",
+        "name": "W12",
+        "fs": 24.2,
+        "vas": 84.1,
+        "qts": 0.39,
+        "qms": 2.83,
+        "qes": 0.452,
+        "re": 3.09,
+        "sd": 51470.0,
+        "cms": 0.23,
+        "mms": 188.0,
+        "xMax": 14.3,
+        "bl": 13.99,
+        "le": 1.1,
+        "diam": 12,
+        "powerRMS": 400,
+        "checked": 1,
+        "rating": 4.5,
+        "dateEdit": "2026-07-28 00:00:00",
+    }
+    rows = [
+        common,
+        {
+            **common,
+            "id": 2,
+            "textId": "18-sound-existing15",
+            "manufName": "18 Sound",
+            "name": "EXISTING15",
+        },
+        {
+            **common,
+            "id": 3,
+            "textId": "bad-q",
+            "name": "BAD-Q",
+            "qts": 0.8,
+            "qes": 1.0,
+        },
+    ]
+    presets, stats = importer.import_database(
+        rows,
+        source_url=importer.DEFAULT_URL,
+        existing_identities={
+            importer.identity("Eighteen Sound", "EXISTING15")
+        },
+    )
+    assert stats["source_rows"] == 3
+    assert stats["accepted"] == 1
+    assert stats["duplicates_existing"] == 1
+    assert stats["rejected"] == {"Q identity mismatch": 1}
+    preset = presets[0]
+    assert preset["name"] == "SBL: Demo Audio W12"
+    assert np.isclose(preset["driver"]["sd_cm2"], 514.7)
+    assert preset["website_fields"]["sd_raw_unit_interpreted"] == "mm2"
+    assert np.isclose(
+        preset["website_fields"]["sd_from_vas_cms_cm2"],
+        importer._sd_from_vas_cms(84.1, 0.23),
+    )
+    assert preset["website_fields"]["q_identity_relative_error"] < 0.01
+
+
+test(
+    "Speaker Box Lite importer validates units, physics and duplicates",
+    _check_speakerboxlite_importer_validates_units_physics_and_dedupes,
+)
 
 
 def _check_lsdb_importer_preserves_website_fields_and_prices():
@@ -2274,6 +2614,24 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
     assert np.isclose(markaudio_optional["le_mh"].value, 0.2283)
     assert np.isclose(markaudio_optional["xmax_mm"].value, 9.0)
     assert np.isclose(markaudio_optional["pe_w"].value, 50.0)
+    misco_tolerance = crawler.choose_measurements(crawler.text_measurements(
+        "Rated Power IEC268-5 (W) 100 Watts "
+        "Resonant Frequency (Fs) (Hz) +/- 15% 23 "
+        "X Max (Mech) +/- 9mm"
+    ))
+    assert np.isclose(misco_tolerance["pe_w"].value, 100.0)
+    assert np.isclose(misco_tolerance["fs_hz"].value, 23.0)
+    assert np.isclose(misco_tolerance["xmax_mm"].value, 9.0)
+    _name, brand, model = crawler.product_metadata(
+        crawler.PageData(
+            h1="12 Inch (305 mm) 8 Ohm Woofer",
+            text="Brand Name\nOaktron by MISCO\nModel #\n305-WF08-01\nPart #\n93060",
+        ),
+        "https://store.miscospeakers.com/12-inch-woofer-93060",
+        brand_hint="MISCO",
+    )
+    assert brand == "MISCO"
+    assert model == "305-WF08-01"
     manufacturer_optional = crawler.choose_measurements(crawler.text_measurements(
         "Excursion limit +/-8.5 mm Inductance of the voice coil L 0.9 mH "
         "Continuous power rating 60 W Power rating 30 W"
@@ -2317,6 +2675,7 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
           {"name": "Vas", "value": "2.1 ft3"},
           {"name": "Qts", "value": "0.40"},
           {"name": "Qms", "value": "5.10"},
+          {"name": "Qes", "value": "0.434"},
           {"name": "Re", "value": "5.7 ohm"},
           {"name": "Sd", "value": "0.053 m2"},
           {"name": "Le", "value": "0.0012 H"},
@@ -2340,6 +2699,7 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
     driver = preset["driver"]
     assert np.isclose(driver["vas_l"], 2.1 * 28.316846592)
     assert np.isclose(driver["sd_cm2"], 530.0)
+    assert np.isclose(driver["qes"], 0.434)
     assert np.isclose(driver["le_mh"], 1.2)
     assert np.isclose(driver["xmax_mm"], 8.0)
     assert np.isclose(driver["pe_w"], 400.0)
@@ -2432,8 +2792,18 @@ Equivalent Cas air load                Vas                m3         0.0700""",
         fostex_page, "https://fostex.example/fe108ns", brand_hint="Fostex")
     assert not errors and fostex_preset is not None, errors
     assert np.isclose(fostex_preset["driver"]["sd_cm2"], np.pi * 3.95**2)
-    assert fostex_preset["website_fields"]["derived_fields"] == ["sd_cm2"]
+    assert np.isclose(
+        fostex_preset["driver"]["qes"],
+        1.0 / (1.0 / 0.32 - 1.0 / 3.11),
+    )
+    assert fostex_preset["website_fields"]["derived_fields"] == ["qes", "sd_cm2"]
+    assert crawler.first_inch_size('6-1/2" woofer') == 6.5
+    assert crawler.first_inch_size('1-1/8" BMR') == 1.125
+    assert crawler.first_inch_size("oval 6x9″ woofer") == 6.0
+    assert crawler.infer_size_in('DS175-8 6-1/2" woofer', "", 128.7) == 6.5
+    assert crawler.infer_size_in("Scan-Speak 15W/4434G00", "", 80.0) is None
     assert crawler.infer_size_in("18FT-100SW", 'menu 8" item') == 18.0
+    assert crawler.infer_size_in("18FT-100SW", 'menu 8" item', 855.0) == 18.0
     assert crawler.infer_size_in("18FT-100SW", 'Nominal Diameter 18"') == 18.0
     generic_title = crawler.PageData(
         title="Discontinued product",
@@ -2498,6 +2868,9 @@ Equivalent Cas air load                Vas                m3         0.0700""",
     assert crawler.is_standalone_lf_driver_model("Alpair 6.2")
     assert not crawler.is_standalone_lf_driver_model("Tozzi One Kit")
     assert not crawler.is_standalone_lf_driver_model("TW 6 Metal Dome Tweeter")
+    assert not crawler.is_standalone_lf_driver_model(
+        "25-TD04-01", "1 Inch Premium Silk Dome Tweeter with Rear Chamber"
+    )
 
     measurements = crawler.choose_measurements([
         crawler.Measurement("sd_cm2", 5.02, "5.02", "", "Sd", "html.text"),
@@ -2658,6 +3031,143 @@ def _check_manufacturer_metadata_enrichment_uses_physics_and_verified_prices():
 test(
     "Manufacturer metadata enrichment uses physics and verified prices",
     _check_manufacturer_metadata_enrichment_uses_physics_and_verified_prices,
+)
+
+
+def _check_manufacturer_metadata_reconciles_sd_and_nominal_size():
+    from tools import enrich_manufacturer_metadata as enricher
+
+    rows = [
+        {
+            "name": "WEB: Dayton Audio DS175-8",
+            "brand": "Dayton Audio",
+            "model": "DS175-8",
+            "size_in": 2.0,
+            "driver": {
+                "fs_hz": 37.0, "vas_l": 17.0, "qts": 0.27, "qms": 1.63,
+                "re_ohm": 5.7, "sd_cm2": 128.7, "mms_g": 26.0,
+            },
+            "website_fields": {
+                "catalog_name": 'Dayton Audio DS175-8 6-1/2" Designer Series Woofer',
+            },
+        },
+        {
+            "name": "WEB: Dayton Audio PA460-8",
+            "brand": "Dayton Audio",
+            "model": "PA460-8",
+            "size_in": 1.0,
+            "driver": {
+                "fs_hz": 28.3, "vas_l": 402.0, "qts": 0.33, "qms": 11.2,
+                "re_ohm": 5.6, "sd_cm2": 1.241, "mms_g": 171.0,
+            },
+            "website_fields": {
+                "title": 'Dayton Audio PA460-8 18" Pro Woofer',
+                "raw_measurements": {
+                    "sd_cm2": {"raw_value": "1,241.1", "unit": "cm²"},
+                },
+            },
+        },
+        {
+            "name": "WEB: Acme X12",
+            "brand": "Acme",
+            "model": "X12",
+            "size_in": 12.0,
+            "driver": {
+                "fs_hz": 19.0, "vas_l": 260.0, "qts": 0.4, "qms": 5.1,
+                "re_ohm": 4.0, "sd_cm2": 50.0, "mms_g": 99.0,
+            },
+            "website_fields": {"title": 'Acme X12 12" woofer'},
+        },
+        {
+            "name": "WEB: Scan-Speak 15W/4434G00",
+            "brand": "Scan-Speak",
+            "model": "15W/4434G00",
+            "size_in": 15.0,
+            "driver": {
+                "fs_hz": 43.0, "vas_l": 12.8, "qts": 0.21, "qms": 3.69,
+                "re_ohm": 3.0, "sd_cm2": 80.0, "mms_g": 9.6,
+            },
+            "website_fields": {"title": "Scan-Speak 15W/4434G00 Midwoofer"},
+        },
+        {
+            "name": "WEB: Broken W26",
+            "brand": "Broken",
+            "model": "W26",
+            "size_in": 10.0,
+            "driver": {
+                "fs_hz": 45.0, "vas_l": 6.0, "qts": 0.36, "qms": 2.5,
+                "re_ohm": 5.6, "sd_cm2": 50.0, "mms_g": 7.5,
+            },
+            "website_fields": {"title": 'Broken W26 10" woofer'},
+        },
+    ]
+    result, report = enricher.enrich_presets(rows, {})
+    by_model = {item["model"]: item for item in result}
+    assert by_model["DS175-8"]["size_in"] == 6.5
+    assert by_model["PA460-8"]["size_in"] == 18.0
+    assert by_model["PA460-8"]["driver"]["sd_cm2"] == 1241.1
+    assert by_model["X12"]["driver"]["sd_cm2"] == 500.0
+    assert by_model["15W/4434G00"]["size_in"] == 5.0
+    assert (
+        by_model["W26"]["website_fields"]["quality_status"]
+        == "rejected_size_sd_conflict"
+    )
+    assert report["corrected"]["sd_cm2"] >= 2
+    assert report["corrected"]["size_in"] >= 3
+    assert report["corrected"]["rejected_size_sd_conflict"] == 1
+
+
+test(
+    "Manufacturer metadata reconciles Sd and nominal size",
+    _check_manufacturer_metadata_reconciles_sd_and_nominal_size,
+)
+
+
+def _check_external_catalog_skips_rejected_size_sd_conflicts():
+    import json
+    import tempfile
+
+    from src import presets
+
+    base_driver = {
+        "fs_hz": 40.0, "vas_l": 20.0, "qts": 0.35, "qms": 4.0,
+        "re_ohm": 5.6, "sd_cm2": 100.0,
+    }
+    payload = {
+        "presets": [
+            {
+                "name": "WEB: Acme valid",
+                "brand": "Acme",
+                "model": "valid",
+                "driver": base_driver,
+            },
+            {
+                "name": "WEB: Acme rejected",
+                "brand": "Acme",
+                "model": "rejected",
+                "driver": base_driver,
+                "website_fields": {
+                    "quality_status": "rejected_size_sd_conflict",
+                },
+            },
+        ],
+    }
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / "drivers.json"
+        path.write_text(json.dumps(payload), encoding="utf-8")
+        loaded, _ = presets._load_external_presets(
+            path,
+            default_source="test",
+            dedupe_tag="test",
+            reserved={},
+        )
+    assert "WEB: Acme valid" in loaded
+    assert "WEB: Acme rejected" not in loaded
+
+
+test(
+    "External catalog skips rejected size-Sd conflicts",
+    _check_external_catalog_skips_rejected_size_sd_conflicts,
 )
 
 
@@ -3711,7 +4221,9 @@ def _check_ui_supports_sealed_and_infinite_baffle():
         metrics = {metric.label: metric.value for metric in at.metric}
         assert expected_metric in metrics, (load_type, metrics)
         assert not any(control.label == "Box volume (L)" for control in at.number_input)
-        design_filter_labels = {"Source", "Size", "Brand", "Class", "Price currency"}
+        design_filter_labels = {
+            "Provenance", "Size", "Brand", "Class", "Price currency"
+        }
         assert not any(box.label in design_filter_labels for box in at.selectbox)
         if load_type == "Infinite baffle":
             assert not any(button.label == "Run optimizer and apply" for button in at.button)
@@ -3768,6 +4280,8 @@ def _check_ui_finder_starts_from_practical_defaults():
     assert numbers["Allowed response ripple (dB)"] == 3.0, numbers
     assert numbers["Maximum excursion (× driver Xmax)"] == 1.0, numbers
     assert numbers["Maximum group delay (ms)"] == 30.0, numbers
+    assert numbers["Maximum Mms (g, 0 = off)"] == 0.0, numbers
+    assert numbers["Maximum Le (mH, 0 = off)"] == 0.0, numbers
     goal = next(box for box in at.selectbox if box.label == "Optimization goal")
     assert goal.value == "Balanced", goal.value
     assert not any(
@@ -3797,6 +4311,8 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
         "Maximum excursion (× driver Xmax)",
         "Maximum group delay (ms)",
         "Minimum SPL (dB, 0 = off)",
+        "Maximum Mms (g, 0 = off)",
+        "Maximum Le (mH, 0 = off)",
         "Evaluation range start (Hz)",
         "Evaluation range end (Hz)",
         "Top results to show",
@@ -3829,7 +4345,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
     }]
     at.session_state["batch_result_context"] = (
         ("Sealed",), 40.0, 1, False, "Balanced", "Port", 0.0,
-        0.0,
+        0.0, 0.0, 0.0,
         _ui._FINDER_RANKING_VERSION,
     )
     at.session_state["finder_load_types"] = ["Sealed"]
@@ -4194,6 +4710,10 @@ def _check_ui_finder_goal_inputs_always_active():
     from streamlit.testing.v1 import AppTest
 
     mol_label = "Minimum MOL at F3 (dB, 0 = off)"
+    driver_filter_labels = (
+        "Maximum Mms (g, 0 = off)",
+        "Maximum Le (mH, 0 = off)",
+    )
     goal_labels = (
         "Desired bass extension F3 (Hz, 0 = deepest)",
         "Allowed response ripple (dB)",
@@ -4207,6 +4727,8 @@ def _check_ui_finder_goal_inputs_always_active():
     assert not at.exception, at.exception
     inputs = {n.label: n for n in at.sidebar.number_input}
     assert mol_label in inputs and not inputs[mol_label].disabled
+    for label in driver_filter_labels:
+        assert label in inputs and not inputs[label].disabled, label
     for label in goal_labels:
         assert label in inputs and not inputs[label].disabled, label
     goal = next(box for box in at.sidebar.selectbox if box.label == "Optimization goal")
@@ -4220,6 +4742,8 @@ def _check_ui_finder_goal_inputs_always_active():
     assert not at.exception, at.exception
     inputs = {n.label: n for n in at.sidebar.number_input}
     assert mol_label in inputs and not inputs[mol_label].disabled
+    for label in driver_filter_labels:
+        assert label in inputs and not inputs[label].disabled, label
     for label in goal_labels:
         assert label not in inputs, ("infinite baffle has nothing to optimize", label)
     assert not any(box.label == "Optimization goal" for box in at.selectbox)
@@ -4535,7 +5059,7 @@ def _check_ui_finder_value_ranking():
     at.session_state["batch_results"] = seeded
     at.session_state["batch_result_context"] = (
         ("Sealed",), 40.0, 2, False, "Balanced", "Port", 0.0,
-        0.0,
+        0.0, 0.0, 0.0,
         _ui._FINDER_RANKING_VERSION,
     )
     at.run()
@@ -4626,6 +5150,20 @@ def _check_module_split_facade():
     )
     assert _dccav._load_manufacturer_presets is presets._load_manufacturer_presets
     assert _dccav.MANUFACTURER_DATABASE_PATH is presets.MANUFACTURER_DATABASE_PATH
+    assert _dccav._load_vituixcad_presets is presets._load_vituixcad_presets
+    assert _dccav.VITUIXCAD_DATABASE_PATH is presets.VITUIXCAD_DATABASE_PATH
+    assert (
+        _dccav._load_speakerboxlite_presets
+        is presets._load_speakerboxlite_presets
+    )
+    assert (
+        _dccav.SPEAKERBOXLITE_DATABASE_PATH
+        is presets.SPEAKERBOXLITE_DATABASE_PATH
+    )
+    assert (
+        _dccav.driver_preset_provenance_category
+        is presets.driver_preset_provenance_category
+    )
 
     # The engine must stay free of catalog and pricing knowledge.
     tree = ast.parse((ROOT / "src" / "engine.py").read_text(encoding="utf-8"))

@@ -58,6 +58,12 @@ inspected or overridden.
 screenshot, including `Sd=0.053 m2`; the nominal 300 mm diameter is not used as
 piston area.
 
+For catalog presets, the Driver panel shows nominal frame size, `Sd` and the
+equivalent circular effective-piston diameter together. The Finder candidate
+library exposes the same three columns. The nominal frame diameter is a
+commercial/mechanical size and is normally larger than the effective piston;
+it must not be converted directly into `Sd`.
+
 The preset list also includes selected Beyma 12" low/mid and woofer models from
 Beyma's official XLS catalog.  Catalog units are converted internally to the
 simulator units.
@@ -241,14 +247,25 @@ a three-step workflow:
 
 1. **Target enclosure** selects the load, maximum enclosure volume and voltage.
 2. **Performance goal** selects the optimization objective, F3 target and
-   ripple allowance. Excursion, group-delay and minimum-SPL limits stay in
-   **Advanced constraints**; scan range, result count and resolution stay in
-   **Advanced scan**.
+   ripple allowance, plus optional maximum `Mms` and nominal/1 kHz `Le`
+   filters. A zero maximum disables either filter; while active, candidates
+   without the corresponding published value are excluded. Excursion,
+   group-delay and minimum-SPL limits stay in **Advanced constraints**; scan
+   range, result count and resolution stay in **Advanced scan**.
 3. **Candidate library** filters the catalog in the main workspace by text,
-   source, size, brand, bandwidth class and optional price ceiling. The numeric
-   price limit appears only when its checkbox is active. Typing in **Search
-   preset** immediately lists the first matching driver names before a scan is
-   started.
+   provenance, size, brand, bandwidth class and optional price ceiling.
+   Provenance separates official manufacturer sites, official
+   archives/heritage, retailers/distributors, LSDB, VituixCAD, Speaker Box
+   Lite, built-ins and user-supplied records. The table retains the exact
+   source beside the category. The numeric price limit appears only when its
+   checkbox is active. Typing in **Search preset** immediately lists the first
+   matching driver names before a scan is started.
+
+   In each checkbox group, **All** is a true group toggle. When active, every
+   option is visibly checked. Unchecking one option clears **All** while
+   preserving every other selection; checking all individual options restores
+   **All**. Turning **All** off clears the complete group, after which
+   individual options can be enabled.
 
 **Run a Match** appears once as the primary action above the candidate-library
 table; it is not duplicated in the sidebar. Before a scan, the workspace is

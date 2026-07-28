@@ -704,12 +704,13 @@ _PRESET_SIZE_FILTERS = (
     "18 in",
     "21 in",
 )
-_PRESET_SOURCE_FILTERS = ("All", "Built-in", "Loudspeaker Database", "Manufacturer")
-# Raw preset "source" values bucketed for the filter dropdown above. Anything
-# not "Built-in" or "Loudspeaker Database" (e.g. "Manufacturer website",
-# "Manufacturer datasheet", "Manufacturer crawl", the generic crawler
-# default "Web crawler") falls into "Manufacturer".
-_PRESET_SOURCE_EXACT_BUCKETS = {"Built-in", "Loudspeaker Database"}
+_PRESET_SOURCE_FILTERS = ("All", *_dccav.PRESET_PROVENANCE_CATEGORIES)
+_PRESET_SOURCE_FILTER_ALIASES = {
+    # Saved sessions from before provenance categories were introduced.
+    "Manufacturer": "Official manufacturer site",
+    "Loudspeaker Database": "LSDB",
+}
+_PRESET_FILTER_NONE = "__none__"
 _PRESET_CLASS_FILTERS = ("All", *_dccav.DRIVER_CLASSES)
 _WORKSPACES = ("Bass Match", "Box Design")
 _WORKSPACE_DISPLAY_LABELS = {
@@ -745,6 +746,8 @@ _FINDER_DEFAULTS = {
     "finder_max_gd_ms": 30.0,
     "finder_min_spl_db": 0.0,
     "finder_min_mol_f3_db": 0.0,
+    "finder_max_mms_g": 0.0,
+    "finder_max_le_mh": 0.0,
     "finder_f_min": 10.0,
     "finder_f_max": 300.0,
     "finder_result_count": 20,
@@ -1647,10 +1650,16 @@ def _driver_preset_family(name: str) -> str:
 
 def _driver_preset_source(name: str) -> str:
     try:
-        raw = _dccav.driver_preset_info(name).source
+        return _dccav.driver_preset_provenance_category(name)
     except ValueError:
         return "Built-in"
-    return raw if raw in _PRESET_SOURCE_EXACT_BUCKETS else "Manufacturer"
+
+
+def _driver_preset_exact_source(name: str) -> str:
+    try:
+        return _dccav.driver_preset_info(name).source
+    except ValueError:
+        return "Built-in"
 
 
 def _driver_preset_price(name: str) -> float | None:
@@ -1786,11 +1795,26 @@ def _available_preset_families(names: list[str]) -> list[str]:
     return [*ordered, *extras]
 
 
+def _set_filter_group_from_all(all_key: str, item_keys: tuple[str, ...]) -> None:
+    """Apply the All checkbox value to every concrete option in a group."""
+    selected = bool(st.session_state.get(all_key, False))
+    for item_key in item_keys:
+        st.session_state[item_key] = selected
+
+
+def _sync_filter_group_all(all_key: str, item_keys: tuple[str, ...]) -> None:
+    """Turn All on only when every concrete option is selected."""
+    st.session_state[all_key] = bool(item_keys) and all(
+        bool(st.session_state.get(item_key, False))
+        for item_key in item_keys
+    )
+
+
 def _render_finder_library_filters(all_preset_names: list[str]) -> None:
     """Render Finder library filters."""
     st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
     filter_options = (
-        ("preset_source_filter", "Source", list(_PRESET_SOURCE_FILTERS)),
+        ("preset_source_filter", "Provenance", list(_PRESET_SOURCE_FILTERS)),
         ("preset_family_filter", "Brand", _available_preset_families(all_preset_names)),
         ("preset_size_filter", "Size", list(_PRESET_SIZE_FILTERS)),
         ("preset_class_filter", "Class", list(_PRESET_CLASS_FILTERS)),
@@ -1804,18 +1828,70 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
             # the former single-select value directly.
             for index, option in enumerate(options):
                 st.session_state[f"{key}__{index}"] = option in current
+        if key == "preset_source_filter":
+            current = [
+                _PRESET_SOURCE_FILTER_ALIASES.get(str(option), str(option))
+                for option in current
+            ]
         current = set(current or ["All"])
+        concrete_options = [option for option in options if option != "All"]
+        all_key = f"{key}__toggle_v3__all"
+        item_keys = tuple(
+            f"{key}__toggle_v3__{index}"
+            for index, _option in enumerate(concrete_options)
+        )
+        initialized_key = f"{key}__toggle_v3__initialized"
+        emitted_key = f"{key}__toggle_v3__emitted"
+        requested_state = tuple(sorted(current))
+        if (
+            not st.session_state.get(initialized_key, False)
+            or st.session_state.get(emitted_key) != requested_state
+        ):
+            select_all = "All" in current
+            select_none = _PRESET_FILTER_NONE in current
+            for option, item_key in zip(
+                concrete_options, item_keys, strict=True
+            ):
+                st.session_state[item_key] = (
+                    select_all or (not select_none and option in current)
+                )
+            st.session_state[all_key] = select_all or (
+                bool(concrete_options)
+                and all(
+                    bool(st.session_state[item_key])
+                    for item_key in item_keys
+                )
+            )
+            st.session_state[initialized_key] = True
         with st.expander(label, expanded=False):
+            st.checkbox(
+                "All",
+                key=all_key,
+                on_change=_set_filter_group_from_all,
+                args=(all_key, item_keys),
+            )
             checked = []
-            for index, option in enumerate(options):
-                checkbox_key = f"{key}__{index}"
-                if checkbox_key not in st.session_state:
-                    st.session_state[checkbox_key] = option in current
-                if st.checkbox(option, key=checkbox_key):
+            for option, item_key in zip(
+                concrete_options, item_keys, strict=True
+            ):
+                if st.checkbox(
+                    option,
+                    key=item_key,
+                    on_change=_sync_filter_group_all,
+                    args=(all_key, item_keys),
+                ):
                     checked.append(option)
-            # Selecting concrete values overrides All; no selection means All.
-            concrete = [option for option in checked if option != "All"]
-            st.session_state[key] = concrete or ["All"]
+            if st.session_state.get(all_key, False):
+                st.session_state[key] = ["All"]
+            elif checked:
+                st.session_state[key] = checked
+            else:
+                # Empty is intentionally different from All: it lets the user
+                # toggle the whole group off and then opt individual items in.
+                st.session_state[key] = [_PRESET_FILTER_NONE]
+            st.session_state[emitted_key] = tuple(
+                sorted(st.session_state[key])
+            )
 
     preset_currencies = _preset_price_currencies(all_preset_names)
     if preset_currencies:
@@ -1869,12 +1945,17 @@ def _filter_driver_preset_names(
     max_price_currency: str | None = None,
     selected: str | None = None,
     driver_class: str | list[str] = "All",
+    max_mms_g: float | None = None,
+    max_le_mh: float | None = None,
 ) -> list[str]:
     def selected_values(value: str | list[str]) -> set[str]:
         values = {str(item) for item in ([value] if isinstance(value, str) else value)}
         return set() if not values or "All" in values else values
 
-    source_values = selected_values(source)
+    source_values = {
+        _PRESET_SOURCE_FILTER_ALIASES.get(value, value)
+        for value in selected_values(source)
+    }
     family_values = selected_values(family)
     size_values = selected_values(size)
     class_values = selected_values(driver_class)
@@ -1892,6 +1973,28 @@ def _filter_driver_preset_names(
             continue
         if query and query not in name.casefold():
             continue
+        if max_mms_g is not None or max_le_mh is not None:
+            try:
+                driver = _dccav.get_driver_preset(name)
+            except Exception:
+                continue
+            if max_mms_g is not None:
+                mms_g = driver.mms_g
+                if (
+                    mms_g is None
+                    or not np.isfinite(float(mms_g))
+                    or float(mms_g) <= 0.0
+                    or float(mms_g) > float(max_mms_g)
+                ):
+                    continue
+            if max_le_mh is not None:
+                le_mh = driver.le_mh
+                if (
+                    not np.isfinite(float(le_mh))
+                    or float(le_mh) <= 0.0
+                    or float(le_mh) > float(max_le_mh)
+                ):
+                    continue
         if max_price is not None:
             price = _normalized_preset_price(name, str(max_price_currency or ""), rates)
             if price is None or float(price) > float(max_price):
@@ -3721,6 +3824,8 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
         str(st.session_state.get("finder_reflex_resonator_type", _RESONATOR_PORT)),
         min_spl_db,
         min_mol_f3_db,
+        float(st.session_state.get("finder_max_mms_g", 0.0) or 0.0),
+        float(st.session_state.get("finder_max_le_mh", 0.0) or 0.0),
         _FINDER_RANKING_VERSION,
     )
 
@@ -3740,6 +3845,28 @@ def _render_find_driver_goal_sidebar() -> None:
         key="finder_min_mol_f3_db",
         help="Require the excursion/thermal limited maximum output at the "
              "candidate's F3 to reach this level; 0 disables.",
+    )
+    _finder_number_input(
+        "Maximum Mms (g, 0 = off)",
+        min_value=0.0,
+        max_value=2000.0,
+        step=1.0,
+        key="finder_max_mms_g",
+        help="Keep only drivers whose published moving mass Mms is no greater "
+             "than this value. Candidates without Mms are excluded while the "
+             "limit is active; 0 disables.",
+    )
+    _finder_number_input(
+        "Maximum Le (mH, 0 = off)",
+        min_value=0.0,
+        max_value=20.0,
+        step=0.01,
+        format="%.3f",
+        key="finder_max_le_mh",
+        help="Keep only drivers whose published nominal/1 kHz voice-coil "
+             "inductance is no greater than this value. Le10k is not "
+             "substituted; candidates without Le are excluded while the "
+             "limit is active. 0 disables.",
     )
     if only_infinite_baffle:
         st.caption(
@@ -3863,7 +3990,8 @@ _PRESET_SELECT_MAX_OPTIONS = 1000
 
 
 _TABLE_NUMBER_FORMATS = {
-    "Size in": ".1f", "Fs Hz": ".1f", "Qts": ".3f", "Vas L": ".1f",
+    "Nominal in": ".2f", "Sd cm²": ".1f", "Effective Ø in": ".2f",
+    "Fs Hz": ".1f", "Qts": ".3f", "Vas L": ".1f",
     "SPL dB": ".0f", "F3 Hz": ".1f", "F6 Hz": ".1f", "F10 Hz": ".1f",
     "MOL @ F3 dB": ".1f", "Peak dB": ".1f", "Ripple dB": ".1f",
     "Price": ".2f", "Value": ".0f",
@@ -3934,7 +4062,11 @@ def _driver_library_frame(
             )
             rows.append({
                 "Driver": name,
-                "Size in": info.size_in,
+                "Nominal in": info.size_in,
+                "Sd cm²": ts_p.sd_cm2,
+                "Effective Ø in": (
+                    np.sqrt(4.0 * ts_p.sd_cm2 / np.pi) / 2.54
+                ),
                 "Fs Hz": ts_p.fs_hz,
                 "Qts": ts_p.qts,
                 "Vas L": ts_p.vas_l,
@@ -3945,13 +4077,15 @@ def _driver_library_frame(
                     else info.currency if not target_currency and price is not None
                     else ""
                 ),
+                "Category": _driver_preset_source(name),
                 "Source": info.source,
             })
         except Exception:
             rows.append({"Driver": name})
     library_columns = [
-        "Driver", "Size in", "Fs Hz", "Qts", "Vas L", "SPL dB",
-        "Price", "Currency", "Source",
+        "Driver", "Nominal in", "Sd cm²", "Effective Ø in",
+        "Fs Hz", "Qts", "Vas L", "SPL dB",
+        "Price", "Currency", "Category", "Source",
     ]
     if not rows:
         return pd.DataFrame(columns=(
@@ -4091,6 +4225,10 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         st.session_state.get("finder_min_spl_db", 0.0) or 0.0)
     current_min_mol_f3_db = float(
         st.session_state.get("finder_min_mol_f3_db", 0.0) or 0.0)
+    current_max_mms_g = float(
+        st.session_state.get("finder_max_mms_g", 0.0) or 0.0)
+    current_max_le_mh = float(
+        st.session_state.get("finder_max_le_mh", 0.0) or 0.0)
     context_matches = not (
         len(context) < 2
         or tuple(context[:2]) != (finder_loads, finder_volume_l)
@@ -4099,8 +4237,12 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         or (len(context) <= 6 and current_min_spl_db > 0.0)
         or (len(context) > 7 and float(context[7]) != current_min_mol_f3_db)
         or (len(context) <= 7 and current_min_mol_f3_db > 0.0)
-        or len(context) <= 8
-        or int(context[8]) != _FINDER_RANKING_VERSION
+        or (len(context) > 8 and float(context[8]) != current_max_mms_g)
+        or (len(context) <= 8 and current_max_mms_g > 0.0)
+        or (len(context) > 9 and float(context[9]) != current_max_le_mh)
+        or (len(context) <= 9 and current_max_le_mh > 0.0)
+        or len(context) <= 10
+        or int(context[10]) != _FINDER_RANKING_VERSION
     )
     if not context_matches:
         batch_rows = []
@@ -5019,7 +5161,17 @@ with st.sidebar:
                     if st.session_state.get("preset_price_enabled", False) else None
                 ),
                 selected=None,
-                driver_class=st.session_state.get("preset_class_filter", ["All"])
+                driver_class=st.session_state.get("preset_class_filter", ["All"]),
+                max_mms_g=(
+                    float(st.session_state["finder_max_mms_g"])
+                    if float(st.session_state.get("finder_max_mms_g", 0.0)) > 0.0
+                    else None
+                ),
+                max_le_mh=(
+                    float(st.session_state["finder_max_le_mh"])
+                    if float(st.session_state.get("finder_max_le_mh", 0.0)) > 0.0
+                    else None
+                ),
             )
             _render_find_driver_actions(filtered_preset_names)
 
@@ -5066,11 +5218,26 @@ with st.sidebar:
             )
             if preset_name != "Custom":
                 try:
-                    purchase = _purchase_markdown(_dccav.driver_preset_info(preset_name))
+                    preset_info = _dccav.driver_preset_info(preset_name)
+                    purchase = _purchase_markdown(preset_info)
+                    preset_driver = _dccav.get_driver_preset(preset_name)
                 except ValueError:
                     purchase = None
+                    preset_info = None
+                    preset_driver = None
                 if purchase:
                     st.markdown(purchase)
+                if preset_info is not None and preset_driver is not None:
+                    nominal = (
+                        f"{preset_info.size_in:g} in"
+                        if preset_info.size_in is not None
+                        else "not published"
+                    )
+                    effective = np.sqrt(4.0 * preset_driver.sd_cm2 / np.pi) / 2.54
+                    st.caption(
+                        f"Nominal frame: {nominal} · Sd: {preset_driver.sd_cm2:.1f} cm² "
+                        f"· equivalent effective piston: Ø {effective:.2f} in"
+                    )
                     
             c1, c2 = st.columns(2)
             with c1:

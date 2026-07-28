@@ -1,18 +1,25 @@
 {
-  "applied": true,
+  "applied": false,
+  "changes_this_run": {},
+  "corrected": {
+    "cms_mm_per_n": 4,
+    "rejected_size_sd_conflict": 11,
+    "sd_cm2": 26,
+    "size_in": 591
+  },
   "derived": {},
   "driver_field_coverage": {
-    "bl_tm": 4423,
-    "cms_mm_per_n": 4423,
-    "le_mh": 4252,
-    "mms_g": 4421,
-    "pe_w": 4260,
-    "qes": 4424,
-    "xmax_mm": 4206
+    "bl_tm": 4757,
+    "cms_mm_per_n": 4757,
+    "le_mh": 4495,
+    "mms_g": 4755,
+    "pe_w": 4336,
+    "qes": 4757,
+    "xmax_mm": 4452
   },
-  "generated_at": "2026-07-22T14:34:07+00:00",
-  "priced": 2860,
-  "rows": 4424,
-  "size_coverage": 4424,
-  "unpriced": 1564
+  "generated_at": "2026-07-27T18:11:39+00:00",
+  "priced": 3116,
+  "rows": 4757,
+  "size_coverage": 4757,
+  "unpriced": 1641
 }

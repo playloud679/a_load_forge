@@ -173,6 +173,17 @@ def generate_report(
         for row in rows
         for field in ((row.get("website_fields") or {}).get("derived_fields") or [])
     )
+    corrections = Counter(
+        field
+        for row in rows
+        for field in ((row.get("website_fields") or {}).get("field_corrections") or {})
+    )
+    rejected_size_sd = [
+        row
+        for row in rows
+        if (row.get("website_fields") or {}).get("quality_status")
+        == "rejected_size_sd_conflict"
+    ]
 
     _, dedupe_preview = deduplicate_presets(rows)
     previous_dedupe: dict[str, Any] = {}
@@ -241,12 +252,14 @@ def generate_report(
         "> File generato automaticamente: non modificare a mano i numeri.  ",
         "> Rigenerazione: `.venv/bin/python tools/generate_manufacturer_database_report.py`",
         "",
-        f"Generato: **{generated_at}**  ",
+        f"Generato: **{generated_at}**",
         f"Database letto: `data/manufacturer_drivers.json` (modificato {database_updated})",
         "",
         "## Sintesi",
         "",
         f"Il catalogo contiene **{fmt_int(total)} driver** di **{fmt_int(len(brands))} produttori**. "
+        f"L'app ne espone **{fmt_int(total - len(rejected_size_sd))}** dopo il controllo "
+        f"`Sd`/diametro nominale. "
         f"I sette parametri fondamentali sono completi al "
         f"**{percent(sum(all(is_present((row.get('driver') or {}).get(field)) for field in REQUIRED) for row in rows), total)}** "
         f"dei record. I prezzi verificabili coprono il **{percent(len(priced_rows), total)}**.",
@@ -270,6 +283,10 @@ def generate_report(
         f"- Record con almeno un parametro fondamentale non valido: **{fmt_int(invalid_required)}**.",
         f"- Conflitti fisici `Qms <= Qts`: **{fmt_int(q_conflicts)}**.",
         f"- Vecchi valori Pe invalidati perché privi di unità W/kW: **{fmt_int(invalidated_power)}**.",
+        f"- Correzioni tracciate `Sd`: **{fmt_int(corrections['sd_cm2'])}**; "
+        f"dimensione nominale: **{fmt_int(corrections['size_in'])}**.",
+        f"- Record esclusi per conflitto irrisolto `Sd`/diametro nominale: "
+        f"**{fmt_int(len(rejected_size_sd))}**.",
         f"- Provenienza esplicita da refresh: Xmax **{fmt_int(field_provenance['xmax_mm'])}**, "
         f"Pe **{fmt_int(field_provenance['pe_w'])}**, Le **{fmt_int(field_provenance['le_mh'])}**.",
         "- Campi derivati tracciati: "
@@ -277,6 +294,22 @@ def generate_report(
         + ".",
         "",
         "Le derivazioni vengono conteggiate solo quando memorizzate in `website_fields.derived_fields`; i valori pubblicati e quelli derivati restano distinguibili.",
+        "",
+        "### Conflitti Sd/dimensione nominale esclusi",
+        "",
+        markdown_table(
+            ("Produttore", "Modello", "Nominale in", "Sd cm²", "Ø effettivo in"),
+            [
+                (
+                    str(row.get("brand") or ""),
+                    str(row.get("model") or ""),
+                    f"{float(row.get('size_in') or 0.0):g}",
+                    f"{float((row.get('driver') or {}).get('sd_cm2') or 0.0):g}",
+                    f"{math.sqrt(4.0 * float((row.get('driver') or {}).get('sd_cm2') or 0.0) / math.pi) / 2.54:.2f}",
+                )
+                for row in rejected_size_sd
+            ],
+        ),
         "",
         "## Deduplicazione",
         "",
