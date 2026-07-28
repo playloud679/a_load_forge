@@ -12,17 +12,19 @@ gcloud config set project PROJECT_ID
 gcloud services enable run.googleapis.com artifactregistry.googleapis.com
 
 gcloud builds submit \
-  --tag europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.6.6
+  --tag europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.6.9
 
 gcloud run deploy load-forge \
-  --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.6.6 \
+  --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.6.9 \
   --region europe-west1 \
   --platform managed \
   --allow-unauthenticated \
-  --memory 4Gi \
-  --cpu 2 \
+  --memory 8Gi \
+  --cpu 4 \
   --min 0 \
-  --max 20 \
+  --max 5 \
+  --concurrency 160 \
+  --timeout 3600 \
   --port 8080
 ```
 

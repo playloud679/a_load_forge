@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.6.9 (2026-07-28)
+
 - **Compact Finder results**: removed brand, F6, F10, ripple and maximum
   excursion from the ranked-results table/CSV, restored nominal `Size`, added
   piston area `Sd`, shortened `Total volume` to `Vtot`, and reduced candidate
@@ -83,6 +85,15 @@
   candidates whose corresponding published value is missing.
 - **Tests**: 117 passed / 0 failed / 0 skipped.
 
+## 0.6.7 (2026-07-27)
+
+- Add multi-select checkbox filters for source, brand, size and class in the
+  Candidate Library.
+- Add adaptive Cloud Run Finder optimization with reduced evaluations and
+  resonance-focused frequency sampling.
+- Add reproducible Cloud Run deployment files and documentation.
+- Verification: 108 passed, 0 failed, 0 skipped tests.
+
 ## 0.6.6 (2026-07-25)
 
 - **Emerald visual system**: replaced red selection/action accents with a
@@ -111,6 +122,11 @@
 - **Response chart**: restored the full 600 px analysis height so zoomed and
   overlaid traces remain readable.
 - **Tests**: 108 passed / 0 failed / 0 skipped.
+
+## 0.6.4
+
+- Fix sidebar logo and version overlap
+- Reduce side padding in main container
 
 ## 0.6.3 (2026-07-22)
 
@@ -724,16 +740,3 @@
   imported lists.
 - **Verification**: `.venv/bin/python tests/test_all.py` passes with 14 passed,
   0 failed and 0 skipped tests after the LSDB importer and filtering changes.
-
-## 0.6.4
-
-- Fix sidebar logo and version overlap
-- Reduce side padding in main container
-## 0.6.7 (2026-07-27)
-
-- Add multi-select checkbox filters for source, brand, size and class in the
-  Candidate Library.
-- Add adaptive Cloud Run Finder optimization with reduced evaluations and
-  resonance-focused frequency sampling.
-- Add reproducible Cloud Run deployment files and documentation.
-- Verification: 108 passed, 0 failed, 0 skipped tests.
