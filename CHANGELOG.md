@@ -2,12 +2,16 @@
 
 ## Unreleased
 
-- **Compact Finder results**: removed brand, nominal size, F6, F10, ripple and
-  maximum excursion from the ranked-results table/CSV, and reduced candidate
+- **Compact Finder results**: removed brand, F6, F10, ripple and maximum
+  excursion from the ranked-results table/CSV, restored nominal `Size`, added
+  piston area `Sd`, shortened `Total volume` to `Vtot`, and reduced candidate
   preview metrics to F3, MOL at F3, peak LF SPL and minimum impedance; all
   per-chamber volumes, tuning/system frequencies and alignment details are now
   represented by one total-volume field, while hidden engineering values
   remain available to ranking, constraints and applying a candidate.
+- **Compact class label**: Finder filters, result rows and Design metrics show
+  `Midbass` instead of the longer internal classifier value
+  `Midbass-capable`.
 - **Compact database provenance**: grouped built-ins, direct manufacturer
   sources, official archives, retailer observations and user-supplied records
   under one `Load Forge database` Finder choice, while keeping LSDB,

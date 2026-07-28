@@ -1657,6 +1657,11 @@ test("DCCAV bandwidth classifier separates subwoofers from midbass drivers", _ch
 def _check_ui_class_filter():
     import ui_app as _ui
 
+    assert _ui._PRESET_CLASS_FILTERS == (
+        "All", "Subwoofer", "Woofer", "Midbass"
+    )
+    assert _ui._driver_class_label("Midbass-capable") == "Midbass"
+
     names = tuple(
         name for name in _dccav.driver_preset_names()
         if not name.startswith("LSDB:")
@@ -1666,7 +1671,7 @@ def _check_ui_class_filter():
     assert "Dayton Audio RSS315HO-4" in subs, subs
     assert "Beyma 12CMV2" not in subs, subs
     mids = _ui._filter_driver_preset_names(
-        names, source="All", family="All", size="All", search="", driver_class="Midbass-capable")
+        names, source="All", family="All", size="All", search="", driver_class="Midbass")
     assert "Beyma 12CMV2" in mids, mids
     assert "Dayton Audio RSS315HO-4" not in mids, mids
 
@@ -1675,7 +1680,7 @@ def _check_ui_class_filter():
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.session_state["workspace_mode"] = "Bass Match"
     at.run()
-    at.session_state["preset_class_filter"] = "Midbass-capable"
+    at.session_state["preset_class_filter"] = "Midbass"
     at.session_state["preset_search"] = "Dayton Audio RSS315HO-4"
     at.run()
     assert not at.exception, at.exception
@@ -3908,6 +3913,8 @@ def _check_ui_batch_finder_ranks_presets_under_volume_cap():
     first = rows[0]
     assert np.isfinite(first["Peak dB"]), first
     assert np.isfinite(first["MOL @ F3 dB"]), first
+    assert "Size in" in first, first
+    assert np.isfinite(first["Sd cm²"]) and first["Sd cm²"] > 0.0, first
     spark = first.get("Response")
     assert isinstance(spark, list) and len(spark) > 10, "rows must carry a response sparkline"
     assert max(spark) <= 1e-9 and min(spark) >= -30.0 - 1e-9, (min(spark), max(spark))
@@ -5117,7 +5124,8 @@ def _check_ui_finder_value_ranking():
     seeded = [
         {
             "Driver": name, "Source": "Built-in", "Brand": "Other", "Class": "Woofer",
-            "Size in": 12.0, "Price": price, "Currency": "EUR", "Buy": "",
+            "Size in": 12.0, "Sd cm²": 530.0,
+            "Price": price, "Currency": "EUR", "Buy": "",
             "_load_type": "Sealed",
             "F3 Hz": f3, "F6 Hz": f3 - 5.0, "F10 Hz": f3 - 10.0,
             "MOL @ F3 dB": 85.0, "Peak dB": 90.0,
@@ -5149,7 +5157,6 @@ def _check_ui_finder_value_ranking():
         "F6 Hz",
         "F10 Hz",
         "Brand",
-        "Size in",
         "Ripple dB",
         "Max excursion mm",
         "Vb L",
@@ -5172,9 +5179,13 @@ def _check_ui_finder_value_ranking():
         "MOL @ F3 dB",
         "Peak dB",
         "Min ohm",
-        "Total volume L",
+        "Size in",
+        "Sd cm²",
+        "Vtot L",
     } <= set(results_frame.columns), results_frame.columns
-    assert list(results_frame["Total volume L"]) == [40.0, 40.0]
+    assert list(results_frame["Size in"]) == [12.0, 12.0]
+    assert list(results_frame["Sd cm²"]) == [530.0, 530.0]
+    assert list(results_frame["Vtot L"]) == [40.0, 40.0]
     rank = next(r for r in at.radio if r.label == "Rank by")
     rank.set_value("Best value (F3 × price)").run()
     assert not at.exception, at.exception

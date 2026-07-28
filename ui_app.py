@@ -716,7 +716,13 @@ _PRESET_SOURCE_FILTER_ALIASES = {
     "Loudspeaker Database": "LSDB",
 }
 _PRESET_FILTER_NONE = "__none__"
-_PRESET_CLASS_FILTERS = ("All", *_dccav.DRIVER_CLASSES)
+_PRESET_CLASS_FILTERS = ("All", "Subwoofer", "Woofer", "Midbass")
+_PRESET_CLASS_FILTER_ALIASES = {
+    "Midbass-capable": "Midbass",
+}
+_PRESET_CLASS_ENGINE_VALUES = {
+    "Midbass": "Midbass-capable",
+}
 _WORKSPACES = ("Bass Match", "Box Design")
 _WORKSPACE_DISPLAY_LABELS = {
     "Bass Match": "Bass Match",
@@ -1667,6 +1673,11 @@ def _driver_preset_exact_source(name: str) -> str:
         return "Built-in"
 
 
+def _driver_class_label(value: str) -> str:
+    """Return the compact class label shown throughout the UI."""
+    return _PRESET_CLASS_FILTER_ALIASES.get(str(value), str(value))
+
+
 def _driver_preset_price(name: str) -> float | None:
     try:
         return _dccav.driver_preset_info(name).price
@@ -1838,6 +1849,11 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
                 _PRESET_SOURCE_FILTER_ALIASES.get(str(option), str(option))
                 for option in current
             ]
+        elif key == "preset_class_filter":
+            current = [
+                _PRESET_CLASS_FILTER_ALIASES.get(str(option), str(option))
+                for option in current
+            ]
         current = set(current or ["All"])
         concrete_options = [option for option in options if option != "All"]
         all_key = f"{key}__toggle_v4__all"
@@ -1963,7 +1979,10 @@ def _filter_driver_preset_names(
     }
     family_values = selected_values(family)
     size_values = selected_values(size)
-    class_values = selected_values(driver_class)
+    class_values = {
+        _PRESET_CLASS_ENGINE_VALUES.get(value, value)
+        for value in selected_values(driver_class)
+    }
     query = search.strip().casefold()
     rates = _current_exchange_rates()[0] if max_price is not None else None
     filtered = []
@@ -4001,7 +4020,7 @@ _TABLE_NUMBER_FORMATS = {
     "MOL @ F3 dB": ".1f", "Peak dB": ".1f",
     "Price": ".2f", "Value": ".0f",
     "Min ohm": ".2f", "Vb L": ".2f",
-    "Total volume L": ".2f",
+    "Vtot L": ".2f",
     "Fb Hz": ".1f", "Fc Hz": ".1f", "Qtc": ".3f", "Vs L": ".2f",
     "Vp L": ".2f", "Fp Hz": ".1f", "Vr L": ".2f", "Fr Hz": ".1f",
     "Vh L": ".2f", "fh Hz": ".1f", "Vl L": ".2f", "fl Hz": ".1f",
@@ -4323,12 +4342,13 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     full_df = pd.DataFrame(batch_rows)
     if "_load_type" in full_df.columns:
         full_df = full_df.rename(columns={"_load_type": "Load"})
-    full_df["Total volume L"] = full_df.apply(
+    full_df["Vtot L"] = full_df.apply(
         _finder_total_volume_l, axis=1
     )
     for name, default in (
         ("Load", ""), ("Price", np.nan), ("Currency", ""), ("Buy", ""),
         ("Ripple dB", np.nan), ("Response", None), ("Class", ""),
+        ("Size in", np.nan), ("Sd cm²", np.nan),
         ("Resonator", ""), ("Mms g", np.nan), ("Le10k mH", np.nan),
         ("MOL @ F3 dB", np.nan),
     ):
@@ -4340,6 +4360,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     )
     if selected_price_currency:
         full_df = _normalize_price_frame(full_df, selected_price_currency)
+    full_df["Class"] = full_df["Class"].map(_driver_class_label)
 
     value_currency = _finder_price_currency(full_df)
     rank_mode = _FINDER_RANK_F3
@@ -4370,6 +4391,12 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     if batch_df["Class"].fillna("").astype(bool).any():
         columns.insert(driver_metadata_index, "Class")
         driver_metadata_index += 1
+    if batch_df["Size in"].notna().any():
+        columns.insert(driver_metadata_index, "Size in")
+        driver_metadata_index += 1
+    if batch_df["Sd cm²"].notna().any():
+        columns.insert(driver_metadata_index, "Sd cm²")
+        driver_metadata_index += 1
     if batch_df["Mms g"].notna().any():
         columns.insert(driver_metadata_index, "Mms g")
         driver_metadata_index += 1
@@ -4384,8 +4411,8 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         columns.insert(columns.index("F3 Hz"), "Response")
     if batch_df["Le10k mH"].notna().any():
         columns.insert(columns.index("Min ohm") + 1, "Le10k mH")
-    if batch_df["Total volume L"].notna().any():
-        columns.append("Total volume L")
+    if batch_df["Vtot L"].notna().any():
+        columns.append("Vtot L")
     if batch_df["Buy"].fillna("").astype(bool).any():
         columns.append("Buy")
 
@@ -4415,8 +4442,12 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             "Min ohm": st.column_config.NumberColumn(format="%.2f"),
             "Mms g": st.column_config.NumberColumn(format="%.1f"),
             "Le10k mH": st.column_config.NumberColumn(format="%.3f"),
-            "Total volume L": st.column_config.NumberColumn(
-                "Total volume (L)", format="%.2f"
+            "Size in": st.column_config.NumberColumn(
+                "Size (in)", format="%.1f"
+            ),
+            "Sd cm²": st.column_config.NumberColumn(format="%.1f"),
+            "Vtot L": st.column_config.NumberColumn(
+                "Vtot (L)", format="%.2f"
             ),
             "Buy": st.column_config.LinkColumn(display_text="Buy"),
             "Response": st.column_config.LineChartColumn(
@@ -4460,7 +4491,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         p4.metric("Min impedance", f"{float(selected_row['Min ohm']):.2f} Ω")
         total_volume_l = _finder_total_volume_l(selected_row)
         if np.isfinite(total_volume_l):
-            st.caption(f"Total volume {total_volume_l:.2f} L")
+            st.caption(f"Vtot {total_volume_l:.2f} L")
         elif row_load_type == "Infinite baffle":
             st.caption("Infinite baffle · no enclosure volume")
         if st.button("Apply candidate to design", type="primary", use_container_width=True):
@@ -6151,7 +6182,7 @@ try:
                     "n/a" if bandwidth.f_le_hz is None else f"{bandwidth.f_le_hz:.0f} Hz",
                     help="Re/(2*pi*Le): above this frequency the voice-coil inductance rolls the response off.",
                 )
-                e6.metric("Class", bandwidth.driver_class)
+                e6.metric("Class", _driver_class_label(bandwidth.driver_class))
                 if ref.ebp_hz < 50.0:
                     ebp_hint = "EBP < 50: this driver classically favours sealed or infinite-baffle loads."
                 elif ref.ebp_hz > 100.0:

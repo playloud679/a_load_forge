@@ -273,7 +273,8 @@ table; it is not duplicated in the sidebar. Before a scan, the workspace is
 titled **Candidate library**; completed scans use
 **Recommended drivers** and show the active load, volume cap and objective.
 Missing values render as em dashes and columns with no data are omitted, while
-the ranked table and candidate CSV expose only the total enclosure volume.
+the ranked table and candidate CSV expose nominal `Size`, piston area `Sd` and
+only the compact `Vtot` value for enclosure volume.
 Individual chamber volumes, tuning/system frequencies and alignment details
 remain internal so a selected candidate can still be applied to Design.
 
@@ -343,7 +344,7 @@ values and suggested-alignment context.
 
 `VC corner` is `Re/(2*pi*Le)`: above this frequency the voice-coil inductance
 starts to roll the response off.  `Class` is a T/S-based screening heuristic:
-`Subwoofer`, `Woofer` or `Midbass-capable`.
+`Subwoofer`, `Woofer` or `Midbass`.
 
 ### LF Load Response
 

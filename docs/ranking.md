@@ -19,7 +19,8 @@ detailed contracts live in `docs/dccav.md`.
   already fits and is reduced only when it exceeds the cap;
   the function returns the ranking-table row, including `MOL @ F3 dB`
   interpolated at the candidate's actual -3 dB frequency from the simulated
-  excursion/thermal maximum-output curve;
+  excursion/thermal maximum-output curve, nominal `Size in` metadata and the
+  active single/composite driver's effective piston area `Sd cm²`;
   unusable presets return `None` instead of raising
 - `sort_ranked_rows(rows)`: deepest F3 first, then F6/F10 and loudest peak
 - `rank_sort_value(value)`: `inf` for non-finite sort keys

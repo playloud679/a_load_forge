@@ -277,6 +277,7 @@ def rank_preset_row(
             "Brand": info.brand or "Other",
             "Class": driver_class,
             "Size in": info.size_in if info.size_in is not None else np.nan,
+            "Sd cm²": ts.sd_cm2,
             "Price": info.price if info.price is not None else np.nan,
             "Currency": info.currency,
             "Buy": info.url or "",
