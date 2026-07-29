@@ -7,6 +7,7 @@ metadata and retailer price enrichment.
 from __future__ import annotations
 
 import json
+import os
 import re
 from dataclasses import dataclass
 from functools import lru_cache
@@ -25,9 +26,18 @@ LOUDSPEAKER_DATABASE_PATH = (
 # Presets extracted directly from manufacturer sites (HTML/PDF/API), kept in a
 # separate file from the loudspeakerdatabase.com import above: this file is
 # safe to ship in a public build, the LSDB one is not (see docs/presets.md).
-MANUFACTURER_DATABASE_PATH = (
-    Path(__file__).resolve().parents[1] / "data" / "manufacturer_drivers.json"
-)
+def manufacturer_database_path(
+    env: dict[str, str] | None = None,
+) -> Path:
+    """Return the built-in or read-only mounted manufacturer catalog path."""
+    values = os.environ if env is None else env
+    configured = str(values.get("LOAD_FORGE_MANUFACTURER_CATALOG_PATH", "")).strip()
+    if configured:
+        return Path(configured)
+    return Path(__file__).resolve().parents[1] / "data" / "manufacturer_drivers.json"
+
+
+MANUFACTURER_DATABASE_PATH = manufacturer_database_path()
 # Publicly reachable but third-party aggregated VituixCAD online database.
 # Keep it separate from manufacturer-original data and review upstream terms
 # before including the generated file in a public redistribution.

@@ -2,8 +2,10 @@
 
 Traccia operativa multi-sessione. Regole d'uso:
 
+- Ultimo aggiornamento: **2026-07-29**. Release corrente: **0.7.0** sul branch
+  `saas`.
 - `[ ]` da fare · `[~]` in corso · `[x]` fatto (aggiungere data e commit).
-- Lavorare un punto alla volta, rispettando il contratto di CLAUDE.md:
+- Lavorare un punto alla volta, rispettando il contratto di `AGENTS.md`:
   ogni modifica a `src/*.py` aggiorna `docs/<modulo>.md` + test nella stessa
   sessione; suite completa `.venv/bin/python tests/test_all.py` prima del commit.
 - A fine sessione aggiornare questo file (stato + note) così la sessione
@@ -13,28 +15,44 @@ Traccia operativa multi-sessione. Regole d'uso:
 
 ## 2. Backend
 
-- [~] **2.3 Nuove topologie: bandpass 4°/6° ordine + radiatore passivo**
-  Riusare il solver a 2 nodi vettorizzato del DCCAV: bandpass = camera sealed
-  + camera ported; PR = ramo porto con massa+compliance+perdita propria.
-  Estendere optimizer, Find a driver, preset `.lfp`, metriche e warning.
-  Lavoro grosso: spezzare in sotto-sessioni (4° ordine → PR → 6° ordine).
-  **Tranche 1 completata nel working tree — 2026-07-14:** bandpass 4° ordine
-  end-to-end. Nuovi `Bandpass4Alignment` / `Bandpass4Box`, starter Qbp,
-  `simulate_bandpass4` (cono interamente racchiuso, solo vent frontale
-  radiante), optimizer a `Vs+Vp` fisso, atlante Vtot/Fp, Monte Carlo,
-  confronto carichi e Finder con righe/apply `Vs`/`Vp`/`Fp`. UI completa con
-  Suggested/Optimized/Manual, perdite delle due camere, geometria vent,
-  metriche, warning e persistenza `.lfp`/share. Facciata/package, README,
-  user guide e doc modulo aggiornati. Verifica: py_compile OK, ruff OK,
-  AppTest bandpass OK, suite completa 74 pass / 0 fail / 0 skip.
-  **Prossima tranche: radiatore passivo; poi bandpass 6° ordine.**
+- [x] **2.3 Nuove topologie: bandpass 4°/6° ordine + radiatore passivo** —
+  2026-07-14/15, commit `73b1169` (bandpass 4°), `bd0240e` (radiatore
+  passivo) e `007c3af` (bandpass 6°). Le tre tranche sono complete
+  end-to-end: dataclass e starter, circuiti acustici, optimizer, Finder,
+  atlante e Monte Carlo dove applicabili, confronto carichi, metriche,
+  warning, geometria dei risuonatori, preset `.lfp`/share e UI. Il radiatore
+  passivo usa massa, compliance, perdita ed escursione proprie; il BP4
+  irradia dal solo vent frontale e il BP6 dai due rami accordati. Facciata,
+  documentazione e regressioni sono sincronizzate. Verifica corrente:
+  suite completa 126 pass / 0 fail / 0 skip.
+
+## 6. SaaS e servizi catalogo
+
+- [~] **6.1 Open Beta autenticata + crawler agent separato** — working tree,
+  2026-07-29, non ancora committato. Implementati: gate OIDC opt-in,
+  account locali SQLite solo per sviluppo, persistenza progetti
+  Firestore/in-memory isolata per tenant, revisioni ottimistiche e Save/Load
+  esclusivamente manuali. `LOAD_FORGE_OPEN_BETA_ENABLED` concede
+  temporaneamente accesso Pro senza cambiare il piano memorizzato. Il crawler
+  è un Cloud Run Job indipendente con manifest allow-list, crawl diretto
+  robots-aware, staging senza permessi di pubblicazione e promozione umana
+  verso release immutabili montate in sola lettura dal SaaS. Documentazione:
+  `docs/saas.md`, `docs/saas-strategy.md`,
+  `docs/crawler-agent-service.md`, `docs/deploy-cloudrun.md`. Verifica:
+  py_compile OK, DCCAV 31 pass, SaaS 3 pass, AppTest OK, suite completa
+  126 pass / 0 fail / 0 skip.
+  **Prossimo gate:** collaudare OIDC e Firestore sul servizio Cloud Run reale,
+  predisporre service account/bucket/manifest del crawler e aggiungere
+  telemetria minima conforme alla strategia privacy prima di aprire la beta.
 
 ## 4. Funzioni innovative
 
-- [ ] **4.4 Import impedenza misurata → estrazione T/S**
-  Upload ZMA/CSV (REW/DATS), fit di Fs/Qms/Qes/Re; metodo massa aggiunta o
-  volume noto per Vas. Confronto curva misurata vs simulata.
-  File: nuovo `src/ts_extract.py` + doc + test, `ui_app.py`.
+- [-] **4.4 Acquisizione risposta/impedenza → estrazione T/S** — prototipo
+  rimosso dal working tree il 2026-07-29: import e overlay FRD/ZMA più una
+  stima T/S parziale non costituivano un flusso operativo utile per il
+  dimensionamento. L'eventuale ripresa richiede calibrazione del modello,
+  confronto misura/simulazione e ottimizzazione guidata; gli export FRD/ZMA
+  simulati restano disponibili.
 
 - [ ] **4.6 Cut list del mobile**
   Da volumi a dimensioni pannelli (proporzioni configurabili, spessore legno,
@@ -285,6 +303,40 @@ Traccia operativa multi-sessione. Regole d'uso:
 ---
 
 ## Fatto
+
+- [x] **5.6 Upload preset consumato una sola volta** — 2026-07-29, commit
+  `c87147b`. I file `.lfp`, JSON e CRW vengono applicati una volta e
+  l'uploader Project viene resettato prima del rerun, eliminando il ciclo
+  infinito con overlay di caricamento bloccato. Regressione AppTest sul doppio
+  upload inclusa.
+
+- [x] **5.7 Audit UI/UX e correzione del flusso principale** — working tree,
+  2026-07-29, non ancora committato. Corretto il bug Streamlit che nel
+  round-trip Box Design → Bass Match cancellava le checkbox condizionali e
+  trasformava i filtri aggregati `All` in `__none__`, svuotando la libreria.
+  L'empty state offre ora `Reset candidate filters`; Bass Match è stato
+  promosso a flusso hero con brief acustico live, CTA unica `Run Bass Match`,
+  risultati driver/load/box e libreria grezza raccolta nel pool candidati
+  secondario. Il pre-filtro per carico elimina prima del solver i candidati
+  incompatibili per sensibilità di riferimento alla tensione scelta, T/S,
+  configurazione o Xmax, mostrando conteggi ammessi/scartati; F3, MOL, ripple,
+  escursione e ritardo restano verifiche post-simulazione. I duplicati fisici
+  tra cataloghi vengono eliminati prima del solver privilegiando il database
+  Load Forge e poi il prezzo; più carichi validi dello stesso driver producono
+  una sola riga, quella del progetto meglio classificato. Filtri Mms/Le, range
+  e risoluzione sono raccolti in sezioni avanzate, come Mms/Cms/Bl/Le10k nel
+  Design. Il Bass Brief espone ora in una griglia densa tutti i constraint di
+  carico, prestazione, driver, libreria e valutazione, mostrando anche gli stati
+  Off/Any/N/A; metriche e CTA occupano una sola fascia. Il run espone una
+  progress bar spessa a tutta larghezza, il completamento è un toast non
+  persistente e la classifica ha altezza fissa con scroll interno, così lo stato
+  normale non allunga la pagina. Etichette e valori del brief sono stati
+  ingranditi; `Desired F3` è stato eliminato dal Finder perché agiva solo come
+  preferenza morbida dell'optimizer e non come constraint affidabile. Etichette
+  automatiche F3/F6/F10 compatte, export raccolti sotto
+  `Export design`, tooltip per Forge Score e badge riscritti come verifiche
+  tecniche. Regressioni AppTest dedicate al flusso hero, al pre-filtro, alla
+  deduplica, al round-trip e al reset incluse.
 
 - [x] **2.4 Find a driver parallelo + cache** — 2026-07-14. Nuovo modulo
   `src/ranking.py` (esposto dalla facciata, doc `docs/ranking.md`):

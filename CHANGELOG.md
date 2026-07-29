@@ -1,13 +1,68 @@
 # Changelog
 
-## Unreleased
+## 0.7.0 (2026-07-29)
 
+- **SaaS foundation**: added an opt-in OIDC account gate, tenant-scoped
+  Firestore project persistence, local in-memory development backend,
+  optimistic project revisions and server-side Free/Pro/Team entitlement
+  seeds; the Project menu can now save, list, refresh and reload authenticated
+  cloud designs without changing the existing non-SaaS deployment.
+- **SaaS safety and deployment contract**: documented Secret Manager-mounted
+  Streamlit OIDC configuration, added tracked secret templates and explicitly
+  reject the local authentication bypass when Cloud Run identifies the
+  process through `K_SERVICE`.
+- **Local account trial**: added a development-only registration, sign-in and
+  sign-out experience backed by a permission-restricted SQLite account
+  registry with normalized emails and salted scrypt password hashes.  Local
+  accounts are rejected on Cloud Run, where registration, verification,
+  recovery and MFA remain the responsibility of the configured OIDC provider.
+- **Open Beta entitlement**: added a server-side promotional override that
+  grants registered Free and Pro accounts the current Pro access tier without
+  changing their stored plan or creating a subscription; the Project menu
+  exposes the active beta state and enforces its effective cloud-project quota.
+- **Experimental measurement import removed**: removed the session-only
+  FRD/ZMA acquisition, overlays and partial free-air T/S estimation because
+  they did not provide a complete measurement-to-design workflow. Existing
+  simulated FRD/ZMA downloads remain available.
+- **UI/UX reliability and focus pass**: Finder catalog filters now survive
+  Bass Match/Box Design round trips instead of collapsing `All` into an empty
+  selection. Empty libraries offer one-click recovery; expert Finder and
+  driver inputs use collapsed advanced sections. Bass Match is now the main
+  product flow: a live acoustic brief leads to one `Run Bass Match` action,
+  results are presented as complete driver/load/box matches and the raw driver
+  library is a collapsible candidate pool. The brief and CTA now share one
+  compact row and a dense always-visible grid exposes every enclosure,
+  performance, driver, library and evaluation constraint, including disabled
+  states. The active scan uses a prominent full-width progress bar, completion
+  feedback is a transient toast and the fixed-height results table scrolls
+  internally, preventing the normal Finder state from growing the page
+  vertically. Constraint labels and values are larger for at-a-glance reading.
+  The Finder-only `Desired F3` control is retired because it was a soft
+  optimizer preference rather than a dependable ranking constraint. Known
+  constraints now reduce the
+  queue before simulation: reference SPL at the selected voltage, driver
+  configuration, T/S validity and required Xmax are pre-filtered per load;
+  the UI reports eligible and skipped counts, while F3, MOL, ripple, excursion
+  and delay remain simulation-derived hard checks. Physical duplicates across
+  catalogs are collapsed before simulation, preferring Load Forge provenance
+  and then the lower available price; multiple successful loads for the same
+  driver collapse to its best-ranked design. Automatic F3/F6/F10 chart labels
+  are compact; design exports are grouped; score and status language is more
+  explicit.
+- **Agent-driven crawler service**: split catalog discovery into an independent
+  Cloud Run Job with direct-website allow-lists, robots-aware bounded crawl
+  plans, coverage-gap prioritization and staging-only credentials.  Aggregated
+  driver databases are rejected by policy; a separate human-approved
+  promotion step validates provenance and physics, then creates an immutable
+  manufacturer-catalog release for the SaaS to mount read-only.
 - **Preset-load completion**: consume each uploaded `.lfp`, JSON or CRW file
   exactly once and reset the Project uploader before rerunning, preventing the
   permanent dimmed loading overlay caused by an infinite preset reload loop.
-- **Validation**: full active suite passes 118/118 with zero failures and zero
-  skips; the focused double-upload regression and standalone Streamlit AppTest
-  also complete without exceptions.
+- **Validation**: full active suite passes 126/126 with zero failures and zero
+  skips; the focused preset double-upload, authenticated SaaS project
+  round-trip, Finder filter round-trip/reset, local registration/login/logout
+  and crawler policy/release regressions plus the standalone Streamlit AppTest
+  complete without exceptions.
 
 ## 0.6.9 (2026-07-28)
 

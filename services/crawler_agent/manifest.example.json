@@ -1,0 +1,30 @@
+{
+  "objective": "Increase direct manufacturer coverage without external databases",
+  "max_targets": 2,
+  "user_agent": "LoadForge-Catalog-Agent/1.0 (+https://github.com/playloud679/a_load_forge)",
+  "targets": [
+    {
+      "target_id": "example-audio-official",
+      "source_kind": "official_manufacturer_site",
+      "allowed_domains": [
+        "manufacturer.example"
+      ],
+      "sitemaps": [
+        "https://manufacturer.example/sitemap.xml"
+      ],
+      "brand": "Example Audio",
+      "include": [
+        "/(woofer|subwoofer|midbass|speaker)/"
+      ],
+      "exclude": [
+        "/(tweeter|kit|accessor)"
+      ],
+      "priority": 90,
+      "max_pages": 300,
+      "max_depth": 2,
+      "sleep_seconds": 1.5,
+      "min_confidence": 0.8,
+      "enabled": true
+    }
+  ]
+}

@@ -12,17 +12,17 @@ gcloud config set project PROJECT_ID
 gcloud services enable run.googleapis.com artifactregistry.googleapis.com
 
 gcloud builds submit \
-  --tag europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.6.9
+  --tag europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.7.0
 
 gcloud run deploy load-forge \
-  --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.6.9 \
+  --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.7.0 \
   --region europe-west1 \
   --platform managed \
   --allow-unauthenticated \
   --memory 8Gi \
   --cpu 4 \
   --min 0 \
-  --max 5 \
+  --max 20 \
   --concurrency 160 \
   --timeout 3600 \
   --port 8080
@@ -31,3 +31,83 @@ gcloud run deploy load-forge \
 Per un SaaS autenticato sostituire `--allow-unauthenticated` con Identity
 Platform o un reverse proxy autenticato. Cloud Run fornisce la porta tramite
 `PORT`; il container la usa senza configurazioni locali aggiuntive.
+
+## Servizio SaaS separato
+
+Il branch `saas` mantiene la modalità account disattivata finché non vengono
+impostate le variabili esplicite.  Creare un servizio separato evita di
+modificare il deployment pubblico durante lo sviluppo:
+
+```bash
+gcloud run deploy load-forge-saas \
+  --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:SAAS_TAG \
+  --region europe-west1 \
+  --platform managed \
+  --allow-unauthenticated \
+  --memory 8Gi \
+  --cpu 4 \
+  --max 20 \
+  --concurrency 8 \
+  --timeout 3600 \
+  --port 8080
+```
+
+`--allow-unauthenticated` permette al browser di raggiungere Streamlit e il
+callback OIDC; l'applicazione blocca il workspace finché `st.user` non contiene
+un'identità autenticata. Le modalità locali
+`LOAD_FORGE_LOCAL_ACCOUNTS` e `LOAD_FORGE_AUTH_BYPASS` vengono rifiutate quando
+Cloud Run espone `K_SERVICE`.
+
+Creare un secret `load-forge-oidc` il cui valore sia un file TOML conforme a
+`.streamlit/secrets.example.toml`, quindi montarlo come file e abilitare il
+backend Firestore:
+
+```bash
+gcloud run services update load-forge-saas \
+  --region europe-west1 \
+  --update-env-vars=LOAD_FORGE_SAAS_ENABLED=true,LOAD_FORGE_OPEN_BETA_ENABLED=true,LOAD_FORGE_SAAS_BACKEND=firestore,LOAD_FORGE_GCP_PROJECT=PROJECT_ID \
+  --update-secrets=/app/.streamlit/secrets.toml=load-forge-oidc:latest \
+  --session-affinity
+```
+
+`LOAD_FORGE_OPEN_BETA_ENABLED=true` concede temporaneamente agli account
+registrati l'accesso Pro senza modificare il piano memorizzato e senza creare
+abbonamenti. Rimuovere o disattivare la variabile ripristina gli entitlement
+normali; non migra né cancella i progetti esistenti.
+
+Il service account di `load-forge-saas` deve avere soltanto il ruolo necessario
+per leggere e scrivere i documenti (`roles/datastore.user`) e l'accesso alla
+versione del secret.  Se il database `(default)` non esiste ancora, crearlo in
+Native mode nella regione scelta prima di attivare il servizio:
+
+```bash
+gcloud firestore databases create \
+  --database='(default)' \
+  --location=europe-west1 \
+  --type=firestore-native \
+  --delete-protection
+```
+
+L'affinità di sessione riduce i cambi istanza durante i reconnect, ma i
+progetti persistenti restano la fonte autorevole: non affidare dati utente alla
+memoria del container.
+
+## Crawler-agent come applicazione separata
+
+Il crawling non gira nel processo Streamlit e non condivide l'identità del
+SaaS. È un Cloud Run Job autonomo, costruito con
+`services/crawler_agent/Dockerfile`, che può leggere il catalogo approvato e
+scrivere soltanto artifact di staging. Non importa LSDB, VituixCAD, Speaker
+Box Lite o altri database aggregati: il manifest accetta esclusivamente domini
+web esplicitamente autorizzati.
+
+La promozione è un secondo comando con identità distinta e approvazione umana;
+crea una release immutabile. Il SaaS monta quella release in sola lettura e
+imposta:
+
+```text
+LOAD_FORGE_MANUFACTURER_CATALOG_PATH=/catalog/releases/manufacturer-RELEASE.json
+```
+
+Build, configurazione del job, policy delle sorgenti e procedura di promozione
+sono descritti in [crawler-agent-service.md](crawler-agent-service.md).

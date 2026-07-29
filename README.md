@@ -4,7 +4,7 @@
   <img src="assets/load_forge_header.png" alt="Load Forge" width="900">
 </p>
 
-Current release: **0.6.9**
+Current release: **0.7.0**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth- and sixth-order bandpass**,
@@ -35,8 +35,20 @@ Current UI highlights:
 - a black sidebar and unified emerald primary-action palette across workspace
   selection, load cards, Run controls, response traces and actionable guidance;
   secondary instruction bands use neutral gray
-- a single main `Run a Match` action with live serial/parallel progress, plus
-  library filters arranged in the wider results workspace
+- a killer-feature-first `Bass Match` workspace: define the bass brief, run one
+  optimized driver/load/box search, then open a winning design in Box Design;
+  its brief shows every operative enclosure, performance, driver, library and
+  evaluation constraint in a compact grid, while counts and the action stay in
+  one row; completion uses a non-layout toast, the active scan gets a prominent
+  full-width progress bar and ranked matches scroll inside a fixed-height table
+  so the normal workspace does not grow beyond the viewport; the raw catalog
+  stays secondary as a collapsible candidate pool; the former Finder
+  `Desired F3` soft optimizer preference is removed because it did not act as
+  a dependable ranking constraint, while
+  reference SPL, driver configuration, T/S validity and required Xmax reduce
+  the simulation queue before the enclosure solver starts; duplicate physical
+  models prefer the Load Forge catalog, then price, and the ranking retains
+  only the best load for each driver
 - a `Ports → Resonator type` submenu for choosing a vent or passive radiator
   without misclassifying the radiator as a separate acoustic load
 - one optimizer behind every automatic box: a `Max extension` / `Balanced` /
@@ -44,12 +56,16 @@ Current UI highlights:
 - contextual response, excursion, impedance, ports, group-delay and atlas tabs;
   Ports is omitted for sealed/infinite-baffle loads, while Atlas is omitted for
   infinite baffle and the passive-radiator resonator
+- compact automatic F3/F6/F10 markers, an explained design-health score and
+  secondary downloads grouped under `Export design`
 - explicit response frequency-window zoom with automatic vertical fit and reset
 - a compact 420 px main response chart that keeps its controls and active-load
   summary above the fold on desktop viewports
 - response pinning for A/B overlays
 - one-click comparison across the supported enclosure loads at equal volume
 - preset save/load and URL-based sharing grouped in the `Project` menu
+- optional SaaS mode with a local registration trial, production OIDC accounts
+  and tenant-scoped cloud projects
 - port-geometry estimates and chuffing diagnostics
 - driver reference metrics, voice-coil corner and T/S-based bandwidth class
 - goal-first driver ranking with strict catalog filters, candidate preview,

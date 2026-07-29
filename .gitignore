@@ -43,3 +43,6 @@ data/*_checkpoint_*.json
 
 # Streamlit secrets (contains API keys — keep local)
 .streamlit/secrets.toml
+
+# Local SaaS account demo (salted password hashes, never source data)
+.local/

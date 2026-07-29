@@ -888,6 +888,9 @@ def _check_frd_zma_exports():
     assert not at.exception, at.exception
     labels = {button.label for button in at.get("download_button")}
     assert {"Download FRD (response)", "Download ZMA (impedance)"} <= labels, labels
+    uploader_labels = {uploader.label for uploader in at.file_uploader}
+    assert "Import response FRD or CSV" not in uploader_labels
+    assert "Import impedance ZMA or CSV" not in uploader_labels
 
 
 test("DCCAV FRD/ZMA exports match the simulated arrays", _check_frd_zma_exports)
@@ -1650,8 +1653,11 @@ def _check_ui_project_preset_upload_finishes():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.run()
-    assert len(at.file_uploader) == 1
-    at.file_uploader[0].set_value(
+    project_upload = next(
+        item for item in at.file_uploader
+        if item.label == "Load preset or CRW driver"
+    )
+    project_upload.set_value(
         ("saved-design.lfp", payload, "application/json")
     ).run(timeout=30)
     assert not at.exception, at.exception
@@ -1659,8 +1665,11 @@ def _check_ui_project_preset_upload_finishes():
     assert abs(float(at.session_state["driver_fs_hz"]) - 33.0) < 1e-9
     assert abs(float(at.session_state["reflex_vb_l"]) - 55.5) < 1e-9
     assert at.session_state["_project_upload_revision"] == 1
-    assert len(at.file_uploader) == 1
-    assert at.file_uploader[0].value is None, (
+    project_upload = next(
+        item for item in at.file_uploader
+        if item.label == "Load preset or CRW driver"
+    )
+    assert project_upload.value is None, (
         "a consumed preset must leave a fresh empty uploader after the rerun"
     )
 
@@ -1668,18 +1677,322 @@ def _check_ui_project_preset_upload_finishes():
     # again after the user has edited the design.
     at.session_state["reflex_vb_l"] = 20.0
     at.run()
-    at.file_uploader[0].set_value(
+    project_upload = next(
+        item for item in at.file_uploader
+        if item.label == "Load preset or CRW driver"
+    )
+    project_upload.set_value(
         ("saved-design.lfp", payload, "application/json")
     ).run(timeout=30)
     assert not at.exception, at.exception
     assert abs(float(at.session_state["reflex_vb_l"]) - 55.5) < 1e-9
     assert at.session_state["_project_upload_revision"] == 2
-    assert at.file_uploader[0].value is None
+    project_upload = next(
+        item for item in at.file_uploader
+        if item.label == "Load preset or CRW driver"
+    )
+    assert project_upload.value is None
 
 
 test(
     "UI project preset upload completes once and resets its uploader",
     _check_ui_project_preset_upload_finishes,
+)
+
+
+def _check_saas_identity_entitlements_and_project_store():
+    import tempfile
+
+    from src import saas
+
+    disabled = saas.SaaSSettings.from_env({})
+    assert not disabled.enabled
+    configured = saas.SaaSSettings.from_env({
+        "LOAD_FORGE_SAAS_ENABLED": "true",
+        "LOAD_FORGE_SAAS_BACKEND": "memory",
+        "LOAD_FORGE_AUTH_BYPASS": "yes",
+        "LOAD_FORGE_DEV_UID": "user-123",
+        "LOAD_FORGE_DEV_EMAIL": "user@example.test",
+    })
+    assert configured.enabled and configured.auth_bypass
+    user = saas.user_from_claims(configured.development_claims())
+    assert user.uid == "user-123"
+    assert user.email == "user@example.test"
+    assert user.tenant_id.startswith("tenant-")
+    assert saas.entitlements_for_plan("free").saved_projects == 3
+    assert saas.entitlements_for_plan("unknown").plan == "free"
+    assert saas.effective_entitlements(user, configured).saved_projects == 3
+
+    open_beta = saas.SaaSSettings.from_env({
+        "LOAD_FORGE_SAAS_ENABLED": "true",
+        "LOAD_FORGE_OPEN_BETA_ENABLED": "true",
+    })
+    beta_entitlements = saas.effective_entitlements(user, open_beta)
+    assert beta_entitlements.plan == "free"
+    assert beta_entitlements.access_tier == "pro"
+    assert beta_entitlements.promotion == "open_beta"
+    assert beta_entitlements.saved_projects == 100
+    assert beta_entitlements.monthly_finder_runs == 1_000
+
+    team_user = saas.user_from_claims({
+        "sub": "team-user",
+        "email": "team@example.test",
+        "tenant_id": "tenant-demo",
+        "plan": "team",
+    })
+    assert team_user.plan == "team"
+    team_beta_entitlements = saas.effective_entitlements(team_user, open_beta)
+    assert team_beta_entitlements.plan == "team"
+    assert team_beta_entitlements.access_tier == "team"
+    assert team_beta_entitlements.saved_projects == 500
+    store = saas.InMemoryProjectStore()
+    created = store.save_project(
+        team_user,
+        "Reference alignment",
+        {"load_type": "Bass reflex", "reflex_vb_l": 55.5},
+        "0.6.9",
+        expected_revision=0,
+    )
+    assert created.revision == 1
+    assert store.load_project(team_user, created.project_id) == created
+    summaries = store.list_projects(team_user)
+    assert len(summaries) == 1
+    assert summaries[0].project_id == created.project_id
+
+    updated = store.save_project(
+        team_user,
+        "Reference alignment v2",
+        {"load_type": "Bass reflex", "reflex_vb_l": 58.0},
+        "0.6.9",
+        project_id=created.project_id,
+        expected_revision=1,
+    )
+    assert updated.revision == 2
+    assert updated.created_at == created.created_at
+    try:
+        store.save_project(
+            team_user,
+            "Stale edit",
+            {"reflex_vb_l": 20.0},
+            "0.6.9",
+            project_id=created.project_id,
+            expected_revision=1,
+        )
+    except saas.ProjectConflictError:
+        pass
+    else:
+        raise AssertionError("stale SaaS project revision was silently overwritten")
+
+    other_tenant = saas.user_from_claims({
+        "sub": "outsider",
+        "tenant_id": "tenant-other",
+    })
+    assert store.load_project(other_tenant, created.project_id) is None
+    assert store.list_projects(other_tenant) == []
+
+    try:
+        saas.SaaSSettings.from_env({
+            "LOAD_FORGE_SAAS_ENABLED": "true",
+            "LOAD_FORGE_AUTH_BYPASS": "true",
+            "K_SERVICE": "load-forge",
+        })
+    except saas.SaaSConfigurationError:
+        pass
+    else:
+        raise AssertionError("Cloud Run accepted the local authentication bypass")
+
+    with tempfile.TemporaryDirectory() as directory:
+        accounts = saas.LocalAccountStore(Path(directory) / "accounts.sqlite3")
+        account = accounts.create_account(
+            "Local tester",
+            "Tester@Example.test",
+            "correct horse battery staple",
+        )
+        assert account.email == "tester@example.test"
+        assert accounts.authenticate(
+            "tester@example.test",
+            "correct horse battery staple",
+        ) == account
+        try:
+            accounts.authenticate("tester@example.test", "wrong-password")
+        except saas.InvalidCredentialsError:
+            pass
+        else:
+            raise AssertionError("local account accepted an invalid password")
+        try:
+            accounts.create_account(
+                "Duplicate",
+                "tester@example.test",
+                "another safe password",
+            )
+        except saas.AccountExistsError:
+            pass
+        else:
+            raise AssertionError("local account accepted a duplicate email")
+
+    try:
+        saas.SaaSSettings.from_env({
+            "LOAD_FORGE_SAAS_ENABLED": "true",
+            "LOAD_FORGE_LOCAL_ACCOUNTS": "true",
+            "K_SERVICE": "load-forge",
+        })
+    except saas.SaaSConfigurationError:
+        pass
+    else:
+        raise AssertionError("Cloud Run accepted the local account registry")
+
+
+test(
+    "SaaS identity, entitlements and tenant project store are isolated",
+    _check_saas_identity_entitlements_and_project_store,
+)
+
+
+def _check_ui_saas_local_project_roundtrip():
+    import os
+
+    from streamlit.testing.v1 import AppTest
+
+    keys = {
+        "LOAD_FORGE_SAAS_ENABLED": "true",
+        "LOAD_FORGE_SAAS_BACKEND": "memory",
+        "LOAD_FORGE_OPEN_BETA_ENABLED": "true",
+        "LOAD_FORGE_AUTH_BYPASS": "true",
+        "LOAD_FORGE_DEV_UID": "apptest-user",
+        "LOAD_FORGE_DEV_EMAIL": "apptest@example.test",
+        "LOAD_FORGE_DEV_NAME": "AppTest user",
+    }
+    previous = {key: os.environ.get(key) for key in keys}
+    try:
+        os.environ.update(keys)
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+        at.session_state["load_type"] = "Bass reflex"
+        at.session_state["box_strategy"] = "Manual"
+        at.session_state["reflex_vb_l"] = 55.5
+        at.run()
+        assert not at.exception, at.exception
+        assert any(
+            "AppTest user · Open Beta · full access" in item.value
+            for item in at.caption
+        )
+        assert any("0 / 100 saved projects" in item.value for item in at.caption)
+        project_name = next(
+            item for item in at.text_input if item.label == "Cloud project name"
+        )
+        project_name.set_value("Saved SaaS alignment").run()
+        save = next(
+            button for button in at.button
+            if button.label == "Save cloud project"
+        )
+        save.click().run()
+        assert not at.exception, at.exception
+        assert at.session_state["_saas_active_project_id"].startswith("prj_")
+        assert at.session_state["_saas_active_project_revision"] == 1
+        assert any(
+            item.label == "Open cloud project" for item in at.selectbox
+        ), "saved cloud project must be selectable"
+
+        at.session_state["reflex_vb_l"] = 20.0
+        at.run()
+        load = next(
+            button for button in at.button
+            if button.label == "Load"
+        )
+        load.click().run()
+        assert not at.exception, at.exception
+        assert abs(float(at.session_state["reflex_vb_l"]) - 55.5) < 1e-9
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
+test(
+    "UI SaaS mode saves and reloads an authenticated cloud project",
+    _check_ui_saas_local_project_roundtrip,
+)
+
+
+def _check_ui_saas_local_registration_login_logout():
+    import os
+    import tempfile
+
+    from streamlit.testing.v1 import AppTest
+
+    with tempfile.TemporaryDirectory() as directory:
+        keys = {
+            "LOAD_FORGE_SAAS_ENABLED": "true",
+            "LOAD_FORGE_SAAS_BACKEND": "memory",
+            "LOAD_FORGE_LOCAL_ACCOUNTS": "true",
+            "LOAD_FORGE_LOCAL_ACCOUNT_DATABASE": str(
+                Path(directory) / "accounts.sqlite3"
+            ),
+            "LOAD_FORGE_AUTH_BYPASS": None,
+            "K_SERVICE": None,
+        }
+        previous = {key: os.environ.get(key) for key in keys}
+        try:
+            for key, value in keys.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+            at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+            at.run()
+            assert not at.exception, at.exception
+            account_mode = next(item for item in at.radio if item.label == "Account")
+            account_mode.set_value("Create account").run()
+            assert not at.exception, at.exception
+
+            fields = {item.key: item for item in at.text_input}
+            fields["_local_register_name"].set_value("Registration tester")
+            fields["_local_register_email"].set_value("register@example.test")
+            fields["_local_register_password"].set_value("a safe demo password")
+            fields["_local_register_confirmation"].set_value("a safe demo password")
+            create = next(
+                button for button in at.button if button.label == "Create account"
+            )
+            create.click().run()
+            assert not at.exception, at.exception
+            assert at.session_state["_local_saas_account"]["email"] == (
+                "register@example.test"
+            )
+            assert any(
+                "Registration tester · Free plan" in item.value
+                for item in at.caption
+            )
+
+            sign_out = next(
+                button for button in at.button if button.label == "Sign out"
+            )
+            sign_out.click().run()
+            assert not at.exception, at.exception
+            assert "_local_saas_account" not in at.session_state
+
+            fields = {item.key: item for item in at.text_input}
+            fields["_local_sign_in_email"].set_value("register@example.test")
+            fields["_local_sign_in_password"].set_value("a safe demo password")
+            sign_in = next(
+                button for button in at.button if button.label == "Sign in"
+            )
+            sign_in.click().run()
+            assert not at.exception, at.exception
+            assert at.session_state["_local_saas_account"]["email"] == (
+                "register@example.test"
+            )
+        finally:
+            for key, value in previous.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+
+
+test(
+    "UI SaaS local account registers, signs out and signs back in",
+    _check_ui_saas_local_registration_login_logout,
 )
 
 
@@ -1939,7 +2252,12 @@ def _check_response_chart_drops_non_finite_points_and_keeps_label_scale_clean():
     rows = [_ui._cursor_row(result, "F3", 10.0)]
     assert rows[0]["mol_db"] == 90.0
     cursor_spec = _ui._cursor_layer(rows, show_mol=True).to_dict()
-    assert "MOL 90.0 dB" in str(cursor_spec), cursor_spec
+    assert "F3 · 10.0 Hz" in str(cursor_spec), cursor_spec
+    assert "MOL dB" in str(cursor_spec), cursor_spec
+    assert "MOL 90.0 dB" not in str(cursor_spec), (
+        "automatic labels must stay compact; MOL belongs in the tooltip",
+        cursor_spec,
+    )
     chart = _ui._plot_response(result, rows)
     spec = chart.to_dict()
     spec_text = str(spec)
@@ -3051,6 +3369,251 @@ Equivalent Cas air load                Vas                m3         0.0700""",
 test("Generic T/S crawler discovers, normalizes and safely merges drivers", _check_generic_ts_crawler_discovers_normalizes_and_merges)
 
 
+def _check_crawler_agent_policy_planning_and_staging():
+    import json
+    import tempfile
+    from types import SimpleNamespace
+
+    from services.crawler_agent import agent
+    from services.crawler_agent.model import (
+        AgentManifest,
+        AgentPolicyError,
+        build_plan,
+    )
+
+    manifest = AgentManifest.from_mapping({
+        "objective": "Fill direct-source brand gaps",
+        "max_targets": 1,
+        "user_agent": "LoadForgeCrawler/1.0 (crawler@example.test)",
+        "targets": [
+            {
+                "target_id": "known-official",
+                "source_kind": "official_manufacturer_site",
+                "allowed_domains": ["known.example"],
+                "seeds": ["https://known.example/products"],
+                "brand": "Known",
+                "priority": 60,
+                "max_pages": 10,
+                "sleep_seconds": 0.5,
+            },
+            {
+                "target_id": "missing-official",
+                "source_kind": "official_manufacturer_site",
+                "allowed_domains": ["missing.example"],
+                "sitemaps": ["https://missing.example/sitemap.xml"],
+                "brand": "Missing",
+                "priority": 50,
+                "max_pages": 10,
+                "sleep_seconds": 0.5,
+            },
+        ],
+    })
+    plan = build_plan(manifest, {"presets": [{"brand": "Known"}]})
+    assert [item.target.target_id for item in plan.selected] == ["missing-official"]
+    assert "brand absent" in " ".join(plan.selected[0].reasons)
+
+    forbidden_targets = [
+        {
+            "target_id": "copied-db",
+            "source_kind": "aggregated_database",
+            "allowed_domains": ["example.test"],
+            "seeds": ["https://example.test/drivers"],
+        },
+        {
+            "target_id": "hidden-lsdb",
+            "source_kind": "authorized_retailer",
+            "allowed_domains": ["example.test"],
+            "seeds": ["https://example.test/loudspeaker_database/export"],
+        },
+    ]
+    for target in forbidden_targets:
+        try:
+            AgentManifest.from_mapping({
+                "user_agent": "LoadForgeCrawler/1.0 (crawler@example.test)",
+                "targets": [target],
+            })
+        except AgentPolicyError:
+            pass
+        else:
+            raise AssertionError(f"forbidden source accepted: {target}")
+
+    selected = plan.selected[0]
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        command = agent.command_for_target(selected, manifest, root / "target")
+        assert "--allow-domain" in command
+        assert "missing.example" in command
+        assert "--sitemap" in command
+        assert "--fresh" in command
+        assert str(root / "target" / "candidate_catalog.json") in command
+
+        original_run = agent.subprocess.run
+        try:
+            agent.subprocess.run = lambda *args, **kwargs: SimpleNamespace(
+                returncode=0,
+                stdout="staged",
+                stderr="",
+            )
+            report_path = agent.run_plan(
+                plan,
+                manifest,
+                root / "runs",
+                run_id="crawl-test",
+            )
+        finally:
+            agent.subprocess.run = original_run
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        assert report["publication_state"] == "staging_only"
+        assert report["results"][0]["candidate_catalog"].startswith(
+            "missing-official/"
+        )
+        assert not (root / "manufacturer_drivers.json").exists()
+        try:
+            agent.run_plan(
+                plan,
+                manifest,
+                root / "runs",
+                run_id="../catalog",
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("crawler run_id escaped the staging root")
+
+
+test(
+    "Crawler agent accepts direct websites, rejects databases and stages only",
+    _check_crawler_agent_policy_planning_and_staging,
+)
+
+
+def _check_crawler_agent_release_is_approved_and_immutable():
+    import json
+    import tempfile
+
+    from services.crawler_agent.model import AgentManifest
+    from services.crawler_agent.release import build_release
+    from src import presets
+
+    candidate = {
+        "name": "WEB: Acme LF12",
+        "brand": "Acme",
+        "model": "LF12",
+        "source": "Official manufacturer site",
+        "url": "https://acme.example/products/lf12",
+        "driver": {
+            "fs_hz": 31.0,
+            "vas_l": 62.0,
+            "qts": 0.38,
+            "qms": 4.8,
+            "re_ohm": 5.6,
+            "sd_cm2": 530.0,
+        },
+        "website_fields": {"confidence": 0.93},
+    }
+    manifest = AgentManifest.from_mapping({
+        "user_agent": "LoadForgeCrawler/1.0 (crawler@example.test)",
+        "targets": [
+            {
+                "target_id": "acme-official",
+                "source_kind": "official_manufacturer_site",
+                "allowed_domains": ["acme.example"],
+                "seeds": ["https://acme.example/products"],
+            },
+        ],
+    })
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        baseline_path = root / "baseline.json"
+        candidate_path = root / "acme-official" / "candidate_catalog.json"
+        release_path = root / "releases" / "manufacturer-r1.json"
+        baseline_path.write_text('{"presets": []}\n', encoding="utf-8")
+        candidate_path.parent.mkdir()
+        candidate_path.write_text(
+            json.dumps({"presets": [candidate]}),
+            encoding="utf-8",
+        )
+        payload = build_release(
+            baseline_path,
+            [candidate_path],
+            release_path,
+            manifest=manifest,
+            release_id="manufacturer-r1",
+            approved_by="reviewer@example.test",
+        )
+        assert payload["usable_presets"] == 1
+        assert payload["merge_stats"]["added"] == 1
+        assert len(payload["catalog_sha256"]) == 64
+        assert release_path.exists()
+        try:
+            build_release(
+                baseline_path,
+                [candidate_path],
+                release_path,
+                manifest=manifest,
+                release_id="manufacturer-r1",
+                approved_by="reviewer@example.test",
+            )
+        except FileExistsError:
+            pass
+        else:
+            raise AssertionError("immutable crawler release was overwritten")
+
+        forbidden = dict(candidate)
+        forbidden["source"] = "LSDB"
+        candidate_path.write_text(
+            json.dumps({"presets": [forbidden]}),
+            encoding="utf-8",
+        )
+        try:
+            build_release(
+                baseline_path,
+                [candidate_path],
+                root / "releases" / "forbidden.json",
+                manifest=manifest,
+                release_id="forbidden",
+                approved_by="reviewer@example.test",
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("aggregated database entered a direct-source release")
+
+        off_domain = dict(candidate)
+        off_domain["url"] = "https://unlisted.example/products/lf12"
+        candidate_path.write_text(
+            json.dumps({"presets": [off_domain]}),
+            encoding="utf-8",
+        )
+        try:
+            build_release(
+                baseline_path,
+                [candidate_path],
+                root / "releases" / "off-domain.json",
+                manifest=manifest,
+                release_id="off-domain",
+                approved_by="reviewer@example.test",
+            )
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("off-domain candidate bypassed the manifest allow-list")
+
+        configured = presets.manufacturer_database_path({
+            "LOAD_FORGE_MANUFACTURER_CATALOG_PATH": str(release_path),
+        })
+        assert configured == release_path
+        assert presets.manufacturer_database_path({}).name == (
+            "manufacturer_drivers.json"
+        )
+
+
+test(
+    "Crawler release requires approval, validates provenance and is immutable",
+    _check_crawler_agent_release_is_approved_and_immutable,
+)
+
+
 def _check_manufacturer_deduper_only_removes_identical_subsets():
     from tools import dedupe_manufacturer_drivers as deduper
 
@@ -3992,6 +4555,73 @@ test(
 )
 
 
+def _check_ui_finder_prefilters_known_driver_limits():
+    import ui_app as _ui
+
+    ts = _kef_b110_ts()
+    reference = _dccav.driver_reference_metrics(ts)
+    plausible_peak_db = (
+        reference.spl_2v83_db + _ui._FINDER_SPL_PREFILTER_HEADROOM_DB
+    )
+    assert _ui._finder_candidate_precheck(
+        ts, "DCCAV", 2.83, plausible_peak_db, 3.0
+    ) is None
+    assert _ui._finder_candidate_precheck(
+        ts, "DCCAV", 2.83, plausible_peak_db + 0.1, 3.0
+    ) == "reference SPL"
+
+    no_xmax = replace(ts, xmax_mm=0.0)
+    assert _ui._finder_candidate_precheck(
+        no_xmax, "DCCAV", 2.83, 0.0, 3.0
+    ) == "missing Xmax"
+    assert _ui._finder_candidate_precheck(
+        no_xmax, "Sealed", 2.83, 0.0, 3.0
+    ) is None
+
+
+test(
+    "UI Finder prefilters reference SPL and known load requirements",
+    _check_ui_finder_prefilters_known_driver_limits,
+)
+
+
+def _check_ui_finder_keeps_one_row_per_physical_driver():
+    import ui_app as _ui
+
+    kef = "KEF B110B article example"
+    unique_names, duplicate_names = _ui._deduplicate_finder_preset_names(
+        [kef, kef, "Beyma 12CMV2"]
+    )
+    assert unique_names == [kef, "Beyma 12CMV2"], unique_names
+    assert duplicate_names == 1
+
+    own_beyma = "Beyma 12P80Nd/V2"
+    cheaper_lsdb_beyma = "LSDB: Beyma 12P80Nd V2"
+    preferred_names, duplicate_names = _ui._deduplicate_finder_preset_names(
+        [cheaper_lsdb_beyma, own_beyma]
+    )
+    assert preferred_names == [own_beyma], preferred_names
+    assert duplicate_names == 1
+
+    rows = [
+        {"Driver": kef, "Load": "Bass reflex", "F3 Hz": 32.0},
+        {"Driver": kef, "Load": "DCCAV", "F3 Hz": 35.0},
+        {"Driver": "Beyma 12CMV2", "Load": "DCCAV", "F3 Hz": 40.0},
+    ]
+    unique_rows, collapsed_rows = _ui._deduplicate_finder_result_rows(rows)
+    assert collapsed_rows == 1
+    assert [(row["Driver"], row["Load"]) for row in unique_rows] == [
+        (kef, "Bass reflex"),
+        ("Beyma 12CMV2", "DCCAV"),
+    ]
+
+
+test(
+    "UI Finder keeps one ranked row per physical driver",
+    _check_ui_finder_keeps_one_row_per_physical_driver,
+)
+
+
 def _check_ui_batch_finder_supports_reflex_volume():
     import ui_app as _ui
 
@@ -4377,6 +5007,7 @@ def _check_ui_finder_starts_from_practical_defaults():
         ("batch_f_max", 10.0),
     ):
         at.session_state[key] = value
+    at.session_state["finder_target_f3_hz"] = 35.0
     at.session_state["workspace_mode"] = "Bass Match"
     at.run()
     assert not at.exception, at.exception
@@ -4389,7 +5020,8 @@ def _check_ui_finder_starts_from_practical_defaults():
     assert "Drivers to evaluate" not in numbers, numbers
     assert numbers["Top results to show"] == 20, numbers
     assert numbers["Simulation resolution (points)"] == 240, numbers
-    assert numbers["Desired bass extension F3 (Hz, 0 = deepest)"] == 0.0, numbers
+    assert "Desired bass extension F3 (Hz, 0 = deepest)" not in numbers
+    assert "finder_target_f3_hz" not in at.session_state
     assert numbers["Allowed response ripple (dB)"] == 3.0, numbers
     assert numbers["Maximum excursion (× driver Xmax)"] == 1.0, numbers
     assert numbers["Maximum group delay (ms)"] == 30.0, numbers
@@ -4419,7 +5051,6 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
     number_labels = {
         "Maximum volume (L)",
         "Comparison voltage (V)",
-        "Desired bass extension F3 (Hz, 0 = deepest)",
         "Allowed response ripple (dB)",
         "Maximum excursion (× driver Xmax)",
         "Maximum group delay (ms)",
@@ -4476,6 +5107,15 @@ def _check_ui_finder_main_action_runs_search():
 
     import ui_app as _ui
 
+    ui_source = (ROOT / "ui_app.py").read_text(encoding="utf-8")
+    assert "height: 1.55rem !important;" in ui_source
+    assert (
+        "\n    if run_requested:\n"
+        "        _run_find_driver_search(match_preset_names)\n"
+    ) in ui_source, (
+        "the ranking must start outside the CTA column so progress is full-width"
+    )
+
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
@@ -4486,6 +5126,53 @@ def _check_ui_finder_main_action_runs_search():
     at.run()
     assert not at.exception, at.exception
 
+    assert not at.title, "the compact Finder must not spend a row on a page title"
+    assert any(
+        "Bass Match · Your bass brief" in item.value
+        for item in at.markdown
+    )
+    assert {
+        metric.label for metric in at.metric
+    } >= {
+        "Pre-qualified",
+        "Ready simulations",
+        "Skipped a priori",
+        "Duplicates removed",
+    }
+    constraint_markup = next(
+        item.value for item in at.markdown
+        if item.value.startswith("<div class='finder-constraint-grid'>")
+    )
+    for constraint in (
+        "Loads",
+        "Configuration",
+        "Resonator",
+        "Maximum box",
+        "Voltage",
+        "Optimization",
+        "Minimum SPL",
+        "Minimum MOL @ F3",
+        "Maximum ripple",
+        "Maximum excursion",
+        "Maximum delay",
+        "Maximum Mms",
+        "Maximum Le",
+        "Search",
+        "Provenance",
+        "Brand",
+        "Size",
+        "Class",
+        "Maximum price",
+        "Evaluation range",
+        "Resolution",
+        "Results shown",
+        "Candidate pool",
+    ):
+        assert constraint in constraint_markup, constraint
+    assert any(
+        expander.label.startswith("Candidate pool ·")
+        for expander in at.expander
+    ), "the raw driver catalog must remain a secondary candidate pool"
     find_button = next(
         button for button in list(at.button) + list(at.sidebar.button)
         if button.label == _ui._FINDER_CTA_LABEL
@@ -4493,9 +5180,16 @@ def _check_ui_finder_main_action_runs_search():
     find_button.click().run()
     assert not at.exception, at.exception
     assert at.session_state["batch_results"], "main action must produce ranked rows"
-    successes = at.get("success")
-    assert successes, "every match must leave its completed success banner visible"
-    assert "Match complete" in successes[0].proto.body, successes[0].proto.body
+    assert not at.get("success"), (
+        "completion must stay compact instead of adding a full-height banner"
+    )
+    assert not any(
+        "Bass Match complete" in caption.value for caption in at.caption
+    ), "completion must not consume permanent page height"
+    assert "_finder_match_completion" not in at.session_state, (
+        "the one-shot completion message must be consumed after the rerun"
+    )
+    assert "Your best matches" in [sub.value for sub in at.subheader]
     assert at.dataframe, "ranked rows must appear in the main workspace"
     scanned = at.session_state["batch_result_context"][2]
     assert scanned == 1, (
@@ -4537,6 +5231,56 @@ def _check_ui_design_state_survives_workspace_roundtrip():
 test(
     "UI design edits survive a Finder workspace round trip",
     _check_ui_design_state_survives_workspace_roundtrip,
+)
+
+
+def _check_ui_finder_filters_survive_workspace_roundtrip_and_reset():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
+    at.session_state["workspace_mode"] = "Bass Match"
+    at.run()
+    assert not at.exception, at.exception
+    assert at.dataframe, "the default Finder library must not be empty"
+
+    at.session_state["workspace_mode"] = "Box Design"
+    at.run()
+    assert not at.exception, at.exception
+    at.session_state["workspace_mode"] = "Bass Match"
+    at.run()
+    assert not at.exception, at.exception
+
+    filter_keys = (
+        "preset_source_filter",
+        "preset_family_filter",
+        "preset_size_filter",
+        "preset_class_filter",
+    )
+    for key in filter_keys:
+        assert at.session_state[key] == ["All"], (key, at.session_state[key])
+    assert at.dataframe, "a Design round trip must preserve the Finder library"
+    assert not any(
+        "No drivers match" in warning.value for warning in at.warning
+    )
+
+    at.session_state["preset_search"] = "__definitely_no_driver__"
+    at.run()
+    assert any("No drivers match" in warning.value for warning in at.warning)
+    reset = next(
+        button for button in at.button
+        if button.label == "Reset candidate filters"
+    )
+    reset.click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["preset_search"] == ""
+    for key in filter_keys:
+        assert at.session_state[key] == ["All"], (key, at.session_state[key])
+    assert at.dataframe, "reset must restore the browsable driver library"
+
+
+test(
+    "UI Finder filters survive workspace round trips and empty states reset",
+    _check_ui_finder_filters_survive_workspace_roundtrip_and_reset,
 )
 
 
@@ -4735,8 +5479,8 @@ def _check_ui_progressive_disclosure():
     assert at.session_state["workspace_mode"] == "Bass Match"
     assert at.session_state["load_type"] == "DCCAV"
     
-    assert not any(b.label == "Run a Match" for b in at.sidebar.button)
-    assert sum(b.label == "Run a Match" for b in at.button) == 1
+    assert not any(b.label == "Run Bass Match" for b in at.sidebar.button)
+    assert sum(b.label == "Run Bass Match" for b in at.button) == 1
     assert at.session_state["driver_preset_name"] == "KEF B110B article example"
 
     at.session_state["workspace_mode"] = "Box Design"
@@ -4828,7 +5572,6 @@ def _check_ui_finder_goal_inputs_always_active():
         "Maximum Le (mH, 0 = off)",
     )
     goal_labels = (
-        "Desired bass extension F3 (Hz, 0 = deepest)",
         "Allowed response ripple (dB)",
         "Maximum excursion (× driver Xmax)",
         "Maximum group delay (ms)",
@@ -5375,7 +6118,7 @@ def _check_ui_finder_comprehensive_ux_regression():
     1. Visual workspace tabs and logical sidebar order (1, 2, 3 / 4 after search)
     2. Clicking the six load-type cards
     3. Multi-select (Finder) vs single-select (Design) behaviour
-    4. Single CTA "Run a Match" presence and state
+    4. Single CTA "Run Bass Match" presence and state
     5. Title/caption before and after the search
     6. Price column is conditional on price data
     7. No literal "None" in the results table
@@ -5449,7 +6192,7 @@ def _check_ui_finder_comprehensive_ux_regression():
         assert not at_design.exception, at_design.exception
         assert at_design.session_state["load_type"] == lt, lt
 
-    # -- 4. Single CTA "Run a Match" -----------------------------------------
+    # -- 4. Single CTA "Run Bass Match" --------------------------------------
     at.session_state["preset_search"] = "KEF B110B article example"
     at.session_state["finder_volume_l"] = 40.0
     at.session_state["finder_result_count"] = 5
@@ -5470,19 +6213,28 @@ def _check_ui_finder_comprehensive_ux_regression():
     assert not find_btn.disabled
 
     # -- 5. Title / caption before and after the search ----------------------
-    main_subs = [s.value for s in at.subheader]
-    assert "Candidate library" in main_subs, main_subs
-    caps_before = [c.value for c in at.caption]
-    assert any("All matching loudspeakers" in c for c in caps_before), caps_before
+    assert not at.title
+    assert any(
+        "Bass Match · Your bass brief" in item.value
+        for item in at.markdown
+    )
+    assert any(
+        expander.label.startswith("Candidate pool ·")
+        for expander in at.expander
+    )
+    constraint_markup = next(
+        item.value for item in at.markdown
+        if item.value.startswith("<div class='finder-constraint-grid'>")
+    )
+    assert "Minimum SPL" in constraint_markup
+    assert "Evaluation range" in constraint_markup
+    assert "Candidate pool" in constraint_markup
 
     find_btn.click().run()
     assert not at.exception, at.exception
     assert at.session_state["batch_results"], "search must produce results"
     result_subheaders = [s.value for s in at.subheader]
-    assert "Recommended drivers" in result_subheaders
-    assert result_subheaders.index("Recommended drivers") < result_subheaders.index(
-        "Candidate library"
-    ), result_subheaders
+    assert "Your best matches" in result_subheaders
     caps_after = [c.value for c in at.caption]
     assert any("usable candidates" in c for c in caps_after), caps_after
     assert at.dataframe, "ranked table must render"
@@ -5526,7 +6278,7 @@ def _check_ui_finder_comprehensive_ux_regression():
     min_spl_find.click().run()
     assert not at.exception, at.exception
     assert at.session_state["batch_results"] == []
-    assert "No matching drivers" in [sub.value for sub in at.subheader]
+    assert "No Bass Match result" in [sub.value for sub in at.subheader]
     assert any(
         "minimum SPL of 150.0 dB" in warning.value for warning in at.warning
     )
