@@ -1010,7 +1010,15 @@ def _render_project_menu() -> None:
                 st.session_state["_applied_share_token"] = None
                 st.query_params.pop("d", None)
                 st.rerun()
-        upload = st.file_uploader("Load preset or CRW driver", type=["lfp", "json", "crw"])
+        # Rotate the widget key after a successful load.  A file uploader keeps
+        # its value across reruns; reusing the same key here would therefore
+        # reload the same preset and call st.rerun() forever.
+        upload_revision = int(st.session_state.get("_project_upload_revision", 0))
+        upload = st.file_uploader(
+            "Load preset or CRW driver",
+            type=["lfp", "json", "crw"],
+            key=f"_project_upload_{upload_revision}",
+        )
         if upload is not None:
             try:
                 if upload.name.casefold().endswith(".crw"):
@@ -1023,12 +1031,14 @@ def _render_project_menu() -> None:
                     )
                     _apply_driver_preset(driver)
                     st.session_state["driver_preset_name"] = "Custom driver"
+                    st.session_state["_project_upload_revision"] = upload_revision + 1
                     st.toast(f"Loaded CRW driver: {crw.name}")
                     st.rerun()
                 payload = json.loads(upload.getvalue().decode("utf-8"))
                 payload.pop("_load_forge_meta", None)
                 _snapshot_design_state()
                 count = _apply_loaded_params(payload)
+                st.session_state["_project_upload_revision"] = upload_revision + 1
                 st.toast(f"Loaded {count} parameters")
                 st.rerun()
             except Exception as exc:

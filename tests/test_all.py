@@ -1635,6 +1635,54 @@ def _check_ui_share_link_roundtrip():
 test("UI share link round-trips the design through the URL", _check_ui_share_link_roundtrip)
 
 
+def _check_ui_project_preset_upload_finishes():
+    import json
+
+    from streamlit.testing.v1 import AppTest
+
+    payload = json.dumps({
+        "_load_forge_meta": {"version": "0.6.9", "format": 1},
+        "load_type": "Bass reflex",
+        "driver_fs_hz": 33.0,
+        "reflex_vb_l": 55.5,
+        "box_strategy": "Manual",
+    }).encode("utf-8")
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.run()
+    assert len(at.file_uploader) == 1
+    at.file_uploader[0].set_value(
+        ("saved-design.lfp", payload, "application/json")
+    ).run(timeout=30)
+    assert not at.exception, at.exception
+    assert at.session_state["load_type"] == "Bass reflex"
+    assert abs(float(at.session_state["driver_fs_hz"]) - 33.0) < 1e-9
+    assert abs(float(at.session_state["reflex_vb_l"]) - 55.5) < 1e-9
+    assert at.session_state["_project_upload_revision"] == 1
+    assert len(at.file_uploader) == 1
+    assert at.file_uploader[0].value is None, (
+        "a consumed preset must leave a fresh empty uploader after the rerun"
+    )
+
+    # A fresh uploader must still allow the exact same saved file to be loaded
+    # again after the user has edited the design.
+    at.session_state["reflex_vb_l"] = 20.0
+    at.run()
+    at.file_uploader[0].set_value(
+        ("saved-design.lfp", payload, "application/json")
+    ).run(timeout=30)
+    assert not at.exception, at.exception
+    assert abs(float(at.session_state["reflex_vb_l"]) - 55.5) < 1e-9
+    assert at.session_state["_project_upload_revision"] == 2
+    assert at.file_uploader[0].value is None
+
+
+test(
+    "UI project preset upload completes once and resets its uploader",
+    _check_ui_project_preset_upload_finishes,
+)
+
+
 def _check_driver_bandwidth_classifier():
     sub = _dccav.classify_driver_bandwidth(_dccav.get_driver_preset("Dayton Audio RSS315HO-4"))
     assert sub.driver_class == "Subwoofer", sub

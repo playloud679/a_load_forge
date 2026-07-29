@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- **Preset-load completion**: consume each uploaded `.lfp`, JSON or CRW file
+  exactly once and reset the Project uploader before rerunning, preventing the
+  permanent dimmed loading overlay caused by an infinite preset reload loop.
+- **Validation**: full active suite passes 118/118 with zero failures and zero
+  skips; the focused double-upload regression and standalone Streamlit AppTest
+  also complete without exceptions.
+
 ## 0.6.9 (2026-07-28)
 
 - **Compact Finder results**: removed brand, F6, F10, ripple and maximum
