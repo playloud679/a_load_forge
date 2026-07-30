@@ -34,7 +34,11 @@ old value, reason and confidence under
 
 The audit compares nominal frame diameter with the circular effective-piston
 diameter `sqrt(4*Sd/pi)`. These are deliberately not treated as equal: the
-effective piston is normally smaller. Round-driver records that remain
+effective piston is normally smaller. A 70–115% effective/nominal diameter
+window matches the crawler and keeps tolerance for differing suspensions without
+accepting model-family numbers as inches. The Markaudio Alpair 10P is a
+verified example: the manufacturer specifies a 5 in cone and 88.25 cm² `Sd`,
+so the model's `10P` token must not become a 10 in size. Round-driver records that remain
 physically incompatible are marked
 `quality_status=rejected_size_sd_conflict` and excluded by the runtime catalog;
 compound rectangular dimensions are not subjected to the circular check.

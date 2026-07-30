@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.7.1 (2026-07-30)
+
+- **Automatic browser projects**: Load Forge now creates and autosaves a
+  project in browser IndexedDB. Zero or one stored project opens
+  automatically; with multiple projects the regular workspace opens with the
+  Project section expanded in the sidebar. The section can rename, create,
+  switch and download the active browser-local project.
+- **Complete LFP v2**: portable `.lfp` backups now contain the Box Design
+  parameters plus Bass Match constraints, library filters, ranked results and
+  result context. Strict-JSON normalization removes non-finite placeholders;
+  legacy flat format-v1 presets remain importable.
+- **Fresh Bass Match results**: changing a calculation input or the filtered
+  candidate pool (including the driver-size filter) now hides stale rankings
+  and asks for a new Bass Match run.
+- **Coherent driver diameters**: external nominal sizes are checked against
+  the effective piston diameter represented by `Sd` with a tolerant physical
+  window. Incompatible model-number guesses fall back to the nearest
+  conventional size class; the verified Markaudio Alpair 10P is corrected
+  from 10 in to 5 in. The tolerance was tightened after the Ciare FXC8.50W
+  exposed a false-positive 10-inch label; its 211.2 cm² piston now resolves to
+  the verified 8-inch class.
+- **Project startup**: removed the separate multi-project landing page.
+  Multiple browser projects now open the regular app with the collapsible
+  Project section expanded automatically in the sidebar.
+- **Validation**: full active suite passes 128/128 with zero failures and zero
+  skips; Streamlit AppTest, the complete-LFP regression and the multi-project
+  non-blocking sidebar-startup regression also pass.
+
 ## 0.7.0 (2026-07-29)
 
 - **SaaS foundation**: added an opt-in OIDC account gate, tenant-scoped

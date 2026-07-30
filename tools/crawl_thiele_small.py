@@ -918,10 +918,10 @@ def _size_matches_sd(size_in: float, sd_cm2: float | None) -> bool:
     if not sd_cm2 or sd_cm2 <= 0.0:
         return True
     effective_diameter_in = math.sqrt(4.0 * sd_cm2 / math.pi) / 2.54
-    # Model codes are weaker evidence than an explicitly labelled dimension,
-    # so require a conventional cone/frame proportion here. The broader audit
-    # tolerance is reserved for already published nominal sizes.
-    return 0.55 <= effective_diameter_in / size_in <= 1.35
+    # The effective piston must remain smaller than, but reasonably close to,
+    # the nominal frame. This rejects size-like model numbers and bad catalog
+    # labels before they become filter metadata.
+    return 0.70 <= effective_diameter_in / size_in <= 1.15
 
 
 def infer_size_in(

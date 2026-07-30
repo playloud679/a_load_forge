@@ -17,9 +17,12 @@ the active workspace has a matching illuminated outline.
   only the catalog candidates allowed by the sidebar filters, and preserves the
   current design until a candidate is explicitly applied.
 
-The **Project** popover sits at the top of the sidebar and contains preset
-save/load and URL sharing. The two primary workspace tabs therefore use the
-full width below the header.
+The collapsible **Project** section sits at the top of the sidebar. Load Forge creates a
+browser-local project automatically on first use and autosaves it after every
+interaction. One existing project opens automatically; when the browser holds
+several projects, the normal app opens immediately with **Project** expanded so
+one can be opened or **New project** can be chosen. The section renames, creates,
+switches, downloads and imports projects without a separate landing page.
 
 ## Inputs
 
@@ -407,9 +410,15 @@ same `group_delay_ms` data is also exported in the response CSV.
 
 ## Presets and Export
 
-- In the **Project** popover, **Save preset** downloads current parameters,
-  including load and box strategy, as `.lfp` JSON.
-- In the same popover, **Load preset** reloads `.lfp` or JSON parameter files.
+- The active project is autosaved in this browser through IndexedDB. Browser
+  projects remain on the current device and browser profile; private browsing,
+  clearing site data or changing browser does not carry them across.
+- **Download .lfp** creates a portable backup containing the complete design
+  plus the Bass Match brief, library filters, ranked results and result
+  context. Non-finite simulation placeholders are normalized to strict JSON.
+- **Open .lfp project or CRW driver** restores current v2 projects. Older flat
+  `.lfp` and JSON parameter presets remain compatible and load into the active
+  project.
 - **Share via URL** serializes the current design into the browser URL so the
   same state can be reopened or sent to someone else; older presets using the
   former auto-align fields remain compatible.

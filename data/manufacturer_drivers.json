@@ -647928,12 +647928,27 @@
         "vas_l": 29.995,
         "xmax_mm": 7.0
       },
-      "size_in": 10.0,
+      "size_in": 5.0,
       "source": "Markaudio Archive",
       "url": "https://www.markaudio.com/online_shop/archive/alpair-10p/",
       "website_fields": {
         "brand": "Markaudio",
         "confidence": 0.975,
+        "field_corrections": {
+          "size_in": {
+            "new_value": 5.0,
+            "old_value": 10.0,
+            "reason": "manufacturer value rechecked during Sd/nominal-size audit",
+            "source_url": "https://www.markaudio.com/online_shop/archive/alpair-10p/"
+          }
+        },
+        "field_provenance": {
+          "size_in": {
+            "source": "Manufacturer Sd/nominal-size audit",
+            "source_url": "https://www.markaudio.com/online_shop/archive/alpair-10p/",
+            "value": 5.0
+          }
+        },
         "derivations": {
           "qes": {
             "confidence": 1.0,

@@ -1653,9 +1653,17 @@ def _check_ui_project_preset_upload_finishes():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.run()
+    assert any(
+        item.label.startswith("Project")
+        for item in at.sidebar.expander
+    ), "project actions must live in the normal sidebar"
+    assert not any(
+        item.value == "Open a project"
+        for item in at.title
+    ), "project selection must not replace the normal workspace"
     project_upload = next(
         item for item in at.file_uploader
-        if item.label == "Load preset or CRW driver"
+        if item.label == "Open .lfp project or CRW driver"
     )
     project_upload.set_value(
         ("saved-design.lfp", payload, "application/json")
@@ -1667,7 +1675,7 @@ def _check_ui_project_preset_upload_finishes():
     assert at.session_state["_project_upload_revision"] == 1
     project_upload = next(
         item for item in at.file_uploader
-        if item.label == "Load preset or CRW driver"
+        if item.label == "Open .lfp project or CRW driver"
     )
     assert project_upload.value is None, (
         "a consumed preset must leave a fresh empty uploader after the rerun"
@@ -1679,7 +1687,7 @@ def _check_ui_project_preset_upload_finishes():
     at.run()
     project_upload = next(
         item for item in at.file_uploader
-        if item.label == "Load preset or CRW driver"
+        if item.label == "Open .lfp project or CRW driver"
     )
     project_upload.set_value(
         ("saved-design.lfp", payload, "application/json")
@@ -1689,7 +1697,7 @@ def _check_ui_project_preset_upload_finishes():
     assert at.session_state["_project_upload_revision"] == 2
     project_upload = next(
         item for item in at.file_uploader
-        if item.label == "Load preset or CRW driver"
+        if item.label == "Open .lfp project or CRW driver"
     )
     assert project_upload.value is None
 
@@ -1697,6 +1705,120 @@ def _check_ui_project_preset_upload_finishes():
 test(
     "UI project preset upload completes once and resets its uploader",
     _check_ui_project_preset_upload_finishes,
+)
+
+
+def _check_browser_project_startup_is_non_blocking():
+    import ui_app as _ui
+
+    projects = [
+        {"id": "lfp_one", "name": "One"},
+        {"id": "lfp_two", "name": "Two"},
+    ]
+    assert _ui._browser_project_startup_mode(False, False, projects) == "continue"
+    assert _ui._browser_project_startup_mode(True, True, projects) == "continue"
+    assert _ui._browser_project_startup_mode(True, False, []) == "new"
+    assert _ui._browser_project_startup_mode(
+        True, False, projects[:1]
+    ) == "load"
+    assert _ui._browser_project_startup_mode(True, False, projects) == "choose"
+
+
+test(
+    "Browser project startup keeps multi-project choice in the sidebar",
+    _check_browser_project_startup_is_non_blocking,
+)
+
+
+def _check_ui_complete_lfp_restores_bass_match():
+    import json
+
+    from streamlit.testing.v1 import AppTest
+
+    result_row = {
+        "Driver": "KEF B110B article example",
+        "Driver configuration": "Single driver",
+        "Class": "Woofer",
+        "F3 Hz": 48.5,
+        "F6 Hz": 41.0,
+        "F10 Hz": 34.0,
+        "MOL @ F3 dB": 96.2,
+        "Peak dB": 91.0,
+        "Min ohm": 6.2,
+        "Response": [-30.0, -12.0, -3.0, 0.0],
+        "_load_type": "Sealed",
+        "Vb L": 35.0,
+    }
+    payload = {
+        "_load_forge_meta": {
+            "version": "0.7.0",
+            "format": 2,
+            "kind": "project",
+        },
+        "project": {
+            "id": "lfp_test_complete",
+            "name": "Complete Bass Match",
+            "created_at": "2026-07-30T12:00:00+00:00",
+            "updated_at": "2026-07-30T12:00:00+00:00",
+        },
+        "parameters": {
+            "load_type": "Sealed",
+            "driver_fs_hz": 27.0,
+            "sealed_vb_l": 35.0,
+            "box_strategy": "Manual",
+        },
+        "bass_match": {
+            "state": {
+                "workspace_mode": "Bass Match",
+                "finder_load_types": ["Sealed"],
+                "finder_volume_l": 35.0,
+                "finder_objective": "Balanced",
+                "finder_reflex_resonator_type": "Port",
+                "finder_min_spl_db": 0.0,
+                "finder_min_mol_f3_db": 0.0,
+                "finder_max_mms_g": 0.0,
+                "finder_max_le_mh": 0.0,
+                "preset_search": "KEF",
+                "preset_source_filter": ["All"],
+                "preset_family_filter": ["All"],
+                "preset_size_filter": ["All"],
+                "preset_class_filter": ["All"],
+            },
+            "batch_results": [result_row],
+            "batch_result_context": [
+                ["Sealed"], 35.0, 1, True, "Balanced", "Port",
+                0.0, 0.0, 0.0, 0.0, 7, 1, 1, 0, 0,
+            ],
+            "batch_search_completed": True,
+        },
+    }
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.run()
+    project_upload = next(
+        item for item in at.file_uploader
+        if item.label == "Open .lfp project or CRW driver"
+    )
+    project_upload.set_value((
+        "complete-bass-match.lfp",
+        json.dumps(payload).encode("utf-8"),
+        "application/json",
+    )).run(timeout=30)
+    assert not at.exception, at.exception
+    assert at.session_state["_browser_active_project"]["id"] == "lfp_test_complete"
+    assert at.session_state["_browser_active_project"]["name"] == "Complete Bass Match"
+    assert at.session_state["finder_load_types"] == ["Sealed"]
+    assert abs(float(at.session_state["finder_volume_l"]) - 35.0) < 1e-9
+    assert at.session_state["preset_search"] == "KEF"
+    assert at.session_state["batch_search_completed"] is True
+    assert len(at.session_state["batch_results"]) == 1
+    assert at.session_state["batch_results"][0]["Driver"] == result_row["Driver"]
+    assert at.session_state["batch_result_context"][0] == ("Sealed",)
+
+
+test(
+    "UI complete LFP restores design and Bass Match search state",
+    _check_ui_complete_lfp_restores_bass_match,
 )
 
 
@@ -2605,7 +2727,15 @@ test("UI driver preset price filter uses optional metadata", _check_ui_driver_pr
 def _check_ui_driver_library_compares_nominal_size_and_sd():
     import ui_app as _ui
 
-    frame = _ui._driver_library_frame(("WEB: Dayton Audio DS175-8",))
+    alpair_name = next(
+        name for name in _ui._dccav.driver_preset_names()
+        if name.startswith("WEB: Markaudio Alpair 10P [MFR ")
+    )
+    frame = _ui._driver_library_frame((
+        "WEB: Dayton Audio DS175-8",
+        alpair_name,
+        "LSDB: Ciare FXC8.50W",
+    ))
     assert {"Nominal in", "Sd cm²", "Effective Ø in"} <= set(frame.columns)
     row = frame.iloc[0]
     assert row["Nominal in"] == 6.5
@@ -2614,6 +2744,18 @@ def _check_ui_driver_library_compares_nominal_size_and_sd():
         row["Effective Ø in"],
         np.sqrt(4.0 * row["Sd cm²"] / np.pi) / 2.54,
     )
+    alpair = frame.iloc[1]
+    assert alpair["Nominal in"] == 5.0
+    assert alpair["Sd cm²"] == 88.25
+    assert _ui._presets.nominal_size_matches_sd(
+        alpair["Nominal in"],
+        alpair["Sd cm²"],
+    )
+    ciare = frame.iloc[2]
+    assert ciare["Nominal in"] == 8.0
+    assert ciare["Sd cm²"] == 211.2
+    assert not _ui._presets.nominal_size_matches_sd(10.0, ciare["Sd cm²"])
+    assert _ui._presets.coherent_nominal_size_in(10.0, ciare["Sd cm²"]) == 8.0
 
 
 test(
@@ -3774,6 +3916,17 @@ def _check_manufacturer_metadata_reconciles_sd_and_nominal_size():
             },
             "website_fields": {"title": 'Broken W26 10" woofer'},
         },
+        {
+            "name": "WEB: Markaudio Alpair 10P",
+            "brand": "Markaudio",
+            "model": "Alpair 10P",
+            "size_in": 10.0,
+            "driver": {
+                "fs_hz": 42.398, "vas_l": 29.995, "qts": 0.33, "qms": 2.425,
+                "re_ohm": 6.2, "sd_cm2": 88.25, "mms_g": 5.196,
+            },
+            "website_fields": {"title": "Alpair 10P"},
+        },
     ]
     result, report = enricher.enrich_presets(rows, {})
     by_model = {item["model"]: item for item in result}
@@ -3782,6 +3935,7 @@ def _check_manufacturer_metadata_reconciles_sd_and_nominal_size():
     assert by_model["PA460-8"]["driver"]["sd_cm2"] == 1241.1
     assert by_model["X12"]["driver"]["sd_cm2"] == 500.0
     assert by_model["15W/4434G00"]["size_in"] == 5.0
+    assert by_model["Alpair 10P"]["size_in"] == 5.0
     assert (
         by_model["W26"]["website_fields"]["quality_status"]
         == "rejected_size_sd_conflict"
@@ -3824,12 +3978,19 @@ def _check_external_catalog_skips_rejected_size_sd_conflicts():
                     "quality_status": "rejected_size_sd_conflict",
                 },
             },
+            {
+                "name": "WEB: Acme model-number size",
+                "brand": "Acme",
+                "model": "X10P",
+                "size_in": 10.0,
+                "driver": {**base_driver, "sd_cm2": 88.25},
+            },
         ],
     }
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / "drivers.json"
         path.write_text(json.dumps(payload), encoding="utf-8")
-        loaded, _ = presets._load_external_presets(
+        loaded, info = presets._load_external_presets(
             path,
             default_source="test",
             dedupe_tag="test",
@@ -3837,6 +3998,7 @@ def _check_external_catalog_skips_rejected_size_sd_conflicts():
         )
     assert "WEB: Acme valid" in loaded
     assert "WEB: Acme rejected" not in loaded
+    assert info["WEB: Acme model-number size"].size_in == 5.25
 
 
 test(
@@ -5191,10 +5353,20 @@ def _check_ui_finder_main_action_runs_search():
     )
     assert "Your best matches" in [sub.value for sub in at.subheader]
     assert at.dataframe, "ranked rows must appear in the main workspace"
+    assert len(at.session_state["batch_result_context"]) == 16
     scanned = at.session_state["batch_result_context"][2]
     assert scanned == 1, (
         f"the scan must cover the whole filtered library (1 match), got {scanned}"
     )
+
+    at.session_state["preset_size_filter"] = ["10 in"]
+    at.run()
+    assert not at.exception, at.exception
+    assert "Your best matches" not in [sub.value for sub in at.subheader]
+    assert any(
+        "Bass Match inputs changed" in item.value
+        for item in at.info
+    ), "changing the size filter must hide stale ranked results"
 
 
 test("UI Finder single main action runs the driver search", _check_ui_finder_main_action_runs_search)

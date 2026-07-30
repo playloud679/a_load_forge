@@ -7,6 +7,7 @@ metadata and retailer price enrichment.
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 from dataclasses import dataclass
@@ -56,6 +57,66 @@ PRESET_PROVENANCE_CATEGORIES = (
     "VituixCAD",
     "Speaker Box Lite",
 )
+
+# A conventional cone's effective piston is smaller than its nominal frame.
+# Keep enough room for unusually wide surrounds, but reject model-number and
+# catalog-label mistakes such as a 211 cm² piston being presented as 10".
+NOMINAL_SIZE_SD_MIN_DIAMETER_RATIO = 0.70
+NOMINAL_SIZE_SD_MAX_DIAMETER_RATIO = 1.15
+NOMINAL_SIZE_SD_ANCHORS = (
+    (0.75, 2.5), (1.0, 5.0), (1.5, 8.0), (2.0, 13.0), (2.5, 22.0),
+    (3.0, 32.0), (3.5, 38.0), (4.0, 50.0), (4.5, 65.0),
+    (5.0, 80.0), (5.25, 90.0), (5.5, 100.0), (6.0, 115.0),
+    (6.5, 132.0), (7.0, 150.0), (7.5, 158.0), (8.0, 220.0),
+    (8.5, 240.0), (9.0, 255.0), (9.5, 280.0), (10.0, 350.0),
+    (11.0, 410.0), (12.0, 530.0), (13.0, 610.0), (13.5, 700.0),
+    (14.0, 750.0), (15.0, 855.0), (16.0, 950.0), (18.0, 1210.0),
+    (19.0, 1450.0), (21.0, 1680.0), (24.0, 2200.0),
+)
+
+
+def effective_piston_diameter_in(sd_cm2: float) -> float:
+    """Return the circular effective-piston diameter represented by Sd."""
+    sd = float(sd_cm2)
+    if not math.isfinite(sd) or sd <= 0.0:
+        raise ValueError("Sd must be positive and finite")
+    return math.sqrt(4.0 * sd / math.pi) / 2.54
+
+
+def nominal_size_matches_sd(size_in: float, sd_cm2: float) -> bool:
+    """Return whether nominal frame size and effective piston area can coexist."""
+    size = float(size_in)
+    if not math.isfinite(size) or size <= 0.0:
+        return False
+    try:
+        ratio = effective_piston_diameter_in(sd_cm2) / size
+    except (TypeError, ValueError):
+        return False
+    return (
+        NOMINAL_SIZE_SD_MIN_DIAMETER_RATIO
+        <= ratio
+        <= NOMINAL_SIZE_SD_MAX_DIAMETER_RATIO
+    )
+
+
+def coherent_nominal_size_in(
+    size_in: float | None,
+    sd_cm2: float,
+) -> float | None:
+    """Keep a plausible nominal size or replace it with the nearest Sd class."""
+    if size_in is None:
+        return None
+    size = float(size_in)
+    if nominal_size_matches_sd(size, sd_cm2):
+        return size
+    sd = float(sd_cm2)
+    if not math.isfinite(sd) or sd <= 0.0:
+        return size
+    nominal, _anchor = min(
+        NOMINAL_SIZE_SD_ANCHORS,
+        key=lambda item: abs(math.log(sd / item[1])),
+    )
+    return nominal
 
 
 @dataclass(frozen=True)
@@ -763,16 +824,17 @@ def _load_external_presets(
         enriched_price, enriched_currency, enriched_url = _preset_price(
             name, model_code or item_model, item_brand
         )
+        raw_size_in = (
+            float(item["size_in"])
+            if item.get("size_in") is not None
+            else None
+        )
         item_info = DriverPresetInfo(
             name=name,
             source=item_source,
             brand=item_brand,
             model=item_model,
-            size_in=(
-                float(item["size_in"])
-                if item.get("size_in") is not None
-                else None
-            ),
+            size_in=coherent_nominal_size_in(raw_size_in, driver.sd_cm2),
             price=enriched_price if enriched_price is not None else item_price,
             currency=enriched_currency or item_currency,
             kind=str(item.get("kind") or ""),

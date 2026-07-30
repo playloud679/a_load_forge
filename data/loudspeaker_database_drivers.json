@@ -343716,7 +343716,7 @@
         "xmax": 4.5,
         "z": 8
       },
-      "size_in": 10.0,
+      "size_in": 8.0,
       "url": "https://loudspeakerdatabase.com/Ciare/FXC8.50W",
       "website_fields": {
         "brand": "Ciare",
@@ -343757,8 +343757,8 @@
           "xmax",
           "z"
         ],
-        "size_in": 10.0,
-        "size_type": "10 \u2033 Woofer",
+        "size_in": 8.0,
+        "size_type": "8 \u2033 Woofer",
         "title": "Ciare FXC8.50W",
         "url": "https://loudspeakerdatabase.com/Ciare/FXC8.50W"
       }

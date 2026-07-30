@@ -11,7 +11,7 @@ in sync in the same change.
 
 | Module/File | Doc | Role |
 |---|---|---|
-| `ui_app.py` | source only | Streamlit dashboard with a killer-feature-first Bass Match brief and single run action, a collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, recoverable target/performance/library filters, progressively disclosed T/S controls, contextual design tabs, compact plot markers, project state and grouped exports. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
+| `ui_app.py` | source only | Streamlit dashboard with a killer-feature-first Bass Match brief and single run action, a collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, recoverable target/performance/library filters, progressively disclosed T/S controls, contextual design tabs, compact plot markers, IndexedDB browser-project autosave, complete `.lfp` v2 Box Design/Bass Match backups and grouped exports. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
 | `src/__init__.py` | [__init__.md](__init__.md) | Public package exports for acoustic-load helpers |
 | `src/dccav.py` | [dccav.md](dccav.md) | DCCAV/reflex/sealed/infinite-baffle formulas, T/S derivation and lumped acoustic-circuit simulation |
 | `src/saas.py` | [saas.md](saas.md) | Optional OIDC identity normalization, tenant-safe plan entitlements and Firestore/in-memory project persistence |

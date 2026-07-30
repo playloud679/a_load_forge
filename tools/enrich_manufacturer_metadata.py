@@ -30,7 +30,7 @@ SPEED_OF_SOUND_M_S = 344.0
 # Nominal frame classes calibrated to conventional effective piston areas.
 # The value is an estimate, not a substitute for a published frame diameter.
 SIZE_SD_ANCHORS = (
-    (1.0, 5.0), (1.5, 8.0), (2.0, 13.0), (2.5, 22.0),
+    (0.75, 2.5), (1.0, 5.0), (1.5, 8.0), (2.0, 13.0), (2.5, 22.0),
     (3.0, 32.0), (3.5, 38.0), (4.0, 50.0), (4.5, 65.0),
     (5.0, 80.0), (5.25, 90.0), (5.5, 100.0), (6.0, 115.0),
     (6.5, 132.0), (7.0, 150.0), (7.5, 158.0), (8.0, 220.0),
@@ -73,6 +73,12 @@ VERIFIED_DRIVER_CORRECTIONS = (
         "model_prefix": "W8-1772",
         "fields": {"sd_cm2": 220.0, "size_in": 8.0},
         "source_url": "https://tb-speaker.com/zh-tw/products/w8-1772",
+    },
+    {
+        "brand": "Markaudio",
+        "model_prefix": "Alpair 10P",
+        "fields": {"size_in": 5.0},
+        "source_url": "https://www.markaudio.com/online_shop/archive/alpair-10p/",
     },
     {
         "brand": "Beyma",
@@ -164,7 +170,7 @@ def _has_compound_dimensions(item: dict) -> bool:
 
 def _diameter_is_plausible(sd_cm2: float, size_in: float) -> bool:
     ratio = effective_diameter_in(sd_cm2) / float(size_in)
-    return 0.35 <= ratio <= 1.35
+    return 0.70 <= ratio <= 1.15
 
 
 def _record_correction(

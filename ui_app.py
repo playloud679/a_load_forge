@@ -22,8 +22,10 @@ import os
 import re
 import sys
 import time
+import uuid
 import zlib
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from datetime import UTC, datetime
 from functools import cache
 from pathlib import Path
 
@@ -31,6 +33,7 @@ import altair as alt
 import numpy as np
 import pandas as pd
 import streamlit as st
+from streamlit.components import v2 as components_v2
 
 logger = logging.getLogger("load_forge.ui")
 _OPTIMIZER_ENGINE_REVISION = 5
@@ -96,6 +99,158 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={},
+)
+
+
+_BROWSER_PROJECT_STORE_JS = """
+const DB_NAME = "load_forge";
+const DB_VERSION = 2;
+const STORE_NAME = "projects";
+const SUMMARY_STORE_NAME = "project_summaries";
+
+function projectSummary(record) {
+  const project = record && record.project || {};
+  return {
+    id: String(project.id || ""),
+    name: String(project.name || "Untitled project"),
+    created_at: String(project.created_at || ""),
+    updated_at: String(project.updated_at || ""),
+  };
+}
+
+function openDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = () => {
+      const database = request.result;
+      if (!database.objectStoreNames.contains(STORE_NAME)) {
+        database.createObjectStore(STORE_NAME, {keyPath: "project.id"});
+      }
+      let summaries;
+      if (!database.objectStoreNames.contains(SUMMARY_STORE_NAME)) {
+        summaries = database.createObjectStore(
+          SUMMARY_STORE_NAME, {keyPath: "id"}
+        );
+      } else {
+        summaries = request.transaction.objectStore(SUMMARY_STORE_NAME);
+      }
+      const projects = request.transaction.objectStore(STORE_NAME);
+      projects.openCursor().onsuccess = event => {
+        const cursor = event.target.result;
+        if (cursor) {
+          const summary = projectSummary(cursor.value);
+          if (summary.id) summaries.put(summary);
+          cursor.continue();
+        }
+      };
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function requestResult(request) {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export default function(component) {
+  const {data, setStateValue} = component;
+  const currentState = data && data.state || {};
+  let cancelled = false;
+
+  function setIfChanged(name, value) {
+    if (JSON.stringify(currentState[name]) !== JSON.stringify(value)) {
+      setStateValue(name, value);
+    }
+  }
+
+  async function synchronize() {
+    const command = data && data.command;
+    if (currentState.ready && !command) return;
+    try {
+      const database = await openDatabase();
+      if (command && command.op === "upsert" && command.project) {
+        const transaction = database.transaction(
+          [STORE_NAME, SUMMARY_STORE_NAME], "readwrite"
+        );
+        const projects = transaction.objectStore(STORE_NAME);
+        let project = command.project;
+        if (!command.replace) {
+          const existing = await requestResult(
+            projects.get(command.project.project.id)
+          );
+          if (existing) {
+            project = {
+              ...existing,
+              ...command.project,
+              project: {...(existing.project || {}), ...(command.project.project || {})},
+              bass_match: {
+                ...(existing.bass_match || {}),
+                ...(command.project.bass_match || {}),
+              },
+            };
+          }
+        }
+        await requestResult(projects.put(project));
+        const summary = projectSummary(project);
+        if (summary.id) {
+          await requestResult(
+            transaction.objectStore(SUMMARY_STORE_NAME).put(summary)
+          );
+        }
+        if (!cancelled) {
+          setIfChanged("ack", String(command.nonce || ""));
+        }
+      } else if (command && command.op === "load" && command.project_id) {
+        const transaction = database.transaction(STORE_NAME, "readonly");
+        const project = await requestResult(
+          transaction.objectStore(STORE_NAME).get(command.project_id)
+        );
+        if (!cancelled) {
+          setIfChanged(
+            "loaded_project_json",
+            project ? JSON.stringify(project) : ""
+          );
+          setIfChanged("load_ack", String(command.nonce || ""));
+        }
+      }
+      const summaries = await requestResult(
+        database.transaction(SUMMARY_STORE_NAME, "readonly")
+          .objectStore(SUMMARY_STORE_NAME).getAll()
+      );
+      summaries.sort((left, right) => String(
+        right.updated_at || ""
+      ).localeCompare(String(
+        left.updated_at || ""
+      )));
+      if (!cancelled) {
+        setIfChanged("summaries_json", JSON.stringify(summaries));
+        setIfChanged("error", "");
+        setIfChanged("ready", true);
+      }
+      database.close();
+    } catch (error) {
+      if (!cancelled) {
+        setIfChanged(
+          "error",
+          error && error.message ? error.message : String(error)
+        );
+        setIfChanged("ready", true);
+      }
+    }
+  }
+
+  synchronize();
+  return () => { cancelled = true; };
+}
+"""
+
+_browser_project_store_component = components_v2.component(
+    "load_forge_browser_project_store",
+    js=_BROWSER_PROJECT_STORE_JS,
 )
 
 
@@ -995,7 +1150,7 @@ _FINDER_RANK_F3 = "Deepest bass (F3)"
 _FINDER_RANK_VALUE = "Best value (F3 × price)"
 _FINDER_RANK_MODES = (_FINDER_RANK_F3, _FINDER_RANK_VALUE)
 _FINDER_CTA_LABEL = "Run Bass Match"
-_FINDER_RANKING_VERSION = 6
+_FINDER_RANKING_VERSION = 7
 _FINDER_SPL_PREFILTER_HEADROOM_DB = 6.0
 _FINDER_DEFAULTS_VERSION = 8
 _FINDER_DEFAULTS = {
@@ -1152,6 +1307,467 @@ def _collect_params() -> dict:
     return out
 
 
+_BASS_MATCH_PROJECT_STATE_KEYS = {
+    *_FINDER_DEFAULTS,
+    "finder_load_types",
+    "preset_search",
+    "preset_family_filter",
+    "preset_source_filter",
+    "preset_size_filter",
+    "preset_class_filter",
+    "preset_price_enabled",
+    "preset_max_price",
+    "preset_price_currency",
+    "workspace_mode",
+}
+_BASS_MATCH_PROJECT_RESULT_KEYS = (
+    "batch_results",
+    "batch_result_context",
+    "batch_search_completed",
+    "finder_last_run_stats",
+)
+_LFP_FORMAT_VERSION = 2
+
+
+def _json_safe(value):
+    """Convert project state to strict JSON without NaN or NumPy scalars."""
+    if isinstance(value, dict):
+        return {
+            str(key): _json_safe(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, np.ndarray):
+        return [_json_safe(item) for item in value.tolist()]
+    if isinstance(value, (np.floating, float)):
+        number = float(value)
+        return number if np.isfinite(number) else None
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    if value is None or isinstance(value, (str, int, bool)):
+        return value
+    raise TypeError(f"Unsupported project value: {type(value).__name__}")
+
+
+def _collect_bass_match_project_state(
+    *,
+    include_results: bool = True,
+) -> dict:
+    state = {}
+    for key in _BASS_MATCH_PROJECT_STATE_KEYS:
+        if key in st.session_state:
+            state[key] = _json_safe(st.session_state[key])
+    bass_match = {"state": state}
+    if include_results:
+        defaults = {
+            "batch_results": [],
+            "batch_result_context": [],
+            "batch_search_completed": False,
+            "finder_last_run_stats": {},
+        }
+        for key in _BASS_MATCH_PROJECT_RESULT_KEYS:
+            bass_match[key] = _json_safe(
+                st.session_state.get(key, defaults[key])
+            )
+    return bass_match
+
+
+def _new_browser_project_meta(name: str = "Untitled project") -> dict:
+    now = datetime.now(UTC).isoformat()
+    return {
+        "id": f"lfp_{uuid.uuid4().hex}",
+        "name": str(name).strip() or "Untitled project",
+        "created_at": now,
+        "updated_at": now,
+    }
+
+
+def _build_lfp_project(
+    project: dict | None = None,
+    *,
+    include_results: bool = True,
+) -> dict:
+    """Build the complete portable project, including Bass Match state."""
+    project_meta = dict(project or _new_browser_project_meta())
+    project_meta.setdefault("id", f"lfp_{uuid.uuid4().hex}")
+    project_meta.setdefault("name", "Untitled project")
+    now = datetime.now(UTC).isoformat()
+    project_meta.setdefault("created_at", now)
+    project_meta["updated_at"] = str(project_meta.get("updated_at") or now)
+    return {
+        "_load_forge_meta": {
+            "version": _VERSION,
+            "format": _LFP_FORMAT_VERSION,
+            "kind": "project",
+        },
+        "project": _json_safe(project_meta),
+        "parameters": _json_safe(_collect_params()),
+        "bass_match": _collect_bass_match_project_state(
+            include_results=include_results
+        ),
+    }
+
+
+def _lfp_project_content_signature(
+    payload: dict,
+    *,
+    results_signature: str = "",
+) -> str:
+    comparable = dict(payload)
+    comparable["project"] = dict(payload.get("project", {}))
+    comparable["project"].pop("updated_at", None)
+    if results_signature:
+        comparable["_results_signature"] = results_signature
+    encoded = json.dumps(
+        comparable,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _bass_match_results_signature() -> str:
+    """Hash heavy Finder output once, then reuse it across UI reruns."""
+    cached = st.session_state.get("_bass_match_results_signature")
+    if isinstance(cached, str) and cached:
+        return cached
+    result_payload = {
+        key: _json_safe(st.session_state.get(key, default))
+        for key, default in {
+            "batch_results": [],
+            "batch_result_context": [],
+            "batch_search_completed": False,
+            "finder_last_run_stats": {},
+        }.items()
+    }
+    encoded = json.dumps(
+        result_payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    signature = hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+    st.session_state["_bass_match_results_signature"] = signature
+    return signature
+
+
+def _invalidate_bass_match_results_signature() -> None:
+    st.session_state.pop("_bass_match_results_signature", None)
+
+
+def _cache_lfp_download(payload: dict, content_signature: str) -> None:
+    """Cache the expensive full-project JSON encoding outside normal reruns."""
+    st.session_state["_browser_project_download_cache"] = {
+        "signature": content_signature,
+        "data": json.dumps(
+            payload,
+            indent=2,
+            allow_nan=False,
+        ).encode("utf-8"),
+    }
+
+
+def _apply_lfp_project(payload: dict) -> int:
+    """Load current v2 projects and legacy flat v1 parameter presets."""
+    if not isinstance(payload, dict):
+        raise TypeError("LFP project must be a JSON object")
+    metadata = payload.get("_load_forge_meta", {})
+    format_version = int(metadata.get("format", 1)) if isinstance(metadata, dict) else 1
+    if format_version < 2 or "parameters" not in payload:
+        legacy = dict(payload)
+        legacy.pop("_load_forge_meta", None)
+        return _apply_loaded_params(legacy)
+
+    parameters = payload.get("parameters")
+    if not isinstance(parameters, dict):
+        raise TypeError("LFP project parameters must be an object")
+    applied = _apply_loaded_params(parameters)
+
+    bass_match = payload.get("bass_match", {})
+    if bass_match is not None and not isinstance(bass_match, dict):
+        raise TypeError("LFP Bass Match state must be an object")
+    bass_match = bass_match or {}
+    state = bass_match.get("state", {})
+    if state is not None and not isinstance(state, dict):
+        raise TypeError("LFP Bass Match controls must be an object")
+    for key, value in (state or {}).items():
+        if key in _BASS_MATCH_PROJECT_STATE_KEYS:
+            st.session_state[key] = value
+    for key in list(st.session_state):
+        if "__toggle_v4__" in str(key):
+            st.session_state.pop(key, None)
+
+    rows = bass_match.get("batch_results", [])
+    if rows is not None and (
+        not isinstance(rows, list)
+        or any(not isinstance(row, dict) for row in rows)
+    ):
+        raise TypeError("LFP Bass Match results must be a list of rows")
+    st.session_state["batch_results"] = list(rows or [])
+    context = bass_match.get("batch_result_context", [])
+    if context is not None and not isinstance(context, (list, tuple)):
+        raise TypeError("LFP Bass Match result context must be a list")
+    restored_context = list(context or ())
+    if restored_context and isinstance(restored_context[0], list):
+        restored_context[0] = tuple(restored_context[0])
+    st.session_state["batch_result_context"] = tuple(restored_context)
+    st.session_state["batch_search_completed"] = bool(
+        bass_match.get("batch_search_completed", False)
+    )
+    run_stats = bass_match.get("finder_last_run_stats", {})
+    if run_stats is not None and not isinstance(run_stats, dict):
+        raise TypeError("LFP Bass Match run statistics must be an object")
+    st.session_state["finder_last_run_stats"] = dict(run_stats or {})
+    _invalidate_bass_match_results_signature()
+    _bass_match_results_signature()
+    return applied + len(state or {})
+
+
+def _clear_active_project_state() -> None:
+    """Clear saved design/Finder values so normal defaults seed a new project."""
+    for key in list(st.session_state):
+        if (
+            _is_param_key(key)
+            or key in _BASS_MATCH_PROJECT_STATE_KEYS
+            or key in _BASS_MATCH_PROJECT_RESULT_KEYS
+            or "__toggle_v4__" in str(key)
+        ):
+            st.session_state.pop(key, None)
+    st.session_state.pop("_design_state_backup", None)
+    _invalidate_bass_match_results_signature()
+    st.session_state.pop("_browser_project_download_cache", None)
+
+
+def _activate_browser_project(
+    payload: dict,
+    *,
+    already_persisted: bool = False,
+) -> None:
+    _clear_active_project_state()
+    _apply_lfp_project(payload)
+    project = payload.get("project", {})
+    if not isinstance(project, dict) or not project.get("id"):
+        project = _new_browser_project_meta()
+    st.session_state["_browser_active_project"] = dict(project)
+    st.session_state["_browser_project_initialized"] = True
+    st.session_state["_browser_project_name_revision"] = (
+        int(st.session_state.get("_browser_project_name_revision", 0)) + 1
+    )
+    results_signature = _bass_match_results_signature()
+    light_payload = _build_lfp_project(project, include_results=False)
+    content_signature = _lfp_project_content_signature(
+        light_payload,
+        results_signature=results_signature,
+    )
+    st.session_state["_browser_project_content_signature"] = content_signature
+    st.session_state["_browser_project_saved_results_signature"] = (
+        results_signature if already_persisted else ""
+    )
+    if already_persisted:
+        st.session_state["_browser_project_last_ack"] = content_signature
+    else:
+        st.session_state.pop("_browser_project_last_ack", None)
+    _cache_lfp_download(payload, content_signature)
+    st.session_state.pop("_browser_project_load_request", None)
+    st.session_state.pop("_browser_project_menu_auto_open", None)
+
+
+def _start_new_browser_project() -> None:
+    _clear_active_project_state()
+    st.session_state["_browser_active_project"] = _new_browser_project_meta()
+    st.session_state["_browser_project_initialized"] = True
+    st.session_state["_browser_project_name_revision"] = (
+        int(st.session_state.get("_browser_project_name_revision", 0)) + 1
+    )
+    st.session_state.pop("_browser_project_content_signature", None)
+    st.session_state.pop("_browser_project_last_ack", None)
+    st.session_state.pop("_browser_project_saved_results_signature", None)
+    st.session_state.pop("_browser_project_menu_auto_open", None)
+
+
+def _request_browser_project_load(project_id: str) -> None:
+    st.session_state["_browser_project_load_request"] = {
+        "project_id": str(project_id),
+        "nonce": uuid.uuid4().hex,
+    }
+
+
+def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
+    """Mount the browser database bridge and queue the current autosave."""
+    command = None
+    load_request = st.session_state.get("_browser_project_load_request")
+    if isinstance(load_request, dict):
+        command = {
+            "op": "load",
+            "project_id": str(load_request.get("project_id", "")),
+            "nonce": str(load_request.get("nonce", "")),
+        }
+    active = st.session_state.get("_browser_active_project")
+    if (
+        command is None
+        and st.session_state.get("_browser_project_initialized")
+        and isinstance(active, dict)
+    ):
+        name_revision = int(st.session_state.get("_browser_project_name_revision", 0))
+        edited_name = st.session_state.get(f"_browser_project_name_{name_revision}")
+        if edited_name is not None:
+            active["name"] = str(edited_name).strip() or "Untitled project"
+        results_signature = _bass_match_results_signature()
+        payload = _build_lfp_project(active, include_results=False)
+        content_signature = _lfp_project_content_signature(
+            payload,
+            results_signature=results_signature,
+        )
+        if content_signature != st.session_state.get(
+            "_browser_project_content_signature"
+        ):
+            active["updated_at"] = datetime.now(UTC).isoformat()
+            payload["project"]["updated_at"] = active["updated_at"]
+            st.session_state["_browser_project_content_signature"] = content_signature
+        if content_signature != st.session_state.get("_browser_project_last_ack"):
+            include_results = results_signature != st.session_state.get(
+                "_browser_project_saved_results_signature"
+            )
+            if include_results:
+                payload = _build_lfp_project(active, include_results=True)
+                _cache_lfp_download(payload, content_signature)
+            command = {
+                "op": "upsert",
+                "nonce": content_signature,
+                "project": payload,
+                "replace": include_results,
+            }
+            st.session_state["_browser_project_pending_results"] = {
+                "nonce": content_signature,
+                "signature": results_signature if include_results else "",
+            }
+
+    component_state = st.session_state.get("_browser_project_store", {})
+    if not isinstance(component_state, dict):
+        component_state = {}
+    bridge_state = {
+        key: component_state.get(key, default)
+        for key, default in {
+            "ready": False,
+            "summaries_json": "[]",
+            "ack": "",
+            "load_ack": "",
+            "error": "",
+        }.items()
+    }
+    if isinstance(load_request, dict):
+        bridge_state["loaded_project_json"] = component_state.get(
+            "loaded_project_json", ""
+        )
+    result = _browser_project_store_component(
+        key="_browser_project_store",
+        data={"command": command, "state": _json_safe(bridge_state)},
+        default={
+            "ready": False,
+            "summaries_json": "[]",
+            "ack": "",
+            "load_ack": "",
+            "loaded_project_json": "",
+            "error": "",
+        },
+        height=0,
+        on_ready_change=lambda: None,
+        on_summaries_json_change=lambda: None,
+        on_ack_change=lambda: None,
+        on_load_ack_change=lambda: None,
+        on_loaded_project_json_change=lambda: None,
+        on_error_change=lambda: None,
+    )
+    try:
+        projects = json.loads(str(result.summaries_json or "[]"))
+    except (AttributeError, TypeError, ValueError):
+        projects = []
+    if not isinstance(projects, list):
+        projects = []
+    ack = str(getattr(result, "ack", "") or "")
+    if ack:
+        st.session_state["_browser_project_last_ack"] = ack
+        pending_results = st.session_state.get("_browser_project_pending_results")
+        if (
+            isinstance(pending_results, dict)
+            and str(pending_results.get("nonce", "")) == ack
+        ):
+            saved_signature = str(pending_results.get("signature", ""))
+            if saved_signature:
+                st.session_state["_browser_project_saved_results_signature"] = (
+                    saved_signature
+                )
+            st.session_state.pop("_browser_project_pending_results", None)
+    loaded_project = None
+    load_ack = str(getattr(result, "load_ack", "") or "")
+    if (
+        isinstance(load_request, dict)
+        and load_ack == str(load_request.get("nonce", ""))
+    ):
+        try:
+            loaded_project = json.loads(
+                str(getattr(result, "loaded_project_json", "") or "")
+            )
+        except (TypeError, ValueError):
+            loaded_project = None
+        if not isinstance(loaded_project, dict):
+            loaded_project = None
+    return (
+        bool(getattr(result, "ready", False)),
+        [item for item in projects if isinstance(item, dict)],
+        str(getattr(result, "error", "") or ""),
+        loaded_project,
+    )
+
+
+def _browser_project_startup_mode(
+    ready: bool,
+    initialized: bool,
+    projects: list[dict],
+) -> str:
+    """Return the non-blocking startup action for the browser project store."""
+    if not ready or initialized:
+        return "continue"
+    if not projects:
+        return "new"
+    if len(projects) == 1:
+        return "load"
+    return "choose"
+
+
+def _initialize_browser_project_store() -> None:
+    """Open zero/one projects automatically and choose multiples in-sidebar."""
+    ready, projects, error, loaded_project = _browser_project_store()
+    st.session_state["_browser_project_store_ready"] = ready
+    st.session_state["_browser_project_summaries"] = projects
+    if error:
+        st.warning(
+            "Browser autosave is unavailable in this session. "
+            f"Download an .lfp backup before leaving. ({error})"
+        )
+    if loaded_project is not None:
+        _activate_browser_project(loaded_project, already_persisted=True)
+        st.rerun()
+    startup_mode = _browser_project_startup_mode(
+        ready,
+        bool(st.session_state.get("_browser_project_initialized")),
+        projects,
+    )
+    if startup_mode == "continue":
+        return
+    if startup_mode == "new":
+        _start_new_browser_project()
+        st.rerun()
+    if startup_mode == "load":
+        _request_browser_project_load(str(projects[0].get("id", "")))
+        st.rerun()
+    st.session_state["_browser_project_menu_auto_open"] = True
+
+
 def _apply_loaded_params(data: dict) -> int:
     legacy_passive_radiator = data.get("load_type") == "Passive radiator"
     applied = 0
@@ -1262,7 +1878,7 @@ def _reset_saas_project_editor(name: str = "Untitled project") -> None:
 
 
 def _render_saas_project_controls(user: _saas.SaaSUser) -> None:
-    """Render authenticated cloud-project actions inside the Project popover."""
+    """Render authenticated cloud-project actions inside the Project section."""
     entitlements = _saas.effective_entitlements(user, _SAAS_SETTINGS)
     if entitlements.promotion == "open_beta":
         access_label = "Open Beta · full access"
@@ -1403,19 +2019,146 @@ def _render_saas_project_controls(user: _saas.SaaSUser) -> None:
     st.divider()
 
 
+def _project_download_filename(name: str) -> str:
+    stem = re.sub(r"[^A-Za-z0-9._-]+", "_", str(name).strip()).strip("._")
+    return f"{stem or 'load_forge_project'}.lfp"
+
+
+def _render_browser_project_controls() -> None:
+    active = st.session_state.get("_browser_active_project")
+    st.markdown("**Browser project**")
+    summaries = [
+        item for item in st.session_state.get("_browser_project_summaries", [])
+        if isinstance(item, dict) and item.get("id")
+    ]
+    if not isinstance(active, dict):
+        if not st.session_state.get("_browser_project_store_ready"):
+            st.caption("Loading projects saved in this browser…")
+            return
+        st.caption("Choose a project saved in this browser")
+        if summaries:
+            project_by_id = {
+                str(item["id"]): item
+                for item in summaries
+            }
+            selected_id = st.selectbox(
+                "Project",
+                list(project_by_id),
+                format_func=lambda project_id: str(
+                    project_by_id[project_id].get("name", "Untitled project")
+                ),
+                key="_browser_project_menu_selection",
+            )
+            if st.button(
+                "Open project",
+                type="primary",
+                key="_browser_project_menu_open",
+                use_container_width=True,
+            ):
+                _request_browser_project_load(selected_id)
+                st.rerun()
+        if st.button(
+            "New project",
+            key="_browser_new_project",
+            use_container_width=True,
+        ):
+            _start_new_browser_project()
+            st.rerun()
+        return
+
+    st.caption("Autosaved on this device")
+    st.caption("Autosaved on this device")
+    revision = int(st.session_state.get("_browser_project_name_revision", 0))
+    project_name = st.text_input(
+        "Project name",
+        value=str(active.get("name", "Untitled project")),
+        max_chars=80,
+        key=f"_browser_project_name_{revision}",
+    )
+    active["name"] = project_name.strip() or "Untitled project"
+
+    active_id = str(active.get("id", ""))
+    other_projects = [
+        item for item in summaries
+        if str(item.get("id", "")) != active_id
+    ]
+    action_columns = st.columns(2)
+    with action_columns[0]:
+        if st.button(
+            "New project",
+            key="_browser_new_project",
+            use_container_width=True,
+        ):
+            _start_new_browser_project()
+            st.rerun()
+    with action_columns[1]:
+        content_signature = str(
+            st.session_state.get("_browser_project_content_signature", "")
+        )
+        download_cache = st.session_state.get("_browser_project_download_cache")
+        cache_ready = (
+            isinstance(download_cache, dict)
+            and download_cache.get("signature") == content_signature
+            and isinstance(download_cache.get("data"), bytes)
+        )
+        if cache_ready:
+            st.download_button(
+                "Download .lfp",
+                download_cache["data"],
+                _project_download_filename(active["name"]),
+                "application/json",
+                use_container_width=True,
+                key="_browser_download_project",
+            )
+        elif st.button(
+            "Prepare .lfp",
+            use_container_width=True,
+            key="_browser_prepare_project_download",
+            help="Prepare the complete project only on demand so large "
+                 "Bass Match result sets do not slow every interaction.",
+        ):
+            payload = _build_lfp_project(active, include_results=True)
+            _cache_lfp_download(payload, content_signature)
+            st.rerun()
+
+    if other_projects:
+        project_by_id = {
+            str(item["id"]): item
+            for item in other_projects
+        }
+        selected_id = st.selectbox(
+            "Switch project",
+            list(project_by_id),
+            format_func=lambda project_id: str(
+                project_by_id[project_id].get("name", "Untitled project")
+            ),
+            key="_browser_switch_project",
+        )
+        if st.button(
+            "Open selected project",
+            key="_browser_open_selected_project",
+            use_container_width=True,
+        ):
+            _request_browser_project_load(selected_id)
+            st.rerun()
+    st.divider()
+
+
 def _render_project_menu() -> None:
-    """Keep occasional project actions in the sidebar, away from workspaces."""
-    with st.popover("Project", use_container_width=True):
+    """Render project actions as a normal collapsible sidebar section."""
+    active = st.session_state.get("_browser_active_project")
+    project_label = (
+        f"Project · {active.get('name', 'Untitled project')}"
+        if isinstance(active, dict)
+        else "Project"
+    )
+    with st.expander(
+        project_label,
+        expanded=bool(st.session_state.get("_browser_project_menu_auto_open")),
+    ):
+        _render_browser_project_controls()
         if _CURRENT_SAAS_USER is not None:
             _render_saas_project_controls(_CURRENT_SAAS_USER)
-        preset = {"_load_forge_meta": {"version": _VERSION, "format": 1}, **_collect_params()}
-        st.download_button(
-            "Save preset",
-            json.dumps(preset, indent=2).encode("utf-8"),
-            "load_forge.lfp",
-            "application/json",
-            use_container_width=True,
-        )
         try:
             crw_text = _afw_export.generate_crw_text(_collect_params())
             crw_error = None
@@ -1459,7 +2202,7 @@ def _render_project_menu() -> None:
         # reload the same preset and call st.rerun() forever.
         upload_revision = int(st.session_state.get("_project_upload_revision", 0))
         upload = st.file_uploader(
-            "Load preset or CRW driver",
+            "Open .lfp project or CRW driver",
             type=["lfp", "json", "crw"],
             key=f"_project_upload_{upload_revision}",
         )
@@ -1479,11 +2222,24 @@ def _render_project_menu() -> None:
                     st.toast(f"Loaded CRW driver: {crw.name}")
                     st.rerun()
                 payload = json.loads(upload.getvalue().decode("utf-8"))
-                payload.pop("_load_forge_meta", None)
                 _snapshot_design_state()
-                count = _apply_loaded_params(payload)
+                metadata = payload.get("_load_forge_meta", {})
+                is_complete_project = (
+                    isinstance(metadata, dict)
+                    and int(metadata.get("format", 1)) >= 2
+                    and isinstance(payload.get("parameters"), dict)
+                )
+                if is_complete_project:
+                    _activate_browser_project(payload)
+                    count = len(payload["parameters"])
+                else:
+                    count = _apply_lfp_project(payload)
                 st.session_state["_project_upload_revision"] = upload_revision + 1
-                st.toast(f"Loaded {count} parameters")
+                st.toast(
+                    f"Loaded project · {count} design parameters"
+                    if is_complete_project
+                    else f"Loaded {count} parameters"
+                )
                 st.rerun()
             except Exception as exc:
                 logger.exception("Invalid preset")
@@ -1682,6 +2438,8 @@ def _reset_finder_defaults() -> None:
     st.session_state.pop("batch_results", None)
     st.session_state.pop("batch_result_context", None)
     st.session_state.pop("batch_search_completed", None)
+    st.session_state.pop("finder_last_run_stats", None)
+    _invalidate_bass_match_results_signature()
 
 
 def _ensure_finder_defaults() -> None:
@@ -1703,6 +2461,8 @@ def _ensure_finder_defaults() -> None:
         st.session_state.pop("batch_results", None)
         st.session_state.pop("batch_result_context", None)
         st.session_state.pop("batch_search_completed", None)
+        st.session_state.pop("finder_last_run_stats", None)
+        _invalidate_bass_match_results_signature()
     else:
         # Keep conditionally rendered Finder values alive while Design is open.
         for key in _FINDER_DEFAULTS:
@@ -4180,6 +4940,49 @@ def _finder_load_context() -> tuple[list[str], bool]:
     return finder_load_types, finder_load_types == ["Infinite baffle"]
 
 
+def _finder_result_context_signature(preset_names: list[str]) -> str:
+    """Identify every input that can change a Bass Match result set."""
+    finder_load_types, _ = _finder_load_context()
+    candidate_digest = hashlib.sha256(
+        "\0".join(preset_names).encode("utf-8")
+    ).hexdigest()
+    context = {
+        "ranking_version": _FINDER_RANKING_VERSION,
+        "candidate_digest": candidate_digest,
+        "candidate_count": len(preset_names),
+        "pool_fingerprint": _json_safe(_finder_pool_fingerprint(1)),
+        "load_types": finder_load_types,
+        "volume_l": float(_finder_value("finder_volume_l")),
+        "driver_configuration": str(
+            _finder_value("finder_driver_configuration")
+        ),
+        "objective": str(_finder_value("finder_objective")),
+        "reflex_resonator_type": str(
+            _finder_value("finder_reflex_resonator_type")
+        ),
+        "voltage_v": float(_finder_value("finder_voltage")),
+        "max_ripple_db": float(_finder_value("finder_max_ripple_db")),
+        "max_excursion_ratio": float(
+            _finder_value("finder_excursion_ratio")
+        ),
+        "max_group_delay_ms": float(_finder_value("finder_max_gd_ms")),
+        "min_spl_db": float(_finder_value("finder_min_spl_db")),
+        "min_mol_f3_db": float(_finder_value("finder_min_mol_f3_db")),
+        "max_mms_g": float(_finder_value("finder_max_mms_g")),
+        "max_le_mh": float(_finder_value("finder_max_le_mh")),
+        "f_min_hz": float(_finder_value("finder_f_min")),
+        "f_max_hz": float(_finder_value("finder_f_max")),
+        "points": int(_finder_value("finder_points")),
+    }
+    encoded = json.dumps(
+        context,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
 def _filter_finder_performance_rows(
     rows: list[dict],
     min_spl_db: float,
@@ -4524,17 +5327,27 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
     )
     t_end = time.perf_counter()
     elapsed_s = t_end - t_start
-    elapsed_ms_per_driver = (
+    elapsed_ms_per_simulation = (
         (elapsed_s * 1000) / eligible_total
         if eligible_total > 0
         else 0.0
+    )
+    unique_driver_total = int(prefilter_stats["unique_drivers"])
+    elapsed_ms_per_driver = (
+        (elapsed_s * 1000) / unique_driver_total
+        if unique_driver_total > 0
+        else 0.0
+    )
+    simulations_per_second = (
+        eligible_total / elapsed_s if elapsed_s > 0.0 else 0.0
     )
     completion_text = (
         f"Bass Match complete · {eligible_total} simulations after pre-filtering "
         f"{prefilter_stats['rejected_simulations']} · "
         f"{len(all_rows)} unique drivers · "
         f"{collapsed_result_rows} alternate load rows collapsed · "
-        f"Elapsed: {elapsed_s:.1f} s ({elapsed_ms_per_driver:.1f} ms/driver)"
+        f"Elapsed: {elapsed_s:.1f} s "
+        f"({elapsed_ms_per_simulation:.1f} ms/simulation)"
     )
     progress.progress(1.0)
     progress_text.empty()
@@ -4542,6 +5355,16 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
     st.session_state["_finder_match_completion"] = completion_text
     st.session_state["batch_results"] = all_rows
     st.session_state["batch_search_completed"] = True
+    st.session_state["finder_last_run_stats"] = {
+        "elapsed_s": elapsed_s,
+        "milliseconds_per_simulation": elapsed_ms_per_simulation,
+        "milliseconds_per_driver": elapsed_ms_per_driver,
+        "simulations_per_second": simulations_per_second,
+        "simulations": eligible_total,
+        "unique_drivers": unique_driver_total,
+        "skipped_a_priori": int(prefilter_stats["rejected_simulations"]),
+        "completed_at": datetime.now(UTC).isoformat(),
+    }
     st.session_state["batch_result_context"] = (
         tuple(finder_load_types),
         finder_volume_l,
@@ -4558,7 +5381,9 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
         prefilter_stats["total_simulations"],
         prefilter_stats["rejected_simulations"],
         collapsed_result_rows,
+        _finder_result_context_signature(filtered_preset_names),
     )
+    _invalidate_bass_match_results_signature()
 
 
 def _render_find_driver_goal_sidebar() -> None:
@@ -5019,6 +5844,32 @@ def _render_finder_constraint_grid(
     )
 
 
+def _render_finder_run_statistics() -> None:
+    """Keep the last measured Bass Match throughput visible and persistent."""
+    stats = st.session_state.get("finder_last_run_stats")
+    if not isinstance(stats, dict) or not stats:
+        return
+    try:
+        elapsed_s = float(stats.get("elapsed_s", 0.0))
+        ms_per_simulation = float(
+            stats.get("milliseconds_per_simulation", 0.0)
+        )
+        simulations_per_second = float(
+            stats.get("simulations_per_second", 0.0)
+        )
+        unique_drivers = int(stats.get("unique_drivers", 0))
+        simulations = int(stats.get("simulations", 0))
+    except (TypeError, ValueError):
+        return
+    st.markdown(
+        "**Last calculation** · "
+        f"{elapsed_s:.2f} s total · "
+        f"{ms_per_simulation:.1f} ms/simulation · "
+        f"{simulations_per_second:.1f} simulations/s · "
+        f"{unique_drivers:,} drivers / {simulations:,} simulations"
+    )
+
+
 def _render_bass_match_hero(
     filtered_preset_names: list[str],
 ) -> list[str]:
@@ -5078,6 +5929,7 @@ def _render_bass_match_hero(
             ):
                 run_requested = True
         _render_finder_constraint_grid(constraints)
+        _render_finder_run_statistics()
         if match_preset_names and not prequalified_names:
             st.warning(
                 "No driver passes the pre-simulation checks. Lower Minimum "
@@ -5207,7 +6059,7 @@ def _render_candidate_pool(filtered_preset_names: list[str]) -> None:
 def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     """Render Finder results and candidate application, separate from inputs."""
     load_type = str(st.session_state.get("load_type", "DCCAV"))
-    _render_bass_match_hero(filtered_preset_names)
+    match_preset_names = _render_bass_match_hero(filtered_preset_names)
 
     match_completion = st.session_state.pop("_finder_match_completion", None)
     if match_completion:
@@ -5227,6 +6079,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         st.session_state.get("finder_max_mms_g", 0.0) or 0.0)
     current_max_le_mh = float(
         st.session_state.get("finder_max_le_mh", 0.0) or 0.0)
+    current_signature = _finder_result_context_signature(match_preset_names)
     context_matches = not (
         len(context) < 2
         or tuple(context[:2]) != (finder_loads, finder_volume_l)
@@ -5241,10 +6094,19 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         or (len(context) <= 9 and current_max_le_mh > 0.0)
         or len(context) <= 10
         or int(context[10]) != _FINDER_RANKING_VERSION
+        or (
+            len(context) > 15
+            and str(context[15]) != current_signature
+        )
     )
     if not context_matches:
         batch_rows = []
     if not batch_rows:
+        if context and not context_matches:
+            st.info(
+                "Bass Match inputs changed. Run Bass Match again to update "
+                "the results."
+            )
         if st.session_state.get("batch_search_completed", False) and context_matches:
             st.subheader("No Bass Match result")
             if current_min_spl_db > 0.0:
@@ -6062,6 +6924,8 @@ _default("bandpass6_vp_l", float(_seed_bandpass6.vp_l))
 _default("bandpass6_fp_hz", float(_seed_bandpass6.fp_hz))
 _default("sealed_vb_l", float(_seed_sealed.vb_l))
 _sync_auto_alignment_if_needed()
+
+_initialize_browser_project_store()
 
 finder_library_filters_slot = st.empty()
 

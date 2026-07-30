@@ -62,6 +62,15 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
   `driver_preset_names/info/get_driver_preset` walk after the built-ins.
 - Public catalog API: `driver_preset_names()`, `driver_preset_info(name)`,
   `driver_preset_provenance_category(name)`, `get_driver_preset(name)`
+- Size/Sd integrity API: `effective_piston_diameter_in(sd_cm2)`,
+  `nominal_size_matches_sd(size_in, sd_cm2)` and
+  `coherent_nominal_size_in(size_in, sd_cm2)`. External nominal sizes are
+  accepted while the circular effective diameter represented by `Sd` is
+  70–115% of the nominal frame size. This tolerance accommodates differing
+  baskets and suspensions while rejecting size-like model numbers and bad
+  catalog labels; values outside it are replaced at load time by the nearest
+  conventional Size/Sd anchor so filters and ranked tables cannot expose
+  physically contradictory diameter metadata.
 
 ## Provenance categories
 
