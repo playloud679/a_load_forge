@@ -432,6 +432,17 @@ except _saas.SaaSConfigurationError as _saas_config_error:
 _CURRENT_SAAS_USER = _resolve_saas_user()
 
 
+def _pro_comparison_enabled() -> bool:
+    """Allow comparison workflows locally and for Pro-equivalent accounts."""
+    if _CURRENT_SAAS_USER is None:
+        return True
+    entitlements = _saas.effective_entitlements(
+        _CURRENT_SAAS_USER,
+        _SAAS_SETTINGS,
+    )
+    return entitlements.access_tier in {"pro", "team"}
+
+
 st.markdown(
     """
     <style>
@@ -720,10 +731,17 @@ _PARAM_PREFIXES = (
     "driver_", "box_", "reflex_", "pr_", "bandpass4_", "bandpass6_", "sealed_", "loss_", "sim_", "opt_", "load_type"
 )
 _RESPONSE_TRACE_OPTIONS = ("Total", "Cone", "Lower port")
+_RESONATOR_RESPONSE_TRACES = {
+    "Lower port",
+    "Vent",
+    "Passive radiator",
+    "Front port",
+}
 _PORT_TRACE_OPTIONS = ("Upper port", "Lower port")
 _AUTO_CURSOR_OPTIONS = ("F3", "F6", "F10")
 _RESPONSE_DEFAULTS_VERSION = 1
 _MAX_PINNED_RESPONSES = 8
+_MAX_COMPARISON_DESIGNS = 8
 _MAX_PINNED_CHART_ROWS = 4800
 _PIN_TRACE_COLORS = (
     "#9aa0a6", "#ffb703", "#8ecae6", "#fb8500",
@@ -1082,6 +1100,14 @@ _TRACE_COLORS = {
     "Sealed": "#b8f26d",
     "Infinite baffle": "#e0aaff",
 }
+_DESIGN_COMPARISON_TRACE_COLORS = (
+    _TRACE_COLORS["Total"],
+    *tuple(
+        color
+        for color in _PIN_TRACE_COLORS
+        if color != _TRACE_COLORS["Total"]
+    ),
+)
 _PRESET_FAMILY_ORDER = (
     "All",
     "Aiyima",
@@ -1319,6 +1345,9 @@ _BASS_MATCH_PROJECT_STATE_KEYS = {
     "preset_max_price",
     "preset_price_currency",
     "workspace_mode",
+    "design_comparison_tabs",
+    "design_comparison_active_id",
+    "design_comparison_loaded_id",
 }
 _BASS_MATCH_PROJECT_RESULT_KEYS = (
     "batch_results",
@@ -1408,6 +1437,29 @@ def _build_lfp_project(
         "bass_match": _collect_bass_match_project_state(
             include_results=include_results
         ),
+    }
+
+
+def _build_cloud_project_payload() -> dict:
+    """Persist design parameters plus the last Bass Match run in the cloud."""
+    bass_match = _collect_bass_match_project_state(include_results=True)
+    # Editable comparison snapshots can approach the whole cloud-document
+    # ceiling. Cloud projects keep the active Box Design and Finder results;
+    # portable/browser LFP projects remain the complete comparison backup.
+    for key in (
+        "design_comparison_tabs",
+        "design_comparison_active_id",
+        "design_comparison_loaded_id",
+    ):
+        bass_match["state"].pop(key, None)
+    return {
+        "_load_forge_meta": {
+            "version": _VERSION,
+            "format": _LFP_FORMAT_VERSION,
+            "kind": "cloud_project",
+        },
+        "parameters": _json_safe(_collect_params()),
+        "bass_match": bass_match,
     }
 
 
@@ -1522,6 +1574,16 @@ def _apply_lfp_project(payload: dict) -> int:
     if run_stats is not None and not isinstance(run_stats, dict):
         raise TypeError("LFP Bass Match run statistics must be an object")
     st.session_state["finder_last_run_stats"] = dict(run_stats or {})
+    if st.session_state["batch_results"]:
+        # Finder widgets are instantiated after the Project menu and may
+        # normalize aggregate filter state during this same rerun. Capture the
+        # stable signature when the restored results are first rendered.
+        st.session_state["_restored_bass_match_controls_signature"] = "pending"
+    else:
+        st.session_state.pop(
+            "_restored_bass_match_controls_signature",
+            None,
+        )
     _invalidate_bass_match_results_signature()
     _bass_match_results_signature()
     return applied + len(state or {})
@@ -1538,6 +1600,7 @@ def _clear_active_project_state() -> None:
         ):
             st.session_state.pop(key, None)
     st.session_state.pop("_design_state_backup", None)
+    st.session_state.pop("_restored_bass_match_controls_signature", None)
     _invalidate_bass_match_results_signature()
     st.session_state.pop("_browser_project_download_cache", None)
 
@@ -1573,6 +1636,7 @@ def _activate_browser_project(
         st.session_state.pop("_browser_project_last_ack", None)
     _cache_lfp_download(payload, content_signature)
     st.session_state.pop("_browser_project_load_request", None)
+    st.session_state.pop("_browser_project_load_after_save", None)
     st.session_state.pop("_browser_project_menu_auto_open", None)
 
 
@@ -1586,12 +1650,25 @@ def _start_new_browser_project() -> None:
     st.session_state.pop("_browser_project_content_signature", None)
     st.session_state.pop("_browser_project_last_ack", None)
     st.session_state.pop("_browser_project_saved_results_signature", None)
+    st.session_state.pop("_browser_project_load_after_save", None)
     st.session_state.pop("_browser_project_menu_auto_open", None)
 
 
 def _request_browser_project_load(project_id: str) -> None:
+    project_id = str(project_id)
+    active = st.session_state.get("_browser_active_project")
+    if (
+        st.session_state.get("_browser_project_initialized")
+        and isinstance(active, dict)
+        and str(active.get("id", "")) != project_id
+    ):
+        # Flush the current project, including its last Finder result rows,
+        # before issuing the IndexedDB load for another project.
+        st.session_state["_browser_project_load_after_save"] = project_id
+        st.session_state.pop("_browser_project_load_request", None)
+        return
     st.session_state["_browser_project_load_request"] = {
-        "project_id": str(project_id),
+        "project_id": project_id,
         "nonce": uuid.uuid4().hex,
     }
 
@@ -1607,6 +1684,9 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
             "nonce": str(load_request.get("nonce", "")),
         }
     active = st.session_state.get("_browser_active_project")
+    queued_load_id = str(
+        st.session_state.get("_browser_project_load_after_save", "")
+    )
     if (
         command is None
         and st.session_state.get("_browser_project_initialized")
@@ -1644,6 +1724,18 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
             st.session_state["_browser_project_pending_results"] = {
                 "nonce": content_signature,
                 "signature": results_signature if include_results else "",
+            }
+        elif queued_load_id:
+            load_request = {
+                "project_id": queued_load_id,
+                "nonce": uuid.uuid4().hex,
+            }
+            st.session_state["_browser_project_load_request"] = load_request
+            st.session_state.pop("_browser_project_load_after_save", None)
+            command = {
+                "op": "load",
+                "project_id": queued_load_id,
+                "nonce": str(load_request["nonce"]),
             }
 
     component_state = st.session_state.get("_browser_project_store", {})
@@ -1702,6 +1794,22 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
                     saved_signature
                 )
             st.session_state.pop("_browser_project_pending_results", None)
+        queued_load_id = str(
+            st.session_state.get("_browser_project_load_after_save", "")
+        )
+        if (
+            queued_load_id
+            and ack == str(st.session_state.get(
+                "_browser_project_content_signature",
+                "",
+            ))
+        ):
+            st.session_state["_browser_project_load_request"] = {
+                "project_id": queued_load_id,
+                "nonce": uuid.uuid4().hex,
+            }
+            st.session_state.pop("_browser_project_load_after_save", None)
+            st.rerun()
     loaded_project = None
     load_ack = str(getattr(result, "load_ack", "") or "")
     if (
@@ -1949,7 +2057,7 @@ def _render_saas_project_controls(user: _saas.SaaSUser) -> None:
                 record = _active_saas_project_store().save_project(
                     user,
                     project_name,
-                    _collect_params(),
+                    _build_cloud_project_payload(),
                     _VERSION,
                     project_id=active_project_id,
                     expected_revision=(
@@ -2005,7 +2113,27 @@ def _render_saas_project_controls(user: _saas.SaaSUser) -> None:
                 if record is None:
                     raise ValueError("Cloud project no longer exists")
                 _snapshot_design_state()
-                count = _apply_loaded_params(record.parameters)
+                if (
+                    isinstance(record.parameters, dict)
+                    and isinstance(
+                        record.parameters.get("_load_forge_meta"),
+                        dict,
+                    )
+                    and "parameters" in record.parameters
+                ):
+                    design_backup = st.session_state.get(
+                        "_design_state_backup"
+                    )
+                    _clear_active_project_state()
+                    if isinstance(design_backup, dict):
+                        st.session_state["_design_state_backup"] = (
+                            design_backup
+                        )
+                    count = _apply_lfp_project(record.parameters)
+                else:
+                    # Backward compatibility for cloud projects saved before
+                    # the complete Bass Match payload was introduced.
+                    count = _apply_loaded_params(record.parameters)
                 st.session_state["_saas_active_project_id"] = record.project_id
                 st.session_state["_saas_active_project_revision"] = record.revision
                 st.session_state["_saas_active_project_name"] = record.name
@@ -2439,6 +2567,7 @@ def _reset_finder_defaults() -> None:
     st.session_state.pop("batch_result_context", None)
     st.session_state.pop("batch_search_completed", None)
     st.session_state.pop("finder_last_run_stats", None)
+    st.session_state.pop("_restored_bass_match_controls_signature", None)
     _invalidate_bass_match_results_signature()
 
 
@@ -2462,6 +2591,7 @@ def _ensure_finder_defaults() -> None:
         st.session_state.pop("batch_result_context", None)
         st.session_state.pop("batch_search_completed", None)
         st.session_state.pop("finder_last_run_stats", None)
+        st.session_state.pop("_restored_bass_match_controls_signature", None)
         _invalidate_bass_match_results_signature()
     else:
         # Keep conditionally rendered Finder values alive while Design is open.
@@ -3468,6 +3598,24 @@ def _response_amplitude_axis() -> alt.Axis:
     )
 
 
+def _active_design_comparison_color() -> str | None:
+    """Return the active design's permanent comparison color, when present."""
+    active_id = str(st.session_state.get("design_comparison_active_id", ""))
+    tabs = st.session_state.get("design_comparison_tabs", [])
+    if not active_id or not isinstance(tabs, list):
+        return None
+    for index, tab in enumerate(tabs):
+        if not isinstance(tab, dict) or str(tab.get("id", "")) != active_id:
+            continue
+        return str(
+            tab.get("color")
+            or _DESIGN_COMPARISON_TRACE_COLORS[
+                index % len(_DESIGN_COMPARISON_TRACE_COLORS)
+            ]
+        )
+    return None
+
+
 def _line_chart(
     data: pd.DataFrame,
     y_title: str,
@@ -3479,14 +3627,22 @@ def _line_chart(
     y_axis: alt.Axis | None = None,
     default_visible: list[str] | None = None,
     y_field: str = "value",
+    color_overrides: dict[str, str] | None = None,
 ) -> alt.Chart:
     if not legend and default_visible is not None:
         data = data[data["series"].isin(default_visible)]
     
     series_names = list(dict.fromkeys(data["series"].tolist()))
+    color_overrides = color_overrides or {}
     color_scale = alt.Scale(
         domain=series_names,
-        range=[_TRACE_COLORS.get(name, "#7cc7ff") for name in series_names],
+        range=[
+            color_overrides.get(
+                name,
+                _TRACE_COLORS.get(name, "#7cc7ff"),
+            )
+            for name in series_names
+        ],
     )
     color = alt.Color(
         "series:N",
@@ -3863,8 +4019,11 @@ def _band_layer(
     if data.empty:
         return None
     y_scale = alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined
+    design_color = _active_design_comparison_color()
     return alt.Chart(data).mark_area(
-        opacity=0.22, color=_TRACE_COLORS["Total"], clip=True,
+        opacity=0.22,
+        color=design_color or _TRACE_COLORS["Total"],
+        clip=True,
     ).encode(
         x=alt.X(
             "frequency_hz:Q",
@@ -3895,12 +4054,19 @@ def _plot_response(
 ) -> alt.Chart:
     series = dict(series_override if series_override else _response_series(result))
     mil_w_data = series.pop("MIL", None)
+    visible_response_traces = (
+        set(default_visible) if default_visible is not None else None
+    )
     
     db_series_to_plot = series if series else {"Total": result.spl_total_db}
     
     data = _series_frame(result, db_series_to_plot)
     y_domain = _response_y_domain(result, db_series_to_plot, frequency_window)
-    y_domain = _expand_y_domain_for_pins(y_domain, frequency_window)
+    y_domain = _expand_y_domain_for_pins(
+        y_domain,
+        frequency_window,
+        visible_response_traces,
+    )
     if band is not None and y_domain is not None:
         finite_upper = np.asarray(band.upper_db, dtype=float)
         finite_upper = finite_upper[np.isfinite(finite_upper)]
@@ -3915,11 +4081,19 @@ def _plot_response(
         y_domain=y_domain,
         y_axis=_response_amplitude_axis(),
         default_visible=default_visible,
+        color_overrides=(
+            {"Total": active_color}
+            if (active_color := _active_design_comparison_color())
+            else None
+        ),
     )
     
     if mil_w_data is not None and (default_visible is None or "MIL" in default_visible):
         mil_data = _series_frame(result, {"MIL": mil_w_data}).rename(columns={"value": "mil_value"})
         mil_max = float(np.max(mil_w_data[np.isfinite(mil_w_data)]))
+        pinned_mil_data, _ = _pinned_metric_frame("mil_w")
+        if not pinned_mil_data.empty:
+            mil_max = max(mil_max, float(pinned_mil_data["value"].max()))
         mil_y_domain = [0.0, max(1.0, mil_max * 1.05)]
         
         mil_chart = _line_chart(
@@ -3937,6 +4111,24 @@ def _plot_response(
             default_visible=["MIL"],
             y_field="mil_value",
         )
+        pinned_mil = _pinned_metric_layer(
+            "mil_w",
+            "Max input power (W)",
+            ".3f",
+            x_domain=frequency_window,
+            y_domain=mil_y_domain,
+            y_axis=alt.Axis(
+                orient="right",
+                titleColor=_TRACE_COLORS.get("MIL", "#e0aaff"),
+                labelColor=_TRACE_COLORS.get("MIL", "#e0aaff"),
+            ),
+            show_legend=show_legend,
+        )
+        if pinned_mil is not None:
+            mil_chart = (mil_chart + pinned_mil).resolve_scale(
+                color="independent",
+                strokeDash="independent",
+            )
         chart = alt.layer(chart, mil_chart).resolve_scale(y="independent")
 
     if band is not None:
@@ -3947,7 +4139,12 @@ def _plot_response(
     chart = chart + _click_marker_layer(
         result, frequency_window, y_domain, show_mol=show_mol
     )
-    pinned = _pinned_layer(frequency_window, y_domain, show_legend=show_legend)
+    pinned = _pinned_layer(
+        frequency_window,
+        y_domain,
+        show_legend=show_legend,
+        selected_traces=visible_response_traces,
+    )
     if pinned is not None:
         chart = chart + pinned
     cursors = _cursor_layer(
@@ -3962,7 +4159,16 @@ def _plot_response(
 
 def _plot_excursion(result: _dccav.SimulationResult, xmax_mm: float) -> alt.Chart:
     data = _series_frame(result, {"Excursion": result.excursion_mm})
-    chart = _line_chart(data, "Excursion (mm)", height=285, legend=False)
+    active_color = _active_design_comparison_color()
+    chart = _line_chart(
+        data,
+        "Excursion (mm)",
+        height=285,
+        legend=False,
+        color_overrides=(
+            {"Excursion": active_color} if active_color else None
+        ),
+    )
     if xmax_mm > 0:
         xmax_rule = alt.Chart(pd.DataFrame({"xmax_mm": [float(xmax_mm)]})).mark_rule(
             color="#10b981",
@@ -3978,7 +4184,16 @@ def _plot_excursion(result: _dccav.SimulationResult, xmax_mm: float) -> alt.Char
 
 def _plot_impedance(result: _dccav.SimulationResult) -> alt.Chart:
     data = _series_frame(result, {"Impedance": result.impedance_ohm})
-    chart = _line_chart(data, "Impedance (Ω)", height=285, legend=False)
+    active_color = _active_design_comparison_color()
+    chart = _line_chart(
+        data,
+        "Impedance (Ω)",
+        height=285,
+        legend=False,
+        color_overrides=(
+            {"Impedance": active_color} if active_color else None
+        ),
+    )
     pinned = _pinned_metric_layer("impedance_ohm", "Impedance (Ω)", ".3f")
     if pinned is not None:
         chart = (chart + pinned).resolve_scale(
@@ -3991,7 +4206,16 @@ def _plot_mil(result: _dccav.SimulationResult) -> alt.Chart:
     data = _series_frame(result, {"MIL": mil_w_data}).rename(columns={"value": "mil_value"})
     mil_max = float(np.max(mil_w_data[np.isfinite(mil_w_data)]))
     mil_y_domain = [0.0, max(1.0, mil_max * 1.05)]
-    chart = _line_chart(data, "Max input power (W)", height=240, legend=False, y_domain=mil_y_domain, y_field="mil_value")
+    active_color = _active_design_comparison_color()
+    chart = _line_chart(
+        data,
+        "Max input power (W)",
+        height=240,
+        legend=False,
+        y_domain=mil_y_domain,
+        y_field="mil_value",
+        color_overrides={"MIL": active_color} if active_color else None,
+    )
     pinned = _pinned_metric_layer("mil_w", "Max input power (W)", ".3f")
     if pinned is not None:
         chart = (chart + pinned).resolve_scale(
@@ -3999,9 +4223,22 @@ def _plot_mil(result: _dccav.SimulationResult) -> alt.Chart:
     return chart
 
 
-def _pin_label(load_type: str, box) -> str:
-    preset = str(st.session_state.get("driver_preset_name", "Custom"))
-    config = str(st.session_state.get("driver_config", "Single driver"))
+def _pin_label(
+    load_type: str,
+    box,
+    preset: str | None = None,
+    config: str | None = None,
+) -> str:
+    preset = str(
+        preset
+        if preset is not None
+        else st.session_state.get("driver_preset_name", "Custom")
+    )
+    config = str(
+        config
+        if config is not None
+        else st.session_state.get("driver_config", "Single driver")
+    )
     if config != "Single driver":
         preset = f"{preset} ({config})"
     if load_type == "Bass reflex":
@@ -4045,14 +4282,28 @@ def _pinned_response_snapshot(
     load_type: str,
     box,
     result: _dccav.SimulationResult,
+    *,
+    label: str | None = None,
+    color: str | None = None,
 ) -> dict:
     """Capture every comparable curve independently of later UI changes."""
+    response_traces = {
+        "Total": [float(v) for v in result.spl_total_db],
+        "Cone": [float(v) for v in result.spl_driver_db],
+        "MOL": [float(v) for v in result.mol_db],
+    }
     if load_type == "DCCAV":
+        response_traces["Lower port"] = [
+            float(v) for v in result.spl_port_db
+        ]
         port_traces = {
             "Upper port": [float(v) for v in result.port_h_velocity],
             "Lower port": [float(v) for v in result.port_l_velocity],
         }
     elif load_type == "Bandpass 6th order":
+        response_traces["Lower port"] = [
+            float(v) for v in result.spl_port_db
+        ]
         port_traces = {
             "Rear port": [float(v) for v in result.port_h_velocity],
             "Front port": [float(v) for v in result.port_l_velocity],
@@ -4063,23 +4314,209 @@ def _pinned_response_snapshot(
             if isinstance(box, _dccav.PassiveRadiatorBox)
             else "Vent"
         )
+        response_traces[port_label] = [
+            float(v) for v in result.spl_port_db
+        ]
         port_traces = {
             port_label: [float(v) for v in result.port_l_velocity],
         }
     else:
         port_traces = {}
-    return {
-        "label": _pin_label(load_type, box),
+    snapshot = {
+        "label": label or _pin_label(load_type, box),
         "load_type": load_type,
         "visible": True,
         "frequency_hz": [float(v) for v in result.frequency_hz],
         "spl_total_db": [float(v) for v in result.spl_total_db],
+        "response_traces": response_traces,
         "excursion_mm": [float(v) for v in result.excursion_mm],
         "impedance_ohm": [float(v) for v in result.impedance_ohm],
         "mil_w": [float(v) for v in result.mil_w],
         "group_delay_ms": [float(v) for v in _dccav.group_delay_ms(result)],
         "port_traces": port_traces,
     }
+    if color:
+        snapshot["color"] = str(color)
+    return snapshot
+
+
+def _update_active_design_comparison(
+    load_type: str,
+    box,
+    result: _dccav.SimulationResult,
+) -> list[dict]:
+    """Persist the active editable tab and expose every inactive tab as overlays."""
+    tabs = _design_comparison_tabs()
+    if not tabs:
+        return []
+    active_id = str(
+        st.session_state.get("design_comparison_active_id", tabs[0]["id"])
+    )
+    for tab in tabs:
+        if str(tab["id"]) != active_id:
+            continue
+        tab["parameters"] = _json_safe(_collect_params())
+        tab["snapshot"] = _pinned_response_snapshot(
+            load_type,
+            box,
+            result,
+            label=str(tab.get("label", "Editable design")),
+            color=str(tab.get("color", "")) or None,
+        )
+        break
+    st.session_state["design_comparison_tabs"] = tabs
+    st.session_state["design_comparison_loaded_id"] = active_id
+    st.session_state["pinned_responses"] = [
+        dict(tab["snapshot"])
+        for tab in tabs
+        if str(tab["id"]) != active_id
+        and isinstance(tab.get("snapshot"), dict)
+    ]
+    return tabs
+
+
+def _duplicate_active_design_comparison(
+    load_type: str,
+    box,
+    result: _dccav.SimulationResult,
+) -> str:
+    """Create an independently editable variant tab from the active design."""
+    tabs = _update_active_design_comparison(load_type, box, result)
+    if not tabs:
+        original_id = f"design_{uuid.uuid4().hex}"
+        original_label = f"1 · {_pin_label(load_type, box)}"
+        original_snapshot = _pinned_response_snapshot(
+            load_type,
+            box,
+            result,
+            label=original_label,
+            color=_DESIGN_COMPARISON_TRACE_COLORS[0],
+        )
+        tabs = [{
+            "id": original_id,
+            "label": original_label,
+            "color": _DESIGN_COMPARISON_TRACE_COLORS[0],
+            "parameters": _json_safe(_collect_params()),
+            "snapshot": original_snapshot,
+        }]
+        st.session_state["design_comparison_active_id"] = original_id
+        st.session_state["design_comparison_loaded_id"] = original_id
+    active_id = str(st.session_state["design_comparison_active_id"])
+    source = next(
+        item for item in tabs if str(item["id"]) == active_id
+    )
+    copy_id = f"design_{uuid.uuid4().hex}"
+    copy_label = f"{len(tabs) + 1} · Variant of {source['label'].split(' · ', 1)[-1]}"
+    copied_snapshot = dict(source.get("snapshot", {}))
+    copied_snapshot["label"] = copy_label
+    tabs.append({
+        "id": copy_id,
+        "label": copy_label,
+        "color": _DESIGN_COMPARISON_TRACE_COLORS[
+            len(tabs) % len(_DESIGN_COMPARISON_TRACE_COLORS)
+        ],
+        "parameters": _json_safe(dict(source.get("parameters", {}))),
+        "snapshot": copied_snapshot,
+    })
+    tabs[-1]["snapshot"]["color"] = tabs[-1]["color"]
+    st.session_state["design_comparison_tabs"] = tabs
+    st.session_state["design_comparison_active_id"] = copy_id
+    return copy_label
+
+
+def _close_active_design_comparison_tab() -> None:
+    tabs = _design_comparison_tabs()
+    if len(tabs) <= 1:
+        return
+    active_id = str(st.session_state.get("design_comparison_active_id", ""))
+    remaining = [item for item in tabs if str(item["id"]) != active_id]
+    st.session_state["design_comparison_tabs"] = remaining
+    st.session_state["design_comparison_active_id"] = str(remaining[0]["id"])
+
+
+def _end_design_comparison() -> None:
+    for key in (
+        "design_comparison_tabs",
+        "design_comparison_active_id",
+        "design_comparison_loaded_id",
+    ):
+        st.session_state.pop(key, None)
+    st.session_state["pinned_responses"] = []
+
+
+def _design_comparison_tab_colors(
+    tabs: list[dict],
+) -> dict[str, str]:
+    """Return the permanent curve color assigned to each editable design."""
+    return {
+        str(tab["id"]): str(
+            tab.get("color")
+            or _DESIGN_COMPARISON_TRACE_COLORS[
+                index % len(_DESIGN_COMPARISON_TRACE_COLORS)
+            ]
+        )
+        for index, tab in enumerate(tabs)
+    }
+
+
+def _render_editable_design_tabs(tabs: list[dict]) -> None:
+    """Render compact tab-like buttons; the active tab owns sidebar controls."""
+    if not tabs:
+        return
+    active_id = str(
+        st.session_state.get("design_comparison_active_id", tabs[0]["id"])
+    )
+    tab_colors = _design_comparison_tab_colors(tabs)
+    tab_styles = []
+    for tab in tabs:
+        tab_id = str(tab["id"])
+        color = tab_colors[tab_id]
+        is_active = tab_id == active_id
+        tab_styles.append(
+            f"""
+            .st-key-design_comparison_tab_{tab_id} button {{
+                background: linear-gradient(
+                    180deg, {color}{'4d' if is_active else '1f'}, {color}0d
+                ) !important;
+                border: {'2px' if is_active else '1px'} solid {color} !important;
+                box-shadow: inset 0 -4px 0 {color} !important;
+                font-weight: {'700' if is_active else '500'} !important;
+            }}
+            .st-key-design_comparison_tab_{tab_id} button::before {{
+                content: "";
+                width: .62rem;
+                height: .62rem;
+                flex: 0 0 .62rem;
+                border-radius: 999px;
+                background: {color};
+                box-shadow: 0 0 0 2px rgba(15, 17, 23, .9);
+            }}
+            """
+        )
+    st.markdown(
+        f"<style>{''.join(tab_styles)}</style>",
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        "Editable design tabs · select a tab, then change its driver, load or "
+        "box parameters in the sidebar. Tab colors match their chart curves."
+    )
+    for start in range(0, len(tabs), 4):
+        row = tabs[start:start + 4]
+        columns = st.columns(len(row))
+        for column, tab in zip(columns, row, strict=True):
+            tab_id = str(tab["id"])
+            label = str(tab.get("label", "Design"))
+            short_label = label if len(label) <= 46 else f"{label[:43]}…"
+            with column:
+                st.button(
+                    short_label,
+                    key=f"design_comparison_tab_{tab_id}",
+                    type="primary" if tab_id == active_id else "secondary",
+                    width="stretch",
+                    on_click=_request_design_comparison_tab,
+                    args=(tab_id,),
+                )
 
 
 def _remove_pinned_response(index: int) -> None:
@@ -4102,13 +4539,22 @@ def _clear_pinned_responses() -> None:
     st.session_state["pinned_response"] = None
 
 
-def _pinned_metric_frame(value_key: str) -> tuple[pd.DataFrame, list[str]]:
+def _pinned_metric_frame(
+    value_key: str,
+    selected_traces: set[str] | None = None,
+) -> tuple[pd.DataFrame, list[str]]:
     """Flatten one stored metric across valid pins and preserve legend order."""
     frames = []
     labels = []
     pinned_responses = _pinned_responses()
     visible_pins = [pin for pin in pinned_responses if pin.get("visible", True)]
-    trace_budget = 2 if value_key == "port_traces" else 1
+    trace_budget = (
+        4
+        if value_key == "response_traces"
+        else 2
+        if value_key == "port_traces"
+        else 1
+    )
     rows_per_pin = max(
         1,
         _MAX_PINNED_CHART_ROWS // max(1, len(visible_pins) * trace_budget),
@@ -4118,10 +4564,27 @@ def _pinned_metric_frame(value_key: str) -> tuple[pd.DataFrame, list[str]]:
             continue
         frequencies = np.asarray(pinned.get("frequency_hz", []), dtype=float)
         trace_label = f"{index + 1} · {pinned.get('label', 'Pinned response')}"
+        trace_color = str(
+            pinned.get("color")
+            or _PIN_TRACE_COLORS[index % len(_PIN_TRACE_COLORS)]
+        )
         stored = pinned.get(value_key, {})
+        if value_key == "response_traces" and not isinstance(stored, dict):
+            stored = {}
+        if value_key == "response_traces" and not stored:
+            stored = {"Total": pinned.get("spl_total_db", [])}
         stored_traces = stored if isinstance(stored, dict) else {"Pinned": stored}
         pin_has_data = False
         for series_name, stored_values in stored_traces.items():
+            series_name = str(series_name)
+            if selected_traces is not None:
+                selected = series_name in selected_traces
+                if series_name in _RESONATOR_RESPONSE_TRACES:
+                    selected = selected or bool(
+                        selected_traces & _RESONATOR_RESPONSE_TRACES
+                    )
+                if not selected:
+                    continue
             values = np.asarray(stored_values, dtype=float)
             count = min(frequencies.size, values.size)
             if not count:
@@ -4130,7 +4593,8 @@ def _pinned_metric_frame(value_key: str) -> tuple[pd.DataFrame, list[str]]:
                 "frequency_hz": frequencies[:count],
                 "value": values[:count],
                 "label": trace_label,
-                "trace": str(series_name),
+                "trace": series_name,
+                "color": trace_color,
             })
             data = data[
                 np.isfinite(data["frequency_hz"]) & np.isfinite(data["value"])
@@ -4146,24 +4610,27 @@ def _pinned_metric_frame(value_key: str) -> tuple[pd.DataFrame, list[str]]:
             labels.append(trace_label)
     if not frames:
         return pd.DataFrame(
-            columns=("frequency_hz", "value", "label", "trace")
+            columns=("frequency_hz", "value", "label", "trace", "color")
         ), []
     return pd.concat(frames, ignore_index=True), labels
 
 
-def _pinned_response_frame() -> tuple[pd.DataFrame, list[str]]:
-    """Return the legacy total-response view of the generic pin store."""
-    return _pinned_metric_frame("spl_total_db")
+def _pinned_response_frame(
+    selected_traces: set[str] | None = None,
+) -> tuple[pd.DataFrame, list[str]]:
+    """Return every selected response pen across the comparison designs."""
+    return _pinned_metric_frame("response_traces", selected_traces)
 
 
 def _expand_y_domain_for_pins(
     y_domain: list[float] | None,
     frequency_window: list[float] | None,
+    selected_traces: set[str] | None = None,
 ) -> list[float] | None:
     """Keep every pinned trace visible in the selected response window."""
     if y_domain is None:
         return None
-    data, _ = _pinned_response_frame()
+    data, _ = _pinned_response_frame(selected_traces)
     if frequency_window is not None and not data.empty:
         low_hz, high_hz = map(float, frequency_window)
         data = data[
@@ -4186,11 +4653,18 @@ def _pinned_metric_layer(
     y_domain: list[float] | None = None,
     y_axis: alt.Axis | None = None,
     show_legend: bool = False,
+    selected_traces: set[str] | None = None,
 ) -> alt.Chart | None:
-    data, labels = _pinned_metric_frame(value_key)
+    data, labels = _pinned_metric_frame(value_key, selected_traces)
     if data.empty:
         return None
     traces = list(dict.fromkeys(data["trace"].tolist()))
+    colors_by_label = (
+        data[["label", "color"]]
+        .drop_duplicates(subset=["label"])
+        .set_index("label")["color"]
+        .to_dict()
+    )
     line = alt.Chart(data)
     if len(traces) > 1:
         line = line.mark_line(strokeWidth=2.0, clip=True)
@@ -4214,8 +4688,11 @@ def _pinned_metric_layer(
             scale=alt.Scale(
                 domain=labels,
                 range=[
-                    _PIN_TRACE_COLORS[index % len(_PIN_TRACE_COLORS)]
-                    for index in range(len(labels))
+                    colors_by_label.get(
+                        label,
+                        _PIN_TRACE_COLORS[index % len(_PIN_TRACE_COLORS)],
+                    )
+                    for index, label in enumerate(labels)
                 ],
             ),
         ),
@@ -4243,15 +4720,17 @@ def _pinned_layer(
     x_domain: list[float] | None = None,
     y_domain: list[float] | None = None,
     show_legend: bool = False,
+    selected_traces: set[str] | None = None,
 ) -> alt.Chart | None:
     return _pinned_metric_layer(
-        "spl_total_db",
+        "response_traces",
         "LF pressure estimate (dB)",
         ".3f",
         x_domain,
         y_domain,
         _response_amplitude_axis(),
         show_legend=show_legend,
+        selected_traces=selected_traces,
     )
 
 
@@ -4356,7 +4835,16 @@ _PORT_GEOMETRY_COLUMNS = ("Port", "Diameter cm", "Length cm", "Peak m/s", "Peak 
 
 def _plot_group_delay(result: _dccav.SimulationResult, limit_ms: float = 0.0) -> alt.Chart:
     data = _series_frame(result, {"Group delay": _dccav.group_delay_ms(result)})
-    chart = _line_chart(data, "Group delay (ms)", height=240, legend=False)
+    active_color = _active_design_comparison_color()
+    chart = _line_chart(
+        data,
+        "Group delay (ms)",
+        height=240,
+        legend=False,
+        color_overrides=(
+            {"Group delay": active_color} if active_color else None
+        ),
+    )
     if limit_ms > 0.0:
         limit_rule = alt.Chart(pd.DataFrame({"limit_ms": [float(limit_ms)]})).mark_rule(
             color="#10b981",
@@ -4622,11 +5110,16 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
         load_type = "Bass reflex"
     name = str(row["Driver"])
     driver = _dccav.get_driver_preset(name)
-    st.session_state["load_type"] = load_type
-    st.session_state["driver_preset_name"] = name
-    st.session_state["driver_config"] = str(
+    driver_configuration = str(
         row.get("Driver configuration", "Single driver")
     )
+    configured_driver = _dccav.apply_driver_configuration(
+        driver,
+        driver_configuration,
+    )
+    st.session_state["load_type"] = load_type
+    st.session_state["driver_preset_name"] = name
+    st.session_state["driver_config"] = driver_configuration
     _apply_driver_preset(driver)
     _use_manual_box_strategy()
     st.session_state["workspace_mode"] = "Box Design"
@@ -4636,7 +5129,7 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
             "Resonator", _RESONATOR_PR if legacy_pr else _RESONATOR_PORT))
         st.session_state["reflex_resonator_type"] = resonator
         if resonator == _RESONATOR_PR:
-            pr = _dccav.suggest_pr_alignment(driver)
+            pr = _dccav.suggest_pr_alignment(configured_driver)
             st.session_state["pr_sp_cm2"] = float(pr.pr_sp_cm2)
             st.session_state["pr_fp_hz"] = float(pr.pr_fp_hz)
             st.session_state["pr_qmp"] = float(pr.pr_qmp)
@@ -4675,16 +5168,233 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
     _mark_auto_alignment_synced(driver)
 
 
+def _finder_result_snapshot(
+    row: dict,
+    load_type: str,
+    frequency_hz: np.ndarray,
+    voltage_v: float,
+) -> dict:
+    """Simulate one ranked Finder row as a reusable Box Design comparison."""
+    if load_type in ("Suspension pneumatic", "Acoustic suspension"):
+        load_type = "Sealed"
+    legacy_pr = load_type == "Passive radiator"
+    if legacy_pr:
+        load_type = "Bass reflex"
+    resonator = str(
+        row.get("Resonator", _RESONATOR_PR if legacy_pr else _RESONATOR_PORT)
+    )
+    name = str(row["Driver"])
+    configuration = str(
+        row.get("Driver configuration", "Single driver")
+    )
+    driver = _dccav.apply_driver_configuration(
+        _dccav.get_driver_preset(name),
+        configuration,
+    )
+    if load_type == "Bass reflex" and resonator == _RESONATOR_PR:
+        suggested = _dccav.suggest_pr_alignment(driver)
+        box = _dccav.PassiveRadiatorBox(
+            vb_l=float(row["Vb L"]),
+            pr_sp_cm2=float(suggested.pr_sp_cm2),
+            pr_fp_hz=float(suggested.pr_fp_hz),
+            pr_qmp=float(suggested.pr_qmp),
+            pr_mmp_g=float(suggested.pr_mmp_g),
+            pr_xmax_mm=float(suggested.pr_xmax_mm),
+        )
+        result = _dccav.simulate_passive_radiator(
+            driver, box, frequency_hz, voltage_v
+        )
+    elif load_type == "Bass reflex":
+        box = _dccav.ReflexBox(
+            vb_l=float(row["Vb L"]),
+            fb_hz=float(row["Fb Hz"]),
+        )
+        result = _dccav.simulate_reflex(
+            driver, box, frequency_hz, voltage_v
+        )
+    elif load_type == "Bandpass 4th order":
+        box = _dccav.Bandpass4Box(
+            vs_l=float(row["Vs L"]),
+            vp_l=float(row["Vp L"]),
+            fp_hz=float(row["Fp Hz"]),
+        )
+        result = _dccav.simulate_bandpass4(
+            driver, box, frequency_hz, voltage_v
+        )
+    elif load_type == "Bandpass 6th order":
+        box = _dccav.Bandpass6Box(
+            vr_l=float(row["Vr L"]),
+            fr_hz=float(row["Fr Hz"]),
+            vp_l=float(row["Vp L"]),
+            fp_hz=float(row["Fp Hz"]),
+        )
+        result = _dccav.simulate_bandpass6(
+            driver, box, frequency_hz, voltage_v
+        )
+    elif load_type == "Sealed":
+        box = _dccav.SealedBox(vb_l=float(row["Vb L"]))
+        result = _dccav.simulate_sealed(
+            driver, box, frequency_hz, voltage_v
+        )
+    elif load_type == "Infinite baffle":
+        box = None
+        result = _dccav.simulate_infinite_baffle(
+            driver, frequency_hz, voltage_v
+        )
+    else:
+        load_type = "DCCAV"
+        box = _dccav.DccavBox(
+            vh_l=float(row["Vh L"]),
+            fh_hz=float(row["fh Hz"]),
+            vl_l=float(row["Vl L"]),
+            fl_hz=float(row["fl Hz"]),
+        )
+        result = _dccav.simulate(driver, box, frequency_hz, voltage_v)
+    return _pinned_response_snapshot(
+        load_type,
+        box,
+        result,
+        label=_pin_label(
+            load_type,
+            box,
+            preset=name,
+            config=configuration,
+        ),
+    )
+
+
 def _apply_pending_batch_result() -> None:
     pending = st.session_state.pop("batch_pending_result", None)
     if not pending:
         return
+    # Opening one Finder result is a standalone design action. Do not let an
+    # older editable comparison immediately absorb it into a stale tab label.
+    _end_design_comparison()
     _apply_batch_result(pending["row"], str(pending["load_type"]))
     st.toast(f"Applied {pending['row']['Driver']} to the design")
 
 
+def _apply_pending_batch_comparison() -> None:
+    pending = st.session_state.pop("batch_pending_comparison", None)
+    if not isinstance(pending, dict):
+        return
+    designs = pending.get("designs", [])
+    if not isinstance(designs, list) or len(designs) < 2:
+        return
+    voltage_v = float(pending.get("voltage_v", 2.83))
+    frequency_hz = np.geomspace(
+        float(st.session_state["sim_f_min"]),
+        float(st.session_state["sim_f_max"]),
+        int(st.session_state["sim_points"]),
+    )
+    comparison_tabs = []
+    for index, design in enumerate(
+        designs[:_MAX_COMPARISON_DESIGNS],
+        start=1,
+    ):
+        row = design["row"]
+        load_type = str(design["load_type"])
+        _apply_batch_result(row, load_type)
+        st.session_state["sim_voltage"] = voltage_v
+        st.session_state["sim_series_r_ohm"] = 0.0
+        driver_label = str(row["Driver"])
+        if ": " in driver_label:
+            driver_label = driver_label.split(": ", 1)[1]
+        tab_id = f"design_{uuid.uuid4().hex}"
+        label = f"{index} · {driver_label} · {load_type}"
+        color = _DESIGN_COMPARISON_TRACE_COLORS[
+            (index - 1) % len(_DESIGN_COMPARISON_TRACE_COLORS)
+        ]
+        snapshot = _finder_result_snapshot(
+            design["row"],
+            load_type,
+            frequency_hz,
+            voltage_v,
+        )
+        snapshot["label"] = label
+        snapshot["color"] = color
+        comparison_tabs.append({
+            "id": tab_id,
+            "label": label,
+            "color": color,
+            "parameters": _json_safe(_collect_params()),
+            "snapshot": snapshot,
+        })
+    first = comparison_tabs[0]
+    _apply_loaded_params(dict(first["parameters"]))
+    st.session_state["design_comparison_tabs"] = comparison_tabs
+    st.session_state["design_comparison_active_id"] = first["id"]
+    st.session_state["design_comparison_loaded_id"] = first["id"]
+    st.session_state["pinned_responses"] = [
+        dict(item["snapshot"])
+        for item in comparison_tabs[1:]
+    ]
+    st.session_state["plot_compare_loads"] = False
+    st.toast(
+        f"Created {len(comparison_tabs)} editable Box Design tabs"
+    )
+
+
+def _design_comparison_tabs() -> list[dict]:
+    tabs = st.session_state.get("design_comparison_tabs", [])
+    if not isinstance(tabs, list):
+        tabs = []
+    valid_tabs = [
+        item
+        for item in tabs
+        if isinstance(item, dict) and item.get("id")
+    ]
+    changed = len(valid_tabs) != len(tabs)
+    for index, tab in enumerate(valid_tabs):
+        if tab.get("color"):
+            continue
+        color = _DESIGN_COMPARISON_TRACE_COLORS[
+            index % len(_DESIGN_COMPARISON_TRACE_COLORS)
+        ]
+        tab["color"] = color
+        if isinstance(tab.get("snapshot"), dict):
+            tab["snapshot"]["color"] = color
+        changed = True
+    if changed:
+        st.session_state["design_comparison_tabs"] = valid_tabs
+    return valid_tabs
+
+
+def _request_design_comparison_tab(tab_id: str) -> None:
+    st.session_state["design_comparison_active_id"] = str(tab_id)
+
+
+def _sync_active_design_comparison_tab() -> None:
+    """Save the previous editable tab and load the newly selected design."""
+    tabs = _design_comparison_tabs()
+    if not tabs:
+        return
+    tab_by_id = {str(item["id"]): item for item in tabs}
+    requested_id = str(
+        st.session_state.get(
+            "design_comparison_active_id",
+            tabs[0]["id"],
+        )
+    )
+    if requested_id not in tab_by_id:
+        requested_id = str(tabs[0]["id"])
+        st.session_state["design_comparison_active_id"] = requested_id
+    loaded_id = str(
+        st.session_state.get("design_comparison_loaded_id", requested_id)
+    )
+    if loaded_id == requested_id:
+        return
+    if loaded_id in tab_by_id:
+        tab_by_id[loaded_id]["parameters"] = _json_safe(_collect_params())
+    _apply_loaded_params(dict(tab_by_id[requested_id].get("parameters", {})))
+    st.session_state["design_comparison_loaded_id"] = requested_id
+    st.session_state["workspace_mode"] = "Box Design"
+    st.session_state["design_comparison_tabs"] = tabs
+
+
 def _apply_library_driver(name: str) -> None:
     """Load one library preset into the current simulation workspace."""
+    _end_design_comparison()
     driver = _dccav.get_driver_preset(name)
     st.session_state["driver_preset_name"] = name
     st.session_state["driver_config"] = "Single driver"
@@ -4974,6 +5684,34 @@ def _finder_result_context_signature(preset_names: list[str]) -> str:
         "f_max_hz": float(_finder_value("finder_f_max")),
         "points": int(_finder_value("finder_points")),
     }
+    encoded = json.dumps(
+        context,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _finder_controls_signature() -> str:
+    """Identify Finder controls without ephemeral table-row selection state."""
+    context = {
+        key: _json_safe(st.session_state.get(key, default))
+        for key, default in _FINDER_DEFAULTS.items()
+    }
+    for key, default in {
+        "finder_load_types": [],
+        "preset_search": "",
+        "preset_source_filter": ["All"],
+        "preset_family_filter": ["All"],
+        "preset_size_filter": ["All"],
+        "preset_class_filter": ["All"],
+        "preset_price_enabled": False,
+        "preset_max_price": 0.0,
+        "preset_price_currency": "",
+    }.items():
+        context[key] = _json_safe(st.session_state.get(key, default))
+    context["pool_fingerprint"] = _json_safe(_finder_pool_fingerprint(1))
     encoded = json.dumps(
         context,
         sort_keys=True,
@@ -5383,6 +6121,7 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
         collapsed_result_rows,
         _finder_result_context_signature(filtered_preset_names),
     )
+    st.session_state.pop("_restored_bass_match_controls_signature", None)
     _invalidate_bass_match_results_signature()
 
 
@@ -6080,6 +6819,19 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     current_max_le_mh = float(
         st.session_state.get("finder_max_le_mh", 0.0) or 0.0)
     current_signature = _finder_result_context_signature(match_preset_names)
+    current_controls_signature = _finder_controls_signature()
+    restored_controls_signature = str(st.session_state.get(
+        "_restored_bass_match_controls_signature",
+        "",
+    ))
+    if batch_rows and restored_controls_signature == "pending":
+        restored_controls_signature = current_controls_signature
+        st.session_state["_restored_bass_match_controls_signature"] = (
+            restored_controls_signature
+        )
+    restored_results_match = bool(batch_rows) and (
+        restored_controls_signature == current_controls_signature
+    )
     context_matches = not (
         len(context) < 2
         or tuple(context[:2]) != (finder_loads, finder_volume_l)
@@ -6097,6 +6849,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         or (
             len(context) > 15
             and str(context[15]) != current_signature
+            and not restored_results_match
         )
     )
     if not context_matches:
@@ -6240,7 +6993,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         hide_index=True,
         key=f"batch_results_table_{'value' if 'Value' in columns else 'f3'}",
         on_select="rerun",
-        selection_mode="single-row",
+        selection_mode="multi-row",
         column_config={
             "F3 Hz": st.column_config.NumberColumn(format="%.1f"),
             "MOL @ F3 dB": st.column_config.NumberColumn(
@@ -6283,14 +7036,63 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     if not selected_rows:
         with st.container(key="emerald_info_candidate_selection"):
             st.caption(
-                "Select one match to preview its driver, load and optimized box."
+                "Select one match to preview it, or select 2–8 matches to "
+                "compare them in Box Design."
             )
         _render_candidate_pool(filtered_preset_names)
         return
-    selected_index = int(selected_rows[0])
-    if not 0 <= selected_index < len(batch_df):
+    selected_indices = [
+        int(index)
+        for index in selected_rows
+        if 0 <= int(index) < len(batch_df)
+    ]
+    if not selected_indices:
         _render_candidate_pool(filtered_preset_names)
         return
+    if len(selected_indices) > 1:
+        selected_designs = []
+        for index in selected_indices:
+            selected = batch_df.iloc[index].to_dict()
+            selected_designs.append({
+                "row": selected,
+                "load_type": str(selected.get("Load", load_type)),
+            })
+        comparison_count = len(selected_designs)
+        too_many = comparison_count > _MAX_COMPARISON_DESIGNS
+        pro_enabled = _pro_comparison_enabled()
+        with st.container(border=True):
+            st.markdown(
+                f"#### Design comparison · {comparison_count} selected · Pro"
+            )
+            st.caption(
+                "Every selected match becomes an independently editable Box "
+                "Design tab. Switch tabs to change its driver, load or box; "
+                "all tabs stay overlaid at the same voltage."
+            )
+            if too_many:
+                st.warning(
+                    f"Select at most {_MAX_COMPARISON_DESIGNS} designs."
+                )
+            elif not pro_enabled:
+                st.info(
+                    "Multi-design comparison is available with Pro or Team."
+                )
+            if st.button(
+                f"Compare {comparison_count} designs in Box Design",
+                type="primary",
+                width="stretch",
+                key="finder_compare_selected_designs",
+                disabled=too_many or not pro_enabled,
+            ):
+                st.session_state["batch_pending_comparison"] = {
+                    "designs": selected_designs,
+                    "voltage_v": float(_finder_value("finder_voltage")),
+                }
+                st.rerun()
+        _render_candidate_pool(filtered_preset_names)
+        return
+
+    selected_index = selected_indices[0]
     selected_row = batch_df.iloc[selected_index].to_dict()
     row_load_type = str(selected_row.get("Load", load_type))
     with st.container(border=True):
@@ -6431,6 +7233,9 @@ def _render_response_tab(
 
     # --- 3. Render Analysis Options & Actions ---
     pinned_state = _pinned_responses()
+    comparison_tabs = _design_comparison_tabs()
+    comparison_mode = bool(comparison_tabs)
+    pro_comparison_enabled = _pro_comparison_enabled()
     col_widths = [2.8, 1.3, 1.4, 1.1, 1.1, 1.0] if pinned_state else [2.8, 1.3, 1.4, 1.1, 1.0]
     ctrl_cols = st.columns(col_widths, vertical_alignment="center", gap="small")
     
@@ -6454,8 +7259,15 @@ def _render_response_tab(
         if st.button(
             "Pin response",
             use_container_width=True,
-            disabled=len(pinned_state) >= _MAX_PINNED_RESPONSES,
-            help=f"Keep up to {_MAX_PINNED_RESPONSES} response traces while changing load or box.",
+            disabled=(
+                len(pinned_state) >= _MAX_PINNED_RESPONSES
+                or comparison_mode
+            ),
+            help=(
+                f"Keep up to {_MAX_PINNED_RESPONSES} response traces while "
+                "changing driver, load or box. Editable design tabs already "
+                "manage their own overlays."
+            ),
         ):
             st.session_state["pinned_responses"] = [
                 *pinned_state,
@@ -6463,11 +7275,27 @@ def _render_response_tab(
             ]
             st.rerun()
 
-    if pinned_state:
+    if pinned_state and not comparison_mode:
         with ctrl_cols[4]:
             if st.button("Clear all pins", use_container_width=True):
                 _clear_pinned_responses()
                 st.rerun()
+        with ctrl_cols[5]:
+            st.button(
+                "Reset zoom",
+                key="plot_response_reset_zoom",
+                use_container_width=True,
+                disabled=tuple(st.session_state.get("plot_response_window_hz", full_window)) == full_window,
+                on_click=_reset_response_zoom,
+                args=(full_window,),
+            )
+    elif pinned_state:
+        with ctrl_cols[4]:
+            st.button(
+                "Tabs active",
+                use_container_width=True,
+                disabled=True,
+            )
         with ctrl_cols[5]:
             st.button(
                 "Reset zoom",
@@ -6488,6 +7316,51 @@ def _render_response_tab(
                 args=(full_window,),
             )
     
+    with st.expander("Compare design variants · Pro"):
+        st.caption(
+            "Duplicate the active design into a new editable tab. Select any "
+            "tab above the charts and edit it with the normal Box Design "
+            "sidebar; every other tab stays overlaid."
+        )
+        if not pro_comparison_enabled:
+            st.info("Design variants are available with Pro or Team.")
+        if st.button(
+            "Duplicate active design tab",
+            key="duplicate_design_for_comparison",
+            type="primary",
+            width="stretch",
+            disabled=(
+                not pro_comparison_enabled
+                or len(comparison_tabs) >= _MAX_COMPARISON_DESIGNS
+            ),
+        ):
+            copy_name = _duplicate_active_design_comparison(
+                load_type,
+                box,
+                result,
+            )
+            st.toast(f"Created editable tab: {copy_name}")
+            st.rerun()
+        if comparison_mode:
+            close_col, end_col = st.columns(2)
+            with close_col:
+                if st.button(
+                    "Close active tab",
+                    key="close_active_design_comparison_tab",
+                    width="stretch",
+                    disabled=len(comparison_tabs) <= 1,
+                ):
+                    _close_active_design_comparison_tab()
+                    st.rerun()
+            with end_col:
+                if st.button(
+                    "End comparison",
+                    key="end_design_comparison",
+                    width="stretch",
+                ):
+                    _end_design_comparison()
+                    st.rerun()
+
     if st.session_state.get("plot_tolerance_band", False) and not compare_series:
         st.number_input(
             "T/S tolerance (%)", min_value=5.0, max_value=30.0, step=1.0,
@@ -6553,7 +7426,13 @@ def _render_response_tab(
             "it is not an electrical crossover or breakup/directivity predictor."
         )
 
-    if pinned_state:
+    if comparison_mode:
+        st.caption(
+            f"Editable comparison: {len(comparison_tabs)}/"
+            f"{_MAX_COMPARISON_DESIGNS} tabs · inactive designs use dashed "
+            "colored traces."
+        )
+    elif pinned_state:
         visible_pin_count = sum(
             bool(pin.get("visible", True)) for pin in pinned_state)
         st.caption(
@@ -6883,6 +7762,8 @@ if (
 if "_optimizer_engine_revision" not in st.session_state:
     st.session_state["_optimizer_engine_revision"] = _OPTIMIZER_ENGINE_REVISION
 _apply_pending_batch_result()
+_apply_pending_batch_comparison()
+_sync_active_design_comparison_tab()
 _apply_pending_atlas_point()
 
 _share_token = st.query_params.get("d")
@@ -7670,6 +8551,13 @@ try:
                     "plausibly hold in a straight run; it needs an L-shaped/slot fold "
                     "(not modeled here), a bigger box, or a higher tuning."
                 )
+
+    comparison_tabs = _update_active_design_comparison(
+        load_type,
+        box,
+        result,
+    )
+    _render_editable_design_tabs(comparison_tabs)
 
     design_name = str(st.session_state.get("driver_preset_name", "Custom"))
     design_config = str(st.session_state.get("driver_config", "Single driver"))

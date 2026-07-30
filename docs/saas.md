@@ -80,6 +80,20 @@ browser-provided value. `effective_entitlements()` applies the optional Open
 Beta override after resolving the account plan, so quota enforcement and UI
 labels use the same server-controlled decision.
 
+Editable multi-design comparison is a Pro-tier capability: Pro and Team users
+may turn 2–8 selected Bass Match rows into independent Box Design tabs or
+duplicate the active design into variants. The standalone build keeps this
+workflow enabled, and an active Open Beta promotion grants Free accounts the
+effective Pro access tier through the same server-controlled entitlement path.
+
+New cloud-project records store the complete active Box Design parameter set
+plus Bass Match controls, ranked candidates, result context and last-run
+statistics. Loading a cloud project restores that last candidate list without
+re-running the optimizer. Older cloud records containing only the flat design
+parameter mapping remain readable. Large editable-comparison curve snapshots
+stay in browser/portable LFP storage to keep cloud documents below their size
+limit.
+
 ## Project contract
 
 Projects are stored below:

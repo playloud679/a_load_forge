@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.7.2 (2026-07-31)
+
+- **Pro editable design comparison**: selecting 2–8 Bass Match results now
+  creates independently editable tabs in Box Design. The active tab uses all
+  normal sidebar controls while every inactive driver/load/box design remains
+  overlaid in the compatible response, excursion, impedance, MIL,
+  group-delay and port charts. The active design can also be duplicated into
+  a new variant tab for parameter A/B comparisons. Tab accents now mirror
+  permanent reference-curve colors: the first design owns emerald and colors
+  no longer rotate when the active tab changes. Response pens are transversal
+  across designs for Total, Cone, port/radiator, MOL and MIL.
+- **Standalone Finder result regression**: opening one Bass Match result now
+  closes an older editable comparison before applying the selected driver,
+  load and enclosure, preventing stale tab labels from absorbing the new
+  design.
+- **Project candidate restoration**: browser, cloud and portable LFP projects
+  now restore the ranked candidate list, context and statistics from their
+  last Bass Match run without recalculation. Restored rows remain visible when
+  the old run used an ephemeral Candidate pool table selection, while changing
+  a Finder input still hides them as stale. Browser project switching flushes
+  pending run results before loading the next project.
+- **Validation**: full active suite passes 130/130 with zero failures and zero
+  skips; focused editable-tab, Finder multi-selection and Streamlit AppTest
+  checks also pass.
+
 ## 0.7.1 (2026-07-30)
 
 - **Automatic browser projects**: Load Forge now creates and autosaves a

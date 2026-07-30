@@ -1485,6 +1485,16 @@ def _check_ui_pin_response_overlay():
     assert pinned[0]["load_type"] == "DCCAV"
     assert pinned[0]["visible"] is True
     assert len(pinned[0]["frequency_hz"]) == len(pinned[0]["spl_total_db"]) > 0
+    assert set(pinned[0]["response_traces"]) == {
+        "Total",
+        "Cone",
+        "Lower port",
+        "MOL",
+    }
+    assert all(
+        len(values) == len(pinned[0]["frequency_hz"])
+        for values in pinned[0]["response_traces"].values()
+    )
     for metric in ("excursion_mm", "impedance_ohm", "mil_w", "group_delay_ms"):
         assert len(pinned[0][metric]) == len(pinned[0]["frequency_hz"]), metric
     assert set(pinned[0]["port_traces"]) == {"Upper port", "Lower port"}
@@ -1553,6 +1563,171 @@ def _check_ui_pin_response_overlay():
 
 
 test("UI pin overlay stores multiple loads and clears them", _check_ui_pin_response_overlay)
+
+
+def _check_ui_editable_design_comparison_tabs():
+    from streamlit.testing.v1 import AppTest
+
+    import ui_app as _ui
+
+    color_tabs = [
+        {"id": "a", "color": "#10b981"},
+        {"id": "b", "color": "#9aa0a6"},
+        {"id": "c", "color": "#ffb703"},
+    ]
+    colors = _ui._design_comparison_tab_colors(color_tabs)
+    assert colors == {
+        "a": "#10b981",
+        "b": "#9aa0a6",
+        "c": "#ffb703",
+    }, colors
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=45)
+    at.session_state["workspace_mode"] = "Box Design"
+    at.session_state["load_type"] = "Sealed"
+    at.session_state["box_strategy"] = "Manual"
+    at.session_state["sealed_vb_l"] = 30.0
+    at.session_state["sim_points"] = 180
+    at.run()
+    assert not at.exception, at.exception
+
+    duplicate = next(
+        button
+        for button in at.button
+        if button.label == "Duplicate active design tab"
+    )
+    assert not duplicate.disabled
+    duplicate.click().run()
+    assert not at.exception, at.exception
+
+    tabs = at.session_state["design_comparison_tabs"]
+    assert len(tabs) == 2, tabs
+    assert [tab["color"] for tab in tabs] == ["#10b981", "#9aa0a6"]
+    assert len(at.session_state["pinned_responses"]) == 1
+    assert at.session_state["pinned_responses"][0]["color"] == "#10b981"
+    assert set(at.session_state["pinned_responses"][0]["response_traces"]) == {
+        "Total",
+        "Cone",
+        "MOL",
+    }
+    active_id = at.session_state["design_comparison_active_id"]
+    assert active_id == tabs[1]["id"], (active_id, tabs)
+
+    at.session_state["sealed_vb_l"] = 45.0
+    at.run()
+    assert not at.exception, at.exception
+    tabs = at.session_state["design_comparison_tabs"]
+    assert tabs[0]["parameters"]["sealed_vb_l"] == 30.0
+    assert tabs[1]["parameters"]["sealed_vb_l"] == 45.0
+
+    tab_buttons = [
+        button
+        for button in at.button
+        if str(button.key).startswith("design_comparison_tab_")
+    ]
+    assert len(tab_buttons) == 2
+    tab_buttons[0].click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["sealed_vb_l"] == 30.0
+    assert at.session_state["design_comparison_active_id"] == tabs[0]["id"]
+    assert at.session_state["pinned_responses"][0]["color"] == "#9aa0a6"
+
+    tab_buttons = [
+        button
+        for button in at.button
+        if str(button.key).startswith("design_comparison_tab_")
+    ]
+    tab_buttons[1].click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["sealed_vb_l"] == 45.0
+    assert at.session_state["design_comparison_active_id"] == tabs[1]["id"]
+    assert len(at.session_state["pinned_responses"]) == 1
+    assert at.session_state["pinned_responses"][0]["color"] == "#10b981"
+    assert any(
+        "Editable comparison: 2/8 tabs" in caption.value
+        for caption in at.caption
+    )
+    assert any(
+        "Tab colors match their chart curves" in caption.value
+        for caption in at.caption
+    )
+
+
+test(
+    "UI design comparison tabs keep every variant independently editable",
+    _check_ui_editable_design_comparison_tabs,
+)
+
+
+def _check_ui_finder_selection_creates_editable_design_tabs():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=45)
+    at.session_state["sim_points"] = 180
+    at.session_state["batch_pending_comparison"] = {
+        "designs": [
+            {
+                "load_type": "Sealed",
+                "row": {
+                    "Driver": "KEF B110B article example",
+                    "Load": "Sealed",
+                    "Vb L": 16.0,
+                },
+            },
+            {
+                "load_type": "Bass reflex",
+                "row": {
+                    "Driver": "Beyma 12CMV2",
+                    "Load": "Bass reflex",
+                    "Resonator": "Port",
+                    "Vb L": 42.0,
+                    "Fb Hz": 51.0,
+                },
+            },
+        ],
+        "voltage_v": 2.83,
+    }
+    at.run()
+    assert not at.exception, at.exception
+    assert at.session_state["workspace_mode"] == "Box Design"
+    assert "batch_pending_comparison" not in at.session_state
+    tabs = at.session_state["design_comparison_tabs"]
+    assert len(tabs) == 2, tabs
+    assert [tab["color"] for tab in tabs] == ["#10b981", "#9aa0a6"]
+    assert [tab["parameters"]["load_type"] for tab in tabs] == [
+        "Sealed",
+        "Bass reflex",
+    ]
+    assert at.session_state["design_comparison_active_id"] == tabs[0]["id"]
+    assert at.session_state["load_type"] == "Sealed"
+    assert at.session_state["sealed_vb_l"] == 16.0
+    assert len(at.session_state["pinned_responses"]) == 1
+
+    at.session_state["batch_pending_result"] = {
+        "load_type": "Bass reflex",
+        "row": {
+            "Driver": "Beyma 12CMV2",
+            "Load": "Bass reflex",
+            "Resonator": "Port",
+            "Vb L": 38.0,
+            "Fb Hz": 48.0,
+        },
+    }
+    at.run()
+    assert not at.exception, at.exception
+    assert "design_comparison_tabs" not in at.session_state
+    assert "design_comparison_active_id" not in at.session_state
+    assert not at.session_state["pinned_responses"]
+    assert at.session_state["driver_preset_name"] == "Beyma 12CMV2"
+    assert at.session_state["load_type"] == "Bass reflex"
+    assert at.session_state["reflex_vb_l"] == 38.0
+    assert at.session_state["reflex_fb_hz"] == 48.0
+
+
+test(
+    "UI Finder multi-selection creates editable Box Design tabs",
+    _check_ui_finder_selection_creates_editable_design_tabs,
+)
 
 
 def _check_ui_load_comparison_overlay():
@@ -1709,6 +1884,8 @@ test(
 
 
 def _check_browser_project_startup_is_non_blocking():
+    import streamlit as st
+
     import ui_app as _ui
 
     projects = [
@@ -1722,6 +1899,27 @@ def _check_browser_project_startup_is_non_blocking():
         True, False, projects[:1]
     ) == "load"
     assert _ui._browser_project_startup_mode(True, False, projects) == "choose"
+
+    previous_initialized = st.session_state.get(
+        "_browser_project_initialized"
+    )
+    previous_active = st.session_state.get("_browser_active_project")
+    st.session_state["_browser_project_initialized"] = True
+    st.session_state["_browser_active_project"] = {"id": "lfp_one"}
+    _ui._request_browser_project_load("lfp_two")
+    assert (
+        st.session_state["_browser_project_load_after_save"] == "lfp_two"
+    )
+    assert "_browser_project_load_request" not in st.session_state
+    st.session_state.pop("_browser_project_load_after_save", None)
+    if previous_initialized is None:
+        st.session_state.pop("_browser_project_initialized", None)
+    else:
+        st.session_state["_browser_project_initialized"] = previous_initialized
+    if previous_active is None:
+        st.session_state.pop("_browser_active_project", None)
+    else:
+        st.session_state["_browser_active_project"] = previous_active
 
 
 test(
@@ -1788,6 +1986,7 @@ def _check_ui_complete_lfp_restores_bass_match():
             "batch_result_context": [
                 ["Sealed"], 35.0, 1, True, "Balanced", "Port",
                 0.0, 0.0, 0.0, 0.0, 7, 1, 1, 0, 0,
+                "saved-selected-candidate-pool",
             ],
             "batch_search_completed": True,
         },
@@ -1814,6 +2013,15 @@ def _check_ui_complete_lfp_restores_bass_match():
     assert len(at.session_state["batch_results"]) == 1
     assert at.session_state["batch_results"][0]["Driver"] == result_row["Driver"]
     assert at.session_state["batch_result_context"][0] == ("Sealed",)
+    assert any(
+        item.value == "Your best matches" for item in at.subheader
+    ), "loading a project must show its last ranked candidate list"
+
+    at.session_state["preset_search"] = "Beyma"
+    at.run()
+    assert not any(
+        item.value == "Your best matches" for item in at.subheader
+    ), "editing restored Finder controls must still hide stale results"
 
 
 test(
@@ -1998,6 +2206,16 @@ def _check_ui_saas_local_project_roundtrip():
             for item in at.caption
         )
         assert any("0 / 100 saved projects" in item.value for item in at.caption)
+        at.session_state["batch_results"] = [{
+            "Driver": "KEF B110B article example",
+            "Load": "Sealed",
+            "F3 Hz": 48.5,
+        }]
+        at.session_state["batch_result_context"] = (
+            ("Sealed",),
+            35.0,
+        )
+        at.session_state["batch_search_completed"] = True
         project_name = next(
             item for item in at.text_input if item.label == "Cloud project name"
         )
@@ -2015,6 +2233,8 @@ def _check_ui_saas_local_project_roundtrip():
         ), "saved cloud project must be selectable"
 
         at.session_state["reflex_vb_l"] = 20.0
+        at.session_state["batch_results"] = []
+        at.session_state["batch_search_completed"] = False
         at.run()
         load = next(
             button for button in at.button
@@ -2023,6 +2243,11 @@ def _check_ui_saas_local_project_roundtrip():
         load.click().run()
         assert not at.exception, at.exception
         assert abs(float(at.session_state["reflex_vb_l"]) - 55.5) < 1e-9
+        assert at.session_state["batch_search_completed"] is True
+        assert (
+            at.session_state["batch_results"][0]["Driver"]
+            == "KEF B110B article example"
+        )
     finally:
         for key, value in previous.items():
             if value is None:

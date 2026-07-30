@@ -94,6 +94,13 @@ Projects saved by earlier versions load transparently: the old **Suggested**
 strategy maps to **Balanced** and the old **Optimized** strategy maps to its
 stored goal.
 
+Loading a browser, cloud or portable `.lfp` project restores the ranked
+candidate list from its last completed Bass Match run, together with its
+controls, result context and run statistics. The stored list is shown without
+re-running the optimizer; changing a Finder input still hides it as stale.
+When switching browser projects, Load Forge first flushes any newly completed
+run to IndexedDB so an immediate project switch cannot lose its candidates.
+
 Infinite baffle has no enclosure, so the strategy control is disabled.
 
 ### DCCAV Alignment
@@ -382,8 +389,27 @@ Inside the `Response` tab:
   **Reset zoom** restores the full simulation range
 - **Markers & analysis** collects the `F3`/`F6`/`F10` selector, manual `M1`/`M2`
   positions, MOL/MIL limits, load comparison and the tolerance band
-- **Pin response** stores the current total-response curve for A/B overlay;
-  replace/clear actions appear only when a pin exists
+- **Compare design variants · Pro** duplicates the active design into an
+  independently editable Box Design tab. Select a tab above the plots, then
+  edit any normal driver, load or enclosure control in the sidebar. Switching
+  tabs saves the outgoing values and restores the selected design; every
+  inactive design remains overlaid in Response, Excursion, Impedance, MIL,
+  Group Delay and compatible Ports charts. Each design receives one permanent
+  tab/curve color: the first keeps emerald and later variants keep their own
+  reference colors even when the active tab changes. Up to eight tabs can be
+  compared. The Response pens are transversal: selecting **Total**, **Cone**,
+  the current port/radiator trace, **MOL** or **MIL** applies that pen to every
+  comparison tab that supports it.
+- **Pin response** stores the current simulation for a lightweight A/B overlay;
+  hide/show/remove/clear actions appear only when pins exist. Manual pins are
+  disabled while editable comparison tabs own the overlays.
+
+In **Bass Match**, select two through eight result rows and choose **Compare
+designs in Box Design** to create the same editable tabs directly from ranked
+matches. Their selected comparison voltage is shared initially, but all other
+parameters remain independent after the tabs are created. Opening one result
+instead is a standalone action: it closes any older comparison and loads the
+selected driver, load and enclosure as the active Box Design.
 
 The cursor table reports frequency, total SPL, impedance and excursion at each
 cursor.
