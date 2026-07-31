@@ -3572,7 +3572,7 @@ def _series_frame(result: _dccav.SimulationResult, series: dict[str, np.ndarray]
                 "series": name,
                 "value": value_f,
             })
-    return pd.DataFrame(rows)
+    return pd.DataFrame(rows, columns=("frequency_hz", "series", "value"))
 
 
 def _log_frequency_scale(domain: list[float] | None = None) -> alt.Scale:
@@ -3614,6 +3614,21 @@ def _active_design_comparison_color() -> str | None:
             ]
         )
     return None
+
+
+def _active_design_visible() -> bool:
+    """Return whether the active comparison or standalone design is plotted."""
+    tabs = st.session_state.get("design_comparison_tabs", [])
+    if not isinstance(tabs, list) or not tabs:
+        return bool(st.session_state.get("standalone_design_visible", True))
+    active_id = str(st.session_state.get(
+        "design_comparison_active_id",
+        tabs[0].get("id", "") if isinstance(tabs[0], dict) else "",
+    ))
+    for tab in tabs:
+        if isinstance(tab, dict) and str(tab.get("id", "")) == active_id:
+            return bool(tab.get("visible", True))
+    return True
 
 
 def _line_chart(
@@ -4054,20 +4069,24 @@ def _plot_response(
 ) -> alt.Chart:
     series = dict(series_override if series_override else _response_series(result))
     mil_w_data = series.pop("MIL", None)
+    active_design_visible = _active_design_visible()
     visible_response_traces = (
         set(default_visible) if default_visible is not None else None
     )
     
     db_series_to_plot = series if series else {"Total": result.spl_total_db}
     
-    data = _series_frame(result, db_series_to_plot)
+    data = _series_frame(
+        result,
+        db_series_to_plot if active_design_visible else {},
+    )
     y_domain = _response_y_domain(result, db_series_to_plot, frequency_window)
     y_domain = _expand_y_domain_for_pins(
         y_domain,
         frequency_window,
         visible_response_traces,
     )
-    if band is not None and y_domain is not None:
+    if active_design_visible and band is not None and y_domain is not None:
         finite_upper = np.asarray(band.upper_db, dtype=float)
         finite_upper = finite_upper[np.isfinite(finite_upper)]
         if finite_upper.size:
@@ -4089,7 +4108,10 @@ def _plot_response(
     )
     
     if mil_w_data is not None and (default_visible is None or "MIL" in default_visible):
-        mil_data = _series_frame(result, {"MIL": mil_w_data}).rename(columns={"value": "mil_value"})
+        mil_data = _series_frame(
+            result,
+            {"MIL": mil_w_data} if active_design_visible else {},
+        ).rename(columns={"value": "mil_value"})
         mil_max = float(np.max(mil_w_data[np.isfinite(mil_w_data)]))
         pinned_mil_data, _ = _pinned_metric_frame("mil_w")
         if not pinned_mil_data.empty:
@@ -4131,14 +4153,15 @@ def _plot_response(
             )
         chart = alt.layer(chart, mil_chart).resolve_scale(y="independent")
 
-    if band is not None:
+    if active_design_visible and band is not None:
         band_area = _band_layer(band, y_domain, frequency_window)
         if band_area is not None:
             chart = band_area + chart
     show_mol = "MOL" in series
-    chart = chart + _click_marker_layer(
-        result, frequency_window, y_domain, show_mol=show_mol
-    )
+    if active_design_visible:
+        chart = chart + _click_marker_layer(
+            result, frequency_window, y_domain, show_mol=show_mol
+        )
     pinned = _pinned_layer(
         frequency_window,
         y_domain,
@@ -4158,7 +4181,11 @@ def _plot_response(
 
 
 def _plot_excursion(result: _dccav.SimulationResult, xmax_mm: float) -> alt.Chart:
-    data = _series_frame(result, {"Excursion": result.excursion_mm})
+    active_design_visible = _active_design_visible()
+    data = _series_frame(
+        result,
+        {"Excursion": result.excursion_mm} if active_design_visible else {},
+    )
     active_color = _active_design_comparison_color()
     chart = _line_chart(
         data,
@@ -4169,7 +4196,7 @@ def _plot_excursion(result: _dccav.SimulationResult, xmax_mm: float) -> alt.Char
             {"Excursion": active_color} if active_color else None
         ),
     )
-    if xmax_mm > 0:
+    if active_design_visible and xmax_mm > 0:
         xmax_rule = alt.Chart(pd.DataFrame({"xmax_mm": [float(xmax_mm)]})).mark_rule(
             color="#10b981",
             strokeDash=[6, 4],
@@ -4183,7 +4210,12 @@ def _plot_excursion(result: _dccav.SimulationResult, xmax_mm: float) -> alt.Char
 
 
 def _plot_impedance(result: _dccav.SimulationResult) -> alt.Chart:
-    data = _series_frame(result, {"Impedance": result.impedance_ohm})
+    data = _series_frame(
+        result,
+        {"Impedance": result.impedance_ohm}
+        if _active_design_visible()
+        else {},
+    )
     active_color = _active_design_comparison_color()
     chart = _line_chart(
         data,
@@ -4203,7 +4235,10 @@ def _plot_impedance(result: _dccav.SimulationResult) -> alt.Chart:
 
 def _plot_mil(result: _dccav.SimulationResult) -> alt.Chart:
     mil_w_data = result.mil_w
-    data = _series_frame(result, {"MIL": mil_w_data}).rename(columns={"value": "mil_value"})
+    data = _series_frame(
+        result,
+        {"MIL": mil_w_data} if _active_design_visible() else {},
+    ).rename(columns={"value": "mil_value"})
     mil_max = float(np.max(mil_w_data[np.isfinite(mil_w_data)]))
     mil_y_domain = [0.0, max(1.0, mil_max * 1.05)]
     active_color = _active_design_comparison_color()
@@ -4375,6 +4410,7 @@ def _update_active_design_comparison(
         tab["driver_preset_name"] = stable_preset or "Custom"
         tab["display_driver_name"] = display_preset or stable_preset or "Custom"
         tab["load_type"] = load_type
+        tab["visible"] = bool(tab.get("visible", True))
         if stable_preset and stable_preset != "Custom":
             parameters["driver_preset_name"] = stable_preset
         tab["parameters"] = parameters
@@ -4391,6 +4427,7 @@ def _update_active_design_comparison(
             label=str(tab.get("label", "Editable design")),
             color=str(tab.get("color", "")) or None,
         )
+        tab["snapshot"]["visible"] = tab["visible"]
         break
     st.session_state["design_comparison_tabs"] = tabs
     st.session_state["design_comparison_loaded_id"] = active_id
@@ -4431,6 +4468,7 @@ def _duplicate_active_design_comparison(
                 "driver_preset_name", "Custom"
             )),
             "load_type": load_type,
+            "visible": True,
             "parameters": _json_safe(_collect_params()),
             "snapshot": original_snapshot,
         }]
@@ -4487,10 +4525,12 @@ def _duplicate_design_comparison_tab(tab_id: str) -> str:
         "load_type": str(source.get(
             "load_type", source_params.get("load_type", "Design")
         )),
+        "visible": True,
         "parameters": _json_safe(dict(source.get("parameters", {}))),
         "snapshot": copied_snapshot,
     })
     tabs[-1]["snapshot"]["color"] = tabs[-1]["color"]
+    tabs[-1]["snapshot"]["visible"] = True
     st.session_state["design_comparison_tabs"] = tabs
     st.session_state["design_comparison_active_id"] = copy_id
     return copy_label
@@ -4522,6 +4562,26 @@ def _delete_design_comparison_tab(tab_id: str) -> None:
     st.session_state["design_comparison_tabs"] = remaining
     if str(st.session_state.get("design_comparison_active_id", "")) == str(tab_id):
         st.session_state["design_comparison_active_id"] = str(remaining[0]["id"])
+
+
+def _toggle_design_tab_visible(tab_id: str) -> None:
+    """Toggle one design curve without deleting its editable state."""
+    if str(tab_id) == "standalone":
+        st.session_state["standalone_design_visible"] = not bool(
+            st.session_state.get("standalone_design_visible", True)
+        )
+        return
+    tabs = _design_comparison_tabs()
+    for tab in tabs:
+        if str(tab.get("id", "")) != str(tab_id):
+            continue
+        visible = not bool(tab.get("visible", True))
+        tab["visible"] = visible
+        snapshot = tab.get("snapshot")
+        if isinstance(snapshot, dict):
+            snapshot["visible"] = visible
+        break
+    st.session_state["design_comparison_tabs"] = tabs
 
 
 def _end_design_comparison() -> None:
@@ -4653,6 +4713,9 @@ def _render_editable_design_tabs(
             "id": "standalone",
             "label": _design_comparison_tab_label(1, load_type),
             "color": _DESIGN_COMPARISON_TRACE_COLORS[0],
+            "visible": bool(st.session_state.get(
+                "standalone_design_visible", True
+            )),
         }]
     active_id = str(st.session_state.get(
         "design_comparison_active_id",
@@ -4666,6 +4729,7 @@ def _render_editable_design_tabs(
         tab_id = str(tab["id"])
         color = tab_colors[tab_id]
         is_active = tab_id == active_id
+        is_visible = bool(tab.get("visible", True))
         tab_styles.append(
             f"""
             .st-key-design_tab_shell_{tab_id} {{
@@ -4689,7 +4753,8 @@ def _render_editable_design_tabs(
                 justify-content: flex-start !important;
                 min-height: 2rem !important;
                 min-width: 0 !important;
-                padding: .25rem {'2.25rem' if standalone else '4.1rem'} .25rem .35rem !important;
+                opacity: {'1' if is_visible else '.55'} !important;
+                padding: .25rem {'4.1rem' if standalone else '5.95rem'} .25rem .35rem !important;
                 width: 100% !important;
             }}
             .st-key-design_comparison_tab_{tab_id} button::before {{
@@ -4698,7 +4763,8 @@ def _render_editable_design_tabs(
                 height: .62rem;
                 flex: 0 0 .62rem;
                 border-radius: 999px;
-                background: {color};
+                background: {'%s' % color if is_visible else 'transparent'};
+                border: {'0' if is_visible else f'2px solid {color}'};
                 box-shadow: 0 0 0 2px rgba(15, 17, 23, .9);
             }}
             .st-key-design_comparison_tab_{tab_id} button p {{
@@ -4710,6 +4776,7 @@ def _render_editable_design_tabs(
                 white-space: nowrap !important;
             }}
             .st-key-duplicate_design_tab_{tab_id},
+            .st-key-toggle_design_tab_{tab_id},
             .st-key-delete_design_tab_{tab_id} {{
                 position: absolute !important;
                 top: .12rem !important;
@@ -4719,10 +4786,14 @@ def _render_editable_design_tabs(
             .st-key-duplicate_design_tab_{tab_id} {{
                 right: {'.18rem' if standalone else '2.04rem'} !important;
             }}
+            .st-key-toggle_design_tab_{tab_id} {{
+                right: {'2.04rem' if standalone else '3.9rem'} !important;
+            }}
             .st-key-delete_design_tab_{tab_id} {{
                 right: .18rem !important;
             }}
             .st-key-duplicate_design_tab_{tab_id} button,
+            .st-key-toggle_design_tab_{tab_id} button,
             .st-key-delete_design_tab_{tab_id} button {{
                 background: transparent !important;
                 border: 0 !important;
@@ -4732,6 +4803,7 @@ def _render_editable_design_tabs(
                 padding: 0 !important;
             }}
             .st-key-duplicate_design_tab_{tab_id} button p,
+            .st-key-toggle_design_tab_{tab_id} button p,
             .st-key-delete_design_tab_{tab_id} button p {{
                 display: none !important;
             }}
@@ -4747,6 +4819,7 @@ def _render_editable_design_tabs(
         for column, tab in zip(columns, row, strict=True):
             tab_id = str(tab["id"])
             label = str(tab.get("label", "Design"))
+            is_visible = bool(tab.get("visible", True))
             with column:
                 with st.container(key=f"design_tab_shell_{tab_id}"):
                     is_active = tab_id == active_id
@@ -4778,6 +4851,17 @@ def _render_editable_design_tabs(
                             else _duplicate_design_comparison_tab(tab_id)
                         )
                         st.toast(f"Created editable tab: {copy_name}")
+                        st.rerun()
+                    if st.button(
+                        "Hide design" if is_visible else "Show design",
+                        icon=(
+                            ":material/visibility:"
+                            if is_visible
+                            else ":material/visibility_off:"
+                        ),
+                        key=f"toggle_design_tab_{tab_id}",
+                    ):
+                        _toggle_design_tab_visible(tab_id)
                         st.rerun()
                     if not standalone:
                         if st.button(
@@ -5104,7 +5188,13 @@ _PORT_GEOMETRY_COLUMNS = ("Port", "Diameter cm", "Length cm", "Peak m/s", "Peak 
 
 
 def _plot_group_delay(result: _dccav.SimulationResult, limit_ms: float = 0.0) -> alt.Chart:
-    data = _series_frame(result, {"Group delay": _dccav.group_delay_ms(result)})
+    active_design_visible = _active_design_visible()
+    data = _series_frame(
+        result,
+        {"Group delay": _dccav.group_delay_ms(result)}
+        if active_design_visible
+        else {},
+    )
     active_color = _active_design_comparison_color()
     chart = _line_chart(
         data,
@@ -5115,7 +5205,7 @@ def _plot_group_delay(result: _dccav.SimulationResult, limit_ms: float = 0.0) ->
             {"Group delay": active_color} if active_color else None
         ),
     )
-    if limit_ms > 0.0:
+    if active_design_visible and limit_ms > 0.0:
         limit_rule = alt.Chart(pd.DataFrame({"limit_ms": [float(limit_ms)]})).mark_rule(
             color="#10b981",
             strokeDash=[6, 4],
@@ -5132,7 +5222,10 @@ def _plot_ports(result: _dccav.SimulationResult) -> alt.Chart:
     series = _port_series(result)
     if not series:
         raise ValueError("No port traces selected")
-    data = _series_frame(result, series)
+    data = _series_frame(
+        result,
+        series if _active_design_visible() else {},
+    )
     chart = _line_chart(data, "Volume velocity (m³/s)", height=320)
     pinned = _pinned_metric_layer(
         "port_traces", "Volume velocity (m³/s)", ".6f")
@@ -5605,6 +5698,7 @@ def _add_finder_designs_to_comparison(
             "driver_preset_name": str(row["Driver"]),
             "display_driver_name": str(row["Driver"]),
             "load_type": load_type,
+            "visible": True,
             "parameters": _json_safe(_collect_params()),
             "snapshot": snapshot,
         }
@@ -5654,6 +5748,23 @@ def _design_comparison_tabs() -> list[dict]:
     changed = len(valid_tabs) != len(tabs)
     for index, tab in enumerate(valid_tabs):
         snapshot = tab.get("snapshot")
+        visible = bool(
+            tab.get(
+                "visible",
+                snapshot.get("visible", True)
+                if isinstance(snapshot, dict)
+                else True,
+            )
+        )
+        if tab.get("visible") is not visible:
+            tab["visible"] = visible
+            changed = True
+        if (
+            isinstance(snapshot, dict)
+            and snapshot.get("visible") is not visible
+        ):
+            snapshot["visible"] = visible
+            changed = True
         color = _DESIGN_COMPARISON_TRACE_COLORS[
             index % len(_DESIGN_COMPARISON_TRACE_COLORS)
         ]

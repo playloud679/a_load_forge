@@ -4,7 +4,7 @@
   <img src="assets/load_forge_header.png" alt="Load Forge" width="900">
 </p>
 
-Current release: **0.7.3**
+Current release: **0.7.4**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth- and sixth-order bandpass**,
@@ -66,8 +66,8 @@ Current UI highlights:
   duplicate the active Box Design; each design gets its own tab, keeps a
   separate driver/load/box parameter set and remains overlaid in every
   compatible analysis chart while another tab is edited; later Finder results
-  append to the open set, and compact copy/close icons inside every tab
-  manage variants without leaving Box Design or adding another full-width row.
+  append to the open set, and compact eye/copy/close icons inside every tab
+  hide, restore or manage variants without leaving Box Design or adding another full-width row.
   Compact titles preserve driver identity across selection/deletion and retain
   deterministic curve colors
 - response pinning for lightweight A/B overlays

@@ -1631,6 +1631,28 @@ def _check_ui_editable_design_comparison_tabs():
     at.run()
     assert not at.exception, at.exception
 
+    standalone_visibility = next(
+        button
+        for button in at.button
+        if button.key == "toggle_design_tab_standalone"
+    )
+    assert standalone_visibility.label == "Hide design"
+    standalone_visibility.click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["standalone_design_visible"] is False
+    assert next(
+        button
+        for button in at.button
+        if button.key == "toggle_design_tab_standalone"
+    ).label == "Show design"
+    next(
+        button
+        for button in at.button
+        if button.key == "toggle_design_tab_standalone"
+    ).click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["standalone_design_visible"] is True
+
     duplicate = next(
         button
         for button in at.button
@@ -1670,6 +1692,9 @@ def _check_ui_editable_design_comparison_tabs():
     assert sum(
         button.label == "Delete design" for button in at.button
     ) == 2
+    assert sum(
+        button.label == "Hide design" for button in at.button
+    ) == 2
     rendered_tab_labels = {
         button.label for button in at.button
         if str(button.key).startswith("design_comparison_tab_")
@@ -1678,6 +1703,50 @@ def _check_ui_editable_design_comparison_tabs():
         "tab buttons must retain their complete label and leave visual "
         "ellipsis handling to the available CSS width"
     )
+
+    hide_first_design = next(
+        button
+        for button in at.button
+        if button.key == f"toggle_design_tab_{tabs[0]['id']}"
+    )
+    hide_first_design.click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["design_comparison_tabs"][0]["visible"] is False
+    assert at.session_state["pinned_responses"][0]["visible"] is False
+    assert next(
+        button
+        for button in at.button
+        if button.key == f"toggle_design_tab_{tabs[0]['id']}"
+    ).label == "Show design"
+    next(
+        button
+        for button in at.button
+        if button.key == f"toggle_design_tab_{tabs[0]['id']}"
+    ).click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["design_comparison_tabs"][0]["visible"] is True
+    assert at.session_state["pinned_responses"][0]["visible"] is True
+
+    hide_active_design = next(
+        button
+        for button in at.button
+        if button.key == f"toggle_design_tab_{tabs[1]['id']}"
+    )
+    hide_active_design.click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["design_comparison_tabs"][1]["visible"] is False
+    assert next(
+        button
+        for button in at.button
+        if button.key == f"toggle_design_tab_{tabs[1]['id']}"
+    ).label == "Show design"
+    next(
+        button
+        for button in at.button
+        if button.key == f"toggle_design_tab_{tabs[1]['id']}"
+    ).click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["design_comparison_tabs"][1]["visible"] is True
 
     at.session_state["sealed_vb_l"] = 45.0
     at.run()

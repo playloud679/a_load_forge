@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.4 (2026-07-31)
+
+- **Per-design visibility**: every standalone or comparison design tab now has
+  a fixed eye action that hides or restores that design across compatible
+  charts without deleting its parameters, identity, color or tab position.
+- **Validation**: the fresh release suite passes 130 tests with 0 failures and
+  0 skips.
+
 ## 0.7.3 (2026-07-31)
 
 - **Additive Box Design workflow**: opening another Bass Match result now

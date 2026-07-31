@@ -389,8 +389,10 @@ Inside the `Response` tab:
   **Reset zoom** restores the full simulation range
 - **Markers & analysis** collects the `F3`/`F6`/`F10` selector, manual `M1`/`M2`
   positions, MOL/MIL limits, load comparison and the tolerance band
-- the small **copy** and **×** icons inside every design tab duplicate or
-  delete that specific design without consuming a separate action row. Select a tab, then
+- the small **eye**, **copy** and **×** icons inside every design tab hide/show,
+  duplicate or delete that specific design without consuming a separate action row.
+  The eye is also available for the standalone design and affects every compatible
+  chart without discarding its editable state. Select a tab, then
   edit any normal driver, load or enclosure control in the sidebar. Switching
   tabs saves the outgoing values and restores the selected design; every
   inactive design remains overlaid in Response, Excursion, Impedance, MIL,
