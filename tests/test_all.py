@@ -1899,15 +1899,6 @@ def _check_browser_project_startup_is_non_blocking():
         True, False, projects[:1]
     ) == "load"
     assert _ui._browser_project_startup_mode(True, False, projects) == "choose"
-    assert _ui._browser_project_startup_mode(
-        True, False, projects, "lfp_two"
-    ) == "load"
-    assert _ui._browser_startup_project_id(
-        projects, "lfp_two"
-    ) == "lfp_two"
-    assert _ui._browser_startup_project_id(
-        projects, "missing"
-    ) == "lfp_one"
 
     previous_initialized = st.session_state.get(
         "_browser_project_initialized"

@@ -1,17 +1,5 @@
 # Changelog
 
-## 0.7.3 (2026-07-31)
-
-- **Finder survives page refresh**: browser-local projects now remember the
-  active project ID and reopen that project automatically after a reload, even
-  when several projects exist. Its saved Bass Match candidate list, context
-  and statistics are restored instead of showing an empty Finder workspace.
-  Browser privacy restrictions on the small active-project hint do not disable
-  IndexedDB autosave; the normal project chooser remains the fallback.
-- **Validation**: full active suite passes 130/130 with zero failures and zero
-  skips; focused browser-startup, complete-LFP, Streamlit AppTest and frontend
-  syntax checks also pass.
-
 ## 0.7.2 (2026-07-31)
 
 - **Pro editable design comparison**: selecting 2–8 Bass Match results now

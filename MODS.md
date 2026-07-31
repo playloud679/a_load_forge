@@ -2,7 +2,7 @@
 
 Traccia operativa multi-sessione. Regole d'uso:
 
-- Ultimo aggiornamento: **2026-07-31**. Release corrente: **0.7.3** sul branch
+- Ultimo aggiornamento: **2026-07-31**. Release corrente: **0.7.2** sul branch
   `saas`.
 - `[ ]` da fare · `[~]` in corso · `[x]` fatto (aggiungere data e commit).
 - Lavorare un punto alla volta, rispettando il contratto di `AGENTS.md`:
