@@ -591,6 +591,11 @@ st.markdown(
     [data-testid="stCaptionContainer"] {
         color: rgba(250,250,250,.72);
     }
+    /* Command tooltips obscure nearby controls and add no persistent context. */
+    [data-testid="stTooltipContent"],
+    [role="tooltip"] {
+        display: none !important;
+    }
     .st-key-finder_library_filters {
         background: rgba(255,255,255,.025);
         border-color: rgba(255,255,255,.10) !important;
@@ -904,7 +909,6 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
                         key=f"load_btn_{lt}",
                         type="primary" if active else "secondary",
                         use_container_width=True,
-                        help=lt,
                     )
                     st.markdown(
                         f'<div class="load-card-label">{_LOAD_TYPE_SHORT[lt]}</div>',
@@ -1052,10 +1056,6 @@ def _render_workspace_tabs() -> None:
     """Render image tabs while retaining the state-compatible control."""
     st.markdown(_workspace_tab_styles(), unsafe_allow_html=True)
     active = str(st.session_state.get("workspace_mode", "Bass Match"))
-    descriptions = {
-        "Bass Match": "Find the right driver for your performance target.",
-        "Box Design": "Simulate and refine your acoustic alignment.",
-    }
     tab_columns = st.columns(2, gap="small")
     for column, workspace in zip(tab_columns, _WORKSPACES, strict=True):
         slug = _WORKSPACE_TAB_SLUGS[workspace]
@@ -1066,7 +1066,6 @@ def _render_workspace_tabs() -> None:
                     key=f"workspace_tab_button_{slug}",
                     type="primary" if workspace == active else "secondary",
                     use_container_width=True,
-                    help=descriptions[workspace],
                     on_click=_select_workspace,
                     args=(workspace,),
                 )
@@ -1177,6 +1176,7 @@ _FINDER_RANK_VALUE = "Best value (F3 × price)"
 _FINDER_RANK_MODES = (_FINDER_RANK_F3, _FINDER_RANK_VALUE)
 _FINDER_CTA_LABEL = "Run Bass Match"
 _FINDER_RANKING_VERSION = 7
+_FINDER_CONTEXT_FILTERED_POOL_VERSION = "user-inputs-v2"
 _FINDER_SPL_PREFILTER_HEADROOM_DB = 6.0
 _FINDER_DEFAULTS_VERSION = 8
 _FINDER_DEFAULTS = {
@@ -4352,10 +4352,38 @@ def _update_active_design_comparison(
     active_id = str(
         st.session_state.get("design_comparison_active_id", tabs[0]["id"])
     )
-    for tab in tabs:
+    for tab_index, tab in enumerate(tabs):
         if str(tab["id"]) != active_id:
             continue
-        tab["parameters"] = _json_safe(_collect_params())
+        current_preset = str(st.session_state.get(
+            "driver_preset_name", "Custom"
+        ))
+        stable_preset = str(tab.get("driver_preset_name", ""))
+        display_preset = str(tab.get("display_driver_name", ""))
+        parameters = _json_safe(_collect_params())
+        if current_preset != "Custom":
+            stable_preset = current_preset
+            display_preset = current_preset
+        elif not _design_tab_parameters_match_preset(
+            parameters, stable_preset
+        ):
+            recovered_preset = _recover_design_tab_preset(parameters)
+            if recovered_preset != "Custom":
+                stable_preset = recovered_preset
+                if not display_preset or display_preset == "Custom":
+                    display_preset = recovered_preset
+        tab["driver_preset_name"] = stable_preset or "Custom"
+        tab["display_driver_name"] = display_preset or stable_preset or "Custom"
+        tab["load_type"] = load_type
+        if stable_preset and stable_preset != "Custom":
+            parameters["driver_preset_name"] = stable_preset
+        tab["parameters"] = parameters
+        tab["label"] = _design_comparison_tab_label(
+            tab_index + 1,
+            load_type,
+            preset=tab["display_driver_name"],
+            config=str(parameters.get("driver_config", "Single driver")),
+        )
         tab["snapshot"] = _pinned_response_snapshot(
             load_type,
             box,
@@ -4384,7 +4412,7 @@ def _duplicate_active_design_comparison(
     tabs = _update_active_design_comparison(load_type, box, result)
     if not tabs:
         original_id = f"design_{uuid.uuid4().hex}"
-        original_label = f"1 · {_pin_label(load_type, box)}"
+        original_label = _design_comparison_tab_label(1, load_type)
         original_snapshot = _pinned_response_snapshot(
             load_type,
             box,
@@ -4396,17 +4424,47 @@ def _duplicate_active_design_comparison(
             "id": original_id,
             "label": original_label,
             "color": _DESIGN_COMPARISON_TRACE_COLORS[0],
+            "driver_preset_name": str(st.session_state.get(
+                "driver_preset_name", "Custom"
+            )),
+            "display_driver_name": str(st.session_state.get(
+                "driver_preset_name", "Custom"
+            )),
+            "load_type": load_type,
             "parameters": _json_safe(_collect_params()),
             "snapshot": original_snapshot,
         }]
+        st.session_state["design_comparison_tabs"] = tabs
         st.session_state["design_comparison_active_id"] = original_id
         st.session_state["design_comparison_loaded_id"] = original_id
     active_id = str(st.session_state["design_comparison_active_id"])
+    return _duplicate_design_comparison_tab(active_id)
+
+
+def _duplicate_design_comparison_tab(tab_id: str) -> str:
+    """Clone one stored editable tab and activate the independent copy."""
+    tabs = _design_comparison_tabs()
+    if len(tabs) >= _MAX_COMPARISON_DESIGNS:
+        return ""
     source = next(
-        item for item in tabs if str(item["id"]) == active_id
+        item for item in tabs if str(item["id"]) == str(tab_id)
     )
     copy_id = f"design_{uuid.uuid4().hex}"
-    copy_label = f"{len(tabs) + 1} · Variant of {source['label'].split(' · ', 1)[-1]}"
+    source_params = dict(source.get("parameters", {}))
+    copy_label = _design_comparison_tab_label(
+        len(tabs) + 1,
+        str(source_params.get("load_type", st.session_state.get(
+            "load_type", "Design"
+        ))),
+        preset=str(source_params.get(
+            "driver_preset_name",
+            st.session_state.get("driver_preset_name", "Custom"),
+        )),
+        config=str(source_params.get(
+            "driver_config",
+            st.session_state.get("driver_config", "Single driver"),
+        )),
+    )
     copied_snapshot = dict(source.get("snapshot", {}))
     copied_snapshot["label"] = copy_label
     tabs.append({
@@ -4415,6 +4473,20 @@ def _duplicate_active_design_comparison(
         "color": _DESIGN_COMPARISON_TRACE_COLORS[
             len(tabs) % len(_DESIGN_COMPARISON_TRACE_COLORS)
         ],
+        "driver_preset_name": str(source.get(
+            "driver_preset_name",
+            source_params.get("driver_preset_name", "Custom"),
+        )),
+        "display_driver_name": str(source.get(
+            "display_driver_name",
+            source.get(
+                "driver_preset_name",
+                source_params.get("driver_preset_name", "Custom"),
+            ),
+        )),
+        "load_type": str(source.get(
+            "load_type", source_params.get("load_type", "Design")
+        )),
         "parameters": _json_safe(dict(source.get("parameters", {}))),
         "snapshot": copied_snapshot,
     })
@@ -4424,14 +4496,32 @@ def _duplicate_active_design_comparison(
     return copy_label
 
 
-def _close_active_design_comparison_tab() -> None:
+def _delete_active_design_comparison_tab() -> None:
+    """Delete the active editable tab; the last design remains standalone."""
     tabs = _design_comparison_tabs()
-    if len(tabs) <= 1:
+    if not tabs:
+        return
+    if len(tabs) == 1:
+        _end_design_comparison()
         return
     active_id = str(st.session_state.get("design_comparison_active_id", ""))
     remaining = [item for item in tabs if str(item["id"]) != active_id]
     st.session_state["design_comparison_tabs"] = remaining
     st.session_state["design_comparison_active_id"] = str(remaining[0]["id"])
+
+
+def _delete_design_comparison_tab(tab_id: str) -> None:
+    """Delete a specific editable tab without disturbing another active tab."""
+    tabs = _design_comparison_tabs()
+    if not tabs:
+        return
+    if len(tabs) == 1:
+        _end_design_comparison()
+        return
+    remaining = [item for item in tabs if str(item["id"]) != str(tab_id)]
+    st.session_state["design_comparison_tabs"] = remaining
+    if str(st.session_state.get("design_comparison_active_id", "")) == str(tab_id):
+        st.session_state["design_comparison_active_id"] = str(remaining[0]["id"])
 
 
 def _end_design_comparison() -> None:
@@ -4459,13 +4549,117 @@ def _design_comparison_tab_colors(
     }
 
 
-def _render_editable_design_tabs(tabs: list[dict]) -> None:
-    """Render compact tab-like buttons; the active tab owns sidebar controls."""
-    if not tabs:
-        return
-    active_id = str(
-        st.session_state.get("design_comparison_active_id", tabs[0]["id"])
+def _design_comparison_tab_label(
+    number: int,
+    load_type: str,
+    preset: str | None = None,
+    config: str | None = None,
+) -> str:
+    """Return a compact tab title; alignment details belong in the results."""
+    preset_name = str(
+        preset
+        if preset is not None
+        else st.session_state.get("driver_preset_name", "Custom")
     )
+    if ": " in preset_name:
+        preset_name = preset_name.split(": ", 1)[1]
+    driver_config = str(
+        config
+        if config is not None
+        else st.session_state.get("driver_config", "Single driver")
+    )
+    if driver_config != "Single driver":
+        preset_name = f"{preset_name} ({driver_config})"
+    return f"{number} · {preset_name} · {load_type}"
+
+
+def _design_tab_label_driver(label: str) -> str:
+    """Extract a non-Custom driver name from compact and legacy tab labels."""
+    parts = [part.strip() for part in str(label).split(" · ")]
+    if parts and parts[0].isdigit():
+        parts = parts[1:]
+    if len(parts) >= 2 and parts[0] in _ALL_LOAD_TYPES:
+        candidate = parts[1]
+    elif len(parts) >= 2 and parts[0].startswith("Variant of "):
+        candidate = parts[1]
+    elif parts:
+        candidate = parts[0]
+    else:
+        return ""
+    return "" if candidate == "Custom" else candidate
+
+
+def _recover_design_tab_preset(parameters: dict) -> str:
+    """Recover a preset name from unchanged T/S values in a legacy tab."""
+    for name in _dccav.driver_preset_names():
+        if _design_tab_parameters_match_preset(parameters, name):
+            return str(name)
+    return "Custom"
+
+
+def _design_tab_parameters_match_preset(
+    parameters: dict,
+    preset_name: str,
+) -> bool:
+    """Return whether saved driver fields still exactly match one preset."""
+    field_map = (
+        ("driver_fs_hz", "fs_hz", True),
+        ("driver_vas_l", "vas_l", True),
+        ("driver_qts", "qts", True),
+        ("driver_qms", "qms", True),
+        ("driver_re_ohm", "re_ohm", True),
+        ("driver_sd_cm2", "sd_cm2", False),
+        ("driver_le_mh", "le_mh", False),
+        ("driver_xmax_mm", "xmax_mm", False),
+        ("driver_pe_w", "pe_w", False),
+    )
+    if (
+        not preset_name
+        or preset_name == "Custom"
+        or not all(
+            state_key in parameters
+            for state_key, _driver_field, required in field_map
+            if required
+        )
+    ):
+        return False
+    try:
+        driver = _dccav.get_driver_preset(preset_name)
+    except (TypeError, ValueError):
+        return False
+    for state_key, driver_field, _required in field_map:
+        if state_key not in parameters:
+            continue
+        try:
+            actual = float(parameters[state_key])
+            expected = float(getattr(driver, driver_field))
+        except (TypeError, ValueError):
+            return False
+        if not np.isclose(actual, expected, rtol=1e-7, atol=1e-7):
+            return False
+    return True
+
+
+def _render_editable_design_tabs(
+    tabs: list[dict],
+    load_type: str,
+    box,
+    result: _dccav.SimulationResult,
+) -> None:
+    """Render compact editable tabs with actions embedded in the active tab."""
+    standalone = not tabs
+    if standalone:
+        tabs = [{
+            "id": "standalone",
+            "label": _design_comparison_tab_label(1, load_type),
+            "color": _DESIGN_COMPARISON_TRACE_COLORS[0],
+        }]
+    active_id = str(st.session_state.get(
+        "design_comparison_active_id",
+        tabs[0]["id"],
+    ))
+    if standalone:
+        active_id = "standalone"
     tab_colors = _design_comparison_tab_colors(tabs)
     tab_styles = []
     for tab in tabs:
@@ -4474,13 +4668,29 @@ def _render_editable_design_tabs(tabs: list[dict]) -> None:
         is_active = tab_id == active_id
         tab_styles.append(
             f"""
-            .st-key-design_comparison_tab_{tab_id} button {{
+            .st-key-design_tab_shell_{tab_id} {{
                 background: linear-gradient(
                     180deg, {color}{'4d' if is_active else '1f'}, {color}0d
                 ) !important;
                 border: {'2px' if is_active else '1px'} solid {color} !important;
+                border-radius: .5rem !important;
                 box-shadow: inset 0 -4px 0 {color} !important;
+                padding: .12rem .18rem .28rem !important;
+                position: relative !important;
+            }}
+            .st-key-design_tab_shell_{tab_id} [data-testid="stVerticalBlock"] {{
+                gap: 0 !important;
+            }}
+            .st-key-design_comparison_tab_{tab_id} button {{
+                background: transparent !important;
+                border: 0 !important;
+                box-shadow: none !important;
                 font-weight: {'700' if is_active else '500'} !important;
+                justify-content: flex-start !important;
+                min-height: 2rem !important;
+                min-width: 0 !important;
+                padding: .25rem {'2.25rem' if standalone else '4.1rem'} .25rem .35rem !important;
+                width: 100% !important;
             }}
             .st-key-design_comparison_tab_{tab_id} button::before {{
                 content: "";
@@ -4491,15 +4701,45 @@ def _render_editable_design_tabs(tabs: list[dict]) -> None:
                 background: {color};
                 box-shadow: 0 0 0 2px rgba(15, 17, 23, .9);
             }}
+            .st-key-design_comparison_tab_{tab_id} button p {{
+                display: block !important;
+                min-width: 0 !important;
+                overflow: hidden !important;
+                text-align: left !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
+            }}
+            .st-key-duplicate_design_tab_{tab_id},
+            .st-key-delete_design_tab_{tab_id} {{
+                position: absolute !important;
+                top: .12rem !important;
+                width: 1.8rem !important;
+                z-index: 2 !important;
+            }}
+            .st-key-duplicate_design_tab_{tab_id} {{
+                right: {'.18rem' if standalone else '2.04rem'} !important;
+            }}
+            .st-key-delete_design_tab_{tab_id} {{
+                right: .18rem !important;
+            }}
+            .st-key-duplicate_design_tab_{tab_id} button,
+            .st-key-delete_design_tab_{tab_id} button {{
+                background: transparent !important;
+                border: 0 !important;
+                box-shadow: none !important;
+                min-height: 2rem !important;
+                min-width: 1.8rem !important;
+                padding: 0 !important;
+            }}
+            .st-key-duplicate_design_tab_{tab_id} button p,
+            .st-key-delete_design_tab_{tab_id} button p {{
+                display: none !important;
+            }}
             """
         )
     st.markdown(
         f"<style>{''.join(tab_styles)}</style>",
         unsafe_allow_html=True,
-    )
-    st.caption(
-        "Editable design tabs · select a tab, then change its driver, load or "
-        "box parameters in the sidebar. Tab colors match their chart curves."
     )
     for start in range(0, len(tabs), 4):
         row = tabs[start:start + 4]
@@ -4507,16 +4747,46 @@ def _render_editable_design_tabs(tabs: list[dict]) -> None:
         for column, tab in zip(columns, row, strict=True):
             tab_id = str(tab["id"])
             label = str(tab.get("label", "Design"))
-            short_label = label if len(label) <= 46 else f"{label[:43]}…"
             with column:
-                st.button(
-                    short_label,
-                    key=f"design_comparison_tab_{tab_id}",
-                    type="primary" if tab_id == active_id else "secondary",
-                    width="stretch",
-                    on_click=_request_design_comparison_tab,
-                    args=(tab_id,),
-                )
+                with st.container(key=f"design_tab_shell_{tab_id}"):
+                    is_active = tab_id == active_id
+                    st.button(
+                        label,
+                        key=f"design_comparison_tab_{tab_id}",
+                        type="primary" if is_active else "secondary",
+                        width="stretch",
+                        on_click=(
+                            None if standalone
+                            else _request_design_comparison_tab
+                        ),
+                        args=(() if standalone else (tab_id,)),
+                    )
+                    if st.button(
+                        "Duplicate design",
+                        icon=":material/content_copy:",
+                        key=f"duplicate_design_tab_{tab_id}",
+                        disabled=(
+                            not _pro_comparison_enabled()
+                            or len(tabs) >= _MAX_COMPARISON_DESIGNS
+                        ),
+                    ):
+                        copy_name = (
+                            _duplicate_active_design_comparison(
+                                load_type, box, result
+                            )
+                            if standalone
+                            else _duplicate_design_comparison_tab(tab_id)
+                        )
+                        st.toast(f"Created editable tab: {copy_name}")
+                        st.rerun()
+                    if not standalone:
+                        if st.button(
+                            "Delete design",
+                            icon=":material/close:",
+                            key=f"delete_design_tab_{tab_id}",
+                        ):
+                            _delete_design_comparison_tab(tab_id)
+                            st.rerun()
 
 
 def _remove_pinned_response(index: int) -> None:
@@ -5267,11 +5537,95 @@ def _apply_pending_batch_result() -> None:
     pending = st.session_state.pop("batch_pending_result", None)
     if not pending:
         return
-    # Opening one Finder result is a standalone design action. Do not let an
-    # older editable comparison immediately absorb it into a stale tab label.
-    _end_design_comparison()
+    existing_tabs = _design_comparison_tabs()
+    if existing_tabs:
+        added = _add_finder_designs_to_comparison(
+            [{
+                "row": pending["row"],
+                "load_type": str(pending["load_type"]),
+            }],
+            float(pending.get(
+                "voltage_v",
+                st.session_state.get("finder_voltage", 2.83),
+            )),
+        )
+        if added:
+            st.toast(f"Added {added[0]['label']} to Box Design")
+        else:
+            st.toast(
+                f"Box Design already has {_MAX_COMPARISON_DESIGNS} designs"
+            )
+        return
     _apply_batch_result(pending["row"], str(pending["load_type"]))
     st.toast(f"Applied {pending['row']['Driver']} to the design")
+
+
+def _add_finder_designs_to_comparison(
+    designs: list[dict],
+    voltage_v: float,
+) -> list[dict]:
+    """Append Finder matches as editable tabs without replacing open designs."""
+    comparison_tabs = _design_comparison_tabs()
+    available = max(0, _MAX_COMPARISON_DESIGNS - len(comparison_tabs))
+    if available <= 0:
+        return []
+    frequency_hz = np.geomspace(
+        float(st.session_state["sim_f_min"]),
+        float(st.session_state["sim_f_max"]),
+        int(st.session_state["sim_points"]),
+    )
+    added_tabs = []
+    for design in designs[:available]:
+        row = design["row"]
+        load_type = str(design["load_type"])
+        _apply_batch_result(row, load_type)
+        st.session_state["sim_voltage"] = float(voltage_v)
+        st.session_state["sim_series_r_ohm"] = 0.0
+        driver_label = str(row["Driver"])
+        if ": " in driver_label:
+            driver_label = driver_label.split(": ", 1)[1]
+        tab_number = len(comparison_tabs) + 1
+        tab_id = f"design_{uuid.uuid4().hex}"
+        label = f"{tab_number} · {driver_label} · {load_type}"
+        color = _DESIGN_COMPARISON_TRACE_COLORS[
+            len(comparison_tabs) % len(_DESIGN_COMPARISON_TRACE_COLORS)
+        ]
+        snapshot = _finder_result_snapshot(
+            row,
+            load_type,
+            frequency_hz,
+            float(voltage_v),
+        )
+        snapshot["label"] = label
+        snapshot["color"] = color
+        new_tab = {
+            "id": tab_id,
+            "label": label,
+            "color": color,
+            "driver_preset_name": str(row["Driver"]),
+            "display_driver_name": str(row["Driver"]),
+            "load_type": load_type,
+            "parameters": _json_safe(_collect_params()),
+            "snapshot": snapshot,
+        }
+        comparison_tabs.append(new_tab)
+        added_tabs.append(new_tab)
+    if not added_tabs:
+        return []
+    active = added_tabs[0]
+    _apply_loaded_params(dict(active["parameters"]))
+    st.session_state["design_comparison_tabs"] = comparison_tabs
+    st.session_state["design_comparison_active_id"] = active["id"]
+    st.session_state["design_comparison_loaded_id"] = active["id"]
+    st.session_state["pinned_responses"] = [
+        dict(item["snapshot"])
+        for item in comparison_tabs
+        if str(item["id"]) != str(active["id"])
+        and isinstance(item.get("snapshot"), dict)
+    ]
+    st.session_state["plot_compare_loads"] = False
+    st.session_state["workspace_mode"] = "Box Design"
+    return added_tabs
 
 
 def _apply_pending_batch_comparison() -> None:
@@ -5282,57 +5636,10 @@ def _apply_pending_batch_comparison() -> None:
     if not isinstance(designs, list) or len(designs) < 2:
         return
     voltage_v = float(pending.get("voltage_v", 2.83))
-    frequency_hz = np.geomspace(
-        float(st.session_state["sim_f_min"]),
-        float(st.session_state["sim_f_max"]),
-        int(st.session_state["sim_points"]),
-    )
-    comparison_tabs = []
-    for index, design in enumerate(
-        designs[:_MAX_COMPARISON_DESIGNS],
-        start=1,
-    ):
-        row = design["row"]
-        load_type = str(design["load_type"])
-        _apply_batch_result(row, load_type)
-        st.session_state["sim_voltage"] = voltage_v
-        st.session_state["sim_series_r_ohm"] = 0.0
-        driver_label = str(row["Driver"])
-        if ": " in driver_label:
-            driver_label = driver_label.split(": ", 1)[1]
-        tab_id = f"design_{uuid.uuid4().hex}"
-        label = f"{index} · {driver_label} · {load_type}"
-        color = _DESIGN_COMPARISON_TRACE_COLORS[
-            (index - 1) % len(_DESIGN_COMPARISON_TRACE_COLORS)
-        ]
-        snapshot = _finder_result_snapshot(
-            design["row"],
-            load_type,
-            frequency_hz,
-            voltage_v,
-        )
-        snapshot["label"] = label
-        snapshot["color"] = color
-        comparison_tabs.append({
-            "id": tab_id,
-            "label": label,
-            "color": color,
-            "parameters": _json_safe(_collect_params()),
-            "snapshot": snapshot,
-        })
-    first = comparison_tabs[0]
-    _apply_loaded_params(dict(first["parameters"]))
-    st.session_state["design_comparison_tabs"] = comparison_tabs
-    st.session_state["design_comparison_active_id"] = first["id"]
-    st.session_state["design_comparison_loaded_id"] = first["id"]
-    st.session_state["pinned_responses"] = [
-        dict(item["snapshot"])
-        for item in comparison_tabs[1:]
-    ]
-    st.session_state["plot_compare_loads"] = False
-    st.toast(
-        f"Created {len(comparison_tabs)} editable Box Design tabs"
-    )
+    existing_count = len(_design_comparison_tabs())
+    added = _add_finder_designs_to_comparison(designs, voltage_v)
+    action = "Added" if existing_count else "Created"
+    st.toast(f"{action} {len(added)} editable Box Design tabs")
 
 
 def _design_comparison_tabs() -> list[dict]:
@@ -5346,15 +5653,60 @@ def _design_comparison_tabs() -> list[dict]:
     ]
     changed = len(valid_tabs) != len(tabs)
     for index, tab in enumerate(valid_tabs):
-        if tab.get("color"):
-            continue
+        snapshot = tab.get("snapshot")
         color = _DESIGN_COMPARISON_TRACE_COLORS[
             index % len(_DESIGN_COMPARISON_TRACE_COLORS)
         ]
-        tab["color"] = color
-        if isinstance(tab.get("snapshot"), dict):
-            tab["snapshot"]["color"] = color
-        changed = True
+        if str(tab.get("color", "")) != color:
+            tab["color"] = color
+            changed = True
+        if (
+            isinstance(snapshot, dict)
+            and str(snapshot.get("color", "")) != color
+        ):
+            snapshot["color"] = color
+            changed = True
+        parameters = tab.get("parameters")
+        if isinstance(parameters, dict) and parameters.get("load_type"):
+            stable_preset = str(
+                tab.get("driver_preset_name")
+                or parameters.get("driver_preset_name", "Custom")
+            )
+            display_preset = str(
+                tab.get("display_driver_name")
+                or _design_tab_label_driver(str(tab.get("label", "")))
+                or stable_preset
+            )
+            if stable_preset == "Custom":
+                stable_preset = _recover_design_tab_preset(parameters)
+                if stable_preset != "Custom":
+                    parameters["driver_preset_name"] = stable_preset
+                    if not display_preset or display_preset == "Custom":
+                        display_preset = stable_preset
+                    changed = True
+            stable_load_type = str(
+                tab.get("load_type") or parameters["load_type"]
+            )
+            if tab.get("driver_preset_name") != stable_preset:
+                tab["driver_preset_name"] = stable_preset
+                changed = True
+            if tab.get("display_driver_name") != display_preset:
+                tab["display_driver_name"] = display_preset
+                changed = True
+            if tab.get("load_type") != stable_load_type:
+                tab["load_type"] = stable_load_type
+                changed = True
+            compact_label = _design_comparison_tab_label(
+                index + 1,
+                stable_load_type,
+                preset=display_preset,
+                config=str(parameters.get("driver_config", "Single driver")),
+            )
+            if str(tab.get("label", "")) != compact_label:
+                tab["label"] = compact_label
+                if isinstance(snapshot, dict):
+                    snapshot["label"] = compact_label
+                changed = True
     if changed:
         st.session_state["design_comparison_tabs"] = valid_tabs
     return valid_tabs
@@ -5385,8 +5737,24 @@ def _sync_active_design_comparison_tab() -> None:
     if loaded_id == requested_id:
         return
     if loaded_id in tab_by_id:
-        tab_by_id[loaded_id]["parameters"] = _json_safe(_collect_params())
-    _apply_loaded_params(dict(tab_by_id[requested_id].get("parameters", {})))
+        previous = tab_by_id[loaded_id]
+        previous_parameters = _json_safe(_collect_params())
+        stable_previous_preset = str(previous.get("driver_preset_name", ""))
+        if not _design_tab_parameters_match_preset(
+            previous_parameters, stable_previous_preset
+        ):
+            stable_previous_preset = _recover_design_tab_preset(
+                previous_parameters
+            )
+            previous["driver_preset_name"] = stable_previous_preset
+        if stable_previous_preset != "Custom":
+            previous_parameters["driver_preset_name"] = stable_previous_preset
+        previous["parameters"] = previous_parameters
+    requested = tab_by_id[requested_id]
+    _apply_loaded_params(dict(requested.get("parameters", {})))
+    stable_requested_preset = str(requested.get("driver_preset_name", ""))
+    if stable_requested_preset:
+        st.session_state["driver_preset_name"] = stable_requested_preset
     st.session_state["design_comparison_loaded_id"] = requested_id
     st.session_state["workspace_mode"] = "Box Design"
     st.session_state["design_comparison_tabs"] = tabs
@@ -5650,17 +6018,16 @@ def _finder_load_context() -> tuple[list[str], bool]:
     return finder_load_types, finder_load_types == ["Infinite baffle"]
 
 
-def _finder_result_context_signature(preset_names: list[str]) -> str:
-    """Identify every input that can change a Bass Match result set."""
+def _finder_result_context_signature(_preset_names: list[str]) -> str:
+    """Identify user inputs that can change a Bass Match result set.
+
+    The live catalog and price-file mtimes are deliberately excluded: their
+    background refresh must not make a completed result table disappear while
+    the user selects a row. A later Run Bass Match always reads fresh data.
+    """
     finder_load_types, _ = _finder_load_context()
-    candidate_digest = hashlib.sha256(
-        "\0".join(preset_names).encode("utf-8")
-    ).hexdigest()
     context = {
         "ranking_version": _FINDER_RANKING_VERSION,
-        "candidate_digest": candidate_digest,
-        "candidate_count": len(preset_names),
-        "pool_fingerprint": _json_safe(_finder_pool_fingerprint(1)),
         "load_types": finder_load_types,
         "volume_l": float(_finder_value("finder_volume_l")),
         "driver_configuration": str(
@@ -5683,6 +6050,28 @@ def _finder_result_context_signature(preset_names: list[str]) -> str:
         "f_min_hz": float(_finder_value("finder_f_min")),
         "f_max_hz": float(_finder_value("finder_f_max")),
         "points": int(_finder_value("finder_points")),
+        "preset_search": str(st.session_state.get("preset_search", "")),
+        "preset_source_filter": _json_safe(
+            st.session_state.get("preset_source_filter", ["All"])
+        ),
+        "preset_family_filter": _json_safe(
+            st.session_state.get("preset_family_filter", ["All"])
+        ),
+        "preset_size_filter": _json_safe(
+            st.session_state.get("preset_size_filter", ["All"])
+        ),
+        "preset_class_filter": _json_safe(
+            st.session_state.get("preset_class_filter", ["All"])
+        ),
+        "preset_price_enabled": bool(
+            st.session_state.get("preset_price_enabled", False)
+        ),
+        "preset_max_price": float(
+            st.session_state.get("preset_max_price", 0.0) or 0.0
+        ),
+        "preset_price_currency": str(
+            st.session_state.get("preset_price_currency", "")
+        ),
     }
     encoded = json.dumps(
         context,
@@ -5711,7 +6100,6 @@ def _finder_controls_signature() -> str:
         "preset_price_currency": "",
     }.items():
         context[key] = _json_safe(st.session_state.get(key, default))
-    context["pool_fingerprint"] = _json_safe(_finder_pool_fingerprint(1))
     encoded = json.dumps(
         context,
         sort_keys=True,
@@ -5977,7 +6365,10 @@ def _render_find_driver_target_sidebar() -> None:
     )
 
 
-def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
+def _run_find_driver_search(
+    filtered_preset_names: list[str],
+    context_preset_names: list[str] | None = None,
+) -> None:
     """Rank the filtered candidates from the current Finder sidebar state."""
     finder_load_types = list(st.session_state.get("finder_load_types", []))
     if not finder_load_types:
@@ -6119,7 +6510,12 @@ def _run_find_driver_search(filtered_preset_names: list[str]) -> None:
         prefilter_stats["total_simulations"],
         prefilter_stats["rejected_simulations"],
         collapsed_result_rows,
-        _finder_result_context_signature(filtered_preset_names),
+        _finder_result_context_signature(
+            context_preset_names
+            if context_preset_names is not None
+            else filtered_preset_names
+        ),
+        _FINDER_CONTEXT_FILTERED_POOL_VERSION,
     )
     st.session_state.pop("_restored_bass_match_controls_signature", None)
     _invalidate_bass_match_results_signature()
@@ -6675,7 +7071,7 @@ def _render_bass_match_hero(
                 "SPL, change the driver configuration or relax the library filters."
             )
     if run_requested:
-        _run_find_driver_search(match_preset_names)
+        _run_find_driver_search(match_preset_names, filtered_preset_names)
         st.rerun()
     return match_preset_names
 
@@ -6818,7 +7214,41 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         st.session_state.get("finder_max_mms_g", 0.0) or 0.0)
     current_max_le_mh = float(
         st.session_state.get("finder_max_le_mh", 0.0) or 0.0)
-    current_signature = _finder_result_context_signature(match_preset_names)
+    current_signature = _finder_result_context_signature(filtered_preset_names)
+    if batch_rows and len(context) >= 11 and (
+        len(context) <= 16
+        or str(context[16]) != _FINDER_CONTEXT_FILTERED_POOL_VERSION
+    ):
+        # Replace legacy candidate-selection and short-lived control-only
+        # signatures with the stable filtered-pool context. This keeps saved
+        # projects and live pre-fix sessions usable across the source reload.
+        legacy_context = list(context[:15])
+        try:
+            legacy_scan_count = max(0, int(legacy_context[2]))
+        except (TypeError, ValueError):
+            legacy_scan_count = len(batch_rows)
+        legacy_stat_defaults = {
+            11: legacy_scan_count,
+            12: legacy_scan_count,
+            13: 0,
+            14: 0,
+        }
+        for index, default in legacy_stat_defaults.items():
+            if len(legacy_context) <= index:
+                legacy_context.append(default)
+                continue
+            try:
+                legacy_context[index] = int(legacy_context[index])
+            except (TypeError, ValueError):
+                # Also repairs sessions normalized by the short-lived buggy
+                # migration, where the pool signature occupied index 11.
+                legacy_context[index] = default
+        context = (
+            *legacy_context,
+            current_signature,
+            _FINDER_CONTEXT_FILTERED_POOL_VERSION,
+        )
+        st.session_state["batch_result_context"] = context
     current_controls_signature = _finder_controls_signature()
     restored_controls_signature = str(st.session_state.get(
         "_restored_bass_match_controls_signature",
@@ -7119,6 +7549,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             st.session_state["batch_pending_result"] = {
                 "row": selected_row,
                 "load_type": row_load_type,
+                "voltage_v": float(_finder_value("finder_voltage")),
             }
             st.rerun()
     _render_candidate_pool(filtered_preset_names)
@@ -7235,7 +7666,6 @@ def _render_response_tab(
     pinned_state = _pinned_responses()
     comparison_tabs = _design_comparison_tabs()
     comparison_mode = bool(comparison_tabs)
-    pro_comparison_enabled = _pro_comparison_enabled()
     col_widths = [2.8, 1.3, 1.4, 1.1, 1.1, 1.0] if pinned_state else [2.8, 1.3, 1.4, 1.1, 1.0]
     ctrl_cols = st.columns(col_widths, vertical_alignment="center", gap="small")
     
@@ -7316,51 +7746,6 @@ def _render_response_tab(
                 args=(full_window,),
             )
     
-    with st.expander("Compare design variants · Pro"):
-        st.caption(
-            "Duplicate the active design into a new editable tab. Select any "
-            "tab above the charts and edit it with the normal Box Design "
-            "sidebar; every other tab stays overlaid."
-        )
-        if not pro_comparison_enabled:
-            st.info("Design variants are available with Pro or Team.")
-        if st.button(
-            "Duplicate active design tab",
-            key="duplicate_design_for_comparison",
-            type="primary",
-            width="stretch",
-            disabled=(
-                not pro_comparison_enabled
-                or len(comparison_tabs) >= _MAX_COMPARISON_DESIGNS
-            ),
-        ):
-            copy_name = _duplicate_active_design_comparison(
-                load_type,
-                box,
-                result,
-            )
-            st.toast(f"Created editable tab: {copy_name}")
-            st.rerun()
-        if comparison_mode:
-            close_col, end_col = st.columns(2)
-            with close_col:
-                if st.button(
-                    "Close active tab",
-                    key="close_active_design_comparison_tab",
-                    width="stretch",
-                    disabled=len(comparison_tabs) <= 1,
-                ):
-                    _close_active_design_comparison_tab()
-                    st.rerun()
-            with end_col:
-                if st.button(
-                    "End comparison",
-                    key="end_design_comparison",
-                    width="stretch",
-                ):
-                    _end_design_comparison()
-                    st.rerun()
-
     if st.session_state.get("plot_tolerance_band", False) and not compare_series:
         st.number_input(
             "T/S tolerance (%)", min_value=5.0, max_value=30.0, step=1.0,
@@ -8557,26 +8942,11 @@ try:
         box,
         result,
     )
-    _render_editable_design_tabs(comparison_tabs)
-
-    design_name = str(st.session_state.get("driver_preset_name", "Custom"))
-    design_config = str(st.session_state.get("driver_config", "Single driver"))
-    if design_config != "Single driver":
-        design_name = f"{design_name} ({design_config})"
-    design_strategy = str(st.session_state.get("box_strategy", "Balanced"))
-
-    st.markdown(
-        f"<div style='font-weight: 700; font-size: 1.15rem; margin-top: 0; margin-bottom: 0.1rem; color: rgba(250,250,250,.95);'>"
-        f"{load_type} &middot; {design_name}"
-        f"</div>",
-        unsafe_allow_html=True
-    )
-    resonator_caption = "Passive radiator &middot; " if is_pr else ""
-    st.markdown(
-        f"<div style='font-size: 0.8rem; color: rgba(250,250,250,.65); margin-bottom: 0.2rem;'>"
-        f"{resonator_caption}{design_strategy} alignment &middot; {sim_voltage:.2f} V"
-        f"</div>",
-        unsafe_allow_html=True
+    _render_editable_design_tabs(
+        comparison_tabs,
+        load_type,
+        box,
+        result,
     )
 
     tab_labels = ["Response", "Excursion", "Impedance"]

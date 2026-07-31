@@ -12,10 +12,10 @@ gcloud config set project PROJECT_ID
 gcloud services enable run.googleapis.com artifactregistry.googleapis.com
 
 gcloud builds submit \
-  --tag europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.7.2
+  --tag europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.7.3
 
 gcloud run deploy load-forge \
-  --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.7.2 \
+  --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.7.3 \
   --region europe-west1 \
   --platform managed \
   --allow-unauthenticated \
@@ -32,14 +32,15 @@ Per un SaaS autenticato sostituire `--allow-unauthenticated` con Identity
 Platform o un reverse proxy autenticato. Cloud Run fornisce la porta tramite
 `PORT`; il container la usa senza configurazioni locali aggiuntive.
 
-## Servizio SaaS separato
+## Configurazione SaaS
 
 Il branch `saas` mantiene la modalità account disattivata finché non vengono
-impostate le variabili esplicite.  Creare un servizio separato evita di
-modificare il deployment pubblico durante lo sviluppo:
+impostate le variabili esplicite. Nel progetto di produzione corrente il branch
+è distribuito nel servizio `load-forge`; se serve mantenere in parallelo anche
+un deployment pubblico senza account, creare per quello un servizio distinto.
 
 ```bash
-gcloud run deploy load-forge-saas \
+gcloud run deploy load-forge \
   --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:SAAS_TAG \
   --region europe-west1 \
   --platform managed \
@@ -63,7 +64,7 @@ Creare un secret `load-forge-oidc` il cui valore sia un file TOML conforme a
 backend Firestore:
 
 ```bash
-gcloud run services update load-forge-saas \
+gcloud run services update load-forge \
   --region europe-west1 \
   --update-env-vars=LOAD_FORGE_SAAS_ENABLED=true,LOAD_FORGE_OPEN_BETA_ENABLED=true,LOAD_FORGE_SAAS_BACKEND=firestore,LOAD_FORGE_GCP_PROJECT=PROJECT_ID \
   --update-secrets=/app/.streamlit/secrets.toml=load-forge-oidc:latest \
@@ -75,7 +76,7 @@ registrati l'accesso Pro senza modificare il piano memorizzato e senza creare
 abbonamenti. Rimuovere o disattivare la variabile ripristina gli entitlement
 normali; non migra né cancella i progetti esistenti.
 
-Il service account di `load-forge-saas` deve avere soltanto il ruolo necessario
+Il service account di `load-forge` deve avere soltanto il ruolo necessario
 per leggere e scrivere i documenti (`roles/datastore.user`) e l'accesso alla
 versione del secret.  Se il database `(default)` non esiste ancora, crearlo in
 Native mode nella regione scelta prima di attivare il servizio:

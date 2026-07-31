@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.7.3 (2026-07-31)
+
+- **Additive Box Design workflow**: opening another Bass Match result now
+  appends it to the existing editable design tabs instead of deleting the
+  current comparison. Multi-row Finder selections follow the same additive
+  behavior up to the eight-design limit.
+- **Direct design management**: compact copy and close icons now live inside
+  every Box Design tab rather than an expander or separate full-width
+  action row. Every duplicate remains independently editable and deleting the
+  last tab returns the current simulation to normal standalone Box Design mode.
+- **Stable compact design tabs**: titles consume all available width before
+  fixed copy/close actions and use `number · driver · load`. Driver identity
+  and deterministic curve colors survive selection, duplication, deletion,
+  legacy-state migration and renumbering without turning known presets into
+  `Custom`.
+- **Quiet controls**: transient command tooltips are suppressed while chart
+  tooltips remain available for reading simulation values.
+- **Stable Finder selection**: clicking a ranked Bass Match row no longer
+  invalidates and hides the completed result list; actual input or filter
+  changes still mark the results as stale. Background driver-price catalog
+  refreshes no longer masquerade as user input changes.
+- **Catalog refresh**: bundled driver-price observations include the latest
+  retailer crawl results used by local value ranking.
+- **Validation**: the fresh release suite passes 130 tests with 0 failures and
+  0 skips.
+
 ## 0.7.2 (2026-07-31)
 
 - **Pro editable design comparison**: selecting 2–8 Bass Match results now

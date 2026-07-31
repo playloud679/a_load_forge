@@ -1570,6 +1570,16 @@ def _check_ui_editable_design_comparison_tabs():
 
     import ui_app as _ui
 
+    source = (ROOT / "ui_app.py").read_text()
+    assert '[data-testid="stTooltipContent"]' in source
+    assert '[role="tooltip"]' in source
+    assert "alignment &middot; {sim_voltage:.2f} V" not in source
+    assert "{load_type} &middot; {design_name}" not in source
+    assert "short_label =" not in source
+    assert "position: relative !important;" in source
+    assert "position: absolute !important;" in source
+    assert "text-overflow: ellipsis !important;" in source
+
     color_tabs = [
         {"id": "a", "color": "#10b981"},
         {"id": "b", "color": "#9aa0a6"},
@@ -1581,6 +1591,36 @@ def _check_ui_editable_design_comparison_tabs():
         "b": "#9aa0a6",
         "c": "#ffb703",
     }, colors
+    assert _ui._design_comparison_tab_label(
+        3,
+        "Bass reflex",
+        "LSDB: SB Acoustics WO24TX-4",
+    ) == "3 · SB Acoustics WO24TX-4 · Bass reflex"
+    assert _ui._design_tab_label_driver(
+        "2 · Scan-Speak 25W/8561 · Bass reflex"
+    ) == "Scan-Speak 25W/8561"
+    assert _ui._design_tab_label_driver(
+        "2 · Variant of Bass reflex · LSDB: SB Acoustics WO24TX-4 · Vb 75 L"
+    ) == "LSDB: SB Acoustics WO24TX-4"
+    lsdb_driver = _dccav.get_driver_preset("LSDB: PowerBass PBX1-12D2")
+    assert _ui._recover_design_tab_preset({
+        "driver_fs_hz": lsdb_driver.fs_hz,
+        "driver_vas_l": lsdb_driver.vas_l,
+        "driver_qts": lsdb_driver.qts,
+        "driver_qms": lsdb_driver.qms,
+        "driver_re_ohm": lsdb_driver.re_ohm,
+        "driver_sd_cm2": lsdb_driver.sd_cm2,
+        "driver_le_mh": lsdb_driver.le_mh,
+        "driver_xmax_mm": lsdb_driver.xmax_mm,
+        "driver_pe_w": lsdb_driver.pe_w,
+    }) == "LSDB: PowerBass PBX1-12D2"
+    assert _ui._recover_design_tab_preset({
+        "driver_fs_hz": lsdb_driver.fs_hz,
+        "driver_vas_l": lsdb_driver.vas_l,
+        "driver_qts": lsdb_driver.qts,
+        "driver_qms": lsdb_driver.qms,
+        "driver_re_ohm": lsdb_driver.re_ohm,
+    }) == "LSDB: PowerBass PBX1-12D2"
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=45)
     at.session_state["workspace_mode"] = "Box Design"
@@ -1594,7 +1634,7 @@ def _check_ui_editable_design_comparison_tabs():
     duplicate = next(
         button
         for button in at.button
-        if button.label == "Duplicate active design tab"
+        if button.label == "Duplicate design"
     )
     assert not duplicate.disabled
     duplicate.click().run()
@@ -1602,6 +1642,18 @@ def _check_ui_editable_design_comparison_tabs():
 
     tabs = at.session_state["design_comparison_tabs"]
     assert len(tabs) == 2, tabs
+    assert [tab["label"] for tab in tabs] == [
+        "1 · KEF B110B article example · Sealed",
+        "2 · KEF B110B article example · Sealed",
+    ]
+    assert [tab["driver_preset_name"] for tab in tabs] == [
+        "KEF B110B article example",
+        "KEF B110B article example",
+    ]
+    assert [tab["display_driver_name"] for tab in tabs] == [
+        "KEF B110B article example",
+        "KEF B110B article example",
+    ]
     assert [tab["color"] for tab in tabs] == ["#10b981", "#9aa0a6"]
     assert len(at.session_state["pinned_responses"]) == 1
     assert at.session_state["pinned_responses"][0]["color"] == "#10b981"
@@ -1612,6 +1664,20 @@ def _check_ui_editable_design_comparison_tabs():
     }
     active_id = at.session_state["design_comparison_active_id"]
     assert active_id == tabs[1]["id"], (active_id, tabs)
+    assert sum(
+        button.label == "Duplicate design" for button in at.button
+    ) == 2
+    assert sum(
+        button.label == "Delete design" for button in at.button
+    ) == 2
+    rendered_tab_labels = {
+        button.label for button in at.button
+        if str(button.key).startswith("design_comparison_tab_")
+    }
+    assert rendered_tab_labels == {tab["label"] for tab in tabs}, (
+        "tab buttons must retain their complete label and leave visual "
+        "ellipsis handling to the available CSS width"
+    )
 
     at.session_state["sealed_vb_l"] = 45.0
     at.run()
@@ -1630,6 +1696,10 @@ def _check_ui_editable_design_comparison_tabs():
     assert not at.exception, at.exception
     assert at.session_state["sealed_vb_l"] == 30.0
     assert at.session_state["design_comparison_active_id"] == tabs[0]["id"]
+    assert at.session_state["driver_preset_name"] == "KEF B110B article example"
+    assert [tab["color"] for tab in at.session_state[
+        "design_comparison_tabs"
+    ]] == ["#10b981", "#9aa0a6"]
     assert at.session_state["pinned_responses"][0]["color"] == "#9aa0a6"
 
     tab_buttons = [
@@ -1641,16 +1711,50 @@ def _check_ui_editable_design_comparison_tabs():
     assert not at.exception, at.exception
     assert at.session_state["sealed_vb_l"] == 45.0
     assert at.session_state["design_comparison_active_id"] == tabs[1]["id"]
+    assert at.session_state["driver_preset_name"] == "KEF B110B article example"
+    assert [tab["color"] for tab in at.session_state[
+        "design_comparison_tabs"
+    ]] == ["#10b981", "#9aa0a6"]
     assert len(at.session_state["pinned_responses"]) == 1
     assert at.session_state["pinned_responses"][0]["color"] == "#10b981"
     assert any(
         "Editable comparison: 2/8 tabs" in caption.value
         for caption in at.caption
     )
-    assert any(
-        "Tab colors match their chart curves" in caption.value
+    assert not any(
+        "select a tab, then edit normal sidebar parameters" in caption.value
         for caption in at.caption
+    ), "design management must not consume a separate full-width row"
+
+    legacy_tabs = at.session_state["design_comparison_tabs"]
+    legacy_tabs[0]["driver_preset_name"] = "Custom"
+    legacy_tabs[0]["parameters"]["driver_preset_name"] = "Custom"
+    at.session_state["design_comparison_tabs"] = legacy_tabs
+    delete = next(
+        button for button in at.button
+        if button.key == f"delete_design_tab_{tabs[1]['id']}"
     )
+    assert not delete.disabled
+    delete.click().run()
+    assert not at.exception, at.exception
+    assert len(at.session_state["design_comparison_tabs"]) == 1
+    assert at.session_state["sealed_vb_l"] == 30.0
+    assert at.session_state["design_comparison_tabs"][0]["label"] == (
+        "1 · KEF B110B article example · Sealed"
+    ), "deleting and renumbering a sibling must never rename this tab Custom"
+
+    delete = next(
+        button for button in at.button
+        if button.key == f"delete_design_tab_{tabs[0]['id']}"
+    )
+    delete.click().run()
+    assert not at.exception, at.exception
+    assert "design_comparison_tabs" not in at.session_state
+    assert "design_comparison_active_id" not in at.session_state
+    assert next(
+        button for button in at.button
+        if button.label == "Duplicate design"
+    ).disabled is False
 
 
 test(
@@ -1684,6 +1788,13 @@ def _check_ui_finder_selection_creates_editable_design_tabs():
                     "Fb Hz": 51.0,
                 },
             },
+            {
+                "load_type": "Infinite baffle",
+                "row": {
+                    "Driver": "KEF B110B article example",
+                    "Load": "Infinite baffle",
+                },
+            },
         ],
         "voltage_v": 2.83,
     }
@@ -1692,16 +1803,19 @@ def _check_ui_finder_selection_creates_editable_design_tabs():
     assert at.session_state["workspace_mode"] == "Box Design"
     assert "batch_pending_comparison" not in at.session_state
     tabs = at.session_state["design_comparison_tabs"]
-    assert len(tabs) == 2, tabs
-    assert [tab["color"] for tab in tabs] == ["#10b981", "#9aa0a6"]
+    assert len(tabs) == 3, tabs
+    assert [tab["color"] for tab in tabs] == [
+        "#10b981", "#9aa0a6", "#ffb703",
+    ]
     assert [tab["parameters"]["load_type"] for tab in tabs] == [
         "Sealed",
         "Bass reflex",
+        "Infinite baffle",
     ]
     assert at.session_state["design_comparison_active_id"] == tabs[0]["id"]
     assert at.session_state["load_type"] == "Sealed"
     assert at.session_state["sealed_vb_l"] == 16.0
-    assert len(at.session_state["pinned_responses"]) == 1
+    assert len(at.session_state["pinned_responses"]) == 2
 
     at.session_state["batch_pending_result"] = {
         "load_type": "Bass reflex",
@@ -1715,9 +1829,16 @@ def _check_ui_finder_selection_creates_editable_design_tabs():
     }
     at.run()
     assert not at.exception, at.exception
-    assert "design_comparison_tabs" not in at.session_state
-    assert "design_comparison_active_id" not in at.session_state
-    assert not at.session_state["pinned_responses"]
+    tabs = at.session_state["design_comparison_tabs"]
+    assert len(tabs) == 4, tabs
+    assert [tab["color"] for tab in tabs] == [
+        "#10b981", "#9aa0a6", "#ffb703", "#8ecae6",
+    ]
+    assert [tab["parameters"]["load_type"] for tab in tabs[:3]] == [
+        "Sealed", "Bass reflex", "Infinite baffle",
+    ], "opening a new Finder result must preserve every existing design"
+    assert at.session_state["design_comparison_active_id"] == tabs[3]["id"]
+    assert len(at.session_state["pinned_responses"]) == 3
     assert at.session_state["driver_preset_name"] == "Beyma 12CMV2"
     assert at.session_state["load_type"] == "Bass reflex"
     assert at.session_state["reflex_vb_l"] == 38.0
@@ -5490,15 +5611,22 @@ test("UI keeps every Finder parameter in the sidebar", _check_ui_finder_paramete
 
 
 def _check_ui_finder_main_action_runs_search():
+    import inspect
+
     from streamlit.testing.v1 import AppTest
 
     import ui_app as _ui
 
     ui_source = (ROOT / "ui_app.py").read_text(encoding="utf-8")
+    result_signature_source = inspect.getsource(
+        _ui._finder_result_context_signature
+    )
+    assert "_finder_pool_fingerprint" not in result_signature_source
+    assert "candidate_digest" not in result_signature_source
     assert "height: 1.55rem !important;" in ui_source
     assert (
         "\n    if run_requested:\n"
-        "        _run_find_driver_search(match_preset_names)\n"
+        "        _run_find_driver_search(match_preset_names, filtered_preset_names)\n"
     ) in ui_source, (
         "the ranking must start outside the CTA column so progress is full-width"
     )
@@ -5578,10 +5706,23 @@ def _check_ui_finder_main_action_runs_search():
     )
     assert "Your best matches" in [sub.value for sub in at.subheader]
     assert at.dataframe, "ranked rows must appear in the main workspace"
-    assert len(at.session_state["batch_result_context"]) == 16
+    assert len(at.session_state["batch_result_context"]) == 17
+    assert (
+        at.session_state["batch_result_context"][16]
+        == _ui._FINDER_CONTEXT_FILTERED_POOL_VERSION
+    )
     scanned = at.session_state["batch_result_context"][2]
     assert scanned == 1, (
         f"the scan must cover the whole filtered library (1 match), got {scanned}"
+    )
+
+    at.session_state["batch_results_table_f3"] = {
+        "selection": {"rows": [0], "columns": [], "cells": []},
+    }
+    at.run()
+    assert not at.exception, at.exception
+    assert "Your best matches" in [sub.value for sub in at.subheader], (
+        "selecting a ranked result must not invalidate the completed Bass Match"
     )
 
     at.session_state["preset_size_filter"] = ["10 in"]

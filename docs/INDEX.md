@@ -70,7 +70,11 @@ use emerald, while secondary instructions use gray. Load cards are fully
 clickable with overlaid labels, a checked active state and keyboard focus; the
 full-width 1200×100 app header preserves its native ratio and the active design
 uses a 44 px topology chip. The 420 px main response chart keeps its controls
-and active-load summary above the fold on desktop viewports. The Finder follows
+above the fold on desktop viewports; Box Design does not repeat the active-load
+heading already conveyed by its editable tab and sidebar. Duplicate and close
+are fixed-position compact icons inside every tab, never a separate action row.
+Compact titles preserve driver identity through tab selection/deletion and use
+the same deterministic colors as their chart curves. The Finder follows
 acoustic brief → `Run Bass Match` → ranked driver/load/box designs. Its raw
 driver library is a secondary collapsible candidate pool used to narrow the
 search or open one known driver directly. In the default collapsed state, the

@@ -82,7 +82,9 @@ labels use the same server-controlled decision.
 
 Editable multi-design comparison is a Pro-tier capability: Pro and Team users
 may turn 2–8 selected Bass Match rows into independent Box Design tabs or
-duplicate the active design into variants. The standalone build keeps this
+duplicate the active design into variants. New Finder selections append to the
+existing design set up to the eight-tab limit; direct duplicate and delete
+actions manage the active tab in Box Design. The standalone build keeps this
 workflow enabled, and an active Open Beta promotion grants Free accounts the
 effective Pro access tier through the same server-controlled entitlement path.
 

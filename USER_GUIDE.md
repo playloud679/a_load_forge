@@ -389,15 +389,17 @@ Inside the `Response` tab:
   **Reset zoom** restores the full simulation range
 - **Markers & analysis** collects the `F3`/`F6`/`F10` selector, manual `M1`/`M2`
   positions, MOL/MIL limits, load comparison and the tolerance band
-- **Compare design variants · Pro** duplicates the active design into an
-  independently editable Box Design tab. Select a tab above the plots, then
+- the small **copy** and **×** icons inside every design tab duplicate or
+  delete that specific design without consuming a separate action row. Select a tab, then
   edit any normal driver, load or enclosure control in the sidebar. Switching
   tabs saves the outgoing values and restores the selected design; every
   inactive design remains overlaid in Response, Excursion, Impedance, MIL,
   Group Delay and compatible Ports charts. Each design receives one permanent
   tab/curve color: the first keeps emerald and later variants keep their own
   reference colors even when the active tab changes. Up to eight tabs can be
-  compared. The Response pens are transversal: selecting **Total**, **Cone**,
+  compared. Titles use the compact `number · driver · load` form and keep
+  the known driver name through selection, deletion and renumbering. The
+  Response pens are transversal: selecting **Total**, **Cone**,
   the current port/radiator trace, **MOL** or **MIL** applies that pen to every
   comparison tab that supports it.
 - **Pin response** stores the current simulation for a lightweight A/B overlay;
@@ -408,8 +410,12 @@ In **Bass Match**, select two through eight result rows and choose **Compare
 designs in Box Design** to create the same editable tabs directly from ranked
 matches. Their selected comparison voltage is shared initially, but all other
 parameters remain independent after the tabs are created. Opening one result
-instead is a standalone action: it closes any older comparison and loads the
-selected driver, load and enclosure as the active Box Design.
+while editable tabs already exist appends it as the next design instead of
+replacing the comparison; later multi-row selections are additive as well,
+up to eight total designs.
+
+Transient hover labels on commands are hidden to keep nearby controls clear.
+Interactive chart tooltips remain available for frequency and simulation data.
 
 The cursor table reports frequency, total SPL, impedance and excursion at each
 cursor.
