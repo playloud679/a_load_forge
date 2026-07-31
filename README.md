@@ -4,7 +4,7 @@
   <img src="assets/load_forge_header.png" alt="Load Forge" width="900">
 </p>
 
-Current release: **0.7.2**
+Current release: **0.7.3**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth- and sixth-order bandpass**,
@@ -67,12 +67,14 @@ Current UI highlights:
   compatible analysis chart while another tab is edited
 - response pinning for lightweight A/B overlays
 - one-click comparison across the supported enclosure loads at equal volume
-- automatic browser-local projects backed by IndexedDB: zero/one project opens
-  automatically, while multiple projects open the regular app with the
-  sidebar Project section expanded; portable `.lfp` v2 backups include both
-  Box Design and complete Bass Match controls/results, including the ranked
-  candidate list from the last run; project switching flushes pending results
-  before loading the next project, and legacy flat presets remain importable
+- automatic browser-local projects backed by IndexedDB: the browser remembers
+  and reopens the active project after a page refresh, including the ranked
+  candidate list from its last Bass Match run; when no active project has yet
+  been remembered, multiple projects open the regular app with the sidebar
+  Project section expanded for selection; portable `.lfp` v2 backups include
+  both Box Design and complete Bass Match controls/results, project switching
+  flushes pending results before loading the next project, and legacy flat
+  presets remain importable
 - project download/import and URL-based sharing grouped in the collapsible
   sidebar `Project` section
 - optional SaaS mode with a local registration trial, production OIDC accounts

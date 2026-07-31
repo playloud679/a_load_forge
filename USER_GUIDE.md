@@ -19,10 +19,11 @@ the active workspace has a matching illuminated outline.
 
 The collapsible **Project** section sits at the top of the sidebar. Load Forge creates a
 browser-local project automatically on first use and autosaves it after every
-interaction. One existing project opens automatically; when the browser holds
-several projects, the normal app opens immediately with **Project** expanded so
-one can be opened or **New project** can be chosen. The section renames, creates,
-switches, downloads and imports projects without a separate landing page.
+interaction. The browser remembers the active project and reopens it after a
+page refresh, even when several projects exist. If no active project has yet
+been remembered, the normal app opens with **Project** expanded so one can be
+opened or **New project** can be chosen. The section renames, creates, switches,
+downloads and imports projects without a separate landing page.
 
 ## Inputs
 
@@ -100,6 +101,8 @@ controls, result context and run statistics. The stored list is shown without
 re-running the optimizer; changing a Finder input still hides it as stale.
 When switching browser projects, Load Forge first flushes any newly completed
 run to IndexedDB so an immediate project switch cannot lose its candidates.
+Refreshing the page reopens the remembered active browser project and restores
+the same candidate list instead of starting from an empty Finder workspace.
 
 Infinite baffle has no enclosure, so the strategy control is disabled.
 
@@ -438,7 +441,8 @@ same `group_delay_ms` data is also exported in the response CSV.
 
 - The active project is autosaved in this browser through IndexedDB. Browser
   projects remain on the current device and browser profile; private browsing,
-  clearing site data or changing browser does not carry them across.
+  clearing site data or changing browser does not carry them across. A normal
+  page refresh reopens the last active project and its saved Finder results.
 - **Download .lfp** creates a portable backup containing the complete design
   plus the Bass Match brief, library filters, ranked results and result
   context. Non-finite simulation placeholders are normalized to strict JSON.

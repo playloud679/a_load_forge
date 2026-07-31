@@ -107,6 +107,7 @@ const DB_NAME = "load_forge";
 const DB_VERSION = 2;
 const STORE_NAME = "projects";
 const SUMMARY_STORE_NAME = "project_summaries";
+const ACTIVE_PROJECT_KEY = "load_forge_active_project_id";
 
 function projectSummary(record) {
   const project = record && record.project || {};
@@ -156,6 +157,22 @@ function requestResult(request) {
   });
 }
 
+function rememberActiveProject(projectId) {
+  try {
+    localStorage.setItem(ACTIVE_PROJECT_KEY, String(projectId || ""));
+  } catch (error) {
+    // IndexedDB autosave must still work when storage privacy blocks this hint.
+  }
+}
+
+function rememberedActiveProject() {
+  try {
+    return String(localStorage.getItem(ACTIVE_PROJECT_KEY) || "");
+  } catch (error) {
+    return "";
+  }
+}
+
 export default function(component) {
   const {data, setStateValue} = component;
   const currentState = data && data.state || {};
@@ -197,6 +214,7 @@ export default function(component) {
         await requestResult(projects.put(project));
         const summary = projectSummary(project);
         if (summary.id) {
+          rememberActiveProject(summary.id);
           await requestResult(
             transaction.objectStore(SUMMARY_STORE_NAME).put(summary)
           );
@@ -209,6 +227,9 @@ export default function(component) {
         const project = await requestResult(
           transaction.objectStore(STORE_NAME).get(command.project_id)
         );
+        if (project) {
+          rememberActiveProject(command.project_id);
+        }
         if (!cancelled) {
           setIfChanged(
             "loaded_project_json",
@@ -227,6 +248,10 @@ export default function(component) {
         left.updated_at || ""
       )));
       if (!cancelled) {
+        setIfChanged(
+          "active_project_id",
+          rememberedActiveProject()
+        );
         setIfChanged("summaries_json", JSON.stringify(summaries));
         setIfChanged("error", "");
         setIfChanged("ready", true);
@@ -1748,6 +1773,7 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
             "summaries_json": "[]",
             "ack": "",
             "load_ack": "",
+            "active_project_id": "",
             "error": "",
         }.items()
     }
@@ -1764,6 +1790,7 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
             "ack": "",
             "load_ack": "",
             "loaded_project_json": "",
+            "active_project_id": "",
             "error": "",
         },
         height=0,
@@ -1772,6 +1799,7 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
         on_ack_change=lambda: None,
         on_load_ack_change=lambda: None,
         on_loaded_project_json_change=lambda: None,
+        on_active_project_id_change=lambda: None,
         on_error_change=lambda: None,
     )
     try:
@@ -1780,6 +1808,13 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
         projects = []
     if not isinstance(projects, list):
         projects = []
+    active_project_id = str(
+        getattr(result, "active_project_id", "") or ""
+    )
+    if active_project_id:
+        st.session_state["_browser_last_active_project_id"] = (
+            active_project_id
+        )
     ack = str(getattr(result, "ack", "") or "")
     if ack:
         st.session_state["_browser_project_last_ack"] = ack
@@ -1836,6 +1871,7 @@ def _browser_project_startup_mode(
     ready: bool,
     initialized: bool,
     projects: list[dict],
+    preferred_project_id: str = "",
 ) -> str:
     """Return the non-blocking startup action for the browser project store."""
     if not ready or initialized:
@@ -1844,11 +1880,30 @@ def _browser_project_startup_mode(
         return "new"
     if len(projects) == 1:
         return "load"
+    if preferred_project_id and any(
+        str(project.get("id", "")) == preferred_project_id
+        for project in projects
+    ):
+        return "load"
     return "choose"
 
 
+def _browser_startup_project_id(
+    projects: list[dict],
+    preferred_project_id: str = "",
+) -> str:
+    """Choose the remembered browser project, then the newest fallback."""
+    for project in projects:
+        project_id = str(project.get("id", ""))
+        if project_id and project_id == preferred_project_id:
+            return project_id
+    if not projects:
+        return ""
+    return str(projects[0].get("id", ""))
+
+
 def _initialize_browser_project_store() -> None:
-    """Open zero/one projects automatically and choose multiples in-sidebar."""
+    """Restore the active browser project without blocking normal startup."""
     ready, projects, error, loaded_project = _browser_project_store()
     st.session_state["_browser_project_store_ready"] = ready
     st.session_state["_browser_project_summaries"] = projects
@@ -1860,10 +1915,14 @@ def _initialize_browser_project_store() -> None:
     if loaded_project is not None:
         _activate_browser_project(loaded_project, already_persisted=True)
         st.rerun()
+    preferred_project_id = str(
+        st.session_state.get("_browser_last_active_project_id", "")
+    )
     startup_mode = _browser_project_startup_mode(
         ready,
         bool(st.session_state.get("_browser_project_initialized")),
         projects,
+        preferred_project_id,
     )
     if startup_mode == "continue":
         return
@@ -1871,7 +1930,12 @@ def _initialize_browser_project_store() -> None:
         _start_new_browser_project()
         st.rerun()
     if startup_mode == "load":
-        _request_browser_project_load(str(projects[0].get("id", "")))
+        _request_browser_project_load(
+            _browser_startup_project_id(
+                projects,
+                preferred_project_id,
+            )
+        )
         st.rerun()
     st.session_state["_browser_project_menu_auto_open"] = True
 

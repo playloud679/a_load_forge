@@ -94,6 +94,13 @@ parameter mapping remain readable. Large editable-comparison curve snapshots
 stay in browser/portable LFP storage to keep cloud documents below their size
 limit.
 
+Browser-local projects use the same versioned project payload in IndexedDB.
+The frontend also remembers the active browser-project ID, so a page refresh
+reopens that project and restores its saved Bass Match candidate list when
+multiple local projects exist. If browser privacy settings block this small
+active-project hint, IndexedDB autosave continues to work and the sidebar
+project chooser remains the fallback.
+
 ## Project contract
 
 Projects are stored below:
