@@ -11,7 +11,7 @@ in sync in the same change.
 
 | Module/File | Doc | Role |
 |---|---|---|
-| `ui_app.py` | source only | Streamlit dashboard with a killer-feature-first Bass Match brief and single run action, a selection-aware gray/emerald Box Design CTA directly below the brief, all usable ranked results without a display cap, a collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, recoverable target/performance/library filters, progressively disclosed T/S controls, contextual design tabs, compact plot markers, IndexedDB browser-project autosave, complete `.lfp` v2 Box Design/Bass Match backups and grouped exports. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
+| `ui_app.py` | source only | Streamlit dashboard with a killer-feature-first Bass Match brief and single run action, a selection-aware gray/emerald Box Design CTA directly below the brief, all usable ranked results without a display cap, a lazy collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, compact multiselect library filters, progressively disclosed T/S controls, stateful lazy analysis/sidebar tabs, compact plot markers, IndexedDB browser-project autosave, complete `.lfp` v2 Box Design/Bass Match backups and grouped exports. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
 | `src/__init__.py` | [__init__.md](__init__.md) | Public package exports for acoustic-load helpers |
 | `src/dccav.py` | [dccav.md](dccav.md) | DCCAV/reflex/sealed/infinite-baffle formulas, T/S derivation and lumped acoustic-circuit simulation |
 | `src/saas.py` | [saas.md](saas.md) | Optional OIDC identity normalization, tenant-safe plan entitlements and Firestore/in-memory project persistence |
@@ -75,6 +75,11 @@ heading already conveyed by its editable tab and sidebar. Visibility, duplicate
 and close are fixed-position compact icons inside every tab, never a separate action row.
 UI-only design actions reuse cached solver output and saved alignment state;
 they must not trigger a second rerun or restart the enclosure optimizer.
+Workspace switching must remain view-only: Bass Match workers are created only
+by `Run Bass Match`; closed Project/Candidate sections and inactive sidebar or
+analysis tabs must not build their hidden controls, tables or charts. Catalog
+metadata/price summaries and embedded visual CSS use bounded caches, while
+large filtered-name lists must not accumulate in the Streamlit cache.
 Routine IndexedDB autosaves are fire-and-forget once the active project is in
 the sidebar index, so their acknowledgement and `updated_at` value cannot
 trigger another full-page rerun. Streamlit stale elements remain fully opaque

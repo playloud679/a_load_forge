@@ -10,6 +10,8 @@ bass reflex with either a port or passive radiator, acoustic suspension
 The two large image tabs below the header separate two different jobs. The red
 **Bass Match** artwork and blue **Box Design** artwork are themselves clickable;
 the active workspace has a matching illuminated outline.
+Switching these tabs is a view-only action: Load Forge keeps the simulation
+cache warm and does not start Bass Match workers or hidden chart calculations.
 
 - **Design a box** starts from one driver, chooses an alignment strategy and
   exposes the simulation results and plots.
@@ -17,7 +19,9 @@ the active workspace has a matching illuminated outline.
   only the catalog candidates allowed by the sidebar filters, and preserves the
   current design until a candidate is explicitly applied.
 
-The collapsible **Project** section sits at the top of the sidebar. Load Forge creates a
+The collapsible **Project** section sits at the top of the sidebar. Its import,
+export and cloud/browser controls are built only when the section is open, so a
+closed project menu adds no work to routine design clicks. Load Forge creates a
 browser-local project automatically on first use and autosaves it after every
 interaction. One existing project opens automatically; when the browser holds
 several projects, the normal app opens immediately with **Project** expanded so
@@ -261,9 +265,9 @@ and the optimizer rejects boxes whose smallest workable duct would break the
 ### Bass Match
 
 The **Bass Match** workspace has independent search constraints; it does not
-reuse or alter the active design controls. Target and performance controls use
-the sidebar, while the denser library filters use the wider main workspace in
-a three-step workflow:
+reuse or alter the active design controls. Target, performance and library
+controls use three stateful sidebar tabs. Only the open tab is rendered in a
+three-step workflow:
 
 1. **Target enclosure** selects the load, maximum enclosure volume and voltage.
 2. **Performance goal** selects the optimization objective, F3 target and
@@ -272,21 +276,17 @@ a three-step workflow:
    without the corresponding published value are excluded. Excursion,
    group-delay and minimum-SPL limits stay in **Advanced constraints**; scan
    range, result count and resolution stay in **Advanced scan**.
-3. **Candidate library** filters the catalog in the main workspace by text,
+3. **Candidate library** filters the catalog in the sidebar by text,
    provenance, size, brand, bandwidth class and optional price ceiling.
    Provenance groups built-ins, direct manufacturer sources, official
    archives, retailer observations and user-supplied records under **Load
    Forge database**. LSDB, VituixCAD and Speaker Box Lite remain separate
    external database choices. The table retains the exact source beside the
    compact category. The numeric price limit appears only when its checkbox is
-   active. Typing in **Search preset** immediately lists the first matching
-   driver names before a scan is started.
-
-   In each checkbox group, **All** is a true group toggle. When active, every
-   option is visibly checked. Unchecking one option clears **All** while
-   preserving every other selection; checking all individual options restores
-   **All**. Turning **All** off clears the complete group, after which
-   individual options can be enabled.
+   active. Provenance, brand, size and class use compact multiselects; leaving
+   one empty means **All**. The raw driver table is built only after opening
+   **Candidate pool**, where typing in **Search preset** immediately lists the
+   first matching names before a scan is started.
 
 **Run Bass Match** appears once as a full-width primary action immediately
 below the compact brief; it is not duplicated in the sidebar. While a scan is
@@ -398,7 +398,9 @@ The **Design a box** plots use contextual tabs. `Response`, `Excursion`,
 `Impedance` and `Group Delay` are always available. `Ports` appears only for
 ported, passive-radiator and bandpass loads; `Atlas` is hidden for infinite
 baffle and passive-radiator designs because the generic design-space sweep is
-defined for duct geometry. Driver ranking lives in its own workspace.
+defined for duct geometry. Only the selected analysis tab builds its chart;
+hidden tabs do not recreate charts after unrelated clicks. Driver ranking
+lives in its own workspace.
 
 Inside the `Response` tab:
 

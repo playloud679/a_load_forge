@@ -901,6 +901,7 @@ def _check_ui_group_delay_chart_renders():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.session_state["workspace_mode"] = "Box Design"
+    at.session_state["design_analysis_tab"] = "Group Delay"
     at.run()
     assert not at.exception, at.exception
     assert any(sub.value == "Group Delay" for sub in at.subheader), (
@@ -909,6 +910,39 @@ def _check_ui_group_delay_chart_renders():
 
 
 test("UI group-delay tab renders the Group Delay chart", _check_ui_group_delay_chart_renders)
+
+
+def _check_ui_non_calculating_navigation_is_lazy():
+    import inspect
+
+    from streamlit.testing.v1 import AppTest
+
+    import ui_app as _ui
+
+    actions_source = inspect.getsource(_ui._render_find_driver_actions)
+    assert "_finder_worker_pool" not in actions_source, (
+        "merely opening Bass Match must not create calculation workers"
+    )
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.run()
+    assert not at.exception, at.exception
+    assert not at.dataframe, (
+        "the collapsed candidate pool must not serialize its 500-row table"
+    )
+
+    at.session_state["workspace_mode"] = "Box Design"
+    at.run()
+    assert not at.exception, at.exception
+    assert len(at.get("vega_lite_chart")) == 1, (
+        "Box Design must build only the selected analysis chart"
+    )
+
+
+test(
+    "UI workspace navigation keeps expensive panels lazy",
+    _check_ui_non_calculating_navigation_is_lazy,
+)
 
 
 def _check_port_geometry_helpers():
@@ -2010,6 +2044,7 @@ def _check_ui_share_link_roundtrip():
     import ui_app as _ui
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["project_menu_expander"] = True
     at.run()
     at.session_state["load_type"] = "Bass reflex"
     at.session_state["driver_fs_hz"] = 33.0
@@ -2063,6 +2098,7 @@ def _check_ui_project_preset_upload_finishes():
     }).encode("utf-8")
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["project_menu_expander"] = True
     at.run()
     assert any(
         item.label.startswith("Project")
@@ -2187,6 +2223,7 @@ def _check_ui_new_browser_project_starts_clean():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["project_menu_expander"] = True
     at.session_state["_browser_project_initialized"] = True
     at.session_state["_browser_active_project"] = {
         "id": "lfp_old",
@@ -2314,6 +2351,7 @@ def _check_ui_complete_lfp_restores_bass_match():
     }
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["project_menu_expander"] = True
     at.run()
     project_upload = next(
         item for item in at.file_uploader
@@ -2525,6 +2563,7 @@ def _check_ui_saas_local_project_roundtrip():
     try:
         os.environ.update(keys)
         at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+        at.session_state["project_menu_expander"] = True
         at.session_state["load_type"] = "Bass reflex"
         at.session_state["box_strategy"] = "Manual"
         at.session_state["reflex_vb_l"] = 55.5
@@ -2616,6 +2655,7 @@ def _check_ui_saas_local_registration_login_logout():
                 else:
                     os.environ[key] = value
             at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+            at.session_state["project_menu_expander"] = True
             at.run()
             assert not at.exception, at.exception
             account_mode = next(item for item in at.radio if item.label == "Account")
@@ -3112,51 +3152,21 @@ def _check_ui_driver_preset_filters_reduce_list():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.session_state["workspace_mode"] = "Bass Match"
+    at.session_state["bass_match_sidebar_tab"] = "Library filters"
+    at.session_state["finder_candidate_pool_expander"] = True
     at.session_state["preset_search"] = "12CMV2"
     at.run()
     assert not at.exception, at.exception
-    provenance_boxes = [
-        checkbox
-        for checkbox in at.sidebar.checkbox
-        if str(checkbox.key).startswith(
-            "preset_source_filter__toggle_v4__"
-        )
-    ]
-    assert len(provenance_boxes) == len(_ui._PRESET_SOURCE_FILTERS)
-    assert [checkbox.label for checkbox in provenance_boxes] == list(
-        _ui._PRESET_SOURCE_FILTERS
+    provenance = next(
+        item for item in at.sidebar.multiselect
+        if item.label == "Provenance"
     )
-    assert all(checkbox.value for checkbox in provenance_boxes), (
-        "All must visibly select every provenance option",
-        [(checkbox.label, checkbox.value) for checkbox in provenance_boxes],
-    )
-    sbl_box = next(
-        checkbox
-        for checkbox in provenance_boxes
-        if checkbox.label == "Speaker Box Lite"
-    )
-    sbl_box.uncheck().run()
+    assert provenance.options == list(_ui._PRESET_SOURCE_FILTERS[1:])
+    assert provenance.value == [], "empty compact selection means All"
+    selected_sources = list(_ui._PRESET_SOURCE_FILTERS[1:-1])
+    provenance.set_value(selected_sources).run()
     assert not at.exception, at.exception
-    provenance_boxes = [
-        checkbox
-        for checkbox in at.sidebar.checkbox
-        if str(checkbox.key).startswith(
-            "preset_source_filter__toggle_v4__"
-        )
-    ]
-    assert not next(
-        checkbox for checkbox in provenance_boxes if checkbox.label == "All"
-    ).value
-    assert not next(
-        checkbox
-        for checkbox in provenance_boxes
-        if checkbox.label == "Speaker Box Lite"
-    ).value
-    assert all(
-        checkbox.value
-        for checkbox in provenance_boxes
-        if checkbox.label not in {"All", "Speaker Box Lite"}
-    )
+    assert at.session_state["preset_source_filter"] == selected_sources
     assert at.dataframe, "Filtered presets must render as a table"
     table = at.dataframe[0].value
     assert "12CMV2" in str(table.to_dict()), (
@@ -5769,6 +5779,12 @@ def _check_ui_finder_starts_from_practical_defaults():
     assert not at.exception, at.exception
 
     numbers = {control.label: control.value for control in at.number_input}
+    at.session_state["bass_match_sidebar_tab"] = "Performance filters"
+    at.run()
+    assert not at.exception, at.exception
+    numbers.update({
+        control.label: control.value for control in at.number_input
+    })
     assert numbers["Maximum volume (L)"] == 40.0, numbers
     assert numbers["Comparison voltage (V)"] == 2.83, numbers
     assert numbers["Evaluation range start (Hz)"] == 10.0, numbers
@@ -5869,13 +5885,12 @@ def _check_ui_finder_main_action_runs_search():
     result_signature_source = inspect.getsource(
         _ui._finder_result_context_signature
     )
-    hero_source = inspect.getsource(_ui._render_bass_match_hero)
     run_source = inspect.getsource(_ui._run_find_driver_search)
     assert "_finder_pool_fingerprint" not in result_signature_source
     assert "candidate_digest" not in result_signature_source
     assert "height: .8rem !important;" in ui_source
-    assert hero_source.index("_render_finder_constraint_grid") < (
-        hero_source.index('key="finder_run_search_main"')
+    assert ui_source.index("_render_finder_constraint_grid(constraints)") < (
+        ui_source.index('key="finder_run_search_main"')
     ), "the full-width CTA must be the last row below the compact brief"
     assert run_source.index("progress = st.progress(0.0)") < (
         run_source.index("progress_text = st.empty()")
@@ -6048,6 +6063,7 @@ def _check_ui_finder_filters_survive_workspace_roundtrip_and_reset():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
     at.session_state["workspace_mode"] = "Bass Match"
+    at.session_state["finder_candidate_pool_expander"] = True
     at.run()
     assert not at.exception, at.exception
     assert at.dataframe, "the default Finder library must not be empty"
@@ -6388,6 +6404,7 @@ def _check_ui_finder_goal_inputs_always_active():
     )
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.session_state["workspace_mode"] = "Bass Match"
+    at.session_state["bass_match_sidebar_tab"] = "Performance filters"
     at.run()
     assert not at.exception, at.exception
     inputs = {n.label: n for n in at.sidebar.number_input}

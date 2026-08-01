@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.7.6 (2026-08-01)
+
+- **Sub-second workspace reruns**: Bass Match no longer creates its process
+  pool merely by being opened. Project actions, the 500-row Candidate pool,
+  inactive Bass Match sidebar panels and inactive Box Design analysis charts
+  now render lazily. Repeated AppTest workspace round trips fell from roughly
+  2.3 s (Box Design) / 1.7 s (Bass Match) to 0.76 s / 0.68 s on the same local
+  catalog and machine.
+- **Bounded reusable data**: embedded load/workspace styles and the small
+  catalog family/price summaries persist across Streamlit reruns with bounded
+  caches. Large 12k–14k filtered-name lists remain in the already warm catalog
+  module instead of being duplicated in Streamlit's serialized cache.
+- **Compact library filters**: provenance, brand, size and class now use four
+  multiselects with empty meaning `All`, replacing more than 400 individually
+  rendered checkbox widgets while preserving the existing project-state
+  format and workspace round trips.
+- **Validation**: the fresh active suite passes 133 tests with 0 failures and
+  0 skips, including a regression that opening or switching workspaces does
+  not start Finder workers or eagerly render hidden charts and tables.
+
 ## 0.7.5 (2026-08-01)
 
 - **Compact full-width Bass Match run**: `Run Bass Match` now spans the main

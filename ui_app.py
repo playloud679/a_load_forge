@@ -808,7 +808,7 @@ def _reflex_uses_passive_radiator(*, finder: bool = False) -> bool:
     return st.session_state.get(key, _RESONATOR_PORT) == _RESONATOR_PR
 
 
-@cache
+@st.cache_data(show_spinner=False)
 def _load_type_card_styles() -> str:
     """Return compact clickable-card CSS with the supplied diagrams embedded."""
     rules = [
@@ -951,7 +951,7 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
     return set(active_set)
 
 
-@cache
+@st.cache_data(show_spinner=False)
 def _workspace_tab_styles() -> str:
     """Return the two full-image workspace-tab styles with embedded assets."""
     rules = [
@@ -2450,10 +2450,15 @@ def _render_project_menu() -> None:
         if isinstance(active, dict)
         else "Project"
     )
-    with st.expander(
+    project_expander = st.expander(
         project_label,
         expanded=bool(st.session_state.get("_browser_project_menu_auto_open")),
-    ):
+        key="project_menu_expander",
+        on_change="rerun",
+    )
+    if not project_expander.open:
+        return
+    with project_expander:
         _render_browser_project_controls()
         if _CURRENT_SAAS_USER is not None:
             _render_saas_project_controls(_CURRENT_SAAS_USER)
@@ -2798,6 +2803,10 @@ def _preserve_design_state() -> None:
     for key in list(st.session_state):
         if _is_param_key(key):
             st.session_state[key] = st.session_state[key]
+    if "design_analysis_tab" in st.session_state:
+        st.session_state["design_analysis_tab"] = st.session_state[
+            "design_analysis_tab"
+        ]
 
 
 def _preserve_library_filters() -> None:
@@ -2812,14 +2821,15 @@ def _preserve_library_filters() -> None:
         "preset_price_enabled",
         "preset_max_price",
         "preset_price_currency",
+        "bass_match_sidebar_tab",
+        "finder_candidate_pool_expander",
     ):
         if key in st.session_state:
             st.session_state[key] = st.session_state[key]
-    # Checkbox groups are conditionally absent in Box Design. Preserve their
-    # widget state too, otherwise Streamlit removes it and the next Finder run
-    # can reinterpret an aggregate "All" selection as an explicit empty set.
+    # Compact multiselects are conditionally absent in Box Design and in the
+    # other Bass Match sidebar tabs, so keep their widget state warm too.
     for key in list(st.session_state):
-        if "__toggle_v4__" in str(key):
+        if "__select_v5" in str(key):
             st.session_state[key] = st.session_state[key]
 
 
@@ -3279,6 +3289,7 @@ def _normalized_preset_price(
     )
 
 
+@st.cache_data(show_spinner=False, ttl=5 * 60, max_entries=8)
 def _preset_price_currencies(names: list[str]) -> list[str]:
     return sorted(
         {
@@ -3289,6 +3300,7 @@ def _preset_price_currencies(names: list[str]) -> list[str]:
     )
 
 
+@st.cache_data(show_spinner=False, ttl=5 * 60, max_entries=16)
 def _preset_price_values(names: list[str], currency: str | None = None) -> list[float]:
     values = []
     rates = _current_exchange_rates()[0] if currency else None
@@ -3369,6 +3381,7 @@ def _driver_preset_size(name: str) -> str:
     return _size_bucket(piston_inches)
 
 
+@st.cache_data(show_spinner=False, ttl=5 * 60, max_entries=8)
 def _available_preset_families(names: list[str]) -> list[str]:
     present = {_driver_preset_family(name) for name in names}
     ordered = [family for family in _PRESET_FAMILY_ORDER if family == "All" or family in present]
@@ -3391,6 +3404,18 @@ def _sync_filter_group_all(all_key: str, item_keys: tuple[str, ...]) -> None:
     )
 
 
+def _sync_filter_multiselect(
+    filter_key: str,
+    widget_key: str,
+    synced_key: str,
+) -> None:
+    """Store a compact multiselect as the existing project filter format."""
+    selected = [str(value) for value in st.session_state.get(widget_key, [])]
+    aggregate = selected or ["All"]
+    st.session_state[filter_key] = aggregate
+    st.session_state[synced_key] = tuple(aggregate)
+
+
 def _render_finder_library_filters(all_preset_names: list[str]) -> None:
     """Render Finder library filters."""
     st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
@@ -3402,13 +3427,7 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
     )
     for key, label, options in filter_options:
         raw_current = st.session_state.get(key, ["All"])
-        current = raw_current
-        if isinstance(raw_current, str):
-            current = [raw_current]
-            # Backward compatibility for saved sessions/tests that still set
-            # the former single-select value directly.
-            for index, option in enumerate(options):
-                st.session_state[f"{key}__{index}"] = option in current
+        current = [raw_current] if isinstance(raw_current, str) else list(raw_current)
         if key == "preset_source_filter":
             current = [
                 _PRESET_SOURCE_FILTER_ALIASES.get(str(option), str(option))
@@ -3419,70 +3438,30 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
                 _PRESET_CLASS_FILTER_ALIASES.get(str(option), str(option))
                 for option in current
             ]
-        current = set(current or ["All"])
         concrete_options = [option for option in options if option != "All"]
-        all_key = f"{key}__toggle_v4__all"
-        item_keys = tuple(
-            f"{key}__toggle_v4__{index}"
-            for index, _option in enumerate(concrete_options)
+        selected = (
+            []
+            if not current or "All" in current or _PRESET_FILTER_NONE in current
+            else [option for option in current if option in concrete_options]
         )
-        initialized_key = f"{key}__toggle_v4__initialized"
-        emitted_key = f"{key}__toggle_v4__emitted"
-        requested_state = tuple(sorted(current))
-        missing_widget_state = (
-            all_key not in st.session_state
-            or any(item_key not in st.session_state for item_key in item_keys)
+        widget_key = f"{key}__select_v5"
+        synced_key = f"{widget_key}__aggregate"
+        requested_state = tuple(selected or ["All"])
+        if st.session_state.get(synced_key) != requested_state:
+            st.session_state[widget_key] = selected
+            st.session_state[synced_key] = requested_state
+        selected = st.multiselect(
+            label,
+            concrete_options,
+            key=widget_key,
+            placeholder="All",
+            on_change=_sync_filter_multiselect,
+            args=(key, widget_key, synced_key),
+            help="Leave empty to include every option.",
         )
-        if (
-            not st.session_state.get(initialized_key, False)
-            or st.session_state.get(emitted_key) != requested_state
-            or missing_widget_state
-        ):
-            select_all = "All" in current
-            select_none = _PRESET_FILTER_NONE in current
-            for option, item_key in zip(
-                concrete_options, item_keys, strict=True
-            ):
-                st.session_state[item_key] = (
-                    select_all or (not select_none and option in current)
-                )
-            st.session_state[all_key] = select_all or (
-                bool(concrete_options)
-                and all(
-                    bool(st.session_state[item_key])
-                    for item_key in item_keys
-                )
-            )
-            st.session_state[initialized_key] = True
-        with st.expander(label, expanded=False):
-            st.checkbox(
-                "All",
-                key=all_key,
-                on_change=_set_filter_group_from_all,
-                args=(all_key, item_keys),
-            )
-            checked = []
-            for option, item_key in zip(
-                concrete_options, item_keys, strict=True
-            ):
-                if st.checkbox(
-                    option,
-                    key=item_key,
-                    on_change=_sync_filter_group_all,
-                    args=(all_key, item_keys),
-                ):
-                    checked.append(option)
-            if st.session_state.get(all_key, False):
-                st.session_state[key] = ["All"]
-            elif checked:
-                st.session_state[key] = checked
-            else:
-                # Empty is intentionally different from All: it lets the user
-                # toggle the whole group off and then opt individual items in.
-                st.session_state[key] = [_PRESET_FILTER_NONE]
-            st.session_state[emitted_key] = tuple(
-                sorted(st.session_state[key])
-            )
+        aggregate = [str(value) for value in selected] or ["All"]
+        st.session_state[key] = aggregate
+        st.session_state[synced_key] = tuple(aggregate)
 
     preset_currencies = _preset_price_currencies(all_preset_names)
     if preset_currencies:
@@ -7091,12 +7070,6 @@ def _finder_search_blocked(filtered_preset_names: list[str]) -> bool:
 
 def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
     """Render the live Finder summary; the workspace owns the single CTA."""
-    try:
-        # Spin up and warm the match workers while the user is still browsing
-        # so Run match starts immediately instead of paying worker cold-start.
-        _finder_worker_pool(max(1, min(os.cpu_count() or 2, 8)))
-    except Exception:
-        logger.warning("Finder worker pool warm-up failed", exc_info=True)
     finder_load_types, only_infinite_baffle = _finder_load_context()
 
     finder_volume_l = float(_finder_value("finder_volume_l"))
@@ -7623,11 +7596,18 @@ def _render_candidate_pool(filtered_preset_names: list[str]) -> None:
         if selected_count
         else f"{len(filtered_preset_names):,} available"
     )
-    with st.expander(
+    pool_expander = st.expander(
         f"Candidate pool · {pool_suffix}",
         expanded=not filtered_preset_names,
-    ):
-        _render_driver_library(filtered_preset_names)
+        key="finder_candidate_pool_expander",
+        on_change="rerun",
+    )
+    # A collapsed expander normally still executes and serializes its entire
+    # body. The library can contain 500 visible rows, so only build/send it
+    # after the user explicitly opens the pool.
+    if pool_expander.open:
+        with pool_expander:
+            _render_driver_library(filtered_preset_names)
 
 
 def _queue_finder_design_selection(
@@ -8746,52 +8726,59 @@ with st.sidebar:
     
     if workspace_mode == "Bass Match":
         bm_tab1, bm_tab2, bm_tab3 = st.tabs(
-            ["Load type", "Performance filters", "Library filters"]
+            ["Load type", "Performance filters", "Library filters"],
+            key="bass_match_sidebar_tab",
+            on_change="rerun",
         )
         
-        with bm_tab1:
-            if "finder_load_types" not in st.session_state:
-                st.session_state["finder_load_types"] = [
-                    str(st.session_state.get("load_type", "DCCAV"))]
-            _finder_load_set = set(st.session_state["finder_load_types"])
-            _render_load_type_buttons(_finder_load_set, single_select=False)
-            st.caption("Toggle the loads you want to compare. At least one must stay active.")
-            _render_find_driver_target_sidebar()
+        if bm_tab1.open:
+            with bm_tab1:
+                if "finder_load_types" not in st.session_state:
+                    st.session_state["finder_load_types"] = [
+                        str(st.session_state.get("load_type", "DCCAV"))]
+                _finder_load_set = set(st.session_state["finder_load_types"])
+                _render_load_type_buttons(_finder_load_set, single_select=False)
+                st.caption("Toggle the loads you want to compare. At least one must stay active.")
+                _render_find_driver_target_sidebar()
+        elif bm_tab2.open:
+            with bm_tab2:
+                _render_find_driver_goal_sidebar()
 
-        with bm_tab2:
-            _render_find_driver_goal_sidebar()
-            
-        with bm_tab3:
-            all_preset_names = _dccav.driver_preset_names()
-            _render_finder_library_filters(all_preset_names)
-            filtered_preset_names = _filter_driver_preset_names(
-                all_preset_names,
-                source=st.session_state.get("preset_source_filter", "All"),
-                family=st.session_state.get("preset_family_filter", "All"),
-                size=st.session_state.get("preset_size_filter", "All"),
-                search=st.session_state.get("preset_search", ""),
-                max_price=(
-                    float(st.session_state["preset_max_price"])
-                    if st.session_state.get("preset_price_enabled", False) else None
-                ),
-                max_price_currency=(
-                    str(st.session_state["preset_price_currency"])
-                    if st.session_state.get("preset_price_enabled", False) else None
-                ),
-                selected=None,
-                driver_class=st.session_state.get("preset_class_filter", ["All"]),
-                max_mms_g=(
-                    float(st.session_state["finder_max_mms_g"])
-                    if float(st.session_state.get("finder_max_mms_g", 0.0)) > 0.0
-                    else None
-                ),
-                max_le_mh=(
-                    float(st.session_state["finder_max_le_mh"])
-                    if float(st.session_state.get("finder_max_le_mh", 0.0)) > 0.0
-                    else None
-                ),
-            )
-            _render_find_driver_actions(filtered_preset_names)
+        all_preset_names = _dccav.driver_preset_names()
+        if bm_tab3.open:
+            with bm_tab3:
+                _render_finder_library_filters(all_preset_names)
+
+        filtered_preset_names = _filter_driver_preset_names(
+            all_preset_names,
+            source=st.session_state.get("preset_source_filter", "All"),
+            family=st.session_state.get("preset_family_filter", "All"),
+            size=st.session_state.get("preset_size_filter", "All"),
+            search=st.session_state.get("preset_search", ""),
+            max_price=(
+                float(st.session_state["preset_max_price"])
+                if st.session_state.get("preset_price_enabled", False) else None
+            ),
+            max_price_currency=(
+                str(st.session_state["preset_price_currency"])
+                if st.session_state.get("preset_price_enabled", False) else None
+            ),
+            selected=None,
+            driver_class=st.session_state.get("preset_class_filter", ["All"]),
+            max_mms_g=(
+                float(st.session_state["finder_max_mms_g"])
+                if float(st.session_state.get("finder_max_mms_g", 0.0)) > 0.0
+                else None
+            ),
+            max_le_mh=(
+                float(st.session_state["finder_max_le_mh"])
+                if float(st.session_state.get("finder_max_le_mh", 0.0)) > 0.0
+                else None
+            ),
+        )
+        if bm_tab3.open:
+            with bm_tab3:
+                _render_find_driver_actions(filtered_preset_names)
 
     else:
         bd_tab1, bd_tab2, bd_tab3 = st.tabs(["Driver", "Load Selection", "Enclosure Parameters"])
@@ -9482,52 +9469,70 @@ try:
     tab_labels.append("Group Delay")
     if not is_infinite_baffle and not is_pr:
         tab_labels.append("Atlas")
-    design_tabs = dict(zip(tab_labels, st.tabs(tab_labels), strict=True))
+    design_tabs = dict(zip(
+        tab_labels,
+        st.tabs(
+            tab_labels,
+            key="design_analysis_tab",
+            on_change="rerun",
+        ),
+        strict=True,
+    ))
 
-    with design_tabs["Response"]:
-        _render_response_tab(
-            current_ts, load_type, box, result, thresholds, freq, sim_voltage, sim_series_r)
-    with design_tabs["Excursion"]:
-        st.subheader("Cone Excursion")
-        xmax_mm = float(st.session_state.get("driver_xmax_mm", 0.0))
-        st.altair_chart(
-            _plot_excursion(result, xmax_mm),
-            use_container_width=True,
-            key=f"excursion_chart_{chart_sig}",
-        )
-        if xmax_mm > 0.0:
-            st.caption(f"Dashed emerald line: driver Xmax = {xmax_mm:.1f} mm.")
-        else:
-            st.caption("Set the driver Xmax to draw the excursion limit line.")
-    with design_tabs["Impedance"]:
-        st.subheader("Electrical Impedance")
-        st.altair_chart(
-            _plot_impedance(result),
-            use_container_width=True,
-            key=f"impedance_chart_{chart_sig}",
-        )
-    if "Ports" in design_tabs:
+    # Stateful tabs expose which panel is open. Hidden Streamlit tabs execute
+    # by default, which previously rebuilt five charts and the Atlas controls
+    # after every unrelated click. Render only the selected analysis panel.
+    if design_tabs["Response"].open:
+        with design_tabs["Response"]:
+            _render_response_tab(
+                current_ts, load_type, box, result, thresholds, freq,
+                sim_voltage, sim_series_r,
+            )
+    elif design_tabs["Excursion"].open:
+        with design_tabs["Excursion"]:
+            st.subheader("Cone Excursion")
+            xmax_mm = float(st.session_state.get("driver_xmax_mm", 0.0))
+            st.altair_chart(
+                _plot_excursion(result, xmax_mm),
+                use_container_width=True,
+                key=f"excursion_chart_{chart_sig}",
+            )
+            if xmax_mm > 0.0:
+                st.caption(f"Dashed emerald line: driver Xmax = {xmax_mm:.1f} mm.")
+            else:
+                st.caption("Set the driver Xmax to draw the excursion limit line.")
+    elif design_tabs["Impedance"].open:
+        with design_tabs["Impedance"]:
+            st.subheader("Electrical Impedance")
+            st.altair_chart(
+                _plot_impedance(result),
+                use_container_width=True,
+                key=f"impedance_chart_{chart_sig}",
+            )
+    elif "Ports" in design_tabs and design_tabs["Ports"].open:
         with design_tabs["Ports"]:
             _render_ports_tab(
                 result, port_geometry_rows, load_type,
                 passive_radiator=is_pr,
             )
-    with design_tabs["Group Delay"]:
-        st.subheader("Group Delay")
-        gd_limit_ms = (
-            float(st.session_state.get("opt_max_gd_ms", 0.0))
-            if _alignment_uses_optimizer() else 0.0
-        )
-        st.altair_chart(
-            _plot_group_delay(result, gd_limit_ms),
-            use_container_width=True,
-            key=f"gd_chart_{chart_sig}",
-        )
-        if gd_limit_ms > 0.0:
-            st.caption(
-                f"Dashed emerald line: optimizer group-delay limit = {gd_limit_ms:.0f} ms."
+    elif design_tabs["Group Delay"].open:
+        with design_tabs["Group Delay"]:
+            st.subheader("Group Delay")
+            gd_limit_ms = (
+                float(st.session_state.get("opt_max_gd_ms", 0.0))
+                if _alignment_uses_optimizer() else 0.0
             )
-    if "Atlas" in design_tabs:
+            st.altair_chart(
+                _plot_group_delay(result, gd_limit_ms),
+                use_container_width=True,
+                key=f"gd_chart_{chart_sig}",
+            )
+            if gd_limit_ms > 0.0:
+                st.caption(
+                    "Dashed emerald line: optimizer group-delay limit = "
+                    f"{gd_limit_ms:.0f} ms."
+                )
+    elif "Atlas" in design_tabs and design_tabs["Atlas"].open:
         with design_tabs["Atlas"]:
             _render_atlas_tab(current_ts, load_type, box, sim_voltage)
 
