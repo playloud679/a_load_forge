@@ -23,6 +23,16 @@ interaction. One existing project opens automatically; when the browser holds
 several projects, the normal app opens immediately with **Project** expanded so
 one can be opened or **New project** can be chosen. The section renames, creates,
 switches, downloads and imports projects without a separate landing page.
+**New project** starts from the normal Load Forge defaults and does not inherit
+the previous project's driver, enclosure, Finder results, comparison curves,
+manual snapshots or plot settings. Any older browser-load request still in
+flight is discarded as part of the same reset.
+Routine autosaves are silent: changing a Box Design parameter causes only the
+calculation rerun, not another rerun for the browser-save acknowledgement. The
+last complete design stays readable while that calculation finishes; a failed
+browser save is still reported and retried after a later interaction. The
+Response graph keeps the same mounted chart and reserves a stable scrollbar
+gutter, so its width no longer pulses while parameters or project state update.
 
 ## Inputs
 
@@ -278,8 +288,11 @@ a three-step workflow:
    **All**. Turning **All** off clears the complete group, after which
    individual options can be enabled.
 
-**Run a Match** appears once as the primary action above the candidate-library
-table; it is not duplicated in the sidebar. Before a scan, the workspace is
+**Run Bass Match** appears once as a full-width primary action immediately
+below the compact brief; it is not duplicated in the sidebar. While a scan is
+running, a slim progress bar occupies the next row and its status stays in a
+small caption below the bar, minimizing permanent page height. Before a scan,
+the workspace is
 titled **Candidate library**; completed scans use
 **Recommended drivers** and show the active load, volume cap and objective.
 Missing values render as em dashes and columns with no data are omitted, while
@@ -303,12 +316,19 @@ result list; when none remain, Finder shows a dedicated no-match message.
 - **Optimization constraints** sets desired bass extension F3, allowed
   ripple, maximum excursion relative to each driver's Xmax, group delay and the
   clearly labelled evaluation-frequency range.
-- **Top results to show** and **Simulation resolution** control output size
-  and search cost. Every scan evaluates the entire filtered library; the
-  matching-preset count above **Run a Match** updates live as filters change.
+- **Simulation resolution** controls search precision and cost. Every scan
+  evaluates the entire filtered library and displays every usable ranked
+  result; there is no 20-result default or 200-result display ceiling. The
+  matching-preset count above **Run Bass Match** updates live as filters change.
   Every match shows a live per-candidate progress bar. Small scans advance on
   the serial path; scans above eight candidates use worker processes and keep
   the same progress indicator through every selected load.
+- The full-width **Open this design in Box Design** action sits immediately
+  below the brief: it is gray and disabled until a ranked row is selected,
+  then turns emerald and opens that design. Selecting 2–8 rows changes the same
+  action into the Pro multi-design comparison command. A single selected result
+  is also retained as the first editable design tab: returning to Bass Match and
+  opening another single result appends it instead of replacing the first one.
 
 A new Finder starts with a practical profile: 40 L, `Balanced`, 2.83 V, F3
 target 0 Hz (deepest available extension), 3 dB ripple, 1× Xmax, 30 ms group
@@ -316,7 +336,7 @@ delay, a 10-300 Hz evaluation range, 20 results and 240 simulation points.
 **Reset Finder defaults** restores this profile without changing the active
 design.
 
-**Run a Match** evaluates every preset currently admitted by the active library
+**Run Bass Match** evaluates every preset currently admitted by the active library
 filters. Each result can include class, price, purchase link and a
 normalized response sparkline. The compact result table omits brand, nominal
 size, F6, F10, ripple and maximum excursion; these values still participate in
@@ -403,7 +423,9 @@ Inside the `Response` tab:
   the known driver name through selection, deletion and renumbering. The
   Response pens are transversal: selecting **Total**, **Cone**,
   the current port/radiator trace, **MOL** or **MIL** applies that pen to every
-  comparison tab that supports it.
+  comparison tab that supports it. These tab actions reuse the last solver
+  result and saved alignment; only an actual driver, load, enclosure, voltage
+  or simulation-range change launches a new simulation.
 - **Pin response** stores the current simulation for a lightweight A/B overlay;
   hide/show/remove/clear actions appear only when pins exist. Manual pins are
   disabled while editable comparison tabs own the overlays.

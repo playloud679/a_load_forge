@@ -11,7 +11,7 @@ in sync in the same change.
 
 | Module/File | Doc | Role |
 |---|---|---|
-| `ui_app.py` | source only | Streamlit dashboard with a killer-feature-first Bass Match brief and single run action, a collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, recoverable target/performance/library filters, progressively disclosed T/S controls, contextual design tabs, compact plot markers, IndexedDB browser-project autosave, complete `.lfp` v2 Box Design/Bass Match backups and grouped exports. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
+| `ui_app.py` | source only | Streamlit dashboard with a killer-feature-first Bass Match brief and single run action, a selection-aware gray/emerald Box Design CTA directly below the brief, all usable ranked results without a display cap, a collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, recoverable target/performance/library filters, progressively disclosed T/S controls, contextual design tabs, compact plot markers, IndexedDB browser-project autosave, complete `.lfp` v2 Box Design/Bass Match backups and grouped exports. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
 | `src/__init__.py` | [__init__.md](__init__.md) | Public package exports for acoustic-load helpers |
 | `src/dccav.py` | [dccav.md](dccav.md) | DCCAV/reflex/sealed/infinite-baffle formulas, T/S derivation and lumped acoustic-circuit simulation |
 | `src/saas.py` | [saas.md](saas.md) | Optional OIDC identity normalization, tenant-safe plan entitlements and Firestore/in-memory project persistence |
@@ -73,6 +73,15 @@ uses a 44 px topology chip. The 420 px main response chart keeps its controls
 above the fold on desktop viewports; Box Design does not repeat the active-load
 heading already conveyed by its editable tab and sidebar. Visibility, duplicate
 and close are fixed-position compact icons inside every tab, never a separate action row.
+UI-only design actions reuse cached solver output and saved alignment state;
+they must not trigger a second rerun or restart the enclosure optimizer.
+Routine IndexedDB autosaves are fire-and-forget once the active project is in
+the sidebar index, so their acknowledgement and `updated_at` value cannot
+trigger another full-page rerun. Streamlit stale elements remain fully opaque
+during the one required calculation rerun, while autosave errors stay visible.
+Creating a new browser project clears every project-owned design, Finder,
+comparison, plot and pending-load value before normal defaults are seeded; no
+state from the formerly active project may cross that boundary.
 Compact titles preserve driver identity through tab selection/deletion and use
 the same deterministic colors as their chart curves. The Finder follows
 acoustic brief → `Run Bass Match` → ranked driver/load/box designs. Its raw
@@ -80,9 +89,11 @@ driver library is a secondary collapsible candidate pool used to narrow the
 search or open one known driver directly. In the default collapsed state, the
 brief exposes every enclosure, performance, driver, library and evaluation
 constraint in a dense responsive grid, including explicit Off/Any/N/A states;
-metrics and action share one row, completion is a transient toast, and ranked
+four metrics share one row, the full-width run action occupies the next compact
+row, completion is a transient toast, and ranked
 rows scroll within a fixed-height table. During matching, a prominent full-width
-progress bar temporarily occupies the row below the brief;
+slim progress bar temporarily occupies the row immediately below the action,
+with its small status caption beneath;
 optional/advanced sections are the only persistent controls allowed to extend
 the page. Constraint labels and values use readable dashboard sizing. The
 Finder has no `Desired F3` input: that former soft optimizer preference did not

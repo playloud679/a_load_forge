@@ -1579,6 +1579,10 @@ def _check_ui_editable_design_comparison_tabs():
     assert "position: relative !important;" in source
     assert "position: absolute !important;" in source
     assert "text-overflow: ellipsis !important;" in source
+    assert "on_click=_delete_design_comparison_tab" in source
+    assert "on_click=_toggle_design_tab_visible" in source
+    assert "@st.cache_data(show_spinner=False, max_entries=128)" in source
+    assert "_mark_auto_alignment_synced()" in source
 
     color_tabs = [
         {"id": "a", "color": "#10b981"},
@@ -1829,6 +1833,48 @@ def _check_ui_editable_design_comparison_tabs():
 test(
     "UI design comparison tabs keep every variant independently editable",
     _check_ui_editable_design_comparison_tabs,
+)
+
+
+def _check_ui_reuses_unchanged_design_simulation():
+    import ui_app as _ui
+
+    ts = _beyma_ts()
+    box = _dccav.SealedBox(vb_l=40.0)
+    revision = (1.0, 1.0)
+    calls = 0
+    original = _ui._dccav.simulate_sealed
+
+    def counted(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original(*args, **kwargs)
+
+    _ui._simulate_design_cached.clear()
+    _ui._dccav.simulate_sealed = counted
+    try:
+        first = _ui._simulate_design_cached(
+            revision, ts, "Sealed", box, 10.0, 500.0, 180, 2.83, 0.0
+        )
+        second = _ui._simulate_design_cached(
+            revision, ts, "Sealed", box, 10.0, 500.0, 180, 2.83, 0.0
+        )
+        assert calls == 1, "an interface-only rerun must reuse the solver result"
+        assert np.allclose(
+            first[0].spl_total_db, second[0].spl_total_db
+        )
+        _ui._simulate_design_cached(
+            revision, ts, "Sealed", box, 10.0, 500.0, 180, 4.0, 0.0
+        )
+        assert calls == 2, "a changed simulation input must invalidate the cache"
+    finally:
+        _ui._dccav.simulate_sealed = original
+        _ui._simulate_design_cached.clear()
+
+
+test(
+    "UI reuses unchanged design simulation across interface clicks",
+    _check_ui_reuses_unchanged_design_simulation,
 )
 
 
@@ -2089,6 +2135,25 @@ def _check_browser_project_startup_is_non_blocking():
         True, False, projects[:1]
     ) == "load"
     assert _ui._browser_project_startup_mode(True, False, projects) == "choose"
+    assert _ui._decode_browser_project_summaries("not-json") == []
+    assert _ui._decode_browser_project_summaries("{}") == []
+    assert _ui._browser_project_summary_is_current(
+        {"id": "lfp_one", "name": "One", "updated_at": "new"},
+        projects,
+    )
+    assert not _ui._browser_project_summary_is_current(
+        {"id": "lfp_one", "name": "Renamed"},
+        projects,
+    )
+
+    source = (ROOT / "ui_app.py").read_text()
+    assert 'command.op === "upsert" && command.quiet' in source
+    assert 'if (!cancelled && !command.quiet)' in source
+    assert '[data-stale="true"]' in source
+    assert "opacity: 1 !important;" in source
+    assert "scrollbar-gutter: stable;" in source
+    assert 'key="response_chart"' in source
+    assert 'key=f"response_chart_{chart_sig}"' not in source
 
     previous_initialized = st.session_state.get(
         "_browser_project_initialized"
@@ -2115,6 +2180,72 @@ def _check_browser_project_startup_is_non_blocking():
 test(
     "Browser project startup keeps multi-project choice in the sidebar",
     _check_browser_project_startup_is_non_blocking,
+)
+
+
+def _check_ui_new_browser_project_starts_clean():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["_browser_project_initialized"] = True
+    at.session_state["_browser_active_project"] = {
+        "id": "lfp_old",
+        "name": "Old project",
+        "created_at": "2026-08-01T00:00:00+00:00",
+        "updated_at": "2026-08-01T00:00:00+00:00",
+    }
+    at.session_state["_browser_project_store_ready"] = True
+    at.session_state["workspace_mode"] = "Bass Match"
+    at.session_state["driver_preset_name"] = "Custom"
+    at.session_state["driver_fs_hz"] = 77.0
+    at.session_state["driver_vas_l"] = 123.0
+    at.session_state["load_type"] = "Sealed"
+    at.session_state["box_strategy"] = "Manual"
+    at.session_state["sealed_vb_l"] = 87.0
+    at.session_state["plot_tolerance_pct"] = 37.0
+    at.session_state["atlas_enabled"] = True
+    at.session_state["cursor_auto_markers"] = []
+    at.session_state["pinned_responses"] = [{"label": "Old curve"}]
+    at.session_state["_manual_box_snapshots"] = {
+        "Sealed": {"sealed_vb_l": 87.0}
+    }
+    at.session_state["_browser_project_load_request"] = {
+        "project_id": "lfp_old",
+        "nonce": "stale-load",
+    }
+    at.run()
+    assert not at.exception, at.exception
+
+    old_id = str(at.session_state["_browser_active_project"]["id"])
+    new_button = next(
+        button for button in at.button
+        if button.key == "_browser_new_project"
+    )
+    new_button.click().run()
+    assert not at.exception, at.exception
+
+    assert str(at.session_state["_browser_active_project"]["id"]) != old_id
+    assert at.session_state["driver_preset_name"] == (
+        "KEF B110B article example"
+    )
+    assert abs(float(at.session_state["driver_fs_hz"]) - 48.14) < 1e-9
+    assert abs(float(at.session_state["driver_vas_l"]) - 11.52) < 1e-9
+    assert abs(float(at.session_state["sealed_vb_l"]) - 87.0) > 1e-9
+    assert float(at.session_state["plot_tolerance_pct"]) == 15.0
+    assert at.session_state["atlas_enabled"] is False
+    assert list(at.session_state["cursor_auto_markers"])
+    assert "pinned_responses" not in at.session_state
+    assert "_manual_box_snapshots" not in at.session_state
+    assert "_browser_project_load_request" not in at.session_state
+    assert (
+        "batch_results" not in at.session_state
+        or not at.session_state["batch_results"]
+    )
+
+
+test(
+    "UI New project starts without state from the previous project",
+    _check_ui_new_browser_project_starts_clean,
 )
 
 
@@ -2203,14 +2334,22 @@ def _check_ui_complete_lfp_restores_bass_match():
     assert len(at.session_state["batch_results"]) == 1
     assert at.session_state["batch_results"][0]["Driver"] == result_row["Driver"]
     assert at.session_state["batch_result_context"][0] == ("Sealed",)
-    assert any(
+    assert at.dataframe, "loading a project must show its last ranked candidate list"
+    restored_cta = next(
+        button for button in at.button
+        if button.key == "finder_open_selected_design"
+    )
+    assert restored_cta.label == "Open this design in Box Design"
+    assert restored_cta.disabled
+    assert restored_cta.proto.type == "secondary"
+    assert not any(
         item.value == "Your best matches" for item in at.subheader
-    ), "loading a project must show its last ranked candidate list"
+    )
 
     at.session_state["preset_search"] = "Beyma"
     at.run()
     assert not any(
-        item.value == "Your best matches" for item in at.subheader
+        button.key == "finder_open_selected_design" for button in at.button
     ), "editing restored Finder controls must still hide stale results"
 
 
@@ -5347,6 +5486,16 @@ def _check_ui_batch_pending_result_applies_before_widgets():
 
     import ui_app as _ui
 
+    for key in (
+        "design_comparison_tabs",
+        "design_comparison_active_id",
+        "design_comparison_loaded_id",
+        "pinned_responses",
+    ):
+        st.session_state.pop(key, None)
+    st.session_state["sim_f_min"] = 10.0
+    st.session_state["sim_f_max"] = 500.0
+    st.session_state["sim_points"] = 120
     st.session_state["batch_pending_result"] = {
         "load_type": "Bass reflex",
         "row": {
@@ -5361,9 +5510,39 @@ def _check_ui_batch_pending_result_applies_before_widgets():
     assert st.session_state["driver_preset_name"] == "KEF B110B article example"
     assert st.session_state["reflex_vb_l"] == 18.0
     assert st.session_state["reflex_fb_hz"] == 55.0
+    first_tabs = st.session_state["design_comparison_tabs"]
+    assert len(first_tabs) == 1, first_tabs
+    first_id = first_tabs[0]["id"]
+    first_parameters = dict(first_tabs[0]["parameters"])
+
+    st.session_state["batch_pending_result"] = {
+        "load_type": "Sealed",
+        "row": {
+            "Driver": "Beyma 12CMV2",
+            "Vb L": 31.0,
+        },
+        "voltage_v": 2.83,
+    }
+    _ui._apply_pending_batch_result()
+    tabs = st.session_state["design_comparison_tabs"]
+    assert len(tabs) == 2, tabs
+    assert tabs[0]["id"] == first_id
+    assert tabs[0]["parameters"] == first_parameters, (
+        "opening a second single Finder match must preserve the first design"
+    )
+    assert tabs[1]["parameters"]["load_type"] == "Sealed"
+    assert tabs[1]["parameters"]["driver_preset_name"] == "Beyma 12CMV2"
+    assert st.session_state["design_comparison_active_id"] == tabs[1]["id"]
+    assert st.session_state["workspace_mode"] == "Box Design"
+    assert st.session_state["driver_preset_name"] == "Beyma 12CMV2"
+    assert st.session_state["sealed_vb_l"] == 31.0
+    assert len(st.session_state["pinned_responses"]) == 1
 
 
-test("UI batch pending result applies before widget instantiation", _check_ui_batch_pending_result_applies_before_widgets)
+test(
+    "UI consecutive single Finder selections stay as editable Box Design tabs",
+    _check_ui_batch_pending_result_applies_before_widgets,
+)
 
 
 def _check_optimizer_respects_volume_cap():
@@ -5595,7 +5774,8 @@ def _check_ui_finder_starts_from_practical_defaults():
     assert numbers["Evaluation range start (Hz)"] == 10.0, numbers
     assert numbers["Evaluation range end (Hz)"] == 300.0, numbers
     assert "Drivers to evaluate" not in numbers, numbers
-    assert numbers["Top results to show"] == 20, numbers
+    assert "Top results to show" not in numbers, numbers
+    assert "finder_result_count" not in at.session_state
     assert numbers["Simulation resolution (points)"] == 240, numbers
     assert "Desired bass extension F3 (Hz, 0 = deepest)" not in numbers
     assert "finder_target_f3_hz" not in at.session_state
@@ -5636,7 +5816,6 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
         "Maximum Le (mH, 0 = off)",
         "Evaluation range start (Hz)",
         "Evaluation range end (Hz)",
-        "Top results to show",
         "Simulation resolution (points)",
     }
     sidebar_numbers = {control.label for control in at.sidebar.number_input}
@@ -5690,14 +5869,22 @@ def _check_ui_finder_main_action_runs_search():
     result_signature_source = inspect.getsource(
         _ui._finder_result_context_signature
     )
+    hero_source = inspect.getsource(_ui._render_bass_match_hero)
+    run_source = inspect.getsource(_ui._run_find_driver_search)
     assert "_finder_pool_fingerprint" not in result_signature_source
     assert "candidate_digest" not in result_signature_source
-    assert "height: 1.55rem !important;" in ui_source
+    assert "height: .8rem !important;" in ui_source
+    assert hero_source.index("_render_finder_constraint_grid") < (
+        hero_source.index('key="finder_run_search_main"')
+    ), "the full-width CTA must be the last row below the compact brief"
+    assert run_source.index("progress = st.progress(0.0)") < (
+        run_source.index("progress_text = st.empty()")
+    ), "the progress bar must render immediately below the CTA"
     assert (
         "\n    if run_requested:\n"
         "        _run_find_driver_search(match_preset_names, filtered_preset_names)\n"
     ) in ui_source, (
-        "the ranking must start outside the CTA column so progress is full-width"
+        "the ranking must start below the full-width CTA"
     )
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
@@ -5709,6 +5896,7 @@ def _check_ui_finder_main_action_runs_search():
     at.session_state["finder_points"] = 80
     at.run()
     assert not at.exception, at.exception
+    assert "finder_result_count" not in at.session_state
 
     assert not at.title, "the compact Finder must not spend a row on a page title"
     assert any(
@@ -5773,8 +5961,15 @@ def _check_ui_finder_main_action_runs_search():
     assert "_finder_match_completion" not in at.session_state, (
         "the one-shot completion message must be consumed after the rerun"
     )
-    assert "Your best matches" in [sub.value for sub in at.subheader]
+    assert "Your best matches" not in [sub.value for sub in at.subheader]
     assert at.dataframe, "ranked rows must appear in the main workspace"
+    result_cta = next(
+        button for button in at.button
+        if button.key == "finder_open_selected_design"
+    )
+    assert result_cta.label == "Open this design in Box Design"
+    assert result_cta.disabled
+    assert result_cta.proto.type == "secondary"
     assert len(at.session_state["batch_result_context"]) == 17
     assert (
         at.session_state["batch_result_context"][16]
@@ -5790,14 +5985,21 @@ def _check_ui_finder_main_action_runs_search():
     }
     at.run()
     assert not at.exception, at.exception
-    assert "Your best matches" in [sub.value for sub in at.subheader], (
-        "selecting a ranked result must not invalidate the completed Bass Match"
+    selected_cta = next(
+        button for button in at.button
+        if button.key == "finder_open_selected_design"
     )
+    assert selected_cta.label == "Open this design in Box Design"
+    assert not selected_cta.disabled
+    assert selected_cta.proto.type == "primary"
+    assert "Your best matches" not in [sub.value for sub in at.subheader]
 
     at.session_state["preset_size_filter"] = ["10 in"]
     at.run()
     assert not at.exception, at.exception
-    assert "Your best matches" not in [sub.value for sub in at.subheader]
+    assert not any(
+        button.key == "finder_open_selected_design" for button in at.button
+    )
     assert any(
         "Bass Match inputs changed" in item.value
         for item in at.info
@@ -6538,6 +6740,7 @@ def _check_ui_finder_value_ranking():
     at.session_state["finder_load_types"] = ["Sealed"]
     # Match the live defaults version so the seeded results survive migration.
     at.session_state["_finder_defaults_version"] = _ui._FINDER_DEFAULTS_VERSION
+    at.session_state["finder_result_count"] = 1
     at.session_state["batch_results"] = seeded
     at.session_state["batch_result_context"] = (
         ("Sealed",), 40.0, 2, False, "Balanced", "Port", 0.0,
@@ -6550,6 +6753,10 @@ def _check_ui_finder_value_ranking():
         dataframe.value
         for dataframe in at.dataframe
         if "F3 Hz" in dataframe.value.columns
+    )
+    assert len(results_frame) == len(seeded), (
+        "Finder must show every usable result even when a legacy session "
+        "contains an old display cap"
     )
     assert {
         "F6 Hz",
@@ -6802,7 +7009,6 @@ def _check_ui_finder_comprehensive_ux_regression():
     # -- 4. Single CTA "Run Bass Match" --------------------------------------
     at.session_state["preset_search"] = "KEF B110B article example"
     at.session_state["finder_volume_l"] = 40.0
-    at.session_state["finder_result_count"] = 5
     at.session_state["finder_points"] = 80
     at.run()
     assert not at.exception, at.exception
@@ -6841,7 +7047,13 @@ def _check_ui_finder_comprehensive_ux_regression():
     assert not at.exception, at.exception
     assert at.session_state["batch_results"], "search must produce results"
     result_subheaders = [s.value for s in at.subheader]
-    assert "Your best matches" in result_subheaders
+    assert "Your best matches" not in result_subheaders
+    open_cta = next(
+        button for button in at.button
+        if button.key == "finder_open_selected_design"
+    )
+    assert open_cta.disabled
+    assert open_cta.proto.type == "secondary"
     caps_after = [c.value for c in at.caption]
     assert any("usable candidates" in c for c in caps_after), caps_after
     assert at.dataframe, "ranked table must render"

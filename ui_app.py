@@ -201,7 +201,7 @@ export default function(component) {
             transaction.objectStore(SUMMARY_STORE_NAME).put(summary)
           );
         }
-        if (!cancelled) {
+        if (!cancelled && !command.quiet) {
           setIfChanged("ack", String(command.nonce || ""));
         }
       } else if (command && command.op === "load" && command.project_id) {
@@ -216,6 +216,13 @@ export default function(component) {
           );
           setIfChanged("load_ack", String(command.nonce || ""));
         }
+      }
+      // Routine autosaves are deliberately fire-and-forget. Publishing an
+      // ack or the new updated_at summary back to Python would make a normal
+      // design edit trigger a second full Streamlit rerun.
+      if (command && command.op === "upsert" && command.quiet) {
+        database.close();
+        return;
       }
       const summaries = await requestResult(
         database.transaction(SUMMARY_STORE_NAME, "readonly")
@@ -449,6 +456,13 @@ st.markdown(
     header[data-testid="stHeader"] {
         display: none !important;
     }
+    /* Keep the last complete design readable during the one required rerun.
+       Streamlit otherwise fades every stale element, which looks like the
+       whole application has gone dark even for a sub-second calculation. */
+    [data-stale="true"] {
+        filter: none !important;
+        opacity: 1 !important;
+    }
     section[data-testid="stSidebar"],
     section[data-testid="stSidebar"] > div,
     section[data-testid="stSidebar"] [data-testid="stSidebarContent"],
@@ -457,6 +471,12 @@ st.markdown(
     }
     html {
         font-size: 85% !important;
+        scrollbar-gutter: stable;
+    }
+    body,
+    [data-testid="stAppViewContainer"],
+    section[data-testid="stMain"] {
+        scrollbar-gutter: stable;
     }
     @media (max-width: 768px) {
         section[data-testid="stSidebar"],
@@ -643,16 +663,6 @@ st.markdown(
         min-height: 3.25rem !important;
         padding: .22rem .42rem !important;
     }
-    .st-key-bass_match_brief .st-key-finder_run_search_main
-    div[data-testid="stButton"] button {
-        min-height: 3.25rem !important;
-        padding-inline: .6rem !important;
-    }
-    .st-key-bass_match_brief .st-key-finder_run_search_main
-    div[data-testid="stButton"] button p {
-        font-size: .98rem !important;
-        white-space: nowrap;
-    }
     .st-key-bass_match_brief [data-testid="stCaptionContainer"] {
         margin: 0 !important;
     }
@@ -690,18 +700,21 @@ st.markdown(
     .st-key-finder_match_progress [role="progressbar"],
     .st-key-finder_match_progress [data-testid="stProgressBar"] > div {
         border-radius: .6rem !important;
-        height: 1.55rem !important;
-        min-height: 1.55rem !important;
+        height: .8rem !important;
+        min-height: .8rem !important;
     }
     .st-key-finder_match_progress [role="progressbar"] > div {
         border-radius: inherit !important;
         height: 100% !important;
     }
+    .st-key-finder_match_progress > div[data-testid="stVerticalBlock"] {
+        gap: .12rem !important;
+    }
     .st-key-finder_match_progress [data-testid="stCaptionContainer"] {
         color: rgba(255,255,255,.86) !important;
-        font-size: .9rem !important;
+        font-size: .78rem !important;
         font-weight: 700 !important;
-        margin-bottom: .2rem !important;
+        margin: 0 !important;
     }
     .stMetric { border: 1px solid rgba(127,127,127,.22); padding: .3rem .5rem !important; }
     .stMetric label { font-size: 0.72rem !important; margin-bottom: -0.2rem !important; }
@@ -888,6 +901,26 @@ def _load_type_card_styles() -> str:
     return "".join(rules)
 
 
+def _select_load_type_card(load_type: str, single_select: bool) -> None:
+    """Apply a load-card click before Streamlit starts the next script run."""
+    if single_select:
+        if st.session_state.get("load_type") == load_type:
+            return
+        st.session_state["load_type"] = load_type
+        _on_load_type_change()
+        return
+    selected = set(st.session_state.get("finder_load_types", []))
+    if load_type in selected:
+        selected.discard(load_type)
+    else:
+        selected.add(load_type)
+    if not selected:
+        selected = {"Sealed"}
+    st.session_state["finder_load_types"] = sorted(
+        selected, key=lambda item: _ALL_LOAD_TYPES.index(item)
+    )
+
+
 def _render_load_type_buttons(active_set: set[str], single_select: bool = False) -> set[str]:
     """Grid of compact load diagrams that are themselves clickable buttons.
 
@@ -895,7 +928,6 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
     In multi-select mode each click toggles the load.
     Returns the (possibly modified) set.
     """
-    modified = set(active_set)
     st.markdown(_load_type_card_styles(), unsafe_allow_html=True)
     for row_start, row_end in ((0, 3), (3, len(_ALL_LOAD_TYPES))):
         row_load_types = _ALL_LOAD_TYPES[row_start:row_end]
@@ -904,25 +936,19 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
             with row_cols[offset]:
                 with st.container(key=f"load_card_{_LOAD_TYPE_SLUGS[lt]}"):
                     active = lt in active_set
-                    clicked = st.button(
+                    st.button(
                         _LOAD_TYPE_SHORT[lt],
                         key=f"load_btn_{lt}",
                         type="primary" if active else "secondary",
                         use_container_width=True,
+                        on_click=_select_load_type_card,
+                        args=(lt, single_select),
                     )
                     st.markdown(
                         f'<div class="load-card-label">{_LOAD_TYPE_SHORT[lt]}</div>',
                         unsafe_allow_html=True,
                     )
-                    if clicked:
-                        if single_select:
-                            modified = {lt}
-                        else:
-                            if lt in modified:
-                                modified.discard(lt)
-                            else:
-                                modified.add(lt)
-    return modified
+    return set(active_set)
 
 
 @cache
@@ -1178,7 +1204,7 @@ _FINDER_CTA_LABEL = "Run Bass Match"
 _FINDER_RANKING_VERSION = 7
 _FINDER_CONTEXT_FILTERED_POOL_VERSION = "user-inputs-v2"
 _FINDER_SPL_PREFILTER_HEADROOM_DB = 6.0
-_FINDER_DEFAULTS_VERSION = 8
+_FINDER_DEFAULTS_VERSION = 9
 _FINDER_DEFAULTS = {
     "finder_rank_mode": _FINDER_RANK_F3,
     "finder_volume_l": 40.0,
@@ -1193,7 +1219,6 @@ _FINDER_DEFAULTS = {
     "finder_max_le_mh": 0.0,
     "finder_f_min": 10.0,
     "finder_f_max": 300.0,
-    "finder_result_count": 20,
     "finder_points": 240,
     "finder_reflex_resonator_type": _RESONATOR_PORT,
     "finder_driver_configuration": "Single driver",
@@ -1355,6 +1380,25 @@ _BASS_MATCH_PROJECT_RESULT_KEYS = (
     "batch_search_completed",
     "finder_last_run_stats",
 )
+_PROJECT_TRANSIENT_STATE_PREFIXES = (
+    "plot_",
+    "cursor_",
+    "atlas_",
+)
+_PROJECT_TRANSIENT_STATE_KEYS = {
+    "pinned_response",
+    "pinned_responses",
+    "standalone_design_visible",
+    "_manual_box_snapshots",
+    "_auto_align_signature",
+    "_auto_box_error",
+    "_opt_last_context",
+    "_previous_box_strategy",
+    "_response_defaults_version",
+    "_browser_project_pending_results",
+    "_browser_project_load_request",
+    "_browser_project_load_after_save",
+}
 _LFP_FORMAT_VERSION = 2
 
 
@@ -1482,6 +1526,70 @@ def _lfp_project_content_signature(
     return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
+def _snapshot_revision(snapshot: dict) -> str:
+    """Return a compact persistent identity for a potentially large snapshot."""
+    revision = str(snapshot.get("_revision", ""))
+    if not revision:
+        revision = uuid.uuid4().hex
+        snapshot["_revision"] = revision
+    return revision
+
+
+def _browser_project_state_signature(
+    project: dict,
+    results_signature: str,
+) -> str:
+    """Hash lightweight state without serializing every stored curve per click."""
+    project_meta = dict(project)
+    project_meta.pop("updated_at", None)
+    state = {}
+    for key in _BASS_MATCH_PROJECT_STATE_KEYS:
+        if key not in st.session_state:
+            continue
+        value = st.session_state[key]
+        if key == "design_comparison_tabs" and isinstance(value, list):
+            state[key] = [
+                {
+                    "id": str(tab.get("id", "")),
+                    "label": str(tab.get("label", "")),
+                    "color": str(tab.get("color", "")),
+                    "visible": bool(tab.get("visible", True)),
+                    "driver_preset_name": str(tab.get(
+                        "driver_preset_name", ""
+                    )),
+                    "load_type": str(tab.get("load_type", "")),
+                    "parameters": _json_safe(tab.get("parameters", {})),
+                    "simulation_signature": str(tab.get(
+                        "simulation_signature", ""
+                    )),
+                    "snapshot_revision": (
+                        _snapshot_revision(tab["snapshot"])
+                        if isinstance(tab.get("snapshot"), dict)
+                        else ""
+                    ),
+                }
+                for tab in value
+                if isinstance(tab, dict)
+            ]
+        else:
+            state[key] = _json_safe(value)
+    comparable = {
+        "version": _VERSION,
+        "format": _LFP_FORMAT_VERSION,
+        "project": _json_safe(project_meta),
+        "parameters": _json_safe(_collect_params()),
+        "bass_match_state": state,
+        "results_signature": str(results_signature),
+    }
+    encoded = json.dumps(
+        comparable,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    )
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
 def _bass_match_results_signature() -> str:
     """Hash heavy Finder output once, then reuse it across UI reruns."""
     cached = st.session_state.get("_bass_match_results_signature")
@@ -1590,12 +1698,14 @@ def _apply_lfp_project(payload: dict) -> int:
 
 
 def _clear_active_project_state() -> None:
-    """Clear saved design/Finder values so normal defaults seed a new project."""
+    """Clear all project-owned values so normal defaults seed a clean project."""
     for key in list(st.session_state):
         if (
             _is_param_key(key)
             or key in _BASS_MATCH_PROJECT_STATE_KEYS
             or key in _BASS_MATCH_PROJECT_RESULT_KEYS
+            or key in _PROJECT_TRANSIENT_STATE_KEYS
+            or str(key).startswith(_PROJECT_TRANSIENT_STATE_PREFIXES)
             or "__toggle_v4__" in str(key)
         ):
             st.session_state.pop(key, None)
@@ -1621,10 +1731,9 @@ def _activate_browser_project(
         int(st.session_state.get("_browser_project_name_revision", 0)) + 1
     )
     results_signature = _bass_match_results_signature()
-    light_payload = _build_lfp_project(project, include_results=False)
-    content_signature = _lfp_project_content_signature(
-        light_payload,
-        results_signature=results_signature,
+    content_signature = _browser_project_state_signature(
+        project,
+        results_signature,
     )
     st.session_state["_browser_project_content_signature"] = content_signature
     st.session_state["_browser_project_saved_results_signature"] = (
@@ -1650,6 +1759,7 @@ def _start_new_browser_project() -> None:
     st.session_state.pop("_browser_project_content_signature", None)
     st.session_state.pop("_browser_project_last_ack", None)
     st.session_state.pop("_browser_project_saved_results_signature", None)
+    st.session_state.pop("_browser_project_load_request", None)
     st.session_state.pop("_browser_project_load_after_save", None)
     st.session_state.pop("_browser_project_menu_auto_open", None)
 
@@ -1673,8 +1783,67 @@ def _request_browser_project_load(project_id: str) -> None:
     }
 
 
+def _decode_browser_project_summaries(value) -> list[dict]:
+    """Decode the small IndexedDB project index exposed by the component."""
+    try:
+        projects = json.loads(str(value or "[]"))
+    except (TypeError, ValueError):
+        projects = []
+    if not isinstance(projects, list):
+        return []
+    return [item for item in projects if isinstance(item, dict)]
+
+
+def _browser_project_summary_is_current(
+    active: dict,
+    projects: list[dict],
+) -> bool:
+    """Return whether an autosave can avoid publishing component state."""
+    active_id = str(active.get("id", ""))
+    active_name = str(active.get("name", "Untitled project"))
+    return any(
+        str(item.get("id", "")) == active_id
+        and str(item.get("name", "Untitled project")) == active_name
+        for item in projects
+    )
+
+
+def _acknowledge_browser_project_save(ack: str) -> None:
+    """Advance Python autosave state after an ack or a quiet queued write."""
+    if not ack:
+        return
+    st.session_state["_browser_project_last_ack"] = ack
+    pending_results = st.session_state.get("_browser_project_pending_results")
+    if (
+        isinstance(pending_results, dict)
+        and str(pending_results.get("nonce", "")) == ack
+    ):
+        saved_signature = str(pending_results.get("signature", ""))
+        if saved_signature:
+            st.session_state["_browser_project_saved_results_signature"] = (
+                saved_signature
+            )
+        st.session_state.pop("_browser_project_pending_results", None)
+
+
 def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
     """Mount the browser database bridge and queue the current autosave."""
+    component_state = st.session_state.get("_browser_project_store", {})
+    if not isinstance(component_state, dict):
+        component_state = {}
+    bridge_state = {
+        key: component_state.get(key, default)
+        for key, default in {
+            "ready": False,
+            "summaries_json": "[]",
+            "ack": "",
+            "load_ack": "",
+            "error": "",
+        }.items()
+    }
+    known_projects = _decode_browser_project_summaries(
+        bridge_state["summaries_json"]
+    )
     command = None
     load_request = st.session_state.get("_browser_project_load_request")
     if isinstance(load_request, dict):
@@ -1697,29 +1866,43 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
         if edited_name is not None:
             active["name"] = str(edited_name).strip() or "Untitled project"
         results_signature = _bass_match_results_signature()
-        payload = _build_lfp_project(active, include_results=False)
-        content_signature = _lfp_project_content_signature(
-            payload,
-            results_signature=results_signature,
+        content_signature = _browser_project_state_signature(
+            active,
+            results_signature,
         )
+        payload = None
         if content_signature != st.session_state.get(
             "_browser_project_content_signature"
         ):
             active["updated_at"] = datetime.now(UTC).isoformat()
-            payload["project"]["updated_at"] = active["updated_at"]
             st.session_state["_browser_project_content_signature"] = content_signature
         if content_signature != st.session_state.get("_browser_project_last_ack"):
             include_results = results_signature != st.session_state.get(
                 "_browser_project_saved_results_signature"
             )
+            payload = _build_lfp_project(
+                active,
+                include_results=include_results,
+            )
             if include_results:
-                payload = _build_lfp_project(active, include_results=True)
                 _cache_lfp_download(payload, content_signature)
             command = {
                 "op": "upsert",
                 "nonce": content_signature,
                 "project": payload,
                 "replace": include_results,
+                # Once the project is present in the sidebar index, ordinary
+                # parameter edits need no state response from JavaScript.
+                # This prevents the autosave ack/updated_at from causing a
+                # second full-page rerun after the calculation already ended.
+                "quiet": (
+                    not queued_load_id
+                    and not str(bridge_state.get("error", ""))
+                    and _browser_project_summary_is_current(
+                        active,
+                        known_projects,
+                    )
+                ),
             }
             st.session_state["_browser_project_pending_results"] = {
                 "nonce": content_signature,
@@ -1738,19 +1921,6 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
                 "nonce": str(load_request["nonce"]),
             }
 
-    component_state = st.session_state.get("_browser_project_store", {})
-    if not isinstance(component_state, dict):
-        component_state = {}
-    bridge_state = {
-        key: component_state.get(key, default)
-        for key, default in {
-            "ready": False,
-            "summaries_json": "[]",
-            "ack": "",
-            "load_ack": "",
-            "error": "",
-        }.items()
-    }
     if isinstance(load_request, dict):
         bridge_state["loaded_project_json"] = component_state.get(
             "loaded_project_json", ""
@@ -1774,26 +1944,22 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
         on_loaded_project_json_change=lambda: None,
         on_error_change=lambda: None,
     )
-    try:
-        projects = json.loads(str(result.summaries_json or "[]"))
-    except (AttributeError, TypeError, ValueError):
-        projects = []
-    if not isinstance(projects, list):
-        projects = []
+    projects = _decode_browser_project_summaries(
+        getattr(result, "summaries_json", "[]")
+    )
+    if (
+        isinstance(command, dict)
+        and command.get("op") == "upsert"
+        and command.get("quiet")
+    ):
+        # Quiet writes intentionally do not publish component state and hence
+        # cannot trigger a Streamlit rerun. Treat the queued IndexedDB write as
+        # accepted; a JavaScript failure still publishes `error` so a later
+        # interaction can retry it.
+        _acknowledge_browser_project_save(str(command.get("nonce", "")))
     ack = str(getattr(result, "ack", "") or "")
+    _acknowledge_browser_project_save(ack)
     if ack:
-        st.session_state["_browser_project_last_ack"] = ack
-        pending_results = st.session_state.get("_browser_project_pending_results")
-        if (
-            isinstance(pending_results, dict)
-            and str(pending_results.get("nonce", "")) == ack
-        ):
-            saved_signature = str(pending_results.get("signature", ""))
-            if saved_signature:
-                st.session_state["_browser_project_saved_results_signature"] = (
-                    saved_signature
-                )
-            st.session_state.pop("_browser_project_pending_results", None)
         queued_load_id = str(
             st.session_state.get("_browser_project_load_after_save", "")
         )
@@ -1826,7 +1992,7 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
             loaded_project = None
     return (
         bool(getattr(result, "ready", False)),
-        [item for item in projects if isinstance(item, dict)],
+        projects,
         str(getattr(result, "error", "") or ""),
         loaded_project,
     )
@@ -1853,6 +2019,10 @@ def _initialize_browser_project_store() -> None:
     st.session_state["_browser_project_store_ready"] = ready
     st.session_state["_browser_project_summaries"] = projects
     if error:
+        # A quiet write reports only failures. Make the next user interaction
+        # retry both design state and any heavy Finder results.
+        st.session_state.pop("_browser_project_last_ack", None)
+        st.session_state.pop("_browser_project_saved_results_signature", None)
         st.warning(
             "Browser autosave is unavailable in this session. "
             f"Download an .lfp backup before leaving. ({error})"
@@ -2393,6 +2563,20 @@ def _chart_signature() -> str:
     for key, value in st.session_state.items():
         if not any(key.startswith(prefix) for prefix in prefixes):
             continue
+        if key == "pinned_response" and "pinned_responses" in st.session_state:
+            continue
+        if key == "pinned_responses" and isinstance(value, list):
+            data[key] = [
+                (
+                    _snapshot_revision(pin),
+                    str(pin.get("label", "")),
+                    str(pin.get("color", "")),
+                    bool(pin.get("visible", True)),
+                )
+                for pin in value
+                if isinstance(pin, dict)
+            ]
+            continue
         # Zooming must update the mounted chart in place: remounting inside the
         # response fragment makes Vega measure a collapsed container width.
         if key == "plot_response_window_hz":
@@ -2576,12 +2760,16 @@ def _ensure_finder_defaults() -> None:
     # Desired F3 was retired from Bass Match: it behaved as a soft optimizer
     # preference rather than a reliable ranking constraint.
     st.session_state.pop("finder_target_f3_hz", None)
+    # Every usable ranked candidate is now shown; old 1–200 display caps must
+    # not survive in live sessions or restored projects.
+    st.session_state.pop("finder_result_count", None)
     if st.session_state.get("_finder_defaults_version") != _FINDER_DEFAULTS_VERSION:
         # Retired v3 widgets: the scan now always covers the whole filtered
         # library and every candidate goes through the optimizer.
         for key in (
             *_FINDER_DEFAULTS,
             "finder_candidate_limit",
+            "finder_result_count",
             "finder_use_optimizer",
             "finder_target_f3_hz",
         ):
@@ -3516,6 +3704,61 @@ def _sync_auto_alignment_if_needed():
         pass
 
 
+def _initialize_alignment_defaults() -> None:
+    """Seed enclosure fields once instead of recomputing five alignments per click."""
+    default_groups = (
+        (
+            ("box_vh_l", "vh_l"), ("box_fh_hz", "fh_hz"),
+            ("box_vl_l", "vl_l"), ("box_fl_hz", "fl_hz"),
+            _dccav.suggest_alignment,
+            _dccav.DccavAlignment(3.1, 162.0, 6.25, 62.0, 51.5),
+        ),
+        (
+            ("reflex_vb_l", "vb_l"), ("reflex_fb_hz", "fb_hz"),
+            _dccav.suggest_reflex_alignment,
+            _dccav.ReflexAlignment(11.52, 48.14),
+        ),
+        (
+            ("bandpass4_vs_l", "vs_l"), ("bandpass4_vp_l", "vp_l"),
+            ("bandpass4_fp_hz", "fp_hz"),
+            _dccav.suggest_bandpass4_alignment,
+            _dccav.Bandpass4Alignment(4.09, 11.52, 94.0),
+        ),
+        (
+            ("bandpass6_vr_l", "vr_l"), ("bandpass6_fr_hz", "fr_hz"),
+            ("bandpass6_vp_l", "vp_l"), ("bandpass6_fp_hz", "fp_hz"),
+            _dccav.suggest_bandpass6_alignment,
+            _dccav.Bandpass6Alignment(4.09, 60.0, 11.52, 94.0),
+        ),
+        (
+            ("sealed_vb_l", "vb_l"),
+            _dccav.suggest_sealed_alignment,
+            _dccav.SealedAlignment(11.52, 68.1, 0.512),
+        ),
+    )
+    if all(
+        state_key in st.session_state
+        for group in default_groups
+        for item in group[:-2]
+        for state_key in (item[0],)
+    ):
+        return
+    try:
+        driver = _driver_from_state()
+    except Exception:
+        driver = None
+    for group in default_groups:
+        fields, suggest, fallback = group[:-2], group[-2], group[-1]
+        if all(state_key in st.session_state for state_key, _attr in fields):
+            continue
+        try:
+            alignment = suggest(driver) if driver is not None else fallback
+        except Exception:
+            alignment = fallback
+        for state_key, attr in fields:
+            _default(state_key, float(getattr(alignment, attr)))
+
+
 def _on_driver_preset_change():
     preset_name = st.session_state.get("driver_preset_name", "Custom")
     if preset_name == "Custom":
@@ -4310,6 +4553,7 @@ def _pinned_responses() -> list[dict]:
     valid_pins = [pin for pin in pins if isinstance(pin, dict)]
     for pin in valid_pins:
         pin.setdefault("visible", True)
+        _snapshot_revision(pin)
     return valid_pins
 
 
@@ -4358,6 +4602,7 @@ def _pinned_response_snapshot(
     else:
         port_traces = {}
     snapshot = {
+        "_revision": uuid.uuid4().hex,
         "label": label or _pin_label(load_type, box),
         "load_type": load_type,
         "visible": True,
@@ -4379,6 +4624,7 @@ def _update_active_design_comparison(
     load_type: str,
     box,
     result: _dccav.SimulationResult,
+    simulation_signature: str | None = None,
 ) -> list[dict]:
     """Persist the active editable tab and expose every inactive tab as overlays."""
     tabs = _design_comparison_tabs()
@@ -4396,13 +4642,14 @@ def _update_active_design_comparison(
         stable_preset = str(tab.get("driver_preset_name", ""))
         display_preset = str(tab.get("display_driver_name", ""))
         parameters = _json_safe(_collect_params())
+        driver_signature = _design_driver_parameter_signature(parameters)
         if current_preset != "Custom":
             stable_preset = current_preset
             display_preset = current_preset
-        elif not _design_tab_parameters_match_preset(
-            parameters, stable_preset
-        ):
+            tab["preset_recovery_signature"] = driver_signature
+        elif tab.get("preset_recovery_signature") != driver_signature:
             recovered_preset = _recover_design_tab_preset(parameters)
+            tab["preset_recovery_signature"] = driver_signature
             if recovered_preset != "Custom":
                 stable_preset = recovered_preset
                 if not display_preset or display_preset == "Custom":
@@ -4420,14 +4667,26 @@ def _update_active_design_comparison(
             preset=tab["display_driver_name"],
             config=str(parameters.get("driver_config", "Single driver")),
         )
-        tab["snapshot"] = _pinned_response_snapshot(
-            load_type,
-            box,
-            result,
-            label=str(tab.get("label", "Editable design")),
-            color=str(tab.get("color", "")) or None,
+        snapshot = tab.get("snapshot")
+        snapshot_is_current = (
+            simulation_signature is not None
+            and tab.get("simulation_signature") == simulation_signature
+            and isinstance(snapshot, dict)
         )
-        tab["snapshot"]["visible"] = tab["visible"]
+        if not snapshot_is_current:
+            snapshot = _pinned_response_snapshot(
+                load_type,
+                box,
+                result,
+                label=str(tab.get("label", "Editable design")),
+                color=str(tab.get("color", "")) or None,
+            )
+            tab["snapshot"] = snapshot
+            if simulation_signature is not None:
+                tab["simulation_signature"] = simulation_signature
+        snapshot["label"] = str(tab.get("label", "Editable design"))
+        snapshot["color"] = str(tab.get("color", ""))
+        snapshot["visible"] = tab["visible"]
         break
     st.session_state["design_comparison_tabs"] = tabs
     st.session_state["design_comparison_loaded_id"] = active_id
@@ -4528,12 +4787,34 @@ def _duplicate_design_comparison_tab(tab_id: str) -> str:
         "visible": True,
         "parameters": _json_safe(dict(source.get("parameters", {}))),
         "snapshot": copied_snapshot,
+        "simulation_signature": source.get("simulation_signature"),
     })
     tabs[-1]["snapshot"]["color"] = tabs[-1]["color"]
     tabs[-1]["snapshot"]["visible"] = True
     st.session_state["design_comparison_tabs"] = tabs
     st.session_state["design_comparison_active_id"] = copy_id
     return copy_label
+
+
+def _duplicate_standalone_design_from_click(
+    load_type: str,
+    box,
+    result: _dccav.SimulationResult,
+) -> None:
+    """Create comparison state in the button callback, before the rerun."""
+    copy_name = _duplicate_active_design_comparison(load_type, box, result)
+    if copy_name:
+        st.session_state["_design_tab_action_toast"] = (
+            f"Created editable tab: {copy_name}"
+        )
+
+
+def _duplicate_design_tab_from_click(tab_id: str) -> None:
+    copy_name = _duplicate_design_comparison_tab(tab_id)
+    if copy_name:
+        st.session_state["_design_tab_action_toast"] = (
+            f"Created editable tab: {copy_name}"
+        )
 
 
 def _delete_active_design_comparison_tab() -> None:
@@ -4657,6 +4938,24 @@ def _recover_design_tab_preset(parameters: dict) -> str:
     return "Custom"
 
 
+def _design_driver_parameter_signature(parameters: dict) -> tuple:
+    """Compact identity used to avoid rescanning the catalog on UI clicks."""
+    return tuple(
+        parameters.get(key)
+        for key in (
+            "driver_fs_hz",
+            "driver_vas_l",
+            "driver_qts",
+            "driver_qms",
+            "driver_re_ohm",
+            "driver_sd_cm2",
+            "driver_le_mh",
+            "driver_xmax_mm",
+            "driver_pe_w",
+        )
+    )
+
+
 def _design_tab_parameters_match_preset(
     parameters: dict,
     preset_name: str,
@@ -4707,6 +5006,9 @@ def _render_editable_design_tabs(
     result: _dccav.SimulationResult,
 ) -> None:
     """Render compact editable tabs with actions embedded in the active tab."""
+    action_toast = st.session_state.pop("_design_tab_action_toast", None)
+    if action_toast:
+        st.toast(str(action_toast))
     standalone = not tabs
     if standalone:
         tabs = [{
@@ -4834,7 +5136,7 @@ def _render_editable_design_tabs(
                         ),
                         args=(() if standalone else (tab_id,)),
                     )
-                    if st.button(
+                    st.button(
                         "Duplicate design",
                         icon=":material/content_copy:",
                         key=f"duplicate_design_tab_{tab_id}",
@@ -4842,17 +5144,18 @@ def _render_editable_design_tabs(
                             not _pro_comparison_enabled()
                             or len(tabs) >= _MAX_COMPARISON_DESIGNS
                         ),
-                    ):
-                        copy_name = (
-                            _duplicate_active_design_comparison(
-                                load_type, box, result
-                            )
+                        on_click=(
+                            _duplicate_standalone_design_from_click
                             if standalone
-                            else _duplicate_design_comparison_tab(tab_id)
-                        )
-                        st.toast(f"Created editable tab: {copy_name}")
-                        st.rerun()
-                    if st.button(
+                            else _duplicate_design_tab_from_click
+                        ),
+                        args=(
+                            (load_type, box, result)
+                            if standalone
+                            else (tab_id,)
+                        ),
+                    )
+                    st.button(
                         "Hide design" if is_visible else "Show design",
                         icon=(
                             ":material/visibility:"
@@ -4860,17 +5163,17 @@ def _render_editable_design_tabs(
                             else ":material/visibility_off:"
                         ),
                         key=f"toggle_design_tab_{tab_id}",
-                    ):
-                        _toggle_design_tab_visible(tab_id)
-                        st.rerun()
+                        on_click=_toggle_design_tab_visible,
+                        args=(tab_id,),
+                    )
                     if not standalone:
-                        if st.button(
+                        st.button(
                             "Delete design",
                             icon=":material/close:",
                             key=f"delete_design_tab_{tab_id}",
-                        ):
-                            _delete_design_comparison_tab(tab_id)
-                            st.rerun()
+                            on_click=_delete_design_comparison_tab,
+                            args=(tab_id,),
+                        )
 
 
 def _remove_pinned_response(index: int) -> None:
@@ -5088,6 +5391,7 @@ def _pinned_layer(
     )
 
 
+@st.cache_data(show_spinner=False, max_entries=32)
 def _topology_comparison_series(
     ts: _dccav.DriverTS,
     load_type: str,
@@ -5095,6 +5399,7 @@ def _topology_comparison_series(
     freq: np.ndarray,
     voltage_v: float,
     series_r_ohm: float,
+    engine_revision: tuple[float | None, ...] = (),
 ) -> tuple[float, dict[str, np.ndarray]]:
     """Simulate the loads at a shared total volume for the overlay chart.
 
@@ -5103,6 +5408,7 @@ def _topology_comparison_series(
     has no volume, so when it is active the comparison volume falls back to
     the driver's Vas.
     """
+    del engine_revision  # Cache invalidation key for hot-reloaded solver code.
     if load_type in {"Bass reflex", "Sealed"}:
         vtot = float(box.vb_l)
     elif load_type == "Bandpass 4th order":
@@ -5631,26 +5937,23 @@ def _apply_pending_batch_result() -> None:
     if not pending:
         return
     existing_tabs = _design_comparison_tabs()
-    if existing_tabs:
-        added = _add_finder_designs_to_comparison(
-            [{
-                "row": pending["row"],
-                "load_type": str(pending["load_type"]),
-            }],
-            float(pending.get(
-                "voltage_v",
-                st.session_state.get("finder_voltage", 2.83),
-            )),
+    added = _add_finder_designs_to_comparison(
+        [{
+            "row": pending["row"],
+            "load_type": str(pending["load_type"]),
+        }],
+        float(pending.get(
+            "voltage_v",
+            st.session_state.get("finder_voltage", 2.83),
+        )),
+    )
+    if added:
+        action = "Added" if existing_tabs else "Opened"
+        st.toast(f"{action} {added[0]['label']} in Box Design")
+    else:
+        st.toast(
+            f"Box Design already has {_MAX_COMPARISON_DESIGNS} designs"
         )
-        if added:
-            st.toast(f"Added {added[0]['label']} to Box Design")
-        else:
-            st.toast(
-                f"Box Design already has {_MAX_COMPARISON_DESIGNS} designs"
-            )
-        return
-    _apply_batch_result(pending["row"], str(pending["load_type"]))
-    st.toast(f"Applied {pending['row']['Driver']} to the design")
 
 
 def _add_finder_designs_to_comparison(
@@ -5748,6 +6051,9 @@ def _design_comparison_tabs() -> list[dict]:
     changed = len(valid_tabs) != len(tabs)
     for index, tab in enumerate(valid_tabs):
         snapshot = tab.get("snapshot")
+        if isinstance(snapshot, dict) and not snapshot.get("_revision"):
+            _snapshot_revision(snapshot)
+            changed = True
         visible = bool(
             tab.get(
                 "visible",
@@ -5788,13 +6094,18 @@ def _design_comparison_tabs() -> list[dict]:
                 or _design_tab_label_driver(str(tab.get("label", "")))
                 or stable_preset
             )
-            if stable_preset == "Custom":
+            driver_signature = _design_driver_parameter_signature(parameters)
+            if (
+                stable_preset == "Custom"
+                and tab.get("preset_recovery_signature") != driver_signature
+            ):
                 stable_preset = _recover_design_tab_preset(parameters)
+                tab["preset_recovery_signature"] = driver_signature
+                changed = True
                 if stable_preset != "Custom":
                     parameters["driver_preset_name"] = stable_preset
                     if not display_preset or display_preset == "Custom":
                         display_preset = stable_preset
-                    changed = True
             stable_load_type = str(
                 tab.get("load_type") or parameters["load_type"]
             )
@@ -5851,13 +6162,20 @@ def _sync_active_design_comparison_tab() -> None:
         previous = tab_by_id[loaded_id]
         previous_parameters = _json_safe(_collect_params())
         stable_previous_preset = str(previous.get("driver_preset_name", ""))
-        if not _design_tab_parameters_match_preset(
-            previous_parameters, stable_previous_preset
+        driver_signature = _design_driver_parameter_signature(
+            previous_parameters
+        )
+        if (
+            previous.get("preset_recovery_signature") != driver_signature
+            and not _design_tab_parameters_match_preset(
+                previous_parameters, stable_previous_preset
+            )
         ):
             stable_previous_preset = _recover_design_tab_preset(
                 previous_parameters
             )
             previous["driver_preset_name"] = stable_previous_preset
+        previous["preset_recovery_signature"] = driver_signature
         if stable_previous_preset != "Custom":
             previous_parameters["driver_preset_name"] = stable_previous_preset
         previous["parameters"] = previous_parameters
@@ -5866,6 +6184,10 @@ def _sync_active_design_comparison_tab() -> None:
     stable_requested_preset = str(requested.get("driver_preset_name", ""))
     if stable_requested_preset:
         st.session_state["driver_preset_name"] = stable_requested_preset
+    # A tab already contains its saved enclosure. Mark that exact driver/load
+    # state as synchronized so selecting or deleting a sibling never launches
+    # the optimizer again and overwrites the stored design.
+    _mark_auto_alignment_synced()
     st.session_state["design_comparison_loaded_id"] = requested_id
     st.session_state["workspace_mode"] = "Box Design"
     st.session_state["design_comparison_tabs"] = tabs
@@ -5910,6 +6232,15 @@ def _apply_pending_atlas_point() -> None:
     _apply_optimized_box(box)
     _mark_auto_alignment_synced(driver)
     st.toast("Applied the atlas box to the design (Manual strategy)")
+
+
+def _queue_atlas_point(load_type: str, x: float, y: float) -> None:
+    """Queue an Atlas box change before Streamlit reruns the full design."""
+    st.session_state["atlas_pending_point"] = {
+        "load_type": load_type,
+        "x": float(x),
+        "y": float(y),
+    }
 
 
 def _atlas_loss_signature(load_type: str, box) -> tuple:
@@ -6056,10 +6387,13 @@ def _render_atlas_tab(current_ts, load_type: str, box, sim_voltage: float) -> No
         f"**Selected:** {space.x_label} {x_sel:.2f}{y_txt} · "
         f"F3 {_fmt_hz(row['f3_hz'])} · ripple {_fmt_db(row['ripple_db'])}"
     )
-    if st.button("Apply selected box", type="primary", use_container_width=True):
-        st.session_state["atlas_pending_point"] = {
-            "load_type": load_type, "x": x_sel, "y": y_sel}
-        st.rerun()
+    st.button(
+        "Apply selected box",
+        type="primary",
+        use_container_width=True,
+        on_click=_queue_atlas_point,
+        args=(load_type, x_sel, y_sel),
+    )
 
 
 def _finder_price_currency(df: pd.DataFrame) -> str:
@@ -6496,8 +6830,8 @@ def _run_find_driver_search(
     progress_total = max(eligible_total, 1)
     t_start = time.perf_counter()
     with st.container(key="finder_match_progress"):
-        progress_text = st.empty()
         progress = st.progress(0.0)
+        progress_text = st.empty()
         progress_text.caption(
             f"Bass Match · 0/{eligible_total} simulations"
             f" · {prefilter_stats['rejected_simulations']} skipped a priori"
@@ -6728,10 +7062,6 @@ def _render_find_driver_goal_sidebar() -> None:
             "Evaluation range end (Hz)", min_value=10.0, max_value=5000.0,
             step=10.0, key="finder_f_max",
             help="Highest frequency included in the low-frequency comparison.",
-        )
-        _finder_number_input(
-            "Top results to show", min_value=1, max_value=200,
-            step=5, key="finder_result_count",
         )
         _finder_number_input(
             "Simulation resolution (points)", min_value=80, max_value=1000,
@@ -7063,7 +7393,7 @@ def _finder_brief_constraints(
             f"{float(_finder_value('finder_f_max')):g} Hz",
         ),
         ("Resolution", f"{int(_finder_value('finder_points'))} points"),
-        ("Results shown", str(int(_finder_value("finder_result_count")))),
+        ("Results shown", "All usable"),
         (
             "Candidate pool",
             f"{selected_preset_count} selected"
@@ -7141,8 +7471,8 @@ def _render_bass_match_hero(
     run_requested = False
     with st.container(border=True, key="bass_match_brief"):
         st.markdown("#### Bass Match · Your bass brief")
-        b1, b2, b3, b4, action_col = st.columns(
-            [1.0, 1.0, 1.0, 1.0, 1.15],
+        b1, b2, b3, b4 = st.columns(
+            4,
             vertical_alignment="center",
         )
         b1.metric(
@@ -7165,15 +7495,6 @@ def _render_bass_match_hero(
             "Duplicates removed",
             f"{prefilter_stats['duplicate_rows']:,}",
         )
-        with action_col:
-            if st.button(
-                _FINDER_CTA_LABEL,
-                type="primary",
-                width="stretch",
-                disabled=_finder_search_blocked(list(prequalified_names)),
-                key="finder_run_search_main",
-            ):
-                run_requested = True
         _render_finder_constraint_grid(constraints)
         _render_finder_run_statistics()
         if match_preset_names and not prequalified_names:
@@ -7181,6 +7502,13 @@ def _render_bass_match_hero(
                 "No driver passes the pre-simulation checks. Lower Minimum "
                 "SPL, change the driver configuration or relax the library filters."
             )
+    run_requested = st.button(
+        _FINDER_CTA_LABEL,
+        type="primary",
+        width="stretch",
+        disabled=_finder_search_blocked(list(prequalified_names)),
+        key="finder_run_search_main",
+    )
     if run_requested:
         _run_find_driver_search(match_preset_names, filtered_preset_names)
         st.rerun()
@@ -7300,6 +7628,25 @@ def _render_candidate_pool(filtered_preset_names: list[str]) -> None:
         expanded=not filtered_preset_names,
     ):
         _render_driver_library(filtered_preset_names)
+
+
+def _queue_finder_design_selection(
+    selected_designs: list[dict],
+    voltage_v: float,
+) -> None:
+    """Queue Finder selection before the rerun so Box Design opens directly."""
+    if len(selected_designs) == 1:
+        selected = selected_designs[0]
+        st.session_state["batch_pending_result"] = {
+            "row": selected["row"],
+            "load_type": selected["load_type"],
+            "voltage_v": float(voltage_v),
+        }
+    elif selected_designs:
+        st.session_state["batch_pending_comparison"] = {
+            "designs": selected_designs,
+            "voltage_v": float(voltage_v),
+        }
 
 
 def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
@@ -7422,7 +7769,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         _render_candidate_pool(filtered_preset_names)
         return
 
-    st.subheader("Your best matches")
+    selection_cta = st.empty()
     display_finder_loads = [
         "Bass reflex (PR)"
         if item == "Bass reflex" and finder_resonator == _RESONATOR_PR
@@ -7489,7 +7836,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             f"Best value = lowest F3 × price in {value_currency}; candidates "
             f"without a {value_currency} price keep the F3 order at the bottom."
         )
-    batch_df = full_df.head(int(_finder_value("finder_result_count")))
+    batch_df = full_df
 
     columns = [
         "Load", "Driver", "F3 Hz", "MOL @ F3 dB", "Peak dB", "Min ohm",
@@ -7574,7 +7921,45 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     )
 
     selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
-    if not selected_rows:
+    selected_indices = [
+        int(index)
+        for index in selected_rows
+        if 0 <= int(index) < len(batch_df)
+    ]
+    selected_designs = [
+        {
+            "row": batch_df.iloc[index].to_dict(),
+            "load_type": str(
+                batch_df.iloc[index].get("Load", load_type)
+            ),
+        }
+        for index in selected_indices
+    ]
+    comparison_count = len(selected_designs)
+    too_many = comparison_count > _MAX_COMPARISON_DESIGNS
+    pro_enabled = _pro_comparison_enabled()
+    cta_label = (
+        f"Compare {comparison_count} designs in Box Design"
+        if comparison_count > 1
+        else "Open this design in Box Design"
+    )
+    cta_disabled = (
+        not selected_designs
+        or too_many
+        or (comparison_count > 1 and not pro_enabled)
+    )
+    with selection_cta.container():
+        st.button(
+            cta_label,
+            type="secondary" if not selected_designs else "primary",
+            width="stretch",
+            key="finder_open_selected_design",
+            disabled=cta_disabled,
+            on_click=_queue_finder_design_selection,
+            args=(selected_designs, float(_finder_value("finder_voltage"))),
+        )
+
+    if not selected_indices:
         with st.container(key="emerald_info_candidate_selection"):
             st.caption(
                 "Select one match to preview it, or select 2–8 matches to "
@@ -7582,25 +7967,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             )
         _render_candidate_pool(filtered_preset_names)
         return
-    selected_indices = [
-        int(index)
-        for index in selected_rows
-        if 0 <= int(index) < len(batch_df)
-    ]
-    if not selected_indices:
-        _render_candidate_pool(filtered_preset_names)
-        return
     if len(selected_indices) > 1:
-        selected_designs = []
-        for index in selected_indices:
-            selected = batch_df.iloc[index].to_dict()
-            selected_designs.append({
-                "row": selected,
-                "load_type": str(selected.get("Load", load_type)),
-            })
-        comparison_count = len(selected_designs)
-        too_many = comparison_count > _MAX_COMPARISON_DESIGNS
-        pro_enabled = _pro_comparison_enabled()
         with st.container(border=True):
             st.markdown(
                 f"#### Design comparison · {comparison_count} selected · Pro"
@@ -7618,18 +7985,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                 st.info(
                     "Multi-design comparison is available with Pro or Team."
                 )
-            if st.button(
-                f"Compare {comparison_count} designs in Box Design",
-                type="primary",
-                width="stretch",
-                key="finder_compare_selected_designs",
-                disabled=too_many or not pro_enabled,
-            ):
-                st.session_state["batch_pending_comparison"] = {
-                    "designs": selected_designs,
-                    "voltage_v": float(_finder_value("finder_voltage")),
-                }
-                st.rerun()
         _render_candidate_pool(filtered_preset_names)
         return
 
@@ -7652,17 +8007,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             st.caption(f"Vtot {total_volume_l:.2f} L")
         elif row_load_type == "Infinite baffle":
             st.caption("Infinite baffle · no enclosure volume")
-        if st.button(
-            "Open this design in Box Design",
-            type="primary",
-            use_container_width=True,
-        ):
-            st.session_state["batch_pending_result"] = {
-                "row": selected_row,
-                "load_type": row_load_type,
-                "voltage_v": float(_finder_value("finder_voltage")),
-            }
-            st.rerun()
     _render_candidate_pool(filtered_preset_names)
 
 
@@ -7682,6 +8026,92 @@ def _tolerance_band_cached(
     )
 
 
+def _simulation_engine_revision() -> tuple[float | None, ...]:
+    """Invalidate design results automatically when the solver source changes."""
+    revisions = []
+    for module in (_engine, _dccav):
+        try:
+            revisions.append(Path(module.__file__).stat().st_mtime)
+        except OSError:
+            revisions.append(None)
+    return tuple(revisions)
+
+
+@st.cache_data(show_spinner=False, max_entries=128)
+def _simulate_design_cached(
+    engine_revision: tuple[float | None, ...],
+    ts: _dccav.DriverTS,
+    load_type: str,
+    box,
+    f_min_hz: float,
+    f_max_hz: float,
+    points: int,
+    voltage_v: float,
+    series_r_ohm: float,
+) -> tuple[
+    _dccav.SimulationResult,
+    dict[str, float],
+    dict[int, float],
+    list[float],
+]:
+    """Cache the solver and its base metrics across UI-only reruns."""
+    del engine_revision  # It is part of the cache key only.
+    freq = np.geomspace(float(f_min_hz), float(f_max_hz), int(points))
+    if load_type == "Bass reflex" and isinstance(
+        box, _dccav.PassiveRadiatorBox
+    ):
+        result = _dccav.simulate_passive_radiator(
+            ts, box, freq, voltage_v, series_r_ohm
+        )
+    elif load_type == "Bass reflex":
+        result = _dccav.simulate_reflex(
+            ts, box, freq, voltage_v, series_r_ohm
+        )
+    elif load_type == "Bandpass 4th order":
+        result = _dccav.simulate_bandpass4(
+            ts, box, freq, voltage_v, series_r_ohm
+        )
+    elif load_type == "Bandpass 6th order":
+        result = _dccav.simulate_bandpass6(
+            ts, box, freq, voltage_v, series_r_ohm
+        )
+    elif load_type == "Sealed":
+        result = _dccav.simulate_sealed(
+            ts, box, freq, voltage_v, series_r_ohm
+        )
+    elif load_type == "Infinite baffle":
+        result = _dccav.simulate_infinite_baffle(
+            ts, freq, voltage_v, series_r_ohm
+        )
+    else:
+        result = _dccav.simulate(ts, box, freq, voltage_v, series_r_ohm)
+    return (
+        result,
+        _dccav.response_metrics(result),
+        _dccav.response_threshold_frequencies(result),
+        _dccav.impedance_peak_frequencies(result),
+    )
+
+
+def _design_simulation_signature(
+    engine_revision: tuple[float | None, ...],
+    ts: _dccav.DriverTS,
+    load_type: str,
+    box,
+    f_min_hz: float,
+    f_max_hz: float,
+    points: int,
+    voltage_v: float,
+    series_r_ohm: float,
+) -> str:
+    payload = repr((
+        engine_revision, ts, load_type, box, float(f_min_hz),
+        float(f_max_hz), int(points), float(voltage_v),
+        float(series_r_ohm),
+    )).encode("utf-8")
+    return hashlib.sha1(payload).hexdigest()[:16]
+
+
 @st.fragment
 def _render_response_tab(
     current_ts: _dccav.DriverTS,
@@ -7693,7 +8123,6 @@ def _render_response_tab(
     sim_voltage: float,
     sim_series_r: float,
 ) -> None:
-    chart_sig = _chart_signature()
     compare_loads_on = bool(st.session_state.get("plot_compare_loads", False))
 
     # --- 1. Compute state needed for charts ---
@@ -7702,7 +8131,14 @@ def _render_response_tab(
     compare_series = None
     if compare_loads_on:
         comp_vtot, comp_series = _topology_comparison_series(
-            current_ts, load_type, box, freq, sim_voltage, sim_series_r)
+            current_ts,
+            load_type,
+            box,
+            freq,
+            sim_voltage,
+            sim_series_r,
+            _simulation_engine_revision(),
+        )
         if comp_series:
             compare_series = comp_series
 
@@ -7763,7 +8199,10 @@ def _render_response_tab(
                 default_visible=selected_traces,
             ),
             width="stretch",
-            key=f"response_chart_{chart_sig}",
+            # Preserve the mounted Vega view while parameters and project
+            # autosave state change. A content-derived key remounts the chart
+            # and briefly removes the page scrollbar, creating a resize loop.
+            key="response_chart",
         )
         st.caption(
             "Use the frequency slider below to zoom; click the chart to place a point marker "
@@ -8274,32 +8713,7 @@ if _share_token and st.session_state.get("_applied_share_token") != _share_token
         logger.exception("Invalid share link payload")
         st.warning("The shared link could not be decoded; using the current parameters.")
 
-try:
-    _seed_alignment = _dccav.suggest_alignment(_driver_from_state())
-    _seed_reflex = _dccav.suggest_reflex_alignment(_driver_from_state())
-    _seed_bandpass4 = _dccav.suggest_bandpass4_alignment(_driver_from_state())
-    _seed_bandpass6 = _dccav.suggest_bandpass6_alignment(_driver_from_state())
-    _seed_sealed = _dccav.suggest_sealed_alignment(_driver_from_state())
-except Exception:
-    _seed_alignment = _dccav.DccavAlignment(3.1, 162.0, 6.25, 62.0, 51.5)
-    _seed_reflex = _dccav.ReflexAlignment(11.52, 48.14)
-    _seed_bandpass4 = _dccav.Bandpass4Alignment(4.09, 11.52, 94.0)
-    _seed_bandpass6 = _dccav.Bandpass6Alignment(4.09, 60.0, 11.52, 94.0)
-    _seed_sealed = _dccav.SealedAlignment(11.52, 68.1, 0.512)
-_default("box_vh_l", float(_seed_alignment.vh_l))
-_default("box_fh_hz", float(_seed_alignment.fh_hz))
-_default("box_vl_l", float(_seed_alignment.vl_l))
-_default("box_fl_hz", float(_seed_alignment.fl_hz))
-_default("reflex_vb_l", float(_seed_reflex.vb_l))
-_default("reflex_fb_hz", float(_seed_reflex.fb_hz))
-_default("bandpass4_vs_l", float(_seed_bandpass4.vs_l))
-_default("bandpass4_vp_l", float(_seed_bandpass4.vp_l))
-_default("bandpass4_fp_hz", float(_seed_bandpass4.fp_hz))
-_default("bandpass6_vr_l", float(_seed_bandpass6.vr_l))
-_default("bandpass6_fr_hz", float(_seed_bandpass6.fr_hz))
-_default("bandpass6_vp_l", float(_seed_bandpass6.vp_l))
-_default("bandpass6_fp_hz", float(_seed_bandpass6.fp_hz))
-_default("sealed_vb_l", float(_seed_sealed.vb_l))
+_initialize_alignment_defaults()
 _sync_auto_alignment_if_needed()
 
 _initialize_browser_project_store()
@@ -8311,6 +8725,7 @@ current_ts = None
 current_alignment = None
 current_reflex_alignment = None
 current_bandpass4_alignment = None
+current_bandpass6_alignment = None
 current_sealed_alignment = None
 derived = None
 
@@ -8339,13 +8754,7 @@ with st.sidebar:
                 st.session_state["finder_load_types"] = [
                     str(st.session_state.get("load_type", "DCCAV"))]
             _finder_load_set = set(st.session_state["finder_load_types"])
-            new_set = _render_load_type_buttons(_finder_load_set, single_select=False)
-            if new_set != _finder_load_set:
-                if not new_set:
-                    new_set = {"Sealed"}
-                st.session_state["finder_load_types"] = sorted(
-                    new_set, key=lambda x: _ALL_LOAD_TYPES.index(x))
-                st.rerun()
+            _render_load_type_buttons(_finder_load_set, single_select=False)
             st.caption("Toggle the loads you want to compare. At least one must stay active.")
             _render_find_driver_target_sidebar()
 
@@ -8550,12 +8959,7 @@ with st.sidebar:
 
         with bd_tab2:
             _load_set = {st.session_state.get("load_type", "Sealed")}
-            new_set = _render_load_type_buttons(_load_set, single_select=True)
-            if new_set != _load_set:
-                new_lt = next(iter(new_set), "Sealed")
-                st.session_state["load_type"] = new_lt
-                _on_load_type_change()
-                st.rerun()
+            _render_load_type_buttons(_load_set, single_select=True)
             st.selectbox(
                 "Driver configuration",
                 list(_dccav.DRIVER_CONFIGURATIONS),
@@ -8609,11 +9013,17 @@ with st.sidebar:
             
             try:
                 current_ts = _driver_from_state()
-                current_alignment = _dccav.suggest_alignment(current_ts)
-                current_reflex_alignment = _dccav.suggest_reflex_alignment(current_ts)
-                current_bandpass4_alignment = _dccav.suggest_bandpass4_alignment(current_ts)
-                current_bandpass6_alignment = _dccav.suggest_bandpass6_alignment(current_ts)
-                current_sealed_alignment = _dccav.suggest_sealed_alignment(current_ts)
+                active_load_type = str(st.session_state.get("load_type", "Sealed"))
+                if active_load_type == "DCCAV":
+                    current_alignment = _dccav.suggest_alignment(current_ts)
+                elif active_load_type == "Bass reflex":
+                    current_reflex_alignment = _dccav.suggest_reflex_alignment(current_ts)
+                elif active_load_type == "Bandpass 4th order":
+                    current_bandpass4_alignment = _dccav.suggest_bandpass4_alignment(current_ts)
+                elif active_load_type == "Bandpass 6th order":
+                    current_bandpass6_alignment = _dccav.suggest_bandpass6_alignment(current_ts)
+                elif active_load_type == "Sealed":
+                    current_sealed_alignment = _dccav.suggest_sealed_alignment(current_ts)
                 derived = _dccav.complete_driver(current_ts)
                 panel_added_mass_g, panel_fs_hz = _dccav.panel_air_load_metrics(current_ts)
                 load_type = st.session_state.get("load_type", "Sealed")
@@ -8895,30 +9305,35 @@ try:
         box = None
     else:
         box = _box_from_state()
-    freq = np.geomspace(
-        float(st.session_state["sim_f_min"]),
-        float(st.session_state["sim_f_max"]),
-        int(st.session_state["sim_points"]),
-    )
+    sim_f_min = float(st.session_state["sim_f_min"])
+    sim_f_max = float(st.session_state["sim_f_max"])
+    sim_points = int(st.session_state["sim_points"])
     sim_voltage = float(st.session_state["sim_voltage"])
     sim_series_r = float(st.session_state.get("sim_series_r_ohm", 0.0))
-    if is_pr:
-        result = _dccav.simulate_passive_radiator(current_ts, box, freq, sim_voltage, sim_series_r)
-    elif is_reflex:
-        result = _dccav.simulate_reflex(current_ts, box, freq, sim_voltage, sim_series_r)
-    elif is_bandpass4:
-        result = _dccav.simulate_bandpass4(current_ts, box, freq, sim_voltage, sim_series_r)
-    elif is_bandpass6:
-        result = _dccav.simulate_bandpass6(current_ts, box, freq, sim_voltage, sim_series_r)
-    elif is_sealed:
-        result = _dccav.simulate_sealed(current_ts, box, freq, sim_voltage, sim_series_r)
-    elif is_infinite_baffle:
-        result = _dccav.simulate_infinite_baffle(current_ts, freq, sim_voltage, sim_series_r)
-    else:
-        result = _dccav.simulate(current_ts, box, freq, sim_voltage, sim_series_r)
-    metrics = _dccav.response_metrics(result)
-    thresholds = _dccav.response_threshold_frequencies(result)
-    z_peak_freqs = _dccav.impedance_peak_frequencies(result)
+    engine_revision = _simulation_engine_revision()
+    result, metrics, thresholds, z_peak_freqs = _simulate_design_cached(
+        engine_revision,
+        current_ts,
+        load_type,
+        box,
+        sim_f_min,
+        sim_f_max,
+        sim_points,
+        sim_voltage,
+        sim_series_r,
+    )
+    freq = result.frequency_hz
+    simulation_signature = _design_simulation_signature(
+        engine_revision,
+        current_ts,
+        load_type,
+        box,
+        sim_f_min,
+        sim_f_max,
+        sim_points,
+        sim_voltage,
+        sim_series_r,
+    )
     model_warnings = [] if load_type != "DCCAV" else (
         _dccav.alignment_diagnostics(current_ts, box)
         + _dccav.response_sanity_warnings(current_ts, box, thresholds)
@@ -9052,6 +9467,7 @@ try:
         load_type,
         box,
         result,
+        simulation_signature,
     )
     _render_editable_design_tabs(
         comparison_tabs,

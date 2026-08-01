@@ -1,5 +1,50 @@
 # Changelog
 
+## 0.7.5 (2026-08-01)
+
+- **Compact full-width Bass Match run**: `Run Bass Match` now spans the main
+  workspace below the dense brief. While matching, a slim progress bar appears
+  directly beneath the button with its status caption below the bar, preserving
+  the shortest practical vertical flow.
+- **Clean new projects**: `New project` now discards the previous design,
+  Finder results, comparison/pinned curves, manual-box snapshots, plot state
+  and any pending IndexedDB load before seeding the normal fresh-project
+  defaults, so delayed browser state cannot repopulate the old project.
+- **Stable Box Design updates**: routine IndexedDB autosaves no longer publish
+  an acknowledgement or refreshed timestamp back into Streamlit, removing the
+  extra full-page rerun after an enclosure edit. The last complete design also
+  remains fully visible while the required calculation rerun is in progress;
+  autosave failures still surface and retry on a later interaction. The
+  Response graph now retains one mounted Vega view and a reserved scrollbar
+  gutter, eliminating the repeated horizontal resize visible during updates.
+- **Zero-waste design interactions**: deleting, hiding or duplicating a design
+  now mutates state in the widget callback instead of simulating once and then
+  forcing a second full rerun. Switching or deleting an active comparison tab
+  reuses its saved enclosure without relaunching the automatic optimizer.
+- **Warm Box Design pipeline**: unchanged driver/load/box simulations and base
+  metrics are cached with automatic solver-source invalidation; unchanged tab
+  snapshots are reused, default alignments are only seeded when absent and only
+  the active load's starter alignment is derived for display. Chart keys and
+  browser autosave compare compact snapshot revisions instead of repeatedly
+  JSON-serializing every stored curve on each click.
+- **Direct state transitions**: load cards, Finder-to-Box selection and Atlas
+  application now prepare their target state before the next script run, avoiding
+  intermediate renders and obsolete calculations.
+- **Validation**: the fresh active suite passes 132 tests with 0 failures and
+  0 skips, including a regression proving identical simulation inputs invoke
+  the solver only once.
+- **Complete Finder results**: Bass Match now displays every usable ranked
+  candidate. The retired default-20 control and its 200-result ceiling are
+  removed, including automatic cleanup of their legacy session state.
+- **Selection-first Finder CTA**: the Box Design action now occupies the first
+  row below the Bass Match brief instead of a redundant results heading. It is
+  neutral and disabled without a selection, then emerald and active for the
+  selected single design or eligible multi-design comparison.
+- **Additive single-result workflow**: the first Finder result opened alone is
+  now retained as editable Box Design tab 1. Returning to Bass Match and opening
+  another single result appends tab 2 instead of replacing the first design;
+  direct multi-selection and later additions keep the same eight-tab limit.
+
 ## 0.7.4 (2026-07-31)
 
 - **Per-design visibility**: every standalone or comparison design tab now has
