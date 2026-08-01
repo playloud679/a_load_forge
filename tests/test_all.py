@@ -2332,6 +2332,7 @@ def _check_ui_complete_lfp_restores_bass_match():
                 "finder_reflex_resonator_type": "Port",
                 "finder_min_spl_db": 0.0,
                 "finder_min_mol_f3_db": 0.0,
+                "finder_max_f3_hz": 0.0,
                 "finder_max_mms_g": 0.0,
                 "finder_max_le_mh": 0.0,
                 "preset_search": "KEF",
@@ -5265,18 +5266,20 @@ def _check_ui_finder_filters_minimum_mol_at_f3():
     import ui_app as _ui
 
     rows = [
-        {"Driver": "compliant", "Peak dB": 90.0, "MOL @ F3 dB": 82.0},
-        {"Driver": "too little MOL", "Peak dB": 95.0, "MOL @ F3 dB": 79.9},
-        {"Driver": "missing MOL", "Peak dB": 95.0},
-        {"Driver": "too little SPL", "Peak dB": 84.9, "MOL @ F3 dB": 90.0},
+        {"Driver": "compliant", "Peak dB": 90.0, "MOL @ F3 dB": 82.0, "F3 Hz": 39.0},
+        {"Driver": "too high F3", "Peak dB": 90.0, "MOL @ F3 dB": 82.0, "F3 Hz": 41.0},
+        {"Driver": "too little MOL", "Peak dB": 95.0, "MOL @ F3 dB": 79.9, "F3 Hz": 35.0},
+        {"Driver": "missing MOL", "Peak dB": 95.0, "F3 Hz": 35.0},
+        {"Driver": "missing F3", "Peak dB": 95.0, "MOL @ F3 dB": 90.0},
+        {"Driver": "too little SPL", "Peak dB": 84.9, "MOL @ F3 dB": 90.0, "F3 Hz": 35.0},
     ]
-    filtered = _ui._filter_finder_performance_rows(rows, 85.0, 80.0)
+    filtered = _ui._filter_finder_performance_rows(rows, 85.0, 80.0, 40.0)
     assert [row["Driver"] for row in filtered] == ["compliant"], filtered
-    assert _ui._filter_finder_performance_rows(rows, 0.0, 0.0) == rows
+    assert _ui._filter_finder_performance_rows(rows, 0.0, 0.0, 0.0) == rows
 
 
 test(
-    "UI Finder filters candidates by minimum MOL at F3",
+    "UI Finder filters candidates by MOL, SPL and maximum F3",
     _check_ui_finder_filters_minimum_mol_at_f3,
 )
 
@@ -5795,6 +5798,7 @@ def _check_ui_finder_starts_from_practical_defaults():
     assert numbers["Simulation resolution (points)"] == 240, numbers
     assert "Desired bass extension F3 (Hz, 0 = deepest)" not in numbers
     assert "finder_target_f3_hz" not in at.session_state
+    assert numbers["Maximum F3 (Hz, 0 = off)"] == 0.0, numbers
     assert numbers["Allowed response ripple (dB)"] == 3.0, numbers
     assert numbers["Maximum excursion (× driver Xmax)"] == 1.0, numbers
     assert numbers["Maximum group delay (ms)"] == 30.0, numbers
@@ -5939,6 +5943,7 @@ def _check_ui_finder_main_action_runs_search():
         "Optimization",
         "Minimum SPL",
         "Minimum MOL @ F3",
+        "Maximum F3",
         "Maximum ripple",
         "Maximum excursion",
         "Maximum delay",
@@ -6392,6 +6397,7 @@ def _check_ui_finder_goal_inputs_always_active():
     from streamlit.testing.v1 import AppTest
 
     mol_label = "Minimum MOL at F3 (dB, 0 = off)"
+    max_f3_label = "Maximum F3 (Hz, 0 = off)"
     driver_filter_labels = (
         "Maximum Mms (g, 0 = off)",
         "Maximum Le (mH, 0 = off)",
@@ -6409,6 +6415,7 @@ def _check_ui_finder_goal_inputs_always_active():
     assert not at.exception, at.exception
     inputs = {n.label: n for n in at.sidebar.number_input}
     assert mol_label in inputs and not inputs[mol_label].disabled
+    assert max_f3_label in inputs and not inputs[max_f3_label].disabled
     for label in driver_filter_labels:
         assert label in inputs and not inputs[label].disabled, label
     for label in goal_labels:
@@ -6424,6 +6431,7 @@ def _check_ui_finder_goal_inputs_always_active():
     assert not at.exception, at.exception
     inputs = {n.label: n for n in at.sidebar.number_input}
     assert mol_label in inputs and not inputs[mol_label].disabled
+    assert max_f3_label in inputs and not inputs[max_f3_label].disabled
     for label in driver_filter_labels:
         assert label in inputs and not inputs[label].disabled, label
     for label in goal_labels:

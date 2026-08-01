@@ -270,8 +270,8 @@ controls use three stateful sidebar tabs. Only the open tab is rendered in a
 three-step workflow:
 
 1. **Target enclosure** selects the load, maximum enclosure volume and voltage.
-2. **Performance goal** selects the optimization objective, F3 target and
-   ripple allowance, plus optional maximum `Mms` and nominal/1 kHz `Le`
+2. **Performance goal** selects the optimization objective, hard maximum F3
+   and ripple allowance, plus optional maximum `Mms` and nominal/1 kHz `Le`
    filters. A zero maximum disables either filter; while active, candidates
    without the corresponding published value are excluded. Excursion,
    group-delay and minimum-SPL limits stay in **Advanced constraints**; scan
@@ -304,6 +304,8 @@ remain internal so a selected candidate can still be applied to Design.
 `Minimum SPL` is evaluated against each row's simulated **Peak LF SPL** at the
 selected comparison voltage. Values below the threshold are excluded from the
 result list; when none remain, Finder shows a dedicated no-match message.
+`Maximum F3` is also a post-simulation hard limit: a value of 40 Hz keeps only
+designs with `F3 ≤ 40 Hz`; `0` disables the constraint.
 
 - **Maximum volume** is a ceiling, not a forced size. Finder optimizes each
   driver independently and may return a smaller `Vh+Vl` for DCCAV, chamber
@@ -313,7 +315,7 @@ result list; when none remain, Finder shows a dedicated no-match message.
   workspace — `Max extension`, `Balanced` or `Flattest`. Every candidate box
   is derived by that one optimizer without exceeding the maximum volume and at
   the comparison voltage; infinite baffle candidates are ranked in free air.
-- **Optimization constraints** sets desired bass extension F3, allowed
+- **Optimization constraints** sets the hard maximum F3, allowed
   ripple, maximum excursion relative to each driver's Xmax, group delay and the
   clearly labelled evaluation-frequency range.
 - **Simulation resolution** controls search precision and cost. Every scan
@@ -330,8 +332,8 @@ result list; when none remain, Finder shows a dedicated no-match message.
   is also retained as the first editable design tab: returning to Bass Match and
   opening another single result appends it instead of replacing the first one.
 
-A new Finder starts with a practical profile: 40 L, `Balanced`, 2.83 V, F3
-target 0 Hz (deepest available extension), 3 dB ripple, 1× Xmax, 30 ms group
+A new Finder starts with a practical profile: 40 L, `Balanced`, 2.83 V, maximum
+F3 disabled, 3 dB ripple, 1× Xmax, 30 ms group
 delay, a 10-300 Hz evaluation range, 20 results and 240 simulation points.
 **Reset Finder defaults** restores this profile without changing the active
 design.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0 (2026-08-01)
+
+- **Hard maximum-F3 constraint**: Bass Match can now reject every simulated
+  design whose F3 exceeds an optional user limit. The limit is persisted with
+  projects, invalidates stale rankings, appears in the compact brief and has a
+  dedicated no-match explanation; `0` keeps the constraint disabled. The fresh
+  active suite passes 133 tests with 0 failures and 0 skips.
+
 ## 0.7.6 (2026-08-01)
 
 - **Sub-second workspace reruns**: Bass Match no longer creates its process

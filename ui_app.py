@@ -1215,6 +1215,7 @@ _FINDER_DEFAULTS = {
     "finder_max_gd_ms": 30.0,
     "finder_min_spl_db": 0.0,
     "finder_min_mol_f3_db": 0.0,
+    "finder_max_f3_hz": 0.0,
     "finder_max_mms_g": 0.0,
     "finder_max_le_mh": 0.0,
     "finder_f_min": 10.0,
@@ -6469,6 +6470,7 @@ def _finder_result_context_signature(_preset_names: list[str]) -> str:
         "max_group_delay_ms": float(_finder_value("finder_max_gd_ms")),
         "min_spl_db": float(_finder_value("finder_min_spl_db")),
         "min_mol_f3_db": float(_finder_value("finder_min_mol_f3_db")),
+        "max_f3_hz": float(_finder_value("finder_max_f3_hz")),
         "max_mms_g": float(_finder_value("finder_max_mms_g")),
         "max_le_mh": float(_finder_value("finder_max_le_mh")),
         "f_min_hz": float(_finder_value("finder_f_min")),
@@ -6537,6 +6539,7 @@ def _filter_finder_performance_rows(
     rows: list[dict],
     min_spl_db: float,
     min_mol_f3_db: float,
+    max_f3_hz: float,
 ) -> list[dict]:
     """Apply Finder's hard output constraints to simulated candidate rows."""
     filtered = rows
@@ -6551,6 +6554,12 @@ def _filter_finder_performance_rows(
             row for row in filtered
             if np.isfinite(float(row.get("MOL @ F3 dB", np.nan)))
             and float(row["MOL @ F3 dB"]) >= min_mol_f3_db
+        ]
+    if max_f3_hz > 0.0:
+        filtered = [
+            row for row in filtered
+            if np.isfinite(float(row.get("F3 Hz", np.nan)))
+            and float(row["F3 Hz"]) <= max_f3_hz
         ]
     return filtered
 
@@ -6871,8 +6880,11 @@ def _run_find_driver_search(
     min_mol_f3_db = float(
         st.session_state.get("finder_min_mol_f3_db", 0.0) or 0.0
     )
+    max_f3_hz = float(
+        st.session_state.get("finder_max_f3_hz", 0.0) or 0.0
+    )
     all_rows = _filter_finder_performance_rows(
-        all_rows, min_spl_db, min_mol_f3_db
+        all_rows, min_spl_db, min_mol_f3_db, max_f3_hz
     )
     all_rows = _dccav.sort_ranked_rows(all_rows)
     all_rows, collapsed_result_rows = _deduplicate_finder_result_rows(
@@ -6951,6 +6963,15 @@ def _render_find_driver_goal_sidebar() -> None:
     only_passive_radiator = (
         finder_load_types == ["Bass reflex"]
         and _reflex_uses_passive_radiator(finder=True)
+    )
+    _finder_number_input(
+        "Maximum F3 (Hz, 0 = off)",
+        min_value=0.0,
+        max_value=500.0,
+        step=1.0,
+        key="finder_max_f3_hz",
+        help="Exclude simulated designs whose F3 is above this hard limit; "
+             "0 disables the constraint.",
     )
     _finder_number_input(
         "Minimum MOL at F3 (dB, 0 = off)",
@@ -7321,6 +7342,7 @@ def _finder_brief_constraints(
         ("Optimization", objective),
         ("Minimum SPL", lower_limit("finder_min_spl_db", "dB")),
         ("Minimum MOL @ F3", lower_limit("finder_min_mol_f3_db", "dB")),
+        ("Maximum F3", upper_limit("finder_max_f3_hz", "Hz")),
         (
             "Maximum ripple",
             upper_limit("finder_max_ripple_db", "dB", off_at_zero=False)
@@ -7648,6 +7670,8 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         st.session_state.get("finder_min_spl_db", 0.0) or 0.0)
     current_min_mol_f3_db = float(
         st.session_state.get("finder_min_mol_f3_db", 0.0) or 0.0)
+    current_max_f3_hz = float(
+        st.session_state.get("finder_max_f3_hz", 0.0) or 0.0)
     current_max_mms_g = float(
         st.session_state.get("finder_max_mms_g", 0.0) or 0.0)
     current_max_le_mh = float(
@@ -7730,7 +7754,13 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             )
         if st.session_state.get("batch_search_completed", False) and context_matches:
             st.subheader("No Bass Match result")
-            if current_min_spl_db > 0.0:
+            if current_max_f3_hz > 0.0:
+                st.warning(
+                    f"No candidate reached an F3 at or below "
+                    f"{current_max_f3_hz:.1f} Hz with the current enclosure "
+                    "and filters. Raise Maximum F3 or relax the other constraints."
+                )
+            elif current_min_spl_db > 0.0:
                 st.warning(
                     f"No candidate reached the minimum SPL of "
                     f"{current_min_spl_db:.1f} dB with the current enclosure, "

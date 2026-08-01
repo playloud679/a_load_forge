@@ -101,8 +101,9 @@ slim progress bar temporarily occupies the row immediately below the action,
 with its small status caption beneath;
 optional/advanced sections are the only persistent controls allowed to extend
 the page. Constraint labels and values use readable dashboard sizing. The
-Finder has no `Desired F3` input: that former soft optimizer preference did not
-provide a dependable ranking constraint. Before running the enclosure solver,
+Finder replaces the retired soft `Desired F3` preference with an optional hard
+`Maximum F3` post-simulation constraint: only designs at or below the limit
+remain ranked. Before running the enclosure solver,
 the Finder builds a separate eligible pool for each load from reference SPL at
 the chosen voltage, driver configuration, T/S validity and required Xmax;
 F3, MOL, ripple, excursion and group delay remain post-simulation checks.
