@@ -1,7 +1,7 @@
 # Load Forge
 
 <p align="center">
-  <img src="assets/load_forge_header.png" alt="Load Forge" width="900">
+  <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
 Current release: **0.8.1**
