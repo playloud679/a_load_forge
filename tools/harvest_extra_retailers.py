@@ -33,23 +33,37 @@ enrich_driver_prices.py's built-in providers:
   Norwegian SEAS/Scan-Speak/Mark Audio/Dayton/Peerless reseller; brand and
   driver-vs-accessory identification both go through the category link
   path since the `brands` taxonomy field is empty on every product.
+* Thomann (thomann.de) -- structured search bootstrap data, queried only for
+  runtime-library brands that still have unpriced models. Pagination follows
+  the canonical links returned by Thomann instead of guessing query params.
+* DS18 (ds18.com) -- official Shopify catalog; only variants whose SKU exactly
+  identifies a DS18 model present in the runtime library are retained.
+* Fi Car Audio (ficaraudio.com) -- official BigCommerce brand pages and live
+  product options, emitting one offer identity per explicit impedance choice.
+* Wavecor (wavecor.com) -- official manufacturer retail price table, expanded
+  from compact slash notation into individual model identities.
+* AUDIO-HI.FI (audio-hi.fi) -- paginated European Tang Band catalog with
+  per-unit EUR prices and direct product links.
 
 Each harvester writes an independent JSON checkpoint under data/ so a partial
 run can be resumed/merged without re-fetching everything. merge_extra_retailers
-(see bottom of this file / merge_extra_retailers.py) then reuses
-enrich_driver_prices.py's matching logic -- via the same fast precomputed
-variant introduced in merge_partsexpress_harvest.py -- to attach matched
-prices to data/driver_prices.json.
+(see bottom of this file / merge_extra_retailers.py) then reuses the indexed
+matcher in enrich_driver_prices.py to attach matched prices to
+data/driver_prices.json.
 """
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import json
+import os
 import re
+import ssl
+import subprocess
 import sys
 import time
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -206,10 +220,499 @@ ANALOGHIFI_BRAND_BY_SLUG = {
     "jantzen": "Jantzen Audio",
 }
 
+THOMANN_CHECKPOINT = DATA_DIR / "thomann_harvest_checkpoint.json"
+THOMANN_BASE = "https://www.thomann.de/intl/"
+DS18_CHECKPOINT = DATA_DIR / "ds18_harvest_checkpoint.json"
+DS18_BASE = "https://www.ds18.com"
+FICARAUDIO_CHECKPOINT = DATA_DIR / "ficaraudio_harvest_checkpoint.json"
+FICARAUDIO_BASE = "https://ficaraudio.com"
+WAVECOR_CHECKPOINT = DATA_DIR / "wavecor_harvest_checkpoint.json"
+WAVECOR_PRICE_URL = "https://wavecor.com/html/retail_price_list.html"
+AUDIOHIFI_CHECKPOINT = DATA_DIR / "audiohifi_harvest_checkpoint.json"
+AUDIOHIFI_TANGBAND_URL = "https://audio-hi.fi/en/tang_band-m-14.html"
+
+
+def _thomann_search_payload(text: str) -> dict:
+    """Extract Thomann's structured search bootstrap payload."""
+    marker = "tho.bootstrapModule('search.index', "
+    start = text.find(marker)
+    if start < 0:
+        return {}
+    start += len(marker)
+    try:
+        values, _end = json.JSONDecoder().raw_decode(text[start:])
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(values, list) or not values or not isinstance(values[0], dict):
+        return {}
+    return values[0]
+
+
+def _thomann_paging_links(text: str) -> list[str]:
+    """Return canonical result-page URLs exposed by Thomann's payload."""
+    payload = _thomann_search_payload(text)
+    paging = payload.get("pagingSettings") or {}
+    pages = paging.get("pages") or []
+    try:
+        current_page = int(paging.get("currentPage") or 1)
+    except (TypeError, ValueError):
+        current_page = 1
+    links = []
+    for page in pages:
+        if not isinstance(page, dict) or page.get("type") != "page":
+            continue
+        try:
+            page_number = int(page.get("page") or 0)
+        except (TypeError, ValueError):
+            page_number = 0
+        if page_number <= current_page:
+            continue
+        link = str(page.get("link") or "")
+        if link:
+            links.append(urljoin(THOMANN_BASE, link.replace("\\/", "/")))
+    return list(dict.fromkeys(links))
+
+
+def thomann_records_from_html(text: str, expected_brand: str) -> tuple[list[dict], int]:
+    payload = _thomann_search_payload(text)
+    article_lists = payload.get("articleListsSettings") or {}
+    expected_compacts = epd.brand_compacts(expected_brand)
+    records = []
+    seen_urls = set()
+    for section in ("articles", "alternativeArticles"):
+        for article in article_lists.get(section, []) or []:
+            if not isinstance(article, dict):
+                continue
+            brand = str(article.get("manufacturer") or "")
+            if expected_compacts and not (expected_compacts & epd.brand_compacts(brand)):
+                continue
+            if article.get("isBstock") or article.get("isArchived"):
+                continue
+            primary = ((article.get("price") or {}).get("primary") or {})
+            price = epd.number(primary.get("rawPrice"))
+            currency = str((primary.get("currency") or {}).get("key") or "")
+            relative_url = str(article.get("relativeLink") or "").split("?", 1)[0]
+            if price is None or not currency or not relative_url:
+                continue
+            url = urljoin(THOMANN_BASE, relative_url)
+            if url in seen_urls:
+                continue
+            seen_urls.add(url)
+            model = str(article.get("model") or "")
+            title = str(((article.get("texts") or {}).get("title")) or model)
+            availability = article.get("availability") or {}
+            records.append({
+                "name": title,
+                "brand": brand,
+                "mpn": model,
+                "sku": str(article.get("number") or ""),
+                "url": url,
+                "price": round(price, 2),
+                "currency": currency,
+                "availability": str(availability.get("label") or ""),
+                "price_valid_until": "",
+            })
+    try:
+        last_page = int((payload.get("pagingSettings") or {}).get("lastPage") or 1)
+    except (TypeError, ValueError):
+        last_page = 1
+    return records, max(1, last_page)
+
+
+def harvest_thomann(sleep_s: float, timeout_s: float, limit: int | None = None) -> list[dict]:
+    """Search every still-unpriced runtime brand in Thomann's live catalog."""
+    candidates = epd.load_library_candidates()
+    prices = epd.load_output(epd.DEFAULT_OUTPUT).get("prices", {})
+    missing_brand_counts = Counter(
+        candidate.brand.strip()
+        for candidate in candidates
+        if candidate.brand.strip()
+        and candidate.brand.strip().casefold() != "other"
+        and candidate.name not in prices
+        and candidate.model not in prices
+    )
+    missing_brands = []
+    seen_brand_compacts = set()
+    for brand, _count in missing_brand_counts.most_common():
+        compacts = epd.brand_compacts(brand)
+        if compacts & seen_brand_compacts:
+            continue
+        missing_brands.append(brand)
+        seen_brand_compacts.update(compacts)
+    if limit is not None:
+        missing_brands = missing_brands[:max(0, int(limit))]
+    records_by_url = {}
+    for brand_index, brand in enumerate(missing_brands, start=1):
+        query = quote(brand, safe="")
+        pending_urls = [f"{THOMANN_BASE}search_dir.html?sw={query}"]
+        seen_pages = set()
+        page = 0
+        while pending_urls:
+            url = pending_urls.pop(0)
+            if url in seen_pages:
+                continue
+            seen_pages.add(url)
+            page += 1
+            try:
+                text = epd.fetch_text(url, timeout_s)
+            except epd.FETCH_ERRORS as exc:
+                epd.log(f"thomann: miss brand={brand} page={page}: {exc}")
+                break
+            page_records, discovered_last_page = thomann_records_from_html(text, brand)
+            if page == 1 and not page_records:
+                epd.log(
+                    f"thomann: brand={brand_index}/{len(missing_brands)} "
+                    f"no exact-brand products"
+                )
+                break
+            for next_url in _thomann_paging_links(text):
+                if next_url not in seen_pages and next_url not in pending_urls:
+                    pending_urls.append(next_url)
+            for record in page_records:
+                records_by_url[record["url"]] = record
+            epd.log(
+                f"thomann: brand={brand_index}/{len(missing_brands)} name={brand} "
+                f"page={page}/{discovered_last_page} "
+                f"products={len(page_records)} kept={len(records_by_url)}"
+            )
+            time.sleep(sleep_s)
+    return list(records_by_url.values())
+
+
+def ds18_records_from_products(products: list[dict], model_keys: set[str]) -> list[dict]:
+    """Extract only exact runtime-library SKUs from a Shopify product page."""
+    records = []
+    for product in products:
+        title = str(product.get("title") or "")
+        handle = str(product.get("handle") or "")
+        if not title or not handle:
+            continue
+        product_url = f"{DS18_BASE}/products/{handle}"
+        for variant in product.get("variants", []) or []:
+            sku = str(variant.get("sku") or "").strip()
+            if not sku or epd.normalize_token(sku) not in model_keys:
+                continue
+            price = epd.number(variant.get("price"))
+            if price is None:
+                continue
+            records.append({
+                "name": title,
+                "brand": "DS18",
+                "mpn": sku,
+                "sku": sku,
+                "url": product_url,
+                "price": round(price, 2),
+                "currency": "USD",
+                "availability": (
+                    "https://schema.org/InStock"
+                    if variant.get("available")
+                    else "https://schema.org/OutOfStock"
+                ),
+                "price_valid_until": "",
+            })
+    return records
+
+
+def harvest_ds18(sleep_s: float, timeout_s: float, limit_pages: int = 20) -> list[dict]:
+    candidates = [
+        candidate
+        for candidate in epd.load_library_candidates()
+        if "ds18" in epd.brand_compacts(candidate.brand)
+    ]
+    model_keys = {
+        key
+        for candidate in candidates
+        for key in epd.model_compacts(candidate.model)
+        if key
+    }
+    records_by_sku = {}
+    for page in range(1, limit_pages + 1):
+        try:
+            payload = _get_json(
+                f"{DS18_BASE}/products.json?limit=250&page={page}",
+                timeout_s,
+            )
+        except epd.FETCH_ERRORS as exc:
+            epd.log(f"ds18: fetch failed page={page}: {exc}")
+            break
+        products = payload.get("products", [])
+        if not products:
+            break
+        page_records = ds18_records_from_products(products, model_keys)
+        for record in page_records:
+            records_by_sku[record["sku"]] = record
+        epd.log(
+            f"ds18: page={page} products={len(products)} "
+            f"matched_skus={len(records_by_sku)}"
+        )
+        time.sleep(sleep_s)
+    return list(records_by_sku.values())
+
+
+FI_CARD_RE = re.compile(
+    r'<article\b(?P<attrs>[^>]*\bdata-name="[^"]+"[^>]*)>.*?'
+    r'<a\s+href="(?P<url>https://ficaraudio\.com/[^"]+/)"[^>]*class="card-figure__link"',
+    re.S | re.I,
+)
+
+
+def fi_category_products(text: str) -> list[dict]:
+    """Extract BigCommerce product identities from a Fi brand page."""
+    products = []
+    seen = set()
+    for match in FI_CARD_RE.finditer(text):
+        attrs = match.group("attrs")
+        name_match = re.search(r'\bdata-name="([^"]+)"', attrs, re.I)
+        price_match = re.search(r'\bdata-product-price="\s*([0-9.,]+)\s*"', attrs, re.I)
+        url = epd.html_entity_decode(match.group("url"))
+        price = epd.number(price_match.group(1)) if price_match else None
+        if not name_match or price is None or url in seen:
+            continue
+        seen.add(url)
+        products.append({
+            "name": epd.html_entity_decode(name_match.group(1)).strip(),
+            "url": url,
+            "price": round(price, 2),
+        })
+    return products
+
+
+def fi_records_from_product_html(text: str, product: dict) -> list[dict]:
+    """Expand a Fi product into its explicitly offered impedance variants."""
+    price_match = re.search(
+        r'<meta\s+property="product:price:amount"\s+content="([0-9.,]+)"',
+        text,
+        re.I,
+    )
+    price = epd.number(price_match.group(1)) if price_match else epd.number(product.get("price"))
+    if price is None:
+        return []
+    impedance_start = re.search(r'>\s*Impedance:\s*<', text, re.I)
+    impedance_block = text[impedance_start.start():impedance_start.start() + 5000] if impedance_start else ""
+    impedances = list(dict.fromkeys(
+        epd.clean_product_text(value)
+        for value in re.findall(r'class="form-option-variant">(.*?)</span>', impedance_block, re.S | re.I)
+        if epd.clean_product_text(value)
+    ))
+    if not impedances:
+        impedances = [""]
+    base_name = re.sub(r"\b(?:series|subwoofers?)\b", " ", str(product.get("name") or ""), flags=re.I)
+    base_name = re.sub(r"\s+", " ", base_name).strip()
+    records = []
+    for impedance in impedances:
+        model = f"{base_name} {impedance}".strip()
+        records.append({
+            "name": f"Fi Car Audio {model}",
+            "brand": "Fi Car Audio",
+            "mpn": model,
+            "sku": model,
+            "url": str(product.get("url") or ""),
+            "price": round(price, 2),
+            "currency": "USD",
+            "availability": "https://schema.org/InStock",
+            "price_valid_until": "",
+        })
+    return records
+
+
+def harvest_ficaraudio(sleep_s: float, timeout_s: float, limit: int | None = None) -> list[dict]:
+    products_by_url = {}
+    page = 1
+    while True:
+        url = f"{FICARAUDIO_BASE}/fi-car-audio/?page={page}"
+        try:
+            text = epd.fetch_text(url, timeout_s)
+        except epd.FETCH_ERRORS as exc:
+            epd.log(f"ficaraudio: category page={page} failed: {exc}")
+            break
+        page_products = fi_category_products(text)
+        if not page_products:
+            break
+        for product in page_products:
+            products_by_url[product["url"]] = product
+        epd.log(f"ficaraudio: category page={page} products={len(products_by_url)}")
+        if 'rel="next"' not in text:
+            break
+        page += 1
+        time.sleep(sleep_s)
+    products = list(products_by_url.values())
+    if limit is not None:
+        products = products[:max(0, int(limit))]
+    records = []
+    for index, product in enumerate(products, start=1):
+        try:
+            text = epd.fetch_text(product["url"], timeout_s)
+        except epd.FETCH_ERRORS as exc:
+            epd.log(f"ficaraudio: product failed {product['url']}: {exc}")
+            continue
+        records.extend(fi_records_from_product_html(text, product))
+        if index % 10 == 0 or index == len(products):
+            epd.log(f"ficaraudio: products={index}/{len(products)} offers={len(records)}")
+        time.sleep(sleep_s)
+    return records
+
+
+def _expand_wavecor_models(value: str) -> list[str]:
+    parts = [part.strip() for part in value.split("/") if part.strip()]
+    if len(parts) <= 1:
+        return parts
+    first = parts[0]
+    models = [first]
+    for suffix in parts[1:]:
+        models.append(first[:-len(suffix)] + suffix if len(suffix) < len(first) else suffix)
+    return models
+
+
+def wavecor_records_from_html(text: str, model_keys: set[str]) -> list[dict]:
+    records = []
+    for row in re.findall(r"<tr\b[^>]*>(.*?)</tr>", text, re.S | re.I):
+        cells = [
+            epd.clean_product_text(cell)
+            for cell in re.findall(r"<td\b[^>]*>(.*?)</td>", row, re.S | re.I)
+        ]
+        if len(cells) < 3:
+            continue
+        code, description, price_text = cells[0], cells[1], cells[2]
+        price_match = re.search(r"\bUSD\s*([0-9.,]+)", price_text, re.I)
+        price = epd.number(price_match.group(1)) if price_match else None
+        if price is None:
+            continue
+        for model in _expand_wavecor_models(code):
+            if epd.normalize_token(model) not in model_keys:
+                continue
+            records.append({
+                "name": f"Wavecor {model} {description}".strip(),
+                "brand": "Wavecor",
+                "mpn": model,
+                "sku": model,
+                "url": WAVECOR_PRICE_URL,
+                "price": round(price, 2),
+                "currency": "USD",
+                "availability": "",
+                "price_valid_until": "",
+            })
+    return records
+
+
+def harvest_wavecor(sleep_s: float, timeout_s: float, limit: int | None = None) -> list[dict]:
+    del sleep_s
+    candidates = [
+        candidate
+        for candidate in epd.load_library_candidates()
+        if "wavecor" in epd.brand_compacts(candidate.brand)
+    ]
+    model_keys = {
+        epd.normalize_token(candidate.model)
+        for candidate in candidates
+        if candidate.model
+    }
+    try:
+        text = epd.fetch_text(WAVECOR_PRICE_URL, timeout_s)
+    except epd.FETCH_ERRORS as exc:
+        epd.log(f"wavecor: price list failed: {exc}")
+        return []
+    records = wavecor_records_from_html(text, model_keys)
+    if limit is not None:
+        records = records[:max(0, int(limit))]
+    epd.log(f"wavecor: official price offers={len(records)}")
+    return records
+
+
+def audiohifi_records_from_html(text: str, model_keys: set[str]) -> list[dict]:
+    records = []
+    for row in re.findall(r'<tr\s+class="productListing-[^"]+"[^>]*>(.*?)</tr>', text, re.S | re.I):
+        title_match = re.search(
+            r'<h3\s+class="itemTitle"><a\s+href="([^"]+)">(.*?)</a>',
+            row,
+            re.S | re.I,
+        )
+        if not title_match:
+            continue
+        model = epd.clean_product_text(title_match.group(2))
+        if epd.normalize_token(model) not in model_keys:
+            continue
+        prices = re.findall(
+            r'class="(?:productBasePrice|productSpecialPrice)"[^>]*>\s*&euro;\s*([0-9.,]+)',
+            row,
+            re.I,
+        )
+        price = epd.number(prices[-1]) if prices else None
+        if price is None:
+            continue
+        description_match = re.search(r'class="listingDescription">(.*?)</div>', row, re.S | re.I)
+        description = epd.clean_product_text(description_match.group(1)) if description_match else ""
+        records.append({
+            "name": f"Tang Band {model} {description}".strip(),
+            "brand": "Tang Band",
+            "mpn": model,
+            "sku": model,
+            "url": epd.html_entity_decode(title_match.group(1)),
+            "price": round(price, 2),
+            "currency": "EUR",
+            "availability": "",
+            "price_valid_until": "",
+        })
+    return records
+
+
+def harvest_audiohifi(sleep_s: float, timeout_s: float, limit: int | None = None) -> list[dict]:
+    candidates = [
+        candidate
+        for candidate in epd.load_library_candidates()
+        if "tangband" in epd.brand_compacts(candidate.brand)
+    ]
+    model_keys = {epd.normalize_token(candidate.model) for candidate in candidates}
+    records_by_model = {}
+    for page in range(1, 50):
+        url = AUDIOHIFI_TANGBAND_URL if page == 1 else f"{AUDIOHIFI_TANGBAND_URL}?page={page}"
+        try:
+            text = _fetch_text_certifi(url, timeout_s)
+        except epd.FETCH_ERRORS as exc:
+            epd.log(f"audiohifi: page={page} failed: {exc}")
+            break
+        page_records = audiohifi_records_from_html(text, model_keys)
+        if not page_records:
+            break
+        for record in page_records:
+            records_by_model[record["mpn"]] = record
+        epd.log(f"audiohifi: page={page} matched_models={len(records_by_model)}")
+        if "Go to Next Page" not in text:
+            break
+        if limit is not None and len(records_by_model) >= int(limit):
+            break
+        time.sleep(sleep_s)
+    records = list(records_by_model.values())
+    return records[:int(limit)] if limit is not None else records
+
 
 def _get_json(url: str, timeout_s: float) -> dict:
     text = epd.fetch_text(url, timeout_s)
     return json.loads(text)
+
+
+def _fetch_text_certifi(url: str, timeout_s: float) -> str:
+    """Fetch a public page whose certificate chain macOS Python lacks."""
+    import certifi
+
+    request = Request(url, headers={"User-Agent": "LoadForge/1.0 (+price catalog)"})
+    context = ssl.create_default_context(cafile=certifi.where())
+    try:
+        with urlopen(request, timeout=timeout_s, context=context) as response:
+            return response.read(8_000_000).decode("utf-8", errors="replace")
+    except epd.FETCH_ERRORS:
+        # curl uses the host trust store, which can contain an intermediate
+        # missing from Python/certifi. It still performs normal TLS checking.
+        completed = subprocess.run(
+            [
+                "curl", "-sS", "-L", "--max-time", str(max(1, int(timeout_s))),
+                "-A", "LoadForge/1.0 (+price catalog)", url,
+            ],
+            check=False,
+            capture_output=True,
+        )
+        if completed.returncode:
+            raise OSError(completed.stderr.decode("utf-8", errors="replace").strip())
+        return completed.stdout[:8_000_000].decode("utf-8", errors="replace")
 
 
 def _sitemap_urls_cdata(text: str) -> list[str]:
@@ -1029,11 +1532,16 @@ HARVESTERS = {
     "hogtalarshoppen": (harvest_hogtalarshoppen, HOGTALARSHOPPEN_CHECKPOINT),
     "diyspeakerseu": (harvest_diyspeakerseu, DIYSPEAKERSEU_CHECKPOINT),
     "analoghifi": (harvest_analoghifi, ANALOGHIFI_CHECKPOINT),
+    "thomann": (harvest_thomann, THOMANN_CHECKPOINT),
+    "ds18": (harvest_ds18, DS18_CHECKPOINT),
+    "ficaraudio": (harvest_ficaraudio, FICARAUDIO_CHECKPOINT),
+    "wavecor": (harvest_wavecor, WAVECOR_CHECKPOINT),
+    "audiohifi": (harvest_audiohifi, AUDIOHIFI_CHECKPOINT),
 }
 
 PAGE_LIMIT_SOURCES = {
     "cinergyaudio", "willyshifi", "topservicepro", "kjfaudio", "hogtalarshoppen",
-    "diyspeakerseu", "analoghifi",
+    "diyspeakerseu", "analoghifi", "ds18",
 }
 
 
@@ -1046,6 +1554,15 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def checkpoint_record_key(record: dict, index: int = 0) -> str:
+    """Keep variants sharing a product page distinct in retailer checkpoints."""
+    url = str(record.get("url") or "")
+    variant = str(record.get("sku") or record.get("mpn") or "")
+    if url and variant:
+        return f"{url}#{variant}"
+    return url or variant or str(record.get("name") or index)
+
+
 def main() -> int:
     args = build_parser().parse_args()
     harvester, checkpoint_path = HARVESTERS[args.source]
@@ -1053,11 +1570,37 @@ def main() -> int:
     if args.source not in PAGE_LIMIT_SOURCES:
         kwargs["limit"] = args.limit
     records = harvester(**kwargs)
-    checkpoint_path.write_text(
-        json.dumps({"source": args.source, "prices": records}, indent=2, ensure_ascii=False),
+    # A transient retailer outage must not replace a useful checkpoint with an
+    # empty/partial file. Merge by canonical product URL so fresh observations
+    # replace old ones while previously known offers survive interrupted runs.
+    existing_records = []
+    if checkpoint_path.exists():
+        try:
+            existing_payload = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+            existing_records = list(existing_payload.get("prices", []))
+        except (OSError, json.JSONDecodeError, TypeError):
+            existing_records = []
+    merged = {
+        checkpoint_record_key(record, index): record
+        for index, record in enumerate(existing_records)
+        if isinstance(record, dict)
+    }
+    for index, record in enumerate(records):
+        if not isinstance(record, dict):
+            continue
+        key = checkpoint_record_key(record, index)
+        merged[key] = record
+    payload = {"source": args.source, "prices": list(merged.values())}
+    temp_path = checkpoint_path.with_suffix(checkpoint_path.suffix + ".tmp")
+    temp_path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False),
         encoding="utf-8",
     )
-    epd.log(f"{args.source}: wrote {len(records)} records to {checkpoint_path}")
+    os.replace(temp_path, checkpoint_path)
+    epd.log(
+        f"{args.source}: refreshed={len(records)} retained={len(existing_records)} "
+        f"checkpoint={len(merged)} {checkpoint_path}"
+    )
     return 0
 
 

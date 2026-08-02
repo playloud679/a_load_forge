@@ -115,12 +115,17 @@ per-connection than a single fast browsing session would.
 - Parts Express: single-threaded estimate ~50 min for 8632 items → 4
   workers at 0.4s each finished in ~13 min. Merge checkpoints afterward
   (`tools/merge_partsexpress_harvest.py` reads all of them).
-- **Precompute per-candidate match data before an O(N×M) matching loop.**
-  Found a real perf bug this way: `enrich_driver_prices.py`'s
-  `match_score()` recomputes `tokenize`/`model_compacts`/`brand_compacts`
-  for *every* candidate on *every* product — all three depend only on the
-  candidate. Precomputing once turned a 9-minute matching pass (8400
-  candidates × several thousand price records) into 34 seconds.
+- **Index candidates before matching a catalog.** The current price rematcher
+  builds exact-identity and model-token indexes for the complete runtime
+  library, then evaluates only plausible candidates for each offer. This
+  replaced the older O(N×M) loop and also keeps every checkpoint merger on the
+  same brand, accessory, driver-type and multi-pack safety rules.
+  A complete retailer MPN can propagate to descriptive duplicate rows from
+  another runtime tier only when that MPN occurs in the row's model-code
+  compacts and brand plus explicit impedance agree; confidence is not lowered.
+  Candidate pools are sorted by stable identity before ties are resolved, so
+  repeated offline rematches converge instead of selecting a different alias
+  after Python hash randomization.
 
 ### 7. Spoof a browser User-Agent for sites that soft-block scrapers
 Some sites don't outright block a scraper UA — they serve a *fake* 200/404

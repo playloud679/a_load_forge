@@ -1074,7 +1074,7 @@ def _workspace_tab_styles() -> str:
 
 def _select_workspace(workspace: str) -> None:
     """Select a workspace from one of the large visual tabs."""
-    if workspace in _WORKSPACES:
+    if workspace in _available_workspaces():
         st.session_state["workspace_mode"] = workspace
 
 
@@ -1082,8 +1082,9 @@ def _render_workspace_tabs() -> None:
     """Render image tabs while retaining the state-compatible control."""
     st.markdown(_workspace_tab_styles(), unsafe_allow_html=True)
     active = str(st.session_state.get("workspace_mode", "Bass Match"))
-    tab_columns = st.columns(2, gap="small")
-    for column, workspace in zip(tab_columns, _WORKSPACES, strict=True):
+    workspaces = _available_workspaces()
+    tab_columns = st.columns(len(workspaces), gap="small")
+    for column, workspace in zip(tab_columns, workspaces, strict=True):
         slug = _WORKSPACE_TAB_SLUGS[workspace]
         with column:
             with st.container(key=f"workspace_tab_{slug}"):
@@ -1100,12 +1101,223 @@ def _render_workspace_tabs() -> None:
     with st.container(key="workspace_compat_control"):
         st.segmented_control(
             "Workspace",
-            _WORKSPACES,
+            workspaces,
             format_func=lambda value: _WORKSPACE_DISPLAY_LABELS.get(value, value),
             key="workspace_mode",
             label_visibility="collapsed",
             width="stretch",
         )
+
+
+def _render_catalog_maintenance() -> None:
+    """Administrator-only editor for the persistent driver price catalog."""
+    if not _maintenance_allowed():
+        st.error("Catalog Maintenance is restricted to the administrator.")
+        return
+    st.markdown(
+        """<style>
+        section[data-testid="stSidebar"] { display: none !important; }
+        [data-testid="stMainBlockContainer"] { max-width: 100% !important; padding: .35rem 1rem !important; }
+        [data-testid="stVerticalBlock"] { gap: .35rem !important; }
+        .maintenance-heading { font-size: 1.55rem; font-weight: 700; line-height: 1.15; margin: .1rem 0 .35rem; }
+        .maintenance-meta { color: #8b949e; font-size: .78rem; margin: -.05rem 0 .25rem; }
+        div[data-testid="stDataEditor"] [role="row"] { min-height: 30px !important; }
+        div[data-testid="stDataEditor"] { width: 100% !important; }
+        </style>""",
+        unsafe_allow_html=True,
+    )
+    catalog_paths = {
+        "Proprietario": "catalog_proprietario.json",
+        "LSDB": "catalog_lsdb.json",
+        "VituixCAD": "catalog_vituixcad.json",
+        "Speaker Box Lite": "catalog_speakerboxlite.json",
+    }
+    st.markdown('<div class="maintenance-heading">Catalog Maintenance</div>', unsafe_allow_html=True)
+    notice = str(st.session_state.pop("maintenance_notice", ""))
+    if notice:
+        st.success(notice)
+    catalog_col, search_col, save_col, duplicate_col, delete_col, backup_col, restore_col = st.columns(
+        [1.25, 2.75, .8, 1.45, 1.25, 1.4, 1.15],
+        gap="small",
+        vertical_alignment="bottom",
+    )
+    with catalog_col:
+        catalog_label = st.selectbox(
+            "Catalog",
+            tuple(catalog_paths),
+            key="maintenance_catalog",
+            label_visibility="collapsed",
+        )
+    path = Path(__file__).parent / "data" / catalog_paths[catalog_label]
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        unified_catalog = isinstance(payload.get("presets"), list)
+        if unified_catalog:
+            prices = {
+                str(item.get("name") or item.get("model") or index): item
+                for index, item in enumerate(payload["presets"])
+                if isinstance(item, dict)
+            }
+        else:
+            prices = payload.setdefault("prices", {})
+    except (OSError, json.JSONDecodeError) as exc:
+        st.error(f"Could not load price catalog: {exc}")
+        return
+    with search_col:
+        query = st.text_input(
+            "Search",
+            key="maintenance_query",
+            placeholder="Search name, brand or model…",
+            label_visibility="collapsed",
+        )
+    with save_col:
+        save_clicked = st.button(
+            "Save",
+            type="primary",
+            key="maintenance_save",
+            use_container_width=True,
+        )
+    with duplicate_col:
+        duplicate_clicked = st.button(
+            "Duplicate selected",
+            key="maintenance_duplicate",
+            use_container_width=True,
+        )
+    with delete_col:
+        delete_clicked = st.button(
+            "Delete selected",
+            key="maintenance_delete",
+            use_container_width=True,
+        )
+    backup_bytes = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
+    with backup_col:
+        st.download_button(
+            "Download backup",
+            data=backup_bytes,
+            file_name=f"{path.stem}_backup.json",
+            mime="application/json",
+            key="maintenance_backup_download",
+            use_container_width=True,
+        )
+    with restore_col:
+        with st.popover("Restore backup", use_container_width=True):
+            uploaded = st.file_uploader(
+                "JSON backup",
+                type=["json"],
+                key="maintenance_restore_upload",
+            )
+            if uploaded is not None and st.button(
+                "Restore selected catalog",
+                key="maintenance_restore_button",
+                type="primary",
+                use_container_width=True,
+            ):
+                try:
+                    restored = json.loads(uploaded.getvalue().decode("utf-8"))
+                    if not isinstance(restored, dict) or not (
+                        isinstance(restored.get("prices"), dict)
+                        or isinstance(restored.get("presets"), list)
+                    ):
+                        raise ValueError("backup must contain prices or presets")
+                    path.write_text(json.dumps(restored, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                    _pricing._load_driver_price_records.cache_clear()
+                    st.success("Full library restored")
+                    st.rerun()
+                except (UnicodeDecodeError, json.JSONDecodeError, ValueError, OSError) as exc:
+                    st.error(f"Restore failed: {exc}")
+    keys = [str(k) for k in prices]
+    matches = [k for k in keys if not query or query.casefold() in k.casefold()]
+    st.markdown(
+        f'<div class="maintenance-meta">{catalog_label} · {len(prices):,} records · {len(matches):,} shown</div>',
+        unsafe_allow_html=True,
+    )
+    rows = []
+    original_rows = {}
+    for key in matches:
+        record = dict(prices.get(key) or {})
+        status = str(record.get("availability", "InStock")).rsplit("/", 1)[-1]
+        if status not in {"InStock", "OutOfStock", "Discontinued"}:
+            status = "InStock"
+        row = {"_key": key, "Name": record.get("matched_name", record.get("name", key)),
+               "Brand": record.get("matched_brand", record.get("brand", "")), "MPN": record.get("matched_mpn", record.get("model", key)),
+               "Price": float(record.get("price") or 0),
+               "Currency": record.get("currency", record.get("price_currency", "EUR")), "Link": record.get("price_url") or record.get("url", ""),
+               "Status": status, "Select": False}
+        rows.append(row)
+        original_rows[key] = row
+    def compact_width(column: str, minimum: int, maximum: int) -> int:
+        longest = max((len(str(row.get(column, ""))) for row in rows), default=0)
+        return min(maximum, max(minimum, 22 + longest * 7))
+
+    edited = st.data_editor(
+        pd.DataFrame(rows),
+        hide_index=True,
+        use_container_width=True,
+        height=860,
+        disabled=["_key"],
+        column_config={
+            "_key": None,
+            "Name": st.column_config.TextColumn("Name", width=compact_width("Name", 180, 420)),
+            "Brand": st.column_config.TextColumn("Brand", width=compact_width("Brand", 85, 150)),
+            "MPN": st.column_config.TextColumn("MPN", width=compact_width("MPN", 90, 180)),
+            "Price": st.column_config.NumberColumn("Price", width=82, format="%.2f"),
+            "Currency": st.column_config.TextColumn("Currency", width=82),
+            "Link": st.column_config.LinkColumn("Link", width=82, display_text="Open ↗"),
+            "Status": st.column_config.SelectboxColumn("Status", options=["InStock", "OutOfStock", "Discontinued"], width=120),
+            "Select": st.column_config.CheckboxColumn("Select", width=74),
+        },
+        key=f"maintenance_table_{catalog_label}_{st.session_state.get('maintenance_table_revision', 0)}",
+    )
+    edited_rows = edited.to_dict("records")
+    selected_keys = [
+        str(row.get("_key", ""))
+        for row in edited_rows
+        if row.get("Select") and str(row.get("_key", "")) in prices
+    ]
+    selection_action = duplicate_clicked or delete_clicked
+    if selection_action and not selected_keys:
+        st.warning("Select at least one row first.")
+    elif save_clicked or selection_action:
+        for row in edited_rows:
+            key = str(row.get("_key", ""))
+            if key not in prices: continue
+            if not any(
+                row.get(column) != original_rows[key].get(column)
+                for column in ("Name", "Brand", "MPN", "Price", "Currency", "Link", "Status")
+            ):
+                continue
+            updated = dict(price=float(row.get("Price") or 0), currency=str(row.get("Currency") or "EUR").upper(),
+                           availability=str(row.get("Status") or "InStock"), matched_name=str(row.get("Name") or key),
+                           matched_brand=str(row.get("Brand") or ""), matched_mpn=str(row.get("MPN") or key),
+                           source="Manual catalog maintenance")
+            updated["price_url" if unified_catalog else "url"] = str(row.get("Link") or "")
+            prices[key].update(updated)
+        if delete_clicked:
+            for key in selected_keys:
+                prices.pop(key, None)
+        elif duplicate_clicked:
+            for source_key in selected_keys:
+                new_key = source_key + "-copy"; i = 2
+                while new_key in prices: new_key = f"{source_key}-copy-{i}"; i += 1
+                copied = dict(prices[source_key])
+                copied["matched_name"] = new_key
+                if unified_catalog:
+                    copied["name"] = new_key
+                prices[new_key] = copied
+        if unified_catalog:
+            payload["presets"] = list(prices.values())
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        _pricing._load_driver_price_records.cache_clear()
+        st.session_state["maintenance_table_revision"] = int(
+            st.session_state.get("maintenance_table_revision", 0)
+        ) + 1
+        if delete_clicked:
+            st.session_state["maintenance_notice"] = f"Deleted {len(selected_keys)} selected record(s)."
+        elif duplicate_clicked:
+            st.session_state["maintenance_notice"] = f"Duplicated {len(selected_keys)} selected record(s)."
+        else:
+            st.session_state["maintenance_notice"] = "Catalog saved."
+        st.rerun()
 
 _TRACE_COLORS = {
     "Total": "#10b981",
@@ -1184,11 +1396,33 @@ _WORKSPACES = ("Bass Match", "Box Design")
 _WORKSPACE_DISPLAY_LABELS = {
     "Bass Match": "Bass Match",
     "Box Design": "Box Design",
+    "Catalog Maintenance": "Catalog Maintenance",
 }
 _WORKSPACE_TAB_SLUGS = {
     "Bass Match": "bass_match",
     "Box Design": "box_design",
+    "Catalog Maintenance": "catalog_maintenance",
 }
+
+def _maintenance_allowed() -> bool:
+    """Restrict catalog editing to the explicitly configured administrator."""
+    admin_email = str(
+        os.getenv("LOAD_FORGE_ADMIN_EMAIL", "playloud79@gmail.com")
+    ).strip().casefold()
+    if _CURRENT_SAAS_USER is None:
+        # Local desktop mode has no identity provider; localhost access is the
+        # administrator boundary in that mode. Cloud/SaaS deployments still
+        # require an authenticated matching identity below.
+        return not _SAAS_SETTINGS.enabled and bool(admin_email)
+    uid = str(os.getenv("LOAD_FORGE_ADMIN_UID", "")).strip()
+    return bool(
+        (admin_email and str(_CURRENT_SAAS_USER.email).casefold() == admin_email)
+        or (uid and str(_CURRENT_SAAS_USER.uid) == uid)
+    )
+
+
+def _available_workspaces() -> tuple[str, ...]:
+    return _WORKSPACES
 # One box algorithm: the optimizer, with three selectable objectives.  The
 # labels map onto engine OptimizationGoals.objective; Manual unlocks fields.
 _OPT_OBJECTIVE_LABELS = {
@@ -1752,6 +1986,7 @@ def _activate_browser_project(
 
 def _start_new_browser_project() -> None:
     _clear_active_project_state()
+    _reset_finder_defaults()
     st.session_state["_browser_active_project"] = _new_browser_project_meta()
     st.session_state["_browser_project_initialized"] = True
     st.session_state["_browser_project_name_revision"] = (
@@ -2148,6 +2383,8 @@ def _saas_project_summaries(
 
 
 def _reset_saas_project_editor(name: str = "Untitled project") -> None:
+    _clear_active_project_state()
+    _reset_finder_defaults()
     st.session_state.pop("_saas_active_project_id", None)
     st.session_state.pop("_saas_active_project_revision", None)
     st.session_state["_saas_active_project_name"] = name
@@ -6803,6 +7040,9 @@ def _run_find_driver_search(
     context_preset_names: list[str] | None = None,
 ) -> None:
     """Rank the filtered candidates from the current Finder sidebar state."""
+    price_enabled = bool(st.session_state.get("preset_price_enabled", False))
+    price_currency = str(st.session_state.get("preset_price_currency", ""))
+    max_price = float(st.session_state.get("preset_max_price", 0.0) or 0.0)
     finder_load_types = list(st.session_state.get("finder_load_types", []))
     if not finder_load_types:
         finder_load_types = [str(st.session_state.get("load_type", "DCCAV"))]
@@ -6886,6 +7126,33 @@ def _run_find_driver_search(
     all_rows = _filter_finder_performance_rows(
         all_rows, min_spl_db, min_mol_f3_db, max_f3_hz
     )
+    # Apply the active price constraint to the final ranked rows as well as
+    # to the library pool.  This keeps stale/cached simulations from leaking
+    # unpriced drivers (or drivers above the limit) into the results table
+    # after the user changes the maximum price.
+    rates = _current_exchange_rates()[0]
+    filtered_rows = []
+    for row in all_rows:
+        driver_name = str(row.get("Driver", ""))
+        display_currency = price_currency or _driver_preset_currency(driver_name)
+        normalized_price = _normalized_preset_price(
+            driver_name, display_currency, rates
+        )
+        has_price = (
+            normalized_price is not None
+            and np.isfinite(float(normalized_price))
+        )
+        if price_enabled and (
+            not has_price or float(normalized_price) > max_price
+        ):
+            continue
+        # Keep table/export consistent with the catalog whenever a price is
+        # available, independently of whether the max-price filter is on.
+        if has_price:
+            row["Price"] = float(normalized_price)
+            row["Currency"] = display_currency
+        filtered_rows.append(row)
+    all_rows = filtered_rows
     all_rows = _dccav.sort_ranked_rows(all_rows)
     all_rows, collapsed_result_rows = _deduplicate_finder_result_rows(
         all_rows
@@ -9288,6 +9555,11 @@ with st.sidebar:
                 if load_type != "Infinite baffle" and box_edit_disabled:
                     st.caption("Switch Box strategy to Manual to edit volumes and tuning directly.")
 
+
+_maintenance_requested = str(st.query_params.get("maintenance", "")) == "1"
+if _maintenance_requested:
+    _render_catalog_maintenance()
+    st.stop()
 
 if workspace_mode == "Bass Match":
     _render_find_driver_workspace(filtered_preset_names)

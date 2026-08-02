@@ -4,7 +4,7 @@
   <img src="assets/load_forge_header.png" alt="Load Forge" width="900">
 </p>
 
-Current release: **0.8.0**
+Current release: **0.8.1**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth- and sixth-order bandpass**,
@@ -123,7 +123,28 @@ Retail prices in `data/driver_prices.json` can be refreshed concurrently from
 SoundImports, Blue Aran, Madisound and Parts Express with
 `tools/run_price_enrichment_cycle.py`.  The four providers run concurrently
 against independent checkpoints under `io/price_shards/`; a locked atomic merge
-updates the shared JSON only after their enrichment windows finish.
+updates the shared JSON only after their enrichment windows finish. By default
+the matcher targets the complete runtime library (built-ins plus LSDB,
+manufacturer, VituixCAD and Speaker Box Lite); `--presets` remains available
+for intentionally restricting a one-off enrichment run to one JSON catalog.
+The complementary `tools/run_extra_retailer_price_cycle.py` refreshes sixteen
+additional regional retailers concurrently, preserves useful checkpoint data
+through transient outages and rematches the merged offers against that same
+complete runtime library. Thomann searches every still-unpriced brand and
+extracts its structured live offer payload while excluding B-stock listings;
+DS18 uses exact official-catalog SKUs so loaded enclosures and bundles cannot
+be mistaken for raw drivers. Fi Car Audio expands its official live product
+options into impedance-specific offers. Checkpoints and merged catalogs key
+offers by product URL plus SKU/MPN, preserving variants that share one page.
+Wavecor prices come from the manufacturer's published USD retail list.
+AUDIO-HI.FI contributes its paginated Tang Band catalog and direct EUR offers.
+
+Administrators can open the catalog-maintenance workspace with
+`?maintenance=1`. It exposes every row in the selected source catalog, supports
+search, editable commercial fields, multi-row selection for duplication or
+deletion, and full JSON backup/restore. See
+[`docs/catalog-maintenance.md`](docs/catalog-maintenance.md) for its access,
+provenance and persistence contract.
 
 ## Running it
 

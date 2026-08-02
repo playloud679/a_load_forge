@@ -22,7 +22,7 @@ except ImportError:  # top-level import with src/ on sys.path (ui_app)
     from pricing import _preset_price, _valid_price
 
 LOUDSPEAKER_DATABASE_PATH = (
-    Path(__file__).resolve().parents[1] / "data" / "loudspeaker_database_drivers.json"
+    Path(__file__).resolve().parents[1] / "data" / "catalog_lsdb.json"
 )
 # Presets extracted directly from manufacturer sites (HTML/PDF/API), kept in a
 # separate file from the loudspeakerdatabase.com import above: this file is
@@ -35,7 +35,7 @@ def manufacturer_database_path(
     configured = str(values.get("LOAD_FORGE_MANUFACTURER_CATALOG_PATH", "")).strip()
     if configured:
         return Path(configured)
-    return Path(__file__).resolve().parents[1] / "data" / "manufacturer_drivers.json"
+    return Path(__file__).resolve().parents[1] / "data" / "catalog_proprietario.json"
 
 
 MANUFACTURER_DATABASE_PATH = manufacturer_database_path()
@@ -43,12 +43,12 @@ MANUFACTURER_DATABASE_PATH = manufacturer_database_path()
 # Keep it separate from manufacturer-original data and review upstream terms
 # before including the generated file in a public redistribution.
 VITUIXCAD_DATABASE_PATH = (
-    Path(__file__).resolve().parents[1] / "data" / "vituixcad_drivers.json"
+    Path(__file__).resolve().parents[1] / "data" / "catalog_vituixcad.json"
 )
 # Community-edited public aggregate. Its importer enforces the Q identity and
 # checks Sd against Vas/Cms physics before this optional tier is generated.
 SPEAKERBOXLITE_DATABASE_PATH = (
-    Path(__file__).resolve().parents[1] / "data" / "speakerboxlite_drivers.json"
+    Path(__file__).resolve().parents[1] / "data" / "catalog_speakerboxlite.json"
 )
 
 PRESET_PROVENANCE_CATEGORIES = (

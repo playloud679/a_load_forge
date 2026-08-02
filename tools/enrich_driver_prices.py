@@ -22,6 +22,7 @@ import html
 import json
 import math
 import re
+import sys
 import time
 from dataclasses import dataclass
 from html.parser import HTMLParser
@@ -397,7 +398,27 @@ BRAND_ALIASES = {
     "eighteensound": ("18sound",),
     "lavoce": ("lavoceitaliana",),
 }
-IMPEDANCE_SUFFIX = re.compile(r"\s*\d+(?:[.,]\d+)?\s*(?:Ω|ohms?)\s*$", re.I)
+IMPEDANCE_SUFFIX = re.compile(
+    r"\s*\(?\s*\d+(?:[.,]\d+)?\s*(?:Ω|ohms?)\s*\)?\s*$",
+    re.I,
+)
+IMPEDANCE_VALUE_RE = re.compile(
+    r"(?<![\d.,])(\d+(?:[.,]\d+)?)\s*(?:Ω|ohms?)",
+    re.I,
+)
+PAREN_IMPEDANCE_SUFFIX_RE = re.compile(r"\(\s*(2|4|6|8|12|16|32)\s*\)\s*$", re.I)
+
+
+def impedance_values(text: str) -> set[float]:
+    """Extract explicit nominal impedances without treating model digits as Ω."""
+    values = {
+        float(match.group(1).replace(",", "."))
+        for match in IMPEDANCE_VALUE_RE.finditer(str(text))
+    }
+    parenthesized = PAREN_IMPEDANCE_SUFFIX_RE.search(str(text))
+    if parenthesized:
+        values.add(float(parenthesized.group(1)))
+    return values
 
 
 def brand_compacts(brand: str) -> set[str]:
@@ -481,6 +502,8 @@ def product_looks_like_driver(product: dict) -> bool:
     accessory_patterns = (
         "surround for",
         "recone kit",
+        "recone-kit",
+        "reconekit",
         "repair kit",
         "diaphragm for",
         "voice coil",
@@ -612,6 +635,18 @@ def match_score(candidate: PresetCandidate, product: dict) -> float:
     product_text = f"{product.get('name', '')} {product.get('url', '')}"
     if driver_types_conflict(candidate_text, product_text):
         return 0.0
+    candidate_impedances = impedance_values(
+        f"{candidate.model} {candidate.query} {candidate.name}"
+    )
+    product_impedances = impedance_values(
+        f"{product.get('name', '')} {product.get('mpn', '')} {product.get('sku', '')}"
+    )
+    if (
+        candidate_impedances
+        and product_impedances
+        and candidate_impedances.isdisjoint(product_impedances)
+    ):
+        return 0.0
     query = "".join(tokenize(candidate.query))
     models = model_compacts(candidate.model)
     brands = brand_compacts(candidate.brand)
@@ -732,7 +767,14 @@ def _catalog_candidate_pool(
     _strong, sequences = product_match_sequences(product)
     for sequence in sequences:
         candidates.update(model_index.get(sequence, ()))
-    return list(candidates)
+    return sorted(
+        candidates,
+        key=lambda candidate: (
+            candidate.name.casefold(),
+            candidate.brand.casefold(),
+            candidate.model.casefold(),
+        ),
+    )
 
 
 def _prefer_rematched_price(existing: object, candidate: dict) -> bool:
@@ -768,7 +810,19 @@ def _candidate_has_exact_product_identity(candidate: PresetCandidate, product: d
     }
     candidate_keys.discard("")
     product_keys.discard("")
-    return bool(candidate_keys & product_keys)
+    if candidate_keys & product_keys:
+        return True
+    product_mpn = IMPEDANCE_SUFFIX.sub("", str(product.get("mpn") or ""))
+    product_mpn_key = normalize_token(product_mpn)
+    brand_matches = bool(
+        brand_compacts(candidate.brand)
+        & brand_compacts(str(product.get("brand") or product.get("name") or ""))
+    )
+    return bool(
+        brand_matches
+        and len(product_mpn_key) >= 5
+        and product_mpn_key in model_compacts(candidate.model)
+    )
 
 
 def rematch_cached_catalog(
@@ -808,7 +862,14 @@ def rematch_cached_catalog(
                 exact_score = match_score(exact_candidate, product)
                 if (
                     exact_score >= min_confidence
-                    and _candidate_has_exact_product_identity(exact_candidate, product)
+                    and (
+                        _candidate_has_exact_product_identity(exact_candidate, product)
+                        # A perfect score includes brand, model and full query
+                        # evidence. Propagate such an offer to duplicate rows
+                        # from other runtime tiers; the impedance guard in
+                        # match_score keeps 4/8/16-ohm variants separate.
+                        or exact_score >= 1.0
+                    )
                 ):
                     selected[exact_candidate] = exact_score
             for selected_candidate, selected_score in selected.items():
@@ -999,6 +1060,34 @@ def load_candidates(path: Path) -> list[PresetCandidate]:
             model=model,
             query=query,
             url=str(item.get("url") or ""),
+        ))
+    return candidates
+
+
+def load_library_candidates() -> list[PresetCandidate]:
+    """Return every driver that the application can expose at runtime.
+
+    Price crawling used to default to the LSDB JSON alone, which meant cached
+    retailer offers could never match built-ins, manufacturer crawls,
+    VituixCAD or Speaker Box Lite rows. Importing the catalog facade here keeps
+    the enrichment target identical to the actual Finder library, including
+    its cross-tier deduplication and canonical display names.
+    """
+    root_text = str(ROOT)
+    if root_text not in sys.path:
+        sys.path.insert(0, root_text)
+    from src import presets
+
+    candidates = []
+    for name in presets.driver_preset_names():
+        info = presets.driver_preset_info(name)
+        model = str(info.model or name.removeprefix("LSDB: ").strip())
+        candidates.append(PresetCandidate(
+            name=name,
+            brand=str(info.brand or ""),
+            model=model,
+            query=model or name,
+            url=str(info.url or ""),
         ))
     return candidates
 
@@ -1233,7 +1322,11 @@ def enrich_from_provider_sitemap(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--presets", default=DEFAULT_PRESETS, type=Path)
+    parser.add_argument(
+        "--presets",
+        type=Path,
+        help="Optional single preset JSON; omitted targets the complete runtime library.",
+    )
     parser.add_argument("--output", default=DEFAULT_OUTPUT, type=Path)
     parser.add_argument("--provider", choices=sorted(PROVIDERS), default="soundimports")
     parser.add_argument("--limit", type=int, default=100)
@@ -1251,12 +1344,12 @@ def main() -> int:
     parser.add_argument(
         "--rematch-catalog",
         action="store_true",
-        help="Match already cached retailer catalogs against --presets without network requests.",
+        help="Match cached retailer catalogs against the complete library or --presets override.",
     )
     parser.add_argument(
         "--refresh-preset-urls",
         action="store_true",
-        help="Fetch missing prices from recognized retailer URLs already stored in --presets.",
+        help="Fetch missing prices from recognized retailer URLs in the library or --presets override.",
     )
     parser.add_argument("--min-price", type=float, default=0.0, help="Optional lowest price kept by --prune-prices; default keeps coherent low prices.")
     parser.add_argument("--category-url", action="append", default=[], help="Category URL to parse via JSON-LD ItemList.")
@@ -1267,7 +1360,12 @@ def main() -> int:
     payload = load_output(args.output)
     prices = payload.setdefault("prices", {})
     misses = payload.setdefault("misses", {})
-    candidates = load_candidates(args.presets)
+    candidates = (
+        load_candidates(args.presets)
+        if args.presets is not None
+        else load_library_candidates()
+    )
+    log(f"loaded {len(candidates)} price candidates")
 
     if args.prune_prices:
         removed = prune_price_matches(candidates, payload, float(args.min_confidence), float(args.min_price))

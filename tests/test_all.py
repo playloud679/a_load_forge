@@ -3367,6 +3367,42 @@ def _check_ecb_rates_normalize_library_prices():
 test("ECB rates normalize Finder library prices", _check_ecb_rates_normalize_library_prices)
 
 
+def _check_runtime_price_matching_handles_aliases_and_impedance():
+    from src import pricing
+
+    record = {
+        "matched_name": "Eighteensound 15ND930 8 Ohm",
+        "matched_brand": "Eighteensound",
+        "matched_mpn": "15ND930 8 Ohm",
+        "url": "https://example.test/15nd930-8",
+    }
+    assert pricing._price_record_matches_preset(
+        record,
+        "LSDB: Eighteen Sound 15ND930 8Ω",
+        "Eighteen Sound",
+        "15ND930 8Ω",
+    )
+    assert not pricing._price_record_matches_preset(
+        record,
+        "LSDB: Eighteen Sound 15ND930 16Ω",
+        "Eighteen Sound",
+        "15ND930 16Ω",
+    )
+    recone = dict(record, matched_name="Eighteensound 15ND930 Reconekit")
+    assert not pricing._price_record_matches_preset(
+        recone,
+        "LSDB: Eighteen Sound 15ND930 8Ω",
+        "Eighteen Sound",
+        "15ND930 8Ω",
+    )
+
+
+test(
+    "Runtime price matching handles aliases and impedance",
+    _check_runtime_price_matching_handles_aliases_and_impedance,
+)
+
+
 def _check_dccav_loads_external_price_records(tmp_path=None):
     from src import presets as _presets
 
@@ -4311,7 +4347,7 @@ def _check_crawler_agent_release_is_approved_and_immutable():
         })
         assert configured == release_path
         assert presets.manufacturer_database_path({}).name == (
-            "manufacturer_drivers.json"
+            "catalog_proprietario.json"
         )
 
 
@@ -4859,6 +4895,25 @@ def _check_price_enricher_rejects_weak_substring_matches():
         "currency": "EUR",
     }
     assert enricher.match_score(candidate, spare_part) == 0.0
+    compact_recone = dict(spare_part, name="Pride LP 10 Reconekit")
+    assert enricher.match_score(candidate, compact_recone) == 0.0
+
+    eight_ohm = enricher.PresetCandidate(
+        name="FaitalPRO 8PR200 8 Ohm",
+        brand="FaitalPRO",
+        model="8PR200 8 Ohm",
+        query="8PR200",
+    )
+    sixteen_ohm_product = {
+        "name": "FaitalPRO 8PR200 16 Ohms",
+        "brand": "FaitalPRO",
+        "mpn": "8PR200 16 Ohms",
+        "sku": "8PR200-16",
+        "url": "https://example.test/8pr200-16",
+        "price": 99.0,
+        "currency": "EUR",
+    }
+    assert enricher.match_score(eight_ohm, sixteen_ohm_product) == 0.0
 
     payload = {
         "prices": {
@@ -5209,21 +5264,210 @@ def _check_price_enricher_rematches_cached_catalog_without_network():
         "availability": "https://schema.org/InStock",
         "price_valid_until": "",
     }
+    duplicate = enricher.PresetCandidate(
+        name="LSDB: GRS 5SMP-4",
+        brand="GRS",
+        model="5SMP-4",
+        query="5SMP-4",
+    )
+    descriptive_duplicate = enricher.PresetCandidate(
+        name="VituixCAD: GRS descriptive 5SMP-4 row",
+        brand="GRS",
+        model='5SMP-4 5-1/4" woofer 4 Ohm',
+        query='5SMP-4 5-1/4" woofer 4 Ohm',
+    )
     payload = {"prices": {}, "catalog": {"PartsExpress": {product["url"]: product}}}
-    stats = enricher.rematch_cached_catalog([candidate], payload)
+    stats = enricher.rematch_cached_catalog([candidate, duplicate, descriptive_duplicate], payload)
     assert stats == {
         "products_scanned": 1,
         "products_matched": 1,
-        "candidates_priced": 1,
-        "new_prices": 1,
+        "candidates_priced": 3,
+        "new_prices": 3,
         "replaced_prices": 0,
     }, stats
     assert payload["prices"][candidate.name]["price"] == 24.98
+    assert payload["prices"][duplicate.name]["price"] == 24.98
+    assert payload["prices"][descriptive_duplicate.name]["price"] == 24.98
 
 
 test(
     "Price enricher rematches cached catalogs without network",
     _check_price_enricher_rematches_cached_catalog_without_network,
+)
+
+
+def _check_price_enricher_targets_complete_runtime_library():
+    from src import presets
+    from tools import enrich_driver_prices as enricher
+
+    candidates = enricher.load_library_candidates()
+    runtime_names = presets.driver_preset_names()
+    assert len(candidates) == len(runtime_names)
+    assert {candidate.name for candidate in candidates} == set(runtime_names)
+    assert "KEF B110B article example" in {candidate.name for candidate in candidates}
+    assert any(candidate.name.startswith("LSDB: ") for candidate in candidates)
+    assert any("Speaker Box Lite" in presets.driver_preset_info(candidate.name).source
+               for candidate in candidates)
+
+
+test(
+    "Price enricher targets the complete runtime driver library",
+    _check_price_enricher_targets_complete_runtime_library,
+)
+
+
+def _check_thomann_search_parser_extracts_new_stock_only():
+    import json
+
+    from tools import harvest_extra_retailers as retailer
+
+    article = {
+        "number": "642108",
+        "relativeLink": "faitalpro_15pr400_8_ohms.htm?type=quickSearch",
+        "manufacturer": "FaitalPRO",
+        "model": "15PR400 8 Ohms",
+        "price": {"primary": {"rawPrice": "222.0000", "currency": {"key": "EUR"}}},
+        "availability": {"label": "IN_STOCK"},
+        "texts": {"title": "FaitalPRO 15PR400 8 Ohms"},
+        "isArchived": False,
+        "isBstock": False,
+    }
+    bstock = dict(article, number="650627", isBstock=True)
+    wrong_brand = dict(article, number="1", manufacturer="IMG Stageline")
+    payload = {
+        "articleListsSettings": {
+            "articles": [article, bstock],
+            "alternativeArticles": [wrong_brand],
+        },
+        "pagingSettings": {
+            "currentPage": 1,
+            "lastPage": 2,
+            "pages": [
+                {"type": "page", "page": 1, "link": "https://www.thomann.it/cat_BF_faitalpro.html?ls=50&pg=1"},
+                {"type": "page", "page": 2, "link": "https:\\/\\/www.thomann.it\\/cat_BF_faitalpro.html?ls=50&pg=2"},
+            ],
+        },
+    }
+    html = (
+        "<script>tho.bootstrapModule('search.index', "
+        + json.dumps([payload, None])
+        + ", {});</script>"
+    )
+    records, pages = retailer.thomann_records_from_html(html, "Faital Pro")
+    assert pages == 2 and len(records) == 1, (pages, records)
+    assert records[0]["price"] == 222.0 and records[0]["currency"] == "EUR"
+    assert records[0]["url"].endswith("faitalpro_15pr400_8_ohms.htm")
+    links = retailer._thomann_paging_links(html)
+    assert links[-1] == "https://www.thomann.it/cat_BF_faitalpro.html?ls=50&pg=2"
+
+
+test(
+    "Thomann search parser extracts matching new-stock offers",
+    _check_thomann_search_parser_extracts_new_stock_only,
+)
+
+
+def _check_ds18_parser_keeps_only_runtime_model_skus():
+    from tools import harvest_extra_retailers as retailer
+
+    products = [
+        {
+            "title": 'DS18 PS Shallow 8" Subwoofer PSW8.4D',
+            "handle": "psw84d",
+            "variants": [
+                {"sku": "PSW8.4D", "price": "149.95", "available": True},
+            ],
+        },
+        {
+            "title": "Loaded enclosure bundle",
+            "handle": "bundle",
+            "variants": [
+                {"sku": "BOX + PSW8.4D", "price": "399.95", "available": True},
+            ],
+        },
+    ]
+    records = retailer.ds18_records_from_products(products, {"psw84d"})
+    assert len(records) == 1, records
+    assert records[0]["sku"] == "PSW8.4D" and records[0]["price"] == 149.95
+
+
+test(
+    "DS18 parser keeps only exact runtime model SKUs",
+    _check_ds18_parser_keeps_only_runtime_model_skus,
+)
+
+
+def _check_fi_parser_expands_impedance_options():
+    from tools import harvest_extra_retailers as retailer
+
+    category = '''
+    <article data-name="Alpha Series 12" data-product-price=" 350 ">
+      <a href="https://ficaraudio.com/alpha-series-12/" class="card-figure__link">A</a>
+    </article>
+    '''
+    products = retailer.fi_category_products(category)
+    assert products == [{
+        "name": "Alpha Series 12",
+        "url": "https://ficaraudio.com/alpha-series-12/",
+        "price": 350.0,
+    }]
+    product_html = '''
+      <meta property="product:price:amount" content="350">
+      <label>Impedance:</label>
+      <span class="form-option-variant">S4</span>
+      <span class="form-option-variant">S2</span>
+    '''
+    records = retailer.fi_records_from_product_html(product_html, products[0])
+    assert [record["mpn"] for record in records] == ["Alpha 12 S4", "Alpha 12 S2"]
+    assert all(record["price"] == 350.0 for record in records)
+    assert retailer.checkpoint_record_key(records[0]) != retailer.checkpoint_record_key(records[1])
+
+
+test(
+    "Fi Car Audio parser expands impedance options",
+    _check_fi_parser_expands_impedance_options,
+)
+
+
+def _check_wavecor_parser_expands_official_price_rows():
+    from tools import harvest_extra_retailers as retailer
+
+    html = '''
+    <table><tr>
+      <td><span>WF110WA01/03</span></td>
+      <td><span>4 inch mid/woofer</span></td>
+      <td><span>USD 91.00</span></td>
+    </tr></table>
+    '''
+    records = retailer.wavecor_records_from_html(html, {"wf110wa01", "wf110wa03"})
+    assert [record["mpn"] for record in records] == ["WF110WA01", "WF110WA03"]
+    assert all(record["price"] == 91.0 for record in records)
+
+
+test(
+    "Wavecor parser expands official price rows",
+    _check_wavecor_parser_expands_official_price_rows,
+)
+
+
+def _check_audiohifi_parser_extracts_tang_band_rows():
+    from tools import harvest_extra_retailers as retailer
+
+    html = '''
+    <tr class="productListing-odd">
+      <td><h3 class="itemTitle"><a href="https://audio-hi.fi/en/w4.html">W4-1320SIF</a></h3>
+      <div class="listingDescription">4 inch full range driver.</div></td>
+      <td><span class="productBasePrice">&euro;58.60</span></td>
+    </tr>
+    '''
+    records = retailer.audiohifi_records_from_html(html, {"w41320sif"})
+    assert len(records) == 1 and records[0]["price"] == 58.6
+    assert records[0]["mpn"] == "W4-1320SIF"
+
+
+test(
+    "AUDIO-HI.FI parser extracts Tang Band rows",
+    _check_audiohifi_parser_extracts_tang_band_rows,
 )
 
 

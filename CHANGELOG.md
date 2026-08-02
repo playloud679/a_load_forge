@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.8.1 (2026-08-02)
+
+- **Full-library price enrichment**: cached retailer offers now target the
+  complete 14,066-driver runtime catalog instead of LSDB alone. The core four
+  providers and sixteen complementary sources share one indexed, deterministic
+  rematcher; checkpoints retain old observations through outages and preserve
+  same-page variants by URL plus SKU/MPN.
+- **New structured price sources**: added Thomann's embedded live catalog,
+  exact-SKU DS18, impedance-expanded Fi Car Audio, Wavecor's official USD list
+  and AUDIO-HI.FI's Tang Band catalog. The bundled data exposes 6,476 validated
+  prices and 14,000 product/source links; unavailable historical/discontinued
+  rows remain unpriced instead of receiving an inferred value.
+- **Price integrity**: runtime and crawler matching now agree on brand aliases,
+  explicit impedance, compact model codes, accessories/recone kits and exact
+  MPN propagation across duplicate catalog tiers. A prune removed 235 stale or
+  implausible observations before the catalogs were rematched.
+- **Unified source catalogs**: each LSDB, proprietary/manufacturer, VituixCAD
+  and Speaker Box Lite tier now has one self-contained T/S, provenance, price,
+  availability and product-link catalog consumed by the runtime.
+- **Administrator catalog maintenance**: the protected workspace renders every
+  matching record without the former 1,000-row cap. Independent multi-row
+  selection now drives explicit duplicate/delete actions; save updates only
+  changed rows so untouched source provenance remains intact. Complete JSON
+  backup and restore remain available.
+- **Verification**: the fresh active suite passes 140 tests with 0 failures and
+  0 skips after the catalog, pricing, crawler and maintenance changes.
+
 ## 0.8.0 (2026-08-01)
 
 - **Hard maximum-F3 constraint**: Bass Match can now reject every simulated

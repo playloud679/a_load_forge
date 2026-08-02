@@ -259,9 +259,12 @@ catalog section, and links high-confidence matches back to driver preset names.
 Use `--prune-prices` to revalidate an existing price file with the current
 matcher and remove stale, low-confidence or invalid preset price matches; its
 optional `--min-price` argument is off by default.
-Use `--rematch-catalog --presets <catalog.json>` to relink the already cached
-retailer catalogs to a different preset database without issuing network
-requests. The rematcher uses exact normalized brand/model identities and the
+Use `--rematch-catalog` to relink the already cached retailer offers against
+the complete runtime driver library. Add `--presets <catalog.json>` only to
+restrict that operation to one catalog. The default includes built-ins, LSDB,
+manufacturer, VituixCAD and Speaker Box Lite instead of silently targeting
+LSDB alone, without issuing network requests. The rematcher uses exact
+normalized brand/model identities and the
 same confidence/accessory guards as live ingestion. Exact product URLs stored
 by manufacturer/retailer imports are treated as strong identity evidence.
 Known manufacturer brands must also appear in the retailer product identity;

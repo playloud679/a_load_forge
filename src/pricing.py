@@ -34,6 +34,71 @@ def _compact_token_sequences(tokens: list[str], max_len: int = 4) -> set[str]:
     return compact
 
 
+_BRAND_GENERIC_TOKENS = {"speaker", "speakers", "loudspeakers", "professional", "audio"}
+_BRAND_ALIASES = {"eighteensound": ("18sound",), "lavoce": ("lavoceitaliana",)}
+_GENERIC_SPEC_COMPACT_RE = re.compile(
+    r"^(?:\d+(?:ohm|ohms|w|watt|watts|hz|khz|db|mm|cm|in)|(?:ohm|ohms|w|watt|watts|hz|khz|db|mm|cm|in)\d+)$"
+)
+_IMPEDANCE_SUFFIX_RE = re.compile(r"\s*\(?\s*\d+(?:[.,]\d+)?\s*(?:Ω|ohms?)\s*\)?\s*$", re.I)
+_IMPEDANCE_VALUE_RE = re.compile(
+    r"(?<![\d.,])(\d+(?:[.,]\d+)?)\s*(?:Ω|ohms?)",
+    re.I,
+)
+_PAREN_IMPEDANCE_SUFFIX_RE = re.compile(r"\(\s*(2|4|6|8|12|16|32)\s*\)\s*$", re.I)
+
+
+def _brand_compacts(brand: str) -> set[str]:
+    tokens = _preset_match_tokens(brand)
+    if not tokens:
+        return set()
+    compacts = {"".join(tokens)}
+    trimmed = "".join(token for token in tokens if token not in _BRAND_GENERIC_TOKENS)
+    if len(trimmed) >= 2:
+        compacts.add(trimmed)
+    for compact in tuple(compacts):
+        compacts.update(_BRAND_ALIASES.get(compact, ()))
+    return compacts
+
+
+def _is_code_like_token(token: str) -> bool:
+    return any(character.isalpha() for character in token) and any(
+        character.isdigit() for character in token
+    )
+
+
+def _model_compacts(model: str) -> set[str]:
+    compacts = set()
+    for variant in {model, _IMPEDANCE_SUFFIX_RE.sub("", model)}:
+        tokens = _preset_match_tokens(variant)
+        compact = "".join(tokens)
+        if compact:
+            compacts.add(compact)
+        for start in range(len(tokens)):
+            for end in range(start + 2, min(len(tokens), start + 4) + 1):
+                span = tokens[start:end]
+                sequence = "".join(span)
+                if (
+                    len(sequence) >= 5
+                    and any(character.isalpha() for character in sequence)
+                    and any(character.isdigit() for character in sequence)
+                    and not _GENERIC_SPEC_COMPACT_RE.match(sequence)
+                    and any(_is_code_like_token(token) for token in span)
+                ):
+                    compacts.add(sequence)
+    return compacts
+
+
+def _impedance_values(text: str) -> set[float]:
+    values = {
+        float(match.group(1).replace(",", "."))
+        for match in _IMPEDANCE_VALUE_RE.finditer(str(text))
+    }
+    parenthesized = _PAREN_IMPEDANCE_SUFFIX_RE.search(str(text))
+    if parenthesized:
+        values.add(float(parenthesized.group(1)))
+    return values
+
+
 def _model_needs_brand(model: str) -> bool:
     compact = "".join(_preset_match_tokens(model))
     return bool(compact) and (compact.isdigit() or len(compact) <= 5)
@@ -44,6 +109,8 @@ def _record_looks_like_driver(record: dict) -> bool:
     accessory_patterns = (
         "surround for",
         "recone kit",
+        "recone-kit",
+        "reconekit",
         "repair kit",
         "diaphragm for",
         "voice coil",
@@ -67,8 +134,19 @@ def _price_record_matches_preset(record: dict, name: str, brand: str, model: str
         return False
     if not record.get("matched_name") and not record.get("matched_brand") and not record.get("matched_mpn"):
         return True
-    model_key = "".join(_preset_match_tokens(model or name.removeprefix("LSDB: ")))
-    brand_key = "".join(_preset_match_tokens(brand))
+    candidate_model = model or name.removeprefix("LSDB: ")
+    candidate_impedances = _impedance_values(f"{candidate_model} {name}")
+    product_impedances = _impedance_values(
+        f"{record.get('matched_name', '')} {record.get('matched_mpn', '')}"
+    )
+    if (
+        candidate_impedances
+        and product_impedances
+        and candidate_impedances.isdisjoint(product_impedances)
+    ):
+        return False
+    model_keys = _model_compacts(candidate_model)
+    brand_keys = _brand_compacts(brand)
     product_tokens: list[str] = []
     for key in ("matched_name", "matched_brand", "matched_mpn", "url"):
         product_tokens.extend(_preset_match_tokens(str(record.get(key, ""))))
@@ -77,17 +155,15 @@ def _price_record_matches_preset(record: dict, name: str, brand: str, model: str
         "".join(_preset_match_tokens(str(record.get(key, ""))))
         for key in ("matched_name", "matched_brand", "matched_mpn", "url")
     ]
-    model_ok = bool(
-        model_key
-        and (
-            model_key in product_sequences
-            or (len(model_key) >= 8 and any(model_key in field for field in product_fields))
-        )
+    model_ok = any(
+        model_key in product_sequences
+        or (len(model_key) >= 8 and any(model_key in field for field in product_fields))
+        for model_key in model_keys
     )
-    brand_ok = bool(not brand_key or brand_key in product_sequences)
-    if _model_needs_brand(model or name) and not brand_ok:
+    brand_ok = bool(not brand_keys or brand_keys & product_sequences)
+    if brand_keys and not brand_ok:
         return False
-    return model_ok or (brand_ok and bool(brand_key) and brand_key == model_key)
+    return model_ok
 
 
 def _price_from_record(record: dict | None, name: str = "", brand: str = "", model: str = "") -> tuple[float | None, str, str]:

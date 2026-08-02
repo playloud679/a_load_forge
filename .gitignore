@@ -40,6 +40,10 @@ data/driver_datasheets.sqlite3-*
 data/*_crawler_checkpoint.json
 data/*_checkpoint.json
 data/*_checkpoint_*.json
+data/price_crawler.log
+
+# Local recoverable catalog snapshots; release catalogs live under data/.
+snapshots/
 
 # Streamlit secrets (contains API keys — keep local)
 .streamlit/secrets.toml

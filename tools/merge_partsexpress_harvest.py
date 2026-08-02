@@ -24,11 +24,8 @@ PRICES_PATH = ROOT / "data" / "driver_prices.json"
 
 
 def load_all_candidates() -> list[epd.PresetCandidate]:
-    candidates: list[epd.PresetCandidate] = []
-    for path in (MANUFACTURER_PATH, LSDB_PATH):
-        if path.exists():
-            candidates.extend(epd.load_candidates(path))
-    return candidates
+    """Match prices against the same complete, deduplicated library as Finder."""
+    return epd.load_library_candidates()
 
 
 def merge_presets(checkpoint_paths: list[Path]) -> int:
@@ -88,10 +85,7 @@ def _fast_match_score(query, models, brands, weak, strong_sequences, all_sequenc
 def merge_prices(checkpoint_paths: list[Path], min_confidence: float = 0.8) -> tuple[int, int]:
     payload = epd.load_output(PRICES_PATH)
     candidates = load_all_candidates()
-    precomputed = _precomputed_candidates(candidates)
     catalog = payload.setdefault("catalog", {}).setdefault("PartsExpress", {})
-    prices = payload.setdefault("prices", {})
-    matched = 0
     total = 0
     for cp_path in checkpoint_paths:
         state = json.loads(cp_path.read_text(encoding="utf-8"))
@@ -111,29 +105,9 @@ def merge_prices(checkpoint_paths: list[Path], min_confidence: float = 0.8) -> t
                 continue
             total += 1
             catalog[product["url"]] = epd.catalog_record(product, "PartsExpress")
-            if not epd.product_looks_like_driver(product):
-                continue
-            strong_sequences, all_sequences = epd.product_match_sequences(product)
-            best_candidate = None
-            best_score = 0.0
-            for c, query, models, brands, weak in precomputed:
-                score = _fast_match_score(query, models, brands, weak, strong_sequences, all_sequences)
-                if score > best_score:
-                    best_candidate, best_score = c, score
-            if best_candidate is None or best_score < min_confidence:
-                continue
-            price_rec = epd.price_record(best_candidate, product, "PartsExpress", best_score)
-            existing = prices.get(best_candidate.name)
-            same_currency = isinstance(existing, dict) and str(existing.get("currency", "")) == price_rec["currency"]
-            if not isinstance(existing, dict) or (
-                same_currency and float(price_rec["price"]) <= float(existing.get("price", float("inf")))
-            ):
-                prices[best_candidate.name] = price_rec
-            if best_candidate.model and best_candidate.model not in prices:
-                prices[best_candidate.model] = price_rec
-            matched += 1
+    stats = epd.rematch_cached_catalog(candidates, payload, min_confidence)
     epd.write_output(PRICES_PATH, payload)
-    return matched, total
+    return int(stats["products_matched"]), total
 
 
 def main() -> None:

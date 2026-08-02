@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Merge tools/harvest_extra_retailers.py checkpoints (Cinergy Audio,
 Audiophonics, DIY-Audio.eu, Willy's HiFi, Haut-Parleurs.fr, Lautsprechershop,
-TopServicePro, KJF Audio, Hogtalarshoppen) into data/driver_prices.json, reusing
-enrich_driver_prices.py's matching logic via the fast precomputed-candidate
-variant introduced in merge_partsexpress_harvest.py so the catalog/prices
-schema stays consistent with every other seller.
+TopServicePro, KJF Audio, Hogtalarshoppen, DIYSpeakersEU, AnalogHiFi and
+Thomann, DS18, Fi Car Audio, Wavecor and AUDIO-HI.FI) into
+data/driver_prices.json, reusing
+enrich_driver_prices.py's
+indexed matcher so the catalog/prices schema stays consistent with every
+other seller.
 
 Safe to run repeatedly against partial/refreshed checkpoints.
 """
@@ -18,11 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 
 import enrich_driver_prices as epd  # noqa: E402
-from merge_partsexpress_harvest import (  # noqa: E402
-    _fast_match_score,
-    _precomputed_candidates,
-    load_all_candidates,
-)
+from merge_partsexpress_harvest import load_all_candidates  # noqa: E402
 
 PRICES_PATH = ROOT / "data" / "driver_prices.json"
 
@@ -38,17 +36,32 @@ SOURCES = {
     "hogtalarshoppen": (ROOT / "data" / "hogtalarshoppen_harvest_checkpoint.json", "Hogtalarshoppen"),
     "diyspeakerseu": (ROOT / "data" / "diyspeakerseu_harvest_checkpoint.json", "DIYSpeakersEU"),
     "analoghifi": (ROOT / "data" / "analoghifi_harvest_checkpoint.json", "AnalogHiFi"),
+    "thomann": (ROOT / "data" / "thomann_harvest_checkpoint.json", "Thomann"),
+    "ds18": (ROOT / "data" / "ds18_harvest_checkpoint.json", "DS18"),
+    "ficaraudio": (ROOT / "data" / "ficaraudio_harvest_checkpoint.json", "FiCarAudio"),
+    "wavecor": (ROOT / "data" / "wavecor_harvest_checkpoint.json", "WavecorOfficial"),
+    "audiohifi": (ROOT / "data" / "audiohifi_harvest_checkpoint.json", "AudioHiFi"),
+    "bomberregional": (ROOT / "data" / "bomberregional_harvest_checkpoint.json", "BomberRegional"),
+    "paudioregional": (ROOT / "data" / "paudio_regional_harvest_checkpoint.json", "PAudioRegional"),
+    "phltlhp": (ROOT / "data" / "phl_tlhp_harvest_checkpoint.json", "PHL-TLHP"),
+    "sicatlhp": (ROOT / "data" / "sica_soundimports_tlhp_checkpoint.json", "SICA-TLHP"),
+    "toutlehautparleur": (
+        ROOT / "data" / "toutlehautparleur_harvest_checkpoint.json",
+        "ToutLeHautParleur",
+    ),
 }
 
 
-def merge_source(payload: dict, precomputed, checkpoint_path: Path, seller: str, min_confidence: float) -> tuple[int, int]:
+def merge_source(payload: dict, checkpoint_path: Path, seller: str) -> int:
     if not checkpoint_path.exists():
         print(f"{seller}: no checkpoint at {checkpoint_path}, skipping")
-        return 0, 0
+        return 0
     state = json.loads(checkpoint_path.read_text(encoding="utf-8"))
-    catalog = payload.setdefault("catalog", {}).setdefault(seller, {})
-    prices = payload.setdefault("prices", {})
-    matched = 0
+    # The checkpoint is the complete retained state for this seller. Rebuild
+    # its catalog so an identity-key migration (URL -> URL+SKU) cannot leave
+    # stale duplicate entries behind.
+    catalog = {}
+    payload.setdefault("catalog", {})[seller] = catalog
     total = 0
     for record in state.get("prices", []):
         product = {
@@ -65,60 +78,26 @@ def merge_source(payload: dict, precomputed, checkpoint_path: Path, seller: str,
         if product["price"] is None or not product["url"]:
             continue
         total += 1
-        catalog[product["url"]] = epd.catalog_record(product, seller)
-        if not epd.product_looks_like_driver(product):
-            continue
-        strong_sequences, all_sequences = epd.product_match_sequences(product)
-        best_candidate = None
-        best_score = 0.0
-        for c, query, models, brands, weak in precomputed:
-            score = _fast_match_score(query, models, brands, weak, strong_sequences, all_sequences)
-            if score > best_score:
-                best_candidate, best_score = c, score
-        if best_candidate is None or best_score < min_confidence:
-            continue
-        # _fast_match_score (unlike enrich_driver_prices.match_score) has no
-        # driver-type consistency guard -- restore it here as a post-hoc
-        # check so this merge path can't reintroduce the woofer<->tweeter
-        # class of false positive that match_score() itself was fixed
-        # against (see docs/pricing.md / scrape playbook for the history).
-        candidate_text = f"{best_candidate.brand} {best_candidate.model} {best_candidate.name}"
-        product_text = f"{product.get('name', '')} {product.get('url', '')}"
-        if epd.driver_types_conflict(candidate_text, product_text):
-            continue
-        # Same lineage gap as above: _fast_match_score also has no guard
-        # against matching a single-unit preset to a multi-unit bulk pack
-        # listing (e.g. a BlueAran "Four Pack" SKU priced ~4x the single
-        # unit) -- restore epd.match_score()'s post-2026-07-24 pack guard
-        # here too, post-hoc.
-        if epd.product_is_multi_unit_pack(product) and not epd._PACK_QUANTITY_RE.search(candidate_text.casefold()):
-            continue
-        price_rec = epd.price_record(best_candidate, product, seller, best_score)
-        existing = prices.get(best_candidate.name)
-        same_currency = isinstance(existing, dict) and str(existing.get("currency", "")) == price_rec["currency"]
-        if not isinstance(existing, dict) or (
-            same_currency and float(price_rec["price"]) <= float(existing.get("price", float("inf")))
-        ):
-            prices[best_candidate.name] = price_rec
-        if best_candidate.model and best_candidate.model not in prices:
-            prices[best_candidate.model] = price_rec
-        matched += 1
-    return matched, total
+        variant = str(product.get("sku") or product.get("mpn") or "")
+        catalog_key = f"{product['url']}#{variant}" if variant else product["url"]
+        catalog[catalog_key] = epd.catalog_record(product, seller)
+    return total
 
 
 def main() -> None:
     payload = epd.load_output(PRICES_PATH)
     candidates = load_all_candidates()
-    precomputed = _precomputed_candidates(candidates)
-    grand_matched = 0
     grand_total = 0
     for key, (checkpoint_path, seller) in SOURCES.items():
-        matched, total = merge_source(payload, precomputed, checkpoint_path, seller, min_confidence=0.8)
-        print(f"{seller}: ingested={total} matched={matched}")
-        grand_matched += matched
+        total = merge_source(payload, checkpoint_path, seller)
+        print(f"{seller}: ingested={total}")
         grand_total += total
+    stats = epd.rematch_cached_catalog(candidates, payload, min_confidence=0.8)
     epd.write_output(PRICES_PATH, payload)
-    print(f"TOTAL: ingested={grand_total} matched={grand_matched}")
+    print(
+        f"TOTAL: ingested={grand_total} "
+        + " ".join(f"{key}={value}" for key, value in stats.items())
+    )
 
 
 if __name__ == "__main__":
