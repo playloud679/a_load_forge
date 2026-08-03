@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.8.2 (2026-08-03)
+
+- **Cloud Run startup fix**: added the missing numeric columns (`Size in`,
+  `Mms g`, `Le10k mH`, `Ripple dB`) to the UI table formats, preventing mixed
+  catalog values from causing an Arrow serialization failure at startup.
+- **Bass Match startup candidates**: the initial Bass Match render now loads
+  its server-side preset names before computing pre-qualification, so the
+  candidate count and Run button no longer incorrectly start at zero while
+  the heavy Candidate pool table remains lazy.
+- **Browser project management**: saved projects can now be duplicated with a
+  unique name and complete design/Finder state, or permanently deleted from
+  IndexedDB after an explicit confirmation, both before and after opening the
+  project. Startup now leaves every saved project in the explicit chooser and
+  recovers from missing or invalid IndexedDB payloads without a rerun loop.
+- **Persistent library filters**: switching to Box Design and back now keeps
+  Bass Match search, provenance, brand, size, class and price selections while
+  avoiding mutation of Streamlit's live session-state iterator.
+- **Verification**: the fresh active suite passes 141 tests with 0 failures and
+  0 skips.
+
 ## 0.8.1 (2026-08-02)
 
 - **Full-library price enrichment**: cached retailer offers now target the

@@ -2169,7 +2169,7 @@ def _check_browser_project_startup_is_non_blocking():
     assert _ui._browser_project_startup_mode(True, False, []) == "new"
     assert _ui._browser_project_startup_mode(
         True, False, projects[:1]
-    ) == "load"
+    ) == "choose"
     assert _ui._browser_project_startup_mode(True, False, projects) == "choose"
     assert _ui._decode_browser_project_summaries("not-json") == []
     assert _ui._decode_browser_project_summaries("{}") == []
@@ -2184,6 +2184,8 @@ def _check_browser_project_startup_is_non_blocking():
 
     source = (ROOT / "ui_app.py").read_text()
     assert 'command.op === "upsert" && command.quiet' in source
+    assert 'command.op === "duplicate" && command.project_id' in source
+    assert 'command.op === "delete" && command.project_id' in source
     assert 'if (!cancelled && !command.quiet)' in source
     assert '[data-stale="true"]' in source
     assert "opacity: 1 !important;" in source
@@ -2283,6 +2285,125 @@ def _check_ui_new_browser_project_starts_clean():
 test(
     "UI New project starts without state from the previous project",
     _check_ui_new_browser_project_starts_clean,
+)
+
+
+def _check_ui_browser_projects_duplicate_and_delete():
+    import json
+
+    from streamlit.testing.v1 import AppTest
+
+    import ui_app as _ui
+
+    assert _ui._browser_project_copy_name(
+        "Sub alignment",
+        ["Sub alignment", "Sub alignment copy"],
+    ) == "Sub alignment copy 2"
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.session_state["project_menu_expander"] = True
+    at.session_state["_browser_project_initialized"] = True
+    at.session_state["_browser_project_store_ready"] = True
+    at.session_state["_browser_active_project"] = {
+        "id": "lfp_original",
+        "name": "Sub alignment",
+        "created_at": "2026-08-01T00:00:00+00:00",
+        "updated_at": "2026-08-01T00:00:00+00:00",
+    }
+    at.session_state["_browser_project_summaries"] = [
+        {"id": "lfp_original", "name": "Sub alignment"},
+        {"id": "lfp_copy", "name": "Sub alignment copy"},
+    ]
+    at.session_state["driver_fs_hz"] = 31.5
+    at.run()
+    assert not at.exception, at.exception
+
+    duplicate = next(
+        button for button in at.button
+        if button.key == "_browser_duplicate_project"
+    )
+    duplicate.click().run()
+    assert not at.exception, at.exception
+    duplicated = at.session_state["_browser_active_project"]
+    assert duplicated["id"] != "lfp_original"
+    assert duplicated["name"] == "Sub alignment copy"
+    assert abs(float(at.session_state["driver_fs_hz"]) - 31.5) < 1e-9
+
+    delete = next(
+        button for button in at.button
+        if button.key == "_browser_delete_project"
+    )
+    delete.click().run()
+    assert not at.exception, at.exception
+    assert any(
+        "Delete Sub alignment copy permanently" in item.value
+        for item in at.warning
+    )
+    confirm = next(
+        button for button in at.button
+        if button.key == "_browser_confirm_delete_project"
+    )
+    deleted_id = str(at.session_state["_browser_active_project"]["id"])
+    confirm.click().run()
+    assert not at.exception, at.exception
+    assert str(at.session_state["_browser_active_project"]["id"]) != deleted_id
+    request = at.session_state["_browser_project_delete_request"]
+    assert request["project_id"] == deleted_id
+    assert abs(float(at.session_state["driver_fs_hz"]) - 31.5) > 1e-9
+
+    chooser = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    chooser.session_state["project_menu_expander"] = True
+    chooser.session_state["_browser_project_initialized"] = True
+    chooser.session_state["_browser_project_store_ready"] = True
+    chooser.session_state["_browser_active_project"] = None
+    chooser.session_state["_browser_project_store"] = {
+        "ready": True,
+        "summaries_json": json.dumps([
+            {"id": "lfp_saved", "name": "Saved alignment"},
+        ]),
+        "ack": "",
+        "load_ack": "",
+        "duplicate_ack": "",
+        "delete_ack": "",
+        "error": "",
+    }
+    chooser.run()
+    assert not chooser.exception, chooser.exception
+    duplicate_selected = next(
+        button for button in chooser.button
+        if button.key == "_browser_duplicate_selected_project"
+    )
+    duplicate_selected.click().run()
+    assert not chooser.exception, chooser.exception
+    duplicate_request = chooser.session_state[
+        "_browser_project_duplicate_request"
+    ]
+    assert duplicate_request["project_id"] == "lfp_saved"
+    assert duplicate_request["project"]["name"] == "Saved alignment copy"
+
+    del chooser.session_state["_browser_project_duplicate_request"]
+    chooser.run()
+    delete_selected = next(
+        button for button in chooser.button
+        if button.key == "_browser_delete_selected_project"
+    )
+    delete_selected.click().run()
+    assert not chooser.exception, chooser.exception
+    confirm_selected = next(
+        button for button in chooser.button
+        if button.key == "_browser_confirm_delete_selected_project"
+    )
+    confirm_selected.click().run()
+    assert not chooser.exception, chooser.exception
+    selected_delete_request = chooser.session_state[
+        "_browser_project_delete_request"
+    ]
+    assert selected_delete_request["project_id"] == "lfp_saved"
+
+
+test(
+    "UI browser projects can be duplicated and deleted",
+    _check_ui_browser_projects_duplicate_and_delete,
 )
 
 
@@ -6153,6 +6274,25 @@ def _check_ui_finder_main_action_runs_search():
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.run()
     assert not at.exception, at.exception
+    initial_prequalified = next(
+        metric for metric in at.metric if metric.label == "Pre-qualified"
+    )
+    assert initial_prequalified.value != "0 / 0", (
+        "the initial Bass Match render must load its server-side candidate "
+        f"names, got {initial_prequalified.value}"
+    )
+    initial_find_button = next(
+        button for button in list(at.button) + list(at.sidebar.button)
+        if button.label == _ui._FINDER_CTA_LABEL
+    )
+    assert not initial_find_button.disabled, (
+        "the initial Bass Match run must not be disabled by an unloaded catalog"
+    )
+    assert any(
+        expander.label.startswith("Candidate pool · ")
+        and expander.label != "Candidate pool · 0 available"
+        for expander in at.expander
+    ), "the initial candidate pool must report the loaded catalog"
     at.session_state["workspace_mode"] = "Bass Match"
     at.session_state["preset_search"] = "KEF B110B article example"
     at.session_state["finder_result_count"] = 1
@@ -6312,10 +6452,26 @@ def _check_ui_finder_filters_survive_workspace_roundtrip_and_reset():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
     at.session_state["workspace_mode"] = "Bass Match"
+    at.session_state["bass_match_sidebar_tab"] = "Library filters"
     at.session_state["finder_candidate_pool_expander"] = True
     at.run()
     assert not at.exception, at.exception
     assert at.dataframe, "the default Finder library must not be empty"
+
+    brand = next(
+        item for item in at.sidebar.multiselect
+        if item.label == "Brand"
+    )
+    brand.set_value(["Beyma"]).run()
+    assert not at.exception, at.exception
+    search = next(
+        item for item in at.sidebar.text_input
+        if item.label == "Search preset"
+    )
+    search.set_value("12").run()
+    assert not at.exception, at.exception
+    assert at.session_state["preset_family_filter"] == ["Beyma"]
+    assert at.session_state["preset_search"] == "12"
 
     at.session_state["workspace_mode"] = "Box Design"
     at.run()
@@ -6331,7 +6487,13 @@ def _check_ui_finder_filters_survive_workspace_roundtrip_and_reset():
         "preset_class_filter",
     )
     for key in filter_keys:
-        assert at.session_state[key] == ["All"], (key, at.session_state[key])
+        expected = ["Beyma"] if key == "preset_family_filter" else ["All"]
+        assert at.session_state[key] == expected, (key, at.session_state[key])
+    assert at.session_state["preset_search"] == "12"
+    assert next(
+        item for item in at.sidebar.multiselect
+        if item.label == "Brand"
+    ).value == ["Beyma"]
     assert at.dataframe, "a Design round trip must preserve the Finder library"
     assert not any(
         "No drivers match" in warning.value for warning in at.warning

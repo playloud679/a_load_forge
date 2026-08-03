@@ -216,6 +216,42 @@ export default function(component) {
           );
           setIfChanged("load_ack", String(command.nonce || ""));
         }
+      } else if (
+        command && command.op === "duplicate" && command.project_id
+        && command.project
+      ) {
+        const transaction = database.transaction(
+          [STORE_NAME, SUMMARY_STORE_NAME], "readwrite"
+        );
+        const projects = transaction.objectStore(STORE_NAME);
+        const source = await requestResult(projects.get(command.project_id));
+        if (!source) throw new Error("Project to duplicate no longer exists");
+        const duplicate = {
+          ...source,
+          project: {...command.project},
+        };
+        await requestResult(projects.put(duplicate));
+        await requestResult(
+          transaction.objectStore(SUMMARY_STORE_NAME).put(
+            projectSummary(duplicate)
+          )
+        );
+        if (!cancelled) {
+          setIfChanged("duplicate_ack", String(command.nonce || ""));
+        }
+      } else if (command && command.op === "delete" && command.project_id) {
+        const transaction = database.transaction(
+          [STORE_NAME, SUMMARY_STORE_NAME], "readwrite"
+        );
+        await requestResult(
+          transaction.objectStore(STORE_NAME).delete(command.project_id)
+        );
+        await requestResult(
+          transaction.objectStore(SUMMARY_STORE_NAME).delete(command.project_id)
+        );
+        if (!cancelled) {
+          setIfChanged("delete_ack", String(command.nonce || ""));
+        }
       }
       // Routine autosaves are deliberately fire-and-forget. Publishing an
       // ack or the new updated_at summary back to Python would make a normal
@@ -1981,6 +2017,9 @@ def _activate_browser_project(
     _cache_lfp_download(payload, content_signature)
     st.session_state.pop("_browser_project_load_request", None)
     st.session_state.pop("_browser_project_load_after_save", None)
+    st.session_state.pop("_browser_project_delete_confirmation", None)
+    st.session_state.pop("_browser_selected_delete_confirmation", None)
+    st.session_state.pop("_browser_project_load_error", None)
     st.session_state.pop("_browser_project_menu_auto_open", None)
 
 
@@ -1997,11 +2036,105 @@ def _start_new_browser_project() -> None:
     st.session_state.pop("_browser_project_saved_results_signature", None)
     st.session_state.pop("_browser_project_load_request", None)
     st.session_state.pop("_browser_project_load_after_save", None)
+    st.session_state.pop("_browser_project_delete_confirmation", None)
+    st.session_state.pop("_browser_selected_delete_confirmation", None)
+    st.session_state.pop("_browser_project_load_error", None)
     st.session_state.pop("_browser_project_menu_auto_open", None)
+
+
+def _browser_project_copy_name(name: str, existing_names: list[str]) -> str:
+    """Return a readable, unique name for a duplicated browser project."""
+    base = str(name).strip() or "Untitled project"
+    used = {str(item).strip().casefold() for item in existing_names}
+    candidate = f"{base} copy"
+    suffix = 2
+    while candidate.casefold() in used:
+        candidate = f"{base} copy {suffix}"
+        suffix += 1
+    return candidate
+
+
+def _duplicate_active_browser_project() -> None:
+    """Keep the current project state but autosave it under a new identity."""
+    active = st.session_state.get("_browser_active_project")
+    if not isinstance(active, dict):
+        return
+    summaries = st.session_state.get("_browser_project_summaries", [])
+    existing_names = [
+        str(item.get("name", ""))
+        for item in summaries
+        if isinstance(item, dict)
+    ]
+    duplicate = _new_browser_project_meta(
+        _browser_project_copy_name(
+            str(active.get("name", "Untitled project")),
+            existing_names,
+        )
+    )
+    st.session_state["_browser_active_project"] = duplicate
+    st.session_state["_browser_project_initialized"] = True
+    st.session_state["_browser_project_name_revision"] = (
+        int(st.session_state.get("_browser_project_name_revision", 0)) + 1
+    )
+    for key in (
+        "_browser_project_content_signature",
+        "_browser_project_last_ack",
+        "_browser_project_saved_results_signature",
+        "_browser_project_pending_results",
+        "_browser_project_load_request",
+        "_browser_project_load_after_save",
+        "_browser_project_download_cache",
+        "_browser_project_delete_confirmation",
+    ):
+        st.session_state.pop(key, None)
+    st.session_state["_browser_project_menu_auto_open"] = True
+    st.session_state["_browser_project_action_message"] = (
+        f"Duplicated project as {duplicate['name']}"
+    )
+
+
+def _delete_active_browser_project() -> None:
+    """Queue the active IndexedDB record for deletion and start clean."""
+    active = st.session_state.get("_browser_active_project")
+    if not isinstance(active, dict) or not active.get("id"):
+        return
+    deleted_name = str(active.get("name", "Untitled project"))
+    deleted_id = str(active["id"])
+    _start_new_browser_project()
+    _request_browser_project_delete(deleted_id, deleted_name)
+    st.session_state["_browser_project_menu_auto_open"] = True
+
+
+def _request_browser_project_duplicate(project_id: str, name: str) -> None:
+    """Queue an IndexedDB-to-IndexedDB copy without loading the source."""
+    summaries = st.session_state.get("_browser_project_summaries", [])
+    existing_names = [
+        str(item.get("name", ""))
+        for item in summaries
+        if isinstance(item, dict)
+    ]
+    duplicate = _new_browser_project_meta(
+        _browser_project_copy_name(name, existing_names)
+    )
+    st.session_state["_browser_project_duplicate_request"] = {
+        "project_id": str(project_id),
+        "project": duplicate,
+        "nonce": uuid.uuid4().hex,
+    }
+
+
+def _request_browser_project_delete(project_id: str, name: str) -> None:
+    """Queue one stored project and its summary for permanent deletion."""
+    st.session_state["_browser_project_delete_request"] = {
+        "project_id": str(project_id),
+        "project_name": str(name).strip() or "Untitled project",
+        "nonce": uuid.uuid4().hex,
+    }
 
 
 def _request_browser_project_load(project_id: str) -> None:
     project_id = str(project_id)
+    st.session_state.pop("_browser_project_load_error", None)
     active = st.session_state.get("_browser_active_project")
     if (
         st.session_state.get("_browser_project_initialized")
@@ -2074,6 +2207,8 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
             "summaries_json": "[]",
             "ack": "",
             "load_ack": "",
+            "duplicate_ack": "",
+            "delete_ack": "",
             "error": "",
         }.items()
     }
@@ -2081,8 +2216,25 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
         bridge_state["summaries_json"]
     )
     command = None
+    delete_request = st.session_state.get("_browser_project_delete_request")
+    duplicate_request = st.session_state.get(
+        "_browser_project_duplicate_request"
+    )
     load_request = st.session_state.get("_browser_project_load_request")
-    if isinstance(load_request, dict):
+    if isinstance(delete_request, dict):
+        command = {
+            "op": "delete",
+            "project_id": str(delete_request.get("project_id", "")),
+            "nonce": str(delete_request.get("nonce", "")),
+        }
+    elif isinstance(duplicate_request, dict):
+        command = {
+            "op": "duplicate",
+            "project_id": str(duplicate_request.get("project_id", "")),
+            "project": duplicate_request.get("project", {}),
+            "nonce": str(duplicate_request.get("nonce", "")),
+        }
+    elif isinstance(load_request, dict):
         command = {
             "op": "load",
             "project_id": str(load_request.get("project_id", "")),
@@ -2169,6 +2321,8 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
             "summaries_json": "[]",
             "ack": "",
             "load_ack": "",
+            "duplicate_ack": "",
+            "delete_ack": "",
             "loaded_project_json": "",
             "error": "",
         },
@@ -2177,6 +2331,8 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
         on_summaries_json_change=lambda: None,
         on_ack_change=lambda: None,
         on_load_ack_change=lambda: None,
+        on_duplicate_ack_change=lambda: None,
+        on_delete_ack_change=lambda: None,
         on_loaded_project_json_change=lambda: None,
         on_error_change=lambda: None,
     )
@@ -2195,6 +2351,35 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
         _acknowledge_browser_project_save(str(command.get("nonce", "")))
     ack = str(getattr(result, "ack", "") or "")
     _acknowledge_browser_project_save(ack)
+    duplicate_ack = str(getattr(result, "duplicate_ack", "") or "")
+    if (
+        isinstance(duplicate_request, dict)
+        and duplicate_ack == str(duplicate_request.get("nonce", ""))
+    ):
+        duplicate_meta = duplicate_request.get("project", {})
+        duplicate_name = (
+            str(duplicate_meta.get("name", "Untitled project"))
+            if isinstance(duplicate_meta, dict)
+            else "Untitled project"
+        )
+        st.session_state.pop("_browser_project_duplicate_request", None)
+        st.session_state["_browser_project_action_message"] = (
+            f"Duplicated project as {duplicate_name}"
+        )
+        st.rerun()
+    delete_ack = str(getattr(result, "delete_ack", "") or "")
+    if (
+        isinstance(delete_request, dict)
+        and delete_ack == str(delete_request.get("nonce", ""))
+    ):
+        deleted_name = str(
+            delete_request.get("project_name", "Untitled project")
+        )
+        st.session_state.pop("_browser_project_delete_request", None)
+        st.session_state["_browser_project_action_message"] = (
+            f"Deleted project: {deleted_name}"
+        )
+        st.rerun()
     if ack:
         queued_load_id = str(
             st.session_state.get("_browser_project_load_after_save", "")
@@ -2226,6 +2411,27 @@ def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
             loaded_project = None
         if not isinstance(loaded_project, dict):
             loaded_project = None
+            failed_id = str(load_request.get("project_id", ""))
+            failed_summary = next(
+                (
+                    item for item in projects
+                    if str(item.get("id", "")) == failed_id
+                ),
+                {},
+            )
+            failed_name = str(
+                failed_summary.get("name", "the selected project")
+            )
+            # A missing/orphaned IndexedDB payload must complete the request.
+            # Keeping the same acknowledged nonce queued makes the component
+            # publish the same state forever and pegs the Streamlit runner.
+            st.session_state.pop("_browser_project_load_request", None)
+            st.session_state.pop("_browser_project_load_after_save", None)
+            st.session_state["_browser_project_initialized"] = True
+            st.session_state["_browser_project_load_error"] = (
+                f"Could not open {failed_name}: its saved data is missing or "
+                "invalid. You can delete it below or create a new project."
+            )
     return (
         bool(getattr(result, "ready", False)),
         projects,
@@ -2244,13 +2450,11 @@ def _browser_project_startup_mode(
         return "continue"
     if not projects:
         return "new"
-    if len(projects) == 1:
-        return "load"
     return "choose"
 
 
 def _initialize_browser_project_store() -> None:
-    """Open zero/one projects automatically and choose multiples in-sidebar."""
+    """Create an empty store or present saved projects in the sidebar."""
     ready, projects, error, loaded_project = _browser_project_store()
     st.session_state["_browser_project_store_ready"] = ready
     st.session_state["_browser_project_summaries"] = projects
@@ -2275,9 +2479,6 @@ def _initialize_browser_project_store() -> None:
         return
     if startup_mode == "new":
         _start_new_browser_project()
-        st.rerun()
-    if startup_mode == "load":
-        _request_browser_project_load(str(projects[0].get("id", "")))
         st.rerun()
     st.session_state["_browser_project_menu_auto_open"] = True
 
@@ -2572,6 +2773,9 @@ def _render_browser_project_controls() -> None:
             st.caption("Loading projects saved in this browser…")
             return
         st.caption("Choose a project saved in this browser")
+        load_error = st.session_state.get("_browser_project_load_error")
+        if load_error:
+            st.error(str(load_error))
         if summaries:
             project_by_id = {
                 str(item["id"]): item
@@ -2593,6 +2797,71 @@ def _render_browser_project_controls() -> None:
             ):
                 _request_browser_project_load(selected_id)
                 st.rerun()
+            selected_name = str(
+                project_by_id[selected_id].get("name", "Untitled project")
+            )
+            manage_columns = st.columns(2)
+            with manage_columns[0]:
+                if st.button(
+                    "Duplicate project",
+                    key="_browser_duplicate_selected_project",
+                    use_container_width=True,
+                ):
+                    _request_browser_project_duplicate(
+                        selected_id,
+                        selected_name,
+                    )
+                    st.rerun()
+            with manage_columns[1]:
+                if st.button(
+                    "Delete project…",
+                    key="_browser_delete_selected_project",
+                    use_container_width=True,
+                ):
+                    st.session_state[
+                        "_browser_selected_delete_confirmation"
+                    ] = {
+                        "project_id": selected_id,
+                        "project_name": selected_name,
+                    }
+                    st.rerun()
+            selected_confirmation = st.session_state.get(
+                "_browser_selected_delete_confirmation"
+            )
+            if isinstance(selected_confirmation, dict):
+                confirmation_name = str(
+                    selected_confirmation.get(
+                        "project_name", "Untitled project"
+                    )
+                )
+                st.warning(
+                    f"Delete {confirmation_name} permanently from this browser?"
+                )
+                confirm_columns = st.columns(2)
+                with confirm_columns[0]:
+                    if st.button(
+                        "Cancel",
+                        key="_browser_cancel_delete_selected_project",
+                        use_container_width=True,
+                    ):
+                        st.session_state.pop(
+                            "_browser_selected_delete_confirmation", None
+                        )
+                        st.rerun()
+                with confirm_columns[1]:
+                    if st.button(
+                        "Delete permanently",
+                        key="_browser_confirm_delete_selected_project",
+                        use_container_width=True,
+                    ):
+                        _request_browser_project_delete(
+                            str(selected_confirmation.get("project_id", "")),
+                            confirmation_name,
+                        )
+                        st.session_state.pop(
+                            "_browser_selected_delete_confirmation", None
+                        )
+                        st.rerun()
         if st.button(
             "New project",
             key="_browser_new_project",
@@ -2602,7 +2871,6 @@ def _render_browser_project_controls() -> None:
             st.rerun()
         return
 
-    st.caption("Autosaved on this device")
     st.caption("Autosaved on this device")
     revision = int(st.session_state.get("_browser_project_name_revision", 0))
     project_name = st.text_input(
@@ -2628,34 +2896,73 @@ def _render_browser_project_controls() -> None:
             _start_new_browser_project()
             st.rerun()
     with action_columns[1]:
-        content_signature = str(
-            st.session_state.get("_browser_project_content_signature", "")
-        )
-        download_cache = st.session_state.get("_browser_project_download_cache")
-        cache_ready = (
-            isinstance(download_cache, dict)
-            and download_cache.get("signature") == content_signature
-            and isinstance(download_cache.get("data"), bytes)
-        )
-        if cache_ready:
-            st.download_button(
-                "Download .lfp",
-                download_cache["data"],
-                _project_download_filename(active["name"]),
-                "application/json",
-                use_container_width=True,
-                key="_browser_download_project",
-            )
-        elif st.button(
-            "Prepare .lfp",
+        if st.button(
+            "Duplicate project",
+            key="_browser_duplicate_project",
             use_container_width=True,
-            key="_browser_prepare_project_download",
-            help="Prepare the complete project only on demand so large "
-                 "Bass Match result sets do not slow every interaction.",
         ):
-            payload = _build_lfp_project(active, include_results=True)
-            _cache_lfp_download(payload, content_signature)
+            _duplicate_active_browser_project()
             st.rerun()
+
+    content_signature = str(
+        st.session_state.get("_browser_project_content_signature", "")
+    )
+    download_cache = st.session_state.get("_browser_project_download_cache")
+    cache_ready = (
+        isinstance(download_cache, dict)
+        and download_cache.get("signature") == content_signature
+        and isinstance(download_cache.get("data"), bytes)
+    )
+    if cache_ready:
+        st.download_button(
+            "Download .lfp",
+            download_cache["data"],
+            _project_download_filename(active["name"]),
+            "application/json",
+            use_container_width=True,
+            key="_browser_download_project",
+        )
+    elif st.button(
+        "Prepare .lfp",
+        use_container_width=True,
+        key="_browser_prepare_project_download",
+        help="Prepare the complete project only on demand so large "
+             "Bass Match result sets do not slow every interaction.",
+    ):
+        payload = _build_lfp_project(active, include_results=True)
+        _cache_lfp_download(payload, content_signature)
+        st.rerun()
+
+    if st.session_state.get("_browser_project_delete_confirmation"):
+        st.warning(
+            f"Delete {active['name']} permanently from this browser?"
+        )
+        confirm_columns = st.columns(2)
+        with confirm_columns[0]:
+            if st.button(
+                "Cancel",
+                key="_browser_cancel_delete_project",
+                use_container_width=True,
+            ):
+                st.session_state.pop(
+                    "_browser_project_delete_confirmation", None
+                )
+                st.rerun()
+        with confirm_columns[1]:
+            if st.button(
+                "Delete permanently",
+                key="_browser_confirm_delete_project",
+                use_container_width=True,
+            ):
+                _delete_active_browser_project()
+                st.rerun()
+    elif st.button(
+        "Delete project…",
+        key="_browser_delete_project",
+        use_container_width=True,
+    ):
+        st.session_state["_browser_project_delete_confirmation"] = True
+        st.rerun()
 
     if other_projects:
         project_by_id = {
@@ -2697,6 +3004,11 @@ def _render_project_menu() -> None:
     if not project_expander.open:
         return
     with project_expander:
+        action_message = st.session_state.pop(
+            "_browser_project_action_message", None
+        )
+        if action_message:
+            st.toast(str(action_message))
         _render_browser_project_controls()
         if _CURRENT_SAAS_USER is not None:
             _render_saas_project_controls(_CURRENT_SAAS_USER)
@@ -3049,7 +3361,7 @@ def _preserve_design_state() -> None:
 
 def _preserve_library_filters() -> None:
     """Keep Finder-only catalog filters while the Design workspace is open."""
-    for key in (
+    filter_keys = (
         "preset_search",
         "finder_load_types",
         "preset_family_filter",
@@ -3061,14 +3373,30 @@ def _preserve_library_filters() -> None:
         "preset_price_currency",
         "bass_match_sidebar_tab",
         "finder_candidate_pool_expander",
-    ):
-        if key in st.session_state:
-            st.session_state[key] = st.session_state[key]
-    # Compact multiselects are conditionally absent in Box Design and in the
-    # other Bass Match sidebar tabs, so keep their widget state warm too.
-    for key in list(st.session_state):
-        if "__select_v5" in str(key):
-            st.session_state[key] = st.session_state[key]
+    )
+    compact_widget_keys = tuple(
+        widget_key
+        for filter_key in (
+            "preset_family_filter",
+            "preset_source_filter",
+            "preset_size_filter",
+            "preset_class_filter",
+        )
+        for widget_key in (
+            f"{filter_key}__select_v5",
+            f"{filter_key}__select_v5__aggregate",
+        )
+    )
+    # Snapshot first: Streamlit can add internal widget entries while state is
+    # inspected. Iterating and assigning through the live proxy in one pass can
+    # otherwise raise ``dictionary changed size during iteration``.
+    preserved = {
+        key: st.session_state[key]
+        for key in (*filter_keys, *compact_widget_keys)
+        if key in st.session_state
+    }
+    for key, value in preserved.items():
+        st.session_state[key] = value
 
 
 def _reset_candidate_filters() -> None:
@@ -3771,6 +4099,14 @@ def _filter_driver_preset_names(
         for value in selected_values(driver_class)
     }
     query = search.strip().casefold()
+    # The default view has no active filters.  Avoid touching every preset's
+    # metadata on the first Streamlit run; names remain server-side and the
+    # visible table is capped/paginated later.
+    if not (
+        source_values or family_values or size_values or class_values or query
+        or max_price is not None or max_mms_g is not None or max_le_mh is not None
+    ):
+        return list(names)
     rates = _current_exchange_rates()[0] if max_price is not None else None
     filtered = []
     for name in names:
@@ -7382,9 +7718,9 @@ _PRESET_SELECT_MAX_OPTIONS = 1000
 
 
 _TABLE_NUMBER_FORMATS = {
-    "Nominal in": ".2f", "Sd cm²": ".1f", "Effective Ø in": ".2f",
+    "Nominal in": ".2f", "Size in": ".1f", "Sd cm²": ".1f", "Effective Ø in": ".2f",
     "Fs Hz": ".1f", "Qts": ".3f", "Vas L": ".1f",
-    "SPL dB": ".0f", "F3 Hz": ".1f",
+    "SPL dB": ".0f", "F3 Hz": ".1f", "Ripple dB": ".1f",
     "MOL @ F3 dB": ".1f", "Peak dB": ".1f",
     "Price": ".2f", "Value": ".0f",
     "Min ohm": ".2f", "Vb L": ".2f",
@@ -7392,6 +7728,7 @@ _TABLE_NUMBER_FORMATS = {
     "Fb Hz": ".1f", "Fc Hz": ".1f", "Qtc": ".3f", "Vs L": ".2f",
     "Vp L": ".2f", "Fp Hz": ".1f", "Vr L": ".2f", "Fr Hz": ".1f",
     "Vh L": ".2f", "fh Hz": ".1f", "Vl L": ".2f", "fl Hz": ".1f",
+    "Mms g": ".1f", "Le10k mH": ".2f",
 }
 
 
@@ -7442,11 +7779,11 @@ def _clean_display_table_frame(frame: pd.DataFrame) -> pd.DataFrame:
         if not missing.any():
             continue
         if name in _TABLE_NUMBER_FORMATS:
-            spec = _TABLE_NUMBER_FORMATS[name]
-            display[name] = [
-                "—" if is_missing else format(float(value), spec)
-                for value, is_missing in zip(display[name], missing, strict=True)
-            ]
+            # Keep numeric columns numeric for Arrow/Streamlit.  Replacing
+            # missing values with the em-dash string makes pandas infer an
+            # object column and can raise ArrowTypeError when the table is
+            # serialized (notably on Safari's first render).
+            display[name] = pd.to_numeric(display[name], errors="coerce")
         elif name != "Response":
             display[name] = [
                 "—" if is_missing else value
@@ -9041,6 +9378,9 @@ with st.sidebar:
             with bm_tab2:
                 _render_find_driver_goal_sidebar()
 
+        # Bass Match needs the server-side preset names on its first render:
+        # they drive the pre-qualified count and the Run button even while
+        # the Candidate pool table and Library filters remain collapsed.
         all_preset_names = _dccav.driver_preset_names()
         if bm_tab3.open:
             with bm_tab3:

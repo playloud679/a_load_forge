@@ -88,6 +88,18 @@ during the one required calculation rerun, while autosave errors stay visible.
 Creating a new browser project clears every project-owned design, Finder,
 comparison, plot and pending-load value before normal defaults are seeded; no
 state from the formerly active project may cross that boundary.
+A browser project can be duplicated or permanently deleted directly from the
+saved-project chooser as well as while it is active. Duplication keeps its
+complete design and Bass Match state under a new identity; confirmed deletion
+removes both its IndexedDB payload and index entry. Deleting the active project
+also seeds a clean replacement project for autosave.
+When saved projects exist, startup always presents the chooser instead of
+opening one implicitly. Missing or invalid IndexedDB payloads finish with a
+recoverable warning, leaving the chooser available to delete the damaged entry
+or create a clean project without entering a Streamlit rerun loop.
+Library search, provenance, brand, size, class and price filters retain both
+their aggregate values and compact widget selections while Box Design is open,
+so returning to Bass Match restores the same candidate pool.
 Compact titles preserve driver identity through tab selection/deletion and use
 the same deterministic colors as their chart curves. The Finder follows
 acoustic brief → `Run Bass Match` → ranked driver/load/box designs. Its raw

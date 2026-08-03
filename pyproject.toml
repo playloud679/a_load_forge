@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "load_forge"
-version = "0.8.1"
+version = "0.8.2"
 description = "Streamlit simulator for DCCAV, bandpass, reflex, sealed and infinite-baffle loudspeaker loads"
 readme = "README.md"
 license = { text = "Proprietary" }
