@@ -19,8 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from tools import crawl_thiele_small as crawler
-
+from tools import crawl_thiele_small as crawler  # noqa: E402
 
 DEFAULT_DATABASE = ROOT / "data" / "manufacturer_drivers.json"
 DEFAULT_REPORT = ROOT / "data" / "manufacturer_optional_refresh_report.json"

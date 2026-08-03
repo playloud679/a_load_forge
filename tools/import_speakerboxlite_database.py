@@ -12,7 +12,6 @@ from pathlib import Path
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_URL = "https://speakerboxlite.com/api/v1/speakers"
 DEFAULT_OUTPUT = ROOT / "data" / "speakerboxlite_drivers.json"

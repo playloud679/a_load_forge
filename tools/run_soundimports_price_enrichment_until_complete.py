@@ -17,7 +17,6 @@ from pathlib import Path
 
 import enrich_driver_prices as enricher
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "data" / "driver_prices.json"
 
@@ -26,7 +25,7 @@ def log(message: str):
     print(message, flush=True)
 
 
-def output_progress(path: Path, provider: "enricher.Provider") -> tuple[int, int, int]:
+def output_progress(path: Path, provider: enricher.Provider) -> tuple[int, int, int]:
     if not path.exists():
         return 0, 0, 0
     payload = json.loads(path.read_text(encoding="utf-8"))
@@ -40,7 +39,7 @@ def output_progress(path: Path, provider: "enricher.Provider") -> tuple[int, int
     return len(done), len(misses), len(prices)
 
 
-def sitemap_total(provider: "enricher.Provider", timeout_s: float) -> int:
+def sitemap_total(provider: enricher.Provider, timeout_s: float) -> int:
     text = enricher.fetch_text(provider.sitemap_url, timeout_s)
     return len(enricher.provider_product_urls(provider, text))
 

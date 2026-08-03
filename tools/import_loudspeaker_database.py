@@ -14,10 +14,9 @@ import sys
 import time
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import quote, urljoin
 from urllib.error import HTTPError, URLError
+from urllib.parse import quote, urljoin
 from urllib.request import HTTPCookieProcessor, Request, build_opener
-
 
 BASE_URL = "https://loudspeakerdatabase.com"
 PAGE_SIZE = 40

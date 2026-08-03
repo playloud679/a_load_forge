@@ -16,7 +16,6 @@ and availability are volatile.  Current provider support:
 from __future__ import annotations
 
 import argparse
-from collections import defaultdict
 import datetime as dt
 import html
 import json
@@ -24,6 +23,7 @@ import math
 import re
 import sys
 import time
+from collections import defaultdict
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from pathlib import Path

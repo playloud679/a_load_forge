@@ -11,7 +11,6 @@ from pathlib import Path
 
 import harvest_extra_retailers as harvester
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCES = tuple(sorted(harvester.HARVESTERS))
 

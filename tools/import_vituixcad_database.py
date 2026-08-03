@@ -13,7 +13,6 @@ import re
 from pathlib import Path
 from urllib.request import Request, urlopen
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_URL = (
     "https://kimmosaunisto.net/Software/VituixCAD/VituixCAD_Drivers.txt"

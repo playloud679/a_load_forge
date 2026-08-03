@@ -15,7 +15,6 @@ from typing import Any
 
 from dedupe_manufacturer_drivers import deduplicate_presets
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATABASE = ROOT / "data" / "manufacturer_drivers.json"
 DEFAULT_PRICES = ROOT / "data" / "driver_prices.json"

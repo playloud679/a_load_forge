@@ -14,7 +14,6 @@ from pathlib import Path
 
 import enrich_driver_prices as enricher
 
-
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "data" / "driver_prices.json"
 DEFAULT_SHARD_DIR = ROOT / "io" / "price_shards"

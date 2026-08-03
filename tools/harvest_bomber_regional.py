@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Import exact Bomber driver offers from Fortaleza Som's public catalog."""
 from __future__ import annotations
-import json, re
+
+import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen

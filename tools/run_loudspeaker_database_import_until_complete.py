@@ -10,7 +10,6 @@ import sys
 import time
 from pathlib import Path
 
-
 INTERRUPTED_EXIT = 75
 
 

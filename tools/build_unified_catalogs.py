@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-import pricing
+import pricing  # noqa: E402
 
 SOURCES = {
     "catalog_proprietario.json": "data/manufacturer_drivers.json",

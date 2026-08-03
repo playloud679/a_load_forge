@@ -10,7 +10,6 @@ from pathlib import Path
 
 import crawl_thiele_small as ts
 
-
 ROOT = Path(__file__).resolve().parents[1]
 PRICE_PATH = ROOT / "data" / "driver_prices.json"
 OUTPUT_PATH = ROOT / "data" / "manufacturer_drivers.json"

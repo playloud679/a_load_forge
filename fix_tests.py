@@ -1,6 +1,5 @@
-import sys
 
-with open('tests/test_all.py', 'r') as f:
+with open('tests/test_all.py') as f:
     content = f.read()
 
 content = content.replace('"Design a box"', '"Box Design"')

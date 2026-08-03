@@ -20,10 +20,8 @@ import time
 from pathlib import Path
 from urllib.parse import urlencode
 
-from bs4 import BeautifulSoup
-
 import crawl_thiele_small as ts_crawler
-
+from bs4 import BeautifulSoup
 
 ROOT = Path(__file__).resolve().parents[1]
 BASE_URL = "https://en.toutlehautparleur.com/speakers/cone-speaker.html"

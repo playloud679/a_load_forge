@@ -1316,7 +1316,8 @@ def _render_catalog_maintenance() -> None:
     elif save_clicked or selection_action:
         for row in edited_rows:
             key = str(row.get("_key", ""))
-            if key not in prices: continue
+            if key not in prices:
+                continue
             if not any(
                 row.get(column) != original_rows[key].get(column)
                 for column in ("Name", "Brand", "MPN", "Price", "Currency", "Link", "Status")
@@ -1333,8 +1334,11 @@ def _render_catalog_maintenance() -> None:
                 prices.pop(key, None)
         elif duplicate_clicked:
             for source_key in selected_keys:
-                new_key = source_key + "-copy"; i = 2
-                while new_key in prices: new_key = f"{source_key}-copy-{i}"; i += 1
+                new_key = source_key + "-copy"
+                i = 2
+                while new_key in prices:
+                    new_key = f"{source_key}-copy-{i}"
+                    i += 1
                 copied = dict(prices[source_key])
                 copied["matched_name"] = new_key
                 if unified_catalog:
@@ -5618,7 +5622,7 @@ def _render_editable_design_tabs(
                 height: .62rem;
                 flex: 0 0 .62rem;
                 border-radius: 999px;
-                background: {'%s' % color if is_visible else 'transparent'};
+                background: {color if is_visible else 'transparent'};
                 border: {'0' if is_visible else f'2px solid {color}'};
                 box-shadow: 0 0 0 2px rgba(15, 17, 23, .9);
             }}
@@ -8258,7 +8262,7 @@ def _queue_finder_design_selection(
 def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     """Render Finder results and candidate application, separate from inputs."""
     load_type = str(st.session_state.get("load_type", "DCCAV"))
-    match_preset_names = _render_bass_match_hero(filtered_preset_names)
+    _render_bass_match_hero(filtered_preset_names)
 
     match_completion = st.session_state.pop("_finder_match_completion", None)
     if match_completion:

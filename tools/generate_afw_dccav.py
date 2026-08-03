@@ -90,6 +90,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "tools"))
 sys.path.insert(0, str(ROOT / "src"))
 import compare_afw_sealed as afw  # noqa: E402
+
 import engine as _engine  # noqa: E402
 
 DEFAULT_TEMPLATE = ROOT / "examples" / "afw_bass_match_9" / "09_fostex_fe126_dcaav.afw"

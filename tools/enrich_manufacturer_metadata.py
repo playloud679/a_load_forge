@@ -13,11 +13,11 @@ from collections import Counter
 from pathlib import Path
 
 try:
-    import enrich_driver_prices as price_tools
     import crawl_thiele_small as crawl_tools
+    import enrich_driver_prices as price_tools
 except ModuleNotFoundError:  # Imported as tools.enrich_manufacturer_metadata.
-    from tools import enrich_driver_prices as price_tools
     from tools import crawl_thiele_small as crawl_tools
+    from tools import enrich_driver_prices as price_tools
 
 
 ROOT = Path(__file__).resolve().parents[1]

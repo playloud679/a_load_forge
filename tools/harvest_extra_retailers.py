@@ -54,7 +54,6 @@ data/driver_prices.json.
 from __future__ import annotations
 
 import argparse
-from collections import Counter
 import json
 import os
 import re
@@ -62,6 +61,7 @@ import ssl
 import subprocess
 import sys
 import time
+from collections import Counter
 from pathlib import Path
 from urllib.parse import quote, urljoin
 from urllib.request import Request, urlopen
@@ -711,7 +711,7 @@ def _fetch_text_certifi(url: str, timeout_s: float) -> str:
             capture_output=True,
         )
         if completed.returncode:
-            raise OSError(completed.stderr.decode("utf-8", errors="replace").strip())
+            raise OSError(completed.stderr.decode("utf-8", errors="replace").strip()) from None
         return completed.stdout[:8_000_000].decode("utf-8", errors="replace")
 
 

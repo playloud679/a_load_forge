@@ -612,7 +612,8 @@ def table_measurements(text: str, method: str = "html.table") -> list[Measuremen
             continue
         labels = block[:first_value]
         values = block[first_value : first_value + len(labels)]
-        for label, raw_value in zip(labels, values):
+        # Ragged spec blocks pair by position; tolerate trailing truncation.
+        for label, raw_value in zip(labels, values):  # noqa: B905
             if canonical_parameter(label) and (
                 item := measurement_from_pair(label, raw_value, "", method)
             ):

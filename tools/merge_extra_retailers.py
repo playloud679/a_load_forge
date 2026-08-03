@@ -88,7 +88,7 @@ def main() -> None:
     payload = epd.load_output(PRICES_PATH)
     candidates = load_all_candidates()
     grand_total = 0
-    for key, (checkpoint_path, seller) in SOURCES.items():
+    for checkpoint_path, seller in SOURCES.values():
         total = merge_source(payload, checkpoint_path, seller)
         print(f"{seller}: ingested={total}")
         grand_total += total
