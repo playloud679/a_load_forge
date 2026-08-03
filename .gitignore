@@ -31,6 +31,12 @@ skills/
 data/driver_prices.json.lock
 data/driver_prices.json.tmp
 
+# Debug/scratch output (local analysis, regenerated on demand)
+diff_perf.txt
+test_out.txt
+test_results*.txt
+test_scratch*.py
+
 # Downloaded datasheet library (large, reproducible and content-addressed)
 data/datasheets/
 data/driver_datasheets.sqlite3

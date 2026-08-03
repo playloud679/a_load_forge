@@ -1835,7 +1835,11 @@
         "upstream_id": 3490,
         "upstream_rating": 4.0,
         "upstream_text_id": "alphard-lw800"
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/7346-subwoofer-12-900w-8i-96db.html",
+      "price_source": "Audio Video Parts",
+      "price": 250.0,
+      "price_currency": "EUR"
     },
     {
       "brand": "Alphard",
@@ -11483,7 +11487,11 @@
         "upstream_id": 5849,
         "upstream_rating": 0.0,
         "upstream_text_id": "b-c-speakers-12ndl88-4"
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/midranges-woofers-subwoofers-neodymium/4279-woofer-12-700w-4i-98db.html",
+      "price_source": "Audio Video Parts",
+      "price": 269.56,
+      "price_currency": "EUR"
     },
     {
       "brand": "B&C Speakers",
@@ -11564,7 +11572,8 @@
       },
       "price": 190.0,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=BAC15HPL76A"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2491-woofer-15-350w-4i-995db-compatibile-15223b-4-maxx6a.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "B-52",
@@ -16790,7 +16799,8 @@
       },
       "price": 159.0,
       "price_currency": "EUR",
-      "price_url": "https://www.topservicepro.it/prodotto/ciare-hsg-200-44-altoparlante-subwoofer/"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/6524-ciare-hs251-subwoofer-250mm-200200w-max-88i.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "Ciare",
@@ -16829,7 +16839,11 @@
         "upstream_id": 5404,
         "upstream_rating": 0.0,
         "upstream_text_id": "ciare-hw251"
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/1823-ciare-hw251n-woofer-250mm-240w-max-8i.html",
+      "price_source": "Audio Video Parts",
+      "price": 123.5,
+      "price_currency": "EUR"
     },
     {
       "brand": "Ciare",
@@ -26498,7 +26512,8 @@
       },
       "price": 199.0,
       "price_currency": "EUR",
-      "price_url": "https://www.thomann.de/intl/faitalpro_6hx150_8_ohms.htm"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2957-recone-kit-per-driver-06hx150-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -40730,7 +40745,11 @@
         "upstream_id": 3649,
         "upstream_rating": 0.0,
         "upstream_text_id": "jbl-e120-16"
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/tweeters-and-hf-drivers/4284-de12-hf-driver-1-25w-16i-106db.html",
+      "price_source": "Audio Video Parts",
+      "price": 75.44,
+      "price_currency": "EUR"
     },
     {
       "brand": "JBL",
@@ -41861,7 +41880,11 @@
         "upstream_id": 5920,
         "upstream_rating": 5.0,
         "upstream_text_id": "jbl-p1500"
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/6631-ciare-hw321-woofer-320mm-400w-max-8i.html",
+      "price_source": "Audio Video Parts",
+      "price": 292.6,
+      "price_currency": "EUR"
     },
     {
       "brand": "JBL",
@@ -46264,7 +46287,11 @@
         "upstream_id": 3197,
         "upstream_rating": 0.0,
         "upstream_text_id": "magnum-bass-8"
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/speakers/6430-ciare-pa065-extended-range-65mm-30w-max-8i.html",
+      "price_source": "Audio Video Parts",
+      "price": 48.0,
+      "price_currency": "EUR"
     },
     {
       "brand": "MAGNUM",
@@ -59638,7 +59665,11 @@
         "upstream_id": 3539,
         "upstream_rating": 0.0,
         "upstream_text_id": "prv-audio-18sw1000"
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/midranges-woofers-subwoofers-neodymium/3882-subwoofer-18-1500w-4i-97db.html",
+      "price_source": "Audio Video Parts",
+      "price": 436.08,
+      "price_currency": "EUR"
     },
     {
       "brand": "Prv Audio",
@@ -61096,7 +61127,11 @@
         "upstream_id": 5357,
         "upstream_rating": 0.0,
         "upstream_text_id": "rcf-l15p200a"
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/1310-l15p200ak-ii-woofer-15-8-ohm-800wrms-95db.html",
+      "price_source": "Audio Video Parts",
+      "price": 214.0,
+      "price_currency": "EUR"
     },
     {
       "brand": "RCF",
@@ -64488,7 +64523,11 @@
         "upstream_id": 2790,
         "upstream_rating": 4.0,
         "upstream_text_id": "sica-z001800"
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2208-sica-woofer-4-60w-8i-90db-.html",
+      "price_source": "Audio Video Parts",
+      "price": 35.0,
+      "price_currency": "EUR"
     },
     {
       "brand": "Sinfoni",

@@ -16,6 +16,12 @@ showErrorDetails = "none"
 base = "dark"
 primaryColor = "#10B981"
 
+[theme.sidebar]
+primaryColor = "#10B981"
+backgroundColor = "#050505"
+secondaryBackgroundColor = "#101217"
+textColor = "#F5F7FA"
+
 [server]
 # We never serve files from a static/ folder; keep it off so source/assets
 # can't be fetched directly over HTTP.

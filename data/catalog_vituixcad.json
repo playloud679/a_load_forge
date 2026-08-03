@@ -4124,7 +4124,8 @@
       },
       "price": 272.56,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=BMA18G40"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2364-lf18g401-woofer-18-8-ohm-900wrms-98db.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "Beyma",
@@ -6421,7 +6422,11 @@
         "source_format": "tab-delimited online driver database",
         "source_url": "https://kimmosaunisto.net/Software/VituixCAD/VituixCAD_Drivers.txt",
         "status": "Active"
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/6467-subwoofer-12-800w-8i-98db-.html",
+      "price_source": "Audio Video Parts",
+      "price": 390.0,
+      "price_currency": "EUR"
     },
     {
       "brand": "Electro-Voice",
@@ -7623,7 +7628,8 @@
       },
       "price": 49.0,
       "price_currency": "EUR",
-      "price_url": "https://www.thomann.de/intl/faitalpro_10fe200_8_ohms.htm"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2768-mid-woofer-faitalpro-10-150w-rms-4i-96db-.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -7660,7 +7666,8 @@
       },
       "price": 244.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/faitalpro-10fh500-8p.html"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4213-recone-kit-per-driver-10fh500-4-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -7697,7 +7704,8 @@
       },
       "price": 165.49,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP10FH520AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2926-recone-kit-per-driver-10fh520-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -7734,7 +7742,8 @@
       },
       "price": 157.28,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP10FH530AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/5080-recone-kit-per-driver-10fh520-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -7771,7 +7780,8 @@
       },
       "price": 210.36,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP10HP1020AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2925-recone-kit-per-driver-10hp1020-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -7808,7 +7818,8 @@
       },
       "price": 171.0,
       "price_currency": "EUR",
-      "price_url": "https://www.thomann.de/intl/faitalpro_10pr300_8_ohms.htm"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4215-recone-kit-per-driver-10pr300-16-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -7845,7 +7856,8 @@
       },
       "price": 108.78,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP10PR310CP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4216-recone-kit-per-driver-10pr310-16-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -7882,7 +7894,8 @@
       },
       "price": 136.18,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP10PR320AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/7095-recone-kit-per-driver-10pr310-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -7919,7 +7932,8 @@
       },
       "price": 112.27,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP10PR330AF"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/3721-mid-woofer-faitalpro-10-300w-rms-8i-96db-.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -7956,7 +7970,8 @@
       },
       "price": 144.83,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP10PR410AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/5081-recone-kit-per-driver-10fh520-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -7993,7 +8008,8 @@
       },
       "price": 189.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/faitalpro-10rs350-4p.html"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/7096-recone-kit-per-driver-10pr300-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8030,7 +8046,8 @@
       },
       "price": 180.26,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP12FH500BP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/recone-kits/5079-recone-kit-per-driver-12hp1060-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8067,7 +8084,8 @@
       },
       "price": 163.54,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP12FH510CP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2922-recone-kit-per-driver-12fh510-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8104,7 +8122,8 @@
       },
       "price": 192.23,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP12FH520CP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2920-recone-kit-per-driver-12fh520-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8141,7 +8160,8 @@
       },
       "price": 180.61,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP12FH530AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/recone-kits/5079-recone-kit-per-driver-12hp1060-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8178,7 +8198,8 @@
       },
       "price": 191.59,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP12HP1010AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/1596-woofer-faitalpro-12-700w-rms-8i-96db-.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8215,7 +8236,8 @@
       },
       "price": 240.05,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP12HP1020AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2919-recone-kit-per-driver-12hp1020-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8252,7 +8274,8 @@
       },
       "price": 225.74,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP12HP1030CP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/recone-kits/7089-recone-kit-per-driver-12hp1060-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8289,7 +8312,8 @@
       },
       "price": 344.0,
       "price_currency": "EUR",
-      "price_url": "https://www.thomann.de/intl/faitalpro_12hp1060_8_ohms.htm"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/recone-kits/4224-recone-kit-per-driver-12hp1060-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8326,7 +8350,8 @@
       },
       "price": 177.0,
       "price_currency": "EUR",
-      "price_url": "https://www.thomann.de/intl/faitalpro_12pr300_8_ohms.htm"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2923-recone-kit-per-driver-12pr300-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8363,7 +8388,8 @@
       },
       "price": 130.6,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP12PR310AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4620-recone-kit-per-driver-12pr310-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8400,7 +8426,8 @@
       },
       "price": 234.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/faitalpro-12pr320-8p.html"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/7092-recone-kit-per-driver-12pr300-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8434,7 +8461,11 @@
         "source_format": "tab-delimited online driver database",
         "source_url": "https://kimmosaunisto.net/Software/VituixCAD/VituixCAD_Drivers.txt",
         "status": "Active"
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/7093-recone-kit-per-driver-12pr300-8-ohm.html",
+      "price_source": "Audio Video Parts",
+      "price": 194.0,
+      "price_currency": "EUR"
     },
     {
       "brand": "FaitalPRO",
@@ -8471,7 +8502,8 @@
       },
       "price": 419.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/faitalpro-12rs1066-8p.html"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/recone-kits/7090-recone-kit-per-driver-12hp1060-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8508,7 +8540,8 @@
       },
       "price": 172.96,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP12RS550"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/recone-kits/7091-recone-kit-per-driver-12hp1060-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8545,7 +8578,8 @@
       },
       "price": 299.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/faitalpro-15fh500-4p.html"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/7088-recone-kit-per-driver-15fh520-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8616,7 +8650,8 @@
       },
       "price": 198.42,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP15FH510AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2908-recone-kit-per-driver-15fh510-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8653,7 +8688,8 @@
       },
       "price": 324.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/faitalpro-15fh520-4p.html"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4613-recone-kit-per-driver-15fh520-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8690,7 +8726,8 @@
       },
       "price": 299.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/faitalpro-15fh530-8p.html"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/7088-recone-kit-per-driver-15fh520-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8727,7 +8764,8 @@
       },
       "price": 364.0,
       "price_currency": "EUR",
-      "price_url": "https://www.thomann.de/intl/faitalpro_15fx560_8_ohms.htm"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2905-recone-kit-per-driver-15fx560-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8764,7 +8802,8 @@
       },
       "price": 212.92,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP15HP1010AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/5077-recone-kit-per-driver-15hp1020-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8801,7 +8840,8 @@
       },
       "price": 259.33,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP15HP1020AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2904-recone-kit-per-driver-15hp1020-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8838,7 +8878,8 @@
       },
       "price": 269.88,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP15HP1030AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4612-recone-kit-per-driver-15hp1030-e-15hp1060-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8875,7 +8916,8 @@
       },
       "price": 293.57,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP15HP1060CP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2597-subwoofer-faitalpro-15-1000w-rms-4i-97db-neodimio.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8912,7 +8954,8 @@
       },
       "price": 222.0,
       "price_currency": "EUR",
-      "price_url": "https://www.thomann.de/intl/faitalpro_15pr400_8_ohms.htm"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2909-recone-kit-per-driver-15pr400-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8949,7 +8992,8 @@
       },
       "price": 403.0,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP15XL1400CP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4209-recone-kit-per-driver-15xl1400-4-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -8986,7 +9030,8 @@
       },
       "price": 254.8,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP18FH500AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4611-recone-kit-per-driver-18fh510-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9023,7 +9068,8 @@
       },
       "price": 226.82,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP18FH510CP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4611-recone-kit-per-driver-18fh510-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9060,7 +9106,8 @@
       },
       "price": 359.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/faitalpro-18hp1010-8p.html"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4610-recone-kit-per-driver-18hp1040-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9097,7 +9144,8 @@
       },
       "price": 303.68,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP18HP1022AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/5075-recone-kit-per-driver-18hpl1030-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9134,7 +9182,8 @@
       },
       "price": 384.0,
       "price_currency": "EUR",
-      "price_url": "https://www.thomann.de/intl/faitalpro_18hp1030_8_ohms.htm"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4208-recone-kit-per-driver-18hpl1030-4-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9171,7 +9220,8 @@
       },
       "price": 303.91,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP18HP1042AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/5076-recone-kit-per-driver-18hpl1030-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9208,7 +9258,8 @@
       },
       "price": 398.0,
       "price_currency": "EUR",
-      "price_url": "https://www.thomann.de/intl/faitalpro_18hp1060_8_ohms.htm"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4609-recone-kit-per-driver-18hp1060-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9245,7 +9296,8 @@
       },
       "price": 361.09,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP18HW1070AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/recone-kits/4630-recone-kit-per-driver-18hw1070-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9282,7 +9334,8 @@
       },
       "price": 421.69,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP18XL1600CP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4207-recone-kit-per-driver-18xl1600-4-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9319,7 +9372,8 @@
       },
       "price": 466.86,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP18XL1800AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/3501-subwoofer-faitalpro-18-1600w-rms-8i-95db-neodimio.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9356,7 +9410,8 @@
       },
       "price": 749.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/faitalpro-18xl2000-8p.html"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/6936-subwoofer-faitalpro-18-1600w-rms-8i-98db-neodimio.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9393,7 +9448,8 @@
       },
       "price": 44.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/faitalpro-6fe100-8f.html"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/1591-6fe100-midrange-6-100w-rms-8i-91db-.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9430,7 +9486,8 @@
       },
       "price": 39.0,
       "price_currency": "EUR",
-      "price_url": "https://www.thomann.de/intl/faitalpro_6fe200_8_ohms.htm"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4631-6fe200-mid-woofer-6-130w-rms-8i-95db-.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9467,7 +9524,8 @@
       },
       "price": 63.58,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP6PR110AF"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/1590-6pr110-midrange-6-150w-rms-8i-96db-.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9504,7 +9562,8 @@
       },
       "price": 139.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/faitalpro-6pr122-8f.html"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/7038-recone-kit-per-driver-06pr150-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9541,7 +9600,8 @@
       },
       "price": 89.56,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP6PR150AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2955-recone-kit-per-driver-06pr150-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9578,7 +9638,8 @@
       },
       "price": 85.36,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP6PR160"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/7295-6pr150-midrange-faitalpro-6-150w-rms-8i-97db-neodimio.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9615,7 +9676,8 @@
       },
       "price": 86.89,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP6RS140"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/6816-6pr150-midrange-faitalpro-6-150w-rms-8i-97db-neodimio.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9652,7 +9714,8 @@
       },
       "price": 44.0,
       "price_currency": "EUR",
-      "price_url": "https://www.thomann.de/intl/faitalpro_8fe200_8_ohms.htm"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2767-8fe200-mid-woofer-8-130w-rms-4i-95db-.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9722,7 +9785,8 @@
       },
       "price": 102.08,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP8PR155AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4226-recone-kit-per-driver-8pr155-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9759,7 +9823,8 @@
       },
       "price": 252.0,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/FaitalPRO-8PR200-8-Neodymium-Professional-Woofer-8-Ohm-294-1175"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/4625-recone-kit-per-driver-8pr200-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9796,7 +9861,8 @@
       },
       "price": 159.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/faitalpro-8pr210-16f.html"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/7098-recone-kit-per-driver-8pr200-8-ohm.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -9833,7 +9899,8 @@
       },
       "price": 100.51,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP8RS250AP"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/3498-8rs250-woofer-8-250w-rms-8i-93db-.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "FaitalPRO",
@@ -13534,7 +13601,11 @@
         "source_format": "tab-delimited online driver database",
         "source_url": "https://kimmosaunisto.net/Software/VituixCAD/VituixCAD_Drivers.txt",
         "status": ""
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/midranges-woofers-subwoofers-ferrite/3868-subwoofer-15-700w-4i-945db.html",
+      "price_source": "Audio Video Parts",
+      "price": 233.1,
+      "price_currency": "EUR"
     },
     {
       "brand": "Fostex",
@@ -14293,7 +14364,11 @@
         "source_format": "tab-delimited online driver database",
         "source_url": "https://kimmosaunisto.net/Software/VituixCAD/VituixCAD_Drivers.txt",
         "status": ""
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/1943-subwoofer-21-1700w-4i-97db.html",
+      "price_source": "Audio Video Parts",
+      "price": 445.28,
+      "price_currency": "EUR"
     },
     {
       "brand": "Gradient",
@@ -25198,7 +25273,8 @@
       },
       "price": 195.14,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=RCFL15P200AKII"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/1310-l15p200ak-ii-woofer-15-8-ohm-800wrms-95db.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "RCF",
@@ -25268,7 +25344,8 @@
       },
       "price": 220.19,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=RCFL15S800"
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/1309-l15s801-woofer-15-8-ohm-700wrms-995db.html",
+      "price_source": "Audio Video Parts"
     },
     {
       "brand": "RCF",
@@ -25402,7 +25479,11 @@
         "source_format": "tab-delimited online driver database",
         "source_url": "https://kimmosaunisto.net/Software/VituixCAD/VituixCAD_Drivers.txt",
         "status": ""
-      }
+      },
+      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2366-l18s801-woofer-18-8-ohm-700wrms-995db.html",
+      "price_source": "Audio Video Parts",
+      "price": 259.0,
+      "price_currency": "EUR"
     },
     {
       "brand": "RCF",
