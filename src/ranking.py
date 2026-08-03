@@ -15,8 +15,8 @@ import numpy as np
 try:
     from . import engine, presets
 except ImportError:  # top-level import with src/ on sys.path (ui_app)
-    import engine
-    import presets
+    import engine  # type: ignore[no-redef]
+    import presets  # type: ignore[no-redef]
 
 SPARKLINE_POINTS = 48
 SPARKLINE_FLOOR_DB = -30.0
@@ -79,6 +79,15 @@ def rank_preset_row(
         info = presets.driver_preset_info(name)
         driver_class = engine.classify_driver_bandwidth(ts).driver_class
         ripple_db = float("nan")
+        box: (
+            engine.DccavBox
+            | engine.ReflexBox
+            | engine.PassiveRadiatorBox
+            | engine.Bandpass4Box
+            | engine.Bandpass6Box
+            | engine.SealedBox
+            | None
+        )
         if goals is not None and load_type != "Infinite baffle":
             # Finder volume is a ceiling: each driver keeps the best alignment
             # found at or below it instead of being projected onto the ceiling.
@@ -101,46 +110,45 @@ def rank_preset_row(
             box = optimized.box
             ripple_db = float(optimized.ripple_db)
         elif load_type == "Bass reflex":
-            alignment = engine.suggest_reflex_alignment(ts)
+            reflex_alignment = engine.suggest_reflex_alignment(ts)
             box = engine.ReflexBox(
-                vb_l=min(float(alignment.vb_l), float(max_volume_l)),
-                fb_hz=alignment.fb_hz,
+                vb_l=min(float(reflex_alignment.vb_l), float(max_volume_l)),
+                fb_hz=reflex_alignment.fb_hz,
             )
         elif load_type == "Passive radiator":
-            alignment = engine.suggest_pr_alignment(ts)
-            box = alignment  # PassiveRadiatorBox already has vb_l set
+            pr_alignment = engine.suggest_pr_alignment(ts)
             box = engine.PassiveRadiatorBox(
-                vb_l=min(float(box.vb_l), float(max_volume_l)),
-                pr_sp_cm2=box.pr_sp_cm2,
-                pr_fp_hz=box.pr_fp_hz,
-                pr_qmp=box.pr_qmp,
-                pr_mmp_g=box.pr_mmp_g,
-                pr_xmax_mm=box.pr_xmax_mm,
+                vb_l=min(float(pr_alignment.vb_l), float(max_volume_l)),
+                pr_sp_cm2=pr_alignment.pr_sp_cm2,
+                pr_fp_hz=pr_alignment.pr_fp_hz,
+                pr_qmp=pr_alignment.pr_qmp,
+                pr_mmp_g=pr_alignment.pr_mmp_g,
+                pr_xmax_mm=pr_alignment.pr_xmax_mm,
             )
         elif load_type == "Sealed":
-            alignment = engine.suggest_sealed_alignment(ts)
+            sealed_alignment = engine.suggest_sealed_alignment(ts)
             box = engine.SealedBox(
-                vb_l=min(float(alignment.vb_l), float(max_volume_l)))
+                vb_l=min(float(sealed_alignment.vb_l), float(max_volume_l)))
         elif load_type == "Bandpass 4th order":
-            start = engine.suggest_bandpass4_alignment(ts)
-            starter_volume_l = float(start.vs_l + start.vp_l)
+            bp4_start = engine.suggest_bandpass4_alignment(ts)
+            starter_volume_l = float(bp4_start.vs_l + bp4_start.vp_l)
             box = engine.design_space_box(
-                ts, load_type, min(starter_volume_l, float(max_volume_l)), start.fp_hz)
+                ts, load_type, min(starter_volume_l, float(max_volume_l)), bp4_start.fp_hz)
         elif load_type == "Bandpass 6th order":
-            start = engine.suggest_bandpass6_alignment(ts)
-            starter_volume_l = float(start.vr_l + start.vp_l)
+            bp6_start = engine.suggest_bandpass6_alignment(ts)
+            starter_volume_l = float(bp6_start.vr_l + bp6_start.vp_l)
             box = engine.design_space_box(
-                ts, load_type, min(starter_volume_l, float(max_volume_l)), start.fp_hz)
+                ts, load_type, min(starter_volume_l, float(max_volume_l)), bp6_start.fp_hz)
         elif load_type == "Infinite baffle":
             box = None
         else:
-            start = engine.suggest_alignment(ts)
-            starter_volume_l = float(start.vh_l + start.vl_l)
+            dccav_start = engine.suggest_alignment(ts)
+            starter_volume_l = float(dccav_start.vh_l + dccav_start.vl_l)
             box = engine.design_space_box(
                 ts, "DCCAV", min(starter_volume_l, float(max_volume_l)),
-                start.fl_hz,
+                dccav_start.fl_hz,
             )
-        if load_type == "Bass reflex":
+        if isinstance(box, engine.ReflexBox):
             result = engine.simulate_reflex(ts, box, freq, float(voltage_v))
             box_values = {
                 "Vb L": box.vb_l,
@@ -157,7 +165,7 @@ def rank_preset_row(
                 "Vr L": np.nan,
                 "Fr Hz": np.nan,
             }
-        elif load_type == "Passive radiator":
+        elif isinstance(box, engine.PassiveRadiatorBox):
             result = engine.simulate_passive_radiator(ts, box, freq, float(voltage_v))
             box_values = {
                 "Vb L": box.vb_l,
@@ -174,7 +182,7 @@ def rank_preset_row(
                 "Vr L": np.nan,
                 "Fr Hz": np.nan,
             }
-        elif load_type == "Sealed":
+        elif isinstance(box, engine.SealedBox):
             result = engine.simulate_sealed(ts, box, freq, float(voltage_v))
             fc_hz, qtc = engine.sealed_system_metrics(ts, box)
             box_values = {
@@ -192,7 +200,7 @@ def rank_preset_row(
                 "Vr L": np.nan,
                 "Fr Hz": np.nan,
             }
-        elif load_type == "Bandpass 4th order":
+        elif isinstance(box, engine.Bandpass4Box):
             result = engine.simulate_bandpass4(ts, box, freq, float(voltage_v))
             box_values = {
                 "Vb L": np.nan,
@@ -209,7 +217,7 @@ def rank_preset_row(
                 "Vr L": np.nan,
                 "Fr Hz": np.nan,
             }
-        elif load_type == "Bandpass 6th order":
+        elif isinstance(box, engine.Bandpass6Box):
             result = engine.simulate_bandpass6(ts, box, freq, float(voltage_v))
             box_values = {
                 "Vb L": np.nan,
@@ -226,7 +234,7 @@ def rank_preset_row(
                 "Vr L": box.vr_l,
                 "Fr Hz": box.fr_hz,
             }
-        elif load_type == "Infinite baffle":
+        elif box is None:
             result = engine.simulate_infinite_baffle(ts, freq, float(voltage_v))
             box_values = {
                 "Vb L": np.nan,

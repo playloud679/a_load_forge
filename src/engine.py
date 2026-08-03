@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import numpy as np
@@ -202,6 +203,10 @@ class SealedBox:
     vb_l: float
     q_abs: float = 15.0
     q_leak: float = 1000.0
+
+
+BoxUnion = DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox
+BoxBuilder = Callable[[np.ndarray], BoxUnion]
 
 
 @dataclass(frozen=True)
@@ -524,7 +529,7 @@ class ToleranceBand:
 def monte_carlo_response_band(
     ts: DriverTS,
     load_type: str = "DCCAV",
-    box: DccavBox | ReflexBox | Bandpass4Box | SealedBox | None = None,
+    box: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox | None = None,
     freq_hz: np.ndarray | None = None,
     voltage_v: float = 2.83,
     series_r_ohm: float = 0.0,
@@ -571,15 +576,15 @@ def monte_carlo_response_band(
             radiating_pistons=ts.radiating_pistons,
         )
         try:
-            if load_type == "Bass reflex":
+            if isinstance(box, ReflexBox):
                 result = simulate_reflex(sample, box, freq, voltage_v, series_r_ohm)
-            elif load_type == "Bandpass 4th order":
+            elif isinstance(box, Bandpass4Box):
                 result = simulate_bandpass4(sample, box, freq, voltage_v, series_r_ohm)
-            elif load_type == "Bandpass 6th order":
+            elif isinstance(box, Bandpass6Box):
                 result = simulate_bandpass6(sample, box, freq, voltage_v, series_r_ohm)
-            elif load_type == "Sealed":
+            elif isinstance(box, SealedBox):
                 result = simulate_sealed(sample, box, freq, voltage_v, series_r_ohm)
-            elif load_type == "Infinite baffle":
+            elif box is None:
                 result = simulate_infinite_baffle(sample, freq, voltage_v, series_r_ohm)
             else:
                 result = simulate(sample, box, freq, voltage_v, series_r_ohm)
@@ -616,10 +621,10 @@ def _design_space_axes(
 ) -> tuple[np.ndarray, np.ndarray, str, str]:
     n = int(resolution)
     if load_type == "Bass reflex":
-        start = suggest_reflex_alignment(ts)
+        reflex_start = suggest_reflex_alignment(ts)
         return (
-            np.geomspace(0.3 * start.vb_l, 3.0 * start.vb_l, n),
-            np.geomspace(0.55 * start.fb_hz, 1.6 * start.fb_hz, n),
+            np.geomspace(0.3 * reflex_start.vb_l, 3.0 * reflex_start.vb_l, n),
+            np.geomspace(0.55 * reflex_start.fb_hz, 1.6 * reflex_start.fb_hz, n),
             "Vb (L)", "Fb (Hz)",
         )
     if load_type == "Sealed":
@@ -629,26 +634,26 @@ def _design_space_axes(
             "Vb (L)", "",
         )
     if load_type == "Bandpass 4th order":
-        start = suggest_bandpass4_alignment(ts)
+        bp4_start = suggest_bandpass4_alignment(ts)
         return (
-            np.geomspace(0.3 * (start.vs_l + start.vp_l),
-                         3.0 * (start.vs_l + start.vp_l), n),
-            np.geomspace(0.55 * start.fp_hz, 1.6 * start.fp_hz, n),
+            np.geomspace(0.3 * (bp4_start.vs_l + bp4_start.vp_l),
+                         3.0 * (bp4_start.vs_l + bp4_start.vp_l), n),
+            np.geomspace(0.55 * bp4_start.fp_hz, 1.6 * bp4_start.fp_hz, n),
             "Vtot (L)", "Fp (Hz)",
         )
     if load_type == "Bandpass 6th order":
-        start = suggest_bandpass6_alignment(ts)
+        bp6_start = suggest_bandpass6_alignment(ts)
         return (
-            np.geomspace(0.3 * (start.vr_l + start.vp_l),
-                         3.0 * (start.vr_l + start.vp_l), n),
-            np.geomspace(0.55 * start.fp_hz, 1.6 * start.fp_hz, n),
+            np.geomspace(0.3 * (bp6_start.vr_l + bp6_start.vp_l),
+                         3.0 * (bp6_start.vr_l + bp6_start.vp_l), n),
+            np.geomspace(0.55 * bp6_start.fp_hz, 1.6 * bp6_start.fp_hz, n),
             "Vtot (L)", "Fp (Hz)",
         )
-    start = suggest_alignment(ts)
-    vtot = max(start.vh_l + start.vl_l, EPS)
+    dccav_start = suggest_alignment(ts)
+    vtot = max(dccav_start.vh_l + dccav_start.vl_l, EPS)
     return (
         np.geomspace(0.3 * vtot, 3.0 * vtot, n),
-        np.geomspace(0.55 * start.fl_hz, 1.6 * start.fl_hz, n),
+        np.geomspace(0.55 * dccav_start.fl_hz, 1.6 * dccav_start.fl_hz, n),
         "Vtot (L)", "fl (Hz)",
     )
 
@@ -670,57 +675,57 @@ def design_space_box(
     if load_type in {"Suspension pneumatic", "Acoustic suspension"}:
         load_type = "Sealed"
     if load_type == "Bass reflex":
-        t = box_template if isinstance(box_template, ReflexBox) else ReflexBox(
+        reflex_t = box_template if isinstance(box_template, ReflexBox) else ReflexBox(
             vb_l=ts.vas_l, fb_hz=panel_loaded_fs_hz(ts))
         return ReflexBox(
             vb_l=float(x), fb_hz=float(y),
-            q_abs=t.q_abs, q_leak=t.q_leak, q_port=t.q_port,
+            q_abs=reflex_t.q_abs, q_leak=reflex_t.q_leak, q_port=reflex_t.q_port,
         )
     if load_type == "Sealed":
-        t = box_template if isinstance(box_template, SealedBox) else SealedBox(
+        sealed_t = box_template if isinstance(box_template, SealedBox) else SealedBox(
             vb_l=ts.vas_l)
-        return SealedBox(vb_l=float(x), q_abs=t.q_abs, q_leak=t.q_leak)
+        return SealedBox(vb_l=float(x), q_abs=sealed_t.q_abs, q_leak=sealed_t.q_leak)
     if load_type == "Bandpass 4th order":
-        start = suggest_bandpass4_alignment(ts)
-        vtot = max(start.vs_l + start.vp_l, EPS)
-        vs_ratio = float(np.clip(start.vs_l / vtot, 0.05, 0.95))
-        t = box_template if isinstance(box_template, Bandpass4Box) else Bandpass4Box(
-            vs_l=start.vs_l, vp_l=start.vp_l, fp_hz=start.fp_hz)
+        bp4_start = suggest_bandpass4_alignment(ts)
+        vtot = max(bp4_start.vs_l + bp4_start.vp_l, EPS)
+        vs_ratio = float(np.clip(bp4_start.vs_l / vtot, 0.05, 0.95))
+        bp4_t = box_template if isinstance(box_template, Bandpass4Box) else Bandpass4Box(
+            vs_l=bp4_start.vs_l, vp_l=bp4_start.vp_l, fp_hz=bp4_start.fp_hz)
         vs_l = max(float(x) * vs_ratio, 0.05)
         return Bandpass4Box(
             vs_l=vs_l, vp_l=max(float(x) - vs_l, 0.05), fp_hz=float(y),
-            q_abs_s=t.q_abs_s, q_abs_p=t.q_abs_p,
-            q_leak_s=t.q_leak_s, q_leak_p=t.q_leak_p, q_port=t.q_port,
+            q_abs_s=bp4_t.q_abs_s, q_abs_p=bp4_t.q_abs_p,
+            q_leak_s=bp4_t.q_leak_s, q_leak_p=bp4_t.q_leak_p, q_port=bp4_t.q_port,
         )
     if load_type == "Bandpass 6th order":
-        start = suggest_bandpass6_alignment(ts)
-        vtot = max(start.vr_l + start.vp_l, EPS)
-        vr_ratio = float(np.clip(start.vr_l / vtot, 0.05, 0.95))
-        t = box_template if isinstance(box_template, Bandpass6Box) else Bandpass6Box(
-            vr_l=start.vr_l, fr_hz=start.fr_hz, vp_l=start.vp_l, fp_hz=start.fp_hz)
+        bp6_start = suggest_bandpass6_alignment(ts)
+        vtot = max(bp6_start.vr_l + bp6_start.vp_l, EPS)
+        vr_ratio = float(np.clip(bp6_start.vr_l / vtot, 0.05, 0.95))
+        bp6_t = box_template if isinstance(box_template, Bandpass6Box) else Bandpass6Box(
+            vr_l=bp6_start.vr_l, fr_hz=bp6_start.fr_hz, vp_l=bp6_start.vp_l, fp_hz=bp6_start.fp_hz)
         vr_l = max(float(x) * vr_ratio, 0.05)
         return Bandpass6Box(
-            vr_l=vr_l, fr_hz=float(y) / max(start.fr_hz, EPS) * start.fr_hz,
+            vr_l=vr_l, fr_hz=float(y) / max(bp6_start.fr_hz, EPS) * bp6_start.fr_hz,
             vp_l=max(float(x) - vr_l, 0.05), fp_hz=float(y),
-            q_abs_r=t.q_abs_r, q_abs_p=t.q_abs_p,
-            q_leak_r=t.q_leak_r, q_leak_p=t.q_leak_p,
-            q_port_r=t.q_port_r, q_port_p=t.q_port_p,
+            q_abs_r=bp6_t.q_abs_r, q_abs_p=bp6_t.q_abs_p,
+            q_leak_r=bp6_t.q_leak_r, q_leak_p=bp6_t.q_leak_p,
+            q_port_r=bp6_t.q_port_r, q_port_p=bp6_t.q_port_p,
         )
     if load_type == "Infinite baffle":
         raise ValueError("Infinite baffle has no box parameters to map")
-    start = suggest_alignment(ts)
-    vtot = max(start.vh_l + start.vl_l, EPS)
-    vh_ratio = float(np.clip(start.vh_l / vtot, 0.05, 0.95))
-    fh_ratio = start.fh_hz / max(start.fl_hz, EPS)
-    t = box_template if isinstance(box_template, DccavBox) else DccavBox(
-        vh_l=start.vh_l, fh_hz=start.fh_hz, vl_l=start.vl_l, fl_hz=start.fl_hz)
+    dccav_start = suggest_alignment(ts)
+    vtot = max(dccav_start.vh_l + dccav_start.vl_l, EPS)
+    vh_ratio = float(np.clip(dccav_start.vh_l / vtot, 0.05, 0.95))
+    fh_ratio = dccav_start.fh_hz / max(dccav_start.fl_hz, EPS)
+    dccav_t = box_template if isinstance(box_template, DccavBox) else DccavBox(
+        vh_l=dccav_start.vh_l, fh_hz=dccav_start.fh_hz, vl_l=dccav_start.vl_l, fl_hz=dccav_start.fl_hz)
     vh = max(float(x) * vh_ratio, 0.05)
     return DccavBox(
         vh_l=vh, fh_hz=float(y) * fh_ratio,
         vl_l=max(float(x) - vh, 0.05), fl_hz=float(y),
-        q_abs_h=t.q_abs_h, q_abs_l=t.q_abs_l,
-        q_leak_h=t.q_leak_h, q_leak_l=t.q_leak_l,
-        q_port_h=t.q_port_h, q_port_l=t.q_port_l,
+        q_abs_h=dccav_t.q_abs_h, q_abs_l=dccav_t.q_abs_l,
+        q_leak_h=dccav_t.q_leak_h, q_leak_l=dccav_t.q_leak_l,
+        q_port_h=dccav_t.q_port_h, q_port_l=dccav_t.q_port_l,
     )
 
 
@@ -1527,7 +1532,8 @@ def _score_alignment(
     # Size regularizer so equal-scoring boxes prefer the smaller build; once a
     # requested F3 target is met, extra litres stop buying score elsewhere, so
     # push harder toward the compact solution.
-    target_met = bool(goals.target_f3_hz) and f3 <= goals.target_f3_hz
+    target_f3 = goals.target_f3_hz
+    target_met = target_f3 is not None and target_f3 > 0 and f3 <= target_f3
     size_weight = 0.15 if target_met else (0.002 if deepest_extension else 0.02)
     score += size_weight * metrics["total_volume_l"] / max(ts.vas_l, EPS)
     return float(score)
@@ -1587,16 +1593,18 @@ def optimize_alignment(
         if cap is not None and fixed_total_volume_l > cap + EPS:
             raise ValueError("Fixed total volume cannot exceed the maximum total volume")
 
+    build: BoxBuilder
+
     if is_reflex:
-        start = suggest_reflex_alignment(ts)
-        vb0, fb0 = start.vb_l, start.fb_hz
+        reflex_start = suggest_reflex_alignment(ts)
+        vb0, fb0 = reflex_start.vb_l, reflex_start.fb_hz
         if fixed_total_volume_l is not None:
             vb0 = float(fixed_total_volume_l)
         elif cap and vb0 > cap:
             vb0 = 0.95 * cap
-        template = box_template if isinstance(box_template, ReflexBox) else ReflexBox(vb_l=vb0, fb_hz=fb0)
+        reflex_template = box_template if isinstance(box_template, ReflexBox) else ReflexBox(vb_l=vb0, fb_hz=fb0)
 
-        def build(p: np.ndarray) -> ReflexBox:
+        def build_reflex(p: np.ndarray) -> ReflexBox:
             vb, fb = np.exp(p)
             if fixed_total_volume_l is not None:
                 vb = float(fixed_total_volume_l)
@@ -1604,15 +1612,18 @@ def optimize_alignment(
                 vb = min(float(vb), float(cap))
             return ReflexBox(
                 vb_l=float(vb), fb_hz=float(fb),
-                q_abs=template.q_abs, q_leak=template.q_leak, q_port=template.q_port,
+                q_abs=reflex_template.q_abs, q_leak=reflex_template.q_leak,
+                q_port=reflex_template.q_port,
             )
+
+        build = build_reflex
 
         p0 = np.log([vb0, fb0])
         lower = np.log([max(0.05, vb0 / 8.0), max(5.0, fb0 / 3.0)])
         upper = np.log([vb0 * 8.0, fb0 * 2.5])
     elif is_bandpass4:
-        start = suggest_bandpass4_alignment(ts)
-        vs0, vp0, fp0 = start.vs_l, start.vp_l, start.fp_hz
+        bp4_start = suggest_bandpass4_alignment(ts)
+        vs0, vp0, fp0 = bp4_start.vs_l, bp4_start.vp_l, bp4_start.fp_hz
         if fixed_total_volume_l is not None:
             scale = float(fixed_total_volume_l) / (vs0 + vp0)
             vs0 *= scale
@@ -1621,10 +1632,10 @@ def optimize_alignment(
             scale = 0.98 * cap / (vs0 + vp0)
             vs0 *= scale
             vp0 *= scale
-        template = box_template if isinstance(box_template, Bandpass4Box) else Bandpass4Box(
+        bp4_template = box_template if isinstance(box_template, Bandpass4Box) else Bandpass4Box(
             vs_l=vs0, vp_l=vp0, fp_hz=fp0)
 
-        def build(p: np.ndarray) -> Bandpass4Box:
+        def build_bandpass4(p: np.ndarray) -> Bandpass4Box:
             vs_l, vp_l, fp_hz = np.exp(p)
             projected_volume_l = fixed_total_volume_l
             if projected_volume_l is None and cap is not None and vs_l + vp_l > cap:
@@ -1639,18 +1650,20 @@ def optimize_alignment(
                 vs_l, vp_l = 0.05 + available * weights
             return Bandpass4Box(
                 vs_l=float(vs_l), vp_l=float(vp_l), fp_hz=float(fp_hz),
-                q_abs_s=template.q_abs_s, q_abs_p=template.q_abs_p,
-                q_leak_s=template.q_leak_s, q_leak_p=template.q_leak_p,
-                q_port=template.q_port,
+                q_abs_s=bp4_template.q_abs_s, q_abs_p=bp4_template.q_abs_p,
+                q_leak_s=bp4_template.q_leak_s, q_leak_p=bp4_template.q_leak_p,
+                q_port=bp4_template.q_port,
             )
+
+        build = build_bandpass4
 
         p0 = np.log([vs0, vp0, fp0])
         lower = np.log([
             max(0.05, vs0 / 8.0), max(0.05, vp0 / 8.0), max(5.0, fp0 / 3.0)])
         upper = np.log([vs0 * 8.0, vp0 * 8.0, fp0 * 2.5])
     elif is_bandpass6:
-        start = suggest_bandpass6_alignment(ts)
-        vr0, fr0, vp0, fp0 = start.vr_l, start.fr_hz, start.vp_l, start.fp_hz
+        bp6_start = suggest_bandpass6_alignment(ts)
+        vr0, fr0, vp0, fp0 = bp6_start.vr_l, bp6_start.fr_hz, bp6_start.vp_l, bp6_start.fp_hz
         if fixed_total_volume_l is not None:
             scale = float(fixed_total_volume_l) / (vr0 + vp0)
             vr0 *= scale
@@ -1659,10 +1672,10 @@ def optimize_alignment(
             scale = 0.98 * cap / (vr0 + vp0)
             vr0 *= scale
             vp0 *= scale
-        template = box_template if isinstance(box_template, Bandpass6Box) else Bandpass6Box(
+        bp6_template = box_template if isinstance(box_template, Bandpass6Box) else Bandpass6Box(
             vr_l=vr0, fr_hz=fr0, vp_l=vp0, fp_hz=fp0)
 
-        def build(p: np.ndarray) -> Bandpass6Box:
+        def build_bandpass6(p: np.ndarray) -> Bandpass6Box:
             vr_l, fr_hz, vp_l, fp_hz = np.exp(p)
             projected_volume_l = fixed_total_volume_l
             if projected_volume_l is None and cap is not None and vr_l + vp_l > cap:
@@ -1678,10 +1691,12 @@ def optimize_alignment(
             return Bandpass6Box(
                 vr_l=float(vr_l), fr_hz=float(fr_hz),
                 vp_l=float(vp_l), fp_hz=float(fp_hz),
-                q_abs_r=template.q_abs_r, q_abs_p=template.q_abs_p,
-                q_leak_r=template.q_leak_r, q_leak_p=template.q_leak_p,
-                q_port_r=template.q_port_r, q_port_p=template.q_port_p,
+                q_abs_r=bp6_template.q_abs_r, q_abs_p=bp6_template.q_abs_p,
+                q_leak_r=bp6_template.q_leak_r, q_leak_p=bp6_template.q_leak_p,
+                q_port_r=bp6_template.q_port_r, q_port_p=bp6_template.q_port_p,
             )
+
+        build = build_bandpass6
 
         p0 = np.log([vr0, fr0, vp0, fp0])
         lower = np.log([
@@ -1689,32 +1704,34 @@ def optimize_alignment(
             max(0.05, vp0 / 8.0), max(5.0, fp0 / 3.0)])
         upper = np.log([vr0 * 8.0, fr0 * 2.5, vp0 * 8.0, fp0 * 2.5])
     elif is_sealed:
-        start = suggest_sealed_alignment(ts)
-        vb0 = start.vb_l
+        sealed_start = suggest_sealed_alignment(ts)
+        vb0 = sealed_start.vb_l
         if fixed_total_volume_l is not None:
             vb0 = float(fixed_total_volume_l)
         elif cap and vb0 > cap:
             vb0 = 0.95 * cap
-        template = box_template if isinstance(box_template, SealedBox) else SealedBox(vb_l=vb0)
+        sealed_template = box_template if isinstance(box_template, SealedBox) else SealedBox(vb_l=vb0)
 
-        def build(p: np.ndarray) -> SealedBox:
+        def build_sealed(p: np.ndarray) -> SealedBox:
             vb = float(np.exp(p[0]))
             if fixed_total_volume_l is not None:
                 vb = float(fixed_total_volume_l)
             elif cap is not None:
                 vb = min(vb, float(cap))
-            return SealedBox(vb_l=vb, q_abs=template.q_abs, q_leak=template.q_leak)
+            return SealedBox(vb_l=vb, q_abs=sealed_template.q_abs, q_leak=sealed_template.q_leak)
+
+        build = build_sealed
 
         p0 = np.log([vb0])
         lower = np.log([max(0.05, vb0 / 12.0)])
         upper = np.log([vb0 * 12.0])
     else:
-        start = suggest_alignment(ts)
-        vh0, vl0, fl0 = start.vh_l, start.vl_l, start.fl_hz
+        dccav_start = suggest_alignment(ts)
+        vh0, vl0, fl0 = dccav_start.vh_l, dccav_start.vl_l, dccav_start.fl_hz
         # The fh/fl ratio stays in a band around the article's 2.6 so the load
         # keeps its double-resonator character instead of degenerating into a
         # single reflex volume with an extreme upper tuning.
-        ratio0 = float(np.clip(start.fh_hz / start.fl_hz, 1.2, 4.5))
+        ratio0 = float(np.clip(dccav_start.fh_hz / dccav_start.fl_hz, 1.2, 4.5))
         if fixed_total_volume_l is not None:
             scale = float(fixed_total_volume_l) / (vh0 + vl0)
             vh0 *= scale
@@ -1723,11 +1740,11 @@ def optimize_alignment(
             scale = 0.98 * cap / (vh0 + vl0)
             vh0 *= scale
             vl0 *= scale
-        template = box_template if isinstance(box_template, DccavBox) else DccavBox(
+        dccav_template = box_template if isinstance(box_template, DccavBox) else DccavBox(
             vh_l=vh0, fh_hz=fl0 * ratio0, vl_l=vl0, fl_hz=fl0
         )
 
-        def build(p: np.ndarray) -> DccavBox:
+        def build_dccav(p: np.ndarray) -> DccavBox:
             vh, vl, fl, ratio = np.exp(p)
             projected_volume_l = fixed_total_volume_l
             if projected_volume_l is None and cap is not None and vh + vl > cap:
@@ -1745,10 +1762,12 @@ def optimize_alignment(
                 vh, vl = 0.05 + available * weights
             return DccavBox(
                 vh_l=float(vh), fh_hz=float(fl * ratio), vl_l=float(vl), fl_hz=float(fl),
-                q_abs_h=template.q_abs_h, q_abs_l=template.q_abs_l,
-                q_leak_h=template.q_leak_h, q_leak_l=template.q_leak_l,
-                q_port_h=template.q_port_h, q_port_l=template.q_port_l,
+                q_abs_h=dccav_template.q_abs_h, q_abs_l=dccav_template.q_abs_l,
+                q_leak_h=dccav_template.q_leak_h, q_leak_l=dccav_template.q_leak_l,
+                q_port_h=dccav_template.q_port_h, q_port_l=dccav_template.q_port_l,
             )
+
+        build = build_dccav
 
         p0 = np.log([vh0, vl0, fl0, ratio0])
         lower = np.log([max(0.05, vh0 / 6.0), max(0.05, vl0 / 6.0), max(5.0, fl0 / 3.0), 1.2])

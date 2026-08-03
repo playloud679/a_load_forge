@@ -18,8 +18,8 @@ try:
     from .engine import DriverTS, sd_from_diameter
     from .pricing import _preset_price, _valid_price
 except ImportError:  # top-level import with src/ on sys.path (ui_app)
-    from engine import DriverTS, sd_from_diameter
-    from pricing import _preset_price, _valid_price
+    from engine import DriverTS, sd_from_diameter  # type: ignore[no-redef]
+    from pricing import _preset_price, _valid_price  # type: ignore[no-redef]
 
 LOUDSPEAKER_DATABASE_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "catalog_lsdb.json"

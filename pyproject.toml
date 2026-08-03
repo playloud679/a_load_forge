@@ -20,11 +20,18 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["ruff>=0.4"]
+dev = ["ruff>=0.4", "mypy>=1.10"]
 
 [tool.ruff]
 line-length = 100
 target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+check_untyped_defs = true
+warn_unused_ignores = true
+no_implicit_optional = true
+ignore_missing_imports = true
 
 [tool.ruff.lint]
 # Lenient on purpose: keep the simulator code honest without churning style.

@@ -16,7 +16,7 @@ import sqlite3
 import uuid
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -295,7 +295,7 @@ class LocalAccountStore:
                         normalized_email,
                         normalized_name,
                         _password_hash(password),
-                        datetime.now(UTC).isoformat(),
+                        datetime.now(timezone.utc).isoformat(),
                     ),
                 )
         except sqlite3.IntegrityError as exc:
@@ -467,7 +467,7 @@ class InMemoryProjectStore:
             raise ProjectConflictError(
                 f"Project revision changed from {expected_revision} to {current_revision}"
             )
-        now = datetime.now(UTC)
+        now = datetime.now(timezone.utc)
         record = ProjectRecord(
             project_id=project_id,
             name=_normalize_project_name(name),
@@ -570,7 +570,7 @@ class FirestoreProjectStore:
                     f"Project revision changed from {expected_revision} "
                     f"to {current_revision}"
                 )
-            now = datetime.now(UTC)
+            now = datetime.now(timezone.utc)
             data = {
                 "name": project_name,
                 "owner_uid": (
