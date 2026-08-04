@@ -4611,6 +4611,9 @@ def _response_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
             label = "Vent" if load_type in {"Bass reflex", "Bandpass 4th order"} else "Lower port"
         series[label] = result.spl_port_db
     if not st.session_state.get("plot_compare_loads", False):
+        # Keep the MIL/MOL buttons always visible as an affordance; with Pe=0
+        # both curves are NaN so the chart layers simply stay empty instead of
+        # plotting a bogus excursion-only MIL (see _plot_response/_limit_curves).
         series["MOL"] = result.mol_db
         series["MIL"] = result.mil_w
     return series
@@ -4951,6 +4954,7 @@ def _plot_response(
     visible_response_traces = (
         set(default_visible) if default_visible is not None else None
     )
+    mil_overlaid = False
     
     db_series_to_plot = series if series else {"Total": result.spl_total_db}
     
@@ -4985,12 +4989,17 @@ def _plot_response(
         ),
     )
     
-    if mil_w_data is not None and (default_visible is None or "MIL" in default_visible):
+    if (
+        mil_w_data is not None
+        and (default_visible is None or "MIL" in default_visible)
+        and np.any(np.isfinite(mil_w_data))
+    ):
         mil_data = _series_frame(
             result,
             {"MIL": mil_w_data} if active_design_visible else {},
         ).rename(columns={"value": "mil_value"})
-        mil_max = float(np.max(mil_w_data[np.isfinite(mil_w_data)]))
+        finite_mil = mil_w_data[np.isfinite(mil_w_data)]
+        mil_max = float(np.max(finite_mil))
         pinned_mil_data, _ = _pinned_metric_frame("mil_w")
         if not pinned_mil_data.empty:
             mil_max = max(mil_max, float(pinned_mil_data["value"].max()))
@@ -5030,6 +5039,7 @@ def _plot_response(
                 strokeDash="independent",
             )
         chart = alt.layer(chart, mil_chart).resolve_scale(y="independent")
+        mil_overlaid = True
 
     if active_design_visible and band is not None:
         band_area = _band_layer(band, y_domain, frequency_window)
@@ -5054,7 +5064,13 @@ def _plot_response(
     if cursors is not None:
         chart = chart + cursors
     if pinned is not None or cursors is not None:
-        return chart.resolve_scale(color="independent", strokeDash="independent")
+        resolve_kwargs = dict(color="independent", strokeDash="independent")
+        if mil_overlaid:
+            # Keep the MIL watts curve on its own right-axis scale; without
+            # this, the final resolve would collapse MIL onto the SPL axis
+            # and squish the dB traces out of their intended domain.
+            resolve_kwargs["y"] = "independent"
+        return chart.resolve_scale(**resolve_kwargs)
     return chart
 
 
@@ -5117,7 +5133,8 @@ def _plot_mil(result: _dccav.SimulationResult) -> alt.Chart:
         result,
         {"MIL": mil_w_data} if _active_design_visible() else {},
     ).rename(columns={"value": "mil_value"})
-    mil_max = float(np.max(mil_w_data[np.isfinite(mil_w_data)]))
+    finite_mil = mil_w_data[np.isfinite(mil_w_data)]
+    mil_max = float(np.max(finite_mil)) if finite_mil.size else 1.0
     mil_y_domain = [0.0, max(1.0, mil_max * 1.05)]
     active_color = _active_design_comparison_color()
     chart = _line_chart(
@@ -5693,6 +5710,7 @@ def _render_editable_design_tabs(
                 border: 0 !important;
                 box-shadow: none !important;
                 font-weight: {'700' if is_active else '500'} !important;
+                gap: .45rem !important;
                 height: auto !important;
                 justify-content: flex-start !important;
                 min-height: 2rem !important;

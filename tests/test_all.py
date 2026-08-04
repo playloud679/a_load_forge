@@ -616,15 +616,16 @@ def _check_mol_requires_thermal_rating():
     a = _dccav.suggest_alignment(ts)
     box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
     result = _dccav.simulate(ts, box, np.geomspace(20.0, 200.0, 120), voltage_v=2.83)
-    # Without a thermal rating the MOL trace is unavailable instead of
-    # pretending the driver survives infinite power at mid/high frequencies.
+    # Without a thermal rating neither the MOL trace nor the MIL curve is
+    # reported: there is no credible thermal ceiling to scale either one to.
     assert np.all(np.isnan(result.mol_db)), "MOL must be NaN when Pe is 0"
-    assert np.all(np.isfinite(result.mil_w)), "MIL stays excursion-limited"
-    assert np.nanmin(result.mil_w) > 0
+    assert np.all(np.isnan(result.mil_w)), "MIL must be NaN when Pe is 0"
 
     rated = replace(ts, pe_w=100.0)
     rated_result = _dccav.simulate(rated, box, np.geomspace(20.0, 200.0, 120), voltage_v=2.83)
     assert np.all(np.isfinite(rated_result.mol_db)), "MOL is finite with a Pe rating"
+    assert np.all(np.isfinite(rated_result.mil_w)), "MIL is finite with a Pe rating"
+    assert np.nanmin(rated_result.mil_w) > 0
 
 
 test("MOL requires a thermal rating to be reported", _check_mol_requires_thermal_rating)
@@ -3279,6 +3280,111 @@ def _check_response_chart_has_click_marker():
 
 
 test("UI response chart has a clickable moving marker", _check_response_chart_has_click_marker)
+
+
+def _check_response_chart_mil_keeps_independent_right_axis():
+    import ui_app as _ui
+
+    result = _dccav.SimulationResult(
+        frequency_hz=np.array([10.0, 20.0, 40.0]),
+        spl_total_db=np.array([40.0, 70.0, 80.0]),
+        spl_driver_db=np.array([39.0, 69.0, 78.0]),
+        spl_port_db=np.array([30.0, 60.0, 83.0]),
+        excursion_mm=np.ones(3),
+        impedance_ohm=np.ones(3),
+        port_h_velocity=np.ones(3),
+        port_l_velocity=np.ones(3),
+        mil_w=np.array([10.0, 200.0, 300.0]),
+        mol_db=np.array([90.0, 90.0, 90.0]),
+        driver_volume_velocity=np.ones(3, dtype=complex),
+        port_volume_velocity=np.ones(3, dtype=complex),
+    )
+    rows = [_ui._cursor_row(result, "F3", 10.0)]
+
+    def _right_y_axes(node):
+        if isinstance(node, dict):
+            encoding = node.get("encoding")
+            if isinstance(encoding, dict):
+                axis = encoding.get("y")
+                if (
+                    isinstance(axis, dict)
+                    and isinstance(axis.get("axis"), dict)
+                    and axis["axis"].get("orient") == "right"
+                ):
+                    yield axis
+            for value in node.values():
+                yield from _right_y_axes(value)
+        elif isinstance(node, list):
+            for value in node:
+                yield from _right_y_axes(value)
+
+    with_pins = _ui._plot_response(result, rows, default_visible=["Total", "MIL"])
+    spec = with_pins.to_dict()
+    assert spec.get("resolve", {}).get("scale", {}).get("y") == "independent", (
+        "MIL must never collapse onto the SPL axis when cursors/pins exist",
+        spec.get("resolve"),
+    )
+    assert list(_right_y_axes(spec)), "MIL must render on its own right axis"
+
+    without_mil = _ui._plot_response(result, rows, default_visible=["Total"])
+    no_mil_spec = without_mil.to_dict()
+    assert (
+        no_mil_spec.get("resolve", {}).get("scale", {}).get("y", "shared")
+        in {"shared", None}
+    ), "without MIL there is a single SPL y scale"
+
+
+test(
+    "UI response chart keeps MIL on an independent right axis",
+    _check_response_chart_mil_keeps_independent_right_axis,
+)
+
+
+def _check_ui_mil_mol_buttons_kept_but_curve_hidden():
+    import ui_app as _ui
+
+    result = _dccav.SimulationResult(
+        frequency_hz=np.array([10.0, 20.0, 40.0]),
+        spl_total_db=np.array([40.0, 70.0, 80.0]),
+        spl_driver_db=np.array([39.0, 69.0, 78.0]),
+        spl_port_db=np.array([30.0, 60.0, 83.0]),
+        excursion_mm=np.ones(3),
+        impedance_ohm=np.ones(3),
+        port_h_velocity=np.ones(3),
+        port_l_velocity=np.ones(3),
+        mil_w=np.full(3, np.nan),
+        mol_db=np.full(3, np.nan),
+        driver_volume_velocity=np.ones(3, dtype=complex),
+        port_volume_velocity=np.ones(3, dtype=complex),
+    )
+    # The buttons stay visible even when Pe=0: the curve, not the affordance,
+    # is what disappears.
+    series = _ui._response_series(result)
+    assert "MIL" in series, "MIL button must remain when Pe is 0"
+    assert "MOL" in series, "MOL button must remain when Pe is 0"
+    chart = _ui._plot_response(result, [], default_visible=["Total", "MIL"])
+    spec = chart.to_dict()
+    assert "mil_value" not in str(spec), (
+        "an all-NaN MIL must not create an empty chart layer"
+    )
+
+    rated = replace(
+        result,
+        mil_w=np.array([10.0, 200.0, 300.0]),
+        mol_db=np.array([90.0, 95.0, 100.0]),
+    )
+    rated_chart = _ui._plot_response(
+        rated, [], default_visible=["Total", "MIL"]
+    )
+    assert "mil_value" in str(rated_chart.to_dict()), (
+        "with a thermal rating the MIL curve must render"
+    )
+
+
+test(
+    "UI keeps MIL/MOL buttons but hides the curve without a thermal rating",
+    _check_ui_mil_mol_buttons_kept_but_curve_hidden,
+)
 
 
 def _check_ui_driver_preset_filters_reduce_list():

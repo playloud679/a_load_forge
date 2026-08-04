@@ -811,11 +811,15 @@ voltage.  Limit voltages are at the source terminals: the excursion-limited
 RMS voltage is `voltage * Xmax / excursion`; the thermal RMS voltage is
 approximated as `sqrt(Pe * Re) * (Re+Rs)/Re`.  The lower available voltage
 limit is converted to watts as the share reaching the driver's `Re` through
-the resistive divider (`V^2 / Re` when `Rs=0`) for display and CSV export.  `MOL` uses the same voltage ratio to scale SPL.  `MOL` is only reported when a
-thermal rating (`Pe`) is known: without it the excursion-only scaling would
-claim a near-infinite output where the cone barely moves, so the UI shows the
-`MOL` trace as unavailable.  If neither `Xmax` nor `Pe` is known, `MIL` and
-`MOL` are returned as `NaN` and the UI reports them as unavailable.
+the resistive divider (`V^2 / Re` when `Rs=0`) for display and CSV export.  `MOL` uses the same voltage ratio to scale SPL.  Both curves require a
+published thermal rating: when `Pe` is `0` or missing there is no credible
+thermal ceiling to bound the drive limit, so the excursion-only scaling would
+claim a near-infinite output where the cone barely moves.  Drivers without a
+thermal rating therefore return `MIL` and `MOL` as `NaN` and the UI keeps the
+trace buttons visible but renders no curve, instead of plotting an
+excursion-only `MIL` with no counterpart `MOL`.  If neither `Xmax` nor `Pe` is
+known, `MIL` and
+`MOL` are likewise returned as `NaN` and the UI reports them as unavailable.
 
 The SPL values are useful for comparing alignments inside this simulator.  They
 represent a low-frequency acoustic-load estimate.  They are not a calibrated

@@ -14,6 +14,25 @@
 - **Verification**: the fresh active suite passes 144 tests with 0 failures and
   0 skips, including the editable-tab and Finder-to-tabs AppTests.
 
+## 0.8.6 (2026-08-05)
+
+- **MIL keeps its own right axis**: enabling the MIL trace in the Response
+  chart no longer rescales the SPL curves. The final chart-level
+  `resolve_scale` was overwriting the earlier `y="independent"` resolution
+  whenever cursor markers or pinned responses were present, collapsing the
+  watts curve onto the dB axis and squishing every other trace. The resolve now
+  preserves the independent y scale while MIL is overlaid, keeping the dB
+  domain anchored to the SPL reference.
+- **MIL/MOL need a thermal rating**: drivers with `Pe=0` (no published power
+  rating) no longer compute or plot the MIL curve. `_limit_curves` returns both
+  MIL and MOL as `NaN` without a `Pe`, and the Response chart keeps the MIL/MOL
+  buttons visible but renders no curve (previously an all-NaN `mil_w` crashed
+  the chart builder). The excursion-only MIL is no longer offered for drivers
+  that lack a thermal ceiling.
+- **Verification**: the fresh active suite passes 146 tests with 0 failures and
+  0 skips, including the MIL right-axis and no-thermal-rating regression
+  checks.
+
 ## 0.8.4 (2026-08-04)
 
 - **TLHP harvest pipeline fix**: the ToutLeHautParleur harvester previously

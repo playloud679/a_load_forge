@@ -2689,29 +2689,25 @@ def _limit_curves(
     # thermal ceiling scales by the resistive divider (Re+Rs)/Re and the power
     # reported is the share reaching the driver's Re.
     re_total = ts.re_ohm + float(series_r_ohm)
-    limits: list[np.ndarray] = []
     shape = np.asarray(spl_total_db, dtype=float).shape
+    # Both MIL and MOL need a published thermal rating: MIL is a drive-limit
+    # estimate that is only credible with a Pe to bound it, and MOL cannot
+    # scale a curve that has no thermal ceiling. Drivers with Pe=0 therefore
+    # report both curves as unavailable instead of plotting an excursion-only
+    # MIL with no counterpart MOL.
+    if ts.pe_w <= 0:
+        nan = np.full(shape, np.nan, dtype=float)
+        return nan, nan
+    limits: list[np.ndarray] = []
     if ts.xmax_mm > 0:
         excursion = np.maximum(np.asarray(excursion_mm, dtype=float), EPS)
         limits.append(float(voltage_v) * ts.xmax_mm / excursion)
-    has_thermal = ts.pe_w > 0
-    if has_thermal:
-        thermal_v = np.sqrt(ts.pe_w * ts.re_ohm) * re_total / ts.re_ohm
-        limits.append(np.full(shape, thermal_v, dtype=float))
-
-    if not limits:
-        nan = np.full(shape, np.nan, dtype=float)
-        return nan, nan
+    thermal_v = np.sqrt(ts.pe_w * ts.re_ohm) * re_total / ts.re_ohm
+    limits.append(np.full(shape, thermal_v, dtype=float))
 
     mil_v = np.minimum.reduce(limits)
     driver_v = mil_v * ts.re_ohm / re_total
     mil_w = driver_v**2 / ts.re_ohm
-    # MOL is only credible with a known thermal ceiling: without a Pe rating
-    # the excursion-only scaling claims a near-infinite output at frequencies
-    # where the cone barely moves, so report it as unavailable instead.
-    if not has_thermal:
-        nan = np.full(shape, np.nan, dtype=float)
-        return mil_w, nan
     gain_db = 20.0 * np.log10(np.maximum(mil_v, EPS) / float(voltage_v))
     mol_db = np.asarray(spl_total_db, dtype=float) + gain_db
     return mil_w, mol_db
