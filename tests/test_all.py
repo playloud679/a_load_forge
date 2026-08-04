@@ -1727,7 +1727,8 @@ def _check_ui_editable_design_comparison_tabs():
     assert "short_label =" not in source
     assert "position: relative !important;" in source
     assert "position: absolute !important;" in source
-    assert "text-overflow: ellipsis !important;" in source
+    assert "white-space: normal !important;" in source
+    assert "text-overflow: ellipsis !important;" not in source
     assert "on_click=_delete_design_comparison_tab" in source
     assert "on_click=_toggle_design_tab_visible" in source
     assert "@st.cache_data(show_spinner=False, max_entries=128)" in source
@@ -1748,10 +1749,13 @@ def _check_ui_editable_design_comparison_tabs():
         3,
         "Bass reflex",
         "LSDB: SB Acoustics WO24TX-4",
-    ) == "3 · SB Acoustics WO24TX-4 · Bass reflex"
+    ) == "3 · SB Acoustics · WO24TX-4 · Bass reflex · Single driver"
     assert _ui._design_tab_label_driver(
         "2 · Scan-Speak 25W/8561 · Bass reflex"
     ) == "Scan-Speak 25W/8561"
+    assert _ui._design_tab_label_driver(
+        "2 · SB Acoustics · WO24TX-4 · Bass reflex · Single driver"
+    ) == "SB Acoustics WO24TX-4"
     assert _ui._design_tab_label_driver(
         "2 · Variant of Bass reflex · LSDB: SB Acoustics WO24TX-4 · Vb 75 L"
     ) == "LSDB: SB Acoustics WO24TX-4"
@@ -1818,8 +1822,8 @@ def _check_ui_editable_design_comparison_tabs():
     tabs = at.session_state["design_comparison_tabs"]
     assert len(tabs) == 2, tabs
     assert [tab["label"] for tab in tabs] == [
-        "1 · KEF B110B article example · Sealed",
-        "2 · KEF B110B article example · Sealed",
+        "1 · KEF · B110B article example · Sealed · Single driver",
+        "2 · KEF · B110B article example · Sealed · Single driver",
     ]
     assert [tab["driver_preset_name"] for tab in tabs] == [
         "KEF B110B article example",
@@ -1962,7 +1966,7 @@ def _check_ui_editable_design_comparison_tabs():
     assert len(at.session_state["design_comparison_tabs"]) == 1
     assert at.session_state["sealed_vb_l"] == 30.0
     assert at.session_state["design_comparison_tabs"][0]["label"] == (
-        "1 · KEF B110B article example · Sealed"
+        "1 · KEF · B110B article example · Sealed · Single driver"
     ), "deleting and renumbering a sibling must never rename this tab Custom"
 
     delete = next(

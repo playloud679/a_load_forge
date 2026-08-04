@@ -425,8 +425,9 @@ Inside the `Response` tab:
   Group Delay and compatible Ports charts. Each design receives one permanent
   tab/curve color: the first keeps emerald and later variants keep their own
   reference colors even when the active tab changes. Up to eight tabs can be
-  compared. Titles use the compact `number · driver · load` form and keep
-  the known driver name through selection, deletion and renumbering. The
+  compared. Titles use the compact `number · manufacturer · part n. · load ·
+  configuration` form, wrap across lines when narrow, and keep the known driver
+  identity through selection, deletion and renumbering. The
   Response pens are transversal: selecting **Total**, **Cone**,
   the current port/radiator trace, **MOL** or **MIL** applies that pen to every
   comparison tab that supports it. These tab actions reuse the last solver

@@ -5531,22 +5531,25 @@ def _design_comparison_tab_label(
     preset: str | None = None,
     config: str | None = None,
 ) -> str:
-    """Return a compact tab title; alignment details belong in the results."""
+    """Return a compact tab title split into manufacturer, part number,
+    load type and driver configuration; alignment details live in results."""
     preset_name = str(
         preset
         if preset is not None
         else st.session_state.get("driver_preset_name", "Custom")
     )
-    if ": " in preset_name:
-        preset_name = preset_name.split(": ", 1)[1]
     driver_config = str(
         config
         if config is not None
         else st.session_state.get("driver_config", "Single driver")
     )
-    if driver_config != "Single driver":
-        preset_name = f"{preset_name} ({driver_config})"
-    return f"{number} · {preset_name} · {load_type}"
+    if preset_name == "Custom":
+        return f"{number} · {load_type} · {driver_config}"
+    manufacturer, part_number = _driver_preset_identity_fields(preset_name)
+    return (
+        f"{number} · {manufacturer} · {part_number} · "
+        f"{load_type} · {driver_config}"
+    )
 
 
 def _design_tab_label_driver(label: str) -> str:
@@ -5554,8 +5557,11 @@ def _design_tab_label_driver(label: str) -> str:
     parts = [part.strip() for part in str(label).split(" · ")]
     if parts and parts[0].isdigit():
         parts = parts[1:]
-    if len(parts) >= 2 and parts[0] in _ALL_LOAD_TYPES:
-        candidate = parts[1]
+    # New compact format: <manufacturer> · <part n.> · <load type> · <config>
+    if len(parts) >= 3 and parts[2] in _ALL_LOAD_TYPES:
+        candidate = f"{parts[0]} {parts[1]}"
+    elif len(parts) >= 2 and parts[0] in _ALL_LOAD_TYPES:
+        return ""
     elif len(parts) >= 2 and parts[0].startswith("Variant of "):
         candidate = parts[1]
     elif parts:
@@ -5687,6 +5693,7 @@ def _render_editable_design_tabs(
                 border: 0 !important;
                 box-shadow: none !important;
                 font-weight: {'700' if is_active else '500'} !important;
+                height: auto !important;
                 justify-content: flex-start !important;
                 min-height: 2rem !important;
                 min-width: 0 !important;
@@ -5707,10 +5714,10 @@ def _render_editable_design_tabs(
             .st-key-design_comparison_tab_{tab_id} button p {{
                 display: block !important;
                 min-width: 0 !important;
-                overflow: hidden !important;
                 text-align: left !important;
-                text-overflow: ellipsis !important;
-                white-space: nowrap !important;
+                white-space: normal !important;
+                line-height: 1.15 !important;
+                word-break: break-word !important;
             }}
             .st-key-duplicate_design_tab_{tab_id},
             .st-key-toggle_design_tab_{tab_id},
@@ -6612,12 +6619,14 @@ def _add_finder_designs_to_comparison(
         _apply_batch_result(row, load_type)
         st.session_state["sim_voltage"] = float(voltage_v)
         st.session_state["sim_series_r_ohm"] = 0.0
-        driver_label = str(row["Driver"])
-        if ": " in driver_label:
-            driver_label = driver_label.split(": ", 1)[1]
         tab_number = len(comparison_tabs) + 1
         tab_id = f"design_{uuid.uuid4().hex}"
-        label = f"{tab_number} · {driver_label} · {load_type}"
+        label = _design_comparison_tab_label(
+            tab_number,
+            load_type,
+            preset=str(row["Driver"]),
+            config=str(row.get("Driver configuration", "Single driver")),
+        )
         color = _DESIGN_COMPARISON_TRACE_COLORS[
             len(comparison_tabs) % len(_DESIGN_COMPARISON_TRACE_COLORS)
         ]

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.5 (2026-08-04)
+
+- **Box Design tab identity**: editable design tabs now show the normalized
+  manufacturer / part-number pair instead of the single source-decorated driver
+  name, alongside the load type and driver configuration, e.g.
+  `1 · Beyma · 12CMV2 · DCCAV · 2 × parallel` (previously
+  `1 · Beyma 12CMV2 (2 × parallel) · DCCAV`). Custom T/S designs keep a compact
+  `load type · config` label. Finder batch imports, pinned-response legends and
+  the legacy label parser all follow the same format. Tab labels wrap onto
+  successive lines inside the button instead of being truncated with ellipsis,
+  and the button grows to fit the wrapped text.
+- **Verification**: the fresh active suite passes 144 tests with 0 failures and
+  0 skips, including the editable-tab and Finder-to-tabs AppTests.
+
 ## 0.8.4 (2026-08-04)
 
 - **TLHP harvest pipeline fix**: the ToutLeHautParleur harvester previously
