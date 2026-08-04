@@ -3,39 +3,39 @@
 > File generato automaticamente: non modificare a mano i numeri.  
 > Rigenerazione: `.venv/bin/python tools/generate_manufacturer_database_report.py`
 
-Generato: **2026-08-04T22:53:39+02:00**
-Database letto: `data/manufacturer_drivers.json` (modificato 2026-08-04T22:53:01+02:00)
+Generato: **2026-08-04T23:41:44+02:00**
+Database letto: `data/manufacturer_drivers.json` (modificato 2026-08-04T23:41:37+02:00)
 
 ## Sintesi
 
-Il catalogo contiene **5.064 driver** di **73 produttori**. L'app ne espone **4.981** dopo il controllo `Sd`/diametro nominale. I sette parametri fondamentali sono completi al **100.00%** dei record. I prezzi verificabili coprono il **81.81%**.
+Il catalogo contiene **5.277 driver** di **80 produttori**. L'app ne espone **5.194** dopo il controllo `Sd`/diametro nominale. I sette parametri fondamentali sono completi al **100.00%** dei record. I prezzi verificabili coprono il **81.75%**.
 
 ## Copertura parametri
 
 | Parametro | Presenti | Mancanti | Copertura |
 |---|---|---|---|
-| Fs | 5.064 | 0 | 100.00% |
-| Vas | 5.064 | 0 | 100.00% |
-| Qts | 5.064 | 0 | 100.00% |
-| Qms | 5.064 | 0 | 100.00% |
-| Qes | 5.064 | 0 | 100.00% |
-| Re | 5.064 | 0 | 100.00% |
-| Sd | 5.064 | 0 | 100.00% |
-| Mms | 5.060 | 4 | 99.92% |
-| Cms | 5.064 | 0 | 100.00% |
-| BL | 5.064 | 0 | 100.00% |
-| Xmax | 4.765 | 299 | 94.10% |
-| Potenza Pe | 4.731 | 333 | 93.42% |
-| Le | 4.755 | 309 | 93.90% |
-| Dimensione nominale | 5.064 | 0 | 100.00% |
+| Fs | 5.277 | 0 | 100.00% |
+| Vas | 5.277 | 0 | 100.00% |
+| Qts | 5.277 | 0 | 100.00% |
+| Qms | 5.277 | 0 | 100.00% |
+| Qes | 5.277 | 0 | 100.00% |
+| Re | 5.277 | 0 | 100.00% |
+| Sd | 5.277 | 0 | 100.00% |
+| Mms | 5.273 | 4 | 99.92% |
+| Cms | 5.207 | 70 | 98.67% |
+| BL | 5.276 | 1 | 99.98% |
+| Xmax | 4.977 | 300 | 94.31% |
+| Potenza Pe | 4.943 | 334 | 93.67% |
+| Le | 4.966 | 311 | 94.11% |
+| Dimensione nominale | 5.268 | 9 | 99.83% |
 
 ## Prezzi
 
-- Driver con prezzo: **4.143/5.064** (81.81%).
-- Senza prezzo: **921**; marcati senza abbinamento commerciale affidabile: **921**.
-- Prezzi con URL: **4.130**; con provenienza strutturata: **4.143**.
-- Indice commerciale separato: **36.308** offerte; aggiornato `2026-08-04T20:16:48+00:00`.
-- Valute: EUR 1.902, USD 1.884, GBP 283, BRL 28, SEK 18, JPY 7, THB 5, INR 5, ZAR 3, CZK 1, NZD 1, CHF 1, UAH 1, COP 1, VND 1, AUD 1, CAD 1.
+- Driver con prezzo: **4.314/5.277** (81.75%).
+- Senza prezzo: **963**; marcati senza abbinamento commerciale affidabile: **921**.
+- Prezzi con URL: **4.301**; con provenienza strutturata: **4.143**.
+- Indice commerciale separato: **36.308** offerte; aggiornato `2026-08-04T21:10:30+00:00`.
+- Valute: EUR 2.073, USD 1.884, GBP 283, BRL 28, SEK 18, JPY 7, THB 5, INR 5, ZAR 3, CZK 1, NZD 1, CHF 1, UAH 1, COP 1, VND 1, AUD 1, CAD 1.
 
 I record senza corrispondenza sicura restano intenzionalmente senza prezzo: il report non considera stime o medie inventate.
 
@@ -47,7 +47,7 @@ I record senza corrispondenza sicura restano intenzionalmente senza prezzo: il r
 - Correzioni tracciate `Sd`: **26**; dimensione nominale: **847**.
 - Record esclusi per conflitto irrisolto `Sd`/diametro nominale: **83**.
 - Provenienza esplicita da refresh: Xmax **212**, Pe **1.033**, Le **281**.
-- Campi derivati tracciati: Qes **4.831**, Cms **2.945**, size_in **2.917**, BL **838**, Mms **281**, Sd **88**, Re **11**, Qms **3**, Qts **2**, Vas **1**.
+- Campi derivati tracciati: Qes **4.831**, Cms **2.945**, size_in **2.917**, BL **838**, Mms **281**, Sd **89**, Re **13**, Qts **3**, Qms **3**, Vas **1**.
 
 Le derivazioni vengono conteggiate solo quando memorizzate in `website_fields.derived_fields`; i valori pubblicati e quelli derivati restano distinguibili.
 
@@ -141,7 +141,7 @@ Le derivazioni vengono conteggiate solo quando memorizzate in `website_fields.de
 
 ## Deduplicazione
 
-Dry-run corrente: **5.064 → 5.001**, duplicati conservativi rimovibili **63**.
+Dry-run corrente: **5.277 → 5.214**, duplicati conservativi rimovibili **63**.
 
 L'ultimo report applicato ha ridotto il catalogo da 4.697 a 4.424 record (273 rimossi).
 
@@ -149,21 +149,21 @@ L'ultimo report applicato ha ridotto il catalogo da 4.697 a 4.424 record (273 ri
 
 | Fonte | Driver | Quota |
 |---|---|---|
-| Parts Express API | 1.352 | 26.70% |
-| SoundImports retailer | 913 | 18.03% |
-| Manufacturer website | 449 | 8.87% |
-| SICA official | 146 | 2.88% |
-| 18Sound | 141 | 2.78% |
-| B&C Speakers Remix crawler | 140 | 2.76% |
-| Ciare crawler | 117 | 2.31% |
-| Bomber official | 108 | 2.13% |
-| FaitalPRO Official Excel | 107 | 2.11% |
-| Eminence crawler | 96 | 1.90% |
-| Visaton crawler | 93 | 1.84% |
-| PHL Audio official PDF | 93 | 1.84% |
-| SB Acoustics crawler | 87 | 1.72% |
-| Beyma Catalog | 86 | 1.70% |
-| P.Audio official | 86 | 1.70% |
+| Parts Express API | 1.352 | 25.62% |
+| SoundImports retailer | 913 | 17.30% |
+| Manufacturer website | 449 | 8.51% |
+| ToutLeHautParleur product page | 213 | 4.04% |
+| SICA official | 146 | 2.77% |
+| 18Sound | 141 | 2.67% |
+| B&C Speakers Remix crawler | 140 | 2.65% |
+| Ciare crawler | 117 | 2.22% |
+| Bomber official | 108 | 2.05% |
+| FaitalPRO Official Excel | 107 | 2.03% |
+| Eminence crawler | 96 | 1.82% |
+| Visaton crawler | 93 | 1.76% |
+| PHL Audio official PDF | 93 | 1.76% |
+| SB Acoustics crawler | 87 | 1.65% |
+| Beyma Catalog | 86 | 1.63% |
 
 ## Lacune prioritarie per produttore
 

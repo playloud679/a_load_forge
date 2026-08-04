@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.8.4 (2026-08-04)
+
+- **TLHP harvest pipeline fix**: the ToutLeHautParleur harvester previously
+  merged accepted new drivers into the derived unified view
+  `data/catalog_proprietario.json`, which is rebuilt from the source-of-truth
+  `data/manufacturer_drivers.json` — so the next catalog rebuild silently
+  dropped them. The harvester now merges into the source of truth and the 213
+  already-harvested drivers were backfilled. The catalog grew from 5,064 to
+  5,277 drivers and from 73 to 80 manufacturers, adding Audax, .Kartesian,
+  AB Sound and DAS, and priced drivers rose from 4,143 to 4,314.
+- **`--retry-failures` repaired**: a skip condition checked
+  `url in completed_products` before the retry flag, and every rejected product
+  was also recorded as completed, so the flag could never refetch a failed T/S
+  page. The guard now lets failed products be revisited when the flag is set,
+  enabling parser improvements to recover previously unimportable drivers.
+- **Verification**: the fresh active suite passes 144 tests with 0 failures and
+  0 skips, including the Streamlit startup AppTest.
+
 ## 0.8.3 (2026-08-04)
 
 - **Automatic catalog completion**: a new restartable coordinator audits every

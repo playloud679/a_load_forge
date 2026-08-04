@@ -26,7 +26,7 @@ from bs4 import BeautifulSoup
 ROOT = Path(__file__).resolve().parents[1]
 BASE_URL = "https://en.toutlehautparleur.com/speakers/cone-speaker.html"
 DEFAULT_OUTPUT = ROOT / "data" / "toutlehautparleur_harvest_checkpoint.json"
-DEFAULT_CATALOG = ROOT / "data" / "catalog_proprietario.json"
+DEFAULT_CATALOG = ROOT / "data" / "manufacturer_drivers.json"
 SELLER = "ToutLeHautParleur"
 DEFAULT_PAGE_SIZE = 8
 
@@ -308,7 +308,9 @@ def main() -> int:
         if known_identities.intersection(offer_identities):
             completed_products.add(url)
             continue
-        if url in completed_products or (url in failures and not args.retry_failures):
+        if url in completed_products and not (args.retry_failures and url in failures):
+            continue
+        if url in failures and not args.retry_failures:
             continue
         if args.max_products > 0 and fetched_products >= args.max_products:
             break
