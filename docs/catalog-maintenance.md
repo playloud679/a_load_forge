@@ -19,9 +19,26 @@ underlying catalog.
 
 ## Editing and selection
 
-Commercial name, brand, MPN, price, currency, product link and availability
-are editable. `Save` persists only rows whose visible editable values changed;
-unchanged rows retain their original source provenance.
+Manufacturer, normalized part number, `Xmax` in mm, `Pmax` in W, `Le` in mH,
+price, currency, product link and availability are editable. The three driver
+values map to `driver.xmax_mm`, `driver.pe_w` and `driver.le_mh`; saving them
+preserves every other T/S field. Source-decorated catalog names remain stored
+as hidden internal keys instead of being repeated in the table. Retailer and
+manufacturer titles are normalized through the same runtime identity parser,
+including Beyma labels such as `LOUDSPEAKER 8\"MC300Nd 8 OH` → `8MC300Nd`.
+When no reliable manufacturer code exists, the complete model title remains
+visible instead of being reduced to a generic category such as `WOOFER`.
+Known source aliases are shown under one manufacturer name; for example,
+`Eminence Speaker` is presented as `Eminence`, and the repeated manufacturer
+prefix is removed from its part number.
+`Save` persists only rows whose visible editable values changed; unchanged rows
+retain their original source provenance. A saved part-number correction is an
+explicit override of the imported `model`, so the edited value remains visible
+after reruns and is also used by runtime identity and deduplication.
+The unified-catalog rebuild preserves rows marked `Manual catalog maintenance`
+and explicit `part_number_override` values, including edited optional driver
+fields and commercial fields, so an automatic enrichment cycle cannot erase
+administrator corrections.
 
 `Select` is an independent checkbox for every row and permits any number of
 simultaneous selections. `Duplicate selected` creates one uniquely named copy

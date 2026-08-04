@@ -37,6 +37,8 @@ power values whose stored raw measurement has no unit are treated as suspect
 and may be replaced only by a newly extracted value with an explicit `W/kW`.
 Legacy `Pe` values backed only by unitless free text are invalidated before
 refresh and their previous value/reason is retained in `invalidated_fields`.
+Malformed legacy `raw_measurements.pe_w` values that are not structured
+measurement objects are ignored safely instead of stopping the bulk cycle.
 
 Power handling is deliberately semantic: AES, RMS, rated power, power rating
 and power capacity are accepted; program, continuous-program, maximum and

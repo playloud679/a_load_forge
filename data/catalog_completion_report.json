@@ -1,0 +1,2350 @@
+{
+  "coverage": {
+    "fields": {
+      "bl_tm": {
+        "missing": 0,
+        "percent": 100.0,
+        "present": 5064
+      },
+      "cms_mm_per_n": {
+        "missing": 0,
+        "percent": 100.0,
+        "present": 5064
+      },
+      "fs_hz": {
+        "missing": 0,
+        "percent": 100.0,
+        "present": 5064
+      },
+      "le_mh": {
+        "missing": 309,
+        "percent": 93.9,
+        "present": 4755
+      },
+      "mms_g": {
+        "missing": 4,
+        "percent": 99.92,
+        "present": 5060
+      },
+      "pe_w": {
+        "missing": 333,
+        "percent": 93.42,
+        "present": 4731
+      },
+      "qes": {
+        "missing": 0,
+        "percent": 100.0,
+        "present": 5064
+      },
+      "qms": {
+        "missing": 0,
+        "percent": 100.0,
+        "present": 5064
+      },
+      "qts": {
+        "missing": 0,
+        "percent": 100.0,
+        "present": 5064
+      },
+      "re_ohm": {
+        "missing": 0,
+        "percent": 100.0,
+        "present": 5064
+      },
+      "sd_cm2": {
+        "missing": 0,
+        "percent": 100.0,
+        "present": 5064
+      },
+      "vas_l": {
+        "missing": 0,
+        "percent": 100.0,
+        "present": 5064
+      },
+      "xmax_mm": {
+        "missing": 299,
+        "percent": 94.1,
+        "present": 4765
+      }
+    },
+    "price": {
+      "missing": 921,
+      "percent": 81.81,
+      "present": 4143
+    },
+    "rows": 5064
+  },
+  "generated_at": "2026-08-04T20:53:43+00:00",
+  "mode": "plan",
+  "network_strategy": {
+    "cache_first": true,
+    "known_source_refresh": {
+      "reason": "blind full refresh suppressed: last full refresh is 0.1h old with 1.54% record yield; cooldown is 720h",
+      "scheduled": false
+    },
+    "official_datasheet_seeds": [],
+    "repeat_network": false,
+    "source_cooldown_hours": 720.0,
+    "source_probe_gate": {
+      "max_domains": 5,
+      "min_yield": 0.5,
+      "probe_records": 3,
+      "scheduled": true
+    }
+  },
+  "policy": {
+    "published_only": [
+      "xmax_mm",
+      "pe_w",
+      "le_mh",
+      "price"
+    ],
+    "rule": "Never substitute estimates, averages, accessory prices or low-confidence matches."
+  },
+  "price_index_offers": 36308,
+  "priority_brands": [
+    {
+      "brand": "Altec Lansing",
+      "known_source_urls": 63,
+      "missing": {
+        "le_mh": 63,
+        "pe_w": 63,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 63,
+      "score": 275.5,
+      "unpriced": 55
+    },
+    {
+      "brand": "Rockville",
+      "known_source_urls": 54,
+      "missing": {
+        "le_mh": 36,
+        "pe_w": 15,
+        "xmax_mm": 25
+      },
+      "records_with_gaps": 60,
+      "score": 219.0,
+      "unpriced": 60
+    },
+    {
+      "brand": "SICA",
+      "known_source_urls": 49,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 7,
+        "xmax_mm": 42
+      },
+      "records_with_gaps": 64,
+      "score": 175.0,
+      "unpriced": 35
+    },
+    {
+      "brand": "Wavecor",
+      "known_source_urls": 46,
+      "missing": {
+        "le_mh": 8,
+        "pe_w": 43,
+        "xmax_mm": 11
+      },
+      "records_with_gaps": 46,
+      "score": 163.0,
+      "unpriced": 32
+    },
+    {
+      "brand": "DS18",
+      "known_source_urls": 50,
+      "missing": {
+        "le_mh": 1,
+        "pe_w": 0,
+        "xmax_mm": 49
+      },
+      "records_with_gaps": 56,
+      "score": 156.5,
+      "unpriced": 8
+    },
+    {
+      "brand": "Bomber",
+      "known_source_urls": 27,
+      "missing": {
+        "le_mh": 11,
+        "pe_w": 16,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 95,
+      "score": 137.5,
+      "unpriced": 89
+    },
+    {
+      "brand": "Eminence",
+      "known_source_urls": 64,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 62,
+        "xmax_mm": 2
+      },
+      "records_with_gaps": 65,
+      "score": 133.0,
+      "unpriced": 3
+    },
+    {
+      "brand": "BMS",
+      "known_source_urls": 34,
+      "missing": {
+        "le_mh": 18,
+        "pe_w": 34,
+        "xmax_mm": 5
+      },
+      "records_with_gaps": 36,
+      "score": 127.0,
+      "unpriced": 17
+    },
+    {
+      "brand": "B&C Speakers",
+      "known_source_urls": 33,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 33
+      },
+      "records_with_gaps": 41,
+      "score": 111.0,
+      "unpriced": 12
+    },
+    {
+      "brand": "Fostex",
+      "known_source_urls": 19,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 19,
+        "xmax_mm": 19
+      },
+      "records_with_gaps": 19,
+      "score": 106.0,
+      "unpriced": 11
+    },
+    {
+      "brand": "MISCO",
+      "known_source_urls": 19,
+      "missing": {
+        "le_mh": 1,
+        "pe_w": 0,
+        "xmax_mm": 18
+      },
+      "records_with_gaps": 50,
+      "score": 105.5,
+      "unpriced": 50
+    },
+    {
+      "brand": "Visaton",
+      "known_source_urls": 25,
+      "missing": {
+        "le_mh": 14,
+        "pe_w": 4,
+        "xmax_mm": 12
+      },
+      "records_with_gaps": 57,
+      "score": 102.0,
+      "unpriced": 37
+    },
+    {
+      "brand": "DC Audio",
+      "known_source_urls": 16,
+      "missing": {
+        "le_mh": 7,
+        "pe_w": 10,
+        "xmax_mm": 12
+      },
+      "records_with_gaps": 20,
+      "score": 86.5,
+      "unpriced": 20
+    },
+    {
+      "brand": "Pride",
+      "known_source_urls": 24,
+      "missing": {
+        "le_mh": 24,
+        "pe_w": 0,
+        "xmax_mm": 4
+      },
+      "records_with_gaps": 24,
+      "score": 72.0,
+      "unpriced": 24
+    },
+    {
+      "brand": "P.Audio",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 68,
+      "score": 68.0,
+      "unpriced": 68
+    },
+    {
+      "brand": "PHL Audio",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 59,
+      "score": 59.0,
+      "unpriced": 59
+    },
+    {
+      "brand": "Factory Buyouts",
+      "known_source_urls": 19,
+      "missing": {
+        "le_mh": 6,
+        "pe_w": 0,
+        "xmax_mm": 16
+      },
+      "records_with_gaps": 19,
+      "score": 57.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "Supravox",
+      "known_source_urls": 9,
+      "missing": {
+        "le_mh": 7,
+        "pe_w": 9,
+        "xmax_mm": 6
+      },
+      "records_with_gaps": 9,
+      "score": 55.5,
+      "unpriced": 9
+    },
+    {
+      "brand": "Beyma",
+      "known_source_urls": 12,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 11,
+        "xmax_mm": 1
+      },
+      "records_with_gaps": 34,
+      "score": 47.0,
+      "unpriced": 22
+    },
+    {
+      "brand": "Markaudio",
+      "known_source_urls": 23,
+      "missing": {
+        "le_mh": 16,
+        "pe_w": 8,
+        "xmax_mm": 2
+      },
+      "records_with_gaps": 23,
+      "score": 47.0,
+      "unpriced": 1
+    },
+    {
+      "brand": "Precision Devices",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 46,
+      "score": 46.0,
+      "unpriced": 46
+    },
+    {
+      "brand": "HiVi",
+      "known_source_urls": 29,
+      "missing": {
+        "le_mh": 29,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 29,
+      "score": 43.5,
+      "unpriced": 0
+    },
+    {
+      "brand": "Celestion",
+      "known_source_urls": 5,
+      "missing": {
+        "le_mh": 5,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 40,
+      "score": 42.5,
+      "unpriced": 35
+    },
+    {
+      "brand": "NVX",
+      "known_source_urls": 7,
+      "missing": {
+        "le_mh": 7,
+        "pe_w": 7,
+        "xmax_mm": 3
+      },
+      "records_with_gaps": 7,
+      "score": 40.5,
+      "unpriced": 7
+    },
+    {
+      "brand": "Atohm",
+      "known_source_urls": 7,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 7,
+        "xmax_mm": 7
+      },
+      "records_with_gaps": 7,
+      "score": 37.0,
+      "unpriced": 2
+    },
+    {
+      "brand": "REDCATT",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 37,
+      "score": 37.0,
+      "unpriced": 37
+    },
+    {
+      "brand": "Coast Buyouts",
+      "known_source_urls": 14,
+      "missing": {
+        "le_mh": 12,
+        "pe_w": 0,
+        "xmax_mm": 6
+      },
+      "records_with_gaps": 14,
+      "score": 36.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "18Sound",
+      "known_source_urls": 5,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 4,
+        "xmax_mm": 1
+      },
+      "records_with_gaps": 24,
+      "score": 35.0,
+      "unpriced": 24
+    },
+    {
+      "brand": "RCF",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 22,
+      "score": 22.0,
+      "unpriced": 22
+    },
+    {
+      "brand": "Ciare",
+      "known_source_urls": 14,
+      "missing": {
+        "le_mh": 14,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 14,
+      "score": 21.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "PRV Audio",
+      "known_source_urls": 1,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 1,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 19,
+      "score": 20.0,
+      "unpriced": 18
+    },
+    {
+      "brand": "SB Acoustics",
+      "known_source_urls": 8,
+      "missing": {
+        "le_mh": 5,
+        "pe_w": 0,
+        "xmax_mm": 3
+      },
+      "records_with_gaps": 11,
+      "score": 19.5,
+      "unpriced": 3
+    },
+    {
+      "brand": "AudioTechnology",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 18,
+      "score": 18.0,
+      "unpriced": 18
+    },
+    {
+      "brand": "Rockford Fosgate",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 18,
+      "score": 18.0,
+      "unpriced": 18
+    },
+    {
+      "brand": "FaitalPRO",
+      "known_source_urls": 2,
+      "missing": {
+        "le_mh": 2,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 16,
+      "score": 17.0,
+      "unpriced": 14
+    },
+    {
+      "brand": "Accuton",
+      "known_source_urls": 1,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 1,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 14,
+      "score": 15.0,
+      "unpriced": 13
+    },
+    {
+      "brand": "LaVoce",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 15,
+      "score": 15.0,
+      "unpriced": 15
+    },
+    {
+      "brand": "Timpano Audio",
+      "known_source_urls": 3,
+      "missing": {
+        "le_mh": 3,
+        "pe_w": 0,
+        "xmax_mm": 3
+      },
+      "records_with_gaps": 3,
+      "score": 13.5,
+      "unpriced": 0
+    },
+    {
+      "brand": "CSS",
+      "known_source_urls": 2,
+      "missing": {
+        "le_mh": 2,
+        "pe_w": 2,
+        "xmax_mm": 2
+      },
+      "records_with_gaps": 2,
+      "score": 13.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "Custom",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 2,
+        "xmax_mm": 2
+      },
+      "records_with_gaps": 2,
+      "score": 12.0,
+      "unpriced": 2
+    },
+    {
+      "brand": "Dayton Audio",
+      "known_source_urls": 3,
+      "missing": {
+        "le_mh": 1,
+        "pe_w": 0,
+        "xmax_mm": 2
+      },
+      "records_with_gaps": 6,
+      "score": 10.5,
+      "unpriced": 3
+    },
+    {
+      "brand": "PURIFI",
+      "known_source_urls": 6,
+      "missing": {
+        "le_mh": 3,
+        "pe_w": 3,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 6,
+      "score": 10.5,
+      "unpriced": 0
+    },
+    {
+      "brand": "TAD",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 10,
+      "score": 10.0,
+      "unpriced": 10
+    },
+    {
+      "brand": "GRS",
+      "known_source_urls": 1,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 1
+      },
+      "records_with_gaps": 7,
+      "score": 9.0,
+      "unpriced": 6
+    },
+    {
+      "brand": "Peerless",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 9,
+      "score": 9.0,
+      "unpriced": 9
+    },
+    {
+      "brand": "RS Speakers",
+      "known_source_urls": 3,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 3
+      },
+      "records_with_gaps": 3,
+      "score": 9.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "Scan-Speak",
+      "known_source_urls": 3,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 3
+      },
+      "records_with_gaps": 3,
+      "score": 9.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "Tectonic",
+      "known_source_urls": 3,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 3
+      },
+      "records_with_gaps": 3,
+      "score": 9.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "Silver Flute",
+      "known_source_urls": 2,
+      "missing": {
+        "le_mh": 2,
+        "pe_w": 2,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 2,
+      "score": 7.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "Oberton",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 6,
+      "score": 6.0,
+      "unpriced": 6
+    },
+    {
+      "brand": "Pyle Audio",
+      "known_source_urls": 4,
+      "missing": {
+        "le_mh": 4,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 4,
+      "score": 6.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "Adire Audio",
+      "known_source_urls": 3,
+      "missing": {
+        "le_mh": 3,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 3,
+      "score": 4.5,
+      "unpriced": 0
+    },
+    {
+      "brand": "Morel",
+      "known_source_urls": 3,
+      "missing": {
+        "le_mh": 3,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 3,
+      "score": 4.5,
+      "unpriced": 0
+    },
+    {
+      "brand": "BlieSMa",
+      "known_source_urls": 2,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 2,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 2,
+      "score": 4.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "Focal",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 1,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 1,
+      "score": 3.0,
+      "unpriced": 1
+    },
+    {
+      "brand": "Fountek",
+      "known_source_urls": 1,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 1
+      },
+      "records_with_gaps": 1,
+      "score": 3.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "Goldwood",
+      "known_source_urls": 1,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 1
+      },
+      "records_with_gaps": 1,
+      "score": 3.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "SEAS",
+      "known_source_urls": 1,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 1
+      },
+      "records_with_gaps": 1,
+      "score": 3.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "SB Audience",
+      "known_source_urls": 1,
+      "missing": {
+        "le_mh": 1,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 1,
+      "score": 1.5,
+      "unpriced": 0
+    },
+    {
+      "brand": "Tang Band",
+      "known_source_urls": 1,
+      "missing": {
+        "le_mh": 1,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 1,
+      "score": 1.5,
+      "unpriced": 0
+    }
+  ],
+  "priority_tasks": [
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "BMS",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "10C262",
+      "score": 7.5,
+      "source_url": "https://www.bmsspeakers.com/fileadmin/bms-data/product_data_2019/bms_10c262_datasheet.pdf"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "BMS",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "12C382",
+      "score": 7.5,
+      "source_url": "https://www.bmsspeakers.com/fileadmin/bms-data/product_data_2019/bms_12c382_datasheet.pdf"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "BMS",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "15CN860",
+      "score": 7.5,
+      "source_url": "https://www.bmsspeakers.com/fileadmin/bms-data/product_data_2011/point_sources/bms_15cn860_2011-04_neodymium_triaxial_transducer.pdf"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "BMS",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "5CN162",
+      "score": 7.5,
+      "source_url": "https://www.bmsspeakers.com/fileadmin/bms-data/product_data_2016/bms_5cn162_prelim_datasheet.pdf"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "NVX",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "XQS2",
+      "score": 7.5,
+      "source_url": "https://nvx.com/products/xqs2-200w-peak-100w-rms-2-5-x-series-neo-midrange-speakers-with-adapters-for-select-gm-mopar-toyota-subaru-and-mercedes-vehicles"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "NVX",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "XQS3v2",
+      "score": 7.5,
+      "source_url": "https://nvx.com/products/xqs3v2-200w-peak-100w-rms-3-5-x-series-v2-neo-midrange-speakers-with-carbon-fiber-cones"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "NVX",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "XQS65KITv2",
+      "score": 7.5,
+      "source_url": "https://nvx.com/products/xqs65kitv2-600w-peak-300w-rms-6-5-x-series-2-way-component-speaker-system-with-carbon-fiber-cones-and-30mm-silk-dome-tweeters"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "RVP15W4",
+      "score": 7.5,
+      "source_url": "https://www.rockvilleaudio.com/2-rvp15w4/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "RVP18W4",
+      "score": 7.5,
+      "source_url": "https://www.rockvilleaudio.com/rvp18w4/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "RVW1500P4",
+      "score": 7.5,
+      "source_url": "https://www.rockvilleaudio.com/2-rvw1500p4/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "RVW1800P4",
+      "score": 7.5,
+      "source_url": "https://www.rockvilleaudio.com/rvw1800p4/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "RVW1800P8",
+      "score": 7.5,
+      "source_url": "https://www.rockvilleaudio.com/rvw1800p8/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Supravox",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "165 LB Haut-parleur large-bande 35W / 93.3dB / 4 Ohms",
+      "score": 7.5,
+      "source_url": "https://supravox.fr/products/165-lb-haut-parleur-large-bande-35w-95db-4-ohms"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Supravox",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "215 RTF 64 Bi-cône Haut-parleur large bande 25W / 98dB / 8 Ohms",
+      "score": 7.5,
+      "source_url": "https://supravox.fr/products/215-rtf-64-bi-cone-haut-parleur-large-bande-25w-98db-8-ohms"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Supravox",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "380 GMF LC Haut-parleur de grave / 98dB / 8 Ohms",
+      "score": 7.5,
+      "source_url": "https://supravox.fr/products/380-gmf-lc-haut-parleur-de-grave-98db-8-ohms"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Supravox",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "380-2000 EXC LC Haut-parleur de grave / 8 Ohms",
+      "score": 7.5,
+      "source_url": "https://supravox.fr/products/copie-de-380-2000-lc-haut-parleur-de-grave-95db-8-ohms-1"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "BMS",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": false,
+      "model": "15S435",
+      "score": 6.5,
+      "source_url": "https://www.bmsspeakers.com/fileadmin/bms-data/product_data_2019/bms_15s435_datasheet.pdf"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "CSS",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": false,
+      "model": "LDW6",
+      "score": 6.5,
+      "source_url": "https://www.soundimports.eu/en/css-ldw6.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "CSS",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": false,
+      "model": "W5-06",
+      "score": 6.5,
+      "source_url": "https://www.soundimports.eu/en/css-w5-06.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Atohm",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "C150DCR04 [NEW]",
+      "score": 6.0,
+      "source_url": "https://www.atohm.com/produits/hp-kits/haut-parleurs/c150dcr04-new.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Atohm",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "C150DCR08 [NEW]",
+      "score": 6.0,
+      "source_url": "https://www.atohm.com/produits/hp-kits/haut-parleurs/c150dcr08-new.html"
+    },
+    {
+      "actions": [
+        "approved_source_discovery",
+        "retailer_price_match"
+      ],
+      "brand": "Custom",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "27K",
+      "score": 6.0,
+      "source_url": ""
+    },
+    {
+      "actions": [
+        "approved_source_discovery",
+        "retailer_price_match"
+      ],
+      "brand": "Custom",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "flat_aliexpress",
+      "score": 6.0,
+      "source_url": ""
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "DC Audio",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "level 2 Subwoofers",
+      "score": 6.0,
+      "source_url": "https://www.dcsoundlab.com/level-2"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "DC Audio",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "level 3 Subwoofers",
+      "score": 6.0,
+      "source_url": "https://www.dcsoundlab.com/level-3"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "DC Audio",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "level 4 Subwoofers",
+      "score": 6.0,
+      "source_url": "https://www.dcsoundlab.com/level-4"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "DC Audio",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "PS3 Subwoofers",
+      "score": 6.0,
+      "source_url": "https://www.dcsoundlab.com/ps3"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "DC Audio",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "RS Subwoofers",
+      "score": 6.0,
+      "source_url": "https://www.dcsoundlab.com/xl-spl-1"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "DC Audio",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "XL SPL Subwoofers",
+      "score": 6.0,
+      "source_url": "https://www.dcsoundlab.com/xl-spl"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "FE103NV",
+      "score": 6.0,
+      "source_url": "https://www.fostex.jp/en/products/fe103nv/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "FE108NS",
+      "score": 6.0,
+      "source_url": "https://www.fostex.jp/en/products/fe108ns/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "FE108SS-HP",
+      "score": 6.0,
+      "source_url": "https://www.fostex.jp/en/products/fe108ss-hp/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "FE126NV",
+      "score": 6.0,
+      "source_url": "https://www.fostex.jp/en/products/fe126nv/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "FE166NV",
+      "score": 6.0,
+      "source_url": "https://www.fostex.jp/en/products/fe166nv/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "FE168SS-HP",
+      "score": 6.0,
+      "source_url": "https://www.fostex.jp/en/products/fe168ss-hp/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "FE203Σ-RE",
+      "score": 6.0,
+      "source_url": "https://www.fostex.jp/en/products/fe203_sigma_re/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "FE206NV",
+      "score": 6.0,
+      "source_url": "https://www.fostex.jp/en/products/fe206nv/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "FE208NS",
+      "score": 6.0,
+      "source_url": "https://www.fostex.jp/en/products/fe208ns/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "FE208SS-HP",
+      "score": 6.0,
+      "source_url": "https://www.fostex.jp/en/products/fe208ss-hp/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "FE83NV",
+      "score": 6.0,
+      "source_url": "https://www.fostex.jp/en/products/fe83nv/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "RM64PRO",
+      "score": 6.0,
+      "source_url": "https://www.rockvilleaudio.com/4-rm64pro/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "RM68PRO",
+      "score": 6.0,
+      "source_url": "https://www.rockvilleaudio.com/4-rm68pro/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "RVL69W",
+      "score": 6.0,
+      "source_url": "https://www.rockvilleaudio.com/2-rvl69w/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Supravox",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "215 Signature Bi-Cône 35W / 94,5dB / 8 Ohms",
+      "score": 6.0,
+      "source_url": "https://supravox.fr/products/215-signature-bi-cone-35w-94-5db-8-ohms"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Supravox",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "380-2000 LC Haut-parleur de grave / 95dB / 8 Ohms",
+      "score": 6.0,
+      "source_url": "https://supravox.fr/products/380-2000-lc-haut-parleur-de-grave-95db-8-ohms"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Wavecor",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "FR070WA05",
+      "score": 6.0,
+      "source_url": "http://www.wavecor.com/html/fr070wa05.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Wavecor",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "SW070WA01_02",
+      "score": 6.0,
+      "source_url": "http://www.wavecor.com/html/sw070wa01_02.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Wavecor",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "WF120BD03_04_07_08",
+      "score": 6.0,
+      "source_url": "http://www.wavecor.com/html/wf120bd03_04_07_08.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Wavecor",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "WF146WA01_02",
+      "score": 6.0,
+      "source_url": "http://www.wavecor.com/html/wf146wa01_02.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Wavecor",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "WF152BD03_04",
+      "score": 6.0,
+      "source_url": "http://www.wavecor.com/html/wf152bd03_04.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Wavecor",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "WF182BD03_04_07_08",
+      "score": 6.0,
+      "source_url": "http://www.wavecor.com/html/wf182bd03_04_07_08.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "DC Audio",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "Coaxial NEO Pro Audio Mid 8\"",
+      "score": 5.5,
+      "source_url": "https://www.dcsoundlab.com/coaxial-neo-pro-audio-8"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "DC Audio",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "NEO Pro Audio Mid 6.5\"",
+      "score": 5.5,
+      "source_url": "https://www.dcsoundlab.com/coaxial-neo-pro-audio-65"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "DC Audio",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "NEO/Carbon Fiber Pro Audio Mid 8\"",
+      "score": 5.5,
+      "source_url": "https://www.dcsoundlab.com/neo-pro-audio-10"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "DC Audio",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "Pro Audio Destroyer 10",
+      "score": 5.5,
+      "source_url": "https://www.dcsoundlab.com/pro-audio-destroyer-10"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "DC Audio",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "Pro Audio MB-10",
+      "score": 5.5,
+      "source_url": "https://www.dcsoundlab.com/pro-audio-mb10"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Pride",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "SL140.65",
+      "score": 5.5,
+      "source_url": "https://pride.audio/product/sl140-65/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Pride",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "SL200.65COMP",
+      "score": 5.5,
+      "source_url": "https://pride.audio/product/sl200-65comp/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Pride",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "SL300.65COMP",
+      "score": 5.5,
+      "source_url": "https://pride.audio/product/sl300-65comp/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Pride",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "SL300.NEO65COMP",
+      "score": 5.5,
+      "source_url": "https://pride.audio/product/sl300-neo65comp/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "RM88PRO",
+      "score": 5.5,
+      "source_url": "https://www.rockvilleaudio.com/2-rm88pro/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "RVP18W8",
+      "score": 5.5,
+      "source_url": "https://www.rockvilleaudio.com/2-rvp18w8/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "RXM104",
+      "score": 5.5,
+      "source_url": "https://www.rockvilleaudio.com/4-rxm104/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "RXM108",
+      "score": 5.5,
+      "source_url": "https://www.rockvilleaudio.com/4-rxm108/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "xmax_mm",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "X8C",
+      "score": 5.5,
+      "source_url": "https://www.rockvilleaudio.com/2-x8c/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Atohm",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "LD150CR04",
+      "score": 5.0,
+      "source_url": "https://www.atohm.com/produits/hp-kits/haut-parleurs/ld150cr04.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Atohm",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "LD180CR04",
+      "score": 5.0,
+      "source_url": "https://www.atohm.com/produits/hp-kits/haut-parleurs/ld180cr04.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Atohm",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "LD230TDR04",
+      "score": 5.0,
+      "source_url": "https://www.atohm.com/produits/hp-kits/haut-parleurs/ld230tdr04.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Atohm",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "LD230TDR08",
+      "score": 5.0,
+      "source_url": "https://www.atohm.com/produits/hp-kits/haut-parleurs/ld230tdr08.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Atohm",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "LD230TDR08M",
+      "score": 5.0,
+      "source_url": "https://www.atohm.com/produits/hp-kits/haut-parleurs/ld230tdr08m.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "FE103A",
+      "score": 5.0,
+      "source_url": "https://www.fostex.jp/en/products/fe103a/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "FE103A-VB",
+      "score": 5.0,
+      "source_url": "https://www.fostex.jp/en/products/fe103a-vb/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "FE103NV2",
+      "score": 5.0,
+      "source_url": "https://www.fostex.jp/en/products/fe103nv2/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "FE126NV2",
+      "score": 5.0,
+      "source_url": "https://www.fostex.jp/en/products/fe126nv2/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "FE166NV2",
+      "score": 5.0,
+      "source_url": "https://www.fostex.jp/en/products/fe166nv2/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "FE206NV2",
+      "score": 5.0,
+      "source_url": "https://www.fostex.jp/en/products/fe206nv2/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "FE83A-VB",
+      "score": 5.0,
+      "source_url": "https://www.fostex.jp/en/products/fe83a-vb/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Fostex",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "FE83NV2",
+      "score": 5.0,
+      "source_url": "https://www.fostex.jp/en/products/fe83nv2/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Markaudio",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "MAOP-5",
+      "score": 5.0,
+      "source_url": "https://www.soundimports.eu/en/markaudio-maop-5.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Visaton",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "DSM 50 FFL - 8 Ohm",
+      "score": 5.0,
+      "source_url": "https://www.visaton.de/en/products/drivers/dome-midranges/dsm-50-ffl-8-ohm"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Visaton",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "G 50 FFL - 8 Ohm",
+      "score": 5.0,
+      "source_url": "https://www.visaton.de/en/products/drivers/dome-midranges/g-50-ffl-8-ohm"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Wavecor",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "SW168WA01",
+      "score": 5.0,
+      "source_url": "http://www.wavecor.com/html/sw168wa01.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Wavecor",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "SW178WA01",
+      "score": 5.0,
+      "source_url": "http://www.wavecor.com/html/sw178wa01.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "309-8A",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "3124",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "3127",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "3154",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "3156",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "3182",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "405-8B",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "405-8H",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "409-8E",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "411A",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "414-8E",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "416-8C",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "417-16LF",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "418-8H",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "418-8LF",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "420A",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Altec Lansing",
+      "missing_fields": [
+        "pe_w",
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "421-16LF",
+      "score": 4.5,
+      "source_url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
+    }
+  ],
+  "schema": 1,
+  "stages": [
+    {
+      "id": "cache_first_merge",
+      "purpose": "Apply derivations and rematch the existing price index before network work."
+    },
+    {
+      "id": "official_datasheets",
+      "purpose": "Follow high-value official product pages to durable PDF datasheets."
+    },
+    {
+      "id": "fresh_sources_only",
+      "purpose": "Refresh pages and retailer checkpoints once per run, then enforce cooldown."
+    },
+    {
+      "id": "verified_merge",
+      "purpose": "Derive only physical identities and accept only confident price matches."
+    },
+    {
+      "id": "publish_views",
+      "purpose": "Rebuild source catalogs and regenerate the coverage report."
+    }
+  ]
+}

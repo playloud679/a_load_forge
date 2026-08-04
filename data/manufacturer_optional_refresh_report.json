@@ -1,29 +1,418 @@
 {
-  "candidates": 0,
+  "candidates": 65,
   "coverage_after": {
     "le_mh": {
-      "missing": 172,
-      "percent": 96.11,
-      "present": 4252
+      "missing": 309,
+      "percent": 93.9,
+      "present": 4755
     },
     "pe_w": {
-      "missing": 164,
-      "percent": 96.29,
-      "present": 4260
+      "missing": 333,
+      "percent": 93.42,
+      "present": 4731
     },
     "xmax_mm": {
-      "missing": 218,
-      "percent": 95.07,
-      "present": 4206
+      "missing": 299,
+      "percent": 94.1,
+      "present": 4765
     }
   },
   "database": "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json",
-  "failures": [],
-  "fields_filled": {},
+  "failures": [
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/alpha_15a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/alpha_4_4"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/alpha_8a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/alpha_8mra"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/basslite_s2012"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/beta_10a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/beta_10cx"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/beta_12a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/beta_12cx"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/beta_6a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/beta_8cx"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/delta_12a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/delta_15a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/delta_pro_15a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/ga_sc64"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/ga10_sc64"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/kappa_12a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/kappa_15a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/kappa_pro_10lf"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/kappa_pro_12a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/kappa_pro_15a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/kappa_pro_15lf2"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/kappalite_3012lf"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/kappalite_3015lf"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/kilomax_pro_18a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/la6_cbmr"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/lab_12"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/lab_15"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/legend_1058"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/legend_1258"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/legend_1275"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/legend_1518"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/legend_bp102_4"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/legend_em12"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/nsw4018_8"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/nsw6021_6"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 404: Not Found"
+      ],
+      "url": "https://eminence.com/products/pf_400"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/ragin_cajun"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/sigma_pro_18a"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/swamp_thang"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/texas_heat_16"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/texas_heat_4"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/the_copperhead"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/the_tonker"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/the_wizard"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/cannabis_rex_10"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/guit_fiddle"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/alpha_5_8"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/delta_12b"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/delta_15b"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/delta_15lf_4"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/ga_sc59"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/kappa_15c"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/kl3010lf_8"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/lab_12c"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/delta_10b"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/deltalite_ii_2512"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/alpha_6c"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/beta-10b"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/omega_pro_12_2kw8"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/cb3010n_8"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/cannabass-cb3015n-8"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/delta-10a-2"
+    },
+    {
+      "errors": [
+        "HTTPError: HTTP Error 429: Too Many Requests"
+      ],
+      "url": "https://eminence.com/products/ga-sc-x-12-signature-guitar-speaker-neodymium"
+    }
+  ],
+  "fields_filled": {
+    "pe_w": 1
+  },
   "local_power_repairs": 0,
   "mode": "apply",
-  "processed": 0,
-  "records_updated": 0,
-  "records_updated_by_host": {},
+  "processed": 65,
+  "records_updated": 1,
+  "records_updated_by_host": {
+    "eminence.com": 1
+  },
   "unitless_power_invalidations": 0
 }

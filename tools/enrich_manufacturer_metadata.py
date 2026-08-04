@@ -584,7 +584,7 @@ def _safe_price_record(item: dict, prices: dict, min_confidence: float) -> dict 
     candidate = price_tools.PresetCandidate(
         name=str(item.get("name") or ""),
         brand=str(item.get("brand") or ""),
-        model=str(item.get("model") or ""),
+        model=str(item.get("part_number_override") or item.get("model") or ""),
         query=str(item.get("model") or ""),
         url=str(item.get("url") or ""),
     )
@@ -604,6 +604,18 @@ def synchronize_price(item: dict, prices: dict, min_confidence: float = 0.8) -> 
     record = _safe_price_record(item, prices, min_confidence)
     website = item.setdefault("website_fields", {})
     if record is None:
+        previous_provenance = website.pop("price_provenance", None)
+        if isinstance(previous_provenance, dict):
+            website["invalidated_price"] = {
+                "reason": "cached retailer match no longer passes current identity checks",
+                "previous": {
+                    "price": item.pop("price", None),
+                    "currency": item.pop("currency", None),
+                    "price_url": item.pop("price_url", None),
+                    "availability": item.pop("availability", None),
+                    "provenance": previous_provenance,
+                },
+            }
         website["price_status"] = "no_confident_retailer_match"
         return False
     item["price"] = round(float(record["price"]), 2)

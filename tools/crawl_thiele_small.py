@@ -113,6 +113,7 @@ PARAMETERS = (
         "pe_w",
         (
             "pe", "pmax", "pwr", "aes power rating", "rated power aes",
+            "lf nominal power handling", "nominal power handling",
             "rated power handling", "rms power handling", "rms power",
             "power handling capacity", "power capacity aes", "power capacity",
             "power handling p", "power rating", "power handling", "rated power",
@@ -636,11 +637,12 @@ def text_measurements(text: str) -> list[Measurement]:
             if spec.key == "fs_hz"
             else ""
         )
+        footnote_prefix = r"(?:(?:[*¹²³]+|\d{1,2})\s+)?" if spec.key == "pe_w" else ""
         pattern = re.compile(
             rf"(?<![A-Za-z0-9])(?P<label>{alias_pattern})(?![A-Za-z0-9])"
             rf"(?:\)|\.)?\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?"
             rf"\s*(?:[*¹²³]+)?\s*(?:[:=\-–—：]|is)?\s*"
-            rf"{tolerance_prefix}{signed_value_prefix}"
+            rf"{footnote_prefix}{tolerance_prefix}{signed_value_prefix}"
             rf"(?P<value>{NUMBER_RE})[\t \r\n]{{0,16}}"
             rf"\[?(?P<unit>{UNIT_RE})\]?",
             re.I,
@@ -652,7 +654,10 @@ def text_measurements(text: str) -> list[Measurement]:
             # merely because they occur first on the page.
             if spec.key == "pe_w":
                 prefix = text[max(0, match.start() - 24):match.start()].casefold()
-                if re.search(r"(?:continuous|program|maximum|max\.?)[ \t]+$", prefix):
+                if re.search(
+                    r"(?:continuous|program|maximum|max\.?|hf(?:\s+nominal)?)[ \t]+$",
+                    prefix,
+                ):
                     continue
             unit = match.group("unit") or ""
             if spec.key == "pe_w" and not normalize_unit(unit):

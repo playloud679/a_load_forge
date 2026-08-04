@@ -1835,11 +1835,7 @@
         "upstream_id": 3490,
         "upstream_rating": 4.0,
         "upstream_text_id": "alphard-lw800"
-      },
-      "price_url": "https://www.audiovideoparts.com/ecommerce/en/7346-subwoofer-12-900w-8i-96db.html",
-      "price_source": "Audio Video Parts",
-      "price": 250.0,
-      "price_currency": "EUR"
+      }
     },
     {
       "brand": "Alphard",
@@ -11488,10 +11484,9 @@
         "upstream_rating": 0.0,
         "upstream_text_id": "b-c-speakers-12ndl88-4"
       },
-      "price_url": "https://www.audiovideoparts.com/ecommerce/en/midranges-woofers-subwoofers-neodymium/4279-woofer-12-700w-4i-98db.html",
-      "price_source": "Audio Video Parts",
-      "price": 269.56,
-      "price_currency": "EUR"
+      "price": 277.46,
+      "price_currency": "EUR",
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-b-c-speakers-12ndl88-4-ohm-12-inch.html"
     },
     {
       "brand": "B&C Speakers",
@@ -11530,7 +11525,10 @@
         "upstream_id": 5651,
         "upstream_rating": 0.0,
         "upstream_text_id": "b-c-speakers-12ph32"
-      }
+      },
+      "price": 152.31,
+      "price_currency": "EUR",
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-b-c-speakers-12ph32-8-ohm-12-inch.html"
     },
     {
       "brand": "B&C Speakers",
@@ -11572,8 +11570,7 @@
       },
       "price": 190.0,
       "price_currency": "GBP",
-      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2491-woofer-15-350w-4i-995db-compatibile-15223b-4-maxx6a.html",
-      "price_source": "Audio Video Parts"
+      "price_url": "https://www.bluearan.co.uk/index.php?id=BAC15HPL76A"
     },
     {
       "brand": "B-52",
@@ -16799,8 +16796,7 @@
       },
       "price": 159.0,
       "price_currency": "EUR",
-      "price_url": "https://www.audiovideoparts.com/ecommerce/en/6524-ciare-hs251-subwoofer-250mm-200200w-max-88i.html",
-      "price_source": "Audio Video Parts"
+      "price_url": "https://www.topservicepro.it/prodotto/ciare-hsg-200-44-altoparlante-subwoofer/"
     },
     {
       "brand": "Ciare",
@@ -16839,11 +16835,7 @@
         "upstream_id": 5404,
         "upstream_rating": 0.0,
         "upstream_text_id": "ciare-hw251"
-      },
-      "price_url": "https://www.audiovideoparts.com/ecommerce/en/1823-ciare-hw251n-woofer-250mm-240w-max-8i.html",
-      "price_source": "Audio Video Parts",
-      "price": 123.5,
-      "price_currency": "EUR"
+      }
     },
     {
       "brand": "Ciare",
@@ -26426,9 +26418,9 @@
         "upstream_rating": 0.0,
         "upstream_text_id": "faitalpro-12fx600"
       },
-      "price": 389.95,
+      "price": 316.69,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/faitalpro-12fx600-8p.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-faitalpro-12fx600-8-ohm-12-inch.html"
     },
     {
       "brand": "FaitalPRO",
@@ -26512,8 +26504,7 @@
       },
       "price": 199.0,
       "price_currency": "EUR",
-      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2957-recone-kit-per-driver-06hx150-8-ohm.html",
-      "price_source": "Audio Video Parts"
+      "price_url": "https://www.thomann.de/intl/faitalpro_6hx150_8_ohms.htm"
     },
     {
       "brand": "FaitalPRO",
@@ -40745,11 +40736,7 @@
         "upstream_id": 3649,
         "upstream_rating": 0.0,
         "upstream_text_id": "jbl-e120-16"
-      },
-      "price_url": "https://www.audiovideoparts.com/ecommerce/en/tweeters-and-hf-drivers/4284-de12-hf-driver-1-25w-16i-106db.html",
-      "price_source": "Audio Video Parts",
-      "price": 75.44,
-      "price_currency": "EUR"
+      }
     },
     {
       "brand": "JBL",
@@ -41880,11 +41867,7 @@
         "upstream_id": 5920,
         "upstream_rating": 5.0,
         "upstream_text_id": "jbl-p1500"
-      },
-      "price_url": "https://www.audiovideoparts.com/ecommerce/en/6631-ciare-hw321-woofer-320mm-400w-max-8i.html",
-      "price_source": "Audio Video Parts",
-      "price": 292.6,
-      "price_currency": "EUR"
+      }
     },
     {
       "brand": "JBL",
@@ -46287,11 +46270,7 @@
         "upstream_id": 3197,
         "upstream_rating": 0.0,
         "upstream_text_id": "magnum-bass-8"
-      },
-      "price_url": "https://www.audiovideoparts.com/ecommerce/en/speakers/6430-ciare-pa065-extended-range-65mm-30w-max-8i.html",
-      "price_source": "Audio Video Parts",
-      "price": 48.0,
-      "price_currency": "EUR"
+      }
     },
     {
       "brand": "MAGNUM",
@@ -48789,9 +48768,9 @@
         "upstream_rating": 5.0,
         "upstream_text_id": "monacor-carpower-sp-252c"
       },
-      "price": 79.5,
+      "price": 60.55,
       "price_currency": "EUR",
-      "price_url": "https://www.lautsprechershop.de/chassis/monacor_car_alt_en.htm#mo-102810"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-monacor-sp-252c-4-ohm-10-08-inch.html"
     },
     {
       "brand": "Monacor",
@@ -54787,9 +54766,9 @@
         "upstream_rating": 5.0,
         "upstream_text_id": "peerless-ne85w"
       },
-      "price": 52.2,
+      "price": 36.23,
       "price_currency": "EUR",
-      "price_url": "https://www.lautsprechershop.de/chassis/peerless_en.htm#ty-NE85W-04"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/fullrange-speaker-peerless-ne85w-04-4-ohm-2-5-inch.html"
     },
     {
       "brand": "Peerless",
@@ -55101,7 +55080,10 @@
         "upstream_id": 4728,
         "upstream_rating": 0.0,
         "upstream_text_id": "phl-audio-2710"
-      }
+      },
+      "price": 201.1,
+      "price_currency": "EUR",
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-phl-audio-2710-8-ohm-8-inch.html"
     },
     {
       "brand": "Phl Audio",
@@ -59665,11 +59647,7 @@
         "upstream_id": 3539,
         "upstream_rating": 0.0,
         "upstream_text_id": "prv-audio-18sw1000"
-      },
-      "price_url": "https://www.audiovideoparts.com/ecommerce/en/midranges-woofers-subwoofers-neodymium/3882-subwoofer-18-1500w-4i-97db.html",
-      "price_source": "Audio Video Parts",
-      "price": 436.08,
-      "price_currency": "EUR"
+      }
     },
     {
       "brand": "Prv Audio",
@@ -61127,11 +61105,7 @@
         "upstream_id": 5357,
         "upstream_rating": 0.0,
         "upstream_text_id": "rcf-l15p200a"
-      },
-      "price_url": "https://www.audiovideoparts.com/ecommerce/en/1310-l15p200ak-ii-woofer-15-8-ohm-800wrms-95db.html",
-      "price_source": "Audio Video Parts",
-      "price": 214.0,
-      "price_currency": "EUR"
+      }
     },
     {
       "brand": "RCF",
@@ -63045,9 +63019,9 @@
         "upstream_rating": 0.0,
         "upstream_text_id": "seas-l16rnx--4-ohm"
       },
-      "price": 124.95,
+      "price": 108.47,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/seas-l16rnx.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-seas-l16rnx-4-ohm-5-75-inch.html"
     },
     {
       "brand": "Seas",
@@ -64191,9 +64165,9 @@
         "upstream_rating": 0.0,
         "upstream_text_id": "sica-12d1-5cs-4"
       },
-      "price": 103.8,
+      "price": 92.49,
       "price_currency": "EUR",
-      "price_url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-12D15CS4"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/bicone-speaker-sica-12d1-5cs-4-ohm-12-inch.html"
     },
     {
       "brand": "Sica",
@@ -64233,9 +64207,9 @@
         "upstream_rating": 0.0,
         "upstream_text_id": "sica-12e2cs"
       },
-      "price": 112.7,
+      "price": 68.55,
       "price_currency": "EUR",
-      "price_url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-12E2CS8"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-sica-12e2cs-8-ohm-12-inch.html"
     },
     {
       "brand": "Sica",
@@ -64317,9 +64291,9 @@
         "upstream_rating": 0.0,
         "upstream_text_id": "sica-18-f-4-cp"
       },
-      "price": 321.4,
+      "price": 204.22,
       "price_currency": "EUR",
-      "price_url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-18F4CP4"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-sica-18f4cp-4-ohm-18-inch.html"
     },
     {
       "brand": "Sica",
@@ -64401,9 +64375,9 @@
         "upstream_rating": 0.0,
         "upstream_text_id": "sica-6m1-5cs-4"
       },
-      "price": 69.95,
+      "price": 54.29,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/sica-6-m-15-cs-8.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-sica-6m1-5cs-8-ohm-6-inch.html"
     },
     {
       "brand": "Sica",
@@ -64523,11 +64497,7 @@
         "upstream_id": 2790,
         "upstream_rating": 4.0,
         "upstream_text_id": "sica-z001800"
-      },
-      "price_url": "https://www.audiovideoparts.com/ecommerce/en/2208-sica-woofer-4-60w-8i-90db-.html",
-      "price_source": "Audio Video Parts",
-      "price": 35.0,
-      "price_currency": "EUR"
+      }
     },
     {
       "brand": "Sinfoni",
@@ -75214,7 +75184,10 @@
         "upstream_id": 841,
         "upstream_rating": 4.6,
         "upstream_text_id": "visaton-frs-8-m-8"
-      }
+      },
+      "price": 12.71,
+      "price_currency": "EUR",
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/fullrange-speaker-visaton-frs-8-m-8-ohm-3-07-3-66-inch.html"
     },
     {
       "brand": "Visaton",

@@ -51,7 +51,11 @@ retailer product passes the same brand/model/accessory confidence checks used
 by the live price crawler. The snapshot keeps currency, availability, seller,
 URL, fetch time and matched product identity. Rows without a defensible offer
 receive `price_status=no_confident_retailer_match`; no average or invented
-price is substituted.
+price is substituted. An explicit administrator `part_number_override` is the
+model identity used for rematching. If a previously synchronized offer no
+longer passes the current identity checks, its value and provenance move to
+`website_fields.invalidated_price` and the active commercial fields are
+cleared; manually curated prices without crawler provenance are not removed.
 
 Preview:
 

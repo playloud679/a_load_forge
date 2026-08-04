@@ -30,6 +30,12 @@ def main() -> int:
     parser.add_argument("--sleep", type=float, default=0.4)
     parser.add_argument("--timeout", type=float, default=20.0)
     parser.add_argument(
+        "--source-runtime",
+        type=float,
+        default=900.0,
+        help="maximum wall time for each parallel source worker",
+    )
+    parser.add_argument(
         "--forever",
         action="store_true",
         help="repeat cycles indefinitely; failures are logged and retried",
@@ -53,6 +59,7 @@ def main() -> int:
 def _run_cycle(args: argparse.Namespace, *, harvest_script: Path) -> int:
 
     workers: dict[str, subprocess.Popen] = {}
+    started_at = time.monotonic()
     for source in args.sources:
         command = [
             sys.executable,
@@ -69,7 +76,17 @@ def _run_cycle(args: argparse.Namespace, *, harvest_script: Path) -> int:
 
     failures = []
     for source, worker in workers.items():
-        returncode = worker.wait()
+        remaining = max(0.0, float(args.source_runtime) - (time.monotonic() - started_at))
+        try:
+            returncode = worker.wait(timeout=remaining)
+        except subprocess.TimeoutExpired:
+            log(f"source {source}: exceeded {args.source_runtime:g}s runtime; terminating")
+            worker.terminate()
+            try:
+                returncode = worker.wait(timeout=5.0)
+            except subprocess.TimeoutExpired:
+                worker.kill()
+                returncode = worker.wait()
         if returncode:
             failures.append(source)
             log(f"source {source}: failed with exit code {returncode}")

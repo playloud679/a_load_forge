@@ -132,6 +132,7 @@ class DriverPresetInfo:
     currency: str = ""
     kind: str = ""
     url: str = ""
+    part_number: str = ""
 
 
 
@@ -698,6 +699,47 @@ def _preset_identity(brand: str, model: str) -> tuple[str, str]:
     return brand.strip().casefold(), model.strip().casefold()
 
 
+_EXTERNAL_MANUFACTURER_ALIASES = {
+    "eminence": "Eminence",
+    "eminencespeaker": "Eminence",
+    "eminencespeakers": "Eminence",
+    "eminencespeakersllc": "Eminence",
+}
+_EXTERNAL_MANUFACTURER_PREFIXES = {
+    "Eminence": (
+        "Eminence Speakers, LLC",
+        "Eminence Speakers",
+        "Eminence Speaker",
+        "Eminence",
+    ),
+}
+
+
+def _external_catalog_manufacturer(brand: str) -> str:
+    """Return one display/deduplication name for known brand aliases."""
+    raw = " ".join(str(brand).split()).strip()
+    compact = re.sub(r"[^a-z0-9]+", "", raw.casefold())
+    return _EXTERNAL_MANUFACTURER_ALIASES.get(compact, raw)
+
+
+def _external_catalog_identity_model(record: dict, fallback: str = "") -> str:
+    """Return the model/MPN text that manual catalog edits may override."""
+    override = str(record.get("part_number_override") or "").strip()
+    if override:
+        return override
+    # Backward compatibility for rows saved before part_number_override was
+    # introduced: Catalog Maintenance already stored the edited value here.
+    if str(record.get("source") or "") == "Manual catalog maintenance":
+        manual_mpn = str(record.get("matched_mpn") or "").strip()
+        if manual_mpn:
+            return manual_mpn
+    return str(
+        record.get("model")
+        or record.get("matched_mpn")
+        or fallback
+    ).strip()
+
+
 def _external_catalog_model_code(brand: str, model: str) -> str:
     """Extract a stable manufacturer part number from decorated model titles."""
     brand_key = re.sub(r"[^a-z0-9]+", "", brand.casefold())
@@ -713,15 +755,125 @@ def _external_catalog_model_code(brand: str, model: str) -> str:
     return re.sub(r"-rev-\d+$", "", codes[-1], flags=re.IGNORECASE) if codes else ""
 
 
-def _external_catalog_identity(brand: str, model: str, driver: DriverTS) -> tuple[str, str, str]:
+_BEYMA_CATALOG_TITLE = re.compile(
+    r"^loudspeaker\s+(.+?)\s+\d+(?:[.,]\d+)?\s*oh(?:ms?)?$",
+    flags=re.IGNORECASE,
+)
+
+
+def _beyma_catalog_part_number(brand: str, model: str) -> str:
+    """Extract Beyma's code from its size/title/impedance catalog labels."""
+    if re.sub(r"[^a-z0-9]+", "", brand.casefold()) != "beyma":
+        return ""
+    match = _BEYMA_CATALOG_TITLE.match(" ".join(str(model).split()).strip())
+    if not match:
+        return ""
+    code = re.sub(r"[\"″”\s]+", "", match.group(1))
+    return code.strip(" -–—/,")
+
+
+_MODEL_SIZE_VALUE = r"\d+(?:[.,]\d+|-\d+/\d+|/\d+)?"
+_MODEL_LEADING_SIZE = re.compile(
+    rf"^{_MODEL_SIZE_VALUE}\s*(?:[\"″”]|in(?:ch(?:es)?)?\b|mm\b)\s*",
+    flags=re.IGNORECASE,
+)
+_MODEL_DESCRIPTION_START = re.compile(
+    r"\s+(?:"
+    rf"{_MODEL_SIZE_VALUE}\s*(?:[\"″”]|in(?:ch(?:es)?)?\b|mm\b)|"
+    r"(?:subwoofer|woofer|midwoofer|midrange|tweeter|"
+    r"full[- ]range|compression driver|coaxial(?: driver)?|"
+    r"speaker(?: driver)?|loudspeaker|haut-parleur|large[- ]bande)\b|"
+    r"\d+(?:[.,]\d+)?\s*(?:watts?|w)\b"
+    r")",
+    flags=re.IGNORECASE,
+)
+_MODEL_SERIES_SUFFIX = re.compile(
+    r"\s+[a-z0-9-]+\s+series$",
+    flags=re.IGNORECASE,
+)
+_MODEL_CODE_TOKEN = re.compile(r"\b[a-z0-9][a-z0-9._/-]*\b", re.IGNORECASE)
+_GENERIC_MODEL_LABEL = re.compile(
+    r"^(?:subwoofer|woofer|midwoofer|midrange|tweeter|full[- ]range|"
+    r"compression driver|coaxial(?: driver)?|speaker(?: driver)?|"
+    r"loudspeaker|haut-parleur|large[- ]bande|medio grave)$",
+    flags=re.IGNORECASE,
+)
+
+
+def _external_catalog_part_number(brand: str, model: str) -> str:
+    """Return a conservative manufacturer part number for runtime display.
+
+    Retailer APIs sometimes put the complete product title in ``model``.  A
+    strong description marker is required before trimming, so genuine
+    multi-token codes such as ``GZRW 250-D2 FLAT`` remain untouched.
+    """
+    raw = " ".join(str(model).split()).strip()
+    if not raw:
+        return ""
+    manufacturer = _external_catalog_manufacturer(brand)
+    beyma_code = _beyma_catalog_part_number(manufacturer, raw)
+    if beyma_code:
+        return beyma_code
+    model_code = _external_catalog_model_code(manufacturer, raw)
+    if model_code:
+        return model_code
+    candidate = raw
+    prefixes = _EXTERNAL_MANUFACTURER_PREFIXES.get(
+        manufacturer, (manufacturer,)
+    )
+    for prefix in prefixes:
+        without_prefix = re.sub(
+            rf"^{re.escape(prefix)}\s+",
+            "",
+            candidate,
+            count=1,
+            flags=re.IGNORECASE,
+        )
+        if without_prefix != candidate:
+            candidate = without_prefix.strip()
+            break
+    leading_size = _MODEL_LEADING_SIZE.match(candidate)
+    candidate = _MODEL_LEADING_SIZE.sub("", candidate, count=1).strip()
+    marker = _MODEL_DESCRIPTION_START.search(candidate)
+    if marker:
+        trimmed = candidate[:marker.start()].strip(" -–—/,")
+        trimmed = _MODEL_SERIES_SUFFIX.sub("", trimmed).strip()
+        # Some manufacturer titles start with only a transducer category,
+        # followed by size and the real family/specification.  Returning that
+        # category as an MPN would collapse unrelated products (for example
+        # Bomber's WOOFER and MEDIO GRAVE ranges), so keep the complete title.
+        if not _GENERIC_MODEL_LABEL.fullmatch(trimmed):
+            candidate = trimmed
+    if leading_size and len(candidate.split()) > 1:
+        code_tokens = [
+            token
+            for token in _MODEL_CODE_TOKEN.findall(candidate)
+            if (
+                any(character.isalpha() for character in token)
+                and any(character.isdigit() for character in token)
+            )
+            or (token.isdigit() and len(token) >= 4)
+        ]
+        if code_tokens:
+            candidate = code_tokens[0]
+    return candidate or raw
+
+
+def _external_catalog_identity(
+    brand: str,
+    model: str,
+    driver: DriverTS,
+    impedance_text: str = "",
+) -> tuple[str, str, str]:
     """Return a tolerant identity for duplicate web/retailer listings.
 
     Retailers frequently omit impedance, inch marks or generic words from the
     model title.  The electrical resistance remains in the key so real 4/8 Ω
     variants are not collapsed accidentally.
     """
-    brand_key = brand.strip().casefold()
-    model_code = _external_catalog_model_code(brand, model)
+    manufacturer = _external_catalog_manufacturer(brand)
+    brand_key = manufacturer.casefold()
+    model_code = _external_catalog_model_code(manufacturer, model)
     if model_code:
         # SB Acoustics product pages decorate the actual part number with
         # nominal size, SATORI series and cone material. The final numeric
@@ -732,7 +884,12 @@ def _external_catalog_identity(brand: str, model: str, driver: DriverTS) -> tupl
             return brand_key, clean_code, code_impedances[-1]
 
     clean = model.casefold().replace("″", '"').replace("–", "-").replace("—", "-")
-    impedance = re.search(r"\b(\d+(?:\.\d+)?)\s*(?:ohm|ohms|ω)\b", clean)
+    impedance_source = f"{model} {impedance_text}"
+    impedance = re.search(
+        r"\b(\d+(?:\.\d+)?)\s*(?:oh(?:ms?)?|ω)\b",
+        impedance_source,
+        flags=re.IGNORECASE,
+    )
     if impedance:
         nominal_ohm = f"{float(impedance.group(1)):g}"
     else:
@@ -740,7 +897,9 @@ def _external_catalog_identity(brand: str, model: str, driver: DriverTS) -> tupl
         # the title; map it to the nearest common nominal voice-coil value.
         re_ohm = float(driver.re_ohm)
         nominal_ohm = "8" if re_ohm >= 5.0 else "4"
-    clean = re.sub(r"\b\d+(?:\.\d+)?\s*(?:ohm|ohms|ω)\b", " ", clean)
+    clean = re.sub(
+        r"\b\d+(?:\.\d+)?\s*(?:oh(?:ms?)?|ω)\b", " ", clean
+    )
     clean = re.sub(r"\b\d+(?:\.\d+)?\s*(?:in|inch|inches)\b", " ", clean)
     clean = re.sub(r"\b(?:woofer|speaker|driver|loudspeaker)\b", " ", clean)
     clean = re.sub(r"[^a-z0-9]+", "", clean)
@@ -803,8 +962,11 @@ def _load_external_presets(
         ):
             continue
         base_name = str(item["name"])
-        item_brand = str(item.get("brand") or "Other")
+        item_brand = _external_catalog_manufacturer(
+            str(item.get("brand") or "Other")
+        )
         item_model = str(item.get("model") or base_name.removeprefix("LSDB: "))
+        identity_model = _external_catalog_identity_model(item, item_model)
         if _preset_identity(item_brand, item_model) in built_in_identities:
             continue
         name = base_name
@@ -820,9 +982,9 @@ def _load_external_presets(
         item_price = _valid_price(item.get("price"))
         item_currency = str(item.get("currency") or "")
         item_source = str(item.get("source") or default_source)
-        model_code = _external_catalog_model_code(item_brand, item_model)
+        part_number = _external_catalog_part_number(item_brand, identity_model)
         enriched_price, enriched_currency, enriched_url = _preset_price(
-            name, model_code or item_model, item_brand
+            name, part_number or item_model, item_brand
         )
         raw_size_in = (
             float(item["size_in"])
@@ -834,13 +996,19 @@ def _load_external_presets(
             source=item_source,
             brand=item_brand,
             model=item_model,
+            part_number=part_number or item_model,
             size_in=coherent_nominal_size_in(raw_size_in, driver.sd_cm2),
             price=enriched_price if enriched_price is not None else item_price,
             currency=enriched_currency or item_currency,
             kind=str(item.get("kind") or ""),
             url=enriched_url or str(item.get("url") or ""),
         )
-        identity = _external_catalog_identity(item_brand, item_model, driver)
+        identity = _external_catalog_identity(
+            item_brand,
+            part_number or item_model,
+            driver,
+            impedance_text=item_model,
+        )
         source_key = item_source.casefold()
         source_priority = 0
         if (
@@ -968,6 +1136,7 @@ def driver_preset_info(name: str) -> DriverPresetInfo:
             source="Built-in",
             brand=brand,
             model=model,
+            part_number=model,
             price=price,
             currency=currency,
             url=url,

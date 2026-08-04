@@ -1145,6 +1145,23 @@ def _render_workspace_tabs() -> None:
         )
 
 
+def _catalog_record_display_identity(
+    record: dict,
+    fallback_name: str,
+) -> tuple[str, str]:
+    """Return the normalized identity shown by Catalog Maintenance."""
+    manufacturer = _presets._external_catalog_manufacturer(
+        str(record.get("matched_brand", record.get("brand", "")))
+    )
+    raw_model = _presets._external_catalog_identity_model(
+        record, fallback_name
+    )
+    part_number = _presets._external_catalog_part_number(
+        manufacturer, raw_model
+    )
+    return manufacturer, part_number or raw_model
+
+
 def _render_catalog_maintenance() -> None:
     """Administrator-only editor for the persistent driver price catalog."""
     if not _maintenance_allowed():
@@ -1271,11 +1288,18 @@ def _render_catalog_maintenance() -> None:
     original_rows = {}
     for key in matches:
         record = dict(prices.get(key) or {})
+        driver = dict(record.get("driver") or {})
+        manufacturer, part_number = _catalog_record_display_identity(
+            record, key
+        )
         status = str(record.get("availability", "InStock")).rsplit("/", 1)[-1]
         if status not in {"InStock", "OutOfStock", "Discontinued"}:
             status = "InStock"
         row = {"_key": key, "Name": record.get("matched_name", record.get("name", key)),
-               "Brand": record.get("matched_brand", record.get("brand", "")), "MPN": record.get("matched_mpn", record.get("model", key)),
+               "Brand": manufacturer, "MPN": part_number,
+               "Xmax mm": float(driver.get("xmax_mm") or 0),
+               "Pmax W": float(driver.get("pe_w") or 0),
+               "Le mH": float(driver.get("le_mh") or 0),
                "Price": float(record.get("price") or 0),
                "Currency": record.get("currency", record.get("price_currency", "EUR")), "Link": record.get("price_url") or record.get("url", ""),
                "Status": status, "Select": False}
@@ -1293,9 +1317,22 @@ def _render_catalog_maintenance() -> None:
         disabled=["_key"],
         column_config={
             "_key": None,
-            "Name": st.column_config.TextColumn("Name", width=compact_width("Name", 180, 420)),
-            "Brand": st.column_config.TextColumn("Brand", width=compact_width("Brand", 85, 150)),
-            "MPN": st.column_config.TextColumn("MPN", width=compact_width("MPN", 90, 180)),
+            "Name": None,
+            "Brand": st.column_config.TextColumn(
+                "Manufacturer", width=compact_width("Brand", 85, 150)
+            ),
+            "MPN": st.column_config.TextColumn(
+                "Part number", width=compact_width("MPN", 90, 180)
+            ),
+            "Xmax mm": st.column_config.NumberColumn(
+                "Xmax (mm)", width=92, min_value=0.0, format="%.2f"
+            ),
+            "Pmax W": st.column_config.NumberColumn(
+                "Pmax (W)", width=92, min_value=0.0, format="%.1f"
+            ),
+            "Le mH": st.column_config.NumberColumn(
+                "Le (mH)", width=82, min_value=0.0, format="%.3f"
+            ),
             "Price": st.column_config.NumberColumn("Price", width=82, format="%.2f"),
             "Currency": st.column_config.TextColumn("Currency", width=82),
             "Link": st.column_config.LinkColumn("Link", width=82, display_text="Open ↗"),
@@ -1320,12 +1357,23 @@ def _render_catalog_maintenance() -> None:
                 continue
             if not any(
                 row.get(column) != original_rows[key].get(column)
-                for column in ("Name", "Brand", "MPN", "Price", "Currency", "Link", "Status")
+                for column in (
+                    "Name", "Brand", "MPN", "Xmax mm", "Pmax W", "Le mH",
+                    "Price", "Currency", "Link", "Status",
+                )
             ):
                 continue
+            driver = dict(prices[key].get("driver") or {})
+            driver.update(
+                xmax_mm=float(row.get("Xmax mm") or 0),
+                pe_w=float(row.get("Pmax W") or 0),
+                le_mh=float(row.get("Le mH") or 0),
+            )
             updated = dict(price=float(row.get("Price") or 0), currency=str(row.get("Currency") or "EUR").upper(),
                            availability=str(row.get("Status") or "InStock"), matched_name=str(row.get("Name") or key),
                            matched_brand=str(row.get("Brand") or ""), matched_mpn=str(row.get("MPN") or key),
+                           part_number_override=str(row.get("MPN") or key),
+                           driver=driver,
                            source="Manual catalog maintenance")
             updated["price_url" if unified_catalog else "url"] = str(row.get("Link") or "")
             prices[key].update(updated)
@@ -3804,6 +3852,25 @@ def _driver_preset_family(name: str) -> str:
         return "Other"
 
 
+def _driver_preset_identity_fields(name: str) -> tuple[str, str]:
+    """Return the normalized manufacturer and part number shown at runtime."""
+    try:
+        info = _dccav.driver_preset_info(name)
+    except ValueError:
+        return "Other", name
+    manufacturer = info.brand.strip() or "Other"
+    part_number = info.part_number.strip() or info.model.strip() or name
+    return manufacturer, part_number
+
+
+def _driver_preset_display_label(name: str) -> str:
+    """Format a catalog key without exposing its source-decorated raw name."""
+    manufacturer, part_number = _driver_preset_identity_fields(name)
+    if manufacturer.casefold() == part_number.casefold():
+        return manufacturer
+    return f"{manufacturer} — {part_number}"
+
+
 def _driver_preset_source(name: str) -> str:
     try:
         return _dccav.driver_preset_provenance_category(name)
@@ -3988,10 +4055,18 @@ def _sync_filter_multiselect(
 
 def _render_finder_library_filters(all_preset_names: list[str]) -> None:
     """Render Finder library filters."""
-    st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
+    st.text_input(
+        "Search preset",
+        key="preset_search",
+        placeholder="Manufacturer or part number",
+    )
     filter_options = (
         ("preset_source_filter", "Provenance", list(_PRESET_SOURCE_FILTERS)),
-        ("preset_family_filter", "Brand", _available_preset_families(all_preset_names)),
+        (
+            "preset_family_filter",
+            "Manufacturer",
+            _available_preset_families(all_preset_names),
+        ),
         ("preset_size_filter", "Size", list(_PRESET_SIZE_FILTERS)),
         ("preset_class_filter", "Class", list(_PRESET_CLASS_FILTERS)),
     )
@@ -4122,8 +4197,11 @@ def _filter_driver_preset_names(
             continue
         if class_values and _driver_preset_class(name) not in class_values:
             continue
-        if query and query not in name.casefold():
-            continue
+        if query:
+            manufacturer, part_number = _driver_preset_identity_fields(name)
+            searchable = " ".join((name, manufacturer, part_number)).casefold()
+            if query not in searchable:
+                continue
         if max_mms_g is not None or max_le_mh is not None:
             try:
                 driver = _dccav.get_driver_preset(name)
@@ -7175,8 +7253,9 @@ def _finder_driver_identity(name: str) -> tuple[str, str, str]:
         ts = _dccav.get_driver_preset(name)
         return _presets._external_catalog_identity(
             info.brand or "Other",
-            info.model or name,
+            info.part_number or info.model or name,
             ts,
+            impedance_text=info.model,
         )
     except Exception:
         normalized = re.sub(r"[^a-z0-9]+", "", name.casefold())
@@ -7820,6 +7899,8 @@ def _driver_library_frame(
             )
             rows.append({
                 "Driver": name,
+                "Manufacturer": info.brand,
+                "Part number": info.part_number or info.model or name,
                 "Nominal in": info.size_in,
                 "Sd cm²": ts_p.sd_cm2,
                 "Effective Ø in": (
@@ -7839,9 +7920,15 @@ def _driver_library_frame(
                 "Source": info.source,
             })
         except Exception:
-            rows.append({"Driver": name})
+            manufacturer, part_number = _driver_preset_identity_fields(name)
+            rows.append({
+                "Driver": name,
+                "Manufacturer": manufacturer,
+                "Part number": part_number,
+            })
     library_columns = [
-        "Driver", "Nominal in", "Sd cm²", "Effective Ø in",
+        "Driver", "Manufacturer", "Part number", "Nominal in", "Sd cm²",
+        "Effective Ø in",
         "Fs Hz", "Qts", "Vas L", "SPL dB",
         "Price", "Currency", "Category", "Source",
     ]
@@ -7976,7 +8063,7 @@ def _finder_brief_constraints(
                 _PRESET_SOURCE_FILTER_ALIASES,
             ),
         ),
-        ("Brand", _finder_filter_summary("preset_family_filter")),
+        ("Manufacturer", _finder_filter_summary("preset_family_filter")),
         ("Size", _finder_filter_summary("preset_size_filter")),
         (
             "Class",
@@ -8172,6 +8259,7 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         on_select="rerun",
         selection_mode="multi-row",
         column_config={
+            "Driver": None,
             "Size in": st.column_config.NumberColumn(format="%.1f"),
             "Fs Hz": st.column_config.NumberColumn(format="%.1f"),
             "Qts": st.column_config.NumberColumn(format="%.3f"),
@@ -8207,7 +8295,7 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         return
     selected_name = str(library_df.iloc[selected_index]["Driver"])
     st.button(
-        f"Open {selected_name} in Box Design",
+        f"Open {_driver_preset_display_label(selected_name)} in Box Design",
         type="primary",
         use_container_width=True,
         key="finder_use_library_driver",
@@ -8455,9 +8543,13 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             f"without a {value_currency} price keep the F3 order at the bottom."
         )
     batch_df = full_df
+    identities = batch_df["Driver"].map(_driver_preset_identity_fields)
+    batch_df["Manufacturer"] = identities.map(lambda value: value[0])
+    batch_df["Part number"] = identities.map(lambda value: value[1])
 
     columns = [
-        "Load", "Driver", "F3 Hz", "MOL @ F3 dB", "Peak dB", "Min ohm",
+        "Load", "Driver", "Manufacturer", "Part number", "F3 Hz",
+        "MOL @ F3 dB", "Peak dB", "Min ohm",
     ]
     if batch_df["Resonator"].fillna("").astype(bool).any():
         columns.insert(1, "Resonator")
@@ -8501,6 +8593,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         on_select="rerun",
         selection_mode="multi-row",
         column_config={
+            "Driver": None,
             "F3 Hz": st.column_config.NumberColumn(format="%.1f"),
             "MOL @ F3 dB": st.column_config.NumberColumn(
                 "MOL @ F3 (dB)",
@@ -8529,7 +8622,9 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             ),
         },
     )
-    csv_columns = [name for name in columns if name != "Response"]
+    csv_columns = [
+        name for name in columns if name not in {"Driver", "Response"}
+    ]
     st.download_button(
         "Download candidate CSV",
         batch_df[csv_columns].to_csv(index=False).encode("utf-8"),
@@ -8610,7 +8705,11 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     selected_row = batch_df.iloc[selected_index].to_dict()
     row_load_type = str(selected_row.get("Load", load_type))
     with st.container(border=True):
-        st.markdown(f"#### Match preview · {selected_row['Driver']} · {row_load_type}")
+        st.markdown(
+            "#### Match preview · "
+            f"{_driver_preset_display_label(str(selected_row['Driver']))} · "
+            f"{row_load_type}"
+        )
         p1, p2, p3, p4 = st.columns(4)
         p1.metric("F3", f"{float(selected_row['F3 Hz']):.1f} Hz")
         mol_at_f3 = float(selected_row.get("MOL @ F3 dB", np.nan))
@@ -9426,7 +9525,11 @@ with st.sidebar:
         
         all_preset_names = _dccav.driver_preset_names()
         with bd_tab1:
-            st.text_input("Search preset", key="preset_search", placeholder="Brand or model")
+            st.text_input(
+                "Search preset",
+                key="preset_search",
+                placeholder="Manufacturer or part number",
+            )
         filtered_preset_names = _filter_driver_preset_names(
             all_preset_names,
             source="All",
@@ -9461,6 +9564,10 @@ with st.sidebar:
                 preset_options,
                 key="driver_preset_name",
                 on_change=_on_driver_preset_change,
+                format_func=lambda value: (
+                    value if value == "Custom"
+                    else _driver_preset_display_label(value)
+                ),
             )
             if preset_name != "Custom":
                 try:
@@ -9474,6 +9581,22 @@ with st.sidebar:
                 if purchase:
                     st.markdown(purchase)
                 if preset_info is not None and preset_driver is not None:
+                    manufacturer, part_number = _driver_preset_identity_fields(
+                        preset_name
+                    )
+                    st.session_state["driver_identity_manufacturer"] = manufacturer
+                    st.session_state["driver_identity_part_number"] = part_number
+                    identity_col1, identity_col2 = st.columns(2)
+                    identity_col1.text_input(
+                        "Manufacturer",
+                        disabled=True,
+                        key="driver_identity_manufacturer",
+                    )
+                    identity_col2.text_input(
+                        "Part number",
+                        disabled=True,
+                        key="driver_identity_part_number",
+                    )
                     nominal = (
                         f"{preset_info.size_in:g} in"
                         if preset_info.size_in is not None

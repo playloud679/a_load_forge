@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.8.3 (2026-08-04)
+
+- **Automatic catalog completion**: a new restartable coordinator audits every
+  driver, prioritizes brand/model gaps and probes each manufacturer on three
+  records before expanding only sources with at least 50% measured yield. The
+  first dedicated 18Sound pass recovered 144 published power values from 148
+  records; zero-yield or blocked sources now stop after the probe and enter a
+  30-day cooldown. Generic PDF discovery is opt-in after a 20-page pilot added
+  no fields. The coordinator also runs the primary and regional price
+  harvesters, applies only physical derivations and confidence-checked
+  commercial matches, rebuilds unified catalogs and stops when coverage stalls.
+  The crawler-agent planner ranks approved sources using existing optional-field
+  gaps as well as absent brands.
+- **Normalized runtime driver identity**: catalog source names remain stable
+  internal keys while the selector, Finder library and ranked results expose
+  separate manufacturer and part-number values. Decorated SB Acoustics titles
+  and retailer product descriptions now display only their extracted product
+  codes, such as `SB Acoustics` / `SB17NRXC35-4`, `Dayton Audio` /
+  `RSS315HO-4` and `Beyma` / `12MC700Nd`; search, duplicate collapsing and CSV
+  export use the same normalized identity.
+- **Catalog Maintenance identity**: the editor hides source-decorated raw names
+  and shows the same Manufacturer/Part number pair used at runtime. Beyma
+  catalog titles such as `LOUDSPEAKER 8\"MC300Nd 8 OH` are presented as
+  `Beyma` / `8MC300Nd` while the raw key remains stored for provenance.
+- **Verification**: the fresh active suite passes 144 tests with 0 failures and
+  0 skips, including the Streamlit startup and normalized SB identity checks.
+
 ## 0.8.2 (2026-08-03)
 
 - **Cloud Run startup fix**: added the missing numeric columns (`Size in`,

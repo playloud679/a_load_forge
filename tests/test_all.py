@@ -21,6 +21,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from src import dccav as _dccav
+from src import presets as _presets
 
 PASS = 0
 FAIL = 0
@@ -145,6 +146,92 @@ def _check_presets_are_available():
     ], own_wo24p8
     wo24p8_info = _dccav.driver_preset_info(own_wo24p8[0])
     assert wo24p8_info.source == "SB Acoustics crawler", wo24p8_info
+    assert wo24p8_info.brand == "SB Acoustics", wo24p8_info
+    assert wo24p8_info.part_number == "WO24P-8", wo24p8_info
+    assert _presets._external_catalog_part_number(
+        "Dayton Audio",
+        'RSS315HO-4 12" Reference Series HO Subwoofer 4 Ohm',
+    ) == "RSS315HO-4"
+    assert _presets._external_catalog_part_number(
+        "Beyma",
+        '12MC700Nd MC Series 12" Neo Subwoofer 8 Ohm',
+    ) == "12MC700Nd"
+    assert _presets._external_catalog_part_number(
+        "Beyma", 'LOUDSPEAKER 8"BR40/N 8 OH'
+    ) == "8BR40/N"
+    assert _presets._external_catalog_part_number(
+        "Beyma", 'LOUDSPEAKER 15"WRS 400 8 OH'
+    ) == "15WRS400"
+    assert _presets._external_catalog_part_number(
+        "Beyma", "LOUDSPEAKER 6P200Fe 16 OH"
+    ) == "6P200Fe"
+    assert _presets._external_catalog_part_number(
+        "Ground Zero", "GZRW 250-D2 FLAT"
+    ) == "GZRW 250-D2 FLAT"
+    assert _presets._external_catalog_part_number(
+        "GRS", '6PR-8 6-1/2" Poly Cone Rubber Surround Woofer'
+    ) == "6PR-8"
+    assert _presets._external_catalog_part_number(
+        "Factory Buyouts", '3" 580325-008 3W Mini Black Paper Cone Speaker'
+    ) == "580325-008"
+    assert _presets._external_catalog_part_number(
+        "GRS", '5-1/4" Woofer Surface Mount Poly Cone 4 Ohm 5SMP-4'
+    ) == "5SMP-4"
+    assert _presets._external_catalog_manufacturer(
+        "Eminence Speaker"
+    ) == "Eminence"
+    assert _presets._external_catalog_manufacturer(
+        "Eminence Speakers, LLC"
+    ) == "Eminence"
+    assert _presets._external_catalog_part_number(
+        "Eminence Speaker",
+        'Eminence Alpha-12A 12" Guitar/PA Driver',
+    ) == "Alpha-12A"
+    assert _presets._external_catalog_identity_model(
+        {
+            "model": "18-inch",
+            "matched_mpn": "TF1830",
+            "source": "Manual catalog maintenance",
+        }
+    ) == "TF1830"
+    assert _presets._external_catalog_identity_model(
+        {
+            "model": "18-inch",
+            "matched_mpn": "retailer-sku",
+            "source": "Celestion crawler",
+        }
+    ) == "18-inch"
+    for bomber_title in (
+        'SUBWOOFER 8″ UPGRADE 400 WRMS 4 OHMS',
+        'WOOFER 18″ ATRACK BASS 4K 4Ω',
+        'MEDIO GRAVE 10″ ATRACK 800 WATTS RMS 8Ω',
+    ):
+        assert (
+            _presets._external_catalog_part_number("Bomber", bomber_title)
+            == bomber_title
+        )
+    dayton_retailer_name = next(
+        name for name in names
+        if name.startswith("WEB: Dayton Audio RSS315HO-4 12")
+    )
+    assert (
+        _dccav.driver_preset_info(dayton_retailer_name).part_number
+        == "RSS315HO-4"
+    )
+    eminence_alpha_names = [
+        name
+        for name in names
+        if 'Eminence Alpha-12A 12" Guitar/PA Driver' in name
+    ]
+    assert len(eminence_alpha_names) == 1, eminence_alpha_names
+    eminence_alpha_info = _dccav.driver_preset_info(eminence_alpha_names[0])
+    assert eminence_alpha_info.brand == "Eminence", eminence_alpha_info
+    assert eminence_alpha_info.part_number == "Alpha-12A", eminence_alpha_info
+    celestion_tf1830_info = _dccav.driver_preset_info(
+        "WEB: Celestion 18-inch"
+    )
+    assert celestion_tf1830_info.brand == "Celestion", celestion_tf1830_info
+    assert celestion_tf1830_info.part_number == "TF1830", celestion_tf1830_info
     assert any(
         name.startswith("LSDB: SB Acoustics") and "WO24P-8" in name
         for name in names
@@ -2924,8 +3011,8 @@ def _check_ui_class_filter():
     at.session_state["workspace_mode"] = "Box Design"
     at.run()
     preset_box = next(s for s in at.selectbox if s.label == "Driver preset")
-    assert "Beyma 12CMV2" in preset_box.options
-    assert "Dayton Audio RSS315HO-4" in preset_box.options
+    assert "Beyma — 12CMV2" in preset_box.options
+    assert "Dayton Audio — RSS315HO-4" in preset_box.options
     labels = {metric.label for metric in at.metric}
     assert {"VC corner", "Class"} <= labels, labels
 
@@ -3445,12 +3532,19 @@ def _check_ui_driver_library_compares_nominal_size_and_sd():
         name for name in _ui._dccav.driver_preset_names()
         if name.startswith("WEB: Markaudio Alpair 10P [MFR ")
     )
+    dayton_name = next(
+        name for name in _ui._dccav.driver_preset_names()
+        if name.startswith("WEB: Dayton Audio DS175-8")
+    )
     frame = _ui._driver_library_frame((
-        "WEB: Dayton Audio DS175-8",
+        dayton_name,
         alpair_name,
         "LSDB: Ciare FXC8.50W",
     ))
-    assert {"Nominal in", "Sd cm²", "Effective Ø in"} <= set(frame.columns)
+    assert {
+        "Manufacturer", "Part number", "Nominal in", "Sd cm²",
+        "Effective Ø in",
+    } <= set(frame.columns)
     row = frame.iloc[0]
     assert row["Nominal in"] == 6.5
     assert row["Sd cm²"] == 128.7
@@ -3471,10 +3565,92 @@ def _check_ui_driver_library_compares_nominal_size_and_sd():
     assert not _ui._presets.nominal_size_matches_sd(10.0, ciare["Sd cm²"])
     assert _ui._presets.coherent_nominal_size_in(10.0, ciare["Sd cm²"]) == 8.0
 
+    sb_name = next(
+        name for name in _ui._dccav.driver_preset_names()
+        if name.startswith("WEB: SB Acoustics") and "SB17NRXC35-4" in name
+    )
+    sb_frame = _ui._driver_library_frame((sb_name,))
+    assert sb_frame.iloc[0]["Manufacturer"] == "SB Acoustics"
+    assert sb_frame.iloc[0]["Part number"] == "SB17NRXC35-4"
+    assert _ui._driver_preset_display_label(sb_name) == (
+        "SB Acoustics — SB17NRXC35-4"
+    )
+    assert _ui._catalog_record_display_identity(
+        {
+            "brand": "Beyma",
+            "model": 'LOUDSPEAKER 8"MC300Nd 8 OH',
+            "matched_mpn": 'LOUDSPEAKER 8"MC300Nd 8 OH',
+        },
+        "raw fallback",
+    ) == ("Beyma", "8MC300Nd")
+    bomber_title = 'WOOFER 18″ ATRACK BASS 4K 4Ω'
+    assert _ui._catalog_record_display_identity(
+        {"brand": "Bomber", "model": bomber_title},
+        "raw fallback",
+    ) == ("Bomber", bomber_title)
+    assert _ui._catalog_record_display_identity(
+        {
+            "brand": "Eminence Speaker",
+            "model": 'Eminence Alpha-12A 12" Guitar/PA Driver',
+        },
+        "raw fallback",
+    ) == ("Eminence", "Alpha-12A")
+    assert _ui._catalog_record_display_identity(
+        {
+            "brand": "Celestion",
+            "model": "18-inch",
+            "matched_mpn": "TF1830",
+            "source": "Manual catalog maintenance",
+        },
+        "raw fallback",
+    ) == ("Celestion", "TF1830")
+
+    dayton_retailer_name = next(
+        name for name in _ui._dccav.driver_preset_names()
+        if name.startswith("WEB: Dayton Audio RSS315HO-4 12")
+    )
+    unique, removed = _ui._deduplicate_finder_preset_names([
+        "Dayton Audio RSS315HO-4",
+        dayton_retailer_name,
+    ])
+    assert len(unique) == 1, unique
+    assert removed == 1
+
 
 test(
     "UI driver library compares nominal size and Sd",
     _check_ui_driver_library_compares_nominal_size_and_sd,
+)
+
+
+def _check_ui_catalog_maintenance_normalizes_part_numbers():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.query_params["maintenance"] = "1"
+    at.session_state["maintenance_query"] = 'LOUDSPEAKER 8"MC300Nd'
+    at.run()
+    assert not at.exception, at.exception
+    frame = at.dataframe[0].value
+    assert len(frame) == 1, frame
+    assert frame.iloc[0]["Brand"] == "Beyma"
+    assert frame.iloc[0]["MPN"] == "8MC300Nd"
+    assert {"Xmax mm", "Pmax W", "Le mH"}.issubset(frame.columns), frame
+
+    at.session_state["maintenance_query"] = "WEB: Celestion 18-inch"
+    at.run()
+    assert not at.exception, at.exception
+    frame = at.dataframe[0].value
+    assert len(frame) == 1, frame
+    assert frame.iloc[0]["MPN"] == "TF1830"
+    assert np.isclose(frame.iloc[0]["Xmax mm"], 4.5)
+    assert np.isclose(frame.iloc[0]["Pmax W"], 500.0)
+    assert np.isclose(frame.iloc[0]["Le mH"], 1.28)
+
+
+test(
+    "UI catalog maintenance normalizes manufacturer part numbers",
+    _check_ui_catalog_maintenance_normalizes_part_numbers,
 )
 
 
@@ -3889,6 +4065,13 @@ def _check_manufacturer_optional_refresh_preserves_values_and_provenance():
     }
     assert refresh.invalidate_unitless_power(bad_unitless)
     assert bad_unitless["driver"]["pe_w"] == 0.0
+    malformed_raw = {
+        "driver": {"pe_w": 100.0},
+        "website_fields": {"raw_measurements": {"pe_w": 100}},
+    }
+    assert not refresh.suspect_unitless_power(malformed_raw)
+    assert not refresh.repair_reparsable_power(malformed_raw)
+    assert not refresh.invalidate_unitless_power(malformed_raw)
     interleaved = refresh.round_robin_by_host([
         (1, {"url": "https://a.example/1"}),
         (2, {"url": "https://a.example/2"}),
@@ -3899,6 +4082,110 @@ def _check_manufacturer_optional_refresh_preserves_values_and_provenance():
 
 
 test("Manufacturer optional refresh preserves values and provenance", _check_manufacturer_optional_refresh_preserves_values_and_provenance)
+
+
+def _check_catalog_completion_plans_gaps_and_stops_when_stalled():
+    import json
+    import tempfile
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    from tools import build_unified_catalogs as unified
+    from tools import run_catalog_completion_cycle as completion
+    from tools import run_high_yield_optional_cycle as high_yield
+
+    rows = [
+        {
+            "name": "WEB: Alpha A12", "brand": "Alpha", "model": "A12",
+            "price": 120.0,
+            "url": "https://alpha.example/a12",
+            "driver": {
+                "fs_hz": 30.0, "vas_l": 80.0, "qts": 0.4, "qms": 5.0,
+                "qes": 0.43, "re_ohm": 5.5, "sd_cm2": 500.0,
+                "mms_g": 100.0, "cms_mm_per_n": 0.3, "bl_tm": 12.0,
+                "xmax_mm": 0.0, "pe_w": 0.0, "le_mh": 0.0,
+            },
+        },
+        {
+            "name": "WEB: Beta B8", "brand": "Beta", "model": "B8",
+            "driver": {
+                "fs_hz": 45.0, "vas_l": 20.0, "qts": 0.35, "qms": 4.0,
+                "qes": 0.38, "re_ohm": 6.0, "sd_cm2": 220.0,
+                "mms_g": 40.0, "cms_mm_per_n": 0.3, "bl_tm": 8.0,
+                "xmax_mm": 5.0, "pe_w": 100.0, "le_mh": 0.0,
+            },
+        },
+    ]
+    plan = completion.build_plan({"presets": rows}, {"prices": {"one": {}}}, 10)
+    assert plan["coverage"]["fields"]["xmax_mm"]["missing"] == 1
+    assert plan["coverage"]["price"]["missing"] == 1
+    assert plan["priority_brands"][0]["brand"] == "Alpha"
+    alpha_task = next(item for item in plan["priority_tasks"] if item["brand"] == "Alpha")
+    assert alpha_task["actions"] == ["refresh_known_source"]
+    beta_task = next(item for item in plan["priority_tasks"] if item["brand"] == "Beta")
+    assert "approved_source_discovery" in beta_task["actions"]
+    assert "retailer_price_match" in beta_task["actions"]
+    preserved = unified._preserve_manual_values(
+        {"name": "WEB: Celestion 18-inch", "brand": "Celestion", "driver": {"pe_w": 500.0}},
+        {
+            "name": "WEB: Celestion 18-inch", "brand": "Celestion",
+            "part_number_override": "TF1830", "matched_mpn": "TF1830",
+            "source": "Manual catalog maintenance", "driver": {"pe_w": 600.0},
+        },
+    )
+    assert preserved["part_number_override"] == "TF1830"
+    assert preserved["driver"]["pe_w"] == 600.0
+    domain_rows = [
+        {"url": "https://good.example/a", "driver": {"xmax_mm": 0, "pe_w": 0, "le_mh": 1}},
+        {"url": "https://good.example/b", "driver": {"xmax_mm": 0, "pe_w": 2, "le_mh": 1}},
+        {"url": "https://archive.example/table", "driver": {"xmax_mm": 0, "pe_w": 0, "le_mh": 0}},
+        {"url": "https://archive.example/table", "driver": {"xmax_mm": 0, "pe_w": 0, "le_mh": 0}},
+        {"url": "https://archive.example/table", "driver": {"xmax_mm": 0, "pe_w": 0, "le_mh": 0}},
+    ]
+    ranked_domains = {item["domain"]: item for item in high_yield.rank_domains(domain_rows)}
+    assert ranked_domains["good.example"]["eligible"]
+    assert not ranked_domains["archive.example"]["eligible"]
+    assert high_yield.probe_passes(
+        {"processed": 3, "records_updated": 2, "failures": [{}]}, 0.5, 0.5,
+    )
+    assert not high_yield.probe_passes(
+        {"processed": 3, "records_updated": 0, "failures": [{}, {}, {}]}, 0.5, 0.5,
+    )
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        database = root / "drivers.json"
+        prices = root / "prices.json"
+        report = root / "report.json"
+        database.write_text(json.dumps({"presets": rows}), encoding="utf-8")
+        prices.write_text(json.dumps({"prices": {}}), encoding="utf-8")
+        args = completion.build_parser().parse_args([
+            "run", "--database", str(database), "--prices", str(prices),
+            "--report", str(report), "--skip-optionals", "--skip-prices",
+            "--max-cycles", "3", "--stop-after-stalled", "1",
+        ])
+        calls = []
+
+        def fake_runner(command, **_kwargs):
+            calls.append(command)
+            return SimpleNamespace(returncode=0, stdout="ok", stderr="")
+
+        code, result = completion.run_completion(args, runner=fake_runner)
+        assert code == 0
+        assert result["stop_reason"] == "coverage_stalled"
+        assert len(result["cycles"]) == 1
+        assert [Path(call[1]).name for call in calls] == [
+            "enrich_manufacturer_metadata.py",
+            "enrich_manufacturer_metadata.py",
+            "generate_manufacturer_database_report.py",
+        ]
+        assert json.loads(report.read_text(encoding="utf-8"))["unresolved"]["prices"] == 1
+
+
+test(
+    "Catalog completion prioritizes safe gaps and stops when coverage stalls",
+    _check_catalog_completion_plans_gaps_and_stops_when_stalled,
+)
 
 
 def _check_generic_ts_crawler_discovers_normalizes_and_merges():
@@ -3921,6 +4208,12 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
     assert crawler.parse_number("2,000") == 2000.0
     assert np.isclose(crawler.parse_number("2,5"), 2.5)
     assert "pe_w" not in crawler.choose_measurements(crawler.text_measurements("Power handling 4"))
+    coax_power = crawler.choose_measurements(crawler.text_measurements(
+        "LF Nominal Power Handling\n3\n200 W\n"
+        "LF Continuous Power Handling\n4\n400 W\n"
+        "HF Nominal Power Handling\n6\n70 W"
+    ))
+    assert coax_power["pe_w"].value == 200.0, coax_power
     assert crawler.measurement_from_pair("Power handling", "98.5", "", "html.table") is None
     hydration = crawler.jsonld_measurements([{
         "parameters": [
@@ -4304,6 +4597,32 @@ def _check_crawler_agent_policy_planning_and_staging():
     assert [item.target.target_id for item in plan.selected] == ["missing-official"]
     assert "brand absent" in " ".join(plan.selected[0].reasons)
 
+    gap_manifest = AgentManifest.from_mapping({
+        "objective": "Fill optional gaps",
+        "max_targets": 1,
+        "user_agent": "LoadForgeCrawler/1.0 (crawler@example.test)",
+        "targets": [
+            {
+                "target_id": "complete-brand", "source_kind": "official_manufacturer_site",
+                "allowed_domains": ["complete.example"],
+                "seeds": ["https://complete.example/products"], "brand": "Complete",
+                "priority": 50, "max_pages": 10, "sleep_seconds": 0.5,
+            },
+            {
+                "target_id": "gap-brand", "source_kind": "official_manufacturer_site",
+                "allowed_domains": ["gap.example"],
+                "seeds": ["https://gap.example/products"], "brand": "Gap",
+                "priority": 50, "max_pages": 10, "sleep_seconds": 0.5,
+            },
+        ],
+    })
+    gap_plan = build_plan(gap_manifest, {"presets": [
+        {"brand": "Complete", "driver": {"xmax_mm": 5.0, "pe_w": 100.0, "le_mh": 1.0}},
+        {"brand": "Gap", "driver": {"xmax_mm": 0.0, "pe_w": 0.0, "le_mh": 0.0}},
+    ]})
+    assert [item.target.target_id for item in gap_plan.selected] == ["gap-brand"]
+    assert "missing Xmax/Pe/Le" in " ".join(gap_plan.selected[0].reasons)
+
     forbidden_targets = [
         {
             "target_id": "copied-db",
@@ -4592,6 +4911,26 @@ def _check_manufacturer_metadata_enrichment_uses_physics_and_verified_prices():
     assert item["price"] == 199.95 and item["currency"] == "EUR"
     assert report["priced"] == 1 and report["unpriced"] == 0
     assert set(report["derived"]) == {"bl_tm", "cms_mm_per_n", "mms_g", "qes", "size_in"}
+
+    stale = {
+        **row,
+        "part_number_override": "TF1830",
+        "price": 260.23,
+        "currency": "EUR",
+        "price_url": "https://shop.example/cf1840",
+        "website_fields": {"price_provenance": {"matched_mpn": "CF1840"}},
+    }
+    wrong_offer = {
+        "WEB: Acme W12": {
+            **price["WEB: Acme W12"],
+            "matched_name": "Acme CF1840",
+            "matched_mpn": "CF1840",
+        }
+    }
+    cleaned, stale_report = enricher.enrich_presets([stale], wrong_offer)
+    assert stale_report["unpriced"] == 1
+    assert "price" not in cleaned[0] and "price_url" not in cleaned[0]
+    assert cleaned[0]["website_fields"]["invalidated_price"]["previous"]["price"] == 260.23
 
 
 test(
@@ -6127,7 +6466,7 @@ def _check_ui_supports_sealed_and_infinite_baffle():
         assert expected_metric in metrics, (load_type, metrics)
         assert not any(control.label == "Box volume (L)" for control in at.number_input)
         design_filter_labels = {
-            "Provenance", "Size", "Brand", "Class", "Price currency"
+            "Provenance", "Size", "Manufacturer", "Class", "Price currency"
         }
         assert not any(box.label in design_filter_labels for box in at.selectbox)
         if load_type == "Infinite baffle":
@@ -6363,7 +6702,7 @@ def _check_ui_finder_main_action_runs_search():
         "Maximum Le",
         "Search",
         "Provenance",
-        "Brand",
+        "Manufacturer",
         "Size",
         "Class",
         "Maximum price",
@@ -6488,7 +6827,7 @@ def _check_ui_finder_filters_survive_workspace_roundtrip_and_reset():
 
     brand = next(
         item for item in at.sidebar.multiselect
-        if item.label == "Brand"
+        if item.label == "Manufacturer"
     )
     brand.set_value(["Beyma"]).run()
     assert not at.exception, at.exception
@@ -6520,7 +6859,7 @@ def _check_ui_finder_filters_survive_workspace_roundtrip_and_reset():
     assert at.session_state["preset_search"] == "12"
     assert next(
         item for item in at.sidebar.multiselect
-        if item.label == "Brand"
+        if item.label == "Manufacturer"
     ).value == ["Beyma"]
     assert at.dataframe, "a Design round trip must preserve the Finder library"
     assert not any(

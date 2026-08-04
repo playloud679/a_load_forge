@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import re
 from dataclasses import dataclass
 from pathlib import Path
@@ -194,12 +195,34 @@ def _catalog_brands(catalog: dict[str, Any]) -> set[str]:
     }
 
 
+def _brand_optional_gaps(catalog: dict[str, Any]) -> dict[str, tuple[int, int]]:
+    """Return brand -> (missing published-only cells, possible cells)."""
+    result: dict[str, list[int]] = {}
+    for item in catalog.get("presets", []):
+        brand = re.sub(r"[^a-z0-9]+", "", str(item.get("brand") or "").casefold())
+        if not brand:
+            continue
+        driver = item.get("driver") or {}
+        missing = sum(
+            not isinstance(driver.get(field), (int, float))
+            or isinstance(driver.get(field), bool)
+            or not math.isfinite(float(driver[field]))
+            or float(driver[field]) <= 0.0
+            for field in ("xmax_mm", "pe_w", "le_mh")
+        )
+        totals = result.setdefault(brand, [0, 0])
+        totals[0] += missing
+        totals[1] += 3
+    return {brand: (values[0], values[1]) for brand, values in result.items()}
+
+
 def build_plan(
     manifest: AgentManifest,
     catalog: dict[str, Any] | None = None,
 ) -> CrawlPlan:
     """Prioritize policy-valid sources from coverage gaps and crawl utility."""
     covered_brands = _catalog_brands(catalog or {})
+    optional_gaps = _brand_optional_gaps(catalog or {})
     ranked: list[PlannedTarget] = []
     skipped: list[str] = []
     for target in manifest.targets:
@@ -212,6 +235,15 @@ def build_plan(
         if normalized_brand and normalized_brand not in covered_brands:
             score += 35.0
             reasons.append("brand absent from current direct-source catalog")
+        elif normalized_brand and normalized_brand in optional_gaps:
+            missing_cells, possible_cells = optional_gaps[normalized_brand]
+            if missing_cells:
+                gap_ratio = missing_cells / possible_cells
+                gap_boost = min(30.0, 18.0 * gap_ratio + math.log2(missing_cells + 1.0))
+                score += gap_boost
+                reasons.append(
+                    f"{missing_cells} missing Xmax/Pe/Le cells in current brand coverage"
+                )
         if target.sitemaps:
             score += 8.0
             reasons.append("bounded sitemap discovery available")

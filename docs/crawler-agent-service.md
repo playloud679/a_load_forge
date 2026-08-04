@@ -65,9 +65,15 @@ policy-valid targets by:
 
 - manifest priority;
 - brands missing from the current direct-source catalog;
+- the number and density of missing published-only `Xmax`, `Pe` and `Le`
+  cells for brands already present;
 - availability of a bounded sitemap;
 - preference for first-party sources;
 - estimated page cost.
+
+Price gaps are intentionally excluded from this source score: catalog crawling
+fills technical observations, while retailer prices are handled by the
+separate confidence-checked completion cycle.
 
 This is deliberately a hard policy layer.  A future LLM planner may propose
 target priorities or source adapters, but its output must still pass

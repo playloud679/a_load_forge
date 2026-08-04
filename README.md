@@ -4,7 +4,7 @@
   <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
-Current release: **0.8.2**
+Current release: **0.8.3**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth- and sixth-order bandpass**,
@@ -138,6 +138,21 @@ options into impedance-specific offers. Checkpoints and merged catalogs key
 offers by product URL plus SKU/MPN, preserving variants that share one page.
 Wavecor prices come from the manufacturer's published USD retail list.
 AUDIO-HI.FI contributes its paginated Tang Band catalog and direct EUR offers.
+
+For one restartable workflow across missing `Xmax`/`Pe`/`Le` and prices, first
+generate an offline priority queue, then explicitly start bounded cycles:
+
+```bash
+.venv/bin/python tools/run_catalog_completion_cycle.py plan
+.venv/bin/python tools/run_catalog_completion_cycle.py run --max-cycles 3
+```
+
+The coordinator is cache-first and probes each manufacturer on three records
+before expanding it. Sources below 50% measured yield enter a cooldown; generic
+PDF discovery is opt-in because its bounded pilot produced no improvements.
+The workflow stops when coverage stalls, never estimates published-only values
+and records remaining gaps in `data/catalog_completion_report.json`.
+See [docs/catalog-completion-cycle.md](docs/catalog-completion-cycle.md).
 
 Administrators can open the catalog-maintenance workspace with
 `?maintenance=1`. It exposes every row in the selected source catalog, supports

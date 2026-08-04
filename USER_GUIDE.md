@@ -67,9 +67,11 @@ same cards toggle multiple loads for comparison. Search, source, brand, size,
 class and price filters narrow the driver library in both workspaces.
 
 In **Design a box**, the **Driver preset** selector loads built-in examples
-immediately. **Driver T/S values** stays collapsed for catalog presets and
-opens automatically for `Custom`; expand it whenever the values need to be
-inspected or overridden.
+immediately. Catalog entries are presented as separate **Manufacturer** and
+**Part number** values; source-decorated catalog names remain internal. The
+selector combines the two as `Manufacturer — Part number`. **Driver T/S
+values** stays collapsed for catalog presets and opens automatically for
+`Custom`; expand it whenever the values need to be inspected or overridden.
 
 `Beyma 12CMV2` uses the manufacturer T/S values from the supplied datasheet
 screenshot, including `Sd=0.053 m2`; the nominal 300 mm diameter is not used as

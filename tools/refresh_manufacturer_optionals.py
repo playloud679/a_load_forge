@@ -37,6 +37,8 @@ def missing_fields(record: dict) -> list[str]:
 
 def suspect_unitless_power(record: dict) -> bool:
     raw = ((record.get("website_fields") or {}).get("raw_measurements") or {}).get("pe_w") or {}
+    if not isinstance(raw, dict):
+        return False
     return bool(raw) and not crawler.normalize_unit(str(raw.get("unit") or ""))
 
 
@@ -44,6 +46,8 @@ def repair_reparsable_power(record: dict) -> bool:
     """Repair values such as ``2,000 W`` parsed by the old decimal-comma rule."""
     website = record.get("website_fields") or {}
     raw = (website.get("raw_measurements") or {}).get("pe_w") or {}
+    if not isinstance(raw, dict):
+        return False
     unit = str(raw.get("unit") or "")
     if crawler.normalize_unit(unit) not in {"w", "kw"}:
         return False
