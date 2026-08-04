@@ -2694,7 +2694,8 @@ def _limit_curves(
     if ts.xmax_mm > 0:
         excursion = np.maximum(np.asarray(excursion_mm, dtype=float), EPS)
         limits.append(float(voltage_v) * ts.xmax_mm / excursion)
-    if ts.pe_w > 0:
+    has_thermal = ts.pe_w > 0
+    if has_thermal:
         thermal_v = np.sqrt(ts.pe_w * ts.re_ohm) * re_total / ts.re_ohm
         limits.append(np.full(shape, thermal_v, dtype=float))
 
@@ -2705,6 +2706,12 @@ def _limit_curves(
     mil_v = np.minimum.reduce(limits)
     driver_v = mil_v * ts.re_ohm / re_total
     mil_w = driver_v**2 / ts.re_ohm
+    # MOL is only credible with a known thermal ceiling: without a Pe rating
+    # the excursion-only scaling claims a near-infinite output at frequencies
+    # where the cone barely moves, so report it as unavailable instead.
+    if not has_thermal:
+        nan = np.full(shape, np.nan, dtype=float)
+        return mil_w, nan
     gain_db = 20.0 * np.log10(np.maximum(mil_v, EPS) / float(voltage_v))
     mol_db = np.asarray(spl_total_db, dtype=float) + gain_db
     return mil_w, mol_db

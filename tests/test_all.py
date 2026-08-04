@@ -515,6 +515,34 @@ def _check_simulation_arrays_are_finite():
 test("Acoustic-load simulation returns finite response arrays", _check_simulation_arrays_are_finite)
 
 
+def _check_mol_requires_thermal_rating():
+    ts = _dccav.DriverTS(
+        fs_hz=45.0,
+        vas_l=50.0,
+        qts=0.35,
+        qms=4.0,
+        re_ohm=8.0,
+        sd_cm2=400.0,
+        xmax_mm=6.0,
+        pe_w=0.0,
+    )
+    a = _dccav.suggest_alignment(ts)
+    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    result = _dccav.simulate(ts, box, np.geomspace(20.0, 200.0, 120), voltage_v=2.83)
+    # Without a thermal rating the MOL trace is unavailable instead of
+    # pretending the driver survives infinite power at mid/high frequencies.
+    assert np.all(np.isnan(result.mol_db)), "MOL must be NaN when Pe is 0"
+    assert np.all(np.isfinite(result.mil_w)), "MIL stays excursion-limited"
+    assert np.nanmin(result.mil_w) > 0
+
+    rated = replace(ts, pe_w=100.0)
+    rated_result = _dccav.simulate(rated, box, np.geomspace(20.0, 200.0, 120), voltage_v=2.83)
+    assert np.all(np.isfinite(rated_result.mol_db)), "MOL is finite with a Pe rating"
+
+
+test("MOL requires a thermal rating to be reported", _check_mol_requires_thermal_rating)
+
+
 def _check_sealed_and_infinite_baffle_models():
     import src as package_api
 
