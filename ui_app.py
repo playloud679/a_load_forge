@@ -156,6 +156,18 @@ function requestResult(request) {
   });
 }
 
+function transactionDone(transaction) {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = () => reject(transaction.error || new Error(
+      "Browser project transaction was aborted"
+    ));
+    transaction.onerror = () => reject(transaction.error || new Error(
+      "Browser project transaction failed"
+    ));
+  });
+}
+
 export default function(component) {
   const {data, setStateValue} = component;
   const currentState = data && data.state || {};
@@ -243,12 +255,13 @@ export default function(component) {
         const transaction = database.transaction(
           [STORE_NAME, SUMMARY_STORE_NAME], "readwrite"
         );
-        await requestResult(
-          transaction.objectStore(STORE_NAME).delete(command.project_id)
-        );
-        await requestResult(
-          transaction.objectStore(SUMMARY_STORE_NAME).delete(command.project_id)
-        );
+        // Queue both removals in one transaction.  The acknowledgement must
+        // wait for its completion: individual IndexedDB requests can succeed
+        // before the transaction is later aborted, which previously made the
+        // Python UI report a deletion that was not actually persisted.
+        transaction.objectStore(STORE_NAME).delete(command.project_id);
+        transaction.objectStore(SUMMARY_STORE_NAME).delete(command.project_id);
+        await transactionDone(transaction);
         if (!cancelled) {
           setIfChanged("delete_ack", String(command.nonce || ""));
         }
@@ -1507,6 +1520,124 @@ def _maintenance_allowed() -> bool:
         (admin_email and str(_CURRENT_SAAS_USER.email).casefold() == admin_email)
         or (uid and str(_CURRENT_SAAS_USER.uid) == uid)
     )
+
+
+_CATALOG_PATH_BY_PROVENANCE = {
+    "LSDB": "catalog_lsdb.json",
+    "Load Forge database": "catalog_proprietario.json",
+    "VituixCAD": "catalog_vituixcad.json",
+    "Speaker Box Lite": "catalog_speakerboxlite.json",
+}
+
+
+def _catalog_path_for_preset(preset_name: str) -> Path | None:
+    """Return the editable source catalog for one external driver preset."""
+    if not preset_name or preset_name == "Custom":
+        return None
+    try:
+        provenance = _dccav.driver_preset_provenance_category(preset_name)
+    except ValueError:
+        return None
+    filename = _CATALOG_PATH_BY_PROVENANCE.get(provenance)
+    return (
+        Path(__file__).parent / "data" / filename
+        if filename is not None
+        else None
+    )
+
+
+def _driver_catalog_mapping(driver: _dccav.DriverTS) -> dict[str, float]:
+    """Serialize the editable Box Design driver fields for a catalog record."""
+    return {
+        "fs_hz": float(driver.fs_hz), "vas_l": float(driver.vas_l),
+        "qts": float(driver.qts), "qms": float(driver.qms),
+        "re_ohm": float(driver.re_ohm), "sd_cm2": float(driver.sd_cm2),
+        "le_mh": float(driver.le_mh), "le10k_mh": float(driver.le10k_mh or 0.0),
+        "xmax_mm": float(driver.xmax_mm), "pe_w": float(driver.pe_w),
+        "mms_g": float(driver.mms_g or 0.0),
+        "cms_mm_per_n": float(driver.cms_mm_per_n or 0.0),
+        "bl_tm": float(driver.bl_tm or 0.0),
+    }
+
+
+def _update_catalog_driver_from_box_design(
+    preset_name: str,
+    driver: _dccav.DriverTS,
+    *,
+    path: Path | None = None,
+) -> str:
+    """Persist the selected external preset's T/S values from Box Design."""
+    target_path = path or _catalog_path_for_preset(preset_name)
+    if target_path is None:
+        raise ValueError("This driver is not backed by an editable catalog")
+    try:
+        payload = json.loads(target_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Could not read the source catalog: {exc}") from exc
+    records = payload.get("presets") if isinstance(payload, dict) else None
+    if not isinstance(records, list):
+        raise ValueError("The source catalog has no editable preset records")
+    selected_fields = _driver_catalog_mapping(_dccav.get_driver_preset(preset_name))
+    preset_info = _dccav.driver_preset_info(preset_name)
+    selected_brand = _presets._external_catalog_manufacturer(preset_info.brand)
+    selected_part_number = _presets._external_catalog_part_number(
+        selected_brand, preset_info.part_number or preset_info.model,
+    )
+    matching_record = None
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+        if str(record.get("name", "")) == preset_name:
+            matching_record = record
+            break
+        record_brand, record_part_number = _catalog_record_display_identity(
+            record, str(record.get("name", "")),
+        )
+        if (
+            selected_part_number
+            and record_brand.casefold() == selected_brand.casefold()
+            and record_part_number.casefold() == selected_part_number.casefold()
+        ):
+            matching_record = record
+            break
+        stored = record.get("driver")
+        if not isinstance(stored, dict):
+            continue
+        try:
+            matches_selected = all(
+                np.isclose(float(stored.get(field, 0.0) or 0.0), value,
+                           rtol=1e-9, atol=1e-9)
+                for field, value in selected_fields.items()
+                if field in {"fs_hz", "vas_l", "qts", "qms", "re_ohm", "sd_cm2"}
+            )
+        except (TypeError, ValueError):
+            matches_selected = False
+        if matches_selected:
+            matching_record = record
+            break
+    if matching_record is None:
+        raise ValueError("Could not find the selected driver in its source catalog")
+    matching_record["driver"] = _driver_catalog_mapping(driver)
+    try:
+        target_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+    except OSError as exc:
+        raise ValueError(f"Could not update the source catalog: {exc}") from exc
+    for loader in (
+        _presets._load_loudspeaker_database_presets,
+        _presets._load_manufacturer_presets,
+        _presets._load_vituixcad_presets,
+        _presets._load_speakerboxlite_presets,
+        _presets._external_tiers,
+        _presets.driver_preset_names,
+        _presets.driver_preset_info,
+        _presets.driver_preset_provenance_category,
+        _presets.get_driver_preset,
+    ):
+        loader.cache_clear()
+    return str(matching_record.get("name", preset_name))
 
 
 def _available_workspaces() -> tuple[str, ...]:
@@ -3331,6 +3462,7 @@ def _ensure_plot_control_state() -> None:
         "plot_response_lower_port",
         "plot_response_mol",
         "plot_show_mil",
+        "plot_show_tuning_markers",
         "plot_compare_loads",
         "plot_tolerance_band",
         "plot_port_upper",
@@ -4397,9 +4529,11 @@ def _initialize_alignment_defaults() -> None:
 def _on_driver_preset_change():
     preset_name = st.session_state.get("driver_preset_name", "Custom")
     if preset_name == "Custom":
+        st.session_state.pop("_admin_catalog_source_preset", None)
         return
     try:
         _apply_driver_preset(_dccav.get_driver_preset(preset_name))
+        st.session_state["_admin_catalog_source_preset"] = preset_name
         # Re-read through the configuration so multi-driver setups get a box
         # sized for the composite Vas/Sd, not the single unit.
         composite = _driver_from_state()
@@ -4429,6 +4563,11 @@ def _step5(key, default, calc_val=None):
     return default
 
 def _on_driver_param_change():
+    # Keep the source identity for the administrator's explicit catalog-save
+    # action even though edited parameters make this a Custom design.
+    current_preset = str(st.session_state.get("driver_preset_name", "Custom"))
+    if current_preset != "Custom":
+        st.session_state["_admin_catalog_source_preset"] = current_preset
     st.session_state["driver_preset_name"] = "Custom"
     _auto_align_current_driver()
 
@@ -4619,6 +4758,63 @@ def _response_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
     return series
 
 
+def _response_tuning_markers() -> list[tuple[str, float]]:
+    """Return the active enclosure tuning frequencies for the response plot."""
+    load_type = str(st.session_state.get("load_type", "DCCAV"))
+    if load_type == "Bass reflex":
+        key = "pr_fp_hz" if _reflex_uses_passive_radiator() else "reflex_fb_hz"
+        label = "PR tuning" if key == "pr_fp_hz" else "Reflex tuning"
+        return [(label, float(st.session_state[key]))]
+    if load_type == "Bandpass 4th order":
+        return [("Front tuning", float(st.session_state["bandpass4_fp_hz"]))]
+    if load_type == "Bandpass 6th order":
+        return [
+            ("Rear tuning", float(st.session_state["bandpass6_fr_hz"])),
+            ("Front tuning", float(st.session_state["bandpass6_fp_hz"])),
+        ]
+    if load_type == "DCCAV":
+        return [
+            ("Upper tuning", float(st.session_state["box_fh_hz"])),
+            ("Lower tuning", float(st.session_state["box_fl_hz"])),
+        ]
+    return []
+
+
+def _tuning_marker_layer(
+    frequency_window: list[float] | None,
+) -> alt.Chart | None:
+    """Draw labelled vertical rules for tuning frequencies in the visible window."""
+    rows = []
+    for label, frequency_hz in _response_tuning_markers():
+        if not np.isfinite(frequency_hz) or frequency_hz <= 0.0:
+            continue
+        if frequency_window and not (
+            float(frequency_window[0]) <= frequency_hz <= float(frequency_window[1])
+        ):
+            continue
+        rows.append({"frequency_hz": frequency_hz, "label": label})
+    if not rows:
+        return None
+    data = pd.DataFrame(rows)
+    rules = alt.Chart(data).mark_rule(
+        color="#f2c14e", strokeDash=[5, 4], strokeWidth=1.6,
+    ).encode(
+        x=alt.X("frequency_hz:Q", scale=_log_frequency_scale(frequency_window)),
+        tooltip=[
+            alt.Tooltip("label:N", title="Tuning"),
+            alt.Tooltip("frequency_hz:Q", title="Hz", format=".1f"),
+        ],
+    )
+    labels = alt.Chart(data).mark_text(
+        color="#f2c14e", angle=90, align="left", baseline="middle", dx=5,
+    ).encode(
+        x=alt.X("frequency_hz:Q", scale=_log_frequency_scale(frequency_window)),
+        y=alt.value(12),
+        text="label:N",
+    )
+    return rules + labels
+
+
 def _response_y_domain(
     result: _dccav.SimulationResult,
     series: dict[str, np.ndarray],
@@ -4701,8 +4897,11 @@ def _cursor_rows(result: _dccav.SimulationResult, thresholds: dict[int, float]) 
 
 def _marker_display_label(row: dict, show_mol: bool) -> str:
     """Keep automatic threshold labels compact; details remain in tooltips."""
-    del show_mol
-    return f"{row['label']} · {float(row['frequency_hz']):.1f} Hz"
+    label = f"{row['label']} · {float(row['frequency_hz']):.1f} Hz"
+    mol_db = float(row.get("mol_db", np.nan))
+    if show_mol and np.isfinite(mol_db):
+        label += f" · MOL {mol_db:.1f} dB"
+    return label
 
 
 def _cursor_label_rows(
@@ -4877,7 +5076,11 @@ def _click_marker_layer(
         ),
     )
     selectors = base.mark_point(filled=True, size=180, opacity=0.001).add_params(click_marker)
-    rule = base.mark_rule(color="#06d6a0", strokeWidth=2.0).transform_filter(click_marker)
+    # Do not inherit the point's y encoding: a rule with y=spl_total_db starts
+    # at the curve instead of spanning the complete plot height.
+    rule = alt.Chart(marker_data).encode(
+        x=alt.X("frequency_hz:Q", scale=_log_frequency_scale(x_domain)),
+    ).mark_rule(color="#06d6a0", strokeWidth=2.0).transform_filter(click_marker)
     point = base.mark_point(
         filled=True,
         size=95,
@@ -5047,6 +5250,10 @@ def _plot_response(
             chart = band_area + chart
     show_mol = "MOL" in series
     if active_design_visible:
+        if st.session_state.get("plot_show_tuning_markers", True):
+            tuning_markers = _tuning_marker_layer(frequency_window)
+            if tuning_markers is not None:
+                chart = chart + tuning_markers
         chart = chart + _click_marker_layer(
             result, frequency_window, y_domain, show_mol=show_mol
         )
@@ -8960,7 +9167,11 @@ def _render_response_tab(
     pinned_state = _pinned_responses()
     comparison_tabs = _design_comparison_tabs()
     comparison_mode = bool(comparison_tabs)
-    col_widths = [2.8, 1.3, 1.4, 1.1, 1.1, 1.0] if pinned_state else [2.8, 1.3, 1.4, 1.1, 1.0]
+    col_widths = (
+        [2.8, 1.3, 1.4, 1.3, 1.3, 1.1, 1.0]
+        if pinned_state
+        else [2.8, 1.3, 1.4, 1.3, 1.3, 1.0]
+    )
     ctrl_cols = st.columns(col_widths, vertical_alignment="center", gap="small")
     
     with ctrl_cols[0]:
@@ -8980,6 +9191,12 @@ def _render_response_tab(
             help="Monte Carlo 5-95th percentile spread from T/S tolerances.",
         )
     with ctrl_cols[3]:
+        st.toggle(
+            "Tuning markers",
+            key="plot_show_tuning_markers",
+            help="Show or hide vertical markers at the active enclosure tuning frequencies.",
+        )
+    with ctrl_cols[4]:
         if st.button(
             "Pin response",
             use_container_width=True,
@@ -9000,11 +9217,11 @@ def _render_response_tab(
             st.rerun()
 
     if pinned_state and not comparison_mode:
-        with ctrl_cols[4]:
+        with ctrl_cols[5]:
             if st.button("Clear all pins", use_container_width=True):
                 _clear_pinned_responses()
                 st.rerun()
-        with ctrl_cols[5]:
+        with ctrl_cols[6]:
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
@@ -9014,13 +9231,13 @@ def _render_response_tab(
                 args=(full_window,),
             )
     elif pinned_state:
-        with ctrl_cols[4]:
+        with ctrl_cols[5]:
             st.button(
                 "Tabs active",
                 use_container_width=True,
                 disabled=True,
             )
-        with ctrl_cols[5]:
+        with ctrl_cols[6]:
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
@@ -9030,7 +9247,7 @@ def _render_response_tab(
                 args=(full_window,),
             )
     else:
-        with ctrl_cols[4]:
+        with ctrl_cols[5]:
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
@@ -9390,6 +9607,7 @@ if int(st.session_state.get("_response_defaults_version", 0) or 0) < _RESPONSE_D
     st.session_state["_response_defaults_version"] = _RESPONSE_DEFAULTS_VERSION
 _default("plot_response_window_hz", (10, 500))
 _default("plot_show_mil", False)
+_default("plot_show_tuning_markers", True)
 _default("plot_compare_loads", False)
 _default("plot_tolerance_band", False)
 _default("plot_tolerance_pct", 15.0)
@@ -9635,6 +9853,43 @@ with st.sidebar:
                         f"· equivalent effective piston: Ø {effective:.2f} in"
                     )
                     
+            catalog_source_preset = (
+                preset_name if preset_name != "Custom"
+                else str(st.session_state.get("_admin_catalog_source_preset", ""))
+            )
+            if (
+                _maintenance_allowed()
+                and _catalog_path_for_preset(catalog_source_preset)
+            ):
+                if st.button(
+                    "Save T/S to catalog",
+                    key="admin_save_box_design_driver",
+                    help=(
+                        "Administrator only. Replace the selected source preset's "
+                        "catalog T/S values with the current Box Design values."
+                    ),
+                ):
+                    try:
+                        saved_name = _update_catalog_driver_from_box_design(
+                            catalog_source_preset, _driver_from_state(),
+                        )
+                    except ValueError as exc:
+                        st.error(f"Could not update catalog T/S: {exc}")
+                    else:
+                        st.session_state["driver_preset_name"] = catalog_source_preset
+                        st.session_state["_admin_catalog_source_preset"] = (
+                            catalog_source_preset
+                        )
+                        st.session_state["_admin_catalog_update_notice"] = (
+                            f"Catalog T/S updated for {saved_name}."
+                        )
+                        st.rerun()
+            update_notice = st.session_state.pop(
+                "_admin_catalog_update_notice", ""
+            )
+            if update_notice:
+                st.success(update_notice)
+
             c1, c2 = st.columns(2)
             with c1:
                 st.number_input("Fs (Hz)", min_value=1.0, max_value=500.0, step=_step5("driver_fs_hz", 0.1),

@@ -641,7 +641,7 @@ def text_measurements(text: str) -> list[Measurement]:
         pattern = re.compile(
             rf"(?<![A-Za-z0-9])(?P<label>{alias_pattern})(?![A-Za-z0-9])"
             rf"(?:\)|\.)?\s*(?:\([^)]{{0,30}}\)|\[[^]]{{0,30}}\])?"
-            rf"\s*(?:[*¹²³]+)?\s*(?:[:=\-–—：]|is)?\s*"
+            rf"\s*(?:[*¹²³]+)?\s*(?:(?:[:=\-–—：]|is)\s*)?"
             rf"{footnote_prefix}{tolerance_prefix}{signed_value_prefix}"
             rf"(?P<value>{NUMBER_RE})[\t \r\n]{{0,16}}"
             rf"\[?(?P<unit>{UNIT_RE})\]?",

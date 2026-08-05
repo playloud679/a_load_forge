@@ -272,3 +272,33 @@ manufacturer catalog:
 This run grew `data/manufacturer_drivers.json` from 3,219 to 4,697 usable
 records and from 44 to 63 brands. Checkpoints and the SoundImports rejection
 report remain under `data/` so interrupted or rejected work is auditable.
+
+## 2026-08-05: authorized-retailer price sources
+
+Two new retailer sources were added to `tools/harvest_extra_retailers.py`
+(targeted at the ~940 unpriced rows in the completion report):
+
+- **StrumentiMusicali.net** (`strumentimusicali`) — Italian authorized
+  multi-brand PA dealer (Celestion, Eminence, Fenton, SkyTec, Power Acoustics,
+  JBL Professional, Turbosound, Vonyx, ...). osCommerce-style URLs
+  (`product_info.php/products_id/N/slug.html`, category pagination via
+  `/page/N`). Listing pages expose name/price/availability in
+  `tr.productListing-even` rows; the product detail page carries schema.org
+  microdata with an authoritative `meta[itemprop=mpn]`, brand block, EUR
+  price and availability, so the harvester fetches one detail page per
+  product to hand the matcher a real brand + MPN pair. Seed categories are
+  "Ricambi per Diffusori", the adjacent "Altri Accessori per Diffusori" and
+  the full Celestion brand catalogue.
+- **Lean Audio UK** (`leanaudio`) — sixth confirmed WooCommerce Store API
+  source (`/wp-json/wc/store/v1/products`, per_page=100). The `brands`
+  taxonomy field is empty on every product, so the brand is recovered from
+  the product's category slug (Eighteen Sound / Celestion / Faital Pro / BMS /
+  SB Audience / SB Acoustics / Ciare), mirroring the AnalogHiFi strategy.
+  Driver categories are Low Frequency / High Frequency / Coaxial, with
+  recone-kits, adapters and accessories excluded.  A non-list response after
+  the final API page is treated as normal pagination completion, preserving
+  the successfully harvested offers from that refresh.
+
+Both write independent checkpoints under `data/` and are merged through
+`tools/merge_extra_retailers.py` on the shared identity + brand/accessory/
+multi-pack safety rules.

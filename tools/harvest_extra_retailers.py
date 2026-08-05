@@ -44,6 +44,17 @@ enrich_driver_prices.py's built-in providers:
   from compact slash notation into individual model identities.
 * AUDIO-HI.FI (audio-hi.fi) -- paginated European Tang Band catalog with
   per-unit EUR prices and direct product links.
+* StrumentiMusicali.net (strumentimusicali.net) -- Italian authorized
+  multi-brand PA storefront (osCommerce-style). Driver spare-part category
+  pages list name/price/availability; each product detail page carries
+  schema.org microdata with the manufacturer part number (meta[itemprop=mpn]),
+  brand, EUR price and availability, so one detail fetch per product gives the
+  matcher an authoritative brand + MPN pair.
+* Lean Audio UK (leanaudio.co.uk) -- sixth confirmed WooCommerce Store API
+  source (UK multi-brand loudspeaker dealer: Eighteen Sound, Celestion,
+  Faital Pro, BMS, SB Audience, SB Acoustics, Ciare). The `brands` taxonomy
+  field is empty on every product, so the brand is recovered from the
+  product category link path, mirroring the AnalogHiFi strategy.
 
 Each harvester writes an independent JSON checkpoint under data/ so a partial
 run can be resumed/merged without re-fetching everything. merge_extra_retailers
@@ -230,6 +241,17 @@ WAVECOR_CHECKPOINT = DATA_DIR / "wavecor_harvest_checkpoint.json"
 WAVECOR_PRICE_URL = "https://wavecor.com/html/retail_price_list.html"
 AUDIOHIFI_CHECKPOINT = DATA_DIR / "audiohifi_harvest_checkpoint.json"
 AUDIOHIFI_TANGBAND_URL = "https://audio-hi.fi/en/tang_band-m-14.html"
+STRUMENTIMUSICALI_CHECKPOINT = DATA_DIR / "strumentimusicali_harvest_checkpoint.json"
+STRUMENTIMUSICALI_BASE = "https://www.strumentimusicali.net"
+# Driver spare-parts categories: "Ricambi per Diffusori" and the adjacent
+# "Altri Accessori per Diffusori", plus the full Celestion brand catalogue.
+STRUMENTIMUSICALI_SEEDS = [
+    "default.php/cPath/35_1049_1058/accessori-per-sistemi-audio/ricambi-per-diffusori.html",
+    "default.php/cPath/35_1049_174/accessori-per-sistemi-audio/altri-accessori-per-diffusori.html",
+    "default.php/manufacturers_id/222/celestion.html",
+]
+LEANAUDIO_CHECKPOINT = DATA_DIR / "leanaudio_harvest_checkpoint.json"
+LEANAUDIO_API = "https://leanaudio.co.uk/wp-json/wc/store/v1/products"
 
 
 def _thomann_search_payload(text: str) -> dict:
@@ -683,6 +705,231 @@ def harvest_audiohifi(sleep_s: float, timeout_s: float, limit: int | None = None
         time.sleep(sleep_s)
     records = list(records_by_model.values())
     return records[:int(limit)] if limit is not None else records
+
+
+# ---------------------------------------------------------------------------
+# StrumentiMusicali.net (Italian authorized PA dealer, osCommerce-style)
+# ---------------------------------------------------------------------------
+
+_SM_LISTING_ROW_RE = re.compile(
+    r'<tr\s+class="productListing-[^"]+"[^>]*>(.*?)</tr>',
+    re.S | re.I,
+)
+_SM_PRODUCT_URL_RE = re.compile(
+    r'href="(https://www\.strumentimusicali\.net/product_info\.php/products_id/\d+/[^"]+\.html)"',
+    re.I,
+)
+_SM_PRODUCT_NAME_RE = re.compile(r'<b\s+class="listing_prod_name">\s*(.*?)\s*</b>', re.S | re.I)
+_SM_LISTING_PRICE_RE = re.compile(
+    r'<span\s+class="d-block\s+fontSize14\s+marginBottom5\s+bold">\s*&euro;\s*([0-9.,]+)',
+    re.I,
+)
+_SM_DETAIL_MPN_RE = re.compile(r'<meta\s+itemprop="mpn"\s+content="([^"]+)"', re.I)
+_SM_DETAIL_BRAND_RE = re.compile(
+    r'<div\s+itemprop="brand"[^>]*>.*?<meta\s+itemprop="name"\s+content="([^"]+)"',
+    re.S | re.I,
+)
+_SM_DETAIL_PRICE_RE = re.compile(r'<meta\s+itemprop="price"\s+content="([0-9.]+)"', re.I)
+_SM_DETAIL_CURRENCY_RE = re.compile(
+    r'<meta\s+itemprop="priceCurrency"\s+content="([^"]+)"', re.I,
+)
+_SM_DETAIL_AVAILABILITY_RE = re.compile(
+    r'<span\s+itemprop="availability"\s+content="(https://schema\.org/[^"]+)"', re.I,
+)
+
+
+def strumentimusicali_listing_urls(text: str) -> list[str]:
+    """Return canonical product-page URLs found in a listing page."""
+    urls = []
+    for row in _SM_LISTING_ROW_RE.findall(text):
+        url_match = _SM_PRODUCT_URL_RE.search(row)
+        if url_match:
+            urls.append(epd.html_entity_decode(url_match.group(1)))
+    return list(dict.fromkeys(urls))
+
+
+def _sm_listing_price(text: str) -> float | None:
+    prices = [epd.number(value) for value in _SM_LISTING_PRICE_RE.findall(text)]
+    return next((price for price in prices if price is not None), None)
+
+
+def strumentimusicali_record_from_detail(text: str, url: str) -> dict | None:
+    """Build one record from a product detail page (authoritative MPN + brand)."""
+    mpn_match = _SM_DETAIL_MPN_RE.search(text)
+    brand_match = _SM_DETAIL_BRAND_RE.search(text)
+    price_match = _SM_DETAIL_PRICE_RE.search(text)
+    currency_match = _SM_DETAIL_CURRENCY_RE.search(text)
+    if price_match is None or currency_match is None:
+        return None
+    price = epd.number(price_match.group(1))
+    if price is None or price <= 0:
+        return None
+    name_match = re.search(r'<span\s+itemprop="name">\s*<h1>(.*?)</h1>', text, re.S | re.I)
+    name = epd.clean_product_text(name_match.group(1)) if name_match else ""
+    if not name:
+        name = epd.clean_product_text(re.search(r"<title>(.*?)</title>", text, re.S | re.I).group(1)) if re.search(r"<title>(.*?)</title>", text, re.S | re.I) else ""
+    availability_match = _SM_DETAIL_AVAILABILITY_RE.search(text)
+    return {
+        "name": name,
+        "brand": epd.html_entity_decode(brand_match.group(1)) if brand_match else "",
+        "mpn": epd.html_entity_decode(mpn_match.group(1)) if mpn_match else "",
+        "sku": str(mpn_match.group(1)) if mpn_match else "",
+        "url": url,
+        "price": round(price, 2),
+        "currency": epd.html_entity_decode(currency_match.group(1)),
+        "availability": str(availability_match.group(1)) if availability_match else "",
+        "price_valid_until": "",
+    }
+
+
+def harvest_strumentimusicali(
+    sleep_s: float, timeout_s: float, limit: int | None = None,
+) -> list[dict]:
+    records_by_key: dict[str, dict] = {}
+    seeds = list(STRUMENTIMUSICALI_SEEDS)
+    if limit:
+        seeds = seeds[: max(1, int(limit))]
+    for seed in seeds:
+        page = 1
+        while True:
+            if page == 1:
+                listing_url = f"{STRUMENTIMUSICALI_BASE}/{seed}"
+            else:
+                listing_url = f"{STRUMENTIMUSICALI_BASE}/{seed}/page/{page}"
+            try:
+                text = epd.fetch_text(listing_url, timeout_s)
+            except epd.FETCH_ERRORS as exc:
+                epd.log(f"strumentimusicali: fetch failed {listing_url}: {exc}")
+                break
+            product_urls = strumentimusicali_listing_urls(text)
+            if not product_urls:
+                break
+            for product_url in product_urls:
+                try:
+                    detail = epd.fetch_text(product_url, timeout_s)
+                except epd.FETCH_ERRORS as exc:
+                    epd.log(f"strumentimusicali: detail fetch failed {product_url}: {exc}")
+                    continue
+                record = strumentimusicali_record_from_detail(detail, product_url)
+                if record:
+                    records_by_key[product_url] = record
+                time.sleep(sleep_s)
+            epd.log(
+                f"strumentimusicali: {seed} page={page} urls={len(product_urls)} "
+                f"records={len(records_by_key)}"
+            )
+            if f"/page/{page + 1}" not in text:
+                break
+            page += 1
+            time.sleep(sleep_s)
+    records = list(records_by_key.values())
+    if limit is None:
+        return records
+    return records[: max(1, int(limit))]
+
+
+# ---------------------------------------------------------------------------
+# Lean Audio UK (WooCommerce Store API, brand recovered from category path)
+# ---------------------------------------------------------------------------
+
+LEANAUDIO_CATEGORY_DENY_SLUGS = {"recone-kits", "adapters", "crossover", "accessories", "books"}
+LEANAUDIO_CATEGORY_BRAND_SLUGS = {
+    "eighteen-sound-18-pro-audio-loudspeaker": "Eighteen Sound",
+    "celestion-speakers-audio-guitar-pro-bass-hifi": "Celestion",
+    "faital-pro-audio-loudspeakers": "Faital Pro",
+    "bms-speakers": "BMS",
+    "sb-audience": "SB Audience",
+    "sb-acoustics": "SB Acoustics",
+    "ciare-loudspeakers": "Ciare",
+}
+LEANAUDIO_LF_SLUGS = {"low-frequency-lf", "high-frequency-hf", "coaxial-loudspeaker"}
+
+
+def _leanaudio_brand(product: dict) -> str:
+    """Recover the brand from the category link path (brands field is empty)."""
+    for category in product.get("categories", []) or []:
+        slug = str(category.get("slug") or "")
+        brand = LEANAUDIO_CATEGORY_BRAND_SLUGS.get(slug)
+        if brand:
+            return brand
+    return ""
+
+
+def _parse_leanaudio_product(product: dict) -> dict | None:
+    if not any(
+        LEANAUDIO_LF_SLUGS.intersection({str(c.get("slug") or "")})
+        for c in product.get("categories", []) or []
+    ):
+        return None
+    if any(
+        str(c.get("slug") or "") in LEANAUDIO_CATEGORY_DENY_SLUGS
+        for c in product.get("categories", []) or []
+    ):
+        return None
+    brand = _leanaudio_brand(product)
+    if not brand:
+        return None
+    prices = product.get("prices") or {}
+    raw_price = epd.number(prices.get("price"))
+    if raw_price is None:
+        return None
+    minor_unit = prices.get("currency_minor_unit")
+    try:
+        minor_unit = int(minor_unit)
+    except (TypeError, ValueError):
+        minor_unit = 2
+    price = raw_price / (10 ** minor_unit)
+    if price <= 0:
+        return None
+    name = epd.clean_product_text(epd.html_entity_decode(str(product.get("name") or "")))
+    if not name:
+        return None
+    sku = str(product.get("sku") or "")
+    url = str(product.get("permalink") or "")
+    if not url:
+        return None
+    currency = str(prices.get("currency_code") or "GBP")
+    return {
+        "name": name,
+        "brand": brand,
+        "mpn": sku,
+        "sku": sku,
+        "url": url,
+        "price": round(price, 2),
+        "currency": currency,
+        "availability": "",
+        "price_valid_until": "",
+    }
+
+
+def harvest_leanaudio(sleep_s: float, timeout_s: float, limit_pages: int = 50) -> list[dict]:
+    records = []
+    page = 1
+    while limit_pages is None or page <= limit_pages:
+        url = f"{LEANAUDIO_API}?per_page=100&page={page}"
+        try:
+            payload = _get_json(url, timeout_s)
+        except epd.FETCH_ERRORS as exc:
+            epd.log(f"leanaudio: fetch failed page={page}: {exc}")
+            break
+        # WooCommerce returns a JSON error object, rather than an empty list,
+        # after the final page.  Treat it as pagination completion so the
+        # records already collected in this run are still checkpointed.
+        if not isinstance(payload, list):
+            epd.log(f"leanaudio: finished page={page}: non-list API response")
+            break
+        if not payload:
+            break
+        for product in payload:
+            record = _parse_leanaudio_product(product)
+            if record:
+                records.append(record)
+        epd.log(f"leanaudio: page={page} products={len(payload)} kept={len(records)}")
+        if len(payload) < 100:
+            break
+        page += 1
+        time.sleep(sleep_s)
+    return records
 
 
 def _get_json(url: str, timeout_s: float) -> dict:
@@ -1537,11 +1784,13 @@ HARVESTERS = {
     "ficaraudio": (harvest_ficaraudio, FICARAUDIO_CHECKPOINT),
     "wavecor": (harvest_wavecor, WAVECOR_CHECKPOINT),
     "audiohifi": (harvest_audiohifi, AUDIOHIFI_CHECKPOINT),
+    "strumentimusicali": (harvest_strumentimusicali, STRUMENTIMUSICALI_CHECKPOINT),
+    "leanaudio": (harvest_leanaudio, LEANAUDIO_CHECKPOINT),
 }
 
 PAGE_LIMIT_SOURCES = {
     "cinergyaudio", "willyshifi", "topservicepro", "kjfaudio", "hogtalarshoppen",
-    "diyspeakerseu", "analoghifi", "ds18",
+    "diyspeakerseu", "analoghifi", "ds18", "leanaudio",
 }
 
 

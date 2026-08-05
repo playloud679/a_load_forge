@@ -49,6 +49,16 @@ catalog and clear the selection on the refreshed table.
 Deletion is intentionally explicit and separate from selection: checking a row
 never deletes it by itself.
 
+## Box Design admin update
+
+When an authenticated administrator opens an external catalog preset in Box
+Design, the Driver panel shows `Save T/S to catalog`. It remains available
+after editing the T/S values (which normally marks the design as Custom), writes
+those values back to the original source catalog, and reloads the driver
+library. The control is absent for built-in presets and for non-admin users. As
+with the maintenance workspace, a Cloud Run container's local catalog change is
+ephemeral until it is promoted through the catalog release workflow.
+
 ## Backup and restore
 
 `Download backup` exports the complete selected catalog, including rows hidden

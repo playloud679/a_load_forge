@@ -11,7 +11,7 @@ in sync in the same change.
 
 | Module/File | Doc | Role |
 |---|---|---|
-| `ui_app.py` | [catalog-maintenance.md](catalog-maintenance.md) for the administrator surface | Streamlit dashboard with a killer-feature-first Bass Match brief and single run action, a selection-aware gray/emerald Box Design CTA directly below the brief, all usable ranked results without a display cap, a lazy collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, compact multiselect library filters, progressively disclosed T/S controls, stateful lazy analysis/sidebar tabs, compact plot markers, IndexedDB browser-project autosave, complete `.lfp` v2 Box Design/Bass Match backups and grouped exports. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
+| `ui_app.py` | [catalog-maintenance.md](catalog-maintenance.md) for the administrator surface | Streamlit dashboard with a killer-feature-first Bass Match brief and single run action, a selection-aware gray/emerald Box Design CTA directly below the brief, all usable ranked results without a display cap, a lazy collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, compact multiselect library filters, progressively disclosed T/S controls, stateful lazy analysis/sidebar tabs, compact plot markers including labelled enclosure tuning frequencies, IndexedDB browser-project autosave, complete `.lfp` v2 Box Design/Bass Match backups and grouped exports. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
 | `src/__init__.py` | [__init__.md](__init__.md) | Public package exports for acoustic-load helpers |
 | `src/dccav.py` | [dccav.md](dccav.md) | DCCAV/reflex/sealed/infinite-baffle formulas, T/S derivation and lumped acoustic-circuit simulation |
 | `src/saas.py` | [saas.md](saas.md) | Optional OIDC identity normalization, tenant-safe plan entitlements and Firestore/in-memory project persistence |
@@ -93,8 +93,9 @@ state from the formerly active project may cross that boundary.
 A browser project can be duplicated or permanently deleted directly from the
 saved-project chooser as well as while it is active. Duplication keeps its
 complete design and Bass Match state under a new identity; confirmed deletion
-removes both its IndexedDB payload and index entry. Deleting the active project
-also seeds a clean replacement project for autosave.
+removes both its IndexedDB payload and index entry in one committed browser
+transaction. The UI confirms deletion only after that commit. Deleting the
+active project also seeds a clean replacement project for autosave.
 When saved projects exist, startup always presents the chooser instead of
 opening one implicitly. Missing or invalid IndexedDB payloads finish with a
 recoverable warning, leaving the chooser available to delete the damaged entry

@@ -3,23 +3,23 @@
   "changes_this_run": {},
   "corrected": {
     "cms_mm_per_n": 4,
-    "rejected_size_sd_conflict": 83,
-    "sd_cm2": 26,
-    "size_in": 847
+    "rejected_size_sd_conflict": 89,
+    "sd_cm2": 27,
+    "size_in": 856
   },
   "derived": {},
   "driver_field_coverage": {
-    "bl_tm": 5064,
-    "cms_mm_per_n": 5064,
-    "le_mh": 4755,
-    "mms_g": 5060,
-    "pe_w": 4731,
-    "qes": 5064,
-    "xmax_mm": 4765
+    "bl_tm": 5281,
+    "cms_mm_per_n": 5281,
+    "le_mh": 4970,
+    "mms_g": 5277,
+    "pe_w": 4945,
+    "qes": 5281,
+    "xmax_mm": 4981
   },
-  "generated_at": "2026-08-04T21:10:32+00:00",
-  "priced": 4143,
-  "rows": 5064,
-  "size_coverage": 5064,
-  "unpriced": 921
+  "generated_at": "2026-08-05T13:46:54+00:00",
+  "priced": 4325,
+  "rows": 5281,
+  "size_coverage": 5281,
+  "unpriced": 956
 }

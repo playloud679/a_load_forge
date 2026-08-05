@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.8.7 (2026-08-06)
+
+- **Response tuning markers**: the response chart now shows labelled vertical
+  markers for the active enclosure tuning frequencies, with a toggle to hide
+  them and zoom-aware filtering.
+- **F3/F6/F10 marker details**: automatic frequency markers show their MOL
+  value again; the interactive frequency marker now spans the full chart
+  height.
+- **Administrator driver updates**: authenticated administrators can save
+  edited Box Design T/S parameters back to the selected external catalog
+  preset. Browser-project deletion now acknowledges only after its IndexedDB
+  transaction commits.
+- **Verification**: targeted response-chart and administrator catalog tests,
+  Python compilation and the Streamlit startup AppTest pass with 0 failures.
+
 ## 0.8.5 (2026-08-04)
 
 - **Box Design tab identity**: editable design tabs now show the normalized

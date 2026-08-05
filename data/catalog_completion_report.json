@@ -4,75 +4,75 @@
       "bl_tm": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5064
+        "present": 5277
       },
       "cms_mm_per_n": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5064
+        "present": 5277
       },
       "fs_hz": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5064
+        "present": 5277
       },
       "le_mh": {
-        "missing": 309,
-        "percent": 93.9,
-        "present": 4755
+        "missing": 311,
+        "percent": 94.11,
+        "present": 4966
       },
       "mms_g": {
         "missing": 4,
         "percent": 99.92,
-        "present": 5060
+        "present": 5273
       },
       "pe_w": {
-        "missing": 333,
-        "percent": 93.42,
-        "present": 4731
+        "missing": 334,
+        "percent": 93.67,
+        "present": 4943
       },
       "qes": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5064
+        "present": 5277
       },
       "qms": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5064
+        "present": 5277
       },
       "qts": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5064
+        "present": 5277
       },
       "re_ohm": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5064
+        "present": 5277
       },
       "sd_cm2": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5064
+        "present": 5277
       },
       "vas_l": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5064
+        "present": 5277
       },
       "xmax_mm": {
-        "missing": 299,
-        "percent": 94.1,
-        "present": 4765
+        "missing": 300,
+        "percent": 94.31,
+        "present": 4977
       }
     },
     "price": {
-      "missing": 921,
-      "percent": 81.81,
-      "present": 4143
+      "missing": 940,
+      "percent": 82.19,
+      "present": 4337
     },
-    "rows": 5064
+    "rows": 5277
   },
   "cycles": [
     {
@@ -81,80 +81,80 @@
           "bl_tm": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5064
+            "present": 5277
           },
           "cms_mm_per_n": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5064
+            "present": 5277
           },
           "fs_hz": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5064
+            "present": 5277
           },
           "le_mh": {
-            "missing": 309,
-            "percent": 93.9,
-            "present": 4755
+            "missing": 311,
+            "percent": 94.11,
+            "present": 4966
           },
           "mms_g": {
             "missing": 4,
             "percent": 99.92,
-            "present": 5060
+            "present": 5273
           },
           "pe_w": {
-            "missing": 333,
-            "percent": 93.42,
-            "present": 4731
+            "missing": 334,
+            "percent": 93.67,
+            "present": 4943
           },
           "qes": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5064
+            "present": 5277
           },
           "qms": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5064
+            "present": 5277
           },
           "qts": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5064
+            "present": 5277
           },
           "re_ohm": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5064
+            "present": 5277
           },
           "sd_cm2": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5064
+            "present": 5277
           },
           "vas_l": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5064
+            "present": 5277
           },
           "xmax_mm": {
-            "missing": 299,
-            "percent": 94.1,
-            "present": 4765
+            "missing": 300,
+            "percent": 94.31,
+            "present": 4977
           }
         },
         "price": {
-          "missing": 921,
-          "percent": 81.81,
-          "present": 4143
+          "missing": 940,
+          "percent": 82.19,
+          "present": 4337
         },
-        "rows": 5064
+        "rows": 5277
       },
       "cycle": 1,
-      "finished_at": "2026-08-04T21:10:36+00:00",
-      "progress_units": 0,
-      "started_at": "2026-08-04T21:05:48+00:00",
+      "finished_at": "2026-08-04T23:12:08+00:00",
+      "progress_units": 94,
+      "started_at": "2026-08-04T23:06:17+00:00",
       "steps": [
         {
           "command": [
@@ -167,12 +167,12 @@
             "--local-only",
             "--apply"
           ],
-          "finished_at": "2026-08-04T21:05:49+00:00",
+          "finished_at": "2026-08-04T23:06:18+00:00",
           "returncode": 0,
           "stage": "local_repairs",
-          "started_at": "2026-08-04T21:05:49+00:00",
+          "started_at": "2026-08-04T23:06:17+00:00",
           "stderr_tail": "",
-          "stdout_tail": "{\n  \"mode\": \"apply\",\n  \"database\": \"/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json\",\n  \"candidates\": 0,\n  \"processed\": 0,\n  \"records_updated\": 0,\n  \"fields_filled\": {},\n  \"local_power_repairs\": 0,\n  \"unitless_power_invalidations\": 0,\n  \"records_updated_by_host\": {},\n  \"coverage_after\": {\n    \"xmax_mm\": {\n      \"present\": 4765,\n      \"missing\": 299,\n      \"percent\": 94.1\n    },\n    \"pe_w\": {\n      \"present\": 4731,\n      \"missing\": 333,\n      \"percent\": 93.42\n    },\n    \"le_mh\": {\n      \"present\": 4755,\n      \"missing\": 309,\n      \"percent\": 93.9\n    }\n  }\n}\nfailures=0\n"
+          "stdout_tail": "{\n  \"mode\": \"apply\",\n  \"database\": \"/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json\",\n  \"candidates\": 0,\n  \"processed\": 0,\n  \"records_updated\": 0,\n  \"fields_filled\": {},\n  \"local_power_repairs\": 0,\n  \"unitless_power_invalidations\": 0,\n  \"records_updated_by_host\": {},\n  \"coverage_after\": {\n    \"xmax_mm\": {\n      \"present\": 4977,\n      \"missing\": 300,\n      \"percent\": 94.31\n    },\n    \"pe_w\": {\n      \"present\": 4943,\n      \"missing\": 334,\n      \"percent\": 93.67\n    },\n    \"le_mh\": {\n      \"present\": 4966,\n      \"missing\": 311,\n      \"percent\": 94.11\n    }\n  }\n}\nfailures=0\n"
         },
         {
           "command": [
@@ -184,12 +184,12 @@
             "/Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json",
             "--apply"
           ],
-          "finished_at": "2026-08-04T21:05:51+00:00",
+          "finished_at": "2026-08-04T23:06:20+00:00",
           "returncode": 0,
           "stage": "cache_first_merge",
-          "started_at": "2026-08-04T21:05:49+00:00",
+          "started_at": "2026-08-04T23:06:18+00:00",
           "stderr_tail": "",
-          "stdout_tail": "rows=5064 priced=4143 unpriced=921 derived={} corrected={'cms_mm_per_n': 4, 'rejected_size_sd_conflict': 83, 'sd_cm2': 26, 'size_in': 847} changes_this_run={} applied=True\n"
+          "stdout_tail": "rows=5277 priced=4308 unpriced=969 derived={'bl_tm': 1, 'cms_mm_per_n': 70, 'size_in': 9} corrected={'cms_mm_per_n': 4, 'rejected_size_sd_conflict': 89, 'sd_cm2': 27, 'size_in': 856} changes_this_run={'rejected_size_sd_conflict': 6, 'sd_cm2': 1, 'size_in': 9} applied=True\n"
         },
         {
           "command": [
@@ -214,12 +214,12 @@
             "--per-host-delay",
             "0.5"
           ],
-          "finished_at": "2026-08-04T21:06:13+00:00",
+          "finished_at": "2026-08-04T23:06:43+00:00",
           "returncode": 0,
           "stage": "high_yield_sources",
-          "started_at": "2026-08-04T21:05:51+00:00",
-          "stderr_tail": "",
-          "stdout_tail": "    \"percent\": 93.42\n    },\n    \"le_mh\": {\n      \"present\": 4755,\n      \"missing\": 309,\n      \"percent\": 93.9\n    }\n  }\n}\nfailures=0\n{\"attempted_at\": \"2026-08-04T21:06:10+00:00\", \"domain\": \"visaton.de\", \"eligible\": true, \"expanded\": false, \"full\": null, \"missing\": {\"le_mh\": 9, \"pe_w\": 4, \"xmax_mm\": 8}, \"probe\": {\"fields_filled\": {}, \"processed\": 3, \"records_updated\": 0}, \"probe_failures\": 0, \"records\": 17, \"returncode\": 0, \"score\": 45.5, \"unique_urls\": 17, \"url_diversity\": 1.0}\n{\n  \"mode\": \"apply\",\n  \"database\": \"/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json\",\n  \"candidates\": 3,\n  \"processed\": 3,\n  \"records_updated\": 0,\n  \"fields_filled\": {},\n  \"local_power_repairs\": 0,\n  \"unitless_power_invalidations\": 0,\n  \"records_updated_by_host\": {},\n  \"coverage_after\": {\n    \"xmax_mm\": {\n      \"present\": 4765,\n      \"missing\": 299,\n      \"percent\": 94.1\n    },\n    \"pe_w\": {\n      \"present\": 4731,\n      \"missing\": 333,\n      \"percent\": 93.42\n    },\n    \"le_mh\": {\n      \"present\": 4755,\n      \"missing\": 309,\n      \"percent\": 93.9\n    }\n  }\n}\nfailures=0\n{\"attempted_at\": \"2026-08-04T21:06:13+00:00\", \"domain\": \"atohm.com\", \"eligible\": true, \"expanded\": false, \"full\": null, \"missing\": {\"le_mh\": 0, \"pe_w\": 7, \"xmax_mm\": 7}, \"probe\": {\"fields_filled\": {}, \"processed\": 3, \"records_updated\": 0}, \"probe_failures\": 0, \"records\": 7, \"returncode\": 0, \"score\": 35.0, \"unique_urls\": 7, \"url_diversity\": 1.0}\n{\n  \"selected_domains\": 5,\n  \"results\": [\n    {\n      \"domain\": \"bomber.com.br\",\n      \"records\": 27,\n      \"missing\": {\n        \"xmax_mm\": 0,\n        \"pe_w\": 16,\n        \"le_mh\": 11\n      },\n      \"score\": 48.5,\n      \"unique_urls\": 27,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T21:05:59+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 0,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"pride.audio\",\n      \"records\": 24,\n      \"missing\": {\n        \"xmax_mm\": 4,\n        \"pe_w\": 0,\n        \"le_mh\": 24\n      },\n      \"score\": 48.0,\n      \"unique_urls\": 24,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T21:06:05+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 0,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"supravox.fr\",\n      \"records\": 9,\n      \"missing\": {\n        \"xmax_mm\": 6,\n        \"pe_w\": 9,\n        \"le_mh\": 7\n      },\n      \"score\": 46.5,\n      \"unique_urls\": 9,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T21:06:08+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 3,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"visaton.de\",\n      \"records\": 17,\n      \"missing\": {\n        \"xmax_mm\": 8,\n        \"pe_w\": 4,\n        \"le_mh\": 9\n      },\n      \"score\": 45.5,\n      \"unique_urls\": 17,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T21:06:10+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 0,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"atohm.com\",\n      \"records\": 7,\n      \"missing\": {\n        \"xmax_mm\": 7,\n        \"pe_w\": 7,\n        \"le_mh\": 0\n      },\n      \"score\": 35.0,\n      \"unique_urls\": 7,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T21:06:13+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 0,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    }\n  ]\n}\n"
+          "started_at": "2026-08-04T23:06:20+00:00",
+          "stderr_tail": "Rotated text discovered. Output will be incomplete.\n",
+          "stdout_tail": "ercent\": 93.67\n    },\n    \"le_mh\": {\n      \"present\": 4966,\n      \"missing\": 311,\n      \"percent\": 94.11\n    }\n  }\n}\nfailures=0\n{\"attempted_at\": \"2026-08-04T23:06:36+00:00\", \"domain\": \"markaudio.com\", \"eligible\": true, \"expanded\": false, \"full\": null, \"missing\": {\"le_mh\": 2, \"pe_w\": 7, \"xmax_mm\": 0}, \"probe\": {\"fields_filled\": {}, \"processed\": 3, \"records_updated\": 0}, \"probe_failures\": 0, \"records\": 7, \"returncode\": 0, \"score\": 17.0, \"unique_urls\": 7, \"url_diversity\": 1.0}\n{\n  \"mode\": \"apply\",\n  \"database\": \"/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json\",\n  \"candidates\": 3,\n  \"processed\": 3,\n  \"records_updated\": 0,\n  \"fields_filled\": {},\n  \"local_power_repairs\": 0,\n  \"unitless_power_invalidations\": 0,\n  \"records_updated_by_host\": {},\n  \"coverage_after\": {\n    \"xmax_mm\": {\n      \"present\": 4977,\n      \"missing\": 300,\n      \"percent\": 94.31\n    },\n    \"pe_w\": {\n      \"present\": 4943,\n      \"missing\": 334,\n      \"percent\": 93.67\n    },\n    \"le_mh\": {\n      \"present\": 4966,\n      \"missing\": 311,\n      \"percent\": 94.11\n    }\n  }\n}\nfailures=0\n{\"attempted_at\": \"2026-08-04T23:06:43+00:00\", \"domain\": \"sbacoustics.com\", \"eligible\": true, \"expanded\": false, \"full\": null, \"missing\": {\"le_mh\": 5, \"pe_w\": 0, \"xmax_mm\": 1}, \"probe\": {\"fields_filled\": {}, \"processed\": 3, \"records_updated\": 0}, \"probe_failures\": 0, \"records\": 6, \"returncode\": 0, \"score\": 10.5, \"unique_urls\": 6, \"url_diversity\": 1.0}\n{\n  \"selected_domains\": 5,\n  \"results\": [\n    {\n      \"domain\": \"nvx.com\",\n      \"records\": 7,\n      \"missing\": {\n        \"xmax_mm\": 3,\n        \"pe_w\": 7,\n        \"le_mh\": 7\n      },\n      \"score\": 33.5,\n      \"unique_urls\": 7,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T23:06:22+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 3,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"beyma.com\",\n      \"records\": 11,\n      \"missing\": {\n        \"xmax_mm\": 0,\n        \"pe_w\": 11,\n        \"le_mh\": 0\n      },\n      \"score\": 22.0,\n      \"unique_urls\": 11,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T23:06:26+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 0,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"ciare.com\",\n      \"records\": 14,\n      \"missing\": {\n        \"xmax_mm\": 0,\n        \"pe_w\": 0,\n        \"le_mh\": 14\n      },\n      \"score\": 21.0,\n      \"unique_urls\": 14,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T23:06:30+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 0,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"markaudio.com\",\n      \"records\": 7,\n      \"missing\": {\n        \"xmax_mm\": 0,\n        \"pe_w\": 7,\n        \"le_mh\": 2\n      },\n      \"score\": 17.0,\n      \"unique_urls\": 7,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T23:06:36+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 0,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"sbacoustics.com\",\n      \"records\": 6,\n      \"missing\": {\n        \"xmax_mm\": 1,\n        \"pe_w\": 0,\n        \"le_mh\": 5\n      },\n      \"score\": 10.5,\n      \"unique_urls\": 6,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T23:06:43+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 0,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    }\n  ]\n}\n"
         },
         {
           "command": [
@@ -234,12 +234,12 @@
             "--timeout",
             "20.0"
           ],
-          "finished_at": "2026-08-04T21:06:18+00:00",
+          "finished_at": "2026-08-04T23:06:50+00:00",
           "returncode": 0,
           "stage": "primary_prices",
-          "started_at": "2026-08-04T21:06:13+00:00",
+          "started_at": "2026-08-04T23:06:43+00:00",
           "stderr_tail": "",
-          "stdout_tail": "provider soundimports: worker pid=55142\nprovider bluearan: worker pid=55143\nprovider madisound: worker pid=55144\nprovider partsexpress: worker pid=55145\nloaded 13436 price candidates\nloaded 13436 price candidates\nloaded 13436 price candidates\nloaded 13436 price candidates\npartsexpress sitemap done: scanned=0 catalog=8628 preset_prices=2080\nbluearan sitemap done: scanned=0 catalog=3608 preset_prices=1266\nsoundimports sitemap done: scanned=0 catalog=7876 preset_prices=1720\nprovider soundimports: window completed\nprovider bluearan: window completed\nmadisound categories done: scanned=0 pages=2163 catalog=1627 preset_prices=488\nprovider madisound: window completed\nprovider partsexpress: window completed\nmerged 36308 prices into /Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json\nparallel cycle completed successfully\n"
+          "stdout_tail": "provider soundimports: worker pid=63523\nprovider bluearan: worker pid=63524\nprovider madisound: worker pid=63525\nprovider partsexpress: worker pid=63526\nloaded 13631 price candidates\nloaded 13631 price candidates\nloaded 13631 price candidates\nloaded 13631 price candidates\npartsexpress sitemap done: scanned=0 catalog=8628 preset_prices=2080\nbluearan sitemap done: scanned=0 catalog=3608 preset_prices=1266\nsoundimports sitemap done: scanned=0 catalog=7876 preset_prices=1720\nprovider soundimports: window completed\nprovider bluearan: window completed\nmadisound categories done: scanned=0 pages=2163 catalog=1627 preset_prices=488\nprovider madisound: window completed\nprovider partsexpress: window completed\nmerged 36308 prices into /Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json\nparallel cycle completed successfully\n"
         },
         {
           "command": [
@@ -250,14 +250,14 @@
             "--timeout",
             "20.0",
             "--source-runtime",
-            "240.0"
+            "300.0"
           ],
-          "finished_at": "2026-08-04T21:10:30+00:00",
+          "finished_at": "2026-08-04T23:12:02+00:00",
           "returncode": 1,
           "stage": "regional_prices",
-          "started_at": "2026-08-04T21:06:18+00:00",
+          "started_at": "2026-08-04T23:06:50+00:00",
           "stderr_tail": "",
-          "stdout_tail": "abric-dome-midrange-8-ohm.html: HTTP Error 404: Not Found\nthomann: brand=341/360 no exact-brand products\nthomann: brand=342/360 no exact-brand products\nthomann: brand=343/360 no exact-brand products\nthomann: brand=344/360 no exact-brand products\nthomann: brand=345/360 no exact-brand products\nthomann: brand=346/360 no exact-brand products\nthomann: brand=347/360 no exact-brand products\nthomann: brand=348/360 no exact-brand products\nthomann: brand=349/360 no exact-brand products\nthomann: brand=350/360 no exact-brand products\nthomann: brand=351/360 no exact-brand products\nthomann: brand=352/360 no exact-brand products\nthomann: brand=353/360 no exact-brand products\nthomann: brand=354/360 no exact-brand products\nthomann: brand=355/360 no exact-brand products\nthomann: brand=356/360 no exact-brand products\nthomann: brand=357/360 no exact-brand products\nthomann: brand=358/360 no exact-brand products\nthomann: brand=359/360 no exact-brand products\nhautparleursfr: 100/298 fetched, 100 parsed\nthomann: brand=360/360 no exact-brand products\nthomann: refreshed=1387 retained=1860 checkpoint=1860 /Users/marcoderossi/Documents/Codes/load_forge/data/thomann_harvest_checkpoint.json\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/dayton-audio-woofers/338-rss315ho-4-12-reference-ho-subwoofer-4-ohm.html: HTTP Error 404: Not Found\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/dayton-audio-woofers/343-rss390ho-4-15-reference-ho-subwoofer-4-ohm.html: HTTP Error 404: Not Found\naudiophonics: 225/350 fetched, 225 parsed\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/dayton-audio-woofers/344-rss460-pr-18-aluminum-cone-passive-radiator.html: HTTP Error 404: Not Found\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/purifi-woofers/363-ptt65x04-nfa-01-65-ultra-low-distortion-long-stroke-driver-4-ohm.html: HTTP Error 404: Not Found\ndiyaudioeu: 150/288 fetched, 121 parsed\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/purifi-woofers/365-ptt65x08-nfa-01-65-ultra-low-distortion-long-stroke-driver-8-ohm.html: HTTP Error 404: Not Found\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/scan-speak-woofers/366-discovery-10f-4424g00-4-full-range-woofer.html: HTTP Error 404: Not Found\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/scan-speak-woofers/372-discovery-12w-8524g00-45-woofer.html: HTTP Error 404: Not Found\naudiophonics: 250/350 fetched, 250 parsed\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/scan-speak-woofers/383-classic-18w-4545-03-7-woofer.html: HTTP Error 404: Not Found\nsource audiophonics: exceeded 240s runtime; terminating\nsource audiophonics: failed with exit code -15\nsource cinergyaudio: refresh complete\nsource diyaudioeu: exceeded 240s runtime; terminating\nsource diyaudioeu: failed with exit code -15\nsource diyspeakerseu: refresh complete\nsource ds18: refresh complete\nsource ficaraudio: refresh complete\nsource hautparleursfr: exceeded 240s runtime; terminating\nsource hautparleursfr: failed with exit code -15\nsource hogtalarshoppen: refresh complete\nsource kjfaudio: refresh complete\nsource lautsprechershop: refresh complete\nsource thomann: refresh complete\nsource topservicepro: refresh complete\nsource wavecor: refresh complete\nsource willyshifi: refresh complete\nCinergyAudio: ingested=45\nAudiophonics: ingested=350\nDIYAudioEU: ingested=259\nWillysHiFi: ingested=405\nHautParleursFr: ingested=298\nLautsprechershop: ingested=1240\nTopServicePro: ingested=728\nKJFAudio: ingested=44\nHogtalarshoppen: ingested=245\nDIYSpeakersEU: ingested=124\nAnalogHiFi: ingested=128\nThomann: ingested=1860\nDS18: ingested=79\nFiCarAudio: ingested=111\nWavecorOfficial: ingested=23\nAudioHiFi: ingested=11\nBomberRegional: ingested=375\nPAudioRegional: ingested=2\nPHL-TLHP: ingested=12\nSICA-TLHP: ingested=13\nToutLeHautParleur: ingested=2170\nTOTAL: ingested=8522 products_scanned=30264 products_matched=8310 candidates_priced=6482 new_prices=0 replaced_prices=4\ncycle merged retained checkpoints; failed sources: audiophonics, diyaudioeu, hautparleursfr\n"
+          "stdout_tail": " products\nthomann: brand=350/361 no exact-brand products\nthomann: brand=351/361 no exact-brand products\nthomann: brand=352/361 no exact-brand products\nthomann: brand=353/361 no exact-brand products\nthomann: brand=354/361 no exact-brand products\nthomann: brand=355/361 no exact-brand products\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/scan-speak-woofers/405-discovery-d7608-920010-3-mid-dome.html: HTTP Error 404: Not Found\nthomann: brand=356/361 no exact-brand products\nthomann: brand=357/361 no exact-brand products\nthomann: brand=358/361 no exact-brand products\nthomann: brand=359/361 no exact-brand products\nthomann: brand=360/361 no exact-brand products\nthomann: brand=361/361 no exact-brand products\nthomann: refreshed=1739 retained=1860 checkpoint=1860 /Users/marcoderossi/Documents/Codes/load_forge/data/thomann_harvest_checkpoint.json\nhautparleursfr: 125/298 fetched, 125 parsed\naudiophonics: 250/350 fetched, 250 parsed\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/morel-woofers/415-elite-em-428-4-woofer.html: HTTP Error 404: Not Found\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/morel-woofers/422-ticw-1058ft-titanium-series-10-subwoofer-8-ohm.html: HTTP Error 404: Not Found\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/morel-woofers/426-tiw-634ft-titanium-series-ferrite-6-woofer-4-ohm.html: HTTP Error 404: Not Found\ndiyaudioeu: 200/288 fetched, 161 parsed\naudiophonics: 275/350 fetched, 275 parsed\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/dayton-audio-tweeters/513-rst28a-4-1-1-8-reference-series-aluminum-dome-tweeter-4-ohm.html: HTTP Error 404: Not Found\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/morel-tweeters/522-classic-advanced-cat-408-1-dome-tweeter.html: HTTP Error 404: Not Found\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/morel-tweeters/524-elite-et-448-1-dome-tweeter.html: HTTP Error 404: Not Found\nhautparleursfr: 150/298 fetched, 150 parsed\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/mundorf-tweeters/536-amtu110w11-air-motion-transformer-useries-tweeter-amt.html: HTTP Error 404: Not Found\naudiophonics: 300/350 fetched, 300 parsed\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/mundorf-tweeters/540-amtu80w11-air-motion-transformer-useries-tweeter-amt.html: HTTP Error 404: Not Found\naudiophonics: 325/350 fetched, 325 parsed\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/peerless-tweeters/542-da25bg08-06-1-aluminum-dome-tweeter.html: The read operation timed out\ndiyaudioeu: 225/288 fetched, 180 parsed\nsource audiophonics: exceeded 300s runtime; terminating\nsource audiophonics: failed with exit code -15\nsource cinergyaudio: refresh complete\nsource diyaudioeu: exceeded 300s runtime; terminating\nsource diyaudioeu: failed with exit code -15\nsource diyspeakerseu: refresh complete\nsource ds18: refresh complete\nsource ficaraudio: refresh complete\nsource hautparleursfr: exceeded 300s runtime; terminating\nsource hautparleursfr: failed with exit code -15\nsource hogtalarshoppen: refresh complete\nsource kjfaudio: refresh complete\nsource lautsprechershop: refresh complete\nsource thomann: refresh complete\nsource topservicepro: refresh complete\nsource wavecor: refresh complete\nsource willyshifi: refresh complete\nCinergyAudio: ingested=45\nAudiophonics: ingested=350\nDIYAudioEU: ingested=259\nWillysHiFi: ingested=405\nHautParleursFr: ingested=298\nLautsprechershop: ingested=1240\nTopServicePro: ingested=728\nKJFAudio: ingested=44\nHogtalarshoppen: ingested=245\nDIYSpeakersEU: ingested=124\nAnalogHiFi: ingested=128\nThomann: ingested=1860\nDS18: ingested=79\nFiCarAudio: ingested=111\nWavecorOfficial: ingested=23\nAudioHiFi: ingested=11\nBomberRegional: ingested=375\nPAudioRegional: ingested=2\nPHL-TLHP: ingested=12\nSICA-TLHP: ingested=13\nToutLeHautParleur: ingested=2170\nTOTAL: ingested=8522 products_scanned=30264 products_matched=8424 candidates_priced=6658 new_prices=0 replaced_prices=5\ncycle merged retained checkpoints; failed sources: audiophonics, diyaudioeu, hautparleursfr\n"
         },
         {
           "command": [
@@ -269,24 +269,24 @@
             "/Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json",
             "--apply"
           ],
-          "finished_at": "2026-08-04T21:10:33+00:00",
+          "finished_at": "2026-08-04T23:12:04+00:00",
           "returncode": 0,
           "stage": "verified_merge",
-          "started_at": "2026-08-04T21:10:30+00:00",
+          "started_at": "2026-08-04T23:12:02+00:00",
           "stderr_tail": "",
-          "stdout_tail": "rows=5064 priced=4143 unpriced=921 derived={} corrected={'cms_mm_per_n': 4, 'rejected_size_sd_conflict': 83, 'sd_cm2': 26, 'size_in': 847} changes_this_run={} applied=True\n"
+          "stdout_tail": "rows=5277 priced=4308 unpriced=969 derived={} corrected={'cms_mm_per_n': 4, 'rejected_size_sd_conflict': 89, 'sd_cm2': 27, 'size_in': 856} changes_this_run={} applied=True\n"
         },
         {
           "command": [
             "/Users/marcoderossi/Documents/Codes/load_forge/.venv/bin/python",
             "/Users/marcoderossi/Documents/Codes/load_forge/tools/build_unified_catalogs.py"
           ],
-          "finished_at": "2026-08-04T21:10:35+00:00",
+          "finished_at": "2026-08-04T23:12:07+00:00",
           "returncode": 0,
           "stage": "publish_views",
-          "started_at": "2026-08-04T21:10:33+00:00",
+          "started_at": "2026-08-04T23:12:04+00:00",
           "stderr_tail": "",
-          "stdout_tail": "catalog_proprietario.json: 5064 records\ncatalog_lsdb.json: 6215 records\ncatalog_vituixcad.json: 1038 records\ncatalog_speakerboxlite.json: 1952 records\n"
+          "stdout_tail": "catalog_proprietario.json: 5277 records\ncatalog_lsdb.json: 6215 records\ncatalog_vituixcad.json: 1038 records\ncatalog_speakerboxlite.json: 1952 records\n"
         },
         {
           "command": [
@@ -297,18 +297,181 @@
             "--prices",
             "/Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json"
           ],
-          "finished_at": "2026-08-04T21:10:36+00:00",
+          "finished_at": "2026-08-04T23:12:07+00:00",
           "returncode": 0,
           "stage": "status_report",
-          "started_at": "2026-08-04T21:10:35+00:00",
+          "started_at": "2026-08-04T23:12:07+00:00",
+          "stderr_tail": "",
+          "stdout_tail": "Report aggiornato: /Users/marcoderossi/Documents/Codes/load_forge/docs/manufacturer-database-status.md\n"
+        }
+      ]
+    },
+    {
+      "coverage_after": {
+        "fields": {
+          "bl_tm": {
+            "missing": 0,
+            "percent": 100.0,
+            "present": 5277
+          },
+          "cms_mm_per_n": {
+            "missing": 0,
+            "percent": 100.0,
+            "present": 5277
+          },
+          "fs_hz": {
+            "missing": 0,
+            "percent": 100.0,
+            "present": 5277
+          },
+          "le_mh": {
+            "missing": 311,
+            "percent": 94.11,
+            "present": 4966
+          },
+          "mms_g": {
+            "missing": 4,
+            "percent": 99.92,
+            "present": 5273
+          },
+          "pe_w": {
+            "missing": 334,
+            "percent": 93.67,
+            "present": 4943
+          },
+          "qes": {
+            "missing": 0,
+            "percent": 100.0,
+            "present": 5277
+          },
+          "qms": {
+            "missing": 0,
+            "percent": 100.0,
+            "present": 5277
+          },
+          "qts": {
+            "missing": 0,
+            "percent": 100.0,
+            "present": 5277
+          },
+          "re_ohm": {
+            "missing": 0,
+            "percent": 100.0,
+            "present": 5277
+          },
+          "sd_cm2": {
+            "missing": 0,
+            "percent": 100.0,
+            "present": 5277
+          },
+          "vas_l": {
+            "missing": 0,
+            "percent": 100.0,
+            "present": 5277
+          },
+          "xmax_mm": {
+            "missing": 300,
+            "percent": 94.31,
+            "present": 4977
+          }
+        },
+        "price": {
+          "missing": 940,
+          "percent": 82.19,
+          "present": 4337
+        },
+        "rows": 5277
+      },
+      "cycle": 2,
+      "finished_at": "2026-08-04T23:12:16+00:00",
+      "progress_units": 0,
+      "started_at": "2026-08-04T23:12:08+00:00",
+      "steps": [
+        {
+          "command": [
+            "/Users/marcoderossi/Documents/Codes/load_forge/.venv/bin/python",
+            "/Users/marcoderossi/Documents/Codes/load_forge/tools/refresh_manufacturer_optionals.py",
+            "--database",
+            "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json",
+            "--report",
+            "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_optional_refresh_report.json",
+            "--local-only",
+            "--apply"
+          ],
+          "finished_at": "2026-08-04T23:12:09+00:00",
+          "returncode": 0,
+          "stage": "local_repairs",
+          "started_at": "2026-08-04T23:12:08+00:00",
+          "stderr_tail": "",
+          "stdout_tail": "{\n  \"mode\": \"apply\",\n  \"database\": \"/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json\",\n  \"candidates\": 0,\n  \"processed\": 0,\n  \"records_updated\": 0,\n  \"fields_filled\": {},\n  \"local_power_repairs\": 0,\n  \"unitless_power_invalidations\": 0,\n  \"records_updated_by_host\": {},\n  \"coverage_after\": {\n    \"xmax_mm\": {\n      \"present\": 4977,\n      \"missing\": 300,\n      \"percent\": 94.31\n    },\n    \"pe_w\": {\n      \"present\": 4943,\n      \"missing\": 334,\n      \"percent\": 93.67\n    },\n    \"le_mh\": {\n      \"present\": 4966,\n      \"missing\": 311,\n      \"percent\": 94.11\n    }\n  }\n}\nfailures=0\n"
+        },
+        {
+          "command": [
+            "/Users/marcoderossi/Documents/Codes/load_forge/.venv/bin/python",
+            "/Users/marcoderossi/Documents/Codes/load_forge/tools/enrich_manufacturer_metadata.py",
+            "--database",
+            "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json",
+            "--prices",
+            "/Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json",
+            "--apply"
+          ],
+          "finished_at": "2026-08-04T23:12:11+00:00",
+          "returncode": 0,
+          "stage": "cache_first_merge",
+          "started_at": "2026-08-04T23:12:09+00:00",
+          "stderr_tail": "",
+          "stdout_tail": "rows=5277 priced=4308 unpriced=969 derived={} corrected={'cms_mm_per_n': 4, 'rejected_size_sd_conflict': 89, 'sd_cm2': 27, 'size_in': 856} changes_this_run={} applied=True\n"
+        },
+        {
+          "command": [
+            "/Users/marcoderossi/Documents/Codes/load_forge/.venv/bin/python",
+            "/Users/marcoderossi/Documents/Codes/load_forge/tools/enrich_manufacturer_metadata.py",
+            "--database",
+            "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json",
+            "--prices",
+            "/Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json",
+            "--apply"
+          ],
+          "finished_at": "2026-08-04T23:12:13+00:00",
+          "returncode": 0,
+          "stage": "verified_merge",
+          "started_at": "2026-08-04T23:12:11+00:00",
+          "stderr_tail": "",
+          "stdout_tail": "rows=5277 priced=4308 unpriced=969 derived={} corrected={'cms_mm_per_n': 4, 'rejected_size_sd_conflict': 89, 'sd_cm2': 27, 'size_in': 856} changes_this_run={} applied=True\n"
+        },
+        {
+          "command": [
+            "/Users/marcoderossi/Documents/Codes/load_forge/.venv/bin/python",
+            "/Users/marcoderossi/Documents/Codes/load_forge/tools/build_unified_catalogs.py"
+          ],
+          "finished_at": "2026-08-04T23:12:15+00:00",
+          "returncode": 0,
+          "stage": "publish_views",
+          "started_at": "2026-08-04T23:12:13+00:00",
+          "stderr_tail": "",
+          "stdout_tail": "catalog_proprietario.json: 5277 records\ncatalog_lsdb.json: 6215 records\ncatalog_vituixcad.json: 1038 records\ncatalog_speakerboxlite.json: 1952 records\n"
+        },
+        {
+          "command": [
+            "/Users/marcoderossi/Documents/Codes/load_forge/.venv/bin/python",
+            "/Users/marcoderossi/Documents/Codes/load_forge/tools/generate_manufacturer_database_report.py",
+            "--database",
+            "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json",
+            "--prices",
+            "/Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json"
+          ],
+          "finished_at": "2026-08-04T23:12:16+00:00",
+          "returncode": 0,
+          "stage": "status_report",
+          "started_at": "2026-08-04T23:12:15+00:00",
           "stderr_tail": "",
           "stdout_tail": "Report aggiornato: /Users/marcoderossi/Documents/Codes/load_forge/docs/manufacturer-database-status.md\n"
         }
       ]
     }
   ],
-  "finished_at": "2026-08-04T21:10:36+00:00",
-  "generated_at": "2026-08-04T21:05:48+00:00",
+  "finished_at": "2026-08-04T23:12:16+00:00",
+  "generated_at": "2026-08-04T23:06:17+00:00",
   "mode": "run",
   "policy": {
     "published_only": [
@@ -425,9 +588,9 @@
         "pe_w": 0,
         "xmax_mm": 33
       },
-      "records_with_gaps": 41,
-      "score": 111.0,
-      "unpriced": 12
+      "records_with_gaps": 42,
+      "score": 112.0,
+      "unpriced": 13
     },
     {
       "brand": "Fostex",
@@ -509,9 +672,9 @@
         "pe_w": 0,
         "xmax_mm": 0
       },
-      "records_with_gaps": 59,
-      "score": 59.0,
-      "unpriced": 59
+      "records_with_gaps": 62,
+      "score": 62.0,
+      "unpriced": 62
     },
     {
       "brand": "Factory Buyouts",
@@ -658,6 +821,18 @@
       "unpriced": 24
     },
     {
+      "brand": "Ciare",
+      "known_source_urls": 15,
+      "missing": {
+        "le_mh": 14,
+        "pe_w": 1,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 15,
+      "score": 24.0,
+      "unpriced": 1
+    },
+    {
       "brand": "RCF",
       "known_source_urls": 0,
       "missing": {
@@ -668,18 +843,6 @@
       "records_with_gaps": 22,
       "score": 22.0,
       "unpriced": 22
-    },
-    {
-      "brand": "Ciare",
-      "known_source_urls": 14,
-      "missing": {
-        "le_mh": 14,
-        "pe_w": 0,
-        "xmax_mm": 0
-      },
-      "records_with_gaps": 14,
-      "score": 21.0,
-      "unpriced": 0
     },
     {
       "brand": "PRV Audio",
@@ -742,6 +905,18 @@
       "unpriced": 14
     },
     {
+      "brand": "LaVoce",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 16,
+      "score": 16.0,
+      "unpriced": 16
+    },
+    {
       "brand": "Accuton",
       "known_source_urls": 1,
       "missing": {
@@ -752,18 +927,6 @@
       "records_with_gaps": 14,
       "score": 15.0,
       "unpriced": 13
-    },
-    {
-      "brand": "LaVoce",
-      "known_source_urls": 0,
-      "missing": {
-        "le_mh": 0,
-        "pe_w": 0,
-        "xmax_mm": 0
-      },
-      "records_with_gaps": 15,
-      "score": 15.0,
-      "unpriced": 15
     },
     {
       "brand": "Timpano Audio",
@@ -898,6 +1061,18 @@
       "unpriced": 0
     },
     {
+      "brand": "Oberton",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 7,
+      "score": 7.0,
+      "unpriced": 7
+    },
+    {
       "brand": "Silver Flute",
       "known_source_urls": 2,
       "missing": {
@@ -910,18 +1085,6 @@
       "unpriced": 0
     },
     {
-      "brand": "Oberton",
-      "known_source_urls": 0,
-      "missing": {
-        "le_mh": 0,
-        "pe_w": 0,
-        "xmax_mm": 0
-      },
-      "records_with_gaps": 6,
-      "score": 6.0,
-      "unpriced": 6
-    },
-    {
       "brand": "Pyle Audio",
       "known_source_urls": 4,
       "missing": {
@@ -932,6 +1095,18 @@
       "records_with_gaps": 4,
       "score": 6.0,
       "unpriced": 0
+    },
+    {
+      "brand": "Sica",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 6,
+      "score": 6.0,
+      "unpriced": 6
     },
     {
       "brand": "Adire Audio",
@@ -967,6 +1142,30 @@
       },
       "records_with_gaps": 2,
       "score": 4.0,
+      "unpriced": 0
+    },
+    {
+      "brand": "DAS",
+      "known_source_urls": 2,
+      "missing": {
+        "le_mh": 2,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 2,
+      "score": 4.0,
+      "unpriced": 1
+    },
+    {
+      "brand": "Eighteen Sound",
+      "known_source_urls": 1,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 1
+      },
+      "records_with_gaps": 1,
+      "score": 3.0,
       "unpriced": 0
     },
     {
@@ -1018,6 +1217,30 @@
       "unpriced": 0
     },
     {
+      "brand": "AB Sound",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 2,
+      "score": 2.0,
+      "unpriced": 2
+    },
+    {
+      "brand": "Audax",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 2,
+      "score": 2.0,
+      "unpriced": 2
+    },
+    {
       "brand": "SB Audience",
       "known_source_urls": 1,
       "missing": {
@@ -1040,6 +1263,18 @@
       "records_with_gaps": 1,
       "score": 1.5,
       "unpriced": 0
+    },
+    {
+      "brand": ".Kartesian",
+      "known_source_urls": 0,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 1,
+      "score": 1.0,
+      "unpriced": 1
     }
   ],
   "priority_tasks": [
@@ -5394,6 +5629,20 @@
     },
     {
       "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Ciare",
+      "missing_fields": [
+        "pe_w"
+      ],
+      "missing_price": true,
+      "model": "MS 160-8+8",
+      "score": 3.0,
+      "source_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-ciare-ms160-8-8-ohm-169-mm.html"
+    },
+    {
+      "actions": [
         "refresh_known_source"
       ],
       "brand": "Coast Buyouts",
@@ -6082,6 +6331,19 @@
       "model": "ZXI8.4D",
       "score": 3.0,
       "source_url": "https://ds18.com/products/ds18-zxi8-4d-zxi-high-excursion-8-car-audio-subwoofer-1200w-watts-4-ohm-dvc-quad-stacked-magnets"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Eighteen Sound",
+      "missing_fields": [
+        "xmax_mm"
+      ],
+      "missing_price": false,
+      "model": "18NLW9601C-8",
+      "score": 3.0,
+      "source_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/18-sound-18nlw9601c-speaker-8-ohm-18-inch.html"
     },
     {
       "actions": [
@@ -7493,6 +7755,20 @@
         "refresh_known_source",
         "retailer_price_match"
       ],
+      "brand": "DAS",
+      "missing_fields": [
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "10B-8",
+      "score": 2.5,
+      "source_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-das-10b-8-ohm-10-43-inch.html"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
       "brand": "MISCO",
       "missing_fields": [
         "le_mh"
@@ -8019,48 +8295,6 @@
       "model": "PUNISHER 10D1",
       "score": 2.5,
       "source_url": "https://www.rockvilleaudio.com/punisher-10d1/"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Rockville",
-      "missing_fields": [
-        "le_mh"
-      ],
-      "missing_price": true,
-      "model": "PUNISHER 10D2",
-      "score": 2.5,
-      "source_url": "https://www.rockvilleaudio.com/punisher-10d2/"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Rockville",
-      "missing_fields": [
-        "le_mh"
-      ],
-      "missing_price": true,
-      "model": "PUNISHER 12D1",
-      "score": 2.5,
-      "source_url": "https://www.rockvilleaudio.com/punisher-12d1/"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Rockville",
-      "missing_fields": [
-        "le_mh"
-      ],
-      "missing_price": true,
-      "model": "PUNISHER 15D1",
-      "score": 2.5,
-      "source_url": "https://www.rockvilleaudio.com/punisher-15d1/"
     }
   ],
   "schema": 1,
@@ -8086,15 +8320,15 @@
       "purpose": "Rebuild source catalogs and regenerate the coverage report."
     }
   ],
-  "started_at": "2026-08-04T21:05:48+00:00",
+  "started_at": "2026-08-04T23:06:17+00:00",
   "stop_reason": "coverage_stalled",
   "unresolved": {
     "note": "Remaining published-only values require an approved new source or do not appear to be published.",
     "optional_fields": {
-      "le_mh": 309,
-      "pe_w": 333,
-      "xmax_mm": 299
+      "le_mh": 311,
+      "pe_w": 334,
+      "xmax_mm": 300
     },
-    "prices": 921
+    "prices": 940
   }
 }

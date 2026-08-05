@@ -2415,6 +2415,10 @@ def _check_ui_browser_projects_duplicate_and_delete():
 
     import ui_app as _ui
 
+    source = (ROOT / "ui_app.py").read_text(encoding="utf-8")
+    assert "function transactionDone(transaction)" in source
+    assert "await transactionDone(transaction);" in source
+
     assert _ui._browser_project_copy_name(
         "Sub alignment",
         ["Sub alignment", "Sub alignment copy"],
@@ -3212,13 +3216,14 @@ def _check_response_chart_drops_non_finite_points_and_keeps_label_scale_clean():
     cursor_spec = _ui._cursor_layer(rows, show_mol=True).to_dict()
     assert "F3 · 10.0 Hz" in str(cursor_spec), cursor_spec
     assert "MOL dB" in str(cursor_spec), cursor_spec
-    assert "MOL 90.0 dB" not in str(cursor_spec), (
-        "automatic labels must stay compact; MOL belongs in the tooltip",
+    assert "MOL 90.0 dB" in str(cursor_spec), (
+        "automatic F3/F6/F10 labels must show MOL",
         cursor_spec,
     )
     chart = _ui._plot_response(result, rows)
     spec = chart.to_dict()
     spec_text = str(spec)
+    assert "plot_show_tuning_markers" in (ROOT / "ui_app.py").read_text()
     assert "label_y_px" not in spec_text
     assert "label_y_db" in spec_text
     response_axis = spec["layer"][0]["encoding"]["y"]["axis"]
@@ -3761,6 +3766,60 @@ def _check_ui_catalog_maintenance_normalizes_part_numbers():
 test(
     "UI catalog maintenance normalizes manufacturer part numbers",
     _check_ui_catalog_maintenance_normalizes_part_numbers,
+)
+
+
+def _check_admin_can_save_box_design_ts_to_catalog():
+    import json
+    import tempfile
+
+    import ui_app as _ui
+
+    source = (ROOT / "ui_app.py").read_text(encoding="utf-8")
+    assert 'key="admin_save_box_design_driver"' in source
+    with tempfile.TemporaryDirectory() as directory:
+        catalog_path = Path(directory) / "catalog.json"
+        catalog_path.write_text(json.dumps({"presets": [{
+            "name": "Catalog test driver",
+            "driver": {
+                "fs_hz": 30.0, "vas_l": 50.0, "qts": 0.4,
+                "qms": 3.0, "re_ohm": 6.0, "sd_cm2": 220.0,
+            },
+        }]}), encoding="utf-8")
+        original = _ui._dccav.get_driver_preset
+        original_info = _ui._dccav.driver_preset_info
+        _ui._dccav.get_driver_preset = lambda _name: _ui._dccav.DriverTS(
+            fs_hz=30.0, vas_l=50.0, qts=0.4, qms=3.0, re_ohm=6.0,
+            sd_cm2=220.0,
+        )
+        _ui._dccav.driver_preset_info = lambda _name: _ui._presets.DriverPresetInfo(
+            name="Catalog test driver", source="Manufacturer crawl",
+            brand="Catalog", model="test driver", part_number="test driver",
+        )
+        try:
+            saved = _ui._update_catalog_driver_from_box_design(
+                "Catalog test driver",
+                _ui._dccav.DriverTS(
+                    fs_hz=28.0, vas_l=55.0, qts=0.35, qms=3.2,
+                    re_ohm=5.8, sd_cm2=225.0, le_mh=1.1, xmax_mm=7.0,
+                    pe_w=300.0,
+                ),
+                path=catalog_path,
+            )
+        finally:
+            _ui._dccav.get_driver_preset = original
+            _ui._dccav.driver_preset_info = original_info
+        assert saved == "Catalog test driver"
+        saved_driver = json.loads(catalog_path.read_text(encoding="utf-8"))[
+            "presets"][0]["driver"]
+        assert saved_driver["fs_hz"] == 28.0
+        assert saved_driver["sd_cm2"] == 225.0
+        assert saved_driver["pe_w"] == 300.0
+
+
+test(
+    "Admin can save Box Design T/S values to the source catalog",
+    _check_admin_can_save_box_design_ts_to_catalog,
 )
 
 
@@ -6066,6 +6125,98 @@ def _check_audiohifi_parser_extracts_tang_band_rows():
 test(
     "AUDIO-HI.FI parser extracts Tang Band rows",
     _check_audiohifi_parser_extracts_tang_band_rows,
+)
+
+
+def _check_strumentimusicali_detail_builds_authoritative_record():
+    from tools import harvest_extra_retailers as retailer
+
+    listing = """
+    <tr class="productListing-even">
+      <a href="https://www.strumentimusicali.net/product_info.php/products_id/39229/celestion-tf1225.html" class="pdlist">
+        <b class="listing_prod_name">CELESTION TF1225</b>
+      </a>
+      <span class="d-block fontSize14 marginBottom5 bold">&euro;89,00<br /></span>
+      <div class="availability unavailable">Al momento non disponibile</div>
+    </tr>
+    """
+    urls = retailer.strumentimusicali_listing_urls(listing)
+    assert urls == [
+        "https://www.strumentimusicali.net/product_info.php/products_id/39229/celestion-tf1225.html"
+    ], urls
+
+    detail = """
+    <div itemprop="brand" itemscope itemtype="https://schema.org/Brand">
+      <meta itemprop="name" content="Celestion" />
+    </div>
+    <span itemprop="name"><h1>CELESTION TF1225</h1></span>
+    <meta itemprop="sku" content="39229" />
+    <meta itemprop="mpn" content="15300028" />
+    <meta itemprop="price" content="89.00" />
+    <meta itemprop="priceCurrency" content="EUR" />
+    <span itemprop="availability" content="https://schema.org/OutOfStock"></span>
+    """
+    record = retailer.strumentimusicali_record_from_detail(detail, urls[0])
+    assert record is not None, record
+    assert record["brand"] == "Celestion"
+    assert record["mpn"] == "15300028"
+    assert record["price"] == 89.0
+    assert record["currency"] == "EUR"
+    assert record["url"] == urls[0]
+
+
+test(
+    "StrumentiMusicali detail builds authoritative brand+MPN record",
+    _check_strumentimusicali_detail_builds_authoritative_record,
+)
+
+
+def _check_leanaudio_parser_extracts_lf_driver_rows():
+    from tools import harvest_extra_retailers as retailer
+
+    lf_driver = {
+        "name": 'Eighteen Sound 8NTLW2500 8 Ohm 8&#8243; 500W Loudspeaker',
+        "sku": "8NTLW2500",
+        "permalink": "https://leanaudio.co.uk/product/eighteen-sound-8ntlw2500-8-ohm-8-500w-loudspeaker/",
+        "prices": {
+            "price": "18632",
+            "regular_price": "18632",
+            "sale_price": "18632",
+            "currency_code": "GBP",
+            "currency_minor_unit": 2,
+        },
+        "categories": [
+            {"slug": "eighteen-sound-18-pro-audio-loudspeaker", "name": "Eighteen Sound"},
+            {"slug": "low-frequency-lf", "name": "Low Frequency (LF)"},
+        ],
+    }
+    recone_kit = dict(
+        lf_driver,
+        sku="KIT-X",
+        categories=[
+            {"slug": "recone-kits", "name": "Recone Kits"},
+            {"slug": "low-frequency-lf", "name": "Low Frequency (LF)"},
+        ],
+    )
+    no_brand = dict(
+        lf_driver,
+        sku="GENERIC",
+        categories=[{"slug": "low-frequency-lf", "name": "Low Frequency (LF)"}],
+    )
+    records = [retailer._parse_leanaudio_product(p) for p in (lf_driver, recone_kit, no_brand)]
+    assert records[0] is not None, records
+    assert records[1] is None, records
+    assert records[2] is None, records
+    assert records[0]["brand"] == "Eighteen Sound"
+    assert records[0]["mpn"] == "8NTLW2500"
+    assert records[0]["price"] == 186.32
+    assert records[0]["currency"] == "GBP"
+    assert retailer.checkpoint_record_key(records[0]) == records[0]["url"] + "#8NTLW2500"
+
+
+test(
+    "Lean Audio parser keeps branded LF drivers only",
+    _check_leanaudio_parser_extracts_lf_driver_rows,
 )
 
 

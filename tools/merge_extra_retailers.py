@@ -2,7 +2,8 @@
 """Merge tools/harvest_extra_retailers.py checkpoints (Cinergy Audio,
 Audiophonics, DIY-Audio.eu, Willy's HiFi, Haut-Parleurs.fr, Lautsprechershop,
 TopServicePro, KJF Audio, Hogtalarshoppen, DIYSpeakersEU, AnalogHiFi and
-Thomann, DS18, Fi Car Audio, Wavecor and AUDIO-HI.FI) into
+Thomann, DS18, Fi Car Audio, Wavecor, AUDIO-HI.FI, StrumentiMusicali and
+Lean Audio) into
 data/driver_prices.json, reusing
 enrich_driver_prices.py's
 indexed matcher so the catalog/prices schema stays consistent with every
@@ -41,6 +42,11 @@ SOURCES = {
     "ficaraudio": (ROOT / "data" / "ficaraudio_harvest_checkpoint.json", "FiCarAudio"),
     "wavecor": (ROOT / "data" / "wavecor_harvest_checkpoint.json", "WavecorOfficial"),
     "audiohifi": (ROOT / "data" / "audiohifi_harvest_checkpoint.json", "AudioHiFi"),
+    "strumentimusicali": (
+        ROOT / "data" / "strumentimusicali_harvest_checkpoint.json",
+        "StrumentiMusicali",
+    ),
+    "leanaudio": (ROOT / "data" / "leanaudio_harvest_checkpoint.json", "LeanAudio"),
     "bomberregional": (ROOT / "data" / "bomberregional_harvest_checkpoint.json", "BomberRegional"),
     "paudioregional": (ROOT / "data" / "paudio_regional_harvest_checkpoint.json", "PAudioRegional"),
     "phltlhp": (ROOT / "data" / "phl_tlhp_harvest_checkpoint.json", "PHL-TLHP"),

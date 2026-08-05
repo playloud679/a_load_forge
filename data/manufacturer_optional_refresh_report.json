@@ -2,19 +2,19 @@
   "candidates": 0,
   "coverage_after": {
     "le_mh": {
-      "missing": 309,
-      "percent": 93.9,
-      "present": 4755
+      "missing": 311,
+      "percent": 94.11,
+      "present": 4966
     },
     "pe_w": {
-      "missing": 333,
-      "percent": 93.42,
-      "present": 4731
+      "missing": 334,
+      "percent": 93.67,
+      "present": 4943
     },
     "xmax_mm": {
-      "missing": 299,
-      "percent": 94.1,
-      "present": 4765
+      "missing": 300,
+      "percent": 94.31,
+      "present": 4977
     }
   },
   "database": "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json",
