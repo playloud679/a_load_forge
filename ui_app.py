@@ -1658,6 +1658,7 @@ _FINDER_RANKING_VERSION = 7
 _FINDER_CONTEXT_FILTERED_POOL_VERSION = "user-inputs-v2"
 _FINDER_SPL_PREFILTER_HEADROOM_DB = 6.0
 _FINDER_DEFAULTS_VERSION = 9
+_PRICE_CURRENCY_DEFAULTS_VERSION = 1
 _FINDER_DEFAULTS = {
     "finder_rank_mode": _FINDER_RANK_F3,
     "finder_volume_l": 40.0,
@@ -3525,6 +3526,13 @@ def _ensure_finder_defaults() -> None:
         for key in _FINDER_DEFAULTS:
             if key in st.session_state:
                 st.session_state[key] = st.session_state[key]
+
+
+def _ensure_price_currency_default() -> None:
+    """Migrate existing sessions to the EUR price display default once."""
+    if st.session_state.get("_price_currency_defaults_version") != _PRICE_CURRENCY_DEFAULTS_VERSION:
+        st.session_state["preset_price_currency"] = "EUR"
+        st.session_state["_price_currency_defaults_version"] = _PRICE_CURRENCY_DEFAULTS_VERSION
 
 
 def _preserve_design_state() -> None:
@@ -9627,6 +9635,7 @@ _default("opt_max_gd_ms", 0.0)
 _default("workspace_mode", "Bass Match")
 _default("ui_show_advanced", False)
 _ensure_finder_defaults()
+_ensure_price_currency_default()
 if "finder_load_types" in st.session_state:
     legacy_finder_loads = list(st.session_state["finder_load_types"])
     if "Passive radiator" in legacy_finder_loads:
