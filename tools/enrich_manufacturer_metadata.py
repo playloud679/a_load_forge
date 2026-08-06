@@ -77,8 +77,55 @@ VERIFIED_DRIVER_CORRECTIONS = (
     {
         "brand": "Markaudio",
         "model_prefix": "Alpair 10P",
-        "fields": {"size_in": 5.0},
+        "fields": {"size_in": 5.0, "mms_g": 5.196, "pe_w": 30.0},
         "source_url": "https://www.markaudio.com/online_shop/archive/alpair-10p/",
+    },
+    {
+        "brand": "Markaudio",
+        "model_prefix": "Alpair 10.3",
+        "fields": {
+            "cms_mm_per_n": 2.701,
+            "mms_g": 7.269,
+            "le_mh": 0.071379,
+            "pe_w": 30.0,
+        },
+        "source_url": "https://www.markaudio.com/online_shop/archive/alpair-10-3/",
+    },
+    {
+        "brand": "Markaudio",
+        "model_prefix": "Alpair 12PW",
+        "fields": {"mms_g": 11.687, "pe_w": 40.0},
+        "source_url": "https://www.markaudio.com/online_shop/archive/alpair-12pw/",
+    },
+    {
+        "brand": "Markaudio",
+        "model_prefix": "Alpair 6.2",
+        "fields": {"cms_mm_per_n": 2.58, "mms_g": 2.57, "pe_w": 15.0},
+        "source_url": "https://www.markaudio.com/online_shop/archive/alpair-6-2/",
+    },
+    {
+        "brand": "Markaudio",
+        "model_prefix": "Alpair 6P",
+        "fields": {"mms_g": 2.32, "le_mh": 0.00694, "pe_w": 15.0},
+        "source_url": "https://www.markaudio.com/online_shop/archive/alpair-6p/",
+    },
+    {
+        "brand": "Markaudio",
+        "model_prefix": "Alpair 7.3",
+        "fields": {"cms_mm_per_n": 1.27, "mms_g": 3.95},
+        "source_url": "https://www.markaudio.com/online_shop/archive/alpair-7-3/",
+    },
+    {
+        "brand": "Markaudio",
+        "model_prefix": "Alpair 7p",
+        "fields": {"cms_mm_per_n": 1.557, "le_mh": 0.01678},
+        "source_url": "https://www.markaudio.com/online_shop/archive/alpair-7p/",
+    },
+    {
+        "brand": "Markaudio",
+        "model_prefix": "Pluvia 7",
+        "fields": {"le_mh": 0.035057},
+        "source_url": "https://www.markaudio.com/online_shop/archive/pluvia-7-soft-chrome-vintage-gold-pair/",
     },
     {
         "brand": "Beyma",

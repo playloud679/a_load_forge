@@ -42,6 +42,11 @@ so the model's `10P` token must not become a 10 in size. Round-driver records th
 physically incompatible are marked
 `quality_status=rejected_size_sd_conflict` and excluded by the runtime catalog;
 compound rectangular dimensions are not subjected to the circular check.
+The verified-correction table also records explicit Markaudio archive values
+that need unit-aware normalization (for example µH → mH and µM/N → mm/N),
+including published `Mms` and nominal power for Alpair 6P/6.2, 7.3, 10P,
+10.3 and 12PW, plus the archive Pluvia 7 inductance. Each correction retains
+the official Markaudio URL in `website_fields.field_provenance`.
 Generated mechanical values must also remain inside the crawler's physical
 bounds; inconsistent source inputs are flagged by remaining unfilled instead
 of propagating an implausible unit conversion.

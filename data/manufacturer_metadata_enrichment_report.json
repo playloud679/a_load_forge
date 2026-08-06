@@ -1,25 +1,38 @@
 {
   "applied": true,
-  "changes_this_run": {},
-  "corrected": {
+  "changes_this_run": {
     "cms_mm_per_n": 4,
+    "le_mh": 7,
+    "mms_g": 6,
+    "pe_w": 5,
+    "size_in": 14
+  },
+  "corrected": {
+    "cms_mm_per_n": 8,
+    "le_mh": 7,
+    "mms_g": 6,
+    "pe_w": 5,
     "rejected_size_sd_conflict": 89,
     "sd_cm2": 27,
-    "size_in": 856
+    "size_in": 870
   },
-  "derived": {},
+  "derived": {
+    "bl_tm": 6,
+    "cms_mm_per_n": 8,
+    "size_in": 14
+  },
   "driver_field_coverage": {
-    "bl_tm": 5281,
-    "cms_mm_per_n": 5281,
-    "le_mh": 4970,
-    "mms_g": 5277,
-    "pe_w": 4945,
-    "qes": 5281,
-    "xmax_mm": 4981
+    "bl_tm": 5301,
+    "cms_mm_per_n": 5301,
+    "le_mh": 4993,
+    "mms_g": 5297,
+    "pe_w": 4959,
+    "qes": 5301,
+    "xmax_mm": 4999
   },
-  "generated_at": "2026-08-05T13:46:54+00:00",
-  "priced": 4325,
-  "rows": 5281,
-  "size_coverage": 5281,
-  "unpriced": 956
+  "generated_at": "2026-08-06T12:59:05+00:00",
+  "priced": 4341,
+  "rows": 5301,
+  "size_coverage": 5301,
+  "unpriced": 960
 }
