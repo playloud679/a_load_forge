@@ -7271,7 +7271,7 @@ def _finder_price_currency(df: pd.DataFrame) -> str:
     if priced.empty:
         return ""
     currencies = priced["Currency"].astype(str)
-    sidebar = str(st.session_state.get("preset_price_currency", ""))
+    sidebar = str(st.session_state.get("preset_price_currency", "EUR"))
     if sidebar and (currencies == sidebar).any():
         return sidebar
     return str(currencies.mode().iloc[0])
@@ -7385,7 +7385,7 @@ def _finder_result_context_signature(_preset_names: list[str]) -> str:
             st.session_state.get("preset_max_price", 0.0) or 0.0
         ),
         "preset_price_currency": str(
-            st.session_state.get("preset_price_currency", "")
+            st.session_state.get("preset_price_currency", "EUR")
         ),
     }
     encoded = json.dumps(
@@ -7412,7 +7412,7 @@ def _finder_controls_signature() -> str:
         "preset_class_filter": ["All"],
         "preset_price_enabled": False,
         "preset_max_price": 0.0,
-        "preset_price_currency": "",
+        "preset_price_currency": "EUR",
     }.items():
         context[key] = _json_safe(st.session_state.get(key, default))
     encoded = json.dumps(
@@ -7694,7 +7694,7 @@ def _run_find_driver_search(
 ) -> None:
     """Rank the filtered candidates from the current Finder sidebar state."""
     price_enabled = bool(st.session_state.get("preset_price_enabled", False))
-    price_currency = str(st.session_state.get("preset_price_currency", ""))
+    price_currency = str(st.session_state.get("preset_price_currency", "EUR"))
     max_price = float(st.session_state.get("preset_max_price", 0.0) or 0.0)
     finder_load_types = list(st.session_state.get("finder_load_types", []))
     if not finder_load_types:
@@ -8246,7 +8246,7 @@ def _finder_brief_constraints(
 
     search_query = str(st.session_state.get("preset_search", "")).strip()
     price_enabled = bool(st.session_state.get("preset_price_enabled", False))
-    price_currency = str(st.session_state.get("preset_price_currency", ""))
+    price_currency = str(st.session_state.get("preset_price_currency", "EUR"))
     max_price = float(st.session_state.get("preset_max_price", 0.0) or 0.0)
     objective = str(_finder_value("finder_objective"))
     if not optimizer_applies:
@@ -8474,7 +8474,7 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
             f"{len(filtered_preset_names)} drivers match the current filters. "
             "Scroll the table to browse the complete list."
         )
-    price_currency = str(st.session_state.get("preset_price_currency", ""))
+    price_currency = str(st.session_state.get("preset_price_currency", "EUR"))
     rates, rates_date = _current_exchange_rates()
     library_df = _driver_library_frame(
         tuple(shown_names),
@@ -8752,7 +8752,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             full_df[name] = default
 
     selected_price_currency = str(
-        st.session_state.get("preset_price_currency", "")
+        st.session_state.get("preset_price_currency", "EUR")
     )
     if selected_price_currency:
         full_df = _normalize_price_frame(full_df, selected_price_currency)
@@ -9539,7 +9539,7 @@ _default("preset_class_filter", ["All"])
 _default("preset_search", "")
 _default("preset_price_enabled", False)
 _default("preset_max_price", 0.0)
-_default("preset_price_currency", "")
+_default("preset_price_currency", "EUR")
 _default("loss_q_abs_h", 15.0)
 _default("loss_q_abs_l", 15.0)
 _default("loss_q_leak_h", 1000.0)
