@@ -3196,22 +3196,6 @@ def _render_project_menu() -> None:
         _render_browser_project_controls()
         if _CURRENT_SAAS_USER is not None:
             _render_saas_project_controls(_CURRENT_SAAS_USER)
-        try:
-            crw_text = _afw_export.generate_crw_text(_collect_params())
-            crw_error = None
-        except Exception as exc:
-            crw_text = ""
-            crw_error = str(exc)
-        st.download_button(
-            "Download CRW driver",
-            crw_text.encode("latin-1"),
-            "load_forge_driver.crw",
-            "application/octet-stream",
-            use_container_width=True,
-            disabled=crw_error is not None,
-            help=(f"Could not build the CRW file: {crw_error}" if crw_error else
-                  "Standalone AUDIO per Windows CRW driver file with the current T/S values."),
-        )
         if st.button(
             "Share via URL",
             key="project_share_url",
@@ -5872,6 +5856,54 @@ def _design_tab_parameters_match_preset(
     return True
 
 
+def _design_crw_download(tab: dict) -> tuple[bytes, str, str | None]:
+    """Build the CRW download for one stored design tab."""
+    parameters = tab.get("parameters")
+    if tab.get("id") == "standalone":
+        parameters = _collect_params()
+    if not isinstance(parameters, dict):
+        return b"", "load_forge_driver.crw", "This design has no saved parameters."
+    try:
+        text = _afw_export.generate_crw_text(parameters)
+    except Exception as exc:
+        return b"", "load_forge_driver.crw", str(exc)
+    driver_name = str(
+        tab.get("display_driver_name")
+        or tab.get("driver_preset_name")
+        or "driver"
+    )
+    stem = re.sub(r"[^A-Za-z0-9._-]+", "_", driver_name).strip("._")
+    return text.encode("latin-1"), f"{stem or 'load_forge_driver'}.crw", None
+
+
+def _design_crw_parameters(tab: dict) -> dict:
+    parameters = tab.get("parameters")
+    if tab.get("id") == "standalone":
+        parameters = _collect_params()
+    return parameters if isinstance(parameters, dict) else {}
+
+
+def _design_crw_signature(tab: dict) -> str:
+    encoded = json.dumps(
+        _design_crw_parameters(tab),
+        sort_keys=True,
+        separators=(",", ":"),
+        default=str,
+    )
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _prepare_design_crw_download(tab: dict) -> None:
+    data, filename, error = _design_crw_download(tab)
+    st.session_state["_design_crw_ready"] = {
+        "tab_id": str(tab.get("id", "")),
+        "signature": _design_crw_signature(tab),
+        "data": data,
+        "filename": filename,
+        "error": error,
+    }
+
+
 def _render_editable_design_tabs(
     tabs: list[dict],
     load_type: str,
@@ -5931,7 +5963,7 @@ def _render_editable_design_tabs(
                 min-height: 2rem !important;
                 min-width: 0 !important;
                 opacity: {'1' if is_visible else '.55'} !important;
-                padding: .25rem {'4.1rem' if standalone else '5.95rem'} .25rem .35rem !important;
+                padding: .25rem {'5.95rem' if standalone else '7.8rem'} .25rem .35rem !important;
                 width: 100% !important;
             }}
             .st-key-design_comparison_tab_{tab_id} button::before {{
@@ -5961,17 +5993,33 @@ def _render_editable_design_tabs(
                 z-index: 2 !important;
             }}
             .st-key-duplicate_design_tab_{tab_id} {{
-                right: {'.18rem' if standalone else '2.04rem'} !important;
-            }}
-            .st-key-toggle_design_tab_{tab_id} {{
                 right: {'2.04rem' if standalone else '3.9rem'} !important;
             }}
+            .st-key-toggle_design_tab_{tab_id} {{
+                right: {'3.9rem' if standalone else '5.76rem'} !important;
+            }}
             .st-key-delete_design_tab_{tab_id} {{
+                right: {'2.04rem' if standalone else '2.04rem'} !important;
+            }}
+            .st-key-download_crw_tab_{tab_id} {{
+                position: absolute !important;
+                top: .12rem !important;
                 right: .18rem !important;
+                width: 1.8rem !important;
+                z-index: 2 !important;
+            }}
+            .st-key-prepare_crw_tab_{tab_id} {{
+                position: absolute !important;
+                top: .12rem !important;
+                right: .18rem !important;
+                width: 1.8rem !important;
+                z-index: 2 !important;
             }}
             .st-key-duplicate_design_tab_{tab_id} button,
             .st-key-toggle_design_tab_{tab_id} button,
-            .st-key-delete_design_tab_{tab_id} button {{
+            .st-key-delete_design_tab_{tab_id} button,
+            .st-key-download_crw_tab_{tab_id} button,
+            .st-key-prepare_crw_tab_{tab_id} button {{
                 background: transparent !important;
                 border: 0 !important;
                 box-shadow: none !important;
@@ -5981,7 +6029,9 @@ def _render_editable_design_tabs(
             }}
             .st-key-duplicate_design_tab_{tab_id} button p,
             .st-key-toggle_design_tab_{tab_id} button p,
-            .st-key-delete_design_tab_{tab_id} button p {{
+            .st-key-delete_design_tab_{tab_id} button p,
+            .st-key-download_crw_tab_{tab_id} button p,
+            .st-key-prepare_crw_tab_{tab_id} button p {{
                 display: none !important;
             }}
             """
@@ -6041,6 +6091,38 @@ def _render_editable_design_tabs(
                         on_click=_toggle_design_tab_visible,
                         args=(tab_id,),
                     )
+                    crw_signature = _design_crw_signature(tab)
+                    crw_ready = st.session_state.get("_design_crw_ready", {})
+                    ready_for_tab = (
+                        isinstance(crw_ready, dict)
+                        and str(crw_ready.get("tab_id", "")) == tab_id
+                        and str(crw_ready.get("signature", "")) == crw_signature
+                    )
+                    if ready_for_tab:
+                        st.download_button(
+                            "Download CRW driver",
+                            data=crw_ready.get("data", b""),
+                            file_name=str(
+                                crw_ready.get("filename", "load_forge_driver.crw")
+                            ),
+                            mime="application/octet-stream",
+                            icon=":material/download:",
+                            key=f"download_crw_tab_{tab_id}",
+                            disabled=crw_ready.get("error") is not None,
+                            help=(
+                                crw_ready.get("error")
+                                or "Download the CRW file for this design"
+                            ),
+                        )
+                    else:
+                        st.button(
+                            "Prepare CRW download",
+                            icon=":material/download:",
+                            key=f"prepare_crw_tab_{tab_id}",
+                            on_click=_prepare_design_crw_download,
+                            args=(tab,),
+                            help="Prepare the CRW file for this design",
+                        )
                     if not standalone:
                         st.button(
                             "Delete design",

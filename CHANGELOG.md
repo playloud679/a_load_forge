@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.8 (2026-08-07)
+
+- **Per-design CRW export**: moved CRW download from the global Project menu
+  into every editable design tab. Each download is generated from that tab's
+  saved driver parameters, so projects containing multiple APs can export the
+  intended design without first changing the active tab. CRW curve generation
+  is deferred until the download action so normal simulations do not pay its
+  201-point response cost.
+- **Verification**: Python compilation and the Streamlit startup AppTest pass.
+
 ## 0.8.7 (2026-08-06)
 
 - **Response tuning markers**: the response chart now shows labelled vertical

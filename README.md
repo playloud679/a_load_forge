@@ -4,7 +4,7 @@
   <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
-Current release: **0.8.7**
+Current release: **0.8.8**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth- and sixth-order bandpass**,
@@ -57,7 +57,8 @@ Current UI highlights:
   Ports is omitted for sealed/infinite-baffle loads, while Atlas is omitted for
   infinite baffle and the passive-radiator resonator
 - compact automatic F3/F6/F10 markers, an explained design-health score and
-  secondary downloads grouped under `Export design`
+  secondary downloads grouped under `Export design`; each editable design tab
+  now exposes its own CRW download for unambiguous AP export
 - explicit response frequency-window zoom with automatic vertical fit and reset
 - a compact 420 px main response chart that keeps its controls above the fold
   on desktop viewports; the redundant active-load heading is omitted because
