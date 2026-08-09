@@ -16,6 +16,8 @@ contracts and the test list — lives in `docs/dccav.md`.
   `OptimizationGoals`, `OptimizedAlignment`, `SimulationResult`,
   `ToleranceBand`, `DesignSpaceMap`, `DriverReferenceMetrics`,
   `DriverBandwidthClass`
+- Waveguide topologies: `WaveguideSegment`, `TransmissionLineBox`, `MltlBox`,
+  `HornBox` and `TappedHornBox`
 - Derivation and alignment: `sd_from_diameter`, `panel_air_load_metrics`,
   `panel_loaded_fs_hz`, `complete_driver`,
   `suggest_alignment`, `suggest_reflex_alignment`,
@@ -23,7 +25,9 @@ contracts and the test list — lives in `docs/dccav.md`.
   `suggest_pr_alignment`,
   `sealed_system_metrics`
 - Simulators: `simulate`, `simulate_reflex`, `simulate_bandpass4`, `simulate_bandpass6`, `simulate_passive_radiator`, `simulate_sealed`,
-  `simulate_infinite_baffle` (shared `_electrical_source`, `_limit_curves`,
+  `simulate_infinite_baffle`, `simulate_transmission_line`, `simulate_mltl`,
+  `simulate_quarter_wave`, `simulate_back_loaded_horn` and
+  `simulate_tapped_horn` (shared `_electrical_source`, `_limit_curves`,
   `_unported_result` internals)
 - Optimizer: `optimize_alignment` with `_optimizer_metrics` /
   `_score_alignment`; untargeted `extension` searches scale advisory ripple,
@@ -43,6 +47,27 @@ scale per pair; the electrical topology scales Re/Le and total thermal power
 scales with the physical driver count.
 
 ## Panel air loading
+
+## Distributed waveguides
+
+The waveguide solvers use a loss-bearing, one-dimensional pressure/volume-
+velocity transfer matrix. `TransmissionLineBox` accepts stepped uniform
+sections and supports open or closed termination; `simulate_quarter_wave()` is
+the closed-end convenience wrapper. `MltlBox` places an external vent in
+parallel with the line-mouth radiation impedance. `HornBox` generates conical
+or exponential sections between throat and mouth for a first-order BLH model.
+`TappedHornBox` solves the throat and mouth arms in parallel at the driver tap,
+which is the appropriate lumped 1-D abstraction for a tapped horn.
+
+These are distributed models, not replacements for a full FEM/BEM or a
+measured impedance fit. They omit higher-order transverse modes, cabinet
+leakage details, stuffing gradients and diffraction. `line_q` is therefore an
+explicit fit parameter; it should be calibrated against an impedance or
+near-field measurement before a build is considered final.
+BLH and TH results are intended for the low-frequency module band. A real
+design still needs an electrical high-pass to control subsonic excursion and a
+low-pass/crossover to suppress higher-order modes; these filters are not part
+of the distributed acoustic solver.
 
 `DriverTS.le10k_mh` is an optional, display-only voice-coil inductance
 measured at 10 kHz (some pro-audio datasheets publish it alongside the usual

@@ -90,6 +90,63 @@ def _check_sd_from_diameter():
 test("DCCAV Sd helper converts diameter to area", _check_sd_from_diameter)
 
 
+def _check_distributed_waveguide_models():
+    ts = _kef_b110_ts()
+    freq = np.geomspace(10.0, 500.0, 320)
+    line = _dccav.TransmissionLineBox(
+        segments=(_dccav.WaveguideSegment(0.85, 100.0),),
+        termination="closed",
+    )
+    tl = _dccav.simulate_transmission_line(ts, line, freq)
+    qw = _dccav.simulate_quarter_wave(ts, 0.85, 100.0, freq)
+    np.testing.assert_allclose(tl.spl_total_db, qw.spl_total_db)
+    assert np.all(np.isfinite(tl.impedance_ohm))
+
+    mltl = _dccav.simulate_mltl(
+        ts,
+        _dccav.MltlBox(
+            segments=(_dccav.WaveguideSegment(0.85, 100.0),),
+            vent_area_cm2=35.0,
+            vent_length_m=0.08,
+        ),
+        freq,
+    )
+    blh = _dccav.simulate_back_loaded_horn(
+        ts, _dccav.HornBox(1.2, 80.0, 800.0), freq)
+    th = _dccav.simulate_tapped_horn(
+        ts, _dccav.TappedHornBox(1.2, 80.0, 800.0, 0.35), freq)
+    for result in (mltl, blh, th):
+        assert result.frequency_hz.shape == freq.shape
+        assert np.all(np.isfinite(result.spl_total_db))
+        assert np.all(result.excursion_mm >= 0.0)
+
+
+test("Distributed TL, MLTL, QW, BLH and TH models run", _check_distributed_waveguide_models)
+
+
+def _check_distributed_waveguide_ui():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at.run()
+    at.session_state["load_type"] = "Distributed waveguide"
+    at.session_state["waveguide_topology"] = "BLH"
+    at.run()
+    assert not at.exception, at.exception
+    at.session_state["waveguide_topology"] = "TH"
+    at.session_state["sim_f_min"] = 10.0
+    at.session_state["sim_f_max"] = 500.0
+    if "_waveguide_th_seeded" in at.session_state:
+        del at.session_state["_waveguide_th_seeded"]
+    at.run()
+    assert not at.exception, at.exception
+    assert at.session_state["sim_f_min"] == 25.0
+    assert at.session_state["sim_f_max"] == 120.0
+
+
+test("UI exposes distributed waveguide simulation", _check_distributed_waveguide_ui)
+
+
 def _check_presets_are_available():
     names = _dccav.driver_preset_names()
     expected = {

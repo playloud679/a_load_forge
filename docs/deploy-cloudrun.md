@@ -12,10 +12,10 @@ gcloud config set project PROJECT_ID
 gcloud services enable run.googleapis.com artifactregistry.googleapis.com
 
 gcloud builds submit \
-  --tag europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.8.8
+  --tag europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.8.9
 
 gcloud run deploy load-forge \
-  --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.8.8 \
+  --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.8.9 \
   --region europe-west1 \
   --platform managed \
   --allow-unauthenticated \

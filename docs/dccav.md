@@ -19,6 +19,22 @@ velocities.
 
 ## Models
 
+The facade also exposes the distributed waveguide models documented in
+`docs/engine.md`: transmission line (TL), mass-loaded transmission line
+(MLTL), quarter-wave line (QW), back-loaded horn (BLH) and tapped horn (TH).
+They use `WaveguideSegment`/`TransmissionLineBox`, `MltlBox`, `HornBox` and
+`TappedHornBox` and return the same `SimulationResult` arrays as the lumped
+loads. The Streamlit sidebar exposes them under `Distributed waveguide`; the
+topology selector switches between TL, MLTL, QW, BLH and TH. Their assumptions
+and limitations are intentionally separate from the validated DCCAV/reflex
+equations, and automatic box optimization is currently disabled for them.
+TH and BLH should be treated as low-frequency modules: the initial TH view is
+limited to 25–120 Hz, and the UI warns when the simulated cone excursion
+exceeds driver Xmax. This is a design-screening aid, not an electrical
+crossover; the user must provide high-pass protection below the passband and a
+low-pass crossover above it. The distributed model does not predict a smooth
+full-range response, transverse modes or directivity.
+
 The DCCAV topology is:
 
 ```text

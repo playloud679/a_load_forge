@@ -4,13 +4,15 @@
   <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
-Current release: **0.8.8**
+Current release: **0.8.9**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth- and sixth-order bandpass**,
 conventional **bass reflex** with either a vent or passive-radiator resonator,
 **acoustic suspension** (sealed box) and ideal **infinite baffle**, all derived from driver
 Thiele/Small parameters.
+Distributed TL, MLTL, QW, BLH and TH waveguide screening models are also available
+with explicit low-frequency/crossover limitations.
 
 The app starts from a T/S set, proposes an editable first-pass alignment, then
 simulates the lumped acoustic circuit and plots:

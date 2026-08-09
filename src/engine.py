@@ -263,6 +263,72 @@ class SimulationResult:
     impedance_phase_deg: np.ndarray | None = None
 
 
+@dataclass(frozen=True)
+class WaveguideSegment:
+    """Uniform acoustic-waveguide section used by the 1-D line solver."""
+
+    length_m: float
+    area_cm2: float
+
+
+@dataclass(frozen=True)
+class TransmissionLineBox:
+    """One-dimensional transmission-line enclosure.
+
+    ``segments`` run from the driver plane to the external termination.  A
+    closed termination is useful for quarter-wave lines; an open termination
+    uses the piston radiation impedance of ``mouth_area_cm2``.  Loss is a
+    phenomenological Q for the distributed line and is deliberately exposed
+    so measured line damping can be fitted later.
+    """
+
+    segments: tuple[WaveguideSegment, ...]
+    termination: str = "open"
+    mouth_area_cm2: float | None = None
+    line_q: float = 25.0
+    direct_cone_radiation: bool = True
+
+
+@dataclass(frozen=True)
+class MltlBox:
+    """Mass-loaded transmission line with a side vent at the line mouth."""
+
+    segments: tuple[WaveguideSegment, ...]
+    vent_area_cm2: float
+    vent_length_m: float
+    vent_end_correction: float = 1.43
+    line_q: float = 25.0
+    direct_cone_radiation: bool = True
+
+
+@dataclass(frozen=True)
+class HornBox:
+    """Back-loaded horn represented by a tapered 1-D acoustic guide."""
+
+    length_m: float
+    throat_area_cm2: float
+    mouth_area_cm2: float
+    flare: str = "exponential"
+    segments: int = 80
+    mouth_termination: str = "open"
+    line_q: float = 20.0
+    direct_cone_radiation: bool = True
+
+
+@dataclass(frozen=True)
+class TappedHornBox:
+    """Tapped horn with the driver connected between throat and mouth arms."""
+
+    length_m: float
+    throat_area_cm2: float
+    mouth_area_cm2: float
+    tap_position_m: float
+    flare: str = "exponential"
+    segments: int = 80
+    line_q: float = 20.0
+    direct_cone_radiation: bool = False
+
+
 def sd_from_diameter(diameter_mm: float) -> float:
     """Return piston area in cm^2 from an effective piston diameter in mm."""
     d_m = float(diameter_mm) / 1000.0
@@ -2766,3 +2832,245 @@ def _validate_sealed_box(box: SealedBox) -> None:
 def _require_positive(name: str, value: float) -> None:
     if not np.isfinite(value) or value <= 0:
         raise ValueError(f"{name} must be positive")
+
+
+def _validate_waveguide_segments(segments: tuple[WaveguideSegment, ...]) -> None:
+    if not segments:
+        raise ValueError("A waveguide needs at least one segment")
+    for segment in segments:
+        _require_positive("Waveguide segment length", segment.length_m)
+        _require_positive("Waveguide segment area", segment.area_cm2)
+
+
+def _waveguide_matrix(
+    segment: WaveguideSegment, omega: np.ndarray, line_q: float,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Return the pressure/volume-velocity transfer matrix of one section."""
+    _require_positive("Line Q", line_q)
+    area_m2 = float(segment.area_cm2) * 1e-4
+    zc = RHO_AIR * SPEED_OF_SOUND / area_m2
+    k = omega / SPEED_OF_SOUND * (1.0 - 0.5j / float(line_q))
+    kd = k * float(segment.length_m)
+    a = np.cos(kd)
+    b = 1j * zc * np.sin(kd)
+    c = 1j * np.sin(kd) / zc
+    d = a.copy()
+    return a, b, c, d
+
+
+def _waveguide_chain_impedance(
+    segments: tuple[WaveguideSegment, ...], omega: np.ndarray,
+    termination_z: np.ndarray, line_q: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Return input impedance and output velocity transfer for a guide."""
+    _validate_waveguide_segments(segments)
+    a = np.ones_like(omega, dtype=complex)
+    b = np.zeros_like(omega, dtype=complex)
+    c = np.zeros_like(omega, dtype=complex)
+    d = np.ones_like(omega, dtype=complex)
+    for segment in segments:
+        sa, sb, sc, sd = _waveguide_matrix(segment, omega, line_q)
+        a, b, c, d = (
+            a * sa + b * sc,
+            a * sb + b * sd,
+            c * sa + d * sc,
+            c * sb + d * sd,
+        )
+    denominator = c * termination_z + d
+    safe_denominator = np.where(
+        np.abs(denominator) > EPS, denominator, EPS + 0j)
+    zin = (a * termination_z + b) / safe_denominator
+    output_velocity_ratio = 1.0 / safe_denominator
+    return zin, output_velocity_ratio
+
+
+def _waveguide_radiation_impedance(
+    omega: np.ndarray, area_cm2: float,
+) -> np.ndarray:
+    """Low-frequency unflanged piston radiation impedance."""
+    _require_positive("Mouth area", area_cm2)
+    area_m2 = float(area_cm2) * 1e-4
+    radius_m = np.sqrt(area_m2 / np.pi)
+    ka = omega / SPEED_OF_SOUND * radius_m
+    zc = RHO_AIR * SPEED_OF_SOUND / area_m2
+    return zc * (0.25 * ka**2 + 1j * 0.61 * ka)
+
+
+def _waveguide_vent_impedance(
+    omega: np.ndarray, area_cm2: float, length_m: float,
+    end_correction: float,
+) -> np.ndarray:
+    _require_positive("Vent area", area_cm2)
+    _require_positive("Vent length", length_m)
+    radius_m = np.sqrt(float(area_cm2) * 1e-4 / np.pi)
+    mass = RHO_AIR * (float(length_m) + float(end_correction) * radius_m) / (float(area_cm2) * 1e-4)
+    return 1j * omega * mass
+
+
+def _waveguide_segments_from_horn(box: HornBox) -> tuple[WaveguideSegment, ...]:
+    _require_positive("Horn length", box.length_m)
+    _require_positive("Horn throat area", box.throat_area_cm2)
+    _require_positive("Horn mouth area", box.mouth_area_cm2)
+    if box.mouth_area_cm2 < box.throat_area_cm2:
+        raise ValueError("Horn mouth area must be at least the throat area")
+    if int(box.segments) < 4:
+        raise ValueError("Horn needs at least 4 sections")
+    flare = str(box.flare).casefold()
+    if flare not in {"conical", "exponential"}:
+        raise ValueError("Horn flare must be 'conical' or 'exponential'")
+    n = int(box.segments)
+    edges = np.linspace(0.0, float(box.length_m), n + 1)
+    ratio = float(box.mouth_area_cm2) / float(box.throat_area_cm2)
+    if flare == "exponential":
+        areas = float(box.throat_area_cm2) * ratio ** (edges / float(box.length_m))
+    else:
+        areas = float(box.throat_area_cm2) + (
+            float(box.mouth_area_cm2) - float(box.throat_area_cm2)
+        ) * edges / float(box.length_m)
+    return tuple(
+        WaveguideSegment(float(edges[i + 1] - edges[i]), float(np.sqrt(areas[i] * areas[i + 1])))
+        for i in range(n)
+    )
+
+
+def _waveguide_result(
+    ts: DriverTS, freq_hz: np.ndarray, zin: np.ndarray,
+    mouth_velocity_ratio: np.ndarray, mouth_area_cm2: float,
+    voltage_v: float, series_r_ohm: float,
+    direct_cone_radiation: bool,
+) -> SimulationResult:
+    drv = complete_driver(ts)
+    f = np.asarray(freq_hz, dtype=float)
+    omega = 2.0 * np.pi * f
+    jw = 1j * omega
+    re_total, _, p_source = _electrical_source(ts, drv, voltage_v, series_r_ohm)
+    z_as = drv.rms_n_s_m + jw * drv.mas + 1.0 / (jw * drv.cms_m_per_n)
+    u_driver = p_source / (z_as + zin)
+    u_mouth = u_driver * mouth_velocity_ratio
+    u_direct = -u_driver if direct_cone_radiation else np.zeros_like(u_driver)
+    spl_driver = _spl_from_volume_velocity(u_direct, f)
+    spl_mouth = _spl_from_volume_velocity(u_mouth, f)
+    spl_total = 20.0 * np.log10(
+        np.maximum(np.abs(u_direct + u_mouth) * RHO_AIR * omega / (4.0 * np.pi * P_REF), EPS)
+    )
+    z_mech = drv.rms_n_s_m + jw * drv.mas + 1.0 / (jw * drv.cms_m_per_n)
+    z_e = re_total + 1j * omega * (ts.le_mh / 1000.0) + drv.bl_tm**2 / (z_mech + zin * drv.sd_m2**2)
+    excursion = np.abs(u_driver / (jw * drv.sd_m2)) * 1000.0
+    mil_w, mol_db = _limit_curves(ts, voltage_v, spl_total, excursion, series_r_ohm)
+    mouth = np.abs(u_mouth)
+    return SimulationResult(
+        frequency_hz=f,
+        spl_total_db=spl_total,
+        spl_driver_db=spl_driver,
+        spl_port_db=spl_mouth,
+        excursion_mm=excursion,
+        impedance_ohm=np.abs(z_e),
+        port_h_velocity=np.zeros_like(mouth),
+        port_l_velocity=mouth,
+        mil_w=mil_w,
+        mol_db=mol_db,
+        driver_volume_velocity=np.abs(u_driver),
+        port_volume_velocity=mouth,
+        impedance_phase_deg=np.angle(z_e, deg=True),
+    )
+
+
+def simulate_transmission_line(
+    ts: DriverTS, box: TransmissionLineBox, freq_hz: np.ndarray | None = None,
+    voltage_v: float = 2.83, series_r_ohm: float = 0.0,
+) -> SimulationResult:
+    """Simulate a uniform or stepped transmission line with a rear-loaded driver."""
+    _validate_waveguide_segments(box.segments)
+    if box.termination not in {"open", "closed"}:
+        raise ValueError("Transmission-line termination must be 'open' or 'closed'")
+    if freq_hz is None:
+        freq_hz = np.geomspace(10.0, 500.0, 600)
+    f = np.asarray(freq_hz, dtype=float)
+    if np.any(f <= 0):
+        raise ValueError("Frequencies must be positive")
+    omega = 2.0 * np.pi * f
+    mouth_area = box.mouth_area_cm2 or box.segments[-1].area_cm2
+    termination = (
+        _waveguide_radiation_impedance(omega, mouth_area)
+        if box.termination == "open" else np.full(omega.shape, 1e30 + 0j, dtype=complex)
+    )
+    zin, ratio = _waveguide_chain_impedance(box.segments, omega, termination, box.line_q)
+    return _waveguide_result(ts, f, zin, ratio, mouth_area, voltage_v, series_r_ohm, box.direct_cone_radiation)
+
+
+def simulate_mltl(
+    ts: DriverTS, box: MltlBox, freq_hz: np.ndarray | None = None,
+    voltage_v: float = 2.83, series_r_ohm: float = 0.0,
+) -> SimulationResult:
+    """Simulate a mass-loaded TL with an external vent at its open end."""
+    _validate_waveguide_segments(box.segments)
+    if freq_hz is None:
+        freq_hz = np.geomspace(10.0, 500.0, 600)
+    f = np.asarray(freq_hz, dtype=float)
+    if np.any(f <= 0):
+        raise ValueError("Frequencies must be positive")
+    omega = 2.0 * np.pi * f
+    mouth_area = box.segments[-1].area_cm2
+    open_z = _waveguide_radiation_impedance(omega, mouth_area)
+    vent_z = _waveguide_vent_impedance(
+        omega, box.vent_area_cm2, box.vent_length_m, box.vent_end_correction)
+    termination = 1.0 / (1.0 / open_z + 1.0 / vent_z)
+    zin, ratio = _waveguide_chain_impedance(box.segments, omega, termination, box.line_q)
+    return _waveguide_result(ts, f, zin, ratio, mouth_area, voltage_v, series_r_ohm, box.direct_cone_radiation)
+
+
+def simulate_quarter_wave(
+    ts: DriverTS, length_m: float, area_cm2: float,
+    freq_hz: np.ndarray | None = None, voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0, line_q: float = 25.0,
+) -> SimulationResult:
+    """Convenience wrapper for a closed-end quarter-wave line."""
+    box = TransmissionLineBox(
+        segments=(WaveguideSegment(length_m, area_cm2),),
+        termination="closed", mouth_area_cm2=area_cm2, line_q=line_q,
+    )
+    return simulate_transmission_line(ts, box, freq_hz, voltage_v, series_r_ohm)
+
+
+def simulate_back_loaded_horn(
+    ts: DriverTS, box: HornBox, freq_hz: np.ndarray | None = None,
+    voltage_v: float = 2.83, series_r_ohm: float = 0.0,
+) -> SimulationResult:
+    """Simulate the rear-loaded radiation path of a tapered horn."""
+    segments = _waveguide_segments_from_horn(box)
+    line = TransmissionLineBox(
+        segments=segments, termination=box.mouth_termination,
+        mouth_area_cm2=box.mouth_area_cm2, line_q=box.line_q,
+        direct_cone_radiation=box.direct_cone_radiation,
+    )
+    return simulate_transmission_line(ts, line, freq_hz, voltage_v, series_r_ohm)
+
+
+def simulate_tapped_horn(
+    ts: DriverTS, box: TappedHornBox, freq_hz: np.ndarray | None = None,
+    voltage_v: float = 2.83, series_r_ohm: float = 0.0,
+) -> SimulationResult:
+    """Simulate a tapped horn as two tapered branches in parallel at the tap."""
+    if not 0.0 < float(box.tap_position_m) < float(box.length_m):
+        raise ValueError("Tapped-horn tap position must lie inside the horn")
+    if freq_hz is None:
+        freq_hz = np.geomspace(10.0, 500.0, 600)
+    f = np.asarray(freq_hz, dtype=float)
+    if np.any(f <= 0):
+        raise ValueError("Frequencies must be positive")
+    full = _waveguide_segments_from_horn(HornBox(
+        box.length_m, box.throat_area_cm2, box.mouth_area_cm2,
+        box.flare, box.segments, "open", box.line_q, box.direct_cone_radiation))
+    n_tap = max(1, min(len(full) - 1, int(round(box.tap_position_m / box.length_m * len(full)))))
+    throat_segments = tuple(reversed(full[:n_tap]))
+    mouth_segments = full[n_tap:]
+    omega = 2.0 * np.pi * f
+    z_throat, _ = _waveguide_chain_impedance(
+        throat_segments, omega, np.full(omega.shape, 1e30 + 0j, dtype=complex), box.line_q)
+    z_mouth, mouth_ratio = _waveguide_chain_impedance(
+        mouth_segments, omega, _waveguide_radiation_impedance(omega, box.mouth_area_cm2), box.line_q)
+    zin = 1.0 / (1.0 / z_throat + 1.0 / z_mouth)
+    # Scale the mouth branch velocity by the tap velocity; the throat branch
+    # is an internal termination and is intentionally not exported as SPL.
+    return _waveguide_result(ts, f, zin, mouth_ratio * (zin / z_mouth), box.mouth_area_cm2,
+                             voltage_v, series_r_ohm, box.direct_cone_radiation)

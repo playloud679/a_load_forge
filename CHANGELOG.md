@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.9 (2026-08-09)
+
+- **Distributed waveguides**: added first-order TL, MLTL, QW, BLH and TH
+  acoustic-load models with editable Streamlit controls and library-driver
+  support.
+- **TH screening**: the initial tapped-horn view uses a 25–120 Hz LF window,
+  warns when cone excursion exceeds Xmax and documents the required external
+  high-pass/low-pass crossover limits.
+- **Verification**: Python compilation, distributed-model tests (2/2) and the
+  full active suite (151/151) pass.
+
 ## 0.8.8 (2026-08-07)
 
 - **Per-design CRW export**: moved CRW download from the global Project menu

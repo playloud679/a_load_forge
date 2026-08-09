@@ -824,6 +824,7 @@ _LOAD_TYPE_IMAGES = {
     "Bandpass 4th order": _LOAD_IMAGE_DIR / "bandpass_4th.png",
     "Bandpass 6th order": _LOAD_IMAGE_DIR / "bandpass_6th.png",
     "DCCAV": _LOAD_IMAGE_DIR / "dccav.png",
+    "Distributed waveguide": _LOAD_IMAGE_DIR / "dccav.png",
 }
 
 _LOAD_TYPE_SLUGS = {
@@ -833,6 +834,7 @@ _LOAD_TYPE_SLUGS = {
     "Bandpass 4th order": "bandpass_4th",
     "Bandpass 6th order": "bandpass_6th",
     "DCCAV": "dccav",
+    "Distributed waveguide": "waveguide",
 }
 
 _LOAD_TYPE_SHORT = {
@@ -842,10 +844,12 @@ _LOAD_TYPE_SHORT = {
     "Bandpass 4th order": "BP4",
     "Bandpass 6th order": "BP6",
     "DCCAV": "DCCAV",
+    "Distributed waveguide": "Waveguide",
 }
 
 _ALL_LOAD_TYPES = ["Infinite baffle", "Sealed", "Bass reflex",
-                   "Bandpass 4th order", "Bandpass 6th order", "DCCAV"]
+                   "Bandpass 4th order", "Bandpass 6th order", "DCCAV",
+                   "Distributed waveguide"]
 _RESONATOR_PORT = "Port"
 _RESONATOR_PR = "Passive radiator"
 _RESONATOR_TYPES = (_RESONATOR_PORT, _RESONATOR_PR)
@@ -1754,6 +1758,13 @@ def _manual_box_keys_for_load_type(load_type: str) -> tuple[str, ...]:
         )
     if load_type == "Infinite baffle":
         return ()
+    if load_type == "Distributed waveguide":
+        return (
+            "waveguide_topology", "waveguide_length_m", "waveguide_area_cm2",
+            "waveguide_mouth_area_cm2", "waveguide_vent_area_cm2",
+            "waveguide_vent_length_m", "waveguide_tap_position_m",
+            "waveguide_flare", "waveguide_termination", "waveguide_line_q",
+        )
     # DCCAV
     return (
         "box_vh_l",
@@ -3423,6 +3434,50 @@ def _bandpass6_box_from_state() -> _dccav.Bandpass6Box:
     )
 
 
+def _waveguide_box_from_state():
+    """Build the selected distributed-waveguide model from sidebar state."""
+    topology = str(st.session_state.get("waveguide_topology", "TL"))
+    length_m = float(st.session_state["waveguide_length_m"])
+    area_cm2 = float(st.session_state["waveguide_area_cm2"])
+    mouth_area_cm2 = float(st.session_state["waveguide_mouth_area_cm2"])
+    line_q = float(st.session_state["waveguide_line_q"])
+    flare = str(st.session_state.get("waveguide_flare", "exponential"))
+    segments = (_dccav.WaveguideSegment(length_m, area_cm2),)
+    if topology == "TL":
+        return _dccav.TransmissionLineBox(
+            segments=segments,
+            termination=str(st.session_state["waveguide_termination"]),
+            mouth_area_cm2=mouth_area_cm2,
+            line_q=line_q,
+        )
+    if topology == "MLTL":
+        return _dccav.MltlBox(
+            segments=segments,
+            vent_area_cm2=float(st.session_state["waveguide_vent_area_cm2"]),
+            vent_length_m=float(st.session_state["waveguide_vent_length_m"]),
+            line_q=line_q,
+        )
+    if topology == "QW":
+        return _dccav.TransmissionLineBox(
+            segments=segments, termination="closed", mouth_area_cm2=mouth_area_cm2,
+            line_q=line_q,
+        )
+    if topology == "BLH":
+        return _dccav.HornBox(
+            length_m=length_m, throat_area_cm2=area_cm2,
+            mouth_area_cm2=mouth_area_cm2, flare=flare,
+            line_q=line_q,
+        )
+    if topology == "TH":
+        return _dccav.TappedHornBox(
+            length_m=length_m, throat_area_cm2=area_cm2,
+            mouth_area_cm2=mouth_area_cm2,
+            tap_position_m=float(st.session_state["waveguide_tap_position_m"]),
+            flare=flare, line_q=line_q,
+        )
+    raise ValueError(f"Unknown waveguide topology: {topology}")
+
+
 def _optional_positive(key: str) -> float | None:
     value = float(st.session_state.get(key, 0.0) or 0.0)
     return value if value > 0 else None
@@ -3667,7 +3722,9 @@ def _optimizer_goals_from_state() -> _dccav.OptimizationGoals:
 
 def _alignment_uses_optimizer() -> bool:
     return (
-        st.session_state.get("load_type", "DCCAV") != "Infinite baffle"
+        st.session_state.get("load_type", "DCCAV") not in {
+            "Infinite baffle", "Distributed waveguide"
+        }
         and _box_strategy_is_auto()
     )
 
@@ -4565,7 +4622,34 @@ def _on_driver_param_change():
 
 
 def _on_load_type_change():
+    if st.session_state.get("load_type") == "Distributed waveguide":
+        _set_box_strategy_state("Manual")
     _auto_align_current_driver()
+
+
+def _on_waveguide_topology_change():
+    """Seed a practical TH starter when the user first selects TH."""
+    if st.session_state.get("waveguide_topology") == "TH" and not st.session_state.get(
+        "_waveguide_th_seeded", False
+    ):
+        for key, value in (
+            ("waveguide_length_m", 3.40),
+            ("waveguide_area_cm2", 250.0),
+            ("waveguide_mouth_area_cm2", 1100.0),
+            ("waveguide_tap_position_m", 1.02),
+            ("waveguide_flare", "exponential"),
+            ("waveguide_line_q", 6.0),
+        ):
+            st.session_state[key] = value
+        # A TH is an LF module, not a full-range load. Keep the initial plot
+        # inside its useful passband; the range remains user-editable.
+        if (
+            float(st.session_state.get("sim_f_min", 10.0)) == 10.0
+            and float(st.session_state.get("sim_f_max", 500.0)) == 500.0
+        ):
+            st.session_state["sim_f_min"] = 25.0
+            st.session_state["sim_f_max"] = 120.0
+        st.session_state["_waveguide_th_seeded"] = True
 
 
 def _series_frame(result: _dccav.SimulationResult, series: dict[str, np.ndarray]) -> pd.DataFrame:
@@ -9124,6 +9208,15 @@ def _simulate_design_cached(
         result = _dccav.simulate_infinite_baffle(
             ts, freq, voltage_v, series_r_ohm
         )
+    elif load_type == "Distributed waveguide":
+        if isinstance(box, _dccav.MltlBox):
+            result = _dccav.simulate_mltl(ts, box, freq, voltage_v, series_r_ohm)
+        elif isinstance(box, _dccav.HornBox):
+            result = _dccav.simulate_back_loaded_horn(ts, box, freq, voltage_v, series_r_ohm)
+        elif isinstance(box, _dccav.TappedHornBox):
+            result = _dccav.simulate_tapped_horn(ts, box, freq, voltage_v, series_r_ohm)
+        else:
+            result = _dccav.simulate_transmission_line(ts, box, freq, voltage_v, series_r_ohm)
     else:
         result = _dccav.simulate(ts, box, freq, voltage_v, series_r_ohm)
     return (
@@ -9405,6 +9498,12 @@ def _render_response_tab(
             "Infinite-baffle response is the exposed cone front with perfect rear-wave isolation. "
             "Finite-panel diffraction, rear leakage, room gain and baffle step are not included."
         )
+    elif load_type == "Distributed waveguide":
+        st.caption(
+            "Distributed waveguide response is a low-frequency 1-D estimate. "
+            "For TH/BLH use a high-pass below the intended passband and a low-pass "
+            "crossover above it; higher-frequency ripples are out of scope for this model."
+        )
     else:
         st.caption(
             "DCCAV total response is the vector sum of the exposed cone front "
@@ -9682,6 +9781,39 @@ _default("sim_points", 600)
 _default("sim_voltage", 2.83)
 _default("sim_series_r_ohm", 0.0)
 _default("sim_auto_align", True)
+_default("waveguide_topology", "TL")
+_default("waveguide_length_m", 1.0)
+_default("waveguide_area_cm2", 100.0)
+_default("waveguide_mouth_area_cm2", 100.0)
+_default("waveguide_vent_area_cm2", 35.0)
+_default("waveguide_vent_length_m", 0.08)
+_default("waveguide_tap_position_m", 0.35)
+_default("waveguide_flare", "exponential")
+_default("waveguide_termination", "open")
+_default("waveguide_line_q", 25.0)
+if int(st.session_state.get("_waveguide_defaults_version", 0) or 0) < 1 or (
+    float(st.session_state.get("waveguide_length_m", 0.0)) <= 0.05
+    and float(st.session_state.get("waveguide_line_q", 0.0)) <= 1.0
+):
+    # Sessions created by the first UI integration received Streamlit's
+    # numeric minimums instead of the intended starter values.
+    if (
+        float(st.session_state.get("waveguide_length_m", 0.0)) <= 0.05
+        and float(st.session_state.get("waveguide_line_q", 0.0)) <= 1.0
+    ):
+        for key, value in (
+            ("waveguide_length_m", 1.0),
+            ("waveguide_area_cm2", 100.0),
+            ("waveguide_mouth_area_cm2", 100.0),
+            ("waveguide_vent_area_cm2", 35.0),
+            ("waveguide_vent_length_m", 0.08),
+            ("waveguide_tap_position_m", 0.35),
+            ("waveguide_line_q", 25.0),
+        ):
+            st.session_state[key] = value
+    st.session_state["_waveguide_defaults_version"] = 1
+if st.session_state.get("waveguide_topology") == "TH":
+    _on_waveguide_topology_change()
 _default("plot_response_traces", ["Total"])
 _default("plot_port_traces", list(_PORT_TRACE_OPTIONS))
 _default("plot_response_total", "Total" in st.session_state["plot_response_traces"])
@@ -9746,6 +9878,8 @@ if (
 ):
     # The generic optimizer sweeps duct tuning, which is not the PR mass and
     # suspension problem. Keep the radiator controls explicitly editable.
+    _set_box_strategy_state("Manual")
+if st.session_state.get("load_type") == "Distributed waveguide":
     _set_box_strategy_state("Manual")
 if "_optimizer_engine_revision" not in st.session_state:
     st.session_state["_optimizer_engine_revision"] = _OPTIMIZER_ENGINE_REVISION
@@ -10169,7 +10303,7 @@ with st.sidebar:
                     st.session_state["_optimizer_engine_revision"] = (
                         _OPTIMIZER_ENGINE_REVISION)
 
-                if load_type != "Infinite baffle" and box_strategy in _OPT_OBJECTIVE_LABELS:
+                if load_type not in {"Infinite baffle", "Distributed waveguide"} and box_strategy in _OPT_OBJECTIVE_LABELS:
                     st.caption(
                         "The optimizer re-applies this goal automatically when the "
                         "driver, load or constraints change."
@@ -10364,6 +10498,58 @@ with st.sidebar:
                                             step=_step5("bandpass6_q_port_p", 0.5), key="bandpass6_q_port_p")
                 elif load_type == "Infinite baffle":
                     st.caption("No box controls: the rear wave is assumed to be fully isolated by an infinite partition.")
+                elif load_type == "Distributed waveguide":
+                    st.caption(
+                        "1-D distributed model. Calibrate line Q and termination against "
+                        "an impedance or near-field measurement before building."
+                    )
+                    st.selectbox(
+                        "Waveguide topology", ["TL", "MLTL", "QW", "BLH", "TH"],
+                        key="waveguide_topology",
+                        on_change=_on_waveguide_topology_change,
+                    )
+                    wg1, wg2 = st.columns(2)
+                    with wg1:
+                        st.number_input(
+                            "Line length (m)", min_value=0.05, max_value=20.0,
+                            step=0.01, key="waveguide_length_m",
+                        )
+                        st.number_input(
+                            "Throat / line area (cm²)", min_value=0.1, max_value=10000.0,
+                            step=1.0, key="waveguide_area_cm2",
+                        )
+                        st.number_input(
+                            "Mouth area (cm²)", min_value=0.1, max_value=10000.0,
+                            step=1.0, key="waveguide_mouth_area_cm2",
+                        )
+                    with wg2:
+                        st.number_input(
+                            "Line Q", min_value=1.0, max_value=500.0,
+                            step=1.0, key="waveguide_line_q",
+                            help="Distributed-loss fit parameter; higher means less damping.",
+                        )
+                        st.selectbox(
+                            "Flare", ["exponential", "conical"], key="waveguide_flare",
+                        )
+                        st.selectbox(
+                            "TL termination", ["open", "closed"],
+                            key="waveguide_termination",
+                            disabled=st.session_state.get("waveguide_topology") != "TL",
+                        )
+                    if st.session_state.get("waveguide_topology") == "MLTL":
+                        st.number_input(
+                            "Mass-load vent area (cm²)", min_value=0.1, max_value=10000.0,
+                            step=1.0, key="waveguide_vent_area_cm2",
+                        )
+                        st.number_input(
+                            "Mass-load vent length (m)", min_value=0.005, max_value=5.0,
+                            step=0.005, key="waveguide_vent_length_m",
+                        )
+                    if st.session_state.get("waveguide_topology") == "TH":
+                        st.number_input(
+                            "Tap position from throat (m)", min_value=0.01,
+                            max_value=19.99, step=0.01, key="waveguide_tap_position_m",
+                        )
                 else:
                     b1, b2 = st.columns(2)
                     with b1:
@@ -10392,7 +10578,7 @@ with st.sidebar:
                             st.number_input("Qleak lower", min_value=1.0, max_value=10000.0, step=_step5("loss_q_leak_l", 10.0), key="loss_q_leak_l")
                             st.number_input("Qport lower", min_value=0.2, max_value=500.0, step=_step5("loss_q_port_l", 0.5), key="loss_q_port_l")
 
-                if load_type != "Infinite baffle" and box_edit_disabled:
+                if load_type not in {"Infinite baffle", "Distributed waveguide"} and box_edit_disabled:
                     st.caption("Switch Box strategy to Manual to edit volumes and tuning directly.")
 
 
@@ -10419,6 +10605,7 @@ try:
     is_bandpass6 = load_type == "Bandpass 6th order"
     is_sealed = load_type == "Sealed"
     is_infinite_baffle = load_type == "Infinite baffle"
+    is_waveguide = load_type == "Distributed waveguide"
     chart_sig = _chart_signature()
     if is_pr:
         box = _pr_box_from_state()
@@ -10432,6 +10619,8 @@ try:
         box = _sealed_box_from_state()
     elif is_infinite_baffle:
         box = None
+    elif load_type == "Distributed waveguide":
+        box = _waveguide_box_from_state()
     else:
         box = _box_from_state()
     sim_f_min = float(st.session_state["sim_f_min"])
@@ -10471,6 +10660,15 @@ try:
         model_warnings.extend(_dccav.bandpass4_diagnostics(current_ts, box, result))
     if is_bandpass6:
         model_warnings.extend(_dccav.bandpass6_diagnostics(current_ts, box, result))
+    if is_waveguide and current_ts.xmax_mm > 0.0:
+        max_excursion_mm = float(np.nanmax(np.abs(result.excursion_mm)))
+        if max_excursion_mm > current_ts.xmax_mm:
+            model_warnings.append(
+                f"Warning: waveguide excursion reaches {max_excursion_mm:.1f} mm, "
+                f"above driver Xmax {current_ts.xmax_mm:.1f} mm at "
+                f"{sim_voltage:.2f} V. Add a high-pass protection filter; "
+                "the acoustic model does not include an electrical crossover."
+            )
     if is_reflex and len(z_peak_freqs) < 2:
         model_warnings.append(
             "Bass reflex should show two impedance peaks in the simulated range; "
@@ -10740,6 +10938,8 @@ try:
                     flat_metrics.append(("Box volume", f"{box.vr_l + box.vp_l:.1f} L"))
                 elif load_type == "DCCAV":
                     flat_metrics.append(("Box volume", f"{box.vh_l + box.vl_l:.1f} L"))
+                elif is_waveguide:
+                    flat_metrics.append(("Waveguide", str(st.session_state.get("waveguide_topology", "TL"))))
                 else:
                     flat_metrics.append(("Box volume", f"{box.vb_l:.1f} L"))
             flat_metrics.append(("Forge Score", f"{score_val}/100"))
@@ -10807,6 +11007,8 @@ try:
                     vtot_l = box.vs_l + box.vp_l
                 elif is_bandpass6:
                     vtot_l = box.vr_l + box.vp_l
+                elif is_waveguide:
+                    vtot_l = 0.0
                 else:
                     vtot_l = box.vh_l + box.vl_l
                 
@@ -10917,6 +11119,13 @@ try:
                 )
                 a2.metric("Infinite baffle Qts", f"{current_ts.qts:.3f}")
                 a3.metric("Rear radiation", "Isolated")
+            elif is_waveguide:
+                a1, a2, a3, a4 = st.columns(4)
+                a1.metric("Topology", str(st.session_state.get("waveguide_topology", "TL")))
+                line_length = box.length_m if hasattr(box, "length_m") else box.segments[0].length_m
+                a2.metric("Line length", f"{line_length:.2f} m")
+                a3.metric("Line Q", f"{box.line_q:.1f}")
+                a4.metric("Mouth output", "Included")
             else:
                 a1, a2, a3, a4, a5, a6, a7 = st.columns(7)
                 a1.metric("Vh (active)", f"{box.vh_l:.2f} L")
