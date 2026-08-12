@@ -4061,6 +4061,49 @@ def _driver_preset_source(name: str) -> str:
         return "Load Forge database"
 
 
+def _render_driver_mechanical_drawing(
+    mechanical: _presets.MechanicalDimensions | None,
+) -> None:
+    """Render a compact, mobile-safe front/side driver envelope drawing."""
+    if mechanical is None:
+        st.caption("Mechanical dimensions not published for this driver.")
+        return
+    values = {
+        "Overall Ø": mechanical.overall_diameter_mm,
+        "Cutout Ø": mechanical.cutout_diameter_mm,
+        "Depth": mechanical.depth_mm,
+        "Bolt circle": mechanical.bolt_circle_mm,
+        "Weight": mechanical.weight_kg,
+    }
+    shown = {label: value for label, value in values.items() if value is not None}
+    if not shown:
+        st.caption("Mechanical dimensions not published for this driver.")
+        return
+    metrics = st.columns(min(3, len(shown)))
+    for column, (label, value) in zip(metrics * ((len(shown) + 2) // 3), shown.items()):
+        unit = "kg" if label == "Weight" else "mm"
+        column.metric(label, f"{value:.1f} {unit}")
+    overall = mechanical.overall_diameter_mm or 100.0
+    cutout = mechanical.cutout_diameter_mm or overall * 0.85
+    scale = 150.0 / max(overall, 1.0)
+    outer_r = overall * scale / 2.0
+    inner_r = cutout * scale / 2.0
+    st.markdown(
+        f'''<div style="max-width:360px;margin:.6rem auto 0;text-align:center">
+        <svg viewBox="0 0 360 210" width="100%" role="img" aria-label="Driver mechanical drawing">
+          <rect x="1" y="1" width="358" height="208" rx="10" fill="#080b10" stroke="#26313d"/>
+          <circle cx="105" cy="105" r="{outer_r:.1f}" fill="#151c25" stroke="#10b981" stroke-width="3"/>
+          <circle cx="105" cy="105" r="{inner_r:.1f}" fill="#080b10" stroke="#f2c14e" stroke-width="2" stroke-dasharray="5 4"/>
+          <line x1="{105-outer_r:.1f}" y1="180" x2="{105+outer_r:.1f}" y2="180" stroke="#b8c2cc"/>
+          <text x="105" y="198" fill="#b8c2cc" text-anchor="middle" font-size="12">overall Ø / cutout Ø</text>
+          <rect x="220" y="55" width="70" height="100" rx="4" fill="#151c25" stroke="#10b981" stroke-width="3"/>
+          <line x1="305" y1="55" x2="305" y2="155" stroke="#f2c14e"/>
+          <text x="310" y="110" fill="#b8c2cc" font-size="12" transform="rotate(90 310 110)">depth</text>
+        </svg></div>''',
+        unsafe_allow_html=True,
+    )
+
+
 def _driver_preset_exact_source(name: str) -> str:
     try:
         return _dccav.driver_preset_info(name).source
@@ -4415,6 +4458,25 @@ def _filter_driver_preset_names(
     if selected and selected != "Custom" and selected in names and selected not in filtered:
         filtered.insert(0, selected)
     return filtered
+
+
+def _sync_finder_library_selection(filtered_preset_names: list[str]) -> None:
+    """Drop table row selections that belong to a previous filtered pool."""
+    state = st.session_state.get("finder_driver_library_table")
+    if not isinstance(state, dict):
+        return
+    shown_count = min(len(filtered_preset_names), _LIBRARY_TABLE_MAX_ROWS)
+    selection = state.get("selection")
+    if not isinstance(selection, dict):
+        return
+    rows = selection.get("rows", [])
+    valid_rows = [
+        row for row in rows
+        if isinstance(row, int) and 0 <= row < shown_count
+    ]
+    if valid_rows != rows:
+        state["selection"] = {**selection, "rows": valid_rows}
+        st.session_state["finder_driver_library_table"] = state
 
 
 def _driver_preset_class(name: str) -> str:
@@ -9004,6 +9066,17 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     full_df = pd.DataFrame(batch_rows)
     if "_load_type" in full_df.columns:
         full_df = full_df.rename(columns={"_load_type": "Load"})
+    if "Manufacturer" in full_df.columns:
+        manufacturer_counts = (
+            full_df["Manufacturer"].astype(str).value_counts().sort_index()
+        )
+        st.caption(
+            "Risultati per marca: "
+            + " · ".join(
+                f"{manufacturer} {int(count)}"
+                for manufacturer, count in manufacturer_counts.items()
+            )
+        )
     full_df["Vtot L"] = full_df.apply(
         _finder_total_volume_l, axis=1
     )
@@ -10053,11 +10126,21 @@ with st.sidebar:
             with bm_tab3:
                 _render_finder_library_filters(all_preset_names)
 
+        def _live_or_aggregate_filter(key: str):
+            live = st.session_state.get(f"{key}__select_v5")
+            aggregate = st.session_state.get(key, ["All"])
+            # Empty live multiselect means All only when no restored/project
+            # aggregate carries a concrete selection.
+            return live if live else aggregate
+
         filtered_preset_names = _filter_driver_preset_names(
             all_preset_names,
-            source=st.session_state.get("preset_source_filter", "All"),
-            family=st.session_state.get("preset_family_filter", "All"),
-            size=st.session_state.get("preset_size_filter", "All"),
+            # Read the live multiselect keys. The aggregate project keys are
+            # updated by callbacks and can otherwise lag one rerun behind
+            # when a second manufacturer is added to the selection.
+            source=_live_or_aggregate_filter("preset_source_filter"),
+            family=_live_or_aggregate_filter("preset_family_filter"),
+            size=_live_or_aggregate_filter("preset_size_filter"),
             search=st.session_state.get("preset_search", ""),
             max_price=(
                 float(st.session_state["preset_max_price"])
@@ -10068,7 +10151,7 @@ with st.sidebar:
                 if st.session_state.get("preset_price_enabled", False) else None
             ),
             selected=None,
-            driver_class=st.session_state.get("preset_class_filter", ["All"]),
+            driver_class=_live_or_aggregate_filter("preset_class_filter"),
             max_mms_g=(
                 float(st.session_state["finder_max_mms_g"])
                 if float(st.session_state.get("finder_max_mms_g", 0.0)) > 0.0
@@ -10080,6 +10163,7 @@ with st.sidebar:
                 else None
             ),
         )
+        _sync_finder_library_selection(filtered_preset_names)
         if bm_tab3.open:
             with bm_tab3:
                 _render_find_driver_actions(filtered_preset_names)
@@ -10171,6 +10255,8 @@ with st.sidebar:
                         f"Nominal frame: {nominal} · Sd: {preset_driver.sd_cm2:.1f} cm² "
                         f"· equivalent effective piston: Ø {effective:.2f} in"
                     )
+                    with st.expander("Mechanical drawing", expanded=False):
+                        _render_driver_mechanical_drawing(preset_info.mechanical)
                     
             catalog_source_preset = (
                 preset_name if preset_name != "Custom"

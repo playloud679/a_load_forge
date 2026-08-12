@@ -10,6 +10,13 @@
   change and retries serially when a stale worker pool returns no rows.
 - **UI**: restored the dark green theme and made project opening neutral rather
   than destructive red.
+- **Mechanical driver data**: added an optional `MechanicalDimensions` block
+  for layout work and a responsive front/side drawing in Box Design; ZTZ
+  records now expose published overall diameter, cutout, depth, bolt circle
+  and weight without changing acoustic calculations.
+- **Multi-manufacturer Finder**: live manufacturer selections are now read
+  directly from the active multiselect, stale table selections are discarded,
+  and mixed ZTZ/Scan-Speak/Beyma pools remain visible and rankable.
 - **Verification**: Python compilation, Streamlit AppTest and the active suite
   pass with 0 failures.
 

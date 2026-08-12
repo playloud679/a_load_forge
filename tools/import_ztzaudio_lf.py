@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 
@@ -35,6 +36,15 @@ def main() -> int:
         driver_values = {
             key: value for key, value in values.items() if value is not None
         }
+        raw = product.get("raw_parameters") or {}
+        mechanical = {
+            "overall_diameter_mm": _parse_first_mm(raw.get("Overall Diameter")),
+            "cutout_diameter_mm": _parse_first_mm(raw.get("Bafﬂe cutout Diameter")),
+            "depth_mm": _parse_first_mm(raw.get("Depth")),
+            "bolt_circle_mm": _parse_first_mm(raw.get("Bolt Circle Diameter")),
+            "weight_kg": _parse_first_number(raw.get("Net Weight")),
+        }
+        mechanical = {key: value for key, value in mechanical.items() if value is not None}
         name = f"ZTZ: {product['name']}"
         presets.append({
             "name": name,
@@ -49,6 +59,7 @@ def main() -> int:
             "price_url": "",
             "url": product["datasheet_url"] or product["url"],
             "driver": driver_values,
+            "mechanical": mechanical,
             "raw": driver_values,
             "website_fields": {
                 "brand": "ZTZ Audio",
@@ -75,6 +86,19 @@ def main() -> int:
     # Rejected source pages are expected for a commercial catalog: they remain
     # in the raw crawl and must not make the validated import fail.
     return 0
+
+
+def _parse_first_mm(value) -> float | None:
+    match = re.search(r"([0-9]+(?:[.,][0-9]+)?)\s*/\s*([0-9]+(?:[.,][0-9]+)?)\s*(?:in|inch)?\s*/?\s*mm", str(value), re.I)
+    if not match:
+        match = re.search(r"([0-9]+(?:[.,][0-9]+)?)\s*mm", str(value), re.I)
+        return float(match.group(1).replace(",", ".")) if match else None
+    return float(match.group(2).replace(",", "."))
+
+
+def _parse_first_number(value) -> float | None:
+    match = re.search(r"([0-9]+(?:[.,][0-9]+)?)", str(value))
+    return float(match.group(1).replace(",", ".")) if match else None
 
 
 if __name__ == "__main__":

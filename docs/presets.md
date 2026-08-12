@@ -71,6 +71,10 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
   `driver_preset_names/info/get_driver_preset` walk after the built-ins.
 - Public catalog API: `driver_preset_names()`, `driver_preset_info(name)`,
   `driver_preset_provenance_category(name)`, `get_driver_preset(name)`
+- `DriverPresetInfo.mechanical` optionally carries physical layout dimensions
+  (`MechanicalDimensions`: overall diameter, cutout, depth, bolt circle and
+  weight). These values are for drawing/layout checks only and never enter the
+  acoustic T/S solver.
 - Size/Sd integrity API: `effective_piston_diameter_in(sd_cm2)`,
   `nominal_size_matches_sd(size_in, sd_cm2)` and
   `coherent_nominal_size_in(size_in, sd_cm2)`. External nominal sizes are

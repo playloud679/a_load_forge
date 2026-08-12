@@ -27,6 +27,13 @@
         "xmax_mm": 11.2,
         "pe_w": 1800.0
       },
+      "mechanical": {
+        "overall_diameter_mm": 462.0,
+        "cutout_diameter_mm": 430.0,
+        "depth_mm": 208.0,
+        "bolt_circle_mm": 440.0,
+        "weight_kg": 20.8
+      },
       "raw": {
         "fs_hz": 32.0,
         "vas_l": 152.0,
@@ -107,6 +114,12 @@
         "bl_tm": 21.1,
         "xmax_mm": 3.4,
         "pe_w": 500.0
+      },
+      "mechanical": {
+        "overall_diameter_mm": 392.0,
+        "depth_mm": 190.0,
+        "bolt_circle_mm": 377.0,
+        "weight_kg": 9.75
       },
       "raw": {
         "fs_hz": 40.0,
@@ -190,6 +203,12 @@
         "xmax_mm": 4.0,
         "pe_w": 400.0
       },
+      "mechanical": {
+        "overall_diameter_mm": 318.0,
+        "depth_mm": 168.0,
+        "bolt_circle_mm": 300.0,
+        "weight_kg": 8.9
+      },
       "raw": {
         "fs_hz": 43.0,
         "vas_l": 70.2,
@@ -271,6 +290,12 @@
         "bl_tm": 18.1,
         "xmax_mm": 2.5,
         "pe_w": 350.0
+      },
+      "mechanical": {
+        "overall_diameter_mm": 264.0,
+        "depth_mm": 142.0,
+        "bolt_circle_mm": 245.0,
+        "weight_kg": 7.95
       },
       "raw": {
         "fs_hz": 55.0,
@@ -354,6 +379,12 @@
         "xmax_mm": 5.1,
         "pe_w": 300.0
       },
+      "mechanical": {
+        "overall_diameter_mm": 226.0,
+        "depth_mm": 113.0,
+        "bolt_circle_mm": 210.0,
+        "weight_kg": 6.45
+      },
       "raw": {
         "fs_hz": 83.0,
         "vas_l": 7.1,
@@ -435,6 +466,12 @@
         "bl_tm": 45.0,
         "xmax_mm": 12.5,
         "pe_w": 2000.0
+      },
+      "mechanical": {
+        "overall_diameter_mm": 462.0,
+        "depth_mm": 240.0,
+        "bolt_circle_mm": 445.0,
+        "weight_kg": 35.85
       },
       "raw": {
         "fs_hz": 36.0,
@@ -518,6 +555,12 @@
         "xmax_mm": 9.6,
         "pe_w": 1800.0
       },
+      "mechanical": {
+        "overall_diameter_mm": 392.0,
+        "depth_mm": 215.0,
+        "bolt_circle_mm": 377.0,
+        "weight_kg": 24.8
+      },
       "raw": {
         "fs_hz": 45.0,
         "vas_l": 30.0,
@@ -599,6 +642,12 @@
         "bl_tm": 23.6,
         "xmax_mm": 4.1,
         "pe_w": 400.0
+      },
+      "mechanical": {
+        "overall_diameter_mm": 317.0,
+        "depth_mm": 159.0,
+        "bolt_circle_mm": 300.0,
+        "weight_kg": 7.95
       },
       "raw": {
         "fs_hz": 58.0,
@@ -682,6 +731,12 @@
         "xmax_mm": 5.1,
         "pe_w": 400.0
       },
+      "mechanical": {
+        "overall_diameter_mm": 263.0,
+        "depth_mm": 143.0,
+        "bolt_circle_mm": 247.0,
+        "weight_kg": 7.72
+      },
       "raw": {
         "fs_hz": 72.0,
         "vas_l": 19.2,
@@ -763,6 +818,12 @@
         "bl_tm": 26.3,
         "xmax_mm": 9.0,
         "pe_w": 1000.0
+      },
+      "mechanical": {
+        "overall_diameter_mm": 462.0,
+        "depth_mm": 216.0,
+        "bolt_circle_mm": 445.0,
+        "weight_kg": 13.5
       },
       "raw": {
         "fs_hz": 33.0,
@@ -846,6 +907,12 @@
         "xmax_mm": 9.6,
         "pe_w": 1000.0
       },
+      "mechanical": {
+        "overall_diameter_mm": 392.0,
+        "depth_mm": 191.0,
+        "bolt_circle_mm": 377.0,
+        "weight_kg": 13.13
+      },
       "raw": {
         "fs_hz": 41.0,
         "vas_l": 81.5,
@@ -928,6 +995,13 @@
         "xmax_mm": 5.7,
         "pe_w": 800.0
       },
+      "mechanical": {
+        "overall_diameter_mm": 393.0,
+        "cutout_diameter_mm": 353.0,
+        "depth_mm": 180.0,
+        "bolt_circle_mm": 375.0,
+        "weight_kg": 11.6
+      },
       "raw": {
         "fs_hz": 48.0,
         "vas_l": 106.0,
@@ -1008,6 +1082,13 @@
         "bl_tm": 22.0,
         "xmax_mm": 3.7,
         "pe_w": 800.0
+      },
+      "mechanical": {
+        "overall_diameter_mm": 317.0,
+        "cutout_diameter_mm": 285.0,
+        "depth_mm": 160.0,
+        "bolt_circle_mm": 300.0,
+        "weight_kg": 10.7
       },
       "raw": {
         "fs_hz": 50.0,
@@ -1090,6 +1171,13 @@
         "xmax_mm": 3.7,
         "pe_w": 600.0
       },
+      "mechanical": {
+        "overall_diameter_mm": 265.0,
+        "cutout_diameter_mm": 228.0,
+        "depth_mm": 145.0,
+        "bolt_circle_mm": 245.0,
+        "weight_kg": 10.0
+      },
       "raw": {
         "fs_hz": 63.0,
         "vas_l": 24.0,
@@ -1170,6 +1258,13 @@
         "bl_tm": 32.0,
         "xmax_mm": 9.9,
         "pe_w": 1500.0
+      },
+      "mechanical": {
+        "overall_diameter_mm": 460.0,
+        "cutout_diameter_mm": 420.0,
+        "depth_mm": 215.0,
+        "bolt_circle_mm": 442.0,
+        "weight_kg": 19.6
       },
       "raw": {
         "fs_hz": 35.0,
@@ -1252,6 +1347,13 @@
         "xmax_mm": 15.0,
         "pe_w": 1200.0
       },
+      "mechanical": {
+        "overall_diameter_mm": 393.0,
+        "cutout_diameter_mm": 353.0,
+        "depth_mm": 200.0,
+        "bolt_circle_mm": 357.0,
+        "weight_kg": 18.0
+      },
       "raw": {
         "fs_hz": 45.0,
         "vas_l": 45.0,
@@ -1332,6 +1434,13 @@
         "bl_tm": 64.5,
         "xmax_mm": 8.35,
         "pe_w": 3500.0
+      },
+      "mechanical": {
+        "overall_diameter_mm": 550.0,
+        "cutout_diameter_mm": 496.0,
+        "depth_mm": 270.0,
+        "bolt_circle_mm": 528.0,
+        "weight_kg": 40.0
       },
       "raw": {
         "fs_hz": 37.4,
@@ -1414,6 +1523,13 @@
         "xmax_mm": 14.7,
         "pe_w": 1800.0
       },
+      "mechanical": {
+        "overall_diameter_mm": 460.0,
+        "cutout_diameter_mm": 430.0,
+        "depth_mm": 225.0,
+        "bolt_circle_mm": 445.0,
+        "weight_kg": 14.8
+      },
       "raw": {
         "fs_hz": 38.0,
         "vas_l": 115.0,
@@ -1494,6 +1610,13 @@
         "bl_tm": 29.1,
         "xmax_mm": 11.2,
         "pe_w": 1200.0
+      },
+      "mechanical": {
+        "overall_diameter_mm": 390.0,
+        "cutout_diameter_mm": 360.0,
+        "depth_mm": 200.0,
+        "bolt_circle_mm": 370.0,
+        "weight_kg": 15.3
       },
       "raw": {
         "fs_hz": 40.0,
@@ -1576,6 +1699,13 @@
         "xmax_mm": 9.9,
         "pe_w": 1200.0
       },
+      "mechanical": {
+        "overall_diameter_mm": 460.0,
+        "cutout_diameter_mm": 420.0,
+        "depth_mm": 220.0,
+        "bolt_circle_mm": 442.0,
+        "weight_kg": 14.0
+      },
       "raw": {
         "fs_hz": 40.0,
         "vas_l": 147.0,
@@ -1656,6 +1786,13 @@
         "bl_tm": 25.0,
         "xmax_mm": 9.9,
         "pe_w": 1000.0
+      },
+      "mechanical": {
+        "overall_diameter_mm": 393.0,
+        "cutout_diameter_mm": 353.0,
+        "depth_mm": 195.0,
+        "bolt_circle_mm": 357.0,
+        "weight_kg": 12.5
       },
       "raw": {
         "fs_hz": 45.0,
@@ -1738,6 +1875,13 @@
         "xmax_mm": 4.1,
         "pe_w": 500.0
       },
+      "mechanical": {
+        "overall_diameter_mm": 393.0,
+        "cutout_diameter_mm": 353.0,
+        "depth_mm": 175.0,
+        "bolt_circle_mm": 357.0,
+        "weight_kg": 9.15
+      },
       "raw": {
         "fs_hz": 56.0,
         "vas_l": 99.0,
@@ -1818,6 +1962,13 @@
         "bl_tm": 19.2,
         "xmax_mm": 4.1,
         "pe_w": 400.0
+      },
+      "mechanical": {
+        "overall_diameter_mm": 317.0,
+        "cutout_diameter_mm": 285.0,
+        "depth_mm": 155.0,
+        "bolt_circle_mm": 300.0,
+        "weight_kg": 8.5
       },
       "raw": {
         "fs_hz": 54.0,
@@ -1900,6 +2051,13 @@
         "xmax_mm": 2.15,
         "pe_w": 300.0
       },
+      "mechanical": {
+        "overall_diameter_mm": 265.0,
+        "cutout_diameter_mm": 228.0,
+        "depth_mm": 140.0,
+        "bolt_circle_mm": 245.0,
+        "weight_kg": 8.2
+      },
       "raw": {
         "fs_hz": 65.0,
         "vas_l": 21.4,
@@ -1980,6 +2138,13 @@
         "bl_tm": 14.8,
         "xmax_mm": 2.5,
         "pe_w": 200.0
+      },
+      "mechanical": {
+        "overall_diameter_mm": 212.0,
+        "cutout_diameter_mm": 182.0,
+        "depth_mm": 110.0,
+        "bolt_circle_mm": 197.0,
+        "weight_kg": 4.0
       },
       "raw": {
         "fs_hz": 85.0,

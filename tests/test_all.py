@@ -3783,6 +3783,19 @@ def _check_ui_driver_library_compares_nominal_size_and_sd():
         if name.startswith("WEB: Dayton Audio RSS315HO-4 12")
     )
 
+    ztz_info = _dccav.driver_preset_info("ZTZ: TN-18SW1280")
+    assert ztz_info.mechanical is not None
+    assert ztz_info.mechanical.overall_diameter_mm == 462.0
+    assert ztz_info.mechanical.cutout_diameter_mm == 430.0
+    assert ztz_info.mechanical.depth_mm == 208.0
+    mixed = _ui._filter_driver_preset_names(
+        _ui._dccav.driver_preset_names(),
+        source="All", family=["ZTZ Audio", "Beyma"], size="All",
+        search="", driver_class="All",
+    )
+    assert sum(name.startswith("ZTZ: ") for name in mixed) == 25
+    assert sum(name.startswith("Beyma ") for name in mixed) > 0
+
     unique, removed = _ui._deduplicate_finder_preset_names([
         "Dayton Audio RSS315HO-4",
         dayton_retailer_name,

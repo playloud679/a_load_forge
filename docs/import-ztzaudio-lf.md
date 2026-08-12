@@ -21,5 +21,7 @@ eligible for automatic Load Forge import only when the required LF T/S fields
 are present (`Fs`, `Vas`, `Qms`, `Qes`, `Qts`, `Re`, `Sd`, `Mms`, `BL` and
 `Xmax`); the importer also preserves the nominal chassis size separately as
 `size_in`. `Sd` remains the effective piston area and must not be used as the
-nominal frame diameter. The remaining records are retained as source material
+nominal frame diameter. Where published, mechanical fields are imported
+separately for layout drawing: overall diameter, baffle cutout, depth, bolt
+circle and net weight. The remaining records are retained as source material
 and must be completed or manually reviewed first.

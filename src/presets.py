@@ -124,6 +124,20 @@ def coherent_nominal_size_in(
 
 
 @dataclass(frozen=True)
+class MechanicalDimensions:
+    """Physical driver envelope used by the drawing/layout tools, not T/S."""
+
+    overall_diameter_mm: float | None = None
+    cutout_diameter_mm: float | None = None
+    depth_mm: float | None = None
+    mounting_depth_mm: float | None = None
+    bolt_circle_mm: float | None = None
+    mounting_hole_count: int | None = None
+    mounting_hole_diameter_mm: float | None = None
+    weight_kg: float | None = None
+
+
+@dataclass(frozen=True)
 class DriverPresetInfo:
     """Metadata used to filter a named driver preset in the UI."""
 
@@ -137,6 +151,7 @@ class DriverPresetInfo:
     kind: str = ""
     url: str = ""
     part_number: str = ""
+    mechanical: MechanicalDimensions | None = None
 
 
 @dataclass(frozen=True)
@@ -970,6 +985,26 @@ def _driver_ts_from_mapping(values: dict) -> DriverTS:
     )
 
 
+def _mechanical_dimensions_from_mapping(values: dict | None) -> MechanicalDimensions | None:
+    """Parse optional physical dimensions without affecting acoustic fields."""
+    if not isinstance(values, dict):
+        return None
+    def number(key: str) -> float | None:
+        value = values.get(key)
+        return float(value) if value is not None else None
+    holes = values.get("mounting_hole_count")
+    return MechanicalDimensions(
+        overall_diameter_mm=number("overall_diameter_mm"),
+        cutout_diameter_mm=number("cutout_diameter_mm"),
+        depth_mm=number("depth_mm"),
+        mounting_depth_mm=number("mounting_depth_mm"),
+        bolt_circle_mm=number("bolt_circle_mm"),
+        mounting_hole_count=int(holes) if holes is not None else None,
+        mounting_hole_diameter_mm=number("mounting_hole_diameter_mm"),
+        weight_kg=number("weight_kg"),
+    )
+
+
 
 def _load_external_presets(
     path: Path,
@@ -1046,6 +1081,7 @@ def _load_external_presets(
             currency=enriched_currency or item_currency,
             kind=str(item.get("kind") or ""),
             url=enriched_url or str(item.get("url") or ""),
+            mechanical=_mechanical_dimensions_from_mapping(item.get("mechanical")),
         )
         identity = _external_catalog_identity(
             item_brand,
