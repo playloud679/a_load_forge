@@ -81,9 +81,11 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
   accepted while the circular effective diameter represented by `Sd` is
   70–115% of the nominal frame size. This tolerance accommodates differing
   baskets and suspensions while rejecting size-like model numbers and bad
-  catalog labels; values outside it are replaced at load time by the nearest
-  conventional Size/Sd anchor so filters and ranked tables cannot expose
-  physically contradictory diameter metadata.
+  catalog labels. Missing values and values outside it are replaced at load
+  time by the nearest conventional Size/Sd anchor, including for built-in
+  presets, so filters and ranked tables always expose coherent diameter
+  metadata. This is an estimated commercial frame-size class, not a claim that
+  nominal frame diameter equals the smaller effective piston diameter.
 
 `DriverPresetInfo.name` remains the stable, source-decorated internal catalog
 key. Runtime identity is exposed separately as `brand` and `part_number`; the

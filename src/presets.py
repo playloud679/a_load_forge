@@ -107,11 +107,9 @@ def coherent_nominal_size_in(
     size_in: float | None,
     sd_cm2: float,
 ) -> float | None:
-    """Keep a plausible nominal size or replace it with the nearest Sd class."""
-    if size_in is None:
-        return None
-    size = float(size_in)
-    if nominal_size_matches_sd(size, sd_cm2):
+    """Keep a plausible nominal size or infer the nearest class from Sd."""
+    size = float(size_in) if size_in is not None else None
+    if size is not None and nominal_size_matches_sd(size, sd_cm2):
         return size
     sd = float(sd_cm2)
     if not math.isfinite(sd) or sd <= 0.0:
@@ -1252,6 +1250,7 @@ def driver_preset_info(name: str) -> DriverPresetInfo:
             brand=brand,
             model=model,
             part_number=model,
+            size_in=coherent_nominal_size_in(None, DRIVER_PRESETS[name].sd_cm2),
             price=price,
             currency=currency,
             url=url,

@@ -8394,6 +8394,34 @@ def _clean_display_table_frame(frame: pd.DataFrame) -> pd.DataFrame:
     return display
 
 
+def _refresh_finder_result_catalog_metadata(rows: object) -> list[dict]:
+    """Fill metadata gaps in saved Finder rows from the current catalog.
+
+    Finder results are persisted in projects and Streamlit session state, so
+    rows calculated before a catalog-metadata fix can outlive the code that
+    produced them.  Refreshing nominal size is safe without re-simulating: it
+    is display/filter metadata and does not enter the acoustic solver.
+    """
+    if not isinstance(rows, (list, tuple)):
+        return []
+    refreshed: list[dict] = []
+    for saved in rows:
+        if not isinstance(saved, dict):
+            continue
+        row = dict(saved)
+        if _table_value_missing(row.get("Size in")):
+            try:
+                size_in = _dccav.driver_preset_info(
+                    str(row.get("Driver", ""))
+                ).size_in
+            except ValueError:
+                size_in = None
+            if size_in is not None:
+                row["Size in"] = float(size_in)
+        refreshed.append(row)
+    return refreshed
+
+
 @st.cache_data(show_spinner=False)
 def _driver_library_frame(
     # Cache busted to reflect nominal-size preservation in imported catalogs.
@@ -9036,6 +9064,9 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                     )
         _render_candidate_pool(filtered_preset_names)
         return
+
+    batch_rows = _refresh_finder_result_catalog_metadata(batch_rows)
+    st.session_state["batch_results"] = batch_rows
 
     selection_cta = st.empty()
     display_finder_loads = [

@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.8.11 (2026-08-12)
+
+- **Complete nominal sizes**: drivers whose catalog record omits nominal frame
+  size now receive the nearest conventional size class inferred from `Sd`,
+  using the same mapping already used to repair incoherent size metadata.
+  The rule covers external catalogs and built-in presets, leaving published
+  source data distinct from runtime estimates.
+- **Persisted Finder metadata**: saved project/session results refresh missing
+  nominal sizes from the live catalog, so pre-fix rows no longer display
+  `None` and do not require an unnecessary acoustic re-simulation.
+- **Verification**: Python compilation, targeted DCCAV tests (31/31),
+  Streamlit AppTest and the fresh full active suite (151/151) pass with
+  0 failures and 0 skips.
+
 ## 0.8.10 (2026-08-12)
 
 - **ZTZ Audio LF catalog**: imported 25 validated ferrite woofer presets from

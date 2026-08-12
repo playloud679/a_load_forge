@@ -3701,6 +3701,18 @@ test("UI driver preset price filter uses optional metadata", _check_ui_driver_pr
 def _check_ui_driver_library_compares_nominal_size_and_sd():
     import ui_app as _ui
 
+    assert _ui._presets.coherent_nominal_size_in(None, 530.0) == 12.0
+    assert _ui._dccav.driver_preset_info("Beyma 12CMV2").size_in == 12.0
+
+    saved_rows = [{
+        "Driver": "ZTZ: TN-12MD300",
+        "Size in": None,
+        "Sd cm²": 539.0,
+    }]
+    refreshed_rows = _ui._refresh_finder_result_catalog_metadata(saved_rows)
+    assert refreshed_rows[0]["Size in"] == 12.0
+    assert saved_rows[0]["Size in"] is None, "saved rows must not be mutated in place"
+
     alpair_name = next(
         name for name in _ui._dccav.driver_preset_names()
         if name.startswith("WEB: Markaudio Alpair 10P [MFR ")
@@ -3737,6 +3749,16 @@ def _check_ui_driver_library_compares_nominal_size_and_sd():
     assert ciare["Sd cm²"] == 211.2
     assert not _ui._presets.nominal_size_matches_sd(10.0, ciare["Sd cm²"])
     assert _ui._presets.coherent_nominal_size_in(10.0, ciare["Sd cm²"]) == 8.0
+
+    missing_sizes = [
+        name
+        for name in _ui._dccav.driver_preset_names()
+        if _ui._dccav.driver_preset_info(name).size_in is None
+    ]
+    assert missing_sizes == [], (
+        f"every runtime driver with valid Sd must receive a nominal size: "
+        f"{missing_sizes[:10]}"
+    )
 
     sb_name = next(
         name for name in _ui._dccav.driver_preset_names()
