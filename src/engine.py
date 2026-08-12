@@ -182,6 +182,7 @@ class PassiveRadiatorBox:
     pr_fp_hz: float
     pr_qmp: float = 5.0
     pr_mmp_g: float = 100.0
+    pr_added_mass_g: float = 0.0
     pr_xmax_mm: float = 0.0
     q_abs: float = 15.0
     q_leak: float = 1000.0
@@ -2080,9 +2081,10 @@ def simulate_reflex(
 def _pr_impedance(box: PassiveRadiatorBox, w: np.ndarray) -> np.ndarray:
     """Passive radiator acoustic impedance Rap + jw*Map + 1/(jw*Cap)."""
     sp_m2 = box.pr_sp_cm2 / 10_000.0
-    mmp_kg = box.pr_mmp_g / 1_000.0
-    cmp_m_per_n = 1.0 / ((2.0 * np.pi * box.pr_fp_hz) ** 2 * mmp_kg)
-    rmp = 2.0 * np.pi * box.pr_fp_hz * mmp_kg / max(box.pr_qmp, 0.1)
+    mmp_kg = (box.pr_mmp_g + box.pr_added_mass_g) / 1_000.0
+    fp_hz = passive_radiator_effective_fp_hz(box)
+    cmp_m_per_n = 1.0 / ((2.0 * np.pi * fp_hz) ** 2 * mmp_kg)
+    rmp = 2.0 * np.pi * fp_hz * mmp_kg / max(box.pr_qmp, 0.1)
     cap = cmp_m_per_n * sp_m2 ** 2
     map_ = mmp_kg / sp_m2 ** 2
     rap = rmp / sp_m2 ** 2
@@ -2162,6 +2164,7 @@ def suggest_pr_alignment(ts: DriverTS, pr_box: PassiveRadiatorBox | None = None)
             pr_fp_hz=pr_box.pr_fp_hz,
             pr_qmp=pr_box.pr_qmp,
             pr_mmp_g=pr_box.pr_mmp_g,
+            pr_added_mass_g=pr_box.pr_added_mass_g,
             pr_xmax_mm=pr_box.pr_xmax_mm,
         )
     return PassiveRadiatorBox(
@@ -2174,6 +2177,16 @@ def _validate_pr_box(box: PassiveRadiatorBox) -> None:
     _require_positive("PR Fp", box.pr_fp_hz)
     _require_positive("PR Qmp", box.pr_qmp)
     _require_positive("PR Mmp", box.pr_mmp_g)
+    if box.pr_added_mass_g < 0.0:
+        raise ValueError("PR added mass must be non-negative")
+
+
+def passive_radiator_effective_fp_hz(box: PassiveRadiatorBox) -> float:
+    """Return PR resonance after adding mass while keeping Cms unchanged."""
+    _require_positive("PR Mmp", box.pr_mmp_g)
+    if box.pr_added_mass_g < 0.0:
+        raise ValueError("PR added mass must be non-negative")
+    return float(box.pr_fp_hz * np.sqrt(box.pr_mmp_g / (box.pr_mmp_g + box.pr_added_mass_g)))
 
 
 def suggest_bandpass6_alignment(

@@ -30,6 +30,11 @@ API; detailed contracts live in `docs/dccav.md`.
   Q-identity validation and unit-aware `Sd` verification against `Vas/Cms`.
   It remains a separate third-party optional tier; review upstream terms
   before public redistribution.
+- `data/catalog_ztzaudio_lf_ferrite_presets.json` (`ZTZ_AUDIO_DATABASE_PATH`):
+  25 ZTZ Audio LF ferrite records with complete T/S identity and manufacturer
+  page provenance. The 93 incomplete or physically inconsistent source pages
+  remain in `data/catalog_ztzaudio_lf_ferrite.json` and are not exposed as
+  simulation drivers.
 
 Never move fields between LSDB, VituixCAD, Speaker Box Lite and
 manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
@@ -40,10 +45,13 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
 - `DriverPresetInfo` dataclass, `LOUDSPEAKER_DATABASE_PATH`,
   `manufacturer_database_path()`, `MANUFACTURER_DATABASE_PATH`,
   `VITUIXCAD_DATABASE_PATH`,
-  `SPEAKERBOXLITE_DATABASE_PATH`
+  `SPEAKERBOXLITE_DATABASE_PATH`, `ZTZ_AUDIO_DATABASE_PATH`
 - `DRIVER_PRESETS`: the curated built-in catalog (KEF article example,
   Beyma, Turbosound, Scan-Speak, Dayton, SB Audience, LaVoce, MarkAudio,
   Aiyima minis, …)
+- `PASSIVE_RADIATOR_PRESETS`: mechanical passive-radiator presets kept separate
+  from active-driver T/S records. The UI exposes their `Sp`, `Fp`, `Qmp` and
+  `Mmp` values and applies optional added mass at simulation time.
 - `_load_external_presets(path, ...)`: shared lazy loader used by all four
   catalogs; missing or invalid files degrade to whatever tiers remain. Within
   the Load Forge manufacturer tier, decorated SB Acoustics titles are
@@ -53,12 +61,13 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
   SB Acoustics crawler data wins over retailer copies, and an exact retailer
   price can still enrich the retained row.
 - `_load_loudspeaker_database_presets()` / `_load_manufacturer_presets()` /
-  `_load_vituixcad_presets()` / `_load_speakerboxlite_presets()`
-  (`lru_cache(maxsize=1)` each): the four catalog-specific loaders. The
+  `_load_vituixcad_presets()` / `_load_speakerboxlite_presets()` /
+  `_load_ztzaudio_presets()` (`lru_cache(maxsize=1)` each): the catalog-specific
+  loaders. The
   generated aggregate tiers are already brand/model-deduplicated against
   earlier catalogs.
 - `_external_tiers()`: the ordered list
-  `[LSDB, manufacturer, VituixCAD, Speaker Box Lite]` that
+  `[LSDB, manufacturer, VituixCAD, Speaker Box Lite, ZTZ Audio]` that
   `driver_preset_names/info/get_driver_preset` walk after the built-ins.
 - Public catalog API: `driver_preset_names()`, `driver_preset_info(name)`,
   `driver_preset_provenance_category(name)`, `get_driver_preset(name)`

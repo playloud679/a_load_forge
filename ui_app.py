@@ -1735,6 +1735,7 @@ def _manual_box_keys_for_load_type(load_type: str) -> tuple[str, ...]:
                 "pr_fp_hz",
                 "pr_qmp",
                 "pr_mmp_g",
+                "pr_added_mass_g",
                 "pr_xmax_mm",
             )
         return ("reflex_vb_l", "reflex_fb_hz", "reflex_port_d_cm")
@@ -2986,7 +2987,7 @@ def _render_browser_project_controls() -> None:
             )
             if st.button(
                 "Open project",
-                type="primary",
+                type="secondary",
                 key="_browser_project_menu_open",
                 use_container_width=True,
             ):
@@ -3392,6 +3393,7 @@ def _pr_box_from_state() -> _dccav.PassiveRadiatorBox:
         pr_fp_hz=float(st.session_state.get("pr_fp_hz", 20.0)),
         pr_qmp=float(st.session_state.get("pr_qmp", 5.0)),
         pr_mmp_g=float(st.session_state.get("pr_mmp_g", 100.0)),
+        pr_added_mass_g=float(st.session_state.get("pr_added_mass_g", 0.0)),
         pr_xmax_mm=float(st.session_state.get("pr_xmax_mm", 0.0)),
         q_abs=float(st.session_state.get("pr_q_abs", 15.0)),
         q_leak=float(st.session_state.get("pr_q_leak", 1000.0)),
@@ -4652,6 +4654,23 @@ def _on_waveguide_topology_change():
         st.session_state["_waveguide_th_seeded"] = True
 
 
+def _on_pr_preset_change():
+    """Apply a catalogued passive radiator to the editable PR fields."""
+    name = str(st.session_state.get("pr_preset_name", "Custom"))
+    if name == "Custom":
+        return
+    pr = _dccav.get_passive_radiator_preset(name)
+    for key, value in (
+        ("pr_sp_cm2", pr.sp_cm2),
+        ("pr_fp_hz", pr.fp_hz),
+        ("pr_qmp", pr.qmp),
+        ("pr_mmp_g", pr.mmp_g),
+        ("pr_xmax_mm", pr.xmax_mm),
+        ("pr_added_mass_g", 0.0),
+    ):
+        st.session_state[key] = value
+
+
 def _series_frame(result: _dccav.SimulationResult, series: dict[str, np.ndarray]) -> pd.DataFrame:
     rows = []
     for name, values in series.items():
@@ -4838,9 +4857,9 @@ def _response_tuning_markers() -> list[tuple[str, float]]:
     """Return the active enclosure tuning frequencies for the response plot."""
     load_type = str(st.session_state.get("load_type", "DCCAV"))
     if load_type == "Bass reflex":
-        key = "pr_fp_hz" if _reflex_uses_passive_radiator() else "reflex_fb_hz"
-        label = "PR tuning" if key == "pr_fp_hz" else "Reflex tuning"
-        return [(label, float(st.session_state[key]))]
+        if _reflex_uses_passive_radiator():
+            return [("PR tuning", _dccav.passive_radiator_effective_fp_hz(_pr_box_from_state()))]
+        return [("Reflex tuning", float(st.session_state["reflex_fb_hz"]))]
     if load_type == "Bandpass 4th order":
         return [("Front tuning", float(st.session_state["bandpass4_fp_hz"]))]
     if load_type == "Bandpass 6th order":
@@ -5456,7 +5475,10 @@ def _pin_label(
         preset = f"{preset} ({config})"
     if load_type == "Bass reflex":
         if isinstance(box, _dccav.PassiveRadiatorBox):
-            box_txt = f"Vb {box.vb_l:.1f} L · PR Fp {box.pr_fp_hz:.1f} Hz"
+            box_txt = (
+                f"Vb {box.vb_l:.1f} L · PR Fp "
+                f"{_dccav.passive_radiator_effective_fp_hz(box):.1f} Hz"
+            )
         else:
             box_txt = f"Vb {box.vb_l:.1f} L · Fb {box.fb_hz:.1f} Hz"
     elif load_type == "Bandpass 4th order":
@@ -6630,6 +6652,7 @@ def _finder_pool_fingerprint(workers: int) -> tuple:
     paths.extend([
         _presets.MANUFACTURER_DATABASE_PATH,
         _presets.LOUDSPEAKER_DATABASE_PATH,
+        _presets.ZTZ_AUDIO_DATABASE_PATH,
         _pricing.DRIVER_PRICES_PATH,
     ])
     mtimes = tuple(
@@ -7893,6 +7916,7 @@ def _run_find_driver_search(
         )
     st.session_state.pop("_finder_match_completion", None)
     all_rows: list[dict] = []
+    load_run_stats: dict[str, dict[str, int]] = {}
     completed_offset = 0
     for lt in finder_load_types:
         load_preset_names = candidate_pools.get(lt, [])
@@ -7927,6 +7951,26 @@ def _run_find_driver_search(
                 progress_total,
                 finder_driver_configuration,
             )
+            # A worker can hold a stale external-catalog module after a
+            # Streamlit reload. If the whole pool returns no rows, retry this
+            # load serially in the current process before reporting failure.
+            if not batch_rows and load_scan_count:
+                batch_rows = _batch_rank_presets_with_progress(
+                    tuple(load_preset_names),
+                    ranking_load_type,
+                    finder_volume_l,
+                    float(_finder_value("finder_voltage")),
+                    float(_finder_value("finder_f_min")),
+                    float(_finder_value("finder_f_max")),
+                    int(_finder_value("finder_points")),
+                    load_scan_count,
+                    goals,
+                    progress,
+                    progress_text,
+                    completed_offset,
+                    progress_total,
+                    finder_driver_configuration,
+                )
         else:
             batch_rows = _batch_rank_presets_with_progress(
                 *rank_args,
@@ -7937,6 +7981,10 @@ def _run_find_driver_search(
                 progress_total,
                 finder_driver_configuration,
             )
+        load_run_stats[lt] = {
+            "attempted": load_scan_count,
+            "usable": len(batch_rows),
+        }
         if lt == "Bass reflex":
             for row in batch_rows:
                 row["_load_type"] = "Bass reflex"
@@ -8022,6 +8070,7 @@ def _run_find_driver_search(
         "simulations": eligible_total,
         "unique_drivers": unique_driver_total,
         "skipped_a_priori": int(prefilter_stats["rejected_simulations"]),
+        "loads": load_run_stats,
         "completed_at": datetime.now(UTC).isoformat(),
     }
     st.session_state["batch_result_context"] = (
@@ -8209,7 +8258,7 @@ _PRESET_SELECT_MAX_OPTIONS = 1000
 
 
 _TABLE_NUMBER_FORMATS = {
-    "Nominal in": ".2f", "Size in": ".1f", "Sd cm²": ".1f", "Effective Ø in": ".2f",
+    "Nominal in": ".1f", "Size in": ".1f", "Sd cm²": ".1f", "Effective Ø in": ".2f",
     "Fs Hz": ".1f", "Qts": ".3f", "Vas L": ".1f",
     "SPL dB": ".0f", "F3 Hz": ".1f", "Ripple dB": ".1f",
     "MOL @ F3 dB": ".1f", "Peak dB": ".1f",
@@ -8285,7 +8334,7 @@ def _clean_display_table_frame(frame: pd.DataFrame) -> pd.DataFrame:
 
 @st.cache_data(show_spinner=False)
 def _driver_library_frame(
-    # Cache busted to reflect JSON DB fixes 3
+    # Cache busted to reflect nominal-size preservation in imported catalogs.
     preset_names: tuple[str, ...],
     target_currency: str = "",
     exchange_rates: tuple[tuple[str, float], ...] = (),
@@ -8668,6 +8717,7 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         selection_mode="multi-row",
         column_config={
             "Driver": None,
+            "Nominal in": st.column_config.NumberColumn("Nominal Ø (in)", format="%.1f"),
             "Size in": st.column_config.NumberColumn(format="%.1f"),
             "Fs Hz": st.column_config.NumberColumn(format="%.1f"),
             "Qts": st.column_config.NumberColumn(format="%.3f"),
@@ -8877,9 +8927,51 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                     "voltage and filters. Lower Minimum MOL at F3 or relax the filters."
                 )
             else:
-                st.warning(
-                    "No usable candidate satisfies the current enclosure and constraints."
+                run_stats = st.session_state.get("finder_last_run_stats", {})
+                load_stats = run_stats.get("loads", {})
+                dccav_stats = load_stats.get("DCCAV", {})
+                reflex_stats = load_stats.get("Bass reflex", {})
+                load_summary = ", ".join(
+                    f"{load}: {stats.get('usable', 0)}/{stats.get('attempted', 0)}"
+                    for load, stats in load_stats.items()
                 )
+                if load_summary and all(
+                    stats.get("usable", 0) == 0
+                    for stats in load_stats.values()
+                ):
+                    st.warning(
+                        "Nessun carico ha prodotto un risultato utilizzabile "
+                        f"({load_summary}). Controlla il driver configuration, "
+                        "il volume massimo e i vincoli del progetto."
+                    )
+                elif (
+                    dccav_stats.get("attempted", 0) > 0
+                    and dccav_stats.get("usable", 0) == 0
+                    and reflex_stats.get("usable", 0) > 0
+                ):
+                    st.warning(
+                        "DCCAV non ha trovato un allineamento costruibile per "
+                        f"nessuna delle {dccav_stats['attempted']} candidate entro "
+                        f"{finder_volume_l:.0f} L; il Bass reflex invece è fattibile. "
+                        "Prova solo Bass reflex, aumenta il volume massimo o rilassa "
+                        "i vincoli di ripple/porta."
+                    )
+                elif dccav_stats.get("attempted", 0) > 0 and dccav_stats.get("usable", 0) == 0:
+                    st.warning(
+                        "Le candidate DCCAV sono state valutate, ma nessuna ha "
+                        f"prodotto un allineamento costruibile entro {finder_volume_l:.0f} L. "
+                        "Aumenta il volume massimo o rilassa i vincoli di progetto."
+                    )
+                elif load_summary:
+                    st.warning(
+                        "Nessun risultato dopo il filtro prestazionale. "
+                        f"Esiti per carico: {load_summary}. "
+                        "Riduci i vincoli SPL/MOL/F3 oppure riesegui Bass Match."
+                    )
+                else:
+                    st.warning(
+                        "No usable candidate satisfies the current enclosure and constraints."
+                    )
         _render_candidate_pool(filtered_preset_names)
         return
 
@@ -9741,10 +9833,12 @@ _default("reflex_q_port", _DEFAULT_REFLEX_Q_PORT)
 _default("reflex_custom_losses", False)
 _default("reflex_port_d_cm", 5.0)
 _default("reflex_resonator_type", _RESONATOR_PORT)
+_default("pr_preset_name", "Custom")
 _default("pr_sp_cm2", 200.0)
 _default("pr_fp_hz", 20.0)
 _default("pr_qmp", 5.0)
 _default("pr_mmp_g", 100.0)
+_default("pr_added_mass_g", 0.0)
 _default("pr_xmax_mm", 0.0)
 _default("pr_q_abs", 15.0)
 _default("pr_q_leak", 1000.0)
@@ -10354,6 +10448,13 @@ with st.sidebar:
                         )
                         if _reflex_uses_passive_radiator():
                             st.caption("Passive radiator resonator")
+                            st.selectbox(
+                                "Passive radiator preset",
+                                ["Custom", *_dccav.passive_radiator_preset_names()],
+                                key="pr_preset_name",
+                                on_change=_on_pr_preset_change,
+                                help="Loads mechanical PR data; added mass remains editable.",
+                            )
                             st.number_input(
                                 "PR area Sp (cm²)", min_value=1.0, max_value=5000.0,
                                 step=1.0, key="pr_sp_cm2")
@@ -10367,9 +10468,15 @@ with st.sidebar:
                                 "PR moving mass Mmp (g)", min_value=1.0, max_value=5000.0,
                                 step=1.0, key="pr_mmp_g")
                             st.number_input(
+                                "Added mass (g)", min_value=0.0, max_value=5000.0,
+                                step=1.0, key="pr_added_mass_g",
+                                help="Extra moving mass. Cms stays fixed and Fs decreases accordingly.",
+                            )
+                            st.number_input(
                                 "PR Xmax (mm, 0 = unknown)", min_value=0.0, max_value=50.0,
                                 step=0.1, key="pr_xmax_mm")
                             active_pr = _pr_box_from_state()
+                            effective_fp = _dccav.passive_radiator_effective_fp_hz(active_pr)
                             rho_c2 = 1.18 * 344.0 ** 2
                             cab = (active_pr.vb_l / 1000.0) / rho_c2
                             pr_sp_m2 = active_pr.pr_sp_cm2 / 10_000.0
@@ -10379,10 +10486,13 @@ with st.sidebar:
                             )
                             pr_cap = pr_cmp * pr_sp_m2 ** 2
                             f_sys = (
-                                active_pr.pr_fp_hz * np.sqrt(1.0 + pr_cap / cab)
-                                if cab > 0 else active_pr.pr_fp_hz
+                                effective_fp * np.sqrt(1.0 + pr_cap / cab)
+                                if cab > 0 else effective_fp
                             )
-                            st.caption(f"Box + PR system tuning ~{f_sys:.1f} Hz")
+                            st.caption(
+                                f"PR Fs eff. {effective_fp:.1f} Hz · "
+                                f"box + PR system tuning ~{f_sys:.1f} Hz"
+                            )
                         else:
                             _box_number_with_nudge(
                                 "Fb tuning (Hz)", "reflex_fb_hz", min_value=1.0,
@@ -10698,7 +10808,7 @@ try:
             "Peak m/s": float(velocity[peak_idx]),
             "Peak at Hz": float(result.frequency_hz[peak_idx]),
             "_volume_l": float(pr_box.vb_l),
-            "_fb_hz": float(pr_box.pr_fp_hz),
+            "_fb_hz": float(_dccav.passive_radiator_effective_fp_hz(pr_box)),
             "_end_correction": 0.0,
             "_is_pr": True,
         })
@@ -11075,7 +11185,10 @@ try:
             elif is_pr:
                 a1, a2, a3, a4 = st.columns(4)
                 a1.metric("Vb (active)", f"{box.vb_l:.2f} L")
-                a2.metric("PR Fp", f"{box.pr_fp_hz:.1f} Hz")
+                a2.metric(
+                    "PR Fp",
+                    f"{_dccav.passive_radiator_effective_fp_hz(box):.1f} Hz",
+                )
                 a3.metric("PR Sp", f"{box.pr_sp_cm2:.0f} cm²")
                 a4.metric("PR Qmp", f"{box.pr_qmp:.1f}")
             elif is_bandpass4:

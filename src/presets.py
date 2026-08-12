@@ -50,6 +50,10 @@ VITUIXCAD_DATABASE_PATH = (
 SPEAKERBOXLITE_DATABASE_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "catalog_speakerboxlite.json"
 )
+ZTZ_AUDIO_DATABASE_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "data" / "catalog_ztzaudio_lf_ferrite_presets.json"
+)
 
 PRESET_PROVENANCE_CATEGORIES = (
     "Load Forge database",
@@ -133,6 +137,46 @@ class DriverPresetInfo:
     kind: str = ""
     url: str = ""
     part_number: str = ""
+
+
+@dataclass(frozen=True)
+class PassiveRadiatorPreset:
+    """Catalogued passive-radiator mechanical parameters."""
+
+    name: str
+    brand: str
+    model: str
+    sp_cm2: float
+    fp_hz: float
+    qmp: float
+    mmp_g: float
+    xmax_mm: float = 0.0
+    source: str = "DIY Audio"
+    url: str = ""
+
+
+PASSIVE_RADIATOR_PRESETS: dict[str, PassiveRadiatorPreset] = {
+    "Dayton Audio DSA215-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DSA215-PR", brand="Dayton Audio", model="DSA215-PR",
+        sp_cm2=211.2, fp_hz=25.6, qmp=7.66, mmp_g=67.0,
+        url="https://www.diy-audio.eu/en/dayton-audio-woofers/236-dsa215-pr-8-designer-series-aluminum-cone-passive-radiator.html",
+    ),
+    "Dayton Audio DSA315-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DSA315-PR", brand="Dayton Audio", model="DSA315-PR",
+        sp_cm2=480.0, fp_hz=17.5, qmp=6.23, mmp_g=142.6,
+        url="https://www.diy-audio.eu/en/dayton-audio-woofers/240-dsa315-pr-12-designer-series-aluminum-cone-passive-radiator.html",
+    ),
+    "SB Acoustics SW26DAC-00": PassiveRadiatorPreset(
+        name="SB Acoustics SW26DAC-00", brand="SB Acoustics", model="SW26DAC-00",
+        sp_cm2=312.0, fp_hz=13.0, qmp=8.8, mmp_g=400.0,
+        url="https://www.diy-audio.eu/en/sb-acoustics-woofers/143-sw26dac-00-10-passive-radiator.html",
+    ),
+    "SB Acoustics SW26DBAC-00": PassiveRadiatorPreset(
+        name="SB Acoustics SW26DBAC-00", brand="SB Acoustics", model="SW26DBAC-00",
+        sp_cm2=312.0, fp_hz=13.0, qmp=8.8, mmp_g=400.0,
+        url="https://www.diy-audio.eu/en/sb-acoustics-woofers/146-sw26dbac-00-10-passive-radiator.html",
+    ),
+}
 
 
 
@@ -1106,12 +1150,33 @@ def _load_speakerboxlite_presets() -> tuple[dict[str, DriverTS], dict[str, Drive
 
 
 @lru_cache(maxsize=1)
+def _load_ztzaudio_presets() -> tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]:
+    """Load the validated ZTZ Audio LF ferrite manufacturer tier."""
+    lsdb_presets, _lsdb_info = _load_loudspeaker_database_presets()
+    manufacturer_presets, _manufacturer_info = _load_manufacturer_presets()
+    vituixcad_presets, _vituixcad_info = _load_vituixcad_presets()
+    speakerboxlite_presets, _speakerboxlite_info = _load_speakerboxlite_presets()
+    return _load_external_presets(
+        ZTZ_AUDIO_DATABASE_PATH,
+        default_source="ZTZ Audio manufacturer catalog",
+        dedupe_tag="ZTZ",
+        reserved={
+            **lsdb_presets,
+            **manufacturer_presets,
+            **vituixcad_presets,
+            **speakerboxlite_presets,
+        },
+    )
+
+
+@lru_cache(maxsize=1)
 def _external_tiers() -> list[tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]]:
     return [
         _load_loudspeaker_database_presets(),
         _load_manufacturer_presets(),
         _load_vituixcad_presets(),
         _load_speakerboxlite_presets(),
+        _load_ztzaudio_presets(),
     ]
 
 
@@ -1122,6 +1187,20 @@ def driver_preset_names() -> list[str]:
     for presets, _info in _external_tiers():
         names.extend(presets)
     return names
+
+
+def passive_radiator_preset_names() -> list[str]:
+    """Return catalogued passive-radiator names in display order."""
+    return list(PASSIVE_RADIATOR_PRESETS)
+
+
+@lru_cache(maxsize=128)
+def get_passive_radiator_preset(name: str) -> PassiveRadiatorPreset:
+    """Return a passive-radiator mechanical preset by name."""
+    try:
+        return PASSIVE_RADIATOR_PRESETS[name]
+    except KeyError as exc:
+        raise ValueError(f"Unknown passive-radiator preset: {name}") from exc
 
 
 @lru_cache(maxsize=8192)

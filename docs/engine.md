@@ -59,6 +59,11 @@ or exponential sections between throat and mouth for a first-order BLH model.
 `TappedHornBox` solves the throat and mouth arms in parallel at the driver tap,
 which is the appropriate lumped 1-D abstraction for a tapped horn.
 
+Passive-radiator boxes accept `pr_added_mass_g`. The solver keeps the radiator
+compliance fixed and calculates the shifted free-air resonance as
+`Fp_eff = Fp * sqrt(Mmp / (Mmp + M_added))`, allowing selectable mechanical PR
+presets to be tuned with washers, discs or another added-mass assembly.
+
 These are distributed models, not replacements for a full FEM/BEM or a
 measured impedance fit. They omit higher-order transverse modes, cabinet
 leakage details, stuffing gradients and diffraction. `line_q` is therefore an

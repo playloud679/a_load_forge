@@ -13,6 +13,10 @@ exposes everything documented here, both as a top-level module (`import
 dccav` with `src/` on `sys.path`, used by `ui_app.py`) and as part of the
 package (`from src import dccav`, used by the tests).
 
+The optional ZTZ Audio LF ferrite tier is loaded from its validated import
+catalog when present; incomplete source pages remain separate and are not
+exposed as simulation drivers.
+
 The engine works in the frequency domain with lumped acoustic impedances and
 returns arrays for plotting SPL, cone excursion, impedance and port volume
 velocities.
@@ -34,6 +38,11 @@ exceeds driver Xmax. This is a design-screening aid, not an electrical
 crossover; the user must provide high-pass protection below the passband and a
 low-pass crossover above it. The distributed model does not predict a smooth
 full-range response, transverse modes or directivity.
+
+Passive-radiator loading is available under `Bass reflex` → `Passive radiator`.
+The catalog includes DIY Audio mechanical presets where the published data are
+sufficient; `Added mass (g)` shifts the PR resonance while preserving its
+compliance. The active box tuning and PR excursion use the shifted resonance.
 
 The DCCAV topology is:
 

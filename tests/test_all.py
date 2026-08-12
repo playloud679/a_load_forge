@@ -162,6 +162,7 @@ def _check_presets_are_available():
         "Beyma 12P1000/Nd",
         "Beyma 12LEX1000Fe",
         "Beyma 12LEX1300Nd",
+        "ZTZ: TN-18SW1280",
         "Beyma 12CMV3",
         "Turbosound TS-12W350/8W",
         "Turbosound TS-15W300/8A",
@@ -3781,6 +3782,7 @@ def _check_ui_driver_library_compares_nominal_size_and_sd():
         name for name in _ui._dccav.driver_preset_names()
         if name.startswith("WEB: Dayton Audio RSS315HO-4 12")
     )
+
     unique, removed = _ui._deduplicate_finder_preset_names([
         "Dayton Audio RSS315HO-4",
         dayton_retailer_name,
@@ -8317,6 +8319,22 @@ def _check_passive_radiator_simulation():
     assert sugg2.vb_l == ts.vas_l
     assert sugg2.pr_sp_cm2 == 300.0
     assert sugg2.pr_qmp == 7.0
+    assert "Dayton Audio DSA215-PR" in _dccav.passive_radiator_preset_names()
+    preset = _dccav.get_passive_radiator_preset("Dayton Audio DSA215-PR")
+    weighted = _dccav.PassiveRadiatorBox(
+        vb_l=30.0,
+        pr_sp_cm2=preset.sp_cm2,
+        pr_fp_hz=preset.fp_hz,
+        pr_qmp=preset.qmp,
+        pr_mmp_g=preset.mmp_g,
+        pr_added_mass_g=preset.mmp_g,
+    )
+    assert np.isclose(
+        _dccav.passive_radiator_effective_fp_hz(weighted),
+        preset.fp_hz / np.sqrt(2.0),
+    )
+    weighted_result = _dccav.simulate_passive_radiator(ts, weighted, freq, 2.83)
+    assert np.all(np.isfinite(weighted_result.spl_total_db))
     try:
         _dccav.simulate_passive_radiator(ts, box, np.array([10.0, 0.0, 100.0]))
         raise AssertionError("non-positive frequency must be rejected")

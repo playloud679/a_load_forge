@@ -1,0 +1,2764 @@
+{
+  "source_file": "data/catalog_ztzaudio_lf_ferrite.json",
+  "source": "ZTZ Audio manufacturer catalog",
+  "presets": [
+    {
+      "name": "ZTZ: TN-18SW1280",
+      "model": "TN-18SW1280",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/98-TN-18SW1280-1.pdf",
+      "driver": {
+        "fs_hz": 32.0,
+        "vas_l": 152.0,
+        "mms_g": 245.0,
+        "sd_cm2": 1225.0,
+        "re_ohm": 5.6,
+        "qms": 9.6,
+        "qes": 0.27,
+        "qts": 0.26,
+        "bl_tm": 30.0,
+        "xmax_mm": 11.2,
+        "pe_w": 1800.0
+      },
+      "raw": {
+        "fs_hz": 32.0,
+        "vas_l": 152.0,
+        "mms_g": 245.0,
+        "sd_cm2": 1225.0,
+        "re_ohm": 5.6,
+        "qms": 9.6,
+        "qes": 0.27,
+        "qts": 0.26,
+        "bl_tm": 30.0,
+        "xmax_mm": 11.2,
+        "pe_w": 1800.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-18SW1280",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/18sw1280.html",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/98-TN-18SW1280-1.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/18SW1280-1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "18/460 in/mm",
+          "MAX Power": "3600 Watts",
+          "RMS Power": "1800 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "32 Hz",
+          "Frequency Response": "32-2000 Hz",
+          "Sensitivity(1W/1m)": "98 dB",
+          "Voice Coil Diameter": "5”/ 127mm",
+          "Winding material": "PI(inside-outside)",
+          "Magnet": "203 Oz 280x140x25 mm",
+          "Overall Diameter": "18.2/462 in/mm",
+          "Bolt Circle Diameter": "17.3/440 in/mm",
+          "Bafﬂe cutout Diameter": "16.9/430 in/mm",
+          "Depth": "8.2/208 in/mm",
+          "Net Weight": "20.8 kgs",
+          "Shipping Weight": "21.8 kgs",
+          "Shipping Box": "49.5×49.5×25 cm",
+          "FS Hz": "32 Hz",
+          "Vas": "152 dm³",
+          "RE Ohms": "5.6 ohm",
+          "Qms": "9.6",
+          "Qes": "0.27",
+          "Qts": "0.26",
+          "BL T•m": "30 T•m",
+          "MMS(grms)": "245 grams",
+          "Xmax(mm)": "11.2 mm",
+          "Sd": "1225 cm²",
+          "Efﬁciency %": "2.5 %",
+          "EBP": "118"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-15HD300",
+      "model": "TN-15HD300",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/20-TN-15HD300.pdf",
+      "driver": {
+        "fs_hz": 40.0,
+        "vas_l": 152.0,
+        "mms_g": 111.0,
+        "sd_cm2": 870.0,
+        "re_ohm": 4.7,
+        "qms": 8.7,
+        "qes": 0.28,
+        "qts": 0.27,
+        "bl_tm": 21.1,
+        "xmax_mm": 3.4,
+        "pe_w": 500.0
+      },
+      "raw": {
+        "fs_hz": 40.0,
+        "vas_l": 152.0,
+        "mms_g": 111.0,
+        "sd_cm2": 870.0,
+        "re_ohm": 4.7,
+        "qms": 8.7,
+        "qes": 0.28,
+        "qts": 0.27,
+        "bl_tm": 21.1,
+        "xmax_mm": 3.4,
+        "pe_w": 500.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-15HD300",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/products/tn-15hd300/",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/20-TN-15HD300.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-15HD300-image-1-1024x1024.webp",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "15/385 in/mm",
+          "MAX Power": "1000 Watts",
+          "RMS Power": "500 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "40 Hz",
+          "Frequency Response": "40-3000 Hz",
+          "Sensitivity(1W/1m)": "100 dB",
+          "Voice Coil Diameter": "3/75 in/mm",
+          "Winding material": "GPI(inside-outside)",
+          "Magnet": "97 Oz",
+          "Magnet Size": "190X190X25 mm",
+          "Overall Diameter": "15.4/392 in/mm",
+          "Bolt Circle Diameter": "14.8/377 in/mm",
+          "Baffle cutout Diameter": "13.9/355 in/mm",
+          "Depth": "7.5/190 in/mm",
+          "Net Weight": "9.75 kg/lb",
+          "Shipping Weight": "10.75 kg/lb",
+          "Shipping Box": "42X42X20 cm",
+          "FS Hz": "40 Hz",
+          "Vas": "152 dm 3",
+          "RE Ohms": "4.7 ohm",
+          "Qms": "8.7",
+          "Qes": "0.28",
+          "Qts": "0.27",
+          "BL T·m": "21.1 T·m",
+          "MMS": "111",
+          "Xmax(mm)": "3.4 mm",
+          "Sd": "870 cm 2",
+          "Efficiency %": "3.3 %",
+          "EBP": "142"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-12HD300",
+      "model": "TN-12HD300",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/19-TN-12HD300.pdf",
+      "driver": {
+        "fs_hz": 43.0,
+        "vas_l": 70.2,
+        "mms_g": 77.2,
+        "sd_cm2": 539.0,
+        "re_ohm": 4.7,
+        "qms": 11.2,
+        "qes": 0.2,
+        "qts": 0.2,
+        "bl_tm": 21.3,
+        "xmax_mm": 4.0,
+        "pe_w": 400.0
+      },
+      "raw": {
+        "fs_hz": 43.0,
+        "vas_l": 70.2,
+        "mms_g": 77.2,
+        "sd_cm2": 539.0,
+        "re_ohm": 4.7,
+        "qms": 11.2,
+        "qes": 0.2,
+        "qts": 0.2,
+        "bl_tm": 21.3,
+        "xmax_mm": 4.0,
+        "pe_w": 400.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-12HD300",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/products/tn-12hd300/",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/19-TN-12HD300.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/image-1-1024x1024.webp",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "12/305 in/mm",
+          "MAX Power": "800 Watts",
+          "RMS Power": "400 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "43 Hz",
+          "Frequency Response": "43-4000 Hz",
+          "Sensitivity(1W/1m)": "98 dB",
+          "Voice Coil Diameter": "3/75 in/mm",
+          "Winding material": "PISV(inside-outside)",
+          "Magnet": "97 Oz",
+          "Magnet Size": "190X90X25 mm",
+          "Overall Diameter": "12.5/318 in/mm",
+          "Bolt Circle Diameter": "11.8/300 in/mm",
+          "Baffle cutout Diameter": "11.2/285 in/mm",
+          "Depth": "6.6/168 in/mm",
+          "Net Weight": "8.9 kgs",
+          "Shipping Weight": "9.9 kgs",
+          "Shipping Box": "34X34X18 cm",
+          "FS Hz": "43 Hz",
+          "Vas": "70.2 dm 3",
+          "RE Ohms": "4.7 ohm",
+          "Qms": "11.2",
+          "Qes": "0.2",
+          "Qts": "0.2",
+          "BL T·m": "21.3 T·m",
+          "MMS": "77.2",
+          "Xmax(mm)": "4 mm",
+          "Sd": "539 cm 2",
+          "Efficiency %": "2.7 %",
+          "EBP": "215"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-10HD300",
+      "model": "TN-10HD300",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/18-TN-10HD300.pdf",
+      "driver": {
+        "fs_hz": 55.0,
+        "vas_l": 23.3,
+        "mms_g": 43.9,
+        "sd_cm2": 366.0,
+        "re_ohm": 5.2,
+        "qms": 13.5,
+        "qes": 0.3,
+        "qts": 0.29,
+        "bl_tm": 18.1,
+        "xmax_mm": 2.5,
+        "pe_w": 350.0
+      },
+      "raw": {
+        "fs_hz": 55.0,
+        "vas_l": 23.3,
+        "mms_g": 43.9,
+        "sd_cm2": 366.0,
+        "re_ohm": 5.2,
+        "qms": 13.5,
+        "qes": 0.3,
+        "qts": 0.29,
+        "bl_tm": 18.1,
+        "xmax_mm": 2.5,
+        "pe_w": 350.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-10HD300",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/products/tn-10hd300/",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/18-TN-10HD300.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-10HD300-image-1-1024x1024.webp",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "10/254 in/mm",
+          "MAX Power": "700 Watts",
+          "RMS Power": "350 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "55 Hz",
+          "Frequency Response": "55-42000 Hz",
+          "Sensitivity(1W/1m)": "98 dB",
+          "Voice Coil Diameter": "3/75 in/mm",
+          "Winding materia": "PISV(inside-outside)",
+          "Magnet": "97 Oz",
+          "Magnet Size": "190X90X25 mm",
+          "Overall Diameter": "10.4/264 in/mm",
+          "Bolt Circle Diameter": "9.6/245 in/mm",
+          "Baffle cutout Diameter": "9.2/235 in/mm",
+          "Depth": "5.5/142 in/mm",
+          "Net Weight": "7.95 kgs",
+          "Shipping Weight": "8.5 kgs",
+          "Shipping Box": "29X29X17 cm",
+          "FS Hz": "68 Hz",
+          "Vas": "23.3 L",
+          "RE Ohms": "5.2 ohm",
+          "Qms": "13.5",
+          "Qes": "0.3",
+          "Qts": "0.29",
+          "BL T·m": "18.1 T·m",
+          "MMS": "43.9",
+          "Xmax(mm)": "2.5 mm",
+          "Sd": "366 cm 2",
+          "Efficiency %": "2.36 %",
+          "EBP": "226"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-8HD300",
+      "model": "TN-8HD300",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/17-TN-8HD300.pdf",
+      "driver": {
+        "fs_hz": 83.0,
+        "vas_l": 7.1,
+        "mms_g": 31.0,
+        "sd_cm2": 208.6,
+        "re_ohm": 4.7,
+        "qms": 4.9,
+        "qes": 0.36,
+        "qts": 0.34,
+        "bl_tm": 14.2,
+        "xmax_mm": 5.1,
+        "pe_w": 300.0
+      },
+      "raw": {
+        "fs_hz": 83.0,
+        "vas_l": 7.1,
+        "mms_g": 31.0,
+        "sd_cm2": 208.6,
+        "re_ohm": 4.7,
+        "qms": 4.9,
+        "qes": 0.36,
+        "qts": 0.34,
+        "bl_tm": 14.2,
+        "xmax_mm": 5.1,
+        "pe_w": 300.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-8HD300",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/products/tn-8hd300/",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/17-TN-8HD300.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-8HD300-image-1-1024x1024.webp",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "8/250 in/mm",
+          "MAX Power": "600 Watts",
+          "RMS Power": "300 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "83 Hz",
+          "Frequency Response": "83-5000 Hz",
+          "Sensitivity(1W/1m)": "94 dB",
+          "Voice Coil Diameter": "3/75 in/mm",
+          "Winding material": "PICCAW(inside-outside)",
+          "Magnet": "67 Oz",
+          "Magnet Size": "180X90X20 mm",
+          "Overall Diameter": "8.9/226 in/mm",
+          "Bolt Circle Diameter": "8.3/210 in/mm",
+          "Baffle cutout Diameter": "7.1/181 in/mm",
+          "Depth": "4.4/113 in/mm",
+          "Net Weight": "6.45 kgs",
+          "Shipping Weight": "7 kgs",
+          "Shipping Box": "23.5X23.5X13.5 cm",
+          "FS Hz": "83 Hz",
+          "Vas": "7.1 dm 3",
+          "RE Ohms": "4.7 ohm",
+          "Qms": "4.9",
+          "Qes": "0.36",
+          "Qts": "0.34",
+          "BL T·m": "14.2 T·m",
+          "MMS": "31",
+          "Xmax(mm)": "5.1 mm",
+          "Sd": "208.6 cm 2",
+          "Efficiency %": "1.0 %",
+          "EBP": "230"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-18FW550",
+      "model": "TN-18FW550",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/12-TN-18FW550.pdf",
+      "driver": {
+        "fs_hz": 36.0,
+        "vas_l": 101.0,
+        "mms_g": 402.0,
+        "sd_cm2": 1225.0,
+        "re_ohm": 5.2,
+        "qms": 12.7,
+        "qes": 0.23,
+        "qts": 0.22,
+        "bl_tm": 45.0,
+        "xmax_mm": 12.5,
+        "pe_w": 2000.0
+      },
+      "raw": {
+        "fs_hz": 36.0,
+        "vas_l": 101.0,
+        "mms_g": 402.0,
+        "sd_cm2": 1225.0,
+        "re_ohm": 5.2,
+        "qms": 12.7,
+        "qes": 0.23,
+        "qts": 0.22,
+        "bl_tm": 45.0,
+        "xmax_mm": 12.5,
+        "pe_w": 2000.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-18FW550",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/products/tn-18fw550/",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/12-TN-18FW550.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-18FW550-image-3-1024x1024.webp",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "18/460 in/mm",
+          "MAX Power": "4000 Watts",
+          "RMS Power": "2000 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "36 Hz",
+          "Frequency Response": "36-1200 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "5.5/140 in/mm",
+          "Windling material": "GPI(inside-outside)",
+          "Magnet": "478 Oz",
+          "Magnet Size": "330X150X20 mm (2PCS)",
+          "Overall Diameter": "18.2/462 in/mm",
+          "Bolt Circle Diameter": "17.5/445 in/mm",
+          "Baffle cutout Diameter": "16.6/422 in/mm",
+          "Depth": "9.4/240 in/mm",
+          "Net Weight": "35.85 kgs",
+          "Shipping Weight": "38.5 kgs",
+          "Shipping Box": "50X50X28 cm",
+          "FS Hz": "36 Hz",
+          "Vas": "101 L",
+          "RE Ohms": "5.2 ohm",
+          "Qms": "12.7",
+          "Qes": "0.23",
+          "Qts": "0.22",
+          "BL T·m": "45 T·m",
+          "MMS": "402",
+          "Xmax(mm)": "12.5 mm",
+          "Sd": "1225 cm 2",
+          "Efficiency %": "2.0 %",
+          "EBP": "156"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-15FW550",
+      "model": "TN-15FW550",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/11-TN-15FW550.pdf",
+      "driver": {
+        "fs_hz": 45.0,
+        "vas_l": 30.0,
+        "mms_g": 349.5,
+        "sd_cm2": 855.0,
+        "re_ohm": 6.2,
+        "qms": 17.1,
+        "qes": 0.27,
+        "qts": 0.26,
+        "bl_tm": 50.5,
+        "xmax_mm": 9.6,
+        "pe_w": 1800.0
+      },
+      "raw": {
+        "fs_hz": 45.0,
+        "vas_l": 30.0,
+        "mms_g": 349.5,
+        "sd_cm2": 855.0,
+        "re_ohm": 6.2,
+        "qms": 17.1,
+        "qes": 0.27,
+        "qts": 0.26,
+        "bl_tm": 50.5,
+        "xmax_mm": 9.6,
+        "pe_w": 1800.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-15FW550",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/products/tn-15fw550/",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/11-TN-15FW550.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-15FW550-image-1-1024x1024.webp",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "15/385 in/mm",
+          "MAX Power": "3600 Watts",
+          "RMS Power": "1800 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "45 Hz",
+          "Frequency Response": "45-1500 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "5.5/140 in/mm",
+          "Winding material": "PI(inside-outside)",
+          "Magnet": "309 Oz",
+          "Magnet Size": "280X150X20 mm (2PCS)",
+          "Overall Diameter": "15.4/392 in/mm",
+          "Bolt Circle Diameter": "14.8/377 in/mm",
+          "Baffle cutout Diameter": "14/356 in/mm",
+          "Depth": "8.5/215 in/mm",
+          "Net Weight": "24.8 kgs",
+          "Shipping Weight": "25.5 kgs",
+          "Shipping Box": "42X42X25 cm",
+          "FS Hz": "45 Hz",
+          "Vas": "30 dm 3",
+          "RE Ohms": "6.2 ohm",
+          "Qms": "17.1",
+          "Qes": "0.27",
+          "Qts": "0.26",
+          "BL T·m": "50.5 T·m",
+          "MMS": "349.5",
+          "Xmax(mm)": "9.6 mm",
+          "Sd": "855 cm 2",
+          "Efficiency %": "1.33 %",
+          "EBP": "166"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-12MD300",
+      "model": "TN-12MD300",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-12MD300-datasheet.pdf",
+      "driver": {
+        "fs_hz": 58.0,
+        "vas_l": 43.1,
+        "mms_g": 70.0,
+        "sd_cm2": 539.0,
+        "re_ohm": 5.2,
+        "qms": 13.3,
+        "qes": 0.25,
+        "qts": 0.24,
+        "bl_tm": 23.6,
+        "xmax_mm": 4.1,
+        "pe_w": 400.0
+      },
+      "raw": {
+        "fs_hz": 58.0,
+        "vas_l": 43.1,
+        "mms_g": 70.0,
+        "sd_cm2": 539.0,
+        "re_ohm": 5.2,
+        "qms": 13.3,
+        "qes": 0.25,
+        "qts": 0.24,
+        "bl_tm": 23.6,
+        "xmax_mm": 4.1,
+        "pe_w": 400.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-12MD300",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/products/tn-12md300/",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-12MD300-datasheet.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-12MD300-image-3-1024x1024.webp",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "12/305 in/mm",
+          "MAX Power": "800 Watts",
+          "RMS Power": "400 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "58 Hz",
+          "Frequency Response": "58-4000 Hz",
+          "Sensitivity(1W/1m)": "98 dB",
+          "Voice Coil Diameter": "3″/75 mm",
+          "Winding material": "PI(inside-outside)",
+          "Magnet": "97 Oz",
+          "Magnet Size": "190X90X25 mm",
+          "Overall Diameter": "12.5/317 in/mm",
+          "Bolt Circle Diameter": "11.8/300 in/mm",
+          "Baffle cutout Diameter": "11.1/283 in/mm",
+          "Depth": "6.3/159 in/mm",
+          "Net Weight": "7.95/15.53 kg/lb",
+          "Shipping Weight": "8.45/18.63 kg/lb",
+          "Shipping Box": "34X34X18 cm / 13.86X13.85X7.09 in",
+          "FS Hz": "58 Hz",
+          "Vas": "43.1 dm 3",
+          "RE Ohms": "5.2 ohm",
+          "Qms": "13.3",
+          "Qes": "0.25",
+          "Qts": "0.24",
+          "BL T·m": "23.6 T·m",
+          "MMS": "70",
+          "Xmax(mm)": "4.1 mm",
+          "Sd": "539 cm 2",
+          "Efficiency %": "3.4 %",
+          "EBP": "232"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-10MD300",
+      "model": "TN-10MD300",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-10MD300-datasheet.pdf",
+      "driver": {
+        "fs_hz": 72.0,
+        "vas_l": 19.2,
+        "mms_g": 46.9,
+        "sd_cm2": 363.0,
+        "re_ohm": 5.2,
+        "qms": 8.1,
+        "qes": 0.2,
+        "qts": 0.19,
+        "bl_tm": 23.8,
+        "xmax_mm": 5.1,
+        "pe_w": 400.0
+      },
+      "raw": {
+        "fs_hz": 72.0,
+        "vas_l": 19.2,
+        "mms_g": 46.9,
+        "sd_cm2": 363.0,
+        "re_ohm": 5.2,
+        "qms": 8.1,
+        "qes": 0.2,
+        "qts": 0.19,
+        "bl_tm": 23.8,
+        "xmax_mm": 5.1,
+        "pe_w": 400.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-10MD300",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/products/tn-10md300/",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-10MD300-datasheet.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-10MD300-image-1-1024x1024.webp",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "10/254 in/mm",
+          "MAX Power": "800 Watts",
+          "RMS Power": "400 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "72 Hz",
+          "Frequency Response": "72-3500 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "3/75 in/mm",
+          "Winding materiall": "PI(inside-outside)",
+          "Magnet": "97 Oz",
+          "Magnet Size": "190X90X25 mm",
+          "Overall Diameter": "10.3/263 in/mm",
+          "Bolt Circle Diameter": "9.7/247 in/mm",
+          "Baffle cutout Diameter": "9.1/230 in/mm",
+          "Depth": "5.6/143 in/mm",
+          "Net Weight": "7.72/17.02 kgs",
+          "Shipping Weight": "8.32/18.34 kgs",
+          "Shipping Box": "29X29X16 cm / 11.42X11.42X6.30 in",
+          "FS Hz": "72 Hz",
+          "Vas": "19.2 dm 3",
+          "RE Ohms": "5.2 ohm",
+          "Qms": "8.1",
+          "Qes": "0.20",
+          "Qts": "0.19",
+          "BL T·m": "23.8 T·m",
+          "MMS": "46.9",
+          "Xmax(mm)": "5.1 mm",
+          "Sd": "363 cm 2",
+          "Efficiency %": "3.48 %",
+          "EBP": "360"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-18FW400",
+      "model": "TN-18FW400",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-18FW400-datasheet.pdf",
+      "driver": {
+        "fs_hz": 33.0,
+        "vas_l": 205.0,
+        "mms_g": 231.0,
+        "sd_cm2": 1225.0,
+        "re_ohm": 4.8,
+        "qms": 13.8,
+        "qes": 0.35,
+        "qts": 0.34,
+        "bl_tm": 26.3,
+        "xmax_mm": 9.0,
+        "pe_w": 1000.0
+      },
+      "raw": {
+        "fs_hz": 33.0,
+        "vas_l": 205.0,
+        "mms_g": 231.0,
+        "sd_cm2": 1225.0,
+        "re_ohm": 4.8,
+        "qms": 13.8,
+        "qes": 0.35,
+        "qts": 0.34,
+        "bl_tm": 26.3,
+        "xmax_mm": 9.0,
+        "pe_w": 1000.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-18FW400",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/products/tn-18fw400/",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-18FW400-datasheet.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-18FW400-image-3-1024x1024.webp",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "18/460 in/mm",
+          "MAX Power": "2000 Watts",
+          "RMS Power": "1000 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "33 Hz",
+          "Frequency Response": "33-1200 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "4/100 in/mm",
+          "Winding material": "PI(inside-outside)",
+          "Magnet": "125 Oz",
+          "Magnet Size": "220X110X25 mm",
+          "Overall Diameter": "18.2/462 in/mm",
+          "Bolt Circle Diameter": "17.5/445 in/mm",
+          "Baffle cutout Diameter": "16.6/422 in/mm",
+          "Depth": "8.5/216 in/mm",
+          "Net Weight": "13.5/29.76 kgs",
+          "Shipping Weight": "14.5/31.97 kgs",
+          "Shipping Box": "50X50X25 cm / 18.69X18.69X9.84 in",
+          "FS Hz": "33 Hz",
+          "Vas": "205 dm 3",
+          "RE Ohms": "4.8 ohm",
+          "Qms": "13.8",
+          "Qes": "0.35",
+          "Qts": "0.34",
+          "BL T·m": "26.3 T·m",
+          "MMS": "231",
+          "Xmax(mm)": "9 mm",
+          "Sd": "1225 cm 2",
+          "Efficiency %": "2.18 %",
+          "EBP": "94"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-15FW400",
+      "model": "TN-15FW400",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-15FW400-datasheet.pdf",
+      "driver": {
+        "fs_hz": 41.0,
+        "vas_l": 81.5,
+        "mms_g": 189.9,
+        "sd_cm2": 855.0,
+        "re_ohm": 5.6,
+        "qms": 16.1,
+        "qes": 0.42,
+        "qts": 0.41,
+        "bl_tm": 24.4,
+        "xmax_mm": 9.6,
+        "pe_w": 1000.0
+      },
+      "raw": {
+        "fs_hz": 41.0,
+        "vas_l": 81.5,
+        "mms_g": 189.9,
+        "sd_cm2": 855.0,
+        "re_ohm": 5.6,
+        "qms": 16.1,
+        "qes": 0.42,
+        "qts": 0.41,
+        "bl_tm": 24.4,
+        "xmax_mm": 9.6,
+        "pe_w": 1000.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-15FW400",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/products/tn-15fw400/",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-15FW400-datasheet.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-15FW400-image-3-1024x1024.webp",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "15/385 in/mm",
+          "MAX Power": "2000 Watts",
+          "RMS Power": "1000 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "41 Hz",
+          "Frequency Response": "41-2000 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "4/100 in/mm",
+          "Winding material": "PI(inside-outside)",
+          "Magnet": "125 Oz",
+          "Magnet Size": "220X110X25 mm",
+          "Overall Diameter": "15.4/392 in/mm",
+          "Bolt Circle Diameter": "14.8/377 in/mm",
+          "Baffle cutout Diameter": "14/356 in/mm",
+          "Depth": "7.5/191 in/mm",
+          "Net Weight": "13.13/28.95 kgs",
+          "Shipping Weight": "13.83/30.49 kgs",
+          "Shipping Box": "42X42X20 cm / 16.54X16.54X7.87 in",
+          "FS Hz": "41 Hz",
+          "Vas": "81.5 dm 3",
+          "RE Ohms": "5.6 ohm",
+          "Qms": "16.1",
+          "Qes": "0.42",
+          "Qts": "0.41",
+          "BL T·m": "24.4 T·m",
+          "MMS": "189.9",
+          "Xmax(mm)": "9.6 mm",
+          "Sd": "855 cm 2",
+          "Efficiency %": "1.28 %",
+          "EBP": "98"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-15LF89",
+      "model": "TN-15LF89",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/40-TN-15LF89.pdf",
+      "driver": {
+        "fs_hz": 48.0,
+        "vas_l": 106.0,
+        "mms_g": 113.0,
+        "sd_cm2": 881.0,
+        "re_ohm": 5.4,
+        "qms": 10.1,
+        "qes": 0.41,
+        "qts": 0.39,
+        "bl_tm": 22.4,
+        "xmax_mm": 5.7,
+        "pe_w": 800.0
+      },
+      "raw": {
+        "fs_hz": 48.0,
+        "vas_l": 106.0,
+        "mms_g": 113.0,
+        "sd_cm2": 881.0,
+        "re_ohm": 5.4,
+        "qms": 10.1,
+        "qes": 0.41,
+        "qts": 0.39,
+        "bl_tm": 22.4,
+        "xmax_mm": 5.7,
+        "pe_w": 800.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-15LF89",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/15lf89.html",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/40-TN-15LF89.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/15LF89-1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "15/385 in/mm",
+          "MAX Power": "1600 Watts",
+          "RMS Power": "800 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "48 Hz",
+          "Frequency Response": "48-4000 Hz",
+          "Sensitivity(1W/1m)": "98 dB",
+          "Voice Coil Diameter": "3.5” / 89mm",
+          "Winding material": "PICCAW (inside-outside)",
+          "Magnet": "136 Oz 220x95x25 mm",
+          "Overall Diameter": "15.5/393 in/mm",
+          "Bolt Circle Diameter": "14.8/375 in/mm",
+          "Bafﬂe cutout Diameter": "13.9/353 in/mm",
+          "Depth": "7.1/180 in/mm",
+          "Net Weight": "11.6 kgs",
+          "Shipping Weight": "12 kgs",
+          "Shipping Box": "40.5×40.5×20.5 cm",
+          "FS Hz": "48 Hz",
+          "Vas": "106 dm³",
+          "RE Ohms": "5.4 ohm",
+          "Qms": "10.1",
+          "Qes": "0.41",
+          "Qts": "0.39",
+          "BL T•m": "22.4 T•m",
+          "MMS(grms)": "113 grams",
+          "Xmax(mm)": "5.7 mm",
+          "Sd": "881 cm²",
+          "Efﬁciency %": "2.8 %",
+          "EBP": "117"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-12LF89",
+      "model": "TN-12LF89",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/39-TN-12LF89.pdf",
+      "driver": {
+        "fs_hz": 50.0,
+        "vas_l": 52.0,
+        "mms_g": 70.0,
+        "sd_cm2": 500.0,
+        "re_ohm": 5.4,
+        "qms": 6.5,
+        "qes": 0.24,
+        "qts": 0.23,
+        "bl_tm": 22.0,
+        "xmax_mm": 3.7,
+        "pe_w": 800.0
+      },
+      "raw": {
+        "fs_hz": 50.0,
+        "vas_l": 52.0,
+        "mms_g": 70.0,
+        "sd_cm2": 500.0,
+        "re_ohm": 5.4,
+        "qms": 6.5,
+        "qes": 0.24,
+        "qts": 0.23,
+        "bl_tm": 22.0,
+        "xmax_mm": 3.7,
+        "pe_w": 800.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-12LF89",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/12lf89.html",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/39-TN-12LF89.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/12LF89-1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "12/205 in/mm",
+          "MAX Power": "1600 Watts",
+          "RMS Power": "800 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "50 Hz",
+          "Frequency Response": "50-4000 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "3.5” / 89mm",
+          "Winding material": "PICCAW (inside-outside)",
+          "Magnet": "136 Oz 220x95x25 mm",
+          "Overall Diameter": "12.4/317 in/mm",
+          "Bolt Circle Diameter": "11.8/300 in/mm",
+          "Bafﬂe cutout Diameter": "11.2/285 in/mm",
+          "Depth": "63/160 in/mm",
+          "Net Weight": "10.7 kgs",
+          "Shipping Weight": "11.3 kgs",
+          "Shipping Box": "33.5×33.5×17 cm",
+          "FS Hz": "50 Hz",
+          "Vas": "52 dm³",
+          "RE Ohms": "5.4 ohm",
+          "Qms": "6.5",
+          "Qes": "0.24",
+          "Qts": "0.23",
+          "BL T•m": "22 T•m",
+          "MMS(grms)": "70 grams",
+          "Xmax(mm)": "3.7 mm",
+          "Sd": "500 cm²",
+          "Efﬁciency %": "2.9 %",
+          "EBP": "208"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-10LF89",
+      "model": "TN-10LF89",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/38-TN-10LF89.pdf",
+      "driver": {
+        "fs_hz": 63.0,
+        "vas_l": 24.0,
+        "mms_g": 47.0,
+        "sd_cm2": 300.0,
+        "re_ohm": 5.4,
+        "qms": 4.9,
+        "qes": 0.24,
+        "qts": 0.23,
+        "bl_tm": 20.0,
+        "xmax_mm": 3.7,
+        "pe_w": 600.0
+      },
+      "raw": {
+        "fs_hz": 63.0,
+        "vas_l": 24.0,
+        "mms_g": 47.0,
+        "sd_cm2": 300.0,
+        "re_ohm": 5.4,
+        "qms": 4.9,
+        "qes": 0.24,
+        "qts": 0.23,
+        "bl_tm": 20.0,
+        "xmax_mm": 3.7,
+        "pe_w": 600.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-10LF89",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/10lf89.html",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/38-TN-10LF89.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/10LF89-1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "10/254 in/mm",
+          "MAX Power": "1200 Watts",
+          "RMS Power": "600 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "63 Hz",
+          "Frequency Response": "63-4000 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "3.5” / 89mm",
+          "Winding material": "PICCAW(inside-outside)",
+          "Magnet": "136 Oz 220x95x25 mm",
+          "Overall Diameter": "10.4/265 in/mm",
+          "Bolt Circle Diameter": "9.6/245 in/mm",
+          "Bafﬂe cutout Diameter": "9/228 in/mm",
+          "Depth": "5.7/145 in/mm",
+          "Net Weight": "10 kgs",
+          "Shipping Weight": "10.5 kgs",
+          "Shipping Box": "29x29x16 cm",
+          "FS Hz": "63 Hz",
+          "Vas": "24 dm³",
+          "RE Ohms": "5.4 ohm",
+          "Qms": "4.9",
+          "Qes": "0.24",
+          "Qts": "0.23",
+          "BL T•m": "20 T•m",
+          "MMS(grms)": "47 grams",
+          "Xmax(mm)": "3.7 mm",
+          "Sd": "300 cm²",
+          "Efﬁciency %": "2.5 %",
+          "EBP": "262"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-18LF451",
+      "model": "TN-18LF451",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/44-TN-18LF451.pdf",
+      "driver": {
+        "fs_hz": 35.0,
+        "vas_l": 179.0,
+        "mms_g": 247.0,
+        "sd_cm2": 1225.0,
+        "re_ohm": 5.2,
+        "qms": 6.8,
+        "qes": 0.3,
+        "qts": 0.29,
+        "bl_tm": 32.0,
+        "xmax_mm": 9.9,
+        "pe_w": 1500.0
+      },
+      "raw": {
+        "fs_hz": 35.0,
+        "vas_l": 179.0,
+        "mms_g": 247.0,
+        "sd_cm2": 1225.0,
+        "re_ohm": 5.2,
+        "qms": 6.8,
+        "qes": 0.3,
+        "qts": 0.29,
+        "bl_tm": 32.0,
+        "xmax_mm": 9.9,
+        "pe_w": 1500.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-18LF451",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/tn-18lf451.html",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/44-TN-18LF451.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/18LF451-1_1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "18/460 in/mm",
+          "MAX Power": "3000 Watts",
+          "RMS Power": "1500 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "35 Hz",
+          "Frequency Response": "35-1000 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "4.5”/ 114mm",
+          "Winding material": "GPI(inside-outside)",
+          "Magnet": "201 Oz 254x127x30 mm",
+          "Overall Diameter": "18/460 in/mm",
+          "Bolt Circle Diameter": "17.2/442 in/mm",
+          "Bafﬂe cutout Diameter": "16.6/420 in/mm",
+          "Depth": "8.5/215 in/mm",
+          "Net Weight": "19.6 kgs",
+          "Shipping Weight": "21 kgs",
+          "Shipping Box": "49.5×49.5×23 cm",
+          "FS Hz": "35 Hz",
+          "Vas": "179 dm³",
+          "RE Ohms": "5.2 ohm",
+          "Qms": "6.8",
+          "Qes": "0.30",
+          "Qts": "0.29",
+          "BL T•m": "32 T•m",
+          "MMS(grms)": "247 grams",
+          "Xmax(mm)": "9.9 mm",
+          "Sd": "1225 cm²",
+          "Efﬁciency %": "2.5 %",
+          "EBP": "96"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-15LF451",
+      "model": "TN-15LF451",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/43-TN-15LF451.pdf",
+      "driver": {
+        "fs_hz": 45.0,
+        "vas_l": 45.0,
+        "mms_g": 250.0,
+        "sd_cm2": 829.0,
+        "re_ohm": 5.2,
+        "qms": 15.7,
+        "qes": 0.4,
+        "qts": 0.39,
+        "bl_tm": 31.0,
+        "xmax_mm": 15.0,
+        "pe_w": 1200.0
+      },
+      "raw": {
+        "fs_hz": 45.0,
+        "vas_l": 45.0,
+        "mms_g": 250.0,
+        "sd_cm2": 829.0,
+        "re_ohm": 5.2,
+        "qms": 15.7,
+        "qes": 0.4,
+        "qts": 0.39,
+        "bl_tm": 31.0,
+        "xmax_mm": 15.0,
+        "pe_w": 1200.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-15LF451",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/tn-15lf451.html",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/43-TN-15LF451.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/15LF451-1_1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "15/385 in/mm",
+          "MAX Power": "2400 Watts",
+          "RMS Power": "1200 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "45 Hz",
+          "Frequency Response": "45-1200 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "4.5” / 114mm",
+          "Winding material": "PI(inside-outside)",
+          "Magnet": "201 Oz 254x127x30 mm",
+          "Overall Diameter": "15.5/393 in/mm",
+          "Bolt Circle Diameter": "14/357 in/mm",
+          "Bafﬂe cutout Diameter": "13.9/353 in/mm",
+          "Depth": "7.9/200 in/mm",
+          "Net Weight": "18 kgs",
+          "Shipping Weight": "19 kgs",
+          "Shipping Box": "40.5×40.5×23 cm",
+          "FS Hz": "45 Hz",
+          "Vas": "45 dm³",
+          "RE Ohms": "5.2 ohm",
+          "Qms": "15.7",
+          "Qes": "0.4",
+          "Qts": "0.39",
+          "BL T•m": "31 T•m",
+          "MMS(grms)": "250 grams",
+          "Xmax(mm)": "15 mm",
+          "Sd": "829 cm²",
+          "Efﬁciency %": "2.5 %",
+          "EBP": "112"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-21HW6000",
+      "model": "TN-21HW6000",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/37-TN-21HW6000.pdf",
+      "driver": {
+        "fs_hz": 37.4,
+        "vas_l": 105.0,
+        "mms_g": 702.0,
+        "sd_cm2": 1698.23,
+        "re_ohm": 5.2,
+        "qms": 17.06,
+        "qes": 0.21,
+        "qts": 0.21,
+        "bl_tm": 64.5,
+        "xmax_mm": 8.35,
+        "pe_w": 3500.0
+      },
+      "raw": {
+        "fs_hz": 37.4,
+        "vas_l": 105.0,
+        "mms_g": 702.0,
+        "sd_cm2": 1698.23,
+        "re_ohm": 5.2,
+        "qms": 17.06,
+        "qes": 0.21,
+        "qts": 0.21,
+        "bl_tm": 64.5,
+        "xmax_mm": 8.35,
+        "pe_w": 3500.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-21HW6000",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/21hw6000.html",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/37-TN-21HW6000.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/21HW6000-1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "21/535 in/mm",
+          "MAX Power": "7000 Watts",
+          "RMS Power": "3500 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "37.4 Hz",
+          "Frequency Response": "37.4-1000 Hz",
+          "Sensitivity(1W/1m)": "98 dB",
+          "Voice Coil Diameter": "6” / 152mm",
+          "Winding material": "SV(inside-outside)",
+          "Magnet": "664 Oz 330x170x20 mm(3pcs)",
+          "Overall Diameter": "21.6/550 in/mm",
+          "Bolt Circle Diameter": "20.8/528 in/mm",
+          "Bafﬂe cutout Diameter": "19.5/496 in/mm",
+          "Depth": "10.6/270 in/mm",
+          "Net Weight": "40 kgs",
+          "Shipping Weight": "42 kgs",
+          "Shipping Box": "60x60x32.5 cm",
+          "FS Hz": "37.4 Hz",
+          "Vas": "105 dm³",
+          "RE Ohms": "5.2 Ohm",
+          "Qms": "17.06",
+          "Qes": "0.21",
+          "Qts": "0.21",
+          "BL T•m": "64.5 T•m",
+          "MMS(grms)": "702 grams",
+          "Xmax(mm)": "8.35 mm",
+          "Sd": "1698.23 cm²",
+          "Efﬁciency %": "2.48 %",
+          "EBP": "178"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-18LS450",
+      "model": "TN-18LS450",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450-1.pdf",
+      "driver": {
+        "fs_hz": 38.0,
+        "vas_l": 115.0,
+        "mms_g": 278.0,
+        "sd_cm2": 1195.0,
+        "re_ohm": 5.2,
+        "qms": 18.1,
+        "qes": 0.34,
+        "qts": 0.33,
+        "bl_tm": 28.0,
+        "xmax_mm": 14.7,
+        "pe_w": 1800.0
+      },
+      "raw": {
+        "fs_hz": 38.0,
+        "vas_l": 115.0,
+        "mms_g": 278.0,
+        "sd_cm2": 1195.0,
+        "re_ohm": 5.2,
+        "qms": 18.1,
+        "qes": 0.34,
+        "qts": 0.33,
+        "bl_tm": 28.0,
+        "xmax_mm": 14.7,
+        "pe_w": 1800.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-18LS450",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/18ls450.html",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450-1.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/18LS450-1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "18/460 in/mm",
+          "MAX Power": "3600 Watts",
+          "RMS Power": "1800 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "38 Hz",
+          "Frequency Response": "38-2000 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "4.5” / 114mm",
+          "Winding material": "PISV (inside-outside)",
+          "Magnet": "186 Oz 254x140x30 mm",
+          "Overall Diameter": "18.1/460 in/mm",
+          "Bolt Circle Diameter": "17.5/445 in/mm",
+          "Bafﬂe cutout Diameter": "17/430 in/mm",
+          "Depth": "8.8/225 in/mm",
+          "Net Weight": "14.8 kgs",
+          "Shipping Weight": "15.8 kgs",
+          "Shipping Box": "49.5×49.5×25 cm",
+          "FS Hz": "38 Hz",
+          "Vas": "115 dm³",
+          "RE Ohms": "5.2 ohm",
+          "Qms": "18.1",
+          "Qes": "0.34",
+          "Qts": "0.33",
+          "BL T•m": "28 T•m",
+          "MMS(grms)": "278 grams",
+          "Xmax(mm)": "14.7 mm",
+          "Sd": "1195 cm²",
+          "Efﬁciency %": "1.2 %",
+          "EBP": "112"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-15LS450",
+      "model": "TN-15LS450",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450.pdf",
+      "driver": {
+        "fs_hz": 40.0,
+        "vas_l": 84.0,
+        "mms_g": 197.0,
+        "sd_cm2": 830.0,
+        "re_ohm": 5.2,
+        "qms": 14.15,
+        "qes": 0.3,
+        "qts": 0.29,
+        "bl_tm": 29.1,
+        "xmax_mm": 11.2,
+        "pe_w": 1200.0
+      },
+      "raw": {
+        "fs_hz": 40.0,
+        "vas_l": 84.0,
+        "mms_g": 197.0,
+        "sd_cm2": 830.0,
+        "re_ohm": 5.2,
+        "qms": 14.15,
+        "qes": 0.3,
+        "qts": 0.29,
+        "bl_tm": 29.1,
+        "xmax_mm": 11.2,
+        "pe_w": 1200.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-15LS450",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/15ls450.html",
+        "datasheet_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450.pdf",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/15LS450-1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "15/385 in/mm",
+          "MAX Power": "2400 Watts",
+          "RMS Power": "1200 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "40 Hz",
+          "Frequency Response": "40-2000 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "4.5”/ 114mm",
+          "Winding material": "PISV (inside-outside)",
+          "Magnet": "186 Oz 254x140x30 mm",
+          "Overall Diameter": "15.3/390 in/mm",
+          "Bolt Circle Diameter": "14.6/370 in/mm",
+          "Bafﬂe cutout Diameter": "14.2/360 in/mm",
+          "Depth": "7.9/200 in/mm",
+          "Net Weight": "15.3 kgs",
+          "Shipping Weight": "15.8 kgs",
+          "Shipping Box": "42x42x24 cm",
+          "FS Hz": "40 Hz",
+          "Vas": "84 dm³",
+          "RE Ohms": "5.2 ohm",
+          "Qms": "14.15",
+          "Qes": "0.30",
+          "Qts": "0.29",
+          "BL T/m": "29.1 T/m",
+          "MMS(grms)": "197 grams",
+          "Xmax(mm)": "11.2 mm",
+          "Sd": "830 cm²",
+          "Efﬁciency %": "1.5 %",
+          "EBP": "133"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-18LF400",
+      "model": "TN-18LF400",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/tn-18lf400.html",
+      "driver": {
+        "fs_hz": 40.0,
+        "vas_l": 147.0,
+        "mms_g": 198.0,
+        "sd_cm2": 1225.0,
+        "re_ohm": 5.6,
+        "qms": 8.0,
+        "qes": 0.38,
+        "qts": 0.37,
+        "bl_tm": 25.0,
+        "xmax_mm": 9.9,
+        "pe_w": 1200.0
+      },
+      "raw": {
+        "fs_hz": 40.0,
+        "vas_l": 147.0,
+        "mms_g": 198.0,
+        "sd_cm2": 1225.0,
+        "re_ohm": 5.6,
+        "qms": 8.0,
+        "qes": 0.38,
+        "qts": 0.37,
+        "bl_tm": 25.0,
+        "xmax_mm": 9.9,
+        "pe_w": 1200.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-18LF400",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/tn-18lf400.html",
+        "datasheet_url": "",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/TN-18LF400-1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "18/460 in/mm",
+          "MAX Power": "2400 Watts",
+          "RMS Power": "1200 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "40 Hz",
+          "Frequency Response": "40-1500 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "4”/ 100mm",
+          "Winding material": "GPI(inside-outside)",
+          "Magnet": "150 Oz 220x110x30 mm",
+          "Overall Diameter": "18/460 in/mm",
+          "Bolt Circle Diameter": "17.2/442 in/mm",
+          "Bafﬂe cutout Diameter": "16.6/420 in/mm",
+          "Depth": "8.7/220 in/mm",
+          "Net Weight": "14 kgs",
+          "Shipping Weight": "15 kgs",
+          "Shipping Box": "49.5×49.5×25 cm",
+          "FS Hz": "40 Hz",
+          "Vas": "147 dm³",
+          "RE Ohms": "5.6 ohm",
+          "Qms": "8",
+          "Qes": "0.38",
+          "Qts": "0.37",
+          "BL T/m": "25 T/m",
+          "MMS(grms)": "198 grams",
+          "Xmax(mm)": "9.9 mm",
+          "Sd": "1225 cm²",
+          "Efﬁciency %": "2.5 %",
+          "EBP": "105"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-15LF400",
+      "model": "TN-15LF400",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/tn-15lf400-9842.html",
+      "driver": {
+        "fs_hz": 45.0,
+        "vas_l": 85.0,
+        "mms_g": 162.0,
+        "sd_cm2": 844.0,
+        "re_ohm": 5.6,
+        "qms": 10.9,
+        "qes": 0.42,
+        "qts": 0.41,
+        "bl_tm": 25.0,
+        "xmax_mm": 9.9,
+        "pe_w": 1000.0
+      },
+      "raw": {
+        "fs_hz": 45.0,
+        "vas_l": 85.0,
+        "mms_g": 162.0,
+        "sd_cm2": 844.0,
+        "re_ohm": 5.6,
+        "qms": 10.9,
+        "qes": 0.42,
+        "qts": 0.41,
+        "bl_tm": 25.0,
+        "xmax_mm": 9.9,
+        "pe_w": 1000.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-15LF400",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/tn-15lf400-9842.html",
+        "datasheet_url": "",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/TN-15LF400-3.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "15/385 in/mm",
+          "MAX Power": "2000 Watts",
+          "RMS Power": "1000 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "45 Hz",
+          "Frequency Response": "45-1500 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "4”/ 100mm",
+          "Winding material": "PI(inside-outside)",
+          "Magnet": "150 Oz 220x110x30 mm",
+          "Overall Diameter": "15.5/393 in/mm",
+          "Bolt Circle Diameter": "14/357 in/mm",
+          "Bafﬂe cutout Diameter": "13.9/353 in/mm",
+          "Depth": "7.7/195 in/mm",
+          "Net Weight": "12.5 kgs",
+          "Shipping Weight": "13.5 kgs",
+          "Shipping Box": "42x42x22 cm",
+          "FS Hz": "45 Hz",
+          "Vas": "85 dm³",
+          "RE Ohms": "5.6 ohm",
+          "Qms": "10.9",
+          "Qes": "0.42",
+          "Qts": "0.41",
+          "BL T/m": "25 T/m",
+          "MMS(grms)": "162 grams",
+          "Xmax(mm)": "9.9 mm",
+          "Sd": "844 cm²",
+          "Efﬁciency %": "2.5 %",
+          "EBP": "107"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-L15MB750",
+      "model": "TN-L15MB750",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/l15mb750.html",
+      "driver": {
+        "fs_hz": 56.0,
+        "vas_l": 99.0,
+        "mms_g": 85.9,
+        "sd_cm2": 881.4,
+        "re_ohm": 5.0,
+        "qms": 6.74,
+        "qes": 0.37,
+        "qts": 0.35,
+        "bl_tm": 20.0,
+        "xmax_mm": 4.1,
+        "pe_w": 500.0
+      },
+      "raw": {
+        "fs_hz": 56.0,
+        "vas_l": 99.0,
+        "mms_g": 85.9,
+        "sd_cm2": 881.4,
+        "re_ohm": 5.0,
+        "qms": 6.74,
+        "qes": 0.37,
+        "qts": 0.35,
+        "bl_tm": 20.0,
+        "xmax_mm": 4.1,
+        "pe_w": 500.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-L15MB750",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/l15mb750.html",
+        "datasheet_url": "",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/L15MB750-1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "15/385 in/mm",
+          "MAX Power": "1000 Watts",
+          "RMS Power": "500 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "56 Hz",
+          "Frequency Response": "56-4500 Hz",
+          "Sensitivity(1W/1m)": "99 dB",
+          "Voice Coil Diameter": "3”/75 mm",
+          "Winding material": "PI(inside-outside)",
+          "Magnet": "90 Oz 200x86x20 mm",
+          "Overall Diameter": "15.5/393 in/mm",
+          "Bolt Circle Diameter": "14/357 in/mm",
+          "Bafﬂe cutout Diameter": "13.9/353 in/mm",
+          "Depth": "6.9/175 in/mm",
+          "Net Weight": "9.15 kgs",
+          "Shipping Weight": "9.65 kgs",
+          "Shipping Box": "40.5×40.5×20.5 cm",
+          "FS Hz": "56 Hz",
+          "Vas": "99 dm³",
+          "RE Ohms": "5 ohm",
+          "Qms": "6.74",
+          "Qes": "0.37",
+          "Qts": "0.35",
+          "BL T/m": "20 T/m",
+          "MMS(grms)": "85.9 grams",
+          "Xmax(mm)": "4.1 mm",
+          "Sd": "881.4 cm²",
+          "Efﬁciency %": "4.59 %",
+          "EBP": "151"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-L12MB750",
+      "model": "TN-L12MB750",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/l12mb750.html",
+      "driver": {
+        "fs_hz": 54.0,
+        "vas_l": 56.8,
+        "mms_g": 59.2,
+        "sd_cm2": 530.9,
+        "re_ohm": 5.0,
+        "qms": 6.95,
+        "qes": 0.27,
+        "qts": 0.26,
+        "bl_tm": 19.2,
+        "xmax_mm": 4.1,
+        "pe_w": 400.0
+      },
+      "raw": {
+        "fs_hz": 54.0,
+        "vas_l": 56.8,
+        "mms_g": 59.2,
+        "sd_cm2": 530.9,
+        "re_ohm": 5.0,
+        "qms": 6.95,
+        "qes": 0.27,
+        "qts": 0.26,
+        "bl_tm": 19.2,
+        "xmax_mm": 4.1,
+        "pe_w": 400.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-L12MB750",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/l12mb750.html",
+        "datasheet_url": "",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/L12MB750-1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "12/305 in/mm",
+          "MAX Power": "800 Watts",
+          "RMS Power": "400 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "54 Hz",
+          "Frequency Response": "54-4800 Hz",
+          "Sensitivity(1W/1m)": "98 dB",
+          "Voice Coil Diameter": "3”/ 75mm",
+          "Winding material": "PI(inside-outside)",
+          "Magnet": "90 Oz 200x86x20 mm",
+          "Overall Diameter": "12.5/317 in/mm",
+          "Bolt Circle Diameter": "11.8/300 in/mm",
+          "Bafﬂe cutout Diameter": "11.2/285 in/mm",
+          "Depth": "6.1/155 in/mm",
+          "Net Weight": "8.5 kgs",
+          "Shipping Weight": "9 kgs",
+          "Shipping Box": "33.5×33.5×17 cm",
+          "FS Hz": "54 Hz",
+          "Vas": "56.8 dm³",
+          "RE Ohms": "5 ohm",
+          "Qms": "6.95",
+          "Qes": "0.27",
+          "Qts": "0.26",
+          "BL T/m": "19.2 T/m",
+          "MMS(grms)": "59.2 grams",
+          "Xmax(mm)": "4.1 mm",
+          "Sd": "530.9 cm²",
+          "Efﬁciency %": "3.21 %",
+          "EBP": "200"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-L10MB750",
+      "model": "TN-L10MB750",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/l10mb750.html",
+      "driver": {
+        "fs_hz": 65.0,
+        "vas_l": 21.4,
+        "mms_g": 47.1,
+        "sd_cm2": 346.36,
+        "re_ohm": 5.4,
+        "qms": 14.1,
+        "qes": 0.268,
+        "qts": 0.263,
+        "bl_tm": 19.6,
+        "xmax_mm": 2.15,
+        "pe_w": 300.0
+      },
+      "raw": {
+        "fs_hz": 65.0,
+        "vas_l": 21.4,
+        "mms_g": 47.1,
+        "sd_cm2": 346.36,
+        "re_ohm": 5.4,
+        "qms": 14.1,
+        "qes": 0.268,
+        "qts": 0.263,
+        "bl_tm": 19.6,
+        "xmax_mm": 2.15,
+        "pe_w": 300.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-L10MB750",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/l10mb750.html",
+        "datasheet_url": "",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/L10MB750-1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "10/254 in/mm",
+          "MAX Power": "600 Watts",
+          "RMS Power": "300 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "65 Hz",
+          "Frequency Response": "65-6000 Hz",
+          "Sensitivity(1W/1m)": "97 dB",
+          "Voice Coil Diameter": "3”/ 75mm",
+          "Winding material": "SV(inside-outside)",
+          "Magnet": "90 Oz 200x86x20 mm",
+          "Overall Diameter": "10.4/265 in/mm",
+          "Bolt Circle Diameter": "9.6/245 in/mm",
+          "Bafﬂe cutout Diameter": "9/228 in/mm",
+          "Depth": "5.5/140 in/mm",
+          "Net Weight": "8.2 kgs",
+          "Shipping Weight": "8.7 kgs",
+          "Shipping Box": "28.5×28.5×15 cm",
+          "FS Hz": "65 Hz",
+          "Vas": "21.4 dm³",
+          "RE Ohms": "5.4 ohm",
+          "Qms": "14.1",
+          "Qes": "0.268",
+          "Qts": "0.263",
+          "BL T/m": "19.6 T/m",
+          "MMS(grms)": "47.1 grams",
+          "Xmax(mm)": "2.15 mm",
+          "Sd": "346.36 cm²",
+          "Efﬁciency %": "2.1 %",
+          "EBP": "25"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    },
+    {
+      "name": "ZTZ: TN-L8MB500",
+      "model": "TN-L8MB500",
+      "brand": "ZTZ Audio",
+      "kind": "Loudspeaker driver",
+      "size_in": null,
+      "source": "ZTZ Audio manufacturer catalog",
+      "availability": "InStock",
+      "currency": "",
+      "price": 0.0,
+      "price_url": "",
+      "url": "https://www.ztzaudio.com/l8mb500.html",
+      "driver": {
+        "fs_hz": 85.0,
+        "vas_l": 9.5,
+        "mms_g": 23.64,
+        "sd_cm2": 213.8,
+        "re_ohm": 5.2,
+        "qms": 13.2,
+        "qes": 0.29,
+        "qts": 0.28,
+        "bl_tm": 14.8,
+        "xmax_mm": 2.5,
+        "pe_w": 200.0
+      },
+      "raw": {
+        "fs_hz": 85.0,
+        "vas_l": 9.5,
+        "mms_g": 23.64,
+        "sd_cm2": 213.8,
+        "re_ohm": 5.2,
+        "qms": 13.2,
+        "qes": 0.29,
+        "qts": 0.28,
+        "bl_tm": 14.8,
+        "xmax_mm": 2.5,
+        "pe_w": 200.0
+      },
+      "website_fields": {
+        "brand": "ZTZ Audio",
+        "model": "TN-L8MB500",
+        "category": "LF Loudspeakers - Ferrite",
+        "product_url": "https://www.ztzaudio.com/l8mb500.html",
+        "datasheet_url": "",
+        "image_url": "https://www.ztzaudio.com/wp-content/uploads/2026/04/L8MB500-1.jpg",
+        "raw_parameters": {
+          "Nominal Chassis Diameter": "8/205 in/mm",
+          "MAX Power": "400 Watts",
+          "RMS Power": "200 Watts",
+          "Impedance": "8 Ohm",
+          "Resonance(natural) Frequency": "85 Hz",
+          "Frequency Response": "86-5000 Hz",
+          "Sensitivity(1W/1m)": "96 dB",
+          "Voice Coil Diameter": "2”/50 mm",
+          "Winding material": "SV(inside-outside)",
+          "Magnet": "57 Oz 156x60x20 mm",
+          "Overall Diameter": "8.3/212 in/mm",
+          "Bolt Circle Diameter": "7.7/197 in/mm",
+          "Bafﬂe cutout Diameter": "7.2/182 in/mm",
+          "Depth": "4.3/110 in/mm",
+          "Net Weight": "4 kgs",
+          "Shipping Weight": "4.5 kgs",
+          "Shipping Box": "23.5×23.5×13.5 cm",
+          "FS Hz": "85 Hz",
+          "Vas": "9.5 dm³",
+          "RE Ohms": "5.2 ohm",
+          "Qms": "13.2",
+          "Qes": "0.29",
+          "Qts": "0.28",
+          "BL T/m": "14.8 T/m",
+          "MMS(grms)": "23.64 grams",
+          "Xmax(mm)": "2.5 mm",
+          "Sd": "213.8cm²",
+          "Efﬁciency %": "1.92 %",
+          "EBP": "293"
+        },
+        "confidence": 0.95,
+        "extraction_method": "manufacturer_html",
+        "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+      }
+    }
+  ],
+  "rejected": [
+    {
+      "name": "TN-15SW1280",
+      "missing": []
+    },
+    {
+      "name": "TN-12ZW100",
+      "missing": []
+    },
+    {
+      "name": "TN-10ZW100",
+      "missing": []
+    },
+    {
+      "name": "TN-12ZM85",
+      "missing": []
+    },
+    {
+      "name": "TN-10ZM85",
+      "missing": [
+        "sd_cm2"
+      ]
+    },
+    {
+      "name": "TN-8MD300",
+      "missing": [
+        "sd_cm2"
+      ]
+    },
+    {
+      "name": "TN-18HP451",
+      "missing": []
+    },
+    {
+      "name": "TN-15HP451",
+      "missing": []
+    },
+    {
+      "name": "TN-21HW5500",
+      "missing": [
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-18HW5500",
+      "missing": [
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-18LS430",
+      "missing": []
+    },
+    {
+      "name": "TN-15LS430",
+      "missing": []
+    },
+    {
+      "name": "TN-18X451",
+      "missing": []
+    },
+    {
+      "name": "TN-15X451",
+      "missing": [
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-PD2188",
+      "missing": []
+    },
+    {
+      "name": "TN-PD1888",
+      "missing": []
+    },
+    {
+      "name": "TN-15FW88",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-12FW88",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-21X451",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-18SW1530",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-10MB600",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-12MB700",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-18HW1070",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-15HW1070",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-12HW1070",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-PD1852",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-PD2165",
+      "missing": [
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-PD1865",
+      "missing": [
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-18XS",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-18P300",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-18XB",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-12XB",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-18TBW100",
+      "missing": [
+        "sd_cm2",
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-15TBW100",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-18TLW3000",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-18X400",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-1535",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-1235",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-1035",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-15X400",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-18SW1P",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-15SW1P",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-18SW1600",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-15SW1200",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-12SW1000",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-18SW3000",
+      "missing": [
+        "sd_cm2",
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-12MD",
+      "missing": [
+        "vas_l",
+        "sd_cm2"
+      ]
+    },
+    {
+      "name": "TN-10MD",
+      "missing": [
+        "vas_l",
+        "sd_cm2"
+      ]
+    },
+    {
+      "name": "TN-10ZM75",
+      "missing": [
+        "sd_cm2"
+      ]
+    },
+    {
+      "name": "TN-12ZM75",
+      "missing": [
+        "sd_cm2"
+      ]
+    },
+    {
+      "name": "TN-15SW1270",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-18SW1270",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-12ZM100",
+      "missing": [
+        "vas_l",
+        "sd_cm2"
+      ]
+    },
+    {
+      "name": "TN-P18M",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-P15M",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-P12M",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-1839",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-1539",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-1239",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-15P300",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-12P300",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-18TBX100",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-15TBX100",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-12TBX100",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-18HP1032",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-15HP1032",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-12HP1032",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-18HP1031",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-15HP1031",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-18HP1030",
+      "missing": []
+    },
+    {
+      "name": "TN-15HP1030",
+      "missing": []
+    },
+    {
+      "name": "TN-18140",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-C18-650EL",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-C15-600EL",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-CMK1577",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-CMK1277",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-21IPAL",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "re_ohm"
+      ]
+    },
+    {
+      "name": "TN-ND1275",
+      "missing": [
+        "fs_hz",
+        "vas_l",
+        "qts",
+        "qms",
+        "qes",
+        "re_ohm",
+        "sd_cm2",
+        "mms_g",
+        "bl_tm",
+        "xmax_mm"
+      ]
+    },
+    {
+      "name": "TN-10MD750",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-12MD750",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-12X400",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-15SW2P",
+      "missing": [
+        "sd_cm2",
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-18SW2P",
+      "missing": [
+        "sd_cm2",
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-12W750",
+      "missing": [
+        "vas_l",
+        "sd_cm2"
+      ]
+    },
+    {
+      "name": "TN-15SW2600",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-15XS",
+      "missing": [
+        "vas_l",
+        "sd_cm2"
+      ]
+    },
+    {
+      "name": "TN-10FW750",
+      "missing": [
+        "sd_cm2",
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-12FW750",
+      "missing": [
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-15FW750",
+      "missing": [
+        "sd_cm2",
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-15W750",
+      "missing": [
+        "sd_cm2",
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-10ZM100",
+      "missing": [
+        "sd_cm2"
+      ]
+    },
+    {
+      "name": "TN-10W750",
+      "missing": [
+        "sd_cm2",
+        "bl_tm"
+      ]
+    },
+    {
+      "name": "TN-12HP1030",
+      "missing": [
+        "sd_cm2"
+      ]
+    }
+  ]
+}

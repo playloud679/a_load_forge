@@ -18,6 +18,7 @@ try:
         _load_loudspeaker_database_presets,  # noqa: F401
         _load_manufacturer_presets,  # noqa: F401
         _load_speakerboxlite_presets,  # noqa: F401
+        _load_ztzaudio_presets,  # noqa: F401
         _load_vituixcad_presets,  # noqa: F401
     )
     from .pricing import *  # noqa: F401,F403
@@ -30,6 +31,7 @@ except ImportError:  # top-level import with src/ on sys.path (ui_app)
         _load_loudspeaker_database_presets,  # noqa: F401
         _load_manufacturer_presets,  # noqa: F401
         _load_speakerboxlite_presets,  # noqa: F401
+        _load_ztzaudio_presets,  # noqa: F401
         _load_vituixcad_presets,  # noqa: F401
     )
     from pricing import *  # noqa: F401,F403

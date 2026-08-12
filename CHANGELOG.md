@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.10 (2026-08-12)
+
+- **ZTZ Audio LF catalog**: imported 25 validated ferrite woofer presets from
+  the manufacturer catalog, with source metadata and resumable crawl tools.
+- **Passive radiators**: added catalog presets, added-mass support and correct
+  effective tuning markers in Bass Match and Box Design.
+- **Finder reliability**: invalidates worker pools when external catalogs
+  change and retries serially when a stale worker pool returns no rows.
+- **UI**: restored the dark green theme and made project opening neutral rather
+  than destructive red.
+- **Verification**: Python compilation, Streamlit AppTest and the active suite
+  pass with 0 failures.
+
 ## 0.8.9 (2026-08-09)
 
 - **Distributed waveguides**: added first-order TL, MLTL, QW, BLH and TH
