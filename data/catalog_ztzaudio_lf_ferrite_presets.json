@@ -34,6 +34,12 @@
         "bolt_circle_mm": 440.0,
         "weight_kg": 20.8
       },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 98.0,
+        "voice_coil_diameter_mm": 127.0,
+        "efficiency_pct": 2.5
+      },
       "raw": {
         "fs_hz": 32.0,
         "vas_l": 152.0,
@@ -85,6 +91,80 @@
           "Efﬁciency %": "2.5 %",
           "EBP": "118"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 462.0,
+            "raw_value": "18.2/462 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/98-TN-18SW1280-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 430.0,
+            "raw_value": "16.9/430 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/98-TN-18SW1280-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 208.0,
+            "raw_value": "8.2/208 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/98-TN-18SW1280-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 440.0,
+            "raw_value": "17.3/440 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/98-TN-18SW1280-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 20.8,
+            "raw_value": "20.8 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/98-TN-18SW1280-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/98-TN-18SW1280-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 98.0,
+            "raw_value": "98 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/98-TN-18SW1280-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 127.0,
+            "raw_value": "5”/ 127mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/98-TN-18SW1280-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 2.5,
+            "raw_value": "2.5 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/98-TN-18SW1280-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -120,6 +200,11 @@
         "depth_mm": 190.0,
         "bolt_circle_mm": 377.0,
         "weight_kg": 9.75
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 100.0,
+        "voice_coil_diameter_mm": 75.0
       },
       "raw": {
         "fs_hz": 40.0,
@@ -173,6 +258,64 @@
           "Efficiency %": "3.3 %",
           "EBP": "142"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 392.0,
+            "raw_value": "15.4/392 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/20-TN-15HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 190.0,
+            "raw_value": "7.5/190 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/20-TN-15HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 377.0,
+            "raw_value": "14.8/377 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/20-TN-15HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 9.75,
+            "raw_value": "9.75 kg/lb",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/20-TN-15HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/20-TN-15HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 100.0,
+            "raw_value": "100 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/20-TN-15HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 75.0,
+            "raw_value": "3/75 in/mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/20-TN-15HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -208,6 +351,11 @@
         "depth_mm": 168.0,
         "bolt_circle_mm": 300.0,
         "weight_kg": 8.9
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 98.0,
+        "voice_coil_diameter_mm": 75.0
       },
       "raw": {
         "fs_hz": 43.0,
@@ -261,6 +409,64 @@
           "Efficiency %": "2.7 %",
           "EBP": "215"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 318.0,
+            "raw_value": "12.5/318 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/19-TN-12HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 168.0,
+            "raw_value": "6.6/168 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/19-TN-12HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 300.0,
+            "raw_value": "11.8/300 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/19-TN-12HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 8.9,
+            "raw_value": "8.9 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/19-TN-12HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/19-TN-12HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 98.0,
+            "raw_value": "98 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/19-TN-12HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 75.0,
+            "raw_value": "3/75 in/mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/19-TN-12HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -296,6 +502,11 @@
         "depth_mm": 142.0,
         "bolt_circle_mm": 245.0,
         "weight_kg": 7.95
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 98.0,
+        "voice_coil_diameter_mm": 75.0
       },
       "raw": {
         "fs_hz": 55.0,
@@ -349,6 +560,64 @@
           "Efficiency %": "2.36 %",
           "EBP": "226"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 264.0,
+            "raw_value": "10.4/264 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/18-TN-10HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 142.0,
+            "raw_value": "5.5/142 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/18-TN-10HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 245.0,
+            "raw_value": "9.6/245 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/18-TN-10HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 7.95,
+            "raw_value": "7.95 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/18-TN-10HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/18-TN-10HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 98.0,
+            "raw_value": "98 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/18-TN-10HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 75.0,
+            "raw_value": "3/75 in/mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/18-TN-10HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -384,6 +653,11 @@
         "depth_mm": 113.0,
         "bolt_circle_mm": 210.0,
         "weight_kg": 6.45
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 94.0,
+        "voice_coil_diameter_mm": 75.0
       },
       "raw": {
         "fs_hz": 83.0,
@@ -437,6 +711,64 @@
           "Efficiency %": "1.0 %",
           "EBP": "230"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 226.0,
+            "raw_value": "8.9/226 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/17-TN-8HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 113.0,
+            "raw_value": "4.4/113 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/17-TN-8HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 210.0,
+            "raw_value": "8.3/210 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/17-TN-8HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 6.45,
+            "raw_value": "6.45 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/17-TN-8HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/17-TN-8HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 94.0,
+            "raw_value": "94 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/17-TN-8HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 75.0,
+            "raw_value": "3/75 in/mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/17-TN-8HD300.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -472,6 +804,11 @@
         "depth_mm": 240.0,
         "bolt_circle_mm": 445.0,
         "weight_kg": 35.85
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 140.0
       },
       "raw": {
         "fs_hz": 36.0,
@@ -525,6 +862,64 @@
           "Efficiency %": "2.0 %",
           "EBP": "156"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 462.0,
+            "raw_value": "18.2/462 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/12-TN-18FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 240.0,
+            "raw_value": "9.4/240 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/12-TN-18FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 445.0,
+            "raw_value": "17.5/445 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/12-TN-18FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 35.85,
+            "raw_value": "35.85 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/12-TN-18FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/12-TN-18FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/12-TN-18FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 140.0,
+            "raw_value": "5.5/140 in/mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/12-TN-18FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -560,6 +955,11 @@
         "depth_mm": 215.0,
         "bolt_circle_mm": 377.0,
         "weight_kg": 24.8
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 140.0
       },
       "raw": {
         "fs_hz": 45.0,
@@ -613,6 +1013,64 @@
           "Efficiency %": "1.33 %",
           "EBP": "166"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 392.0,
+            "raw_value": "15.4/392 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/11-TN-15FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 215.0,
+            "raw_value": "8.5/215 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/11-TN-15FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 377.0,
+            "raw_value": "14.8/377 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/11-TN-15FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 24.8,
+            "raw_value": "24.8 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/11-TN-15FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/11-TN-15FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/11-TN-15FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 140.0,
+            "raw_value": "5.5/140 in/mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/11-TN-15FW550.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -648,6 +1106,11 @@
         "depth_mm": 159.0,
         "bolt_circle_mm": 300.0,
         "weight_kg": 7.95
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 98.0,
+        "voice_coil_diameter_mm": 75.0
       },
       "raw": {
         "fs_hz": 58.0,
@@ -701,6 +1164,64 @@
           "Efficiency %": "3.4 %",
           "EBP": "232"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 317.0,
+            "raw_value": "12.5/317 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-12MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 159.0,
+            "raw_value": "6.3/159 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-12MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 300.0,
+            "raw_value": "11.8/300 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-12MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 7.95,
+            "raw_value": "7.95/15.53 kg/lb",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-12MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-12MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 98.0,
+            "raw_value": "98 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-12MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 75.0,
+            "raw_value": "3″/75 mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-12MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -736,6 +1257,11 @@
         "depth_mm": 143.0,
         "bolt_circle_mm": 247.0,
         "weight_kg": 7.72
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 75.0
       },
       "raw": {
         "fs_hz": 72.0,
@@ -789,6 +1315,64 @@
           "Efficiency %": "3.48 %",
           "EBP": "360"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 263.0,
+            "raw_value": "10.3/263 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-10MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 143.0,
+            "raw_value": "5.6/143 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-10MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 247.0,
+            "raw_value": "9.7/247 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-10MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 7.72,
+            "raw_value": "7.72/17.02 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-10MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-10MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-10MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 75.0,
+            "raw_value": "3/75 in/mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-10MD300-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -824,6 +1408,11 @@
         "depth_mm": 216.0,
         "bolt_circle_mm": 445.0,
         "weight_kg": 13.5
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 100.0
       },
       "raw": {
         "fs_hz": 33.0,
@@ -877,6 +1466,64 @@
           "Efficiency %": "2.18 %",
           "EBP": "94"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 462.0,
+            "raw_value": "18.2/462 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-18FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 216.0,
+            "raw_value": "8.5/216 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-18FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 445.0,
+            "raw_value": "17.5/445 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-18FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 13.5,
+            "raw_value": "13.5/29.76 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-18FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-18FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-18FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 100.0,
+            "raw_value": "4/100 in/mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-18FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -912,6 +1559,11 @@
         "depth_mm": 191.0,
         "bolt_circle_mm": 377.0,
         "weight_kg": 13.13
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 100.0
       },
       "raw": {
         "fs_hz": 41.0,
@@ -965,6 +1617,64 @@
           "Efficiency %": "1.28 %",
           "EBP": "98"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 392.0,
+            "raw_value": "15.4/392 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-15FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 191.0,
+            "raw_value": "7.5/191 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-15FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 377.0,
+            "raw_value": "14.8/377 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-15FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 13.13,
+            "raw_value": "13.13/28.95 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-15FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-15FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-15FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 100.0,
+            "raw_value": "4/100 in/mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2026/05/TN-15FW400-datasheet.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -1001,6 +1711,12 @@
         "depth_mm": 180.0,
         "bolt_circle_mm": 375.0,
         "weight_kg": 11.6
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 98.0,
+        "voice_coil_diameter_mm": 89.0,
+        "efficiency_pct": 2.8
       },
       "raw": {
         "fs_hz": 48.0,
@@ -1053,6 +1769,80 @@
           "Efﬁciency %": "2.8 %",
           "EBP": "117"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 393.0,
+            "raw_value": "15.5/393 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/40-TN-15LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 353.0,
+            "raw_value": "13.9/353 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/40-TN-15LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 180.0,
+            "raw_value": "7.1/180 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/40-TN-15LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 375.0,
+            "raw_value": "14.8/375 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/40-TN-15LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 11.6,
+            "raw_value": "11.6 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/40-TN-15LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/40-TN-15LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 98.0,
+            "raw_value": "98 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/40-TN-15LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 89.0,
+            "raw_value": "3.5” / 89mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/40-TN-15LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 2.8,
+            "raw_value": "2.8 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/40-TN-15LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -1089,6 +1879,12 @@
         "depth_mm": 160.0,
         "bolt_circle_mm": 300.0,
         "weight_kg": 10.7
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 89.0,
+        "efficiency_pct": 2.9
       },
       "raw": {
         "fs_hz": 50.0,
@@ -1141,6 +1937,80 @@
           "Efﬁciency %": "2.9 %",
           "EBP": "208"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 317.0,
+            "raw_value": "12.4/317 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/39-TN-12LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 285.0,
+            "raw_value": "11.2/285 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/39-TN-12LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 160.0,
+            "raw_value": "63/160 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/39-TN-12LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 300.0,
+            "raw_value": "11.8/300 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/39-TN-12LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 10.7,
+            "raw_value": "10.7 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/39-TN-12LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/39-TN-12LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/39-TN-12LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 89.0,
+            "raw_value": "3.5” / 89mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/39-TN-12LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 2.9,
+            "raw_value": "2.9 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/39-TN-12LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -1177,6 +2047,12 @@
         "depth_mm": 145.0,
         "bolt_circle_mm": 245.0,
         "weight_kg": 10.0
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 89.0,
+        "efficiency_pct": 2.5
       },
       "raw": {
         "fs_hz": 63.0,
@@ -1229,6 +2105,80 @@
           "Efﬁciency %": "2.5 %",
           "EBP": "262"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 265.0,
+            "raw_value": "10.4/265 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/38-TN-10LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 228.0,
+            "raw_value": "9/228 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/38-TN-10LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 145.0,
+            "raw_value": "5.7/145 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/38-TN-10LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 245.0,
+            "raw_value": "9.6/245 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/38-TN-10LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 10.0,
+            "raw_value": "10 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/38-TN-10LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/38-TN-10LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/38-TN-10LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 89.0,
+            "raw_value": "3.5” / 89mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/38-TN-10LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 2.5,
+            "raw_value": "2.5 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/38-TN-10LF89.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -1265,6 +2215,12 @@
         "depth_mm": 215.0,
         "bolt_circle_mm": 442.0,
         "weight_kg": 19.6
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 114.0,
+        "efficiency_pct": 2.5
       },
       "raw": {
         "fs_hz": 35.0,
@@ -1317,6 +2273,80 @@
           "Efﬁciency %": "2.5 %",
           "EBP": "96"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 460.0,
+            "raw_value": "18/460 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/44-TN-18LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 420.0,
+            "raw_value": "16.6/420 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/44-TN-18LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 215.0,
+            "raw_value": "8.5/215 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/44-TN-18LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 442.0,
+            "raw_value": "17.2/442 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/44-TN-18LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 19.6,
+            "raw_value": "19.6 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/44-TN-18LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/44-TN-18LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/44-TN-18LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 114.0,
+            "raw_value": "4.5”/ 114mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/44-TN-18LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 2.5,
+            "raw_value": "2.5 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/44-TN-18LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -1353,6 +2383,12 @@
         "depth_mm": 200.0,
         "bolt_circle_mm": 357.0,
         "weight_kg": 18.0
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 114.0,
+        "efficiency_pct": 2.5
       },
       "raw": {
         "fs_hz": 45.0,
@@ -1405,6 +2441,80 @@
           "Efﬁciency %": "2.5 %",
           "EBP": "112"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 393.0,
+            "raw_value": "15.5/393 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/43-TN-15LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 353.0,
+            "raw_value": "13.9/353 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/43-TN-15LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 200.0,
+            "raw_value": "7.9/200 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/43-TN-15LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 357.0,
+            "raw_value": "14/357 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/43-TN-15LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 18.0,
+            "raw_value": "18 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/43-TN-15LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/43-TN-15LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/43-TN-15LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 114.0,
+            "raw_value": "4.5” / 114mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/43-TN-15LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 2.5,
+            "raw_value": "2.5 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/43-TN-15LF451.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -1441,6 +2551,12 @@
         "depth_mm": 270.0,
         "bolt_circle_mm": 528.0,
         "weight_kg": 40.0
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 98.0,
+        "voice_coil_diameter_mm": 152.0,
+        "efficiency_pct": 2.48
       },
       "raw": {
         "fs_hz": 37.4,
@@ -1493,6 +2609,80 @@
           "Efﬁciency %": "2.48 %",
           "EBP": "178"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 550.0,
+            "raw_value": "21.6/550 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/37-TN-21HW6000.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 496.0,
+            "raw_value": "19.5/496 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/37-TN-21HW6000.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 270.0,
+            "raw_value": "10.6/270 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/37-TN-21HW6000.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 528.0,
+            "raw_value": "20.8/528 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/37-TN-21HW6000.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 40.0,
+            "raw_value": "40 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/37-TN-21HW6000.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/37-TN-21HW6000.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 98.0,
+            "raw_value": "98 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/37-TN-21HW6000.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 152.0,
+            "raw_value": "6” / 152mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/37-TN-21HW6000.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 2.48,
+            "raw_value": "2.48 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/37-TN-21HW6000.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -1529,6 +2719,12 @@
         "depth_mm": 225.0,
         "bolt_circle_mm": 445.0,
         "weight_kg": 14.8
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 114.0,
+        "efficiency_pct": 1.2
       },
       "raw": {
         "fs_hz": 38.0,
@@ -1581,6 +2777,80 @@
           "Efﬁciency %": "1.2 %",
           "EBP": "112"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 460.0,
+            "raw_value": "18.1/460 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 430.0,
+            "raw_value": "17/430 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 225.0,
+            "raw_value": "8.8/225 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 445.0,
+            "raw_value": "17.5/445 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 14.8,
+            "raw_value": "14.8 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 114.0,
+            "raw_value": "4.5” / 114mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 1.2,
+            "raw_value": "1.2 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450-1.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -1617,6 +2887,12 @@
         "depth_mm": 200.0,
         "bolt_circle_mm": 370.0,
         "weight_kg": 15.3
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 114.0,
+        "efficiency_pct": 1.5
       },
       "raw": {
         "fs_hz": 40.0,
@@ -1669,6 +2945,80 @@
           "Efﬁciency %": "1.5 %",
           "EBP": "133"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 390.0,
+            "raw_value": "15.3/390 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 360.0,
+            "raw_value": "14.2/360 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 200.0,
+            "raw_value": "7.9/200 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 370.0,
+            "raw_value": "14.6/370 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 15.3,
+            "raw_value": "15.3 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 114.0,
+            "raw_value": "4.5”/ 114mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 1.5,
+            "raw_value": "1.5 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/wp-content/uploads/2025/12/52-TN-15LS450.pdf",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -1705,6 +3055,12 @@
         "depth_mm": 220.0,
         "bolt_circle_mm": 442.0,
         "weight_kg": 14.0
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 100.0,
+        "efficiency_pct": 2.5
       },
       "raw": {
         "fs_hz": 40.0,
@@ -1757,6 +3113,80 @@
           "Efﬁciency %": "2.5 %",
           "EBP": "105"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 460.0,
+            "raw_value": "18/460 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-18lf400.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 420.0,
+            "raw_value": "16.6/420 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-18lf400.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 220.0,
+            "raw_value": "8.7/220 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-18lf400.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 442.0,
+            "raw_value": "17.2/442 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-18lf400.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 14.0,
+            "raw_value": "14 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-18lf400.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-18lf400.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-18lf400.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 100.0,
+            "raw_value": "4”/ 100mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-18lf400.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 2.5,
+            "raw_value": "2.5 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-18lf400.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -1793,6 +3223,12 @@
         "depth_mm": 195.0,
         "bolt_circle_mm": 357.0,
         "weight_kg": 12.5
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 100.0,
+        "efficiency_pct": 2.5
       },
       "raw": {
         "fs_hz": 45.0,
@@ -1845,6 +3281,80 @@
           "Efﬁciency %": "2.5 %",
           "EBP": "107"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 393.0,
+            "raw_value": "15.5/393 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-15lf400-9842.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 353.0,
+            "raw_value": "13.9/353 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-15lf400-9842.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 195.0,
+            "raw_value": "7.7/195 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-15lf400-9842.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 357.0,
+            "raw_value": "14/357 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-15lf400-9842.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 12.5,
+            "raw_value": "12.5 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-15lf400-9842.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-15lf400-9842.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-15lf400-9842.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 100.0,
+            "raw_value": "4”/ 100mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-15lf400-9842.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 2.5,
+            "raw_value": "2.5 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/tn-15lf400-9842.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -1881,6 +3391,12 @@
         "depth_mm": 175.0,
         "bolt_circle_mm": 357.0,
         "weight_kg": 9.15
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 99.0,
+        "voice_coil_diameter_mm": 75.0,
+        "efficiency_pct": 4.59
       },
       "raw": {
         "fs_hz": 56.0,
@@ -1933,6 +3449,80 @@
           "Efﬁciency %": "4.59 %",
           "EBP": "151"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 393.0,
+            "raw_value": "15.5/393 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l15mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 353.0,
+            "raw_value": "13.9/353 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l15mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 175.0,
+            "raw_value": "6.9/175 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l15mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 357.0,
+            "raw_value": "14/357 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l15mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 9.15,
+            "raw_value": "9.15 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l15mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l15mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 99.0,
+            "raw_value": "99 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l15mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 75.0,
+            "raw_value": "3”/75 mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l15mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 4.59,
+            "raw_value": "4.59 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l15mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -1969,6 +3559,12 @@
         "depth_mm": 155.0,
         "bolt_circle_mm": 300.0,
         "weight_kg": 8.5
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 98.0,
+        "voice_coil_diameter_mm": 75.0,
+        "efficiency_pct": 3.21
       },
       "raw": {
         "fs_hz": 54.0,
@@ -2021,6 +3617,80 @@
           "Efﬁciency %": "3.21 %",
           "EBP": "200"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 317.0,
+            "raw_value": "12.5/317 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l12mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 285.0,
+            "raw_value": "11.2/285 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l12mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 155.0,
+            "raw_value": "6.1/155 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l12mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 300.0,
+            "raw_value": "11.8/300 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l12mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 8.5,
+            "raw_value": "8.5 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l12mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l12mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 98.0,
+            "raw_value": "98 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l12mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 75.0,
+            "raw_value": "3”/ 75mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l12mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 3.21,
+            "raw_value": "3.21 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l12mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -2057,6 +3727,12 @@
         "depth_mm": 140.0,
         "bolt_circle_mm": 245.0,
         "weight_kg": 8.2
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 75.0,
+        "efficiency_pct": 2.1
       },
       "raw": {
         "fs_hz": 65.0,
@@ -2109,6 +3785,80 @@
           "Efﬁciency %": "2.1 %",
           "EBP": "25"
         },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 265.0,
+            "raw_value": "10.4/265 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l10mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 228.0,
+            "raw_value": "9/228 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l10mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 140.0,
+            "raw_value": "5.5/140 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l10mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 245.0,
+            "raw_value": "9.6/245 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l10mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 8.2,
+            "raw_value": "8.2 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l10mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l10mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 97.0,
+            "raw_value": "97 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l10mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 75.0,
+            "raw_value": "3”/ 75mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l10mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 2.1,
+            "raw_value": "2.1 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l10mb750.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
+        },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
         "fetched_at": "2026-08-11T23:07:31.551982+00:00"
@@ -2145,6 +3895,12 @@
         "depth_mm": 110.0,
         "bolt_circle_mm": 197.0,
         "weight_kg": 4.0
+      },
+      "published_specs": {
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 96.0,
+        "voice_coil_diameter_mm": 50.0,
+        "efficiency_pct": 1.92
       },
       "raw": {
         "fs_hz": 85.0,
@@ -2196,6 +3952,80 @@
           "Sd": "213.8cm²",
           "Efﬁciency %": "1.92 %",
           "EBP": "293"
+        },
+        "published_measurements": {
+          "overall_diameter_mm": {
+            "value": 212.0,
+            "raw_value": "8.3/212 in/mm",
+            "label": "Overall Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l8mb500.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "cutout_diameter_mm": {
+            "value": 182.0,
+            "raw_value": "7.2/182 in/mm",
+            "label": "Bafﬂe cutout Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l8mb500.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "depth_mm": {
+            "value": 110.0,
+            "raw_value": "4.3/110 in/mm",
+            "label": "Depth",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l8mb500.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "bolt_circle_mm": {
+            "value": 197.0,
+            "raw_value": "7.7/197 in/mm",
+            "label": "Bolt Circle Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l8mb500.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "weight_kg": {
+            "value": 4.0,
+            "raw_value": "4 kgs",
+            "label": "Net Weight",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l8mb500.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "nominal_impedance_ohm": {
+            "value": 8.0,
+            "raw_value": "8 Ohm",
+            "label": "Impedance",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l8mb500.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "sensitivity_db": {
+            "value": 96.0,
+            "raw_value": "96 dB",
+            "label": "Sensitivity(1W/1m)",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l8mb500.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "voice_coil_diameter_mm": {
+            "value": 50.0,
+            "raw_value": "2”/50 mm",
+            "label": "Voice Coil Diameter",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l8mb500.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          },
+          "efficiency_pct": {
+            "value": 1.92,
+            "raw_value": "1.92 %",
+            "label": "Efﬁciency %",
+            "method": "manufacturer_html",
+            "source_url": "https://www.ztzaudio.com/l8mb500.html",
+            "fetched_at": "2026-08-11T23:07:31.551982+00:00"
+          }
         },
         "confidence": 0.95,
         "extraction_method": "manufacturer_html",
