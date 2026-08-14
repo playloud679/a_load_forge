@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+- **Published-spec harvesting**: `tools/run_published_spec_batches.py` runs
+  restartable atomic URL batches that complete one proven source domain
+  through `refresh_manufacturer_optionals.py`, stopping on exhaustion, child
+  failure or an excessive failure rate; datasheets and T/S crawlers now
+  extract published specifications (nominal impedance, sensitivity, voice
+  coil diameter, Xmech, nominal diameter) alongside mechanical fields.
+- **Preset metadata**: `DriverPresetInfo` gains a tolerant `published_specs`
+  mapping for source-backed numeric specifications not yet used by the
+  solver.
+- **Catalog Maintenance UI**: mechanical coverage metrics (any / essential
+  four / all eight fields) and read-only columns for mechanical and
+  published-spec data.
+- **Verification**: fresh full active suite passes with 151 passed,
+  0 failures and 0 skips.
+
 ## 0.8.11 (2026-08-12)
 
 - **Complete nominal sizes**: drivers whose catalog record omits nominal frame

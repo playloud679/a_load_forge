@@ -75,6 +75,12 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
   (`MechanicalDimensions`: overall diameter, cutout, depth, bolt circle and
   weight). These values are for drawing/layout checks only and never enter the
   acoustic T/S solver.
+- `DriverPresetInfo.published_specs` retains verified numeric manufacturer
+  fields not yet consumed by the solver: nominal impedance, sensitivity,
+  voice-coil diameter, Xmech, reference efficiency, magnet mass and gap flux
+  density. Missing values stay missing; crawlers never estimate these fields.
+  Each extracted value also keeps its original label, value, unit, method,
+  source URL and fetch timestamp in `website_fields`.
 - Size/Sd integrity API: `effective_piston_diameter_in(sd_cm2)`,
   `nominal_size_matches_sd(size_in, sd_cm2)` and
   `coherent_nominal_size_in(size_in, sd_cm2)`. External nominal sizes are

@@ -31,6 +31,17 @@ visible instead of being reduced to a generic category such as `WOOFER`.
 Known source aliases are shown under one manufacturer name; for example,
 `Eminence Speaker` is presented as `Eminence`, and the repeated manufacturer
 prefix is removed from its part number.
+Published mounting dimensions, weight, nominal impedance, sensitivity,
+voice-coil diameter, `Xmech` and nominal diameter appear as read-only columns.
+Nominal and physical overall diameter are separate: a published 12-inch class
+does not imply a 304.8 mm frame. Blank cells mean
+the source did not publish a verified value; Maintenance never fills them from
+nominal size, `Sd`, brand averages or other estimates.
+
+Three coverage metrics distinguish records with any verified mechanical field,
+records with the essential four (`overall`, `cutout`, `depth`, `weight`) and
+records with all eight tracked mechanical fields. A field-by-field count is
+shown underneath, so partial enrichment is never presented as completeness.
 `Save` persists only rows whose visible editable values changed; unchanged rows
 retain their original source provenance. A saved part-number correction is an
 explicit override of the imported `model`, so the edited value remains visible

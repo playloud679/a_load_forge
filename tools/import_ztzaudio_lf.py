@@ -45,6 +45,15 @@ def main() -> int:
             "weight_kg": _parse_first_number(raw.get("Net Weight")),
         }
         mechanical = {key: value for key, value in mechanical.items() if value is not None}
+        published_specs = {
+            "nominal_impedance_ohm": _parse_first_number(raw.get("Impedance")),
+            "sensitivity_db": _parse_first_number(raw.get("Sensitivity(1W/1m)")),
+            "voice_coil_diameter_mm": _parse_first_mm(raw.get("Voice Coil Diameter")),
+            "efficiency_pct": _parse_first_number(raw.get("Efﬁciency %")),
+        }
+        published_specs = {
+            key: value for key, value in published_specs.items() if value is not None
+        }
         name = f"ZTZ: {product['name']}"
         presets.append({
             "name": name,
@@ -60,6 +69,7 @@ def main() -> int:
             "url": product["datasheet_url"] or product["url"],
             "driver": driver_values,
             "mechanical": mechanical,
+            "published_specs": published_specs,
             "raw": driver_values,
             "website_fields": {
                 "brand": "ZTZ Audio",
@@ -69,6 +79,10 @@ def main() -> int:
                 "datasheet_url": product.get("datasheet_url", ""),
                 "image_url": product.get("image_url", ""),
                 "raw_parameters": product.get("raw_parameters", {}),
+                "published_measurements": _published_measurements(
+                    raw, product.get("datasheet_url") or product.get("url", ""),
+                    source.get("retrieved_at", ""),
+                ),
                 "confidence": 0.95,
                 "extraction_method": "manufacturer_html",
                 "fetched_at": source.get("retrieved_at", ""),
@@ -99,6 +113,31 @@ def _parse_first_mm(value) -> float | None:
 def _parse_first_number(value) -> float | None:
     match = re.search(r"([0-9]+(?:[.,][0-9]+)?)", str(value))
     return float(match.group(1).replace(",", ".")) if match else None
+
+
+def _published_measurements(raw: dict, url: str, fetched_at: str) -> dict:
+    mapping = {
+        "overall_diameter_mm": ("Overall Diameter", _parse_first_mm),
+        "cutout_diameter_mm": ("Bafﬂe cutout Diameter", _parse_first_mm),
+        "depth_mm": ("Depth", _parse_first_mm),
+        "bolt_circle_mm": ("Bolt Circle Diameter", _parse_first_mm),
+        "weight_kg": ("Net Weight", _parse_first_number),
+        "nominal_impedance_ohm": ("Impedance", _parse_first_number),
+        "sensitivity_db": ("Sensitivity(1W/1m)", _parse_first_number),
+        "voice_coil_diameter_mm": ("Voice Coil Diameter", _parse_first_mm),
+        "efficiency_pct": ("Efﬁciency %", _parse_first_number),
+    }
+    result = {}
+    for key, (label, parser) in mapping.items():
+        raw_value = raw.get(label)
+        value = parser(raw_value)
+        if value is not None:
+            result[key] = {
+                "value": value, "raw_value": str(raw_value), "label": label,
+                "method": "manufacturer_html", "source_url": url,
+                "fetched_at": fetched_at,
+            }
+    return result
 
 
 if __name__ == "__main__":

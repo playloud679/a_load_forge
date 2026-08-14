@@ -150,6 +150,7 @@ class DriverPresetInfo:
     url: str = ""
     part_number: str = ""
     mechanical: MechanicalDimensions | None = None
+    published_specs: dict[str, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -1003,6 +1004,21 @@ def _mechanical_dimensions_from_mapping(values: dict | None) -> MechanicalDimens
     )
 
 
+def _published_specs_from_mapping(values: dict | None) -> dict[str, float] | None:
+    """Retain source-backed numeric specifications not yet used by the solver."""
+    if not isinstance(values, dict):
+        return None
+    parsed = {}
+    for key, value in values.items():
+        try:
+            number = float(value)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(number):
+            parsed[str(key)] = number
+    return parsed or None
+
+
 
 def _load_external_presets(
     path: Path,
@@ -1080,6 +1096,7 @@ def _load_external_presets(
             kind=str(item.get("kind") or ""),
             url=enriched_url or str(item.get("url") or ""),
             mechanical=_mechanical_dimensions_from_mapping(item.get("mechanical")),
+            published_specs=_published_specs_from_mapping(item.get("published_specs")),
         )
         identity = _external_catalog_identity(
             item_brand,

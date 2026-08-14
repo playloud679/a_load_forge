@@ -1301,11 +1301,59 @@ def _render_catalog_maintenance() -> None:
         f'<div class="maintenance-meta">{catalog_label} · {len(prices):,} records · {len(matches):,} shown</div>',
         unsafe_allow_html=True,
     )
+    if unified_catalog:
+        mechanical_fields = (
+            "overall_diameter_mm", "cutout_diameter_mm", "depth_mm",
+            "mounting_depth_mm", "bolt_circle_mm", "mounting_hole_count",
+            "mounting_hole_diameter_mm", "weight_kg",
+        )
+        essential_fields = (
+            "overall_diameter_mm", "cutout_diameter_mm", "depth_mm", "weight_kg",
+        )
+
+        def has_positive(record: dict, field: str) -> bool:
+            value = (record.get("mechanical") or {}).get(field)
+            return isinstance(value, (int, float)) and not isinstance(value, bool) and value > 0
+
+        catalog_records = list(prices.values())
+        any_mechanical = sum(
+            any(has_positive(record, field) for field in mechanical_fields)
+            for record in catalog_records
+        )
+        essential_complete = sum(
+            all(has_positive(record, field) for field in essential_fields)
+            for record in catalog_records
+        )
+        fully_complete = sum(
+            all(has_positive(record, field) for field in mechanical_fields)
+            for record in catalog_records
+        )
+        metric_any, metric_essential, metric_full = st.columns(3)
+        metric_any.metric("Any real mechanical data", f"{any_mechanical:,} / {len(catalog_records):,}")
+        metric_essential.metric("Essential 4 complete", f"{essential_complete:,} / {len(catalog_records):,}")
+        metric_full.metric("All 8 complete", f"{fully_complete:,} / {len(catalog_records):,}")
+        coverage_labels = {
+            "overall_diameter_mm": "overall",
+            "cutout_diameter_mm": "cutout",
+            "depth_mm": "depth",
+            "mounting_depth_mm": "mount depth",
+            "bolt_circle_mm": "bolt circle",
+            "mounting_hole_count": "hole count",
+            "mounting_hole_diameter_mm": "hole Ø",
+            "weight_kg": "weight",
+        }
+        coverage = " · ".join(
+            f"{coverage_labels[field]} {sum(has_positive(record, field) for record in catalog_records):,}"
+            for field in mechanical_fields
+        )
+        st.caption(f"Verified mechanical field coverage: {coverage}")
     rows = []
     original_rows = {}
     for key in matches:
         record = dict(prices.get(key) or {})
         driver = dict(record.get("driver") or {})
+        mechanical = dict(record.get("mechanical") or {})
+        published = dict(record.get("published_specs") or {})
         manufacturer, part_number = _catalog_record_display_identity(
             record, key
         )
@@ -1317,6 +1365,17 @@ def _render_catalog_maintenance() -> None:
                "Xmax mm": float(driver.get("xmax_mm") or 0),
                "Pmax W": float(driver.get("pe_w") or 0),
                "Le mH": float(driver.get("le_mh") or 0),
+               "Overall mm": mechanical.get("overall_diameter_mm"),
+               "Cutout mm": mechanical.get("cutout_diameter_mm"),
+               "Depth mm": mechanical.get("depth_mm"),
+               "Mount depth mm": mechanical.get("mounting_depth_mm"),
+               "Bolt circle mm": mechanical.get("bolt_circle_mm"),
+               "Weight kg": mechanical.get("weight_kg"),
+               "Znom ohm": published.get("nominal_impedance_ohm"),
+               "Sensitivity dB": published.get("sensitivity_db"),
+               "Voice coil mm": published.get("voice_coil_diameter_mm"),
+               "Xmech mm": published.get("xmech_mm"),
+               "Nominal diameter in": published.get("nominal_diameter_in"),
                "Price": float(record.get("price") or 0),
                "Currency": record.get("currency", record.get("price_currency", "EUR")), "Link": record.get("price_url") or record.get("url", ""),
                "Status": status, "Select": False}
@@ -1331,7 +1390,11 @@ def _render_catalog_maintenance() -> None:
         hide_index=True,
         use_container_width=True,
         height=860,
-        disabled=["_key"],
+        disabled=[
+            "_key", "Overall mm", "Cutout mm", "Depth mm", "Mount depth mm",
+            "Bolt circle mm", "Weight kg", "Znom ohm", "Sensitivity dB",
+            "Voice coil mm", "Xmech mm", "Nominal diameter in",
+        ],
         column_config={
             "_key": None,
             "Name": None,
@@ -1350,6 +1413,17 @@ def _render_catalog_maintenance() -> None:
             "Le mH": st.column_config.NumberColumn(
                 "Le (mH)", width=82, min_value=0.0, format="%.3f"
             ),
+            "Overall mm": st.column_config.NumberColumn("Overall Ø", width=92, format="%.1f mm"),
+            "Cutout mm": st.column_config.NumberColumn("Cutout Ø", width=88, format="%.1f mm"),
+            "Depth mm": st.column_config.NumberColumn("Depth", width=82, format="%.1f mm"),
+            "Mount depth mm": st.column_config.NumberColumn("Mount depth", width=105, format="%.1f mm"),
+            "Bolt circle mm": st.column_config.NumberColumn("Bolt circle", width=96, format="%.1f mm"),
+            "Weight kg": st.column_config.NumberColumn("Weight", width=82, format="%.2f kg"),
+            "Znom ohm": st.column_config.NumberColumn("Znom", width=75, format="%.1f Ω"),
+            "Sensitivity dB": st.column_config.NumberColumn("Sensitivity", width=100, format="%.1f dB"),
+            "Voice coil mm": st.column_config.NumberColumn("Voice coil Ø", width=100, format="%.1f mm"),
+            "Xmech mm": st.column_config.NumberColumn("Xmech", width=82, format="%.2f mm"),
+            "Nominal diameter in": st.column_config.NumberColumn("Nominal Ø", width=95, format='%.2f"'),
             "Price": st.column_config.NumberColumn("Price", width=82, format="%.2f"),
             "Currency": st.column_config.TextColumn("Currency", width=82),
             "Link": st.column_config.LinkColumn("Link", width=82, display_text="Open ↗"),

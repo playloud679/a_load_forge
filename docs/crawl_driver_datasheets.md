@@ -50,6 +50,35 @@ make crawl-datasheets ARGS="\
   --max-pages 500 --max-pdfs 500 --sleep 2"
 ```
 
+Known official product URLs already stored in the manufacturer catalog can be
+used directly. This is useful when a sitemap is absent, slow or incomplete:
+
+```bash
+make crawl-datasheets ARGS="\
+  --catalog-domain beyma.com --brand Beyma \
+  --max-pages 500 --max-pdfs 500 --sleep 2"
+```
+
+`--catalog-domain` is repeatable, accepts the base host or a subdomain, keeps
+catalog order and removes duplicate URLs before any request. Only URLs already
+associated with matching manufacturer-domain records are selected. The exact
+catalog URL also supplies the established brand/model identity; if legacy
+duplicates share a URL, real model-like identities outrank generic page-title
+boilerplate such as “Products - Manufacturer”.
+
+Catalog URLs may point directly to PDFs (as in the SB Acoustics catalog). In
+that case the first response is reused as the document body instead of being
+downloaded twice, while its exact catalog record supplies product identity.
+On later runs, a direct PDF already present in the content-addressed archive is
+resolved through the SQLite URL index before any HTTP request, so retries touch
+only missing or failed documents.
+
+Page and PDF requests run through a bounded worker pool (`--workers`, default
+6). Request starts for the same host remain spaced by `--per-host-delay`, or by
+the legacy `--sleep` value when no explicit host delay is supplied. Downloads
+may overlap while SQLite indexing, content-addressed archiving, parsing and
+catalog merges remain single-threaded and deterministic.
+
 When a manufacturer omits structured brand metadata, scope the run with an
 authoritative brand hint. This also removes a matching `| Brand` suffix from
 page-title-derived model names:
@@ -69,6 +98,12 @@ Use `--reparse-known` after improving extraction rules. It reads the
 content-addressed local PDF archive again, refreshes parsed and formerly
 rejected index entries, and merges newly recognized fields without downloading
 the documents a second time.
+
+Use `--reparse-archive` to process every document already present in the local
+content-addressed archive without any network request or seed. Archive reparse
+is enrichment-only: unmatched partial observations remain indexed and cannot
+create a new catalog driver. This is the preferred first step after adding a
+dimension or published-spec parser.
 
 The crawler respects `robots.txt` independently for product pages and external
 PDF hosts. Scanned documents without an embedded text layer are archived and
@@ -90,3 +125,20 @@ therefore measured through source domains, product pages visited, PDF URLs,
 distinct SHA-256 documents, parsed observations, rejected documents and
 failures. Repeated incremental crawls expand the library without duplicating
 previously archived files.
+
+Parallel page/PDF fetches isolate recoverable transport failures per URL.
+Timeouts, HTTP/URL errors and truncated `IncompleteRead` responses are recorded
+in the run report without aborting the remaining batch; a later run resumes
+from the content-addressed archive and retries only missing documents.
+
+Some manufacturer applications expose technical drawings only inside their
+embedded JSON state. The discovery pass recognizes official
+`uploads/products/drawing/*.pdf` assets as well as ordinary PDF anchors; this
+is used for B&C SolidWorks drawings whose printed repeated-hole callouts are
+otherwise absent from the product-page specification table.
+
+The requested catalog product URL remains the identity anchor even when a
+manufacturer redirects an impedance-specific page to a generic product URL.
+This prevents a shared chassis drawing from enriching only one impedance
+variant; each exact catalog URL encountered in the crawl receives the same
+published dimensional evidence independently.

@@ -142,6 +142,109 @@ PARAMETERS = (
         ("vd", "linear displacement volume", "volume displacement", "displacement volume"),
         "l",
     ),
+    # Published physical/layout data.  These values are never derived from Sd
+    # or nominal frame size: they are accepted only when the source labels the
+    # measurement explicitly.
+    ParameterSpec(
+        "mounting_depth_mm",
+        ("mounting depth", "mount depth", "required depth", "installation depth"),
+        "mm",
+    ),
+    ParameterSpec(
+        "overall_diameter_mm",
+        (
+            "overall diameter", "maximum outside diameter",
+            "maximum overall diameter", "max overall diameter", "frame diameter",
+            "max overall dimension (on ears)", "maximum overall dimension (on ears)",
+            "max overall dimension on ears", "maximum overall dimension on ears",
+        ),
+        "mm",
+    ),
+    ParameterSpec(
+        "cutout_diameter_mm",
+        (
+            "baffle cutout diameter", "bafﬂe cutout diameter", "baffle hole diameter",
+            "mounting cutout diameter", "cutout diameter", "cut-out diameter",
+            "baffle opening diameter",
+        ),
+        "mm",
+    ),
+    ParameterSpec(
+        "depth_mm",
+        ("overall depth", "driver depth", "total depth", "maximum depth", "max depth"),
+        "mm",
+    ),
+    ParameterSpec(
+        "bolt_circle_mm",
+        (
+            "bolt circle diameter", "mounting bolt circle", "mounting holes b.c.d.",
+            "mounting holes bcd", "pcd", "pitch circle diameter",
+        ),
+        "mm",
+    ),
+    ParameterSpec(
+        "mounting_hole_count",
+        ("number of mounting holes", "mounting hole count", "mounting holes quantity"),
+    ),
+    ParameterSpec(
+        "mounting_hole_diameter_mm",
+        (
+            "mounting hole diameter", "mounting holes diameter",
+            "mounting hole dimensions", "fixing hole diameter",
+        ),
+        "mm",
+    ),
+    ParameterSpec(
+        "weight_kg",
+        ("speaker net mass", "net weight", "driver weight", "unit weight", "weight"),
+        "kg",
+    ),
+    # Additional published numeric specifications retained for future product
+    # work even though the acoustic solver does not consume them today.
+    ParameterSpec(
+        "nominal_diameter_in",
+        ("nominal overall diameter", "nominal diameter", "nominal frame diameter"),
+        "in",
+    ),
+    ParameterSpec(
+        "nominal_impedance_ohm",
+        ("nominal impedance", "rated impedance", "z nominal", "znom"),
+        "ohm",
+    ),
+    ParameterSpec(
+        "sensitivity_db",
+        (
+            "sensitivity 1w/1m", "sensitivity 1w 1m", "sensitivity 1 w 1 m",
+            "sensitivity 2.83v/1m", "sensitivity 2.83v 1m",
+            "sensitivity 2.83 v 1 m", "sensitivity", "spl 1w/1m", "spl 1w 1m",
+        ),
+        "db",
+    ),
+    ParameterSpec(
+        "voice_coil_diameter_mm",
+        ("voice coil diameter", "voice-coil diameter", "voice coil size"),
+        "mm",
+    ),
+    ParameterSpec(
+        "xmech_mm",
+        ("xmech", "x mech", "maximum mechanical excursion", "mechanical excursion limit"),
+        "mm",
+    ),
+    ParameterSpec(
+        "efficiency_pct",
+        ("reference efficiency", "efficiency", "eta zero", "n0"),
+        "%",
+    ),
+    ParameterSpec(
+        "magnet_weight_kg",
+        ("magnet weight", "magnet mass"),
+        "kg",
+    ),
+    ParameterSpec(
+        "flux_density_t",
+        ("flux density", "magnetic flux density", "gap flux density"),
+        "t",
+    ),
 )
 PARAMETER_BY_KEY = {item.key: item for item in PARAMETERS}
 REQUIRED_DRIVER_FIELDS = ("fs_hz", "vas_l", "qts", "qms", "re_ohm", "sd_cm2")
@@ -149,6 +252,22 @@ OPTIONAL_DRIVER_FIELDS = (
     "qes", "le_mh", "le10k_mh", "xmax_mm", "pe_w", "mms_g",
     "cms_mm_per_n", "bl_tm",
 )
+MECHANICAL_FIELDS = (
+    "overall_diameter_mm", "cutout_diameter_mm", "depth_mm", "mounting_depth_mm",
+    "bolt_circle_mm", "mounting_hole_count", "mounting_hole_diameter_mm", "weight_kg",
+)
+PUBLISHED_SPEC_FIELDS = (
+    "nominal_impedance_ohm", "sensitivity_db", "voice_coil_diameter_mm",
+    "xmech_mm", "efficiency_pct", "magnet_weight_kg", "flux_density_t",
+    "nominal_diameter_in",
+)
+EXPLICIT_UNIT_FIELDS = {
+    "pe_w", "sensitivity_db", "efficiency_pct", "overall_diameter_mm",
+    "cutout_diameter_mm", "depth_mm", "mounting_depth_mm", "bolt_circle_mm",
+    "mounting_hole_diameter_mm", "weight_kg", "nominal_impedance_ohm",
+    "voice_coil_diameter_mm", "xmech_mm", "magnet_weight_kg", "flux_density_t",
+    "nominal_diameter_in",
+}
 NUMBER_RE = r"[-+]?(?:\d+(?:[.,]\d+)?|[.,]\d+)(?:[eE][-+]?\d+)?"
 INCH_SIZE_RE = re.compile(
     r"(?<![\d./])"
@@ -157,7 +276,7 @@ INCH_SIZE_RE = re.compile(
     r"\s*(?:inch(?:es)?|in\.?|[\"″])(?=\s|$|[),/x×])",
     re.I,
 )
-UNIT_RE = r"(?:k\s*hz|hz|sq\s*\.?\s*in(?:ches)?|sq\s*\.?\s*m(?:eters?)?|m(?:\s*\^?\s*3|³)|dm(?:\s*\^?\s*3|³)|ml|cm\s*(?:\^?\s*2|²)|k\s*/?\s*mm\s*(?:\^?\s*2|²|/2)|mm\s*(?:\^?\s*2|²)|m\s*(?:\^?\s*2|²)|in(?:\s*\^?\s*2|²)|ft\s*\.?\s*(?:\^?\s*3|³)|lit(?:er|re)s?|[lL]|k?ohms?|Ω|mΩ|mh|µh|μh|uh|henry|h|mm|cm|inch(?:es)?|in|kw|w\s*_?\s*rms|watts?|w|kg|grams?|g|mg|m/n|mm/n|µm/n|μm/n|um/n|t\s*[·*]?\s*m|tm|n/a|n\s*s/m|kg/s)?"
+UNIT_RE = r"(?:k\s*hz|hz|sq\s*\.?\s*in(?:ches)?|sq\s*\.?\s*m(?:eters?)?|m(?:\s*\^?\s*3|³)|dm(?:\s*\^?\s*3|³)|ml|cm\s*(?:\^?\s*2|²)|k\s*/?\s*mm\s*(?:\^?\s*2|²|/2)|mm\s*(?:\^?\s*2|²)|m\s*(?:\^?\s*2|²)|in(?:\s*\^?\s*2|²)|ft\s*\.?\s*(?:\^?\s*3|³)|lit(?:er|re)s?|lbs?|pounds?|oz|ounces?|kg|kilograms?|kgs?|grams?|mg|[gG]|[lL]|k?ohms?|Ω|mΩ|mh|µh|μh|uh|henry|h|mm|cm|inch(?:es)?|in|[\"”″]|kw|w\s*_?\s*rms|watts?|w|m/n|mm/n|µm/n|μm/n|um/n|t\s*[·*]?\s*m|tm|n/a|n\s*s/m|kg/s|dba|db|t|gauss|%)?"
 # Same alternation as UNIT_RE but mandatory (no trailing "?"), for datasheets
 # that print "Label Unit Value" instead of "Label Value Unit" (e.g. BMS PDFs:
 # "Fs Hz 29.8").
@@ -183,6 +302,22 @@ RANGES = {
     "effective_diameter_mm": (0.01, 10_000.0),
     "vd_l": (0.000001, 100_000.0),
     "linear_travel_pp_mm": (0.0, 1000.0),
+    "overall_diameter_mm": (1.0, 5000.0),
+    "cutout_diameter_mm": (1.0, 5000.0),
+    "depth_mm": (1.0, 5000.0),
+    "mounting_depth_mm": (1.0, 5000.0),
+    "bolt_circle_mm": (1.0, 5000.0),
+    "mounting_hole_count": (1.0, 100.0),
+    "mounting_hole_diameter_mm": (0.1, 100.0),
+    "weight_kg": (0.05, 500.0),
+    "nominal_impedance_ohm": (0.1, 256.0),
+    "sensitivity_db": (20.0, 150.0),
+    "voice_coil_diameter_mm": (1.0, 500.0),
+    "xmech_mm": (0.0, 500.0),
+    "efficiency_pct": (0.0, 100.0),
+    "magnet_weight_kg": (0.01, 500.0),
+    "flux_density_t": (0.001, 10.0),
+    "nominal_diameter_in": (0.5, 32.0),
 }
 
 
@@ -204,6 +339,7 @@ class PageData:
     links: list[str] = field(default_factory=list)
     meta: dict[str, str] = field(default_factory=dict)
     jsonld: list[object] = field(default_factory=list)
+    embedded_measurements: list[Measurement] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -372,11 +508,19 @@ def normalized_label(value: str) -> str:
 def canonical_parameter(label: str) -> str | None:
     normalized = normalized_label(label)
     compact = normalized.replace(" ", "")
+    # Exact aliases across the whole schema must win before any broad
+    # substring match (e.g. ``mounting holes diameter`` over ``diameter`` or
+    # ``magnet weight`` over a generic ``weight`` field).
     for spec in PARAMETERS:
         for alias in spec.aliases:
             alias_norm = normalized_label(alias)
             if normalized == alias_norm or compact == alias_norm.replace(" ", ""):
                 return spec.key
+    for spec in PARAMETERS:
+        for alias in spec.aliases:
+            alias_norm = normalized_label(alias)
+            if alias_norm in {"depth", "weight", "sensitivity", "efficiency"}:
+                continue
             if len(alias_norm) > 3 and alias_norm in normalized:
                 return spec.key
     return None
@@ -417,8 +561,13 @@ def normalize_unit(raw: str) -> str:
         "ohms": "ohm", "ohm": "ohm", "milliohm": "mohm", "mω": "mohm",
         "henry": "h", "watts": "w", "watt": "w", "wrms": "w", "grams": "g", "gram": "g",
         "inch": "in", "inches": "in", "µh": "uh", "µm/n": "um/n",
+        '"': "in", "”": "in", "″": "in",
+        "kilogram": "kg", "kilograms": "kg", "kgs": "kg",
+        "lb": "lb", "lbs": "lb", "pound": "lb", "pounds": "lb",
+        "ounce": "oz", "ounces": "oz",
         "tsm": "tm", "n/a": "tm", "ns/m": "kg/s",
         "sqin": "in2", "sqinches": "in2", "sqm": "m2", "sqmeters": "m2", "sqmeter": "m2",
+        "dba": "db", "gauss": "gauss", "%": "%",
     }
     return aliases.get(unit, unit)
 
@@ -449,6 +598,22 @@ def convert_measurement(key: str, raw_value: object, raw_unit: str = "") -> floa
         "effective_diameter_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
         "vd_l": {"l": 1.0, "m3": 1000.0, "ft3": 28.316846592, "ml": 0.001},
         "linear_travel_pp_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
+        "nominal_diameter_in": {"in": 1.0, "mm": 1.0 / 25.4, "cm": 10.0 / 25.4},
+        "overall_diameter_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
+        "cutout_diameter_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
+        "depth_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
+        "mounting_depth_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
+        "bolt_circle_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
+        "mounting_hole_count": {"": 1.0},
+        "mounting_hole_diameter_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
+        "weight_kg": {"kg": 1.0, "g": 0.001, "mg": 0.000001, "lb": 0.45359237, "oz": 0.028349523125},
+        "nominal_impedance_ohm": {"ohm": 1.0, "mohm": 0.001},
+        "sensitivity_db": {"db": 1.0},
+        "voice_coil_diameter_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
+        "xmech_mm": {"mm": 1.0, "cm": 10.0, "m": 1000.0, "in": 25.4},
+        "efficiency_pct": {"%": 1.0},
+        "magnet_weight_kg": {"kg": 1.0, "g": 0.001, "mg": 0.000001, "lb": 0.45359237, "oz": 0.028349523125},
+        "flux_density_t": {"t": 1.0, "gauss": 0.0001},
         "qts": {"": 1.0}, "qms": {"": 1.0}, "qes": {"": 1.0},
     }
     allowed = factors.get(key, {"": 1.0})
@@ -477,8 +642,19 @@ def measurement_from_pair(label: str, raw: object, unit: str, method: str) -> Me
     key = canonical_parameter(label)
     if not key:
         return None
+    label_normalized = normalized_label(label)
+    if key == "weight_kg" and any(
+        word in label_normalized for word in ("shipping", "packaged", "gross")
+    ):
+        return None
+    if key == "depth_mm" and any(
+        word in label_normalized for word in ("cabinet", "enclosure", "box", "port", "vent")
+    ):
+        return None
+    if key == "overall_diameter_mm" and "nominal" in label_normalized:
+        return None
     raw_value, parsed_unit = split_value_and_unit(raw, unit)
-    if key == "pe_w" and not normalize_unit(parsed_unit):
+    if key in EXPLICIT_UNIT_FIELDS and not normalize_unit(parsed_unit):
         return None
     value = convert_measurement(key, raw_value, parsed_unit)
     if value is None:
@@ -615,7 +791,10 @@ def table_measurements(text: str, method: str = "html.table") -> list[Measuremen
         values = block[first_value : first_value + len(labels)]
         # Ragged spec blocks pair by position; tolerate trailing truncation.
         for label, raw_value in zip(labels, values):  # noqa: B905
-            if canonical_parameter(label) and (
+            key = canonical_parameter(label)
+            if key in (*MECHANICAL_FIELDS, *PUBLISHED_SPEC_FIELDS):
+                continue
+            if key and (
                 item := measurement_from_pair(label, raw_value, "", method)
             ):
                 found.append(item)
@@ -648,19 +827,25 @@ def text_measurements(text: str) -> list[Measurement]:
             re.I,
         )
         for match in pattern.finditer(text):
+            prefix = text[max(0, match.start() - 32):match.start()].casefold()
+            if spec.key == "depth_mm" and re.search(r"mount(?:ing)?\s+$", prefix):
+                continue
+            if spec.key == "weight_kg" and re.search(r"(?:magnet|shipping)\s+$", prefix):
+                continue
+            if spec.key == "overall_diameter_mm" and re.search(r"nominal\s+$", prefix):
+                continue
             # A generic ``power rating`` substring inside ``continuous power
             # rating`` or ``program power rating`` is not Pe/AES/RMS power.
             # Those values are usually 2x the thermal rating and must not win
             # merely because they occur first on the page.
             if spec.key == "pe_w":
-                prefix = text[max(0, match.start() - 24):match.start()].casefold()
                 if re.search(
                     r"(?:continuous|program|maximum|max\.?|hf(?:\s+nominal)?)[ \t]+$",
                     prefix,
                 ):
                     continue
             unit = match.group("unit") or ""
-            if spec.key == "pe_w" and not normalize_unit(unit):
+            if spec.key in EXPLICIT_UNIT_FIELDS and not normalize_unit(unit):
                 continue
             value = convert_measurement(spec.key, match.group("value"), unit)
             if value is not None:
@@ -682,26 +867,186 @@ def text_measurements(text: str) -> list[Measurement]:
             re.I,
         )
         for match in pattern_lu.finditer(text):
+            prefix = text[max(0, match.start() - 32):match.start()].casefold()
+            if spec.key == "overall_diameter_mm" and re.search(r"nominal\s+$", prefix):
+                continue
             unit = match.group("unit") or ""
+            if spec.key in EXPLICIT_UNIT_FIELDS and not normalize_unit(unit):
+                continue
             value = convert_measurement(spec.key, match.group("value"), unit)
             if value is not None:
                 found.append(Measurement(
                     spec.key, value, match.group("value"), unit,
                     match.group("label"), "html.text",
                 ))
+
+    # A bare "Depth" is too ambiguous globally (it may describe a cabinet or
+    # package), but manufacturers such as Eminence place it inside an explicit
+    # MOUNTING INFORMATION block. Limit the match to that section and stop at
+    # the next known section heading.
+    mounting_block = re.search(
+        r"(?is)\bmounting\s+information\b(?P<body>.{0,2500}?)"
+        r"(?=\b(?:materials?\s+of\s+construction|packed\s+dimensions|frequency\s+response|"
+        r"ac[uú]stica\s+beyma|thiele.small\s+parameters)\b|$)",
+        text,
+    )
+    if mounting_block:
+        depth = re.search(
+            rf"(?im)^\s*(?P<label>depth)\s*(?P<value>{NUMBER_RE})\s*"
+            rf"(?P<unit>mm|cm|inches?|in|[\"”″])",
+            mounting_block.group("body"),
+        )
+        if depth:
+            value = convert_measurement("depth_mm", depth.group("value"), depth.group("unit"))
+            if value is not None:
+                found.append(Measurement(
+                    "depth_mm", value, depth.group("value"), depth.group("unit"),
+                    depth.group("label"), "html.text",
+                ))
+        # Beyma's layout keeps the cutout heading on one line and the actual
+        # front-mount dimension on the next. Accept that pair only inside the
+        # explicit mounting section; a free-standing "front mount" value is
+        # otherwise too ambiguous to treat as a baffle cutout.
+        cutout = re.search(
+            rf"(?im)^\s*(?P<label>baffle\s+cutout\s+diameter)\s*:?\s*$\s*"
+            rf"^\s*-?\s*front\s+mount\s+(?P<value>{NUMBER_RE})\s*"
+            rf"(?P<unit>mm|cm|inches?|in|[\"”″])",
+            mounting_block.group("body"),
+        )
+        if cutout:
+            value = convert_measurement(
+                "cutout_diameter_mm", cutout.group("value"), cutout.group("unit")
+            )
+            if value is not None:
+                found.append(Measurement(
+                    "cutout_diameter_mm", value, cutout.group("value"), cutout.group("unit"),
+                    cutout.group("label"), "html.text",
+                ))
+    # PHL mounting tables publish a metric fastener prescription as
+    # ``Bolt number & Metric diameter  -  4x M5``. The leading number is an
+    # explicit hole count, while M5 describes the bolt and must not be stored
+    # as the drilled-hole diameter.
+    phl_bolts = re.search(
+        r"(?i)bolt\s+number\s*(?:&|and)\s*metric\s+diameter"
+        r"[^\n]{0,30}?\b(?P<count>\d{1,2})\s*[x×]\s*M\s*\d+(?:[.,]\d+)?",
+        text,
+    )
+    if phl_bolts:
+        found.append(Measurement(
+            "mounting_hole_count", float(phl_bolts.group("count")),
+            phl_bolts.group("count"), "", "Bolt number & Metric diameter",
+            "html.text",
+        ))
+    oberton_mounting = re.search(
+        r"(?is)\bmounting\s+information\b\s*"
+        r"overall\s+diameter\s+baffle\s+hole\s+diameter\s+mounting\s+holes\s+"
+        r"bolt\s+circle\s+diameter\s+overall\s+depth\s+net\s+weight\s+"
+        rf"(?P<overall>{NUMBER_RE})\s*mm\s+"
+        rf"(?P<cutout>{NUMBER_RE})\s*mm\s+"
+        rf"(?P<holes>\d{{1,2}})\s+[^\n]{{0,50}}?\s+"
+        rf"(?P<pcd_a>{NUMBER_RE})(?:\s*/\s*(?P<pcd_b>{NUMBER_RE}))?\s*mm\s+"
+        rf"(?P<depth>{NUMBER_RE})\s*mm\s+"
+        rf"(?P<weight>{NUMBER_RE})\s*kg",
+        text,
+    )
+    if oberton_mounting:
+        # A slotted pattern such as 438/441 mm has two orthogonal pitch
+        # diameters; store the larger published envelope in the scalar PCD
+        # field and retain the complete raw value in provenance.
+        pcd_values = [
+            parse_number(oberton_mounting.group("pcd_a")),
+            parse_number(oberton_mounting.group("pcd_b")),
+        ]
+        pcd = max(value for value in pcd_values if value is not None)
+        values = {
+            "overall_diameter_mm": ("overall", "mm", "Overall Diameter"),
+            "cutout_diameter_mm": ("cutout", "mm", "Baffle Hole Diameter"),
+            "mounting_hole_count": ("holes", "", "Mounting Holes"),
+            "depth_mm": ("depth", "mm", "Overall Depth"),
+            "weight_kg": ("weight", "kg", "Net Weight"),
+        }
+        for key, (group, unit, label) in values.items():
+            raw = oberton_mounting.group(group)
+            value = convert_measurement(key, raw, unit)
+            if value is not None:
+                found.append(Measurement(key, value, raw, unit, label, "html.table"))
+        raw_pcd = oberton_mounting.group("pcd_a")
+        if oberton_mounting.group("pcd_b"):
+            raw_pcd += "/" + oberton_mounting.group("pcd_b")
+        found.append(Measurement(
+            "bolt_circle_mm", pcd, raw_pcd, "mm", "Bolt Circle Diameter", "html.table",
+        ))
+    # P.Audio datasheets contain a known swapped pair of captions: the row
+    # named "Mounting Hole Diameter" carries the PCD, while "Bolt Circle
+    # Diameter" carries ``8 x Ø6.5``. Prefer the unambiguous drawing callout
+    # ``PCD 265.2 mm`` and use the count/diameter tuple only for actual holes.
+    paudio_heading = re.search(r"(?i)\bmounting\s+and\s+shipping\s+info\b", text)
+    paudio_block = None
+    if paudio_heading:
+        section = text[paudio_heading.end():paudio_heading.end() + 4000]
+        stop = re.search(r"(?i)\b(?:frequency\s+response|recone\s+kit)\b", section)
+        paudio_block = section[:stop.start()] if stop else section
+    if paudio_block:
+        body = paudio_block
+        aliases = {
+            "overall_diameter_mm": "Diameter",
+            "cutout_diameter_mm": "Baffle Cutout Diameter",
+            "depth_mm": "Depth",
+            "weight_kg": "Net Weight",
+        }
+        for key, label in aliases.items():
+            match = re.search(
+                rf"(?im)^\s*{re.escape(label)}\s+(?P<value>{NUMBER_RE})\s*"
+                rf"(?P<unit>mm|kg)\b",
+                body,
+            )
+            if match:
+                value = convert_measurement(key, match.group("value"), match.group("unit"))
+                if value is not None:
+                    found.append(Measurement(
+                        key, value, match.group("value"), match.group("unit"),
+                        label, "pdf.table",
+                    ))
+        pcd = re.search(rf"(?i)\bPCD\s+(?P<value>{NUMBER_RE})\s*mm\b", text)
+        if pcd:
+            value = convert_measurement("bolt_circle_mm", pcd.group("value"), "mm")
+            if value is not None:
+                found.append(Measurement(
+                    "bolt_circle_mm", value, pcd.group("value"), "mm",
+                    "PCD drawing callout", "pdf.drawing",
+                ))
+        holes = re.search(
+            rf"(?im)^\s*Bolt\s+Circle\s+Diameter\s+"
+            rf"(?P<count>\d{{1,2}})\s*[x×]\s*Ø\s*\(?(?P<dims>{NUMBER_RE}(?:\s*[x×]\s*{NUMBER_RE})?)\)?\s*mm",
+            body,
+        )
+        if holes:
+            found.append(Measurement(
+                "mounting_hole_count", float(holes.group("count")),
+                holes.group("count"), "", "Mounting hole count", "pdf.table",
+            ))
+            dims = holes.group("dims")
+            if not re.search(r"[x×]", dims, re.I):
+                value = convert_measurement("mounting_hole_diameter_mm", dims, "mm")
+                if value is not None:
+                    found.append(Measurement(
+                        "mounting_hole_diameter_mm", value, dims, "mm",
+                        "Mounting hole drawing diameter", "pdf.table",
+                    ))
     return found
 
 
 def choose_measurements(items: Iterable[Measurement]) -> dict[str, Measurement]:
     priority = {
         "jsonld.additionalProperty": 4,
+        "pdf.drawing": 3,
         "jsonld.field": 3,
         "html.table": 2,
         "pdf.table": 2,
         "html.text": 1,
         "pdf.text": 1,
     }
-    unitless_keys = {"qts", "qms", "qes"}
+    unitless_keys = {"qts", "qms", "qes", "mounting_hole_count"}
 
     def quality(item: Measurement) -> tuple[int, int]:
         explicit_unit = int(bool(normalize_unit(item.unit))) if item.key not in unitless_keys else 0
@@ -715,6 +1060,233 @@ def choose_measurements(items: Iterable[Measurement]) -> dict[str, Measurement]:
         if current is None or quality(item) > quality(current):
             chosen[item.key] = item
     return chosen
+
+
+def sb_acoustics_drawing_measurements(
+    tokens: list[tuple[float, float, float, float, str]], signature: str,
+) -> list[Measurement]:
+    """Decode explicit dimension callouts in SB Acoustics drawing templates.
+
+    The tuple is ``(x, y, text_matrix_a, text_matrix_b, text)``. This does not
+    infer dimensions from nominal size: it associates printed drawing callouts
+    by rotation, position and the manufacturer's repeated drafting layout.
+    """
+    if not re.search(r"\b(?:SB|SW|MW|MR|WO)\d{2}[A-Z0-9-]*", signature, re.I):
+        return []
+
+    def numeric(raw: str) -> float | None:
+        match = re.search(NUMBER_RE, raw.replace("Ø", ""))
+        return parse_number(match.group(0)) if match else None
+
+    def measurement(key: str, value: float, raw: str, label: str) -> Measurement:
+        return Measurement(key, value, raw, "mm", label, "pdf.drawing")
+
+    drawing = [token for token in tokens if token[1] > 560.0]
+    rotated = [
+        (numeric(raw), raw) for _x, _y, a, b, raw in drawing
+        if abs(a) < 0.2 and abs(abs(b) - 1.0) < 0.2 and numeric(raw) is not None
+    ]
+    rotated_values = sorted(
+        [(float(value), raw) for value, raw in rotated if 20.0 <= float(value) <= 1000.0],
+        reverse=True,
+    )
+    found: list[Measurement] = []
+    if len(rotated_values) >= 2:
+        overall_value, overall_raw = rotated_values[0]
+        cutout_value, cutout_raw = rotated_values[1]
+        # Circular frames explicitly print the diameter glyph on the largest
+        # rotated side-view callout. Rectangular/coax frames do not fit the
+        # catalog's overall-diameter field and are deliberately left blank.
+        if "Ø" in overall_raw:
+            found.append(measurement(
+                "overall_diameter_mm", overall_value, overall_raw,
+                "SB drawing overall diameter",
+            ))
+        found.append(measurement(
+            "cutout_diameter_mm", cutout_value, cutout_raw,
+            "SB drawing baffle cutout diameter",
+        ))
+
+    pcd_candidates: list[tuple[float, str]] = []
+    hole_candidates: list[tuple[float, int, str]] = []
+    for _x, y, a, b, raw in drawing:
+        value = numeric(raw)
+        if value is None or abs(a - 1.0) >= 0.2 or abs(b) >= 0.2:
+            continue
+        count_match = re.search(r"\(\s*x\s*(\d+)\s*\)", raw, re.I)
+        if count_match and "Ø" in raw:
+            hole_candidates.append((float(value), int(count_match.group(1)), raw))
+        elif "Ø" in raw and y > 690.0 and value >= 20.0:
+            pcd_candidates.append((float(value), raw))
+    if pcd_candidates:
+        value, raw = max(pcd_candidates)
+        found.append(measurement("bolt_circle_mm", value, raw, "SB drawing bolt circle"))
+    if hole_candidates:
+        value, count, raw = min(hole_candidates)
+        found.extend([
+            measurement(
+                "mounting_hole_diameter_mm", value, raw,
+                "SB drawing through mounting hole diameter",
+            ),
+            Measurement(
+                "mounting_hole_count", float(count), str(count), "",
+                "SB drawing mounting hole count", "pdf.drawing",
+            ),
+        ])
+
+    # The paired horizontal callouts at the upper/right side view are overall
+    # and rear-of-baffle depth. Require a close pair to exclude flange
+    # thickness and other isolated dimensions elsewhere on the drawing.
+    depth_tokens: list[tuple[float, float, str]] = []
+    for x, y, a, b, raw in drawing:
+        value = numeric(raw)
+        if (
+            value is not None and 450.0 <= x <= 520.0
+            and abs(a - 1.0) < 0.2 and abs(b) < 0.2
+            and "Ø" not in raw and "x" not in raw.casefold()
+            and 20.0 <= value <= 1000.0
+        ):
+            depth_tokens.append((y, float(value), raw))
+    pairs = [
+        (left, right) for index, left in enumerate(depth_tokens)
+        for right in depth_tokens[index + 1:] if abs(left[0] - right[0]) <= 15.0
+    ]
+    if pairs:
+        pair = max(pairs, key=lambda items: max(items[0][0], items[1][0]))
+        values = sorted((pair[0][1], pair[1][1]), reverse=True)
+        found.extend([
+            measurement("depth_mm", values[0], str(values[0]), "SB drawing overall depth"),
+            measurement(
+                "mounting_depth_mm", values[1], str(values[1]),
+                "SB drawing rear-of-baffle mounting depth",
+            ),
+        ])
+    return found
+
+
+def bomber_drawing_measurements(text: str) -> list[Measurement]:
+    """Decode Bomber's explicitly keyed A--F loudspeaker drawing.
+
+    Bomber publishes A/B as the two axial extents measured to opposite flange
+    faces.  Which letter is larger depends on the frame, so the larger printed
+    extent is overall depth and the smaller is rear-of-baffle mounting depth.
+    C and D are respectively the frame and baffle-cutout diameters.  E/F are
+    magnet dimensions and intentionally do not enter the mechanical schema.
+    """
+    if not re.search(r"(?i)www\.bomber\.com\.br", text):
+        return []
+    heading = re.search(r"(?i)speaker\s+dimensions\s*\(\s*mm\s*\)", text)
+    if not heading:
+        return []
+    block = text[heading.end():heading.end() + 1400]
+    keyed = re.search(
+        rf"(?s)\bA\s+(?P<a>{NUMBER_RE})\s+\bB\s+(?P<b>{NUMBER_RE})"
+        rf".{{0,350}}?\bC\s+(?P<c>{NUMBER_RE})\s+\bD\s+(?P<d>{NUMBER_RE})"
+        rf".{{0,350}}?\bE\s+(?P<e>{NUMBER_RE})\s+\bF\s+(?P<f>{NUMBER_RE})",
+        block,
+    )
+    if not keyed:
+        return []
+    values = {name: parse_number(keyed.group(name)) for name in "abcdef"}
+    if any(value is None for value in values.values()):
+        return []
+    a, b = float(values["a"]), float(values["b"])
+    c, d = float(values["c"]), float(values["d"])
+    if not (20.0 <= min(a, b) <= max(a, b) <= 1000.0 and 20.0 <= d < c <= 1000.0):
+        return []
+    raw_depths = f"A={keyed.group('a')}; B={keyed.group('b')}"
+    return [
+        Measurement(
+            "overall_diameter_mm", c, keyed.group("c"), "mm",
+            "Bomber drawing dimension C (overall diameter)", "pdf.drawing",
+        ),
+        Measurement(
+            "cutout_diameter_mm", d, keyed.group("d"), "mm",
+            "Bomber drawing dimension D (baffle cutout)", "pdf.drawing",
+        ),
+        Measurement(
+            "depth_mm", max(a, b), raw_depths, "mm",
+            "Bomber drawing A/B overall axial extent", "pdf.drawing",
+        ),
+        Measurement(
+            "mounting_depth_mm", min(a, b), raw_depths, "mm",
+            "Bomber drawing A/B rear-of-baffle extent", "pdf.drawing",
+        ),
+    ]
+
+
+def bc_speakers_drawing_measurements(text: str, metadata_signature: str) -> list[Measurement]:
+    """Read explicit mounting-hole callouts from official B&C CAD drawings."""
+    if not re.search(r"(?i)BCSPEAKERS|official B&C drawing URL", metadata_signature):
+        return []
+    hole_patterns = (
+        # Ø5 (4x), 6.20(x8), 6.4 (8x)
+        rf"(?im)(?<![\d.,])[Ø⌀φ]?\s*(?P<diameter>{NUMBER_RE})\s*"
+        r"\(\s*(?:x\s*)?(?P<count>\d{1,2})\s*x?\s*\)",
+        # 8x Ø6.5, 8x 7 min, N.8 x 7 min
+        rf"(?im)(?<![\d.,])(?:N\.?\s*)?(?P<count>\d{{1,2}})\s*x\s*"
+        rf"[Ø⌀φ]?\s*(?P<diameter>{NUMBER_RE})(?:\s*min\.?)?",
+        # (x8) 7 min, (8x) 6.50
+        rf"(?im)(?<![\d.,])\(\s*(?:x\s*)?(?P<count>\d{{1,2}})\s*x?\s*\)\s*"
+        rf"[Ø⌀φ]?\s*(?P<diameter>{NUMBER_RE})(?:\s*min\.?)?",
+    )
+    holes = None
+    diameter = count = None
+    for pattern in hole_patterns:
+        for candidate in re.finditer(pattern, text):
+            candidate_diameter = parse_number(candidate.group("diameter"))
+            candidate_count = parse_number(candidate.group("count"))
+            if (
+                candidate_diameter is not None and candidate_count is not None
+                and 1.0 <= candidate_diameter <= 50.0
+                and 1 <= candidate_count <= 32
+            ):
+                holes = candidate
+                diameter, count = candidate_diameter, candidate_count
+                break
+        if holes:
+            break
+    if holes is None or diameter is None or count is None:
+        return []
+    found = [
+        Measurement(
+            "mounting_hole_diameter_mm", diameter, holes.group("diameter"), "mm",
+            "B&C drawing through-hole diameter", "pdf.drawing",
+        ),
+        Measurement(
+            "mounting_hole_count", count, holes.group("count"), "",
+            "B&C drawing repeated-hole count", "pdf.drawing",
+        ),
+    ]
+    bolt_circle = re.search(
+        rf"(?im)^\s*(?:B\.?\s*C\.?|BCD)\s*[Ø⌀φ]?\s*"
+        rf"(?P<value>{NUMBER_RE})\s*$",
+        text,
+    )
+    if bolt_circle:
+        value = parse_number(bolt_circle.group("value"))
+        if value is not None and 20.0 <= value <= 1000.0:
+            found.append(Measurement(
+                "bolt_circle_mm", value, bolt_circle.group("value"), "mm",
+                "B&C drawing bolt circle", "pdf.drawing",
+            ))
+    return found
+
+
+def sanitize_published_measurements(
+    chosen: dict[str, Measurement],
+) -> dict[str, Measurement]:
+    """Drop internally contradictory layout observations, never estimate them."""
+    result = dict(chosen)
+    overall = result.get("overall_diameter_mm")
+    for key in ("cutout_diameter_mm", "bolt_circle_mm"):
+        item = result.get(key)
+        if overall and item and item.value > overall.value * 1.02:
+            result.pop(key, None)
+    holes = result.get("mounting_hole_count")
+    if holes and not float(holes.value).is_integer():
+        result.pop("mounting_hole_count", None)
+    return result
 
 
 def derive_driver_values(values: dict[str, float]) -> dict[str, float]:
@@ -984,7 +1556,9 @@ def build_preset(
         text_items = [Measurement(
             item.key, item.value, item.raw_value, item.unit, item.label, "pdf.text"
         ) for item in text_items]
-    chosen = choose_measurements([*measurements, *table_items, *text_items])
+    chosen = sanitize_published_measurements(
+        choose_measurements([*measurements, *page.embedded_measurements, *table_items, *text_items])
+    )
     values = derive_driver_values({key: item.value for key, item in chosen.items()})
     derived_fields = sorted(
         key for key in (*REQUIRED_DRIVER_FIELDS, *OPTIONAL_DRIVER_FIELDS)
@@ -1004,6 +1578,7 @@ def build_preset(
         key: round(float(values.get(key, 0.0) or 0.0), 8)
         for key in (*REQUIRED_DRIVER_FIELDS, *OPTIONAL_DRIVER_FIELDS)
     }
+    fetched_at = utc_now()
     raw_measurements = {
         key: {
             "value": item.value,
@@ -1011,8 +1586,17 @@ def build_preset(
             "unit": item.unit,
             "label": item.label,
             "method": item.method,
+            "source_url": url,
+            "fetched_at": fetched_at,
         }
         for key, item in chosen.items()
+    }
+    mechanical = {
+        key: (int(chosen[key].value) if key == "mounting_hole_count" else chosen[key].value)
+        for key in MECHANICAL_FIELDS if key in chosen
+    }
+    published_specs = {
+        key: chosen[key].value for key in PUBLISHED_SPEC_FIELDS if key in chosen
     }
     derivations = {}
     if "xmax_mm" in derived_fields and "linear_travel_pp_mm" in chosen:
@@ -1037,7 +1621,7 @@ def build_preset(
             "model": model,
             "url": url,
             "source": source_name,
-            "fetched_at": utc_now(),
+            "fetched_at": fetched_at,
             "extraction_method": extraction_method,
             "confidence": round(confidence, 3),
             "raw_measurements": raw_measurements,
@@ -1045,7 +1629,83 @@ def build_preset(
             "derivations": derivations,
         },
     }
+    if mechanical:
+        preset["mechanical"] = mechanical
+    if published_specs:
+        preset["published_specs"] = published_specs
     return preset, []
+
+
+def build_published_observation(
+    page: PageData,
+    url: str,
+    source_name: str = "Web crawler",
+    brand_hint: str = "",
+    extraction_method: str = "html",
+) -> dict | None:
+    """Build a source-backed partial observation without inventing fields.
+
+    Unlike ``build_preset``, this does not require a complete simulation-ready
+    T/S set and may therefore enrich an already identified catalog record with
+    physical or future-facing published specifications. It must not be used to
+    create a standalone driver row.
+    """
+    measurements = jsonld_measurements(page.jsonld)
+    text_items = text_measurements(page.text)
+    table_items = table_measurements(
+        page.text, "pdf.table" if extraction_method == "pdf" else "html.table"
+    )
+    if extraction_method == "pdf":
+        text_items = [Measurement(
+            item.key, item.value, item.raw_value, item.unit, item.label, "pdf.text"
+        ) for item in text_items]
+    chosen = sanitize_published_measurements(
+        choose_measurements([*measurements, *page.embedded_measurements, *table_items, *text_items])
+    )
+    if not chosen:
+        return None
+    name, brand, model = product_metadata(page, url, brand_hint)
+    fetched_at = utc_now()
+    driver = {
+        key: round(float(chosen[key].value), 8)
+        for key in (*REQUIRED_DRIVER_FIELDS, *OPTIONAL_DRIVER_FIELDS) if key in chosen
+    }
+    mechanical = {
+        key: (int(chosen[key].value) if key == "mounting_hole_count" else chosen[key].value)
+        for key in MECHANICAL_FIELDS if key in chosen
+    }
+    published_specs = {
+        key: chosen[key].value for key in PUBLISHED_SPEC_FIELDS if key in chosen
+    }
+    raw_measurements = {
+        key: {
+            "value": item.value, "raw_value": item.raw_value, "unit": item.unit,
+            "label": item.label, "method": item.method, "source_url": url,
+            "fetched_at": fetched_at,
+        }
+        for key, item in chosen.items()
+    }
+    observation = {
+        "name": f"OBS: {brand} {model}".strip(),
+        "brand": brand,
+        "model": model,
+        "kind": "Loudspeaker driver observation",
+        "url": url,
+        "source": source_name,
+        "driver": driver,
+        "website_fields": {
+            "title": name, "brand": brand, "model": model, "url": url,
+            "source": source_name, "fetched_at": fetched_at,
+            "extraction_method": extraction_method,
+            "raw_measurements": raw_measurements,
+            "partial_observation": True,
+        },
+    }
+    if mechanical:
+        observation["mechanical"] = mechanical
+    if published_specs:
+        observation["published_specs"] = published_specs
+    return observation
 
 
 def parse_html(content: bytes) -> PageData:
@@ -1064,16 +1724,35 @@ def parse_pdf(content: bytes) -> PageData:
     # for column-formatted datasheets (e.g. SB Acoustics) whose plain reading
     # order lists every label before every value. It goes first so its correct
     # pairings win; mispaired plain-order matches fail unit conversion anyway.
+    tokens: list[tuple[float, float, float, float, str]] = []
     try:
-        layout = "\n".join(
-            page.extract_text(extraction_mode="layout") or "" for page in reader.pages
-        )
+        layout_pages = []
+        for page in reader.pages:
+            layout_pages.append(page.extract_text(extraction_mode="layout") or "")
+
+            def visitor(text, _cm, tm, _font, _size):
+                stripped = str(text or "").strip()
+                if stripped:
+                    tokens.append((float(tm[4]), float(tm[5]), float(tm[0]), float(tm[1]), stripped))
+
+            page.extract_text(visitor_text=visitor)
+        layout = "\n".join(layout_pages)
     except Exception:
         layout = ""
     plain = "\n".join(page.extract_text() or "" for page in reader.pages)
     text = f"{layout}\n{plain}" if layout else plain
     metadata = reader.metadata or {}
-    return PageData(title=str(metadata.get("/Title") or ""), text=text)
+    title = str(metadata.get("/Title") or "")
+    metadata_signature = "\n".join(str(value) for value in metadata.values())
+    return PageData(
+        title=title,
+        text=text,
+        embedded_measurements=[
+            *sb_acoustics_drawing_measurements(tokens, f"{title}\n{layout[:500]}"),
+            *bomber_drawing_measurements(text),
+            *bc_speakers_drawing_measurements(text, metadata_signature),
+        ],
+    )
 
 
 def normalize_url(url: str, base: str = "") -> str | None:
@@ -1297,6 +1976,9 @@ def merge_presets(
                 index[key] = pos
                 stats["updated"] += 1
                 continue
+            if (item.get("website_fields") or {}).get("partial_observation"):
+                stats["unchanged"] += 1
+                continue
             index[key] = len(merged)
             merged.append(item)
             stats["added"] += 1
@@ -1317,6 +1999,15 @@ def merge_presets(
             if driver.get(field_name) in (None, 0, 0.0, "") and value not in (None, 0, 0.0, ""):
                 driver[field_name] = value
                 changed = True
+        for section in ("mechanical", "published_specs"):
+            section_values = dict(current.get(section) or {})
+            for field_name, value in (item.get(section) or {}).items():
+                if section_values.get(field_name) in (None, "") and value not in (None, ""):
+                    section_values[field_name] = value
+                    changed = True
+            if section_values:
+                current = dict(current)
+                current[section] = section_values
         if changed:
             current = dict(current)
             current["driver"] = driver
@@ -1326,6 +2017,13 @@ def merge_presets(
             if source_url and source_url not in sources:
                 sources.append(source_url)
             fields["additional_sources"] = sources
+            observations = dict(fields.get("published_measurements") or {})
+            for key, value in (
+                (item.get("website_fields") or {}).get("raw_measurements") or {}
+            ).items():
+                observations.setdefault(key, value)
+            if observations:
+                fields["published_measurements"] = observations
             current["website_fields"] = fields
             merged[pos] = current
             stats["updated"] += 1

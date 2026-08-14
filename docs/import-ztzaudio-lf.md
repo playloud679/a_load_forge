@@ -27,3 +27,7 @@ mechanical fields are imported separately for layout drawing: overall
 diameter, baffle cutout, depth, bolt circle and net weight. The remaining
 records are retained as source material and must be completed or manually
 reviewed first.
+Numeric published specifications not used by the solver are retained in
+`published_specs`: nominal impedance, 1 W/1 m sensitivity, voice-coil diameter
+and reference efficiency. Their original labels and values are copied to
+`website_fields.published_measurements`; none is inferred.

@@ -17,8 +17,22 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DATABASE = ROOT / "data" / "manufacturer_drivers.json"
 DEFAULT_CHECKPOINT = ROOT / "data" / "optional_source_yield_checkpoint.json"
 DEFAULT_REPORT_DIR = ROOT / "io" / "optional_source_probes"
-FIELDS = ("xmax_mm", "pe_w", "le_mh")
-WEIGHTS = {"xmax_mm": 3.0, "pe_w": 2.0, "le_mh": 1.5}
+DRIVER_FIELDS = ("xmax_mm", "pe_w", "le_mh")
+MECHANICAL_FIELDS = (
+    "overall_diameter_mm", "cutout_diameter_mm", "depth_mm", "mounting_depth_mm",
+    "bolt_circle_mm", "mounting_hole_count", "mounting_hole_diameter_mm", "weight_kg",
+)
+PUBLISHED_FIELDS = (
+    "nominal_impedance_ohm", "sensitivity_db", "voice_coil_diameter_mm",
+    "xmech_mm", "efficiency_pct", "magnet_weight_kg", "flux_density_t",
+    "nominal_diameter_in",
+)
+FIELDS = (*DRIVER_FIELDS, *MECHANICAL_FIELDS, *PUBLISHED_FIELDS)
+WEIGHTS = {field: 1.0 for field in FIELDS} | {
+    "xmax_mm": 3.0, "pe_w": 2.0, "le_mh": 1.5,
+    "overall_diameter_mm": 2.0, "cutout_diameter_mm": 2.0,
+    "depth_mm": 2.0, "mounting_depth_mm": 2.0,
+}
 
 
 def positive(value: object) -> bool:
@@ -52,7 +66,16 @@ def rank_domains(rows: list[dict]) -> list[dict]:
     domains: dict[str, dict] = {}
     for row in rows:
         driver = row.get("driver") or {}
-        missing = [field for field in FIELDS if not positive(driver.get(field))]
+        mechanical = row.get("mechanical") or {}
+        published = row.get("published_specs") or {}
+        missing = [
+            field for field in FIELDS
+            if not positive(
+                driver.get(field) if field in DRIVER_FIELDS
+                else mechanical.get(field) if field in MECHANICAL_FIELDS
+                else published.get(field)
+            )
+        ]
         source = str(row.get("source") or "").casefold()
         if any(token in source for token in (
             "retailer", "parts express", "madisound", "factory buyout", "coast buyout",

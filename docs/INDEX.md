@@ -21,6 +21,7 @@ in sync in the same change.
 | `tools/harvest_toutlehautparleur.py` | [harvest_toutlehautparleur.md](harvest_toutlehautparleur.md) | Restartable Safari-assisted harvest of TLHP cone-speaker prices and availability |
 | `tools/run_catalog_completion_cycle.py` | [catalog-completion-cycle.md](catalog-completion-cycle.md) | Offline gap planning and restartable Xmax/Pe/Le/price completion cycles |
 | `tools/run_high_yield_optional_cycle.py` | [high-yield-optional-cycle.md](high-yield-optional-cycle.md) | Probe-gated source ranking that expands only domains with measured optional-field yield |
+| `tools/run_published_spec_batches.py` | [published-spec-batches.md](published-spec-batches.md) | Restartable atomic batches for completing one proven source domain |
 | `services/crawler_agent` | [crawler-agent-service.md](crawler-agent-service.md) | Separate policy-bounded Cloud Run Job that autonomously plans direct-site crawls, writes staging artifacts and requires explicit approval for immutable catalog releases |
 | `tools/import_vituixcad_database.py` | [import-vituixcad-database.md](import-vituixcad-database.md) | Validated, deduplicated import of the public VituixCAD online driver database into a separate optional tier |
 | `tools/import_heritage_drivers.py` | [import-heritage-drivers.md](import-heritage-drivers.md) | Traceable import of Altec Technical Letter 267B and official Pioneer/TAD heritage T/S tables |

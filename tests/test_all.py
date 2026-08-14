@@ -4284,7 +4284,13 @@ test("LSDB importer preserves website fields and prices", _check_lsdb_importer_p
 
 
 def _check_manufacturer_optional_refresh_preserves_values_and_provenance():
+    import tempfile
+    from pathlib import Path
+
     from tools import refresh_manufacturer_optionals as refresh
+    from tools import run_published_spec_batches as batches
+
+    assert refresh.normalized_source_url({"url": "https://example.test/woofer "}) == "https://example.test/woofer"
 
     record = {
         "driver": {"xmax_mm": 0.0, "pe_w": 100.0, "le_mh": 0.0},
@@ -4342,6 +4348,51 @@ def _check_manufacturer_optional_refresh_preserves_values_and_provenance():
         (4, {"url": "https://b.example/2"}),
     ])
     assert [item[0] for item in interleaved] == [1, 3, 2, 4]
+    assert refresh.model_identity_matches(
+        {"model": "5FG44 16Ω", "driver": {}},
+        {"model": "5FG44", "driver": {}},
+    )
+    assert not refresh.model_identity_matches(
+        {"model": "5FG44", "driver": {}},
+        {"model": "generic product", "driver": {}},
+    )
+    identity_left = {
+        "model": "legacy alias", "driver": {"fs_hz": 40, "qts": 0.4, "re_ohm": 6, "sd_cm2": 220},
+    }
+    identity_right = {
+        "model": "new alias", "driver": {"fs_hz": 40.1, "qts": 0.401, "re_ohm": 6.05, "sd_cm2": 221},
+    }
+    assert refresh.model_identity_matches(identity_left, identity_right)
+    with tempfile.TemporaryDirectory() as directory:
+        checkpoint_path = Path(directory) / "checkpoint.json"
+        checkpoint = refresh.read_checkpoint(checkpoint_path)
+        seeded = refresh.seed_checkpoint_from_current_provenance(checkpoint, [{
+            "url": "https://manufacturer.example/woofer-12",
+            "website_fields": {"field_provenance": {"weight_kg": {
+                "source_url": "https://manufacturer.example/woofer-12",
+                "source": "Manufacturer published-spec refresh",
+                "fetched_at": "2026-08-13T00:00:00+00:00",
+            }}},
+        }])
+        assert seeded == 1
+        assert refresh.checkpoint_is_current(
+            checkpoint, "https://manufacturer.example/woofer-12",
+        )
+        checkpoint["attempts"]["https://manufacturer.example/transient"] = {
+            "parser_revision": refresh.PARSER_REVISION,
+            "status": "failure",
+            "attempt_count": 1,
+        }
+        assert not refresh.checkpoint_is_current(
+            checkpoint, "https://manufacturer.example/transient",
+        )
+        checkpoint["attempts"]["https://manufacturer.example/transient"]["attempt_count"] = 3
+        assert refresh.checkpoint_is_current(
+            checkpoint, "https://manufacturer.example/transient",
+        )
+    assert batches.should_continue({"processed": 10, "failures": [{}, {}]}, 0.5)
+    assert not batches.should_continue({"processed": 10, "failures": [{}] * 6}, 0.5)
+    assert not batches.should_continue({"processed": 0, "failures": []}, 0.5)
 
 
 test("Manufacturer optional refresh preserves values and provenance", _check_manufacturer_optional_refresh_preserves_values_and_provenance)
@@ -4468,8 +4519,188 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
     assert crawler.canonical_parameter("L1kHz") == "le_mh"
     assert crawler.canonical_parameter("X Max") == "xmax_mm"
     assert crawler.canonical_parameter("Pwr") == "pe_w"
+    assert crawler.canonical_parameter("Mounting Holes Diameter") == "mounting_hole_diameter_mm"
+    assert crawler.canonical_parameter("Cut-out diameter") == "cutout_diameter_mm"
+    assert crawler.canonical_parameter("Mounting hole dimensions") == "mounting_hole_diameter_mm"
+    assert crawler.canonical_parameter("Mounting Holes B.C.D.") == "bolt_circle_mm"
+    assert crawler.canonical_parameter("Magnet Weight") == "magnet_weight_kg"
+    assert crawler.canonical_parameter("Nominal overall diameter") == "nominal_diameter_in"
     assert crawler.parse_number("2,000") == 2000.0
     assert np.isclose(crawler.parse_number("2,5"), 2.5)
+    published_page = crawler.PageData(
+        title="Acme TH12",
+        text=(
+            "Overall Diameter 12.4 in Baffle Cutout Diameter 282 mm "
+            "Mounting Depth 5.75 inch Bolt Circle Diameter 11.5 in "
+            "Number of Mounting Holes 8 Mounting Hole Diameter 6.5 mm "
+            "Net Weight 7.4 kg Nominal Impedance 8 ohm "
+            "Sensitivity 1W/1m 96.5 dB Voice Coil Diameter 3 in "
+            "Xmech 14 mm Efficiency 2.4 % Flux Density 1.2 T"
+        ),
+    )
+    published = crawler.build_published_observation(
+        published_page, "https://acme.example/th12.pdf",
+        "Manufacturer datasheet", "Acme", "pdf",
+    )
+    assert published is not None
+    assert np.isclose(published["mechanical"]["overall_diameter_mm"], 314.96)
+    assert published["mechanical"]["mounting_hole_count"] == 8
+    assert np.isclose(published["published_specs"]["voice_coil_diameter_mm"], 76.2)
+    assert published["published_specs"]["sensitivity_db"] == 96.5
+    raw_overall = published["website_fields"]["raw_measurements"]["overall_diameter_mm"]
+    assert raw_overall["label"] == "Overall Diameter"
+    assert raw_overall["source_url"] == "https://acme.example/th12.pdf"
+    assert raw_overall["method"] == "pdf.text"
+    celestion_fields = crawler.choose_measurements(crawler.text_measurements(
+        "Cut-out diameter 283 mm Mounting hole dimensions 7.9 mm Ø"
+    ))
+    assert celestion_fields["cutout_diameter_mm"].value == 283.0
+    assert celestion_fields["mounting_hole_diameter_mm"].value == 7.9
+    eminence_fields = crawler.choose_measurements(crawler.text_measurements(
+        "MOUNTING INFORMATION\nDepth\n4.73\", 120.1 mm\n"
+        "Net Weight\n5.3 lbs, 2.4 kg\nShipping Weight\n7.4 lbs, 3.36 kg\n"
+        "MATERIALS OF CONSTRUCTION"
+    ))
+    assert np.isclose(eminence_fields["depth_mm"].value, 120.142)
+    assert np.isclose(eminence_fields["weight_kg"].value, 5.3 * 0.45359237)
+    beyma_fields = crawler.choose_measurements(crawler.text_measurements(
+        "MOUNTING INFORMATION\n"
+        "Overall diameter                           545 mm           21,5 in\n"
+        "Baffle cutout diameter:\n"
+        "- Front mount                              492 mm           19,4 in\n"
+        "Depth                                      268 mm           10,6 in\n"
+        "Net weight                                  11,8 kg         26,0 lb\n"
+        "DIMENSION DRAWING\nAcústica Beyma SL\nTHIELE-SMALL PARAMETERS"
+    ))
+    assert beyma_fields["cutout_diameter_mm"].value == 492.0
+    assert beyma_fields["depth_mm"].value == 268.0
+    sb_drawing = crawler.sb_acoustics_drawing_measurements([
+        (480.4, 751.3, 1.0, 0.0, "85.9"),
+        (482.4, 740.4, 1.0, 0.0, "75"),
+        (392.8, 719.9, 1.0, 0.0, "Ø159.0±0.10"),
+        (400.8, 713.3, 1.0, 0.0, "Ø8.5 (x4)"),
+        (405.3, 707.1, 1.0, 0.0, "Ø4.3 (x4)"),
+        (436.0, 638.8, 0.0, 1.0, "Ø 171.0"),
+        (549.3, 643.6, 0.0, 1.0, "Ø 144.9"),
+    ], "6in SB17NRXC35-4 Rev-1")
+    sb_values = {item.key: item.value for item in sb_drawing}
+    assert sb_values == {
+        "overall_diameter_mm": 171.0,
+        "cutout_diameter_mm": 144.9,
+        "bolt_circle_mm": 159.0,
+        "mounting_hole_diameter_mm": 4.3,
+        "mounting_hole_count": 4.0,
+        "depth_mm": 85.9,
+        "mounting_depth_mm": 75.0,
+    }
+    assert all(item.method == "pdf.drawing" for item in sb_drawing)
+    bomber_drawing = crawler.bomber_drawing_measurements(
+        "www.bomber.com.br\nSpeaker dimensions (mm)\n"
+        "Qts 1,29\nA 135 B 152\nQms 12,6\nC 309 D 278\n"
+        "Sd 490 cm2\nE 169 F 46\n"
+    )
+    bomber_values = {item.key: item.value for item in bomber_drawing}
+    assert bomber_values == {
+        "overall_diameter_mm": 309.0,
+        "cutout_diameter_mm": 278.0,
+        "depth_mm": 152.0,
+        "mounting_depth_mm": 135.0,
+    }
+    assert all(item.method == "pdf.drawing" for item in bomber_drawing)
+    assert "A=135; B=152" == next(
+        item.raw_value for item in bomber_drawing if item.key == "depth_mm"
+    )
+    # Some Bomber frames reverse which keyed flange face is farther forward.
+    reversed_bomber = {item.key: item.value for item in crawler.bomber_drawing_measurements(
+        "www.bomber.com.br Speaker dimensions (mm) A 221 B 208 "
+        "C 463 D 426 E 220 F 60"
+    )}
+    assert reversed_bomber["depth_mm"] == 221.0
+    assert reversed_bomber["mounting_depth_mm"] == 208.0
+    bc_drawing = crawler.bc_speakers_drawing_measurements(
+        "5 (4x)\n B.C. 142\n45 degrees\n155\n9\n77\n122\n",
+        r"BCSPEAKERS\\delruina (PC66)\nALT005FG44\nSolidWorks PDF Publisher",
+    )
+    bc_values = {item.key: item.value for item in bc_drawing}
+    assert bc_values == {
+        "mounting_hole_diameter_mm": 5.0,
+        "mounting_hole_count": 4.0,
+        "bolt_circle_mm": 142.0,
+    }
+    assert all(item.method == "pdf.drawing" for item in bc_drawing)
+    # A dimension-like but implausible earlier token must not hide a later,
+    # explicit and valid mounting-hole callout in the same drawing text.
+    recovered_bc = {item.key: item.value for item in crawler.bc_speakers_drawing_measurements(
+        "120 (90x)\n(8x) 6,50\nB.C. 443\n", "official B&C drawing URL",
+    )}
+    assert recovered_bc["mounting_hole_count"] == 8.0
+    assert recovered_bc["mounting_hole_diameter_mm"] == 6.5
+    for callout, expected_count, expected_diameter in (
+        ("6,20(x8)", 8.0, 6.2),
+        ("8x 6.5min", 8.0, 6.5),
+        ("N.8 x 7 min.", 8.0, 7.0),
+        ("(x8) 7 min.", 8.0, 7.0),
+        ("(8x) 6,50", 8.0, 6.5),
+        ("2,5  6,6(x8)", 8.0, 6.6),
+        ("min 8x 6.80", 8.0, 6.8),
+    ):
+        values = {item.key: item.value for item in crawler.bc_speakers_drawing_measurements(
+            f"{callout}\nBCD 246\n", "official B&C drawing URL",
+        )}
+        assert values["mounting_hole_count"] == expected_count
+        assert values["mounting_hole_diameter_mm"] == expected_diameter
+        assert values["bolt_circle_mm"] == 246.0
+    assert not crawler.bc_speakers_drawing_measurements(
+        "5 (4x)\nB.C. 142", "Unrelated CAD publisher",
+    )
+    phl_fields = crawler.choose_measurements(crawler.text_measurements(
+        "Speaker net mass kg 2.15\n"
+        "Bolt number & Metric diameter - 4x M5\n"
+        "Max overall dimension (on ears) mm 187.5\n"
+    ))
+    assert phl_fields["weight_kg"].value == 2.15
+    assert phl_fields["overall_diameter_mm"].value == 187.5
+    assert phl_fields["mounting_hole_count"].value == 4.0
+    assert "mounting_hole_diameter_mm" not in phl_fields
+    oberton_fields = crawler.choose_measurements(crawler.text_measurements(
+        "MOUNTING INFORMATION\nOverall Diameter\nBaffle Hole Diameter\n"
+        "Mounting Holes\nBolt Circle Diameter\nOverall Depth\nNet Weight\n"
+        "461 mm\n417 mm\n8 eliptic 7 x 8,5 mm\n438/441 mm\n224 mm\n11.7 kg"
+    ))
+    assert oberton_fields["overall_diameter_mm"].value == 461.0
+    assert oberton_fields["cutout_diameter_mm"].value == 417.0
+    assert oberton_fields["mounting_hole_count"].value == 8.0
+    assert oberton_fields["bolt_circle_mm"].value == 441.0
+    assert oberton_fields["bolt_circle_mm"].raw_value == "438/441"
+    assert oberton_fields["depth_mm"].value == 224.0
+    assert oberton_fields["weight_kg"].value == 11.7
+    paudio_fields = crawler.choose_measurements(crawler.text_measurements(
+        "PCD 296.0 mm\nMounting and Shipping Info\n"
+        "Diameter 313.5 mm (12.3 in)\n"
+        "Baffle Cutout Diameter 283.4 mm (11.1 in)\n"
+        "Mounting Hole Diameter 296 mm (11.6 in)\n"
+        "Bolt Circle Diameter 8 x Ø (6.5x10) mm\n"
+        "Depth 134.7 mm (5.3 in)\nNet Weight 7.4 kg\nRecone Kit"
+    ))
+    assert paudio_fields["overall_diameter_mm"].value == 313.5
+    assert paudio_fields["cutout_diameter_mm"].value == 283.4
+    assert paudio_fields["bolt_circle_mm"].value == 296.0
+    assert paudio_fields["mounting_hole_count"].value == 8.0
+    assert "mounting_hole_diameter_mm" not in paudio_fields
+    assert paudio_fields["depth_mm"].value == 134.7
+    assert paudio_fields["weight_kg"].value == 7.4
+    nominal_page = crawler.build_published_observation(
+        crawler.PageData(title="Acme N12", text="Nominal overall diameter: 12 in"),
+        "https://acme.example/n12", "Manufacturer page", "Acme", "html",
+    )
+    assert nominal_page is not None
+    assert nominal_page.get("mechanical") in (None, {})
+    assert nominal_page["published_specs"]["nominal_diameter_in"] == 12.0
+    ambiguous_columns = crawler.table_measurements(
+        "SPECIFICATIONS\nOverall Diameter\nBaffle Hole Diameter\nDepth\n12.4 in\n11.1 in\n5.7 in",
+        "pdf.table",
+    )
+    assert not any(item.key in crawler.MECHANICAL_FIELDS for item in ambiguous_columns)
     assert "pe_w" not in crawler.choose_measurements(crawler.text_measurements("Power handling 4"))
     coax_power = crawler.choose_measurements(crawler.text_measurements(
         "LF Nominal Power Handling\n3\n200 W\n"
@@ -5360,12 +5591,38 @@ test(
 
 
 def _check_pdf_datasheet_library_archives_indexes_and_merges_aliases():
+    import http.client
     import json
     import sqlite3
     import tempfile
     from pathlib import Path
 
     from tools import crawl_driver_datasheets as library
+
+    assert http.client.IncompleteRead in library.RECOVERABLE_FETCH_ERRORS
+
+    with tempfile.TemporaryDirectory() as tmp_catalog_dir:
+        catalog_path = Path(tmp_catalog_dir) / "manufacturer.json"
+        catalog_path.write_text(json.dumps({"presets": [
+            {"url": "https://www.beyma.com/en/products/one/", "model": "Products - Beyma - Professional Speaker Manufacturer"},
+            {"url": "https://www.beyma.com/en/products/one/", "model": "LOUDSPEAKER 21LEX1600Nd 8 OH", "brand": "Beyma"},
+            {"url": "https://docs.beyma.com/en/products/two/"},
+            {"url": "https://example.com/not-beyma/"},
+            {"url": "https://www.beyma.com/en/products/one/"},
+        ]}), encoding="utf-8")
+        known_urls = library.product_urls(library.LibraryConfig(
+            seeds=[], sitemaps=[], catalog_domains=("beyma.com",),
+            catalog_path=catalog_path,
+        ))
+        assert known_urls == [
+            "https://www.beyma.com/en/products/one/",
+            "https://docs.beyma.com/en/products/two/",
+        ]
+        identities = library.catalog_identity_by_url(library.LibraryConfig(
+            seeds=[], sitemaps=[], catalog_domains=("beyma.com",),
+            catalog_path=catalog_path,
+        ))
+        assert identities[known_urls[0]]["model"] == "LOUDSPEAKER 21LEX1600Nd 8 OH"
 
     page = library.ts.parse_html(b"""
     <html><body>
@@ -5375,6 +5632,28 @@ def _check_pdf_datasheet_library_archives_indexes_and_merges_aliases():
     """)
     assert library.discover_pdf_links(page, "https://shop.example.test/a") == [
         "https://docs.example.test/specs/driver-a.pdf"]
+    assert library.discover_embedded_drawing_links(
+        b'{"drawing":[{"path":"uploads/products/drawing/ALT005FG44.PDF"}]}',
+        "https://www.bcspeakers.com/en/products/lf-driver/5/16/5FG44",
+    ) == ["https://www.bcspeakers.com/uploads/products/drawing/ALT005FG44.PDF"]
+
+    direct_pdf_identity = {"brand": "SB Acoustics", "model": "SB17NRXC35-4"}
+    direct_page = library.ts.PageData(
+        title=direct_pdf_identity["model"], h1=direct_pdf_identity["model"],
+        text=direct_pdf_identity["model"],
+    )
+    direct_observation = json.loads(json.dumps({
+        "brand": "SB Acoustics", "model": "fallback", "name": "fallback",
+        "url": "https://sbacoustics.example/SB17.pdf", "driver": {},
+        "website_fields": {"partial_observation": True},
+    }))
+    direct_canonical, _direct_alias = library.canonicalize_pdf_preset(
+        direct_observation, product_page=direct_page,
+        product_url="https://sbacoustics.example/SB17.pdf",
+        pdf_url="https://sbacoustics.example/SB17.pdf", sha256="c" * 64,
+        brand_hint="SB Acoustics", catalog_identity=direct_pdf_identity,
+    )
+    assert direct_canonical["model"] == "SB17NRXC35-4"
 
     apollo = {
         "brand": "Dayton Audio", "model": "Apollo 10N", "source": "Loudspeaker Database",
@@ -5399,6 +5678,8 @@ def _check_pdf_datasheet_library_archives_indexes_and_merges_aliases():
             "fs_hz": 54.0, "vas_l": 43.49, "qts": 0.22, "qms": 6.73,
             "re_ohm": 7.4, "sd_cm2": 333.12, "bl_tm": 19.2,
         },
+        "mechanical": {"overall_diameter_mm": 260.0},
+        "published_specs": {"xmech_mm": 12.5},
         "website_fields": {
             "pdf_sha256": "a" * 64,
             "product_url": "https://shop.example.test/10mb250n-8",
@@ -5411,6 +5692,8 @@ def _check_pdf_datasheet_library_archives_indexes_and_merges_aliases():
     assert stats["merged_alias"] == 1 and stats["removed_duplicates"] == 1
     assert merged[0]["model"] == "Apollo 10N"
     assert merged[0]["driver"]["bl_tm"] == 19.2
+    assert merged[0]["mechanical"]["overall_diameter_mm"] == 260.0
+    assert merged[0]["published_specs"]["xmech_mm"] == 12.5
     assert "10MB250N-8" in merged[0]["website_fields"]["aliases"]
     assert merged[0]["website_fields"]["datasheets"][0]["sha256"] == "a" * 64
 
@@ -5431,6 +5714,7 @@ def _check_pdf_datasheet_library_archives_indexes_and_merges_aliases():
         index.record_observation(digest, observation, "Apollo 10N")
         known = index.known_document(observation["url"])
         assert known == (digest, relative, "parsed")
+        assert library.is_pdf_url(observation["url"])
         assert index.observation(digest) == observation
         index.close()
         connection = sqlite3.connect(index_path)
@@ -5452,6 +5736,13 @@ def _check_pdf_datasheet_library_archives_indexes_and_merges_aliases():
     )
     assert canonical["brand"] == "Markaudio"
     assert canonical["model"] == "Alpair 5.3"
+    partial = json.loads(json.dumps(observation))
+    partial["brand"] = "Unmatched"
+    partial["model"] = "ONLY-DIMS"
+    partial["driver"] = {}
+    partial["website_fields"]["partial_observation"] = True
+    partial_merged, _stats = library.merge_observations([apollo], [partial])
+    assert len(partial_merged) == 1
 
 
 test("PDF datasheet library archives, indexes and merges aliases", _check_pdf_datasheet_library_archives_indexes_and_merges_aliases)

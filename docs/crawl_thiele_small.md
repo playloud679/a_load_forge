@@ -44,6 +44,13 @@ mechanical `Rms`. Storefront synonyms are folded in: `Qt` counts as `Qts`,
 closing parenthesis directly after a label (`... (Qms) 8.82` rendered as
 `Qms)\n8.82`) is tolerated. Markaudio's `L1kHz` value is treated as the voice-coil
 inductance used by the simulator, while its nominal `Pwr` is stored as `Pe`.
+The same observation parser retains source-published physical dimensions
+(overall/cutout diameter, depth/mounting depth, bolt circle, mounting holes and
+weight) plus future-facing numeric specifications (nominal impedance,
+sensitivity, voice-coil diameter, Xmech, reference efficiency, magnet mass and
+gap flux). These fields require explicit labels and physical units where
+applicable; they are never inferred. Ambiguous responsive/PDF column pairing is
+disabled for these fields.
 One-way values written as `X Max +/- N mm` are normalized to the positive
 excursion magnitude `N`. An inline production tolerance after `Fs`, such as
 MISCO's `Fs (Hz) +/- 15% 23`, is skipped so the following value (`23 Hz`) is
@@ -100,6 +107,79 @@ symbol, unit, value) and responsive HTML that renders all labels in one column
 and all values in an adjacent column, both for T/S and general specification
 blocks. A known PHL embedded-font substitution
 that exposes the ohm glyph as `W` is accepted only for a DC-resistance row.
+
+Nominal diameter is stored as `published_specs.nominal_diameter_in`, distinct
+from mechanical `overall_diameter_mm`. A label such as “nominal overall
+diameter: 12 in” is a published size class and is never converted into a
+304.8 mm frame measurement. The mechanical field requires an unqualified,
+explicit overall/frame diameter.
+
+Celestion-style `Cut-out diameter` and `Mounting hole dimensions` labels are
+recognized. The latter is accepted as a hole diameter only when the source
+also supplies an explicit length unit; the raw label, unit and value remain in
+field provenance.
+
+A bare `Depth` remains rejected in general. It is accepted as driver depth only
+inside an explicit `MOUNTING INFORMATION` section, stopping before construction,
+packaging or frequency-response sections. Weight-unit parsing prefers `lb/lbs`
+over the single-letter litre token, so `Net Weight 5.3 lbs` cannot be mistaken
+for an unsupported `l` unit; shipping weight remains excluded.
+
+Beyma datasheets split `Baffle cutout diameter` and its `Front mount` value
+across consecutive lines. That pair is recognized only inside the same
+explicit mounting-information section; the generic `Front mount` phrase is not
+accepted elsewhere. The section terminates at Beyma's company footer or the
+following Thiele-Small notes, so unrelated PDF pages remain out of scope.
+
+SB Acoustics CorelDRAW datasheets expose their dimension callouts as positioned
+PDF text rather than labelled table rows. For recognized SB model signatures,
+the parser retains text coordinates and rotation and maps only stable drawing
+roles: rotated side-view overall/cutout callouts, explicit diameter-and-count
+hole callouts, the upper bolt-circle callout and the paired horizontal overall/
+rear-of-baffle depths. These measurements are tagged `pdf.drawing`; circular
+overall diameter is left blank when the frame drawing does not print the
+diameter glyph, and no nominal-size estimate is used.
+
+PHL Audio's `Speaker net mass` and `Max overall dimension (on ears)` labels map
+to net driver weight and maximum frame diameter. Its `Bolt number & Metric
+diameter: 4x M5` row supplies a four-hole count only: `M5` is the specified
+fastener, not an asserted drilled-hole diameter.
+
+Oberton's responsive pages place the six mounting labels in one HTML column
+and all six values in the adjacent column. The parser pairs that exact ordered
+`MOUNTING INFORMATION` block, including hole count and overall depth. When a
+slotted frame publishes two orthogonal pitch diameters such as `438/441 mm`,
+the scalar bolt-circle field stores the larger envelope and provenance retains
+the complete two-value source string; slot width is not recast as hole diameter.
+
+P.Audio datasheets have a documented caption swap in their mounting table: the
+row labelled `Mounting Hole Diameter` contains the bolt-circle value, while the
+`Bolt Circle Diameter` row contains hole count and size. The parser therefore
+uses the independent `PCD ... mm` drawing callout for pitch circle, takes
+diameter/cutout/depth/net weight from their direct rows, and takes hole count
+from the `N × Ø...` tuple. A circular hole size is retained only for one-number
+tuples; an oval such as `6.5×10 mm` has no fabricated scalar diameter.
+
+Bomber's official PDF drawings publish a keyed `A`--`F` dimension table. The
+parser records `C` as overall diameter and `D` as baffle cutout. `A` and `B`
+are the axial extents to opposite flange faces; because the letter carrying
+the larger extent changes with the frame drawing, their larger published value
+is overall depth and the smaller is rear-of-baffle mounting depth. Both raw
+`A/B` values and the `pdf.drawing` provenance are retained. Magnet dimensions
+`E/F` are deliberately ignored.
+
+B&C product pages embed official SolidWorks drawing PDFs outside ordinary HTML
+anchors. For PDFs whose metadata identifies `BCSPEAKERS`, the drawing parser
+accepts only explicit repeated-hole callouts such as `Ø5 (4x)` and `B.C.
+Ø142`: these yield hole diameter, hole count and bolt circle with
+`pdf.drawing` provenance. Historical drawing variants such as `6.20(x8)`,
+`8x 6.5 min`, `N.8 x 7` and `(x8) 7 min` are normalized only when the PDF
+metadata identifies B&C or the archive URL is the official B&C drawing path.
+The callout may follow another printed dimension on the extracted line (for
+example `2,5  6,6(x8)`); numeric boundaries keep that preceding dimension out
+of the match. The same glyph pattern in an unrelated PDF is ignored.
+Implausible dimension-like tokens are skipped instead of masking a later valid
+callout in the same official drawing.
 
 The crawler can derive any missing electrical/mechanical Q relation:
 `Qts` from `Qms+Qes`, `Qms` from `Qts+Qes`, or `Qes` from `Qts+Qms`;

@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Refetch known product pages and fill missing Xmax, Pe and Le safely."""
+"""Refetch known product pages and fill published driver specifications safely."""
 
 from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import datetime as dt
 import json
 import multiprocessing
 import queue
+import re
 import sys
 import threading
 import time
@@ -23,7 +25,107 @@ from tools import crawl_thiele_small as crawler  # noqa: E402
 
 DEFAULT_DATABASE = ROOT / "data" / "manufacturer_drivers.json"
 DEFAULT_REPORT = ROOT / "data" / "manufacturer_optional_refresh_report.json"
-TARGET_FIELDS = ("xmax_mm", "pe_w", "le_mh")
+DEFAULT_CHECKPOINT = ROOT / "data" / "manufacturer_optional_refresh_checkpoint.json"
+# Increment whenever extraction/validation changes should make completed URLs
+# eligible for another pass.  The checkpoint is deliberately parser-versioned.
+PARSER_REVISION = 4
+MAX_FAILURE_ATTEMPTS = 3
+DRIVER_TARGET_FIELDS = ("xmax_mm", "pe_w", "le_mh")
+MECHANICAL_TARGET_FIELDS = crawler.MECHANICAL_FIELDS
+PUBLISHED_TARGET_FIELDS = crawler.PUBLISHED_SPEC_FIELDS
+TARGET_FIELDS = (
+    *DRIVER_TARGET_FIELDS, *MECHANICAL_TARGET_FIELDS, *PUBLISHED_TARGET_FIELDS,
+)
+
+
+def utc_now() -> str:
+    return dt.datetime.now(dt.UTC).replace(microsecond=0).isoformat()
+
+
+def normalized_source_url(record: dict) -> str:
+    return str(record.get("url") or "").strip()
+
+
+def read_checkpoint(path: Path) -> dict:
+    if not path.exists():
+        return {"schema": 1, "attempts": {}}
+    try:
+        value = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {"schema": 1, "attempts": {}}
+    if not isinstance(value, dict) or not isinstance(value.get("attempts", {}), dict):
+        return {"schema": 1, "attempts": {}}
+    value.setdefault("schema", 1)
+    value.setdefault("attempts", {})
+    return value
+
+
+def checkpoint_is_current(checkpoint: dict, url: str) -> bool:
+    attempt = (checkpoint.get("attempts") or {}).get(url) or {}
+    if attempt.get("parser_revision") != PARSER_REVISION:
+        return False
+    if attempt.get("status") in {"updated", "no_change"}:
+        return True
+    return int(attempt.get("attempt_count") or 0) >= MAX_FAILURE_ATTEMPTS
+
+
+def clean_model(value: object) -> str:
+    text = str(value or "").casefold()
+    text = re.sub(r"\b(?:2|4|6|8|12|16|32)\s*(?:ohms?|ω|Ω)\b", "", text)
+    return re.sub(r"[^a-z0-9]+", "", text)
+
+
+def model_identity_matches(record: dict, preset: dict) -> bool:
+    """Reject redirects/generic pages unless model or stable T/S identity agrees."""
+    expected = clean_model(record.get("model"))
+    observed = clean_model(preset.get("model"))
+    if expected and observed and expected == observed:
+        return True
+    left = record.get("driver") or {}
+    right = preset.get("driver") or {}
+    rules = {
+        "fs_hz": (0.015, 0.5),
+        "qts": (0.025, 0.012),
+        "re_ohm": (0.02, 0.12),
+        "sd_cm2": (0.015, 1.0),
+    }
+    matches = 0
+    for field, (relative, absolute) in rules.items():
+        a = left.get(field)
+        b = right.get(field)
+        if not isinstance(a, (int, float)) or not isinstance(b, (int, float)) or a <= 0 or b <= 0:
+            continue
+        if abs(float(a) - float(b)) > max(absolute, relative * max(abs(float(a)), abs(float(b)))):
+            return False
+        matches += 1
+    return matches >= 3
+
+
+def seed_checkpoint_from_current_provenance(checkpoint: dict, records: list[dict]) -> int:
+    """Adopt records fetched by this parser before checkpoint support existed."""
+    attempts = checkpoint.setdefault("attempts", {})
+    seeded = 0
+    for record in records:
+        url = str(record.get("url") or "")
+        if not url or url in attempts:
+            continue
+        provenance = ((record.get("website_fields") or {}).get("field_provenance") or {})
+        matching = [
+            detail for detail in provenance.values()
+            if isinstance(detail, dict)
+            and detail.get("source_url") == url
+            and str(detail.get("source") or "").startswith("Manufacturer published-spec refresh")
+        ]
+        if not matching:
+            continue
+        attempts[url] = {
+            "parser_revision": PARSER_REVISION,
+            "status": "updated",
+            "attempted_at": max(str(item.get("fetched_at") or "") for item in matching),
+            "seeded_from_provenance": True,
+        }
+        seeded += 1
+    return seeded
 
 
 def is_missing(value: object) -> bool:
@@ -32,7 +134,16 @@ def is_missing(value: object) -> bool:
 
 def missing_fields(record: dict) -> list[str]:
     driver = record.get("driver") or {}
-    return [field for field in TARGET_FIELDS if is_missing(driver.get(field))]
+    mechanical = record.get("mechanical") or {}
+    published = record.get("published_specs") or {}
+    return [
+        field for field in TARGET_FIELDS
+        if is_missing(
+            driver.get(field) if field in DRIVER_TARGET_FIELDS
+            else mechanical.get(field) if field in MECHANICAL_TARGET_FIELDS
+            else published.get(field)
+        )
+    ]
 
 
 def suspect_unitless_power(record: dict) -> bool:
@@ -118,7 +229,7 @@ def apply_preset_to_record(record: dict, preset: dict) -> list[str]:
 
     website = dict(record.get("website_fields") or {})
     provenance = dict(website.get("field_provenance") or {})
-    for field in TARGET_FIELDS:
+    for field in DRIVER_TARGET_FIELDS:
         value = incoming.get(field)
         replace_suspect_power = field == "pe_w" and suspect_unitless_power(record)
         incoming_raw = raw_measurements.get(field) or {}
@@ -143,6 +254,27 @@ def apply_preset_to_record(record: dict, preset: dict) -> list[str]:
                     detail.setdefault("source_measurements", {})[source_field] = raw_measurements[source_field]
         provenance[field] = detail
         changed.append(field)
+
+    for section, fields in (
+        ("mechanical", MECHANICAL_TARGET_FIELDS),
+        ("published_specs", PUBLISHED_TARGET_FIELDS),
+    ):
+        stored = dict(record.get(section) or {})
+        incoming_section = preset.get(section) or {}
+        for field in fields:
+            value = incoming_section.get(field)
+            if not is_missing(stored.get(field)) or is_missing(value):
+                continue
+            stored[field] = value
+            provenance[field] = {
+                "source_url": preset.get("url") or incoming_website.get("url") or "",
+                "fetched_at": incoming_website.get("fetched_at") or "",
+                "source": preset.get("source") or "Manufacturer published-spec refresh",
+                "measurement": raw_measurements.get(field) or {},
+            }
+            changed.append(field)
+        if stored:
+            record[section] = stored
 
     if changed:
         website["field_provenance"] = provenance
@@ -171,18 +303,23 @@ class HostThrottle:
             elapsed = time.monotonic() - self._last_request.get(host, 0.0)
             if elapsed < self.delay_s:
                 time.sleep(self.delay_s - elapsed)
-            try:
-                return function()
-            finally:
-                self._last_request[host] = time.monotonic()
+            # Reserve a polite request start time, then release the host lock.
+            # Slow responses may overlap, but request starts remain rate-limited.
+            self._last_request[host] = time.monotonic()
+        return function()
 
 
 def _parse_pdf_worker(content: bytes, url: str, brand: str, output_queue) -> None:
     try:
         page = crawler.parse_pdf(content)
-        output_queue.put(crawler.build_preset(
-            page, url, "Manufacturer optional refresh", brand, extraction_method="pdf",
-        ))
+        preset, errors = crawler.build_preset(
+            page, url, "Manufacturer published-spec refresh", brand, extraction_method="pdf",
+        )
+        if preset is None:
+            preset = crawler.build_published_observation(
+                page, url, "Manufacturer published-spec refresh", brand, extraction_method="pdf",
+            )
+        output_queue.put((preset, errors))
     except Exception as exc:
         output_queue.put((None, [f"{type(exc).__name__}: {exc}"]))
 
@@ -206,7 +343,7 @@ def parse_pdf_with_timeout(content: bytes, url: str, brand: str, timeout_s: floa
 def fetch_preset(
     index: int, record: dict, throttle: HostThrottle, timeout_s: float, parse_timeout_s: float,
 ) -> dict:
-    url = str(record.get("url") or "")
+    url = normalized_source_url(record)
 
     def fetch():
         return crawler.fetch_resource(url, timeout_s, crawler.DEFAULT_USER_AGENT)
@@ -221,11 +358,25 @@ def fetch_preset(
         else:
             page = crawler.parse_html(result.content)
             preset, errors = crawler.build_preset(
-                page, result.url, "Manufacturer optional refresh",
+                page, result.url, "Manufacturer published-spec refresh",
                 str(record.get("brand") or ""), extraction_method="html",
             )
+            if preset is None:
+                preset = crawler.build_published_observation(
+                    page, result.url, "Manufacturer published-spec refresh",
+                    str(record.get("brand") or ""), extraction_method="html",
+                )
         if preset is None:
             return {"index": index, "url": url, "errors": errors or ["no valid driver extracted"]}
+        if not model_identity_matches(record, preset):
+            return {
+                "index": index,
+                "url": url,
+                "errors": [
+                    "model identity mismatch: "
+                    f"expected {record.get('model')!r}, observed {preset.get('model')!r}"
+                ],
+            }
         return {"index": index, "url": url, "preset": preset}
     except Exception as exc:  # keep the bulk refresh resumable across hostile sites
         return {"index": index, "url": url, "errors": [f"{type(exc).__name__}: {exc}"]}
@@ -242,6 +393,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--database", type=Path, default=DEFAULT_DATABASE)
     parser.add_argument("--report", type=Path, default=DEFAULT_REPORT)
+    parser.add_argument("--checkpoint", type=Path, default=DEFAULT_CHECKPOINT)
     parser.add_argument("--apply", action="store_true", help="Atomically update the database; default is dry-run.")
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--timeout", type=float, default=20.0)
@@ -250,22 +402,26 @@ def main() -> int:
     parser.add_argument("--max-records", type=int, default=0)
     parser.add_argument("--local-only", action="store_true", help="Apply raw-value reparsing without network requests.")
     parser.add_argument("--domain", action="append", default=[], help="Restrict to a hostname; repeatable.")
+    parser.add_argument("--force", action="store_true", help="Ignore URL attempts for the current parser revision.")
     args = parser.parse_args()
 
     payload = json.loads(args.database.read_text(encoding="utf-8"))
     presets = list(payload.get("presets") or [])
+    checkpoint = read_checkpoint(args.checkpoint)
+    checkpoint_seeded = seed_checkpoint_from_current_provenance(checkpoint, presets)
     unitless_power_invalidations = sum(invalidate_unitless_power(record) for record in presets)
     local_power_repairs = sum(repair_reparsable_power(record) for record in presets)
     allowed_domains = {item.casefold().removeprefix("www.") for item in args.domain}
     candidates: list[tuple[int, dict]] = []
     for index, record in enumerate(presets):
-        url = str(record.get("url") or "")
+        url = normalized_source_url(record)
         parsed = urlparse(url)
         host = (parsed.hostname or "").casefold().removeprefix("www.")
         if (
             (not missing_fields(record) and not suspect_unitless_power(record))
             or parsed.scheme not in {"http", "https"}
             or not host
+            or (not args.force and checkpoint_is_current(checkpoint, url))
         ):
             continue
         if allowed_domains and host not in allowed_domains:
@@ -281,6 +437,8 @@ def main() -> int:
     field_counts: Counter[str] = Counter()
     host_counts: Counter[str] = Counter()
     failures: list[dict] = []
+    attempts: dict[str, dict] = {}
+    stored_attempts = checkpoint.setdefault("attempts", {})
     processed = 0
     with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, args.workers)) as executor:
         futures = {
@@ -297,8 +455,26 @@ def main() -> int:
                 field_counts.update(changed)
                 if changed:
                     host_counts[urlparse(outcome["url"]).hostname or ""] += 1
+                attempts[outcome["url"]] = {
+                    "parser_revision": PARSER_REVISION,
+                    "status": "updated" if changed else "no_change",
+                    "attempted_at": utc_now(),
+                    "fields_filled": changed,
+                }
             else:
                 failures.append({"url": outcome["url"], "errors": outcome.get("errors") or []})
+                previous = stored_attempts.get(outcome["url"]) or {}
+                previous_count = (
+                    int(previous.get("attempt_count") or 0)
+                    if previous.get("parser_revision") == PARSER_REVISION else 0
+                )
+                attempts[outcome["url"]] = {
+                    "parser_revision": PARSER_REVISION,
+                    "status": "failure",
+                    "attempted_at": utc_now(),
+                    "attempt_count": previous_count + 1,
+                    "errors": outcome.get("errors") or [],
+                }
             if processed % 100 == 0:
                 print(f"processed={processed}/{len(candidates)} filled={sum(field_counts.values())}", flush=True)
 
@@ -311,15 +487,29 @@ def main() -> int:
         "fields_filled": dict(sorted(field_counts.items())),
         "local_power_repairs": local_power_repairs,
         "unitless_power_invalidations": unitless_power_invalidations,
+        "checkpoint_seeded": checkpoint_seeded,
+        "parser_revision": PARSER_REVISION,
         "records_updated_by_host": dict(host_counts.most_common()),
         "failures": failures,
     }
     report["coverage_after"] = {
         field: {
-            "present": sum(not is_missing((record.get("driver") or {}).get(field)) for record in presets),
-            "missing": sum(is_missing((record.get("driver") or {}).get(field)) for record in presets),
+            "present": sum(not is_missing(
+                (record.get("driver") or {}).get(field) if field in DRIVER_TARGET_FIELDS
+                else (record.get("mechanical") or {}).get(field) if field in MECHANICAL_TARGET_FIELDS
+                else (record.get("published_specs") or {}).get(field)
+            ) for record in presets),
+            "missing": sum(is_missing(
+                (record.get("driver") or {}).get(field) if field in DRIVER_TARGET_FIELDS
+                else (record.get("mechanical") or {}).get(field) if field in MECHANICAL_TARGET_FIELDS
+                else (record.get("published_specs") or {}).get(field)
+            ) for record in presets),
             "percent": round(
-                100.0 * sum(not is_missing((record.get("driver") or {}).get(field)) for record in presets)
+                100.0 * sum(not is_missing(
+                    (record.get("driver") or {}).get(field) if field in DRIVER_TARGET_FIELDS
+                    else (record.get("mechanical") or {}).get(field) if field in MECHANICAL_TARGET_FIELDS
+                    else (record.get("published_specs") or {}).get(field)
+                ) for record in presets)
                 / len(presets),
                 2,
             ) if presets else 0.0,
@@ -332,6 +522,9 @@ def main() -> int:
         payload["usable_presets"] = len(presets)
         atomic_write(args.database, payload)
         atomic_write(args.report, report)
+        checkpoint["attempts"].update(attempts)
+        checkpoint["updated_at"] = utc_now()
+        atomic_write(args.checkpoint, checkpoint)
     print(json.dumps({key: value for key, value in report.items() if key != "failures"}, indent=2))
     print(f"failures={len(failures)}")
     return 0
