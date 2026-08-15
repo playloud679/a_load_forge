@@ -24,7 +24,7 @@ test:
 	$(VENV_DIR)/bin/python tests/test_all.py
 
 test-match:
-	@if [ -z "$(MATCH)" ]; then echo "Usage: make test-match MATCH='dccav'"; exit 2; fi
+	@if [ -z "$(MATCH)" ]; then echo "Usage: make test-match MATCH='acoustic-load smoke'"; exit 2; fi
 	$(VENV_DIR)/bin/python tests/test_all.py --match "$(MATCH)"
 
 crawl-ts:

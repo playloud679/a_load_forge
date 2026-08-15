@@ -39,7 +39,7 @@ logger = logging.getLogger("load_forge.ui")
 _OPTIMIZER_ENGINE_REVISION = 5
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
-import dccav as _dccav
+import acoustics as _acoustics
 import engine as _engine
 import presets as _presets
 import pricing as _pricing
@@ -76,7 +76,7 @@ def _reload_if_source_changed(module) -> None:
 
 # Reload dependencies before the facade so it rebinds to the fresh modules.
 for _module in (
-    _engine, _pricing, _presets, _ranking, _saas, _dccav,
+    _engine, _pricing, _presets, _ranking, _saas, _acoustics,
     _afw_export, _afw_compare,
 ):
     _reload_if_source_changed(_module)
@@ -460,7 +460,7 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
                 "SaaS authentication is enabled but the OIDC secret is not mounted."
             )
             st.stop()
-        if st.button("Sign in", type="primary", use_container_width=True):
+        if st.button("Sign in", type="primary", width="stretch"):
             if _SAAS_SETTINGS.oidc_provider:
                 st.login(_SAAS_SETTINGS.oidc_provider)
             else:
@@ -993,7 +993,7 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
                         _LOAD_TYPE_SHORT[lt],
                         key=f"load_btn_{lt}",
                         type="primary" if active else "secondary",
-                        use_container_width=True,
+                        width="stretch",
                         on_click=_select_load_type_card,
                         args=(lt, single_select),
                     )
@@ -1145,7 +1145,7 @@ def _render_workspace_tabs() -> None:
                     _WORKSPACE_DISPLAY_LABELS[workspace],
                     key=f"workspace_tab_button_{slug}",
                     type="primary" if workspace == active else "secondary",
-                    use_container_width=True,
+                    width="stretch",
                     on_click=_select_workspace,
                     args=(workspace,),
                 )
@@ -1245,19 +1245,19 @@ def _render_catalog_maintenance() -> None:
             "Save",
             type="primary",
             key="maintenance_save",
-            use_container_width=True,
+            width="stretch",
         )
     with duplicate_col:
         duplicate_clicked = st.button(
             "Duplicate selected",
             key="maintenance_duplicate",
-            use_container_width=True,
+            width="stretch",
         )
     with delete_col:
         delete_clicked = st.button(
             "Delete selected",
             key="maintenance_delete",
-            use_container_width=True,
+            width="stretch",
         )
     backup_bytes = json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8")
     with backup_col:
@@ -1267,10 +1267,10 @@ def _render_catalog_maintenance() -> None:
             file_name=f"{path.stem}_backup.json",
             mime="application/json",
             key="maintenance_backup_download",
-            use_container_width=True,
+            width="stretch",
         )
     with restore_col:
-        with st.popover("Restore backup", use_container_width=True):
+        with st.popover("Restore backup", width="stretch"):
             uploaded = st.file_uploader(
                 "JSON backup",
                 type=["json"],
@@ -1280,7 +1280,7 @@ def _render_catalog_maintenance() -> None:
                 "Restore selected catalog",
                 key="maintenance_restore_button",
                 type="primary",
-                use_container_width=True,
+                width="stretch",
             ):
                 try:
                     restored = json.loads(uploaded.getvalue().decode("utf-8"))
@@ -1388,7 +1388,7 @@ def _render_catalog_maintenance() -> None:
     edited = st.data_editor(
         pd.DataFrame(rows),
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         height=860,
         disabled=[
             "_key", "Overall mm", "Cutout mm", "Depth mm", "Mount depth mm",
@@ -1552,7 +1552,7 @@ _PRESET_SIZE_FILTERS = (
     "18 in",
     "21 in",
 )
-_PRESET_SOURCE_FILTERS = ("All", *_dccav.PRESET_PROVENANCE_CATEGORIES)
+_PRESET_SOURCE_FILTERS = ("All", *_acoustics.PRESET_PROVENANCE_CATEGORIES)
 _PRESET_SOURCE_FILTER_ALIASES = {
     # Saved sessions from before Load Forge-owned sources were consolidated.
     "Manufacturer": "Load Forge database",
@@ -1613,7 +1613,7 @@ def _catalog_path_for_preset(preset_name: str) -> Path | None:
     if not preset_name or preset_name == "Custom":
         return None
     try:
-        provenance = _dccav.driver_preset_provenance_category(preset_name)
+        provenance = _acoustics.driver_preset_provenance_category(preset_name)
     except ValueError:
         return None
     filename = _CATALOG_PATH_BY_PROVENANCE.get(provenance)
@@ -1624,7 +1624,7 @@ def _catalog_path_for_preset(preset_name: str) -> Path | None:
     )
 
 
-def _driver_catalog_mapping(driver: _dccav.DriverTS) -> dict[str, float]:
+def _driver_catalog_mapping(driver: _acoustics.DriverTS) -> dict[str, float]:
     """Serialize the editable Box Design driver fields for a catalog record."""
     return {
         "fs_hz": float(driver.fs_hz), "vas_l": float(driver.vas_l),
@@ -1640,7 +1640,7 @@ def _driver_catalog_mapping(driver: _dccav.DriverTS) -> dict[str, float]:
 
 def _update_catalog_driver_from_box_design(
     preset_name: str,
-    driver: _dccav.DriverTS,
+    driver: _acoustics.DriverTS,
     *,
     path: Path | None = None,
 ) -> str:
@@ -1655,8 +1655,8 @@ def _update_catalog_driver_from_box_design(
     records = payload.get("presets") if isinstance(payload, dict) else None
     if not isinstance(records, list):
         raise ValueError("The source catalog has no editable preset records")
-    selected_fields = _driver_catalog_mapping(_dccav.get_driver_preset(preset_name))
-    preset_info = _dccav.driver_preset_info(preset_name)
+    selected_fields = _driver_catalog_mapping(_acoustics.get_driver_preset(preset_name))
+    preset_info = _acoustics.driver_preset_info(preset_name)
     selected_brand = _presets._external_catalog_manufacturer(preset_info.brand)
     selected_part_number = _presets._external_catalog_part_number(
         selected_brand, preset_info.part_number or preset_info.model,
@@ -2879,7 +2879,7 @@ def _render_saas_project_controls(user: _saas.SaaSUser) -> None:
         if not _SAAS_SETTINGS.auth_bypass and st.button(
             "Sign out",
             key="saas_sign_out",
-            use_container_width=True,
+            width="stretch",
         ):
             _sign_out_saas()
 
@@ -2898,7 +2898,7 @@ def _render_saas_project_controls(user: _saas.SaaSUser) -> None:
         if st.button(
             "New cloud project",
             key="saas_new_cloud_project",
-            use_container_width=True,
+            width="stretch",
         ):
             _reset_saas_project_editor()
             st.rerun()
@@ -2918,7 +2918,7 @@ def _render_saas_project_controls(user: _saas.SaaSUser) -> None:
         "Save cloud project",
         key="saas_save_cloud_project",
         type="primary",
-        use_container_width=True,
+        width="stretch",
     ):
         if active_project_id is None and len(summaries) >= entitlements.saved_projects:
             if entitlements.promotion == "open_beta":
@@ -2975,13 +2975,13 @@ def _render_saas_project_controls(user: _saas.SaaSUser) -> None:
             load_clicked = st.button(
                 "Load",
                 key="saas_load_cloud_project",
-                use_container_width=True,
+                width="stretch",
             )
         with refresh_col:
             refresh_clicked = st.button(
                 "Refresh",
                 key="saas_refresh_cloud_projects",
-                use_container_width=True,
+                width="stretch",
             )
         if refresh_clicked:
             _saas_project_summaries(user, refresh=True)
@@ -3063,7 +3063,7 @@ def _render_browser_project_controls() -> None:
                 "Open project",
                 type="secondary",
                 key="_browser_project_menu_open",
-                use_container_width=True,
+                width="stretch",
             ):
                 _request_browser_project_load(selected_id)
                 st.rerun()
@@ -3075,7 +3075,7 @@ def _render_browser_project_controls() -> None:
                 if st.button(
                     "Duplicate project",
                     key="_browser_duplicate_selected_project",
-                    use_container_width=True,
+                    width="stretch",
                 ):
                     _request_browser_project_duplicate(
                         selected_id,
@@ -3086,7 +3086,7 @@ def _render_browser_project_controls() -> None:
                 if st.button(
                     "Delete project…",
                     key="_browser_delete_selected_project",
-                    use_container_width=True,
+                    width="stretch",
                 ):
                     st.session_state[
                         "_browser_selected_delete_confirmation"
@@ -3112,7 +3112,7 @@ def _render_browser_project_controls() -> None:
                     if st.button(
                         "Cancel",
                         key="_browser_cancel_delete_selected_project",
-                        use_container_width=True,
+                        width="stretch",
                     ):
                         st.session_state.pop(
                             "_browser_selected_delete_confirmation", None
@@ -3122,7 +3122,7 @@ def _render_browser_project_controls() -> None:
                     if st.button(
                         "Delete permanently",
                         key="_browser_confirm_delete_selected_project",
-                        use_container_width=True,
+                        width="stretch",
                     ):
                         _request_browser_project_delete(
                             str(selected_confirmation.get("project_id", "")),
@@ -3135,7 +3135,7 @@ def _render_browser_project_controls() -> None:
         if st.button(
             "New project",
             key="_browser_new_project",
-            use_container_width=True,
+            width="stretch",
         ):
             _start_new_browser_project()
             st.rerun()
@@ -3161,7 +3161,7 @@ def _render_browser_project_controls() -> None:
         if st.button(
             "New project",
             key="_browser_new_project",
-            use_container_width=True,
+            width="stretch",
         ):
             _start_new_browser_project()
             st.rerun()
@@ -3169,7 +3169,7 @@ def _render_browser_project_controls() -> None:
         if st.button(
             "Duplicate project",
             key="_browser_duplicate_project",
-            use_container_width=True,
+            width="stretch",
         ):
             _duplicate_active_browser_project()
             st.rerun()
@@ -3189,12 +3189,12 @@ def _render_browser_project_controls() -> None:
             download_cache["data"],
             _project_download_filename(active["name"]),
             "application/json",
-            use_container_width=True,
+            width="stretch",
             key="_browser_download_project",
         )
     elif st.button(
         "Prepare .lfp",
-        use_container_width=True,
+        width="stretch",
         key="_browser_prepare_project_download",
         help="Prepare the complete project only on demand so large "
              "Bass Match result sets do not slow every interaction.",
@@ -3212,7 +3212,7 @@ def _render_browser_project_controls() -> None:
             if st.button(
                 "Cancel",
                 key="_browser_cancel_delete_project",
-                use_container_width=True,
+                width="stretch",
             ):
                 st.session_state.pop(
                     "_browser_project_delete_confirmation", None
@@ -3222,14 +3222,14 @@ def _render_browser_project_controls() -> None:
             if st.button(
                 "Delete permanently",
                 key="_browser_confirm_delete_project",
-                use_container_width=True,
+                width="stretch",
             ):
                 _delete_active_browser_project()
                 st.rerun()
     elif st.button(
         "Delete project…",
         key="_browser_delete_project",
-        use_container_width=True,
+        width="stretch",
     ):
         st.session_state["_browser_project_delete_confirmation"] = True
         st.rerun()
@@ -3250,7 +3250,7 @@ def _render_browser_project_controls() -> None:
         if st.button(
             "Open selected project",
             key="_browser_open_selected_project",
-            use_container_width=True,
+            width="stretch",
         ):
             _request_browser_project_load(selected_id)
             st.rerun()
@@ -3285,7 +3285,7 @@ def _render_project_menu() -> None:
         if st.button(
             "Share via URL",
             key="project_share_url",
-            use_container_width=True,
+            width="stretch",
             help="Encodes the current design into the page URL and shows the "
                  "link below, ready to copy.",
         ):
@@ -3299,7 +3299,7 @@ def _render_project_menu() -> None:
             if st.button(
                 "Clear share link",
                 key="project_clear_share_url",
-                use_container_width=True,
+                width="stretch",
             ):
                 st.session_state["_applied_share_token"] = None
                 st.query_params.pop("d", None)
@@ -3318,7 +3318,7 @@ def _render_project_menu() -> None:
                 if upload.name.casefold().endswith(".crw"):
                     crw = _afw_compare.parse_crw_text(upload.getvalue().decode("latin-1"))
                     _snapshot_design_state()
-                    driver = _dccav.DriverTS(
+                    driver = _acoustics.DriverTS(
                         fs_hz=crw.fs_hz, vas_l=crw.vas_l, qts=crw.qts,
                         qms=crw.qms, re_ohm=crw.re_ohm, sd_cm2=crw.sd_cm2,
                         le_mh=crw.le_10khz_mh, xmax_mm=crw.xmax_mm, pe_w=crw.pe_w,
@@ -3355,7 +3355,7 @@ def _render_project_menu() -> None:
             if st.button(
                 "Restore previous design",
                 key="project_restore_previous_design",
-                use_container_width=True,
+                width="stretch",
                 help="Undo the last preset or shared-link load and restore the previous parameters.",
             ):
                 _restore_design_state()
@@ -3399,22 +3399,22 @@ def _chart_signature() -> str:
     return hashlib.sha1(payload).hexdigest()[:12]
 
 
-def _driver_from_state() -> _dccav.DriverTS:
+def _driver_from_state() -> _acoustics.DriverTS:
     """Composite driver: per-driver T/S state plus the configuration."""
-    return _dccav.apply_driver_configuration(
+    return _acoustics.apply_driver_configuration(
         _single_driver_from_state(),
         str(st.session_state.get("driver_config", "Single driver")),
     )
 
 
-def _single_driver_from_state() -> _dccav.DriverTS:
+def _single_driver_from_state() -> _acoustics.DriverTS:
     mode = st.session_state.get("driver_sd_mode", "Diameter")
     sd_cm2 = (
-        _dccav.sd_from_diameter(float(st.session_state["driver_diameter_mm"]))
+        _acoustics.sd_from_diameter(float(st.session_state["driver_diameter_mm"]))
         if mode == "Diameter"
         else float(st.session_state["driver_sd_cm2"])
     )
-    return _dccav.DriverTS(
+    return _acoustics.DriverTS(
         fs_hz=float(st.session_state["driver_fs_hz"]),
         vas_l=float(st.session_state["driver_vas_l"]),
         qts=float(st.session_state["driver_qts"]),
@@ -3433,8 +3433,8 @@ def _single_driver_from_state() -> _dccav.DriverTS:
     )
 
 
-def _box_from_state() -> _dccav.DccavBox:
-    return _dccav.DccavBox(
+def _box_from_state() -> _acoustics.DccavBox:
+    return _acoustics.DccavBox(
         vh_l=float(st.session_state["box_vh_l"]),
         fh_hz=float(st.session_state["box_fh_hz"]),
         vl_l=float(st.session_state["box_vl_l"]),
@@ -3448,9 +3448,9 @@ def _box_from_state() -> _dccav.DccavBox:
     )
 
 
-def _reflex_box_from_state() -> _dccav.ReflexBox:
+def _reflex_box_from_state() -> _acoustics.ReflexBox:
     use_custom_losses = bool(st.session_state.get("reflex_custom_losses", False))
-    return _dccav.ReflexBox(
+    return _acoustics.ReflexBox(
         vb_l=float(st.session_state["reflex_vb_l"]),
         fb_hz=float(st.session_state["reflex_fb_hz"]),
         q_abs=float(st.session_state["reflex_q_abs"]) if use_custom_losses else _DEFAULT_REFLEX_Q_ABS,
@@ -3459,8 +3459,8 @@ def _reflex_box_from_state() -> _dccav.ReflexBox:
     )
 
 
-def _pr_box_from_state() -> _dccav.PassiveRadiatorBox:
-    return _dccav.PassiveRadiatorBox(
+def _pr_box_from_state() -> _acoustics.PassiveRadiatorBox:
+    return _acoustics.PassiveRadiatorBox(
         vb_l=float(st.session_state.get(
             "reflex_vb_l", st.session_state.get("pr_vb_l", 40.0))),
         pr_sp_cm2=float(st.session_state.get("pr_sp_cm2", 200.0)),
@@ -3474,16 +3474,16 @@ def _pr_box_from_state() -> _dccav.PassiveRadiatorBox:
     )
 
 
-def _sealed_box_from_state() -> _dccav.SealedBox:
-    return _dccav.SealedBox(
+def _sealed_box_from_state() -> _acoustics.SealedBox:
+    return _acoustics.SealedBox(
         vb_l=float(st.session_state["sealed_vb_l"]),
         q_abs=float(st.session_state["sealed_q_abs"]),
         q_leak=float(st.session_state["sealed_q_leak"]),
     )
 
 
-def _bandpass4_box_from_state() -> _dccav.Bandpass4Box:
-    return _dccav.Bandpass4Box(
+def _bandpass4_box_from_state() -> _acoustics.Bandpass4Box:
+    return _acoustics.Bandpass4Box(
         vs_l=float(st.session_state["bandpass4_vs_l"]),
         vp_l=float(st.session_state["bandpass4_vp_l"]),
         fp_hz=float(st.session_state["bandpass4_fp_hz"]),
@@ -3495,8 +3495,8 @@ def _bandpass4_box_from_state() -> _dccav.Bandpass4Box:
     )
 
 
-def _bandpass6_box_from_state() -> _dccav.Bandpass6Box:
-    return _dccav.Bandpass6Box(
+def _bandpass6_box_from_state() -> _acoustics.Bandpass6Box:
+    return _acoustics.Bandpass6Box(
         vr_l=float(st.session_state["bandpass6_vr_l"]),
         fr_hz=float(st.session_state["bandpass6_fr_hz"]),
         vp_l=float(st.session_state["bandpass6_vp_l"]),
@@ -3518,34 +3518,34 @@ def _waveguide_box_from_state():
     mouth_area_cm2 = float(st.session_state["waveguide_mouth_area_cm2"])
     line_q = float(st.session_state["waveguide_line_q"])
     flare = str(st.session_state.get("waveguide_flare", "exponential"))
-    segments = (_dccav.WaveguideSegment(length_m, area_cm2),)
+    segments = (_acoustics.WaveguideSegment(length_m, area_cm2),)
     if topology == "TL":
-        return _dccav.TransmissionLineBox(
+        return _acoustics.TransmissionLineBox(
             segments=segments,
             termination=str(st.session_state["waveguide_termination"]),
             mouth_area_cm2=mouth_area_cm2,
             line_q=line_q,
         )
     if topology == "MLTL":
-        return _dccav.MltlBox(
+        return _acoustics.MltlBox(
             segments=segments,
             vent_area_cm2=float(st.session_state["waveguide_vent_area_cm2"]),
             vent_length_m=float(st.session_state["waveguide_vent_length_m"]),
             line_q=line_q,
         )
     if topology == "QW":
-        return _dccav.TransmissionLineBox(
+        return _acoustics.TransmissionLineBox(
             segments=segments, termination="closed", mouth_area_cm2=mouth_area_cm2,
             line_q=line_q,
         )
     if topology == "BLH":
-        return _dccav.HornBox(
+        return _acoustics.HornBox(
             length_m=length_m, throat_area_cm2=area_cm2,
             mouth_area_cm2=mouth_area_cm2, flare=flare,
             line_q=line_q,
         )
     if topology == "TH":
-        return _dccav.TappedHornBox(
+        return _acoustics.TappedHornBox(
             length_m=length_m, throat_area_cm2=area_cm2,
             mouth_area_cm2=mouth_area_cm2,
             tap_position_m=float(st.session_state["waveguide_tap_position_m"]),
@@ -3748,29 +3748,29 @@ def _finder_selectbox(label: str, options: list[str], key: str, **kwargs):
     return st.selectbox(label, options, key=key, **kwargs)
 
 
-def _apply_alignment(alignment: _dccav.DccavAlignment):
+def _apply_alignment(alignment: _acoustics.DccavAlignment):
     st.session_state["box_vh_l"] = float(alignment.vh_l)
     st.session_state["box_fh_hz"] = float(alignment.fh_hz)
     st.session_state["box_vl_l"] = float(alignment.vl_l)
     st.session_state["box_fl_hz"] = float(alignment.fl_hz)
 
 
-def _apply_reflex_alignment(alignment: _dccav.ReflexAlignment):
+def _apply_reflex_alignment(alignment: _acoustics.ReflexAlignment):
     st.session_state["reflex_vb_l"] = float(alignment.vb_l)
     st.session_state["reflex_fb_hz"] = float(alignment.fb_hz)
 
 
-def _apply_sealed_alignment(alignment: _dccav.SealedAlignment):
+def _apply_sealed_alignment(alignment: _acoustics.SealedAlignment):
     st.session_state["sealed_vb_l"] = float(alignment.vb_l)
 
 
-def _apply_bandpass4_alignment(alignment: _dccav.Bandpass4Alignment):
+def _apply_bandpass4_alignment(alignment: _acoustics.Bandpass4Alignment):
     st.session_state["bandpass4_vs_l"] = float(alignment.vs_l)
     st.session_state["bandpass4_vp_l"] = float(alignment.vp_l)
     st.session_state["bandpass4_fp_hz"] = float(alignment.fp_hz)
 
 
-def _apply_bandpass6_alignment(alignment: _dccav.Bandpass6Alignment):
+def _apply_bandpass6_alignment(alignment: _acoustics.Bandpass6Alignment):
     st.session_state["bandpass6_vr_l"] = float(alignment.vr_l)
     st.session_state["bandpass6_fr_hz"] = float(alignment.fr_hz)
     st.session_state["bandpass6_vp_l"] = float(alignment.vp_l)
@@ -3785,8 +3785,8 @@ def _design_objective_label() -> str:
     return fallback if fallback in _OPT_OBJECTIVE_LABELS else "Balanced"
 
 
-def _optimizer_goals_from_state() -> _dccav.OptimizationGoals:
-    return _dccav.OptimizationGoals(
+def _optimizer_goals_from_state() -> _acoustics.OptimizationGoals:
+    return _acoustics.OptimizationGoals(
         objective=_OPT_OBJECTIVE_LABELS[_design_objective_label()],
         max_total_volume_l=float(st.session_state.get("opt_max_volume_l", 0.0)) or None,
         target_f3_hz=float(st.session_state.get("opt_target_f3_hz", 0.0)) or None,
@@ -3806,18 +3806,18 @@ def _alignment_uses_optimizer() -> bool:
 
 
 def _apply_optimized_box(
-    box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.Bandpass4Box | _dccav.Bandpass6Box | _dccav.SealedBox,
+    box: _acoustics.DccavBox | _acoustics.ReflexBox | _acoustics.Bandpass4Box | _acoustics.Bandpass6Box | _acoustics.SealedBox,
 ):
-    if isinstance(box, _dccav.ReflexBox):
+    if isinstance(box, _acoustics.ReflexBox):
         st.session_state["reflex_vb_l"] = float(box.vb_l)
         st.session_state["reflex_fb_hz"] = float(box.fb_hz)
-    elif isinstance(box, _dccav.SealedBox):
+    elif isinstance(box, _acoustics.SealedBox):
         st.session_state["sealed_vb_l"] = float(box.vb_l)
-    elif isinstance(box, _dccav.Bandpass4Box):
+    elif isinstance(box, _acoustics.Bandpass4Box):
         st.session_state["bandpass4_vs_l"] = float(box.vs_l)
         st.session_state["bandpass4_vp_l"] = float(box.vp_l)
         st.session_state["bandpass4_fp_hz"] = float(box.fp_hz)
-    elif isinstance(box, _dccav.Bandpass6Box):
+    elif isinstance(box, _acoustics.Bandpass6Box):
         st.session_state["bandpass6_vr_l"] = float(box.vr_l)
         st.session_state["bandpass6_fr_hz"] = float(box.fr_hz)
         st.session_state["bandpass6_vp_l"] = float(box.vp_l)
@@ -3830,8 +3830,8 @@ def _apply_optimized_box(
 
 
 def _optimized_port_diameter_cm(
-    driver: _dccav.DriverTS,
-    result: _dccav.SimulationResult,
+    driver: _acoustics.DriverTS,
+    result: _acoustics.SimulationResult,
     volume_l: float,
     tuning_hz: float,
     end_correction: float,
@@ -3851,15 +3851,15 @@ def _optimized_port_diameter_cm(
     volume_velocity = (
         result.port_h_velocity if port == "upper" else result.port_l_velocity)
     floor_cm = max(
-        _dccav.port_min_diameter_cm(volume_l, tuning_hz, end_correction),
-        _dccav.port_displacement_min_diameter_cm(driver, tuning_hz),
-        _dccav.rated_velocity_diameter_cm(
+        _acoustics.port_min_diameter_cm(volume_l, tuning_hz, end_correction),
+        _acoustics.port_displacement_min_diameter_cm(driver, tuning_hz),
+        _acoustics.rated_velocity_diameter_cm(
             driver, result, voltage_v,
             volume_velocity),
     )
-    sized_cm = _dccav.port_diameter_for_load(
+    sized_cm = _acoustics.port_diameter_for_load(
         volume_l, tuning_hz, end_correction, floor_cm)
-    maximum_cm = float(_dccav.OPTIMIZER_MAX_PORT_DIAMETER_CM)
+    maximum_cm = float(_acoustics.OPTIMIZER_MAX_PORT_DIAMETER_CM)
     # sized_cm is already snapped to the sidebar's 0.5 cm grid; sized_cm is
     # only None for a box the optimizer should already have rejected, so
     # keep the (grid-rounded) mandatory floor and let the Port Geometry
@@ -3872,40 +3872,40 @@ def _optimized_port_diameter_cm(
 
 
 def _apply_optimized_port_geometry(
-    driver: _dccav.DriverTS,
-    box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.Bandpass4Box | _dccav.Bandpass6Box | _dccav.SealedBox,
+    driver: _acoustics.DriverTS,
+    box: _acoustics.DccavBox | _acoustics.ReflexBox | _acoustics.Bandpass4Box | _acoustics.Bandpass6Box | _acoustics.SealedBox,
 ) -> None:
     """Replace stale preset diameters with geometry for the optimized box."""
-    if isinstance(box, _dccav.SealedBox):
+    if isinstance(box, _acoustics.SealedBox):
         return
-    if isinstance(box, _dccav.ReflexBox) and _reflex_uses_passive_radiator():
+    if isinstance(box, _acoustics.ReflexBox) and _reflex_uses_passive_radiator():
         return
     freq = np.geomspace(
         min(10.0, driver.fs_hz / 4.0), max(400.0, 4.0 * driver.fs_hz), 240)
     voltage_v = float(st.session_state.get("sim_voltage", 2.83))
-    if isinstance(box, _dccav.ReflexBox):
-        result = _dccav.simulate_reflex(driver, box, freq, voltage_v)
+    if isinstance(box, _acoustics.ReflexBox):
+        result = _acoustics.simulate_reflex(driver, box, freq, voltage_v)
         st.session_state["reflex_port_d_cm"] = _optimized_port_diameter_cm(
             driver, result, box.vb_l, box.fb_hz, 1.43, "lower")
-    elif isinstance(box, _dccav.Bandpass4Box):
-        result = _dccav.simulate_bandpass4(driver, box, freq, voltage_v)
+    elif isinstance(box, _acoustics.Bandpass4Box):
+        result = _acoustics.simulate_bandpass4(driver, box, freq, voltage_v)
         st.session_state["bandpass4_port_d_cm"] = _optimized_port_diameter_cm(
             driver, result, box.vp_l, box.fp_hz, 1.43, "lower")
-    elif isinstance(box, _dccav.Bandpass6Box):
-        result = _dccav.simulate_bandpass6(driver, box, freq, voltage_v)
+    elif isinstance(box, _acoustics.Bandpass6Box):
+        result = _acoustics.simulate_bandpass6(driver, box, freq, voltage_v)
         st.session_state["bandpass6_port_d_r_cm"] = _optimized_port_diameter_cm(
             driver, result, box.vr_l, box.fr_hz, 1.43, "upper")
         st.session_state["bandpass6_port_d_p_cm"] = _optimized_port_diameter_cm(
             driver, result, box.vp_l, box.fp_hz, 1.43, "lower")
     else:
-        result = _dccav.simulate(driver, box, freq, voltage_v)
+        result = _acoustics.simulate(driver, box, freq, voltage_v)
         st.session_state["box_port_d_h_cm"] = _optimized_port_diameter_cm(
             driver, result, box.vh_l, box.fh_hz, 1.64, "upper")
         st.session_state["box_port_d_l_cm"] = _optimized_port_diameter_cm(
             driver, result, box.vl_l, box.fl_hz, 1.43, "lower")
 
 
-def _optimized_summary(optimized: _dccav.OptimizedAlignment) -> str:
+def _optimized_summary(optimized: _acoustics.OptimizedAlignment) -> str:
     parts = [
         f"Optimized: F3 {optimized.f3_hz:.1f} Hz",
         f"ripple {optimized.ripple_db:.1f} dB" if np.isfinite(optimized.ripple_db) else "ripple n/a",
@@ -3919,18 +3919,18 @@ def _optimized_summary(optimized: _dccav.OptimizedAlignment) -> str:
 
 
 def _optimizer_box_signature(
-    box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.Bandpass4Box | _dccav.Bandpass6Box | _dccav.SealedBox,
+    box: _acoustics.DccavBox | _acoustics.ReflexBox | _acoustics.Bandpass4Box | _acoustics.Bandpass6Box | _acoustics.SealedBox,
 ) -> tuple:
-    if isinstance(box, _dccav.ReflexBox):
+    if isinstance(box, _acoustics.ReflexBox):
         return ("reflex", box.vb_l, box.fb_hz, box.q_abs, box.q_leak, box.q_port)
-    if isinstance(box, _dccav.SealedBox):
+    if isinstance(box, _acoustics.SealedBox):
         return ("sealed", box.vb_l, box.q_abs, box.q_leak)
-    if isinstance(box, _dccav.Bandpass4Box):
+    if isinstance(box, _acoustics.Bandpass4Box):
         return (
             "bandpass4", box.vs_l, box.vp_l, box.fp_hz,
             box.q_abs_s, box.q_abs_p, box.q_leak_s, box.q_leak_p, box.q_port,
         )
-    if isinstance(box, _dccav.Bandpass6Box):
+    if isinstance(box, _acoustics.Bandpass6Box):
         return (
             "bandpass6", box.vr_l, box.fr_hz, box.vp_l, box.fp_hz,
             box.q_abs_r, box.q_abs_p, box.q_leak_r, box.q_leak_p,
@@ -3944,9 +3944,9 @@ def _optimizer_box_signature(
 
 
 def _optimizer_result_context(
-    driver: _dccav.DriverTS,
+    driver: _acoustics.DriverTS,
     load_type: str,
-    box: _dccav.DccavBox | _dccav.ReflexBox | _dccav.Bandpass4Box | _dccav.Bandpass6Box | _dccav.SealedBox,
+    box: _acoustics.DccavBox | _acoustics.ReflexBox | _acoustics.Bandpass4Box | _acoustics.Bandpass6Box | _acoustics.SealedBox,
 ) -> tuple:
     goals = _optimizer_goals_from_state()
     return (
@@ -3958,7 +3958,7 @@ def _optimizer_result_context(
     )
 
 
-def _current_optimizer_summary(driver: _dccav.DriverTS) -> str | None:
+def _current_optimizer_summary(driver: _acoustics.DriverTS) -> str | None:
     load_type = st.session_state.get("load_type", "DCCAV")
     if load_type == "Bass reflex":
         box = _reflex_box_from_state()
@@ -3978,7 +3978,7 @@ def _current_optimizer_summary(driver: _dccav.DriverTS) -> str | None:
     return st.session_state.get("opt_last_summary")
 
 
-def _run_box_optimizer(driver: _dccav.DriverTS) -> _dccav.OptimizedAlignment:
+def _run_box_optimizer(driver: _acoustics.DriverTS) -> _acoustics.OptimizedAlignment:
     load_type = st.session_state.get("load_type", "DCCAV")
     if load_type == "Bass reflex":
         template = _reflex_box_from_state()
@@ -3992,7 +3992,7 @@ def _run_box_optimizer(driver: _dccav.DriverTS) -> _dccav.OptimizedAlignment:
         raise ValueError("Infinite baffle has no box to optimize")
     else:
         template = _box_from_state()
-    optimized = _dccav.optimize_alignment(
+    optimized = _acoustics.optimize_alignment(
         driver,
         _optimizer_goals_from_state(),
         load_type=load_type,
@@ -4007,7 +4007,7 @@ def _run_box_optimizer(driver: _dccav.DriverTS) -> _dccav.OptimizedAlignment:
     return optimized
 
 
-def _apply_suggested_box_for(driver: _dccav.DriverTS):
+def _apply_suggested_box_for(driver: _acoustics.DriverTS):
     """Apply the optimizer box for the active objective strategy."""
     if st.session_state.get("load_type", "DCCAV") == "Infinite baffle":
         return
@@ -4024,19 +4024,19 @@ def _apply_suggested_box_for(driver: _dccav.DriverTS):
     _apply_optimized_box(optimized.box)
 
 
-def _apply_empirical_box_for(driver: _dccav.DriverTS) -> None:
+def _apply_empirical_box_for(driver: _acoustics.DriverTS) -> None:
     """Apply the lightweight starter regardless of the selected strategy."""
     load_type = st.session_state.get("load_type", "DCCAV")
     if load_type == "Bass reflex":
-        _apply_reflex_alignment(_dccav.suggest_reflex_alignment(driver))
+        _apply_reflex_alignment(_acoustics.suggest_reflex_alignment(driver))
     elif load_type == "Sealed":
-        _apply_sealed_alignment(_dccav.suggest_sealed_alignment(driver))
+        _apply_sealed_alignment(_acoustics.suggest_sealed_alignment(driver))
     elif load_type == "Bandpass 4th order":
-        _apply_bandpass4_alignment(_dccav.suggest_bandpass4_alignment(driver))
+        _apply_bandpass4_alignment(_acoustics.suggest_bandpass4_alignment(driver))
     elif load_type == "Bandpass 6th order":
-        _apply_bandpass6_alignment(_dccav.suggest_bandpass6_alignment(driver))
+        _apply_bandpass6_alignment(_acoustics.suggest_bandpass6_alignment(driver))
     elif load_type == "DCCAV":
-        _apply_alignment(_dccav.suggest_alignment(driver))
+        _apply_alignment(_acoustics.suggest_alignment(driver))
 
 
 def _on_box_strategy_change() -> None:
@@ -4082,7 +4082,7 @@ def _box_number_with_nudge(
     )
 
 
-def _alignment_warning(ts: _dccav.DriverTS, box: _dccav.DccavBox) -> str | None:
+def _alignment_warning(ts: _acoustics.DriverTS, box: _acoustics.DccavBox) -> str | None:
     """Warn only when the DCCAV box currently being simulated is very small."""
     v_total = box.vh_l + box.vl_l
     if ts.sd_cm2 >= 500.0 and v_total < 25.0:
@@ -4104,7 +4104,7 @@ def _fmt_db(value: float) -> str:
 
 def _driver_preset_family(name: str) -> str:
     try:
-        return _dccav.driver_preset_info(name).brand
+        return _acoustics.driver_preset_info(name).brand
     except ValueError:
         return "Other"
 
@@ -4112,7 +4112,7 @@ def _driver_preset_family(name: str) -> str:
 def _driver_preset_identity_fields(name: str) -> tuple[str, str]:
     """Return the normalized manufacturer and part number shown at runtime."""
     try:
-        info = _dccav.driver_preset_info(name)
+        info = _acoustics.driver_preset_info(name)
     except ValueError:
         return "Other", name
     manufacturer = info.brand.strip() or "Other"
@@ -4130,7 +4130,7 @@ def _driver_preset_display_label(name: str) -> str:
 
 def _driver_preset_source(name: str) -> str:
     try:
-        return _dccav.driver_preset_provenance_category(name)
+        return _acoustics.driver_preset_provenance_category(name)
     except ValueError:
         return "Load Forge database"
 
@@ -4180,7 +4180,7 @@ def _render_driver_mechanical_drawing(
 
 def _driver_preset_exact_source(name: str) -> str:
     try:
-        return _dccav.driver_preset_info(name).source
+        return _acoustics.driver_preset_info(name).source
     except ValueError:
         return "Built-in"
 
@@ -4192,14 +4192,14 @@ def _driver_class_label(value: str) -> str:
 
 def _driver_preset_price(name: str) -> float | None:
     try:
-        return _dccav.driver_preset_info(name).price
+        return _acoustics.driver_preset_info(name).price
     except ValueError:
         return None
 
 
 def _driver_preset_currency(name: str) -> str:
     try:
-        return _dccav.driver_preset_info(name).currency
+        return _acoustics.driver_preset_info(name).currency
     except ValueError:
         return ""
 
@@ -4252,7 +4252,7 @@ def _preset_price_values(names: list[str], currency: str | None = None) -> list[
     return values
 
 
-def _purchase_markdown(info: _dccav.DriverPresetInfo) -> str | None:
+def _purchase_markdown(info: _acoustics.DriverPresetInfo) -> str | None:
     """Return a markdown purchase link for a preset, or None without a URL."""
     if not info.url:
         return None
@@ -4292,7 +4292,7 @@ def _size_bucket(size_in: float) -> str:
 
 def _driver_preset_size(name: str) -> str:
     try:
-        info = _dccav.driver_preset_info(name)
+        info = _acoustics.driver_preset_info(name)
         if info.size_in is not None:
             return _size_bucket(info.size_in)
     except ValueError:
@@ -4310,7 +4310,7 @@ def _driver_preset_size(name: str) -> str:
     ):
         return "12 in"
     try:
-        driver = _dccav.get_driver_preset(name)
+        driver = _acoustics.get_driver_preset(name)
     except ValueError:
         return "Other"
     piston_diameter_mm = float(np.sqrt(driver.sd_cm2 / 10_000.0 * 4.0 / np.pi) * 1000.0)
@@ -4504,7 +4504,7 @@ def _filter_driver_preset_names(
                 continue
         if max_mms_g is not None or max_le_mh is not None:
             try:
-                driver = _dccav.get_driver_preset(name)
+                driver = _acoustics.get_driver_preset(name)
             except Exception:
                 continue
             if max_mms_g is not None:
@@ -4561,15 +4561,15 @@ def _driver_preset_class(name: str) -> str:
     cached = class_cache.get(name)
     if cached is None:
         try:
-            cached = _dccav.classify_driver_bandwidth(
-                _dccav.get_driver_preset(name)).driver_class
+            cached = _acoustics.classify_driver_bandwidth(
+                _acoustics.get_driver_preset(name)).driver_class
         except Exception:
             cached = "Woofer"
         class_cache[name] = cached
     return cached
 
 
-def _apply_driver_preset(driver: _dccav.DriverTS):
+def _apply_driver_preset(driver: _acoustics.DriverTS):
     st.session_state["driver_fs_hz"] = float(driver.fs_hz)
     st.session_state["driver_vas_l"] = float(driver.vas_l)
     st.session_state["driver_qts"] = float(driver.qts)
@@ -4614,7 +4614,7 @@ def _optimizer_goals_signature() -> tuple:
     )
 
 
-def _auto_alignment_signature(driver: _dccav.DriverTS | None = None) -> tuple:
+def _auto_alignment_signature(driver: _acoustics.DriverTS | None = None) -> tuple:
     driver = driver or _driver_from_state()
     return (
         st.session_state.get("load_type", "DCCAV"),
@@ -4637,7 +4637,7 @@ def _auto_alignment_signature(driver: _dccav.DriverTS | None = None) -> tuple:
     )
 
 
-def _mark_auto_alignment_synced(driver: _dccav.DriverTS | None = None):
+def _mark_auto_alignment_synced(driver: _acoustics.DriverTS | None = None):
     try:
         st.session_state["_auto_align_signature"] = _auto_alignment_signature(driver)
     except Exception:
@@ -4664,30 +4664,30 @@ def _initialize_alignment_defaults() -> None:
         (
             ("box_vh_l", "vh_l"), ("box_fh_hz", "fh_hz"),
             ("box_vl_l", "vl_l"), ("box_fl_hz", "fl_hz"),
-            _dccav.suggest_alignment,
-            _dccav.DccavAlignment(3.1, 162.0, 6.25, 62.0, 51.5),
+            _acoustics.suggest_alignment,
+            _acoustics.DccavAlignment(3.1, 162.0, 6.25, 62.0, 51.5),
         ),
         (
             ("reflex_vb_l", "vb_l"), ("reflex_fb_hz", "fb_hz"),
-            _dccav.suggest_reflex_alignment,
-            _dccav.ReflexAlignment(11.52, 48.14),
+            _acoustics.suggest_reflex_alignment,
+            _acoustics.ReflexAlignment(11.52, 48.14),
         ),
         (
             ("bandpass4_vs_l", "vs_l"), ("bandpass4_vp_l", "vp_l"),
             ("bandpass4_fp_hz", "fp_hz"),
-            _dccav.suggest_bandpass4_alignment,
-            _dccav.Bandpass4Alignment(4.09, 11.52, 94.0),
+            _acoustics.suggest_bandpass4_alignment,
+            _acoustics.Bandpass4Alignment(4.09, 11.52, 94.0),
         ),
         (
             ("bandpass6_vr_l", "vr_l"), ("bandpass6_fr_hz", "fr_hz"),
             ("bandpass6_vp_l", "vp_l"), ("bandpass6_fp_hz", "fp_hz"),
-            _dccav.suggest_bandpass6_alignment,
-            _dccav.Bandpass6Alignment(4.09, 60.0, 11.52, 94.0),
+            _acoustics.suggest_bandpass6_alignment,
+            _acoustics.Bandpass6Alignment(4.09, 60.0, 11.52, 94.0),
         ),
         (
             ("sealed_vb_l", "vb_l"),
-            _dccav.suggest_sealed_alignment,
-            _dccav.SealedAlignment(11.52, 68.1, 0.512),
+            _acoustics.suggest_sealed_alignment,
+            _acoustics.SealedAlignment(11.52, 68.1, 0.512),
         ),
     )
     if all(
@@ -4719,7 +4719,7 @@ def _on_driver_preset_change():
         st.session_state.pop("_admin_catalog_source_preset", None)
         return
     try:
-        _apply_driver_preset(_dccav.get_driver_preset(preset_name))
+        _apply_driver_preset(_acoustics.get_driver_preset(preset_name))
         st.session_state["_admin_catalog_source_preset"] = preset_name
         # Re-read through the configuration so multi-driver setups get a box
         # sized for the composite Vas/Sd, not the single unit.
@@ -4795,7 +4795,7 @@ def _on_pr_preset_change():
     name = str(st.session_state.get("pr_preset_name", "Custom"))
     if name == "Custom":
         return
-    pr = _dccav.get_passive_radiator_preset(name)
+    pr = _acoustics.get_passive_radiator_preset(name)
     for key, value in (
         ("pr_sp_cm2", pr.sp_cm2),
         ("pr_fp_hz", pr.fp_hz),
@@ -4807,7 +4807,7 @@ def _on_pr_preset_change():
         st.session_state[key] = value
 
 
-def _series_frame(result: _dccav.SimulationResult, series: dict[str, np.ndarray]) -> pd.DataFrame:
+def _series_frame(result: _acoustics.SimulationResult, series: dict[str, np.ndarray]) -> pd.DataFrame:
     rows = []
     for name, values in series.items():
         for freq, value in zip(result.frequency_hz, values, strict=True):
@@ -4967,7 +4967,7 @@ def _line_chart(
     return chart.properties(height=height, width="container")
 
 
-def _response_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
+def _response_series(result: _acoustics.SimulationResult) -> dict[str, np.ndarray]:
     series = {}
     load_type = st.session_state.get("load_type", "DCCAV")
     series["Total"] = result.spl_total_db
@@ -4994,7 +4994,7 @@ def _response_tuning_markers() -> list[tuple[str, float]]:
     load_type = str(st.session_state.get("load_type", "DCCAV"))
     if load_type == "Bass reflex":
         if _reflex_uses_passive_radiator():
-            return [("PR tuning", _dccav.passive_radiator_effective_fp_hz(_pr_box_from_state()))]
+            return [("PR tuning", _acoustics.passive_radiator_effective_fp_hz(_pr_box_from_state()))]
         return [("Reflex tuning", float(st.session_state["reflex_fb_hz"]))]
     if load_type == "Bandpass 4th order":
         return [("Front tuning", float(st.session_state["bandpass4_fp_hz"]))]
@@ -5047,7 +5047,7 @@ def _tuning_marker_layer(
 
 
 def _response_y_domain(
-    result: _dccav.SimulationResult,
+    result: _acoustics.SimulationResult,
     series: dict[str, np.ndarray],
     frequency_window: list[float] | None = None,
 ) -> list[float] | None:
@@ -5098,7 +5098,7 @@ def _response_y_domain(
     return [float(bottom), float(top)]
 
 
-def _port_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
+def _port_series(result: _acoustics.SimulationResult) -> dict[str, np.ndarray]:
     series = {}
     load_type = st.session_state.get("load_type", "DCCAV")
     if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order"}:
@@ -5114,7 +5114,7 @@ def _port_series(result: _dccav.SimulationResult) -> dict[str, np.ndarray]:
     return series
 
 
-def _cursor_rows(result: _dccav.SimulationResult, thresholds: dict[int, float]) -> list[dict]:
+def _cursor_rows(result: _acoustics.SimulationResult, thresholds: dict[int, float]) -> list[dict]:
     rows = []
     auto_markers = set(st.session_state.get("cursor_auto_markers", _AUTO_CURSOR_OPTIONS))
     if "F3" in auto_markers and np.isfinite(thresholds[3]):
@@ -5162,7 +5162,7 @@ def _cursor_label_rows(
     return out
 
 
-def _cursor_row(result: _dccav.SimulationResult, label: str, frequency_hz: float) -> dict:
+def _cursor_row(result: _acoustics.SimulationResult, label: str, frequency_hz: float) -> dict:
     f = float(np.clip(frequency_hz, result.frequency_hz[0], result.frequency_hz[-1]))
     spl_total_db = _interp(result.frequency_hz, result.spl_total_db, f)
     return {
@@ -5259,7 +5259,7 @@ def _cursor_layer(
 
 
 def _click_marker_layer(
-    result: _dccav.SimulationResult,
+    result: _acoustics.SimulationResult,
     x_domain: list[float] | None = None,
     y_domain: list[float] | None = None,
     show_mol: bool = False,
@@ -5335,7 +5335,7 @@ def _click_marker_layer(
 
 
 def _band_layer(
-    band: _dccav.ToleranceBand,
+    band: _acoustics.ToleranceBand,
     y_domain: list[float] | None,
     x_domain: list[float] | None = None,
 ) -> alt.Chart | None:
@@ -5374,10 +5374,10 @@ def _band_layer(
 
 
 def _plot_response(
-    result: _dccav.SimulationResult,
+    result: _acoustics.SimulationResult,
     cursor_rows: list[dict],
     series_override: dict[str, np.ndarray] | None = None,
-    band: _dccav.ToleranceBand | None = None,
+    band: _acoustics.ToleranceBand | None = None,
     frequency_window: list[float] | None = None,
     show_legend: bool = False,
     default_visible: list[str] | None = None,
@@ -5512,7 +5512,7 @@ def _plot_response(
     return chart
 
 
-def _plot_excursion(result: _dccav.SimulationResult, xmax_mm: float) -> alt.Chart:
+def _plot_excursion(result: _acoustics.SimulationResult, xmax_mm: float) -> alt.Chart:
     active_design_visible = _active_design_visible()
     data = _series_frame(
         result,
@@ -5541,7 +5541,7 @@ def _plot_excursion(result: _dccav.SimulationResult, xmax_mm: float) -> alt.Char
     return chart
 
 
-def _plot_impedance(result: _dccav.SimulationResult) -> alt.Chart:
+def _plot_impedance(result: _acoustics.SimulationResult) -> alt.Chart:
     data = _series_frame(
         result,
         {"Impedance": result.impedance_ohm}
@@ -5565,7 +5565,7 @@ def _plot_impedance(result: _dccav.SimulationResult) -> alt.Chart:
     return chart
 
 
-def _plot_mil(result: _dccav.SimulationResult) -> alt.Chart:
+def _plot_mil(result: _acoustics.SimulationResult) -> alt.Chart:
     mil_w_data = result.mil_w
     data = _series_frame(
         result,
@@ -5610,10 +5610,10 @@ def _pin_label(
     if config != "Single driver":
         preset = f"{preset} ({config})"
     if load_type == "Bass reflex":
-        if isinstance(box, _dccav.PassiveRadiatorBox):
+        if isinstance(box, _acoustics.PassiveRadiatorBox):
             box_txt = (
                 f"Vb {box.vb_l:.1f} L · PR Fp "
-                f"{_dccav.passive_radiator_effective_fp_hz(box):.1f} Hz"
+                f"{_acoustics.passive_radiator_effective_fp_hz(box):.1f} Hz"
             )
         else:
             box_txt = f"Vb {box.vb_l:.1f} L · Fb {box.fb_hz:.1f} Hz"
@@ -5653,7 +5653,7 @@ def _pinned_responses() -> list[dict]:
 def _pinned_response_snapshot(
     load_type: str,
     box,
-    result: _dccav.SimulationResult,
+    result: _acoustics.SimulationResult,
     *,
     label: str | None = None,
     color: str | None = None,
@@ -5683,7 +5683,7 @@ def _pinned_response_snapshot(
     elif load_type in {"Bass reflex", "Bandpass 4th order"}:
         port_label = (
             "Passive radiator"
-            if isinstance(box, _dccav.PassiveRadiatorBox)
+            if isinstance(box, _acoustics.PassiveRadiatorBox)
             else "Vent"
         )
         response_traces[port_label] = [
@@ -5705,7 +5705,7 @@ def _pinned_response_snapshot(
         "excursion_mm": [float(v) for v in result.excursion_mm],
         "impedance_ohm": [float(v) for v in result.impedance_ohm],
         "mil_w": [float(v) for v in result.mil_w],
-        "group_delay_ms": [float(v) for v in _dccav.group_delay_ms(result)],
+        "group_delay_ms": [float(v) for v in _acoustics.group_delay_ms(result)],
         "port_traces": port_traces,
     }
     if color:
@@ -5716,7 +5716,7 @@ def _pinned_response_snapshot(
 def _update_active_design_comparison(
     load_type: str,
     box,
-    result: _dccav.SimulationResult,
+    result: _acoustics.SimulationResult,
     simulation_signature: str | None = None,
 ) -> list[dict]:
     """Persist the active editable tab and expose every inactive tab as overlays."""
@@ -5795,7 +5795,7 @@ def _update_active_design_comparison(
 def _duplicate_active_design_comparison(
     load_type: str,
     box,
-    result: _dccav.SimulationResult,
+    result: _acoustics.SimulationResult,
 ) -> str:
     """Create an independently editable variant tab from the active design."""
     tabs = _update_active_design_comparison(load_type, box, result)
@@ -5892,7 +5892,7 @@ def _duplicate_design_comparison_tab(tab_id: str) -> str:
 def _duplicate_standalone_design_from_click(
     load_type: str,
     box,
-    result: _dccav.SimulationResult,
+    result: _acoustics.SimulationResult,
 ) -> None:
     """Create comparison state in the button callback, before the rerun."""
     copy_name = _duplicate_active_design_comparison(load_type, box, result)
@@ -6031,7 +6031,7 @@ def _design_tab_label_driver(label: str) -> str:
 
 def _recover_design_tab_preset(parameters: dict) -> str:
     """Recover a preset name from unchanged T/S values in a legacy tab."""
-    for name in _dccav.driver_preset_names():
+    for name in _acoustics.driver_preset_names():
         if _design_tab_parameters_match_preset(parameters, name):
             return str(name)
     return "Custom"
@@ -6082,7 +6082,7 @@ def _design_tab_parameters_match_preset(
     ):
         return False
     try:
-        driver = _dccav.get_driver_preset(preset_name)
+        driver = _acoustics.get_driver_preset(preset_name)
     except (TypeError, ValueError):
         return False
     for state_key, driver_field, _required in field_map:
@@ -6150,7 +6150,7 @@ def _render_editable_design_tabs(
     tabs: list[dict],
     load_type: str,
     box,
-    result: _dccav.SimulationResult,
+    result: _acoustics.SimulationResult,
 ) -> None:
     """Render compact editable tabs with actions embedded in the active tab."""
     action_toast = st.session_state.pop("_design_tab_action_toast", None)
@@ -6592,7 +6592,7 @@ def _pinned_layer(
 
 @st.cache_data(show_spinner=False, max_entries=32)
 def _topology_comparison_series(
-    ts: _dccav.DriverTS,
+    ts: _acoustics.DriverTS,
     load_type: str,
     box,
     freq: np.ndarray,
@@ -6621,44 +6621,44 @@ def _topology_comparison_series(
     series: dict[str, np.ndarray] = {}
     try:
         d_box = box if load_type == "DCCAV" else _batch_dccav_box(ts, vtot)
-        series["DCCAV"] = _dccav.simulate(ts, d_box, freq, voltage_v, series_r_ohm).spl_total_db
+        series["DCCAV"] = _acoustics.simulate(ts, d_box, freq, voltage_v, series_r_ohm).spl_total_db
     except Exception:
         logger.exception("Comparison DCCAV simulation failed")
     try:
-        bp_start = _dccav.suggest_bandpass4_alignment(ts)
-        bp_box = box if load_type == "Bandpass 4th order" else _dccav.design_space_box(
+        bp_start = _acoustics.suggest_bandpass4_alignment(ts)
+        bp_box = box if load_type == "Bandpass 4th order" else _acoustics.design_space_box(
             ts, "Bandpass 4th order", vtot, bp_start.fp_hz)
-        series["Bandpass 4th order"] = _dccav.simulate_bandpass4(
+        series["Bandpass 4th order"] = _acoustics.simulate_bandpass4(
             ts, bp_box, freq, voltage_v, series_r_ohm).spl_total_db
     except Exception:
         logger.exception("Comparison bandpass simulation failed")
     try:
-        bp6_start = _dccav.suggest_bandpass6_alignment(ts)
-        bp6_box = box if load_type == "Bandpass 6th order" else _dccav.design_space_box(
+        bp6_start = _acoustics.suggest_bandpass6_alignment(ts)
+        bp6_box = box if load_type == "Bandpass 6th order" else _acoustics.design_space_box(
             ts, "Bandpass 6th order", vtot, bp6_start.fp_hz)
-        series["Bandpass 6th order"] = _dccav.simulate_bandpass6(
+        series["Bandpass 6th order"] = _acoustics.simulate_bandpass6(
             ts, bp6_box, freq, voltage_v, series_r_ohm).spl_total_db
     except Exception:
         logger.exception("Comparison bandpass6 simulation failed")
     try:
-        if load_type == "Bass reflex" and isinstance(box, _dccav.PassiveRadiatorBox):
-            series["Bass reflex"] = _dccav.simulate_passive_radiator(
+        if load_type == "Bass reflex" and isinstance(box, _acoustics.PassiveRadiatorBox):
+            series["Bass reflex"] = _acoustics.simulate_passive_radiator(
                 ts, box, freq, voltage_v, series_r_ohm).spl_total_db
         else:
-            r_box = box if load_type == "Bass reflex" else _dccav.ReflexBox(
-                vb_l=vtot, fb_hz=_dccav.suggest_reflex_alignment(ts).fb_hz)
-            series["Bass reflex"] = _dccav.simulate_reflex(
+            r_box = box if load_type == "Bass reflex" else _acoustics.ReflexBox(
+                vb_l=vtot, fb_hz=_acoustics.suggest_reflex_alignment(ts).fb_hz)
+            series["Bass reflex"] = _acoustics.simulate_reflex(
                 ts, r_box, freq, voltage_v, series_r_ohm).spl_total_db
     except Exception:
         logger.exception("Comparison reflex simulation failed")
     try:
-        s_box = box if load_type == "Sealed" else _dccav.SealedBox(vb_l=vtot)
-        series["Sealed"] = _dccav.simulate_sealed(
+        s_box = box if load_type == "Sealed" else _acoustics.SealedBox(vb_l=vtot)
+        series["Sealed"] = _acoustics.simulate_sealed(
             ts, s_box, freq, voltage_v, series_r_ohm).spl_total_db
     except Exception:
         logger.exception("Comparison sealed simulation failed")
     try:
-        series["Infinite baffle"] = _dccav.simulate_infinite_baffle(
+        series["Infinite baffle"] = _acoustics.simulate_infinite_baffle(
             ts, freq, voltage_v, series_r_ohm).spl_total_db
     except Exception:
         logger.exception("Comparison infinite-baffle simulation failed")
@@ -6671,16 +6671,16 @@ def _port_geometry_row(
     volume_l: float,
     fb_hz: float,
     end_correction: float,
-    result: _dccav.SimulationResult,
+    result: _acoustics.SimulationResult,
     port: str,
 ) -> dict:
     area_cm2 = np.pi * (diameter_cm / 2.0) ** 2
-    velocity = _dccav.port_air_velocity_ms(result, area_cm2, port)
+    velocity = _acoustics.port_air_velocity_ms(result, area_cm2, port)
     peak_idx = int(np.nanargmax(velocity))
     return {
         "Port": label,
         "Diameter cm": float(diameter_cm),
-        "Length cm": _dccav.port_length_cm(volume_l, fb_hz, diameter_cm, end_correction),
+        "Length cm": _acoustics.port_length_cm(volume_l, fb_hz, diameter_cm, end_correction),
         "Peak m/s": float(velocity[peak_idx]),
         "Peak at Hz": float(result.frequency_hz[peak_idx]),
         "_volume_l": float(volume_l),
@@ -6692,11 +6692,11 @@ def _port_geometry_row(
 _PORT_GEOMETRY_COLUMNS = ("Port", "Diameter cm", "Length cm", "Peak m/s", "Peak at Hz")
 
 
-def _plot_group_delay(result: _dccav.SimulationResult, limit_ms: float = 0.0) -> alt.Chart:
+def _plot_group_delay(result: _acoustics.SimulationResult, limit_ms: float = 0.0) -> alt.Chart:
     active_design_visible = _active_design_visible()
     data = _series_frame(
         result,
-        {"Group delay": _dccav.group_delay_ms(result)}
+        {"Group delay": _acoustics.group_delay_ms(result)}
         if active_design_visible
         else {},
     )
@@ -6723,7 +6723,7 @@ def _plot_group_delay(result: _dccav.SimulationResult, limit_ms: float = 0.0) ->
     return chart
 
 
-def _plot_ports(result: _dccav.SimulationResult) -> alt.Chart:
+def _plot_ports(result: _acoustics.SimulationResult) -> alt.Chart:
     series = _port_series(result)
     if not series:
         raise ValueError("No port traces selected")
@@ -6741,13 +6741,13 @@ def _plot_ports(result: _dccav.SimulationResult) -> alt.Chart:
 
 
 def _rank_value(value: float) -> float:
-    return _dccav.rank_sort_value(value)
+    return _acoustics.rank_sort_value(value)
 
 
-def _batch_dccav_box(ts: _dccav.DriverTS, total_volume_l: float) -> _dccav.DccavBox:
+def _batch_dccav_box(ts: _acoustics.DriverTS, total_volume_l: float) -> _acoustics.DccavBox:
     """Starter-shaped DCCAV box constrained to an exact total volume."""
-    return _dccav.design_space_box(
-        ts, "DCCAV", float(total_volume_l), _dccav.suggest_alignment(ts).fl_hz)
+    return _acoustics.design_space_box(
+        ts, "DCCAV", float(total_volume_l), _acoustics.suggest_alignment(ts).fl_hz)
 
 
 @st.cache_data(show_spinner=False)
@@ -6761,7 +6761,7 @@ def _batch_rank_presets(
     f_max_hz: float,
     points: int,
     candidate_limit: int,
-    goals: _dccav.OptimizationGoals | None = None,
+    goals: _acoustics.OptimizationGoals | None = None,
     driver_configuration: str = "Single driver",
     ranking_version: int = _FINDER_RANKING_VERSION,
 ) -> list[dict]:
@@ -6769,21 +6769,21 @@ def _batch_rank_presets(
         raise ValueError("Unsupported Finder ranking revision")
     rows: list[dict] = []
     for name in preset_names[:int(candidate_limit)]:
-        row = _dccav.rank_preset_row(
+        row = _acoustics.rank_preset_row(
             name, load_type, float(max_volume_l), float(voltage_v),
             float(f_min_hz), float(f_max_hz), int(points), goals,
             driver_configuration,
         )
         if row is not None:
             rows.append(row)
-    return _dccav.sort_ranked_rows(rows)
+    return _acoustics.sort_ranked_rows(rows)
 
 
 def _finder_pool_fingerprint(workers: int) -> tuple:
     """Identity of the code+data the Finder workers hold in memory."""
     paths = [
         Path(module.__file__)
-        for module in (_engine, _presets, _pricing, _ranking, _dccav)
+        for module in (_engine, _presets, _pricing, _ranking, _acoustics)
     ]
     paths.extend([
         _presets.MANUFACTURER_DATABASE_PATH,
@@ -6862,7 +6862,7 @@ def _batch_rank_presets_parallel(
     f_max_hz: float,
     points: int,
     candidate_limit: int,
-    goals: _dccav.OptimizationGoals | None,
+    goals: _acoustics.OptimizationGoals | None,
     progress_widget: object | None = None,
     progress_text_widget: object | None = None,
     completed_offset: int = 0,
@@ -6889,7 +6889,7 @@ def _batch_rank_presets_parallel(
         # first result (and the progress bar) stalls until a whole chunk of
         # hundreds of simulations completes, which reads as a hung start.
         results = pool.map(
-            _dccav.rank_preset_row,
+            _acoustics.rank_preset_row,
             names,
             [load_type] * len(names),
             [float(max_volume_l)] * len(names),
@@ -6932,7 +6932,7 @@ def _batch_rank_presets_parallel(
             progress.empty()
             if progress_text_widget is not None:
                 progress_text_widget.empty()
-    return _dccav.sort_ranked_rows(rows)
+    return _acoustics.sort_ranked_rows(rows)
 
 
 def _batch_rank_presets_with_progress(
@@ -6944,7 +6944,7 @@ def _batch_rank_presets_with_progress(
     f_max_hz: float,
     points: int,
     candidate_limit: int,
-    goals: _dccav.OptimizationGoals | None,
+    goals: _acoustics.OptimizationGoals | None,
     progress: object,
     progress_text: object | None,
     completed_offset: int,
@@ -6956,7 +6956,7 @@ def _batch_rank_presets_with_progress(
     overall_total = max(int(progress_total), 1)
     rows: list[dict] = []
     for done, name in enumerate(names, start=1):
-        row = _dccav.rank_preset_row(
+        row = _acoustics.rank_preset_row(
             name, load_type, float(max_volume_l), float(voltage_v),
             float(f_min_hz), float(f_max_hz), int(points), goals,
             driver_configuration,
@@ -6968,7 +6968,7 @@ def _batch_rank_presets_with_progress(
             progress.progress(min(current / overall_total, 1.0))
             if progress_text is not None:
                 progress_text.caption(f"Matching {current}/{overall_total} simulations · {load_type}")
-    return _dccav.sort_ranked_rows(rows)
+    return _acoustics.sort_ranked_rows(rows)
 
 
 def _apply_batch_result(row: dict, load_type: str) -> None:
@@ -6978,11 +6978,11 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
     if legacy_pr:
         load_type = "Bass reflex"
     name = str(row["Driver"])
-    driver = _dccav.get_driver_preset(name)
+    driver = _acoustics.get_driver_preset(name)
     driver_configuration = str(
         row.get("Driver configuration", "Single driver")
     )
-    configured_driver = _dccav.apply_driver_configuration(
+    configured_driver = _acoustics.apply_driver_configuration(
         driver,
         driver_configuration,
     )
@@ -6998,7 +6998,7 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
             "Resonator", _RESONATOR_PR if legacy_pr else _RESONATOR_PORT))
         st.session_state["reflex_resonator_type"] = resonator
         if resonator == _RESONATOR_PR:
-            pr = _dccav.suggest_pr_alignment(configured_driver)
+            pr = _acoustics.suggest_pr_alignment(configured_driver)
             st.session_state["pr_sp_cm2"] = float(pr.pr_sp_cm2)
             st.session_state["pr_fp_hz"] = float(pr.pr_fp_hz)
             st.session_state["pr_qmp"] = float(pr.pr_qmp)
@@ -7056,13 +7056,13 @@ def _finder_result_snapshot(
     configuration = str(
         row.get("Driver configuration", "Single driver")
     )
-    driver = _dccav.apply_driver_configuration(
-        _dccav.get_driver_preset(name),
+    driver = _acoustics.apply_driver_configuration(
+        _acoustics.get_driver_preset(name),
         configuration,
     )
     if load_type == "Bass reflex" and resonator == _RESONATOR_PR:
-        suggested = _dccav.suggest_pr_alignment(driver)
-        box = _dccav.PassiveRadiatorBox(
+        suggested = _acoustics.suggest_pr_alignment(driver)
+        box = _acoustics.PassiveRadiatorBox(
             vb_l=float(row["Vb L"]),
             pr_sp_cm2=float(suggested.pr_sp_cm2),
             pr_fp_hz=float(suggested.pr_fp_hz),
@@ -7070,55 +7070,55 @@ def _finder_result_snapshot(
             pr_mmp_g=float(suggested.pr_mmp_g),
             pr_xmax_mm=float(suggested.pr_xmax_mm),
         )
-        result = _dccav.simulate_passive_radiator(
+        result = _acoustics.simulate_passive_radiator(
             driver, box, frequency_hz, voltage_v
         )
     elif load_type == "Bass reflex":
-        box = _dccav.ReflexBox(
+        box = _acoustics.ReflexBox(
             vb_l=float(row["Vb L"]),
             fb_hz=float(row["Fb Hz"]),
         )
-        result = _dccav.simulate_reflex(
+        result = _acoustics.simulate_reflex(
             driver, box, frequency_hz, voltage_v
         )
     elif load_type == "Bandpass 4th order":
-        box = _dccav.Bandpass4Box(
+        box = _acoustics.Bandpass4Box(
             vs_l=float(row["Vs L"]),
             vp_l=float(row["Vp L"]),
             fp_hz=float(row["Fp Hz"]),
         )
-        result = _dccav.simulate_bandpass4(
+        result = _acoustics.simulate_bandpass4(
             driver, box, frequency_hz, voltage_v
         )
     elif load_type == "Bandpass 6th order":
-        box = _dccav.Bandpass6Box(
+        box = _acoustics.Bandpass6Box(
             vr_l=float(row["Vr L"]),
             fr_hz=float(row["Fr Hz"]),
             vp_l=float(row["Vp L"]),
             fp_hz=float(row["Fp Hz"]),
         )
-        result = _dccav.simulate_bandpass6(
+        result = _acoustics.simulate_bandpass6(
             driver, box, frequency_hz, voltage_v
         )
     elif load_type == "Sealed":
-        box = _dccav.SealedBox(vb_l=float(row["Vb L"]))
-        result = _dccav.simulate_sealed(
+        box = _acoustics.SealedBox(vb_l=float(row["Vb L"]))
+        result = _acoustics.simulate_sealed(
             driver, box, frequency_hz, voltage_v
         )
     elif load_type == "Infinite baffle":
         box = None
-        result = _dccav.simulate_infinite_baffle(
+        result = _acoustics.simulate_infinite_baffle(
             driver, frequency_hz, voltage_v
         )
     else:
         load_type = "DCCAV"
-        box = _dccav.DccavBox(
+        box = _acoustics.DccavBox(
             vh_l=float(row["Vh L"]),
             fh_hz=float(row["fh Hz"]),
             vl_l=float(row["Vl L"]),
             fl_hz=float(row["fl Hz"]),
         )
-        result = _dccav.simulate(driver, box, frequency_hz, voltage_v)
+        result = _acoustics.simulate(driver, box, frequency_hz, voltage_v)
     return _pinned_response_snapshot(
         load_type,
         box,
@@ -7398,7 +7398,7 @@ def _sync_active_design_comparison_tab() -> None:
 def _apply_library_driver(name: str) -> None:
     """Load one library preset into the current simulation workspace."""
     _end_design_comparison()
-    driver = _dccav.get_driver_preset(name)
+    driver = _acoustics.get_driver_preset(name)
     st.session_state["driver_preset_name"] = name
     st.session_state["driver_config"] = "Single driver"
     _apply_driver_preset(driver)
@@ -7425,7 +7425,7 @@ def _apply_pending_atlas_point() -> None:
             template = _sealed_box_from_state()
         else:
             template = _box_from_state()
-        box = _dccav.design_space_box(
+        box = _acoustics.design_space_box(
             driver, load_type, float(pending["x"]), float(pending["y"]), template)
     except Exception:
         logger.exception("Could not apply the atlas point")
@@ -7465,37 +7465,37 @@ def _atlas_loss_signature(load_type: str, box) -> tuple:
 
 @st.cache_data(show_spinner="Mapping the design space...")
 def _design_space_cached(
-    ts: _dccav.DriverTS, load_type: str, losses: tuple, voltage_v: float,
-) -> _dccav.DesignSpaceMap:
+    ts: _acoustics.DriverTS, load_type: str, losses: tuple, voltage_v: float,
+) -> _acoustics.DesignSpaceMap:
     # The map only reads loss factors from the template; geometry is swept.
     if load_type == "Bass reflex":
-        template = _dccav.ReflexBox(
+        template = _acoustics.ReflexBox(
             vb_l=ts.vas_l, fb_hz=ts.fs_hz,
             q_abs=losses[0], q_leak=losses[1], q_port=losses[2])
     elif load_type == "Sealed":
-        template = _dccav.SealedBox(vb_l=ts.vas_l, q_abs=losses[0], q_leak=losses[1])
+        template = _acoustics.SealedBox(vb_l=ts.vas_l, q_abs=losses[0], q_leak=losses[1])
     elif load_type == "Bandpass 4th order":
-        template = _dccav.Bandpass4Box(
+        template = _acoustics.Bandpass4Box(
             vs_l=1.0, vp_l=1.0, fp_hz=80.0,
             q_abs_s=losses[0], q_abs_p=losses[1],
             q_leak_s=losses[2], q_leak_p=losses[3], q_port=losses[4])
     elif load_type == "Bandpass 6th order":
-        template = _dccav.Bandpass6Box(
+        template = _acoustics.Bandpass6Box(
             vr_l=1.0, fr_hz=60.0, vp_l=1.0, fp_hz=80.0,
             q_abs_r=losses[0], q_abs_p=losses[1],
             q_leak_r=losses[2], q_leak_p=losses[3],
             q_port_r=losses[4], q_port_p=losses[5])
     else:
-        template = _dccav.DccavBox(
+        template = _acoustics.DccavBox(
             vh_l=1.0, fh_hz=100.0, vl_l=1.0, fl_hz=50.0,
             q_abs_h=losses[0], q_abs_l=losses[1],
             q_leak_h=losses[2], q_leak_l=losses[3],
             q_port_h=losses[4], q_port_l=losses[5])
-    return _dccav.design_space_map(
+    return _acoustics.design_space_map(
         ts, load_type=load_type, box_template=template, voltage_v=voltage_v)
 
 
-def _atlas_frame(space: _dccav.DesignSpaceMap) -> pd.DataFrame:
+def _atlas_frame(space: _acoustics.DesignSpaceMap) -> pd.DataFrame:
     rows = []
     for iy, y in enumerate(space.y_values):
         for ix, x in enumerate(space.x_values):
@@ -7564,7 +7564,7 @@ def _render_atlas_tab(current_ts, load_type: str, box, sim_voltage: float) -> No
             tooltip=tooltips,
         ).add_params(picker).properties(height=420)
     event = st.altair_chart(
-        chart, use_container_width=True, key="atlas_chart", on_select="rerun")
+        chart, width="stretch", key="atlas_chart", on_select="rerun")
     st.caption(
         f"{len(space.x_values)}×{len(space.y_values)} grid around the empirical "
         f"starter, evaluated at {sim_voltage:.2f} V with 0 Ω series resistance "
@@ -7592,7 +7592,7 @@ def _render_atlas_tab(current_ts, load_type: str, box, sim_voltage: float) -> No
     st.button(
         "Apply selected box",
         type="primary",
-        use_container_width=True,
+        width="stretch",
         on_click=_queue_atlas_point,
         args=(load_type, x_sel, y_sel),
     )
@@ -7614,7 +7614,7 @@ def _value_sorted_frame(df: pd.DataFrame, currency: str) -> pd.DataFrame:
     """Sort by F3 × price in one currency; rows without it keep F3 order below."""
     scored = df.copy()
     scored["Value"] = [
-        _dccav.price_extension_score(
+        _acoustics.price_extension_score(
             f3, price if str(cur) == currency else float("nan"))
         for f3, price, cur in zip(
             scored["F3 Hz"], scored["Price"], scored["Currency"], strict=True)
@@ -7644,8 +7644,8 @@ def _normalize_price_frame(df: pd.DataFrame, target_currency: str) -> pd.DataFra
     return normalized
 
 
-def _finder_optimizer_goals_from_state() -> _dccav.OptimizationGoals:
-    return _dccav.OptimizationGoals(
+def _finder_optimizer_goals_from_state() -> _acoustics.OptimizationGoals:
+    return _acoustics.OptimizationGoals(
         objective=_OPT_OBJECTIVE_LABELS[
             st.session_state.get("finder_objective", "Balanced")
         ],
@@ -7787,7 +7787,7 @@ def _filter_finder_performance_rows(
 
 
 def _finder_candidate_precheck(
-    ts: _dccav.DriverTS,
+    ts: _acoustics.DriverTS,
     load_type: str,
     voltage_v: float,
     min_spl_db: float,
@@ -7798,7 +7798,7 @@ def _finder_candidate_precheck(
         return "missing Xmax"
     if min_spl_db <= 0.0:
         return None
-    reference = _dccav.driver_reference_metrics(ts)
+    reference = _acoustics.driver_reference_metrics(ts)
     drive_spl_db = reference.spl_2v83_db + 20.0 * np.log10(
         float(voltage_v) / 2.83
     )
@@ -7816,8 +7816,8 @@ def _finder_candidate_precheck(
 def _finder_driver_identity(name: str) -> tuple[str, str, str]:
     """Return one physical brand/model/impedance identity across catalogs."""
     try:
-        info = _dccav.driver_preset_info(name)
-        ts = _dccav.get_driver_preset(name)
+        info = _acoustics.driver_preset_info(name)
+        ts = _acoustics.get_driver_preset(name)
         return _presets._external_catalog_identity(
             info.brand or "Other",
             info.part_number or info.model or name,
@@ -7832,8 +7832,8 @@ def _finder_driver_identity(name: str) -> tuple[str, str, str]:
 def _finder_preset_preference(name: str) -> tuple[int, int, float, str]:
     """Prefer Load Forge provenance, then an available lower price."""
     try:
-        info = _dccav.driver_preset_info(name)
-        category = _dccav.driver_preset_provenance_category(name)
+        info = _acoustics.driver_preset_info(name)
+        category = _acoustics.driver_preset_provenance_category(name)
         price = float(info.price) if info.price is not None else float("inf")
     except Exception:
         category = "Other"
@@ -7906,8 +7906,8 @@ def _prefilter_finder_candidate_pools(
     eligible_drivers: set[str] = set()
     for name in preset_names:
         try:
-            ts = _dccav.apply_driver_configuration(
-                _dccav.get_driver_preset(name),
+            ts = _acoustics.apply_driver_configuration(
+                _acoustics.get_driver_preset(name),
                 driver_configuration,
             )
         except Exception:
@@ -7989,7 +7989,7 @@ def _render_find_driver_target_sidebar() -> None:
     finder_load_types, only_infinite_baffle = _finder_load_context()
     _finder_selectbox(
         "Driver configuration",
-        list(_dccav.DRIVER_CONFIGURATIONS),
+        list(_acoustics.DRIVER_CONFIGURATIONS),
         key="finder_driver_configuration",
         help="Rank every candidate as one driver; a 2–8-driver series, "
              "parallel or mixed array; or an isobaric array up to 16 total drivers.",
@@ -8164,7 +8164,7 @@ def _run_find_driver_search(
             row["Currency"] = display_currency
         filtered_rows.append(row)
     all_rows = filtered_rows
-    all_rows = _dccav.sort_ranked_rows(all_rows)
+    all_rows = _acoustics.sort_ranked_rows(all_rows)
     all_rows, collapsed_result_rows = _deduplicate_finder_result_rows(
         all_rows
     )
@@ -8485,7 +8485,7 @@ def _refresh_finder_result_catalog_metadata(rows: object) -> list[dict]:
         row = dict(saved)
         if _table_value_missing(row.get("Size in")):
             try:
-                size_in = _dccav.driver_preset_info(
+                size_in = _acoustics.driver_preset_info(
                     str(row.get("Driver", ""))
                 ).size_in
             except ValueError:
@@ -8508,9 +8508,9 @@ def _driver_library_frame(
     rows = []
     for name in preset_names:
         try:
-            info = _dccav.driver_preset_info(name)
-            ts_p = _dccav.get_driver_preset(name)
-            ref = _dccav.driver_reference_metrics(ts_p)
+            info = _acoustics.driver_preset_info(name)
+            ts_p = _acoustics.get_driver_preset(name)
+            ref = _acoustics.driver_reference_metrics(ts_p)
             price = (
                 _pricing.convert_price(
                     info.price, info.currency, target_currency, rates
@@ -8873,7 +8873,7 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         st.caption(f"Library prices shown in {price_currency}{rate_note}.")
     table_state = st.dataframe(
         library_df,
-        use_container_width=True,
+        width="stretch",
         height=720,
         hide_index=True,
         key="finder_driver_library_table",
@@ -8919,7 +8919,7 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
     st.button(
         f"Open {_driver_preset_display_label(selected_name)} in Box Design",
         type="primary",
-        use_container_width=True,
+        width="stretch",
         key="finder_use_library_driver",
         on_click=_apply_library_driver,
         args=(selected_name,),
@@ -9264,7 +9264,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     columns = list(display_df.columns)
     table_state = st.dataframe(
         display_df,
-        use_container_width=True,
+        width="stretch",
         height=420,
         hide_index=True,
         key=f"batch_results_table_{'value' if 'Value' in columns else 'f3'}",
@@ -9296,7 +9296,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             ),
             "Buy": st.column_config.LinkColumn(display_text="Buy"),
             "Response": st.column_config.LineChartColumn(
-                "Response (rel dB)", y_min=_dccav.SPARKLINE_FLOOR_DB, y_max=0.0,
+                "Response (rel dB)", y_min=_acoustics.SPARKLINE_FLOOR_DB, y_max=0.0,
             ),
         },
     )
@@ -9308,7 +9308,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         batch_df[csv_columns].to_csv(index=False).encode("utf-8"),
         "load_forge_candidates.csv",
         "text/csv",
-        use_container_width=True,
+        width="stretch",
     )
 
     selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
@@ -9407,15 +9407,15 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
 
 @st.cache_data(show_spinner="Simulating T/S tolerance band...")
 def _tolerance_band_cached(
-    ts: _dccav.DriverTS,
+    ts: _acoustics.DriverTS,
     load_type: str,
     box,
     freq: np.ndarray,
     voltage_v: float,
     series_r_ohm: float,
     tolerance: float,
-) -> _dccav.ToleranceBand:
-    return _dccav.monte_carlo_response_band(
+) -> _acoustics.ToleranceBand:
+    return _acoustics.monte_carlo_response_band(
         ts, load_type=load_type, box=box, freq_hz=freq,
         voltage_v=voltage_v, series_r_ohm=series_r_ohm, tolerance=tolerance,
     )
@@ -9424,7 +9424,7 @@ def _tolerance_band_cached(
 def _simulation_engine_revision() -> tuple[float | None, ...]:
     """Invalidate design results automatically when the solver source changes."""
     revisions = []
-    for module in (_engine, _dccav):
+    for module in (_engine, _acoustics):
         try:
             revisions.append(Path(module.__file__).stat().st_mtime)
         except OSError:
@@ -9435,7 +9435,7 @@ def _simulation_engine_revision() -> tuple[float | None, ...]:
 @st.cache_data(show_spinner=False, max_entries=128)
 def _simulate_design_cached(
     engine_revision: tuple[float | None, ...],
-    ts: _dccav.DriverTS,
+    ts: _acoustics.DriverTS,
     load_type: str,
     box,
     f_min_hz: float,
@@ -9444,7 +9444,7 @@ def _simulate_design_cached(
     voltage_v: float,
     series_r_ohm: float,
 ) -> tuple[
-    _dccav.SimulationResult,
+    _acoustics.SimulationResult,
     dict[str, float],
     dict[int, float],
     list[float],
@@ -9453,53 +9453,53 @@ def _simulate_design_cached(
     del engine_revision  # It is part of the cache key only.
     freq = np.geomspace(float(f_min_hz), float(f_max_hz), int(points))
     if load_type == "Bass reflex" and isinstance(
-        box, _dccav.PassiveRadiatorBox
+        box, _acoustics.PassiveRadiatorBox
     ):
-        result = _dccav.simulate_passive_radiator(
+        result = _acoustics.simulate_passive_radiator(
             ts, box, freq, voltage_v, series_r_ohm
         )
     elif load_type == "Bass reflex":
-        result = _dccav.simulate_reflex(
+        result = _acoustics.simulate_reflex(
             ts, box, freq, voltage_v, series_r_ohm
         )
     elif load_type == "Bandpass 4th order":
-        result = _dccav.simulate_bandpass4(
+        result = _acoustics.simulate_bandpass4(
             ts, box, freq, voltage_v, series_r_ohm
         )
     elif load_type == "Bandpass 6th order":
-        result = _dccav.simulate_bandpass6(
+        result = _acoustics.simulate_bandpass6(
             ts, box, freq, voltage_v, series_r_ohm
         )
     elif load_type == "Sealed":
-        result = _dccav.simulate_sealed(
+        result = _acoustics.simulate_sealed(
             ts, box, freq, voltage_v, series_r_ohm
         )
     elif load_type == "Infinite baffle":
-        result = _dccav.simulate_infinite_baffle(
+        result = _acoustics.simulate_infinite_baffle(
             ts, freq, voltage_v, series_r_ohm
         )
     elif load_type == "Distributed waveguide":
-        if isinstance(box, _dccav.MltlBox):
-            result = _dccav.simulate_mltl(ts, box, freq, voltage_v, series_r_ohm)
-        elif isinstance(box, _dccav.HornBox):
-            result = _dccav.simulate_back_loaded_horn(ts, box, freq, voltage_v, series_r_ohm)
-        elif isinstance(box, _dccav.TappedHornBox):
-            result = _dccav.simulate_tapped_horn(ts, box, freq, voltage_v, series_r_ohm)
+        if isinstance(box, _acoustics.MltlBox):
+            result = _acoustics.simulate_mltl(ts, box, freq, voltage_v, series_r_ohm)
+        elif isinstance(box, _acoustics.HornBox):
+            result = _acoustics.simulate_back_loaded_horn(ts, box, freq, voltage_v, series_r_ohm)
+        elif isinstance(box, _acoustics.TappedHornBox):
+            result = _acoustics.simulate_tapped_horn(ts, box, freq, voltage_v, series_r_ohm)
         else:
-            result = _dccav.simulate_transmission_line(ts, box, freq, voltage_v, series_r_ohm)
+            result = _acoustics.simulate_transmission_line(ts, box, freq, voltage_v, series_r_ohm)
     else:
-        result = _dccav.simulate(ts, box, freq, voltage_v, series_r_ohm)
+        result = _acoustics.simulate(ts, box, freq, voltage_v, series_r_ohm)
     return (
         result,
-        _dccav.response_metrics(result),
-        _dccav.response_threshold_frequencies(result),
-        _dccav.impedance_peak_frequencies(result),
+        _acoustics.response_metrics(result),
+        _acoustics.response_threshold_frequencies(result),
+        _acoustics.impedance_peak_frequencies(result),
     )
 
 
 def _design_simulation_signature(
     engine_revision: tuple[float | None, ...],
-    ts: _dccav.DriverTS,
+    ts: _acoustics.DriverTS,
     load_type: str,
     box,
     f_min_hz: float,
@@ -9518,10 +9518,10 @@ def _design_simulation_signature(
 
 @st.fragment
 def _render_response_tab(
-    current_ts: _dccav.DriverTS,
+    current_ts: _acoustics.DriverTS,
     load_type: str,
     box,
-    result: _dccav.SimulationResult,
+    result: _acoustics.SimulationResult,
     thresholds: dict[int, float],
     freq: np.ndarray,
     sim_voltage: float,
@@ -9594,6 +9594,8 @@ def _render_response_tab(
         selected_traces = [t for t in saved_traces if t in available_traces]
         if not selected_traces and available_traces:
             selected_traces = [available_traces[0]]
+        if saved_traces != selected_traces:
+            st.session_state["plot_response_traces"] = selected_traces
 
         st.altair_chart(
             _plot_response(
@@ -9632,7 +9634,6 @@ def _render_response_tab(
             "Traces",
             available_traces if (compare_series or _response_series(result)) else ["Total"],
             selection_mode="multi",
-            default=selected_traces if (compare_series or _response_series(result)) else ["Total"],
             key="plot_response_traces",
             label_visibility="collapsed",
         )
@@ -9652,7 +9653,7 @@ def _render_response_tab(
     with ctrl_cols[4]:
         if st.button(
             "Pin response",
-            use_container_width=True,
+            width="stretch",
             disabled=(
                 len(pinned_state) >= _MAX_PINNED_RESPONSES
                 or comparison_mode
@@ -9671,14 +9672,14 @@ def _render_response_tab(
 
     if pinned_state and not comparison_mode:
         with ctrl_cols[5]:
-            if st.button("Clear all pins", use_container_width=True):
+            if st.button("Clear all pins", width="stretch"):
                 _clear_pinned_responses()
                 st.rerun()
         with ctrl_cols[6]:
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
-                use_container_width=True,
+                width="stretch",
                 disabled=tuple(st.session_state.get("plot_response_window_hz", full_window)) == full_window,
                 on_click=_reset_response_zoom,
                 args=(full_window,),
@@ -9687,14 +9688,14 @@ def _render_response_tab(
         with ctrl_cols[5]:
             st.button(
                 "Tabs active",
-                use_container_width=True,
+                width="stretch",
                 disabled=True,
             )
         with ctrl_cols[6]:
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
-                use_container_width=True,
+                width="stretch",
                 disabled=tuple(st.session_state.get("plot_response_window_hz", full_window)) == full_window,
                 on_click=_reset_response_zoom,
                 args=(full_window,),
@@ -9704,7 +9705,7 @@ def _render_response_tab(
             st.button(
                 "Reset zoom",
                 key="plot_response_reset_zoom",
-                use_container_width=True,
+                width="stretch",
                 disabled=tuple(st.session_state.get("plot_response_window_hz", full_window)) == full_window,
                 on_click=_reset_response_zoom,
                 args=(full_window,),
@@ -9813,7 +9814,7 @@ def _render_response_tab(
                             if is_visible
                             else f"Show pinned simulation {index + 1} on every chart"
                         ),
-                        use_container_width=True,
+                        width="stretch",
                     ):
                         _set_pinned_response_visible(index, not is_visible)
                         st.rerun()
@@ -9822,14 +9823,14 @@ def _render_response_tab(
                         "Clear",
                         key=f"remove_pinned_response_{index}",
                         help=f"Clear pinned simulation {index + 1}",
-                        use_container_width=True,
+                        width="stretch",
                     ):
                         _remove_pinned_response(index)
                         st.rerun()
 
 
 def _render_ports_tab(
-    result: _dccav.SimulationResult,
+    result: _acoustics.SimulationResult,
     port_geometry_rows: list[dict],
     load_type: str,
     passive_radiator: bool = False,
@@ -9854,7 +9855,7 @@ def _render_ports_tab(
         else "Port Volume Velocity"
     )
     if _port_series(result):
-        st.altair_chart(_plot_ports(result), use_container_width=True, key=f"ports_chart_{chart_sig}")
+        st.altair_chart(_plot_ports(result), width="stretch", key=f"ports_chart_{chart_sig}")
     else:
         st.caption("Port pens off.")
 
@@ -9923,11 +9924,11 @@ def _render_ports_tab(
             st.subheader("Port Geometry")
             st.caption(
                 f"Circular ducts at {float(st.session_state['sim_voltage']):.2f} V; "
-                f"air-speed guideline {_dccav.PORT_VELOCITY_GUIDELINE_MS:.0f} m/s (5% of c)."
+                f"air-speed guideline {_acoustics.PORT_VELOCITY_GUIDELINE_MS:.0f} m/s (5% of c)."
             )
         st.dataframe(
             pd.DataFrame(port_geometry_rows)[list(_PORT_GEOMETRY_COLUMNS)],
-            use_container_width=True,
+            width="stretch",
             hide_index=True,
             column_config={
                 "Diameter cm": st.column_config.NumberColumn(format="%.1f"),
@@ -9938,7 +9939,7 @@ def _render_ports_tab(
         )
 
 
-def _csv_bytes(result: _dccav.SimulationResult) -> bytes:
+def _csv_bytes(result: _acoustics.SimulationResult) -> bytes:
     buf = io.StringIO()
     writer = csv.writer(buf)
     writer.writerow([
@@ -9963,7 +9964,7 @@ def _csv_bytes(result: _dccav.SimulationResult) -> bytes:
         result.impedance_ohm,
         result.mil_w,
         result.mol_db,
-        _dccav.group_delay_ms(result),
+        _acoustics.group_delay_ms(result),
         result.port_h_velocity,
         result.port_l_velocity,
         strict=True,
@@ -9979,7 +9980,7 @@ _default("driver_qms", 2.372)
 _default("driver_re_ohm", 6.89)
 _default("driver_sd_mode", "Diameter")
 _default("driver_diameter_mm", 104.0)
-_default("driver_sd_cm2", _dccav.sd_from_diameter(104.0))
+_default("driver_sd_cm2", _acoustics.sd_from_diameter(104.0))
 _default("driver_le_mh", 0.421)
 _default("driver_le10k_mh", 0.0)
 _default("driver_xmax_mm", 3.1)
@@ -10191,7 +10192,7 @@ derived = None
 with st.sidebar:
     if _BRAND_IMAGE.exists():
         with st.container(key="brand_logo"):
-            st.image(str(_BRAND_IMAGE), use_container_width=True)
+            st.image(str(_BRAND_IMAGE), width="stretch")
         st.markdown(
             f"<div style='text-align: right; color: rgba(255,255,255,0.4); font-size: 0.75rem; margin-top: -0.5rem; margin-bottom: 1rem;'>v{_VERSION}</div>", 
             unsafe_allow_html=True
@@ -10226,7 +10227,7 @@ with st.sidebar:
         # Bass Match needs the server-side preset names on its first render:
         # they drive the pre-qualified count and the Run button even while
         # the Candidate pool table and Library filters remain collapsed.
-        all_preset_names = _dccav.driver_preset_names()
+        all_preset_names = _acoustics.driver_preset_names()
         if bm_tab3.open:
             with bm_tab3:
                 _render_finder_library_filters(all_preset_names)
@@ -10276,7 +10277,7 @@ with st.sidebar:
     else:
         bd_tab1, bd_tab2, bd_tab3 = st.tabs(["Driver", "Load Selection", "Enclosure Parameters"])
         
-        all_preset_names = _dccav.driver_preset_names()
+        all_preset_names = _acoustics.driver_preset_names()
         with bd_tab1:
             st.text_input(
                 "Search preset",
@@ -10324,9 +10325,9 @@ with st.sidebar:
             )
             if preset_name != "Custom":
                 try:
-                    preset_info = _dccav.driver_preset_info(preset_name)
+                    preset_info = _acoustics.driver_preset_info(preset_name)
                     purchase = _purchase_markdown(preset_info)
-                    preset_driver = _dccav.get_driver_preset(preset_name)
+                    preset_driver = _acoustics.get_driver_preset(preset_name)
                 except ValueError:
                     purchase = None
                     preset_info = None
@@ -10430,7 +10431,7 @@ with st.sidebar:
                                     key="driver_sd_cm2", on_change=_on_driver_param_change)
 
             if st.session_state.get("driver_sd_mode", "Diameter") == "Diameter":
-                st.caption(f"Sd = {_dccav.sd_from_diameter(st.session_state.get('driver_diameter_mm', 100)):.1f} cm²")
+                st.caption(f"Sd = {_acoustics.sd_from_diameter(st.session_state.get('driver_diameter_mm', 100)):.1f} cm²")
 
             c_col1, c_col2 = st.columns([1.2, 1.8], vertical_alignment="center")
             with c_col1:
@@ -10455,7 +10456,7 @@ with st.sidebar:
             
             if st.session_state.get("driver_panel_air_load", True):
                 try:
-                    _panel_mass_g, _panel_fs_hz = _dccav.panel_air_load_metrics(_driver_from_state())
+                    _panel_mass_g, _panel_fs_hz = _acoustics.panel_air_load_metrics(_driver_from_state())
                     st.caption(f"Mounted Fs {_panel_fs_hz:.2f} Hz · added air mass {_panel_mass_g:.3f} g")
                 except (KeyError, ValueError):
                     pass
@@ -10470,7 +10471,7 @@ with st.sidebar:
 
             derived = None
             try:
-                derived = _dccav.complete_driver(_driver_from_state())
+                derived = _acoustics.complete_driver(_driver_from_state())
             except Exception:
                 pass
 
@@ -10505,7 +10506,7 @@ with st.sidebar:
             _render_load_type_buttons(_load_set, single_select=True)
             st.selectbox(
                 "Driver configuration",
-                list(_dccav.DRIVER_CONFIGURATIONS),
+                list(_acoustics.DRIVER_CONFIGURATIONS),
                 key="driver_config",
                 on_change=_auto_align_current_driver,
                 help="Identical drivers sharing one enclosure: series, parallel "
@@ -10558,17 +10559,17 @@ with st.sidebar:
                 current_ts = _driver_from_state()
                 active_load_type = str(st.session_state.get("load_type", "Sealed"))
                 if active_load_type == "DCCAV":
-                    current_alignment = _dccav.suggest_alignment(current_ts)
+                    current_alignment = _acoustics.suggest_alignment(current_ts)
                 elif active_load_type == "Bass reflex":
-                    current_reflex_alignment = _dccav.suggest_reflex_alignment(current_ts)
+                    current_reflex_alignment = _acoustics.suggest_reflex_alignment(current_ts)
                 elif active_load_type == "Bandpass 4th order":
-                    current_bandpass4_alignment = _dccav.suggest_bandpass4_alignment(current_ts)
+                    current_bandpass4_alignment = _acoustics.suggest_bandpass4_alignment(current_ts)
                 elif active_load_type == "Bandpass 6th order":
-                    current_bandpass6_alignment = _dccav.suggest_bandpass6_alignment(current_ts)
+                    current_bandpass6_alignment = _acoustics.suggest_bandpass6_alignment(current_ts)
                 elif active_load_type == "Sealed":
-                    current_sealed_alignment = _dccav.suggest_sealed_alignment(current_ts)
-                derived = _dccav.complete_driver(current_ts)
-                panel_added_mass_g, panel_fs_hz = _dccav.panel_air_load_metrics(current_ts)
+                    current_sealed_alignment = _acoustics.suggest_sealed_alignment(current_ts)
+                derived = _acoustics.complete_driver(current_ts)
+                panel_added_mass_g, panel_fs_hz = _acoustics.panel_air_load_metrics(current_ts)
                 load_type = st.session_state.get("load_type", "Sealed")
                 box_strategy = str(st.session_state.get("box_strategy", "Balanced"))
                 if (
@@ -10641,7 +10642,7 @@ with st.sidebar:
                             st.caption("Passive radiator resonator")
                             st.selectbox(
                                 "Passive radiator preset",
-                                ["Custom", *_dccav.passive_radiator_preset_names()],
+                                ["Custom", *_acoustics.passive_radiator_preset_names()],
                                 key="pr_preset_name",
                                 on_change=_on_pr_preset_change,
                                 help="Loads mechanical PR data; added mass remains editable.",
@@ -10667,7 +10668,7 @@ with st.sidebar:
                                 "PR Xmax (mm, 0 = unknown)", min_value=0.0, max_value=50.0,
                                 step=0.1, key="pr_xmax_mm")
                             active_pr = _pr_box_from_state()
-                            effective_fp = _dccav.passive_radiator_effective_fp_hz(active_pr)
+                            effective_fp = _acoustics.passive_radiator_effective_fp_hz(active_pr)
                             rho_c2 = 1.18 * 344.0 ** 2
                             cab = (active_pr.vb_l / 1000.0) / rho_c2
                             pr_sp_m2 = active_pr.pr_sp_cm2 / 10_000.0
@@ -10729,7 +10730,7 @@ with st.sidebar:
                         "Vb sealed (L)", "sealed_vb_l", min_value=0.05, max_value=100000.0, step=0.01,
                         disabled=box_edit_disabled)
                     if current_ts is not None:
-                        fc_hz, qtc = _dccav.sealed_system_metrics(current_ts, _sealed_box_from_state())
+                        fc_hz, qtc = _acoustics.sealed_system_metrics(current_ts, _sealed_box_from_state())
                         st.caption(f"Closed-box Fc {fc_hz:.1f} Hz · Qtc {qtc:.3f}")
                     with st.expander("Sealed loss factors"):
                         st.number_input(
@@ -10954,13 +10955,13 @@ try:
         sim_series_r,
     )
     model_warnings = [] if load_type != "DCCAV" else (
-        _dccav.alignment_diagnostics(current_ts, box)
-        + _dccav.response_sanity_warnings(current_ts, box, thresholds)
+        _acoustics.alignment_diagnostics(current_ts, box)
+        + _acoustics.response_sanity_warnings(current_ts, box, thresholds)
     )
     if is_bandpass4:
-        model_warnings.extend(_dccav.bandpass4_diagnostics(current_ts, box, result))
+        model_warnings.extend(_acoustics.bandpass4_diagnostics(current_ts, box, result))
     if is_bandpass6:
-        model_warnings.extend(_dccav.bandpass6_diagnostics(current_ts, box, result))
+        model_warnings.extend(_acoustics.bandpass6_diagnostics(current_ts, box, result))
     if is_waveguide and current_ts.xmax_mm > 0.0:
         max_excursion_mm = float(np.nanmax(np.abs(result.excursion_mm)))
         if max_excursion_mm > current_ts.xmax_mm:
@@ -10989,7 +10990,7 @@ try:
         pr_box = box
         pr_sp_cm2 = pr_box.pr_sp_cm2
         pr_xmax = pr_box.pr_xmax_mm
-        velocity = _dccav.port_air_velocity_ms(result, pr_sp_cm2, "lower")
+        velocity = _acoustics.port_air_velocity_ms(result, pr_sp_cm2, "lower")
         peak_idx = int(np.nanargmax(velocity))
         pr_exc_peak = float(np.nanmax(np.abs(result.port_l_velocity) / (2 * np.pi * result.frequency_hz * pr_sp_cm2 / 10_000.0))) * 1000.0
         port_geometry_rows.append({
@@ -10999,7 +11000,7 @@ try:
             "Peak m/s": float(velocity[peak_idx]),
             "Peak at Hz": float(result.frequency_hz[peak_idx]),
             "_volume_l": float(pr_box.vb_l),
-            "_fb_hz": float(_dccav.passive_radiator_effective_fp_hz(pr_box)),
+            "_fb_hz": float(_acoustics.passive_radiator_effective_fp_hz(pr_box)),
             "_end_correction": 0.0,
             "_is_pr": True,
         })
@@ -11034,24 +11035,24 @@ try:
     for row in port_geometry_rows:
         is_pr_row = row.get("_is_pr", False)
         if not is_pr_row and row["Length cm"] <= 0.0:
-            max_hz = _dccav.port_max_tuning_hz(
+            max_hz = _acoustics.port_max_tuning_hz(
                 row["_volume_l"], row["Diameter cm"], row["_end_correction"])
-            min_d_cm = _dccav.port_min_diameter_cm(
+            min_d_cm = _acoustics.port_min_diameter_cm(
                 row["_volume_l"], row["_fb_hz"], row["_end_correction"])
             model_warnings.append(
                 f"{row['Port']}: a {row['Diameter cm']:.1f} cm opening in {row['_volume_l']:.1f} L "
                 f"tunes at most to ~{max_hz:.0f} Hz even with zero duct length; reaching "
                 f"{row['_fb_hz']:.1f} Hz needs a diameter of at least {min_d_cm:.1f} cm."
             )
-        if row["Peak m/s"] > _dccav.PORT_VELOCITY_GUIDELINE_MS:
+        if row["Peak m/s"] > _acoustics.PORT_VELOCITY_GUIDELINE_MS:
             model_warnings.append(
                 f"{row['Port']} air speed peaks at {row['Peak m/s']:.1f} m/s near "
                 f"{row['Peak at Hz']:.0f} Hz at {float(st.session_state['sim_voltage']):.2f} V - above "
-                f"the ~{_dccav.PORT_VELOCITY_GUIDELINE_MS:.0f} m/s (5% of c) chuffing guideline; "
+                f"the ~{_acoustics.PORT_VELOCITY_GUIDELINE_MS:.0f} m/s (5% of c) chuffing guideline; "
                 "enlarge the port or reduce drive level."
             )
         if not is_pr_row:
-            golden_cm = _dccav.port_displacement_min_diameter_cm(
+            golden_cm = _acoustics.port_displacement_min_diameter_cm(
                 current_ts, row["_fb_hz"])
             if 0.0 < row["Diameter cm"] < golden_cm:
                 model_warnings.append(
@@ -11061,28 +11062,28 @@ try:
                     "regardless of the simulated drive level."
                 )
         if not is_pr_row and row["Length cm"] > 0.0:
-            duct_fraction = _dccav.port_volume_fraction(
+            duct_fraction = _acoustics.port_volume_fraction(
                 row["_volume_l"], row["_fb_hz"], row["Diameter cm"],
                 row["_end_correction"])
-            if duct_fraction > _dccav.PORT_MAX_VOLUME_FRACTION:
+            if duct_fraction > _acoustics.PORT_MAX_VOLUME_FRACTION:
                 duct_l = duct_fraction * row["_volume_l"]
                 model_warnings.append(
                     f"{row['Port']}: the {row['Diameter cm']:.1f} × {row['Length cm']:.1f} cm "
                     f"duct occupies {duct_l:.2f} L = {duct_fraction:.0%} of the "
                     f"{row['_volume_l']:.1f} L chamber (reflex directive ≤ "
-                    f"{_dccav.PORT_MAX_VOLUME_FRACTION:.0%}); the box is too small for "
+                    f"{_acoustics.PORT_MAX_VOLUME_FRACTION:.0%}); the box is too small for "
                     "this tuning and diameter - enlarge the chamber, raise the tuning "
                     "or reduce the port."
                 )
-            pipe_hz = _dccav.port_pipe_resonance_hz(row["Length cm"])
-            if pipe_hz < _dccav.PORT_PIPE_RESONANCE_GUARD * row["_fb_hz"]:
+            pipe_hz = _acoustics.port_pipe_resonance_hz(row["Length cm"])
+            if pipe_hz < _acoustics.PORT_PIPE_RESONANCE_GUARD * row["_fb_hz"]:
                 model_warnings.append(
                     f"{row['Port']}: the {row['Length cm']:.1f} cm duct has its first "
                     f"pipe resonance at ~{pipe_hz:.0f} Hz, inside the working band "
-                    f"(< {_dccav.PORT_PIPE_RESONANCE_GUARD:.0f}× the {row['_fb_hz']:.1f} Hz "
+                    f"(< {_acoustics.PORT_PIPE_RESONANCE_GUARD:.0f}× the {row['_fb_hz']:.1f} Hz "
                     "tuning); shorten the duct with a smaller diameter or higher tuning."
                 )
-            max_straight_cm = _dccav.port_max_straight_length_cm(row["_volume_l"])
+            max_straight_cm = _acoustics.port_max_straight_length_cm(row["_volume_l"])
             if row["Length cm"] > max_straight_cm:
                 model_warnings.append(
                     f"{row['Port']}: the {row['Length cm']:.1f} cm duct is longer than a "
@@ -11135,7 +11136,7 @@ try:
             xmax_mm = float(st.session_state.get("driver_xmax_mm", 0.0))
             st.altair_chart(
                 _plot_excursion(result, xmax_mm),
-                use_container_width=True,
+                width="stretch",
                 key=f"excursion_chart_{chart_sig}",
             )
             if xmax_mm > 0.0:
@@ -11147,7 +11148,7 @@ try:
             st.subheader("Electrical Impedance")
             st.altair_chart(
                 _plot_impedance(result),
-                use_container_width=True,
+                width="stretch",
                 key=f"impedance_chart_{chart_sig}",
             )
     elif "Ports" in design_tabs and design_tabs["Ports"].open:
@@ -11165,7 +11166,7 @@ try:
             )
             st.altair_chart(
                 _plot_group_delay(result, gd_limit_ms),
-                use_container_width=True,
+                width="stretch",
                 key=f"gd_chart_{chart_sig}",
             )
             if gd_limit_ms > 0.0:
@@ -11183,7 +11184,7 @@ try:
         if active_load_image is not None and active_load_image.exists():
             img_col, data_col = st.columns([0.65, 5], vertical_alignment="center")
             with img_col:
-                st.image(str(active_load_image), use_container_width=True)
+                st.image(str(active_load_image), width="stretch")
         else:
             data_col = st.container()
         
@@ -11214,10 +11215,10 @@ try:
             warning_deductions = len(model_warnings) * 12
             score_val -= warning_deductions
             for row in port_geometry_rows:
-                if row.get("Peak m/s", 0.0) > _dccav.PORT_VELOCITY_GUIDELINE_MS:
+                if row.get("Peak m/s", 0.0) > _acoustics.PORT_VELOCITY_GUIDELINE_MS:
                     score_val -= 15
                 if not row.get("_is_pr", False):
-                    golden_cm = _dccav.port_displacement_min_diameter_cm(current_ts, row["_fb_hz"])
+                    golden_cm = _acoustics.port_displacement_min_diameter_cm(current_ts, row["_fb_hz"])
                     if 0.0 < row["Diameter cm"] < golden_cm:
                         score_val -= 10
                     if row["Length cm"] <= 0.0:
@@ -11370,7 +11371,7 @@ try:
                 a1, a2, a3, a4 = st.columns(4)
                 a1.metric("Vb (active)", f"{box.vb_l:.2f} L")
                 a2.metric("Fb (active)", f"{box.fb_hz:.1f} Hz")
-                a3.metric("Eq sealed Fc", f"{_dccav.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
+                a3.metric("Eq sealed Fc", f"{_acoustics.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
                 if current_reflex_alignment is not None:
                     a4.metric("Starter Vb=Vas", f"{current_reflex_alignment.vb_l:.2f} L")
             elif is_pr:
@@ -11378,7 +11379,7 @@ try:
                 a1.metric("Vb (active)", f"{box.vb_l:.2f} L")
                 a2.metric(
                     "PR Fp",
-                    f"{_dccav.passive_radiator_effective_fp_hz(box):.1f} Hz",
+                    f"{_acoustics.passive_radiator_effective_fp_hz(box):.1f} Hz",
                 )
                 a3.metric("PR Sp", f"{box.pr_sp_cm2:.0f} cm²")
                 a4.metric("PR Qmp", f"{box.pr_qmp:.1f}")
@@ -11400,14 +11401,14 @@ try:
                 a3.metric("Vp front (active)", f"{box.vp_l:.2f} L")
                 a4.metric("Fp front (active)", f"{box.fp_hz:.1f} Hz")
                 a5.metric("Vtot (active)", f"{box.vr_l + box.vp_l:.2f} L")
-                a6.metric("Eq sealed Fc", f"{_dccav.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
+                a6.metric("Eq sealed Fc", f"{_acoustics.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
                 if current_bandpass6_alignment is not None:
                     a7.metric(
                         "Starter Vtot",
                         f"{current_bandpass6_alignment.vr_l + current_bandpass6_alignment.vp_l:.2f} L",
                     )
             elif is_sealed:
-                fc_hz, qtc = _dccav.sealed_system_metrics(current_ts, box)
+                fc_hz, qtc = _acoustics.sealed_system_metrics(current_ts, box)
                 a1, a2, a3, a4 = st.columns(4)
                 a1.metric("Vb sealed (active)", f"{box.vb_l:.2f} L")
                 a2.metric("Fc (active)", f"{fc_hz:.1f} Hz")
@@ -11418,7 +11419,7 @@ try:
                 a1, a2, a3 = st.columns(3)
                 a1.metric(
                     "Mounted Fs",
-                    f"{_dccav.panel_loaded_fs_hz(current_ts):.1f} Hz",
+                    f"{_acoustics.panel_loaded_fs_hz(current_ts):.1f} Hz",
                     help=f"Free-air Fs: {current_ts.fs_hz:.1f} Hz",
                 )
                 a2.metric("Infinite baffle Qts", f"{current_ts.qts:.3f}")
@@ -11437,7 +11438,7 @@ try:
                 a3.metric("Vl (active)", f"{box.vl_l:.2f} L")
                 a4.metric("fl (active)", f"{box.fl_hz:.1f} Hz")
                 a5.metric("Vtot (active)", f"{box.vh_l + box.vl_l:.2f} L")
-                a6.metric("Eq sealed Fc", f"{_dccav.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
+                a6.metric("Eq sealed Fc", f"{_acoustics.equivalent_sealed_fc_hz(current_ts, box):.1f} Hz")
                 if current_alignment is not None:
                     a7.metric("Article Vtot", f"{current_alignment.vh_l + current_alignment.vl_l:.2f} L")
 
@@ -11452,8 +11453,8 @@ try:
                 d4.metric("Cms", f"{derived.cms_m_per_n * 1000.0:.3f} mm/N")
                 d5.metric("Sd", f"{derived.sd_m2 * 10000.0:.1f} cm²")
 
-                ref = _dccav.driver_reference_metrics(current_ts)
-                bandwidth = _dccav.classify_driver_bandwidth(current_ts)
+                ref = _acoustics.driver_reference_metrics(current_ts)
+                bandwidth = _acoustics.classify_driver_bandwidth(current_ts)
                 e1, e2, e3, e4, e5, e6 = st.columns(6)
                 e1.metric("Eta0 ref", f"{ref.eta0 * 100.0:.2f} %")
                 e2.metric("SPL 1W/1m", f"{ref.spl_1w_db:.1f} dB")
@@ -11487,7 +11488,7 @@ try:
         with dl_frd:
             st.download_button(
                 "Download FRD (response)",
-                _dccav.export_frd_text(result),
+                _acoustics.export_frd_text(result),
                 "load_forge_response.frd",
                 "text/plain",
                 width="stretch",
@@ -11496,7 +11497,7 @@ try:
         with dl_zma:
             st.download_button(
                 "Download ZMA (impedance)",
-                _dccav.export_zma_text(result),
+                _acoustics.export_zma_text(result),
                 "load_forge_impedance.zma",
                 "text/plain",
                 width="stretch",

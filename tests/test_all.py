@@ -20,12 +20,16 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from src import dccav as _dccav
+from src import acoustics as _acoustics
 from src import presets as _presets
 
 PASS = 0
 FAIL = 0
 SKIP = 0
+
+# Keep ordinary AppTest runs on one shared timeout. Tests that intentionally
+# exercise heavier workflows can opt into a longer timeout at their call site.
+APP_TEST_TIMEOUT = 60
 
 
 # Multiprocessing workers (spawn/forkserver) re-import the parent's __main__
@@ -72,62 +76,82 @@ def test(label, fn):
 
 
 def _kef_b110_ts():
-    return _dccav.get_driver_preset("KEF B110B article example")
+    return _acoustics.get_driver_preset("KEF B110B article example")
 
 
 def _beyma_ts():
-    return _dccav.get_driver_preset("Beyma 12CMV2")
+    return _acoustics.get_driver_preset("Beyma 12CMV2")
 
 
 print("\n=== Acoustic-load core ===")
 
 
+def _check_release_metadata_is_synchronized():
+    version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+    assert version, "VERSION must not be empty"
+    assert f'version = "{version}"' in (ROOT / "pyproject.toml").read_text(
+        encoding="utf-8"
+    )
+    assert f"Current release: **{version}**" in (ROOT / "README.md").read_text(
+        encoding="utf-8"
+    )
+    assert f"load-forge:{version}" in (ROOT / "docs/deploy-cloudrun.md").read_text(
+        encoding="utf-8"
+    )
+
+
+test("Release metadata stays synchronized", _check_release_metadata_is_synchronized)
+
+
 def _check_sd_from_diameter():
-    sd = _dccav.sd_from_diameter(104.0)
+    sd = _acoustics.sd_from_diameter(104.0)
     assert abs(sd - 84.95) < 0.05, f"Sd={sd:.2f} cm2"
 
 
-test("DCCAV Sd helper converts diameter to area", _check_sd_from_diameter)
+test("Driver Sd helper converts diameter to area", _check_sd_from_diameter)
 
 
 def _check_distributed_waveguide_models():
     ts = _kef_b110_ts()
     freq = np.geomspace(10.0, 500.0, 320)
-    line = _dccav.TransmissionLineBox(
-        segments=(_dccav.WaveguideSegment(0.85, 100.0),),
+    line = _acoustics.TransmissionLineBox(
+        segments=(_acoustics.WaveguideSegment(0.85, 100.0),),
         termination="closed",
     )
-    tl = _dccav.simulate_transmission_line(ts, line, freq)
-    qw = _dccav.simulate_quarter_wave(ts, 0.85, 100.0, freq)
+    tl = _acoustics.simulate_transmission_line(ts, line, freq)
+    qw = _acoustics.simulate_quarter_wave(ts, 0.85, 100.0, freq)
     np.testing.assert_allclose(tl.spl_total_db, qw.spl_total_db)
     assert np.all(np.isfinite(tl.impedance_ohm))
 
-    mltl = _dccav.simulate_mltl(
+    mltl = _acoustics.simulate_mltl(
         ts,
-        _dccav.MltlBox(
-            segments=(_dccav.WaveguideSegment(0.85, 100.0),),
+        _acoustics.MltlBox(
+            segments=(_acoustics.WaveguideSegment(0.85, 100.0),),
             vent_area_cm2=35.0,
             vent_length_m=0.08,
         ),
         freq,
     )
-    blh = _dccav.simulate_back_loaded_horn(
-        ts, _dccav.HornBox(1.2, 80.0, 800.0), freq)
-    th = _dccav.simulate_tapped_horn(
-        ts, _dccav.TappedHornBox(1.2, 80.0, 800.0, 0.35), freq)
+    blh = _acoustics.simulate_back_loaded_horn(
+        ts, _acoustics.HornBox(1.2, 80.0, 800.0), freq)
+    th = _acoustics.simulate_tapped_horn(
+        ts, _acoustics.TappedHornBox(1.2, 80.0, 800.0, 0.35), freq)
     for result in (mltl, blh, th):
         assert result.frequency_hz.shape == freq.shape
         assert np.all(np.isfinite(result.spl_total_db))
         assert np.all(result.excursion_mm >= 0.0)
 
 
-test("Distributed TL, MLTL, QW, BLH and TH models run", _check_distributed_waveguide_models)
+test(
+    "Acoustic-load smoke: distributed TL, MLTL, QW, BLH and TH models run",
+    _check_distributed_waveguide_models,
+)
 
 
 def _check_distributed_waveguide_ui():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.run()
     at.session_state["load_type"] = "Distributed waveguide"
     at.session_state["waveguide_topology"] = "BLH"
@@ -148,7 +172,7 @@ test("UI exposes distributed waveguide simulation", _check_distributed_waveguide
 
 
 def _check_presets_are_available():
-    names = _dccav.driver_preset_names()
+    names = _acoustics.driver_preset_names()
     expected = {
         "KEF B110B article example",
         "Beyma 12CMV2",
@@ -202,7 +226,7 @@ def _check_presets_are_available():
     assert own_wo24p8 == [
         "WEB: SB Acoustics 9½″ SATORI WO24P-8 / Paper"
     ], own_wo24p8
-    wo24p8_info = _dccav.driver_preset_info(own_wo24p8[0])
+    wo24p8_info = _acoustics.driver_preset_info(own_wo24p8[0])
     assert wo24p8_info.source == "SB Acoustics crawler", wo24p8_info
     assert wo24p8_info.brand == "SB Acoustics", wo24p8_info
     assert wo24p8_info.part_number == "WO24P-8", wo24p8_info
@@ -273,7 +297,7 @@ def _check_presets_are_available():
         if name.startswith("WEB: Dayton Audio RSS315HO-4 12")
     )
     assert (
-        _dccav.driver_preset_info(dayton_retailer_name).part_number
+        _acoustics.driver_preset_info(dayton_retailer_name).part_number
         == "RSS315HO-4"
     )
     eminence_alpha_names = [
@@ -282,10 +306,10 @@ def _check_presets_are_available():
         if 'Eminence Alpha-12A 12" Guitar/PA Driver' in name
     ]
     assert len(eminence_alpha_names) == 1, eminence_alpha_names
-    eminence_alpha_info = _dccav.driver_preset_info(eminence_alpha_names[0])
+    eminence_alpha_info = _acoustics.driver_preset_info(eminence_alpha_names[0])
     assert eminence_alpha_info.brand == "Eminence", eminence_alpha_info
     assert eminence_alpha_info.part_number == "Alpha-12A", eminence_alpha_info
-    celestion_tf1830_info = _dccav.driver_preset_info(
+    celestion_tf1830_info = _acoustics.driver_preset_info(
         "WEB: Celestion 18-inch"
     )
     assert celestion_tf1830_info.brand == "Celestion", celestion_tf1830_info
@@ -298,90 +322,90 @@ def _check_presets_are_available():
         name.startswith("VCD: SB Acoustics") and "WO24P-8" in name
         for name in names
     ), "the separate VituixCAD observation must remain visible"
-    assert _dccav.get_driver_preset("Beyma 12G40").sd_cm2 == 530.0
-    assert _dccav.get_driver_preset("Beyma 12BR70").fs_hz == 31.0
-    assert _dccav.get_driver_preset("Beyma 12MCS500").le_mh == 1.1
-    assert _dccav.get_driver_preset("Beyma 12WRS400").qts == 0.29
-    assert _dccav.get_driver_preset("Beyma 12LEX1300Nd").xmax_mm == 11.0
-    assert _dccav.get_driver_preset("Turbosound TS-12W350/8W").fs_hz == 61.0
-    assert _dccav.get_driver_preset("Turbosound TS-12W350/8W").vas_l == 19.26
-    assert _dccav.get_driver_preset("Turbosound TS-12W350/8W").pe_w == 350.0
-    assert _dccav.get_driver_preset("Turbosound TS-15W300/8A").vas_l == 130.2
-    assert _dccav.get_driver_preset("Turbosound TS-15W300/8A").sd_cm2 == 865.7
-    assert _dccav.get_driver_preset("Turbosound TS-15W300/8A").pe_w == 300.0
-    assert _dccav.get_driver_preset("Scan-Speak 30W/4558T00").fs_hz == 17.0
-    assert _dccav.get_driver_preset("Scan-Speak 30W/4558T00").vas_l == 197.0
-    assert _dccav.get_driver_preset("Scan-Speak 30W/4558T00").xmax_mm == 12.5
-    assert _dccav.get_driver_preset("Scan-Speak 15W/4531G00").fs_hz == 40.0
-    assert _dccav.get_driver_preset("Scan-Speak 15W/4531G00").sd_cm2 == 95.0
-    assert _dccav.get_driver_preset("Scan-Speak 15W/4531G00").pe_w == 60.0
-    assert _dccav.get_driver_preset("Dayton Audio RSS315HO-4").re_ohm == 3.2
-    assert _dccav.get_driver_preset("Dayton Audio RSS315HO-4").pe_w == 700.0
-    assert _dccav.get_driver_preset("SB Audience BIANCO-12OB150-01").qts == 0.63
-    assert _dccav.get_driver_preset("SB Audience BIANCO-12OB150-01").sd_cm2 == 539.1
-    assert _dccav.get_driver_preset("LaVoce WSF122.02").re_ohm == 5.2
-    assert _dccav.get_driver_preset("LaVoce WSF122.50").bl_tm == 17.1
-    assert _dccav.get_driver_preset("Aiyima 4ohm 5w 40mm black").fs_hz == 153.6
-    assert abs(_dccav.get_driver_preset("Aiyima 4ohm 5w 40mm black").sd_cm2 - 7.40229915) < 1e-9
-    assert _dccav.get_driver_preset("Aiyima 4ohm 10w 53mm LY1124-2").vas_l == 0.22
-    assert _dccav.get_driver_preset("Aiyima 4ohm 5w 1.5in").bl_tm == 2.937
-    assert _dccav.get_driver_preset("MarkAudio CHR-70").sd_cm2 == 50.2
-    assert _dccav.get_driver_preset("MarkAudio CHR-70").cms_mm_per_n == 1.44
-    assert _dccav.get_driver_preset("MarkAudio CHR-70").pe_w == 20.0
+    assert _acoustics.get_driver_preset("Beyma 12G40").sd_cm2 == 530.0
+    assert _acoustics.get_driver_preset("Beyma 12BR70").fs_hz == 31.0
+    assert _acoustics.get_driver_preset("Beyma 12MCS500").le_mh == 1.1
+    assert _acoustics.get_driver_preset("Beyma 12WRS400").qts == 0.29
+    assert _acoustics.get_driver_preset("Beyma 12LEX1300Nd").xmax_mm == 11.0
+    assert _acoustics.get_driver_preset("Turbosound TS-12W350/8W").fs_hz == 61.0
+    assert _acoustics.get_driver_preset("Turbosound TS-12W350/8W").vas_l == 19.26
+    assert _acoustics.get_driver_preset("Turbosound TS-12W350/8W").pe_w == 350.0
+    assert _acoustics.get_driver_preset("Turbosound TS-15W300/8A").vas_l == 130.2
+    assert _acoustics.get_driver_preset("Turbosound TS-15W300/8A").sd_cm2 == 865.7
+    assert _acoustics.get_driver_preset("Turbosound TS-15W300/8A").pe_w == 300.0
+    assert _acoustics.get_driver_preset("Scan-Speak 30W/4558T00").fs_hz == 17.0
+    assert _acoustics.get_driver_preset("Scan-Speak 30W/4558T00").vas_l == 197.0
+    assert _acoustics.get_driver_preset("Scan-Speak 30W/4558T00").xmax_mm == 12.5
+    assert _acoustics.get_driver_preset("Scan-Speak 15W/4531G00").fs_hz == 40.0
+    assert _acoustics.get_driver_preset("Scan-Speak 15W/4531G00").sd_cm2 == 95.0
+    assert _acoustics.get_driver_preset("Scan-Speak 15W/4531G00").pe_w == 60.0
+    assert _acoustics.get_driver_preset("Dayton Audio RSS315HO-4").re_ohm == 3.2
+    assert _acoustics.get_driver_preset("Dayton Audio RSS315HO-4").pe_w == 700.0
+    assert _acoustics.get_driver_preset("SB Audience BIANCO-12OB150-01").qts == 0.63
+    assert _acoustics.get_driver_preset("SB Audience BIANCO-12OB150-01").sd_cm2 == 539.1
+    assert _acoustics.get_driver_preset("LaVoce WSF122.02").re_ohm == 5.2
+    assert _acoustics.get_driver_preset("LaVoce WSF122.50").bl_tm == 17.1
+    assert _acoustics.get_driver_preset("Aiyima 4ohm 5w 40mm black").fs_hz == 153.6
+    assert abs(_acoustics.get_driver_preset("Aiyima 4ohm 5w 40mm black").sd_cm2 - 7.40229915) < 1e-9
+    assert _acoustics.get_driver_preset("Aiyima 4ohm 10w 53mm LY1124-2").vas_l == 0.22
+    assert _acoustics.get_driver_preset("Aiyima 4ohm 5w 1.5in").bl_tm == 2.937
+    assert _acoustics.get_driver_preset("MarkAudio CHR-70").sd_cm2 == 50.2
+    assert _acoustics.get_driver_preset("MarkAudio CHR-70").cms_mm_per_n == 1.44
+    assert _acoustics.get_driver_preset("MarkAudio CHR-70").pe_w == 20.0
     markaudio_chr70 = [
         name
         for name in names
         if (
-            _dccav.driver_preset_info(name).brand.casefold(),
-            _dccav.driver_preset_info(name).model.casefold(),
+            _acoustics.driver_preset_info(name).brand.casefold(),
+            _acoustics.driver_preset_info(name).model.casefold(),
         )
         == ("markaudio", "chr-70")
     ]
     assert markaudio_chr70 == ["MarkAudio CHR-70"]
-    beyma_info = _dccav.driver_preset_info("Beyma 12CMV2")
+    beyma_info = _acoustics.driver_preset_info("Beyma 12CMV2")
     assert beyma_info.source == "Built-in"
     assert beyma_info.brand == "Beyma"
     lsdb_names = [name for name in names if name.startswith("LSDB: ")]
     if lsdb_names:
-        lsdb_info = _dccav.driver_preset_info(lsdb_names[0])
+        lsdb_info = _acoustics.driver_preset_info(lsdb_names[0])
         assert lsdb_info.source == "Loudspeaker Database"
         assert lsdb_info.brand
-        _dccav.complete_driver(_dccav.get_driver_preset(lsdb_names[0]))
+        _acoustics.complete_driver(_acoustics.get_driver_preset(lsdb_names[0]))
     manufacturer_names = [
         name for name in names if name.startswith("WEB: ") or name.startswith("PDF: ")
     ]
     if manufacturer_names:
-        mfr_info = _dccav.driver_preset_info(manufacturer_names[0])
+        mfr_info = _acoustics.driver_preset_info(manufacturer_names[0])
         assert mfr_info.source in ("Manufacturer website", "Manufacturer datasheet", "Manufacturer crawl")
         assert mfr_info.brand
-        _dccav.complete_driver(_dccav.get_driver_preset(manufacturer_names[0]))
+        _acoustics.complete_driver(_acoustics.get_driver_preset(manufacturer_names[0]))
     vituixcad_names = [name for name in names if name.startswith("VCD: ")]
     if vituixcad_names:
-        vcd_info = _dccav.driver_preset_info(vituixcad_names[0])
+        vcd_info = _acoustics.driver_preset_info(vituixcad_names[0])
         assert vcd_info.source == "VituixCAD online database"
         assert vcd_info.brand
-        _dccav.complete_driver(_dccav.get_driver_preset(vituixcad_names[0]))
+        _acoustics.complete_driver(_acoustics.get_driver_preset(vituixcad_names[0]))
     speakerboxlite_names = [name for name in names if name.startswith("SBL: ")]
     if speakerboxlite_names:
-        sbl_info = _dccav.driver_preset_info(speakerboxlite_names[0])
+        sbl_info = _acoustics.driver_preset_info(speakerboxlite_names[0])
         assert sbl_info.source == "Speaker Box Lite public database"
         assert sbl_info.brand
-        _dccav.complete_driver(
-            _dccav.get_driver_preset(speakerboxlite_names[0])
+        _acoustics.complete_driver(
+            _acoustics.get_driver_preset(speakerboxlite_names[0])
         )
     try:
-        _dccav.get_driver_preset("missing")
+        _acoustics.get_driver_preset("missing")
     except ValueError as exc:
         assert "Unknown driver preset" in str(exc)
     else:
         raise AssertionError("unknown preset was accepted")
 
 
-test("DCCAV driver presets are named and validated", _check_presets_are_available)
+test("Driver presets are named and validated", _check_presets_are_available)
 
 
 def _check_article_alignment():
-    a = _dccav.suggest_alignment(replace(_kef_b110_ts(), panel_air_load=False))
+    a = _acoustics.suggest_alignment(replace(_kef_b110_ts(), panel_air_load=False))
     assert abs(a.vh_l - 3.09) < 0.03, f"Vh={a.vh_l:.2f} L"
     assert abs(a.vl_l - 6.23) < 0.05, f"Vl={a.vl_l:.2f} L"
     assert abs(a.fh_hz - 162.2) < 0.2, f"fh={a.fh_hz:.2f} Hz"
@@ -398,7 +422,7 @@ def _check_beyma_preset_alignment():
     assert ts.mms_g == 54.0
     assert ts.cms_mm_per_n == 0.193
     assert ts.bl_tm == 13.7
-    a = _dccav.suggest_alignment(ts)
+    a = _acoustics.suggest_alignment(ts)
     assert abs(a.vh_l - 34.42) < 0.03, f"Vh={a.vh_l:.2f} L"
     assert abs(a.vl_l - 69.34) < 0.05, f"Vl={a.vl_l:.2f} L"
     assert abs(a.fh_hz - 127.2) < 0.2, f"fh={a.fh_hz:.2f} Hz"
@@ -409,28 +433,28 @@ test("DCCAV Beyma 12CMV2 preset alignment", _check_beyma_preset_alignment)
 
 
 def _check_derived_driver_from_minimal_ts():
-    d = _dccav.complete_driver(_kef_b110_ts())
+    d = _acoustics.complete_driver(_kef_b110_ts())
     assert 0.008 < d.sd_m2 < 0.009
     assert d.qes > 0
     assert d.bl_tm > 0
     assert d.cas > 0 and d.mas > 0 and d.rat > 0
 
 
-test("DCCAV derives driver components from minimal T/S", _check_derived_driver_from_minimal_ts)
+test("Driver completion derives components from minimal T/S", _check_derived_driver_from_minimal_ts)
 
 
 def _check_measured_driver_values_are_used():
-    d = _dccav.complete_driver(replace(_beyma_ts(), panel_air_load=False))
+    d = _acoustics.complete_driver(replace(_beyma_ts(), panel_air_load=False))
     assert abs(d.mms_kg - 0.054) < 1e-9
     assert abs(d.cms_m_per_n - 0.000193) < 1e-12
     assert abs(d.bl_tm - 13.7) < 1e-12
 
 
-test("DCCAV uses measured optional driver values", _check_measured_driver_values_are_used)
+test("Driver completion uses measured optional values", _check_measured_driver_values_are_used)
 
 
 def _check_panel_air_load_matches_afw_fe126():
-    ts = _dccav.DriverTS(
+    ts = _acoustics.DriverTS(
         fs_hz=89.4,
         vas_l=6.942334,
         qts=0.3789999649445698,
@@ -438,20 +462,20 @@ def _check_panel_air_load_matches_afw_fe126():
         re_ohm=7.12,
         sd_cm2=63.61727,
     )
-    added_mass_g, loaded_fs_hz = _dccav.panel_air_load_metrics(ts)
+    added_mass_g, loaded_fs_hz = _acoustics.panel_air_load_metrics(ts)
     assert ts.panel_air_load is True
     assert 0.25 < added_mass_g < 0.27, added_mass_g
     assert abs(loaded_fs_hz - 85.2385) < 0.001, loaded_fs_hz
-    fc_hz, qtc = _dccav.sealed_system_metrics(ts, _dccav.SealedBox(vb_l=3.0))
+    fc_hz, qtc = _acoustics.sealed_system_metrics(ts, _acoustics.SealedBox(vb_l=3.0))
     assert abs(fc_hz - 155.1741) < 0.001, fc_hz
     assert abs(fc_hz / 155.0854 - 1.0) < 0.001, fc_hz
     assert abs(qtc - 0.6899581) < 1e-6, qtc
     disabled = replace(ts, panel_air_load=False)
-    assert _dccav.panel_air_load_metrics(disabled) == (0.0, 89.4)
-    assert _dccav.sealed_system_metrics(disabled, _dccav.SealedBox(vb_l=3.0))[0] > fc_hz
+    assert _acoustics.panel_air_load_metrics(disabled) == (0.0, 89.4)
+    assert _acoustics.sealed_system_metrics(disabled, _acoustics.SealedBox(vb_l=3.0))[0] > fc_hz
 
 
-test("DCCAV panel air load defaults on and matches AFW FE126", _check_panel_air_load_matches_afw_fe126)
+test("Driver panel air load defaults on and matches AFW FE126", _check_panel_air_load_matches_afw_fe126)
 
 
 def _check_afw_comparator_reports_panel_loaded_delta():
@@ -614,7 +638,7 @@ test(
 
 def _check_rejects_invalid_q_values():
     try:
-        _dccav.complete_driver(_dccav.DriverTS(
+        _acoustics.complete_driver(_acoustics.DriverTS(
             fs_hz=50.0, vas_l=20.0, qts=0.5, qms=0.4,
             re_ohm=6.0, sd_cm2=220.0))
     except ValueError as exc:
@@ -623,45 +647,87 @@ def _check_rejects_invalid_q_values():
         raise AssertionError("invalid Qms <= Qts was accepted")
 
 
-test("DCCAV rejects invalid Qms/Qts pair", _check_rejects_invalid_q_values)
+test("Driver completion rejects invalid Qms/Qts pairs", _check_rejects_invalid_q_values)
 
 
-def _check_simulation_arrays_are_finite():
+def _simulate_lumped_smoke_load(load_name: str):
     ts = _beyma_ts()
-    a = _dccav.suggest_alignment(ts)
-    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
-    result = _dccav.simulate(ts, box, np.geomspace(15.0, 350.0, 180), voltage_v=2.83)
+    frequency_hz = np.geomspace(15.0, 350.0, 180)
+    if load_name == "DCCAV":
+        alignment = _acoustics.suggest_alignment(ts)
+        box = _acoustics.DccavBox(
+            vh_l=alignment.vh_l,
+            fh_hz=alignment.fh_hz,
+            vl_l=alignment.vl_l,
+            fl_hz=alignment.fl_hz,
+        )
+        result = _acoustics.simulate(ts, box, frequency_hz, voltage_v=2.83)
+    elif load_name == "Bass reflex":
+        alignment = _acoustics.suggest_reflex_alignment(ts)
+        box = _acoustics.ReflexBox(vb_l=alignment.vb_l, fb_hz=alignment.fb_hz)
+        result = _acoustics.simulate_reflex(ts, box, frequency_hz, voltage_v=2.83)
+        assert np.all(result.port_h_velocity == 0)
+    elif load_name == "Passive radiator":
+        result = _acoustics.simulate_passive_radiator(
+            ts, _acoustics.suggest_pr_alignment(ts), frequency_hz, voltage_v=2.83
+        )
+    elif load_name == "Sealed":
+        alignment = _acoustics.suggest_sealed_alignment(ts)
+        result = _acoustics.simulate_sealed(
+            ts, _acoustics.SealedBox(vb_l=alignment.vb_l), frequency_hz, voltage_v=2.83
+        )
+    elif load_name == "Infinite baffle":
+        result = _acoustics.simulate_infinite_baffle(ts, frequency_hz, voltage_v=2.83)
+    elif load_name == "Bandpass 4th order":
+        alignment = _acoustics.suggest_bandpass4_alignment(ts)
+        box = _acoustics.Bandpass4Box(
+            vs_l=alignment.vs_l, vp_l=alignment.vp_l, fp_hz=alignment.fp_hz
+        )
+        result = _acoustics.simulate_bandpass4(ts, box, frequency_hz, voltage_v=2.83)
+    elif load_name == "Bandpass 6th order":
+        alignment = _acoustics.suggest_bandpass6_alignment(ts)
+        box = _acoustics.Bandpass6Box(
+            vr_l=alignment.vr_l,
+            fr_hz=alignment.fr_hz,
+            vp_l=alignment.vp_l,
+            fp_hz=alignment.fp_hz,
+        )
+        result = _acoustics.simulate_bandpass6(ts, box, frequency_hz, voltage_v=2.83)
+    else:
+        raise AssertionError(f"unknown smoke-test load: {load_name}")
+    return result
+
+
+def _check_lumped_load_smoke(load_name: str):
+    result = _simulate_lumped_smoke_load(load_name)
     for name in (
         "spl_total_db", "spl_driver_db", "spl_port_db", "excursion_mm",
-        "impedance_ohm", "port_h_velocity", "port_l_velocity",
-        "mil_w", "mol_db",
+        "impedance_ohm", "port_h_velocity", "port_l_velocity", "mil_w", "mol_db",
     ):
-        arr = getattr(result, name)
-        assert arr.shape == result.frequency_hz.shape, f"{name}: shape mismatch"
-        assert np.all(np.isfinite(arr)), f"{name}: non-finite values"
-    assert np.nanmax(result.mol_db) > np.nanmax(result.spl_total_db)
-    assert np.nanmin(result.mil_w) > 0
-
-    reflex = _dccav.suggest_reflex_alignment(ts)
-    reflex_box = _dccav.ReflexBox(vb_l=reflex.vb_l, fb_hz=reflex.fb_hz)
-    reflex_result = _dccav.simulate_reflex(ts, reflex_box, np.geomspace(15.0, 350.0, 180), voltage_v=2.83)
-    for name in (
-        "spl_total_db", "spl_driver_db", "spl_port_db", "excursion_mm",
-        "impedance_ohm", "port_h_velocity", "port_l_velocity",
-        "mil_w", "mol_db",
-    ):
-        arr = getattr(reflex_result, name)
-        assert arr.shape == reflex_result.frequency_hz.shape, f"reflex {name}: shape mismatch"
-        assert np.all(np.isfinite(arr)), f"reflex {name}: non-finite values"
-    assert np.all(reflex_result.port_h_velocity == 0)
-    assert np.nanmin(reflex_result.mil_w) > 0
+        values = getattr(result, name)
+        assert values.shape == result.frequency_hz.shape, f"{load_name} {name}: shape mismatch"
+        assert np.all(np.isfinite(values)), f"{load_name} {name}: non-finite values"
+    assert np.nanmax(result.mol_db) > np.nanmax(result.spl_total_db), load_name
+    assert np.nanmin(result.mil_w) > 0, load_name
 
 
-test("Acoustic-load simulation returns finite response arrays", _check_simulation_arrays_are_finite)
+for _smoke_load_name in (
+    "DCCAV",
+    "Bass reflex",
+    "Passive radiator",
+    "Sealed",
+    "Infinite baffle",
+    "Bandpass 4th order",
+    "Bandpass 6th order",
+):
+    test(
+        f"Acoustic-load smoke: {_smoke_load_name}",
+        lambda load_name=_smoke_load_name: _check_lumped_load_smoke(load_name),
+    )
 
 
 def _check_mol_requires_thermal_rating():
-    ts = _dccav.DriverTS(
+    ts = _acoustics.DriverTS(
         fs_hz=45.0,
         vas_l=50.0,
         qts=0.35,
@@ -671,16 +737,16 @@ def _check_mol_requires_thermal_rating():
         xmax_mm=6.0,
         pe_w=0.0,
     )
-    a = _dccav.suggest_alignment(ts)
-    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
-    result = _dccav.simulate(ts, box, np.geomspace(20.0, 200.0, 120), voltage_v=2.83)
+    a = _acoustics.suggest_alignment(ts)
+    box = _acoustics.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    result = _acoustics.simulate(ts, box, np.geomspace(20.0, 200.0, 120), voltage_v=2.83)
     # Without a thermal rating neither the MOL trace nor the MIL curve is
     # reported: there is no credible thermal ceiling to scale either one to.
     assert np.all(np.isnan(result.mol_db)), "MOL must be NaN when Pe is 0"
     assert np.all(np.isnan(result.mil_w)), "MIL must be NaN when Pe is 0"
 
     rated = replace(ts, pe_w=100.0)
-    rated_result = _dccav.simulate(rated, box, np.geomspace(20.0, 200.0, 120), voltage_v=2.83)
+    rated_result = _acoustics.simulate(rated, box, np.geomspace(20.0, 200.0, 120), voltage_v=2.83)
     assert np.all(np.isfinite(rated_result.mol_db)), "MOL is finite with a Pe rating"
     assert np.all(np.isfinite(rated_result.mil_w)), "MIL is finite with a Pe rating"
     assert np.nanmin(rated_result.mil_w) > 0
@@ -697,23 +763,23 @@ def _check_sealed_and_infinite_baffle_models():
     assert package_api.simulate_infinite_baffle is not None
     ts = _beyma_ts()
     freq = np.geomspace(10.0, 500.0, 500)
-    alignment = _dccav.suggest_sealed_alignment(ts)
-    box = _dccav.SealedBox(vb_l=alignment.vb_l)
-    fc_hz, qtc = _dccav.sealed_system_metrics(ts, box)
+    alignment = _acoustics.suggest_sealed_alignment(ts)
+    box = _acoustics.SealedBox(vb_l=alignment.vb_l)
+    fc_hz, qtc = _acoustics.sealed_system_metrics(ts, box)
     assert abs(qtc - 0.707) < 1e-9, (fc_hz, qtc)
     assert fc_hz > ts.fs_hz
 
-    sealed = _dccav.simulate_sealed(ts, box, freq)
-    infinite = _dccav.simulate_infinite_baffle(ts, freq)
+    sealed = _acoustics.simulate_sealed(ts, box, freq)
+    infinite = _acoustics.simulate_infinite_baffle(ts, freq)
     for result in (sealed, infinite):
         assert np.all(np.isfinite(result.spl_total_db))
         assert np.allclose(result.spl_total_db, result.spl_driver_db)
         assert np.all(result.port_h_velocity == 0.0)
         assert np.all(result.port_l_velocity == 0.0)
         assert np.all(result.port_volume_velocity == 0.0)
-        assert len(_dccav.impedance_peak_frequencies(result)) == 1
-    ib_peak = _dccav.impedance_peak_frequencies(infinite)[0]
-    mounted_fs_hz = _dccav.panel_loaded_fs_hz(ts)
+        assert len(_acoustics.impedance_peak_frequencies(result)) == 1
+    ib_peak = _acoustics.impedance_peak_frequencies(infinite)[0]
+    mounted_fs_hz = _acoustics.panel_loaded_fs_hz(ts)
     assert abs(ib_peak - mounted_fs_hz) / mounted_fs_hz < 0.05, ib_peak
 
 
@@ -723,19 +789,19 @@ test("Sealed and infinite-baffle models expose unported responses", _check_seale
 def _check_bandpass4_model_and_starter():
     import src as package_api
 
-    assert package_api.Bandpass4Box is _dccav.Bandpass4Box
-    assert package_api.simulate_bandpass4 is _dccav.simulate_bandpass4
+    assert package_api.Bandpass4Box is _acoustics.Bandpass4Box
+    assert package_api.simulate_bandpass4 is _acoustics.simulate_bandpass4
     ts = _kef_b110_ts()
-    alignment = _dccav.suggest_bandpass4_alignment(ts)
+    alignment = _acoustics.suggest_bandpass4_alignment(ts)
     assert abs(alignment.vp_l - 2.0 * 0.707**2 * ts.vas_l) < 1e-9
     assert abs(
-        alignment.fp_hz - _dccav.panel_loaded_fs_hz(ts) * 0.707 / ts.qts
+        alignment.fp_hz - _acoustics.panel_loaded_fs_hz(ts) * 0.707 / ts.qts
     ) < 1e-9
     assert alignment.vs_l > 0.05
-    box = _dccav.Bandpass4Box(
+    box = _acoustics.Bandpass4Box(
         vs_l=alignment.vs_l, vp_l=alignment.vp_l, fp_hz=alignment.fp_hz)
     freq = np.geomspace(5.0, 1000.0, 2000)
-    result = _dccav.simulate_bandpass4(ts, box, freq)
+    result = _acoustics.simulate_bandpass4(ts, box, freq)
     for name in (
         "spl_total_db", "spl_driver_db", "spl_port_db", "excursion_mm",
         "impedance_ohm", "port_h_velocity", "port_l_velocity", "mil_w", "mol_db",
@@ -747,8 +813,8 @@ def _check_bandpass4_model_and_starter():
     assert np.all(result.driver_volume_velocity == 0.0)
     assert np.all(result.port_h_velocity == 0.0)
     assert np.any(result.port_l_velocity > 0.0)
-    assert len(_dccav.impedance_peak_frequencies(result)) >= 2
-    assert not _dccav.bandpass4_diagnostics(ts, box, result)
+    assert len(_acoustics.impedance_peak_frequencies(result)) >= 2
+    assert not _acoustics.bandpass4_diagnostics(ts, box, result)
 
 
 test("Fourth-order bandpass starter and simulation are coherent", _check_bandpass4_model_and_starter)
@@ -756,24 +822,24 @@ test("Fourth-order bandpass starter and simulation are coherent", _check_bandpas
 
 def _check_bandpass4_optimizer_atlas_and_ranking():
     ts = _beyma_ts()
-    goals = _dccav.OptimizationGoals(max_total_volume_l=40.0)
-    optimized = _dccav.optimize_alignment(
+    goals = _acoustics.OptimizationGoals(max_total_volume_l=40.0)
+    optimized = _acoustics.optimize_alignment(
         ts, goals, load_type="Bandpass 4th order", max_evaluations=80,
         fixed_total_volume_l=40.0)
-    assert isinstance(optimized.box, _dccav.Bandpass4Box)
+    assert isinstance(optimized.box, _acoustics.Bandpass4Box)
     assert abs(optimized.box.vs_l + optimized.box.vp_l - 40.0) < 1e-9
     assert np.isfinite(optimized.f3_hz)
     assert np.isfinite(optimized.ripple_db)
 
-    space = _dccav.design_space_map(
+    space = _acoustics.design_space_map(
         ts, load_type="Bandpass 4th order", resolution=5)
     assert space.f3_hz.shape == (5, 5)
     assert np.any(np.isfinite(space.f3_hz))
-    box = _dccav.design_space_box(
+    box = _acoustics.design_space_box(
         ts, "Bandpass 4th order", float(space.x_values[2]), float(space.y_values[2]))
     assert abs(box.vs_l + box.vp_l - float(space.x_values[2])) < 1e-9
 
-    row = _dccav.rank_preset_row(
+    row = _acoustics.rank_preset_row(
         "Beyma 12CMV2", "Bandpass 4th order", 40.0, 2.83, 10.0, 500.0, 240)
     assert row is not None
     assert abs(row["Vs L"] + row["Vp L"] - 40.0) < 1e-9
@@ -822,23 +888,23 @@ test("UI fourth-order bandpass controls persist and render", _check_ui_bandpass4
 def _check_bandpass6_model_and_starter():
     import src as package_api
 
-    assert package_api.Bandpass6Box is _dccav.Bandpass6Box
-    assert package_api.simulate_bandpass6 is _dccav.simulate_bandpass6
+    assert package_api.Bandpass6Box is _acoustics.Bandpass6Box
+    assert package_api.simulate_bandpass6 is _acoustics.simulate_bandpass6
     ts = _kef_b110_ts()
-    alignment = _dccav.suggest_bandpass6_alignment(ts)
+    alignment = _acoustics.suggest_bandpass6_alignment(ts)
     expected_rear_l = 2.0 * 0.707**2 * ts.vas_l
-    mounted_fs_hz = _dccav.panel_loaded_fs_hz(ts)
+    mounted_fs_hz = _acoustics.panel_loaded_fs_hz(ts)
     assert abs(alignment.vr_l - expected_rear_l) < 1e-9
     assert abs(alignment.vp_l - 0.5 * expected_rear_l) < 1e-9
     assert alignment.fr_hz == mounted_fs_hz
     assert alignment.fp_hz == 2.0 * mounted_fs_hz
     assert alignment.vr_l > 0.05
     assert alignment.vp_l > 0.05
-    box = _dccav.Bandpass6Box(
+    box = _acoustics.Bandpass6Box(
         vr_l=alignment.vr_l, fr_hz=alignment.fr_hz,
         vp_l=alignment.vp_l, fp_hz=alignment.fp_hz)
     freq = np.geomspace(5.0, 1000.0, 2000)
-    result = _dccav.simulate_bandpass6(ts, box, freq)
+    result = _acoustics.simulate_bandpass6(ts, box, freq)
     for name in (
         "spl_total_db", "spl_driver_db", "spl_port_db", "excursion_mm",
         "impedance_ohm", "port_h_velocity", "port_l_velocity", "mil_w", "mol_db",
@@ -848,14 +914,14 @@ def _check_bandpass6_model_and_starter():
         assert np.all(np.isfinite(values)), name
     assert np.any(result.port_h_velocity > 0.0)
     assert np.any(result.port_l_velocity > 0.0)
-    assert len(_dccav.impedance_peak_frequencies(result)) >= 2
-    assert not _dccav.bandpass6_diagnostics(ts, box, result)
+    assert len(_acoustics.impedance_peak_frequencies(result)) >= 2
+    assert not _acoustics.bandpass6_diagnostics(ts, box, result)
 
     # AFW's double-reflex model and the physical topology both require
     # opposite port polarity: identical branches cancel in the far field.
-    equal_box = _dccav.Bandpass6Box(
+    equal_box = _acoustics.Bandpass6Box(
         vr_l=10.0, fr_hz=80.0, vp_l=10.0, fp_hz=80.0)
-    cancelled = _dccav.simulate_bandpass6(ts, equal_box, freq)
+    cancelled = _acoustics.simulate_bandpass6(ts, equal_box, freq)
     assert np.max(cancelled.spl_total_db) < -200.0
 
 
@@ -864,24 +930,24 @@ test("Sixth-order bandpass starter and simulation are coherent", _check_bandpass
 
 def _check_bandpass6_optimizer_atlas_and_ranking():
     ts = _beyma_ts()
-    goals = _dccav.OptimizationGoals(max_total_volume_l=40.0)
-    optimized = _dccav.optimize_alignment(
+    goals = _acoustics.OptimizationGoals(max_total_volume_l=40.0)
+    optimized = _acoustics.optimize_alignment(
         ts, goals, load_type="Bandpass 6th order", max_evaluations=80,
         fixed_total_volume_l=40.0)
-    assert isinstance(optimized.box, _dccav.Bandpass6Box)
+    assert isinstance(optimized.box, _acoustics.Bandpass6Box)
     assert abs(optimized.box.vr_l + optimized.box.vp_l - 40.0) < 1e-9
     assert np.isfinite(optimized.f3_hz)
     assert np.isfinite(optimized.ripple_db)
 
-    space = _dccav.design_space_map(
+    space = _acoustics.design_space_map(
         ts, load_type="Bandpass 6th order", resolution=5)
     assert space.f3_hz.shape == (5, 5)
     assert np.any(np.isfinite(space.f3_hz))
-    box = _dccav.design_space_box(
+    box = _acoustics.design_space_box(
         ts, "Bandpass 6th order", float(space.x_values[2]), float(space.y_values[2]))
     assert abs(box.vr_l + box.vp_l - float(space.x_values[2])) < 1e-9
 
-    row = _dccav.rank_preset_row(
+    row = _acoustics.rank_preset_row(
         "Beyma 12CMV2", "Bandpass 6th order", 40.0, 2.83, 10.0, 500.0, 240)
     assert row is not None
     assert abs(row["Vr L"] + row["Vp L"] - 40.0) < 1e-9
@@ -931,29 +997,29 @@ test("UI sixth-order bandpass controls persist and render", _check_ui_bandpass6_
 
 def _check_response_metrics_are_sane():
     ts = _beyma_ts()
-    a = _dccav.suggest_alignment(ts)
-    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
-    result = _dccav.simulate(ts, box, np.geomspace(5.0, 1000.0, 2000))
-    metrics = _dccav.response_metrics(result)
-    thresholds = _dccav.response_threshold_frequencies(result)
+    a = _acoustics.suggest_alignment(ts)
+    box = _acoustics.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    result = _acoustics.simulate(ts, box, np.geomspace(5.0, 1000.0, 2000))
+    metrics = _acoustics.response_metrics(result)
+    thresholds = _acoustics.response_threshold_frequencies(result)
     assert metrics["max_spl_db"] > 0
     assert metrics["f3_hz"] == thresholds[3]
     assert 0 < thresholds[10] < thresholds[6] < thresholds[3]
     assert metrics["max_excursion_mm"] > 0
     assert metrics["min_impedance_ohm"] > 0
-    peak_freqs = _dccav.impedance_peak_frequencies(result)
+    peak_freqs = _acoustics.impedance_peak_frequencies(result)
     assert len(peak_freqs) >= 3, f"expected 3 DCCAV impedance peaks, got {peak_freqs}"
 
-    ts = _dccav.get_driver_preset("Beyma 12LEX1300Nd")
-    a = _dccav.suggest_alignment(ts)
-    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
-    result = _dccav.simulate(ts, box, np.geomspace(5.0, 1000.0, 2000))
-    thresholds = _dccav.response_threshold_frequencies(result)
+    ts = _acoustics.get_driver_preset("Beyma 12LEX1300Nd")
+    a = _acoustics.suggest_alignment(ts)
+    box = _acoustics.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    result = _acoustics.simulate(ts, box, np.geomspace(5.0, 1000.0, 2000))
+    thresholds = _acoustics.response_threshold_frequencies(result)
     assert abs(thresholds[3] - a.f3_hz) < 2.0, (thresholds[3], a.f3_hz)
     assert 0 < thresholds[10] < thresholds[6] < thresholds[3]
-    assert not _dccav.response_sanity_warnings(ts, box, thresholds)
+    assert not _acoustics.response_sanity_warnings(ts, box, thresholds)
 
-    impossible = _dccav.response_sanity_warnings(ts, box, {3: 30.0})
+    impossible = _acoustics.response_sanity_warnings(ts, box, {3: 30.0})
     assert impossible, "impossible low F3 was not flagged"
 
     flat = result.__class__(
@@ -970,32 +1036,32 @@ def _check_response_metrics_are_sane():
         driver_volume_velocity=np.ones(200, dtype=complex),
         port_volume_velocity=np.ones(200, dtype=complex),
     )
-    flat_thresholds = _dccav.response_threshold_frequencies(flat)
+    flat_thresholds = _acoustics.response_threshold_frequencies(flat)
     assert np.isnan(flat_thresholds[3]), flat_thresholds
 
-    chr70 = _dccav.get_driver_preset("MarkAudio CHR-70")
-    a = _dccav.suggest_alignment(chr70)
-    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
-    result = _dccav.simulate(chr70, box, np.geomspace(10.0, 500.0, 600))
+    chr70 = _acoustics.get_driver_preset("MarkAudio CHR-70")
+    a = _acoustics.suggest_alignment(chr70)
+    box = _acoustics.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    result = _acoustics.simulate(chr70, box, np.geomspace(10.0, 500.0, 600))
     assert np.nanmax(result.mil_w) == chr70.pe_w
     assert np.nanmin(result.mil_w) > 0
 
-    reflex = _dccav.suggest_reflex_alignment(_beyma_ts())
-    box = _dccav.ReflexBox(vb_l=reflex.vb_l, fb_hz=reflex.fb_hz)
-    result = _dccav.simulate_reflex(_beyma_ts(), box, np.geomspace(5.0, 1000.0, 2000))
-    peak_freqs = _dccav.impedance_peak_frequencies(result)
+    reflex = _acoustics.suggest_reflex_alignment(_beyma_ts())
+    box = _acoustics.ReflexBox(vb_l=reflex.vb_l, fb_hz=reflex.fb_hz)
+    result = _acoustics.simulate_reflex(_beyma_ts(), box, np.geomspace(5.0, 1000.0, 2000))
+    peak_freqs = _acoustics.impedance_peak_frequencies(result)
     assert len(peak_freqs) >= 2, f"expected two bass-reflex impedance peaks, got {peak_freqs}"
 
 
-test("DCCAV response metrics are positive", _check_response_metrics_are_sane)
+test("Acoustic response metrics are positive", _check_response_metrics_are_sane)
 
 
 def _check_group_delay_is_finite_and_exported():
     ts = _beyma_ts()
-    a = _dccav.suggest_alignment(ts)
-    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
-    result = _dccav.simulate(ts, box, np.geomspace(10.0, 500.0, 600))
-    gd = _dccav.group_delay_ms(result)
+    a = _acoustics.suggest_alignment(ts)
+    box = _acoustics.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    result = _acoustics.simulate(ts, box, np.geomspace(10.0, 500.0, 600))
+    gd = _acoustics.group_delay_ms(result)
     assert gd.shape == result.frequency_hz.shape, gd.shape
     assert np.all(np.isfinite(gd)), "group delay must be finite across the sweep"
     assert np.nanmax(np.abs(gd)) > 0.1, "group delay should not be identically zero"
@@ -1010,7 +1076,7 @@ def _check_group_delay_is_finite_and_exported():
     assert np.isfinite(gd_value), gd_value
 
 
-test("DCCAV group delay is finite and exported to CSV", _check_group_delay_is_finite_and_exported)
+test("Acoustic group delay is finite and exported to CSV", _check_group_delay_is_finite_and_exported)
 
 
 def _parse_export_rows(text: str) -> np.ndarray:
@@ -1022,12 +1088,12 @@ def _check_frd_zma_exports():
     import dataclasses
 
     ts = _kef_b110_ts()
-    a = _dccav.suggest_alignment(ts)
-    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    a = _acoustics.suggest_alignment(ts)
+    box = _acoustics.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
     freq = np.geomspace(10.0, 500.0, 240)
-    result = _dccav.simulate(ts, box, freq, 2.83)
+    result = _acoustics.simulate(ts, box, freq, 2.83)
 
-    frd_text = _dccav.export_frd_text(result)
+    frd_text = _acoustics.export_frd_text(result)
     assert frd_text.splitlines()[0].startswith("*"), "FRD must open with comment lines"
     frd = _parse_export_rows(frd_text)
     assert frd.shape == (len(freq), 3), frd.shape
@@ -1036,27 +1102,27 @@ def _check_frd_zma_exports():
     assert np.all(np.abs(frd[:, 2]) <= 180.0 + 1e-9), "FRD phase must be wrapped to ±180"
     assert np.ptp(frd[:, 2]) > 90.0, "response phase must actually rotate over the sweep"
 
-    zma = _parse_export_rows(_dccav.export_zma_text(result))
+    zma = _parse_export_rows(_acoustics.export_zma_text(result))
     assert zma.shape == (len(freq), 3), zma.shape
     np.testing.assert_allclose(zma[:, 0], freq, atol=5e-4)
     np.testing.assert_allclose(zma[:, 1], result.impedance_ohm, atol=5e-4)
     assert np.all(np.abs(zma[:, 2]) <= 90.0 + 1e-9), "passive impedance phase stays within ±90"
     assert np.ptp(zma[:, 2]) > 30.0, "impedance phase must swing across the resonances"
 
-    reflex = _dccav.simulate_reflex(ts, _dccav.ReflexBox(vb_l=ts.vas_l, fb_hz=ts.fs_hz), freq)
-    sealed = _dccav.simulate_sealed(ts, _dccav.SealedBox(vb_l=ts.vas_l), freq)
-    baffle = _dccav.simulate_infinite_baffle(ts, freq)
+    reflex = _acoustics.simulate_reflex(ts, _acoustics.ReflexBox(vb_l=ts.vas_l, fb_hz=ts.fs_hz), freq)
+    sealed = _acoustics.simulate_sealed(ts, _acoustics.SealedBox(vb_l=ts.vas_l), freq)
+    baffle = _acoustics.simulate_infinite_baffle(ts, freq)
     for run in (reflex, sealed, baffle):
         assert run.impedance_phase_deg is not None
         assert np.all(np.isfinite(run.impedance_phase_deg))
 
     legacy = dataclasses.replace(result, impedance_phase_deg=None)
-    legacy_zma = _parse_export_rows(_dccav.export_zma_text(legacy))
+    legacy_zma = _parse_export_rows(_acoustics.export_zma_text(legacy))
     assert np.all(legacy_zma[:, 2] == 0.0), "legacy results must degrade to zero phase"
 
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Box Design"
     at.run()
     assert not at.exception, at.exception
@@ -1073,7 +1139,7 @@ test("DCCAV FRD/ZMA exports match the simulated arrays", _check_frd_zma_exports)
 def _check_ui_group_delay_chart_renders():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["design_analysis_tab"] = "Group Delay"
     at.run()
@@ -1098,7 +1164,7 @@ def _check_ui_non_calculating_navigation_is_lazy():
         "merely opening Bass Match must not create calculation workers"
     )
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.run()
     assert not at.exception, at.exception
     assert not at.dataframe, (
@@ -1121,56 +1187,56 @@ test(
 
 def _check_port_geometry_helpers():
     volume_l, fb_hz, diameter_cm = 50.0, 40.0, 10.0
-    length_cm = _dccav.port_length_cm(volume_l, fb_hz, diameter_cm)
+    length_cm = _acoustics.port_length_cm(volume_l, fb_hz, diameter_cm)
     assert 15.0 < length_cm < 35.0, length_cm
 
     radius_m = diameter_cm / 200.0
     l_eff_m = length_cm / 100.0 + 1.43 * radius_m
     fb_check = (
-        _dccav.SPEED_OF_SOUND / (2.0 * np.pi)
+        _acoustics.SPEED_OF_SOUND / (2.0 * np.pi)
         * np.sqrt(np.pi * radius_m**2 / ((volume_l / 1000.0) * l_eff_m))
     )
     assert abs(fb_check - fb_hz) < 1e-9, fb_check
 
-    assert _dccav.port_length_cm(volume_l, fb_hz, 5.0) < length_cm
-    assert _dccav.port_length_cm(100.0, 30.0, 1.0) <= 0.0, "tiny port must be flagged impossible"
+    assert _acoustics.port_length_cm(volume_l, fb_hz, 5.0) < length_cm
+    assert _acoustics.port_length_cm(100.0, 30.0, 1.0) <= 0.0, "tiny port must be flagged impossible"
 
-    max_hz = _dccav.port_max_tuning_hz(16.70, 4.0, 1.64)
+    max_hz = _acoustics.port_max_tuning_hz(16.70, 4.0, 1.64)
     assert 80.0 < max_hz < 85.0, max_hz
-    min_d_cm = _dccav.port_min_diameter_cm(16.70, 127.59, 1.64)
+    min_d_cm = _acoustics.port_min_diameter_cm(16.70, 127.59, 1.64)
     assert 9.0 < min_d_cm < 10.2, min_d_cm
-    assert abs(_dccav.port_length_cm(16.70, max_hz, 4.0, 1.64)) < 1e-9
-    assert abs(_dccav.port_length_cm(16.70, 127.59, min_d_cm, 1.64)) < 1e-9
+    assert abs(_acoustics.port_length_cm(16.70, max_hz, 4.0, 1.64)) < 1e-9
+    assert abs(_acoustics.port_length_cm(16.70, 127.59, min_d_cm, 1.64)) < 1e-9
 
     ts = _beyma_ts()
-    reflex = _dccav.suggest_reflex_alignment(ts)
-    box = _dccav.ReflexBox(vb_l=reflex.vb_l, fb_hz=reflex.fb_hz)
-    result = _dccav.simulate_reflex(ts, box, np.geomspace(10.0, 500.0, 400))
+    reflex = _acoustics.suggest_reflex_alignment(ts)
+    box = _acoustics.ReflexBox(vb_l=reflex.vb_l, fb_hz=reflex.fb_hz)
+    result = _acoustics.simulate_reflex(ts, box, np.geomspace(10.0, 500.0, 400))
     area_cm2 = np.pi * (diameter_cm / 2.0) ** 2
-    velocity = _dccav.port_air_velocity_ms(result, area_cm2, "lower")
+    velocity = _acoustics.port_air_velocity_ms(result, area_cm2, "lower")
     assert velocity.shape == result.frequency_hz.shape
     assert np.all(np.isfinite(velocity)), "port air speed must be finite"
     assert np.nanmax(velocity) > 0.0
-    halved = _dccav.port_air_velocity_ms(result, area_cm2 / 2.0, "lower")
+    halved = _acoustics.port_air_velocity_ms(result, area_cm2 / 2.0, "lower")
     np.testing.assert_allclose(halved, 2.0 * velocity)
     try:
-        _dccav.port_air_velocity_ms(result, area_cm2, "middle")
+        _acoustics.port_air_velocity_ms(result, area_cm2, "middle")
         raise AssertionError("invalid port name must raise")
     except ValueError:
         pass
 
 
-test("DCCAV port geometry length round-trips and air speed scales", _check_port_geometry_helpers)
+test("Acoustic port geometry length round-trips and air speed scales", _check_port_geometry_helpers)
 
 
 def _check_ui_small_alignment_warning_uses_active_box():
     import ui_app as _ui
 
     ts = _beyma_ts()
-    small_active = _dccav.DccavBox(
+    small_active = _acoustics.DccavBox(
         vh_l=10.7, fh_hz=128.0, vl_l=10.7, fl_hz=48.0
     )
-    large_active = _dccav.DccavBox(
+    large_active = _acoustics.DccavBox(
         vh_l=34.68, fh_hz=128.0, vl_l=40.32, fl_hz=48.0
     )
 
@@ -1195,24 +1261,24 @@ def _check_port_displacement_golden_rule():
     ts = dataclasses.replace(_beyma_ts(), sd_cm2=530.0, xmax_mm=8.0)
     # D = sqrt(8 * K * Fb * Sd * Xmax / (1000 * (0.05 * c))) with K=1.0, c=344
     # D = sqrt(8 * 1.0 * 30 * 530 * 8 / (1000 * 17.2)) = 7.692 cm.
-    golden_cm = _dccav.port_displacement_min_diameter_cm(ts, 30.0)
+    golden_cm = _acoustics.port_displacement_min_diameter_cm(ts, 30.0)
     assert abs(golden_cm - 7.692) < 0.01, golden_cm
-    assert _dccav.port_displacement_min_diameter_cm(ts, 60.0) > golden_cm, (
+    assert _acoustics.port_displacement_min_diameter_cm(ts, 60.0) > golden_cm, (
         "higher tuning needs a larger port because the cone cycles faster, "
         "producing more volumetric flow at the same excursion"
     )
     no_xmax = dataclasses.replace(ts, xmax_mm=0.0)
-    assert _dccav.port_displacement_min_diameter_cm(no_xmax, 30.0) == 0.0
+    assert _acoustics.port_displacement_min_diameter_cm(no_xmax, 30.0) == 0.0
     try:
-        _dccav.port_displacement_min_diameter_cm(ts, 0.0)
+        _acoustics.port_displacement_min_diameter_cm(ts, 0.0)
         raise AssertionError("non-positive tuning must raise")
     except ValueError:
         pass
 
     # The applied vent sizing must respect the floor even when a tiny drive
     # voltage silences the 5%-of-c air-speed requirement.
-    box = _dccav.ReflexBox(vb_l=76.0, fb_hz=30.0)
-    result = _dccav.simulate_reflex(ts, box, np.geomspace(10.0, 500.0, 240), 0.01)
+    box = _acoustics.ReflexBox(vb_l=76.0, fb_hz=30.0)
+    result = _acoustics.simulate_reflex(ts, box, np.geomspace(10.0, 500.0, 240), 0.01)
     applied_cm = _ui._optimized_port_diameter_cm(
         ts, result, box.vb_l, box.fb_hz, 1.43, "lower", voltage_v=0.01)
     assert applied_cm >= golden_cm - 1e-9, (applied_cm, golden_cm)
@@ -1225,7 +1291,7 @@ def _check_port_displacement_golden_rule():
     assert metrics["required_port_diameter_cm"] >= golden_cm - 1e-9, metrics
 
 
-test("DCCAV displacement golden rule floors vent sizing", _check_port_displacement_golden_rule)
+test("Acoustic displacement golden rule floors vent sizing", _check_port_displacement_golden_rule)
 
 
 def _check_port_duct_volume_directive():
@@ -1233,47 +1299,47 @@ def _check_port_duct_volume_directive():
 
     # Exact cylinder fraction for the reported 4.5 cm duct in 4.57 L @ 34.47 Hz.
     volume_l, fb_hz, d_cm = 4.57, 34.47, 4.5
-    length_cm = _dccav.port_length_cm(volume_l, fb_hz, d_cm)
+    length_cm = _acoustics.port_length_cm(volume_l, fb_hz, d_cm)
     expected = np.pi * (d_cm / 2.0) ** 2 * length_cm / 1000.0 / volume_l
-    fraction = _dccav.port_volume_fraction(volume_l, fb_hz, d_cm)
+    fraction = _acoustics.port_volume_fraction(volume_l, fb_hz, d_cm)
     assert abs(fraction - expected) < 1e-12, (fraction, expected)
-    assert fraction > _dccav.PORT_MAX_VOLUME_FRACTION, fraction
-    assert _dccav.port_volume_fraction(100.0, 30.0, 1.0) == 0.0, (
+    assert fraction > _acoustics.PORT_MAX_VOLUME_FRACTION, fraction
+    assert _acoustics.port_volume_fraction(100.0, 30.0, 1.0) == 0.0, (
         "an unreachable tuning is the zero-length warning's job, not this one"
     )
 
-    pipe_hz = _dccav.port_pipe_resonance_hz(84.6)
-    assert abs(pipe_hz - _dccav.SPEED_OF_SOUND / (2.0 * 0.846)) < 1e-9, pipe_hz
+    pipe_hz = _acoustics.port_pipe_resonance_hz(84.6)
+    assert abs(pipe_hz - _acoustics.SPEED_OF_SOUND / (2.0 * 0.846)) < 1e-9, pipe_hz
     try:
-        _dccav.port_pipe_resonance_hz(0.0)
+        _acoustics.port_pipe_resonance_hz(0.0)
         raise AssertionError("non-positive length must raise")
     except ValueError:
         pass
 
     # The user-reported case: an isobaric 12" pair squeezed into 4.57 L at
     # 34.5 Hz needs a duct that displaces ~25% of the chamber - infeasible.
-    ts = _dccav.apply_driver_configuration(
-        _dccav.get_driver_preset("LSDB: PowerBass PBX1-12D2"),
+    ts = _acoustics.apply_driver_configuration(
+        _acoustics.get_driver_preset("LSDB: PowerBass PBX1-12D2"),
         "Isobaric pair (parallel)",
     )
     freq = np.geomspace(10.0, 500.0, 240)
-    bad_box = _dccav.DccavBox(vh_l=5.43, fh_hz=155.12, vl_l=4.57, fl_hz=34.47)
+    bad_box = _acoustics.DccavBox(vh_l=5.43, fh_hz=155.12, vl_l=4.57, fl_hz=34.47)
     bad = _engine._optimizer_metrics(ts, bad_box, freq, 2.83)
-    assert bad["port_volume_fraction"] > _dccav.PORT_MAX_VOLUME_FRACTION, bad
+    assert bad["port_volume_fraction"] > _acoustics.PORT_MAX_VOLUME_FRACTION, bad
     assert _engine._score_alignment(
-        bad, _dccav.OptimizationGoals(), ts, True) >= 1e5, (
+        bad, _acoustics.OptimizationGoals(), ts, True) >= 1e5, (
         "an oversized duct must land in the infeasible score tier"
     )
 
-    optimized = _dccav.optimize_alignment(
-        ts, _dccav.OptimizationGoals(objective="balanced"),
+    optimized = _acoustics.optimize_alignment(
+        ts, _acoustics.OptimizationGoals(objective="balanced"),
         load_type="DCCAV", box_template=bad_box, voltage_v=2.83,
     )
     good = _engine._optimizer_metrics(ts, optimized.box, freq, 2.83)
-    assert good["port_volume_fraction"] <= _dccav.PORT_MAX_VOLUME_FRACTION + 1e-9, good
+    assert good["port_volume_fraction"] <= _acoustics.PORT_MAX_VOLUME_FRACTION + 1e-9, good
 
 
-test("DCCAV duct-volume directive rejects oversized ports", _check_port_duct_volume_directive)
+test("Acoustic duct-volume directive rejects oversized ports", _check_port_duct_volume_directive)
 
 
 def _check_port_diameter_for_load_shared_sizer():
@@ -1282,20 +1348,20 @@ def _check_port_diameter_for_load_shared_sizer():
     # that stays compliant, so the resulting length can undershoot the 5 cm
     # target by less than one grid step - by design, since that keeps the
     # cap intact instead of overshooting it.
-    d = _dccav.port_diameter_for_load(76.0, 30.0, 1.43, floor_cm=4.47)
+    d = _acoustics.port_diameter_for_load(76.0, 30.0, 1.43, floor_cm=4.47)
     assert d is not None and d >= 4.47, d
-    assert _dccav.port_length_cm(76.0, 30.0, d, 1.43) > 0.0, d
-    assert _dccav.port_volume_fraction(76.0, 30.0, d, 1.43) <= _dccav.PORT_MAX_VOLUME_FRACTION
+    assert _acoustics.port_length_cm(76.0, 30.0, d, 1.43) > 0.0, d
+    assert _acoustics.port_volume_fraction(76.0, 30.0, d, 1.43) <= _acoustics.PORT_MAX_VOLUME_FRACTION
 
     # A floor that itself breaks the cap even after grid rounding: no
     # diameter can satisfy every directive for this volume/tuning pair (the
     # exact PowerBass isobaric case from the duct-volume-directive test).
-    assert _dccav.port_diameter_for_load(4.57, 34.47, 1.43, floor_cm=4.47) is None
+    assert _acoustics.port_diameter_for_load(4.57, 34.47, 1.43, floor_cm=4.47) is None
     # A floor just above one where the *grid-rounded* floor alone already
     # exceeds the cap (5 L @ 44 Hz, floor 4.06 cm rounds up to 4.5 cm =
     # 14.6%): confirms rejection is decided post-rounding, not pre-rounding.
-    assert _dccav.port_diameter_for_load(5.0, 44.0, 1.43, floor_cm=4.06) is None
-    assert _dccav.port_volume_fraction(5.0, 44.0, 4.06, 1.43) <= 0.10, (
+    assert _acoustics.port_diameter_for_load(5.0, 44.0, 1.43, floor_cm=4.06) is None
+    assert _acoustics.port_volume_fraction(5.0, 44.0, 4.06, 1.43) <= 0.10, (
         "the raw (unrounded) floor must look compliant on its own - the "
         "rejection only appears after grid-rounding to a buildable diameter"
     )
@@ -1306,7 +1372,7 @@ def _check_port_diameter_for_load_shared_sizer():
     # continuous optimum. `d` above (5.0 cm) is itself the down-rounded
     # result of a raw optimum between 4.5 and 5.0 cm.
     assert abs(d / 0.5 - round(d / 0.5)) < 1e-9, d  # on the 0.5 cm grid
-    assert _dccav.port_length_cm(76.0, 30.0, d - 0.5, 1.43) < 5.0, (
+    assert _acoustics.port_length_cm(76.0, 30.0, d - 0.5, 1.43) < 5.0, (
         "the next grid step down must miss the length target - otherwise "
         "the function overshot instead of rounding to the nearest compliant point"
     )
@@ -1330,27 +1396,27 @@ def _check_optimizer_and_ui_port_sizing_agree():
     import ui_app as _ui
     from src import engine as _engine
 
-    ts = _dccav.apply_driver_configuration(
-        _dccav.get_driver_preset("LSDB: PowerBass PBX1-12D2"),
+    ts = _acoustics.apply_driver_configuration(
+        _acoustics.get_driver_preset("LSDB: PowerBass PBX1-12D2"),
         "Isobaric pair (parallel)",
     )
     freq = np.geomspace(10.0, 500.0, 240)
     mismatches = []
     for vb in np.arange(3.0, 15.0, 1.0):
         for fb in np.arange(20.0, 55.0, 1.0):
-            box = _dccav.ReflexBox(vb_l=float(vb), fb_hz=float(fb))
+            box = _acoustics.ReflexBox(vb_l=float(vb), fb_hz=float(fb))
             try:
-                result = _dccav.simulate_reflex(ts, box, freq, 2.83)
+                result = _acoustics.simulate_reflex(ts, box, freq, 2.83)
             except ValueError:
                 continue
             applied_cm = _ui._optimized_port_diameter_cm(
                 ts, result, box.vb_l, box.fb_hz, 1.43, "lower")
-            applied_fraction = _dccav.port_volume_fraction(
+            applied_fraction = _acoustics.port_volume_fraction(
                 box.vb_l, box.fb_hz, applied_cm, 1.43)
             opt_fraction = _engine._optimizer_metrics(
                 ts, box, freq, 2.83)["port_volume_fraction"]
-            if opt_fraction <= _dccav.PORT_MAX_VOLUME_FRACTION + 1e-9 and (
-                    applied_fraction > _dccav.PORT_MAX_VOLUME_FRACTION + 1e-6):
+            if opt_fraction <= _acoustics.PORT_MAX_VOLUME_FRACTION + 1e-9 and (
+                    applied_fraction > _acoustics.PORT_MAX_VOLUME_FRACTION + 1e-6):
                 mismatches.append((vb, fb, opt_fraction, applied_fraction, applied_cm))
     assert not mismatches, mismatches
 
@@ -1376,16 +1442,16 @@ def _check_reflex_optimizer_survives_infeasible_starting_neighborhood():
     perfectly good reflex box existed within the search bounds; fix 2 is the
     deterministic diagonal-restart mechanism in `optimize_alignment`.
     """
-    ts = _dccav.apply_driver_configuration(
-        _dccav.get_driver_preset("LSDB: PowerBass PBX1-12D2"),
+    ts = _acoustics.apply_driver_configuration(
+        _acoustics.get_driver_preset("LSDB: PowerBass PBX1-12D2"),
         "Isobaric pair (parallel)",
     )
     for cap in (None, 15.0, 18.0, 20.0, 30.0, 40.0):
-        goals = _dccav.OptimizationGoals(objective="extension", max_total_volume_l=cap)
-        opt = _dccav.optimize_alignment(ts, goals, load_type="Bass reflex")
+        goals = _acoustics.OptimizationGoals(objective="extension", max_total_volume_l=cap)
+        opt = _acoustics.optimize_alignment(ts, goals, load_type="Bass reflex")
         assert np.isfinite(opt.f3_hz), (cap, opt)
         freq = np.geomspace(10.0, 500.0, 240)
-        result = _dccav.simulate_reflex(ts, opt.box, freq, 2.83)
+        result = _acoustics.simulate_reflex(ts, opt.box, freq, 2.83)
         assert result is not None, cap
 
 
@@ -1404,27 +1470,27 @@ def _check_port_max_straight_length_directive():
     from src import engine as _engine
 
     # Exact reported case.
-    side_cm = _dccav.port_max_straight_length_cm(40.0)
+    side_cm = _acoustics.port_max_straight_length_cm(40.0)
     assert abs(side_cm - 40_000.0 ** (1.0 / 3.0)) < 1e-9, side_cm
-    length_cm = _dccav.port_length_cm(40.0, 18.59, 5.5, 1.43)
+    length_cm = _acoustics.port_length_cm(40.0, 18.59, 5.5, 1.43)
     assert length_cm > side_cm, (length_cm, side_cm)
-    fraction = _dccav.port_volume_fraction(40.0, 18.59, 5.5, 1.43)
-    assert fraction <= _dccav.PORT_MAX_VOLUME_FRACTION, (
+    fraction = _acoustics.port_volume_fraction(40.0, 18.59, 5.5, 1.43)
+    assert fraction <= _acoustics.PORT_MAX_VOLUME_FRACTION, (
         "the case must slip past the volume-fraction directive on its own", fraction
     )
     try:
-        _dccav.port_max_straight_length_cm(0.0)
+        _acoustics.port_max_straight_length_cm(0.0)
         raise AssertionError("non-positive volume must raise")
     except ValueError:
         pass
 
-    ts = _dccav.get_driver_preset("LSDB: PowerBass PBX1-12D2")
-    box = _dccav.ReflexBox(vb_l=40.0, fb_hz=18.59)
+    ts = _acoustics.get_driver_preset("LSDB: PowerBass PBX1-12D2")
+    box = _acoustics.ReflexBox(vb_l=40.0, fb_hz=18.59)
     freq = np.geomspace(10.0, 500.0, 240)
     metrics = _engine._optimizer_metrics(ts, box, freq, 2.83)
     assert metrics["port_length_over_box_ratio"] > 1.0, metrics
     score = _engine._score_alignment(
-        metrics, _dccav.OptimizationGoals(objective="balanced"), ts, False)
+        metrics, _acoustics.OptimizationGoals(objective="balanced"), ts, False)
     assert score >= 1e5, (
         "a duct longer than the box can straight-fit must land in the "
         "infeasible score tier even at a compliant duct-volume fraction", score
@@ -1432,14 +1498,14 @@ def _check_port_max_straight_length_directive():
 
     # The real optimizer must steer clear of this combination for the same
     # driver/volume, landing on a box whose length ratio is compliant.
-    goals = _dccav.OptimizationGoals(objective="extension", max_total_volume_l=40.0)
-    opt = _dccav.optimize_alignment(ts, goals, load_type="Bass reflex")
+    goals = _acoustics.OptimizationGoals(objective="extension", max_total_volume_l=40.0)
+    opt = _acoustics.optimize_alignment(ts, goals, load_type="Bass reflex")
     good_metrics = _engine._optimizer_metrics(ts, opt.box, freq, 2.83)
     assert good_metrics["port_length_over_box_ratio"] <= 1.0 + 1e-9, good_metrics
 
 
 test(
-    "DCCAV port length directive rejects a duct longer than the box can hold",
+    "Acoustic port-length directive rejects a duct longer than the box can hold",
     _check_port_max_straight_length_directive,
 )
 
@@ -1447,7 +1513,7 @@ test(
 def _check_ui_port_geometry_warns_on_excessive_length():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     state = at.session_state
     state["workspace_mode"] = "Box Design"
     state["load_type"] = "Bass reflex"
@@ -1481,7 +1547,7 @@ test(
 def _check_ui_port_duct_volume_and_pipe_warnings():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     state = at.session_state
     state["workspace_mode"] = "Box Design"
     state["load_type"] = "Bass reflex"
@@ -1512,7 +1578,7 @@ test(
 def _check_ui_port_geometry_warns_below_golden_rule():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     state = at.session_state
     state["workspace_mode"] = "Box Design"
     state["load_type"] = "Bass reflex"
@@ -1551,7 +1617,7 @@ test(
 def _check_ui_port_geometry_warns_on_small_vent():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     state = at.session_state
     state["workspace_mode"] = "Box Design"
     state["load_type"] = "Bass reflex"
@@ -1579,8 +1645,8 @@ test("UI port geometry warns about small-vent air speed", _check_ui_port_geometr
 
 def _check_driver_reference_metrics():
     ts = replace(_kef_b110_ts(), panel_air_load=False)
-    drv = _dccav.complete_driver(ts)
-    ref = _dccav.driver_reference_metrics(ts)
+    drv = _acoustics.complete_driver(ts)
+    ref = _acoustics.driver_reference_metrics(ts)
     assert abs(ref.ebp_hz - ts.fs_hz / drv.qes) < 1e-9, ref.ebp_hz
     assert 0.002 < ref.eta0 < 0.004, ref.eta0
     assert 85.0 < ref.spl_1w_db < 89.0, ref.spl_1w_db
@@ -1588,13 +1654,13 @@ def _check_driver_reference_metrics():
     assert 105.0 < ref.ebp_hz < 120.0, "article driver EBP should suggest a ported load"
 
 
-test("DCCAV driver reference metrics match classical formulas", _check_driver_reference_metrics)
+test("Driver reference metrics match classical formulas", _check_driver_reference_metrics)
 
 
 def _check_ui_reference_metrics_row():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Box Design"
     at.run()
     assert not at.exception, at.exception
@@ -1611,15 +1677,15 @@ test("UI shows reference efficiency, sensitivity and EBP metrics", _check_ui_ref
 
 def _check_series_resistance_effects():
     ts = _beyma_ts()
-    reflex = _dccav.suggest_reflex_alignment(ts)
-    box = _dccav.ReflexBox(vb_l=reflex.vb_l, fb_hz=reflex.fb_hz)
+    reflex = _acoustics.suggest_reflex_alignment(ts)
+    box = _acoustics.ReflexBox(vb_l=reflex.vb_l, fb_hz=reflex.fb_hz)
     freq = np.geomspace(10.0, 500.0, 500)
-    base = _dccav.simulate_reflex(ts, box, freq)
-    zero_rs = _dccav.simulate_reflex(ts, box, freq, series_r_ohm=0.0)
+    base = _acoustics.simulate_reflex(ts, box, freq)
+    zero_rs = _acoustics.simulate_reflex(ts, box, freq, series_r_ohm=0.0)
     np.testing.assert_allclose(zero_rs.spl_total_db, base.spl_total_db)
     np.testing.assert_allclose(zero_rs.impedance_ohm, base.impedance_ohm)
 
-    with_rs = _dccav.simulate_reflex(ts, box, freq, series_r_ohm=2.0)
+    with_rs = _acoustics.simulate_reflex(ts, box, freq, series_r_ohm=2.0)
     z_min_shift = np.min(with_rs.impedance_ohm) - np.min(base.impedance_ohm)
     assert 1.5 < z_min_shift < 2.5, f"source must see ~2 ohm more, got {z_min_shift:.2f}"
     assert np.nanmax(with_rs.spl_total_db) < np.nanmax(base.spl_total_db), (
@@ -1633,30 +1699,30 @@ def _check_series_resistance_effects():
         "driver-side thermal power must not grow with series R"
     )
 
-    a = _dccav.suggest_alignment(ts)
-    dccav_box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    a = _acoustics.suggest_alignment(ts)
+    dccav_box = _acoustics.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
     for run in (
-        _dccav.simulate(ts, dccav_box, freq, 2.83, 2.0),
-        _dccav.simulate_sealed(ts, _dccav.SealedBox(vb_l=40.0), freq, 2.83, 2.0),
-        _dccav.simulate_infinite_baffle(ts, freq, 2.83, 2.0),
+        _acoustics.simulate(ts, dccav_box, freq, 2.83, 2.0),
+        _acoustics.simulate_sealed(ts, _acoustics.SealedBox(vb_l=40.0), freq, 2.83, 2.0),
+        _acoustics.simulate_infinite_baffle(ts, freq, 2.83, 2.0),
     ):
         assert np.all(np.isfinite(run.spl_total_db)), "series R runs must stay finite"
         assert np.min(run.impedance_ohm) > ts.re_ohm + 1.5, "impedance must include series R"
 
     try:
-        _dccav.simulate_reflex(ts, box, freq, series_r_ohm=-1.0)
+        _acoustics.simulate_reflex(ts, box, freq, series_r_ohm=-1.0)
         raise AssertionError("negative series resistance must raise")
     except ValueError:
         pass
 
 
-test("DCCAV series resistance shifts impedance, drive and damping", _check_series_resistance_effects)
+test("Acoustic loads apply series resistance to impedance, drive and damping", _check_series_resistance_effects)
 
 
 def _check_ui_series_resistance_input():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Box Design"
     at.run()
     assert not at.exception, at.exception
@@ -1677,7 +1743,7 @@ test("UI series resistance raises the minimum impedance metric", _check_ui_serie
 def _check_ui_pin_response_overlay():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["load_type"] = "DCCAV"
     at.run()
@@ -1756,7 +1822,7 @@ def _check_ui_pin_response_overlay():
     assert not at.exception, at.exception
     assert not at.session_state["pinned_responses"], "clear must drop every pinned snapshot"
 
-    legacy = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    legacy = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     legacy.session_state["workspace_mode"] = "Box Design"
     legacy.session_state["load_type"] = "Sealed"
     legacy.session_state["pinned_response"] = {
@@ -1818,7 +1884,7 @@ def _check_ui_editable_design_comparison_tabs():
     assert _ui._design_tab_label_driver(
         "2 · Variant of Bass reflex · LSDB: SB Acoustics WO24TX-4 · Vb 75 L"
     ) == "LSDB: SB Acoustics WO24TX-4"
-    lsdb_driver = _dccav.get_driver_preset("LSDB: PowerBass PBX1-12D2")
+    lsdb_driver = _acoustics.get_driver_preset("LSDB: PowerBass PBX1-12D2")
     assert _ui._recover_design_tab_preset({
         "driver_fs_hz": lsdb_driver.fs_hz,
         "driver_vas_l": lsdb_driver.vas_l,
@@ -2052,10 +2118,10 @@ def _check_ui_reuses_unchanged_design_simulation():
     import ui_app as _ui
 
     ts = _beyma_ts()
-    box = _dccav.SealedBox(vb_l=40.0)
+    box = _acoustics.SealedBox(vb_l=40.0)
     revision = (1.0, 1.0)
     calls = 0
-    original = _ui._dccav.simulate_sealed
+    original = _ui._acoustics.simulate_sealed
 
     def counted(*args, **kwargs):
         nonlocal calls
@@ -2063,7 +2129,7 @@ def _check_ui_reuses_unchanged_design_simulation():
         return original(*args, **kwargs)
 
     _ui._simulate_design_cached.clear()
-    _ui._dccav.simulate_sealed = counted
+    _ui._acoustics.simulate_sealed = counted
     try:
         first = _ui._simulate_design_cached(
             revision, ts, "Sealed", box, 10.0, 500.0, 180, 2.83, 0.0
@@ -2080,7 +2146,7 @@ def _check_ui_reuses_unchanged_design_simulation():
         )
         assert calls == 2, "a changed simulation input must invalidate the cache"
     finally:
-        _ui._dccav.simulate_sealed = original
+        _ui._acoustics.simulate_sealed = original
         _ui._simulate_design_cached.clear()
 
 
@@ -2182,8 +2248,8 @@ def _check_ui_load_comparison_overlay():
     import ui_app as _ui
 
     ts = _beyma_ts()
-    a = _dccav.suggest_alignment(ts)
-    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    a = _acoustics.suggest_alignment(ts)
+    box = _acoustics.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
     freq = np.geomspace(10.0, 500.0, 300)
     vtot, series = _ui._topology_comparison_series(ts, "DCCAV", box, freq, 2.83, 0.0)
     assert abs(vtot - (a.vh_l + a.vl_l)) < 1e-9, vtot
@@ -2194,15 +2260,15 @@ def _check_ui_load_comparison_overlay():
         assert values.shape == freq.shape, name
         assert np.all(np.isfinite(values)), f"{name} comparison response must be finite"
 
-    reflex_box = _dccav.ReflexBox(vb_l=40.0, fb_hz=45.0)
+    reflex_box = _acoustics.ReflexBox(vb_l=40.0, fb_hz=45.0)
     vtot_r, series_r = _ui._topology_comparison_series(ts, "Bass reflex", reflex_box, freq, 2.83, 0.0)
     assert abs(vtot_r - 40.0) < 1e-9, vtot_r
-    direct = _dccav.simulate_reflex(ts, reflex_box, freq, 2.83, 0.0)
+    direct = _acoustics.simulate_reflex(ts, reflex_box, freq, 2.83, 0.0)
     np.testing.assert_allclose(series_r["Bass reflex"], direct.spl_total_db)
 
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["plot_compare_loads"] = True
     at.run()
@@ -2221,7 +2287,7 @@ def _check_ui_share_link_roundtrip():
 
     import ui_app as _ui
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["project_menu_expander"] = True
     at.run()
     at.session_state["load_type"] = "Bass reflex"
@@ -2242,7 +2308,7 @@ def _check_ui_share_link_roundtrip():
     assert abs(float(decoded["driver_fs_hz"]) - 33.0) < 1e-9
     assert abs(float(decoded["reflex_vb_l"]) - 55.5) < 1e-9
 
-    at2 = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at2 = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at2.query_params["d"] = token
     at2.run()
     assert not at2.exception, at2.exception
@@ -2250,7 +2316,7 @@ def _check_ui_share_link_roundtrip():
     assert abs(float(at2.session_state["driver_fs_hz"]) - 33.0) < 1e-9
     assert abs(float(at2.session_state["reflex_vb_l"]) - 55.5) < 1e-9
 
-    at3 = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at3 = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at3.query_params["d"] = "not-a-valid-token"
     at3.run()
     assert not at3.exception, at3.exception
@@ -2275,7 +2341,7 @@ def _check_ui_project_preset_upload_finishes():
         "box_strategy": "Manual",
     }).encode("utf-8")
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["project_menu_expander"] = True
     at.run()
     assert any(
@@ -2402,7 +2468,7 @@ test(
 def _check_ui_new_browser_project_starts_clean():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["project_menu_expander"] = True
     at.session_state["_browser_project_initialized"] = True
     at.session_state["_browser_active_project"] = {
@@ -2482,7 +2548,7 @@ def _check_ui_browser_projects_duplicate_and_delete():
         ["Sub alignment", "Sub alignment copy"],
     ) == "Sub alignment copy 2"
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["project_menu_expander"] = True
     at.session_state["_browser_project_initialized"] = True
     at.session_state["_browser_project_store_ready"] = True
@@ -2533,7 +2599,7 @@ def _check_ui_browser_projects_duplicate_and_delete():
     assert request["project_id"] == deleted_id
     assert abs(float(at.session_state["driver_fs_hz"]) - 31.5) > 1e-9
 
-    chooser = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    chooser = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     chooser.session_state["project_menu_expander"] = True
     chooser.session_state["_browser_project_initialized"] = True
     chooser.session_state["_browser_project_store_ready"] = True
@@ -2654,7 +2720,7 @@ def _check_ui_complete_lfp_restores_bass_match():
         },
     }
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["project_menu_expander"] = True
     at.run()
     project_upload = next(
@@ -2866,7 +2932,7 @@ def _check_ui_saas_local_project_roundtrip():
     previous = {key: os.environ.get(key) for key in keys}
     try:
         os.environ.update(keys)
-        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
         at.session_state["project_menu_expander"] = True
         at.session_state["load_type"] = "Bass reflex"
         at.session_state["box_strategy"] = "Manual"
@@ -2958,7 +3024,7 @@ def _check_ui_saas_local_registration_login_logout():
                     os.environ.pop(key, None)
                 else:
                     os.environ[key] = value
-            at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+            at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
             at.session_state["project_menu_expander"] = True
             at.run()
             assert not at.exception, at.exception
@@ -3017,22 +3083,22 @@ test(
 
 
 def _check_driver_bandwidth_classifier():
-    sub = _dccav.classify_driver_bandwidth(_dccav.get_driver_preset("Dayton Audio RSS315HO-4"))
+    sub = _acoustics.classify_driver_bandwidth(_acoustics.get_driver_preset("Dayton Audio RSS315HO-4"))
     assert sub.driver_class == "Subwoofer", sub
     assert sub.f_le_hz is not None and 250.0 < sub.f_le_hz < 330.0, sub.f_le_hz
 
-    mid = _dccav.classify_driver_bandwidth(_beyma_ts())
+    mid = _acoustics.classify_driver_bandwidth(_beyma_ts())
     assert mid.driver_class == "Midbass-capable", mid
     expected_f_le = 6.0 / (2.0 * np.pi * 0.001)
     assert abs(mid.f_le_hz - expected_f_le) < 1e-6, mid.f_le_hz
     assert mid.reasons, "classification must expose its indicators"
 
-    tiny = _dccav.classify_driver_bandwidth(_dccav.get_driver_preset("Aiyima 4ohm 5w 40mm black"))
+    tiny = _acoustics.classify_driver_bandwidth(_acoustics.get_driver_preset("Aiyima 4ohm 5w 40mm black"))
     assert tiny.f_le_hz is None, "Le=0 must map to an unknown voice-coil corner"
-    assert tiny.driver_class in _dccav.DRIVER_CLASSES, tiny
+    assert tiny.driver_class in _acoustics.DRIVER_CLASSES, tiny
 
 
-test("DCCAV bandwidth classifier separates subwoofers from midbass drivers", _check_driver_bandwidth_classifier)
+test("Driver bandwidth classifier separates subwoofers from midbass drivers", _check_driver_bandwidth_classifier)
 
 
 def _check_ui_class_filter():
@@ -3044,7 +3110,7 @@ def _check_ui_class_filter():
     assert _ui._driver_class_label("Midbass-capable") == "Midbass"
 
     names = tuple(
-        name for name in _dccav.driver_preset_names()
+        name for name in _acoustics.driver_preset_names()
         if not name.startswith("LSDB:")
     )
     subs = _ui._filter_driver_preset_names(
@@ -3058,7 +3124,7 @@ def _check_ui_class_filter():
 
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Bass Match"
     at.run()
     at.session_state["preset_class_filter"] = "Midbass"
@@ -3090,7 +3156,7 @@ test("UI class filter separates subwoofers from midbass presets", _check_ui_clas
 def _check_ui_reflex_volume_keeps_impedance_peaks():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     state = at.session_state
     state["workspace_mode"] = "Box Design"
     state["load_type"] = "Bass reflex"
@@ -3139,7 +3205,7 @@ test("UI bass-reflex volume edits preserve resonance diagnostics", _check_ui_ref
 def _check_response_chart_domain_tracks_10hz_and_peak():
     import ui_app as _ui
 
-    result = _dccav.SimulationResult(
+    result = _acoustics.SimulationResult(
         frequency_hz=np.array([10.0, 20.0, 40.0]),
         spl_total_db=np.array([40.0, 70.0, 80.0]),
         spl_driver_db=np.array([39.0, 69.0, 78.0]),
@@ -3176,7 +3242,7 @@ test("UI response chart zoom anchors at 10 Hz and keeps displayed traces visible
 def _check_ui_response_zoom_slider_and_reset():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.run()
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["load_type"] = "Bandpass 4th order"
@@ -3212,7 +3278,7 @@ test("UI response zoom has a frequency window and reliable reset", _check_ui_res
 def _check_ui_response_toggles_survive_workspace_and_preset_changes():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["load_type"] = "Bandpass 4th order"
     at.run()
@@ -3251,7 +3317,7 @@ test(
 def _check_response_chart_drops_non_finite_points_and_keeps_label_scale_clean():
     import ui_app as _ui
 
-    result = _dccav.SimulationResult(
+    result = _acoustics.SimulationResult(
         frequency_hz=np.array([10.0, 20.0, 40.0]),
         spl_total_db=np.array([40.0, np.nan, 80.0]),
         spl_driver_db=np.array([39.0, 69.0, np.inf]),
@@ -3314,7 +3380,7 @@ test("UI response chart filters invalid points and keeps cursor labels on the dB
 def _check_response_chart_has_click_marker():
     import ui_app as _ui
 
-    result = _dccav.SimulationResult(
+    result = _acoustics.SimulationResult(
         frequency_hz=np.array([10.0, 20.0, 40.0]),
         spl_total_db=np.array([40.0, 70.0, 80.0]),
         spl_driver_db=np.array([39.0, 69.0, 78.0]),
@@ -3348,7 +3414,7 @@ test("UI response chart has a clickable moving marker", _check_response_chart_ha
 def _check_response_chart_mil_keeps_independent_right_axis():
     import ui_app as _ui
 
-    result = _dccav.SimulationResult(
+    result = _acoustics.SimulationResult(
         frequency_hz=np.array([10.0, 20.0, 40.0]),
         spl_total_db=np.array([40.0, 70.0, 80.0]),
         spl_driver_db=np.array([39.0, 69.0, 78.0]),
@@ -3406,7 +3472,7 @@ test(
 def _check_ui_mil_mol_buttons_kept_but_curve_hidden():
     import ui_app as _ui
 
-    result = _dccav.SimulationResult(
+    result = _acoustics.SimulationResult(
         frequency_hz=np.array([10.0, 20.0, 40.0]),
         spl_total_db=np.array([40.0, 70.0, 80.0]),
         spl_driver_db=np.array([39.0, 69.0, 78.0]),
@@ -3472,7 +3538,7 @@ def _check_ui_driver_preset_filters_reduce_list():
             "User supplied",
         )
     )
-    names = _dccav.driver_preset_names()
+    names = _acoustics.driver_preset_names()
     assert (
         _ui._driver_preset_source("Beyma 12CMV2")
         == "Load Forge database"
@@ -3501,7 +3567,7 @@ def _check_ui_driver_preset_filters_reduce_list():
         _ui.st.session_state[item_key] for item_key in callback_item_keys
     )
     category_examples = {
-        _dccav.driver_preset_info(name).source: name
+        _acoustics.driver_preset_info(name).source: name
         for name in names
     }
     for exact_source, expected_category in (
@@ -3560,7 +3626,7 @@ def _check_ui_driver_preset_filters_reduce_list():
 
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Bass Match"
     at.session_state["bass_match_sidebar_tab"] = "Library filters"
     at.session_state["finder_candidate_pool_expander"] = True
@@ -3683,7 +3749,7 @@ def _check_ui_driver_preset_price_filter_uses_optional_metadata():
         _ui._driver_preset_currency = original_currency
         _ui._current_exchange_rates = original_rates
 
-    info = _dccav.DriverPresetInfo(
+    info = _acoustics.DriverPresetInfo(
         name="priced",
         source="test",
         brand="brand",
@@ -3702,7 +3768,7 @@ def _check_ui_driver_library_compares_nominal_size_and_sd():
     import ui_app as _ui
 
     assert _ui._presets.coherent_nominal_size_in(None, 530.0) == 12.0
-    assert _ui._dccav.driver_preset_info("Beyma 12CMV2").size_in == 12.0
+    assert _ui._acoustics.driver_preset_info("Beyma 12CMV2").size_in == 12.0
 
     saved_rows = [{
         "Driver": "ZTZ: TN-12MD300",
@@ -3714,11 +3780,11 @@ def _check_ui_driver_library_compares_nominal_size_and_sd():
     assert saved_rows[0]["Size in"] is None, "saved rows must not be mutated in place"
 
     alpair_name = next(
-        name for name in _ui._dccav.driver_preset_names()
+        name for name in _ui._acoustics.driver_preset_names()
         if name.startswith("WEB: Markaudio Alpair 10P [MFR ")
     )
     dayton_name = next(
-        name for name in _ui._dccav.driver_preset_names()
+        name for name in _ui._acoustics.driver_preset_names()
         if name.startswith("WEB: Dayton Audio DS175-8")
     )
     frame = _ui._driver_library_frame((
@@ -3752,8 +3818,8 @@ def _check_ui_driver_library_compares_nominal_size_and_sd():
 
     missing_sizes = [
         name
-        for name in _ui._dccav.driver_preset_names()
-        if _ui._dccav.driver_preset_info(name).size_in is None
+        for name in _ui._acoustics.driver_preset_names()
+        if _ui._acoustics.driver_preset_info(name).size_in is None
     ]
     assert missing_sizes == [], (
         f"every runtime driver with valid Sd must receive a nominal size: "
@@ -3761,7 +3827,7 @@ def _check_ui_driver_library_compares_nominal_size_and_sd():
     )
 
     sb_name = next(
-        name for name in _ui._dccav.driver_preset_names()
+        name for name in _ui._acoustics.driver_preset_names()
         if name.startswith("WEB: SB Acoustics") and "SB17NRXC35-4" in name
     )
     sb_frame = _ui._driver_library_frame((sb_name,))
@@ -3801,17 +3867,17 @@ def _check_ui_driver_library_compares_nominal_size_and_sd():
     ) == ("Celestion", "TF1830")
 
     dayton_retailer_name = next(
-        name for name in _ui._dccav.driver_preset_names()
+        name for name in _ui._acoustics.driver_preset_names()
         if name.startswith("WEB: Dayton Audio RSS315HO-4 12")
     )
 
-    ztz_info = _dccav.driver_preset_info("ZTZ: TN-18SW1280")
+    ztz_info = _acoustics.driver_preset_info("ZTZ: TN-18SW1280")
     assert ztz_info.mechanical is not None
     assert ztz_info.mechanical.overall_diameter_mm == 462.0
     assert ztz_info.mechanical.cutout_diameter_mm == 430.0
     assert ztz_info.mechanical.depth_mm == 208.0
     mixed = _ui._filter_driver_preset_names(
-        _ui._dccav.driver_preset_names(),
+        _ui._acoustics.driver_preset_names(),
         source="All", family=["ZTZ Audio", "Beyma"], size="All",
         search="", driver_class="All",
     )
@@ -3835,7 +3901,7 @@ test(
 def _check_ui_catalog_maintenance_normalizes_part_numbers():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.query_params["maintenance"] = "1"
     at.session_state["maintenance_query"] = 'LOUDSPEAKER 8"MC300Nd'
     at.run()
@@ -3880,20 +3946,20 @@ def _check_admin_can_save_box_design_ts_to_catalog():
                 "qms": 3.0, "re_ohm": 6.0, "sd_cm2": 220.0,
             },
         }]}), encoding="utf-8")
-        original = _ui._dccav.get_driver_preset
-        original_info = _ui._dccav.driver_preset_info
-        _ui._dccav.get_driver_preset = lambda _name: _ui._dccav.DriverTS(
+        original = _ui._acoustics.get_driver_preset
+        original_info = _ui._acoustics.driver_preset_info
+        _ui._acoustics.get_driver_preset = lambda _name: _ui._acoustics.DriverTS(
             fs_hz=30.0, vas_l=50.0, qts=0.4, qms=3.0, re_ohm=6.0,
             sd_cm2=220.0,
         )
-        _ui._dccav.driver_preset_info = lambda _name: _ui._presets.DriverPresetInfo(
+        _ui._acoustics.driver_preset_info = lambda _name: _ui._presets.DriverPresetInfo(
             name="Catalog test driver", source="Manufacturer crawl",
             brand="Catalog", model="test driver", part_number="test driver",
         )
         try:
             saved = _ui._update_catalog_driver_from_box_design(
                 "Catalog test driver",
-                _ui._dccav.DriverTS(
+                _ui._acoustics.DriverTS(
                     fs_hz=28.0, vas_l=55.0, qts=0.35, qms=3.2,
                     re_ohm=5.8, sd_cm2=225.0, le_mh=1.1, xmax_mm=7.0,
                     pe_w=300.0,
@@ -3901,8 +3967,8 @@ def _check_admin_can_save_box_design_ts_to_catalog():
                 path=catalog_path,
             )
         finally:
-            _ui._dccav.get_driver_preset = original
-            _ui._dccav.driver_preset_info = original_info
+            _ui._acoustics.get_driver_preset = original
+            _ui._acoustics.driver_preset_info = original_info
         assert saved == "Catalog test driver"
         saved_driver = json.loads(catalog_path.read_text(encoding="utf-8"))[
             "presets"][0]["driver"]
@@ -3991,10 +4057,10 @@ test(
 )
 
 
-def _check_dccav_loads_external_price_records(tmp_path=None):
+def _check_acoustics_loads_external_price_records(tmp_path=None):
     from src import presets as _presets
 
-    price_path = _dccav.DRIVER_PRICES_PATH
+    price_path = _acoustics.DRIVER_PRICES_PATH
     original_exists = price_path.exists()
     original_text = price_path.read_text(encoding="utf-8") if original_exists else None
     try:
@@ -4011,29 +4077,29 @@ def _check_dccav_loads_external_price_records(tmp_path=None):
             '}\n',
             encoding="utf-8",
         )
-        _dccav._load_driver_price_records.cache_clear()
-        _dccav._load_loudspeaker_database_presets.cache_clear()
-        _dccav._load_manufacturer_presets.cache_clear()
-        _dccav._load_vituixcad_presets.cache_clear()
-        _dccav._load_speakerboxlite_presets.cache_clear()
+        _acoustics._load_driver_price_records.cache_clear()
+        _acoustics._load_loudspeaker_database_presets.cache_clear()
+        _acoustics._load_manufacturer_presets.cache_clear()
+        _acoustics._load_vituixcad_presets.cache_clear()
+        _acoustics._load_speakerboxlite_presets.cache_clear()
         _presets._external_tiers.cache_clear()
-        _dccav.driver_preset_names.cache_clear()
-        _dccav.driver_preset_info.cache_clear()
-        _dccav.get_driver_preset.cache_clear()
-        info = _dccav.driver_preset_info("Beyma 12CMV2")
+        _acoustics.driver_preset_names.cache_clear()
+        _acoustics.driver_preset_info.cache_clear()
+        _acoustics.get_driver_preset.cache_clear()
+        info = _acoustics.driver_preset_info("Beyma 12CMV2")
         assert info.price == 321.5
         assert info.currency == "EUR"
         assert info.url == "https://example.test/beyma"
-        assert _dccav.driver_preset_info("Beyma 12G40").price == 0.29
-        assert _dccav.driver_preset_info("Beyma 12BR70").price is None
-        assert _dccav.driver_preset_info("Beyma 12MCS500").price is None
+        assert _acoustics.driver_preset_info("Beyma 12G40").price == 0.29
+        assert _acoustics.driver_preset_info("Beyma 12BR70").price is None
+        assert _acoustics.driver_preset_info("Beyma 12MCS500").price is None
         own_wo24p8 = [
             name
-            for name in _dccav.driver_preset_names()
+            for name in _acoustics.driver_preset_names()
             if name.startswith("WEB: SB Acoustics") and "WO24P-8" in name
         ]
         assert len(own_wo24p8) == 1, own_wo24p8
-        sb_info = _dccav.driver_preset_info(own_wo24p8[0])
+        sb_info = _acoustics.driver_preset_info(own_wo24p8[0])
         assert sb_info.source == "SB Acoustics crawler", sb_info
         assert sb_info.price == 239.95 and sb_info.currency == "EUR", sb_info
         assert sb_info.url == "https://example.test/wo24p-8", sb_info
@@ -4045,18 +4111,18 @@ def _check_dccav_loads_external_price_records(tmp_path=None):
                 price_path.unlink()
             except FileNotFoundError:
                 pass
-        _dccav._load_driver_price_records.cache_clear()
-        _dccav._load_loudspeaker_database_presets.cache_clear()
-        _dccav._load_manufacturer_presets.cache_clear()
-        _dccav._load_vituixcad_presets.cache_clear()
-        _dccav._load_speakerboxlite_presets.cache_clear()
+        _acoustics._load_driver_price_records.cache_clear()
+        _acoustics._load_loudspeaker_database_presets.cache_clear()
+        _acoustics._load_manufacturer_presets.cache_clear()
+        _acoustics._load_vituixcad_presets.cache_clear()
+        _acoustics._load_speakerboxlite_presets.cache_clear()
         _presets._external_tiers.cache_clear()
-        _dccav.driver_preset_names.cache_clear()
-        _dccav.driver_preset_info.cache_clear()
-        _dccav.get_driver_preset.cache_clear()
+        _acoustics.driver_preset_names.cache_clear()
+        _acoustics.driver_preset_info.cache_clear()
+        _acoustics.get_driver_preset.cache_clear()
 
 
-test("DCCAV loads external price records", _check_dccav_loads_external_price_records)
+test("Acoustic facade loads external price records", _check_acoustics_loads_external_price_records)
 
 
 def _check_vituixcad_importer_validates_and_deduplicates():
@@ -6666,7 +6732,7 @@ def _check_ui_finder_prefilters_known_driver_limits():
     import ui_app as _ui
 
     ts = _kef_b110_ts()
-    reference = _dccav.driver_reference_metrics(ts)
+    reference = _acoustics.driver_reference_metrics(ts)
     plausible_peak_db = (
         reference.spl_2v83_db + _ui._FINDER_SPL_PREFILTER_HEADROOM_DB
     )
@@ -6770,7 +6836,7 @@ def _check_ui_batch_finder_optimizes_each_driver():
     import ui_app as _ui
 
     names = ("KEF B110B article example", "Beyma 12CMV2")
-    goals = _dccav.OptimizationGoals(objective="extension")
+    goals = _acoustics.OptimizationGoals(objective="extension")
     optimized = _ui._batch_rank_presets(
         names, "DCCAV", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals
     )
@@ -6792,7 +6858,7 @@ def _check_ui_batch_finder_optimizes_each_driver():
 
     large_cap = _ui._batch_rank_presets(
         names, "DCCAV", 1000.0, 2.83, 10.0, 300.0, 120, len(names),
-        goals=_dccav.OptimizationGoals(objective="balanced"),
+        goals=_acoustics.OptimizationGoals(objective="balanced"),
     )
     large_cap_totals = [row["Vh L"] + row["Vl L"] for row in large_cap]
     assert large_cap_totals
@@ -6937,43 +7003,43 @@ test(
 
 
 def _check_optimizer_respects_volume_cap():
-    ts = _dccav.get_driver_preset("Beyma 12CMV2")
-    goals = _dccav.OptimizationGoals(objective="extension", max_total_volume_l=60.0)
-    opt = _dccav.optimize_alignment(ts, goals)
-    assert isinstance(opt.box, _dccav.DccavBox)
+    ts = _acoustics.get_driver_preset("Beyma 12CMV2")
+    goals = _acoustics.OptimizationGoals(objective="extension", max_total_volume_l=60.0)
+    opt = _acoustics.optimize_alignment(ts, goals)
+    assert isinstance(opt.box, _acoustics.DccavBox)
     assert opt.total_volume_l <= 60.0 * 1.001, opt.total_volume_l
     assert np.isfinite(opt.f3_hz), opt
     assert np.isfinite(opt.group_delay_ms), opt
     assert opt.box.fh_hz > opt.box.fl_hz, opt.box
-    max_buildable_cm = 0.95 * _dccav.OPTIMIZER_MAX_PORT_DIAMETER_CM
-    assert _dccav.port_min_diameter_cm(
+    max_buildable_cm = 0.95 * _acoustics.OPTIMIZER_MAX_PORT_DIAMETER_CM
+    assert _acoustics.port_min_diameter_cm(
         opt.box.vh_l, opt.box.fh_hz, 1.64) <= max_buildable_cm
-    assert _dccav.port_min_diameter_cm(
+    assert _acoustics.port_min_diameter_cm(
         opt.box.vl_l, opt.box.fl_hz, 1.43) <= max_buildable_cm
-    warnings = _dccav.alignment_diagnostics(ts, opt.box)
-    warnings += _dccav.response_sanity_warnings(
+    warnings = _acoustics.alignment_diagnostics(ts, opt.box)
+    warnings += _acoustics.response_sanity_warnings(
         ts, opt.box,
-        _dccav.response_threshold_frequencies(_dccav.simulate(ts, opt.box)),
+        _acoustics.response_threshold_frequencies(_acoustics.simulate(ts, opt.box)),
     )
     assert not warnings, warnings
     max_area_cm2 = np.pi * (max_buildable_cm / 2.0) ** 2
-    optimized_result = _dccav.simulate(ts, opt.box)
-    assert np.nanmax(_dccav.port_air_velocity_ms(
+    optimized_result = _acoustics.simulate(ts, opt.box)
+    assert np.nanmax(_acoustics.port_air_velocity_ms(
         optimized_result, max_area_cm2, "upper")) <= (
-            _dccav.PORT_VELOCITY_GUIDELINE_MS * 1.001)
-    assert np.nanmax(_dccav.port_air_velocity_ms(
+            _acoustics.PORT_VELOCITY_GUIDELINE_MS * 1.001)
+    assert np.nanmax(_acoustics.port_air_velocity_ms(
         optimized_result, max_area_cm2, "lower")) <= (
-            _dccav.PORT_VELOCITY_GUIDELINE_MS * 1.001)
+            _acoustics.PORT_VELOCITY_GUIDELINE_MS * 1.001)
     assert opt.evaluations > 10
-    low_cap = _dccav.optimize_alignment(
-        _dccav.get_driver_preset("Beyma 12BR70"),
-        _dccav.OptimizationGoals(objective="extension", max_total_volume_l=30.0),
+    low_cap = _acoustics.optimize_alignment(
+        _acoustics.get_driver_preset("Beyma 12BR70"),
+        _acoustics.OptimizationGoals(objective="extension", max_total_volume_l=30.0),
     )
     assert low_cap.total_volume_l <= 30.0 + 1e-9, low_cap.total_volume_l
     try:
-        _dccav.optimize_alignment(
-            _dccav.get_driver_preset("Beyma 12BR70"),
-            _dccav.OptimizationGoals(objective="extension", max_total_volume_l=1.0),
+        _acoustics.optimize_alignment(
+            _acoustics.get_driver_preset("Beyma 12BR70"),
+            _acoustics.OptimizationGoals(objective="extension", max_total_volume_l=1.0),
         )
         raise AssertionError(
             "a 12-inch driver in 1 L cannot host a real duct: the duct-volume "
@@ -6982,20 +7048,20 @@ def _check_optimizer_respects_volume_cap():
     except ValueError:
         pass
 
-    grs = _dccav.get_driver_preset("LSDB: GRS 8SW-4HE")
-    grs_opt = _dccav.optimize_alignment(
+    grs = _acoustics.get_driver_preset("LSDB: GRS 8SW-4HE")
+    grs_opt = _acoustics.optimize_alignment(
         grs,
-        _dccav.OptimizationGoals(
+        _acoustics.OptimizationGoals(
             objective="extension", max_ripple_db=0.0,
             max_excursion_ratio=0.0,
         ),
     )
     # Max extension deliberately reaches the deeper AFW-like boundary.
     assert grs_opt.f3_hz >= 0.65 * grs_opt.box.fl_hz, grs_opt
-    grs_result = _dccav.simulate(grs, grs_opt.box)
-    grs_warnings = _dccav.alignment_diagnostics(grs, grs_opt.box)
-    grs_warnings += _dccav.response_sanity_warnings(
-        grs, grs_opt.box, _dccav.response_threshold_frequencies(grs_result))
+    grs_result = _acoustics.simulate(grs, grs_opt.box)
+    grs_warnings = _acoustics.alignment_diagnostics(grs, grs_opt.box)
+    grs_warnings += _acoustics.response_sanity_warnings(
+        grs, grs_opt.box, _acoustics.response_threshold_frequencies(grs_result))
     assert not grs_warnings, grs_warnings
 
 
@@ -7003,11 +7069,11 @@ test("DCCAV optimizer respects a total volume cap", _check_optimizer_respects_vo
 
 
 def _check_optimizer_extension_beats_empirical():
-    ts = _dccav.get_driver_preset("Beyma 12CMV2")
-    align = _dccav.suggest_alignment(ts)
-    box = _dccav.DccavBox(vh_l=align.vh_l, fh_hz=align.fh_hz, vl_l=align.vl_l, fl_hz=align.fl_hz)
-    baseline = _dccav.response_threshold_frequencies(_dccav.simulate(ts, box))[3]
-    opt = _dccav.optimize_alignment(ts, _dccav.OptimizationGoals(objective="extension"))
+    ts = _acoustics.get_driver_preset("Beyma 12CMV2")
+    align = _acoustics.suggest_alignment(ts)
+    box = _acoustics.DccavBox(vh_l=align.vh_l, fh_hz=align.fh_hz, vl_l=align.vl_l, fl_hz=align.fl_hz)
+    baseline = _acoustics.response_threshold_frequencies(_acoustics.simulate(ts, box))[3]
+    opt = _acoustics.optimize_alignment(ts, _acoustics.OptimizationGoals(objective="extension"))
     assert opt.f3_hz <= baseline + 0.5, (opt.f3_hz, baseline)
 
 
@@ -7015,13 +7081,13 @@ test("DCCAV optimizer extension goal reaches at least the empirical F3", _check_
 
 
 def _check_isobaric_max_extension_escapes_compact_basin():
-    ts = _dccav.apply_driver_configuration(
-        _dccav.get_driver_preset("WEB: Visaton KT 100 V"),
+    ts = _acoustics.apply_driver_configuration(
+        _acoustics.get_driver_preset("WEB: Visaton KT 100 V"),
         "Isobaric pair (parallel)",
     )
-    optimized = _dccav.optimize_alignment(
+    optimized = _acoustics.optimize_alignment(
         ts,
-        _dccav.OptimizationGoals(
+        _acoustics.OptimizationGoals(
             objective="extension",
             max_ripple_db=3.0,
             max_excursion_ratio=1.0,
@@ -7039,12 +7105,12 @@ test(
 
 
 def _check_optimizer_target_f3_prefers_compact_box():
-    ts = _dccav.get_driver_preset("Beyma 12CMV2")
-    opt = _dccav.optimize_alignment(
-        ts, _dccav.OptimizationGoals(objective="balanced", target_f3_hz=55.0)
+    ts = _acoustics.get_driver_preset("Beyma 12CMV2")
+    opt = _acoustics.optimize_alignment(
+        ts, _acoustics.OptimizationGoals(objective="balanced", target_f3_hz=55.0)
     )
     assert opt.f3_hz <= 55.0 * 1.05, opt.f3_hz
-    unconstrained = _dccav.optimize_alignment(ts, _dccav.OptimizationGoals(objective="balanced"))
+    unconstrained = _acoustics.optimize_alignment(ts, _acoustics.OptimizationGoals(objective="balanced"))
     assert opt.total_volume_l < unconstrained.total_volume_l, (
         opt.total_volume_l, unconstrained.total_volume_l
     )
@@ -7054,21 +7120,21 @@ test("DCCAV optimizer target F3 prefers the compact box", _check_optimizer_targe
 
 
 def _check_optimizer_supports_bass_reflex():
-    ts = _dccav.get_driver_preset("Beyma 12CMV2")
-    opt = _dccav.optimize_alignment(
+    ts = _acoustics.get_driver_preset("Beyma 12CMV2")
+    opt = _acoustics.optimize_alignment(
         ts,
-        _dccav.OptimizationGoals(objective="balanced", max_total_volume_l=80.0),
+        _acoustics.OptimizationGoals(objective="balanced", max_total_volume_l=80.0),
         load_type="Bass reflex",
     )
-    assert isinstance(opt.box, _dccav.ReflexBox)
+    assert isinstance(opt.box, _acoustics.ReflexBox)
     assert opt.total_volume_l <= 80.0 * 1.001, opt.total_volume_l
     assert np.isfinite(opt.f3_hz), opt
-    sealed = _dccav.optimize_alignment(
+    sealed = _acoustics.optimize_alignment(
         ts,
-        _dccav.OptimizationGoals(objective="balanced", max_total_volume_l=50.0),
+        _acoustics.OptimizationGoals(objective="balanced", max_total_volume_l=50.0),
         load_type="Sealed",
     )
-    assert isinstance(sealed.box, _dccav.SealedBox)
+    assert isinstance(sealed.box, _acoustics.SealedBox)
     assert sealed.total_volume_l <= 50.0 + 1e-9, sealed.total_volume_l
     assert np.isfinite(sealed.f3_hz), sealed
 
@@ -7077,9 +7143,9 @@ def _check_optimizer_supports_bass_reflex():
         ("Bass reflex", 45.0),
         ("Sealed", 50.0),
     ):
-        fixed = _dccav.optimize_alignment(
+        fixed = _acoustics.optimize_alignment(
             ts,
-            _dccav.OptimizationGoals(objective="balanced", max_total_volume_l=volume_l),
+            _acoustics.OptimizationGoals(objective="balanced", max_total_volume_l=volume_l),
             load_type=load_type,
             fixed_total_volume_l=volume_l,
         )
@@ -7103,7 +7169,7 @@ def _check_ui_supports_sealed_and_infinite_baffle():
         ("Sealed", "Vb sealed (active)"),
         ("Infinite baffle", "Mounted Fs"),
     ):
-        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
         at.session_state["workspace_mode"] = "Box Design"
         at.session_state["load_type"] = load_type
         at.run()
@@ -7138,7 +7204,7 @@ test("UI separates design and driver-finder workflows", _check_ui_supports_seale
 def _check_ui_finder_starts_from_practical_defaults():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.run()
     assert not at.exception, at.exception
 
@@ -7198,7 +7264,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
 
     import ui_app as _ui
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Bass Match"
     at.run()
     assert not at.exception, at.exception
@@ -7284,7 +7350,7 @@ def _check_ui_finder_main_action_runs_search():
         "the ranking must start below the full-width CTA"
     )
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.run()
     assert not at.exception, at.exception
     initial_prequalified = next(
@@ -7536,7 +7602,7 @@ test(
 def _check_ui_purchase_links():
     import ui_app as _ui
 
-    info = _dccav.DriverPresetInfo(
+    info = _acoustics.DriverPresetInfo(
         name="LSDB: Eminence DELTA-12A",
         source="Loudspeaker Database",
         brand="Eminence",
@@ -7551,13 +7617,13 @@ def _check_ui_purchase_links():
         "(https://www.bluearan.co.uk/index.php?id=EMIDEL12A)"
     ), line
 
-    no_price = _dccav.DriverPresetInfo(
+    no_price = _acoustics.DriverPresetInfo(
         name="X", source="Built-in", brand="X", model="X",
         url="https://example.test/product",
     )
     assert _ui._purchase_markdown(no_price) == "[Buy · example.test](https://example.test/product)"
 
-    no_url = _dccav.DriverPresetInfo(name="X", source="Built-in", brand="X", model="X", price=9.0)
+    no_url = _acoustics.DriverPresetInfo(name="X", source="Built-in", brand="X", model="X", price=9.0)
     assert _ui._purchase_markdown(no_url) is None
 
     rows = _ui._batch_rank_presets(
@@ -7574,7 +7640,7 @@ def _check_ui_optimized_alignment_mode():
 
     import ui_app as _ui
 
-    driver = _dccav.get_driver_preset("KEF B110B article example")
+    driver = _acoustics.get_driver_preset("KEF B110B article example")
     _ui._apply_driver_preset(driver)
     for key, value in (
         ("load_type", "DCCAV"),
@@ -7604,32 +7670,32 @@ def _check_ui_optimized_alignment_mode():
     optimized_box = _ui._box_from_state()
     upper_d_cm = float(st.session_state["box_port_d_h_cm"])
     lower_d_cm = float(st.session_state["box_port_d_l_cm"])
-    assert 0.0 < upper_d_cm <= _dccav.OPTIMIZER_MAX_PORT_DIAMETER_CM
-    assert 0.0 < lower_d_cm <= _dccav.OPTIMIZER_MAX_PORT_DIAMETER_CM
+    assert 0.0 < upper_d_cm <= _acoustics.OPTIMIZER_MAX_PORT_DIAMETER_CM
+    assert 0.0 < lower_d_cm <= _acoustics.OPTIMIZER_MAX_PORT_DIAMETER_CM
     # A fabricable ~5 cm duct is the target, but the 10% duct-volume
     # directive can cap growth first on a tight (6 L) DCCAV box: a shorter
     # duct is then the correct, directive-respecting trade-off.
-    upper_fraction = _dccav.port_volume_fraction(
+    upper_fraction = _acoustics.port_volume_fraction(
         optimized_box.vh_l, optimized_box.fh_hz, upper_d_cm, 1.64)
-    lower_fraction = _dccav.port_volume_fraction(
+    lower_fraction = _acoustics.port_volume_fraction(
         optimized_box.vl_l, optimized_box.fl_hz, lower_d_cm, 1.43)
     assert (
-        _dccav.port_length_cm(optimized_box.vh_l, optimized_box.fh_hz, upper_d_cm, 1.64) >= 5.0
-        or upper_fraction <= _dccav.PORT_MAX_VOLUME_FRACTION + 1e-6
+        _acoustics.port_length_cm(optimized_box.vh_l, optimized_box.fh_hz, upper_d_cm, 1.64) >= 5.0
+        or upper_fraction <= _acoustics.PORT_MAX_VOLUME_FRACTION + 1e-6
     ), (upper_d_cm, upper_fraction)
     assert (
-        _dccav.port_length_cm(optimized_box.vl_l, optimized_box.fl_hz, lower_d_cm, 1.43) >= 5.0
-        or lower_fraction <= _dccav.PORT_MAX_VOLUME_FRACTION + 1e-6
+        _acoustics.port_length_cm(optimized_box.vl_l, optimized_box.fl_hz, lower_d_cm, 1.43) >= 5.0
+        or lower_fraction <= _acoustics.PORT_MAX_VOLUME_FRACTION + 1e-6
     ), (lower_d_cm, lower_fraction)
-    optimized_result = _dccav.simulate(driver, optimized_box)
+    optimized_result = _acoustics.simulate(driver, optimized_box)
     upper_area_cm2 = np.pi * (upper_d_cm / 2.0) ** 2
     lower_area_cm2 = np.pi * (lower_d_cm / 2.0) ** 2
-    assert np.nanmax(_dccav.port_air_velocity_ms(
+    assert np.nanmax(_acoustics.port_air_velocity_ms(
         optimized_result, upper_area_cm2, "upper")) <= (
-            _dccav.PORT_VELOCITY_GUIDELINE_MS * 1.001)
-    assert np.nanmax(_dccav.port_air_velocity_ms(
+            _acoustics.PORT_VELOCITY_GUIDELINE_MS * 1.001)
+    assert np.nanmax(_acoustics.port_air_velocity_ms(
         optimized_result, lower_area_cm2, "lower")) <= (
-            _dccav.PORT_VELOCITY_GUIDELINE_MS * 1.001)
+            _acoustics.PORT_VELOCITY_GUIDELINE_MS * 1.001)
     assert str(st.session_state["opt_last_summary"]).startswith("Optimized"), (
         st.session_state.get("opt_last_summary")
     )
@@ -7721,7 +7787,7 @@ def _check_ui_progressive_disclosure():
     return
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.run()
     assert not at.exception, at.exception
     # New sessions land on the Finder workspace with the active DCCAV load.
@@ -7763,7 +7829,7 @@ test("UI progressively reveals manual and advanced controls", _check_ui_progress
 def _check_ui_box_inputs_have_one_stepper():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["load_type"] = "DCCAV"
     at.run()
@@ -7792,10 +7858,10 @@ def _check_ui_response_window_includes_mol_trace():
     import ui_app as _ui
 
     ts = _kef_b110_ts()
-    a = _dccav.suggest_alignment(ts)
-    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    a = _acoustics.suggest_alignment(ts)
+    box = _acoustics.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
     freq = np.geomspace(10.0, 500.0, 300)
-    result = _dccav.simulate(ts, box, freq, 2.83)
+    result = _acoustics.simulate(ts, box, freq, 2.83)
     mol = np.asarray(result.mol_db, dtype=float)
     mol_top = float(np.max(mol[np.isfinite(mol)]))
 
@@ -7827,7 +7893,7 @@ def _check_ui_finder_goal_inputs_always_active():
         "Maximum group delay (ms)",
         "Minimum SPL (dB, 0 = off)",
     )
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Bass Match"
     at.session_state["bass_match_sidebar_tab"] = "Performance filters"
     at.run()
@@ -7863,45 +7929,45 @@ test("UI Finder optimizer goal and constraints are always active", _check_ui_fin
 
 def _check_design_space_map():
     ts = _kef_b110_ts()
-    space = _dccav.design_space_map(ts, "Bass reflex", resolution=7)
+    space = _acoustics.design_space_map(ts, "Bass reflex", resolution=7)
     assert space.f3_hz.shape == (7, 7) and space.ripple_db.shape == (7, 7)
     assert space.x_values[0] < space.x_values[-1]
     assert np.isfinite(space.f3_hz).mean() > 0.6, (
         "most of the reflex plane must produce a valid F3")
 
-    start = _dccav.suggest_reflex_alignment(ts)
+    start = _acoustics.suggest_reflex_alignment(ts)
     freq = np.geomspace(min(10.0, ts.fs_hz / 4.0), max(400.0, 4.0 * ts.fs_hz), 160)
-    base = _dccav.simulate_reflex(
-        ts, _dccav.ReflexBox(vb_l=start.vb_l, fb_hz=start.fb_hz), freq)
-    start_f3 = _dccav.response_threshold_frequencies(base)[3]
+    base = _acoustics.simulate_reflex(
+        ts, _acoustics.ReflexBox(vb_l=start.vb_l, fb_hz=start.fb_hz), freq)
+    start_f3 = _acoustics.response_threshold_frequencies(base)[3]
     assert np.nanmin(space.f3_hz) <= start_f3 + 0.5, (
         "the atlas must reach at least the starter's extension")
 
     ix, iy = 3, 2
-    box = _dccav.design_space_box(
+    box = _acoustics.design_space_box(
         ts, "Bass reflex", float(space.x_values[ix]), float(space.y_values[iy]))
-    cell = _dccav.response_threshold_frequencies(
-        _dccav.simulate_reflex(ts, box, freq))[3]
+    cell = _acoustics.response_threshold_frequencies(
+        _acoustics.simulate_reflex(ts, box, freq))[3]
     got = float(space.f3_hz[iy, ix])
     assert (np.isnan(got) and np.isnan(cell)) or abs(got - cell) < 1e-6, (got, cell)
 
-    sealed = _dccav.design_space_map(ts, "Sealed", resolution=9)
+    sealed = _acoustics.design_space_map(ts, "Sealed", resolution=9)
     assert sealed.y_values.shape == (1,)
     assert sealed.f3_hz[0, -1] < sealed.f3_hz[0, 0], (
         "a bigger sealed box must reach deeper bass")
 
-    dccav_map = _dccav.design_space_map(ts, "DCCAV", resolution=5)
+    dccav_map = _acoustics.design_space_map(ts, "DCCAV", resolution=5)
     assert dccav_map.f3_hz.shape == (5, 5)
     assert np.isfinite(dccav_map.f3_hz).any()
 
     try:
-        _dccav.design_space_map(ts, "Infinite baffle")
+        _acoustics.design_space_map(ts, "Infinite baffle")
     except ValueError as exc:
         assert "no box" in str(exc)
     else:
         raise AssertionError("infinite baffle must be rejected")
     try:
-        _dccav.design_space_map(ts, "Bass reflex", resolution=2)
+        _acoustics.design_space_map(ts, "Bass reflex", resolution=2)
     except ValueError as exc:
         assert "resolution" in str(exc).casefold()
     else:
@@ -7951,73 +8017,73 @@ test("UI Atlas tab gates the design-space map and applies clicked points", _chec
 
 def _check_driver_configurations():
     ts = _kef_b110_ts()
-    assert _dccav.apply_driver_configuration(ts, "Single driver") == ts
+    assert _acoustics.apply_driver_configuration(ts, "Single driver") == ts
 
-    par = _dccav.apply_driver_configuration(ts, "2 × parallel")
+    par = _acoustics.apply_driver_configuration(ts, "2 × parallel")
     assert par.sd_cm2 == ts.sd_cm2 * 2 and par.vas_l == ts.vas_l * 2
     assert par.re_ohm == ts.re_ohm / 2 and par.le_mh == ts.le_mh / 2
     assert par.pe_w == ts.pe_w * 2 and par.xmax_mm == ts.xmax_mm
     assert (par.fs_hz, par.qts, par.qms) == (ts.fs_hz, ts.qts, ts.qms)
     assert par.radiating_pistons == 2
     assert abs(
-        _dccav.panel_loaded_fs_hz(par) / _dccav.panel_loaded_fs_hz(ts) - 1.0
+        _acoustics.panel_loaded_fs_hz(par) / _acoustics.panel_loaded_fs_hz(ts) - 1.0
     ) < 1e-12, "separate identical cones must retain the same mounted Fs"
 
-    ser = _dccav.apply_driver_configuration(ts, "2 × series")
+    ser = _acoustics.apply_driver_configuration(ts, "2 × series")
     assert ser.re_ohm == ts.re_ohm * 2 and ser.le_mh == ts.le_mh * 2
     assert ser.sd_cm2 == ts.sd_cm2 * 2 and ser.vas_l == ts.vas_l * 2
 
-    iso = _dccav.apply_driver_configuration(ts, "Isobaric pair (parallel)")
+    iso = _acoustics.apply_driver_configuration(ts, "Isobaric pair (parallel)")
     assert iso.sd_cm2 == ts.sd_cm2 and iso.vas_l == ts.vas_l / 2
     assert iso.re_ohm == ts.re_ohm / 2 and iso.pe_w == ts.pe_w * 2
     assert iso.radiating_pistons == 1
-    iso_s = _dccav.apply_driver_configuration(ts, "Isobaric pair (series)")
+    iso_s = _acoustics.apply_driver_configuration(ts, "Isobaric pair (series)")
     assert iso_s.re_ohm == ts.re_ohm * 2 and iso_s.vas_l == ts.vas_l / 2
 
-    eight = _dccav.apply_driver_configuration(ts, "8 × parallel")
+    eight = _acoustics.apply_driver_configuration(ts, "8 × parallel")
     assert eight.sd_cm2 == ts.sd_cm2 * 8 and eight.vas_l == ts.vas_l * 8
     assert eight.re_ohm == ts.re_ohm / 8 and eight.le_mh == ts.le_mh / 8
     assert eight.pe_w == ts.pe_w * 8 and eight.radiating_pistons == 8
 
-    mixed = _dccav.apply_driver_configuration(ts, "2S × 4P mixed")
+    mixed = _acoustics.apply_driver_configuration(ts, "2S × 4P mixed")
     assert mixed.sd_cm2 == ts.sd_cm2 * 8 and mixed.vas_l == ts.vas_l * 8
     assert mixed.re_ohm == ts.re_ohm / 2 and mixed.le_mh == ts.le_mh / 2
     assert mixed.pe_w == ts.pe_w * 8 and mixed.radiating_pistons == 8
 
-    iso16 = _dccav.apply_driver_configuration(ts, "16 × isobaric (parallel)")
+    iso16 = _acoustics.apply_driver_configuration(ts, "16 × isobaric (parallel)")
     assert iso16.sd_cm2 == ts.sd_cm2 * 8 and iso16.vas_l == ts.vas_l * 4
     assert iso16.re_ohm == ts.re_ohm / 16 and iso16.le_mh == ts.le_mh / 16
     assert iso16.pe_w == ts.pe_w * 16 and iso16.radiating_pistons == 8
 
-    measured = _dccav.DriverTS(
+    measured = _acoustics.DriverTS(
         fs_hz=40.0, vas_l=50.0, qts=0.4, qms=4.0, re_ohm=6.0, sd_cm2=200.0,
         mms_g=25.0, cms_mm_per_n=1.0, bl_tm=10.0)
-    composite = _dccav.apply_driver_configuration(measured, "2 × parallel")
+    composite = _acoustics.apply_driver_configuration(measured, "2 × parallel")
     assert composite.mms_g is None
     assert composite.cms_mm_per_n is None
     assert composite.bl_tm is None
 
-    base_eta = _dccav.driver_reference_metrics(ts).eta0
-    assert abs(_dccav.driver_reference_metrics(par).eta0 / base_eta - 2.0) < 0.05, (
+    base_eta = _acoustics.driver_reference_metrics(ts).eta0
+    assert abs(_acoustics.driver_reference_metrics(par).eta0 / base_eta - 2.0) < 0.05, (
         "a parallel pair must gain the classical +3 dB reference efficiency")
-    assert abs(_dccav.driver_reference_metrics(iso).eta0 / base_eta - 0.5) < 0.05, (
+    assert abs(_acoustics.driver_reference_metrics(iso).eta0 / base_eta - 0.5) < 0.05, (
         "an isobaric pair must trade -3 dB efficiency for half the box")
 
     try:
-        _dccav.apply_driver_configuration(ts, "3 × weird")
+        _acoustics.apply_driver_configuration(ts, "3 × weird")
     except ValueError as exc:
         assert "configuration" in str(exc)
     else:
         raise AssertionError("unknown configuration was accepted")
 
 
-test("DCCAV driver configurations scale the composite T/S set", _check_driver_configurations)
+test("Driver configurations scale the composite T/S set", _check_driver_configurations)
 
 
 def _check_ui_driver_configuration_selector():
     from streamlit.testing.v1 import AppTest
 
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["load_type"] = "DCCAV"
     at.run()
@@ -8044,45 +8110,45 @@ test("UI driver configuration re-aligns the box to the composite", _check_ui_dri
 
 def _check_monte_carlo_tolerance_band():
     ts = _kef_b110_ts()
-    a = _dccav.suggest_alignment(ts)
-    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    a = _acoustics.suggest_alignment(ts)
+    box = _acoustics.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
     freq = np.geomspace(10.0, 500.0, 120)
 
-    band = _dccav.monte_carlo_response_band(ts, "DCCAV", box, freq, runs=40, seed=7)
+    band = _acoustics.monte_carlo_response_band(ts, "DCCAV", box, freq, runs=40, seed=7)
     assert band.frequency_hz.shape == freq.shape
     assert band.runs == 40
     assert np.all(band.lower_db <= band.upper_db + 1e-9)
-    nominal = _dccav.simulate(ts, box, freq).spl_total_db
+    nominal = _acoustics.simulate(ts, box, freq).spl_total_db
     inside = (nominal >= band.lower_db - 1e-6) & (nominal <= band.upper_db + 1e-6)
     assert inside.mean() > 0.9, "nominal response must sit inside the band"
 
-    again = _dccav.monte_carlo_response_band(ts, "DCCAV", box, freq, runs=40, seed=7)
+    again = _acoustics.monte_carlo_response_band(ts, "DCCAV", box, freq, runs=40, seed=7)
     np.testing.assert_allclose(band.lower_db, again.lower_db)
     np.testing.assert_allclose(band.upper_db, again.upper_db)
 
-    collapsed = _dccav.monte_carlo_response_band(
+    collapsed = _acoustics.monte_carlo_response_band(
         ts, "DCCAV", box, freq, tolerance=0.0, runs=8)
     np.testing.assert_allclose(collapsed.lower_db, nominal, atol=1e-9)
     np.testing.assert_allclose(collapsed.upper_db, nominal, atol=1e-9)
 
-    narrow = _dccav.monte_carlo_response_band(
+    narrow = _acoustics.monte_carlo_response_band(
         ts, "DCCAV", box, freq, tolerance=0.05, runs=40, seed=7)
-    wide = _dccav.monte_carlo_response_band(
+    wide = _acoustics.monte_carlo_response_band(
         ts, "DCCAV", box, freq, tolerance=0.20, runs=40, seed=7)
     assert (
         np.mean(wide.upper_db - wide.lower_db)
         > np.mean(narrow.upper_db - narrow.lower_db)
     ), "the band must widen with the tolerance"
 
-    sealed = _dccav.monte_carlo_response_band(
-        ts, "Sealed", _dccav.SealedBox(vb_l=ts.vas_l), freq, runs=12, seed=3)
-    baffle = _dccav.monte_carlo_response_band(
+    sealed = _acoustics.monte_carlo_response_band(
+        ts, "Sealed", _acoustics.SealedBox(vb_l=ts.vas_l), freq, runs=12, seed=3)
+    baffle = _acoustics.monte_carlo_response_band(
         ts, "Infinite baffle", None, freq, runs=12, seed=3)
     for run in (sealed, baffle):
         assert np.all(np.isfinite(run.lower_db)) and np.all(np.isfinite(run.upper_db))
 
     try:
-        _dccav.monte_carlo_response_band(ts, "DCCAV", box, freq, tolerance=1.5)
+        _acoustics.monte_carlo_response_band(ts, "DCCAV", box, freq, tolerance=1.5)
     except ValueError as exc:
         assert "Tolerance" in str(exc)
     else:
@@ -8112,16 +8178,16 @@ test("UI tolerance band toggle renders the Monte Carlo caption", _check_ui_toler
 
 
 def _check_price_extension_score():
-    assert _dccav.price_extension_score(30.0, 100.0) == 3000.0
-    cheap_deep = _dccav.price_extension_score(40.0, 80.0)
-    pricey_deeper = _dccav.price_extension_score(30.0, 400.0)
+    assert _acoustics.price_extension_score(30.0, 100.0) == 3000.0
+    cheap_deep = _acoustics.price_extension_score(40.0, 80.0)
+    pricey_deeper = _acoustics.price_extension_score(30.0, 400.0)
     assert cheap_deep < pricey_deeper, "the cheap driver must win on value"
     for bad in (float("nan"), 0.0, -5.0):
-        assert _dccav.price_extension_score(bad, 100.0) == float("inf")
-        assert _dccav.price_extension_score(30.0, bad) == float("inf")
+        assert _acoustics.price_extension_score(bad, 100.0) == float("inf")
+        assert _acoustics.price_extension_score(30.0, bad) == float("inf")
 
 
-test("DCCAV price-extension score prefers cheap deep drivers", _check_price_extension_score)
+test("Price-extension score prefers cheap deep drivers", _check_price_extension_score)
 
 
 def _check_ui_finder_value_ranking():
@@ -8178,7 +8244,7 @@ def _check_ui_finder_value_ranking():
         }
         for name, f3, price in (("A deep", 30.0, 400.0), ("B value", 40.0, 80.0))
     ]
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Bass Match"
     at.session_state["load_type"] = "Sealed"
     at.session_state["finder_load_types"] = ["Sealed"]
@@ -8250,11 +8316,11 @@ test("UI Finder ranks candidates by price-performance value", _check_ui_finder_v
 def _check_ui_parallel_ranking_matches_serial():
     import ui_app as _ui
 
-    assert _ui._dccav.rank_preset_row("no such driver", "Sealed", 30.0, 2.83,
+    assert _ui._acoustics.rank_preset_row("no such driver", "Sealed", 30.0, 2.83,
                                       10.0, 300.0, 120) is None
 
     names = ("KEF B110B article example", "Beyma 12CMV2", "Dayton Audio RSS315HO-4")
-    goals = _ui._dccav.OptimizationGoals(objective="balanced")
+    goals = _ui._acoustics.OptimizationGoals(objective="balanced")
     serial = _ui._batch_rank_presets(
         names, "Sealed", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals)
     parallel = _ui._batch_rank_presets_parallel(
@@ -8273,7 +8339,7 @@ def _check_ui_parallel_ranking_falls_back_when_processes_are_denied():
     import ui_app as _ui
 
     names = ("KEF B110B article example", "Beyma 12CMV2")
-    goals = _ui._dccav.OptimizationGoals(objective="balanced")
+    goals = _ui._acoustics.OptimizationGoals(objective="balanced")
     expected = _ui._batch_rank_presets(
         names, "Sealed", 30.0, 2.83, 10.0, 300.0, 80, len(names), goals=goals)
     original_executor = _ui.ProcessPoolExecutor
@@ -8302,39 +8368,46 @@ test("UI parallel Finder falls back when worker processes are denied", _check_ui
 def _check_module_split_facade():
     import ast
 
+    from src import dccav as legacy_dccav
     from src import engine, presets, pricing
 
-    assert _dccav.DriverTS is engine.DriverTS
-    assert _dccav.SimulationResult is engine.SimulationResult
-    assert _dccav.simulate is engine.simulate
-    assert _dccav.optimize_alignment is engine.optimize_alignment
-    assert _dccav.design_space_map is engine.design_space_map
-    assert _dccav.get_driver_preset is presets.get_driver_preset
-    assert _dccav.driver_preset_info is presets.driver_preset_info
-    assert _dccav.DRIVER_PRESETS is presets.DRIVER_PRESETS
-    assert _dccav.price_extension_score is pricing.price_extension_score
-    assert _dccav.DRIVER_PRICES_PATH is pricing.DRIVER_PRICES_PATH
-    assert _dccav._load_driver_price_records is pricing._load_driver_price_records
+    assert _acoustics.DriverTS is engine.DriverTS
+    assert _acoustics.SimulationResult is engine.SimulationResult
+    assert _acoustics.simulate is engine.simulate
+    assert _acoustics.optimize_alignment is engine.optimize_alignment
+    assert _acoustics.design_space_map is engine.design_space_map
+    assert _acoustics.get_driver_preset is presets.get_driver_preset
+    assert _acoustics.driver_preset_info is presets.driver_preset_info
+    assert _acoustics.DRIVER_PRESETS is presets.DRIVER_PRESETS
+    assert _acoustics.price_extension_score is pricing.price_extension_score
+    assert _acoustics.DRIVER_PRICES_PATH is pricing.DRIVER_PRICES_PATH
+    assert _acoustics._load_driver_price_records is pricing._load_driver_price_records
     assert (
-        _dccav._load_loudspeaker_database_presets
+        _acoustics._load_loudspeaker_database_presets
         is presets._load_loudspeaker_database_presets
     )
-    assert _dccav._load_manufacturer_presets is presets._load_manufacturer_presets
-    assert _dccav.MANUFACTURER_DATABASE_PATH is presets.MANUFACTURER_DATABASE_PATH
-    assert _dccav._load_vituixcad_presets is presets._load_vituixcad_presets
-    assert _dccav.VITUIXCAD_DATABASE_PATH is presets.VITUIXCAD_DATABASE_PATH
+    assert _acoustics._load_manufacturer_presets is presets._load_manufacturer_presets
+    assert _acoustics.MANUFACTURER_DATABASE_PATH is presets.MANUFACTURER_DATABASE_PATH
+    assert _acoustics._load_vituixcad_presets is presets._load_vituixcad_presets
+    assert _acoustics.VITUIXCAD_DATABASE_PATH is presets.VITUIXCAD_DATABASE_PATH
     assert (
-        _dccav._load_speakerboxlite_presets
+        _acoustics._load_speakerboxlite_presets
         is presets._load_speakerboxlite_presets
     )
     assert (
-        _dccav.SPEAKERBOXLITE_DATABASE_PATH
+        _acoustics.SPEAKERBOXLITE_DATABASE_PATH
         is presets.SPEAKERBOXLITE_DATABASE_PATH
     )
     assert (
-        _dccav.driver_preset_provenance_category
+        _acoustics.driver_preset_provenance_category
         is presets.driver_preset_provenance_category
     )
+    assert legacy_dccav.DriverTS is _acoustics.DriverTS
+    assert legacy_dccav.simulate is _acoustics.simulate
+    assert legacy_dccav.simulate_reflex is _acoustics.simulate_reflex
+    assert legacy_dccav.simulate_sealed is _acoustics.simulate_sealed
+    assert legacy_dccav.simulate_bandpass4 is _acoustics.simulate_bandpass4
+    assert legacy_dccav.simulate_bandpass6 is _acoustics.simulate_bandpass6
 
     # The engine must stay free of catalog and pricing knowledge.
     tree = ast.parse((ROOT / "src" / "engine.py").read_text(encoding="utf-8"))
@@ -8351,22 +8424,25 @@ def _check_module_split_facade():
     assert not forbidden & imported, imported
 
 
-test("Module split keeps dccav a faithful facade", _check_module_split_facade)
+test(
+    "Module split keeps acoustics neutral and dccav backward compatible",
+    _check_module_split_facade,
+)
 
 
 def _check_simulation_rejects_bad_frequency_grid():
     ts = _kef_b110_ts()
-    a = _dccav.suggest_alignment(ts)
-    box = _dccav.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
+    a = _acoustics.suggest_alignment(ts)
+    box = _acoustics.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
     try:
-        _dccav.simulate(ts, box, np.array([10.0, 0.0, 100.0]))
+        _acoustics.simulate(ts, box, np.array([10.0, 0.0, 100.0]))
     except ValueError as exc:
         assert "Frequencies" in str(exc)
     else:
         raise AssertionError("non-positive frequency was accepted")
 
 
-test("DCCAV rejects invalid frequency grid", _check_simulation_rejects_bad_frequency_grid)
+test("Acoustic simulation rejects invalid frequency grids", _check_simulation_rejects_bad_frequency_grid)
 
 
 def _check_ui_finder_comprehensive_ux_regression():
@@ -8439,7 +8515,7 @@ def _check_ui_finder_comprehensive_ux_regression():
     assert len(at.session_state["finder_load_types"]) == 5
 
     # Design single-select: fresh AppTest, click cards one by one
-    at_design = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at_design = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at_design.session_state["workspace_mode"] = "Box Design"
     at_design.run()
     assert not at_design.exception, at_design.exception
@@ -8503,7 +8579,7 @@ def _check_ui_finder_comprehensive_ux_regression():
     assert at.dataframe, "ranked table must render"
 
     # -- 6. Price input/column are conditional -------------------------------
-    at_price = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at_price = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at_price.run()
     assert not at_price.exception, at_price.exception
     max_price_inputs = [n for n in at_price.sidebar.number_input if n.label.startswith("Max price")]
@@ -8553,7 +8629,7 @@ def _check_ui_finder_comprehensive_ux_regression():
     #     "Bass reflex": ["Response", "Excursion", "Impedance", "Ports", "Group Delay", "Atlas"],
     # }
     # for load_type, expected in expected_tabs.items():
-    #     at_tabs = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    #     at_tabs = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     #     at_tabs.session_state["workspace_mode"] = "Box Design"
     #     at_tabs.session_state["load_type"] = load_type
     #     at_tabs.run()
@@ -8561,7 +8637,7 @@ def _check_ui_finder_comprehensive_ux_regression():
     #     tabs = [t.label for t in at_tabs.tabs]
     #     assert tabs == expected, f"{load_type}: got {tabs}, expected {expected}"
 
-    at_pr = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at_pr = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at_pr.session_state["workspace_mode"] = "Box Design"
     at_pr.session_state["load_type"] = "Bass reflex"
     at_pr.session_state["reflex_resonator_type"] = "Passive radiator"
@@ -8578,7 +8654,7 @@ def _check_ui_finder_comprehensive_ux_regression():
     #     "Response", "Excursion", "Impedance", "Ports", "Group Delay",
     # ]
 
-    at_legacy_pr = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at_legacy_pr = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at_legacy_pr.session_state["workspace_mode"] = "Box Design"
     at_legacy_pr.session_state["load_type"] = "Passive radiator"
     at_legacy_pr.session_state["pr_vb_l"] = 37.5
@@ -8591,7 +8667,7 @@ def _check_ui_finder_comprehensive_ux_regression():
     assert np.isclose(at_legacy_pr.session_state["reflex_vb_l"], 37.5)
 
     # -- 10. State persistence through Finder ↔ Design round-trip -----------
-    at_persist = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
+    at_persist = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at_persist.session_state["workspace_mode"] = "Box Design"
     at_persist.session_state["load_type"] = "Bass reflex"
     at_persist.session_state["box_strategy"] = "Manual"
@@ -8623,31 +8699,31 @@ test(
 
 def _check_passive_radiator_simulation():
     ts = _beyma_ts()
-    box = _dccav.PassiveRadiatorBox(
+    box = _acoustics.PassiveRadiatorBox(
         vb_l=50.0, pr_sp_cm2=500.0, pr_fp_hz=15.0, pr_qmp=5.0, pr_mmp_g=200.0)
     freq = np.geomspace(10.0, 500.0, 300)
-    result = _dccav.simulate_passive_radiator(ts, box, freq, 2.83)
+    result = _acoustics.simulate_passive_radiator(ts, box, freq, 2.83)
     assert np.all(np.isfinite(result.spl_total_db))
     assert np.nanmax(result.spl_total_db) > 70
     assert np.nanmax(result.excursion_mm) > 0
     assert np.nanmax(result.port_l_velocity) > 0
     assert np.nanmin(result.impedance_ohm) > 0
     assert np.nanmax(result.port_h_velocity) == 0
-    peaks = _dccav.impedance_peak_frequencies(result)
+    peaks = _acoustics.impedance_peak_frequencies(result)
     assert len(peaks) >= 2, f"PR should show >=2 impedance peaks, got {peaks}"
     assert np.nanmax(result.spl_port_db) > 50, "PR must radiate externally"
-    sugg = _dccav.suggest_pr_alignment(ts)
+    sugg = _acoustics.suggest_pr_alignment(ts)
     assert sugg.vb_l == ts.vas_l
     assert sugg.pr_sp_cm2 == ts.sd_cm2
-    custom = _dccav.PassiveRadiatorBox(
+    custom = _acoustics.PassiveRadiatorBox(
         vb_l=30.0, pr_sp_cm2=300.0, pr_fp_hz=20.0, pr_qmp=7.0, pr_mmp_g=150.0)
-    sugg2 = _dccav.suggest_pr_alignment(ts, custom)
+    sugg2 = _acoustics.suggest_pr_alignment(ts, custom)
     assert sugg2.vb_l == ts.vas_l
     assert sugg2.pr_sp_cm2 == 300.0
     assert sugg2.pr_qmp == 7.0
-    assert "Dayton Audio DSA215-PR" in _dccav.passive_radiator_preset_names()
-    preset = _dccav.get_passive_radiator_preset("Dayton Audio DSA215-PR")
-    weighted = _dccav.PassiveRadiatorBox(
+    assert "Dayton Audio DSA215-PR" in _acoustics.passive_radiator_preset_names()
+    preset = _acoustics.get_passive_radiator_preset("Dayton Audio DSA215-PR")
+    weighted = _acoustics.PassiveRadiatorBox(
         vb_l=30.0,
         pr_sp_cm2=preset.sp_cm2,
         pr_fp_hz=preset.fp_hz,
@@ -8656,13 +8732,13 @@ def _check_passive_radiator_simulation():
         pr_added_mass_g=preset.mmp_g,
     )
     assert np.isclose(
-        _dccav.passive_radiator_effective_fp_hz(weighted),
+        _acoustics.passive_radiator_effective_fp_hz(weighted),
         preset.fp_hz / np.sqrt(2.0),
     )
-    weighted_result = _dccav.simulate_passive_radiator(ts, weighted, freq, 2.83)
+    weighted_result = _acoustics.simulate_passive_radiator(ts, weighted, freq, 2.83)
     assert np.all(np.isfinite(weighted_result.spl_total_db))
     try:
-        _dccav.simulate_passive_radiator(ts, box, np.array([10.0, 0.0, 100.0]))
+        _acoustics.simulate_passive_radiator(ts, box, np.array([10.0, 0.0, 100.0]))
         raise AssertionError("non-positive frequency must be rejected")
     except ValueError:
         pass

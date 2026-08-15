@@ -24,7 +24,9 @@ Documentation must stay in sync with source.
 
 | Changed file | Required documentation |
 |---|---|
+| `src/acoustics.py` | `docs/acoustics.md` |
 | `src/dccav.py` | `docs/dccav.md` |
+| `src/engine.py` | `docs/engine.md` |
 | user-visible UI behavior | `USER_GUIDE.md` and/or `docs/INDEX.md` |
 | release/version behavior | `CHANGELOG.md`, `VERSION`, package metadata |
 
@@ -49,7 +51,7 @@ Checklist:
 
 Preferred order:
 
-1. Read `AGENTS.md`, `README.md`, `docs/INDEX.md` and `docs/dccav.md`.
+1. Read `AGENTS.md`, `README.md`, `docs/INDEX.md` and `docs/acoustics.md`.
 2. Use `rg` to locate relevant symbols.
 3. Read only the source slices needed.
 4. Read focused tests around the behavior.
@@ -95,8 +97,8 @@ longer reasoning in the matching doc file.
 Focused checks:
 
 ```bash
-.venv/bin/python -m py_compile ui_app.py src/dccav.py tests/test_all.py
-.venv/bin/python tests/test_all.py -m dccav
+.venv/bin/python -m py_compile ui_app.py src/acoustics.py src/engine.py tests/test_all.py
+.venv/bin/python tests/test_all.py -m "acoustic-load smoke"
 ```
 
 UI check:

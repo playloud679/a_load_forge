@@ -1,17 +1,17 @@
-# `src/dccav.py` — acoustic-load public API
+# `src/dccav.py` — legacy compatibility and DCCAV reference
 
 Public API reference for the acoustic-load simulators: DCCAV / double series
 resonator based on the PCPaudio/G.P. Matarazzo article `Teoría y práctica del
 doble resonador en serie`, fourth-order bandpass, conventional bass reflex,
 closed-box acoustic suspension and infinite baffle.
 
-`src/dccav.py` is a compatibility facade: the implementation lives in
-`src/engine.py` (physics, simulation, optimizer, analysis — see
-`docs/engine.md`), `src/presets.py` (driver catalog — `docs/presets.md`) and
-`src/pricing.py` (retailer prices — `docs/pricing.md`).  Importing `dccav`
-exposes everything documented here, both as a top-level module (`import
-dccav` with `src/` on `sys.path`, used by `ui_app.py`) and as part of the
-package (`from src import dccav`, used by the tests).
+`src/dccav.py` is now a backward-compatible alias for the neutral
+`src/acoustics.py` facade. New application and package code imports
+`acoustics`; historical `import dccav` callers continue to receive identical
+objects. The implementation lives in `src/engine.py` (physics, simulation,
+optimizer and analysis), `src/presets.py`, `src/pricing.py` and
+`src/ranking.py`. This document remains the DCCAV-specific theory and API
+reference; cross-load facade behavior is documented in `docs/acoustics.md`.
 
 The optional ZTZ Audio LF ferrite tier is loaded from its validated import
 catalog when present; incomplete source pages remain separate and are not

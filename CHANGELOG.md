@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.8.12 (2026-08-15)
 
 - **Published-spec harvesting**: `tools/run_published_spec_batches.py` runs
   restartable atomic URL batches that complete one proven source domain
@@ -14,7 +14,16 @@
 - **Catalog Maintenance UI**: mechanical coverage metrics (any / essential
   four / all eight fields) and read-only columns for mechanical and
   published-spec data.
-- **Verification**: fresh full active suite passes with 151 passed,
+- **Test consistency**: ordinary Streamlit AppTest calls now share one
+  `APP_TEST_TIMEOUT` (60 s), avoiding transient failures under consecutive
+  loaded runs; release metadata has a synchronization regression test.
+- **Streamlit compatibility**: UI elements use the current `width="stretch"`
+  API instead of the deprecated `use_container_width=True` argument.
+- **Neutral acoustic API**: `src/acoustics.py` is now the primary facade for
+  every load family; `src/dccav.py` remains a backward-compatible alias, and
+  targeted smoke tests cover all lumped and distributed topologies instead of
+  selecting tests by the historical DCCAV name.
+- **Verification**: fresh full active suite passes with 158 passed,
   0 failures and 0 skips.
 
 ## 0.8.11 (2026-08-12)

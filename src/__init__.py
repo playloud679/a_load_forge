@@ -1,6 +1,6 @@
 """Load Forge audio simulation package."""
 
-from .dccav import (
+from .acoustics import (
     Bandpass4Alignment,
     Bandpass4Box,
     Bandpass6Alignment,

@@ -13,7 +13,9 @@ in sync in the same change.
 |---|---|---|
 | `ui_app.py` | [catalog-maintenance.md](catalog-maintenance.md) for the administrator surface | Streamlit dashboard with a killer-feature-first Bass Match brief and single run action, a selection-aware gray/emerald Box Design CTA directly below the brief, all usable ranked results without a display cap, a lazy collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, compact multiselect library filters, progressively disclosed T/S controls, stateful lazy analysis/sidebar tabs, compact plot markers including labelled enclosure tuning frequencies, IndexedDB browser-project autosave, complete `.lfp` v2 Box Design/Bass Match backups and grouped exports. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
 | `src/__init__.py` | [__init__.md](__init__.md) | Public package exports for acoustic-load helpers |
-| `src/dccav.py` | [dccav.md](dccav.md) | DCCAV/reflex/sealed/infinite-baffle formulas, T/S derivation and lumped acoustic-circuit simulation |
+| `src/acoustics.py` | [acoustics.md](acoustics.md) | Neutral public facade for every lumped and distributed acoustic load |
+| `src/dccav.py` | [dccav.md](dccav.md) | Legacy import compatibility and DCCAV-specific theory |
+| `src/engine.py` | [engine.md](engine.md) | Physics, alignment, simulation and optimization for every supported load |
 | `src/saas.py` | [saas.md](saas.md) | Optional OIDC identity normalization, tenant-safe plan entitlements and Firestore/in-memory project persistence |
 | `tests/test_all.py` | source only | Active regression runner for the acoustic-load models and Streamlit workflows |
 | `tools/crawl_thiele_small.py` | [crawl_thiele_small.md](crawl_thiele_small.md) | Robots-aware sitemap/seed crawler, T/S parser, unit normalizer, validator and safe database merger |
@@ -60,11 +62,12 @@ T/S parameters -> derived driver components -> selected acoustic-load alignment
 
 ## Acoustic-load UI Contract
 
-When changing `src/dccav.py`:
+When changing `src/engine.py` or `src/acoustics.py`:
 
 - update `ui_app.py` controls, metrics and plots for any new/changed parameter
 - update `tests/test_all.py`
-- update [dccav.md](dccav.md)
+- update [engine.md](engine.md), [acoustics.md](acoustics.md) and any
+  topology-specific document affected by the change
 - run a Streamlit `AppTest` for the touched UI path
 
 The UI keeps selection, primary-action and main-response semantics emerald,

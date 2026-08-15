@@ -12,8 +12,8 @@ After every meaningful change to `src/*.py` or `ui_app.py`, run the smallest
 relevant check:
 
 ```bash
-.venv/bin/python -m py_compile ui_app.py src/dccav.py tests/test_all.py
-.venv/bin/python tests/test_all.py -m dccav
+.venv/bin/python -m py_compile ui_app.py src/acoustics.py src/engine.py tests/test_all.py
+.venv/bin/python tests/test_all.py -m "acoustic-load smoke"
 ```
 
 For UI changes, also run a Streamlit AppTest:
@@ -38,10 +38,12 @@ The app is a Streamlit dashboard for acoustic-load simulation.
 Active path:
 
 ```text
-ui_app.py -> src/dccav.py -> docs/dccav.md -> tests/test_all.py
+ui_app.py -> src/acoustics.py -> src/engine.py -> docs/acoustics.md + docs/engine.md
+                                             -> tests/test_all.py
 ```
 
-The supported loads are DCCAV / double asymmetric reflex:
+The supported loads are peers behind one neutral acoustic API: DCCAV / double
+asymmetric reflex:
 
 ```text
 driver -> upper volume || upper port -> lower volume || lower port
@@ -61,19 +63,24 @@ driver -> closed box volume
 
 and ideal infinite baffle (rear radiation isolated, no box parameters).
 
+The same surface also supports fourth- and sixth-order bandpass, passive
+radiator, transmission line, MLTL, quarter-wave, back-loaded horn and tapped
+horn. Targeted smoke tests must exercise every load family; do not use DCCAV as
+a proxy for the whole engine.
+
 The app starts from driver T/S parameters, suggests an editable alignment,
 solves the lumped acoustic circuit and plots SPL estimate, cone excursion,
 impedance, port volume velocity and MIL/MOL limits.
 
 ## Acoustic-load source-to-UI contract
 
-Whenever `src/dccav.py` changes:
+Whenever `src/engine.py` or the public `src/acoustics.py` facade changes:
 
 | Python change | Required UI/doc/test update |
 |---|---|
 | New input parameter | Add or update the matching sidebar control in `ui_app.py` |
 | Changed acoustic-load dataclass field | Update UI state keys, preset collection and tests |
-| Changed alignment formula | Update displayed suggested metrics, `docs/dccav.md`, and regression tests |
+| Changed alignment formula | Update displayed suggested metrics, `docs/engine.md`, the topology-specific docs, and regression tests |
 | Changed simulation output | Update plots, CSV export, metrics and tests |
 | Changed validation behavior | Update user-facing errors and regression tests |
 
@@ -85,10 +92,10 @@ top of `ui_app.py`:
 
 ```python
 sys.path.insert(0, str(Path(__file__).parent / "src"))
-import dccav as _dccav
+import acoustics as _acoustics
 
 import importlib
-importlib.reload(_dccav)
+importlib.reload(_acoustics)
 ```
 
 If the UI starts using another `src/` module, add both its import and reload
@@ -104,6 +111,8 @@ make run
 
 ## Scope
 
-This repository is scoped to acoustic-load simulation.  Keep new work inside
-the active DCCAV/reflex/sealed/infinite-baffle simulation surface unless the user explicitly changes
-the product direction.  Do not push unless explicitly requested.
+This repository is scoped to acoustic-load simulation. Treat DCCAV, reflex,
+passive radiator, sealed, infinite baffle, bandpass and distributed waveguides
+as peer load families. Keep new work inside that simulation surface unless the
+user explicitly changes the product direction. Do not push unless explicitly
+requested.

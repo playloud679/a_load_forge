@@ -2,7 +2,8 @@
 
 Defines the public package surface for Load Forge's active audio simulator.
 
-Exports the acoustic-load dataclasses and helpers from `src/dccav.py`:
+Exports the acoustic-load dataclasses and helpers from the neutral
+`src/acoustics.py` facade:
 
 - `DriverTS`, `DerivedDriver`, `DccavAlignment`, `DccavBox`,
   `ReflexAlignment`, `ReflexBox`, `SealedAlignment`, `SealedBox`,
@@ -17,5 +18,6 @@ Exports the acoustic-load dataclasses and helpers from `src/dccav.py`:
   `response_threshold_frequencies()`, `impedance_peak_frequencies()`,
   `equivalent_sealed_fc_hz()`
 
-The Streamlit app imports `dccav` directly for hot-reload behavior, but tests and
-future package users can import these names from `src`.
+The Streamlit app imports `acoustics` directly for hot-reload behavior. Package
+users can import the facade as `src.acoustics` or these names from `src`;
+`src.dccav` remains a compatibility alias only.

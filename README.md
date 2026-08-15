@@ -4,7 +4,7 @@
   <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
-Current release: **0.8.11**
+Current release: **0.8.12**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth- and sixth-order bandpass**,
@@ -233,10 +233,12 @@ drive, damping and impedance estimate.
 ## Project Structure
 
 ```text
-ui_app.py          Streamlit dashboard
-src/dccav.py       public facade for all acoustic-load models
-docs/dccav.md      module contract and formulas
-tests/test_all.py  custom test runner, including acoustic-load tests
+ui_app.py             Streamlit dashboard
+src/acoustics.py      neutral public facade for all acoustic-load models
+src/dccav.py          backward-compatible alias for the historical import
+docs/acoustics.md     facade contract and cross-load smoke-test policy
+docs/engine.md        model contracts and formulas
+tests/test_all.py     custom test runner, including acoustic-load tests
 ```
 
 ## Tests
@@ -244,7 +246,7 @@ tests/test_all.py  custom test runner, including acoustic-load tests
 Targeted acoustic-load checks:
 
 ```bash
-.venv/bin/python tests/test_all.py -m dccav
+.venv/bin/python tests/test_all.py -m "acoustic-load smoke"
 ```
 
 Full active suite:

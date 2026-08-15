@@ -1,39 +1,29 @@
-"""
-Compatibility facade for the split acoustic-load modules.
+"""Backward-compatible alias for the neutral :mod:`acoustics` facade.
 
-The implementation lives in ``engine`` (physics, simulation, optimizer and
-analysis), ``presets`` (driver catalog and metadata) and ``pricing``
-(retailer price records and value scoring).  Importing ``dccav`` exposes the
-whole public API in both supported contexts: as a top-level module
-(``import dccav`` with ``src/`` on ``sys.path``, used by ``ui_app.py``) and
-as part of the package (``from src import dccav``, used by the tests).
+New code should import ``acoustics`` or ``src.acoustics``.  The historical
+``dccav`` module remains available because external callers may still rely on
+it, but it no longer defines the primary API or the active application path.
 """
 
 from __future__ import annotations
 
 try:
-    from .engine import *  # noqa: F401,F403
-    from .presets import *  # noqa: F401,F403
-    from .presets import (
+    from .acoustics import *  # noqa: F401,F403
+    from .acoustics import (
+        _load_driver_price_records,  # noqa: F401
         _load_loudspeaker_database_presets,  # noqa: F401
         _load_manufacturer_presets,  # noqa: F401
         _load_speakerboxlite_presets,  # noqa: F401
-        _load_ztzaudio_presets,  # noqa: F401
         _load_vituixcad_presets,  # noqa: F401
+        _load_ztzaudio_presets,  # noqa: F401
     )
-    from .pricing import *  # noqa: F401,F403
-    from .pricing import _load_driver_price_records  # noqa: F401
-    from .ranking import *  # noqa: F401,F403
 except ImportError:  # top-level import with src/ on sys.path (ui_app)
-    from engine import *  # noqa: F401,F403
-    from presets import *  # noqa: F401,F403
-    from presets import (  # type: ignore[no-redef]
+    from acoustics import *  # noqa: F401,F403
+    from acoustics import (  # type: ignore[no-redef]
+        _load_driver_price_records,  # noqa: F401
         _load_loudspeaker_database_presets,  # noqa: F401
         _load_manufacturer_presets,  # noqa: F401
         _load_speakerboxlite_presets,  # noqa: F401
-        _load_ztzaudio_presets,  # noqa: F401
         _load_vituixcad_presets,  # noqa: F401
+        _load_ztzaudio_presets,  # noqa: F401
     )
-    from pricing import *  # noqa: F401,F403
-    from pricing import _load_driver_price_records  # type: ignore[no-redef]  # noqa: F401
-    from ranking import *  # noqa: F401,F403
