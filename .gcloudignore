@@ -1,3 +1,4 @@
+.gcloudignore
 .git
 .venv
 .ruff_cache
@@ -9,10 +10,7 @@ docs
 .DS_Store
 .streamlit/secrets.toml
 
-# The repository data directory also contains crawler checkpoints, source
-# catalogs, archived datasheets and other development artifacts.  The runtime
-# image only needs the normalized catalogs consumed by src/presets.py and the
-# optional price index consumed by src/pricing.py.
+# Keep Cloud Build uploads aligned with the Docker runtime-data whitelist.
 data/*
 !data/catalog_lsdb.json
 !data/catalog_proprietario.json

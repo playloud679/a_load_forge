@@ -83,8 +83,8 @@ Current UI highlights:
   before loading the next project, and legacy flat presets remain importable
 - project download/import and URL-based sharing grouped in the collapsible
   sidebar `Project` section
-- optional SaaS mode with a local registration trial, production OIDC accounts
-  and tenant-scoped cloud projects
+- optional Streamlit OIDC login with an exact email allowlist, independently
+  deployable with browser-local projects or tenant-scoped Firestore projects
 - port-geometry estimates and chuffing diagnostics
 - driver reference metrics, voice-coil corner and T/S-based bandwidth class
 - goal-first driver ranking with strict catalog filters, candidate preview,

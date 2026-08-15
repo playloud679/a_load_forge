@@ -2,6 +2,16 @@
 
 ## 0.8.12 (2026-08-15)
 
+- **Streamlit Cloud email gate**: native `st.login()` authentication can now
+  protect the workspace independently from Firestore through
+  `LOAD_FORGE_AUTH_REQUIRED`; an optional exact, case-insensitive
+  `LOAD_FORGE_ALLOWED_EMAILS` allowlist rejects unauthorized identities before
+  the simulator loads, while auth-only deployments retain browser-local
+  project autosave and avoid initializing the cloud-project backend.
+- **Smaller Cloud container**: Docker and Cloud Build now whitelist only the
+  six runtime catalog/price files under `data/`; archived datasheets, crawler
+  state, source assets and reports stay out of both the upload context and the
+  final image. The runtime data payload falls from roughly 613 MiB to 79 MiB.
 - **Published-spec harvesting**: `tools/run_published_spec_batches.py` runs
   restartable atomic URL batches that complete one proven source domain
   through `refresh_manufacturer_optionals.py`, stopping on exhaustion, child
@@ -23,7 +33,7 @@
   every load family; `src/dccav.py` remains a backward-compatible alias, and
   targeted smoke tests cover all lumped and distributed topologies instead of
   selecting tests by the historical DCCAV name.
-- **Verification**: fresh full active suite passes with 158 passed,
+- **Verification**: fresh full active suite passes with 160 passed,
   0 failures and 0 skips.
 
 ## 0.8.11 (2026-08-12)

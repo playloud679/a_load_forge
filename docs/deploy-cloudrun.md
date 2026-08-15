@@ -1,7 +1,17 @@
 # Deploy su Google Cloud Run
 
 Il repository contiene un `Dockerfile` per eseguire Load Forge su Cloud Run.
-Il catalogo `data/` viene incluso nell'immagine ed è usato in sola lettura.
+L'immagine non include l'intera directory di lavoro `data/`: Docker e Cloud
+Build applicano la stessa whitelist e copiano soltanto i cataloghi normalizzati
+usati da `src/presets.py` più `driver_prices.json`. Restano fuori i datasheet
+PDF, gli asset sorgente, i checkpoint dei crawler, i report e i database di
+provenienza. In questo modo il payload dati del runtime è circa 79 MiB anziché
+oltre 600 MiB, senza rimuovere driver dall'applicazione.
+
+La whitelist è dichiarata in `.dockerignore`, `.gcloudignore` e nel `COPY`
+esplicito del `Dockerfile`. Quando viene aggiunto un nuovo catalogo runtime,
+aggiornare insieme tutti e tre i file; la suite verifica che rimangano
+sincronizzati.
 
 Prerequisiti locali: Docker, Google Cloud CLI, un progetto GCP con billing
 attivo e Artifact Registry abilitato.

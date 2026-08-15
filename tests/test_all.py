@@ -103,6 +103,38 @@ def _check_release_metadata_is_synchronized():
 test("Release metadata stays synchronized", _check_release_metadata_is_synchronized)
 
 
+def _check_container_runtime_data_is_whitelisted():
+    runtime_data = {
+        "data/catalog_lsdb.json",
+        "data/catalog_proprietario.json",
+        "data/catalog_speakerboxlite.json",
+        "data/catalog_vituixcad.json",
+        "data/catalog_ztzaudio_lf_ferrite_presets.json",
+        "data/driver_prices.json",
+    }
+    dockerfile = (ROOT / "Dockerfile").read_text(encoding="utf-8")
+    assert "COPY data ./data" not in dockerfile
+    for path in runtime_data:
+        assert path in dockerfile, f"Dockerfile does not copy {path}"
+
+    for ignore_name in (".dockerignore", ".gcloudignore"):
+        lines = {
+            line.strip()
+            for line in (ROOT / ignore_name).read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        }
+        assert "data/*" in lines, f"{ignore_name} does not exclude data artifacts"
+        included_data = {
+            line[1:] for line in lines if line.startswith("!data/")
+        }
+        assert included_data == runtime_data, (
+            f"{ignore_name} runtime data differs: {included_data ^ runtime_data}"
+        )
+
+
+test("Cloud container ships only runtime catalog data", _check_container_runtime_data_is_whitelisted)
+
+
 def _check_sd_from_diameter():
     sd = _acoustics.sd_from_diameter(104.0)
     assert abs(sd - 84.95) < 0.05, f"Sd={sd:.2f} cm2"
@@ -2773,7 +2805,31 @@ def _check_saas_identity_entitlements_and_project_store():
     from src import saas
 
     disabled = saas.SaaSSettings.from_env({})
-    assert not disabled.enabled
+    assert not disabled.enabled and not disabled.auth_required
+    auth_only = saas.SaaSSettings.from_env({
+        "LOAD_FORGE_AUTH_REQUIRED": "true",
+        "LOAD_FORGE_ALLOWED_EMAILS": (
+            "Owner@Example.test; collaborator@example.test\nowner@example.test"
+        ),
+    })
+    assert auth_only.auth_required and not auth_only.enabled
+    assert auth_only.allowed_emails == frozenset({
+        "owner@example.test",
+        "collaborator@example.test",
+    })
+    assert auth_only.allows_email("OWNER@example.test")
+    assert not auth_only.allows_email("outsider@example.test")
+    assert saas.SaaSSettings.from_env({
+        "LOAD_FORGE_AUTH_REQUIRED": "true",
+    }).allows_email("any-valid@example.test")
+    try:
+        saas.SaaSSettings.from_env({
+            "LOAD_FORGE_ALLOWED_EMAILS": "not-an-email",
+        })
+    except saas.SaaSConfigurationError:
+        pass
+    else:
+        raise AssertionError("invalid authentication allowlist was accepted")
     configured = saas.SaaSSettings.from_env({
         "LOAD_FORGE_SAAS_ENABLED": "true",
         "LOAD_FORGE_SAAS_BACKEND": "memory",
@@ -2781,7 +2837,7 @@ def _check_saas_identity_entitlements_and_project_store():
         "LOAD_FORGE_DEV_UID": "user-123",
         "LOAD_FORGE_DEV_EMAIL": "user@example.test",
     })
-    assert configured.enabled and configured.auth_bypass
+    assert configured.enabled and configured.auth_required and configured.auth_bypass
     user = saas.user_from_claims(configured.development_claims())
     assert user.uid == "user-123"
     assert user.email == "user@example.test"
@@ -3079,6 +3135,64 @@ def _check_ui_saas_local_registration_login_logout():
 test(
     "UI SaaS local account registers, signs out and signs back in",
     _check_ui_saas_local_registration_login_logout,
+)
+
+
+def _check_ui_auth_only_email_allowlist():
+    import os
+
+    from streamlit.testing.v1 import AppTest
+
+    keys = {
+        "LOAD_FORGE_AUTH_REQUIRED": "true",
+        "LOAD_FORGE_ALLOWED_EMAILS": "allowed@example.test",
+        "LOAD_FORGE_AUTH_BYPASS": "true",
+        "LOAD_FORGE_DEV_UID": "auth-only-user",
+        "LOAD_FORGE_DEV_EMAIL": "allowed@example.test",
+        "LOAD_FORGE_DEV_NAME": "Allowed user",
+        "LOAD_FORGE_SAAS_ENABLED": None,
+        "LOAD_FORGE_LOCAL_ACCOUNTS": None,
+        "K_SERVICE": None,
+    }
+    previous = {key: os.environ.get(key) for key in keys}
+    try:
+        for key, value in keys.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+        at.session_state["project_menu_expander"] = True
+        at.run()
+        assert not at.exception, at.exception
+        assert not any(
+            item.label == "Cloud project name" for item in at.text_input
+        ), "auth-only mode must not initialize Firestore project controls"
+        assert any(
+            item.value == "allowed@example.test" for item in at.caption
+        )
+
+        os.environ["LOAD_FORGE_DEV_EMAIL"] = "outsider@example.test"
+        denied = AppTest.from_file(
+            str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT
+        )
+        denied.run()
+        assert not denied.exception, denied.exception
+        assert any(
+            "not authorized" in item.value for item in denied.error
+        ), "an email outside the allowlist reached the workspace"
+        assert not any(item.label == "Bass Match" for item in denied.tabs)
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
+test(
+    "UI auth-only mode enforces the email allowlist without Firestore",
+    _check_ui_auth_only_email_allowlist,
 )
 
 

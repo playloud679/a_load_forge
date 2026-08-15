@@ -52,6 +52,8 @@ class InvalidCredentialsError(PermissionError):
 @dataclass(frozen=True)
 class SaaSSettings:
     enabled: bool = False
+    auth_required: bool = False
+    allowed_emails: frozenset[str] = frozenset()
     open_beta_enabled: bool = False
     backend: str = "firestore"
     gcp_project: str | None = None
@@ -68,6 +70,7 @@ class SaaSSettings:
     def from_env(cls, env: Mapping[str, str] | None = None) -> SaaSSettings:
         values = os.environ if env is None else env
         enabled = _env_flag(values, "LOAD_FORGE_SAAS_ENABLED")
+        auth_required = _env_flag(values, "LOAD_FORGE_AUTH_REQUIRED")
         open_beta_enabled = _env_flag(values, "LOAD_FORGE_OPEN_BETA_ENABLED")
         auth_bypass = _env_flag(values, "LOAD_FORGE_AUTH_BYPASS")
         local_accounts = _env_flag(values, "LOAD_FORGE_LOCAL_ACCOUNTS")
@@ -85,8 +88,28 @@ class SaaSSettings:
                 "LOAD_FORGE_SAAS_BACKEND must be 'firestore' or 'memory'"
             )
         provider = str(values.get("LOAD_FORGE_OIDC_PROVIDER", "")).strip() or None
+        allowed_emails = frozenset(
+            email.strip().casefold()
+            for email in re.split(
+                r"[,;\n]",
+                str(values.get("LOAD_FORGE_ALLOWED_EMAILS", "")),
+            )
+            if email.strip()
+        )
+        invalid_emails = sorted(
+            email for email in allowed_emails if not _EMAIL_RE.fullmatch(email)
+        )
+        if invalid_emails:
+            raise SaaSConfigurationError(
+                "LOAD_FORGE_ALLOWED_EMAILS contains invalid addresses: "
+                + ", ".join(invalid_emails)
+            )
         return cls(
             enabled=enabled,
+            auth_required=(
+                enabled or auth_required or auth_bypass or local_accounts
+            ),
+            allowed_emails=allowed_emails,
             open_beta_enabled=open_beta_enabled,
             backend=backend,
             gcp_project=(
@@ -118,6 +141,16 @@ class SaaSSettings:
                 values.get("LOAD_FORGE_DEV_NAME", "Local developer")
             ).strip(),
         )
+
+    def allows_email(self, email: str) -> bool:
+        """Return whether an authenticated email passes the optional allowlist."""
+        if not self.allowed_emails:
+            return True
+        try:
+            normalized = _normalize_email(email)
+        except ValueError:
+            return False
+        return normalized in self.allowed_emails
 
     def development_claims(self) -> dict[str, str]:
         if not self.auth_bypass:

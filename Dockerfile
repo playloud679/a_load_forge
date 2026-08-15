@@ -13,7 +13,13 @@ COPY VERSION README.md ui_app.py ./
 COPY .streamlit/config.toml ./.streamlit/config.toml
 COPY src ./src
 COPY tools ./tools
-COPY data ./data
+COPY data/catalog_lsdb.json \
+     data/catalog_proprietario.json \
+     data/catalog_vituixcad.json \
+     data/catalog_speakerboxlite.json \
+     data/catalog_ztzaudio_lf_ferrite_presets.json \
+     data/driver_prices.json \
+     ./data/
 COPY assets ./assets
 COPY examples ./examples
 

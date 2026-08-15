@@ -35,6 +35,35 @@ Authentication uses Streamlit's native OIDC support (`st.login`, `st.user`,
 `.streamlit/secrets.example.toml` documents the required keys without storing
 credentials.
 
+Authentication can also be enabled independently from Firestore project
+persistence. This is the recommended initial configuration for the private
+Streamlit Community Cloud deployment:
+
+```toml
+LOAD_FORGE_AUTH_REQUIRED = "true"
+LOAD_FORGE_ALLOWED_EMAILS = "owner@example.com,collaborator@example.com"
+
+[auth]
+redirect_uri = "https://load-forge.streamlit.app/oauth2callback"
+cookie_secret = "replace-with-a-long-random-value"
+client_id = "replace-with-google-oauth-client-id"
+client_secret = "replace-with-google-oauth-client-secret"
+server_metadata_url = "https://accounts.google.com/.well-known/openid-configuration"
+```
+
+With `LOAD_FORGE_AUTH_REQUIRED=true` and `LOAD_FORGE_SAAS_ENABLED` unset, the
+OIDC gate and exact case-insensitive email allowlist protect the workspace,
+while browser IndexedDB remains the project store and no Firestore client is
+created. Commas, semicolons and newlines are accepted between addresses. An
+empty `LOAD_FORGE_ALLOWED_EMAILS` permits every account authenticated by the
+configured provider; malformed configured addresses fail closed at startup.
+
+On Community Cloud these values belong at the root of the app's Secrets TOML,
+before `[auth]`. The Google OAuth client must register the exact production
+callback `https://load-forge.streamlit.app/oauth2callback`. Keep the app
+private until this configuration has been tested; making it public before the
+in-app gate is active would expose the workspace.
+
 ## Local registration demo
 
 The complete account experience can be exercised locally without configuring

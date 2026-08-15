@@ -424,50 +424,49 @@ def _sign_out_saas() -> None:
 
 
 def _resolve_saas_user() -> _saas.SaaSUser | None:
-    """Require OIDC only when the opt-in SaaS deployment flag is enabled."""
+    """Resolve the authenticated user when either auth or SaaS is enabled."""
     # Finder workers re-import this module under multiprocessing spawn/forkserver
     # without a Streamlit request context. They only execute pure ranking helpers
     # and must never enter an account flow or touch project persistence.
     if multiprocessing.current_process().name != "MainProcess":
         return None
-    if not _SAAS_SETTINGS.enabled:
+    if not _SAAS_SETTINGS.auth_required:
         return None
     if _SAAS_SETTINGS.auth_bypass:
-        return _saas.user_from_claims(_SAAS_SETTINGS.development_claims())
-    if _SAAS_SETTINGS.local_accounts:
+        claims = _SAAS_SETTINGS.development_claims()
+    elif _SAAS_SETTINGS.local_accounts:
         claims = st.session_state.get(_LOCAL_ACCOUNT_SESSION_KEY)
-        if isinstance(claims, dict):
-            return _saas.user_from_claims(claims)
-        _render_local_account_gate()
-
-    try:
-        logged_in = bool(st.user.is_logged_in)
-    except (AttributeError, RuntimeError):
-        logged_in = False
-    if not logged_in:
-        st.title("Load Forge")
-        st.subheader("Sign in to open your acoustic workspace")
-        st.caption(
-            "Projects are stored in your account so reconnecting or changing "
-            "device does not lose the design."
-        )
+        if not isinstance(claims, dict):
+            _render_local_account_gate()
+    else:
         try:
-            auth_configured = "auth" in st.secrets
-        except (FileNotFoundError, RuntimeError):
-            auth_configured = False
-        if not auth_configured:
-            st.error(
-                "SaaS authentication is enabled but the OIDC secret is not mounted."
+            logged_in = bool(st.user.is_logged_in)
+        except (AttributeError, RuntimeError):
+            logged_in = False
+        if not logged_in:
+            st.title("Load Forge")
+            st.subheader("Sign in to open your acoustic workspace")
+            st.caption(
+                "Your projects remain autosaved in this browser unless cloud "
+                "project persistence is also enabled."
             )
+            try:
+                auth_configured = "auth" in st.secrets
+            except (FileNotFoundError, RuntimeError):
+                auth_configured = False
+            if not auth_configured:
+                st.error(
+                    "Authentication is enabled but the OIDC secret is not mounted."
+                )
+                st.stop()
+            if st.button("Sign in", type="primary", width="stretch"):
+                if _SAAS_SETTINGS.oidc_provider:
+                    st.login(_SAAS_SETTINGS.oidc_provider)
+                else:
+                    st.login()
             st.stop()
-        if st.button("Sign in", type="primary", width="stretch"):
-            if _SAAS_SETTINGS.oidc_provider:
-                st.login(_SAAS_SETTINGS.oidc_provider)
-            else:
-                st.login()
-        st.stop()
+        claims = st.user.to_dict()
 
-    claims = st.user.to_dict()
     expires_at = claims.get("exp")
     if expires_at is not None:
         try:
@@ -477,7 +476,21 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
         if expired:
             st.logout()
             st.stop()
-    return _saas.user_from_claims(claims)
+    try:
+        user = _saas.user_from_claims(claims)
+    except _saas.SaaSConfigurationError as exc:
+        st.error(f"The identity provider returned an unusable account: {exc}")
+        if st.button("Sign out", key="invalid_identity_sign_out"):
+            st.logout()
+        st.stop()
+    if not _SAAS_SETTINGS.allows_email(user.email):
+        st.title("Load Forge")
+        st.error("This email address is not authorized to use Load Forge.")
+        st.caption(user.email or "The identity provider did not return an email.")
+        if st.button("Sign out", key="unauthorized_identity_sign_out"):
+            st.logout()
+        st.stop()
+    return user
 
 
 try:
@@ -490,7 +503,7 @@ _CURRENT_SAAS_USER = _resolve_saas_user()
 
 def _pro_comparison_enabled() -> bool:
     """Allow comparison workflows locally and for Pro-equivalent accounts."""
-    if _CURRENT_SAAS_USER is None:
+    if not _SAAS_SETTINGS.enabled or _CURRENT_SAAS_USER is None:
         return True
     entitlements = _saas.effective_entitlements(
         _CURRENT_SAAS_USER,
@@ -3026,6 +3039,21 @@ def _render_saas_project_controls(user: _saas.SaaSUser) -> None:
     st.divider()
 
 
+def _render_authenticated_account_controls(user: _saas.SaaSUser) -> None:
+    """Show the signed-in identity when cloud-project persistence is disabled."""
+    st.markdown("**Account**")
+    account_col, logout_col = st.columns([3, 2])
+    with account_col:
+        st.caption(user.email or user.uid)
+    with logout_col:
+        if not _SAAS_SETTINGS.auth_bypass and st.button(
+            "Sign out",
+            key="auth_only_sign_out",
+            width="stretch",
+        ):
+            _sign_out_saas()
+
+
 def _project_download_filename(name: str) -> str:
     stem = re.sub(r"[^A-Za-z0-9._-]+", "_", str(name).strip()).strip("._")
     return f"{stem or 'load_forge_project'}.lfp"
@@ -3280,8 +3308,10 @@ def _render_project_menu() -> None:
         if action_message:
             st.toast(str(action_message))
         _render_browser_project_controls()
-        if _CURRENT_SAAS_USER is not None:
+        if _SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None:
             _render_saas_project_controls(_CURRENT_SAAS_USER)
+        elif _CURRENT_SAAS_USER is not None:
+            _render_authenticated_account_controls(_CURRENT_SAAS_USER)
         if st.button(
             "Share via URL",
             key="project_share_url",
