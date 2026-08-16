@@ -33,7 +33,9 @@ Authentication uses Streamlit's native OIDC support (`st.login`, `st.user`,
 `st.logout`).  Mount a complete `secrets.toml` from Secret Manager at
 `/app/.streamlit/secrets.toml`.  The tracked
 `.streamlit/secrets.example.toml` documents the required keys without storing
-credentials.
+credentials. The deployment requirements include both `Authlib` and `httpx`:
+Authlib imports its optional HTTP client only when the first login begins, so
+an image can otherwise start normally and fail late at the Sign in button.
 
 Authentication can also be enabled independently from Firestore project
 persistence. This is the recommended initial configuration for the private

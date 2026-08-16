@@ -8,6 +8,9 @@
   `LOAD_FORGE_ALLOWED_EMAILS` allowlist rejects unauthorized identities before
   the simulator loads, while auth-only deployments retain browser-local
   project autosave and avoid initializing the cloud-project backend.
+- **OIDC runtime dependency**: Streamlit Cloud now installs `httpx` alongside
+  Authlib, preventing the first Sign in click from failing inside Authlib's
+  Starlette client; a requirements regression keeps the lazy import covered.
 - **Smaller Cloud container**: Docker and Cloud Build now whitelist only the
   six runtime catalog/price files under `data/`; archived datasheets, crawler
   state, source assets and reports stay out of both the upload context and the
@@ -33,7 +36,7 @@
   every load family; `src/dccav.py` remains a backward-compatible alias, and
   targeted smoke tests cover all lumped and distributed topologies instead of
   selecting tests by the historical DCCAV name.
-- **Verification**: fresh full active suite passes with 160 passed,
+- **Verification**: fresh full active suite passes with 161 passed,
   0 failures and 0 skips.
 
 ## 0.8.11 (2026-08-12)

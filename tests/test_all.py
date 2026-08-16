@@ -103,6 +103,24 @@ def _check_release_metadata_is_synchronized():
 test("Release metadata stays synchronized", _check_release_metadata_is_synchronized)
 
 
+def _check_oidc_runtime_dependencies_are_complete():
+    requirements = {
+        line.strip().casefold()
+        for line in (ROOT / "requirements.txt").read_text(encoding="utf-8").splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    }
+    assert any(item.startswith("authlib") for item in requirements)
+    assert any(item.startswith("httpx") for item in requirements), (
+        "Authlib's Starlette OIDC client imports httpx at sign-in time"
+    )
+
+
+test(
+    "OIDC deployment includes Authlib's HTTP client",
+    _check_oidc_runtime_dependencies_are_complete,
+)
+
+
 def _check_container_runtime_data_is_whitelisted():
     runtime_data = {
         "data/catalog_lsdb.json",
