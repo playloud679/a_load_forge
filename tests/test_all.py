@@ -8497,39 +8497,43 @@ def _check_ui_parallel_ranking_falls_back_when_processes_are_denied():
 test("UI parallel Finder falls back when worker processes are denied", _check_ui_parallel_ranking_falls_back_when_processes_are_denied)
 
 
-def _check_ui_streamlit_cloud_skips_process_pool_probe():
+def _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast():
     import ui_app as _ui
 
+    cloud_path = _ui.Path("/mount/src/load_forge/ui_app.py")
+    assert _ui._is_streamlit_community_cloud(cloud_path)
     assert _ui._finder_executor_backend(
-        _ui.Path("/mount/src/load_forge/ui_app.py")
-    ) == "thread"
+        cloud_path
+    ) == "process"
+    assert _ui._finder_worker_limit(cloud_path) == 4
     assert _ui._finder_executor_backend(
         _ui.Path("/Users/example/load_forge/ui_app.py")
     ) == "process"
+    assert _ui._finder_worker_limit(
+        _ui.Path("/Users/example/load_forge/ui_app.py")
+    ) == 8
 
-    original_backend = _ui._finder_executor_backend
     original_executor = _ui.ProcessPoolExecutor
 
     class DeniedProcessPool:
         def __init__(self, *args, **kwargs):
-            raise AssertionError("Streamlit Cloud must not probe a process pool")
+            raise PermissionError("process startup denied")
 
     try:
         _ui._drop_finder_worker_pool()
-        _ui._finder_executor_backend = lambda app_path=None: "thread"
         _ui.ProcessPoolExecutor = DeniedProcessPool
         pool = _ui._finder_worker_pool(2)
         assert isinstance(pool, _ui.ThreadPoolExecutor)
+        assert _ui._ranking._finder_shared_pool_backend == "thread"
         assert pool.submit(lambda: "ready").result(timeout=5) == "ready"
     finally:
         _ui._drop_finder_worker_pool()
         _ui.ProcessPoolExecutor = original_executor
-        _ui._finder_executor_backend = original_backend
 
 
 test(
-    "UI Streamlit Cloud starts Finder threads without probing processes",
-    _check_ui_streamlit_cloud_skips_process_pool_probe,
+    "UI Streamlit Cloud bounds processes and falls back without a long wait",
+    _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast,
 )
 
 

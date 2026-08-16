@@ -24,6 +24,10 @@ detailed contracts live in `docs/dccav.md`.
   unusable presets return `None` instead of raising
 - `sort_ranked_rows(rows)`: deepest F3 first, then F6/F10 and loudest peak
 - `rank_sort_value(value)`: `inf` for non-finite sort keys
+- `initialize_worker_catalog()` / `finder_worker_ready()`: load the runtime
+  preset catalog once inside each process, then return only its row count for
+  the bounded startup health check instead of copying the complete driver-name
+  tuple back to the parent
 - `response_sparkline(spl, points=48, floor_db=-30)` plus the
   `SPARKLINE_POINTS` / `SPARKLINE_FLOOR_DB` constants used by the UI's
   `LineChartColumn`

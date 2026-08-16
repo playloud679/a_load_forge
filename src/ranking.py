@@ -44,6 +44,16 @@ def rank_sort_value(value: float) -> float:
     return float(value) if np.isfinite(float(value)) else float("inf")
 
 
+def initialize_worker_catalog() -> None:
+    """Load the preset catalog once inside a Finder worker process."""
+    presets.driver_preset_names()
+
+
+def finder_worker_ready() -> int:
+    """Return a compact health signal after the worker catalog is available."""
+    return len(presets.driver_preset_names())
+
+
 def sort_ranked_rows(rows: list[dict]) -> list[dict]:
     """Deepest F3 first, then F6/F10 and the loudest peak as tie-breakers."""
     rows.sort(key=lambda row: (

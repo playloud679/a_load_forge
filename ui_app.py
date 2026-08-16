@@ -6809,21 +6809,22 @@ def _batch_rank_presets(
     return _acoustics.sort_ranked_rows(rows)
 
 
-def _finder_executor_backend(app_path: Path | None = None) -> str:
-    """Choose a worker backend without probing unsupported process pools.
+def _is_streamlit_community_cloud(app_path: Path | None = None) -> bool:
+    """Recognize Community Cloud's checkout convention."""
+    resolved_path = (app_path or Path(__file__)).resolve()
+    return resolved_path.is_relative_to(Path("/mount/src"))
 
-    Streamlit Community Cloud checks out applications below ``/mount/src``.
-    Its constrained container can accept process-pool submissions and only
-    fail after worker startup, making Bass Match appear frozen before the
-    serial fallback begins.  Threads share the already-loaded catalog and are
-    also the established Cloud Run backend.
-    """
+
+def _finder_executor_backend(app_path: Path | None = None) -> str:
+    """Choose the preferred worker backend for the current deployment."""
     if os.getenv("K_SERVICE"):
         return "thread"
-    resolved_path = (app_path or Path(__file__)).resolve()
-    if resolved_path.is_relative_to(Path("/mount/src")):
-        return "thread"
     return "process"
+
+
+def _finder_worker_limit(app_path: Path | None = None) -> int:
+    """Bound duplicated catalog memory on Streamlit Community Cloud."""
+    return 4 if _is_streamlit_community_cloud(app_path) else 8
 
 
 def _finder_pool_fingerprint(workers: int) -> tuple:
@@ -6868,15 +6869,20 @@ def _finder_worker_pool(
         return pool
     if pool is not None:
         pool.shutdown(wait=False, cancel_futures=True)
-    # Hosted Streamlit servers use threads to avoid delayed process startup
-    # failures and to share the already-loaded driver catalog.
-    if _finder_executor_backend() == "thread":
-        pool = ThreadPoolExecutor(max_workers=workers)
+
+    def thread_fallback() -> ThreadPoolExecutor:
+        fallback = ThreadPoolExecutor(max_workers=workers)
         for _ in range(workers):
-            pool.submit(_presets.driver_preset_names)
-        _ranking._finder_shared_pool = pool
+            fallback.submit(_presets.driver_preset_names)
+        _ranking._finder_shared_pool = fallback
         _ranking._finder_shared_pool_key = key
-        return pool
+        _ranking._finder_shared_pool_backend = "thread"
+        return fallback
+
+    # Cloud Run stays on shared-memory threads because its CPU/memory profile
+    # is explicitly tuned for them.
+    if _finder_executor_backend() == "thread":
+        return thread_fallback()
     # forkserver: no re-import of the caller's __main__ in the workers (the
     # spawn method would re-execute entrypoint scripts) and no fork of a
     # thread-filled Streamlit process.
@@ -6884,16 +6890,35 @@ def _finder_worker_pool(
         "forkserver" if "forkserver" in multiprocessing.get_all_start_methods()
         else "spawn"
     )
-    pool = ProcessPoolExecutor(max_workers=workers, mp_context=mp_context)
+    pool = None
     try:
-        # Fire-and-forget warm-up: force each worker to import the stack and
-        # build the preset catalog now, while the user is still reading the UI.
-        for _ in range(workers):
-            pool.submit(_presets.driver_preset_names)
+        pool = ProcessPoolExecutor(
+            max_workers=workers,
+            mp_context=mp_context,
+            initializer=_ranking.initialize_worker_catalog,
+        )
+        warmups = [
+            pool.submit(_ranking.finder_worker_ready)
+            for _ in range(workers)
+        ]
+        if _is_streamlit_community_cloud():
+            # The host can accept submissions before an oversized or broken
+            # pool fails. Verify startup now and cap that delay instead of
+            # letting the first ranking result hang indefinitely.
+            deadline = time.monotonic() + 10.0
+            for future in warmups:
+                future.result(timeout=max(0.01, deadline - time.monotonic()))
     except Exception:
-        logger.warning("Finder worker warm-up submit failed", exc_info=True)
+        if pool is not None:
+            pool.shutdown(wait=False, cancel_futures=True)
+        logger.warning(
+            "Finder process startup failed; using shared-memory threads",
+            exc_info=True,
+        )
+        return thread_fallback()
     _ranking._finder_shared_pool = pool
     _ranking._finder_shared_pool_key = key
+    _ranking._finder_shared_pool_backend = "process"
     if not getattr(_ranking, "_finder_pool_atexit_registered", False):
         atexit.register(_drop_finder_worker_pool)
         _ranking._finder_pool_atexit_registered = True
@@ -6904,6 +6929,7 @@ def _drop_finder_worker_pool() -> None:
     pool = getattr(_ranking, "_finder_shared_pool", None)
     _ranking._finder_shared_pool = None
     _ranking._finder_shared_pool_key = None
+    _ranking._finder_shared_pool_backend = None
     if pool is not None:
         pool.shutdown(wait=False, cancel_futures=True)
 
@@ -6928,7 +6954,7 @@ def _batch_rank_presets_parallel(
     names = list(preset_names)[:int(candidate_limit)]
     total = max(len(names), 1)
     overall_total = max(int(progress_total or total), 1)
-    workers = max(1, min(os.cpu_count() or 2, 8))
+    workers = max(1, min(os.cpu_count() or 2, _finder_worker_limit()))
     owns_progress = progress_widget is None
     if progress_widget is None:
         progress_text_widget = st.empty()

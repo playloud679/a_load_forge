@@ -590,8 +590,10 @@ F3/F6/F10 with the loudest peak as tie-breaker; `response_sparkline`
 downsamples the total response to a peak-relative 48-point sparkline
 clipped at `SPARKLINE_FLOOR_DB`.  The UI runs the quick scan serially
 (cached) and fans optimizer scans of more than 8 candidates out to a
-`ProcessPoolExecutor` with a real progress bar; both paths produce
-identical rows because the optimizer is deterministic.
+`ProcessPoolExecutor` with a real progress bar. Streamlit Community Cloud caps
+the reusable pool at four workers and verifies its startup before falling back
+to threads, avoiding both catalog-memory exhaustion and an unbounded failed
+startup. All paths produce identical rows because the optimizer is deterministic.
 
 ### `price_extension_score(f3_hz, price) -> float`
 

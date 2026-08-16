@@ -2,11 +2,12 @@
 
 ## 0.8.12 (2026-08-15)
 
-- **Immediate Streamlit Cloud matching**: Bass Match now recognizes Community
-  Cloud's `/mount/src` deployment before creating workers and starts its shared
-  thread pool directly, eliminating the long failed process-pool wait before
-  safe-mode ranking began. The fresh active suite passes 162 tests with 0
-  failures and 0 skips.
+- **Fast, bounded Streamlit Cloud matching**: Bass Match now limits Community
+  Cloud's reusable process pool to four workers, recovering CPU parallelism
+  without duplicating the expanded runtime catalogs across eight processes.
+  Worker startup is verified within ten seconds and falls back to shared-memory
+  threads on failure, eliminating the former unbounded safe-mode wait. The
+  fresh active suite passes 162 tests with 0 failures and 0 skips.
 - **Streamlit Cloud email gate**: native `st.login()` authentication can now
   protect the workspace independently from Firestore through
   `LOAD_FORGE_AUTH_REQUIRED`; an optional exact, case-insensitive
