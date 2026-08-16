@@ -6809,6 +6809,23 @@ def _batch_rank_presets(
     return _acoustics.sort_ranked_rows(rows)
 
 
+def _finder_executor_backend(app_path: Path | None = None) -> str:
+    """Choose a worker backend without probing unsupported process pools.
+
+    Streamlit Community Cloud checks out applications below ``/mount/src``.
+    Its constrained container can accept process-pool submissions and only
+    fail after worker startup, making Bass Match appear frozen before the
+    serial fallback begins.  Threads share the already-loaded catalog and are
+    also the established Cloud Run backend.
+    """
+    if os.getenv("K_SERVICE"):
+        return "thread"
+    resolved_path = (app_path or Path(__file__)).resolve()
+    if resolved_path.is_relative_to(Path("/mount/src")):
+        return "thread"
+    return "process"
+
+
 def _finder_pool_fingerprint(workers: int) -> tuple:
     """Identity of the code+data the Finder workers hold in memory."""
     paths = [
@@ -6824,10 +6841,17 @@ def _finder_pool_fingerprint(workers: int) -> tuple:
     mtimes = tuple(
         path.stat().st_mtime if path.exists() else None for path in paths
     )
-    return (_FINDER_RANKING_VERSION, workers, *mtimes)
+    return (
+        _FINDER_RANKING_VERSION,
+        _finder_executor_backend(),
+        workers,
+        *mtimes,
+    )
 
 
-def _finder_worker_pool(workers: int) -> ProcessPoolExecutor:
+def _finder_worker_pool(
+    workers: int,
+) -> ProcessPoolExecutor | ThreadPoolExecutor:
     """Return the process-wide match worker pool, warming it on first use.
 
     Spawning the pool and cold-importing the simulation stack in every worker
@@ -6844,8 +6868,9 @@ def _finder_worker_pool(workers: int) -> ProcessPoolExecutor:
         return pool
     if pool is not None:
         pool.shutdown(wait=False, cancel_futures=True)
-    # Cloud Run Streamlit server uses threads to avoid process-spawn failures.
-    if os.getenv("K_SERVICE"):
+    # Hosted Streamlit servers use threads to avoid delayed process startup
+    # failures and to share the already-loaded driver catalog.
+    if _finder_executor_backend() == "thread":
         pool = ThreadPoolExecutor(max_workers=workers)
         for _ in range(workers):
             pool.submit(_presets.driver_preset_names)

@@ -85,6 +85,9 @@ they must not trigger a second rerun or restart the enclosure optimizer.
 Workspace switching must remain view-only: Bass Match workers are created only
 by `Run Bass Match`; closed Project/Candidate sections and inactive sidebar or
 analysis tabs must not build their hidden controls, tables or charts. Catalog
+matching uses the reusable process pool locally and starts the reusable thread
+pool directly on Cloud Run or Streamlit Community Cloud (`/mount/src`) so a
+hosted run never waits for an unsupported process pool to fail first. Catalog
 metadata/price summaries and embedded visual CSS use bounded caches, while
 large filtered-name lists must not accumulate in the Streamlit cache.
 Routine IndexedDB autosaves are fire-and-forget once the active project is in
