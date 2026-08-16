@@ -9,6 +9,7 @@ the ranking table.
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -20,6 +21,20 @@ except ImportError:  # top-level import with src/ on sys.path (ui_app)
 
 SPARKLINE_POINTS = 48
 SPARKLINE_FLOOR_DB = -30.0
+
+
+@dataclass(frozen=True)
+class RankingCandidate:
+    """Compact driver data sent to Finder worker processes."""
+
+    name: str
+    ts: engine.DriverTS
+    source: str
+    brand: str
+    size_in: float | None
+    price: float | None
+    currency: str
+    url: str
 
 
 def response_sparkline(
@@ -44,14 +59,24 @@ def rank_sort_value(value: float) -> float:
     return float(value) if np.isfinite(float(value)) else float("inf")
 
 
-def initialize_worker_catalog() -> None:
-    """Load the preset catalog once inside a Finder worker process."""
-    presets.driver_preset_names()
-
-
 def finder_worker_ready() -> int:
-    """Return a compact health signal after the worker catalog is available."""
-    return len(presets.driver_preset_names())
+    """Return a compact process-pool health signal."""
+    return os.getpid()
+
+
+def ranking_candidate(name: str) -> RankingCandidate:
+    """Resolve one named preset into the compact worker payload."""
+    info = presets.driver_preset_info(name)
+    return RankingCandidate(
+        name=name,
+        ts=presets.get_driver_preset(name),
+        source=info.source,
+        brand=info.brand or "Other",
+        size_in=info.size_in,
+        price=info.price,
+        currency=info.currency,
+        url=info.url or "",
+    )
 
 
 def sort_ranked_rows(rows: list[dict]) -> list[dict]:
@@ -77,16 +102,38 @@ def rank_preset_row(
     driver_configuration: str = "Single driver",
 ) -> dict | None:
     """Build one ranking-table row for a single or composite driver."""
+    try:
+        candidate = ranking_candidate(name)
+    except Exception:
+        return None
+    return rank_candidate_row(
+        candidate, load_type, max_volume_l, voltage_v, f_min_hz, f_max_hz,
+        points, goals, driver_configuration,
+    )
+
+
+def rank_candidate_row(
+    candidate: RankingCandidate,
+    load_type: str,
+    max_volume_l: float,
+    voltage_v: float,
+    f_min_hz: float,
+    f_max_hz: float,
+    points: int,
+    goals: engine.OptimizationGoals | None = None,
+    driver_configuration: str = "Single driver",
+) -> dict | None:
+    """Build one row from a compact payload without loading worker catalogs."""
+    name = candidate.name
     if load_type in ("Suspension pneumatic", "Acoustic suspension"):
         load_type = "Sealed"
     freq = np.geomspace(float(f_min_hz), float(f_max_hz), int(points))
     try:
         ts = engine.apply_driver_configuration(
-            presets.get_driver_preset(name), driver_configuration
+            candidate.ts, driver_configuration
         )
         if load_type not in ("Sealed", "Infinite baffle") and ts.xmax_mm <= 0:
             return None
-        info = presets.driver_preset_info(name)
         driver_class = engine.classify_driver_bandwidth(ts).driver_class
         ripple_db = float("nan")
         box: (
@@ -291,14 +338,14 @@ def rank_preset_row(
         return {
             "Driver": name,
             "Driver configuration": driver_configuration,
-            "Source": info.source,
-            "Brand": info.brand or "Other",
+            "Source": candidate.source,
+            "Brand": candidate.brand,
             "Class": driver_class,
-            "Size in": info.size_in if info.size_in is not None else np.nan,
+            "Size in": candidate.size_in if candidate.size_in is not None else np.nan,
             "Sd cm²": ts.sd_cm2,
-            "Price": info.price if info.price is not None else np.nan,
-            "Currency": info.currency,
-            "Buy": info.url or "",
+            "Price": candidate.price if candidate.price is not None else np.nan,
+            "Currency": candidate.currency,
+            "Buy": candidate.url,
             "Mms g": ts.mms_g if ts.mms_g is not None else np.nan,
             "Le10k mH": ts.le10k_mh if ts.le10k_mh is not None else np.nan,
             "F3 Hz": f3_hz,

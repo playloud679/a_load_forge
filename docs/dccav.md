@@ -592,8 +592,10 @@ clipped at `SPARKLINE_FLOOR_DB`.  The UI runs the quick scan serially
 (cached) and fans optimizer scans of more than 8 candidates out to a
 `ProcessPoolExecutor` with a real progress bar. Streamlit Community Cloud caps
 the reusable pool at four workers and verifies its startup before falling back
-to threads, avoiding both catalog-memory exhaustion and an unbounded failed
-startup. All paths produce identical rows because the optimizer is deterministic.
+to threads. Presets are resolved once in the parent and only compact T/S plus
+display metadata are sent to workers, avoiding both duplicated external-catalog
+memory and an unbounded failed startup. All paths produce identical rows because
+the optimizer is deterministic.
 
 ### `price_extension_score(f3_hz, price) -> float`
 

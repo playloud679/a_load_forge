@@ -6895,7 +6895,6 @@ def _finder_worker_pool(
         pool = ProcessPoolExecutor(
             max_workers=workers,
             mp_context=mp_context,
-            initializer=_ranking.initialize_worker_catalog,
         )
         warmups = [
             pool.submit(_ranking.finder_worker_ready)
@@ -6966,12 +6965,16 @@ def _batch_rank_presets_parallel(
     done = 0
     try:
         pool = _finder_worker_pool(workers)
+        # Resolve names in the parent, whose catalog is already loaded. Worker
+        # processes receive only compact T/S + display metadata payloads and
+        # therefore never duplicate the full external catalog in Cloud RAM.
+        candidates = [_ranking.ranking_candidate(name) for name in names]
         # Small chunks keep the ordered map streaming: with large chunks the
         # first result (and the progress bar) stalls until a whole chunk of
         # hundreds of simulations completes, which reads as a hung start.
         results = pool.map(
-            _acoustics.rank_preset_row,
-            names,
+            _ranking.rank_candidate_row,
+            candidates,
             [load_type] * len(names),
             [float(max_volume_l)] * len(names),
             [float(voltage_v)] * len(names),

@@ -8453,6 +8453,24 @@ def _check_ui_parallel_ranking_matches_serial():
 
     names = ("KEF B110B article example", "Beyma 12CMV2", "Dayton Audio RSS315HO-4")
     goals = _ui._acoustics.OptimizationGoals(objective="balanced")
+    compact = _ui._ranking.ranking_candidate(names[0])
+    direct = _ui._acoustics.rank_preset_row(
+        names[0], "Sealed", 30.0, 2.83, 10.0, 300.0, 120, goals)
+    original_get = _ui._ranking.presets.get_driver_preset
+    original_info = _ui._ranking.presets.driver_preset_info
+    try:
+        def catalog_access_denied(*args, **kwargs):
+            raise AssertionError("compact worker ranking must not access the catalog")
+
+        _ui._ranking.presets.get_driver_preset = catalog_access_denied
+        _ui._ranking.presets.driver_preset_info = catalog_access_denied
+        compact_row = _ui._ranking.rank_candidate_row(
+            compact, "Sealed", 30.0, 2.83, 10.0, 300.0, 120, goals)
+    finally:
+        _ui._ranking.presets.get_driver_preset = original_get
+        _ui._ranking.presets.driver_preset_info = original_info
+    assert compact_row == direct
+
     serial = _ui._batch_rank_presets(
         names, "Sealed", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals)
     parallel = _ui._batch_rank_presets_parallel(

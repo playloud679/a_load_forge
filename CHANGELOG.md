@@ -4,7 +4,10 @@
 
 - **Fast, bounded Streamlit Cloud matching**: Bass Match now limits Community
   Cloud's reusable process pool to four workers, recovering CPU parallelism
-  without duplicating the expanded runtime catalogs across eight processes.
+  without duplicating the expanded runtime catalogs across processes. Preset
+  names are resolved once in the parent and workers receive only compact T/S
+  and table metadata, preventing the Cloud container from paging the complete
+  external databases once per worker.
   Worker startup is verified within ten seconds and falls back to shared-memory
   threads on failure, eliminating the former unbounded safe-mode wait. The
   fresh active suite passes 162 tests with 0 failures and 0 skips.

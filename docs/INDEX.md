@@ -88,7 +88,9 @@ analysis tabs must not build their hidden controls, tables or charts. Catalog
 matching uses the reusable process pool locally. Streamlit Community Cloud
 (`/mount/src`) caps that pool at four workers to bound duplicated catalog
 memory and verifies startup within ten seconds before falling back to shared
-threads; Cloud Run uses threads directly. Catalog
+threads. The parent resolves preset names and sends compact candidate payloads,
+so process workers never load a second copy of the external catalogs; Cloud Run
+uses threads directly. Catalog
 metadata/price summaries and embedded visual CSS use bounded caches, while
 large filtered-name lists must not accumulate in the Streamlit cache.
 Routine IndexedDB autosaves are fire-and-forget once the active project is in
