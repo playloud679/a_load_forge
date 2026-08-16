@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
@@ -62,6 +63,29 @@ def rank_sort_value(value: float) -> float:
 def finder_worker_ready() -> int:
     """Return a compact process-pool health signal."""
     return os.getpid()
+
+
+def finder_optimizer_evaluation_limit(module_path: Path | None = None) -> int:
+    """Return the hosted or local per-driver optimizer budget."""
+    if os.getenv("K_SERVICE"):
+        return 24
+    resolved_path = (module_path or Path(__file__)).resolve()
+    if resolved_path.is_relative_to(Path("/mount/src")):
+        return 30
+    return 140
+
+
+def finder_optimizer_frequency_plan(
+    module_path: Path | None = None,
+) -> tuple[int, int]:
+    """Return broad/refinement frequency counts for hosted Finder runs."""
+    resolved_path = (module_path or Path(__file__)).resolve()
+    if os.getenv("K_SERVICE") or resolved_path.is_relative_to(Path("/mount/src")):
+        return (
+            engine.OPTIMIZER_COARSE_POINTS,
+            engine.OPTIMIZER_F3_REFINE_POINTS,
+        )
+    return 160, 0
 
 
 def ranking_candidate(name: str) -> RankingCandidate:
@@ -157,12 +181,15 @@ def rank_candidate_row(
                 max_group_delay_ms=goals.max_group_delay_ms,
                 min_spl_db=goals.min_spl_db,
             )
+            frequency_points, refine_f3_points = finder_optimizer_frequency_plan()
             optimized = engine.optimize_alignment(
                 ts,
                 batch_goals,
                 load_type=load_type,
                 voltage_v=float(voltage_v),
-                max_evaluations=24 if os.getenv("K_SERVICE") else 140,
+                max_evaluations=finder_optimizer_evaluation_limit(),
+                frequency_points=frequency_points,
+                refine_f3_points=refine_f3_points,
             )
             box = optimized.box
             ripple_db = float(optimized.ripple_db)

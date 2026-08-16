@@ -23,6 +23,8 @@ RHO_AIR = 1.18
 SPEED_OF_SOUND = 344.0
 P_REF = 20e-6
 EPS = 1e-30
+OPTIMIZER_COARSE_POINTS = 30
+OPTIMIZER_F3_REFINE_POINTS = 20
 
 
 def adaptive_frequency_grid(
@@ -1365,9 +1367,21 @@ def _optimizer_metrics(
     box: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox,
     freq: np.ndarray,
     voltage_v: float,
+    refine_f3_points: int = 0,
 ) -> dict[str, float]:
     is_bandpass4 = isinstance(box, Bandpass4Box)
     is_bandpass6 = isinstance(box, Bandpass6Box)
+
+    def simulate_at(frequencies: np.ndarray) -> SimulationResult:
+        if isinstance(box, ReflexBox):
+            return simulate_reflex(ts, box, frequencies, voltage_v)
+        if isinstance(box, Bandpass4Box):
+            return simulate_bandpass4(ts, box, frequencies, voltage_v)
+        if isinstance(box, Bandpass6Box):
+            return simulate_bandpass6(ts, box, frequencies, voltage_v)
+        if isinstance(box, SealedBox):
+            return simulate_sealed(ts, box, frequencies, voltage_v)
+        return simulate(ts, box, frequencies, voltage_v)
 
     def velocity_diameter_cm(volume_velocity: np.ndarray) -> float:
         return rated_velocity_diameter_cm(ts, result, voltage_v, volume_velocity)
@@ -1405,7 +1419,7 @@ def _optimizer_metrics(
         return sized_cm, fraction, length_ratio
 
     if isinstance(box, ReflexBox):
-        result = simulate_reflex(ts, box, freq, voltage_v)
+        result = simulate_at(freq)
         vtot = box.vb_l
         fl = box.fb_hz
         floor_cm = max(
@@ -1416,7 +1430,7 @@ def _optimizer_metrics(
         required_port_diameter_cm, port_volume_fraction_max, port_length_ratio_max = sized_port(
             box.vb_l, box.fb_hz, 1.43, floor_cm)
     elif isinstance(box, Bandpass4Box):
-        result = simulate_bandpass4(ts, box, freq, voltage_v)
+        result = simulate_at(freq)
         vtot = box.vs_l + box.vp_l
         fl = box.fp_hz
         floor_cm = max(
@@ -1427,7 +1441,7 @@ def _optimizer_metrics(
         required_port_diameter_cm, port_volume_fraction_max, port_length_ratio_max = sized_port(
             box.vp_l, box.fp_hz, 1.43, floor_cm)
     elif isinstance(box, Bandpass6Box):
-        result = simulate_bandpass6(ts, box, freq, voltage_v)
+        result = simulate_at(freq)
         vtot = box.vr_l + box.vp_l
         fl = min(box.fr_hz, box.fp_hz)
         rear_floor_cm = max(
@@ -1446,14 +1460,14 @@ def _optimizer_metrics(
         port_volume_fraction_max = max(rear_f, front_f)
         port_length_ratio_max = max(rear_lr, front_lr)
     elif isinstance(box, SealedBox):
-        result = simulate_sealed(ts, box, freq, voltage_v)
+        result = simulate_at(freq)
         vtot = box.vb_l
         fl = sealed_system_metrics(ts, box)[0]
         required_port_diameter_cm = 0.0
         port_volume_fraction_max = 0.0
         port_length_ratio_max = 0.0
     else:
-        result = simulate(ts, box, freq, voltage_v)
+        result = simulate_at(freq)
         vtot = box.vh_l + box.vl_l
         fl = box.fl_hz
         # Each port must satisfy its own minima; the duct-volume directive is
@@ -1480,6 +1494,31 @@ def _optimizer_metrics(
     f10 = thresholds[10]
     f = result.frequency_hz
     spl = result.spl_total_db
+
+    # The broad pass locates the crossing and evaluates every constraint. A
+    # second, narrow pass spends its samples only where F3 interpolation needs
+    # them, avoiding a dense full-band grid for every optimizer candidate.
+    if int(refine_f3_points) >= 2 and np.isfinite(f3) and len(f) >= 2:
+        positive_f = np.asarray(f, dtype=float)
+        ratios = positive_f[1:] / positive_f[:-1]
+        finite_ratios = ratios[np.isfinite(ratios) & (ratios > 1.0)]
+        step_ratio = float(np.median(finite_ratios)) if finite_ratios.size else 1.25
+        refine_low = max(float(positive_f[0]), float(f3) / step_ratio)
+        refine_high = min(float(positive_f[-1]), float(f3) * step_ratio)
+        if refine_high > refine_low:
+            refined_frequency = np.geomspace(
+                refine_low, refine_high, int(refine_f3_points))
+            refined = simulate_at(refined_frequency)
+            reference_band = (positive_f >= 40.0) & (positive_f <= 200.0)
+            reference_values = spl[reference_band] if np.any(reference_band) else spl
+            target_db = float(np.nanmax(reference_values)) - 3.0
+            refined_f3 = _low_side_crossing(
+                np.asarray(refined.frequency_hz, dtype=float),
+                np.asarray(refined.spl_total_db, dtype=float),
+                target_db,
+            )
+            if np.isfinite(refined_f3):
+                f3 = float(refined_f3)
 
     ripple = float("nan")
     gd_max = float("nan")
@@ -1617,6 +1656,8 @@ def optimize_alignment(
     voltage_v: float = 2.83,
     max_evaluations: int = 260,
     fixed_total_volume_l: float | None = None,
+    frequency_points: int = 160,
+    refine_f3_points: int = 0,
 ) -> OptimizedAlignment:
     """Search box parameters that best meet the requested goals.
 
@@ -1632,8 +1673,16 @@ def optimize_alignment(
         # closed-box load was renamed to the plain "Sealed" label.
         load_type = "Sealed"
     _require_positive("Voltage", voltage_v)
+    if int(frequency_points) < 8:
+        raise ValueError("Optimizer frequency points must be at least 8")
+    if int(refine_f3_points) != 0 and int(refine_f3_points) < 2:
+        raise ValueError("Optimizer F3 refinement must use 0 or at least 2 points")
     effective_fs = panel_loaded_fs_hz(ts)
-    freq = np.geomspace(min(10.0, effective_fs / 4.0), max(400.0, 4.0 * effective_fs), 160)
+    freq = np.geomspace(
+        min(10.0, effective_fs / 4.0),
+        max(400.0, 4.0 * effective_fs),
+        int(frequency_points),
+    )
     if load_type not in {"DCCAV", "Bandpass 4th order", "Bandpass 6th order", "Bass reflex", "Sealed"}:
         if load_type == "Infinite baffle":
             raise ValueError("Infinite baffle has no box parameters to optimize")
@@ -1924,6 +1973,47 @@ def optimize_alignment(
             "No credible alignment with buildable, low-velocity ports was found; "
             "relax the volume/response goals or reduce drive voltage"
         )
+
+    # Refine only the winning alignment. Running the narrow second pass for
+    # every compass-search candidate would pay the solver's fixed setup cost
+    # up to ``max_evaluations`` times and erase the benefit of the coarse scan.
+    best_metrics = _optimizer_metrics(
+        ts, best_box, freq, voltage_v,
+        refine_f3_points=int(refine_f3_points),
+    )
+    if is_dccav and int(refine_f3_points) >= 2:
+        credibility_ratio = (
+            0.65 if goals.objective == "extension" and not goals.target_f3_hz
+            else _OPTIMIZER_DCCAV_F3_RATIO
+        )
+        for _ in range(3):
+            refined_f3 = float(best_metrics["f3_hz"])
+            if refined_f3 >= credibility_ratio * best_box.fl_hz:
+                break
+            tuning_scale = float(np.clip(
+                0.995 * refined_f3 /
+                max(credibility_ratio * best_box.fl_hz, EPS),
+                0.95,
+                0.999,
+            ))
+            best_box = DccavBox(
+                vh_l=best_box.vh_l,
+                fh_hz=best_box.fh_hz * tuning_scale,
+                vl_l=best_box.vl_l,
+                fl_hz=best_box.fl_hz * tuning_scale,
+                q_abs_h=best_box.q_abs_h,
+                q_abs_l=best_box.q_abs_l,
+                q_leak_h=best_box.q_leak_h,
+                q_leak_l=best_box.q_leak_l,
+                q_port_h=best_box.q_port_h,
+                q_port_l=best_box.q_port_l,
+            )
+            best_metrics = _optimizer_metrics(
+                ts, best_box, freq, voltage_v,
+                refine_f3_points=int(refine_f3_points),
+            )
+    best_score = _score_alignment(
+        best_metrics, goals, ts, is_dccav, is_bandpass4)
 
     return OptimizedAlignment(
         box=best_box,

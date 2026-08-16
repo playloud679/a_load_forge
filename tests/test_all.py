@@ -7200,6 +7200,55 @@ def _check_optimizer_respects_volume_cap():
 test("DCCAV optimizer respects a total volume cap", _check_optimizer_respects_volume_cap)
 
 
+def _check_optimizer_two_stage_frequency_scan():
+    from src import engine as _engine
+
+    assert _engine.OPTIMIZER_COARSE_POINTS == 30
+    assert _engine.OPTIMIZER_F3_REFINE_POINTS == 20
+    ts = _acoustics.get_driver_preset("Beyma 12CMV2")
+    starter = _acoustics.suggest_alignment(ts)
+    box = _acoustics.DccavBox(
+        starter.vh_l, starter.fh_hz, starter.vl_l, starter.fl_hz)
+    dense = _engine._optimizer_metrics(
+        ts, box, np.geomspace(10.0, 500.0, 160), 2.83)
+    staged = _engine._optimizer_metrics(
+        ts, box,
+        np.geomspace(10.0, 500.0, _engine.OPTIMIZER_COARSE_POINTS),
+        2.83,
+        refine_f3_points=_engine.OPTIMIZER_F3_REFINE_POINTS,
+    )
+    assert abs(staged["f3_hz"] - dense["f3_hz"]) < 0.1, (staged, dense)
+
+    calls: list[tuple[int, int]] = []
+    original_metrics = _engine._optimizer_metrics
+    try:
+        def tracking_metrics(ts_arg, box_arg, freq_arg, voltage_arg,
+                             refine_f3_points=0):
+            calls.append((len(freq_arg), int(refine_f3_points)))
+            return original_metrics(
+                ts_arg, box_arg, freq_arg, voltage_arg,
+                refine_f3_points=refine_f3_points,
+            )
+
+        _engine._optimizer_metrics = tracking_metrics
+        _engine.optimize_alignment(
+            ts, _engine.OptimizationGoals(max_total_volume_l=40.0),
+            load_type="Sealed", max_evaluations=20,
+            frequency_points=30, refine_f3_points=20,
+        )
+    finally:
+        _engine._optimizer_metrics = original_metrics
+    assert calls.count((30, 20)) == 1, calls
+    assert all(points == 30 for points, _refine in calls), calls
+    assert all(refine == 0 for _points, refine in calls[:-1]), calls
+
+
+test(
+    "Optimizer uses a 30-point scan plus 20-point F3 refinement",
+    _check_optimizer_two_stage_frequency_scan,
+)
+
+
 def _check_optimizer_extension_beats_empirical():
     ts = _acoustics.get_driver_preset("Beyma 12CMV2")
     align = _acoustics.suggest_alignment(ts)
@@ -8520,6 +8569,14 @@ def _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast():
 
     cloud_path = _ui.Path("/mount/src/load_forge/ui_app.py")
     assert _ui._is_streamlit_community_cloud(cloud_path)
+    assert _ui._ranking.finder_optimizer_evaluation_limit(
+        _ui.Path("/mount/src/load_forge/src/ranking.py")) == 30
+    assert _ui._ranking.finder_optimizer_evaluation_limit(
+        _ui.Path("/Users/example/load_forge/src/ranking.py")) == 140
+    assert _ui._ranking.finder_optimizer_frequency_plan(
+        _ui.Path("/mount/src/load_forge/src/ranking.py")) == (30, 20)
+    assert _ui._ranking.finder_optimizer_frequency_plan(
+        _ui.Path("/Users/example/load_forge/src/ranking.py")) == (160, 0)
     assert _ui._finder_executor_backend(
         cloud_path
     ) == "process"

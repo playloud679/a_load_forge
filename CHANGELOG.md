@@ -10,7 +10,13 @@
   external databases once per worker.
   Worker startup is verified within ten seconds and falls back to shared-memory
   threads on failure, eliminating the former unbounded safe-mode wait. The
-  fresh active suite passes 162 tests with 0 failures and 0 skips.
+  fresh active suite passes 163 tests with 0 failures and 0 skips.
+- **Two-stage Finder optimization**: box candidates now use a 30-point
+  full-band scan, then only the winning alignment receives 20 points
+  concentrated around its estimated F3. This replaces the former 160-point
+  grid per search candidate; Streamlit Community Cloud also caps the global
+  search at 30 candidate alignments instead of 140, while retaining the
+  selected high resolution for each final result row.
 - **Streamlit Cloud email gate**: native `st.login()` authentication can now
   protect the workspace independently from Firestore through
   `LOAD_FORGE_AUTH_REQUIRED`; an optional exact, case-insensitive

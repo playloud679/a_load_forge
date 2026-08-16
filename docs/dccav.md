@@ -453,7 +453,7 @@ the UI/optimizer minimum of 0.05 L.
 Returns `(Fc, Qtc)` for a `SealedBox` using the classical `Vas/Vb` relations,
 with mounted Fs when panel loading is enabled.
 
-### `optimize_alignment(ts, goals, load_type="DCCAV", box_template=None, voltage_v=2.83, max_evaluations=260, fixed_total_volume_l=None) -> OptimizedAlignment`
+### `optimize_alignment(ts, goals, load_type="DCCAV", box_template=None, voltage_v=2.83, max_evaluations=260, fixed_total_volume_l=None, frequency_points=160, refine_f3_points=0) -> OptimizedAlignment`
 
 Goal-driven box optimizer used by the UI's `Optimized` box strategy.
 It runs a bounded compass pattern search in log-space, starting from the
@@ -461,6 +461,19 @@ empirical article alignment (DCCAV: `Vh`, `Vl`, `fl`, `fh/fl`), bandpass
 starter (`Vs`, `Vp`, `Fp`), reflex starting point (`Vb`, `Fb`) or classical
 sealed alignment (`Vb`).  Loss factors are
 copied from `box_template` when one is provided, otherwise defaults are used.
+`frequency_points` sets the broad optimizer grid and `refine_f3_points` enables
+a narrow second pass around the winning F3. Their 160/0 defaults preserve the
+full local optimizer. Hosted Finder uses 30 logarithmic points across the
+complete band and gives only the winner 20 points within one coarse logarithmic
+step around its estimated F3. The final Finder result is still simulated at the
+user-selected display/export resolution.
+If refined F3 crosses just below the DCCAV credibility boundary, `fl` and `fh`
+are reduced together by the minimum required factor and the winning alignment
+is rechecked, preserving the tuning ratio and avoiding a post-search warning.
+Finder also bounds the Streamlit Community Cloud compass search to 30 candidate
+alignments per driver (24 on Cloud Run), while local runs retain the full
+140-candidate budget. This removes the hosted 140-evaluation bottleneck before
+the single 20-point F3 refinement.
 Accepted `load_type` values are `"DCCAV"`, `"Bandpass 4th order"`,
 `"Bass reflex"` and `"Sealed"`;
 the legacy labels `"Acoustic suspension"` and `"Suspension pneumatic"` are

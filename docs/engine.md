@@ -8,6 +8,7 @@ contracts and the test list — lives in `docs/dccav.md`.
 ## Owns
 
 - Physical constants (`RHO_AIR`, `SPEED_OF_SOUND`, `P_REF`, `EPS`,
+  `OPTIMIZER_COARSE_POINTS`, `OPTIMIZER_F3_REFINE_POINTS`,
   `PORT_VELOCITY_GUIDELINE_MS`, `PORT_K_FACTOR`, `OPTIMIZER_MAX_PORT_DIAMETER_CM`,
   `PORT_MAX_VOLUME_FRACTION`,
   `PORT_PIPE_RESONANCE_GUARD`) and every dataclass except
@@ -32,7 +33,13 @@ contracts and the test list — lives in `docs/dccav.md`.
 - Optimizer: `optimize_alignment` with `_optimizer_metrics` /
   `_score_alignment`; untargeted `extension` searches scale advisory ripple,
   excursion and group-delay excesses to 1% and use a 0.002 volume regularizer
-  so the lowest credible F3 dominates compactness
+  so the lowest credible F3 dominates compactness. The optional
+  `frequency_points` / `refine_f3_points` controls let hosted Finder runs use
+  30 logarithmic points over the complete band and give only the winner 20
+  points around its estimated F3; defaults remain the original 160/0 for local
+  optimizer fidelity. If refinement puts DCCAV just below its credibility
+  boundary, both tunings are reduced together by the minimum required factor
+  and the winner is checked again
 - Analysis: `response_metrics`, `response_threshold_frequencies`,
   `impedance_peak_frequencies`, `group_delay_ms`, `response_phase_deg`,
   `export_frd_text`, `export_zma_text`, `monte_carlo_response_band`,
