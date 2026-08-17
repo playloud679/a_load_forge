@@ -32,9 +32,10 @@ contracts and the test list — lives in `docs/dccav.md`.
   `simulate_tapped_horn` (shared `_electrical_source`, `_limit_curves`,
   `_unported_result` internals)
 - Optimizer: `optimize_alignment` with `_optimizer_metrics` /
-  `_score_alignment`; untargeted `extension` searches scale advisory ripple,
-  excursion and group-delay excesses to 1% and use a 0.002 volume regularizer
-  so the lowest credible F3 dominates compactness, and seed starter volumes
+  `_score_alignment`; untargeted `extension` searches use an unattenuated hard
+  penalty when exceeding `max_ripple_db` to enforce acoustic passband linearity,
+  while scaling advisory excursion and group-delay excesses to 1% and using a 0.002 volume regularizer
+  so the lowest credible F3 dominates compactness without generating passband sags, and seed starter volumes
   directly at 95–98% of any requested volume cap so compass search focuses on
   fine tuning rather than climbing volume. The optional
   `frequency_points` / `refine_f3_points` controls let hosted Finder runs use

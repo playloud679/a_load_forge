@@ -8002,6 +8002,7 @@ def _filter_finder_performance_rows(
     min_spl_db: float,
     min_mol_f3_db: float,
     max_f3_hz: float,
+    max_ripple_db: float = 0.0,
 ) -> list[dict]:
     """Apply Finder's hard output constraints to simulated candidate rows."""
     filtered = rows
@@ -8022,6 +8023,12 @@ def _filter_finder_performance_rows(
             row for row in filtered
             if np.isfinite(float(row.get("F3 Hz", np.nan)))
             and float(row["F3 Hz"]) <= max_f3_hz
+        ]
+    if max_ripple_db > 0.0:
+        filtered = [
+            row for row in filtered
+            if not np.isfinite(float(row.get("Ripple dB", np.nan)))
+            or float(row["Ripple dB"]) <= max_ripple_db + 1e-6
         ]
     return filtered
 
@@ -8113,14 +8120,17 @@ def _deduplicate_finder_preset_names(
 def _deduplicate_finder_result_rows(
     rows: list[dict],
 ) -> tuple[list[dict], int]:
-    """Keep the best already-ranked load for each physical driver."""
+    """Keep one preferred catalog result per physical driver, load topology and resonator."""
     unique_rows: list[dict] = []
-    seen: set[tuple[str, str, str]] = set()
+    seen: set[tuple[tuple[str, str, str], str, str]] = set()
     for row in rows:
         identity = _finder_driver_identity(str(row.get("Driver", "")))
-        if identity in seen:
+        load_type = str(row.get("Load", ""))
+        resonator = str(row.get("Resonator", ""))
+        key = (identity, load_type, resonator)
+        if key in seen:
             continue
-        seen.add(identity)
+        seen.add(key)
         unique_rows.append(row)
     return unique_rows, len(rows) - len(unique_rows)
 
@@ -8374,8 +8384,11 @@ def _run_find_driver_search(
     max_f3_hz = float(
         st.session_state.get("finder_max_f3_hz", 0.0) or 0.0
     )
+    max_ripple_db = float(
+        st.session_state.get("finder_max_ripple_db", 0.0) or 0.0
+    )
     all_rows = _filter_finder_performance_rows(
-        all_rows, min_spl_db, min_mol_f3_db, max_f3_hz
+        all_rows, min_spl_db, min_mol_f3_db, max_f3_hz, max_ripple_db
     )
     # Apply the active price constraint to the final ranked rows as well as
     # to the library pool.  This keeps stale/cached simulations from leaking

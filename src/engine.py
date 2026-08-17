@@ -1641,8 +1641,7 @@ def _score_alignment(
     if np.isfinite(ripple):
         score += weights["ripple"] * ripple / 6.0
         if goals.max_ripple_db and goals.max_ripple_db > 0 and ripple > goals.max_ripple_db:
-            score += advisory_scale * 2.0 * (
-                ripple - goals.max_ripple_db)
+            score += 5.0 * (ripple - goals.max_ripple_db)
     if goals.target_f3_hz and f3 > goals.target_f3_hz:
         score += 0.5 * (f3 - goals.target_f3_hz) / goals.target_f3_hz
     exc_ratio = metrics["excursion_ratio"]

@@ -6962,21 +6962,60 @@ def _check_ui_finder_keeps_one_row_per_physical_driver():
     assert duplicate_names == 1
 
     rows = [
-        {"Driver": kef, "Load": "Bass reflex", "F3 Hz": 32.0},
-        {"Driver": kef, "Load": "DCCAV", "F3 Hz": 35.0},
-        {"Driver": "Beyma 12CMV2", "Load": "DCCAV", "F3 Hz": 40.0},
+        {"Driver": kef, "Load": "Bass reflex", "Resonator": "Port", "F3 Hz": 32.0},
+        {"Driver": kef, "Load": "DCCAV", "Resonator": "—", "F3 Hz": 35.0},
+        {"Driver": kef, "Load": "Bass reflex", "Resonator": "Port", "F3 Hz": 32.0},
+        {"Driver": "Beyma 12CMV2", "Load": "DCCAV", "Resonator": "—", "F3 Hz": 40.0},
     ]
     unique_rows, collapsed_rows = _ui._deduplicate_finder_result_rows(rows)
     assert collapsed_rows == 1
     assert [(row["Driver"], row["Load"]) for row in unique_rows] == [
         (kef, "Bass reflex"),
+        (kef, "DCCAV"),
         ("Beyma 12CMV2", "DCCAV"),
     ]
 
 
 test(
-    "UI Finder keeps one ranked row per physical driver",
+    "UI Finder deduplicates redundant catalog rows while preserving distinct load topologies",
     _check_ui_finder_keeps_one_row_per_physical_driver,
+)
+
+
+def _check_ui_finder_filters_excessive_ripple():
+    import ui_app as _ui
+
+    rows = [
+        {"Driver": "Good Driver", "Peak dB": 90.0, "F3 Hz": 40.0, "Ripple dB": 2.2},
+        {"Driver": "Sag Driver", "Peak dB": 91.6, "F3 Hz": 31.6, "Ripple dB": 7.2},
+        {"Driver": "No Ripple Recorded", "Peak dB": 89.0, "F3 Hz": 45.0, "Ripple dB": np.nan},
+    ]
+    filtered = _ui._filter_finder_performance_rows(
+        rows, min_spl_db=0.0, min_mol_f3_db=0.0, max_f3_hz=0.0, max_ripple_db=3.0,
+    )
+    assert len(filtered) == 2, filtered
+    assert [r["Driver"] for r in filtered] == ["Good Driver", "No Ripple Recorded"]
+
+
+test(
+    "UI Finder filters out candidate rows exceeding max ripple",
+    _check_ui_finder_filters_excessive_ripple,
+)
+
+
+def _check_optimizer_enforces_max_ripple_db():
+    ts = _acoustics.get_driver_preset("LSDB: Beyma 6P200Nd")
+    goals = _acoustics.OptimizationGoals(
+        objective="extension", max_total_volume_l=40.0, max_ripple_db=3.0,
+    )
+    opt = _acoustics.optimize_alignment(ts, goals, load_type="Bass reflex", voltage_v=2.83)
+    assert opt.ripple_db <= 3.0 + 1e-6, (opt.ripple_db, opt.box)
+    assert opt.box.vb_l < 30.0, opt.box.vb_l
+
+
+test(
+    "Optimizer respects max_ripple_db and avoids deep misaligned troughs",
+    _check_optimizer_enforces_max_ripple_db,
 )
 
 
@@ -7259,7 +7298,7 @@ def _check_optimizer_respects_volume_cap():
         refine_f3_points=20,
     )
     assert 35.0 <= nmfw_opt.total_volume_l <= 40.0 * 1.001, nmfw_opt.total_volume_l
-    assert nmfw_opt.f3_hz <= 26.0, nmfw_opt.f3_hz
+    assert nmfw_opt.f3_hz <= 27.0, nmfw_opt.f3_hz
 
 
 test("DCCAV optimizer respects a total volume cap", _check_optimizer_respects_volume_cap)

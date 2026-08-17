@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.18 (2026-08-18)
+
+- **Multi-topology preservation in Bass Match (Finder)**:
+  `_deduplicate_finder_result_rows()` now keys on driver identity, load topology,
+  and resonator type, ensuring that all candidate load solutions remain visible
+  and comparable when searching across multiple enclosure types simultaneously.
+- **Strict acoustic ripple enforcement and passband linearity**:
+  Eliminated the advisory scaling factor in `_score_alignment()` for `max_ripple_db`,
+  imposing an unattenuated penalty on passband dips and excessive resonant saddles
+  during optimization. Added explicit `max_ripple_db` post-simulation filtering
+  in `_filter_finder_performance_rows()` to reject acoustically misaligned boxes.
+
 ## 0.8.17 (2026-08-17)
 
 - **Redesigned landing page & authentication workspace**:
