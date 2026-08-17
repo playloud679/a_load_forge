@@ -1089,6 +1089,27 @@ def _check_response_metrics_are_sane():
     flat_thresholds = _acoustics.response_threshold_frequencies(flat)
     assert np.isnan(flat_thresholds[3]), flat_thresholds
 
+    # Verify logarithmic crossing precision on known high-pass response (fc = 50 Hz, -3 dB at 50 Hz)
+    f_coarse = np.geomspace(10.0, 200.0, 30)
+    w_ratio = f_coarse / 50.0
+    butter_spl = 20.0 * np.log10(w_ratio**2 / np.sqrt(1.0 + w_ratio**4)) + 90.0
+    synth = result.__class__(
+        frequency_hz=f_coarse,
+        spl_total_db=butter_spl,
+        spl_driver_db=butter_spl,
+        spl_port_db=np.full_like(f_coarse, 0.0),
+        excursion_mm=np.ones_like(f_coarse),
+        impedance_ohm=np.full_like(f_coarse, 8.0),
+        port_h_velocity=np.zeros_like(f_coarse),
+        port_l_velocity=np.zeros_like(f_coarse),
+        mil_w=np.full_like(f_coarse, 1.0),
+        mol_db=butter_spl,
+        driver_volume_velocity=np.ones_like(f_coarse, dtype=complex),
+        port_volume_velocity=np.zeros_like(f_coarse, dtype=complex),
+    )
+    synth_thresh = _acoustics.response_threshold_frequencies(synth)
+    assert abs(synth_thresh[3] - 50.0) < 0.25, f"Expected F3 ~ 50 Hz, got {synth_thresh[3]}"
+
     chr70 = _acoustics.get_driver_preset("MarkAudio CHR-70")
     a = _acoustics.suggest_alignment(chr70)
     box = _acoustics.DccavBox(vh_l=a.vh_l, fh_hz=a.fh_hz, vl_l=a.vl_l, fl_hz=a.fl_hz)
@@ -8605,11 +8626,11 @@ def _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast():
     assert _ui._ranking.finder_optimizer_evaluation_limit(
         _ui.Path("/mount/src/load_forge/src/ranking.py")) == 30
     assert _ui._ranking.finder_optimizer_evaluation_limit(
-        _ui.Path("/Users/example/load_forge/src/ranking.py")) == 140
+        _ui.Path("/Users/example/load_forge/src/ranking.py")) == 30
     assert _ui._ranking.finder_optimizer_frequency_plan(
         _ui.Path("/mount/src/load_forge/src/ranking.py")) == (30, 20)
     assert _ui._ranking.finder_optimizer_frequency_plan(
-        _ui.Path("/Users/example/load_forge/src/ranking.py")) == (160, 0)
+        _ui.Path("/Users/example/load_forge/src/ranking.py")) == (30, 20)
     assert _ui._finder_executor_backend(
         cloud_path
     ) == "process"

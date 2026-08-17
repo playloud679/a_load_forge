@@ -66,26 +66,20 @@ def finder_worker_ready() -> int:
 
 
 def finder_optimizer_evaluation_limit(module_path: Path | None = None) -> int:
-    """Return the hosted or local per-driver optimizer budget."""
+    """Return the per-driver optimizer budget."""
     if os.getenv("K_SERVICE"):
         return 24
-    resolved_path = (module_path or Path(__file__)).resolve()
-    if resolved_path.is_relative_to(Path("/mount/src")):
-        return 30
-    return 140
+    return 30
 
 
 def finder_optimizer_frequency_plan(
     module_path: Path | None = None,
 ) -> tuple[int, int]:
-    """Return broad/refinement frequency counts for hosted Finder runs."""
-    resolved_path = (module_path or Path(__file__)).resolve()
-    if os.getenv("K_SERVICE") or resolved_path.is_relative_to(Path("/mount/src")):
-        return (
-            engine.OPTIMIZER_COARSE_POINTS,
-            engine.OPTIMIZER_F3_REFINE_POINTS,
-        )
-    return 160, 0
+    """Return broad/refinement frequency counts for Finder runs."""
+    return (
+        engine.OPTIMIZER_COARSE_POINTS,
+        engine.OPTIMIZER_F3_REFINE_POINTS,
+    )
 
 
 def ranking_candidate(name: str) -> RankingCandidate:

@@ -40,7 +40,7 @@ contracts and the test list — lives in `docs/dccav.md`.
   optimizer fidelity. If refinement puts DCCAV just below its credibility
   boundary, both tunings are reduced together by the minimum required factor
   and the winner is checked again
-- Analysis: `response_metrics`, `response_threshold_frequencies`,
+- Analysis: `response_metrics`, `response_threshold_frequencies` (using logarithmic frequency interpolation across dB/oct roll-off slopes for sub-Hz F3/F6/F10 accuracy),
   `impedance_peak_frequencies`, `group_delay_ms`, `response_phase_deg`,
   `export_frd_text`, `export_zma_text`, `monte_carlo_response_band`,
   `design_space_box`, `design_space_map`, port geometry helpers,

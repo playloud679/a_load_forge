@@ -2801,6 +2801,8 @@ def _low_side_crossing(f: np.ndarray, y: np.ndarray, target: float) -> float:
         if y1 == y0:
             return x0
         frac = (float(target) - y0) / (y1 - y0)
+        if x0 > 0.0 and x1 > 0.0:
+            return float(np.exp(np.log(x0) + frac * np.log(x1 / x0)))
         return x0 + frac * (x1 - x0)
     return float("nan")
 
@@ -2814,7 +2816,10 @@ def _high_side_crossing(f: np.ndarray, y: np.ndarray, target: float) -> float:
         y0, y1 = float(y[idx]), float(y[idx + 1])
         if y1 == y0:
             return x0
-        return x0 + (float(target) - y0) / (y1 - y0) * (x1 - x0)
+        frac = (float(target) - y0) / (y1 - y0)
+        if x0 > 0.0 and x1 > 0.0:
+            return float(np.exp(np.log(x0) + frac * np.log(x1 / x0)))
+        return x0 + frac * (x1 - x0)
     return float("nan")
 
 

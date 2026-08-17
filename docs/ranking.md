@@ -35,12 +35,10 @@ detailed contracts live in `docs/dccav.md`.
 - `finder_worker_ready()`: return only the worker PID for the bounded startup
   health check; it deliberately does not touch the runtime catalog
 - `finder_optimizer_evaluation_limit(module_path=None)`: use 30 global search
-  evaluations per driver on Streamlit Community Cloud, 24 on Cloud Run and the
-  full 140 locally; the winning alignment receives the engine's separate
-  20-point F3 refinement pass
-- `finder_optimizer_frequency_plan(module_path=None)`: select the hosted
-  30-point broad scan plus 20-point winning-F3 refinement while keeping the
-  local optimizer on its original 160-point grid without a second pass
+  evaluations per driver (24 on Cloud Run); the winning alignment receives the
+  engine's separate 20-point F3 refinement pass
+- `finder_optimizer_frequency_plan(module_path=None)`: select the 30-point broad
+  scan plus 20-point winning-F3 refinement
 - `response_sparkline(spl, points=48, floor_db=-30)` plus the
   `SPARKLINE_POINTS` / `SPARKLINE_FLOOR_DB` constants used by the UI's
   `LineChartColumn`

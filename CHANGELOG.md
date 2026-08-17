@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.14 (2026-08-17)
+
+- **Logarithmic frequency crossing interpolation for F3/F6/F10**:
+  `response_threshold_frequencies` and crossing solvers (`_low_side_crossing`,
+  `_high_side_crossing`) now use logarithmic frequency interpolation along
+  dB/oct roll-off slopes, delivering sub-Hz precision on coarse grids and
+  eliminating knee distortion in Finder simulation.
+  The fresh active suite passes 163 tests with 0 failures and 0 skips.
+
 ## 0.8.13 (2026-08-17)
 
 - **Finder/Box Design parity**: Finder results now carry the complete driver
