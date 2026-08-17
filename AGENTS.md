@@ -13,20 +13,22 @@ relevant check:
 
 ```bash
 .venv/bin/python -m py_compile ui_app.py src/acoustics.py src/engine.py tests/test_all.py
-.venv/bin/python tests/test_all.py -m "acoustic-load smoke"
+.venv/bin/python tests/test_all.py -m "acoustic-load smoke"   # or: make test-smoke
+.venv/bin/python tests/test_all.py --fast                     # or: make test-fast (95 unit/physics tests in ~10s)
 ```
 
 For UI changes, also run a Streamlit AppTest:
 
 ```bash
 .venv/bin/python -c 'from streamlit.testing.v1 import AppTest; at = AppTest.from_file("ui_app.py", default_timeout=30); at.run(); assert not at.exception, at.exception'
+# or: make test-ui
 ```
 
 Before every commit touching Python, run the full active suite fresh after the
 last edit:
 
 ```bash
-.venv/bin/python tests/test_all.py
+.venv/bin/python tests/test_all.py   # or: make test (164 tests)
 ```
 
 Commit only on 0 failures and record pass counts in `CHANGELOG.md`.

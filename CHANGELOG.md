@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.15 (2026-08-17)
+
+- **Acoustic Spectral Sampling Theorem (TCAS) runtime implementation**:
+  `spectral_sampling_points` and `optimal_frequency_grid` runtime helpers
+  formalize the logarithmic Shannon-Nyquist spectral sampling criterion
+  ($\Delta \ln f \le \frac{1}{2 Q_{\max}}$) in `src/engine.py` and `src/acoustics.py`.
+- **Streamlined, tiered test suite execution**:
+  Added `--fast` (skipping heavy Streamlit AppTests to run 95 unit/physics tests in ~10s),
+  `--ui`, `--smoke`, and `--time` flags to `tests/test_all.py` alongside `make test-fast`,
+  `make test-smoke`, and `make test-ui` targets in `Makefile`.
+  The fresh active suite passes 164 tests with 0 failures and 0 skips.
+
 ## 0.8.14 (2026-08-17)
 
 - **Max extension starter volume seed at volume cap**:

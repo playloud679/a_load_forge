@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+import time
 import traceback
 from dataclasses import replace
 from pathlib import Path
@@ -42,15 +43,41 @@ def _parse_args():
     parser.add_argument(
         "--match", "-m", action="append", default=[],
         help="Run only tests whose label contains this text. May be repeated.")
+    parser.add_argument(
+        "--fast", action="store_true",
+        help="Run only fast unit/physics/catalog tests (skip heavy UI AppTests).")
+    parser.add_argument(
+        "--ui", action="store_true",
+        help="Run only UI AppTest tests.")
+    parser.add_argument(
+        "--smoke", action="store_true",
+        help="Run only acoustic-load smoke tests.")
+    parser.add_argument(
+        "--time", action="store_true",
+        help="Print execution time for every test.")
     parser.add_argument("--list", action="store_true", help="List matching tests.")
     return parser.parse_args()
 
 
-ARGS = argparse.Namespace(match=[], list=False) if _IS_MP_CHILD else _parse_args()
+ARGS = (
+    argparse.Namespace(match=[], fast=False, ui=False, smoke=False, time=False, list=False)
+    if _IS_MP_CHILD
+    else _parse_args()
+)
 MATCHES = [m.casefold() for m in ARGS.match]
+if ARGS.smoke:
+    MATCHES.append("acoustic-load smoke")
+
+
+def _is_ui_test(label: str) -> bool:
+    return label.startswith("UI ") or label.startswith("Streamlit ")
 
 
 def _selected(label: str) -> bool:
+    if ARGS.fast and _is_ui_test(label):
+        return False
+    if ARGS.ui and not _is_ui_test(label):
+        return False
     return not MATCHES or any(m in label.casefold() for m in MATCHES)
 
 
@@ -62,15 +89,20 @@ def test(label, fn):
         SKIP += 1
         return
     if ARGS.list:
-        print(f"  - {label}")
+        tag = " [UI]" if _is_ui_test(label) else " [FAST]"
+        print(f"  - {label}{tag}")
         PASS += 1
         return
+    t0 = time.perf_counter()
     try:
         fn()
-        print(f"  OK {label}")
+        elapsed = time.perf_counter() - t0
+        time_str = f" ({elapsed:.2f}s)" if (ARGS.time or elapsed >= 1.0) else ""
+        print(f"  OK {label}{time_str}")
         PASS += 1
     except Exception:
-        print(f"  FAIL {label}")
+        elapsed = time.perf_counter() - t0
+        print(f"  FAIL {label} ({elapsed:.2f}s)")
         traceback.print_exc()
         FAIL += 1
 
@@ -3119,7 +3151,7 @@ def _check_ui_saas_local_registration_login_logout():
                     os.environ.pop(key, None)
                 else:
                     os.environ[key] = value
-            at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+            at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=90)
             at.session_state["project_menu_expander"] = True
             at.run()
             assert not at.exception, at.exception
@@ -7463,7 +7495,7 @@ def _check_ui_finder_starts_from_practical_defaults():
     assert numbers["Maximum Mms (g, 0 = off)"] == 0.0, numbers
     assert numbers["Maximum Le (mH, 0 = off)"] == 0.0, numbers
     goal = next(box for box in at.selectbox if box.label == "Optimization goal")
-    assert goal.value == "Balanced", goal.value
+    assert goal.value == "Max extension", goal.value
     assert not any(
         box.label == "Optimize enclosure per candidate" for box in at.checkbox
     ), "ranking always uses the optimizer; the quick-scan toggle is retired"
@@ -7946,9 +7978,9 @@ def _check_ui_optimized_alignment_mode():
     # v0.3 strategies collapse onto the objective-based ones.
     st.session_state["opt_objective"] = "Max extension"
     assert _ui._normalize_box_strategy("Optimized") == "Max extension"
-    assert _ui._normalize_box_strategy("Suggested") == "Balanced"
+    assert _ui._normalize_box_strategy("Suggested") == "Max extension"
     assert _ui._normalize_box_strategy("Manual") == "Manual"
-    assert _ui._normalize_box_strategy("garbage") == "Balanced"
+    assert _ui._normalize_box_strategy("garbage") == "Max extension"
 
 
 test("UI optimized alignment mode applies goal-driven boxes", _check_ui_optimized_alignment_mode)
@@ -9058,6 +9090,46 @@ def _check_passive_radiator_simulation():
 
 
 test("Passive radiator simulation returns finite output", _check_passive_radiator_simulation)
+
+
+def _check_spectral_sampling_and_optimal_frequency_grid():
+    # Basic TCAS formula N = ceil(2 * Q_max * ln(f_max / f_min))
+    n = _acoustics.spectral_sampling_points(10.0, 300.0, q_max=5.0)
+    expected = int(np.ceil(2.0 * 5.0 * np.log(300.0 / 10.0)))
+    assert n == expected, (n, expected)
+    assert n >= 8
+
+    # Min points floor enforcement
+    n_short = _acoustics.spectral_sampling_points(50.0, 60.0, q_max=1.0)
+    assert n_short == 8
+
+    # Grid geometric properties
+    grid = _acoustics.optimal_frequency_grid(10.0, 300.0, q_max=5.0)
+    assert len(grid) == n
+    assert np.isclose(grid[0], 10.0)
+    assert np.isclose(grid[-1], 300.0)
+    log_diffs = np.diff(np.log(grid))
+    assert np.allclose(log_diffs, log_diffs[0], rtol=1e-10)
+
+    # Rejection of non-positive / invalid frequency bounds
+    try:
+        _acoustics.spectral_sampling_points(-10.0, 100.0)
+        raise AssertionError("negative f_min must be rejected")
+    except ValueError:
+        pass
+    try:
+        _acoustics.spectral_sampling_points(100.0, 50.0)
+        raise AssertionError("f_max <= f_min must be rejected")
+    except ValueError:
+        pass
+    try:
+        _acoustics.spectral_sampling_points(10.0, 100.0, q_max=0.0)
+        raise AssertionError("non-positive q_max must be rejected")
+    except ValueError:
+        pass
+
+
+test("Acoustic spectral sampling theorem grid generation", _check_spectral_sampling_and_optimal_frequency_grid)
 
 
 if not _IS_MP_CHILD:

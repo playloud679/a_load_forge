@@ -1748,12 +1748,12 @@ _FINDER_CTA_LABEL = "Run Bass Match"
 _FINDER_RANKING_VERSION = 8
 _FINDER_CONTEXT_FILTERED_POOL_VERSION = "user-inputs-v2"
 _FINDER_SPL_PREFILTER_HEADROOM_DB = 6.0
-_FINDER_DEFAULTS_VERSION = 9
+_FINDER_DEFAULTS_VERSION = 10
 _PRICE_CURRENCY_DEFAULTS_VERSION = 1
 _FINDER_DEFAULTS = {
     "finder_rank_mode": _FINDER_RANK_F3,
     "finder_volume_l": 40.0,
-    "finder_objective": "Balanced",
+    "finder_objective": "Max extension",
     "finder_voltage": 2.83,
     "finder_max_ripple_db": 3.0,
     "finder_excursion_ratio": 1.0,
@@ -1788,15 +1788,15 @@ def _normalize_box_strategy(value) -> str:
     if value in _BOX_STRATEGIES:
         return value
     if value == "Optimized":
-        objective = str(st.session_state.get("opt_objective", "Balanced"))
-        return objective if objective in _OPT_OBJECTIVE_LABELS else "Balanced"
+        objective = str(st.session_state.get("opt_objective", "Max extension"))
+        return objective if objective in _OPT_OBJECTIVE_LABELS else "Max extension"
     # v0.3 "Suggested" (empirical starter) and unknown values.
-    return "Balanced"
+    return "Max extension"
 
 
 def _set_box_strategy_state(strategy: str) -> None:
     """Store a strategy plus the legacy keys older .lfp files round-trip."""
-    previous = str(st.session_state.get("box_strategy", "Balanced"))
+    previous = str(st.session_state.get("box_strategy", "Max extension"))
     st.session_state["box_strategy"] = strategy
     st.session_state["_previous_box_strategy"] = previous
     auto = strategy in _OPT_OBJECTIVE_LABELS
@@ -1809,7 +1809,7 @@ def _set_box_strategy_state(strategy: str) -> None:
 
 
 def _box_strategy_is_auto() -> bool:
-    return str(st.session_state.get("box_strategy", "Balanced")) in _OPT_OBJECTIVE_LABELS
+    return str(st.session_state.get("box_strategy", "Max extension")) in _OPT_OBJECTIVE_LABELS
 
 
 def _manual_box_keys_for_load_type(load_type: str) -> tuple[str, ...]:
@@ -2786,13 +2786,13 @@ def _apply_loaded_params(data: dict) -> int:
     # Both collapse onto the single optimizer-objective strategy control.
     if "box_strategy" not in data:
         if st.session_state.get("sim_auto_align", True):
-            strategy = "Balanced"
+            strategy = "Max extension"
         elif st.session_state.get("opt_align_mode") == "Optimized (goals)":
             strategy = _normalize_box_strategy("Optimized")
         else:
             strategy = "Manual"
     else:
-        strategy = _normalize_box_strategy(st.session_state.get("box_strategy", "Balanced"))
+        strategy = _normalize_box_strategy(st.session_state.get("box_strategy", "Max extension"))
     _set_box_strategy_state(strategy)
     if strategy in _OPT_OBJECTIVE_LABELS:
         # A loaded auto box may predate the current engine or come from the
@@ -3808,11 +3808,11 @@ def _apply_bandpass6_alignment(alignment: _acoustics.Bandpass6Alignment):
 
 
 def _design_objective_label() -> str:
-    strategy = str(st.session_state.get("box_strategy", "Balanced"))
+    strategy = str(st.session_state.get("box_strategy", "Max extension"))
     if strategy in _OPT_OBJECTIVE_LABELS:
         return strategy
-    fallback = str(st.session_state.get("opt_objective", "Balanced"))
-    return fallback if fallback in _OPT_OBJECTIVE_LABELS else "Balanced"
+    fallback = str(st.session_state.get("opt_objective", "Max extension"))
+    return fallback if fallback in _OPT_OBJECTIVE_LABELS else "Max extension"
 
 
 def _optimizer_goals_from_state() -> _acoustics.OptimizationGoals:
@@ -4070,8 +4070,8 @@ def _apply_empirical_box_for(driver: _acoustics.DriverTS) -> None:
 
 
 def _on_box_strategy_change() -> None:
-    strategy = str(st.session_state.get("box_strategy", "Balanced"))
-    previous = str(st.session_state.get("_previous_box_strategy", "Balanced"))
+    strategy = str(st.session_state.get("box_strategy", "Max extension"))
+    previous = str(st.session_state.get("_previous_box_strategy", "Max extension"))
     load_type = str(st.session_state.get("load_type", "DCCAV"))
     _set_box_strategy_state(strategy)
     if previous == "Manual" and strategy in _OPT_OBJECTIVE_LABELS:
@@ -7802,7 +7802,7 @@ def _normalize_price_frame(df: pd.DataFrame, target_currency: str) -> pd.DataFra
 def _finder_optimizer_goals_from_state() -> _acoustics.OptimizationGoals:
     return _acoustics.OptimizationGoals(
         objective=_OPT_OBJECTIVE_LABELS[
-            st.session_state.get("finder_objective", "Balanced")
+            st.session_state.get("finder_objective", "Max extension")
         ],
         max_total_volume_l=float(st.session_state.get("finder_volume_l", 0.0)) or None,
         max_ripple_db=float(st.session_state.get("finder_max_ripple_db", 3.0)),
@@ -8369,7 +8369,7 @@ def _run_find_driver_search(
         finder_volume_l,
         scan_count,
         bool(_finder_optimizer_goals_from_state()),
-        str(st.session_state.get("finder_objective", "Balanced")),
+        str(st.session_state.get("finder_objective", "Max extension")),
         str(st.session_state.get("finder_reflex_resonator_type", _RESONATOR_PORT)),
         min_spl_db,
         min_mol_f3_db,
@@ -9313,7 +9313,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         if len(display_finder_loads) <= 2
         else f"{len(display_finder_loads)} loads"
     )
-    objective = str(context[4]) if len(context) > 4 else str(st.session_state.get("finder_objective", "Balanced"))
+    objective = str(context[4]) if len(context) > 4 else str(st.session_state.get("finder_objective", "Max extension"))
     volume_summary = (
         "" if finder_loads == ("Infinite baffle",)
         else f" · ≤ {finder_volume_l:.1f} L"
@@ -10294,7 +10294,7 @@ _preserve_library_filters()
 _preserve_design_state()
 if "box_strategy" not in st.session_state:
     if st.session_state.get("sim_auto_align", True):
-        _set_box_strategy_state("Balanced")
+        _set_box_strategy_state("Max extension")
     elif st.session_state.get("opt_align_mode") == "Optimized (goals)":
         _set_box_strategy_state(_normalize_box_strategy("Optimized"))
     else:
@@ -10730,7 +10730,7 @@ with st.sidebar:
                 derived = _acoustics.complete_driver(current_ts)
                 panel_added_mass_g, panel_fs_hz = _acoustics.panel_air_load_metrics(current_ts)
                 load_type = st.session_state.get("load_type", "Sealed")
-                box_strategy = str(st.session_state.get("box_strategy", "Balanced"))
+                box_strategy = str(st.session_state.get("box_strategy", "Max extension"))
                 if (
                     box_strategy in _OPT_OBJECTIVE_LABELS
                     and st.session_state.get("_optimizer_engine_revision", 0)
@@ -10785,7 +10785,7 @@ with st.sidebar:
                 st.error(f"Driver parameters are invalid - check the T/S values. ({exc})")
 
             if current_ts is not None:
-                box_edit_disabled = st.session_state.get("box_strategy", "Balanced") != "Manual"
+                box_edit_disabled = st.session_state.get("box_strategy", "Max extension") != "Manual"
                 if load_type == "Bass reflex":
                     _box_number_with_nudge(
                         "Vb box (L)", "reflex_vb_l", min_value=0.05, max_value=1000.0, step=0.01,

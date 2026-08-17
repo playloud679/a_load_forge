@@ -27,6 +27,39 @@ OPTIMIZER_COARSE_POINTS = 30
 OPTIMIZER_F3_REFINE_POINTS = 20
 
 
+def spectral_sampling_points(
+    f_min_hz: float,
+    f_max_hz: float,
+    q_max: float = 5.0,
+    min_points: int = 8,
+) -> int:
+    """Calculate the Shannon-Nyquist minimum logarithmic frequency sample count.
+
+    Under the Acoustic Spectral Sampling Theorem (TCAS), the maximum rate of
+    spectral change is bounded by the highest resonance Q-factor, requiring
+    logarithmic spacing Δ(ln f) <= 1 / (2 * q_max), or
+    N = ⌈2 * q_max * ln(f_max / f_min)⌉ points.
+    """
+    _require_positive("f_min_hz", f_min_hz)
+    _require_positive("f_max_hz", f_max_hz)
+    _require_positive("q_max", q_max)
+    if f_max_hz <= f_min_hz:
+        raise ValueError("f_max_hz must be strictly greater than f_min_hz")
+    n = int(np.ceil(2.0 * float(q_max) * np.log(float(f_max_hz) / float(f_min_hz))))
+    return max(int(min_points), n)
+
+
+def optimal_frequency_grid(
+    f_min_hz: float,
+    f_max_hz: float,
+    q_max: float = 5.0,
+    min_points: int = 8,
+) -> np.ndarray:
+    """Build a log-spaced frequency grid satisfying the spectral sampling theorem."""
+    n = spectral_sampling_points(f_min_hz, f_max_hz, q_max=q_max, min_points=min_points)
+    return np.geomspace(float(f_min_hz), float(f_max_hz), n)
+
+
 def adaptive_frequency_grid(
     f_min_hz: float, f_max_hz: float, points: int,
     anchors: tuple[float, ...] = (),

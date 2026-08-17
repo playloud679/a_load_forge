@@ -21,6 +21,7 @@ contracts and the test list — lives in `docs/dccav.md`.
   `HornBox` and `TappedHornBox`
 - Derivation and alignment: `sd_from_diameter`, `panel_air_load_metrics`,
   `panel_loaded_fs_hz`, `complete_driver`,
+  `spectral_sampling_points`, `optimal_frequency_grid`, `adaptive_frequency_grid`,
   `suggest_alignment`, `suggest_reflex_alignment`,
   `suggest_bandpass4_alignment`, `suggest_bandpass6_alignment`, `suggest_sealed_alignment`,
   `suggest_pr_alignment`,

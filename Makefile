@@ -1,4 +1,4 @@
-.PHONY: venv install dev run test test-match crawl-ts crawl-datasheets catalog-plan catalog-complete lint format clean
+.PHONY: venv install dev run test test-fast test-ui test-smoke test-match crawl-ts crawl-datasheets catalog-plan catalog-complete lint format clean
 
 VENV_DIR := .venv
 PYTHON  := python3
@@ -22,6 +22,15 @@ run:
 
 test:
 	$(VENV_DIR)/bin/python tests/test_all.py
+
+test-fast:
+	$(VENV_DIR)/bin/python tests/test_all.py --fast
+
+test-smoke:
+	$(VENV_DIR)/bin/python tests/test_all.py --smoke
+
+test-ui:
+	$(VENV_DIR)/bin/python tests/test_all.py --ui
 
 test-match:
 	@if [ -z "$(MATCH)" ]; then echo "Usage: make test-match MATCH='acoustic-load smoke'"; exit 2; fi
