@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.16 (2026-08-17)
+
+- **Scientific revision of acoustic sampling documentation**:
+  Formalized the Q-constrained logarithmic sampling criterion ($\Delta \ln f \le \frac{\kappa}{Q_{\max}}$),
+  two-stage Top-K screening with Top-K Recall ($R_K$), adaptive curvature sampling,
+  volume warm-start heuristic, and offline benchmark validation criteria
+  in `docs/acoustic-sampling-optimization.md`.
+
 ## 0.8.15 (2026-08-17)
 
 - **Acoustic Spectral Sampling Theorem (TCAS) runtime implementation**:
