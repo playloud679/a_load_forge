@@ -362,9 +362,12 @@ def rank_candidate_row(
             if np.isfinite(f3_hz) and np.any(finite_mol)
             else float("nan")
         )
+        box_snapshot = asdict(box) if box is not None else None
         return {
             "Driver": name,
             "_driver_ts": asdict(candidate.ts),
+            "_box_type": type(box).__name__ if box is not None else None,
+            "_box_params": box_snapshot,
             "Driver configuration": driver_configuration,
             "Source": candidate.source,
             "Brand": candidate.brand,

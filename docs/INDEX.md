@@ -94,8 +94,9 @@ uses threads directly. Catalog
 metadata/price summaries and embedded visual CSS use bounded caches, while
 large filtered-name lists must not accumulate in the Streamlit cache.
 Finder ranking revision 8 invalidates pre-two-stage persisted rows, and every
-new result carries a hidden T/S snapshot that Box Design reuses verbatim so a
-catalog refresh cannot change F3 while opening the selected enclosure.
+new result carries hidden T/S and complete box-parameter snapshots that Box
+Design reuses verbatim so a catalog refresh or previous loss-factor state
+cannot change F3 while opening the selected enclosure.
 Legacy sessions with an empty Finder load selection use the active Box Design
 load consistently for both ranking and result validation, so a completed
 fallback run remains visible instead of being mistaken for changed inputs.

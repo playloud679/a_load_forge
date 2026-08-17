@@ -8541,6 +8541,13 @@ def _check_ui_parallel_ranking_matches_serial():
     assert compact_row == direct
     assert compact_row is not None
     assert compact_row["_driver_ts"]["fs_hz"] == compact.ts.fs_hz
+    assert compact_row["_box_type"] == "SealedBox"
+    assert compact_row["_box_params"]["q_abs"] == 15.0
+    _ui.st.session_state["sealed_q_abs"] = 2.0
+    _ui.st.session_state["sealed_q_leak"] = 20.0
+    _ui._apply_batch_result(compact_row, "Sealed")
+    assert _ui.st.session_state["sealed_q_abs"] == 15.0
+    assert _ui.st.session_state["sealed_q_leak"] == 1000.0
     stale_snapshot = dict(compact_row)
     stale_snapshot["_driver_ts"] = dict(compact_row["_driver_ts"])
     stale_snapshot["_driver_ts"]["fs_hz"] = 42.0

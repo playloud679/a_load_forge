@@ -7071,6 +7071,16 @@ def _finder_row_driver(row: dict) -> _acoustics.DriverTS:
     return _acoustics.get_driver_preset(str(row["Driver"]))
 
 
+def _finder_row_box_params(row: dict) -> dict:
+    """Return the complete physical box snapshot saved by Finder."""
+    payload = row.get("_box_params")
+    return dict(payload) if isinstance(payload, dict) else {}
+
+
+def _finder_box_value(row: dict, key: str, default):
+    return _finder_row_box_params(row).get(key, default)
+
+
 def _apply_batch_result(row: dict, load_type: str) -> None:
     if load_type in ("Suspension pneumatic", "Acoustic suspension"):
         load_type = "Sealed"
@@ -7090,6 +7100,8 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
     st.session_state["driver_preset_name"] = name
     st.session_state["driver_config"] = driver_configuration
     _apply_driver_preset(driver)
+    st.session_state["driver_panel_air_load"] = bool(driver.panel_air_load)
+    st.session_state["driver_panel_coupling"] = float(driver.panel_coupling)
     _use_manual_box_strategy()
     st.session_state["workspace_mode"] = "Box Design"
     if load_type == "Bass reflex":
@@ -7104,24 +7116,41 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
             st.session_state["pr_qmp"] = float(pr.pr_qmp)
             st.session_state["pr_mmp_g"] = float(pr.pr_mmp_g)
             st.session_state["pr_xmax_mm"] = float(pr.pr_xmax_mm)
+            st.session_state["pr_q_abs"] = float(_finder_box_value(row, "q_abs", 15.0))
+            st.session_state["pr_q_leak"] = float(_finder_box_value(row, "q_leak", 1000.0))
         else:
             st.session_state["reflex_fb_hz"] = float(row["Fb Hz"])
+            st.session_state["reflex_q_abs"] = float(_finder_box_value(row, "q_abs", _DEFAULT_REFLEX_Q_ABS))
+            st.session_state["reflex_q_leak"] = float(_finder_box_value(row, "q_leak", _DEFAULT_REFLEX_Q_LEAK))
+            st.session_state["reflex_q_port"] = float(_finder_box_value(row, "q_port", _DEFAULT_REFLEX_Q_PORT))
+            st.session_state["reflex_custom_losses"] = True
     elif load_type == "Bandpass 4th order":
         st.session_state["bandpass4_vs_l"] = float(row["Vs L"])
         st.session_state["bandpass4_vp_l"] = float(row["Vp L"])
         st.session_state["bandpass4_fp_hz"] = float(row["Fp Hz"])
+        for key in ("q_abs_s", "q_abs_p", "q_leak_s", "q_leak_p", "q_port"):
+            if key in _finder_row_box_params(row):
+                st.session_state[f"bandpass4_{key}"] = float(_finder_box_value(row, key, 0.0))
     elif load_type == "Bandpass 6th order":
         st.session_state["bandpass6_vr_l"] = float(row["Vr L"])
         st.session_state["bandpass6_fr_hz"] = float(row["Fr Hz"])
         st.session_state["bandpass6_vp_l"] = float(row["Vp L"])
         st.session_state["bandpass6_fp_hz"] = float(row["Fp Hz"])
+        for key in ("q_abs_r", "q_abs_p", "q_leak_r", "q_leak_p", "q_port_r", "q_port_p"):
+            if key in _finder_row_box_params(row):
+                st.session_state[f"bandpass6_{key}"] = float(_finder_box_value(row, key, 0.0))
     elif load_type == "Sealed":
         st.session_state["sealed_vb_l"] = float(row["Vb L"])
+        st.session_state["sealed_q_abs"] = float(_finder_box_value(row, "q_abs", 15.0))
+        st.session_state["sealed_q_leak"] = float(_finder_box_value(row, "q_leak", 1000.0))
     elif load_type == "DCCAV":
         st.session_state["box_vh_l"] = float(row["Vh L"])
         st.session_state["box_fh_hz"] = float(row["fh Hz"])
         st.session_state["box_vl_l"] = float(row["Vl L"])
         st.session_state["box_fl_hz"] = float(row["fl Hz"])
+        for key in ("q_abs_h", "q_abs_l", "q_leak_h", "q_leak_l", "q_port_h", "q_port_l"):
+            if key in _finder_row_box_params(row):
+                st.session_state[f"loss_{key}"] = float(_finder_box_value(row, key, 0.0))
     if load_type == "Bass reflex" and not _reflex_uses_passive_radiator():
         optimized_box = _reflex_box_from_state()
     elif load_type == "Bandpass 4th order":
@@ -7169,6 +7198,8 @@ def _finder_result_snapshot(
             pr_qmp=float(suggested.pr_qmp),
             pr_mmp_g=float(suggested.pr_mmp_g),
             pr_xmax_mm=float(suggested.pr_xmax_mm),
+            q_abs=float(_finder_box_value(row, "q_abs", 15.0)),
+            q_leak=float(_finder_box_value(row, "q_leak", 1000.0)),
         )
         result = _acoustics.simulate_passive_radiator(
             driver, box, frequency_hz, voltage_v
@@ -7177,6 +7208,9 @@ def _finder_result_snapshot(
         box = _acoustics.ReflexBox(
             vb_l=float(row["Vb L"]),
             fb_hz=float(row["Fb Hz"]),
+            q_abs=float(_finder_box_value(row, "q_abs", _DEFAULT_REFLEX_Q_ABS)),
+            q_leak=float(_finder_box_value(row, "q_leak", _DEFAULT_REFLEX_Q_LEAK)),
+            q_port=float(_finder_box_value(row, "q_port", _DEFAULT_REFLEX_Q_PORT)),
         )
         result = _acoustics.simulate_reflex(
             driver, box, frequency_hz, voltage_v
@@ -7186,6 +7220,11 @@ def _finder_result_snapshot(
             vs_l=float(row["Vs L"]),
             vp_l=float(row["Vp L"]),
             fp_hz=float(row["Fp Hz"]),
+            q_abs_s=float(_finder_box_value(row, "q_abs_s", 15.0)),
+            q_abs_p=float(_finder_box_value(row, "q_abs_p", 15.0)),
+            q_leak_s=float(_finder_box_value(row, "q_leak_s", 1000.0)),
+            q_leak_p=float(_finder_box_value(row, "q_leak_p", 1000.0)),
+            q_port=float(_finder_box_value(row, "q_port", 15.0)),
         )
         result = _acoustics.simulate_bandpass4(
             driver, box, frequency_hz, voltage_v
@@ -7196,12 +7235,22 @@ def _finder_result_snapshot(
             fr_hz=float(row["Fr Hz"]),
             vp_l=float(row["Vp L"]),
             fp_hz=float(row["Fp Hz"]),
+            q_abs_r=float(_finder_box_value(row, "q_abs_r", 15.0)),
+            q_abs_p=float(_finder_box_value(row, "q_abs_p", 15.0)),
+            q_leak_r=float(_finder_box_value(row, "q_leak_r", 1000.0)),
+            q_leak_p=float(_finder_box_value(row, "q_leak_p", 1000.0)),
+            q_port_r=float(_finder_box_value(row, "q_port_r", 15.0)),
+            q_port_p=float(_finder_box_value(row, "q_port_p", 15.0)),
         )
         result = _acoustics.simulate_bandpass6(
             driver, box, frequency_hz, voltage_v
         )
     elif load_type == "Sealed":
-        box = _acoustics.SealedBox(vb_l=float(row["Vb L"]))
+        box = _acoustics.SealedBox(
+            vb_l=float(row["Vb L"]),
+            q_abs=float(_finder_box_value(row, "q_abs", 15.0)),
+            q_leak=float(_finder_box_value(row, "q_leak", 1000.0)),
+        )
         result = _acoustics.simulate_sealed(
             driver, box, frequency_hz, voltage_v
         )
@@ -7217,6 +7266,12 @@ def _finder_result_snapshot(
             fh_hz=float(row["fh Hz"]),
             vl_l=float(row["Vl L"]),
             fl_hz=float(row["fl Hz"]),
+            q_abs_h=float(_finder_box_value(row, "q_abs_h", 15.0)),
+            q_abs_l=float(_finder_box_value(row, "q_abs_l", 15.0)),
+            q_leak_h=float(_finder_box_value(row, "q_leak_h", 1000.0)),
+            q_leak_l=float(_finder_box_value(row, "q_leak_l", 1000.0)),
+            q_port_h=float(_finder_box_value(row, "q_port_h", 15.0)),
+            q_port_l=float(_finder_box_value(row, "q_port_l", 15.0)),
         )
         result = _acoustics.simulate(driver, box, frequency_hz, voltage_v)
     return _pinned_response_snapshot(
