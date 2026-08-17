@@ -1745,7 +1745,7 @@ _FINDER_RANK_F3 = "Deepest bass (F3)"
 _FINDER_RANK_VALUE = "Best value (F3 × price)"
 _FINDER_RANK_MODES = (_FINDER_RANK_F3, _FINDER_RANK_VALUE)
 _FINDER_CTA_LABEL = "Run Bass Match"
-_FINDER_RANKING_VERSION = 7
+_FINDER_RANKING_VERSION = 8
 _FINDER_CONTEXT_FILTERED_POOL_VERSION = "user-inputs-v2"
 _FINDER_SPL_PREFILTER_HEADROOM_DB = 6.0
 _FINDER_DEFAULTS_VERSION = 9
@@ -7055,6 +7055,22 @@ def _batch_rank_presets_with_progress(
     return _acoustics.sort_ranked_rows(rows)
 
 
+def _finder_row_driver(row: dict) -> _acoustics.DriverTS:
+    """Return the exact base driver used to calculate a Finder row."""
+    payload = row.get("_driver_ts")
+    if isinstance(payload, dict):
+        fields = _acoustics.DriverTS.__dataclass_fields__
+        try:
+            return _acoustics.DriverTS(**{
+                name: payload[name]
+                for name in fields
+                if name in payload
+            })
+        except (TypeError, ValueError):
+            logger.warning("Invalid Finder driver snapshot; using live preset")
+    return _acoustics.get_driver_preset(str(row["Driver"]))
+
+
 def _apply_batch_result(row: dict, load_type: str) -> None:
     if load_type in ("Suspension pneumatic", "Acoustic suspension"):
         load_type = "Sealed"
@@ -7062,7 +7078,7 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
     if legacy_pr:
         load_type = "Bass reflex"
     name = str(row["Driver"])
-    driver = _acoustics.get_driver_preset(name)
+    driver = _finder_row_driver(row)
     driver_configuration = str(
         row.get("Driver configuration", "Single driver")
     )
@@ -7141,7 +7157,7 @@ def _finder_result_snapshot(
         row.get("Driver configuration", "Single driver")
     )
     driver = _acoustics.apply_driver_configuration(
-        _acoustics.get_driver_preset(name),
+        _finder_row_driver(row),
         configuration,
     )
     if load_type == "Bass reflex" and resonator == _RESONATOR_PR:
@@ -9063,7 +9079,11 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         st.toast(str(match_completion), icon="✅")
 
     finder_volume_l = float(st.session_state.get("finder_volume_l", 0.0))
-    finder_loads = tuple(st.session_state.get("finder_load_types", []))
+    # Old/restored sessions can contain an empty load list even though the
+    # Finder falls back to the active design load for both its brief and run.
+    # Compare against that same effective load context, or every successful
+    # fallback run is immediately hidden as an input change.
+    finder_loads = tuple(_finder_load_context()[0])
     finder_resonator = str(st.session_state.get(
         "finder_reflex_resonator_type", _RESONATOR_PORT))
     batch_rows = st.session_state.get("batch_results", [])

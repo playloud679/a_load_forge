@@ -2763,7 +2763,7 @@ def _check_ui_complete_lfp_restores_bass_match():
             "batch_results": [result_row],
             "batch_result_context": [
                 ["Sealed"], 35.0, 1, True, "Balanced", "Port",
-                0.0, 0.0, 0.0, 0.0, 7, 1, 1, 0, 0,
+                0.0, 0.0, 0.0, 0.0, 8, 1, 1, 0, 0,
                 "saved-selected-candidate-pool",
             ],
             "batch_search_completed": True,
@@ -7499,6 +7499,19 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
     assert not any(radio.label == "Rank by" for radio in at.sidebar.radio)
     assert any(radio.label == "Rank by" for radio in at.radio)
 
+    assert _ui._FINDER_RANKING_VERSION == 8
+    at.session_state["batch_result_context"] = (
+        ("Sealed",), 40.0, 1, False, "Balanced", "Port", 0.0,
+        0.0, 0.0, 0.0,
+        _ui._FINDER_RANKING_VERSION - 1,
+    )
+    at.run()
+    assert not at.exception, at.exception
+    assert not any(
+        (frame.value.astype(str) == "Priced test driver").to_numpy().any()
+        for frame in at.dataframe
+    ), "a persisted result from an older ranking revision must be hidden"
+
 
 test("UI keeps every Finder parameter in the sidebar", _check_ui_finder_parameters_are_all_in_sidebar)
 
@@ -7554,6 +7567,10 @@ def _check_ui_finder_main_action_runs_search():
         for expander in at.expander
     ), "the initial candidate pool must report the loaded catalog"
     at.session_state["workspace_mode"] = "Bass Match"
+    # Legacy/restored sessions may persist an empty load selection. Finder
+    # must use its active-load fallback consistently through ranking and
+    # result rendering instead of hiding every completed run.
+    at.session_state["finder_load_types"] = []
     at.session_state["preset_search"] = "KEF B110B article example"
     at.session_state["finder_result_count"] = 1
     at.session_state["finder_points"] = 80
@@ -7616,6 +7633,9 @@ def _check_ui_finder_main_action_runs_search():
     find_button.click().run()
     assert not at.exception, at.exception
     assert at.session_state["batch_results"], "main action must produce ranked rows"
+    assert not any(
+        "Bass Match inputs changed" in item.value for item in at.info
+    ), "an empty persisted load list must not hide the freshly ranked fallback load"
     assert not at.get("success"), (
         "completion must stay compact instead of adding a full-height banner"
     )
@@ -8519,6 +8539,12 @@ def _check_ui_parallel_ranking_matches_serial():
         _ui._ranking.presets.get_driver_preset = original_get
         _ui._ranking.presets.driver_preset_info = original_info
     assert compact_row == direct
+    assert compact_row is not None
+    assert compact_row["_driver_ts"]["fs_hz"] == compact.ts.fs_hz
+    stale_snapshot = dict(compact_row)
+    stale_snapshot["_driver_ts"] = dict(compact_row["_driver_ts"])
+    stale_snapshot["_driver_ts"]["fs_hz"] = 42.0
+    assert _ui._finder_row_driver(stale_snapshot).fs_hz == 42.0
 
     serial = _ui._batch_rank_presets(
         names, "Sealed", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals)

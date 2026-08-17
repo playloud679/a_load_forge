@@ -93,6 +93,12 @@ so process workers never load a second copy of the external catalogs; Cloud Run
 uses threads directly. Catalog
 metadata/price summaries and embedded visual CSS use bounded caches, while
 large filtered-name lists must not accumulate in the Streamlit cache.
+Finder ranking revision 8 invalidates pre-two-stage persisted rows, and every
+new result carries a hidden T/S snapshot that Box Design reuses verbatim so a
+catalog refresh cannot change F3 while opening the selected enclosure.
+Legacy sessions with an empty Finder load selection use the active Box Design
+load consistently for both ranking and result validation, so a completed
+fallback run remains visible instead of being mistaken for changed inputs.
 Routine IndexedDB autosaves are fire-and-forget once the active project is in
 the sidebar index, so their acknowledgement and `updated_at` value cannot
 trigger another full-page rerun. Streamlit stale elements remain fully opaque

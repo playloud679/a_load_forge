@@ -28,7 +28,9 @@ detailed contracts live in `docs/dccav.md`.
   catalog-owning parent into the compact T/S and table metadata sent to workers
 - `rank_candidate_row(candidate, ...)`: simulate that compact payload without
   loading the external preset databases in each worker; `rank_preset_row()`
-  remains the name-based public wrapper
+  remains the name-based public wrapper. Each returned row includes a hidden
+  `_driver_ts` snapshot so opening it in Box Design uses the exact parameters
+  that produced its F3 even if the live catalog has since changed
 - `finder_worker_ready()`: return only the worker PID for the bounded startup
   health check; it deliberately does not touch the runtime catalog
 - `finder_optimizer_evaluation_limit(module_path=None)`: use 30 global search

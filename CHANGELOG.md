@@ -17,6 +17,13 @@
   grid per search candidate; Streamlit Community Cloud also caps the global
   search at 30 candidate alignments instead of 140, while retaining the
   selected high resolution for each final result row.
+- **Finder-to-design consistency**: ranking revision 8 invalidates persisted
+  rows produced before the two-stage optimizer, and each new result stores the
+  exact hidden driver T/S snapshot used for ranking. Opening it in Box Design
+  now preserves that snapshot instead of mixing an old box with newer catalog
+  parameters and producing a different F3. Empty load selections restored
+  from older sessions now share the same active-load fallback during ranking
+  and rendering, preventing fresh matches from disappearing as stale inputs.
 - **Streamlit Cloud email gate**: native `st.login()` authentication can now
   protect the workspace independently from Firestore through
   `LOAD_FORGE_AUTH_REQUIRED`; an optional exact, case-insensitive

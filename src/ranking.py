@@ -9,7 +9,7 @@ the ranking table.
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
 import numpy as np
@@ -364,6 +364,7 @@ def rank_candidate_row(
         )
         return {
             "Driver": name,
+            "_driver_ts": asdict(candidate.ts),
             "Driver configuration": driver_configuration,
             "Source": candidate.source,
             "Brand": candidate.brand,
