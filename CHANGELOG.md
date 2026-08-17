@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.13 (2026-08-17)
+
+- **Finder/Box Design parity**: Finder results now carry the complete driver
+  and enclosure-physics snapshots, including all acoustic loss factors and
+  panel air-loading settings. Opening a match in Box Design reproduces the
+  same simulation instead of inheriting stale session parameters.
+
 ## 0.8.12 (2026-08-15)
 
 - **Fast, bounded Streamlit Cloud matching**: Bass Match now limits Community
