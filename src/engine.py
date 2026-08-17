@@ -2703,6 +2703,29 @@ def response_threshold_frequencies(
         if f_max_hz is not None and float(f_max_hz) > 0 and np.isfinite(cross) and cross > float(f_max_hz):
             cross = float("nan")
         out[int(drop)] = cross
+
+    # Coherence check for saddle / shelving alignments (e.g. EBS reflex or subwoofers with rising midbass):
+    # If F6 is on a low-frequency roll-off below a local peak, but F3 crossed far above across a midbass dip
+    if np.isfinite(out.get(6, np.nan)) and np.isfinite(out.get(3, np.nan)):
+        f6 = out[6]
+        f3 = out[3]
+        if f3 > 1.5 * f6:
+            sub_mask = (low_f >= f6) & (low_f <= f3)
+            if np.sum(sub_mask) >= 3:
+                sub_spl = low_spl[sub_mask]
+                sub_f = low_f[sub_mask]
+                min_idx = int(np.argmin(sub_spl))
+                valley_f = float(sub_f[min_idx])
+                peak_mask = (low_f >= f6 * 0.8) & (low_f <= valley_f)
+                if np.any(peak_mask):
+                    local_peak = float(np.max(low_spl[peak_mask]))
+                    if (ref - 3.0) > local_peak:
+                        for drop in drops_db:
+                            target = local_peak - float(drop)
+                            cross = _low_side_crossing(low_f, low_spl, target)
+                            if f_max_hz is not None and float(f_max_hz) > 0 and np.isfinite(cross) and cross > float(f_max_hz):
+                                cross = float("nan")
+                            out[int(drop)] = cross
     return out
 
 

@@ -7194,6 +7194,7 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
     st.session_state["driver_panel_coupling"] = float(driver.panel_coupling)
     _use_manual_box_strategy()
     st.session_state["workspace_mode"] = "Box Design"
+    st.session_state["opt_max_ripple_freq_hz"] = float(st.session_state.get("finder_max_ripple_freq_hz", 0.0) or 0.0)
     if load_type == "Bass reflex":
         st.session_state["reflex_vb_l"] = float(row["Vb L"])
         resonator = str(row.get(

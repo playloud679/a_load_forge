@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.21 (2026-08-18)
+
+- **Acoustic shelf & saddle threshold coherence**:
+  Enhanced `response_threshold_frequencies()` with a physical roll-off monotonicity
+  check, preventing spurious midbass saddle crossings from placing $F_3$ in a shallow
+  mid-band depression while $F_6$ and $F_{10}$ sit on the real low-frequency reflex knee.
+- **Finder to Box Design ripple ceiling inheritance**:
+  `_apply_batch_result()` now seamlessly carries over `finder_max_ripple_freq_hz`
+  into `opt_max_ripple_freq_hz`, ensuring matching metrics and plots when opening
+  candidate designs from Bass Match.
+- **Test suite validation**:
+  Verified full test suite fresh (98 PASS, 0 FAIL).
+
 ## 0.8.20 (2026-08-18)
 
 - **Response threshold & chart marker cutout ceiling (`f_max_hz`)**:

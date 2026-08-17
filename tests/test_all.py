@@ -7059,11 +7059,12 @@ def _check_response_thresholds_respect_frequency_cutout():
     freq = np.geomspace(10.0, 500.0, 300)
     res = _acoustics.simulate_reflex(ts, box, freq, 2.83)
 
-    # Without cutout, rising midbass creates a spurious F3 crossing at ~80 Hz
+    # Thresholds resolve to the true low-frequency roll-off knee without saddle artifacts
     thresh_full = _acoustics.response_threshold_frequencies(res)
-    assert thresh_full[3] > 70.0, thresh_full
+    assert thresh_full[3] < 30.0, thresh_full
+    assert thresh_full[3] > thresh_full[6] > thresh_full[10]
 
-    # With cutout ceiling at 70 Hz, F3 correctly targets the sub-band knee at ~20 Hz
+    # With cutout ceiling at 70 Hz, F3 also targets the sub-band knee at ~20 Hz
     thresh_sub = _acoustics.response_threshold_frequencies(res, f_max_hz=70.0)
     assert thresh_sub[3] < 30.0, thresh_sub
     assert thresh_sub[3] > thresh_sub[6] > thresh_sub[10]
