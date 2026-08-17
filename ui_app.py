@@ -5231,15 +5231,18 @@ def _port_series(result: _acoustics.SimulationResult) -> dict[str, np.ndarray]:
     return series
 
 
-def _cursor_rows(result: _acoustics.SimulationResult, thresholds: dict[int, float]) -> list[dict]:
+def _cursor_rows(
+    result: _acoustics.SimulationResult,
+    thresholds: dict[int, float],
+    max_freq_hz: float | None = None,
+) -> list[dict]:
     rows = []
     auto_markers = set(st.session_state.get("cursor_auto_markers", _AUTO_CURSOR_OPTIONS))
-    if "F3" in auto_markers and np.isfinite(thresholds[3]):
-        rows.append(_cursor_row(result, "F3", thresholds[3]))
-    if "F6" in auto_markers and np.isfinite(thresholds[6]):
-        rows.append(_cursor_row(result, "F6", thresholds[6]))
-    if "F10" in auto_markers and np.isfinite(thresholds[10]):
-        rows.append(_cursor_row(result, "F10", thresholds[10]))
+    for key, label in ((3, "F3"), (6, "F6"), (10, "F10")):
+        freq_val = thresholds.get(key, float("nan"))
+        if label in auto_markers and np.isfinite(freq_val):
+            if max_freq_hz is None or max_freq_hz <= 0 or freq_val <= float(max_freq_hz) + 1e-6:
+                rows.append(_cursor_row(result, label, freq_val))
     return rows
 
 
@@ -9755,10 +9758,11 @@ def _simulate_design_cached(
             result = _acoustics.simulate_transmission_line(ts, box, freq, voltage_v, series_r_ohm)
     else:
         result = _acoustics.simulate(ts, box, freq, voltage_v, series_r_ohm)
+    ripple_max_freq = float(st.session_state.get("opt_max_ripple_freq_hz", 0.0)) or None
     return (
         result,
-        _acoustics.response_metrics(result),
-        _acoustics.response_threshold_frequencies(result),
+        _acoustics.response_metrics(result, ripple_max_freq_hz=ripple_max_freq),
+        _acoustics.response_threshold_frequencies(result, f_max_hz=ripple_max_freq),
         _acoustics.impedance_peak_frequencies(result),
     )
 
@@ -9773,11 +9777,12 @@ def _design_simulation_signature(
     points: int,
     voltage_v: float,
     series_r_ohm: float,
+    ripple_max_freq_hz: float = 0.0,
 ) -> str:
     payload = repr((
         engine_revision, ts, load_type, box, float(f_min_hz),
         float(f_max_hz), int(points), float(voltage_v),
-        float(series_r_ohm),
+        float(series_r_ohm), float(ripple_max_freq_hz),
     )).encode("utf-8")
     return hashlib.sha1(payload).hexdigest()[:16]
 
@@ -9796,7 +9801,8 @@ def _render_response_tab(
     compare_loads_on = bool(st.session_state.get("plot_compare_loads", False))
 
     # --- 1. Compute state needed for charts ---
-    cursor_rows = _cursor_rows(result, thresholds)
+    ripple_max_freq = float(st.session_state.get("opt_max_ripple_freq_hz", 0.0)) or None
+    cursor_rows = _cursor_rows(result, thresholds, max_freq_hz=ripple_max_freq)
 
     compare_series = None
     if compare_loads_on:
@@ -11223,6 +11229,7 @@ try:
         sim_points,
         sim_voltage,
         sim_series_r,
+        float(st.session_state.get("opt_max_ripple_freq_hz", 0.0)),
     )
     model_warnings = [] if load_type != "DCCAV" else (
         _acoustics.alignment_diagnostics(current_ts, box)

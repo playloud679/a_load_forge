@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.8.20 (2026-08-18)
+
+- **Response threshold & chart marker cutout ceiling (`f_max_hz`)**:
+  `response_threshold_frequencies()` and `response_metrics()` now accept `f_max_hz`
+  to anchor sensitivity reference levels strictly within the active passband
+  below the cutout ceiling and discard spurious crossings above it.
+- **UI marker filtering & cache invalidation**:
+  `_cursor_rows()` suppresses automatic threshold markers ($F_3, F_6, F_{10}$)
+  above the active frequency ceiling; `_design_simulation_signature()` includes
+  the cutout frequency to invalidate and refresh dashboard metrics and plots in real time.
+- **Complete optimizer manual**:
+  Authored comprehensive technical reference in `docs/optimizer-manual.md` covering
+  coordinate descent (compass search), cost function formulation, rigid construction
+  barriers, ripple ceilings, and multi-stage sampling.
+- **Test suite validation**:
+  Added `_check_response_thresholds_respect_frequency_cutout`; full test suite
+  passing fresh (98 PASS, 0 FAIL).
+
 ## 0.8.19 (2026-08-18)
 
 - **Configurable ripple ceiling (`ripple_max_freq_hz`)**:

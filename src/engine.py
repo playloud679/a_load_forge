@@ -1546,7 +1546,7 @@ def _optimizer_metrics(
         required_port_diameter_cm = max(upper_diameter_cm, lower_diameter_cm)
         port_volume_fraction_max = max(upper_fraction, lower_fraction)
         port_length_ratio_max = max(upper_length_ratio, lower_length_ratio)
-    thresholds = response_threshold_frequencies(result)
+    thresholds = response_threshold_frequencies(result, f_max_hz=ripple_max_freq_hz)
     f3 = thresholds[3]
     f10 = thresholds[10]
     f = result.frequency_hz
@@ -1566,7 +1566,12 @@ def _optimizer_metrics(
             refined_frequency = np.geomspace(
                 refine_low, refine_high, int(refine_f3_points))
             refined = simulate_at(refined_frequency)
-            reference_band = (positive_f >= 40.0) & (positive_f <= 200.0)
+            ref_high = 200.0
+            ref_low = 40.0
+            if ripple_max_freq_hz is not None and float(ripple_max_freq_hz) > 0:
+                ref_high = min(ref_high, float(ripple_max_freq_hz))
+                ref_low = min(ref_low, ref_high * 0.5)
+            reference_band = (positive_f >= ref_low) & (positive_f <= ref_high)
             reference_values = spl[reference_band] if np.any(reference_band) else spl
             target_db = float(np.nanmax(reference_values)) - 3.0
             refined_f3 = _low_side_crossing(
@@ -1575,7 +1580,8 @@ def _optimizer_metrics(
                 target_db,
             )
             if np.isfinite(refined_f3):
-                f3 = float(refined_f3)
+                if ripple_max_freq_hz is None or float(ripple_max_freq_hz) <= 0 or refined_f3 <= float(ripple_max_freq_hz):
+                    f3 = float(refined_f3)
 
     ripple = float("nan")
     gd_max = float("nan")
@@ -2628,12 +2634,20 @@ def simulate_infinite_baffle(
     return _unported_result(ts, drv, f, voltage_v, u_rear_driver, 0.0, series_r_ohm)
 
 
-def response_metrics(result: SimulationResult) -> dict[str, float]:
+def response_metrics(
+    result: SimulationResult,
+    ripple_max_freq_hz: float | None = None,
+) -> dict[str, float]:
     """Compute compact response metrics for the UI and tests."""
     spl = result.spl_total_db
-    thresholds = response_threshold_frequencies(result)
+    thresholds = response_threshold_frequencies(result, f_max_hz=ripple_max_freq_hz)
+    if ripple_max_freq_hz is not None and float(ripple_max_freq_hz) > 0:
+        band = result.frequency_hz <= float(ripple_max_freq_hz)
+        max_spl = float(np.nanmax(spl[band])) if np.any(band) else float(np.nanmax(spl))
+    else:
+        max_spl = float(np.nanmax(spl))
     return {
-        "max_spl_db": float(np.nanmax(spl)),
+        "max_spl_db": max_spl,
         "f3_hz": thresholds[3],
         "max_excursion_mm": float(np.nanmax(result.excursion_mm)),
         "min_impedance_ohm": float(np.nanmin(result.impedance_ohm)),
@@ -2662,6 +2676,7 @@ def response_threshold_frequencies(
     result: SimulationResult,
     drops_db: tuple[int, ...] = (3, 6, 10),
     reference_band_hz: tuple[float, float] = (40.0, 200.0),
+    f_max_hz: float | None = None,
 ) -> dict[int, float]:
     """Return low-frequency response crossings at ref - drop dB."""
     f = np.asarray(result.frequency_hz, dtype=float)
@@ -2670,6 +2685,10 @@ def response_threshold_frequencies(
         raise ValueError("Response arrays must be one-dimensional and aligned")
 
     f_min, f_max = reference_band_hz
+    if f_max_hz is not None and float(f_max_hz) > 0:
+        f_max = min(f_max, float(f_max_hz))
+        f_min = min(f_min, f_max * 0.5)
+
     band = (f >= f_min) & (f <= f_max)
     ref_values = spl[band] if np.any(band) else spl
     ref = float(np.nanmax(ref_values))
@@ -2680,7 +2699,10 @@ def response_threshold_frequencies(
     out: dict[int, float] = {}
     for drop in drops_db:
         target = ref - float(drop)
-        out[int(drop)] = _low_side_crossing(low_f, low_spl, target)
+        cross = _low_side_crossing(low_f, low_spl, target)
+        if f_max_hz is not None and float(f_max_hz) > 0 and np.isfinite(cross) and cross > float(f_max_hz):
+            cross = float("nan")
+        out[int(drop)] = cross
     return out
 
 

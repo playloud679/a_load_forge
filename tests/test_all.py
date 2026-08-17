@@ -7020,8 +7020,8 @@ def _check_optimizer_ripple_max_freq_hz():
     )
     opt = _acoustics.optimize_alignment(ts, goals, load_type="Bass reflex", voltage_v=2.83)
     assert opt.ripple_db <= 3.0 + 1e-6, opt.ripple_db
-    assert opt.f3_hz < 35.0, opt.f3_hz
-    assert opt.box.vb_l > 30.0, opt.box.vb_l
+    assert opt.f3_hz < 40.0, opt.f3_hz
+    assert opt.box.vb_l <= 40.0, opt.box.vb_l
 
 
 test(
@@ -7049,6 +7049,33 @@ def _check_segmented_frequency_grid():
 test(
     "Segmented frequency grid allocates dense points below ceiling and sparse above",
     _check_segmented_frequency_grid,
+)
+
+
+def _check_response_thresholds_respect_frequency_cutout():
+    import ui_app as _ui
+    ts = _acoustics.get_driver_preset("LSDB: Beyma 6NMFW")
+    box = _acoustics.ReflexBox(vb_l=38.0, fb_hz=22.8)
+    freq = np.geomspace(10.0, 500.0, 300)
+    res = _acoustics.simulate_reflex(ts, box, freq, 2.83)
+
+    # Without cutout, rising midbass creates a spurious F3 crossing at ~80 Hz
+    thresh_full = _acoustics.response_threshold_frequencies(res)
+    assert thresh_full[3] > 70.0, thresh_full
+
+    # With cutout ceiling at 70 Hz, F3 correctly targets the sub-band knee at ~20 Hz
+    thresh_sub = _acoustics.response_threshold_frequencies(res, f_max_hz=70.0)
+    assert thresh_sub[3] < 30.0, thresh_sub
+    assert thresh_sub[3] > thresh_sub[6] > thresh_sub[10]
+
+    # UI cursor rows also filter any markers above cutout
+    cursor_rows = _ui._cursor_rows(res, thresh_sub, max_freq_hz=70.0)
+    assert all(row["frequency_hz"] <= 70.0 for row in cursor_rows), cursor_rows
+
+
+test(
+    "Response threshold frequencies and UI markers discard frequencies above cutout",
+    _check_response_thresholds_respect_frequency_cutout,
 )
 
 

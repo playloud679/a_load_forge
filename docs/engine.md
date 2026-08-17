@@ -46,7 +46,7 @@ contracts and the test list — lives in `docs/dccav.md`.
   `segmented_frequency_grid` with high resolution below the ceiling and 9 sparse points above. If refinement puts DCCAV just below its credibility
   boundary, both tunings are reduced together by the minimum required factor
   and the winner is checked again
-- Analysis: `response_metrics`, `response_threshold_frequencies` (using logarithmic frequency interpolation across dB/oct roll-off slopes for sub-Hz F3/F6/F10 accuracy),
+- Analysis: `response_metrics`, `response_threshold_frequencies` (using logarithmic frequency interpolation across dB/oct roll-off slopes for sub-Hz F3/F6/F10 accuracy and supporting optional `f_max_hz` to bound reference level and discard crossings above the cutout ceiling),
   `segmented_frequency_grid`, `optimal_frequency_grid`, `adaptive_frequency_grid`,
   `impedance_peak_frequencies`, `group_delay_ms`, `response_phase_deg`,
   `export_frd_text`, `export_zma_text`, `monte_carlo_response_band`,

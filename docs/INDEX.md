@@ -31,6 +31,7 @@ in sync in the same change.
 | `tools/compare_afw_sealed.py` | [afw_validation.md](afw_validation.md) | Read-only AFW v2 sealed/BP4/BP6 parser, response diagnostics and identical-driver projection bridge |
 | `tools/generate_afw_dccav.py` | [afw_validation.md](afw_validation.md) | Write-side counterpart: clones a verified DCAAV `.afw` template and injects a Load Forge DCCAV `.lfp` design's driver/chamber values |
 | — | [acoustic-sampling-optimization.md](acoustic-sampling-optimization.md) | Criterio di Campionamento Acustico Spettrale (Q-constrained), adaptive sampling e ottimizzazione a due stadi per Bass Match / Finder |
+| — | [optimizer-manual.md](optimizer-manual.md) | Manuale tecnico dell'ottimizzatore: Compass search, funzione di costo, barriere fisiche, ripple ceiling e griglia segmentata |
 
 ## SaaS Product Strategy
 
