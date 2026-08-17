@@ -30,7 +30,7 @@ in sync in the same change.
 | `tools/import_speakerboxlite_database.py` | [import-speakerboxlite-database.md](import-speakerboxlite-database.md) | Physically validated import of the public Speaker Box Lite community database into a separate optional tier |
 | `tools/compare_afw_sealed.py` | [afw_validation.md](afw_validation.md) | Read-only AFW v2 sealed/BP4/BP6 parser, response diagnostics and identical-driver projection bridge |
 | `tools/generate_afw_dccav.py` | [afw_validation.md](afw_validation.md) | Write-side counterpart: clones a verified DCAAV `.afw` template and injects a Load Forge DCCAV `.lfp` design's driver/chamber values |
-| — | [acoustic-sampling-optimization.md](acoustic-sampling-optimization.md) | Formal Acoustic Spectral Sampling Theorem and two-stage optimization rule for simulation-based matching |
+| — | [acoustic-sampling-optimization.md](acoustic-sampling-optimization.md) | Criterio di Campionamento Acustico Spettrale (Q-constrained), adaptive sampling e ottimizzazione a due stadi per Bass Match / Finder |
 
 ## SaaS Product Strategy
 

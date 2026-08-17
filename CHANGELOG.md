@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.17 (2026-08-17)
+
+- **Redesigned landing page & authentication workspace**:
+  Upgraded the local registration and enterprise OIDC login gates with a centered
+  brand hero displaying `load_forge_header_app.png`, technical feature highlight
+  badges (Adaptive TCAS Solver, Multi-Topology Matrix, Bass Match Finder),
+  glassmorphic card styling, responsive input controls and verified security footer.
+
 ## 0.8.16 (2026-08-17)
 
 - **Scientific revision of acoustic sampling documentation**:

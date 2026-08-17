@@ -87,6 +87,7 @@ try:
 except OSError:
     _VERSION = "dev"
 _BRAND_IMAGE = Path(__file__).parent / "assets" / "load_forge_header.png"
+_BRAND_APP_IMAGE = Path(__file__).parent / "assets" / "load_forge_header_app.png"
 _LOAD_IMAGE_DIR = Path(__file__).parent / "assets" / "load_types"
 _WORKSPACE_TAB_IMAGES = {
     "Bass Match": Path(__file__).parent / "assets" / "bass_match_tab.png",
@@ -323,93 +324,164 @@ def _remember_local_account(user: _saas.SaaSUser) -> None:
     }
 
 
+def _render_auth_hero_and_badges(title: str, subtitle: str) -> None:
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stForm"] {
+            background: rgba(18, 24, 38, 0.85) !important;
+            border: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 14px !important;
+            padding: 1.6rem 1.8rem !important;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45) !important;
+            backdrop-filter: blur(16px) !important;
+        }
+        div[data-testid="stForm"] input {
+            background-color: rgba(10, 14, 23, 0.85) !important;
+            border: 1px solid rgba(255, 255, 255, 0.14) !important;
+            color: #f3f4f6 !important;
+            border-radius: 8px !important;
+        }
+        div[data-testid="stForm"] input:focus {
+            border-color: #10b981 !important;
+            box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
+        }
+        div[data-testid="stRadio"] > div {
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 0.25rem 0.5rem;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 0.5rem;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    brand_path = _BRAND_APP_IMAGE if _BRAND_APP_IMAGE.exists() else _BRAND_IMAGE
+    if brand_path.exists():
+        st.image(str(brand_path), width="stretch")
+    else:
+        st.title("Load Forge")
+    st.markdown(
+        f"""
+        <div style="text-align: center; margin-top: -0.4rem; margin-bottom: 1.2rem;">
+            <div style="display: flex; justify-content: center; gap: 0.45rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+                <span style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399; font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: 600; letter-spacing: 0.02em;">
+                    ⚡ Adaptive TCAS Engine
+                </span>
+                <span style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); color: #60a5fa; font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: 600; letter-spacing: 0.02em;">
+                    🎛️ Multi-Topology Matrix
+                </span>
+                <span style="background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.35); color: #c084fc; font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: 600; letter-spacing: 0.02em;">
+                    🎯 Bass Match Global Finder
+                </span>
+            </div>
+            <h2 style="font-size: 1.3rem; font-weight: 700; color: #f9fafb; margin: 0 0 0.25rem 0; letter-spacing: -0.01em;">{title}</h2>
+            <p style="font-size: 0.85rem; color: rgba(255, 255, 255, 0.62); margin: 0; line-height: 1.4;">{subtitle}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def _render_local_account_gate() -> None:
     """Render the local-only registration/login product demo."""
-    st.title("Load Forge")
-    st.subheader("Your acoustic workspace")
-    st.caption(
-        "Create a local test account to keep each user's projects separate. "
-        "Production accounts use the configured identity provider."
-    )
-    account_mode = st.radio(
-        "Account",
-        ("Sign in", "Create account"),
-        horizontal=True,
-        label_visibility="collapsed",
-        key="_local_account_mode",
-    )
-    accounts = _saas.LocalAccountStore(_SAAS_SETTINGS.local_account_database)
-    if account_mode == "Sign in":
-        with st.form("local_saas_sign_in"):
-            email = st.text_input(
-                "Email",
-                autocomplete="email",
-                key="_local_sign_in_email",
-            )
-            password = st.text_input(
-                "Password",
-                type="password",
-                autocomplete="current-password",
-                key="_local_sign_in_password",
-            )
-            submitted = st.form_submit_button(
-                "Sign in",
-                type="primary",
-                width="stretch",
-            )
-        if submitted:
-            try:
-                user = accounts.authenticate(email, password)
-            except _saas.InvalidCredentialsError as exc:
-                st.error(str(exc))
-            else:
-                _remember_local_account(user)
-                st.rerun()
-    else:
-        with st.form("local_saas_registration"):
-            name = st.text_input(
-                "Name",
-                autocomplete="name",
-                key="_local_register_name",
-            )
-            email = st.text_input(
-                "Email",
-                autocomplete="email",
-                key="_local_register_email",
-            )
-            password = st.text_input(
-                "Password",
-                type="password",
-                autocomplete="new-password",
-                help="Use at least 10 characters.",
-                key="_local_register_password",
-            )
-            confirmation = st.text_input(
-                "Confirm password",
-                type="password",
-                autocomplete="new-password",
-                key="_local_register_confirmation",
-            )
-            submitted = st.form_submit_button(
-                "Create account",
-                type="primary",
-                width="stretch",
-            )
-        if submitted:
-            if password != confirmation:
-                st.error("Passwords do not match")
-            else:
+    _, col_center, _ = st.columns([1, 2.3, 1])
+    with col_center:
+        _render_auth_hero_and_badges(
+            title="Acoustic Workspace",
+            subtitle="Sign in or create a local account to manage projects and simulations.",
+        )
+        account_mode = st.radio(
+            "Account",
+            ("Sign in", "Create account"),
+            horizontal=True,
+            label_visibility="collapsed",
+            key="_local_account_mode",
+        )
+        accounts = _saas.LocalAccountStore(_SAAS_SETTINGS.local_account_database)
+        if account_mode == "Sign in":
+            with st.form("local_saas_sign_in"):
+                email = st.text_input(
+                    "Email",
+                    placeholder="engineer@studio.com",
+                    autocomplete="email",
+                    key="_local_sign_in_email",
+                )
+                password = st.text_input(
+                    "Password",
+                    placeholder="••••••••••••",
+                    type="password",
+                    autocomplete="current-password",
+                    key="_local_sign_in_password",
+                )
+                submitted = st.form_submit_button(
+                    "Sign in",
+                    type="primary",
+                    width="stretch",
+                )
+            if submitted:
                 try:
-                    user = accounts.create_account(name, email, password)
-                except (ValueError, _saas.AccountExistsError) as exc:
+                    user = accounts.authenticate(email, password)
+                except _saas.InvalidCredentialsError as exc:
                     st.error(str(exc))
                 else:
                     _remember_local_account(user)
                     st.rerun()
-    st.caption(
-        "Local demo only · passwords are salted and hashed · "
-        "email verification and recovery are provided by OIDC in production."
-    )
+        else:
+            with st.form("local_saas_registration"):
+                name = st.text_input(
+                    "Name",
+                    placeholder="Acoustic Engineer / Studio Handle",
+                    autocomplete="name",
+                    key="_local_register_name",
+                )
+                email = st.text_input(
+                    "Email",
+                    placeholder="engineer@studio.com",
+                    autocomplete="email",
+                    key="_local_register_email",
+                )
+                password = st.text_input(
+                    "Password",
+                    placeholder="At least 10 characters",
+                    type="password",
+                    autocomplete="new-password",
+                    help="Use at least 10 characters.",
+                    key="_local_register_password",
+                )
+                confirmation = st.text_input(
+                    "Confirm password",
+                    placeholder="Repeat password",
+                    type="password",
+                    autocomplete="new-password",
+                    key="_local_register_confirmation",
+                )
+                submitted = st.form_submit_button(
+                    "Create account",
+                    type="primary",
+                    width="stretch",
+                )
+            if submitted:
+                if password != confirmation:
+                    st.error("Passwords do not match")
+                else:
+                    try:
+                        user = accounts.create_account(name, email, password)
+                    except (ValueError, _saas.AccountExistsError) as exc:
+                        st.error(str(exc))
+                    else:
+                        _remember_local_account(user)
+                        st.rerun()
+        st.markdown(
+            """
+            <div style="text-align: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: rgba(255,255,255,0.45); line-height: 1.4;">
+                🔒 Local demo workspace · Passwords salted & hashed (PBKDF2-HMAC-SHA256) · Isolated tenant projects
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     st.stop()
 
 
@@ -444,26 +516,34 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
         except (AttributeError, RuntimeError):
             logged_in = False
         if not logged_in:
-            st.title("Load Forge")
-            st.subheader("Sign in to open your acoustic workspace")
-            st.caption(
-                "Your projects remain autosaved in this browser unless cloud "
-                "project persistence is also enabled."
-            )
-            try:
-                auth_configured = "auth" in st.secrets
-            except (FileNotFoundError, RuntimeError):
-                auth_configured = False
-            if not auth_configured:
-                st.error(
-                    "Authentication is enabled but the OIDC secret is not mounted."
+            _, col_center, _ = st.columns([1, 2.3, 1])
+            with col_center:
+                _render_auth_hero_and_badges(
+                    title="Enterprise Acoustic Workspace",
+                    subtitle="Sign in with your verified identity provider to open your saved acoustic projects and driver library.",
                 )
-                st.stop()
-            if st.button("Sign in", type="primary", width="stretch"):
-                if _SAAS_SETTINGS.oidc_provider:
-                    st.login(_SAAS_SETTINGS.oidc_provider)
-                else:
-                    st.login()
+                try:
+                    auth_configured = "auth" in st.secrets
+                except (FileNotFoundError, RuntimeError):
+                    auth_configured = False
+                if not auth_configured:
+                    st.error(
+                        "Authentication is enabled but the OIDC secret is not mounted."
+                    )
+                    st.stop()
+                if st.button("Sign in", type="primary", width="stretch"):
+                    if _SAAS_SETTINGS.oidc_provider:
+                        st.login(_SAAS_SETTINGS.oidc_provider)
+                    else:
+                        st.login()
+                st.markdown(
+                    """
+                    <div style="text-align: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: rgba(255,255,255,0.45); line-height: 1.4;">
+                        🛡️ Single Sign-On (OIDC) · Secure multi-tenant cloud storage · Autosaved projects
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
             st.stop()
         claims = st.user.to_dict()
 
@@ -484,11 +564,16 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
             st.logout()
         st.stop()
     if not _SAAS_SETTINGS.allows_email(user.email):
-        st.title("Load Forge")
-        st.error("This email address is not authorized to use Load Forge.")
-        st.caption(user.email or "The identity provider did not return an email.")
-        if st.button("Sign out", key="unauthorized_identity_sign_out"):
-            st.logout()
+        _, col_center, _ = st.columns([1, 2.3, 1])
+        with col_center:
+            _render_auth_hero_and_badges(
+                title="Access Restricted",
+                subtitle="Your account is not authorized to access this Load Forge workspace.",
+            )
+            st.error("This email address is not authorized to use Load Forge.")
+            st.caption(user.email or "The identity provider did not return an email.")
+            if st.button("Sign out", key="unauthorized_identity_sign_out", width="stretch"):
+                st.logout()
         st.stop()
     return user
 
