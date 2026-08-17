@@ -33,7 +33,9 @@ contracts and the test list — lives in `docs/dccav.md`.
 - Optimizer: `optimize_alignment` with `_optimizer_metrics` /
   `_score_alignment`; untargeted `extension` searches scale advisory ripple,
   excursion and group-delay excesses to 1% and use a 0.002 volume regularizer
-  so the lowest credible F3 dominates compactness. The optional
+  so the lowest credible F3 dominates compactness, and seed starter volumes
+  directly at 95–98% of any requested volume cap so compass search focuses on
+  fine tuning rather than climbing volume. The optional
   `frequency_points` / `refine_f3_points` controls let hosted Finder runs use
   30 logarithmic points over the complete band and give only the winner 20
   points around its estimated F3; defaults remain the original 160/0 for local

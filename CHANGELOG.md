@@ -2,6 +2,12 @@
 
 ## 0.8.14 (2026-08-17)
 
+- **Max extension starter volume seed at volume cap**:
+  When optimizing under the `Max extension` objective with a total volume cap,
+  the initial seed volumes are now initialized directly near 95–98% of the
+  volume cap (scaling proportional chamber ratios), ensuring bounded pattern
+  searches with compact budgets (e.g. 30 evaluations on Cloud) focus
+  computational iterations on tuning refinement rather than scaling up volume.
 - **Logarithmic frequency crossing interpolation for F3/F6/F10**:
   `response_threshold_frequencies` and crossing solvers (`_low_side_crossing`,
   `_high_side_crossing`) now use logarithmic frequency interpolation along

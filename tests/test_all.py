@@ -7217,6 +7217,18 @@ def _check_optimizer_respects_volume_cap():
         grs, grs_opt.box, _acoustics.response_threshold_frequencies(grs_result))
     assert not grs_warnings, grs_warnings
 
+    # Drivers with compact baseline alignments seed near the volume cap under extension
+    nmfw = _acoustics.get_driver_preset("WEB: Beyma LOUDSPEAKER 6NMFW 8 OH")
+    nmfw_opt = _acoustics.optimize_alignment(
+        nmfw,
+        _acoustics.OptimizationGoals(objective="extension", max_total_volume_l=40.0),
+        max_evaluations=30,
+        frequency_points=30,
+        refine_f3_points=20,
+    )
+    assert 35.0 <= nmfw_opt.total_volume_l <= 40.0 * 1.001, nmfw_opt.total_volume_l
+    assert nmfw_opt.f3_hz <= 26.0, nmfw_opt.f3_hz
+
 
 test("DCCAV optimizer respects a total volume cap", _check_optimizer_respects_volume_cap)
 

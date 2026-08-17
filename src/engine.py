@@ -1716,8 +1716,9 @@ def optimize_alignment(
         vb0, fb0 = reflex_start.vb_l, reflex_start.fb_hz
         if fixed_total_volume_l is not None:
             vb0 = float(fixed_total_volume_l)
-        elif cap and vb0 > cap:
-            vb0 = 0.95 * cap
+        elif cap:
+            if goals.objective == "extension" or vb0 > cap:
+                vb0 = 0.95 * cap
         reflex_template = box_template if isinstance(box_template, ReflexBox) else ReflexBox(vb_l=vb0, fb_hz=fb0)
 
         def build_reflex(p: np.ndarray) -> ReflexBox:
@@ -1744,10 +1745,11 @@ def optimize_alignment(
             scale = float(fixed_total_volume_l) / (vs0 + vp0)
             vs0 *= scale
             vp0 *= scale
-        elif cap and vs0 + vp0 > cap:
-            scale = 0.98 * cap / (vs0 + vp0)
-            vs0 *= scale
-            vp0 *= scale
+        elif cap:
+            if goals.objective == "extension" or vs0 + vp0 > cap:
+                scale = 0.98 * cap / (vs0 + vp0)
+                vs0 *= scale
+                vp0 *= scale
         bp4_template = box_template if isinstance(box_template, Bandpass4Box) else Bandpass4Box(
             vs_l=vs0, vp_l=vp0, fp_hz=fp0)
 
@@ -1784,10 +1786,11 @@ def optimize_alignment(
             scale = float(fixed_total_volume_l) / (vr0 + vp0)
             vr0 *= scale
             vp0 *= scale
-        elif cap and vr0 + vp0 > cap:
-            scale = 0.98 * cap / (vr0 + vp0)
-            vr0 *= scale
-            vp0 *= scale
+        elif cap:
+            if goals.objective == "extension" or vr0 + vp0 > cap:
+                scale = 0.98 * cap / (vr0 + vp0)
+                vr0 *= scale
+                vp0 *= scale
         bp6_template = box_template if isinstance(box_template, Bandpass6Box) else Bandpass6Box(
             vr_l=vr0, fr_hz=fr0, vp_l=vp0, fp_hz=fp0)
 
@@ -1824,8 +1827,9 @@ def optimize_alignment(
         vb0 = sealed_start.vb_l
         if fixed_total_volume_l is not None:
             vb0 = float(fixed_total_volume_l)
-        elif cap and vb0 > cap:
-            vb0 = 0.95 * cap
+        elif cap:
+            if goals.objective == "extension" or vb0 > cap:
+                vb0 = 0.95 * cap
         sealed_template = box_template if isinstance(box_template, SealedBox) else SealedBox(vb_l=vb0)
 
         def build_sealed(p: np.ndarray) -> SealedBox:
@@ -1852,10 +1856,11 @@ def optimize_alignment(
             scale = float(fixed_total_volume_l) / (vh0 + vl0)
             vh0 *= scale
             vl0 *= scale
-        elif cap and vh0 + vl0 > cap:
-            scale = 0.98 * cap / (vh0 + vl0)
-            vh0 *= scale
-            vl0 *= scale
+        elif cap:
+            if goals.objective == "extension" or vh0 + vl0 > cap:
+                scale = 0.98 * cap / (vh0 + vl0)
+                vh0 *= scale
+                vl0 *= scale
         dccav_template = box_template if isinstance(box_template, DccavBox) else DccavBox(
             vh_l=vh0, fh_hz=fl0 * ratio0, vl_l=vl0, fl_hz=fl0
         )
