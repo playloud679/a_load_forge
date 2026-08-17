@@ -7013,9 +7013,42 @@ def _check_optimizer_enforces_max_ripple_db():
     assert opt.box.vb_l < 30.0, opt.box.vb_l
 
 
+def _check_optimizer_ripple_max_freq_hz():
+    ts = _acoustics.get_driver_preset("LSDB: Beyma 6P200Nd")
+    goals = _acoustics.OptimizationGoals(
+        objective="extension", max_total_volume_l=40.0, max_ripple_db=3.0, ripple_max_freq_hz=70.0,
+    )
+    opt = _acoustics.optimize_alignment(ts, goals, load_type="Bass reflex", voltage_v=2.83)
+    assert opt.ripple_db <= 3.0 + 1e-6, opt.ripple_db
+    assert opt.f3_hz < 35.0, opt.f3_hz
+    assert opt.box.vb_l > 30.0, opt.box.vb_l
+
+
 test(
-    "Optimizer respects max_ripple_db and avoids deep misaligned troughs",
-    _check_optimizer_enforces_max_ripple_db,
+    "Optimizer respects ripple_max_freq_hz for low-frequency subwoofer alignments",
+    _check_optimizer_ripple_max_freq_hz,
+)
+
+
+def _check_segmented_frequency_grid():
+    grid = _acoustics.segmented_frequency_grid(10.0, 70.0, 500.0, dense_points=30, sparse_points=9)
+    assert len(grid) == 38, len(grid)
+    assert np.isclose(grid[0], 10.0)
+    assert np.isclose(grid[-1], 500.0)
+    assert 70.0 in grid
+    low = grid[grid <= 70.0]
+    high = grid[grid >= 70.0]
+    assert len(low) == 30
+    assert len(high) == 9
+
+    # Out-of-bounds split fallback
+    fallback = _acoustics.segmented_frequency_grid(10.0, 5.0, 500.0, dense_points=20)
+    assert len(fallback) == 20
+
+
+test(
+    "Segmented frequency grid allocates dense points below ceiling and sparse above",
+    _check_segmented_frequency_grid,
 )
 
 
@@ -7327,11 +7360,12 @@ def _check_optimizer_two_stage_frequency_scan():
     original_metrics = _engine._optimizer_metrics
     try:
         def tracking_metrics(ts_arg, box_arg, freq_arg, voltage_arg,
-                             refine_f3_points=0):
+                             refine_f3_points=0, **kwargs):
             calls.append((len(freq_arg), int(refine_f3_points)))
             return original_metrics(
                 ts_arg, box_arg, freq_arg, voltage_arg,
                 refine_f3_points=refine_f3_points,
+                **kwargs,
             )
 
         _engine._optimizer_metrics = tracking_metrics

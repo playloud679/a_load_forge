@@ -15,7 +15,9 @@ detailed contracts live in `docs/dccav.md`.
   bandpass chamber total, DCCAV `Vh+Vl`). Goal mode uses
   `max_total_volume_l`, never `fixed_total_volume_l`, with
   `max_evaluations=140` and forwards every Finder constraint, including
-  minimum peak SPL. Without goals, the physical starter is retained when it
+  minimum peak SPL, allowed ripple and frequency ceiling (`ripple_max_freq_hz`),
+  using `segmented_frequency_grid` to sample densely below the ceiling and sparsely (9 points) above.
+  Without goals, the physical starter is retained when it
   already fits and is reduced only when it exceeds the cap;
   the function returns the ranking-table row, including `MOL @ F3 dB`
   interpolated at the candidate's actual -3 dB frequency from the simulated

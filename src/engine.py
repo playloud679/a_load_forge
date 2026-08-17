@@ -74,6 +74,28 @@ def adaptive_frequency_grid(
     return np.unique(np.asarray(grid, dtype=float))
 
 
+def segmented_frequency_grid(
+    f_min_hz: float,
+    f_split_hz: float,
+    f_max_hz: float,
+    dense_points: int,
+    sparse_points: int = 9,
+) -> np.ndarray:
+    """Build a log-spaced grid with high resolution below f_split_hz and sparse points above."""
+    f_min = float(f_min_hz)
+    f_split = float(f_split_hz)
+    f_max = float(f_max_hz)
+    if f_min <= 0 or f_max <= f_min:
+        raise ValueError("Invalid frequency grid bounds")
+    if f_split <= f_min or f_split >= f_max:
+        return np.geomspace(f_min, f_max, max(8, int(dense_points)))
+    n_dense = max(6, int(dense_points))
+    n_sparse = max(3, int(sparse_points))
+    low_band = np.geomspace(f_min, f_split, n_dense)
+    high_band = np.geomspace(f_split, f_max, n_sparse)
+    return np.unique(np.concatenate([low_band, high_band]))
+
+
 @dataclass(frozen=True)
 class DriverTS:
     """Thiele/Small parameters needed by the DCCAV simulator."""
@@ -261,6 +283,7 @@ class OptimizationGoals:
     max_excursion_ratio: float = 1.0
     max_group_delay_ms: float | None = None
     min_spl_db: float | None = None
+    ripple_max_freq_hz: float | None = None
 
 
 @dataclass(frozen=True)
@@ -1401,6 +1424,7 @@ def _optimizer_metrics(
     freq: np.ndarray,
     voltage_v: float,
     refine_f3_points: int = 0,
+    ripple_max_freq_hz: float | None = None,
 ) -> dict[str, float]:
     is_bandpass4 = isinstance(box, Bandpass4Box)
     is_bandpass6 = isinstance(box, Bandpass6Box)
@@ -1564,12 +1588,17 @@ def _optimizer_metrics(
             upper = min(float(f.max()), 0.90 * f_high) if np.isfinite(f_high) else float(f.max())
         else:
             upper = min(float(f.max()), max(200.0, 2.0 * f3))
+        if ripple_max_freq_hz is not None and float(ripple_max_freq_hz) > 0:
+            upper = min(upper, float(ripple_max_freq_hz))
         band = (f >= 1.2 * f3) & (f <= upper)
         if np.any(band):
             ripple = float(np.nanmax(spl[band]) - np.nanmin(spl[band]))
-            gd = group_delay_ms(result)
-            gd_band = (f >= f3) & (f <= upper)
-            gd_max = float(np.nanmax(gd[gd_band])) if np.any(gd_band) else float("nan")
+        elif np.isfinite(f3) and ripple_max_freq_hz is not None and float(ripple_max_freq_hz) > 0:
+            sub_band = (f >= f3) & (f <= float(ripple_max_freq_hz))
+            ripple = float(np.nanmax(spl[sub_band]) - np.nanmin(spl[sub_band])) if np.any(sub_band) else 0.0
+        gd = group_delay_ms(result)
+        gd_band = (f >= f3) & (f <= upper)
+        gd_max = float(np.nanmax(gd[gd_band])) if np.any(gd_band) else float("nan")
 
     exc_ratio = float("nan")
     if ts.xmax_mm > 0:
@@ -1710,11 +1739,19 @@ def optimize_alignment(
     if int(refine_f3_points) != 0 and int(refine_f3_points) < 2:
         raise ValueError("Optimizer F3 refinement must use 0 or at least 2 points")
     effective_fs = panel_loaded_fs_hz(ts)
-    freq = np.geomspace(
-        min(10.0, effective_fs / 4.0),
-        max(400.0, 4.0 * effective_fs),
-        int(frequency_points),
-    )
+    f_low = min(10.0, effective_fs / 4.0)
+    f_high = max(400.0, 4.0 * effective_fs)
+    if (
+        goals.ripple_max_freq_hz is not None
+        and float(goals.ripple_max_freq_hz) > f_low
+        and float(goals.ripple_max_freq_hz) < f_high
+    ):
+        freq = segmented_frequency_grid(
+            f_low, float(goals.ripple_max_freq_hz), f_high,
+            dense_points=int(frequency_points), sparse_points=9,
+        )
+    else:
+        freq = np.geomspace(f_low, f_high, int(frequency_points))
     if load_type not in {"DCCAV", "Bandpass 4th order", "Bandpass 6th order", "Bass reflex", "Sealed"}:
         if load_type == "Infinite baffle":
             raise ValueError("Infinite baffle has no box parameters to optimize")
@@ -1933,7 +1970,10 @@ def optimize_alignment(
         evaluations += 1
         box = build(np.clip(p, lower, upper))
         try:
-            metrics = _optimizer_metrics(ts, box, freq, voltage_v)
+            metrics = _optimizer_metrics(
+                ts, box, freq, voltage_v,
+                ripple_max_freq_hz=goals.ripple_max_freq_hz,
+            )
         except (ValueError, FloatingPointError):
             return box, None, float("inf")
         return box, metrics, _score_alignment(
@@ -2017,6 +2057,7 @@ def optimize_alignment(
     best_metrics = _optimizer_metrics(
         ts, best_box, freq, voltage_v,
         refine_f3_points=int(refine_f3_points),
+        ripple_max_freq_hz=goals.ripple_max_freq_hz,
     )
     if is_dccav and int(refine_f3_points) >= 2:
         credibility_ratio = (
@@ -2048,6 +2089,7 @@ def optimize_alignment(
             best_metrics = _optimizer_metrics(
                 ts, best_box, freq, voltage_v,
                 refine_f3_points=int(refine_f3_points),
+                ripple_max_freq_hz=goals.ripple_max_freq_hz,
             )
     best_score = _score_alignment(
         best_metrics, goals, ts, is_dccav, is_bandpass4)

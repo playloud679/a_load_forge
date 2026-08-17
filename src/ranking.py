@@ -145,7 +145,20 @@ def rank_candidate_row(
     name = candidate.name
     if load_type in ("Suspension pneumatic", "Acoustic suspension"):
         load_type = "Sealed"
-    freq = np.geomspace(float(f_min_hz), float(f_max_hz), int(points))
+    f_min = float(f_min_hz)
+    f_max = float(f_max_hz)
+    if (
+        goals is not None
+        and goals.ripple_max_freq_hz is not None
+        and float(goals.ripple_max_freq_hz) > f_min
+        and float(goals.ripple_max_freq_hz) < f_max
+    ):
+        freq = engine.segmented_frequency_grid(
+            f_min, float(goals.ripple_max_freq_hz), f_max,
+            dense_points=int(points), sparse_points=9,
+        )
+    else:
+        freq = np.geomspace(f_min, f_max, int(points))
     try:
         ts = engine.apply_driver_configuration(
             candidate.ts, driver_configuration
@@ -174,6 +187,7 @@ def rank_candidate_row(
                 max_excursion_ratio=goals.max_excursion_ratio,
                 max_group_delay_ms=goals.max_group_delay_ms,
                 min_spl_db=goals.min_spl_db,
+                ripple_max_freq_hz=goals.ripple_max_freq_hz,
             )
             frequency_points, refine_f3_points = finder_optimizer_frequency_plan()
             optimized = engine.optimize_alignment(

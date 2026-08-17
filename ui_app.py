@@ -1841,6 +1841,7 @@ _FINDER_DEFAULTS = {
     "finder_objective": "Max extension",
     "finder_voltage": 2.83,
     "finder_max_ripple_db": 3.0,
+    "finder_max_ripple_freq_hz": 0.0,
     "finder_excursion_ratio": 1.0,
     "finder_max_gd_ms": 30.0,
     "finder_min_spl_db": 0.0,
@@ -3908,6 +3909,7 @@ def _optimizer_goals_from_state() -> _acoustics.OptimizationGoals:
         max_ripple_db=float(st.session_state.get("opt_max_ripple_db", 3.0)),
         max_excursion_ratio=float(st.session_state.get("opt_excursion_ratio", 1.0)),
         max_group_delay_ms=float(st.session_state.get("opt_max_gd_ms", 0.0)) or None,
+        ripple_max_freq_hz=float(st.session_state.get("opt_max_ripple_freq_hz", 0.0)) or None,
     )
 
 
@@ -7894,6 +7896,7 @@ def _finder_optimizer_goals_from_state() -> _acoustics.OptimizationGoals:
         max_excursion_ratio=float(st.session_state.get("finder_excursion_ratio", 1.0)),
         max_group_delay_ms=float(st.session_state.get("finder_max_gd_ms", 0.0)) or None,
         min_spl_db=float(st.session_state.get("finder_min_spl_db", 0.0)) or None,
+        ripple_max_freq_hz=float(st.session_state.get("finder_max_ripple_freq_hz", 0.0)) or None,
     )
 
 
@@ -8549,6 +8552,12 @@ def _render_find_driver_goal_sidebar() -> None:
                 "Allowed response ripple (dB)", min_value=0.0, max_value=12.0,
                 step=0.5, key="finder_max_ripple_db",
                 help="Maximum peak-to-valley variation in the evaluated low-frequency passband.",
+            )
+            _finder_number_input(
+                "Ripple frequency ceiling (Hz, 0 = off)", min_value=0.0, max_value=500.0,
+                step=5.0, key="finder_max_ripple_freq_hz",
+                help="Ignore response variation above this frequency (e.g. 70-100 Hz for subwoofers). "
+                     "Uses sparse sampling above this ceiling for faster search. 0 evaluates the full passband.",
             )
             _finder_number_input(
                 "Maximum excursion (× driver Xmax)", min_value=0.0, max_value=3.0,
@@ -10374,6 +10383,7 @@ _default("opt_objective", "Balanced")
 _default("opt_max_volume_l", 0.0)
 _default("opt_target_f3_hz", 0.0)
 _default("opt_max_ripple_db", 3.0)
+_default("opt_max_ripple_freq_hz", 0.0)
 _default("opt_excursion_ratio", 1.0)
 _default("opt_max_gd_ms", 0.0)
 _default("workspace_mode", "Bass Match")
@@ -10862,6 +10872,9 @@ with st.sidebar:
                                     step=1.0, key="opt_max_volume_l")
                     st.number_input("Max ripple (dB)", min_value=0.0, max_value=12.0,
                                     step=0.5, key="opt_max_ripple_db")
+                    st.number_input("Ripple ceiling (Hz, 0 = off)", min_value=0.0, max_value=500.0,
+                                    step=5.0, key="opt_max_ripple_freq_hz",
+                                    help="Ignore response variation above this frequency (e.g. 70-100 Hz for subwoofers).")
                     st.number_input("Excursion limit (x Xmax, 0 = off)", min_value=0.0, max_value=3.0,
                                     step=0.05, key="opt_excursion_ratio")
                     st.number_input("Target F3 (Hz, 0 = lowest)", min_value=0.0, max_value=500.0,

@@ -41,10 +41,13 @@ contracts and the test list — lives in `docs/dccav.md`.
   `frequency_points` / `refine_f3_points` controls let hosted Finder runs use
   30 logarithmic points over the complete band and give only the winner 20
   points around its estimated F3; defaults remain the original 160/0 for local
-  optimizer fidelity. If refinement puts DCCAV just below its credibility
+  optimizer fidelity. Setting `goals.ripple_max_freq_hz` limits the ripple
+  evaluation window to low-frequency subwoofer passbands and generates a
+  `segmented_frequency_grid` with high resolution below the ceiling and 9 sparse points above. If refinement puts DCCAV just below its credibility
   boundary, both tunings are reduced together by the minimum required factor
   and the winner is checked again
 - Analysis: `response_metrics`, `response_threshold_frequencies` (using logarithmic frequency interpolation across dB/oct roll-off slopes for sub-Hz F3/F6/F10 accuracy),
+  `segmented_frequency_grid`, `optimal_frequency_grid`, `adaptive_frequency_grid`,
   `impedance_peak_frequencies`, `group_delay_ms`, `response_phase_deg`,
   `export_frd_text`, `export_zma_text`, `monte_carlo_response_band`,
   `design_space_box`, `design_space_map`, port geometry helpers,

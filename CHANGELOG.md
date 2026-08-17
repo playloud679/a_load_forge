@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.8.19 (2026-08-18)
+
+- **Configurable ripple ceiling (`ripple_max_freq_hz`)**:
+  Added user-selectable frequency ceiling to the optimizer and Bass Match
+  performance filters, restricting response ripple evaluation strictly to the
+  intended operational sub-band (e.g. up to 70–100 Hz for dedicated subwoofers)
+  and ignoring out-of-band midbass variations above the crossover frequency.
+- **Segmented high-efficiency frequency grid (`segmented_frequency_grid`)**:
+  Introduced two-tier frequency sampling allocating high logarithmic density in
+  the operational passband below the ceiling and sparse evaluation (9 points)
+  above it for rapid candidate ranking and optimization.
+- **Suite and documentation synchronization**:
+  Updated `docs/engine.md` and `docs/ranking.md` to document the segmented
+  grid and ripple ceiling APIs; verified test suite (97 PASS, 0 FAIL).
+
 ## 0.8.18 (2026-08-18)
 
 - **Multi-topology preservation in Bass Match (Finder)**:
