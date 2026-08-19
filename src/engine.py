@@ -231,6 +231,43 @@ class Bandpass6Box:
 
 
 @dataclass(frozen=True)
+class Bandpass8Alignment:
+    """Conservative eighth-order triple-chamber bandpass starter alignment."""
+
+    v1_l: float
+    f1_hz: float
+    v2_l: float
+    f2_hz: float
+    v3_l: float
+    f3_hz: float
+
+
+@dataclass(frozen=True)
+class Bandpass8Box:
+    """Eighth-order triple-chamber bandpass (Dong, Shen, Chen, AES e-Brief 546).
+
+    Chambers 1 (front) and 2 (rear) both vent into common Chamber 3; Chamber 3
+    vents to the outside environment through Port 3.
+    """
+
+    v1_l: float
+    f1_hz: float
+    v2_l: float
+    f2_hz: float
+    v3_l: float
+    f3_hz: float
+    q_abs_1: float = 15.0
+    q_abs_2: float = 15.0
+    q_abs_3: float = 15.0
+    q_leak_1: float = 1000.0
+    q_leak_2: float = 1000.0
+    q_leak_3: float = 1000.0
+    q_port_1: float = 15.0
+    q_port_2: float = 15.0
+    q_port_3: float = 15.0
+
+
+@dataclass(frozen=True)
 class PassiveRadiatorBox:
     """Vented box loaded by a passive radiator instead of a duct."""
 
@@ -263,7 +300,7 @@ class SealedBox:
     q_leak: float = 1000.0
 
 
-BoxUnion = DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox
+BoxUnion = DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | Bandpass8Box | SealedBox
 BoxBuilder = Callable[[np.ndarray], BoxUnion]
 
 
@@ -290,7 +327,7 @@ class OptimizationGoals:
 class OptimizedAlignment:
     """Optimizer result: the box plus the achieved response figures."""
 
-    box: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox
+    box: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | Bandpass8Box | SealedBox
     f3_hz: float
     f10_hz: float
     ripple_db: float
@@ -707,6 +744,8 @@ def monte_carlo_response_band(
                 result = simulate_bandpass4(sample, box, freq, voltage_v, series_r_ohm)
             elif isinstance(box, Bandpass6Box):
                 result = simulate_bandpass6(sample, box, freq, voltage_v, series_r_ohm)
+            elif isinstance(box, Bandpass8Box):
+                result = simulate_bandpass8(sample, box, freq, voltage_v, series_r_ohm)
             elif isinstance(box, SealedBox):
                 result = simulate_sealed(sample, box, freq, voltage_v, series_r_ohm)
             elif box is None:
@@ -774,6 +813,14 @@ def _design_space_axes(
             np.geomspace(0.55 * bp6_start.fp_hz, 1.6 * bp6_start.fp_hz, n),
             "Vtot (L)", "Fp (Hz)",
         )
+    if load_type == "Bandpass 8th order":
+        bp8_start = suggest_bandpass8_alignment(ts)
+        vtot = bp8_start.v1_l + bp8_start.v2_l + bp8_start.v3_l
+        return (
+            np.geomspace(0.3 * vtot, 3.0 * vtot, n),
+            np.geomspace(0.55 * bp8_start.f3_hz, 1.6 * bp8_start.f3_hz, n),
+            "Vtot (L)", "F3 (Hz)",
+        )
     dccav_start = suggest_alignment(ts)
     vtot = max(dccav_start.vh_l + dccav_start.vl_l, EPS)
     return (
@@ -788,8 +835,8 @@ def design_space_box(
     load_type: str,
     x: float,
     y: float,
-    box_template: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox | None = None,
-) -> DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox:
+    box_template: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | Bandpass8Box | SealedBox | None = None,
+) -> DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | Bandpass8Box | SealedBox:
     """Build the box for one point of the design-space plane.
 
     ``x``/``y`` follow the atlas axes: reflex `Vb`/`Fb`, sealed `Vb` (y is
@@ -836,6 +883,35 @@ def design_space_box(
             q_leak_r=bp6_t.q_leak_r, q_leak_p=bp6_t.q_leak_p,
             q_port_r=bp6_t.q_port_r, q_port_p=bp6_t.q_port_p,
         )
+    if load_type == "Bandpass 8th order":
+        bp8_start = suggest_bandpass8_alignment(ts)
+        vtot = max(bp8_start.v1_l + bp8_start.v2_l + bp8_start.v3_l, EPS)
+        v1_ratio = float(np.clip(bp8_start.v1_l / vtot, 0.05, 0.90))
+        v2_ratio = float(np.clip(bp8_start.v2_l / vtot, 0.05, 0.90))
+        v3_ratio = float(np.clip(bp8_start.v3_l / vtot, 0.05, 0.90))
+        sum_r = v1_ratio + v2_ratio + v3_ratio
+        v1_ratio /= sum_r
+        v2_ratio /= sum_r
+        v3_ratio /= sum_r
+        f1_ratio = bp8_start.f1_hz / max(bp8_start.f3_hz, EPS)
+        f2_ratio = bp8_start.f2_hz / max(bp8_start.f3_hz, EPS)
+        bp8_t = box_template if isinstance(box_template, Bandpass8Box) else Bandpass8Box(
+            v1_l=bp8_start.v1_l, f1_hz=bp8_start.f1_hz,
+            v2_l=bp8_start.v2_l, f2_hz=bp8_start.f2_hz,
+            v3_l=bp8_start.v3_l, f3_hz=bp8_start.f3_hz,
+        )
+        total_x = float(x)
+        return Bandpass8Box(
+            v1_l=max(total_x * v1_ratio, 0.05),
+            f1_hz=float(y) * f1_ratio,
+            v2_l=max(total_x * v2_ratio, 0.05),
+            f2_hz=float(y) * f2_ratio,
+            v3_l=max(total_x * v3_ratio, 0.05),
+            f3_hz=float(y),
+            q_abs_1=bp8_t.q_abs_1, q_abs_2=bp8_t.q_abs_2, q_abs_3=bp8_t.q_abs_3,
+            q_leak_1=bp8_t.q_leak_1, q_leak_2=bp8_t.q_leak_2, q_leak_3=bp8_t.q_leak_3,
+            q_port_1=bp8_t.q_port_1, q_port_2=bp8_t.q_port_2, q_port_3=bp8_t.q_port_3,
+        )
     if load_type == "Infinite baffle":
         raise ValueError("Infinite baffle has no box parameters to map")
     dccav_start = suggest_alignment(ts)
@@ -857,7 +933,7 @@ def design_space_box(
 def design_space_map(
     ts: DriverTS,
     load_type: str = "Bass reflex",
-    box_template: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox | None = None,
+    box_template: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | Bandpass8Box | SealedBox | None = None,
     resolution: int = 15,
     voltage_v: float = 2.83,
 ) -> DesignSpaceMap:
@@ -1420,7 +1496,7 @@ def port_diameter_for_load(
 
 def _optimizer_metrics(
     ts: DriverTS,
-    box: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox,
+    box: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | Bandpass8Box | SealedBox,
     freq: np.ndarray,
     voltage_v: float,
     refine_f3_points: int = 0,
@@ -1428,6 +1504,7 @@ def _optimizer_metrics(
 ) -> dict[str, float]:
     is_bandpass4 = isinstance(box, Bandpass4Box)
     is_bandpass6 = isinstance(box, Bandpass6Box)
+    is_bandpass8 = isinstance(box, Bandpass8Box)
 
     def simulate_at(frequencies: np.ndarray) -> SimulationResult:
         if isinstance(box, ReflexBox):
@@ -1436,6 +1513,8 @@ def _optimizer_metrics(
             return simulate_bandpass4(ts, box, frequencies, voltage_v)
         if isinstance(box, Bandpass6Box):
             return simulate_bandpass6(ts, box, frequencies, voltage_v)
+        if isinstance(box, Bandpass8Box):
+            return simulate_bandpass8(ts, box, frequencies, voltage_v)
         if isinstance(box, SealedBox):
             return simulate_sealed(ts, box, frequencies, voltage_v)
         return simulate(ts, box, frequencies, voltage_v)
@@ -1446,28 +1525,8 @@ def _optimizer_metrics(
     def sized_port(
         volume_l: float, tuning_hz: float, end_correction: float, floor_cm: float,
     ) -> tuple[float, float, float]:
-        """Diameter this port would get, its duct-volume fraction, and its
-        length-vs-box-fit ratio (>1 means longer than the box can plausibly
-        take in a straight run).
-
-        Mirrors the UI's `_optimized_port_diameter_cm`: growing toward a
-        fabricable ~5 cm duct never overrides the 10% duct-volume directive.
-        When even the mandatory floor breaks that directive, report the floor
-        itself (a normal, finite, buildable diameter) rather than `inf`: the
-        smoothly-varying fraction/ratio at that floor is what should reject
-        the box, via the score checks below. Collapsing this case to an
-        infinite diameter would flatten the score across the whole
-        infeasible region and blind the pattern search to which direction
-        actually reduces the duct - exactly the plateau that stalled the
-        search on tight reflex boxes.
-        """
         sized_cm = port_diameter_for_load(volume_l, tuning_hz, end_correction, floor_cm)
         if sized_cm is None:
-            # port_diameter_for_load rejects on the *grid-rounded* floor (the
-            # diameter that would actually be built); report the fraction at
-            # that same rounded value, not the raw floor, or a floor whose
-            # continuous fraction looks compliant can still round up to a
-            # duct that breaks the directive without the score reflecting it.
             sized_cm = np.ceil(max(float(floor_cm), 1.0) / 0.5) * 0.5
         fraction = port_volume_fraction(volume_l, tuning_hz, sized_cm, end_correction)
         length_cm = port_length_cm(volume_l, tuning_hz, sized_cm, end_correction)
@@ -1516,6 +1575,31 @@ def _optimizer_metrics(
         required_port_diameter_cm = max(rear_d, front_d)
         port_volume_fraction_max = max(rear_f, front_f)
         port_length_ratio_max = max(rear_lr, front_lr)
+    elif isinstance(box, Bandpass8Box):
+        result = simulate_at(freq)
+        vtot = box.v1_l + box.v2_l + box.v3_l
+        fl = min(box.f1_hz, box.f2_hz, box.f3_hz)
+        p1_floor_cm = max(
+            port_min_diameter_cm(box.v1_l, box.f1_hz, 1.43),
+            port_displacement_min_diameter_cm(ts, box.f1_hz),
+            velocity_diameter_cm(result.port_l_velocity),
+        )
+        p2_floor_cm = max(
+            port_min_diameter_cm(box.v2_l, box.f2_hz, 1.43),
+            port_displacement_min_diameter_cm(ts, box.f2_hz),
+            velocity_diameter_cm(result.port_l_velocity),
+        )
+        p3_floor_cm = max(
+            port_min_diameter_cm(box.v3_l, box.f3_hz, 1.43),
+            port_displacement_min_diameter_cm(ts, box.f3_hz),
+            velocity_diameter_cm(result.port_h_velocity),
+        )
+        p1_d, p1_f, p1_lr = sized_port(box.v1_l, box.f1_hz, 1.43, p1_floor_cm)
+        p2_d, p2_f, p2_lr = sized_port(box.v2_l, box.f2_hz, 1.43, p2_floor_cm)
+        p3_d, p3_f, p3_lr = sized_port(box.v3_l, box.f3_hz, 1.43, p3_floor_cm)
+        required_port_diameter_cm = max(p1_d, p2_d, p3_d)
+        port_volume_fraction_max = max(p1_f, p2_f, p3_f)
+        port_length_ratio_max = max(p1_lr, p2_lr, p3_lr)
     elif isinstance(box, SealedBox):
         result = simulate_at(freq)
         vtot = box.vb_l
@@ -1719,7 +1803,7 @@ def optimize_alignment(
     ts: DriverTS,
     goals: OptimizationGoals = _DEFAULT_GOALS,
     load_type: str = "DCCAV",
-    box_template: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox | None = None,
+    box_template: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | Bandpass8Box | SealedBox | None = None,
     voltage_v: float = 2.83,
     max_evaluations: int = 260,
     fixed_total_volume_l: float | None = None,
@@ -1758,17 +1842,18 @@ def optimize_alignment(
         )
     else:
         freq = np.geomspace(f_low, f_high, int(frequency_points))
-    if load_type not in {"DCCAV", "Bandpass 4th order", "Bandpass 6th order", "Bass reflex", "Sealed"}:
+    if load_type not in {"DCCAV", "Bandpass 4th order", "Bandpass 6th order", "Bandpass 8th order", "Bass reflex", "Sealed"}:
         if load_type == "Infinite baffle":
             raise ValueError("Infinite baffle has no box parameters to optimize")
         raise ValueError(f"Unknown load type: {load_type}")
     is_reflex = load_type == "Bass reflex"
     is_bandpass4 = load_type == "Bandpass 4th order"
     is_bandpass6 = load_type == "Bandpass 6th order"
+    is_bandpass8 = load_type == "Bandpass 8th order"
     is_sealed = load_type == "Sealed"
     is_dccav = load_type == "DCCAV"
     cap = goals.max_total_volume_l
-    minimum_volume_l = 0.10 if (is_dccav or is_bandpass4 or is_bandpass6) else 0.05
+    minimum_volume_l = 0.15 if is_bandpass8 else (0.10 if (is_dccav or is_bandpass4 or is_bandpass6) else 0.05)
     if cap is not None:
         _require_positive("Max total volume", cap)
         if cap < minimum_volume_l:
@@ -1897,6 +1982,58 @@ def optimize_alignment(
             max(0.05, vr0 / 8.0), max(5.0, fr0 / 3.0),
             max(0.05, vp0 / 8.0), max(5.0, fp0 / 3.0)])
         upper = np.log([vr0 * 8.0, fr0 * 2.5, vp0 * 8.0, fp0 * 2.5])
+    elif is_bandpass8:
+        bp8_start = suggest_bandpass8_alignment(ts)
+        v10, f10, v20, f20, v30, f30 = (
+            bp8_start.v1_l, bp8_start.f1_hz,
+            bp8_start.v2_l, bp8_start.f2_hz,
+            bp8_start.v3_l, bp8_start.f3_hz,
+        )
+        if fixed_total_volume_l is not None:
+            scale = float(fixed_total_volume_l) / (v10 + v20 + v30)
+            v10 *= scale
+            v20 *= scale
+            v30 *= scale
+        elif cap:
+            if goals.objective == "extension" or v10 + v20 + v30 > cap:
+                scale = 0.98 * cap / (v10 + v20 + v30)
+                v10 *= scale
+                v20 *= scale
+                v30 *= scale
+        bp8_template = box_template if isinstance(box_template, Bandpass8Box) else Bandpass8Box(
+            v1_l=v10, f1_hz=f10, v2_l=v20, f2_hz=f20, v3_l=v30, f3_hz=f30)
+
+        def build_bandpass8(p: np.ndarray) -> Bandpass8Box:
+            v1_l, f1_hz, v2_l, f2_hz, v3_l, f3_hz = np.exp(p)
+            projected_volume_l = fixed_total_volume_l
+            if projected_volume_l is None and cap is not None and v1_l + v2_l + v3_l > cap:
+                projected_volume_l = float(cap)
+            if projected_volume_l is not None:
+                available = float(projected_volume_l) - 0.15
+                weights = np.maximum(np.array([v1_l, v2_l, v3_l]) - 0.05, 0.0)
+                if float(weights.sum()) <= 0.0:
+                    weights[:] = 1.0 / 3.0
+                else:
+                    weights /= float(weights.sum())
+                v1_l, v2_l, v3_l = 0.05 + available * weights
+            return Bandpass8Box(
+                v1_l=float(v1_l), f1_hz=float(f1_hz),
+                v2_l=float(v2_l), f2_hz=float(f2_hz),
+                v3_l=float(v3_l), f3_hz=float(f3_hz),
+                q_abs_1=bp8_template.q_abs_1, q_abs_2=bp8_template.q_abs_2, q_abs_3=bp8_template.q_abs_3,
+                q_leak_1=bp8_template.q_leak_1, q_leak_2=bp8_template.q_leak_2, q_leak_3=bp8_template.q_leak_3,
+                q_port_1=bp8_template.q_port_1, q_port_2=bp8_template.q_port_2, q_port_3=bp8_template.q_port_3,
+            )
+
+        build = build_bandpass8
+
+        p0 = np.log([v10, f10, v20, f20, v30, f30])
+        lower = np.log([
+            max(0.05, v10 / 8.0), max(5.0, f10 / 3.0),
+            max(0.05, v20 / 8.0), max(5.0, f20 / 3.0),
+            max(0.05, v30 / 8.0), max(5.0, f30 / 3.0),
+        ])
+        upper = np.log([v10 * 8.0, f10 * 2.5, v20 * 8.0, f20 * 2.5, v30 * 8.0, f30 * 2.5])
     elif is_sealed:
         sealed_start = suggest_sealed_alignment(ts)
         vb0 = sealed_start.vb_l
@@ -2466,6 +2603,144 @@ def _validate_bandpass6_box(box: Bandpass6Box) -> None:
     _require_positive("Fp", box.fp_hz)
 
 
+def suggest_bandpass8_alignment(
+    ts: DriverTS, target_qbp: float = 0.707,
+) -> Bandpass8Alignment:
+    """Return an eighth-order triple-chamber bandpass starter alignment.
+
+    Based on the Dong, Shen, Chen (AES e-Brief 546) triple-chamber topology:
+    Chambers 1 (front) and 2 (rear) both vent into common Chamber 3; Chamber 3
+    vents to the outside environment through Port 3.
+    Provides three displacement notches and an eighth-order bandpass response.
+    """
+    _require_positive("Target Qbp", target_qbp)
+    _require_positive("Fs", ts.fs_hz)
+    _require_positive("Vas", ts.vas_l)
+    _require_positive("Qts", ts.qts)
+    fc = panel_loaded_fs_hz(ts)
+    f1 = 1.73 * fc
+    f2 = 0.58 * fc
+    f3 = fc
+    v1 = max(0.05, 0.25 * ts.vas_l * (2.0 * target_qbp**2))
+    v2 = max(0.05, 0.75 * ts.vas_l * (2.0 * target_qbp**2))
+    v3 = max(0.05, 1.00 * ts.vas_l * (2.0 * target_qbp**2))
+    return Bandpass8Alignment(
+        v1_l=float(v1),
+        f1_hz=float(f1),
+        v2_l=float(v2),
+        f2_hz=float(f2),
+        v3_l=float(v3),
+        f3_hz=float(f3),
+    )
+
+
+def simulate_bandpass8(
+    ts: DriverTS,
+    box: Bandpass8Box,
+    freq_hz: np.ndarray | None = None,
+    voltage_v: float = 2.83,
+    series_r_ohm: float = 0.0,
+) -> SimulationResult:
+    """Simulate an eighth-order triple-chamber bandpass loudspeaker system.
+
+    As derived in AES Convention e-Brief 546 (Dong, Shen, Chen, 2019):
+    - Driver is enclosed between Chamber 1 (front, V1, F1) and Chamber 2 (rear, V2, F2).
+    - Port 1 exhausts from Chamber 1 into common Chamber 3.
+    - Port 2 exhausts from Chamber 2 into common Chamber 3.
+    - Chamber 3 (V3, F3) exhausts to the outside listening environment through Port 3.
+    - All far-field sound radiation occurs exclusively through Port 3.
+    """
+    drv = complete_driver(ts)
+    if freq_hz is None:
+        freq_hz = np.geomspace(10.0, 500.0, 500)
+    f = np.asarray(freq_hz, dtype=float)
+    if np.any(f <= 0):
+        raise ValueError("Frequencies must be positive")
+    _require_positive("Voltage", voltage_v)
+    _validate_bandpass8_box(box)
+
+    w = 2.0 * np.pi * f
+    jw = 1j * w
+    re_total, rat, p_source = _electrical_source(ts, drv, voltage_v, series_r_ohm)
+    z_as = rat + jw * drv.mas + 1.0 / (jw * drv.cas)
+
+    # Chamber 1 (front) box compliance and port impedance
+    z_box_1 = _box_impedance(box.v1_l, box.f1_hz, box.q_abs_1, box.q_leak_1, w)
+    z_port_1 = _port_impedance(box.v1_l, box.f1_hz, box.q_port_1, w)
+    z_1 = _parallel(z_box_1, z_port_1)
+
+    # Chamber 2 (rear) box compliance and port impedance
+    z_box_2 = _box_impedance(box.v2_l, box.f2_hz, box.q_abs_2, box.q_leak_2, w)
+    z_port_2 = _port_impedance(box.v2_l, box.f2_hz, box.q_port_2, w)
+    z_2 = _parallel(z_box_2, z_port_2)
+
+    # Chamber 3 (common plenum) box compliance and port 3 impedance
+    z_box_3 = _box_impedance(box.v3_l, box.f3_hz, box.q_abs_3, box.q_leak_3, w)
+    z_port_3 = _port_impedance(box.v3_l, box.f3_hz, box.q_port_3, w)
+
+    # Ratio terms: z_box_i / (z_box_i + z_port_i) = z_i / z_port_i
+    t_1 = z_1 / z_port_1
+    t_2 = z_2 / z_port_2
+
+    # Effective admittance of common plenum chamber 3
+    y_3_eff = (1.0 / z_box_3) + (1.0 / z_port_3) + (1.0 / (z_box_1 + z_port_1)) + (1.0 / (z_box_2 + z_port_2))
+
+    # Transfer factor k_3 = p_3 / u_cone
+    k_3 = (t_1 - t_2) / y_3_eff
+
+    # Total acoustic load impedance across driver: Delta p / u_cone
+    z_ac_load = z_1 + z_2 + (t_1 - t_2) * k_3
+
+    # Driver cone volume velocity
+    u_cone = p_source / (z_as + z_ac_load)
+
+    # Acoustic pressures in the chambers
+    p_3 = u_cone * k_3
+    p_1 = u_cone * (z_1 + k_3 * t_1)
+    p_2 = u_cone * (-z_2 + k_3 * t_2)
+
+    # Volume velocities through ports
+    u_port_1 = (p_1 - p_3) / z_port_1
+    u_port_2 = (p_2 - p_3) / z_port_2
+    u_port_3 = p_3 / z_port_3  # The only port radiating to the outside
+
+    spl_total = _spl_from_volume_velocity(u_port_3, f)
+    spl_p1 = _spl_from_volume_velocity(u_port_1, f)
+    spl_p2 = _spl_from_volume_velocity(u_port_2, f)
+
+    excursion = np.abs(u_cone / (jw * drv.sd_m2)) * 1000.0
+    mil_w, mol_db = _limit_curves(ts, voltage_v, spl_total, excursion, series_r_ohm)
+
+    z_mech = drv.rms_n_s_m + jw * drv.mms_kg + 1.0 / (jw * drv.cms_m_per_n)
+    z_load = z_ac_load * drv.sd_m2 ** 2
+    z_e = re_total + jw * (ts.le_mh / 1000.0) + drv.bl_tm ** 2 / (z_mech + z_load)
+
+    return SimulationResult(
+        frequency_hz=f,
+        spl_total_db=spl_total,
+        spl_driver_db=spl_p1,
+        spl_port_db=spl_p2,
+        excursion_mm=excursion,
+        impedance_ohm=np.abs(z_e),
+        impedance_phase_deg=np.degrees(np.angle(z_e)),
+        port_h_velocity=np.abs(u_port_3),
+        port_l_velocity=np.abs(u_port_1),
+        mil_w=mil_w,
+        mol_db=mol_db,
+        driver_volume_velocity=u_cone,
+        port_volume_velocity=u_port_3,
+    )
+
+
+def _validate_bandpass8_box(box: Bandpass8Box) -> None:
+    _require_positive("V1", box.v1_l)
+    _require_positive("F1", box.f1_hz)
+    _require_positive("V2", box.v2_l)
+    _require_positive("F2", box.f2_hz)
+    _require_positive("V3", box.v3_l)
+    _require_positive("F3", box.f3_hz)
+
+
 def simulate_bandpass4(
     ts: DriverTS,
     box: Bandpass4Box,
@@ -2730,7 +3005,7 @@ def response_threshold_frequencies(
 
 
 def equivalent_sealed_fc_hz(
-    ts: DriverTS, box: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | SealedBox,
+    ts: DriverTS, box: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | Bandpass8Box | SealedBox,
 ) -> float:
     """Return the closed-box Fc for the same total chamber volume."""
     _require_positive("Fs", ts.fs_hz)
@@ -2747,6 +3022,9 @@ def equivalent_sealed_fc_hz(
     elif isinstance(box, Bandpass6Box):
         _validate_bandpass6_box(box)
         v_total = box.vr_l + box.vp_l
+    elif isinstance(box, Bandpass8Box):
+        _validate_bandpass8_box(box)
+        v_total = box.v1_l + box.v2_l + box.v3_l
     else:
         _validate_box(box)
         v_total = box.vh_l + box.vl_l

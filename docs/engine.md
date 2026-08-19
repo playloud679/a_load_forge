@@ -1,7 +1,7 @@
 # src/engine.py — acoustic-load engine
 
 Physics, simulation and analysis for the supported loads (DCCAV, fourth-order
-bandpass, sixth-order bandpass, bass reflex, sealed, infinite baffle, passive radiator).  `src/dccav.py` re-exports this module's
+bandpass, sixth-order bandpass, eighth-order triple-chamber bandpass, bass reflex, sealed, infinite baffle, passive radiator).  `src/dccav.py` re-exports this module's
 public API; the full reference — formulas, assumptions, per-function
 contracts and the test list — lives in `docs/dccav.md`.
 
@@ -13,7 +13,8 @@ contracts and the test list — lives in `docs/dccav.md`.
   `PORT_MAX_VOLUME_FRACTION`,
   `PORT_PIPE_RESONANCE_GUARD`) and every dataclass except
   `DriverPresetInfo`: `DriverTS`, `DerivedDriver`, alignments and boxes
-  (including `Bandpass4Alignment` / `Bandpass4Box`, `Bandpass6Alignment` / `Bandpass6Box`),
+  (including `Bandpass4Alignment` / `Bandpass4Box`, `Bandpass6Alignment` / `Bandpass6Box`,
+  `Bandpass8Alignment` / `Bandpass8Box`),
   `OptimizationGoals`, `OptimizedAlignment`, `SimulationResult`,
   `ToleranceBand`, `DesignSpaceMap`, `DriverReferenceMetrics`,
   `DriverBandwidthClass`
@@ -23,10 +24,10 @@ contracts and the test list — lives in `docs/dccav.md`.
   `panel_loaded_fs_hz`, `complete_driver`,
   `spectral_sampling_points`, `optimal_frequency_grid`, `adaptive_frequency_grid`,
   `suggest_alignment`, `suggest_reflex_alignment`,
-  `suggest_bandpass4_alignment`, `suggest_bandpass6_alignment`, `suggest_sealed_alignment`,
+  `suggest_bandpass4_alignment`, `suggest_bandpass6_alignment`, `suggest_bandpass8_alignment`, `suggest_sealed_alignment`,
   `suggest_pr_alignment`,
   `sealed_system_metrics`
-- Simulators: `simulate`, `simulate_reflex`, `simulate_bandpass4`, `simulate_bandpass6`, `simulate_passive_radiator`, `simulate_sealed`,
+- Simulators: `simulate`, `simulate_reflex`, `simulate_bandpass4`, `simulate_bandpass6`, `simulate_bandpass8`, `simulate_passive_radiator`, `simulate_sealed`,
   `simulate_infinite_baffle`, `simulate_transmission_line`, `simulate_mltl`,
   `simulate_quarter_wave`, `simulate_back_loaded_horn` and
   `simulate_tapped_horn` (shared `_electrical_source`, `_limit_curves`,

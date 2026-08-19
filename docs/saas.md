@@ -55,8 +55,8 @@ server_metadata_url = "https://accounts.google.com/.well-known/openid-configurat
 
 With `LOAD_FORGE_AUTH_REQUIRED=true` and `LOAD_FORGE_SAAS_ENABLED` unset, the
 OIDC gate and exact case-insensitive email allowlist protect the workspace,
-while browser IndexedDB remains the project store and no Firestore client is
-created. Commas, semicolons and newlines are accepted between addresses. An
+while projects remain entirely client-side via portable `.lfp` file export and import.
+Commas, semicolons and newlines are accepted between addresses. An
 empty `LOAD_FORGE_ALLOWED_EMAILS` permits every account authenticated by the
 configured provider; malformed configured addresses fail closed at startup.
 

@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.8.25 (2026-08-19)
+
+- **Replaced Distributed Waveguides with Triple-Chamber 8th-Order Bandpass (AES e-Brief 546)**:
+  - Implemented exact lumped acoustic circuit simulation for the symmetric triple-chamber 8th-order bandpass system (Dong, Shen, Chen, 2019):
+    - Driver coupled between Chamber 1 (front, $V_1, f_1$) and Chamber 2 (rear, $V_2, f_2$).
+    - Ports 1 and 2 vent internally into Chamber 3 (common plenum, $V_3, f_3$).
+    - System radiates externally exclusively via Port 3 into the half-space acoustic load.
+    - Accurately models the 8th-order transfer function $G(s)$ and triple displacement notches ($f_1, f_2, f_3$) in the cone excursion curve.
+  - Added dataclasses `Bandpass8Alignment` and `Bandpass8Box`, with auto-alignment function `suggest_bandpass8_alignment()` and simulator `simulate_bandpass8()`.
+  - Fully integrated into the acoustic load peer family (`BoxUnion`), coordinate-descent optimizer, design space atlas, Bass Match finder, and snapshot comparison engine.
+  - Integrated into Streamlit dashboard `ui_app.py` with 3-chamber volume & tuning controls, 3-port duct sizing, port velocity series, response markers, and metrics summary.
+- **Documentation & test suite validation**:
+  - Updated `docs/engine.md` and `docs/acoustics.md`.
+  - Added smoke, physics, and UI regression tests in `tests/test_all.py`.
+  - Full active test suite passing fresh (**169 PASS, 0 FAIL**).
+
+## 0.8.23 (2026-08-19)
+
+- **Stateless file-based project management (`.lfp` upload & download)**:
+  - Removed browser IndexedDB database persistence and cloud Firestore project storage to eliminate server-side data custody liability and ensure 100% user data privacy.
+  - Replaced project database manager with an immediate, direct file workflow:
+    - **Download `.lfp`**: Exports full portable project payload (T/S parameters, box alignments, simulation configurations, and Bass Match candidate results).
+    - **Open `.lfp` / `.crw`**: Drag & drop uploader to restore projects or drivers from disk.
+    - **New / Reset design**: One-click action to reset all parameters to clean starting defaults.
+    - **Share via URL**: Stateless parameter sharing via URL query parameter (`?d=...`).
+  - Removed experimental `streamlit.components.v2` dependency and background IndexedDB sync loop.
+- **Documentation & test suite validation**:
+  - Updated `docs/INDEX.md` and `docs/saas.md` to reflect file-based project architecture.
+  - Verified full test suite fresh (**167 PASS, 0 FAIL**).
+
+## 0.8.22 (2026-08-19)
+
+- **Project name uniqueness enforcement**:
+  - Enforced strict uniqueness across browser IndexedDB project names and SaaS cloud projects.
+  - Active project renaming immediately detects colliding names, displaying a warning notification and preventing duplicate registration.
+- **New Project name prompt workflow**:
+  - Replaced immediate blank creation on "New project" with an inline creation prompt that pre-fills an auto-incremented unique default name (`Project 1`, `Project 2`, etc.) and requires confirmation.
+  - Includes real-time collision validation, inline feedback, and a Cancel action to discard without modifying the active project.
+- **Comprehensive acoustic documentation**:
+  - Authored `docs/engine-manual.md` for clear acoustic and engine parameter usage.
+  - Authored `docs/load-forge-innovations-manual.md` detailing all Load Forge exclusive features, algorithms, and acoustic advancements.
+- **Test suite validation**:
+  - Added project uniqueness and creation prompt regression tests in `tests/test_all.py`. Full test suite passing fresh (169 PASS, 0 FAIL).
+
 ## 0.8.21 (2026-08-18)
 
 - **Acoustic shelf & saddle threshold coherence**:

@@ -173,6 +173,7 @@ def rank_candidate_row(
             | engine.PassiveRadiatorBox
             | engine.Bandpass4Box
             | engine.Bandpass6Box
+            | engine.Bandpass8Box
             | engine.SealedBox
             | None
         )
@@ -231,6 +232,11 @@ def rank_candidate_row(
             starter_volume_l = float(bp6_start.vr_l + bp6_start.vp_l)
             box = engine.design_space_box(
                 ts, load_type, min(starter_volume_l, float(max_volume_l)), bp6_start.fp_hz)
+        elif load_type == "Bandpass 8th order":
+            bp8_start = engine.suggest_bandpass8_alignment(ts)
+            starter_volume_l = float(bp8_start.v1_l + bp8_start.v2_l + bp8_start.v3_l)
+            box = engine.design_space_box(
+                ts, load_type, min(starter_volume_l, float(max_volume_l)), bp8_start.f3_hz)
         elif load_type == "Infinite baffle":
             box = None
         else:
@@ -256,6 +262,12 @@ def rank_candidate_row(
                 "Fp Hz": np.nan,
                 "Vr L": np.nan,
                 "Fr Hz": np.nan,
+                "V1 L": np.nan,
+                "f1 Hz": np.nan,
+                "V2 L": np.nan,
+                "f2 Hz": np.nan,
+                "V3 L": np.nan,
+                "f3 Hz": np.nan,
             }
         elif isinstance(box, engine.PassiveRadiatorBox):
             result = engine.simulate_passive_radiator(ts, box, freq, float(voltage_v))
@@ -273,6 +285,12 @@ def rank_candidate_row(
                 "Fp Hz": np.nan,
                 "Vr L": np.nan,
                 "Fr Hz": np.nan,
+                "V1 L": np.nan,
+                "f1 Hz": np.nan,
+                "V2 L": np.nan,
+                "f2 Hz": np.nan,
+                "V3 L": np.nan,
+                "f3 Hz": np.nan,
             }
         elif isinstance(box, engine.SealedBox):
             result = engine.simulate_sealed(ts, box, freq, float(voltage_v))
@@ -291,6 +309,12 @@ def rank_candidate_row(
                 "Fp Hz": np.nan,
                 "Vr L": np.nan,
                 "Fr Hz": np.nan,
+                "V1 L": np.nan,
+                "f1 Hz": np.nan,
+                "V2 L": np.nan,
+                "f2 Hz": np.nan,
+                "V3 L": np.nan,
+                "f3 Hz": np.nan,
             }
         elif isinstance(box, engine.Bandpass4Box):
             result = engine.simulate_bandpass4(ts, box, freq, float(voltage_v))
@@ -308,6 +332,12 @@ def rank_candidate_row(
                 "Fp Hz": box.fp_hz,
                 "Vr L": np.nan,
                 "Fr Hz": np.nan,
+                "V1 L": np.nan,
+                "f1 Hz": np.nan,
+                "V2 L": np.nan,
+                "f2 Hz": np.nan,
+                "V3 L": np.nan,
+                "f3 Hz": np.nan,
             }
         elif isinstance(box, engine.Bandpass6Box):
             result = engine.simulate_bandpass6(ts, box, freq, float(voltage_v))
@@ -325,6 +355,35 @@ def rank_candidate_row(
                 "Fp Hz": box.fp_hz,
                 "Vr L": box.vr_l,
                 "Fr Hz": box.fr_hz,
+                "V1 L": np.nan,
+                "f1 Hz": np.nan,
+                "V2 L": np.nan,
+                "f2 Hz": np.nan,
+                "V3 L": np.nan,
+                "f3 Hz": np.nan,
+            }
+        elif isinstance(box, engine.Bandpass8Box):
+            result = engine.simulate_bandpass8(ts, box, freq, float(voltage_v))
+            box_values = {
+                "Vb L": np.nan,
+                "Fb Hz": np.nan,
+                "Vh L": np.nan,
+                "fh Hz": np.nan,
+                "Vl L": np.nan,
+                "fl Hz": np.nan,
+                "Fc Hz": np.nan,
+                "Qtc": np.nan,
+                "Vs L": np.nan,
+                "Vp L": np.nan,
+                "Fp Hz": np.nan,
+                "Vr L": np.nan,
+                "Fr Hz": np.nan,
+                "V1 L": box.v1_l,
+                "f1 Hz": box.f1_hz,
+                "V2 L": box.v2_l,
+                "f2 Hz": box.f2_hz,
+                "V3 L": box.v3_l,
+                "f3 Hz": box.f3_hz,
             }
         elif box is None:
             result = engine.simulate_infinite_baffle(ts, freq, float(voltage_v))
@@ -342,6 +401,12 @@ def rank_candidate_row(
                 "Fp Hz": np.nan,
                 "Vr L": np.nan,
                 "Fr Hz": np.nan,
+                "V1 L": np.nan,
+                "f1 Hz": np.nan,
+                "V2 L": np.nan,
+                "f2 Hz": np.nan,
+                "V3 L": np.nan,
+                "f3 Hz": np.nan,
             }
         else:
             result = engine.simulate(ts, box, freq, float(voltage_v))
@@ -359,6 +424,12 @@ def rank_candidate_row(
                 "Fp Hz": np.nan,
                 "Vr L": np.nan,
                 "Fr Hz": np.nan,
+                "V1 L": np.nan,
+                "f1 Hz": np.nan,
+                "V2 L": np.nan,
+                "f2 Hz": np.nan,
+                "V3 L": np.nan,
+                "f3 Hz": np.nan,
             }
         thresholds = engine.response_threshold_frequencies(result)
         f3_hz = float(thresholds[3])

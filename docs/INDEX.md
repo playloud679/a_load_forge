@@ -32,6 +32,8 @@ in sync in the same change.
 | `tools/generate_afw_dccav.py` | [afw_validation.md](afw_validation.md) | Write-side counterpart: clones a verified DCAAV `.afw` template and injects a Load Forge DCCAV `.lfp` design's driver/chamber values |
 | — | [acoustic-sampling-optimization.md](acoustic-sampling-optimization.md) | Criterio di Campionamento Acustico Spettrale (Q-constrained), adaptive sampling e ottimizzazione a due stadi per Bass Match / Finder |
 | — | [optimizer-manual.md](optimizer-manual.md) | Manuale tecnico dell'ottimizzatore: Compass search, funzione di costo, barriere fisiche, ripple ceiling e griglia segmentata |
+| — | [engine-manual.md](engine-manual.md) | Manuale utente del motore acustico: parametri T/S, carichi, condotti, perdite, pilotaggio e interpretazione grafici |
+| — | [load-forge-innovations-manual.md](load-forge-innovations-manual.md) | Manuale operativo delle innovazioni e parametri esclusivi: DCCAV, Ripple Cutout, Panel Loading, Forge Score, MOL/MIL, Saddle Coherence |
 
 ## SaaS Product Strategy
 
@@ -102,23 +104,13 @@ cannot change F3 while opening the selected enclosure.
 Legacy sessions with an empty Finder load selection use the active Box Design
 load consistently for both ranking and result validation, so a completed
 fallback run remains visible instead of being mistaken for changed inputs.
-Routine IndexedDB autosaves are fire-and-forget once the active project is in
-the sidebar index, so their acknowledgement and `updated_at` value cannot
-trigger another full-page rerun. Streamlit stale elements remain fully opaque
-during the one required calculation rerun, while autosave errors stay visible.
-Creating a new browser project clears every project-owned design, Finder,
-comparison, plot and pending-load value before normal defaults are seeded; no
-state from the formerly active project may cross that boundary.
-A browser project can be duplicated or permanently deleted directly from the
-saved-project chooser as well as while it is active. Duplication keeps its
-complete design and Bass Match state under a new identity; confirmed deletion
-removes both its IndexedDB payload and index entry in one committed browser
-transaction. The UI confirms deletion only after that commit. Deleting the
-active project also seeds a clean replacement project for autosave.
-When saved projects exist, startup always presents the chooser instead of
-opening one implicitly. Missing or invalid IndexedDB payloads finish with a
-recoverable warning, leaving the chooser available to delete the damaged entry
-or create a clean project without entering a Streamlit rerun loop.
+Projects are managed cleanly and safely via standalone `.lfp` file export and import.
+The dashboard supports instant download of the complete design state (including T/S
+parameters, box alignments, and Bass Match candidate results) and file upload (.lfp, .json,
+or .crw) to restore projects or drivers. No project data is retained on servers or in
+browser IndexedDB databases, ensuring 100% data privacy and safety.
+A dedicated "New / Reset design" action clears all parameters and restores factory defaults.
+Share links encode design parameters directly into URL query parameters (?d=...).
 Library search, provenance, brand, size, class and price filters retain both
 their aggregate values and compact widget selections while Box Design is open,
 so returning to Bass Match restores the same candidate pool.

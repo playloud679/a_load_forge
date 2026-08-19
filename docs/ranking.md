@@ -12,7 +12,8 @@ detailed contracts live in `docs/dccav.md`.
   applies the selected single/pair/isobaric configuration to the preset, then
   simulates one candidate at the
   best optimized volume at or below the requested cap (reflex/sealed `Vb`,
-  bandpass chamber total, DCCAV `Vh+Vl`). Goal mode uses
+  bandpass chamber total—including eighth-order `V1+V2+V3`—or DCCAV
+  `Vh+Vl`). Goal mode uses
   `max_total_volume_l`, never `fixed_total_volume_l`, with
   `max_evaluations=140` and forwards every Finder constraint, including
   minimum peak SPL, allowed ripple and frequency ceiling (`ripple_max_freq_hz`),
@@ -33,7 +34,9 @@ detailed contracts live in `docs/dccav.md`.
   remains the name-based public wrapper. Each returned row includes hidden
   `_driver_ts` and `_box_params` snapshots so opening it in Box Design uses
   the exact driver and enclosure-loss parameters that produced its F3 even if
-  the live catalog or the previous design session has since changed
+  the live catalog or the previous design session has since changed. Eighth-order
+  rows expose `V1 L`, `f1 Hz`, `V2 L`, `f2 Hz`, `V3 L` and `f3 Hz`; other
+  loads leave those topology-specific columns empty
 - `finder_worker_ready()`: return only the worker PID for the bounded startup
   health check; it deliberately does not touch the runtime catalog
 - `finder_optimizer_evaluation_limit(module_path=None)`: use 30 global search

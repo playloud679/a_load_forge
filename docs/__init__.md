@@ -6,13 +6,18 @@ Exports the acoustic-load dataclasses and helpers from the neutral
 `src/acoustics.py` facade:
 
 - `DriverTS`, `DerivedDriver`, `DccavAlignment`, `DccavBox`,
-  `ReflexAlignment`, `ReflexBox`, `SealedAlignment`, `SealedBox`,
+  `ReflexAlignment`, `ReflexBox`, `Bandpass4Alignment`, `Bandpass4Box`,
+  `Bandpass6Alignment`, `Bandpass6Box`, `Bandpass8Alignment`, `Bandpass8Box`,
+  `SealedAlignment`, `SealedBox`,
   `OptimizationGoals`, `OptimizedAlignment`, `SimulationResult`
 - `driver_preset_names()`, `get_driver_preset()`
 - `sd_from_diameter()`, `complete_driver()`, `suggest_alignment()`,
-  `suggest_reflex_alignment()`, `suggest_sealed_alignment()`,
+  `suggest_reflex_alignment()`, `suggest_bandpass4_alignment()`,
+  `suggest_bandpass6_alignment()`, `suggest_bandpass8_alignment()`,
+  `suggest_sealed_alignment()`,
   `sealed_system_metrics()`
-- `simulate()`, `simulate_reflex()`, `simulate_sealed()`,
+- `simulate()`, `simulate_reflex()`, `simulate_bandpass4()`,
+  `simulate_bandpass6()`, `simulate_bandpass8()`, `simulate_sealed()`,
   `simulate_infinite_baffle()`, `optimize_alignment()`, `group_delay_ms()`,
   `response_metrics()`,
   `response_threshold_frequencies()`, `impedance_peak_frequencies()`,

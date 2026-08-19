@@ -33,7 +33,6 @@ import altair as alt
 import numpy as np
 import pandas as pd
 import streamlit as st
-from streamlit.components import v2 as components_v2
 
 logger = logging.getLogger("load_forge.ui")
 _OPTIMIZER_ENGINE_REVISION = 5
@@ -100,214 +99,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={},
-)
-
-
-_BROWSER_PROJECT_STORE_JS = """
-const DB_NAME = "load_forge";
-const DB_VERSION = 2;
-const STORE_NAME = "projects";
-const SUMMARY_STORE_NAME = "project_summaries";
-
-function projectSummary(record) {
-  const project = record && record.project || {};
-  return {
-    id: String(project.id || ""),
-    name: String(project.name || "Untitled project"),
-    created_at: String(project.created_at || ""),
-    updated_at: String(project.updated_at || ""),
-  };
-}
-
-function openDatabase() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const database = request.result;
-      if (!database.objectStoreNames.contains(STORE_NAME)) {
-        database.createObjectStore(STORE_NAME, {keyPath: "project.id"});
-      }
-      let summaries;
-      if (!database.objectStoreNames.contains(SUMMARY_STORE_NAME)) {
-        summaries = database.createObjectStore(
-          SUMMARY_STORE_NAME, {keyPath: "id"}
-        );
-      } else {
-        summaries = request.transaction.objectStore(SUMMARY_STORE_NAME);
-      }
-      const projects = request.transaction.objectStore(STORE_NAME);
-      projects.openCursor().onsuccess = event => {
-        const cursor = event.target.result;
-        if (cursor) {
-          const summary = projectSummary(cursor.value);
-          if (summary.id) summaries.put(summary);
-          cursor.continue();
-        }
-      };
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function requestResult(request) {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-function transactionDone(transaction) {
-  return new Promise((resolve, reject) => {
-    transaction.oncomplete = () => resolve();
-    transaction.onabort = () => reject(transaction.error || new Error(
-      "Browser project transaction was aborted"
-    ));
-    transaction.onerror = () => reject(transaction.error || new Error(
-      "Browser project transaction failed"
-    ));
-  });
-}
-
-export default function(component) {
-  const {data, setStateValue} = component;
-  const currentState = data && data.state || {};
-  let cancelled = false;
-
-  function setIfChanged(name, value) {
-    if (JSON.stringify(currentState[name]) !== JSON.stringify(value)) {
-      setStateValue(name, value);
-    }
-  }
-
-  async function synchronize() {
-    const command = data && data.command;
-    if (currentState.ready && !command) return;
-    try {
-      const database = await openDatabase();
-      if (command && command.op === "upsert" && command.project) {
-        const transaction = database.transaction(
-          [STORE_NAME, SUMMARY_STORE_NAME], "readwrite"
-        );
-        const projects = transaction.objectStore(STORE_NAME);
-        let project = command.project;
-        if (!command.replace) {
-          const existing = await requestResult(
-            projects.get(command.project.project.id)
-          );
-          if (existing) {
-            project = {
-              ...existing,
-              ...command.project,
-              project: {...(existing.project || {}), ...(command.project.project || {})},
-              bass_match: {
-                ...(existing.bass_match || {}),
-                ...(command.project.bass_match || {}),
-              },
-            };
-          }
-        }
-        await requestResult(projects.put(project));
-        const summary = projectSummary(project);
-        if (summary.id) {
-          await requestResult(
-            transaction.objectStore(SUMMARY_STORE_NAME).put(summary)
-          );
-        }
-        if (!cancelled && !command.quiet) {
-          setIfChanged("ack", String(command.nonce || ""));
-        }
-      } else if (command && command.op === "load" && command.project_id) {
-        const transaction = database.transaction(STORE_NAME, "readonly");
-        const project = await requestResult(
-          transaction.objectStore(STORE_NAME).get(command.project_id)
-        );
-        if (!cancelled) {
-          setIfChanged(
-            "loaded_project_json",
-            project ? JSON.stringify(project) : ""
-          );
-          setIfChanged("load_ack", String(command.nonce || ""));
-        }
-      } else if (
-        command && command.op === "duplicate" && command.project_id
-        && command.project
-      ) {
-        const transaction = database.transaction(
-          [STORE_NAME, SUMMARY_STORE_NAME], "readwrite"
-        );
-        const projects = transaction.objectStore(STORE_NAME);
-        const source = await requestResult(projects.get(command.project_id));
-        if (!source) throw new Error("Project to duplicate no longer exists");
-        const duplicate = {
-          ...source,
-          project: {...command.project},
-        };
-        await requestResult(projects.put(duplicate));
-        await requestResult(
-          transaction.objectStore(SUMMARY_STORE_NAME).put(
-            projectSummary(duplicate)
-          )
-        );
-        if (!cancelled) {
-          setIfChanged("duplicate_ack", String(command.nonce || ""));
-        }
-      } else if (command && command.op === "delete" && command.project_id) {
-        const transaction = database.transaction(
-          [STORE_NAME, SUMMARY_STORE_NAME], "readwrite"
-        );
-        // Queue both removals in one transaction.  The acknowledgement must
-        // wait for its completion: individual IndexedDB requests can succeed
-        // before the transaction is later aborted, which previously made the
-        // Python UI report a deletion that was not actually persisted.
-        transaction.objectStore(STORE_NAME).delete(command.project_id);
-        transaction.objectStore(SUMMARY_STORE_NAME).delete(command.project_id);
-        await transactionDone(transaction);
-        if (!cancelled) {
-          setIfChanged("delete_ack", String(command.nonce || ""));
-        }
-      }
-      // Routine autosaves are deliberately fire-and-forget. Publishing an
-      // ack or the new updated_at summary back to Python would make a normal
-      // design edit trigger a second full Streamlit rerun.
-      if (command && command.op === "upsert" && command.quiet) {
-        database.close();
-        return;
-      }
-      const summaries = await requestResult(
-        database.transaction(SUMMARY_STORE_NAME, "readonly")
-          .objectStore(SUMMARY_STORE_NAME).getAll()
-      );
-      summaries.sort((left, right) => String(
-        right.updated_at || ""
-      ).localeCompare(String(
-        left.updated_at || ""
-      )));
-      if (!cancelled) {
-        setIfChanged("summaries_json", JSON.stringify(summaries));
-        setIfChanged("error", "");
-        setIfChanged("ready", true);
-      }
-      database.close();
-    } catch (error) {
-      if (!cancelled) {
-        setIfChanged(
-          "error",
-          error && error.message ? error.message : String(error)
-        );
-        setIfChanged("ready", true);
-      }
-    }
-  }
-
-  synchronize();
-  return () => { cancelled = true; };
-}
-"""
-
-_browser_project_store_component = components_v2.component(
-    "load_forge_browser_project_store",
-    js=_BROWSER_PROJECT_STORE_JS,
 )
 
 
@@ -921,8 +712,8 @@ _LOAD_TYPE_IMAGES = {
     "Bass reflex": _LOAD_IMAGE_DIR / "bass_reflex.png",
     "Bandpass 4th order": _LOAD_IMAGE_DIR / "bandpass_4th.png",
     "Bandpass 6th order": _LOAD_IMAGE_DIR / "bandpass_6th.png",
+    "Bandpass 8th order": _LOAD_IMAGE_DIR / "bandpass_8th.png",
     "DCCAV": _LOAD_IMAGE_DIR / "dccav.png",
-    "Distributed waveguide": _LOAD_IMAGE_DIR / "dccav.png",
 }
 
 _LOAD_TYPE_SLUGS = {
@@ -931,8 +722,8 @@ _LOAD_TYPE_SLUGS = {
     "Bass reflex": "bass_reflex",
     "Bandpass 4th order": "bandpass_4th",
     "Bandpass 6th order": "bandpass_6th",
+    "Bandpass 8th order": "bandpass_8th",
     "DCCAV": "dccav",
-    "Distributed waveguide": "waveguide",
 }
 
 _LOAD_TYPE_SHORT = {
@@ -941,13 +732,12 @@ _LOAD_TYPE_SHORT = {
     "Bass reflex": "Reflex",
     "Bandpass 4th order": "BP4",
     "Bandpass 6th order": "BP6",
+    "Bandpass 8th order": "BP8",
     "DCCAV": "DCCAV",
-    "Distributed waveguide": "Waveguide",
 }
 
 _ALL_LOAD_TYPES = ["Infinite baffle", "Sealed", "Bass reflex",
-                   "Bandpass 4th order", "Bandpass 6th order", "DCCAV",
-                   "Distributed waveguide"]
+                   "Bandpass 4th order", "Bandpass 6th order", "Bandpass 8th order", "DCCAV"]
 _RESONATOR_PORT = "Port"
 _RESONATOR_PR = "Passive radiator"
 _RESONATOR_TYPES = (_RESONATOR_PORT, _RESONATOR_PR)
@@ -960,7 +750,7 @@ def _reflex_uses_passive_radiator(*, finder: bool = False) -> bool:
 
 
 @st.cache_data(show_spinner=False)
-def _load_type_card_styles() -> str:
+def _load_type_card_styles(version: str = "bp8_v2") -> str:
     """Return compact clickable-card CSS with the supplied diagrams embedded."""
     rules = [
         """
@@ -1610,6 +1400,7 @@ _TRACE_COLORS = {
     "DCCAV": "#10b981",
     "Bandpass 4th order": "#58d68d",
     "Bandpass 6th order": "#f2c14e",
+    "Bandpass 8th order": "#ff9f1c",
     "Bass reflex": "#7cc7ff",
     "Sealed": "#b8f26d",
     "Infinite baffle": "#e0aaff",
@@ -1930,15 +1721,23 @@ def _manual_box_keys_for_load_type(load_type: str) -> tuple[str, ...]:
             "bandpass6_port_d_r_cm",
             "bandpass6_port_d_p_cm",
         )
+    if load_type == "Bandpass 8th order":
+        return (
+            "bp8_v1_l",
+            "bp8_f1_hz",
+            "bp8_dp1_cm",
+            "bp8_lp1_cm",
+            "bp8_v2_l",
+            "bp8_f2_hz",
+            "bp8_dp2_cm",
+            "bp8_lp2_cm",
+            "bp8_v3_l",
+            "bp8_f3_hz",
+            "bp8_dp3_cm",
+            "bp8_lp3_cm",
+        )
     if load_type == "Infinite baffle":
         return ()
-    if load_type == "Distributed waveguide":
-        return (
-            "waveguide_topology", "waveguide_length_m", "waveguide_area_cm2",
-            "waveguide_mouth_area_cm2", "waveguide_vent_area_cm2",
-            "waveguide_vent_length_m", "waveguide_tap_position_m",
-            "waveguide_flare", "waveguide_termination", "waveguide_line_q",
-        )
     # DCCAV
     return (
         "box_vh_l",
@@ -2035,9 +1834,6 @@ _PROJECT_TRANSIENT_STATE_KEYS = {
     "_opt_last_context",
     "_previous_box_strategy",
     "_response_defaults_version",
-    "_browser_project_pending_results",
-    "_browser_project_load_request",
-    "_browser_project_load_after_save",
 }
 _LFP_FORMAT_VERSION = 2
 
@@ -2088,28 +1884,23 @@ def _collect_bass_match_project_state(
     return bass_match
 
 
-def _new_browser_project_meta(name: str = "Untitled project") -> dict:
-    now = datetime.now(UTC).isoformat()
-    return {
-        "id": f"lfp_{uuid.uuid4().hex}",
-        "name": str(name).strip() or "Untitled project",
-        "created_at": now,
-        "updated_at": now,
-    }
-
-
 def _build_lfp_project(
     project: dict | None = None,
     *,
     include_results: bool = True,
 ) -> dict:
     """Build the complete portable project, including Bass Match state."""
-    project_meta = dict(project or _new_browser_project_meta())
-    project_meta.setdefault("id", f"lfp_{uuid.uuid4().hex}")
-    project_meta.setdefault("name", "Untitled project")
+    name = str(
+        (project or {}).get("name")
+        or st.session_state.get("project_name", "Untitled project")
+    ).strip() or "Untitled project"
     now = datetime.now(UTC).isoformat()
-    project_meta.setdefault("created_at", now)
-    project_meta["updated_at"] = str(project_meta.get("updated_at") or now)
+    project_meta = {
+        "id": f"lfp_{uuid.uuid4().hex}",
+        "name": name,
+        "created_at": now,
+        "updated_at": now,
+    }
     return {
         "_load_forge_meta": {
             "version": _VERSION,
@@ -2122,112 +1913,6 @@ def _build_lfp_project(
             include_results=include_results
         ),
     }
-
-
-def _build_cloud_project_payload() -> dict:
-    """Persist design parameters plus the last Bass Match run in the cloud."""
-    bass_match = _collect_bass_match_project_state(include_results=True)
-    # Editable comparison snapshots can approach the whole cloud-document
-    # ceiling. Cloud projects keep the active Box Design and Finder results;
-    # portable/browser LFP projects remain the complete comparison backup.
-    for key in (
-        "design_comparison_tabs",
-        "design_comparison_active_id",
-        "design_comparison_loaded_id",
-    ):
-        bass_match["state"].pop(key, None)
-    return {
-        "_load_forge_meta": {
-            "version": _VERSION,
-            "format": _LFP_FORMAT_VERSION,
-            "kind": "cloud_project",
-        },
-        "parameters": _json_safe(_collect_params()),
-        "bass_match": bass_match,
-    }
-
-
-def _lfp_project_content_signature(
-    payload: dict,
-    *,
-    results_signature: str = "",
-) -> str:
-    comparable = dict(payload)
-    comparable["project"] = dict(payload.get("project", {}))
-    comparable["project"].pop("updated_at", None)
-    if results_signature:
-        comparable["_results_signature"] = results_signature
-    encoded = json.dumps(
-        comparable,
-        sort_keys=True,
-        separators=(",", ":"),
-        allow_nan=False,
-    )
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
-
-
-def _snapshot_revision(snapshot: dict) -> str:
-    """Return a compact persistent identity for a potentially large snapshot."""
-    revision = str(snapshot.get("_revision", ""))
-    if not revision:
-        revision = uuid.uuid4().hex
-        snapshot["_revision"] = revision
-    return revision
-
-
-def _browser_project_state_signature(
-    project: dict,
-    results_signature: str,
-) -> str:
-    """Hash lightweight state without serializing every stored curve per click."""
-    project_meta = dict(project)
-    project_meta.pop("updated_at", None)
-    state = {}
-    for key in _BASS_MATCH_PROJECT_STATE_KEYS:
-        if key not in st.session_state:
-            continue
-        value = st.session_state[key]
-        if key == "design_comparison_tabs" and isinstance(value, list):
-            state[key] = [
-                {
-                    "id": str(tab.get("id", "")),
-                    "label": str(tab.get("label", "")),
-                    "color": str(tab.get("color", "")),
-                    "visible": bool(tab.get("visible", True)),
-                    "driver_preset_name": str(tab.get(
-                        "driver_preset_name", ""
-                    )),
-                    "load_type": str(tab.get("load_type", "")),
-                    "parameters": _json_safe(tab.get("parameters", {})),
-                    "simulation_signature": str(tab.get(
-                        "simulation_signature", ""
-                    )),
-                    "snapshot_revision": (
-                        _snapshot_revision(tab["snapshot"])
-                        if isinstance(tab.get("snapshot"), dict)
-                        else ""
-                    ),
-                }
-                for tab in value
-                if isinstance(tab, dict)
-            ]
-        else:
-            state[key] = _json_safe(value)
-    comparable = {
-        "version": _VERSION,
-        "format": _LFP_FORMAT_VERSION,
-        "project": _json_safe(project_meta),
-        "parameters": _json_safe(_collect_params()),
-        "bass_match_state": state,
-        "results_signature": str(results_signature),
-    }
-    encoded = json.dumps(
-        comparable,
-        sort_keys=True,
-        separators=(",", ":"),
-        allow_nan=False,
-    )
-    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 def _bass_match_results_signature() -> str:
@@ -2257,18 +1942,6 @@ def _bass_match_results_signature() -> str:
 
 def _invalidate_bass_match_results_signature() -> None:
     st.session_state.pop("_bass_match_results_signature", None)
-
-
-def _cache_lfp_download(payload: dict, content_signature: str) -> None:
-    """Cache the expensive full-project JSON encoding outside normal reruns."""
-    st.session_state["_browser_project_download_cache"] = {
-        "signature": content_signature,
-        "data": json.dumps(
-            payload,
-            indent=2,
-            allow_nan=False,
-        ).encode("utf-8"),
-    }
 
 
 def _apply_lfp_project(payload: dict) -> int:
@@ -2323,9 +1996,6 @@ def _apply_lfp_project(payload: dict) -> int:
         raise TypeError("LFP Bass Match run statistics must be an object")
     st.session_state["finder_last_run_stats"] = dict(run_stats or {})
     if st.session_state["batch_results"]:
-        # Finder widgets are instantiated after the Project menu and may
-        # normalize aggregate filter state during this same rerun. Capture the
-        # stable signature when the restored results are first rendered.
         st.session_state["_restored_bass_match_controls_signature"] = "pending"
     else:
         st.session_state.pop(
@@ -2352,504 +2022,6 @@ def _clear_active_project_state() -> None:
     st.session_state.pop("_design_state_backup", None)
     st.session_state.pop("_restored_bass_match_controls_signature", None)
     _invalidate_bass_match_results_signature()
-    st.session_state.pop("_browser_project_download_cache", None)
-
-
-def _activate_browser_project(
-    payload: dict,
-    *,
-    already_persisted: bool = False,
-) -> None:
-    _clear_active_project_state()
-    _apply_lfp_project(payload)
-    project = payload.get("project", {})
-    if not isinstance(project, dict) or not project.get("id"):
-        project = _new_browser_project_meta()
-    st.session_state["_browser_active_project"] = dict(project)
-    st.session_state["_browser_project_initialized"] = True
-    st.session_state["_browser_project_name_revision"] = (
-        int(st.session_state.get("_browser_project_name_revision", 0)) + 1
-    )
-    results_signature = _bass_match_results_signature()
-    content_signature = _browser_project_state_signature(
-        project,
-        results_signature,
-    )
-    st.session_state["_browser_project_content_signature"] = content_signature
-    st.session_state["_browser_project_saved_results_signature"] = (
-        results_signature if already_persisted else ""
-    )
-    if already_persisted:
-        st.session_state["_browser_project_last_ack"] = content_signature
-    else:
-        st.session_state.pop("_browser_project_last_ack", None)
-    _cache_lfp_download(payload, content_signature)
-    st.session_state.pop("_browser_project_load_request", None)
-    st.session_state.pop("_browser_project_load_after_save", None)
-    st.session_state.pop("_browser_project_delete_confirmation", None)
-    st.session_state.pop("_browser_selected_delete_confirmation", None)
-    st.session_state.pop("_browser_project_load_error", None)
-    st.session_state.pop("_browser_project_menu_auto_open", None)
-
-
-def _start_new_browser_project() -> None:
-    _clear_active_project_state()
-    _reset_finder_defaults()
-    st.session_state["_browser_active_project"] = _new_browser_project_meta()
-    st.session_state["_browser_project_initialized"] = True
-    st.session_state["_browser_project_name_revision"] = (
-        int(st.session_state.get("_browser_project_name_revision", 0)) + 1
-    )
-    st.session_state.pop("_browser_project_content_signature", None)
-    st.session_state.pop("_browser_project_last_ack", None)
-    st.session_state.pop("_browser_project_saved_results_signature", None)
-    st.session_state.pop("_browser_project_load_request", None)
-    st.session_state.pop("_browser_project_load_after_save", None)
-    st.session_state.pop("_browser_project_delete_confirmation", None)
-    st.session_state.pop("_browser_selected_delete_confirmation", None)
-    st.session_state.pop("_browser_project_load_error", None)
-    st.session_state.pop("_browser_project_menu_auto_open", None)
-
-
-def _browser_project_copy_name(name: str, existing_names: list[str]) -> str:
-    """Return a readable, unique name for a duplicated browser project."""
-    base = str(name).strip() or "Untitled project"
-    used = {str(item).strip().casefold() for item in existing_names}
-    candidate = f"{base} copy"
-    suffix = 2
-    while candidate.casefold() in used:
-        candidate = f"{base} copy {suffix}"
-        suffix += 1
-    return candidate
-
-
-def _duplicate_active_browser_project() -> None:
-    """Keep the current project state but autosave it under a new identity."""
-    active = st.session_state.get("_browser_active_project")
-    if not isinstance(active, dict):
-        return
-    summaries = st.session_state.get("_browser_project_summaries", [])
-    existing_names = [
-        str(item.get("name", ""))
-        for item in summaries
-        if isinstance(item, dict)
-    ]
-    duplicate = _new_browser_project_meta(
-        _browser_project_copy_name(
-            str(active.get("name", "Untitled project")),
-            existing_names,
-        )
-    )
-    st.session_state["_browser_active_project"] = duplicate
-    st.session_state["_browser_project_initialized"] = True
-    st.session_state["_browser_project_name_revision"] = (
-        int(st.session_state.get("_browser_project_name_revision", 0)) + 1
-    )
-    for key in (
-        "_browser_project_content_signature",
-        "_browser_project_last_ack",
-        "_browser_project_saved_results_signature",
-        "_browser_project_pending_results",
-        "_browser_project_load_request",
-        "_browser_project_load_after_save",
-        "_browser_project_download_cache",
-        "_browser_project_delete_confirmation",
-    ):
-        st.session_state.pop(key, None)
-    st.session_state["_browser_project_menu_auto_open"] = True
-    st.session_state["_browser_project_action_message"] = (
-        f"Duplicated project as {duplicate['name']}"
-    )
-
-
-def _delete_active_browser_project() -> None:
-    """Queue the active IndexedDB record for deletion and start clean."""
-    active = st.session_state.get("_browser_active_project")
-    if not isinstance(active, dict) or not active.get("id"):
-        return
-    deleted_name = str(active.get("name", "Untitled project"))
-    deleted_id = str(active["id"])
-    _start_new_browser_project()
-    _request_browser_project_delete(deleted_id, deleted_name)
-    st.session_state["_browser_project_menu_auto_open"] = True
-
-
-def _request_browser_project_duplicate(project_id: str, name: str) -> None:
-    """Queue an IndexedDB-to-IndexedDB copy without loading the source."""
-    summaries = st.session_state.get("_browser_project_summaries", [])
-    existing_names = [
-        str(item.get("name", ""))
-        for item in summaries
-        if isinstance(item, dict)
-    ]
-    duplicate = _new_browser_project_meta(
-        _browser_project_copy_name(name, existing_names)
-    )
-    st.session_state["_browser_project_duplicate_request"] = {
-        "project_id": str(project_id),
-        "project": duplicate,
-        "nonce": uuid.uuid4().hex,
-    }
-
-
-def _request_browser_project_delete(project_id: str, name: str) -> None:
-    """Queue one stored project and its summary for permanent deletion."""
-    st.session_state["_browser_project_delete_request"] = {
-        "project_id": str(project_id),
-        "project_name": str(name).strip() or "Untitled project",
-        "nonce": uuid.uuid4().hex,
-    }
-
-
-def _request_browser_project_load(project_id: str) -> None:
-    project_id = str(project_id)
-    st.session_state.pop("_browser_project_load_error", None)
-    active = st.session_state.get("_browser_active_project")
-    if (
-        st.session_state.get("_browser_project_initialized")
-        and isinstance(active, dict)
-        and str(active.get("id", "")) != project_id
-    ):
-        # Flush the current project, including its last Finder result rows,
-        # before issuing the IndexedDB load for another project.
-        st.session_state["_browser_project_load_after_save"] = project_id
-        st.session_state.pop("_browser_project_load_request", None)
-        return
-    st.session_state["_browser_project_load_request"] = {
-        "project_id": project_id,
-        "nonce": uuid.uuid4().hex,
-    }
-
-
-def _decode_browser_project_summaries(value) -> list[dict]:
-    """Decode the small IndexedDB project index exposed by the component."""
-    try:
-        projects = json.loads(str(value or "[]"))
-    except (TypeError, ValueError):
-        projects = []
-    if not isinstance(projects, list):
-        return []
-    return [item for item in projects if isinstance(item, dict)]
-
-
-def _browser_project_summary_is_current(
-    active: dict,
-    projects: list[dict],
-) -> bool:
-    """Return whether an autosave can avoid publishing component state."""
-    active_id = str(active.get("id", ""))
-    active_name = str(active.get("name", "Untitled project"))
-    return any(
-        str(item.get("id", "")) == active_id
-        and str(item.get("name", "Untitled project")) == active_name
-        for item in projects
-    )
-
-
-def _acknowledge_browser_project_save(ack: str) -> None:
-    """Advance Python autosave state after an ack or a quiet queued write."""
-    if not ack:
-        return
-    st.session_state["_browser_project_last_ack"] = ack
-    pending_results = st.session_state.get("_browser_project_pending_results")
-    if (
-        isinstance(pending_results, dict)
-        and str(pending_results.get("nonce", "")) == ack
-    ):
-        saved_signature = str(pending_results.get("signature", ""))
-        if saved_signature:
-            st.session_state["_browser_project_saved_results_signature"] = (
-                saved_signature
-            )
-        st.session_state.pop("_browser_project_pending_results", None)
-
-
-def _browser_project_store() -> tuple[bool, list[dict], str, dict | None]:
-    """Mount the browser database bridge and queue the current autosave."""
-    component_state = st.session_state.get("_browser_project_store", {})
-    if not isinstance(component_state, dict):
-        component_state = {}
-    bridge_state = {
-        key: component_state.get(key, default)
-        for key, default in {
-            "ready": False,
-            "summaries_json": "[]",
-            "ack": "",
-            "load_ack": "",
-            "duplicate_ack": "",
-            "delete_ack": "",
-            "error": "",
-        }.items()
-    }
-    known_projects = _decode_browser_project_summaries(
-        bridge_state["summaries_json"]
-    )
-    command = None
-    delete_request = st.session_state.get("_browser_project_delete_request")
-    duplicate_request = st.session_state.get(
-        "_browser_project_duplicate_request"
-    )
-    load_request = st.session_state.get("_browser_project_load_request")
-    if isinstance(delete_request, dict):
-        command = {
-            "op": "delete",
-            "project_id": str(delete_request.get("project_id", "")),
-            "nonce": str(delete_request.get("nonce", "")),
-        }
-    elif isinstance(duplicate_request, dict):
-        command = {
-            "op": "duplicate",
-            "project_id": str(duplicate_request.get("project_id", "")),
-            "project": duplicate_request.get("project", {}),
-            "nonce": str(duplicate_request.get("nonce", "")),
-        }
-    elif isinstance(load_request, dict):
-        command = {
-            "op": "load",
-            "project_id": str(load_request.get("project_id", "")),
-            "nonce": str(load_request.get("nonce", "")),
-        }
-    active = st.session_state.get("_browser_active_project")
-    queued_load_id = str(
-        st.session_state.get("_browser_project_load_after_save", "")
-    )
-    if (
-        command is None
-        and st.session_state.get("_browser_project_initialized")
-        and isinstance(active, dict)
-    ):
-        name_revision = int(st.session_state.get("_browser_project_name_revision", 0))
-        edited_name = st.session_state.get(f"_browser_project_name_{name_revision}")
-        if edited_name is not None:
-            active["name"] = str(edited_name).strip() or "Untitled project"
-        results_signature = _bass_match_results_signature()
-        content_signature = _browser_project_state_signature(
-            active,
-            results_signature,
-        )
-        payload = None
-        if content_signature != st.session_state.get(
-            "_browser_project_content_signature"
-        ):
-            active["updated_at"] = datetime.now(UTC).isoformat()
-            st.session_state["_browser_project_content_signature"] = content_signature
-        if content_signature != st.session_state.get("_browser_project_last_ack"):
-            include_results = results_signature != st.session_state.get(
-                "_browser_project_saved_results_signature"
-            )
-            payload = _build_lfp_project(
-                active,
-                include_results=include_results,
-            )
-            if include_results:
-                _cache_lfp_download(payload, content_signature)
-            command = {
-                "op": "upsert",
-                "nonce": content_signature,
-                "project": payload,
-                "replace": include_results,
-                # Once the project is present in the sidebar index, ordinary
-                # parameter edits need no state response from JavaScript.
-                # This prevents the autosave ack/updated_at from causing a
-                # second full-page rerun after the calculation already ended.
-                "quiet": (
-                    not queued_load_id
-                    and not str(bridge_state.get("error", ""))
-                    and _browser_project_summary_is_current(
-                        active,
-                        known_projects,
-                    )
-                ),
-            }
-            st.session_state["_browser_project_pending_results"] = {
-                "nonce": content_signature,
-                "signature": results_signature if include_results else "",
-            }
-        elif queued_load_id:
-            load_request = {
-                "project_id": queued_load_id,
-                "nonce": uuid.uuid4().hex,
-            }
-            st.session_state["_browser_project_load_request"] = load_request
-            st.session_state.pop("_browser_project_load_after_save", None)
-            command = {
-                "op": "load",
-                "project_id": queued_load_id,
-                "nonce": str(load_request["nonce"]),
-            }
-
-    if isinstance(load_request, dict):
-        bridge_state["loaded_project_json"] = component_state.get(
-            "loaded_project_json", ""
-        )
-    result = _browser_project_store_component(
-        key="_browser_project_store",
-        data={"command": command, "state": _json_safe(bridge_state)},
-        default={
-            "ready": False,
-            "summaries_json": "[]",
-            "ack": "",
-            "load_ack": "",
-            "duplicate_ack": "",
-            "delete_ack": "",
-            "loaded_project_json": "",
-            "error": "",
-        },
-        height=0,
-        on_ready_change=lambda: None,
-        on_summaries_json_change=lambda: None,
-        on_ack_change=lambda: None,
-        on_load_ack_change=lambda: None,
-        on_duplicate_ack_change=lambda: None,
-        on_delete_ack_change=lambda: None,
-        on_loaded_project_json_change=lambda: None,
-        on_error_change=lambda: None,
-    )
-    projects = _decode_browser_project_summaries(
-        getattr(result, "summaries_json", "[]")
-    )
-    if (
-        isinstance(command, dict)
-        and command.get("op") == "upsert"
-        and command.get("quiet")
-    ):
-        # Quiet writes intentionally do not publish component state and hence
-        # cannot trigger a Streamlit rerun. Treat the queued IndexedDB write as
-        # accepted; a JavaScript failure still publishes `error` so a later
-        # interaction can retry it.
-        _acknowledge_browser_project_save(str(command.get("nonce", "")))
-    ack = str(getattr(result, "ack", "") or "")
-    _acknowledge_browser_project_save(ack)
-    duplicate_ack = str(getattr(result, "duplicate_ack", "") or "")
-    if (
-        isinstance(duplicate_request, dict)
-        and duplicate_ack == str(duplicate_request.get("nonce", ""))
-    ):
-        duplicate_meta = duplicate_request.get("project", {})
-        duplicate_name = (
-            str(duplicate_meta.get("name", "Untitled project"))
-            if isinstance(duplicate_meta, dict)
-            else "Untitled project"
-        )
-        st.session_state.pop("_browser_project_duplicate_request", None)
-        st.session_state["_browser_project_action_message"] = (
-            f"Duplicated project as {duplicate_name}"
-        )
-        st.rerun()
-    delete_ack = str(getattr(result, "delete_ack", "") or "")
-    if (
-        isinstance(delete_request, dict)
-        and delete_ack == str(delete_request.get("nonce", ""))
-    ):
-        deleted_name = str(
-            delete_request.get("project_name", "Untitled project")
-        )
-        st.session_state.pop("_browser_project_delete_request", None)
-        st.session_state["_browser_project_action_message"] = (
-            f"Deleted project: {deleted_name}"
-        )
-        st.rerun()
-    if ack:
-        queued_load_id = str(
-            st.session_state.get("_browser_project_load_after_save", "")
-        )
-        if (
-            queued_load_id
-            and ack == str(st.session_state.get(
-                "_browser_project_content_signature",
-                "",
-            ))
-        ):
-            st.session_state["_browser_project_load_request"] = {
-                "project_id": queued_load_id,
-                "nonce": uuid.uuid4().hex,
-            }
-            st.session_state.pop("_browser_project_load_after_save", None)
-            st.rerun()
-    loaded_project = None
-    load_ack = str(getattr(result, "load_ack", "") or "")
-    if (
-        isinstance(load_request, dict)
-        and load_ack == str(load_request.get("nonce", ""))
-    ):
-        try:
-            loaded_project = json.loads(
-                str(getattr(result, "loaded_project_json", "") or "")
-            )
-        except (TypeError, ValueError):
-            loaded_project = None
-        if not isinstance(loaded_project, dict):
-            loaded_project = None
-            failed_id = str(load_request.get("project_id", ""))
-            failed_summary = next(
-                (
-                    item for item in projects
-                    if str(item.get("id", "")) == failed_id
-                ),
-                {},
-            )
-            failed_name = str(
-                failed_summary.get("name", "the selected project")
-            )
-            # A missing/orphaned IndexedDB payload must complete the request.
-            # Keeping the same acknowledged nonce queued makes the component
-            # publish the same state forever and pegs the Streamlit runner.
-            st.session_state.pop("_browser_project_load_request", None)
-            st.session_state.pop("_browser_project_load_after_save", None)
-            st.session_state["_browser_project_initialized"] = True
-            st.session_state["_browser_project_load_error"] = (
-                f"Could not open {failed_name}: its saved data is missing or "
-                "invalid. You can delete it below or create a new project."
-            )
-    return (
-        bool(getattr(result, "ready", False)),
-        projects,
-        str(getattr(result, "error", "") or ""),
-        loaded_project,
-    )
-
-
-def _browser_project_startup_mode(
-    ready: bool,
-    initialized: bool,
-    projects: list[dict],
-) -> str:
-    """Return the non-blocking startup action for the browser project store."""
-    if not ready or initialized:
-        return "continue"
-    if not projects:
-        return "new"
-    return "choose"
-
-
-def _initialize_browser_project_store() -> None:
-    """Create an empty store or present saved projects in the sidebar."""
-    ready, projects, error, loaded_project = _browser_project_store()
-    st.session_state["_browser_project_store_ready"] = ready
-    st.session_state["_browser_project_summaries"] = projects
-    if error:
-        # A quiet write reports only failures. Make the next user interaction
-        # retry both design state and any heavy Finder results.
-        st.session_state.pop("_browser_project_last_ack", None)
-        st.session_state.pop("_browser_project_saved_results_signature", None)
-        st.warning(
-            "Browser autosave is unavailable in this session. "
-            f"Download an .lfp backup before leaving. ({error})"
-        )
-    if loaded_project is not None:
-        _activate_browser_project(loaded_project, already_persisted=True)
-        st.rerun()
-    startup_mode = _browser_project_startup_mode(
-        ready,
-        bool(st.session_state.get("_browser_project_initialized")),
-        projects,
-    )
-    if startup_mode == "continue":
-        return
-    if startup_mode == "new":
-        _start_new_browser_project()
-        st.rerun()
-    st.session_state["_browser_project_menu_auto_open"] = True
 
 
 def _apply_loaded_params(data: dict) -> int:
@@ -2867,9 +2039,6 @@ def _apply_loaded_params(data: dict) -> int:
         st.session_state["reflex_resonator_type"] = _RESONATOR_PR
         if "pr_vb_l" in data and "reflex_vb_l" not in data:
             st.session_state["reflex_vb_l"] = float(data["pr_vb_l"])
-    # v0.2 presets used two overlapping controls for the same decision and
-    # v0.3 offered a starter-based "Suggested" next to one "Optimized" mode.
-    # Both collapse onto the single optimizer-objective strategy control.
     if "box_strategy" not in data:
         if st.session_state.get("sim_auto_align", True):
             strategy = "Max extension"
@@ -2881,9 +2050,6 @@ def _apply_loaded_params(data: dict) -> int:
         strategy = _normalize_box_strategy(st.session_state.get("box_strategy", "Max extension"))
     _set_box_strategy_state(strategy)
     if strategy in _OPT_OBJECTIVE_LABELS:
-        # A loaded auto box may predate the current engine or come from the
-        # retired starter algorithm: force the sidebar refresh to re-derive
-        # it with the one active optimizer.
         st.session_state["_optimizer_engine_revision"] = 0
     return applied
 
@@ -2912,65 +2078,15 @@ def _decode_share_payload(token: str) -> dict:
     return data
 
 
-@st.cache_resource(show_spinner=False)
-def _saas_project_store(
-    backend: str,
-    gcp_project: str | None,
-    firestore_database: str,
-):
-    settings = _saas.SaaSSettings(
-        enabled=True,
-        backend=backend,
-        gcp_project=gcp_project,
-        firestore_database=firestore_database,
-    )
-    return _saas.create_project_store(settings)
-
-
-def _active_saas_project_store():
-    return _saas_project_store(
-        _SAAS_SETTINGS.backend,
-        _SAAS_SETTINGS.gcp_project,
-        _SAAS_SETTINGS.firestore_database,
-    )
-
-
-def _saas_project_summaries(
-    user: _saas.SaaSUser,
-    *,
-    refresh: bool = False,
-) -> list[_saas.ProjectSummary]:
-    identity = (user.tenant_id, user.uid)
-    if (
-        refresh
-        or st.session_state.get("_saas_projects_identity") != identity
-        or "_saas_project_summaries" not in st.session_state
-    ):
-        summaries = _active_saas_project_store().list_projects(user)
-        st.session_state["_saas_projects_identity"] = identity
-        st.session_state["_saas_project_summaries"] = summaries
-    return list(st.session_state.get("_saas_project_summaries", []))
-
-
-def _reset_saas_project_editor(name: str = "Untitled project") -> None:
-    _clear_active_project_state()
-    _reset_finder_defaults()
-    st.session_state.pop("_saas_active_project_id", None)
-    st.session_state.pop("_saas_active_project_revision", None)
-    st.session_state["_saas_active_project_name"] = name
-    st.session_state["_saas_editor_revision"] = (
-        int(st.session_state.get("_saas_editor_revision", 0)) + 1
-    )
-
-
-def _render_saas_project_controls(user: _saas.SaaSUser) -> None:
-    """Render authenticated cloud-project actions inside the Project section."""
+def _render_authenticated_account_controls(user: _saas.SaaSUser) -> None:
+    """Show the signed-in identity in the sidebar."""
     entitlements = _saas.effective_entitlements(user, _SAAS_SETTINGS)
     if entitlements.promotion == "open_beta":
         access_label = "Open Beta · full access"
     else:
         access_label = f"{entitlements.plan.title()} plan"
-    st.caption(f"{user.name} · {access_label}")
+    st.markdown("**Account**")
+    st.caption(f"{user.name or user.email} · {access_label}")
     account_col, logout_col = st.columns([3, 2])
     with account_col:
         st.caption(user.email or user.uid)
@@ -2981,163 +2097,7 @@ def _render_saas_project_controls(user: _saas.SaaSUser) -> None:
             width="stretch",
         ):
             _sign_out_saas()
-
-    try:
-        summaries = _saas_project_summaries(user)
-    except Exception as exc:
-        logger.exception("Could not list cloud projects")
-        st.error(f"Cloud projects unavailable: {exc}")
-        return
-
-    st.markdown("**Cloud projects**")
-    st.caption(
-        f"{len(summaries)} / {entitlements.saved_projects} saved projects"
-    )
-    if st.session_state.get("_saas_active_project_id"):
-        if st.button(
-            "New cloud project",
-            key="saas_new_cloud_project",
-            width="stretch",
-        ):
-            _reset_saas_project_editor()
-            st.rerun()
-
-    editor_revision = int(st.session_state.get("_saas_editor_revision", 0))
-    project_name = st.text_input(
-        "Cloud project name",
-        value=str(
-            st.session_state.get("_saas_active_project_name", "Untitled project")
-        ),
-        max_chars=80,
-        key=f"_saas_project_name_{editor_revision}",
-    )
-    active_project_id = st.session_state.get("_saas_active_project_id")
-    active_revision = st.session_state.get("_saas_active_project_revision")
-    if st.button(
-        "Save cloud project",
-        key="saas_save_cloud_project",
-        type="primary",
-        width="stretch",
-    ):
-        if active_project_id is None and len(summaries) >= entitlements.saved_projects:
-            if entitlements.promotion == "open_beta":
-                st.error(
-                    "The Open Beta currently allows "
-                    f"{entitlements.saved_projects} saved projects."
-                )
-            else:
-                st.error(
-                    f"The {entitlements.plan} plan allows "
-                    f"{entitlements.saved_projects} saved projects."
-                )
-        else:
-            try:
-                record = _active_saas_project_store().save_project(
-                    user,
-                    project_name,
-                    _build_cloud_project_payload(),
-                    _VERSION,
-                    project_id=active_project_id,
-                    expected_revision=(
-                        int(active_revision) if active_revision is not None else 0
-                    ),
-                )
-                st.session_state["_saas_active_project_id"] = record.project_id
-                st.session_state["_saas_active_project_revision"] = record.revision
-                st.session_state["_saas_active_project_name"] = record.name
-                _saas_project_summaries(user, refresh=True)
-                st.toast(f"Saved cloud project: {record.name}")
-                st.rerun()
-            except _saas.ProjectConflictError:
-                st.error(
-                    "This cloud project changed in another session. Reload it "
-                    "before saving again."
-                )
-            except Exception as exc:
-                logger.exception("Could not save cloud project")
-                st.error(f"Could not save cloud project: {exc}")
-
-    if summaries:
-        summary_by_id = {summary.project_id: summary for summary in summaries}
-        project_ids = list(summary_by_id)
-        selected_id = st.selectbox(
-            "Open cloud project",
-            project_ids,
-            format_func=lambda project_id: (
-                f"{summary_by_id[project_id].name} · "
-                f"r{summary_by_id[project_id].revision}"
-            ),
-            key="saas_open_cloud_project",
-        )
-        load_col, refresh_col = st.columns(2)
-        with load_col:
-            load_clicked = st.button(
-                "Load",
-                key="saas_load_cloud_project",
-                width="stretch",
-            )
-        with refresh_col:
-            refresh_clicked = st.button(
-                "Refresh",
-                key="saas_refresh_cloud_projects",
-                width="stretch",
-            )
-        if refresh_clicked:
-            _saas_project_summaries(user, refresh=True)
-            st.rerun()
-        if load_clicked:
-            try:
-                record = _active_saas_project_store().load_project(user, selected_id)
-                if record is None:
-                    raise ValueError("Cloud project no longer exists")
-                _snapshot_design_state()
-                if (
-                    isinstance(record.parameters, dict)
-                    and isinstance(
-                        record.parameters.get("_load_forge_meta"),
-                        dict,
-                    )
-                    and "parameters" in record.parameters
-                ):
-                    design_backup = st.session_state.get(
-                        "_design_state_backup"
-                    )
-                    _clear_active_project_state()
-                    if isinstance(design_backup, dict):
-                        st.session_state["_design_state_backup"] = (
-                            design_backup
-                        )
-                    count = _apply_lfp_project(record.parameters)
-                else:
-                    # Backward compatibility for cloud projects saved before
-                    # the complete Bass Match payload was introduced.
-                    count = _apply_loaded_params(record.parameters)
-                st.session_state["_saas_active_project_id"] = record.project_id
-                st.session_state["_saas_active_project_revision"] = record.revision
-                st.session_state["_saas_active_project_name"] = record.name
-                st.session_state["_saas_editor_revision"] = editor_revision + 1
-                st.toast(f"Loaded {record.name} · {count} parameters")
-                st.rerun()
-            except Exception as exc:
-                logger.exception("Could not load cloud project")
-                st.error(f"Could not load cloud project: {exc}")
-
     st.divider()
-
-
-def _render_authenticated_account_controls(user: _saas.SaaSUser) -> None:
-    """Show the signed-in identity when cloud-project persistence is disabled."""
-    st.markdown("**Account**")
-    account_col, logout_col = st.columns([3, 2])
-    with account_col:
-        st.caption(user.email or user.uid)
-    with logout_col:
-        if not _SAAS_SETTINGS.auth_bypass and st.button(
-            "Sign out",
-            key="auth_only_sign_out",
-            width="stretch",
-        ):
-            _sign_out_saas()
 
 
 def _project_download_filename(name: str) -> str:
@@ -3145,289 +2105,53 @@ def _project_download_filename(name: str) -> str:
     return f"{stem or 'load_forge_project'}.lfp"
 
 
-def _render_browser_project_controls() -> None:
-    active = st.session_state.get("_browser_active_project")
-    st.markdown("**Browser project**")
-    summaries = [
-        item for item in st.session_state.get("_browser_project_summaries", [])
-        if isinstance(item, dict) and item.get("id")
-    ]
-    if not isinstance(active, dict):
-        if not st.session_state.get("_browser_project_store_ready"):
-            st.caption("Loading projects saved in this browser…")
-            return
-        st.caption("Choose a project saved in this browser")
-        load_error = st.session_state.get("_browser_project_load_error")
-        if load_error:
-            st.error(str(load_error))
-        if summaries:
-            project_by_id = {
-                str(item["id"]): item
-                for item in summaries
-            }
-            selected_id = st.selectbox(
-                "Project",
-                list(project_by_id),
-                format_func=lambda project_id: str(
-                    project_by_id[project_id].get("name", "Untitled project")
-                ),
-                key="_browser_project_menu_selection",
-            )
-            if st.button(
-                "Open project",
-                type="secondary",
-                key="_browser_project_menu_open",
-                width="stretch",
-            ):
-                _request_browser_project_load(selected_id)
-                st.rerun()
-            selected_name = str(
-                project_by_id[selected_id].get("name", "Untitled project")
-            )
-            manage_columns = st.columns(2)
-            with manage_columns[0]:
-                if st.button(
-                    "Duplicate project",
-                    key="_browser_duplicate_selected_project",
-                    width="stretch",
-                ):
-                    _request_browser_project_duplicate(
-                        selected_id,
-                        selected_name,
-                    )
-                    st.rerun()
-            with manage_columns[1]:
-                if st.button(
-                    "Delete project…",
-                    key="_browser_delete_selected_project",
-                    width="stretch",
-                ):
-                    st.session_state[
-                        "_browser_selected_delete_confirmation"
-                    ] = {
-                        "project_id": selected_id,
-                        "project_name": selected_name,
-                    }
-                    st.rerun()
-            selected_confirmation = st.session_state.get(
-                "_browser_selected_delete_confirmation"
-            )
-            if isinstance(selected_confirmation, dict):
-                confirmation_name = str(
-                    selected_confirmation.get(
-                        "project_name", "Untitled project"
-                    )
-                )
-                st.warning(
-                    f"Delete {confirmation_name} permanently from this browser?"
-                )
-                confirm_columns = st.columns(2)
-                with confirm_columns[0]:
-                    if st.button(
-                        "Cancel",
-                        key="_browser_cancel_delete_selected_project",
-                        width="stretch",
-                    ):
-                        st.session_state.pop(
-                            "_browser_selected_delete_confirmation", None
-                        )
-                        st.rerun()
-                with confirm_columns[1]:
-                    if st.button(
-                        "Delete permanently",
-                        key="_browser_confirm_delete_selected_project",
-                        width="stretch",
-                    ):
-                        _request_browser_project_delete(
-                            str(selected_confirmation.get("project_id", "")),
-                            confirmation_name,
-                        )
-                        st.session_state.pop(
-                            "_browser_selected_delete_confirmation", None
-                        )
-                        st.rerun()
-        if st.button(
-            "New project",
-            key="_browser_new_project",
-            width="stretch",
-        ):
-            _start_new_browser_project()
-            st.rerun()
-        return
-
-    st.caption("Autosaved on this device")
-    revision = int(st.session_state.get("_browser_project_name_revision", 0))
-    project_name = st.text_input(
-        "Project name",
-        value=str(active.get("name", "Untitled project")),
-        max_chars=80,
-        key=f"_browser_project_name_{revision}",
-    )
-    active["name"] = project_name.strip() or "Untitled project"
-
-    active_id = str(active.get("id", ""))
-    other_projects = [
-        item for item in summaries
-        if str(item.get("id", "")) != active_id
-    ]
-    action_columns = st.columns(2)
-    with action_columns[0]:
-        if st.button(
-            "New project",
-            key="_browser_new_project",
-            width="stretch",
-        ):
-            _start_new_browser_project()
-            st.rerun()
-    with action_columns[1]:
-        if st.button(
-            "Duplicate project",
-            key="_browser_duplicate_project",
-            width="stretch",
-        ):
-            _duplicate_active_browser_project()
-            st.rerun()
-
-    content_signature = str(
-        st.session_state.get("_browser_project_content_signature", "")
-    )
-    download_cache = st.session_state.get("_browser_project_download_cache")
-    cache_ready = (
-        isinstance(download_cache, dict)
-        and download_cache.get("signature") == content_signature
-        and isinstance(download_cache.get("data"), bytes)
-    )
-    if cache_ready:
-        st.download_button(
-            "Download .lfp",
-            download_cache["data"],
-            _project_download_filename(active["name"]),
-            "application/json",
-            width="stretch",
-            key="_browser_download_project",
-        )
-    elif st.button(
-        "Prepare .lfp",
-        width="stretch",
-        key="_browser_prepare_project_download",
-        help="Prepare the complete project only on demand so large "
-             "Bass Match result sets do not slow every interaction.",
-    ):
-        payload = _build_lfp_project(active, include_results=True)
-        _cache_lfp_download(payload, content_signature)
-        st.rerun()
-
-    if st.session_state.get("_browser_project_delete_confirmation"):
-        st.warning(
-            f"Delete {active['name']} permanently from this browser?"
-        )
-        confirm_columns = st.columns(2)
-        with confirm_columns[0]:
-            if st.button(
-                "Cancel",
-                key="_browser_cancel_delete_project",
-                width="stretch",
-            ):
-                st.session_state.pop(
-                    "_browser_project_delete_confirmation", None
-                )
-                st.rerun()
-        with confirm_columns[1]:
-            if st.button(
-                "Delete permanently",
-                key="_browser_confirm_delete_project",
-                width="stretch",
-            ):
-                _delete_active_browser_project()
-                st.rerun()
-    elif st.button(
-        "Delete project…",
-        key="_browser_delete_project",
-        width="stretch",
-    ):
-        st.session_state["_browser_project_delete_confirmation"] = True
-        st.rerun()
-
-    if other_projects:
-        project_by_id = {
-            str(item["id"]): item
-            for item in other_projects
-        }
-        selected_id = st.selectbox(
-            "Switch project",
-            list(project_by_id),
-            format_func=lambda project_id: str(
-                project_by_id[project_id].get("name", "Untitled project")
-            ),
-            key="_browser_switch_project",
-        )
-        if st.button(
-            "Open selected project",
-            key="_browser_open_selected_project",
-            width="stretch",
-        ):
-            _request_browser_project_load(selected_id)
-            st.rerun()
-    st.divider()
-
-
 def _render_project_menu() -> None:
-    """Render project actions as a normal collapsible sidebar section."""
-    active = st.session_state.get("_browser_active_project")
-    project_label = (
-        f"Project · {active.get('name', 'Untitled project')}"
-        if isinstance(active, dict)
-        else "Project"
-    )
+    """Render project file actions (.lfp import/export, reset, and share link)."""
+    project_name = str(
+        st.session_state.get("project_name", "Untitled project")
+    ).strip() or "Untitled project"
     project_expander = st.expander(
-        project_label,
-        expanded=bool(st.session_state.get("_browser_project_menu_auto_open")),
+        f"Project · {project_name}",
+        expanded=bool(st.session_state.get("_project_menu_auto_open")),
         key="project_menu_expander",
         on_change="rerun",
     )
     if not project_expander.open:
         return
     with project_expander:
-        action_message = st.session_state.pop(
-            "_browser_project_action_message", None
-        )
-        if action_message:
-            st.toast(str(action_message))
-        _render_browser_project_controls()
-        if _SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None:
-            _render_saas_project_controls(_CURRENT_SAAS_USER)
-        elif _CURRENT_SAAS_USER is not None:
+        if _CURRENT_SAAS_USER is not None:
             _render_authenticated_account_controls(_CURRENT_SAAS_USER)
-        if st.button(
-            "Share via URL",
-            key="project_share_url",
+
+        name_revision = int(st.session_state.get("_project_name_revision", 0))
+        name_input = st.text_input(
+            "Project name",
+            value=project_name,
+            key=f"project_name_input_{name_revision}",
+            max_chars=80,
+            help="Name used when exporting the .lfp project file",
+        )
+        if name_input.strip() and name_input.strip() != project_name:
+            st.session_state["project_name"] = name_input.strip()
+            project_name = name_input.strip()
+
+        payload = _build_lfp_project({"name": project_name}, include_results=True)
+        lfp_data = json.dumps(payload, indent=2, allow_nan=False).encode("utf-8")
+        st.download_button(
+            "Download .lfp",
+            lfp_data,
+            _project_download_filename(project_name),
+            "application/json",
             width="stretch",
-            help="Encodes the current design into the page URL and shows the "
-                 "link below, ready to copy.",
-        ):
-            token = _encode_share_payload()
-            st.session_state["_applied_share_token"] = token
-            st.query_params["d"] = token
-            st.toast("Share link ready - copy it below")
-        active_share_token = st.query_params.get("d")
-        if active_share_token:
-            st.code(_share_link_url(str(active_share_token)), language=None)
-            if st.button(
-                "Clear share link",
-                key="project_clear_share_url",
-                width="stretch",
-            ):
-                st.session_state["_applied_share_token"] = None
-                st.query_params.pop("d", None)
-                st.rerun()
-        # Rotate the widget key after a successful load.  A file uploader keeps
-        # its value across reruns; reusing the same key here would therefore
-        # reload the same preset and call st.rerun() forever.
+            key="project_download_lfp_btn",
+            help="Save the current design, box parameters, and Bass Match state to your computer.",
+        )
+
         upload_revision = int(st.session_state.get("_project_upload_revision", 0))
         upload = st.file_uploader(
             "Open .lfp project or CRW driver",
             type=["lfp", "json", "crw"],
             key=f"_project_upload_{upload_revision}",
+            help="Load a previously saved .lfp project file or CRW driver.",
         )
         if upload is not None:
             try:
@@ -3446,27 +2170,19 @@ def _render_project_menu() -> None:
                     st.rerun()
                 payload = json.loads(upload.getvalue().decode("utf-8"))
                 _snapshot_design_state()
-                metadata = payload.get("_load_forge_meta", {})
-                is_complete_project = (
-                    isinstance(metadata, dict)
-                    and int(metadata.get("format", 1)) >= 2
-                    and isinstance(payload.get("parameters"), dict)
-                )
-                if is_complete_project:
-                    _activate_browser_project(payload)
-                    count = len(payload["parameters"])
-                else:
-                    count = _apply_lfp_project(payload)
+                count = _apply_lfp_project(payload)
+                if isinstance(payload.get("project"), dict) and payload["project"].get("name"):
+                    st.session_state["project_name"] = str(payload["project"]["name"]).strip()
+                elif upload.name:
+                    st.session_state["project_name"] = Path(upload.name).stem
+                st.session_state["_project_name_revision"] = name_revision + 1
                 st.session_state["_project_upload_revision"] = upload_revision + 1
-                st.toast(
-                    f"Loaded project · {count} design parameters"
-                    if is_complete_project
-                    else f"Loaded {count} parameters"
-                )
+                st.toast(f"Loaded project · {count} parameters")
                 st.rerun()
             except Exception as exc:
-                logger.exception("Invalid preset")
-                st.error(f"Invalid preset: {exc}")
+                logger.exception("Could not parse uploaded project")
+                st.error(f"Could not load project: {exc}")
+
         if st.session_state.get("_design_state_backup"):
             if st.button(
                 "Restore previous design",
@@ -3477,6 +2193,50 @@ def _render_project_menu() -> None:
                 _restore_design_state()
                 st.toast("Previous design restored")
                 st.rerun()
+
+        if st.button(
+            "New / Reset design",
+            key="project_reset_design_btn",
+            width="stretch",
+            help="Reset all parameters and return to the default design.",
+        ):
+            _clear_active_project_state()
+            _reset_finder_defaults()
+            st.session_state["project_name"] = "Untitled project"
+            st.session_state["_project_name_revision"] = name_revision + 1
+            st.toast("Reset to default design")
+            st.rerun()
+
+        if st.button(
+            "Share via URL",
+            key="project_share_url",
+            width="stretch",
+            help="Encodes the current design into the page URL and shows the link below, ready to copy.",
+        ):
+            token = _encode_share_payload()
+            st.session_state["_applied_share_token"] = token
+            st.query_params["d"] = token
+            st.toast("Share link ready - copy it below")
+        active_share_token = st.query_params.get("d")
+        if active_share_token:
+            st.code(_share_link_url(str(active_share_token)), language=None)
+            if st.button(
+                "Clear share link",
+                key="project_clear_share_url",
+                width="stretch",
+            ):
+                st.session_state["_applied_share_token"] = None
+                st.query_params.pop("d", None)
+                st.rerun()
+
+
+def _snapshot_revision(snapshot: dict) -> str:
+    """Return a compact persistent identity for a potentially large snapshot."""
+    revision = str(snapshot.get("_revision", ""))
+    if not revision:
+        revision = uuid.uuid4().hex
+        snapshot["_revision"] = revision
+    return revision
 
 
 def _chart_signature() -> str:
@@ -3626,48 +2386,24 @@ def _bandpass6_box_from_state() -> _acoustics.Bandpass6Box:
     )
 
 
-def _waveguide_box_from_state():
-    """Build the selected distributed-waveguide model from sidebar state."""
-    topology = str(st.session_state.get("waveguide_topology", "TL"))
-    length_m = float(st.session_state["waveguide_length_m"])
-    area_cm2 = float(st.session_state["waveguide_area_cm2"])
-    mouth_area_cm2 = float(st.session_state["waveguide_mouth_area_cm2"])
-    line_q = float(st.session_state["waveguide_line_q"])
-    flare = str(st.session_state.get("waveguide_flare", "exponential"))
-    segments = (_acoustics.WaveguideSegment(length_m, area_cm2),)
-    if topology == "TL":
-        return _acoustics.TransmissionLineBox(
-            segments=segments,
-            termination=str(st.session_state["waveguide_termination"]),
-            mouth_area_cm2=mouth_area_cm2,
-            line_q=line_q,
-        )
-    if topology == "MLTL":
-        return _acoustics.MltlBox(
-            segments=segments,
-            vent_area_cm2=float(st.session_state["waveguide_vent_area_cm2"]),
-            vent_length_m=float(st.session_state["waveguide_vent_length_m"]),
-            line_q=line_q,
-        )
-    if topology == "QW":
-        return _acoustics.TransmissionLineBox(
-            segments=segments, termination="closed", mouth_area_cm2=mouth_area_cm2,
-            line_q=line_q,
-        )
-    if topology == "BLH":
-        return _acoustics.HornBox(
-            length_m=length_m, throat_area_cm2=area_cm2,
-            mouth_area_cm2=mouth_area_cm2, flare=flare,
-            line_q=line_q,
-        )
-    if topology == "TH":
-        return _acoustics.TappedHornBox(
-            length_m=length_m, throat_area_cm2=area_cm2,
-            mouth_area_cm2=mouth_area_cm2,
-            tap_position_m=float(st.session_state["waveguide_tap_position_m"]),
-            flare=flare, line_q=line_q,
-        )
-    raise ValueError(f"Unknown waveguide topology: {topology}")
+def _bandpass8_box_from_state() -> _acoustics.Bandpass8Box:
+    return _acoustics.Bandpass8Box(
+        v1_l=float(st.session_state["bp8_v1_l"]),
+        f1_hz=float(st.session_state["bp8_f1_hz"]),
+        v2_l=float(st.session_state["bp8_v2_l"]),
+        f2_hz=float(st.session_state["bp8_f2_hz"]),
+        v3_l=float(st.session_state["bp8_v3_l"]),
+        f3_hz=float(st.session_state["bp8_f3_hz"]),
+        q_abs_1=float(st.session_state.get("bp8_q_abs_1", 15.0)),
+        q_abs_2=float(st.session_state.get("bp8_q_abs_2", 15.0)),
+        q_abs_3=float(st.session_state.get("bp8_q_abs_3", 15.0)),
+        q_leak_1=float(st.session_state.get("bp8_q_leak_1", 1000.0)),
+        q_leak_2=float(st.session_state.get("bp8_q_leak_2", 1000.0)),
+        q_leak_3=float(st.session_state.get("bp8_q_leak_3", 1000.0)),
+        q_port_1=float(st.session_state.get("bp8_q_port_1", 15.0)),
+        q_port_2=float(st.session_state.get("bp8_q_port_2", 15.0)),
+        q_port_3=float(st.session_state.get("bp8_q_port_3", 15.0)),
+    )
 
 
 def _optional_positive(key: str) -> float | None:
@@ -3915,15 +2651,22 @@ def _optimizer_goals_from_state() -> _acoustics.OptimizationGoals:
 
 def _alignment_uses_optimizer() -> bool:
     return (
-        st.session_state.get("load_type", "DCCAV") not in {
-            "Infinite baffle", "Distributed waveguide"
-        }
+        st.session_state.get("load_type", "DCCAV") != "Infinite baffle"
         and _box_strategy_is_auto()
     )
 
 
+def _apply_bandpass8_alignment(alignment: _acoustics.Bandpass8Alignment) -> None:
+    st.session_state["bp8_v1_l"] = float(alignment.v1_l)
+    st.session_state["bp8_f1_hz"] = float(alignment.f1_hz)
+    st.session_state["bp8_v2_l"] = float(alignment.v2_l)
+    st.session_state["bp8_f2_hz"] = float(alignment.f2_hz)
+    st.session_state["bp8_v3_l"] = float(alignment.v3_l)
+    st.session_state["bp8_f3_hz"] = float(alignment.f3_hz)
+
+
 def _apply_optimized_box(
-    box: _acoustics.DccavBox | _acoustics.ReflexBox | _acoustics.Bandpass4Box | _acoustics.Bandpass6Box | _acoustics.SealedBox,
+    box: _acoustics.DccavBox | _acoustics.ReflexBox | _acoustics.Bandpass4Box | _acoustics.Bandpass6Box | _acoustics.Bandpass8Box | _acoustics.SealedBox,
 ):
     if isinstance(box, _acoustics.ReflexBox):
         st.session_state["reflex_vb_l"] = float(box.vb_l)
@@ -3939,6 +2682,13 @@ def _apply_optimized_box(
         st.session_state["bandpass6_fr_hz"] = float(box.fr_hz)
         st.session_state["bandpass6_vp_l"] = float(box.vp_l)
         st.session_state["bandpass6_fp_hz"] = float(box.fp_hz)
+    elif isinstance(box, _acoustics.Bandpass8Box):
+        st.session_state["bp8_v1_l"] = float(box.v1_l)
+        st.session_state["bp8_f1_hz"] = float(box.f1_hz)
+        st.session_state["bp8_v2_l"] = float(box.v2_l)
+        st.session_state["bp8_f2_hz"] = float(box.f2_hz)
+        st.session_state["bp8_v3_l"] = float(box.v3_l)
+        st.session_state["bp8_f3_hz"] = float(box.f3_hz)
     else:
         st.session_state["box_vh_l"] = float(box.vh_l)
         st.session_state["box_fh_hz"] = float(box.fh_hz)
@@ -3977,10 +2727,6 @@ def _optimized_port_diameter_cm(
     sized_cm = _acoustics.port_diameter_for_load(
         volume_l, tuning_hz, end_correction, floor_cm)
     maximum_cm = float(_acoustics.OPTIMIZER_MAX_PORT_DIAMETER_CM)
-    # sized_cm is already snapped to the sidebar's 0.5 cm grid; sized_cm is
-    # only None for a box the optimizer should already have rejected, so
-    # keep the (grid-rounded) mandatory floor and let the Port Geometry
-    # warnings flag the mismatch instead of silently applying an undersized vent.
     if sized_cm is not None:
         diameter_cm = sized_cm
     else:
@@ -3990,7 +2736,7 @@ def _optimized_port_diameter_cm(
 
 def _apply_optimized_port_geometry(
     driver: _acoustics.DriverTS,
-    box: _acoustics.DccavBox | _acoustics.ReflexBox | _acoustics.Bandpass4Box | _acoustics.Bandpass6Box | _acoustics.SealedBox,
+    box: _acoustics.DccavBox | _acoustics.ReflexBox | _acoustics.Bandpass4Box | _acoustics.Bandpass6Box | _acoustics.Bandpass8Box | _acoustics.SealedBox,
 ) -> None:
     """Replace stale preset diameters with geometry for the optimized box."""
     if isinstance(box, _acoustics.SealedBox):
@@ -4014,6 +2760,14 @@ def _apply_optimized_port_geometry(
             driver, result, box.vr_l, box.fr_hz, 1.43, "upper")
         st.session_state["bandpass6_port_d_p_cm"] = _optimized_port_diameter_cm(
             driver, result, box.vp_l, box.fp_hz, 1.43, "lower")
+    elif isinstance(box, _acoustics.Bandpass8Box):
+        result = _acoustics.simulate_bandpass8(driver, box, freq, voltage_v)
+        st.session_state["bp8_dp1_cm"] = _optimized_port_diameter_cm(
+            driver, result, box.v1_l, box.f1_hz, 1.43, "lower")
+        st.session_state["bp8_dp2_cm"] = _optimized_port_diameter_cm(
+            driver, result, box.v2_l, box.f2_hz, 1.43, "lower")
+        st.session_state["bp8_dp3_cm"] = _optimized_port_diameter_cm(
+            driver, result, box.v3_l, box.f3_hz, 1.43, "upper")
     else:
         result = _acoustics.simulate(driver, box, freq, voltage_v)
         st.session_state["box_port_d_h_cm"] = _optimized_port_diameter_cm(
@@ -4036,7 +2790,7 @@ def _optimized_summary(optimized: _acoustics.OptimizedAlignment) -> str:
 
 
 def _optimizer_box_signature(
-    box: _acoustics.DccavBox | _acoustics.ReflexBox | _acoustics.Bandpass4Box | _acoustics.Bandpass6Box | _acoustics.SealedBox,
+    box: _acoustics.DccavBox | _acoustics.ReflexBox | _acoustics.Bandpass4Box | _acoustics.Bandpass6Box | _acoustics.Bandpass8Box | _acoustics.SealedBox,
 ) -> tuple:
     if isinstance(box, _acoustics.ReflexBox):
         return ("reflex", box.vb_l, box.fb_hz, box.q_abs, box.q_leak, box.q_port)
@@ -4053,6 +2807,13 @@ def _optimizer_box_signature(
             box.q_abs_r, box.q_abs_p, box.q_leak_r, box.q_leak_p,
             box.q_port_r, box.q_port_p,
         )
+    if isinstance(box, _acoustics.Bandpass8Box):
+        return (
+            "bandpass8", box.v1_l, box.f1_hz, box.v2_l, box.f2_hz, box.v3_l, box.f3_hz,
+            box.q_abs_1, box.q_abs_2, box.q_abs_3,
+            box.q_leak_1, box.q_leak_2, box.q_leak_3,
+            box.q_port_1, box.q_port_2, box.q_port_3,
+        )
     return (
         "dccav", box.vh_l, box.fh_hz, box.vl_l, box.fl_hz,
         box.q_abs_h, box.q_abs_l, box.q_leak_h, box.q_leak_l,
@@ -4063,7 +2824,7 @@ def _optimizer_box_signature(
 def _optimizer_result_context(
     driver: _acoustics.DriverTS,
     load_type: str,
-    box: _acoustics.DccavBox | _acoustics.ReflexBox | _acoustics.Bandpass4Box | _acoustics.Bandpass6Box | _acoustics.SealedBox,
+    box: _acoustics.DccavBox | _acoustics.ReflexBox | _acoustics.Bandpass4Box | _acoustics.Bandpass6Box | _acoustics.Bandpass8Box | _acoustics.SealedBox,
 ) -> tuple:
     goals = _optimizer_goals_from_state()
     return (
@@ -4085,6 +2846,8 @@ def _current_optimizer_summary(driver: _acoustics.DriverTS) -> str | None:
         box = _bandpass4_box_from_state()
     elif load_type == "Bandpass 6th order":
         box = _bandpass6_box_from_state()
+    elif load_type == "Bandpass 8th order":
+        box = _bandpass8_box_from_state()
     elif load_type == "DCCAV":
         box = _box_from_state()
     else:
@@ -4105,6 +2868,8 @@ def _run_box_optimizer(driver: _acoustics.DriverTS) -> _acoustics.OptimizedAlign
         template = _bandpass4_box_from_state()
     elif load_type == "Bandpass 6th order":
         template = _bandpass6_box_from_state()
+    elif load_type == "Bandpass 8th order":
+        template = _bandpass8_box_from_state()
     elif load_type == "Infinite baffle":
         raise ValueError("Infinite baffle has no box to optimize")
     else:
@@ -4152,6 +2917,8 @@ def _apply_empirical_box_for(driver: _acoustics.DriverTS) -> None:
         _apply_bandpass4_alignment(_acoustics.suggest_bandpass4_alignment(driver))
     elif load_type == "Bandpass 6th order":
         _apply_bandpass6_alignment(_acoustics.suggest_bandpass6_alignment(driver))
+    elif load_type == "Bandpass 8th order":
+        _apply_bandpass8_alignment(_acoustics.suggest_bandpass8_alignment(driver))
     elif load_type == "DCCAV":
         _apply_alignment(_acoustics.suggest_alignment(driver))
 
@@ -4877,34 +3644,7 @@ def _on_driver_param_change():
 
 
 def _on_load_type_change():
-    if st.session_state.get("load_type") == "Distributed waveguide":
-        _set_box_strategy_state("Manual")
     _auto_align_current_driver()
-
-
-def _on_waveguide_topology_change():
-    """Seed a practical TH starter when the user first selects TH."""
-    if st.session_state.get("waveguide_topology") == "TH" and not st.session_state.get(
-        "_waveguide_th_seeded", False
-    ):
-        for key, value in (
-            ("waveguide_length_m", 3.40),
-            ("waveguide_area_cm2", 250.0),
-            ("waveguide_mouth_area_cm2", 1100.0),
-            ("waveguide_tap_position_m", 1.02),
-            ("waveguide_flare", "exponential"),
-            ("waveguide_line_q", 6.0),
-        ):
-            st.session_state[key] = value
-        # A TH is an LF module, not a full-range load. Keep the initial plot
-        # inside its useful passband; the range remains user-editable.
-        if (
-            float(st.session_state.get("sim_f_min", 10.0)) == 10.0
-            and float(st.session_state.get("sim_f_max", 500.0)) == 500.0
-        ):
-            st.session_state["sim_f_min"] = 25.0
-            st.session_state["sim_f_max"] = 120.0
-        st.session_state["_waveguide_th_seeded"] = True
 
 
 def _on_pr_preset_change():
@@ -5090,10 +3830,12 @@ def _response_series(result: _acoustics.SimulationResult) -> dict[str, np.ndarra
     series["Total"] = result.spl_total_db
     series["Cone"] = result.spl_driver_db
     if load_type in {
-        "DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order",
+        "DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order", "Bandpass 8th order",
     }:
         if load_type == "Bass reflex" and _reflex_uses_passive_radiator():
             label = "Passive radiator"
+        elif load_type == "Bandpass 8th order":
+            label = "Port 3"
         else:
             label = "Vent" if load_type in {"Bass reflex", "Bandpass 4th order"} else "Lower port"
         series[label] = result.spl_port_db
@@ -5119,6 +3861,12 @@ def _response_tuning_markers() -> list[tuple[str, float]]:
         return [
             ("Rear tuning", float(st.session_state["bandpass6_fr_hz"])),
             ("Front tuning", float(st.session_state["bandpass6_fp_hz"])),
+        ]
+    if load_type == "Bandpass 8th order":
+        return [
+            ("F1 (Front)", float(st.session_state["bp8_f1_hz"])),
+            ("F2 (Rear)", float(st.session_state["bp8_f2_hz"])),
+            ("F3 (Radiating)", float(st.session_state["bp8_f3_hz"])),
         ]
     if load_type == "DCCAV":
         return [
@@ -5218,7 +3966,13 @@ def _response_y_domain(
 def _port_series(result: _acoustics.SimulationResult) -> dict[str, np.ndarray]:
     series = {}
     load_type = st.session_state.get("load_type", "DCCAV")
-    if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order"}:
+    if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order", "Bandpass 8th order"}:
+        return series
+    if load_type == "Bandpass 8th order":
+        if st.session_state.get("plot_port_p1", True):
+            series["Port 1 (Front)"] = result.port_l_velocity
+        if st.session_state.get("plot_port_lower", True):
+            series["Port 3 (Radiating)"] = result.port_h_velocity
         return series
     if st.session_state.get("plot_port_upper", True) and load_type in ("DCCAV", "Bandpass 6th order"):
         series["Upper port"] = result.port_h_velocity
@@ -5741,6 +4495,8 @@ def _pin_label(
         box_txt = f"Vs {box.vs_l:.1f} L / Vp {box.vp_l:.1f} L · Fp {box.fp_hz:.1f} Hz"
     elif load_type == "Bandpass 6th order":
         box_txt = f"Vr {box.vr_l:.1f} L / Vp {box.vp_l:.1f} L · Fr {box.fr_hz:.1f} Hz / Fp {box.fp_hz:.1f} Hz"
+    elif load_type == "Bandpass 8th order":
+        box_txt = f"V1 {box.v1_l:.1f} L / V2 {box.v2_l:.1f} L / V3 {box.v3_l:.1f} L · F1 {box.f1_hz:.0f} / F2 {box.f2_hz:.0f} / F3 {box.f3_hz:.0f} Hz"
     elif load_type == "Sealed":
         box_txt = f"Vb {box.vb_l:.1f} L"
     elif load_type == "Infinite baffle":
@@ -5799,6 +4555,14 @@ def _pinned_response_snapshot(
         port_traces = {
             "Rear port": [float(v) for v in result.port_h_velocity],
             "Front port": [float(v) for v in result.port_l_velocity],
+        }
+    elif load_type == "Bandpass 8th order":
+        response_traces["Port 3"] = [
+            float(v) for v in result.spl_port_db
+        ]
+        port_traces = {
+            "Port 3 (Radiating)": [float(v) for v in result.port_h_velocity],
+            "Port 1 (Front)": [float(v) for v in result.port_l_velocity],
         }
     elif load_type in {"Bass reflex", "Bandpass 4th order"}:
         port_label = (
@@ -6734,6 +5498,8 @@ def _topology_comparison_series(
         vtot = float(box.vs_l + box.vp_l)
     elif load_type == "Bandpass 6th order":
         vtot = float(box.vr_l + box.vp_l)
+    elif load_type == "Bandpass 8th order":
+        vtot = float(box.v1_l + box.v2_l + box.v3_l)
     elif load_type == "Infinite baffle":
         vtot = float(ts.vas_l)
     else:
@@ -6760,6 +5526,14 @@ def _topology_comparison_series(
             ts, bp6_box, freq, voltage_v, series_r_ohm).spl_total_db
     except Exception:
         logger.exception("Comparison bandpass6 simulation failed")
+    try:
+        bp8_start = _acoustics.suggest_bandpass8_alignment(ts)
+        bp8_box = box if load_type == "Bandpass 8th order" else _acoustics.design_space_box(
+            ts, "Bandpass 8th order", vtot, bp8_start.f3_hz)
+        series["Bandpass 8th order"] = _acoustics.simulate_bandpass8(
+            ts, bp8_box, freq, voltage_v, series_r_ohm).spl_total_db
+    except Exception:
+        logger.exception("Comparison bandpass8 simulation failed")
     try:
         if load_type == "Bass reflex" and isinstance(box, _acoustics.PassiveRadiatorBox):
             series["Bass reflex"] = _acoustics.simulate_passive_radiator(
@@ -7230,6 +6004,16 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
         for key in ("q_abs_r", "q_abs_p", "q_leak_r", "q_leak_p", "q_port_r", "q_port_p"):
             if key in _finder_row_box_params(row):
                 st.session_state[f"bandpass6_{key}"] = float(_finder_box_value(row, key, 0.0))
+    elif load_type == "Bandpass 8th order":
+        st.session_state["bp8_v1_l"] = float(row["V1 L"])
+        st.session_state["bp8_f1_hz"] = float(row["f1 Hz"])
+        st.session_state["bp8_v2_l"] = float(row["V2 L"])
+        st.session_state["bp8_f2_hz"] = float(row["f2 Hz"])
+        st.session_state["bp8_v3_l"] = float(row["V3 L"])
+        st.session_state["bp8_f3_hz"] = float(row["f3 Hz"])
+        for key in ("q_abs_1", "q_abs_2", "q_abs_3", "q_leak_1", "q_leak_2", "q_leak_3", "q_port_1", "q_port_2", "q_port_3"):
+            if key in _finder_row_box_params(row):
+                st.session_state[f"bp8_{key}"] = float(_finder_box_value(row, key, 0.0))
     elif load_type == "Sealed":
         st.session_state["sealed_vb_l"] = float(row["Vb L"])
         st.session_state["sealed_q_abs"] = float(_finder_box_value(row, "q_abs", 15.0))
@@ -7248,6 +6032,8 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
         optimized_box = _bandpass4_box_from_state()
     elif load_type == "Bandpass 6th order":
         optimized_box = _bandpass6_box_from_state()
+    elif load_type == "Bandpass 8th order":
+        optimized_box = _bandpass8_box_from_state()
     elif load_type == "DCCAV":
         optimized_box = _box_from_state()
     else:
@@ -7334,6 +6120,27 @@ def _finder_result_snapshot(
             q_port_p=float(_finder_box_value(row, "q_port_p", 15.0)),
         )
         result = _acoustics.simulate_bandpass6(
+            driver, box, frequency_hz, voltage_v
+        )
+    elif load_type == "Bandpass 8th order":
+        box = _acoustics.Bandpass8Box(
+            v1_l=float(row["V1 L"]),
+            f1_hz=float(row["f1 Hz"]),
+            v2_l=float(row["V2 L"]),
+            f2_hz=float(row["f2 Hz"]),
+            v3_l=float(row["V3 L"]),
+            f3_hz=float(row["f3 Hz"]),
+            q_abs_1=float(_finder_box_value(row, "q_abs_1", 15.0)),
+            q_abs_2=float(_finder_box_value(row, "q_abs_2", 15.0)),
+            q_abs_3=float(_finder_box_value(row, "q_abs_3", 15.0)),
+            q_leak_1=float(_finder_box_value(row, "q_leak_1", 1000.0)),
+            q_leak_2=float(_finder_box_value(row, "q_leak_2", 1000.0)),
+            q_leak_3=float(_finder_box_value(row, "q_leak_3", 1000.0)),
+            q_port_1=float(_finder_box_value(row, "q_port_1", 15.0)),
+            q_port_2=float(_finder_box_value(row, "q_port_2", 15.0)),
+            q_port_3=float(_finder_box_value(row, "q_port_3", 15.0)),
+        )
+        result = _acoustics.simulate_bandpass8(
             driver, box, frequency_hz, voltage_v
         )
     elif load_type == "Sealed":
@@ -7667,6 +6474,8 @@ def _apply_pending_atlas_point() -> None:
             template = _bandpass4_box_from_state()
         elif load_type == "Bandpass 6th order":
             template = _bandpass6_box_from_state()
+        elif load_type == "Bandpass 8th order":
+            template = _bandpass8_box_from_state()
         elif load_type == "Sealed":
             template = _sealed_box_from_state()
         else:
@@ -7701,6 +6510,12 @@ def _atlas_loss_signature(load_type: str, box) -> tuple:
             box.q_abs_r, box.q_abs_p, box.q_leak_r, box.q_leak_p,
             box.q_port_r, box.q_port_p,
         )
+    if load_type == "Bandpass 8th order":
+        return (
+            box.q_abs_1, box.q_abs_2, box.q_abs_3,
+            box.q_leak_1, box.q_leak_2, box.q_leak_3,
+            box.q_port_1, box.q_port_2, box.q_port_3,
+        )
     if load_type == "Sealed":
         return (box.q_abs, box.q_leak)
     return (
@@ -7731,6 +6546,12 @@ def _design_space_cached(
             q_abs_r=losses[0], q_abs_p=losses[1],
             q_leak_r=losses[2], q_leak_p=losses[3],
             q_port_r=losses[4], q_port_p=losses[5])
+    elif load_type == "Bandpass 8th order":
+        template = _acoustics.Bandpass8Box(
+            v1_l=1.0, f1_hz=100.0, v2_l=1.0, f2_hz=35.0, v3_l=1.0, f3_hz=60.0,
+            q_abs_1=losses[0], q_abs_2=losses[1], q_abs_3=losses[2],
+            q_leak_1=losses[3], q_leak_2=losses[4], q_leak_3=losses[5],
+            q_port_1=losses[6], q_port_2=losses[7], q_port_3=losses[8])
     else:
         template = _acoustics.DccavBox(
             vh_l=1.0, fh_hz=100.0, vl_l=1.0, fl_hz=50.0,
@@ -8691,6 +7512,8 @@ def _finder_total_volume_l(row: dict | pd.Series) -> float:
         values = (finite_value("Vs L"), finite_value("Vp L"))
     elif load_type == "Bandpass 6th order":
         values = (finite_value("Vr L"), finite_value("Vp L"))
+    elif load_type == "Bandpass 8th order":
+        values = (finite_value("V1 L"), finite_value("V2 L"), finite_value("V3 L"))
     elif load_type == "DCCAV":
         values = (finite_value("Vh L"), finite_value("Vl L"))
     else:
@@ -9740,6 +8563,10 @@ def _simulate_design_cached(
         result = _acoustics.simulate_bandpass6(
             ts, box, freq, voltage_v, series_r_ohm
         )
+    elif load_type == "Bandpass 8th order":
+        result = _acoustics.simulate_bandpass8(
+            ts, box, freq, voltage_v, series_r_ohm
+        )
     elif load_type == "Sealed":
         result = _acoustics.simulate_sealed(
             ts, box, freq, voltage_v, series_r_ohm
@@ -9748,15 +8575,6 @@ def _simulate_design_cached(
         result = _acoustics.simulate_infinite_baffle(
             ts, freq, voltage_v, series_r_ohm
         )
-    elif load_type == "Distributed waveguide":
-        if isinstance(box, _acoustics.MltlBox):
-            result = _acoustics.simulate_mltl(ts, box, freq, voltage_v, series_r_ohm)
-        elif isinstance(box, _acoustics.HornBox):
-            result = _acoustics.simulate_back_loaded_horn(ts, box, freq, voltage_v, series_r_ohm)
-        elif isinstance(box, _acoustics.TappedHornBox):
-            result = _acoustics.simulate_tapped_horn(ts, box, freq, voltage_v, series_r_ohm)
-        else:
-            result = _acoustics.simulate_transmission_line(ts, box, freq, voltage_v, series_r_ohm)
     else:
         result = _acoustics.simulate(ts, box, freq, voltage_v, series_r_ohm)
     ripple_max_freq = float(st.session_state.get("opt_max_ripple_freq_hz", 0.0)) or None
@@ -10032,6 +8850,12 @@ def _render_response_tab(
             "of both vents: the cone is enclosed between two ported chambers. The cone trace "
             "shows internal motion and is not an additional radiating source."
         )
+    elif load_type == "Bandpass 8th order":
+        st.caption(
+            "Triple-chamber eighth-order bandpass total response radiates exclusively through Port 3 (common plenum chamber). "
+            "Chamber 1 and Chamber 2 ports exhaust internally into Chamber 3. "
+            "Driver excursion exhibits three distinct displacement notches corresponding to the chamber tunings."
+        )
     elif load_type == "Sealed":
         st.caption(
             "Sealed-box response is the exposed cone front with the rear wave enclosed. "
@@ -10041,12 +8865,6 @@ def _render_response_tab(
         st.caption(
             "Infinite-baffle response is the exposed cone front with perfect rear-wave isolation. "
             "Finite-panel diffraction, rear leakage, room gain and baffle step are not included."
-        )
-    elif load_type == "Distributed waveguide":
-        st.caption(
-            "Distributed waveguide response is a low-frequency 1-D estimate. "
-            "For TH/BLH use a high-pass below the intended passband and a low-pass "
-            "crossover above it; higher-frequency ripples are out of scope for this model."
         )
     else:
         st.caption(
@@ -10109,7 +8927,7 @@ def _render_ports_tab(
     passive_radiator: bool = False,
 ) -> None:
     chart_sig = _chart_signature()
-    if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order"}:
+    if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order", "Bandpass 8th order"}:
         st.caption("The current load type has no ports.")
         return
     if passive_radiator:
@@ -10120,6 +8938,14 @@ def _render_ports_tab(
             st.checkbox("Rear port", key="plot_port_upper")
         with p2:
             st.checkbox("Front port", key="plot_port_lower")
+    elif load_type == "Bandpass 8th order":
+        p1, p2, p3 = st.columns(3)
+        with p1:
+            st.checkbox("Port 1 (Front)", key="plot_port_p1")
+        with p2:
+            st.checkbox("Port 2 (Rear)", key="plot_port_p2")
+        with p3:
+            st.checkbox("Port 3 (Radiating)", key="plot_port_lower")
     else:
         st.checkbox("Vent volume velocity", key="plot_port_lower")
     st.subheader(
@@ -10174,6 +9000,25 @@ def _render_ports_tab(
             "Auto strategies recalculate both vents from tuning, air speed and "
             "the displacement minimum-area golden rule. "
             "Both vents use one flanged and one free end."
+        )
+    elif load_type == "Bandpass 8th order":
+        p1, p2, p3 = st.columns(3)
+        with p1:
+            st.number_input(
+                "Port 1 diam (cm, 0 = off)", min_value=0.0,
+                max_value=60.0, step=0.5, key="bp8_dp1_cm")
+        with p2:
+            st.number_input(
+                "Port 2 diam (cm, 0 = off)", min_value=0.0,
+                max_value=60.0, step=0.5, key="bp8_dp2_cm")
+        with p3:
+            st.number_input(
+                "Port 3 diam (cm, 0 = off)", min_value=0.0,
+                max_value=60.0, step=0.5, key="bp8_dp3_cm")
+        st.caption(
+            "Auto strategies recalculate all three ports from tuning, air speed and "
+            "the displacement minimum-area golden rule. "
+            "Port 1 and Port 2 exhaust internally into Chamber 3; Port 3 radiates externally."
         )
     elif load_type == "Bass reflex" and not passive_radiator:
         st.number_input(
@@ -10327,39 +9172,27 @@ _default("sim_points", 600)
 _default("sim_voltage", 2.83)
 _default("sim_series_r_ohm", 0.0)
 _default("sim_auto_align", True)
-_default("waveguide_topology", "TL")
-_default("waveguide_length_m", 1.0)
-_default("waveguide_area_cm2", 100.0)
-_default("waveguide_mouth_area_cm2", 100.0)
-_default("waveguide_vent_area_cm2", 35.0)
-_default("waveguide_vent_length_m", 0.08)
-_default("waveguide_tap_position_m", 0.35)
-_default("waveguide_flare", "exponential")
-_default("waveguide_termination", "open")
-_default("waveguide_line_q", 25.0)
-if int(st.session_state.get("_waveguide_defaults_version", 0) or 0) < 1 or (
-    float(st.session_state.get("waveguide_length_m", 0.0)) <= 0.05
-    and float(st.session_state.get("waveguide_line_q", 0.0)) <= 1.0
-):
-    # Sessions created by the first UI integration received Streamlit's
-    # numeric minimums instead of the intended starter values.
-    if (
-        float(st.session_state.get("waveguide_length_m", 0.0)) <= 0.05
-        and float(st.session_state.get("waveguide_line_q", 0.0)) <= 1.0
-    ):
-        for key, value in (
-            ("waveguide_length_m", 1.0),
-            ("waveguide_area_cm2", 100.0),
-            ("waveguide_mouth_area_cm2", 100.0),
-            ("waveguide_vent_area_cm2", 35.0),
-            ("waveguide_vent_length_m", 0.08),
-            ("waveguide_tap_position_m", 0.35),
-            ("waveguide_line_q", 25.0),
-        ):
-            st.session_state[key] = value
-    st.session_state["_waveguide_defaults_version"] = 1
-if st.session_state.get("waveguide_topology") == "TH":
-    _on_waveguide_topology_change()
+_default("bp8_v1_l", 10.0)
+_default("bp8_f1_hz", 100.0)
+_default("bp8_dp1_cm", 5.0)
+_default("bp8_lp1_cm", 10.0)
+_default("bp8_v2_l", 30.0)
+_default("bp8_f2_hz", 35.0)
+_default("bp8_dp2_cm", 5.0)
+_default("bp8_lp2_cm", 10.0)
+_default("bp8_v3_l", 40.0)
+_default("bp8_f3_hz", 60.0)
+_default("bp8_dp3_cm", 7.0)
+_default("bp8_lp3_cm", 12.0)
+_default("bp8_q_abs_1", 15.0)
+_default("bp8_q_abs_2", 15.0)
+_default("bp8_q_abs_3", 15.0)
+_default("bp8_q_leak_1", 1000.0)
+_default("bp8_q_leak_2", 1000.0)
+_default("bp8_q_leak_3", 1000.0)
+_default("bp8_q_port_1", 15.0)
+_default("bp8_q_port_2", 15.0)
+_default("bp8_q_port_3", 15.0)
 _default("plot_response_traces", ["Total"])
 _default("plot_port_traces", list(_PORT_TRACE_OPTIONS))
 _default("plot_response_total", "Total" in st.session_state["plot_response_traces"])
@@ -10426,8 +9259,6 @@ if (
     # The generic optimizer sweeps duct tuning, which is not the PR mass and
     # suspension problem. Keep the radiator controls explicitly editable.
     _set_box_strategy_state("Manual")
-if st.session_state.get("load_type") == "Distributed waveguide":
-    _set_box_strategy_state("Manual")
 if "_optimizer_engine_revision" not in st.session_state:
     st.session_state["_optimizer_engine_revision"] = _OPTIMIZER_ENGINE_REVISION
 _apply_pending_batch_result()
@@ -10449,8 +9280,6 @@ if _share_token and st.session_state.get("_applied_share_token") != _share_token
 
 _initialize_alignment_defaults()
 _sync_auto_alignment_if_needed()
-
-_initialize_browser_project_store()
 
 finder_library_filters_slot = st.empty()
 
@@ -10840,6 +9669,8 @@ with st.sidebar:
                     current_bandpass4_alignment = _acoustics.suggest_bandpass4_alignment(current_ts)
                 elif active_load_type == "Bandpass 6th order":
                     current_bandpass6_alignment = _acoustics.suggest_bandpass6_alignment(current_ts)
+                elif active_load_type == "Bandpass 8th order":
+                    current_bandpass8_alignment = _acoustics.suggest_bandpass8_alignment(current_ts)
                 elif active_load_type == "Sealed":
                     current_sealed_alignment = _acoustics.suggest_sealed_alignment(current_ts)
                 derived = _acoustics.complete_driver(current_ts)
@@ -10863,7 +9694,7 @@ with st.sidebar:
                     st.session_state["_optimizer_engine_revision"] = (
                         _OPTIMIZER_ENGINE_REVISION)
 
-                if load_type not in {"Infinite baffle", "Distributed waveguide"} and box_strategy in _OPT_OBJECTIVE_LABELS:
+                if load_type != "Infinite baffle" and box_strategy in _OPT_OBJECTIVE_LABELS:
                     st.caption(
                         "The optimizer re-applies this goal automatically when the "
                         "driver, load or constraints change."
@@ -11075,60 +9906,54 @@ with st.sidebar:
                                             step=_step5("bandpass6_q_leak_p", 10.0), key="bandpass6_q_leak_p")
                             st.number_input("Qport front", min_value=0.2, max_value=500.0,
                                             step=_step5("bandpass6_q_port_p", 0.5), key="bandpass6_q_port_p")
+                elif load_type == "Bandpass 8th order":
+                    b1, b2, b3 = st.columns(3)
+                    with b1:
+                        _box_number_with_nudge(
+                            "V1 front (L)", "bp8_v1_l", min_value=0.05,
+                            max_value=100000.0, step=0.01, disabled=box_edit_disabled)
+                        _box_number_with_nudge(
+                            "F1 tuning (Hz)", "bp8_f1_hz", min_value=1.0,
+                            max_value=5000.0, step=0.1, disabled=box_edit_disabled)
+                    with b2:
+                        _box_number_with_nudge(
+                            "V2 rear (L)", "bp8_v2_l", min_value=0.05,
+                            max_value=100000.0, step=0.01, disabled=box_edit_disabled)
+                        _box_number_with_nudge(
+                            "F2 tuning (Hz)", "bp8_f2_hz", min_value=1.0,
+                            max_value=5000.0, step=0.1, disabled=box_edit_disabled)
+                    with b3:
+                        _box_number_with_nudge(
+                            "V3 plenum (L)", "bp8_v3_l", min_value=0.05,
+                            max_value=100000.0, step=0.01, disabled=box_edit_disabled)
+                        _box_number_with_nudge(
+                            "F3 tuning (Hz)", "bp8_f3_hz", min_value=1.0,
+                            max_value=5000.0, step=0.1, disabled=box_edit_disabled)
+                    with st.expander("Bandpass loss factors"):
+                        l1, l2, l3 = st.columns(3)
+                        with l1:
+                            st.number_input("Qabs 1", min_value=0.2, max_value=500.0,
+                                            step=_step5("bp8_q_abs_1", 0.5), key="bp8_q_abs_1")
+                            st.number_input("Qleak 1", min_value=1.0, max_value=10000.0,
+                                            step=_step5("bp8_q_leak_1", 10.0), key="bp8_q_leak_1")
+                            st.number_input("Qport 1", min_value=0.2, max_value=500.0,
+                                            step=_step5("bp8_q_port_1", 0.5), key="bp8_q_port_1")
+                        with l2:
+                            st.number_input("Qabs 2", min_value=0.2, max_value=500.0,
+                                            step=_step5("bp8_q_abs_2", 0.5), key="bp8_q_abs_2")
+                            st.number_input("Qleak 2", min_value=1.0, max_value=10000.0,
+                                            step=_step5("bp8_q_leak_2", 10.0), key="bp8_q_leak_2")
+                            st.number_input("Qport 2", min_value=0.2, max_value=500.0,
+                                            step=_step5("bp8_q_port_2", 0.5), key="bp8_q_port_2")
+                        with l3:
+                            st.number_input("Qabs 3", min_value=0.2, max_value=500.0,
+                                            step=_step5("bp8_q_abs_3", 0.5), key="bp8_q_abs_3")
+                            st.number_input("Qleak 3", min_value=1.0, max_value=10000.0,
+                                            step=_step5("bp8_q_leak_3", 10.0), key="bp8_q_leak_3")
+                            st.number_input("Qport 3", min_value=0.2, max_value=500.0,
+                                            step=_step5("bp8_q_port_3", 0.5), key="bp8_q_port_3")
                 elif load_type == "Infinite baffle":
                     st.caption("No box controls: the rear wave is assumed to be fully isolated by an infinite partition.")
-                elif load_type == "Distributed waveguide":
-                    st.caption(
-                        "1-D distributed model. Calibrate line Q and termination against "
-                        "an impedance or near-field measurement before building."
-                    )
-                    st.selectbox(
-                        "Waveguide topology", ["TL", "MLTL", "QW", "BLH", "TH"],
-                        key="waveguide_topology",
-                        on_change=_on_waveguide_topology_change,
-                    )
-                    wg1, wg2 = st.columns(2)
-                    with wg1:
-                        st.number_input(
-                            "Line length (m)", min_value=0.05, max_value=20.0,
-                            step=0.01, key="waveguide_length_m",
-                        )
-                        st.number_input(
-                            "Throat / line area (cm²)", min_value=0.1, max_value=10000.0,
-                            step=1.0, key="waveguide_area_cm2",
-                        )
-                        st.number_input(
-                            "Mouth area (cm²)", min_value=0.1, max_value=10000.0,
-                            step=1.0, key="waveguide_mouth_area_cm2",
-                        )
-                    with wg2:
-                        st.number_input(
-                            "Line Q", min_value=1.0, max_value=500.0,
-                            step=1.0, key="waveguide_line_q",
-                            help="Distributed-loss fit parameter; higher means less damping.",
-                        )
-                        st.selectbox(
-                            "Flare", ["exponential", "conical"], key="waveguide_flare",
-                        )
-                        st.selectbox(
-                            "TL termination", ["open", "closed"],
-                            key="waveguide_termination",
-                            disabled=st.session_state.get("waveguide_topology") != "TL",
-                        )
-                    if st.session_state.get("waveguide_topology") == "MLTL":
-                        st.number_input(
-                            "Mass-load vent area (cm²)", min_value=0.1, max_value=10000.0,
-                            step=1.0, key="waveguide_vent_area_cm2",
-                        )
-                        st.number_input(
-                            "Mass-load vent length (m)", min_value=0.005, max_value=5.0,
-                            step=0.005, key="waveguide_vent_length_m",
-                        )
-                    if st.session_state.get("waveguide_topology") == "TH":
-                        st.number_input(
-                            "Tap position from throat (m)", min_value=0.01,
-                            max_value=19.99, step=0.01, key="waveguide_tap_position_m",
-                        )
                 else:
                     b1, b2 = st.columns(2)
                     with b1:
@@ -11157,7 +9982,7 @@ with st.sidebar:
                             st.number_input("Qleak lower", min_value=1.0, max_value=10000.0, step=_step5("loss_q_leak_l", 10.0), key="loss_q_leak_l")
                             st.number_input("Qport lower", min_value=0.2, max_value=500.0, step=_step5("loss_q_port_l", 0.5), key="loss_q_port_l")
 
-                if load_type not in {"Infinite baffle", "Distributed waveguide"} and box_edit_disabled:
+                if load_type != "Infinite baffle" and box_edit_disabled:
                     st.caption("Switch Box strategy to Manual to edit volumes and tuning directly.")
 
 
@@ -11182,9 +10007,9 @@ try:
     is_reflex = is_reflex_load and not is_pr
     is_bandpass4 = load_type == "Bandpass 4th order"
     is_bandpass6 = load_type == "Bandpass 6th order"
+    is_bandpass8 = load_type == "Bandpass 8th order"
     is_sealed = load_type == "Sealed"
     is_infinite_baffle = load_type == "Infinite baffle"
-    is_waveguide = load_type == "Distributed waveguide"
     chart_sig = _chart_signature()
     if is_pr:
         box = _pr_box_from_state()
@@ -11194,12 +10019,12 @@ try:
         box = _bandpass4_box_from_state()
     elif is_bandpass6:
         box = _bandpass6_box_from_state()
+    elif is_bandpass8:
+        box = _bandpass8_box_from_state()
     elif is_sealed:
         box = _sealed_box_from_state()
     elif is_infinite_baffle:
         box = None
-    elif load_type == "Distributed waveguide":
-        box = _waveguide_box_from_state()
     else:
         box = _box_from_state()
     sim_f_min = float(st.session_state["sim_f_min"])
@@ -11240,15 +10065,6 @@ try:
         model_warnings.extend(_acoustics.bandpass4_diagnostics(current_ts, box, result))
     if is_bandpass6:
         model_warnings.extend(_acoustics.bandpass6_diagnostics(current_ts, box, result))
-    if is_waveguide and current_ts.xmax_mm > 0.0:
-        max_excursion_mm = float(np.nanmax(np.abs(result.excursion_mm)))
-        if max_excursion_mm > current_ts.xmax_mm:
-            model_warnings.append(
-                f"Warning: waveguide excursion reaches {max_excursion_mm:.1f} mm, "
-                f"above driver Xmax {current_ts.xmax_mm:.1f} mm at "
-                f"{sim_voltage:.2f} V. Add a high-pass protection filter; "
-                "the acoustic model does not include an electrical crossover."
-            )
     if is_reflex and len(z_peak_freqs) < 2:
         model_warnings.append(
             "Bass reflex should show two impedance peaks in the simulated range; "
@@ -11301,6 +10117,19 @@ try:
         if front_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
                 "Front vent", front_d_cm, box.vp_l, box.fp_hz, 1.43, result, "lower"))
+    elif is_bandpass8:
+        p1_d_cm = float(st.session_state.get("bp8_dp1_cm", 0.0))
+        p2_d_cm = float(st.session_state.get("bp8_dp2_cm", 0.0))
+        p3_d_cm = float(st.session_state.get("bp8_dp3_cm", 0.0))
+        if p1_d_cm > 0.0:
+            port_geometry_rows.append(_port_geometry_row(
+                "Port 1 (Front)", p1_d_cm, box.v1_l, box.f1_hz, 1.43, result, "lower"))
+        if p2_d_cm > 0.0:
+            port_geometry_rows.append(_port_geometry_row(
+                "Port 2 (Rear)", p2_d_cm, box.v2_l, box.f2_hz, 1.43, result, "lower"))
+        if p3_d_cm > 0.0:
+            port_geometry_rows.append(_port_geometry_row(
+                "Port 3 (Radiating)", p3_d_cm, box.v3_l, box.f3_hz, 1.43, result, "upper"))
     elif load_type == "DCCAV":
         upper_d_cm = float(st.session_state.get("box_port_d_h_cm", 0.0))
         lower_d_cm = float(st.session_state.get("box_port_d_l_cm", 0.0))
@@ -11516,10 +10345,10 @@ try:
                     flat_metrics.append(("Box volume", f"{box.vs_l + box.vp_l:.1f} L"))
                 elif load_type == "Bandpass 6th order":
                     flat_metrics.append(("Box volume", f"{box.vr_l + box.vp_l:.1f} L"))
+                elif load_type == "Bandpass 8th order":
+                    flat_metrics.append(("Box volume", f"{box.v1_l + box.v2_l + box.v3_l:.1f} L"))
                 elif load_type == "DCCAV":
                     flat_metrics.append(("Box volume", f"{box.vh_l + box.vl_l:.1f} L"))
-                elif is_waveguide:
-                    flat_metrics.append(("Waveguide", str(st.session_state.get("waveguide_topology", "TL"))))
                 else:
                     flat_metrics.append(("Box volume", f"{box.vb_l:.1f} L"))
             flat_metrics.append(("Forge Score", f"{score_val}/100"))
@@ -11544,6 +10373,13 @@ try:
                     _add_port("Rear vent")
                     flat_metrics.append(("Front vol (Vp)", f"{box.vp_l:.1f} L"))
                     _add_port("Front vent")
+                elif load_type == "Bandpass 8th order":
+                    flat_metrics.append(("Front vol (V1)", f"{box.v1_l:.1f} L"))
+                    _add_port("Port 1 (Front)")
+                    flat_metrics.append(("Rear vol (V2)", f"{box.v2_l:.1f} L"))
+                    _add_port("Port 2 (Rear)")
+                    flat_metrics.append(("Plenum vol (V3)", f"{box.v3_l:.1f} L"))
+                    _add_port("Port 3 (Radiating)")
                 elif load_type == "DCCAV":
                     flat_metrics.append(("High vol (Vh)", f"{box.vh_l:.1f} L"))
                     _add_port("Upper port")
@@ -11587,8 +10423,8 @@ try:
                     vtot_l = box.vs_l + box.vp_l
                 elif is_bandpass6:
                     vtot_l = box.vr_l + box.vp_l
-                elif is_waveguide:
-                    vtot_l = 0.0
+                elif is_bandpass8:
+                    vtot_l = box.v1_l + box.v2_l + box.v3_l
                 else:
                     vtot_l = box.vh_l + box.vl_l
                 
@@ -11702,13 +10538,15 @@ try:
                 )
                 a2.metric("Infinite baffle Qts", f"{current_ts.qts:.3f}")
                 a3.metric("Rear radiation", "Isolated")
-            elif is_waveguide:
-                a1, a2, a3, a4 = st.columns(4)
-                a1.metric("Topology", str(st.session_state.get("waveguide_topology", "TL")))
-                line_length = box.length_m if hasattr(box, "length_m") else box.segments[0].length_m
-                a2.metric("Line length", f"{line_length:.2f} m")
-                a3.metric("Line Q", f"{box.line_q:.1f}")
-                a4.metric("Mouth output", "Included")
+            elif is_bandpass8:
+                a1, a2, a3, a4, a5, a6, a7 = st.columns(7)
+                a1.metric("V1 front", f"{box.v1_l:.2f} L")
+                a2.metric("F1", f"{box.f1_hz:.1f} Hz")
+                a3.metric("V2 rear", f"{box.v2_l:.2f} L")
+                a4.metric("F2", f"{box.f2_hz:.1f} Hz")
+                a5.metric("V3 plenum", f"{box.v3_l:.2f} L")
+                a6.metric("F3", f"{box.f3_hz:.1f} Hz")
+                a7.metric("Vtot (active)", f"{box.v1_l + box.v2_l + box.v3_l:.2f} L")
             else:
                 a1, a2, a3, a4, a5, a6, a7 = st.columns(7)
                 a1.metric("Vh (active)", f"{box.vh_l:.2f} L")

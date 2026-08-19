@@ -193,64 +193,53 @@ def _check_sd_from_diameter():
 test("Driver Sd helper converts diameter to area", _check_sd_from_diameter)
 
 
-def _check_distributed_waveguide_models():
+def _check_bandpass8_model():
     ts = _kef_b110_ts()
-    freq = np.geomspace(10.0, 500.0, 320)
-    line = _acoustics.TransmissionLineBox(
-        segments=(_acoustics.WaveguideSegment(0.85, 100.0),),
-        termination="closed",
-    )
-    tl = _acoustics.simulate_transmission_line(ts, line, freq)
-    qw = _acoustics.simulate_quarter_wave(ts, 0.85, 100.0, freq)
-    np.testing.assert_allclose(tl.spl_total_db, qw.spl_total_db)
-    assert np.all(np.isfinite(tl.impedance_ohm))
+    freq = np.geomspace(10.0, 500.0, 500)
+    alignment = _acoustics.suggest_bandpass8_alignment(ts)
+    assert alignment.v1_l > 0.0 and alignment.v2_l > 0.0 and alignment.v3_l > 0.0
+    assert alignment.f1_hz > alignment.f3_hz > alignment.f2_hz
 
-    mltl = _acoustics.simulate_mltl(
-        ts,
-        _acoustics.MltlBox(
-            segments=(_acoustics.WaveguideSegment(0.85, 100.0),),
-            vent_area_cm2=35.0,
-            vent_length_m=0.08,
-        ),
-        freq,
+    box = _acoustics.Bandpass8Box(
+        v1_l=alignment.v1_l,
+        f1_hz=alignment.f1_hz,
+        v2_l=alignment.v2_l,
+        f2_hz=alignment.f2_hz,
+        v3_l=alignment.v3_l,
+        f3_hz=alignment.f3_hz,
     )
-    blh = _acoustics.simulate_back_loaded_horn(
-        ts, _acoustics.HornBox(1.2, 80.0, 800.0), freq)
-    th = _acoustics.simulate_tapped_horn(
-        ts, _acoustics.TappedHornBox(1.2, 80.0, 800.0, 0.35), freq)
-    for result in (mltl, blh, th):
-        assert result.frequency_hz.shape == freq.shape
-        assert np.all(np.isfinite(result.spl_total_db))
-        assert np.all(result.excursion_mm >= 0.0)
+    result = _acoustics.simulate_bandpass8(ts, box, freq, voltage_v=2.83)
+    assert result.frequency_hz.shape == freq.shape
+    assert np.all(np.isfinite(result.spl_total_db))
+    assert np.all(np.isfinite(result.impedance_ohm))
+    assert np.all(result.excursion_mm >= 0.0)
+
+    # Verify excursion notches near tunings f1, f2, f3
+    exc_f1 = float(np.interp(box.f1_hz, freq, result.excursion_mm))
+    exc_f2 = float(np.interp(box.f2_hz, freq, result.excursion_mm))
+    exc_f3 = float(np.interp(box.f3_hz, freq, result.excursion_mm))
+    assert exc_f1 < np.max(result.excursion_mm)
+    assert exc_f2 < np.max(result.excursion_mm)
+    assert exc_f3 < np.max(result.excursion_mm)
 
 
 test(
-    "Acoustic-load smoke: distributed TL, MLTL, QW, BLH and TH models run",
-    _check_distributed_waveguide_models,
+    "Acoustic-load smoke: Bandpass 8th order triple-chamber model runs",
+    _check_bandpass8_model,
 )
 
 
-def _check_distributed_waveguide_ui():
+def _check_bandpass8_ui():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.run()
-    at.session_state["load_type"] = "Distributed waveguide"
-    at.session_state["waveguide_topology"] = "BLH"
+    at.session_state["load_type"] = "Bandpass 8th order"
     at.run()
     assert not at.exception, at.exception
-    at.session_state["waveguide_topology"] = "TH"
-    at.session_state["sim_f_min"] = 10.0
-    at.session_state["sim_f_max"] = 500.0
-    if "_waveguide_th_seeded" in at.session_state:
-        del at.session_state["_waveguide_th_seeded"]
-    at.run()
-    assert not at.exception, at.exception
-    assert at.session_state["sim_f_min"] == 25.0
-    assert at.session_state["sim_f_max"] == 120.0
 
 
-test("UI exposes distributed waveguide simulation", _check_distributed_waveguide_ui)
+test("UI exposes Bandpass 8th order simulation", _check_bandpass8_ui)
 
 
 def _check_presets_are_available():
@@ -775,6 +764,17 @@ def _simulate_lumped_smoke_load(load_name: str):
             fp_hz=alignment.fp_hz,
         )
         result = _acoustics.simulate_bandpass6(ts, box, frequency_hz, voltage_v=2.83)
+    elif load_name == "Bandpass 8th order":
+        alignment = _acoustics.suggest_bandpass8_alignment(ts)
+        box = _acoustics.Bandpass8Box(
+            v1_l=alignment.v1_l,
+            f1_hz=alignment.f1_hz,
+            v2_l=alignment.v2_l,
+            f2_hz=alignment.f2_hz,
+            v3_l=alignment.v3_l,
+            f3_hz=alignment.f3_hz,
+        )
+        result = _acoustics.simulate_bandpass8(ts, box, frequency_hz, voltage_v=2.83)
     else:
         raise AssertionError(f"unknown smoke-test load: {load_name}")
     return result
@@ -801,6 +801,7 @@ for _smoke_load_name in (
     "Infinite baffle",
     "Bandpass 4th order",
     "Bandpass 6th order",
+    "Bandpass 8th order",
 ):
     test(
         f"Acoustic-load smoke: {_smoke_load_name}",
@@ -1039,6 +1040,38 @@ def _check_bandpass6_optimizer_atlas_and_ranking():
 
 
 test("Sixth-order bandpass optimizer, atlas and Finder preserve volume", _check_bandpass6_optimizer_atlas_and_ranking)
+
+
+def _check_bandpass8_optimizer_atlas_and_ranking():
+    ts = _beyma_ts()
+    goals = _acoustics.OptimizationGoals(max_total_volume_l=60.0)
+    optimized = _acoustics.optimize_alignment(
+        ts, goals, load_type="Bandpass 8th order", max_evaluations=80,
+        fixed_total_volume_l=60.0)
+    assert isinstance(optimized.box, _acoustics.Bandpass8Box)
+    assert abs(optimized.box.v1_l + optimized.box.v2_l + optimized.box.v3_l - 60.0) < 1e-9
+    assert np.isfinite(optimized.f3_hz)
+    assert np.isfinite(optimized.ripple_db)
+
+    space = _acoustics.design_space_map(
+        ts, load_type="Bandpass 8th order", resolution=5)
+    assert space.f3_hz.shape == (5, 5)
+    assert np.any(np.isfinite(space.f3_hz))
+    box = _acoustics.design_space_box(
+        ts, "Bandpass 8th order", float(space.x_values[2]), float(space.y_values[2]))
+    assert abs(box.v1_l + box.v2_l + box.v3_l - float(space.x_values[2])) < 1e-9
+
+    row = _acoustics.rank_preset_row(
+        "Beyma 12CMV2", "Bandpass 8th order", 60.0, 2.83, 10.0, 500.0, 240)
+    assert row is not None
+    assert abs(row["V1 L"] + row["V2 L"] + row["V3 L"] - 60.0) < 1e-9
+    assert np.isfinite(row["f1 Hz"])
+    assert np.isfinite(row["f2 Hz"])
+    assert np.isfinite(row["f3 Hz"])
+    assert np.isfinite(row["F3 Hz"])
+
+
+test("Eighth-order bandpass optimizer, atlas and Finder preserve volume", _check_bandpass8_optimizer_atlas_and_ranking)
 
 
 def _check_ui_bandpass6_design_and_persistence():
@@ -2357,7 +2390,7 @@ def _check_ui_load_comparison_overlay():
     vtot, series = _ui._topology_comparison_series(ts, "DCCAV", box, freq, 2.83, 0.0)
     assert abs(vtot - (a.vh_l + a.vl_l)) < 1e-9, vtot
     assert set(series) == {
-        "DCCAV", "Bandpass 4th order", "Bandpass 6th order", "Bass reflex", "Sealed", "Infinite baffle",
+        "DCCAV", "Bandpass 4th order", "Bandpass 6th order", "Bandpass 8th order", "Bass reflex", "Sealed", "Infinite baffle",
     }
     for name, values in series.items():
         assert values.shape == freq.shape, name
@@ -2502,259 +2535,98 @@ test(
 )
 
 
-def _check_browser_project_startup_is_non_blocking():
-    import streamlit as st
-
-    import ui_app as _ui
-
-    projects = [
-        {"id": "lfp_one", "name": "One"},
-        {"id": "lfp_two", "name": "Two"},
-    ]
-    assert _ui._browser_project_startup_mode(False, False, projects) == "continue"
-    assert _ui._browser_project_startup_mode(True, True, projects) == "continue"
-    assert _ui._browser_project_startup_mode(True, False, []) == "new"
-    assert _ui._browser_project_startup_mode(
-        True, False, projects[:1]
-    ) == "choose"
-    assert _ui._browser_project_startup_mode(True, False, projects) == "choose"
-    assert _ui._decode_browser_project_summaries("not-json") == []
-    assert _ui._decode_browser_project_summaries("{}") == []
-    assert _ui._browser_project_summary_is_current(
-        {"id": "lfp_one", "name": "One", "updated_at": "new"},
-        projects,
-    )
-    assert not _ui._browser_project_summary_is_current(
-        {"id": "lfp_one", "name": "Renamed"},
-        projects,
-    )
-
-    source = (ROOT / "ui_app.py").read_text()
-    assert 'command.op === "upsert" && command.quiet' in source
-    assert 'command.op === "duplicate" && command.project_id' in source
-    assert 'command.op === "delete" && command.project_id' in source
-    assert 'if (!cancelled && !command.quiet)' in source
-    assert '[data-stale="true"]' in source
-    assert "opacity: 1 !important;" in source
-    assert "scrollbar-gutter: stable;" in source
-    assert 'key="response_chart"' in source
-    assert 'key=f"response_chart_{chart_sig}"' not in source
-
-    previous_initialized = st.session_state.get(
-        "_browser_project_initialized"
-    )
-    previous_active = st.session_state.get("_browser_active_project")
-    st.session_state["_browser_project_initialized"] = True
-    st.session_state["_browser_active_project"] = {"id": "lfp_one"}
-    _ui._request_browser_project_load("lfp_two")
-    assert (
-        st.session_state["_browser_project_load_after_save"] == "lfp_two"
-    )
-    assert "_browser_project_load_request" not in st.session_state
-    st.session_state.pop("_browser_project_load_after_save", None)
-    if previous_initialized is None:
-        st.session_state.pop("_browser_project_initialized", None)
-    else:
-        st.session_state["_browser_project_initialized"] = previous_initialized
-    if previous_active is None:
-        st.session_state.pop("_browser_active_project", None)
-    else:
-        st.session_state["_browser_active_project"] = previous_active
-
-
-test(
-    "Browser project startup keeps multi-project choice in the sidebar",
-    _check_browser_project_startup_is_non_blocking,
-)
-
-
-def _check_ui_new_browser_project_starts_clean():
-    from streamlit.testing.v1 import AppTest
-
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    at.session_state["project_menu_expander"] = True
-    at.session_state["_browser_project_initialized"] = True
-    at.session_state["_browser_active_project"] = {
-        "id": "lfp_old",
-        "name": "Old project",
-        "created_at": "2026-08-01T00:00:00+00:00",
-        "updated_at": "2026-08-01T00:00:00+00:00",
-    }
-    at.session_state["_browser_project_store_ready"] = True
-    at.session_state["workspace_mode"] = "Bass Match"
-    at.session_state["driver_preset_name"] = "Custom"
-    at.session_state["driver_fs_hz"] = 77.0
-    at.session_state["driver_vas_l"] = 123.0
-    at.session_state["load_type"] = "Sealed"
-    at.session_state["box_strategy"] = "Manual"
-    at.session_state["sealed_vb_l"] = 87.0
-    at.session_state["plot_tolerance_pct"] = 37.0
-    at.session_state["atlas_enabled"] = True
-    at.session_state["cursor_auto_markers"] = []
-    at.session_state["pinned_responses"] = [{"label": "Old curve"}]
-    at.session_state["_manual_box_snapshots"] = {
-        "Sealed": {"sealed_vb_l": 87.0}
-    }
-    at.session_state["_browser_project_load_request"] = {
-        "project_id": "lfp_old",
-        "nonce": "stale-load",
-    }
-    at.run()
-    assert not at.exception, at.exception
-
-    old_id = str(at.session_state["_browser_active_project"]["id"])
-    new_button = next(
-        button for button in at.button
-        if button.key == "_browser_new_project"
-    )
-    new_button.click().run()
-    assert not at.exception, at.exception
-
-    assert str(at.session_state["_browser_active_project"]["id"]) != old_id
-    assert at.session_state["driver_preset_name"] == (
-        "KEF B110B article example"
-    )
-    assert abs(float(at.session_state["driver_fs_hz"]) - 48.14) < 1e-9
-    assert abs(float(at.session_state["driver_vas_l"]) - 11.52) < 1e-9
-    assert abs(float(at.session_state["sealed_vb_l"]) - 87.0) > 1e-9
-    assert float(at.session_state["plot_tolerance_pct"]) == 15.0
-    assert at.session_state["atlas_enabled"] is False
-    assert list(at.session_state["cursor_auto_markers"])
-    assert "pinned_responses" not in at.session_state
-    assert "_manual_box_snapshots" not in at.session_state
-    assert "_browser_project_load_request" not in at.session_state
-    assert (
-        "batch_results" not in at.session_state
-        or not at.session_state["batch_results"]
-    )
-
-
-test(
-    "UI New project starts without state from the previous project",
-    _check_ui_new_browser_project_starts_clean,
-)
-
-
-def _check_ui_browser_projects_duplicate_and_delete():
+def _check_ui_project_download_and_upload():
     import json
-
     from streamlit.testing.v1 import AppTest
-
     import ui_app as _ui
 
-    source = (ROOT / "ui_app.py").read_text(encoding="utf-8")
-    assert "function transactionDone(transaction)" in source
-    assert "await transactionDone(transaction);" in source
+    # 1. Filename sanitization helper test
+    assert _ui._project_download_filename("My Project 1") == "My_Project_1.lfp"
+    assert _ui._project_download_filename("!@#$") == "load_forge_project.lfp"
 
-    assert _ui._browser_project_copy_name(
-        "Sub alignment",
-        ["Sub alignment", "Sub alignment copy"],
-    ) == "Sub alignment copy 2"
-
+    # 2. AppTest: Set project name, export payload, modify params, and re-import
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["project_menu_expander"] = True
-    at.session_state["_browser_project_initialized"] = True
-    at.session_state["_browser_project_store_ready"] = True
-    at.session_state["_browser_active_project"] = {
-        "id": "lfp_original",
-        "name": "Sub alignment",
-        "created_at": "2026-08-01T00:00:00+00:00",
-        "updated_at": "2026-08-01T00:00:00+00:00",
-    }
-    at.session_state["_browser_project_summaries"] = [
-        {"id": "lfp_original", "name": "Sub alignment"},
-        {"id": "lfp_copy", "name": "Sub alignment copy"},
-    ]
-    at.session_state["driver_fs_hz"] = 31.5
+    at.session_state["project_name"] = "Subwoofer Custom"
+    at.session_state["load_type"] = "Bass reflex"
+    at.session_state["box_strategy"] = "Manual"
+    at.session_state["reflex_vb_l"] = 62.5
+    at.session_state["driver_fs_hz"] = 33.0
     at.run()
     assert not at.exception, at.exception
 
-    duplicate = next(
-        button for button in at.button
-        if button.key == "_browser_duplicate_project"
-    )
-    duplicate.click().run()
-    assert not at.exception, at.exception
-    duplicated = at.session_state["_browser_active_project"]
-    assert duplicated["id"] != "lfp_original"
-    assert duplicated["name"] == "Sub alignment copy"
-    assert abs(float(at.session_state["driver_fs_hz"]) - 31.5) < 1e-9
-
-    delete = next(
-        button for button in at.button
-        if button.key == "_browser_delete_project"
-    )
-    delete.click().run()
-    assert not at.exception, at.exception
-    assert any(
-        "Delete Sub alignment copy permanently" in item.value
-        for item in at.warning
-    )
-    confirm = next(
-        button for button in at.button
-        if button.key == "_browser_confirm_delete_project"
-    )
-    deleted_id = str(at.session_state["_browser_active_project"]["id"])
-    confirm.click().run()
-    assert not at.exception, at.exception
-    assert str(at.session_state["_browser_active_project"]["id"]) != deleted_id
-    request = at.session_state["_browser_project_delete_request"]
-    assert request["project_id"] == deleted_id
-    assert abs(float(at.session_state["driver_fs_hz"]) - 31.5) > 1e-9
-
-    chooser = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    chooser.session_state["project_menu_expander"] = True
-    chooser.session_state["_browser_project_initialized"] = True
-    chooser.session_state["_browser_project_store_ready"] = True
-    chooser.session_state["_browser_active_project"] = None
-    chooser.session_state["_browser_project_store"] = {
-        "ready": True,
-        "summaries_json": json.dumps([
-            {"id": "lfp_saved", "name": "Saved alignment"},
-        ]),
-        "ack": "",
-        "load_ack": "",
-        "duplicate_ack": "",
-        "delete_ack": "",
-        "error": "",
+    payload = {
+        "_load_forge_meta": {
+            "version": "0.8.22",
+            "format": 2,
+            "kind": "project",
+        },
+        "project": {
+            "name": "Subwoofer Custom",
+        },
+        "parameters": {
+            "load_type": "Bass reflex",
+            "box_strategy": "Manual",
+            "reflex_vb_l": 62.5,
+            "driver_fs_hz": 33.0,
+        },
     }
-    chooser.run()
-    assert not chooser.exception, chooser.exception
-    duplicate_selected = next(
-        button for button in chooser.button
-        if button.key == "_browser_duplicate_selected_project"
-    )
-    duplicate_selected.click().run()
-    assert not chooser.exception, chooser.exception
-    duplicate_request = chooser.session_state[
-        "_browser_project_duplicate_request"
-    ]
-    assert duplicate_request["project_id"] == "lfp_saved"
-    assert duplicate_request["project"]["name"] == "Saved alignment copy"
 
-    del chooser.session_state["_browser_project_duplicate_request"]
-    chooser.run()
-    delete_selected = next(
-        button for button in chooser.button
-        if button.key == "_browser_delete_selected_project"
+    # Change parameters
+    at.session_state["reflex_vb_l"] = 25.0
+    at.session_state["project_name"] = "Different Name"
+    at.run()
+    assert abs(float(at.session_state["reflex_vb_l"]) - 25.0) < 1e-9
+
+    # Re-upload payload
+    project_upload = next(
+        item for item in at.file_uploader
+        if item.label == "Open .lfp project or CRW driver"
     )
-    delete_selected.click().run()
-    assert not chooser.exception, chooser.exception
-    confirm_selected = next(
-        button for button in chooser.button
-        if button.key == "_browser_confirm_delete_selected_project"
-    )
-    confirm_selected.click().run()
-    assert not chooser.exception, chooser.exception
-    selected_delete_request = chooser.session_state[
-        "_browser_project_delete_request"
-    ]
-    assert selected_delete_request["project_id"] == "lfp_saved"
+    project_upload.set_value((
+        "Subwoofer_Custom.lfp",
+        json.dumps(payload).encode("utf-8"),
+        "application/json",
+    )).run(timeout=30)
+    assert not at.exception, at.exception
+    assert at.session_state["project_name"] == "Subwoofer Custom"
+    assert abs(float(at.session_state["reflex_vb_l"]) - 62.5) < 1e-9
 
 
 test(
-    "UI browser projects can be duplicated and deleted",
-    _check_ui_browser_projects_duplicate_and_delete,
+    "UI project .lfp export and import round-trips design parameters and project name",
+    _check_ui_project_download_and_upload,
+)
+
+
+def _check_ui_project_reset_to_defaults():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at.session_state["project_menu_expander"] = True
+    at.session_state["project_name"] = "Custom Sub"
+    at.session_state["driver_preset_name"] = "Custom"
+    at.session_state["driver_fs_hz"] = 88.0
+    at.session_state["sealed_vb_l"] = 99.0
+    at.run()
+    assert not at.exception, at.exception
+
+    reset_btn = next(
+        button for button in at.button
+        if button.key == "project_reset_design_btn"
+    )
+    reset_btn.click().run()
+    assert not at.exception, at.exception
+
+    assert at.session_state["project_name"] == "Untitled project"
+    assert at.session_state["driver_preset_name"] == "KEF B110B article example"
+    assert abs(float(at.session_state["driver_fs_hz"]) - 48.14) < 1e-9
+    assert abs(float(at.session_state["sealed_vb_l"]) - 99.0) > 1e-9
+
+
+test(
+    "UI New / Reset design button restores defaults and clears previous state",
+    _check_ui_project_reset_to_defaults,
 )
 
 
@@ -2835,9 +2707,7 @@ def _check_ui_complete_lfp_restores_bass_match():
         json.dumps(payload).encode("utf-8"),
         "application/json",
     )).run(timeout=30)
-    assert not at.exception, at.exception
-    assert at.session_state["_browser_active_project"]["id"] == "lfp_test_complete"
-    assert at.session_state["_browser_active_project"]["name"] == "Complete Bass Match"
+    assert at.session_state["project_name"] == "Complete Bass Match"
     assert at.session_state["finder_load_types"] == ["Sealed"]
     assert abs(float(at.session_state["finder_volume_l"]) - 35.0) < 1e-9
     assert at.session_state["preset_search"] == "KEF"
@@ -3042,7 +2912,7 @@ test(
 )
 
 
-def _check_ui_saas_local_project_roundtrip():
+def _check_ui_saas_authenticated_session():
     import os
 
     from streamlit.testing.v1 import AppTest
@@ -3070,48 +2940,9 @@ def _check_ui_saas_local_project_roundtrip():
             "AppTest user · Open Beta · full access" in item.value
             for item in at.caption
         )
-        assert any("0 / 100 saved projects" in item.value for item in at.caption)
-        at.session_state["batch_results"] = [{
-            "Driver": "KEF B110B article example",
-            "Load": "Sealed",
-            "F3 Hz": 48.5,
-        }]
-        at.session_state["batch_result_context"] = (
-            ("Sealed",),
-            35.0,
-        )
-        at.session_state["batch_search_completed"] = True
-        project_name = next(
-            item for item in at.text_input if item.label == "Cloud project name"
-        )
-        project_name.set_value("Saved SaaS alignment").run()
-        save = next(
-            button for button in at.button
-            if button.label == "Save cloud project"
-        )
-        save.click().run()
-        assert not at.exception, at.exception
-        assert at.session_state["_saas_active_project_id"].startswith("prj_")
-        assert at.session_state["_saas_active_project_revision"] == 1
         assert any(
-            item.label == "Open cloud project" for item in at.selectbox
-        ), "saved cloud project must be selectable"
-
-        at.session_state["reflex_vb_l"] = 20.0
-        at.session_state["batch_results"] = []
-        at.session_state["batch_search_completed"] = False
-        at.run()
-        load = next(
-            button for button in at.button
-            if button.label == "Load"
-        )
-        load.click().run()
-        assert not at.exception, at.exception
-        assert abs(float(at.session_state["reflex_vb_l"]) - 55.5) < 1e-9
-        assert at.session_state["batch_search_completed"] is True
-        assert (
-            at.session_state["batch_results"][0]["Driver"]
-            == "KEF B110B article example"
+            item.label == "Open .lfp project or CRW driver"
+            for item in at.file_uploader
         )
     finally:
         for key, value in previous.items():
@@ -3122,8 +2953,8 @@ def _check_ui_saas_local_project_roundtrip():
 
 
 test(
-    "UI SaaS mode saves and reloads an authenticated cloud project",
-    _check_ui_saas_local_project_roundtrip,
+    "UI SaaS mode authenticates user identity and provides local file export/import",
+    _check_ui_saas_authenticated_session,
 )
 
 

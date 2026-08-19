@@ -2,8 +2,8 @@
 
 `src/acoustics.py` is the primary public facade for every supported enclosure
 and waveguide topology. It deliberately has no preferred load: DCCAV, bass
-reflex (vent or passive radiator), sealed, infinite baffle, fourth- and
-sixth-order bandpass, TL, MLTL, quarter-wave, back-loaded horn and tapped horn
+reflex (vent or passive radiator), sealed, infinite baffle, fourth-,
+sixth- and eighth-order bandpass, TL, MLTL, quarter-wave, back-loaded horn and tapped horn
 are peers behind the same API.
 
 The implementation remains split by responsibility:
