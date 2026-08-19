@@ -14,6 +14,9 @@
 - **Stable BP8 optimization across drive-voltage edits**:
   - Removed the discontinuous 2.83 V threshold from excursion-rated port sizing; every positive simulation voltage now scales continuously to the same Xmax reference.
   - Prevented a 2.83 → 2.82 V edit from admitting a radically different, deeply tuned BP8 alignment through a smaller low-power port floor.
+- **Reliable local Streamlit startup**:
+  - Launch through the project virtual environment's Python module instead of a relocatable console-script shebang that could still point at another project.
+  - Log the underlying driver-setup exception when Streamlit rejects a restored session, instead of leaving only the generic simulation error visible.
 - **Documentation & test suite validation**:
   - Updated `docs/engine.md` and `docs/acoustics.md`.
   - Added smoke, physics, and UI regression tests in `tests/test_all.py`.

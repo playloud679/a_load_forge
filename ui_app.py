@@ -9724,6 +9724,7 @@ with st.sidebar:
                         st.caption(current_optimizer_summary)
                         
             except Exception as exc:
+                logger.exception("Driver parameter setup failed")
                 current_ts = None
                 current_alignment = None
                 current_reflex_alignment = None
