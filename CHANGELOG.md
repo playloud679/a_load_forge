@@ -11,10 +11,13 @@
   - Added dataclasses `Bandpass8Alignment` and `Bandpass8Box`, with auto-alignment function `suggest_bandpass8_alignment()` and simulator `simulate_bandpass8()`.
   - Fully integrated into the acoustic load peer family (`BoxUnion`), coordinate-descent optimizer, design space atlas, Bass Match finder, and snapshot comparison engine.
   - Integrated into Streamlit dashboard `ui_app.py` with 3-chamber volume & tuning controls, 3-port duct sizing, port velocity series, response markers, and metrics summary.
+- **Stable BP8 optimization across drive-voltage edits**:
+  - Removed the discontinuous 2.83 V threshold from excursion-rated port sizing; every positive simulation voltage now scales continuously to the same Xmax reference.
+  - Prevented a 2.83 → 2.82 V edit from admitting a radically different, deeply tuned BP8 alignment through a smaller low-power port floor.
 - **Documentation & test suite validation**:
   - Updated `docs/engine.md` and `docs/acoustics.md`.
   - Added smoke, physics, and UI regression tests in `tests/test_all.py`.
-  - Full active test suite passing fresh (**169 PASS, 0 FAIL**).
+  - Full active test suite passing fresh (**170 PASS, 0 FAIL**).
 
 ## 0.8.23 (2026-08-19)
 

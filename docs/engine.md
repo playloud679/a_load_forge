@@ -138,7 +138,10 @@ rated_velocity_diameter_cm())` — Helmholtz zero-length, the drive-independent
 gold standard `K*(2*pi*Fb*Sd*Xmax)/v_amm` (`K = PORT_K_FACTOR`, 0 when
 Xmax is unpublished), and the diameter keeping peak air speed at or below 5%
 of sound speed at the driver's excursion-limited voltage (scaled from the
-simulation voltage to the level that reaches Xmax). Above that floor it grows toward a
+simulation voltage to the level that reaches Xmax). That scaling is continuous
+at every positive drive voltage; there is no special 2.83 V boundary that can
+make a tiny voltage edit select a radically different port or alignment. Above
+that floor it grows toward a
 fabricable ~5 cm duct, but stops at `PORT_MAX_VOLUME_FRACTION` (10%) of the
 chamber even if that leaves a shorter duct: small chambers tuned low would
 otherwise demand metre-long ducts that invalidate the lumped Helmholtz model.

@@ -1430,6 +1430,62 @@ def _check_port_displacement_golden_rule():
 test("Acoustic displacement golden rule floors vent sizing", _check_port_displacement_golden_rule)
 
 
+def _check_rated_port_sizing_is_continuous_across_2v83():
+    """Regression for the BP8 jump reported when 2.83 V became 2.82 V.
+
+    The old helper stopped scaling port velocity to the Xmax-limited drive
+    below exactly 2.83 V.  On a deeply tuned BP8 candidate that moved Port 3
+    from a 6 cm rated floor to a 4.5 cm low-power floor, turning an impossible
+    four-box-length duct into a barely accepted one and sending the optimizer
+    to a near-cancelled alignment.
+    """
+    from src import engine as _engine
+
+    ts = _acoustics.get_driver_preset("LSDB: Beyma 6NMFW")
+    box = _acoustics.Bandpass8Box(
+        v1_l=21.99, f1_hz=26.81,
+        v2_l=61.21, f2_hz=7.65,
+        v3_l=87.97, f3_hz=13.19,
+    )
+    freq = np.geomspace(10.0, 500.0, 240)
+    metrics = []
+    floors = []
+    for voltage_v in (2.83, 2.82):
+        result = _acoustics.simulate_bandpass8(ts, box, freq, voltage_v)
+        floors.append(_acoustics.rated_velocity_diameter_cm(
+            ts, result, voltage_v, result.port_h_velocity))
+        metrics.append(_engine._optimizer_metrics(
+            ts, box, freq, voltage_v))
+
+    assert abs(floors[0] - floors[1]) < 1e-9, floors
+    assert metrics[0]["required_port_diameter_cm"] == metrics[1]["required_port_diameter_cm"], metrics
+    assert abs(
+        metrics[0]["port_length_over_box_ratio"]
+        - metrics[1]["port_length_over_box_ratio"]
+    ) < 1e-9, metrics
+
+    goals = _acoustics.OptimizationGoals(
+        objective="extension", max_ripple_db=3.0, max_excursion_ratio=1.0)
+    high = _acoustics.optimize_alignment(
+        ts, goals, load_type="Bandpass 8th order", voltage_v=2.83)
+    low = _acoustics.optimize_alignment(
+        ts, goals, load_type="Bandpass 8th order", voltage_v=2.82)
+    np.testing.assert_allclose(
+        [high.box.v1_l, high.box.f1_hz, high.box.v2_l,
+         high.box.f2_hz, high.box.v3_l, high.box.f3_hz],
+        [low.box.v1_l, low.box.f1_hz, low.box.v2_l,
+         low.box.f2_hz, low.box.v3_l, low.box.f3_hz],
+        rtol=1e-9,
+        atol=1e-9,
+    )
+
+
+test(
+    "Rated port sizing stays continuous across 2.83 V",
+    _check_rated_port_sizing_is_continuous_across_2v83,
+)
+
+
 def _check_port_duct_volume_directive():
     from src import engine as _engine
 

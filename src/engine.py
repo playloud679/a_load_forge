@@ -1401,12 +1401,14 @@ def rated_velocity_diameter_cm(
     At low simulation voltages (e.g. 2.83 V) a powerful driver barely moves,
     making the velocity floor negligible.  This helper scales the peak port
     volume velocity to the excursion-limited drive level so the port is sized
-    for real-world usage.  Falls back to the raw velocity floor when the
-    simulation voltage is already below 2.83 V (test / low-power paths) or
-    when Xmax is unpublished.
+    for real-world usage.  The ratio of volume velocity to excursion is linear,
+    so the result must stay continuous for every positive simulation voltage;
+    falls back to the raw velocity floor only when Xmax is unpublished or the
+    simulated drive already reaches it.
     """
+    _require_positive("Simulation voltage", sim_voltage_v)
     peak_vv = float(np.nanmax(np.abs(volume_velocity)))
-    if ts.xmax_mm <= 0 or sim_voltage_v < 2.83:
+    if ts.xmax_mm <= 0:
         return port_velocity_diameter_cm(peak_vv)
     peak_exc = float(np.nanmax(result.excursion_mm))
     if peak_exc <= 0 or peak_exc >= ts.xmax_mm:
