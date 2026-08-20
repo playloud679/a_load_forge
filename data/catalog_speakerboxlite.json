@@ -44267,7 +44267,7 @@
       "name": "SBL: Kicker 07CVR104(COMP VR 10)",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/kicker-07cvr104-comp-vr-10-/specifications",
+      "url": "https://www.kicker.com/compvr-subwoofers",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00033431,
@@ -44282,7 +44282,9 @@
         "upstream_id": 3920,
         "upstream_rating": 4.0,
         "upstream_text_id": "kicker-07cvr104-comp-vr-10-"
-      }
+      },
+      "price": 149.99,
+      "currency": "USD"
     },
     {
       "brand": "Kicker",
@@ -44306,7 +44308,7 @@
       "name": "SBL: Kicker 43CWR102(COMPR 10)",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/kicker-43cwr102-compr-10-/specifications",
+      "url": "https://www.kicker.com/2021-compr-subwoofers",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00038766,
@@ -44321,7 +44323,9 @@
         "upstream_id": 4794,
         "upstream_rating": 5.0,
         "upstream_text_id": "kicker-43cwr102-compr-10-"
-      }
+      },
+      "price": 169.99,
+      "currency": "USD"
     },
     {
       "brand": "Kicker",
@@ -44345,7 +44349,7 @@
       "name": "SBL: Kicker C10VR2",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/kicker-c10vr2/specifications",
+      "url": "https://www.kicker.com/2016-comp-subwoofers",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00103798,
@@ -44360,7 +44364,9 @@
         "upstream_id": 4109,
         "upstream_rating": 5.0,
         "upstream_text_id": "kicker-c10vr2"
-      }
+      },
+      "price": 79.99,
+      "currency": "USD"
     },
     {
       "brand": "Kicker",
@@ -44384,7 +44390,7 @@
       "name": "SBL: Kicker C12VR2 (2003)",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/kicker-c12vr2--2003-/specifications",
+      "url": "https://www.kicker.com/2016-comp-subwoofers",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00108335,
@@ -44399,7 +44405,9 @@
         "upstream_id": 3750,
         "upstream_rating": 4.0,
         "upstream_text_id": "kicker-c12vr2--2003-"
-      }
+      },
+      "price": 99.99,
+      "currency": "USD"
     },
     {
       "brand": "Kicker",
@@ -44501,7 +44509,7 @@
       "name": "SBL: Kicker CWRT67(COMPRT 67)",
       "size_in": 7.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/kicker-cwrt67-comprt-67-/specifications",
+      "url": "https://www.kicker.com/2021-comprt-subwoofers",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00070353,
@@ -44516,7 +44524,9 @@
         "upstream_id": 4641,
         "upstream_rating": 5.0,
         "upstream_text_id": "kicker-cwrt67-comprt-67-"
-      }
+      },
+      "price": 119.99,
+      "currency": "USD"
     },
     {
       "brand": "Kicker",
