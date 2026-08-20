@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.8.26 (2026-08-21)
+
+- **High-performance catalog boot and binary cache acceleration**:
+  - Embedded pre-matched retailer prices (`price`, `currency`, `url`) directly into the catalog datasets (`catalog_proprietario.json`, `catalog_lsdb.json`, `catalog_vituixcad.json`, `catalog_speakerboxlite.json`).
+  - Added an atomic binary `.cache.pickle` acceleration layer in `src/presets.py` with source JSON `mtime` validation and fail-safe fallback, cutting catalog disk load from 1.35s to 0.07s.
+  - Disabled Streamlit AST runner magic in `.streamlit/config.toml` (`magicEnabled = false`, `fastReruns = true`) for instantaneous warm reruns (<0.38s).
+  - Replaced runtime fuzzy string matching with $O(1)$ direct catalog retrieval and memoized string tokenization in `src/pricing.py`.
+  - Replaced heavy `@st.cache_data` array hashing on 13k-element preset lists in `ui_app.py` with `@lru_cache`, eliminating Streamlit serialization overhead.
+- **Compact portable `.lfp` project serialization**:
+  - Compacted `.lfp` export payload by pruning redundant null/NaN entries and bounding saved raw Bass Match candidate rows to the top 100 ranked candidates.
+  - Slashed exported `.lfp` project file sizes from ~17 MB down to <30 KB while preserving 100% full-parameter design restoration and instantaneous local alignment.
+  - Verified full active test suite passing fresh (**170 PASS, 0 FAIL**).
+
 ## 0.8.25 (2026-08-19)
 
 - **Replaced Distributed Waveguides with Triple-Chamber 8th-Order Bandpass (AES e-Brief 546)**:
@@ -17,12 +30,9 @@
 - **Reliable local Streamlit startup**:
   - Launch through the project virtual environment's Python module instead of a relocatable console-script shebang that could still point at another project.
   - Log the underlying driver-setup exception when Streamlit rejects a restored session, instead of leaving only the generic simulation error visible.
-- **Pre-baked catalog pricing and high-performance startup**:
-  - Embedded pre-matched retailer prices (`price`, `currency`, `url`) directly into the catalog datasets (`catalog_proprietario.json`, `catalog_lsdb.json`, `catalog_vituixcad.json`, `catalog_speakerboxlite.json`).
-  - Added an atomic binary `.cache.pickle` acceleration layer in `src/presets.py` with `mtime` validation and fail-safe JSON fallback, reducing catalog load from 1.35s to 0.07s.
-  - Disabled Streamlit AST runner magic in `.streamlit/config.toml` (`magicEnabled = false`, `fastReruns = true`) for instant 10k-line script boot.
-  - Replaced runtime fuzzy string matching with $O(1)$ direct catalog retrieval and memoized string tokenization in `src/pricing.py`.
-  - Replaced heavy `@st.cache_data` array hashing on 13k-element preset lists in `ui_app.py` with `@lru_cache`, cutting warm filter latency from >1s to 0.00s.
+- **Compact portable `.lfp` project serialization**:
+  - Compacted `.lfp` export payload by pruning redundant null/NaN entries and bounding saved raw Bass Match candidate rows to the top 100 ranked candidates.
+  - Slashed exported `.lfp` project file sizes from ~17 MB down to <30 KB while preserving 100% full-parameter design restoration and instantaneous local alignment.
   - Verified full test suite passing fresh (**170 PASS, 0 FAIL**).
 
 ## 0.8.23 (2026-08-19)

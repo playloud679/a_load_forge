@@ -2,7 +2,7 @@
 
 Traccia operativa multi-sessione. Regole d'uso:
 
-- Ultimo aggiornamento: **2026-08-20**. Release corrente: **0.8.25**.
+- Ultimo aggiornamento: **2026-08-21**. Release corrente: **0.8.26**.
 - `[ ]` da fare · `[~]` in corso · `[x]` fatto (aggiungere data e commit).
 - Lavorare un punto alla volta, rispettando il contratto di `AGENTS.md`:
   ogni modifica a `src/*.py` aggiorna `docs/<modulo>.md` + test nella stessa

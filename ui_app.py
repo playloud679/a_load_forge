@@ -1850,6 +1850,18 @@ def _json_safe(value):
     raise TypeError(f"Unsupported project value: {type(value).__name__}")
 
 
+_LFP_MAX_SAVED_BATCH_RESULTS = 100
+
+
+def _compact_result_row(row: dict) -> dict:
+    """Omit null/NaN fields from saved rows to keep .lfp files lightweight."""
+    return {
+        key: value
+        for key, value in row.items()
+        if value is not None and not (isinstance(value, float) and not np.isfinite(value))
+    }
+
+
 def _collect_bass_match_project_state(
     *,
     include_results: bool = True,
@@ -1867,9 +1879,14 @@ def _collect_bass_match_project_state(
             "finder_last_run_stats": {},
         }
         for key in _BASS_MATCH_PROJECT_RESULT_KEYS:
-            bass_match[key] = _json_safe(
-                st.session_state.get(key, defaults[key])
-            )
+            val = st.session_state.get(key, defaults[key])
+            if key == "batch_results" and isinstance(val, list):
+                val = [
+                    _compact_result_row(row)
+                    for row in val[:_LFP_MAX_SAVED_BATCH_RESULTS]
+                    if isinstance(row, dict)
+                ]
+            bass_match[key] = _json_safe(val)
     return bass_match
 
 

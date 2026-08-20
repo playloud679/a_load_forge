@@ -4,7 +4,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "load_forge"
-version = "0.8.25"
+version = "0.8.26"
 description = "Load Forge - Acoustic load simulator (DCCAV, reflex, sealed, passive radiator, bandpass)"
 readme = "README.md"
 license = { text = "Proprietary" }
