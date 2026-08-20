@@ -19,7 +19,9 @@
   - Log the underlying driver-setup exception when Streamlit rejects a restored session, instead of leaving only the generic simulation error visible.
 - **Pre-baked catalog pricing and high-performance startup**:
   - Embedded pre-matched retailer prices (`price`, `currency`, `url`) directly into the catalog datasets (`catalog_proprietario.json`, `catalog_lsdb.json`, `catalog_vituixcad.json`, `catalog_speakerboxlite.json`).
-  - Replaced runtime fuzzy string matching with $O(1)$ direct catalog retrieval and memoized string tokenization in `src/pricing.py`, eliminating over 1.2s of boot overhead.
+  - Added an atomic binary `.cache.pickle` acceleration layer in `src/presets.py` with `mtime` validation and fail-safe JSON fallback, reducing catalog load from 1.35s to 0.07s.
+  - Disabled Streamlit AST runner magic in `.streamlit/config.toml` (`magicEnabled = false`, `fastReruns = true`) for instant 10k-line script boot.
+  - Replaced runtime fuzzy string matching with $O(1)$ direct catalog retrieval and memoized string tokenization in `src/pricing.py`.
   - Replaced heavy `@st.cache_data` array hashing on 13k-element preset lists in `ui_app.py` with `@lru_cache`, cutting warm filter latency from >1s to 0.00s.
   - Verified full test suite passing fresh (**170 PASS, 0 FAIL**).
 

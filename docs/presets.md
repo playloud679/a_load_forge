@@ -53,10 +53,12 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
   from active-driver T/S records. The UI exposes their `Sp`, `Fp`, `Qmp` and
   `Mmp` values and applies optional added mass at simulation time.
 - `_load_external_presets(path, ...)`: shared lazy loader used by all five
-  catalogs; missing or invalid files degrade to whatever tiers remain. Reads
-  pre-baked `price`, `currency` and `url` fields directly from the catalog JSON
-  records with fast fallback and overlay via `pricing._preset_price`. Within
-  the Load Forge manufacturer tier, decorated SB Acoustics titles are
+  catalogs; missing or invalid files degrade to whatever tiers remain. Employs
+  an automatic binary `.cache.pickle` layer validated against the source JSON
+  `mtime` for sub-100ms cold boot, with automatic fallback and atomic cache
+  refresh. Reads pre-baked `price`, `currency` and `url` fields directly from
+  the catalog records with fast fallback and overlay via `pricing._preset_price`.
+  Within the Load Forge manufacturer tier, decorated SB Acoustics titles are
   canonicalized by their actual product code: for example the official
   `9½″ SATORI WO24P-8 / Paper` and retailer `WO24P-8` observations become one
   row. The impedance suffix remains part of the identity, official

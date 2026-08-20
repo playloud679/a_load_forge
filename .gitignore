@@ -30,6 +30,8 @@ skills/
 .analytics.db
 data/driver_prices.json.lock
 data/driver_prices.json.tmp
+data/*.cache.pickle
+data/*.cache.tmp
 
 # Debug/scratch output (local analysis, regenerated on demand)
 diff_perf.txt

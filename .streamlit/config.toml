@@ -15,3 +15,7 @@ textColor = "#F5F7FA"
 
 [server]
 enableStaticServing = false
+
+[runner]
+magicEnabled = false
+fastReruns = true

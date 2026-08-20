@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import math
 import os
+import pickle
 import re
 from dataclasses import dataclass
 from functools import lru_cache
@@ -1035,6 +1036,27 @@ def _load_external_presets(
     if not path.exists():
         return {}, {}
 
+    cache_path = path.with_suffix(".cache.pickle")
+    if cache_path.exists():
+        try:
+            cache_mtime = cache_path.stat().st_mtime
+            prices_mtime = (
+                DRIVER_PRICES_PATH.stat().st_mtime
+                if DRIVER_PRICES_PATH.exists()
+                else 0.0
+            )
+            if cache_mtime >= path.stat().st_mtime and cache_mtime >= prices_mtime:
+                cached = pickle.loads(cache_path.read_bytes())
+                if (
+                    isinstance(cached, tuple)
+                    and len(cached) == 2
+                    and isinstance(cached[0], dict)
+                    and isinstance(cached[1], dict)
+                ):
+                    return cached
+        except Exception:
+            pass
+
     payload = json.loads(path.read_text(encoding="utf-8"))
     presets: dict[str, DriverTS] = {}
     info: dict[str, DriverPresetInfo] = {}
@@ -1077,7 +1099,6 @@ def _load_external_presets(
         item_url = str(item.get("url") or "")
         item_source = str(item.get("source") or default_source)
         part_number = _external_catalog_part_number(item_brand, identity_model)
-        # Check runtime price overlay first if active, otherwise use pre-baked catalog values
         enriched_price, enriched_currency, enriched_url = _preset_price(
             name, part_number or item_model, item_brand
         )
@@ -1140,6 +1161,14 @@ def _load_external_presets(
         info[name] = item_info
         identity_to_name[identity] = name
         identity_score[identity] = score
+
+    try:
+        tmp_path = cache_path.with_suffix(".tmp")
+        tmp_path.write_bytes(pickle.dumps((presets, info), protocol=pickle.HIGHEST_PROTOCOL))
+        tmp_path.replace(cache_path)
+    except Exception:
+        pass
+
     return presets, info
 
 

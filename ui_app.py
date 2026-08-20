@@ -6934,6 +6934,7 @@ def _finder_driver_identity(name: str) -> tuple[str, str, str]:
         return "unknown", normalized, ""
 
 
+@lru_cache(maxsize=32768)
 def _finder_preset_preference(name: str) -> tuple[int, int, float, str]:
     """Prefer Load Forge provenance, then an available lower price."""
     try:
@@ -6957,9 +6958,10 @@ def _finder_preset_preference(name: str) -> tuple[int, int, float, str]:
     )
 
 
-def _deduplicate_finder_preset_names(
-    preset_names: list[str],
-) -> tuple[list[str], int]:
+@lru_cache(maxsize=128)
+def _deduplicate_finder_preset_names_tuple(
+    preset_names: tuple[str, ...],
+) -> tuple[tuple[str, ...], int]:
     """Choose one preferred catalog record for each physical driver."""
     chosen: dict[tuple[str, str, str], str] = {}
     for name in preset_names:
@@ -6971,8 +6973,18 @@ def _deduplicate_finder_preset_names(
             < _finder_preset_preference(previous)
         ):
             chosen[identity] = name
-    unique_names = list(chosen.values())
+    unique_names = tuple(chosen.values())
     return unique_names, len(preset_names) - len(unique_names)
+
+
+def _deduplicate_finder_preset_names(
+    preset_names: list[str],
+) -> tuple[list[str], int]:
+    """Choose one preferred catalog record for each physical driver."""
+    unique_tuple, duplicate_count = _deduplicate_finder_preset_names_tuple(
+        tuple(preset_names)
+    )
+    return list(unique_tuple), duplicate_count
 
 
 def _deduplicate_finder_result_rows(
@@ -6993,7 +7005,7 @@ def _deduplicate_finder_result_rows(
     return unique_rows, len(rows) - len(unique_rows)
 
 
-@st.cache_data(show_spinner=False)
+@lru_cache(maxsize=128)
 def _prefilter_finder_candidate_pools(
     preset_names: tuple[str, ...],
     load_types: tuple[str, ...],
