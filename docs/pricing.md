@@ -20,7 +20,11 @@ value score.
   requires brand evidence for catalog-generated records. Explicit nominal
   impedances must agree, preventing a 4/8/16-ohm variant from borrowing a
   sibling variant's offer.
-- `_preset_price(name, model, brand) -> (price | None, currency, url)`
+- `_preset_price(name, model, brand) -> (price | None, currency, url)`:
+  LRU-cached lookup with fast-path key checking against `_load_driver_price_records()`.
+- Token and compact helpers (`_preset_match_tokens`, `_brand_compacts`,
+  `_model_compacts`, `_impedance_values`) are `@lru_cache`-backed to eliminate
+  repeated string parsing overhead.
 - `parse_ecb_reference_rates(payload)`: parses the ECB daily XML feed into a
   EUR-based rate table and its published reference date
 - `load_ecb_reference_rates(timeout_s=3)`: downloads the current ECB daily

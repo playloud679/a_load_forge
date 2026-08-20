@@ -26,7 +26,7 @@ import uuid
 import zlib
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from datetime import UTC, datetime
-from functools import cache
+from functools import cache, lru_cache
 from pathlib import Path
 
 import altair as alt
@@ -3099,8 +3099,21 @@ def _normalized_preset_price(
     )
 
 
-@st.cache_data(show_spinner=False, ttl=5 * 60, max_entries=8)
+@lru_cache(maxsize=8)
+def _all_preset_price_currencies() -> list[str]:
+    return sorted(
+        {
+            _driver_preset_currency(name)
+            for name in _acoustics.driver_preset_names()
+            if _driver_preset_price(name) is not None and _driver_preset_currency(name)
+        }
+    )
+
+
 def _preset_price_currencies(names: list[str]) -> list[str]:
+    all_names = _acoustics.driver_preset_names()
+    if len(names) == len(all_names):
+        return _all_preset_price_currencies()
     return sorted(
         {
             _driver_preset_currency(name)
@@ -3110,8 +3123,25 @@ def _preset_price_currencies(names: list[str]) -> list[str]:
     )
 
 
-@st.cache_data(show_spinner=False, ttl=5 * 60, max_entries=16)
+@lru_cache(maxsize=16)
+def _all_preset_price_values(currency: str | None = None) -> list[float]:
+    values = []
+    rates = _current_exchange_rates()[0] if currency else None
+    for name in _acoustics.driver_preset_names():
+        price = (
+            _normalized_preset_price(name, currency, rates)
+            if currency
+            else _driver_preset_price(name)
+        )
+        if price is not None and np.isfinite(float(price)):
+            values.append(float(price))
+    return values
+
+
 def _preset_price_values(names: list[str], currency: str | None = None) -> list[float]:
+    all_names = _acoustics.driver_preset_names()
+    if len(names) == len(all_names):
+        return _all_preset_price_values(currency)
     values = []
     rates = _current_exchange_rates()[0] if currency else None
     for name in names:
@@ -3191,8 +3221,19 @@ def _driver_preset_size(name: str) -> str:
     return _size_bucket(piston_inches)
 
 
-@st.cache_data(show_spinner=False, ttl=5 * 60, max_entries=8)
+@lru_cache(maxsize=8)
+def _all_available_preset_families() -> list[str]:
+    names = _acoustics.driver_preset_names()
+    present = {_driver_preset_family(name) for name in names}
+    ordered = [family for family in _PRESET_FAMILY_ORDER if family == "All" or family in present]
+    extras = sorted(present.difference(ordered), key=str.casefold)
+    return [*ordered, *extras]
+
+
 def _available_preset_families(names: list[str]) -> list[str]:
+    all_names = _acoustics.driver_preset_names()
+    if len(names) == len(all_names):
+        return _all_available_preset_families()
     present = {_driver_preset_family(name) for name in names}
     ordered = [family for family in _PRESET_FAMILY_ORDER if family == "All" or family in present]
     extras = sorted(present.difference(ordered), key=str.casefold)

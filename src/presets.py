@@ -1074,11 +1074,15 @@ def _load_external_presets(
             continue
         item_price = _valid_price(item.get("price"))
         item_currency = str(item.get("currency") or "")
+        item_url = str(item.get("url") or "")
         item_source = str(item.get("source") or default_source)
         part_number = _external_catalog_part_number(item_brand, identity_model)
+        # Check runtime price overlay first if active, otherwise use pre-baked catalog values
         enriched_price, enriched_currency, enriched_url = _preset_price(
             name, part_number or item_model, item_brand
         )
+        if enriched_price is None and item_price is not None:
+            enriched_price, enriched_currency, enriched_url = item_price, item_currency, item_url
         raw_size_in = (
             float(item["size_in"])
             if item.get("size_in") is not None
@@ -1094,7 +1098,7 @@ def _load_external_presets(
             price=enriched_price if enriched_price is not None else item_price,
             currency=enriched_currency or item_currency,
             kind=str(item.get("kind") or ""),
-            url=enriched_url or str(item.get("url") or ""),
+            url=enriched_url or item_url or str(item.get("url") or ""),
             mechanical=_mechanical_dimensions_from_mapping(item.get("mechanical")),
             published_specs=_published_specs_from_mapping(item.get("published_specs")),
         )

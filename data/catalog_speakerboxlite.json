@@ -374,7 +374,7 @@
       "name": "SBL: Accuton S280-6-282 SANDWICH BASS",
       "size_in": 11.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/accuton-s280-6-282-sandwich-bass/specifications",
+      "url": "https://www.madisoundspeakerstore.com/approx-11-woofers/accuton-s280-6-282-11-sandwich-cone-woofer/",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01882318,
@@ -392,7 +392,8 @@
       },
       "price": 1975.0,
       "price_currency": "USD",
-      "price_url": "https://www.madisoundspeakerstore.com/approx-11-woofers/accuton-s280-6-282-11-sandwich-cone-woofer/"
+      "price_url": "https://www.madisoundspeakerstore.com/approx-11-woofers/accuton-s280-6-282-11-sandwich-cone-woofer/",
+      "currency": "USD"
     },
     {
       "brand": "Acoustic Research",
@@ -7251,7 +7252,7 @@
       "name": "SBL: Audax HM210Z2",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/audax-hm210z2/specifications",
+      "url": "https://www.haut-parleurs.fr/boutique/audax/haut-parleur-audax-hm210z2.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00288264,
@@ -7269,7 +7270,8 @@
       },
       "price": 138.0,
       "price_currency": "EUR",
-      "price_url": "https://www.haut-parleurs.fr/boutique/audax/haut-parleur-audax-hm210z2.html"
+      "price_url": "https://www.haut-parleurs.fr/boutique/audax/haut-parleur-audax-hm210z2.html",
+      "currency": "EUR"
     },
     {
       "brand": "Audax",
@@ -7293,7 +7295,7 @@
       "name": "SBL: Audax HT170G2",
       "size_in": 7.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/audax-ht170g2/specifications",
+      "url": "https://www.haut-parleurs.fr/boutique/audax/haut-parleur-audax-ht170g2.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00111761,
@@ -7311,7 +7313,8 @@
       },
       "price": 70.0,
       "price_currency": "EUR",
-      "price_url": "https://www.haut-parleurs.fr/boutique/audax/haut-parleur-audax-ht170g2.html"
+      "price_url": "https://www.haut-parleurs.fr/boutique/audax/haut-parleur-audax-ht170g2.html",
+      "currency": "EUR"
     },
     {
       "brand": "Audible Physics",
@@ -11468,7 +11471,7 @@
       "name": "SBL: B&C Speakers 12NDL88-4",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/b-c-speakers-12ndl88-4/specifications",
+      "url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-b-c-speakers-12ndl88-4-ohm-12-inch.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00085118,
@@ -11486,7 +11489,8 @@
       },
       "price": 277.46,
       "price_currency": "EUR",
-      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-b-c-speakers-12ndl88-4-ohm-12-inch.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-b-c-speakers-12ndl88-4-ohm-12-inch.html",
+      "currency": "EUR"
     },
     {
       "brand": "B&C Speakers",
@@ -11510,7 +11514,7 @@
       "name": "SBL: B&C Speakers 12PH32",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/b-c-speakers-12ph32/specifications",
+      "url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-b-c-speakers-12ph32-8-ohm-12-inch.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.0015528,
@@ -11528,7 +11532,8 @@
       },
       "price": 152.31,
       "price_currency": "EUR",
-      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-b-c-speakers-12ph32-8-ohm-12-inch.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-b-c-speakers-12ph32-8-ohm-12-inch.html",
+      "currency": "EUR"
     },
     {
       "brand": "B&C Speakers",
@@ -11552,7 +11557,7 @@
       "name": "SBL: B&C Speakers 15HPL76",
       "size_in": 15.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/b-c-speakers-15hpl76/specifications",
+      "url": "https://www.bluearan.co.uk/index.php?id=BAC15HPL76A",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.02171137,
@@ -11570,7 +11575,8 @@
       },
       "price": 190.0,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=BAC15HPL76A"
+      "price_url": "https://www.bluearan.co.uk/index.php?id=BAC15HPL76A",
+      "currency": "GBP"
     },
     {
       "brand": "B-52",
@@ -13075,7 +13081,7 @@
       "name": "SBL: Beyma 8 AG/N",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/beyma-8-ag-n/specifications",
+      "url": "https://www.bluearan.co.uk/index.php?id=BMA8AGN",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00014125,
@@ -13093,7 +13099,8 @@
       },
       "price": 35.16,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=BMA8AGN"
+      "price_url": "https://www.bluearan.co.uk/index.php?id=BMA8AGN",
+      "currency": "GBP"
     },
     {
       "brand": "Beyma",
@@ -13195,7 +13202,7 @@
       "name": "SBL: Beyma BEYMA 8CX300ND/N",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/beyma-beyma-8cx300nd-n/specifications",
+      "url": "https://www.soundimports.eu/en/beyma-8cx300ndn.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00082775,
@@ -13213,7 +13220,8 @@
       },
       "price": 419.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/beyma-8cx300ndn.html"
+      "price_url": "https://www.soundimports.eu/en/beyma-8cx300ndn.html",
+      "currency": "EUR"
     },
     {
       "brand": "Beyma",
@@ -16778,7 +16786,7 @@
       "name": "SBL: Ciare HSG200-44",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/ciare-hsg200-44/specifications",
+      "url": "https://www.topservicepro.it/prodotto/ciare-hsg-200-44-altoparlante-subwoofer/",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00032744,
@@ -16796,7 +16804,8 @@
       },
       "price": 159.0,
       "price_currency": "EUR",
-      "price_url": "https://www.topservicepro.it/prodotto/ciare-hsg-200-44-altoparlante-subwoofer/"
+      "price_url": "https://www.topservicepro.it/prodotto/ciare-hsg-200-44-altoparlante-subwoofer/",
+      "currency": "EUR"
     },
     {
       "brand": "Ciare",
@@ -17366,7 +17375,7 @@
       "name": "SBL: Creative Sound Solutions, LLC SDX10",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/creative-sound-solutions--llc-sdx10/specifications",
+      "url": "https://www.soundimports.eu/en/css-sdx10.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00099369,
@@ -17384,7 +17393,8 @@
       },
       "price": 399.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/css-sdx10.html"
+      "price_url": "https://www.soundimports.eu/en/css-sdx10.html",
+      "currency": "EUR"
     },
     {
       "brand": "Creative Sound Solutions, LLC",
@@ -17718,7 +17728,7 @@
       "name": "SBL: Davis Acoustics 38 RPA",
       "size_in": 15.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/davis-acoustics-38-rpa/specifications",
+      "url": "https://www.haut-parleurs.fr/boutique/davis-acoustics/haut-parleur-davis-acoustics-38rpa.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00071268,
@@ -17736,7 +17746,8 @@
       },
       "price": 605.0,
       "price_currency": "EUR",
-      "price_url": "https://www.haut-parleurs.fr/boutique/davis-acoustics/haut-parleur-davis-acoustics-38rpa.html"
+      "price_url": "https://www.haut-parleurs.fr/boutique/davis-acoustics/haut-parleur-davis-acoustics-38rpa.html",
+      "currency": "EUR"
     },
     {
       "brand": "Dayton Audio",
@@ -17799,7 +17810,7 @@
       "name": "SBL: Dayton Audio Epique E150HE-44",
       "size_in": 5.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/dayton-audio-epique-e150he-44/specifications",
+      "url": "https://www.audiophonics.fr/en/loudspeakers-subwoofers/dayton-audio-epique-e150he-44-speaker-driver-subwoofer-dvc-mmag-carbon-fiber-200w-8-ohm-83db-30hz-4000hz-o14cm-p-15611.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00068074,
@@ -17817,7 +17828,8 @@
       },
       "price": 169.9,
       "price_currency": "EUR",
-      "price_url": "https://www.audiophonics.fr/en/loudspeakers-subwoofers/dayton-audio-epique-e150he-44-speaker-driver-subwoofer-dvc-mmag-carbon-fiber-200w-8-ohm-83db-30hz-4000hz-o14cm-p-15611.html"
+      "price_url": "https://www.audiophonics.fr/en/loudspeakers-subwoofers/dayton-audio-epique-e150he-44-speaker-driver-subwoofer-dvc-mmag-carbon-fiber-200w-8-ohm-83db-30hz-4000hz-o14cm-p-15611.html",
+      "currency": "EUR"
     },
     {
       "brand": "Dayton Audio",
@@ -17841,7 +17853,7 @@
       "name": "SBL: Dayton Audio Epique E180HE-44",
       "size_in": 7.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/dayton-audio-epique-e180he-44/specifications",
+      "url": "https://www.audiophonics.fr/en/loudspeakers-subwoofers/dayton-audio-epique-e180he-44-speaker-driver-subwoofer-dvc-mmag-carbon-fiber-200w-8-ohm-84db-25hz-3000hz-o178cm-p-15610.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00877083,
@@ -17859,7 +17871,8 @@
       },
       "price": 189.9,
       "price_currency": "EUR",
-      "price_url": "https://www.audiophonics.fr/en/loudspeakers-subwoofers/dayton-audio-epique-e180he-44-speaker-driver-subwoofer-dvc-mmag-carbon-fiber-200w-8-ohm-84db-25hz-3000hz-o178cm-p-15610.html"
+      "price_url": "https://www.audiophonics.fr/en/loudspeakers-subwoofers/dayton-audio-epique-e180he-44-speaker-driver-subwoofer-dvc-mmag-carbon-fiber-200w-8-ohm-84db-25hz-3000hz-o178cm-p-15610.html",
+      "currency": "EUR"
     },
     {
       "brand": "Dayton Audio",
@@ -17922,7 +17935,7 @@
       "name": "SBL: Dayton Audio RS180P-8(PAPER VERSION)",
       "size_in": 7.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/dayton-audio-rs180p-8-paper-version-/specifications",
+      "url": "https://www.soundimports.eu/en/dayton-audio-rs180p-8.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00091436,
@@ -17940,7 +17953,8 @@
       },
       "price": 84.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/dayton-audio-rs180p-8.html"
+      "price_url": "https://www.soundimports.eu/en/dayton-audio-rs180p-8.html",
+      "currency": "EUR"
     },
     {
       "brand": "Dayton Audio",
@@ -18081,7 +18095,7 @@
       "name": "SBL: Dayton Audio ULTIMAX UM12-22",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/dayton-audio-ultimax-um12-22/specifications",
+      "url": "https://www.soundimports.eu/en/dayton-audio-um12-22.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00013716,
@@ -18099,7 +18113,8 @@
       },
       "price": 329.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/dayton-audio-um12-22.html"
+      "price_url": "https://www.soundimports.eu/en/dayton-audio-um12-22.html",
+      "currency": "EUR"
     },
     {
       "brand": "Dayton Audio",
@@ -18123,7 +18138,7 @@
       "name": "SBL: Dayton Audio ULTIMAX UM15-22",
       "size_in": 15.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/dayton-audio-ultimax-um15-22/specifications",
+      "url": "https://www.soundimports.eu/en/dayton-audio-um15-22.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00062746,
@@ -18141,7 +18156,8 @@
       },
       "price": 369.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/dayton-audio-um15-22.html"
+      "price_url": "https://www.soundimports.eu/en/dayton-audio-um15-22.html",
+      "currency": "EUR"
     },
     {
       "brand": "Dayton Audio",
@@ -18165,7 +18181,7 @@
       "name": "SBL: Dayton Audio ULTIMAX UM18-22",
       "size_in": 18.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/dayton-audio-ultimax-um18-22/specifications",
+      "url": "https://www.soundimports.eu/en/dayton-audio-um18-22.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00053179,
@@ -18183,7 +18199,8 @@
       },
       "price": 499.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/dayton-audio-um18-22.html"
+      "price_url": "https://www.soundimports.eu/en/dayton-audio-um18-22.html",
+      "currency": "EUR"
     },
     {
       "brand": "Dayton Audio",
@@ -18207,7 +18224,7 @@
       "name": "SBL: Dayton Audio ULTIMAX UM8-22",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/dayton-audio-ultimax-um8-22/specifications",
+      "url": "https://www.soundimports.eu/en/dayton-audio-um8-22.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00030637,
@@ -18225,7 +18242,8 @@
       },
       "price": 219.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/dayton-audio-um8-22.html"
+      "price_url": "https://www.soundimports.eu/en/dayton-audio-um8-22.html",
+      "currency": "EUR"
     },
     {
       "brand": "DB Drive",
@@ -24560,7 +24578,7 @@
       "name": "SBL: Eminence LEGEND CA1059-8",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/eminence-legend-ca1059-8/specifications",
+      "url": "https://www.bluearan.co.uk/index.php?id=EMILEGCA1059A",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00730554,
@@ -24578,7 +24596,8 @@
       },
       "price": 133.37,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=EMILEGCA1059A"
+      "price_url": "https://www.bluearan.co.uk/index.php?id=EMILEGCA1059A",
+      "currency": "GBP"
     },
     {
       "brand": "Emphaser",
@@ -25304,7 +25323,7 @@
       "name": "SBL: Eton 7-212/C8/32 HEX SYMPHONY II",
       "size_in": 7.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/eton-7-212-c8-32-hex-symphony-ii/specifications",
+      "url": "https://www.soundimports.eu/en/eton-4-212c825-hex.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00099281,
@@ -25322,7 +25341,8 @@
       },
       "price": 119.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/eton-4-212c825-hex.html"
+      "price_url": "https://www.soundimports.eu/en/eton-4-212c825-hex.html",
+      "currency": "EUR"
     },
     {
       "brand": "Eton",
@@ -26360,7 +26380,7 @@
       "name": "SBL: FaitalPRO 10HX230",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/faitalpro-10hx230/specifications",
+      "url": "https://www.bluearan.co.uk/index.php?id=FTP10HX230",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00625145,
@@ -26378,7 +26398,8 @@
       },
       "price": 226.56,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP10HX230"
+      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP10HX230",
+      "currency": "GBP"
     },
     {
       "brand": "FaitalPRO",
@@ -26402,7 +26423,7 @@
       "name": "SBL: FaitalPRO 12FX600",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/faitalpro-12fx600/specifications",
+      "url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-faitalpro-12fx600-8-ohm-12-inch.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00524476,
@@ -26420,7 +26441,8 @@
       },
       "price": 316.69,
       "price_currency": "EUR",
-      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-faitalpro-12fx600-8-ohm-12-inch.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-faitalpro-12fx600-8-ohm-12-inch.html",
+      "currency": "EUR"
     },
     {
       "brand": "FaitalPRO",
@@ -26444,7 +26466,7 @@
       "name": "SBL: FaitalPRO 12HX230",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/faitalpro-12hx230/specifications",
+      "url": "https://www.bluearan.co.uk/index.php?id=FTP12HX230",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00018217,
@@ -26462,7 +26484,8 @@
       },
       "price": 250.31,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP12HX230"
+      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP12HX230",
+      "currency": "GBP"
     },
     {
       "brand": "FaitalPRO",
@@ -26486,7 +26509,7 @@
       "name": "SBL: FaitalPRO 6HX150",
       "size_in": 6.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/faitalpro-6hx150/specifications",
+      "url": "https://www.thomann.de/intl/faitalpro_6hx150_8_ohms.htm",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01769136,
@@ -26504,7 +26527,8 @@
       },
       "price": 199.0,
       "price_currency": "EUR",
-      "price_url": "https://www.thomann.de/intl/faitalpro_6hx150_8_ohms.htm"
+      "price_url": "https://www.thomann.de/intl/faitalpro_6hx150_8_ohms.htm",
+      "currency": "EUR"
     },
     {
       "brand": "FaitalPRO",
@@ -26567,7 +26591,7 @@
       "name": "SBL: FaitalPRO 8HX230",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/faitalpro-8hx230/specifications",
+      "url": "https://www.bluearan.co.uk/index.php?id=FTP8HX230",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00399886,
@@ -26585,7 +26609,8 @@
       },
       "price": 191.24,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP8HX230"
+      "price_url": "https://www.bluearan.co.uk/index.php?id=FTP8HX230",
+      "currency": "GBP"
     },
     {
       "brand": "Fane",
@@ -30114,7 +30139,7 @@
       "name": "SBL: Fostex FE208EZ",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/fostex-fe208ez/specifications",
+      "url": "https://www.madisoundspeakerstore.com/approx-8-fullrange/fostex-fe208ez-8-full-range-sigma-series/",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.02416971,
@@ -30132,7 +30157,8 @@
       },
       "price": 271.1,
       "price_currency": "USD",
-      "price_url": "https://www.madisoundspeakerstore.com/approx-8-fullrange/fostex-fe208ez-8-full-range-sigma-series/"
+      "price_url": "https://www.madisoundspeakerstore.com/approx-8-fullrange/fostex-fe208ez-8-full-range-sigma-series/",
+      "currency": "USD"
     },
     {
       "brand": "Fountek",
@@ -30156,7 +30182,7 @@
       "name": "SBL: Fountek FE87",
       "size_in": 3.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/fountek-fe87/specifications",
+      "url": "https://www.audiophonics.fr/en/midrange-midbass-full-range/fountek-fe87-speaker-driver-full-range-aluminum-13w-8-ohm-84db-100hz-25khz-o8cm-p-5920.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 7.944e-05,
@@ -30174,7 +30200,8 @@
       },
       "price": 19.9,
       "price_currency": "EUR",
-      "price_url": "https://www.audiophonics.fr/en/midrange-midbass-full-range/fountek-fe87-speaker-driver-full-range-aluminum-13w-8-ohm-84db-100hz-25khz-o8cm-p-5920.html"
+      "price_url": "https://www.audiophonics.fr/en/midrange-midbass-full-range/fountek-fe87-speaker-driver-full-range-aluminum-13w-8-ohm-84db-100hz-25khz-o8cm-p-5920.html",
+      "currency": "EUR"
     },
     {
       "brand": "Fountek",
@@ -32343,7 +32370,7 @@
       "name": "SBL: Great Plains Audio 414-8B",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/great-plains-audio-414-8b/specifications",
+      "url": "https://audio-heritage.jp/ALTEC/unit/414-8b.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00163095,
@@ -32361,7 +32388,8 @@
       },
       "price": 45000.0,
       "price_currency": "JPY",
-      "price_url": "https://audio-heritage.jp/ALTEC/unit/414-8b.html"
+      "price_url": "https://audio-heritage.jp/ALTEC/unit/414-8b.html",
+      "currency": "JPY"
     },
     {
       "brand": "Great Plains Audio",
@@ -32424,7 +32452,7 @@
       "name": "SBL: Great Plains Audio 416-8B",
       "size_in": 15.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/great-plains-audio-416-8b/specifications",
+      "url": "https://www.stereonet.com/forums/topic/260002-sold-fs-altec-lansing-416-8b/",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00075692,
@@ -32442,7 +32470,8 @@
       },
       "price": 400.0,
       "price_currency": "AUD",
-      "price_url": "https://www.stereonet.com/forums/topic/260002-sold-fs-altec-lansing-416-8b/"
+      "price_url": "https://www.stereonet.com/forums/topic/260002-sold-fs-altec-lansing-416-8b/",
+      "currency": "AUD"
     },
     {
       "brand": "Great Plains Audio",
@@ -32466,7 +32495,7 @@
       "name": "SBL: Great Plains Audio 416-8C",
       "size_in": 15.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/great-plains-audio-416-8c/specifications",
+      "url": "https://pa.ebay.com/b/Altec-Lansing-Vintage-Electronics/183077/bn_57088119",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01431324,
@@ -32484,7 +32513,8 @@
       },
       "price": 499.0,
       "price_currency": "USD",
-      "price_url": "https://pa.ebay.com/b/Altec-Lansing-Vintage-Electronics/183077/bn_57088119"
+      "price_url": "https://pa.ebay.com/b/Altec-Lansing-Vintage-Electronics/183077/bn_57088119",
+      "currency": "USD"
     },
     {
       "brand": "Great Plains Audio",
@@ -35043,7 +35073,7 @@
       "name": "SBL: Ground Zero GZUW 10SQX",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/ground-zero-gzuw-10sqx/specifications",
+      "url": "https://www.lautsprechershop.de/chassis/groundzero_en.htm#gz-gzuw-10sqx",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00054165,
@@ -35061,7 +35091,8 @@
       },
       "price": 249.0,
       "price_currency": "EUR",
-      "price_url": "https://www.lautsprechershop.de/chassis/groundzero_en.htm#gz-gzuw-10sqx"
+      "price_url": "https://www.lautsprechershop.de/chassis/groundzero_en.htm#gz-gzuw-10sqx",
+      "currency": "EUR"
     },
     {
       "brand": "Ground Zero",
@@ -36645,7 +36676,7 @@
       "name": "SBL: Hifonics AS12",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/hifonics-as12/specifications",
+      "url": "https://www.soundimports.eu/en/as12.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00010115,
@@ -36663,7 +36694,8 @@
       },
       "price": 29.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/as12.html"
+      "price_url": "https://www.soundimports.eu/en/as12.html",
+      "currency": "EUR"
     },
     {
       "brand": "Hifonics",
@@ -37350,7 +37382,7 @@
       "name": "SBL: HiVi B3N",
       "size_in": 3.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/hivi-b3n/specifications",
+      "url": "https://www.soundimports.eu/en/hivi-b3n.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00431594,
@@ -37368,7 +37400,8 @@
       },
       "price": 18.45,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/hivi-b3n.html"
+      "price_url": "https://www.soundimports.eu/en/hivi-b3n.html",
+      "currency": "EUR"
     },
     {
       "brand": "HiVi",
@@ -37470,7 +37503,7 @@
       "name": "SBL: HiVi D6.8B",
       "size_in": 6.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/hivi-d6-8b/specifications",
+      "url": "https://www.parts-express.com/HiVi-D6.8B-6-Poly-Bass-Midrange-Shielded-297-444",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00488186,
@@ -37488,7 +37521,8 @@
       },
       "price": 115.98,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/HiVi-D6.8B-6-Poly-Bass-Midrange-Shielded-297-444"
+      "price_url": "https://www.parts-express.com/HiVi-D6.8B-6-Poly-Bass-Midrange-Shielded-297-444",
+      "currency": "USD"
     },
     {
       "brand": "HiVi",
@@ -37551,7 +37585,7 @@
       "name": "SBL: HiVi L5-8R",
       "size_in": 5.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/hivi-l5-8r/specifications",
+      "url": "https://www.madisoundspeakerstore.com/approx-5-woofers/hi-vi-l5-8r-5-woven-kevlar-cone-woofer/",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00594974,
@@ -37569,7 +37603,8 @@
       },
       "price": 33.4,
       "price_currency": "USD",
-      "price_url": "https://www.madisoundspeakerstore.com/approx-5-woofers/hi-vi-l5-8r-5-woven-kevlar-cone-woofer/"
+      "price_url": "https://www.madisoundspeakerstore.com/approx-5-woofers/hi-vi-l5-8r-5-woven-kevlar-cone-woofer/",
+      "currency": "USD"
     },
     {
       "brand": "HiVi",
@@ -37593,7 +37628,7 @@
       "name": "SBL: HiVi M8N",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/hivi-m8n/specifications",
+      "url": "https://www.soundimports.eu/en/hivi-m8n-1b.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01046699,
@@ -37611,7 +37646,8 @@
       },
       "price": 49.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/hivi-m8n-1b.html"
+      "price_url": "https://www.soundimports.eu/en/hivi-m8n-1b.html",
+      "currency": "EUR"
     },
     {
       "brand": "HiVi",
@@ -37752,7 +37788,7 @@
       "name": "SBL: Hiwell F6",
       "size_in": 6.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/hiwell-f6/specifications",
+      "url": "https://www.soundimports.eu/en/hivi-f6.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01213172,
@@ -37770,7 +37806,8 @@
       },
       "price": 49.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/hivi-f6.html"
+      "price_url": "https://www.soundimports.eu/en/hivi-f6.html",
+      "currency": "EUR"
     },
     {
       "brand": "HSU Research",
@@ -39236,7 +39273,7 @@
       "name": "SBL: Jantzen Audio JA8008-HMQ",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/jantzen-audio-ja8008-hmq/specifications",
+      "url": "https://www.audiophonics.fr/en/midrange-midbass-full-range/jantzen-audio-ja-8008-hmq-speaker-driver-midbass-paper-8-ohm-95db-40hz-5000hz-o203cm-p-10350.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00156006,
@@ -39254,7 +39291,8 @@
       },
       "price": 279.0,
       "price_currency": "EUR",
-      "price_url": "https://www.audiophonics.fr/en/midrange-midbass-full-range/jantzen-audio-ja-8008-hmq-speaker-driver-midbass-paper-8-ohm-95db-40hz-5000hz-o203cm-p-10350.html"
+      "price_url": "https://www.audiophonics.fr/en/midrange-midbass-full-range/jantzen-audio-ja-8008-hmq-speaker-driver-midbass-paper-8-ohm-95db-40hz-5000hz-o203cm-p-10350.html",
+      "currency": "EUR"
     },
     {
       "brand": "Jaycar",
@@ -41655,7 +41693,7 @@
       "name": "SBL: JBL M115-8A",
       "size_in": 15.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/jbl-m115-8a/specifications",
+      "url": "https://www.parts-express.com/JBL-124-67001-01X-Replacement-Woofer-for-M115-8A-AC2215-JRX115-JRX125-MP215-PRX415M-S-246-8460",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00501672,
@@ -41673,7 +41711,8 @@
       },
       "price": 161.87,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/JBL-124-67001-01X-Replacement-Woofer-for-M115-8A-AC2215-JRX115-JRX125-MP215-PRX415M-S-246-8460"
+      "price_url": "https://www.parts-express.com/JBL-124-67001-01X-Replacement-Woofer-for-M115-8A-AC2215-JRX115-JRX125-MP215-PRX415M-S-246-8460",
+      "currency": "USD"
     },
     {
       "brand": "JBL",
@@ -46528,7 +46567,7 @@
       "name": "SBL: Markaudio ALPAIR 5.2",
       "size_in": 3.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/markaudio-alpair-5-2/specifications",
+      "url": "https://analoghifi.no/shop/hoyttalerelementer/mark-audio/alpair-5-2-gold/",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00113514,
@@ -46546,7 +46585,8 @@
       },
       "price": 1625.0,
       "price_currency": "NOK",
-      "price_url": "https://analoghifi.no/shop/hoyttalerelementer/mark-audio/alpair-5-2-gold/"
+      "price_url": "https://analoghifi.no/shop/hoyttalerelementer/mark-audio/alpair-5-2-gold/",
+      "currency": "NOK"
     },
     {
       "brand": "Markaudio",
@@ -48752,7 +48792,7 @@
       "name": "SBL: Monacor CARPOWER SP-252C",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/monacor-carpower-sp-252c/specifications",
+      "url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-monacor-sp-252c-4-ohm-10-08-inch.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00273887,
@@ -48770,7 +48810,8 @@
       },
       "price": 60.55,
       "price_currency": "EUR",
-      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-monacor-sp-252c-4-ohm-10-08-inch.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-monacor-sp-252c-4-ohm-10-08-inch.html",
+      "currency": "EUR"
     },
     {
       "brand": "Monacor",
@@ -48872,7 +48913,7 @@
       "name": "SBL: Monacor MONACOR SPH-8M",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/monacor-monacor-sph-8m/specifications",
+      "url": "https://www.lautsprechershop.de/chassis/monacor_woofer_en.htm#mo-101630",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00174216,
@@ -48890,7 +48931,8 @@
       },
       "price": 104.55,
       "price_currency": "EUR",
-      "price_url": "https://www.lautsprechershop.de/chassis/monacor_woofer_en.htm#mo-101630"
+      "price_url": "https://www.lautsprechershop.de/chassis/monacor_woofer_en.htm#mo-101630",
+      "currency": "EUR"
     },
     {
       "brand": "Monacor",
@@ -52151,7 +52193,7 @@
       "name": "SBL: Omnes audio SW 10.01",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/omnes-audio-sw-10-01/specifications",
+      "url": "https://hogtalarshoppen.se/produkt/omnes-audio-sw-10-01/",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00060797,
@@ -52169,7 +52211,8 @@
       },
       "price": 713.0,
       "price_currency": "SEK",
-      "price_url": "https://hogtalarshoppen.se/produkt/omnes-audio-sw-10-01/"
+      "price_url": "https://hogtalarshoppen.se/produkt/omnes-audio-sw-10-01/",
+      "currency": "SEK"
     },
     {
       "brand": "Omnes audio",
@@ -52271,7 +52314,7 @@
       "name": "SBL: Omnes audio W8-670Z",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/omnes-audio-w8-670z/specifications",
+      "url": "https://hogtalarshoppen.se/produkt/omnes-audio-w8-670z/",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00241944,
@@ -52289,7 +52332,8 @@
       },
       "price": 499.0,
       "price_currency": "SEK",
-      "price_url": "https://hogtalarshoppen.se/produkt/omnes-audio-w8-670z/"
+      "price_url": "https://hogtalarshoppen.se/produkt/omnes-audio-w8-670z/",
+      "currency": "SEK"
     },
     {
       "brand": "Orion",
@@ -53366,7 +53410,7 @@
       "name": "SBL: P.Audio 12BM-300B",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/p-audio-12bm-300b/specifications",
+      "url": "https://www.pasoundcenter.com/tag/P.AUDIO",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00975244,
@@ -53384,7 +53428,8 @@
       },
       "price": 2550.0,
       "price_currency": "THB",
-      "price_url": "https://www.pasoundcenter.com/tag/P.AUDIO"
+      "price_url": "https://www.pasoundcenter.com/tag/P.AUDIO",
+      "currency": "THB"
     },
     {
       "brand": "P.Audio",
@@ -53447,7 +53492,7 @@
       "name": "SBL: P.Audio E-18ELF",
       "size_in": 18.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/p-audio-e-18elf/specifications",
+      "url": "https://www.bluearan.co.uk/index.php?id=PAUE18ELF",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00438951,
@@ -53465,7 +53510,8 @@
       },
       "price": 173.09,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=PAUE18ELF"
+      "price_url": "https://www.bluearan.co.uk/index.php?id=PAUE18ELF",
+      "currency": "GBP"
     },
     {
       "brand": "P.Audio",
@@ -53528,7 +53574,7 @@
       "name": "SBL: P.Audio E12-300S",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/p-audio-e12-300s/specifications",
+      "url": "https://www.bluearan.co.uk/index.php?id=PAUE12300S",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 8.709e-05,
@@ -53546,7 +53592,8 @@
       },
       "price": 76.13,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=PAUE12300S"
+      "price_url": "https://www.bluearan.co.uk/index.php?id=PAUE12300S",
+      "currency": "GBP"
     },
     {
       "brand": "P.Audio",
@@ -53960,7 +54007,7 @@
       "name": "SBL: P.Audio SN6-150CX",
       "size_in": 6.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/p-audio-sn6-150cx/specifications",
+      "url": "https://www.bluearan.co.uk/index.php?id=PAUSN6150CX",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.003861,
@@ -53978,7 +54025,8 @@
       },
       "price": 68.38,
       "price_currency": "GBP",
-      "price_url": "https://www.bluearan.co.uk/index.php?id=PAUSN6150CX"
+      "price_url": "https://www.bluearan.co.uk/index.php?id=PAUSN6150CX",
+      "currency": "GBP"
     },
     {
       "brand": "P.Audio",
@@ -54119,7 +54167,7 @@
       "name": "SBL: Peavey 1801-8 LT BW",
       "size_in": 18.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/peavey-1801-8-lt-bw/specifications",
+      "url": "https://www.parts-express.com/Peavey-1801-8-LT-BW-RB-18-Speaker-Replacement-Basket-294-3156",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.03926801,
@@ -54137,7 +54185,8 @@
       },
       "price": 249.99,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Peavey-1801-8-LT-BW-RB-18-Speaker-Replacement-Basket-294-3156"
+      "price_url": "https://www.parts-express.com/Peavey-1801-8-LT-BW-RB-18-Speaker-Replacement-Basket-294-3156",
+      "currency": "USD"
     },
     {
       "brand": "Peavey",
@@ -54315,7 +54364,7 @@
       "name": "SBL: Peavey PRO 10",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/peavey-pro-10/specifications",
+      "url": "https://www.parts-express.com/Peavey-Pro-10-Low-Frequency-10-Speaker-Driver-294-3126",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.0048014,
@@ -54333,7 +54382,8 @@
       },
       "price": 99.99,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Peavey-Pro-10-Low-Frequency-10-Speaker-Driver-294-3126"
+      "price_url": "https://www.parts-express.com/Peavey-Pro-10-Low-Frequency-10-Speaker-Driver-294-3126",
+      "currency": "USD"
     },
     {
       "brand": "Peavey",
@@ -54357,7 +54407,7 @@
       "name": "SBL: Peavey PRO 12",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/peavey-pro-12/specifications",
+      "url": "https://www.parts-express.com/Peavey-Pro-12-Low-Frequency-12-Speaker-Driver-294-3124",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00015941,
@@ -54375,7 +54425,8 @@
       },
       "price": 109.99,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Peavey-Pro-12-Low-Frequency-12-Speaker-Driver-294-3124"
+      "price_url": "https://www.parts-express.com/Peavey-Pro-12-Low-Frequency-12-Speaker-Driver-294-3124",
+      "currency": "USD"
     },
     {
       "brand": "Peavey",
@@ -54750,7 +54801,7 @@
       "name": "SBL: Peerless NE85W",
       "size_in": 3.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/peerless-ne85w/specifications",
+      "url": "https://en.toutlehautparleur.com/speakers/cone-speaker/fullrange-speaker-peerless-ne85w-04-4-ohm-2-5-inch.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00059478,
@@ -54768,7 +54819,8 @@
       },
       "price": 36.23,
       "price_currency": "EUR",
-      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/fullrange-speaker-peerless-ne85w-04-4-ohm-2-5-inch.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/fullrange-speaker-peerless-ne85w-04-4-ohm-2-5-inch.html",
+      "currency": "EUR"
     },
     {
       "brand": "Peerless",
@@ -55065,7 +55117,7 @@
       "name": "SBL: Phl Audio 2710",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/phl-audio-2710/specifications",
+      "url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-phl-audio-2710-8-ohm-8-inch.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.0477172,
@@ -55083,7 +55135,8 @@
       },
       "price": 201.1,
       "price_currency": "EUR",
-      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-phl-audio-2710-8-ohm-8-inch.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-phl-audio-2710-8-ohm-8-inch.html",
+      "currency": "EUR"
     },
     {
       "brand": "Phl Audio",
@@ -57057,7 +57110,7 @@
       "name": "SBL: Pioneer TS-W3002D4",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/pioneer-ts-w3002d4/specifications",
+      "url": "https://www.parts-express.com/Pioneer-TS-W3002D4-Champion-Series-12-3500W-PRO-DVC-Subwoofer-267-2509",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00115798,
@@ -57075,7 +57128,8 @@
       },
       "price": 249.98,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Pioneer-TS-W3002D4-Champion-Series-12-3500W-PRO-DVC-Subwoofer-267-2509"
+      "price_url": "https://www.parts-express.com/Pioneer-TS-W3002D4-Champion-Series-12-3500W-PRO-DVC-Subwoofer-267-2509",
+      "currency": "USD"
     },
     {
       "brand": "Pioneer",
@@ -60100,7 +60154,7 @@
       "name": "SBL: Pyle PLMRW8",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/pyle-plmrw8/specifications",
+      "url": "https://www.parts-express.com/Pyle-PLMRW8-8-400-Watt-4-Ohm-Marine-Subwoofer-White-292-2634",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.0001668,
@@ -60118,7 +60172,8 @@
       },
       "price": 27.74,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Pyle-PLMRW8-8-400-Watt-4-Ohm-Marine-Subwoofer-White-292-2634"
+      "price_url": "https://www.parts-express.com/Pyle-PLMRW8-8-400-Watt-4-Ohm-Marine-Subwoofer-White-292-2634",
+      "currency": "USD"
     },
     {
       "brand": "Pyle",
@@ -60142,7 +60197,7 @@
       "name": "SBL: Pyle PLPW10D",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/pyle-plpw10d/specifications",
+      "url": "https://www.parts-express.com/Pyle-PLPW10D-Power-10-1000-Watt-DVC-Subwoofer-267-7444",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00154083,
@@ -60160,7 +60215,8 @@
       },
       "price": 47.4,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Pyle-PLPW10D-Power-10-1000-Watt-DVC-Subwoofer-267-7444"
+      "price_url": "https://www.parts-express.com/Pyle-PLPW10D-Power-10-1000-Watt-DVC-Subwoofer-267-7444",
+      "currency": "USD"
     },
     {
       "brand": "Pyle",
@@ -60184,7 +60240,7 @@
       "name": "SBL: Pyle PLPW15D",
       "size_in": 15.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/pyle-plpw15d/specifications",
+      "url": "https://www.parts-express.com/Pyle-PLPW15D-Power-15-2000-Watt-DVC-Subwoofer-267-7448",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00081089,
@@ -60202,7 +60258,8 @@
       },
       "price": 82.08,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Pyle-PLPW15D-Power-15-2000-Watt-DVC-Subwoofer-267-7448"
+      "price_url": "https://www.parts-express.com/Pyle-PLPW15D-Power-15-2000-Watt-DVC-Subwoofer-267-7448",
+      "currency": "USD"
     },
     {
       "brand": "Pyle",
@@ -60226,7 +60283,7 @@
       "name": "SBL: Pyle PLPW6D",
       "size_in": 6.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/pyle-plpw6d/specifications",
+      "url": "https://www.parts-express.com/Pyle-PLPW6D-Power-6-1-2-600-Watt-DVC-Subwoofer-267-7450",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00088923,
@@ -60244,7 +60301,8 @@
       },
       "price": 24.28,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Pyle-PLPW6D-Power-6-1-2-600-Watt-DVC-Subwoofer-267-7450"
+      "price_url": "https://www.parts-express.com/Pyle-PLPW6D-Power-6-1-2-600-Watt-DVC-Subwoofer-267-7450",
+      "currency": "USD"
     },
     {
       "brand": "Pyle",
@@ -60268,7 +60326,7 @@
       "name": "SBL: Pyle PLPW8D",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/pyle-plpw8d/specifications",
+      "url": "https://www.parts-express.com/Pyle-PLPW8D-Power-8-800-Watt-DVC-Subwoofer-267-7452",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 1.119e-05,
@@ -60286,7 +60344,8 @@
       },
       "price": 33.52,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Pyle-PLPW8D-Power-8-800-Watt-DVC-Subwoofer-267-7452"
+      "price_url": "https://www.parts-express.com/Pyle-PLPW8D-Power-8-800-Watt-DVC-Subwoofer-267-7452",
+      "currency": "USD"
     },
     {
       "brand": "Pyramid",
@@ -62883,7 +62942,7 @@
       "name": "SBL: SB Acoustics SB13PFCR25-04",
       "size_in": 5.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/sb-acoustics-sb13pfcr25-04/specifications",
+      "url": "https://www.madisoundspeakerstore.com/approx-5-woofers/sb-acoustics-sb13pfcr25-04-5-paper-cone-woofer-4-ohm/",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00976815,
@@ -62901,7 +62960,8 @@
       },
       "price": 36.8,
       "price_currency": "USD",
-      "price_url": "https://www.madisoundspeakerstore.com/approx-5-woofers/sb-acoustics-sb13pfcr25-04-5-paper-cone-woofer-4-ohm/"
+      "price_url": "https://www.madisoundspeakerstore.com/approx-5-woofers/sb-acoustics-sb13pfcr25-04-5-paper-cone-woofer-4-ohm/",
+      "currency": "USD"
     },
     {
       "brand": "Scan-Speak",
@@ -63003,7 +63063,7 @@
       "name": "SBL: Seas L16RNX, 4 OHM",
       "size_in": 6.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/seas-l16rnx--4-ohm/specifications",
+      "url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-seas-l16rnx-4-ohm-5-75-inch.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01115242,
@@ -63021,7 +63081,8 @@
       },
       "price": 108.47,
       "price_currency": "EUR",
-      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-seas-l16rnx-4-ohm-5-75-inch.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-seas-l16rnx-4-ohm-5-75-inch.html",
+      "currency": "EUR"
     },
     {
       "brand": "Seas",
@@ -63084,7 +63145,7 @@
       "name": "SBL: Seas L22RN4X",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/seas-l22rn4x/specifications",
+      "url": "https://www.soundimports.eu/en/seas-l22rn4x-p.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01700238,
@@ -63102,7 +63163,8 @@
       },
       "price": 149.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/seas-l22rn4x-p.html"
+      "price_url": "https://www.soundimports.eu/en/seas-l22rn4x-p.html",
+      "currency": "EUR"
     },
     {
       "brand": "Seas",
@@ -63126,7 +63188,7 @@
       "name": "SBL: Seas L26ROY (XM001-04)",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/seas-l26roy--xm001-04-/specifications",
+      "url": "https://www.soundimports.eu/en/seas-l26roy.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00826446,
@@ -63144,7 +63206,8 @@
       },
       "price": 429.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/seas-l26roy.html"
+      "price_url": "https://www.soundimports.eu/en/seas-l26roy.html",
+      "currency": "EUR"
     },
     {
       "brand": "Seas",
@@ -63246,7 +63309,7 @@
       "name": "SBL: Seas W16NX003(E0073-08)",
       "size_in": 5.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/seas-w16nx003-e0073-08-/specifications",
+      "url": "https://www.soundimports.eu/en/seas-w16nx003.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01650779,
@@ -63264,7 +63327,8 @@
       },
       "price": 499.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/seas-w16nx003.html"
+      "price_url": "https://www.soundimports.eu/en/seas-w16nx003.html",
+      "currency": "EUR"
     },
     {
       "brand": "Selenium",
@@ -64029,7 +64093,7 @@
       "name": "SBL: Sica 10 D 1 CS",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/sica-10-d-1-cs/specifications",
+      "url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-10D1CS4",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00235849,
@@ -64047,7 +64111,8 @@
       },
       "price": 45.0,
       "price_currency": "EUR",
-      "price_url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-10D1CS4"
+      "price_url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-10D1CS4",
+      "currency": "EUR"
     },
     {
       "brand": "Sica",
@@ -64149,7 +64214,7 @@
       "name": "SBL: Sica 12D1.5CS-4",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/sica-12d1-5cs-4/specifications",
+      "url": "https://en.toutlehautparleur.com/speakers/cone-speaker/bicone-speaker-sica-12d1-5cs-4-ohm-12-inch.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.0055403,
@@ -64167,7 +64232,8 @@
       },
       "price": 92.49,
       "price_currency": "EUR",
-      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/bicone-speaker-sica-12d1-5cs-4-ohm-12-inch.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/bicone-speaker-sica-12d1-5cs-4-ohm-12-inch.html",
+      "currency": "EUR"
     },
     {
       "brand": "Sica",
@@ -64191,7 +64257,7 @@
       "name": "SBL: Sica 12E2CS",
       "size_in": 12.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/sica-12e2cs/specifications",
+      "url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-sica-12e2cs-8-ohm-12-inch.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01049869,
@@ -64209,7 +64275,8 @@
       },
       "price": 68.55,
       "price_currency": "EUR",
-      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-sica-12e2cs-8-ohm-12-inch.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-sica-12e2cs-8-ohm-12-inch.html",
+      "currency": "EUR"
     },
     {
       "brand": "Sica",
@@ -64233,7 +64300,7 @@
       "name": "SBL: Sica 15 K3 PL-8",
       "size_in": 15.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/sica-15-k3-pl-8/specifications",
+      "url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-15K3PL8",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00323373,
@@ -64251,7 +64318,8 @@
       },
       "price": 300.8,
       "price_currency": "EUR",
-      "price_url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-15K3PL8"
+      "price_url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-15K3PL8",
+      "currency": "EUR"
     },
     {
       "brand": "Sica",
@@ -64275,7 +64343,7 @@
       "name": "SBL: Sica 18 F 4 CP",
       "size_in": 18.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/sica-18-f-4-cp/specifications",
+      "url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-sica-18f4cp-4-ohm-18-inch.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01192949,
@@ -64293,7 +64361,8 @@
       },
       "price": 204.22,
       "price_currency": "EUR",
-      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-sica-18f4cp-4-ohm-18-inch.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-sica-18f4cp-4-ohm-18-inch.html",
+      "currency": "EUR"
     },
     {
       "brand": "Sica",
@@ -64317,7 +64386,7 @@
       "name": "SBL: Sica 6 D 1 CS",
       "size_in": 6.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/sica-6-d-1-cs/specifications",
+      "url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-6D1CS4",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00043309,
@@ -64335,7 +64404,8 @@
       },
       "price": 33.3,
       "price_currency": "EUR",
-      "price_url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-6D1CS4"
+      "price_url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-6D1CS4",
+      "currency": "EUR"
     },
     {
       "brand": "Sica",
@@ -64359,7 +64429,7 @@
       "name": "SBL: Sica 6M1.5CS-4",
       "size_in": 6.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/sica-6m1-5cs-4/specifications",
+      "url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-sica-6m1-5cs-8-ohm-6-inch.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00820232,
@@ -64377,7 +64447,8 @@
       },
       "price": 54.29,
       "price_currency": "EUR",
-      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-sica-6m1-5cs-8-ohm-6-inch.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/speaker-sica-6m1-5cs-8-ohm-6-inch.html",
+      "currency": "EUR"
     },
     {
       "brand": "Sica",
@@ -64401,7 +64472,7 @@
       "name": "SBL: Sica 8D11.5CS-4(Z004670C)",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/sica-8d11-5cs-4-z004670c-/specifications",
+      "url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-8D115CS4",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01002548,
@@ -64419,7 +64490,8 @@
       },
       "price": 56.5,
       "price_currency": "EUR",
-      "price_url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-8D115CS4"
+      "price_url": "https://www.lautsprechershop.de/chassis/sica_en.htm#sica-8D115CS4",
+      "currency": "EUR"
     },
     {
       "brand": "Sica",
@@ -72083,7 +72155,7 @@
       "name": "SBL: Tectonic Elements TEBM35C10-4",
       "size_in": 2.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/tectonic-elements-tebm35c10-4/specifications",
+      "url": "https://www.soundimports.eu/en/tectonic-elements-tebm35c10-4.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00143785,
@@ -72101,7 +72173,8 @@
       },
       "price": 21.45,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/tectonic-elements-tebm35c10-4.html"
+      "price_url": "https://www.soundimports.eu/en/tectonic-elements-tebm35c10-4.html",
+      "currency": "EUR"
     },
     {
       "brand": "Tectonic Elements",
@@ -72125,7 +72198,7 @@
       "name": "SBL: Tectonic Elements TEBM65C20F-8 BMR",
       "size_in": 4.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/tectonic-elements-tebm65c20f-8-bmr/specifications",
+      "url": "https://www.soundimports.eu/en/tectonic-elements-tebm65c20f-8.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00185703,
@@ -72143,7 +72216,8 @@
       },
       "price": 49.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/tectonic-elements-tebm65c20f-8.html"
+      "price_url": "https://www.soundimports.eu/en/tectonic-elements-tebm65c20f-8.html",
+      "currency": "EUR"
     },
     {
       "brand": "Tesla",
@@ -73102,7 +73176,7 @@
       "name": "SBL: Tymphany NE65W-04",
       "size_in": 2.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/tymphany-ne65w-04/specifications",
+      "url": "https://www.soundimports.eu/en/peerless-by-tymphany-ne65w-04.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00830876,
@@ -73120,7 +73194,8 @@
       },
       "price": 39.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/peerless-by-tymphany-ne65w-04.html"
+      "price_url": "https://www.soundimports.eu/en/peerless-by-tymphany-ne65w-04.html",
+      "currency": "EUR"
     },
     {
       "brand": "Tymphany",
@@ -73144,7 +73219,7 @@
       "name": "SBL: Tymphany PLS-P830985",
       "size_in": 2.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/tymphany-pls-p830985/specifications",
+      "url": "https://www.soundimports.eu/en/peerless-by-tymphany-pls-p830985.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00638193,
@@ -73162,7 +73237,8 @@
       },
       "price": 29.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/peerless-by-tymphany-pls-p830985.html"
+      "price_url": "https://www.soundimports.eu/en/peerless-by-tymphany-pls-p830985.html",
+      "currency": "EUR"
     },
     {
       "brand": "Tymphany",
@@ -73186,7 +73262,7 @@
       "name": "SBL: Tymphany SDS-P830855",
       "size_in": 4.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/tymphany-sds-p830855/specifications",
+      "url": "https://www.soundimports.eu/en/peerless-by-tymphany-sds-p830855.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00767873,
@@ -73204,7 +73280,8 @@
       },
       "price": 29.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/peerless-by-tymphany-sds-p830855.html"
+      "price_url": "https://www.soundimports.eu/en/peerless-by-tymphany-sds-p830855.html",
+      "currency": "EUR"
     },
     {
       "brand": "Tymphany",
@@ -73228,7 +73305,7 @@
       "name": "SBL: Tymphany STW-350F-188PR01-04",
       "size_in": 15.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/tymphany-stw-350f-188pr01-04/specifications",
+      "url": "https://www.soundimports.eu/en/peerless-by-tymphany-stw-350f.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00656033,
@@ -73246,7 +73323,8 @@
       },
       "price": 699.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/peerless-by-tymphany-stw-350f.html"
+      "price_url": "https://www.soundimports.eu/en/peerless-by-tymphany-stw-350f.html",
+      "currency": "EUR"
     },
     {
       "brand": "u-Dimension",
@@ -74791,7 +74869,7 @@
       "name": "SBL: Vifa M21WO39-08",
       "size_in": 8.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/vifa-m21wo39-08/specifications",
+      "url": "https://willys-hifi.com/products/vifa-m21wo-39-08-woofer",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.0070922,
@@ -74809,7 +74887,8 @@
       },
       "price": 121.95,
       "price_currency": "GBP",
-      "price_url": "https://willys-hifi.com/products/vifa-m21wo-39-08-woofer"
+      "price_url": "https://willys-hifi.com/products/vifa-m21wo-39-08-woofer",
+      "currency": "GBP"
     },
     {
       "brand": "Visaton",
@@ -74833,7 +74912,7 @@
       "name": "SBL: Visaton B 100-6",
       "size_in": 4.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/visaton-b-100-6/specifications",
+      "url": "https://hogtalarshoppen.se/produkt/visaton-b-100-6-ohm/",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01409415,
@@ -74851,7 +74930,8 @@
       },
       "price": 1438.0,
       "price_currency": "SEK",
-      "price_url": "https://hogtalarshoppen.se/produkt/visaton-b-100-6-ohm/"
+      "price_url": "https://hogtalarshoppen.se/produkt/visaton-b-100-6-ohm/",
+      "currency": "SEK"
     },
     {
       "brand": "Visaton",
@@ -74875,7 +74955,7 @@
       "name": "SBL: Visaton B80/8",
       "size_in": 3.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/visaton-b80-8/specifications",
+      "url": "https://hogtalarshoppen.se/produkt/b-80-8-ohm/",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.0098682,
@@ -74893,7 +74973,8 @@
       },
       "price": 723.0,
       "price_currency": "SEK",
-      "price_url": "https://hogtalarshoppen.se/produkt/b-80-8-ohm/"
+      "price_url": "https://hogtalarshoppen.se/produkt/b-80-8-ohm/",
+      "currency": "SEK"
     },
     {
       "brand": "Visaton",
@@ -74917,7 +74998,7 @@
       "name": "SBL: Visaton BG 17-8",
       "size_in": 6.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/visaton-bg-17-8/specifications",
+      "url": "https://www.parts-express.com/Visaton-BG17-8-6.5-Full-Range-Speaker-with-Whizzer-Cone-292-546",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01016996,
@@ -74935,7 +75016,8 @@
       },
       "price": 29.1,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Visaton-BG17-8-6.5-Full-Range-Speaker-with-Whizzer-Cone-292-546"
+      "price_url": "https://www.parts-express.com/Visaton-BG17-8-6.5-Full-Range-Speaker-with-Whizzer-Cone-292-546",
+      "currency": "USD"
     },
     {
       "brand": "Visaton",
@@ -74959,7 +75041,7 @@
       "name": "SBL: Visaton DX10-4",
       "size_in": 4.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/visaton-dx10-4/specifications",
+      "url": "https://www.thomann.de/intl/visaton_dx_10_4.htm",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00375098,
@@ -74977,7 +75059,8 @@
       },
       "price": 61.0,
       "price_currency": "EUR",
-      "price_url": "https://www.thomann.de/intl/visaton_dx_10_4.htm"
+      "price_url": "https://www.thomann.de/intl/visaton_dx_10_4.htm",
+      "currency": "EUR"
     },
     {
       "brand": "Visaton",
@@ -75001,7 +75084,7 @@
       "name": "SBL: Visaton FR 13-4",
       "size_in": 5.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/visaton-fr-13-4/specifications",
+      "url": "https://www.parts-express.com/Visaton-FR13-4-5-Full-Range-Speaker-4-Ohm-292-518",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00395888,
@@ -75019,7 +75102,8 @@
       },
       "price": 20.0,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Visaton-FR13-4-5-Full-Range-Speaker-4-Ohm-292-518"
+      "price_url": "https://www.parts-express.com/Visaton-FR13-4-5-Full-Range-Speaker-4-Ohm-292-518",
+      "currency": "USD"
     },
     {
       "brand": "Visaton",
@@ -75043,7 +75127,7 @@
       "name": "SBL: Visaton FR 8-8",
       "size_in": 3.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/visaton-fr-8-8/specifications",
+      "url": "https://www.parts-express.com/Visaton-FR8-3.3-Paper-Cone-Full-Range-Driver-8-Ohm-292-724",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00450475,
@@ -75061,7 +75145,8 @@
       },
       "price": 13.48,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Visaton-FR8-3.3-Paper-Cone-Full-Range-Driver-8-Ohm-292-724"
+      "price_url": "https://www.parts-express.com/Visaton-FR8-3.3-Paper-Cone-Full-Range-Driver-8-Ohm-292-724",
+      "currency": "USD"
     },
     {
       "brand": "Visaton",
@@ -75085,7 +75170,7 @@
       "name": "SBL: Visaton FR16WP-4",
       "size_in": 6.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/visaton-fr16wp-4/specifications",
+      "url": "https://www.parts-express.com/Visaton-FR16WP-4-Outdoor-6.5-Full-Range-Speaker-4-Ohm-White-292-500",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 5.185e-05,
@@ -75103,7 +75188,8 @@
       },
       "price": 25.72,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Visaton-FR16WP-4-Outdoor-6.5-Full-Range-Speaker-4-Ohm-White-292-500"
+      "price_url": "https://www.parts-express.com/Visaton-FR16WP-4-Outdoor-6.5-Full-Range-Speaker-4-Ohm-White-292-500",
+      "currency": "USD"
     },
     {
       "brand": "Visaton",
@@ -75127,7 +75213,7 @@
       "name": "SBL: Visaton FRS 5X-8",
       "size_in": 2.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/visaton-frs-5x-8/specifications",
+      "url": "https://www.parts-express.com/Visaton-FRS5X-8-2-Full-Range-Driver-8-Ohm-292-640",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00398823,
@@ -75145,7 +75231,8 @@
       },
       "price": 15.4,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Visaton-FRS5X-8-2-Full-Range-Driver-8-Ohm-292-640"
+      "price_url": "https://www.parts-express.com/Visaton-FRS5X-8-2-Full-Range-Driver-8-Ohm-292-640",
+      "currency": "USD"
     },
     {
       "brand": "Visaton",
@@ -75169,7 +75256,7 @@
       "name": "SBL: Visaton FRS 8 M-8",
       "size_in": 3.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/visaton-frs-8-m-8/specifications",
+      "url": "https://en.toutlehautparleur.com/speakers/cone-speaker/fullrange-speaker-visaton-frs-8-m-8-ohm-3-07-3-66-inch.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00205161,
@@ -75187,7 +75274,8 @@
       },
       "price": 12.71,
       "price_currency": "EUR",
-      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/fullrange-speaker-visaton-frs-8-m-8-ohm-3-07-3-66-inch.html"
+      "price_url": "https://en.toutlehautparleur.com/speakers/cone-speaker/fullrange-speaker-visaton-frs-8-m-8-ohm-3-07-3-66-inch.html",
+      "currency": "EUR"
     },
     {
       "brand": "Visaton",
@@ -75211,7 +75299,7 @@
       "name": "SBL: Visaton FRS-7/4 2.5",
       "size_in": 2.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/visaton-frs-7-4-2-5/specifications",
+      "url": "https://www.parts-express.com/Visaton-FRS7-4-2.5-Full-Range-Speaker-4-Ohm-292-528",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00250499,
@@ -75229,7 +75317,8 @@
       },
       "price": 15.67,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Visaton-FRS7-4-2.5-Full-Range-Speaker-4-Ohm-292-528"
+      "price_url": "https://www.parts-express.com/Visaton-FRS7-4-2.5-Full-Range-Speaker-4-Ohm-292-528",
+      "currency": "USD"
     },
     {
       "brand": "Visaton",
@@ -75369,7 +75458,7 @@
       "name": "SBL: Visaton W 170/8",
       "size_in": 7.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/visaton-w-170-8/specifications",
+      "url": "https://www.parts-express.com/Visaton-W170-8-6.5-Woofer-8-Ohm-292-582",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00457666,
@@ -75387,7 +75476,8 @@
       },
       "price": 28.48,
       "price_currency": "USD",
-      "price_url": "https://www.parts-express.com/Visaton-W170-8-6.5-Woofer-8-Ohm-292-582"
+      "price_url": "https://www.parts-express.com/Visaton-W170-8-6.5-Woofer-8-Ohm-292-582",
+      "currency": "USD"
     },
     {
       "brand": "Visaton",
@@ -75567,7 +75657,7 @@
       "name": "SBL: Wavecor WF118WA01-4",
       "size_in": 4.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/wavecor-wf118wa01-4/specifications",
+      "url": "https://wavecor.com/html/retail_price_list.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.01186153,
@@ -75585,7 +75675,8 @@
       },
       "price": 56.0,
       "price_currency": "USD",
-      "price_url": "https://wavecor.com/html/retail_price_list.html"
+      "price_url": "https://wavecor.com/html/retail_price_list.html",
+      "currency": "USD"
     },
     {
       "brand": "Wavecor",
@@ -76301,7 +76392,7 @@
       "name": "SBL: Zachry D10",
       "size_in": 10.0,
       "source": "Speaker Box Lite public database",
-      "url": "https://speakerboxlite.com/subwoofers/zachry-d10/specifications",
+      "url": "https://www.soundimports.eu/en/smsl-d10.html",
       "website_fields": {
         "imported_at": "2026-07-27T23:54:58+00:00",
         "q_identity_relative_error": 0.00065929,
@@ -76319,7 +76410,8 @@
       },
       "price": 64.95,
       "price_currency": "EUR",
-      "price_url": "https://www.soundimports.eu/en/smsl-d10.html"
+      "price_url": "https://www.soundimports.eu/en/smsl-d10.html",
+      "currency": "EUR"
     }
   ]
 }

@@ -22,11 +22,12 @@ ECB_DAILY_RATES_URL = (
 )
 
 
-def _preset_match_tokens(value: str) -> list[str]:
-    return [token for token in re.split(r"[^a-z0-9]+", str(value).casefold()) if token]
+@lru_cache(maxsize=32768)
+def _preset_match_tokens(value: str) -> tuple[str, ...]:
+    return tuple(token for token in re.split(r"[^a-z0-9]+", str(value).casefold()) if token)
 
 
-def _compact_token_sequences(tokens: list[str], max_len: int = 4) -> set[str]:
+def _compact_token_sequences(tokens: tuple[str, ...] | list[str], max_len: int = 4) -> set[str]:
     compact = set(tokens)
     for start in range(len(tokens)):
         for end in range(start + 2, min(len(tokens), start + max_len) + 1):
@@ -47,17 +48,18 @@ _IMPEDANCE_VALUE_RE = re.compile(
 _PAREN_IMPEDANCE_SUFFIX_RE = re.compile(r"\(\s*(2|4|6|8|12|16|32)\s*\)\s*$", re.I)
 
 
-def _brand_compacts(brand: str) -> set[str]:
+@lru_cache(maxsize=4096)
+def _brand_compacts(brand: str) -> tuple[str, ...]:
     tokens = _preset_match_tokens(brand)
     if not tokens:
-        return set()
+        return ()
     compacts = {"".join(tokens)}
     trimmed = "".join(token for token in tokens if token not in _BRAND_GENERIC_TOKENS)
     if len(trimmed) >= 2:
         compacts.add(trimmed)
     for compact in tuple(compacts):
         compacts.update(_BRAND_ALIASES.get(compact, ()))
-    return compacts
+    return tuple(compacts)
 
 
 def _is_code_like_token(token: str) -> bool:
@@ -66,7 +68,8 @@ def _is_code_like_token(token: str) -> bool:
     )
 
 
-def _model_compacts(model: str) -> set[str]:
+@lru_cache(maxsize=32768)
+def _model_compacts(model: str) -> tuple[str, ...]:
     compacts = set()
     for variant in {model, _IMPEDANCE_SUFFIX_RE.sub("", model)}:
         tokens = _preset_match_tokens(variant)
@@ -85,10 +88,11 @@ def _model_compacts(model: str) -> set[str]:
                     and any(_is_code_like_token(token) for token in span)
                 ):
                     compacts.add(sequence)
-    return compacts
+    return tuple(compacts)
 
 
-def _impedance_values(text: str) -> set[float]:
+@lru_cache(maxsize=32768)
+def _impedance_values(text: str) -> tuple[float, ...]:
     values = {
         float(match.group(1).replace(",", "."))
         for match in _IMPEDANCE_VALUE_RE.finditer(str(text))
@@ -96,7 +100,7 @@ def _impedance_values(text: str) -> set[float]:
     parenthesized = _PAREN_IMPEDANCE_SUFFIX_RE.search(str(text))
     if parenthesized:
         values.add(float(parenthesized.group(1)))
-    return values
+    return tuple(values)
 
 
 def _model_needs_brand(model: str) -> bool:
@@ -142,7 +146,7 @@ def _price_record_matches_preset(record: dict, name: str, brand: str, model: str
     if (
         candidate_impedances
         and product_impedances
-        and candidate_impedances.isdisjoint(product_impedances)
+        and set(candidate_impedances).isdisjoint(product_impedances)
     ):
         return False
     model_keys = _model_compacts(candidate_model)
@@ -160,7 +164,7 @@ def _price_record_matches_preset(record: dict, name: str, brand: str, model: str
         or (len(model_key) >= 8 and any(model_key in field for field in product_fields))
         for model_key in model_keys
     )
-    brand_ok = bool(not brand_keys or brand_keys & product_sequences)
+    brand_ok = bool(not brand_keys or any(k in product_sequences for k in brand_keys))
     if brand_keys and not brand_ok:
         return False
     return model_ok
@@ -205,8 +209,14 @@ def _load_driver_price_records() -> dict[str, dict]:
 
 def _preset_price(name: str, model: str = "", brand: str = "") -> tuple[float | None, str, str]:
     prices = _load_driver_price_records()
-    for key in (name, model):
-        price, currency, url = _price_from_record(prices.get(key), name, brand, model)
+    if not prices:
+        return None, "", ""
+    if name in prices:
+        price, currency, url = _price_from_record(prices[name], name, brand, model)
+        if price is not None:
+            return price, currency, url
+    if model and model in prices:
+        price, currency, url = _price_from_record(prices[model], name, brand, model)
         if price is not None:
             return price, currency, url
     return None, "", ""
