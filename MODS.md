@@ -2,8 +2,7 @@
 
 Traccia operativa multi-sessione. Regole d'uso:
 
-- Ultimo aggiornamento: **2026-07-31**. Release corrente: **0.7.2** sul branch
-  `saas`.
+- Ultimo aggiornamento: **2026-08-20**. Release corrente: **0.8.25**.
 - `[ ]` da fare · `[~]` in corso · `[x]` fatto (aggiungere data e commit).
 - Lavorare un punto alla volta, rispettando il contratto di `AGENTS.md`:
   ogni modifica a `src/*.py` aggiorna `docs/<modulo>.md` + test nella stessa
@@ -13,39 +12,93 @@ Traccia operativa multi-sessione. Regole d'uso:
 
 ---
 
-## 2. Backend
+## 1. Costruzione & CAD Fisico (Dimensionamento Mobile)
 
-- [x] **2.3 Nuove topologie: bandpass 4°/6° ordine + radiatore passivo** —
-  2026-07-14/15, commit `73b1169` (bandpass 4°), `bd0240e` (radiatore
-  passivo) e `007c3af` (bandpass 6°). Le tre tranche sono complete
-  end-to-end: dataclass e starter, circuiti acustici, optimizer, Finder,
-  atlante e Monte Carlo dove applicabili, confronto carichi, metriche,
-  warning, geometria dei risuonatori, preset `.lfp`/share e UI. Il radiatore
-  passivo usa massa, compliance, perdita ed escursione proprie; il BP4
-  irradia dal solo vent frontale e il BP6 dai due rami accordati. Facciata,
-  documentazione e regressioni sono sincronizzate. Verifica corrente:
-  suite completa 126 pass / 0 fail / 0 skip.
+- [ ] **1.1 Cut list e dimensionamento 2D del mobile (Carpenteria)**
+  Da volumi netti ($V_b, V_h, V_l$) a quote fisiche esterne/interne dei pannelli.
+  Configurazione spessore legno (MDF/multistrato 15–30 mm), offset volume
+  occupato dal cestello/magnete del driver, ingombro volumetrico dei condotti
+  e rinforzi interni (*bracing*). Proporzioni consigliate anti-modi stazionari
+  interni e distinta di taglio esportabile (PDF / SVG / CSV).
+  File: nuovo modulo `src/cabinet.py` (o simile) + doc + test, `ui_app.py`.
 
-## 6. SaaS e servizi catalogo
+- [ ] **1.2 Slot-port & Flared Ports Designer**
+  Supporto specifico per condotti rettangolari laminari (*slot-port* a ridosso
+  delle pareti con correzione di estremità dedicata $k \approx 2.22$) e condotti
+  svasati (*aeroport*). Calcolo della resistenza acustica non-lineare e perdite
+  di compressione ad alte velocità d'aria.
 
-- [~] **6.1 Open Beta autenticata + crawler agent separato** — working tree,
-  2026-07-29, non ancora committato. Implementati: gate OIDC opt-in,
-  account locali SQLite solo per sviluppo, persistenza progetti
-  Firestore/in-memory isolata per tenant, revisioni ottimistiche e Save/Load
-  esclusivamente manuali. `LOAD_FORGE_OPEN_BETA_ENABLED` concede
-  temporaneamente accesso Pro senza cambiare il piano memorizzato. Il crawler
-  è un Cloud Run Job indipendente con manifest allow-list, crawl diretto
-  robots-aware, staging senza permessi di pubblicazione e promozione umana
-  verso release immutabili montate in sola lettura dal SaaS. Documentazione:
-  `docs/saas.md`, `docs/saas-strategy.md`,
-  `docs/crawler-agent-service.md`, `docs/deploy-cloudrun.md`. Verifica:
-  py_compile OK, DCCAV 31 pass, SaaS 3 pass, AppTest OK, suite completa
-  126 pass / 0 fail / 0 skip.
+## 2. Fisica Elettroacustica & Large Signal
+
+- [ ] **2.6 Simulatore filtri DSP & Crossover attivo**
+  Integrazione nella catena di simulazione di:
+  - Filtro passa-alto subsonico (HPF): Butterworth, Linkwitz-Riley, Bessel (12–48 dB/oct).
+  - Filtro passa-basso di incrocio (LPF) con allineamento di fase al crossover.
+  - PEQ (Equalizzatore parametrico): fino a 5 bande con guadagno, frequenza e Q.
+  Aggiornamento real-time di curve SPL, escursione cono, MIL/MOL e fase, con
+  export dei coefficienti biquad per miniDSP / CamillaDSP.
+
+- [ ] **2.7 Fisica a grande segnale: Compressione termica $R_e(T)$ & non-linearità**
+  Modello termico della bobina mobile: calcolo della sovratemperatura in funzione
+  di $P_{\text{rms}}$ continua e costante di tempo termica, quantificazione del
+  power compression loss in dB e shift dinamico del $Q_{es}(T)$. Stima preliminare
+  non-linearità $Bl(x)$, $C_{ms}(x)$ e distorsione armonica (THD 2ª/3ª armonica).
+
+## 3. Calcolo & Ottimizzazioni
+
+- [ ] **3.6 Vettorizzazione & Accelerazione JIT per Bass Match**
+  Ottimizzazione spinta dello sweep di calcolo su grandi librerie di driver
+  (10.000+ unità) tramite NumPy vettorizzato e/o kernel Numba per rendere la
+  scansione multidimensionale istantanea.
+
+## 4. Architettura UI & Moduli
+
+- [ ] **4.8 Refactor modulare di `ui_app.py`**
+  Scomposizione del file monolitico (`ui_app.py` ~438 KB) in sottomoduli
+  specializzati (`ui/workspace_design.py`, `ui/workspace_bass_match.py`,
+  `ui/charts.py`, `ui/components/`) preservando il reload dinamico dei moduli
+  `src/` e la stabilità dello stato dei widget Streamlit.
+
+## 5. UX & Social Sharing
+
+- [ ] **5.9 Generatore Social Card & Condivisione Facebook / Forum (Approccio Ibrido)**
+  Generazione automatica di un'infografica ad alto contrasto (PNG 1200x630) per
+  Facebook/forum con grafico SPL, metriche chiave ($V_b, F_b, F_3, X_{\max}$,
+  condotto) e QR Code/link per riaprire il simulatore. Snippet testuale pronto per
+  il copia-incolla con emoji, pulsante nativo "Condividi su Facebook" e download
+  "Project Bundle" (.lfp + PNG + FRD/ZMA).
+  Doc: `docs/social-api-hosting-strategy.md`.
+
+## 6. SaaS, API & Hosting Low-Cost
+
+- [~] **6.1 Open Beta autenticata + crawler agent separato** — working tree.
+  Implementati: gate OIDC opt-in, account locali SQLite per dev, persistenza
+  progetti Firestore/in-memory isolata per tenant, revisioni ottimistiche e
+  Save/Load manuali. `LOAD_FORGE_OPEN_BETA_ENABLED` concede accesso Pro
+  temporaneo. Crawler Cloud Run Job indipendente con robots-aware crawl.
+  Documentazione: `docs/saas.md`, `docs/saas-strategy.md`,
+  `docs/crawler-agent-service.md`, `docs/deploy-cloudrun.md`.
   **Prossimo gate:** collaudare OIDC e Firestore sul servizio Cloud Run reale,
-  predisporre service account/bucket/manifest del crawler e aggiungere
-  telemetria minima conforme alla strategia privacy prima di aprire la beta.
+  predisporre service account/bucket/manifest del crawler e telemetria minima
+  conforme alla privacy.
 
-## 4. Funzioni innovative
+- [ ] **6.2 Esposizione API REST Headless (FastAPI) per App Mobile Android / iOS**
+  Microservizio FastAPI leggero (`api_app.py` o cartella `api/`) che importa
+  direttamente `src/acoustics.py`, `src/engine.py`, `src/ranking.py`, `src/presets.py`.
+  Endpoint REST stateless: `/api/v1/simulate`, `/api/v1/optimize`, `/api/v1/bass-match`,
+  `/api/v1/drivers`. Predisposizione per client mobile multipiattaforma (Flutter /
+  React Native) con grafici vettoriali touch a 120Hz.
+  Doc: `docs/social-api-hosting-strategy.md`.
+
+- [ ] **6.3 Hosting Low-Cost / Zero-Cost (Alternativa economica a Cloud Run)**
+  Transizione da serverless con costi a consumo non controllati a hosting a costo
+  fisso o gratuito: Hetzner Cloud VPS (~3.80 €/mese fisso, 2 vCPU, 4 GB RAM, 20 TB
+  traffico) o Oracle Cloud Always Free (fino a 4 core ARM, 24 GB RAM, 100% gratis).
+  Stack di produzione Docker Compose + Caddy con SSL automatico Let's Encrypt
+  per far convivere Web App Streamlit, FastAPI e database su un singolo host.
+  Doc: `docs/social-api-hosting-strategy.md`.
+
+## Note e prototipi accantonati
 
 - [-] **4.4 Acquisizione risposta/impedenza → estrazione T/S** — prototipo
   rimosso dal working tree il 2026-07-29: import e overlay FRD/ZMA più una
@@ -53,11 +106,6 @@ Traccia operativa multi-sessione. Regole d'uso:
   dimensionamento. L'eventuale ripresa richiede calibrazione del modello,
   confronto misura/simulazione e ottimizzazione guidata; gli export FRD/ZMA
   simulati restano disponibili.
-
-- [ ] **4.6 Cut list del mobile**
-  Da volumi a dimensioni pannelli (proporzioni configurabili, spessore legno,
-  volume occupato da driver/porto/rinforzi) con distinta di taglio
-  esportabile. File: nuovo modulo `src/` + doc + test, `ui_app.py`.
 
 ## 5. UX
 

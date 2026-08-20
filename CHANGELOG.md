@@ -17,10 +17,12 @@
 - **Reliable local Streamlit startup**:
   - Launch through the project virtual environment's Python module instead of a relocatable console-script shebang that could still point at another project.
   - Log the underlying driver-setup exception when Streamlit rejects a restored session, instead of leaving only the generic simulation error visible.
-- **Documentation & test suite validation**:
-  - Updated `docs/engine.md` and `docs/acoustics.md`.
-  - Added smoke, physics, and UI regression tests in `tests/test_all.py`.
-  - Full active test suite passing fresh (**170 PASS, 0 FAIL**).
+- **Auth screen redesign and neutral styling**:
+  - Expanded login container to widen the hero logo, ensuring sharp high-contrast brand presentation.
+  - Removed emoji-heavy marketing badges and replaced promotional buzzwords with clean, neutral, and direct copy.
+  - Authored `docs/social-api-hosting-strategy.md` outlining hybrid social sharing, headless FastAPI mobile backend, and low-cost/zero-cost hosting architectures.
+  - Updated `MODS.md` roadmap with cut list/carpentry, DSP filtering, thermal compression, and social share items.
+  - Verified full test suite passing fresh (**170 PASS, 0 FAIL**).
 
 ## 0.8.23 (2026-08-19)
 

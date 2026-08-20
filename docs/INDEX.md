@@ -34,12 +34,15 @@ in sync in the same change.
 | — | [optimizer-manual.md](optimizer-manual.md) | Manuale tecnico dell'ottimizzatore: Compass search, funzione di costo, barriere fisiche, ripple ceiling e griglia segmentata |
 | — | [engine-manual.md](engine-manual.md) | Manuale utente del motore acustico: parametri T/S, carichi, condotti, perdite, pilotaggio e interpretazione grafici |
 | — | [load-forge-innovations-manual.md](load-forge-innovations-manual.md) | Manuale operativo delle innovazioni e parametri esclusivi: DCCAV, Ripple Cutout, Panel Loading, Forge Score, MOL/MIL, Saddle Coherence |
+| — | [social-api-hosting-strategy.md](social-api-hosting-strategy.md) | Strategia Social Share ibrida, Architettura Headless API (FastAPI) per client mobile e Hosting Low-Cost / Zero-Cost (Hetzner, Streamlit Cloud, Oracle Free) |
 
 ## SaaS Product Strategy
 
 [saas-strategy.md](saas-strategy.md) records the Open Beta, privacy,
 monetization and Free/Pro transition strategy. It separates approved operating
 principles from pricing and quota decisions that still require evidence.
+[social-api-hosting-strategy.md](social-api-hosting-strategy.md) outlines the
+hybrid social sharing, mobile headless API and low-cost hosting architecture.
 
 ## Scraping Playbook
 

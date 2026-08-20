@@ -156,20 +156,9 @@ def _render_auth_hero_and_badges(title: str, subtitle: str) -> None:
         st.title("Load Forge")
     st.markdown(
         f"""
-        <div style="text-align: center; margin-top: -0.4rem; margin-bottom: 1.2rem;">
-            <div style="display: flex; justify-content: center; gap: 0.45rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
-                <span style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); color: #34d399; font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: 600; letter-spacing: 0.02em;">
-                    ⚡ Adaptive TCAS Engine
-                </span>
-                <span style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); color: #60a5fa; font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: 600; letter-spacing: 0.02em;">
-                    🎛️ Multi-Topology Matrix
-                </span>
-                <span style="background: rgba(168, 85, 247, 0.12); border: 1px solid rgba(168, 85, 247, 0.35); color: #c084fc; font-size: 0.72rem; padding: 0.2rem 0.6rem; border-radius: 9999px; font-weight: 600; letter-spacing: 0.02em;">
-                    🎯 Bass Match Global Finder
-                </span>
-            </div>
-            <h2 style="font-size: 1.3rem; font-weight: 700; color: #f9fafb; margin: 0 0 0.25rem 0; letter-spacing: -0.01em;">{title}</h2>
-            <p style="font-size: 0.85rem; color: rgba(255, 255, 255, 0.62); margin: 0; line-height: 1.4;">{subtitle}</p>
+        <div style="text-align: center; margin-top: 0.6rem; margin-bottom: 1.3rem;">
+            <h2 style="font-size: 1.35rem; font-weight: 600; color: #f9fafb; margin: 0 0 0.35rem 0; letter-spacing: -0.01em;">{title}</h2>
+            <p style="font-size: 0.875rem; color: rgba(255, 255, 255, 0.55); margin: 0; line-height: 1.45;">{subtitle}</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -178,11 +167,11 @@ def _render_auth_hero_and_badges(title: str, subtitle: str) -> None:
 
 def _render_local_account_gate() -> None:
     """Render the local-only registration/login product demo."""
-    _, col_center, _ = st.columns([1, 2.3, 1])
+    _, col_center, _ = st.columns([1, 3.2, 1])
     with col_center:
         _render_auth_hero_and_badges(
-            title="Acoustic Workspace",
-            subtitle="Sign in or create a local account to manage projects and simulations.",
+            title="Sign in to Load Forge",
+            subtitle="Sign in or create an account to save and manage your box designs.",
         )
         account_mode = st.radio(
             "Account",
@@ -196,7 +185,7 @@ def _render_local_account_gate() -> None:
             with st.form("local_saas_sign_in"):
                 email = st.text_input(
                     "Email",
-                    placeholder="engineer@studio.com",
+                    placeholder="name@example.com",
                     autocomplete="email",
                     key="_local_sign_in_email",
                 )
@@ -224,13 +213,13 @@ def _render_local_account_gate() -> None:
             with st.form("local_saas_registration"):
                 name = st.text_input(
                     "Name",
-                    placeholder="Acoustic Engineer / Studio Handle",
+                    placeholder="Your Name",
                     autocomplete="name",
                     key="_local_register_name",
                 )
                 email = st.text_input(
                     "Email",
-                    placeholder="engineer@studio.com",
+                    placeholder="name@example.com",
                     autocomplete="email",
                     key="_local_register_email",
                 )
@@ -267,8 +256,8 @@ def _render_local_account_gate() -> None:
                         st.rerun()
         st.markdown(
             """
-            <div style="text-align: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: rgba(255,255,255,0.45); line-height: 1.4;">
-                🔒 Local demo workspace · Passwords salted & hashed (PBKDF2-HMAC-SHA256) · Isolated tenant projects
+            <div style="text-align: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: rgba(255,255,255,0.40); line-height: 1.4;">
+                Local storage · Encrypted credentials (PBKDF2) · Autosaved projects
             </div>
             """,
             unsafe_allow_html=True,
@@ -307,11 +296,11 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
         except (AttributeError, RuntimeError):
             logged_in = False
         if not logged_in:
-            _, col_center, _ = st.columns([1, 2.3, 1])
+            _, col_center, _ = st.columns([1, 3.2, 1])
             with col_center:
                 _render_auth_hero_and_badges(
-                    title="Enterprise Acoustic Workspace",
-                    subtitle="Sign in with your verified identity provider to open your saved acoustic projects and driver library.",
+                    title="Sign in to Load Forge",
+                    subtitle="Sign in to save and manage your box designs, simulations, and driver catalog.",
                 )
                 try:
                     auth_configured = "auth" in st.secrets
@@ -329,8 +318,8 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
                         st.login()
                 st.markdown(
                     """
-                    <div style="text-align: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: rgba(255,255,255,0.45); line-height: 1.4;">
-                        🛡️ Single Sign-On (OIDC) · Secure multi-tenant cloud storage · Autosaved projects
+                    <div style="text-align: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: rgba(255,255,255,0.40); line-height: 1.4;">
+                        Single Sign-On (OIDC) · Cloud storage · Autosaved projects
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -355,7 +344,7 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
             st.logout()
         st.stop()
     if not _SAAS_SETTINGS.allows_email(user.email):
-        _, col_center, _ = st.columns([1, 2.3, 1])
+        _, col_center, _ = st.columns([1, 3.2, 1])
         with col_center:
             _render_auth_hero_and_badges(
                 title="Access Restricted",
