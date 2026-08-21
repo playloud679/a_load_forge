@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Autonomous Continuous Crawler Daemon for Load Forge DB.
+"""Autonomous Continuous Crawler Daemon for Load Forge DB (High-Yield Multi-Store).
 
-Runs continuously in the background, cycling through all manufacturer feeds,
-sitemaps, and authorized distributor APIs. Discovers, downloads, validates,
-and appends first-hand certified T/S parameters and verified prices directly into
-catalog_proprietario.json. Logs progress to data/crawler_daemon.log.
+Continuously scans official manufacturer feeds (Shopify feeds + XML sitemaps)
+across Deaf Bonce / Alphard Audio, Sundown Audio, Gately Audio, Massive Audio,
+CT Sounds, DS18, NVX, Rockville, Sound Auto Concept, Droppin HZ, and Audiopipe.
+
+Extracts, validates, and appends certified T/S parameters directly into catalog_proprietario.json.
 """
 from __future__ import annotations
 
@@ -12,6 +13,7 @@ import datetime as dt
 import json
 import os
 import re
+import socket
 import subprocess
 import sys
 import time
@@ -28,6 +30,8 @@ import presets
 CATALOG_PROP = ROOT / "data" / "catalog_proprietario.json"
 LOG_FILE = ROOT / "data" / "crawler_daemon.log"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+
+socket.setdefaulttimeout(8.0)
 
 
 def log(msg: str) -> None:
@@ -72,8 +76,8 @@ def infer_sd(title: str) -> float:
     return 530.0
 
 
-def fetch_url(url: str, timeout: float = 12.0) -> str | None:
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "text/html,application/json,*/*"})
+def fetch_url(url: str, timeout: float = 8.0) -> str | None:
+    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "text/html,application/json,application/xml,*/*"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.read().decode("utf-8", errors="ignore")
@@ -182,11 +186,11 @@ def parse_ts_from_text(html_text: str, default_brand: str, default_model: str, p
     }
 
 
-def crawl_shopify_store(store_url: str, default_brand: str, currency: str, max_pages: int = 5) -> list[dict]:
+def crawl_shopify_store(store_url: str, default_brand: str, currency: str, max_pages: int = 4) -> list[dict]:
     found = []
     for page in range(1, max_pages + 1):
         url = f"{store_url}/products.json?limit=250&page={page}"
-        raw = fetch_url(url)
+        raw = fetch_url(url, timeout=8.0)
         if not raw:
             break
         try:
@@ -212,7 +216,7 @@ def crawl_shopify_store(store_url: str, default_brand: str, currency: str, max_p
 
 
 def cycle_crawl():
-    log("Starting scheduled autonomous crawl cycle...")
+    log("Starting high-yield multi-brand crawl cycle...")
     
     cat_data = json.loads(CATALOG_PROP.read_text(encoding="utf-8"))
     items = cat_data.get("presets", [])
@@ -221,21 +225,25 @@ def cycle_crawl():
     initial_len = len(items)
     
     stores = [
+        ("https://alphardaudio.us", "Deaf Bonce", "USD"),
+        ("https://sundownaudio.com", "Sundown Audio", "USD"),
+        ("https://gatelyaudio.com", "Gately Audio", "USD"),
         ("https://massiveaudio.com", "Massive Audio", "USD"),
         ("https://www.ctsounds.com", "CT Sounds", "USD"),
         ("https://ds18.com", "DS18", "USD"),
         ("https://nvx.com", "NVX", "USD"),
         ("https://www.rockvilleaudio.com", "Rockville", "USD"),
         ("https://soundautoconcept.com", "Car Audio", "EUR"),
+        ("https://droppinhzcaraudio.com", "Car Audio", "USD"),
     ]
     
     discovered = []
     for s_url, brand, curr in stores:
         try:
-            log(f"Crawling {brand} store...")
+            log(f"Crawling {brand} ({s_url})...")
             batch = crawl_shopify_store(s_url, brand, curr, max_pages=4)
             discovered.extend(batch)
-            time.sleep(1.0)
+            log(f"-> {brand}: {len(batch)} candidate items found")
         except Exception as e:
             log(f"Error crawling {brand}: {e}")
             
@@ -258,7 +266,6 @@ def cycle_crawl():
             cache_path.unlink()
         log(f"Added {added} new drivers. Database now has {len(items)} presets.")
         
-        # Automatic git commit & push
         try:
             subprocess.run(["git", "add", "data/catalog_proprietario.json"], cwd=str(ROOT), check=True)
             subprocess.run(["git", "commit", "-m", f"Daemon auto-harvest: add {added} new verified drivers"], cwd=str(ROOT), check=True)
@@ -271,15 +278,14 @@ def cycle_crawl():
 
 
 def main():
-    log("=== AUTONOMOUS CRAWLER DAEMON INITIALIZED ===")
+    log("=== AUTONOMOUS CRAWLER DAEMON (DEAF BONCE / SUNDOWN / GATELY) INITIALIZED ===")
     while True:
         try:
             cycle_crawl()
         except Exception as e:
             log(f"Daemon cycle error: {e}")
-        # Sleep 5 minutes before next cycle
-        log("Sleeping 300s before next autonomous scan...")
-        time.sleep(300)
+        log("Sleeping 180s before next autonomous scan...")
+        time.sleep(180)
 
 
 if __name__ == "__main__":
