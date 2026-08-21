@@ -69,7 +69,12 @@ Questo documento traccia in modo completo e strutturato **tutte le fonti dati, i
 | **Resilient Sounds** | `https://resilientsounds.com` | Subwoofer Heavy Bass USA (Platinum 18, Gold 15) | `tools/harvest_us_spl_giants.py` |
 | **Sound Solutions Audio (SSA)** | `https://store.soundsolutionsaudio.com` | Subwoofer Handcrafted USA (Evil 18, ZCON 15) | `tools/harvest_us_spl_giants.py` |
 | **Deaf Bonce (Alphard Audio)** | `https://alphardaudio.us` | Apocalypse, Machete, Hannibal, Black Hydra SPL/SQL | `tools/autonomous_crawler_daemon.py` |
-| **Sundown Audio** | `https://sundownaudio.com` | Nightshade v6, X-Series v4, U-Series, SA-Series | `tools/autonomous_crawler_daemon.py` |
+| **Ground Zero Audio** | `https://ground-zero-audio.com` | Subwoofer Extreme High-Excursion & SQ Germania (GZPW 15XMAX 80mm, GZNW 38XMAX) | `tools/harvest_german_italian_sq_giants.py` |
+| **Audio System Germany** | `https://www.audio-system.de` | Subwoofer SQ, Free Air & Flat (HX 10 SQ, R 15 FA, R 12 Flat) | `tools/harvest_german_italian_sq_giants.py` |
+| **Gladen Audio** | `https://www.gladen.com` | Subwoofer SQ & SQL Germania (Zero Pro 10, SQX 12, SQL 15) | `tools/harvest_german_italian_sq_giants.py` |
+| **Audison & Hertz** | `https://audison.com` | Subwoofer Reference SQ Italia (Thesis TH 10 Basso, Mille Legend ML 2500.3) | `tools/harvest_german_italian_sq_giants.py` |
+| **Fostex** | `https://www.fostexinternational.com` | Woofer & Full-Range Back-Loaded Horn Giappone (FE206NV2, FW305, FW405N) | `tools/harvest_asian_audiophile_masters.py` |
+| **Tang Band (TB Speaker)** | `https://tb-speaker.com` | Subwoofer Micro & High-Excursion Taiwan (W8-1363SBF, W8-740P, W6-1139SIF) | `tools/harvest_asian_audiophile_masters.py` |
 | **Gately Audio** | `https://gatelyaudio.com` | Subwoofer & Coassiali High Power USA | `tools/autonomous_crawler_daemon.py` |
 
 ---
