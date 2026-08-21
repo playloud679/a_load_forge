@@ -80,6 +80,12 @@ Questo documento traccia in modo completo e strutturato **tutte le fonti dati, i
 | **DLS Audio** | `https://dls.se` | Reference Supreme RSW10/RSW12, Scandinavia Svezia | `tools/harvest_flagship_brand_lines.py` |
 | **Fostex** | `https://www.fostexinternational.com` | Woofer & Full-Range Back-Loaded Horn Giappone (FE206NV2, FW305, FW405N) | `tools/harvest_asian_audiophile_masters.py` |
 | **Tang Band (TB Speaker)** | `https://tb-speaker.com` | Subwoofer Micro & High-Excursion Taiwan (W8-1363SBF, W8-740P, W6-1139SIF) | `tools/harvest_asian_audiophile_masters.py` |
+| **Scan-Speak** | `https://www.scan-speak.dk` | Revelator, Illuminator, Discovery, Classic Danimarca | `tools/harvest_worldwide_expansion_wave.py` |
+| **SEAS** | `http://www.seas.no` | Extreme L26ROY/L26RO4Y, Excel, Prestige Norvegia | `tools/harvest_worldwide_expansion_wave.py` |
+| **Audiofrog** | `https://audiofrog.com` | Subwoofer Audiophile SQ USA (GB12D4, GB10D4, GS12D4) | `tools/autonomous_crawler_daemon.py` |
+| **Audiopipe** | `https://audiopipe.com` | Subwoofer & Pro Audio Car Audio USA | `tools/autonomous_crawler_daemon.py` |
+| **EMF Car Audio** | `https://emfcaraudio.com` | Subwoofer High Power & Banhammer USA | `tools/autonomous_crawler_daemon.py` |
+| **Lii Song / Lii Audio** | `https://www.lii-song.com` | Full-Range & Open Baffle Reference Cina | `tools/autonomous_crawler_daemon.py` |
 | **Gately Audio** | `https://gatelyaudio.com` | Subwoofer & Coassiali High Power USA | `tools/autonomous_crawler_daemon.py` |
 
 ---

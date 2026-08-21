@@ -411,6 +411,15 @@ def cycle_crawl():
         ("https://www.rockvilleaudio.com", "Rockville", "USD"),
         ("https://soundautoconcept.com", "Car Audio", "EUR"),
         ("https://droppinhzcaraudio.com", "Car Audio", "USD"),
+        ("https://audiopipe.com", "Audiopipe", "USD"),
+        ("https://stereointegrity.com", "Stereo Integrity", "USD"),
+        ("https://www.prvaudio.com", "PRV Audio", "USD"),
+        ("https://resilientsounds.com", "Resilient Sounds", "USD"),
+        ("https://www.css-audio.com", "CSS Audio", "USD"),
+        ("https://b2audio.com", "B2 Audio", "USD"),
+        ("https://audiofrog.com", "Audiofrog", "USD"),
+        ("https://www.lii-song.com", "Lii Song", "USD"),
+        ("https://emfcaraudio.com", "EMF Car Audio", "USD"),
     ]
     
     discovered = []
