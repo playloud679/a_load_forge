@@ -111,6 +111,18 @@ make run
 
 `make run` starts Streamlit headless and opens `localhost:8501` in Safari.
 
+## Autonomous Catalog Crawler Daemon
+
+To run the continuous background crawler that harvests first-hand manufacturer/distributor
+T/S parameters and real prices into `data/catalog_proprietario.json`:
+
+```bash
+.venv/bin/python tools/autonomous_crawler_daemon.py &
+```
+
+See [`docs/autonomous_crawler_daemon.md`](docs/autonomous_crawler_daemon.md) for architecture,
+log monitoring, fast data-coherence verification (<0.1s), and how to add new store endpoints.
+
 ## Scope
 
 This repository is scoped to acoustic-load simulation. Treat DCCAV, reflex,
@@ -118,3 +130,4 @@ passive radiator, sealed, infinite baffle, bandpass and distributed waveguides
 as peer load families. Keep new work inside that simulation surface unless the
 user explicitly changes the product direction. Do not push unless explicitly
 requested.
+

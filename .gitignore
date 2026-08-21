@@ -32,6 +32,7 @@ data/driver_prices.json.lock
 data/driver_prices.json.tmp
 data/*.cache.pickle
 data/*.cache.tmp
+data/crawler_daemon.log
 
 # Debug/scratch output (local analysis, regenerated on demand)
 diff_perf.txt
