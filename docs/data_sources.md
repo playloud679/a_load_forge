@@ -73,6 +73,11 @@ Questo documento traccia in modo completo e strutturato **tutte le fonti dati, i
 | **Audio System Germany** | `https://www.audio-system.de` | Subwoofer SQ, Free Air & Flat (HX 10 SQ, R 15 FA, R 12 Flat) | `tools/harvest_german_italian_sq_giants.py` |
 | **Gladen Audio** | `https://www.gladen.com` | Subwoofer SQ & SQL Germania (Zero Pro 10, SQX 12, SQL 15) | `tools/harvest_german_italian_sq_giants.py` |
 | **Audison & Hertz** | `https://audison.com` | Subwoofer Reference SQ Italia (Thesis TH 10 Basso, Mille Legend ML 2500.3) | `tools/harvest_german_italian_sq_giants.py` |
+| **JL Audio** | `https://www.jlaudio.com` | Subwoofer W7AE, W6v3, TW5v2, TW3, W3v3 USA | `tools/harvest_flagship_brand_lines.py` |
+| **Focal** | `https://www.focal.com` | Utopia M, K2 Power E KX, Flax Evo P FE Francia | `tools/harvest_flagship_brand_lines.py` |
+| **Dynaudio** | `https://www.dynaudio.com` | Esotar2 1200, Esotec MW 182/172 Danimarca | `tools/harvest_flagship_brand_lines.py` |
+| **Audiotec Fischer Helix & Match** | `https://www.audiotec-fischer.de` | Subwoofer Q 12W, Q 10W, K 12W Germania | `tools/harvest_flagship_brand_lines.py` |
+| **DLS Audio** | `https://dls.se` | Reference Supreme RSW10/RSW12, Scandinavia Svezia | `tools/harvest_flagship_brand_lines.py` |
 | **Fostex** | `https://www.fostexinternational.com` | Woofer & Full-Range Back-Loaded Horn Giappone (FE206NV2, FW305, FW405N) | `tools/harvest_asian_audiophile_masters.py` |
 | **Tang Band (TB Speaker)** | `https://tb-speaker.com` | Subwoofer Micro & High-Excursion Taiwan (W8-1363SBF, W8-740P, W6-1139SIF) | `tools/harvest_asian_audiophile_masters.py` |
 | **Gately Audio** | `https://gatelyaudio.com` | Subwoofer & Coassiali High Power USA | `tools/autonomous_crawler_daemon.py` |
