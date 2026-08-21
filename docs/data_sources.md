@@ -34,6 +34,13 @@ Questo documento traccia in modo completo e strutturato **tutte le fonti dati, i
 | **Bomber Speakers** | `https://www.bomber.com.br` | Subwoofer e Woofer regionali America Latina | `tools/harvest_bomber_regional.py` |
 | **REDCATT** | `https://redcatt.com` | Driver e Coassiali OEM / Pro Audio | `tools/harvest_extra_retailers.py` |
 | **ZTZ Audio** | `https://www.ztzaudio.com` | Driver LF Ferrite Pro Audio | `tools/crawl_ztzaudio_lf.py` |
+| **Kartesian** | `https://www.kartesian-acoustic.com` | Subwoofer & Coassiali Studio/Hi-End francesi (Sub120, Sub150) | `tools/batch_harvest_global_manufacturers.py` |
+| **Volt Loudspeakers** | `https://voltloudspeakers.co.uk` | Subwoofer da studio Radial Chassis UK (RV2501, RV3143, RV3863, RV4504) | `tools/batch_harvest_global_manufacturers.py` |
+| **Stereo Integrity** | `https://stereointegrity.com` | Subwoofer SQ & Home Theater USA (SQL-12, SQL-15, HT-18 v3, BM-11) | `tools/batch_harvest_global_manufacturers.py` |
+| **Eros Alto Falantes** | `https://www.eros.com.br` | Woofer/Sub Pancadão & High-SPL Brasile (Target Bass, SDS, Hammer) | `tools/batch_harvest_global_manufacturers.py` |
+| **Triton Alto Falantes** | `https://www.tritonaltofalantes.com.br` | Trasduttori High-Efficiency Brasile (Shocker, TR 1550, Pro) | `tools/batch_harvest_global_manufacturers.py` |
+| **7Driver** | `https://www.7driver.com.br` | Trasduttori Pro Audio/Pancadão Brasile (Thunder, Bass) | `tools/batch_harvest_global_manufacturers.py` |
+| **GRS** | `https://www.parts-express.com` | Subwoofer e Woofer DIY Parts Express (SW-4, SW-4HE, FR-8) | `tools/batch_harvest_global_manufacturers.py` |
 | **Great Plains Acoustics / TAD** | `https://archive.greatplainsacoustics.com` | Driver Altec Heritage & TAD Studio | `tools/import_heritage_drivers.py` |
 
 ---
