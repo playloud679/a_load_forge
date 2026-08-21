@@ -42,6 +42,35 @@ Questo documento traccia in modo completo e strutturato **tutte le fonti dati, i
 | **7Driver** | `https://www.7driver.com.br` | Trasduttori Pro Audio/Pancadão Brasile (Thunder, Bass) | `tools/batch_harvest_global_manufacturers.py` |
 | **GRS** | `https://www.parts-express.com` | Subwoofer e Woofer DIY Parts Express (SW-4, SW-4HE, FR-8) | `tools/batch_harvest_global_manufacturers.py` |
 | **Great Plains Acoustics / TAD** | `https://archive.greatplainsacoustics.com` | Driver Altec Heritage & TAD Studio | `tools/import_heritage_drivers.py` |
+| **Purifi Audio** | `https://purifi-audio.com` | Woofer & Subwoofer Ultra-Low Distortion Danesi (PTT4.0, PTT5.25, PTT6.5, PTT8.0, PTT10) | `tools/harvest_high_end_reference_drivers.py` |
+| **Morel Loudspeakers** | `https://www.morelhifi.com` | Subwoofer Ultimate & Titanium (UW 958/1058/1258, TiCW series) | `tools/harvest_high_end_reference_drivers.py` |
+| **CSS Audio** | `https://www.css-audio.com` | Subwoofer XBL2 brevettati USA (SDX12, SDX10, SDX7) | `tools/harvest_high_end_reference_drivers.py` |
+| **Supravox** | `https://www.supravox.fr` | Woofer Alta Efficienza Heritage Francia (215 GMF, 285 GMF, 400 GMF) | `tools/harvest_high_end_reference_drivers.py` |
+| **AudioTechnology / Skaaning** | `https://audiotechnology.dk` | Trasduttori Ultra High-End Danesi (Flexunits 6H52/8H52/10H77/12H77) | `tools/harvest_worldwide_production.py` |
+| **Accuton (Thiel & Partner)** | `https://accuton.com` | Driver in Ceramica e Diamante Germania (C158, C220, C280) | `tools/harvest_worldwide_production.py` |
+| **PHL Audio** | `https://phlaudio.com` | Trasduttori Studio & Pro Audio Francia (2440, 3020, 5010, 7010) | `tools/harvest_worldwide_production.py` |
+| **Precision Devices** | `https://precision-devices.com` | Subwoofer Heavy-Duty Pro UK (PD.1850/3, PD.2150, PD.2450) | `tools/harvest_worldwide_production.py` |
+| **BMS Speakers** | `https://bmsspeakers.com` | Subwoofer Pro Neodimio Germania (18N862, 15N850) | `tools/harvest_worldwide_production.py` |
+| **Oberton** | `https://oberton.com` | Subwoofer e Driver Pro Audio Bulgaria (18XB1500, 15XB1200) | `tools/harvest_worldwide_production.py` |
+| **Incriminator Audio** | `https://incriminatoraudio.com` | Subwoofer Extreme Heavy Excursion USA (Death Penalty 15/18) | `tools/harvest_worldwide_production.py` |
+| **Fi Car Audio** | `https://ficaraudio.com` | Subwoofer High-BL Custom USA (Q v4 18, BTL v3 18) | `tools/harvest_worldwide_production.py` |
+| **Snake Pro & Hard Power** | `https://snakepro.com.br` | Pancadão & Trio Elétrico Brasile (ESX 415, HP 1950) | `tools/harvest_worldwide_production.py` |
+| **Lii Audio / Lii Song** | `https://lii-audio.com` | Dipolo Open Baffle & Full Range Alta Sensibilità (W-15, Fast-10) | `tools/harvest_worldwide_production.py` |
+| **RCF** | `https://www.rcf.it` | Precision Transducers Pro Audio Italia (LF18X401, LF18N401, LF15X401, L18P300) | `tools/harvest_pro_audio_giants.py` |
+| **Fane International** | `https://fane-international.com` | Subwoofer e Woofer Pro Audio UK (Colossus 18XB, 18-1000, 15XB) | `tools/harvest_pro_audio_giants.py` |
+| **Radian Audio** | `https://radianaudio.com` | Driver Coassiali & Subwoofer USA (5215B, 2216) | `tools/harvest_pro_audio_giants.py` |
+| **Eton** | `https://eton-gmbh.com` | Coni Hexacone Symphony II Germania (12-212, 11-581, 8-212, 7-212) | `tools/harvest_european_audiophile_giants.py` |
+| **ATC Loudspeakers** | `https://atc.audio` | Trasduttori Super Linear Studio UK (SB75-375SC, SB75-314SC, SB75-234SC) | `tools/harvest_european_audiophile_giants.py` |
+| **Davis Acoustics** | `https://davis-acoustics.com` | Coni Carbon-Kevlar & Full-Range Francia (20DE8, 25SCA10W) | `tools/harvest_european_audiophile_giants.py` |
+| **Audax** | `https://audax.com` | Aerogel HD & Paper Pro Francia (HM210Z0, PR380M0) | `tools/harvest_european_audiophile_giants.py` |
+| **SB Audience** | `https://sbaudience.com` | Linea Pro Audio SB Acoustics (Nero-21SW1100, Nero-18SW800, Bianco-18SW450) | `tools/harvest_european_audiophile_giants.py` |
+| **Digital Designs (DD Audio)** | `https://ddaudio.com` | Subwoofer High-BL Car Audio USA (9918 ESP, 9515 ESP, 3512 ESP) | `tools/harvest_us_spl_giants.py` |
+| **B2 Audio** | `https://b2audio.com` | Subwoofer Extreme SPL Danimarca/USA (Rage XL 15/18 v2) | `tools/harvest_us_spl_giants.py` |
+| **Resilient Sounds** | `https://resilientsounds.com` | Subwoofer Heavy Bass USA (Platinum 18, Gold 15) | `tools/harvest_us_spl_giants.py` |
+| **Sound Solutions Audio (SSA)** | `https://store.soundsolutionsaudio.com` | Subwoofer Handcrafted USA (Evil 18, ZCON 15) | `tools/harvest_us_spl_giants.py` |
+| **Deaf Bonce (Alphard Audio)** | `https://alphardaudio.us` | Apocalypse, Machete, Hannibal, Black Hydra SPL/SQL | `tools/autonomous_crawler_daemon.py` |
+| **Sundown Audio** | `https://sundownaudio.com` | Nightshade v6, X-Series v4, U-Series, SA-Series | `tools/autonomous_crawler_daemon.py` |
+| **Gately Audio** | `https://gatelyaudio.com` | Subwoofer & Coassiali High Power USA | `tools/autonomous_crawler_daemon.py` |
 
 ---
 
