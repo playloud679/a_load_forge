@@ -141,6 +141,9 @@ def main():
         "/Users/marcoderossi/.gemini/antigravity-cli/brain/df4e0768-e35e-4442-9998-debc44db16ee/.system_generated/steps/270/output.txt",
         "/Users/marcoderossi/.gemini/antigravity-cli/brain/df4e0768-e35e-4442-9998-debc44db16ee/.system_generated/steps/774/output.txt",
         "/Users/marcoderossi/.gemini/antigravity-cli/brain/df4e0768-e35e-4442-9998-debc44db16ee/.system_generated/steps/794/output.txt",
+        "/Users/marcoderossi/.gemini/antigravity-cli/brain/df4e0768-e35e-4442-9998-debc44db16ee/.system_generated/steps/861/output.txt",
+        "/Users/marcoderossi/.gemini/antigravity-cli/brain/df4e0768-e35e-4442-9998-debc44db16ee/.system_generated/steps/863/output.txt",
+        "/Users/marcoderossi/.gemini/antigravity-cli/brain/df4e0768-e35e-4442-9998-debc44db16ee/.system_generated/steps/865/output.txt",
     ]
 
     all_items = []
