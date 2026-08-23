@@ -420,6 +420,13 @@ def cycle_crawl():
         ("https://audiofrog.com", "Audiofrog", "USD"),
         ("https://www.lii-song.com", "Lii Song", "USD"),
         ("https://emfcaraudio.com", "EMF Car Audio", "USD"),
+        ("https://www.skaraudio.com", "Skar Audio", "USD"),
+        ("https://adireaudio.com", "Adire Audio", "USD"),
+        ("https://wolframaudio.com", "Wolfram Audio", "USD"),
+        ("https://savardteams.com", "Savard Audio", "USD"),
+        ("https://ficaraudio.com", "Fi Car Audio", "USD"),
+        ("https://incriminatoraudio.com", "Incriminator Audio", "USD"),
+        ("https://solen.ca", "Solen Electronique", "CAD"),
     ]
     
     discovered = []
