@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-25T02:18:00Z",
+  "generated_at": "2026-08-25T21:05:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
-  "baseline_records": 6460,
-  "added": 890,
-  "latest_batch_added": 8,
-  "latest_batch_visible_added": 8,
+  "baseline_records": 7350,
+  "added": 891,
+  "latest_batch_added": 1,
+  "latest_batch_visible_added": 1,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7350,
-  "app_visible_before": 6338,
-  "app_visible_records": 6346,
+  "final_records": 7351,
+  "app_visible_before": 6346,
+  "app_visible_records": 6347,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -39,13 +39,14 @@
     "SOVOX official product pages",
     "PRV Audio official product pages",
     "Soundking official manufacturer PDF",
-    "Eminence official product pages"
+    "Eminence official product pages",
+    "B&C Speakers official 2023 catalogue PDF"
   ],
   "latest_batch_by_brand": {
-    "Eminence": 8
+    "B&C Speakers": 1
   },
   "latest_batch_visible_by_brand": {
-    "Eminence": 8
+    "B&C Speakers": 1
   },
   "added_names_count": 755,
   "added_names_sample": [

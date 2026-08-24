@@ -2,6 +2,10 @@
 
 ## 0.8.27 (2026-08-24)
 
+- Added the previously missing `B&C Speakers 12CXL64` from the official B&C
+  2023 catalogue PDF after validating 106 complete T/S blocks; catalog total
+  is now 7,351 raw and 6,347 application-visible records.
+
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
 - Published 15 DD Audio official product variants (D2/D4 where offered).
