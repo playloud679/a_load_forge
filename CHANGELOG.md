@@ -11,6 +11,8 @@
 - Followed DD Audio's official product sitemap and published a further 25
   official D2/D4 variants from 15 additional product pages. The catalog now
   contains 7,273 raw and 6,269 application-visible records.
+- Added six SOVOX official mid-woofer product pages, a previously absent
+  manufacturer, bringing the catalog to 7,279 raw and 6,275 visible records.
 - Published 773 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
   Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA, Jensen,
