@@ -26,6 +26,7 @@ in sync in the same change.
 | `tests/test_all.py` | source only | Active regression runner for the acoustic-load models and Streamlit workflows |
 | `tools/crawl_thiele_small.py` | [crawl_thiele_small.md](crawl_thiele_small.md) | Robots-aware sitemap/seed crawler, T/S parser, unit normalizer, validator and safe database merger |
 | `tools/publish_reviewed_catalog_additions.py` | [publish-reviewed-catalog-additions.md](publish-reviewed-catalog-additions.md) | Explicitly reviewed, validation-gated append-only promotion of crawler records |
+| `tools/harvest_peerless_official.py` | [harvest-peerless-official.md](harvest-peerless-official.md) | Complete first-party Peerless/Tymphany API crawl into staging |
 | `tools/crawl_driver_datasheets.py` | [crawl_driver_datasheets.md](crawl_driver_datasheets.md) | PDF discovery, SHA-256 archive, SQLite provenance index and alias-aware catalog merge |
 | `tools/harvest_toutlehautparleur.py` | [harvest_toutlehautparleur.md](harvest_toutlehautparleur.md) | Restartable Safari-assisted harvest of TLHP cone-speaker prices and availability |
 | `tools/run_catalog_completion_cycle.py` | [catalog-completion-cycle.md](catalog-completion-cycle.md) | Offline gap planning and restartable Xmax/Pe/Le/price completion cycles |

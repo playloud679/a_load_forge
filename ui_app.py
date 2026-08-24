@@ -174,11 +174,17 @@ def _render_catalog_crawl_report() -> None:
             st.markdown("**Reviewed catalog additions**")
             added = int(additions_report.get("added", 0))
             latest_batch = int(additions_report.get("latest_batch_added", added))
+            latest_visible = int(
+                additions_report.get("latest_batch_visible_added", latest_batch)
+            )
             final_records = int(additions_report.get("final_records", 0))
             app_visible = int(additions_report.get("app_visible_records", 0))
+            latest_label = f"+{latest_batch:,} latest batch"
+            if latest_visible != latest_batch:
+                latest_label += f" / +{latest_visible:,} app-visible"
             st.caption(
                 f"{added:,} new validated drivers published append-only "
-                f"(+{latest_batch:,} latest batch) · "
+                f"({latest_label}) · "
                 f"catalog {final_records:,} · app-visible {app_visible:,}."
             )
             latest_by_brand = additions_report.get("latest_batch_by_brand") or {}
@@ -188,6 +194,21 @@ def _render_catalog_crawl_report() -> None:
                     + " · ".join(
                         f"{brand} {int(count):,}"
                         for brand, count in latest_by_brand.items()
+                    )
+                )
+            latest_visible_by_brand = (
+                additions_report.get("latest_batch_visible_by_brand") or {}
+            )
+            if (
+                isinstance(latest_visible_by_brand, dict)
+                and latest_visible_by_brand
+                and latest_visible_by_brand != latest_by_brand
+            ):
+                st.caption(
+                    "Net app-visible: "
+                    + " · ".join(
+                        f"{brand} {int(count):,}"
+                        for brand, count in latest_visible_by_brand.items()
                     )
                 )
             added_names = [

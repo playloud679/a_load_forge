@@ -1,15 +1,16 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T15:30:00Z",
+  "generated_at": "2026-08-24T17:49:26Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 310,
-  "latest_batch_added": 287,
-  "final_records": 6770,
+  "added": 389,
+  "latest_batch_added": 79,
+  "latest_batch_visible_added": 64,
+  "final_records": 6849,
   "app_visible_before": 5501,
-  "app_visible_records": 5811,
+  "app_visible_records": 5875,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -19,26 +20,29 @@
     "SEAS official manufacturer site",
     "Hinor official manufacturer site",
     "SB Acoustics official manufacturer site",
-    "Visaton official manufacturer site"
+    "Visaton official manufacturer site",
+    "Wavecor official manufacturer site",
+    "Peerless/Tymphany public official API"
   ],
   "latest_batch_by_brand": {
-    "JBL Professional": 165,
-    "SEAS": 69,
-    "Hinor": 42,
-    "Visaton": 6,
-    "SB Acoustics": 5
+    "Wavecor": 43,
+    "Peerless": 36
   },
-  "added_names_count": 310,
+  "latest_batch_visible_by_brand": {
+    "Wavecor": 42,
+    "Peerless": 22
+  },
+  "added_names_count": 389,
   "added_names_sample": [
     "Adire Audio Koda 8",
     "Stereo Integrity HFS-24",
     "Sundown Audio Nightshade NS6 18 D2",
-    "JBL Professional 2226H",
-    "JBL Professional 2269H",
-    "SEAS L26ROY-D0001",
-    "SEAS E0003_W17EX001",
-    "Hinor 18 SW-3K",
-    "SB Acoustics SW26DAC76-3-DV",
-    "Visaton FRS 10 WP - 8 Ohm (white)"
+    "Wavecor MR120BD01",
+    "Wavecor WF152BD16",
+    "Wavecor WF182BD20",
+    "Peerless FSL-1830R09-08",
+    "Peerless STW-350F188PR01-04",
+    "Peerless NCP-1230R01-08",
+    "Peerless HVS-40N15PG01-04"
   ]
 }

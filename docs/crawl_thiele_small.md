@@ -111,6 +111,13 @@ and all values in an adjacent column, both for T/S and general specification
 blocks. A known PHL embedded-font substitution
 that exposes the ohm glyph as `W` is accepted only for a DC-resistance row.
 
+Wavecor's official HTML uses one matrix for several related part numbers, with
+separate before/after-burn-in columns and shared cells for equal values. The
+crawler preserves table colspans, selects the published after-burn-in design
+values and expands shorthand groups such as `MR120BD01/03` or
+`WF182BD09 and WF182BD11` into distinct model records. Every expanded record keeps the official page URL and source group;
+retailer titles or measurements are not used for this expansion.
+
 Nominal diameter is stored as `published_specs.nominal_diameter_in`, distinct
 from mechanical `overall_diameter_mm`. A label such as “nominal overall
 diameter: 12 in” is a published size class and is never converted into a

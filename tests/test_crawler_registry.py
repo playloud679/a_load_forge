@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import sys
+import json
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -11,6 +13,8 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tools"))
 
 import build_official_source_registry as registry_builder
+import harvest_peerless_official as peerless
+from publish_reviewed_catalog_additions import publish as publish_reviewed
 from crawl_retailer_discovery import parse_price_number, parse_rg_page
 from services.crawler_agent.model import AgentManifest
 from services.crawler_agent.agent import _crawl_stats
@@ -106,6 +110,74 @@ def main() -> int:
     assert retail_rows[0]["source_role"] == "model_gap_and_price_discovery_only"
     assert parse_price_number("653.00") == 653.0
     assert parse_price_number("1.040,76") == 1040.76
+
+    peerless_row = {
+        "id": 16,
+        "MarketingNo": "ANC-50N25AL04-04",
+        "Type": "Fullrange",
+        "Fs": 150,
+        "Vas": 0.266,
+        "Qts": 0.51,
+        "Qms": 4.7,
+        "Qes": 0.572,
+        "Re": 3.4,
+        "Sd": 13.9,
+        "Le": 0.074,
+        "Xmax": 2.42,
+        "Power": 5,
+        "Mms": 1.11,
+        "Cms": 980,
+        "BL": 2.51,
+        "Size": 50.8,
+        "SizeMeasurementType": "mm",
+        "Impedance": 4,
+        "SensZ": 84.2,
+        "VoiceCoilInnerDiameter": 25.5,
+        "Xmech": 3.5,
+        "NetWeight": 0.069,
+        "WeightMeasurementType": "kg",
+        "pdf": "https://www.products-peerless.com/pdf/16",
+    }
+    peerless_preset = peerless.preset_from_detail(peerless_row)
+    assert peerless_preset is not None
+    assert peerless_preset["source"] == "Official manufacturer site"
+    assert peerless_preset["url"].endswith("/en/transducer/16")
+    assert peerless_preset["size_in"] == 2.0
+    assert peerless_preset["driver"]["cms_mm_per_n"] == 0.98
+    assert peerless_preset["website_fields"]["confidence"] == 1.0
+    assert peerless_preset["mechanical"]["weight_kg"] == 0.069
+    incomplete_peerless = dict(peerless_row, Vas=0)
+    assert peerless.preset_from_detail(incomplete_peerless) is None
+    assert peerless.preset_from_detail(dict(peerless_row, Type="Tweeter")) is None
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        base_driver = {
+            "fs_hz": 40.0, "vas_l": 20.0, "qts": 0.4,
+            "qms": 4.0, "re_ohm": 3.2, "sd_cm2": 120.0,
+        }
+        catalog_path = root / "catalog.json"
+        candidate_path = root / "candidate.json"
+        catalog_path.write_text(json.dumps({
+            "catalog_version": "1.0.0",
+            "presets": [{
+                "name": "WEB: Matrix MX01", "brand": "Matrix", "model": "MX01",
+                "url": "https://matrix.example/shared", "driver": base_driver,
+            }],
+        }))
+        candidate_path.write_text(json.dumps({"presets": [{
+            "name": "WEB: Matrix MX02", "brand": "Matrix", "model": "MX02",
+            "url": "https://matrix.example/shared",
+            "source": "Official manufacturer site",
+            "driver": dict(base_driver, re_ohm=6.4),
+            "website_fields": {"confidence": 1.0},
+        }]}))
+        publication = publish_reviewed(
+            catalog_path, candidate_path,
+            {"https://matrix.example/shared"}, dry_run=True,
+        )
+        assert publication["added"] == 1
+        assert publication["existing_rows_unchanged"] is True
 
     daemon_source = (ROOT / "tools" / "autonomous_crawler_daemon.py").read_text(encoding="utf-8")
     assert "subprocess.run" not in daemon_source

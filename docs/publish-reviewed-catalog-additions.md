@@ -5,11 +5,18 @@ whose product URLs were explicitly reviewed. It is intended for small,
 high-confidence catalog batches after a staging crawl.
 
 The command validates the required T/S fields, official-manufacturer source
-label and minimum extraction confidence. It rejects duplicate names, URLs and
-brand/model identities. Existing rows are hashed before publication and the
+label and minimum extraction confidence. It rejects duplicate names,
+brand/model identities and the tolerant runtime identities used by the app.
+One official URL may back several genuine MPN/impedance variants when the
+manufacturer publishes a shared matrix page. Existing rows are hashed before publication and the
 same hashes must remain at the start of the resulting catalog; the operation
 therefore appends records without enriching, replacing or deleting the
 pre-existing catalog.
+
+Runtime deduplication follows the loader's exact sequence: manufacturer alias,
+model override, conservative part-number extraction, impedance normalization
+and T/S-backed identity. This prevents a decorated retailer title from passing
+review only to replace or disappear behind an already loaded driver.
 
 Use `--dry-run` first, repeat `--accept-url` for every approved product, then
 run without `--dry-run` and execute `make test-catalog`.
@@ -21,3 +28,6 @@ The report can aggregate a review cycle while `latest_batch_added` identifies
 the most recent publication inside that cycle. Large batches use
 `latest_batch_by_brand`, `added_names_count` and `added_names_sample` so the UI
 shows exact totals and provenance without rendering hundreds of product names.
+When raw publication and loader growth differ, `latest_batch_visible_added`
+and `latest_batch_visible_by_brand` report the measured Bass Match delta
+separately from append-only rows.

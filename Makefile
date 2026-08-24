@@ -1,4 +1,4 @@
-.PHONY: venv install dev run test test-fast test-ui test-catalog test-smoke test-match crawl-ts crawl-datasheets catalog-plan catalog-complete lint format clean
+.PHONY: venv install dev run test test-fast test-ui test-catalog test-smoke test-match crawl-ts crawl-datasheets crawl-peerless catalog-plan catalog-complete lint format clean
 
 VENV_DIR := .venv
 PYTHON  := python3
@@ -47,6 +47,9 @@ crawl-ts:
 crawl-datasheets:
 	@if [ -z "$(ARGS)" ]; then echo "Usage: make crawl-datasheets ARGS='--seed PRODUCT_URL'"; exit 2; fi
 	$(VENV_DIR)/bin/python tools/crawl_driver_datasheets.py $(ARGS)
+
+crawl-peerless:
+	$(VENV_DIR)/bin/python tools/harvest_peerless_official.py $(ARGS)
 
 catalog-plan:
 	$(VENV_DIR)/bin/python tools/run_catalog_completion_cycle.py plan $(ARGS)

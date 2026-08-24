@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from tools import crawl_thiele_small as crawler
+from src import presets as runtime_presets
 
 
 def canonical_digest(value: Any) -> str:
@@ -30,6 +31,26 @@ def identity(item: dict[str, Any]) -> tuple[str, str]:
     )
 
 
+def runtime_identity(item: dict[str, Any]) -> tuple[str, str, str]:
+    driver = runtime_presets._driver_ts_from_mapping(dict(item.get("driver") or {}))
+    brand = runtime_presets._external_catalog_manufacturer(
+        str(item.get("brand") or "")
+    )
+    item_model = str(item.get("model") or item.get("name") or "")
+    identity_model = runtime_presets._external_catalog_identity_model(
+        item, item_model
+    )
+    part_number = runtime_presets._external_catalog_part_number(
+        brand, identity_model
+    )
+    return runtime_presets._external_catalog_identity(
+        brand,
+        part_number or item_model,
+        driver,
+        str(item.get("impedance") or item_model),
+    )
+
+
 def publish(
     catalog_path: Path,
     candidate_path: Path,
@@ -42,8 +63,8 @@ def publish(
     existing = list(catalog.get("presets") or [])
     old_digests = [canonical_digest(item) for item in existing]
     existing_names = {str(item.get("name") or "") for item in existing}
-    existing_urls = {str(item.get("url") or "").rstrip("/") for item in existing}
     existing_identities = {identity(item) for item in existing}
+    existing_runtime_identities = {runtime_identity(item) for item in existing}
 
     selected = [
         item
@@ -70,14 +91,14 @@ def publish(
             raise ValueError(f"{url}: {'; '.join(errors)}")
         if not name or name in existing_names:
             raise ValueError(f"{url}: duplicate or empty display name")
-        if url in existing_urls:
-            raise ValueError(f"{url}: URL already exists in catalog")
         if identity(item) in existing_identities:
             raise ValueError(f"{url}: brand/model already exists in catalog")
+        if runtime_identity(item) in existing_runtime_identities:
+            raise ValueError(f"{url}: runtime driver identity already exists in catalog")
         additions.append(item)
         existing_names.add(name)
-        existing_urls.add(url)
         existing_identities.add(identity(item))
+        existing_runtime_identities.add(runtime_identity(item))
 
     output = dict(catalog)
     output["presets"] = [*existing, *additions]

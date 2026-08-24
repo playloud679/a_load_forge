@@ -557,7 +557,7 @@ def normalize_unit(raw: str) -> str:
     unit = unit.replace("/2", "2")
     unit = unit.replace("k/mm", "kmm")
     aliases = {
-        "liter": "l", "liters": "l", "litre": "l", "litres": "l", "dm3": "l",
+        "liter": "l", "liters": "l", "litre": "l", "litres": "l", "lit": "l", "dm3": "l",
         "ohms": "ohm", "ohm": "ohm", "milliohm": "mohm", "mω": "mohm",
         "henry": "h", "watts": "w", "watt": "w", "wrms": "w", "grams": "g", "gram": "g",
         "inch": "in", "inches": "in", "µh": "uh", "µm/n": "um/n",
@@ -1041,6 +1041,7 @@ def text_measurements(text: str) -> list[Measurement]:
 
 def choose_measurements(items: Iterable[Measurement]) -> dict[str, Measurement]:
     priority = {
+        "html.variant_table": 5,
         "jsonld.additionalProperty": 4,
         "pdf.drawing": 3,
         "jsonld.field": 3,
@@ -1644,6 +1645,196 @@ def build_preset(
     return preset, []
 
 
+class _StructuredTableParser(HTMLParser):
+    """Retain direct HTML table cells and colspans for variant matrices."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.tables: list[list[list[dict[str, object]]]] = []
+        self._stack: list[dict[str, object]] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]):
+        if tag == "table":
+            self._stack.append({"rows": [], "row": None, "cell": None})
+            return
+        if not self._stack:
+            return
+        table = self._stack[-1]
+        if tag == "tr":
+            table["row"] = []
+        elif tag in {"td", "th"} and table["row"] is not None:
+            values = {key.casefold(): value or "" for key, value in attrs}
+            try:
+                colspan = max(1, int(values.get("colspan", "1")))
+            except ValueError:
+                colspan = 1
+            cell: dict[str, object] = {"parts": [], "colspan": colspan}
+            row = table["row"]
+            assert isinstance(row, list)
+            row.append(cell)
+            table["cell"] = cell
+
+    def handle_data(self, data: str):
+        if not self._stack:
+            return
+        cell = self._stack[-1].get("cell")
+        if isinstance(cell, dict) and data.strip():
+            parts = cell["parts"]
+            assert isinstance(parts, list)
+            parts.append(data.strip())
+
+    def handle_endtag(self, tag: str):
+        if not self._stack:
+            return
+        table = self._stack[-1]
+        if tag in {"td", "th"}:
+            table["cell"] = None
+        elif tag == "tr":
+            row = table.get("row")
+            rows = table["rows"]
+            assert isinstance(rows, list)
+            if isinstance(row, list) and row:
+                rows.append(row)
+            table["row"] = None
+        elif tag == "table":
+            finished = self._stack.pop()["rows"]
+            assert isinstance(finished, list)
+            if finished:
+                self.tables.append(finished)
+
+
+def _expanded_table_row(row: list[dict[str, object]]) -> list[str]:
+    expanded: list[str] = []
+    for cell in row:
+        parts = cell.get("parts") or []
+        text = " ".join(str(part) for part in parts if str(part).strip())
+        text = " ".join(html.unescape(text).replace("\u00a0", " ").split())
+        expanded.extend([text] * int(cell.get("colspan") or 1))
+    return expanded
+
+
+_WAVECOR_MODEL_GROUP = re.compile(
+    r"\b(?:FR|MR|SW|WF)[A-Z0-9]+(?:\s*(?:[/&]|and)\s*[A-Z0-9]+)+\b",
+    re.I,
+)
+
+
+def _wavecor_models(group: str) -> list[str]:
+    """Expand Wavecor shorthand such as ``MR120BD01/03`` into MPNs."""
+    compact = re.sub(r"\s+", "", group).upper()
+    parts = re.split(r"[/&]|(?i:AND)", compact)
+    first = parts[0]
+    models = [first]
+    for suffix in parts[1:]:
+        if re.fullmatch(r"\d{1,3}", suffix) and len(first) > len(suffix):
+            models.append(first[:-len(suffix)] + suffix)
+        elif suffix:
+            models.append(suffix)
+    return list(dict.fromkeys(models))
+
+
+def _variant_parameter(label: str) -> str | None:
+    if re.search(r"\b10\s*k\s*hz\b", label, re.I) and re.search(
+        r"\b(?:le|inductance)\b", label, re.I
+    ):
+        return "le10k_mh"
+    key = canonical_parameter(label)
+    if key:
+        return key
+    for token in reversed(re.findall(r"[A-Za-z][A-Za-z0-9]*", label)):
+        if key := canonical_parameter(token):
+            return key
+    return None
+
+
+def wavecor_variant_presets(
+    content: bytes,
+    page: PageData,
+    url: str,
+    source_name: str,
+    brand_hint: str,
+) -> list[dict]:
+    """Split official Wavecor before/after-burn-in matrices by model group."""
+    host = (urlparse(url).hostname or "").casefold().removeprefix("www.")
+    if host != "wavecor.com":
+        return []
+    parser = _StructuredTableParser()
+    parser.feed(content.decode("utf-8", errors="replace"))
+    presets: list[dict] = []
+    seen_models: set[str] = set()
+    for table in parser.tables:
+        rows = [_expanded_table_row(row) for row in table]
+        header_index = next((
+            index for index, row in enumerate(rows)
+            if any(_WAVECOR_MODEL_GROUP.search(cell) for cell in row)
+            and any(normalized_label(cell) == "parameter" for cell in row)
+            and any(normalized_label(cell) == "unit" for cell in row)
+        ), None)
+        if header_index is None:
+            continue
+        header = rows[header_index]
+        unit_column = next(
+            index for index, cell in enumerate(header)
+            if normalized_label(cell) == "unit"
+        )
+        groups: dict[str, list[int]] = {}
+        for column, cell in enumerate(header):
+            match = _WAVECOR_MODEL_GROUP.search(cell)
+            if match:
+                group = re.sub(r"\s+", "", match.group(0)).upper()
+                groups.setdefault(group, []).append(column)
+        for group, columns in groups.items():
+            # Wavecor publishes before/after burn-in in adjacent columns. The
+            # after-burn-in value is the stable design value; colspan rows
+            # naturally repeat the same value in both slots.
+            value_column = max(columns)
+            measurements: list[Measurement] = []
+            for row in rows[header_index + 1:]:
+                if len(row) <= max(unit_column, value_column) or len(row) < 2:
+                    continue
+                label = row[1]
+                key = _variant_parameter(label)
+                if not key:
+                    continue
+                label_key = normalized_label(label)
+                if key == "pe_w" and any(
+                    phrase in label_key for phrase in ("short term", "long term")
+                ):
+                    continue
+                raw = re.sub(r"^\s*\+?\s*/\s*[-−]\s*", "", row[value_column])
+                unit = row[unit_column].strip(" []()")
+                value = convert_measurement(key, raw, unit)
+                if value is not None:
+                    measurements.append(Measurement(
+                        key, value, raw, unit, label, "html.variant_table"
+                    ))
+            for model in _wavecor_models(group):
+                if model in seen_models:
+                    continue
+                variant_page = PageData(
+                    title=model,
+                    h1=model,
+                    embedded_measurements=measurements,
+                )
+                preset, errors = build_preset(
+                    variant_page,
+                    url,
+                    source_name,
+                    brand_hint or "Wavecor",
+                    extraction_method="html",
+                )
+                if errors or preset is None:
+                    continue
+                preset["size_in"] = infer_size_in(
+                    page.title or model, page.text, preset["driver"].get("sd_cm2")
+                )
+                preset["website_fields"]["title"] = page.title or page.h1 or model
+                preset["website_fields"]["variant_group"] = group
+                presets.append(preset)
+                seen_models.add(model)
+    return presets
+
+
 def build_published_observation(
     page: PageData,
     url: str,
@@ -1928,17 +2119,28 @@ def crawl(
             result = fetcher(url, config.timeout_s, config.user_agent)
             is_pdf = result.content_type == "application/pdf" or result.url.casefold().endswith(".pdf")
             page = parse_pdf(result.content) if is_pdf else parse_html(result.content)
-            preset, errors = build_preset(
-                page, result.url, config.source_name, config.brand_hint,
-                extraction_method="pdf" if is_pdf else "html",
+            variants = [] if is_pdf else wavecor_variant_presets(
+                result.content, page, result.url, config.source_name,
+                config.brand_hint,
             )
-            if preset:
-                confidence = float(preset["website_fields"]["confidence"])
-                if confidence >= config.min_confidence:
-                    presets.append(preset)
-                    log(f"accepted {preset['name']} ({confidence:.2f})")
-            elif len(errors) < len(REQUIRED_DRIVER_FIELDS):
-                failures.append({"url": result.url, "error": "; ".join(errors)})
+            if variants:
+                for preset in variants:
+                    confidence = float(preset["website_fields"]["confidence"])
+                    if confidence >= config.min_confidence:
+                        presets.append(preset)
+                        log(f"accepted {preset['name']} ({confidence:.2f})")
+            else:
+                preset, errors = build_preset(
+                    page, result.url, config.source_name, config.brand_hint,
+                    extraction_method="pdf" if is_pdf else "html",
+                )
+                if preset:
+                    confidence = float(preset["website_fields"]["confidence"])
+                    if confidence >= config.min_confidence:
+                        presets.append(preset)
+                        log(f"accepted {preset['name']} ({confidence:.2f})")
+                elif len(errors) < len(REQUIRED_DRIVER_FIELDS):
+                    failures.append({"url": result.url, "error": "; ".join(errors)})
             if config.follow_links and not is_pdf and depth < config.max_depth:
                 for href in page.links:
                     child = normalize_url(href, result.url)

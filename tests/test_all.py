@@ -4953,6 +4953,49 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
     assert np.isclose(driver["mms_g"], 100.0)
     assert np.isclose(driver["cms_mm_per_n"], 0.25)
 
+    wavecor_html = b"""
+    <html><head><title>MR120BD01/02/03/04 4.75 inch midranges</title></head><body>
+    <table>
+      <tr><th rowspan="2">Notes</th><th rowspan="2">Parameter</th>
+          <th colspan="2">MR120BD01/03</th><th colspan="2">MR120BD02/04</th>
+          <th rowspan="2">Unit</th></tr>
+      <tr><th>Before burn-in</th><th>After burn-in</th>
+          <th>Before burn-in</th><th>After burn-in</th></tr>
+      <tr><td></td><td>Effective radiating area, Sd</td><td colspan="2">50</td><td colspan="2">50</td><td>[sq.cm]</td></tr>
+      <tr><td></td><td>Resonance frequency, Fs</td><td>72</td><td>70</td><td>73</td><td>72</td><td>[Hz]</td></tr>
+      <tr><td></td><td>Equivalent air volume, Vas</td><td>3.1</td><td>3.2</td><td>3.1</td><td>3.2</td><td>[lit.]</td></tr>
+      <tr><td></td><td>Mechanical Q, Qms</td><td>8.5</td><td>8.4</td><td>8.3</td><td>8.3</td><td>[-]</td></tr>
+      <tr><td></td><td>Total Q, Qts</td><td>0.45</td><td>0.44</td><td>0.56</td><td>0.55</td><td>[-]</td></tr>
+      <tr><td></td><td>Voice coil resistance, RDC</td><td colspan="2">3.2</td><td colspan="2">6.4</td><td>[ohm]</td></tr>
+      <tr><td></td><td>Theoretical linear motor stroke, Xmax</td><td colspan="2">+/-1.5</td><td colspan="2">+/-1.5</td><td>[mm]</td></tr>
+    </table></body></html>
+    """
+    wavecor_page = crawler.parse_html(wavecor_html)
+    wavecor_variants = crawler.wavecor_variant_presets(
+        wavecor_html,
+        wavecor_page,
+        "http://www.wavecor.com/html/mr120bd01_02_03_04.html",
+        "Official manufacturer site",
+        "Wavecor",
+    )
+    assert [item["model"] for item in wavecor_variants] == [
+        "MR120BD01", "MR120BD03", "MR120BD02", "MR120BD04",
+    ]
+    assert wavecor_variants[0]["driver"]["fs_hz"] == 70.0
+    assert wavecor_variants[0]["driver"]["vas_l"] == 3.2
+    assert wavecor_variants[0]["driver"]["re_ohm"] == 3.2
+    assert wavecor_variants[2]["driver"]["fs_hz"] == 72.0
+    assert wavecor_variants[2]["driver"]["qts"] == 0.55
+    assert wavecor_variants[2]["driver"]["re_ohm"] == 6.4
+    assert all(item["driver"]["xmax_mm"] == 1.5 for item in wavecor_variants)
+    assert all(
+        item["website_fields"]["variant_group"].startswith("MR120BD")
+        for item in wavecor_variants
+    )
+    assert crawler._wavecor_models(
+        "WF182BD09 and WF182BD11"
+    ) == ["WF182BD09", "WF182BD11"]
+
     dirty_storefront = crawler.parse_html(b"""
     <html><head><title>Scan-Speak Example 4&quot; Woofer</title>
       <script type="application/ld+json">
