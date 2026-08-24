@@ -15,6 +15,8 @@
   manufacturer, bringing the catalog to 7,279 raw and 6,275 visible records.
 - Added one PRV Audio official product page (`8MR400-NDY-4`); catalog total is
   now 7,280 raw and 6,276 visible records.
+- Added one Soundking driver from the official manufacturer T/S PDF
+  (`FB0850-2`); catalog total is now 7,281 raw and 6,277 visible records.
 - Published 773 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
   Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA, Jensen,

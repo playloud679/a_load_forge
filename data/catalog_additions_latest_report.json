@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-25T00:52:00Z",
+  "generated_at": "2026-08-25T01:12:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 820,
+  "added": 821,
   "latest_batch_added": 1,
   "latest_batch_visible_added": 1,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7280,
-  "app_visible_before": 6275,
-  "app_visible_records": 6276,
+  "final_records": 7281,
+  "app_visible_before": 6276,
+  "app_visible_records": 6277,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -37,13 +37,14 @@
     "LaVoce official product pages",
     "DD Audio official product pages",
     "SOVOX official product pages",
-    "PRV Audio official product pages"
+    "PRV Audio official product pages",
+    "Soundking official manufacturer PDF"
   ],
   "latest_batch_by_brand": {
-    "PRV Audio": 1
+    "Soundking": 1
   },
   "latest_batch_visible_by_brand": {
-    "PRV Audio": 1
+    "Soundking": 1
   },
   "added_names_count": 755,
   "added_names_sample": [
