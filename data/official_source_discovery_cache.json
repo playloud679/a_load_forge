@@ -1,0 +1,1708 @@
+{
+  "attempts": [
+    {
+      "brand": "AB Sound",
+      "domain": "ab-sound.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "AB Sound",
+      "domain": "ab-sound.co.uk",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "AB Sound",
+      "domain": "ab-sound.com",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "AB Sound",
+      "domain": "ab-sound.com.br",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "AB Sound",
+      "domain": "ab-sound.de",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "AB Sound",
+      "domain": "ab-sound.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "AB Sound",
+      "domain": "ab-sound.it",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "AB Sound",
+      "domain": "ab-sound.net",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Adire Audio",
+      "domain": "adire.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Adire Audio",
+      "domain": "adire.co.uk",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Adire Audio",
+      "domain": "adire.com",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'adire.com'. (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Adire Audio",
+      "domain": "adire.com.br",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Adire Audio",
+      "domain": "adire.de",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Adire Audio",
+      "confidence": 0.35,
+      "domain": "adire.fr",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain"
+      ],
+      "status": "ambiguous",
+      "title": "Dovendi - Domain for sale",
+      "url": "https://adire.fr/"
+    },
+    {
+      "brand": "Adire Audio",
+      "domain": "adire.it",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'adire.it'. (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Adire Audio",
+      "domain": "adire.net",
+      "error": "<urlopen error [Errno 54] Connection reset by peer>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Altec Lansing",
+      "confidence": 0.22,
+      "domain": "afroaudio.jp",
+      "evidence": [
+        "catalog provenance"
+      ],
+      "status": "ambiguous",
+      "title": "アフロオーディオ｜中古オーディオの買取・販売専門店",
+      "url": "https://afroaudio.jp/"
+    },
+    {
+      "brand": "Altec Lansing",
+      "domain": "altec-lansing.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Altec Lansing",
+      "domain": "altec-lansing.com",
+      "error": "<urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Altec Lansing",
+      "domain": "altec-lansing.net",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Altec Lansing",
+      "confidence": 0.36,
+      "domain": "audio-heritage.jp",
+      "evidence": [
+        "catalog provenance",
+        "brand appears in homepage text"
+      ],
+      "status": "ambiguous",
+      "title": "オーディオの足跡 オーディオ機器を何でも紹介",
+      "url": "https://audio-heritage.jp/"
+    },
+    {
+      "brand": "Altec Lansing",
+      "confidence": 0.52,
+      "domain": "greatplainsacoustics.com",
+      "evidence": [
+        "catalog provenance",
+        "brand appears in homepage text",
+        "loudspeaker vocabulary verified in provenance page"
+      ],
+      "status": "ambiguous",
+      "title": "Great Plain Acoustics drivers and speakers where Altec Legend Lives on – Great Plains Acoustics",
+      "url": "https://greatplainsacoustics.com/"
+    },
+    {
+      "brand": "Altec Lansing",
+      "confidence": 0.2,
+      "domain": "reverb.com",
+      "evidence": [
+        "catalog provenance"
+      ],
+      "status": "ambiguous",
+      "title": "Musical Instruments For Sale - New & Used Music Gear | Reverb",
+      "url": "https://reverb.com/"
+    },
+    {
+      "brand": "Altec Lansing",
+      "confidence": 0.2,
+      "domain": "vintagetechnologyarchive.com",
+      "evidence": [
+        "catalog provenance"
+      ],
+      "status": "ambiguous",
+      "title": "Vintage Technology Archive",
+      "url": "https://vintagetechnologyarchive.com/"
+    },
+    {
+      "brand": "Aurum Cantus",
+      "domain": "aurum-cantus.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Aurum Cantus",
+      "domain": "aurum-cantus.co.uk",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Aurum Cantus",
+      "domain": "aurum-cantus.com",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Aurum Cantus",
+      "domain": "aurum-cantus.com.br",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Aurum Cantus",
+      "domain": "aurum-cantus.de",
+      "error": "<urlopen error [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Aurum Cantus",
+      "domain": "aurum-cantus.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Aurum Cantus",
+      "domain": "aurum-cantus.it",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Aurum Cantus",
+      "domain": "aurum-cantus.net",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "DAS",
+      "confidence": 0.25,
+      "domain": "arag.co.uk",
+      "evidence": [
+        "generated brand domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "ARAG | Legal Expenses Insurance and Assistance | arag.co.uk",
+      "url": "https://www.arag.co.uk/"
+    },
+    {
+      "brand": "DAS",
+      "domain": "das.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "DAS",
+      "domain": "das.com",
+      "error": "<urlopen error timed out>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "DAS",
+      "domain": "das.com.br",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'das.com.br'. (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "DAS",
+      "domain": "das.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "DAS",
+      "confidence": 0.6,
+      "domain": "das.it",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Assicurazioni Legali, Difesa Legale - DAS Difesa Legale",
+      "url": "https://www.das.it/"
+    },
+    {
+      "brand": "DAS",
+      "domain": "das.net",
+      "error": "<urlopen error [Errno 65] No route to host>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "DAS",
+      "confidence": 0.08,
+      "domain": "ergo.de",
+      "evidence": [
+        "generated brand domain",
+        "brand appears in homepage text"
+      ],
+      "status": "ambiguous",
+      "title": "Rechtsschutz ohne Wartezeit | ERGO",
+      "url": "https://www.ergo.de/de/Produkte/Rechtsschutzversicherung"
+    },
+    {
+      "brand": "Goldwood",
+      "domain": "goldwood.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Goldwood",
+      "confidence": 0.6,
+      "domain": "goldwood.co.uk",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "GOLDWOOD.CO.UK - For Sale",
+      "url": "https://goldwood.co.uk/"
+    },
+    {
+      "brand": "Goldwood",
+      "confidence": 0.6,
+      "domain": "goldwood.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Goldwood.com",
+      "url": "https://www.goldwood.com/"
+    },
+    {
+      "brand": "Goldwood",
+      "domain": "goldwood.com.br",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Goldwood",
+      "domain": "goldwood.de",
+      "error": "<urlopen error [Errno 61] Connection refused>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Goldwood",
+      "domain": "goldwood.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Goldwood",
+      "confidence": 0.6,
+      "domain": "goldwood.it",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "goldwood new - Goldwood Guitars",
+      "url": "https://www.goldwood.it/"
+    },
+    {
+      "brand": "Goldwood",
+      "domain": "goldwood.net",
+      "error": "<urlopen error timed out>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Goodmans",
+      "domain": "goodmans.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Goodmans",
+      "domain": "goodmans.co.uk",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Goodmans",
+      "confidence": 0.6,
+      "domain": "goodmans.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "MillerKnoll Dealer | Goodmans",
+      "url": "https://www.goodmans.com/"
+    },
+    {
+      "brand": "Goodmans",
+      "domain": "goodmans.com.br",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Goodmans",
+      "domain": "goodmans.de",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Goodmans",
+      "domain": "goodmans.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Goodmans",
+      "domain": "goodmans.it",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Goodmans",
+      "confidence": 0.6,
+      "domain": "goodmans.net",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Welcome To Goodmans.net",
+      "url": "https://www.goodmans.net/"
+    },
+    {
+      "brand": "Great Plains Audio",
+      "domain": "great-plains.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Great Plains Audio",
+      "domain": "great-plains.co.uk",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Great Plains Audio",
+      "domain": "great-plains.com",
+      "error": "<urlopen error timed out>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Great Plains Audio",
+      "domain": "great-plains.de",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Great Plains Audio",
+      "domain": "great-plains.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Great Plains Audio",
+      "domain": "great-plains.it",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Great Plains Audio",
+      "domain": "great-plains.net",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Great Plains Audio",
+      "confidence": 1.0,
+      "domain": "greatplainsacoustics.com",
+      "evidence": [
+        "catalog provenance",
+        "brand tokens match final domain",
+        "brand appears in page title",
+        "loudspeaker vocabulary verified in provenance page"
+      ],
+      "status": "verified",
+      "title": "Great Plain Acoustics drivers and speakers where Altec Legend Lives on – Great Plains Acoustics",
+      "url": "https://greatplainsacoustics.com/"
+    },
+    {
+      "brand": "GRS",
+      "domain": "grs.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "GRS",
+      "domain": "grs.co.uk",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "GRS",
+      "confidence": 0.6,
+      "domain": "grs.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Home - GRS",
+      "url": "https://grs.com/"
+    },
+    {
+      "brand": "GRS",
+      "confidence": 0.6,
+      "domain": "grs.com.br",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "GRS Eletricidade | Trabalhando com Energia há 30 anos.",
+      "url": "https://grs.com.br/"
+    },
+    {
+      "brand": "GRS",
+      "confidence": 0.6,
+      "domain": "grs.de",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Startseite | GRS gGmbH",
+      "url": "https://www.grs.de/"
+    },
+    {
+      "brand": "GRS",
+      "confidence": 0.6,
+      "domain": "grs.fr",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "GRS - Guest Room Supply",
+      "url": "https://grs.fr/"
+    },
+    {
+      "brand": "GRS",
+      "domain": "grs.it",
+      "error": "<urlopen error timed out>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "GRS",
+      "domain": "grs.net",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "GS Audio",
+      "confidence": 0.0,
+      "domain": "goldmansachs.com",
+      "evidence": [
+        "generated brand domain"
+      ],
+      "status": "ambiguous",
+      "title": "Home | Goldman Sachs",
+      "url": "https://www.goldmansachs.com/"
+    },
+    {
+      "brand": "GS Audio",
+      "domain": "gs.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "GS Audio",
+      "confidence": 0.0,
+      "domain": "gs.com.br",
+      "evidence": [
+        "generated brand domain"
+      ],
+      "status": "ambiguous",
+      "title": "GS Impressão Sul - Envelopamento de Veículos, Impressão de Banners e Fachadas Comerciais",
+      "url": "https://gs.com.br/"
+    },
+    {
+      "brand": "GS Audio",
+      "domain": "gs.de",
+      "error": "<urlopen error [Errno 61] Connection refused>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "GS Audio",
+      "domain": "gs.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "GS Audio",
+      "domain": "gs.it",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "GS Audio",
+      "domain": "gs.net",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "GS Audio",
+      "confidence": 0.0,
+      "domain": "legacybid.rotd.com",
+      "evidence": [
+        "generated brand domain"
+      ],
+      "status": "ambiguous",
+      "title": "RightOfTheDot Auctions",
+      "url": "https://legacybid.rotd.com/ui/auctions/99348?query=gs.co.uk"
+    },
+    {
+      "brand": "Helix",
+      "confidence": 0.495,
+      "domain": "audiotec-fischer.de",
+      "evidence": [
+        "catalog provenance",
+        "brand appears in homepage text",
+        "loudspeaker vocabulary verified in page title"
+      ],
+      "status": "ambiguous",
+      "title": "High-End Car Hifi & Audio - Made in Germany | Audiotec Fischer",
+      "url": "https://www.audiotec-fischer.de/"
+    },
+    {
+      "brand": "Helix",
+      "domain": "helix.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Helix",
+      "domain": "helix.co.uk",
+      "error": "<urlopen error [SSL: SSLV3_ALERT_HANDSHAKE_FAILURE] ssl/tls alert handshake failure (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Helix",
+      "confidence": 0.6,
+      "domain": "helix.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Helix | Precision Health at Population Scale",
+      "url": "https://www.helix.com/"
+    },
+    {
+      "brand": "Helix",
+      "confidence": 0.6,
+      "domain": "helix.de",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "HELiX │Software-Entwicklung & Testing │IT-Support",
+      "url": "https://www.helix.de/"
+    },
+    {
+      "brand": "Helix",
+      "confidence": 0.6,
+      "domain": "helix.fr",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "helix.fr est en vente",
+      "url": "http://www.helix.fr/"
+    },
+    {
+      "brand": "Helix",
+      "domain": "helix.it",
+      "error": "<urlopen error timed out>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Helix",
+      "domain": "helix.net",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "HiVi",
+      "domain": "hivi.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "HiVi",
+      "confidence": 0.35,
+      "domain": "hivi.co.uk",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain"
+      ],
+      "status": "ambiguous",
+      "title": "",
+      "url": "https://hivi.co.uk/en-gb"
+    },
+    {
+      "brand": "HiVi",
+      "confidence": 0.43,
+      "domain": "hivi.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in homepage text"
+      ],
+      "status": "ambiguous",
+      "title": "Swan惠威",
+      "url": "https://www.hivi.com/"
+    },
+    {
+      "brand": "HiVi",
+      "confidence": 0.6,
+      "domain": "hivi.com.br",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Hivi - Plataforma Integrada de Gestão",
+      "url": "https://hivi.com.br/"
+    },
+    {
+      "brand": "HiVi",
+      "domain": "hivi.de",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "HiVi",
+      "domain": "hivi.it",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "HiVi",
+      "domain": "hivi.net",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "HiVi",
+      "confidence": 0.6,
+      "domain": "hiviprod.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Accueil - HIVI",
+      "url": "https://hiviprod.com/"
+    },
+    {
+      "brand": "JBL Selenium",
+      "domain": "jbl-selenium.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "JBL Selenium",
+      "domain": "jbl-selenium.co.uk",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "JBL Selenium",
+      "domain": "jbl-selenium.com",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "JBL Selenium",
+      "domain": "jbl-selenium.de",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "JBL Selenium",
+      "domain": "jbl-selenium.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "JBL Selenium",
+      "domain": "jbl-selenium.it",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "JBL Selenium",
+      "domain": "jbl-selenium.net",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "JBL Selenium",
+      "domain": "jblselenium.com.br",
+      "error": "<urlopen error timed out>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Jensen",
+      "domain": "jensen.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Jensen",
+      "confidence": 0.6,
+      "domain": "jensen.co.uk",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Jensen Cars",
+      "url": "https://jensen.co.uk/"
+    },
+    {
+      "brand": "Jensen",
+      "domain": "jensen.de",
+      "error": "<urlopen error [SSL: TLSV1_UNRECOGNIZED_NAME] tlsv1 unrecognized name (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Jensen",
+      "confidence": 0.6,
+      "domain": "jensen.fr",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "jensen.fr - Questo sito web è in vendita! - Jensen Risorse e informazione.",
+      "url": "https://jensen.fr/"
+    },
+    {
+      "brand": "Jensen",
+      "domain": "jensen.it",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Jensen",
+      "domain": "jensen.net",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'jensen.net'. (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Jensen",
+      "confidence": 1.0,
+      "domain": "jensentone.com",
+      "evidence": [
+        "catalog provenance",
+        "brand tokens match final domain",
+        "brand appears in page title",
+        "loudspeaker vocabulary verified in provenance page"
+      ],
+      "status": "verified",
+      "title": "Home | Jensen Loudspeakers",
+      "url": "https://www.jensentone.com/"
+    },
+    {
+      "brand": "Jensen",
+      "confidence": 0.0,
+      "domain": "voxxintl.com",
+      "evidence": [
+        "generated brand domain"
+      ],
+      "status": "ambiguous",
+      "title": "VOXX International",
+      "url": "https://www.voxxintl.com/"
+    },
+    {
+      "brand": "Monacor",
+      "domain": "monacor.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Monacor",
+      "domain": "monacor.co.uk",
+      "error": "HTTP Error 403: Forbidden",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Monacor",
+      "domain": "monacor.com",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'monacor.com'. (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Monacor",
+      "confidence": 0.6,
+      "domain": "monacor.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "MONACOR: Monacor",
+      "url": "https://www.monacor.com/"
+    },
+    {
+      "brand": "Monacor",
+      "domain": "monacor.com.br",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Monacor",
+      "confidence": 0.6,
+      "domain": "monacor.de",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "MONACOR: Monacor",
+      "url": "https://www.monacor.de/"
+    },
+    {
+      "brand": "Monacor",
+      "domain": "monacor.fr",
+      "error": "<urlopen error [Errno 54] Connection reset by peer>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Monacor",
+      "confidence": 0.35,
+      "domain": "monacor.it",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain"
+      ],
+      "status": "ambiguous",
+      "title": "Untitled",
+      "url": "https://www.monacor.it/"
+    },
+    {
+      "brand": "Peavey",
+      "domain": "peavey.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Peavey",
+      "domain": "peavey.co.uk",
+      "error": "HTTP Error 403: Forbidden",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Peavey",
+      "confidence": 0.72,
+      "domain": "peavey.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title",
+        "loudspeaker vocabulary verified in page title"
+      ],
+      "status": "verified",
+      "title": "Peavey Official Store | Guitars, Amps & Pro Audio Gear",
+      "url": "https://peavey.com/"
+    },
+    {
+      "brand": "Peavey",
+      "confidence": 0.6,
+      "domain": "peavey.com.br",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "ASSISTÊNCIA TÉCNICA PEAVEY NO IPIRANGA EM SÃO PAULO",
+      "url": "https://peavey.com.br/"
+    },
+    {
+      "brand": "Peavey",
+      "domain": "peavey.de",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Peavey",
+      "domain": "peavey.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Peavey",
+      "domain": "peavey.it",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Peavey",
+      "confidence": 0.6,
+      "domain": "peavey.net",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "peavey.net - For Sale",
+      "url": "https://peavey.net/"
+    },
+    {
+      "brand": "Pyle Audio",
+      "domain": "pyle.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Pyle Audio",
+      "confidence": 0.6,
+      "domain": "pyle.co.uk",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "PYLE.CO.UK - For Sale",
+      "url": "https://pyle.co.uk/"
+    },
+    {
+      "brand": "Pyle Audio",
+      "domain": "pyle.com",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Pyle Audio",
+      "domain": "pyle.com.br",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Pyle Audio",
+      "domain": "pyle.de",
+      "error": "<urlopen error timed out>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Pyle Audio",
+      "domain": "pyle.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Pyle Audio",
+      "domain": "pyle.it",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Pyle Audio",
+      "domain": "pyle.net",
+      "error": "<urlopen error [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "RAAL",
+      "domain": "raal.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "RAAL",
+      "domain": "raal.co.uk",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "RAAL",
+      "confidence": 0.6,
+      "domain": "raal.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "The domain name RAAL.COM.",
+      "url": "https://raal.com/"
+    },
+    {
+      "brand": "RAAL",
+      "domain": "raal.de",
+      "error": "<urlopen error [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "RAAL",
+      "domain": "raal.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "RAAL",
+      "confidence": 0.6,
+      "domain": "raal.it",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "RAAL Italia",
+      "url": "https://www.raal.it/IT/index.php"
+    },
+    {
+      "brand": "RAAL",
+      "domain": "raal.net",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "RAAL",
+      "domain": "rfrequent.com",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Reiss audio",
+      "domain": "reiss.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Reiss audio",
+      "domain": "reiss.co.uk",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate has expired (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Reiss audio",
+      "confidence": 0.6,
+      "domain": "reiss.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Reiss UK - Womenswear, Menswear, & Accessories",
+      "url": "https://www.reiss.com/"
+    },
+    {
+      "brand": "Reiss audio",
+      "domain": "reiss.com.br",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'reiss.com.br'. (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Reiss audio",
+      "domain": "reiss.de",
+      "error": "<urlopen error [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Reiss audio",
+      "domain": "reiss.fr",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'reiss.fr'. (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Reiss audio",
+      "confidence": 0.6,
+      "domain": "reiss.it",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "reiss.it",
+      "url": "https://reiss.it/"
+    },
+    {
+      "brand": "Reiss audio",
+      "confidence": 0.35,
+      "domain": "reiss.net",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain"
+      ],
+      "status": "ambiguous",
+      "title": "",
+      "url": "https://reiss.net/"
+    },
+    {
+      "brand": "Selenium",
+      "domain": "selenium.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Selenium",
+      "domain": "selenium.co.uk",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'selenium.co.uk'. (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Selenium",
+      "confidence": 0.6,
+      "domain": "selenium.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "selenium.com for sale | Spaceship.com",
+      "url": "https://selenium.com/"
+    },
+    {
+      "brand": "Selenium",
+      "confidence": 0.6,
+      "domain": "selenium.com.br",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Selenium – Direito do Trabalhador e Educação",
+      "url": "https://www.selenium.com.br/"
+    },
+    {
+      "brand": "Selenium",
+      "domain": "selenium.de",
+      "error": "<urlopen error [SSL: TLSV1_ALERT_INTERNAL_ERROR] tlsv1 alert internal error (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Selenium",
+      "domain": "selenium.fr",
+      "error": "The read operation timed out",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Selenium",
+      "domain": "selenium.it",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Selenium",
+      "domain": "selenium.net",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Silver Flute",
+      "domain": "silver-flute.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Silver Flute",
+      "domain": "silver-flute.co.uk",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Silver Flute",
+      "domain": "silver-flute.com",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Silver Flute",
+      "domain": "silver-flute.com.br",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Silver Flute",
+      "domain": "silver-flute.de",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Silver Flute",
+      "domain": "silver-flute.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Silver Flute",
+      "domain": "silver-flute.it",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Silver Flute",
+      "domain": "silver-flute.net",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Soundmax",
+      "domain": "soundmax.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Soundmax",
+      "confidence": 0.6,
+      "domain": "soundmax.co.uk",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Soundmax - Performance Innovation",
+      "url": "https://soundmax.co.uk/"
+    },
+    {
+      "brand": "Soundmax",
+      "domain": "soundmax.com",
+      "error": "<urlopen error timed out>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Soundmax",
+      "domain": "soundmax.com.br",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Soundmax",
+      "domain": "soundmax.de",
+      "error": "HTTP Error 403: Forbidden",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Soundmax",
+      "domain": "soundmax.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Soundmax",
+      "domain": "soundmax.it",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Soundmax",
+      "confidence": 0.35,
+      "domain": "soundmax.net",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain"
+      ],
+      "status": "ambiguous",
+      "title": "",
+      "url": "https://soundmax.net/"
+    },
+    {
+      "brand": "Sundown Audio",
+      "confidence": 0.25,
+      "domain": "domaineasy.com",
+      "evidence": [
+        "generated brand domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Sundown.com is for sale. Buy it today!",
+      "url": "https://www.domaineasy.com/buy-domain/sundown.com"
+    },
+    {
+      "brand": "Sundown Audio",
+      "domain": "sundown.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Sundown Audio",
+      "confidence": 0.6,
+      "domain": "sundown.co.uk",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "SUNDOWN.CO.UK - For Sale",
+      "url": "https://sundown.co.uk/"
+    },
+    {
+      "brand": "Sundown Audio",
+      "domain": "sundown.com.br",
+      "error": "HTTP Error 403: Forbidden",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Sundown Audio",
+      "domain": "sundown.de",
+      "error": "<urlopen error timed out>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Sundown Audio",
+      "confidence": 0.35,
+      "domain": "sundown.fr",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain"
+      ],
+      "status": "ambiguous",
+      "title": "",
+      "url": "https://sundown.fr/"
+    },
+    {
+      "brand": "Sundown Audio",
+      "domain": "sundown.it",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Sundown Audio",
+      "domain": "sundown.net",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Sure Electronics",
+      "confidence": 0.6,
+      "domain": "store.sure-electronics.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "WONDOM OFFICIAL SHOP - August Promotions - Bluetooth Amplifier Board - Sure Electronics - BCPB - 18650 charger - T-AMP - Volume Control",
+      "url": "https://store.sure-electronics.com/"
+    },
+    {
+      "brand": "Sure Electronics",
+      "domain": "sure-electronics.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Sure Electronics",
+      "domain": "sure-electronics.co.uk",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Sure Electronics",
+      "domain": "sure-electronics.com.br",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Sure Electronics",
+      "domain": "sure-electronics.de",
+      "error": "<urlopen error timed out>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Sure Electronics",
+      "domain": "sure-electronics.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Sure Electronics",
+      "confidence": 0.6,
+      "domain": "sure-electronics.it",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "sure-electronics.it",
+      "url": "https://sure-electronics.it/"
+    },
+    {
+      "brand": "Sure Electronics",
+      "confidence": 0.6,
+      "domain": "sure-electronics.net",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "sure-electronics.net",
+      "url": "https://sure-electronics.net/"
+    },
+    {
+      "brand": "Tectonic",
+      "domain": "tectonic.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Tectonic",
+      "domain": "tectonic.co.uk",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Tectonic",
+      "domain": "tectonic.com",
+      "error": "<urlopen error timed out>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Tectonic",
+      "confidence": 0.35,
+      "domain": "tectonic.com.br",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain"
+      ],
+      "status": "ambiguous",
+      "title": "Parked Domain name on Hostinger DNS system",
+      "url": "https://tectonic.com.br/"
+    },
+    {
+      "brand": "Tectonic",
+      "domain": "tectonic.de",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'tectonic.de'. (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Tectonic",
+      "confidence": 0.35,
+      "domain": "tectonic.fr",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain"
+      ],
+      "status": "ambiguous",
+      "title": "Dovendi - Domain for sale",
+      "url": "https://tectonic.fr/"
+    },
+    {
+      "brand": "Tectonic",
+      "confidence": 0.6,
+      "domain": "tectonic.it",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title"
+      ],
+      "status": "ambiguous",
+      "title": "Tectonic Interactive",
+      "url": "https://tectonic.it/"
+    },
+    {
+      "brand": "Tectonic",
+      "domain": "tectonic.net",
+      "error": "<urlopen error timed out>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Timpano Audio",
+      "domain": "timpano.audio",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Timpano Audio",
+      "confidence": 0.35,
+      "domain": "timpano.co.uk",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain"
+      ],
+      "status": "ambiguous",
+      "title": "",
+      "url": "https://timpano.co.uk/"
+    },
+    {
+      "brand": "Timpano Audio",
+      "confidence": 0.35,
+      "domain": "timpano.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain"
+      ],
+      "status": "ambiguous",
+      "title": "",
+      "url": "https://timpano.com/"
+    },
+    {
+      "brand": "Timpano Audio",
+      "domain": "timpano.com.br",
+      "error": "HTTP Error 500: Internal Server Error",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Timpano Audio",
+      "domain": "timpano.de",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'timpano.de'. (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Timpano Audio",
+      "domain": "timpano.fr",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Timpano Audio",
+      "domain": "timpano.it",
+      "error": "<urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: Hostname mismatch, certificate is not valid for 'timpano.it'. (_ssl.c:1081)>",
+      "status": "unreachable"
+    },
+    {
+      "brand": "Timpano Audio",
+      "domain": "timpano.net",
+      "error": "<urlopen error [Errno 8] nodename nor servname provided, or not known>",
+      "status": "unreachable"
+    }
+  ],
+  "catalog_write": false,
+  "discoveries": [
+    {
+      "brand": "Great Plains Audio",
+      "confidence": 1.0,
+      "domain": "greatplainsacoustics.com",
+      "evidence": [
+        "catalog provenance",
+        "brand tokens match final domain",
+        "brand appears in page title",
+        "loudspeaker vocabulary verified in provenance page"
+      ],
+      "status": "verified",
+      "title": "Great Plain Acoustics drivers and speakers where Altec Legend Lives on – Great Plains Acoustics",
+      "url": "https://greatplainsacoustics.com/"
+    },
+    {
+      "brand": "Jensen",
+      "confidence": 1.0,
+      "domain": "jensentone.com",
+      "evidence": [
+        "catalog provenance",
+        "brand tokens match final domain",
+        "brand appears in page title",
+        "loudspeaker vocabulary verified in provenance page"
+      ],
+      "status": "verified",
+      "title": "Home | Jensen Loudspeakers",
+      "url": "https://www.jensentone.com/"
+    },
+    {
+      "brand": "Peavey",
+      "confidence": 0.72,
+      "domain": "peavey.com",
+      "evidence": [
+        "generated brand domain",
+        "brand tokens match final domain",
+        "brand appears in page title",
+        "loudspeaker vocabulary verified in page title"
+      ],
+      "status": "verified",
+      "title": "Peavey Official Store | Guitars, Amps & Pro Audio Gear",
+      "url": "https://peavey.com/"
+    }
+  ],
+  "generated_at": "2026-08-24T10:58:55.830297+00:00",
+  "publication_state": "staging_only",
+  "schema_version": 1,
+  "summary": {
+    "brands_considered": 26,
+    "domain_probes": 208,
+    "still_unresolved": 23,
+    "verified": 3
+  }
+}

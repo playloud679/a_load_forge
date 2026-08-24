@@ -88,6 +88,21 @@ Preview a plan without network access:
   --catalog data/manufacturer_drivers.json
 ```
 
+Load Forge does not require operators to maintain a brand-by-brand manifest by
+hand. `tools/build_official_source_registry.py` inventories every brand and its
+catalog provenance, excludes retailers/aggregators, collapses aliases and
+writes the real `services/crawler_agent/manifest.loadforge.json`. Unresolved
+brands remain visible in `data/official_source_registry.json` and are processed
+by `tools/discover_official_manufacturer_sites.py`; they are never silently
+dropped from coverage reporting.
+
+The registry builder also consumes
+`services/crawler_agent/official_source_seeds.json`. It contains reviewed
+manufacturer category/archive entry points and explicit legacy-brand aliases
+that automatic spelling/domain inference cannot establish safely. These seeds
+only choose bounded crawl targets: extracted candidates still go to staging
+and the proprietary catalog remains unchanged.
+
 Execute into an isolated writable staging directory:
 
 ```bash
@@ -98,7 +113,10 @@ Execute into an isolated writable staging directory:
 ```
 
 Each run creates `plan.json`, per-target logs/checkpoint/candidate catalog and
-`run_report.json` with `publication_state=staging_only`.
+`run_report.json` with `publication_state=staging_only`. Target results report
+real `visited`, `extracted` and failure counts. A zero-page run is `no_pages`,
+a crawl with only partial observations is `observed_only`, and only a crawl
+with complete extracted candidates is `succeeded`.
 
 ## Cloud Run Job
 

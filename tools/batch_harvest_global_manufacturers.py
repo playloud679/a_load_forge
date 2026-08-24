@@ -29,6 +29,7 @@ import presets
 
 CATALOG_PROP = ROOT / "data" / "catalog_proprietario.json"
 DRIVER_PRICES = ROOT / "data" / "driver_prices.json"
+REPORT_PATH = ROOT / "data" / "global_batch_harvest_report.json"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
 
 
@@ -291,15 +292,18 @@ def main():
     ]
     
     all_discovered = []
+    source_counts = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
         future_to_src = {executor.submit(fn): name for name, fn in tasks}
         for future in concurrent.futures.as_completed(future_to_src):
             src_name = future_to_src[future]
             try:
                 found = future.result()
+                source_counts[src_name] = len(found)
                 print(f"[{src_name}] Harvested {len(found)} validated drivers")
                 all_discovered.extend(found)
             except Exception as e:
+                source_counts[src_name] = {"error": str(e)}
                 print(f"[{src_name}] Error: {e}")
                 
     added = 0
@@ -321,9 +325,23 @@ def main():
             cache_path.unlink()
             
     t1 = time.perf_counter()
+    report = {
+        "schema": 1,
+        "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t0 and time.time() - (t1 - t0))),
+        "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "catalog": str(CATALOG_PROP),
+        "initial_records": initial_count,
+        "sources": source_counts,
+        "validated_candidates": len(all_discovered),
+        "added_records": added,
+        "final_records": len(existing_items),
+        "note": "No record is added when its normalized identity is already present.",
+    }
+    REPORT_PATH.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"\n=== BATCH HARVEST COMPLETE in {t1-t0:.2f}s ===")
     print(f"Added {added} genuinely new drivers to {CATALOG_PROP.name}")
     print(f"New total Load Forge DB size: {len(existing_items)} presets")
+    print(f"Report written to {REPORT_PATH}")
 
 
 if __name__ == "__main__":

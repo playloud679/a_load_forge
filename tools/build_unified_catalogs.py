@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+PROPRIETARY_CATALOG_VERSION = "1.0.0"
 sys.path.insert(0, str(ROOT / "src"))
 import pricing  # noqa: E402
 
@@ -100,7 +101,15 @@ def main() -> None:
             item = _preserve_manual_values(item, manual_rows.get(str(row.get("name") or "")))
             unified.append(item)
         temporary = target.with_suffix(target.suffix + ".tmp")
-        temporary.write_text(json.dumps({"source_file": source, "presets": unified}, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        payload = {"source_file": source, "presets": unified}
+        if output == "catalog_proprietario.json":
+            payload["catalog_version"] = PROPRIETARY_CATALOG_VERSION
+            payload = {
+                "catalog_version": payload["catalog_version"],
+                "source_file": payload["source_file"],
+                "presets": payload["presets"],
+            }
+        temporary.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         temporary.replace(target)
         print(f"{target.name}: {len(unified)} records")
 

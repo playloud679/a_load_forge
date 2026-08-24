@@ -4650,6 +4650,7 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
     assert np.isclose(crawler.convert_measurement("sd_cm2", "5.02", "K mm/2"), 50.2)
     assert np.isclose(crawler.convert_measurement("sd_cm2", "5.02", "K/mm/2"), 50.2)
     assert np.isclose(crawler.convert_measurement("sd_cm2", "0.0111", "m ²"), 111.0)
+    assert np.isclose(crawler.convert_measurement("sd_cm2", "82.51", "square inches"), 532.322116)
     assert np.isclose(crawler.convert_measurement("fs_hz", "1.7", "K Hz"), 1700.0)
     assert crawler.canonical_parameter("Fo") == "fs_hz"
     assert crawler.canonical_parameter("F0") == "fs_hz"
@@ -5111,6 +5112,21 @@ Equivalent Cas air load                Vas                m3         0.0700""",
         titled_page, "https://www.markaudio.com/product", "Markaudio"
     )
     assert brand == "Markaudio" and model == "Alpair 6.2"
+    stereo_page = crawler.PageData(
+        title="M3 Carbon Midrange – StereoIntegrity.com",
+        h1="M3 Carbon Midrange",
+        text=("Fs 92.86 Hz Vas 0.91 Liters Qts 0.53 Qms 3.89 "
+              "Re 3.47 Ohms Sd 5.11 square inches"),
+        jsonld=[{"@type": "Product", "name": "M3 Carbon Midrange", "sku": "285"}],
+    )
+    stereo_preset, errors = crawler.build_preset(
+        stereo_page,
+        "https://stereointegrity.com/product/m3-carbon-midrange/",
+        brand_hint="Stereo Integrity",
+    )
+    assert not errors and stereo_preset is not None, errors
+    assert stereo_preset["model"] == "M3 Carbon Midrange"
+    assert np.isclose(stereo_preset["driver"]["sd_cm2"], 5.11 * 6.4516)
     assert crawler.is_standalone_lf_driver_model("Alpair 6.2")
     assert not crawler.is_standalone_lf_driver_model("Tozzi One Kit")
     assert not crawler.is_standalone_lf_driver_model("TW 6 Metal Dome Tweeter")
@@ -5123,6 +5139,11 @@ Equivalent Cas air load                Vas                m3         0.0700""",
         crawler.Measurement("sd_cm2", 50.2, "50.2", "cm2", "SD", "html.text"),
     ])
     assert measurements["sd_cm2"].value == 50.2
+    explicit_measurement = crawler.choose_measurements([
+        crawler.Measurement("fs_hz", 2.0, "2", "", "Fs", "html.table"),
+        crawler.Measurement("fs_hz", 19.1, "19.1", "Hz", "Fs", "html.text"),
+    ])
+    assert explicit_measurement["fs_hz"].value == 19.1
 
     urlset = b"""<?xml version="1.0"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

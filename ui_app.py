@@ -87,11 +87,116 @@ except OSError:
     _VERSION = "dev"
 _BRAND_IMAGE = Path(__file__).parent / "assets" / "load_forge_header.png"
 _BRAND_APP_IMAGE = Path(__file__).parent / "assets" / "load_forge_header_app.png"
+_CATALOG_CRAWL_REPORT = (
+    Path(__file__).parent / "data" / "autonomous_crawler_latest_report.json"
+)
+_CATALOG_CRAWL_PROGRESS = (
+    Path(__file__).parent / "data" / "autonomous_crawler_progress.json"
+)
+_RETAILER_CRAWL_REPORT = (
+    Path(__file__).parent / "data" / "retailer_discovery_latest_report.json"
+)
+_CATALOG_ADDITIONS_REPORT = (
+    Path(__file__).parent / "data" / "catalog_additions_latest_report.json"
+)
 _LOAD_IMAGE_DIR = Path(__file__).parent / "assets" / "load_types"
 _WORKSPACE_TAB_IMAGES = {
     "Bass Match": Path(__file__).parent / "assets" / "bass_match_tab.png",
     "Box Design": Path(__file__).parent / "assets" / "box_design_tab.png",
 }
+
+
+def _read_json_object(path: Path) -> dict:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _render_catalog_crawl_report() -> None:
+    """Show staging progress/report without coupling the app to the daemon."""
+    report = _read_json_object(_CATALOG_CRAWL_REPORT)
+    progress = _read_json_object(_CATALOG_CRAWL_PROGRESS)
+    retailer_report = _read_json_object(_RETAILER_CRAWL_REPORT)
+    additions_report = _read_json_object(_CATALOG_ADDITIONS_REPORT)
+    if not report and not progress and not retailer_report and not additions_report:
+        return
+    phase = str(progress.get("phase") or "").replace("_", " ")
+    active = phase not in {"", "complete", "sleeping", "failed"}
+    label = f"Catalog crawl · {phase}" if active else "Catalog crawl · latest report"
+    with st.expander(label, expanded=active):
+        if progress:
+            st.caption(
+                f"Status: {phase or 'unknown'} · updated "
+                f"{str(progress.get('updated_at') or 'n/a')[:19]}"
+            )
+            if active:
+                progress_bits = []
+                for key, title in (
+                    ("brands", "brands"),
+                    ("covered", "covered"),
+                    ("unresolved", "unresolved"),
+                    ("verified", "verified"),
+                    ("targets_complete", "targets complete"),
+                    ("targets_total", "targets total"),
+                ):
+                    if key in progress:
+                        progress_bits.append(f"{title}: {progress[key]}")
+                if progress_bits:
+                    st.write(" · ".join(progress_bits))
+        summary = report.get("registry_summary") or {}
+        if summary:
+            c1, c2 = st.columns(2)
+            c1.metric(
+                "Official coverage",
+                f"{int(summary.get('covered_brand_labels', 0)):,} / "
+                f"{int(summary.get('catalog_brands', 0)):,}",
+            )
+            c2.metric(
+                "Official targets",
+                f"{int(summary.get('ready_official_targets', 0)):,}",
+            )
+            st.caption(
+                f"Aliases {int(summary.get('brand_aliases', 0)):,} · "
+                f"needs discovery {int(summary.get('needs_discovery', 0)):,} · "
+                f"brand cleanup {int(summary.get('needs_brand_cleanup', 0)):,}"
+            )
+        if report:
+            state = str(report.get("publication_state") or "unknown")
+            unchanged = bool(report.get("catalog_unchanged"))
+            st.caption(
+                f"Publication: {state}. Existing catalog "
+                f"{'unchanged' if unchanged else 'changed unexpectedly'}."
+            )
+        if additions_report:
+            st.divider()
+            st.markdown("**Reviewed catalog additions**")
+            added = int(additions_report.get("added", 0))
+            latest_batch = int(additions_report.get("latest_batch_added", added))
+            final_records = int(additions_report.get("final_records", 0))
+            app_visible = int(additions_report.get("app_visible_records", 0))
+            st.caption(
+                f"{added:,} new validated drivers published append-only "
+                f"(+{latest_batch:,} latest batch) · "
+                f"catalog {final_records:,} · app-visible {app_visible:,}."
+            )
+            added_names = [
+                str(name) for name in additions_report.get("added_names", [])
+                if str(name).strip()
+            ]
+            if added_names:
+                st.caption(" · ".join(added_names))
+        retailer_summary = retailer_report.get("summary") or {}
+        if retailer_summary:
+            st.divider()
+            st.markdown(f"**Retail gaps · {retailer_report.get('source', 'source')}**")
+            st.caption(
+                f"{int(retailer_summary.get('observations', 0)):,} products · "
+                f"{int(retailer_summary.get('exact_catalog_matches', 0)):,} exact matches · "
+                f"{int(retailer_summary.get('potential_catalog_gaps', 0)):,} potential gaps · "
+                f"{int(retailer_summary.get('pages_failed', 0)):,} failed pages"
+            )
 
 
 st.set_page_config(
@@ -10044,6 +10149,8 @@ with st.sidebar:
 
                 if load_type != "Infinite baffle" and box_edit_disabled:
                     st.caption("Switch Box strategy to Manual to edit volumes and tuning directly.")
+
+    _render_catalog_crawl_report()
 
 
 _maintenance_requested = str(st.query_params.get("maintenance", "")) == "1"

@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "policy": {
+    "catalog_write": false,
+    "purpose": "Reviewed first-party entry points supplementing automatic discovery"
+  },
+  "verified_sources": [
+    {
+      "brand": "Adire Audio",
+      "url": "https://adireaudio.com/subwoofers/",
+      "evidence": "reviewed official Adire subwoofer range"
+    },
+    {
+      "brand": "Altec Lansing",
+      "url": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/",
+      "evidence": "reviewed Great Plains Acoustics official Altec heritage archive"
+    },
+    {
+      "brand": "Aurum Cantus",
+      "url": "https://www.aurumcantus.com/",
+      "evidence": "reviewed official Aurum Cantus manufacturer site"
+    },
+    {
+      "brand": "DAS",
+      "url": "https://www.dasaudio.com/en/home/",
+      "evidence": "reviewed official DAS Audio product site"
+    },
+    {
+      "brand": "DC Audio",
+      "url": "https://www.dcsoundlab.com/level-4-1",
+      "evidence": "reviewed official DC Audio subwoofer page with published T/S tables"
+    },
+    {
+      "brand": "Goldwood",
+      "url": "https://www.goldwood.com/goldwood/",
+      "evidence": "reviewed official Goldwood raw-woofer range"
+    },
+    {
+      "brand": "Goodmans",
+      "url": "https://www.goodmans.co.uk/vintage/",
+      "evidence": "reviewed official Goodmans vintage driver archive"
+    },
+    {
+      "brand": "GRS",
+      "url": "https://grs-speakers.com/",
+      "evidence": "reviewed official Great Replacement Speakers brand site"
+    },
+    {
+      "brand": "GS Audio",
+      "url": "https://www.gsaudio.it/it/subwoofer.html",
+      "evidence": "reviewed official GS Audio subwoofer range"
+    },
+    {
+      "brand": "Helix",
+      "url": "https://www.audiotec-fischer.de/en/helix/subwoofers/",
+      "evidence": "reviewed official Audiotec Fischer HELIX subwoofer range"
+    },
+    {
+      "brand": "HiVi",
+      "url": "https://www.swanspeakers.com/commercial/product/",
+      "evidence": "reviewed official Swan/HiVi component-driver range"
+    },
+    {
+      "brand": "Monacor",
+      "url": "https://www.monacor.com/speaker-chassis",
+      "evidence": "reviewed official MONACOR speaker-chassis range"
+    },
+    {
+      "brand": "Pyle Audio",
+      "url": "https://www.pyleaudio.com/ProductsList.aspx?Value=speakers",
+      "evidence": "reviewed official Pyle speaker product range"
+    },
+    {
+      "brand": "RAAL",
+      "url": "https://www.raalribbon.com/",
+      "evidence": "reviewed official RAAL ribbon-driver site"
+    },
+    {
+      "brand": "Reiss audio",
+      "url": "https://www.reissaudio.com.tr/",
+      "evidence": "reviewed official Reiss Audio manufacturer site"
+    },
+    {
+      "brand": "Soundmax",
+      "url": "https://harward.com.tr/product/2822/sx-fx12",
+      "evidence": "reviewed Reis Elektronik Soundmax product source"
+    },
+    {
+      "brand": "Sundown Audio",
+      "url": "https://sundownaudio.com/pages/sundown-audio-subwoofers",
+      "evidence": "reviewed official Sundown Audio subwoofer range"
+    },
+    {
+      "brand": "Sure Electronics",
+      "url": "https://store.sure-electronics.com/",
+      "evidence": "reviewed official Sure Electronics/Wondom store and datasheet source"
+    },
+    {
+      "brand": "Tectonic",
+      "url": "https://www.tectonicaudiolabs.com/",
+      "evidence": "reviewed official Tectonic Audio Labs manufacturer site"
+    },
+    {
+      "brand": "Timpano Audio",
+      "url": "https://timpanoaudio.com/",
+      "evidence": "reviewed official Timpano Audio manufacturer site"
+    }
+  ],
+  "aliases": [
+    {
+      "brand": "JBL Selenium",
+      "canonical_brand": "JBL Pro",
+      "evidence": "Selenium product line is maintained by JBL Professional"
+    },
+    {
+      "brand": "Selenium",
+      "canonical_brand": "JBL Pro",
+      "evidence": "legacy Selenium label is covered by JBL Professional"
+    }
+  ]
+}

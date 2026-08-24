@@ -1,490 +1,269 @@
 #!/usr/bin/env python3
-"""Autonomous Continuous Crawler Daemon for Load Forge DB (High-Yield Multi-Store & Self-Expanding Harvester).
+"""Manufacturer-first catalog crawler daemon with staging-only publication.
 
-Continuously scans official manufacturer feeds (Shopify feeds + XML sitemaps)
-across Deaf Bonce / Alphard Audio, Sundown Audio, Gately Audio, Massive Audio,
-CT Sounds, DS18, NVX, Rockville, Sound Auto Concept, Droppin HZ, and Audiopipe.
-
-AND dynamically executes continuous worldwide brand sweeps across Wavecor, Peerless,
-Scan-Speak, SEAS, Satori, Purifi, AudioTechnology, Accuton, RCF, BMS, Oberton,
-Precision Devices, Eros, Triton, 7Driver, DD Audio, Ground Zero, Gladen, Hertz, JL Audio.
-
-Extracts, validates, and appends certified T/S parameters directly into catalog_proprietario.json.
+Each cycle inventories every catalog brand, verifies unresolved official sites,
+builds a bounded crawler-agent plan, and writes candidate artifacts under
+``io/crawler_agent_runs``. It never edits the proprietary catalog and never
+invokes git.
 """
+
 from __future__ import annotations
 
-import datetime as dt
+import argparse
 import json
-import os
-import re
-import socket
-import subprocess
 import sys
+import threading
 import time
-import urllib.parse
-import urllib.request
-from bs4 import BeautifulSoup
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "tools"))
 
-import presets
+import build_official_source_registry as registry_builder
+import discover_official_manufacturer_sites as site_discovery
+from services.crawler_agent.agent import run_plan
+from services.crawler_agent.model import AgentManifest, build_plan
 
-CATALOG_PROP = ROOT / "data" / "catalog_proprietario.json"
+CATALOG = ROOT / "data" / "catalog_proprietario.json"
+REGISTRY = ROOT / "data" / "official_source_registry.json"
+DISCOVERY_CACHE = ROOT / "data" / "official_source_discovery_cache.json"
+MANIFEST = ROOT / "services" / "crawler_agent" / "manifest.loadforge.json"
+REPORT = ROOT / "data" / "autonomous_crawler_latest_report.json"
+PROGRESS_REPORT = ROOT / "data" / "autonomous_crawler_progress.json"
+RUN_ROOT = ROOT / "io" / "crawler_agent_runs"
 LOG_FILE = ROOT / "data" / "crawler_daemon.log"
-UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
-
-socket.setdefaulttimeout(8.0)
 
 
-def log(msg: str) -> None:
-    now = dt.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    line = f"[{now}] {msg}\n"
-    print(line, end="")
+def utc_now() -> str:
+    return datetime.now(UTC).isoformat()
+
+
+def write_json(path: Path, payload: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    temporary.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temporary.replace(path)
+
+
+def log(message: str) -> None:
+    line = f"[{datetime.now().astimezone().isoformat(timespec='seconds')}] {message}"
+    print(line, flush=True)
     try:
-        with open(LOG_FILE, "a", encoding="utf-8") as f:
-            f.write(line)
-    except Exception:
+        LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with LOG_FILE.open("a", encoding="utf-8") as handle:
+            handle.write(line + "\n")
+    except OSError:
         pass
 
 
-def normalize(text: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "", str(text).lower())
+class Progress:
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self._state: dict[str, Any] = {"phase": "starting"}
+        self._stop = threading.Event()
+
+    def update(self, **values: Any) -> None:
+        with self._lock:
+            self._state.update(values)
+            self._state["updated_at"] = utc_now()
+            write_json(PROGRESS_REPORT, self._state)
+
+    def snapshot(self) -> dict[str, Any]:
+        with self._lock:
+            return dict(self._state)
+
+    def heartbeat(self, every_seconds: float) -> None:
+        while not self._stop.wait(every_seconds):
+            state = self.snapshot()
+            write_json(PROGRESS_REPORT, state)
+            details = " ".join(f"{key}={value}" for key, value in state.items() if key != "updated_at")
+            log(f"PROGRESS {details}")
+
+    def stop(self) -> None:
+        self._stop.set()
 
 
-def infer_sd(title: str) -> float:
-    t = str(title).lower()
-    if any(k in t for k in ["24\"", "24-inch", "24 inch", "60cm"]):
-        return 2200.0
-    if any(k in t for k in ["21\"", "21-inch", "21 inch", "53cm"]):
-        return 1680.0
-    if any(k in t for k in ["18\"", "18-inch", "18 inch", "46cm", "46 cm", "18p"]):
-        return 1210.0
-    if any(k in t for k in ["15\"", "15-inch", "15 inch", "38cm", "38 cm", "15p"]):
-        return 855.0
-    if any(k in t for k in ["13.5\"", "13.5-inch"]):
-        return 700.0
-    if any(k in t for k in ["12\"", "12-inch", "12 inch", "30cm", "30 cm", "12p"]):
-        return 530.0
-    if any(k in t for k in ["10\"", "10-inch", "10 inch", "25cm", "25 cm", "10p"]):
-        return 350.0
-    if any(k in t for k in ["8\"", "8-inch", "8 inch", "20cm", "20 cm", "8p"]):
-        return 220.0
-    if any(k in t for k in ["6.5\"", "6.5-inch", "6.5 inch", "16.5cm", "165", "6-inch"]):
-        return 132.0
-    if any(k in t for k in ["5.25\"", "5.25-inch", "5-inch", "13cm"]):
-        return 90.0
-    if any(k in t for k in ["4\"", "4-inch", "10cm"]):
-        return 50.0
-    return 530.0
+def load_json(path: Path, fallback: dict[str, Any]) -> dict[str, Any]:
+    if not path.exists():
+        return fallback
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return payload if isinstance(payload, dict) else fallback
 
 
-def fetch_url(url: str, timeout: float = 8.0) -> str | None:
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "text/html,application/json,application/xml,*/*"})
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return resp.read().decode("utf-8", errors="ignore")
-    except Exception:
-        return None
+def build_sources(catalog: dict[str, Any], *, max_targets: int) -> tuple[dict[str, Any], dict[str, Any]]:
+    discoveries = load_json(DISCOVERY_CACHE, {"discoveries": []})
+    registry = registry_builder.build_registry(catalog, discoveries)
+    manifest = registry_builder.build_manifest(registry, max_targets=max_targets)
+    registry_builder.write_json(REGISTRY, registry)
+    registry_builder.write_json(MANIFEST, manifest)
+    return registry, manifest
 
 
-def parse_ts_from_text(text: str, vendor: str, title: str, url: str, currency: str = "USD", price: float | None = None) -> dict | None:
-    clean = re.sub(r"<[^>]+>", " ", text)
-    clean = clean.replace("&nbsp;", " ").replace("&times;", "x")
-    
-    fs_m = re.search(r"(?:fs|resonant frequency|resonance)[:\s=]+([\d\.]+)\s*(?:hz)?", clean, re.IGNORECASE)
-    qts_m = re.search(r"(?:qts|total q)[:\s=]+([\d\.]+)", clean, re.IGNORECASE)
-    qes_m = re.search(r"(?:qes|electrical q)[:\s=]+([\d\.]+)", clean, re.IGNORECASE)
-    qms_m = re.search(r"(?:qms|mechanical q)[:\s=]+([\d\.]+)", clean, re.IGNORECASE)
-    vas_m = re.search(r"(?:vas|equivalent volume)[:\s=]+([\d\.]+)\s*(?:l|liters|litres|cu\.?\s*ft|ft3)?", clean, re.IGNORECASE)
-    re_m = re.search(r"(?:re|dc resistance)[:\s=]+([\d\.]+)\s*(?:ohms?|Ω)?", clean, re.IGNORECASE)
-    xmax_m = re.search(r"(?:xmax|linear excursion|x-max)[:\s=]+([\d\.]+)\s*(?:mm)?", clean, re.IGNORECASE)
-    pe_m = re.search(r"(?:rms|power handling|rated power|pe)[:\s=]+(\d+)\s*(?:w|watts)?", clean, re.IGNORECASE)
-    
-    if not (fs_m and qts_m):
-        return None
-        
-    try:
-        fs = float(fs_m.group(1))
-        qts = float(qts_m.group(1))
-        if not (10.0 <= fs <= 180.0 and 0.1 <= qts <= 2.5):
-            return None
-            
-        qes = float(qes_m.group(1)) if qes_m else None
-        qms = float(qms_m.group(1)) if qms_m else 5.0
-        
-        vas = float(vas_m.group(1)) if vas_m else 45.0
-        if "cu" in str(vas_m.group(0)).lower() or "ft" in str(vas_m.group(0)).lower():
-            vas *= 28.3168
-            
-        re_val = float(re_m.group(1)) if re_m else 3.6
-        xmax = float(xmax_m.group(1)) if xmax_m else 12.0
-        pe = float(pe_m.group(1)) if pe_m else 500.0
-        sd = infer_sd(title)
-        
-        driver_entry = {
-            "fs_hz": round(fs, 2),
-            "vas_l": round(vas, 2),
-            "qts": round(qts, 3),
-            "qms": round(qms, 2),
-            "re_ohm": round(re_val, 2),
-            "sd_cm2": round(sd, 1),
-            "xmax_mm": round(xmax, 2),
-            "pe_w": round(pe, 1),
-            "le_mh": 1.20
-        }
-        
-        name = f"WEB: {vendor} {title}".strip()
-        model_name = title.replace(vendor, "").strip()
-        
-        return {
-            "name": name,
-            "brand": vendor,
-            "model": model_name,
-            "category": "Subwoofer" if any(w in title.lower() for w in ["sub", "bass", "12", "15", "18", "21", "24"]) else "Woofer",
-            "fs_hz": driver_entry["fs_hz"],
-            "qts": driver_entry["qts"],
-            "qes": round(qes, 3) if qes else round(qts * 1.1, 3),
-            "qms": driver_entry["qms"],
-            "vas_l": driver_entry["vas_l"],
-            "re_ohm": driver_entry["re_ohm"],
-            "sd_cm2": driver_entry["sd_cm2"],
-            "xmax_mm": driver_entry["xmax_mm"],
-            "pe_w": driver_entry["pe_w"],
-            "price": price,
-            "currency": currency,
-            "url": url,
-            "driver": driver_entry
-        }
-    except Exception:
-        return None
+def run_cycle(args: argparse.Namespace, progress: Progress) -> dict[str, Any]:
+    started_at = utc_now()
+    started_clock = time.monotonic()
+    catalog_digest_before = CATALOG.read_bytes()
+    catalog = json.loads(catalog_digest_before.decode("utf-8"))
 
+    progress.update(phase="source_registry", brands="loading")
+    registry, manifest_payload = build_sources(catalog, max_targets=args.max_targets)
+    summary = registry["summary"]
+    progress.update(
+        phase="source_registry",
+        brands=summary["catalog_brands"],
+        covered=summary["covered_brand_labels"],
+        unresolved=summary["needs_discovery"],
+    )
+    log(
+        "REGISTRY "
+        f"brands={summary['catalog_brands']} covered={summary['covered_brand_labels']} "
+        f"official_targets={summary['ready_official_targets']} "
+        f"unresolved={summary['needs_discovery']} cleanup={summary['needs_brand_cleanup']}"
+    )
 
-def crawl_shopify_store(store_url: str, default_brand: str, currency: str = "USD", max_pages: int = 4) -> list[dict]:
-    found = []
-    for page in range(1, max_pages + 1):
-        ep = f"{store_url}/products.json?limit=250&page={page}"
-        html = fetch_url(ep, timeout=8.0)
-        if not html:
-            break
-        try:
-            data = json.loads(html)
-            prods = data.get("products", [])
-            if not prods:
-                break
-            for p in prods:
-                title = p.get("title", "")
-                vendor = p.get("vendor") or default_brand
-                body = str(p.get("body_html") or "")
-                variants = p.get("variants", [])
-                price = float(variants[0]["price"]) if variants and variants[0].get("price") else None
-                handle = p.get("handle", "")
-                p_url = f"{store_url}/products/{handle}"
-                
-                item = parse_ts_from_text(body, vendor, title, p_url, currency, price)
-                if item:
-                    found.append(item)
-        except Exception:
-            break
-    return found
+    discovery_report: dict[str, Any] | None = None
+    if not args.skip_discovery and summary["needs_discovery"]:
+        progress.update(
+            phase="official_site_discovery",
+            brands=summary["needs_discovery"],
+            verified=0,
+        )
+        discovery_report = site_discovery.discover(
+            registry,
+            workers=args.discovery_workers,
+            timeout=args.discovery_timeout,
+            candidates_per_brand=args.discovery_candidates,
+        )
+        site_discovery.write_json(DISCOVERY_CACHE, discovery_report)
+        registry, manifest_payload = build_sources(catalog, max_targets=args.max_targets)
+        summary = registry["summary"]
+        progress.update(
+            phase="official_site_discovery",
+            brands=discovery_report["summary"]["brands_considered"],
+            verified=discovery_report["summary"]["verified"],
+            unresolved=summary["needs_discovery"],
+        )
+        log(
+            "DISCOVERY "
+            f"verified={discovery_report['summary']['verified']} "
+            f"remaining={summary['needs_discovery']}"
+        )
 
+    manifest = AgentManifest.from_mapping(manifest_payload)
+    plan = build_plan(manifest, catalog)
+    progress.update(
+        phase="official_crawl",
+        targets_complete=0,
+        targets_total=len(plan.selected),
+        publication="staging_only",
+    )
+    crawl_report_path: Path | None = None
+    crawl_report: dict[str, Any] | None = None
+    if plan.selected and not args.registry_only:
+        run_id = datetime.now(UTC).strftime("crawl-%Y%m%dT%H%M%SZ")
+        crawl_report_path = run_plan(
+            plan,
+            manifest,
+            RUN_ROOT,
+            run_id=run_id,
+            target_timeout_seconds=args.target_timeout,
+        )
+        crawl_report = json.loads(crawl_report_path.read_text(encoding="utf-8"))
+        completed = sum(
+            result["status"] in {"succeeded", "observed_only", "no_pages"}
+            for result in crawl_report["results"]
+        )
+        progress.update(
+            phase="official_crawl",
+            targets_complete=completed,
+            targets_total=len(plan.selected),
+            publication="staging_only",
+        )
 
-WORLDWIDE_REFERENCE_BATCHES = [
-    # Audiofrog (USA)
-    {
-        "name": "WEB: Audiofrog GB12D4 12 Inch Audiophile Subwoofer",
-        "brand": "Audiofrog", "model": "GB12D4", "category": "Subwoofer",
-        "fs_hz": 26.0, "qts": 0.42, "qes": 0.46, "qms": 5.8, "vas_l": 65.0,
-        "re_ohm": 3.6, "sd_cm2": 530.0, "xmax_mm": 19.0, "pe_w": 500.0,
-        "price": 899.0, "currency": "USD", "url": "https://audiofrog.com",
-        "driver": {"fs_hz": 26.0, "vas_l": 65.0, "qts": 0.42, "qms": 5.8, "re_ohm": 3.6, "sd_cm2": 530.0, "xmax_mm": 19.0, "pe_w": 500.0, "le_mh": 1.45}
-    },
-    {
-        "name": "WEB: Audiofrog GB10D4 10 Inch Audiophile Subwoofer",
-        "brand": "Audiofrog", "model": "GB10D4", "category": "Subwoofer",
-        "fs_hz": 29.0, "qts": 0.44, "qes": 0.48, "qms": 5.5, "vas_l": 28.0,
-        "re_ohm": 3.6, "sd_cm2": 350.0, "xmax_mm": 16.0, "pe_w": 400.0,
-        "price": 749.0, "currency": "USD", "url": "https://audiofrog.com",
-        "driver": {"fs_hz": 29.0, "vas_l": 28.0, "qts": 0.44, "qms": 5.5, "re_ohm": 3.6, "sd_cm2": 350.0, "xmax_mm": 16.0, "pe_w": 400.0, "le_mh": 1.25}
-    },
-    {
-        "name": "WEB: Audiofrog GS12D4 12 Inch Subwoofer",
-        "brand": "Audiofrog", "model": "GS12D4", "category": "Subwoofer",
-        "fs_hz": 28.0, "qts": 0.48, "qes": 0.52, "qms": 5.2, "vas_l": 55.0,
-        "re_ohm": 3.6, "sd_cm2": 530.0, "xmax_mm": 14.0, "pe_w": 350.0,
-        "price": 399.0, "currency": "USD", "url": "https://audiofrog.com",
-        "driver": {"fs_hz": 28.0, "vas_l": 55.0, "qts": 0.48, "qms": 5.2, "re_ohm": 3.6, "sd_cm2": 530.0, "xmax_mm": 14.0, "pe_w": 350.0, "le_mh": 1.15}
-    },
-    {
-        "name": "WEB: Audiofrog GS10D4 10 Inch Subwoofer",
-        "brand": "Audiofrog", "model": "GS10D4", "category": "Subwoofer",
-        "fs_hz": 32.0, "qts": 0.50, "qes": 0.55, "qms": 5.0, "vas_l": 24.0,
-        "re_ohm": 3.6, "sd_cm2": 350.0, "xmax_mm": 13.0, "pe_w": 300.0,
-        "price": 349.0, "currency": "USD", "url": "https://audiofrog.com",
-        "driver": {"fs_hz": 32.0, "vas_l": 24.0, "qts": 0.50, "qms": 5.0, "re_ohm": 3.6, "sd_cm2": 350.0, "xmax_mm": 13.0, "pe_w": 300.0, "le_mh": 1.05}
-    },
-    # Morel Car Audio (Israel / UK)
-    {
-        "name": "WEB: Morel Ultimo Ti 124 12 Inch Titanium 1000W Subwoofer",
-        "brand": "Morel", "model": "Ultimo Ti 124", "category": "Subwoofer",
-        "fs_hz": 26.0, "qts": 0.38, "qes": 0.41, "qms": 5.6, "vas_l": 75.0,
-        "re_ohm": 3.4, "sd_cm2": 530.0, "xmax_mm": 12.5, "pe_w": 1000.0,
-        "price": 1499.0, "currency": "USD", "url": "https://www.morelhifi.com",
-        "driver": {"fs_hz": 26.0, "vas_l": 75.0, "qts": 0.38, "qms": 5.6, "re_ohm": 3.4, "sd_cm2": 530.0, "xmax_mm": 12.5, "pe_w": 1000.0, "le_mh": 1.45}
-    },
-    {
-        "name": "WEB: Morel Ultimo Ti 104 10 Inch Titanium 1000W Subwoofer",
-        "brand": "Morel", "model": "Ultimo Ti 104", "category": "Subwoofer",
-        "fs_hz": 29.0, "qts": 0.40, "qes": 0.43, "qms": 5.4, "vas_l": 34.0,
-        "re_ohm": 3.4, "sd_cm2": 350.0, "xmax_mm": 12.5, "pe_w": 1000.0,
-        "price": 1299.0, "currency": "USD", "url": "https://www.morelhifi.com",
-        "driver": {"fs_hz": 29.0, "vas_l": 34.0, "qts": 0.40, "qms": 5.4, "re_ohm": 3.4, "sd_cm2": 350.0, "xmax_mm": 12.5, "pe_w": 1000.0, "le_mh": 1.35}
-    },
-    {
-        "name": "WEB: Morel Primo 124 12 Inch 350W RMS Subwoofer",
-        "brand": "Morel", "model": "Primo 124", "category": "Subwoofer",
-        "fs_hz": 29.0, "qts": 0.49, "qes": 0.54, "qms": 5.2, "vas_l": 78.0,
-        "re_ohm": 3.4, "sd_cm2": 530.0, "xmax_mm": 10.0, "pe_w": 350.0,
-        "price": 369.0, "currency": "USD", "url": "https://www.morelhifi.com",
-        "driver": {"fs_hz": 29.0, "vas_l": 78.0, "qts": 0.49, "qms": 5.2, "re_ohm": 3.4, "sd_cm2": 530.0, "xmax_mm": 10.0, "pe_w": 350.0, "le_mh": 1.10}
-    },
-    {
-        "name": "WEB: Morel Primo 104 10 Inch 300W RMS Subwoofer",
-        "brand": "Morel", "model": "Primo 104", "category": "Subwoofer",
-        "fs_hz": 34.0, "qts": 0.52, "qes": 0.58, "qms": 5.0, "vas_l": 35.0,
-        "re_ohm": 3.4, "sd_cm2": 350.0, "xmax_mm": 9.5, "pe_w": 300.0,
-        "price": 319.0, "currency": "USD", "url": "https://www.morelhifi.com",
-        "driver": {"fs_hz": 34.0, "vas_l": 35.0, "qts": 0.52, "qms": 5.0, "re_ohm": 3.4, "sd_cm2": 350.0, "xmax_mm": 9.5, "pe_w": 300.0, "le_mh": 0.95}
-    },
-    # Visaton (Germany)
-    {
-        "name": "WEB: Visaton TIW 300 8 Ohm 12 Inch High-End Subwoofer",
-        "brand": "Visaton", "model": "TIW 300", "category": "Subwoofer",
-        "fs_hz": 25.0, "qts": 0.32, "qes": 0.34, "qms": 6.2, "vas_l": 190.0,
-        "re_ohm": 5.8, "sd_cm2": 490.0, "xmax_mm": 12.5, "pe_w": 300.0,
-        "price": 249.0, "currency": "EUR", "url": "https://www.visaton.de",
-        "driver": {"fs_hz": 25.0, "vas_l": 190.0, "qts": 0.32, "qms": 6.2, "re_ohm": 5.8, "sd_cm2": 490.0, "xmax_mm": 12.5, "pe_w": 300.0, "le_mh": 1.45}
-    },
-    {
-        "name": "WEB: Visaton TIW 200 XS 8 Ohm 8 Inch High-End Subwoofer",
-        "brand": "Visaton", "model": "TIW 200 XS", "category": "Subwoofer",
-        "fs_hz": 30.0, "qts": 0.33, "qes": 0.35, "qms": 5.8, "vas_l": 45.0,
-        "re_ohm": 5.8, "sd_cm2": 214.0, "xmax_mm": 11.0, "pe_w": 120.0,
-        "price": 149.0, "currency": "EUR", "url": "https://www.visaton.de",
-        "driver": {"fs_hz": 30.0, "vas_l": 45.0, "qts": 0.33, "qms": 5.8, "re_ohm": 5.8, "sd_cm2": 214.0, "xmax_mm": 11.0, "pe_w": 120.0, "le_mh": 1.15}
-    },
-    {
-        "name": "WEB: Visaton AL 200 8 Ohm 8 Inch Aluminium Woofer",
-        "brand": "Visaton", "model": "AL 200", "category": "Woofer",
-        "fs_hz": 33.0, "qts": 0.35, "qes": 0.38, "qms": 5.0, "vas_l": 69.0,
-        "re_ohm": 5.8, "sd_cm2": 214.0, "xmax_mm": 8.0, "pe_w": 100.0,
-        "price": 135.0, "currency": "EUR", "url": "https://www.visaton.de",
-        "driver": {"fs_hz": 33.0, "vas_l": 69.0, "qts": 0.35, "qms": 5.0, "re_ohm": 5.8, "sd_cm2": 214.0, "xmax_mm": 8.0, "pe_w": 100.0, "le_mh": 0.90}
-    },
-    {
-        "name": "WEB: Visaton AL 170 8 Ohm 6.5 Inch Aluminium Woofer",
-        "brand": "Visaton", "model": "AL 170", "category": "Woofer",
-        "fs_hz": 38.0, "qts": 0.38, "qes": 0.41, "qms": 4.8, "vas_l": 34.0,
-        "re_ohm": 5.8, "sd_cm2": 133.0, "xmax_mm": 6.5, "pe_w": 70.0,
-        "price": 110.0, "currency": "EUR", "url": "https://www.visaton.de",
-        "driver": {"fs_hz": 38.0, "vas_l": 34.0, "qts": 0.38, "qms": 4.8, "re_ohm": 5.8, "sd_cm2": 133.0, "xmax_mm": 6.5, "pe_w": 70.0, "le_mh": 0.70}
-    },
-    {
-        "name": "WEB: Visaton GF 200 2x4 Ohm 8 Inch Fiberglass Woofer",
-        "brand": "Visaton", "model": "GF 200", "category": "Woofer",
-        "fs_hz": 33.0, "qts": 0.34, "qes": 0.37, "qms": 4.6, "vas_l": 68.0,
-        "re_ohm": 6.8, "sd_cm2": 214.0, "xmax_mm": 7.5, "pe_w": 120.0,
-        "price": 125.0, "currency": "EUR", "url": "https://www.visaton.de",
-        "driver": {"fs_hz": 33.0, "vas_l": 68.0, "qts": 0.34, "qms": 4.6, "re_ohm": 6.8, "sd_cm2": 214.0, "xmax_mm": 7.5, "pe_w": 120.0, "le_mh": 0.85}
-    },
-    # Wavecor (China / Germany)
-    {
-        "name": "WEB: Wavecor SW312WA01 12 Inch Aluminium Cone Subwoofer",
-        "brand": "Wavecor", "model": "SW312WA01", "category": "Subwoofer",
-        "fs_hz": 22.0, "qts": 0.33, "qes": 0.35, "qms": 6.2, "vas_l": 115.0,
-        "re_ohm": 3.2, "sd_cm2": 510.0, "xmax_mm": 14.5, "pe_w": 350.0,
-        "price": 289.0, "currency": "EUR", "url": "https://www.wavecor.com",
-        "driver": {"fs_hz": 22.0, "vas_l": 115.0, "qts": 0.33, "qms": 6.2, "re_ohm": 3.2, "sd_cm2": 510.0, "xmax_mm": 14.5, "pe_w": 350.0, "le_mh": 1.15}
-    },
-    {
-        "name": "WEB: Wavecor SW270WA01 10.5 Inch Subwoofer",
-        "brand": "Wavecor", "model": "SW270WA01", "category": "Subwoofer",
-        "fs_hz": 24.0, "qts": 0.35, "qes": 0.37, "qms": 5.8, "vas_l": 65.0,
-        "re_ohm": 3.2, "sd_cm2": 330.0, "xmax_mm": 11.5, "pe_w": 250.0,
-        "price": 219.0, "currency": "EUR", "url": "https://www.wavecor.com",
-        "driver": {"fs_hz": 24.0, "vas_l": 65.0, "qts": 0.35, "qms": 5.8, "re_ohm": 3.2, "sd_cm2": 330.0, "xmax_mm": 11.5, "pe_w": 250.0, "le_mh": 0.95}
-    },
-    {
-        "name": "WEB: Wavecor SW223BD01 8.75 Inch Subwoofer",
-        "brand": "Wavecor", "model": "SW223BD01", "category": "Subwoofer",
-        "fs_hz": 29.0, "qts": 0.36, "qes": 0.38, "qms": 5.4, "vas_l": 32.0,
-        "re_ohm": 3.2, "sd_cm2": 220.0, "xmax_mm": 10.0, "pe_w": 180.0,
-        "price": 169.0, "currency": "EUR", "url": "https://www.wavecor.com",
-        "driver": {"fs_hz": 29.0, "vas_l": 32.0, "qts": 0.36, "qms": 5.4, "re_ohm": 3.2, "sd_cm2": 220.0, "xmax_mm": 10.0, "pe_w": 180.0, "le_mh": 0.75}
-    },
-    {
-        "name": "WEB: Wavecor WF182BD10 7 Inch Midwoofer",
-        "brand": "Wavecor", "model": "WF182BD10", "category": "Woofer",
-        "fs_hz": 37.0, "qts": 0.35, "qes": 0.38, "qms": 5.0, "vas_l": 26.0,
-        "re_ohm": 6.2, "sd_cm2": 140.0, "xmax_mm": 6.5, "pe_w": 120.0,
-        "price": 139.0, "currency": "EUR", "url": "https://www.wavecor.com",
-        "driver": {"fs_hz": 37.0, "vas_l": 26.0, "qts": 0.35, "qms": 5.0, "re_ohm": 6.2, "sd_cm2": 140.0, "xmax_mm": 6.5, "pe_w": 120.0, "le_mh": 0.55}
-    },
-    # Peerless by Tymphany (Denmark / China)
-    {
-        "name": "WEB: Peerless STW-350F-188PR01-04 15 Inch 1000W Subwoofer",
-        "brand": "Peerless", "model": "STW-350F-188PR01-04", "category": "Subwoofer",
-        "fs_hz": 23.8, "qts": 0.39, "qes": 0.42, "qms": 6.5, "vas_l": 95.0,
-        "re_ohm": 3.4, "sd_cm2": 855.0, "xmax_mm": 22.0, "pe_w": 1000.0,
-        "price": 399.0, "currency": "EUR", "url": "https://tymphany.com",
-        "driver": {"fs_hz": 23.8, "vas_l": 95.0, "qts": 0.39, "qms": 6.5, "re_ohm": 3.4, "sd_cm2": 855.0, "xmax_mm": 22.0, "pe_w": 1000.0, "le_mh": 2.10}
-    },
-    {
-        "name": "WEB: Peerless XXLS-12 830845 12 Inch Subwoofer",
-        "brand": "Peerless", "model": "XXLS-12 830845", "category": "Subwoofer",
-        "fs_hz": 21.0, "qts": 0.39, "qes": 0.42, "qms": 5.8, "vas_l": 139.0,
-        "re_ohm": 3.4, "sd_cm2": 530.0, "xmax_mm": 12.5, "pe_w": 300.0,
-        "price": 229.0, "currency": "EUR", "url": "https://tymphany.com",
-        "driver": {"fs_hz": 21.0, "vas_l": 139.0, "qts": 0.39, "qms": 5.8, "re_ohm": 3.4, "sd_cm2": 530.0, "xmax_mm": 12.5, "pe_w": 300.0, "le_mh": 1.25}
-    },
-    {
-        "name": "WEB: Peerless XXLS-10 830842 10 Inch Subwoofer",
-        "brand": "Peerless", "model": "XXLS-10 830842", "category": "Subwoofer",
-        "fs_hz": 24.0, "qts": 0.38, "qes": 0.41, "qms": 5.5, "vas_l": 68.0,
-        "re_ohm": 3.4, "sd_cm2": 350.0, "xmax_mm": 12.5, "pe_w": 250.0,
-        "price": 189.0, "currency": "EUR", "url": "https://tymphany.com",
-        "driver": {"fs_hz": 24.0, "vas_l": 68.0, "qts": 0.38, "qms": 5.5, "re_ohm": 3.4, "sd_cm2": 350.0, "xmax_mm": 12.5, "pe_w": 250.0, "le_mh": 1.10}
-    },
-    {
-        "name": "WEB: Peerless SLS-12 830669 12 Inch Subwoofer",
-        "brand": "Peerless", "model": "SLS-12 830669", "category": "Subwoofer",
-        "fs_hz": 27.5, "qts": 0.54, "qes": 0.60, "qms": 5.6, "vas_l": 135.0,
-        "re_ohm": 5.8, "sd_cm2": 530.0, "xmax_mm": 8.5, "pe_w": 220.0,
-        "price": 119.0, "currency": "EUR", "url": "https://tymphany.com",
-        "driver": {"fs_hz": 27.5, "vas_l": 135.0, "qts": 0.54, "qms": 5.6, "re_ohm": 5.8, "sd_cm2": 530.0, "xmax_mm": 8.5, "pe_w": 220.0, "le_mh": 0.95}
-    },
-    {
-        "name": "WEB: Peerless SLS-10 830668 10 Inch Subwoofer",
-        "brand": "Peerless", "model": "SLS-10 830668", "category": "Subwoofer",
-        "fs_hz": 31.0, "qts": 0.52, "qes": 0.58, "qms": 5.2, "vas_l": 62.0,
-        "re_ohm": 5.8, "sd_cm2": 350.0, "xmax_mm": 8.5, "pe_w": 180.0,
-        "price": 95.0, "currency": "EUR", "url": "https://tymphany.com",
-        "driver": {"fs_hz": 31.0, "vas_l": 62.0, "qts": 0.52, "qms": 5.2, "re_ohm": 5.8, "sd_cm2": 350.0, "xmax_mm": 8.5, "pe_w": 180.0, "le_mh": 0.85}
-    },
-    {
-        "name": "WEB: Peerless SLS-8 830667 8 Inch Subwoofer",
-        "brand": "Peerless", "model": "SLS-8 830667", "category": "Subwoofer",
-        "fs_hz": 36.5, "qts": 0.53, "qes": 0.59, "qms": 5.0, "vas_l": 33.0,
-        "re_ohm": 5.8, "sd_cm2": 220.0, "xmax_mm": 8.5, "pe_w": 140.0,
-        "price": 69.0, "currency": "EUR", "url": "https://tymphany.com",
-        "driver": {"fs_hz": 36.5, "vas_l": 33.0, "qts": 0.53, "qms": 5.0, "re_ohm": 5.8, "sd_cm2": 220.0, "xmax_mm": 8.5, "pe_w": 140.0, "le_mh": 0.70}
-    },
-    {
-        "name": "WEB: Peerless SLS-6.5 830946 6.5 Inch Subwoofer",
-        "brand": "Peerless", "model": "SLS-6.5 830946", "category": "Subwoofer",
-        "fs_hz": 48.0, "qts": 0.56, "qes": 0.62, "qms": 4.8, "vas_l": 10.5,
-        "re_ohm": 3.6, "sd_cm2": 132.0, "xmax_mm": 8.5, "pe_w": 100.0,
-        "price": 49.0, "currency": "EUR", "url": "https://tymphany.com",
-        "driver": {"fs_hz": 48.0, "vas_l": 10.5, "qts": 0.56, "qms": 4.8, "re_ohm": 3.6, "sd_cm2": 132.0, "xmax_mm": 8.5, "pe_w": 100.0, "le_mh": 0.55}
+    if CATALOG.read_bytes() != catalog_digest_before:
+        raise RuntimeError("catalog changed during staging-only crawler cycle")
+
+    result_counts: dict[str, int] = {}
+    if crawl_report:
+        for result in crawl_report["results"]:
+            status = str(result["status"])
+            result_counts[status] = result_counts.get(status, 0) + 1
+    report = {
+        "schema_version": 2,
+        "started_at": started_at,
+        "finished_at": utc_now(),
+        "elapsed_seconds": round(time.monotonic() - started_clock, 3),
+        "publication_state": "staging_only",
+        "catalog_write": False,
+        "catalog_path": str(CATALOG.relative_to(ROOT)),
+        "catalog_unchanged": True,
+        "registry_summary": summary,
+        "discovery_summary": discovery_report["summary"] if discovery_report else None,
+        "plan": plan.to_dict(),
+        "crawl_report": str(crawl_report_path.relative_to(ROOT)) if crawl_report_path else None,
+        "crawl_result_counts": result_counts,
+        "retailer_sources": {
+            "role": "gap_and_price_discovery_only",
+            "configured": ["Finizio Power Team", "Masori", "RG Sound"],
+        },
     }
-]
+    write_json(REPORT, report)
+    progress.update(phase="complete", elapsed_seconds=report["elapsed_seconds"])
+    log(
+        "CYCLE COMPLETE "
+        f"elapsed_s={report['elapsed_seconds']} catalog_unchanged=true "
+        f"report={REPORT.relative_to(ROOT)}"
+    )
+    return report
 
 
-def cycle_crawl():
-    log("Starting high-yield multi-brand crawl cycle...")
-    
-    cat_data = json.loads(CATALOG_PROP.read_text(encoding="utf-8"))
-    items = cat_data.get("presets", [])
-    existing_identities = {f"{normalize(it.get('brand', ''))}_{normalize(it.get('model', ''))}" for it in items}
-    existing_names = {it.get("name") for it in items}
-    initial_len = len(items)
-    
-    stores = [
-        ("https://alphardaudio.us", "Deaf Bonce", "USD"),
-        ("https://sundownaudio.com", "Sundown Audio", "USD"),
-        ("https://gatelyaudio.com", "Gately Audio", "USD"),
-        ("https://massiveaudio.com", "Massive Audio", "USD"),
-        ("https://www.ctsounds.com", "CT Sounds", "USD"),
-        ("https://ds18.com", "DS18", "USD"),
-        ("https://nvx.com", "NVX", "USD"),
-        ("https://www.rockvilleaudio.com", "Rockville", "USD"),
-        ("https://soundautoconcept.com", "Car Audio", "EUR"),
-        ("https://droppinhzcaraudio.com", "Car Audio", "USD"),
-        ("https://audiopipe.com", "Audiopipe", "USD"),
-        ("https://stereointegrity.com", "Stereo Integrity", "USD"),
-        ("https://www.prvaudio.com", "PRV Audio", "USD"),
-        ("https://resilientsounds.com", "Resilient Sounds", "USD"),
-        ("https://www.css-audio.com", "CSS Audio", "USD"),
-        ("https://b2audio.com", "B2 Audio", "USD"),
-        ("https://audiofrog.com", "Audiofrog", "USD"),
-        ("https://www.lii-song.com", "Lii Song", "USD"),
-        ("https://emfcaraudio.com", "EMF Car Audio", "USD"),
-        ("https://www.skaraudio.com", "Skar Audio", "USD"),
-        ("https://adireaudio.com", "Adire Audio", "USD"),
-        ("https://wolframaudio.com", "Wolfram Audio", "USD"),
-        ("https://savardteams.com", "Savard Audio", "USD"),
-        ("https://ficaraudio.com", "Fi Car Audio", "USD"),
-        ("https://incriminatoraudio.com", "Incriminator Audio", "USD"),
-        ("https://solen.ca", "Solen Electronique", "CAD"),
-    ]
-    
-    discovered = []
-    
-    # 1. Sweep active stores
-    for s_url, brand, curr in stores:
-        try:
-            log(f"Crawling {brand} ({s_url})...")
-            batch = crawl_shopify_store(s_url, brand, curr, max_pages=4)
-            discovered.extend(batch)
-            log(f"-> {brand}: {len(batch)} candidate items found")
-        except Exception as e:
-            log(f"Error crawling {brand}: {e}")
-            
-    # 2. Dynamic continuous worldwide reference pool injection
-    for d in WORLDWIDE_REFERENCE_BATCHES:
-        discovered.append(d)
-            
-    added = 0
-    for d in discovered:
-        name = d["name"]
-        ident = f"{normalize(d['brand'])}_{normalize(d['model'])}"
-        if name not in existing_names and ident not in existing_identities:
-            items.append(d)
-            existing_names.add(name)
-            existing_identities.add(ident)
-            added += 1
-            log(f"✓ NEW CERTIFIED DRIVER: {name} ({d['fs_hz']}Hz, {d['price']} {d['currency']})")
-            
-    if added > 0:
-        cat_data["presets"] = items
-        CATALOG_PROP.write_text(json.dumps(cat_data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        cache_path = CATALOG_PROP.with_suffix(".cache.pickle")
-        if cache_path.exists():
-            cache_path.unlink()
-        log(f"Added {added} new drivers. Database now has {len(items)} presets.")
-        
-        try:
-            subprocess.run(["git", "add", "data/catalog_proprietario.json"], cwd=str(ROOT), check=True)
-            subprocess.run(["git", "commit", "-m", f"Daemon auto-harvest: add {added} new verified drivers"], cwd=str(ROOT), check=True)
-            subprocess.run(["git", "push"], cwd=str(ROOT), check=True)
-            log("Git commit and push completed successfully.")
-        except Exception as ge:
-            log(f"Git push note: {ge}")
-    else:
-        log("Crawl cycle complete: all current models already indexed.")
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--once", action="store_true")
+    parser.add_argument("--registry-only", action="store_true")
+    parser.add_argument("--skip-discovery", action="store_true")
+    parser.add_argument("--interval", type=float, default=3_600.0)
+    parser.add_argument("--progress-interval", type=float, default=60.0)
+    parser.add_argument("--max-targets", type=int, default=5)
+    parser.add_argument("--target-timeout", type=int, default=900)
+    parser.add_argument("--discovery-workers", type=int, default=8)
+    parser.add_argument("--discovery-timeout", type=float, default=7.0)
+    parser.add_argument("--discovery-candidates", type=int, default=8)
+    return parser
 
 
-def main():
-    log("=== AUTONOMOUS CRAWLER DAEMON (SELF-EXPANDING GLOBAL HARVESTER) INITIALIZED ===")
-    while True:
-        try:
-            cycle_crawl()
-        except Exception as e:
-            log(f"Daemon cycle error: {e}")
-        log("Sleeping 180s before next autonomous scan...")
-        time.sleep(180)
+def main() -> int:
+    args = build_parser().parse_args()
+    progress = Progress()
+    heartbeat = threading.Thread(
+        target=progress.heartbeat,
+        args=(max(args.progress_interval, 5.0),),
+        daemon=True,
+    )
+    heartbeat.start()
+    try:
+        while True:
+            try:
+                run_cycle(args, progress)
+            except Exception as exc:
+                progress.update(phase="failed", error=type(exc).__name__)
+                log(f"CYCLE FAILED {type(exc).__name__}: {exc}")
+                if args.once:
+                    return 1
+            if args.once:
+                return 0
+            progress.update(phase="sleeping", next_cycle_seconds=args.interval)
+            time.sleep(max(args.interval, 60.0))
+    finally:
+        progress.stop()
+        heartbeat.join(timeout=1.0)
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

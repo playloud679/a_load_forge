@@ -77,6 +77,18 @@ def _file_digest(path: Path) -> str | None:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _crawl_stats(stdout: str) -> dict[str, int]:
+    match = re.search(
+        r"visited=(\d+)\s+extracted=(\d+)\s+added=(\d+)\s+"
+        r"updated=(\d+)\s+unchanged=(\d+)\s+failures=(\d+)",
+        stdout,
+    )
+    if not match:
+        return {}
+    keys = ("visited", "extracted", "added", "updated", "unchanged", "failures")
+    return {key: int(value) for key, value in zip(keys, match.groups())}
+
+
 def run_plan(
     plan: CrawlPlan,
     manifest: AgentManifest,
@@ -110,7 +122,15 @@ def run_plan(
                 timeout=target_timeout_seconds,
                 check=False,
             )
-            status = "succeeded" if completed.returncode == 0 else "failed"
+            stats = _crawl_stats(completed.stdout)
+            if completed.returncode != 0:
+                status = "failed"
+            elif stats.get("visited", 0) == 0:
+                status = "no_pages"
+            elif stats.get("extracted", 0) == 0:
+                status = "observed_only"
+            else:
+                status = "succeeded"
             returncode = completed.returncode
             stdout = completed.stdout
             stderr = completed.stderr
@@ -119,6 +139,7 @@ def run_plan(
             returncode = 124
             stdout = str(exc.stdout or "")
             stderr = str(exc.stderr or "")
+            stats = _crawl_stats(stdout)
         (target_dir / "stdout.log").write_text(stdout, encoding="utf-8")
         (target_dir / "stderr.log").write_text(stderr, encoding="utf-8")
         candidate_path = target_dir / "candidate_catalog.json"
@@ -132,6 +153,7 @@ def run_plan(
                 "finished_at": datetime.now(UTC).isoformat(),
                 "candidate_catalog": str(candidate_path.relative_to(run_dir)),
                 "candidate_sha256": _file_digest(candidate_path),
+                "crawl_stats": stats,
             }
         )
     report = {

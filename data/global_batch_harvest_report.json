@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "started_at": "2026-08-24T09:49:15Z",
+  "finished_at": "2026-08-24T09:49:16Z",
+  "catalog": "/Users/marcoderossi/Documents/Codes/load_forge/data/catalog_proprietario.json",
+  "initial_records": 6460,
+  "sources": {
+    "Volt Loudspeakers (UK Radial Studio)": 4,
+    "Stereo Integrity (USA SQ/HT)": 6,
+    "Kartesian (France Studio/High-End)": 4,
+    "Brazilian Pancadão (Eros, Triton, 7Driver)": 11,
+    "GRS Line (Parts Express DIY)": 7,
+    "Adire Audio (USA XBL2)": 0
+  },
+  "validated_candidates": 32,
+  "added_records": 0,
+  "final_records": 6460,
+  "note": "No record is added when its normalized identity is already present."
+}

@@ -2,12 +2,26 @@
 
 ## 0.8.27 (2026-08-24)
 
+- Separated catalog metadata from the application release: the proprietary
+  catalog remains independently versioned at **1.0.0**.
+- Published 23 reviewed, append-only manufacturer records from Adire Audio,
+  Stereo Integrity and Sundown Audio; the catalog now contains 6,483 raw
+  records and 5,524 application-visible drivers without changing or deleting
+  any pre-existing row.
+- Added manufacturer-first source discovery, isolated retailer gap reporting,
+  progress/latest-report artifacts and an in-app crawl report.
+- Added a guarded reviewed-publication command and catalog-specific checks so
+  catalog work can be validated independently from the full acoustic suite.
+- Fixed crawler handling of written area units such as `square inches`, made
+  explicit physical units outrank unitless layout candidates, normalized
+  Stereo Integrity numeric storefront SKUs and updated the Sundown source URL.
 - Recovered the proprietary catalog to 6,460 records after a batch rebuild had
   reduced the generated view to 5,282, preserving the application loader count
   at 5,501.
 - Added a growth watchdog baseline reset and protected proprietary-only records
   from removal during unified catalog rebuilds.
-- Verified the full active suite: **170 PASS, 0 FAIL, 0 SKIP**.
+- Verified catalog checks, Streamlit report rendering and the full active
+  suite: **170 PASS, 0 FAIL, 0 SKIP**.
 
 ## 0.8.26 (2026-08-21)
 

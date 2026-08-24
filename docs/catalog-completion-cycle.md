@@ -82,6 +82,18 @@ more accurate than manufacturing a plausible number.
 
 ## Driver-growth watchdog
 
+The application release and proprietary catalog release are independent. The
+current app release is tracked in `VERSION`; the published proprietary catalog
+has its own `catalog_version` (`1.0.0` currently). Catalog-only changes use the
+fast gate:
+
+```bash
+make test-catalog
+```
+
+The full application suite remains required for changes to `src/`, `ui_app.py`
+or the app-facing catalog loader.
+
 After a batch, check whether the manufacturer catalog itself grew:
 
 ```bash

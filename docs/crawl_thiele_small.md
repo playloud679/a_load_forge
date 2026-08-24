@@ -93,7 +93,10 @@ Both ASCII and typographic area/volume notation are accepted (`cm2`/`cm²`,
 `ft3`/`ft³`), including the `Surface Area of Cone` label used by storefront
 specification tables. Spaced manufacturer notation (`m ²`), `K mm/2`
 (including `K/mm/2`, thousands of square millimetres) and `K Hz` are
-normalized as well.
+normalized as well. Written-out area units such as `square inches`, `square
+centimeters` and `square meters` are converted too. For physical quantities,
+an explicit recognized unit outranks a unitless candidate from a higher-level
+layout parser; extraction-method priority is used after unit quality.
 
 Literal control characters inside otherwise valid JSON-LD strings are parsed
 in tolerant mode so that one dirty product description does not discard the
@@ -212,6 +215,8 @@ When structured product metadata omits model/MPN/SKU, a visible `Model #`,
 identity before falling back to the descriptive page title.
 When metadata falls back to the HTML title, a trailing `| Brand`, `– Brand` or
 `— Brand` site-name suffix is removed from the model identity before merge.
+Stereo Integrity's numeric WooCommerce SKU ids are replaced with the official
+product H1, which is the public model name shown on the page.
 Generic archive headings such as `Discontinued product` are replaced by the
 model encoded in the product URL slug (with a leading numeric content ID
 removed), so archived products do not collapse onto one false deduplication

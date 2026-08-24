@@ -276,7 +276,7 @@ INCH_SIZE_RE = re.compile(
     r"\s*(?:inch(?:es)?|in\.?|[\"″])(?=\s|$|[),/x×])",
     re.I,
 )
-UNIT_RE = r"(?:k\s*hz|hz|sq\s*\.?\s*in(?:ches)?|sq\s*\.?\s*m(?:eters?)?|m(?:\s*\^?\s*3|³)|dm(?:\s*\^?\s*3|³)|ml|cm\s*(?:\^?\s*2|²)|k\s*/?\s*mm\s*(?:\^?\s*2|²|/2)|mm\s*(?:\^?\s*2|²)|m\s*(?:\^?\s*2|²)|in(?:\s*\^?\s*2|²)|ft\s*\.?\s*(?:\^?\s*3|³)|lit(?:er|re)s?|lbs?|pounds?|oz|ounces?|kg|kilograms?|kgs?|grams?|mg|[gG]|[lL]|k?ohms?|Ω|mΩ|mh|µh|μh|uh|henry|h|mm|cm|inch(?:es)?|in|[\"”″]|kw|w\s*_?\s*rms|watts?|w|m/n|mm/n|µm/n|μm/n|um/n|t\s*[·*]?\s*m|tm|n/a|n\s*s/m|kg/s|dba|db|t|gauss|%)?"
+UNIT_RE = r"(?:k\s*hz|hz|square\s+(?:inches?|centimeters?|meters?)|sq\s*\.?\s*in(?:ches)?|sq\s*\.?\s*m(?:eters?)?|m(?:\s*\^?\s*3|³)|dm(?:\s*\^?\s*3|³)|ml|cm\s*(?:\^?\s*2|²)|k\s*/?\s*mm\s*(?:\^?\s*2|²|/2)|mm\s*(?:\^?\s*2|²)|m\s*(?:\^?\s*2|²)|in(?:\s*\^?\s*2|²)|ft\s*\.?\s*(?:\^?\s*3|³)|lit(?:er|re)s?|lbs?|pounds?|oz|ounces?|kg|kilograms?|kgs?|grams?|mg|[gG]|[lL]|k?ohms?|Ω|mΩ|mh|µh|μh|uh|henry|h|mm|cm|inch(?:es)?|in|[\"”″]|kw|w\s*_?\s*rms|watts?|w|m/n|mm/n|µm/n|μm/n|um/n|t\s*[·*]?\s*m|tm|n/a|n\s*s/m|kg/s|dba|db|t|gauss|%)?"
 # Same alternation as UNIT_RE but mandatory (no trailing "?"), for datasheets
 # that print "Label Unit Value" instead of "Label Value Unit" (e.g. BMS PDFs:
 # "Fs Hz 29.8").
@@ -566,7 +566,10 @@ def normalize_unit(raw: str) -> str:
         "lb": "lb", "lbs": "lb", "pound": "lb", "pounds": "lb",
         "ounce": "oz", "ounces": "oz",
         "tsm": "tm", "n/a": "tm", "ns/m": "kg/s",
-        "sqin": "in2", "sqinches": "in2", "sqm": "m2", "sqmeters": "m2", "sqmeter": "m2",
+        "sqin": "in2", "sqinches": "in2", "squareinch": "in2", "squareinches": "in2",
+        "sqcm": "cm2", "squarecentimeter": "cm2", "squarecentimeters": "cm2",
+        "sqm": "m2", "sqmeters": "m2", "sqmeter": "m2",
+        "squaremeter": "m2", "squaremeters": "m2",
         "dba": "db", "gauss": "gauss", "%": "%",
     }
     return aliases.get(unit, unit)
@@ -1050,7 +1053,7 @@ def choose_measurements(items: Iterable[Measurement]) -> dict[str, Measurement]:
 
     def quality(item: Measurement) -> tuple[int, int]:
         explicit_unit = int(bool(normalize_unit(item.unit))) if item.key not in unitless_keys else 0
-        if item.key == "pe_w":
+        if item.key not in unitless_keys:
             return explicit_unit, priority.get(item.method, 0)
         return priority.get(item.method, 0), explicit_unit
 
@@ -1388,6 +1391,11 @@ def product_metadata(page: PageData, url: str, brand_hint: str = "") -> tuple[st
         or page.meta.get("product:retailer_item_id") or ""
     ).strip()
     model = html.unescape(model)
+    host = (urlparse(url).hostname or "").casefold().removeprefix("www.")
+    if host == "stereointegrity.com" and re.fullmatch(r"\d{2,}", model):
+        model = name
+        if brand and model.casefold().startswith(brand.casefold()):
+            model = model[len(brand):].strip(" -–—|")
     if not model:
         # Some storefronts expose their stable manufacturer identity only as
         # visible specification rows, e.g. MISCO's ``Model #`` followed by

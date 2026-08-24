@@ -6,6 +6,7 @@ L'ottimizzatore acustico di Load Forge è un motore deterministico di calcolo no
 - **Cassa Chiusa** (*Sealed / Suspension Pneumatic*)
 - **Passa-Banda del 4° Ordine** (*Single-tuned Bandpass*)
 - **Passa-Banda del 6° Ordine** (*Dual-tuned Bandpass*)
+- **Passa-Banda dell'8° Ordine** (*Triple-tuned Bandpass*)
 
 ---
 
@@ -37,9 +38,9 @@ L'utente può selezionare tre pesature fondamentali:
 
 | Obiettivo | Peso $F_3$ | Peso Ripple | Comportamento |
 |---|---|---|---|
-| **Max extension** | 1.0 | 0.2 | Massimizza la discesa in frequenza sub-bassa ($F_3$ minimo), mantenendo il rispetto rigoroso del limite di ripple. |
-| **Balanced** | 1.0 | 0.8 | Bilanciamento ottimale tra estensione in frequenza, regolarità di risposta e compattezza del volume. |
-| **Flat response** | 0.5 | 1.5 | Priorità assoluta alla planarità della curva di risposta utile; azzera sovraelongazioni o gobbe di risonanza. |
+| **Max extension** | 1.0 | 0.15 | Fa dominare la discesa in frequenza sub-bassa ($F_3$ minimo); le penalità consultive di escursione e group delay pesano meno, ma ripple e barriere costruttive mantengono il loro peso. |
+| **Balanced** | 0.55 | 0.55 | Bilanciamento equivalente tra estensione in frequenza, regolarità di risposta e compattezza del volume. |
+| **Flat response** | 0.2 | 1.1 | Priorità netta alla planarità della curva di risposta utile, anche a costo di estensione. |
 
 ---
 
@@ -51,8 +52,8 @@ $$\text{Score} = \text{Score}_{\text{base}} + \text{Penalità}_{\text{costruzion
 
 ### 3.1 Barriere Rigide di Costruibilità (Score $\ge 10^5$)
 Se una configurazione viola le leggi fisiche o geometriche, viene scartata con uno score enorme:
-1. **Diametro Minimo del Condotto**: Calcolato in base al criterio di spostamento volumetrico $S_d \cdot X_{\max}$ e al limite sulla velocità dell'aria ($v_{\text{air}} \le 17\text{ m/s}$). Diametri eccedenti il limite fisico del cabinet ($> 25\text{ cm}$) vengono respinti.
-2. **Frazione di Volume del Condotto**: Il condotto non può occupare più del 30% del volume netto della camera che accorda ($\text{Vol}_{\text{port}} / V_{\text{box}} \le 0.30$).
+1. **Diametro Minimo del Condotto**: Calcolato in base al criterio di spostamento volumetrico $S_d \cdot X_{\max}$ e al limite sulla velocità dell'aria ($v_{\text{air}} \le 17\text{ m/s}$). Il limite geometrico configurato è 60 cm e la barriera dell'ottimizzatore scatta oltre il 95% del limite, cioè 57 cm.
+2. **Frazione di Volume del Condotto**: Il condotto non può occupare più del 10% del volume netto della camera che accorda ($\text{Vol}_{\text{port}} / V_{\text{box}} \le 0.10$).
 3. **Lunghezza Massima del Condotto**: Il condotto in linea retta non può eccedere la diagonale massima interna del cabinet ($L_{\text{port}} / L_{\text{box}} \le 1.0$).
 4. **Credibilità Acustica DCCAV**: In DCCAV, la frequenza $F_3$ non può essere inferiore al limite asintotico di risonanza $0.65 \cdot F_l$.
 
@@ -79,6 +80,23 @@ dove $w_{\text{size}}$ aumenta fortemente non appena il target di estensione des
 Nelle ricerche batch (Bass Match / Finder) su migliaia di altoparlanti, la simulazione dell'intero spettro denso ad ogni iterazione sarebbe inefficiente:
 1. **Fase 1 (Scansione Rapida)**: Vengono utilizzati **30 punti logaritmici** distribuiti sulla banda.
 2. **Fase 2 (Raffinamento del Vincitore)**: Solo sull'allineamento vincente viene applicata una seconda passata a **20 punti densi** centrati nell'intorno di $F_3$ con interpolazione sub-Hertziana.
+3. **Risposta Finale**: Il box scelto viene simulato sulla risoluzione richiesta dall'utente, normalmente **240 punti** e al massimo 80 nel runtime Cloud Run.
+
+Con un Ripple frequency ceiling attivo, sia la griglia coarse sia quella finale
+usano i punti richiesti sotto il limite e una coda di 9 punti sopra: i 30 punti
+coarse diventano normalmente 38 punti distinti.
+
+Bass Match consente al Compass Search al massimo **30 valutazioni di box per
+combinazione driver × carico**, ridotte a 24 nel runtime Cloud Run. Questi sono
+i tentativi complessivi: non vengono assegnati 30 tentativi a ciascuna
+variabile. Infinite baffle e passive radiator non eseguono questa ricerca del
+box: usano rispettivamente il modello senza box e lo starter fisico dedicato.
+Il budget non cresce con la dimensionalità: Sealed usa un asse, DCCAV quattro
+e Bandpass 8th order sei. I carichi complessi vengono quindi esplorati meno
+densamente per variabile, in cambio di un tempo batch prevedibile.
+L'API generale `optimize_alignment()`, usata fuori dal Finder, conserva invece
+default più larghi di 260 valutazioni e 160 frequenze, senza refinement locale
+se il chiamante non lo richiede.
 
 ### 4.2 Griglia Segmentata per Subwoofer (`segmented_frequency_grid`)
 Quando è attivo un tetto di frequenza per il ripple ($F_{\text{ripple\_max}}$):
@@ -93,7 +111,7 @@ Quando è attivo un tetto di frequenza per il ripple ($F_{\text{ripple\_max}}$):
 1. Imposta **Optimization goal** = `Max extension`.
 2. Imposta **Max total volume** = volume massimo accettabile nel tuo ambiente (es. `60 L`).
 3. Imposta **Ripple frequency ceiling** = frequenza di incrocio del passa-basso (es. `70 Hz` o `80 Hz`).
-4. Risultato: l'ottimizzatore trova il volume e l'accordo che spingono $F_3$ al valore più basso possibile, assicurando una risposta rigorosamente piatta sotto gli 80 Hz.
+4. Risultato: l'ottimizzatore trova il volume e l'accordo che spingono $F_3$ al valore più basso possibile, valutando il ripple soltanto nella banda utile sotto gli 80 Hz. Il limite è una penalità di score, non una garanzia assoluta: il risultato finale va verificato nella tabella.
 
 ### Scenario B: Diffusore Hi-Fi Lineare a 2 o 3 Vie
 1. Imposta **Optimization goal** = `Flat response` o `Balanced`.

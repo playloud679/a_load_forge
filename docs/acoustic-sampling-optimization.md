@@ -66,59 +66,63 @@ L'errore effettivo di interpolazione dipende dalla curvatura locale della rispos
 
 ---
 
-## 4. Pipeline a Due Stadi con Selezione Top-K e Adaptive Sampling
+## 4. Pipeline Corrente per Ogni Combinazione Driver × Carico
 
 La valutazione di un catalogo di $M$ driver con $K_{\text{opt}}$ iterazioni di ottimizzazione comporta un costo computazionale pari a:
 
 $$C = \mathcal{O}(M \cdot K_{\text{opt}} \cdot N_{\text{grid}})$$
 
-Per minimizzare il costo globale garantendo al contempo che i candidati ottimali non vengano scartati prematuramente, Load Forge impiega una strategia a due stadi *coarse-to-fine* con conservazione dei migliori $K$ candidati (*Top-K*).
+La pipeline corrente riduce il costo con una strategia *coarse-to-fine* interna
+a ciascun job. Non esegue uno screening Top-K globale dei driver: ogni
+combinazione dichiarata **Ready simulation** riceve la propria ottimizzazione
+e il proprio refinement.
 
 ```text
-[ Catalogo Driver (M candidati) ]
-               │
-               ▼
+[ Un job: un driver × un carico ]
+               |
+               v
 ┌────────────────────────────────────────────────────────┐
-│ STADIO 1: Coarse Global Screening (N_base ≈ 30 pt)     │
-│ - Griglia logaritmica full-band (10 - 300 Hz)          │
-│ - Ottimizzazione rapida / pattern search               │
-│ - Ranking preliminare di tutti i driver                │
+│ STADIO 1: ricerca del box                               │
+│ - fino a 30 box (24 su Cloud Run)                      │
+│ - 30 frequenze per box; 38 con ripple ceiling attivo   │
+│ - compass search deterministico in spazio logaritmico  │
 └────────────────────────────────────────────────────────┘
-               │
-   [ Top-K Candidati per Topologia (default K = 5) ]
-               │
-               ▼
+               |
+               v
 ┌────────────────────────────────────────────────────────┐
-│ STADIO 2: Accurate Refinement (N_refine + N_adaptive)  │
-│ - Griglia locale attorno al knee [0.7 F3, 1.4 F3]      │
-│   e/o ricalcolo full-band denso                        │
-│ - Campionamento adattivo guidato dalla curvatura       │
-│ - Estrazione metrica definitiva e ranking finale       │
+│ STADIO 2: refinement del box vincente                  │
+│ - ricalcolo sui 30 punti larghi                        │
+│ - 20 punti locali aggiuntivi attorno alla F3           │
+│ - risposta finale a 240 punti (80 su Cloud Run)        │
 └────────────────────────────────────────────────────────┘
+               |
+               v
+[ filtri finali e ranking F3, F6, F10, Peak SPL ]
 ```
 
-### 4.1 Principio di Top-K Recall:
-Lo Stadio 1 non ha il compito di decretare con certezza assoluta il vincitore finale (Top-1), bensì di garantire che il vero ottimo globale non venga escluso prima della fase ad alta precisione.
-La metrica fondamentale di qualità dello Stadio 1 è la **Top-K Recall**:
+### 4.1 Budget di calcolo
 
-$$R_K = P\left(x_{\text{reference}} \in \mathrm{TopK}_{\text{coarse}}\right)$$
+Per un job ottimizzato senza Ripple frequency ceiling, indicando con
+$B\leq30$ il numero effettivo di box provati e con $N_{\text{finale}}$ la
+risoluzione scelta, il budget ordinario è:
 
-dove $x_{\text{reference}}$ è l'ottimo identificato dalla simulazione ad alta risoluzione. L'obiettivo dello screening è massimizzare $R_K$ (valutando ad esempio $R_1, R_3, R_5$) al minor costo computazionale.
+$$\boxed{N_{\text{eval}}=30B+(30+20)+N_{\text{finale}}}$$
 
-### 4.2 Stadio 2: Refinement Flessibile e Adaptive Sampling:
-Nel secondo stadio, i pochi candidati finalisti ($K \ll M$) vengono raffinati impiegando:
-1. **Refinement locale** mirato attorno alle frequenze di transizione ($F_3, F_6, F_{10}$) o valutazione full-band più densa.
-2. **Adaptive sampling locale** basato sulla stima della derivata seconda discreta del livello SPL in dB:
-   $$C_i = |y_{i+1} - 2y_i + y_{i-1}|$$
-   - $C_i$ contenuto $\implies$ andamento quasi-lineare $\implies$ nessun campione aggiuntivo necessario;
-   - $C_i$ elevato $\implies$ regione di forte curvatura o risonanza $\implies$ inserimento di campioni supplementari.
+Con $B=30$ e $N_{\text{finale}}=240$ il massimo ordinario è 1.190 punti per
+job. Il DCCAV può aggiungere fino a tre ricontrolli del vincitore quando la F3
+raffinata richiede una correzione dell'accordo. Infinite baffle e passive
+radiator non usano il Compass Search e pagano soltanto la risposta finale.
+Con il ceiling attivo, la griglia aggiunge una coda sparsa di 9 punti sopra il
+limite condividendo il punto di separazione: 30 punti diventano normalmente 38
+e 240 diventano 248.
 
-### 4.3 Architettura del Budget di Calcolo:
-Il numero totale di valutazioni in frequenza per un driver è descritto dal modello:
+### 4.2 Perché non c'è una Top-K globale
 
-$$\boxed{N_{\text{eval}} = N_{\text{base}} + N_{\text{adaptive}} + \mathbb{I}_{\text{Top-K}} \cdot N_{\text{refine}}}$$
-
-dove $N_{\text{base}} \approx 30$, $N_{\text{adaptive}}$ dipende dalla complessità spettrale locale, e $N_{\text{refine}}$ è allocato esclusivamente ai candidati selezionati per la fase finale.
+Una Top-K preliminare farebbe risparmiare tempo, ma potrebbe eliminare un
+driver il cui box cambia posizione dopo il refinement. La scelta corrente è
+più costosa ma più leggibile: tutti i job ammessi ricevono lo stesso budget e
+il ranking confronta metriche finali. La **Top-K recall** resta una metrica
+utile per un eventuale benchmark futuro, non una funzione attiva del Finder.
 
 ---
 
@@ -131,7 +135,7 @@ dove $N_{\text{base}} \approx 30$, $N_{\text{adaptive}}$ dipende dalla complessi
 
 ## 6. Validazione Numerica e Frontiera di Pareto
 
-I parametri operativi ($N_{\text{base}}$, $\kappa$, $K$, densità di refinement) devono essere determinati e validati mediante benchmark offline contro una simulazione di riferimento ad alta densità ($N_{\text{reference}} \gg N_{\text{coarse}}$, es. $1000\text{--}2000$ punti o root-finding esatto).
+I parametri operativi (budget di box, densità coarse e densità di refinement) devono essere determinati e validati mediante benchmark offline contro una simulazione di riferimento ad alta densità ($N_{\text{reference}} \gg N_{\text{coarse}}$, es. $1000\text{--}2000$ punti o root-finding esatto).
 
 ### Metriche di Accuratezza:
 Per ciascun candidato del benchmark vengono misurate le discrepanze assolute rispetto al riferimento:
@@ -145,7 +149,7 @@ Per ogni metrica si analizza la distribuzione statistica: **Mediana**, **P95**, 
 ### Frontiera di Pareto:
 La configurazione ottimale del Finder è individuata sulla frontiera di Pareto che massimizza il compromesso tra:
 
-$$\text{Tempo di Esecuzione (Runtime)} \quad \longleftrightarrow \quad \text{Accuratezza Numerica} \quad \longleftrightarrow \quad \text{Top-K Recall } (R_K)$$
+$$\text{Tempo di Esecuzione (Runtime)} \quad \longleftrightarrow \quad \text{Accuratezza Numerica} \quad \longleftrightarrow \quad \text{stabilità del ranking}$$
 
 ---
 
@@ -155,7 +159,7 @@ $$\text{Tempo di Esecuzione (Runtime)} \quad \longleftrightarrow \quad \text{Acc
 |---|---|---|
 | **Fatto Matematico** | Relazioni analitiche rigorose ed esatte | Definizione di $Q = \frac{\omega_0}{2\alpha}$; formula di interpolazione logaritmica; complessità $\mathcal{O}(M \cdot K_{\text{opt}} \cdot N_{\text{grid}})$. |
 | **Motivazione Fisica** | Proprietà qualitative del dominio elettroacustico | Risonanze ad alto $Q$ richiedono campionamenti più fitti; pendenze asintotiche a $n \times 6\text{ dB/oct}$. |
-| **Euristica Ingegneristica** | Scelte progettuali volte a ottimizzare il calcolo | Baseline $N_{\text{base}} = 30$; parametro $\kappa \approx 0.5$; volume warm-start $V_{\text{init}} \approx 0.95 V_{\max}$; $K = 5$. |
-| **Risultato Empirico** | Prestazioni verificate sperimentalmente su benchmark | Valori di $R_K$; distribuzioni di errore P95/P99 su $F_3$; tempi di esecuzione effettivi. |
+| **Euristica Ingegneristica** | Scelte progettuali volte a ottimizzare il calcolo | 30 frequenze coarse; 20 punti locali; volume warm-start $V_{\text{init}} \approx 0.95 V_{\max}$. |
+| **Risultato Empirico** | Prestazioni verificate sperimentalmente su benchmark | Stabilità del ranking; distribuzioni di errore P95/P99 su $F_3$; tempi di esecuzione effettivi. |
 
-**Sintesi:** Load Forge adotta una metodologia *coarse-to-fine* fisicamente motivata che concentra il budget computazionale dove risiede l'informazione acustica critica, preservando la diversità dei candidati promettenti e demandando la conferma della precisione alla validazione numerica empirica.
+**Sintesi:** Load Forge adotta una metodologia *coarse-to-fine* per ogni combinazione Ready, concentra il refinement sul box vincente di ciascun driver e demanda la conferma della precisione alla validazione numerica empirica.
