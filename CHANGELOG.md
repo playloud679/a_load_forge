@@ -8,6 +8,9 @@
   `Mms` is calculated from the official `Fs`, `Vas` and piston area; `Re` is
   1.7 ohm per D2 coil and 3.4 ohm per D4 coil. The catalog now contains 7,248
   raw and application-visible records; existing rows remain unchanged.
+- Followed DD Audio's official product sitemap and published a further 25
+  official D2/D4 variants from 15 additional product pages. The catalog now
+  contains 7,273 raw and 6,269 application-visible records.
 - Published 773 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
   Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA, Jensen,
