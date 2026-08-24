@@ -34,3 +34,8 @@ separately from append-only rows.
 `latest_batch_existing_aliases_collapsed` records pre-existing display
 duplicates removed by a newly verified manufacturer alias; it changes no raw
 catalog row and is included in the net app-visible delta.
+
+Structured official catalog APIs use the same staging format. The SICA/Jensen
+importer is one example: official product-category evidence keeps both brands
+separate while publication still applies the shared exact runtime identity gate
+and append-only invariant.

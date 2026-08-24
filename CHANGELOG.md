@@ -4,13 +4,13 @@
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
-- Published 503 reviewed, append-only manufacturer records from Adire Audio,
+- Published 548 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
-  Visaton, Wavecor, Peerless/Tymphany, Monacor and Eighteen Sound; the catalog
-  now contains 6,963 raw records and 5,981
+  Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA and Jensen;
+  the catalog now contains 7,008 raw records and 6,026
   application-visible drivers without changing or deleting any pre-existing
-  row. The four latest official-source batches contributed 287, 64, 37 and 69
-  net application-visible drivers respectively.
+  row. The five latest official-source batches contributed 287, 64, 37, 69 and
+  45 net application-visible drivers respectively.
 - Added Wavecor multi-model matrix extraction and a resilient first-party
   Peerless/Tymphany API harvester. Added a first-party Monacor category
   harvester that verifies each product's manufacturer block, excluding
@@ -22,6 +22,10 @@
   published 2/4/8/16-ohm variants. The `18Sound` legacy brand now aliases to
   official `Eighteen Sound`, preventing eight existing display duplicates and
   yielding 69 net-visible additions from 77 append-only rows.
+- Added a structured SICA/Jensen first-party Store API harvester with strict
+  brand-category evidence, AES/Xmax/Cms unit handling and coaxial LF-field
+  support. Of 177 official products, 145 had complete T/S data and exact
+  runtime deduplication yielded 45 new application-visible records.
 - Added manufacturer-first source discovery, isolated retailer gap reporting,
   progress/latest-report artifacts and an in-app crawl report.
 - Added a guarded reviewed-publication command and catalog-specific checks so
@@ -35,7 +39,7 @@
 - Added a growth watchdog baseline reset and protected proprietary-only records
   from removal during unified catalog rebuilds.
 - Verified catalog checks, Streamlit report rendering and the full active
-  suite: **171 PASS, 0 FAIL, 0 SKIP**.
+  suite: **172 PASS, 0 FAIL, 0 SKIP**.
 
 ## 0.8.26 (2026-08-21)
 

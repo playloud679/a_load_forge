@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T18:12:42Z",
+  "generated_at": "2026-08-24T18:23:37Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 503,
-  "latest_batch_added": 77,
-  "latest_batch_visible_added": 69,
-  "latest_batch_existing_aliases_collapsed": 8,
-  "final_records": 6963,
+  "added": 548,
+  "latest_batch_added": 45,
+  "latest_batch_visible_added": 45,
+  "latest_batch_existing_aliases_collapsed": 0,
+  "final_records": 7008,
   "app_visible_before": 5501,
-  "app_visible_records": 5981,
+  "app_visible_records": 6026,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -25,15 +25,18 @@
     "Wavecor official manufacturer site",
     "Peerless/Tymphany public official API",
     "Monacor official manufacturer catalog",
-    "Eighteen Sound official manufacturer catalog and archive"
+    "Eighteen Sound official manufacturer catalog and archive",
+    "SICA/Jensen public official Store API"
   ],
   "latest_batch_by_brand": {
-    "Eighteen Sound": 77
+    "Jensen": 44,
+    "SICA": 1
   },
   "latest_batch_visible_by_brand": {
-    "Eighteen Sound": 69
+    "Jensen": 44,
+    "SICA": 1
   },
-  "added_names_count": 503,
+  "added_names_count": 548,
   "added_names_sample": [
     "Adire Audio Koda 8",
     "Stereo Integrity HFS-24",
@@ -51,6 +54,10 @@
     "Eighteen Sound 21iD 2Ω",
     "Eighteen Sound 18LW2600 8Ω",
     "Eighteen Sound 12NTLW3500 16Ω",
-    "Eighteen Sound 8CX650 8Ω"
+    "Eighteen Sound 8CX650 8Ω",
+    "Jensen P 15/100 BB",
+    "Jensen N 12/100 TR STEALTH",
+    "Jensen BP 12/250",
+    "SICA 8 S 2.5 CP"
   ]
 }

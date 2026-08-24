@@ -5323,6 +5323,57 @@ test(
 )
 
 
+def _check_sica_official_harvester_separates_brands_and_normalizes_units():
+    from tools import harvest_sica_official as sica
+
+    def product(name, root):
+        values = {
+            "Fs": "38.0 Hz",
+            "Vas": "41.7 l",
+            "Qts": "0.30",
+            "Qms": "4.78",
+            "Qes": "0.31",
+            "Re": "5.2 Ω",
+            "Sd": "490.9 cm²",
+            "X max": "+/- 9.0 mm",
+            "Cms": "122 µm/N",
+            "Rated Power AES": "1000 W",
+            "Continuos Program Power": "2000 W",
+            "Nominal Diameter": "321 mm / 12 in",
+            "Nominal Impedance": "8 Ω",
+        }
+        return {
+            "name": name,
+            "permalink": f"https://sica.it/prodotto/{name.casefold().replace(' ', '-')}/",
+            "categories": [{"link": f"https://sica.it/categoria-prodotto/{root}/woofer/"}],
+            "attributes": [
+                {"name": label, "terms": [{"name": value}]}
+                for label, value in values.items()
+            ],
+        }
+
+    batches = [[product("12 SR 4 CP", "sica"), product("P 12/100 BB", "jensen")], []]
+
+    def fake_fetch(_url, _timeout):
+        return batches.pop(0)
+
+    payload = sica.harvest(fetcher=fake_fetch, timeout_s=1.0, per_page=2)
+    assert payload["accepted_by_brand"] == {"SICA": 1, "Jensen": 1}, payload
+    assert payload["accepted"] == 2
+    first = payload["presets"][0]
+    assert first["driver"]["xmax_mm"] == 9.0, first
+    assert first["driver"]["cms_mm_per_n"] == 0.122, first
+    assert first["driver"]["pe_w"] == 1000.0, first
+    assert first["size_in"] == 12.0, first
+    assert first["source"] == "Official manufacturer site"
+
+
+test(
+    "SICA official harvester separates brands and normalizes units",
+    _check_sica_official_harvester_separates_brands_and_normalizes_units,
+)
+
+
 def _check_crawler_agent_policy_planning_and_staging():
     import json
     import tempfile
