@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Driver Count Watchdog — triggers ALARM if unique preset count is stale.
+"""Driver Count Watchdog — triggers ALARM if the catalog count is stale.
 
-Keeps a tiny state file and compares the current validated preset count
-against the last recorded value.  Returns exit code:
+Keeps a tiny state file and compares the current manufacturer-catalog row
+count against the last recorded value.  This is deliberately the same
+population counted by ``run_catalog_completion_cycle.py``; importing
+``src.presets`` would apply cross-catalog deduplication and produce a
+different number from the crawler report.  Returns exit code:
   0  — count changed (healthy growth)
   1  — count unchanged (STALE ALARM)
   2  — first run (baseline recorded)
@@ -18,16 +21,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 STATE_FILE = ROOT / "data" / ".driver_watchdog_state.json"
-sys.path.insert(0, str(ROOT / "src"))
+CATALOG_FILE = ROOT / "data" / "catalog_proprietario.json"
+WATCHDOG_SOURCE = "application-manufacturer-tier"
 
 STALE_THRESHOLD = 2  # consecutive stale cycles before ALARM
 
 
 def _current_count() -> int:
+    sys.path.insert(0, str(ROOT / "src"))
     import presets
     presets._load_manufacturer_presets.cache_clear()
-    p, _ = presets._load_manufacturer_presets()
-    return len(p)
+    loaded, _info = presets._load_manufacturer_presets()
+    return len(loaded)
 
 
 def main() -> int:
@@ -38,13 +43,23 @@ def main() -> int:
     if STATE_FILE.exists():
         state = json.loads(STATE_FILE.read_text("utf-8"))
     else:
-        state = {"last_count": 0, "last_change_ts": now, "stale_cycles": 0}
+        state = {"schema": 3, "source": WATCHDOG_SOURCE, "last_count": 0,
+                 "last_change_ts": now, "stale_cycles": 0}
+
+    # Do not compare a baseline produced by the old raw-row metric.
+    if state.get("schema") != 3 or state.get("source") != WATCHDOG_SOURCE:
+        state = {"schema": 3, "source": WATCHDOG_SOURCE, "last_count": count,
+                 "last_change_ts": now, "stale_cycles": 0}
+        STATE_FILE.write_text(json.dumps(state), encoding="utf-8")
+        print(json.dumps({"status": "BASELINE_RESET", "count": count, "stale_cycles": 0}))
+        return 2
 
     prev = state["last_count"]
 
     if prev == 0:
         # First run — record baseline
-        state = {"last_count": count, "last_change_ts": now, "stale_cycles": 0}
+        state = {"schema": 3, "source": WATCHDOG_SOURCE, "last_count": count,
+                 "last_change_ts": now, "stale_cycles": 0}
         STATE_FILE.write_text(json.dumps(state), "utf-8")
         print(json.dumps({"status": "BASELINE", "count": count, "stale_cycles": 0}))
         return 2
@@ -52,7 +67,8 @@ def main() -> int:
     if count > prev:
         # Growth detected — reset
         delta = count - prev
-        state = {"last_count": count, "last_change_ts": now, "stale_cycles": 0}
+        state = {"schema": 3, "source": WATCHDOG_SOURCE, "last_count": count,
+                 "last_change_ts": now, "stale_cycles": 0}
         STATE_FILE.write_text(json.dumps(state), "utf-8")
         print(json.dumps({"status": "GROWTH", "count": count, "delta": delta, "stale_cycles": 0}))
         return 0

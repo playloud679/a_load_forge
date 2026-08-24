@@ -56,10 +56,36 @@ def _preserve_manual_values(item: dict, previous: dict | None) -> dict:
     return result
 
 
+def _preserve_proprietary_rows(target: Path, rows: list[dict]) -> list[dict]:
+    """Keep harvested proprietary rows absent from the current source export."""
+    if target.name != "catalog_proprietario.json" or not target.exists():
+        return rows
+    try:
+        previous = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return rows
+
+    def identity(item: dict) -> tuple[str, str, str]:
+        return (
+            str(item.get("brand") or "").casefold().strip(),
+            str(item.get("model") or "").casefold().strip(),
+            str(item.get("name") or "").casefold().strip(),
+        )
+
+    known = {identity(item) for item in rows}
+    preserved = list(rows)
+    for item in previous.get("presets", []):
+        if isinstance(item, dict) and identity(item) not in known:
+            preserved.append(item)
+            known.add(identity(item))
+    return preserved
+
+
 def main() -> None:
     for output, source in SOURCES.items():
         rows = json.loads((ROOT / source).read_text(encoding="utf-8")).get("presets", [])
         target = ROOT / "data" / output
+        rows = _preserve_proprietary_rows(target, rows)
         manual_rows = _manual_rows(target)
         unified = []
         for row in rows:

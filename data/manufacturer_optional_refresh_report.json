@@ -1,101 +1,101 @@
 {
-  "candidates": 5,
+  "candidates": 0,
   "checkpoint_seeded": 0,
   "coverage_after": {
     "bolt_circle_mm": {
-      "missing": 4322,
-      "percent": 18.16,
-      "present": 959
+      "missing": 4321,
+      "percent": 18.19,
+      "present": 961
     },
     "cutout_diameter_mm": {
-      "missing": 4076,
-      "percent": 22.82,
-      "present": 1205
+      "missing": 4035,
+      "percent": 23.61,
+      "present": 1247
     },
     "depth_mm": {
-      "missing": 4740,
-      "percent": 10.24,
-      "present": 541
+      "missing": 4700,
+      "percent": 11.02,
+      "present": 582
     },
     "efficiency_pct": {
-      "missing": 5124,
-      "percent": 2.97,
-      "present": 157
+      "missing": 5046,
+      "percent": 4.47,
+      "present": 236
     },
     "flux_density_t": {
       "missing": 4825,
-      "percent": 8.63,
-      "present": 456
+      "percent": 8.65,
+      "present": 457
     },
     "le_mh": {
       "missing": 307,
       "percent": 94.19,
-      "present": 4974
+      "present": 4975
     },
     "magnet_weight_kg": {
       "missing": 4990,
-      "percent": 5.51,
-      "present": 291
+      "percent": 5.53,
+      "present": 292
     },
     "mounting_depth_mm": {
-      "missing": 5185,
-      "percent": 1.82,
-      "present": 96
+      "missing": 5145,
+      "percent": 2.59,
+      "present": 137
     },
     "mounting_hole_count": {
-      "missing": 4842,
-      "percent": 8.31,
-      "present": 439
+      "missing": 4754,
+      "percent": 10.0,
+      "present": 528
     },
     "mounting_hole_diameter_mm": {
-      "missing": 5036,
-      "percent": 4.64,
-      "present": 245
+      "missing": 4948,
+      "percent": 6.32,
+      "present": 334
     },
     "nominal_diameter_in": {
-      "missing": 4672,
+      "missing": 4673,
       "percent": 11.53,
       "present": 609
     },
     "nominal_impedance_ohm": {
-      "missing": 4223,
-      "percent": 20.03,
-      "present": 1058
+      "missing": 4157,
+      "percent": 21.3,
+      "present": 1125
     },
     "overall_diameter_mm": {
-      "missing": 4315,
-      "percent": 18.29,
-      "present": 966
+      "missing": 4275,
+      "percent": 19.06,
+      "present": 1007
     },
     "pe_w": {
-      "missing": 273,
-      "percent": 94.83,
-      "present": 5008
+      "missing": 260,
+      "percent": 95.08,
+      "present": 5022
     },
     "sensitivity_db": {
-      "missing": 4199,
-      "percent": 20.49,
-      "present": 1082
+      "missing": 4120,
+      "percent": 22.0,
+      "present": 1162
     },
     "voice_coil_diameter_mm": {
-      "missing": 3896,
-      "percent": 26.23,
-      "present": 1385
-    },
-    "weight_kg": {
-      "missing": 3816,
+      "missing": 3817,
       "percent": 27.74,
       "present": 1465
+    },
+    "weight_kg": {
+      "missing": 3750,
+      "percent": 29.0,
+      "present": 1532
     },
     "xmax_mm": {
       "missing": 301,
       "percent": 94.3,
-      "present": 4980
+      "present": 4981
     },
     "xmech_mm": {
-      "missing": 5105,
-      "percent": 3.33,
-      "present": 176
+      "missing": 5103,
+      "percent": 3.39,
+      "present": 179
     }
   },
   "database": "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json",
@@ -104,7 +104,7 @@
   "local_power_repairs": 0,
   "mode": "apply",
   "parser_revision": 4,
-  "processed": 5,
+  "processed": 0,
   "records_updated": 0,
   "records_updated_by_host": {},
   "unitless_power_invalidations": 0

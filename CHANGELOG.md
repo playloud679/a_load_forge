@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.8.27 (2026-08-24)
+
+- Recovered the proprietary catalog to 6,460 records after a batch rebuild had
+  reduced the generated view to 5,282, preserving the application loader count
+  at 5,501.
+- Added a growth watchdog baseline reset and protected proprietary-only records
+  from removal during unified catalog rebuilds.
+- Verified the full active suite: **170 PASS, 0 FAIL, 0 SKIP**.
+
 ## 0.8.26 (2026-08-21)
 
 - **High-performance catalog boot and binary cache acceleration**:

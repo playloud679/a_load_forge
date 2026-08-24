@@ -79,3 +79,16 @@ Useful bounds:
 The completion report ends with explicit unresolved counts. Reaching 100% is
 not forced: if a manufacturer does not publish a value, leaving it missing is
 more accurate than manufacturing a plausible number.
+
+## Driver-growth watchdog
+
+After a batch, check whether the manufacturer catalog itself grew:
+
+```bash
+.venv/bin/python tools/driver_count_watchdog.py
+```
+
+The watchdog counts the deduplicated manufacturer tier loaded by the
+application from `catalog_proprietario.json`. It resets an old baseline if it was created with the
+application's cross-catalog deduplicated count, emits `WARNING` on the first
+stalled cycle and `ALARM` from the second consecutive stalled cycle onward.

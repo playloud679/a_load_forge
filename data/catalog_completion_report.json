@@ -4,75 +4,75 @@
       "bl_tm": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5277
+        "present": 5282
       },
       "cms_mm_per_n": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5277
+        "present": 5282
       },
       "fs_hz": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5277
+        "present": 5282
       },
       "le_mh": {
-        "missing": 311,
-        "percent": 94.11,
-        "present": 4966
+        "missing": 307,
+        "percent": 94.19,
+        "present": 4975
       },
       "mms_g": {
         "missing": 4,
         "percent": 99.92,
-        "present": 5273
+        "present": 5278
       },
       "pe_w": {
-        "missing": 334,
-        "percent": 93.67,
-        "present": 4943
+        "missing": 260,
+        "percent": 95.08,
+        "present": 5022
       },
       "qes": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5277
+        "present": 5282
       },
       "qms": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5277
+        "present": 5282
       },
       "qts": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5277
+        "present": 5282
       },
       "re_ohm": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5277
+        "present": 5282
       },
       "sd_cm2": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5277
+        "present": 5282
       },
       "vas_l": {
         "missing": 0,
         "percent": 100.0,
-        "present": 5277
+        "present": 5282
       },
       "xmax_mm": {
-        "missing": 300,
-        "percent": 94.31,
-        "present": 4977
+        "missing": 301,
+        "percent": 94.3,
+        "present": 4981
       }
     },
     "price": {
-      "missing": 940,
-      "percent": 82.19,
-      "present": 4337
+      "missing": 928,
+      "percent": 82.43,
+      "present": 4354
     },
-    "rows": 5277
+    "rows": 5282
   },
   "cycles": [
     {
@@ -81,80 +81,80 @@
           "bl_tm": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5277
+            "present": 5282
           },
           "cms_mm_per_n": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5277
+            "present": 5282
           },
           "fs_hz": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5277
+            "present": 5282
           },
           "le_mh": {
-            "missing": 311,
-            "percent": 94.11,
-            "present": 4966
+            "missing": 307,
+            "percent": 94.19,
+            "present": 4975
           },
           "mms_g": {
             "missing": 4,
             "percent": 99.92,
-            "present": 5273
+            "present": 5278
           },
           "pe_w": {
-            "missing": 334,
-            "percent": 93.67,
-            "present": 4943
+            "missing": 260,
+            "percent": 95.08,
+            "present": 5022
           },
           "qes": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5277
+            "present": 5282
           },
           "qms": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5277
+            "present": 5282
           },
           "qts": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5277
+            "present": 5282
           },
           "re_ohm": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5277
+            "present": 5282
           },
           "sd_cm2": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5277
+            "present": 5282
           },
           "vas_l": {
             "missing": 0,
             "percent": 100.0,
-            "present": 5277
+            "present": 5282
           },
           "xmax_mm": {
-            "missing": 300,
-            "percent": 94.31,
-            "present": 4977
+            "missing": 301,
+            "percent": 94.3,
+            "present": 4981
           }
         },
         "price": {
-          "missing": 940,
-          "percent": 82.19,
-          "present": 4337
+          "missing": 928,
+          "percent": 82.43,
+          "present": 4354
         },
-        "rows": 5277
+        "rows": 5282
       },
       "cycle": 1,
-      "finished_at": "2026-08-04T23:12:08+00:00",
-      "progress_units": 94,
-      "started_at": "2026-08-04T23:06:17+00:00",
+      "finished_at": "2026-08-24T09:07:42+00:00",
+      "progress_units": 4,
+      "started_at": "2026-08-24T09:07:00+00:00",
       "steps": [
         {
           "command": [
@@ -167,12 +167,12 @@
             "--local-only",
             "--apply"
           ],
-          "finished_at": "2026-08-04T23:06:18+00:00",
+          "finished_at": "2026-08-24T09:07:02+00:00",
           "returncode": 0,
           "stage": "local_repairs",
-          "started_at": "2026-08-04T23:06:17+00:00",
+          "started_at": "2026-08-24T09:07:01+00:00",
           "stderr_tail": "",
-          "stdout_tail": "{\n  \"mode\": \"apply\",\n  \"database\": \"/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json\",\n  \"candidates\": 0,\n  \"processed\": 0,\n  \"records_updated\": 0,\n  \"fields_filled\": {},\n  \"local_power_repairs\": 0,\n  \"unitless_power_invalidations\": 0,\n  \"records_updated_by_host\": {},\n  \"coverage_after\": {\n    \"xmax_mm\": {\n      \"present\": 4977,\n      \"missing\": 300,\n      \"percent\": 94.31\n    },\n    \"pe_w\": {\n      \"present\": 4943,\n      \"missing\": 334,\n      \"percent\": 93.67\n    },\n    \"le_mh\": {\n      \"present\": 4966,\n      \"missing\": 311,\n      \"percent\": 94.11\n    }\n  }\n}\nfailures=0\n"
+          "stdout_tail": "{\n  \"mode\": \"apply\",\n  \"database\": \"/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json\",\n  \"candidates\": 0,\n  \"processed\": 0,\n  \"records_updated\": 0,\n  \"fields_filled\": {},\n  \"local_power_repairs\": 0,\n  \"unitless_power_invalidations\": 0,\n  \"checkpoint_seeded\": 0,\n  \"parser_revision\": 4,\n  \"records_updated_by_host\": {},\n  \"coverage_after\": {\n    \"xmax_mm\": {\n      \"present\": 4981,\n      \"missing\": 301,\n      \"percent\": 94.3\n    },\n    \"pe_w\": {\n      \"present\": 5022,\n      \"missing\": 260,\n      \"percent\": 95.08\n    },\n    \"le_mh\": {\n      \"present\": 4975,\n      \"missing\": 307,\n      \"percent\": 94.19\n    },\n    \"overall_diameter_mm\": {\n      \"present\": 1007,\n      \"missing\": 4275,\n      \"percent\": 19.06\n    },\n    \"cutout_diameter_mm\": {\n      \"present\": 1247,\n      \"missing\": 4035,\n      \"percent\": 23.61\n    },\n    \"depth_mm\": {\n      \"present\": 582,\n      \"missing\": 4700,\n      \"percent\": 11.02\n    },\n    \"mounting_depth_mm\": {\n      \"present\": 137,\n      \"missing\": 5145,\n      \"percent\": 2.59\n    },\n    \"bolt_circle_mm\": {\n      \"present\": 961,\n      \"missing\": 4321,\n      \"percent\": 18.19\n    },\n    \"mounting_hole_count\": {\n      \"present\": 528,\n      \"missing\": 4754,\n      \"percent\": 10.0\n    },\n    \"mounting_hole_diameter_mm\": {\n      \"present\": 334,\n      \"missing\": 4948,\n      \"percent\": 6.32\n    },\n    \"weight_kg\": {\n      \"present\": 1532,\n      \"missing\": 3750,\n      \"percent\": 29.0\n    },\n    \"nominal_impedance_ohm\": {\n      \"present\": 1125,\n      \"missing\": 4157,\n      \"percent\": 21.3\n    },\n    \"sensitivity_db\": {\n      \"present\": 1162,\n      \"missing\": 4120,\n      \"percent\": 22.0\n    },\n    \"voice_coil_diameter_mm\": {\n      \"present\": 1465,\n      \"missing\": 3817,\n      \"percent\": 27.74\n    },\n    \"xmech_mm\": {\n      \"present\": 179,\n      \"missing\": 5103,\n      \"percent\": 3.39\n    },\n    \"efficiency_pct\": {\n      \"present\": 236,\n      \"missing\": 5046,\n      \"percent\": 4.47\n    },\n    \"magnet_weight_kg\": {\n      \"present\": 292,\n      \"missing\": 4990,\n      \"percent\": 5.53\n    },\n    \"flux_density_t\": {\n      \"present\": 457,\n      \"missing\": 4825,\n      \"percent\": 8.65\n    },\n    \"nominal_diameter_in\": {\n      \"present\": 609,\n      \"missing\": 4673,\n      \"percent\": 11.53\n    }\n  }\n}\nfailures=0\n"
         },
         {
           "command": [
@@ -184,12 +184,12 @@
             "/Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json",
             "--apply"
           ],
-          "finished_at": "2026-08-04T23:06:20+00:00",
+          "finished_at": "2026-08-24T09:07:04+00:00",
           "returncode": 0,
           "stage": "cache_first_merge",
-          "started_at": "2026-08-04T23:06:18+00:00",
+          "started_at": "2026-08-24T09:07:02+00:00",
           "stderr_tail": "",
-          "stdout_tail": "rows=5277 priced=4308 unpriced=969 derived={'bl_tm': 1, 'cms_mm_per_n': 70, 'size_in': 9} corrected={'cms_mm_per_n': 4, 'rejected_size_sd_conflict': 89, 'sd_cm2': 27, 'size_in': 856} changes_this_run={'rejected_size_sd_conflict': 6, 'sd_cm2': 1, 'size_in': 9} applied=True\n"
+          "stdout_tail": "rows=5282 priced=4321 unpriced=961 derived={'size_in': 1} corrected={'cms_mm_per_n': 8, 'le_mh': 7, 'mms_g': 6, 'pe_w': 5, 'rejected_size_sd_conflict': 89, 'sd_cm2': 27, 'size_in': 871} changes_this_run={'size_in': 1} applied=True\n"
         },
         {
           "command": [
@@ -214,12 +214,12 @@
             "--per-host-delay",
             "0.5"
           ],
-          "finished_at": "2026-08-04T23:06:43+00:00",
+          "finished_at": "2026-08-24T09:07:15+00:00",
           "returncode": 0,
           "stage": "high_yield_sources",
-          "started_at": "2026-08-04T23:06:20+00:00",
-          "stderr_tail": "Rotated text discovered. Output will be incomplete.\n",
-          "stdout_tail": "ercent\": 93.67\n    },\n    \"le_mh\": {\n      \"present\": 4966,\n      \"missing\": 311,\n      \"percent\": 94.11\n    }\n  }\n}\nfailures=0\n{\"attempted_at\": \"2026-08-04T23:06:36+00:00\", \"domain\": \"markaudio.com\", \"eligible\": true, \"expanded\": false, \"full\": null, \"missing\": {\"le_mh\": 2, \"pe_w\": 7, \"xmax_mm\": 0}, \"probe\": {\"fields_filled\": {}, \"processed\": 3, \"records_updated\": 0}, \"probe_failures\": 0, \"records\": 7, \"returncode\": 0, \"score\": 17.0, \"unique_urls\": 7, \"url_diversity\": 1.0}\n{\n  \"mode\": \"apply\",\n  \"database\": \"/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json\",\n  \"candidates\": 3,\n  \"processed\": 3,\n  \"records_updated\": 0,\n  \"fields_filled\": {},\n  \"local_power_repairs\": 0,\n  \"unitless_power_invalidations\": 0,\n  \"records_updated_by_host\": {},\n  \"coverage_after\": {\n    \"xmax_mm\": {\n      \"present\": 4977,\n      \"missing\": 300,\n      \"percent\": 94.31\n    },\n    \"pe_w\": {\n      \"present\": 4943,\n      \"missing\": 334,\n      \"percent\": 93.67\n    },\n    \"le_mh\": {\n      \"present\": 4966,\n      \"missing\": 311,\n      \"percent\": 94.11\n    }\n  }\n}\nfailures=0\n{\"attempted_at\": \"2026-08-04T23:06:43+00:00\", \"domain\": \"sbacoustics.com\", \"eligible\": true, \"expanded\": false, \"full\": null, \"missing\": {\"le_mh\": 5, \"pe_w\": 0, \"xmax_mm\": 1}, \"probe\": {\"fields_filled\": {}, \"processed\": 3, \"records_updated\": 0}, \"probe_failures\": 0, \"records\": 6, \"returncode\": 0, \"score\": 10.5, \"unique_urls\": 6, \"url_diversity\": 1.0}\n{\n  \"selected_domains\": 5,\n  \"results\": [\n    {\n      \"domain\": \"nvx.com\",\n      \"records\": 7,\n      \"missing\": {\n        \"xmax_mm\": 3,\n        \"pe_w\": 7,\n        \"le_mh\": 7\n      },\n      \"score\": 33.5,\n      \"unique_urls\": 7,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T23:06:22+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 3,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"beyma.com\",\n      \"records\": 11,\n      \"missing\": {\n        \"xmax_mm\": 0,\n        \"pe_w\": 11,\n        \"le_mh\": 0\n      },\n      \"score\": 22.0,\n      \"unique_urls\": 11,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T23:06:26+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 0,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"ciare.com\",\n      \"records\": 14,\n      \"missing\": {\n        \"xmax_mm\": 0,\n        \"pe_w\": 0,\n        \"le_mh\": 14\n      },\n      \"score\": 21.0,\n      \"unique_urls\": 14,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T23:06:30+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 0,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"markaudio.com\",\n      \"records\": 7,\n      \"missing\": {\n        \"xmax_mm\": 0,\n        \"pe_w\": 7,\n        \"le_mh\": 2\n      },\n      \"score\": 17.0,\n      \"unique_urls\": 7,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T23:06:36+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 0,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"sbacoustics.com\",\n      \"records\": 6,\n      \"missing\": {\n        \"xmax_mm\": 1,\n        \"pe_w\": 0,\n        \"le_mh\": 5\n      },\n      \"score\": 10.5,\n      \"unique_urls\": 6,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-04T23:06:43+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 0,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    }\n  ]\n}\n"
+          "started_at": "2026-08-24T09:07:04+00:00",
+          "stderr_tail": "",
+          "stdout_tail": " 0,\n        \"le_mh\": 0,\n        \"overall_diameter_mm\": 157,\n        \"cutout_diameter_mm\": 157,\n        \"depth_mm\": 157,\n        \"mounting_depth_mm\": 157,\n        \"bolt_circle_mm\": 157,\n        \"mounting_hole_count\": 157,\n        \"mounting_hole_diameter_mm\": 157,\n        \"weight_kg\": 0,\n        \"nominal_impedance_ohm\": 0,\n        \"sensitivity_db\": 0,\n        \"voice_coil_diameter_mm\": 0,\n        \"xmech_mm\": 0,\n        \"efficiency_pct\": 0,\n        \"magnet_weight_kg\": 157,\n        \"flux_density_t\": 137,\n        \"nominal_diameter_in\": 157\n      },\n      \"score\": 2178.0,\n      \"unique_urls\": 157,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-24T09:07:09+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 3,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"rockfordfosgate.com\",\n      \"records\": 78,\n      \"missing\": {\n        \"xmax_mm\": 0,\n        \"pe_w\": 0,\n        \"le_mh\": 0,\n        \"overall_diameter_mm\": 78,\n        \"cutout_diameter_mm\": 78,\n        \"depth_mm\": 78,\n        \"mounting_depth_mm\": 78,\n        \"bolt_circle_mm\": 78,\n        \"mounting_hole_count\": 78,\n        \"mounting_hole_diameter_mm\": 78,\n        \"weight_kg\": 78,\n        \"nominal_impedance_ohm\": 78,\n        \"sensitivity_db\": 78,\n        \"voice_coil_diameter_mm\": 78,\n        \"xmech_mm\": 78,\n        \"efficiency_pct\": 78,\n        \"magnet_weight_kg\": 78,\n        \"flux_density_t\": 78,\n        \"nominal_diameter_in\": 78\n      },\n      \"score\": 1560.0,\n      \"unique_urls\": 78,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-24T09:07:11+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 3,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"precision-devices.com\",\n      \"records\": 72,\n      \"missing\": {\n        \"xmax_mm\": 0,\n        \"pe_w\": 0,\n        \"le_mh\": 0,\n        \"overall_diameter_mm\": 72,\n        \"cutout_diameter_mm\": 72,\n        \"depth_mm\": 72,\n        \"mounting_depth_mm\": 72,\n        \"bolt_circle_mm\": 72,\n        \"mounting_hole_count\": 72,\n        \"mounting_hole_diameter_mm\": 72,\n        \"weight_kg\": 72,\n        \"nominal_impedance_ohm\": 72,\n        \"sensitivity_db\": 72,\n        \"voice_coil_diameter_mm\": 72,\n        \"xmech_mm\": 72,\n        \"efficiency_pct\": 72,\n        \"magnet_weight_kg\": 72,\n        \"flux_density_t\": 72,\n        \"nominal_diameter_in\": 72\n      },\n      \"score\": 1440.0,\n      \"unique_urls\": 72,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-24T09:07:13+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 3,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    },\n    {\n      \"domain\": \"products-peerless.com\",\n      \"records\": 72,\n      \"missing\": {\n        \"xmax_mm\": 0,\n        \"pe_w\": 0,\n        \"le_mh\": 0,\n        \"overall_diameter_mm\": 72,\n        \"cutout_diameter_mm\": 72,\n        \"depth_mm\": 72,\n        \"mounting_depth_mm\": 72,\n        \"bolt_circle_mm\": 72,\n        \"mounting_hole_count\": 72,\n        \"mounting_hole_diameter_mm\": 72,\n        \"weight_kg\": 72,\n        \"nominal_impedance_ohm\": 72,\n        \"sensitivity_db\": 72,\n        \"voice_coil_diameter_mm\": 72,\n        \"xmech_mm\": 72,\n        \"efficiency_pct\": 72,\n        \"magnet_weight_kg\": 72,\n        \"flux_density_t\": 72,\n        \"nominal_diameter_in\": 72\n      },\n      \"score\": 1440.0,\n      \"unique_urls\": 72,\n      \"url_diversity\": 1.0,\n      \"eligible\": true,\n      \"attempted_at\": \"2026-08-24T09:07:15+00:00\",\n      \"probe\": {\n        \"processed\": 3,\n        \"records_updated\": 0,\n        \"fields_filled\": {}\n      },\n      \"probe_failures\": 3,\n      \"expanded\": false,\n      \"full\": null,\n      \"returncode\": 0\n    }\n  ]\n}\n"
         },
         {
           "command": [
@@ -228,18 +228,18 @@
             "--output",
             "/Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json",
             "--window-runtime",
-            "600.0",
+            "900.0",
             "--sleep",
             "2.0",
             "--timeout",
             "20.0"
           ],
-          "finished_at": "2026-08-04T23:06:50+00:00",
-          "returncode": 0,
+          "finished_at": "2026-08-24T09:07:19+00:00",
+          "returncode": 1,
           "stage": "primary_prices",
-          "started_at": "2026-08-04T23:06:43+00:00",
+          "started_at": "2026-08-24T09:07:15+00:00",
           "stderr_tail": "",
-          "stdout_tail": "provider soundimports: worker pid=63523\nprovider bluearan: worker pid=63524\nprovider madisound: worker pid=63525\nprovider partsexpress: worker pid=63526\nloaded 13631 price candidates\nloaded 13631 price candidates\nloaded 13631 price candidates\nloaded 13631 price candidates\npartsexpress sitemap done: scanned=0 catalog=8628 preset_prices=2080\nbluearan sitemap done: scanned=0 catalog=3608 preset_prices=1266\nsoundimports sitemap done: scanned=0 catalog=7876 preset_prices=1720\nprovider soundimports: window completed\nprovider bluearan: window completed\nmadisound categories done: scanned=0 pages=2163 catalog=1627 preset_prices=488\nprovider madisound: window completed\nprovider partsexpress: window completed\nmerged 36308 prices into /Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json\nparallel cycle completed successfully\n"
+          "stdout_tail": "provider soundimports: worker pid=53203\nprovider bluearan: worker pid=53204\nprovider madisound: worker pid=53205\nprovider partsexpress: worker pid=53206\nloaded 14656 price candidates\nloaded 14656 price candidates\ncatalog sitemap miss: <urlopen error [Errno 8] nodename nor servname provided, or not known>\ncatalog sitemap miss: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nloaded 14656 price candidates\nloaded 14656 price candidates\ncatalog sitemap miss: <urlopen error [Errno 8] nodename nor servname provided, or not known>\ncatalog sitemap miss: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nprovider soundimports: window completed\nprovider bluearan: window completed\nprovider madisound: failed with exit code 1\nprovider partsexpress: window completed\nmerged 36968 prices into /Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json\ncycle completed with failures: madisound\n"
         },
         {
           "command": [
@@ -252,12 +252,12 @@
             "--source-runtime",
             "300.0"
           ],
-          "finished_at": "2026-08-04T23:12:02+00:00",
+          "finished_at": "2026-08-24T09:07:36+00:00",
           "returncode": 1,
           "stage": "regional_prices",
-          "started_at": "2026-08-04T23:06:50+00:00",
-          "stderr_tail": "",
-          "stdout_tail": " products\nthomann: brand=350/361 no exact-brand products\nthomann: brand=351/361 no exact-brand products\nthomann: brand=352/361 no exact-brand products\nthomann: brand=353/361 no exact-brand products\nthomann: brand=354/361 no exact-brand products\nthomann: brand=355/361 no exact-brand products\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/scan-speak-woofers/405-discovery-d7608-920010-3-mid-dome.html: HTTP Error 404: Not Found\nthomann: brand=356/361 no exact-brand products\nthomann: brand=357/361 no exact-brand products\nthomann: brand=358/361 no exact-brand products\nthomann: brand=359/361 no exact-brand products\nthomann: brand=360/361 no exact-brand products\nthomann: brand=361/361 no exact-brand products\nthomann: refreshed=1739 retained=1860 checkpoint=1860 /Users/marcoderossi/Documents/Codes/load_forge/data/thomann_harvest_checkpoint.json\nhautparleursfr: 125/298 fetched, 125 parsed\naudiophonics: 250/350 fetched, 250 parsed\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/morel-woofers/415-elite-em-428-4-woofer.html: HTTP Error 404: Not Found\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/morel-woofers/422-ticw-1058ft-titanium-series-10-subwoofer-8-ohm.html: HTTP Error 404: Not Found\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/morel-woofers/426-tiw-634ft-titanium-series-ferrite-6-woofer-4-ohm.html: HTTP Error 404: Not Found\ndiyaudioeu: 200/288 fetched, 161 parsed\naudiophonics: 275/350 fetched, 275 parsed\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/dayton-audio-tweeters/513-rst28a-4-1-1-8-reference-series-aluminum-dome-tweeter-4-ohm.html: HTTP Error 404: Not Found\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/morel-tweeters/522-classic-advanced-cat-408-1-dome-tweeter.html: HTTP Error 404: Not Found\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/morel-tweeters/524-elite-et-448-1-dome-tweeter.html: HTTP Error 404: Not Found\nhautparleursfr: 150/298 fetched, 150 parsed\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/mundorf-tweeters/536-amtu110w11-air-motion-transformer-useries-tweeter-amt.html: HTTP Error 404: Not Found\naudiophonics: 300/350 fetched, 300 parsed\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/mundorf-tweeters/540-amtu80w11-air-motion-transformer-useries-tweeter-amt.html: HTTP Error 404: Not Found\naudiophonics: 325/350 fetched, 325 parsed\ndiyaudioeu: fetch failed https://www.diy-audio.eu/en/peerless-tweeters/542-da25bg08-06-1-aluminum-dome-tweeter.html: The read operation timed out\ndiyaudioeu: 225/288 fetched, 180 parsed\nsource audiophonics: exceeded 300s runtime; terminating\nsource audiophonics: failed with exit code -15\nsource cinergyaudio: refresh complete\nsource diyaudioeu: exceeded 300s runtime; terminating\nsource diyaudioeu: failed with exit code -15\nsource diyspeakerseu: refresh complete\nsource ds18: refresh complete\nsource ficaraudio: refresh complete\nsource hautparleursfr: exceeded 300s runtime; terminating\nsource hautparleursfr: failed with exit code -15\nsource hogtalarshoppen: refresh complete\nsource kjfaudio: refresh complete\nsource lautsprechershop: refresh complete\nsource thomann: refresh complete\nsource topservicepro: refresh complete\nsource wavecor: refresh complete\nsource willyshifi: refresh complete\nCinergyAudio: ingested=45\nAudiophonics: ingested=350\nDIYAudioEU: ingested=259\nWillysHiFi: ingested=405\nHautParleursFr: ingested=298\nLautsprechershop: ingested=1240\nTopServicePro: ingested=728\nKJFAudio: ingested=44\nHogtalarshoppen: ingested=245\nDIYSpeakersEU: ingested=124\nAnalogHiFi: ingested=128\nThomann: ingested=1860\nDS18: ingested=79\nFiCarAudio: ingested=111\nWavecorOfficial: ingested=23\nAudioHiFi: ingested=11\nBomberRegional: ingested=375\nPAudioRegional: ingested=2\nPHL-TLHP: ingested=12\nSICA-TLHP: ingested=13\nToutLeHautParleur: ingested=2170\nTOTAL: ingested=8522 products_scanned=30264 products_matched=8424 candidates_priced=6658 new_prices=0 replaced_prices=5\ncycle merged retained checkpoints; failed sources: audiophonics, diyaudioeu, hautparleursfr\n"
+          "started_at": "2026-08-24T09:07:19+00:00",
+          "stderr_tail": "@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/http/client.py\", line 1113, in _send_output\n    self.send(msg)\n    ~~~~~~~~~^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/http/client.py\", line 1057, in send\n    self.connect()\n    ~~~~~~~~~~~~^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/http/client.py\", line 1492, in connect\n    super().connect()\n    ~~~~~~~~~~~~~~~^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/http/client.py\", line 1023, in connect\n    self.sock = self._create_connection(\n                ~~~~~~~~~~~~~~~~~~~~~~~^\n        (self.host,self.port), self.timeout, self.source_address)\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/socket.py\", line 846, in create_connection\n    for res in getaddrinfo(host, port, 0, SOCK_STREAM):\n               ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/socket.py\", line 983, in getaddrinfo\n    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):\n               ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nsocket.gaierror: [Errno 8] nodename nor servname provided, or not known\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/Users/marcoderossi/Documents/Codes/load_forge/tools/harvest_extra_retailers.py\", line 1857, in <module>\n    raise SystemExit(main())\n                     ~~~~^^\n  File \"/Users/marcoderossi/Documents/Codes/load_forge/tools/harvest_extra_retailers.py\", line 1821, in main\n    records = harvester(**kwargs)\n  File \"/Users/marcoderossi/Documents/Codes/load_forge/tools/harvest_extra_retailers.py\", line 1395, in harvest_lautsprechershop\n    urls = _lautsprechershop_category_urls(timeout_s)\n  File \"/Users/marcoderossi/Documents/Codes/load_forge/tools/harvest_extra_retailers.py\", line 1360, in _lautsprechershop_category_urls\n    text = epd.fetch_text(LAUTSPRECHERSHOP_SITEMAP, timeout_s)\n  File \"/Users/marcoderossi/Documents/Codes/load_forge/tools/enrich_driver_prices.py\", line 135, in fetch_text\n    with urlopen(req, timeout=timeout_s) as response:\n         ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py\", line 187, in urlopen\n    return opener.open(url, data, timeout)\n           ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py\", line 487, in open\n    response = self._open(req, data)\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py\", line 504, in _open\n    result = self._call_chain(self.handle_open, protocol, protocol +\n                              '_open', req)\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py\", line 464, in _call_chain\n    result = func(*args)\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py\", line 1369, in https_open\n    return self.do_open(http.client.HTTPSConnection, req,\n           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                        context=self._context)\n                        ^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/Versions/3.14/lib/python3.14/urllib/request.py\", line 1324, in do_open\n    raise URLError(err)\nurllib.error.URLError: <urlopen error [Errno 8] nodename nor servname provided, or not known>\n",
+          "stdout_tail": " known>\nthomann: miss brand=Obsidian Audio page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Planet Audio page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=PowerVox page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Pyle page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Pyramid page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Quake page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Questo Audio page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Radiotehnika page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=RD Audio page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Savard Speaker Systems page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Seven Speakers page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Shocker page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Shok Industries page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Sinfoni page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Snake page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Solar Audio Technologies page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Sound Ordnance page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Sound Splinter page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Spartan page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Stage Accompany page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Tezla Audio page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=The Box thomann page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=u-Dimension page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Unlike page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=Westra page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: miss brand=WGS page=1: <urlopen error [Errno 8] nodename nor servname provided, or not known>\nthomann: refreshed=0 retained=1860 checkpoint=1860 /Users/marcoderossi/Documents/Codes/load_forge/data/thomann_harvest_checkpoint.json\nsource thomann: refresh complete\nsource topservicepro: refresh complete\nsource wavecor: refresh complete\nsource willyshifi: refresh complete\nCinergyAudio: ingested=45\nAudiophonics: ingested=350\nDIYAudioEU: ingested=259\nWillysHiFi: ingested=405\nHautParleursFr: ingested=298\nLautsprechershop: ingested=1240\nTopServicePro: ingested=728\nKJFAudio: ingested=44\nHogtalarshoppen: ingested=245\nDIYSpeakersEU: ingested=124\nAnalogHiFi: ingested=128\nThomann: ingested=1860\nDS18: ingested=79\nFiCarAudio: ingested=111\nWavecorOfficial: ingested=23\nAudioHiFi: ingested=11\nStrumentiMusicali: ingested=100\nLeanAudio: ingested=572\nBomberRegional: ingested=375\nPAudioRegional: ingested=2\nPHL-TLHP: ingested=12\nSICA-TLHP: ingested=13\nToutLeHautParleur: ingested=2170\nTOTAL: ingested=9194 products_scanned=30960 products_matched=8892 candidates_priced=6830 new_prices=148 replaced_prices=35\ncycle merged retained checkpoints; failed sources: audiophonics, diyaudioeu, hautparleursfr, lautsprechershop\n"
         },
         {
           "command": [
@@ -269,24 +269,24 @@
             "/Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json",
             "--apply"
           ],
-          "finished_at": "2026-08-04T23:12:04+00:00",
+          "finished_at": "2026-08-24T09:07:38+00:00",
           "returncode": 0,
           "stage": "verified_merge",
-          "started_at": "2026-08-04T23:12:02+00:00",
+          "started_at": "2026-08-24T09:07:36+00:00",
           "stderr_tail": "",
-          "stdout_tail": "rows=5277 priced=4308 unpriced=969 derived={} corrected={'cms_mm_per_n': 4, 'rejected_size_sd_conflict': 89, 'sd_cm2': 27, 'size_in': 856} changes_this_run={} applied=True\n"
+          "stdout_tail": "rows=5282 priced=4333 unpriced=949 derived={} corrected={'cms_mm_per_n': 8, 'le_mh': 7, 'mms_g': 6, 'pe_w': 5, 'rejected_size_sd_conflict': 89, 'sd_cm2': 27, 'size_in': 871} changes_this_run={'size_in': 1} applied=True\n"
         },
         {
           "command": [
             "/Users/marcoderossi/Documents/Codes/load_forge/.venv/bin/python",
             "/Users/marcoderossi/Documents/Codes/load_forge/tools/build_unified_catalogs.py"
           ],
-          "finished_at": "2026-08-04T23:12:07+00:00",
+          "finished_at": "2026-08-24T09:07:41+00:00",
           "returncode": 0,
           "stage": "publish_views",
-          "started_at": "2026-08-04T23:12:04+00:00",
+          "started_at": "2026-08-24T09:07:38+00:00",
           "stderr_tail": "",
-          "stdout_tail": "catalog_proprietario.json: 5277 records\ncatalog_lsdb.json: 6215 records\ncatalog_vituixcad.json: 1038 records\ncatalog_speakerboxlite.json: 1952 records\n"
+          "stdout_tail": "catalog_proprietario.json: 5282 records\ncatalog_lsdb.json: 6215 records\ncatalog_vituixcad.json: 1038 records\ncatalog_speakerboxlite.json: 1952 records\n"
         },
         {
           "command": [
@@ -297,181 +297,18 @@
             "--prices",
             "/Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json"
           ],
-          "finished_at": "2026-08-04T23:12:07+00:00",
+          "finished_at": "2026-08-24T09:07:42+00:00",
           "returncode": 0,
           "stage": "status_report",
-          "started_at": "2026-08-04T23:12:07+00:00",
-          "stderr_tail": "",
-          "stdout_tail": "Report aggiornato: /Users/marcoderossi/Documents/Codes/load_forge/docs/manufacturer-database-status.md\n"
-        }
-      ]
-    },
-    {
-      "coverage_after": {
-        "fields": {
-          "bl_tm": {
-            "missing": 0,
-            "percent": 100.0,
-            "present": 5277
-          },
-          "cms_mm_per_n": {
-            "missing": 0,
-            "percent": 100.0,
-            "present": 5277
-          },
-          "fs_hz": {
-            "missing": 0,
-            "percent": 100.0,
-            "present": 5277
-          },
-          "le_mh": {
-            "missing": 311,
-            "percent": 94.11,
-            "present": 4966
-          },
-          "mms_g": {
-            "missing": 4,
-            "percent": 99.92,
-            "present": 5273
-          },
-          "pe_w": {
-            "missing": 334,
-            "percent": 93.67,
-            "present": 4943
-          },
-          "qes": {
-            "missing": 0,
-            "percent": 100.0,
-            "present": 5277
-          },
-          "qms": {
-            "missing": 0,
-            "percent": 100.0,
-            "present": 5277
-          },
-          "qts": {
-            "missing": 0,
-            "percent": 100.0,
-            "present": 5277
-          },
-          "re_ohm": {
-            "missing": 0,
-            "percent": 100.0,
-            "present": 5277
-          },
-          "sd_cm2": {
-            "missing": 0,
-            "percent": 100.0,
-            "present": 5277
-          },
-          "vas_l": {
-            "missing": 0,
-            "percent": 100.0,
-            "present": 5277
-          },
-          "xmax_mm": {
-            "missing": 300,
-            "percent": 94.31,
-            "present": 4977
-          }
-        },
-        "price": {
-          "missing": 940,
-          "percent": 82.19,
-          "present": 4337
-        },
-        "rows": 5277
-      },
-      "cycle": 2,
-      "finished_at": "2026-08-04T23:12:16+00:00",
-      "progress_units": 0,
-      "started_at": "2026-08-04T23:12:08+00:00",
-      "steps": [
-        {
-          "command": [
-            "/Users/marcoderossi/Documents/Codes/load_forge/.venv/bin/python",
-            "/Users/marcoderossi/Documents/Codes/load_forge/tools/refresh_manufacturer_optionals.py",
-            "--database",
-            "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json",
-            "--report",
-            "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_optional_refresh_report.json",
-            "--local-only",
-            "--apply"
-          ],
-          "finished_at": "2026-08-04T23:12:09+00:00",
-          "returncode": 0,
-          "stage": "local_repairs",
-          "started_at": "2026-08-04T23:12:08+00:00",
-          "stderr_tail": "",
-          "stdout_tail": "{\n  \"mode\": \"apply\",\n  \"database\": \"/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json\",\n  \"candidates\": 0,\n  \"processed\": 0,\n  \"records_updated\": 0,\n  \"fields_filled\": {},\n  \"local_power_repairs\": 0,\n  \"unitless_power_invalidations\": 0,\n  \"records_updated_by_host\": {},\n  \"coverage_after\": {\n    \"xmax_mm\": {\n      \"present\": 4977,\n      \"missing\": 300,\n      \"percent\": 94.31\n    },\n    \"pe_w\": {\n      \"present\": 4943,\n      \"missing\": 334,\n      \"percent\": 93.67\n    },\n    \"le_mh\": {\n      \"present\": 4966,\n      \"missing\": 311,\n      \"percent\": 94.11\n    }\n  }\n}\nfailures=0\n"
-        },
-        {
-          "command": [
-            "/Users/marcoderossi/Documents/Codes/load_forge/.venv/bin/python",
-            "/Users/marcoderossi/Documents/Codes/load_forge/tools/enrich_manufacturer_metadata.py",
-            "--database",
-            "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json",
-            "--prices",
-            "/Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json",
-            "--apply"
-          ],
-          "finished_at": "2026-08-04T23:12:11+00:00",
-          "returncode": 0,
-          "stage": "cache_first_merge",
-          "started_at": "2026-08-04T23:12:09+00:00",
-          "stderr_tail": "",
-          "stdout_tail": "rows=5277 priced=4308 unpriced=969 derived={} corrected={'cms_mm_per_n': 4, 'rejected_size_sd_conflict': 89, 'sd_cm2': 27, 'size_in': 856} changes_this_run={} applied=True\n"
-        },
-        {
-          "command": [
-            "/Users/marcoderossi/Documents/Codes/load_forge/.venv/bin/python",
-            "/Users/marcoderossi/Documents/Codes/load_forge/tools/enrich_manufacturer_metadata.py",
-            "--database",
-            "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json",
-            "--prices",
-            "/Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json",
-            "--apply"
-          ],
-          "finished_at": "2026-08-04T23:12:13+00:00",
-          "returncode": 0,
-          "stage": "verified_merge",
-          "started_at": "2026-08-04T23:12:11+00:00",
-          "stderr_tail": "",
-          "stdout_tail": "rows=5277 priced=4308 unpriced=969 derived={} corrected={'cms_mm_per_n': 4, 'rejected_size_sd_conflict': 89, 'sd_cm2': 27, 'size_in': 856} changes_this_run={} applied=True\n"
-        },
-        {
-          "command": [
-            "/Users/marcoderossi/Documents/Codes/load_forge/.venv/bin/python",
-            "/Users/marcoderossi/Documents/Codes/load_forge/tools/build_unified_catalogs.py"
-          ],
-          "finished_at": "2026-08-04T23:12:15+00:00",
-          "returncode": 0,
-          "stage": "publish_views",
-          "started_at": "2026-08-04T23:12:13+00:00",
-          "stderr_tail": "",
-          "stdout_tail": "catalog_proprietario.json: 5277 records\ncatalog_lsdb.json: 6215 records\ncatalog_vituixcad.json: 1038 records\ncatalog_speakerboxlite.json: 1952 records\n"
-        },
-        {
-          "command": [
-            "/Users/marcoderossi/Documents/Codes/load_forge/.venv/bin/python",
-            "/Users/marcoderossi/Documents/Codes/load_forge/tools/generate_manufacturer_database_report.py",
-            "--database",
-            "/Users/marcoderossi/Documents/Codes/load_forge/data/manufacturer_drivers.json",
-            "--prices",
-            "/Users/marcoderossi/Documents/Codes/load_forge/data/driver_prices.json"
-          ],
-          "finished_at": "2026-08-04T23:12:16+00:00",
-          "returncode": 0,
-          "stage": "status_report",
-          "started_at": "2026-08-04T23:12:15+00:00",
+          "started_at": "2026-08-24T09:07:41+00:00",
           "stderr_tail": "",
           "stdout_tail": "Report aggiornato: /Users/marcoderossi/Documents/Codes/load_forge/docs/manufacturer-database-status.md\n"
         }
       ]
     }
   ],
-  "finished_at": "2026-08-04T23:12:16+00:00",
-  "generated_at": "2026-08-04T23:06:17+00:00",
+  "finished_at": "2026-08-24T09:07:42+00:00",
+  "generated_at": "2026-08-24T09:07:00+00:00",
   "mode": "run",
   "policy": {
     "published_only": [
@@ -482,7 +319,7 @@
     ],
     "rule": "Never substitute estimates, averages, accessory prices or low-confidence matches."
   },
-  "price_index_offers": 36308,
+  "price_index_offers": 37116,
   "priority_brands": [
     {
       "brand": "Altec Lansing",
@@ -545,30 +382,6 @@
       "unpriced": 8
     },
     {
-      "brand": "Bomber",
-      "known_source_urls": 27,
-      "missing": {
-        "le_mh": 11,
-        "pe_w": 16,
-        "xmax_mm": 0
-      },
-      "records_with_gaps": 95,
-      "score": 137.5,
-      "unpriced": 89
-    },
-    {
-      "brand": "Eminence",
-      "known_source_urls": 64,
-      "missing": {
-        "le_mh": 0,
-        "pe_w": 62,
-        "xmax_mm": 2
-      },
-      "records_with_gaps": 65,
-      "score": 133.0,
-      "unpriced": 3
-    },
-    {
       "brand": "BMS",
       "known_source_urls": 34,
       "missing": {
@@ -591,6 +404,18 @@
       "records_with_gaps": 42,
       "score": 112.0,
       "unpriced": 13
+    },
+    {
+      "brand": "Bomber",
+      "known_source_urls": 14,
+      "missing": {
+        "le_mh": 11,
+        "pe_w": 3,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 92,
+      "score": 111.5,
+      "unpriced": 89
     },
     {
       "brand": "Fostex",
@@ -708,21 +533,9 @@
         "pe_w": 11,
         "xmax_mm": 1
       },
-      "records_with_gaps": 34,
-      "score": 47.0,
-      "unpriced": 22
-    },
-    {
-      "brand": "Markaudio",
-      "known_source_urls": 23,
-      "missing": {
-        "le_mh": 16,
-        "pe_w": 8,
-        "xmax_mm": 2
-      },
-      "records_with_gaps": 23,
-      "score": 47.0,
-      "unpriced": 1
+      "records_with_gaps": 35,
+      "score": 48.0,
+      "unpriced": 23
     },
     {
       "brand": "Precision Devices",
@@ -749,16 +562,16 @@
       "unpriced": 0
     },
     {
-      "brand": "Celestion",
-      "known_source_urls": 5,
+      "brand": "Markaudio",
+      "known_source_urls": 18,
       "missing": {
-        "le_mh": 5,
-        "pe_w": 0,
-        "xmax_mm": 0
+        "le_mh": 12,
+        "pe_w": 5,
+        "xmax_mm": 4
       },
-      "records_with_gaps": 40,
-      "score": 42.5,
-      "unpriced": 35
+      "records_with_gaps": 19,
+      "score": 41.0,
+      "unpriced": 1
     },
     {
       "brand": "NVX",
@@ -821,6 +634,18 @@
       "unpriced": 24
     },
     {
+      "brand": "Celestion",
+      "known_source_urls": 5,
+      "missing": {
+        "le_mh": 5,
+        "pe_w": 0,
+        "xmax_mm": 0
+      },
+      "records_with_gaps": 28,
+      "score": 30.5,
+      "unpriced": 23
+    },
+    {
       "brand": "Ciare",
       "known_source_urls": 15,
       "missing": {
@@ -857,18 +682,6 @@
       "unpriced": 18
     },
     {
-      "brand": "SB Acoustics",
-      "known_source_urls": 8,
-      "missing": {
-        "le_mh": 5,
-        "pe_w": 0,
-        "xmax_mm": 3
-      },
-      "records_with_gaps": 11,
-      "score": 19.5,
-      "unpriced": 3
-    },
-    {
       "brand": "AudioTechnology",
       "known_source_urls": 0,
       "missing": {
@@ -893,6 +706,18 @@
       "unpriced": 18
     },
     {
+      "brand": "SB Acoustics",
+      "known_source_urls": 7,
+      "missing": {
+        "le_mh": 5,
+        "pe_w": 0,
+        "xmax_mm": 2
+      },
+      "records_with_gaps": 10,
+      "score": 16.5,
+      "unpriced": 3
+    },
+    {
       "brand": "FaitalPRO",
       "known_source_urls": 2,
       "missing": {
@@ -900,9 +725,9 @@
         "pe_w": 0,
         "xmax_mm": 0
       },
-      "records_with_gaps": 16,
-      "score": 17.0,
-      "unpriced": 14
+      "records_with_gaps": 15,
+      "score": 16.0,
+      "unpriced": 13
     },
     {
       "brand": "LaVoce",
@@ -951,6 +776,18 @@
       "records_with_gaps": 2,
       "score": 13.0,
       "unpriced": 0
+    },
+    {
+      "brand": "Eminence",
+      "known_source_urls": 4,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 2,
+        "xmax_mm": 2
+      },
+      "records_with_gaps": 7,
+      "score": 13.0,
+      "unpriced": 3
     },
     {
       "brand": "Custom",
@@ -1061,6 +898,18 @@
       "unpriced": 0
     },
     {
+      "brand": "Eighteen Sound",
+      "known_source_urls": 3,
+      "missing": {
+        "le_mh": 0,
+        "pe_w": 2,
+        "xmax_mm": 1
+      },
+      "records_with_gaps": 3,
+      "score": 7.0,
+      "unpriced": 0
+    },
+    {
       "brand": "Oberton",
       "known_source_urls": 0,
       "missing": {
@@ -1155,18 +1004,6 @@
       "records_with_gaps": 2,
       "score": 4.0,
       "unpriced": 1
-    },
-    {
-      "brand": "Eighteen Sound",
-      "known_source_urls": 1,
-      "missing": {
-        "le_mh": 0,
-        "pe_w": 0,
-        "xmax_mm": 1
-      },
-      "records_with_gaps": 1,
-      "score": 3.0,
-      "unpriced": 0
     },
     {
       "brand": "Focal",
@@ -2450,6 +2287,34 @@
       "model": "FE83NV2",
       "score": 5.0,
       "source_url": "https://www.fostex.jp/en/products/fe83nv2/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Markaudio",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "MAOP 10",
+      "score": 5.0,
+      "source_url": "https://www.markaudio.com/online_shop/maop/maop-10/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Markaudio",
+      "missing_fields": [
+        "xmax_mm",
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "MAOP 11MS",
+      "score": 5.0,
+      "source_url": "https://www.markaudio.com/online_shop/11-cm/maop-11ms/"
     },
     {
       "actions": [
@@ -4919,34 +4784,6 @@
       "actions": [
         "refresh_known_source"
       ],
-      "brand": "Markaudio",
-      "missing_fields": [
-        "pe_w",
-        "le_mh"
-      ],
-      "missing_price": false,
-      "model": "Alpair 10.3",
-      "score": 3.5,
-      "source_url": "https://www.markaudio.com/online_shop/archive/alpair-10-3/"
-    },
-    {
-      "actions": [
-        "refresh_known_source"
-      ],
-      "brand": "Markaudio",
-      "missing_fields": [
-        "pe_w",
-        "le_mh"
-      ],
-      "missing_price": false,
-      "model": "Alpair 6P",
-      "score": 3.5,
-      "source_url": "https://www.markaudio.com/online_shop/archive/alpair-6p/"
-    },
-    {
-      "actions": [
-        "refresh_known_source"
-      ],
       "brand": "Silver Flute",
       "missing_fields": [
         "pe_w",
@@ -5469,20 +5306,6 @@
         "pe_w"
       ],
       "missing_price": true,
-      "model": "MEDIO GRAVE 10″ ATRACK 800 WATTS RMS 8Ω",
-      "score": 3.0,
-      "source_url": "https://www.bomber.com.br/produto/medio-grave-10-atrack-800-watts-rms-8%cf%89/"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Bomber",
-      "missing_fields": [
-        "pe_w"
-      ],
-      "missing_price": true,
       "model": "MEDIO GRAVE 10″ ATRACK 800 WATTS RMS 8Ω PRETO",
       "score": 3.0,
       "source_url": "https://www.bomber.com.br/produto/medio-grave-10-atrack-800-watts-rms-8%cf%89-preto/"
@@ -5497,135 +5320,9 @@
         "pe_w"
       ],
       "missing_price": true,
-      "model": "MEDIO GRAVE 8″ ATRACK 700 WATTS RMS 8Ω",
-      "score": 3.0,
-      "source_url": "https://www.bomber.com.br/produto/medio-grave-8-atrack-800-watts-rms-8%cf%89/"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Bomber",
-      "missing_fields": [
-        "pe_w"
-      ],
-      "missing_price": true,
-      "model": "SUBWOOFER 10″ SLIM 200 WRMS 4 OHMS – CARCAÇA METÁLICA",
-      "score": 3.0,
-      "source_url": "https://www.bomber.com.br/produto/subwoofer-10-slim-200-wrms-4-ohms-carcaca-metalica/"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Bomber",
-      "missing_fields": [
-        "pe_w"
-      ],
-      "missing_price": true,
       "model": "SUBWOOFER 15″ UPGRADE PROFESSIONAL 400 WATTS RMS",
       "score": 3.0,
       "source_url": "https://www.bomber.com.br/produto/subwoofer-15-upgrade-professional-400-watts-rms/"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Bomber",
-      "missing_fields": [
-        "pe_w"
-      ],
-      "missing_price": true,
-      "model": "WOOFER 12″ ATRACK 400 4Ω 800 WATTS RMS",
-      "score": 3.0,
-      "source_url": "https://www.bomber.com.br/produto/woofer-12-atrack-400-4%cf%89-800-watts-rms/"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Bomber",
-      "missing_fields": [
-        "pe_w"
-      ],
-      "missing_price": true,
-      "model": "WOOFER 12″ ATRACK 550 4Ω 1100 WATTS RMS",
-      "score": 3.0,
-      "source_url": "https://www.bomber.com.br/produto/woofer-12-atrack-550-4%cf%89-1100-watts-rms/"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Bomber",
-      "missing_fields": [
-        "pe_w"
-      ],
-      "missing_price": true,
-      "model": "WOOFER 12″ ATRACK 550 8Ω 1100 WRMS",
-      "score": 3.0,
-      "source_url": "https://www.bomber.com.br/produto/woofer-12-atrack-550-8%cf%89-1100-wrms/"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Bomber",
-      "missing_fields": [
-        "pe_w"
-      ],
-      "missing_price": true,
-      "model": "WOOFER 15″ ATRACK 400 4Ω 800 WATTS RMS",
-      "score": 3.0,
-      "source_url": "https://www.bomber.com.br/produto/woofer-15-atrack-400-4%cf%89-800-watts-rms/"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Bomber",
-      "missing_fields": [
-        "pe_w"
-      ],
-      "missing_price": true,
-      "model": "WOOFER 15″ ATRACK 550 4Ω 1100 WATTS RMS",
-      "score": 3.0,
-      "source_url": "https://www.bomber.com.br/produto/woofer-15-atrack-550-4%cf%89-1100-watts-rms/"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Bomber",
-      "missing_fields": [
-        "pe_w"
-      ],
-      "missing_price": true,
-      "model": "WOOFER 15″ ATRACK 550 8Ω 1100 WATTS RMS",
-      "score": 3.0,
-      "source_url": "https://www.bomber.com.br/produto/woofer-15-atrack-550-8%cf%89-1100-watts-rms/"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Bomber",
-      "missing_fields": [
-        "pe_w"
-      ],
-      "missing_price": true,
-      "model": "WOOFER 15″ RUSH 1000 WATTS RMS 8Ω",
-      "score": 3.0,
-      "source_url": "https://www.bomber.com.br/produto/woofer-15-rush-1000-watts-rms-8%cf%89/"
     },
     {
       "actions": [
@@ -6347,20 +6044,6 @@
     },
     {
       "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Eminence",
-      "missing_fields": [
-        "pe_w"
-      ],
-      "missing_price": true,
-      "model": "152158-U",
-      "score": 3.0,
-      "source_url": "https://eminence.com/products/cannabass-cb3015n-8"
-    },
-    {
-      "actions": [
         "refresh_known_source"
       ],
       "brand": "Eminence",
@@ -6384,20 +6067,6 @@
       "model": "8 76358 00099 9",
       "score": 3.0,
       "source_url": "https://eminence.com/products/the_copperhead"
-    },
-    {
-      "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Eminence",
-      "missing_fields": [
-        "pe_w"
-      ],
-      "missing_price": true,
-      "model": "8 76358 00473 7",
-      "score": 3.0,
-      "source_url": "https://eminence.com/products/delta-10a-2"
     },
     {
       "actions": [
@@ -6623,20 +6292,6 @@
     },
     {
       "actions": [
-        "refresh_known_source",
-        "retailer_price_match"
-      ],
-      "brand": "Markaudio",
-      "missing_fields": [
-        "pe_w"
-      ],
-      "missing_price": true,
-      "model": "Alpair 6.2",
-      "score": 3.0,
-      "source_url": "https://www.markaudio.com/online_shop/archive/alpair-6-2/"
-    },
-    {
-      "actions": [
         "refresh_known_source"
       ],
       "brand": "Markaudio",
@@ -6741,19 +6396,6 @@
       "model": "SB12NRXF25-8",
       "score": 3.0,
       "source_url": "https://www.soundimports.eu/en/sb-acoustics-sb12nrxf25-8.html"
-    },
-    {
-      "actions": [
-        "refresh_known_source"
-      ],
-      "brand": "SB Acoustics",
-      "missing_fields": [
-        "xmax_mm"
-      ],
-      "missing_price": false,
-      "model": "SB12PFCR25-4",
-      "score": 3.0,
-      "source_url": "https://www.soundimports.eu/en/sb-acoustics-sb12pfcr25-4.html"
     },
     {
       "actions": [
@@ -8295,6 +7937,195 @@
       "model": "PUNISHER 10D1",
       "score": 2.5,
       "source_url": "https://www.rockvilleaudio.com/punisher-10d1/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "PUNISHER 10D2",
+      "score": 2.5,
+      "source_url": "https://www.rockvilleaudio.com/punisher-10d2/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "PUNISHER 12D1",
+      "score": 2.5,
+      "source_url": "https://www.rockvilleaudio.com/punisher-12d1/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "PUNISHER 15D1",
+      "score": 2.5,
+      "source_url": "https://www.rockvilleaudio.com/punisher-15d1/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "PUNISHER 15D2",
+      "score": 2.5,
+      "source_url": "https://www.rockvilleaudio.com/punisher-15d2/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Rockville",
+      "missing_fields": [
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "X6.5C",
+      "score": 2.5,
+      "source_url": "https://www.rockvilleaudio.com/2-x6-5c/"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Visaton",
+      "missing_fields": [
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "BZ 130 P 4 OHM",
+      "score": 2.5,
+      "source_url": "https://www.visaton.de/en/products/drivers/archive/bz-130-p-4-ohm"
+    },
+    {
+      "actions": [
+        "refresh_known_source",
+        "retailer_price_match"
+      ],
+      "brand": "Visaton",
+      "missing_fields": [
+        "le_mh"
+      ],
+      "missing_price": true,
+      "model": "BZ 160 P 4 OHM",
+      "score": 2.5,
+      "source_url": "https://www.visaton.de/en/products/drivers/archive/bz-160-p-4-ohm"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Accuton",
+      "missing_fields": [
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "C168-6-890 Cell",
+      "score": 2.0,
+      "source_url": "https://accuton.com/home-audio/drivers/ceramic/C168-6-890"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Beyma",
+      "missing_fields": [
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "LOUDSPEAKER 10\"CX300/Fe 8 OH",
+      "score": 2.0,
+      "source_url": "https://www.beyma.com/en/products/c/coaxial/110CX3FE8/altavoz-10cx300-fe-8-oh/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Beyma",
+      "missing_fields": [
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "LOUDSPEAKER 12\"CXA400Nd 8 OH",
+      "score": 2.0,
+      "source_url": "https://www.beyma.com/en/products/c/coaxial/112CXA4ND8/altavoz-12cxa400nd-8-oh/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Beyma",
+      "missing_fields": [
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "LOUDSPEAKER 12\"XA30/ND 8 OH",
+      "score": 2.0,
+      "source_url": "https://www.beyma.com/en/products/c/coaxial/112XA30ND8/altavoz-12xa30-nd-8-oh/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Beyma",
+      "missing_fields": [
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "LOUDSPEAKER 15\"CXA400Fe 8 OH",
+      "score": 2.0,
+      "source_url": "https://www.beyma.com/en/products/c/coaxial/115CXA4FE8/altavoz-15cxa400fe-8-oh/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Beyma",
+      "missing_fields": [
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "LOUDSPEAKER 15\"XA38/ND  8 OH",
+      "score": 2.0,
+      "source_url": "https://www.beyma.com/en/products/c/coaxial/115XA38ND8/altavoz-15xa38nd-8-oh/"
+    },
+    {
+      "actions": [
+        "refresh_known_source"
+      ],
+      "brand": "Beyma",
+      "missing_fields": [
+        "pe_w"
+      ],
+      "missing_price": false,
+      "model": "LOUDSPEAKER 5\"CX200Nd/N 8 OH",
+      "score": 2.0,
+      "source_url": "https://www.beyma.com/en/products/c/coaxial/105CX2NDN8/altavoz-5cx200nd-n-8-oh/"
     }
   ],
   "schema": 1,
@@ -8320,15 +8151,15 @@
       "purpose": "Rebuild source catalogs and regenerate the coverage report."
     }
   ],
-  "started_at": "2026-08-04T23:06:17+00:00",
-  "stop_reason": "coverage_stalled",
+  "started_at": "2026-08-24T09:07:00+00:00",
+  "stop_reason": "max_cycles_reached",
   "unresolved": {
     "note": "Remaining published-only values require an approved new source or do not appear to be published.",
     "optional_fields": {
-      "le_mh": 311,
-      "pe_w": 334,
-      "xmax_mm": 300
+      "le_mh": 307,
+      "pe_w": 260,
+      "xmax_mm": 301
     },
-    "prices": 940
+    "prices": 928
   }
 }
