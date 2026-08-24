@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T20:00:00Z",
+  "generated_at": "2026-08-24T20:15:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 763,
-  "latest_batch_added": 8,
-  "latest_batch_visible_added": 8,
+  "added": 766,
+  "latest_batch_added": 3,
+  "latest_batch_visible_added": 3,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7223,
+  "final_records": 7226,
   "app_visible_before": 5501,
-  "app_visible_records": 6219,
+  "app_visible_records": 6222,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -34,10 +34,10 @@
     "BMS Speakers official product pages"
   ],
   "latest_batch_by_brand": {
-    "BMS Speakers": 8
+    "BMS Speakers": 3
   },
   "latest_batch_visible_by_brand": {
-    "BMS Speakers": 8
+    "BMS Speakers": 3
   },
   "added_names_count": 755,
   "added_names_sample": [
@@ -83,6 +83,9 @@
     "BMS Speakers 15C362",
     "BMS Speakers 15CN680",
     "BMS Speakers 12N802",
-    "BMS Speakers 6S117"
+    "BMS Speakers 6S117",
+    "BMS Speakers 5N160",
+    "BMS Speakers 5N155",
+    "BMS Speakers 15N830v²"
   ]
 }
