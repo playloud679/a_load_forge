@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T18:45:49Z",
+  "generated_at": "2026-08-24T19:09:42Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 661,
-  "latest_batch_added": 57,
-  "latest_batch_visible_added": 38,
-  "latest_batch_existing_aliases_collapsed": 10,
-  "final_records": 7121,
+  "added": 726,
+  "latest_batch_added": 65,
+  "latest_batch_visible_added": 62,
+  "latest_batch_existing_aliases_collapsed": 3,
+  "final_records": 7186,
   "app_visible_before": 5501,
-  "app_visible_records": 6120,
+  "app_visible_records": 6182,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -28,15 +28,16 @@
     "Eighteen Sound official manufacturer catalog and archive",
     "SICA/Jensen public official Store API",
     "FaitalPRO public official product catalog and archive",
-    "Ciare public official current catalog and archive"
+    "Ciare public official current catalog and archive",
+    "Fane public official current catalog and archive"
   ],
   "latest_batch_by_brand": {
-    "Ciare": 57
+    "Fane": 65
   },
   "latest_batch_visible_by_brand": {
-    "Ciare": 38
+    "Fane": 62
   },
-  "added_names_count": 661,
+  "added_names_count": 726,
   "added_names_sample": [
     "Adire Audio Koda 8",
     "Stereo Integrity HFS-24",
@@ -64,6 +65,9 @@
     "FaitalPRO 8HX230 (8Ω)",
     "Ciare 18.00SW (4Ω)",
     "Ciare CSW7115EVO (1Ω)",
-    "Ciare CZ170 (4Ω)"
+    "Ciare CZ170 (4Ω)",
+    "Fane COLOSSUS 12B",
+    "Fane IMPERIUM 18NDXL",
+    "Fane SOVEREIGN PRO 18-800P"
   ]
 }

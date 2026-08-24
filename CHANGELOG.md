@@ -4,13 +4,13 @@
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
-- Published 661 reviewed, append-only manufacturer records from Adire Audio,
+- Published 726 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
   Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA, Jensen,
-  FaitalPRO and Ciare; the catalog now contains 7,121 raw records and 6,120
+  FaitalPRO, Ciare and Fane; the catalog now contains 7,186 raw records and 6,182
   application-visible drivers without changing or deleting any pre-existing
-  row. The seven latest official-source batches contributed 287, 64, 37, 69,
-  45, 56 and 38 net application-visible drivers respectively.
+  row. The eight latest official-source batches contributed 287, 64, 37, 69,
+  45, 56, 38 and 62 net application-visible drivers respectively.
 - Added Wavecor multi-model matrix extraction and a resilient first-party
   Peerless/Tymphany API harvester. Added a first-party Monacor category
   harvester that verifies each product's manufacturer block, excluding
@@ -36,6 +36,15 @@
   normalization collapses ten pre-existing retailer aliases, producing 48 new
   normalized identities and a net online gain of 38 visible drivers. Three
   records without a complete manufacturer-published T/S core were not imported.
+- Added a first-party Fane current/archive harvester with ASP.NET postback
+  pagination. It found 74 official product pages, validated 68 complete cone
+  drivers, rejected six compression drivers without a simulation-ready T/S
+  core, and appended 65 new rows. Three untouched legacy `Fane International`
+  aliases now collapse at runtime, yielding 62 net-visible additions.
+- Added an identity-only discovery radar over all 14,512 records in the
+  optional LSDB, VituixCAD, Speaker Box Lite, ZTZ Audio and legacy manufacturer
+  libraries. It found 6,342 missing identities across 394 brands without
+  copying or publishing any third-party T/S parameter.
 - Added manufacturer-first source discovery, isolated retailer gap reporting,
   progress/latest-report artifacts and an in-app crawl report.
 - Added a guarded reviewed-publication command and catalog-specific checks so
@@ -49,7 +58,7 @@
 - Added a growth watchdog baseline reset and protected proprietary-only records
   from removal during unified catalog rebuilds.
 - Verified catalog checks, Streamlit report rendering and the full active
-  suite: **174 PASS, 0 FAIL, 0 SKIP**.
+  suite: **176 PASS, 0 FAIL, 0 SKIP**.
 
 ## 0.8.26 (2026-08-21)
 

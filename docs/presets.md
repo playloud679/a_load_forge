@@ -109,7 +109,9 @@ part number, the complete model title is retained; a generic category such as
 `WOOFER`, `SUBWOOFER` or `MEDIO GRAVE` is never presented as the part number.
 Known manufacturer aliases also converge before display and deduplication. In
 particular, `18Sound` converges to the official `Eighteen Sound`, while
-`Eminence Speaker` and `Eminence Speakers, LLC` become `Eminence`. An
+`Eminence Speaker` and `Eminence Speakers, LLC` become `Eminence`, and the
+legacy label `Fane International` becomes `Fane`. These aliases affect only
+runtime display and deduplication: the stored source rows are not rewritten. An
 `Eminence` prefix embedded in a retailer title is removed from the part number
 (`Eminence Alpha-12A 12\" Guitar/PA Driver` → `Alpha-12A`).
 

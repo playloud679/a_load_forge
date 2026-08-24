@@ -1,4 +1,4 @@
-.PHONY: venv install dev run test test-fast test-ui test-catalog test-smoke test-match crawl-ts crawl-datasheets crawl-peerless crawl-monacor crawl-sica crawl-faitalpro crawl-ciare catalog-plan catalog-complete lint format clean
+.PHONY: venv install dev run test test-fast test-ui test-catalog test-smoke test-match crawl-ts crawl-datasheets crawl-peerless crawl-monacor crawl-sica crawl-faitalpro crawl-ciare crawl-fane catalog-radar catalog-plan catalog-complete lint format clean
 
 VENV_DIR := .venv
 PYTHON  := python3
@@ -62,6 +62,12 @@ crawl-faitalpro:
 
 crawl-ciare:
 	$(VENV_DIR)/bin/python tools/harvest_ciare_official.py $(ARGS)
+
+crawl-fane:
+	$(VENV_DIR)/bin/python tools/harvest_fane_official.py $(ARGS)
+
+catalog-radar:
+	$(VENV_DIR)/bin/python tools/build_official_hunt_radar.py $(ARGS)
 
 catalog-plan:
 	$(VENV_DIR)/bin/python tools/run_catalog_completion_cycle.py plan $(ARGS)

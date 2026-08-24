@@ -765,6 +765,7 @@ _EXTERNAL_MANUFACTURER_ALIASES = {
     "eminencespeaker": "Eminence",
     "eminencespeakers": "Eminence",
     "eminencespeakersllc": "Eminence",
+    "faneinternational": "Fane",
 }
 _EXTERNAL_MANUFACTURER_PREFIXES = {
     "Eminence": (

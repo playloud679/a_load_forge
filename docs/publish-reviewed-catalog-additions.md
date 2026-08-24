@@ -49,3 +49,9 @@ Current and archived manufacturer families may be staged together when the
 source marks archive state explicitly. Ciare uses this path: archive rows remain
 fully official engineering records, but incomplete legacy pages are rejected
 instead of being filled from retailer claims.
+
+External driver libraries are discovery radar only. The official-hunt radar
+may use all of their brand/model/impedance identities to prioritize missing
+manufacturer pages, but it never copies their T/S fields. A radar candidate
+must be independently reconstructed from first-party evidence before it can
+reach this publication gate.

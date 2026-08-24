@@ -338,6 +338,7 @@ def _check_presets_are_available():
     ) == "Eminence"
     assert _presets._external_catalog_manufacturer("18Sound") == "Eighteen Sound"
     assert _presets._external_catalog_manufacturer("Eighteen Sound") == "Eighteen Sound"
+    assert _presets._external_catalog_manufacturer("Fane International") == "Fane"
     assert _presets._external_catalog_part_number(
         "Eminence Speaker",
         'Eminence Alpha-12A 12" Guitar/PA Driver',
@@ -5459,6 +5460,96 @@ def _check_ciare_official_harvester_extracts_catalog_identity():
 test(
     "Ciare official harvester extracts catalog identity",
     _check_ciare_official_harvester_extracts_catalog_identity,
+)
+
+
+def _check_official_hunt_radar_uses_external_identity_without_copying_ts():
+    import json
+
+    from tools import build_official_hunt_radar as radar
+
+    def row(brand, model, re_ohm, fs_hz):
+        return {
+            "brand": brand,
+            "model": model,
+            "name": f"{brand} {model}",
+            "driver": {"re_ohm": re_ohm, "fs_hz": fs_hz},
+        }
+
+    proprietary = [row("Known Audio", "K10 4 Ohm", 3.2, 31.0)]
+    report, by_brand = radar.build_radar(
+        proprietary,
+        [
+            ("LSDB", [
+                row("Known Audio", "K10 4 Ohm", 3.3, 99.0),
+                row("Missing Audio", "M12 4 Ohm", 3.1, 21.0),
+            ]),
+            ("VituixCAD", [row("Missing Audio", "M12 4 Ohm", 3.2, 44.0)]),
+        ],
+        sample_limit=4,
+    )
+    assert report["source_records_scanned"] == 3
+    assert report["unique_missing_identities"] == 1, report
+    candidate = by_brand["Missing Audio"][0]
+    assert candidate == {
+        "brand": "Missing Audio",
+        "model": "M12 4 Ohm",
+        "impedance_ohm": "4",
+        "libraries": ["LSDB", "VituixCAD"],
+    }, candidate
+    serialized = json.dumps(report)
+    assert "fs_hz" not in serialized and "21.0" not in serialized and "44.0" not in serialized
+
+
+test(
+    "Official hunt radar uses external identities without copying T/S",
+    _check_official_hunt_radar_uses_external_identity_without_copying_ts,
+)
+
+
+def _check_fane_official_harvester_follows_postbacks_and_extracts_ts():
+    from tools import harvest_fane_official as fane
+
+    listing = b"""
+    <form><input type="hidden" name="__VIEWSTATE" value="state+one" />
+    <input type="hidden" name="__EVENTVALIDATION" value="valid" />
+    <a href="/view-product/TEST-12">TEST-12</a>
+    <a href="javascript:__doPostBack(&#39;rptPaging2$ctl00$pPage&#39;,&#39;&#39;)">1</a>
+    <a href="javascript:__doPostBack(&#39;rptPaging2$ctl01$pPage&#39;,&#39;&#39;)">2</a></form>
+    """
+    assert fane.products_from_listing(listing, "current") == [{
+        "url": "https://www.fane-international.com/view-product/TEST-12",
+        "model": "TEST-12",
+        "family": "current",
+    }]
+    targets = fane.postback_targets(listing)
+    assert targets == ["rptPaging2$ctl00$pPage", "rptPaging2$ctl01$pPage"]
+    encoded = fane.postback_data(listing, targets[1]).decode()
+    assert "__VIEWSTATE=state%2Bone" in encoded
+    assert "__EVENTTARGET=rptPaging2%24ctl01%24pPage" in encoded
+
+    product = b"""
+    <html><head><title>TEST 12 - Fane</title></head><body><h1>TEST 12</h1><table>
+      <tr><td>FS</td><td>40 Hz</td></tr><tr><td>Re</td><td>5.2 Ohm</td></tr>
+      <tr><td>QMS</td><td>6.5</td></tr><tr><td>QES</td><td>0.32</td></tr>
+      <tr><td>QTS</td><td>0.305</td></tr><tr><td>Vas</td><td>60 Litres</td></tr>
+      <tr><td>Sd</td><td>530 cm2</td></tr><tr><td>Xmax</td><td>6 mm</td></tr>
+    </table></body></html>
+    """
+    preset, error = fane.preset_from_product(product, {
+        "url": "https://www.fane-international.com/view-product/TEST-12",
+        "model": "TEST-12",
+        "family": "current",
+    })
+    assert not error, error
+    assert preset["name"] == "WEB: Fane TEST 12"
+    assert preset["driver"]["sd_cm2"] == 530.0
+    assert preset["website_fields"]["catalog_family"] == "current"
+
+
+test(
+    "Fane official harvester follows postbacks and extracts T/S",
+    _check_fane_official_harvester_follows_postbacks_and_extracts_ts,
 )
 
 
