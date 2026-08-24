@@ -4,12 +4,16 @@
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
-- Published 772 reviewed, append-only manufacturer records from Adire Audio,
+- Published 15 DD Audio official product variants (D2/D4 where offered).
+  `Mms` is calculated from the official `Fs`, `Vas` and piston area; `Re` is
+  1.7 ohm per D2 coil and 3.4 ohm per D4 coil. The catalog now contains 7,248
+  raw and application-visible records; existing rows remain unchanged.
+- Published 773 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
   Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA, Jensen,
-  FaitalPRO, Ciare, Fane, Fi Car Audio, Tang Band, BMS Speakers, Celestion and VAS Audio; the catalog now contains 7,232 raw records and 6,228
+  FaitalPRO, Ciare, Fane, Fi Car Audio, Tang Band, BMS Speakers, Celestion, VAS Audio and LaVoce; the catalog now contains 7,233 raw records and 6,229
   application-visible drivers without changing or deleting any pre-existing
-  row. The latest VAS Audio official-source batch contributed 2 net application-visible drivers.
+  row. The latest LaVoce official-source batch contributed 1 net application-visible driver.
 - Added Wavecor multi-model matrix extraction and a resilient first-party
   Peerless/Tymphany API harvester. Added a first-party Monacor category
   harvester that verifies each product's manufacturer block, excluding
