@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T21:55:00Z",
+  "generated_at": "2026-08-24T22:10:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 767,
+  "added": 768,
   "latest_batch_added": 1,
   "latest_batch_visible_added": 1,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7227,
+  "final_records": 7228,
   "app_visible_before": 5501,
-  "app_visible_records": 6223,
+  "app_visible_records": 6224,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -88,6 +88,7 @@
     "BMS Speakers 5N160",
     "BMS Speakers 5N155",
     "BMS Speakers 15N830v²",
-    "Celestion NTR06-1705D"
+    "Celestion NTR06-1705D",
+    "Celestion NTR15-3018E"
   ]
 }
