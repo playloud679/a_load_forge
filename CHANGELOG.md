@@ -13,6 +13,9 @@
 - Added six previously missing Ciare drivers from official product datasheets
   (`PWA5.38`, `12.75W1`, `PWA12.75`, `HW100`, `CH250`, `PH250`); catalog total
   is now 7,360 raw and 6,356 application-visible records.
+- Added four further Ciare drivers from official datasheets (`PWA8.50`,
+  `CW200Z`, `CW100Z`, `CW130Z`); catalog total is now 7,364 raw and 6,360
+  application-visible records.
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
