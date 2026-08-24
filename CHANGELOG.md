@@ -27,6 +27,9 @@
 - Added one previously missing Hertz driver from the official Energy5 static
   datasheet; catalog total is now 7,375 raw and 6,371 application-visible
   records.
+- Added three further Hertz drivers from official static datasheets
+  (Hi-Energy/ECX/ESK); catalog total is now 7,378 raw and 6,374
+  application-visible records.
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.

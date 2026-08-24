@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-25T23:45:00Z",
+  "generated_at": "2026-08-26T00:05:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 7350,
-  "added": 915,
-  "latest_batch_added": 1,
-  "latest_batch_visible_added": 1,
+  "added": 918,
+  "latest_batch_added": 3,
+  "latest_batch_visible_added": 3,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7375,
+  "final_records": 7378,
   "app_visible_before": 6347,
-  "app_visible_records": 6371,
+  "app_visible_records": 6374,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -47,10 +47,10 @@
     "Hertz official static datasheet"
   ],
   "latest_batch_by_brand": {
-    "Hertz": 1
+    "Hertz": 3
   },
   "latest_batch_visible_by_brand": {
-    "Hertz": 1
+    "Hertz": 3
   },
   "added_names_count": 755,
   "added_names_sample": [
