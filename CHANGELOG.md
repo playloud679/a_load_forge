@@ -2,6 +2,10 @@
 
 ## 0.8.27 (2026-08-24)
 
+- Added the previously missing Hertz DS 250.3 from the official technical
+  datasheet; catalog total is now 7,379 raw and 6,375 application-visible
+  records. Existing catalog rows remain unchanged.
+
 - Added the previously missing `B&C Speakers 12CXL64` from the official B&C
   2023 catalogue PDF after validating 106 complete T/S blocks; catalog total
   is now 7,351 raw and 6,347 application-visible records.
