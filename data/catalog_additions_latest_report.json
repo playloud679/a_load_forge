@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-25T21:20:00Z",
+  "generated_at": "2026-08-25T21:45:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 7350,
-  "added": 893,
-  "latest_batch_added": 2,
-  "latest_batch_visible_added": 2,
+  "added": 894,
+  "latest_batch_added": 1,
+  "latest_batch_visible_added": 1,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7353,
+  "final_records": 7354,
   "app_visible_before": 6347,
-  "app_visible_records": 6349,
+  "app_visible_records": 6350,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -41,13 +41,14 @@
     "Soundking official manufacturer PDF",
     "Eminence official product pages",
     "B&C Speakers official 2023 catalogue PDF",
-    "Tang Band official product pages"
+    "Tang Band official product pages",
+    "RCF official product pages"
   ],
   "latest_batch_by_brand": {
-    "Tang Band": 2
+    "RCF": 1
   },
   "latest_batch_visible_by_brand": {
-    "Tang Band": 2
+    "RCF": 1
   },
   "added_names_count": 755,
   "added_names_sample": [

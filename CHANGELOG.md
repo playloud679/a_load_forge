@@ -8,6 +8,8 @@
 - Added two previously missing Tang Band official product pages (`W3-2088S0F`
   and `W4-1320SMF`); catalog total is now 7,353 raw and 6,349
   application-visible records.
+- Added the previously missing official RCF `LF12P901` woofer; catalog total
+  is now 7,354 raw and 6,350 application-visible records.
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
