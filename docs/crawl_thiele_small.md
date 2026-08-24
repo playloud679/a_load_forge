@@ -60,11 +60,20 @@ Manufacturer wording that explicitly reports `Linear coil travel (p-p)` is
 stored as one-way `Xmax = travel / 2`, with the formula and source field kept
 in `website_fields.derivations`. Program, continuous-program, maximum and peak
 power are not substituted for the AES/RMS/rated thermal power stored as `Pe`.
+When a responsive product page also repeats program or continuous power inside
+a prose description or layout-derived row, an explicit AES, RMS, nominal or
+rated-power observation outranks it regardless of extraction method. This
+preserves Eighteen Sound's nominal thermal rating instead of its 2x continuous
+figure.
 Footnote markers after labels (`Xmax*`, `Power Capacity AES¹`) are ignored.
 18Sound-style coaxial rows are component-aware: `LF Nominal Power Handling`
 is accepted as the simulated cone driver's `Pe`, an intervening numeric HTML
 footnote is skipped, and adjacent HF or continuous/program ratings are not
 substituted.
+Eighteen Sound reuses one public model name for genuine 2/4/8/16-ohm variants.
+The crawler appends the page's published nominal impedance to that model
+identity (for example `18LW2400 8Ω`) so variants remain independently visible
+and can still deduplicate against older rows through the runtime identity.
 Localized/brand-specific power rows are recognized where their meaning is
 unambiguous: Bomber `Potência (RMS) ... W_RMS`, Eminence `Watts N W`, and
 Accuton `Power handling P N W`. MISCO's explicitly rated

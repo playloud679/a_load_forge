@@ -336,6 +336,8 @@ def _check_presets_are_available():
     assert _presets._external_catalog_manufacturer(
         "Eminence Speakers, LLC"
     ) == "Eminence"
+    assert _presets._external_catalog_manufacturer("18Sound") == "Eighteen Sound"
+    assert _presets._external_catalog_manufacturer("Eighteen Sound") == "Eighteen Sound"
     assert _presets._external_catalog_part_number(
         "Eminence Speaker",
         'Eminence Alpha-12A 12" Guitar/PA Driver',
@@ -4906,6 +4908,22 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
         "Power handling\nP\n250\nW"
     ))
     assert np.isclose(multiline_power["pe_w"].value, 250.0)
+    eighteen_sound_power = crawler.choose_measurements([
+        crawler.Measurement(
+            "pe_w", 1200.0, "1200", "W", "Nominal Power Handling", "html.text"
+        ),
+        crawler.Measurement(
+            "pe_w", 2400.0, "2400", "Watt",
+            "Subwoofer description with continuous program power handling",
+            "html.table",
+        ),
+    ])
+    assert eighteen_sound_power["pe_w"].value == 1200.0
+    assert crawler.eighteensound_variant_model(
+        "18LW2400",
+        "https://www.eighteensound.it/en/products/lf-driver/18-0/8/18LW2400",
+        {"nominal_impedance_ohm": 8.0},
+    ) == "18LW2400 8Ω"
 
     product_html = b"""
     <html><head>

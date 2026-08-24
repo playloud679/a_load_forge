@@ -4,19 +4,24 @@
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
-- Published 426 reviewed, append-only manufacturer records from Adire Audio,
+- Published 503 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
-  Visaton, Wavecor, Peerless/Tymphany and Monacor; the catalog now contains
-  6,886 raw records and 5,912
+  Visaton, Wavecor, Peerless/Tymphany, Monacor and Eighteen Sound; the catalog
+  now contains 6,963 raw records and 5,981
   application-visible drivers without changing or deleting any pre-existing
-  row. The three latest official-source batches contributed 287, 64 and 37 net
-  application-visible drivers respectively.
+  row. The four latest official-source batches contributed 287, 64, 37 and 69
+  net application-visible drivers respectively.
 - Added Wavecor multi-model matrix extraction and a resilient first-party
   Peerless/Tymphany API harvester. Added a first-party Monacor category
   harvester that verifies each product's manufacturer block, excluding
-  third-party Celestion listings before publication; retailer title variants are now checked
-  against the same runtime identity sequence used by Bass Match before future
-  publication.
+  third-party Celestion listings before publication; retailer title variants
+  are now checked against the same runtime identity sequence used by Bass
+  Match before future publication.
+- Crawled Eighteen Sound's complete official LF/coaxial catalog and archive,
+  retaining nominal thermal rather than 2x continuous power and distinguishing
+  published 2/4/8/16-ohm variants. The `18Sound` legacy brand now aliases to
+  official `Eighteen Sound`, preventing eight existing display duplicates and
+  yielding 69 net-visible additions from 77 append-only rows.
 - Added manufacturer-first source discovery, isolated retailer gap reporting,
   progress/latest-report artifacts and an in-app crawl report.
 - Added a guarded reviewed-publication command and catalog-specific checks so

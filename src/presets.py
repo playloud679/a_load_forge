@@ -759,6 +759,8 @@ def _preset_identity(brand: str, model: str) -> tuple[str, str]:
 
 
 _EXTERNAL_MANUFACTURER_ALIASES = {
+    "18sound": "Eighteen Sound",
+    "eighteensound": "Eighteen Sound",
     "eminence": "Eminence",
     "eminencespeaker": "Eminence",
     "eminencespeakers": "Eminence",

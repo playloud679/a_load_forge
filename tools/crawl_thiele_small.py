@@ -1052,11 +1052,27 @@ def choose_measurements(items: Iterable[Measurement]) -> dict[str, Measurement]:
     }
     unitless_keys = {"qts", "qms", "qes", "mounting_hole_count"}
 
-    def quality(item: Measurement) -> tuple[int, int]:
+    def quality(item: Measurement) -> tuple[int, ...]:
         explicit_unit = int(bool(normalize_unit(item.unit))) if item.key not in unitless_keys else 0
+        if item.key == "pe_w":
+            label = normalized_label(item.label)
+            if re.search(r"\b(?:continuous|program|maximum|peak)\b", label):
+                thermal_rank = 0
+            elif (
+                label in {
+                    "pe", "pwr", "pmax", "power handling", "power rating",
+                    "watts", "potencia",
+                }
+                or item.label.casefold().startswith(("potência", "potencia", "power handling"))
+                or re.search(r"\b(?:nominal|aes|rms|rated)\b", label)
+            ):
+                thermal_rank = 2
+            else:
+                thermal_rank = 1
+            return explicit_unit, thermal_rank, priority.get(item.method, 0)
         if item.key not in unitless_keys:
-            return explicit_unit, priority.get(item.method, 0)
-        return priority.get(item.method, 0), explicit_unit
+            return explicit_unit, 0, priority.get(item.method, 0)
+        return priority.get(item.method, 0), explicit_unit, 0
 
     chosen: dict[str, Measurement] = {}
     for item in items:
@@ -1548,6 +1564,27 @@ def infer_size_in(
     return None
 
 
+def eighteensound_variant_model(
+    model: str,
+    url: str,
+    published_specs: dict[str, float],
+) -> str:
+    """Keep official Eighteen Sound impedance variants as distinct products."""
+    host = (urlparse(url).hostname or "").casefold().removeprefix("www.")
+    if host not in {"eighteensound.com", "eighteensound.it"}:
+        return model
+    impedance = published_specs.get("nominal_impedance_ohm")
+    if not impedance or impedance <= 0.0:
+        return model
+    undecorated = re.sub(
+        r"\s+\d+(?:[.,]\d+)?\s*(?:oh(?:ms?)?|Ω)\s*$",
+        "",
+        model,
+        flags=re.I,
+    ).strip()
+    return f"{undecorated} {float(impedance):g}Ω"
+
+
 def build_preset(
     page: PageData,
     url: str,
@@ -1607,6 +1644,7 @@ def build_preset(
     published_specs = {
         key: chosen[key].value for key in PUBLISHED_SPEC_FIELDS if key in chosen
     }
+    model = eighteensound_variant_model(model, url, published_specs)
     derivations = {}
     if "xmax_mm" in derived_fields and "linear_travel_pp_mm" in chosen:
         derivations["xmax_mm"] = {

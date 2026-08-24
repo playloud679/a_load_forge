@@ -108,9 +108,10 @@ genuine multi-token codes intact. If a title has no confidently identifiable
 part number, the complete model title is retained; a generic category such as
 `WOOFER`, `SUBWOOFER` or `MEDIO GRAVE` is never presented as the part number.
 Known manufacturer aliases also converge before display and deduplication. In
-particular, `Eminence Speaker` and `Eminence Speakers, LLC` become `Eminence`,
-and an `Eminence` prefix embedded in a retailer title is removed from the part
-number (`Eminence Alpha-12A 12\" Guitar/PA Driver` → `Alpha-12A`).
+particular, `18Sound` converges to the official `Eighteen Sound`, while
+`Eminence Speaker` and `Eminence Speakers, LLC` become `Eminence`. An
+`Eminence` prefix embedded in a retailer title is removed from the part number
+(`Eminence Alpha-12A 12\" Guitar/PA Driver` → `Alpha-12A`).
 
 Catalog Maintenance part-number corrections are stored as
 `part_number_override`. This explicit value takes precedence over the imported

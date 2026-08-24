@@ -31,3 +31,6 @@ shows exact totals and provenance without rendering hundreds of product names.
 When raw publication and loader growth differ, `latest_batch_visible_added`
 and `latest_batch_visible_by_brand` report the measured Bass Match delta
 separately from append-only rows.
+`latest_batch_existing_aliases_collapsed` records pre-existing display
+duplicates removed by a newly verified manufacturer alias; it changes no raw
+catalog row and is included in the net app-visible delta.

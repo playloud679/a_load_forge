@@ -1,16 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T18:01:18Z",
+  "generated_at": "2026-08-24T18:12:42Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 426,
-  "latest_batch_added": 37,
-  "latest_batch_visible_added": 37,
-  "final_records": 6886,
+  "added": 503,
+  "latest_batch_added": 77,
+  "latest_batch_visible_added": 69,
+  "latest_batch_existing_aliases_collapsed": 8,
+  "final_records": 6963,
   "app_visible_before": 5501,
-  "app_visible_records": 5912,
+  "app_visible_records": 5981,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -23,15 +24,16 @@
     "Visaton official manufacturer site",
     "Wavecor official manufacturer site",
     "Peerless/Tymphany public official API",
-    "Monacor official manufacturer catalog"
+    "Monacor official manufacturer catalog",
+    "Eighteen Sound official manufacturer catalog and archive"
   ],
   "latest_batch_by_brand": {
-    "Monacor": 37
+    "Eighteen Sound": 77
   },
   "latest_batch_visible_by_brand": {
-    "Monacor": 37
+    "Eighteen Sound": 69
   },
-  "added_names_count": 426,
+  "added_names_count": 503,
   "added_names_sample": [
     "Adire Audio Koda 8",
     "Stereo Integrity HFS-24",
@@ -45,6 +47,10 @@
     "Peerless HVS-40N15PG01-04",
     "Monacor SP-10/250PRO",
     "Monacor SPH-175HQ",
-    "Monacor SP-312CX"
+    "Monacor SP-312CX",
+    "Eighteen Sound 21iD 2Ω",
+    "Eighteen Sound 18LW2600 8Ω",
+    "Eighteen Sound 12NTLW3500 16Ω",
+    "Eighteen Sound 8CX650 8Ω"
   ]
 }
