@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T19:09:42Z",
+  "generated_at": "2026-08-24T19:25:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 726,
-  "latest_batch_added": 65,
-  "latest_batch_visible_added": 62,
-  "latest_batch_existing_aliases_collapsed": 3,
-  "final_records": 7186,
+  "added": 743,
+  "latest_batch_added": 17,
+  "latest_batch_visible_added": 17,
+  "latest_batch_existing_aliases_collapsed": 0,
+  "final_records": 7203,
   "app_visible_before": 5501,
-  "app_visible_records": 6182,
+  "app_visible_records": 6199,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -29,15 +29,16 @@
     "SICA/Jensen public official Store API",
     "FaitalPRO public official product catalog and archive",
     "Ciare public official current catalog and archive",
-    "Fane public official current catalog and archive"
+    "Fane public official current catalog and archive",
+    "Fi Car Audio official product pages"
   ],
   "latest_batch_by_brand": {
-    "Fane": 65
+    "Fi Car Audio": 17
   },
   "latest_batch_visible_by_brand": {
-    "Fane": 62
+    "Fi Car Audio": 17
   },
-  "added_names_count": 726,
+  "added_names_count": 743,
   "added_names_sample": [
     "Adire Audio Koda 8",
     "Stereo Integrity HFS-24",
@@ -68,6 +69,9 @@
     "Ciare CZ170 (4Ω)",
     "Fane COLOSSUS 12B",
     "Fane IMPERIUM 18NDXL",
-    "Fane SOVEREIGN PRO 18-800P"
+    "Fane SOVEREIGN PRO 18-800P",
+    "Fi Car Audio SW-ALPHA-10",
+    "Fi Car Audio SW-HC-15",
+    "Fi Car Audio SW-NEO49-12"
   ]
 }

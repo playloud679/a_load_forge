@@ -4,13 +4,13 @@
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
-- Published 726 reviewed, append-only manufacturer records from Adire Audio,
+- Published 743 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
   Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA, Jensen,
-  FaitalPRO, Ciare and Fane; the catalog now contains 7,186 raw records and 6,182
+  FaitalPRO, Ciare, Fane and Fi Car Audio; the catalog now contains 7,203 raw records and 6,199
   application-visible drivers without changing or deleting any pre-existing
-  row. The eight latest official-source batches contributed 287, 64, 37, 69,
-  45, 56, 38 and 62 net application-visible drivers respectively.
+  row. The nine latest official-source batches contributed 287, 64, 37, 69,
+  45, 56, 38, 62 and 17 net application-visible drivers respectively.
 - Added Wavecor multi-model matrix extraction and a resilient first-party
   Peerless/Tymphany API harvester. Added a first-party Monacor category
   harvester that verifies each product's manufacturer block, excluding
@@ -41,6 +41,10 @@
   drivers, rejected six compression drivers without a simulation-ready T/S
   core, and appended 65 new rows. Three untouched legacy `Fane International`
   aliases now collapse at runtime, yielding 62 net-visible additions.
+- Added 17 complete Fi Car Audio official product records across Alpha, Xv4,
+  HC, MT and NEO families. The official pages expose impedance-specific T/S
+  tables; incomplete SP3/SP4 pages were left out rather than supplemented from
+  third-party sources.
 - Added an identity-only discovery radar over all 14,512 records in the
   optional LSDB, VituixCAD, Speaker Box Lite, ZTZ Audio and legacy manufacturer
   libraries. It found 6,342 missing identities across 394 brands without
