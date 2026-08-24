@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-25T00:34:00Z",
+  "generated_at": "2026-08-25T00:52:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 819,
-  "latest_batch_added": 6,
-  "latest_batch_visible_added": 6,
+  "added": 820,
+  "latest_batch_added": 1,
+  "latest_batch_visible_added": 1,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7279,
-  "app_visible_before": 6269,
-  "app_visible_records": 6275,
+  "final_records": 7280,
+  "app_visible_before": 6275,
+  "app_visible_records": 6276,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -36,13 +36,14 @@
     "VAS Audio Germany official product pages",
     "LaVoce official product pages",
     "DD Audio official product pages",
-    "SOVOX official product pages"
+    "SOVOX official product pages",
+    "PRV Audio official product pages"
   ],
   "latest_batch_by_brand": {
-    "SOVOX": 6
+    "PRV Audio": 1
   },
   "latest_batch_visible_by_brand": {
-    "SOVOX": 6
+    "PRV Audio": 1
   },
   "added_names_count": 755,
   "added_names_sample": [
