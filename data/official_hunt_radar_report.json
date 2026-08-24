@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T19:23:17+00:00",
+  "generated_at": "2026-08-24T19:26:40+00:00",
   "policy": "identity-only radar; never copy or promote third-party technical fields",
-  "proprietary_records": 7214,
-  "proprietary_identities": 6854,
+  "proprietary_records": 7215,
+  "proprietary_identities": 6855,
   "source_records_scanned": 14512,
   "unique_missing_identities": 6342,
   "libraries": [
