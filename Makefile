@@ -1,4 +1,4 @@
-.PHONY: venv install dev run test test-fast test-ui test-catalog test-smoke test-match crawl-ts crawl-datasheets crawl-peerless catalog-plan catalog-complete lint format clean
+.PHONY: venv install dev run test test-fast test-ui test-catalog test-smoke test-match crawl-ts crawl-datasheets crawl-peerless crawl-monacor catalog-plan catalog-complete lint format clean
 
 VENV_DIR := .venv
 PYTHON  := python3
@@ -50,6 +50,9 @@ crawl-datasheets:
 
 crawl-peerless:
 	$(VENV_DIR)/bin/python tools/harvest_peerless_official.py $(ARGS)
+
+crawl-monacor:
+	$(VENV_DIR)/bin/python tools/harvest_monacor_official.py $(ARGS)
 
 catalog-plan:
 	$(VENV_DIR)/bin/python tools/run_catalog_completion_cycle.py plan $(ARGS)

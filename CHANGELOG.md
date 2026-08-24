@@ -4,15 +4,17 @@
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
-- Published 389 reviewed, append-only manufacturer records from Adire Audio,
+- Published 426 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
-  Visaton, Wavecor and Peerless/Tymphany; the catalog now contains 6,849 raw
-  records and 5,875
+  Visaton, Wavecor, Peerless/Tymphany and Monacor; the catalog now contains
+  6,886 raw records and 5,912
   application-visible drivers without changing or deleting any pre-existing
-  row. The two latest official-source batches contributed 287 and 64 net
+  row. The three latest official-source batches contributed 287, 64 and 37 net
   application-visible drivers respectively.
 - Added Wavecor multi-model matrix extraction and a resilient first-party
-  Peerless/Tymphany API harvester; retailer title variants are now checked
+  Peerless/Tymphany API harvester. Added a first-party Monacor category
+  harvester that verifies each product's manufacturer block, excluding
+  third-party Celestion listings before publication; retailer title variants are now checked
   against the same runtime identity sequence used by Bass Match before future
   publication.
 - Added manufacturer-first source discovery, isolated retailer gap reporting,
@@ -28,7 +30,7 @@
 - Added a growth watchdog baseline reset and protected proprietary-only records
   from removal during unified catalog rebuilds.
 - Verified catalog checks, Streamlit report rendering and the full active
-  suite: **170 PASS, 0 FAIL, 0 SKIP**.
+  suite: **171 PASS, 0 FAIL, 0 SKIP**.
 
 ## 0.8.26 (2026-08-21)
 

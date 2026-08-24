@@ -5250,6 +5250,61 @@ Equivalent Cas air load                Vas                m3         0.0700""",
 test("Generic T/S crawler discovers, normalizes and safely merges drivers", _check_generic_ts_crawler_discovers_normalizes_and_merges)
 
 
+def _check_monacor_official_harvester_filters_manufacturer_and_extracts_ts():
+    from tools import harvest_monacor_official as monacor
+
+    product_url = (
+        monacor.CATALOG_ROOT
+        + "pa-bass-speakers-/sp-test-8/"
+    )
+    listing = f"""
+    <html><body><span id="num_results">1</span>
+      <a href="products/components/speaker-technology/pa-bass-speakers-/sp-test-8/"
+         itemprop="url" class="eq-element item">SP-TEST/8</a>
+    </body></html>
+    """.encode()
+    empty_listing = b'<html><body><span id="num_results">0</span></body></html>'
+    product = b"""
+    <html><head><title>SP-TEST/8</title></head><body><h1>SP-TEST/8</h1>
+      <div class="tge txtfett inline">Manufacturer information:</div>
+      <div class="tge txtnormal">MONACOR INTERNATIONAL GmbH &amp; Co. KG<br>Germany</div>
+      <table>
+        <tr><td>Resonant frequency (fs)</td><td>40 Hz</td></tr>
+        <tr><td>Equivalent volume (Vas)</td><td>45 l</td></tr>
+        <tr><td>Total Q factor (Qts)</td><td>0.35</td></tr>
+        <tr><td>Mech. Q factor (Qms)</td><td>4.2</td></tr>
+        <tr><td>DC resistance (Re)</td><td>5.6 ohm</td></tr>
+        <tr><td>Effective cone area (Sd)</td><td>220 cm2</td></tr>
+      </table>
+    </body></html>
+    """
+
+    def fake_fetch(url, _timeout):
+        if url == product_url:
+            return product
+        if "pa-bass-speakers-" in url:
+            return listing
+        return empty_listing
+
+    payload = monacor.harvest(
+        fetcher=fake_fetch, timeout_s=1.0, sleep_s=0.0, workers=1, retries=0
+    )
+    assert payload["listed_unique"] == 1
+    assert payload["accepted"] == 1, payload
+    assert payload["presets"][0]["name"] == "WEB: Monacor SP-TEST/8"
+    assert payload["presets"][0]["driver"]["sd_cm2"] == 220.0
+    assert monacor.is_monacor_manufacturer(product)
+    assert not monacor.is_monacor_manufacturer(
+        product.replace(b"MONACOR INTERNATIONAL", b"Celestion International")
+    )
+
+
+test(
+    "Monacor official harvester filters manufacturer and extracts T/S",
+    _check_monacor_official_harvester_filters_manufacturer_and_extracts_ts,
+)
+
+
 def _check_crawler_agent_policy_planning_and_staging():
     import json
     import tempfile

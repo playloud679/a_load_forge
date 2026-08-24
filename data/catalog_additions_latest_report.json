@@ -1,16 +1,16 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T17:49:26Z",
+  "generated_at": "2026-08-24T18:01:18Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 389,
-  "latest_batch_added": 79,
-  "latest_batch_visible_added": 64,
-  "final_records": 6849,
+  "added": 426,
+  "latest_batch_added": 37,
+  "latest_batch_visible_added": 37,
+  "final_records": 6886,
   "app_visible_before": 5501,
-  "app_visible_records": 5875,
+  "app_visible_records": 5912,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -22,17 +22,16 @@
     "SB Acoustics official manufacturer site",
     "Visaton official manufacturer site",
     "Wavecor official manufacturer site",
-    "Peerless/Tymphany public official API"
+    "Peerless/Tymphany public official API",
+    "Monacor official manufacturer catalog"
   ],
   "latest_batch_by_brand": {
-    "Wavecor": 43,
-    "Peerless": 36
+    "Monacor": 37
   },
   "latest_batch_visible_by_brand": {
-    "Wavecor": 42,
-    "Peerless": 22
+    "Monacor": 37
   },
-  "added_names_count": 389,
+  "added_names_count": 426,
   "added_names_sample": [
     "Adire Audio Koda 8",
     "Stereo Integrity HFS-24",
@@ -43,6 +42,9 @@
     "Peerless FSL-1830R09-08",
     "Peerless STW-350F188PR01-04",
     "Peerless NCP-1230R01-08",
-    "Peerless HVS-40N15PG01-04"
+    "Peerless HVS-40N15PG01-04",
+    "Monacor SP-10/250PRO",
+    "Monacor SPH-175HQ",
+    "Monacor SP-312CX"
   ]
 }
