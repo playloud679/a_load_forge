@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-25T21:45:00Z",
+  "generated_at": "2026-08-25T22:05:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 7350,
-  "added": 894,
-  "latest_batch_added": 1,
-  "latest_batch_visible_added": 1,
+  "added": 900,
+  "latest_batch_added": 6,
+  "latest_batch_visible_added": 6,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7354,
+  "final_records": 7360,
   "app_visible_before": 6347,
-  "app_visible_records": 6350,
+  "app_visible_records": 6356,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -42,13 +42,14 @@
     "Eminence official product pages",
     "B&C Speakers official 2023 catalogue PDF",
     "Tang Band official product pages",
-    "RCF official product pages"
+    "RCF official product pages",
+    "Ciare official product pages and datasheets"
   ],
   "latest_batch_by_brand": {
-    "RCF": 1
+    "Ciare": 6
   },
   "latest_batch_visible_by_brand": {
-    "RCF": 1
+    "Ciare": 6
   },
   "added_names_count": 755,
   "added_names_sample": [
