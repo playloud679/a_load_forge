@@ -39,3 +39,8 @@ Structured official catalog APIs use the same staging format. The SICA/Jensen
 importer is one example: official product-category evidence keeps both brands
 separate while publication still applies the shared exact runtime identity gate
 and append-only invariant.
+
+Manufacturer-published impedance variants remain distinct when their official
+product IDs and T/S records differ. The FaitalPRO importer therefore stages
+4/8/16-ohm variants separately, while the runtime identity gate still removes
+retailer duplicates and already loaded variants before publication.

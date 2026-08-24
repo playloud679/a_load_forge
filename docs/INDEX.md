@@ -29,6 +29,7 @@ in sync in the same change.
 | `tools/harvest_peerless_official.py` | [harvest-peerless-official.md](harvest-peerless-official.md) | Complete first-party Peerless/Tymphany API crawl into staging |
 | `tools/harvest_monacor_official.py` | [harvest-monacor-official.md](harvest-monacor-official.md) | First-party Monacor component crawl with per-product manufacturer verification |
 | `tools/harvest_sica_official.py` | [harvest-sica-official.md](harvest-sica-official.md) | Structured first-party SICA/Jensen Store API crawl with brand separation and T/S unit normalization |
+| `tools/harvest_faitalpro_official.py` | [harvest-faitalpro-official.md](harvest-faitalpro-official.md) | First-party FaitalPRO LF/coaxial/archive crawl preserving official impedance variants |
 | `tools/crawl_driver_datasheets.py` | [crawl_driver_datasheets.md](crawl_driver_datasheets.md) | PDF discovery, SHA-256 archive, SQLite provenance index and alias-aware catalog merge |
 | `tools/harvest_toutlehautparleur.py` | [harvest_toutlehautparleur.md](harvest_toutlehautparleur.md) | Restartable Safari-assisted harvest of TLHP cone-speaker prices and availability |
 | `tools/run_catalog_completion_cycle.py` | [catalog-completion-cycle.md](catalog-completion-cycle.md) | Offline gap planning and restartable Xmax/Pe/Le/price completion cycles |

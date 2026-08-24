@@ -5374,6 +5374,43 @@ test(
 )
 
 
+def _check_faitalpro_official_harvester_enumerates_impedance_variants():
+    from tools import harvest_faitalpro_official as faital
+
+    listing = """
+    <a id='chkimp_401005101' data-id='401005101' data-name='4FE32'
+       data-family='10' data-impedance='4'>4 Ohm</a>
+    <a id='chkimp_401005100' data-id='401005100' data-name='4FE32'
+       data-family='10' data-impedance='8'>8 Ohm</a>
+    """
+    variants = faital.variants_from_html(listing, "LF")
+    assert [(x["model"], x["impedance"]) for x in variants] == [
+        ("4FE32", "4"), ("4FE32", "8")
+    ]
+    product = b"""
+    <html><head><title>FaitalPRO | LF Loudspeakers | 4FE32 (4\xce\xa9)</title></head><body>
+      <h1>4FE32 (4\xce\xa9)</h1><table>
+      <tr><td>Fs</td><td>100 Hz</td></tr><tr><td>Re</td><td>3.3 Ohm</td></tr>
+      <tr><td>Qes</td><td>0.62</td></tr><tr><td>Qms</td><td>3.5</td></tr>
+      <tr><td>Qts</td><td>0.53</td></tr><tr><td>Vas</td><td>2.5 dm^3</td></tr>
+      <tr><td>Sd</td><td>51.9 cm^2</td></tr><tr><td>Xmax</td><td>1.73 mm</td></tr>
+      <tr><td>AES Power Handling</td><td>30 W</td></tr>
+      </table></body></html>
+    """
+    preset, error = faital.preset_from_product(product, variants[0])
+    assert not error, error
+    assert preset["model"] == "4FE32 (4Ω)", preset
+    assert preset["published_specs"]["nominal_impedance_ohm"] == 4.0
+    assert preset["driver"]["xmax_mm"] == 1.73
+    assert preset["source"] == "Official manufacturer site"
+
+
+test(
+    "FaitalPRO official harvester enumerates impedance variants",
+    _check_faitalpro_official_harvester_enumerates_impedance_variants,
+)
+
+
 def _check_crawler_agent_policy_planning_and_staging():
     import json
     import tempfile

@@ -4,13 +4,13 @@
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
-- Published 548 reviewed, append-only manufacturer records from Adire Audio,
+- Published 604 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
-  Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA and Jensen;
-  the catalog now contains 7,008 raw records and 6,026
+  Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA, Jensen and
+  FaitalPRO; the catalog now contains 7,064 raw records and 6,082
   application-visible drivers without changing or deleting any pre-existing
-  row. The five latest official-source batches contributed 287, 64, 37, 69 and
-  45 net application-visible drivers respectively.
+  row. The six latest official-source batches contributed 287, 64, 37, 69, 45
+  and 56 net application-visible drivers respectively.
 - Added Wavecor multi-model matrix extraction and a resilient first-party
   Peerless/Tymphany API harvester. Added a first-party Monacor category
   harvester that verifies each product's manufacturer block, excluding
@@ -26,6 +26,10 @@
   brand-category evidence, AES/Xmax/Cms unit handling and coaxial LF-field
   support. Of 177 official products, 145 had complete T/S data and exact
   runtime deduplication yielded 45 new application-visible records.
+- Added a first-party FaitalPRO LF/coaxial/archive harvester that enumerates
+  every official product ID and preserves real 4/8/16-ohm variants. All 212
+  official details passed complete T/S validation; exact runtime deduplication
+  retained 56 genuinely new, application-visible drivers.
 - Added manufacturer-first source discovery, isolated retailer gap reporting,
   progress/latest-report artifacts and an in-app crawl report.
 - Added a guarded reviewed-publication command and catalog-specific checks so
@@ -39,7 +43,7 @@
 - Added a growth watchdog baseline reset and protected proprietary-only records
   from removal during unified catalog rebuilds.
 - Verified catalog checks, Streamlit report rendering and the full active
-  suite: **172 PASS, 0 FAIL, 0 SKIP**.
+  suite: **173 PASS, 0 FAIL, 0 SKIP**.
 
 ## 0.8.26 (2026-08-21)
 

@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T18:23:37Z",
+  "generated_at": "2026-08-24T18:33:49Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 548,
-  "latest_batch_added": 45,
-  "latest_batch_visible_added": 45,
+  "added": 604,
+  "latest_batch_added": 56,
+  "latest_batch_visible_added": 56,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7008,
+  "final_records": 7064,
   "app_visible_before": 5501,
-  "app_visible_records": 6026,
+  "app_visible_records": 6082,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -26,17 +26,16 @@
     "Peerless/Tymphany public official API",
     "Monacor official manufacturer catalog",
     "Eighteen Sound official manufacturer catalog and archive",
-    "SICA/Jensen public official Store API"
+    "SICA/Jensen public official Store API",
+    "FaitalPRO public official product catalog and archive"
   ],
   "latest_batch_by_brand": {
-    "Jensen": 44,
-    "SICA": 1
+    "FaitalPRO": 56
   },
   "latest_batch_visible_by_brand": {
-    "Jensen": 44,
-    "SICA": 1
+    "FaitalPRO": 56
   },
-  "added_names_count": 548,
+  "added_names_count": 604,
   "added_names_sample": [
     "Adire Audio Koda 8",
     "Stereo Integrity HFS-24",
@@ -58,6 +57,9 @@
     "Jensen P 15/100 BB",
     "Jensen N 12/100 TR STEALTH",
     "Jensen BP 12/250",
-    "SICA 8 S 2.5 CP"
+    "SICA 8 S 2.5 CP",
+    "FaitalPRO 21XL3000 (4Ω)",
+    "FaitalPRO 12HX230 (16Ω)",
+    "FaitalPRO 8HX230 (8Ω)"
   ]
 }
