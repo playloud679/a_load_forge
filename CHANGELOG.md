@@ -5,6 +5,9 @@
 - Added the previously missing Hertz DS 250.3 from the official technical
   datasheet; catalog total is now 7,379 raw and 6,375 application-visible
   records. Existing catalog rows remain unchanged.
+- Added five previously missing Beyma drivers from official technical
+  datasheets (`8MI100`, `12CMV2`, `3FR30`, `15CMV2` and one archived Beyma
+  sheet); catalog total is now 7,384 raw and 6,380 application-visible records.
 
 - Added the previously missing `B&C Speakers 12CXL64` from the official B&C
   2023 catalogue PDF after validating 106 complete T/S blocks; catalog total

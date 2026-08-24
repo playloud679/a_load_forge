@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-26T00:20:00Z",
+  "generated_at": "2026-08-26T00:35:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 7350,
   "added": 918,
-  "latest_batch_added": 1,
-  "latest_batch_visible_added": 1,
+  "latest_batch_added": 5,
+  "latest_batch_visible_added": 5,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7379,
-  "app_visible_before": 6374,
-  "app_visible_records": 6375,
+  "final_records": 7384,
+  "app_visible_before": 6375,
+  "app_visible_records": 6380,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -45,13 +45,14 @@
     "RCF official product pages",
     "Ciare official product pages and datasheets",
     "Hertz official static datasheet",
-    "Hertz official DS 250.3 technical datasheet"
+    "Hertz official DS 250.3 technical datasheet",
+    "Beyma official technical datasheets"
   ],
   "latest_batch_by_brand": {
-    "Hertz": 1
+    "Beyma": 5
   },
   "latest_batch_visible_by_brand": {
-    "Hertz": 1
+    "Beyma": 5
   },
   "added_names_count": 755,
   "added_names_sample": [
