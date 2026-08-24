@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T18:33:49Z",
+  "generated_at": "2026-08-24T18:45:49Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 604,
-  "latest_batch_added": 56,
-  "latest_batch_visible_added": 56,
-  "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7064,
+  "added": 661,
+  "latest_batch_added": 57,
+  "latest_batch_visible_added": 38,
+  "latest_batch_existing_aliases_collapsed": 10,
+  "final_records": 7121,
   "app_visible_before": 5501,
-  "app_visible_records": 6082,
+  "app_visible_records": 6120,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -27,15 +27,16 @@
     "Monacor official manufacturer catalog",
     "Eighteen Sound official manufacturer catalog and archive",
     "SICA/Jensen public official Store API",
-    "FaitalPRO public official product catalog and archive"
+    "FaitalPRO public official product catalog and archive",
+    "Ciare public official current catalog and archive"
   ],
   "latest_batch_by_brand": {
-    "FaitalPRO": 56
+    "Ciare": 57
   },
   "latest_batch_visible_by_brand": {
-    "FaitalPRO": 56
+    "Ciare": 38
   },
-  "added_names_count": 604,
+  "added_names_count": 661,
   "added_names_sample": [
     "Adire Audio Koda 8",
     "Stereo Integrity HFS-24",
@@ -60,6 +61,9 @@
     "SICA 8 S 2.5 CP",
     "FaitalPRO 21XL3000 (4Ω)",
     "FaitalPRO 12HX230 (16Ω)",
-    "FaitalPRO 8HX230 (8Ω)"
+    "FaitalPRO 8HX230 (8Ω)",
+    "Ciare 18.00SW (4Ω)",
+    "Ciare CSW7115EVO (1Ω)",
+    "Ciare CZ170 (4Ω)"
   ]
 }

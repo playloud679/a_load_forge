@@ -4,13 +4,13 @@
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
-- Published 604 reviewed, append-only manufacturer records from Adire Audio,
+- Published 661 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
-  Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA, Jensen and
-  FaitalPRO; the catalog now contains 7,064 raw records and 6,082
+  Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA, Jensen,
+  FaitalPRO and Ciare; the catalog now contains 7,121 raw records and 6,120
   application-visible drivers without changing or deleting any pre-existing
-  row. The six latest official-source batches contributed 287, 64, 37, 69, 45
-  and 56 net application-visible drivers respectively.
+  row. The seven latest official-source batches contributed 287, 64, 37, 69,
+  45, 56 and 38 net application-visible drivers respectively.
 - Added Wavecor multi-model matrix extraction and a resilient first-party
   Peerless/Tymphany API harvester. Added a first-party Monacor category
   harvester that verifies each product's manufacturer block, excluding
@@ -30,6 +30,12 @@
   every official product ID and preserves real 4/8/16-ohm variants. All 212
   official details passed complete T/S validation; exact runtime deduplication
   retained 56 genuinely new, application-visible drivers.
+- Added a concurrent first-party Ciare current/archive harvester for LF and
+  coaxial families with impedance-aware identities. It validated 162 of 165
+  official details and appended 57 reviewed rows. Ciare impedance-suffix
+  normalization collapses ten pre-existing retailer aliases, producing 48 new
+  normalized identities and a net online gain of 38 visible drivers. Three
+  records without a complete manufacturer-published T/S core were not imported.
 - Added manufacturer-first source discovery, isolated retailer gap reporting,
   progress/latest-report artifacts and an in-app crawl report.
 - Added a guarded reviewed-publication command and catalog-specific checks so
@@ -43,7 +49,7 @@
 - Added a growth watchdog baseline reset and protected proprietary-only records
   from removal during unified catalog rebuilds.
 - Verified catalog checks, Streamlit report rendering and the full active
-  suite: **173 PASS, 0 FAIL, 0 SKIP**.
+  suite: **174 PASS, 0 FAIL, 0 SKIP**.
 
 ## 0.8.26 (2026-08-21)
 

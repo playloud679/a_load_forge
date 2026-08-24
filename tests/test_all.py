@@ -342,6 +342,22 @@ def _check_presets_are_available():
         "Eminence Speaker",
         'Eminence Alpha-12A 12" Guitar/PA Driver',
     ) == "Alpha-12A"
+    assert _presets._external_catalog_part_number("Ciare", "HWB130-4") == "HWB130"
+    assert _presets._external_catalog_part_number(
+        "Ciare", "HSG160-2+2"
+    ) == "HSG160"
+    ciare_driver = _presets.DriverTS(
+        fs_hz=46.0, vas_l=12.5, qts=0.28, qms=5.9,
+        re_ohm=3.0, sd_cm2=87.0,
+    )
+    assert _presets._external_catalog_identity(
+        "Ciare", "HWB130-4", ciare_driver, "HWB130-4"
+    ) == _presets._external_catalog_identity(
+        "Ciare", "HWB130", ciare_driver, "HWB130 (4Ω)"
+    )
+    assert _presets._external_catalog_identity(
+        "Ciare", "HSG160-2+2", ciare_driver, "HSG160-2+2"
+    )[2] == "2"
     assert _presets._external_catalog_identity_model(
         {
             "model": "18-inch",
@@ -5408,6 +5424,41 @@ def _check_faitalpro_official_harvester_enumerates_impedance_variants():
 test(
     "FaitalPRO official harvester enumerates impedance variants",
     _check_faitalpro_official_harvester_enumerates_impedance_variants,
+)
+
+
+def _check_ciare_official_harvester_extracts_catalog_identity():
+    from tools import harvest_ciare_official as ciare
+
+    listing = b"""
+    <a href="/en/products/lf-driver/5/4/CS130">CS130</a>
+    <a href="/en/products/lf-driver/5/4/CS130">duplicate card link</a>
+    """
+    products = ciare.products_from_listing(listing, "current LF")
+    assert products == [{
+        "url": "https://www.ciare.com/en/products/lf-driver/5/4/CS130",
+        "model": "CS130",
+        "impedance": "4",
+        "family": "current LF",
+    }]
+    product = b"""
+    <html><head><title>CS130 - Ciare</title></head><body><h1>CS130</h1><table>
+      <tr><td>Fs</td><td>70 Hz</td></tr><tr><td>Re</td><td>3.0 Ohm</td></tr>
+      <tr><td>Qes</td><td>0.54</td></tr><tr><td>Qms</td><td>3.14</td></tr>
+      <tr><td>Qts</td><td>0.46</td></tr><tr><td>Vas</td><td>4.7 dm^3</td></tr>
+      <tr><td>Sd</td><td>75 cm^2</td></tr><tr><td>Xmax</td><td>5 mm</td></tr>
+      </table></body></html>
+    """
+    preset, error = ciare.preset_from_product(product, products[0])
+    assert not error, error
+    assert preset["model"] == "CS130 (4Ω)", preset
+    assert preset["published_specs"]["nominal_impedance_ohm"] == 4.0
+    assert preset["source"] == "Official manufacturer site"
+
+
+test(
+    "Ciare official harvester extracts catalog identity",
+    _check_ciare_official_harvester_extracts_catalog_identity,
 )
 
 

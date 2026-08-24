@@ -125,6 +125,13 @@ the actual `8BR40/N` part number. The raw catalog name/model and its explicit
 impedance remain available for provenance and for keeping coil variants
 separate during deduplication.
 
+Ciare retailer suffixes are normalized against the manufacturer's impedance
+variants. Forms such as `HWB130-4`, `HSG160-2+2` and `HWB130 (4Ω)` share the
+same manufacturer part number while retaining `4`, `2` and `4` ohms
+respectively in the identity key. This removes duplicate retailer/official
+rows without collapsing genuine Ciare coil variants or changing raw catalog
+records.
+
 ## Provenance categories
 
 `driver_preset_provenance_category(name)` maps the exact source retained in

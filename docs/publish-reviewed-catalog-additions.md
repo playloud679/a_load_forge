@@ -44,3 +44,8 @@ Manufacturer-published impedance variants remain distinct when their official
 product IDs and T/S records differ. The FaitalPRO importer therefore stages
 4/8/16-ohm variants separately, while the runtime identity gate still removes
 retailer duplicates and already loaded variants before publication.
+
+Current and archived manufacturer families may be staged together when the
+source marks archive state explicitly. Ciare uses this path: archive rows remain
+fully official engineering records, but incomplete legacy pages are rejected
+instead of being filled from retailer claims.

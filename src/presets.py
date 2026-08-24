@@ -860,6 +860,20 @@ _GENERIC_MODEL_LABEL = re.compile(
     flags=re.IGNORECASE,
 )
 
+_CIARE_IMPEDANCE_SUFFIX = re.compile(
+    r"(?:\(\s*\d+(?:[.,]\d+)?\s*(?:oh(?:ms?)?|ω)\s*\)|"
+    r"-\s*\d{1,2}(?:\s*\+\s*\d{1,2})?)$",
+    flags=re.IGNORECASE,
+)
+
+
+def _ciare_catalog_part_number(brand: str, model: str) -> str:
+    """Strip retailer/official impedance suffixes from a Ciare model code."""
+    if re.sub(r"[^a-z0-9]+", "", brand.casefold()) != "ciare":
+        return ""
+    candidate = " ".join(str(model).split()).strip()
+    return _CIARE_IMPEDANCE_SUFFIX.sub("", candidate).strip(" -")
+
 
 def _external_catalog_part_number(brand: str, model: str) -> str:
     """Return a conservative manufacturer part number for runtime display.
@@ -917,7 +931,8 @@ def _external_catalog_part_number(brand: str, model: str) -> str:
         ]
         if code_tokens:
             candidate = code_tokens[0]
-    return candidate or raw
+    ciare_code = _ciare_catalog_part_number(manufacturer, candidate)
+    return ciare_code or candidate or raw
 
 
 def _external_catalog_identity(
@@ -934,6 +949,27 @@ def _external_catalog_identity(
     """
     manufacturer = _external_catalog_manufacturer(brand)
     brand_key = manufacturer.casefold()
+    if re.sub(r"[^a-z0-9]+", "", manufacturer.casefold()) == "ciare":
+        impedance_source = f"{model} {impedance_text}"
+        explicit_impedance = re.search(
+            r"\b(\d+(?:\.\d+)?)\s*(?:oh(?:ms?)?|ω)\b",
+            impedance_source,
+            flags=re.IGNORECASE,
+        )
+        suffix_impedance = re.search(
+            r"-(\d{1,2})(?:\s*\+\s*\1)?(?=\s|$)",
+            str(impedance_text),
+            flags=re.IGNORECASE,
+        )
+        if explicit_impedance:
+            nominal_ohm = f"{float(explicit_impedance.group(1)):g}"
+        elif suffix_impedance:
+            nominal_ohm = f"{float(suffix_impedance.group(1)):g}"
+        else:
+            nominal_ohm = "8" if float(driver.re_ohm) >= 5.0 else "4"
+        part_number = _ciare_catalog_part_number(manufacturer, model) or model
+        clean_code = re.sub(r"[^a-z0-9]+", "", part_number.casefold())
+        return brand_key, clean_code, nominal_ohm
     model_code = _external_catalog_model_code(manufacturer, model)
     if model_code:
         # SB Acoustics product pages decorate the actual part number with
