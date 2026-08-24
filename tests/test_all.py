@@ -9055,8 +9055,8 @@ def _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast():
         assert _ui._ranking._finder_shared_pool_backend == "thread"
         assert pool.submit(lambda: "ready").result(timeout=5) == "ready"
     finally:
-        _ui._drop_finder_worker_pool()
         _ui.ProcessPoolExecutor = original_executor
+        _ui._drop_finder_worker_pool()
 
 
 test(
