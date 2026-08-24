@@ -24,6 +24,9 @@
 - Added three further Ciare official datasheet drivers (`PW455`, `18.00SW-4`,
   `HWB130`); catalog total is now 7,374 raw and 6,370 application-visible
   records.
+- Added one previously missing Hertz driver from the official Energy5 static
+  datasheet; catalog total is now 7,375 raw and 6,371 application-visible
+  records.
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.

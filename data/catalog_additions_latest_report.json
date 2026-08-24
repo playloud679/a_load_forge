@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-25T23:25:00Z",
+  "generated_at": "2026-08-25T23:45:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 7350,
-  "added": 914,
-  "latest_batch_added": 3,
-  "latest_batch_visible_added": 3,
+  "added": 915,
+  "latest_batch_added": 1,
+  "latest_batch_visible_added": 1,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7374,
+  "final_records": 7375,
   "app_visible_before": 6347,
-  "app_visible_records": 6370,
+  "app_visible_records": 6371,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -43,13 +43,14 @@
     "B&C Speakers official 2023 catalogue PDF",
     "Tang Band official product pages",
     "RCF official product pages",
-    "Ciare official product pages and datasheets"
+    "Ciare official product pages and datasheets",
+    "Hertz official static datasheet"
   ],
   "latest_batch_by_brand": {
-    "Ciare": 3
+    "Hertz": 1
   },
   "latest_batch_visible_by_brand": {
-    "Ciare": 3
+    "Hertz": 1
   },
   "added_names_count": 755,
   "added_names_sample": [
