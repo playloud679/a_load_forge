@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T20:15:00Z",
+  "generated_at": "2026-08-24T21:55:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 766,
-  "latest_batch_added": 3,
-  "latest_batch_visible_added": 3,
+  "added": 767,
+  "latest_batch_added": 1,
+  "latest_batch_visible_added": 1,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7226,
+  "final_records": 7227,
   "app_visible_before": 5501,
-  "app_visible_records": 6222,
+  "app_visible_records": 6223,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -31,13 +31,14 @@
     "Ciare public official current catalog and archive",
     "Fane public official current catalog and archive",
     "Fi Car Audio official product pages",
-    "BMS Speakers official product pages"
+    "BMS Speakers official product pages",
+    "Celestion official product pages"
   ],
   "latest_batch_by_brand": {
-    "BMS Speakers": 3
+    "Celestion": 1
   },
   "latest_batch_visible_by_brand": {
-    "BMS Speakers": 3
+    "Celestion": 1
   },
   "added_names_count": 755,
   "added_names_sample": [
@@ -86,6 +87,7 @@
     "BMS Speakers 6S117",
     "BMS Speakers 5N160",
     "BMS Speakers 5N155",
-    "BMS Speakers 15N830v²"
+    "BMS Speakers 15N830v²",
+    "Celestion NTR06-1705D"
   ]
 }
