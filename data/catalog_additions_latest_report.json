@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T22:25:00Z",
+  "generated_at": "2026-08-24T22:45:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 770,
+  "added": 772,
   "latest_batch_added": 2,
   "latest_batch_visible_added": 2,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7230,
+  "final_records": 7232,
   "app_visible_before": 5501,
-  "app_visible_records": 6226,
+  "app_visible_records": 6228,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -32,13 +32,14 @@
     "Fane public official current catalog and archive",
     "Fi Car Audio official product pages",
     "BMS Speakers official product pages",
-    "Celestion official product pages"
+    "Celestion official product pages",
+    "VAS Audio Germany official product pages"
   ],
   "latest_batch_by_brand": {
-    "Celestion": 1
+    "VAS Audio": 2
   },
   "latest_batch_visible_by_brand": {
-    "Celestion": 1
+    "VAS Audio": 2
   },
   "added_names_count": 755,
   "added_names_sample": [
@@ -91,6 +92,8 @@
     "Celestion NTR06-1705D",
     "Celestion NTR15-3018E",
     "Celestion NTR08-2011D",
-    "Celestion NTR06-1705B"
+    "Celestion NTR06-1705B",
+    "VAS Audio VAS-18-1700FC",
+    "VAS Audio VAS-18-1700NC"
   ]
 }
