@@ -53,6 +53,7 @@
       "target_id": "kartesian-official"
     },
     {
+      "alias_of": "Eighteen Sound",
       "brand": "18Sound",
       "candidate_domains": [
         {
@@ -73,6 +74,7 @@
       ],
       "catalog_records": 152,
       "confidence": 0.72,
+      "crawl_target_id": "eighteen-sound-official",
       "discovery_query": "18Sound official loudspeaker drivers subwoofers",
       "evidence": [
         "3113 first-party provenance votes",
@@ -91,7 +93,7 @@
         "https://eighteensound.it/sitemap_index.xml",
         "https://eighteensound.it/wp-sitemap.xml"
       ],
-      "status": "ready",
+      "status": "alias",
       "target_id": "18sound-official"
     },
     {
@@ -242,15 +244,14 @@
       "brand": "Adire Audio",
       "candidate_domains": [
         {
-          "catalog_records": 12,
-          "confidence": 0.98,
+          "catalog_records": 11,
+          "confidence": 0.975,
           "domain": "adireaudio.com",
           "reasons": [
             "brand/domain name match",
-            "162 first-party provenance votes",
-            "170 product/datasheet URLs",
-            "evidence across 12 records",
-            "reviewed official Adire subwoofer range"
+            "158 first-party provenance votes",
+            "169 product/datasheet URLs",
+            "evidence across 11 records"
           ],
           "sample_urls": [
             "https://adireaudio.com/product/brahma-mk-v-10-1000w-xbl2-car-audio-subwoofer/",
@@ -259,22 +260,21 @@
           ]
         }
       ],
-      "catalog_records": 12,
-      "confidence": 0.98,
+      "catalog_records": 11,
+      "confidence": 0.975,
       "discovery_query": "Adire Audio official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "162 first-party provenance votes",
-        "170 product/datasheet URLs",
-        "evidence across 12 records",
-        "reviewed official Adire subwoofer range"
+        "158 first-party provenance votes",
+        "169 product/datasheet URLs",
+        "evidence across 11 records"
       ],
       "official_domain": "adireaudio.com",
       "rejected_non_manufacturer_domains": [
         "parts-express.com",
         "schema.org"
       ],
-      "seed": "https://adireaudio.com/subwoofers/",
+      "seed": "https://adireaudio.com/",
       "sitemap_candidates": [
         "https://adireaudio.com/sitemap.xml",
         "https://adireaudio.com/sitemap_index.xml",
@@ -357,13 +357,11 @@
       "brand": "Altec Lansing",
       "candidate_domains": [
         {
-          "catalog_records": 64,
-          "confidence": 0.6,
+          "catalog_records": 63,
+          "confidence": 0.28,
           "domain": "archive.greatplainsacoustics.com",
           "reasons": [
-            "4 first-party provenance votes",
-            "evidence across 64 records",
-            "reviewed Great Plains Acoustics official Altec heritage archive"
+            "evidence across 63 records"
           ],
           "sample_urls": [
             "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
@@ -411,15 +409,7 @@
           ]
         }
       ],
-      "catalog_records": 64,
-      "confidence": 0.6,
       "discovery_query": "Altec Lansing official loudspeaker drivers subwoofers",
-      "evidence": [
-        "4 first-party provenance votes",
-        "evidence across 64 records",
-        "reviewed Great Plains Acoustics official Altec heritage archive"
-      ],
-      "official_domain": "archive.greatplainsacoustics.com",
       "rejected_non_manufacturer_domains": [
         "ar.ebay.com",
         "ebay.com",
@@ -428,14 +418,7 @@
         "stereonet.com",
         "thomann.de"
       ],
-      "seed": "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/",
-      "sitemap_candidates": [
-        "https://archive.greatplainsacoustics.com/sitemap.xml",
-        "https://archive.greatplainsacoustics.com/sitemap_index.xml",
-        "https://archive.greatplainsacoustics.com/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "altec-lansing-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "Apocalypse",
@@ -873,44 +856,13 @@
     },
     {
       "brand": "Aurum Cantus",
-      "candidate_domains": [
-        {
-          "catalog_records": 1,
-          "confidence": 0.88,
-          "domain": "aurumcantus.com",
-          "reasons": [
-            "brand/domain name match",
-            "4 first-party provenance votes",
-            "catalog homepage evidence",
-            "reviewed official Aurum Cantus manufacturer site"
-          ],
-          "sample_urls": [
-            "https://www.aurumcantus.com/"
-          ]
-        }
-      ],
-      "catalog_records": 1,
-      "confidence": 0.88,
+      "candidate_domains": [],
       "discovery_query": "Aurum Cantus official loudspeaker drivers subwoofers",
-      "evidence": [
-        "brand/domain name match",
-        "4 first-party provenance votes",
-        "catalog homepage evidence",
-        "reviewed official Aurum Cantus manufacturer site"
-      ],
-      "official_domain": "aurumcantus.com",
       "rejected_non_manufacturer_domains": [
         "parts-express.com",
         "schema.org"
       ],
-      "seed": "https://www.aurumcantus.com/",
-      "sitemap_candidates": [
-        "https://aurumcantus.com/sitemap.xml",
-        "https://aurumcantus.com/sitemap_index.xml",
-        "https://aurumcantus.com/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "aurum-cantus-official"
+      "status": "needs_discovery"
     },
     {
       "alias_of": "Apocalypse",
@@ -1245,6 +1197,48 @@
       "target_id": "bms-official"
     },
     {
+      "alias_of": "BMS",
+      "brand": "BMS Speakers",
+      "candidate_domains": [
+        {
+          "catalog_records": 11,
+          "confidence": 0.975,
+          "domain": "bmsspeakers.com",
+          "reasons": [
+            "brand/domain name match",
+            "212 first-party provenance votes",
+            "223 product/datasheet URLs",
+            "evidence across 11 records"
+          ],
+          "sample_urls": [
+            "https://bmsspeakers.com/product/10s302-ultra-low-distortion-low-midrange-driver/",
+            "https://bmsspeakers.com/product/12-coaxial-cone-driver-15c262/",
+            "https://bmsspeakers.com/product/12-coaxial-cone-driver/"
+          ]
+        }
+      ],
+      "catalog_records": 11,
+      "confidence": 0.975,
+      "crawl_target_id": "bms-official",
+      "discovery_query": "BMS Speakers official loudspeaker drivers subwoofers",
+      "evidence": [
+        "brand/domain name match",
+        "212 first-party provenance votes",
+        "223 product/datasheet URLs",
+        "evidence across 11 records"
+      ],
+      "official_domain": "bmsspeakers.com",
+      "rejected_non_manufacturer_domains": [],
+      "seed": "https://bmsspeakers.com/",
+      "sitemap_candidates": [
+        "https://bmsspeakers.com/sitemap.xml",
+        "https://bmsspeakers.com/sitemap_index.xml",
+        "https://bmsspeakers.com/wp-sitemap.xml"
+      ],
+      "status": "alias",
+      "target_id": "bms-speakers-official"
+    },
+    {
       "brand": "Bomber",
       "candidate_domains": [
         {
@@ -1355,14 +1349,14 @@
       "brand": "Celestion",
       "candidate_domains": [
         {
-          "catalog_records": 103,
+          "catalog_records": 107,
           "confidence": 1.0,
           "domain": "celestion.com",
           "reasons": [
             "brand/domain name match",
-            "3361 first-party provenance votes",
-            "3474 product/datasheet URLs",
-            "evidence across 103 records"
+            "3449 first-party provenance votes",
+            "3566 product/datasheet URLs",
+            "evidence across 107 records"
           ],
           "sample_urls": [
             "https://celestion.com/product/af3010-2/",
@@ -1371,14 +1365,14 @@
           ]
         }
       ],
-      "catalog_records": 103,
+      "catalog_records": 107,
       "confidence": 1.0,
       "discovery_query": "Celestion official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "3361 first-party provenance votes",
-        "3474 product/datasheet URLs",
-        "evidence across 103 records"
+        "3449 first-party provenance votes",
+        "3566 product/datasheet URLs",
+        "evidence across 107 records"
       ],
       "official_domain": "celestion.com",
       "rejected_non_manufacturer_domains": [
@@ -1422,15 +1416,15 @@
       "brand": "Ciare",
       "candidate_domains": [
         {
-          "catalog_records": 128,
+          "catalog_records": 185,
           "confidence": 1.0,
           "domain": "ciare.com",
           "reasons": [
             "brand/domain name match",
-            "2202 first-party provenance votes",
-            "2319 product/datasheet URLs",
+            "3481 first-party provenance votes",
+            "2779 product/datasheet URLs",
             "catalog homepage evidence",
-            "evidence across 128 records"
+            "evidence across 185 records"
           ],
           "sample_urls": [
             "https://ciare.com",
@@ -1439,15 +1433,15 @@
           ]
         }
       ],
-      "catalog_records": 128,
+      "catalog_records": 185,
       "confidence": 1.0,
       "discovery_query": "Ciare official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "2202 first-party provenance votes",
-        "2319 product/datasheet URLs",
+        "3481 first-party provenance votes",
+        "2779 product/datasheet URLs",
         "catalog homepage evidence",
-        "evidence across 128 records"
+        "evidence across 185 records"
       ],
       "official_domain": "ciare.com",
       "rejected_non_manufacturer_domains": [
@@ -1579,41 +1573,12 @@
     },
     {
       "brand": "DAS",
-      "candidate_domains": [
-        {
-          "catalog_records": 1,
-          "confidence": 0.8,
-          "domain": "dasaudio.com",
-          "reasons": [
-            "brand/domain name match",
-            "4 first-party provenance votes",
-            "reviewed official DAS Audio product site"
-          ],
-          "sample_urls": [
-            "https://www.dasaudio.com/en/home/"
-          ]
-        }
-      ],
-      "catalog_records": 1,
-      "confidence": 0.8,
+      "candidate_domains": [],
       "discovery_query": "DAS official loudspeaker drivers subwoofers",
-      "evidence": [
-        "brand/domain name match",
-        "4 first-party provenance votes",
-        "reviewed official DAS Audio product site"
-      ],
-      "official_domain": "dasaudio.com",
       "rejected_non_manufacturer_domains": [
         "en.toutlehautparleur.com"
       ],
-      "seed": "https://www.dasaudio.com/en/home/",
-      "sitemap_candidates": [
-        "https://dasaudio.com/sitemap.xml",
-        "https://dasaudio.com/sitemap_index.xml",
-        "https://dasaudio.com/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "das-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "Davis Acoustics",
@@ -1715,23 +1680,9 @@
       "target_id": "dayton-audio-official"
     },
     {
+      "alias_of": "Gately Audio",
       "brand": "DC Audio",
       "candidate_domains": [
-        {
-          "catalog_records": 21,
-          "confidence": 0.6,
-          "domain": "dcsoundlab.com",
-          "reasons": [
-            "24 first-party provenance votes",
-            "evidence across 21 records",
-            "reviewed official DC Audio subwoofer page with published T/S tables"
-          ],
-          "sample_urls": [
-            "https://www.dcsoundlab.com/coaxial-neo-pro-audio-65",
-            "https://www.dcsoundlab.com/coaxial-neo-pro-audio-8",
-            "https://www.dcsoundlab.com/level-1"
-          ]
-        },
         {
           "catalog_records": 23,
           "confidence": 0.72,
@@ -1746,27 +1697,42 @@
             "https://gatelyaudio.com/products/copy-of-dc-audio-level-2-10",
             "https://gatelyaudio.com/products/copy-of-dc-audio-level-3-10"
           ]
+        },
+        {
+          "catalog_records": 20,
+          "confidence": 0.6,
+          "domain": "dcsoundlab.com",
+          "reasons": [
+            "20 first-party provenance votes",
+            "evidence across 20 records"
+          ],
+          "sample_urls": [
+            "https://www.dcsoundlab.com/coaxial-neo-pro-audio-65",
+            "https://www.dcsoundlab.com/coaxial-neo-pro-audio-8",
+            "https://www.dcsoundlab.com/level-1"
+          ]
         }
       ],
-      "catalog_records": 21,
-      "confidence": 0.6,
+      "catalog_records": 23,
+      "confidence": 0.72,
+      "crawl_target_id": "gately-audio-official",
       "discovery_query": "DC Audio official loudspeaker drivers subwoofers",
       "evidence": [
-        "24 first-party provenance votes",
-        "evidence across 21 records",
-        "reviewed official DC Audio subwoofer page with published T/S tables"
+        "17 first-party provenance votes",
+        "23 product/datasheet URLs",
+        "evidence across 23 records"
       ],
-      "official_domain": "dcsoundlab.com",
+      "official_domain": "gatelyaudio.com",
       "rejected_non_manufacturer_domains": [
         "droppinhzcaraudio.com"
       ],
-      "seed": "https://www.dcsoundlab.com/level-4-1",
+      "seed": "https://gatelyaudio.com/",
       "sitemap_candidates": [
-        "https://dcsoundlab.com/sitemap.xml",
-        "https://dcsoundlab.com/sitemap_index.xml",
-        "https://dcsoundlab.com/wp-sitemap.xml"
+        "https://gatelyaudio.com/sitemap.xml",
+        "https://gatelyaudio.com/sitemap_index.xml",
+        "https://gatelyaudio.com/wp-sitemap.xml"
       ],
-      "status": "ready",
+      "status": "alias",
       "target_id": "dc-audio-official"
     },
     {
@@ -2076,6 +2042,23 @@
       "brand": "Eighteen Sound",
       "candidate_domains": [
         {
+          "catalog_records": 80,
+          "confidence": 1.0,
+          "domain": "eighteensound.it",
+          "reasons": [
+            "brand/domain name match",
+            "1510 first-party provenance votes",
+            "1587 product/datasheet URLs",
+            "catalog homepage evidence",
+            "evidence across 80 records"
+          ],
+          "sample_urls": [
+            "https://www.eighteensound.it",
+            "https://www.eighteensound.it/en/products/coaxial/12-0/8/12NCX750",
+            "https://www.eighteensound.it/en/products/coaxial/15-0/8/15NCX750"
+          ]
+        },
+        {
           "catalog_records": 14,
           "confidence": 0.67,
           "domain": "eighteensound.com",
@@ -2089,39 +2072,28 @@
             "https://www.eighteensound.com/en/products/lf-driver/12-8ohm/12mb777-8",
             "https://www.eighteensound.com/en/products/lf-driver/12/12ntlw3500"
           ]
-        },
-        {
-          "catalog_records": 3,
-          "confidence": 0.575,
-          "domain": "eighteensound.it",
-          "reasons": [
-            "brand/domain name match",
-            "catalog homepage evidence",
-            "evidence across 3 records"
-          ],
-          "sample_urls": [
-            "https://www.eighteensound.it"
-          ]
         }
       ],
-      "catalog_records": 14,
-      "confidence": 0.67,
+      "catalog_records": 80,
+      "confidence": 1.0,
       "discovery_query": "Eighteen Sound official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "14 product/datasheet URLs",
-        "evidence across 14 records"
+        "1510 first-party provenance votes",
+        "1587 product/datasheet URLs",
+        "catalog homepage evidence",
+        "evidence across 80 records"
       ],
-      "official_domain": "eighteensound.com",
+      "official_domain": "eighteensound.it",
       "rejected_non_manufacturer_domains": [
         "en.toutlehautparleur.com",
         "leanaudio.co.uk"
       ],
-      "seed": "https://eighteensound.com/",
+      "seed": "https://eighteensound.it/",
       "sitemap_candidates": [
-        "https://eighteensound.com/sitemap.xml",
-        "https://eighteensound.com/sitemap_index.xml",
-        "https://eighteensound.com/wp-sitemap.xml"
+        "https://eighteensound.it/sitemap.xml",
+        "https://eighteensound.it/sitemap_index.xml",
+        "https://eighteensound.it/wp-sitemap.xml"
       ],
       "status": "ready",
       "target_id": "eighteen-sound-official"
@@ -2436,30 +2408,32 @@
       "brand": "FaitalPRO",
       "candidate_domains": [
         {
-          "catalog_records": 34,
-          "confidence": 0.76,
+          "catalog_records": 90,
+          "confidence": 1.0,
           "domain": "faitalpro.com",
           "reasons": [
             "brand/domain name match",
-            "48 product/datasheet URLs",
+            "1215 first-party provenance votes",
+            "1319 product/datasheet URLs",
             "catalog homepage evidence",
-            "evidence across 34 records"
+            "evidence across 90 records"
           ],
           "sample_urls": [
             "https://faitalpro.com",
-            "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101010100",
-            "https://faitalpro.com/en/products/archived_products/product_details/LF/index.php?id=101020100"
+            "https://faitalpro.com/en/products/Coaxial_Loudspeakers/product_details/index.php?id=351010015",
+            "https://faitalpro.com/en/products/Coaxial_Loudspeakers/product_details/index.php?id=351030200"
           ]
         }
       ],
-      "catalog_records": 34,
-      "confidence": 0.76,
+      "catalog_records": 90,
+      "confidence": 1.0,
       "discovery_query": "FaitalPRO official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "48 product/datasheet URLs",
+        "1215 first-party provenance votes",
+        "1319 product/datasheet URLs",
         "catalog homepage evidence",
-        "evidence across 34 records"
+        "evidence across 90 records"
       ],
       "official_domain": "faitalpro.com",
       "rejected_non_manufacturer_domains": [
@@ -2485,26 +2459,30 @@
       "brand": "Fane",
       "candidate_domains": [
         {
-          "catalog_records": 3,
-          "confidence": 0.575,
+          "catalog_records": 68,
+          "confidence": 0.96,
           "domain": "fane-international.com",
           "reasons": [
             "brand/domain name match",
+            "1311 first-party provenance votes",
             "catalog homepage evidence",
-            "evidence across 3 records"
+            "evidence across 68 records"
           ],
           "sample_urls": [
-            "https://fane-international.com"
+            "https://fane-international.com",
+            "https://www.fane-international.com/view-product/COLOSSUS-12B",
+            "https://www.fane-international.com/view-product/COLOSSUS-12BM"
           ]
         }
       ],
-      "catalog_records": 3,
-      "confidence": 0.575,
+      "catalog_records": 68,
+      "confidence": 0.96,
       "discovery_query": "Fane official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
+        "1311 first-party provenance votes",
         "catalog homepage evidence",
-        "evidence across 3 records"
+        "evidence across 68 records"
       ],
       "official_domain": "fane-international.com",
       "rejected_non_manufacturer_domains": [
@@ -2599,24 +2577,30 @@
       "brand": "Fi Car Audio",
       "candidate_domains": [
         {
-          "catalog_records": 2,
-          "confidence": 0.56,
+          "catalog_records": 30,
+          "confidence": 0.96,
           "domain": "ficaraudio.com",
           "reasons": [
             "brand/domain name match",
-            "catalog homepage evidence"
+            "432 first-party provenance votes",
+            "catalog homepage evidence",
+            "evidence across 30 records"
           ],
           "sample_urls": [
-            "https://ficaraudio.com"
+            "https://ficaraudio.com",
+            "https://ficaraudio.com/alpha-series-10/",
+            "https://ficaraudio.com/alpha-series-12/"
           ]
         }
       ],
-      "catalog_records": 2,
-      "confidence": 0.56,
+      "catalog_records": 30,
+      "confidence": 0.96,
       "discovery_query": "Fi Car Audio official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "catalog homepage evidence"
+        "432 first-party provenance votes",
+        "catalog homepage evidence",
+        "evidence across 30 records"
       ],
       "official_domain": "ficaraudio.com",
       "rejected_non_manufacturer_domains": [],
@@ -2848,82 +2832,35 @@
     },
     {
       "brand": "Goldwood",
-      "candidate_domains": [
-        {
-          "catalog_records": 1,
-          "confidence": 0.8,
-          "domain": "goldwood.com",
-          "reasons": [
-            "brand/domain name match",
-            "4 first-party provenance votes",
-            "reviewed official Goldwood raw-woofer range"
-          ],
-          "sample_urls": [
-            "https://www.goldwood.com/goldwood/"
-          ]
-        }
-      ],
-      "catalog_records": 1,
-      "confidence": 0.8,
+      "candidate_domains": [],
       "discovery_query": "Goldwood official loudspeaker drivers subwoofers",
-      "evidence": [
-        "brand/domain name match",
-        "4 first-party provenance votes",
-        "reviewed official Goldwood raw-woofer range"
-      ],
-      "official_domain": "goldwood.com",
       "rejected_non_manufacturer_domains": [
         "parts-express.com",
         "schema.org"
       ],
-      "seed": "https://www.goldwood.com/goldwood/",
-      "sitemap_candidates": [
-        "https://goldwood.com/sitemap.xml",
-        "https://goldwood.com/sitemap_index.xml",
-        "https://goldwood.com/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "goldwood-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "Goodmans",
       "candidate_domains": [
         {
-          "catalog_records": 8,
-          "confidence": 0.84,
+          "catalog_records": 7,
+          "confidence": 0.515,
           "domain": "goodmans.co.uk",
           "reasons": [
             "brand/domain name match",
-            "4 first-party provenance votes",
-            "evidence across 8 records",
-            "reviewed official Goodmans vintage driver archive"
+            "evidence across 7 records"
           ],
           "sample_urls": [
-            "https://www.goodmans.co.uk/vintage/",
             "https://www.goodmans.co.uk/vintage/audiom-60",
-            "https://www.goodmans.co.uk/vintage/audiom-80"
+            "https://www.goodmans.co.uk/vintage/audiom-80",
+            "https://www.goodmans.co.uk/vintage/axiom-10"
           ]
         }
       ],
-      "catalog_records": 8,
-      "confidence": 0.84,
       "discovery_query": "Goodmans official loudspeaker drivers subwoofers",
-      "evidence": [
-        "brand/domain name match",
-        "4 first-party provenance votes",
-        "evidence across 8 records",
-        "reviewed official Goodmans vintage driver archive"
-      ],
-      "official_domain": "goodmans.co.uk",
       "rejected_non_manufacturer_domains": [],
-      "seed": "https://www.goodmans.co.uk/vintage/",
-      "sitemap_candidates": [
-        "https://goodmans.co.uk/sitemap.xml",
-        "https://goodmans.co.uk/sitemap_index.xml",
-        "https://goodmans.co.uk/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "goodmans-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "Goto Unit",
@@ -2965,19 +2902,6 @@
       "brand": "Great Plains Audio",
       "candidate_domains": [
         {
-          "catalog_records": 1,
-          "confidence": 0.6,
-          "domain": "greatplainsacoustics.com",
-          "reasons": [
-            "3 first-party provenance votes",
-            "catalog homepage evidence",
-            "automatic domain discovery verified"
-          ],
-          "sample_urls": [
-            "https://greatplainsacoustics.com/"
-          ]
-        },
-        {
           "catalog_records": 3,
           "confidence": 0.495,
           "domain": "greatplainsaudio.com",
@@ -2992,26 +2916,11 @@
           ]
         }
       ],
-      "catalog_records": 1,
-      "confidence": 0.6,
       "discovery_query": "Great Plains Audio official loudspeaker drivers subwoofers",
-      "evidence": [
-        "3 first-party provenance votes",
-        "catalog homepage evidence",
-        "automatic domain discovery verified"
-      ],
-      "official_domain": "greatplainsacoustics.com",
       "rejected_non_manufacturer_domains": [
         "stereonet.com"
       ],
-      "seed": "https://greatplainsacoustics.com/",
-      "sitemap_candidates": [
-        "https://greatplainsacoustics.com/sitemap.xml",
-        "https://greatplainsacoustics.com/sitemap_index.xml",
-        "https://greatplainsacoustics.com/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "great-plains-audio-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "Ground Zero",
@@ -3053,83 +2962,23 @@
     },
     {
       "brand": "GRS",
-      "candidate_domains": [
-        {
-          "catalog_records": 1,
-          "confidence": 0.88,
-          "domain": "grs-speakers.com",
-          "reasons": [
-            "brand/domain name match",
-            "4 first-party provenance votes",
-            "catalog homepage evidence",
-            "reviewed official Great Replacement Speakers brand site"
-          ],
-          "sample_urls": [
-            "https://grs-speakers.com/"
-          ]
-        }
-      ],
-      "catalog_records": 1,
-      "confidence": 0.88,
+      "candidate_domains": [],
       "discovery_query": "GRS official loudspeaker drivers subwoofers",
-      "evidence": [
-        "brand/domain name match",
-        "4 first-party provenance votes",
-        "catalog homepage evidence",
-        "reviewed official Great Replacement Speakers brand site"
-      ],
-      "official_domain": "grs-speakers.com",
       "rejected_non_manufacturer_domains": [
         "parts-express.com",
         "schema.org",
         "soundimports.eu"
       ],
-      "seed": "https://grs-speakers.com/",
-      "sitemap_candidates": [
-        "https://grs-speakers.com/sitemap.xml",
-        "https://grs-speakers.com/sitemap_index.xml",
-        "https://grs-speakers.com/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "grs-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "GS Audio",
-      "candidate_domains": [
-        {
-          "catalog_records": 1,
-          "confidence": 0.8,
-          "domain": "gsaudio.it",
-          "reasons": [
-            "brand/domain name match",
-            "4 first-party provenance votes",
-            "reviewed official GS Audio subwoofer range"
-          ],
-          "sample_urls": [
-            "https://www.gsaudio.it/it/subwoofer.html"
-          ]
-        }
-      ],
-      "catalog_records": 1,
-      "confidence": 0.8,
+      "candidate_domains": [],
       "discovery_query": "GS Audio official loudspeaker drivers subwoofers",
-      "evidence": [
-        "brand/domain name match",
-        "4 first-party provenance votes",
-        "reviewed official GS Audio subwoofer range"
-      ],
-      "official_domain": "gsaudio.it",
       "rejected_non_manufacturer_domains": [
         "soundautoconcept.com"
       ],
-      "seed": "https://www.gsaudio.it/it/subwoofer.html",
-      "sitemap_candidates": [
-        "https://gsaudio.it/sitemap.xml",
-        "https://gsaudio.it/sitemap_index.xml",
-        "https://gsaudio.it/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "gs-audio-official"
+      "status": "needs_discovery"
     },
     {
       "alias_of": "Apocalypse",
@@ -3212,42 +3061,21 @@
       "brand": "Helix",
       "candidate_domains": [
         {
-          "catalog_records": 4,
-          "confidence": 0.66,
+          "catalog_records": 3,
+          "confidence": 0.295,
           "domain": "audiotec-fischer.de",
           "reasons": [
-            "4 first-party provenance votes",
-            "1 product/datasheet URLs",
             "catalog homepage evidence",
-            "evidence across 4 records",
-            "reviewed official Audiotec Fischer HELIX subwoofer range"
+            "evidence across 3 records"
           ],
           "sample_urls": [
-            "https://www.audiotec-fischer.de",
-            "https://www.audiotec-fischer.de/en/helix/subwoofers/"
+            "https://www.audiotec-fischer.de"
           ]
         }
       ],
-      "catalog_records": 4,
-      "confidence": 0.66,
       "discovery_query": "Helix official loudspeaker drivers subwoofers",
-      "evidence": [
-        "4 first-party provenance votes",
-        "1 product/datasheet URLs",
-        "catalog homepage evidence",
-        "evidence across 4 records",
-        "reviewed official Audiotec Fischer HELIX subwoofer range"
-      ],
-      "official_domain": "audiotec-fischer.de",
       "rejected_non_manufacturer_domains": [],
-      "seed": "https://www.audiotec-fischer.de/en/helix/subwoofers/",
-      "sitemap_candidates": [
-        "https://audiotec-fischer.de/sitemap.xml",
-        "https://audiotec-fischer.de/sitemap_index.xml",
-        "https://audiotec-fischer.de/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "helix-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "Hertz",
@@ -3300,44 +3128,55 @@
       "target_id": "hertz-official"
     },
     {
-      "brand": "HiVi",
+      "brand": "Hinor",
       "candidate_domains": [
         {
-          "catalog_records": 1,
-          "confidence": 0.56,
-          "domain": "swanspeakers.com",
+          "catalog_records": 42,
+          "confidence": 1.0,
+          "domain": "hinor.com.br",
           "reasons": [
-            "4 first-party provenance votes",
-            "1 product/datasheet URLs",
-            "reviewed official Swan/HiVi component-driver range"
+            "brand/domain name match",
+            "84 first-party provenance votes",
+            "126 product/datasheet URLs",
+            "evidence across 42 records"
           ],
           "sample_urls": [
-            "https://www.swanspeakers.com/commercial/product/"
+            "https://www.hinor.com.br/pt/produto/alto-falante-hinor-10-hpl-300",
+            "https://www.hinor.com.br/pt/produto/alto-falante-hinor-10-hpm",
+            "https://www.hinor.com.br/pt/produto/alto-falante-hinor-12-batstaka-evo"
           ]
         }
       ],
-      "catalog_records": 1,
-      "confidence": 0.56,
-      "discovery_query": "HiVi official loudspeaker drivers subwoofers",
+      "catalog_records": 42,
+      "confidence": 1.0,
+      "discovery_query": "Hinor official loudspeaker drivers subwoofers",
       "evidence": [
-        "4 first-party provenance votes",
-        "1 product/datasheet URLs",
-        "reviewed official Swan/HiVi component-driver range"
+        "brand/domain name match",
+        "84 first-party provenance votes",
+        "126 product/datasheet URLs",
+        "evidence across 42 records"
       ],
-      "official_domain": "swanspeakers.com",
+      "official_domain": "hinor.com.br",
+      "rejected_non_manufacturer_domains": [],
+      "seed": "https://hinor.com.br/",
+      "sitemap_candidates": [
+        "https://hinor.com.br/sitemap.xml",
+        "https://hinor.com.br/sitemap_index.xml",
+        "https://hinor.com.br/wp-sitemap.xml"
+      ],
+      "status": "ready",
+      "target_id": "hinor-official"
+    },
+    {
+      "brand": "HiVi",
+      "candidate_domains": [],
+      "discovery_query": "HiVi official loudspeaker drivers subwoofers",
       "rejected_non_manufacturer_domains": [
         "parts-express.com",
         "schema.org",
         "soundimports.eu"
       ],
-      "seed": "https://www.swanspeakers.com/commercial/product/",
-      "sitemap_candidates": [
-        "https://swanspeakers.com/sitemap.xml",
-        "https://swanspeakers.com/sitemap_index.xml",
-        "https://swanspeakers.com/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "hivi-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "HOOL-X15.1DHE",
@@ -3488,12 +3327,31 @@
     {
       "alias_of": "JBL Pro",
       "brand": "JBL Professional",
-      "candidate_domains": [],
-      "confidence": 0.585,
+      "candidate_domains": [
+        {
+          "catalog_records": 165,
+          "confidence": 0.88,
+          "domain": "jblpro.com",
+          "reasons": [
+            "brand/domain name match",
+            "165 first-party provenance votes",
+            "evidence across 165 records"
+          ],
+          "sample_urls": [
+            "https://jblpro.com/en-US/site_elements/thiele-small-parameter-list-for-jbl-professional-cone-transducers",
+            "https://jblpro.com/en-US/site_elements/thiele-small-parameter-list-for-jbl-professional-cone-transducers#model=112A",
+            "https://jblpro.com/en-US/site_elements/thiele-small-parameter-list-for-jbl-professional-cone-transducers#model=116A"
+          ]
+        }
+      ],
+      "catalog_records": 165,
+      "confidence": 0.88,
       "crawl_target_id": "jbl-pro-official",
       "discovery_query": "JBL Professional official loudspeaker drivers subwoofers",
       "evidence": [
-        "automatic catalog brand-alias resolution"
+        "brand/domain name match",
+        "165 first-party provenance votes",
+        "evidence across 165 records"
       ],
       "official_domain": "jblpro.com",
       "rejected_non_manufacturer_domains": [
@@ -3501,10 +3359,16 @@
         "parts-express.com",
         "schema.org"
       ],
-      "status": "alias"
+      "seed": "https://jblpro.com/",
+      "sitemap_candidates": [
+        "https://jblpro.com/sitemap.xml",
+        "https://jblpro.com/sitemap_index.xml",
+        "https://jblpro.com/wp-sitemap.xml"
+      ],
+      "status": "alias",
+      "target_id": "jbl-professional-official"
     },
     {
-      "alias_of": "JBL Pro",
       "brand": "JBL Selenium",
       "candidate_domains": [
         {
@@ -3522,59 +3386,63 @@
           ]
         }
       ],
-      "confidence": 0.585,
-      "crawl_target_id": "jbl-pro-official",
       "discovery_query": "JBL Selenium official loudspeaker drivers subwoofers",
-      "evidence": [
-        "Selenium product line is maintained by JBL Professional"
-      ],
-      "official_domain": "jblpro.com",
       "rejected_non_manufacturer_domains": [],
-      "status": "alias"
+      "status": "needs_discovery"
     },
     {
+      "alias_of": "SICA",
       "brand": "Jensen",
       "candidate_domains": [
         {
-          "catalog_records": 8,
-          "confidence": 0.92,
+          "catalog_records": 44,
+          "confidence": 0.6,
+          "domain": "sica.it",
+          "reasons": [
+            "544 first-party provenance votes",
+            "evidence across 44 records"
+          ],
+          "sample_urls": [
+            "https://sica.it/prodotto/bp-10-150",
+            "https://sica.it/prodotto/bp-10-150/",
+            "https://sica.it/prodotto/bp-15-250"
+          ]
+        },
+        {
+          "catalog_records": 7,
+          "confidence": 0.515,
           "domain": "jensentone.com",
           "reasons": [
             "brand/domain name match",
-            "3 first-party provenance votes",
-            "catalog homepage evidence",
-            "evidence across 8 records",
-            "automatic domain discovery verified"
+            "evidence across 7 records"
           ],
           "sample_urls": [
-            "https://www.jensentone.com/",
             "https://www.jensentone.com/blackbird-12",
-            "https://www.jensentone.com/c12k"
+            "https://www.jensentone.com/c12k",
+            "https://www.jensentone.com/c12n"
           ]
         }
       ],
-      "catalog_records": 8,
-      "confidence": 0.92,
+      "catalog_records": 44,
+      "confidence": 0.6,
+      "crawl_target_id": "sica-official",
       "discovery_query": "Jensen official loudspeaker drivers subwoofers",
       "evidence": [
-        "brand/domain name match",
-        "3 first-party provenance votes",
-        "catalog homepage evidence",
-        "evidence across 8 records",
-        "automatic domain discovery verified"
+        "544 first-party provenance votes",
+        "evidence across 44 records"
       ],
-      "official_domain": "jensentone.com",
+      "official_domain": "sica.it",
       "rejected_non_manufacturer_domains": [
         "thomann.de",
         "topservicepro.it"
       ],
-      "seed": "https://www.jensentone.com/",
+      "seed": "https://sica.it/",
       "sitemap_candidates": [
-        "https://jensentone.com/sitemap.xml",
-        "https://jensentone.com/sitemap_index.xml",
-        "https://jensentone.com/wp-sitemap.xml"
+        "https://sica.it/sitemap.xml",
+        "https://sica.it/sitemap_index.xml",
+        "https://sica.it/wp-sitemap.xml"
       ],
-      "status": "ready",
+      "status": "alias",
       "target_id": "jensen-official"
     },
     {
@@ -3691,14 +3559,14 @@
       "brand": "LaVoce",
       "candidate_domains": [
         {
-          "catalog_records": 157,
+          "catalog_records": 158,
           "confidence": 1.0,
           "domain": "lavocespeakers.com",
           "reasons": [
             "brand/domain name match",
-            "3200 first-party provenance votes",
-            "3357 product/datasheet URLs",
-            "evidence across 157 records"
+            "3221 first-party provenance votes",
+            "3379 product/datasheet URLs",
+            "evidence across 158 records"
           ],
           "sample_urls": [
             "https://lavocespeakers.com/product/caf082-00k/",
@@ -3718,14 +3586,14 @@
           ]
         }
       ],
-      "catalog_records": 157,
+      "catalog_records": 158,
       "confidence": 1.0,
       "discovery_query": "LaVoce official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "3200 first-party provenance votes",
-        "3357 product/datasheet URLs",
-        "evidence across 157 records"
+        "3221 first-party provenance votes",
+        "3379 product/datasheet URLs",
+        "evidence across 158 records"
       ],
       "official_domain": "lavocespeakers.com",
       "rejected_non_manufacturer_domains": [
@@ -4055,26 +3923,30 @@
       "brand": "Monacor",
       "candidate_domains": [
         {
-          "catalog_records": 1,
-          "confidence": 0.8,
+          "catalog_records": 37,
+          "confidence": 1.0,
           "domain": "monacor.com",
           "reasons": [
             "brand/domain name match",
-            "4 first-party provenance votes",
-            "reviewed official MONACOR speaker-chassis range"
+            "592 first-party provenance votes",
+            "629 product/datasheet URLs",
+            "evidence across 37 records"
           ],
           "sample_urls": [
-            "https://www.monacor.com/speaker-chassis"
+            "https://www.monacor.com/products/components/speaker-technology/hi-fi-full-range-speakers-/spx-21m/",
+            "https://www.monacor.com/products/components/speaker-technology/hi-fi-midrange-speakers-/sp-167e/",
+            "https://www.monacor.com/products/components/speaker-technology/hi-fi-midrange-speakers-/sp-202e/"
           ]
         }
       ],
-      "catalog_records": 1,
-      "confidence": 0.8,
+      "catalog_records": 37,
+      "confidence": 1.0,
       "discovery_query": "Monacor official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "4 first-party provenance votes",
-        "reviewed official MONACOR speaker-chassis range"
+        "592 first-party provenance votes",
+        "629 product/datasheet URLs",
+        "evidence across 37 records"
       ],
       "official_domain": "monacor.com",
       "rejected_non_manufacturer_domains": [
@@ -4084,7 +3956,7 @@
         "schema.org",
         "soundimports.eu"
       ],
-      "seed": "https://www.monacor.com/speaker-chassis",
+      "seed": "https://monacor.com/",
       "sitemap_candidates": [
         "https://monacor.com/sitemap.xml",
         "https://monacor.com/sitemap_index.xml",
@@ -4466,56 +4338,25 @@
     },
     {
       "brand": "Peavey",
-      "candidate_domains": [
-        {
-          "catalog_records": 1,
-          "confidence": 0.88,
-          "domain": "peavey.com",
-          "reasons": [
-            "brand/domain name match",
-            "3 first-party provenance votes",
-            "catalog homepage evidence",
-            "automatic domain discovery verified"
-          ],
-          "sample_urls": [
-            "https://peavey.com/"
-          ]
-        }
-      ],
-      "catalog_records": 1,
-      "confidence": 0.88,
+      "candidate_domains": [],
       "discovery_query": "Peavey official loudspeaker drivers subwoofers",
-      "evidence": [
-        "brand/domain name match",
-        "3 first-party provenance votes",
-        "catalog homepage evidence",
-        "automatic domain discovery verified"
-      ],
-      "official_domain": "peavey.com",
       "rejected_non_manufacturer_domains": [
         "parts-express.com",
         "schema.org"
       ],
-      "seed": "https://peavey.com/",
-      "sitemap_candidates": [
-        "https://peavey.com/sitemap.xml",
-        "https://peavey.com/sitemap_index.xml",
-        "https://peavey.com/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "peavey-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "Peerless",
       "candidate_domains": [
         {
-          "catalog_records": 72,
+          "catalog_records": 108,
           "confidence": 0.88,
           "domain": "products-peerless.com",
           "reasons": [
             "brand/domain name match",
-            "72 first-party provenance votes",
-            "evidence across 72 records"
+            "324 first-party provenance votes",
+            "evidence across 108 records"
           ],
           "sample_urls": [
             "https://www.products-peerless.com/en/transducer/112",
@@ -4536,13 +4377,13 @@
           ]
         }
       ],
-      "catalog_records": 72,
+      "catalog_records": 108,
       "confidence": 0.88,
       "discovery_query": "Peerless official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "72 first-party provenance votes",
-        "evidence across 72 records"
+        "324 first-party provenance votes",
+        "evidence across 108 records"
       ],
       "official_domain": "products-peerless.com",
       "rejected_non_manufacturer_domains": [
@@ -4924,60 +4765,17 @@
     },
     {
       "brand": "Pyle Audio",
-      "candidate_domains": [
-        {
-          "catalog_records": 1,
-          "confidence": 0.8,
-          "domain": "pyleaudio.com",
-          "reasons": [
-            "brand/domain name match",
-            "4 first-party provenance votes",
-            "reviewed official Pyle speaker product range"
-          ],
-          "sample_urls": [
-            "https://www.pyleaudio.com/ProductsList.aspx?Value=speakers"
-          ]
-        }
-      ],
-      "catalog_records": 1,
-      "confidence": 0.8,
+      "candidate_domains": [],
       "discovery_query": "Pyle Audio official loudspeaker drivers subwoofers",
-      "evidence": [
-        "brand/domain name match",
-        "4 first-party provenance votes",
-        "reviewed official Pyle speaker product range"
-      ],
-      "official_domain": "pyleaudio.com",
       "rejected_non_manufacturer_domains": [
         "parts-express.com",
         "schema.org"
       ],
-      "seed": "https://www.pyleaudio.com/ProductsList.aspx?Value=speakers",
-      "sitemap_candidates": [
-        "https://pyleaudio.com/sitemap.xml",
-        "https://pyleaudio.com/sitemap_index.xml",
-        "https://pyleaudio.com/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "pyle-audio-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "RAAL",
       "candidate_domains": [
-        {
-          "catalog_records": 1,
-          "confidence": 0.88,
-          "domain": "raalribbon.com",
-          "reasons": [
-            "brand/domain name match",
-            "4 first-party provenance votes",
-            "catalog homepage evidence",
-            "reviewed official RAAL ribbon-driver site"
-          ],
-          "sample_urls": [
-            "https://www.raalribbon.com/"
-          ]
-        },
         {
           "catalog_records": 1,
           "confidence": 0.28,
@@ -4990,27 +4788,11 @@
           ]
         }
       ],
-      "catalog_records": 1,
-      "confidence": 0.88,
       "discovery_query": "RAAL official loudspeaker drivers subwoofers",
-      "evidence": [
-        "brand/domain name match",
-        "4 first-party provenance votes",
-        "catalog homepage evidence",
-        "reviewed official RAAL ribbon-driver site"
-      ],
-      "official_domain": "raalribbon.com",
       "rejected_non_manufacturer_domains": [
         "soundimports.eu"
       ],
-      "seed": "https://www.raalribbon.com/",
-      "sitemap_candidates": [
-        "https://raalribbon.com/sitemap.xml",
-        "https://raalribbon.com/sitemap_index.xml",
-        "https://raalribbon.com/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "raal-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "Radian Audio",
@@ -5143,43 +4925,12 @@
     },
     {
       "brand": "Reiss audio",
-      "candidate_domains": [
-        {
-          "catalog_records": 1,
-          "confidence": 0.88,
-          "domain": "reissaudio.com.tr",
-          "reasons": [
-            "brand/domain name match",
-            "4 first-party provenance votes",
-            "catalog homepage evidence",
-            "reviewed official Reiss Audio manufacturer site"
-          ],
-          "sample_urls": [
-            "https://www.reissaudio.com.tr/"
-          ]
-        }
-      ],
-      "catalog_records": 1,
-      "confidence": 0.88,
+      "candidate_domains": [],
       "discovery_query": "Reiss audio official loudspeaker drivers subwoofers",
-      "evidence": [
-        "brand/domain name match",
-        "4 first-party provenance votes",
-        "catalog homepage evidence",
-        "reviewed official Reiss Audio manufacturer site"
-      ],
-      "official_domain": "reissaudio.com.tr",
       "rejected_non_manufacturer_domains": [
         "soundautoconcept.com"
       ],
-      "seed": "https://www.reissaudio.com.tr/",
-      "sitemap_candidates": [
-        "https://reissaudio.com.tr/sitemap.xml",
-        "https://reissaudio.com.tr/sitemap_index.xml",
-        "https://reissaudio.com.tr/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "reiss-audio-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "Resilient Sounds",
@@ -5431,15 +5182,15 @@
       "brand": "SB Acoustics",
       "candidate_domains": [
         {
-          "catalog_records": 167,
+          "catalog_records": 172,
           "confidence": 1.0,
           "domain": "sbacoustics.com",
           "reasons": [
             "brand/domain name match",
-            "3379 first-party provenance votes",
-            "3651 product/datasheet URLs",
+            "3384 first-party provenance votes",
+            "3661 product/datasheet URLs",
             "catalog homepage evidence",
-            "evidence across 167 records"
+            "evidence across 172 records"
           ],
           "sample_urls": [
             "https://sbacoustics.com",
@@ -5448,15 +5199,15 @@
           ]
         }
       ],
-      "catalog_records": 167,
+      "catalog_records": 172,
       "confidence": 1.0,
       "discovery_query": "SB Acoustics official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "3379 first-party provenance votes",
-        "3651 product/datasheet URLs",
+        "3384 first-party provenance votes",
+        "3661 product/datasheet URLs",
         "catalog homepage evidence",
-        "evidence across 167 records"
+        "evidence across 172 records"
       ],
       "official_domain": "sbacoustics.com",
       "rejected_non_manufacturer_domains": [
@@ -5610,28 +5361,32 @@
       "brand": "SEAS",
       "candidate_domains": [
         {
-          "catalog_records": 16,
-          "confidence": 0.64,
+          "catalog_records": 85,
+          "confidence": 1.0,
           "domain": "seas.no",
           "reasons": [
             "brand/domain name match",
+            "69 first-party provenance votes",
+            "138 product/datasheet URLs",
             "catalog homepage evidence",
-            "evidence across 16 records"
+            "evidence across 85 records"
           ],
           "sample_urls": [
             "https://www.seas.no",
-            "https://www.seas.no/index.php?option=com_content&view=article&id=112:d1004-04&catid=40&Itemid=56",
-            "https://www.seas.no/index.php?option=com_content&view=article&id=172:w18nx001&catid=50&Itemid=58"
+            "https://www.seas.no/images/stories/design/pdf_datasheet/L26RO4Y-D0004.pdf",
+            "https://www.seas.no/images/stories/design/pdf_datasheet/l26roy-d0001_.pdf"
           ]
         }
       ],
-      "catalog_records": 16,
-      "confidence": 0.64,
+      "catalog_records": 85,
+      "confidence": 1.0,
       "discovery_query": "SEAS official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
+        "69 first-party provenance votes",
+        "138 product/datasheet URLs",
         "catalog homepage evidence",
-        "evidence across 16 records"
+        "evidence across 85 records"
       ],
       "official_domain": "seas.no",
       "rejected_non_manufacturer_domains": [
@@ -5668,7 +5423,7 @@
           ]
         }
       ],
-      "confidence": 0.64,
+      "confidence": 0.9,
       "crawl_target_id": "seas-official",
       "discovery_query": "SEAS Norway official loudspeaker drivers subwoofers",
       "evidence": [
@@ -5679,34 +5434,27 @@
       "status": "alias"
     },
     {
-      "alias_of": "JBL Pro",
       "brand": "Selenium",
       "candidate_domains": [],
-      "confidence": 0.585,
-      "crawl_target_id": "jbl-pro-official",
       "discovery_query": "Selenium official loudspeaker drivers subwoofers",
-      "evidence": [
-        "legacy Selenium label is covered by JBL Professional"
-      ],
-      "official_domain": "jblpro.com",
       "rejected_non_manufacturer_domains": [
         "parts-express.com",
         "schema.org"
       ],
-      "status": "alias"
+      "status": "needs_discovery"
     },
     {
       "brand": "SICA",
       "candidate_domains": [
         {
-          "catalog_records": 150,
+          "catalog_records": 151,
           "confidence": 0.95,
           "domain": "sica.it",
           "reasons": [
             "brand/domain name match",
-            "510 first-party provenance votes",
+            "524 first-party provenance votes",
             "4 product/datasheet URLs",
-            "evidence across 150 records"
+            "evidence across 151 records"
           ],
           "sample_urls": [
             "https://sica.it/prodotto/10-c-2-cp/",
@@ -5715,14 +5463,14 @@
           ]
         }
       ],
-      "catalog_records": 150,
+      "catalog_records": 151,
       "confidence": 0.95,
       "discovery_query": "SICA official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "510 first-party provenance votes",
+        "524 first-party provenance votes",
         "4 product/datasheet URLs",
-        "evidence across 150 records"
+        "evidence across 151 records"
       ],
       "official_domain": "sica.it",
       "rejected_non_manufacturer_domains": [
@@ -5870,41 +5618,12 @@
     },
     {
       "brand": "Soundmax",
-      "candidate_domains": [
-        {
-          "catalog_records": 1,
-          "confidence": 0.56,
-          "domain": "harward.com.tr",
-          "reasons": [
-            "4 first-party provenance votes",
-            "1 product/datasheet URLs",
-            "reviewed Reis Elektronik Soundmax product source"
-          ],
-          "sample_urls": [
-            "https://harward.com.tr/product/2822/sx-fx12"
-          ]
-        }
-      ],
-      "catalog_records": 1,
-      "confidence": 0.56,
+      "candidate_domains": [],
       "discovery_query": "Soundmax official loudspeaker drivers subwoofers",
-      "evidence": [
-        "4 first-party provenance votes",
-        "1 product/datasheet URLs",
-        "reviewed Reis Elektronik Soundmax product source"
-      ],
-      "official_domain": "harward.com.tr",
       "rejected_non_manufacturer_domains": [
         "soundautoconcept.com"
       ],
-      "seed": "https://harward.com.tr/product/2822/sx-fx12",
-      "sitemap_candidates": [
-        "https://harward.com.tr/sitemap.xml",
-        "https://harward.com.tr/sitemap_index.xml",
-        "https://harward.com.tr/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "soundmax-official"
+      "status": "needs_discovery"
     },
     {
       "alias_of": "Sound Solutions Audio",
@@ -6016,38 +5735,36 @@
       "brand": "Sundown Audio",
       "candidate_domains": [
         {
-          "catalog_records": 6,
-          "confidence": 0.95,
+          "catalog_records": 5,
+          "confidence": 0.945,
           "domain": "sundownaudio.com",
           "reasons": [
             "brand/domain name match",
-            "80 first-party provenance votes",
+            "76 first-party provenance votes",
             "81 product/datasheet URLs",
-            "evidence across 6 records",
-            "reviewed official Sundown Audio subwoofer range"
+            "evidence across 5 records"
           ],
           "sample_urls": [
-            "https://sundownaudio.com/pages/sundown-audio-subwoofers",
             "https://sundownaudio.com/products/inhuman",
-            "https://sundownaudio.com/products/nightshade-ns-series-ns6-10-3500w-subwoofer-ns-v-6"
+            "https://sundownaudio.com/products/nightshade-ns-series-ns6-10-3500w-subwoofer-ns-v-6",
+            "https://sundownaudio.com/products/nightshade-ns-series-ns6-12-3500w-subwoofer-ns-v-6"
           ]
         }
       ],
-      "catalog_records": 6,
-      "confidence": 0.95,
+      "catalog_records": 5,
+      "confidence": 0.945,
       "discovery_query": "Sundown Audio official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "80 first-party provenance votes",
+        "76 first-party provenance votes",
         "81 product/datasheet URLs",
-        "evidence across 6 records",
-        "reviewed official Sundown Audio subwoofer range"
+        "evidence across 5 records"
       ],
       "official_domain": "sundownaudio.com",
       "rejected_non_manufacturer_domains": [
         "droppinhzcaraudio.com"
       ],
-      "seed": "https://sundownaudio.com/pages/sundown-audio-subwoofers",
+      "seed": "https://sundownaudio.com/",
       "sitemap_candidates": [
         "https://sundownaudio.com/sitemap.xml",
         "https://sundownaudio.com/sitemap_index.xml",
@@ -6115,44 +5832,13 @@
     },
     {
       "brand": "Sure Electronics",
-      "candidate_domains": [
-        {
-          "catalog_records": 1,
-          "confidence": 0.88,
-          "domain": "store.sure-electronics.com",
-          "reasons": [
-            "brand/domain name match",
-            "4 first-party provenance votes",
-            "catalog homepage evidence",
-            "reviewed official Sure Electronics/Wondom store and datasheet source"
-          ],
-          "sample_urls": [
-            "https://store.sure-electronics.com/"
-          ]
-        }
-      ],
-      "catalog_records": 1,
-      "confidence": 0.88,
+      "candidate_domains": [],
       "discovery_query": "Sure Electronics official loudspeaker drivers subwoofers",
-      "evidence": [
-        "brand/domain name match",
-        "4 first-party provenance votes",
-        "catalog homepage evidence",
-        "reviewed official Sure Electronics/Wondom store and datasheet source"
-      ],
-      "official_domain": "store.sure-electronics.com",
       "rejected_non_manufacturer_domains": [
         "schema.org",
         "soundimports.eu"
       ],
-      "seed": "https://store.sure-electronics.com/",
-      "sitemap_candidates": [
-        "https://store.sure-electronics.com/sitemap.xml",
-        "https://store.sure-electronics.com/sitemap_index.xml",
-        "https://store.sure-electronics.com/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "sure-electronics-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "TAD",
@@ -6195,30 +5881,30 @@
       "brand": "Tang Band",
       "candidate_domains": [
         {
-          "catalog_records": 7,
-          "confidence": 0.705,
+          "catalog_records": 8,
+          "confidence": 0.76,
           "domain": "tb-speaker.com",
           "reasons": [
-            "2 first-party provenance votes",
-            "4 product/datasheet URLs",
+            "18 first-party provenance votes",
+            "21 product/datasheet URLs",
             "catalog homepage evidence",
-            "evidence across 7 records"
+            "evidence across 8 records"
           ],
           "sample_urls": [
             "https://tb-speaker.com",
-            "https://tb-speaker.com/zh-tw/products/w8-1772",
-            "https://www.tb-speaker.com/products/w8-1772"
+            "https://tb-speaker.com/products/w8-1722b",
+            "https://tb-speaker.com/zh-tw/products/w8-1772"
           ]
         }
       ],
-      "catalog_records": 7,
-      "confidence": 0.705,
+      "catalog_records": 8,
+      "confidence": 0.76,
       "discovery_query": "Tang Band official loudspeaker drivers subwoofers",
       "evidence": [
-        "2 first-party provenance votes",
-        "4 product/datasheet URLs",
+        "18 first-party provenance votes",
+        "21 product/datasheet URLs",
         "catalog homepage evidence",
-        "evidence across 7 records"
+        "evidence across 8 records"
       ],
       "official_domain": "tb-speaker.com",
       "rejected_non_manufacturer_domains": [
@@ -6237,45 +5923,14 @@
     },
     {
       "brand": "Tectonic",
-      "candidate_domains": [
-        {
-          "catalog_records": 1,
-          "confidence": 0.88,
-          "domain": "tectonicaudiolabs.com",
-          "reasons": [
-            "brand/domain name match",
-            "4 first-party provenance votes",
-            "catalog homepage evidence",
-            "reviewed official Tectonic Audio Labs manufacturer site"
-          ],
-          "sample_urls": [
-            "https://www.tectonicaudiolabs.com/"
-          ]
-        }
-      ],
-      "catalog_records": 1,
-      "confidence": 0.88,
+      "candidate_domains": [],
       "discovery_query": "Tectonic official loudspeaker drivers subwoofers",
-      "evidence": [
-        "brand/domain name match",
-        "4 first-party provenance votes",
-        "catalog homepage evidence",
-        "reviewed official Tectonic Audio Labs manufacturer site"
-      ],
-      "official_domain": "tectonicaudiolabs.com",
       "rejected_non_manufacturer_domains": [
         "parts-express.com",
         "schema.org",
         "soundimports.eu"
       ],
-      "seed": "https://www.tectonicaudiolabs.com/",
-      "sitemap_candidates": [
-        "https://tectonicaudiolabs.com/sitemap.xml",
-        "https://tectonicaudiolabs.com/sitemap_index.xml",
-        "https://tectonicaudiolabs.com/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "tectonic-official"
+      "status": "needs_discovery"
     },
     {
       "brand": "Telefunken",
@@ -6315,44 +5970,13 @@
     },
     {
       "brand": "Timpano Audio",
-      "candidate_domains": [
-        {
-          "catalog_records": 1,
-          "confidence": 0.88,
-          "domain": "timpanoaudio.com",
-          "reasons": [
-            "brand/domain name match",
-            "4 first-party provenance votes",
-            "catalog homepage evidence",
-            "reviewed official Timpano Audio manufacturer site"
-          ],
-          "sample_urls": [
-            "https://timpanoaudio.com/"
-          ]
-        }
-      ],
-      "catalog_records": 1,
-      "confidence": 0.88,
+      "candidate_domains": [],
       "discovery_query": "Timpano Audio official loudspeaker drivers subwoofers",
-      "evidence": [
-        "brand/domain name match",
-        "4 first-party provenance votes",
-        "catalog homepage evidence",
-        "reviewed official Timpano Audio manufacturer site"
-      ],
-      "official_domain": "timpanoaudio.com",
       "rejected_non_manufacturer_domains": [
         "parts-express.com",
         "schema.org"
       ],
-      "seed": "https://timpanoaudio.com/",
-      "sitemap_candidates": [
-        "https://timpanoaudio.com/sitemap.xml",
-        "https://timpanoaudio.com/sitemap_index.xml",
-        "https://timpanoaudio.com/wp-sitemap.xml"
-      ],
-      "status": "ready",
-      "target_id": "timpano-audio-official"
+      "status": "needs_discovery"
     },
     {
       "alias_of": "Triton Alto Falantes",
@@ -6480,6 +6104,43 @@
       "target_id": "ultravox-official"
     },
     {
+      "brand": "VAS Audio",
+      "candidate_domains": [
+        {
+          "catalog_records": 2,
+          "confidence": 0.92,
+          "domain": "vas-audio.com",
+          "reasons": [
+            "brand/domain name match",
+            "34 first-party provenance votes",
+            "36 product/datasheet URLs"
+          ],
+          "sample_urls": [
+            "https://vas-audio.com/products/vas-18-1700fc-speaker-driver",
+            "https://vas-audio.com/products/vas-18-1700nc-speaker-driver"
+          ]
+        }
+      ],
+      "catalog_records": 2,
+      "confidence": 0.92,
+      "discovery_query": "VAS Audio official loudspeaker drivers subwoofers",
+      "evidence": [
+        "brand/domain name match",
+        "34 first-party provenance votes",
+        "36 product/datasheet URLs"
+      ],
+      "official_domain": "vas-audio.com",
+      "rejected_non_manufacturer_domains": [],
+      "seed": "https://vas-audio.com/",
+      "sitemap_candidates": [
+        "https://vas-audio.com/sitemap.xml",
+        "https://vas-audio.com/sitemap_index.xml",
+        "https://vas-audio.com/wp-sitemap.xml"
+      ],
+      "status": "ready",
+      "target_id": "vas-audio-official"
+    },
+    {
       "brand": "Vifa",
       "candidate_domains": [
         {
@@ -6517,15 +6178,15 @@
       "brand": "Visaton",
       "candidate_domains": [
         {
-          "catalog_records": 162,
+          "catalog_records": 168,
           "confidence": 1.0,
           "domain": "visaton.de",
           "reasons": [
             "brand/domain name match",
-            "1527 first-party provenance votes",
-            "1768 product/datasheet URLs",
+            "1533 first-party provenance votes",
+            "1780 product/datasheet URLs",
             "catalog homepage evidence",
-            "evidence across 162 records"
+            "evidence across 168 records"
           ],
           "sample_urls": [
             "https://www.visaton.de",
@@ -6547,15 +6208,15 @@
           ]
         }
       ],
-      "catalog_records": 162,
+      "catalog_records": 168,
       "confidence": 1.0,
       "discovery_query": "Visaton official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "1527 first-party provenance votes",
-        "1768 product/datasheet URLs",
+        "1533 first-party provenance votes",
+        "1780 product/datasheet URLs",
         "catalog homepage evidence",
-        "evidence across 162 records"
+        "evidence across 168 records"
       ],
       "official_domain": "visaton.de",
       "rejected_non_manufacturer_domains": [
@@ -6662,14 +6323,14 @@
       "brand": "Wavecor",
       "candidate_domains": [
         {
-          "catalog_records": 47,
+          "catalog_records": 90,
           "confidence": 0.96,
           "domain": "wavecor.com",
           "reasons": [
             "brand/domain name match",
-            "43 first-party provenance votes",
+            "836 first-party provenance votes",
             "catalog homepage evidence",
-            "evidence across 47 records"
+            "evidence across 90 records"
           ],
           "sample_urls": [
             "http://www.wavecor.com/html/fr040wa01_02.html",
@@ -6691,14 +6352,14 @@
           ]
         }
       ],
-      "catalog_records": 47,
+      "catalog_records": 90,
       "confidence": 0.96,
       "discovery_query": "Wavecor official loudspeaker drivers subwoofers",
       "evidence": [
         "brand/domain name match",
-        "43 first-party provenance votes",
+        "836 first-party provenance votes",
         "catalog homepage evidence",
-        "evidence across 47 records"
+        "evidence across 90 records"
       ],
       "official_domain": "wavecor.com",
       "rejected_non_manufacturer_domains": [
@@ -6755,7 +6416,7 @@
     }
   ],
   "catalog_version": "1.0.0",
-  "generated_at": "2026-08-24T14:43:24.229772+00:00",
+  "generated_at": "2026-08-24T19:57:09.317483+00:00",
   "policy": {
     "catalog_write": false,
     "manufacturer_first": true,
@@ -6793,11 +6454,11 @@
   },
   "schema_version": 1,
   "summary": {
-    "brand_aliases": 22,
-    "catalog_brands": 168,
-    "covered_brand_labels": 152,
+    "brand_aliases": 24,
+    "catalog_brands": 171,
+    "covered_brand_labels": 135,
     "needs_brand_cleanup": 14,
-    "needs_discovery": 2,
-    "ready_official_targets": 130
+    "needs_discovery": 22,
+    "ready_official_targets": 111
   }
 }

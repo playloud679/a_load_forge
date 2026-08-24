@@ -9,7 +9,7 @@ materiali, tolleranze e misura del prototipo.
 
 Ambito della presente edizione:
 
-- applicazione **Load Forge 0.8.26**;
+- applicazione **Load Forge 0.8.27**;
 - formato progetto **LFP v2**;
 - catalogo proprietario con versione indipendente **1.0.0**.
 

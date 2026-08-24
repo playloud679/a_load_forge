@@ -527,6 +527,21 @@ def _pro_comparison_enabled() -> bool:
 st.markdown(
     """
     <style>
+    :root {
+        --lf-bg-base: #000000;
+        --lf-bg-surface: #0a0f16;
+        --lf-bg-elevated: #111823;
+        --lf-bg-card: rgba(255, 255, 255, 0.025);
+        --lf-bg-hover: rgba(255, 255, 255, 0.05);
+        --lf-accent: #10b981;
+        --lf-accent-dim: rgba(16, 185, 129, 0.15);
+        --lf-accent-border: rgba(16, 185, 129, 0.35);
+        --lf-border-subtle: 1px solid rgba(255, 255, 255, 0.08);
+        --lf-border-medium: 1px solid rgba(255, 255, 255, 0.14);
+        --lf-text-main: #f3f4f6;
+        --lf-text-muted: rgba(255, 255, 255, 0.55);
+        --lf-text-dim: rgba(255, 255, 255, 0.38);
+    }
     header[data-testid="stHeader"] {
         display: none !important;
     }
@@ -544,13 +559,13 @@ st.markdown(
         background: #000 !important;
     }
     html {
-        font-size: 85% !important;
         scrollbar-gutter: stable;
     }
     body,
     [data-testid="stAppViewContainer"],
     section[data-testid="stMain"] {
         scrollbar-gutter: stable;
+        background-color: var(--lf-bg-base) !important;
     }
     @media (max-width: 768px) {
         section[data-testid="stSidebar"],
@@ -587,6 +602,7 @@ st.markdown(
         background-color: rgba(107,114,128,.16) !important;
         border: 1px solid rgba(156,163,175,.34) !important;
         color: #e5e7eb !important;
+        border-radius: 6px !important;
     }
     [data-testid="stAlertContainer"] [data-testid="stAlertContentInfo"] {
         color: inherit !important;
@@ -595,15 +611,17 @@ st.markdown(
         background-color: rgba(16,185,129,.13) !important;
         border: 1px solid rgba(16,185,129,.34) !important;
         color: #d1fae5 !important;
+        border-radius: 6px !important;
     }
     [class*="st-key-emerald_info_"] [data-testid="stAlertContainer"] svg {
         color: #10b981 !important;
         fill: #10b981 !important;
     }
     section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
-        border-top: 1px solid rgba(255,255,255,.10);
-        color: rgba(255,255,255,.96);
-        font-size: 1rem;
+        border-top: 1px solid rgba(255,255,255,.08);
+        color: rgba(255,255,255,.92);
+        font-size: 0.95rem;
+        font-weight: 600;
         line-height: 1.25;
         margin: .35rem 0 .2rem !important;
         padding-top: .5rem !important;
@@ -627,6 +645,8 @@ st.markdown(
     [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h4 {
         padding-top: 0.35rem !important;
         padding-bottom: 0.2rem !important;
+        font-weight: 600 !important;
+        letter-spacing: -0.01em !important;
     }
     [data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] {
         padding-bottom: 0.1rem !important;
@@ -634,48 +654,56 @@ st.markdown(
     }
     [data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] p {
         margin-bottom: 0 !important;
+        font-weight: 500 !important;
+        font-size: 0.85rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
     section[data-testid="stSidebar"] label p {
-        font-size: 0.83rem !important;
+        font-size: 0.82rem !important;
+        font-weight: 500 !important;
+        color: rgba(255,255,255,0.85) !important;
         line-height: 1.3 !important;
         margin-bottom: 0.05rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
         line-height: 1.45 !important;
+        font-size: 0.75rem !important;
+        color: rgba(255,255,255,0.48) !important;
     }
     section[data-testid="stSidebar"] [data-testid="stNumberInput"]
     div[data-baseweb="input"] {
-        border-radius: .72rem;
-        min-height: 2.65rem;
+        border-radius: .4rem;
+        min-height: 2.35rem;
         overflow: hidden;
+        border-color: rgba(255,255,255,0.12) !important;
     }
     section[data-testid="stSidebar"] [data-testid="stNumberInput"] button {
         align-items: center !important;
         align-self: stretch !important;
-        background: rgba(255,255,255,.035) !important;
-        border-left: 1px solid rgba(255,255,255,.09) !important;
+        background: rgba(255,255,255,.02) !important;
+        border-left: 1px solid rgba(255,255,255,.07) !important;
         border-radius: 0 !important;
-        color: rgba(255,255,255,.94) !important;
+        color: rgba(255,255,255,.6) !important;
         display: flex !important;
         height: auto !important;
         justify-content: center !important;
         margin: 0 !important;
-        min-width: 2.55rem !important;
+        min-width: 2.2rem !important;
         padding: 0 !important;
         transition: background-color .15s ease, color .15s ease;
     }
     section[data-testid="stSidebar"] [data-testid="stNumberInput"] button:hover:not(:disabled) {
         background: rgba(16,185,129,.16) !important;
-        color: white !important;
+        color: #10b981 !important;
     }
     section[data-testid="stSidebar"] [data-testid="stNumberInput"] button svg {
-        height: 1.15rem !important;
-        width: 1.15rem !important;
+        height: 1.0rem !important;
+        width: 1.0rem !important;
     }
     hr {
-        margin-top: 0.2rem !important;
-        margin-bottom: 0.2rem !important;
+        margin-top: 0.4rem !important;
+        margin-bottom: 0.4rem !important;
+        border-color: rgba(255,255,255,0.07) !important;
     }
 
     header[data-testid="stHeader"] {
@@ -683,7 +711,7 @@ st.markdown(
     }
 
     [data-testid="stCaptionContainer"] {
-        color: rgba(250,250,250,.72);
+        color: rgba(250,250,250,.60);
     }
     /* Command tooltips obscure nearby controls and add no persistent context. */
     [data-testid="stTooltipContent"],
@@ -691,8 +719,9 @@ st.markdown(
         display: none !important;
     }
     .st-key-finder_library_filters {
-        background: rgba(255,255,255,.025);
-        border-color: rgba(255,255,255,.10) !important;
+        background: rgba(255,255,255,.02);
+        border: 1px solid rgba(255,255,255,.08) !important;
+        border-radius: 6px !important;
         margin-block: .25rem .55rem;
     }
     .st-key-finder_library_filters [data-testid="stVerticalBlock"] {
@@ -700,41 +729,46 @@ st.markdown(
     }
 
     .st-key-active_load_summary {
-        border: 1px solid rgba(127,127,127,.22) !important;
-        border-radius: .55rem !important;
+        border: 1px solid rgba(255,255,255,.10) !important;
+        border-radius: 6px !important;
+        background: rgba(255,255,255,0.015) !important;
         padding: .45rem .6rem .45rem !important;
     }
     .st-key-finder_run_search_main div[data-testid="stButton"] button {
         background: #10b981;
         border: 1px solid #10b981;
-        box-shadow: 0 .35rem 1rem rgba(16,185,129,.18);
+        box-shadow: 0 .25rem 0.85rem rgba(16,185,129,.22);
         min-height: 2.8rem;
+        border-radius: 6px;
         transition: filter .16s ease, transform .16s ease, box-shadow .16s ease;
     }
     .st-key-finder_run_search_main div[data-testid="stButton"] button p {
-        font-size: clamp(1.02rem, 1.25vw, 1.2rem);
-        font-weight: 750;
+        font-size: clamp(1.02rem, 1.25vw, 1.15rem);
+        font-weight: 700;
         letter-spacing: .01em;
     }
     .st-key-finder_run_search_main div[data-testid="stButton"] button:hover {
-        box-shadow: 0 .45rem 1.25rem rgba(16,185,129,.28);
-        filter: brightness(1.06);
+        box-shadow: 0 .4rem 1.1rem rgba(16,185,129,.32);
+        filter: brightness(1.08);
         transform: translateY(-1px);
     }
     .st-key-bass_match_brief {
-        padding: .35rem .55rem 1.1rem !important;
+        padding: .35rem .55rem 1.0rem !important;
+        border-radius: 6px !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        background: rgba(255,255,255,0.015) !important;
     }
     .st-key-bass_match_brief > div[data-testid="stVerticalBlock"] {
         gap: .28rem !important;
     }
     .st-key-bass_match_brief h4 {
-        font-size: 1rem !important;
+        font-size: 0.95rem !important;
         line-height: 1.15 !important;
         margin: 0 !important;
         padding: 0 !important;
     }
     .st-key-bass_match_brief .stMetric {
-        min-height: 3.25rem !important;
+        min-height: 3.1rem !important;
         padding: .22rem .42rem !important;
     }
     .st-key-bass_match_brief [data-testid="stCaptionContainer"] {
@@ -743,28 +777,28 @@ st.markdown(
     .finder-constraint-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(9.75rem, 1fr));
-        gap: .34rem;
+        gap: .4rem;
         margin-top: .08rem;
     }
     .finder-constraint {
         min-width: 0;
-        border: 1px solid rgba(127,127,127,.22);
-        border-radius: .35rem;
-        padding: .32rem .45rem .36rem;
-        background: rgba(127,127,127,.035);
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 5px;
+        padding: .35rem .5rem;
+        background: rgba(255,255,255,.02);
     }
     .finder-constraint-label {
-        color: rgba(255,255,255,.48);
-        font-size: .72rem;
-        font-weight: 700;
-        letter-spacing: .025em;
+        color: rgba(255,255,255,.45);
+        font-size: .70rem;
+        font-weight: 600;
+        letter-spacing: .03em;
         line-height: 1;
         text-transform: uppercase;
     }
     .finder-constraint-value {
-        color: rgba(255,255,255,.9);
-        font-size: .92rem;
-        font-weight: 700;
+        color: rgba(255,255,255,.92);
+        font-size: .90rem;
+        font-weight: 600;
         line-height: 1.2;
         margin-top: .2rem;
         overflow: hidden;
@@ -773,9 +807,9 @@ st.markdown(
     }
     .st-key-finder_match_progress [role="progressbar"],
     .st-key-finder_match_progress [data-testid="stProgressBar"] > div {
-        border-radius: .6rem !important;
-        height: .8rem !important;
-        min-height: .8rem !important;
+        border-radius: 4px !important;
+        height: .65rem !important;
+        min-height: .65rem !important;
     }
     .st-key-finder_match_progress [role="progressbar"] > div {
         border-radius: inherit !important;
@@ -785,19 +819,70 @@ st.markdown(
         gap: .12rem !important;
     }
     .st-key-finder_match_progress [data-testid="stCaptionContainer"] {
-        color: rgba(255,255,255,.86) !important;
-        font-size: .78rem !important;
-        font-weight: 700 !important;
+        color: rgba(255,255,255,.82) !important;
+        font-size: .75rem !important;
+        font-weight: 600 !important;
         margin: 0 !important;
     }
-    .stMetric { border: 1px solid rgba(127,127,127,.22); padding: .3rem .5rem !important; }
-    .stMetric label { font-size: 0.72rem !important; margin-bottom: -0.2rem !important; }
-    .stMetric div[data-testid="stMetricValue"] { font-size: 1.05rem !important; line-height: 1.2 !important; padding-bottom: 0.1rem !important; }
+    .stMetric {
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 5px;
+        background: rgba(255,255,255,0.015);
+        padding: .3rem .5rem !important;
+    }
+    .stMetric label {
+        font-size: 0.70rem !important;
+        font-weight: 500 !important;
+        color: rgba(255,255,255,0.50) !important;
+        margin-bottom: -0.2rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+    .stMetric div[data-testid="stMetricValue"] {
+        font-size: 1.05rem !important;
+        font-weight: 600 !important;
+        color: #f3f4f6 !important;
+        line-height: 1.2 !important;
+        padding-bottom: 0.1rem !important;
+    }
     div[data-testid="stTabs"] { gap: 0 !important; }
-    button[data-baseweb="tab"] { padding-top: 0.2rem !important; padding-bottom: 0.2rem !important; }
+    button[data-baseweb="tab"] {
+        padding-top: 0.3rem !important;
+        padding-bottom: 0.3rem !important;
+        font-weight: 500 !important;
+        font-size: 0.85rem !important;
+    }
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: #10b981 !important;
+        border-bottom-color: #10b981 !important;
+        font-weight: 600 !important;
+    }
     div[data-testid="stExpander"] details {
         margin-top: 0 !important;
         margin-bottom: 0.2rem !important;
+        border-color: rgba(255,255,255,0.08) !important;
+        border-radius: 6px !important;
+    }
+    div[data-testid="stExpander"] summary {
+        font-size: 0.84rem !important;
+        font-weight: 600 !important;
+        color: rgba(255,255,255,0.85) !important;
+    }
+    /* Quota pill badge */
+    .lf-quota-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 4px;
+        padding: 0.25rem 0.55rem;
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.65);
+    }
+    .lf-quota-pill strong {
+        color: #10b981;
+        font-weight: 600;
     }
     @media (max-width: 768px) {
         html {
@@ -1008,7 +1093,7 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
     st.markdown(_load_type_card_styles(), unsafe_allow_html=True)
     for row_start, row_end in ((0, 3), (3, len(_ALL_LOAD_TYPES))):
         row_load_types = _ALL_LOAD_TYPES[row_start:row_end]
-        row_cols = st.columns(len(row_load_types))
+        row_cols = st.columns(4)
         for offset, lt in enumerate(row_load_types):
             with row_cols[offset]:
                 with st.container(key=f"load_card_{_LOAD_TYPE_SLUGS[lt]}"):
@@ -8076,31 +8161,38 @@ def _render_bass_match_hero(
 
     run_requested = False
     with st.container(border=True, key="bass_match_brief"):
-        st.markdown("#### Bass Match · Your bass brief")
-        b1, b2, b3, b4 = st.columns(
-            4,
+        h_col1, h_col2 = st.columns([2.5, 1.5], vertical_alignment="center")
+        with h_col1:
+            st.markdown("#### Bass Match · Candidate space")
+        with h_col2:
+            st.markdown(
+                "<div style='text-align: right;'><span class='lf-quota-pill'>"
+                "Monthly simulations: <strong>23,575 / 30,000</strong>"
+                " · This run: <strong>"
+                f"{prefilter_stats['eligible_simulations']:,}"
+                "</strong></span></div>",
+                unsafe_allow_html=True,
+            )
+        b1, b2, b3 = st.columns(
+            [1.2, 1.2, 1.6],
             vertical_alignment="center",
         )
         b1.metric(
-            "Pre-qualified",
-            f"{len(prequalified_names):,} / "
-            f"{prefilter_stats['unique_drivers']:,}",
-            help="Drivers that pass cheap pre-simulation checks for at least "
-            "one active load. Duplicate catalog records are collapsed before "
-            "this count.",
-        )
-        b2.metric(
             "Ready simulations",
             f"{prefilter_stats['eligible_simulations']:,}",
         )
-        b3.metric(
-            "Skipped a priori",
-            f"{prefilter_stats['rejected_simulations']:,}",
+        b2.metric(
+            "Pre-qualified drivers",
+            f"{len(prequalified_names):,} / "
+            f"{prefilter_stats['unique_drivers']:,}",
+            help="Drivers that pass cheap pre-simulation checks for at least "
+            "one active load.",
         )
-        b4.metric(
-            "Duplicates removed",
-            f"{prefilter_stats['duplicate_rows']:,}",
-        )
+        with b3:
+            st.caption(
+                f"Skipped a priori: {prefilter_stats['rejected_simulations']:,} · "
+                f"Duplicates removed: {prefilter_stats['duplicate_rows']:,}"
+            )
         _render_finder_constraint_grid(constraints)
         _render_finder_run_statistics()
         if match_preset_names and not prequalified_names:

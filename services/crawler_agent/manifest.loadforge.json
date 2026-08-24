@@ -25,27 +25,6 @@
     },
     {
       "allowed_domains": [
-        "eighteensound.it"
-      ],
-      "brand": "18Sound",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 35,
-      "seeds": [
-        "https://eighteensound.it/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "18sound-official"
-    },
-    {
-      "allowed_domains": [
         "7driver.com.br"
       ],
       "brand": "7Driver",
@@ -99,9 +78,9 @@
       "max_depth": 2,
       "max_pages": 120,
       "min_confidence": 0.8,
-      "priority": 80,
+      "priority": 81,
       "seeds": [
-        "https://adireaudio.com/subwoofers/"
+        "https://adireaudio.com/"
       ],
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
@@ -148,27 +127,6 @@
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
       "target_id": "ale-official"
-    },
-    {
-      "allowed_domains": [
-        "archive.greatplainsacoustics.com"
-      ],
-      "brand": "Altec Lansing",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 35,
-      "seeds": [
-        "https://archive.greatplainsacoustics.com/altec-lansing-library/altec-lansing-thiele-small-parameters/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "altec-lansing-official"
     },
     {
       "allowed_domains": [
@@ -382,27 +340,6 @@
     },
     {
       "allowed_domains": [
-        "aurumcantus.com"
-      ],
-      "brand": "Aurum Cantus",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://www.aurumcantus.com/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "aurum-cantus-official"
-    },
-    {
-      "allowed_domains": [
         "bcspeakers.com"
       ],
       "brand": "B&C Speakers",
@@ -613,27 +550,6 @@
     },
     {
       "allowed_domains": [
-        "dasaudio.com"
-      ],
-      "brand": "DAS",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://www.dasaudio.com/en/home/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "das-official"
-    },
-    {
-      "allowed_domains": [
         "davis-acoustics.com"
       ],
       "brand": "Davis Acoustics",
@@ -673,27 +589,6 @@
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
       "target_id": "dayton-audio-official"
-    },
-    {
-      "allowed_domains": [
-        "dcsoundlab.com"
-      ],
-      "brand": "DC Audio",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 71,
-      "seeds": [
-        "https://www.dcsoundlab.com/level-4-1"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "dc-audio-official"
     },
     {
       "allowed_domains": [
@@ -802,7 +697,7 @@
     },
     {
       "allowed_domains": [
-        "eighteensound.com"
+        "eighteensound.it"
       ],
       "brand": "Eighteen Sound",
       "enabled": true,
@@ -813,9 +708,9 @@
       "max_depth": 2,
       "max_pages": 120,
       "min_confidence": 0.8,
-      "priority": 78,
+      "priority": 35,
       "seeds": [
-        "https://eighteensound.com/"
+        "https://eighteensound.it/"
       ],
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
@@ -939,7 +834,7 @@
       "max_depth": 2,
       "max_pages": 120,
       "min_confidence": 0.8,
-      "priority": 58,
+      "priority": 35,
       "seeds": [
         "https://faitalpro.com/"
       ],
@@ -960,7 +855,7 @@
       "max_depth": 2,
       "max_pages": 120,
       "min_confidence": 0.8,
-      "priority": 89,
+      "priority": 35,
       "seeds": [
         "https://fane-international.com/"
       ],
@@ -1002,7 +897,7 @@
       "max_depth": 2,
       "max_pages": 120,
       "min_confidence": 0.8,
-      "priority": 90,
+      "priority": 62,
       "seeds": [
         "https://ficaraudio.com/"
       ],
@@ -1117,48 +1012,6 @@
     },
     {
       "allowed_domains": [
-        "goldwood.com"
-      ],
-      "brand": "Goldwood",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://www.goldwood.com/goldwood/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "goldwood-official"
-    },
-    {
-      "allowed_domains": [
-        "goodmans.co.uk"
-      ],
-      "brand": "Goodmans",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 84,
-      "seeds": [
-        "https://www.goodmans.co.uk/vintage/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "goodmans-official"
-    },
-    {
-      "allowed_domains": [
         "goto-unit.com"
       ],
       "brand": "Goto Unit",
@@ -1177,27 +1030,6 @@
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
       "target_id": "goto-unit-official"
-    },
-    {
-      "allowed_domains": [
-        "greatplainsacoustics.com"
-      ],
-      "brand": "Great Plains Audio",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://greatplainsacoustics.com/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "great-plains-audio-official"
     },
     {
       "allowed_domains": [
@@ -1222,48 +1054,6 @@
     },
     {
       "allowed_domains": [
-        "grs-speakers.com"
-      ],
-      "brand": "GRS",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://grs-speakers.com/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "grs-official"
-    },
-    {
-      "allowed_domains": [
-        "gsaudio.it"
-      ],
-      "brand": "GS Audio",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://www.gsaudio.it/it/subwoofer.html"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "gs-audio-official"
-    },
-    {
-      "allowed_domains": [
         "hardpower.com.br"
       ],
       "brand": "Hard Power",
@@ -1282,27 +1072,6 @@
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
       "target_id": "hard-power-official"
-    },
-    {
-      "allowed_domains": [
-        "audiotec-fischer.de"
-      ],
-      "brand": "Helix",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 88,
-      "seeds": [
-        "https://www.audiotec-fischer.de/en/helix/subwoofers/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "helix-official"
     },
     {
       "allowed_domains": [
@@ -1327,9 +1096,9 @@
     },
     {
       "allowed_domains": [
-        "swanspeakers.com"
+        "hinor.com.br"
       ],
-      "brand": "HiVi",
+      "brand": "Hinor",
       "enabled": true,
       "exclude": [
         "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
@@ -1338,13 +1107,13 @@
       "max_depth": 2,
       "max_pages": 120,
       "min_confidence": 0.8,
-      "priority": 91,
+      "priority": 50,
       "seeds": [
-        "https://www.swanspeakers.com/commercial/product/"
+        "https://hinor.com.br/"
       ],
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
-      "target_id": "hivi-official"
+      "target_id": "hinor-official"
     },
     {
       "allowed_domains": [
@@ -1408,27 +1177,6 @@
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
       "target_id": "jbl-pro-official"
-    },
-    {
-      "allowed_domains": [
-        "jensentone.com"
-      ],
-      "brand": "Jensen",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 84,
-      "seeds": [
-        "https://www.jensentone.com/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "jensen-official"
     },
     {
       "allowed_domains": [
@@ -1653,9 +1401,9 @@
       "max_depth": 2,
       "max_pages": 120,
       "min_confidence": 0.8,
-      "priority": 91,
+      "priority": 55,
       "seeds": [
-        "https://www.monacor.com/speaker-chassis"
+        "https://monacor.com/"
       ],
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
@@ -1765,27 +1513,6 @@
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
       "target_id": "p-audio-official"
-    },
-    {
-      "allowed_domains": [
-        "peavey.com"
-      ],
-      "brand": "Peavey",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://peavey.com/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "peavey-official"
     },
     {
       "allowed_domains": [
@@ -1957,48 +1684,6 @@
     },
     {
       "allowed_domains": [
-        "pyleaudio.com"
-      ],
-      "brand": "Pyle Audio",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://www.pyleaudio.com/ProductsList.aspx?Value=speakers"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "pyle-audio-official"
-    },
-    {
-      "allowed_domains": [
-        "raalribbon.com"
-      ],
-      "brand": "RAAL",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://www.raalribbon.com/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "raal-official"
-    },
-    {
-      "allowed_domains": [
         "radianaudio.com"
       ],
       "brand": "Radian Audio",
@@ -2059,27 +1744,6 @@
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
       "target_id": "redcatt-official"
-    },
-    {
-      "allowed_domains": [
-        "reissaudio.com.tr"
-      ],
-      "brand": "Reiss audio",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://www.reissaudio.com.tr/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "reiss-audio-official"
     },
     {
       "allowed_domains": [
@@ -2262,7 +1926,7 @@
       "max_depth": 2,
       "max_pages": 120,
       "min_confidence": 0.8,
-      "priority": 76,
+      "priority": 35,
       "seeds": [
         "https://seas.no/"
       ],
@@ -2356,27 +2020,6 @@
     },
     {
       "allowed_domains": [
-        "harward.com.tr"
-      ],
-      "brand": "Soundmax",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://harward.com.tr/product/2822/sx-fx12"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "soundmax-official"
-    },
-    {
-      "allowed_domains": [
         "steg-audio.com"
       ],
       "brand": "Steg Audio",
@@ -2430,9 +2073,9 @@
       "max_depth": 2,
       "max_pages": 120,
       "min_confidence": 0.8,
-      "priority": 86,
+      "priority": 87,
       "seeds": [
-        "https://sundownaudio.com/pages/sundown-audio-subwoofers"
+        "https://sundownaudio.com/"
       ],
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
@@ -2458,27 +2101,6 @@
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
       "target_id": "supravox-official"
-    },
-    {
-      "allowed_domains": [
-        "store.sure-electronics.com"
-      ],
-      "brand": "Sure Electronics",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://store.sure-electronics.com/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "sure-electronics-official"
     },
     {
       "allowed_domains": [
@@ -2514,34 +2136,13 @@
       "max_depth": 2,
       "max_pages": 120,
       "min_confidence": 0.8,
-      "priority": 85,
+      "priority": 84,
       "seeds": [
         "https://tb-speaker.com/"
       ],
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
       "target_id": "tang-band-official"
-    },
-    {
-      "allowed_domains": [
-        "tectonicaudiolabs.com"
-      ],
-      "brand": "Tectonic",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://www.tectonicaudiolabs.com/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "tectonic-official"
     },
     {
       "allowed_domains": [
@@ -2563,27 +2164,6 @@
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
       "target_id": "telefunken-official"
-    },
-    {
-      "allowed_domains": [
-        "timpanoaudio.com"
-      ],
-      "brand": "Timpano Audio",
-      "enabled": true,
-      "exclude": [
-        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
-      ],
-      "include": [],
-      "max_depth": 2,
-      "max_pages": 120,
-      "min_confidence": 0.8,
-      "priority": 91,
-      "seeds": [
-        "https://timpanoaudio.com/"
-      ],
-      "sleep_seconds": 1.0,
-      "source_kind": "official_manufacturer_site",
-      "target_id": "timpano-audio-official"
     },
     {
       "allowed_domains": [
@@ -2626,6 +2206,27 @@
       "sleep_seconds": 1.0,
       "source_kind": "official_manufacturer_site",
       "target_id": "ultravox-official"
+    },
+    {
+      "allowed_domains": [
+        "vas-audio.com"
+      ],
+      "brand": "VAS Audio",
+      "enabled": true,
+      "exclude": [
+        "/(cart|checkout|account|login|privacy|terms|dealer|accessor|amplifier|cable)/"
+      ],
+      "include": [],
+      "max_depth": 2,
+      "max_pages": 120,
+      "min_confidence": 0.8,
+      "priority": 90,
+      "seeds": [
+        "https://vas-audio.com/"
+      ],
+      "sleep_seconds": 1.0,
+      "source_kind": "official_manufacturer_site",
+      "target_id": "vas-audio-official"
     },
     {
       "allowed_domains": [
@@ -2703,7 +2304,7 @@
       "max_depth": 2,
       "max_pages": 120,
       "min_confidence": 0.8,
-      "priority": 45,
+      "priority": 35,
       "seeds": [
         "https://wavecor.com/"
       ],

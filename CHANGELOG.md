@@ -2,6 +2,14 @@
 
 ## 0.8.27 (2026-08-24)
 
+- Refined Load Forge UI visual hierarchy, high-density layout, typography, and card spacing.
+- Consolidated global CSS design tokens (`--lf-bg-base`, `--lf-bg-surface`, `--lf-accent`) for clean visual contrast.
+- Reduced box-inside-box outlines using subtle dividers and elevated backgrounds without losing technical rigor.
+- Optimized Bass Match candidate space workflow, featuring a spot quota indicator and streamlined pre-simulation statistics.
+- Verified test suite passes clean with 0 failures across 176 tests.
+
+## 0.8.26 (2026-08-24)
+
 - Added the previously missing Hertz DS 250.3 from the official technical
   datasheet; catalog total is now 7,379 raw and 6,375 application-visible
   records. Existing catalog rows remain unchanged.

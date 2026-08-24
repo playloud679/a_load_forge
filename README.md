@@ -4,9 +4,9 @@
   <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
-![Release 0.8.26](https://img.shields.io/badge/release-0.8.26-blue.svg)
+![Release 0.8.27](https://img.shields.io/badge/release-0.8.27-blue.svg)
 
-Current release: **0.8.26**
+Current release: **0.8.27**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth-, sixth- and eighth-order bandpass**,

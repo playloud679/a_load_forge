@@ -2,55 +2,83 @@
   "catalog_path": "data/catalog_proprietario.json",
   "catalog_unchanged": true,
   "catalog_write": false,
-  "crawl_report": "io/crawler_agent_runs/crawl-20260824T104801Z/run_report.json",
+  "crawl_report": "io/crawler_agent_runs/crawl-20260824T195709Z/run_report.json",
   "crawl_result_counts": {
-    "observed_only": 1
+    "observed_only": 5
   },
   "discovery_summary": null,
-  "elapsed_seconds": 21.608,
-  "finished_at": "2026-08-24T10:48:20.452606+00:00",
+  "elapsed_seconds": 2.844,
+  "finished_at": "2026-08-24T19:57:10.206728+00:00",
   "plan": {
     "objective": "Review every catalog brand against its official manufacturer site",
     "selected": [
       {
         "reasons": [
-          "manifest priority 91",
-          "29 missing Xmax/Pe/Le cells in current brand coverage",
+          "manifest priority 85",
+          "14 missing Xmax/Pe/Le cells in current brand coverage",
           "first-party source"
         ],
-        "score": 113.4,
+        "score": 112.787,
         "source_kind": "official_manufacturer_site",
-        "target_id": "hivi-official"
+        "target_id": "atohm-official"
+      },
+      {
+        "reasons": [
+          "manifest priority 80",
+          "22 missing Xmax/Pe/Le cells in current brand coverage",
+          "first-party source"
+        ],
+        "score": 105.832,
+        "source_kind": "official_manufacturer_site",
+        "target_id": "supravox-official"
+      },
+      {
+        "reasons": [
+          "manifest priority 87",
+          "9 missing Xmax/Pe/Le cells in current brand coverage",
+          "first-party source"
+        ],
+        "score": 105.044,
+        "source_kind": "official_manufacturer_site",
+        "target_id": "sundown-audio-official"
+      },
+      {
+        "reasons": [
+          "manifest priority 90",
+          "2 missing Xmax/Pe/Le cells in current brand coverage",
+          "first-party source"
+        ],
+        "score": 104.665,
+        "source_kind": "official_manufacturer_site",
+        "target_id": "bliesma-official"
+      },
+      {
+        "reasons": [
+          "manifest priority 88",
+          "4 missing Xmax/Pe/Le cells in current brand coverage",
+          "first-party source"
+        ],
+        "score": 104.602,
+        "source_kind": "official_manufacturer_site",
+        "target_id": "kartesian-official"
       }
     ],
     "skipped": [
-      "atohm-official: below this run's target budget",
-      "das-official: below this run's target budget",
-      "avatar-official: below this run's target budget",
-      "hannibal-official: below this run's target budget",
-      "supravox-official: below this run's target budget",
-      "stereo-integrity-official: below this run's target budget",
-      "bliesma-official: below this run's target budget",
-      "kartesian-official: below this run's target budget",
       "gately-audio-official: below this run's target budget",
       "massive-audio-official: below this run's target budget",
-      "goldwood-official: below this run's target budget",
       "eros-official: below this run's target budget",
       "sb-audience-official: below this run's target budget",
-      "great-plains-audio-official: below this run's target budget",
-      "jbl-professional-official: below this run's target budget",
       "kef-official: below this run's target budget",
-      "monacor-official: below this run's target budget",
-      "peavey-official: below this run's target budget",
       "vifa-official: below this run's target budget",
+      "adire-audio-official: below this run's target budget",
       "ale-official: below this run's target budget",
       "audax-official: below this run's target budget",
       "aurasound-official: below this run's target budget",
       "b2-audio-official: below this run's target budget",
       "dls-official: below this run's target budget",
       "electro-voice-official: below this run's target budget",
-      "fi-car-audio-official: below this run's target budget",
       "incriminator-audio-official: below this run's target budget",
+      "vas-audio-official: below this run's target budget",
       "nvx-official: below this run's target budget",
       "volt-official: below this run's target budget",
       "atc-official: below this run's target budget",
@@ -58,7 +86,6 @@
       "davis-acoustics-official: below this run's target budget",
       "dd-audio-official: below this run's target budget",
       "e-j-jordan-official: below this run's target budget",
-      "fane-official: below this run's target budget",
       "feastrex-official: below this run's target budget",
       "goto-unit-official: below this run's target budget",
       "mundorf-official: below this run's target budget",
@@ -74,6 +101,7 @@
       "isophon-official: below this run's target budget",
       "fountek-official: below this run's target budget",
       "fostex-official: below this run's target budget",
+      "stereo-integrity-official: below this run's target budget",
       "jbl-pro-official: below this run's target budget",
       "snake-pro-official: below this run's target budget",
       "ultravox-official: below this run's target budget",
@@ -90,7 +118,6 @@
       "audiotec-fischer-official: below this run's target budget",
       "dynaudio-official: below this run's target budget",
       "hard-power-official: below this run's target budget",
-      "jensen-official: below this run's target budget",
       "7driver-official: below this run's target budget",
       "lavoce-italiana-official: below this run's target budget",
       "lii-audio-official: below this run's target budget",
@@ -98,38 +125,41 @@
       "hertz-official: below this run's target budget",
       "tad-official: below this run's target budget",
       "morel-official: below this run's target budget",
-      "eighteen-sound-official: below this run's target budget",
       "ground-zero-official: below this run's target budget",
       "jl-audio-official: below this run's target budget",
       "lowther-official: below this run's target budget",
       "pride-official: below this run's target budget",
-      "seas-official: below this run's target budget",
+      "fi-car-audio-official: below this run's target budget",
       "scan-speak-official: below this run's target budget",
       "focal-official: below this run's target budget",
       "prv-audio-official: below this run's target budget",
+      "hinor-official: below this run's target budget",
       "audiotechnology-official: below this run's target budget",
       "bms-official: below this run's target budget",
-      "faitalpro-official: below this run's target budget",
       "markaudio-official: below this run's target budget",
-      "wavecor-official: below this run's target budget",
+      "monacor-official: below this run's target budget",
       "accuton-official: below this run's target budget",
       "apocalypse-official: below this run's target budget",
       "rockville-official: below this run's target budget",
       "misco-official: below this run's target budget",
+      "wavecor-official: below this run's target budget",
       "ds18-official: below this run's target budget",
       "ct-sounds-official: below this run's target budget",
+      "seas-official: below this run's target budget",
       "sica-official: below this run's target budget",
       "visaton-official: below this run's target budget",
       "b-c-speakers-official: below this run's target budget",
       "dayton-audio-official: below this run's target budget",
-      "bomber-official: below this run's target budget",
       "ciare-official: below this run's target budget",
-      "beyma-official: below this run's target budget",
       "sb-acoustics-official: below this run's target budget",
+      "bomber-official: below this run's target budget",
+      "beyma-official: below this run's target budget",
       "celestion-official: below this run's target budget",
-      "18sound-official: below this run's target budget",
       "eminence-official: below this run's target budget",
+      "eighteen-sound-official: below this run's target budget",
       "kicker-official: below this run's target budget",
+      "faitalpro-official: below this run's target budget",
+      "fane-official: below this run's target budget",
       "lavoce-official: below this run's target budget",
       "oberton-official: below this run's target budget",
       "p-audio-official: below this run's target budget",
@@ -144,12 +174,12 @@
   },
   "publication_state": "staging_only",
   "registry_summary": {
-    "brand_aliases": 18,
-    "catalog_brands": 168,
+    "brand_aliases": 24,
+    "catalog_brands": 171,
     "covered_brand_labels": 135,
     "needs_brand_cleanup": 14,
-    "needs_discovery": 19,
-    "ready_official_targets": 117
+    "needs_discovery": 22,
+    "ready_official_targets": 111
   },
   "retailer_sources": {
     "configured": [
@@ -160,5 +190,5 @@
     "role": "gap_and_price_discovery_only"
   },
   "schema_version": 2,
-  "started_at": "2026-08-24T10:47:58.838410+00:00"
+  "started_at": "2026-08-24T19:57:07.362690+00:00"
 }
