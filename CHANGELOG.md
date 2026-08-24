@@ -21,6 +21,9 @@
   application-visible records.
 - Added three further Ciare official drivers (`PH320`, `HX201`, `FXH15.64W`);
   catalog total is now 7,371 raw and 6,367 application-visible records.
+- Added three further Ciare official datasheet drivers (`PW455`, `18.00SW-4`,
+  `HWB130`); catalog total is now 7,374 raw and 6,370 application-visible
+  records.
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
