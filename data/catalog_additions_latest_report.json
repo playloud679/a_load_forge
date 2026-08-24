@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T19:25:00Z",
+  "generated_at": "2026-08-24T19:31:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 743,
-  "latest_batch_added": 17,
-  "latest_batch_visible_added": 17,
+  "added": 754,
+  "latest_batch_added": 11,
+  "latest_batch_visible_added": 11,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7203,
+  "final_records": 7214,
   "app_visible_before": 5501,
-  "app_visible_records": 6199,
+  "app_visible_records": 6210,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -33,12 +33,12 @@
     "Fi Car Audio official product pages"
   ],
   "latest_batch_by_brand": {
-    "Fi Car Audio": 17
+    "Fi Car Audio": 11
   },
   "latest_batch_visible_by_brand": {
-    "Fi Car Audio": 17
+    "Fi Car Audio": 11
   },
-  "added_names_count": 743,
+  "added_names_count": 754,
   "added_names_sample": [
     "Adire Audio Koda 8",
     "Stereo Integrity HFS-24",
@@ -72,6 +72,7 @@
     "Fane SOVEREIGN PRO 18-800P",
     "Fi Car Audio SW-ALPHA-10",
     "Fi Car Audio SW-HC-15",
-    "Fi Car Audio SW-NEO49-12"
+    "Fi Car Audio SW-NEO49-12",
+    "Fi Car Audio SW-NEO411-18"
   ]
 }
