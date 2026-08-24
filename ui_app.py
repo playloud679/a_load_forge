@@ -181,12 +181,33 @@ def _render_catalog_crawl_report() -> None:
                 f"(+{latest_batch:,} latest batch) · "
                 f"catalog {final_records:,} · app-visible {app_visible:,}."
             )
+            latest_by_brand = additions_report.get("latest_batch_by_brand") or {}
+            if isinstance(latest_by_brand, dict) and latest_by_brand:
+                st.caption(
+                    "Latest batch: "
+                    + " · ".join(
+                        f"{brand} {int(count):,}"
+                        for brand, count in latest_by_brand.items()
+                    )
+                )
             added_names = [
-                str(name) for name in additions_report.get("added_names", [])
+                str(name)
+                for name in additions_report.get(
+                    "added_names_sample",
+                    additions_report.get("added_names", []),
+                )
                 if str(name).strip()
             ]
             if added_names:
-                st.caption(" · ".join(added_names))
+                names_count = int(
+                    additions_report.get("added_names_count", len(added_names))
+                )
+                suffix = (
+                    f" · … {names_count - len(added_names):,} more"
+                    if names_count > len(added_names)
+                    else ""
+                )
+                st.caption("Sample: " + " · ".join(added_names) + suffix)
         retailer_summary = retailer_report.get("summary") or {}
         if retailer_summary:
             st.divider()

@@ -18,4 +18,6 @@ The latest approved batch is summarized in
 `data/catalog_additions_latest_report.json`; the application shows it in the
 sidebar crawl-report expander, separately from staging and retailer discovery.
 The report can aggregate a review cycle while `latest_batch_added` identifies
-the most recent publication inside that cycle.
+the most recent publication inside that cycle. Large batches use
+`latest_batch_by_brand`, `added_names_count` and `added_names_sample` so the UI
+shows exact totals and provenance without rendering hundreds of product names.

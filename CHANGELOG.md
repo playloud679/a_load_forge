@@ -4,10 +4,11 @@
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
-- Published 23 reviewed, append-only manufacturer records from Adire Audio,
-  Stereo Integrity and Sundown Audio; the catalog now contains 6,483 raw
-  records and 5,524 application-visible drivers without changing or deleting
-  any pre-existing row.
+- Published 310 reviewed, append-only manufacturer records from Adire Audio,
+  Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics
+  and Visaton; the catalog now contains 6,770 raw records and 5,811
+  application-visible drivers without changing or deleting any pre-existing
+  row. The latest official-source batch contributed 287 net-visible drivers.
 - Added manufacturer-first source discovery, isolated retailer gap reporting,
   progress/latest-report artifacts and an in-app crawl report.
 - Added a guarded reviewed-publication command and catalog-specific checks so
