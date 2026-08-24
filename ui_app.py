@@ -124,8 +124,10 @@ def _render_catalog_crawl_report() -> None:
         return
     phase = str(progress.get("phase") or "").replace("_", " ")
     active = phase not in {"", "complete", "sleeping", "failed"}
-    label = f"Catalog crawl · {phase}" if active else "Catalog crawl · latest report"
-    with st.expander(label, expanded=active):
+    if not active:
+        return
+    label = f"Catalog crawl · {phase}"
+    with st.expander(label, expanded=True):
         if progress:
             st.caption(
                 f"Status: {phase or 'unknown'} · updated "
@@ -7709,28 +7711,7 @@ def _render_find_driver_goal_sidebar() -> None:
                  "limit is active. 0 disables.",
         )
 
-    with st.expander("Advanced evaluation"):
-        _finder_number_input(
-            "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
-            step=1.0, key="finder_f_min",
-            help="Lowest frequency included in response, excursion and delay evaluation.",
-        )
-        _finder_number_input(
-            "Evaluation range end (Hz)", min_value=10.0, max_value=5000.0,
-            step=10.0, key="finder_f_max",
-            help="Highest frequency included in the low-frequency comparison.",
-        )
-        _finder_number_input(
-            "Simulation resolution (points)", min_value=80, max_value=1000,
-            step=20, key="finder_points",
-        )
-        st.button(
-            "Reset Finder defaults",
-            key="finder_reset_defaults",
-            on_click=_reset_finder_defaults,
-            width="stretch",
-            help="Restore the practical quick-scan profile without changing the active design.",
-        )
+
 
 
 def _finder_search_blocked(filtered_preset_names: list[str]) -> bool:
@@ -8159,6 +8140,10 @@ def _render_bass_match_hero(
     }
     constraints = _finder_brief_constraints(len(selected_preset_names))
 
+    if "_monthly_simulations_used" not in st.session_state:
+        st.session_state["_monthly_simulations_used"] = 23575
+    monthly_used = st.session_state["_monthly_simulations_used"]
+
     run_requested = False
     with st.container(border=True, key="bass_match_brief"):
         h_col1, h_col2 = st.columns([2.5, 1.5], vertical_alignment="center")
@@ -8167,7 +8152,7 @@ def _render_bass_match_hero(
         with h_col2:
             st.markdown(
                 "<div style='text-align: right;'><span class='lf-quota-pill'>"
-                "Monthly simulations: <strong>23,575 / 30,000</strong>"
+                f"Monthly simulations: <strong>{monthly_used:,} / 30,000</strong>"
                 " · This run: <strong>"
                 f"{prefilter_stats['eligible_simulations']:,}"
                 "</strong></span></div>",
@@ -8208,6 +8193,10 @@ def _render_bass_match_hero(
         key="finder_run_search_main",
     )
     if run_requested:
+        st.session_state["_monthly_simulations_used"] = (
+            st.session_state.get("_monthly_simulations_used", 23575)
+            + prefilter_stats["eligible_simulations"]
+        )
         _run_find_driver_search(match_preset_names, filtered_preset_names)
         st.rerun()
     return match_preset_names
@@ -9621,6 +9610,28 @@ with st.sidebar:
                 _render_load_type_buttons(_finder_load_set, single_select=False)
                 st.caption("Toggle the loads you want to compare. At least one must stay active.")
                 _render_find_driver_target_sidebar()
+                with st.expander("Advanced evaluation"):
+                    _finder_number_input(
+                        "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
+                        step=1.0, key="finder_f_min",
+                        help="Lowest frequency included in response, excursion and delay evaluation.",
+                    )
+                    _finder_number_input(
+                        "Evaluation range end (Hz)", min_value=10.0, max_value=5000.0,
+                        step=10.0, key="finder_f_max",
+                        help="Highest frequency included in the low-frequency comparison.",
+                    )
+                    _finder_number_input(
+                        "Simulation resolution (points)", min_value=80, max_value=1000,
+                        step=20, key="finder_points",
+                    )
+                    st.button(
+                        "Reset Finder defaults",
+                        key="finder_reset_defaults",
+                        on_click=_reset_finder_defaults,
+                        width="stretch",
+                        help="Restore the practical quick-scan profile without changing the active design.",
+                    )
         elif bm_tab2.open:
             with bm_tab2:
                 _render_find_driver_goal_sidebar()
