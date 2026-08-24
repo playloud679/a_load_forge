@@ -4,10 +4,10 @@
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
-- Published 768 reviewed, append-only manufacturer records from Adire Audio,
+- Published 770 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
   Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA, Jensen,
-  FaitalPRO, Ciare, Fane, Fi Car Audio, Tang Band, BMS Speakers and Celestion; the catalog now contains 7,228 raw records and 6,224
+  FaitalPRO, Ciare, Fane, Fi Car Audio, Tang Band, BMS Speakers and Celestion; the catalog now contains 7,230 raw records and 6,226
   application-visible drivers without changing or deleting any pre-existing
   row. The latest Celestion official-source batch contributed 1 net application-visible driver.
 - Added Wavecor multi-model matrix extraction and a resilient first-party
