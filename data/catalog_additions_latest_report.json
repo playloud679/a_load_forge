@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-25T01:32:00Z",
+  "generated_at": "2026-08-25T01:52:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 846,
-  "latest_batch_added": 25,
-  "latest_batch_visible_added": 25,
+  "added": 882,
+  "latest_batch_added": 36,
+  "latest_batch_visible_added": 36,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7306,
-  "app_visible_before": 6277,
-  "app_visible_records": 6302,
+  "final_records": 7342,
+  "app_visible_before": 6302,
+  "app_visible_records": 6338,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -38,13 +38,14 @@
     "DD Audio official product pages",
     "SOVOX official product pages",
     "PRV Audio official product pages",
-    "Soundking official manufacturer PDF"
+    "Soundking official manufacturer PDF",
+    "Eminence official product pages"
   ],
   "latest_batch_by_brand": {
-    "Soundking": 25
+    "Eminence": 36
   },
   "latest_batch_visible_by_brand": {
-    "Soundking": 25
+    "Eminence": 36
   },
   "added_names_count": 755,
   "added_names_sample": [

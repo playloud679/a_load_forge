@@ -19,6 +19,9 @@
   (`FB0850-2`); catalog total is now 7,281 raw and 6,277 visible records.
 - Extracted and validated 25 additional Soundking coaxial LF drivers from the
   same official T/S PDF; catalog total is now 7,306 raw and 6,302 visible.
+- Corrected Eminence official-page identity extraction (UPC titles were
+  replaced by product slugs), validated runtime identities, and published 36
+  new official models. Catalog total is now 7,342 raw and 6,338 visible.
 - Published 773 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
   Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA, Jensen,
