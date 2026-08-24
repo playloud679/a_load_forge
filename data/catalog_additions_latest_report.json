@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-24T19:39:00Z",
+  "generated_at": "2026-08-24T20:00:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 755,
-  "latest_batch_added": 1,
-  "latest_batch_visible_added": 1,
+  "added": 763,
+  "latest_batch_added": 8,
+  "latest_batch_visible_added": 8,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7215,
+  "final_records": 7223,
   "app_visible_before": 5501,
-  "app_visible_records": 6211,
+  "app_visible_records": 6219,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -30,13 +30,14 @@
     "FaitalPRO public official product catalog and archive",
     "Ciare public official current catalog and archive",
     "Fane public official current catalog and archive",
-    "Fi Car Audio official product pages"
+    "Fi Car Audio official product pages",
+    "BMS Speakers official product pages"
   ],
   "latest_batch_by_brand": {
-    "Tang Band": 1
+    "BMS Speakers": 8
   },
   "latest_batch_visible_by_brand": {
-    "Tang Band": 1
+    "BMS Speakers": 8
   },
   "added_names_count": 755,
   "added_names_sample": [
@@ -74,6 +75,14 @@
     "Fi Car Audio SW-HC-15",
     "Fi Car Audio SW-NEO49-12",
     "Fi Car Audio SW-NEO411-18",
-    "Tang Band W8-1722B 8\u201d Paper Woofer"
+    "Tang Band W8-1722B 8\u201d Paper Woofer",
+    "BMS Speakers 10S302",
+    "BMS Speakers 8C250",
+    "BMS Speakers 12C362",
+    "BMS Speakers 12C382",
+    "BMS Speakers 15C362",
+    "BMS Speakers 15CN680",
+    "BMS Speakers 12N802",
+    "BMS Speakers 6S117"
   ]
 }

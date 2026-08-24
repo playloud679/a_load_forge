@@ -4,13 +4,12 @@
 
 - Separated catalog metadata from the application release: the proprietary
   catalog remains independently versioned at **1.0.0**.
-- Published 755 reviewed, append-only manufacturer records from Adire Audio,
+- Published 763 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
   Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA, Jensen,
-  FaitalPRO, Ciare, Fane, Fi Car Audio and Tang Band; the catalog now contains 7,215 raw records and 6,211
+  FaitalPRO, Ciare, Fane, Fi Car Audio, Tang Band and BMS Speakers; the catalog now contains 7,223 raw records and 6,219
   application-visible drivers without changing or deleting any pre-existing
-  row. The ten latest official-source batches contributed 287, 64, 37, 69,
-  45, 56, 38, 62, 17, 11 and 1 net application-visible drivers respectively.
+  row. The latest BMS official-source batch contributed 8 net application-visible drivers.
 - Added Wavecor multi-model matrix extraction and a resilient first-party
   Peerless/Tymphany API harvester. Added a first-party Monacor category
   harvester that verifies each product's manufacturer block, excluding
