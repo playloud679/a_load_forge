@@ -1,17 +1,17 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-08-25T01:52:00Z",
+  "generated_at": "2026-08-25T02:18:00Z",
   "publication_state": "reviewed_append_only",
   "catalog_write": true,
   "catalog_version": "1.0.0",
   "baseline_records": 6460,
-  "added": 882,
-  "latest_batch_added": 36,
-  "latest_batch_visible_added": 36,
+  "added": 890,
+  "latest_batch_added": 8,
+  "latest_batch_visible_added": 8,
   "latest_batch_existing_aliases_collapsed": 0,
-  "final_records": 7342,
-  "app_visible_before": 6302,
-  "app_visible_records": 6338,
+  "final_records": 7350,
+  "app_visible_before": 6338,
+  "app_visible_records": 6346,
   "existing_rows_unchanged": true,
   "sources": [
     "Adire Audio official manufacturer site",
@@ -42,10 +42,10 @@
     "Eminence official product pages"
   ],
   "latest_batch_by_brand": {
-    "Eminence": 36
+    "Eminence": 8
   },
   "latest_batch_visible_by_brand": {
-    "Eminence": 36
+    "Eminence": 8
   },
   "added_names_count": 755,
   "added_names_sample": [

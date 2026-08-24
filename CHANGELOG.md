@@ -22,6 +22,8 @@
 - Corrected Eminence official-page identity extraction (UPC titles were
   replaced by product slugs), validated runtime identities, and published 36
   new official models. Catalog total is now 7,342 raw and 6,338 visible.
+- Retried the Eminence pages blocked by rate limiting and published 8 further
+  official models; catalog total is now 7,350 raw and 6,346 visible.
 - Published 773 reviewed, append-only manufacturer records from Adire Audio,
   Stereo Integrity, Sundown Audio, JBL Professional, SEAS, Hinor, SB Acoustics,
   Visaton, Wavecor, Peerless/Tymphany, Monacor, Eighteen Sound, SICA, Jensen,
