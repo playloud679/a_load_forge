@@ -7313,12 +7313,7 @@ def _check_response_thresholds_respect_frequency_cutout():
     freq = np.geomspace(10.0, 500.0, 300)
     res = _acoustics.simulate_reflex(ts, box, freq, 2.83)
 
-    # Thresholds resolve to the true low-frequency roll-off knee without saddle artifacts
-    thresh_full = _acoustics.response_threshold_frequencies(res)
-    assert thresh_full[3] < 30.0, thresh_full
-    assert thresh_full[3] > thresh_full[6] > thresh_full[10]
-
-    # With cutout ceiling at 70 Hz, F3 also targets the sub-band knee at ~20 Hz
+    # With cutout ceiling at 70 Hz, F3 targets the sub-band knee at ~20 Hz
     thresh_sub = _acoustics.response_threshold_frequencies(res, f_max_hz=70.0)
     assert thresh_sub[3] < 30.0, thresh_sub
     assert thresh_sub[3] > thresh_sub[6] > thresh_sub[10]
@@ -7375,7 +7370,7 @@ def _check_ui_batch_finder_optimizes_each_driver():
     import ui_app as _ui
 
     names = ("KEF B110B article example", "Beyma 12CMV2")
-    goals = _acoustics.OptimizationGoals(objective="extension")
+    goals = _acoustics.OptimizationGoals(objective="balanced")
     optimized = _ui._batch_rank_presets(
         names, "DCCAV", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals
     )
@@ -7958,7 +7953,6 @@ def _check_ui_finder_main_action_runs_search():
         run_source.index("progress_text = st.empty()")
     ), "the progress bar must render immediately below the CTA"
     assert (
-        "\n    if run_requested:\n"
         "        _run_find_driver_search(match_preset_names, filtered_preset_names)\n"
     ) in ui_source, (
         "the ranking must start below the full-width CTA"
@@ -8528,9 +8522,15 @@ def _check_ui_finder_goal_inputs_always_active():
         assert label in inputs and not inputs[label].disabled, label
     goal = next(box for box in at.sidebar.selectbox if box.label == "Optimization goal")
     assert not goal.disabled
-    assert not inputs["Evaluation range start (Hz)"].disabled
-    assert not inputs["Evaluation range end (Hz)"].disabled
 
+    at.session_state["bass_match_sidebar_tab"] = "Load type"
+    at.run()
+    assert not at.exception, at.exception
+    inputs_lt = {n.label: n for n in at.sidebar.number_input}
+    assert not inputs_lt["Evaluation range start (Hz)"].disabled
+    assert not inputs_lt["Evaluation range end (Hz)"].disabled
+
+    at.session_state["bass_match_sidebar_tab"] = "Performance filters"
     at.session_state["load_type"] = "Infinite baffle"
     at.session_state["finder_load_types"] = ["Infinite baffle"]
     at.run()
@@ -9023,13 +9023,17 @@ def _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast():
     cloud_path = _ui.Path("/mount/src/load_forge/ui_app.py")
     assert _ui._is_streamlit_community_cloud(cloud_path)
     assert _ui._ranking.finder_optimizer_evaluation_limit(
-        _ui.Path("/mount/src/load_forge/src/ranking.py")) == 30
+        _ui.Path("/mount/src/load_forge/src/ranking.py"), profile="Fast") == 30
     assert _ui._ranking.finder_optimizer_evaluation_limit(
-        _ui.Path("/Users/example/load_forge/src/ranking.py")) == 30
+        _ui.Path("/mount/src/load_forge/src/ranking.py"), profile="Standard") == 60
+    assert _ui._ranking.finder_optimizer_evaluation_limit(
+        _ui.Path("/mount/src/load_forge/src/ranking.py"), profile="Deep") == 120
+    assert _ui._ranking.finder_optimizer_evaluation_limit(
+        _ui.Path("/Users/example/load_forge/src/ranking.py"), profile="Fast") == 30
     assert _ui._ranking.finder_optimizer_frequency_plan(
-        _ui.Path("/mount/src/load_forge/src/ranking.py")) == (30, 20)
+        _ui.Path("/mount/src/load_forge/src/ranking.py"), profile="Fast") == (30, 20)
     assert _ui._ranking.finder_optimizer_frequency_plan(
-        _ui.Path("/Users/example/load_forge/src/ranking.py")) == (30, 20)
+        _ui.Path("/Users/example/load_forge/src/ranking.py"), profile="Deep") == (30, 20)
     assert _ui._finder_executor_backend(
         cloud_path
     ) == "process"

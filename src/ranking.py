@@ -65,20 +65,50 @@ def finder_worker_ready() -> int:
     return os.getpid()
 
 
-def finder_optimizer_evaluation_limit(module_path: Path | None = None) -> int:
-    """Return the per-driver optimizer budget."""
+SEARCH_PROFILE_FAST = "Fast"
+SEARCH_PROFILE_STANDARD = "Standard"
+SEARCH_PROFILE_DEEP = "Deep"
+
+SEARCH_PROFILES = {
+    SEARCH_PROFILE_FAST: {
+        "max_evaluations": 30,
+        "coarse_points": 30,
+        "refine_f3_points": 20,
+    },
+    SEARCH_PROFILE_STANDARD: {
+        "max_evaluations": 60,
+        "coarse_points": 30,
+        "refine_f3_points": 20,
+    },
+    SEARCH_PROFILE_DEEP: {
+        "max_evaluations": 120,
+        "coarse_points": 30,
+        "refine_f3_points": 20,
+    },
+}
+
+
+def finder_optimizer_evaluation_limit(
+    module_path: Path | None = None,
+    profile: str = SEARCH_PROFILE_STANDARD,
+) -> int:
+    """Return the per-driver optimizer budget based on the active search profile."""
+    spec = SEARCH_PROFILES.get(profile, SEARCH_PROFILES[SEARCH_PROFILE_STANDARD])
+    limit = int(spec["max_evaluations"])
     if os.getenv("K_SERVICE"):
-        return 24
-    return 30
+        return min(limit, 24)
+    return limit
 
 
 def finder_optimizer_frequency_plan(
     module_path: Path | None = None,
+    profile: str = SEARCH_PROFILE_STANDARD,
 ) -> tuple[int, int]:
-    """Return broad/refinement frequency counts for Finder runs."""
+    """Return broad/refinement frequency counts for Finder runs based on search profile."""
+    spec = SEARCH_PROFILES.get(profile, SEARCH_PROFILES[SEARCH_PROFILE_STANDARD])
     return (
-        engine.OPTIMIZER_COARSE_POINTS,
-        engine.OPTIMIZER_F3_REFINE_POINTS,
+        int(spec["coarse_points"]),
+        int(spec["refine_f3_points"]),
     )
 
 
@@ -118,6 +148,7 @@ def rank_preset_row(
     points: int,
     goals: engine.OptimizationGoals | None = None,
     driver_configuration: str = "Single driver",
+    search_profile: str = SEARCH_PROFILE_STANDARD,
 ) -> dict | None:
     """Build one ranking-table row for a single or composite driver."""
     try:
@@ -126,7 +157,7 @@ def rank_preset_row(
         return None
     return rank_candidate_row(
         candidate, load_type, max_volume_l, voltage_v, f_min_hz, f_max_hz,
-        points, goals, driver_configuration,
+        points, goals, driver_configuration, search_profile,
     )
 
 
@@ -140,6 +171,7 @@ def rank_candidate_row(
     points: int,
     goals: engine.OptimizationGoals | None = None,
     driver_configuration: str = "Single driver",
+    search_profile: str = SEARCH_PROFILE_STANDARD,
 ) -> dict | None:
     """Build one row from a compact payload without loading worker catalogs."""
     name = candidate.name
@@ -190,13 +222,13 @@ def rank_candidate_row(
                 min_spl_db=goals.min_spl_db,
                 ripple_max_freq_hz=goals.ripple_max_freq_hz,
             )
-            frequency_points, refine_f3_points = finder_optimizer_frequency_plan()
+            frequency_points, refine_f3_points = finder_optimizer_frequency_plan(profile=search_profile)
             optimized = engine.optimize_alignment(
                 ts,
                 batch_goals,
                 load_type=load_type,
                 voltage_v=float(voltage_v),
-                max_evaluations=finder_optimizer_evaluation_limit(),
+                max_evaluations=finder_optimizer_evaluation_limit(profile=search_profile),
                 frequency_points=frequency_points,
                 refine_f3_points=refine_f3_points,
             )

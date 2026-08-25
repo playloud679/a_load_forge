@@ -37,13 +37,12 @@ detailed contracts live in `docs/dccav.md`.
   the live catalog or the previous design session has since changed. Eighth-order
   rows expose `V1 L`, `f1 Hz`, `V2 L`, `f2 Hz`, `V3 L` and `f3 Hz`; other
   loads leave those topology-specific columns empty
-- `finder_worker_ready()`: return only the worker PID for the bounded startup
-  health check; it deliberately does not touch the runtime catalog
-- `finder_optimizer_evaluation_limit(module_path=None)`: use 30 global search
-  evaluations per driver (24 on Cloud Run); the winning alignment receives the
-  engine's separate 20-point F3 refinement pass
-- `finder_optimizer_frequency_plan(module_path=None)`: select the 30-point broad
-  scan plus 20-point winning-F3 refinement
+- `finder_optimizer_evaluation_limit(module_path=None, profile="Standard")`:
+  returns per-driver evaluation budget (Fast: 30, Standard: 60, Deep: 120; capped on Cloud Run).
+- `finder_optimizer_frequency_plan(module_path=None, profile="Standard")`:
+  returns coarse frequency grid and winning-F3 refinement counts (Fast: 30/20, Standard: 30/20, Deep: 30/20).
+- `SEARCH_PROFILES` / `SEARCH_PROFILE_FAST`, `SEARCH_PROFILE_STANDARD`, `SEARCH_PROFILE_DEEP`:
+  named search profiles tailoring search fidelity and speed.
 - `response_sparkline(spl, points=48, floor_db=-30)` plus the
   `SPARKLINE_POINTS` / `SPARKLINE_FLOOR_DB` constants used by the UI's
   `LineChartColumn`

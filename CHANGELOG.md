@@ -1,12 +1,15 @@
 # Changelog
 
-## 0.8.27 (2026-08-24)
+## 0.9.0 (2026-08-25)
 
+- Implemented Finder V2 multi-stage pattern search in `src/engine.py` with composite displacement vector tracking for rapid diagonal ridge traversal.
+- Added deterministic low-discrepancy Halton sampling exploration for high-dimensional topologies ($\ge 3$ chambers/ports: Bandpass 4th/6th/8th, DCCAV) avoiding Cartesian grid explosions.
+- Added Search Profile presets (**Fast** 30 evals, **Standard** 60 evals, **Deep** 120 evals) in `src/ranking.py` and Bass Match Advanced evaluation controls.
 - Refined Load Forge UI visual hierarchy, high-density layout, typography, and card spacing.
 - Consolidated global CSS design tokens (`--lf-bg-base`, `--lf-bg-surface`, `--lf-accent`) for clean visual contrast.
 - Reduced box-inside-box outlines using subtle dividers and elevated backgrounds without losing technical rigor.
 - Optimized Bass Match candidate space workflow, featuring a spot quota indicator and streamlined pre-simulation statistics.
-- Verified test suite passes clean with 0 failures across 176 tests.
+- Full active test suite passes fresh with 0 failures across 176 tests (`PASS: 176 FAIL: 0 SKIP: 0`).
 
 ## 0.8.26 (2026-08-24)
 

@@ -810,8 +810,8 @@ st.markdown(
     .st-key-finder_match_progress [role="progressbar"],
     .st-key-finder_match_progress [data-testid="stProgressBar"] > div {
         border-radius: 4px !important;
-        height: .65rem !important;
-        min-height: .65rem !important;
+        height: .8rem !important;
+        min-height: .8rem !important;
     }
     .st-key-finder_match_progress [role="progressbar"] > div {
         border-radius: inherit !important;
@@ -1853,6 +1853,7 @@ _FINDER_DEFAULTS = {
     "finder_rank_mode": _FINDER_RANK_F3,
     "finder_volume_l": 40.0,
     "finder_objective": "Max extension",
+    "finder_search_profile": _ranking.SEARCH_PROFILE_STANDARD,
     "finder_voltage": 2.83,
     "finder_max_ripple_db": 3.0,
     "finder_max_ripple_freq_hz": 0.0,
@@ -6093,6 +6094,7 @@ def _batch_rank_presets_parallel(
     completed_offset: int = 0,
     progress_total: int | None = None,
     driver_configuration: str = "Single driver",
+    search_profile: str = _ranking.SEARCH_PROFILE_STANDARD,
 ) -> list[dict]:
     """Rank candidates across worker processes with a real progress bar."""
     names = list(preset_names)[:int(candidate_limit)]
@@ -6128,6 +6130,7 @@ def _batch_rank_presets_parallel(
             [int(points)] * len(names),
             [goals] * len(names),
             [driver_configuration] * len(names),
+            [search_profile] * len(names),
             chunksize=max(1, min(32, len(names) // (workers * 4))),
         )
         for row in results:
@@ -6154,7 +6157,7 @@ def _batch_rank_presets_parallel(
             tuple(names), load_type, float(max_volume_l), float(voltage_v),
             float(f_min_hz), float(f_max_hz), int(points), len(names), goals,
             progress, progress_text_widget, completed_offset, overall_total,
-            driver_configuration,
+            driver_configuration, search_profile,
         )
     finally:
         if owns_progress:
@@ -6179,6 +6182,7 @@ def _batch_rank_presets_with_progress(
     completed_offset: int,
     progress_total: int,
     driver_configuration: str = "Single driver",
+    search_profile: str = _ranking.SEARCH_PROFILE_STANDARD,
 ) -> list[dict]:
     """Serial ranking path that reports real per-candidate progress."""
     names = list(preset_names)[:int(candidate_limit)]
@@ -6188,7 +6192,7 @@ def _batch_rank_presets_with_progress(
         row = _acoustics.rank_preset_row(
             name, load_type, float(max_volume_l), float(voltage_v),
             float(f_min_hz), float(f_max_hz), int(points), goals,
-            driver_configuration,
+            driver_configuration, search_profile,
         )
         if row is not None:
             rows.append(row)
@@ -7030,6 +7034,7 @@ def _finder_result_context_signature(_preset_names: list[str]) -> str:
             _finder_value("finder_driver_configuration")
         ),
         "objective": str(_finder_value("finder_objective")),
+        "search_profile": str(_finder_value("finder_search_profile")),
         "reflex_resonator_type": str(
             _finder_value("finder_reflex_resonator_type")
         ),
@@ -7448,6 +7453,7 @@ def _run_find_driver_search(
             if os.getenv("K_SERVICE") else int(_finder_value("finder_points")),
             load_scan_count,
         )
+        finder_search_profile = str(_finder_value("finder_search_profile"))
         if load_scan_count > 8:
             batch_rows = _batch_rank_presets_parallel(
                 *rank_args,
@@ -7457,6 +7463,7 @@ def _run_find_driver_search(
                 completed_offset,
                 progress_total,
                 finder_driver_configuration,
+                finder_search_profile,
             )
             # A worker can hold a stale external-catalog module after a
             # Streamlit reload. If the whole pool returns no rows, retry this
@@ -7477,6 +7484,7 @@ def _run_find_driver_search(
                     completed_offset,
                     progress_total,
                     finder_driver_configuration,
+                    finder_search_profile,
                 )
         else:
             batch_rows = _batch_rank_presets_with_progress(
@@ -7487,6 +7495,7 @@ def _run_find_driver_search(
                 completed_offset,
                 progress_total,
                 finder_driver_configuration,
+                finder_search_profile,
             )
         load_run_stats[lt] = {
             "attempted": load_scan_count,
@@ -8064,6 +8073,7 @@ def _finder_brief_constraints(
             f"{float(_finder_value('finder_f_min')):g}–"
             f"{float(_finder_value('finder_f_max')):g} Hz",
         ),
+        ("Profile", str(_finder_value("finder_search_profile"))),
         ("Resolution", f"{int(_finder_value('finder_points'))} points"),
         ("Results shown", "All usable"),
         (
@@ -8148,7 +8158,7 @@ def _render_bass_match_hero(
     with st.container(border=True, key="bass_match_brief"):
         h_col1, h_col2 = st.columns([2.5, 1.5], vertical_alignment="center")
         with h_col1:
-            st.markdown("#### Bass Match · Candidate space")
+            st.markdown("#### Bass Match · Your bass brief")
         with h_col2:
             st.markdown(
                 "<div style='text-align: right;'><span class='lf-quota-pill'>"
@@ -8158,26 +8168,29 @@ def _render_bass_match_hero(
                 "</strong></span></div>",
                 unsafe_allow_html=True,
             )
-        b1, b2, b3 = st.columns(
-            [1.2, 1.2, 1.6],
+        b1, b2, b3, b4 = st.columns(
+            [1.2, 1.2, 1.2, 1.2],
             vertical_alignment="center",
         )
         b1.metric(
-            "Ready simulations",
-            f"{prefilter_stats['eligible_simulations']:,}",
-        )
-        b2.metric(
-            "Pre-qualified drivers",
+            "Pre-qualified",
             f"{len(prequalified_names):,} / "
             f"{prefilter_stats['unique_drivers']:,}",
             help="Drivers that pass cheap pre-simulation checks for at least "
             "one active load.",
         )
-        with b3:
-            st.caption(
-                f"Skipped a priori: {prefilter_stats['rejected_simulations']:,} · "
-                f"Duplicates removed: {prefilter_stats['duplicate_rows']:,}"
-            )
+        b2.metric(
+            "Ready simulations",
+            f"{prefilter_stats['eligible_simulations']:,}",
+        )
+        b3.metric(
+            "Skipped a priori",
+            f"{prefilter_stats['rejected_simulations']:,}",
+        )
+        b4.metric(
+            "Duplicates removed",
+            f"{prefilter_stats['duplicate_rows']:,}",
+        )
         _render_finder_constraint_grid(constraints)
         _render_finder_run_statistics()
         if match_preset_names and not prequalified_names:
@@ -9611,6 +9624,12 @@ with st.sidebar:
                 st.caption("Toggle the loads you want to compare. At least one must stay active.")
                 _render_find_driver_target_sidebar()
                 with st.expander("Advanced evaluation"):
+                    _finder_selectbox(
+                        "Search profile",
+                        list(_ranking.SEARCH_PROFILES.keys()),
+                        key="finder_search_profile",
+                        help="Fast: quick screener (30 evals/driver). Standard: balanced default (60 evals/driver). Deep: high-precision exploration (120 evals/driver).",
+                    )
                     _finder_number_input(
                         "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
                         step=1.0, key="finder_f_min",

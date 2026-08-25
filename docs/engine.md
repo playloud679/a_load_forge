@@ -47,7 +47,7 @@ contracts and the test list — lives in `docs/dccav.md`.
   `segmented_frequency_grid` with high resolution below the ceiling and 9 sparse points above. If refinement puts DCCAV just below its credibility
   boundary, both tunings are reduced together by the minimum required factor
   and the winner is checked again
-- Analysis: `response_metrics`, `response_threshold_frequencies` (using logarithmic frequency interpolation across dB/oct roll-off slopes for sub-Hz F3/F6/F10 accuracy, preserving physical roll-off monotonicity across midbass saddle dips, and supporting optional `f_max_hz` to bound reference level and discard crossings above the cutout ceiling),
+- Analysis: `response_metrics`, `response_threshold_frequencies` (using logarithmic frequency interpolation across dB/oct roll-off slopes for sub-Hz F3/F6/F10 accuracy relative to reference passband SPL, and supporting optional `f_max_hz` to bound reference level and discard crossings above the cutout ceiling),
   `segmented_frequency_grid`, `optimal_frequency_grid`, `adaptive_frequency_grid`,
   `impedance_peak_frequencies`, `group_delay_ms`, `response_phase_deg`,
   `export_frd_text`, `export_zma_text`, `monte_carlo_response_band`,
@@ -169,18 +169,24 @@ little air per length, so `port_volume_fraction()` alone misses it. DCCAV
 candidates below `F3 >= 0.67*fl` are likewise excluded from normal objectives
 trade-offs.
 
-If the primary search (from the empirical starting alignment) lands in the
-infeasible score tier, `optimize_alignment` retries from a handful of
-deterministic points spread along the search box's diagonal (fixed fractions
-`0.75, 0.25, 0.5` of the log-space bounds, no randomness) before giving up:
-local coordinate descent can stall in an infeasible neighborhood even with a
-fully smooth score, when the compliant region sits far from the starting
-point (found via a reflex box search that stayed stuck for a driver whose
-golden-rule/velocity port floor made every box near the empirical Vas/Fs
-starting point need an over-long duct, while a compliant box existed
-elsewhere in the search bounds). If every attempt still lands in the
-infeasible tier, `optimize_alignment` raises an explicit optimizer error
-instead of returning its least-bad invalid candidate.
+`optimize_alignment` utilizes a deterministic multi-stage pattern search in
+log-space:
+1. **Deterministic Global Sniff**: Before local descent, a low-discrepancy Halton
+   sequence samples candidate basins in a radius around the starter to seed the
+   search with the most promising feasible configuration.
+2. **Adaptive Compass & Pattern Search**: Coordinate descent evaluates axial
+   steps and executes diagonal pattern acceleration moves along composite
+   successful displacement vectors (`x_pattern = x_new + Δx`), escaping ridge
+   traps in multidimensional coupled spaces (e.g. Bandpass 4th/6th/8th and DCCAV).
+
+If the primary search lands in the infeasible score tier, `optimize_alignment`
+retries from a handful of deterministic points spread along the search box's
+diagonal (fixed fractions `0.75, 0.25, 0.5` of the log-space bounds, no
+randomness) before giving up: local descent can stall in an infeasible
+neighborhood even with a fully smooth score, when the compliant region sits far
+from the starting point. If every attempt still lands in the infeasible tier,
+`optimize_alignment` raises an explicit optimizer error instead of returning its
+least-bad invalid candidate.
 
 ## Invariants
 

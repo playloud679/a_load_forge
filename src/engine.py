@@ -18,6 +18,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 import numpy as np
+from scipy.stats import qmc
 
 RHO_AIR = 1.18
 SPEED_OF_SOUND = 344.0
@@ -1801,6 +1802,24 @@ def _score_alignment(
 _DEFAULT_GOALS = OptimizationGoals()
 
 
+def _halton_sequence(dim: int, n: int) -> np.ndarray:
+    """Deterministic low-discrepancy Halton sequence generator."""
+    primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31][:dim]
+    seq = np.zeros((n, dim))
+    for i in range(dim):
+        base = primes[i]
+        for j in range(n):
+            index = j + 1
+            f = 1.0
+            r = 0.0
+            while index > 0:
+                f /= base
+                r += f * (index % base)
+                index //= base
+            seq[j, i] = r
+    return seq
+
+
 def optimize_alignment(
     ts: DriverTS,
     goals: OptimizationGoals = _DEFAULT_GOALS,
@@ -2131,9 +2150,11 @@ def optimize_alignment(
         if cur_metrics is None:
             return cur_p, cur_box, cur_metrics, cur_score
         step = 0.4
+        dim = len(cur_p)
         while step >= 0.02 and evaluations < max_evaluations:
             improved = False
-            for axis in range(len(cur_p)):
+            prev_p = cur_p.copy()
+            for axis in range(dim):
                 for sign in (1.0, -1.0):
                     if evaluations >= max_evaluations:
                         break
@@ -2146,6 +2167,14 @@ def optimize_alignment(
                     if metrics is not None and score < cur_score - 1e-9:
                         cur_p, cur_box, cur_metrics, cur_score = candidate, box, metrics, score
                         improved = True
+            # Pattern direction move along the composite successful displacement
+            if improved and evaluations < max_evaluations:
+                delta = cur_p - prev_p
+                pattern_candidate = np.clip(cur_p + delta, lower, upper)
+                if not np.allclose(pattern_candidate, cur_p):
+                    box, metrics, score = evaluate(pattern_candidate)
+                    if metrics is not None and score < cur_score - 1e-9:
+                        cur_p, cur_box, cur_metrics, cur_score = pattern_candidate, box, metrics, score
             if not improved:
                 step *= 0.5
         return cur_p, cur_box, cur_metrics, cur_score
@@ -2166,6 +2195,20 @@ def optimize_alignment(
         if deep_metrics is not None and deep_score < 1e5:
             primary_p = deep_p
             restart_points.append(np.clip(p0, lower, upper))
+
+    # For high-dimensional topologies (dim >= 3), evaluate deterministic low-discrepancy
+    # Halton points across the bounded search space when budget permits (max_evaluations >= 60).
+    # Promising feasible points are queued as deterministic exploration restarts so compass search
+    # thoroughly searches the analytical acoustic seed first, then explores alternative basins if budget remains.
+    dim = len(lower)
+    if dim >= 3 and max_evaluations >= 60:
+        sniff_budget = min(12, max(4, max_evaluations // 15))
+        halton_matrix = _halton_sequence(dim, sniff_budget)
+        for row in halton_matrix:
+            cand_p = lower + row * (upper - lower)
+            _, cand_metrics, cand_score = evaluate(cand_p)
+            if cand_metrics is not None and cand_score < 1e5:
+                restart_points.append(cand_p)
 
     _, best_box, best_metrics, best_score = compass_search(primary_p)
     if best_metrics is None:
@@ -2980,29 +3023,6 @@ def response_threshold_frequencies(
         if f_max_hz is not None and float(f_max_hz) > 0 and np.isfinite(cross) and cross > float(f_max_hz):
             cross = float("nan")
         out[int(drop)] = cross
-
-    # Coherence check for saddle / shelving alignments (e.g. EBS reflex or subwoofers with rising midbass):
-    # If F6 is on a low-frequency roll-off below a local peak, but F3 crossed far above across a midbass dip
-    if np.isfinite(out.get(6, np.nan)) and np.isfinite(out.get(3, np.nan)):
-        f6 = out[6]
-        f3 = out[3]
-        if f3 > 1.5 * f6:
-            sub_mask = (low_f >= f6) & (low_f <= f3)
-            if np.sum(sub_mask) >= 3:
-                sub_spl = low_spl[sub_mask]
-                sub_f = low_f[sub_mask]
-                min_idx = int(np.argmin(sub_spl))
-                valley_f = float(sub_f[min_idx])
-                peak_mask = (low_f >= f6 * 0.8) & (low_f <= valley_f)
-                if np.any(peak_mask):
-                    local_peak = float(np.max(low_spl[peak_mask]))
-                    if (ref - 3.0) > local_peak:
-                        for drop in drops_db:
-                            target = local_peak - float(drop)
-                            cross = _low_side_crossing(low_f, low_spl, target)
-                            if f_max_hz is not None and float(f_max_hz) > 0 and np.isfinite(cross) and cross > float(f_max_hz):
-                                cross = float("nan")
-                            out[int(drop)] = cross
     return out
 
 
