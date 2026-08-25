@@ -1690,9 +1690,21 @@ def _optimizer_metrics(
         if ripple_max_freq_hz is not None and float(ripple_max_freq_hz) > 0:
             upper = min(upper, float(ripple_max_freq_hz))
         band = (f >= 1.2 * f3) & (f <= upper)
-        if np.any(band):
-            ripple = float(np.nanmax(spl[band]) - np.nanmin(spl[band]))
-        elif np.isfinite(f3) and ripple_max_freq_hz is not None and float(ripple_max_freq_hz) > 0:
+        passband_ripple = float(np.nanmax(spl[band]) - np.nanmin(spl[band])) if np.any(band) else 0.0
+
+        # Catch out-of-band resonant bounces/peaks below the passband (f <= 1.2 * F3)
+        sub_mask = f <= 1.2 * f3
+        sub_spl = spl[sub_mask]
+        sub_bounce = 0.0
+        for i in range(1, len(sub_spl) - 1):
+            if sub_spl[i] > sub_spl[i - 1] and sub_spl[i] > sub_spl[i + 1]:
+                trough = float(np.nanmin(sub_spl[i:]))
+                drop = float(sub_spl[i]) - trough
+                if drop > sub_bounce:
+                    sub_bounce = drop
+
+        ripple = max(passband_ripple, sub_bounce)
+        if np.isnan(ripple) and ripple_max_freq_hz is not None and float(ripple_max_freq_hz) > 0:
             sub_band = (f >= f3) & (f <= float(ripple_max_freq_hz))
             ripple = float(np.nanmax(spl[sub_band]) - np.nanmin(spl[sub_band])) if np.any(sub_band) else 0.0
         gd = group_delay_ms(result)

@@ -54,7 +54,7 @@ contracts and the test list — lives in `docs/dccav.md`.
   extrema and high-curvature intervals, plus the requested F3 refinement.
   Verification normally stops after four finalists and can inspect up to
   twelve when coarse ripple produced false finalists. Defaults remain 160/0
-  for local optimizer fidelity. Setting `goals.ripple_max_freq_hz` limits the ripple
+  for local optimizer fidelity. Passband ripple is evaluated from F3 across the entire evaluated frequency band (or up to `goals.ripple_max_freq_hz`), and also captures any sub-F3 resonant bounce. Setting `goals.ripple_max_freq_hz` limits the ripple
   evaluation window to low-frequency subwoofer passbands and generates a
   `segmented_frequency_grid` with high resolution below the ceiling and 9 sparse points above. If refinement puts DCCAV just below its credibility
   boundary, both tunings are reduced together by the minimum required factor
