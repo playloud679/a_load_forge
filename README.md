@@ -4,9 +4,9 @@
   <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
-![Release 0.9.0](https://img.shields.io/badge/release-0.9.0-blue.svg)
+![Release 0.9.4](https://img.shields.io/badge/release-0.9.4-blue.svg)
 
-Current release: **0.9.0**
+Current release: **0.9.4**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth-, sixth- and eighth-order bandpass**,
@@ -91,8 +91,39 @@ Current UI highlights:
   a target → performance → library sidebar workflow, sticky and in-workspace
   search actions, practical quick-scan defaults, response sparklines and CSV
   export
+- a compact Finder result table that keeps `Class` and `Sd` as internal catalog
+  metadata, displays currency as `CUR` and maximum output at F3 as `MOL`, and
+  opens selected candidates directly in Box Design
 - progressive disclosure for T/S data, sweep settings, cursor positions and
   secondary result metrics
+
+## Finder V2 search
+
+`Bass Match` uses a deterministic optimizer layer above the acoustic models. It
+does not alter the load equations or the T/S completion rules. Positive box and
+tuning parameters are searched in normalized, topology-aware coordinates:
+total volume plus chamber fractions for multi-chamber loads, and base tuning
+plus frequency-separation ratios for resonant loads. BP8 uses a softmax volume
+allocation so the three chamber volumes remain positive and sum to the selected
+total.
+
+Each candidate search follows the same reproducible pipeline:
+
+1. evaluate the physical starter;
+2. sample a small deterministic Halton neighborhood to select the best feasible
+   basin;
+3. probe axis sensitivity and refine with independent per-axis steps plus
+   diagonal pattern moves;
+4. recheck competitive finalists on an adaptive frequency grid around tuning
+   points, extrema and high-curvature regions;
+5. enforce the requested volume, excursion, delay, MOL and ripple constraints.
+
+The optimizer has explicit `Fast`, `Standard` and `Deep` profiles. Every profile
+has a hard evaluation budget, and repeated coordinates do not consume a second
+box evaluation. Ripple is measured again on the final display-resolution
+response, so a narrow notch missed by the coarse search cannot enter the ranked
+results. The resulting row and the Box Design chart therefore use the same
+resolved feasibility decision.
 
 ## Populate the T/S catalog
 
@@ -220,6 +251,12 @@ The sixth-order bandpass vents both the rear and front chambers. Its starter
 exposes `Vr`, `Fr`, `Vp` and `Fp`, and the Ports tab reports both vent paths.
 The passive-radiator topology uses a suspended diaphragm in place of a reflex
 duct and models its area, resonance, mechanical Q, moving mass and excursion.
+
+The eighth-order bandpass uses three acoustic chambers and three resonances.
+Its optimizer works with total volume, two deterministic chamber-allocation
+coordinates, a base tuning and two adjacent frequency ratios; the UI exposes
+the physical chamber volumes and tunings while preserving their positivity and
+ordering constraints.
 
 The acoustic-suspension path uses a closed `Vb` and reports its classical
 `Fc` and `Qtc`; its starter targets `Qtc=0.707` when the driver's `Qts` permits.

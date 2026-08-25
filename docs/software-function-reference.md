@@ -9,7 +9,7 @@ materiali, tolleranze e misura del prototipo.
 
 Ambito della presente edizione:
 
-- applicazione **Load Forge 0.9.0**;
+- applicazione **Load Forge 0.9.4**;
 - formato progetto **LFP v2**;
 - catalogo proprietario con versione indipendente **1.0.0**.
 
@@ -153,16 +153,18 @@ driver su ciascun carico attivo e conserva la soluzione migliore per il brief.
 Le colonne principali sono:
 
 - **Driver, Load, Config**: identità, topologia e configurazione multi-driver;
-- **Nominal/Size/Sd/Effective diameter**: dimensioni dichiarate e area mobile;
+- **Nominal/Size**: dimensioni nominali dichiarate; classe e area mobile restano
+  disponibili nei filtri e nei dati interni, ma sono nascoste nella tabella
+  compatta;
 - **Fs, Qts, Vas**: nucleo T/S usato nell'allineamento;
 - **F3, Ripple, Peak SPL**: estensione e forma della risposta alla tensione di
   confronto;
-- **MOL @ F3**: output massimo fisicamente sostenibile a F3;
+- **MOL**: output massimo fisicamente sostenibile a F3;
 - **Min impedance**: carico minimo visto dall'amplificatore;
 - **Vb/Vtot e accordi**: volume netto e frequenze del box proposto;
 - **Mms, Le/Le10k**: indicatori di massa e banda elettrica;
-- **Price/Value**: costo normalizzato e rapporto fra prestazioni/costo quando
-  disponibile.
+- **Price/CUR/Value**: costo, valuta abbreviata e rapporto fra
+  prestazioni/costo quando disponibile.
 
 Un risultato Bass Match diventa un progetto editabile aprendolo in Box Design.
 Le condizioni del brief rimangono associate al risultato; se un filtro cambia,

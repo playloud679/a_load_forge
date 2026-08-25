@@ -827,9 +827,15 @@ def _beyma_catalog_part_number(brand: str, model: str) -> str:
     """Extract Beyma's code from its size/title/impedance catalog labels."""
     if re.sub(r"[^a-z0-9]+", "", brand.casefold()) != "beyma":
         return ""
-    match = _BEYMA_CATALOG_TITLE.match(" ".join(str(model).split()).strip())
+    candidate = " ".join(str(model).split()).strip()
+    # PDF download suffixes and publication years are metadata, not MPN text.
+    candidate = re.sub(r"\.(?:ai|pdf)$", "", candidate, flags=re.IGNORECASE)
+    candidate = re.sub(r"\s+(?:19|20)\d{2}$", "", candidate)
+    match = _BEYMA_CATALOG_TITLE.match(candidate)
     if not match:
-        return ""
+        # Bare scraped model codes can still be cleaned here; decorated
+        # titles must continue through the generic title parser below.
+        return candidate if candidate and " " not in candidate else ""
     code = re.sub(r"[\"″”\s]+", "", match.group(1))
     return code.strip(" -–—/,")
 

@@ -33,20 +33,35 @@ contracts and the test list — lives in `docs/dccav.md`.
   `simulate_tapped_horn` (shared `_electrical_source`, `_limit_curves`,
   `_unported_result` internals)
 - Optimizer: `optimize_alignment` with `_optimizer_metrics` /
-  `_score_alignment`; untargeted `extension` searches use an unattenuated hard
-  penalty when exceeding `max_ripple_db` to enforce acoustic passband linearity,
-  while scaling advisory excursion and group-delay excesses to 1% and using a 0.002 volume regularizer
+  `_score_alignment`; topology-native coordinates separate total volume from
+  chamber distribution and tuning position from tuning separation. BP4 uses
+  `Vtotal/logit(Vs/Vtotal)/Fp`, BP6 uses
+  `Vtotal/logit(Vr/Vtotal)/Fr/(Fp/Fr)`, DCCAV uses
+  `Vtotal/logit(Vh/Vtotal)/Fl/(Fh/Fl)`, and BP8 uses total volume, two
+  softmax logits, base tuning and two tuning ratios. Reflex and sealed retain
+  relative log coordinates. `max_ripple_db` is a feasibility constraint in every
+  objective. Candidates above it occupy a dedicated constraint score tier so
+  the search can descend toward feasibility, but a winner above the limit is
+  rejected with an explicit error instead of being returned. Untargeted
+  `extension` searches scale advisory excursion and group-delay excesses to 1%
+  and use a 0.015 volume regularizer
   so the lowest credible F3 dominates compactness without generating passband sags, and seed starter volumes
   directly at 95–98% of any requested volume cap so compass search focuses on
   fine tuning rather than climbing volume. The optional
   `frequency_points` / `refine_f3_points` controls let hosted Finder runs use
-  30 logarithmic points over the complete band and give only the winner 20
-  points around its estimated F3; defaults remain the original 160/0 for local
-  optimizer fidelity. Setting `goals.ripple_max_freq_hz` limits the ripple
+  30 logarithmic points during box-space search. Leading candidates are then
+  checked on an 80-point verification base augmented around physical tunings,
+  extrema and high-curvature intervals, plus the requested F3 refinement.
+  Verification normally stops after four finalists and can inspect up to
+  twelve when coarse ripple produced false finalists. Defaults remain 160/0
+  for local optimizer fidelity. Setting `goals.ripple_max_freq_hz` limits the ripple
   evaluation window to low-frequency subwoofer passbands and generates a
   `segmented_frequency_grid` with high resolution below the ceiling and 9 sparse points above. If refinement puts DCCAV just below its credibility
   boundary, both tunings are reduced together by the minimum required factor
   and the winner is checked again
+- `OPTIMIZER_ENGINE_REVISION` is included in the Finder worker handshake. It
+  prevents a long-lived Python forkserver from returning alignments calculated
+  by an older optimizer after Streamlit hot-reloads the application.
 - Analysis: `response_metrics`, `response_threshold_frequencies` (using logarithmic frequency interpolation across dB/oct roll-off slopes for sub-Hz F3/F6/F10 accuracy relative to reference passband SPL, and supporting optional `f_max_hz` to bound reference level and discard crossings above the cutout ceiling),
   `segmented_frequency_grid`, `optimal_frequency_grid`, `adaptive_frequency_grid`,
   `impedance_peak_frequencies`, `group_delay_ms`, `response_phase_deg`,
@@ -169,24 +184,25 @@ little air per length, so `port_volume_fraction()` alone misses it. DCCAV
 candidates below `F3 >= 0.67*fl` are likewise excluded from normal objectives
 trade-offs.
 
-`optimize_alignment` utilizes a deterministic multi-stage pattern search in
-log-space:
-1. **Deterministic Global Sniff**: Before local descent, a low-discrepancy Halton
-   sequence samples candidate basins in a radius around the starter to seed the
-   search with the most promising feasible configuration.
-2. **Adaptive Compass & Pattern Search**: Coordinate descent evaluates axial
-   steps and executes diagonal pattern acceleration moves along composite
-   successful displacement vectors (`x_pattern = x_new + Δx`), escaping ridge
-   traps in multidimensional coupled spaces (e.g. Bandpass 4th/6th/8th and DCCAV).
+`optimize_alignment` utilizes a deterministic multi-stage pattern search:
+1. **Topology-native transform** converts the physical starter into normalized
+   coordinates and guarantees positive volumes/frequencies on inverse mapping.
+2. **Deterministic Global Sniff** samples a local radius with a fixed Halton
+   sequence in every multidimensional profile, including Fast. All sniff points
+   are scored before descent and the best observed feasible basin is selected.
+   An infeasible starter also activates fixed 25/50/75% diagonal fallback points.
+3. **Sensitivity probe** measures local score response and orders axes by
+   information gained.
+4. **Adaptive Compass & Pattern Search** keeps one step per axis, shrinking only
+   unsuccessful directions, and accelerates along composite successful
+   displacement vectors (`x_pattern = x_new + Δx`).
+5. **Adaptive spectral verification** resolves tunings, extrema and curvature
+   for competitive finalists before hard ripple and construction acceptance.
 
-If the primary search lands in the infeasible score tier, `optimize_alignment`
-retries from a handful of deterministic points spread along the search box's
-diagonal (fixed fractions `0.75, 0.25, 0.5` of the log-space bounds, no
-randomness) before giving up: local descent can stall in an infeasible
-neighborhood even with a fully smooth score, when the compliant region sits far
-from the starting point. If every attempt still lands in the infeasible tier,
-`optimize_alignment` raises an explicit optimizer error instead of returning its
-least-bad invalid candidate.
+The cached box-evaluation counter is strictly capped by `max_evaluations`, even
+for a one-evaluation job. Extra frequency samples of an already-counted box are
+a separate spectral budget. If every resolved finalist remains infeasible,
+`optimize_alignment` raises an explicit error rather than returning it.
 
 ## Invariants
 

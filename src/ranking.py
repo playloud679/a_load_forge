@@ -22,6 +22,7 @@ except ImportError:  # top-level import with src/ on sys.path (ui_app)
 
 SPARKLINE_POINTS = 48
 SPARKLINE_FLOOR_DB = -30.0
+FINDER_WORKER_PROTOCOL_REVISION = 2
 
 
 @dataclass(frozen=True)
@@ -60,9 +61,13 @@ def rank_sort_value(value: float) -> float:
     return float(value) if np.isfinite(float(value)) else float("inf")
 
 
-def finder_worker_ready() -> int:
-    """Return a compact process-pool health signal."""
-    return os.getpid()
+def finder_worker_ready() -> tuple[int, int, int]:
+    """Return PID plus ranking/engine revisions loaded by this worker."""
+    return (
+        os.getpid(),
+        FINDER_WORKER_PROTOCOL_REVISION,
+        engine.OPTIMIZER_ENGINE_REVISION,
+    )
 
 
 SEARCH_PROFILE_FAST = "Fast"
@@ -465,6 +470,18 @@ def rank_candidate_row(
             }
         thresholds = engine.response_threshold_frequencies(result)
         f3_hz = float(thresholds[3])
+        if goals is not None:
+            ripple_db = engine.passband_ripple_db(
+                result, box, goals.ripple_max_freq_hz)
+            if (
+                goals.max_ripple_db
+                and goals.max_ripple_db > 0
+                and (
+                    not np.isfinite(ripple_db)
+                    or ripple_db > goals.max_ripple_db + 1e-9
+                )
+            ):
+                return None
         mol_frequency = np.asarray(result.frequency_hz, dtype=float)
         mol_db = np.asarray(result.mol_db, dtype=float)
         finite_mol = np.isfinite(mol_frequency) & np.isfinite(mol_db)

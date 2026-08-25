@@ -26,6 +26,10 @@ P_REF = 20e-6
 EPS = 1e-30
 OPTIMIZER_COARSE_POINTS = 30
 OPTIMIZER_F3_REFINE_POINTS = 20
+# Process workers report this semantic revision to the Streamlit parent. File
+# mtimes alone cannot detect a stale module inherited from Python's persistent
+# forkserver process after an in-place engine update.
+OPTIMIZER_ENGINE_REVISION = 8
 
 
 def spectral_sampling_points(
@@ -309,9 +313,10 @@ BoxBuilder = Callable[[np.ndarray], BoxUnion]
 class OptimizationGoals:
     """User-settable goals for :func:`optimize_alignment`.
 
-    ``objective`` weighs extension against flatness; the remaining fields are
-    optional constraints enforced through score penalties.  ``None`` (or a
-    non-positive UI value mapped to ``None``) disables a constraint.
+    ``objective`` weighs extension against flatness. ``max_ripple_db`` is a
+    feasibility constraint; the remaining optional goals are enforced through
+    score penalties. ``None`` (or a non-positive UI value mapped to ``None``)
+    disables a constraint.
     """
 
     objective: str = "balanced"  # "extension" | "balanced" | "flat"
@@ -999,6 +1004,7 @@ PORT_K_FACTOR = 1.0
 OPTIMIZER_MAX_PORT_DIAMETER_CM = 60.0
 _OPTIMIZER_PORT_FEASIBILITY_RATIO = 0.95
 _OPTIMIZER_DCCAV_F3_RATIO = 0.67
+_OPTIMIZER_RIPPLE_CONSTRAINT_SCORE = 1e4
 
 
 def port_air_velocity_ms(
@@ -1717,6 +1723,90 @@ def _optimizer_metrics(
     }
 
 
+def _optimizer_adaptive_frequency_grid(
+    ts: DriverTS,
+    box: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | Bandpass8Box | SealedBox,
+    base_frequency: np.ndarray,
+    voltage_v: float,
+    max_added_points: int = 12,
+) -> np.ndarray:
+    """Refine a coarse optimizer grid around tunings, extrema and curvature.
+
+    The refinement is deterministic and reserved for competitive finalists;
+    box-evaluation budget and spectral-resolution budget therefore remain
+    separate. Two passes let the first inserted midpoints reveal a narrow
+    feature that a single fixed logarithmic grid would otherwise miss.
+    """
+    base = np.unique(np.asarray(base_frequency, dtype=float))
+    if base.size < 3 or int(max_added_points) <= 0:
+        return base
+
+    def simulate_at(frequencies: np.ndarray) -> SimulationResult:
+        if isinstance(box, ReflexBox):
+            return simulate_reflex(ts, box, frequencies, voltage_v)
+        if isinstance(box, Bandpass4Box):
+            return simulate_bandpass4(ts, box, frequencies, voltage_v)
+        if isinstance(box, Bandpass6Box):
+            return simulate_bandpass6(ts, box, frequencies, voltage_v)
+        if isinstance(box, Bandpass8Box):
+            return simulate_bandpass8(ts, box, frequencies, voltage_v)
+        if isinstance(box, SealedBox):
+            return simulate_sealed(ts, box, frequencies, voltage_v)
+        return simulate(ts, box, frequencies, voltage_v)
+
+    if isinstance(box, ReflexBox):
+        anchors = (box.fb_hz,)
+    elif isinstance(box, Bandpass4Box):
+        anchors = (box.fp_hz,)
+    elif isinstance(box, Bandpass6Box):
+        anchors = (box.fr_hz, box.fp_hz)
+    elif isinstance(box, Bandpass8Box):
+        anchors = (box.f1_hz, box.f2_hz, box.f3_hz)
+    elif isinstance(box, DccavBox):
+        anchors = (box.fl_hz, box.fh_hz)
+    else:
+        anchors = (sealed_system_metrics(ts, box)[0],)
+
+    f_min = float(base[0])
+    f_max = float(base[-1])
+    added: list[float] = []
+    for anchor in anchors:
+        for multiplier in (1.0 / 1.03, 1.0, 1.03):
+            candidate = float(anchor) * multiplier
+            if f_min < candidate < f_max:
+                added.append(candidate)
+    allowed = int(max_added_points)
+    if added:
+        anchor_points = np.unique(np.asarray(added, dtype=float))[:allowed]
+        grid = np.unique(np.concatenate([base, anchor_points]))
+    else:
+        grid = base.copy()
+
+    target_size = base.size + allowed
+    for _ in range(2):
+        remaining = target_size - grid.size
+        if remaining <= 0:
+            break
+        result = simulate_at(grid)
+        spl = np.asarray(result.spl_total_db, dtype=float)
+        log_f = np.log(grid)
+        slopes = np.diff(spl) / np.maximum(np.diff(log_f), EPS)
+        interval_interest = np.abs(slopes)
+        if slopes.size >= 2:
+            curvature = np.abs(np.diff(slopes))
+            interval_interest[:-1] += curvature
+            interval_interest[1:] += curvature
+            extrema = slopes[:-1] * slopes[1:] <= 0.0
+            extrema_indices = np.flatnonzero(extrema)
+            interval_interest[extrema_indices] += 1e6
+            interval_interest[extrema_indices + 1] += 1e6
+        order = np.argsort(-np.nan_to_num(interval_interest, nan=-np.inf))
+        take = min(remaining, max(1, (target_size - base.size) // 2))
+        midpoints = [float(np.sqrt(grid[i] * grid[i + 1])) for i in order[:take]]
+        grid = np.unique(np.concatenate([grid, np.asarray(midpoints, dtype=float)]))
+    return grid
+
+
 def _score_alignment(
     metrics: dict[str, float], goals: OptimizationGoals, ts: DriverTS,
     is_dccav: bool, is_bandpass4: bool = False,
@@ -1752,9 +1842,22 @@ def _score_alignment(
         goals.objective == "extension" and not goals.target_f3_hz
     )
     # Once the hard construction/credibility boundaries above are satisfied,
-    # Max extension must let lower F3 dominate advisory response penalties.
+    # Max extension must let lower F3 dominate advisory excursion and delay
+    # penalties. The user-selected ripple ceiling remains a feasibility limit.
     advisory_scale = 0.01 if deepest_extension else 1.0
     ripple = metrics["ripple_db"]
+    if (
+        goals.max_ripple_db
+        and goals.max_ripple_db > 0
+        and (
+            not np.isfinite(ripple)
+            or ripple > goals.max_ripple_db + 1e-9
+        )
+    ):
+        if not np.isfinite(ripple):
+            return _OPTIMIZER_RIPPLE_CONSTRAINT_SCORE + 1e3
+        relative_excess = ripple / goals.max_ripple_db - 1.0
+        return _OPTIMIZER_RIPPLE_CONSTRAINT_SCORE + relative_excess
     score = (
         weights["f3"]
         * (max(f3, goals.target_f3_hz) if goals.target_f3_hz else f3)
@@ -1762,8 +1865,6 @@ def _score_alignment(
     )
     if np.isfinite(ripple):
         score += weights["ripple"] * ripple / 6.0
-        if goals.max_ripple_db and goals.max_ripple_db > 0 and ripple > goals.max_ripple_db:
-            score += 5.0 * (ripple - goals.max_ripple_db)
     if goals.target_f3_hz and f3 > goals.target_f3_hz:
         score += 0.5 * (f3 - goals.target_f3_hz) / goals.target_f3_hz
     exc_ratio = metrics["excursion_ratio"]
@@ -1818,6 +1919,134 @@ def _halton_sequence(dim: int, n: int) -> np.ndarray:
                 index //= base
             seq[j, i] = r
     return seq
+
+
+def _logit(value: float) -> float:
+    """Return a numerically safe logit for an open-interval fraction."""
+    clipped = float(np.clip(value, 1e-9, 1.0 - 1e-9))
+    return float(np.log(clipped / (1.0 - clipped)))
+
+
+def _sigmoid(value: float) -> float:
+    """Return a stable inverse-logit without overflowing at search bounds."""
+    if value >= 0.0:
+        exp_neg = np.exp(-float(value))
+        return float(1.0 / (1.0 + exp_neg))
+    exp_pos = np.exp(float(value))
+    return float(exp_pos / (1.0 + exp_pos))
+
+
+def _optimizer_coordinates(
+    load_type: str,
+    physical: np.ndarray,
+    reference: np.ndarray,
+) -> np.ndarray:
+    """Map physical box values to topology-native optimizer coordinates.
+
+    Physical arrays use the public box-field order for each topology. Positive
+    scale variables are expressed relative to ``reference``. Chamber splits
+    use logit/softmax coordinates so total volume and distribution are
+    independent search directions.
+    """
+    values = np.asarray(physical, dtype=float)
+    seed = np.asarray(reference, dtype=float)
+    if values.shape != seed.shape or np.any(values <= 0.0) or np.any(seed <= 0.0):
+        raise ValueError("Optimizer physical/reference parameters must be positive and shape-compatible")
+    if load_type == "Sealed":
+        return np.log(values / seed)
+    if load_type == "Bass reflex":
+        return np.log(values / seed)
+    if load_type == "Bandpass 4th order":
+        vs, vp, fp = values
+        seed_total = float(seed[0] + seed[1])
+        return np.array([
+            np.log((vs + vp) / seed_total),
+            _logit(vs / (vs + vp)),
+            np.log(fp / seed[2]),
+        ])
+    if load_type == "Bandpass 6th order":
+        vr, fr, vp, fp = values
+        seed_total = float(seed[0] + seed[2])
+        seed_ratio = float(seed[3] / seed[1])
+        return np.array([
+            np.log((vr + vp) / seed_total),
+            _logit(vr / (vr + vp)),
+            np.log(fr / seed[1]),
+            np.log((fp / fr) / seed_ratio),
+        ])
+    if load_type == "Bandpass 8th order":
+        v1, f1, v2, f2, v3, f3 = values
+        total = float(v1 + v2 + v3)
+        seed_total = float(seed[0] + seed[2] + seed[4])
+        seed_r23 = float(seed[5] / seed[3])
+        seed_r31 = float(seed[1] / seed[5])
+        return np.array([
+            np.log(total / seed_total),
+            np.log(v1 / v3),
+            np.log(v2 / v3),
+            np.log(f2 / seed[3]),
+            np.log((f3 / f2) / seed_r23),
+            np.log((f1 / f3) / seed_r31),
+        ])
+    if load_type == "DCCAV":
+        vh, fh, vl, fl = values
+        seed_total = float(seed[0] + seed[2])
+        seed_ratio = float(seed[1] / seed[3])
+        return np.array([
+            np.log((vh + vl) / seed_total),
+            _logit(vh / (vh + vl)),
+            np.log(fl / seed[3]),
+            np.log((fh / fl) / seed_ratio),
+        ])
+    raise ValueError(f"Unknown optimizer topology: {load_type}")
+
+
+def _optimizer_physical_parameters(
+    load_type: str,
+    coordinates: np.ndarray,
+    reference: np.ndarray,
+) -> np.ndarray:
+    """Invert :func:`_optimizer_coordinates` into public box-field order."""
+    x = np.asarray(coordinates, dtype=float)
+    seed = np.asarray(reference, dtype=float)
+    if np.any(seed <= 0.0) or np.any(~np.isfinite(x)):
+        raise ValueError("Invalid optimizer coordinates/reference")
+    if load_type in {"Sealed", "Bass reflex"}:
+        if x.shape != seed.shape:
+            raise ValueError("Optimizer coordinate shape does not match reference")
+        return seed * np.exp(x)
+    if load_type == "Bandpass 4th order":
+        total = float(seed[0] + seed[1]) * np.exp(x[0])
+        alpha = _sigmoid(float(x[1]))
+        return np.array([total * alpha, total * (1.0 - alpha), seed[2] * np.exp(x[2])])
+    if load_type == "Bandpass 6th order":
+        total = float(seed[0] + seed[2]) * np.exp(x[0])
+        alpha = _sigmoid(float(x[1]))
+        fr = float(seed[1] * np.exp(x[2]))
+        ratio = float(seed[3] / seed[1]) * np.exp(x[3])
+        return np.array([total * alpha, fr, total * (1.0 - alpha), fr * ratio])
+    if load_type == "Bandpass 8th order":
+        total = float(seed[0] + seed[2] + seed[4]) * np.exp(x[0])
+        logits = np.array([x[1], x[2], 0.0], dtype=float)
+        exp_logits = np.exp(logits - float(np.max(logits)))
+        fractions = exp_logits / float(exp_logits.sum())
+        f2 = float(seed[3] * np.exp(x[3]))
+        r23 = float(seed[5] / seed[3]) * np.exp(x[4])
+        f3 = f2 * r23
+        r31 = float(seed[1] / seed[5]) * np.exp(x[5])
+        f1 = f3 * r31
+        return np.array([
+            total * fractions[0], f1,
+            total * fractions[1], f2,
+            total * fractions[2], f3,
+        ])
+    if load_type == "DCCAV":
+        total = float(seed[0] + seed[2]) * np.exp(x[0])
+        alpha = _sigmoid(float(x[1]))
+        fl = float(seed[3] * np.exp(x[2]))
+        ratio = float(seed[1] / seed[3]) * np.exp(x[3])
+        return np.array([total * alpha, fl * ratio, total * (1.0 - alpha), fl])
+    raise ValueError(f"Unknown optimizer topology: {load_type}")
 
 
 def optimize_alignment(
@@ -1902,8 +2131,11 @@ def optimize_alignment(
                 vb0 = 0.95 * cap
         reflex_template = box_template if isinstance(box_template, ReflexBox) else ReflexBox(vb_l=vb0, fb_hz=fb0)
 
+        reflex_reference = np.array([vb0, fb0], dtype=float)
+
         def build_reflex(p: np.ndarray) -> ReflexBox:
-            vb, fb = np.exp(p)
+            vb, fb = _optimizer_physical_parameters(
+                "Bass reflex", p, reflex_reference)
             if fixed_total_volume_l is not None:
                 vb = float(fixed_total_volume_l)
             elif cap is not None:
@@ -1916,9 +2148,9 @@ def optimize_alignment(
 
         build = build_reflex
 
-        p0 = np.log([vb0, fb0])
-        lower = np.log([max(0.05, vb0 / 8.0), max(5.0, fb0 / 3.0)])
-        upper = np.log([vb0 * 8.0, fb0 * 2.5])
+        p0 = _optimizer_coordinates("Bass reflex", reflex_reference, reflex_reference)
+        lower = np.log(np.array([max(0.05, vb0 / 8.0), max(5.0, fb0 / 3.0)]) / reflex_reference)
+        upper = np.log(np.array([vb0 * 8.0, fb0 * 2.5]) / reflex_reference)
     elif is_bandpass4:
         bp4_start = suggest_bandpass4_alignment(ts)
         vs0, vp0, fp0 = bp4_start.vs_l, bp4_start.vp_l, bp4_start.fp_hz
@@ -1934,19 +2166,19 @@ def optimize_alignment(
         bp4_template = box_template if isinstance(box_template, Bandpass4Box) else Bandpass4Box(
             vs_l=vs0, vp_l=vp0, fp_hz=fp0)
 
+        bp4_reference = np.array([vs0, vp0, fp0], dtype=float)
+
         def build_bandpass4(p: np.ndarray) -> Bandpass4Box:
-            vs_l, vp_l, fp_hz = np.exp(p)
+            vs_l, vp_l, fp_hz = _optimizer_physical_parameters(
+                "Bandpass 4th order", p, bp4_reference)
+            total_l = float(vs_l + vp_l)
             projected_volume_l = fixed_total_volume_l
-            if projected_volume_l is None and cap is not None and vs_l + vp_l > cap:
+            if projected_volume_l is None and cap is not None and total_l > cap:
                 projected_volume_l = float(cap)
             if projected_volume_l is not None:
-                available = float(projected_volume_l) - 0.10
-                weights = np.maximum(np.array([vs_l, vp_l]) - 0.05, 0.0)
-                if float(weights.sum()) <= 0.0:
-                    weights[:] = 0.5
-                else:
-                    weights /= float(weights.sum())
-                vs_l, vp_l = 0.05 + available * weights
+                scale = float(projected_volume_l) / total_l
+                vs_l *= scale
+                vp_l *= scale
             return Bandpass4Box(
                 vs_l=float(vs_l), vp_l=float(vp_l), fp_hz=float(fp_hz),
                 q_abs_s=bp4_template.q_abs_s, q_abs_p=bp4_template.q_abs_p,
@@ -1956,10 +2188,9 @@ def optimize_alignment(
 
         build = build_bandpass4
 
-        p0 = np.log([vs0, vp0, fp0])
-        lower = np.log([
-            max(0.05, vs0 / 8.0), max(0.05, vp0 / 8.0), max(5.0, fp0 / 3.0)])
-        upper = np.log([vs0 * 8.0, vp0 * 8.0, fp0 * 2.5])
+        p0 = _optimizer_coordinates("Bandpass 4th order", bp4_reference, bp4_reference)
+        lower = np.array([-np.log(8.0), _logit(0.02), np.log(max(5.0, fp0 / 3.0) / fp0)])
+        upper = np.array([np.log(8.0), _logit(0.98), np.log(2.5)])
     elif is_bandpass6:
         bp6_start = suggest_bandpass6_alignment(ts)
         vr0, fr0, vp0, fp0 = bp6_start.vr_l, bp6_start.fr_hz, bp6_start.vp_l, bp6_start.fp_hz
@@ -1975,19 +2206,19 @@ def optimize_alignment(
         bp6_template = box_template if isinstance(box_template, Bandpass6Box) else Bandpass6Box(
             vr_l=vr0, fr_hz=fr0, vp_l=vp0, fp_hz=fp0)
 
+        bp6_reference = np.array([vr0, fr0, vp0, fp0], dtype=float)
+
         def build_bandpass6(p: np.ndarray) -> Bandpass6Box:
-            vr_l, fr_hz, vp_l, fp_hz = np.exp(p)
+            vr_l, fr_hz, vp_l, fp_hz = _optimizer_physical_parameters(
+                "Bandpass 6th order", p, bp6_reference)
+            total_l = float(vr_l + vp_l)
             projected_volume_l = fixed_total_volume_l
-            if projected_volume_l is None and cap is not None and vr_l + vp_l > cap:
+            if projected_volume_l is None and cap is not None and total_l > cap:
                 projected_volume_l = float(cap)
             if projected_volume_l is not None:
-                available = float(projected_volume_l) - 0.10
-                weights = np.maximum(np.array([vr_l, vp_l]) - 0.05, 0.0)
-                if float(weights.sum()) <= 0.0:
-                    weights[:] = 0.5
-                else:
-                    weights /= float(weights.sum())
-                vr_l, vp_l = 0.05 + available * weights
+                scale = float(projected_volume_l) / total_l
+                vr_l *= scale
+                vp_l *= scale
             return Bandpass6Box(
                 vr_l=float(vr_l), fr_hz=float(fr_hz),
                 vp_l=float(vp_l), fp_hz=float(fp_hz),
@@ -1998,11 +2229,13 @@ def optimize_alignment(
 
         build = build_bandpass6
 
-        p0 = np.log([vr0, fr0, vp0, fp0])
-        lower = np.log([
-            max(0.05, vr0 / 8.0), max(5.0, fr0 / 3.0),
-            max(0.05, vp0 / 8.0), max(5.0, fp0 / 3.0)])
-        upper = np.log([vr0 * 8.0, fr0 * 2.5, vp0 * 8.0, fp0 * 2.5])
+        p0 = _optimizer_coordinates("Bandpass 6th order", bp6_reference, bp6_reference)
+        ratio0 = fp0 / fr0
+        lower = np.array([
+            -np.log(8.0), _logit(0.02), np.log(max(5.0, fr0 / 3.0) / fr0),
+            np.log(1.05 / ratio0),
+        ])
+        upper = np.array([np.log(8.0), _logit(0.98), np.log(2.5), np.log(5.0 / ratio0)])
     elif is_bandpass8:
         bp8_start = suggest_bandpass8_alignment(ts)
         v10, f10, v20, f20, v30, f30 = (
@@ -2024,19 +2257,20 @@ def optimize_alignment(
         bp8_template = box_template if isinstance(box_template, Bandpass8Box) else Bandpass8Box(
             v1_l=v10, f1_hz=f10, v2_l=v20, f2_hz=f20, v3_l=v30, f3_hz=f30)
 
+        bp8_reference = np.array([v10, f10, v20, f20, v30, f30], dtype=float)
+
         def build_bandpass8(p: np.ndarray) -> Bandpass8Box:
-            v1_l, f1_hz, v2_l, f2_hz, v3_l, f3_hz = np.exp(p)
+            v1_l, f1_hz, v2_l, f2_hz, v3_l, f3_hz = _optimizer_physical_parameters(
+                "Bandpass 8th order", p, bp8_reference)
+            total_l = float(v1_l + v2_l + v3_l)
             projected_volume_l = fixed_total_volume_l
-            if projected_volume_l is None and cap is not None and v1_l + v2_l + v3_l > cap:
+            if projected_volume_l is None and cap is not None and total_l > cap:
                 projected_volume_l = float(cap)
             if projected_volume_l is not None:
-                available = float(projected_volume_l) - 0.15
-                weights = np.maximum(np.array([v1_l, v2_l, v3_l]) - 0.05, 0.0)
-                if float(weights.sum()) <= 0.0:
-                    weights[:] = 1.0 / 3.0
-                else:
-                    weights /= float(weights.sum())
-                v1_l, v2_l, v3_l = 0.05 + available * weights
+                scale = float(projected_volume_l) / total_l
+                v1_l *= scale
+                v2_l *= scale
+                v3_l *= scale
             return Bandpass8Box(
                 v1_l=float(v1_l), f1_hz=float(f1_hz),
                 v2_l=float(v2_l), f2_hz=float(f2_hz),
@@ -2048,13 +2282,18 @@ def optimize_alignment(
 
         build = build_bandpass8
 
-        p0 = np.log([v10, f10, v20, f20, v30, f30])
-        lower = np.log([
-            max(0.05, v10 / 8.0), max(5.0, f10 / 3.0),
-            max(0.05, v20 / 8.0), max(5.0, f20 / 3.0),
-            max(0.05, v30 / 8.0), max(5.0, f30 / 3.0),
+        p0 = _optimizer_coordinates("Bandpass 8th order", bp8_reference, bp8_reference)
+        r23_0 = f30 / f20
+        r31_0 = f10 / f30
+        lower = np.array([
+            -np.log(8.0), p0[1] - np.log(8.0), p0[2] - np.log(8.0),
+            np.log(max(5.0, f20 / 3.0) / f20),
+            np.log(1.05 / r23_0), np.log(1.05 / r31_0),
         ])
-        upper = np.log([v10 * 8.0, f10 * 2.5, v20 * 8.0, f20 * 2.5, v30 * 8.0, f30 * 2.5])
+        upper = np.array([
+            np.log(8.0), p0[1] + np.log(8.0), p0[2] + np.log(8.0),
+            np.log(2.5), np.log(4.0 / r23_0), np.log(4.0 / r31_0),
+        ])
     elif is_sealed:
         sealed_start = suggest_sealed_alignment(ts)
         vb0 = sealed_start.vb_l
@@ -2065,8 +2304,10 @@ def optimize_alignment(
                 vb0 = 0.95 * cap
         sealed_template = box_template if isinstance(box_template, SealedBox) else SealedBox(vb_l=vb0)
 
+        sealed_reference = np.array([vb0], dtype=float)
+
         def build_sealed(p: np.ndarray) -> SealedBox:
-            vb = float(np.exp(p[0]))
+            vb = float(_optimizer_physical_parameters("Sealed", p, sealed_reference)[0])
             if fixed_total_volume_l is not None:
                 vb = float(fixed_total_volume_l)
             elif cap is not None:
@@ -2075,9 +2316,9 @@ def optimize_alignment(
 
         build = build_sealed
 
-        p0 = np.log([vb0])
-        lower = np.log([max(0.05, vb0 / 12.0)])
-        upper = np.log([vb0 * 12.0])
+        p0 = _optimizer_coordinates("Sealed", sealed_reference, sealed_reference)
+        lower = np.log(np.array([max(0.05, vb0 / 12.0)]) / sealed_reference)
+        upper = np.log(np.array([vb0 * 12.0]) / sealed_reference)
     else:
         dccav_start = suggest_alignment(ts)
         vh0, vl0, fl0 = dccav_start.vh_l, dccav_start.vl_l, dccav_start.fl_hz
@@ -2098,24 +2339,21 @@ def optimize_alignment(
             vh_l=vh0, fh_hz=fl0 * ratio0, vl_l=vl0, fl_hz=fl0
         )
 
+        dccav_reference = np.array([vh0, fl0 * ratio0, vl0, fl0], dtype=float)
+
         def build_dccav(p: np.ndarray) -> DccavBox:
-            vh, vl, fl, ratio = np.exp(p)
+            vh, fh, vl, fl = _optimizer_physical_parameters(
+                "DCCAV", p, dccav_reference)
+            total_l = float(vh + vl)
             projected_volume_l = fixed_total_volume_l
-            if projected_volume_l is None and cap is not None and vh + vl > cap:
+            if projected_volume_l is None and cap is not None and total_l > cap:
                 projected_volume_l = float(cap)
             if projected_volume_l is not None:
-                # Preserve both positive chamber minima while projecting every
-                # candidate onto the requested total-volume boundary.
-                available = float(projected_volume_l) - 0.10
-                weights = np.maximum(np.array([vh, vl], dtype=float) - 0.05, 0.0)
-                weight_total = float(weights.sum())
-                if weight_total <= 0.0:
-                    weights[:] = 0.5
-                else:
-                    weights /= weight_total
-                vh, vl = 0.05 + available * weights
+                scale = float(projected_volume_l) / total_l
+                vh *= scale
+                vl *= scale
             return DccavBox(
-                vh_l=float(vh), fh_hz=float(fl * ratio), vl_l=float(vl), fl_hz=float(fl),
+                vh_l=float(vh), fh_hz=float(fh), vl_l=float(vl), fl_hz=float(fl),
                 q_abs_h=dccav_template.q_abs_h, q_abs_l=dccav_template.q_abs_l,
                 q_leak_h=dccav_template.q_leak_h, q_leak_l=dccav_template.q_leak_l,
                 q_port_h=dccav_template.q_port_h, q_port_l=dccav_template.q_port_l,
@@ -2123,130 +2361,181 @@ def optimize_alignment(
 
         build = build_dccav
 
-        p0 = np.log([vh0, vl0, fl0, ratio0])
-        lower = np.log([max(0.05, vh0 / 6.0), max(0.05, vl0 / 6.0), max(5.0, fl0 / 3.0), 1.2])
-        upper = np.log([vh0 * 6.0, vl0 * 6.0, fl0 * 3.0, 4.5])
+        p0 = _optimizer_coordinates("DCCAV", dccav_reference, dccav_reference)
+        lower = np.array([
+            -np.log(6.0), _logit(0.02), np.log(max(5.0, fl0 / 3.0) / fl0),
+            np.log(1.2 / ratio0),
+        ])
+        upper = np.array([
+            np.log(6.0), _logit(0.98), np.log(3.0), np.log(4.5 / ratio0),
+        ])
 
+    max_evaluations = int(max_evaluations)
+    if max_evaluations < 1:
+        raise ValueError("Optimizer evaluation budget must be at least 1")
     evaluations = 0
+    cache: dict[tuple[float, ...], tuple[BoxUnion, dict[str, float] | None, float]] = {}
+    evaluated: list[tuple[float, np.ndarray, BoxUnion, dict[str, float]]] = []
 
     def evaluate(p: np.ndarray):
         nonlocal evaluations
+        clipped = np.clip(np.asarray(p, dtype=float), lower, upper)
+        key = tuple(np.round(clipped, 12))
+        if key in cache:
+            return cache[key]
+        box = build(clipped)
+        if evaluations >= max_evaluations:
+            return box, None, float("inf")
         evaluations += 1
-        box = build(np.clip(p, lower, upper))
         try:
             metrics = _optimizer_metrics(
                 ts, box, freq, voltage_v,
                 ripple_max_freq_hz=goals.ripple_max_freq_hz,
             )
         except (ValueError, FloatingPointError):
-            return box, None, float("inf")
-        return box, metrics, _score_alignment(
-            metrics, goals, ts, is_dccav, is_bandpass4)
+            answer = (box, None, float("inf"))
+            cache[key] = answer
+            return answer
+        score = _score_alignment(metrics, goals, ts, is_dccav, is_bandpass4)
+        answer = (box, metrics, score)
+        cache[key] = answer
+        evaluated.append((score, clipped.copy(), box, metrics))
+        return answer
 
-    def compass_search(start_p: np.ndarray):
-        """One coordinate-descent run from `start_p`; a purely local method."""
-        cur_p = np.clip(start_p, lower, upper)
-        cur_box, cur_metrics, cur_score = evaluate(cur_p)
-        if cur_metrics is None:
-            return cur_p, cur_box, cur_metrics, cur_score
-        step = 0.4
-        dim = len(cur_p)
-        while step >= 0.02 and evaluations < max_evaluations:
-            improved = False
-            prev_p = cur_p.copy()
-            for axis in range(dim):
-                for sign in (1.0, -1.0):
-                    if evaluations >= max_evaluations:
-                        break
-                    candidate = cur_p.copy()
-                    candidate[axis] += sign * step
-                    candidate = np.clip(candidate, lower, upper)
-                    if np.allclose(candidate, cur_p):
-                        continue
-                    box, metrics, score = evaluate(candidate)
-                    if metrics is not None and score < cur_score - 1e-9:
-                        cur_p, cur_box, cur_metrics, cur_score = candidate, box, metrics, score
-                        improved = True
-            # Pattern direction move along the composite successful displacement
-            if improved and evaluations < max_evaluations:
-                delta = cur_p - prev_p
-                pattern_candidate = np.clip(cur_p + delta, lower, upper)
-                if not np.allclose(pattern_candidate, cur_p):
-                    box, metrics, score = evaluate(pattern_candidate)
-                    if metrics is not None and score < cur_score - 1e-9:
-                        cur_p, cur_box, cur_metrics, cur_score = pattern_candidate, box, metrics, score
-            if not improved:
-                step *= 0.5
-        return cur_p, cur_box, cur_metrics, cur_score
-
-    # Untargeted DCCAV extension has a second, physically meaningful basin:
-    # larger chambers at approximately the empirical tuning. Coordinate
-    # descent cannot cross the compact mid-bass basin to reach it. Make that
-    # the primary seed so even the Finder's short optimization budget searches
-    # the correct region; keep the empirical compact seed as a fallback.
-    restart_points: list[np.ndarray] = []
-    primary_p = np.clip(p0, lower, upper)
+    # 1) Starter, then a deterministic local low-discrepancy sniff. Unlike the
+    # previous restart queue, all sniff points are compared before local search
+    # so the remaining budget is spent in the best basin actually observed.
+    dim = len(lower)
+    _starter_box, _starter_metrics, starter_score = evaluate(p0)
+    sniff_limits = {1: 0, 2: 6, 3: 8, 4: 10, 6: 14}
+    sniff_budget = min(
+        sniff_limits.get(dim, max(4, 2 * dim)),
+        max(0, (max_evaluations - 1) // 4),
+    )
+    sniff_points: list[np.ndarray] = []
     if is_dccav and goals.objective == "extension" and not goals.target_f3_hz:
         deep_p = p0.copy()
-        deep_p[0] += np.log(3.0)
-        deep_p[1] += np.log(3.0)
-        deep_p = np.clip(deep_p, lower, upper)
-        _, deep_metrics, deep_score = evaluate(deep_p)
-        if deep_metrics is not None and deep_score < 1e5:
-            primary_p = deep_p
-            restart_points.append(np.clip(p0, lower, upper))
-
-    # For high-dimensional topologies (dim >= 3), evaluate deterministic low-discrepancy
-    # Halton points across the bounded search space when budget permits (max_evaluations >= 60).
-    # Promising feasible points are queued as deterministic exploration restarts so compass search
-    # thoroughly searches the analytical acoustic seed first, then explores alternative basins if budget remains.
-    dim = len(lower)
-    if dim >= 3 and max_evaluations >= 60:
-        sniff_budget = min(12, max(4, max_evaluations // 15))
-        halton_matrix = _halton_sequence(dim, sniff_budget)
-        for row in halton_matrix:
-            cand_p = lower + row * (upper - lower)
-            _, cand_metrics, cand_score = evaluate(cand_p)
-            if cand_metrics is not None and cand_score < 1e5:
-                restart_points.append(cand_p)
-
-    _, best_box, best_metrics, best_score = compass_search(primary_p)
-    if best_metrics is None:
-        raise ValueError("The starting alignment could not be simulated")
-
-    # The empirical starting point can sit in a construction-infeasible
-    # neighborhood (e.g. a driver whose golden-rule/velocity port floor makes
-    # every nearby box need an over-long duct) that local coordinate descent
-    # can't climb out of, even though a compliant box exists elsewhere in the
-    # search bounds. A handful of deterministic restarts along the search
-    # box's diagonal costs little and reliably reaches those regions without
-    # sacrificing reproducibility (no randomness).
-    if best_score >= 1e5:
-        restart_points.extend(
+        deep_p[0] += np.log(5.0)
+        sniff_points.append(np.clip(deep_p, lower, upper))
+    if starter_score >= _OPTIMIZER_RIPPLE_CONSTRAINT_SCORE:
+        sniff_points.extend(
             lower + fraction * (upper - lower)
             for fraction in (0.75, 0.25, 0.5)
         )
-    for restart_p in restart_points:
-        if evaluations >= max_evaluations:
+    if sniff_budget > len(sniff_points):
+        radius = np.minimum(0.55, 0.25 * (upper - lower))
+        for row in _halton_sequence(dim, sniff_budget - len(sniff_points)):
+            sniff_points.append(np.clip(p0 + (2.0 * row - 1.0) * radius, lower, upper))
+    for point in sniff_points[:sniff_budget]:
+        evaluate(point)
+
+    if not evaluated:
+        raise ValueError("The starting alignment could not be simulated")
+
+    def best_evaluated() -> tuple[float, np.ndarray, BoxUnion, dict[str, float]]:
+        feasible = [item for item in evaluated if item[0] < _OPTIMIZER_RIPPLE_CONSTRAINT_SCORE]
+        return min(feasible or evaluated, key=lambda item: item[0])
+
+    cur_score, cur_p, cur_box, cur_metrics = best_evaluated()
+
+    # 2) Sensitivity probe. Axes with a measurable local effect are visited
+    # first; the probe points also remain valid candidates instead of consuming
+    # budget only for diagnostics.
+    probe_step = np.minimum(0.20, 0.20 * np.maximum(upper - lower, 1.0))
+    sensitivity = np.zeros(dim, dtype=float)
+    probe_reserve = max(4, dim + 2)
+    for axis in range(dim):
+        if max_evaluations - evaluations <= probe_reserve:
             break
-        _, box, metrics, score = compass_search(restart_p)
-        if metrics is not None and score < best_score:
-            best_box, best_metrics, best_score = box, metrics, score
+        scores: list[float] = []
+        for sign in (1.0, -1.0):
+            if max_evaluations - evaluations <= probe_reserve:
+                break
+            candidate = cur_p.copy()
+            candidate[axis] += sign * probe_step[axis]
+            _box, metrics, score = evaluate(candidate)
+            if metrics is not None and np.isfinite(score):
+                scores.append(score)
+        if scores:
+            sensitivity[axis] = max(abs(score - cur_score) for score in scores)
+    cur_score, cur_p, cur_box, cur_metrics = best_evaluated()
 
-    if best_score >= 1e5:
-        raise ValueError(
-            "No credible alignment with buildable, low-velocity ports was found; "
-            "relax the volume/response goals or reduce drive voltage"
+    # 3) Adaptive per-axis compass/pattern search. Successful axes retain or
+    # modestly expand their step; repeatedly unproductive axes converge alone
+    # instead of shrinking the whole search space.
+    steps = np.full(dim, 0.40, dtype=float)
+    successes = np.zeros(dim, dtype=int)
+    failures = np.zeros(dim, dtype=int)
+    while evaluations < max_evaluations and np.any(steps >= 0.02):
+        previous_p = cur_p.copy()
+        improved_any = False
+        priorities = sensitivity * (1.0 + successes) / (1.0 + failures)
+        axis_order = np.argsort(-priorities, kind="stable")
+        for axis in axis_order:
+            if evaluations >= max_evaluations or steps[axis] < 0.02:
+                continue
+            axis_improved = False
+            for sign in (1.0, -1.0):
+                if evaluations >= max_evaluations:
+                    break
+                candidate = cur_p.copy()
+                candidate[axis] += sign * steps[axis]
+                candidate = np.clip(candidate, lower, upper)
+                if np.allclose(candidate, cur_p):
+                    continue
+                box, metrics, score = evaluate(candidate)
+                if metrics is not None and score < cur_score - 1e-9:
+                    improvement = cur_score - score
+                    cur_p, cur_box, cur_metrics, cur_score = candidate, box, metrics, score
+                    sensitivity[axis] = max(sensitivity[axis], improvement)
+                    axis_improved = True
+                    improved_any = True
+            if axis_improved:
+                successes[axis] += 1
+                steps[axis] = min(0.60, steps[axis] * 1.10)
+            else:
+                failures[axis] += 1
+                steps[axis] *= 0.5
+        if improved_any and evaluations < max_evaluations:
+            delta = cur_p - previous_p
+            pattern_candidate = np.clip(cur_p + delta, lower, upper)
+            if not np.allclose(pattern_candidate, cur_p):
+                box, metrics, score = evaluate(pattern_candidate)
+                if metrics is not None and score < cur_score - 1e-9:
+                    cur_p, cur_box, cur_metrics, cur_score = pattern_candidate, box, metrics, score
+
+    best_score, _best_p, best_box, best_metrics = best_evaluated()
+
+    # 4) Re-evaluate several finalists on an adaptive spectral grid. This makes
+    # ripple a property of the resolved response, not an accident of whichever
+    # 30 logarithmic samples happened to land near a peak or notch.
+    finalists: list[tuple[float, BoxUnion, dict[str, float]]] = []
+    seen_boxes: set[tuple[object, ...]] = set()
+    for _coarse_score, _p, candidate_box, _metrics in sorted(evaluated, key=lambda item: item[0]):
+        signature = tuple(vars(candidate_box).values())
+        if signature in seen_boxes:
+            continue
+        seen_boxes.add(signature)
+        verification_base = np.unique(np.concatenate([
+            freq,
+            np.geomspace(float(freq[0]), float(freq[-1]), max(80, len(freq))),
+        ]))
+        adaptive_freq = _optimizer_adaptive_frequency_grid(
+            ts, candidate_box, verification_base, voltage_v, max_added_points=12)
+        candidate_metrics = _optimizer_metrics(
+            ts, candidate_box, adaptive_freq, voltage_v,
+            refine_f3_points=int(refine_f3_points),
+            ripple_max_freq_hz=goals.ripple_max_freq_hz,
         )
-
-    # Refine only the winning alignment. Running the narrow second pass for
-    # every compass-search candidate would pay the solver's fixed setup cost
-    # up to ``max_evaluations`` times and erase the benefit of the coarse scan.
-    best_metrics = _optimizer_metrics(
-        ts, best_box, freq, voltage_v,
-        refine_f3_points=int(refine_f3_points),
-        ripple_max_freq_hz=goals.ripple_max_freq_hz,
-    )
+        candidate_score = _score_alignment(
+            candidate_metrics, goals, ts, is_dccav, is_bandpass4)
+        finalists.append((candidate_score, candidate_box, candidate_metrics))
+        if (
+            len(finalists) >= 4
+            and any(item[0] < _OPTIMIZER_RIPPLE_CONSTRAINT_SCORE for item in finalists)
+        ) or len(finalists) >= 12:
+            break
+    best_score, best_box, best_metrics = min(finalists, key=lambda item: item[0])
     if is_dccav and int(refine_f3_points) >= 2:
         credibility_ratio = (
             0.65 if goals.objective == "extension" and not goals.target_f3_hz
@@ -2274,13 +2563,37 @@ def optimize_alignment(
                 q_port_h=best_box.q_port_h,
                 q_port_l=best_box.q_port_l,
             )
+            adjusted_base = np.unique(np.concatenate([
+                freq,
+                np.geomspace(float(freq[0]), float(freq[-1]), max(80, len(freq))),
+            ]))
+            adjusted_frequency = _optimizer_adaptive_frequency_grid(
+                ts, best_box, adjusted_base, voltage_v, max_added_points=12)
             best_metrics = _optimizer_metrics(
-                ts, best_box, freq, voltage_v,
+                ts, best_box, adjusted_frequency, voltage_v,
                 refine_f3_points=int(refine_f3_points),
                 ripple_max_freq_hz=goals.ripple_max_freq_hz,
             )
     best_score = _score_alignment(
         best_metrics, goals, ts, is_dccav, is_bandpass4)
+    if best_score >= 1e5:
+        raise ValueError(
+            "No credible alignment with buildable, low-velocity ports was found; "
+            "relax the volume/response goals or reduce drive voltage"
+        )
+    if best_score >= _OPTIMIZER_RIPPLE_CONSTRAINT_SCORE:
+        if goals.max_ripple_db and goals.max_ripple_db > 0:
+            achieved = float(best_metrics["ripple_db"])
+            achieved_text = (
+                f"{achieved:.2f} dB" if np.isfinite(achieved) else "not measurable"
+            )
+            raise ValueError(
+                "No alignment satisfying the maximum ripple of "
+                f"{goals.max_ripple_db:.2f} dB was found "
+                f"(best candidate: {achieved_text}); relax the ripple limit, "
+                "increase the search profile or change the enclosure goals"
+            )
+        raise ValueError("No alignment satisfying the optimizer constraints was found")
 
     return OptimizedAlignment(
         box=best_box,
@@ -3244,6 +3557,43 @@ def _high_side_crossing(f: np.ndarray, y: np.ndarray, target: float) -> float:
         if x0 > 0.0 and x1 > 0.0:
             return float(np.exp(np.log(x0) + frac * np.log(x1 / x0)))
         return x0 + frac * (x1 - x0)
+    return float("nan")
+
+
+def passband_ripple_db(
+    result: SimulationResult,
+    box: BoxUnion | None = None,
+    ripple_max_freq_hz: float | None = None,
+) -> float:
+    """Measure optimizer-compatible passband ripple on an existing response.
+
+    Finder calls this on its final display-resolution simulation so the table,
+    hard constraint and Box Design chart cannot disagree merely because the
+    search used a smaller coarse grid.
+    """
+    thresholds = response_threshold_frequencies(result, f_max_hz=ripple_max_freq_hz)
+    f3 = float(thresholds[3])
+    if not np.isfinite(f3):
+        return float("nan")
+    f = np.asarray(result.frequency_hz, dtype=float)
+    spl = np.asarray(result.spl_total_db, dtype=float)
+    if isinstance(box, (Bandpass4Box, Bandpass6Box)):
+        peak_idx = int(np.nanargmax(spl))
+        f_high = _high_side_crossing(
+            f[peak_idx:], spl[peak_idx:], float(spl[peak_idx]) - 3.0)
+        upper = min(float(f.max()), 0.90 * f_high) if np.isfinite(f_high) else float(f.max())
+    else:
+        upper = min(float(f.max()), max(200.0, 2.0 * f3))
+    if ripple_max_freq_hz is not None and float(ripple_max_freq_hz) > 0:
+        upper = min(upper, float(ripple_max_freq_hz))
+    band = (f >= 1.2 * f3) & (f <= upper)
+    if np.any(band):
+        return float(np.nanmax(spl[band]) - np.nanmin(spl[band]))
+    if ripple_max_freq_hz is not None and float(ripple_max_freq_hz) > 0:
+        sub_band = (f >= f3) & (f <= float(ripple_max_freq_hz))
+        if np.any(sub_band):
+            return float(np.nanmax(spl[sub_band]) - np.nanmin(spl[sub_band]))
+        return 0.0
     return float("nan")
 
 

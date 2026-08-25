@@ -35,7 +35,7 @@ import pandas as pd
 import streamlit as st
 
 logger = logging.getLogger("load_forge.ui")
-_OPTIMIZER_ENGINE_REVISION = 5
+_OPTIMIZER_ENGINE_REVISION = 8
 
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 import acoustics as _acoustics
@@ -1844,7 +1844,7 @@ _FINDER_RANK_F3 = "Deepest bass (F3)"
 _FINDER_RANK_VALUE = "Best value (F3 × price)"
 _FINDER_RANK_MODES = (_FINDER_RANK_F3, _FINDER_RANK_VALUE)
 _FINDER_CTA_LABEL = "Run Bass Match"
-_FINDER_RANKING_VERSION = 8
+_FINDER_RANKING_VERSION = 11
 _FINDER_CONTEXT_FILTERED_POOL_VERSION = "user-inputs-v2"
 _FINDER_SPL_PREFILTER_HEADROOM_DB = 6.0
 _FINDER_DEFAULTS_VERSION = 10
@@ -5962,10 +5962,14 @@ def _is_streamlit_community_cloud(app_path: Path | None = None) -> bool:
 
 
 def _finder_executor_backend(app_path: Path | None = None) -> str:
-    """Choose the preferred worker backend for the current deployment."""
-    if os.getenv("K_SERVICE"):
-        return "thread"
-    return "process"
+    """Keep Finder workers in the live Streamlit process.
+
+    Python's process backends re-import ``ui_app.py`` outside Streamlit and
+    can retain a different optimizer module than the active Box Design. NumPy
+    releases the GIL for the heavy solver operations, so shared-memory threads
+    retain useful parallelism without allowing two engine revisions to coexist.
+    """
+    return "thread"
 
 
 def _finder_worker_limit(app_path: Path | None = None) -> int:
@@ -5990,6 +5994,8 @@ def _finder_pool_fingerprint(workers: int) -> tuple:
     )
     return (
         _FINDER_RANKING_VERSION,
+        _ranking.FINDER_WORKER_PROTOCOL_REVISION,
+        _engine.OPTIMIZER_ENGINE_REVISION,
         _finder_executor_backend(),
         workers,
         *mtimes,
@@ -6046,13 +6052,26 @@ def _finder_worker_pool(
             pool.submit(_ranking.finder_worker_ready)
             for _ in range(workers)
         ]
-        if _is_streamlit_community_cloud():
-            # The host can accept submissions before an oversized or broken
-            # pool fails. Verify startup now and cap that delay instead of
-            # letting the first ranking result hang indefinitely.
-            deadline = time.monotonic() + 10.0
-            for future in warmups:
-                future.result(timeout=max(0.01, deadline - time.monotonic()))
+        # A persistent forkserver can create a brand-new pool whose children
+        # still inherit an old engine module. Verify the semantic revisions,
+        # not only process startup/file mtimes, before accepting any rows.
+        expected_revisions = (
+            _ranking.FINDER_WORKER_PROTOCOL_REVISION,
+            _engine.OPTIMIZER_ENGINE_REVISION,
+        )
+        deadline = time.monotonic() + 10.0
+        for future in warmups:
+            ready = future.result(
+                timeout=max(0.01, deadline - time.monotonic())
+            )
+            if not (
+                isinstance(ready, tuple)
+                and len(ready) == 3
+                and tuple(ready[1:]) == expected_revisions
+            ):
+                raise RuntimeError(
+                    "Finder worker loaded a stale ranking or optimizer engine"
+                )
     except Exception:
         if pool is not None:
             pool.shutdown(wait=False, cancel_futures=True)
@@ -8618,46 +8637,39 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     batch_df["Manufacturer"] = identities.map(lambda value: value[0])
     batch_df["Part number"] = identities.map(lambda value: value[1])
 
-    columns = [
-        "Load", "Driver", "Manufacturer", "Part number", "F3 Hz",
-        "MOL @ F3 dB", "Peak dB", "Min ohm",
-    ]
+    # Keep the compact Finder layout stable: identity/load, enclosure and
+    # commercial metadata first, followed by the performance metrics.
+    columns = ["Driver", "Manufacturer", "Part number", "Load"]
     if batch_df["Resonator"].fillna("").astype(bool).any():
-        columns.insert(1, "Resonator")
-    driver_metadata_index = columns.index("Driver") + 1
-    if batch_df["Class"].fillna("").astype(bool).any():
-        columns.insert(driver_metadata_index, "Class")
-        driver_metadata_index += 1
+        columns.append("Resonator")
     if batch_df["Size in"].notna().any():
-        columns.insert(driver_metadata_index, "Size in")
-        driver_metadata_index += 1
-    if batch_df["Sd cm²"].notna().any():
-        columns.insert(driver_metadata_index, "Sd cm²")
-        driver_metadata_index += 1
-    if batch_df["Mms g"].notna().any():
-        columns.insert(driver_metadata_index, "Mms g")
-        driver_metadata_index += 1
-    if batch_df["Price"].notna().any():
-        columns.insert(driver_metadata_index, "Price")
-        driver_metadata_index += 1
-        columns.insert(driver_metadata_index, "Currency")
-        driver_metadata_index += 1
-        if "Value" in batch_df.columns and batch_df["Value"].notna().any():
-            columns.insert(driver_metadata_index, "Value")
-    if batch_df["Response"].map(lambda v: bool(v) if isinstance(v, list) else False).any():
-        columns.insert(columns.index("F3 Hz"), "Response")
-    if batch_df["Le10k mH"].notna().any():
-        columns.insert(columns.index("Min ohm") + 1, "Le10k mH")
+        columns.append("Size in")
     if batch_df["Vtot L"].notna().any():
         columns.append("Vtot L")
+    if batch_df["Price"].notna().any():
+        columns.append("Price")
+        columns.append("Currency")
+        if "Value" in batch_df.columns and batch_df["Value"].notna().any():
+            columns.append("Value")
     if batch_df["Buy"].fillna("").astype(bool).any():
         columns.append("Buy")
+    columns.extend(["F3 Hz", "MOL @ F3 dB", "Peak dB"])
+    if batch_df["Response"].map(lambda v: bool(v) if isinstance(v, list) else False).any():
+        columns.append("Response")
+    columns.append("Min ohm")
+    if batch_df["Mms g"].notna().any():
+        columns.append("Mms g")
+    if batch_df["Le10k mH"].notna().any():
+        columns.append("Le10k mH")
 
     display_df = _clean_display_table_frame(batch_df[columns])
     columns = list(display_df.columns)
     table_state = st.dataframe(
         display_df,
-        width="stretch",
+        # Let Streamlit measure each column from its content instead of
+        # distributing the parent width across every column. Users can still
+        # resize interactively, but the initial layout is already compact.
+        width="content",
         height=420,
         hide_index=True,
         key=f"batch_results_table_{'value' if 'Value' in columns else 'f3'}",
@@ -8665,25 +8677,27 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         selection_mode="multi-row",
         column_config={
             "Driver": None,
+            "Manufacturer": st.column_config.TextColumn("Mfr"),
+            "Part number": st.column_config.TextColumn("Part #"),
             "F3 Hz": st.column_config.NumberColumn(format="%.1f"),
             "MOL @ F3 dB": st.column_config.NumberColumn(
-                "MOL @ F3 (dB)",
+                "MOL",
                 format="%.1f",
                 help="Maximum excursion/thermal limited output interpolated at F3.",
             ),
             "Peak dB": st.column_config.NumberColumn(format="%.1f"),
             "Price": st.column_config.NumberColumn(format="%.2f"),
+            "Currency": st.column_config.TextColumn("CUR"),
             "Value": st.column_config.NumberColumn(
                 "Value (F3 × price)", format="%.0f",
                 help="Lower is better: cheapest path to deep bass.",
             ),
-            "Min ohm": st.column_config.NumberColumn(format="%.2f"),
+            "Min ohm": st.column_config.NumberColumn("Min Z", format="%.2f"),
             "Mms g": st.column_config.NumberColumn(format="%.1f"),
             "Le10k mH": st.column_config.NumberColumn(format="%.3f"),
             "Size in": st.column_config.NumberColumn(
                 "Size (in)", format="%.1f"
             ),
-            "Sd cm²": st.column_config.NumberColumn(format="%.1f"),
             "Vtot L": st.column_config.NumberColumn(
                 "Vtot (L)", format="%.2f"
             ),
@@ -10030,7 +10044,7 @@ with st.sidebar:
                     auto_box_error = st.session_state.get("_auto_box_error")
                     if auto_box_error:
                         st.warning(
-                            "No buildable optimized box for the current goal; the "
+                            "No optimized box satisfies the current goal; the "
                             f"starter box is shown instead. ({auto_box_error})"
                         )
                     st.markdown("**Optimization constraints**")

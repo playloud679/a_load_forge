@@ -456,26 +456,29 @@ with mounted Fs when panel loading is enabled.
 ### `optimize_alignment(ts, goals, load_type="DCCAV", box_template=None, voltage_v=2.83, max_evaluations=260, fixed_total_volume_l=None, frequency_points=160, refine_f3_points=0) -> OptimizedAlignment`
 
 Goal-driven box optimizer used by the UI's `Optimized` box strategy.
-It runs a bounded compass pattern search in log-space, starting from the
-empirical article alignment (DCCAV: `Vh`, `Vl`, `fl`, `fh/fl`), bandpass
-starter (`Vs`, `Vp`, `Fp`), reflex starting point (`Vb`, `Fb`) or classical
-sealed alignment (`Vb`).  Loss factors are
+It runs a bounded deterministic Finder V2 search using topology-native
+coordinates. DCCAV is represented as total volume, logit chamber fraction,
+`Fl` and `Fh/Fl`; BP4 as total volume, chamber fraction and `Fp`; BP6 as total
+volume, chamber fraction, base tuning and tuning ratio; BP8 as total volume,
+two softmax chamber logits, base tuning and two tuning ratios. Reflex and
+sealed use relative log coordinates. Loss factors are
 copied from `box_template` when one is provided, otherwise defaults are used.
 `frequency_points` sets the broad optimizer grid and `refine_f3_points` enables
-a narrow second pass around the winning F3. Their 160/0 defaults preserve the
-full local optimizer. Hosted Finder uses 30 logarithmic points across the
-complete band and gives only the winner 20 points within one coarse logarithmic
-step around its estimated F3. The final Finder result is still simulated at the
-user-selected display/export resolution.
+a narrow F3 pass for competitive finalists. Their 160/0 defaults preserve the
+full local optimizer. Hosted Finder searches boxes with 30 points, verifies
+leading candidates on an 80-point base plus deterministic tuning/extrema/
+curvature inserts, and simulates the selected result at the user-selected
+display/export resolution. Finder recomputes ripple on that final response
+before admitting the row.
 If refined F3 crosses just below the DCCAV credibility boundary, `fl` and `fh`
 are reduced together by the minimum required factor and the winning alignment
 is rechecked, preserving the tuning ratio and avoiding a post-search warning.
-Finder also bounds the Streamlit Community Cloud compass search to 30 candidate
-alignments per driver (24 on Cloud Run), while local runs retain the full
-140-candidate budget. This removes the hosted 140-evaluation bottleneck before
-the single 20-point F3 refinement.
+Finder exposes Fast/Standard/Deep budgets of 30/60/120 distinct box candidates
+(Cloud Run caps them at 24). The strict counter includes starter, sniff,
+sensitivity and local/pattern candidates but not extra spectral samples of an
+already-counted box.
 Accepted `load_type` values are `"DCCAV"`, `"Bandpass 4th order"`,
-`"Bass reflex"` and `"Sealed"`;
+`"Bandpass 6th order"`, `"Bandpass 8th order"`, `"Bass reflex"` and `"Sealed"`;
 the legacy labels `"Acoustic suspension"` and `"Suspension pneumatic"` are
 canonicalized to `"Sealed"` for backward compatibility with old `.lfp` files
 and callers.
@@ -495,8 +498,9 @@ each driver to retain a better, smaller alignment.
   0.10 L for DCCAV/bandpass (two 0.05 L chambers) and 0.05 L for reflex/sealed
 - `target_f3_hz`: pushing extension below the target earns nothing, and once
   the target is met a stronger size regularizer prefers the compact box
-- `max_ripple_db`: allowed peak-to-valley SPL spread in the passband window
-  `[1.2*F3, min(fmax, max(200, 2*F3))]`; excess is penalized
+- `max_ripple_db`: maximum feasible peak-to-valley SPL spread in the passband
+  window `[1.2*F3, min(fmax, max(200, 2*F3))]`; the search uses a dedicated
+  score tier to approach the boundary, but never returns a winner above it
 - `max_excursion_ratio`: cap on max excursion vs `Xmax` at the simulation
   voltage, evaluated for `f >= F10` (only when `Xmax` is known; `0`/`None`
   disables)
@@ -504,11 +508,11 @@ each driver to retain a better, smaller alignment.
   passband (`None` disables)
 
 The score also re-applies the `response_sanity_warnings()` credibility limits.
-With `Max extension` and no explicit target F3, F3 is dominant: ripple,
-excursion and group-delay excesses remain advisory but are scaled to 1%, and
-the size regularizer drops to 0.002. Physical port and response-credibility
-boundaries remain hard. Setting a target F3 restores normal constraint
-weighting and prefers the smallest box that reaches the target.
+With `Max extension` and no explicit target F3, F3 is dominant after the ripple
+ceiling and physical feasibility constraints are satisfied. Excursion and group
+delay excesses remain advisory and are scaled to 1%, while the size regularizer
+drops to 0.015. Setting a target F3 restores normal advisory weighting and
+prefers the smallest box that reaches the target.
 `F3 >= 0.67*fl` is the hard DCCAV feasibility boundary for balanced/flat
 alignments. The explicit `Max extension` objective permits `F3 >= 0.65*fl`
 to reach the deeper AFW-like alignment, while
@@ -652,8 +656,9 @@ returned `DriverBandwidthClass` carries `driver_class`, `f_le_hz` (or `None`),
 `mass_density_g_cm2`, `spl_1w_db` and the human-readable `reasons` tuple shown
 by the UI caption.  Cone breakup and directivity are not in the T/S set, so
 this is a catalog-screening aid, not a substitute for the manufacturer's
-measured response.  The UI uses it for the main-workspace `Class` preset filter, the
-`VC corner`/`Class` metrics and the `Bass Match` result column.
+measured response.  The UI uses it for the main-workspace `Class` preset filter
+and the `VC corner`/`Class` metrics; the compact `Bass Match` result table keeps
+the classification internal instead of showing a dedicated column.
 
 ### `apply_driver_configuration(ts, configuration) -> DriverTS`
 

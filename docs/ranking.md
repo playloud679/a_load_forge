@@ -14,8 +14,8 @@ detailed contracts live in `docs/dccav.md`.
   best optimized volume at or below the requested cap (reflex/sealed `Vb`,
   bandpass chamber total—including eighth-order `V1+V2+V3`—or DCCAV
   `Vh+Vl`). Goal mode uses
-  `max_total_volume_l`, never `fixed_total_volume_l`, with
-  `max_evaluations=140` and forwards every Finder constraint, including
+  `max_total_volume_l`, never `fixed_total_volume_l`, with the selected
+  Fast/Standard/Deep evaluation budget and forwards every Finder constraint, including
   minimum peak SPL, allowed ripple and frequency ceiling (`ripple_max_freq_hz`),
   using `segmented_frequency_grid` to sample densely below the ceiling and sparsely (9 points) above.
   Without goals, the physical starter is retained when it
@@ -40,7 +40,9 @@ detailed contracts live in `docs/dccav.md`.
 - `finder_optimizer_evaluation_limit(module_path=None, profile="Standard")`:
   returns per-driver evaluation budget (Fast: 30, Standard: 60, Deep: 120; capped on Cloud Run).
 - `finder_optimizer_frequency_plan(module_path=None, profile="Standard")`:
-  returns coarse frequency grid and winning-F3 refinement counts (Fast: 30/20, Standard: 30/20, Deep: 30/20).
+  returns box-search frequency grid and finalist-F3 refinement counts (Fast:
+  30/20, Standard: 30/20, Deep: 30/20). The engine adds deterministic
+  tuning/extrema/curvature samples only for competitive finalists.
 - `SEARCH_PROFILES` / `SEARCH_PROFILE_FAST`, `SEARCH_PROFILE_STANDARD`, `SEARCH_PROFILE_DEEP`:
   named search profiles tailoring search fidelity and speed.
 - `response_sparkline(spl, points=48, floor_db=-30)` plus the
@@ -49,17 +51,40 @@ detailed contracts live in `docs/dccav.md`.
 
 ## Invariants
 
-- Depends on `engine` and `presets`; no Streamlit imports, no session state:
-  everything a `ProcessPoolExecutor` worker needs comes in as arguments.
+- Depends on `engine` and `presets`; no Streamlit imports or session state.
+- Finder uses a shared-memory `ThreadPoolExecutor` by default, so Bass Match
+  and Box Design always execute the same live optimizer module. This avoids
+  process workers re-importing `ui_app.py` outside Streamlit or retaining an
+  older engine revision after a hot reload.
+- The guarded process-pool compatibility path exposes
+  `finder_worker_ready()`, which returns the PID together with
+  `FINDER_WORKER_PROTOCOL_REVISION` and `engine.OPTIMIZER_ENGINE_REVISION`.
+  The parent rejects a process pool whose loaded revisions differ and falls
+  back to current-process threads, preventing stale F3/ripple rows after a hot
+  engine update even when Python's forkserver itself remains alive.
 - `ui_app._batch_rank_presets` (cached reference path),
   `_batch_rank_presets_with_progress` (serial UI path up to 8 candidates) and
-  `_batch_rank_presets_parallel` (worker-process UI path above 8 candidates)
+  `_batch_rank_presets_parallel` (threaded UI path above 8 candidates)
   must produce identical rows for identical inputs. Both UI paths feed one
   live progress bar across every selected load; the optimizer is deterministic.
 - The UI applies `OptimizationGoals.min_spl_db` as a hard result-list filter
   after simulation; the optimizer also receives it as a soft scoring penalty
   so it can prefer a compliant alignment before the row is accepted or rejected.
+- `OptimizationGoals.max_ripple_db` is enforced by the optimizer as a
+  feasibility constraint. Finder measures ripple again on the final
+  display-resolution response and uses that value in the row; candidates that
+  exceed the limit there are omitted rather than ranked with a coarse-grid
+  value that disagrees with Box Design.
 - The UI's minimum `MOL @ F3` constraint is a hard post-simulation filter.
   Missing/non-finite MOL values cannot satisfy a non-zero minimum.
+- The compact Finder result table omits the internal `Class` and `Sd cm²`
+  metadata columns. Its currency heading is `CUR`, and the maximum-output
+  heading is the concise `MOL`; manufacturer, part number and minimum impedance
+  are displayed as `Mfr`, `Part #` and `Min Z`; the underlying ranking-row keys
+  remain stable. The visible order is identity/load, size and total volume,
+  price/currency, then F3/MOL/peak/response and electrical limits; optional
+  `Value`, `Buy` and `Le10k` fields occupy their corresponding nearby slots.
+  The Finder dataframe uses content width and leaves column widths automatic,
+  so its initial layout is compact without requiring a header double-click.
 - Finder volume is always an upper bound. Rows may therefore report different
   enclosure volumes, but no finite-box result may exceed the selected maximum.

@@ -266,7 +266,7 @@ EXPLICIT_UNIT_FIELDS = {
     "cutout_diameter_mm", "depth_mm", "mounting_depth_mm", "bolt_circle_mm",
     "mounting_hole_diameter_mm", "weight_kg", "nominal_impedance_ohm",
     "voice_coil_diameter_mm", "xmech_mm", "magnet_weight_kg", "flux_density_t",
-    "nominal_diameter_in",
+    "nominal_diameter_in", "cms_mm_per_n",
 }
 NUMBER_RE = r"[-+]?(?:\d+(?:[.,]\d+)?|[.,]\d+)(?:[eE][-+]?\d+)?"
 INCH_SIZE_RE = re.compile(
@@ -540,7 +540,14 @@ def parse_number(raw: object) -> float | None:
         else:
             token = token.replace(",", "")
     elif "," in token and re.fullmatch(r"[-+]?\d{1,3}(?:,\d{3})+", token):
-        token = token.replace(",", "")
+        # A leading zero unambiguously denotes a decimal in manufacturer
+        # datasheets (for example ``0,019 kg`` = 19 g), not a thousands
+        # separator. Treating it as 19 would inflate converted masses and
+        # compliances by three orders of magnitude.
+        if re.match(r"[-+]?0,", token):
+            token = token.replace(",", ".")
+        else:
+            token = token.replace(",", "")
     else:
         token = token.replace(",", ".")
     try:
@@ -576,7 +583,14 @@ def normalize_unit(raw: str) -> str:
 
 
 def convert_measurement(key: str, raw_value: object, raw_unit: str = "") -> float | None:
-    value = parse_number(raw_value)
+    raw_text = str(raw_value).strip()
+    # Moving mass is conventionally reported in grams, where a three-digit
+    # comma suffix is overwhelmingly a decimal (``13,525 g``). Keep the
+    # generic parser's thousands-separator behavior for unrelated fields.
+    if key == "mms_g" and re.fullmatch(r"[-+]?\d{1,3},\d{3}", raw_text):
+        value = float(raw_text.replace(",", "."))
+    else:
+        value = parse_number(raw_value)
     if value is None:
         return None
     unit = normalize_unit(raw_unit) or PARAMETER_BY_KEY[key].default_unit

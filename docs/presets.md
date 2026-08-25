@@ -4,6 +4,11 @@ Built-in driver presets plus four optional external catalogs, with brand/size
 metadata and retailer price enrichment. `src/dccav.py` re-exports the public
 API; detailed contracts live in `docs/dccav.md`.
 
+Runtime identity cleanup removes PDF download suffixes and publication-year
+decorations from Beyma part numbers: `12CMV2.ai` displays as `12CMV2` and
+`8MI100 2018` displays as `8MI100`. The original catalog model remains attached
+to the record for provenance and traceability.
+
 ## Four external catalogs — do not merge them
 
 - `data/catalog_lsdb.json` (`LOUDSPEAKER_DATABASE_PATH`):

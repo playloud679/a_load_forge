@@ -51,6 +51,8 @@ sensitivity, voice-coil diameter, Xmech, reference efficiency, magnet mass and
 gap flux). These fields require explicit labels and physical units where
 applicable; they are never inferred. Ambiguous responsive/PDF column pairing is
 disabled for these fields.
+European decimal commas with a leading zero are treated as decimals, so a
+datasheet value such as `0,019 kg` is converted to `19 g` rather than `19 kg`.
 One-way values written as `X Max +/- N mm` are normalized to the positive
 excursion magnitude `N`. An inline production tolerance after `Fs`, such as
 MISCO's `Fs (Hz) +/- 15% 23`, is skipped so the following value (`23 Hz`) is
@@ -92,7 +94,9 @@ Units are converted to the Load Forge schema:
 
 Comma-separated thousands in English-language values (`2,000 W`) are kept as
 thousands, while ordinary decimal-comma values remain decimals. Free-text
-power extraction requires an explicit `W` or `kW` unit in text, tables and
+compliance extraction requires an explicit `m/N`, `mm/N` or `µm/N` unit so a
+published `668 µm/N` value can never be stored as `668 mm/N`. Free-text power
+extraction requires an explicit `W` or `kW` unit in text, tables and
 structured measurement pairs; this prevents nearby voice-coil diameters,
 sensitivity or impedance values from becoming false power ratings. For power,
 an explicit-unit text measurement outranks an unqualified table candidate.

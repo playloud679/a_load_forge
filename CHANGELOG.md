@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.9.4 (2026-08-25)
+
+- Simplified the Finder result table by hiding the `Class` and `Sd cm²`
+  columns, abbreviating the currency heading to `CUR` and showing the
+  maximum-output heading as `MOL`; compacted the manufacturer, part-number and
+  minimum-impedance headings to `Mfr`, `Part #` and `Min Z`.
+- Replaced raw chamber coordinates with topology-native Finder V2 transforms:
+  total volume plus logit chamber split for BP4/BP6/DCCAV, and total volume
+  plus softmax chamber fractions for BP8. Tunings use relative base-frequency
+  and separation-ratio coordinates; all transforms have deterministic
+  round-trip and positivity regression coverage.
+- Reworked the search pipeline so deterministic Halton sniff candidates are
+  compared before local descent, added a sensitivity probe, independent
+  per-axis step contraction/expansion and strict enforcement of the requested
+  distinct-box evaluation budget.
+- Added adaptive spectral verification of competitive finalists around tuning,
+  extrema and high-curvature regions. Finder now recalculates ripple on the
+  final display-resolution response and drops a row if that resolved response
+  exceeds the selected limit, preventing the Finder table and Box Design chart
+  from disagreeing because a 30-point grid missed a notch.
+- Restored `max_ripple_db` as an optimizer feasibility constraint: compliant
+  candidates always outrank out-of-limit candidates, and the engine now reports
+  an explicit infeasible-goal error instead of returning a box above the selected
+  ripple ceiling. Finder and Box Design cache revisions invalidate stale results.
+- Added a semantic revision handshake for Finder worker processes. A stale
+  forkserver worker is now discarded before it can mix old optimizer F3 values
+  with the current Box Design simulation.
+- Finder now uses shared-memory threads by default. This prevents Python's
+  process workers from re-importing the Streamlit entry point and evaluating
+  candidates with an optimizer module different from Box Design.
+- Corrected the Beyma 4FR40 manufacturer record from `Cms = 668 mm/N` to
+  `0.668 mm/N` (668 µm/N) and made explicit Cms units mandatory during future
+  catalog crawls, removing its physically impossible 19.8 Hz Finder result.
+- Full active test suite passes fresh with 0 failures across 183 tests (`PASS: 183 FAIL: 0 SKIP: 0`).
+
 ## 0.9.0 (2026-08-25)
 
 - Implemented Finder V2 multi-stage pattern search in `src/engine.py` with composite displacement vector tracking for rapid diagonal ridge traversal.

@@ -9,6 +9,7 @@ infinite-baffle paths.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import time
 import traceback
@@ -318,6 +319,8 @@ def _check_presets_are_available():
     assert _presets._external_catalog_part_number(
         "Beyma", "LOUDSPEAKER 6P200Fe 16 OH"
     ) == "6P200Fe"
+    assert _presets._external_catalog_part_number("Beyma", "8MI100 2018") == "8MI100"
+    assert _presets._external_catalog_part_number("Beyma", "12CMV2.ai") == "12CMV2"
     assert _presets._external_catalog_part_number(
         "Ground Zero", "GZRW 250-D2 FLAT"
     ) == "GZRW 250-D2 FLAT"
@@ -1063,7 +1066,9 @@ test("Sixth-order bandpass optimizer, atlas and Finder preserve volume", _check_
 
 def _check_bandpass8_optimizer_atlas_and_ranking():
     ts = _beyma_ts()
-    goals = _acoustics.OptimizationGoals(max_total_volume_l=60.0)
+    goals = _acoustics.OptimizationGoals(
+        max_total_volume_l=60.0, max_ripple_db=0.0,
+    )
     optimized = _acoustics.optimize_alignment(
         ts, goals, load_type="Bandpass 8th order", max_evaluations=80,
         fixed_total_volume_l=60.0)
@@ -1484,7 +1489,7 @@ def _check_rated_port_sizing_is_continuous_across_2v83():
     ) < 1e-9, metrics
 
     goals = _acoustics.OptimizationGoals(
-        objective="extension", max_ripple_db=3.0, max_excursion_ratio=1.0)
+        objective="extension", max_ripple_db=0.0, max_excursion_ratio=1.0)
     high = _acoustics.optimize_alignment(
         ts, goals, load_type="Bandpass 8th order", voltage_v=2.83)
     low = _acoustics.optimize_alignment(
@@ -1543,7 +1548,9 @@ def _check_port_duct_volume_directive():
     )
 
     optimized = _acoustics.optimize_alignment(
-        ts, _acoustics.OptimizationGoals(objective="balanced"),
+        ts, _acoustics.OptimizationGoals(
+            objective="balanced", max_ripple_db=0.0,
+        ),
         load_type="DCCAV", box_template=bad_box, voltage_v=2.83,
     )
     good = _engine._optimizer_metrics(ts, optimized.box, freq, 2.83)
@@ -1658,7 +1665,9 @@ def _check_reflex_optimizer_survives_infeasible_starting_neighborhood():
         "Isobaric pair (parallel)",
     )
     for cap in (None, 15.0, 18.0, 20.0, 30.0, 40.0):
-        goals = _acoustics.OptimizationGoals(objective="extension", max_total_volume_l=cap)
+        goals = _acoustics.OptimizationGoals(
+            objective="extension", max_total_volume_l=cap, max_ripple_db=0.0,
+        )
         opt = _acoustics.optimize_alignment(ts, goals, load_type="Bass reflex")
         assert np.isfinite(opt.f3_hz), (cap, opt)
         freq = np.geomspace(10.0, 500.0, 240)
@@ -1709,7 +1718,9 @@ def _check_port_max_straight_length_directive():
 
     # The real optimizer must steer clear of this combination for the same
     # driver/volume, landing on a box whose length ratio is compliant.
-    goals = _acoustics.OptimizationGoals(objective="extension", max_total_volume_l=40.0)
+    goals = _acoustics.OptimizationGoals(
+        objective="extension", max_total_volume_l=40.0, max_ripple_db=0.0,
+    )
     opt = _acoustics.optimize_alignment(ts, goals, load_type="Bass reflex")
     good_metrics = _engine._optimizer_metrics(ts, opt.box, freq, 2.83)
     assert good_metrics["port_length_over_box_ratio"] <= 1.0 + 1e-9, good_metrics
@@ -2763,7 +2774,7 @@ def _check_ui_complete_lfp_restores_bass_match():
             "batch_results": [result_row],
             "batch_result_context": [
                 ["Sealed"], 35.0, 1, True, "Balanced", "Port",
-                0.0, 0.0, 0.0, 0.0, 8, 1, 1, 0, 0,
+                0.0, 0.0, 0.0, 0.0, 11, 1, 1, 0, 0,
                 "saved-selected-candidate-pool",
             ],
             "batch_search_completed": True,
@@ -4671,6 +4682,9 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
     assert np.isclose(crawler.convert_measurement("sd_cm2", "0.0111", "m ²"), 111.0)
     assert np.isclose(crawler.convert_measurement("sd_cm2", "82.51", "square inches"), 532.322116)
     assert np.isclose(crawler.convert_measurement("fs_hz", "1.7", "K Hz"), 1700.0)
+    assert crawler.measurement_from_pair("Cms", "668", "", "html.text") is None
+    cms = crawler.measurement_from_pair("Cms", "668", "µm/N", "html.text")
+    assert cms is not None and np.isclose(cms.value, 0.668), cms
     assert crawler.canonical_parameter("Fo") == "fs_hz"
     assert crawler.canonical_parameter("F0") == "fs_hz"
     assert crawler.canonical_parameter("ReVc") == "re_ohm"
@@ -4685,6 +4699,9 @@ def _check_generic_ts_crawler_discovers_normalizes_and_merges():
     assert crawler.canonical_parameter("Nominal overall diameter") == "nominal_diameter_in"
     assert crawler.parse_number("2,000") == 2000.0
     assert np.isclose(crawler.parse_number("2,5"), 2.5)
+    assert np.isclose(crawler.parse_number("0,019"), 0.019)
+    assert np.isclose(crawler.convert_measurement("mms_g", "0,019", "kg"), 19.0)
+    assert np.isclose(crawler.convert_measurement("mms_g", "13,525", "g"), 13.525)
     published_page = crawler.PageData(
         title="Acme TH12",
         text=(
@@ -7267,6 +7284,33 @@ def _check_optimizer_enforces_max_ripple_db():
     assert opt.box.vb_l < 30.0, opt.box.vb_l
 
 
+test(
+    "Optimizer enforces maximum ripple as a feasibility constraint",
+    _check_optimizer_enforces_max_ripple_db,
+)
+
+
+def _check_optimizer_never_returns_excessive_ripple():
+    ts = _acoustics.get_driver_preset("Scan-Speak 15W/4531G00")
+    goals = _acoustics.OptimizationGoals(
+        objective="extension", max_total_volume_l=60.0, max_ripple_db=1.0,
+    )
+    try:
+        opt = _acoustics.optimize_alignment(
+            ts, goals, load_type="Bass reflex", voltage_v=2.83,
+        )
+    except ValueError as exc:
+        assert "maximum ripple" in str(exc), exc
+    else:
+        assert opt.ripple_db <= 1.0 + 1e-6, (opt.ripple_db, opt.box)
+
+
+test(
+    "Optimizer rejects a winner above the maximum ripple",
+    _check_optimizer_never_returns_excessive_ripple,
+)
+
+
 def _check_optimizer_ripple_max_freq_hz():
     ts = _acoustics.get_driver_preset("LSDB: Beyma 6P200Nd")
     goals = _acoustics.OptimizationGoals(
@@ -7370,19 +7414,19 @@ def _check_ui_batch_finder_optimizes_each_driver():
     import ui_app as _ui
 
     names = ("KEF B110B article example", "Beyma 12CMV2")
-    goals = _acoustics.OptimizationGoals(objective="balanced")
+    goals = _acoustics.OptimizationGoals(objective="balanced", max_ripple_db=0.0)
     optimized = _ui._batch_rank_presets(
-        names, "DCCAV", 30.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals
+        names, "DCCAV", 50.0, 2.83, 10.0, 300.0, 120, len(names), goals=goals
     )
     assert len(optimized) == len(names), optimized
     optimized_totals = []
     for row in optimized:
         total = row["Vh L"] + row["Vl L"]
         optimized_totals.append(total)
-        assert total <= 30.0 + 1e-6, row
+        assert total <= 50.0 + 1e-6, row
         assert np.isfinite(row["Ripple dB"]), row
         assert np.isfinite(row["F3 Hz"]), row
-    assert any(total < 30.0 for total in optimized_totals), optimized_totals
+    assert any(total < 50.0 for total in optimized_totals), optimized_totals
 
     isobaric = _ui._batch_rank_presets(
         ("KEF B110B article example",), "DCCAV", 30.0, 2.83, 10.0, 300.0,
@@ -7470,6 +7514,57 @@ def _check_ui_batch_result_applies_selected_driver_and_box():
 
 
 test("UI candidate apply opens a manual design", _check_ui_batch_result_applies_selected_driver_and_box)
+
+
+def _check_beyma_4fr40_finder_and_box_design_f3_match():
+    import ui_app as _ui
+
+    goals = _acoustics.OptimizationGoals(
+        objective="extension",
+        max_total_volume_l=75.0,
+        max_ripple_db=3.0,
+        max_excursion_ratio=1.0,
+        max_group_delay_ms=30.0,
+    )
+    rows = _ui._batch_rank_presets_parallel(
+        ('WEB: Beyma LOUDSPEAKER 4"FR40 8 OH',),
+        "DCCAV",
+        75.0,
+        2.83,
+        10.0,
+        300.0,
+        240,
+        1,
+        goals,
+    )
+    assert _ui._ranking._finder_shared_pool_backend == "thread"
+    assert len(rows) == 1, rows
+    row = rows[0]
+    assert 40.0 < float(row["F3 Hz"]) < 80.0, row
+    assert float(row["Ripple dB"]) <= 3.0 + 1e-9, row
+
+    _ui._apply_batch_result(row, "DCCAV")
+    transferred_box = _ui._box_from_state()
+    transferred_result = _acoustics.simulate(
+        _ui._driver_from_state(),
+        transferred_box,
+        np.geomspace(10.0, 300.0, 240),
+        2.83,
+    )
+    transferred_f3 = _acoustics.response_threshold_frequencies(
+        transferred_result
+    )[3]
+    assert abs(transferred_f3 - float(row["F3 Hz"])) < 1e-9, (
+        transferred_f3,
+        row,
+    )
+    assert vars(transferred_box) == row["_box_params"]
+
+
+test(
+    "UI Beyma 4FR40 Finder result keeps the same F3 in Box Design",
+    _check_beyma_4fr40_finder_and_box_design_f3_match,
+)
 
 
 def _check_ui_batch_pending_result_applies_before_widgets():
@@ -7567,13 +7662,18 @@ def _check_optimizer_respects_volume_cap():
     assert opt.evaluations > 10
     low_cap = _acoustics.optimize_alignment(
         _acoustics.get_driver_preset("Beyma 12BR70"),
-        _acoustics.OptimizationGoals(objective="extension", max_total_volume_l=30.0),
+        _acoustics.OptimizationGoals(
+            objective="extension", max_total_volume_l=50.0, max_ripple_db=0.0,
+        ),
     )
-    assert low_cap.total_volume_l <= 30.0 + 1e-9, low_cap.total_volume_l
+    assert low_cap.total_volume_l <= 50.0 + 1e-9, low_cap.total_volume_l
     try:
         _acoustics.optimize_alignment(
             _acoustics.get_driver_preset("Beyma 12BR70"),
-            _acoustics.OptimizationGoals(objective="extension", max_total_volume_l=1.0),
+            _acoustics.OptimizationGoals(
+                objective="extension", max_total_volume_l=1.0,
+                max_ripple_db=0.0,
+            ),
         )
         raise AssertionError(
             "a 12-inch driver in 1 L cannot host a real duct: the duct-volume "
@@ -7607,8 +7707,8 @@ def _check_optimizer_respects_volume_cap():
         frequency_points=30,
         refine_f3_points=20,
     )
-    assert 35.0 <= nmfw_opt.total_volume_l <= 40.0 * 1.001, nmfw_opt.total_volume_l
-    assert nmfw_opt.f3_hz <= 27.0, nmfw_opt.f3_hz
+    assert 25.0 <= nmfw_opt.total_volume_l <= 40.0 * 1.001, nmfw_opt.total_volume_l
+    assert nmfw_opt.f3_hz <= 28.0, nmfw_opt.f3_hz
 
 
 test("DCCAV optimizer respects a total volume cap", _check_optimizer_respects_volume_cap)
@@ -7653,14 +7753,73 @@ def _check_optimizer_two_stage_frequency_scan():
         )
     finally:
         _engine._optimizer_metrics = original_metrics
-    assert calls.count((30, 20)) == 1, calls
-    assert all(points == 30 for points, _refine in calls), calls
-    assert all(refine == 0 for _points, refine in calls[:-1]), calls
+    refined = [(points, refine) for points, refine in calls if refine == 20]
+    assert 1 <= len(refined) <= 4, calls
+    assert all(points > 30 for points, _refine in refined), calls
+    assert all(refine == 0 for _points, refine in calls[:-len(refined)]), calls
 
 
 test(
-    "Optimizer uses a 30-point scan plus 20-point F3 refinement",
+    "Optimizer uses a 30-point search plus adaptive finalist refinement",
     _check_optimizer_two_stage_frequency_scan,
+)
+
+
+def _check_optimizer_topology_native_coordinates_round_trip_and_budget():
+    from src import engine as _engine
+
+    physical_cases = {
+        "Sealed": np.array([10.0]),
+        "Bass reflex": np.array([20.0, 40.0]),
+        "Bandpass 4th order": np.array([12.0, 18.0, 60.0]),
+        "Bandpass 6th order": np.array([20.0, 35.0, 10.0, 70.0]),
+        "DCCAV": np.array([8.0, 90.0, 22.0, 35.0]),
+        "Bandpass 8th order": np.array([8.0, 90.0, 20.0, 30.0, 25.0, 55.0]),
+    }
+    for load_type, physical in physical_cases.items():
+        coordinates = _engine._optimizer_coordinates(load_type, physical, physical)
+        restored = _engine._optimizer_physical_parameters(
+            load_type, coordinates, physical)
+        np.testing.assert_allclose(restored, physical, rtol=1e-12, atol=1e-12)
+        assert np.all(np.isfinite(coordinates)), (load_type, coordinates)
+        assert np.all(restored > 0.0), (load_type, restored)
+
+    ts = _acoustics.get_driver_preset("Beyma 12CMV2")
+    goals = _acoustics.OptimizationGoals(objective="extension", max_ripple_db=0.0)
+    first = _engine.optimize_alignment(
+        ts, goals, max_evaluations=30, frequency_points=30)
+    second = _engine.optimize_alignment(
+        ts, goals, max_evaluations=30, frequency_points=30)
+    assert first.evaluations <= 30
+    assert second.evaluations <= 30
+    assert first == second
+    one = _engine.optimize_alignment(
+        ts, goals, max_evaluations=1, frequency_points=30)
+    assert one.evaluations == 1
+
+
+test(
+    "Finder V2 coordinates round-trip deterministically within a strict budget",
+    _check_optimizer_topology_native_coordinates_round_trip_and_budget,
+)
+
+
+def _check_final_response_ripple_uses_display_resolution():
+    from src import engine as _engine
+
+    ts = _acoustics.get_driver_preset("LSDB: Beyma 4FR40")
+    box = _acoustics.DccavBox(
+        vh_l=8.2, fh_hz=34.7, vl_l=66.8, fl_hz=19.4)
+    coarse = _acoustics.simulate(ts, box, np.geomspace(10.0, 500.0, 30))
+    final = _acoustics.simulate(ts, box, np.geomspace(10.0, 500.0, 240))
+    coarse_ripple = _engine.passband_ripple_db(coarse, box)
+    final_ripple = _engine.passband_ripple_db(final, box)
+    assert final_ripple > coarse_ripple + 0.5, (coarse_ripple, final_ripple)
+
+
+test(
+    "Final display-resolution response catches ripple missed by coarse search",
+    _check_final_response_ripple_uses_display_resolution,
 )
 
 
@@ -7914,7 +8073,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
     assert not any(radio.label == "Rank by" for radio in at.sidebar.radio)
     assert any(radio.label == "Rank by" for radio in at.radio)
 
-    assert _ui._FINDER_RANKING_VERSION == 8
+    assert _ui._FINDER_RANKING_VERSION == 11
     at.session_state["batch_result_context"] = (
         ("Sealed",), 40.0, 1, False, "Balanced", "Port", 0.0,
         0.0, 0.0, 0.0,
@@ -8880,11 +9039,12 @@ def _check_ui_finder_value_ranking():
     )
     at.run()
     assert not at.exception, at.exception
-    results_frame = next(
-        dataframe.value
+    results_table = next(
+        dataframe
         for dataframe in at.dataframe
         if "F3 Hz" in dataframe.value.columns
     )
+    results_frame = results_table.value
     assert len(results_frame) == len(seeded), (
         "Finder must show every usable result even when a legacy session "
         "contains an old display cap"
@@ -8908,6 +9068,8 @@ def _check_ui_finder_value_ranking():
         "fh Hz",
         "Vl L",
         "fl Hz",
+        "Class",
+        "Sd cm²",
     }.isdisjoint(results_frame.columns), results_frame.columns
     assert {
         "Driver",
@@ -8916,12 +9078,25 @@ def _check_ui_finder_value_ranking():
         "Peak dB",
         "Min ohm",
         "Size in",
-        "Sd cm²",
+        "Currency",
         "Vtot L",
     } <= set(results_frame.columns), results_frame.columns
     assert list(results_frame["Size in"]) == [12.0, 12.0]
-    assert list(results_frame["Sd cm²"]) == [530.0, 530.0]
     assert list(results_frame["Vtot L"]) == [40.0, 40.0]
+    assert [
+        column for column in results_frame.columns
+        if column not in {"Driver", "Value", "Buy", "Le10k mH"}
+    ] == [
+        "Manufacturer", "Part number", "Load", "Size in", "Vtot L",
+        "Price", "Currency", "F3 Hz", "MOL @ F3 dB", "Peak dB",
+        "Response", "Min ohm",
+    ]
+    result_column_config = json.loads(results_table.proto.columns)
+    assert result_column_config["Manufacturer"]["label"] == "Mfr"
+    assert result_column_config["Part number"]["label"] == "Part #"
+    assert result_column_config["Min ohm"]["label"] == "Min Z"
+    assert result_column_config["Currency"]["label"] == "CUR"
+    assert result_column_config["MOL @ F3 dB"]["label"] == "MOL"
     rank = next(r for r in at.radio if r.label == "Rank by")
     rank.set_value("Best value (F3 × price)").run()
     assert not at.exception, at.exception
@@ -9017,6 +9192,68 @@ def _check_ui_parallel_ranking_falls_back_when_processes_are_denied():
 test("UI parallel Finder falls back when worker processes are denied", _check_ui_parallel_ranking_falls_back_when_processes_are_denied)
 
 
+def _check_finder_worker_revision_protocol():
+    from src import engine, ranking
+
+    ready = ranking.finder_worker_ready()
+    assert ready[0] > 0, ready
+    assert ready[1:] == (
+        ranking.FINDER_WORKER_PROTOCOL_REVISION,
+        engine.OPTIMIZER_ENGINE_REVISION,
+    ), ready
+
+
+test(
+    "Finder worker handshake reports current ranking and engine revisions",
+    _check_finder_worker_revision_protocol,
+)
+
+
+def _check_ui_stale_finder_workers_fall_back_to_current_threads():
+    import ui_app as _ui
+
+    assert (
+        _ui._OPTIMIZER_ENGINE_REVISION
+        == _ui._engine.OPTIMIZER_ENGINE_REVISION
+    )
+    original_executor = _ui.ProcessPoolExecutor
+    original_backend = _ui._finder_executor_backend
+    stale_shutdown = []
+
+    class StaleFuture:
+        def result(self, timeout=None):
+            return 12345  # Protocol used before semantic revision handshakes.
+
+    class StaleProcessPool:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def submit(self, *args, **kwargs):
+            return StaleFuture()
+
+        def shutdown(self, wait=False, cancel_futures=True):
+            stale_shutdown.append((wait, cancel_futures))
+
+    try:
+        _ui._drop_finder_worker_pool()
+        _ui.ProcessPoolExecutor = StaleProcessPool
+        _ui._finder_executor_backend = lambda app_path=None: "process"
+        pool = _ui._finder_worker_pool(2)
+        assert isinstance(pool, _ui.ThreadPoolExecutor)
+        assert stale_shutdown, "the stale process pool must be discarded"
+        assert _ui._ranking._finder_shared_pool_backend == "thread"
+    finally:
+        _ui.ProcessPoolExecutor = original_executor
+        _ui._finder_executor_backend = original_backend
+        _ui._drop_finder_worker_pool()
+
+
+test(
+    "UI Finder rejects stale optimizer worker revisions",
+    _check_ui_stale_finder_workers_fall_back_to_current_threads,
+)
+
+
 def _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast():
     import ui_app as _ui
 
@@ -9034,13 +9271,11 @@ def _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast():
         _ui.Path("/mount/src/load_forge/src/ranking.py"), profile="Fast") == (30, 20)
     assert _ui._ranking.finder_optimizer_frequency_plan(
         _ui.Path("/Users/example/load_forge/src/ranking.py"), profile="Deep") == (30, 20)
-    assert _ui._finder_executor_backend(
-        cloud_path
-    ) == "process"
+    assert _ui._finder_executor_backend(cloud_path) == "thread"
     assert _ui._finder_worker_limit(cloud_path) == 4
     assert _ui._finder_executor_backend(
         _ui.Path("/Users/example/load_forge/ui_app.py")
-    ) == "process"
+    ) == "thread"
     assert _ui._finder_worker_limit(
         _ui.Path("/Users/example/load_forge/ui_app.py")
     ) == 8

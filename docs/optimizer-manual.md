@@ -12,23 +12,45 @@ L'ottimizzatore acustico di Load Forge è un motore deterministico di calcolo no
 
 ## 1. Architettura e Algoritmo di Ricerca
 
-### 1.1 Spazio di Ricerca Logaritmico
-Tutti i parametri dimensionali (volumi in litri $V$, frequenze di accordo in Hertz $F$) vengono mappati internamente nello spazio dei logaritmi naturali:
-$$\mathbf{p} = \begin{bmatrix} \ln(V) \\ \ln(F) \end{bmatrix}$$
-Questo garantisce una variazione percentuale uniforme lungo ogni asse ed evita asimmetrie numeriche tra volumi ampi e piccole variazioni di frequenza.
+### 1.1 Coordinate native della topologia
+Finder V2 separa i parametri mostrati nella UI dalle coordinate di ricerca.
+Volumi e frequenze restano positivi tramite trasformazioni logaritmiche relative
+allo starter; le frazioni di due camere usano il logit e BP8 usa due logits
+softmax. Le coordinate sono:
 
-### 1.2 Algoritmo: Coordinate Descent (Compass Search)
-L'ottimizzatore adotta un metodo di **Coordinate Descent deterministico (Compass Search)**:
-1. **Passo Iniziale**: Si parte da un passo logaritmico $\Delta = 0.4$.
-2. **Esplorazione degli Assi**: Per ciascun parametro $p_i$, l'algoritmo valuta lo score acustico a $p_i + \Delta$ e $p_i - \Delta$.
-3. **Discesa**: Se viene trovato un miglioramento significativo ($\Delta \text{score} > 10^{-9}$), la nuova coordinata viene accettata e l'esplorazione prosegue lungo quella direzione.
-4. **Dimezzamento del Passo**: Se nessun asse produce un miglioramento, il passo viene dimezzato ($\Delta \leftarrow \Delta / 2$) fino al raggiungimento della convergenza fine ($\Delta < 0.02$).
-5. **Completamente Riproducibile**: Non vi è alcun elemento stocastico/casuale; lo stesso set di parametri T/S e di vincoli produce sempre l'allineamento identico al millesimo di Hertz.
+| Carico | Coordinate optimizer |
+|---|---|
+| Sealed | volume relativo |
+| Reflex | volume e accordo relativi |
+| BP4 | volume totale, frazione Vs, Fp |
+| BP6 | volume totale, frazione Vr, Fr, rapporto Fp/Fr |
+| DCCAV | volume totale, frazione Vh, Fl, rapporto Fh/Fl |
+| BP8 | volume totale, due frazioni softmax, F2, F3/F2, F1/F3 |
 
-### 1.3 Superamento dei Minimi Locali e Punti di Riavvio (Restarts)
-Nei carichi complessi come il DCCAV o nei reflex ad alta escursione (dove le dimensioni del condotto possono rendere certe regioni non costruibili), il Compass Search locale potrebbe rimanere intrappolato:
-- **Seed per Estensione Profonda (DCCAV)**: Per `objective="extension"`, viene valutato un secondo punto di partenza a volumi maggiori $\ln(V_0 \cdot 3.0)$ per catturare il bacino sub-basso profondo.
-- **Ripartizioni Determinate sulla Diagonale**: Se il punteggio iniziale viola i vincoli di costruibilità ($\text{score} \ge 10^5$), l'algoritmo esegue ulteriori tentativi a frazioni predeterminate (25%, 50%, 75%) della diagonale dello spazio di ricerca, garantendo sempre una via d'uscita verso allineamenti fisicamente realizzabili.
+La trasformazione inversa garantisce volumi e frequenze positive e conserva la
+somma dei volumi. I round-trip physical → optimizer → physical sono coperti da
+regression test.
+
+### 1.2 Algoritmo: Global Sniff + ricerca adattiva
+L'ottimizzatore è deterministico:
+1. valuta lo starter;
+2. valuta una sequenza Halton fissa in un raggio locale;
+3. seleziona il miglior basin feasible prima della discesa;
+4. misura la sensibilità locale degli assi;
+5. esegue compass search con un passo indipendente per asse;
+6. prova una direzione pattern diagonale dopo spostamenti riusciti;
+7. verifica i finalisti con campionamento spettrale adattivo.
+
+Gli assi produttivi mantengono o espandono moderatamente il passo; quelli che
+falliscono ripetutamente vengono dimezzati senza forzare la convergenza degli
+altri assi. Non esiste alcuna scelta casuale.
+
+### 1.3 Starter infeasible e fallback deterministico
+Per estensione DCCAV viene incluso un seed a volume totale maggiore. Quando lo
+starter viola già un hard constraint, vengono inoltre valutati punti al 25%,
+50% e 75% della diagonale dei bounds. Tutti partecipano alla selezione del basin
+prima della ricerca locale; non sono restart accodati dopo l'esaurimento del
+budget.
 
 ---
 
@@ -58,8 +80,7 @@ Se una configurazione viola le leggi fisiche o geometriche, viene scartata con u
 4. **Credibilità Acustica DCCAV**: In DCCAV, la frequenza $F_3$ non può essere inferiore al limite asintotico di risonanza $0.65 \cdot F_l$.
 
 ### 3.2 Vincoli Acustici Utente
-- **Ripple Massimo (`max_ripple_db`)**: Differenza tra il valore massimo e minimo di SPL nella banda passante valutata. Qualsiasi eccesso oltre la soglia riceve una penalità severa ed immediata:
-  $$\text{Penalità}_{\text{ripple}} = 5.0 \cdot (\text{Ripple} - \text{MaxRipple})$$
+- **Ripple Massimo (`max_ripple_db`)**: Differenza tra il valore massimo e minimo di SPL nella banda passante valutata. È un vincolo di fattibilità: i candidati fuori soglia entrano in un livello di score dedicato ($\ge 10^4$), graduato in base allo sforamento affinché la ricerca possa convergere verso la regione valida. Un vincitore ancora fuori soglia non viene restituito; l'ottimizzatore segnala esplicitamente che non ha trovato un allineamento conforme.
 - **Limite Superiore Frequenza Ripple (`ripple_max_freq_hz`)**: Se impostato (es. $70\text{ Hz}$ o $80\text{ Hz}$ per subwoofer), la finestra di calcolo del ripple viene troncata a tale frequenza:
   $$\text{Banda Ripple} = [1.2 \cdot F_3, \min(\text{Upper}, F_{\text{ripple\_max}})]$$
   Le variazioni di SPL a frequenze superiori vengono ignorate, permettendo all'altoparlante di raggiungere l'estensione massima senza essere penalizzato per ciò che accade fuori dalla banda d'uso.
@@ -76,24 +97,24 @@ dove $w_{\text{size}}$ aumenta fortemente non appena il target di estensione des
 
 ## 4. Griglia di Calcolo e Prestazioni
 
-### 4.1 Griglia a Due Stadi (Broad Scan + Winner Refinement)
+### 4.1 Ricerca coarse + verifica adattiva dei finalisti
 Nelle ricerche batch (Bass Match / Finder) su migliaia di altoparlanti, la simulazione dell'intero spettro denso ad ogni iterazione sarebbe inefficiente:
 1. **Fase 1 (Scansione Rapida)**: Vengono utilizzati **30 punti logaritmici** distribuiti sulla banda.
-2. **Fase 2 (Raffinamento del Vincitore)**: Solo sull'allineamento vincente viene applicata una seconda passata a **20 punti densi** centrati nell'intorno di $F_3$ con interpolazione sub-Hertziana.
-3. **Risposta Finale**: Il box scelto viene simulato sulla risoluzione richiesta dall'utente, normalmente **240 punti** e al massimo 80 nel runtime Cloud Run.
+2. **Fase 2 (Verifica dei finalisti)**: I migliori candidati sono rivalutati su una base di almeno **80 punti**, con inserimenti deterministici intorno ad accordi, extrema e regioni ad alta curvatura, più **20 punti** intorno a $F_3$.
+3. **Risposta Finale**: Il box scelto viene simulato sulla risoluzione richiesta dall'utente, normalmente **240 punti**. Il ripple viene ricalcolato su questa risposta e il candidato viene escluso se supera il limite.
 
 Con un Ripple frequency ceiling attivo, sia la griglia coarse sia quella finale
 usano i punti richiesti sotto il limite e una coda di 9 punti sopra: i 30 punti
 coarse diventano normalmente 38 punti distinti.
 
-Bass Match consente al Compass Search al massimo **30 valutazioni di box per
-combinazione driver × carico**, ridotte a 24 nel runtime Cloud Run. Questi sono
+Bass Match espone profili da **30/60/120 valutazioni di box per combinazione
+driver × carico**, ridotte a 24 nel runtime Cloud Run. Questi sono
 i tentativi complessivi: non vengono assegnati 30 tentativi a ciascuna
 variabile. Infinite baffle e passive radiator non eseguono questa ricerca del
 box: usano rispettivamente il modello senza box e lo starter fisico dedicato.
-Il budget non cresce con la dimensionalità: Sealed usa un asse, DCCAV quattro
-e Bandpass 8th order sei. I carichi complessi vengono quindi esplorati meno
-densamente per variabile, in cambio di un tempo batch prevedibile.
+Il numero richiesto non viene mai superato e include starter, sniff,
+sensitivity e pattern search. I campioni in frequenza di un box già valutato
+sono un budget spettrale separato.
 L'API generale `optimize_alignment()`, usata fuori dal Finder, conserva invece
 default più larghi di 260 valutazioni e 160 frequenze, senza refinement locale
 se il chiamante non lo richiede.
@@ -111,7 +132,7 @@ Quando è attivo un tetto di frequenza per il ripple ($F_{\text{ripple\_max}}$):
 1. Imposta **Optimization goal** = `Max extension`.
 2. Imposta **Max total volume** = volume massimo accettabile nel tuo ambiente (es. `60 L`).
 3. Imposta **Ripple frequency ceiling** = frequenza di incrocio del passa-basso (es. `70 Hz` o `80 Hz`).
-4. Risultato: l'ottimizzatore trova il volume e l'accordo che spingono $F_3$ al valore più basso possibile, valutando il ripple soltanto nella banda utile sotto gli 80 Hz. Il limite è una penalità di score, non una garanzia assoluta: il risultato finale va verificato nella tabella.
+4. Risultato: l'ottimizzatore trova il volume e l'accordo che spingono $F_3$ al valore più basso possibile, valutando il ripple soltanto nella banda utile sotto gli 80 Hz. Il limite è un vincolo di fattibilità verificato anche sulla risposta finale.
 
 ### Scenario B: Diffusore Hi-Fi Lineare a 2 o 3 Vie
 1. Imposta **Optimization goal** = `Flat response` o `Balanced`.
