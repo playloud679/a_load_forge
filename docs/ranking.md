@@ -38,12 +38,12 @@ detailed contracts live in `docs/dccav.md`.
   rows expose `V1 L`, `f1 Hz`, `V2 L`, `f2 Hz`, `V3 L` and `f3 Hz`; other
   loads leave those topology-specific columns empty
 - `finder_optimizer_evaluation_limit(module_path=None, profile="Standard")`:
-  returns per-driver evaluation budget (Fast: 30, Standard: 60, Deep: 120; capped on Cloud Run).
+  returns per-driver evaluation budget (Raw: 8, Fast: 30, Standard: 60, Deep: 120, Two-stage: 8 for pass 1 then 120 for finalists; capped on Cloud Run).
 - `finder_optimizer_frequency_plan(module_path=None, profile="Standard")`:
-  returns box-search frequency grid and finalist-F3 refinement counts (Fast:
+  returns box-search frequency grid and finalist-F3 refinement counts (Raw: 15/0, Fast:
   30/20, Standard: 30/20, Deep: 30/20). The engine adds deterministic
   tuning/extrema/curvature samples only for competitive finalists.
-- `SEARCH_PROFILES` / `SEARCH_PROFILE_FAST`, `SEARCH_PROFILE_STANDARD`, `SEARCH_PROFILE_DEEP`:
+- `SEARCH_PROFILES` / `SEARCH_PROFILE_RAW`, `SEARCH_PROFILE_FAST`, `SEARCH_PROFILE_STANDARD`, `SEARCH_PROFILE_DEEP`, `SEARCH_PROFILE_TWOSTAGE`:
   named search profiles tailoring search fidelity and speed.
 - `response_sparkline(spl, points=48, floor_db=-30)` plus the
   `SPARKLINE_POINTS` / `SPARKLINE_FLOOR_DB` constants used by the UI's
