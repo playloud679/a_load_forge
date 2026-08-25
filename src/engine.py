@@ -1461,44 +1461,56 @@ def port_diameter_for_load(
     """
     _require_positive("volume_l", volume_l)
     _require_positive("fb_hz", fb_hz)
-    floor_cm = np.ceil(max(float(floor_cm), 1.0) / grid_cm) * grid_cm
-    if port_volume_fraction(
-            volume_l, fb_hz, floor_cm, end_correction) > PORT_MAX_VOLUME_FRACTION:
+    vl = float(volume_l)
+    fb = float(fb_hz)
+    ec = float(end_correction)
+    fl = float(floor_cm)
+
+    floor_cm_snapped = np.ceil(max(fl, 1.0) / grid_cm) * grid_cm
+
+    w = 2.0 * np.pi * fb
+    coeff_a = (SPEED_OF_SOUND**2 * np.pi * 2.5) / ((w**2) * vl)
+    coeff_b = ec * 0.5
+    coeff_v = (np.pi * 0.25) / (vl * 1000.0)
+
+    def _fast_len_cm(d: float) -> float:
+        return coeff_a * (d**2) - coeff_b * d
+
+    def _fast_vol_frac(d: float) -> float:
+        l = _fast_len_cm(d)
+        if l <= 0:
+            return 0.0
+        return coeff_v * (d**2) * l
+
+    if _fast_vol_frac(floor_cm_snapped) > PORT_MAX_VOLUME_FRACTION:
         return None
-    # Duct fraction grows monotonically with diameter above the floor:
-    # bisect for the diameter where it crosses the cap.
-    if port_volume_fraction(
-            volume_l, fb_hz, max_diameter_cm, end_correction,
-    ) <= PORT_MAX_VOLUME_FRACTION:
+
+    if _fast_vol_frac(max_diameter_cm) <= PORT_MAX_VOLUME_FRACTION:
         fraction_cap_cm = max_diameter_cm
     else:
-        low_cm, high_cm = floor_cm, max_diameter_cm
+        low_cm, high_cm = floor_cm_snapped, max_diameter_cm
         for _ in range(40):
             mid_cm = 0.5 * (low_cm + high_cm)
-            if port_volume_fraction(
-                    volume_l, fb_hz, mid_cm, end_correction,
-            ) <= PORT_MAX_VOLUME_FRACTION:
+            if _fast_vol_frac(mid_cm) <= PORT_MAX_VOLUME_FRACTION:
                 low_cm = mid_cm
             else:
                 high_cm = mid_cm
         fraction_cap_cm = low_cm
-    if port_length_cm(
-            volume_l, fb_hz, fraction_cap_cm, end_correction) < target_length_cm:
-        # Even the largest fraction-compliant diameter yields a short duct;
-        # that is the best available compromise.
+
+    if _fast_len_cm(fraction_cap_cm) < target_length_cm:
         raw_cm = fraction_cap_cm
     else:
-        # Smallest diameter in [floor_cm, fraction_cap_cm] reaching the length target.
-        low_cm, high_cm = floor_cm, fraction_cap_cm
+        low_cm, high_cm = floor_cm_snapped, fraction_cap_cm
         for _ in range(40):
             mid_cm = 0.5 * (low_cm + high_cm)
-            if port_length_cm(volume_l, fb_hz, mid_cm, end_correction) < target_length_cm:
+            if _fast_len_cm(mid_cm) < target_length_cm:
                 low_cm = mid_cm
             else:
                 high_cm = mid_cm
         raw_cm = high_cm
+
     floor_rounded_cm = np.floor(raw_cm / grid_cm) * grid_cm
-    if floor_rounded_cm >= floor_cm:
+    if floor_rounded_cm >= floor_cm_snapped:
         return float(floor_rounded_cm)
     return float(np.ceil(raw_cm / grid_cm) * grid_cm)
 
@@ -3724,7 +3736,7 @@ def _validate_sealed_box(box: SealedBox) -> None:
 
 
 def _require_positive(name: str, value: float) -> None:
-    if not np.isfinite(value) or value <= 0:
+    if value <= 0 or value != value:
         raise ValueError(f"{name} must be positive")
 
 

@@ -3,6 +3,7 @@
 ## 0.11.1 (2026-08-26)
 
 - Restored clean single-stage search profiles (**Fast**: 30 evaluations, **Standard**: 60 evaluations [default], **Deep**: 120 evaluations) with full per-candidate optimization.
+- Optimized port dimensioning math (`port_diameter_for_load`) and hot-loop validations in `src/engine.py`, speeding up per-candidate simulation and ranking throughput.
 - Enhanced ripple evaluation to include sub-passband resonant bounces and oscillations below F3, preventing anomalous double-peaked or poorly damped alignments from bypassing the maximum ripple constraint.
 - Full active test suite passes fresh with 0 failures across 183 tests (`PASS: 183 FAIL: 0 SKIP: 0`).
 
