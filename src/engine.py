@@ -1764,6 +1764,15 @@ def _score_alignment(
         score += weights["ripple"] * ripple / 6.0
         if goals.max_ripple_db and goals.max_ripple_db > 0 and ripple > goals.max_ripple_db:
             score += 5.0 * (ripple - goals.max_ripple_db)
+        elif deepest_extension and goals.max_ripple_db is None:
+            # Implicit ripple guard for free-running extension: without an explicit
+            # user ceiling the optimizer would keep buying F3 depth at the cost of
+            # audible passband coloration (e.g. 12" in 75 L → 20 Hz).
+            # 4 dB is the practical HiFi limit; penalise excess with weight 3×
+            # so every 1 Hz of spurious low-end costs more than it gains.
+            _IMPLICIT_RIPPLE_CAP_DB = 4.0
+            if ripple > _IMPLICIT_RIPPLE_CAP_DB:
+                score += 3.0 * (ripple - _IMPLICIT_RIPPLE_CAP_DB)
     if goals.target_f3_hz and f3 > goals.target_f3_hz:
         score += 0.5 * (f3 - goals.target_f3_hz) / goals.target_f3_hz
     exc_ratio = metrics["excursion_ratio"]

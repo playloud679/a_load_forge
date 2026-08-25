@@ -25,7 +25,11 @@ detailed contracts live in `docs/dccav.md`.
   excursion/thermal maximum-output curve, nominal `Size in` metadata and the
   active single/composite driver's effective piston area `Sd cm²`;
   unusable presets return `None` instead of raising
-- `sort_ranked_rows(rows)`: deepest F3 first, then F6/F10 and loudest peak
+- `sort_ranked_rows(rows, max_ripple_db=0.0)`: deepest **effective F3** first, then
+  F6/F10 and loudest peak. When `max_ripple_db > 0`, drivers whose ripple exceeds
+  the threshold are demoted via an effective-F3 penalty of 10 Hz per excess dB,
+  so a coloured alignment does not outrank a clean one just because it hits a
+  lower raw F3
 - `rank_sort_value(value)`: `inf` for non-finite sort keys
 - `RankingCandidate` / `ranking_candidate(name)`: resolve a named preset in the
   catalog-owning parent into the compact T/S and table metadata sent to workers
