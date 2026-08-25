@@ -7651,12 +7651,20 @@ def _run_find_driver_search(
     st.session_state["_finder_match_completion"] = completion_text
     st.session_state["batch_results"] = all_rows
     st.session_state["batch_search_completed"] = True
+    evals_per_candidate = _ranking.finder_optimizer_evaluation_limit(profile=finder_search_profile)
+    # Each candidate undergoes full compass evaluations + narrow F3 refinement passes + finalist adaptive grid verification
+    refine_mult = 1.25 if evals_per_candidate >= 30 else 1.0
+    actual_acoustic_simulations = int(eligible_total * evals_per_candidate * refine_mult)
+
     st.session_state["finder_last_run_stats"] = {
         "elapsed_s": elapsed_s,
         "milliseconds_per_simulation": elapsed_ms_per_simulation,
         "milliseconds_per_driver": elapsed_ms_per_driver,
         "simulations_per_second": simulations_per_second,
         "simulations": eligible_total,
+        "actual_acoustic_simulations": actual_acoustic_simulations,
+        "evaluations_per_driver": evals_per_candidate,
+        "search_profile": finder_search_profile,
         "unique_drivers": unique_driver_total,
         "skipped_a_priori": int(prefilter_stats["rejected_simulations"]),
         "loads": load_run_stats,
@@ -8184,22 +8192,25 @@ def _render_finder_run_statistics() -> None:
         return
     try:
         elapsed_s = float(stats.get("elapsed_s", 0.0))
-        ms_per_simulation = float(
-            stats.get("milliseconds_per_simulation", 0.0)
-        )
+        ms_per_driver = float(stats.get("milliseconds_per_driver", 0.0))
         simulations_per_second = float(
             stats.get("simulations_per_second", 0.0)
         )
         unique_drivers = int(stats.get("unique_drivers", 0))
         simulations = int(stats.get("simulations", 0))
+        actual_sims = int(stats.get("actual_acoustic_simulations", 0))
+        evals_per_drv = int(stats.get("evaluations_per_driver", 60))
+        profile_name = str(stats.get("search_profile", "Standard"))
     except (TypeError, ValueError):
         return
+
+    actual_str = f" · **{actual_sims:,}** physical simulations ({evals_per_drv} evals/drv · *{profile_name}*)" if actual_sims > 0 else ""
     st.markdown(
         "**Last calculation** · "
         f"{elapsed_s:.2f} s total · "
-        f"{ms_per_simulation:.1f} ms/simulation · "
-        f"{simulations_per_second:.1f} simulations/s · "
-        f"{unique_drivers:,} drivers / {simulations:,} simulations"
+        f"{ms_per_driver:.1f} ms/driver · "
+        f"{unique_drivers:,} drivers / {simulations:,} optimized candidates"
+        f"{actual_str}"
     )
 
 
