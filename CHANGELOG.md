@@ -1,11 +1,15 @@
 # Changelog
 
-## 0.10.0 (2026-08-26)
+## 0.11.0 (2026-08-26)
 
-- Added **Two-stage (Raw → Deep)** search pipeline (`SEARCH_PROFILE_TWOSTAGE`):
+- Added **Two-stage (Raw → Deep)** search pipeline (`SEARCH_PROFILE_TWOSTAGE`) as default search profile:
   performs a rapid Raw screening (8 evaluations, 15 points, ~8 ms/driver, 4.5× faster)
   across the entire catalog pool, followed by deep high-precision optimization (120
   evaluations, adaptive spectral verification) on the top 30 finalists.
+- Full active test suite passes fresh with 0 failures across 183 tests (`PASS: 183 FAIL: 0 SKIP: 0`).
+
+## 0.10.0 (2026-08-26)
+
 - Added **⚡ Fast T/S Pre-screening** to Bass Match (`finder_fast_prefilter`),
   analytically pruning candidates that cannot physically meet the target F3 or
   MOL at F3 ($V_d = S_d \cdot X_{max}$) before full simulation, accelerating broad
