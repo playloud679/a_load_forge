@@ -127,29 +127,10 @@ def ranking_candidate(name: str) -> RankingCandidate:
     )
 
 
-def sort_ranked_rows(rows: list[dict], max_ripple_db: float = 0.0) -> list[dict]:
-    """Deepest F3 first, then F6/F10 and the loudest peak as tie-breakers.
-
-    When *max_ripple_db* is positive, drivers whose ripple exceeds the
-    threshold are penalised by inflating their effective F3 so that a clean
-    alignment at a slightly higher F3 ranks above a coloured one.  The penalty
-    is 10 Hz per dB of excess ripple, enough to outrank a few Hz of extension
-    that would be inaudible behind the passband coloration.
-    """
-    _RIPPLE_PENALTY_HZ_PER_DB = 10.0
-
-    def _effective_f3(row: dict) -> float:
-        f3 = float(row["F3 Hz"])
-        if not np.isfinite(f3):
-            return float("inf")
-        if max_ripple_db > 0:
-            ripple = float(row.get("Ripple dB", 0.0))
-            if np.isfinite(ripple) and ripple > max_ripple_db:
-                f3 += _RIPPLE_PENALTY_HZ_PER_DB * (ripple - max_ripple_db)
-        return f3
-
+def sort_ranked_rows(rows: list[dict]) -> list[dict]:
+    """Deepest F3 first, then F6/F10 and the loudest peak as tie-breakers."""
     rows.sort(key=lambda row: (
-        _effective_f3(row),
+        rank_sort_value(row["F3 Hz"]),
         rank_sort_value(row["F6 Hz"]),
         rank_sort_value(row["F10 Hz"]),
         -float(row["Peak dB"]) if np.isfinite(float(row["Peak dB"])) else 0.0,

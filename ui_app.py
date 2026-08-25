@@ -7547,7 +7547,7 @@ def _run_find_driver_search(
             row["Currency"] = display_currency
         filtered_rows.append(row)
     all_rows = filtered_rows
-    all_rows = _acoustics.sort_ranked_rows(all_rows, max_ripple_db=max_ripple_db)
+    all_rows = _acoustics.sort_ranked_rows(all_rows)
     all_rows, collapsed_result_rows = _deduplicate_finder_result_rows(
         all_rows
     )
