@@ -70,18 +70,11 @@ def finder_worker_ready() -> tuple[int, int, int]:
     )
 
 
-SEARCH_PROFILE_RAW = "Raw"
 SEARCH_PROFILE_FAST = "Fast"
 SEARCH_PROFILE_STANDARD = "Standard"
 SEARCH_PROFILE_DEEP = "Deep"
-SEARCH_PROFILE_TWOSTAGE = "Two-stage (Raw → Deep)"
 
 SEARCH_PROFILES = {
-    SEARCH_PROFILE_RAW: {
-        "max_evaluations": 8,
-        "coarse_points": 15,
-        "refine_f3_points": 0,
-    },
     SEARCH_PROFILE_FAST: {
         "max_evaluations": 30,
         "coarse_points": 30,
@@ -96,11 +89,6 @@ SEARCH_PROFILES = {
         "max_evaluations": 120,
         "coarse_points": 30,
         "refine_f3_points": 20,
-    },
-    SEARCH_PROFILE_TWOSTAGE: {
-        "max_evaluations": 8,
-        "coarse_points": 15,
-        "refine_f3_points": 0,
     },
 }
 

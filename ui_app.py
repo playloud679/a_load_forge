@@ -1853,7 +1853,7 @@ _FINDER_DEFAULTS = {
     "finder_rank_mode": _FINDER_RANK_F3,
     "finder_volume_l": 40.0,
     "finder_objective": "Max extension",
-    "finder_search_profile": _ranking.SEARCH_PROFILE_TWOSTAGE,
+    "finder_search_profile": _ranking.SEARCH_PROFILE_STANDARD,
     "finder_voltage": 2.83,
     "finder_max_ripple_db": 3.0,
     "finder_max_ripple_freq_hz": 0.0,
@@ -7524,9 +7524,6 @@ def _run_find_driver_search(
             load_scan_count,
         )
         finder_search_profile = str(_finder_value("finder_search_profile"))
-        is_two_stage = finder_search_profile == _ranking.SEARCH_PROFILE_TWOSTAGE
-        active_profile = _ranking.SEARCH_PROFILE_RAW if is_two_stage else finder_search_profile
-
         if load_scan_count > 8:
             batch_rows = _batch_rank_presets_parallel(
                 *rank_args,
@@ -7536,7 +7533,7 @@ def _run_find_driver_search(
                 completed_offset,
                 progress_total,
                 finder_driver_configuration,
-                active_profile,
+                finder_search_profile,
             )
             # A worker can hold a stale external-catalog module after a
             # Streamlit reload. If the whole pool returns no rows, retry this
@@ -7557,7 +7554,7 @@ def _run_find_driver_search(
                     completed_offset,
                     progress_total,
                     finder_driver_configuration,
-                    active_profile,
+                    finder_search_profile,
                 )
         else:
             batch_rows = _batch_rank_presets_with_progress(
@@ -7568,47 +7565,8 @@ def _run_find_driver_search(
                 completed_offset,
                 progress_total,
                 finder_driver_configuration,
-                active_profile,
+                finder_search_profile,
             )
-
-        # Stage 2: Deep refinement on top candidates if Two-stage profile is active
-        if is_two_stage and batch_rows and goals is not None:
-            sorted_stage1 = _acoustics.sort_ranked_rows(list(batch_rows))
-            # Take top 30 candidates (or all if fewer) for high-precision deep polish
-            top_candidates = sorted_stage1[:min(30, len(sorted_stage1))]
-            top_names = [str(r.get("Driver", "")) for r in top_candidates if r.get("Driver")]
-            if top_names:
-                if progress_text is not None:
-                    progress_text.caption(f"Refining Top {len(top_names)} candidates with Deep optimizer · {lt}")
-                refined_rows = _batch_rank_presets_parallel(
-                    tuple(top_names),
-                    ranking_load_type,
-                    finder_volume_l,
-                    float(_finder_value("finder_voltage")),
-                    float(_finder_value("finder_f_min")),
-                    float(_finder_value("finder_f_max")),
-                    int(_finder_value("finder_points")),
-                    len(top_names),
-                    goals,
-                    progress,
-                    progress_text,
-                    0,
-                    len(top_names),
-                    finder_driver_configuration,
-                    _ranking.SEARCH_PROFILE_DEEP,
-                )
-                refined_by_driver = {
-                    str(r.get("Driver", "")): r for r in refined_rows if r.get("Driver")
-                }
-                # Replace stage 1 entries with high-precision stage 2 entries
-                updated_batch = []
-                for r in batch_rows:
-                    d_name = str(r.get("Driver", ""))
-                    if d_name in refined_by_driver:
-                        updated_batch.append(refined_by_driver[d_name])
-                    else:
-                        updated_batch.append(r)
-                batch_rows = updated_batch
         load_run_stats[lt] = {
             "attempted": load_scan_count,
             "usable": len(batch_rows),
@@ -9740,7 +9698,7 @@ with st.sidebar:
                         "Search profile",
                         list(_ranking.SEARCH_PROFILES.keys()),
                         key="finder_search_profile",
-                        help="Two-stage: super-fast Raw screening across the whole catalog followed by Deep polish on top finalists. Raw: ultra-fast screening. Fast/Standard/Deep: single-pass with 30/60/120 evals.",
+                        help="Fast: quick screener (30 evals/driver). Standard: balanced default (60 evals/driver). Deep: high-precision exploration (120 evals/driver).",
                     )
                     _finder_number_input(
                         "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,

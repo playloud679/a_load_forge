@@ -2,15 +2,8 @@
 
 ## 0.11.1 (2026-08-26)
 
+- Restored clean single-stage search profiles (**Fast**: 30 evaluations, **Standard**: 60 evaluations [default], **Deep**: 120 evaluations) with full per-candidate optimization.
 - Enhanced ripple evaluation to include sub-passband resonant bounces and oscillations below F3, preventing anomalous double-peaked or poorly damped alignments from bypassing the maximum ripple constraint.
-- Full active test suite passes fresh with 0 failures across 183 tests (`PASS: 183 FAIL: 0 SKIP: 0`).
-
-## 0.11.0 (2026-08-26)
-
-- Added **Two-stage (Raw → Deep)** search pipeline (`SEARCH_PROFILE_TWOSTAGE`) as default search profile:
-  performs a rapid Raw screening (8 evaluations, 15 points, ~8 ms/driver, 4.5× faster)
-  across the entire catalog pool, followed by deep high-precision optimization (120
-  evaluations, adaptive spectral verification) on the top 30 finalists.
 - Full active test suite passes fresh with 0 failures across 183 tests (`PASS: 183 FAIL: 0 SKIP: 0`).
 
 ## 0.10.0 (2026-08-26)
