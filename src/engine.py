@@ -1794,7 +1794,7 @@ def _score_alignment(
     # push harder toward the compact solution.
     target_f3 = goals.target_f3_hz
     target_met = target_f3 is not None and target_f3 > 0 and f3 <= target_f3
-    size_weight = 0.15 if target_met else (0.002 if deepest_extension else 0.02)
+    size_weight = 0.15 if target_met else (0.015 if deepest_extension else 0.02)
     score += size_weight * metrics["total_volume_l"] / max(ts.vas_l, EPS)
     return float(score)
 
