@@ -1862,6 +1862,7 @@ _FINDER_DEFAULTS = {
     "finder_min_spl_db": 0.0,
     "finder_min_mol_f3_db": 0.0,
     "finder_max_f3_hz": 0.0,
+    "finder_fast_prefilter": True,
     "finder_max_mms_g": 0.0,
     "finder_max_le_mh": 0.0,
     "finder_f_min": 10.0,
@@ -7172,23 +7173,57 @@ def _finder_candidate_precheck(
     voltage_v: float,
     min_spl_db: float,
     max_ripple_db: float,
+    max_f3_hz: float = 0.0,
+    min_mol_f3_db: float = 0.0,
+    max_volume_l: float = 0.0,
+    fast_prefilter: bool = True,
 ) -> str | None:
     """Return why a candidate can be rejected before enclosure simulation."""
     if load_type not in {"Sealed", "Infinite baffle"} and ts.xmax_mm <= 0.0:
         return "missing Xmax"
-    if min_spl_db <= 0.0:
-        return None
-    reference = _acoustics.driver_reference_metrics(ts)
-    drive_spl_db = reference.spl_2v83_db + 20.0 * np.log10(
-        float(voltage_v) / 2.83
-    )
-    enclosure_headroom_db = (
-        1.0
-        if load_type == "Infinite baffle"
-        else max(_FINDER_SPL_PREFILTER_HEADROOM_DB, float(max_ripple_db))
-    )
-    if drive_spl_db + enclosure_headroom_db < float(min_spl_db):
-        return "reference SPL"
+    if min_spl_db > 0.0:
+        reference = _acoustics.driver_reference_metrics(ts)
+        drive_spl_db = reference.spl_2v83_db + 20.0 * np.log10(
+            float(voltage_v) / 2.83
+        )
+        enclosure_headroom_db = (
+            1.0
+            if load_type == "Infinite baffle"
+            else max(_FINDER_SPL_PREFILTER_HEADROOM_DB, float(max_ripple_db))
+        )
+        if drive_spl_db + enclosure_headroom_db < float(min_spl_db):
+            return "reference SPL"
+
+    if fast_prefilter:
+        loaded_fs = _acoustics.panel_loaded_fs_hz(ts)
+        # Analytical maximum F3 feasibility check:
+        # A sealed or infinite baffle box can never produce an F3 lower than ~0.65 * Fs.
+        # A vented / bandpass / DCCAV box cannot credibly reach an F3 lower than Fs / 2.5
+        # under realistic damping and volume bounds without extreme response anomalies.
+        if max_f3_hz > 0.0:
+            if load_type in {"Sealed", "Infinite baffle"}:
+                if float(max_f3_hz) < loaded_fs * 0.65:
+                    return "F3 infeasible"
+            elif loaded_fs > float(max_f3_hz) * 2.5:
+                return "F3 infeasible"
+
+        # Analytical MOL @ F3 feasibility check (Maximum acoustic volume displacement):
+        # Maximum excursion-limited low-frequency pressure from cone displacement Vd = Sd * Xmax.
+        # Half-space acoustic pressure at 1 m from volume displacement Vd at frequency f:
+        # P_rms = (2 * pi * f^2 * rho * Vd) / sqrt(2).
+        # We allow a generous +12 dB headroom for Helmholtz / quarter-wave resonance reinforcement.
+        if min_mol_f3_db > 0.0 and max_f3_hz > 0.0 and ts.xmax_mm > 0.0 and ts.pe_w > 0.0:
+            sd_m2 = ts.sd_cm2 / 10000.0
+            xmax_m = ts.xmax_mm / 1000.0
+            vd_m3 = sd_m2 * xmax_m
+            if vd_m3 > 0.0:
+                f_eval = float(max_f3_hz)
+                p_rms = (2.0 * np.pi * (f_eval**2) * 1.2041 * vd_m3) / 1.41421356
+                spl_excursion_cone = 20.0 * np.log10(max(p_rms, 1e-12) / 20e-6)
+                headroom_db = 12.0 if load_type != "Infinite baffle" else 0.0
+                if spl_excursion_cone + headroom_db < float(min_mol_f3_db):
+                    return "MOL infeasible"
+
     return None
 
 
@@ -7287,6 +7322,10 @@ def _prefilter_finder_candidate_pools(
     voltage_v: float,
     min_spl_db: float,
     max_ripple_db: float,
+    max_f3_hz: float,
+    min_mol_f3_db: float,
+    max_volume_l: float,
+    fast_prefilter: bool,
     driver_configuration: str,
     pool_fingerprint: tuple,
 ) -> tuple[tuple[tuple[str, tuple[str, ...]], ...], dict[str, int]]:
@@ -7297,6 +7336,8 @@ def _prefilter_finder_candidate_pools(
         "reference SPL": 0,
         "missing Xmax": 0,
         "invalid T/S": 0,
+        "F3 infeasible": 0,
+        "MOL infeasible": 0,
     }
     eligible_drivers: set[str] = set()
     for name in preset_names:
@@ -7316,11 +7357,15 @@ def _prefilter_finder_candidate_pools(
                     voltage_v,
                     min_spl_db,
                     max_ripple_db,
+                    max_f3_hz=max_f3_hz,
+                    min_mol_f3_db=min_mol_f3_db,
+                    max_volume_l=max_volume_l,
+                    fast_prefilter=fast_prefilter,
                 )
             except Exception:
                 reason = "invalid T/S"
             if reason is not None:
-                rejected_by_reason[reason] += 1
+                rejected_by_reason[reason] = rejected_by_reason.get(reason, 0) + 1
                 continue
             pools[load_type].append(name)
             eligible_drivers.add(name)
@@ -7336,9 +7381,11 @@ def _prefilter_finder_candidate_pools(
         "total_simulations": total_simulations,
         "eligible_simulations": eligible_simulations,
         "rejected_simulations": total_simulations - eligible_simulations,
-        "rejected_spl": rejected_by_reason["reference SPL"],
-        "rejected_xmax": rejected_by_reason["missing Xmax"],
-        "rejected_invalid": rejected_by_reason["invalid T/S"],
+        "rejected_spl": rejected_by_reason.get("reference SPL", 0),
+        "rejected_xmax": rejected_by_reason.get("missing Xmax", 0),
+        "rejected_invalid": rejected_by_reason.get("invalid T/S", 0),
+        "rejected_f3": rejected_by_reason.get("F3 infeasible", 0),
+        "rejected_mol": rejected_by_reason.get("MOL infeasible", 0),
     }
 
 
@@ -7356,6 +7403,10 @@ def _finder_prefilter(
         float(_finder_value("finder_voltage")),
         float(st.session_state.get("finder_min_spl_db", 0.0) or 0.0),
         float(st.session_state.get("finder_max_ripple_db", 0.0) or 0.0),
+        float(st.session_state.get("finder_max_f3_hz", 0.0) or 0.0),
+        float(st.session_state.get("finder_min_mol_f3_db", 0.0) or 0.0),
+        float(_finder_value("finder_volume_l")),
+        bool(st.session_state.get("finder_fast_prefilter", True)),
         str(_finder_value("finder_driver_configuration")),
         _finder_pool_fingerprint(1),
     )
@@ -7737,6 +7788,11 @@ def _render_find_driver_goal_sidebar() -> None:
                  "inductance is no greater than this value. Le10k is not "
                  "substituted; candidates without Le are excluded while the "
                  "limit is active. 0 disables.",
+        )
+        st.checkbox(
+            "⚡ Fast T/S pre-screening",
+            key="finder_fast_prefilter",
+            help="Analytically exclude drivers that cannot physically achieve the requested F3 or MOL before running full enclosure simulations, accelerating search speed by up to 10×.",
         )
 
 

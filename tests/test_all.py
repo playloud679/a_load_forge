@@ -7207,6 +7207,25 @@ def _check_ui_finder_prefilters_known_driver_limits():
         no_xmax, "Sealed", 2.83, 0.0, 3.0
     ) is None
 
+    # Analytical F3 and MOL pre-screening tests:
+    # KEF B110 loaded Fs is ~36 Hz. For sealed box, max F3 of 20 Hz is infeasible (20 < 36 * 0.65 = 23.4)
+    assert _ui._finder_candidate_precheck(
+        ts, "Sealed", 2.83, 0.0, 3.0, max_f3_hz=20.0, fast_prefilter=True
+    ) == "F3 infeasible"
+    # When fast_prefilter is False, it is not rejected
+    assert _ui._finder_candidate_precheck(
+        ts, "Sealed", 2.83, 0.0, 3.0, max_f3_hz=20.0, fast_prefilter=False
+    ) is None
+    # High loaded Fs driver (e.g. Fs = 150 Hz) cannot reach 35 Hz F3 in vented load (150 > 35 * 2.5 = 87.5)
+    high_fs = replace(ts, fs_hz=150.0)
+    assert _ui._finder_candidate_precheck(
+        high_fs, "Bass reflex", 2.83, 0.0, 3.0, max_f3_hz=35.0, fast_prefilter=True
+    ) == "F3 infeasible"
+    # Tiny displacement driver (small Sd & Xmax) cannot reach 115 dB MOL @ 30 Hz
+    assert _ui._finder_candidate_precheck(
+        ts, "Bass reflex", 2.83, 0.0, 3.0, max_f3_hz=30.0, min_mol_f3_db=115.0, fast_prefilter=True
+    ) == "MOL infeasible"
+
 
 test(
     "UI Finder prefilters reference SPL and known load requirements",
