@@ -1679,10 +1679,10 @@ def _optimizer_metrics(
             f_high = _high_side_crossing(
                 f[peak_idx:], spl[peak_idx:], float(spl[peak_idx]) - 3.0)
             upper = min(float(f.max()), 0.90 * f_high) if np.isfinite(f_high) else float(f.max())
+        elif ripple_max_freq_hz is not None and float(ripple_max_freq_hz) > 0:
+            upper = min(float(f.max()), float(ripple_max_freq_hz))
         else:
             upper = min(float(f.max()), max(200.0, 2.0 * f3))
-        if ripple_max_freq_hz is not None and float(ripple_max_freq_hz) > 0:
-            upper = min(upper, float(ripple_max_freq_hz))
         band = (f >= 1.2 * f3) & (f <= upper)
         if np.any(band):
             ripple = float(np.nanmax(spl[band]) - np.nanmin(spl[band]))

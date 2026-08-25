@@ -42,9 +42,12 @@ contracts and the test list — lives in `docs/dccav.md`.
   `frequency_points` / `refine_f3_points` controls let hosted Finder runs use
   30 logarithmic points over the complete band and give only the winner 20
   points around its estimated F3; defaults remain the original 160/0 for local
-  optimizer fidelity. Setting `goals.ripple_max_freq_hz` limits the ripple
-  evaluation window to low-frequency subwoofer passbands and generates a
-  `segmented_frequency_grid` with high resolution below the ceiling and 9 sparse points above. If refinement puts DCCAV just below its credibility
+  optimizer fidelity.  Setting `goals.ripple_max_freq_hz` limits the ripple evaluation window to a
+  specific frequency ceiling and generates a `segmented_frequency_grid` with
+  high resolution below the ceiling and 9 sparse points above. When no ceiling
+  is given, ripple is evaluated from `1.2×F3` up to `min(f_max, max(200 Hz, 2×F3))` —
+  the 200 Hz floor ensures midbass peaks are captured even for very low-F3 subs.
+  If refinement puts DCCAV just below its credibility
   boundary, both tunings are reduced together by the minimum required factor
   and the winner is checked again
 - Analysis: `response_metrics`, `response_threshold_frequencies` (using logarithmic frequency interpolation across dB/oct roll-off slopes for sub-Hz F3/F6/F10 accuracy relative to reference passband SPL, and supporting optional `f_max_hz` to bound reference level and discard crossings above the cutout ceiling),
