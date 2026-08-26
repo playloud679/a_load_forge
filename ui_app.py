@@ -440,39 +440,41 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
         if not isinstance(claims, dict):
             _render_local_account_gate()
     else:
-        try:
-            logged_in = bool(st.user.is_logged_in)
-        except (AttributeError, RuntimeError):
-            logged_in = False
-        if not logged_in:
-            _, col_center, _ = st.columns([1, 3.2, 1])
-            with col_center:
-                _render_auth_hero_and_badges(
-                    title="Sign in to Load Forge",
-                    subtitle="Sign in to save and manage your box designs, simulations, and driver catalog.",
-                )
-                try:
-                    auth_configured = "auth" in st.secrets
-                except (FileNotFoundError, RuntimeError):
-                    auth_configured = False
-                if not auth_configured:
-                    _render_local_account_gate()
-                    st.stop()
-                if st.button("Sign in", type="primary", width="stretch"):
-                    if _SAAS_SETTINGS.oidc_provider:
-                        st.login(_SAAS_SETTINGS.oidc_provider)
-                    else:
-                        st.login()
-                st.markdown(
-                    """
-                    <div style="text-align: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: rgba(255,255,255,0.40); line-height: 1.4;">
-                        Single Sign-On (OIDC) · Cloud storage · Autosaved projects
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            st.stop()
-        claims = st.user.to_dict()
+        claims = st.session_state.get(_LOCAL_ACCOUNT_SESSION_KEY)
+        if not isinstance(claims, dict):
+            try:
+                logged_in = bool(st.user.is_logged_in)
+            except (AttributeError, RuntimeError):
+                logged_in = False
+            if not logged_in:
+                _, col_center, _ = st.columns([1, 3.2, 1])
+                with col_center:
+                    _render_auth_hero_and_badges(
+                        title="Sign in to Load Forge",
+                        subtitle="Sign in to save and manage your box designs, simulations, and driver catalog.",
+                    )
+                    try:
+                        auth_configured = "auth" in st.secrets
+                    except (FileNotFoundError, RuntimeError):
+                        auth_configured = False
+                    if not auth_configured:
+                        _render_local_account_gate()
+                        st.stop()
+                    if st.button("Sign in", type="primary", width="stretch"):
+                        if _SAAS_SETTINGS.oidc_provider:
+                            st.login(_SAAS_SETTINGS.oidc_provider)
+                        else:
+                            st.login()
+                    st.markdown(
+                        """
+                        <div style="text-align: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: rgba(255,255,255,0.40); line-height: 1.4;">
+                            Single Sign-On (OIDC) · Cloud storage · Autosaved projects
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                st.stop()
+            claims = st.user.to_dict()
 
     expires_at = claims.get("exp")
     if expires_at is not None:
