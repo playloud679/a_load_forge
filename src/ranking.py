@@ -70,27 +70,29 @@ def finder_worker_ready() -> tuple[int, int, int]:
     )
 
 
-SEARCH_PROFILE_FAST = "Fast"
 SEARCH_PROFILE_STANDARD = "Standard"
 SEARCH_PROFILE_DEEP = "Deep"
 
 SEARCH_PROFILES = {
-    SEARCH_PROFILE_FAST: {
-        "max_evaluations": 30,
-        "coarse_points": 30,
-        "refine_f3_points": 20,
-    },
     SEARCH_PROFILE_STANDARD: {
         "max_evaluations": 60,
         "coarse_points": 30,
         "refine_f3_points": 20,
+        "credit_multiplier": 1,
     },
     SEARCH_PROFILE_DEEP: {
         "max_evaluations": 120,
         "coarse_points": 30,
         "refine_f3_points": 20,
+        "credit_multiplier": 2,
     },
 }
+
+
+def search_profile_credit_multiplier(profile: str = SEARCH_PROFILE_STANDARD) -> int:
+    """Return the credit cost multiplier for this search profile (Standard: 1, Deep: 2)."""
+    spec = SEARCH_PROFILES.get(profile, SEARCH_PROFILES[SEARCH_PROFILE_STANDARD])
+    return int(spec.get("credit_multiplier", 1))
 
 
 def finder_optimizer_evaluation_limit(

@@ -38,13 +38,15 @@ detailed contracts live in `docs/dccav.md`.
   rows expose `V1 L`, `f1 Hz`, `V2 L`, `f2 Hz`, `V3 L` and `f3 Hz`; other
   loads leave those topology-specific columns empty
 - `finder_optimizer_evaluation_limit(module_path=None, profile="Standard")`:
-  returns per-driver evaluation budget (Fast: 30, Standard: 60, Deep: 120; capped on Cloud Run).
+  returns per-driver evaluation budget (Standard: 60, Deep: 120; capped on Cloud Run).
 - `finder_optimizer_frequency_plan(module_path=None, profile="Standard")`:
-  returns box-search frequency grid and finalist-F3 refinement counts (Fast:
-  30/20, Standard: 30/20, Deep: 30/20). The engine adds deterministic
-  tuning/extrema/curvature samples only for competitive finalists.
-- `SEARCH_PROFILES` / `SEARCH_PROFILE_FAST`, `SEARCH_PROFILE_STANDARD`, `SEARCH_PROFILE_DEEP`:
-  named search profiles tailoring search fidelity and speed.
+  returns box-search frequency grid and finalist-F3 refinement counts (Standard:
+  30/20, Deep: 30/20). The engine adds deterministic tuning/extrema/curvature
+  samples only for competitive finalists.
+- `search_profile_credit_multiplier(profile="Standard")`:
+  returns the credit cost multiplier (Standard: 1x, Deep: 2x per candidate).
+- `SEARCH_PROFILES` / `SEARCH_PROFILE_STANDARD`, `SEARCH_PROFILE_DEEP`:
+  named search profiles tailoring search fidelity and cost.
 - `response_sparkline(spl, points=48, floor_db=-30)` plus the
   `SPARKLINE_POINTS` / `SPARKLINE_FLOOR_DB` constants used by the UI's
   `LineChartColumn`

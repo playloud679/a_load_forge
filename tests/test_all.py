@@ -9279,15 +9279,13 @@ def _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast():
     cloud_path = _ui.Path("/mount/src/load_forge/ui_app.py")
     assert _ui._is_streamlit_community_cloud(cloud_path)
     assert _ui._ranking.finder_optimizer_evaluation_limit(
-        _ui.Path("/mount/src/load_forge/src/ranking.py"), profile="Fast") == 30
-    assert _ui._ranking.finder_optimizer_evaluation_limit(
         _ui.Path("/mount/src/load_forge/src/ranking.py"), profile="Standard") == 60
     assert _ui._ranking.finder_optimizer_evaluation_limit(
         _ui.Path("/mount/src/load_forge/src/ranking.py"), profile="Deep") == 120
-    assert _ui._ranking.finder_optimizer_evaluation_limit(
-        _ui.Path("/Users/example/load_forge/src/ranking.py"), profile="Fast") == 30
+    assert _ui._ranking.search_profile_credit_multiplier("Standard") == 1
+    assert _ui._ranking.search_profile_credit_multiplier("Deep") == 2
     assert _ui._ranking.finder_optimizer_frequency_plan(
-        _ui.Path("/mount/src/load_forge/src/ranking.py"), profile="Fast") == (30, 20)
+        _ui.Path("/mount/src/load_forge/src/ranking.py"), profile="Standard") == (30, 20)
     assert _ui._ranking.finder_optimizer_frequency_plan(
         _ui.Path("/Users/example/load_forge/src/ranking.py"), profile="Deep") == (30, 20)
     assert _ui._finder_executor_backend(cloud_path) == "thread"

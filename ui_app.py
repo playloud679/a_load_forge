@@ -8205,11 +8205,13 @@ def _render_finder_run_statistics() -> None:
         return
 
     actual_str = f" · **{actual_sims:,}** physical simulations ({evals_per_drv} evals/drv · *{profile_name}*)" if actual_sims > 0 else ""
+    credit_mult = _ranking.search_profile_credit_multiplier(profile_name)
+    credits_consumed = simulations * credit_mult
     st.markdown(
         "**Last calculation** · "
         f"{elapsed_s:.2f} s total · "
         f"{ms_per_driver:.1f} ms/driver · "
-        f"{unique_drivers:,} drivers / {simulations:,} optimized candidates"
+        f"**{credits_consumed:,} credits consumed** ({simulations:,} candidates · {credit_mult}× {profile_name})"
         f"{actual_str}"
     )
 
@@ -8236,9 +8238,14 @@ def _render_bass_match_hero(
     }
     constraints = _finder_brief_constraints(len(selected_preset_names))
 
-    if "_monthly_simulations_used" not in st.session_state:
-        st.session_state["_monthly_simulations_used"] = 23575
-    monthly_used = st.session_state["_monthly_simulations_used"]
+    if "_monthly_credits_used" not in st.session_state:
+        st.session_state["_monthly_credits_used"] = 750
+    monthly_credits_used = st.session_state["_monthly_credits_used"]
+    monthly_credits_total = 2500
+
+    finder_search_profile = str(_finder_value("finder_search_profile"))
+    credit_mult = _ranking.search_profile_credit_multiplier(finder_search_profile)
+    run_credits = int(prefilter_stats["eligible_simulations"] * credit_mult)
 
     run_requested = False
     with st.container(border=True, key="bass_match_brief"):
@@ -8248,10 +8255,10 @@ def _render_bass_match_hero(
         with h_col2:
             st.markdown(
                 "<div style='text-align: right;'><span class='lf-quota-pill'>"
-                f"Monthly simulations: <strong>{monthly_used:,} / 30,000</strong>"
-                " · This run: <strong>"
-                f"{prefilter_stats['eligible_simulations']:,}"
-                "</strong></span></div>",
+                f"Monthly credits: <strong>{monthly_credits_used:,} / {monthly_credits_total:,}</strong>"
+                f" · This run: <strong>{run_credits:,} credits</strong>"
+                f" <small>({prefilter_stats['eligible_simulations']:,} drv · {credit_mult}× {finder_search_profile})</small>"
+                "</span></div>",
                 unsafe_allow_html=True,
             )
         b1, b2, b3, b4 = st.columns(
@@ -9709,7 +9716,7 @@ with st.sidebar:
                         "Search profile",
                         list(_ranking.SEARCH_PROFILES.keys()),
                         key="finder_search_profile",
-                        help="Fast: quick screener (30 evals/driver). Standard: balanced default (60 evals/driver). Deep: high-precision exploration (120 evals/driver).",
+                        help="Standard (1 credit/driver): 60 evaluations per candidate with adaptive spectral verification. Deep (2 credits/driver): 120 evaluations per candidate for maximum exploration depth.",
                     )
                     _finder_number_input(
                         "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
