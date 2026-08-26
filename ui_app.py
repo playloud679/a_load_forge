@@ -314,14 +314,20 @@ def _render_auth_hero_and_badges(title: str, subtitle: str) -> None:
     )
 
 
-def _render_local_account_gate() -> None:
-    """Render the local-only registration/login product demo."""
-    _, col_center, _ = st.columns([1, 3.2, 1])
-    with col_center:
-        _render_auth_hero_and_badges(
-            title="Sign in to Load Forge",
-            subtitle="Sign in or create an account to save and manage your box designs.",
-        )
+def _render_local_account_gate(*, render_hero: bool = True) -> None:
+    """Render the local registration/login form."""
+    if render_hero:
+        _, col_center, _ = st.columns([1, 3.2, 1])
+        container = col_center
+    else:
+        import contextlib
+        container = contextlib.nullcontext()
+    with container:
+        if render_hero:
+            _render_auth_hero_and_badges(
+                title="Sign in to Load Forge",
+                subtitle="Sign in or create an account to save and manage your box designs.",
+            )
         account_mode = st.radio(
             "Account",
             ("Sign in", "Create account"),
@@ -457,23 +463,24 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
                         auth_configured = "auth" in st.secrets
                     except (FileNotFoundError, RuntimeError):
                         auth_configured = False
-                    if not auth_configured:
-                        _render_local_account_gate()
-                        st.stop()
-                    if st.button("Sign in", type="primary", width="stretch"):
-                        if _SAAS_SETTINGS.oidc_provider:
-                            st.login(_SAAS_SETTINGS.oidc_provider)
-                        else:
-                            st.login()
-                    st.markdown(
-                        """
-                        <div style="text-align: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: rgba(255,255,255,0.40); line-height: 1.4;">
-                            Single Sign-On (OIDC) · Cloud storage · Autosaved projects
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                st.stop()
+                    if auth_configured:
+                        if st.button("Sign in with Google", type="primary", width="stretch"):
+                            if _SAAS_SETTINGS.oidc_provider:
+                                st.login(_SAAS_SETTINGS.oidc_provider)
+                            else:
+                                st.login()
+                        st.markdown(
+                            """
+                            <div style="display: flex; align-items: center; text-align: center; margin: 1.2rem 0; color: rgba(255,255,255,0.35); font-size: 0.8rem;">
+                                <div style="flex: 1; border-bottom: 1px solid rgba(255,255,255,0.12);"></div>
+                                <span style="padding: 0 0.8rem; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em;">oppure</span>
+                                <div style="flex: 1; border-bottom: 1px solid rgba(255,255,255,0.12);"></div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                    _render_local_account_gate(render_hero=False)
+                    st.stop()
             claims = st.user.to_dict()
 
     expires_at = claims.get("exp")
