@@ -456,9 +456,7 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
                 except (FileNotFoundError, RuntimeError):
                     auth_configured = False
                 if not auth_configured:
-                    st.error(
-                        "Authentication is enabled but the OIDC secret is not mounted."
-                    )
+                    _render_local_account_gate()
                     st.stop()
                 if st.button("Sign in", type="primary", width="stretch"):
                     if _SAAS_SETTINGS.oidc_provider:
