@@ -101,10 +101,7 @@ def finder_optimizer_evaluation_limit(
 ) -> int:
     """Return the per-driver optimizer budget based on the active search profile."""
     spec = SEARCH_PROFILES.get(profile, SEARCH_PROFILES[SEARCH_PROFILE_STANDARD])
-    limit = int(spec["max_evaluations"])
-    if os.getenv("K_SERVICE"):
-        return min(limit, 24)
-    return limit
+    return int(spec["max_evaluations"])
 
 
 def finder_optimizer_frequency_plan(

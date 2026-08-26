@@ -99,17 +99,13 @@ Unknown plans safely fall back to `free`.
 
 The built-in entitlement seeds are:
 
-| Plan | Saved projects | Finder runs/month | Seats |
+| Plan | Saved projects | Monthly credits | Seats |
 |---|---:|---:|---:|
-| `free` | 3 | 10 | 1 |
-| `pro` | 100 | 1,000 | 1 |
-| `team` | 500 | 5,000 | 10 |
+| `free` | 3 | 100 | 1 |
+| `pro` | 100 | 2,500 | 1 |
+| `team` | 500 | 10,000 | 10 |
 
-These values are server-side product defaults.  Stripe/webhook integration
-will update the authoritative plan in persistence rather than trusting a
-browser-provided value. `effective_entitlements()` applies the optional Open
-Beta override after resolving the account plan, so quota enforcement and UI
-labels use the same server-controlled decision.
+These values are server-side product defaults. Standard runs consume 1 credit per candidate; Deep runs consume 2 credits per candidate. `UserAccountStore` (backed by Firestore in production and memory in development) handles atomic credit deductions, monthly quota replenishment on the 1st of each month, and administrator management.
 
 Editable multi-design comparison is a Pro-tier capability: Pro and Team users
 may turn 2–8 selected Bass Match rows into independent Box Design tabs or

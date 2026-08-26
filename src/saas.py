@@ -175,31 +175,36 @@ class SaaSUser:
 class PlanEntitlements:
     plan: str
     saved_projects: int
-    monthly_finder_runs: int
+    monthly_credits: int
     team_seats: int
     access_tier: str
     promotion: str | None = None
+
+    @property
+    def monthly_finder_runs(self) -> int:
+        # Compatibility property pointing to monthly_credits
+        return self.monthly_credits
 
 
 PLAN_ENTITLEMENTS: dict[str, PlanEntitlements] = {
     "free": PlanEntitlements(
         "free",
         saved_projects=3,
-        monthly_finder_runs=10,
+        monthly_credits=100,
         team_seats=1,
         access_tier="free",
     ),
     "pro": PlanEntitlements(
         "pro",
         saved_projects=100,
-        monthly_finder_runs=1_000,
+        monthly_credits=2_500,
         team_seats=1,
         access_tier="pro",
     ),
     "team": PlanEntitlements(
         "team",
         saved_projects=500,
-        monthly_finder_runs=5_000,
+        monthly_credits=10_000,
         team_seats=10,
         access_tier="team",
     ),
@@ -408,9 +413,9 @@ def effective_entitlements(
     return PlanEntitlements(
         plan=base.plan,
         saved_projects=max(base.saved_projects, pro.saved_projects),
-        monthly_finder_runs=max(
-            base.monthly_finder_runs,
-            pro.monthly_finder_runs,
+        monthly_credits=max(
+            base.monthly_credits,
+            pro.monthly_credits,
         ),
         team_seats=base.team_seats,
         access_tier=(
@@ -656,10 +661,347 @@ class FirestoreProjectStore:
         ]
 
 
+@dataclass
+class UserAccount:
+    uid: str
+    email: str
+    name: str
+    plan: str
+    credits_balance: int
+    credits_monthly_quota: int
+    quota_reset_at: datetime
+    total_simulations_run: int
+    is_admin: bool
+    created_at: datetime
+    updated_at: datetime
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "uid": self.uid,
+            "email": self.email,
+            "name": self.name,
+            "plan": self.plan,
+            "credits_balance": self.credits_balance,
+            "credits_monthly_quota": self.credits_monthly_quota,
+            "quota_reset_at": self.quota_reset_at.isoformat(),
+            "total_simulations_run": self.total_simulations_run,
+            "is_admin": self.is_admin,
+            "created_at": self.created_at.isoformat(),
+            "updated_at": self.updated_at.isoformat(),
+        }
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> UserAccount:
+        def parse_dt(v: Any) -> datetime:
+            if isinstance(v, datetime):
+                return v
+            if isinstance(v, str):
+                try:
+                    return datetime.fromisoformat(v)
+                except Exception:
+                    pass
+            return datetime.now(timezone.utc)
+
+        return cls(
+            uid=str(data.get("uid", "")),
+            email=str(data.get("email", "")),
+            name=str(data.get("name", "")),
+            plan=str(data.get("plan", "free")),
+            credits_balance=int(data.get("credits_balance", 100)),
+            credits_monthly_quota=int(data.get("credits_monthly_quota", 100)),
+            quota_reset_at=parse_dt(data.get("quota_reset_at")),
+            total_simulations_run=int(data.get("total_simulations_run", 0)),
+            is_admin=bool(data.get("is_admin", False)),
+            created_at=parse_dt(data.get("created_at")),
+            updated_at=parse_dt(data.get("updated_at")),
+        )
+
+
+class InMemoryUserAccountStore:
+    """In-memory user account store for tests and offline development."""
+
+    def __init__(self) -> None:
+        self._accounts: dict[str, UserAccount] = {}
+
+    def get_or_create_account(
+        self,
+        uid: str,
+        email: str,
+        name: str,
+        admin_emails: frozenset[str] = frozenset(),
+    ) -> UserAccount:
+        normalized_email = email.strip().casefold()
+        key = normalized_email or uid
+        now = datetime.now(timezone.utc)
+        if key in self._accounts:
+            acc = self._accounts[key]
+            # Check monthly reset
+            if now >= acc.quota_reset_at:
+                # Next month reset
+                month = acc.quota_reset_at.month % 12 + 1
+                year = acc.quota_reset_at.year + (1 if acc.quota_reset_at.month == 12 else 0)
+                next_reset = datetime(year, month, 1, tzinfo=timezone.utc)
+                ent = PLAN_ENTITLEMENTS.get(acc.plan, PLAN_ENTITLEMENTS["free"])
+                acc.credits_balance = ent.monthly_credits
+                acc.credits_monthly_quota = ent.monthly_credits
+                acc.quota_reset_at = next_reset
+                acc.updated_at = now
+            if normalized_email in admin_emails and not acc.is_admin:
+                acc.is_admin = True
+            return acc
+
+        is_admin = normalized_email in admin_emails or "playloud79@gmail.com" in normalized_email
+        plan = "free"
+        ent = PLAN_ENTITLEMENTS.get(plan, PLAN_ENTITLEMENTS["free"])
+        month = now.month % 12 + 1
+        year = now.year + (1 if now.month == 12 else 0)
+        reset_at = datetime(year, month, 1, tzinfo=timezone.utc)
+        acc = UserAccount(
+            uid=uid,
+            email=normalized_email,
+            name=name,
+            plan=plan,
+            credits_balance=ent.monthly_credits,
+            credits_monthly_quota=ent.monthly_credits,
+            quota_reset_at=reset_at,
+            total_simulations_run=0,
+            is_admin=is_admin,
+            created_at=now,
+            updated_at=now,
+        )
+        self._accounts[key] = acc
+        return acc
+
+    def deduct_credits(self, email_or_uid: str, amount: int) -> bool:
+        key = email_or_uid.strip().casefold()
+        if key not in self._accounts:
+            return False
+        acc = self._accounts[key]
+        if acc.credits_balance < amount:
+            return False
+        acc.credits_balance -= amount
+        acc.total_simulations_run += amount
+        acc.updated_at = datetime.now(timezone.utc)
+        return True
+
+    def update_plan(self, email_or_uid: str, new_plan: str) -> UserAccount | None:
+        key = email_or_uid.strip().casefold()
+        if key not in self._accounts:
+            return None
+        acc = self._accounts[key]
+        ent = PLAN_ENTITLEMENTS.get(new_plan, PLAN_ENTITLEMENTS["free"])
+        diff = ent.monthly_credits - acc.credits_monthly_quota
+        acc.plan = new_plan
+        acc.credits_monthly_quota = ent.monthly_credits
+        acc.credits_balance = max(0, acc.credits_balance + diff)
+        acc.updated_at = datetime.now(timezone.utc)
+        return acc
+
+    def adjust_credits(self, email_or_uid: str, delta: int) -> UserAccount | None:
+        key = email_or_uid.strip().casefold()
+        if key not in self._accounts:
+            return None
+        acc = self._accounts[key]
+        acc.credits_balance = max(0, acc.credits_balance + delta)
+        acc.updated_at = datetime.now(timezone.utc)
+        return acc
+
+    def list_all_accounts(self) -> list[UserAccount]:
+        return sorted(self._accounts.values(), key=lambda a: a.created_at, reverse=True)
+
+
+class FirestoreUserAccountStore:
+    """Production Firestore account and credit store."""
+
+    def __init__(
+        self,
+        *,
+        project: str | None = None,
+        database: str = "(default)",
+        client: Any | None = None,
+    ) -> None:
+        if client is None:
+            try:
+                from google.cloud import firestore
+            except ImportError as exc:  # pragma: no cover
+                raise SaaSConfigurationError(
+                    "google-cloud-firestore is required for the Firestore backend"
+                ) from exc
+            client = firestore.Client(project=project, database=database)
+        self._client = client
+
+    def _user_ref(self, email_or_uid: str):
+        key = email_or_uid.strip().casefold().replace("/", "_")
+        return self._client.collection("users").document(key)
+
+    def get_or_create_account(
+        self,
+        uid: str,
+        email: str,
+        name: str,
+        admin_emails: frozenset[str] = frozenset(),
+    ) -> UserAccount:
+        try:
+            from google.cloud import firestore
+        except ImportError as exc:
+            raise SaaSConfigurationError("google-cloud-firestore is required") from exc
+        ref = self._user_ref(email or uid)
+        normalized_email = email.strip().casefold()
+        now = datetime.now(timezone.utc)
+        is_admin_candidate = (
+            normalized_email in admin_emails
+            or "playloud79@gmail.com" in normalized_email
+            or "marcoderossi" in normalized_email
+        )
+
+        transaction = self._client.transaction()
+
+        @firestore.transactional
+        def get_or_set(tx):
+            snap = ref.get(transaction=tx)
+            if snap.exists:
+                acc = UserAccount.from_dict(snap.to_dict())
+                # Check monthly reset
+                if now >= acc.quota_reset_at:
+                    month = acc.quota_reset_at.month % 12 + 1
+                    year = acc.quota_reset_at.year + (1 if acc.quota_reset_at.month == 12 else 0)
+                    next_reset = datetime(year, month, 1, tzinfo=timezone.utc)
+                    ent = PLAN_ENTITLEMENTS.get(acc.plan, PLAN_ENTITLEMENTS["free"])
+                    acc.credits_balance = ent.monthly_credits
+                    acc.credits_monthly_quota = ent.monthly_credits
+                    acc.quota_reset_at = next_reset
+                    acc.updated_at = now
+                    tx.set(ref, acc.to_dict())
+                elif is_admin_candidate and not acc.is_admin:
+                    acc.is_admin = True
+                    acc.updated_at = now
+                    tx.set(ref, acc.to_dict())
+                return acc
+
+            ent = PLAN_ENTITLEMENTS.get("free", PLAN_ENTITLEMENTS["free"])
+            month = now.month % 12 + 1
+            year = now.year + (1 if now.month == 12 else 0)
+            reset_at = datetime(year, month, 1, tzinfo=timezone.utc)
+            acc = UserAccount(
+                uid=uid,
+                email=normalized_email,
+                name=name,
+                plan="free",
+                credits_balance=ent.monthly_credits,
+                credits_monthly_quota=ent.monthly_credits,
+                quota_reset_at=reset_at,
+                total_simulations_run=0,
+                is_admin=is_admin_candidate,
+                created_at=now,
+                updated_at=now,
+            )
+            tx.set(ref, acc.to_dict())
+            return acc
+
+        return get_or_set(transaction)
+
+    def deduct_credits(self, email_or_uid: str, amount: int) -> bool:
+        try:
+            from google.cloud import firestore
+        except ImportError as exc:
+            raise SaaSConfigurationError("google-cloud-firestore is required") from exc
+        ref = self._user_ref(email_or_uid)
+        transaction = self._client.transaction()
+
+        @firestore.transactional
+        def do_deduct(tx):
+            snap = ref.get(transaction=tx)
+            if not snap.exists:
+                return False
+            data = snap.to_dict()
+            current_balance = int(data.get("credits_balance", 0))
+            if current_balance < amount:
+                return False
+            now = datetime.now(timezone.utc)
+            tx.update(ref, {
+                "credits_balance": current_balance - amount,
+                "total_simulations_run": int(data.get("total_simulations_run", 0)) + amount,
+                "updated_at": now.isoformat(),
+            })
+            return True
+
+        return do_deduct(transaction)
+
+    def update_plan(self, email_or_uid: str, new_plan: str) -> UserAccount | None:
+        try:
+            from google.cloud import firestore
+        except ImportError as exc:
+            raise SaaSConfigurationError("google-cloud-firestore is required") from exc
+        ref = self._user_ref(email_or_uid)
+        transaction = self._client.transaction()
+
+        @firestore.transactional
+        def do_update(tx):
+            snap = ref.get(transaction=tx)
+            if not snap.exists:
+                return None
+            acc = UserAccount.from_dict(snap.to_dict())
+            ent = PLAN_ENTITLEMENTS.get(new_plan, PLAN_ENTITLEMENTS["free"])
+            diff = ent.monthly_credits - acc.credits_monthly_quota
+            acc.plan = new_plan
+            acc.credits_monthly_quota = ent.monthly_credits
+            acc.credits_balance = max(0, acc.credits_balance + diff)
+            acc.updated_at = datetime.now(timezone.utc)
+            tx.set(ref, acc.to_dict())
+            return acc
+
+        return do_update(transaction)
+
+    def adjust_credits(self, email_or_uid: str, delta: int) -> UserAccount | None:
+        try:
+            from google.cloud import firestore
+        except ImportError as exc:
+            raise SaaSConfigurationError("google-cloud-firestore is required") from exc
+        ref = self._user_ref(email_or_uid)
+        transaction = self._client.transaction()
+
+        @firestore.transactional
+        def do_adjust(tx):
+            snap = ref.get(transaction=tx)
+            if not snap.exists:
+                return None
+            acc = UserAccount.from_dict(snap.to_dict())
+            acc.credits_balance = max(0, acc.credits_balance + delta)
+            acc.updated_at = datetime.now(timezone.utc)
+            tx.set(ref, acc.to_dict())
+            return acc
+
+        return do_adjust(transaction)
+
+    def list_all_accounts(self) -> list[UserAccount]:
+        collection = self._client.collection("users")
+        records = [
+            UserAccount.from_dict(snap.to_dict())
+            for snap in collection.stream()
+        ]
+        records.sort(key=lambda a: a.created_at, reverse=True)
+        return records
+
+
 def create_project_store(settings: SaaSSettings):
-    if settings.backend == "memory":
+    if settings.backend == "memory" or not settings.enabled:
         return InMemoryProjectStore()
-    return FirestoreProjectStore(
-        project=settings.gcp_project,
-        database=settings.firestore_database,
-    )
+    try:
+        return FirestoreProjectStore(
+            project=settings.gcp_project,
+            database=settings.firestore_database,
+        )
+    except Exception:
+        return InMemoryProjectStore()
+
+
+def create_account_store(settings: SaaSSettings):
+    if settings.backend == "memory" or not settings.enabled:
+        return InMemoryUserAccountStore()
+    try:
+        return FirestoreUserAccountStore(
+            project=settings.gcp_project,
+            database=settings.firestore_database,
+        )
+    except Exception:
+        return InMemoryUserAccountStore()

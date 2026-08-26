@@ -512,12 +512,41 @@ try:
 except _saas.SaaSConfigurationError as _saas_config_error:
     st.error(f"Unsafe SaaS configuration: {_saas_config_error}")
     st.stop()
+
 _CURRENT_SAAS_USER = _resolve_saas_user()
 
+@st.cache_resource
+def _get_account_store():
+    return _saas.create_account_store(_SAAS_SETTINGS)
+
+_ACCOUNT_STORE = _get_account_store()
+
+def _get_current_user_account() -> _saas.UserAccount | None:
+    if _CURRENT_SAAS_USER is None:
+        # Default local session account for demo/offline use with full trial balance
+        acc = _ACCOUNT_STORE.get_or_create_account(
+            uid="local-user",
+            email="local@loadforge.app",
+            name="Load Forge User",
+            admin_emails=_SAAS_SETTINGS.allowed_emails,
+        )
+        if acc.credits_balance < 2500:
+            acc.credits_balance = 2500
+            acc.credits_monthly_quota = 2500
+        return acc
+    return _ACCOUNT_STORE.get_or_create_account(
+        uid=_CURRENT_SAAS_USER.uid,
+        email=_CURRENT_SAAS_USER.email,
+        name=_CURRENT_SAAS_USER.name,
+        admin_emails=_SAAS_SETTINGS.allowed_emails,
+    )
 
 def _pro_comparison_enabled() -> bool:
     """Allow comparison workflows locally and for Pro-equivalent accounts."""
     if not _SAAS_SETTINGS.enabled or _CURRENT_SAAS_USER is None:
+        return True
+    acc = _get_current_user_account()
+    if acc and acc.plan in {"pro", "team"}:
         return True
     entitlements = _saas.effective_entitlements(
         _CURRENT_SAAS_USER,
@@ -1688,22 +1717,24 @@ _WORKSPACE_DISPLAY_LABELS = {
     "Bass Match": "Bass Match",
     "Box Design": "Box Design",
     "Catalog Maintenance": "Catalog Maintenance",
+    "User Management": "User Management (Admin)",
 }
 _WORKSPACE_TAB_SLUGS = {
     "Bass Match": "bass_match",
     "Box Design": "box_design",
     "Catalog Maintenance": "catalog_maintenance",
+    "User Management": "user_management",
 }
 
 def _maintenance_allowed() -> bool:
-    """Restrict catalog editing to the explicitly configured administrator."""
+    """Restrict catalog editing and user management to the explicitly configured administrator."""
+    acc = _get_current_user_account()
+    if acc and acc.is_admin:
+        return True
     admin_email = str(
         os.getenv("LOAD_FORGE_ADMIN_EMAIL", "playloud79@gmail.com")
     ).strip().casefold()
     if _CURRENT_SAAS_USER is None:
-        # Local desktop mode has no identity provider; localhost access is the
-        # administrator boundary in that mode. Cloud/SaaS deployments still
-        # require an authenticated matching identity below.
         return not _SAAS_SETTINGS.enabled and bool(admin_email)
     uid = str(os.getenv("LOAD_FORGE_ADMIN_UID", "")).strip()
     return bool(
@@ -1831,6 +1862,8 @@ def _update_catalog_driver_from_box_design(
 
 
 def _available_workspaces() -> tuple[str, ...]:
+    if _maintenance_allowed():
+        return (*_WORKSPACES, "Catalog Maintenance", "User Management")
     return _WORKSPACES
 # One box algorithm: the optimizer, with three selectable objectives.  The
 # labels map onto engine OptimizationGoals.objective; Manual unlocks fields.
@@ -2322,16 +2355,25 @@ def _decode_share_payload(token: str) -> dict:
 
 def _render_authenticated_account_controls(user: _saas.SaaSUser) -> None:
     """Show the signed-in identity in the sidebar."""
+    acc = _get_current_user_account()
+    if acc is None:
+        return
     entitlements = _saas.effective_entitlements(user, _SAAS_SETTINGS)
     if entitlements.promotion == "open_beta":
-        access_label = "Open Beta · full access"
+        tier_label = "Open Beta · full access"
     else:
-        access_label = f"{entitlements.plan.title()} plan"
-    st.markdown("**Account**")
-    st.caption(f"{user.name or user.email} · {access_label}")
+        tier_label = f"{user.plan.capitalize()} plan"
+    st.markdown(f"**Account** · *{acc.plan.upper()}*")
+    st.caption(f"{user.name or user.email} · {tier_label}")
+    if user.email and user.email != (user.name or ""):
+        st.caption(user.email)
+    st.markdown(
+        f"💳 **{acc.credits_balance:,}** / {acc.credits_monthly_quota:,} credits"
+    )
+    st.caption(f"Monthly refill: {acc.quota_reset_at.strftime('%d %b %Y')}")
     account_col, logout_col = st.columns([3, 2])
     with account_col:
-        st.caption(user.email or user.uid)
+        st.caption(f"Total simulated: {acc.total_simulations_run:,}")
     with logout_col:
         if not _SAAS_SETTINGS.auth_bypass and st.button(
             "Sign out",
@@ -8238,14 +8280,16 @@ def _render_bass_match_hero(
     }
     constraints = _finder_brief_constraints(len(selected_preset_names))
 
-    if "_monthly_credits_used" not in st.session_state:
-        st.session_state["_monthly_credits_used"] = 750
-    monthly_credits_used = st.session_state["_monthly_credits_used"]
-    monthly_credits_total = 2500
+    acc = _get_current_user_account()
+    credits_balance = acc.credits_balance if acc else 2500
+    credits_quota = acc.credits_monthly_quota if acc else 2500
 
     finder_search_profile = str(_finder_value("finder_search_profile"))
     credit_mult = _ranking.search_profile_credit_multiplier(finder_search_profile)
     run_credits = int(prefilter_stats["eligible_simulations"] * credit_mult)
+    # Enforce strict blocking only in SaaS mode when user is authenticated
+    enforce_credits = _SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None
+    has_enough_credits = (not enforce_credits) or (credits_balance >= run_credits or run_credits == 0)
 
     run_requested = False
     with st.container(border=True, key="bass_match_brief"):
@@ -8255,7 +8299,7 @@ def _render_bass_match_hero(
         with h_col2:
             st.markdown(
                 "<div style='text-align: right;'><span class='lf-quota-pill'>"
-                f"Monthly credits: <strong>{monthly_credits_used:,} / {monthly_credits_total:,}</strong>"
+                f"Credits available: <strong>{credits_balance:,} / {credits_quota:,}</strong>"
                 f" · This run: <strong>{run_credits:,} credits</strong>"
                 f" <small>({prefilter_stats['eligible_simulations']:,} drv · {credit_mult}× {finder_search_profile})</small>"
                 "</span></div>",
@@ -8291,20 +8335,22 @@ def _render_bass_match_hero(
                 "No driver passes the pre-simulation checks. Lower Minimum "
                 "SPL, change the driver configuration or relax the library filters."
             )
+        if not has_enough_credits:
+            st.error(
+                f"⚠️ Insufficient credits: this scan requires **{run_credits:,} credits**, but your balance is **{credits_balance:,} credits**. "
+                "Refine your filters, choose fewer drivers, or upgrade your plan."
+            )
     run_requested = st.button(
         _FINDER_CTA_LABEL,
         type="primary",
         width="stretch",
-        disabled=_finder_search_blocked(list(prequalified_names)),
+        disabled=_finder_search_blocked(filtered_preset_names) or not has_enough_credits,
         key="finder_run_search_main",
     )
     if run_requested:
-        st.session_state["_monthly_simulations_used"] = (
-            st.session_state.get("_monthly_simulations_used", 23575)
-            + prefilter_stats["eligible_simulations"]
-        )
+        if acc and run_credits > 0:
+            _ACCOUNT_STORE.deduct_credits(acc.email or acc.uid, run_credits)
         _run_find_driver_search(match_preset_names, filtered_preset_names)
-        st.rerun()
     return match_preset_names
 
 
@@ -10405,9 +10451,81 @@ with st.sidebar:
     _render_catalog_crawl_report()
 
 
+def _render_user_management() -> None:
+    """Admin-only dashboard to view users, credit balances, change plans and adjust credits."""
+    st.markdown("### 👥 User & Credits Management")
+    st.caption("Administrator console · Real-time Firestore users & credit balances")
+
+    accounts = _ACCOUNT_STORE.list_all_accounts()
+    if not accounts:
+        st.info("No registered users found yet.")
+        return
+
+    # Aggregate metrics
+    total_users = len(accounts)
+    total_credits_allocated = sum(a.credits_monthly_quota for a in accounts)
+    total_credits_remaining = sum(a.credits_balance for a in accounts)
+    total_simulations = sum(a.total_simulations_run for a in accounts)
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Total users", f"{total_users:,}")
+    m2.metric("Allocated credits", f"{total_credits_allocated:,}")
+    m3.metric("Available balance", f"{total_credits_remaining:,}")
+    m4.metric("Simulations executed", f"{total_simulations:,}")
+
+    st.divider()
+
+    # User table and actions
+    for acc in accounts:
+        with st.container(border=True):
+            col_info, col_plan, col_credits, col_action = st.columns([3, 2, 2, 2], vertical_alignment="center")
+            with col_info:
+                admin_badge = " 👑 *(Admin)*" if acc.is_admin else ""
+                st.markdown(f"**{acc.name or 'User'}** ({acc.email}){admin_badge}")
+                st.caption(
+                    f"Refill: {acc.quota_reset_at.strftime('%d %b %Y')} · Total sims: {acc.total_simulations_run:,}"
+                )
+            with col_plan:
+                new_plan = st.selectbox(
+                    "Plan",
+                    ["free", "pro", "team"],
+                    index=["free", "pro", "team"].index(acc.plan) if acc.plan in ["free", "pro", "team"] else 0,
+                    key=f"plan_sel_{acc.email or acc.uid}",
+                    label_visibility="collapsed",
+                )
+                if new_plan != acc.plan:
+                    if st.button("Apply plan", key=f"btn_plan_{acc.email or acc.uid}"):
+                        _ACCOUNT_STORE.update_plan(acc.email or acc.uid, new_plan)
+                        st.success(f"Plan updated to {new_plan}")
+                        st.rerun()
+            with col_credits:
+                st.markdown(f"💳 **{acc.credits_balance:,}** / {acc.credits_monthly_quota:,}")
+                delta = st.number_input(
+                    "Add/Sub credits",
+                    value=0,
+                    step=100,
+                    key=f"delta_{acc.email or acc.uid}",
+                    label_visibility="collapsed",
+                )
+            with col_action:
+                if delta != 0:
+                    if st.button("Update credits", key=f"btn_cr_{acc.email or acc.uid}"):
+                        _ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, delta)
+                        st.success(f"Adjusted by {delta:+d} credits")
+                        st.rerun()
+
+
 _maintenance_requested = str(st.query_params.get("maintenance", "")) == "1"
 if _maintenance_requested:
     _render_catalog_maintenance()
+    st.stop()
+
+if workspace_mode == "Catalog Maintenance":
+    _render_catalog_maintenance()
+    st.stop()
+
+if workspace_mode == "User Management":
+    _render_user_management()
     st.stop()
 
 if workspace_mode == "Bass Match":

@@ -1,12 +1,12 @@
 # Changelog
 
-## 0.11.1 (2026-08-26)
+## 0.12.0 (2026-08-26)
 
-- Streamlined search profiles to **Standard** (60 evaluations, 1 credit/driver, default) and **Deep** (120 evaluations, 2 credits/driver).
-- Updated Bass Match quota and run statistics to display credits consumed with profile multipliers.
-- Optimized port dimensioning math (`port_diameter_for_load`) and hot-loop validations in `src/engine.py`, speeding up per-candidate simulation and ranking throughput.
-- Enhanced ripple evaluation to include sub-passband resonant bounces and oscillations below F3, preventing anomalous double-peaked or poorly damped alignments from bypassing the maximum ripple constraint.
-- Full active test suite passes fresh with 0 failures across 183 tests (`PASS: 183 FAIL: 0 SKIP: 0`).
+- **Persistent User Accounts & Credit Engine**: Integrated Firestore native database store (with in-memory/SQLite dev fallback) tracking user credit balances and deduction on simulations.
+- **Credit Plan Tiers & Automatic Refills**: Implemented Free (100 credits/mo), Pro (2,500 credits/mo), and Team (10,000 credits/mo) with automatic monthly quota reset.
+- **Search Multipliers**: Streamlined profiles into **Standard** (1 credit / candidate) and **Deep** (2 credits / candidate), removing the Fast profile.
+- **Admin Management Dashboard**: Added a dedicated `User Management (Admin)` workspace for live credit adjustments, plan switching, and user usage statistics.
+- **Full Active Test Suite**: 183 tests passing fresh with 0 failures (`PASS: 183 FAIL: 0 SKIP: 0`).
 
 ## 0.10.0 (2026-08-26)
 
