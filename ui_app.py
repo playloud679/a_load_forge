@@ -9707,7 +9707,6 @@ def _render_ports_tab(
                 )
             elif len(valid_ports) == 1:
                 target_duct = valid_ports[0]["Port"]
-                st.session_state["flared_target_duct"] = target_duct
             else:
                 target_duct = "Vent"
 
@@ -9750,9 +9749,10 @@ def _render_ports_tab(
             )[0]
 
             if target_duct.startswith("All"):
-                st.session_state["flared_calc_style"] = flare_style
                 for r in valid_ports:
-                    st.session_state[f"flared_style_{r['Port']}"] = flare_style
+                    pk = f"flared_style_{r['Port']}"
+                    if pk != style_key:
+                        st.session_state[pk] = flare_style
 
             if flare_style != "none":
                 flare_rad_cm = st.number_input(
@@ -9764,9 +9764,10 @@ def _render_ports_tab(
                     key=rad_key,
                 )
                 if target_duct.startswith("All"):
-                    st.session_state["flared_calc_radius_cm"] = flare_rad_cm
                     for r in valid_ports:
-                        st.session_state[f"flared_radius_{r['Port']}"] = flare_rad_cm
+                        rk = f"flared_radius_{r['Port']}"
+                        if rk != rad_key:
+                            st.session_state[rk] = flare_rad_cm
             else:
                 flare_rad_cm = 2.5
 
