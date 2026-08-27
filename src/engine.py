@@ -1028,14 +1028,19 @@ def port_air_velocity_ms(
     else:
         raise ValueError(f"port must be 'lower' or 'upper', got {port!r}")
     
-    linear_v = np.abs(np.asarray(u)) / (float(port_area_cm2) * 1e-4)
-    if at_mol and result.mil_w is not None and len(result.mil_w) > 0:
-        # At rated MOL drive, voltage scale is sqrt(mil_w / 1.0W) for 2.83V reference or direct SPL scaling
-        mol_gain = 10.0 ** ((np.asarray(result.mol_db) - np.asarray(result.spl_total_db)) / 20.0)
-        valid = np.isfinite(mol_gain) & (mol_gain > 0)
-        scale = np.ones_like(linear_v)
-        scale[valid] = mol_gain[valid]
-        linear_v = linear_v * scale
+    linear_v = np.abs(np.asarray(u, dtype=float)) / (float(port_area_cm2) * 1e-4)
+    if at_mol and result.mil_w is not None and getattr(result, "mol_db", None) is not None:
+        try:
+            mol_arr = np.asarray(result.mol_db, dtype=float)
+            spl_arr = np.asarray(result.spl_total_db, dtype=float)
+            if mol_arr.size > 0 and spl_arr.size > 0:
+                mol_gain = 10.0 ** ((mol_arr - spl_arr) / 20.0)
+                valid = np.isfinite(mol_gain) & (mol_gain > 0)
+                scale = np.ones_like(linear_v)
+                scale[valid] = mol_gain[valid]
+                linear_v = linear_v * scale
+        except Exception:
+            pass
     return linear_v
 
 
@@ -1662,8 +1667,8 @@ def auto_optimize_port_diameter_cm(
             continue
 
         # Evaluate exact air velocity at MOL
-        v_mol_arr = port_air_velocity_ms(result, area_cm2, port=port_name, at_mol=True)
-        v_mol_peak = float(np.nanmax(v_mol_arr)) if len(v_mol_arr) > 0 else 0.0
+        v_mol_arr = np.asarray(port_air_velocity_ms(result, area_cm2, port=port_name, at_mol=True), dtype=float)
+        v_mol_peak = float(np.nanmax(v_mol_arr)) if v_mol_arr.size > 0 else 0.0
 
         if v_mol_peak <= target_v_ms or best_candidate is None:
             best_candidate = {
@@ -1693,7 +1698,7 @@ def auto_optimize_port_diameter_cm(
         )
         area_cm2 = np.pi * (d_fallback / 2.0) ** 2
         l_overall = max(fdims["overall_length_cm"], 1.0)
-        v_mol_arr = port_air_velocity_ms(result, area_cm2, port=port_name, at_mol=True)
+        v_mol_arr = np.asarray(port_air_velocity_ms(result, area_cm2, port=port_name, at_mol=True), dtype=float)
         best_candidate = {
             "diameter_cm": float(d_fallback),
             "overall_length_cm": float(l_overall),
@@ -1703,7 +1708,7 @@ def auto_optimize_port_diameter_cm(
             "duct_volume_l": float(area_cm2 * l_overall / 1000.0),
             "duct_volume_fraction": float(area_cm2 * l_overall / 1000.0 / volume_l),
             "pipe_resonance_hz": float(port_pipe_resonance_hz(l_overall)),
-            "mol_velocity_peak_ms": float(np.nanmax(v_mol_arr)),
+            "mol_velocity_peak_ms": float(np.nanmax(v_mol_arr)) if v_mol_arr.size > 0 else 0.0,
             "status_note": "Compromised: constrained by chamber volume fraction",
         }
 

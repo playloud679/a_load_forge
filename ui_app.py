@@ -9682,43 +9682,47 @@ def _render_ports_tab(
         # Card A: Flare Profile & Auto-Optimizer
         with st.container(border=True):
             st.markdown("##### ⚙️ Flare Profile & Auto-Optimizer")
-            flare_style = st.selectbox(
+            flare_style = st.radio(
                 "Port geometry / flare profile",
                 [
-                    ("both", "Double flared (Aeroport)"),
-                    ("hourglass", "Hourglass continuous (Clessidra)"),
-                    ("one", "Single flared (Outer mouth)"),
-                    ("none", "Straight pipe (Cylindrical)"),
+                    ("both", "🌐 Double flared (Aeroport)"),
+                    ("hourglass", "⏳ Hourglass continuous (Clessidra)"),
+                    ("one", "📯 Single flared (Outer mouth)"),
+                    ("none", "📏 Straight pipe (Cylindrical)"),
                 ],
                 format_func=lambda x: x[1],
                 key="flared_calc_style",
             )[0]
-            flare_rad_cm = st.number_input(
-                "Flare radius / Delta (cm)",
-                min_value=0.5,
-                max_value=10.0,
-                value=float(st.session_state.get("flared_calc_radius_cm", 2.5)),
-                step=0.5,
-                key="flared_calc_radius_cm",
-                disabled=(flare_style == "none"),
-            )
-            opt_policy = st.selectbox(
+            if flare_style != "none":
+                flare_rad_cm = st.number_input(
+                    "Flare radius / Delta (cm)",
+                    min_value=0.5,
+                    max_value=10.0,
+                    value=float(st.session_state.get("flared_calc_radius_cm", 2.5)),
+                    step=0.5,
+                    key="flared_calc_radius_cm",
+                )
+            else:
+                flare_rad_cm = 2.5
+
+            opt_policy = st.radio(
                 "Auto-sizing directive / policy",
                 [
-                    ("studio_mol", "Studio / Hi-Fi (Zero chuffing at MOL limit)"),
-                    ("balanced_pro", "Balanced / Pro (Standard AES compromise)"),
-                    ("compact", "Compact Enclosure (Min duct volume)"),
+                    ("studio_mol", "🎯 Studio / Hi-Fi (Zero chuffing at MOL)"),
+                    ("balanced_pro", "⚡ Balanced / Pro (AES guideline)"),
+                    ("compact", "🗜️ Compact Box (Min duct volume)"),
                 ],
                 format_func=lambda x: x[1],
                 key="port_auto_policy",
             )[0]
             clicked = st.button("⚡ Auto-optimize duct", use_container_width=True, help="Automatically size all ports based on the selected policy, driver Xmax, and flare profile.")
 
-            last_policy = st.session_state.get("_last_opt_policy")
-            last_flare_style = st.session_state.get("_last_opt_flare_style")
-            if clicked or (last_policy is not None and (last_policy != opt_policy or last_flare_style != flare_style)):
-                st.session_state["_last_opt_policy"] = opt_policy
-                st.session_state["_last_opt_flare_style"] = flare_style
+            current_opt_state = (load_type, opt_policy, flare_style, flare_rad_cm)
+            last_opt_state = st.session_state.get("_last_opt_state")
+            should_run_opt = clicked or (last_opt_state is not None and last_opt_state != current_opt_state)
+
+            if should_run_opt:
+                st.session_state["_last_opt_state"] = current_opt_state
                 voltage_v = float(st.session_state.get("sim_voltage", 2.83))
                 if load_type == "Bass reflex":
                     opt_res = _acoustics.auto_optimize_port_diameter_cm(
@@ -9735,7 +9739,7 @@ def _render_ports_tab(
                         port_name="lower",
                     )
                     st.session_state["reflex_port_d_cm"] = opt_res["diameter_cm"]
-                    st.toast(f"⚡ Duct Auto-Optimized ({opt_policy}): Vent Ø {opt_res['diameter_cm']:.1f} cm", icon="⚡")
+                    st.toast(f"⚡ Duct Auto-Optimized: Vent Ø {opt_res['diameter_cm']:.1f} cm ({opt_res['status_note']})", icon="⚡")
                 elif load_type == "DCCAV":
                     opt_up = _acoustics.auto_optimize_port_diameter_cm(
                         ts=driver,
@@ -9765,7 +9769,7 @@ def _render_ports_tab(
                     )
                     st.session_state["box_port_d_h_cm"] = opt_up["diameter_cm"]
                     st.session_state["box_port_d_l_cm"] = opt_low["diameter_cm"]
-                    st.toast(f"⚡ DCCAV Auto-Optimized ({opt_policy}): Upper Ø {opt_up['diameter_cm']:.1f} cm, Lower Ø {opt_low['diameter_cm']:.1f} cm", icon="⚡")
+                    st.toast(f"⚡ DCCAV Auto-Optimized: Upper Ø {opt_up['diameter_cm']:.1f} cm, Lower Ø {opt_low['diameter_cm']:.1f} cm", icon="⚡")
                 elif load_type == "Bandpass 4th order":
                     opt_bp4 = _acoustics.auto_optimize_port_diameter_cm(
                         ts=driver,
@@ -9781,7 +9785,7 @@ def _render_ports_tab(
                         port_name="lower",
                     )
                     st.session_state["bandpass4_port_d_cm"] = opt_bp4["diameter_cm"]
-                    st.toast(f"⚡ BP4 Auto-Optimized ({opt_policy}): Vent Ø {opt_bp4['diameter_cm']:.1f} cm", icon="⚡")
+                    st.toast(f"⚡ BP4 Auto-Optimized: Vent Ø {opt_bp4['diameter_cm']:.1f} cm", icon="⚡")
                 elif load_type == "Bandpass 6th order":
                     opt_r = _acoustics.auto_optimize_port_diameter_cm(
                         ts=driver,
@@ -9811,8 +9815,54 @@ def _render_ports_tab(
                     )
                     st.session_state["bandpass6_port_d_r_cm"] = opt_r["diameter_cm"]
                     st.session_state["bandpass6_port_d_p_cm"] = opt_p["diameter_cm"]
-                    st.toast(f"⚡ BP6 Auto-Optimized ({opt_policy}): Rear Ø {opt_r['diameter_cm']:.1f} cm, Front Ø {opt_p['diameter_cm']:.1f} cm", icon="⚡")
+                    st.toast(f"⚡ BP6 Auto-Optimized: Rear Ø {opt_r['diameter_cm']:.1f} cm, Front Ø {opt_p['diameter_cm']:.1f} cm", icon="⚡")
+                elif load_type == "Bandpass 8th order":
+                    opt_p1 = _acoustics.auto_optimize_port_diameter_cm(
+                        ts=driver,
+                        result=result,
+                        volume_l=box.v1_l,
+                        tuning_hz=box.f1_hz,
+                        end_correction=1.43,
+                        volume_velocity=result.port_l_velocity,
+                        sim_voltage_v=voltage_v,
+                        policy=opt_policy,
+                        flare_style=flare_style,
+                        flare_radius_cm=flare_rad_cm,
+                        port_name="lower",
+                    )
+                    opt_p2 = _acoustics.auto_optimize_port_diameter_cm(
+                        ts=driver,
+                        result=result,
+                        volume_l=box.v2_l,
+                        tuning_hz=box.f2_hz,
+                        end_correction=1.43,
+                        volume_velocity=result.port_l_velocity,
+                        sim_voltage_v=voltage_v,
+                        policy=opt_policy,
+                        flare_style=flare_style,
+                        flare_radius_cm=flare_rad_cm,
+                        port_name="lower",
+                    )
+                    opt_p3 = _acoustics.auto_optimize_port_diameter_cm(
+                        ts=driver,
+                        result=result,
+                        volume_l=box.v3_l,
+                        tuning_hz=box.f3_hz,
+                        end_correction=1.43,
+                        volume_velocity=result.port_h_velocity,
+                        sim_voltage_v=voltage_v,
+                        policy=opt_policy,
+                        flare_style=flare_style,
+                        flare_radius_cm=flare_rad_cm,
+                        port_name="upper",
+                    )
+                    st.session_state["bp8_dp1_cm"] = opt_p1["diameter_cm"]
+                    st.session_state["bp8_dp2_cm"] = opt_p2["diameter_cm"]
+                    st.session_state["bp8_dp3_cm"] = opt_p3["diameter_cm"]
+                    st.toast(f"⚡ BP8 Auto-Optimized: Port1 Ø {opt_p1['diameter_cm']:.1f} cm, Port2 Ø {opt_p2['diameter_cm']:.1f} cm, Port3 Ø {opt_p3['diameter_cm']:.1f} cm", icon="⚡")
                 st.rerun()
+            elif last_opt_state is None:
+                st.session_state["_last_opt_state"] = current_opt_state
 
         # Card B: Manual Duct Dimensions
         with st.container(border=True):
@@ -9941,15 +9991,23 @@ def _render_ports_tab(
         else:
             if valid_ports:
                 with st.container(border=True):
-                    bp_h1, bp_h2 = st.columns([1.6, 1.4])
-                    with bp_h1:
-                        st.markdown("##### 🛠️ Duct Blueprint & Physical Cut Specs")
-                    with bp_h2:
-                        if len(valid_ports) > 1:
-                            sel_port_name = st.selectbox("Focus port for Blueprint", [r["Port"] for r in valid_ports], key="flared_calc_port_sel")
-                            sel_row = next(r for r in valid_ports if r["Port"] == sel_port_name)
-                        else:
-                            sel_row = valid_ports[0]
+                    st.markdown("##### 🛠️ Duct Blueprint & Physical Cut Specs")
+                    if len(valid_ports) > 1:
+                        port_names = [r["Port"] for r in valid_ports]
+                        curr_sel = st.session_state.get("flared_calc_port_sel")
+                        if curr_sel not in port_names:
+                            curr_sel = port_names[0]
+                        sel_port_name = st.radio(
+                            "Focus duct for Blueprint (Single-Click)",
+                            port_names,
+                            index=port_names.index(curr_sel),
+                            horizontal=True,
+                            key="flared_calc_port_sel",
+                            help="Click any duct to inspect blueprint CAD geometry and physical fabrication dimensions.",
+                        )
+                        sel_row = next((r for r in valid_ports if r["Port"] == sel_port_name), valid_ports[0])
+                    else:
+                        sel_row = valid_ports[0]
 
                     fdims_sel = _acoustics.flared_port_dimensions_cm(
                         volume_l=sel_row.get("_volume_l", 20.0),
