@@ -107,6 +107,13 @@ _WORKSPACE_TAB_IMAGES = {
 }
 
 
+def _clean_style_str(val: Any, default: str = "both") -> str:
+    """Safely extract string from scalar or Streamlit radio tuple state."""
+    if isinstance(val, (tuple, list)):
+        return str(val[0])
+    return str(val) if val is not None else default
+
+
 def _read_json_object(path: Path) -> dict:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
