@@ -10027,19 +10027,24 @@ def _render_ports_tab(
                             '<stop offset="100%" stop-color="#10b981" stop-opacity="0.65"/>'
                             '</linearGradient>'
                             '</defs>'
-                            '<!-- Air core (hourglass profile narrowing at center X=230) -->'
-                            '<path d="M 50,26 Q 230,50 410,26 L 410,114 Q 230,90 50,114 Z" fill="url(#hgGrad)" />'
-                            '<!-- Top solid wall -->'
-                            '<path d="M 50,20 Q 230,44 410,20 L 410,26 Q 230,50 50,26 Z" fill="#10b981" fill-opacity="0.95"/>'
-                            '<!-- Bottom solid wall -->'
-                            '<path d="M 50,114 Q 230,90 410,114 L 410,120 Q 230,96 50,120 Z" fill="#10b981" fill-opacity="0.95"/>'
+                            '<!-- Air core (Continuous hourglass narrowing at center throat X=230) -->'
+                            '<path d="M 50,26 C 110,32 170,50 230,50 C 290,50 350,32 410,26 L 410,114 C 350,108 290,90 230,90 C 170,90 110,108 50,114 Z" fill="url(#hgGrad)" />'
+                            '<!-- Top solid wall with dual outward flared bellmouth lips -->'
+                            '<path d="M 50,16 C 100,24 170,44 230,44 C 290,44 360,24 410,16 L 410,26 C 350,32 290,50 230,50 C 170,50 110,32 50,26 Z" fill="#10b981" fill-opacity="0.95"/>'
+                            '<!-- Bottom solid wall with dual outward flared bellmouth lips -->'
+                            '<path d="M 50,114 C 110,108 170,90 230,90 C 290,90 350,108 410,114 L 410,124 C 360,116 290,96 230,96 C 170,96 100,116 50,124 Z" fill="#10b981" fill-opacity="0.95"/>'
+                            '<!-- Center Mirror Symmetry Line -->'
+                            '<line x1="230" y1="40" x2="230" y2="100" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3,2"/>'
                             '<!-- Dimension Annotations -->'
-                            '<line x1="50" y1="135" x2="410" y2="135" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="4,3"/>'
-                            f'<text x="230" y="145" fill="#7cc7ff" font-size="11" text-anchor="middle" font-family="sans-serif">Overall Length: {fdims_sel["overall_length_cm"]:.1f} cm</text>'
-                            '<line x1="230" y1="50" x2="230" y2="90" stroke="#ffffff" stroke-width="1.2" stroke-dasharray="2,2"/>'
-                            '<text x="230" y="65" fill="#ffffff" font-size="11" text-anchor="middle" font-weight="bold" font-family="sans-serif">Hourglass Continuous</text>'
-                            f'<text x="230" y="80" fill="#a7f3d0" font-size="11" text-anchor="middle" font-family="sans-serif">Throat Ø {sel_row["Diameter cm"]:.1f} cm</text>'
-                            f'<text x="418" y="73" fill="#f59e0b" font-size="11" text-anchor="start" font-family="sans-serif">Mouth Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>'
+                            '<line x1="50" y1="138" x2="410" y2="138" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="4,3"/>'
+                            f'<text x="230" y="147" fill="#7cc7ff" font-size="10.5" text-anchor="middle" font-family="sans-serif">Overall Length: {fdims_sel["overall_length_cm"]:.1f} cm · (2x Symmetrical Halves L/2 = {fdims_sel["overall_length_cm"]/2.0:.1f} cm)</text>'
+                            '<text x="230" y="65" fill="#ffffff" font-size="11" text-anchor="middle" font-weight="bold" font-family="sans-serif">Dual Continuous Flared</text>'
+                            f'<text x="230" y="79" fill="#a7f3d0" font-size="10.5" text-anchor="middle" font-family="sans-serif">Throat Ø {sel_row["Diameter cm"]:.1f} cm</text>'
+                            f'<text x="418" y="40" fill="#f59e0b" font-size="10" text-anchor="start" font-family="sans-serif">Outer Flared Mouth</text>'
+                            f'<text x="418" y="55" fill="#f59e0b" font-size="11" font-weight="bold" text-anchor="start" font-family="sans-serif">Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>'
+                            f'<text x="418" y="70" fill="#94a3b8" font-size="9.5" text-anchor="start" font-family="sans-serif">R {sel_p_rad:.1f} cm</text>'
+                            f'<text x="44" y="40" fill="#f59e0b" font-size="10" text-anchor="end" font-family="sans-serif">Inner Flared Mouth</text>'
+                            f'<text x="44" y="55" fill="#f59e0b" font-size="11" font-weight="bold" text-anchor="end" font-family="sans-serif">Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>'
                             '</svg>'
                         )
                     else:
@@ -10125,10 +10130,17 @@ def _render_ports_tab(
                     _st_components.html(html_wrap, height=160)
 
                     m1, m2, m3, m4 = st.columns(4)
-                    m1.metric("Straight Cut", f"{fdims_sel['straight_length_cm']:.1f} cm")
-                    m2.metric("Overall Length", f"{fdims_sel['overall_length_cm']:.1f} cm")
-                    m3.metric("Mouth Ø", f"{fdims_sel['outer_diameter_cm']:.1f} cm")
-                    m4.metric("Duct Volume", f"{fdims_sel['volume_displacement_l']:.2f} L")
+                    if sel_p_style == "hourglass":
+                        m1.metric("Fabrication", "2x Flared Halves", f"L/2 = {fdims_sel['overall_length_cm']/2.0:.1f} cm")
+                        m2.metric("Overall Length", f"{fdims_sel['overall_length_cm']:.1f} cm", "Flange-to-Flange")
+                        m3.metric("Flared Mouths Ø", f"{fdims_sel['outer_diameter_cm']:.1f} cm", f"Flare R: {sel_p_rad:.1f} cm")
+                        m4.metric("Center Throat Ø", f"{sel_row['Diameter cm']:.1f} cm", "Min Restriction")
+                    else:
+                        m1.metric("Straight Cut", f"{fdims_sel['straight_length_cm']:.1f} cm", "Standard tube")
+                        m2.metric("Overall Length", f"{fdims_sel['overall_length_cm']:.1f} cm", "Flange-to-Flange")
+                        m3.metric("Mouth Ø", f"{fdims_sel['outer_diameter_cm']:.1f} cm", f"Flare R: {sel_p_rad:.1f} cm")
+                        m4.metric("Duct Volume", f"{fdims_sel['volume_displacement_l']:.2f} L", "Displacement")
+
                     st.caption(
                         f"Selected **{sel_row['Port']}** (Ø {sel_row['Diameter cm']:.1f} cm) with {sel_p_style.replace('_', ' ')}: "
                         f"Recommended threshold **{fdims_sel['chuffing_limit_ms']:.1f} m/s** · Current Peak MOL: **{sel_row['Peak m/s (MOL)']:.1f} m/s**."
