@@ -9621,7 +9621,7 @@ def _render_ports_tab(
             display_rows.append(r)
             continue
         p_name = r["Port"]
-        p_style = st.session_state.get(f"flared_style_{p_name}", st.session_state.get("flared_calc_style", "both"))
+        p_style = _clean_style_str(st.session_state.get(f"flared_style_{p_name}", st.session_state.get("flared_calc_style", "both")), "both")
         p_rad = float(st.session_state.get(f"flared_radius_{p_name}", st.session_state.get("flared_calc_radius_cm", 2.5)))
         fdims = _acoustics.flared_port_dimensions_cm(
             volume_l=r.get("_volume_l", 20.0),
@@ -9648,10 +9648,10 @@ def _render_ports_tab(
             max_peak_sim = peak_sim
 
     # Active flare limit for status bar
-    global_style = st.session_state.get("flared_calc_style", "both")
+    global_style = _clean_style_str(st.session_state.get("flared_calc_style", "both"), "both")
     flare_limit_ms = 32.0 if global_style == "hourglass" else (28.0 if global_style in {"both", "one"} else _acoustics.PORT_VELOCITY_GUIDELINE_MS)
     port_plot_mode_raw = st.session_state.get("port_plot_display_mode", "air_velocity_mol")
-    port_plot_mode = port_plot_mode_raw[0] if isinstance(port_plot_mode_raw, tuple) else port_plot_mode_raw
+    port_plot_mode = _clean_style_str(port_plot_mode_raw, "air_velocity_mol")
 
     # 1. Top Acoustic Health Monitor (KPI Status Bar)
     with st.container(border=True):
@@ -9723,31 +9723,32 @@ def _render_ports_tab(
             if target_duct.startswith("All"):
                 style_key = "flared_calc_style"
                 rad_key = "flared_calc_radius_cm"
-                curr_style = st.session_state.get(style_key, "both")
+                curr_style = _clean_style_str(st.session_state.get(style_key, "both"), "both")
                 curr_rad = float(st.session_state.get(rad_key, 2.5))
             else:
                 style_key = f"flared_style_{target_duct}"
                 rad_key = f"flared_radius_{target_duct}"
-                curr_style = st.session_state.get(style_key, st.session_state.get("flared_calc_style", "both"))
+                curr_style = _clean_style_str(st.session_state.get(style_key, st.session_state.get("flared_calc_style", "both")), "both")
                 curr_rad = float(st.session_state.get(rad_key, st.session_state.get("flared_calc_radius_cm", 2.5)))
 
-            style_opts = [
-                ("both", "🌐 Double flared (Aeroport)"),
-                ("hourglass", "⏳ Hourglass continuous (Clessidra)"),
-                ("one", "📯 Single flared (Outer mouth)"),
-                ("none", "📏 Straight pipe (Cylindrical)"),
-            ]
-            style_val_keys = [o[0] for o in style_opts]
-            s_idx = style_val_keys.index(curr_style) if curr_style in style_val_keys else 0
+            style_options = ["both", "hourglass", "one", "none"]
+            style_labels = {
+                "both": "🌐 Double flared (Aeroport)",
+                "hourglass": "⏳ Hourglass continuous (Clessidra)",
+                "one": "📯 Single flared (Outer mouth)",
+                "none": "📏 Straight pipe (Cylindrical)",
+            }
+            s_idx = style_options.index(curr_style) if curr_style in style_options else 0
 
             short_label = 'Global' if target_duct.startswith('All') else target_duct.split(' (')[0]
-            flare_style = st.radio(
+            flare_style_raw = st.radio(
                 f"Flare profile ({short_label})",
-                style_opts,
+                style_options,
                 index=s_idx,
-                format_func=lambda x: x[1],
+                format_func=lambda x: style_labels.get(x, str(x)),
                 key=style_key,
-            )[0]
+            )
+            flare_style = _clean_style_str(flare_style_raw, "both")
 
             if target_duct.startswith("All"):
                 for r in valid_ports:
@@ -9772,16 +9773,23 @@ def _render_ports_tab(
             else:
                 flare_rad_cm = 2.5
 
-            opt_policy = st.radio(
+            policy_options = ["studio_mol", "balanced_pro", "compact"]
+            policy_labels = {
+                "studio_mol": "🎯 Studio / Hi-Fi (Zero chuffing at MOL)",
+                "balanced_pro": "⚡ Balanced / Pro (AES guideline)",
+                "compact": "🗜️ Compact Box (Min duct volume)",
+            }
+            curr_pol = _clean_style_str(st.session_state.get("port_auto_policy", "studio_mol"), "studio_mol")
+            p_idx = policy_options.index(curr_pol) if curr_pol in policy_options else 0
+
+            opt_policy_raw = st.radio(
                 "Auto-sizing directive / policy",
-                [
-                    ("studio_mol", "🎯 Studio / Hi-Fi (Zero chuffing at MOL)"),
-                    ("balanced_pro", "⚡ Balanced / Pro (AES guideline)"),
-                    ("compact", "🗜️ Compact Box (Min duct volume)"),
-                ],
-                format_func=lambda x: x[1],
+                policy_options,
+                index=p_idx,
+                format_func=lambda x: policy_labels.get(x, str(x)),
                 key="port_auto_policy",
-            )[0]
+            )
+            opt_policy = _clean_style_str(opt_policy_raw, "studio_mol")
 
             btn_label = f"⚡ Auto-optimize {short_label}" if not target_duct.startswith("All") else "⚡ Auto-optimize All Ducts"
             clicked = st.button(btn_label, use_container_width=True, help="Automatically size the selected duct(s) based on driver MOL velocity, chamber volume, and constraints.")
@@ -9919,17 +9927,23 @@ def _render_ports_tab(
         # Card C: Chart Display Controls
         with st.container(border=True):
             st.markdown("##### 📊 Chart Pens & Display Metric")
-            port_plot_mode = st.radio(
+            plot_options = ["air_velocity_mol", "air_velocity_sim", "volume_velocity"]
+            plot_labels = {
+                "air_velocity_mol": "Air velocity at MOL (m/s)",
+                "air_velocity_sim": "Air velocity at drive level (m/s)",
+                "volume_velocity": "Volume velocity (m³/s)",
+            }
+            curr_pm = _clean_style_str(st.session_state.get("port_plot_display_mode", "air_velocity_mol"), "air_velocity_mol")
+            pm_idx = plot_options.index(curr_pm) if curr_pm in plot_options else 0
+            port_plot_mode_raw = st.radio(
                 "Port chart metric",
-                [
-                    ("air_velocity_mol", "Air velocity at MOL (m/s)"),
-                    ("air_velocity_sim", "Air velocity at drive level (m/s)"),
-                    ("volume_velocity", "Volume velocity (m³/s)"),
-                ],
-                format_func=lambda opt: opt[1],
+                plot_options,
+                index=pm_idx,
+                format_func=lambda opt: plot_labels.get(opt, str(opt)),
                 horizontal=False,
                 key="port_plot_display_mode",
-            )[0]
+            )
+            port_plot_mode = _clean_style_str(port_plot_mode_raw, "air_velocity_mol")
 
             if passive_radiator:
                 st.checkbox("Passive radiator pen", key="plot_port_lower")
@@ -10007,7 +10021,7 @@ def _render_ports_tab(
                         sel_row = valid_ports[0]
 
                     sel_p_name = sel_row["Port"]
-                    sel_p_style = st.session_state.get(f"flared_style_{sel_p_name}", st.session_state.get("flared_calc_style", "both"))
+                    sel_p_style = _clean_style_str(st.session_state.get(f"flared_style_{sel_p_name}", st.session_state.get("flared_calc_style", "both")), "both")
                     sel_p_rad = float(st.session_state.get(f"flared_radius_{sel_p_name}", st.session_state.get("flared_calc_radius_cm", 2.5)))
 
                     fdims_sel = _acoustics.flared_port_dimensions_cm(
