@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.25 (2026-08-27)
+
+- **Targeted Per-Duct Focus & Independent Flare Configuration**:
+  - Added a prominent single-click **Active Duct Focus** selector (`[ 🌐 All Ducts ]`, `[ 🔒 Upper Port (Internal) ]`, `[ 📢 Lower Port (External) ]`, etc.) right at the top of the Cockpit and synchronized with the Blueprint CAD workbench.
+  - Allows configuring flare profiles (Straight Cylindrical, Double Flared Aeroport, Hourglass continuous) and flare radii independently per duct (e.g., straight pipe for internal coupling, Aeroport/Hourglass for external radiating).
+  - Auto-optimizer buttons directly adapt to the focused duct (`⚡ Auto-optimize Upper Port (Internal)` or `⚡ Auto-optimize All Ducts`) to size individual ducts without affecting customized settings on other chambers.
+  - Integrated acoustic explanation badges for internal inter-chamber vs external radiating ducts.
+- **Full Active Test Suite**: 183 tests passing (`PASS: 111 FAIL: 0 SKIP: 72`).
+
 ## 0.12.24 (2026-08-27)
 
 - **Ergonomic Ports Tab Redesign (Workbench CAD & Acoustic Health Monitor)**:
