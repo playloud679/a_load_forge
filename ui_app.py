@@ -10046,18 +10046,18 @@ def _render_ports_tab(
                         bolt_count=cad_bolt_cnt,
                         bolt_diameter_mm=cad_bolt_d_mm,
                         bolt_pcd_mm=cad_bolt_pcd_mm,
-                        svg_width=680,
-                        svg_height=210,
+                        svg_width=720,
+                        svg_height=240,
                     )
 
                     html_wrap = (
-                        '<div style="display:flex; justify-content:center; align-items:center; width:100%; height:220px; '
+                        '<div style="display:flex; justify-content:center; align-items:center; width:100%; height:250px; '
                         'background:rgba(255,255,255,0.02); border-radius:8px; '
                         'border:1px solid rgba(255,255,255,0.08); overflow:hidden;">'
                         f'{svg_content}'
                         '</div>'
                     )
-                    _st_components.html(html_wrap, height=230)
+                    _st_components.html(html_wrap, height=260)
 
                     m1, m2, m3, m4 = st.columns(4)
                     if sel_p_style == "hourglass":

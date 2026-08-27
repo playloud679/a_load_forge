@@ -4,8 +4,8 @@ Provides in-scale CAD cross-section rendering (SVG) and watertight 3D binary STL
 mesh generation for 3D printing and CNC manufacturing.
 
 Supports:
-- Hourglass continuous progressive flare with dynamic analytical curvature
-  (R_throat = (L/2)^2 / (2*dr) dynamically computed -> R_mouth = flare_radius)
+- Hourglass continuous progressive flare (Salvatti/Roozen continuous venturi)
+  with dynamic analytical curvature from throat to flared mouth
 - Double flared (Aeroport) and single flared terminations
 - Cylindrical straight ducts
 - Configurable wall thickness, mounting flange, and screw hole patterns
@@ -73,16 +73,23 @@ def calculate_dynamic_hourglass_radii(
 ) -> tuple[float, float]:
     """Analytically compute dynamic osculating curvature radii at throat and mouth.
 
-    R_throat is the osculating circle radius: (L/2)^2 / (2 * dr)
-    R_mouth is the nominal flare radius at the outer bellmouth lip.
+    R_throat is the osculating circle radius at the center throat: (L/2)^2 / (2 * 0.35 * dr)
+    R_mouth is the effective curvature radius at the flared mouth.
     """
     r_t = max(1.0, float(d_throat_mm) / 2.0)
     r_m = max(r_t, float(d_mouth_mm) / 2.0)
     L_h = max(1.0, float(length_mm) / 2.0)
     dr = max(0.1, r_m - r_t)
 
-    r_throat_calc = float((L_h**2 + dr**2) / (2.0 * dr))
-    r_mouth_calc = float(max(5.0, flare_radius_mm))
+    # Second derivative at t=0: d2r_0 = (2 * 0.35 * dr) / (L_h^2)
+    d2r_0 = (0.70 * dr) / (L_h**2)
+    r_throat_calc = float(1.0 / max(1e-6, d2r_0))
+
+    # At mouth t=1: dr_1 = (0.70 + 2.275) * dr / L_h, d2r_1 = (0.70 + 5.6875) * dr / (L_h^2)
+    dr_1 = 2.975 * dr / L_h
+    d2r_1 = 6.3875 * dr / (L_h**2)
+    curv_1 = d2r_1 / ((1.0 + dr_1**2)**1.5)
+    r_mouth_calc = float(1.0 / max(1e-6, curv_1))
     return r_throat_calc, r_mouth_calc
 
 
@@ -97,37 +104,23 @@ def generate_port_profile_2d(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Calculate 2D meridian arrays (z, r_inner, r_outer) in millimeters.
 
-    For Hourglass, uses a dynamic analytical C2 quintic polynomial blend
-    transitioning from R_throat = (L/2)^2 / (2*dr) to R_mouth = flare_radius_mm.
+    For Hourglass, uses a continuous smooth monotonic power blend
+    expanding progressively from throat (z=0) to outer mouth (z=±L/2).
     """
     r_t = max(1.0, float(d_throat_mm) / 2.0)
     r_m = max(r_t, float(d_mouth_mm) / 2.0)
     L = max(1.0, float(length_mm))
     L_h = L / 2.0
     f_rad = max(0.0, float(flare_radius_mm))
-    dr = max(0.1, r_m - r_t)
+    dr = max(0.0, r_m - r_t)
 
     z_full = np.linspace(-L_h, L_h, n_pts)
 
-    if flare_style == "hourglass":
-        # Solve C2 quintic spline
-        r_throat_calc, r_mouth_calc = calculate_dynamic_hourglass_radii(
-            d_throat_mm, d_mouth_mm, length_mm, flare_radius_mm
-        )
-        theta_mouth = min(np.pi / 4.0, dr / r_mouth_calc)
-        m_mouth = np.tan(theta_mouth)
-
-        a2 = dr
-        rhs2 = L_h * m_mouth
-        rhs3 = (L_h**2) / r_mouth_calc - 2.0 * a2
-
-        a3 = -4.0 * rhs2 + 0.5 * rhs3
-        a4 = 7.0 * rhs2 - 1.0 * rhs3
-        a5 = -3.0 * rhs2 + 0.5 * rhs3
-
+    if flare_style == "hourglass" and dr > 0:
         t = np.abs(z_full) / L_h
-        r_inner = r_t + a2 * (t**2) + a3 * (t**3) + a4 * (t**4) + a5 * (t**5)
-        r_inner = np.maximum(r_t, r_inner)
+        # Smooth C2 power blend: expands continuously with zero flat section
+        # Starts gentle at throat and opens into a flared bellmouth at ends
+        r_inner = r_t + dr * (0.35 * (t**2) + 0.65 * (t**3.5))
         r_inner[0] = r_m
         r_inner[-1] = r_m
         r_inner[len(z_full) // 2] = r_t
@@ -150,7 +143,7 @@ def generate_port_profile_2d(
                 if zv > L_h - f_len:
                     zr = (zv - (L_h - f_len)) / f_len
                     r_inner[i] = r_t + (r_m - r_t) * (1.0 - np.sqrt(max(0.0, 1.0 - (1.0 - zr) ** 2)))
-    else:  # none
+    else:  # none / cylindrical straight
         r_inner = np.full_like(z_full, r_t)
 
     r_outer = r_inner + max(0.5, float(wall_thickness_mm))
@@ -170,10 +163,10 @@ def generate_port_svg_cad(
     bolt_count: int = 4,
     bolt_diameter_mm: float = 4.0,
     bolt_pcd_mm: float | None = None,
-    svg_width: int = 680,
+    svg_width: int = 720,
     svg_height: int = 240,
 ) -> str:
-    """Generate a strictly proportional, in-scale 2D CAD cross-section blueprint in SVG format."""
+    """Generate a strictly proportional, in-scale 2D CAD cross-section blueprint in SVG format with non-overlapping annotations."""
     r_t = max(1.0, float(d_throat_mm) / 2.0)
     r_m = max(r_t, float(d_mouth_mm) / 2.0)
     L = max(1.0, float(length_mm))
@@ -201,16 +194,18 @@ def generate_port_svg_cad(
     )
 
     max_r = r_flange if has_flange else float(r_outer.max())
-    margin_x = 95.0
-    margin_y = 48.0
     
-    avail_w = svg_width - 2 * margin_x
-    avail_h = svg_height - 2 * margin_y
+    # Reserve ample horizontal margins for left/right labels
+    margin_x = 145.0
+    margin_y = 42.0
+    
+    avail_w = max(50.0, svg_width - 2 * margin_x)
+    avail_h = max(50.0, svg_height - 2 * margin_y)
     
     scale = min(avail_w / max(1.0, L), avail_h / max(1.0, 2.0 * max_r))
     
     cx = svg_width / 2.0
-    cy = svg_height / 2.0
+    cy = svg_height / 2.0 - 6.0
     
     def map_pt(z_mm: float, r_mm: float) -> tuple[float, float]:
         px = cx + z_mm * scale
@@ -277,6 +272,26 @@ def generate_port_svg_cad(
 
     curve_label = f"R_throat: {r_th_calc:.0f} mm → R_mouth: {r_mo_calc:.0f} mm" if flare_style == "hourglass" else f"Flare R: {flare_radius_mm:.1f} mm"
 
+    # Clean vertically-stacked right labels
+    right_labels = []
+    if has_flange:
+        right_labels.append(f'<text x="{x_right + 16:.1f}" y="{cy - 22:.1f}" fill="#f59e0b" font-size="11" font-weight="bold" font-family="sans-serif">Flange Ø {flange_diameter_mm:.1f} mm</text>')
+        right_labels.append(f'<text x="{x_right + 16:.1f}" y="{cy - 6:.1f}" fill="#38bdf8" font-size="10.5" font-weight="600" font-family="sans-serif">Mouth Ø {d_mouth_mm:.1f} mm</text>')
+        if bolt_count > 0:
+            right_labels.append(f'<text x="{x_right + 16:.1f}" y="{cy + 10:.1f}" fill="#fbbf24" font-size="9.5" font-family="sans-serif">{bolt_count}x Ø{bolt_diameter_mm:.1f} on PCD Ø{bolt_pcd_mm:.1f}</text>')
+        right_labels.append(f'<text x="{x_right + 16:.1f}" y="{cy + 25:.1f}" fill="#94a3b8" font-size="9" font-family="sans-serif">Flange th: {flange_thickness_mm:.1f} mm</text>')
+    else:
+        right_labels.append(f'<text x="{x_right + 16:.1f}" y="{cy - 8:.1f}" fill="#38bdf8" font-size="11" font-weight="600" font-family="sans-serif">Mouth Ø {d_mouth_mm:.1f} mm</text>')
+        right_labels.append(f'<text x="{x_right + 16:.1f}" y="{cy + 10:.1f}" fill="#94a3b8" font-size="9.5" font-family="sans-serif">Wall: {wall_thickness_mm:.1f} mm</text>')
+    right_labels_svg = "\n  ".join(right_labels)
+
+    # Clean vertically-stacked left labels
+    left_labels = [
+        f'<text x="{x_left - 16:.1f}" y="{cy - 8:.1f}" fill="#38bdf8" font-size="10.5" font-weight="600" text-anchor="end" font-family="sans-serif">Inner Mouth Ø {d_mouth_mm:.1f} mm</text>',
+        f'<text x="{x_left - 16:.1f}" y="{cy + 10:.1f}" fill="#94a3b8" font-size="9.5" text-anchor="end" font-family="sans-serif">Wall e: {wall_thickness_mm:.1f} mm</text>',
+    ]
+    left_labels_svg = "\n  ".join(left_labels)
+
     svg = f"""<svg width="{svg_width}" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="cadAirGrad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -296,10 +311,25 @@ def generate_port_svg_cad(
   {holes_svg}
 
   <!-- Centerline (Axis of Revolution) -->
-  <line x1="{x_left - 25:.1f}" y1="{cy:.1f}" x2="{x_right + 25:.1f}" y2="{cy:.1f}" stroke="#94a3b8" stroke-width="1" stroke-dasharray="6,3,1,3" />
+  <line x1="{x_left - 20:.1f}" y1="{cy:.1f}" x2="{x_right + 20:.1f}" y2="{cy:.1f}" stroke="#64748b" stroke-width="0.8" stroke-dasharray="5,2,1,2" opacity="0.6" />
 
   <!-- Symmetry Division Line -->
-  <line x1="{x_center:.1f}" y1="{cy - max_r*scale - 12:.1f}" x2="{x_center:.1f}" y2="{cy + max_r*scale + 12:.1f}" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3,2" />
+  <line x1="{x_center:.1f}" y1="{cy - max_r*scale - 8:.1f}" x2="{x_center:.1f}" y2="{cy + max_r*scale + 8:.1f}" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2" />
+
+  <!-- Center Throat Pill Box (Masked background to avoid text overlap) -->
+  <rect x="{x_center - 88:.1f}" y="{cy - 19:.1f}" width="176" height="38" rx="5" fill="#0b0f17" fill-opacity="0.92" stroke="#10b981" stroke-width="1"/>
+  <text x="{x_center:.1f}" y="{cy - 4:.1f}" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">
+    Throat Ø {d_throat_mm:.1f} mm
+  </text>
+  <text x="{x_center:.1f}" y="{cy + 11:.1f}" fill="#a7f3d0" font-size="9" text-anchor="middle" font-family="sans-serif">
+    {curve_label}
+  </text>
+
+  <!-- Right Side Annotations -->
+  {right_labels_svg}
+
+  <!-- Left Side Annotations -->
+  {left_labels_svg}
 
   <!-- Overall Length Dimension (Bottom) -->
   <line x1="{x_left:.1f}" y1="{svg_height - 18:.1f}" x2="{x_right:.1f}" y2="{svg_height - 18:.1f}" stroke="#7cc7ff" stroke-width="1.2" stroke-dasharray="4,2" />
@@ -307,31 +337,6 @@ def generate_port_svg_cad(
   <line x1="{x_right:.1f}" y1="{svg_height - 24:.1f}" x2="{x_right:.1f}" y2="{svg_height - 12:.1f}" stroke="#7cc7ff" stroke-width="1.2" />
   <text x="{x_center:.1f}" y="{svg_height - 6:.1f}" fill="#7cc7ff" font-size="10.5" text-anchor="middle" font-family="monospace">
     L_tot: {length_mm/10.0:.1f} cm ({length_mm:.0f} mm) · 2x Halves L/2: {length_mm/20.0:.1f} cm
-  </text>
-
-  <!-- Center Throat Annotation -->
-  <text x="{x_center:.1f}" y="{cy - 4:.1f}" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle" font-family="sans-serif">
-    Throat Ø {d_throat_mm:.1f} mm
-  </text>
-  <text x="{x_center:.1f}" y="{cy + 12:.1f}" fill="#a7f3d0" font-size="9" text-anchor="middle" font-family="sans-serif">
-    {curve_label}
-  </text>
-
-  <!-- Flange & Mouth Dimensions (Right) -->
-  <text x="{x_right + 12:.1f}" y="{cy - r_flange*scale:.1f}" fill="#f59e0b" font-size="10" font-weight="bold" text-anchor="start" font-family="sans-serif">
-    Flange Ø {flange_diameter_mm:.1f} mm
-  </text>
-  <text x="{x_right + 12:.1f}" y="{cy - r_m*scale:.1f}" fill="#38bdf8" font-size="9.5" text-anchor="start" font-family="sans-serif">
-    Mouth Ø {d_mouth_mm:.1f} mm
-  </text>
-  {f'<text x="{x_right + 12:.1f}" y="{cy + 14:.1f}" fill="#fbbf24" font-size="9" text-anchor="start" font-family="sans-serif">{bolt_count}x Ø{bolt_diameter_mm:.1f} on PCD Ø{bolt_pcd_mm:.1f}</text>' if has_flange and bolt_count > 0 else ''}
-
-  <!-- Inner Mouth (Left) -->
-  <text x="{x_left - 12:.1f}" y="{cy - r_m*scale:.1f}" fill="#38bdf8" font-size="9.5" text-anchor="end" font-family="sans-serif">
-    Inner Mouth Ø {d_mouth_mm:.1f} mm
-  </text>
-  <text x="{x_left - 12:.1f}" y="{cy + 14:.1f}" fill="#94a3b8" font-size="9" text-anchor="end" font-family="sans-serif">
-    Wall e: {wall_thickness_mm:.1f} mm
   </text>
 </svg>"""
     return svg
