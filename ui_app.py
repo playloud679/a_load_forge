@@ -40,6 +40,7 @@ _OPTIMIZER_ENGINE_REVISION = 8
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 import acoustics as _acoustics
 import engine as _engine
+import port_cad as _port_cad
 import presets as _presets
 import pricing as _pricing
 import ranking as _ranking
@@ -75,7 +76,7 @@ def _reload_if_source_changed(module) -> None:
 
 # Reload dependencies before the facade so it rebinds to the fresh modules.
 for _module in (
-    _engine, _pricing, _presets, _ranking, _saas, _acoustics,
+    _engine, _port_cad, _pricing, _presets, _ranking, _saas, _acoustics,
     _afw_export, _afw_compare,
 ):
     _reload_if_source_changed(_module)
@@ -10017,121 +10018,46 @@ def _render_ports_tab(
                         flare_style=sel_p_style,
                     )
 
-                    if sel_p_style == "hourglass":
-                        svg_content = (
-                            '<svg width="560" height="155" viewBox="0 0 560 155" xmlns="http://www.w3.org/2000/svg">'
-                            '<defs>'
-                            '<linearGradient id="hgGrad" x1="0%" y1="0%" x2="0%" y2="100%">'
-                            '<stop offset="0%" stop-color="#10b981" stop-opacity="0.75"/>'
-                            '<stop offset="50%" stop-color="#059669" stop-opacity="0.15"/>'
-                            '<stop offset="100%" stop-color="#10b981" stop-opacity="0.75"/>'
-                            '</linearGradient>'
-                            '</defs>'
-                            '<!-- Air core (Continuous flared venturi narrowing at throat X=265) -->'
-                            '<path d="M 68,18 C 88,24 140,44 210,50 C 245,53 285,53 320,50 C 390,44 442,24 462,18 '
-                            'L 462,122 C 442,116 390,96 320,90 C 285,87 245,87 210,90 C 140,96 88,116 68,122 Z" fill="url(#hgGrad)" />'
-                            '<!-- Top solid wall with rounded bellmouth flared lips -->'
-                            '<path d="M 58,14 C 64,14 68,16 68,18 C 88,24 140,44 210,50 C 245,53 285,53 320,50 C 390,44 442,24 462,18 C 462,16 466,14 472,14 '
-                            'C 478,14 476,23 470,26 C 452,32 400,48 325,56 C 285,60 245,60 205,56 C 130,48 78,32 60,26 C 54,23 52,14 58,14 Z" fill="#10b981" fill-opacity="0.95" stroke="#34d399" stroke-width="0.8"/>'
-                            '<!-- Bottom solid wall with rounded bellmouth flared lips -->'
-                            '<path d="M 58,126 C 64,126 68,124 68,122 C 88,116 140,96 210,90 C 245,87 285,87 320,90 C 390,96 442,116 462,122 C 462,124 466,126 472,126 '
-                            'C 478,126 476,117 470,114 C 452,108 400,92 325,84 C 285,80 245,80 205,84 C 130,92 78,108 60,114 C 54,117 52,126 58,126 Z" fill="#10b981" fill-opacity="0.95" stroke="#34d399" stroke-width="0.8"/>'
-                            '<!-- Center Mirror Symmetry Line -->'
-                            '<line x1="265" y1="40" x2="265" y2="100" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3,2"/>'
-                            '<!-- Dimension Annotations -->'
-                            '<line x1="68" y1="142" x2="462" y2="142" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="4,3"/>'
-                            f'<text x="265" y="152" fill="#7cc7ff" font-size="10" text-anchor="middle" font-family="sans-serif">Overall Length: {fdims_sel["overall_length_cm"]:.1f} cm · (2x Symmetrical Halves L/2 = {fdims_sel["overall_length_cm"]/2.0:.1f} cm)</text>'
-                            '<text x="265" y="64" fill="#ffffff" font-size="10.5" text-anchor="middle" font-weight="bold" font-family="sans-serif">Continuous Flared Venturi</text>'
-                            f'<text x="265" y="78" fill="#a7f3d0" font-size="10.5" text-anchor="middle" font-family="sans-serif">Throat Ø {sel_row["Diameter cm"]:.1f} cm</text>'
-                            f'<text x="478" y="44" fill="#f59e0b" font-size="10" font-weight="bold" text-anchor="start" font-family="sans-serif">Outer Flared Mouth</text>'
-                            f'<text x="478" y="58" fill="#f59e0b" font-size="11" font-weight="bold" text-anchor="start" font-family="sans-serif">Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>'
-                            f'<text x="478" y="71" fill="#94a3b8" font-size="9" text-anchor="start" font-family="sans-serif">R {sel_p_rad:.1f} cm</text>'
-                            f'<text x="52" y="44" fill="#f59e0b" font-size="10" font-weight="bold" text-anchor="end" font-family="sans-serif">Inner Flared Mouth</text>'
-                            f'<text x="52" y="58" fill="#f59e0b" font-size="11" font-weight="bold" text-anchor="end" font-family="sans-serif">Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>'
-                            f'<text x="52" y="71" fill="#94a3b8" font-size="9" text-anchor="end" font-family="sans-serif">R {sel_p_rad:.1f} cm</text>'
-                            '</svg>'
-                        )
-                    else:
-                        is_left_flared = (sel_p_style == "both")
-                        is_right_flared = (sel_p_style in {"both", "one"})
-                        
-                        t_outer = "M 50,20 C 85,20 110,44 130,44" if is_left_flared else "M 130,44"
-                        t_outer += " L 330,44"
-                        t_outer += " C 350,44 375,20 410,20" if is_right_flared else " L 330,44"
-                        
-                        r_lip_top = "L 410,26" if is_right_flared else "L 330,50"
-                        
-                        t_inner = "C 375,26 350,50 330,50" if is_right_flared else ""
-                        t_inner += " L 130,50"
-                        t_inner += " C 110,50 85,26 50,26" if is_left_flared else ""
-                        
-                        l_lip_top = "L 50,20" if is_left_flared else "L 130,44"
-                        
-                        top_wall_path = f"{t_outer} {r_lip_top} {t_inner} {l_lip_top} Z"
+                    # 3D & In-Scale CAD Parameters (stored per port in session_state)
+                    d_throat_mm = float(sel_row["Diameter cm"] * 10.0)
+                    d_mouth_mm = float(fdims_sel["outer_diameter_cm"] * 10.0)
+                    length_mm = float(fdims_sel["overall_length_cm"] * 10.0)
+                    flare_rad_mm = float(sel_p_rad * 10.0)
 
-                        b_inner = "M 50,114 C 85,114 110,90 130,90" if is_left_flared else "M 130,90"
-                        b_inner += " L 330,90"
-                        b_inner += " C 350,90 375,114 410,114" if is_right_flared else ""
-                        
-                        r_lip_bot = "L 410,120" if is_right_flared else "L 330,96"
-                        
-                        b_outer = "C 375,120 350,96 330,96" if is_right_flared else ""
-                        b_outer += " L 130,96"
-                        b_outer += " C 110,96 85,120 50,120" if is_left_flared else ""
-                        
-                        l_lip_bot = "L 50,114" if is_left_flared else "L 130,90"
-                        
-                        bot_wall_path = f"{b_inner} {r_lip_bot} {b_outer} {l_lip_bot} Z"
+                    cad_wall_mm = float(st.session_state.get(f"stl_wall_{sel_p_name}", 4.0))
+                    cad_has_flange = bool(st.session_state.get(f"stl_has_flange_{sel_p_name}", True))
+                    cad_flange_th_mm = float(st.session_state.get(f"stl_flange_th_{sel_p_name}", 6.0))
+                    cad_flange_d_mm = float(st.session_state.get(f"stl_flange_d_{sel_p_name}", d_mouth_mm + 26.0))
+                    cad_bolt_cnt = int(st.session_state.get(f"stl_bolt_cnt_{sel_p_name}", 4))
+                    cad_bolt_d_mm = float(st.session_state.get(f"stl_bolt_d_{sel_p_name}", 4.2))
+                    cad_bolt_pcd_mm = float(st.session_state.get(f"stl_bolt_pcd_{sel_p_name}", (d_mouth_mm + cad_flange_d_mm) / 2.0))
 
-                        left_x = 50 if is_left_flared else 130
-                        right_x = 410 if is_right_flared else 330
-
-                        air_channel_path = (
-                            f"M {left_x},{26 if is_left_flared else 50} "
-                            f"{'C 85,26 110,50 130,50' if is_left_flared else ''} "
-                            f"L 330,50 "
-                            f"{'C 350,50 375,26 410,26' if is_right_flared else ''} "
-                            f"L {right_x},{114 if is_right_flared else 90} "
-                            f"{'C 375,114 350,90 330,90' if is_right_flared else ''} "
-                            f"L 130,90 "
-                            f"{'C 110,90 85,114 50,114' if is_left_flared else ''} Z"
-                        )
-
-                        mouth_txt = f'<text x="418" y="73" fill="#f59e0b" font-size="11" text-anchor="start" font-family="sans-serif">Mouth Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>' if is_right_flared else ''
-
-                        svg_content = (
-                            '<svg width="540" height="150" viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg">'
-                            '<defs>'
-                            '<linearGradient id="ductGrad" x1="0%" y1="0%" x2="0%" y2="100%">'
-                            '<stop offset="0%" stop-color="#10b981" stop-opacity="0.65"/>'
-                            '<stop offset="50%" stop-color="#059669" stop-opacity="0.2"/>'
-                            '<stop offset="100%" stop-color="#10b981" stop-opacity="0.65"/>'
-                            '</linearGradient>'
-                            '</defs>'
-                            f'<!-- Air Flow Core -->'
-                            f'<path d="{air_channel_path}" fill="url(#ductGrad)" />'
-                            f'<!-- Top Solid Wall -->'
-                            f'<path d="{top_wall_path}" fill="#10b981" fill-opacity="0.95"/>'
-                            f'<!-- Bottom Solid Wall -->'
-                            f'<path d="{bot_wall_path}" fill="#10b981" fill-opacity="0.95"/>'
-                            f'<!-- Dimension Annotations -->'
-                            f'<line x1="{left_x}" y1="135" x2="{right_x}" y2="135" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="4,3"/>'
-                            f'<text x="230" y="145" fill="#7cc7ff" font-size="11" text-anchor="middle" font-family="sans-serif">Overall Length: {fdims_sel["overall_length_cm"]:.1f} cm</text>'
-                            f'<line x1="130" y1="70" x2="330" y2="70" stroke="#ffffff" stroke-width="1.5"/>'
-                            f'<text x="230" y="65" fill="#ffffff" font-size="11" text-anchor="middle" font-weight="bold" font-family="sans-serif">Straight Cut: {fdims_sel["straight_length_cm"]:.1f} cm</text>'
-                            f'<text x="230" y="85" fill="#a7f3d0" font-size="11" text-anchor="middle" font-family="sans-serif">I.D. Ø {sel_row["Diameter cm"]:.1f} cm</text>'
-                            f'{mouth_txt}'
-                            '</svg>'
-                        )
+                    # 1:1 In-Scale Physical CAD Blueprint (SVG)
+                    svg_content = _port_cad.generate_port_svg_cad(
+                        d_throat_mm=d_throat_mm,
+                        d_mouth_mm=d_mouth_mm,
+                        length_mm=length_mm,
+                        flare_style=sel_p_style,
+                        flare_radius_mm=flare_rad_mm,
+                        wall_thickness_mm=cad_wall_mm,
+                        has_flange=cad_has_flange,
+                        flange_diameter_mm=cad_flange_d_mm,
+                        flange_thickness_mm=cad_flange_th_mm,
+                        bolt_count=cad_bolt_cnt,
+                        bolt_diameter_mm=cad_bolt_d_mm,
+                        bolt_pcd_mm=cad_bolt_pcd_mm,
+                        svg_width=680,
+                        svg_height=210,
+                    )
 
                     html_wrap = (
-                        '<div style="display:flex; justify-content:center; align-items:center; width:100%; height:160px; '
+                        '<div style="display:flex; justify-content:center; align-items:center; width:100%; height:220px; '
                         'background:rgba(255,255,255,0.02); border-radius:8px; '
                         'border:1px solid rgba(255,255,255,0.08); overflow:hidden;">'
                         f'{svg_content}'
                         '</div>'
                     )
-                    _st_components.html(html_wrap, height=170)
+                    _st_components.html(html_wrap, height=230)
 
                     m1, m2, m3, m4 = st.columns(4)
                     if sel_p_style == "hourglass":
@@ -10149,6 +10075,136 @@ def _render_ports_tab(
                         f"Selected **{sel_row['Port']}** (Ø {sel_row['Diameter cm']:.1f} cm) with {sel_p_style.replace('_', ' ')}: "
                         f"Recommended threshold **{fdims_sel['chuffing_limit_ms']:.1f} m/s** · Current Peak MOL: **{sel_row['Peak m/s (MOL)']:.1f} m/s**."
                     )
+
+                    # 3D CAD & STL Export (3D Printing / CNC Machining)
+                    with st.expander(f"🛠️ 3D CAD & STL Mesh Generator for {sel_row['Port']} (3D Printing & CNC)", expanded=True):
+                        st.caption("Customize 3D printable manifold mesh with wall thickness, mounting flange and bolt hole pattern.")
+                        
+                        p_col1, p_col2, p_col3, p_col4 = st.columns(4)
+                        with p_col1:
+                            wall_mm_val = st.slider(
+                                "Wall Thickness (mm)",
+                                min_value=2.0,
+                                max_value=12.0,
+                                value=cad_wall_mm,
+                                step=0.5,
+                                key=f"stl_wall_{sel_p_name}",
+                                help="Solid tube wall thickness for 3D printing and mechanical rigidity.",
+                            )
+                        with p_col2:
+                            has_flange_val = st.checkbox(
+                                "Mounting Flange",
+                                value=cad_has_flange,
+                                key=f"stl_has_flange_{sel_p_name}",
+                                help="Add an integrated baffle-mounting flange with screw holes.",
+                            )
+                        with p_col3:
+                            flange_th_val = st.slider(
+                                "Flange Thickness (mm)",
+                                min_value=3.0,
+                                max_value=20.0,
+                                value=cad_flange_th_mm,
+                                step=1.0,
+                                key=f"stl_flange_th_{sel_p_name}",
+                                disabled=not has_flange_val,
+                            )
+                        with p_col4:
+                            min_flange_d = float(d_mouth_mm + 10.0)
+                            flange_d_val = st.number_input(
+                                "Flange Outer Ø (mm)",
+                                min_value=min_flange_d,
+                                max_value=float(d_mouth_mm + 150.0),
+                                value=max(min_flange_d, cad_flange_d_mm),
+                                step=2.0,
+                                key=f"stl_flange_d_{sel_p_name}",
+                                disabled=not has_flange_val,
+                            )
+
+                        h_col1, h_col2, h_col3, h_col4 = st.columns(4)
+                        with h_col1:
+                            bolt_cnt_val = st.selectbox(
+                                "Screw Holes",
+                                [0, 2, 3, 4, 6, 8],
+                                index=[0, 2, 3, 4, 6, 8].index(cad_bolt_cnt) if cad_bolt_cnt in [0, 2, 3, 4, 6, 8] else 3,
+                                key=f"stl_bolt_cnt_{sel_p_name}",
+                                disabled=not has_flange_val,
+                            )
+                        with h_col2:
+                            bolt_d_val = st.number_input(
+                                "Screw Hole Ø (mm)",
+                                min_value=2.0,
+                                max_value=12.0,
+                                value=cad_bolt_d_mm,
+                                step=0.2,
+                                key=f"stl_bolt_d_{sel_p_name}",
+                                disabled=(not has_flange_val or bolt_cnt_val == 0),
+                            )
+                        with h_col3:
+                            min_pcd = float(d_mouth_mm + bolt_d_val + 2.0)
+                            max_pcd = float(flange_d_val - bolt_d_val - 2.0)
+                            default_pcd = max(min_pcd, min(max_pcd, (d_mouth_mm + flange_d_val) / 2.0))
+                            bolt_pcd_val = st.number_input(
+                                "Bolt Circle PCD (mm)",
+                                min_value=min_pcd,
+                                max_value=max(min_pcd, max_pcd),
+                                value=default_pcd,
+                                step=1.0,
+                                key=f"stl_bolt_pcd_{sel_p_name}",
+                                disabled=(not has_flange_val or bolt_cnt_val == 0),
+                            )
+                        with h_col4:
+                            split_options = [
+                                "Single piece (Full port)",
+                                "2-piece symmetric halves (L/2 for 3D print)",
+                                "Outer Flange Coupling Only",
+                            ]
+                            default_split_idx = 1 if sel_p_style == "hourglass" else 0
+                            split_sel = st.selectbox(
+                                "Split Mode",
+                                split_options,
+                                index=default_split_idx,
+                                key=f"stl_split_{sel_p_name}",
+                                help="2-piece symmetric halves print flat on bed with 0 supports.",
+                            )
+
+                        split_slug_map = {
+                            "Single piece (Full port)": "full",
+                            "2-piece symmetric halves (L/2 for 3D print)": "half",
+                            "Outer Flange Coupling Only": "flange_only",
+                        }
+                        split_mode_code = split_slug_map.get(split_sel, "full")
+
+                        # Generate Binary STL
+                        stl_bytes = _port_cad.generate_parametric_port_stl(
+                            d_throat_mm=d_throat_mm,
+                            d_mouth_mm=d_mouth_mm,
+                            length_mm=length_mm,
+                            flare_style=sel_p_style,
+                            flare_radius_mm=flare_rad_mm,
+                            wall_thickness_mm=wall_mm_val,
+                            has_flange=has_flange_val,
+                            flange_diameter_mm=flange_d_val,
+                            flange_thickness_mm=flange_th_val,
+                            bolt_count=bolt_cnt_val,
+                            bolt_diameter_mm=bolt_d_val,
+                            bolt_pcd_mm=bolt_pcd_val,
+                            split_mode=split_mode_code,
+                            rings=72,
+                            n_pts=100,
+                        )
+
+                        clean_p_slug = sel_p_name.lower().replace(" ", "_").replace("(", "").replace(")", "")
+                        file_name_stl = f"port_{clean_p_slug}_{sel_p_style}_{split_mode_code}.stl"
+
+                        st.download_button(
+                            label=f"⬇️ Download Watertight 3D Mesh ({file_name_stl} · {len(stl_bytes)/1024:.1f} KB)",
+                            data=stl_bytes,
+                            file_name=file_name_stl,
+                            mime="model/stl",
+                            use_container_width=True,
+                            type="primary",
+                        )
+                        st.caption("✨ Ready for direct import into Bambu Studio, OrcaSlicer, PrusaSlicer, Cura, or FreeCAD/Fusion 360.")
             else:
                 st.info("No active port diameters configured (set Ø > 0 cm to view CAD blueprint).")
 

@@ -1432,7 +1432,57 @@ def _check_port_geometry_helpers():
     assert opt_compact["diameter_cm"] <= opt_studio["diameter_cm"]
 
 
+def _check_port_cad_and_stl_generation():
+    # 1. Test 2D Profile generation (Hourglass, Aeroport, Straight)
+    z, ri, ro = _acoustics.generate_port_profile_2d(
+        d_throat_mm=70.0,
+        d_mouth_mm=120.0,
+        length_mm=180.0,
+        flare_style="hourglass",
+        wall_thickness_mm=4.0,
+    )
+    assert len(z) == len(ri) == len(ro)
+    assert abs(ri[len(z)//2] - 35.0) < 1.0, "throat radius should match ~35mm"
+    assert abs(ri[0] - 60.0) < 1.0, "mouth radius should match ~60mm"
+    assert np.all(ro > ri), "outer wall must be larger than inner"
+
+    # 2. Test In-Scale CAD SVG Generation
+    svg = _acoustics.generate_port_svg_cad(
+        d_throat_mm=70.0,
+        d_mouth_mm=120.0,
+        length_mm=180.0,
+        flare_style="hourglass",
+        wall_thickness_mm=4.0,
+        has_flange=True,
+        bolt_count=4,
+    )
+    assert "<svg" in svg and "</svg>" in svg
+    assert "Throat Ø 70.0 mm" in svg
+    assert "R_curve: 600 → 20 mm" in svg
+
+    # 3. Test Binary STL Export
+    stl_full = _acoustics.generate_parametric_port_stl(
+        d_throat_mm=70.0,
+        d_mouth_mm=120.0,
+        length_mm=180.0,
+        flare_style="hourglass",
+        split_mode="full",
+    )
+    assert len(stl_full) > 1000, "STL must contain binary triangle data"
+    assert stl_full[:4] != b"solid", "Should produce valid binary STL"
+
+    stl_half = _acoustics.generate_parametric_port_stl(
+        d_throat_mm=70.0,
+        d_mouth_mm=120.0,
+        length_mm=180.0,
+        flare_style="hourglass",
+        split_mode="half",
+    )
+    assert len(stl_half) > 1000
+
+
 test("Acoustic port geometry length round-trips and air speed scales", _check_port_geometry_helpers)
+test("Acoustic port CAD blueprint and parametric STL generator", _check_port_cad_and_stl_generation)
 
 
 def _check_ui_small_alignment_warning_uses_active_box():

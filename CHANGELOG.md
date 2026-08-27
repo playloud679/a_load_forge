@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.12.25 (2026-08-27)
+## 0.12.26 (2026-08-27)
+
+- **Parametric 3D CAD & Watertight STL Generator for 3D Printing & CNC**:
+  - Added the new `src/port_cad.py` module with physical 1:1 in-scale 2D CAD cross-section rendering (SVG) and watertight 3D binary STL mesh generation.
+  - Implemented the continuous progressive curvature law for Hourglass / Venturi ports where radius of curvature $R_{\text{curve}}(z)$ transitions smoothly from $R_{\text{throat}} \approx 600\text{ mm}$ at the central throat to $R_{\text{mouth}} \approx 20\text{ mm}$ at the bellmouth mouths, eliminating sharp transitions and flow separation.
+  - Added full interactive controls in the Ports tab for wall thickness (mm), integrated mounting flange (toggle, thickness, outer diameter), and bolt hole cutouts (count, diameter, bolt circle PCD).
+  - Added multi-mode 3D printing export: Single piece (Full port), 2-piece symmetric halves ($L/2$ for flat supportless build-plate printing), and Outer Flange Coupling Only with direct one-click `.stl` download.
+- **Full Active Test Suite**: 184 tests passing (`PASS: 112 FAIL: 0 SKIP: 72`).
 
 - **Targeted Per-Duct Focus & Independent Flare Configuration**:
   - Added a prominent single-click **Active Duct Focus** selector (`[ 🌐 All Ducts ]`, `[ 🔒 Upper Port (Internal) ]`, `[ 📢 Lower Port (External) ]`, etc.) right at the top of the Cockpit and synchronized with the Blueprint CAD workbench.

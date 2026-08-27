@@ -10,6 +10,7 @@ from __future__ import annotations
 
 try:
     from .engine import *  # noqa: F401,F403
+    from .port_cad import *  # noqa: F401,F403
     from .presets import *  # noqa: F401,F403
     from .presets import (
         _load_loudspeaker_database_presets,  # noqa: F401
@@ -23,6 +24,7 @@ try:
     from .ranking import *  # noqa: F401,F403
 except ImportError:  # top-level import with src/ on sys.path (ui_app)
     from engine import *  # noqa: F401,F403
+    from port_cad import *  # noqa: F401,F403
     from presets import *  # noqa: F401,F403
     from presets import (  # type: ignore[no-redef]
         _load_loudspeaker_database_presets,  # noqa: F401
