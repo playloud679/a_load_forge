@@ -1011,6 +1011,7 @@ def port_air_velocity_ms(
     result: SimulationResult,
     port_area_cm2: float,
     port: str = "lower",
+    at_mol: bool = False,
 ) -> np.ndarray:
     """Return the linear port air speed `|U|/S` in m/s for the requested port.
 
@@ -1026,7 +1027,16 @@ def port_air_velocity_ms(
         u = result.port_h_velocity
     else:
         raise ValueError(f"port must be 'lower' or 'upper', got {port!r}")
-    return np.abs(np.asarray(u)) / (float(port_area_cm2) * 1e-4)
+    
+    linear_v = np.abs(np.asarray(u)) / (float(port_area_cm2) * 1e-4)
+    if at_mol and result.mil_w is not None and len(result.mil_w) > 0:
+        # At rated MOL drive, voltage scale is sqrt(mil_w / 1.0W) for 2.83V reference or direct SPL scaling
+        mol_gain = 10.0 ** ((np.asarray(result.mol_db) - np.asarray(result.spl_total_db)) / 20.0)
+        valid = np.isfinite(mol_gain) & (mol_gain > 0)
+        scale = np.ones_like(linear_v)
+        scale[valid] = mol_gain[valid]
+        linear_v = linear_v * scale
+    return linear_v
 
 
 def port_length_cm(
@@ -1513,6 +1523,179 @@ def port_diameter_for_load(
     if floor_rounded_cm >= floor_cm_snapped:
         return float(floor_rounded_cm)
     return float(np.ceil(raw_cm / grid_cm) * grid_cm)
+
+
+def flared_port_dimensions_cm(
+    volume_l: float,
+    fb_hz: float,
+    diameter_cm: float,
+    flare_radius_cm: float = 2.5,
+    flare_style: str = "both",
+    end_correction: float = 1.43,
+) -> dict[str, float]:
+    """Calculate the equivalent physical tube geometry and straight length for flared vents.
+
+    Accounts for acoustic mass reductions from flares:
+    - none: cylindrical duct.
+    - one_end: flared on outer end (L_straight = L_eff - 0.5*r_flare).
+    - both: flared on both ends (L_straight = L_eff - r_flare).
+    - hourglass: continuous flare from center (L_straight = 0).
+    """
+    _require_positive("volume_l", volume_l)
+    _require_positive("fb_hz", fb_hz)
+    _require_positive("diameter_cm", diameter_cm)
+    r_flare = max(0.0, float(flare_radius_cm))
+    d_main = float(diameter_cm)
+
+    # Base cylindrical length
+    base_l = port_length_cm(volume_l, fb_hz, d_main, end_correction)
+    if base_l <= 0:
+        return {
+            "straight_length_cm": 0.0,
+            "overall_length_cm": 0.0,
+            "outer_diameter_cm": d_main,
+            "chuffing_limit_ms": 17.0,
+        }
+
+    if flare_style == "none":
+        return {
+            "straight_length_cm": float(base_l),
+            "overall_length_cm": float(base_l),
+            "outer_diameter_cm": float(d_main),
+            "chuffing_limit_ms": 17.0,
+        }
+    elif flare_style == "one_end":
+        straight_l = max(0.0, base_l - 0.5 * r_flare)
+        overall_l = straight_l + r_flare
+        outer_d = d_main + 2.0 * r_flare
+        chuff_lim = 24.0
+    elif flare_style == "both":
+        straight_l = max(0.0, base_l - r_flare)
+        overall_l = straight_l + 2.0 * r_flare
+        outer_d = d_main + 2.0 * r_flare
+        chuff_lim = 28.0
+    elif flare_style == "hourglass":
+        straight_l = 0.0
+        overall_l = max(0.0, base_l * 0.85)
+        outer_d = d_main + 2.0 * r_flare
+        chuff_lim = 34.0
+    else:
+        raise ValueError(f"Unknown flare style: {flare_style}")
+
+    return {
+        "straight_length_cm": float(straight_l),
+        "overall_length_cm": float(overall_l),
+        "outer_diameter_cm": float(outer_d),
+        "chuffing_limit_ms": float(chuff_lim),
+    }
+
+
+def auto_optimize_port_diameter_cm(
+    ts: DriverTS,
+    result: SimulationResult,
+    volume_l: float,
+    tuning_hz: float,
+    end_correction: float = 1.43,
+    volume_velocity: np.ndarray | None = None,
+    sim_voltage_v: float = 2.83,
+    policy: str = "studio_mol",
+    flare_style: str = "both",
+    flare_radius_cm: float = 2.5,
+    max_duct_volume_fraction: float = 0.08,
+    port_name: str = "lower",
+) -> dict[str, Any]:
+    """Auto-optimize the port diameter and flared length matching engineering constraints.
+
+    Evaluates exact simulated MOL air velocity curves across the candidate sweep.
+    """
+    _require_positive("volume_l", volume_l)
+    _require_positive("tuning_hz", tuning_hz)
+
+    # Minimum displacement diameter from Small/Keele displacement rule
+    d_disp = port_displacement_min_diameter_cm(ts, tuning_hz)
+
+    # Target maximum air velocity at MOL based on policy
+    if policy == "studio_mol":
+        target_v_ms = 24.0 if flare_style == "none" else 28.0
+    elif policy == "balanced_pro":
+        target_v_ms = 28.0 if flare_style == "none" else 32.0
+    elif policy == "compact":
+        target_v_ms = 35.0 if flare_style == "none" else 40.0
+    else:
+        target_v_ms = 28.0
+
+    candidates = np.arange(2.5, 30.5, 0.5)
+    best_candidate = None
+    best_diameter = None
+
+    for d in candidates:
+        area_cm2 = np.pi * (d / 2.0) ** 2
+        fdims = flared_port_dimensions_cm(
+            volume_l, tuning_hz, d, flare_radius_cm, flare_style, end_correction
+        )
+        l_overall = fdims["overall_length_cm"]
+        if l_overall <= 0:
+            continue
+
+        duct_vol_l = area_cm2 * l_overall / 1000.0
+        duct_frac = duct_vol_l / float(volume_l)
+
+        # Check maximum duct volume fraction limit
+        if duct_frac > max_duct_volume_fraction:
+            continue
+
+        # Pipe resonance check
+        f_pipe = port_pipe_resonance_hz(l_overall)
+        if f_pipe < 3.0 * tuning_hz:
+            continue
+
+        # Evaluate exact air velocity at MOL
+        v_mol_arr = port_air_velocity_ms(result, area_cm2, port=port_name, at_mol=True)
+        v_mol_peak = float(np.nanmax(v_mol_arr)) if len(v_mol_arr) > 0 else 0.0
+
+        if v_mol_peak <= target_v_ms or best_candidate is None:
+            best_candidate = {
+                "diameter_cm": float(d),
+                "overall_length_cm": float(l_overall),
+                "straight_length_cm": float(fdims["straight_length_cm"]),
+                "outer_diameter_cm": float(fdims["outer_diameter_cm"]),
+                "chuffing_limit_ms": float(fdims["chuffing_limit_ms"]),
+                "duct_volume_l": float(duct_vol_l),
+                "duct_volume_fraction": float(duct_frac),
+                "pipe_resonance_hz": float(f_pipe),
+                "mol_velocity_peak_ms": float(v_mol_peak),
+                "status_note": "Optimized within target guidelines",
+            }
+            best_diameter = d
+            if v_mol_peak <= target_v_ms:
+                if policy == "compact" or d >= d_disp:
+                    break
+
+    if best_candidate is None:
+        # Fallback to standard sized_port if no flare candidate fit
+        d_fallback = port_diameter_for_load(volume_l, tuning_hz, end_correction, d_disp)
+        if d_fallback is None:
+            d_fallback = float(np.ceil(max(d_disp, 3.0) / 0.5) * 0.5)
+        fdims = flared_port_dimensions_cm(
+            volume_l, tuning_hz, d_fallback, flare_radius_cm, flare_style, end_correction
+        )
+        area_cm2 = np.pi * (d_fallback / 2.0) ** 2
+        l_overall = max(fdims["overall_length_cm"], 1.0)
+        v_mol_arr = port_air_velocity_ms(result, area_cm2, port=port_name, at_mol=True)
+        best_candidate = {
+            "diameter_cm": float(d_fallback),
+            "overall_length_cm": float(l_overall),
+            "straight_length_cm": float(fdims["straight_length_cm"]),
+            "outer_diameter_cm": float(fdims["outer_diameter_cm"]),
+            "chuffing_limit_ms": float(fdims["chuffing_limit_ms"]),
+            "duct_volume_l": float(area_cm2 * l_overall / 1000.0),
+            "duct_volume_fraction": float(area_cm2 * l_overall / 1000.0 / volume_l),
+            "pipe_resonance_hz": float(port_pipe_resonance_hz(l_overall)),
+            "mol_velocity_peak_ms": float(np.nanmax(v_mol_arr)),
+            "status_note": "Compromised: constrained by chamber volume fraction",
+        }
+
+    return best_candidate
 
 
 def _optimizer_metrics(

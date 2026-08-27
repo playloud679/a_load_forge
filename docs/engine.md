@@ -173,10 +173,17 @@ search's gradient across the whole infeasible region, making
 starting point sat in that region, even with a compliant box nearby.
 Candidates needing more than 95% of the 60 cm diameter ceiling, or whose
 `port_diameter_for_load` diameter breaks the duct-volume cap, are treated as
-infeasible. `port_pipe_resonance_hz()` reports the duct's first half-wave
-resonance (`c/2L`); the UI warns when it falls below
-`PORT_PIPE_RESONANCE_GUARD` (4×) times the tuning. A third, independent
-rejection tier compares the sized duct's length against
+infeasible.
+
+### `port_pipe_resonance_hz(length_cm, end_correction_cm=0.0) -> float`
+
+Computes the fundamental half-wave organ-pipe acoustic resonance frequency of a reflex duct (`c / 2L_eff`). The UI warns when it falls below `PORT_PIPE_RESONANCE_GUARD` (4×) times the tuning.
+
+### `auto_optimize_port_diameter_cm(ts, result, volume_l, tuning_hz, end_correction, volume_velocity, sim_voltage_v=2.83, policy="studio_mol", flare_style="both", flare_radius_cm=2.5, max_duct_volume_fraction=0.08) -> dict`
+
+Calculates the optimal port diameter and length based on real-world engineering directives:
+- `policy`: `"studio_mol"` (zero chuffing at MOL), `"balanced_pro"` (standard AES trade-off), or `"compact"` (minimum duct volume).
+- Accounts for flare profile chuffing headroom, Small/Keele displacement area rule, chamber volume fraction, and pipe resonance avoidance.
 `port_max_straight_length_cm()` (the box treated as a cube): a duct can stay
 a small fraction of a large chamber's *volume* while still being longer than
 the chamber can hold in a straight *run* — a thin, deeply-tuned vent moves

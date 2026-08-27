@@ -6,12 +6,9 @@ showErrorDetails = "none"
 [theme]
 base = "dark"
 primaryColor = "#10B981"
-
-[theme.sidebar]
-primaryColor = "#10B981"
-backgroundColor = "#050505"
-secondaryBackgroundColor = "#101217"
-textColor = "#F5F7FA"
+backgroundColor = "#000000"
+secondaryBackgroundColor = "#0a0f16"
+textColor = "#F3F4F6"
 
 [server]
 enableStaticServing = false

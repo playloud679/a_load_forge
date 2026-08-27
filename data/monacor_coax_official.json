@@ -1,0 +1,648 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-24T21:34:39+00:00",
+  "source": "Monacor public official product catalog",
+  "catalog_root": "https://www.monacor.com/products/components/speaker-technology/",
+  "publication_state": "staging_only",
+  "category_counts": {
+    "pa-coaxial-speakers-and-full-range-speakers-": 11
+  },
+  "listed_unique": 11,
+  "accepted": 3,
+  "rejected": 8,
+  "rejections": [
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/an2775-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/ftx0617-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/ftx0820-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/ftx1025-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/ftx1225-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/ftx1530-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/tfx0515-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/tfx0615-8/",
+      "reason": "different or missing manufacturer"
+    }
+  ],
+  "listing_failures": [],
+  "detail_failures": [],
+  "presets": [
+    {
+      "name": "WEB: Monacor SP-308CX",
+      "brand": "Monacor",
+      "model": "SP-308CX",
+      "size_in": null,
+      "kind": "Loudspeaker driver",
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+      "source": "Official manufacturer site",
+      "driver": {
+        "fs_hz": 80.0,
+        "vas_l": 15.4,
+        "qts": 0.36,
+        "qms": 2.21,
+        "re_ohm": 5.8,
+        "sd_cm2": 221.0,
+        "qes": 0.43,
+        "le_mh": 0.58,
+        "le10k_mh": 0.0,
+        "xmax_mm": 2.5,
+        "pe_w": 0.0,
+        "mms_g": 17.0,
+        "cms_mm_per_n": 0.0,
+        "bl_tm": 12.1
+      },
+      "raw": {
+        "fs_hz": 80.0,
+        "vas_l": 15.4,
+        "qts": 0.36,
+        "qms": 2.21,
+        "qes": 0.43,
+        "re_ohm": 5.8,
+        "sd_cm2": 221.0,
+        "le_mh": 0.58,
+        "xmax_mm": 2.5,
+        "mms_g": 17.0,
+        "bl_tm": 12.1,
+        "rms_kg_s": 150.0,
+        "mounting_depth_mm": 159.0,
+        "weight_kg": 4.8,
+        "magnet_weight_kg": 1.4
+      },
+      "website_fields": {
+        "title": "SP-308CX",
+        "brand": "Monacor",
+        "model": "SP-308CX",
+        "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+        "source": "Official manufacturer site",
+        "fetched_at": "2026-08-24T21:34:39+00:00",
+        "extraction_method": "html",
+        "confidence": 0.975,
+        "raw_measurements": {
+          "fs_hz": {
+            "value": 80.0,
+            "raw_value": "80",
+            "unit": "",
+            "label": "Resonant frequency",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "vas_l": {
+            "value": 15.4,
+            "raw_value": "15.4",
+            "unit": "l",
+            "label": "Equivalent volume",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "qts": {
+            "value": 0.36,
+            "raw_value": "0.36",
+            "unit": "",
+            "label": "Qts",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "qms": {
+            "value": 2.21,
+            "raw_value": "2.21",
+            "unit": "",
+            "label": "Qms",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "qes": {
+            "value": 0.43,
+            "raw_value": "0.43",
+            "unit": "T",
+            "label": "Qes",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "re_ohm": {
+            "value": 5.8,
+            "raw_value": "5.8",
+            "unit": "Ω",
+            "label": "DC resistance",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "sd_cm2": {
+            "value": 221.0,
+            "raw_value": "221",
+            "unit": "cm 2",
+            "label": "Sd",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "le_mh": {
+            "value": 0.58,
+            "raw_value": "0.58",
+            "unit": "mH",
+            "label": "Le",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "xmax_mm": {
+            "value": 2.5,
+            "raw_value": "2.5",
+            "unit": "mm",
+            "label": "Linear excursion",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "mms_g": {
+            "value": 17.0,
+            "raw_value": "17",
+            "unit": "g",
+            "label": "Moving mass",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "bl_tm": {
+            "value": 12.1,
+            "raw_value": "12.10",
+            "unit": "Tm",
+            "label": "Force factor",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "rms_kg_s": {
+            "value": 150.0,
+            "raw_value": "150",
+            "unit": "",
+            "label": "RMS",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "mounting_depth_mm": {
+            "value": 159.0,
+            "raw_value": "159",
+            "unit": "mm",
+            "label": "Mounting depth",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "weight_kg": {
+            "value": 4.8,
+            "raw_value": "4.8",
+            "unit": "kg",
+            "label": "Weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "magnet_weight_kg": {
+            "value": 1.4,
+            "raw_value": "1.4",
+            "unit": "kg",
+            "label": "Magnet weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          }
+        },
+        "derived_fields": [],
+        "derivations": {},
+        "manufacturer_evidence": "MONACOR INTERNATIONAL GmbH & Co. KG Konsul-Smidt-Str. 68 28217 Bremen Germany info@monacor.com"
+      },
+      "mechanical": {
+        "mounting_depth_mm": 159.0,
+        "weight_kg": 4.8
+      },
+      "published_specs": {
+        "magnet_weight_kg": 1.4
+      }
+    },
+    {
+      "name": "WEB: Monacor SP-310CX",
+      "brand": "Monacor",
+      "model": "SP-310CX",
+      "size_in": null,
+      "kind": "Loudspeaker driver",
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+      "source": "Official manufacturer site",
+      "driver": {
+        "fs_hz": 60.0,
+        "vas_l": 41.0,
+        "qts": 0.32,
+        "qms": 3.24,
+        "re_ohm": 5.6,
+        "sd_cm2": 346.0,
+        "qes": 0.36,
+        "le_mh": 0.65,
+        "le10k_mh": 0.0,
+        "xmax_mm": 2.5,
+        "pe_w": 0.0,
+        "mms_g": 32.0,
+        "cms_mm_per_n": 0.0,
+        "bl_tm": 13.3
+      },
+      "raw": {
+        "fs_hz": 60.0,
+        "vas_l": 41.0,
+        "qts": 0.32,
+        "qms": 3.24,
+        "qes": 0.36,
+        "re_ohm": 5.6,
+        "sd_cm2": 346.0,
+        "le_mh": 0.65,
+        "xmax_mm": 2.5,
+        "mms_g": 32.0,
+        "bl_tm": 13.3,
+        "rms_kg_s": 200.0,
+        "mounting_depth_mm": 173.5,
+        "weight_kg": 6.24,
+        "magnet_weight_kg": 1.6
+      },
+      "website_fields": {
+        "title": "SP-310CX",
+        "brand": "Monacor",
+        "model": "SP-310CX",
+        "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+        "source": "Official manufacturer site",
+        "fetched_at": "2026-08-24T21:34:39+00:00",
+        "extraction_method": "html",
+        "confidence": 0.975,
+        "raw_measurements": {
+          "fs_hz": {
+            "value": 60.0,
+            "raw_value": "60",
+            "unit": "",
+            "label": "Resonant frequency",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "vas_l": {
+            "value": 41.0,
+            "raw_value": "41",
+            "unit": "l",
+            "label": "Equivalent volume",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "qts": {
+            "value": 0.32,
+            "raw_value": "0.32",
+            "unit": "",
+            "label": "Qts",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "qms": {
+            "value": 3.24,
+            "raw_value": "3.24",
+            "unit": "",
+            "label": "Qms",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "qes": {
+            "value": 0.36,
+            "raw_value": "0.36",
+            "unit": "T",
+            "label": "Qes",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "re_ohm": {
+            "value": 5.6,
+            "raw_value": "5.6",
+            "unit": "Ω",
+            "label": "DC resistance",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "sd_cm2": {
+            "value": 346.0,
+            "raw_value": "346",
+            "unit": "cm 2",
+            "label": "Sd",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "le_mh": {
+            "value": 0.65,
+            "raw_value": "0.65",
+            "unit": "mH",
+            "label": "Le",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "xmax_mm": {
+            "value": 2.5,
+            "raw_value": "2.5",
+            "unit": "mm",
+            "label": "Linear excursion",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "mms_g": {
+            "value": 32.0,
+            "raw_value": "32",
+            "unit": "g",
+            "label": "Moving mass",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "bl_tm": {
+            "value": 13.3,
+            "raw_value": "13.30",
+            "unit": "Tm",
+            "label": "Force factor",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "rms_kg_s": {
+            "value": 200.0,
+            "raw_value": "200",
+            "unit": "",
+            "label": "RMS",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "mounting_depth_mm": {
+            "value": 173.5,
+            "raw_value": "173.5",
+            "unit": "mm",
+            "label": "Mounting depth",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "weight_kg": {
+            "value": 6.24,
+            "raw_value": "6.24",
+            "unit": "kg",
+            "label": "Weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "magnet_weight_kg": {
+            "value": 1.6,
+            "raw_value": "1.6",
+            "unit": "kg",
+            "label": "Magnet weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          }
+        },
+        "derived_fields": [],
+        "derivations": {},
+        "manufacturer_evidence": "MONACOR INTERNATIONAL GmbH & Co. KG Konsul-Smidt-Str. 68 28217 Bremen Germany info@monacor.com"
+      },
+      "mechanical": {
+        "mounting_depth_mm": 173.5,
+        "weight_kg": 6.24
+      },
+      "published_specs": {
+        "magnet_weight_kg": 1.6
+      }
+    },
+    {
+      "name": "WEB: Monacor SP-312CX",
+      "brand": "Monacor",
+      "model": "SP-312CX",
+      "size_in": null,
+      "kind": "Loudspeaker driver",
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+      "source": "Official manufacturer site",
+      "driver": {
+        "fs_hz": 55.0,
+        "vas_l": 64.0,
+        "qts": 0.33,
+        "qms": 3.74,
+        "re_ohm": 5.6,
+        "sd_cm2": 540.0,
+        "qes": 0.36,
+        "le_mh": 1.1,
+        "le10k_mh": 0.0,
+        "xmax_mm": 3.0,
+        "pe_w": 0.0,
+        "mms_g": 56.0,
+        "cms_mm_per_n": 0.0,
+        "bl_tm": 16.9
+      },
+      "raw": {
+        "fs_hz": 55.0,
+        "vas_l": 64.0,
+        "qts": 0.33,
+        "qms": 3.74,
+        "qes": 0.36,
+        "re_ohm": 5.6,
+        "sd_cm2": 540.0,
+        "le_mh": 1.1,
+        "xmax_mm": 3.0,
+        "mms_g": 56.0,
+        "bl_tm": 16.9,
+        "rms_kg_s": 250.0,
+        "mounting_depth_mm": 195.5,
+        "weight_kg": 8.06,
+        "magnet_weight_kg": 1.8
+      },
+      "website_fields": {
+        "title": "SP-312CX",
+        "brand": "Monacor",
+        "model": "SP-312CX",
+        "url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+        "source": "Official manufacturer site",
+        "fetched_at": "2026-08-24T21:34:39+00:00",
+        "extraction_method": "html",
+        "confidence": 0.975,
+        "raw_measurements": {
+          "fs_hz": {
+            "value": 55.0,
+            "raw_value": "55",
+            "unit": "",
+            "label": "Resonant frequency",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "vas_l": {
+            "value": 64.0,
+            "raw_value": "64",
+            "unit": "l",
+            "label": "Equivalent volume",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "qts": {
+            "value": 0.33,
+            "raw_value": "0.33",
+            "unit": "",
+            "label": "Qts",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "qms": {
+            "value": 3.74,
+            "raw_value": "3.74",
+            "unit": "",
+            "label": "Qms",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "qes": {
+            "value": 0.36,
+            "raw_value": "0.36",
+            "unit": "T",
+            "label": "Qes",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "re_ohm": {
+            "value": 5.6,
+            "raw_value": "5.6",
+            "unit": "Ω",
+            "label": "DC resistance",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "sd_cm2": {
+            "value": 540.0,
+            "raw_value": "540",
+            "unit": "cm 2",
+            "label": "Sd",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "le_mh": {
+            "value": 1.1,
+            "raw_value": "1.1",
+            "unit": "mH",
+            "label": "Le",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "xmax_mm": {
+            "value": 3.0,
+            "raw_value": "3.0",
+            "unit": "mm",
+            "label": "Linear excursion",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "mms_g": {
+            "value": 56.0,
+            "raw_value": "56",
+            "unit": "g",
+            "label": "Moving mass",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "bl_tm": {
+            "value": 16.9,
+            "raw_value": "16.90",
+            "unit": "Tm",
+            "label": "Force factor",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "rms_kg_s": {
+            "value": 250.0,
+            "raw_value": "250",
+            "unit": "",
+            "label": "RMS",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "mounting_depth_mm": {
+            "value": 195.5,
+            "raw_value": "195.5",
+            "unit": "mm",
+            "label": "Mounting depth",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "weight_kg": {
+            "value": 8.06,
+            "raw_value": "8.06",
+            "unit": "kg",
+            "label": "Weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          },
+          "magnet_weight_kg": {
+            "value": 1.8,
+            "raw_value": "1.8",
+            "unit": "kg",
+            "label": "Magnet weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-coaxial-speakers-and-full-range-speakers-/sp-312cx/",
+            "fetched_at": "2026-08-24T21:34:39+00:00"
+          }
+        },
+        "derived_fields": [],
+        "derivations": {},
+        "manufacturer_evidence": "MONACOR INTERNATIONAL GmbH & Co. KG Konsul-Smidt-Str. 68 28217 Bremen Germany info@monacor.com"
+      },
+      "mechanical": {
+        "mounting_depth_mm": 195.5,
+        "weight_kg": 8.06
+      },
+      "published_specs": {
+        "magnet_weight_kg": 1.8
+      }
+    }
+  ]
+}

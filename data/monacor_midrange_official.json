@@ -1,0 +1,1683 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-24T21:32:38+00:00",
+  "source": "Monacor public official product catalog",
+  "catalog_root": "https://www.monacor.com/products/components/speaker-technology/",
+  "publication_state": "staging_only",
+  "category_counts": {
+    "pa-midrange-speakers-": 26
+  },
+  "listed_unique": 26,
+  "accepted": 8,
+  "rejected": 18,
+  "rejections": [
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/cf0617m-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/cf0820bmb-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/cf0820m-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/cf1025c-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/ftr08-2011d-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/ftr12-3070c-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/ftr12-4080dl-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/k12h-100tc-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/k12h-200tc-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-17-4/",
+      "reason": "missing fs_hz; missing vas_l; missing qts; missing qms; missing re_ohm; missing sd_cm2"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/tf0510-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/tf0510mr-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/tf0615-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/tf0615mr-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/tf0818-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/tf0818mr-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/tf1220-8/",
+      "reason": "different or missing manufacturer"
+    },
+    {
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/tf1230s-8/",
+      "reason": "different or missing manufacturer"
+    }
+  ],
+  "listing_failures": [],
+  "detail_failures": [],
+  "presets": [
+    {
+      "name": "WEB: Monacor SP-12/200PA",
+      "brand": "Monacor",
+      "model": "SP-12/200PA",
+      "size_in": null,
+      "kind": "Loudspeaker driver",
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+      "source": "Official manufacturer site",
+      "driver": {
+        "fs_hz": 45.0,
+        "vas_l": 114.0,
+        "qts": 0.33,
+        "qms": 5.2,
+        "re_ohm": 6.8,
+        "sd_cm2": 531.0,
+        "qes": 0.35,
+        "le_mh": 1.2,
+        "le10k_mh": 0.0,
+        "xmax_mm": 4.0,
+        "pe_w": 200.0,
+        "mms_g": 43.0,
+        "cms_mm_per_n": 0.0,
+        "bl_tm": 15.4
+      },
+      "raw": {
+        "fs_hz": 45.0,
+        "vas_l": 114.0,
+        "qts": 0.33,
+        "qms": 5.2,
+        "qes": 0.35,
+        "re_ohm": 6.8,
+        "sd_cm2": 531.0,
+        "le_mh": 1.2,
+        "xmax_mm": 4.0,
+        "pe_w": 200.0,
+        "mms_g": 43.0,
+        "bl_tm": 15.4,
+        "mounting_depth_mm": 125.0,
+        "weight_kg": 5.74,
+        "magnet_weight_kg": 1.8
+      },
+      "website_fields": {
+        "title": "SP-12/200PA",
+        "brand": "Monacor",
+        "model": "SP-12/200PA",
+        "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+        "source": "Official manufacturer site",
+        "fetched_at": "2026-08-24T21:32:38+00:00",
+        "extraction_method": "html",
+        "confidence": 1.0,
+        "raw_measurements": {
+          "fs_hz": {
+            "value": 45.0,
+            "raw_value": "45",
+            "unit": "Hz",
+            "label": "Resonant frequency",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "vas_l": {
+            "value": 114.0,
+            "raw_value": "114",
+            "unit": "l",
+            "label": "Equivalent volume",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qts": {
+            "value": 0.33,
+            "raw_value": "0.33",
+            "unit": "",
+            "label": "Qts",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qms": {
+            "value": 5.2,
+            "raw_value": "5.20",
+            "unit": "",
+            "label": "Qms",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qes": {
+            "value": 0.35,
+            "raw_value": "0.35",
+            "unit": "T",
+            "label": "Qes",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "re_ohm": {
+            "value": 6.8,
+            "raw_value": "6.8",
+            "unit": "Ω",
+            "label": "DC resistance",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "sd_cm2": {
+            "value": 531.0,
+            "raw_value": "531",
+            "unit": "cm 2",
+            "label": "Sd",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "le_mh": {
+            "value": 1.2,
+            "raw_value": "1.2",
+            "unit": "mH",
+            "label": "Le",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "xmax_mm": {
+            "value": 4.0,
+            "raw_value": "4",
+            "unit": "mm",
+            "label": "Linear excursion",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "pe_w": {
+            "value": 200.0,
+            "raw_value": "200",
+            "unit": "W",
+            "label": "Power rating",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mms_g": {
+            "value": 43.0,
+            "raw_value": "43",
+            "unit": "g",
+            "label": "Moving mass",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "bl_tm": {
+            "value": 15.4,
+            "raw_value": "15.40",
+            "unit": "Tm",
+            "label": "Force factor",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mounting_depth_mm": {
+            "value": 125.0,
+            "raw_value": "125",
+            "unit": "mm",
+            "label": "Mounting depth",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "weight_kg": {
+            "value": 5.74,
+            "raw_value": "5.74",
+            "unit": "kg",
+            "label": "Weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "magnet_weight_kg": {
+            "value": 1.8,
+            "raw_value": "1.8",
+            "unit": "kg",
+            "label": "Magnet weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12-200pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          }
+        },
+        "derived_fields": [],
+        "derivations": {},
+        "manufacturer_evidence": "MONACOR INTERNATIONAL GmbH & Co. KG Konsul-Smidt-Str. 68 28217 Bremen Germany info@mo…"
+      },
+      "mechanical": {
+        "mounting_depth_mm": 125.0,
+        "weight_kg": 5.74
+      },
+      "published_specs": {
+        "magnet_weight_kg": 1.8
+      }
+    },
+    {
+      "name": "WEB: Monacor SP-12A/302PA",
+      "brand": "Monacor",
+      "model": "SP-12A/302PA",
+      "size_in": 12.0,
+      "kind": "Loudspeaker driver",
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+      "source": "Official manufacturer site",
+      "driver": {
+        "fs_hz": 50.0,
+        "vas_l": 77.0,
+        "qts": 0.34,
+        "qms": 7.87,
+        "re_ohm": 6.4,
+        "sd_cm2": 530.0,
+        "qes": 0.35,
+        "le_mh": 0.8,
+        "le10k_mh": 0.0,
+        "xmax_mm": 5.0,
+        "pe_w": 300.0,
+        "mms_g": 50.0,
+        "cms_mm_per_n": 0.0,
+        "bl_tm": 16.98
+      },
+      "raw": {
+        "fs_hz": 50.0,
+        "vas_l": 77.0,
+        "qts": 0.34,
+        "qms": 7.87,
+        "qes": 0.35,
+        "re_ohm": 6.4,
+        "sd_cm2": 530.0,
+        "le_mh": 0.8,
+        "xmax_mm": 5.0,
+        "pe_w": 300.0,
+        "mms_g": 50.0,
+        "bl_tm": 16.98,
+        "mounting_depth_mm": 123.0,
+        "weight_kg": 5.1,
+        "magnet_weight_kg": 2.0
+      },
+      "website_fields": {
+        "title": "SP-12A/302PA",
+        "brand": "Monacor",
+        "model": "SP-12A/302PA",
+        "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+        "source": "Official manufacturer site",
+        "fetched_at": "2026-08-24T21:32:38+00:00",
+        "extraction_method": "html",
+        "confidence": 1.0,
+        "raw_measurements": {
+          "fs_hz": {
+            "value": 50.0,
+            "raw_value": "50",
+            "unit": "Hz",
+            "label": "Resonant frequency",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "vas_l": {
+            "value": 77.0,
+            "raw_value": "77",
+            "unit": "l",
+            "label": "Equivalent volume",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qts": {
+            "value": 0.34,
+            "raw_value": "0.34",
+            "unit": "",
+            "label": "Qts",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qms": {
+            "value": 7.87,
+            "raw_value": "7.87",
+            "unit": "",
+            "label": "Qms",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qes": {
+            "value": 0.35,
+            "raw_value": "0.35",
+            "unit": "T",
+            "label": "Qes",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "re_ohm": {
+            "value": 6.4,
+            "raw_value": "6.4",
+            "unit": "Ω",
+            "label": "DC resistance",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "sd_cm2": {
+            "value": 530.0,
+            "raw_value": "530",
+            "unit": "cm 2",
+            "label": "Sd",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "le_mh": {
+            "value": 0.8,
+            "raw_value": "0.8",
+            "unit": "mH",
+            "label": "Le",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "xmax_mm": {
+            "value": 5.0,
+            "raw_value": "5",
+            "unit": "mm",
+            "label": "Linear excursion",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "pe_w": {
+            "value": 300.0,
+            "raw_value": "300",
+            "unit": "W",
+            "label": "Power rating",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mms_g": {
+            "value": 50.0,
+            "raw_value": "50",
+            "unit": "g",
+            "label": "Moving mass",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "bl_tm": {
+            "value": 16.98,
+            "raw_value": "16.98",
+            "unit": "Tm",
+            "label": "Force factor",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mounting_depth_mm": {
+            "value": 123.0,
+            "raw_value": "123",
+            "unit": "mm",
+            "label": "Mounting depth",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "weight_kg": {
+            "value": 5.1,
+            "raw_value": "5.1",
+            "unit": "kg",
+            "label": "Weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "magnet_weight_kg": {
+            "value": 2.0,
+            "raw_value": "2",
+            "unit": "kg",
+            "label": "Magnet weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-12a-302pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          }
+        },
+        "derived_fields": [],
+        "derivations": {},
+        "manufacturer_evidence": "MONACOR INTERNATIONAL GmbH & Co. KG Konsul-Smidt-Str. 68 28217 Bremen Germany info@monacor.com"
+      },
+      "mechanical": {
+        "mounting_depth_mm": 123.0,
+        "weight_kg": 5.1
+      },
+      "published_specs": {
+        "magnet_weight_kg": 2.0
+      }
+    },
+    {
+      "name": "WEB: Monacor SP-308CX",
+      "brand": "Monacor",
+      "model": "SP-308CX",
+      "size_in": null,
+      "kind": "Loudspeaker driver",
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+      "source": "Official manufacturer site",
+      "driver": {
+        "fs_hz": 80.0,
+        "vas_l": 15.4,
+        "qts": 0.36,
+        "qms": 2.21,
+        "re_ohm": 5.8,
+        "sd_cm2": 221.0,
+        "qes": 0.43,
+        "le_mh": 0.58,
+        "le10k_mh": 0.0,
+        "xmax_mm": 2.5,
+        "pe_w": 0.0,
+        "mms_g": 17.0,
+        "cms_mm_per_n": 0.0,
+        "bl_tm": 12.1
+      },
+      "raw": {
+        "fs_hz": 80.0,
+        "vas_l": 15.4,
+        "qts": 0.36,
+        "qms": 2.21,
+        "qes": 0.43,
+        "re_ohm": 5.8,
+        "sd_cm2": 221.0,
+        "le_mh": 0.58,
+        "xmax_mm": 2.5,
+        "mms_g": 17.0,
+        "bl_tm": 12.1,
+        "rms_kg_s": 150.0,
+        "mounting_depth_mm": 159.0,
+        "weight_kg": 4.8,
+        "magnet_weight_kg": 1.4
+      },
+      "website_fields": {
+        "title": "SP-308CX",
+        "brand": "Monacor",
+        "model": "SP-308CX",
+        "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+        "source": "Official manufacturer site",
+        "fetched_at": "2026-08-24T21:32:38+00:00",
+        "extraction_method": "html",
+        "confidence": 0.975,
+        "raw_measurements": {
+          "fs_hz": {
+            "value": 80.0,
+            "raw_value": "80",
+            "unit": "",
+            "label": "Resonant frequency",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "vas_l": {
+            "value": 15.4,
+            "raw_value": "15.4",
+            "unit": "l",
+            "label": "Equivalent volume",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qts": {
+            "value": 0.36,
+            "raw_value": "0.36",
+            "unit": "",
+            "label": "Qts",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qms": {
+            "value": 2.21,
+            "raw_value": "2.21",
+            "unit": "",
+            "label": "Qms",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qes": {
+            "value": 0.43,
+            "raw_value": "0.43",
+            "unit": "T",
+            "label": "Qes",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "re_ohm": {
+            "value": 5.8,
+            "raw_value": "5.8",
+            "unit": "Ω",
+            "label": "DC resistance",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "sd_cm2": {
+            "value": 221.0,
+            "raw_value": "221",
+            "unit": "cm 2",
+            "label": "Sd",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "le_mh": {
+            "value": 0.58,
+            "raw_value": "0.58",
+            "unit": "mH",
+            "label": "Le",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "xmax_mm": {
+            "value": 2.5,
+            "raw_value": "2.5",
+            "unit": "mm",
+            "label": "Linear excursion",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mms_g": {
+            "value": 17.0,
+            "raw_value": "17",
+            "unit": "g",
+            "label": "Moving mass",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "bl_tm": {
+            "value": 12.1,
+            "raw_value": "12.10",
+            "unit": "Tm",
+            "label": "Force factor",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "rms_kg_s": {
+            "value": 150.0,
+            "raw_value": "150",
+            "unit": "",
+            "label": "RMS",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mounting_depth_mm": {
+            "value": 159.0,
+            "raw_value": "159",
+            "unit": "mm",
+            "label": "Mounting depth",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "weight_kg": {
+            "value": 4.8,
+            "raw_value": "4.8",
+            "unit": "kg",
+            "label": "Weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "magnet_weight_kg": {
+            "value": 1.4,
+            "raw_value": "1.4",
+            "unit": "kg",
+            "label": "Magnet weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-308cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          }
+        },
+        "derived_fields": [],
+        "derivations": {},
+        "manufacturer_evidence": "MONACOR INTERNATIONAL GmbH & Co. KG Konsul-Smidt-Str. 68 28217 Bremen Germany info@monacor.com"
+      },
+      "mechanical": {
+        "mounting_depth_mm": 159.0,
+        "weight_kg": 4.8
+      },
+      "published_specs": {
+        "magnet_weight_kg": 1.4
+      }
+    },
+    {
+      "name": "WEB: Monacor SP-310CX",
+      "brand": "Monacor",
+      "model": "SP-310CX",
+      "size_in": null,
+      "kind": "Loudspeaker driver",
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+      "source": "Official manufacturer site",
+      "driver": {
+        "fs_hz": 60.0,
+        "vas_l": 41.0,
+        "qts": 0.32,
+        "qms": 3.24,
+        "re_ohm": 5.6,
+        "sd_cm2": 346.0,
+        "qes": 0.36,
+        "le_mh": 0.65,
+        "le10k_mh": 0.0,
+        "xmax_mm": 2.5,
+        "pe_w": 0.0,
+        "mms_g": 32.0,
+        "cms_mm_per_n": 0.0,
+        "bl_tm": 13.3
+      },
+      "raw": {
+        "fs_hz": 60.0,
+        "vas_l": 41.0,
+        "qts": 0.32,
+        "qms": 3.24,
+        "qes": 0.36,
+        "re_ohm": 5.6,
+        "sd_cm2": 346.0,
+        "le_mh": 0.65,
+        "xmax_mm": 2.5,
+        "mms_g": 32.0,
+        "bl_tm": 13.3,
+        "rms_kg_s": 200.0,
+        "mounting_depth_mm": 173.5,
+        "weight_kg": 6.24,
+        "magnet_weight_kg": 1.6
+      },
+      "website_fields": {
+        "title": "SP-310CX",
+        "brand": "Monacor",
+        "model": "SP-310CX",
+        "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+        "source": "Official manufacturer site",
+        "fetched_at": "2026-08-24T21:32:38+00:00",
+        "extraction_method": "html",
+        "confidence": 0.975,
+        "raw_measurements": {
+          "fs_hz": {
+            "value": 60.0,
+            "raw_value": "60",
+            "unit": "",
+            "label": "Resonant frequency",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "vas_l": {
+            "value": 41.0,
+            "raw_value": "41",
+            "unit": "l",
+            "label": "Equivalent volume",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qts": {
+            "value": 0.32,
+            "raw_value": "0.32",
+            "unit": "",
+            "label": "Qts",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qms": {
+            "value": 3.24,
+            "raw_value": "3.24",
+            "unit": "",
+            "label": "Qms",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qes": {
+            "value": 0.36,
+            "raw_value": "0.36",
+            "unit": "T",
+            "label": "Qes",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "re_ohm": {
+            "value": 5.6,
+            "raw_value": "5.6",
+            "unit": "Ω",
+            "label": "DC resistance",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "sd_cm2": {
+            "value": 346.0,
+            "raw_value": "346",
+            "unit": "cm 2",
+            "label": "Sd",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "le_mh": {
+            "value": 0.65,
+            "raw_value": "0.65",
+            "unit": "mH",
+            "label": "Le",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "xmax_mm": {
+            "value": 2.5,
+            "raw_value": "2.5",
+            "unit": "mm",
+            "label": "Linear excursion",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mms_g": {
+            "value": 32.0,
+            "raw_value": "32",
+            "unit": "g",
+            "label": "Moving mass",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "bl_tm": {
+            "value": 13.3,
+            "raw_value": "13.30",
+            "unit": "Tm",
+            "label": "Force factor",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "rms_kg_s": {
+            "value": 200.0,
+            "raw_value": "200",
+            "unit": "",
+            "label": "RMS",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mounting_depth_mm": {
+            "value": 173.5,
+            "raw_value": "173.5",
+            "unit": "mm",
+            "label": "Mounting depth",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "weight_kg": {
+            "value": 6.24,
+            "raw_value": "6.24",
+            "unit": "kg",
+            "label": "Weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "magnet_weight_kg": {
+            "value": 1.6,
+            "raw_value": "1.6",
+            "unit": "kg",
+            "label": "Magnet weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-310cx/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          }
+        },
+        "derived_fields": [],
+        "derivations": {},
+        "manufacturer_evidence": "MONACOR INTERNATIONAL GmbH & Co. KG Konsul-Smidt-Str. 68 28217 Bremen Germany info@monacor.com"
+      },
+      "mechanical": {
+        "mounting_depth_mm": 173.5,
+        "weight_kg": 6.24
+      },
+      "published_specs": {
+        "magnet_weight_kg": 1.6
+      }
+    },
+    {
+      "name": "WEB: Monacor SP-4/60PRO",
+      "brand": "Monacor",
+      "model": "SP-4/60PRO",
+      "size_in": null,
+      "kind": "Loudspeaker driver",
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+      "source": "Official manufacturer site",
+      "driver": {
+        "fs_hz": 92.0,
+        "vas_l": 3.0,
+        "qts": 0.6,
+        "qms": 5.35,
+        "re_ohm": 6.76,
+        "sd_cm2": 68.0,
+        "qes": 0.67,
+        "le_mh": 0.3,
+        "le10k_mh": 0.0,
+        "xmax_mm": 2.3,
+        "pe_w": 30.0,
+        "mms_g": 6.3,
+        "cms_mm_per_n": 0.0,
+        "bl_tm": 5.85
+      },
+      "raw": {
+        "fs_hz": 92.0,
+        "vas_l": 3.0,
+        "qts": 0.6,
+        "qms": 5.35,
+        "qes": 0.67,
+        "re_ohm": 6.76,
+        "sd_cm2": 68.0,
+        "le_mh": 0.3,
+        "xmax_mm": 2.3,
+        "pe_w": 30.0,
+        "mms_g": 6.3,
+        "bl_tm": 5.85,
+        "mounting_depth_mm": 57.5,
+        "weight_kg": 0.9,
+        "magnet_weight_kg": 0.37
+      },
+      "website_fields": {
+        "title": "SP-4/60PRO",
+        "brand": "Monacor",
+        "model": "SP-4/60PRO",
+        "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+        "source": "Official manufacturer site",
+        "fetched_at": "2026-08-24T21:32:38+00:00",
+        "extraction_method": "html",
+        "confidence": 1.0,
+        "raw_measurements": {
+          "fs_hz": {
+            "value": 92.0,
+            "raw_value": "92",
+            "unit": "Hz",
+            "label": "Resonant frequency",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "vas_l": {
+            "value": 3.0,
+            "raw_value": "3.0",
+            "unit": "l",
+            "label": "Equivalent volume",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qts": {
+            "value": 0.6,
+            "raw_value": "0.60",
+            "unit": "",
+            "label": "Qts",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qms": {
+            "value": 5.35,
+            "raw_value": "5.35",
+            "unit": "",
+            "label": "Qms",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qes": {
+            "value": 0.67,
+            "raw_value": "0.67",
+            "unit": "T",
+            "label": "Qes",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "re_ohm": {
+            "value": 6.76,
+            "raw_value": "6.76",
+            "unit": "Ω",
+            "label": "DC resistance",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "sd_cm2": {
+            "value": 68.0,
+            "raw_value": "68",
+            "unit": "cm 2",
+            "label": "Sd",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "le_mh": {
+            "value": 0.3,
+            "raw_value": "0.3",
+            "unit": "mH",
+            "label": "Le",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "xmax_mm": {
+            "value": 2.3,
+            "raw_value": "2.3",
+            "unit": "mm",
+            "label": "Linear excursion",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "pe_w": {
+            "value": 30.0,
+            "raw_value": "30",
+            "unit": "W",
+            "label": "Power rating",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mms_g": {
+            "value": 6.3,
+            "raw_value": "6.3",
+            "unit": "g",
+            "label": "Moving mass",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "bl_tm": {
+            "value": 5.85,
+            "raw_value": "5.85",
+            "unit": "Tm",
+            "label": "Force factor",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mounting_depth_mm": {
+            "value": 57.5,
+            "raw_value": "57.5",
+            "unit": "mm",
+            "label": "Mounting depth",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "weight_kg": {
+            "value": 0.9,
+            "raw_value": "0.9",
+            "unit": "kg",
+            "label": "Weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "magnet_weight_kg": {
+            "value": 0.37,
+            "raw_value": "370",
+            "unit": "g",
+            "label": "Magnet weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-4-60pro/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          }
+        },
+        "derived_fields": [],
+        "derivations": {},
+        "manufacturer_evidence": "MONACOR INTERNATIONAL GmbH & Co. KG Konsul-Smidt-Str. 68 28217 Bremen Germany info@monacor.com"
+      },
+      "mechanical": {
+        "mounting_depth_mm": 57.5,
+        "weight_kg": 0.9
+      },
+      "published_specs": {
+        "magnet_weight_kg": 0.37
+      }
+    },
+    {
+      "name": "WEB: Monacor SP-6/100PA",
+      "brand": "Monacor",
+      "model": "SP-6/100PA",
+      "size_in": null,
+      "kind": "Loudspeaker driver",
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+      "source": "Official manufacturer site",
+      "driver": {
+        "fs_hz": 90.0,
+        "vas_l": 8.0,
+        "qts": 0.44,
+        "qms": 4.24,
+        "re_ohm": 6.7,
+        "sd_cm2": 139.0,
+        "qes": 0.49,
+        "le_mh": 0.5,
+        "le10k_mh": 0.0,
+        "xmax_mm": 0.75,
+        "pe_w": 100.0,
+        "mms_g": 11.2,
+        "cms_mm_per_n": 0.0,
+        "bl_tm": 9.3
+      },
+      "raw": {
+        "fs_hz": 90.0,
+        "vas_l": 8.0,
+        "qts": 0.44,
+        "qms": 4.24,
+        "qes": 0.49,
+        "re_ohm": 6.7,
+        "sd_cm2": 139.0,
+        "le_mh": 0.5,
+        "xmax_mm": 0.75,
+        "pe_w": 100.0,
+        "mms_g": 11.2,
+        "bl_tm": 9.3,
+        "mounting_depth_mm": 79.0,
+        "weight_kg": 2.14,
+        "magnet_weight_kg": 0.85
+      },
+      "website_fields": {
+        "title": "SP-6/100PA",
+        "brand": "Monacor",
+        "model": "SP-6/100PA",
+        "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+        "source": "Official manufacturer site",
+        "fetched_at": "2026-08-24T21:32:38+00:00",
+        "extraction_method": "html",
+        "confidence": 1.0,
+        "raw_measurements": {
+          "fs_hz": {
+            "value": 90.0,
+            "raw_value": "90",
+            "unit": "Hz",
+            "label": "Resonant frequency",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "vas_l": {
+            "value": 8.0,
+            "raw_value": "8",
+            "unit": "l",
+            "label": "Equivalent volume",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qts": {
+            "value": 0.44,
+            "raw_value": "0.44",
+            "unit": "",
+            "label": "Qts",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qms": {
+            "value": 4.24,
+            "raw_value": "4.24",
+            "unit": "",
+            "label": "Qms",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qes": {
+            "value": 0.49,
+            "raw_value": "0.49",
+            "unit": "T",
+            "label": "Qes",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "re_ohm": {
+            "value": 6.7,
+            "raw_value": "6.7",
+            "unit": "Ω",
+            "label": "DC resistance",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "sd_cm2": {
+            "value": 139.0,
+            "raw_value": "139",
+            "unit": "cm 2",
+            "label": "Sd",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "le_mh": {
+            "value": 0.5,
+            "raw_value": "0.5",
+            "unit": "mH",
+            "label": "Le",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "xmax_mm": {
+            "value": 0.75,
+            "raw_value": "0.75",
+            "unit": "mm",
+            "label": "Linear excursion",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "pe_w": {
+            "value": 100.0,
+            "raw_value": "100",
+            "unit": "W",
+            "label": "Power rating",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mms_g": {
+            "value": 11.2,
+            "raw_value": "11.2",
+            "unit": "g",
+            "label": "Moving mass",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "bl_tm": {
+            "value": 9.3,
+            "raw_value": "9.30",
+            "unit": "Tm",
+            "label": "Force factor",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mounting_depth_mm": {
+            "value": 79.0,
+            "raw_value": "79",
+            "unit": "mm",
+            "label": "Mounting depth",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "weight_kg": {
+            "value": 2.14,
+            "raw_value": "2.14",
+            "unit": "kg",
+            "label": "Weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "magnet_weight_kg": {
+            "value": 0.85,
+            "raw_value": "850",
+            "unit": "g",
+            "label": "Magnet weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-100pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          }
+        },
+        "derived_fields": [],
+        "derivations": {},
+        "manufacturer_evidence": "MONACOR INTERNATIONAL GmbH & Co. KG Konsul-Smidt-Str. 68 28217 Bremen Germany info@monacor.com"
+      },
+      "mechanical": {
+        "mounting_depth_mm": 79.0,
+        "weight_kg": 2.14
+      },
+      "published_specs": {
+        "magnet_weight_kg": 0.85
+      }
+    },
+    {
+      "name": "WEB: Monacor SP-6/150PA",
+      "brand": "Monacor",
+      "model": "SP-6/150PA",
+      "size_in": null,
+      "kind": "Loudspeaker driver",
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+      "source": "Official manufacturer site",
+      "driver": {
+        "fs_hz": 73.0,
+        "vas_l": 8.5,
+        "qts": 0.42,
+        "qms": 5.31,
+        "re_ohm": 6.5,
+        "sd_cm2": 139.0,
+        "qes": 0.46,
+        "le_mh": 0.6,
+        "le10k_mh": 0.0,
+        "xmax_mm": 1.0,
+        "pe_w": 150.0,
+        "mms_g": 15.2,
+        "cms_mm_per_n": 0.0,
+        "bl_tm": 9.9
+      },
+      "raw": {
+        "fs_hz": 73.0,
+        "vas_l": 8.5,
+        "qts": 0.42,
+        "qms": 5.31,
+        "qes": 0.46,
+        "re_ohm": 6.5,
+        "sd_cm2": 139.0,
+        "le_mh": 0.6,
+        "xmax_mm": 1.0,
+        "pe_w": 150.0,
+        "mms_g": 15.2,
+        "bl_tm": 9.9,
+        "mounting_depth_mm": 79.0,
+        "weight_kg": 2.16,
+        "magnet_weight_kg": 0.85
+      },
+      "website_fields": {
+        "title": "SP-6/150PA",
+        "brand": "Monacor",
+        "model": "SP-6/150PA",
+        "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+        "source": "Official manufacturer site",
+        "fetched_at": "2026-08-24T21:32:38+00:00",
+        "extraction_method": "html",
+        "confidence": 1.0,
+        "raw_measurements": {
+          "fs_hz": {
+            "value": 73.0,
+            "raw_value": "73",
+            "unit": "Hz",
+            "label": "Resonant frequency",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "vas_l": {
+            "value": 8.5,
+            "raw_value": "8.5",
+            "unit": "l",
+            "label": "Equivalent volume",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qts": {
+            "value": 0.42,
+            "raw_value": "0.42",
+            "unit": "",
+            "label": "Qts",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qms": {
+            "value": 5.31,
+            "raw_value": "5.31",
+            "unit": "",
+            "label": "Qms",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qes": {
+            "value": 0.46,
+            "raw_value": "0.46",
+            "unit": "T",
+            "label": "Qes",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "re_ohm": {
+            "value": 6.5,
+            "raw_value": "6.5",
+            "unit": "Ω",
+            "label": "DC resistance",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "sd_cm2": {
+            "value": 139.0,
+            "raw_value": "139",
+            "unit": "cm 2",
+            "label": "Sd",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "le_mh": {
+            "value": 0.6,
+            "raw_value": "0.6",
+            "unit": "mH",
+            "label": "Le",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "xmax_mm": {
+            "value": 1.0,
+            "raw_value": "1",
+            "unit": "mm",
+            "label": "Linear excursion",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "pe_w": {
+            "value": 150.0,
+            "raw_value": "150",
+            "unit": "W",
+            "label": "Power rating",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mms_g": {
+            "value": 15.2,
+            "raw_value": "15.2",
+            "unit": "g",
+            "label": "Moving mass",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "bl_tm": {
+            "value": 9.9,
+            "raw_value": "9.90",
+            "unit": "Tm",
+            "label": "Force factor",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mounting_depth_mm": {
+            "value": 79.0,
+            "raw_value": "79",
+            "unit": "mm",
+            "label": "Mounting depth",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "weight_kg": {
+            "value": 2.16,
+            "raw_value": "2.16",
+            "unit": "kg",
+            "label": "Weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "magnet_weight_kg": {
+            "value": 0.85,
+            "raw_value": "850",
+            "unit": "g",
+            "label": "Magnet weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-6-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          }
+        },
+        "derived_fields": [],
+        "derivations": {},
+        "manufacturer_evidence": "MONACOR INTERNATIONAL GmbH & Co. KG Konsul-Smidt-Str. 68 28217 Bremen Germany info@mon…"
+      },
+      "mechanical": {
+        "mounting_depth_mm": 79.0,
+        "weight_kg": 2.16
+      },
+      "published_specs": {
+        "magnet_weight_kg": 0.85
+      }
+    },
+    {
+      "name": "WEB: Monacor SP-8/150PA",
+      "brand": "Monacor",
+      "model": "SP-8/150PA",
+      "size_in": null,
+      "kind": "Loudspeaker driver",
+      "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+      "source": "Official manufacturer site",
+      "driver": {
+        "fs_hz": 88.0,
+        "vas_l": 12.0,
+        "qts": 0.43,
+        "qms": 4.12,
+        "re_ohm": 6.9,
+        "sd_cm2": 219.0,
+        "qes": 0.48,
+        "le_mh": 0.6,
+        "le10k_mh": 0.0,
+        "xmax_mm": 1.25,
+        "pe_w": 150.0,
+        "mms_g": 20.0,
+        "cms_mm_per_n": 0.0,
+        "bl_tm": 12.6
+      },
+      "raw": {
+        "fs_hz": 88.0,
+        "vas_l": 12.0,
+        "qts": 0.43,
+        "qms": 4.12,
+        "qes": 0.48,
+        "re_ohm": 6.9,
+        "sd_cm2": 219.0,
+        "le_mh": 0.6,
+        "xmax_mm": 1.25,
+        "pe_w": 150.0,
+        "mms_g": 20.0,
+        "bl_tm": 12.6,
+        "mounting_depth_mm": 90.0,
+        "weight_kg": 2.965,
+        "magnet_weight_kg": 1.1
+      },
+      "website_fields": {
+        "title": "SP-8/150PA",
+        "brand": "Monacor",
+        "model": "SP-8/150PA",
+        "url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+        "source": "Official manufacturer site",
+        "fetched_at": "2026-08-24T21:32:38+00:00",
+        "extraction_method": "html",
+        "confidence": 1.0,
+        "raw_measurements": {
+          "fs_hz": {
+            "value": 88.0,
+            "raw_value": "88",
+            "unit": "Hz",
+            "label": "Resonant frequency",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "vas_l": {
+            "value": 12.0,
+            "raw_value": "12",
+            "unit": "l",
+            "label": "Equivalent volume",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qts": {
+            "value": 0.43,
+            "raw_value": "0.43",
+            "unit": "",
+            "label": "Qts",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qms": {
+            "value": 4.12,
+            "raw_value": "4.12",
+            "unit": "",
+            "label": "Qms",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "qes": {
+            "value": 0.48,
+            "raw_value": "0.48",
+            "unit": "T",
+            "label": "Qes",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "re_ohm": {
+            "value": 6.9,
+            "raw_value": "6.9",
+            "unit": "Ω",
+            "label": "DC resistance",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "sd_cm2": {
+            "value": 219.0,
+            "raw_value": "219",
+            "unit": "cm 2",
+            "label": "Sd",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "le_mh": {
+            "value": 0.6,
+            "raw_value": "0.6",
+            "unit": "mH",
+            "label": "Le",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "xmax_mm": {
+            "value": 1.25,
+            "raw_value": "1.25",
+            "unit": "mm",
+            "label": "Linear excursion",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "pe_w": {
+            "value": 150.0,
+            "raw_value": "150",
+            "unit": "W",
+            "label": "Power rating",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mms_g": {
+            "value": 20.0,
+            "raw_value": "20",
+            "unit": "g",
+            "label": "Moving mass",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "bl_tm": {
+            "value": 12.6,
+            "raw_value": "12.60",
+            "unit": "Tm",
+            "label": "Force factor",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "mounting_depth_mm": {
+            "value": 90.0,
+            "raw_value": "90",
+            "unit": "mm",
+            "label": "Mounting depth",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "weight_kg": {
+            "value": 2.965,
+            "raw_value": "2.965",
+            "unit": "kg",
+            "label": "Weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          },
+          "magnet_weight_kg": {
+            "value": 1.1,
+            "raw_value": "1.1",
+            "unit": "kg",
+            "label": "Magnet weight",
+            "method": "html.text",
+            "source_url": "https://www.monacor.com/products/components/speaker-technology/pa-midrange-speakers-/sp-8-150pa/",
+            "fetched_at": "2026-08-24T21:32:38+00:00"
+          }
+        },
+        "derived_fields": [],
+        "derivations": {},
+        "manufacturer_evidence": "MONACOR INTERNATIONAL GmbH & Co. KG Konsul-Smidt-Str. 68 28217 Bremen Germany info@monacor.com"
+      },
+      "mechanical": {
+        "mounting_depth_mm": 90.0,
+        "weight_kg": 2.965
+      },
+      "published_specs": {
+        "magnet_weight_kg": 1.1
+      }
+    }
+  ]
+}

@@ -1379,11 +1379,57 @@ def _check_port_geometry_helpers():
     assert np.nanmax(velocity) > 0.0
     halved = _acoustics.port_air_velocity_ms(result, area_cm2 / 2.0, "lower")
     np.testing.assert_allclose(halved, 2.0 * velocity)
+    mol_velocity = _acoustics.port_air_velocity_ms(result, area_cm2, "lower", at_mol=True)
+    assert mol_velocity.shape == result.frequency_hz.shape
+    assert np.all(np.isfinite(mol_velocity))
+    assert np.nanmax(mol_velocity) >= np.nanmax(velocity)
     try:
         _acoustics.port_air_velocity_ms(result, area_cm2, "middle")
         raise AssertionError("invalid port name must raise")
     except ValueError:
         pass
+
+    # Flared port dimensions helper
+    flared_both = _acoustics.flared_port_dimensions_cm(30.0, 35.0, 6.5, 2.5, "both")
+    assert flared_both["overall_length_cm"] > 0
+    assert flared_both["straight_length_cm"] < flared_both["overall_length_cm"]
+    assert flared_both["outer_diameter_cm"] == 6.5 + 2 * 2.5
+    assert flared_both["chuffing_limit_ms"] >= 25.0
+    flared_none = _acoustics.flared_port_dimensions_cm(30.0, 35.0, 6.5, 2.5, "none")
+    assert flared_none["straight_length_cm"] == flared_none["overall_length_cm"]
+    assert flared_none["outer_diameter_cm"] == 6.5
+    flared_hg = _acoustics.flared_port_dimensions_cm(30.0, 35.0, 6.5, 2.5, "hourglass")
+    assert flared_hg["overall_length_cm"] > 0
+    assert flared_hg["straight_length_cm"] == 0.0
+    assert flared_hg["chuffing_limit_ms"] >= 30.0
+
+    # Auto optimize port helper
+    opt_studio = _acoustics.auto_optimize_port_diameter_cm(
+        ts=ts,
+        result=result,
+        volume_l=30.0,
+        tuning_hz=35.0,
+        end_correction=1.43,
+        volume_velocity=result.port_l_velocity,
+        policy="studio_mol",
+        flare_style="both",
+    )
+    assert opt_studio["diameter_cm"] >= 2.5
+    assert opt_studio["overall_length_cm"] > 0
+    assert "status_note" in opt_studio
+    assert opt_studio["pipe_resonance_hz"] > 0
+
+    opt_compact = _acoustics.auto_optimize_port_diameter_cm(
+        ts=ts,
+        result=result,
+        volume_l=30.0,
+        tuning_hz=35.0,
+        end_correction=1.43,
+        volume_velocity=result.port_l_velocity,
+        policy="compact",
+        flare_style="both",
+    )
+    assert opt_compact["diameter_cm"] <= opt_studio["diameter_cm"]
 
 
 test("Acoustic port geometry length round-trips and air speed scales", _check_port_geometry_helpers)

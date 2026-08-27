@@ -1,0 +1,800 @@
+{
+  "crawl_sources": [
+    "https://www.beyma.com"
+  ],
+  "downloaded_at": "2026-08-24T21:37:14+00:00",
+  "presets": [
+    {
+      "brand": "Beyma",
+      "driver": {
+        "bl_tm": 15.8,
+        "cms_mm_per_n": 355.0,
+        "fs_hz": 41.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.0,
+        "mms_g": 45.0,
+        "pe_w": 125.0,
+        "qes": 0.31,
+        "qms": 2.01,
+        "qts": 0.27,
+        "re_ohm": 6.5,
+        "sd_cm2": 510.0,
+        "vas_l": 122.0,
+        "xmax_mm": 4.0
+      },
+      "kind": "Loudspeaker driver",
+      "mechanical": {
+        "bolt_circle_mm": 299.0,
+        "depth_mm": 125.0,
+        "overall_diameter_mm": 320.0,
+        "weight_kg": 4.5
+      },
+      "model": "12G125",
+      "name": "WEB: Beyma 12G125",
+      "published_specs": {
+        "nominal_diameter_in": 11.811023622047244,
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 98.0,
+        "voice_coil_diameter_mm": 52.0
+      },
+      "raw": {
+        "bl_tm": 15.8,
+        "bolt_circle_mm": 299.0,
+        "cms_mm_per_n": 355.0,
+        "depth_mm": 125.0,
+        "fs_hz": 41.0,
+        "le_mh": 1.0,
+        "mms_g": 45.0,
+        "nominal_diameter_in": 11.811023622047244,
+        "nominal_impedance_ohm": 8.0,
+        "overall_diameter_mm": 320.0,
+        "pe_w": 125.0,
+        "qes": 0.31,
+        "qms": 2.01,
+        "qts": 0.27,
+        "re_ohm": 6.5,
+        "rms_kg_s": 5.77,
+        "sd_cm2": 509.99999999999994,
+        "sensitivity_db": 98.0,
+        "vas_l": 122.0,
+        "vd_l": 204.0,
+        "voice_coil_diameter_mm": 52.0,
+        "weight_kg": 4.5,
+        "xmax_mm": 4.0
+      },
+      "size_in": 12.0,
+      "source": "Official manufacturer site",
+      "url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+      "website_fields": {
+        "brand": "Beyma",
+        "confidence": 1.0,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-08-24T21:37:09+00:00",
+        "model": "12G125",
+        "raw_measurements": {
+          "bl_tm": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "BL factor",
+            "method": "pdf.table",
+            "raw_value": "15.8",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "",
+            "value": 15.8
+          },
+          "bolt_circle_mm": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Bolt circle diameter",
+            "method": "pdf.table",
+            "raw_value": "299",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "mm",
+            "value": 299.0
+          },
+          "cms_mm_per_n": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Mechanical Compliance, Cms",
+            "method": "pdf.table",
+            "raw_value": "355",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "",
+            "value": 355.0
+          },
+          "depth_mm": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Depth",
+            "method": "pdf.text",
+            "raw_value": "125",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "mm",
+            "value": 125.0
+          },
+          "fs_hz": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Resonant frequency, fs",
+            "method": "pdf.table",
+            "raw_value": "41",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "Hz",
+            "value": 41.0
+          },
+          "le_mh": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Voice Coil Inductance, Le @ 1 kHz",
+            "method": "pdf.table",
+            "raw_value": "1",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "mH",
+            "value": 1.0
+          },
+          "mms_g": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Moving mass",
+            "method": "pdf.text",
+            "raw_value": "0.045",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "kg",
+            "value": 45.0
+          },
+          "nominal_diameter_in": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Nominal diameter",
+            "method": "pdf.table",
+            "raw_value": "300",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "mm",
+            "value": 11.811023622047244
+          },
+          "nominal_impedance_ohm": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Rated impedance",
+            "method": "pdf.text",
+            "raw_value": "8",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "ohms",
+            "value": 8.0
+          },
+          "overall_diameter_mm": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Overall diameter",
+            "method": "pdf.table",
+            "raw_value": "320",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "mm",
+            "value": 320.0
+          },
+          "pe_w": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Power capacity",
+            "method": "pdf.text",
+            "raw_value": "125",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "w",
+            "value": 125.0
+          },
+          "qes": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Electrical Quality Factor, Qes",
+            "method": "pdf.table",
+            "raw_value": "0.31",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "",
+            "value": 0.31
+          },
+          "qms": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Mechanical Quality Factor, Qms",
+            "method": "pdf.table",
+            "raw_value": "2.01",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "",
+            "value": 2.01
+          },
+          "qts": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Total Quality Factor, Qts",
+            "method": "pdf.table",
+            "raw_value": "0.27",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "",
+            "value": 0.27
+          },
+          "re_ohm": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "D.C. Voice coil resistance, Re",
+            "method": "pdf.table",
+            "raw_value": "6.5",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "ohms",
+            "value": 6.5
+          },
+          "rms_kg_s": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Mechanical Resistance, Rms",
+            "method": "pdf.table",
+            "raw_value": "5.77",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "",
+            "value": 5.77
+          },
+          "sd_cm2": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Sd",
+            "method": "pdf.text",
+            "raw_value": "0.0510",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "m2",
+            "value": 509.99999999999994
+          },
+          "sensitivity_db": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Sensitivity",
+            "method": "pdf.table",
+            "raw_value": "98",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "dB",
+            "value": 98.0
+          },
+          "vas_l": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Equivalent Air Volume to Cms, Vas",
+            "method": "pdf.table",
+            "raw_value": "122",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "l",
+            "value": 122.0
+          },
+          "vd_l": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Displacement Volume, Vd",
+            "method": "pdf.table",
+            "raw_value": "204",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "",
+            "value": 204.0
+          },
+          "voice_coil_diameter_mm": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Voice coil diameter",
+            "method": "pdf.table",
+            "raw_value": "52",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "mm",
+            "value": 52.0
+          },
+          "weight_kg": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Net weight",
+            "method": "pdf.table",
+            "raw_value": "4.5",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "kg",
+            "value": 4.5
+          },
+          "xmax_mm": {
+            "fetched_at": "2026-08-24T21:37:09+00:00",
+            "label": "Xmax",
+            "method": "pdf.text",
+            "raw_value": "4",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf",
+            "unit": "mm",
+            "value": 4.0
+          }
+        },
+        "source": "Official manufacturer site",
+        "title": "12G125",
+        "url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12G125.pdf"
+      }
+    },
+    {
+      "brand": "Beyma",
+      "driver": {
+        "bl_tm": 20.3,
+        "cms_mm_per_n": 0.156,
+        "fs_hz": 42.0,
+        "le10k_mh": 0.0,
+        "le_mh": 0.0,
+        "mms_g": 90.0,
+        "pe_w": 700.0,
+        "qes": 0.31,
+        "qms": 9.8,
+        "qts": 0.3,
+        "re_ohm": 5.5,
+        "sd_cm2": 550.0,
+        "vas_l": 66.0,
+        "xmax_mm": 9.0
+      },
+      "kind": "Loudspeaker driver",
+      "mechanical": {
+        "bolt_circle_mm": 300.0,
+        "overall_diameter_mm": 320.0,
+        "weight_kg": 9.7
+      },
+      "model": "fichas tecnicas-ok.qxp",
+      "name": "WEB: Beyma fichas tecnicas-ok.qxp",
+      "published_specs": {
+        "nominal_diameter_in": 11.811023622047244,
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 96.0,
+        "voice_coil_diameter_mm": 100.0
+      },
+      "raw": {
+        "bl_tm": 20.3,
+        "bolt_circle_mm": 300.0,
+        "cms_mm_per_n": 0.156,
+        "fs_hz": 42.0,
+        "mms_g": 90.0,
+        "nominal_diameter_in": 11.811023622047244,
+        "nominal_impedance_ohm": 8.0,
+        "overall_diameter_mm": 320.0,
+        "pe_w": 700.0,
+        "qes": 0.31,
+        "qms": 9.8,
+        "qts": 0.3,
+        "re_ohm": 5.5,
+        "sd_cm2": 550.0,
+        "sensitivity_db": 96.0,
+        "vas_l": 66.0,
+        "voice_coil_diameter_mm": 100.0,
+        "weight_kg": 9.7,
+        "xmax_mm": 9.0
+      },
+      "size_in": null,
+      "source": "Official manufacturer site",
+      "url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+      "website_fields": {
+        "brand": "Beyma",
+        "confidence": 1.0,
+        "derivations": {},
+        "derived_fields": [],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-08-24T21:37:12+00:00",
+        "model": "fichas tecnicas-ok.qxp",
+        "raw_measurements": {
+          "bl_tm": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "BL factor",
+            "method": "pdf.table",
+            "raw_value": "20.3",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "N/A",
+            "value": 20.3
+          },
+          "bolt_circle_mm": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Bolt circle diameter",
+            "method": "pdf.table",
+            "raw_value": "300",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "mm",
+            "value": 300.0
+          },
+          "cms_mm_per_n": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Mechanical Compliance,",
+            "method": "pdf.table",
+            "raw_value": "156",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "\u00b5m/N",
+            "value": 0.156
+          },
+          "fs_hz": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Resonant Frequency,",
+            "method": "pdf.table",
+            "raw_value": "42",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "Hz",
+            "value": 42.0
+          },
+          "mms_g": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Moving mass",
+            "method": "pdf.table",
+            "raw_value": "0.090",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "kg",
+            "value": 90.0
+          },
+          "nominal_diameter_in": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Nominal diameter",
+            "method": "pdf.table",
+            "raw_value": "300",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "mm",
+            "value": 11.811023622047244
+          },
+          "nominal_impedance_ohm": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Rated impedance",
+            "method": "pdf.table",
+            "raw_value": "8",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "ohms",
+            "value": 8.0
+          },
+          "overall_diameter_mm": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Overall diameter",
+            "method": "pdf.table",
+            "raw_value": "320",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "mm",
+            "value": 320.0
+          },
+          "pe_w": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "power handling",
+            "method": "pdf.text",
+            "raw_value": "700",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "w",
+            "value": 700.0
+          },
+          "qes": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Electrical Quality Factor,",
+            "method": "pdf.table",
+            "raw_value": "0.31",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "Qes",
+            "value": 0.31
+          },
+          "qms": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Mechanical Quality Factor,",
+            "method": "pdf.table",
+            "raw_value": "9.8",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "Qms",
+            "value": 9.8
+          },
+          "qts": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Total Quality Factor,",
+            "method": "pdf.table",
+            "raw_value": "0.30",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "Qts",
+            "value": 0.3
+          },
+          "re_ohm": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Voice Coil Resistance,",
+            "method": "pdf.table",
+            "raw_value": "5.5",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "ohms",
+            "value": 5.5
+          },
+          "sd_cm2": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Sd",
+            "method": "pdf.text",
+            "raw_value": "0.055",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "m2",
+            "value": 550.0
+          },
+          "sensitivity_db": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Sensitivity",
+            "method": "pdf.table",
+            "raw_value": "96",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "dB",
+            "value": 96.0
+          },
+          "vas_l": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Equivalent Air Volume to Cms,",
+            "method": "pdf.table",
+            "raw_value": "66",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "l",
+            "value": 66.0
+          },
+          "voice_coil_diameter_mm": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Voice coil diameter",
+            "method": "pdf.table",
+            "raw_value": "100",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "mm",
+            "value": 100.0
+          },
+          "weight_kg": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Net weight",
+            "method": "pdf.table",
+            "raw_value": "9.7",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "kg",
+            "value": 9.7
+          },
+          "xmax_mm": {
+            "fetched_at": "2026-08-24T21:37:12+00:00",
+            "label": "Large Xmax:",
+            "method": "pdf.table",
+            "raw_value": "9",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF",
+            "unit": "mm",
+            "value": 9.0
+          }
+        },
+        "source": "Official manufacturer site",
+        "title": "fichas tecnicas-ok.qxp",
+        "url": "https://www.beyma.com/speakers/Fichas_Tecnicas/12LX60.PDF"
+      }
+    },
+    {
+      "brand": "Beyma",
+      "driver": {
+        "bl_tm": 17.4,
+        "cms_mm_per_n": 228.0,
+        "fs_hz": 42.0,
+        "le10k_mh": 0.0,
+        "le_mh": 1.3,
+        "mms_g": 63000.0,
+        "pe_w": 800.0,
+        "qes": 0.31,
+        "qms": 7.7,
+        "qts": 0.29,
+        "re_ohm": 5.6,
+        "sd_cm2": 1.77228324,
+        "vas_l": 1.0,
+        "xmax_mm": 46.3
+      },
+      "kind": "Loudspeaker driver",
+      "mechanical": {
+        "bolt_circle_mm": 292.0,
+        "cutout_diameter_mm": 280.0,
+        "depth_mm": 131.0,
+        "overall_diameter_mm": 310.0,
+        "weight_kg": 5.5
+      },
+      "model": "12WRS400 2020",
+      "name": "WEB: Beyma 12WRS400 2020",
+      "published_specs": {
+        "nominal_diameter_in": 11.811023622047244,
+        "nominal_impedance_ohm": 8.0,
+        "sensitivity_db": 97.0,
+        "voice_coil_diameter_mm": 76.2
+      },
+      "raw": {
+        "bl_tm": 17.4,
+        "bolt_circle_mm": 292.0,
+        "cms_mm_per_n": 228.0,
+        "cutout_diameter_mm": 280.0,
+        "depth_mm": 131.0,
+        "fs_hz": 42.0,
+        "le_mh": 1.3,
+        "mms_g": 63000.0,
+        "nominal_diameter_in": 11.811023622047244,
+        "nominal_impedance_ohm": 8.0,
+        "overall_diameter_mm": 310.0,
+        "pe_w": 800.0,
+        "qes": 0.31,
+        "qms": 7.7,
+        "qts": 0.29,
+        "re_ohm": 5.6,
+        "sensitivity_db": 97.0,
+        "vas_l": 1.0,
+        "voice_coil_diameter_mm": 76.2,
+        "weight_kg": 5.5,
+        "xmax_mm": 46.3
+      },
+      "size_in": null,
+      "source": "Official manufacturer site",
+      "url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+      "website_fields": {
+        "brand": "Beyma",
+        "confidence": 0.975,
+        "derivations": {},
+        "derived_fields": [
+          "sd_cm2"
+        ],
+        "extraction_method": "pdf",
+        "fetched_at": "2026-08-24T21:37:14+00:00",
+        "model": "12WRS400 2020",
+        "raw_measurements": {
+          "bl_tm": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Bl factor",
+            "method": "pdf.table",
+            "raw_value": "17,4",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "N/A",
+            "value": 17.4
+          },
+          "bolt_circle_mm": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Bolt circle diameter",
+            "method": "pdf.table",
+            "raw_value": "292",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "mm",
+            "value": 292.0
+          },
+          "cms_mm_per_n": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Mechanical Compliance, C",
+            "method": "pdf.table",
+            "raw_value": "228",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "",
+            "value": 228.0
+          },
+          "cutout_diameter_mm": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Baffle cutout diameter",
+            "method": "pdf.text",
+            "raw_value": "280",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "mm",
+            "value": 280.0
+          },
+          "depth_mm": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Depth",
+            "method": "pdf.text",
+            "raw_value": "131",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "mm",
+            "value": 131.0
+          },
+          "fs_hz": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "fs",
+            "method": "pdf.text",
+            "raw_value": "42",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "Hz",
+            "value": 42.0
+          },
+          "le_mh": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Voice Coil Inductance, Le",
+            "method": "pdf.table",
+            "raw_value": "1,3",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "mH",
+            "value": 1.3
+          },
+          "mms_g": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Moving mass",
+            "method": "pdf.table",
+            "raw_value": "0,063",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "kg",
+            "value": 63000.0
+          },
+          "nominal_diameter_in": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Nominal diameter",
+            "method": "pdf.table",
+            "raw_value": "300",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "mm",
+            "value": 11.811023622047244
+          },
+          "nominal_impedance_ohm": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Rated impedance",
+            "method": "pdf.table",
+            "raw_value": "8",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "\u2126",
+            "value": 8.0
+          },
+          "overall_diameter_mm": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Overall diameter",
+            "method": "pdf.table",
+            "raw_value": "310",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "mm",
+            "value": 310.0
+          },
+          "pe_w": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "power handling",
+            "method": "pdf.text",
+            "raw_value": "800",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "W",
+            "value": 800.0
+          },
+          "qes": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Qes",
+            "method": "pdf.text",
+            "raw_value": "0,31",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "",
+            "value": 0.31
+          },
+          "qms": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Mechanical Quality Factor, Qms",
+            "method": "pdf.table",
+            "raw_value": "7,7",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "",
+            "value": 7.7
+          },
+          "qts": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Total Quality Factor, Q",
+            "method": "pdf.table",
+            "raw_value": "0,29",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "ts",
+            "value": 0.29
+          },
+          "re_ohm": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Re",
+            "method": "pdf.text",
+            "raw_value": "5,6",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "\u2126",
+            "value": 5.6
+          },
+          "sensitivity_db": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Sensitivity",
+            "method": "pdf.table",
+            "raw_value": "97",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "dB",
+            "value": 97.0
+          },
+          "vas_l": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Sensitivity                                                              97 dB    1W / 1m @ ZN                                                  Equivalent Air Volume to Cms, V                   as                                                                      91 l",
+            "method": "pdf.table",
+            "raw_value": "1",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "",
+            "value": 1.0
+          },
+          "voice_coil_diameter_mm": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Voice coil diameter",
+            "method": "pdf.table",
+            "raw_value": "76,2",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "mm",
+            "value": 76.2
+          },
+          "weight_kg": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "Net weight",
+            "method": "pdf.table",
+            "raw_value": "5,5",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "kg",
+            "value": 5.5
+          },
+          "xmax_mm": {
+            "fetched_at": "2026-08-24T21:37:14+00:00",
+            "label": "X                                                                                                                                                                                                                                                                                                                                                                                                                                             max",
+            "method": "pdf.text",
+            "raw_value": "46,3",
+            "source_url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf",
+            "unit": "mm",
+            "value": 46.3
+          }
+        },
+        "source": "Official manufacturer site",
+        "title": "12WRS400 2020",
+        "url": "https://www.beyma.com/speakers/Fichas_Tecnicas/beyma-speakers-data-sheet-low-mid-frequency-12WRS400.pdf"
+      }
+    }
+  ],
+  "usable_presets": 3
+}

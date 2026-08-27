@@ -250,6 +250,462 @@ st.set_page_config(
     menu_items={},
 )
 
+st.markdown(
+    """
+    <style>
+    :root {
+        --lf-bg-base: #000000;
+        --lf-bg-surface: #0a0f16;
+        --lf-bg-elevated: #111823;
+        --lf-bg-card: rgba(255, 255, 255, 0.025);
+        --lf-bg-hover: rgba(255, 255, 255, 0.05);
+        --lf-accent: #10b981;
+        --lf-accent-dim: rgba(16, 185, 129, 0.15);
+        --lf-accent-border: rgba(16, 185, 129, 0.35);
+        --lf-border-subtle: 1px solid rgba(255, 255, 255, 0.08);
+        --lf-border-medium: 1px solid rgba(255, 255, 255, 0.14);
+        --lf-text-main: #f3f4f6;
+        --lf-text-muted: rgba(255, 255, 255, 0.55);
+        --lf-text-dim: rgba(255, 255, 255, 0.38);
+        --primary-color: #10b981 !important;
+    }
+    /* Distinct dark charcoal contrast for form & data entry controls */
+    div[data-baseweb="input"],
+    div[data-baseweb="select"] > div,
+    div[data-baseweb="base-input"],
+    .stNumberInput input,
+    .stTextInput input,
+    .stSelectbox div[data-baseweb="select"],
+    [data-testid="stNumberInput"] div[data-baseweb="input"],
+    [data-testid="stTextInput"] div[data-baseweb="input"] {
+        background-color: #151a22 !important;
+        border: 1px solid rgba(255, 255, 255, 0.18) !important;
+        border-radius: 6px !important;
+        color: #f3f4f6 !important;
+    }
+    div[data-baseweb="input"]:focus-within,
+    div[data-baseweb="select"]:focus-within {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 1px #10b981 !important;
+    }
+    header[data-testid="stHeader"] {
+        display: none !important;
+    }
+    [data-stale="true"] {
+        filter: none !important;
+        opacity: 1 !important;
+    }
+    section[data-testid="stSidebar"],
+    section[data-testid="stSidebar"] > div,
+    section[data-testid="stSidebar"] [data-testid="stSidebarContent"],
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
+        background: #000 !important;
+    }
+    html {
+        scrollbar-gutter: stable;
+    }
+    body,
+    [data-testid="stAppViewContainer"],
+    section[data-testid="stMain"] {
+        scrollbar-gutter: stable;
+        background-color: var(--lf-bg-base) !important;
+    }
+    @media (max-width: 768px) {
+        section[data-testid="stSidebar"],
+        section[data-testid="stSidebar"] > div,
+        div[data-testid="stSidebarContent"] {
+            width: 100vw !important;
+            min-width: 100vw !important;
+            max-width: 100vw !important;
+        }
+    }
+    .block-container,
+    [data-testid="stMainBlockContainer"],
+    [data-testid="stAppViewContainer"] {
+        padding-top: 0.2rem !important;
+        padding-bottom: 0.2rem !important;
+        padding-left: 1.0rem !important;
+        padding-right: 1.0rem !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+        padding-top: 0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
+        padding-top: 0 !important;
+        margin-top: -3.8rem !important;
+    }
+    .st-key-brand_logo {
+        background: #000;
+    }
+    .st-key-brand_logo img {
+        filter: hue-rotate(150deg) saturate(2.4) contrast(1.55) brightness(1.04);
+    }
+    /* Instruction bands: neutral by default, emerald for actionable selection hints. */
+    [data-testid="stAlertContainer"]:has([data-testid="stAlertContentInfo"]) {
+        background-color: rgba(107,114,128,.16) !important;
+        border: 1px solid rgba(156,163,175,.34) !important;
+        color: #e5e7eb !important;
+        border-radius: 6px !important;
+    }
+    [data-testid="stAlertContainer"] [data-testid="stAlertContentInfo"] {
+        color: inherit !important;
+    }
+    [class*="st-key-emerald_info_"] [data-testid="stAlertContainer"] {
+        background-color: rgba(16,185,129,.13) !important;
+        border: 1px solid rgba(16,185,129,.34) !important;
+        color: #d1fae5 !important;
+        border-radius: 6px !important;
+    }
+    [class*="st-key-emerald_info_"] [data-testid="stAlertContainer"] svg {
+        color: #10b981 !important;
+        fill: #10b981 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
+        border-top: 1px solid rgba(255,255,255,.08);
+        color: rgba(255,255,255,.92);
+        font-size: 0.95rem;
+        font-weight: 600;
+        line-height: 1.25;
+        margin: .35rem 0 .2rem !important;
+        padding-top: .5rem !important;
+    }
+    [data-testid="stExpander"] details {
+        border: 1px solid rgba(255,255,255,.08) !important;
+        border-radius: 6px !important;
+        background: rgba(255,255,255,0.015) !important;
+    }
+    [data-testid="stExpander"] summary {
+        font-weight: 500 !important;
+        font-size: 0.85rem !important;
+    }
+    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h1,
+    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h2,
+    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h3,
+    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h4 {
+        padding-top: 0.35rem !important;
+        padding-bottom: 0.2rem !important;
+        font-weight: 600 !important;
+        letter-spacing: -0.01em !important;
+    }
+    [data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] {
+        padding-bottom: 0.1rem !important;
+        margin-top: 0.55rem !important;
+    }
+    [data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] p {
+        margin-bottom: 0 !important;
+        font-weight: 500 !important;
+        font-size: 0.85rem !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
+    section[data-testid="stSidebar"] label p {
+        font-size: 0.82rem !important;
+        font-weight: 500 !important;
+        color: rgba(255,255,255,0.85) !important;
+        line-height: 1.3 !important;
+        margin-bottom: 0.05rem !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
+        line-height: 1.45 !important;
+        font-size: 0.75rem !important;
+        color: rgba(255,255,255,0.48) !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stNumberInput"]
+    div[data-baseweb="input"] {
+        border-radius: .4rem;
+        min-height: 2.35rem;
+        overflow: hidden;
+        border-color: rgba(255,255,255,0.12) !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button {
+        align-items: center !important;
+        align-self: stretch !important;
+        background: rgba(255,255,255,.02) !important;
+        border-left: 1px solid rgba(255,255,255,.07) !important;
+        border-radius: 0 !important;
+        color: rgba(255,255,255,.6) !important;
+        display: flex !important;
+        height: auto !important;
+        justify-content: center !important;
+        margin: 0 !important;
+        min-width: 2.2rem !important;
+        padding: 0 !important;
+        transition: background-color .15s ease, color .15s ease;
+    }
+    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button:hover:not(:disabled) {
+        background: rgba(16,185,129,.16) !important;
+        color: #10b981 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button svg {
+        height: 1.0rem !important;
+        width: 1.0rem !important;
+    }
+    hr {
+        margin-top: 0.4rem !important;
+        margin-bottom: 0.4rem !important;
+        border-color: rgba(255,255,255,0.07) !important;
+    }
+
+    header[data-testid="stHeader"] {
+        background-color: transparent !important;
+    }
+
+    [data-testid="stCaptionContainer"] {
+        color: rgba(250,250,250,.60);
+    }
+    [data-testid="stTooltipContent"],
+    [role="tooltip"] {
+        display: none !important;
+    }
+    .st-key-finder_library_filters {
+        background: rgba(255,255,255,.02);
+        border: 1px solid rgba(255,255,255,.08) !important;
+        border-radius: 6px !important;
+        margin-block: .25rem .55rem;
+    }
+    .st-key-finder_library_filters [data-testid="stVerticalBlock"] {
+        gap: .55rem !important;
+    }
+
+    .st-key-active_load_summary {
+        border: 1px solid rgba(255,255,255,.10) !important;
+        border-radius: 6px !important;
+        background: rgba(255,255,255,0.015) !important;
+        padding: .45rem .6rem .45rem !important;
+    }
+    .st-key-finder_run_search_main div[data-testid="stButton"] button {
+        background: #10b981;
+        border: 1px solid #10b981;
+        box-shadow: 0 .25rem 0.85rem rgba(16,185,129,.22);
+        min-height: 2.8rem;
+        border-radius: 6px;
+        transition: filter .16s ease, transform .16s ease, box-shadow .16s ease;
+    }
+    .st-key-finder_run_search_main div[data-testid="stButton"] button p {
+        font-size: clamp(1.02rem, 1.25vw, 1.15rem);
+        font-weight: 700;
+        letter-spacing: .01em;
+    }
+    .st-key-finder_run_search_main div[data-testid="stButton"] button:hover {
+        box-shadow: 0 .4rem 1.1rem rgba(16,185,129,.32);
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+    }
+    .st-key-bass_match_brief {
+        padding: .35rem .55rem 1.0rem !important;
+        border-radius: 6px !important;
+        border: 1px solid rgba(255,255,255,0.08) !important;
+        background: rgba(255,255,255,0.015) !important;
+    }
+    .st-key-bass_match_brief > div[data-testid="stVerticalBlock"] {
+        gap: .28rem !important;
+    }
+    .st-key-bass_match_brief h4 {
+        font-size: 0.95rem !important;
+        line-height: 1.15 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    .st-key-bass_match_brief .stMetric {
+        min-height: 3.1rem !important;
+        padding: .22rem .42rem !important;
+    }
+    .st-key-bass_match_brief [data-testid="stCaptionContainer"] {
+        margin: 0 !important;
+    }
+    .finder-constraint-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(9.75rem, 1fr));
+        gap: .4rem;
+        margin-top: .08rem;
+    }
+    .finder-constraint {
+        min-width: 0;
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 5px;
+        padding: .35rem .5rem;
+        background: rgba(255,255,255,.02);
+    }
+    .finder-constraint-label {
+        color: rgba(255,255,255,.45);
+        font-size: .70rem;
+        font-weight: 600;
+        letter-spacing: .03em;
+        line-height: 1;
+        text-transform: uppercase;
+    }
+    .finder-constraint-value {
+        color: rgba(255,255,255,.92);
+        font-size: .90rem;
+        font-weight: 600;
+        line-height: 1.2;
+        margin-top: .2rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .st-key-finder_match_progress [role="progressbar"],
+    .st-key-finder_match_progress [data-testid="stProgressBar"] > div {
+        border-radius: 4px !important;
+        height: .8rem !important;
+        min-height: .8rem !important;
+    }
+    .st-key-finder_match_progress [role="progressbar"] > div {
+        border-radius: inherit !important;
+        height: 100% !important;
+    }
+    .st-key-finder_match_progress > div[data-testid="stVerticalBlock"] {
+        gap: .12rem !important;
+    }
+    .st-key-finder_match_progress [data-testid="stCaptionContainer"] {
+        color: rgba(255,255,255,.82) !important;
+        font-size: .75rem !important;
+        font-weight: 600 !important;
+        margin: 0 !important;
+    }
+    .stMetric {
+        border: 1px solid rgba(255,255,255,.08);
+        border-radius: 5px;
+        background: rgba(255,255,255,0.015);
+        padding: .3rem .5rem !important;
+    }
+    .stMetric label {
+        font-size: 0.70rem !important;
+        font-weight: 500 !important;
+        color: rgba(255,255,255,0.50) !important;
+        margin-bottom: -0.2rem !important;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+    .stMetric div[data-testid="stMetricValue"] {
+        font-size: 1.05rem !important;
+        font-weight: 600 !important;
+        color: #f3f4f6 !important;
+        line-height: 1.2 !important;
+        padding-bottom: 0.1rem !important;
+    }
+
+    /* Tabs emerald indicator & text */
+    div[data-testid="stTabs"] { gap: 0 !important; }
+    button[data-baseweb="tab"] {
+        padding-top: 0.3rem !important;
+        padding-bottom: 0.3rem !important;
+        font-weight: 500 !important;
+        font-size: 0.85rem !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: #10b981 !important;
+        border-bottom-color: #10b981 !important;
+        font-weight: 600 !important;
+    }
+    div[data-testid="stTabs"] div[data-baseweb="tab-highlight"],
+    div[data-testid="stTabs"] div[data-baseweb="tab-border"] {
+        background-color: #10b981 !important;
+    }
+
+    /* Radio buttons emerald styling (e.g. Rank by) */
+    div[data-testid="stRadio"] [aria-checked="true"] > div,
+    div[data-testid="stRadio"] label:has(input:checked) span,
+    div[data-testid="stRadio"] div[data-baseweb="radio"]:has(input:checked) div:first-child {
+        border-color: #10b981 !important;
+        background-color: #10b981 !important;
+    }
+    div[data-testid="stRadio"] div[data-baseweb="radio"]:has(input:checked) div:first-child > div {
+        background-color: #ffffff !important;
+    }
+
+    /* Multi-select and selectbox emerald theme */
+    div[data-baseweb="tag"],
+    span[data-baseweb="tag"],
+    [data-testid="stMultiSelect"] span[data-baseweb="tag"],
+    [data-testid="stMultiSelect"] div[data-baseweb="tag"],
+    span[data-testid="stBaseButton-secondary"]:has(svg) {
+        background-color: rgba(16, 185, 129, 0.22) !important;
+        border: 1px solid rgba(16, 185, 129, 0.55) !important;
+        border-radius: 4px !important;
+        color: #10b981 !important;
+    }
+    div[data-baseweb="tag"] span,
+    span[data-baseweb="tag"] span,
+    [data-testid="stMultiSelect"] span[data-baseweb="tag"] span {
+        color: #d1fae5 !important;
+        font-weight: 600 !important;
+    }
+    div[data-baseweb="tag"] svg,
+    span[data-baseweb="tag"] svg,
+    [data-testid="stMultiSelect"] span[data-baseweb="tag"] svg {
+        fill: #10b981 !important;
+        color: #10b981 !important;
+    }
+    div[data-baseweb="select"] > div {
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        background-color: rgba(255, 255, 255, 0.02) !important;
+        border-radius: 6px !important;
+    }
+    div[data-baseweb="select"] > div:focus-within {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 1px #10b981 !important;
+    }
+    div[data-baseweb="input"] {
+        border-color: rgba(255, 255, 255, 0.12) !important;
+        background-color: rgba(255, 255, 255, 0.02) !important;
+        border-radius: 6px !important;
+    }
+    div[data-baseweb="input"]:focus-within {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 1px #10b981 !important;
+    }
+
+    /* Quota pill badge */
+    .lf-quota-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 4px;
+        padding: 0.25rem 0.55rem;
+        font-size: 0.75rem;
+        color: rgba(255,255,255,0.65);
+    }
+    .lf-quota-pill strong {
+        color: #10b981;
+        font-weight: 600;
+    }
+
+    /* Data editor and table sparkline / chart stroke color override */
+    [data-testid="stDataFrame"] svg path,
+    [data-testid="stDataEditor"] svg path,
+    div[data-testid="stTable"] svg path,
+    svg.sparkline path,
+    div[data-testid="stElementContainer"] svg path[stroke="#ff4b4b"],
+    div[data-testid="stElementContainer"] svg path[stroke="red"] {
+        stroke: #10b981 !important;
+    }
+    @media (max-width: 768px) {
+        html {
+            font-size: 16px !important;
+        }
+        .block-container,
+        [data-testid="stMainBlockContainer"] {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+            padding-top: 1rem !important;
+        }
+        section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
+            padding-top: .75rem !important;
+        }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+try:
+    _SAAS_SETTINGS = _saas.SaaSSettings.from_env()
+except _saas.SaaSConfigurationError as _saas_config_error:
+    st.error(f"Unsafe SaaS configuration: {_saas_config_error}")
+    st.stop()
 
 _LOCAL_ACCOUNT_SESSION_KEY = "_local_saas_account"
 
@@ -514,12 +970,6 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
     return user
 
 
-try:
-    _SAAS_SETTINGS = _saas.SaaSSettings.from_env()
-except _saas.SaaSConfigurationError as _saas_config_error:
-    st.error(f"Unsafe SaaS configuration: {_saas_config_error}")
-    st.stop()
-
 _CURRENT_SAAS_USER = _resolve_saas_user()
 
 @st.cache_resource
@@ -541,12 +991,13 @@ def _get_current_user_account() -> _saas.UserAccount | None:
             acc.credits_balance = 2500
             acc.credits_monthly_quota = 2500
         return acc
-    return _ACCOUNT_STORE.get_or_create_account(
+    acc = _ACCOUNT_STORE.get_or_create_account(
         uid=_CURRENT_SAAS_USER.uid,
         email=_CURRENT_SAAS_USER.email,
         name=_CURRENT_SAAS_USER.name,
         admin_emails=_SAAS_SETTINGS.allowed_emails,
     )
+    return acc
 
 def _pro_comparison_enabled() -> bool:
     """Allow comparison workflows locally and for Pro-equivalent accounts."""
@@ -560,386 +1011,6 @@ def _pro_comparison_enabled() -> bool:
         _SAAS_SETTINGS,
     )
     return entitlements.access_tier in {"pro", "team"}
-
-
-st.markdown(
-    """
-    <style>
-    :root {
-        --lf-bg-base: #000000;
-        --lf-bg-surface: #0a0f16;
-        --lf-bg-elevated: #111823;
-        --lf-bg-card: rgba(255, 255, 255, 0.025);
-        --lf-bg-hover: rgba(255, 255, 255, 0.05);
-        --lf-accent: #10b981;
-        --lf-accent-dim: rgba(16, 185, 129, 0.15);
-        --lf-accent-border: rgba(16, 185, 129, 0.35);
-        --lf-border-subtle: 1px solid rgba(255, 255, 255, 0.08);
-        --lf-border-medium: 1px solid rgba(255, 255, 255, 0.14);
-        --lf-text-main: #f3f4f6;
-        --lf-text-muted: rgba(255, 255, 255, 0.55);
-        --lf-text-dim: rgba(255, 255, 255, 0.38);
-    }
-    header[data-testid="stHeader"] {
-        display: none !important;
-    }
-    /* Keep the last complete design readable during the one required rerun.
-       Streamlit otherwise fades every stale element, which looks like the
-       whole application has gone dark even for a sub-second calculation. */
-    [data-stale="true"] {
-        filter: none !important;
-        opacity: 1 !important;
-    }
-    section[data-testid="stSidebar"],
-    section[data-testid="stSidebar"] > div,
-    section[data-testid="stSidebar"] [data-testid="stSidebarContent"],
-    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
-        background: #000 !important;
-    }
-    html {
-        scrollbar-gutter: stable;
-    }
-    body,
-    [data-testid="stAppViewContainer"],
-    section[data-testid="stMain"] {
-        scrollbar-gutter: stable;
-        background-color: var(--lf-bg-base) !important;
-    }
-    @media (max-width: 768px) {
-        section[data-testid="stSidebar"],
-        section[data-testid="stSidebar"] > div,
-        div[data-testid="stSidebarContent"] {
-            width: 100vw !important;
-            min-width: 100vw !important;
-            max-width: 100vw !important;
-        }
-    }
-    .block-container,
-    [data-testid="stMainBlockContainer"],
-    [data-testid="stAppViewContainer"] {
-        padding-top: 0.2rem !important;
-        padding-bottom: 0.2rem !important;
-        padding-left: 1.0rem !important;
-        padding-right: 1.0rem !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
-        padding-top: 0 !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
-        padding-top: 0 !important;
-        margin-top: -3.8rem !important;
-    }
-    .st-key-brand_logo {
-        background: #000;
-    }
-    .st-key-brand_logo img {
-        filter: hue-rotate(150deg) saturate(2.4) contrast(1.55) brightness(1.04);
-    }
-    /* Instruction bands: neutral by default, emerald for actionable selection hints. */
-    [data-testid="stAlertContainer"]:has([data-testid="stAlertContentInfo"]) {
-        background-color: rgba(107,114,128,.16) !important;
-        border: 1px solid rgba(156,163,175,.34) !important;
-        color: #e5e7eb !important;
-        border-radius: 6px !important;
-    }
-    [data-testid="stAlertContainer"] [data-testid="stAlertContentInfo"] {
-        color: inherit !important;
-    }
-    [class*="st-key-emerald_info_"] [data-testid="stAlertContainer"] {
-        background-color: rgba(16,185,129,.13) !important;
-        border: 1px solid rgba(16,185,129,.34) !important;
-        color: #d1fae5 !important;
-        border-radius: 6px !important;
-    }
-    [class*="st-key-emerald_info_"] [data-testid="stAlertContainer"] svg {
-        color: #10b981 !important;
-        fill: #10b981 !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {
-        border-top: 1px solid rgba(255,255,255,.08);
-        color: rgba(255,255,255,.92);
-        font-size: 0.95rem;
-        font-weight: 600;
-        line-height: 1.25;
-        margin: .35rem 0 .2rem !important;
-        padding-top: .5rem !important;
-        padding-bottom: .2rem !important;
-    }
-    [data-testid="stMainBlockContainer"] > [data-testid="stVerticalBlock"] {
-        gap: .65rem !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-        gap: 0.25rem !important;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stNumberInput"] {
-        margin-bottom: 0 !important;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stSelectbox"] {
-        margin-bottom: 0 !important;
-    }
-    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h1,
-    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h2,
-    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h3,
-    [data-testid="stMainBlockContainer"] [data-testid="stMarkdownContainer"] h4 {
-        padding-top: 0.35rem !important;
-        padding-bottom: 0.2rem !important;
-        font-weight: 600 !important;
-        letter-spacing: -0.01em !important;
-    }
-    [data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] {
-        padding-bottom: 0.1rem !important;
-        margin-top: 0.55rem !important;
-    }
-    [data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] p {
-        margin-bottom: 0 !important;
-        font-weight: 500 !important;
-        font-size: 0.85rem !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
-    section[data-testid="stSidebar"] label p {
-        font-size: 0.82rem !important;
-        font-weight: 500 !important;
-        color: rgba(255,255,255,0.85) !important;
-        line-height: 1.3 !important;
-        margin-bottom: 0.05rem !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
-        line-height: 1.45 !important;
-        font-size: 0.75rem !important;
-        color: rgba(255,255,255,0.48) !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stNumberInput"]
-    div[data-baseweb="input"] {
-        border-radius: .4rem;
-        min-height: 2.35rem;
-        overflow: hidden;
-        border-color: rgba(255,255,255,0.12) !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button {
-        align-items: center !important;
-        align-self: stretch !important;
-        background: rgba(255,255,255,.02) !important;
-        border-left: 1px solid rgba(255,255,255,.07) !important;
-        border-radius: 0 !important;
-        color: rgba(255,255,255,.6) !important;
-        display: flex !important;
-        height: auto !important;
-        justify-content: center !important;
-        margin: 0 !important;
-        min-width: 2.2rem !important;
-        padding: 0 !important;
-        transition: background-color .15s ease, color .15s ease;
-    }
-    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button:hover:not(:disabled) {
-        background: rgba(16,185,129,.16) !important;
-        color: #10b981 !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button svg {
-        height: 1.0rem !important;
-        width: 1.0rem !important;
-    }
-    hr {
-        margin-top: 0.4rem !important;
-        margin-bottom: 0.4rem !important;
-        border-color: rgba(255,255,255,0.07) !important;
-    }
-
-    header[data-testid="stHeader"] {
-        background-color: transparent !important;
-    }
-
-    [data-testid="stCaptionContainer"] {
-        color: rgba(250,250,250,.60);
-    }
-    /* Command tooltips obscure nearby controls and add no persistent context. */
-    [data-testid="stTooltipContent"],
-    [role="tooltip"] {
-        display: none !important;
-    }
-    .st-key-finder_library_filters {
-        background: rgba(255,255,255,.02);
-        border: 1px solid rgba(255,255,255,.08) !important;
-        border-radius: 6px !important;
-        margin-block: .25rem .55rem;
-    }
-    .st-key-finder_library_filters [data-testid="stVerticalBlock"] {
-        gap: .55rem !important;
-    }
-
-    .st-key-active_load_summary {
-        border: 1px solid rgba(255,255,255,.10) !important;
-        border-radius: 6px !important;
-        background: rgba(255,255,255,0.015) !important;
-        padding: .45rem .6rem .45rem !important;
-    }
-    .st-key-finder_run_search_main div[data-testid="stButton"] button {
-        background: #10b981;
-        border: 1px solid #10b981;
-        box-shadow: 0 .25rem 0.85rem rgba(16,185,129,.22);
-        min-height: 2.8rem;
-        border-radius: 6px;
-        transition: filter .16s ease, transform .16s ease, box-shadow .16s ease;
-    }
-    .st-key-finder_run_search_main div[data-testid="stButton"] button p {
-        font-size: clamp(1.02rem, 1.25vw, 1.15rem);
-        font-weight: 700;
-        letter-spacing: .01em;
-    }
-    .st-key-finder_run_search_main div[data-testid="stButton"] button:hover {
-        box-shadow: 0 .4rem 1.1rem rgba(16,185,129,.32);
-        filter: brightness(1.08);
-        transform: translateY(-1px);
-    }
-    .st-key-bass_match_brief {
-        padding: .35rem .55rem 1.0rem !important;
-        border-radius: 6px !important;
-        border: 1px solid rgba(255,255,255,0.08) !important;
-        background: rgba(255,255,255,0.015) !important;
-    }
-    .st-key-bass_match_brief > div[data-testid="stVerticalBlock"] {
-        gap: .28rem !important;
-    }
-    .st-key-bass_match_brief h4 {
-        font-size: 0.95rem !important;
-        line-height: 1.15 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    .st-key-bass_match_brief .stMetric {
-        min-height: 3.1rem !important;
-        padding: .22rem .42rem !important;
-    }
-    .st-key-bass_match_brief [data-testid="stCaptionContainer"] {
-        margin: 0 !important;
-    }
-    .finder-constraint-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(9.75rem, 1fr));
-        gap: .4rem;
-        margin-top: .08rem;
-    }
-    .finder-constraint {
-        min-width: 0;
-        border: 1px solid rgba(255,255,255,.08);
-        border-radius: 5px;
-        padding: .35rem .5rem;
-        background: rgba(255,255,255,.02);
-    }
-    .finder-constraint-label {
-        color: rgba(255,255,255,.45);
-        font-size: .70rem;
-        font-weight: 600;
-        letter-spacing: .03em;
-        line-height: 1;
-        text-transform: uppercase;
-    }
-    .finder-constraint-value {
-        color: rgba(255,255,255,.92);
-        font-size: .90rem;
-        font-weight: 600;
-        line-height: 1.2;
-        margin-top: .2rem;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    .st-key-finder_match_progress [role="progressbar"],
-    .st-key-finder_match_progress [data-testid="stProgressBar"] > div {
-        border-radius: 4px !important;
-        height: .8rem !important;
-        min-height: .8rem !important;
-    }
-    .st-key-finder_match_progress [role="progressbar"] > div {
-        border-radius: inherit !important;
-        height: 100% !important;
-    }
-    .st-key-finder_match_progress > div[data-testid="stVerticalBlock"] {
-        gap: .12rem !important;
-    }
-    .st-key-finder_match_progress [data-testid="stCaptionContainer"] {
-        color: rgba(255,255,255,.82) !important;
-        font-size: .75rem !important;
-        font-weight: 600 !important;
-        margin: 0 !important;
-    }
-    .stMetric {
-        border: 1px solid rgba(255,255,255,.08);
-        border-radius: 5px;
-        background: rgba(255,255,255,0.015);
-        padding: .3rem .5rem !important;
-    }
-    .stMetric label {
-        font-size: 0.70rem !important;
-        font-weight: 500 !important;
-        color: rgba(255,255,255,0.50) !important;
-        margin-bottom: -0.2rem !important;
-        text-transform: uppercase;
-        letter-spacing: 0.02em;
-    }
-    .stMetric div[data-testid="stMetricValue"] {
-        font-size: 1.05rem !important;
-        font-weight: 600 !important;
-        color: #f3f4f6 !important;
-        line-height: 1.2 !important;
-        padding-bottom: 0.1rem !important;
-    }
-    div[data-testid="stTabs"] { gap: 0 !important; }
-    button[data-baseweb="tab"] {
-        padding-top: 0.3rem !important;
-        padding-bottom: 0.3rem !important;
-        font-weight: 500 !important;
-        font-size: 0.85rem !important;
-    }
-    button[data-baseweb="tab"][aria-selected="true"] {
-        color: #10b981 !important;
-        border-bottom-color: #10b981 !important;
-        font-weight: 600 !important;
-    }
-    div[data-testid="stExpander"] details {
-        margin-top: 0 !important;
-        margin-bottom: 0.2rem !important;
-        border-color: rgba(255,255,255,0.08) !important;
-        border-radius: 6px !important;
-    }
-    div[data-testid="stExpander"] summary {
-        font-size: 0.84rem !important;
-        font-weight: 600 !important;
-        color: rgba(255,255,255,0.85) !important;
-    }
-    /* Quota pill badge */
-    .lf-quota-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 4px;
-        padding: 0.25rem 0.55rem;
-        font-size: 0.75rem;
-        color: rgba(255,255,255,0.65);
-    }
-    .lf-quota-pill strong {
-        color: #10b981;
-        font-weight: 600;
-    }
-    @media (max-width: 768px) {
-        html {
-            font-size: 16px !important;
-        }
-        .block-container,
-        [data-testid="stMainBlockContainer"] {
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-            padding-top: 1rem !important;
-        }
-        section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
-            padding-top: .75rem !important;
-        }
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 
 _PARAM_PREFIXES = (
@@ -1182,7 +1253,8 @@ def _workspace_tab_styles() -> str:
             position: absolute;
             transition: filter .16s ease;
         }
-        [class*="st-key-workspace_tab_"] div[data-testid="stButton"] button p {
+        [class*="st-key-workspace_tab_bass_match"] div[data-testid="stButton"] button p,
+        [class*="st-key-workspace_tab_box_design"] div[data-testid="stButton"] button p {
             opacity: 0;
             position: relative;
             z-index: 1;
@@ -1349,7 +1421,13 @@ def _render_catalog_maintenance() -> None:
         "VituixCAD": "catalog_vituixcad.json",
         "Speaker Box Lite": "catalog_speakerboxlite.json",
     }
-    st.markdown('<div class="maintenance-heading">Catalog Maintenance</div>', unsafe_allow_html=True)
+    c_back, c_title = st.columns([1.5, 8.5], vertical_alignment="center")
+    with c_back:
+        if st.button("← Back to app", key="maintenance_back_btn"):
+            st.session_state["workspace_mode"] = "Bass Match"
+            st.rerun()
+    with c_title:
+        st.markdown('<div class="maintenance-heading">Catalog Maintenance</div>', unsafe_allow_html=True)
     notice = str(st.session_state.pop("maintenance_notice", ""))
     if notice:
         st.success(notice)
@@ -1869,8 +1947,6 @@ def _update_catalog_driver_from_box_design(
 
 
 def _available_workspaces() -> tuple[str, ...]:
-    if _maintenance_allowed():
-        return (*_WORKSPACES, "Catalog Maintenance", "User Management")
     return _WORKSPACES
 # One box algorithm: the optimizer, with three selectable objectives.  The
 # labels map onto engine OptimizationGoals.objective; Manual unlocks fields.
@@ -4295,25 +4371,71 @@ def _response_y_domain(
     return [float(bottom), float(top)]
 
 
-def _port_series(result: _acoustics.SimulationResult) -> dict[str, np.ndarray]:
+def _port_series(
+    result: _acoustics.SimulationResult,
+    mode: str = "volume_velocity",
+) -> dict[str, np.ndarray]:
     series = {}
     load_type = st.session_state.get("load_type", "DCCAV")
     if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order", "Bandpass 8th order"}:
         return series
+
+    def _to_air_velocity(u_arr: np.ndarray, d_cm: float, port_key: str) -> np.ndarray:
+        if d_cm <= 0.0:
+            return np.zeros_like(u_arr, dtype=float)
+        area_cm2 = np.pi * (d_cm / 2.0) ** 2
+        return _acoustics.port_air_velocity_ms(
+            result, area_cm2, port_key, at_mol=(mode == "air_velocity_mol")
+        )
+
     if load_type == "Bandpass 8th order":
         if st.session_state.get("plot_port_p1", True):
-            series["Port 1 (Front)"] = result.port_l_velocity
+            if mode == "volume_velocity":
+                series["Port 1 (Front)"] = result.port_l_velocity
+            else:
+                d1 = float(st.session_state.get("bp8_dp1_cm", 0.0))
+                series["Port 1 (Front)"] = _to_air_velocity(result.port_l_velocity, d1, "lower")
         if st.session_state.get("plot_port_lower", True):
-            series["Port 3 (Radiating)"] = result.port_h_velocity
+            if mode == "volume_velocity":
+                series["Port 3 (Radiating)"] = result.port_h_velocity
+            else:
+                d3 = float(st.session_state.get("bp8_dp3_cm", 0.0))
+                series["Port 3 (Radiating)"] = _to_air_velocity(result.port_h_velocity, d3, "upper")
         return series
     if st.session_state.get("plot_port_upper", True) and load_type in ("DCCAV", "Bandpass 6th order"):
-        series["Upper port"] = result.port_h_velocity
+        label = "Upper port" if load_type == "DCCAV" else "Rear port"
+        if mode == "volume_velocity":
+            series[label] = result.port_h_velocity
+        else:
+            d_up = float(st.session_state.get("box_port_d_h_cm" if load_type == "DCCAV" else "bandpass6_port_d_r_cm", 0.0))
+            series[label] = _to_air_velocity(result.port_h_velocity, d_up, "upper")
     if st.session_state.get("plot_port_lower", True):
-        if load_type == "Bass reflex" and _reflex_uses_passive_radiator():
+        is_pr = load_type == "Bass reflex" and _reflex_uses_passive_radiator()
+        if is_pr:
             label = "Passive radiator"
         else:
             label = "Vent" if load_type in {"Bass reflex", "Bandpass 4th order"} else "Lower port"
-        series[label] = result.port_l_velocity
+        if mode == "volume_velocity":
+            series[label] = result.port_l_velocity
+        else:
+            if is_pr:
+                pr_sp_cm2 = float(st.session_state.get("pr_sp_cm2", 0.0))
+                if pr_sp_cm2 > 0.0:
+                    series[label] = _acoustics.port_air_velocity_ms(
+                        result, pr_sp_cm2, "lower", at_mol=(mode == "air_velocity_mol")
+                    )
+                else:
+                    series[label] = np.zeros_like(result.port_l_velocity, dtype=float)
+            else:
+                if load_type == "DCCAV":
+                    d_low = float(st.session_state.get("box_port_d_l_cm", 0.0))
+                elif load_type == "Bandpass 4th order":
+                    d_low = float(st.session_state.get("bandpass4_port_d_cm", 0.0))
+                elif load_type == "Bandpass 6th order":
+                    d_low = float(st.session_state.get("bandpass6_port_d_p_cm", 0.0))
+                else:
+                    d_low = float(st.session_state.get("reflex_port_d_cm", 0.0))
+                series[label] = _to_air_velocity(result.port_l_velocity, d_low, "lower")
     return series
 
 
@@ -5903,11 +6025,14 @@ def _port_geometry_row(
     area_cm2 = np.pi * (diameter_cm / 2.0) ** 2
     velocity = _acoustics.port_air_velocity_ms(result, area_cm2, port)
     peak_idx = int(np.nanargmax(velocity))
+    velocity_mol = _acoustics.port_air_velocity_ms(result, area_cm2, port, at_mol=True)
+    peak_mol_idx = int(np.nanargmax(velocity_mol))
     return {
         "Port": label,
         "Diameter cm": float(diameter_cm),
         "Length cm": _acoustics.port_length_cm(volume_l, fb_hz, diameter_cm, end_correction),
         "Peak m/s": float(velocity[peak_idx]),
+        "Peak m/s (MOL)": float(velocity_mol[peak_mol_idx]),
         "Peak at Hz": float(result.frequency_hz[peak_idx]),
         "_volume_l": float(volume_l),
         "_fb_hz": float(fb_hz),
@@ -5915,7 +6040,7 @@ def _port_geometry_row(
     }
 
 
-_PORT_GEOMETRY_COLUMNS = ("Port", "Diameter cm", "Length cm", "Peak m/s", "Peak at Hz")
+_PORT_GEOMETRY_COLUMNS = ("Port", "Diameter cm", "Length cm", "Peak m/s", "Peak m/s (MOL)", "Peak at Hz")
 
 
 def _plot_group_delay(result: _acoustics.SimulationResult, limit_ms: float = 0.0) -> alt.Chart:
@@ -5949,17 +6074,57 @@ def _plot_group_delay(result: _acoustics.SimulationResult, limit_ms: float = 0.0
     return chart
 
 
-def _plot_ports(result: _acoustics.SimulationResult) -> alt.Chart:
-    series = _port_series(result)
+def _plot_ports(
+    result: _acoustics.SimulationResult,
+    mode: str = "air_velocity_mol",
+) -> alt.Chart:
+    series = _port_series(result, mode=mode)
     if not series:
         raise ValueError("No port traces selected")
     data = _series_frame(
         result,
         series if _active_design_visible() else {},
     )
-    chart = _line_chart(data, "Volume velocity (m³/s)", height=320)
+    if mode == "volume_velocity":
+        y_title = "Volume velocity (m³/s)"
+        tooltip_format = ".6f"
+    elif mode == "air_velocity_mol":
+        y_title = "Air velocity at MOL (m/s)"
+        tooltip_format = ".1f"
+    else:
+        y_title = "Air velocity (m/s)"
+        tooltip_format = ".1f"
+    chart = _line_chart(data, y_title, height=320)
+    if mode in {"air_velocity_mol", "air_velocity_sim"}:
+        active_style = st.session_state.get("flared_calc_style", "both")
+        if isinstance(active_style, tuple):
+            active_style = active_style[0]
+            
+        g_limits = [_acoustics.PORT_VELOCITY_GUIDELINE_MS, 28.0, 32.0]
+        g_labels = ["Straight limit (17.2 m/s)", "Flared Aeroport limit (28.0 m/s)", "Hourglass limit (32.0 m/s)"]
+        
+        # Determine highlighting
+        active_limit_val = 32.0 if active_style == "hourglass" else (28.0 if active_style in {"both", "one"} else _acoustics.PORT_VELOCITY_GUIDELINE_MS)
+        g_colors = [
+            "#ef4444" if active_limit_val == _acoustics.PORT_VELOCITY_GUIDELINE_MS else "rgba(239, 68, 68, 0.4)",
+            "#10b981" if active_limit_val == 28.0 else "rgba(16, 185, 129, 0.4)",
+            "#06b6d4" if active_limit_val == 32.0 else "rgba(6, 182, 212, 0.4)",
+        ]
+        guidelines_df = pd.DataFrame({
+            "limit": g_limits,
+            "label": g_labels,
+            "color": g_colors,
+        })
+        guideline_rule = alt.Chart(guidelines_df).mark_rule(
+            strokeDash=[6, 4],
+            strokeWidth=1.5,
+        ).encode(
+            y="limit:Q",
+            color=alt.Color("color:N", scale=None),
+        )
+        chart = chart + guideline_rule
     pinned = _pinned_metric_layer(
-        "port_traces", "Volume velocity (m³/s)", ".6f")
+        "port_traces", y_title, tooltip_format)
     if pinned is not None:
         chart = (chart + pinned).resolve_scale(
             color="independent", strokeDash="independent")
@@ -8288,14 +8453,15 @@ def _render_bass_match_hero(
     constraints = _finder_brief_constraints(len(selected_preset_names))
 
     acc = _get_current_user_account()
+    is_admin = bool(acc.is_admin) if acc else False
     credits_balance = acc.credits_balance if acc else 2500
     credits_quota = acc.credits_monthly_quota if acc else 2500
 
     finder_search_profile = str(_finder_value("finder_search_profile"))
     credit_mult = _ranking.search_profile_credit_multiplier(finder_search_profile)
     run_credits = int(prefilter_stats["eligible_simulations"] * credit_mult)
-    # Enforce strict blocking only in SaaS mode when user is authenticated
-    enforce_credits = _SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None
+    # Enforce strict blocking only in SaaS mode for non-admin accounts
+    enforce_credits = _SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None and not is_admin
     has_enough_credits = (not enforce_credits) or (credits_balance >= run_credits or run_credits == 0)
 
     run_requested = False
@@ -8336,7 +8502,6 @@ def _render_bass_match_hero(
             f"{prefilter_stats['duplicate_rows']:,}",
         )
         _render_finder_constraint_grid(constraints)
-        _render_finder_run_statistics()
         if match_preset_names and not prequalified_names:
             st.warning(
                 "No driver passes the pre-simulation checks. Lower Minimum "
@@ -8347,6 +8512,7 @@ def _render_bass_match_hero(
                 f"⚠️ Insufficient credits: this scan requires **{run_credits:,} credits**, but your balance is **{credits_balance:,} credits**. "
                 "Refine your filters, choose fewer drivers, or upgrade your plan."
             )
+    _render_finder_run_statistics()
     run_requested = st.button(
         _FINDER_CTA_LABEL,
         type="primary",
@@ -9365,6 +9531,8 @@ def _render_ports_tab(
     result: _acoustics.SimulationResult,
     port_geometry_rows: list[dict],
     load_type: str,
+    driver: _acoustics.DriverTS | None = None,
+    box: any = None,
     passive_radiator: bool = False,
 ) -> None:
     chart_sig = _chart_signature()
@@ -9389,33 +9557,189 @@ def _render_ports_tab(
             st.checkbox("Port 3 (Radiating)", key="plot_port_lower")
     else:
         st.checkbox("Vent volume velocity", key="plot_port_lower")
+
+    # Top controls right above the chart: Port profile & Velocity metric
+    top_c1, top_c2, top_c3 = st.columns([1.5, 1, 1.5])
+    with top_c1:
+        flare_style = st.selectbox(
+            "Port geometry / flare profile",
+            [
+                ("both", "Double flared (Aeroport)"),
+                ("hourglass", "Hourglass continuous (Clessidra)"),
+                ("one", "Single flared (Outer mouth)"),
+                ("none", "Straight pipe (Cylindrical)"),
+            ],
+            format_func=lambda x: x[1],
+            key="flared_calc_style",
+        )[0]
+    with top_c2:
+        flare_rad_cm = st.number_input(
+            "Flare radius / Delta (cm)",
+            min_value=0.5,
+            max_value=10.0,
+            value=float(st.session_state.get("flared_calc_radius_cm", 2.5)),
+            step=0.5,
+            key="flared_calc_radius_cm",
+            disabled=(flare_style == "none"),
+        )
+    with top_c3:
+        port_plot_mode = st.radio(
+            "Port chart metric",
+            [
+                ("air_velocity_mol", "Air velocity at MOL (m/s)"),
+                ("air_velocity_sim", "Air velocity at drive level (m/s)"),
+                ("volume_velocity", "Volume velocity (m³/s)"),
+            ],
+            format_func=lambda opt: opt[1],
+            horizontal=False,
+            key="port_plot_display_mode",
+        )[0]
+
     st.subheader(
-        "Radiator Volume Velocity"
+        "Radiator Velocity"
         if passive_radiator
-        else "Port Volume Velocity"
+        else ("Port Air Velocity (MOL)" if port_plot_mode == "air_velocity_mol" else ("Port Air Velocity" if port_plot_mode == "air_velocity_sim" else "Port Volume Velocity"))
     )
-    if _port_series(result):
-        st.altair_chart(_plot_ports(result), width="stretch", key=f"ports_chart_{chart_sig}")
+    if _port_series(result, mode=port_plot_mode):
+        st.altair_chart(_plot_ports(result, mode=port_plot_mode), width="stretch", key=f"ports_chart_{chart_sig}")
     else:
         st.caption("Port pens off.")
 
-    st.subheader("Duct sizing")
+    st.subheader("Duct sizing & Geometry")
+    
+    # Auto-Optimize Port Controls
+    auto_c1, auto_c2 = st.columns([2, 1])
+    with auto_c1:
+        opt_policy = st.selectbox(
+            "Auto-sizing directive / policy",
+            [
+                ("studio_mol", "Studio / Hi-Fi (Zero chuffing at MOL limit)"),
+                ("balanced_pro", "Balanced / Pro (Standard AES compromise)"),
+                ("compact", "Compact Enclosure (Min duct volume)"),
+            ],
+            format_func=lambda x: x[1],
+            key="port_auto_policy",
+        )[0]
+    with auto_c2:
+        st.write("") # spacing
+        clicked = st.button("⚡ Auto-optimize duct", use_container_width=True, help="Automatically size all ports based on the selected policy, driver Xmax, and flare profile.")
+        
+    last_policy = st.session_state.get("_last_opt_policy")
+    last_flare_style = st.session_state.get("_last_opt_flare_style")
+    
+    if clicked or (last_policy is not None and (last_policy != opt_policy or last_flare_style != flare_style)):
+        st.session_state["_last_opt_policy"] = opt_policy
+        st.session_state["_last_opt_flare_style"] = flare_style
+        voltage_v = float(st.session_state.get("sim_voltage", 2.83))
+        if load_type == "Bass reflex":
+            opt_res = _acoustics.auto_optimize_port_diameter_cm(
+                ts=driver,
+                result=result,
+                volume_l=box.vb_l,
+                tuning_hz=box.fb_hz,
+                end_correction=1.43,
+                volume_velocity=result.port_l_velocity,
+                sim_voltage_v=voltage_v,
+                policy=opt_policy,
+                flare_style=flare_style,
+                flare_radius_cm=flare_rad_cm,
+                port_name="lower",
+            )
+            st.session_state["reflex_port_d_cm"] = opt_res["diameter_cm"]
+            st.toast(f"⚡ Duct Auto-Optimized ({opt_policy}): Vent Ø {opt_res['diameter_cm']:.1f} cm", icon="⚡")
+        elif load_type == "DCCAV":
+            opt_up = _acoustics.auto_optimize_port_diameter_cm(
+                ts=driver,
+                result=result,
+                volume_l=box.vh_l,
+                tuning_hz=box.fh_hz,
+                end_correction=1.64,
+                volume_velocity=result.port_h_velocity,
+                sim_voltage_v=voltage_v,
+                policy=opt_policy,
+                flare_style=flare_style,
+                flare_radius_cm=flare_rad_cm,
+                port_name="upper",
+            )
+            opt_low = _acoustics.auto_optimize_port_diameter_cm(
+                ts=driver,
+                result=result,
+                volume_l=box.vl_l,
+                tuning_hz=box.fl_hz,
+                end_correction=1.43,
+                volume_velocity=result.port_l_velocity,
+                sim_voltage_v=voltage_v,
+                policy=opt_policy,
+                flare_style=flare_style,
+                flare_radius_cm=flare_rad_cm,
+                port_name="lower",
+            )
+            st.session_state["box_port_d_h_cm"] = opt_up["diameter_cm"]
+            st.session_state["box_port_d_l_cm"] = opt_low["diameter_cm"]
+            st.toast(f"⚡ DCCAV Auto-Optimized ({opt_policy}): Upper Ø {opt_up['diameter_cm']:.1f} cm, Lower Ø {opt_low['diameter_cm']:.1f} cm", icon="⚡")
+        elif load_type == "Bandpass 4th order":
+            opt_bp4 = _acoustics.auto_optimize_port_diameter_cm(
+                ts=driver,
+                result=result,
+                volume_l=box.vp_l,
+                tuning_hz=box.fp_hz,
+                end_correction=1.43,
+                volume_velocity=result.port_l_velocity,
+                sim_voltage_v=voltage_v,
+                policy=opt_policy,
+                flare_style=flare_style,
+                flare_radius_cm=flare_rad_cm,
+                port_name="lower",
+            )
+            st.session_state["bandpass4_port_d_cm"] = opt_bp4["diameter_cm"]
+            st.toast(f"⚡ BP4 Auto-Optimized ({opt_policy}): Vent Ø {opt_bp4['diameter_cm']:.1f} cm", icon="⚡")
+        elif load_type == "Bandpass 6th order":
+            opt_r = _acoustics.auto_optimize_port_diameter_cm(
+                ts=driver,
+                result=result,
+                volume_l=box.vr_l,
+                tuning_hz=box.fr_hz,
+                end_correction=1.43,
+                volume_velocity=result.port_h_velocity,
+                sim_voltage_v=voltage_v,
+                policy=opt_policy,
+                flare_style=flare_style,
+                flare_radius_cm=flare_rad_cm,
+                port_name="upper",
+            )
+            opt_p = _acoustics.auto_optimize_port_diameter_cm(
+                ts=driver,
+                result=result,
+                volume_l=box.vp_l,
+                tuning_hz=box.fp_hz,
+                end_correction=1.43,
+                volume_velocity=result.port_l_velocity,
+                sim_voltage_v=voltage_v,
+                policy=opt_policy,
+                flare_style=flare_style,
+                flare_radius_cm=flare_rad_cm,
+                port_name="lower",
+            )
+            st.session_state["bandpass6_port_d_r_cm"] = opt_r["diameter_cm"]
+            st.session_state["bandpass6_port_d_p_cm"] = opt_p["diameter_cm"]
+            st.toast(f"⚡ BP6 Auto-Optimized ({opt_policy}): Rear Ø {opt_r['diameter_cm']:.1f} cm, Front Ø {opt_p['diameter_cm']:.1f} cm", icon="⚡")
+        st.rerun()
+
     if load_type == "DCCAV":
         p1, p2 = st.columns(2)
         with p1:
             st.number_input(
-                "Upper port diameter (cm, 0 = off)", min_value=0.0, max_value=60.0,
+                "Upper port Ø (cm, Internal inter-chamber)", min_value=0.0, max_value=60.0,
                 step=0.5, key="box_port_d_h_cm")
         with p2:
             st.number_input(
-                "Lower port diameter (cm, 0 = off)", min_value=0.0, max_value=60.0,
+                "Lower port Ø (cm, External radiating)", min_value=0.0, max_value=60.0,
                 step=0.5, key="box_port_d_l_cm")
         st.caption(
             "Auto strategies recalculate both diameters from tuning, air speed and "
             "the displacement minimum-area golden rule. "
-            "Duct lengths use the Helmholtz relation: the upper port counts "
-            "two flanged ends, the lower vent one flanged and one free end; "
-            "air-speed warnings use the ~5% of c guideline."
+            "Upper port connects the two internal cavities (two flanged ends, k=1.64); "
+            "Lower port exhausts outside the enclosure (one flanged, one free end, k=1.43)."
         )
     elif load_type == "Bandpass 4th order":
         st.number_input(
@@ -9477,25 +9801,206 @@ def _render_ports_tab(
             st.subheader("Radiator Geometry")
             st.caption(
                 "Equivalent diaphragm diameter and simulated radiator motion "
-                f"at {float(st.session_state['sim_voltage']):.2f} V."
+                f"at {float(st.session_state['sim_voltage']):.2f} V and at MOL."
+            )
+            st.dataframe(
+                pd.DataFrame(port_geometry_rows)[list(_PORT_GEOMETRY_COLUMNS)],
+                width="stretch",
+                hide_index=True,
+                column_config={
+                    "Diameter cm": st.column_config.NumberColumn(format="%.1f"),
+                    "Length cm": st.column_config.NumberColumn(format="%.1f"),
+                    "Peak m/s": st.column_config.NumberColumn(format="%.1f"),
+                    "Peak m/s (MOL)": st.column_config.NumberColumn(format="%.1f"),
+                    "Peak at Hz": st.column_config.NumberColumn(format="%.0f"),
+                },
             )
         else:
-            st.subheader("Port Geometry")
-            st.caption(
-                f"Circular ducts at {float(st.session_state['sim_voltage']):.2f} V; "
-                f"air-speed guideline {_acoustics.PORT_VELOCITY_GUIDELINE_MS:.0f} m/s (5% of c)."
-            )
-        st.dataframe(
-            pd.DataFrame(port_geometry_rows)[list(_PORT_GEOMETRY_COLUMNS)],
-            width="stretch",
-            hide_index=True,
-            column_config={
-                "Diameter cm": st.column_config.NumberColumn(format="%.1f"),
-                "Length cm": st.column_config.NumberColumn(format="%.1f"),
-                "Peak m/s": st.column_config.NumberColumn(format="%.1f"),
-                "Peak at Hz": st.column_config.NumberColumn(format="%.0f"),
-            },
-        )
+            valid_ports = [r for r in port_geometry_rows if not r.get("_is_pr", False) and r.get("Diameter cm", 0.0) > 0]
+            if valid_ports:
+                if len(valid_ports) > 1:
+                    sel_port_name = st.selectbox("Focus port for Blueprint", [r["Port"] for r in valid_ports], key="flared_calc_port_sel")
+                    sel_row = next(r for r in valid_ports if r["Port"] == sel_port_name)
+                else:
+                    sel_row = valid_ports[0]
+
+                # Compute flared dimensions for all valid ports
+                display_rows = []
+                for r in port_geometry_rows:
+                    if r.get("_is_pr", False) or r.get("Diameter cm", 0.0) <= 0:
+                        display_rows.append(r)
+                        continue
+                    fdims = _acoustics.flared_port_dimensions_cm(
+                        volume_l=r["_volume_l"],
+                        fb_hz=r["_fb_hz"],
+                        center_diameter_cm=r["Diameter cm"],
+                        flare_radius_cm=flare_rad_cm,
+                        flares=flare_style,
+                    )
+                    row_copy = dict(r)
+                    row_copy["Straight Cut cm"] = fdims["straight_length_cm"]
+                    row_copy["Overall Length cm"] = fdims["overall_length_cm"]
+                    row_copy["Mouth Ø cm"] = fdims["outer_diameter_cm"]
+                    row_copy["Duct Vol (L)"] = fdims["volume_displacement_l"]
+                    display_rows.append(row_copy)
+
+                cols_to_show = [
+                    "Port", "Diameter cm", "Straight Cut cm", "Overall Length cm",
+                    "Mouth Ø cm", "Duct Vol (L)", "Peak m/s", "Peak m/s (MOL)", "Peak at Hz"
+                ]
+                st.dataframe(
+                    pd.DataFrame(display_rows)[cols_to_show],
+                    width="stretch",
+                    hide_index=True,
+                    column_config={
+                        "Diameter cm": st.column_config.NumberColumn(format="%.1f"),
+                        "Straight Cut cm": st.column_config.NumberColumn(format="%.1f"),
+                        "Overall Length cm": st.column_config.NumberColumn(format="%.1f"),
+                        "Mouth Ø cm": st.column_config.NumberColumn(format="%.1f"),
+                        "Duct Vol (L)": st.column_config.NumberColumn(format="%.2f"),
+                        "Peak m/s": st.column_config.NumberColumn(format="%.1f"),
+                        "Peak m/s (MOL)": st.column_config.NumberColumn(format="%.1f"),
+                        "Peak at Hz": st.column_config.NumberColumn(format="%.0f"),
+                    },
+                )
+
+                fdims_sel = _acoustics.flared_port_dimensions_cm(
+                    volume_l=sel_row["_volume_l"],
+                    fb_hz=sel_row["_fb_hz"],
+                    center_diameter_cm=sel_row["Diameter cm"],
+                    flare_radius_cm=flare_rad_cm,
+                    flares=flare_style,
+                )
+
+                # Unified Visual Blueprint with accurate outward bell flares
+                import streamlit.components.v1 as _st_components
+
+                # Coordinate reference:
+                # Center line at Y=70
+                # Duct center straight inner surface: Top Y=50, Bottom Y=90 (Height=40 => inner radius r0)
+                # Outer mouth inner surface: Top Y=26, Bottom Y=114 (Height=88 => mouth radius r_exit)
+                # Wall thickness: 6px
+                # Straight section X: 130 to 330 (Length=200)
+                # Flare bells X: Left 50 to 130, Right 330 to 410 (Span=80)
+                
+                if flare_style == "hourglass":
+                    # Continuous hourglass with outward bell lips at exits
+                    svg_content = (
+                        '<svg width="540" height="150" viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg">'
+                        '<defs>'
+                        '<linearGradient id="hgGrad" x1="0%" y1="0%" x2="0%" y2="100%">'
+                        '<stop offset="0%" stop-color="#10b981" stop-opacity="0.65"/>'
+                        '<stop offset="50%" stop-color="#059669" stop-opacity="0.2"/>'
+                        '<stop offset="100%" stop-color="#10b981" stop-opacity="0.65"/>'
+                        '</linearGradient>'
+                        '</defs>'
+                        '<!-- Air core (hourglass profile narrowing at center X=230) -->'
+                        '<path d="M 50,26 Q 230,50 410,26 L 410,114 Q 230,90 50,114 Z" fill="url(#hgGrad)" />'
+                        '<!-- Top solid wall -->'
+                        '<path d="M 50,20 Q 230,44 410,20 L 410,26 Q 230,50 50,26 Z" fill="#10b981" fill-opacity="0.95"/>'
+                        '<!-- Bottom solid wall -->'
+                        '<path d="M 50,114 Q 230,90 410,114 L 410,120 Q 230,96 50,120 Z" fill="#10b981" fill-opacity="0.95"/>'
+                        '<!-- Dimension Annotations -->'
+                        '<line x1="50" y1="135" x2="410" y2="135" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="4,3"/>'
+                        f'<text x="230" y="145" fill="#7cc7ff" font-size="11" text-anchor="middle" font-family="sans-serif">Overall Length: {fdims_sel["overall_length_cm"]:.1f} cm</text>'
+                        '<line x1="230" y1="50" x2="230" y2="90" stroke="#ffffff" stroke-width="1.2" stroke-dasharray="2,2"/>'
+                        '<text x="230" y="65" fill="#ffffff" font-size="11" text-anchor="middle" font-weight="bold" font-family="sans-serif">Hourglass Continuous</text>'
+                        f'<text x="230" y="80" fill="#a7f3d0" font-size="11" text-anchor="middle" font-family="sans-serif">Throat Ø {sel_row["Diameter cm"]:.1f} cm</text>'
+                        f'<text x="418" y="73" fill="#f59e0b" font-size="11" text-anchor="start" font-family="sans-serif">Mouth Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>'
+                        '</svg>'
+                    )
+                else:
+                    is_left_flared = (flare_style == "both")
+                    is_right_flared = (flare_style in {"both", "one"})
+                    
+                    # Top Wall: Outer path (left to right) -> Right lip -> Inner path (right to left) -> Left lip
+                    t_outer = "M 50,20 C 85,20 110,44 130,44" if is_left_flared else "M 130,44"
+                    t_outer += " L 330,44"
+                    t_outer += " C 350,44 375,20 410,20" if is_right_flared else " L 330,44"
+                    
+                    r_lip_top = "L 410,26" if is_right_flared else "L 330,50"
+                    
+                    t_inner = "C 375,26 350,50 330,50" if is_right_flared else ""
+                    t_inner += " L 130,50"
+                    t_inner += " C 110,50 85,26 50,26" if is_left_flared else ""
+                    
+                    l_lip_top = "L 50,20" if is_left_flared else "L 130,44"
+                    
+                    top_wall_path = f"{t_outer} {r_lip_top} {t_inner} {l_lip_top} Z"
+
+                    # Bottom Wall: Inner path (left to right) -> Right lip -> Outer path (right to left) -> Left lip
+                    b_inner = "M 50,114 C 85,114 110,90 130,90" if is_left_flared else "M 130,90"
+                    b_inner += " L 330,90"
+                    b_inner += " C 350,90 375,114 410,114" if is_right_flared else ""
+                    
+                    r_lip_bot = "L 410,120" if is_right_flared else "L 330,96"
+                    
+                    b_outer = "C 375,120 350,96 330,96" if is_right_flared else ""
+                    b_outer += " L 130,96"
+                    b_outer += " C 110,96 85,120 50,120" if is_left_flared else ""
+                    
+                    l_lip_bot = "L 50,114" if is_left_flared else "L 130,90"
+                    
+                    bot_wall_path = f"{b_inner} {r_lip_bot} {b_outer} {l_lip_bot} Z"
+
+                    # Air channel polygon
+                    left_x = 50 if is_left_flared else 130
+                    right_x = 410 if is_right_flared else 330
+                    left_top_y = 26 if is_left_flared else 50
+                    left_bot_y = 114 if is_left_flared else 90
+                    right_top_y = 26 if is_right_flared else 50
+                    right_bot_y = 114 if is_right_flared else 90
+
+                    air_channel_path = (
+                        f"M {left_x},{left_top_y} "
+                        f"{'C 85,26 110,50 130,50' if is_left_flared else ''} "
+                        f"L 330,50 "
+                        f"{'C 350,50 375,26 410,26' if is_right_flared else ''} "
+                        f"L {right_x},{right_bot_y} "
+                        f"{'C 375,114 350,90 330,90' if is_right_flared else ''} "
+                        f"L 130,90 "
+                        f"{'C 110,90 85,114 50,114' if is_left_flared else ''} Z"
+                    )
+
+                    mouth_txt = f'<text x="418" y="73" fill="#f59e0b" font-size="11" text-anchor="start" font-family="sans-serif">Mouth Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>' if is_right_flared else ''
+
+                    svg_content = (
+                        '<svg width="540" height="150" viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg">'
+                        '<defs>'
+                        '<linearGradient id="ductGrad" x1="0%" y1="0%" x2="0%" y2="100%">'
+                        '<stop offset="0%" stop-color="#10b981" stop-opacity="0.65"/>'
+                        '<stop offset="50%" stop-color="#059669" stop-opacity="0.2"/>'
+                        '<stop offset="100%" stop-color="#10b981" stop-opacity="0.65"/>'
+                        '</linearGradient>'
+                        '</defs>'
+                        f'<!-- Air Flow Core -->'
+                        f'<path d="{air_channel_path}" fill="url(#ductGrad)" />'
+                        f'<!-- Top Solid Wall -->'
+                        f'<path d="{top_wall_path}" fill="#10b981" fill-opacity="0.95"/>'
+                        f'<!-- Bottom Solid Wall -->'
+                        f'<path d="{bot_wall_path}" fill="#10b981" fill-opacity="0.95"/>'
+                        f'<!-- Dimension Annotations -->'
+                        f'<line x1="{left_x}" y1="135" x2="{right_x}" y2="135" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="4,3"/>'
+                        f'<text x="230" y="145" fill="#7cc7ff" font-size="11" text-anchor="middle" font-family="sans-serif">Overall Length: {fdims_sel["overall_length_cm"]:.1f} cm</text>'
+                        f'<line x1="130" y1="70" x2="330" y2="70" stroke="#ffffff" stroke-width="1.5"/>'
+                        f'<text x="230" y="65" fill="#ffffff" font-size="11" text-anchor="middle" font-weight="bold" font-family="sans-serif">Straight Cut: {fdims_sel["straight_length_cm"]:.1f} cm</text>'
+                        f'<text x="230" y="85" fill="#a7f3d0" font-size="11" text-anchor="middle" font-family="sans-serif">I.D. Ø {sel_row["Diameter cm"]:.1f} cm</text>'
+                        f'{mouth_txt}'
+                        '</svg>'
+                    )
+
+                html_wrap = (
+                    '<div style="display:flex; justify-content:center; align-items:center; width:100%; height:150px; '
+                    'background:rgba(255,255,255,0.02); border-radius:8px; '
+                    'border:1px solid rgba(255,255,255,0.08); overflow:hidden;">'
+                    f'{svg_content}'
+                    '</div>'
+                )
+                _st_components.html(html_wrap, height=160)
+                st.caption(
+                    f"Selected **{sel_row['Port']}** (Ø {sel_row['Diameter cm']:.1f} cm) with {flare_style.replace('_', ' ')}: "
+                    f"Recommended threshold **{fdims_sel['chuffing_limit_ms']:.1f} m/s** · Current Peak MOL: **{sel_row['Peak m/s (MOL)']:.1f} m/s**."
+                )
 
 
 def _csv_bytes(result: _acoustics.SimulationResult) -> bytes:
@@ -9752,57 +10257,50 @@ with st.sidebar:
         bm_tab1, bm_tab2, bm_tab3 = st.tabs(
             ["Load type", "Performance filters", "Library filters"],
             key="bass_match_sidebar_tab",
-            on_change="rerun",
         )
         
-        if bm_tab1.open:
-            with bm_tab1:
-                if "finder_load_types" not in st.session_state:
-                    st.session_state["finder_load_types"] = [
-                        str(st.session_state.get("load_type", "DCCAV"))]
-                _finder_load_set = set(st.session_state["finder_load_types"])
-                _render_load_type_buttons(_finder_load_set, single_select=False)
-                st.caption("Toggle the loads you want to compare. At least one must stay active.")
-                _render_find_driver_target_sidebar()
-                with st.expander("Advanced evaluation"):
-                    _finder_selectbox(
-                        "Search profile",
-                        list(_ranking.SEARCH_PROFILES.keys()),
-                        key="finder_search_profile",
-                        help="Standard (1 credit/driver): 60 evaluations per candidate with adaptive spectral verification. Deep (2 credits/driver): 120 evaluations per candidate for maximum exploration depth.",
-                    )
-                    _finder_number_input(
-                        "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
-                        step=1.0, key="finder_f_min",
-                        help="Lowest frequency included in response, excursion and delay evaluation.",
-                    )
-                    _finder_number_input(
-                        "Evaluation range end (Hz)", min_value=10.0, max_value=5000.0,
-                        step=10.0, key="finder_f_max",
-                        help="Highest frequency included in the low-frequency comparison.",
-                    )
-                    _finder_number_input(
-                        "Simulation resolution (points)", min_value=80, max_value=1000,
-                        step=20, key="finder_points",
-                    )
-                    st.button(
-                        "Reset Finder defaults",
-                        key="finder_reset_defaults",
-                        on_click=_reset_finder_defaults,
-                        width="stretch",
-                        help="Restore the practical quick-scan profile without changing the active design.",
-                    )
-        elif bm_tab2.open:
-            with bm_tab2:
-                _render_find_driver_goal_sidebar()
+        with bm_tab1:
+            if "finder_load_types" not in st.session_state:
+                st.session_state["finder_load_types"] = [
+                    str(st.session_state.get("load_type", "DCCAV"))]
+            _finder_load_set = set(st.session_state["finder_load_types"])
+            _render_load_type_buttons(_finder_load_set, single_select=False)
+            st.caption("Toggle the loads you want to compare. At least one must stay active.")
+            _render_find_driver_target_sidebar()
+            with st.expander("Advanced evaluation"):
+                _finder_selectbox(
+                    "Search profile",
+                    list(_ranking.SEARCH_PROFILES.keys()),
+                    key="finder_search_profile",
+                    help="Standard (1 credit/driver): 60 evaluations per candidate with adaptive spectral verification. Deep (2 credits/driver): 120 evaluations per candidate for maximum exploration depth.",
+                )
+                _finder_number_input(
+                    "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
+                    step=1.0, key="finder_f_min",
+                    help="Lowest frequency included in response, excursion and delay evaluation.",
+                )
+                _finder_number_input(
+                    "Evaluation range end (Hz)", min_value=10.0, max_value=5000.0,
+                    step=10.0, key="finder_f_max",
+                    help="Highest frequency included in the low-frequency comparison.",
+                )
+                _finder_number_input(
+                    "Simulation resolution (points)", min_value=80, max_value=1000,
+                    step=20, key="finder_points",
+                )
+                st.button(
+                    "Reset Finder defaults",
+                    key="finder_reset_defaults",
+                    on_click=_reset_finder_defaults,
+                    width="stretch",
+                    help="Restore the practical quick-scan profile without changing the active design.",
+                )
+        with bm_tab2:
+            _render_find_driver_goal_sidebar()
 
-        # Bass Match needs the server-side preset names on its first render:
-        # they drive the pre-qualified count and the Run button even while
-        # the Candidate pool table and Library filters remain collapsed.
         all_preset_names = _acoustics.driver_preset_names()
-        if bm_tab3.open:
-            with bm_tab3:
-                _render_finder_library_filters(all_preset_names)
+        with bm_tab3:
+            _render_finder_library_filters(all_preset_names)
 
         def _live_or_aggregate_filter(key: str):
             live = st.session_state.get(f"{key}__select_v5")
@@ -10457,10 +10955,33 @@ with st.sidebar:
 
     _render_catalog_crawl_report()
 
+    if _maintenance_allowed():
+        st.markdown("---")
+        with st.expander("🛠️ Admin Tools", expanded=False):
+            st.caption("Administrator Console")
+            st.link_button(
+                "📦 Catalog Maintenance ↗",
+                "/?maintenance=1",
+                use_container_width=True,
+                help="Open Catalog Maintenance in a new tab.",
+            )
+            st.link_button(
+                "👥 User Management ↗",
+                "/?admin_users=1",
+                use_container_width=True,
+                help="Open User Management & Credits Console in a new tab.",
+            )
+
 
 def _render_user_management() -> None:
     """Admin-only dashboard to view users, credit balances, change plans and adjust credits."""
-    st.markdown("### 👥 User & Credits Management")
+    c_back, c_title = st.columns([1.5, 8.5], vertical_alignment="center")
+    with c_back:
+        if st.button("← Back to app", key="user_mgmt_back_btn"):
+            st.session_state["workspace_mode"] = "Bass Match"
+            st.rerun()
+    with c_title:
+        st.markdown("### 👥 User & Credits Management")
     st.caption("Administrator console · Real-time Firestore users & credit balances")
 
     accounts = _ACCOUNT_STORE.list_all_accounts()
@@ -10525,6 +11046,11 @@ def _render_user_management() -> None:
 _maintenance_requested = str(st.query_params.get("maintenance", "")) == "1"
 if _maintenance_requested:
     _render_catalog_maintenance()
+    st.stop()
+
+_admin_users_requested = str(st.query_params.get("admin_users", "")) == "1"
+if _admin_users_requested:
+    _render_user_management()
     st.stop()
 
 if workspace_mode == "Catalog Maintenance":
@@ -10623,19 +11149,22 @@ try:
         vent_d_cm = float(st.session_state.get("reflex_port_d_cm", 0.0))
         if vent_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
-                "Vent", vent_d_cm, box.vb_l, box.fb_hz, 1.43, result, "lower"))
+                "Vent (External)", vent_d_cm, box.vb_l, box.fb_hz, 1.43, result, "lower"))
     elif is_pr:
         pr_box = box
         pr_sp_cm2 = pr_box.pr_sp_cm2
         pr_xmax = pr_box.pr_xmax_mm
         velocity = _acoustics.port_air_velocity_ms(result, pr_sp_cm2, "lower")
         peak_idx = int(np.nanargmax(velocity))
+        velocity_mol = _acoustics.port_air_velocity_ms(result, pr_sp_cm2, "lower", at_mol=True)
+        peak_mol_idx = int(np.nanargmax(velocity_mol))
         pr_exc_peak = float(np.nanmax(np.abs(result.port_l_velocity) / (2 * np.pi * result.frequency_hz * pr_sp_cm2 / 10_000.0))) * 1000.0
         port_geometry_rows.append({
-            "Port": "Passive radiator",
+            "Port": "Passive radiator (External)",
             "Diameter cm": float(np.sqrt(4 * pr_sp_cm2 / np.pi)),
             "Length cm": float("nan"),
             "Peak m/s": float(velocity[peak_idx]),
+            "Peak m/s (MOL)": float(velocity_mol[peak_mol_idx]),
             "Peak at Hz": float(result.frequency_hz[peak_idx]),
             "_volume_l": float(pr_box.vb_l),
             "_fb_hz": float(_acoustics.passive_radiator_effective_fp_hz(pr_box)),
@@ -10651,38 +11180,38 @@ try:
         vent_d_cm = float(st.session_state.get("bandpass4_port_d_cm", 0.0))
         if vent_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
-                "Front vent", vent_d_cm, box.vp_l, box.fp_hz, 1.43, result, "lower"))
+                "Front vent (External)", vent_d_cm, box.vp_l, box.fp_hz, 1.43, result, "lower"))
     elif is_bandpass6:
         rear_d_cm = float(st.session_state.get("bandpass6_port_d_r_cm", 0.0))
         front_d_cm = float(st.session_state.get("bandpass6_port_d_p_cm", 0.0))
         if rear_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
-                "Rear vent", rear_d_cm, box.vr_l, box.fr_hz, 1.43, result, "upper"))
+                "Rear vent (External)", rear_d_cm, box.vr_l, box.fr_hz, 1.43, result, "upper"))
         if front_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
-                "Front vent", front_d_cm, box.vp_l, box.fp_hz, 1.43, result, "lower"))
+                "Front vent (External)", front_d_cm, box.vp_l, box.fp_hz, 1.43, result, "lower"))
     elif is_bandpass8:
         p1_d_cm = float(st.session_state.get("bp8_dp1_cm", 0.0))
         p2_d_cm = float(st.session_state.get("bp8_dp2_cm", 0.0))
         p3_d_cm = float(st.session_state.get("bp8_dp3_cm", 0.0))
         if p1_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
-                "Port 1 (Front)", p1_d_cm, box.v1_l, box.f1_hz, 1.43, result, "lower"))
+                "Port 1 (Internal -> C3)", p1_d_cm, box.v1_l, box.f1_hz, 1.43, result, "lower"))
         if p2_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
-                "Port 2 (Rear)", p2_d_cm, box.v2_l, box.f2_hz, 1.43, result, "lower"))
+                "Port 2 (Internal -> C3)", p2_d_cm, box.v2_l, box.f2_hz, 1.43, result, "lower"))
         if p3_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
-                "Port 3 (Radiating)", p3_d_cm, box.v3_l, box.f3_hz, 1.43, result, "upper"))
+                "Port 3 (External radiating)", p3_d_cm, box.v3_l, box.f3_hz, 1.43, result, "upper"))
     elif load_type == "DCCAV":
         upper_d_cm = float(st.session_state.get("box_port_d_h_cm", 0.0))
         lower_d_cm = float(st.session_state.get("box_port_d_l_cm", 0.0))
         if upper_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
-                "Upper port", upper_d_cm, box.vh_l, box.fh_hz, 1.64, result, "upper"))
+                "Upper port (Internal inter-chamber)", upper_d_cm, box.vh_l, box.fh_hz, 1.64, result, "upper"))
         if lower_d_cm > 0.0:
             port_geometry_rows.append(_port_geometry_row(
-                "Lower port", lower_d_cm, box.vl_l, box.fl_hz, 1.43, result, "lower"))
+                "Lower port (External radiating)", lower_d_cm, box.vl_l, box.fl_hz, 1.43, result, "lower"))
     for row in port_geometry_rows:
         is_pr_row = row.get("_is_pr", False)
         if not is_pr_row and row["Length cm"] <= 0.0:
@@ -10806,6 +11335,7 @@ try:
         with design_tabs["Ports"]:
             _render_ports_tab(
                 result, port_geometry_rows, load_type,
+                driver=current_ts, box=box,
                 passive_radiator=is_pr,
             )
     elif design_tabs["Group Delay"].open:
@@ -10901,8 +11431,10 @@ try:
                 ports = {row["Port"]: row for row in port_geometry_rows if not row.get("_is_pr", False)}
                 
                 def _add_port(lbl):
-                    if lbl in ports:
-                        pr = ports[lbl]
+                    # Match exact label or key starting with lbl
+                    matching = [r for name, r in ports.items() if name == lbl or name.startswith(lbl)]
+                    if matching:
+                        pr = matching[0]
                         flat_metrics.extend([
                             (f"{lbl} tuning", f"{pr['_fb_hz']:.1f} Hz"),
                             (f"{lbl} size", f"Ø{pr['Diameter cm']:.1f}x{pr['Length cm']:.1f}")
@@ -10919,11 +11451,11 @@ try:
                     _add_port("Front vent")
                 elif load_type == "Bandpass 8th order":
                     flat_metrics.append(("Front vol (V1)", f"{box.v1_l:.1f} L"))
-                    _add_port("Port 1 (Front)")
+                    _add_port("Port 1")
                     flat_metrics.append(("Rear vol (V2)", f"{box.v2_l:.1f} L"))
-                    _add_port("Port 2 (Rear)")
+                    _add_port("Port 2")
                     flat_metrics.append(("Plenum vol (V3)", f"{box.v3_l:.1f} L"))
-                    _add_port("Port 3 (Radiating)")
+                    _add_port("Port 3")
                 elif load_type == "DCCAV":
                     flat_metrics.append(("High vol (Vh)", f"{box.vh_l:.1f} L"))
                     _add_port("Upper port")

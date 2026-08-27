@@ -105,7 +105,7 @@ The built-in entitlement seeds are:
 | `pro` | 100 | 2,500 | 1 |
 | `team` | 500 | 10,000 | 10 |
 
-These values are server-side product defaults. Standard runs consume 1 credit per candidate; Deep runs consume 2 credits per candidate. `UserAccountStore` (backed by Firestore in production and memory in development) handles atomic credit deductions, monthly quota replenishment on the 1st of each month, and administrator management.
+These values are server-side product defaults. Standard runs consume 1 credit per candidate; Deep runs consume 2 credits per candidate. `UserAccountStore` (backed by Firestore in production and memory in development) handles atomic credit deductions, monthly quota replenishment on the 1st of each month, and administrator management. Administrator accounts receive an automatic credit balance refill ($100,000+$) and are exempt from simulation credit blocking in Bass Match.
 
 Editable multi-design comparison is a Pro-tier capability: Pro and Team users
 may turn 2–8 selected Bass Match rows into independent Box Design tabs or

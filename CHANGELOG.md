@@ -1,5 +1,150 @@
 # Changelog
 
+## 0.12.23 (2026-08-27)
+
+- **Internal/External Duct Differentiation & Input Contrast Enhancement**:
+  - Differentiated internal vs external ducts in the geometry table and input labels (e.g., *Upper port (Internal inter-chamber)* vs *Lower port (External radiating)*).
+  - Enhanced UI contrast for data-entry inputs (dark charcoal surface `#151a22` with crisp subtle borders `rgba(255, 255, 255, 0.18)` and emerald focus states) so numeric inputs and dropdowns stand out clearly against the pitch-black background on Cloud Run.
+- **Full Active Test Suite**: 183 tests passing fresh (`PASS: 183 FAIL: 0 SKIP: 0`).
+
+## 0.12.22 (2026-08-27)
+
+- **Direct Simulation Sweep for Accurate MOL Auto-Optimization**:
+  - Auto-optimizer now directly runs the simulated MOL velocity curve (`port_air_velocity_ms`) for each candidate diameter, ensuring that the selected diameter guarantees peak MOL speed below target thresholds ($\le 28$ or $32\text{ m/s}$).
+  - Passed `port_name` (`upper`/`lower`) into all optimizer calls.
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.21 (2026-08-27)
+
+- **Visual Toast Feedback on Auto-Optimization & Recalculation**:
+  - Displays instant `st.toast("⚡ Duct Auto-Optimized: ...")` notification when switching policy or clicking the optimizer button so the user gets immediate visual confirmation of the rerun.
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.20 (2026-08-27)
+
+- **Auto-Recalculation on Policy / Flare Change & Acoustic Sizing Fixes**:
+  - Auto-recalculates duct dimensions immediately upon changing the policy dropdown (*Studio*, *Balanced*, *Compact*) or the flare style without requiring an extra button click.
+  - Eliminated zero-length edge artifacts for small cavities and high tunings by bounding acoustic mass scaling to realistic physical limits.
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.19 (2026-08-27)
+
+- **Fix Main Scope Reference (`current_ts`)**:
+  - Replaced unassigned `driver` name with `current_ts` in the main tab dispatcher call to `_render_ports_tab`.
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.18 (2026-08-27)
+
+- **Fix `driver` and `box` Scope in `_render_ports_tab`**:
+  - Explicitly passed active `driver` and `box` parameters into `_render_ports_tab` to fix the button handler scope on the live UI.
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.17 (2026-08-27)
+
+- **Acoustic Engineering Directive Auto-Optimizer (`⚡ Auto-optimize duct`)**:
+  - Implemented `auto_optimize_port_diameter_cm()` in `engine.py` with 3 professional design policies:
+    - `Studio / Hi-Fi`: Strict zero-chuffing at MOL ($X_{\text{max}}$ limit).
+    - `Balanced / Pro`: Standard AES trade-off balancing peak velocity, organ pipe resonances, and duct length.
+    - `Compact Enclosure`: Minimizes displaced volume while respecting Small/Keele displacement floor $S_{\text{min}} = 0.8 f_b V_d$.
+  - Added organ-pipe resonance calculation (`port_pipe_resonance_hz`).
+  - Added policy selector and one-click auto-optimizer button under Duct sizing & Geometry.
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.16 (2026-08-27)
+
+- **Port Profile Selector at Chart Head & Dynamic Thresholds**:
+  - Relocated Port Geometry / Flare Profile selector directly to the header of the Port Air Velocity section.
+  - Dynamically highlights active chuffing thresholds in the chart (Straight: 17.2 m/s, Aeroport: 28.0 m/s, Hourglass: 32.0 m/s).
+  - Drives all calculations, sizing table metrics, and live SVG blueprints directly in lockstep.
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.15 (2026-08-27)
+
+- **Blueprint Geometric Loop & Text Clearance Correction**:
+  - Re-ordered SVG path winding order and loop closures for top and bottom walls to eliminate overlapping fill artifacts.
+  - Widened blueprint viewBox and adjusted mouth annotation positions to ensure clear text rendering without clipping.
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.14 (2026-08-26)
+
+- **Complete Vector Overhaul of Aeroport & Hourglass Blueprint Profiles**:
+  - Re-anchored SVG coordinate system and tangent vectors:
+    - Standard Flared (Aeroport): Central straight cylindrical pipe transitions smoothly outward into expansive bell flares with correct wall thickness and outward mouth opening.
+    - Hourglass Continuous: Smoothly expands from narrow central throat out to both flared mouth exits.
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.13 (2026-08-26)
+
+- **Iframe Component Blueprint Rendering**:
+  - Integrated `streamlit.components.v1.html` iframe wrapper for SVG blueprint visualization, avoiding DOM stripping / sanitization across all browser environments.
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.12 (2026-08-26)
+
+- **Blueprint SVG Render Reliability Fix**:
+  - Replaced `st.markdown()` with dedicated `st.html()` for port geometry blueprints, preventing Markdown indentation parsing errors on large multi-line SVG tags.
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.11 (2026-08-26)
+
+- **Continuous Hourglass Flared Port Topology**:
+  - Implemented continuous symmetrical hourglass profile calculation in `flared_port_dimensions_cm(..., flares="hourglass")`.
+  - Solves distributed acoustic mass integral $M_a = \rho \int \frac{dx}{S(x)}$ yielding $L_{\text{eff}} / L_{\text{phys}} \approx r_{\text{throat}} / r_{\text{mouth}}$, and calculates solid-of-rotation displaced volume.
+  - Added *Hourglass continuous (Clessidra)* option in Duct sizing UI with smooth continuous parabolic blueprint SVG schematic.
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.10 (2026-08-26)
+
+- **Flared Aeroport Visual Blueprint Realism**:
+  - Corrected SVG profile curvature so the flare bell expands outward toward the mouth and inner termination (true aerodynamic trumpet flare profile).
+  - Dynamically switches geometry between Double Flared, Single Flared (outer mouth only), and Straight Pipe.
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.9 (2026-08-26)
+
+- **Unified Duct Sizing & Aeroport Geometry Architecture**:
+  - Eliminated disconnected duplicate parameter inputs; unified all port sizing controls into a single coherent section driving both the acoustic simulation, the air velocity charts, and the Aeroport physical calculations.
+  - Port Geometry table now directly displays **Diameter**, **Straight Cut**, **Overall Length**, **Mouth Ø**, and **Duct Displaced Volume** alongside nominal and MOL peak air velocities.
+  - Blueprint section automatically renders live dimensions for the active design and selected flare termination (*Double flared*, *Single flared*, or *Straight*).
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.8 (2026-08-26)
+
+- **Flared Aeroport Interactive Diagram & Direct Design Apply**:
+  - Added visual SVG cross-section blueprint schematic for flared Aeroports showing inner diameter, mouth diameter, cut length, and tip-to-tip overall length.
+  - Added **"Apply Flared Tube Diameter to Design"** button to instantly transfer the chosen inner tube diameter into the active design simulation.
+  - Added dual guideline threshold rules on the Port Air Velocity chart: straight port limit (red dashed, 17.2 m/s) and flared Aeroport limit (emerald dashed, 28.0 m/s).
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.7 (2026-08-26)
+
+- **Flared Port / Aeroport Calculator**:
+  - Added `flared_port_dimensions_cm()` to `src/engine.py` modeling acoustic end corrections, flare axial length contributions, and physical dimensions for double-flared, single-flared, and straight reflex ports.
+  - Added dedicated interactive calculator expander `🎺 Flared Port / Aeroport Calculator` in the Ports tab.
+  - Reports Overall Length, Straight Pipe Cut length, Outer Mouth Diameter, Displaced Box Volume, and the elevated chuffing threshold guideline (~28 m/s).
+- **Full Active Test Suite**: 111 tests passing fresh (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.6 (2026-08-26)
+
+- **Port Velocity at MOL in Charts & Duct Sizing**:
+  - Added port linear air velocity calculation scaled to Maximum Output Level (MOL): `port_air_velocity_ms(..., at_mol=True)`.
+  - Added Port metric radio selector in Ports tab: *Air velocity at MOL (m/s)*, *Air velocity at drive level (m/s)*, and *Volume velocity (m³/s)*.
+  - Added $17.15\text{ m/s}$ (5% speed of sound) red dashed chuffing threshold guideline rule in air velocity modes.
+  - Added `Peak m/s (MOL)` column to the Port Geometry and Passive Radiator summary tables.
+  - Restored classic graphical workspace switcher navigation; moved Admin Maintenance & User Management tools to sidebar expander opening in new tabs.
+- **Full Fast Test Suite**: 111 unit & physics tests passing (`PASS: 111 FAIL: 0 SKIP: 72`).
+
+## 0.12.5 (2026-08-26)
+
+- **Complete Emerald UI Overrides**: Eliminated all remaining red highlight accents across the application:
+  - Sidebar multi-select pills & tags (`Manufacturer`, `Size`, `Class`, `Provenance`) styled in emerald green (`#10b981`).
+  - Active tab indicators and text styled in emerald green.
+  - Radio button active state (`Rank by`) styled with emerald borders and dot.
+  - Data editor / table sparkline mini-curves stroke color set to emerald (`#10b981`).
+  - Set `--primary-color: #10b981` in root CSS variables.
+- **Admin Credit Sync & Simulation Bypass**: Administrator accounts (`playloud79@gmail.com`) automatically synchronize credit balances (100,000+ credits) and bypass simulation credit checks.
+- **Full Fast Test Suite**: 111 unit & physics tests passing (`PASS: 111 FAIL: 0 SKIP: 72`).
+
 ## 0.12.0 (2026-08-26)
 
 - **Persistent User Accounts & Credit Engine**: Integrated Firestore native database store (with in-memory/SQLite dev fallback) tracking user credit balances and deduction on simulations.

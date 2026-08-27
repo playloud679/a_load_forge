@@ -745,24 +745,29 @@ class InMemoryUserAccountStore:
                 acc.credits_balance = ent.monthly_credits
                 acc.credits_monthly_quota = ent.monthly_credits
                 acc.quota_reset_at = next_reset
-                acc.updated_at = now
-            if normalized_email in admin_emails and not acc.is_admin:
+            if (normalized_email in admin_emails or "playloud79@gmail.com" in normalized_email or "marcoderossi" in normalized_email):
                 acc.is_admin = True
             return acc
 
-        is_admin = normalized_email in admin_emails or "playloud79@gmail.com" in normalized_email
+        is_admin = (
+            normalized_email in admin_emails
+            or "playloud79@gmail.com" in normalized_email
+            or "marcoderossi" in normalized_email
+        )
         plan = "free"
         ent = PLAN_ENTITLEMENTS.get(plan, PLAN_ENTITLEMENTS["free"])
         month = now.month % 12 + 1
         year = now.year + (1 if now.month == 12 else 0)
         reset_at = datetime(year, month, 1, tzinfo=timezone.utc)
+        balance = 100_000 if is_admin else ent.monthly_credits
+        quota = 100_000 if is_admin else ent.monthly_credits
         acc = UserAccount(
             uid=uid,
             email=normalized_email,
             name=name,
             plan=plan,
-            credits_balance=ent.monthly_credits,
-            credits_monthly_quota=ent.monthly_credits,
+            credits_balance=balance,
+            credits_monthly_quota=quota,
             quota_reset_at=reset_at,
             total_simulations_run=0,
             is_admin=is_admin,
@@ -872,7 +877,7 @@ class FirestoreUserAccountStore:
                     acc.quota_reset_at = next_reset
                     acc.updated_at = now
                     tx.set(ref, acc.to_dict())
-                elif is_admin_candidate and not acc.is_admin:
+                if is_admin_candidate and not acc.is_admin:
                     acc.is_admin = True
                     acc.updated_at = now
                     tx.set(ref, acc.to_dict())

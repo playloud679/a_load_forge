@@ -681,15 +681,25 @@ metrics and plots all see the composite. `Bass Match` ranks every candidate
 with its selected configuration and preserves that configuration when the
 candidate is applied to Box Design.
 
-### `port_air_velocity_ms(result, port_area_cm2, port="lower") -> np.ndarray`
+### `port_air_velocity_ms(result, port_area_cm2, port="lower", at_mol=False) -> np.ndarray`
 
 Linear port air speed `|U|/S` in m/s for the requested port: `"lower"` (also
 the reflex vent) uses `port_l_velocity`, `"upper"` uses `port_h_velocity`; any
-other name raises `ValueError`.  `PORT_VELOCITY_GUIDELINE_MS` (5% of the speed
+other name raises `ValueError`. When `at_mol=True`, the linear air speed is scaled
+frequency-by-frequency to the Maximum Output Level (MOL) drive voltage
+(`10**((mol_db - spl_total_db) / 20)`). `PORT_VELOCITY_GUIDELINE_MS` (5% of the speed
 of sound, ~17 m/s) is the module-level chuffing guideline: speeds above it
 commonly produce audible port noise and compression that the lumped model does
-not simulate.  The UI shows per-port peaks in the Port Geometry table and
+not simulate. The UI shows per-port peaks in the Port Geometry table and
 appends a chuffing warning when the peak exceeds the guideline.
+
+### `flared_port_dimensions_cm(volume_l, fb_hz, center_diameter_cm, flare_radius_cm=2.5, flares="both") -> dict[str, float]`
+
+Calculates physical dimensions, required straight pipe cut length, outer mouth
+diameter, box volume displacement, and effective chuffing threshold for flared
+aerodynamic reflex ports and continuous hourglass ports. `flares` supports
+`"both"` (Aeroport internal + external), `"one"` (external only), `"hourglass"`
+(continuous symmetrical flare), or `"none"` (straight).
 
 ### `port_length_cm(volume_l, fb_hz, port_diameter_cm, end_correction=1.43) -> float`
 
