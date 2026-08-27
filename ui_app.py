@@ -10019,32 +10019,36 @@ def _render_ports_tab(
 
                     if sel_p_style == "hourglass":
                         svg_content = (
-                            '<svg width="540" height="150" viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg">'
+                            '<svg width="560" height="155" viewBox="0 0 560 155" xmlns="http://www.w3.org/2000/svg">'
                             '<defs>'
                             '<linearGradient id="hgGrad" x1="0%" y1="0%" x2="0%" y2="100%">'
-                            '<stop offset="0%" stop-color="#10b981" stop-opacity="0.65"/>'
-                            '<stop offset="50%" stop-color="#059669" stop-opacity="0.2"/>'
-                            '<stop offset="100%" stop-color="#10b981" stop-opacity="0.65"/>'
+                            '<stop offset="0%" stop-color="#10b981" stop-opacity="0.75"/>'
+                            '<stop offset="50%" stop-color="#059669" stop-opacity="0.15"/>'
+                            '<stop offset="100%" stop-color="#10b981" stop-opacity="0.75"/>'
                             '</linearGradient>'
                             '</defs>'
-                            '<!-- Air core (Continuous hourglass narrowing at center throat X=230) -->'
-                            '<path d="M 50,26 C 110,32 170,50 230,50 C 290,50 350,32 410,26 L 410,114 C 350,108 290,90 230,90 C 170,90 110,108 50,114 Z" fill="url(#hgGrad)" />'
-                            '<!-- Top solid wall with dual outward flared bellmouth lips -->'
-                            '<path d="M 50,16 C 100,24 170,44 230,44 C 290,44 360,24 410,16 L 410,26 C 350,32 290,50 230,50 C 170,50 110,32 50,26 Z" fill="#10b981" fill-opacity="0.95"/>'
-                            '<!-- Bottom solid wall with dual outward flared bellmouth lips -->'
-                            '<path d="M 50,114 C 110,108 170,90 230,90 C 290,90 350,108 410,114 L 410,124 C 360,116 290,96 230,96 C 170,96 100,116 50,124 Z" fill="#10b981" fill-opacity="0.95"/>'
+                            '<!-- Air core (Continuous flared venturi narrowing at throat X=265) -->'
+                            '<path d="M 68,18 C 88,24 140,44 210,50 C 245,53 285,53 320,50 C 390,44 442,24 462,18 '
+                            'L 462,122 C 442,116 390,96 320,90 C 285,87 245,87 210,90 C 140,96 88,116 68,122 Z" fill="url(#hgGrad)" />'
+                            '<!-- Top solid wall with rounded bellmouth flared lips -->'
+                            '<path d="M 58,14 C 64,14 68,16 68,18 C 88,24 140,44 210,50 C 245,53 285,53 320,50 C 390,44 442,24 462,18 C 462,16 466,14 472,14 '
+                            'C 478,14 476,23 470,26 C 452,32 400,48 325,56 C 285,60 245,60 205,56 C 130,48 78,32 60,26 C 54,23 52,14 58,14 Z" fill="#10b981" fill-opacity="0.95" stroke="#34d399" stroke-width="0.8"/>'
+                            '<!-- Bottom solid wall with rounded bellmouth flared lips -->'
+                            '<path d="M 58,126 C 64,126 68,124 68,122 C 88,116 140,96 210,90 C 245,87 285,87 320,90 C 390,96 442,116 462,122 C 462,124 466,126 472,126 '
+                            'C 478,126 476,117 470,114 C 452,108 400,92 325,84 C 285,80 245,80 205,84 C 130,92 78,108 60,114 C 54,117 52,126 58,126 Z" fill="#10b981" fill-opacity="0.95" stroke="#34d399" stroke-width="0.8"/>'
                             '<!-- Center Mirror Symmetry Line -->'
-                            '<line x1="230" y1="40" x2="230" y2="100" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3,2"/>'
+                            '<line x1="265" y1="40" x2="265" y2="100" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="3,2"/>'
                             '<!-- Dimension Annotations -->'
-                            '<line x1="50" y1="138" x2="410" y2="138" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="4,3"/>'
-                            f'<text x="230" y="147" fill="#7cc7ff" font-size="10.5" text-anchor="middle" font-family="sans-serif">Overall Length: {fdims_sel["overall_length_cm"]:.1f} cm · (2x Symmetrical Halves L/2 = {fdims_sel["overall_length_cm"]/2.0:.1f} cm)</text>'
-                            '<text x="230" y="65" fill="#ffffff" font-size="11" text-anchor="middle" font-weight="bold" font-family="sans-serif">Dual Continuous Flared</text>'
-                            f'<text x="230" y="79" fill="#a7f3d0" font-size="10.5" text-anchor="middle" font-family="sans-serif">Throat Ø {sel_row["Diameter cm"]:.1f} cm</text>'
-                            f'<text x="418" y="40" fill="#f59e0b" font-size="10" text-anchor="start" font-family="sans-serif">Outer Flared Mouth</text>'
-                            f'<text x="418" y="55" fill="#f59e0b" font-size="11" font-weight="bold" text-anchor="start" font-family="sans-serif">Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>'
-                            f'<text x="418" y="70" fill="#94a3b8" font-size="9.5" text-anchor="start" font-family="sans-serif">R {sel_p_rad:.1f} cm</text>'
-                            f'<text x="44" y="40" fill="#f59e0b" font-size="10" text-anchor="end" font-family="sans-serif">Inner Flared Mouth</text>'
-                            f'<text x="44" y="55" fill="#f59e0b" font-size="11" font-weight="bold" text-anchor="end" font-family="sans-serif">Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>'
+                            '<line x1="68" y1="142" x2="462" y2="142" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="4,3"/>'
+                            f'<text x="265" y="152" fill="#7cc7ff" font-size="10" text-anchor="middle" font-family="sans-serif">Overall Length: {fdims_sel["overall_length_cm"]:.1f} cm · (2x Symmetrical Halves L/2 = {fdims_sel["overall_length_cm"]/2.0:.1f} cm)</text>'
+                            '<text x="265" y="64" fill="#ffffff" font-size="10.5" text-anchor="middle" font-weight="bold" font-family="sans-serif">Continuous Flared Venturi</text>'
+                            f'<text x="265" y="78" fill="#a7f3d0" font-size="10.5" text-anchor="middle" font-family="sans-serif">Throat Ø {sel_row["Diameter cm"]:.1f} cm</text>'
+                            f'<text x="478" y="44" fill="#f59e0b" font-size="10" font-weight="bold" text-anchor="start" font-family="sans-serif">Outer Flared Mouth</text>'
+                            f'<text x="478" y="58" fill="#f59e0b" font-size="11" font-weight="bold" text-anchor="start" font-family="sans-serif">Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>'
+                            f'<text x="478" y="71" fill="#94a3b8" font-size="9" text-anchor="start" font-family="sans-serif">R {sel_p_rad:.1f} cm</text>'
+                            f'<text x="52" y="44" fill="#f59e0b" font-size="10" font-weight="bold" text-anchor="end" font-family="sans-serif">Inner Flared Mouth</text>'
+                            f'<text x="52" y="58" fill="#f59e0b" font-size="11" font-weight="bold" text-anchor="end" font-family="sans-serif">Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>'
+                            f'<text x="52" y="71" fill="#94a3b8" font-size="9" text-anchor="end" font-family="sans-serif">R {sel_p_rad:.1f} cm</text>'
                             '</svg>'
                         )
                     else:
@@ -10121,13 +10125,13 @@ def _render_ports_tab(
                         )
 
                     html_wrap = (
-                        '<div style="display:flex; justify-content:center; align-items:center; width:100%; height:150px; '
+                        '<div style="display:flex; justify-content:center; align-items:center; width:100%; height:160px; '
                         'background:rgba(255,255,255,0.02); border-radius:8px; '
                         'border:1px solid rgba(255,255,255,0.08); overflow:hidden;">'
                         f'{svg_content}'
                         '</div>'
                     )
-                    _st_components.html(html_wrap, height=160)
+                    _st_components.html(html_wrap, height=170)
 
                     m1, m2, m3, m4 = st.columns(4)
                     if sel_p_style == "hourglass":
