@@ -414,15 +414,17 @@ st.markdown(
         border-radius: .4rem;
         min-height: 2.35rem;
         overflow: hidden;
-        border-color: rgba(255,255,255,0.12) !important;
+        border: 1px solid rgba(255, 255, 255, 0.20) !important;
+        background-color: #141b27 !important;
     }
-    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button {
+    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button,
+    [data-testid="stNumberInput"] button {
         align-items: center !important;
         align-self: stretch !important;
-        background: rgba(255,255,255,.02) !important;
-        border-left: 1px solid rgba(255,255,255,.07) !important;
+        background: #1e2638 !important;
+        border-left: 1px solid rgba(255,255,255,.16) !important;
         border-radius: 0 !important;
-        color: rgba(255,255,255,.6) !important;
+        color: #e2e8f0 !important;
         display: flex !important;
         height: auto !important;
         justify-content: center !important;
@@ -431,18 +433,20 @@ st.markdown(
         padding: 0 !important;
         transition: background-color .15s ease, color .15s ease;
     }
-    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button:hover:not(:disabled) {
-        background: rgba(16,185,129,.16) !important;
+    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button:hover:not(:disabled),
+    [data-testid="stNumberInput"] button:hover:not(:disabled) {
+        background: rgba(16,185,129,.25) !important;
         color: #10b981 !important;
     }
-    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button svg {
+    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button svg,
+    [data-testid="stNumberInput"] button svg {
         height: 1.0rem !important;
         width: 1.0rem !important;
     }
     hr {
         margin-top: 0.4rem !important;
         margin-bottom: 0.4rem !important;
-        border-color: rgba(255,255,255,0.07) !important;
+        border-color: rgba(255,255,255,0.12) !important;
     }
 
     header[data-testid="stHeader"] {
@@ -450,15 +454,15 @@ st.markdown(
     }
 
     [data-testid="stCaptionContainer"] {
-        color: rgba(250,250,250,.60);
+        color: rgba(250,250,250,.65);
     }
     [data-testid="stTooltipContent"],
     [role="tooltip"] {
         display: none !important;
     }
     .st-key-finder_library_filters {
-        background: rgba(255,255,255,.02);
-        border: 1px solid rgba(255,255,255,.08) !important;
+        background: #0f1520;
+        border: 1px solid rgba(255,255,255,.16) !important;
         border-radius: 6px !important;
         margin-block: .25rem .55rem;
     }
@@ -467,9 +471,9 @@ st.markdown(
     }
 
     .st-key-active_load_summary {
-        border: 1px solid rgba(255,255,255,.10) !important;
+        border: 1px solid rgba(255,255,255,.16) !important;
         border-radius: 6px !important;
-        background: rgba(255,255,255,0.015) !important;
+        background: #0f1520 !important;
         padding: .45rem .6rem .45rem !important;
     }
     .st-key-finder_run_search_main div[data-testid="stButton"] button {
@@ -491,10 +495,10 @@ st.markdown(
         transform: translateY(-1px);
     }
     .st-key-bass_match_brief {
-        padding: .35rem .55rem 1.0rem !important;
-        border-radius: 6px !important;
-        border: 1px solid rgba(255,255,255,0.08) !important;
-        background: rgba(255,255,255,0.015) !important;
+        padding: .45rem .65rem 1.0rem !important;
+        border-radius: 8px !important;
+        border: 1px solid rgba(255,255,255,0.16) !important;
+        background: #0f1520 !important;
     }
     .st-key-bass_match_brief > div[data-testid="stVerticalBlock"] {
         gap: .28rem !important;
@@ -520,23 +524,23 @@ st.markdown(
     }
     .finder-constraint {
         min-width: 0;
-        border: 1px solid rgba(255,255,255,.08);
-        border-radius: 5px;
-        padding: .35rem .5rem;
-        background: rgba(255,255,255,.02);
+        border: 1px solid rgba(255,255,255,.16);
+        border-radius: 6px;
+        padding: .4rem .55rem;
+        background: #141b27;
     }
     .finder-constraint-label {
-        color: rgba(255,255,255,.45);
+        color: #94a3b8;
         font-size: .70rem;
         font-weight: 600;
-        letter-spacing: .03em;
+        letter-spacing: .04em;
         line-height: 1;
         text-transform: uppercase;
     }
     .finder-constraint-value {
-        color: rgba(255,255,255,.92);
-        font-size: .90rem;
-        font-weight: 600;
+        color: #ffffff;
+        font-size: .92rem;
+        font-weight: 700;
         line-height: 1.2;
         margin-top: .2rem;
         overflow: hidden;
@@ -557,31 +561,37 @@ st.markdown(
         gap: .12rem !important;
     }
     .st-key-finder_match_progress [data-testid="stCaptionContainer"] {
-        color: rgba(255,255,255,.82) !important;
+        color: rgba(255,255,255,.85) !important;
         font-size: .75rem !important;
         font-weight: 600 !important;
         margin: 0 !important;
     }
     .stMetric {
-        border: 1px solid rgba(255,255,255,.08);
-        border-radius: 5px;
-        background: rgba(255,255,255,0.015);
-        padding: .3rem .5rem !important;
+        border: 1px solid rgba(255,255,255,.16) !important;
+        border-radius: 6px !important;
+        background: #141b27 !important;
+        padding: .35rem .55rem !important;
     }
     .stMetric label {
         font-size: 0.70rem !important;
-        font-weight: 500 !important;
-        color: rgba(255,255,255,0.50) !important;
+        font-weight: 600 !important;
+        color: #94a3b8 !important;
         margin-bottom: -0.2rem !important;
         text-transform: uppercase;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.03em;
     }
     .stMetric div[data-testid="stMetricValue"] {
         font-size: 1.05rem !important;
-        font-weight: 600 !important;
-        color: #f3f4f6 !important;
+        font-weight: 700 !important;
+        color: #f8fafc !important;
         line-height: 1.2 !important;
         padding-bottom: 0.1rem !important;
+    }
+
+    [data-testid="stVerticalBlockBorderWrapper"] {
+        border: 1px solid rgba(255, 255, 255, 0.16) !important;
+        background-color: #0d131d !important;
+        border-radius: 8px !important;
     }
 
     /* Tabs emerald indicator & text */
@@ -637,23 +647,65 @@ st.markdown(
         fill: #10b981 !important;
         color: #10b981 !important;
     }
+
+    /* High-contrast Selectbox, Inputs & Dropdowns */
     div[data-baseweb="select"] > div {
-        border-color: rgba(255, 255, 255, 0.12) !important;
-        background-color: rgba(255, 255, 255, 0.02) !important;
+        border: 1px solid rgba(255, 255, 255, 0.20) !important;
+        background-color: #141b27 !important;
         border-radius: 6px !important;
+        min-height: 2.4rem !important;
+    }
+    div[data-baseweb="select"] > div:hover {
+        border-color: rgba(16, 185, 129, 0.65) !important;
     }
     div[data-baseweb="select"] > div:focus-within {
         border-color: #10b981 !important;
         box-shadow: 0 0 0 1px #10b981 !important;
     }
-    div[data-baseweb="input"] {
-        border-color: rgba(255, 255, 255, 0.12) !important;
-        background-color: rgba(255, 255, 255, 0.02) !important;
+    div[data-baseweb="select"] span,
+    div[data-baseweb="select"] div {
+        color: #f8fafc !important;
+        font-weight: 500 !important;
+    }
+    div[data-baseweb="select"] svg {
+        fill: #94a3b8 !important;
+    }
+    div[data-baseweb="popover"],
+    ul[data-baseweb="menu"],
+    div[data-baseweb="menu"] {
+        background-color: #141b27 !important;
+        border: 1px solid rgba(255, 255, 255, 0.20) !important;
         border-radius: 6px !important;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.6) !important;
+    }
+    li[data-baseweb="menu-item"] {
+        color: #f1f5f9 !important;
+        font-weight: 500 !important;
+    }
+    li[data-baseweb="menu-item"]:hover,
+    li[data-baseweb="menu-item"][aria-selected="true"] {
+        background-color: rgba(16, 185, 129, 0.22) !important;
+        color: #10b981 !important;
+    }
+
+    /* High-contrast Text & Number Inputs */
+    div[data-baseweb="input"] {
+        border: 1px solid rgba(255, 255, 255, 0.20) !important;
+        background-color: #141b27 !important;
+        border-radius: 6px !important;
+        min-height: 2.4rem !important;
+    }
+    div[data-baseweb="input"]:hover {
+        border-color: rgba(16, 185, 129, 0.65) !important;
     }
     div[data-baseweb="input"]:focus-within {
         border-color: #10b981 !important;
         box-shadow: 0 0 0 1px #10b981 !important;
+    }
+    div[data-baseweb="input"] input {
+        color: #f8fafc !important;
+        font-weight: 500 !important;
+        background-color: transparent !important;
     }
 
     /* Quota pill badge */
