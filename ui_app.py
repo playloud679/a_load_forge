@@ -9535,472 +9535,524 @@ def _render_ports_tab(
     box: any = None,
     passive_radiator: bool = False,
 ) -> None:
+    import streamlit.components.v1 as _st_components
+
     chart_sig = _chart_signature()
     if load_type not in {"DCCAV", "Bass reflex", "Bandpass 4th order", "Bandpass 6th order", "Bandpass 8th order"}:
         st.caption("The current load type has no ports.")
         return
-    if passive_radiator:
-        st.checkbox("Passive radiator", key="plot_port_lower")
-    elif load_type == "Bandpass 6th order":
-        p1, p2 = st.columns(2)
-        with p1:
-            st.checkbox("Rear port", key="plot_port_upper")
-        with p2:
-            st.checkbox("Front port", key="plot_port_lower")
-    elif load_type == "Bandpass 8th order":
-        p1, p2, p3 = st.columns(3)
-        with p1:
-            st.checkbox("Port 1 (Front)", key="plot_port_p1")
-        with p2:
-            st.checkbox("Port 2 (Rear)", key="plot_port_p2")
-        with p3:
-            st.checkbox("Port 3 (Radiating)", key="plot_port_lower")
-    else:
-        st.checkbox("Vent volume velocity", key="plot_port_lower")
 
-    # Top controls right above the chart: Port profile & Velocity metric
-    top_c1, top_c2, top_c3 = st.columns([1.5, 1, 1.5])
-    with top_c1:
-        flare_style = st.selectbox(
-            "Port geometry / flare profile",
-            [
-                ("both", "Double flared (Aeroport)"),
-                ("hourglass", "Hourglass continuous (Clessidra)"),
-                ("one", "Single flared (Outer mouth)"),
-                ("none", "Straight pipe (Cylindrical)"),
-            ],
-            format_func=lambda x: x[1],
-            key="flared_calc_style",
-        )[0]
-    with top_c2:
-        flare_rad_cm = st.number_input(
-            "Flare radius / Delta (cm)",
-            min_value=0.5,
-            max_value=10.0,
-            value=float(st.session_state.get("flared_calc_radius_cm", 2.5)),
-            step=0.5,
-            key="flared_calc_radius_cm",
-            disabled=(flare_style == "none"),
-        )
-    with top_c3:
-        port_plot_mode = st.radio(
-            "Port chart metric",
-            [
-                ("air_velocity_mol", "Air velocity at MOL (m/s)"),
-                ("air_velocity_sim", "Air velocity at drive level (m/s)"),
-                ("volume_velocity", "Volume velocity (m³/s)"),
-            ],
-            format_func=lambda opt: opt[1],
-            horizontal=False,
-            key="port_plot_display_mode",
-        )[0]
+    # Extract active flare settings and calculate limits
+    active_style_raw = st.session_state.get("flared_calc_style", "both")
+    flare_style = active_style_raw[0] if isinstance(active_style_raw, tuple) else active_style_raw
+    flare_rad_cm = float(st.session_state.get("flared_calc_radius_cm", 2.5))
+    port_plot_mode_raw = st.session_state.get("port_plot_display_mode", "air_velocity_mol")
+    port_plot_mode = port_plot_mode_raw[0] if isinstance(port_plot_mode_raw, tuple) else port_plot_mode_raw
 
-    st.subheader(
-        "Radiator Velocity"
-        if passive_radiator
-        else ("Port Air Velocity (MOL)" if port_plot_mode == "air_velocity_mol" else ("Port Air Velocity" if port_plot_mode == "air_velocity_sim" else "Port Volume Velocity"))
-    )
-    if _port_series(result, mode=port_plot_mode):
-        st.altair_chart(_plot_ports(result, mode=port_plot_mode), width="stretch", key=f"ports_chart_{chart_sig}")
-    else:
-        st.caption("Port pens off.")
+    # Chuffing guideline limit for the chosen flare style
+    flare_limit_ms = 32.0 if flare_style == "hourglass" else (28.0 if flare_style in {"both", "one"} else _acoustics.PORT_VELOCITY_GUIDELINE_MS)
 
-    st.subheader("Duct sizing & Geometry")
-    
-    # Auto-Optimize Port Controls
-    auto_c1, auto_c2 = st.columns([2, 1])
-    with auto_c1:
-        opt_policy = st.selectbox(
-            "Auto-sizing directive / policy",
-            [
-                ("studio_mol", "Studio / Hi-Fi (Zero chuffing at MOL limit)"),
-                ("balanced_pro", "Balanced / Pro (Standard AES compromise)"),
-                ("compact", "Compact Enclosure (Min duct volume)"),
-            ],
-            format_func=lambda x: x[1],
-            key="port_auto_policy",
-        )[0]
-    with auto_c2:
-        st.write("") # spacing
-        clicked = st.button("⚡ Auto-optimize duct", use_container_width=True, help="Automatically size all ports based on the selected policy, driver Xmax, and flare profile.")
-        
-    last_policy = st.session_state.get("_last_opt_policy")
-    last_flare_style = st.session_state.get("_last_opt_flare_style")
-    
-    if clicked or (last_policy is not None and (last_policy != opt_policy or last_flare_style != flare_style)):
-        st.session_state["_last_opt_policy"] = opt_policy
-        st.session_state["_last_opt_flare_style"] = flare_style
-        voltage_v = float(st.session_state.get("sim_voltage", 2.83))
-        if load_type == "Bass reflex":
-            opt_res = _acoustics.auto_optimize_port_diameter_cm(
-                ts=driver,
-                result=result,
-                volume_l=box.vb_l,
-                tuning_hz=box.fb_hz,
-                end_correction=1.43,
-                volume_velocity=result.port_l_velocity,
-                sim_voltage_v=voltage_v,
-                policy=opt_policy,
-                flare_style=flare_style,
-                flare_radius_cm=flare_rad_cm,
-                port_name="lower",
-            )
-            st.session_state["reflex_port_d_cm"] = opt_res["diameter_cm"]
-            st.toast(f"⚡ Duct Auto-Optimized ({opt_policy}): Vent Ø {opt_res['diameter_cm']:.1f} cm", icon="⚡")
-        elif load_type == "DCCAV":
-            opt_up = _acoustics.auto_optimize_port_diameter_cm(
-                ts=driver,
-                result=result,
-                volume_l=box.vh_l,
-                tuning_hz=box.fh_hz,
-                end_correction=1.64,
-                volume_velocity=result.port_h_velocity,
-                sim_voltage_v=voltage_v,
-                policy=opt_policy,
-                flare_style=flare_style,
-                flare_radius_cm=flare_rad_cm,
-                port_name="upper",
-            )
-            opt_low = _acoustics.auto_optimize_port_diameter_cm(
-                ts=driver,
-                result=result,
-                volume_l=box.vl_l,
-                tuning_hz=box.fl_hz,
-                end_correction=1.43,
-                volume_velocity=result.port_l_velocity,
-                sim_voltage_v=voltage_v,
-                policy=opt_policy,
-                flare_style=flare_style,
-                flare_radius_cm=flare_rad_cm,
-                port_name="lower",
-            )
-            st.session_state["box_port_d_h_cm"] = opt_up["diameter_cm"]
-            st.session_state["box_port_d_l_cm"] = opt_low["diameter_cm"]
-            st.toast(f"⚡ DCCAV Auto-Optimized ({opt_policy}): Upper Ø {opt_up['diameter_cm']:.1f} cm, Lower Ø {opt_low['diameter_cm']:.1f} cm", icon="⚡")
-        elif load_type == "Bandpass 4th order":
-            opt_bp4 = _acoustics.auto_optimize_port_diameter_cm(
-                ts=driver,
-                result=result,
-                volume_l=box.vp_l,
-                tuning_hz=box.fp_hz,
-                end_correction=1.43,
-                volume_velocity=result.port_l_velocity,
-                sim_voltage_v=voltage_v,
-                policy=opt_policy,
-                flare_style=flare_style,
-                flare_radius_cm=flare_rad_cm,
-                port_name="lower",
-            )
-            st.session_state["bandpass4_port_d_cm"] = opt_bp4["diameter_cm"]
-            st.toast(f"⚡ BP4 Auto-Optimized ({opt_policy}): Vent Ø {opt_bp4['diameter_cm']:.1f} cm", icon="⚡")
-        elif load_type == "Bandpass 6th order":
-            opt_r = _acoustics.auto_optimize_port_diameter_cm(
-                ts=driver,
-                result=result,
-                volume_l=box.vr_l,
-                tuning_hz=box.fr_hz,
-                end_correction=1.43,
-                volume_velocity=result.port_h_velocity,
-                sim_voltage_v=voltage_v,
-                policy=opt_policy,
-                flare_style=flare_style,
-                flare_radius_cm=flare_rad_cm,
-                port_name="upper",
-            )
-            opt_p = _acoustics.auto_optimize_port_diameter_cm(
-                ts=driver,
-                result=result,
-                volume_l=box.vp_l,
-                tuning_hz=box.fp_hz,
-                end_correction=1.43,
-                volume_velocity=result.port_l_velocity,
-                sim_voltage_v=voltage_v,
-                policy=opt_policy,
-                flare_style=flare_style,
-                flare_radius_cm=flare_rad_cm,
-                port_name="lower",
-            )
-            st.session_state["bandpass6_port_d_r_cm"] = opt_r["diameter_cm"]
-            st.session_state["bandpass6_port_d_p_cm"] = opt_p["diameter_cm"]
-            st.toast(f"⚡ BP6 Auto-Optimized ({opt_policy}): Rear Ø {opt_r['diameter_cm']:.1f} cm, Front Ø {opt_p['diameter_cm']:.1f} cm", icon="⚡")
-        st.rerun()
+    # Compute flared dimensions for all valid ports in advance so metrics, blueprint and cut sheet stay in sync
+    valid_ports = [r for r in port_geometry_rows if not r.get("_is_pr", False) and r.get("Diameter cm", 0.0) > 0]
+    display_rows = []
+    total_duct_vol_l = 0.0
+    max_peak_mol = 0.0
+    max_peak_sim = 0.0
+    peak_hz = 0.0
 
-    if load_type == "DCCAV":
-        p1, p2 = st.columns(2)
-        with p1:
-            st.number_input(
-                "Upper port Ø (cm, Internal inter-chamber)", min_value=0.0, max_value=60.0,
-                step=0.5, key="box_port_d_h_cm")
-        with p2:
-            st.number_input(
-                "Lower port Ø (cm, External radiating)", min_value=0.0, max_value=60.0,
-                step=0.5, key="box_port_d_l_cm")
-        st.caption(
-            "Auto strategies recalculate both diameters from tuning, air speed and "
-            "the displacement minimum-area golden rule. "
-            "Upper port connects the two internal cavities (two flanged ends, k=1.64); "
-            "Lower port exhausts outside the enclosure (one flanged, one free end, k=1.43)."
+    for r in port_geometry_rows:
+        if r.get("_is_pr", False) or r.get("Diameter cm", 0.0) <= 0:
+            display_rows.append(r)
+            continue
+        fdims = _acoustics.flared_port_dimensions_cm(
+            volume_l=r.get("_volume_l", 20.0),
+            fb_hz=r.get("_fb_hz", 40.0),
+            center_diameter_cm=r["Diameter cm"],
+            flare_radius_cm=flare_rad_cm,
+            flares=flare_style,
         )
-    elif load_type == "Bandpass 4th order":
-        st.number_input(
-            "Front vent diameter (cm, 0 = off)", min_value=0.0,
-            max_value=60.0, step=0.5, key="bandpass4_port_d_cm")
-        st.caption(
-            "Auto strategies recalculate the vent from tuning, air speed and "
-            "the displacement minimum-area golden rule. "
-            "Only the front-chamber vent radiates externally; length uses "
-            "one flanged and one free end."
-        )
-    elif load_type == "Bandpass 6th order":
-        p1, p2 = st.columns(2)
-        with p1:
-            st.number_input(
-                "Rear vent diam (cm, 0 = off)", min_value=0.0,
-                max_value=60.0, step=0.5, key="bandpass6_port_d_r_cm")
-        with p2:
-            st.number_input(
-                "Front vent diam (cm, 0 = off)", min_value=0.0,
-                max_value=60.0, step=0.5, key="bandpass6_port_d_p_cm")
-        st.caption(
-            "Auto strategies recalculate both vents from tuning, air speed and "
-            "the displacement minimum-area golden rule. "
-            "Both vents use one flanged and one free end."
-        )
-    elif load_type == "Bandpass 8th order":
-        p1, p2, p3 = st.columns(3)
-        with p1:
-            st.number_input(
-                "Port 1 diam (cm, 0 = off)", min_value=0.0,
-                max_value=60.0, step=0.5, key="bp8_dp1_cm")
-        with p2:
-            st.number_input(
-                "Port 2 diam (cm, 0 = off)", min_value=0.0,
-                max_value=60.0, step=0.5, key="bp8_dp2_cm")
-        with p3:
-            st.number_input(
-                "Port 3 diam (cm, 0 = off)", min_value=0.0,
-                max_value=60.0, step=0.5, key="bp8_dp3_cm")
-        st.caption(
-            "Auto strategies recalculate all three ports from tuning, air speed and "
-            "the displacement minimum-area golden rule. "
-            "Port 1 and Port 2 exhaust internally into Chamber 3; Port 3 radiates externally."
-        )
-    elif load_type == "Bass reflex" and not passive_radiator:
-        st.number_input(
-            "Vent diameter (cm, 0 = off)", min_value=0.0,
-            max_value=60.0, step=0.5, key="reflex_port_d_cm")
-        st.caption(
-            "Auto strategies size the vent from tuning, air speed and "
-            "the displacement minimum-area rule."
-        )
-    elif passive_radiator:
-        st.caption("The passive radiator is sized in the sidebar with area, mass and suspension.")
+        row_copy = dict(r)
+        row_copy["Straight Cut cm"] = fdims["straight_length_cm"]
+        row_copy["Overall Length cm"] = fdims["overall_length_cm"]
+        row_copy["Mouth Ø cm"] = fdims["outer_diameter_cm"]
+        row_copy["Duct Vol (L)"] = fdims["volume_displacement_l"]
+        display_rows.append(row_copy)
+        total_duct_vol_l += fdims["volume_displacement_l"]
 
-    if port_geometry_rows:
+        peak_mol = float(r.get("Peak m/s (MOL)", 0.0))
+        peak_sim = float(r.get("Peak m/s", 0.0))
+        if peak_mol > max_peak_mol:
+            max_peak_mol = peak_mol
+            peak_hz = float(r.get("Peak at Hz", 0.0))
+        if peak_sim > max_peak_sim:
+            max_peak_sim = peak_sim
+
+    # 1. Top Acoustic Health Monitor (KPI Status Bar)
+    with st.container(border=True):
         if passive_radiator:
-            st.subheader("Radiator Geometry")
-            st.caption(
-                "Equivalent diaphragm diameter and simulated radiator motion "
-                f"at {float(st.session_state['sim_voltage']):.2f} V and at MOL."
-            )
-            st.dataframe(
-                pd.DataFrame(port_geometry_rows)[list(_PORT_GEOMETRY_COLUMNS)],
-                width="stretch",
-                hide_index=True,
-                column_config={
-                    "Diameter cm": st.column_config.NumberColumn(format="%.1f"),
-                    "Length cm": st.column_config.NumberColumn(format="%.1f"),
-                    "Peak m/s": st.column_config.NumberColumn(format="%.1f"),
-                    "Peak m/s (MOL)": st.column_config.NumberColumn(format="%.1f"),
-                    "Peak at Hz": st.column_config.NumberColumn(format="%.0f"),
-                },
-            )
+            k1, k2, k3, k4 = st.columns(4)
+            k1.metric("Load Mode", "Passive Radiator", "Acoustic Mass")
+            k2.metric("Radiator Air Velocity", f"{max_peak_sim:.1f} m/s", f"@ {float(st.session_state.get('sim_voltage', 2.83)):.2f} V")
+            k3.metric("Peak Excursion", "Configured in Sidebar", "T/S Mass & Area")
+            k4.metric("Chuffing Risk", "None (Piston)", "No duct turbulence")
         else:
-            valid_ports = [r for r in port_geometry_rows if not r.get("_is_pr", False) and r.get("Diameter cm", 0.0) > 0]
-            if valid_ports:
-                if len(valid_ports) > 1:
-                    sel_port_name = st.selectbox("Focus port for Blueprint", [r["Port"] for r in valid_ports], key="flared_calc_port_sel")
-                    sel_row = next(r for r in valid_ports if r["Port"] == sel_port_name)
-                else:
-                    sel_row = valid_ports[0]
+            k1, k2, k3, k4 = st.columns(4)
+            if not valid_ports:
+                status_text = "No Vent Configured"
+                status_delta = "Set diameter > 0"
+                delta_color = "off"
+            elif max_peak_mol <= flare_limit_ms * 0.75:
+                status_text = "✓ Air Flow Safe"
+                headroom = flare_limit_ms - max_peak_mol
+                status_delta = f"+{headroom:.1f} m/s margin"
+                delta_color = "normal"
+            elif max_peak_mol <= flare_limit_ms:
+                status_text = "⚠ Compression Risk"
+                headroom = flare_limit_ms - max_peak_mol
+                status_delta = f"Only {headroom:.1f} m/s margin"
+                delta_color = "off"
+            else:
+                status_text = "✖ High Chuffing Risk"
+                excess = max_peak_mol - flare_limit_ms
+                status_delta = f"+{excess:.1f} m/s over limit"
+                delta_color = "inverse"
 
-                # Compute flared dimensions for all valid ports
-                display_rows = []
-                for r in port_geometry_rows:
-                    if r.get("_is_pr", False) or r.get("Diameter cm", 0.0) <= 0:
-                        display_rows.append(r)
-                        continue
-                    fdims = _acoustics.flared_port_dimensions_cm(
-                        volume_l=r["_volume_l"],
-                        fb_hz=r["_fb_hz"],
-                        center_diameter_cm=r["Diameter cm"],
+            k1.metric("Acoustic Chuffing Status", status_text, status_delta, delta_color=delta_color)
+            k2.metric("Peak Air Speed (MOL)", f"{max_peak_mol:.1f} m/s", f"at {peak_hz:.0f} Hz" if peak_hz > 0 else None)
+            flare_name = "Aeroport" if flare_style in {"both", "one"} else ("Hourglass" if flare_style == "hourglass" else "Cylindrical")
+            k3.metric("Chuffing Guideline Limit", f"{flare_limit_ms:.1f} m/s", f"{flare_name} profile")
+            k4.metric("Total Duct Displacement", f"{total_duct_vol_l:.2f} L", f"{len(valid_ports)} active duct{'s' if len(valid_ports) != 1 else ''}")
+
+    # 2. Main Workbench Layout (2 Columns: Left Cockpit, Right Analysis & CAD)
+    col_left, col_right = st.columns([1.15, 1.85], gap="medium")
+
+    with col_left:
+        # Card A: Flare Profile & Auto-Optimizer
+        with st.container(border=True):
+            st.markdown("##### ⚙️ Flare Profile & Auto-Optimizer")
+            flare_style = st.selectbox(
+                "Port geometry / flare profile",
+                [
+                    ("both", "Double flared (Aeroport)"),
+                    ("hourglass", "Hourglass continuous (Clessidra)"),
+                    ("one", "Single flared (Outer mouth)"),
+                    ("none", "Straight pipe (Cylindrical)"),
+                ],
+                format_func=lambda x: x[1],
+                key="flared_calc_style",
+            )[0]
+            flare_rad_cm = st.number_input(
+                "Flare radius / Delta (cm)",
+                min_value=0.5,
+                max_value=10.0,
+                value=float(st.session_state.get("flared_calc_radius_cm", 2.5)),
+                step=0.5,
+                key="flared_calc_radius_cm",
+                disabled=(flare_style == "none"),
+            )
+            opt_policy = st.selectbox(
+                "Auto-sizing directive / policy",
+                [
+                    ("studio_mol", "Studio / Hi-Fi (Zero chuffing at MOL limit)"),
+                    ("balanced_pro", "Balanced / Pro (Standard AES compromise)"),
+                    ("compact", "Compact Enclosure (Min duct volume)"),
+                ],
+                format_func=lambda x: x[1],
+                key="port_auto_policy",
+            )[0]
+            clicked = st.button("⚡ Auto-optimize duct", use_container_width=True, help="Automatically size all ports based on the selected policy, driver Xmax, and flare profile.")
+
+            last_policy = st.session_state.get("_last_opt_policy")
+            last_flare_style = st.session_state.get("_last_opt_flare_style")
+            if clicked or (last_policy is not None and (last_policy != opt_policy or last_flare_style != flare_style)):
+                st.session_state["_last_opt_policy"] = opt_policy
+                st.session_state["_last_opt_flare_style"] = flare_style
+                voltage_v = float(st.session_state.get("sim_voltage", 2.83))
+                if load_type == "Bass reflex":
+                    opt_res = _acoustics.auto_optimize_port_diameter_cm(
+                        ts=driver,
+                        result=result,
+                        volume_l=box.vb_l,
+                        tuning_hz=box.fb_hz,
+                        end_correction=1.43,
+                        volume_velocity=result.port_l_velocity,
+                        sim_voltage_v=voltage_v,
+                        policy=opt_policy,
+                        flare_style=flare_style,
                         flare_radius_cm=flare_rad_cm,
-                        flares=flare_style,
+                        port_name="lower",
                     )
-                    row_copy = dict(r)
-                    row_copy["Straight Cut cm"] = fdims["straight_length_cm"]
-                    row_copy["Overall Length cm"] = fdims["overall_length_cm"]
-                    row_copy["Mouth Ø cm"] = fdims["outer_diameter_cm"]
-                    row_copy["Duct Vol (L)"] = fdims["volume_displacement_l"]
-                    display_rows.append(row_copy)
+                    st.session_state["reflex_port_d_cm"] = opt_res["diameter_cm"]
+                    st.toast(f"⚡ Duct Auto-Optimized ({opt_policy}): Vent Ø {opt_res['diameter_cm']:.1f} cm", icon="⚡")
+                elif load_type == "DCCAV":
+                    opt_up = _acoustics.auto_optimize_port_diameter_cm(
+                        ts=driver,
+                        result=result,
+                        volume_l=box.vh_l,
+                        tuning_hz=box.fh_hz,
+                        end_correction=1.64,
+                        volume_velocity=result.port_h_velocity,
+                        sim_voltage_v=voltage_v,
+                        policy=opt_policy,
+                        flare_style=flare_style,
+                        flare_radius_cm=flare_rad_cm,
+                        port_name="upper",
+                    )
+                    opt_low = _acoustics.auto_optimize_port_diameter_cm(
+                        ts=driver,
+                        result=result,
+                        volume_l=box.vl_l,
+                        tuning_hz=box.fl_hz,
+                        end_correction=1.43,
+                        volume_velocity=result.port_l_velocity,
+                        sim_voltage_v=voltage_v,
+                        policy=opt_policy,
+                        flare_style=flare_style,
+                        flare_radius_cm=flare_rad_cm,
+                        port_name="lower",
+                    )
+                    st.session_state["box_port_d_h_cm"] = opt_up["diameter_cm"]
+                    st.session_state["box_port_d_l_cm"] = opt_low["diameter_cm"]
+                    st.toast(f"⚡ DCCAV Auto-Optimized ({opt_policy}): Upper Ø {opt_up['diameter_cm']:.1f} cm, Lower Ø {opt_low['diameter_cm']:.1f} cm", icon="⚡")
+                elif load_type == "Bandpass 4th order":
+                    opt_bp4 = _acoustics.auto_optimize_port_diameter_cm(
+                        ts=driver,
+                        result=result,
+                        volume_l=box.vp_l,
+                        tuning_hz=box.fp_hz,
+                        end_correction=1.43,
+                        volume_velocity=result.port_l_velocity,
+                        sim_voltage_v=voltage_v,
+                        policy=opt_policy,
+                        flare_style=flare_style,
+                        flare_radius_cm=flare_rad_cm,
+                        port_name="lower",
+                    )
+                    st.session_state["bandpass4_port_d_cm"] = opt_bp4["diameter_cm"]
+                    st.toast(f"⚡ BP4 Auto-Optimized ({opt_policy}): Vent Ø {opt_bp4['diameter_cm']:.1f} cm", icon="⚡")
+                elif load_type == "Bandpass 6th order":
+                    opt_r = _acoustics.auto_optimize_port_diameter_cm(
+                        ts=driver,
+                        result=result,
+                        volume_l=box.vr_l,
+                        tuning_hz=box.fr_hz,
+                        end_correction=1.43,
+                        volume_velocity=result.port_h_velocity,
+                        sim_voltage_v=voltage_v,
+                        policy=opt_policy,
+                        flare_style=flare_style,
+                        flare_radius_cm=flare_rad_cm,
+                        port_name="upper",
+                    )
+                    opt_p = _acoustics.auto_optimize_port_diameter_cm(
+                        ts=driver,
+                        result=result,
+                        volume_l=box.vp_l,
+                        tuning_hz=box.fp_hz,
+                        end_correction=1.43,
+                        volume_velocity=result.port_l_velocity,
+                        sim_voltage_v=voltage_v,
+                        policy=opt_policy,
+                        flare_style=flare_style,
+                        flare_radius_cm=flare_rad_cm,
+                        port_name="lower",
+                    )
+                    st.session_state["bandpass6_port_d_r_cm"] = opt_r["diameter_cm"]
+                    st.session_state["bandpass6_port_d_p_cm"] = opt_p["diameter_cm"]
+                    st.toast(f"⚡ BP6 Auto-Optimized ({opt_policy}): Rear Ø {opt_r['diameter_cm']:.1f} cm, Front Ø {opt_p['diameter_cm']:.1f} cm", icon="⚡")
+                st.rerun()
 
-                cols_to_show = [
-                    "Port", "Diameter cm", "Straight Cut cm", "Overall Length cm",
-                    "Mouth Ø cm", "Duct Vol (L)", "Peak m/s", "Peak m/s (MOL)", "Peak at Hz"
-                ]
+        # Card B: Manual Duct Dimensions
+        with st.container(border=True):
+            st.markdown("##### 📐 Duct Diameters & Chamber Ports")
+            if load_type == "DCCAV":
+                p1, p2 = st.columns(2)
+                with p1:
+                    st.number_input(
+                        "Upper port Ø (cm)", min_value=0.0, max_value=60.0,
+                        step=0.5, key="box_port_d_h_cm", help="Internal inter-chamber port (flanged both ends, k=1.64)")
+                with p2:
+                    st.number_input(
+                        "Lower port Ø (cm)", min_value=0.0, max_value=60.0,
+                        step=0.5, key="box_port_d_l_cm", help="External radiating port (flanged one end, k=1.43)")
+                st.caption(
+                    "Upper port connects the two internal cavities (k=1.64); "
+                    "Lower port exhausts outside the enclosure (k=1.43)."
+                )
+            elif load_type == "Bandpass 4th order":
+                st.number_input(
+                    "Front vent diameter (cm, 0 = off)", min_value=0.0,
+                    max_value=60.0, step=0.5, key="bandpass4_port_d_cm")
+                st.caption("Front-chamber vent radiating externally (one flanged, one free end, k=1.43).")
+            elif load_type == "Bandpass 6th order":
+                p1, p2 = st.columns(2)
+                with p1:
+                    st.number_input(
+                        "Rear vent Ø (cm)", min_value=0.0,
+                        max_value=60.0, step=0.5, key="bandpass6_port_d_r_cm")
+                with p2:
+                    st.number_input(
+                        "Front vent Ø (cm)", min_value=0.0,
+                        max_value=60.0, step=0.5, key="bandpass6_port_d_p_cm")
+                st.caption("Rear and front vents radiating externally (k=1.43).")
+            elif load_type == "Bandpass 8th order":
+                p1, p2, p3 = st.columns(3)
+                with p1:
+                    st.number_input(
+                        "Port 1 Ø (cm)", min_value=0.0,
+                        max_value=60.0, step=0.5, key="bp8_dp1_cm")
+                with p2:
+                    st.number_input(
+                        "Port 2 Ø (cm)", min_value=0.0,
+                        max_value=60.0, step=0.5, key="bp8_dp2_cm")
+                with p3:
+                    st.number_input(
+                        "Port 3 Ø (cm)", min_value=0.0,
+                        max_value=60.0, step=0.5, key="bp8_dp3_cm")
+                st.caption("Port 1 & 2 exhaust internally into Chamber 3; Port 3 radiates externally.")
+            elif load_type == "Bass reflex" and not passive_radiator:
+                st.number_input(
+                    "Vent diameter (cm, 0 = off)", min_value=0.0,
+                    max_value=60.0, step=0.5, key="reflex_port_d_cm")
+                st.caption("Conventional enclosure vent (one flanged, one free end, k=1.43).")
+            elif passive_radiator:
+                st.caption("The passive radiator is sized in the sidebar with area, mass and suspension.")
+
+        # Card C: Chart Display Controls
+        with st.container(border=True):
+            st.markdown("##### 📊 Chart Pens & Display Metric")
+            port_plot_mode = st.radio(
+                "Port chart metric",
+                [
+                    ("air_velocity_mol", "Air velocity at MOL (m/s)"),
+                    ("air_velocity_sim", "Air velocity at drive level (m/s)"),
+                    ("volume_velocity", "Volume velocity (m³/s)"),
+                ],
+                format_func=lambda opt: opt[1],
+                horizontal=False,
+                key="port_plot_display_mode",
+            )[0]
+
+            if passive_radiator:
+                st.checkbox("Passive radiator pen", key="plot_port_lower")
+            elif load_type == "Bandpass 6th order":
+                p1, p2 = st.columns(2)
+                with p1:
+                    st.checkbox("Rear port pen", key="plot_port_upper")
+                with p2:
+                    st.checkbox("Front port pen", key="plot_port_lower")
+            elif load_type == "Bandpass 8th order":
+                p1, p2, p3 = st.columns(3)
+                with p1:
+                    st.checkbox("Port 1", key="plot_port_p1")
+                with p2:
+                    st.checkbox("Port 2", key="plot_port_p2")
+                with p3:
+                    st.checkbox("Port 3", key="plot_port_lower")
+            else:
+                st.checkbox("Vent volume / velocity pen", key="plot_port_lower")
+
+    with col_right:
+        # Card D: Chart Analysis
+        with st.container(border=True):
+            chart_title = (
+                "Radiator Velocity"
+                if passive_radiator
+                else ("Port Air Velocity vs Chuffing Limit (MOL)" if port_plot_mode == "air_velocity_mol" else ("Port Air Velocity (Drive Level)" if port_plot_mode == "air_velocity_sim" else "Port Volume Velocity"))
+            )
+            st.markdown(f"##### 📈 {chart_title}")
+            if _port_series(result, mode=port_plot_mode):
+                st.altair_chart(_plot_ports(result, mode=port_plot_mode), width="stretch", key=f"ports_chart_{chart_sig}")
+            else:
+                st.caption("Port pens off.")
+
+        # Card E: Blueprint CAD Drawing & Physical Specs
+        if passive_radiator:
+            with st.container(border=True):
+                st.markdown("##### 📐 Radiator Geometry & Motion")
+                st.caption(
+                    "Equivalent diaphragm diameter and simulated radiator motion "
+                    f"at {float(st.session_state.get('sim_voltage', 2.83)):.2f} V and at MOL."
+                )
                 st.dataframe(
-                    pd.DataFrame(display_rows)[cols_to_show],
+                    pd.DataFrame(port_geometry_rows)[list(_PORT_GEOMETRY_COLUMNS)],
                     width="stretch",
                     hide_index=True,
                     column_config={
                         "Diameter cm": st.column_config.NumberColumn(format="%.1f"),
-                        "Straight Cut cm": st.column_config.NumberColumn(format="%.1f"),
-                        "Overall Length cm": st.column_config.NumberColumn(format="%.1f"),
-                        "Mouth Ø cm": st.column_config.NumberColumn(format="%.1f"),
-                        "Duct Vol (L)": st.column_config.NumberColumn(format="%.2f"),
+                        "Length cm": st.column_config.NumberColumn(format="%.1f"),
                         "Peak m/s": st.column_config.NumberColumn(format="%.1f"),
                         "Peak m/s (MOL)": st.column_config.NumberColumn(format="%.1f"),
                         "Peak at Hz": st.column_config.NumberColumn(format="%.0f"),
                     },
                 )
+        else:
+            if valid_ports:
+                with st.container(border=True):
+                    bp_h1, bp_h2 = st.columns([1.6, 1.4])
+                    with bp_h1:
+                        st.markdown("##### 🛠️ Duct Blueprint & Physical Cut Specs")
+                    with bp_h2:
+                        if len(valid_ports) > 1:
+                            sel_port_name = st.selectbox("Focus port for Blueprint", [r["Port"] for r in valid_ports], key="flared_calc_port_sel")
+                            sel_row = next(r for r in valid_ports if r["Port"] == sel_port_name)
+                        else:
+                            sel_row = valid_ports[0]
 
-                fdims_sel = _acoustics.flared_port_dimensions_cm(
-                    volume_l=sel_row["_volume_l"],
-                    fb_hz=sel_row["_fb_hz"],
-                    center_diameter_cm=sel_row["Diameter cm"],
-                    flare_radius_cm=flare_rad_cm,
-                    flares=flare_style,
-                )
-
-                # Unified Visual Blueprint with accurate outward bell flares
-                import streamlit.components.v1 as _st_components
-
-                # Coordinate reference:
-                # Center line at Y=70
-                # Duct center straight inner surface: Top Y=50, Bottom Y=90 (Height=40 => inner radius r0)
-                # Outer mouth inner surface: Top Y=26, Bottom Y=114 (Height=88 => mouth radius r_exit)
-                # Wall thickness: 6px
-                # Straight section X: 130 to 330 (Length=200)
-                # Flare bells X: Left 50 to 130, Right 330 to 410 (Span=80)
-                
-                if flare_style == "hourglass":
-                    # Continuous hourglass with outward bell lips at exits
-                    svg_content = (
-                        '<svg width="540" height="150" viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg">'
-                        '<defs>'
-                        '<linearGradient id="hgGrad" x1="0%" y1="0%" x2="0%" y2="100%">'
-                        '<stop offset="0%" stop-color="#10b981" stop-opacity="0.65"/>'
-                        '<stop offset="50%" stop-color="#059669" stop-opacity="0.2"/>'
-                        '<stop offset="100%" stop-color="#10b981" stop-opacity="0.65"/>'
-                        '</linearGradient>'
-                        '</defs>'
-                        '<!-- Air core (hourglass profile narrowing at center X=230) -->'
-                        '<path d="M 50,26 Q 230,50 410,26 L 410,114 Q 230,90 50,114 Z" fill="url(#hgGrad)" />'
-                        '<!-- Top solid wall -->'
-                        '<path d="M 50,20 Q 230,44 410,20 L 410,26 Q 230,50 50,26 Z" fill="#10b981" fill-opacity="0.95"/>'
-                        '<!-- Bottom solid wall -->'
-                        '<path d="M 50,114 Q 230,90 410,114 L 410,120 Q 230,96 50,120 Z" fill="#10b981" fill-opacity="0.95"/>'
-                        '<!-- Dimension Annotations -->'
-                        '<line x1="50" y1="135" x2="410" y2="135" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="4,3"/>'
-                        f'<text x="230" y="145" fill="#7cc7ff" font-size="11" text-anchor="middle" font-family="sans-serif">Overall Length: {fdims_sel["overall_length_cm"]:.1f} cm</text>'
-                        '<line x1="230" y1="50" x2="230" y2="90" stroke="#ffffff" stroke-width="1.2" stroke-dasharray="2,2"/>'
-                        '<text x="230" y="65" fill="#ffffff" font-size="11" text-anchor="middle" font-weight="bold" font-family="sans-serif">Hourglass Continuous</text>'
-                        f'<text x="230" y="80" fill="#a7f3d0" font-size="11" text-anchor="middle" font-family="sans-serif">Throat Ø {sel_row["Diameter cm"]:.1f} cm</text>'
-                        f'<text x="418" y="73" fill="#f59e0b" font-size="11" text-anchor="start" font-family="sans-serif">Mouth Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>'
-                        '</svg>'
-                    )
-                else:
-                    is_left_flared = (flare_style == "both")
-                    is_right_flared = (flare_style in {"both", "one"})
-                    
-                    # Top Wall: Outer path (left to right) -> Right lip -> Inner path (right to left) -> Left lip
-                    t_outer = "M 50,20 C 85,20 110,44 130,44" if is_left_flared else "M 130,44"
-                    t_outer += " L 330,44"
-                    t_outer += " C 350,44 375,20 410,20" if is_right_flared else " L 330,44"
-                    
-                    r_lip_top = "L 410,26" if is_right_flared else "L 330,50"
-                    
-                    t_inner = "C 375,26 350,50 330,50" if is_right_flared else ""
-                    t_inner += " L 130,50"
-                    t_inner += " C 110,50 85,26 50,26" if is_left_flared else ""
-                    
-                    l_lip_top = "L 50,20" if is_left_flared else "L 130,44"
-                    
-                    top_wall_path = f"{t_outer} {r_lip_top} {t_inner} {l_lip_top} Z"
-
-                    # Bottom Wall: Inner path (left to right) -> Right lip -> Outer path (right to left) -> Left lip
-                    b_inner = "M 50,114 C 85,114 110,90 130,90" if is_left_flared else "M 130,90"
-                    b_inner += " L 330,90"
-                    b_inner += " C 350,90 375,114 410,114" if is_right_flared else ""
-                    
-                    r_lip_bot = "L 410,120" if is_right_flared else "L 330,96"
-                    
-                    b_outer = "C 375,120 350,96 330,96" if is_right_flared else ""
-                    b_outer += " L 130,96"
-                    b_outer += " C 110,96 85,120 50,120" if is_left_flared else ""
-                    
-                    l_lip_bot = "L 50,114" if is_left_flared else "L 130,90"
-                    
-                    bot_wall_path = f"{b_inner} {r_lip_bot} {b_outer} {l_lip_bot} Z"
-
-                    # Air channel polygon
-                    left_x = 50 if is_left_flared else 130
-                    right_x = 410 if is_right_flared else 330
-                    left_top_y = 26 if is_left_flared else 50
-                    left_bot_y = 114 if is_left_flared else 90
-                    right_top_y = 26 if is_right_flared else 50
-                    right_bot_y = 114 if is_right_flared else 90
-
-                    air_channel_path = (
-                        f"M {left_x},{left_top_y} "
-                        f"{'C 85,26 110,50 130,50' if is_left_flared else ''} "
-                        f"L 330,50 "
-                        f"{'C 350,50 375,26 410,26' if is_right_flared else ''} "
-                        f"L {right_x},{right_bot_y} "
-                        f"{'C 375,114 350,90 330,90' if is_right_flared else ''} "
-                        f"L 130,90 "
-                        f"{'C 110,90 85,114 50,114' if is_left_flared else ''} Z"
+                    fdims_sel = _acoustics.flared_port_dimensions_cm(
+                        volume_l=sel_row.get("_volume_l", 20.0),
+                        fb_hz=sel_row.get("_fb_hz", 40.0),
+                        center_diameter_cm=sel_row["Diameter cm"],
+                        flare_radius_cm=flare_rad_cm,
+                        flares=flare_style,
                     )
 
-                    mouth_txt = f'<text x="418" y="73" fill="#f59e0b" font-size="11" text-anchor="start" font-family="sans-serif">Mouth Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>' if is_right_flared else ''
+                    if flare_style == "hourglass":
+                        svg_content = (
+                            '<svg width="540" height="150" viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg">'
+                            '<defs>'
+                            '<linearGradient id="hgGrad" x1="0%" y1="0%" x2="0%" y2="100%">'
+                            '<stop offset="0%" stop-color="#10b981" stop-opacity="0.65"/>'
+                            '<stop offset="50%" stop-color="#059669" stop-opacity="0.2"/>'
+                            '<stop offset="100%" stop-color="#10b981" stop-opacity="0.65"/>'
+                            '</linearGradient>'
+                            '</defs>'
+                            '<!-- Air core (hourglass profile narrowing at center X=230) -->'
+                            '<path d="M 50,26 Q 230,50 410,26 L 410,114 Q 230,90 50,114 Z" fill="url(#hgGrad)" />'
+                            '<!-- Top solid wall -->'
+                            '<path d="M 50,20 Q 230,44 410,20 L 410,26 Q 230,50 50,26 Z" fill="#10b981" fill-opacity="0.95"/>'
+                            '<!-- Bottom solid wall -->'
+                            '<path d="M 50,114 Q 230,90 410,114 L 410,120 Q 230,96 50,120 Z" fill="#10b981" fill-opacity="0.95"/>'
+                            '<!-- Dimension Annotations -->'
+                            '<line x1="50" y1="135" x2="410" y2="135" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="4,3"/>'
+                            f'<text x="230" y="145" fill="#7cc7ff" font-size="11" text-anchor="middle" font-family="sans-serif">Overall Length: {fdims_sel["overall_length_cm"]:.1f} cm</text>'
+                            '<line x1="230" y1="50" x2="230" y2="90" stroke="#ffffff" stroke-width="1.2" stroke-dasharray="2,2"/>'
+                            '<text x="230" y="65" fill="#ffffff" font-size="11" text-anchor="middle" font-weight="bold" font-family="sans-serif">Hourglass Continuous</text>'
+                            f'<text x="230" y="80" fill="#a7f3d0" font-size="11" text-anchor="middle" font-family="sans-serif">Throat Ø {sel_row["Diameter cm"]:.1f} cm</text>'
+                            f'<text x="418" y="73" fill="#f59e0b" font-size="11" text-anchor="start" font-family="sans-serif">Mouth Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>'
+                            '</svg>'
+                        )
+                    else:
+                        is_left_flared = (flare_style == "both")
+                        is_right_flared = (flare_style in {"both", "one"})
+                        
+                        t_outer = "M 50,20 C 85,20 110,44 130,44" if is_left_flared else "M 130,44"
+                        t_outer += " L 330,44"
+                        t_outer += " C 350,44 375,20 410,20" if is_right_flared else " L 330,44"
+                        
+                        r_lip_top = "L 410,26" if is_right_flared else "L 330,50"
+                        
+                        t_inner = "C 375,26 350,50 330,50" if is_right_flared else ""
+                        t_inner += " L 130,50"
+                        t_inner += " C 110,50 85,26 50,26" if is_left_flared else ""
+                        
+                        l_lip_top = "L 50,20" if is_left_flared else "L 130,44"
+                        
+                        top_wall_path = f"{t_outer} {r_lip_top} {t_inner} {l_lip_top} Z"
 
-                    svg_content = (
-                        '<svg width="540" height="150" viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg">'
-                        '<defs>'
-                        '<linearGradient id="ductGrad" x1="0%" y1="0%" x2="0%" y2="100%">'
-                        '<stop offset="0%" stop-color="#10b981" stop-opacity="0.65"/>'
-                        '<stop offset="50%" stop-color="#059669" stop-opacity="0.2"/>'
-                        '<stop offset="100%" stop-color="#10b981" stop-opacity="0.65"/>'
-                        '</linearGradient>'
-                        '</defs>'
-                        f'<!-- Air Flow Core -->'
-                        f'<path d="{air_channel_path}" fill="url(#ductGrad)" />'
-                        f'<!-- Top Solid Wall -->'
-                        f'<path d="{top_wall_path}" fill="#10b981" fill-opacity="0.95"/>'
-                        f'<!-- Bottom Solid Wall -->'
-                        f'<path d="{bot_wall_path}" fill="#10b981" fill-opacity="0.95"/>'
-                        f'<!-- Dimension Annotations -->'
-                        f'<line x1="{left_x}" y1="135" x2="{right_x}" y2="135" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="4,3"/>'
-                        f'<text x="230" y="145" fill="#7cc7ff" font-size="11" text-anchor="middle" font-family="sans-serif">Overall Length: {fdims_sel["overall_length_cm"]:.1f} cm</text>'
-                        f'<line x1="130" y1="70" x2="330" y2="70" stroke="#ffffff" stroke-width="1.5"/>'
-                        f'<text x="230" y="65" fill="#ffffff" font-size="11" text-anchor="middle" font-weight="bold" font-family="sans-serif">Straight Cut: {fdims_sel["straight_length_cm"]:.1f} cm</text>'
-                        f'<text x="230" y="85" fill="#a7f3d0" font-size="11" text-anchor="middle" font-family="sans-serif">I.D. Ø {sel_row["Diameter cm"]:.1f} cm</text>'
-                        f'{mouth_txt}'
-                        '</svg>'
+                        b_inner = "M 50,114 C 85,114 110,90 130,90" if is_left_flared else "M 130,90"
+                        b_inner += " L 330,90"
+                        b_inner += " C 350,90 375,114 410,114" if is_right_flared else ""
+                        
+                        r_lip_bot = "L 410,120" if is_right_flared else "L 330,96"
+                        
+                        b_outer = "C 375,120 350,96 330,96" if is_right_flared else ""
+                        b_outer += " L 130,96"
+                        b_outer += " C 110,96 85,120 50,120" if is_left_flared else ""
+                        
+                        l_lip_bot = "L 50,114" if is_left_flared else "L 130,90"
+                        
+                        bot_wall_path = f"{b_inner} {r_lip_bot} {b_outer} {l_lip_bot} Z"
+
+                        left_x = 50 if is_left_flared else 130
+                        right_x = 410 if is_right_flared else 330
+                        left_top_y = 26 if is_left_flared else 50
+                        left_bot_y = 114 if is_left_flared else 90
+                        right_top_y = 26 if is_right_flared else 50
+                        right_bot_y = 114 if is_right_flared else 90
+
+                        air_channel_path = (
+                            f"M {left_x},{left_top_y} "
+                            f"{'C 85,26 110,50 130,50' if is_left_flared else ''} "
+                            f"L 330,50 "
+                            f"{'C 350,50 375,26 410,26' if is_right_flared else ''} "
+                            f"L {right_x},{right_bot_y} "
+                            f"{'C 375,114 350,90 330,90' if is_right_flared else ''} "
+                            f"L 130,90 "
+                            f"{'C 110,90 85,114 50,114' if is_left_flared else ''} Z"
+                        )
+
+                        mouth_txt = f'<text x="418" y="73" fill="#f59e0b" font-size="11" text-anchor="start" font-family="sans-serif">Mouth Ø {fdims_sel["outer_diameter_cm"]:.1f} cm</text>' if is_right_flared else ''
+
+                        svg_content = (
+                            '<svg width="540" height="150" viewBox="0 0 540 150" xmlns="http://www.w3.org/2000/svg">'
+                            '<defs>'
+                            '<linearGradient id="ductGrad" x1="0%" y1="0%" x2="0%" y2="100%">'
+                            '<stop offset="0%" stop-color="#10b981" stop-opacity="0.65"/>'
+                            '<stop offset="50%" stop-color="#059669" stop-opacity="0.2"/>'
+                            '<stop offset="100%" stop-color="#10b981" stop-opacity="0.65"/>'
+                            '</linearGradient>'
+                            '</defs>'
+                            f'<!-- Air Flow Core -->'
+                            f'<path d="{air_channel_path}" fill="url(#ductGrad)" />'
+                            f'<!-- Top Solid Wall -->'
+                            f'<path d="{top_wall_path}" fill="#10b981" fill-opacity="0.95"/>'
+                            f'<!-- Bottom Solid Wall -->'
+                            f'<path d="{bot_wall_path}" fill="#10b981" fill-opacity="0.95"/>'
+                            f'<!-- Dimension Annotations -->'
+                            f'<line x1="{left_x}" y1="135" x2="{right_x}" y2="135" stroke="#7cc7ff" stroke-width="1.5" stroke-dasharray="4,3"/>'
+                            f'<text x="230" y="145" fill="#7cc7ff" font-size="11" text-anchor="middle" font-family="sans-serif">Overall Length: {fdims_sel["overall_length_cm"]:.1f} cm</text>'
+                            f'<line x1="130" y1="70" x2="330" y2="70" stroke="#ffffff" stroke-width="1.5"/>'
+                            f'<text x="230" y="65" fill="#ffffff" font-size="11" text-anchor="middle" font-weight="bold" font-family="sans-serif">Straight Cut: {fdims_sel["straight_length_cm"]:.1f} cm</text>'
+                            f'<text x="230" y="85" fill="#a7f3d0" font-size="11" text-anchor="middle" font-family="sans-serif">I.D. Ø {sel_row["Diameter cm"]:.1f} cm</text>'
+                            f'{mouth_txt}'
+                            '</svg>'
+                        )
+
+                    html_wrap = (
+                        '<div style="display:flex; justify-content:center; align-items:center; width:100%; height:150px; '
+                        'background:rgba(255,255,255,0.02); border-radius:8px; '
+                        'border:1px solid rgba(255,255,255,0.08); overflow:hidden;">'
+                        f'{svg_content}'
+                        '</div>'
                     )
+                    _st_components.html(html_wrap, height=160)
 
-                html_wrap = (
-                    '<div style="display:flex; justify-content:center; align-items:center; width:100%; height:150px; '
-                    'background:rgba(255,255,255,0.02); border-radius:8px; '
-                    'border:1px solid rgba(255,255,255,0.08); overflow:hidden;">'
-                    f'{svg_content}'
-                    '</div>'
-                )
-                _st_components.html(html_wrap, height=160)
-                st.caption(
-                    f"Selected **{sel_row['Port']}** (Ø {sel_row['Diameter cm']:.1f} cm) with {flare_style.replace('_', ' ')}: "
-                    f"Recommended threshold **{fdims_sel['chuffing_limit_ms']:.1f} m/s** · Current Peak MOL: **{sel_row['Peak m/s (MOL)']:.1f} m/s**."
-                )
+                    m1, m2, m3, m4 = st.columns(4)
+                    m1.metric("Straight Cut", f"{fdims_sel['straight_length_cm']:.1f} cm")
+                    m2.metric("Overall Length", f"{fdims_sel['overall_length_cm']:.1f} cm")
+                    m3.metric("Mouth Ø", f"{fdims_sel['outer_diameter_cm']:.1f} cm")
+                    m4.metric("Duct Volume", f"{fdims_sel['volume_displacement_l']:.2f} L")
+                    st.caption(
+                        f"Selected **{sel_row['Port']}** (Ø {sel_row['Diameter cm']:.1f} cm) with {flare_style.replace('_', ' ')}: "
+                        f"Recommended threshold **{fdims_sel['chuffing_limit_ms']:.1f} m/s** · Current Peak MOL: **{sel_row['Peak m/s (MOL)']:.1f} m/s**."
+                    )
+            else:
+                st.info("No active port diameters configured (set Ø > 0 cm to view CAD blueprint).")
+
+    # 3. Full-width Cut Sheet & Manufacturing Table
+    if not passive_radiator and valid_ports:
+        with st.container(border=True):
+            st.markdown("##### 📋 Manufacturing Cut Sheet & Port Specifications")
+            cols_to_show = [
+                "Port", "Diameter cm", "Straight Cut cm", "Overall Length cm",
+                "Mouth Ø cm", "Duct Vol (L)", "Peak m/s", "Peak m/s (MOL)", "Peak at Hz"
+            ]
+            st.dataframe(
+                pd.DataFrame(display_rows)[cols_to_show],
+                width="stretch",
+                hide_index=True,
+                column_config={
+                    "Diameter cm": st.column_config.NumberColumn(format="%.1f"),
+                    "Straight Cut cm": st.column_config.NumberColumn(format="%.1f"),
+                    "Overall Length cm": st.column_config.NumberColumn(format="%.1f"),
+                    "Mouth Ø cm": st.column_config.NumberColumn(format="%.1f"),
+                    "Duct Vol (L)": st.column_config.NumberColumn(format="%.2f"),
+                    "Peak m/s": st.column_config.NumberColumn(format="%.1f"),
+                    "Peak m/s (MOL)": st.column_config.NumberColumn(format="%.1f"),
+                    "Peak at Hz": st.column_config.NumberColumn(format="%.0f"),
+                },
+            )
 
 
 def _csv_bytes(result: _acoustics.SimulationResult) -> bytes:

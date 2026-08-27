@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.24 (2026-08-27)
+
+- **Ergonomic Ports Tab Redesign (Workbench CAD & Acoustic Health Monitor)**:
+  - Transformed the Ports tab into an ergonomic 2-column workbench layout inspired by CAD/audio engineering suites (*VituixCAD*, *Subbox.pro*, *Fusion 360*).
+  - Added a prominent top **Acoustic Health Monitor** with 4 KPI cards for instant chuffing risk assessment (color-coded safe / compression / turbulent flow status, peak MOL air speed @ peak Hz, flare profile guideline limit, and total duct volume displacement).
+  - Organized parameters and simulation controls into structured cards on the left column (Flare Profile & Optimizer, Manual Duct Dimensions & Chamber Ports, Trace Pens & Metric Selector).
+  - Structured the right column into dedicated performance and manufacturing sections (Air Velocity vs Chuffing Limit chart, Blueprint CAD SVG drawing with focus selector and dimensional callouts, and full-width manufacturing cut sheet table).
+- **Full Active Test Suite**: 183 tests passing fresh (`PASS: 183 FAIL: 0 SKIP: 0`).
+
 ## 0.12.23 (2026-08-27)
 
 - **Internal/External Duct Differentiation & Input Contrast Enhancement**:
