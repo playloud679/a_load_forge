@@ -164,7 +164,7 @@ def generate_port_svg_cad(
     bolt_diameter_mm: float = 4.0,
     bolt_pcd_mm: float | None = None,
     svg_width: int = 720,
-    svg_height: int = 240,
+    svg_height: int = 250,
 ) -> str:
     """Generate a strictly proportional, in-scale 2D CAD cross-section blueprint in SVG format with non-overlapping annotations."""
     r_t = max(1.0, float(d_throat_mm) / 2.0)
@@ -195,9 +195,9 @@ def generate_port_svg_cad(
 
     max_r = r_flange if has_flange else float(r_outer.max())
     
-    # Reserve ample horizontal margins for left/right labels
-    margin_x = 145.0
-    margin_y = 42.0
+    # Reserve ample horizontal margins (180px each side) for text labels
+    margin_x = 185.0
+    margin_y = 52.0
     
     avail_w = max(50.0, svg_width - 2 * margin_x)
     avail_h = max(50.0, svg_height - 2 * margin_y)
@@ -205,7 +205,7 @@ def generate_port_svg_cad(
     scale = min(avail_w / max(1.0, L), avail_h / max(1.0, 2.0 * max_r))
     
     cx = svg_width / 2.0
-    cy = svg_height / 2.0 - 6.0
+    cy = svg_height / 2.0 + 4.0
     
     def map_pt(z_mm: float, r_mm: float) -> tuple[float, float]:
         px = cx + z_mm * scale
@@ -262,33 +262,35 @@ def generate_port_svg_cad(
         h_w = flange_thickness_mm * scale
         holes_svg = f"""
         <!-- Bolt Hole Top Cutout -->
-        <rect x="{px_h - h_w/2:.1f}" y="{py_ht - hr_px:.1f}" width="{h_w:.1f}" height="{hr_px*2:.1f}" rx="1" fill="#0f172a" stroke="#f59e0b" stroke-width="1"/>
+        <rect x="{px_h - h_w/2:.1f}" y="{py_ht - hr_px:.1f}" width="{h_w:.1f}" height="{hr_px*2:.1f}" rx="1" fill="#0b0f17" stroke="#f59e0b" stroke-width="1"/>
         <!-- Bolt Hole Bottom Cutout -->
-        <rect x="{px_h - h_w/2:.1f}" y="{py_hb - hr_px:.1f}" width="{h_w:.1f}" height="{hr_px*2:.1f}" rx="1" fill="#0f172a" stroke="#f59e0b" stroke-width="1"/>
-        <!-- PCD Centerline -->
+        <rect x="{px_h - h_w/2:.1f}" y="{py_hb - hr_px:.1f}" width="{h_w:.1f}" height="{hr_px*2:.1f}" rx="1" fill="#0b0f17" stroke="#f59e0b" stroke-width="1"/>
+        <!-- PCD Centerlines -->
         <line x1="{px_h:.1f}" y1="{py_ht - hr_px - 4:.1f}" x2="{px_h:.1f}" y2="{py_ht + hr_px + 4:.1f}" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2,2"/>
         <line x1="{px_h:.1f}" y1="{py_hb - hr_px - 4:.1f}" x2="{px_h:.1f}" y2="{py_hb + hr_px + 4:.1f}" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2,2"/>
         """
 
     curve_label = f"R_throat: {r_th_calc:.0f} mm → R_mouth: {r_mo_calc:.0f} mm" if flare_style == "hourglass" else f"Flare R: {flare_radius_mm:.1f} mm"
 
-    # Clean vertically-stacked right labels
+    # Clean vertically-stacked right labels (at least 20px right of x_right)
+    right_x_pos = max(x_right + 18.0, cx + (L/2.0)*scale + 18.0)
     right_labels = []
     if has_flange:
-        right_labels.append(f'<text x="{x_right + 16:.1f}" y="{cy - 22:.1f}" fill="#f59e0b" font-size="11" font-weight="bold" font-family="sans-serif">Flange Ø {flange_diameter_mm:.1f} mm</text>')
-        right_labels.append(f'<text x="{x_right + 16:.1f}" y="{cy - 6:.1f}" fill="#38bdf8" font-size="10.5" font-weight="600" font-family="sans-serif">Mouth Ø {d_mouth_mm:.1f} mm</text>')
+        right_labels.append(f'<text x="{right_x_pos:.1f}" y="{cy - 24:.1f}" fill="#f59e0b" font-size="11" font-weight="bold" font-family="sans-serif">Flange Ø {flange_diameter_mm:.1f} mm</text>')
+        right_labels.append(f'<text x="{right_x_pos:.1f}" y="{cy - 8:.1f}" fill="#38bdf8" font-size="10.5" font-weight="600" font-family="sans-serif">Mouth Ø {d_mouth_mm:.1f} mm</text>')
         if bolt_count > 0:
-            right_labels.append(f'<text x="{x_right + 16:.1f}" y="{cy + 10:.1f}" fill="#fbbf24" font-size="9.5" font-family="sans-serif">{bolt_count}x Ø{bolt_diameter_mm:.1f} on PCD Ø{bolt_pcd_mm:.1f}</text>')
-        right_labels.append(f'<text x="{x_right + 16:.1f}" y="{cy + 25:.1f}" fill="#94a3b8" font-size="9" font-family="sans-serif">Flange th: {flange_thickness_mm:.1f} mm</text>')
+            right_labels.append(f'<text x="{right_x_pos:.1f}" y="{cy + 8:.1f}" fill="#fbbf24" font-size="9.5" font-family="sans-serif">{bolt_count}x Ø{bolt_diameter_mm:.1f} on PCD Ø{bolt_pcd_mm:.1f}</text>')
+        right_labels.append(f'<text x="{right_x_pos:.1f}" y="{cy + 24:.1f}" fill="#94a3b8" font-size="9" font-family="sans-serif">Flange th: {flange_thickness_mm:.1f} mm</text>')
     else:
-        right_labels.append(f'<text x="{x_right + 16:.1f}" y="{cy - 8:.1f}" fill="#38bdf8" font-size="11" font-weight="600" font-family="sans-serif">Mouth Ø {d_mouth_mm:.1f} mm</text>')
-        right_labels.append(f'<text x="{x_right + 16:.1f}" y="{cy + 10:.1f}" fill="#94a3b8" font-size="9.5" font-family="sans-serif">Wall: {wall_thickness_mm:.1f} mm</text>')
+        right_labels.append(f'<text x="{right_x_pos:.1f}" y="{cy - 8:.1f}" fill="#38bdf8" font-size="11" font-weight="600" font-family="sans-serif">Mouth Ø {d_mouth_mm:.1f} mm</text>')
+        right_labels.append(f'<text x="{right_x_pos:.1f}" y="{cy + 10:.1f}" fill="#94a3b8" font-size="9.5" font-family="sans-serif">Wall: {wall_thickness_mm:.1f} mm</text>')
     right_labels_svg = "\n  ".join(right_labels)
 
-    # Clean vertically-stacked left labels
+    # Clean vertically-stacked left labels (at least 20px left of x_left)
+    left_x_pos = min(x_left - 18.0, cx - (L/2.0)*scale - 18.0)
     left_labels = [
-        f'<text x="{x_left - 16:.1f}" y="{cy - 8:.1f}" fill="#38bdf8" font-size="10.5" font-weight="600" text-anchor="end" font-family="sans-serif">Inner Mouth Ø {d_mouth_mm:.1f} mm</text>',
-        f'<text x="{x_left - 16:.1f}" y="{cy + 10:.1f}" fill="#94a3b8" font-size="9.5" text-anchor="end" font-family="sans-serif">Wall e: {wall_thickness_mm:.1f} mm</text>',
+        f'<text x="{left_x_pos:.1f}" y="{cy - 8:.1f}" fill="#38bdf8" font-size="10.5" font-weight="600" text-anchor="end" font-family="sans-serif">Inner Mouth Ø {d_mouth_mm:.1f} mm</text>',
+        f'<text x="{left_x_pos:.1f}" y="{cy + 10:.1f}" fill="#94a3b8" font-size="9.5" text-anchor="end" font-family="sans-serif">Wall e: {wall_thickness_mm:.1f} mm</text>',
     ]
     left_labels_svg = "\n  ".join(left_labels)
 
@@ -301,6 +303,12 @@ def generate_port_svg_cad(
     </linearGradient>
   </defs>
 
+  <!-- Top Title Bar (Dedicated space at top to avoid any central clutter) -->
+  <rect x="{cx - 160:.1f}" y="8" width="320" height="26" rx="4" fill="#0b0f17" fill-opacity="0.8" stroke="#10b981" stroke-width="0.8"/>
+  <text x="{cx:.1f}" y="25" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">
+    Throat Ø {d_throat_mm:.1f} mm · <tspan fill="#a7f3d0" font-weight="normal">{curve_label}</tspan>
+  </text>
+
   <!-- Air Core -->
   <path d="{core_path_d}" fill="url(#cadAirGrad)" stroke="#10b981" stroke-width="0.8" stroke-dasharray="3,3" />
 
@@ -311,19 +319,10 @@ def generate_port_svg_cad(
   {holes_svg}
 
   <!-- Centerline (Axis of Revolution) -->
-  <line x1="{x_left - 20:.1f}" y1="{cy:.1f}" x2="{x_right + 20:.1f}" y2="{cy:.1f}" stroke="#64748b" stroke-width="0.8" stroke-dasharray="5,2,1,2" opacity="0.6" />
+  <line x1="{x_left - 20:.1f}" y1="{cy:.1f}" x2="{x_right + 20:.1f}" y2="{cy:.1f}" stroke="#64748b" stroke-width="0.8" stroke-dasharray="5,2,1,2" opacity="0.5" />
 
   <!-- Symmetry Division Line -->
   <line x1="{x_center:.1f}" y1="{cy - max_r*scale - 8:.1f}" x2="{x_center:.1f}" y2="{cy + max_r*scale + 8:.1f}" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2" />
-
-  <!-- Center Throat Pill Box (Masked background to avoid text overlap) -->
-  <rect x="{x_center - 88:.1f}" y="{cy - 19:.1f}" width="176" height="38" rx="5" fill="#0b0f17" fill-opacity="0.92" stroke="#10b981" stroke-width="1"/>
-  <text x="{x_center:.1f}" y="{cy - 4:.1f}" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">
-    Throat Ø {d_throat_mm:.1f} mm
-  </text>
-  <text x="{x_center:.1f}" y="{cy + 11:.1f}" fill="#a7f3d0" font-size="9" text-anchor="middle" font-family="sans-serif">
-    {curve_label}
-  </text>
 
   <!-- Right Side Annotations -->
   {right_labels_svg}
