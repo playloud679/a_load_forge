@@ -4,7 +4,8 @@ Provides in-scale CAD cross-section rendering (SVG) and watertight 3D binary STL
 mesh generation for 3D printing and CNC manufacturing.
 
 Supports:
-- Hourglass continuous progressive flare (R_curve: 600 mm -> 20 mm)
+- Hourglass continuous progressive flare with dynamic analytical curvature
+  (R_throat = (L/2)^2 / (2*dr) dynamically computed -> R_mouth = flare_radius)
 - Double flared (Aeroport) and single flared terminations
 - Cylindrical straight ducts
 - Configurable wall thickness, mounting flange, and screw hole patterns
@@ -64,6 +65,27 @@ def write_binary_stl(triangles_nx3x3: np.ndarray, header_str: str = "Load Forge 
     return out.getvalue()
 
 
+def calculate_dynamic_hourglass_radii(
+    d_throat_mm: float,
+    d_mouth_mm: float,
+    length_mm: float,
+    flare_radius_mm: float = 25.0,
+) -> tuple[float, float]:
+    """Analytically compute dynamic osculating curvature radii at throat and mouth.
+
+    R_throat is the osculating circle radius: (L/2)^2 / (2 * dr)
+    R_mouth is the nominal flare radius at the outer bellmouth lip.
+    """
+    r_t = max(1.0, float(d_throat_mm) / 2.0)
+    r_m = max(r_t, float(d_mouth_mm) / 2.0)
+    L_h = max(1.0, float(length_mm) / 2.0)
+    dr = max(0.1, r_m - r_t)
+
+    r_throat_calc = float((L_h**2 + dr**2) / (2.0 * dr))
+    r_mouth_calc = float(max(5.0, flare_radius_mm))
+    return r_throat_calc, r_mouth_calc
+
+
 def generate_port_profile_2d(
     d_throat_mm: float,
     d_mouth_mm: float,
@@ -75,38 +97,58 @@ def generate_port_profile_2d(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Calculate 2D meridian arrays (z, r_inner, r_outer) in millimeters.
 
-    For Hourglass, uses a C2 blending polynomial transitioning from low
-    curvature at throat (R ~ 600 mm) to high curvature at mouth (R ~ 20 mm).
+    For Hourglass, uses a dynamic analytical C2 quintic polynomial blend
+    transitioning from R_throat = (L/2)^2 / (2*dr) to R_mouth = flare_radius_mm.
     """
     r_t = max(1.0, float(d_throat_mm) / 2.0)
     r_m = max(r_t, float(d_mouth_mm) / 2.0)
     L = max(1.0, float(length_mm))
+    L_h = L / 2.0
     f_rad = max(0.0, float(flare_radius_mm))
+    dr = max(0.1, r_m - r_t)
 
-    z_full = np.linspace(-L / 2.0, L / 2.0, n_pts)
+    z_full = np.linspace(-L_h, L_h, n_pts)
 
     if flare_style == "hourglass":
-        u = np.abs(z_full) / (L / 2.0)
-        shape_u = 0.35 * (u ** 2) + 0.65 * (u ** 3.5)
-        r_inner = r_t + (r_m - r_t) * shape_u
+        # Solve C2 quintic spline
+        r_throat_calc, r_mouth_calc = calculate_dynamic_hourglass_radii(
+            d_throat_mm, d_mouth_mm, length_mm, flare_radius_mm
+        )
+        theta_mouth = min(np.pi / 4.0, dr / r_mouth_calc)
+        m_mouth = np.tan(theta_mouth)
+
+        a2 = dr
+        rhs2 = L_h * m_mouth
+        rhs3 = (L_h**2) / r_mouth_calc - 2.0 * a2
+
+        a3 = -4.0 * rhs2 + 0.5 * rhs3
+        a4 = 7.0 * rhs2 - 1.0 * rhs3
+        a5 = -3.0 * rhs2 + 0.5 * rhs3
+
+        t = np.abs(z_full) / L_h
+        r_inner = r_t + a2 * (t**2) + a3 * (t**3) + a4 * (t**4) + a5 * (t**5)
+        r_inner = np.maximum(r_t, r_inner)
+        r_inner[0] = r_m
+        r_inner[-1] = r_m
+        r_inner[len(z_full) // 2] = r_t
     elif flare_style == "both":
         r_inner = np.full_like(z_full, r_t)
-        f_len = min(f_rad, L / 2.0)
+        f_len = min(f_rad, L_h)
         if f_len > 0:
             for i, zv in enumerate(z_full):
-                if zv < -L / 2.0 + f_len:
-                    zl = (zv - (-L / 2.0 + f_len)) / f_len
+                if zv < -L_h + f_len:
+                    zl = (zv - (-L_h + f_len)) / f_len
                     r_inner[i] = r_t + (r_m - r_t) * (1.0 - np.sqrt(max(0.0, 1.0 - (zl + 1.0) ** 2)))
-                elif zv > L / 2.0 - f_len:
-                    zr = (zv - (L / 2.0 - f_len)) / f_len
+                elif zv > L_h - f_len:
+                    zr = (zv - (L_h - f_len)) / f_len
                     r_inner[i] = r_t + (r_m - r_t) * (1.0 - np.sqrt(max(0.0, 1.0 - (1.0 - zr) ** 2)))
     elif flare_style in {"one", "one_end"}:
         r_inner = np.full_like(z_full, r_t)
         f_len = min(f_rad, L)
         if f_len > 0:
             for i, zv in enumerate(z_full):
-                if zv > L / 2.0 - f_len:
-                    zr = (zv - (L / 2.0 - f_len)) / f_len
+                if zv > L_h - f_len:
+                    zr = (zv - (L_h - f_len)) / f_len
                     r_inner[i] = r_t + (r_m - r_t) * (1.0 - np.sqrt(max(0.0, 1.0 - (1.0 - zr) ** 2)))
     else:  # none
         r_inner = np.full_like(z_full, r_t)
@@ -152,6 +194,10 @@ def generate_port_svg_cad(
         flare_radius_mm=flare_radius_mm,
         wall_thickness_mm=wall_thickness_mm,
         n_pts=60,
+    )
+
+    r_th_calc, r_mo_calc = calculate_dynamic_hourglass_radii(
+        d_throat_mm, d_mouth_mm, length_mm, flare_radius_mm
     )
 
     max_r = r_flange if has_flange else float(r_outer.max())
@@ -229,6 +275,8 @@ def generate_port_svg_cad(
         <line x1="{px_h:.1f}" y1="{py_hb - hr_px - 4:.1f}" x2="{px_h:.1f}" y2="{py_hb + hr_px + 4:.1f}" stroke="#f59e0b" stroke-width="1" stroke-dasharray="2,2"/>
         """
 
+    curve_label = f"R_throat: {r_th_calc:.0f} mm → R_mouth: {r_mo_calc:.0f} mm" if flare_style == "hourglass" else f"Flare R: {flare_radius_mm:.1f} mm"
+
     svg = f"""<svg width="{svg_width}" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="cadAirGrad" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -266,7 +314,7 @@ def generate_port_svg_cad(
     Throat Ø {d_throat_mm:.1f} mm
   </text>
   <text x="{x_center:.1f}" y="{cy + 12:.1f}" fill="#a7f3d0" font-size="9" text-anchor="middle" font-family="sans-serif">
-    R_curve: 600 → 20 mm
+    {curve_label}
   </text>
 
   <!-- Flange & Mouth Dimensions (Right) -->

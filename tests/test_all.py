@@ -1458,7 +1458,7 @@ def _check_port_cad_and_stl_generation():
     )
     assert "<svg" in svg and "</svg>" in svg
     assert "Throat Ø 70.0 mm" in svg
-    assert "R_curve: 600 → 20 mm" in svg
+    assert "R_throat:" in svg and "R_mouth:" in svg
 
     # 3. Test Binary STL Export
     stl_full = _acoustics.generate_parametric_port_stl(
