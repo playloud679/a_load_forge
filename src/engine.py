@@ -1528,22 +1528,28 @@ def port_diameter_for_load(
 def flared_port_dimensions_cm(
     volume_l: float,
     fb_hz: float,
-    diameter_cm: float,
+    diameter_cm: float | None = None,
     flare_radius_cm: float = 2.5,
     flare_style: str = "both",
     end_correction: float = 1.43,
+    **kwargs: Any,
 ) -> dict[str, float]:
     """Calculate the equivalent physical tube geometry and straight length for flared vents.
 
     Accounts for acoustic mass reductions from flares:
     - none: cylindrical duct.
-    - one_end: flared on outer end (L_straight = L_eff - 0.5*r_flare).
+    - one / one_end: flared on outer end (L_straight = L_eff - 0.5*r_flare).
     - both: flared on both ends (L_straight = L_eff - r_flare).
     - hourglass: continuous flare from center (L_straight = 0).
     """
     _require_positive("volume_l", volume_l)
     _require_positive("fb_hz", fb_hz)
+    
+    if diameter_cm is None:
+        diameter_cm = float(kwargs.get("center_diameter_cm", kwargs.get("diameter", 0.0)))
     _require_positive("diameter_cm", diameter_cm)
+
+    f_style = str(kwargs.get("flares", flare_style))
     r_flare = max(0.0, float(flare_radius_cm))
     d_main = float(diameter_cm)
 
@@ -1554,38 +1560,44 @@ def flared_port_dimensions_cm(
             "straight_length_cm": 0.0,
             "overall_length_cm": 0.0,
             "outer_diameter_cm": d_main,
+            "volume_displacement_l": 0.0,
             "chuffing_limit_ms": 17.0,
         }
 
-    if flare_style == "none":
-        return {
-            "straight_length_cm": float(base_l),
-            "overall_length_cm": float(base_l),
-            "outer_diameter_cm": float(d_main),
-            "chuffing_limit_ms": 17.0,
-        }
-    elif flare_style == "one_end":
+    if f_style == "none":
+        straight_l = float(base_l)
+        overall_l = float(base_l)
+        outer_d = float(d_main)
+        chuff_lim = 17.0
+    elif f_style in {"one", "one_end"}:
         straight_l = max(0.0, base_l - 0.5 * r_flare)
         overall_l = straight_l + r_flare
         outer_d = d_main + 2.0 * r_flare
         chuff_lim = 24.0
-    elif flare_style == "both":
+    elif f_style == "both":
         straight_l = max(0.0, base_l - r_flare)
         overall_l = straight_l + 2.0 * r_flare
         outer_d = d_main + 2.0 * r_flare
         chuff_lim = 28.0
-    elif flare_style == "hourglass":
+    elif f_style == "hourglass":
         straight_l = 0.0
         overall_l = max(0.0, base_l * 0.85)
         outer_d = d_main + 2.0 * r_flare
         chuff_lim = 34.0
     else:
-        raise ValueError(f"Unknown flare style: {flare_style}")
+        straight_l = max(0.0, base_l - r_flare)
+        overall_l = straight_l + 2.0 * r_flare
+        outer_d = d_main + 2.0 * r_flare
+        chuff_lim = 28.0
+
+    area_cm2 = np.pi * (d_main / 2.0) ** 2
+    duct_vol_l = float(area_cm2 * overall_l / 1000.0)
 
     return {
         "straight_length_cm": float(straight_l),
         "overall_length_cm": float(overall_l),
         "outer_diameter_cm": float(outer_d),
+        "volume_displacement_l": float(duct_vol_l),
         "chuffing_limit_ms": float(chuff_lim),
     }
 

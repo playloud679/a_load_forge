@@ -9567,9 +9567,9 @@ def _render_ports_tab(
         fdims = _acoustics.flared_port_dimensions_cm(
             volume_l=r.get("_volume_l", 20.0),
             fb_hz=r.get("_fb_hz", 40.0),
-            center_diameter_cm=r["Diameter cm"],
+            diameter_cm=r["Diameter cm"],
             flare_radius_cm=flare_rad_cm,
-            flares=flare_style,
+            flare_style=flare_style,
         )
         row_copy = dict(r)
         row_copy["Straight Cut cm"] = fdims["straight_length_cm"]
@@ -9902,9 +9902,9 @@ def _render_ports_tab(
                     fdims_sel = _acoustics.flared_port_dimensions_cm(
                         volume_l=sel_row.get("_volume_l", 20.0),
                         fb_hz=sel_row.get("_fb_hz", 40.0),
-                        center_diameter_cm=sel_row["Diameter cm"],
+                        diameter_cm=sel_row["Diameter cm"],
                         flare_radius_cm=flare_rad_cm,
-                        flares=flare_style,
+                        flare_style=flare_style,
                     )
 
                     if flare_style == "hourglass":

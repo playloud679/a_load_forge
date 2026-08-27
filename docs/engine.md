@@ -26,7 +26,7 @@ contracts and the test list — lives in `docs/dccav.md`.
   `suggest_alignment`, `suggest_reflex_alignment`,
   `suggest_bandpass4_alignment`, `suggest_bandpass6_alignment`, `suggest_bandpass8_alignment`, `suggest_sealed_alignment`,
   `suggest_pr_alignment`,
-  `sealed_system_metrics`
+  `sealed_system_metrics`, `flared_port_dimensions_cm`, `auto_optimize_port_diameter_cm`
 - Simulators: `simulate`, `simulate_reflex`, `simulate_bandpass4`, `simulate_bandpass6`, `simulate_bandpass8`, `simulate_passive_radiator`, `simulate_sealed`,
   `simulate_infinite_baffle`, `simulate_transmission_line`, `simulate_mltl`,
   `simulate_quarter_wave`, `simulate_back_loaded_horn` and
