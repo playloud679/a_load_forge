@@ -2358,6 +2358,11 @@ def _check_ui_editable_design_comparison_tabs():
     source = (ROOT / "ui_app.py").read_text()
     assert '[data-testid="stTooltipContent"]' in source
     assert '[role="tooltip"]' in source
+    tooltip_css = source.split(
+        '[data-testid="stTooltipContent"]', 1
+    )[1].split("}", 1)[0]
+    assert "display: none" not in tooltip_css
+    assert "z-index: 1000000" in tooltip_css
     assert "alignment &middot; {sim_voltage:.2f} V" not in source
     assert "{load_type} &middot; {design_name}" not in source
     assert "short_label =" not in source

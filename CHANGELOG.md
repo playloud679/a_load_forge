@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.12.28 (2026-08-28)
+
+- **Widget help restored**:
+  - Removed the legacy global CSS override that hid every Streamlit help
+    tooltip, restoring the `?` help content across Bass Match and Box Design.
+  - Kept long help text readable with a bounded responsive width, normal line
+    wrapping and a foreground stacking level above dashboard controls.
+  - Added a regression assertion preventing the tooltip selectors from being
+    hidden again.
+- **Full Active Test Suite**: 185 tests passing fresh
+  (`PASS: 185 FAIL: 0 SKIP: 0`).
+
 ## 0.12.27 (2026-08-28)
 
 - **Coherent Ports engineering and auto-sizing**:

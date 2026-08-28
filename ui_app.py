@@ -517,9 +517,12 @@ st.markdown(
     [data-testid="stCaptionContainer"] {
         color: rgba(250,250,250,.65);
     }
+    /* Keep widget help available without letting long tooltips cover the UI. */
     [data-testid="stTooltipContent"],
     [role="tooltip"] {
-        display: none !important;
+        max-width: min(28rem, calc(100vw - 2rem)) !important;
+        white-space: normal !important;
+        z-index: 1000000 !important;
     }
     .st-key-finder_library_filters {
         background: #0f1520;
