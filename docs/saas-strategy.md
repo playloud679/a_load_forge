@@ -122,7 +122,7 @@ Ipotesi iniziale, da validare con l'uso reale:
 | Catalogo driver e Finder | Disponibili con limiti ragionevoli | Limiti elevati |
 | Salvataggio/caricamento locale | Disponibile | Disponibile |
 | Progetti cloud | Pochi progetti | Quota elevata |
-| Confronti simultanei | Essenziali | Multipli e avanzati |
+| Confronti simultanei | Fino a 8 design editabili | Fino a 8 design editabili |
 | Ottimizzazione e calcoli batch | Limitati o assenti | Inclusi |
 | Esportazioni | Formati essenziali | Report ed esportazioni avanzate |
 | Driver privati | Limitati | Quota elevata |

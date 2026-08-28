@@ -1401,7 +1401,25 @@ def _check_port_geometry_helpers():
     flared_hg = _acoustics.flared_port_dimensions_cm(30.0, 35.0, 6.5, 2.5, "hourglass")
     assert flared_hg["overall_length_cm"] > 0
     assert flared_hg["straight_length_cm"] == 0.0
-    assert flared_hg["chuffing_limit_ms"] >= 30.0
+    assert flared_hg["chuffing_limit_ms"] == 34.0
+    assert _acoustics.port_chuffing_limit_ms("none") == _acoustics.PORT_VELOCITY_GUIDELINE_MS
+    assert _acoustics.port_chuffing_limit_ms("one") == 24.0
+    assert _acoustics.port_chuffing_limit_ms("both") == 28.0
+    assert _acoustics.port_chuffing_limit_ms("hourglass") == 34.0
+    assert np.isclose(
+        _acoustics.port_optimizer_target_velocity_ms("hourglass", "studio_mol"), 23.8
+    )
+    assert np.isclose(
+        _acoustics.port_optimizer_target_velocity_ms("both", "balanced_pro"), 23.8
+    )
+    assert np.isclose(
+        _acoustics.port_optimizer_target_velocity_ms("both", "compact"), 28.0
+    )
+    assert _acoustics.PORT_OPTIMIZER_POLICY_DUCT_VOLUME_FRACTIONS == {
+        "studio_mol": 0.20,
+        "balanced_pro": 0.12,
+        "compact": 0.08,
+    }
 
     # Auto optimize port helper
     opt_studio = _acoustics.auto_optimize_port_diameter_cm(
@@ -1418,6 +1436,15 @@ def _check_port_geometry_helpers():
     assert opt_studio["overall_length_cm"] > 0
     assert "status_note" in opt_studio
     assert opt_studio["pipe_resonance_hz"] > 0
+    studio_target = _acoustics.port_optimizer_target_velocity_ms(
+        "both", "studio_mol"
+    )
+    if opt_studio["mol_velocity_peak_ms"] > studio_target + 1e-9:
+        assert opt_studio["status_note"].startswith("Compromised:")
+        assert opt_studio["diameter_cm"] > 2.5, (
+            "an unreachable target must retain the lowest-velocity feasible "
+            "candidate, not the first/smallest diameter"
+        )
 
     opt_compact = _acoustics.auto_optimize_port_diameter_cm(
         ts=ts,
@@ -1430,6 +1457,35 @@ def _check_port_geometry_helpers():
         flare_style="both",
     )
     assert opt_compact["diameter_cm"] <= opt_studio["diameter_cm"]
+
+    # Regression: policy changes must produce physically distinct diameters
+    # when the Studio volume budget can trade enclosure space for lower speed.
+    policy_ts = _acoustics.get_driver_preset("LSDB: Beyma 6CX200Nd/N")
+    policy_box = _acoustics.DccavBox(
+        vh_l=12.0, fh_hz=180.0, vl_l=18.874377, fl_hz=39.0
+    )
+    policy_result = _acoustics.simulate(
+        policy_ts, policy_box, np.geomspace(10.0, 500.0, 300)
+    )
+    policy_opts = {
+        policy: _acoustics.auto_optimize_port_diameter_cm(
+            ts=policy_ts,
+            result=policy_result,
+            volume_l=policy_box.vl_l,
+            tuning_hz=policy_box.fl_hz,
+            end_correction=1.43,
+            volume_velocity=policy_result.port_l_velocity,
+            policy=policy,
+            flare_style="hourglass",
+            port_name="lower",
+        )
+        for policy in ("studio_mol", "balanced_pro", "compact")
+    }
+    assert (
+        policy_opts["studio_mol"]["diameter_cm"]
+        > policy_opts["balanced_pro"]["diameter_cm"]
+        > policy_opts["compact"]["diameter_cm"]
+    ), policy_opts
 
 
 def _check_port_cad_and_stl_generation():
@@ -1446,6 +1502,41 @@ def _check_port_cad_and_stl_generation():
     assert abs(ri[0] - 60.0) < 1.0, "mouth radius should match ~60mm"
     assert np.all(ro > ri), "outer wall must be larger than inner"
 
+    z_ap, ri_ap, ro_ap = _acoustics.generate_port_profile_2d(
+        d_throat_mm=90.0,
+        d_mouth_mm=140.0,
+        length_mm=132.0,
+        flare_style="both",
+        flare_radius_mm=25.0,
+        wall_thickness_mm=4.0,
+        n_pts=121,
+    )
+    center = len(z_ap) // 2
+    assert abs(ri_ap[0] - 70.0) < 1e-9
+    assert abs(ri_ap[-1] - 70.0) < 1e-9
+    assert abs(ri_ap[center] - 45.0) < 1e-9
+    assert np.all(np.diff(ri_ap[: center + 1]) <= 1e-9), (
+        "left Aeroport rounding must narrow monotonically from mouth to throat"
+    )
+    assert np.all(np.diff(ri_ap[center:]) >= -1e-9), (
+        "right Aeroport rounding must open monotonically from throat to mouth"
+    )
+    assert np.max(ri_ap) <= 70.0 and np.all(ro_ap > ri_ap)
+
+    _, ri_one, _ = _acoustics.generate_port_profile_2d(
+        d_throat_mm=90.0,
+        d_mouth_mm=140.0,
+        length_mm=132.0,
+        flare_style="one",
+        flare_radius_mm=25.0,
+        n_pts=121,
+    )
+    assert abs(ri_one[0] - 45.0) < 1e-9
+    assert abs(ri_one[-1] - 70.0) < 1e-9
+    assert np.all(np.diff(ri_one) >= -1e-9), (
+        "single Aeroport rounding must open only toward the right mouth"
+    )
+
     # 2. Test In-Scale CAD SVG Generation
     svg = _acoustics.generate_port_svg_cad(
         d_throat_mm=70.0,
@@ -1460,6 +1551,16 @@ def _check_port_cad_and_stl_generation():
     assert "Throat Ø 70.0 mm" in svg
     assert "R_throat:" in svg and "R_mouth:" in svg
 
+    split_svg = _acoustics.generate_port_svg_cad(
+        d_throat_mm=130.0,
+        d_mouth_mm=180.0,
+        length_mm=139.0,
+        flare_style="both",
+        flare_radius_mm=25.0,
+    )
+    assert "L_tot: 139 mm · Center split: 2 × 69.5 mm" in split_svg
+    assert "Ø 130.0 throat + 2×R 25.0 = Ø 180.0 mouth" in split_svg
+
     # 3. Test Binary STL Export
     stl_full = _acoustics.generate_parametric_port_stl(
         d_throat_mm=70.0,
@@ -1471,6 +1572,23 @@ def _check_port_cad_and_stl_generation():
     assert len(stl_full) > 1000, "STL must contain binary triangle data"
     assert stl_full[:4] != b"solid", "Should produce valid binary STL"
 
+    stl_solid_flange = _acoustics.generate_parametric_port_stl(
+        d_throat_mm=70.0,
+        d_mouth_mm=120.0,
+        length_mm=180.0,
+        flare_style="hourglass",
+        has_flange=True,
+        bolt_count=0,
+        split_mode="full",
+    )
+    drilled_triangles = int.from_bytes(stl_full[80:84], "little")
+    solid_triangles = int.from_bytes(stl_solid_flange[80:84], "little")
+    assert drilled_triangles > solid_triangles, (
+        "requested flange holes must alter the STL topology instead of silently "
+        "returning the solid flange"
+    )
+    assert stl_full != stl_solid_flange
+
     stl_half = _acoustics.generate_parametric_port_stl(
         d_throat_mm=70.0,
         d_mouth_mm=120.0,
@@ -1479,10 +1597,85 @@ def _check_port_cad_and_stl_generation():
         split_mode="half",
     )
     assert len(stl_half) > 1000
+    assert stl_full != stl_half, "full and half split modes must export different meshes"
 
 
 test("Acoustic port geometry length round-trips and air speed scales", _check_port_geometry_helpers)
 test("Acoustic port CAD blueprint and parametric STL generator", _check_port_cad_and_stl_generation)
+
+
+def _check_ui_port_blueprint_focus_survives_flare_rerun():
+    from streamlit.testing.v1 import AppTest
+    import ui_app as _ui
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=45)
+    at.session_state["workspace_mode"] = "Box Design"
+    at.session_state["design_analysis_tab"] = "Ports"
+    at.run()
+    assert not at.exception, at.exception
+
+    lower_port = "Lower port (External radiating)"
+    focus = next(
+        radio for radio in at.radio if radio.key == "flared_calc_port_sel"
+    )
+    focus.set_value(lower_port).run()
+    assert at.session_state["flared_blueprint_focus_duct"] == lower_port
+
+    global_style = next(
+        radio for radio in at.radio if radio.key == "flared_calc_style"
+    )
+    global_style.set_value("hourglass").run()
+    assert not at.exception, at.exception
+    assert at.session_state["flared_blueprint_focus_duct"] == lower_port
+    assert at.session_state["flared_calc_port_sel"] == lower_port
+    focus_after_rerun = next(
+        radio for radio in at.radio if radio.key == "flared_calc_port_sel"
+    )
+    assert focus_after_rerun.value == lower_port
+
+    split_key = f"stl_split_{lower_port}"
+    split = next(widget for widget in at.selectbox if widget.key == split_key)
+    split.set_value("half").run()
+    split = next(widget for widget in at.selectbox if widget.key == split_key)
+    split.set_value("full").run()
+    assert not at.exception, at.exception
+    assert at.session_state[split_key] == "full"
+    split_after_rerun = next(
+        widget for widget in at.selectbox if widget.key == split_key
+    )
+    assert split_after_rerun.value == "full"
+
+    policy = next(radio for radio in at.radio if radio.key == "port_auto_policy")
+    next_policy = "compact" if policy.value != "compact" else "studio_mol"
+    policy.set_value(next_policy).run()
+    assert not at.exception, at.exception
+    assert at.session_state["_last_opt_state"][2] == next_policy
+    feedback = at.session_state["_port_optimizer_feedback"]
+    assert feedback and next_policy.split("_")[0].casefold() in str(
+        feedback["text"]
+    ).casefold()
+
+    assert _ui._focused_port_flare_style({
+        "flared_calc_style": "both",
+        "flared_target_duct": lower_port,
+        f"flared_style_{lower_port}": "hourglass",
+    }) == "hourglass"
+    assert _ui._focused_port_flare_style({
+        "flared_calc_style": "both",
+        "flared_active_target_duct": "Vent",
+        "flared_style_Vent": "hourglass",
+    }) == "hourglass"
+    assert _ui._normalize_stl_split_mode("Single piece (Full port)") == "full"
+    assert _ui._normalize_stl_split_mode(
+        "2-piece symmetric halves (L/2 for 3D print)"
+    ) == "half"
+    assert _ui._normalize_stl_split_mode("full") == "full"
+
+
+test(
+    "UI Ports blueprint focus survives flare-profile reruns",
+    _check_ui_port_blueprint_focus_survives_flare_rerun,
+)
 
 
 def _check_ui_small_alignment_warning_uses_active_box():
@@ -2174,6 +2367,9 @@ def _check_ui_editable_design_comparison_tabs():
     assert "text-overflow: ellipsis !important;" not in source
     assert "on_click=_delete_design_comparison_tab" in source
     assert "on_click=_toggle_design_tab_visible" in source
+    assert "_pro_comparison_enabled" not in source
+    assert "Multi-design comparison is available with Pro or Team." not in source
+    assert "comparison_count > 1 and not pro_enabled" not in source
     assert "@st.cache_data(show_spinner=False, max_entries=128)" in source
     assert "_mark_auto_alignment_synced()" in source
 

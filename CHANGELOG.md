@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.12.27 (2026-08-28)
+
+- **Coherent Ports engineering and auto-sizing**:
+  - Unified the selected duct's flare profile across KPI, chuffing-limit chart,
+    CAD blueprint and optimizer, including single-port loads and target changes.
+  - Added shared profile limits (cylindrical, single flare, Aeroport and
+    hourglass) and policy-specific velocity/duct-volume budgets: Studio 20%,
+    Balanced 12%, Compact 8%.
+  - Fixed unreachable-target fallback selection so it keeps the feasible duct
+    with the lowest MOL air speed instead of the first/smallest diameter, with
+    an explicit compromised result when constraints prevent the requested target.
+- **Parametric CAD/STL correctness**:
+  - Corrected Aeroport flare orientation, coherent total/half manufacturing
+    dimensions, mouth/throat/radius callouts and real manifold bolt holes.
+  - Normalized STL split state so Single piece exports the full mesh and
+    2-piece mode exports a true half, including stable reruns and downloads.
+- **Streamlit state and development reliability**:
+  - Preserved Blueprint Focus across flare changes, synchronized active duct
+    selection, and fixed facade hot reloads after engine changes.
+  - Made Studio/Balanced/Compact changes immediately rerun sizing and display
+    the resulting diameter, MOL peak, target and any limiting compromise.
+- **Free multi-design comparison**:
+  - Removed the Pro/Team gate from Box Design duplication and Finder
+    multi-selection. Every account tier can create and edit up to eight design
+    tabs; plan and Open Beta entitlements no longer affect this workflow.
+- **Dependencies**: added `trimesh` and `manifold3d` for validated watertight
+  flange booleans and drilled STL generation.
+- **Full Active Test Suite**: 185 tests passing fresh
+  (`PASS: 185 FAIL: 0 SKIP: 0`).
+
 ## 0.12.26 (2026-08-27)
 
 - **Parametric 3D CAD & Watertight STL Generator for 3D Printing & CNC**:

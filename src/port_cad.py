@@ -130,11 +130,24 @@ def generate_port_profile_2d(
         if f_len > 0:
             for i, zv in enumerate(z_full):
                 if zv < -L_h + f_len:
+                    # Quarter-circle from the left mouth (t=-1, r=r_m)
+                    # to the cylindrical throat (t=0, r=r_t).  Squaring the
+                    # signed coordinate keeps the two ends mirror symmetric;
+                    # offsetting it by one would reverse the flare and create
+                    # an inward-facing cusp at the throat junction.
                     zl = (zv - (-L_h + f_len)) / f_len
-                    r_inner[i] = r_t + (r_m - r_t) * (1.0 - np.sqrt(max(0.0, 1.0 - (zl + 1.0) ** 2)))
+                    r_inner[i] = r_t + dr * (
+                        1.0 - np.sqrt(max(0.0, 1.0 - zl**2))
+                    )
                 elif zv > L_h - f_len:
+                    # Matching quarter-circle from the cylindrical throat
+                    # (t=0) to the right mouth (t=1).
                     zr = (zv - (L_h - f_len)) / f_len
-                    r_inner[i] = r_t + (r_m - r_t) * (1.0 - np.sqrt(max(0.0, 1.0 - (1.0 - zr) ** 2)))
+                    r_inner[i] = r_t + dr * (
+                        1.0 - np.sqrt(max(0.0, 1.0 - zr**2))
+                    )
+            r_inner[0] = r_m
+            r_inner[-1] = r_m
     elif flare_style in {"one", "one_end"}:
         r_inner = np.full_like(z_full, r_t)
         f_len = min(f_rad, L)
@@ -142,7 +155,10 @@ def generate_port_profile_2d(
             for i, zv in enumerate(z_full):
                 if zv > L_h - f_len:
                     zr = (zv - (L_h - f_len)) / f_len
-                    r_inner[i] = r_t + (r_m - r_t) * (1.0 - np.sqrt(max(0.0, 1.0 - (1.0 - zr) ** 2)))
+                    r_inner[i] = r_t + dr * (
+                        1.0 - np.sqrt(max(0.0, 1.0 - zr**2))
+                    )
+            r_inner[-1] = r_m
     else:  # none / cylindrical straight
         r_inner = np.full_like(z_full, r_t)
 
@@ -252,6 +268,11 @@ def generate_port_svg_cad(
     x_left, _ = map_pt(-L/2, 0)
     x_right, _ = map_pt(L/2, 0)
     x_center, _ = map_pt(0, 0)
+    # Use one shared rounded manufacturing dimension for the total and its
+    # halves.  Formatting centimeters independently at one decimal can show
+    # contradictory arithmetic (for example 13.9 cm vs 2 x 6.9 cm).
+    display_length_mm = int(np.floor(L + 0.5))
+    display_half_length_mm = display_length_mm / 2.0
     
     holes_svg = ""
     if has_flange and bolt_count > 0:
@@ -271,6 +292,18 @@ def generate_port_svg_cad(
         """
 
     curve_label = f"R_throat: {r_th_calc:.0f} mm → R_mouth: {r_mo_calc:.0f} mm" if flare_style == "hourglass" else f"Flare R: {flare_radius_mm:.1f} mm"
+    if flare_style in {"both", "one", "one_end"}:
+        title_markup = (
+            f'Ø {d_throat_mm:.1f} throat + 2×R {flare_radius_mm:.1f} '
+            f'= Ø {d_mouth_mm:.1f} mouth'
+        )
+    elif flare_style == "hourglass":
+        title_markup = (
+            f'Throat Ø {d_throat_mm:.1f} mm · '
+            f'<tspan fill="#a7f3d0" font-weight="normal">{curve_label}</tspan>'
+        )
+    else:
+        title_markup = f'Cylindrical duct Ø {d_throat_mm:.1f} mm'
 
     # Clean vertically-stacked right labels (at least 20px right of x_right)
     right_x_pos = max(x_right + 18.0, cx + (L/2.0)*scale + 18.0)
@@ -306,7 +339,7 @@ def generate_port_svg_cad(
   <!-- Top Title Bar (Dedicated space at top to avoid any central clutter) -->
   <rect x="{cx - 160:.1f}" y="8" width="320" height="26" rx="4" fill="#0b0f17" fill-opacity="0.8" stroke="#10b981" stroke-width="0.8"/>
   <text x="{cx:.1f}" y="25" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">
-    Throat Ø {d_throat_mm:.1f} mm · <tspan fill="#a7f3d0" font-weight="normal">{curve_label}</tspan>
+    {title_markup}
   </text>
 
   <!-- Air Core -->
@@ -335,7 +368,7 @@ def generate_port_svg_cad(
   <line x1="{x_left:.1f}" y1="{svg_height - 24:.1f}" x2="{x_left:.1f}" y2="{svg_height - 12:.1f}" stroke="#7cc7ff" stroke-width="1.2" />
   <line x1="{x_right:.1f}" y1="{svg_height - 24:.1f}" x2="{x_right:.1f}" y2="{svg_height - 12:.1f}" stroke="#7cc7ff" stroke-width="1.2" />
   <text x="{x_center:.1f}" y="{svg_height - 6:.1f}" fill="#7cc7ff" font-size="10.5" text-anchor="middle" font-family="monospace">
-    L_tot: {length_mm/10.0:.1f} cm ({length_mm:.0f} mm) · 2x Halves L/2: {length_mm/20.0:.1f} cm
+    L_tot: {display_length_mm} mm · Center split: 2 × {display_half_length_mm:.1f} mm
   </text>
 </svg>"""
     return svg
@@ -445,16 +478,35 @@ def generate_parametric_port_stl(
             p2 = [r1 * ct[jj], r1 * st[jj], z1]
             p3 = [r0 * ct[jj], r0 * st[jj], z0]
             
-            triangles[tri] = [p0, p3, p1]; tri += 1
-            triangles[tri] = [p1, p3, p2]; tri += 1
+            # Counter-clockwise when viewed from outside the revolved wall,
+            # yielding outward normals and a positive signed mesh volume.
+            triangles[tri] = [p0, p1, p3]; tri += 1
+            triangles[tri] = [p1, p2, p3]; tri += 1
             
-    if _HAS_TRIMESH and has_flange and bolt_count > 0 and bolt_diameter_mm > 0:
+    wants_bolt_holes = has_flange and bolt_count > 0 and bolt_diameter_mm > 0
+    if wants_bolt_holes and not _HAS_TRIMESH:
+        raise RuntimeError(
+            "Bolt-hole STL generation requires trimesh and manifold3d"
+        )
+
+    if wants_bolt_holes:
         try:
             tm_base = trimesh.Trimesh(
                 vertices=triangles.reshape(-1, 3),
                 faces=np.arange(n_triangles * 3).reshape(-1, 3),
-                process=False,
+                # Merge the per-triangle duplicate vertices emitted by the
+                # procedural revolution so watertight edges are shared before
+                # the boolean backend validates the volume.
+                process=True,
             )
+            # The procedural revolution uses a consistent inward winding.
+            # Manifold booleans require an outward-oriented positive volume;
+            # without this correction the subtraction raises and previously
+            # fell back silently to a solid, un-drilled flange.
+            tm_base.fix_normals()
+            if not tm_base.is_volume:
+                raise ValueError("base port mesh is not a closed positive volume")
+
             hole_r = bolt_diameter_mm / 2.0
             hole_cylinders = []
             angles = np.linspace(0.0, 2.0 * np.pi, bolt_count, endpoint=False)
@@ -476,7 +528,9 @@ def generate_parametric_port_stl(
             cutout = tm_base.difference(hole_cylinders, engine="manifold")
             if cutout is not None and not cutout.is_empty and len(cutout.faces) > 0:
                 triangles = cutout.triangles.astype(np.float32)
-        except Exception:
-            pass
+            else:
+                raise ValueError("bolt-hole subtraction returned an empty mesh")
+        except Exception as exc:
+            raise RuntimeError(f"Could not generate STL bolt holes: {exc}") from exc
             
     return write_binary_stl(triangles)

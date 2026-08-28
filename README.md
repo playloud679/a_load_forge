@@ -6,7 +6,7 @@
 
 ![Release 0.12.5](https://img.shields.io/badge/release-0.12.5-blue.svg)
 
-Current release: **0.12.26**
+Current release: **0.12.27**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth-, sixth- and eighth-order bandpass**,
@@ -65,7 +65,7 @@ Current UI highlights:
 - a compact 420 px main response chart that keeps its controls above the fold
   on desktop viewports; the redundant active-load heading is omitted because
   the editable design tab and sidebar already identify the current design
-- Pro editable design comparisons: select 2–8 ranked Bass Match results or
+- Editable design comparisons for every account tier: select 2–8 ranked Bass Match results or
   duplicate the active Box Design; each design gets its own tab, keeps a
   separate driver/load/box parameter set and remains overlaid in every
   compatible analysis chart while another tab is edited; later Finder results

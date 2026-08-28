@@ -51,7 +51,7 @@ import compare_afw_sealed as _afw_compare
 import generate_afw_dccav as _afw_export
 
 
-def _reload_if_source_changed(module) -> None:
+def _reload_if_source_changed(module) -> bool:
     """Reload only when the module's file actually changed on disk.
 
     Streamlit reruns this whole script on every interaction, so an
@@ -68,18 +68,27 @@ def _reload_if_source_changed(module) -> None:
         mtime = Path(module.__file__).stat().st_mtime
     except OSError:
         importlib.reload(module)
-        return
+        return True
     if getattr(module, "_load_forge_reload_mtime", None) != mtime:
         importlib.reload(module)
         module._load_forge_reload_mtime = mtime
+        return True
+    return False
 
 
-# Reload dependencies before the facade so it rebinds to the fresh modules.
+# Reload dependencies before the facade. If a dependency changed, the facade
+# must be reloaded even when acoustics.py itself did not change; otherwise its
+# wildcard namespace keeps the old engine symbols in a long-lived Streamlit
+# process.
 for _module in (
-    _engine, _port_cad, _pricing, _presets, _ranking, _saas, _acoustics,
+    _engine, _port_cad, _pricing, _presets, _ranking, _saas,
     _afw_export, _afw_compare,
 ):
     _reload_if_source_changed(_module)
+# The facade is intentionally cheap to reload and must always rebind wildcard
+# exports after any dependency may have hot-reloaded on a prior UI rerun.
+importlib.reload(_acoustics)
+_acoustics._load_forge_reload_mtime = Path(_acoustics.__file__).stat().st_mtime
 
 
 try:
@@ -112,6 +121,50 @@ def _clean_style_str(val: Any, default: str = "both") -> str:
     if isinstance(val, (tuple, list)):
         return str(val[0])
     return str(val) if val is not None else default
+
+
+def _persist_widget_selection(widget_key: str, state_key: str) -> None:
+    """Copy a widget value into durable state before an unrelated rerun."""
+    st.session_state[state_key] = st.session_state.get(widget_key)
+
+
+def _mark_session_flag(flag_key: str) -> None:
+    """Record a widget change that must trigger work later in the rerun."""
+    st.session_state[flag_key] = True
+
+
+def _focused_port_flare_style(state: Any = None) -> str:
+    """Resolve the flare style for the duct currently targeted in Ports."""
+    values = st.session_state if state is None else state
+    global_style = _clean_style_str(values.get("flared_calc_style", "both"), "both")
+    target = _clean_style_str(
+        values.get(
+            "flared_active_target_duct",
+            values.get("flared_target_duct", "All Ducts (Global)"),
+        ),
+        "All Ducts (Global)",
+    )
+    if target.startswith("All"):
+        return global_style
+    return _clean_style_str(
+        values.get(f"flared_style_{target}", global_style), global_style
+    )
+
+
+_STL_SPLIT_LABELS = {
+    "full": "Single piece (Full port)",
+    "half": "2-piece symmetric halves (L/2 for 3D print)",
+    "flange_only": "Outer Flange Coupling Only",
+}
+
+
+def _normalize_stl_split_mode(value: Any, default: str = "full") -> str:
+    """Return the canonical STL split slug, including legacy label values."""
+    cleaned = _clean_style_str(value, default)
+    if cleaned in _STL_SPLIT_LABELS:
+        return cleaned
+    legacy_to_slug = {label: slug for slug, label in _STL_SPLIT_LABELS.items()}
+    return legacy_to_slug.get(cleaned, default)
 
 
 def _read_json_object(path: Path) -> dict:
@@ -1058,20 +1111,6 @@ def _get_current_user_account() -> _saas.UserAccount | None:
         admin_emails=_SAAS_SETTINGS.allowed_emails,
     )
     return acc
-
-def _pro_comparison_enabled() -> bool:
-    """Allow comparison workflows locally and for Pro-equivalent accounts."""
-    if not _SAAS_SETTINGS.enabled or _CURRENT_SAAS_USER is None:
-        return True
-    acc = _get_current_user_account()
-    if acc and acc.plan in {"pro", "team"}:
-        return True
-    entitlements = _saas.effective_entitlements(
-        _CURRENT_SAAS_USER,
-        _SAAS_SETTINGS,
-    )
-    return entitlements.access_tier in {"pro", "team"}
-
 
 _PARAM_PREFIXES = (
     "driver_", "box_", "reflex_", "pr_", "bandpass4_", "bandpass6_", "sealed_", "loss_", "sim_", "opt_", "load_type"
@@ -5705,10 +5744,7 @@ def _render_editable_design_tabs(
                         "Duplicate design",
                         icon=":material/content_copy:",
                         key=f"duplicate_design_tab_{tab_id}",
-                        disabled=(
-                            not _pro_comparison_enabled()
-                            or len(tabs) >= _MAX_COMPARISON_DESIGNS
-                        ),
+                        disabled=len(tabs) >= _MAX_COMPARISON_DESIGNS,
                         on_click=(
                             _duplicate_standalone_design_from_click
                             if standalone
@@ -6156,19 +6192,25 @@ def _plot_ports(
         tooltip_format = ".1f"
     chart = _line_chart(data, y_title, height=320)
     if mode in {"air_velocity_mol", "air_velocity_sim"}:
-        active_style = st.session_state.get("flared_calc_style", "both")
-        if isinstance(active_style, tuple):
-            active_style = active_style[0]
-            
-        g_limits = [_acoustics.PORT_VELOCITY_GUIDELINE_MS, 28.0, 32.0]
-        g_labels = ["Straight limit (17.2 m/s)", "Flared Aeroport limit (28.0 m/s)", "Hourglass limit (32.0 m/s)"]
-        
-        # Determine highlighting
-        active_limit_val = 32.0 if active_style == "hourglass" else (28.0 if active_style in {"both", "one"} else _acoustics.PORT_VELOCITY_GUIDELINE_MS)
+        active_style = _focused_port_flare_style()
+        guideline_specs = [
+            ("none", "Straight", "#ef4444", "rgba(239, 68, 68, 0.35)"),
+            ("one", "Single flare", "#f59e0b", "rgba(245, 158, 11, 0.35)"),
+            ("both", "Aeroport", "#10b981", "rgba(16, 185, 129, 0.35)"),
+            ("hourglass", "Hourglass", "#06b6d4", "rgba(6, 182, 212, 0.35)"),
+        ]
+        active_style_key = "one" if active_style == "one_end" else active_style
+        g_limits = [
+            _acoustics.port_chuffing_limit_ms(style)
+            for style, _, _, _ in guideline_specs
+        ]
+        g_labels = [
+            f"{label} limit ({limit:.1f} m/s)"
+            for (_, label, _, _), limit in zip(guideline_specs, g_limits)
+        ]
         g_colors = [
-            "#ef4444" if active_limit_val == _acoustics.PORT_VELOCITY_GUIDELINE_MS else "rgba(239, 68, 68, 0.4)",
-            "#10b981" if active_limit_val == 28.0 else "rgba(16, 185, 129, 0.4)",
-            "#06b6d4" if active_limit_val == 32.0 else "rgba(6, 182, 212, 0.4)",
+            active_color if style == active_style_key else muted_color
+            for style, _, active_color, muted_color in guideline_specs
         ]
         guidelines_df = pd.DataFrame({
             "limit": g_limits,
@@ -9088,7 +9130,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     ]
     comparison_count = len(selected_designs)
     too_many = comparison_count > _MAX_COMPARISON_DESIGNS
-    pro_enabled = _pro_comparison_enabled()
     cta_label = (
         f"Compare {comparison_count} designs in Box Design"
         if comparison_count > 1
@@ -9097,7 +9138,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     cta_disabled = (
         not selected_designs
         or too_many
-        or (comparison_count > 1 and not pro_enabled)
     )
     with selection_cta.container():
         st.button(
@@ -9121,7 +9161,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     if len(selected_indices) > 1:
         with st.container(border=True):
             st.markdown(
-                f"#### Design comparison · {comparison_count} selected · Pro"
+                f"#### Design comparison · {comparison_count} selected"
             )
             st.caption(
                 "Every selected match becomes an independently editable Box "
@@ -9131,10 +9171,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             if too_many:
                 st.warning(
                     f"Select at most {_MAX_COMPARISON_DESIGNS} designs."
-                )
-            elif not pro_enabled:
-                st.info(
-                    "Multi-design comparison is available with Pro or Team."
                 )
         _render_candidate_pool(filtered_preset_names)
         return
@@ -9615,6 +9651,10 @@ def _render_ports_tab(
     curr_target = st.session_state.get("flared_target_duct", target_options[0])
     if curr_target not in target_options:
         curr_target = target_options[0]
+    # A single-port load has no target radio, so keep an explicit active target
+    # for chart/KPI style resolution instead of inheriting a stale global or
+    # DCCAV selection from an earlier design.
+    st.session_state["flared_active_target_duct"] = curr_target
 
     # Compute flared dimensions for all valid ports in advance with per-port style support
     display_rows = []
@@ -9655,8 +9695,8 @@ def _render_ports_tab(
             max_peak_sim = peak_sim
 
     # Active flare limit for status bar
-    global_style = _clean_style_str(st.session_state.get("flared_calc_style", "both"), "both")
-    flare_limit_ms = 32.0 if global_style == "hourglass" else (28.0 if global_style in {"both", "one"} else _acoustics.PORT_VELOCITY_GUIDELINE_MS)
+    active_style = _focused_port_flare_style()
+    flare_limit_ms = _acoustics.port_chuffing_limit_ms(active_style)
     port_plot_mode_raw = st.session_state.get("port_plot_display_mode", "air_velocity_mol")
     port_plot_mode = _clean_style_str(port_plot_mode_raw, "air_velocity_mol")
 
@@ -9692,7 +9732,13 @@ def _render_ports_tab(
 
             k1.metric("Acoustic Chuffing Status", status_text, status_delta, delta_color=delta_color)
             k2.metric("Peak Air Speed (MOL)", f"{max_peak_mol:.1f} m/s", f"at {peak_hz:.0f} Hz" if peak_hz > 0 else None)
-            flare_name = "Aeroport" if global_style in {"both", "one"} else ("Hourglass" if global_style == "hourglass" else "Cylindrical")
+            flare_name = {
+                "both": "Aeroport",
+                "one": "Single flare",
+                "one_end": "Single flare",
+                "hourglass": "Hourglass",
+                "none": "Cylindrical",
+            }.get(active_style, "Aeroport")
             k3.metric("Chuffing Guideline Limit", f"{flare_limit_ms:.1f} m/s", f"{flare_name} guideline")
             k4.metric("Total Duct Displacement", f"{total_duct_vol_l:.2f} L", f"{len(valid_ports)} active duct{'s' if len(valid_ports) != 1 else ''}")
 
@@ -9747,9 +9793,13 @@ def _render_ports_tab(
             }
             s_idx = style_options.index(curr_style) if curr_style in style_options else 0
 
-            short_label = 'Global' if target_duct.startswith('All') else target_duct.split(' (')[0]
+            duct_focus_label = (
+                "Global"
+                if target_duct.startswith("All")
+                else target_duct.split(" (")[0]
+            )
             flare_style_raw = st.radio(
-                f"Flare profile ({short_label})",
+                f"Flare profile ({duct_focus_label})",
                 style_options,
                 index=s_idx,
                 format_func=lambda x: style_labels.get(x, str(x)),
@@ -9765,12 +9815,19 @@ def _render_ports_tab(
 
             if flare_style != "none":
                 flare_rad_cm = st.number_input(
-                    f"Flare radius / Delta cm ({short_label})",
+                    f"Flare radius R (cm per side · {duct_focus_label})",
                     min_value=0.5,
                     max_value=10.0,
                     value=curr_rad,
                     step=0.5,
                     key=rad_key,
+                    help=(
+                        "Radial rounding on each side of the duct. The mouth "
+                        "diameter is throat diameter + 2 × R."
+                    ),
+                )
+                st.caption(
+                    "Mouth Ø = throat Ø + 2 × R (the radius is applied on both sides)."
                 )
                 if target_duct.startswith("All"):
                     for r in valid_ports:
@@ -9795,22 +9852,55 @@ def _render_ports_tab(
                 index=p_idx,
                 format_func=lambda x: policy_labels.get(x, str(x)),
                 key="port_auto_policy",
+                on_change=_mark_session_flag,
+                args=("_port_optimizer_policy_changed",),
             )
             opt_policy = _clean_style_str(opt_policy_raw, "studio_mol")
+            optimizer_target_ms = _acoustics.port_optimizer_target_velocity_ms(
+                flare_style, opt_policy
+            )
+            optimizer_limit_ms = _acoustics.port_chuffing_limit_ms(flare_style)
+            optimizer_fraction = int(round(
+                100.0 * optimizer_target_ms / optimizer_limit_ms
+            ))
+            st.caption(
+                f"Optimizer target: **{optimizer_target_ms:.1f} m/s** "
+                f"({optimizer_fraction}% of the {flare_style.replace('_', ' ')} "
+                f"limit {optimizer_limit_ms:.1f} m/s)."
+            )
 
-            btn_label = f"⚡ Auto-optimize {short_label}" if not target_duct.startswith("All") else "⚡ Auto-optimize All Ducts"
+            btn_label = f"⚡ Auto-optimize {duct_focus_label}" if not target_duct.startswith("All") else "⚡ Auto-optimize All Ducts"
             clicked = st.button(btn_label, use_container_width=True, help="Automatically size the selected duct(s) based on driver MOL velocity, chamber volume, and constraints.")
 
             current_opt_state = (load_type, target_duct, opt_policy, flare_style, flare_rad_cm)
             last_opt_state = st.session_state.get("_last_opt_state")
-            should_run_opt = clicked or (last_opt_state is not None and last_opt_state != current_opt_state)
+            policy_changed = bool(
+                st.session_state.pop("_port_optimizer_policy_changed", False)
+            )
+            should_run_opt = (
+                clicked
+                or policy_changed
+                or (last_opt_state is not None and last_opt_state != current_opt_state)
+            )
+
+            optimizer_feedback = st.session_state.get("_port_optimizer_feedback")
+            if optimizer_feedback:
+                feedback_text = str(optimizer_feedback.get("text", ""))
+                if optimizer_feedback.get("compromised"):
+                    st.warning(feedback_text, icon="⚠️")
+                else:
+                    st.success(feedback_text, icon="✅")
 
             if should_run_opt:
                 st.session_state["_last_opt_state"] = current_opt_state
                 voltage_v = float(st.session_state.get("sim_voltage", 2.83))
+                optimized_results = []
 
                 def _opt_single(p_name, vol, f_hz, end_c, u_vel, p_slot, key_name):
-                    p_st = st.session_state.get(f"flared_style_{p_name}", flare_style)
+                    p_st = _clean_style_str(
+                        st.session_state.get(f"flared_style_{p_name}", flare_style),
+                        flare_style,
+                    )
                     p_rd = float(st.session_state.get(f"flared_radius_{p_name}", flare_rad_cm))
                     res_opt = _acoustics.auto_optimize_port_diameter_cm(
                         ts=driver,
@@ -9826,6 +9916,7 @@ def _render_ports_tab(
                         port_name=p_slot,
                     )
                     st.session_state[key_name] = res_opt["diameter_cm"]
+                    optimized_results.append((p_name, res_opt))
                     return res_opt
 
                 if load_type == "Bass reflex":
@@ -9871,6 +9962,35 @@ def _render_ports_tab(
                             st.toast(f"⚡ Port 3 (External) Optimized: Ø {o3['diameter_cm']:.1f} cm", icon="⚡")
                     if target_duct.startswith("All"):
                         st.toast(f"⚡ BP8 All Ports Optimized", icon="⚡")
+                if optimized_results:
+                    result_parts = [
+                        (
+                            f"{name.split(' (')[0]}: Ø {item['diameter_cm']:.1f} cm, "
+                            f"peak {item['mol_velocity_peak_ms']:.1f} m/s"
+                        )
+                        for name, item in optimized_results
+                    ]
+                    compromised_notes = [
+                        str(item["status_note"])
+                        for _, item in optimized_results
+                        if str(item.get("status_note", "")).startswith("Compromised:")
+                    ]
+                    policy_name = {
+                        "studio_mol": "Studio / Hi-Fi",
+                        "balanced_pro": "Balanced / Pro",
+                        "compact": "Compact",
+                    }.get(opt_policy, opt_policy)
+                    feedback_text = (
+                        f"{policy_name} applied · "
+                        + " · ".join(result_parts)
+                        + f" · target {optimizer_target_ms:.1f} m/s."
+                    )
+                    if compromised_notes:
+                        feedback_text += " " + " ".join(compromised_notes)
+                    st.session_state["_port_optimizer_feedback"] = {
+                        "text": feedback_text,
+                        "compromised": bool(compromised_notes),
+                    }
                 st.rerun()
             elif last_opt_state is None:
                 st.session_state["_last_opt_state"] = current_opt_state
@@ -10013,15 +10133,41 @@ def _render_ports_tab(
                     # Synchronize Blueprint duct with target_duct
                     if len(valid_ports) > 1:
                         if target_duct.startswith("All"):
+                            blueprint_options = [r["Port"] for r in valid_ports]
+                            blueprint_state_key = "flared_blueprint_focus_duct"
+                            blueprint_widget_key = "flared_calc_port_sel"
+                            saved_blueprint_focus = str(st.session_state.get(
+                                blueprint_state_key,
+                                st.session_state.get(
+                                    blueprint_widget_key, blueprint_options[0]
+                                ),
+                            ))
+                            if saved_blueprint_focus not in blueprint_options:
+                                saved_blueprint_focus = blueprint_options[0]
+
+                            # Streamlit can drop the value of a later radio
+                            # when an earlier flare-profile radio triggers the
+                            # rerun. Rehydrate the widget from durable state
+                            # before instantiation so its visual selection and
+                            # the row used for the drawing remain identical.
+                            st.session_state[blueprint_widget_key] = (
+                                saved_blueprint_focus
+                            )
                             bp_port_name = st.radio(
                                 "Blueprint Focus Duct (Single-Click)",
-                                [r["Port"] for r in valid_ports],
+                                blueprint_options,
                                 horizontal=True,
-                                key="flared_calc_port_sel",
+                                key=blueprint_widget_key,
+                                on_change=_persist_widget_selection,
+                                args=(blueprint_widget_key, blueprint_state_key),
                                 help="Click any duct to inspect blueprint CAD geometry and physical fabrication dimensions.",
                             )
+                            st.session_state[blueprint_state_key] = bp_port_name
                         else:
                             bp_port_name = target_duct
+                            st.session_state["flared_blueprint_focus_duct"] = (
+                                bp_port_name
+                            )
                             st.caption(f"Inspecting active target: **{bp_port_name}**")
                         sel_row = next((r for r in valid_ports if r["Port"] == bp_port_name), valid_ports[0])
                     else:
@@ -10044,6 +10190,8 @@ def _render_ports_tab(
                     d_mouth_mm = float(fdims_sel["outer_diameter_cm"] * 10.0)
                     length_mm = float(fdims_sel["overall_length_cm"] * 10.0)
                     flare_rad_mm = float(sel_p_rad * 10.0)
+                    display_length_mm = int(np.floor(length_mm + 0.5))
+                    display_half_length_mm = display_length_mm / 2.0
 
                     cad_wall_mm = float(st.session_state.get(f"stl_wall_{sel_p_name}", 4.0))
                     cad_has_flange = bool(st.session_state.get(f"stl_has_flange_{sel_p_name}", True))
@@ -10082,13 +10230,13 @@ def _render_ports_tab(
 
                     m1, m2, m3, m4 = st.columns(4)
                     if sel_p_style == "hourglass":
-                        m1.metric("Fabrication", "2x Flared Halves", f"L/2 = {fdims_sel['overall_length_cm']/2.0:.1f} cm")
-                        m2.metric("Overall Length", f"{fdims_sel['overall_length_cm']:.1f} cm", "Flange-to-Flange")
+                        m1.metric("Fabrication", "2x Flared Halves", f"L/2 = {display_half_length_mm:.1f} mm")
+                        m2.metric("Overall Length", f"{display_length_mm} mm", "Flange-to-Flange")
                         m3.metric("Flared Mouths Ø", f"{fdims_sel['outer_diameter_cm']:.1f} cm", f"Flare R: {sel_p_rad:.1f} cm")
                         m4.metric("Center Throat Ø", f"{sel_row['Diameter cm']:.1f} cm", "Min Restriction")
                     else:
                         m1.metric("Straight Cut", f"{fdims_sel['straight_length_cm']:.1f} cm", "Standard tube")
-                        m2.metric("Overall Length", f"{fdims_sel['overall_length_cm']:.1f} cm", "Flange-to-Flange")
+                        m2.metric("Overall Length", f"{display_length_mm} mm", "Flange-to-Flange")
                         m3.metric("Mouth Ø", f"{fdims_sel['outer_diameter_cm']:.1f} cm", f"Flare R: {sel_p_rad:.1f} cm")
                         m4.metric("Duct Volume", f"{fdims_sel['volume_displacement_l']:.2f} L", "Displacement")
 
@@ -10174,26 +10322,27 @@ def _render_ports_tab(
                                 disabled=(not has_flange_val or bolt_cnt_val == 0),
                             )
                         with h_col4:
-                            split_options = [
-                                "Single piece (Full port)",
-                                "2-piece symmetric halves (L/2 for 3D print)",
-                                "Outer Flange Coupling Only",
-                            ]
-                            default_split_idx = 1 if sel_p_style == "hourglass" else 0
-                            split_sel = st.selectbox(
+                            split_options = list(_STL_SPLIT_LABELS)
+                            default_split = (
+                                "half" if sel_p_style == "hourglass" else "full"
+                            )
+                            split_key = f"stl_split_{sel_p_name}"
+                            # Older sessions stored the human-readable label.
+                            # Canonical slugs make the visible selection exactly
+                            # the value passed to mesh generation and download.
+                            normalized_split = _normalize_stl_split_mode(
+                                st.session_state.get(split_key, default_split),
+                                default_split,
+                            )
+                            if st.session_state.get(split_key) != normalized_split:
+                                st.session_state[split_key] = normalized_split
+                            split_mode_code = st.selectbox(
                                 "Split Mode",
                                 split_options,
-                                index=default_split_idx,
-                                key=f"stl_split_{sel_p_name}",
+                                format_func=lambda slug: _STL_SPLIT_LABELS[slug],
+                                key=split_key,
                                 help="2-piece symmetric halves print flat on bed with 0 supports.",
                             )
-
-                        split_slug_map = {
-                            "Single piece (Full port)": "full",
-                            "2-piece symmetric halves (L/2 for 3D print)": "half",
-                            "Outer Flange Coupling Only": "flange_only",
-                        }
-                        split_mode_code = split_slug_map.get(split_sel, "full")
 
                         # Generate Binary STL
                         stl_bytes = _port_cad.generate_parametric_port_stl(
@@ -10222,6 +10371,7 @@ def _render_ports_tab(
                             data=stl_bytes,
                             file_name=file_name_stl,
                             mime="model/stl",
+                            key=f"download_stl_{clean_p_slug}_{sel_p_style}_{split_mode_code}",
                             use_container_width=True,
                             type="primary",
                         )

@@ -107,13 +107,12 @@ The built-in entitlement seeds are:
 
 These values are server-side product defaults. Standard runs consume 1 credit per candidate; Deep runs consume 2 credits per candidate. `UserAccountStore` (backed by Firestore in production and memory in development) handles atomic credit deductions, monthly quota replenishment on the 1st of each month, and administrator management. Administrator accounts receive an automatic credit balance refill ($100,000+$) and are exempt from simulation credit blocking in Bass Match.
 
-Editable multi-design comparison is a Pro-tier capability: Pro and Team users
-may turn 2–8 selected Bass Match rows into independent Box Design tabs or
-duplicate the active design into variants. New Finder selections append to the
-existing design set up to the eight-tab limit; direct duplicate and delete
-actions manage the active tab in Box Design. The standalone build keeps this
-workflow enabled, and an active Open Beta promotion grants Free accounts the
-effective Pro access tier through the same server-controlled entitlement path.
+Editable multi-design comparison is available to every account tier. Free,
+Pro and Team users may turn 2–8 selected Bass Match rows into independent Box
+Design tabs or duplicate the active design into variants. New Finder
+selections append to the existing design set up to the eight-tab limit; direct
+duplicate and delete actions manage the active tab in Box Design. Comparison
+availability is independent of stored plan and Open Beta entitlements.
 
 New cloud-project records store the complete active Box Design parameter set
 plus Bass Match controls, ranked candidates, result context and last-run

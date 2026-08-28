@@ -9,7 +9,7 @@ contracts and the test list — lives in `docs/dccav.md`.
 
 - Physical constants (`RHO_AIR`, `SPEED_OF_SOUND`, `P_REF`, `EPS`,
   `OPTIMIZER_COARSE_POINTS`, `OPTIMIZER_F3_REFINE_POINTS`,
-  `PORT_VELOCITY_GUIDELINE_MS`, `PORT_K_FACTOR`, `OPTIMIZER_MAX_PORT_DIAMETER_CM`,
+  `PORT_VELOCITY_GUIDELINE_MS`, `PORT_CHUFFING_LIMITS_MS`, `PORT_OPTIMIZER_POLICY_LIMIT_FRACTIONS`, `PORT_K_FACTOR`, `OPTIMIZER_MAX_PORT_DIAMETER_CM`,
   `PORT_MAX_VOLUME_FRACTION`,
   `PORT_PIPE_RESONANCE_GUARD`) and every dataclass except
   `DriverPresetInfo`: `DriverTS`, `DerivedDriver`, alignments and boxes
@@ -27,6 +27,23 @@ contracts and the test list — lives in `docs/dccav.md`.
   `suggest_bandpass4_alignment`, `suggest_bandpass6_alignment`, `suggest_bandpass8_alignment`, `suggest_sealed_alignment`,
   `suggest_pr_alignment`,
   `sealed_system_metrics`, `flared_port_dimensions_cm`, `auto_optimize_port_diameter_cm`
+
+`port_chuffing_limit_ms(flare_style)` is the shared source of truth for chart,
+KPI and geometry thresholds: cylindrical 5% of sound speed (~17.2 m/s), single
+flare 24 m/s, double-flared Aeroport 28 m/s, and continuous hourglass 34 m/s.
+`port_optimizer_target_velocity_ms(flare_style, policy)` derives optimizer
+targets from those same limits: Studio/Hi-Fi uses 70%, Balanced/Pro 85%, and
+Compact 100%.  The optimizer therefore cannot accept a duct above the active
+profile's displayed guideline, and Studio retains explicit chuffing headroom.
+The policies also receive distinct maximum duct-volume budgets so the selector
+changes the physical result instead of collapsing to the same constrained
+diameter: Studio/Hi-Fi may use 20% of its chamber, Balanced/Pro 12%, and Compact
+8%. Callers can still override the budget explicitly with
+`max_duct_volume_fraction`.
+If the policy target is unreachable under duct-volume and pipe-resonance
+constraints, the fallback is the feasible candidate with the lowest MOL air
+speed (normally the largest admissible diameter), and its result is explicitly
+marked compromised. It never silently falls back to the first/smallest duct.
 - Simulators: `simulate`, `simulate_reflex`, `simulate_bandpass4`, `simulate_bandpass6`, `simulate_bandpass8`, `simulate_passive_radiator`, `simulate_sealed`,
   `simulate_infinite_baffle`, `simulate_transmission_line`, `simulate_mltl`,
   `simulate_quarter_wave`, `simulate_back_loaded_horn` and
@@ -179,7 +196,7 @@ infeasible.
 
 Computes the fundamental half-wave organ-pipe acoustic resonance frequency of a reflex duct (`c / 2L_eff`). The UI warns when it falls below `PORT_PIPE_RESONANCE_GUARD` (4×) times the tuning.
 
-### `auto_optimize_port_diameter_cm(ts, result, volume_l, tuning_hz, end_correction, volume_velocity, sim_voltage_v=2.83, policy="studio_mol", flare_style="both", flare_radius_cm=2.5, max_duct_volume_fraction=0.08) -> dict`
+### `auto_optimize_port_diameter_cm(ts, result, volume_l, tuning_hz, end_correction, volume_velocity, sim_voltage_v=2.83, policy="studio_mol", flare_style="both", flare_radius_cm=2.5, max_duct_volume_fraction=None) -> dict`
 
 Calculates the optimal port diameter and length based on real-world engineering directives:
 - `policy`: `"studio_mol"` (zero chuffing at MOL), `"balanced_pro"` (standard AES trade-off), or `"compact"` (minimum duct volume).

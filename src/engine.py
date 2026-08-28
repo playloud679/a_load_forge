@@ -997,6 +997,23 @@ def export_zma_text(result: SimulationResult) -> str:
 
 
 PORT_VELOCITY_GUIDELINE_MS = 0.05 * SPEED_OF_SOUND
+PORT_CHUFFING_LIMITS_MS = {
+    "none": PORT_VELOCITY_GUIDELINE_MS,
+    "one": 24.0,
+    "one_end": 24.0,
+    "both": 28.0,
+    "hourglass": 34.0,
+}
+PORT_OPTIMIZER_POLICY_LIMIT_FRACTIONS = {
+    "studio_mol": 0.70,
+    "balanced_pro": 0.85,
+    "compact": 1.00,
+}
+PORT_OPTIMIZER_POLICY_DUCT_VOLUME_FRACTIONS = {
+    "studio_mol": 0.20,
+    "balanced_pro": 0.12,
+    "compact": 0.08,
+}
 PORT_K_FACTOR = 1.0
 # Optimized alignments must remain buildable with the geometry controls exposed
 # by the UI.  A small reserve below this limit leaves enough diameter to obtain
@@ -1566,34 +1583,34 @@ def flared_port_dimensions_cm(
             "overall_length_cm": 0.0,
             "outer_diameter_cm": d_main,
             "volume_displacement_l": 0.0,
-            "chuffing_limit_ms": 17.0,
+            "chuffing_limit_ms": port_chuffing_limit_ms(f_style),
         }
 
     if f_style == "none":
         straight_l = float(base_l)
         overall_l = float(base_l)
         outer_d = float(d_main)
-        chuff_lim = 17.0
+        chuff_lim = port_chuffing_limit_ms(f_style)
     elif f_style in {"one", "one_end"}:
         straight_l = max(0.0, base_l - 0.5 * r_flare)
         overall_l = straight_l + r_flare
         outer_d = d_main + 2.0 * r_flare
-        chuff_lim = 24.0
+        chuff_lim = port_chuffing_limit_ms(f_style)
     elif f_style == "both":
         straight_l = max(0.0, base_l - r_flare)
         overall_l = straight_l + 2.0 * r_flare
         outer_d = d_main + 2.0 * r_flare
-        chuff_lim = 28.0
+        chuff_lim = port_chuffing_limit_ms(f_style)
     elif f_style == "hourglass":
         straight_l = 0.0
         overall_l = max(0.0, base_l * 0.85)
         outer_d = d_main + 2.0 * r_flare
-        chuff_lim = 34.0
+        chuff_lim = port_chuffing_limit_ms(f_style)
     else:
         straight_l = max(0.0, base_l - r_flare)
         overall_l = straight_l + 2.0 * r_flare
         outer_d = d_main + 2.0 * r_flare
-        chuff_lim = 28.0
+        chuff_lim = port_chuffing_limit_ms(f_style)
 
     area_cm2 = np.pi * (d_main / 2.0) ** 2
     duct_vol_l = float(area_cm2 * overall_l / 1000.0)
@@ -1607,6 +1624,18 @@ def flared_port_dimensions_cm(
     }
 
 
+def port_chuffing_limit_ms(flare_style: str) -> float:
+    """Return the acoustic air-speed guideline for a port termination style."""
+    style = str(flare_style or "none")
+    return float(PORT_CHUFFING_LIMITS_MS.get(style, PORT_CHUFFING_LIMITS_MS["both"]))
+
+
+def port_optimizer_target_velocity_ms(flare_style: str, policy: str) -> float:
+    """Return a policy target below the physical chuffing guideline."""
+    fraction = PORT_OPTIMIZER_POLICY_LIMIT_FRACTIONS.get(str(policy), 0.85)
+    return float(port_chuffing_limit_ms(flare_style) * fraction)
+
+
 def auto_optimize_port_diameter_cm(
     ts: DriverTS,
     result: SimulationResult,
@@ -1618,7 +1647,7 @@ def auto_optimize_port_diameter_cm(
     policy: str = "studio_mol",
     flare_style: str = "both",
     flare_radius_cm: float = 2.5,
-    max_duct_volume_fraction: float = 0.08,
+    max_duct_volume_fraction: float | None = None,
     port_name: str = "lower",
 ) -> dict[str, Any]:
     """Auto-optimize the port diameter and flared length matching engineering constraints.
@@ -1631,15 +1660,17 @@ def auto_optimize_port_diameter_cm(
     # Minimum displacement diameter from Small/Keele displacement rule
     d_disp = port_displacement_min_diameter_cm(ts, tuning_hz)
 
-    # Target maximum air velocity at MOL based on policy
-    if policy == "studio_mol":
-        target_v_ms = 24.0 if flare_style == "none" else 28.0
-    elif policy == "balanced_pro":
-        target_v_ms = 28.0 if flare_style == "none" else 32.0
-    elif policy == "compact":
-        target_v_ms = 35.0 if flare_style == "none" else 40.0
-    else:
-        target_v_ms = 28.0
+    # Policy targets are fractions of the same style-specific physical limit
+    # shown by the Ports chart and KPI. Studio keeps substantial headroom;
+    # Compact may approach, but never exceed, the selected style guideline.
+    target_v_ms = port_optimizer_target_velocity_ms(flare_style, policy)
+    duct_volume_limit = (
+        float(max_duct_volume_fraction)
+        if max_duct_volume_fraction is not None
+        else float(
+            PORT_OPTIMIZER_POLICY_DUCT_VOLUME_FRACTIONS.get(str(policy), 0.12)
+        )
+    )
 
     candidates = np.arange(2.5, 30.5, 0.5)
     best_candidate = None
@@ -1658,7 +1689,7 @@ def auto_optimize_port_diameter_cm(
         duct_frac = duct_vol_l / float(volume_l)
 
         # Check maximum duct volume fraction limit
-        if duct_frac > max_duct_volume_fraction:
+        if duct_frac > duct_volume_limit:
             continue
 
         # Pipe resonance check
@@ -1670,23 +1701,41 @@ def auto_optimize_port_diameter_cm(
         v_mol_arr = np.asarray(port_air_velocity_ms(result, area_cm2, port=port_name, at_mol=True), dtype=float)
         v_mol_peak = float(np.nanmax(v_mol_arr)) if v_mol_arr.size > 0 else 0.0
 
-        if v_mol_peak <= target_v_ms or best_candidate is None:
-            best_candidate = {
-                "diameter_cm": float(d),
-                "overall_length_cm": float(l_overall),
-                "straight_length_cm": float(fdims["straight_length_cm"]),
-                "outer_diameter_cm": float(fdims["outer_diameter_cm"]),
-                "chuffing_limit_ms": float(fdims["chuffing_limit_ms"]),
-                "duct_volume_l": float(duct_vol_l),
-                "duct_volume_fraction": float(duct_frac),
-                "pipe_resonance_hz": float(f_pipe),
-                "mol_velocity_peak_ms": float(v_mol_peak),
-                "status_note": "Optimized within target guidelines",
-            }
+        candidate = {
+            "diameter_cm": float(d),
+            "overall_length_cm": float(l_overall),
+            "straight_length_cm": float(fdims["straight_length_cm"]),
+            "outer_diameter_cm": float(fdims["outer_diameter_cm"]),
+            "chuffing_limit_ms": float(fdims["chuffing_limit_ms"]),
+            "duct_volume_l": float(duct_vol_l),
+            "duct_volume_fraction": float(duct_frac),
+            "pipe_resonance_hz": float(f_pipe),
+            "mol_velocity_peak_ms": float(v_mol_peak),
+            "status_note": "Optimized within target guidelines",
+        }
+
+        # Keep the lowest-velocity feasible geometry as the fallback.  The old
+        # logic retained the first (smallest) duct whenever the target could
+        # not be reached, which is exactly the unsafe direction for chuffing.
+        if (
+            best_candidate is None
+            or v_mol_peak < best_candidate["mol_velocity_peak_ms"]
+        ):
+            best_candidate = candidate
             best_diameter = d
-            if v_mol_peak <= target_v_ms:
-                if policy == "compact" or d >= d_disp:
-                    break
+
+        if v_mol_peak <= target_v_ms and (policy == "compact" or d >= d_disp):
+            best_candidate = candidate
+            best_diameter = d
+            break
+
+    if best_candidate is not None and best_candidate["mol_velocity_peak_ms"] > target_v_ms:
+        best_candidate["status_note"] = (
+            "Compromised: lowest feasible air speed "
+            f"{best_candidate['mol_velocity_peak_ms']:.1f} m/s exceeds "
+            f"the {target_v_ms:.1f} m/s policy target under the "
+            f"{duct_volume_limit * 100.0:.0f}% duct-volume and pipe-resonance limits"
+        )
 
     if best_candidate is None:
         # Fallback to standard sized_port if no flare candidate fit
