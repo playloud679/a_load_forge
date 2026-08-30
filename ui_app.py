@@ -1889,6 +1889,9 @@ _PRESET_SOURCE_FILTER_ALIASES = {
     "Official archive / heritage": "Load Forge database",
     "Retailer / distributor": "Load Forge database",
     "User supplied": "Load Forge database",
+    "Z Bench Measurement": "Z Bench",
+    "Z Bench measured": "Z Bench",
+    "Z-Bench": "Z Bench",
     "Loudspeaker Database": "LSDB",
 }
 _PRESET_FILTER_NONE = "__none__"
@@ -2096,6 +2099,8 @@ _NUDGE_KEY_SUFFIXES = ("_minus_3", "_plus_3")
 
 def _is_param_key(key: str) -> bool:
     if not any(key.startswith(prefix) for prefix in _PARAM_PREFIXES):
+        return False
+    if "apply" in key or "button" in key or key.startswith("btn_") or "combo" in key:
         return False
     # Ignore legacy nudge-button state left by sessions/projects created
     # before box fields switched to the integrated number-input stepper.
@@ -4172,6 +4177,18 @@ def _on_pr_preset_change():
         ("pr_added_mass_g", 0.0),
     ):
         st.session_state[key] = value
+
+
+def _apply_pr_combo(name: str, count: int, added_mass_g: float) -> None:
+    """Apply a matched plausible PR combination to Box Design."""
+    pr = _acoustics.get_passive_radiator_preset(name)
+    st.session_state["pr_preset_name"] = name
+    st.session_state["pr_sp_cm2"] = float(pr.sp_cm2 * count)
+    st.session_state["pr_fp_hz"] = float(pr.fp_hz)
+    st.session_state["pr_qmp"] = float(pr.qmp)
+    st.session_state["pr_mmp_g"] = float(pr.mmp_g * count)
+    st.session_state["pr_xmax_mm"] = float(pr.xmax_mm)
+    st.session_state["pr_added_mass_g"] = float(added_mass_g * count)
 
 
 def _series_frame(result: _acoustics.SimulationResult, series: dict[str, np.ndarray]) -> pd.DataFrame:
@@ -7085,6 +7102,22 @@ def _apply_library_driver(name: str) -> None:
     st.session_state["workspace_mode"] = "Box Design"
 
 
+def _apply_library_pr(name: str) -> None:
+    """Load one passive radiator preset into the current simulation workspace."""
+    _end_design_comparison()
+    pr = _acoustics.get_passive_radiator_preset(name)
+    st.session_state["workspace_mode"] = "Box Design"
+    st.session_state["load_type"] = "Bass reflex"
+    st.session_state["reflex_resonator_type"] = "Passive radiator"
+    st.session_state["pr_preset_name"] = name
+    st.session_state["pr_sp_cm2"] = pr.sp_cm2
+    st.session_state["pr_fp_hz"] = pr.fp_hz
+    st.session_state["pr_qmp"] = pr.qmp
+    st.session_state["pr_mmp_g"] = pr.mmp_g
+    st.session_state["pr_xmax_mm"] = pr.xmax_mm
+    st.session_state["pr_added_mass_g"] = 0.0
+
+
 def _apply_pending_atlas_point() -> None:
     pending = st.session_state.pop("atlas_pending_point", None)
     if not pending:
@@ -8632,8 +8665,101 @@ def _render_bass_match_hero(
     return match_preset_names
 
 
+@st.cache_data(show_spinner=False)
+def _passive_radiator_library_frame(search: str = "") -> pd.DataFrame:
+    rows = []
+    for name in _acoustics.passive_radiator_preset_names():
+        pr = _acoustics.get_passive_radiator_preset(name)
+        if search:
+            query = search.casefold().strip()
+            if (
+                query not in pr.name.casefold()
+                and query not in pr.brand.casefold()
+                and query not in pr.model.casefold()
+            ):
+                continue
+        rows.append({
+            "Radiator": pr.name,
+            "Brand": pr.brand,
+            "Model": pr.model,
+            "Sp cm²": pr.sp_cm2,
+            "Fp Hz": pr.fp_hz,
+            "Qmp": pr.qmp,
+            "Mmp g": pr.mmp_g,
+            "Xmax mm": pr.xmax_mm,
+            "Source": pr.source,
+            "URL": pr.url,
+        })
+    columns = [
+        "Radiator", "Brand", "Model", "Sp cm²", "Fp Hz", "Qmp", "Mmp g", "Xmax mm", "Source", "URL",
+    ]
+    if not rows:
+        return pd.DataFrame(columns=columns)
+    return pd.DataFrame(rows)
+
+
+def _render_passive_radiator_library() -> None:
+    """Render the catalog of passive radiators in a selectable table."""
+    st.caption(
+        "Select one passive radiator to apply it directly to Box Design (Bass reflex + PR resonator)."
+    )
+    search_val = st.text_input(
+        "Filter passive radiators",
+        key="finder_pr_library_search",
+        placeholder="Search brand or model (Dayton, SB Acoustics, PURIFI, SEAS, ...)",
+    )
+    pr_df = _passive_radiator_library_frame(search_val)
+    st.caption(f"{len(pr_df)} passive radiators available in the catalog.")
+    table_state = st.dataframe(
+        pr_df,
+        width="stretch",
+        height=680,
+        hide_index=True,
+        key="finder_pr_library_table",
+        on_select="rerun",
+        selection_mode="single-row",
+        column_config={
+            "Radiator": None,
+            "Sp cm²": st.column_config.NumberColumn("Sp (cm²)", format="%.1f"),
+            "Fp Hz": st.column_config.NumberColumn("Fp (Hz)", format="%.1f"),
+            "Qmp": st.column_config.NumberColumn("Qmp", format="%.2f"),
+            "Mmp g": st.column_config.NumberColumn("Mmp (g)", format="%.1f"),
+            "Xmax mm": st.column_config.NumberColumn("Xmax (mm)", format="%.1f"),
+            "URL": st.column_config.LinkColumn("Product Link"),
+        },
+    )
+    selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
+    if not selected_rows:
+        with st.container(key="emerald_info_pr_library_selection"):
+            st.info("Select a passive radiator row to apply it to Box Design.")
+        return
+
+    selected_index = int(selected_rows[0])
+    if not 0 <= selected_index < len(pr_df):
+        return
+    selected_name = str(pr_df.iloc[selected_index]["Radiator"])
+    st.button(
+        f"Apply {selected_name} to Box Design",
+        type="primary",
+        width="stretch",
+        key="finder_use_library_pr",
+        on_click=_apply_library_pr,
+        args=(selected_name,),
+    )
+
+
 def _render_driver_library(filtered_preset_names: list[str]) -> None:
     """Render every filtered driver in a scrollable, selectable library."""
+    cat_mode = st.radio(
+        "Library Catalog",
+        ["Loudspeaker Drivers", f"Passive Radiators ({len(_acoustics.passive_radiator_preset_names())})"],
+        horizontal=True,
+        key="finder_library_catalog_tab",
+    )
+    if cat_mode and "Passive Radiators" in cat_mode:
+        _render_passive_radiator_library()
+        return
+
     st.caption(
         "Select one driver to open it directly in Box Design, or select "
         "several to limit the next Bass Match run."
@@ -10128,6 +10254,40 @@ def _render_ports_tab(
                         "Peak at Hz": st.column_config.NumberColumn(format="%.0f"),
                     },
                 )
+            if driver is not None and getattr(box, "vb_l", 0.0) > 0:
+                with st.container(border=True):
+                    st.markdown("##### 🎯 Plausible Catalog PR Combos")
+                    ref_fb = float(_acoustics.suggest_reflex_alignment(driver).fb_hz)
+                    pr_matches = _acoustics.plausible_passive_radiators(driver, box.vb_l, ref_fb)
+                    if pr_matches:
+                        st.caption(
+                            f"{len(pr_matches)} plausible catalog configurations matched to driver "
+                            f"(Sd = {driver.sd_cm2:.1f} cm², Vb = {box.vb_l:.1f} L, target Fb ≈ {ref_fb:.1f} Hz)."
+                        )
+                        match_rows = []
+                        for m in pr_matches:
+                            match_rows.append({
+                                "Configuration": f"{m.pr_count}x {m.preset_name}",
+                                "Brand": m.brand,
+                                "Sp total cm²": m.sp_total_cm2,
+                                "Sp/Sd Ratio": m.area_ratio,
+                                "Vd Headroom": m.vd_ratio,
+                                "Added Mass / PR (g)": m.added_mass_g,
+                                "Fp eff. (Hz)": m.effective_fp_hz,
+                                "Rating": m.quality_rating,
+                            })
+                        st.dataframe(
+                            pd.DataFrame(match_rows),
+                            width="stretch",
+                            hide_index=True,
+                            column_config={
+                                "Sp total cm²": st.column_config.NumberColumn(format="%.1f"),
+                                "Sp/Sd Ratio": st.column_config.NumberColumn(format="%.2f"),
+                                "Vd Headroom": st.column_config.NumberColumn(format="%.1f"),
+                                "Added Mass / PR (g)": st.column_config.NumberColumn(format="%.1f"),
+                                "Fp eff. (Hz)": st.column_config.NumberColumn(format="%.1f"),
+                            },
+                        )
         else:
             if valid_ports:
                 with st.container(border=True):
@@ -11127,6 +11287,11 @@ with st.sidebar:
                                 on_change=_on_pr_preset_change,
                                 help="Loads mechanical PR data; added mass remains editable.",
                             )
+                            current_pr_name = str(st.session_state.get("pr_preset_name", "Custom"))
+                            if current_pr_name != "Custom" and current_pr_name in _acoustics.passive_radiator_preset_names():
+                                _pr_obj = _acoustics.get_passive_radiator_preset(current_pr_name)
+                                if _pr_obj.url:
+                                    st.caption(f"[{_pr_obj.name} on {_pr_obj.source}]({_pr_obj.url})")
                             st.number_input(
                                 "PR area Sp (cm²)", min_value=1.0, max_value=5000.0,
                                 step=1.0, key="pr_sp_cm2")
@@ -11165,6 +11330,42 @@ with st.sidebar:
                                 f"PR Fs eff. {effective_fp:.1f} Hz · "
                                 f"box + PR system tuning ~{f_sys:.1f} Hz"
                             )
+                            if current_ts is not None and active_pr.vb_l > 0:
+                                target_tuning = (
+                                    float(current_reflex_alignment.fb_hz)
+                                    if current_reflex_alignment is not None
+                                    else float(current_ts.fs_hz)
+                                )
+                                plausible_combos = _acoustics.plausible_passive_radiators(
+                                    current_ts, active_pr.vb_l, target_tuning
+                                )
+                                if plausible_combos:
+                                    with st.expander(
+                                        f"🎯 Plausible PR Matches ({len(plausible_combos)})",
+                                        expanded=False,
+                                    ):
+                                        st.caption(
+                                            f"Catalog combinations for "
+                                            f"{current_ts.sd_cm2:.0f} cm² driver in {active_pr.vb_l:.1f} L (target ~{target_tuning:.1f} Hz)."
+                                        )
+                                        for c in plausible_combos[:8]:
+                                            badge = "🟢 Optimal" if c.quality_rating == "Optimal" else ("🟡 Good" if c.quality_rating == "Good" else "⚪ Acceptable")
+                                            pc1, pc2 = st.columns([3.0, 1.2])
+                                            with pc1:
+                                                st.markdown(
+                                                    f"**{c.pr_count}x {c.preset_name}** ({badge})  \n"
+                                                    f"<small>Sp={c.sp_total_cm2:.0f} cm² ({c.area_ratio:.2f}x Sd) · "
+                                                    f"Vd={c.vd_ratio:.1f}x · Mass=+{c.added_mass_g:.1f}g/PR</small>",
+                                                    unsafe_allow_html=True,
+                                                )
+                                            with pc2:
+                                                st.button(
+                                                    "Apply",
+                                                    key=f"btn_apply_pr_match_{c.preset_name}_{c.pr_count}",
+                                                    on_click=_apply_pr_combo,
+                                                    args=(c.preset_name, c.pr_count, c.added_mass_g),
+                                                    help=f"Tune box to {target_tuning:.1f} Hz using {c.pr_count}x {c.preset_name} (+{c.added_mass_g:.1f}g added mass).",
+                                                )
                         else:
                             _box_number_with_nudge(
                                 "Fb tuning (Hz)", "reflex_fb_hz", min_value=1.0,

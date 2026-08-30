@@ -3922,6 +3922,7 @@ def _check_ui_driver_preset_filters_reduce_list():
     assert _ui._PRESET_SOURCE_FILTERS == (
         "All",
         "Load Forge database",
+        "Z Bench",
         "LSDB",
         "VituixCAD",
         "Speaker Box Lite",
@@ -9656,6 +9657,7 @@ def _check_module_split_facade():
         _acoustics.driver_preset_provenance_category
         is presets.driver_preset_provenance_category
     )
+    assert "Z Bench" in _acoustics.PRESET_PROVENANCE_CATEGORIES
     assert legacy_dccav.DriverTS is _acoustics.DriverTS
     assert legacy_dccav.simulate is _acoustics.simulate
     assert legacy_dccav.simulate_reflex is _acoustics.simulate_reflex
@@ -9996,6 +9998,18 @@ def _check_passive_radiator_simulation():
         raise AssertionError("non-positive frequency must be rejected")
     except ValueError:
         pass
+    combos = _acoustics.plausible_passive_radiators(ts, vb_l=60.0, target_fb_hz=40.0)
+    assert len(combos) > 0, "Must find plausible PR matches for Beyma 12CMV2 in 60L/40Hz"
+    for c in combos:
+        assert isinstance(c, _acoustics.PlausiblePRCombo)
+        assert c.pr_count in {1, 2}
+        assert 0.7 <= c.area_ratio <= 3.5
+        assert c.added_mass_g >= 0.0
+        assert c.tuning_fb_hz == 40.0
+        assert c.quality_rating in {"Optimal", "Good", "Acceptable"}
+    best = _acoustics.suggest_best_pr_combo(ts, vb_l=60.0, target_fb_hz=40.0)
+    assert best is not None
+    assert best == combos[0]
 
 
 test("Passive radiator simulation returns finite output", _check_passive_radiator_simulation)

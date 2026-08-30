@@ -23,10 +23,10 @@ contracts and the test list — lives in `docs/dccav.md`.
 - Derivation and alignment: `sd_from_diameter`, `panel_air_load_metrics`,
   `panel_loaded_fs_hz`, `complete_driver`,
   `spectral_sampling_points`, `optimal_frequency_grid`, `adaptive_frequency_grid`,
-  `suggest_alignment`, `suggest_reflex_alignment`,
+- Alignment & Passive Radiators: `suggest_alignment`, `suggest_reflex_alignment`,
   `suggest_bandpass4_alignment`, `suggest_bandpass6_alignment`, `suggest_bandpass8_alignment`, `suggest_sealed_alignment`,
-  `suggest_pr_alignment`,
-  `sealed_system_metrics`, `flared_port_dimensions_cm`, `auto_optimize_port_diameter_cm`
+  `suggest_pr_alignment`, `PlausiblePRCombo`, `plausible_passive_radiators`, `suggest_best_pr_combo`,
+  `passive_radiator_effective_fp_hz`, `sealed_system_metrics`, `flared_port_dimensions_cm`, `auto_optimize_port_diameter_cm`
 
 `port_chuffing_limit_ms(flare_style)` is the shared source of truth for chart,
 KPI and geometry thresholds: cylindrical 5% of sound speed (~17.2 m/s), single

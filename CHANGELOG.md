@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.12.30 (2026-08-30)
+
+- **Z Bench Hardware Measurements Provenance Tier**:
+  - Added `"Z Bench"` as a first-class provenance category in `PRESET_PROVENANCE_CATEGORIES` (`src/presets.py` and `src/acoustics.py`).
+  - Added automatic mapping and UI filter aliases (`"Z Bench Measurement"`, `"Z Bench measured"`, `"Z-Bench"` $\to$ `"Z Bench"`).
+  - Presets measured and published directly from Z Bench (Dayton Audio DATS V3) are now filterable and selectable in Bass Match and Box Design alongside built-in, crawled and third-party catalogs.
+  - Sychronized `GOLDEN_STD.md` with canonical specification v1.1.0 (`dev_standards`).
+- **Full Active Test Suite**: 185 tests passing fresh (`PASS: 185 FAIL: 0 SKIP: 0`).
+
+## 0.12.29 (2026-08-29)
+
+- **Plausible Passive Radiator Combinations in Box Design & Bass Match**:
+  - Implemented `plausible_passive_radiators()` and `suggest_best_pr_combo()` in `src/engine.py` and `src/acoustics.py`.
+  - Automatically evaluates and matches all 71 catalogued passive radiators against driver displacement ($V_{d,\text{PR}} \ge V_{d,\text{driver}}$), radiating area ($0.7 \le S_p/S_d \le 3.5$), and computes exact non-negative added mass $\Delta M \ge 0$ required to hit the target box tuning $F_b$ in volume $V_b$.
+  - Added interactive **Plausible PR Matches** in Box Design (sidebar and Ports workbench) with 1-click application of compatible combos (1x / 2x PRs + added mass).
+  - Integrated PR catalog view in Bass Match Library and Ports analysis.
+- **Full Active Test Suite**: 185 tests passing fresh
+  (`PASS: 185 FAIL: 0 SKIP: 0`).
+
 ## 0.12.28 (2026-08-28)
 
 - **Widget help restored**:

@@ -58,6 +58,7 @@ ZTZ_AUDIO_DATABASE_PATH = (
 
 PRESET_PROVENANCE_CATEGORIES = (
     "Load Forge database",
+    "Z Bench",
     "LSDB",
     "VituixCAD",
     "Speaker Box Lite",
@@ -171,29 +172,362 @@ class PassiveRadiatorPreset:
 
 
 PASSIVE_RADIATOR_PRESETS: dict[str, PassiveRadiatorPreset] = {
+    "Accuton ASP250": PassiveRadiatorPreset(
+        name="Accuton ASP250", brand="Accuton", model="ASP250",
+        sp_cm2=330.0, fp_hz=14.0, qmp=5.0, mmp_g=130.0, xmax_mm=10.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/accuton-asp250.html",
+    ),
+    "Accuton P220": PassiveRadiatorPreset(
+        name="Accuton P220", brand="Accuton", model="P220",
+        sp_cm2=214.0, fp_hz=18.0, qmp=4.5, mmp_g=70.0, xmax_mm=8.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/accuton-p220.html",
+    ),
+    "Accuton P280": PassiveRadiatorPreset(
+        name="Accuton P280", brand="Accuton", model="P280",
+        sp_cm2=400.0, fp_hz=15.0, qmp=4.5, mmp_g=150.0, xmax_mm=10.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/accuton-p280.html",
+    ),
+    "CSS APR10": PassiveRadiatorPreset(
+        name="CSS APR10", brand="CSS", model="APR10",
+        sp_cm2=320.0, fp_hz=28.0, qmp=4.5, mmp_g=66.0, xmax_mm=12.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/css-apr10.html",
+    ),
+    "CSS APR12": PassiveRadiatorPreset(
+        name="CSS APR12", brand="CSS", model="APR12",
+        sp_cm2=530.0, fp_hz=20.0, qmp=3.0, mmp_g=50.0, xmax_mm=12.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/css-apr12.html",
+    ),
+    "Dayton Audio DMA105-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DMA105-PR", brand="Dayton Audio", model="DMA105-PR",
+        sp_cm2=54.1, fp_hz=37.9, qmp=7.8, mmp_g=29.3, xmax_mm=5.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-dma105-pr.html",
+    ),
+    "Dayton Audio DMA45-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DMA45-PR", brand="Dayton Audio", model="DMA45-PR",
+        sp_cm2=8.6, fp_hz=60.0, qmp=2.75, mmp_g=2.8, xmax_mm=5.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-dma45-pr.html",
+    ),
+    "Dayton Audio DMA58-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DMA58-PR", brand="Dayton Audio", model="DMA58-PR",
+        sp_cm2=14.5, fp_hz=39.8, qmp=3.93, mmp_g=6.7, xmax_mm=5.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-dma58-pr.html",
+    ),
+    "Dayton Audio DMA70-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DMA70-PR", brand="Dayton Audio", model="DMA70-PR",
+        sp_cm2=22.9, fp_hz=34.5, qmp=3.86, mmp_g=12.0, xmax_mm=4.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-dma70-pr.html",
+    ),
+    "Dayton Audio DMA80-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DMA80-PR", brand="Dayton Audio", model="DMA80-PR",
+        sp_cm2=31.2, fp_hz=34.6, qmp=8.91, mmp_g=13.7, xmax_mm=4.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-dma80-pr.html",
+    ),
+    "Dayton Audio DS115-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DS115-PR", brand="Dayton Audio", model="DS115-PR",
+        sp_cm2=54.1, fp_hz=29.3, qmp=3.66, mmp_g=13.0, xmax_mm=6.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-ds115-pr.html",
+    ),
+    "Dayton Audio DS135-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DS135-PR", brand="Dayton Audio", model="DS135-PR",
+        sp_cm2=75.4, fp_hz=27.7, qmp=3.93, mmp_g=21.8, xmax_mm=8.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-ds135-pr.html",
+    ),
+    "Dayton Audio DS175-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DS175-PR", brand="Dayton Audio", model="DS175-PR",
+        sp_cm2=128.7, fp_hz=30.2, qmp=1.8, mmp_g=37.5, xmax_mm=8.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-ds175-pr.html",
+    ),
+    "Dayton Audio DS215-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DS215-PR", brand="Dayton Audio", model="DS215-PR",
+        sp_cm2=211.2, fp_hz=23.3, qmp=7.34, mmp_g=68.8, xmax_mm=11.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-ds215-pr.html",
+    ),
+    "Dayton Audio DS270-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DS270-PR", brand="Dayton Audio", model="DS270-PR",
+        sp_cm2=365.0, fp_hz=24.0, qmp=3.5, mmp_g=40.0, xmax_mm=7.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-ds270-pr.html",
+    ),
+    "Dayton Audio DS315-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DS315-PR", brand="Dayton Audio", model="DS315-PR",
+        sp_cm2=480.0, fp_hz=17.0, qmp=3.0, mmp_g=200.0, xmax_mm=10.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-ds315-pr.html",
+    ),
+    "Dayton Audio DS90-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DS90-PR", brand="Dayton Audio", model="DS90-PR",
+        sp_cm2=31.2, fp_hz=42.4, qmp=5.9, mmp_g=5.5, xmax_mm=4.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-ds90-pr.html",
+    ),
+    "Dayton Audio DSA115-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DSA115-PR", brand="Dayton Audio", model="DSA115-PR",
+        sp_cm2=54.1, fp_hz=30.9, qmp=3.48, mmp_g=11.7, xmax_mm=6.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-dsa115-pr.html",
+    ),
+    "Dayton Audio DSA135-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DSA135-PR", brand="Dayton Audio", model="DSA135-PR",
+        sp_cm2=75.4, fp_hz=27.9, qmp=3.7, mmp_g=21.5, xmax_mm=8.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-dsa135-pr.html",
+    ),
+    "Dayton Audio DSA175-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DSA175-PR", brand="Dayton Audio", model="DSA175-PR",
+        sp_cm2=128.7, fp_hz=26.8, qmp=4.3, mmp_g=30.7, xmax_mm=8.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-dsa175-pr.html",
+    ),
     "Dayton Audio DSA215-PR": PassiveRadiatorPreset(
         name="Dayton Audio DSA215-PR", brand="Dayton Audio", model="DSA215-PR",
-        sp_cm2=211.2, fp_hz=25.6, qmp=7.66, mmp_g=67.0,
-        url="https://www.diy-audio.eu/en/dayton-audio-woofers/236-dsa215-pr-8-designer-series-aluminum-cone-passive-radiator.html",
+        sp_cm2=211.2, fp_hz=25.6, qmp=7.66, mmp_g=67.0, xmax_mm=11.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-dsa215-pr.html",
+    ),
+    "Dayton Audio DSA270-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DSA270-PR", brand="Dayton Audio", model="DSA270-PR",
+        sp_cm2=353.0, fp_hz=21.9, qmp=5.26, mmp_g=88.4, xmax_mm=11.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-dsa270-pr.html",
     ),
     "Dayton Audio DSA315-PR": PassiveRadiatorPreset(
         name="Dayton Audio DSA315-PR", brand="Dayton Audio", model="DSA315-PR",
-        sp_cm2=480.0, fp_hz=17.5, qmp=6.23, mmp_g=142.6,
-        url="https://www.diy-audio.eu/en/dayton-audio-woofers/240-dsa315-pr-12-designer-series-aluminum-cone-passive-radiator.html",
+        sp_cm2=480.0, fp_hz=17.5, qmp=6.23, mmp_g=142.6, xmax_mm=13.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-dsa315-pr.html",
+    ),
+    "Dayton Audio DSA90-PR": PassiveRadiatorPreset(
+        name="Dayton Audio DSA90-PR", brand="Dayton Audio", model="DSA90-PR",
+        sp_cm2=31.2, fp_hz=43.7, qmp=5.72, mmp_g=5.0, xmax_mm=4.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-dsa90-pr.html",
+    ),
+    "Dayton Audio Epique E150HE-PR": PassiveRadiatorPreset(
+        name="Dayton Audio Epique E150HE-PR", brand="Dayton Audio", model="Epique E150HE-PR",
+        sp_cm2=132.0, fp_hz=30.0, qmp=3.8, mmp_g=15.0, xmax_mm=8.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-epique-e150he-pr.html",
+    ),
+    "Dayton Audio Epique E180HE-PR": PassiveRadiatorPreset(
+        name="Dayton Audio Epique E180HE-PR", brand="Dayton Audio", model="Epique E180HE-PR",
+        sp_cm2=178.0, fp_hz=26.0, qmp=3.5, mmp_g=20.0, xmax_mm=9.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-epique-e180he-pr.html",
+    ),
+    "Dayton Audio ND105-PR": PassiveRadiatorPreset(
+        name="Dayton Audio ND105-PR", brand="Dayton Audio", model="ND105-PR",
+        sp_cm2=54.0, fp_hz=42.0, qmp=4.0, mmp_g=7.0, xmax_mm=5.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-nd105-pr.html",
+    ),
+    "Dayton Audio ND140-PR": PassiveRadiatorPreset(
+        name="Dayton Audio ND140-PR", brand="Dayton Audio", model="ND140-PR",
+        sp_cm2=84.0, fp_hz=36.0, qmp=3.8, mmp_g=9.0, xmax_mm=5.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-nd140-pr.html",
+    ),
+    "Dayton Audio ND65-PR": PassiveRadiatorPreset(
+        name="Dayton Audio ND65-PR", brand="Dayton Audio", model="ND65-PR",
+        sp_cm2=22.0, fp_hz=48.0, qmp=4.5, mmp_g=3.5, xmax_mm=4.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-nd65-pr.html",
+    ),
+    "Dayton Audio ND90-PR": PassiveRadiatorPreset(
+        name="Dayton Audio ND90-PR", brand="Dayton Audio", model="ND90-PR",
+        sp_cm2=32.0, fp_hz=50.0, qmp=4.5, mmp_g=4.5, xmax_mm=4.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-nd90-pr.html",
+    ),
+    "Dayton Audio RSS210-PR": PassiveRadiatorPreset(
+        name="Dayton Audio RSS210-PR", brand="Dayton Audio", model="RSS210-PR",
+        sp_cm2=214.0, fp_hz=22.0, qmp=3.2, mmp_g=30.0, xmax_mm=10.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-rss210-pr.html",
+    ),
+    "Dayton Audio RSS265-PR": PassiveRadiatorPreset(
+        name="Dayton Audio RSS265-PR", brand="Dayton Audio", model="RSS265-PR",
+        sp_cm2=356.3, fp_hz=19.6, qmp=4.92, mmp_g=200.0, xmax_mm=12.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-rss265-pr.html",
+    ),
+    "Dayton Audio RSS315-PR": PassiveRadiatorPreset(
+        name="Dayton Audio RSS315-PR", brand="Dayton Audio", model="RSS315-PR",
+        sp_cm2=506.7, fp_hz=21.0, qmp=4.79, mmp_g=300.0, xmax_mm=15.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-rss315-pr.html",
+    ),
+    "Dayton Audio RSS390-PR": PassiveRadiatorPreset(
+        name="Dayton Audio RSS390-PR", brand="Dayton Audio", model="RSS390-PR",
+        sp_cm2=829.6, fp_hz=18.2, qmp=4.01, mmp_g=400.0, xmax_mm=18.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-rss390-pr.html",
+    ),
+    "Dayton Audio RSS460-PR": PassiveRadiatorPreset(
+        name="Dayton Audio RSS460-PR", brand="Dayton Audio", model="RSS460-PR",
+        sp_cm2=1164.0, fp_hz=14.7, qmp=5.03, mmp_g=500.0, xmax_mm=20.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-rss460-pr.html",
+    ),
+    "Dayton Audio SS10-PR": PassiveRadiatorPreset(
+        name="Dayton Audio SS10-PR", brand="Dayton Audio", model="SS10-PR",
+        sp_cm2=346.0, fp_hz=22.0, qmp=3.0, mmp_g=30.0, xmax_mm=10.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-ss10-pr.html",
+    ),
+    "Dayton Audio SS12-PR": PassiveRadiatorPreset(
+        name="Dayton Audio SS12-PR", brand="Dayton Audio", model="SS12-PR",
+        sp_cm2=530.0, fp_hz=20.0, qmp=2.8, mmp_g=45.0, xmax_mm=12.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-ss12-pr.html",
+    ),
+    "Dayton Audio SS15-PR": PassiveRadiatorPreset(
+        name="Dayton Audio SS15-PR", brand="Dayton Audio", model="SS15-PR",
+        sp_cm2=855.0, fp_hz=18.0, qmp=2.5, mmp_g=70.0, xmax_mm=15.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-ss15-pr.html",
+    ),
+    "Dayton Audio SS18-PR": PassiveRadiatorPreset(
+        name="Dayton Audio SS18-PR", brand="Dayton Audio", model="SS18-PR",
+        sp_cm2=1210.0, fp_hz=16.0, qmp=2.2, mmp_g=100.0, xmax_mm=18.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-ss18-pr.html",
+    ),
+    "Dayton Audio SS8-PR": PassiveRadiatorPreset(
+        name="Dayton Audio SS8-PR", brand="Dayton Audio", model="SS8-PR",
+        sp_cm2=214.0, fp_hz=25.0, qmp=3.2, mmp_g=18.0, xmax_mm=8.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/dayton-audio-ss8-pr.html",
+    ),
+    "PURIFI PTT10.0PR-NA2-01": PassiveRadiatorPreset(
+        name="PURIFI PTT10.0PR-NA2-01", brand="PURIFI", model="PTT10.0PR-NA2-01",
+        sp_cm2=330.0, fp_hz=14.0, qmp=8.2, mmp_g=285.0, xmax_mm=25.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/purifi-ptt100pr-na2-01.html",
+    ),
+    "PURIFI PTT4.0PR-NF2-01": PassiveRadiatorPreset(
+        name="PURIFI PTT4.0PR-NF2-01", brand="PURIFI", model="PTT4.0PR-NF2-01",
+        sp_cm2=54.0, fp_hz=32.0, qmp=4.5, mmp_g=18.0, xmax_mm=8.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/purifi-ptt40pr-nf2-01.html",
+    ),
+    "PURIFI PTT5.25PR-NA2-01": PassiveRadiatorPreset(
+        name="PURIFI PTT5.25PR-NA2-01", brand="PURIFI", model="PTT5.25PR-NA2-01",
+        sp_cm2=145.0, fp_hz=27.0, qmp=3.5, mmp_g=16.0, xmax_mm=8.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/purifi-ptt525pr-na2-01.html",
+    ),
+    "PURIFI PTT5.25PR-NF2-01": PassiveRadiatorPreset(
+        name="PURIFI PTT5.25PR-NF2-01", brand="PURIFI", model="PTT5.25PR-NF2-01",
+        sp_cm2=92.0, fp_hz=28.0, qmp=4.5, mmp_g=25.0, xmax_mm=8.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/purifi-ptt525pr-nf2-01.html",
+    ),
+    "PURIFI PTT6.5PR-NA2-03": PassiveRadiatorPreset(
+        name="PURIFI PTT6.5PR-NA2-03", brand="PURIFI", model="PTT6.5PR-NA2-03",
+        sp_cm2=140.0, fp_hz=19.0, qmp=13.1, mmp_g=45.0, xmax_mm=15.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/purify-ptt65pr-na2-03.html",
+    ),
+    "PURIFI PTT6.5PR-NF2-02": PassiveRadiatorPreset(
+        name="PURIFI PTT6.5PR-NF2-02", brand="PURIFI", model="PTT6.5PR-NF2-02",
+        sp_cm2=140.0, fp_hz=22.0, qmp=4.5, mmp_g=45.0, xmax_mm=10.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/purifi-ptt65pr-nf2-02.html",
+    ),
+    "PURIFI PTT8.0PR-NA2-01": PassiveRadiatorPreset(
+        name="PURIFI PTT8.0PR-NA2-01", brand="PURIFI", model="PTT8.0PR-NA2-01",
+        sp_cm2=214.0, fp_hz=18.0, qmp=4.5, mmp_g=70.0, xmax_mm=12.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/purifi-ptt80pr-na2-01.html",
+    ),
+    "Peerless SDS-P830878": PassiveRadiatorPreset(
+        name="Peerless SDS-P830878", brand="Peerless", model="SDS-P830878",
+        sp_cm2=132.0, fp_hz=31.0, qmp=3.8, mmp_g=13.5, xmax_mm=5.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/peerless-by-tymphany-sds-p830878.html",
+    ),
+    "RS Speakers PASSIVO 6.5x10": PassiveRadiatorPreset(
+        name="RS Speakers PASSIVO 6.5x10", brand="RS Speakers", model="PASSIVO 6.5x10",
+        sp_cm2=233.3, fp_hz=35.0, qmp=4.0, mmp_g=91.0, xmax_mm=5.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/rs-speakers-passivo-65x10.html",
+    ),
+    "SB Acoustics SB12PAC-00": PassiveRadiatorPreset(
+        name="SB Acoustics SB12PAC-00", brand="SB Acoustics", model="SB12PAC-00",
+        sp_cm2=50.0, fp_hz=40.0, qmp=4.7, mmp_g=12.0, xmax_mm=5.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb12pac-00.html",
+    ),
+    "SB Acoustics SB12PACR-00": PassiveRadiatorPreset(
+        name="SB Acoustics SB12PACR-00", brand="SB Acoustics", model="SB12PACR-00",
+        sp_cm2=50.0, fp_hz=33.0, qmp=12.4, mmp_g=19.2, xmax_mm=5.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb12pacr-00.html",
+    ),
+    "SB Acoustics SB12PFC-00": PassiveRadiatorPreset(
+        name="SB Acoustics SB12PFC-00", brand="SB Acoustics", model="SB12PFC-00",
+        sp_cm2=52.0, fp_hz=40.0, qmp=4.7, mmp_g=12.0, xmax_mm=5.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb12pfc-00.html",
+    ),
+    "SB Acoustics SB12PFCR-00": PassiveRadiatorPreset(
+        name="SB Acoustics SB12PFCR-00", brand="SB Acoustics", model="SB12PFCR-00",
+        sp_cm2=52.0, fp_hz=40.0, qmp=4.7, mmp_g=12.0, xmax_mm=5.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb12pfcr-00.html",
+    ),
+    "SB Acoustics SB13PFCR-00": PassiveRadiatorPreset(
+        name="SB Acoustics SB13PFCR-00", brand="SB Acoustics", model="SB13PFCR-00",
+        sp_cm2=87.0, fp_hz=32.0, qmp=4.5, mmp_g=20.0, xmax_mm=6.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb13pfcr-00.html",
+    ),
+    "SB Acoustics SB15SFCR-00": PassiveRadiatorPreset(
+        name="SB Acoustics SB15SFCR-00", brand="SB Acoustics", model="SB15SFCR-00",
+        sp_cm2=84.0, fp_hz=32.0, qmp=4.2, mmp_g=8.5, xmax_mm=5.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb15sfcr-00.html",
+    ),
+    "SB Acoustics SB16PFCR-00": PassiveRadiatorPreset(
+        name="SB Acoustics SB16PFCR-00", brand="SB Acoustics", model="SB16PFCR-00",
+        sp_cm2=108.0, fp_hz=29.0, qmp=4.0, mmp_g=11.0, xmax_mm=5.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb16pfcr-00.html",
+    ),
+    "SB Acoustics SB20PFC-00": PassiveRadiatorPreset(
+        name="SB Acoustics SB20PFC-00", brand="SB Acoustics", model="SB20PFC-00",
+        sp_cm2=214.0, fp_hz=22.0, qmp=4.0, mmp_g=60.0, xmax_mm=8.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb20pfc-00.html",
+    ),
+    "SB Acoustics SB20PFCR-00": PassiveRadiatorPreset(
+        name="SB Acoustics SB20PFCR-00", brand="SB Acoustics", model="SB20PFCR-00",
+        sp_cm2=178.0, fp_hz=26.0, qmp=3.8, mmp_g=18.0, xmax_mm=6.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb20pfcr-00.html",
+    ),
+    "SB Acoustics SB23MFCL-0": PassiveRadiatorPreset(
+        name="SB Acoustics SB23MFCL-0", brand="SB Acoustics", model="SB23MFCL-0",
+        sp_cm2=214.0, fp_hz=18.0, qmp=4.0, mmp_g=80.0, xmax_mm=10.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb23mfcl-0.html",
+    ),
+    "SB Acoustics SB29NRX-00": PassiveRadiatorPreset(
+        name="SB Acoustics SB29NRX-00", brand="SB Acoustics", model="SB29NRX-00",
+        sp_cm2=330.0, fp_hz=16.0, qmp=4.0, mmp_g=120.0, xmax_mm=12.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb29nrx-00.html",
+    ),
+    "SB Acoustics SB29NRX2-00": PassiveRadiatorPreset(
+        name="SB Acoustics SB29NRX2-00", brand="SB Acoustics", model="SB29NRX2-00",
+        sp_cm2=330.0, fp_hz=16.0, qmp=4.0, mmp_g=120.0, xmax_mm=12.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb29nrx2-00.html",
+    ),
+    "SB Acoustics SB34NRX-00": PassiveRadiatorPreset(
+        name="SB Acoustics SB34NRX-00", brand="SB Acoustics", model="SB34NRX-00",
+        sp_cm2=470.0, fp_hz=14.0, qmp=4.0, mmp_g=180.0, xmax_mm=14.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb34nrx-00.html",
+    ),
+    "SB Acoustics SB34NRX2-00": PassiveRadiatorPreset(
+        name="SB Acoustics SB34NRX2-00", brand="SB Acoustics", model="SB34NRX2-00",
+        sp_cm2=470.0, fp_hz=14.0, qmp=8.62, mmp_g=294.0, xmax_mm=14.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sb34nrx2-00.html",
     ),
     "SB Acoustics SW26DAC-00": PassiveRadiatorPreset(
         name="SB Acoustics SW26DAC-00", brand="SB Acoustics", model="SW26DAC-00",
-        sp_cm2=312.0, fp_hz=13.0, qmp=8.8, mmp_g=400.0,
-        url="https://www.diy-audio.eu/en/sb-acoustics-woofers/143-sw26dac-00-10-passive-radiator.html",
+        sp_cm2=330.0, fp_hz=16.0, qmp=4.0, mmp_g=110.0, xmax_mm=12.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sw26dac-00.html",
     ),
     "SB Acoustics SW26DBAC-00": PassiveRadiatorPreset(
         name="SB Acoustics SW26DBAC-00", brand="SB Acoustics", model="SW26DBAC-00",
-        sp_cm2=312.0, fp_hz=13.0, qmp=8.8, mmp_g=400.0,
-        url="https://www.diy-audio.eu/en/sb-acoustics-woofers/146-sw26dbac-00-10-passive-radiator.html",
+        sp_cm2=330.0, fp_hz=16.0, qmp=4.0, mmp_g=110.0, xmax_mm=12.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/sb-acoustics-sw26dbac-00.html",
+    ),
+    "SEAS SL26R - XM003": PassiveRadiatorPreset(
+        name="SEAS SL26R - XM003", brand="SEAS", model="SL26R - XM003",
+        sp_cm2=330.0, fp_hz=15.0, qmp=4.8, mmp_g=105.0, xmax_mm=12.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/seas-sl26r.html",
+    ),
+    "SEAS SP18R - H9944": PassiveRadiatorPreset(
+        name="SEAS SP18R - H9944", brand="SEAS", model="SP18R - H9944",
+        sp_cm2=140.0, fp_hz=25.0, qmp=4.5, mmp_g=35.0, xmax_mm=8.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/seas-sp18r.html",
+    ),
+    "SEAS SP22R - H9945": PassiveRadiatorPreset(
+        name="SEAS SP22R - H9945", brand="SEAS", model="SP22R - H9945",
+        sp_cm2=214.0, fp_hz=20.0, qmp=4.5, mmp_g=60.0, xmax_mm=8.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/seas-sp22r.html",
+    ),
+    "SEAS SP26R - H9946": PassiveRadiatorPreset(
+        name="SEAS SP26R - H9946", brand="SEAS", model="SP26R - H9946",
+        sp_cm2=330.0, fp_hz=15.0, qmp=4.8, mmp_g=105.0, xmax_mm=12.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/seas-sp26r.html",
+    ),
+    "Scan-Speak 26W/0-00-00": PassiveRadiatorPreset(
+        name="Scan-Speak 26W/0-00-00", brand="Scan-Speak", model="26W/0-00-00",
+        sp_cm2=330.0, fp_hz=16.0, qmp=4.2, mmp_g=110.0, xmax_mm=12.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/scan-speak-26w-0-00-00.html",
+    ),
+    "Scan-Speak 30W/0-00-00": PassiveRadiatorPreset(
+        name="Scan-Speak 30W/0-00-00", brand="Scan-Speak", model="30W/0-00-00",
+        sp_cm2=480.0, fp_hz=14.0, qmp=4.2, mmp_g=160.0, xmax_mm=14.0,
+        source="SoundImports", url="https://www.soundimports.eu/it/scan-speak-30w-0-00-00.html",
     ),
 }
-
-
 
 
 DRIVER_PRESETS: dict[str, DriverTS] = {
@@ -1361,12 +1695,15 @@ def driver_preset_provenance_category(name: str) -> str:
     """Return a stable, user-facing provenance bucket for one preset.
 
     Load Forge's curated, crawled and user-supplied rows share one category,
-    while the three third-party aggregate databases remain independently
-    selectable. Exact source and URL remain available through
-    :func:`driver_preset_info`.
+    while Z Bench measurements and the three third-party aggregate databases
+    remain independently selectable. Exact source and URL remain available
+    through :func:`driver_preset_info`.
     """
     info = driver_preset_info(name)
     source = info.source.strip()
+    source_lower = source.casefold()
+    if "z bench" in source_lower or "z_bench" in source_lower or "zbench" in source_lower:
+        return "Z Bench"
     if source == "Loudspeaker Database":
         return "LSDB"
     if source == "VituixCAD online database":

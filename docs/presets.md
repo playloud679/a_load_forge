@@ -55,8 +55,11 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
   Beyma, Turbosound, Scan-Speak, Dayton, SB Audience, LaVoce, MarkAudio,
   Aiyima minis, …)
 - `PASSIVE_RADIATOR_PRESETS`: mechanical passive-radiator presets kept separate
-  from active-driver T/S records. The UI exposes their `Sp`, `Fp`, `Qmp` and
-  `Mmp` values and applies optional added mass at simulation time.
+  from active-driver T/S records. Includes 71 catalogued models across major
+  brands (Dayton Audio, SB Acoustics, PURIFI, Scan-Speak, SEAS, Accuton, CSS,
+  Peerless by Tymphany, RS Speakers) crawled with exact parameters. The UI exposes
+  their `Sp`, `Fp`, `Qmp` and `Mmp` values and applies optional added mass at
+  simulation time.
 - `_load_external_presets(path, ...)`: shared lazy loader used by all five
   catalogs; missing or invalid files degrade to whatever tiers remain. Employs
   an automatic binary `.cache.pickle` layer validated against the source JSON
@@ -147,11 +150,12 @@ records.
 - `Load Forge database` — built-ins, direct manufacturer crawls and
   datasheets, official archives, retailer/distributor observations and
   user-supplied records
+- `Z Bench` — hardware measurements imported directly from Dayton Audio DATS V3 / Z Bench analyzer
 - `LSDB`
 - `VituixCAD`
 - `Speaker Box Lite`
 
-The compact categories separate Load Forge's own catalog work from the three
+The compact categories separate Load Forge's own catalog work and direct Z Bench measurements from the three
 third-party aggregate databases. They do not merge or rewrite the underlying
 tiers, replace the exact source label/URL, or themselves assert a
 redistribution licence.

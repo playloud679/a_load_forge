@@ -36,3 +36,46 @@ except ImportError:  # top-level import with src/ on sys.path (ui_app)
     from pricing import *  # noqa: F401,F403
     from pricing import _load_driver_price_records  # type: ignore[no-redef]  # noqa: F401
     from ranking import *  # noqa: F401,F403
+
+
+def plausible_passive_radiators(
+    ts: DriverTS,
+    vb_l: float,
+    target_fb_hz: float,
+    pr_catalog: dict[str, Any] | None = None,
+    max_pr_count: int = 2,
+    max_added_mass_g: float = 400.0,
+) -> list[PlausiblePRCombo]:
+    """Return plausible passive radiator catalog combinations matching driver and box."""
+    if pr_catalog is None:
+        pr_catalog = PASSIVE_RADIATOR_PRESETS
+    try:
+        from . import engine as _eng
+    except ImportError:
+        import engine as _eng
+    return _eng.plausible_passive_radiators(
+        ts,
+        vb_l,
+        target_fb_hz,
+        pr_catalog=pr_catalog,
+        max_pr_count=max_pr_count,
+        max_added_mass_g=max_added_mass_g,
+    )
+
+
+def suggest_best_pr_combo(
+    ts: DriverTS,
+    vb_l: float,
+    target_fb_hz: float,
+    pr_catalog: dict[str, Any] | None = None,
+) -> PlausiblePRCombo | None:
+    """Return the single best plausible passive radiator combination."""
+    if pr_catalog is None:
+        pr_catalog = PASSIVE_RADIATOR_PRESETS
+    try:
+        from . import engine as _eng
+    except ImportError:
+        import engine as _eng
+    return _eng.suggest_best_pr_combo(
+        ts, vb_l, target_fb_hz, pr_catalog=pr_catalog
+    )

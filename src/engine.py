@@ -288,6 +288,26 @@ class PassiveRadiatorBox:
 
 
 @dataclass(frozen=True)
+class PlausiblePRCombo:
+    """Plausible passive radiator configuration matched to a driver and box."""
+
+    preset_name: str
+    brand: str
+    model: str
+    pr_count: int
+    sp_total_cm2: float
+    area_ratio: float
+    vd_ratio: float
+    added_mass_g: float
+    tuning_fb_hz: float
+    effective_fp_hz: float
+    xmax_mm: float
+    box: PassiveRadiatorBox
+    quality_rating: str
+    notes: str = ""
+
+
+@dataclass(frozen=True)
 class SealedAlignment:
     """Classical closed-box starter alignment."""
 
@@ -3095,6 +3115,124 @@ def simulate_passive_radiator(
         driver_volume_velocity=u_front_driver,
         port_volume_velocity=u_radiator,
     )
+
+
+def plausible_passive_radiators(
+    ts: DriverTS,
+    vb_l: float,
+    target_fb_hz: float,
+    pr_catalog: dict[str, Any] | None = None,
+    max_pr_count: int = 2,
+    max_added_mass_g: float = 400.0,
+) -> list[PlausiblePRCombo]:
+    """Find all plausible catalogued passive radiators to tune a box for a driver.
+
+    Matches against displacement capability (Vd_PR >= Vd_driver), radiating area
+    (0.7x <= Sp <= 3.5x Sd), and computes the exact non-negative added mass required
+    per PR to hit target_fb_hz in volume vb_l.
+    """
+    if not pr_catalog or vb_l <= 0.0 or target_fb_hz <= 0.0 or ts.sd_cm2 <= 0.0:
+        return []
+
+    rho_c2 = RHO_AIR * (SPEED_OF_SOUND ** 2)
+    vb_m3 = float(vb_l) / 1000.0
+    vd_driver = float(ts.sd_cm2) * float(ts.xmax_mm or 5.0)
+
+    combos: list[PlausiblePRCombo] = []
+
+    for name, pr in pr_catalog.items():
+        pr_sp = float(getattr(pr, "sp_cm2", 0.0))
+        pr_fp = float(getattr(pr, "fp_hz", 0.0))
+        pr_qmp = float(getattr(pr, "qmp", 5.0))
+        pr_mmp = float(getattr(pr, "mmp_g", 50.0))
+        pr_xmax = float(getattr(pr, "xmax_mm", 0.0))
+        pr_brand = str(getattr(pr, "brand", ""))
+        pr_model = str(getattr(pr, "model", ""))
+
+        if pr_sp <= 0.0 or pr_fp <= 0.0 or pr_mmp <= 0.0:
+            continue
+
+        sp_m2 = pr_sp / 10000.0
+        mmp_kg = pr_mmp / 1000.0
+        cmp_m_per_n = 1.0 / ((2.0 * np.pi * pr_fp) ** 2 * mmp_kg)
+
+        for count in range(1, max_pr_count + 1):
+            sp_total = pr_sp * count
+            area_ratio = sp_total / float(ts.sd_cm2)
+            if area_ratio < 0.7 or area_ratio > 3.5:
+                continue
+
+            vd_pr_effective = sp_total * (pr_xmax if pr_xmax > 0.0 else 10.0)
+            vd_ratio = vd_pr_effective / max(vd_driver, 1.0)
+
+            # Solve for required moving mass per PR:
+            term_box = rho_c2 / vb_m3
+            term_pr = 1.0 / (count * cmp_m_per_n * (sp_m2 ** 2))
+            m_tot_req_kg = (count * (sp_m2 ** 2) / (2.0 * np.pi * target_fb_hz) ** 2) * (term_box + term_pr)
+            added_mass_g = (m_tot_req_kg - mmp_kg) * 1000.0
+
+            if added_mass_g < -2.0 or added_mass_g > max_added_mass_g:
+                continue
+            added_mass_g = max(0.0, added_mass_g)
+
+            # Effective Fp with added mass:
+            eff_fp = pr_fp * np.sqrt(pr_mmp / (pr_mmp + added_mass_g))
+
+            # Quality rating
+            if vd_ratio >= 1.5 and 1.0 <= area_ratio <= 2.5 and added_mass_g <= 150.0:
+                rating = "Optimal"
+            elif vd_ratio >= 1.0 and added_mass_g <= 300.0:
+                rating = "Good"
+            else:
+                rating = "Acceptable"
+
+            box = PassiveRadiatorBox(
+                vb_l=float(vb_l),
+                pr_sp_cm2=float(sp_total),
+                pr_fp_hz=float(pr_fp),
+                pr_qmp=float(pr_qmp),
+                pr_mmp_g=float(pr_mmp * count),
+                pr_added_mass_g=float(added_mass_g * count),
+                pr_xmax_mm=float(pr_xmax),
+            )
+
+            combos.append(
+                PlausiblePRCombo(
+                    preset_name=name,
+                    brand=pr_brand,
+                    model=pr_model,
+                    pr_count=count,
+                    sp_total_cm2=round(sp_total, 1),
+                    area_ratio=round(area_ratio, 2),
+                    vd_ratio=round(vd_ratio, 2),
+                    added_mass_g=round(added_mass_g, 1),
+                    tuning_fb_hz=round(target_fb_hz, 1),
+                    effective_fp_hz=round(eff_fp, 1),
+                    xmax_mm=round(pr_xmax, 1),
+                    box=box,
+                    quality_rating=rating,
+                )
+            )
+
+    def combo_sort_key(c: PlausiblePRCombo) -> tuple:
+        tier = 0 if c.quality_rating == "Optimal" else (1 if c.quality_rating == "Good" else 2)
+        area_penalty = abs(c.area_ratio - 1.5)
+        vd_penalty = max(0.0, 1.5 - c.vd_ratio)
+        return (tier, area_penalty + vd_penalty, c.added_mass_g)
+
+    combos.sort(key=combo_sort_key)
+    return combos
+
+
+def suggest_best_pr_combo(
+    ts: DriverTS,
+    vb_l: float,
+    target_fb_hz: float,
+    pr_catalog: dict[str, Any] | None = None,
+) -> PlausiblePRCombo | None:
+    """Return the single best plausible PR combination for a driver and box."""
+    combos = plausible_passive_radiators(ts, vb_l, target_fb_hz, pr_catalog=pr_catalog)
+    return combos[0] if combos else None
 
 
 def suggest_pr_alignment(ts: DriverTS, pr_box: PassiveRadiatorBox | None = None) -> PassiveRadiatorBox:

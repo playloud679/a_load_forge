@@ -10,9 +10,13 @@ The implementation remains split by responsibility:
 
 - `src/engine.py`: acoustic physics, simulations, optimizers and analysis;
 - `src/port_cad.py`: parametric in-scale CAD cross-section blueprints and 3D STL mesh export;
-- `src/presets.py`: driver T/S catalogs and metadata;
+- `src/presets.py`: driver T/S catalogs, passive radiator presets and metadata;
 - `src/pricing.py`: verified retailer prices and value scoring;
 - `src/ranking.py`: Finder candidate evaluation.
+
+The facade re-exports physics routines from `engine` and automatically binds
+catalogued passive radiator presets to `plausible_passive_radiators()` and
+`suggest_best_pr_combo()`.
 
 The Streamlit app imports this facade as a top-level module after adding
 `src/` to `sys.path`. Package callers use `from src import acoustics` or the
