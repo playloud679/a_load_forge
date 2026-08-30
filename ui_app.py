@@ -304,8 +304,11 @@ def _render_catalog_crawl_report() -> None:
             )
 
 
+_FAVICON_PATH = Path(__file__).parent / "assets" / "load_forge_favicon.png"
+
 st.set_page_config(
     page_title=f"Load Forge v{_VERSION}",
+    page_icon=str(_FAVICON_PATH) if _FAVICON_PATH.exists() else "🔊",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={},
