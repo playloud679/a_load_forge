@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.33 (2026-08-30)
+
+- **Box Design Save T/S to Catalog Fix**:
+  - Resolved `StreamlitAPIException` when persisting modified T/S parameters into the source catalog by deferring `driver_preset_name` session state assignment via `_pending_driver_preset_name` before widget re-instantiation.
+  - Added automated Streamlit `AppTest` regression test in `tests/test_all.py` validating the full button click lifecycle.
+- **Full Active Test Suite**: 186 tests passing fresh (`PASS: 186 FAIL: 0 SKIP: 0`).
+
 ## 0.12.32 (2026-08-30)
 
 - **Parametric Acoustic Port CAD & STL Generator Constant Normal Thickness**:

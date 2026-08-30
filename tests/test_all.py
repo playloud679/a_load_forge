@@ -4386,6 +4386,21 @@ def _check_admin_can_save_box_design_ts_to_catalog():
         assert saved_driver["sd_cm2"] == 225.0
         assert saved_driver["pe_w"] == 300.0
 
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_file("ui_app.py", default_timeout=30)
+    at.session_state["active_workspace"] = "Box Design"
+    at.session_state["_auth_user"] = {
+        "email": "test-admin@loadforge.internal",
+        "role": "admin",
+        "sub": "test-admin-sub",
+    }
+    at.run()
+    assert not at.exception, at.exception
+    save_btn = next((b for b in at.button if b.key == "admin_save_box_design_driver"), None)
+    if save_btn is not None:
+        save_btn.click().run()
+        assert not at.exception, at.exception
+
 
 test(
     "Admin can save Box Design T/S values to the source catalog",

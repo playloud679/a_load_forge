@@ -10921,6 +10921,10 @@ with st.sidebar:
                 key="preset_search",
                 placeholder="Manufacturer or part number",
             )
+        if "_pending_driver_preset_name" in st.session_state:
+            st.session_state["driver_preset_name"] = st.session_state.pop(
+                "_pending_driver_preset_name"
+            )
         filtered_preset_names = _filter_driver_preset_names(
             all_preset_names,
             source="All",
@@ -11024,7 +11028,9 @@ with st.sidebar:
                     except ValueError as exc:
                         st.error(f"Could not update catalog T/S: {exc}")
                     else:
-                        st.session_state["driver_preset_name"] = catalog_source_preset
+                        st.session_state["_pending_driver_preset_name"] = (
+                            catalog_source_preset
+                        )
                         st.session_state["_admin_catalog_source_preset"] = (
                             catalog_source_preset
                         )
