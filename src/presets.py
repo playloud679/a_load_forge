@@ -1633,10 +1633,109 @@ def _load_ztzaudio_presets() -> tuple[dict[str, DriverTS], dict[str, DriverPrese
 
 
 @lru_cache(maxsize=1)
+def _load_firestore_presets(
+    client: Any | None = None,
+) -> tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]:
+    """Load driver presets dynamically from Google Cloud Firestore.
+
+    Gracefully falls back to empty if offline or credentials are not present.
+    """
+    project_id = os.environ.get("LOAD_FORGE_GCP_PROJECT", "civic-radio-502611-i8")
+    collection_name = os.environ.get("LOAD_FORGE_FIRESTORE_DRIVERS_COLLECTION", "driver_presets")
+    presets: dict[str, DriverTS] = {}
+    info: dict[str, DriverPresetInfo] = {}
+
+    raw_items: list[dict[str, Any]] = []
+    try:
+        if client is None:
+            from google.cloud import firestore
+            client = firestore.Client(project=project_id)
+        for doc in client.collection(collection_name).stream():
+            data = doc.to_dict() if hasattr(doc, "to_dict") else doc
+            if isinstance(data, dict):
+                raw_items.append(data)
+    except Exception:
+        raw_items = []
+
+    for item in raw_items:
+        try:
+            d = item.get("driver", {})
+            if not isinstance(d, dict) or not d.get("fs_hz") or not d.get("re_ohm"):
+                continue
+            fs = float(d["fs_hz"])
+            re = float(d["re_ohm"])
+            qms = float(d.get("qms", 5.0))
+            qes = float(d.get("qes", 0.4))
+            qts = float(d.get("qts", 0.37))
+            le_mh = float(d.get("le_mh", 0.0))
+            le10k_mh = float(d["le10k_mh"]) if d.get("le10k_mh") is not None else None
+            sd_cm2 = float(d.get("sd_cm2", 100.0)) if d.get("sd_cm2") is not None else 100.0
+            vas_l = float(d.get("vas_l", 20.0)) if d.get("vas_l") is not None else 20.0
+            mms_g = float(d["mms_g"]) if d.get("mms_g") is not None else None
+            cms_mm_per_n = float(d["cms_mm_per_n"]) if d.get("cms_mm_per_n") is not None else None
+            bl_tm = float(d["bl_tm"]) if d.get("bl_tm") is not None else None
+            xmax_mm = float(d["xmax_mm"]) if d.get("xmax_mm") is not None else None
+            pe_w = float(d["pe_w"]) if d.get("pe_w") is not None else None
+
+            driver = DriverTS(
+                fs_hz=fs,
+                vas_l=vas_l,
+                qts=qts,
+                qms=qms,
+                re_ohm=re,
+                sd_cm2=sd_cm2,
+                le_mh=le_mh,
+                le10k_mh=le10k_mh,
+                xmax_mm=xmax_mm if xmax_mm is not None else 0.0,
+                pe_w=pe_w if pe_w is not None else 0.0,
+                mms_g=mms_g,
+                cms_mm_per_n=cms_mm_per_n,
+                bl_tm=bl_tm,
+            )
+            brand = str(item.get("brand", "Custom")).strip()
+            model = str(item.get("model", "Measured")).strip()
+            name = str(item.get("name") or f"Z Bench: {brand} {model}").strip()
+            source = str(item.get("source") or "Z Bench Measurement").strip()
+            presets[name] = driver
+            info[name] = DriverPresetInfo(
+                name=name,
+                source=source,
+                brand=brand,
+                model=model,
+                part_number=model,
+                size_in=coherent_nominal_size_in(None, driver.sd_cm2),
+                price=_valid_price(item.get("price")),
+                currency=str(item.get("currency") or "EUR"),
+                url=str(item.get("url") or ""),
+                published_specs=_published_specs_from_mapping(item.get("published_specs")),
+            )
+        except Exception:
+            continue
+
+    return presets, info
+
+
+def invalidate_preset_caches() -> None:
+    """Clear all LRU caches for driver and passive radiator presets."""
+    _external_tiers.cache_clear()
+    _load_firestore_presets.cache_clear()
+    _load_manufacturer_presets.cache_clear()
+    _load_loudspeaker_database_presets.cache_clear()
+    _load_vituixcad_presets.cache_clear()
+    _load_speakerboxlite_presets.cache_clear()
+    _load_ztzaudio_presets.cache_clear()
+    driver_preset_names.cache_clear()
+    driver_preset_info.cache_clear()
+    driver_preset_provenance_category.cache_clear()
+    get_driver_preset.cache_clear()
+
+
+@lru_cache(maxsize=1)
 def _external_tiers() -> list[tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]]:
     return [
         _load_loudspeaker_database_presets(),
         _load_manufacturer_presets(),
+        _load_firestore_presets(),
         _load_vituixcad_presets(),
         _load_speakerboxlite_presets(),
         _load_ztzaudio_presets(),

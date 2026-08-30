@@ -4585,6 +4585,64 @@ test(
 )
 
 
+def _check_firestore_presets_loader():
+    from unittest.mock import MagicMock, patch
+    from src import presets
+
+    # Mock Firestore stream
+    mock_doc = MagicMock()
+    mock_doc.to_dict.return_value = {
+        "brand": "SBAcoustics",
+        "model": "SB17-Test",
+        "name": "Z Bench: SBAcoustics SB17-Test",
+        "source": "Z Bench Measurement",
+        "driver": {
+            "fs_hz": 38.5,
+            "re_ohm": 5.9,
+            "qms": 4.8,
+            "qes": 0.36,
+            "qts": 0.33,
+            "vas_l": 28.4,
+            "mms_g": 12.5,
+            "bl_tm": 5.8,
+            "le_mh": 0.42,
+            "sd_cm2": 118.0,
+            "xmax_mm": 5.0,
+            "pe_w": 60.0,
+        },
+    }
+
+    mock_client = MagicMock()
+    mock_client.collection.return_value.stream.return_value = [mock_doc]
+
+    presets._load_firestore_presets.cache_clear()
+    drivers, info = presets._load_firestore_presets(client=mock_client)
+    name = "Z Bench: SBAcoustics SB17-Test"
+    assert name in drivers
+    drv = drivers[name]
+    assert drv.fs_hz == 38.5
+    assert drv.re_ohm == 5.9
+    assert drv.le_mh == 0.42
+    assert drv.xmax_mm == 5.0
+    assert info[name].source == "Z Bench Measurement"
+    from unittest.mock import patch
+
+    presets.invalidate_preset_caches()
+    with patch.object(presets, "_load_firestore_presets", return_value=(drivers, info)):
+        presets._external_tiers.cache_clear()
+        presets.driver_preset_info.cache_clear()
+        presets.driver_preset_provenance_category.cache_clear()
+        assert presets.driver_preset_provenance_category(name) == "Z Bench"
+    
+    presets.invalidate_preset_caches()
+
+
+test(
+    "Firestore online presets loader maps driver physics and Z Bench provenance",
+    _check_firestore_presets_loader,
+)
+
+
 def _check_heritage_importer_parses_altec_and_tad_tables():
     from tools import import_heritage_drivers as heritage
 
@@ -9657,6 +9715,8 @@ def _check_module_split_facade():
         _acoustics.driver_preset_provenance_category
         is presets.driver_preset_provenance_category
     )
+    assert _acoustics._load_firestore_presets is presets._load_firestore_presets
+    assert _acoustics.invalidate_preset_caches is presets.invalidate_preset_caches
     assert "Z Bench" in _acoustics.PRESET_PROVENANCE_CATEGORIES
     assert legacy_dccav.DriverTS is _acoustics.DriverTS
     assert legacy_dccav.simulate is _acoustics.simulate

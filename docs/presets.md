@@ -79,10 +79,11 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
   generated aggregate tiers are already brand/model-deduplicated against
   earlier catalogs.
 - `_external_tiers()`: the ordered list
-  `[LSDB, manufacturer, VituixCAD, Speaker Box Lite, ZTZ Audio]` that
+  `[LSDB, manufacturer, Firestore online, VituixCAD, Speaker Box Lite, ZTZ Audio]` that
   `driver_preset_names/info/get_driver_preset` walk after the built-ins.
 - Public catalog API: `driver_preset_names()`, `driver_preset_info(name)`,
-  `driver_preset_provenance_category(name)`, `get_driver_preset(name)`
+  `driver_preset_provenance_category(name)`, `get_driver_preset(name)`,
+  `invalidate_preset_caches()`
 - `DriverPresetInfo.mechanical` optionally carries physical layout dimensions
   (`MechanicalDimensions`: overall diameter, cutout, depth, bolt circle and
   weight). These values are for drawing/layout checks only and never enter the

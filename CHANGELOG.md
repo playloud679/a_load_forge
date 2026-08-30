@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.31 (2026-08-30)
+
+- **Online Google Cloud Firestore Driver Presets Tier**:
+  - Implemented `_load_firestore_presets()` and `invalidate_preset_caches()` in `src/presets.py` and re-exported through `src/acoustics.py`.
+  - Added live querying of `driver_presets` collection in Firestore project `civic-radio-502611-i8` (or configured `LOAD_FORGE_GCP_PROJECT`).
+  - Seamlessly integrates measured driver presets into Load Forge without container redeployment, categorizing them under `"Z Bench"` provenance.
+  - Added unit test `_check_firestore_presets_loader` in `tests/test_all.py`.
+- **Full Active Test Suite**: 186 tests passing fresh (`PASS: 186 FAIL: 0 SKIP: 0`).
+
 ## 0.12.30 (2026-08-30)
 
 - **Z Bench Hardware Measurements Provenance Tier**:
