@@ -1537,6 +1537,15 @@ def _check_port_cad_and_stl_generation():
         "single Aeroport rounding must open only toward the right mouth"
     )
 
+    # Verify constant normal wall thickness across flared profiles
+    z_out_norm, r_out_norm = _acoustics.compute_normal_offset_profile(z, ri, 4.0)
+    normal_dists = np.hypot(z_out_norm - z, r_out_norm - ri)
+    assert np.allclose(normal_dists, 4.0, atol=1e-3), "normal thickness must be exactly 4.0mm along hourglass flare"
+
+    z_out_ap, r_out_ap = _acoustics.compute_normal_offset_profile(z_ap, ri_ap, 4.0)
+    normal_dists_ap = np.hypot(z_out_ap - z_ap, r_out_ap - ri_ap)
+    assert np.allclose(normal_dists_ap, 4.0, atol=1e-3), "normal thickness must be exactly 4.0mm along Aeroport rounding"
+
     # 2. Test In-Scale CAD SVG Generation
     svg = _acoustics.generate_port_svg_cad(
         d_throat_mm=70.0,

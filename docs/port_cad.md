@@ -35,10 +35,18 @@ $$r(t) = r_{\text{throat}} + a_2 t^2 + a_3 t^3 + a_4 t^4 + a_5 t^5$$
 
 satisfies $r'(0)=0$, $r''(0)=1/R_{\text{throat}}$, $r(1)=r_{\text{mouth}}$, and $r''(1)=1/R_{\text{mouth}}$, guaranteeing a continuous smooth transition without sharp transitions or airflow boundary detachment.
 
+### Constant Normal Wall Thickness
+Both 2D CAD blueprints and 3D STL meshes maintain a strict constant normal wall thickness $t_{\text{wall}}$ perpendicular to the local surface tangent:
+
+$$\hat{n} = \left(-\frac{dr}{\sqrt{dz^2 + dr^2}}, \; \frac{dz}{\sqrt{dz^2 + dr^2}}\right)$$
+
+This ensures that wall thickness does not thin out on steep flare angles (such as Aeroport bellmouths or progressive Hourglass profiles), producing strong, uniform walls for 3D printing.
+
 ## Functions
 
 - `calculate_dynamic_hourglass_radii(d_throat_mm, d_mouth_mm, length_mm, flare_radius_mm)`: Computes $(R_{\text{throat}}, R_{\text{mouth}})$ in mm.
-- `generate_port_profile_2d(d_throat_mm, d_mouth_mm, length_mm, flare_style, flare_radius_mm, wall_thickness_mm, n_pts=80)`: Computes $(z, r_{\text{inner}}, r_{\text{outer}})$ in mm. Aeroport profiles are monotonic from throat to mouth and share the same geometry in SVG and STL output.
+- `compute_normal_offset_profile(z_inner, r_inner, wall_thickness_mm)`: Computes $(z_{\text{outer}}, r_{\text{outer}})$ along the outward 2D surface unit normal $\hat{n}$.
+- `generate_port_profile_2d(d_throat_mm, d_mouth_mm, length_mm, flare_style, flare_radius_mm, wall_thickness_mm, n_pts=80)`: Computes $(z, r_{\text{inner}}, r_{\text{outer}})$ in mm with slope-compensated radial thickness. Aeroport profiles are monotonic from throat to mouth and share the same geometry in SVG and STL output.
 - `generate_port_svg_cad(...)`: Generates a strictly proportional 1:1 in-scale 2D CAD SVG cross-section blueprint.
 - `generate_parametric_port_stl(...)`: Exports binary STL bytes for 3D printing and CNC milling with support for full 1-piece, 2-piece symmetric halves ($L/2$), and flange-only adapter modes.
 - `write_binary_stl(triangles_nx3x3, header_str)`: High-speed pure-NumPy binary STL serializer.

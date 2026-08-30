@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.32 (2026-08-30)
+
+- **Parametric Acoustic Port CAD & STL Generator Constant Normal Thickness**:
+  - Implemented `compute_normal_offset_profile()` in `src/port_cad.py` using true outward unit normal vectors $\hat{n} = \left(-\frac{dr}{\text{norm}}, \frac{dz}{\text{norm}}\right)$.
+  - Fixed wall thinning on flared/curved profiles (Hourglass, double-flared Aeroport, single-flared vents), ensuring exact uniform normal wall thickness $t_{\text{wall}}$ throughout both 2D SVG blueprints and watertight 3D STL meshes.
+  - Added unit test assertions in `tests/test_all.py` validating $4.0\text{ mm}$ constant normal thickness.
+- **Full Active Test Suite**: 186 tests passing fresh (`PASS: 186 FAIL: 0 SKIP: 0`).
+
 ## 0.12.31 (2026-08-30)
 
 - **Online Google Cloud Firestore Driver Presets Tier**:

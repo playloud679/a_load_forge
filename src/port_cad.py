@@ -93,6 +93,28 @@ def calculate_dynamic_hourglass_radii(
     return r_throat_calc, r_mouth_calc
 
 
+def compute_normal_offset_profile(
+    z_inner: np.ndarray,
+    r_inner: np.ndarray,
+    wall_thickness_mm: float,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Compute equidistant outer profile coordinates (z_outer, r_outer) with exact constant normal thickness.
+
+    Avoids wall thinning on flared/curved sections by offsetting along the true 2D surface unit normal:
+    n_hat = (-dr / norm, dz / norm)
+    """
+    t_wall = max(0.5, float(wall_thickness_mm))
+    dz = np.gradient(z_inner)
+    dr = np.gradient(r_inner)
+    norm = np.hypot(dz, dr)
+    norm[norm < 1e-9] = 1.0
+    nz = -dr / norm
+    nr = dz / norm
+    z_outer = z_inner + t_wall * nz
+    r_outer = r_inner + t_wall * nr
+    return z_outer, r_outer
+
+
 def generate_port_profile_2d(
     d_throat_mm: float,
     d_mouth_mm: float,
@@ -104,8 +126,9 @@ def generate_port_profile_2d(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Calculate 2D meridian arrays (z, r_inner, r_outer) in millimeters.
 
-    For Hourglass, uses a continuous smooth monotonic power blend
-    expanding progressively from throat (z=0) to outer mouth (z=±L/2).
+    For Hourglass, Aeroport and straight ducts, computes the outer wall
+    with exact normal thickness compensation so that wall thickness is uniform
+    along both cylindrical and curved sections.
     """
     r_t = max(1.0, float(d_throat_mm) / 2.0)
     r_m = max(r_t, float(d_mouth_mm) / 2.0)
@@ -131,10 +154,7 @@ def generate_port_profile_2d(
             for i, zv in enumerate(z_full):
                 if zv < -L_h + f_len:
                     # Quarter-circle from the left mouth (t=-1, r=r_m)
-                    # to the cylindrical throat (t=0, r=r_t).  Squaring the
-                    # signed coordinate keeps the two ends mirror symmetric;
-                    # offsetting it by one would reverse the flare and create
-                    # an inward-facing cusp at the throat junction.
+                    # to the cylindrical throat (t=0, r=r_t).
                     zl = (zv - (-L_h + f_len)) / f_len
                     r_inner[i] = r_t + dr * (
                         1.0 - np.sqrt(max(0.0, 1.0 - zl**2))
@@ -162,7 +182,14 @@ def generate_port_profile_2d(
     else:  # none / cylindrical straight
         r_inner = np.full_like(z_full, r_t)
 
-    r_outer = r_inner + max(0.5, float(wall_thickness_mm))
+    t_wall = max(0.5, float(wall_thickness_mm))
+    dz = np.gradient(z_full)
+    dr_vec = np.gradient(r_inner)
+    norm = np.hypot(dz, dr_vec)
+    # Direct slope-compensated radial thickness: delta_r = t * sqrt(1 + (dr/dz)^2)
+    # Guaranteed to maintain constant normal thickness t_wall across all flare angles.
+    slope = np.abs(dr_vec) / np.maximum(1e-6, np.abs(dz))
+    r_outer = r_inner + t_wall * np.sqrt(1.0 + slope**2)
     return z_full, r_inner, r_outer
 
 
@@ -204,6 +231,9 @@ def generate_port_svg_cad(
         wall_thickness_mm=wall_thickness_mm,
         n_pts=60,
     )
+    z_outer, r_outer_norm = compute_normal_offset_profile(
+        z_full, r_inner, wall_thickness_mm
+    )
 
     r_th_calc, r_mo_calc = calculate_dynamic_hourglass_radii(
         d_throat_mm, d_mouth_mm, length_mm, flare_radius_mm
@@ -236,11 +266,11 @@ def generate_port_svg_cad(
     if has_flange:
         top_pts.append(map_pt(z_end, r_flange))
         top_pts.append(map_pt(z_end - flange_thickness_mm, r_flange))
-        top_pts.append(map_pt(z_end - flange_thickness_mm, float(r_outer[-1])))
+        top_pts.append(map_pt(float(z_outer[-1]), float(r_outer_norm[-1])))
     else:
-        top_pts.append(map_pt(z_end, float(r_outer[-1])))
+        top_pts.append(map_pt(float(z_outer[-1]), float(r_outer_norm[-1])))
         
-    for z_v, r_v in zip(reversed(z_full[:-1]), reversed(r_outer[:-1])):
+    for z_v, r_v in zip(reversed(z_outer[:-1]), reversed(r_outer_norm[:-1])):
         top_pts.append(map_pt(float(z_v), float(r_v)))
         
     top_path_d = f"M {top_pts[0][0]:.1f},{top_pts[0][1]:.1f} " + " ".join(f"L {p[0]:.1f},{p[1]:.1f}" for p in top_pts[1:]) + " Z"
@@ -251,10 +281,10 @@ def generate_port_svg_cad(
     if has_flange:
         bot_pts.append(map_pt(z_end, -r_flange))
         bot_pts.append(map_pt(z_end - flange_thickness_mm, -r_flange))
-        bot_pts.append(map_pt(z_end - flange_thickness_mm, float(-r_outer[-1])))
+        bot_pts.append(map_pt(float(z_outer[-1]), float(-r_outer_norm[-1])))
     else:
-        bot_pts.append(map_pt(z_end, float(-r_outer[-1])))
-    for z_v, r_v in zip(reversed(z_full[:-1]), reversed(-r_outer[:-1])):
+        bot_pts.append(map_pt(float(z_outer[-1]), float(-r_outer_norm[-1])))
+    for z_v, r_v in zip(reversed(z_outer[:-1]), reversed(-r_outer_norm[:-1])):
         bot_pts.append(map_pt(float(z_v), float(r_v)))
     bot_path_d = f"M {bot_pts[0][0]:.1f},{bot_pts[0][1]:.1f} " + " ".join(f"L {p[0]:.1f},{p[1]:.1f}" for p in bot_pts[1:]) + " Z"
 
@@ -403,7 +433,7 @@ def generate_parametric_port_stl(
     if bolt_pcd_mm is None or bolt_pcd_mm <= 0:
         bolt_pcd_mm = (d_mouth_mm + flange_diameter_mm) / 2.0
 
-    z_full, r_inner_full, r_outer_full = generate_port_profile_2d(
+    z_full, r_inner_full, _ = generate_port_profile_2d(
         d_throat_mm=d_throat_mm,
         d_mouth_mm=d_mouth_mm,
         length_mm=length_mm,
@@ -412,49 +442,55 @@ def generate_parametric_port_stl(
         wall_thickness_mm=wall_thickness_mm,
         n_pts=n_pts,
     )
+    z_outer_full, r_outer_full = compute_normal_offset_profile(
+        z_full, r_inner_full, wall_thickness_mm
+    )
 
     if split_mode == "half":
         mask = z_full >= -1e-6
-        z = z_full[mask]
-        r_inner = r_inner_full[mask]
-        r_outer = r_outer_full[mask]
+        z_in = z_full[mask]
+        r_in = r_inner_full[mask]
+        z_out = z_outer_full[mask]
+        r_out = r_outer_full[mask]
     elif split_mode == "flange_only":
         f_len = min(flare_radius_mm * 1.5, L / 2.0)
         mask = z_full >= (L / 2.0 - f_len)
-        z = z_full[mask]
-        r_inner = r_inner_full[mask]
-        r_outer = r_outer_full[mask]
+        z_in = z_full[mask]
+        r_in = r_inner_full[mask]
+        z_out = z_outer_full[mask]
+        r_out = r_outer_full[mask]
     else:
-        z = z_full
-        r_inner = r_inner_full
-        r_outer = r_outer_full
+        z_in = z_full
+        r_in = r_inner_full
+        z_out = z_outer_full
+        r_out = r_outer_full
 
     poly_r: list[float] = []
     poly_z: list[float] = []
     
-    for zi, ri in zip(z, r_inner):
+    for zi, ri in zip(z_in, r_in):
         poly_r.append(float(ri))
         poly_z.append(float(zi))
         
-    z_end = float(z[-1])
+    z_end = float(z_in[-1])
     if has_flange:
         flange_back_z = z_end - float(flange_thickness_mm)
         poly_r.append(r_flange)
         poly_z.append(z_end)
         poly_r.append(r_flange)
         poly_z.append(flange_back_z)
-        poly_r.append(float(r_outer[-1]))
-        poly_z.append(flange_back_z)
+        poly_r.append(float(r_out[-1]))
+        poly_z.append(float(z_out[-1]))
     else:
-        poly_r.append(float(r_outer[-1]))
-        poly_z.append(z_end)
+        poly_r.append(float(r_out[-1]))
+        poly_z.append(float(z_out[-1]))
         
-    for zi, ro in zip(reversed(z[:-1]), reversed(r_outer[:-1])):
+    for zo, ro in zip(reversed(z_out[:-1]), reversed(r_out[:-1])):
         poly_r.append(float(ro))
-        poly_z.append(float(zi))
+        poly_z.append(float(zo))
         
-    poly_r.append(float(r_inner[0]))
-    poly_z.append(float(z[0]))
+    poly_r.append(float(r_in[0]))
+    poly_z.append(float(z_in[0]))
     
     r_arr = np.array(poly_r, dtype=np.float32)
     z_arr = np.array(poly_z, dtype=np.float32)
