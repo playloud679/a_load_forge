@@ -175,9 +175,9 @@ Transient failures retry without sleeping at 2, 5 and 15 seconds. Permission,
 authentication, malformed data and exhausted retries remain visibly failed;
 `Saved ✓` is set only after the store returns an acknowledged record.
 
-When a new or reset session has no named project, the workspace remains blocked
-until the user supplies a name other than `Untitled project`; opening an LFP or
-cloud project then replaces that name with the imported/project name.
+When a new or reset session has no named project, the Project panel opens and
+prompts for a name other than `Untitled project`; opening an LFP or cloud project
+then replaces that name with the imported/project name.
 
 Project payloads are strict JSON (`allow_nan=False`), capped below Firestore's
 document ceiling and validated before any active revision changes. Format 2
