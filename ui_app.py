@@ -1091,11 +1091,16 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
 
 _CURRENT_SAAS_USER = _resolve_saas_user()
 
-@st.cache_resource
+@st.cache_resource(show_spinner=False)
 def _get_account_store():
     return _saas.create_account_store(_SAAS_SETTINGS)
 
 _ACCOUNT_STORE = _get_account_store()
+
+
+@st.cache_resource(show_spinner=False)
+def _get_project_store():
+    return _saas.create_project_store(_SAAS_SETTINGS)
 
 def _get_current_user_account() -> _saas.UserAccount | None:
     if _CURRENT_SAAS_USER is None:
@@ -2363,13 +2368,19 @@ def _build_lfp_project(
         or st.session_state.get("project_name", "Untitled project")
     ).strip() or "Untitled project"
     now = datetime.now(UTC).isoformat()
+    project_id = str(
+        st.session_state.get("_portable_project_id") or f"lfp_{uuid.uuid4().hex}"
+    )
+    created_at = str(st.session_state.get("_portable_project_created_at") or now)
+    st.session_state["_portable_project_id"] = project_id
+    st.session_state["_portable_project_created_at"] = created_at
     project_meta = {
-        "id": f"lfp_{uuid.uuid4().hex}",
+        "id": project_id,
         "name": name,
-        "created_at": now,
+        "created_at": created_at,
         "updated_at": now,
     }
-    return {
+    payload = {
         "_load_forge_meta": {
             "version": _VERSION,
             "format": _LFP_FORMAT_VERSION,
@@ -2381,6 +2392,7 @@ def _build_lfp_project(
             include_results=include_results
         ),
     }
+    return _saas.validate_project_payload(payload, allow_legacy=False)
 
 
 def _bass_match_results_signature() -> str:
@@ -2422,6 +2434,12 @@ def _apply_lfp_project(payload: dict) -> int:
         legacy = dict(payload)
         legacy.pop("_load_forge_meta", None)
         return _apply_loaded_params(legacy)
+
+    payload = _saas.validate_project_payload(
+        payload,
+        allow_legacy=False,
+        require_complete=False,
+    )
 
     parameters = payload.get("parameters")
     if not isinstance(parameters, dict):
@@ -2582,22 +2600,400 @@ def _project_download_filename(name: str) -> str:
     return f"{stem or 'load_forge_project'}.lfp"
 
 
+_AUTOSAVE_DEBOUNCE_SECONDS = 1.5
+_AUTOSAVE_RETRY_DELAYS = (2.0, 5.0, 15.0)
+_SAVE_STATUS_LABELS = {
+    "saved": "Saved ✓",
+    "saving": "Saving…",
+    "unsaved": "Unsaved changes",
+    "retrying": "Save failed — retrying",
+    "failed": "Save failed",
+    "conflict": "Save conflict",
+}
+_UNTITLED_PROJECT_NAME = "Untitled project"
+
+
+def _mark_cloud_project_dirty(*, immediate: bool = False) -> None:
+    """Flag a structural project change for the autosave fragment."""
+    st.session_state["_cloud_save_status"] = "unsaved"
+    st.session_state["_cloud_dirty_since"] = 0.0 if immediate else time.monotonic()
+    if immediate:
+        st.session_state["_cloud_autosave_force"] = True
+
+
+def _set_active_cloud_record(record: _saas.ProjectRecord) -> None:
+    st.session_state["_cloud_project_id"] = record.project_id
+    st.session_state["_cloud_project_revision"] = record.revision
+    st.session_state["_cloud_saved_hash"] = record.content_hash
+    st.session_state["_cloud_observed_hash"] = record.content_hash
+    st.session_state["_cloud_save_status"] = "saved"
+    st.session_state["_cloud_save_failure_count"] = 0
+    st.session_state.pop("_cloud_save_retry_at", None)
+    st.session_state.pop("_cloud_save_error", None)
+    st.session_state.pop("_cloud_save_error_kind", None)
+    st.session_state.pop("_cloud_conflict", None)
+
+
+def _apply_cloud_record(record: _saas.ProjectRecord) -> int:
+    payload = _saas.validate_project_payload(
+        record.parameters,
+        require_complete=False,
+    )
+    _snapshot_design_state()
+    if "parameters" in payload:
+        applied = _apply_lfp_project(payload)
+    else:
+        applied = _apply_loaded_params(payload)
+    st.session_state["project_name"] = record.name
+    st.session_state["_project_name_revision"] = int(
+        st.session_state.get("_project_name_revision", 0)
+    ) + 1
+    _set_active_cloud_record(record)
+    return applied
+
+
+def _cloud_autosave_step(
+    store,
+    user: _saas.SaaSUser,
+    *,
+    now: float | None = None,
+    force: bool = False,
+) -> str:
+    """Advance one non-blocking debounced autosave attempt."""
+    now = time.monotonic() if now is None else float(now)
+    name = str(st.session_state.get("project_name", "Untitled project")).strip()
+    name = name or "Untitled project"
+    try:
+        payload = _build_lfp_project({"name": name}, include_results=True)
+    except Exception as exc:
+        st.session_state["_cloud_save_status"] = "failed"
+        st.session_state["_cloud_save_error"] = str(exc)
+        st.session_state["_cloud_save_error_kind"] = "invalid"
+        logger.exception("Project autosave validation failed")
+        return "failed"
+    status, _ = _saas.advance_project_autosave(
+        store,
+        user,
+        name,
+        payload,
+        _VERSION,
+        st.session_state,
+        now=now,
+        force=force,
+        debounce_seconds=_AUTOSAVE_DEBOUNCE_SECONDS,
+        retry_delays=_AUTOSAVE_RETRY_DELAYS,
+    )
+    return status
+
+
+@st.fragment(run_every=2)
+def _render_cloud_persistence_status() -> None:
+    if not (_SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None):
+        return
+    force = bool(st.session_state.pop("_cloud_autosave_force", False))
+    try:
+        status = _cloud_autosave_step(
+            _get_project_store(),
+            _CURRENT_SAAS_USER,
+            force=force,
+        )
+    except Exception as exc:
+        kind = _saas.project_error_kind(exc)
+        logger.exception("Could not initialize cloud project persistence")
+        st.session_state["_cloud_save_status"] = "failed"
+        st.session_state["_cloud_save_error"] = str(exc)
+        st.session_state["_cloud_save_error_kind"] = kind
+        status = "failed"
+    label = _SAVE_STATUS_LABELS.get(status, "Unsaved changes")
+    color = "#34d399" if status == "saved" else (
+        "#fbbf24" if status in {"unsaved", "saving", "retrying"} else "#f87171"
+    )
+    st.markdown(
+        f"<div title='Cloud persistence status' style='font-size:.76rem;"
+        f"color:{color};margin:-.25rem 0 .45rem 0'>● {html.escape(label)}</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def _invalidate_cloud_project_list() -> None:
+    st.session_state.pop("_cloud_project_summaries", None)
+    st.session_state.pop("_cloud_project_summaries_at", None)
+
+
+def _cloud_project_summaries(*, force: bool = False) -> list[_saas.ProjectSummary]:
+    now = time.monotonic()
+    cached = st.session_state.get("_cloud_project_summaries")
+    cached_at = float(st.session_state.get("_cloud_project_summaries_at", 0.0) or 0.0)
+    if not force and isinstance(cached, list) and now - cached_at < 30.0:
+        return cached
+    summaries = _get_project_store().list_projects(
+        _CURRENT_SAAS_USER,
+        limit=200,
+        include_deleted=True,
+    )
+    st.session_state["_cloud_project_summaries"] = summaries
+    st.session_state["_cloud_project_summaries_at"] = now
+    return summaries
+
+
+def _record_lfp_export() -> None:
+    st.session_state["_last_lfp_export_at"] = datetime.now(UTC).isoformat()
+
+
+def _cloud_persistence_error_message(kind: str) -> str:
+    """Return a concise recovery instruction without exposing project contents."""
+    if kind == "auth":
+        if not os.environ.get("K_SERVICE"):
+            return (
+                "Cloud save is unavailable because local Google Cloud credentials "
+                "are missing or expired. Run `gcloud auth application-default login`, "
+                "then restart Load Forge."
+            )
+        return "Cloud save authentication expired. Sign in again, then retry."
+    if kind == "permission":
+        return (
+            "Firestore denied this project write. Check the service account or "
+            "Firestore permissions, then retry."
+        )
+    if kind == "invalid":
+        return (
+            "This project state did not pass validation, so the previous cloud "
+            "revision was preserved."
+        )
+    if kind == "transient":
+        return "Cloud save could not connect after retrying. Check the connection, then retry."
+    return "Cloud save failed. Check the Firestore configuration or connection, then retry."
+
+
+def _detach_cloud_project(*, suppress_hash: str | None = None) -> None:
+    for key in (
+        "_cloud_project_id",
+        "_cloud_project_revision",
+        "_cloud_saved_hash",
+        "_cloud_observed_hash",
+        "_cloud_conflict",
+    ):
+        st.session_state.pop(key, None)
+    if suppress_hash:
+        st.session_state["_cloud_suppressed_hash"] = suppress_hash
+    else:
+        st.session_state.pop("_cloud_suppressed_hash", None)
+
+
+def _render_cloud_project_controls() -> None:
+    if not (_SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None):
+        return
+    st.caption(
+        "Cloud autosave · Projects resume across sessions and devices. Cloud "
+        "storage is not a permanent backup archive; periodically download an "
+        "important project as .lfp."
+    )
+    status = str(st.session_state.get("_cloud_save_status", "unsaved"))
+    error = str(st.session_state.get("_cloud_save_error", "")).strip()
+    error_kind = str(st.session_state.get("_cloud_save_error_kind", "unknown"))
+    if status == "failed":
+        st.error(_cloud_persistence_error_message(error_kind))
+        if error and error_kind == "unknown":
+            st.caption(error[:180])
+        if st.button("Retry cloud save", key="project_cloud_retry", width="stretch"):
+            _mark_cloud_project_dirty(immediate=True)
+            st.rerun()
+    elif status == "conflict":
+        st.error(
+            "A newer cloud revision exists. This session was not allowed to overwrite it."
+        )
+        reload_col, copy_col = st.columns(2)
+        with reload_col:
+            if st.button("Reload latest", key="project_conflict_reload", width="stretch"):
+                try:
+                    record = _get_project_store().load_project(
+                        _CURRENT_SAAS_USER,
+                        str(st.session_state["_cloud_project_id"]),
+                    )
+                    if record is None:
+                        raise _saas.ProjectMissingError("Cloud project was not found")
+                    _apply_cloud_record(record)
+                    st.rerun()
+                except Exception as exc:
+                    logger.exception("Could not reload conflicted cloud project")
+                    st.error(f"Could not reload the latest project: {exc}")
+        with copy_col:
+            if st.button("Save as copy", key="project_conflict_copy", width="stretch"):
+                conflict = st.session_state.get("_cloud_conflict", {})
+                try:
+                    record = _get_project_store().save_project(
+                        _CURRENT_SAAS_USER,
+                        f"{conflict.get('name', 'Untitled project')} (conflict copy)",
+                        conflict["payload"],
+                        _VERSION,
+                        expected_revision=0,
+                    )
+                    st.session_state["project_name"] = record.name
+                    _set_active_cloud_record(record)
+                    _invalidate_cloud_project_list()
+                    st.rerun()
+                except Exception as exc:
+                    logger.exception("Could not preserve conflicted project as a copy")
+                    st.error(f"Could not save the session as a copy: {exc}")
+
+    try:
+        summaries = _cloud_project_summaries()
+    except Exception as exc:
+        logger.exception("Could not list cloud projects")
+        st.warning("Cloud projects could not be listed right now.")
+        st.caption(str(exc)[:180])
+        return
+    active = [item for item in summaries if item.status != "trashed"]
+    trashed = [item for item in summaries if item.status == "trashed"]
+    if active:
+        labels = {
+            item.project_id: f"{item.name} · r{item.revision}"
+            for item in active
+        }
+        current_id = str(st.session_state.get("_cloud_project_id", ""))
+        ids = list(labels)
+        selected_id = st.selectbox(
+            "Cloud projects",
+            ids,
+            index=ids.index(current_id) if current_id in ids else 0,
+            format_func=labels.get,
+            key="project_cloud_selection",
+        )
+        open_col, trash_col, refresh_col = st.columns([2, 2, 1])
+        selected = next(item for item in active if item.project_id == selected_id)
+        with open_col:
+            if st.button("Open", key="project_cloud_open", width="stretch"):
+                try:
+                    record = _get_project_store().load_project(
+                        _CURRENT_SAAS_USER, selected_id
+                    )
+                    if record is None:
+                        raise _saas.ProjectMissingError("Cloud project was not found")
+                    _apply_cloud_record(record)
+                    st.rerun()
+                except Exception as exc:
+                    logger.exception("Could not open cloud project")
+                    st.error(f"Could not open project: {exc}")
+        with trash_col:
+            if st.button("Move to Trash", key="project_cloud_trash", width="stretch"):
+                try:
+                    _get_project_store().soft_delete_project(
+                        _CURRENT_SAAS_USER,
+                        selected_id,
+                        _VERSION,
+                        expected_revision=selected.revision,
+                    )
+                    if current_id == selected_id:
+                        _detach_cloud_project(suppress_hash=selected.content_hash)
+                    _invalidate_cloud_project_list()
+                    st.rerun()
+                except Exception as exc:
+                    logger.exception("Could not move cloud project to Trash")
+                    st.error(f"Could not move project to Trash: {exc}")
+        with refresh_col:
+            if st.button("↻", key="project_cloud_refresh", help="Refresh cloud projects"):
+                _invalidate_cloud_project_list()
+                st.rerun()
+
+    if trashed:
+        if st.toggle(
+            f"Show Trash · {len(trashed)}",
+            key="project_show_trash",
+        ):
+            trash_labels = {
+                item.project_id: f"{item.name} · deleted {item.deleted_at:%d %b}"
+                for item in trashed
+            }
+            trash_id = st.selectbox(
+                "Trashed project",
+                list(trash_labels),
+                format_func=trash_labels.get,
+                key="project_trash_selection",
+            )
+            trashed_project = next(item for item in trashed if item.project_id == trash_id)
+            if st.button("Restore from Trash", key="project_trash_restore", width="stretch"):
+                try:
+                    _get_project_store().restore_project(
+                        _CURRENT_SAAS_USER,
+                        trash_id,
+                        _VERSION,
+                        expected_revision=trashed_project.revision,
+                    )
+                    _invalidate_cloud_project_list()
+                    st.rerun()
+                except Exception as exc:
+                    logger.exception("Could not restore cloud project from Trash")
+                    st.error(f"Could not restore project: {exc}")
+            st.caption(
+                "Trash retention target: "
+                f"{_SAAS_SETTINGS.project_trash_retention_days} days; "
+                "permanent cleanup is an operator task."
+            )
+
+    project_id = st.session_state.get("_cloud_project_id")
+    revision = int(st.session_state.get("_cloud_project_revision", 0) or 0)
+    if (
+        project_id
+        and revision > 1
+        and st.toggle("Show version history", key="project_show_history")
+    ):
+        try:
+            revisions = _get_project_store().list_revisions(
+                _CURRENT_SAAS_USER, str(project_id), limit=10
+            )
+            previous = [item for item in revisions if item.revision < revision]
+            if previous:
+                rev_by_id = {item.revision_id: item for item in previous}
+                revision_id = st.selectbox(
+                    "Previous version",
+                    list(rev_by_id),
+                    format_func=lambda value: (
+                        f"r{rev_by_id[value].revision} · "
+                        f"{rev_by_id[value].created_at:%d %b %Y %H:%M UTC}"
+                    ),
+                    key="project_revision_selection",
+                )
+                if st.button(
+                    "Restore selected version",
+                    key="project_revision_restore",
+                    width="stretch",
+                ):
+                    restored = _get_project_store().restore_revision(
+                        _CURRENT_SAAS_USER,
+                        str(project_id),
+                        rev_by_id[revision_id].revision,
+                        _VERSION,
+                        expected_revision=revision,
+                    )
+                    _apply_cloud_record(restored)
+                    _invalidate_cloud_project_list()
+                    st.rerun()
+            else:
+                st.caption("No previous version is available yet.")
+        except Exception as exc:
+            logger.exception("Could not load project revision history")
+            st.warning(f"Version history is unavailable: {exc}")
+
+
 def _render_project_menu() -> None:
     """Render project file actions (.lfp import/export, reset, and share link)."""
     project_name = str(
-        st.session_state.get("project_name", "Untitled project")
-    ).strip() or "Untitled project"
+        st.session_state.get("project_name", _UNTITLED_PROJECT_NAME)
+    ).strip() or _UNTITLED_PROJECT_NAME
     project_expander = st.expander(
         f"Project · {project_name}",
-        expanded=bool(st.session_state.get("_project_menu_auto_open")),
+        expanded=bool(st.session_state.get("_project_menu_auto_open"))
+        or project_name == _UNTITLED_PROJECT_NAME,
         key="project_menu_expander",
         on_change="rerun",
     )
+    _render_cloud_persistence_status()
     if not project_expander.open:
         return
     with project_expander:
         if _CURRENT_SAAS_USER is not None:
             _render_authenticated_account_controls(_CURRENT_SAAS_USER)
+        _render_cloud_project_controls()
 
         name_revision = int(st.session_state.get("_project_name_revision", 0))
         name_input = st.text_input(
@@ -2610,6 +3006,7 @@ def _render_project_menu() -> None:
         if name_input.strip() and name_input.strip() != project_name:
             st.session_state["project_name"] = name_input.strip()
             project_name = name_input.strip()
+            _mark_cloud_project_dirty(immediate=True)
 
         payload = _build_lfp_project({"name": project_name}, include_results=True)
         lfp_data = json.dumps(payload, indent=2, allow_nan=False).encode("utf-8")
@@ -2621,7 +3018,18 @@ def _render_project_menu() -> None:
             width="stretch",
             key="project_download_lfp_btn",
             help="Save the current design, box parameters, and Bass Match state to your computer.",
+            on_click=_record_lfp_export,
         )
+        st.caption("Recommended: keep a local .lfp backup of important projects.")
+        last_export = st.session_state.get("_last_lfp_export_at")
+        if last_export:
+            try:
+                exported_at = datetime.fromisoformat(str(last_export))
+                st.caption(f"Last .lfp export generated: {exported_at:%d %b %Y %H:%M UTC}")
+            except ValueError:
+                st.caption("Last .lfp export generated: this session")
+        else:
+            st.caption("Local backup: Never generated in this session")
 
         upload_revision = int(st.session_state.get("_project_upload_revision", 0))
         upload = st.file_uploader(
@@ -2654,6 +3062,8 @@ def _render_project_menu() -> None:
                     st.session_state["project_name"] = Path(upload.name).stem
                 st.session_state["_project_name_revision"] = name_revision + 1
                 st.session_state["_project_upload_revision"] = upload_revision + 1
+                _detach_cloud_project()
+                _mark_cloud_project_dirty(immediate=True)
                 st.toast(f"Loaded project · {count} parameters")
                 st.rerun()
             except Exception as exc:
@@ -2679,8 +3089,10 @@ def _render_project_menu() -> None:
         ):
             _clear_active_project_state()
             _reset_finder_defaults()
-            st.session_state["project_name"] = "Untitled project"
+            st.session_state["project_name"] = _UNTITLED_PROJECT_NAME
             st.session_state["_project_name_revision"] = name_revision + 1
+            _detach_cloud_project()
+            _mark_cloud_project_dirty(immediate=True)
             st.toast("Reset to default design")
             st.rerun()
 

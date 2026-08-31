@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.13.1 (2026-08-31)
+
+- **Production Project Persistence & Data Safety**:
+  - Added authenticated debounced Firestore autosave with acknowledged save status, bounded non-blocking retries and semantic no-op deduplication.
+  - Added canonical format-2 LFP/cloud payload validation, strict JSON/schema checks, immutable revision documents, transactional optimistic concurrency and explicit revision restoration.
+  - Added stale-session conflict handling with reload-latest/save-as-copy choices, soft-delete Trash with restore, and a 30-day cleanup target.
+  - Preserved legacy flat Firestore and format-1 LFP reads while keeping `.lfp` export/import as the independent portable backup path.
+  - Kept project documents isolated from account identity, subscription and credit fields; documented an append-only credit ledger as follow-up before paid credit packs.
+- **Persistence UX & Recovery Operations**:
+  - Added compact Saved/Saving/Unsaved/Retrying/Failed status, cloud project management, minimal version history, Trash restore, backup guidance and session-only last-export metadata.
+  - Replaced Streamlit's project-store function-name spinner with a quiet initialization path and an actionable local ADC message when Firestore credentials are missing or expired.
+  - Added operator checklists for Firestore PITR, daily/longer-retention scheduled backups, restore drills, catalog backup and surgical project recovery.
+- **Tests**: Added regressions for autosave, deduplication, validation, revisions, stale conflicts, soft delete/restore, failed-write status, schema handling and credit isolation. Full active suite: `PASS: 187 FAIL: 0 SKIP: 0`.
+
 ## 0.12.33 (2026-08-30)
 
 - **Box Design Save T/S to Catalog Fix**:

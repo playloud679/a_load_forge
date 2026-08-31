@@ -15,6 +15,7 @@ LOAD_FORGE_OPEN_BETA_ENABLED=true
 LOAD_FORGE_SAAS_BACKEND=firestore
 LOAD_FORGE_GCP_PROJECT=civic-radio-502611-i8
 LOAD_FORGE_FIRESTORE_DATABASE=(default)
+LOAD_FORGE_PROJECT_TRASH_RETENTION_DAYS=30
 ```
 
 `LOAD_FORGE_SAAS_BACKEND=memory` is available for tests and local UI
@@ -118,30 +119,123 @@ New cloud-project records store the complete active Box Design parameter set
 plus Bass Match controls, ranked candidates, result context and last-run
 statistics. Loading a cloud project restores that last candidate list without
 re-running the optimizer. Older cloud records containing only the flat design
-parameter mapping remain readable. Large editable-comparison curve snapshots
-stay in browser/portable LFP storage to keep cloud documents below their size
-limit.
+parameter mapping remain readable. The canonical payload is size-checked below
+Firestore's document limit before the transaction begins.
 
 ## Project contract
 
-Projects are stored below:
+Firestore cloud autosave is the normal persistence mechanism for authenticated
+users. `.lfp` export is the independent user-controlled backup/portability
+mechanism.
+
+```text
+Authenticated user
+    Streamlit project state
+        -> debounced autosave
+        -> Firestore current project
+        -> immutable recoverable revisions
+
+User-controlled backup
+    project -> Export .lfp -> local user file
+```
+
+Projects retain the existing tenant path:
 
 ```text
 tenants/{tenant_id}/projects/{project_id}
+tenants/{tenant_id}/projects/{project_id}/revisions/rev_0000000001
 ```
 
-Each document contains:
+The parent document is the active pointer and contains:
 
-- display name, owner and tenant IDs;
-- complete JSON-serializable Load Forge parameter mapping;
-- application version;
-- creation/update timestamps;
-- monotonically increasing optimistic revision.
+- `name`, `owner_uid`, `tenant_id`, `app_version`;
+- canonical validated LFP payload in `parameters`;
+- `revision` (legacy-reader alias) and `current_revision`;
+- `schema_version` and semantic `content_hash`;
+- server-generated `created_at` and `updated_at` timestamps;
+- `status` (`active` or `trashed`) and nullable `deleted_at`.
 
-Project payloads are capped below Firestore's document ceiling.  Updates may
-provide `expected_revision`; a stale write raises `ProjectConflictError`
-instead of silently overwriting a newer design.
+Each revision document contains the full validated payload, revision number,
+schema version, semantic hash, name and a Firestore server timestamp. Parent
+and revision are written atomically in one transaction. Identical semantic
+states are deduplicated. The in-memory backend enforces the most recent 30
+revisions; production should retain the most recent 30 through a scheduled
+maintenance job rather than deleting history in an interactive request.
+
+Every write compares `expected_revision` with `current_revision` in the same
+transaction. A stale browser receives `ProjectConflictError`; the UI preserves
+its local state and offers either **Reload latest** or **Save as copy**. A
+historical revision becomes current only through explicit `restore_revision`,
+which creates a new current revision instead of rewriting history.
+
+Autosave computes a semantic SHA-256 hash, marks changed state dirty, waits 1.5
+seconds, and writes only if the state remains changed. A two-second Streamlit
+fragment supplies the follow-up run when the user stops moving a slider.
+Transient failures retry without sleeping at 2, 5 and 15 seconds. Permission,
+authentication, malformed data and exhausted retries remain visibly failed;
+`Saved ✓` is set only after the store returns an acknowledged record.
+
+When a new or reset session has no named project, the workspace remains blocked
+until the user supplies a name other than `Untitled project`; opening an LFP or
+cloud project then replaces that name with the imported/project name.
+
+Project payloads are strict JSON (`allow_nan=False`), capped below Firestore's
+document ceiling and validated before any active revision changes. Format 2
+requires project metadata, a project name, `load_type`, the core driver fields
+(`driver_fs_hz`, `driver_vas_l`, `driver_qts`, `driver_qms`, `driver_re_ohm`),
+a supported schema version and object-shaped Bass Match state. Existing flat
+Firestore documents and format-1 LFP files remain readable and migrate on the
+next successful format-2 save.
+
+## Delete, restore and portability
+
+```text
+Delete -> Trash / soft delete -> 30-day retention target -> operator cleanup
+```
+
+The normal Delete action never removes a Firestore document. It creates a new
+revision with `status=trashed` and `deleted_at`, removes the project from the
+normal list, and exposes **Restore from Trash**. Permanent cleanup is a separate
+scheduled operator process. Its retention target is configured with
+`LOAD_FORGE_PROJECT_TRASH_RETENTION_DAYS` (1–365, default 30). Cleanup must
+select only records whose `status` is `trashed` and whose `deleted_at` is older
+than that threshold; it must not run from the Streamlit Delete callback.
+
+LFP format 2 remains cloud-independent and includes project identity, every
+serializable Box Design parameter, editable comparison state, Bass Match
+controls and saved results. Cloud IDs, revision numbers and Trash status are
+not required to open the file offline. The UI records only when it generated a
+download in the current session; it does not claim that the file still exists
+on the user's computer.
+
+## Error handling
+
+The UI distinguishes transient network/timeouts, permission denial,
+authentication expiry, missing projects, malformed stored documents and stale
+revision conflicts. Logs contain failure category, project ID and expected
+revision, never the project payload. A production Firestore initialization
+error is not allowed to fall back to process memory because that would make a
+temporary save look durable. Store initialization is cached without Streamlit's
+function-name spinner. Local missing/expired Application Default Credentials
+are reported as an authentication failure with the recovery command
+`gcloud auth application-default login`; Load Forge must be restarted after
+credentials are installed. Raw exception text is logged and is shown in the UI
+only for an unclassified failure.
+
+## Account and credit isolation
+
+Project writes are restricted to `tenants/{tenant_id}/projects/...`; account
+identity, subscription and credit fields remain below `users/{account_id}` and
+are written only by `FirestoreUserAccountStore`. The project API has no account
+document reference and cannot overwrite those fields.
+
+Credit deductions are transactionally protected today, but balance changes do
+not yet have a durable append-only audit trail. Before payments or externally
+purchased credit packs are enabled, add a `users/{id}/credit_transactions`
+ledger with immutable grant/debit/adjustment entries and derive or reconcile
+the cached balance transactionally. That is recommended follow-up work, not a
+project-persistence migration.
 
 `InMemoryProjectStore` and `FirestoreProjectStore` expose the same
-`save_project`, `load_project` and `list_projects` methods.  The UI must always
-scope calls with the authenticated `SaaSUser`.
+save/load/list, revision restore, soft-delete and Trash-restore operations. The
+UI always scopes calls with the authenticated `SaaSUser`.

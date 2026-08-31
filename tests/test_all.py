@@ -2871,6 +2871,7 @@ def _check_ui_project_preset_upload_finishes():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["project_menu_expander"] = True
+    at.session_state["project_name"] = "Preset test"
     at.run()
     assert any(
         item.label.startswith("Project")
@@ -3171,6 +3172,11 @@ def _check_saas_identity_entitlements_and_project_store():
         "LOAD_FORGE_DEV_EMAIL": "user@example.test",
     })
     assert configured.enabled and configured.auth_required and configured.auth_bypass
+    assert configured.project_trash_retention_days == 30
+    retention_configured = saas.SaaSSettings.from_env({
+        "LOAD_FORGE_PROJECT_TRASH_RETENTION_DAYS": "45",
+    })
+    assert retention_configured.project_trash_retention_days == 45
     user = saas.user_from_claims(configured.development_claims())
     assert user.uid == "user-123"
     assert user.email == "user@example.test"
@@ -3305,6 +3311,213 @@ test(
 )
 
 
+def _check_project_persistence_revisions_autosave_and_data_safety():
+    from src import saas
+
+    user = saas.user_from_claims({
+        "sub": "persistence-user",
+        "email": "persistence@example.test",
+    })
+
+    def payload(name: str, volume: float, *, schema: int = 2):
+        return {
+            "_load_forge_meta": {
+                "version": "0.13.1",
+                "format": schema,
+                "kind": "project",
+            },
+            "project": {"name": name},
+            "parameters": {
+                "load_type": "Bass reflex",
+                "driver_fs_hz": 30.0,
+                "driver_vas_l": 50.0,
+                "driver_qts": 0.35,
+                "driver_qms": 4.0,
+                "driver_re_ohm": 6.0,
+                "reflex_vb_l": volume,
+            },
+            "bass_match": {"state": {}, "batch_results": []},
+        }
+
+    # Canonical cloud/LFP serialization is strict JSON and round-trips exactly.
+    original = payload("Safe project", 55.0)
+    round_trip = json.loads(json.dumps(original, allow_nan=False))
+    assert saas.validate_project_payload(round_trip, allow_legacy=False) == original
+    assert saas.project_payload_schema_version(original) == 2
+
+    store = saas.InMemoryProjectStore()
+    state: dict = {}
+    status, record = saas.advance_project_autosave(
+        store, user, "Safe project", original, "0.13.1", state, now=0.0
+    )
+    assert status == "unsaved" and record is None
+    assert state["_cloud_save_status"] != "saved"
+    status, record = saas.advance_project_autosave(
+        store, user, "Safe project", original, "0.13.1", state, now=2.0
+    )
+    assert status == "saved" and record is not None and record.revision == 1
+
+    # An identical rerun is acknowledged as saved without another revision.
+    status, duplicate = saas.advance_project_autosave(
+        store, user, "Safe project", original, "0.13.1", state, now=4.0
+    )
+    assert status == "saved" and duplicate is None
+    assert len(store.list_revisions(user, record.project_id)) == 1
+
+    changed = payload("Safe project", 60.0)
+    status, _ = saas.advance_project_autosave(
+        store, user, "Safe project", changed, "0.13.1", state, now=5.0
+    )
+    assert status == "unsaved"
+    status, updated = saas.advance_project_autosave(
+        store, user, "Safe project", changed, "0.13.1", state, now=7.0
+    )
+    assert status == "saved" and updated is not None and updated.revision == 2
+    revisions = store.list_revisions(user, record.project_id)
+    assert [item.revision for item in revisions] == [2, 1]
+    assert revisions[1].parameters["parameters"]["reflex_vb_l"] == 55.0
+
+    # Validation happens before replacing the valid current state.
+    invalid = payload("Safe project", 10.0)
+    del invalid["parameters"]["driver_fs_hz"]
+    try:
+        store.save_project(
+            user,
+            "Safe project",
+            invalid,
+            "0.13.1",
+            project_id=record.project_id,
+            expected_revision=2,
+        )
+    except saas.ProjectValidationError:
+        pass
+    else:
+        raise AssertionError("invalid project state replaced a valid revision")
+    assert store.load_project(user, record.project_id).revision == 2
+
+    # A stale session cannot overwrite r2; its local payload remains available.
+    stale_state = {
+        "_cloud_project_id": record.project_id,
+        "_cloud_project_revision": 1,
+        "_cloud_saved_hash": record.content_hash,
+    }
+    stale_payload = payload("Safe project", 25.0)
+    status, _ = saas.advance_project_autosave(
+        store,
+        user,
+        "Safe project",
+        stale_payload,
+        "0.13.1",
+        stale_state,
+        now=10.0,
+        force=True,
+    )
+    assert status == "conflict"
+    assert stale_state["_cloud_conflict"]["payload"] == stale_payload
+    assert store.load_project(user, record.project_id).revision == 2
+
+    restored_revision = store.restore_revision(
+        user,
+        record.project_id,
+        1,
+        "0.13.1",
+        expected_revision=2,
+    )
+    assert restored_revision.revision == 3
+    assert restored_revision.parameters["parameters"]["reflex_vb_l"] == 55.0
+    assert {item.revision for item in store.list_revisions(user, record.project_id)} >= {1, 2, 3}
+
+    trashed = store.soft_delete_project(
+        user,
+        record.project_id,
+        "0.13.1",
+        expected_revision=3,
+    )
+    assert trashed.status == "trashed" and trashed.deleted_at is not None
+    assert store.list_projects(user) == []
+    assert store.list_projects(user, include_deleted=True)[0].status == "trashed"
+    suppressed_state = {
+        "_cloud_suppressed_hash": trashed.content_hash,
+    }
+    status, suppressed = saas.advance_project_autosave(
+        store,
+        user,
+        "Safe project",
+        trashed.parameters,
+        "0.13.1",
+        suppressed_state,
+        now=20.0,
+        force=True,
+    )
+    assert status == "unsaved" and suppressed is None
+    assert store.list_projects(user) == [], "Trash autosave resurrected the project"
+    restored = store.restore_project(
+        user,
+        record.project_id,
+        "0.13.1",
+        expected_revision=4,
+    )
+    assert restored.status == "active" and restored.deleted_at is None
+    assert len(store.list_projects(user)) == 1
+
+    # Project persistence has no path to account-level credit fields.
+    accounts = saas.InMemoryUserAccountStore()
+    account = accounts.get_or_create_account(
+        user.uid, user.email, "Persistence user"
+    )
+    balance = account.credits_balance
+    store.save_project(
+        user,
+        "Safe project",
+        payload("Safe project", 70.0),
+        "0.13.1",
+        project_id=record.project_id,
+        expected_revision=5,
+    )
+    assert accounts.get_or_create_account(
+        user.uid, user.email, "Persistence user"
+    ).credits_balance == balance
+
+    unsupported = payload("Future project", 20.0, schema=999)
+    try:
+        saas.validate_project_payload(unsupported, allow_legacy=False)
+    except saas.ProjectValidationError:
+        pass
+    else:
+        raise AssertionError("unsupported project schema was accepted")
+
+    class FailingStore:
+        def save_project(self, *args, **kwargs):
+            raise TimeoutError("simulated Firestore timeout")
+
+    failure_state: dict = {}
+    status, _ = saas.advance_project_autosave(
+        FailingStore(), user, "Failure", payload("Failure", 45.0),
+        "0.13.1", failure_state, now=0.0,
+    )
+    assert status == "unsaved"
+    for attempt_time in (2.0, 5.0, 11.0, 30.0):
+        status, _ = saas.advance_project_autosave(
+            FailingStore(), user, "Failure", payload("Failure", 45.0),
+            "0.13.1", failure_state, now=attempt_time,
+        )
+    assert status == "failed"
+    assert failure_state["_cloud_save_status"] == "failed"
+    assert failure_state["_cloud_save_error_kind"] == "transient"
+    assert failure_state["_cloud_save_status"] != "saved"
+
+    class DefaultCredentialsError(Exception):
+        pass
+
+    assert saas.project_error_kind(DefaultCredentialsError()) == "auth"
+
+
+test(
+    "Project persistence autosave, revisions, conflicts, trash and data safety",
+    _check_project_persistence_revisions_autosave_and_data_safety,
+)
+
+
 def _check_ui_saas_authenticated_session():
     import os
 
@@ -3337,6 +3550,15 @@ def _check_ui_saas_authenticated_session():
             item.label == "Open .lfp project or CRW driver"
             for item in at.file_uploader
         )
+        assert any(
+            "Cloud autosave" in item.value for item in at.caption
+        )
+        assert any(
+            "Unsaved changes" in item.value
+            or "Saved ✓" in item.value
+            or "Saving" in item.value
+            for item in at.markdown
+        ), "authenticated project UI must expose compact cloud save status"
     finally:
         for key, value in previous.items():
             if value is None:

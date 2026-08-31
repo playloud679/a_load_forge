@@ -10,11 +10,12 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
 import os
 import re
 import sqlite3
 import uuid
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -24,9 +25,15 @@ _TRUE_VALUES = frozenset({"1", "true", "yes", "on"})
 _PROJECT_ID_RE = re.compile(r"^[A-Za-z0-9_-]{8,80}$")
 _EMAIL_RE = re.compile(r"^[^@\s]{1,64}@[^@\s]{1,190}$")
 _MAX_PROJECT_BYTES = 800_000
+PROJECT_SCHEMA_VERSION = 2
+SUPPORTED_PROJECT_SCHEMA_VERSIONS = frozenset({1, PROJECT_SCHEMA_VERSION})
+PROJECT_REVISION_RETENTION = 30
+PROJECT_TRASH_RETENTION_DAYS = 30
 _SCRYPT_N = 2**14
 _SCRYPT_R = 8
 _SCRYPT_P = 1
+
+logger = logging.getLogger("load_forge.saas")
 
 
 class SaaSConfigurationError(RuntimeError):
@@ -39,6 +46,14 @@ class ProjectAccessError(PermissionError):
 
 class ProjectConflictError(RuntimeError):
     """Raised when an optimistic project revision is stale."""
+
+
+class ProjectValidationError(ValueError):
+    """Raised before persistence when a project payload is malformed."""
+
+
+class ProjectMissingError(LookupError):
+    """Raised when an operation targets a project or revision that is absent."""
 
 
 class AccountExistsError(ValueError):
@@ -58,6 +73,7 @@ class SaaSSettings:
     backend: str = "firestore"
     gcp_project: str | None = None
     firestore_database: str = "(default)"
+    project_trash_retention_days: int = PROJECT_TRASH_RETENTION_DAYS
     oidc_provider: str | None = None
     auth_bypass: bool = False
     local_accounts: bool = False
@@ -88,6 +104,21 @@ class SaaSSettings:
                 "LOAD_FORGE_SAAS_BACKEND must be 'firestore' or 'memory'"
             )
         provider = str(values.get("LOAD_FORGE_OIDC_PROVIDER", "")).strip() or None
+        try:
+            trash_retention_days = int(
+                values.get(
+                    "LOAD_FORGE_PROJECT_TRASH_RETENTION_DAYS",
+                    PROJECT_TRASH_RETENTION_DAYS,
+                )
+            )
+        except (TypeError, ValueError) as exc:
+            raise SaaSConfigurationError(
+                "LOAD_FORGE_PROJECT_TRASH_RETENTION_DAYS must be an integer"
+            ) from exc
+        if not 1 <= trash_retention_days <= 365:
+            raise SaaSConfigurationError(
+                "LOAD_FORGE_PROJECT_TRASH_RETENTION_DAYS must be between 1 and 365"
+            )
         allowed_emails = frozenset(
             email.strip().casefold()
             for email in re.split(
@@ -124,6 +155,7 @@ class SaaSSettings:
                 str(values.get("LOAD_FORGE_FIRESTORE_DATABASE", "(default)")).strip()
                 or "(default)"
             ),
+            project_trash_retention_days=trash_retention_days,
             oidc_provider=provider,
             auth_bypass=auth_bypass,
             local_accounts=local_accounts,
@@ -220,12 +252,28 @@ class ProjectSummary:
     revision: int
     app_version: str
     updated_at: datetime
+    schema_version: int
+    content_hash: str
+    status: str
+    deleted_at: datetime | None
 
 
 @dataclass(frozen=True)
 class ProjectRecord(ProjectSummary):
     parameters: dict[str, Any]
     created_at: datetime
+
+
+@dataclass(frozen=True)
+class ProjectRevision:
+    project_id: str
+    revision: int
+    revision_id: str
+    name: str
+    schema_version: int
+    content_hash: str
+    created_at: datetime
+    parameters: dict[str, Any]
 
 
 def _normalize_email(email: str) -> str:
@@ -449,32 +497,160 @@ def _normalize_project_name(name: str) -> str:
 
 def _normalize_parameters(parameters: Mapping[str, Any]) -> dict[str, Any]:
     if not isinstance(parameters, Mapping):
-        raise TypeError("Project parameters must be a mapping")
-    encoded = json.dumps(parameters, sort_keys=True, separators=(",", ":"))
+        raise ProjectValidationError("Project payload must be an object")
+    try:
+        encoded = json.dumps(
+            parameters,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        )
+    except (TypeError, ValueError) as exc:
+        raise ProjectValidationError(
+            "Project payload contains unsupported or non-finite values"
+        ) from exc
     if len(encoded.encode("utf-8")) > _MAX_PROJECT_BYTES:
-        raise ValueError("Project parameters exceed the persistent document limit")
+        raise ProjectValidationError(
+            "Project payload exceeds the persistent document limit"
+        )
     decoded = json.loads(encoded)
     if not isinstance(decoded, dict):
-        raise TypeError("Project parameters must serialize to an object")
+        raise ProjectValidationError("Project payload must serialize to an object")
     return decoded
 
 
+def validate_project_payload(
+    payload: Mapping[str, Any],
+    *,
+    allow_legacy: bool = True,
+    require_complete: bool = True,
+) -> dict[str, Any]:
+    """Validate and normalize the canonical LFP/cloud project payload.
+
+    Format-2 payloads are the write format. Legacy flat parameter mappings and
+    format-1 LFP files remain readable so existing data migrates on next save.
+    """
+    normalized = _normalize_parameters(payload)
+    metadata = normalized.get("_load_forge_meta")
+    is_envelope = "parameters" in normalized or (
+        isinstance(metadata, Mapping) and metadata.get("kind") == "project"
+    )
+    if not is_envelope:
+        if not allow_legacy:
+            raise ProjectValidationError("Project payload is not a supported LFP project")
+        if not normalized or not isinstance(normalized.get("load_type"), str):
+            raise ProjectValidationError(
+                "Legacy project payload is missing the load type"
+            )
+        return normalized
+
+    if not isinstance(metadata, Mapping):
+        raise ProjectValidationError("Project metadata is missing")
+    try:
+        schema_version = int(metadata.get("format", 0))
+    except (TypeError, ValueError) as exc:
+        raise ProjectValidationError("Project schema version is invalid") from exc
+    if schema_version not in SUPPORTED_PROJECT_SCHEMA_VERSIONS:
+        raise ProjectValidationError(
+            f"Project schema version {schema_version} is not supported"
+        )
+    if metadata.get("kind", "project") != "project":
+        raise ProjectValidationError("LFP payload is not a project")
+    parameters = normalized.get("parameters")
+    if not isinstance(parameters, dict):
+        raise ProjectValidationError("Project parameters are missing")
+    required = ("load_type",)
+    if require_complete:
+        required += (
+            "driver_fs_hz",
+            "driver_vas_l",
+            "driver_qts",
+            "driver_qms",
+            "driver_re_ohm",
+        )
+    missing = [key for key in required if key not in parameters]
+    if missing:
+        raise ProjectValidationError(
+            "Project parameters are incomplete: " + ", ".join(missing)
+        )
+    if not isinstance(parameters.get("load_type"), str):
+        raise ProjectValidationError("Project load type is invalid")
+    project = normalized.get("project")
+    if not isinstance(project, dict):
+        raise ProjectValidationError("Project identity metadata is missing")
+    _normalize_project_name(project.get("name", ""))
+    bass_match = normalized.get("bass_match")
+    if bass_match is not None and not isinstance(bass_match, dict):
+        raise ProjectValidationError("Bass Match project state must be an object")
+    return normalized
+
+
+def project_payload_schema_version(payload: Mapping[str, Any]) -> int:
+    metadata = payload.get("_load_forge_meta")
+    if isinstance(metadata, Mapping):
+        try:
+            return int(metadata.get("format", 1))
+        except (TypeError, ValueError):
+            return 1
+    return 1
+
+
+def project_content_hash(name: str, payload: Mapping[str, Any]) -> str:
+    """Return a semantic digest, excluding generated portable-file timestamps."""
+    normalized = validate_project_payload(payload, require_complete=False)
+    hash_payload = json.loads(json.dumps(normalized, allow_nan=False))
+    project = hash_payload.get("project")
+    if isinstance(project, dict):
+        for key in ("id", "created_at", "updated_at"):
+            project.pop(key, None)
+        project["name"] = _normalize_project_name(name)
+    encoded = json.dumps(
+        hash_payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _parse_datetime(value: Any, *, field: str) -> datetime:
+    if isinstance(value, datetime):
+        return value
+    try:
+        parsed = datetime.fromisoformat(str(value))
+    except (TypeError, ValueError) as exc:
+        raise ProjectValidationError(f"Stored project {field} is malformed") from exc
+    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=timezone.utc)
+
+
 def _record_from_document(project_id: str, data: Mapping[str, Any]) -> ProjectRecord:
-    created_at = data.get("created_at")
-    updated_at = data.get("updated_at")
-    if not isinstance(created_at, datetime):
-        created_at = datetime.fromisoformat(str(created_at))
-    if not isinstance(updated_at, datetime):
-        updated_at = datetime.fromisoformat(str(updated_at))
+    created_at = _parse_datetime(data.get("created_at"), field="created_at")
+    updated_at = _parse_datetime(data.get("updated_at"), field="updated_at")
+    parameters = validate_project_payload(
+        data.get("parameters", {}), require_complete=False
+    )
+    name = _normalize_project_name(str(data["name"]))
+    deleted_at_raw = data.get("deleted_at")
+    deleted_at = (
+        _parse_datetime(deleted_at_raw, field="deleted_at")
+        if deleted_at_raw is not None
+        else None
+    )
     return ProjectRecord(
         project_id=project_id,
-        name=str(data["name"]),
+        name=name,
         owner_uid=str(data["owner_uid"]),
         tenant_id=str(data["tenant_id"]),
-        revision=int(data.get("revision", 1)),
+        revision=int(data.get("current_revision", data.get("revision", 1))),
         app_version=str(data.get("app_version", "unknown")),
         updated_at=updated_at,
-        parameters=_normalize_parameters(data.get("parameters", {})),
+        schema_version=int(
+            data.get("schema_version", project_payload_schema_version(parameters))
+        ),
+        content_hash=str(data.get("content_hash") or project_content_hash(name, parameters)),
+        status=str(data.get("status", "active")),
+        deleted_at=deleted_at,
+        parameters=parameters,
         created_at=created_at,
     )
 
@@ -484,6 +660,76 @@ class InMemoryProjectStore:
 
     def __init__(self) -> None:
         self._records: dict[tuple[str, str], ProjectRecord] = {}
+        self._revisions: dict[tuple[str, str], list[ProjectRevision]] = {}
+
+    @staticmethod
+    def _summary(record: ProjectRecord) -> ProjectSummary:
+        return ProjectSummary(**{
+            field: getattr(record, field)
+            for field in ProjectSummary.__dataclass_fields__
+        })
+
+    def _write_record(
+        self,
+        user: SaaSUser,
+        *,
+        project_id: str,
+        name: str,
+        parameters: Mapping[str, Any],
+        app_version: str,
+        expected_revision: int | None,
+        status: str = "active",
+        deleted_at: datetime | None = None,
+    ) -> ProjectRecord:
+        key = (user.tenant_id, project_id)
+        existing = self._records.get(key)
+        current_revision = existing.revision if existing else 0
+        if expected_revision is not None and expected_revision != current_revision:
+            raise ProjectConflictError(
+                f"Project revision changed from {expected_revision} to {current_revision}"
+            )
+        project_name = _normalize_project_name(name)
+        normalized = validate_project_payload(parameters)
+        content_hash = project_content_hash(project_name, normalized)
+        if (
+            existing is not None
+            and existing.name == project_name
+            and existing.content_hash == content_hash
+            and existing.status == status
+        ):
+            return existing
+        now = datetime.now(timezone.utc)
+        revision = current_revision + 1
+        record = ProjectRecord(
+            project_id=project_id,
+            name=project_name,
+            owner_uid=existing.owner_uid if existing else user.uid,
+            tenant_id=user.tenant_id,
+            revision=revision,
+            app_version=str(app_version),
+            updated_at=now,
+            schema_version=project_payload_schema_version(normalized),
+            content_hash=content_hash,
+            status=status,
+            deleted_at=deleted_at,
+            parameters=normalized,
+            created_at=existing.created_at if existing else now,
+        )
+        self._records[key] = record
+        revisions = self._revisions.setdefault(key, [])
+        revisions.append(ProjectRevision(
+            project_id=project_id,
+            revision=revision,
+            revision_id=f"rev_{revision:010d}",
+            name=project_name,
+            schema_version=record.schema_version,
+            content_hash=content_hash,
+            created_at=now,
+            parameters=normalized,
+        ))
+        if len(revisions) > PROJECT_REVISION_RETENTION:
+            del revisions[:-PROJECT_REVISION_RETENTION]
+        return record
 
     def save_project(
         self,
@@ -496,29 +742,14 @@ class InMemoryProjectStore:
         expected_revision: int | None = None,
     ) -> ProjectRecord:
         project_id = _validate_project_id(project_id or new_project_id())
-        key = (user.tenant_id, project_id)
-        existing = self._records.get(key)
-        if existing is not None and existing.tenant_id != user.tenant_id:
-            raise ProjectAccessError("Project belongs to another tenant")
-        current_revision = existing.revision if existing else 0
-        if expected_revision is not None and expected_revision != current_revision:
-            raise ProjectConflictError(
-                f"Project revision changed from {expected_revision} to {current_revision}"
-            )
-        now = datetime.now(timezone.utc)
-        record = ProjectRecord(
+        return self._write_record(
+            user,
             project_id=project_id,
-            name=_normalize_project_name(name),
-            owner_uid=existing.owner_uid if existing else user.uid,
-            tenant_id=user.tenant_id,
-            revision=current_revision + 1,
-            app_version=str(app_version),
-            updated_at=now,
-            parameters=_normalize_parameters(parameters),
-            created_at=existing.created_at if existing else now,
+            name=name,
+            parameters=parameters,
+            app_version=app_version,
+            expected_revision=expected_revision,
         )
-        self._records[key] = record
-        return record
 
     def load_project(self, user: SaaSUser, project_id: str) -> ProjectRecord | None:
         project_id = _validate_project_id(project_id)
@@ -527,29 +758,106 @@ class InMemoryProjectStore:
             raise ProjectAccessError("Project belongs to another tenant")
         return record
 
-    def list_projects(self, user: SaaSUser, *, limit: int = 100) -> list[ProjectSummary]:
+    def list_projects(
+        self,
+        user: SaaSUser,
+        *,
+        limit: int = 100,
+        include_deleted: bool = False,
+    ) -> list[ProjectSummary]:
         records = [
             record
             for (tenant_id, _), record in self._records.items()
             if tenant_id == user.tenant_id
+            and (include_deleted or record.status != "trashed")
         ]
         records.sort(key=lambda record: record.updated_at, reverse=True)
-        return [
-            ProjectSummary(
-                project_id=record.project_id,
-                name=record.name,
-                owner_uid=record.owner_uid,
-                tenant_id=record.tenant_id,
-                revision=record.revision,
-                app_version=record.app_version,
-                updated_at=record.updated_at,
-            )
-            for record in records[: max(0, int(limit))]
-        ]
+        return [self._summary(record) for record in records[: max(0, int(limit))]]
+
+    def list_revisions(
+        self,
+        user: SaaSUser,
+        project_id: str,
+        *,
+        limit: int = PROJECT_REVISION_RETENTION,
+    ) -> list[ProjectRevision]:
+        key = (user.tenant_id, _validate_project_id(project_id))
+        return list(reversed(self._revisions.get(key, [])))[: max(0, int(limit))]
+
+    def restore_revision(
+        self,
+        user: SaaSUser,
+        project_id: str,
+        revision: int,
+        app_version: str,
+        *,
+        expected_revision: int,
+    ) -> ProjectRecord:
+        project_id = _validate_project_id(project_id)
+        historical = next(
+            (
+                item
+                for item in self._revisions.get((user.tenant_id, project_id), [])
+                if item.revision == int(revision)
+            ),
+            None,
+        )
+        if historical is None:
+            raise ProjectMissingError("Project revision was not found")
+        return self._write_record(
+            user,
+            project_id=project_id,
+            name=historical.name,
+            parameters=historical.parameters,
+            app_version=app_version,
+            expected_revision=expected_revision,
+        )
+
+    def soft_delete_project(
+        self,
+        user: SaaSUser,
+        project_id: str,
+        app_version: str,
+        *,
+        expected_revision: int,
+    ) -> ProjectRecord:
+        record = self.load_project(user, project_id)
+        if record is None:
+            raise ProjectMissingError("Project was not found")
+        return self._write_record(
+            user,
+            project_id=record.project_id,
+            name=record.name,
+            parameters=record.parameters,
+            app_version=app_version,
+            expected_revision=expected_revision,
+            status="trashed",
+            deleted_at=datetime.now(timezone.utc),
+        )
+
+    def restore_project(
+        self,
+        user: SaaSUser,
+        project_id: str,
+        app_version: str,
+        *,
+        expected_revision: int,
+    ) -> ProjectRecord:
+        record = self.load_project(user, project_id)
+        if record is None:
+            raise ProjectMissingError("Project was not found")
+        return self._write_record(
+            user,
+            project_id=record.project_id,
+            name=record.name,
+            parameters=record.parameters,
+            app_version=app_version,
+            expected_revision=expected_revision,
+        )
 
 
 class FirestoreProjectStore:
-    """Tenant-scoped Firestore persistence with optimistic revisions."""
+    """Tenant-scoped Firestore persistence with immutable revisions."""
 
     def __init__(
         self,
@@ -576,6 +884,97 @@ class FirestoreProjectStore:
             .document(_validate_project_id(project_id))
         )
 
+    @staticmethod
+    def _summary(record: ProjectRecord) -> ProjectSummary:
+        return ProjectSummary(**{
+            field: getattr(record, field)
+            for field in ProjectSummary.__dataclass_fields__
+        })
+
+    def _write_project(
+        self,
+        user: SaaSUser,
+        *,
+        name: str,
+        parameters: Mapping[str, Any],
+        app_version: str,
+        project_id: str,
+        expected_revision: int | None,
+        status: str = "active",
+    ) -> ProjectRecord:
+        try:
+            from google.cloud import firestore
+        except ImportError as exc:  # pragma: no cover - deployment dependency
+            raise SaaSConfigurationError(
+                "google-cloud-firestore is required for the Firestore backend"
+            ) from exc
+        project_name = _normalize_project_name(name)
+        normalized = validate_project_payload(parameters)
+        content_hash = project_content_hash(project_name, normalized)
+        schema_version = project_payload_schema_version(normalized)
+        ref = self._project_ref(user, project_id)
+        transaction = self._client.transaction()
+
+        @firestore.transactional
+        def write_project(tx):
+            snapshot = ref.get(transaction=tx)
+            existing = snapshot.to_dict() if snapshot.exists else None
+            current_revision = int(
+                existing.get("current_revision", existing.get("revision", 0))
+            ) if existing else 0
+            if expected_revision is not None and expected_revision != current_revision:
+                raise ProjectConflictError(
+                    f"Project revision changed from {expected_revision} "
+                    f"to {current_revision}"
+                )
+            if (
+                existing
+                and str(existing.get("name")) == project_name
+                and str(existing.get("content_hash", "")) == content_hash
+                and str(existing.get("status", "active")) == status
+            ):
+                return False
+            revision = current_revision + 1
+            revision_id = f"rev_{revision:010d}"
+            revision_ref = ref.collection("revisions").document(revision_id)
+            now = firestore.SERVER_TIMESTAMP
+            created_at = existing.get("created_at") if existing else now
+            deleted_at = now if status == "trashed" else None
+            revision_data = {
+                "revision": revision,
+                "revision_id": revision_id,
+                "name": project_name,
+                "schema_version": schema_version,
+                "content_hash": content_hash,
+                "created_at": now,
+                "parameters": normalized,
+            }
+            data = {
+                "name": project_name,
+                "owner_uid": str(existing.get("owner_uid")) if existing else user.uid,
+                "tenant_id": user.tenant_id,
+                # Keep revision for old readers while current_revision is canonical.
+                "revision": revision,
+                "current_revision": revision,
+                "schema_version": schema_version,
+                "content_hash": content_hash,
+                "status": status,
+                "deleted_at": deleted_at,
+                "app_version": str(app_version),
+                "parameters": normalized,
+                "created_at": created_at,
+                "updated_at": now,
+            }
+            tx.set(revision_ref, revision_data)
+            tx.set(ref, data)
+            return True
+
+        write_project(transaction)
+        saved = ref.get()
+        if not saved.exists:
+            raise ProjectMissingError("Project was not found after save")
+        return _record_from_document(project_id, saved.to_dict())
+
     def save_project(
         self,
         user: SaaSUser,
@@ -586,45 +985,15 @@ class FirestoreProjectStore:
         project_id: str | None = None,
         expected_revision: int | None = None,
     ) -> ProjectRecord:
-        try:
-            from google.cloud import firestore
-        except ImportError as exc:  # pragma: no cover - deployment dependency
-            raise SaaSConfigurationError(
-                "google-cloud-firestore is required for the Firestore backend"
-            ) from exc
         project_id = _validate_project_id(project_id or new_project_id())
-        project_name = _normalize_project_name(name)
-        normalized = _normalize_parameters(parameters)
-        ref = self._project_ref(user, project_id)
-        transaction = self._client.transaction()
-
-        @firestore.transactional
-        def write_project(tx):
-            snapshot = ref.get(transaction=tx)
-            existing = snapshot.to_dict() if snapshot.exists else None
-            current_revision = int(existing.get("revision", 0)) if existing else 0
-            if expected_revision is not None and expected_revision != current_revision:
-                raise ProjectConflictError(
-                    f"Project revision changed from {expected_revision} "
-                    f"to {current_revision}"
-                )
-            now = datetime.now(timezone.utc)
-            data = {
-                "name": project_name,
-                "owner_uid": (
-                    str(existing.get("owner_uid")) if existing else user.uid
-                ),
-                "tenant_id": user.tenant_id,
-                "revision": current_revision + 1,
-                "app_version": str(app_version),
-                "parameters": normalized,
-                "created_at": existing.get("created_at") if existing else now,
-                "updated_at": now,
-            }
-            tx.set(ref, data)
-            return data
-
-        return _record_from_document(project_id, write_project(transaction))
+        return self._write_project(
+            user,
+            name=name,
+            parameters=parameters,
+            app_version=app_version,
+            project_id=project_id,
+            expected_revision=expected_revision,
+        )
 
     def load_project(self, user: SaaSUser, project_id: str) -> ProjectRecord | None:
         project_id = _validate_project_id(project_id)
@@ -636,29 +1005,135 @@ class FirestoreProjectStore:
             raise ProjectAccessError("Project belongs to another tenant")
         return _record_from_document(project_id, data)
 
-    def list_projects(self, user: SaaSUser, *, limit: int = 100) -> list[ProjectSummary]:
+    def list_projects(
+        self,
+        user: SaaSUser,
+        *,
+        limit: int = 100,
+        include_deleted: bool = False,
+    ) -> list[ProjectSummary]:
         collection = (
             self._client.collection("tenants")
             .document(user.tenant_id)
             .collection("projects")
         )
-        records = [
-            _record_from_document(snapshot.id, snapshot.to_dict())
-            for snapshot in collection.stream()
-        ]
+        records = []
+        for snapshot in collection.stream():
+            try:
+                records.append(_record_from_document(snapshot.id, snapshot.to_dict()))
+            except (KeyError, TypeError, ValueError) as exc:
+                logger.warning(
+                    "Skipping malformed stored project project_id=%s: %s",
+                    snapshot.id,
+                    exc,
+                )
+        if not include_deleted:
+            records = [record for record in records if record.status != "trashed"]
         records.sort(key=lambda record: record.updated_at, reverse=True)
-        return [
-            ProjectSummary(
-                project_id=record.project_id,
-                name=record.name,
-                owner_uid=record.owner_uid,
-                tenant_id=record.tenant_id,
-                revision=record.revision,
-                app_version=record.app_version,
-                updated_at=record.updated_at,
+        return [self._summary(record) for record in records[: max(0, int(limit))]]
+
+    def list_revisions(
+        self,
+        user: SaaSUser,
+        project_id: str,
+        *,
+        limit: int = PROJECT_REVISION_RETENTION,
+    ) -> list[ProjectRevision]:
+        project_id = _validate_project_id(project_id)
+        ref = self._project_ref(user, project_id)
+        snapshots = list(ref.collection("revisions").stream())
+        revisions = []
+        for snapshot in snapshots:
+            data = snapshot.to_dict()
+            parameters = validate_project_payload(
+                data.get("parameters", {}), require_complete=False
             )
-            for record in records[: max(0, int(limit))]
-        ]
+            revision = int(data.get("revision", 0))
+            revisions.append(ProjectRevision(
+                project_id=project_id,
+                revision=revision,
+                revision_id=str(data.get("revision_id", snapshot.id)),
+                name=_normalize_project_name(data.get("name", "Untitled project")),
+                schema_version=int(
+                    data.get("schema_version", project_payload_schema_version(parameters))
+                ),
+                content_hash=str(
+                    data.get("content_hash")
+                    or project_content_hash(data.get("name", "Untitled project"), parameters)
+                ),
+                created_at=_parse_datetime(data.get("created_at"), field="revision timestamp"),
+                parameters=parameters,
+            ))
+        revisions.sort(key=lambda item: item.revision, reverse=True)
+        return revisions[: max(0, int(limit))]
+
+    def restore_revision(
+        self,
+        user: SaaSUser,
+        project_id: str,
+        revision: int,
+        app_version: str,
+        *,
+        expected_revision: int,
+    ) -> ProjectRecord:
+        historical = next(
+            (
+                item for item in self.list_revisions(user, project_id)
+                if item.revision == int(revision)
+            ),
+            None,
+        )
+        if historical is None:
+            raise ProjectMissingError("Project revision was not found")
+        return self._write_project(
+            user,
+            name=historical.name,
+            parameters=historical.parameters,
+            app_version=app_version,
+            project_id=_validate_project_id(project_id),
+            expected_revision=expected_revision,
+        )
+
+    def soft_delete_project(
+        self,
+        user: SaaSUser,
+        project_id: str,
+        app_version: str,
+        *,
+        expected_revision: int,
+    ) -> ProjectRecord:
+        record = self.load_project(user, project_id)
+        if record is None:
+            raise ProjectMissingError("Project was not found")
+        return self._write_project(
+            user,
+            name=record.name,
+            parameters=record.parameters,
+            app_version=app_version,
+            project_id=record.project_id,
+            expected_revision=expected_revision,
+            status="trashed",
+        )
+
+    def restore_project(
+        self,
+        user: SaaSUser,
+        project_id: str,
+        app_version: str,
+        *,
+        expected_revision: int,
+    ) -> ProjectRecord:
+        record = self.load_project(user, project_id)
+        if record is None:
+            raise ProjectMissingError("Project was not found")
+        return self._write_project(
+            user,
+            name=record.name,
+            parameters=record.parameters,
+            app_version=app_version,
+            project_id=record.project_id,
+            expected_revision=expected_revision,
+        )
 
 
 @dataclass
@@ -991,13 +1466,136 @@ class FirestoreUserAccountStore:
 def create_project_store(settings: SaaSSettings):
     if settings.backend == "memory" or not settings.enabled:
         return InMemoryProjectStore()
+    # A production Firestore configuration failure must be visible. Falling
+    # back to process memory would show successful saves that disappear later.
+    return FirestoreProjectStore(
+        project=settings.gcp_project,
+        database=settings.firestore_database,
+    )
+
+
+def project_error_kind(exc: BaseException) -> str:
+    """Classify persistence failures without requiring Google libraries in tests."""
+    if isinstance(exc, ProjectConflictError):
+        return "conflict"
+    if isinstance(exc, ProjectMissingError):
+        return "missing"
+    if isinstance(exc, ProjectValidationError):
+        return "invalid"
+    if isinstance(exc, ProjectAccessError):
+        return "permission"
+    name = type(exc).__name__.casefold()
+    if any(token in name for token in (
+        "deadline", "timeout", "serviceunavailable", "toomanyrequests",
+        "resourceexhausted", "aborted", "internalservererror",
+        "connection", "retry",
+    )):
+        return "transient"
+    if any(token in name for token in ("permission", "forbidden")):
+        return "permission"
+    if any(token in name for token in ("unauthenticated", "credential")):
+        return "auth"
+    if "notfound" in name:
+        return "missing"
+    return "unknown"
+
+
+def advance_project_autosave(
+    store: Any,
+    user: SaaSUser,
+    name: str,
+    payload: Mapping[str, Any],
+    app_version: str,
+    state: MutableMapping[str, Any],
+    *,
+    now: float,
+    force: bool = False,
+    debounce_seconds: float = 1.5,
+    retry_delays: Sequence[float] = (2.0, 5.0, 15.0),
+) -> tuple[str, ProjectRecord | None]:
+    """Advance one debounced, retry-aware autosave without blocking or sleeping."""
+    project_name = _normalize_project_name(name)
+    normalized = validate_project_payload(payload, allow_legacy=False)
+    content_hash = project_content_hash(project_name, normalized)
+    suppressed_hash = str(state.get("_cloud_suppressed_hash", ""))
+    if suppressed_hash == content_hash:
+        state["_cloud_save_status"] = "unsaved"
+        return "unsaved", None
+    if suppressed_hash:
+        state.pop("_cloud_suppressed_hash", None)
+    saved_hash = str(state.get("_cloud_saved_hash", ""))
+    observed_hash = str(state.get("_cloud_observed_hash", ""))
+    if content_hash == saved_hash:
+        state["_cloud_observed_hash"] = content_hash
+        state["_cloud_save_status"] = "saved"
+        return "saved", None
+    if content_hash != observed_hash:
+        state["_cloud_observed_hash"] = content_hash
+        state["_cloud_dirty_since"] = now
+        state["_cloud_save_status"] = "unsaved"
+        state["_cloud_save_failure_count"] = 0
+        state.pop("_cloud_save_retry_at", None)
+        if not force:
+            return "unsaved", None
+
+    retry_at = float(state.get("_cloud_save_retry_at", 0.0) or 0.0)
+    if retry_at > now and not force:
+        state["_cloud_save_status"] = "retrying"
+        return "retrying", None
+    dirty_since = float(state.get("_cloud_dirty_since", now))
+    if now - dirty_since < float(debounce_seconds) and not force:
+        state["_cloud_save_status"] = "unsaved"
+        return "unsaved", None
+
+    state["_cloud_save_status"] = "saving"
     try:
-        return FirestoreProjectStore(
-            project=settings.gcp_project,
-            database=settings.firestore_database,
+        record = store.save_project(
+            user,
+            project_name,
+            normalized,
+            app_version,
+            project_id=state.get("_cloud_project_id"),
+            expected_revision=int(state.get("_cloud_project_revision", 0) or 0),
         )
-    except Exception:
-        return InMemoryProjectStore()
+    except Exception as exc:
+        kind = project_error_kind(exc)
+        logger.warning(
+            "Project autosave failed (kind=%s project_id=%s expected_revision=%s)",
+            kind,
+            state.get("_cloud_project_id"),
+            state.get("_cloud_project_revision", 0),
+            exc_info=kind == "unknown",
+        )
+        state["_cloud_save_error"] = str(exc)
+        state["_cloud_save_error_kind"] = kind
+        if kind == "conflict":
+            state["_cloud_save_status"] = "conflict"
+            state["_cloud_conflict"] = {
+                "project_id": state.get("_cloud_project_id"),
+                "name": project_name,
+                "payload": normalized,
+            }
+            return "conflict", None
+        failures = int(state.get("_cloud_save_failure_count", 0)) + 1
+        state["_cloud_save_failure_count"] = failures
+        if kind == "transient" and failures <= len(retry_delays):
+            state["_cloud_save_retry_at"] = now + float(retry_delays[failures - 1])
+            state["_cloud_save_status"] = "retrying"
+            return "retrying", None
+        state["_cloud_save_status"] = "failed"
+        return "failed", None
+
+    state["_cloud_project_id"] = record.project_id
+    state["_cloud_project_revision"] = record.revision
+    state["_cloud_saved_hash"] = record.content_hash
+    state["_cloud_observed_hash"] = record.content_hash
+    state["_cloud_save_status"] = "saved"
+    state["_cloud_save_failure_count"] = 0
+    state.pop("_cloud_save_retry_at", None)
+    state.pop("_cloud_save_error", None)
+    state.pop("_cloud_save_error_kind", None)
+    state.pop("_cloud_conflict", None)
+    return "saved", record
 
 
 def create_account_store(settings: SaaSSettings):

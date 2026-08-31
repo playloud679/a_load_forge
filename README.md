@@ -4,12 +4,12 @@
   <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
-**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.12.33**
+**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.13.1**
 
-[![Version](https://img.shields.io/badge/version-0.12.33-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-0.13.1-blue.svg)](VERSION)
 [![Python](https://img.shields.io/badge/python-3.10%2B-brightgreen.svg)](pyproject.toml)
 
-Current release: **0.12.33**
+Current release: **0.13.1**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth-, sixth- and eighth-order bandpass**,
@@ -78,16 +78,15 @@ Current UI highlights:
   deterministic curve colors
 - response pinning for lightweight A/B overlays
 - one-click comparison across the supported enclosure loads at equal volume
-- automatic browser-local projects backed by IndexedDB: zero/one project opens
-  automatically, while multiple projects open the regular app with the
-  sidebar Project section expanded; portable `.lfp` v2 backups include both
-  Box Design and complete Bass Match controls/results, including the ranked
-  candidate list from the last run; project switching flushes pending results
-  before loading the next project, and legacy flat presets remain importable
+- authenticated Firestore autosave with dirty-state debounce, acknowledged
+  save status, immutable revisions, stale-session conflict protection and a
+  recoverable 30-day Trash; portable `.lfp` v2 backups remain independent and
+  include both Box Design and complete Bass Match controls/results, while
+  legacy flat presets remain importable
 - project download/import and URL-based sharing grouped in the collapsible
   sidebar `Project` section
 - optional Streamlit OIDC login with an exact email allowlist, independently
-  deployable with browser-local projects or tenant-scoped Firestore projects
+  deployable in auth-only/local-file mode or with tenant-scoped Firestore projects
 - port-geometry estimates and chuffing diagnostics
 - driver reference metrics, voice-coil corner and T/S-based bandwidth class
 - goal-first driver ranking with strict catalog filters, candidate preview,

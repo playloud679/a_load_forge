@@ -17,7 +17,7 @@ in sync in the same change.
 
 | Module/File | Doc | Role |
 |---|---|---|
-| `ui_app.py` | [catalog-maintenance.md](catalog-maintenance.md) for the administrator surface | Streamlit dashboard with a killer-feature-first Bass Match brief and single run action, a selection-aware gray/emerald Box Design CTA directly below the brief, all usable ranked results without a display cap, a lazy collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, compact multiselect library filters, progressively disclosed T/S controls, stateful lazy analysis/sidebar tabs, compact plot markers including labelled enclosure tuning frequencies, IndexedDB browser-project autosave, complete `.lfp` v2 Box Design/Bass Match backups and grouped exports. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
+| `ui_app.py` | [catalog-maintenance.md](catalog-maintenance.md) for the administrator surface | Streamlit dashboard with a killer-feature-first Bass Match brief and single run action, a selection-aware gray/emerald Box Design CTA directly below the brief, all usable ranked results without a display cap, a lazy collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, compact multiselect library filters, progressively disclosed T/S controls, stateful lazy analysis/sidebar tabs, compact plot markers including labelled enclosure tuning frequencies, authenticated Firestore autosave with revision/conflict/Trash controls, and complete portable `.lfp` v2 Box Design/Bass Match backups. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
 | `src/__init__.py` | [__init__.md](__init__.md) | Public package exports for acoustic-load helpers |
 | `src/acoustics.py` | [acoustics.md](acoustics.md) | Neutral public facade for every lumped and distributed acoustic load |
 | `src/dccav.py` | [dccav.md](dccav.md) | Legacy import compatibility and DCCAV-specific theory |
@@ -121,11 +121,12 @@ cannot change F3 while opening the selected enclosure.
 Legacy sessions with an empty Finder load selection use the active Box Design
 load consistently for both ranking and result validation, so a completed
 fallback run remains visible instead of being mistaken for changed inputs.
-Projects are managed cleanly and safely via standalone `.lfp` file export and import.
-The dashboard supports instant download of the complete design state (including T/S
-parameters, box alignments, and Bass Match candidate results) and file upload (.lfp, .json,
-or .crw) to restore projects or drivers. No project data is retained on servers or in
-browser IndexedDB databases, ensuring 100% data privacy and safety.
+Authenticated projects use debounced Firestore cloud autosave, immutable
+recoverable revisions, stale-session conflict detection and 30-day Trash.
+Standalone `.lfp` export/import remains the independent user-controlled backup
+and portability path, including T/S parameters, box alignments and Bass Match
+candidate results. Auth-only deployments with SaaS disabled remain local-file
+only. Cloud storage is not described as a permanent backup archive.
 A dedicated "New / Reset design" action clears all parameters and restores factory defaults.
 Share links encode design parameters directly into URL query parameters (?d=...).
 Library search, provenance, brand, size, class and price filters retain both
