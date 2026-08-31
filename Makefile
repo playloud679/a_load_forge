@@ -20,6 +20,9 @@ dev: install
 run:
 	./run.sh
 
+check-version:
+	$(VENV_DIR)/bin/python tools/check_version_consistency.py
+
 test:
 	$(VENV_DIR)/bin/python tests/test_all.py
 

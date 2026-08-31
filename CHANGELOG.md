@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.2 (2026-08-31)
+
+- **Release metadata guard**: synchronized the project version after the
+  post-release documentation correction and added an automated consistency
+  check for version metadata and the changelog.
+
 ## 0.13.1 (2026-08-31)
 
 - **Production Project Persistence & Data Safety**:
