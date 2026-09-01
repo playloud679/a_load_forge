@@ -11465,6 +11465,7 @@ def _check_ui_finder_comprehensive_ux_regression():
     assert open_cta.proto.type == "secondary"
     caps_after = [c.value for c in at.caption]
     assert any("usable candidates" in c for c in caps_after), caps_after
+    assert any("Seek time:" in c for c in caps_after), caps_after
     assert at.dataframe, "ranked table must render"
 
     # -- 6. Price input/column are conditional -------------------------------

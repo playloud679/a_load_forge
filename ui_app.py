@@ -9376,6 +9376,12 @@ def _render_finder_run_statistics() -> None:
         return
     try:
         elapsed_s = float(stats.get("elapsed_s", 0.0))
+        ms_per_sim = float(
+            stats.get(
+                "milliseconds_per_simulation",
+                stats.get("milliseconds_per_driver", 0.0),
+            )
+        )
         ms_per_driver = float(stats.get("milliseconds_per_driver", 0.0))
         simulations_per_second = float(
             stats.get("simulations_per_second", 0.0)
@@ -9388,15 +9394,20 @@ def _render_finder_run_statistics() -> None:
     except (TypeError, ValueError):
         return
 
-    actual_str = f" · **{actual_sims:,}** physical simulations ({evals_per_drv} evals/drv · *{profile_name}*)" if actual_sims > 0 else ""
+    if elapsed_s <= 0.0:
+        return
+
+    actual_str = f" · 🔬 <strong>{actual_sims:,}</strong> solves ({evals_per_drv} evals/drv · <em>{profile_name}</em>)" if actual_sims > 0 else ""
     credit_mult = _ranking.search_profile_credit_multiplier(profile_name)
     credits_consumed = simulations * credit_mult
     st.markdown(
-        "**Last calculation** · "
-        f"{elapsed_s:.2f} s total · "
-        f"{ms_per_driver:.1f} ms/driver · "
-        f"**{credits_consumed:,} credits consumed** ({simulations:,} candidates · {credit_mult}× {profile_name})"
+        "<div style='margin: 8px 0 2px 0; padding: 6px 12px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.28); border-radius: 6px; font-size: 0.82rem; color: #d1d5db;'>"
+        f"⏱️ <strong>Seek time:</strong> {elapsed_s:.2f} s total "
+        f"<span style='color: #10b981;'>({ms_per_sim:.1f} ms/sim · {simulations_per_second:.0f} sim/s · {ms_per_driver:.1f} ms/driver)</span>"
+        f" · 💳 <strong>{credits_consumed:,} credits</strong> ({simulations:,} candidates · {credit_mult}× {profile_name})"
         f"{actual_str}"
+        "</div>",
+        unsafe_allow_html=True,
     )
 
 
@@ -9472,6 +9483,7 @@ def _render_bass_match_hero(
             f"{prefilter_stats['duplicate_rows']:,}",
         )
         _render_finder_constraint_grid(constraints)
+        _render_finder_run_statistics()
         if match_preset_names and not prequalified_names:
             st.warning(
                 "No driver passes the pre-simulation checks. Lower Minimum "
@@ -9482,7 +9494,6 @@ def _render_bass_match_hero(
                 f"Insufficient credits: this scan requires **{run_credits:,} credits**, but your balance is **{credits_balance:,} credits**. "
                 "Refine your filters, choose fewer drivers, or upgrade your plan."
             )
-    _render_finder_run_statistics()
     run_requested = st.button(
         _FINDER_CTA_LABEL,
         type="primary",
@@ -9927,14 +9938,32 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         "" if finder_loads == ("Infinite baffle",)
         else f" · ≤ {finder_volume_l:.1f} L"
     )
+    run_stats = st.session_state.get("finder_last_run_stats")
+    seek_time_str = ""
+    if isinstance(run_stats, dict) and run_stats.get("elapsed_s"):
+        try:
+            el_s = float(run_stats["elapsed_s"])
+            ms_sim = float(
+                run_stats.get(
+                    "milliseconds_per_simulation",
+                    run_stats.get("milliseconds_per_driver", 0.0),
+                )
+            )
+            sims_sec = float(run_stats.get("simulations_per_second", 0.0))
+            if el_s > 0:
+                seek_time_str = f" · ⏱️ Seek time: {el_s:.2f} s ({ms_sim:.1f} ms/sim · {sims_sec:.0f} sim/s)"
+        except (TypeError, ValueError):
+            seek_time_str = ""
+
     st.caption(
-        f"{len(batch_rows)} usable matches · "
+        f"{len(batch_rows)} usable candidates · "
         + (
             f"{int(context[11])}/{int(context[12])} simulations after pre-filter · "
             if len(context) > 12
             else f"{context[2]} scanned presets · "
         )
         + f"{load_summary}{volume_summary} · {objective}"
+        + f"{seek_time_str}"
     )
     full_df = pd.DataFrame(batch_rows)
     if "_load_type" in full_df.columns:

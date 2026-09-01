@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.15 (2026-09-01)
+
+- **Bass Match Seek Time & Scan Telemetry Display Resolution**:
+  - Restored and enhanced real-time seek time, simulation throughput, and physical acoustic solves telemetry (`⏱️ Seek time: X.XX s (X.X ms/sim · XXX sim/s)`) in both the Bass Match brief container and directly in the results table header caption.
+  - Formatted styled telemetry banner with emerald accent highlights and credits consumption breakdown.
+  - Added regression assertions in `tests/test_all.py` (`_check_ui_batch_finder_results_and_applied_tabs`).
+  - Test suite: **205 passed, 0 failed, 0 skipped**.
+
 ## 0.15.14 (2026-09-01)
 
 - **Workspace Navigation & Admin Back-Button URL Query State Resolution**:
