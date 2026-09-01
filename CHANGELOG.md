@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.14 (2026-09-01)
+
+- **Workspace Navigation & Admin Back-Button URL Query State Resolution**:
+  - Resolved navigation lock in User Management (`admin_users=1`), Catalog Maintenance (`maintenance=1`), and Manage Projects workspaces by ensuring `_select_workspace()` and "← Back to app" buttons automatically clear route-locking query parameters (`admin_users`, `maintenance`, `explore`, `p`, `embed`).
+  - Added dedicated "← Back to app" return button to `_render_manage_projects_workspace()`.
+  - Added full automated AppTest coverage for User Management, Catalog Maintenance, and Manage Projects return flows in `tests/test_all.py` (`_check_ui_admin_and_project_back_navigation`).
+  - Test suite: **205 passed, 0 failed, 0 skipped**.
+
 ## 0.15.13 (2026-09-01)
 
 - **Immersive Cyber-Neon Community Dimension & Electroacoustic Social Hub**:

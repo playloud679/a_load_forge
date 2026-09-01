@@ -4849,6 +4849,51 @@ test(
 )
 
 
+def _check_ui_admin_and_project_back_navigation():
+    from streamlit.testing.v1 import AppTest
+
+    # 1. User Management back navigation
+    at = AppTest.from_file("ui_app.py", default_timeout=30)
+    at.query_params["admin_users"] = "1"
+    at.run()
+    assert not at.exception, at.exception
+    btn = at.button(key="user_mgmt_back_btn")
+    assert btn is not None
+    btn.click().run()
+    assert not at.exception, at.exception
+    assert "admin_users" not in at.query_params
+    assert at.session_state["workspace_mode"] == "Bass Match"
+
+    # 2. Catalog Maintenance back navigation
+    at_m = AppTest.from_file("ui_app.py", default_timeout=30)
+    at_m.query_params["maintenance"] = "1"
+    at_m.run()
+    assert not at_m.exception, at_m.exception
+    btn_m = at_m.button(key="maintenance_back_btn")
+    assert btn_m is not None
+    btn_m.click().run()
+    assert not at_m.exception, at_m.exception
+    assert "maintenance" not in at_m.query_params
+    assert at_m.session_state["workspace_mode"] == "Bass Match"
+
+    # 3. Manage Projects back navigation
+    at_p = AppTest.from_file("ui_app.py", default_timeout=30)
+    at_p.session_state["workspace_mode"] = "Manage Projects"
+    at_p.run()
+    assert not at_p.exception, at_p.exception
+    btn_p = at_p.button(key="mp_back_to_app_btn")
+    assert btn_p is not None
+    btn_p.click().run()
+    assert not at_p.exception, at_p.exception
+    assert at_p.session_state["workspace_mode"] == "Bass Match"
+
+
+test(
+    "UI User Management, Maintenance, and Manage Projects back navigation",
+    _check_ui_admin_and_project_back_navigation,
+)
+
+
 
 def _check_ui_saas_local_registration_login_logout():
     import os

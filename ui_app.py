@@ -1492,12 +1492,15 @@ def _select_workspace(workspace: str) -> None:
     """Select a workspace from tabs or action buttons."""
     if workspace in {"Manage Projects", "Bass Match", "Box Design", "Catalog Maintenance", "User Management"}:
         st.session_state["workspace_mode"] = workspace
+        if workspace in {"Bass Match", "Box Design", "Manage Projects"}:
+            for k in ("admin_users", "maintenance", "explore", "p", "embed"):
+                st.query_params.pop(k, None)
 
 
 def _on_workspace_compat_change() -> None:
     val = st.session_state.get("_workspace_compat_mode")
     if val in {"Manage Projects", "Bass Match", "Box Design", "Catalog Maintenance", "User Management"}:
-        st.session_state["workspace_mode"] = val
+        _select_workspace(val)
 
 
 def _render_workspace_tabs() -> None:
@@ -1576,7 +1579,7 @@ def _render_catalog_maintenance() -> None:
     c_back, c_title = st.columns([1.5, 8.5], vertical_alignment="center")
     with c_back:
         if st.button("← Back to app", key="maintenance_back_btn"):
-            st.session_state["workspace_mode"] = "Bass Match"
+            _select_workspace("Bass Match")
             st.rerun()
     with c_title:
         st.markdown('<div class="maintenance-heading">Catalog Maintenance</div>', unsafe_allow_html=True)
@@ -3436,7 +3439,13 @@ def _render_manage_projects_publish() -> None:
 
 def _render_manage_projects_workspace() -> None:
     """Dedicated first-class workspace for project lifecycle, persistence, and storage management."""
-    st.title("Manage Projects")
+    c_back, c_title = st.columns([1.5, 8.5], vertical_alignment="center")
+    with c_back:
+        if st.button("← Back to app", key="mp_back_to_app_btn"):
+            _select_workspace("Bass Match")
+            st.rerun()
+    with c_title:
+        st.title("Manage Projects")
     st.caption(
         "Centralized project lifecycle, cloud autosave, revision history, "
         ".lfp file imports/exports, and publication management."
@@ -12611,7 +12620,7 @@ def _render_user_management() -> None:
     c_back, c_title = st.columns([1.5, 8.5], vertical_alignment="center")
     with c_back:
         if st.button("← Back to app", key="user_mgmt_back_btn"):
-            st.session_state["workspace_mode"] = "Bass Match"
+            _select_workspace("Bass Match")
             st.rerun()
     with c_title:
         st.markdown("### User & Credits Management")
