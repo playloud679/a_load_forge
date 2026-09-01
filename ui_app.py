@@ -45,6 +45,7 @@ import presets as _presets
 import pricing as _pricing
 import ranking as _ranking
 import saas as _saas
+import storage as _storage
 
 sys.path.insert(0, str(Path(__file__).parent / "tools"))
 import compare_afw_sealed as _afw_compare
@@ -81,7 +82,7 @@ def _reload_if_source_changed(module) -> bool:
 # wildcard namespace keeps the old engine symbols in a long-lived Streamlit
 # process.
 for _module in (
-    _engine, _port_cad, _pricing, _presets, _ranking, _saas,
+    _engine, _port_cad, _pricing, _presets, _ranking, _saas, _storage,
     _afw_export, _afw_compare,
 ):
     _reload_if_source_changed(_module)
@@ -89,6 +90,7 @@ for _module in (
 # exports after any dependency may have hot-reloaded on a prior UI rerun.
 importlib.reload(_acoustics)
 _acoustics._load_forge_reload_mtime = Path(_acoustics.__file__).stat().st_mtime
+_SAAS_SOURCE_TOKEN = Path(_saas.__file__).stat().st_mtime_ns
 
 
 try:
@@ -308,7 +310,7 @@ _FAVICON_PATH = Path(__file__).parent / "assets" / "load_forge_favicon.png"
 
 st.set_page_config(
     page_title=f"Load Forge v{_VERSION}",
-    page_icon=str(_FAVICON_PATH) if _FAVICON_PATH.exists() else "🔊",
+    page_icon=str(_FAVICON_PATH) if _FAVICON_PATH.exists() else None,
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={},
@@ -1092,15 +1094,47 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
 _CURRENT_SAAS_USER = _resolve_saas_user()
 
 @st.cache_resource(show_spinner=False)
+def _cached_account_store(
+    settings: _saas.SaaSSettings,
+    source_token: int,
+):
+    """Cache an account store only for the active SaaS module revision."""
+    del source_token
+    return _storage.create_private_store(settings)
+
+
 def _get_account_store():
-    return _saas.create_account_store(_SAAS_SETTINGS)
+    return _cached_account_store(_SAAS_SETTINGS, _SAAS_SOURCE_TOKEN)
 
 _ACCOUNT_STORE = _get_account_store()
 
 
 @st.cache_resource(show_spinner=False)
+def _cached_project_store(
+    settings: _saas.SaaSSettings,
+    source_token: int,
+):
+    """Cache a project store only for the active SaaS module revision."""
+    del source_token
+    return _saas.create_project_store(settings)
+
+
 def _get_project_store():
-    return _saas.create_project_store(_SAAS_SETTINGS)
+    return _cached_project_store(_SAAS_SETTINGS, _SAAS_SOURCE_TOKEN)
+
+
+@st.cache_resource(show_spinner=False)
+def _cached_public_store(
+    settings: _saas.SaaSSettings,
+    source_token: int,
+):
+    """Cache a public store only for the active SaaS module revision."""
+    del source_token
+    return _storage.create_public_store(settings)
+
+
+def _get_public_store():
+    return _cached_public_store(_SAAS_SETTINGS, _SAAS_SOURCE_TOKEN)
 
 def _get_current_user_account() -> _saas.UserAccount | None:
     if _CURRENT_SAAS_USER is None:
@@ -1414,7 +1448,7 @@ def _workspace_tab_styles() -> str:
             outline-offset: 2px;
         }
         .st-key-workspace_compat_control {
-            display: none;
+            display: none !important;
         }
         .st-key-workspace_tab_bass_match,
         .st-key-workspace_tab_box_design {
@@ -1455,13 +1489,19 @@ def _workspace_tab_styles() -> str:
 
 
 def _select_workspace(workspace: str) -> None:
-    """Select a workspace from one of the large visual tabs."""
-    if workspace in _available_workspaces():
+    """Select a workspace from tabs or action buttons."""
+    if workspace in {"Manage Projects", "Bass Match", "Box Design", "Catalog Maintenance", "User Management"}:
         st.session_state["workspace_mode"] = workspace
 
 
+def _on_workspace_compat_change() -> None:
+    val = st.session_state.get("_workspace_compat_mode")
+    if val in {"Manage Projects", "Bass Match", "Box Design", "Catalog Maintenance", "User Management"}:
+        st.session_state["workspace_mode"] = val
+
+
 def _render_workspace_tabs() -> None:
-    """Render image tabs while retaining the state-compatible control."""
+    """Render image tabs for the two primary technical workspaces."""
     st.markdown(_workspace_tab_styles(), unsafe_allow_html=True)
     active = str(st.session_state.get("workspace_mode", "Bass Match"))
     workspaces = _available_workspaces()
@@ -1479,13 +1519,15 @@ def _render_workspace_tabs() -> None:
                     args=(workspace,),
                 )
     # Keep this widget in the app tree for old sessions and automated clients.
-    # CSS hides it from people because the image tabs are the primary control.
+    # CSS hides it completely from people because the image tabs are the primary control.
     with st.container(key="workspace_compat_control"):
         st.segmented_control(
             "Workspace",
-            workspaces,
+            (*workspaces, "Manage Projects"),
+            default=active if active in (*workspaces, "Manage Projects") else "Bass Match",
             format_func=lambda value: _WORKSPACE_DISPLAY_LABELS.get(value, value),
-            key="workspace_mode",
+            key="_workspace_compat_mode",
+            on_change=_on_workspace_compat_change,
             label_visibility="collapsed",
             width="stretch",
         )
@@ -1761,7 +1803,7 @@ def _render_catalog_maintenance() -> None:
             "Nominal diameter in": st.column_config.NumberColumn("Nominal Ø", width=95, format='%.2f"'),
             "Price": st.column_config.NumberColumn("Price", width=82, format="%.2f"),
             "Currency": st.column_config.TextColumn("Currency", width=82),
-            "Link": st.column_config.LinkColumn("Link", width=82, display_text="Open ↗"),
+            "Link": st.column_config.LinkColumn("Link", width=82, display_text="Open"),
             "Status": st.column_config.SelectboxColumn("Status", options=["InStock", "OutOfStock", "Discontinued"], width=120),
             "Select": st.column_config.CheckboxColumn("Select", width=74),
         },
@@ -1912,12 +1954,14 @@ _PRESET_CLASS_ENGINE_VALUES = {
 }
 _WORKSPACES = ("Bass Match", "Box Design")
 _WORKSPACE_DISPLAY_LABELS = {
+    "Manage Projects": "Manage Projects",
     "Bass Match": "Bass Match",
     "Box Design": "Box Design",
     "Catalog Maintenance": "Catalog Maintenance",
     "User Management": "User Management (Admin)",
 }
 _WORKSPACE_TAB_SLUGS = {
+    "Manage Projects": "manage_projects",
     "Bass Match": "bass_match",
     "Box Design": "box_design",
     "Catalog Maintenance": "catalog_maintenance",
@@ -2075,7 +2119,7 @@ _FINDER_RANK_MODES = (_FINDER_RANK_F3, _FINDER_RANK_VALUE)
 _FINDER_CTA_LABEL = "Run Bass Match"
 _FINDER_RANKING_VERSION = 11
 _FINDER_CONTEXT_FILTERED_POOL_VERSION = "user-inputs-v2"
-_FINDER_SPL_PREFILTER_HEADROOM_DB = 6.0
+_FINDER_SPL_PREFILTER_HEADROOM_DB = _acoustics.FINDER_SPL_PREFILTER_HEADROOM_DB
 _FINDER_DEFAULTS_VERSION = 10
 _PRICE_CURRENCY_DEFAULTS_VERSION = 1
 _FINDER_DEFAULTS = {
@@ -2329,6 +2373,34 @@ def _compact_result_row(row: dict) -> dict:
     }
 
 
+def _serialize_bass_match_context(value) -> dict:
+    """Encode Finder context without arrays nested inside Firestore arrays.
+
+    Firestore supports arrays of scalar values/maps, but rejects an array whose
+    element is another array.  The live Finder context starts with a tuple of
+    selected load types, so serializing it directly creates exactly that
+    invalid shape.  A named object preserves the portable format while keeping
+    every context value available for restoration.
+    """
+    if isinstance(value, dict):
+        load_types = value.get("load_types", [])
+        values = value.get("values", [])
+    elif isinstance(value, (list, tuple)):
+        load_types = value[0] if value else []
+        values = value[1:] if value else []
+    else:
+        load_types = []
+        values = []
+    if not isinstance(load_types, (list, tuple)):
+        load_types = [load_types] if load_types else []
+    if not isinstance(values, (list, tuple)):
+        values = [values] if values else []
+    return {
+        "load_types": _json_safe(list(load_types)),
+        "values": _json_safe(list(values)),
+    }
+
+
 def _collect_bass_match_project_state(
     *,
     include_results: bool = True,
@@ -2353,6 +2425,8 @@ def _collect_bass_match_project_state(
                     for row in val[:_LFP_MAX_SAVED_BATCH_RESULTS]
                     if isinstance(row, dict)
                 ]
+            elif key == "batch_result_context":
+                val = _serialize_bass_match_context(val)
             bass_match[key] = _json_safe(val)
     return bass_match
 
@@ -2365,8 +2439,9 @@ def _build_lfp_project(
     """Build the complete portable project, including Bass Match state."""
     name = str(
         (project or {}).get("name")
-        or st.session_state.get("project_name", "Untitled project")
-    ).strip() or "Untitled project"
+        if (project or {}).get("name") is not None
+        else st.session_state.get("project_name", "")
+    ).strip()
     now = datetime.now(UTC).isoformat()
     project_id = str(
         st.session_state.get("_portable_project_id") or f"lfp_{uuid.uuid4().hex}"
@@ -2392,6 +2467,11 @@ def _build_lfp_project(
             include_results=include_results
         ),
     }
+    # Keep an unnamed local draft renderable, but never treat it as a valid
+    # cloud/LFP project. Autosave and export/duplication gate this payload on a
+    # user-supplied name before persistence.
+    if _project_name_is_placeholder(name):
+        return payload
     return _saas.validate_project_payload(payload, allow_legacy=False)
 
 
@@ -2468,9 +2548,20 @@ def _apply_lfp_project(payload: dict) -> int:
         raise TypeError("LFP Bass Match results must be a list of rows")
     st.session_state["batch_results"] = list(rows or [])
     context = bass_match.get("batch_result_context", [])
-    if context is not None and not isinstance(context, (list, tuple)):
-        raise TypeError("LFP Bass Match result context must be a list")
-    restored_context = list(context or ())
+    if isinstance(context, dict):
+        load_types = context.get("load_types", [])
+        values = context.get("values", [])
+        if not isinstance(load_types, (list, tuple)):
+            raise TypeError("LFP Bass Match context load types must be a list")
+        if not isinstance(values, (list, tuple)):
+            raise TypeError("LFP Bass Match context values must be a list")
+        restored_context = [list(load_types), *list(values)]
+    elif isinstance(context, (list, tuple)):
+        # Legacy v2 projects used a nested list for the selected load types.
+        # Keep accepting that shape for existing .lfp files.
+        restored_context = list(context or ())
+    else:
+        raise TypeError("LFP Bass Match result context must be a list or object")
     if restored_context and isinstance(restored_context[0], list):
         restored_context[0] = tuple(restored_context[0])
     st.session_state["batch_result_context"] = tuple(restored_context)
@@ -2482,6 +2573,11 @@ def _apply_lfp_project(payload: dict) -> int:
         raise TypeError("LFP Bass Match run statistics must be an object")
     st.session_state["finder_last_run_stats"] = dict(run_stats or {})
     if st.session_state["batch_results"]:
+        # A fresh Streamlit session runs _ensure_finder_defaults before the
+        # project is opened. Without this marker, that migration would clear
+        # the restored result rows on the following rerun because the version
+        # key is not part of the user-facing Finder controls.
+        st.session_state["_finder_defaults_version"] = _FINDER_DEFAULTS_VERSION
         st.session_state["_restored_bass_match_controls_signature"] = "pending"
     else:
         st.session_state.pop(
@@ -2555,6 +2651,15 @@ def _share_link_url(token: str) -> str:
     return f"{base}?d={token}"
 
 
+def _public_project_url(publication_id: str) -> str:
+    """Best-effort absolute public project URL; falls back to a relative query string."""
+    try:
+        base = str(st.context.url or "").split("?", 1)[0]
+    except Exception:
+        base = ""
+    return f"{base}?p={publication_id}"
+
+
 def _decode_share_payload(token: str) -> dict:
     padded = token + "=" * (-len(token) % 4)
     payload = zlib.decompress(base64.urlsafe_b64decode(padded.encode("ascii")))
@@ -2579,7 +2684,7 @@ def _render_authenticated_account_controls(user: _saas.SaaSUser) -> None:
     if user.email and user.email != (user.name or ""):
         st.caption(user.email)
     st.markdown(
-        f"💳 **{acc.credits_balance:,}** / {acc.credits_monthly_quota:,} credits"
+        f"**{acc.credits_balance:,}** / {acc.credits_monthly_quota:,} credits"
     )
     st.caption(f"Monthly refill: {acc.quota_reset_at.strftime('%d %b %Y')}")
     account_col, logout_col = st.columns([3, 2])
@@ -2603,14 +2708,27 @@ def _project_download_filename(name: str) -> str:
 _AUTOSAVE_DEBOUNCE_SECONDS = 1.5
 _AUTOSAVE_RETRY_DELAYS = (2.0, 5.0, 15.0)
 _SAVE_STATUS_LABELS = {
-    "saved": "Saved ✓",
+    "saved": "Saved",
     "saving": "Saving…",
     "unsaved": "Unsaved changes",
     "retrying": "Save failed — retrying",
     "failed": "Save failed",
     "conflict": "Save conflict",
+    "name_required": "Project name required",
 }
 _UNTITLED_PROJECT_NAME = "Untitled project"
+
+
+def _project_name_is_placeholder(name: object) -> bool:
+    """Return whether a project has no user-supplied name yet."""
+    normalized = str(name or "").strip().casefold()
+    return not normalized or normalized == _UNTITLED_PROJECT_NAME.casefold()
+
+
+def _project_display_name(name: object) -> str:
+    """Return a non-persisted label for an unnamed local draft."""
+    value = str(name or "").strip()
+    return value if not _project_name_is_placeholder(value) else "Name required"
 
 
 def _mark_cloud_project_dirty(*, immediate: bool = False) -> None:
@@ -2652,6 +2770,47 @@ def _apply_cloud_record(record: _saas.ProjectRecord) -> int:
     return applied
 
 
+def _queue_cloud_record_activation(
+    record: _saas.ProjectRecord,
+    *,
+    notice: str = "",
+) -> None:
+    """Apply a cloud project at the start of the next Streamlit run.
+
+    Public project actions render after the sidebar, so their click handlers
+    cannot safely overwrite keys owned by already-instantiated widgets.  Keep
+    only the new project identity here and load its state before widgets are
+    created on the rerun.
+    """
+    st.session_state["_pending_cloud_project_id"] = record.project_id
+    if notice:
+        st.session_state["_pending_cloud_project_notice"] = notice
+
+
+def _apply_pending_cloud_record() -> int:
+    """Activate a queued cloud project before any widget-backed state exists."""
+    project_id = st.session_state.pop("_pending_cloud_project_id", None)
+    if not project_id:
+        return 0
+    notice = str(st.session_state.pop("_pending_cloud_project_notice", "")).strip()
+    if _CURRENT_SAAS_USER is None:
+        raise _saas.ProjectAccessError(
+            "Sign in again to open the cloned cloud project"
+        )
+    record = _get_project_store().load_project(
+        _CURRENT_SAAS_USER,
+        str(project_id),
+    )
+    if record is None:
+        raise _saas.ProjectMissingError("Cloned cloud project was not found")
+    applied = _apply_cloud_record(record)
+    _invalidate_cloud_project_list()
+    st.session_state["workspace_mode"] = "Box Design"
+    if notice:
+        st.toast(notice)
+    return applied
+
+
 def _cloud_autosave_step(
     store,
     user: _saas.SaaSUser,
@@ -2661,8 +2820,16 @@ def _cloud_autosave_step(
 ) -> str:
     """Advance one non-blocking debounced autosave attempt."""
     now = time.monotonic() if now is None else float(now)
-    name = str(st.session_state.get("project_name", "Untitled project")).strip()
-    name = name or "Untitled project"
+    name = str(st.session_state.get("project_name", "")).strip()
+    if _project_name_is_placeholder(name):
+        if st.session_state.get("_cloud_project_id"):
+            # Do not keep attaching a legacy auto-created placeholder record
+            # to the active draft. Naming it later will create a fresh record.
+            _detach_cloud_project()
+        st.session_state["_cloud_save_status"] = "name_required"
+        st.session_state.pop("_cloud_save_error", None)
+        st.session_state.pop("_cloud_save_error_kind", None)
+        return "name_required"
     try:
         payload = _build_lfp_project({"name": name}, include_results=True)
     except Exception as exc:
@@ -2683,10 +2850,34 @@ def _cloud_autosave_step(
         debounce_seconds=_AUTOSAVE_DEBOUNCE_SECONDS,
         retry_delays=_AUTOSAVE_RETRY_DELAYS,
     )
+    if status == "conflict":
+        # Another tab/device may have committed one revision while this tab
+        # was solving Bass Match or changing a load. Rebase the optimistic
+        # revision marker and retry the local payload once, without replacing
+        # the user's in-memory design with the remote one.
+        project_id = st.session_state.get("_cloud_project_id")
+        latest = (
+            store.load_project(user, str(project_id))
+            if project_id
+            else None
+        )
+        if latest is not None:
+            _set_active_cloud_record(latest)
+            status, _ = _saas.advance_project_autosave(
+                store,
+                user,
+                name,
+                payload,
+                _VERSION,
+                st.session_state,
+                now=time.monotonic(),
+                force=True,
+                debounce_seconds=_AUTOSAVE_DEBOUNCE_SECONDS,
+                retry_delays=_AUTOSAVE_RETRY_DELAYS,
+            )
     return status
 
 
-@st.fragment(run_every=2)
 def _render_cloud_persistence_status() -> None:
     if not (_SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None):
         return
@@ -2706,13 +2897,27 @@ def _render_cloud_persistence_status() -> None:
         status = "failed"
     label = _SAVE_STATUS_LABELS.get(status, "Unsaved changes")
     color = "#34d399" if status == "saved" else (
-        "#fbbf24" if status in {"unsaved", "saving", "retrying"} else "#f87171"
+        "#fbbf24"
+        if status in {"unsaved", "saving", "retrying", "name_required"}
+        else "#f87171"
     )
     st.markdown(
         f"<div title='Cloud persistence status' style='font-size:.76rem;"
         f"color:{color};margin:-.25rem 0 .45rem 0'>● {html.escape(label)}</div>",
         unsafe_allow_html=True,
     )
+    if status == "name_required":
+        st.caption("Name this project in Manage Projects to enable cloud save.")
+    if status in {"failed", "conflict"}:
+        error_kind = str(st.session_state.get("_cloud_save_error_kind", "unknown"))
+        error = str(st.session_state.get("_cloud_save_error", "")).strip()
+        st.error(_cloud_persistence_error_message(error_kind))
+        if error and error_kind == "unknown":
+            st.caption(error[:240])
+        if st.button("Retry cloud save", key="project_cloud_retry", width="stretch"):
+            st.session_state["_cloud_save_failure_count"] = 0
+            _mark_cloud_project_dirty(immediate=True)
+            st.rerun()
 
 
 def _invalidate_cloud_project_list() -> None:
@@ -2762,6 +2967,8 @@ def _cloud_persistence_error_message(kind: str) -> str:
         )
     if kind == "transient":
         return "Cloud save could not connect after retrying. Check the connection, then retry."
+    if kind == "conflict":
+        return "Another session changed this project. The latest revision was fetched; retry the local save."
     return "Cloud save failed. Check the Firestore configuration or connection, then retry."
 
 
@@ -2780,343 +2987,678 @@ def _detach_cloud_project(*, suppress_hash: str | None = None) -> None:
         st.session_state.pop("_cloud_suppressed_hash", None)
 
 
-def _render_cloud_project_controls() -> None:
-    if not (_SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None):
+def _duplicate_active_project() -> None:
+    """Create an independent duplicate copy of the active project."""
+    if _project_name_is_placeholder(st.session_state.get("project_name", "")):
+        st.warning("Name the project before duplicating it.")
         return
-    st.caption(
-        "Cloud autosave · Projects resume across sessions and devices. Cloud "
-        "storage is not a permanent backup archive; periodically download an "
-        "important project as .lfp."
-    )
-    status = str(st.session_state.get("_cloud_save_status", "unsaved"))
-    error = str(st.session_state.get("_cloud_save_error", "")).strip()
-    error_kind = str(st.session_state.get("_cloud_save_error_kind", "unknown"))
-    if status == "failed":
-        st.error(_cloud_persistence_error_message(error_kind))
-        if error and error_kind == "unknown":
-            st.caption(error[:180])
-        if st.button("Retry cloud save", key="project_cloud_retry", width="stretch"):
-            _mark_cloud_project_dirty(immediate=True)
-            st.rerun()
-    elif status == "conflict":
-        st.error(
-            "A newer cloud revision exists. This session was not allowed to overwrite it."
+    store = _get_project_store()
+    current_name = str(st.session_state.get("project_name", _UNTITLED_PROJECT_NAME))
+    copy_name = f"{current_name} (Copy)"
+    payload = _build_lfp_project({"name": copy_name}, include_results=True)
+    if _CURRENT_SAAS_USER is not None and _SAAS_SETTINGS.enabled:
+        record = store.save_project(
+            _CURRENT_SAAS_USER,
+            copy_name,
+            payload,
+            _VERSION,
+            expected_revision=0,
         )
-        reload_col, copy_col = st.columns(2)
-        with reload_col:
-            if st.button("Reload latest", key="project_conflict_reload", width="stretch"):
-                try:
-                    record = _get_project_store().load_project(
-                        _CURRENT_SAAS_USER,
-                        str(st.session_state["_cloud_project_id"]),
-                    )
-                    if record is None:
-                        raise _saas.ProjectMissingError("Cloud project was not found")
-                    _apply_cloud_record(record)
-                    st.rerun()
-                except Exception as exc:
-                    logger.exception("Could not reload conflicted cloud project")
-                    st.error(f"Could not reload the latest project: {exc}")
-        with copy_col:
-            if st.button("Save as copy", key="project_conflict_copy", width="stretch"):
-                conflict = st.session_state.get("_cloud_conflict", {})
-                try:
-                    record = _get_project_store().save_project(
-                        _CURRENT_SAAS_USER,
-                        f"{conflict.get('name', 'Untitled project')} (conflict copy)",
-                        conflict["payload"],
-                        _VERSION,
-                        expected_revision=0,
-                    )
-                    st.session_state["project_name"] = record.name
-                    _set_active_cloud_record(record)
-                    _invalidate_cloud_project_list()
-                    st.rerun()
-                except Exception as exc:
-                    logger.exception("Could not preserve conflicted project as a copy")
-                    st.error(f"Could not save the session as a copy: {exc}")
+        _apply_cloud_record(record)
+        _invalidate_cloud_project_list()
+    else:
+        st.session_state["project_name"] = copy_name
+        _detach_cloud_project()
+        _mark_cloud_project_dirty(immediate=True)
+    st.toast(f"Duplicated project: {copy_name}")
 
+
+def _create_new_project(name: str) -> None:
+    """Reset active state and initialize a newly named independent project."""
+    project_name = str(name).strip()
+    if not project_name:
+        raise ValueError("Project name is required")
+    _clear_active_project_state()
+    _reset_finder_defaults()
+    st.session_state.pop("_new_project_name_prompt", None)
+    st.session_state["workspace_mode"] = "Manage Projects"
+    st.session_state["project_name"] = project_name[:80]
+    st.session_state["_project_name_revision"] = int(
+        st.session_state.get("_project_name_revision", 0)
+    ) + 1
+    _detach_cloud_project()
+    _mark_cloud_project_dirty(immediate=True)
+    st.toast(f"Initialized new project: {project_name[:80]}")
+
+
+def _open_manage_projects_workspace() -> None:
+    """Leave any public/admin route and open the project-management workspace."""
+    for key in ("explore", "p", "embed", "maintenance", "admin_users"):
+        st.query_params.pop(key, None)
+    _select_workspace("Manage Projects")
+
+
+def _open_community_workspace() -> None:
+    """Leave other routes and switch into the Community Hub workspace in the same tab."""
+    for key in ("p", "embed", "maintenance", "admin_users"):
+        st.query_params.pop(key, None)
+    st.query_params["explore"] = "1"
+    st.session_state["workspace_mode"] = "Community"
+
+
+def _open_technical_page(publication_id: str) -> None:
+    """Open technical snapshot page within the same application session without opening new tabs."""
+    for key in ("explore", "embed", "maintenance", "admin_users"):
+        st.query_params.pop(key, None)
+    st.query_params["p"] = publication_id
+    st.session_state["workspace_mode"] = "Technical View"
+
+
+def _request_new_project_name() -> None:
+    """Show the required blank name prompt without changing the active project."""
+    st.session_state["_new_project_name_prompt"] = True
+
+
+_COMMUNITY_HUD_SVG_B64 = (
+    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAg"
+    "ODAiIGZpbGw9Im5vbmUiPgogIDxkZWZzPgogICAgPGZpbHRlciBpZD0iZ2xvdy1wIiB4PSItMjAl"
+    "IiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlR2F1c3NpYW5C"
+    "bHVyIHN0ZERldmlhdGlvbj0iMiIgcmVzdWx0PSJibHVyIiAvPgogICAgICA8ZmVNZXJnZT4KICAg"
+    "ICAgICA8ZmVNZXJnZU5vZGUgaW49ImJsdXIiIC8+CiAgICAgICAgPGZlTWVyZ2VOb2RlIGluPSJT"
+    "b3VyY2VHcmFwaGljIiAvPgogICAgICA8L2ZlTWVyZ2U+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+"
+    "CgogIDwhLS0gTGVmdCBJY29uOiBMYXJnZSBDaXJjdWxhciBOZXR3b3JrIE5vZGUgLS0+CiAgPGNp"
+    "cmNsZSBjeD0iNDIiIGN5PSI0MCIgcj0iMzIiIHN0cm9rZT0iIzAwZmY2NiIgc3Ryb2tlLXdpZHRo"
+    "PSIyLjYiIGZpbGw9InJnYmEoMCwyNTUsMTAyLDAuMDgpIiBmaWx0ZXI9InVybCgjZ2xvdy1wKSIg"
+    "Lz4KICA8Y2lyY2xlIGN4PSI0MiIgY3k9IjQwIiByPSIyNiIgc3Ryb2tlPSJyZ2JhKDAsMjU1LDEw"
+    "MiwwLjQpIiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLWRhc2hhcnJheT0iMyAzIiAvPgoKICA8"
+    "IS0tIE5ldHdvcmsgSW50ZXJjb25uZWN0aW9ucyAtLT4KICA8bGluZSB4MT0iNDIiIHkxPSIyNCIg"
+    "eDI9IjI3IiB5Mj0iNTIiIHN0cm9rZT0iIzAwZmY2NiIgc3Ryb2tlLXdpZHRoPSIxLjgiIC8+CiAg"
+    "PGxpbmUgeDE9IjQyIiB5MT0iMjQiIHgyPSI1NyIgeTI9IjUyIiBzdHJva2U9IiMwMGZmNjYiIHN0"
+    "cm9rZS13aWR0aD0iMS44IiAvPgogIDxsaW5lIHgxPSIyNyIgeTE9IjUyIiB4Mj0iNTciIHkyPSI1"
+    "MiIgc3Ryb2tlPSIjMDBmZjY2IiBzdHJva2Utd2lkdGg9IjEuOCIgLz4KICA8Y2lyY2xlIGN4PSI0"
+    "MiIgY3k9IjQwIiByPSIyLjgiIGZpbGw9IiMwMGZmNjYiIGZpbHRlcj0idXJsKCNnbG93LXApIiAv"
+    "PgoKICA8IS0tIFRvcCBBdmF0YXIgTm9kZSAtLT4KICA8Y2lyY2xlIGN4PSI0MiIgY3k9IjI0IiBy"
+    "PSI2IiBmaWxsPSIjMDAwMDAwIiBzdHJva2U9IiMwMGZmNjYiIHN0cm9rZS13aWR0aD0iMS40IiAv"
+    "PgogIDxjaXJjbGUgY3g9IjQyIiBjeT0iMjIiIHI9IjIiIGZpbGw9IiMwMGZmNjYiIC8+CiAgPHBh"
+    "dGggZD0iTTM4IDI3IEMzOCAyNSA0NiAyNSA0NiAyNyIgc3Ryb2tlPSIjMDBmZjY2IiBzdHJva2Ut"
+    "d2lkdGg9IjEuMiIgLz4KCiAgPCEtLSBCb3R0b20gTGVmdCBBdmF0YXIgTm9kZSAtLT4KICA8Y2ly"
+    "Y2xlIGN4PSIyNyIgY3k9IjUyIiByPSI2IiBmaWxsPSIjMDAwMDAwIiBzdHJva2U9IiMwMGZmNjYi"
+    "IHN0cm9rZS13aWR0aD0iMS40IiAvPgogIDxjaXJjbGUgY3g9IjI3IiBjeT0iNTAiIHI9IjIiIGZp"
+    "bGw9IiMwMGZmNjYiIC8+CiAgPHBhdGggZD0iTTIzIDU1IEMyMyA1MyAzMSA1MyAzMSA1NSIgc3Ry"
+    "b2tlPSIjMDBmZjY2IiBzdHJva2Utd2lkdGg9IjEuMiIgLz4KCiAgPCEtLSBCb3R0b20gUmlnaHQg"
+    "QXZhdGFyIE5vZGUgLS0+CiAgPGNpcmNsZSBjeD0iNTciIGN5PSI1MiIgcj0iNiIgZmlsbD0iIzAw"
+    "MDAwMCIgc3Ryb2tlPSIjMDBmZjY2IiBzdHJva2Utd2lkdGg9IjEuNCIgLz4KICA8Y2lyY2xlIGN4"
+    "PSI1NyIgY3k9IjUwIiByPSIyIiBmaWxsPSIjMDBmZjY2IiAvPgogIDxwYXRoIGQ9Ik01MyA1NSBD"
+    "NTMgNTMgNjEgNTMgNjEgNTUiIHN0cm9rZT0iIzAwZmY2NiIgc3Ryb2tlLXdpZHRoPSIxLjIiIC8+"
+    "CgogIDwhLS0gSG9yaXpvbnRhbCBnbG93aW5nIGJhc2VsaW5lIHdpdGggcm91bmQgdGVybWluYWwg"
+    "ZG90cyBzcGFubmluZyByaWdodCB1bmRlciB0ZXh0IC0tPgogIDxwYXRoIGQ9Ik04NSA2NCBIMzkw"
+    "IiBzdHJva2U9IiMwMGZmNjYiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI2dsb3ctcCki"
+    "IC8+CiAgPGNpcmNsZSBjeD0iODUiIGN5PSI2NCIgcj0iMyIgZmlsbD0iIzAwZmY2NiIgLz4KICA8"
+    "Y2lyY2xlIGN4PSIzOTAiIGN5PSI2NCIgcj0iMyIgZmlsbD0iIzAwZmY2NiIgLz4KCiAgPCEtLSBU"
+    "eXBvZ3JhcGh5OiBCaWcsIGNyaXNwLCBib2xkIGl0YWxpYyBmaWxsaW5nIHRoZSBzcGFjZSBmcm9t"
+    "IGxlZnQgdG8gcmlnaHQgLS0+CiAgPHRleHQgeD0iODYiIHk9IjQ3IiBmb250LWZhbWlseT0iLWFw"
+    "cGxlLXN5c3RlbSwgQmxpbmtNYWNTeXN0ZW1Gb250LCBTZWdvZSBVSSwgUm9ib3RvLCBJbnRlciwg"
+    "c2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjkwMCIgZm9udC1zdHlsZT0iaXRhbGljIiBmb250LXNp"
+    "emU9IjMxIiBmaWxsPSIjZmZmZmZmIiBsZXR0ZXItc3BhY2luZz0iMC41Ij4KICAgIEV4cGxvcmUg"
+    "PHRzcGFuIGZpbGw9IiMwMGZmNjYiPkNvbW11bml0eSBQcmo8L3RzcGFuPgogIDwvdGV4dD4KPC9z"
+    "dmc+"
+)
+
+
+def _render_hud_explore_community_button(key: str = "sidebar_community_btn") -> None:
+    """Render the high-tech blueprint cyber-HUD button for transitioning to Community."""
+    st.markdown(
+        f"""<style>
+        .st-key-hud_community_nav {{
+            margin: 8px 0 12px 0 !important;
+        }}
+        .st-key-hud_community_nav div[data-testid="stButton"] button {{
+            background-color: #000000 !important;
+            border: 1px solid rgba(16,185,129,.46) !important;
+            border-radius: .7rem !important;
+            height: clamp(3.2rem, 5.5vw, 4.4rem) !important;
+            min-height: 3.2rem !important;
+            position: relative !important;
+            overflow: hidden !important;
+            padding: 0 !important;
+            width: 100% !important;
+            box-shadow: 0 0 0 1px rgba(16,185,129,.12) !important;
+            transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease !important;
+        }}
+        .st-key-hud_community_nav div[data-testid="stButton"] button::before {{
+            content: "" !important;
+            position: absolute !important;
+            inset: 0 !important;
+            background-image: url("data:image/svg+xml;base64,{_COMMUNITY_HUD_SVG_B64}") !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+            background-size: contain !important;
+            pointer-events: none !important;
+            transition: filter .16s ease, transform .16s ease !important;
+        }}
+        .st-key-hud_community_nav div[data-testid="stButton"] button p {{
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }}
+        .st-key-hud_community_nav div[data-testid="stButton"] button:hover {{
+            border-color: #10b981 !important;
+            box-shadow: 0 0 0 1px rgba(16,185,129,.25), 0 0 20px rgba(16,185,129,.4) !important;
+            transform: translateY(-1px) !important;
+        }}
+        .st-key-hud_community_nav div[data-testid="stButton"] button:hover::before {{
+            filter: brightness(1.18) drop-shadow(0 0 8px rgba(0, 255, 102, 0.5)) !important;
+        }}
+        .st-key-hud_community_nav div[data-testid="stButton"] button:focus-visible {{
+            outline: 3px solid rgba(255,255,255,.82) !important;
+            outline-offset: 2px !important;
+        }}
+        </style>""",
+        unsafe_allow_html=True,
+    )
+    with st.container(key="hud_community_nav"):
+        st.button(
+            "Explore Community Prj",
+            key=key,
+            width="stretch",
+            type="secondary",
+            help="Explore verified community loudspeaker alignments and fork designs.",
+            on_click=_open_community_workspace,
+        )
+
+
+def _render_current_project_sidebar_header() -> None:
+    """Render minimal, compact project identity, autosave status, and link to Manage Projects."""
+    project_name = _project_display_name(st.session_state.get("project_name", ""))
+
+    # Minimal user identity line if authenticated
+    if _CURRENT_SAAS_USER is not None:
+        acc = _get_current_user_account()
+        if acc:
+            st.caption(
+                f"**{html.escape(_CURRENT_SAAS_USER.name or _CURRENT_SAAS_USER.email or 'Engineer')}** · *{acc.plan.upper()}* · **{acc.credits_balance:,}** credits"
+            )
+        elif _CURRENT_SAAS_USER.email:
+            st.caption(html.escape(_CURRENT_SAAS_USER.email))
+
+    with st.container(border=True):
+        st.markdown(f"**Project**: {html.escape(project_name)}")
+        _render_cloud_persistence_status()
+        if st.button(
+            "Manage Projects",
+            key="sidebar_manage_projects_btn",
+            width="stretch",
+            on_click=_open_manage_projects_workspace,
+        ):
+            pass
+
+    _render_hud_explore_community_button(key="sidebar_community_btn")
+
+
+def _render_project_menu() -> None:
+    """Legacy compatibility hook forwarding to current project header."""
+    _render_current_project_sidebar_header()
+
+
+def _render_manage_projects_cloud_list() -> None:
+    """Render the cloud projects table and management cards."""
+    if not (_SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None):
+        st.info("Operating in local session mode. Projects are stored in browser memory.")
+        return
     try:
         summaries = _cloud_project_summaries()
     except Exception as exc:
         logger.exception("Could not list cloud projects")
-        st.warning("Cloud projects could not be listed right now.")
-        st.caption(str(exc)[:180])
+        st.error(f"Could not list cloud projects: {exc}")
         return
-    active = [item for item in summaries if item.status != "trashed"]
-    trashed = [item for item in summaries if item.status == "trashed"]
-    if active:
-        labels = {
-            item.project_id: f"{item.name} · r{item.revision}"
-            for item in active
-        }
-        current_id = str(st.session_state.get("_cloud_project_id", ""))
-        ids = list(labels)
-        selected_id = st.selectbox(
-            "Cloud projects",
-            ids,
-            index=ids.index(current_id) if current_id in ids else 0,
-            format_func=labels.get,
-            key="project_cloud_selection",
-        )
-        open_col, trash_col, refresh_col = st.columns([2, 2, 1])
-        selected = next(item for item in active if item.project_id == selected_id)
-        with open_col:
-            if st.button("Open", key="project_cloud_open", width="stretch"):
-                try:
-                    record = _get_project_store().load_project(
-                        _CURRENT_SAAS_USER, selected_id
-                    )
-                    if record is None:
-                        raise _saas.ProjectMissingError("Cloud project was not found")
-                    _apply_cloud_record(record)
-                    st.rerun()
-                except Exception as exc:
-                    logger.exception("Could not open cloud project")
-                    st.error(f"Could not open project: {exc}")
-        with trash_col:
-            if st.button("Move to Trash", key="project_cloud_trash", width="stretch"):
-                try:
-                    _get_project_store().soft_delete_project(
-                        _CURRENT_SAAS_USER,
-                        selected_id,
-                        _VERSION,
-                        expected_revision=selected.revision,
-                    )
-                    if current_id == selected_id:
-                        _detach_cloud_project(suppress_hash=selected.content_hash)
-                    _invalidate_cloud_project_list()
-                    st.rerun()
-                except Exception as exc:
-                    logger.exception("Could not move cloud project to Trash")
-                    st.error(f"Could not move project to Trash: {exc}")
-        with refresh_col:
-            if st.button("↻", key="project_cloud_refresh", help="Refresh cloud projects"):
-                _invalidate_cloud_project_list()
-                st.rerun()
+    active = [
+        item for item in summaries
+        if item.status != "trashed" and not _project_name_is_placeholder(item.name)
+    ]
+    if not active:
+        st.info("No saved cloud projects found. Click **New Project** or import an existing `.lfp` file.")
+        return
+    current_id = str(st.session_state.get("_cloud_project_id", ""))
+    st.caption(f"Showing **{len(active)}** cloud projects in your account")
 
-    if trashed:
-        if st.toggle(
-            f"Show Trash · {len(trashed)}",
-            key="project_show_trash",
-        ):
-            trash_labels = {
-                item.project_id: f"{item.name} · deleted {item.deleted_at:%d %b}"
-                for item in trashed
-            }
-            trash_id = st.selectbox(
-                "Trashed project",
-                list(trash_labels),
-                format_func=trash_labels.get,
-                key="project_trash_selection",
-            )
-            trashed_project = next(item for item in trashed if item.project_id == trash_id)
-            if st.button("Restore from Trash", key="project_trash_restore", width="stretch"):
-                try:
-                    _get_project_store().restore_project(
-                        _CURRENT_SAAS_USER,
-                        trash_id,
-                        _VERSION,
-                        expected_revision=trashed_project.revision,
-                    )
-                    _invalidate_cloud_project_list()
-                    st.rerun()
-                except Exception as exc:
-                    logger.exception("Could not restore cloud project from Trash")
-                    st.error(f"Could not restore project: {exc}")
-            st.caption(
-                "Trash retention target: "
-                f"{_SAAS_SETTINGS.project_trash_retention_days} days; "
-                "permanent cleanup is an operator task."
-            )
+    for item in active:
+        is_current = item.project_id == current_id
+        with st.container(border=True):
+            r_col1, r_col2, r_col3, r_col4 = st.columns([3.5, 2.2, 1.3, 3.0], vertical_alignment="center")
+            with r_col1:
+                badge = "**[ACTIVE]** " if is_current else ""
+                st.markdown(f"{badge}**{html.escape(item.name)}**")
+                st.caption(f"ID: `{item.project_id[:12]}...` · Revision **r{item.revision}**")
+            with r_col2:
+                updated_str = item.updated_at.strftime("%d %b %Y %H:%M UTC")
+                st.caption(updated_str)
+            with r_col3:
+                st.caption("Active" if is_current else "Saved")
+            with r_col4:
+                b_col1, b_col2, b_col3 = st.columns([1.2, 1.2, 1.1])
+                with b_col1:
+                    if st.button("Open", key=f"mp_list_open_{item.project_id}", width="stretch", type="primary" if is_current else "secondary"):
+                        try:
+                            record = _get_project_store().load_project(_CURRENT_SAAS_USER, item.project_id)
+                            if record is None:
+                                raise _saas.ProjectMissingError("Project not found")
+                            _apply_cloud_record(record)
+                            st.toast(f"Opened project: {record.name}")
+                            st.rerun()
+                        except Exception as exc:
+                            logger.exception("Could not open project")
+                            st.error(f"Open failed: {exc}")
+                with b_col2:
+                    if st.button("Duplicate", key=f"mp_list_dup_{item.project_id}", width="stretch"):
+                        try:
+                            rec = _get_project_store().load_project(_CURRENT_SAAS_USER, item.project_id)
+                            if rec:
+                                copy_rec = _get_project_store().save_project(
+                                    _CURRENT_SAAS_USER,
+                                    f"{rec.name} (Copy)",
+                                    rec.parameters,
+                                    _VERSION,
+                                    expected_revision=0,
+                                )
+                                _invalidate_cloud_project_list()
+                                st.toast(f"Duplicated: {copy_rec.name}")
+                                st.rerun()
+                        except Exception as exc:
+                            logger.exception("Could not duplicate project")
+                            st.error(f"Duplicate failed: {exc}")
+                with b_col3:
+                    if st.button("Trash", key=f"mp_list_trash_{item.project_id}", width="stretch"):
+                        try:
+                            _get_project_store().soft_delete_project(
+                                _CURRENT_SAAS_USER,
+                                item.project_id,
+                                _VERSION,
+                                expected_revision=item.revision,
+                            )
+                            if is_current:
+                                _detach_cloud_project(suppress_hash=item.content_hash)
+                            _invalidate_cloud_project_list()
+                            st.toast(f"Moved to Trash: {item.name}")
+                            st.rerun()
+                        except Exception as exc:
+                            logger.exception("Could not trash project")
+                            st.error(f"Trash failed: {exc}")
 
+
+def _render_manage_projects_history() -> None:
+    """Render revision history for the active project."""
+    if not (_SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None):
+        st.info("Revision history requires an authenticated cloud session.")
+        return
     project_id = st.session_state.get("_cloud_project_id")
     revision = int(st.session_state.get("_cloud_project_revision", 0) or 0)
-    if (
-        project_id
-        and revision > 1
-        and st.toggle("Show version history", key="project_show_history")
-    ):
+    if not project_id:
+        st.info("Select or save a cloud project to view its revision timeline.")
+        return
+    try:
+        revisions = _get_project_store().list_revisions(_CURRENT_SAAS_USER, str(project_id), limit=20)
+    except Exception as exc:
+        logger.exception("Could not list revisions")
+        st.error(f"Could not load revision history: {exc}")
+        return
+    if not revisions:
+        st.info("No previous revisions recorded yet for this project.")
+        return
+    st.caption(f"Showing last **{len(revisions)}** immutable revisions for this project")
+    for rev in revisions:
+        is_current_rev = rev.revision == revision
+        with st.container(border=True):
+            c_info, c_action = st.columns([3, 1], vertical_alignment="center")
+            with c_info:
+                prefix = "**Current Revision** · " if is_current_rev else ""
+                st.markdown(f"{prefix}**Revision r{rev.revision}**")
+                st.caption(f"Saved at {rev.created_at:%d %b %Y %H:%M:%S UTC} · Schema v{rev.schema_version}")
+            with c_action:
+                if not is_current_rev:
+                    if st.button("Restore Version", key=f"mp_restore_rev_{rev.revision_id}", width="stretch"):
+                        try:
+                            restored = _get_project_store().restore_revision(
+                                _CURRENT_SAAS_USER,
+                                str(project_id),
+                                rev.revision,
+                                _VERSION,
+                                expected_revision=revision,
+                            )
+                            _apply_cloud_record(restored)
+                            _invalidate_cloud_project_list()
+                            st.toast(f"Restored revision r{rev.revision}")
+                            st.rerun()
+                        except Exception as exc:
+                            logger.exception("Could not restore revision")
+                            st.error(f"Restore failed: {exc}")
+
+
+def _render_manage_projects_trash() -> None:
+    """Render trashed projects with restore actions."""
+    if not (_SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None):
+        st.info("Trash management requires an authenticated cloud session.")
+        return
+    try:
+        summaries = _cloud_project_summaries()
+    except Exception as exc:
+        logger.exception("Could not list trashed projects")
+        st.error(f"Could not list trashed projects: {exc}")
+        return
+    trashed = [item for item in summaries if item.status == "trashed"]
+    if not trashed:
+        st.info("Trash is empty. All projects are active.")
+        return
+    st.caption(
+        f"**{len(trashed)}** trashed project(s). "
+        f"Trash retention target: {_SAAS_SETTINGS.project_trash_retention_days} days."
+    )
+    for item in trashed:
+        with st.container(border=True):
+            c_info, c_action = st.columns([3, 1], vertical_alignment="center")
+            with c_info:
+                st.markdown(f"**{html.escape(item.name)}**")
+                del_str = item.deleted_at.strftime("%d %b %Y %H:%M UTC") if item.deleted_at else "recently"
+                st.caption(f"Deleted on {del_str} · Revision r{item.revision}")
+            with c_action:
+                if st.button("Restore from Trash", key=f"mp_trash_restore_{item.project_id}", width="stretch", type="primary"):
+                    try:
+                        _get_project_store().restore_project(
+                            _CURRENT_SAAS_USER,
+                            item.project_id,
+                            _VERSION,
+                            expected_revision=item.revision,
+                        )
+                        _invalidate_cloud_project_list()
+                        st.toast(f"Restored project: {item.name}")
+                        st.rerun()
+                    except Exception as exc:
+                        logger.exception("Could not restore project")
+                        st.error(f"Restore failed: {exc}")
+
+
+def _render_manage_projects_publish() -> None:
+    """Render public snapshot publishing controls."""
+    project_id = st.session_state.get("_cloud_project_id")
+    project_name = str(st.session_state.get("project_name", _UNTITLED_PROJECT_NAME))
+    if not (_SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None and project_id):
+        st.info("Save or open a cloud project first before publishing an immutable technical snapshot.")
+        return
+    st.caption("Publish an immutable technical snapshot of the current active design to the community library.")
+    pub_title_input = st.text_input(
+        "Publication title",
+        value=project_name,
+        key="mp_pub_title_input",
+        max_chars=120,
+    )
+    pub_desc_input = st.text_area(
+        "Publication description / build notes",
+        value=st.session_state.get("_pub_desc_draft", ""),
+        key="mp_pub_desc_input",
+        help="Summary of the design, tuning goals, or physical prototype build requirements.",
+    )
+    pub_vis_option = st.selectbox(
+        "Visibility",
+        ["Unlisted (accessible via direct link)", "Public (discoverable in Explore/Projects)"],
+        key="mp_pub_vis_select",
+    )
+    if st.button("Publish Technical Snapshot", key="mp_pub_submit_btn", width="stretch", type="primary"):
         try:
-            revisions = _get_project_store().list_revisions(
-                _CURRENT_SAAS_USER, str(project_id), limit=10
+            vis = "public" if pub_vis_option.startswith("Public") else "unlisted"
+            curr_prj = _get_project_store().load_project(_CURRENT_SAAS_USER, str(project_id))
+            if curr_prj is None:
+                raise ValueError("Project not found in private workspace")
+            pub_record = _get_public_store().publish_project(
+                _CURRENT_SAAS_USER,
+                str(project_id),
+                curr_prj.parameters,
+                title=pub_title_input,
+                description=pub_desc_input,
+                visibility=vis,
+                app_version=_VERSION,
+                source_revision=curr_prj.revision,
             )
-            previous = [item for item in revisions if item.revision < revision]
-            if previous:
-                rev_by_id = {item.revision_id: item for item in previous}
-                revision_id = st.selectbox(
-                    "Previous version",
-                    list(rev_by_id),
-                    format_func=lambda value: (
-                        f"r{rev_by_id[value].revision} · "
-                        f"{rev_by_id[value].created_at:%d %b %Y %H:%M UTC}"
-                    ),
-                    key="project_revision_selection",
-                )
+            st.session_state["_last_published_id"] = pub_record.publication_id
+            st.toast(f"Published snapshot: {pub_record.title}")
+        except Exception as exc:
+            logger.exception("Could not publish project snapshot")
+            st.error(f"Publishing failed: {exc}")
+
+    last_pub_id = st.session_state.get("_last_published_id")
+    if last_pub_id:
+        st.success(f"Snapshot published (`{last_pub_id}`)")
+        st.button(
+            "View Published Technical Page",
+            key="view_published_tech_btn",
+            type="secondary",
+            on_click=_open_technical_page,
+            args=(str(last_pub_id),),
+        )
+
+
+def _render_manage_projects_workspace() -> None:
+    """Dedicated first-class workspace for project lifecycle, persistence, and storage management."""
+    st.title("Manage Projects")
+    st.caption(
+        "Centralized project lifecycle, cloud autosave, revision history, "
+        ".lfp file imports/exports, and publication management."
+    )
+
+    project_name = str(st.session_state.get("project_name", "")).strip()
+    project_label = _project_display_name(project_name)
+    cloud_id = st.session_state.get("_cloud_project_id")
+    revision = int(st.session_state.get("_cloud_project_revision", 0) or 0)
+    user = _CURRENT_SAAS_USER
+
+    if st.session_state.get("_new_project_name_prompt"):
+        with st.container(border=True):
+            st.subheader("Name new project")
+            new_project_name = st.text_input(
+                "Project name",
+                value="",
+                key="mp_new_project_name",
+                max_chars=80,
+            )
+            name_col, cancel_col = st.columns(2)
+            with name_col:
                 if st.button(
-                    "Restore selected version",
-                    key="project_revision_restore",
+                    "Create Project",
+                    key="mp_create_project_btn",
+                    type="primary",
                     width="stretch",
                 ):
-                    restored = _get_project_store().restore_revision(
-                        _CURRENT_SAAS_USER,
-                        str(project_id),
-                        rev_by_id[revision_id].revision,
-                        _VERSION,
-                        expected_revision=revision,
-                    )
-                    _apply_cloud_record(restored)
-                    _invalidate_cloud_project_list()
+                    if not new_project_name.strip():
+                        st.error("Enter a project name to continue.")
+                    else:
+                        _create_new_project(new_project_name)
+                        st.rerun()
+            with cancel_col:
+                if st.button("Cancel", key="mp_cancel_new_project_btn", width="stretch"):
+                    st.session_state.pop("_new_project_name_prompt", None)
                     st.rerun()
-            else:
-                st.caption("No previous version is available yet.")
-        except Exception as exc:
-            logger.exception("Could not load project revision history")
-            st.warning(f"Version history is unavailable: {exc}")
 
-
-def _render_project_menu() -> None:
-    """Render project file actions (.lfp import/export, reset, and share link)."""
-    project_name = str(
-        st.session_state.get("project_name", _UNTITLED_PROJECT_NAME)
-    ).strip() or _UNTITLED_PROJECT_NAME
-    project_expander = st.expander(
-        f"Project · {project_name}",
-        expanded=bool(st.session_state.get("_project_menu_auto_open"))
-        or project_name == _UNTITLED_PROJECT_NAME,
-        key="project_menu_expander",
-        on_change="rerun",
-    )
-    _render_cloud_persistence_status()
-    if not project_expander.open:
-        return
-    with project_expander:
-        if _CURRENT_SAAS_USER is not None:
-            _render_authenticated_account_controls(_CURRENT_SAAS_USER)
-        _render_cloud_project_controls()
-
-        name_revision = int(st.session_state.get("_project_name_revision", 0))
-        name_input = st.text_input(
-            "Project name",
-            value=project_name,
-            key=f"project_name_input_{name_revision}",
-            max_chars=80,
-            help="Name used when exporting the .lfp project file",
-        )
-        if name_input.strip() and name_input.strip() != project_name:
-            st.session_state["project_name"] = name_input.strip()
-            project_name = name_input.strip()
-            _mark_cloud_project_dirty(immediate=True)
-
-        payload = _build_lfp_project({"name": project_name}, include_results=True)
-        lfp_data = json.dumps(payload, indent=2, allow_nan=False).encode("utf-8")
-        st.download_button(
-            "Download .lfp",
-            lfp_data,
-            _project_download_filename(project_name),
-            "application/json",
+    # 1. Top Quick Action Toolbar
+    tb_col1, tb_col2, tb_col3, tb_col4 = st.columns([1.6, 2.0, 1.0, 1.4])
+    with tb_col1:
+        st.button(
+            "New Project",
+            key="mp_new_project_btn",
+            type="primary",
             width="stretch",
-            key="project_download_lfp_btn",
-            help="Save the current design, box parameters, and Bass Match state to your computer.",
-            on_click=_record_lfp_export,
+            on_click=_request_new_project_name,
+            help="Create a clean independent project with a required name",
         )
-        st.caption("Recommended: keep a local .lfp backup of important projects.")
-        last_export = st.session_state.get("_last_lfp_export_at")
-        if last_export:
-            try:
-                exported_at = datetime.fromisoformat(str(last_export))
-                st.caption(f"Last .lfp export generated: {exported_at:%d %b %Y %H:%M UTC}")
-            except ValueError:
-                st.caption("Last .lfp export generated: this session")
-        else:
-            st.caption("Local backup: Never generated in this session")
-
-        upload_revision = int(st.session_state.get("_project_upload_revision", 0))
-        upload = st.file_uploader(
-            "Open .lfp project or CRW driver",
-            type=["lfp", "json", "crw"],
-            key=f"_project_upload_{upload_revision}",
-            help="Load a previously saved .lfp project file or CRW driver.",
-        )
-        if upload is not None:
-            try:
-                if upload.name.casefold().endswith(".crw"):
-                    crw = _afw_compare.parse_crw_text(upload.getvalue().decode("latin-1"))
+    with tb_col2:
+        with st.popover("Import .lfp / .crw", width="stretch"):
+            import_mode = st.radio("Import behavior", ["Import as New Project", "Replace Active Project"], key="mp_import_mode")
+            upload_revision = int(st.session_state.get("_project_upload_revision", 0))
+            upload = st.file_uploader(
+                "Select .lfp or .crw file",
+                type=["lfp", "json", "crw"],
+                key=f"mp_file_uploader_{upload_revision}",
+            )
+            if upload is not None:
+                try:
+                    if upload.name.casefold().endswith(".crw"):
+                        crw = _afw_compare.parse_crw_text(upload.getvalue().decode("latin-1"))
+                        _snapshot_design_state()
+                        driver = _acoustics.DriverTS(
+                            fs_hz=crw.fs_hz, vas_l=crw.vas_l, qts=crw.qts,
+                            qms=crw.qms, re_ohm=crw.re_ohm, sd_cm2=crw.sd_cm2,
+                            le_mh=crw.le_10khz_mh, xmax_mm=crw.xmax_mm, pe_w=crw.pe_w,
+                        )
+                        _apply_driver_preset(driver)
+                        st.session_state["driver_preset_name"] = "Custom driver"
+                        st.session_state["_project_upload_revision"] = upload_revision + 1
+                        st.toast(f"Loaded CRW driver: {crw.name}")
+                        st.rerun()
+                    payload = json.loads(upload.getvalue().decode("utf-8"))
                     _snapshot_design_state()
-                    driver = _acoustics.DriverTS(
-                        fs_hz=crw.fs_hz, vas_l=crw.vas_l, qts=crw.qts,
-                        qms=crw.qms, re_ohm=crw.re_ohm, sd_cm2=crw.sd_cm2,
-                        le_mh=crw.le_10khz_mh, xmax_mm=crw.xmax_mm, pe_w=crw.pe_w,
-                    )
-                    _apply_driver_preset(driver)
-                    st.session_state["driver_preset_name"] = "Custom driver"
+                    count = _apply_lfp_project(payload)
+                    loaded_name = upload.name
+                    if isinstance(payload.get("project"), dict) and payload["project"].get("name"):
+                        loaded_name = str(payload["project"]["name"]).strip()
+                    elif upload.name:
+                        loaded_name = Path(upload.name).stem
+                    st.session_state["project_name"] = loaded_name
                     st.session_state["_project_upload_revision"] = upload_revision + 1
-                    st.toast(f"Loaded CRW driver: {crw.name}")
+                    if import_mode == "Import as New Project":
+                        _detach_cloud_project()
+                        _mark_cloud_project_dirty(immediate=True)
+                    else:
+                        _mark_cloud_project_dirty(immediate=True)
+                    st.toast(f"Imported project: {loaded_name} ({count} parameters)")
                     st.rerun()
-                payload = json.loads(upload.getvalue().decode("utf-8"))
-                _snapshot_design_state()
-                count = _apply_lfp_project(payload)
-                if isinstance(payload.get("project"), dict) and payload["project"].get("name"):
-                    st.session_state["project_name"] = str(payload["project"]["name"]).strip()
-                elif upload.name:
-                    st.session_state["project_name"] = Path(upload.name).stem
-                st.session_state["_project_name_revision"] = name_revision + 1
-                st.session_state["_project_upload_revision"] = upload_revision + 1
-                _detach_cloud_project()
-                _mark_cloud_project_dirty(immediate=True)
-                st.toast(f"Loaded project · {count} parameters")
-                st.rerun()
-            except Exception as exc:
-                logger.exception("Could not parse uploaded project")
-                st.error(f"Could not load project: {exc}")
-
+                except Exception as exc:
+                    logger.exception("Could not import file")
+                    st.error(f"Import failed: {exc}")
+    with tb_col3:
+        if st.button("Refresh", key="mp_refresh_btn", help="Refresh cloud projects list", width="stretch"):
+            _invalidate_cloud_project_list()
+            st.rerun()
+    with tb_col4:
         if st.session_state.get("_design_state_backup"):
-            if st.button(
-                "Restore previous design",
-                key="project_restore_previous_design",
-                width="stretch",
-                help="Undo the last preset or shared-link load and restore the previous parameters.",
-            ):
+            if st.button("Restore Design", key="mp_restore_prev_design_btn", width="stretch", help="Undo last preset switch"):
                 _restore_design_state()
                 st.toast("Previous design restored")
                 st.rerun()
 
-        if st.button(
-            "New / Reset design",
-            key="project_reset_design_btn",
-            width="stretch",
-            help="Reset all parameters and return to the default design.",
-        ):
-            _clear_active_project_state()
-            _reset_finder_defaults()
-            st.session_state["project_name"] = _UNTITLED_PROJECT_NAME
-            st.session_state["_project_name_revision"] = name_revision + 1
-            _detach_cloud_project()
-            _mark_cloud_project_dirty(immediate=True)
-            st.toast("Reset to default design")
-            st.rerun()
+    # 2. Active Project Spotlight (Hero Box)
+    with st.container(border=True):
+        st.markdown(f"### Active Project: {html.escape(project_label)}")
+        _render_cloud_persistence_status()
 
-        if st.button(
-            "Share via URL",
-            key="project_share_url",
-            width="stretch",
-            help="Encodes the current design into the page URL and shows the link below, ready to copy.",
-        ):
-            token = _encode_share_payload()
-            st.session_state["_applied_share_token"] = token
-            st.query_params["d"] = token
-            st.toast("Share link ready - copy it below")
-        active_share_token = st.query_params.get("d")
-        if active_share_token:
-            st.code(_share_link_url(str(active_share_token)), language=None)
-            if st.button(
-                "Clear share link",
-                key="project_clear_share_url",
+        # Summary row of parameters
+        load_type = st.session_state.get("load_type", "Bass reflex")
+        driver_name = st.session_state.get("driver_preset_name", "Custom")
+        vol_l = float(st.session_state.get("reflex_vb_l", st.session_state.get("dccav_vb1_l", 50.0)))
+
+        m_c1, m_c2, m_c3, m_c4 = st.columns(4)
+        with m_c1:
+            st.metric("Topology", load_type)
+        with m_c2:
+            st.metric("Driver", driver_name[:20] if driver_name else "Custom")
+        with m_c3:
+            st.metric("Enclosure Vb", f"{vol_l:.1f} L")
+        with m_c4:
+            st.metric("Cloud State", f"r{revision}" if cloud_id else "Local Draft")
+
+        # Primary Workflow Actions
+        act_col1, act_col2, act_col3, act_col4 = st.columns(4)
+        with act_col1:
+            st.button(
+                "Open in Box Design",
+                key="mp_open_bd_btn",
+                type="primary",
                 width="stretch",
+                on_click=_select_workspace,
+                args=("Box Design",),
+            )
+        with act_col2:
+            st.button(
+                "Open in Bass Match",
+                key="mp_open_bm_btn",
+                width="stretch",
+                on_click=_select_workspace,
+                args=("Bass Match",),
+            )
+        with act_col3:
+            payload = _build_lfp_project({"name": project_name}, include_results=True)
+            lfp_data = json.dumps(payload, indent=2, allow_nan=False).encode("utf-8")
+            st.download_button(
+                "Export .lfp Backup",
+                lfp_data,
+                _project_download_filename(project_name),
+                "application/json",
+                width="stretch",
+                key="mp_download_lfp_btn",
+                on_click=_record_lfp_export,
+                disabled=_project_name_is_placeholder(project_name),
+                help="Name the project before exporting an .lfp backup.",
+            )
+        with act_col4:
+            if st.button(
+                "Duplicate Project",
+                key="mp_duplicate_btn",
+                width="stretch",
+                disabled=_project_name_is_placeholder(project_name),
+                help="Name the project before duplicating it.",
             ):
-                st.session_state["_applied_share_token"] = None
-                st.query_params.pop("d", None)
+                _duplicate_active_project()
                 st.rerun()
+
+        # In-place Rename & Share accordion
+        with st.expander("Project Details, Rename & Sharing Link", expanded=False):
+            rn_col1, rn_col2 = st.columns([3, 1])
+            with rn_col1:
+                new_name = st.text_input("Project Name", value=project_name, key="mp_rename_input", max_chars=80)
+            with rn_col2:
+                st.write("")
+                st.write("")
+                if st.button("Rename", key="mp_rename_submit_btn", width="stretch"):
+                    if new_name.strip() and new_name.strip() != project_name:
+                        st.session_state["project_name"] = new_name.strip()
+                        _mark_cloud_project_dirty(immediate=True)
+                        st.toast(f"Renamed project to: {new_name.strip()}")
+                        st.rerun()
+
+            st.divider()
+            sh_col1, sh_col2 = st.columns([3, 1])
+            with sh_col1:
+                token = _encode_share_payload()
+                share_url = _share_link_url(token)
+                st.text_input("Shareable Design URL", value=share_url, disabled=True, key="mp_share_url_disp")
+            with sh_col2:
+                st.write("")
+                st.write("")
+                if st.button("Copy URL Link", key="mp_copy_url_btn", width="stretch"):
+                    st.query_params["d"] = token
+                    st.toast("URL token added to browser query params")
+
+    # 3. Project Management Tabs
+    tab_list, tab_history, tab_trash, tab_publish, tab_account = st.tabs([
+        "Cloud Projects",
+        "Revision History",
+        "Trash",
+        "Publish Snapshot",
+        "Account & Entitlements",
+    ])
+
+    with tab_list:
+        _render_manage_projects_cloud_list()
+
+    with tab_history:
+        _render_manage_projects_history()
+
+    with tab_trash:
+        _render_manage_projects_trash()
+
+    with tab_publish:
+        _render_manage_projects_publish()
+
+    with tab_account:
+        if user is not None:
+            _render_authenticated_account_controls(user)
+        else:
+            st.info("Operating in standalone offline mode. Sign in to enable multi-device cloud persistence.")
 
 
 def _snapshot_revision(snapshot: dict) -> str:
@@ -3875,6 +4417,7 @@ def _fmt_db(value: float) -> str:
     return f"{value:.1f} dB" if np.isfinite(float(value)) else "n/a"
 
 
+@lru_cache(maxsize=32768)
 def _driver_preset_family(name: str) -> str:
     try:
         return _acoustics.driver_preset_info(name).brand
@@ -3882,6 +4425,7 @@ def _driver_preset_family(name: str) -> str:
         return "Other"
 
 
+@lru_cache(maxsize=32768)
 def _driver_preset_identity_fields(name: str) -> tuple[str, str]:
     """Return the normalized manufacturer and part number shown at runtime."""
     try:
@@ -3893,6 +4437,7 @@ def _driver_preset_identity_fields(name: str) -> tuple[str, str]:
     return manufacturer, part_number
 
 
+@lru_cache(maxsize=32768)
 def _driver_preset_display_label(name: str) -> str:
     """Format a catalog key without exposing its source-decorated raw name."""
     manufacturer, part_number = _driver_preset_identity_fields(name)
@@ -3901,6 +4446,7 @@ def _driver_preset_display_label(name: str) -> str:
     return f"{manufacturer} — {part_number}"
 
 
+@lru_cache(maxsize=32768)
 def _driver_preset_source(name: str) -> str:
     try:
         return _acoustics.driver_preset_provenance_category(name)
@@ -3999,15 +4545,8 @@ def _normalized_preset_price(
     )
 
 
-@lru_cache(maxsize=8)
 def _all_preset_price_currencies() -> list[str]:
-    return sorted(
-        {
-            _driver_preset_currency(name)
-            for name in _acoustics.driver_preset_names()
-            if _driver_preset_price(name) is not None and _driver_preset_currency(name)
-        }
-    )
+    return list(_acoustics.all_preset_price_currencies())
 
 
 def _preset_price_currencies(names: list[str]) -> list[str]:
@@ -4023,19 +4562,10 @@ def _preset_price_currencies(names: list[str]) -> list[str]:
     )
 
 
-@lru_cache(maxsize=16)
 def _all_preset_price_values(currency: str | None = None) -> list[float]:
-    values = []
     rates = _current_exchange_rates()[0] if currency else None
-    for name in _acoustics.driver_preset_names():
-        price = (
-            _normalized_preset_price(name, currency, rates)
-            if currency
-            else _driver_preset_price(name)
-        )
-        if price is not None and np.isfinite(float(price)):
-            values.append(float(price))
-    return values
+    rates_tuple = tuple(sorted(rates.items())) if rates else ()
+    return list(_acoustics.all_preset_price_values(currency or "", rates_tuple))
 
 
 def _preset_price_values(names: list[str], currency: str | None = None) -> list[float]:
@@ -4093,6 +4623,7 @@ def _size_bucket(size_in: float) -> str:
     return "21 in"
 
 
+@lru_cache(maxsize=32768)
 def _driver_preset_size(name: str) -> str:
     try:
         info = _acoustics.driver_preset_info(name)
@@ -4121,10 +4652,8 @@ def _driver_preset_size(name: str) -> str:
     return _size_bucket(piston_inches)
 
 
-@lru_cache(maxsize=8)
 def _all_available_preset_families() -> list[str]:
-    names = _acoustics.driver_preset_names()
-    present = {_driver_preset_family(name) for name in names}
+    present = set(_acoustics.all_preset_brands())
     ordered = [family for family in _PRESET_FAMILY_ORDER if family == "All" or family in present]
     extras = sorted(present.difference(ordered), key=str.casefold)
     return [*ordered, *extras]
@@ -6904,9 +7433,13 @@ def _batch_rank_presets_parallel(
             [search_profile] * len(names),
             chunksize=max(1, min(32, len(names) // (workers * 4))),
         )
+        progress_step = max(1, overall_total // 25)
+        last_progress_t = time.monotonic()
         for row in results:
             done += 1
-            if done % max(1, overall_total // 100) == 0 or done == len(names):
+            now = time.monotonic()
+            if done % progress_step == 0 or done == len(names) or (now - last_progress_t) >= 0.15:
+                last_progress_t = now
                 progress.progress(min((completed_offset + done) / overall_total, 1.0))
                 if progress_text_widget is not None:
                     progress_text_widget.caption(
@@ -6958,6 +7491,8 @@ def _batch_rank_presets_with_progress(
     """Serial ranking path that reports real per-candidate progress."""
     names = list(preset_names)[:int(candidate_limit)]
     overall_total = max(int(progress_total), 1)
+    progress_step = max(1, overall_total // 25)
+    last_progress_t = time.monotonic()
     rows: list[dict] = []
     for done, name in enumerate(names, start=1):
         row = _acoustics.rank_preset_row(
@@ -6968,7 +7503,9 @@ def _batch_rank_presets_with_progress(
         if row is not None:
             rows.append(row)
         current = completed_offset + done
-        if done % max(1, overall_total // 20) == 0 or done == len(names):
+        now = time.monotonic()
+        if done % progress_step == 0 or done == len(names) or (now - last_progress_t) >= 0.15:
+            last_progress_t = now
             progress.progress(min(current / overall_total, 1.0))
             if progress_text is not None:
                 progress_text.caption(f"Matching {current}/{overall_total} simulations · {load_type}")
@@ -7946,119 +8483,35 @@ def _finder_candidate_precheck(
     fast_prefilter: bool = True,
 ) -> str | None:
     """Return why a candidate can be rejected before enclosure simulation."""
-    if load_type not in {"Sealed", "Infinite baffle"} and ts.xmax_mm <= 0.0:
-        return "missing Xmax"
-    if min_spl_db > 0.0:
-        reference = _acoustics.driver_reference_metrics(ts)
-        drive_spl_db = reference.spl_2v83_db + 20.0 * np.log10(
-            float(voltage_v) / 2.83
-        )
-        enclosure_headroom_db = (
-            1.0
-            if load_type == "Infinite baffle"
-            else max(_FINDER_SPL_PREFILTER_HEADROOM_DB, float(max_ripple_db))
-        )
-        if drive_spl_db + enclosure_headroom_db < float(min_spl_db):
-            return "reference SPL"
-
-    if fast_prefilter:
-        loaded_fs = _acoustics.panel_loaded_fs_hz(ts)
-        # Analytical maximum F3 feasibility check:
-        # A sealed or infinite baffle box can never produce an F3 lower than ~0.65 * Fs.
-        # A vented / bandpass / DCCAV box cannot credibly reach an F3 lower than Fs / 2.5
-        # under realistic damping and volume bounds without extreme response anomalies.
-        if max_f3_hz > 0.0:
-            if load_type in {"Sealed", "Infinite baffle"}:
-                if float(max_f3_hz) < loaded_fs * 0.65:
-                    return "F3 infeasible"
-            elif loaded_fs > float(max_f3_hz) * 2.5:
-                return "F3 infeasible"
-
-        # Analytical MOL @ F3 feasibility check (Maximum acoustic volume displacement):
-        # Maximum excursion-limited low-frequency pressure from cone displacement Vd = Sd * Xmax.
-        # Half-space acoustic pressure at 1 m from volume displacement Vd at frequency f:
-        # P_rms = (2 * pi * f^2 * rho * Vd) / sqrt(2).
-        # We allow a generous +12 dB headroom for Helmholtz / quarter-wave resonance reinforcement.
-        if min_mol_f3_db > 0.0 and max_f3_hz > 0.0 and ts.xmax_mm > 0.0 and ts.pe_w > 0.0:
-            sd_m2 = ts.sd_cm2 / 10000.0
-            xmax_m = ts.xmax_mm / 1000.0
-            vd_m3 = sd_m2 * xmax_m
-            if vd_m3 > 0.0:
-                f_eval = float(max_f3_hz)
-                p_rms = (2.0 * np.pi * (f_eval**2) * 1.2041 * vd_m3) / 1.41421356
-                spl_excursion_cone = 20.0 * np.log10(max(p_rms, 1e-12) / 20e-6)
-                headroom_db = 12.0 if load_type != "Infinite baffle" else 0.0
-                if spl_excursion_cone + headroom_db < float(min_mol_f3_db):
-                    return "MOL infeasible"
-
-    return None
-
-
-@cache
-def _finder_driver_identity(name: str) -> tuple[str, str, str]:
-    """Return one physical brand/model/impedance identity across catalogs."""
-    try:
-        info = _acoustics.driver_preset_info(name)
-        ts = _acoustics.get_driver_preset(name)
-        return _presets._external_catalog_identity(
-            info.brand or "Other",
-            info.part_number or info.model or name,
-            ts,
-            impedance_text=info.model,
-        )
-    except Exception:
-        normalized = re.sub(r"[^a-z0-9]+", "", name.casefold())
-        return "unknown", normalized, ""
-
-
-@lru_cache(maxsize=32768)
-def _finder_preset_preference(name: str) -> tuple[int, int, float, str]:
-    """Prefer Load Forge provenance, then an available lower price."""
-    try:
-        info = _acoustics.driver_preset_info(name)
-        category = _acoustics.driver_preset_provenance_category(name)
-        price = float(info.price) if info.price is not None else float("inf")
-    except Exception:
-        category = "Other"
-        price = float("inf")
-    source_priority = {
-        "Load Forge database": 0,
-        "LSDB": 1,
-        "VituixCAD": 2,
-        "Speaker Box Lite": 3,
-    }.get(category, 4)
-    return (
-        source_priority,
-        0 if np.isfinite(price) else 1,
-        price,
-        name.casefold(),
+    return _acoustics.candidate_precheck(
+        ts, load_type, voltage_v, min_spl_db, max_ripple_db,
+        max_f3_hz=max_f3_hz, min_mol_f3_db=min_mol_f3_db,
+        max_volume_l=max_volume_l, fast_prefilter=fast_prefilter,
     )
 
 
-@lru_cache(maxsize=128)
+def _finder_driver_identity(name: str) -> tuple[str, str, str]:
+    """Return one physical brand/model/impedance identity across catalogs."""
+    return _acoustics.driver_preset_identity(name)
+
+
+def _finder_preset_preference(name: str) -> tuple[int, int, float, str]:
+    """Prefer Load Forge provenance, then an available lower price."""
+    return _acoustics.driver_preset_preference(name)
+
+
 def _deduplicate_finder_preset_names_tuple(
     preset_names: tuple[str, ...],
 ) -> tuple[tuple[str, ...], int]:
     """Choose one preferred catalog record for each physical driver."""
-    chosen: dict[tuple[str, str, str], str] = {}
-    for name in preset_names:
-        identity = _finder_driver_identity(name)
-        previous = chosen.get(identity)
-        if (
-            previous is None
-            or _finder_preset_preference(name)
-            < _finder_preset_preference(previous)
-        ):
-            chosen[identity] = name
-    unique_names = tuple(chosen.values())
-    return unique_names, len(preset_names) - len(unique_names)
+    return _acoustics.deduplicate_driver_preset_names(preset_names)
 
 
 def _deduplicate_finder_preset_names(
     preset_names: list[str],
 ) -> tuple[list[str], int]:
     """Choose one preferred catalog record for each physical driver."""
-    unique_tuple, duplicate_count = _deduplicate_finder_preset_names_tuple(
+    unique_tuple, duplicate_count = _acoustics.deduplicate_driver_preset_names(
         tuple(preset_names)
     )
     return list(unique_tuple), duplicate_count
@@ -8082,7 +8535,6 @@ def _deduplicate_finder_result_rows(
     return unique_rows, len(rows) - len(unique_rows)
 
 
-@lru_cache(maxsize=128)
 def _prefilter_finder_candidate_pools(
     preset_names: tuple[str, ...],
     load_types: tuple[str, ...],
@@ -8094,66 +8546,22 @@ def _prefilter_finder_candidate_pools(
     max_volume_l: float,
     fast_prefilter: bool,
     driver_configuration: str,
-    pool_fingerprint: tuple,
+    pool_fingerprint: tuple = (),
 ) -> tuple[tuple[tuple[str, tuple[str, ...]], ...], dict[str, int]]:
     """Build per-load candidate pools using only pre-simulation information."""
-    del pool_fingerprint  # Cache key only: invalidates when code/catalog changes.
-    pools = {load_type: [] for load_type in load_types}
-    rejected_by_reason = {
-        "reference SPL": 0,
-        "missing Xmax": 0,
-        "invalid T/S": 0,
-        "F3 infeasible": 0,
-        "MOL infeasible": 0,
-    }
-    eligible_drivers: set[str] = set()
-    for name in preset_names:
-        try:
-            ts = _acoustics.apply_driver_configuration(
-                _acoustics.get_driver_preset(name),
-                driver_configuration,
-            )
-        except Exception:
-            rejected_by_reason["invalid T/S"] += len(load_types)
-            continue
-        for load_type in load_types:
-            try:
-                reason = _finder_candidate_precheck(
-                    ts,
-                    load_type,
-                    voltage_v,
-                    min_spl_db,
-                    max_ripple_db,
-                    max_f3_hz=max_f3_hz,
-                    min_mol_f3_db=min_mol_f3_db,
-                    max_volume_l=max_volume_l,
-                    fast_prefilter=fast_prefilter,
-                )
-            except Exception:
-                reason = "invalid T/S"
-            if reason is not None:
-                rejected_by_reason[reason] = rejected_by_reason.get(reason, 0) + 1
-                continue
-            pools[load_type].append(name)
-            eligible_drivers.add(name)
-    pool_rows = tuple(
-        (load_type, tuple(pools[load_type]))
-        for load_type in load_types
+    return _acoustics.prefilter_finder_candidate_pools(
+        preset_names,
+        load_types,
+        voltage_v,
+        min_spl_db,
+        max_ripple_db,
+        max_f3_hz,
+        min_mol_f3_db,
+        max_volume_l,
+        fast_prefilter,
+        driver_configuration,
+        pool_fingerprint=pool_fingerprint,
     )
-    total_simulations = len(preset_names) * len(load_types)
-    eligible_simulations = sum(len(names) for names in pools.values())
-    return pool_rows, {
-        "input_drivers": len(preset_names),
-        "eligible_drivers": len(eligible_drivers),
-        "total_simulations": total_simulations,
-        "eligible_simulations": eligible_simulations,
-        "rejected_simulations": total_simulations - eligible_simulations,
-        "rejected_spl": rejected_by_reason.get("reference SPL", 0),
-        "rejected_xmax": rejected_by_reason.get("missing Xmax", 0),
-        "rejected_invalid": rejected_by_reason.get("invalid T/S", 0),
-        "rejected_f3": rejected_by_reason.get("F3 infeasible", 0),
-        "rejected_mol": rejected_by_reason.get("MOL infeasible", 0),
-    }
 
 
 def _finder_prefilter(
@@ -8565,7 +8973,7 @@ def _render_find_driver_goal_sidebar() -> None:
                  "limit is active. 0 disables.",
         )
         st.checkbox(
-            "⚡ Fast T/S pre-screening",
+            "Fast T/S pre-screening",
             key="finder_fast_prefilter",
             help="Analytically exclude drivers that cannot physically achieve the requested F3 or MOL before running full enclosure simulations, accelerating search speed by up to 10×.",
         )
@@ -9062,7 +9470,7 @@ def _render_bass_match_hero(
             )
         if not has_enough_credits:
             st.error(
-                f"⚠️ Insufficient credits: this scan requires **{run_credits:,} credits**, but your balance is **{credits_balance:,} credits**. "
+                f"Insufficient credits: this scan requires **{run_credits:,} credits**, but your balance is **{credits_balance:,} credits**. "
                 "Refine your filters, choose fewer drivers, or upgrade your plan."
             )
     _render_finder_run_statistics()
@@ -9323,7 +9731,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
 
     match_completion = st.session_state.pop("_finder_match_completion", None)
     if match_completion:
-        st.toast(str(match_completion), icon="✅")
+        st.toast(str(match_completion))
 
     finder_volume_l = float(st.session_state.get("finder_volume_l", 0.0))
     # Old/restored sessions can contain an empty load list even though the
@@ -9605,10 +10013,9 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     columns = list(display_df.columns)
     table_state = st.dataframe(
         display_df,
-        # Let Streamlit measure each column from its content instead of
-        # distributing the parent width across every column. Users can still
-        # resize interactively, but the initial layout is already compact.
-        width="content",
+        # Use the complete result-pane width; users can still resize columns
+        # interactively without leaving an unused strip beside the table.
+        width="stretch",
         height=420,
         hide_index=True,
         key=f"batch_results_table_{'value' if 'Value' in columns else 'f3'}",
@@ -10259,17 +10666,17 @@ def _render_ports_tab(
                 status_delta = "Set diameter > 0"
                 delta_color = "off"
             elif max_peak_mol <= flare_limit_ms * 0.75:
-                status_text = "✓ Air Flow Safe"
+                status_text = "Air Flow Safe"
                 headroom = flare_limit_ms - max_peak_mol
                 status_delta = f"+{headroom:.1f} m/s margin"
                 delta_color = "normal"
             elif max_peak_mol <= flare_limit_ms:
-                status_text = "⚠ Compression Risk"
+                status_text = "Compression Risk"
                 headroom = flare_limit_ms - max_peak_mol
                 status_delta = f"Only {headroom:.1f} m/s margin"
                 delta_color = "off"
             else:
-                status_text = "✖ High Chuffing Risk"
+                status_text = "High Chuffing Risk"
                 excess = max_peak_mol - flare_limit_ms
                 status_delta = f"+{excess:.1f} m/s over limit"
                 delta_color = "inverse"
@@ -10292,7 +10699,7 @@ def _render_ports_tab(
     with col_left:
         # Card A: Duct Focus, Flare Profile & Auto-Optimizer
         with st.container(border=True):
-            st.markdown("##### ⚙️ Active Duct Focus & Auto-Optimizer")
+            st.markdown("##### Active Duct Focus & Auto-Optimizer")
             
             if len(valid_ports) > 1:
                 target_duct = st.radio(
@@ -10310,11 +10717,11 @@ def _render_ports_tab(
 
             # Context badge
             if "Internal" in target_duct:
-                st.info("🔒 **Internal Inter-Chamber Duct**: Couples internal cavities (k=1.64). Flanged on both ends inside cabinet.", icon="🔒")
+                st.info("**Internal Inter-Chamber Duct**: Couples internal cavities (k=1.64). Flanged on both ends inside cabinet.")
             elif "External" in target_duct or "Vent" in target_duct:
-                st.info("📢 **External Radiating Vent**: Radiates acoustic energy into listening room (k=1.43). Critical for chuffing prevention.", icon="📢")
+                st.info("**External Radiating Vent**: Radiates acoustic energy into listening room (k=1.43). Critical for chuffing prevention.")
             elif target_duct.startswith("All"):
-                st.caption("🌐 **Configuring all ducts simultaneously**: Changes to flare profile, radius and auto-optimization will apply across all active ducts.")
+                st.caption("**Configuring all ducts simultaneously**: Changes to flare profile, radius and auto-optimization will apply across all active ducts.")
 
             # Dynamic session key mapping
             if target_duct.startswith("All"):
@@ -10330,10 +10737,10 @@ def _render_ports_tab(
 
             style_options = ["both", "hourglass", "one", "none"]
             style_labels = {
-                "both": "🌐 Double flared (Aeroport)",
-                "hourglass": "⏳ Hourglass continuous (Clessidra)",
-                "one": "📯 Single flared (Outer mouth)",
-                "none": "📏 Straight pipe (Cylindrical)",
+                "both": "Double flared (Aeroport)",
+                "hourglass": "Hourglass continuous (Clessidra)",
+                "one": "Single flared (Outer mouth)",
+                "none": "Straight pipe (Cylindrical)",
             }
             s_idx = style_options.index(curr_style) if curr_style in style_options else 0
 
@@ -10383,9 +10790,9 @@ def _render_ports_tab(
 
             policy_options = ["studio_mol", "balanced_pro", "compact"]
             policy_labels = {
-                "studio_mol": "🎯 Studio / Hi-Fi (Zero chuffing at MOL)",
-                "balanced_pro": "⚡ Balanced / Pro (AES guideline)",
-                "compact": "🗜️ Compact Box (Min duct volume)",
+                "studio_mol": "Studio / Hi-Fi (Zero chuffing at MOL)",
+                "balanced_pro": "Balanced / Pro (AES guideline)",
+                "compact": "Compact Box (Min duct volume)",
             }
             curr_pol = _clean_style_str(st.session_state.get("port_auto_policy", "studio_mol"), "studio_mol")
             p_idx = policy_options.index(curr_pol) if curr_pol in policy_options else 0
@@ -10413,7 +10820,7 @@ def _render_ports_tab(
                 f"limit {optimizer_limit_ms:.1f} m/s)."
             )
 
-            btn_label = f"⚡ Auto-optimize {duct_focus_label}" if not target_duct.startswith("All") else "⚡ Auto-optimize All Ducts"
+            btn_label = f"Auto-optimize {duct_focus_label}" if not target_duct.startswith("All") else "Auto-optimize All Ducts"
             clicked = st.button(btn_label, use_container_width=True, help="Automatically size the selected duct(s) based on driver MOL velocity, chamber volume, and constraints.")
 
             current_opt_state = (load_type, target_duct, opt_policy, flare_style, flare_rad_cm)
@@ -10431,9 +10838,9 @@ def _render_ports_tab(
             if optimizer_feedback:
                 feedback_text = str(optimizer_feedback.get("text", ""))
                 if optimizer_feedback.get("compromised"):
-                    st.warning(feedback_text, icon="⚠️")
+                    st.warning(feedback_text)
                 else:
-                    st.success(feedback_text, icon="✅")
+                    st.success(feedback_text)
 
             if should_run_opt:
                 st.session_state["_last_opt_state"] = current_opt_state
@@ -10465,47 +10872,47 @@ def _render_ports_tab(
 
                 if load_type == "Bass reflex":
                     opt_res = _opt_single("Vent (External)", box.vb_l, box.fb_hz, 1.43, result.port_l_velocity, "lower", "reflex_port_d_cm")
-                    st.toast(f"⚡ Vent Auto-Optimized: Ø {opt_res['diameter_cm']:.1f} cm ({opt_res['status_note']})", icon="⚡")
+                    st.toast(f"Vent Auto-Optimized: Ø {opt_res['diameter_cm']:.1f} cm ({opt_res['status_note']})")
                 elif load_type == "DCCAV":
                     if target_duct.startswith("All") or "Upper" in target_duct:
                         o_up = _opt_single("Upper port (Internal inter-chamber)", box.vh_l, box.fh_hz, 1.64, result.port_h_velocity, "upper", "box_port_d_h_cm")
                         if not target_duct.startswith("All"):
-                            st.toast(f"⚡ Upper Port (Internal) Optimized: Ø {o_up['diameter_cm']:.1f} cm", icon="⚡")
+                            st.toast(f"Upper Port (Internal) Optimized: Ø {o_up['diameter_cm']:.1f} cm")
                     if target_duct.startswith("All") or "Lower" in target_duct:
                         o_low = _opt_single("Lower port (External radiating)", box.vl_l, box.fl_hz, 1.43, result.port_l_velocity, "lower", "box_port_d_l_cm")
                         if not target_duct.startswith("All"):
-                            st.toast(f"⚡ Lower Port (External) Optimized: Ø {o_low['diameter_cm']:.1f} cm", icon="⚡")
+                            st.toast(f"Lower Port (External) Optimized: Ø {o_low['diameter_cm']:.1f} cm")
                     if target_duct.startswith("All"):
-                        st.toast(f"⚡ DCCAV All Ports Optimized: Upper Ø {o_up['diameter_cm']:.1f} cm, Lower Ø {o_low['diameter_cm']:.1f} cm", icon="⚡")
+                        st.toast(f"DCCAV All Ports Optimized: Upper Ø {o_up['diameter_cm']:.1f} cm, Lower Ø {o_low['diameter_cm']:.1f} cm")
                 elif load_type == "Bandpass 4th order":
                     opt_bp4 = _opt_single("Front vent (External)", box.vp_l, box.fp_hz, 1.43, result.port_l_velocity, "lower", "bandpass4_port_d_cm")
-                    st.toast(f"⚡ Front Vent Optimized: Ø {opt_bp4['diameter_cm']:.1f} cm", icon="⚡")
+                    st.toast(f"Front Vent Optimized: Ø {opt_bp4['diameter_cm']:.1f} cm")
                 elif load_type == "Bandpass 6th order":
                     if target_duct.startswith("All") or "Rear" in target_duct:
                         o_r = _opt_single("Rear vent (External)", box.vr_l, box.fr_hz, 1.43, result.port_h_velocity, "upper", "bandpass6_port_d_r_cm")
                         if not target_duct.startswith("All"):
-                            st.toast(f"⚡ Rear Vent Optimized: Ø {o_r['diameter_cm']:.1f} cm", icon="⚡")
+                            st.toast(f"Rear Vent Optimized: Ø {o_r['diameter_cm']:.1f} cm")
                     if target_duct.startswith("All") or "Front" in target_duct:
                         o_p = _opt_single("Front vent (External)", box.vp_l, box.fp_hz, 1.43, result.port_l_velocity, "lower", "bandpass6_port_d_p_cm")
                         if not target_duct.startswith("All"):
-                            st.toast(f"⚡ Front Vent Optimized: Ø {o_p['diameter_cm']:.1f} cm", icon="⚡")
+                            st.toast(f"Front Vent Optimized: Ø {o_p['diameter_cm']:.1f} cm")
                     if target_duct.startswith("All"):
-                        st.toast(f"⚡ BP6 All Vents Optimized: Rear Ø {o_r['diameter_cm']:.1f} cm, Front Ø {o_p['diameter_cm']:.1f} cm", icon="⚡")
+                        st.toast(f"BP6 All Vents Optimized: Rear Ø {o_r['diameter_cm']:.1f} cm, Front Ø {o_p['diameter_cm']:.1f} cm")
                 elif load_type == "Bandpass 8th order":
                     if target_duct.startswith("All") or "Port 1" in target_duct:
                         o1 = _opt_single("Port 1 (Internal -> C3)", box.v1_l, box.f1_hz, 1.43, result.port_l_velocity, "lower", "bp8_dp1_cm")
                         if not target_duct.startswith("All"):
-                            st.toast(f"⚡ Port 1 (Internal) Optimized: Ø {o1['diameter_cm']:.1f} cm", icon="⚡")
+                            st.toast(f"Port 1 (Internal) Optimized: Ø {o1['diameter_cm']:.1f} cm")
                     if target_duct.startswith("All") or "Port 2" in target_duct:
                         o2 = _opt_single("Port 2 (Internal -> C3)", box.v2_l, box.f2_hz, 1.43, result.port_l_velocity, "lower", "bp8_dp2_cm")
                         if not target_duct.startswith("All"):
-                            st.toast(f"⚡ Port 2 (Internal) Optimized: Ø {o2['diameter_cm']:.1f} cm", icon="⚡")
+                            st.toast(f"Port 2 (Internal) Optimized: Ø {o2['diameter_cm']:.1f} cm")
                     if target_duct.startswith("All") or "Port 3" in target_duct:
                         o3 = _opt_single("Port 3 (External radiating)", box.v3_l, box.f3_hz, 1.43, result.port_h_velocity, "upper", "bp8_dp3_cm")
                         if not target_duct.startswith("All"):
-                            st.toast(f"⚡ Port 3 (External) Optimized: Ø {o3['diameter_cm']:.1f} cm", icon="⚡")
+                            st.toast(f"Port 3 (External) Optimized: Ø {o3['diameter_cm']:.1f} cm")
                     if target_duct.startswith("All"):
-                        st.toast(f"⚡ BP8 All Ports Optimized", icon="⚡")
+                        st.toast("BP8 All Ports Optimized")
                 if optimized_results:
                     result_parts = [
                         (
@@ -10541,55 +10948,55 @@ def _render_ports_tab(
 
         # Card B: Manual Duct Dimensions
         with st.container(border=True):
-            st.markdown("##### 📐 Duct Diameters & Chamber Ports")
+            st.markdown("##### Duct Diameters & Chamber Ports")
             if load_type == "DCCAV":
                 p1, p2 = st.columns(2)
                 with p1:
                     st.number_input(
-                        "Upper port Ø (cm) · 🔒 Internal", min_value=0.0, max_value=60.0,
+                        "Upper port Ø (cm) · Internal", min_value=0.0, max_value=60.0,
                         step=0.5, key="box_port_d_h_cm", help="Internal inter-chamber port (flanged both ends, k=1.64)")
                 with p2:
                     st.number_input(
-                        "Lower port Ø (cm) · 📢 External", min_value=0.0, max_value=60.0,
+                        "Lower port Ø (cm) · External", min_value=0.0, max_value=60.0,
                         step=0.5, key="box_port_d_l_cm", help="External radiating port (flanged one end, k=1.43)")
                 st.caption(
-                    "🔒 Upper port connects the two internal cavities (k=1.64); "
-                    "📢 Lower port exhausts outside the enclosure (k=1.43)."
+                    "Upper port connects the two internal cavities (k=1.64); "
+                    "Lower port exhausts outside the enclosure (k=1.43)."
                 )
             elif load_type == "Bandpass 4th order":
                 st.number_input(
-                    "Front vent diameter (cm) · 📢 External", min_value=0.0,
+                    "Front vent diameter (cm) · External", min_value=0.0,
                     max_value=60.0, step=0.5, key="bandpass4_port_d_cm")
                 st.caption("Front-chamber vent radiating externally (one flanged, one free end, k=1.43).")
             elif load_type == "Bandpass 6th order":
                 p1, p2 = st.columns(2)
                 with p1:
                     st.number_input(
-                        "Rear vent Ø (cm) · 📢 External", min_value=0.0,
+                        "Rear vent Ø (cm) · External", min_value=0.0,
                         max_value=60.0, step=0.5, key="bandpass6_port_d_r_cm")
                 with p2:
                     st.number_input(
-                        "Front vent Ø (cm) · 📢 External", min_value=0.0,
+                        "Front vent Ø (cm) · External", min_value=0.0,
                         max_value=60.0, step=0.5, key="bandpass6_port_d_p_cm")
                 st.caption("Rear and front vents radiating externally (k=1.43).")
             elif load_type == "Bandpass 8th order":
                 p1, p2, p3 = st.columns(3)
                 with p1:
                     st.number_input(
-                        "Port 1 Ø (cm) · 🔒 Internal", min_value=0.0,
+                        "Port 1 Ø (cm) · Internal", min_value=0.0,
                         max_value=60.0, step=0.5, key="bp8_dp1_cm")
                 with p2:
                     st.number_input(
-                        "Port 2 Ø (cm) · 🔒 Internal", min_value=0.0,
+                        "Port 2 Ø (cm) · Internal", min_value=0.0,
                         max_value=60.0, step=0.5, key="bp8_dp2_cm")
                 with p3:
                     st.number_input(
-                        "Port 3 Ø (cm) · 📢 External", min_value=0.0,
+                        "Port 3 Ø (cm) · External", min_value=0.0,
                         max_value=60.0, step=0.5, key="bp8_dp3_cm")
                 st.caption("Port 1 & 2 exhaust internally into Chamber 3; Port 3 radiates externally.")
             elif load_type == "Bass reflex" and not passive_radiator:
                 st.number_input(
-                    "Vent diameter (cm) · 📢 External", min_value=0.0,
+                    "Vent diameter (cm) · External", min_value=0.0,
                     max_value=60.0, step=0.5, key="reflex_port_d_cm")
                 st.caption("Conventional enclosure vent (one flanged, one free end, k=1.43).")
             elif passive_radiator:
@@ -10597,7 +11004,7 @@ def _render_ports_tab(
 
         # Card C: Chart Display Controls
         with st.container(border=True):
-            st.markdown("##### 📊 Chart Pens & Display Metric")
+            st.markdown("##### Chart Pens & Display Metric")
             plot_options = ["air_velocity_mol", "air_velocity_sim", "volume_velocity"]
             plot_labels = {
                 "air_velocity_mol": "Air velocity at MOL (m/s)",
@@ -10643,7 +11050,7 @@ def _render_ports_tab(
                 if passive_radiator
                 else ("Port Air Velocity vs Chuffing Limit (MOL)" if port_plot_mode == "air_velocity_mol" else ("Port Air Velocity (Drive Level)" if port_plot_mode == "air_velocity_sim" else "Port Volume Velocity"))
             )
-            st.markdown(f"##### 📈 {chart_title}")
+            st.markdown(f"##### {chart_title}")
             if _port_series(result, mode=port_plot_mode):
                 st.altair_chart(_plot_ports(result, mode=port_plot_mode), width="stretch", key=f"ports_chart_{chart_sig}")
             else:
@@ -10652,7 +11059,7 @@ def _render_ports_tab(
         # Card E: Blueprint CAD Drawing & Physical Specs
         if passive_radiator:
             with st.container(border=True):
-                st.markdown("##### 📐 Radiator Geometry & Motion")
+                st.markdown("##### Radiator Geometry & Motion")
                 st.caption(
                     "Equivalent diaphragm diameter and simulated radiator motion "
                     f"at {float(st.session_state.get('sim_voltage', 2.83)):.2f} V and at MOL."
@@ -10671,7 +11078,7 @@ def _render_ports_tab(
                 )
             if driver is not None and getattr(box, "vb_l", 0.0) > 0:
                 with st.container(border=True):
-                    st.markdown("##### 🎯 Plausible Catalog PR Combos")
+                    st.markdown("##### Plausible Catalog PR Combos")
                     ref_fb = float(_acoustics.suggest_reflex_alignment(driver).fb_hz)
                     pr_matches = _acoustics.plausible_passive_radiators(driver, box.vb_l, ref_fb)
                     if pr_matches:
@@ -10706,7 +11113,7 @@ def _render_ports_tab(
         else:
             if valid_ports:
                 with st.container(border=True):
-                    st.markdown("##### 🛠️ Duct Blueprint & Physical Cut Specs")
+                    st.markdown("##### Duct Blueprint & Physical Cut Specs")
                     
                     # Synchronize Blueprint duct with target_duct
                     if len(valid_ports) > 1:
@@ -10824,7 +11231,7 @@ def _render_ports_tab(
                     )
 
                     # 3D CAD & STL Export (3D Printing / CNC Machining)
-                    with st.expander(f"🛠️ 3D CAD & STL Mesh Generator for {sel_row['Port']} (3D Printing & CNC)", expanded=True):
+                    with st.expander(f"3D CAD & STL Mesh Generator for {sel_row['Port']} (3D Printing & CNC)", expanded=True):
                         st.caption("Customize 3D printable manifold mesh with wall thickness, mounting flange and bolt hole pattern.")
                         
                         p_col1, p_col2, p_col3, p_col4 = st.columns(4)
@@ -10945,7 +11352,7 @@ def _render_ports_tab(
                         file_name_stl = f"port_{clean_p_slug}_{sel_p_style}_{split_mode_code}.stl"
 
                         st.download_button(
-                            label=f"⬇️ Download Watertight 3D Mesh ({file_name_stl} · {len(stl_bytes)/1024:.1f} KB)",
+                            label=f"Download Watertight 3D Mesh ({file_name_stl} · {len(stl_bytes)/1024:.1f} KB)",
                             data=stl_bytes,
                             file_name=file_name_stl,
                             mime="model/stl",
@@ -10953,14 +11360,14 @@ def _render_ports_tab(
                             use_container_width=True,
                             type="primary",
                         )
-                        st.caption("✨ Ready for direct import into Bambu Studio, OrcaSlicer, PrusaSlicer, Cura, or FreeCAD/Fusion 360.")
+                        st.caption("Ready for direct import into Bambu Studio, OrcaSlicer, PrusaSlicer, Cura, or FreeCAD/Fusion 360.")
             else:
                 st.info("No active port diameters configured (set Ø > 0 cm to view CAD blueprint).")
 
     # 3. Full-width Cut Sheet & Manufacturing Table
     if not passive_radiator and valid_ports:
         with st.container(border=True):
-            st.markdown("##### 📋 Manufacturing Cut Sheet & Port Specifications")
+            st.markdown("##### Manufacturing Cut Sheet & Port Specifications")
             cols_to_show = [
                 "Port", "Flare Profile", "Diameter cm", "Straight Cut cm", "Overall Length cm",
                 "Mouth Ø cm", "Duct Vol (L)", "Peak m/s", "Peak m/s (MOL)", "Peak at Hz"
@@ -11155,6 +11562,11 @@ _default("workspace_mode", "Bass Match")
 _default("ui_show_advanced", False)
 _ensure_finder_defaults()
 _ensure_price_currency_default()
+try:
+    _apply_pending_cloud_record()
+except Exception as exc:
+    logger.exception("Could not activate queued cloud project")
+    st.error(f"Could not open the cloud project: {exc}")
 if "finder_load_types" in st.session_state:
     legacy_finder_loads = list(st.session_state["finder_load_types"])
     if "Passive radiator" in legacy_finder_loads:
@@ -11217,6 +11629,184 @@ current_bandpass6_alignment = None
 current_sealed_alignment = None
 derived = None
 
+
+def _parse_query_param_str(key: str) -> str:
+    val = st.query_params.get(key, "")
+    if isinstance(val, (list, tuple)):
+        val = val[0] if val else ""
+    return str(val).strip(" '\"[]()")
+
+
+_raw_p = _parse_query_param_str("p")
+_public_project_requested = _raw_p.split("&")[0].strip() if "&" in _raw_p else _raw_p
+_embed_mode_requested = (
+    _parse_query_param_str("embed") in {"1", "true", "yes"}
+    or "embed=1" in _raw_p
+    or "embed=true" in _raw_p
+)
+_explore_requested = (
+    _parse_query_param_str("explore") in {"1", "true", "yes"}
+    or "explore=1" in _raw_p
+    or "explore=true" in _raw_p
+    or str(st.session_state.get("workspace_mode", "")) == "Community"
+)
+
+
+def _fork_project_to_sandbox(pub_id: str, pub_title: str) -> None:
+    """Load a public project into the active Box Design sandbox with 1 click."""
+    pub = _get_public_store().get_public_project(pub_id)
+    if pub is not None and pub.parameters:
+        _snapshot_design_state()
+        _apply_lfp_project(pub.parameters)
+        for key in ("explore", "p", "embed"):
+            st.query_params.pop(key, None)
+        st.session_state["workspace_mode"] = "Box Design"
+        _detach_cloud_project()
+        st.toast(f"🚀 Loaded '{pub_title}' into Box Design Sandbox!")
+        st.rerun()
+    else:
+        st.error(f"Could not load project parameters for {pub_title}")
+
+
+def _toggle_community_project_like(pub_id: str, pub_title: str, default_likes: int = 10) -> None:
+    """Toggle a like for a community project with session persistence and feedback."""
+    user_likes = st.session_state.setdefault("community_user_likes", set())
+    likes_counts = st.session_state.setdefault("community_likes_counts", {})
+    if pub_id not in likes_counts:
+        likes_counts[pub_id] = default_likes
+
+    if pub_id in user_likes:
+        user_likes.remove(pub_id)
+        likes_counts[pub_id] = max(0, likes_counts[pub_id] - 1)
+        st.toast(f"Unliked '{pub_title}'")
+    else:
+        user_likes.add(pub_id)
+        likes_counts[pub_id] = likes_counts[pub_id] + 1
+        st.toast(f"❤️ Liked '{pub_title}'!")
+
+
+def _render_community_sidebar() -> None:
+    """Render a clean, airy Community sidebar with back navigation, leaderboard, pulse, and publish CTA."""
+    if st.button("← Back to Studio Workbench", key="sidebar_comm_back_btn", type="primary", width="stretch"):
+        st.query_params.pop("explore", None)
+        st.query_params.pop("p", None)
+        st.session_state["workspace_mode"] = "Box Design"
+        st.rerun()
+
+    st.markdown(
+        """<div style="background: rgba(0,255,102,0.04); border: 1px solid rgba(0,255,102,0.15); border-radius: 8px; padding: 6px 10px; margin: 10px 0; display: flex; align-items: center; gap: 8px;">
+            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #00ff66; box-shadow: 0 0 6px rgba(0,255,102,0.6);"></span>
+            <span style="color: #00ff66; font-size: 0.74rem; font-weight: 600; letter-spacing: 0.4px;">COMMUNITY NETWORK ONLINE</span>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("---")
+
+    # Leaderboard: Top Audio Engineers
+    st.markdown(
+        """<div style="color: #8b949e; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">
+            🏆 Top Audio Engineers
+        </div>""",
+        unsafe_allow_html=True,
+    )
+    leaders = [
+        {"name": "Marco_Forge", "badge": "⚡ Lead Architect", "stars": 840, "avatar": "M"},
+        {"name": "SoundLab", "badge": "🔊 Verified Master", "stars": 620, "avatar": "S"},
+        {"name": "BassEngine", "badge": "🏆 Pro Builder", "stars": 510, "avatar": "B"},
+        {"name": "AcousticPurity", "badge": "🎵 Hi-Fi Artisan", "stars": 430, "avatar": "A"},
+        {"name": "StageKraft", "badge": "⚡ Pro Builder", "stars": 390, "avatar": "K"},
+    ]
+    for idx, l in enumerate(leaders, 1):
+        st.markdown(
+            f"""<div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 0; font-size: 0.76rem;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <div style="width: 20px; height: 20px; border-radius: 50%; background: rgba(0,255,102,0.12); border: 1px solid rgba(0,255,102,0.3); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: #00ff66;">{l['avatar']}</div>
+                    <div>
+                        <span style="font-weight: 600; color: #e6edf3; font-size: 0.76rem;">{html.escape(l['name'])}</span>
+                        <span style="font-size: 0.62rem; color: #8b949e; margin-left: 2px;">{l['badge']}</span>
+                    </div>
+                </div>
+                <div style="font-size: 0.72rem; font-weight: 700; color: #00ff66;">⭐ {l['stars']}</div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+
+    # Live Community Pulse Feed
+    st.markdown(
+        """<div style="color: #8b949e; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">
+            📡 Live Activity Pulse
+        </div>""",
+        unsafe_allow_html=True,
+    )
+    activities = [
+        {"user": "SoundLab", "action": "forked", "target": "DCCAV 18PRO", "time": "2m ago"},
+        {"user": "Matteo", "action": "liked", "target": "Studio Prec 8", "time": "7m ago"},
+        {"user": "BassEngine", "action": "published", "target": "Slam-Box 12", "time": "18m ago"},
+        {"user": "StageKraft", "action": "cloned", "target": "Tour Reflex 15", "time": "34m ago"},
+    ]
+    for act in activities:
+        st.markdown(
+            f"""<div style="padding: 3px 6px; margin-bottom: 4px; border-left: 1.5px solid rgba(0,255,102,0.5); font-size: 0.72rem; color: #8b949e;">
+                <span style="color: #00ff66; font-weight: 600;">{html.escape(act['user'])}</span> {act['action']} <span style="color: #e6edf3;">{html.escape(act['target'])}</span> <span style="color: #484f58; font-size: 0.65rem;">({act['time']})</span>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+
+    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+
+    # Publish Current Design CTA
+    with st.expander("🚀 Publish Active Design", expanded=False):
+        st.caption("Share your active design with the Load Forge community:")
+        active_proj_name = st.session_state.get("project_name", "") or "My Acoustic Project"
+        pub_title_input = st.text_input("Title", value=active_proj_name, key="comm_side_pub_title")
+        pub_desc_input = st.text_area("Notes", placeholder="E.g. Tuned for touring sub...", key="comm_side_pub_desc", height=70)
+        pub_vis = st.selectbox("Visibility", ["public", "unlisted"], key="comm_side_pub_vis")
+        if st.button("Publish Design", key="comm_side_pub_btn", type="primary", width="stretch"):
+            if _CURRENT_SAAS_USER is None:
+                st.warning("Please sign in to publish projects.")
+            else:
+                try:
+                    payload = _build_lfp_project({"name": pub_title_input or active_proj_name}, include_results=True)
+                    pub_rec = _get_public_store().publish_project(
+                        _CURRENT_SAAS_USER,
+                        st.session_state.get("_cloud_project_id") or _saas.new_project_id(),
+                        payload,
+                        title=pub_title_input or active_proj_name,
+                        description=pub_desc_input,
+                        visibility=pub_vis,
+                        app_version=_VERSION,
+                    )
+                    st.toast(f"Published '{pub_rec.title}' to Community!")
+                    st.rerun()
+                except Exception as exc:
+                    st.error(f"Publish failed: {exc}")
+
+
+def _render_public_project_sidebar(pub_id: str) -> None:
+    """Render sidebar when inspecting a public project."""
+    st.markdown(
+        """<div style="background: rgba(0,255,102,0.08); border: 1px solid rgba(0,255,102,0.3); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #00ff66; box-shadow: 0 0 8px #00ff66;"></span>
+            <span style="color: #00ff66; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.5px;">PROJECT TECH VIEW</span>
+        </div>""",
+        unsafe_allow_html=True,
+    )
+    if st.button("← Back to Community Feed", key="pub_side_comm_btn", width="stretch", type="secondary"):
+        st.query_params.pop("p", None)
+        st.query_params["explore"] = "1"
+        st.session_state["workspace_mode"] = "Community"
+        st.rerun()
+
+    if st.button("← Back to Studio Workbench", key="pub_side_studio_btn", width="stretch", type="primary"):
+        st.query_params.pop("p", None)
+        st.query_params.pop("explore", None)
+        st.session_state["workspace_mode"] = "Box Design"
+        st.rerun()
+
+
 with st.sidebar:
     if _BRAND_IMAGE.exists():
         with st.container(key="brand_logo"):
@@ -11228,11 +11818,18 @@ with st.sidebar:
     else:
         st.title("Load Forge")
         st.caption(f"v{_VERSION}")
-    _render_project_menu()
-    _render_workspace_tabs()
+
     workspace_mode = str(st.session_state.get("workspace_mode", "Bass Match"))
-    
-    if workspace_mode == "Bass Match":
+    if _explore_requested:
+        _render_community_sidebar()
+    elif _public_project_requested:
+        _render_public_project_sidebar(_public_project_requested)
+    elif workspace_mode == "Manage Projects":
+        _render_project_menu()
+        _render_workspace_tabs()
+    elif workspace_mode == "Bass Match":
+        _render_project_menu()
+        _render_workspace_tabs()
         bm_tab1, bm_tab2, bm_tab3 = st.tabs(
             ["Load type", "Performance filters", "Library filters"],
             key="bass_match_sidebar_tab",
@@ -11323,7 +11920,9 @@ with st.sidebar:
             with bm_tab3:
                 _render_find_driver_actions(filtered_preset_names)
 
-    else:
+    elif not (_explore_requested or _public_project_requested):
+        _render_project_menu()
+        _render_workspace_tabs()
         bd_tab1, bd_tab2, bd_tab3 = st.tabs(["Driver", "Load Selection", "Enclosure Parameters"])
         
         all_preset_names = _acoustics.driver_preset_names()
@@ -11762,7 +12361,7 @@ with st.sidebar:
                                 )
                                 if plausible_combos:
                                     with st.expander(
-                                        f"🎯 Plausible PR Matches ({len(plausible_combos)})",
+                                        f"Plausible PR Matches ({len(plausible_combos)})",
                                         expanded=False,
                                     ):
                                         st.caption(
@@ -11770,7 +12369,7 @@ with st.sidebar:
                                             f"{current_ts.sd_cm2:.0f} cm² driver in {active_pr.vb_l:.1f} L (target ~{target_tuning:.1f} Hz)."
                                         )
                                         for c in plausible_combos[:8]:
-                                            badge = "🟢 Optimal" if c.quality_rating == "Optimal" else ("🟡 Good" if c.quality_rating == "Good" else "⚪ Acceptable")
+                                            badge = "Optimal" if c.quality_rating == "Optimal" else ("Good" if c.quality_rating == "Good" else "Acceptable")
                                             pc1, pc2 = st.columns([3.0, 1.2])
                                             with pc1:
                                                 st.markdown(
@@ -11979,24 +12578,32 @@ with st.sidebar:
                 if load_type != "Infinite baffle" and box_edit_disabled:
                     st.caption("Switch Box strategy to Manual to edit volumes and tuning directly.")
 
-    _render_catalog_crawl_report()
+    if not (_explore_requested or _public_project_requested):
+        _render_catalog_crawl_report()
 
-    if _maintenance_allowed():
-        st.markdown("---")
-        with st.expander("🛠️ Admin Tools", expanded=False):
-            st.caption("Administrator Console")
-            st.link_button(
-                "📦 Catalog Maintenance ↗",
-                "/?maintenance=1",
-                use_container_width=True,
-                help="Open Catalog Maintenance in a new tab.",
-            )
-            st.link_button(
-                "👥 User Management ↗",
-                "/?admin_users=1",
-                use_container_width=True,
-                help="Open User Management & Credits Console in a new tab.",
-            )
+        if _maintenance_allowed():
+            st.markdown("---")
+            with st.expander("Admin Tools", expanded=False):
+                if st.button(
+                    "Catalog Maintenance",
+                    key="btn_admin_catalog_maint",
+                    use_container_width=True,
+                ):
+                    for k in ("explore", "p", "embed", "admin_users"):
+                        st.query_params.pop(k, None)
+                    st.query_params["maintenance"] = "1"
+                    st.session_state["workspace_mode"] = "Catalog Maintenance"
+                    st.rerun()
+                if st.button(
+                    "User Management",
+                    key="btn_admin_user_mgmt",
+                    use_container_width=True,
+                ):
+                    for k in ("explore", "p", "embed", "maintenance"):
+                        st.query_params.pop(k, None)
+                    st.query_params["admin_users"] = "1"
+                    st.session_state["workspace_mode"] = "User Management"
+                    st.rerun()
 
 
 def _render_user_management() -> None:
@@ -12007,7 +12614,7 @@ def _render_user_management() -> None:
             st.session_state["workspace_mode"] = "Bass Match"
             st.rerun()
     with c_title:
-        st.markdown("### 👥 User & Credits Management")
+        st.markdown("### User & Credits Management")
     st.caption("Administrator console · Real-time Firestore users & credit balances")
 
     accounts = _ACCOUNT_STORE.list_all_accounts()
@@ -12034,7 +12641,7 @@ def _render_user_management() -> None:
         with st.container(border=True):
             col_info, col_plan, col_credits, col_action = st.columns([3, 2, 2, 2], vertical_alignment="center")
             with col_info:
-                admin_badge = " 👑 *(Admin)*" if acc.is_admin else ""
+                admin_badge = " *(Admin)*" if acc.is_admin else ""
                 st.markdown(f"**{acc.name or 'User'}** ({acc.email}){admin_badge}")
                 st.caption(
                     f"Refill: {acc.quota_reset_at.strftime('%d %b %Y')} · Total sims: {acc.total_simulations_run:,}"
@@ -12053,7 +12660,7 @@ def _render_user_management() -> None:
                         st.success(f"Plan updated to {new_plan}")
                         st.rerun()
             with col_credits:
-                st.markdown(f"💳 **{acc.credits_balance:,}** / {acc.credits_monthly_quota:,}")
+                st.markdown(f"**{acc.credits_balance:,}** / {acc.credits_monthly_quota:,}")
                 delta = st.number_input(
                     "Add/Sub credits",
                     value=0,
@@ -12068,6 +12675,1172 @@ def _render_user_management() -> None:
                         st.success(f"Adjusted by {delta:+d} credits")
                         st.rerun()
 
+
+def _driver_from_params(params: Mapping[str, Any]) -> _acoustics.DriverTS:
+    sd_cm2 = float(params.get("driver_sd_cm2", 500.0) or 500.0)
+    driver = _acoustics.DriverTS(
+        fs_hz=float(params.get("driver_fs_hz", 35.0) or 35.0),
+        vas_l=float(params.get("driver_vas_l", 50.0) or 50.0),
+        qts=float(params.get("driver_qts", 0.35) or 0.35),
+        qms=float(params.get("driver_qms", 4.0) or 4.0),
+        re_ohm=float(params.get("driver_re_ohm", 6.0) or 6.0),
+        sd_cm2=sd_cm2,
+        le_mh=float(params.get("driver_le_mh", 0.0) or 0.0),
+        xmax_mm=float(params.get("driver_xmax_mm", 0.0) or 0.0),
+        pe_w=float(params.get("driver_pe_w", 0.0) or 0.0),
+        panel_air_load=bool(params.get("driver_panel_air_load", True)),
+        panel_coupling=float(params.get("driver_panel_coupling", 0.90) or 0.90),
+    )
+    return _acoustics.apply_driver_configuration(
+        driver, str(params.get("driver_config", "Single driver"))
+    )
+
+
+def _box_from_params(params: Mapping[str, Any], load_type: str):
+    if load_type == "Bass reflex":
+        if params.get("reflex_resonator_type") == _RESONATOR_PR or params.get("load_type") == "Passive radiator":
+            return _acoustics.PassiveRadiatorBox(
+                vb_l=float(params.get("reflex_vb_l", params.get("pr_vb_l", 40.0)) or 40.0),
+                pr_sp_cm2=float(params.get("pr_sp_cm2", 200.0) or 200.0),
+                pr_fp_hz=float(params.get("pr_fp_hz", 20.0) or 20.0),
+                pr_qmp=float(params.get("pr_qmp", 5.0) or 5.0),
+                pr_mmp_g=float(params.get("pr_mmp_g", 100.0) or 100.0),
+                pr_added_mass_g=float(params.get("pr_added_mass_g", 0.0) or 0.0),
+                pr_xmax_mm=float(params.get("pr_xmax_mm", 0.0) or 0.0),
+            )
+        return _acoustics.ReflexBox(
+            vb_l=float(params.get("reflex_vb_l", 40.0) or 40.0),
+            fb_hz=float(params.get("reflex_fb_hz", 40.0) or 40.0),
+        )
+    elif load_type == "Sealed":
+        return _acoustics.SealedBox(
+            vb_l=float(params.get("sealed_vb_l", 30.0) or 30.0),
+            q_abs=float(params.get("sealed_q_abs", 20.0) or 20.0),
+            q_leak=float(params.get("sealed_q_leak", 20.0) or 20.0),
+        )
+    elif load_type == "DCCAV":
+        return _acoustics.DccavBox(
+            vh_l=float(params.get("box_vh_l", params.get("dccav_vb1_l", 20.0)) or 20.0),
+            fh_hz=float(params.get("box_fh_hz", params.get("dccav_fb1_hz", 60.0)) or 60.0),
+            vl_l=float(params.get("box_vl_l", params.get("dccav_vb2_l", 20.0)) or 20.0),
+            fl_hz=float(params.get("box_fl_hz", params.get("dccav_fb2_hz", 30.0)) or 30.0),
+        )
+    elif load_type == "Bandpass 4th order":
+        return _acoustics.Bandpass4Box(
+            vs_l=float(params.get("bandpass4_vs_l", params.get("bp4_vb_l", 25.0)) or 25.0),
+            vp_l=float(params.get("bandpass4_vp_l", params.get("bp4_vf_l", 15.0)) or 15.0),
+            fp_hz=float(params.get("bandpass4_fp_hz", params.get("bp4_fb_hz", 55.0)) or 55.0),
+        )
+    elif load_type == "Bandpass 6th order":
+        return _acoustics.Bandpass6Box(
+            vr_l=float(params.get("bandpass6_vr_l", params.get("bp6_vr_l", 30.0)) or 30.0),
+            fr_hz=float(params.get("bandpass6_fr_hz", params.get("bp6_fb_r_hz", 35.0)) or 35.0),
+            vp_l=float(params.get("bandpass6_vp_l", params.get("bp6_vf_l", 15.0)) or 15.0),
+            fp_hz=float(params.get("bandpass6_fp_hz", params.get("bp6_fb_f_hz", 70.0)) or 70.0),
+        )
+    elif load_type == "Bandpass 8th order":
+        return _acoustics.Bandpass8Box(
+            v1_l=float(params.get("bp8_v1_l", params.get("bp8_vr_l", 20.0)) or 20.0),
+            f1_hz=float(params.get("bp8_f1_hz", params.get("bp8_fb_r_hz", 30.0)) or 30.0),
+            v2_l=float(params.get("bp8_v2_l", params.get("bp8_vf1_l", 15.0)) or 15.0),
+            f2_hz=float(params.get("bp8_f2_hz", params.get("bp8_fb_f1_hz", 60.0)) or 60.0),
+            v3_l=float(params.get("bp8_v3_l", params.get("bp8_vf2_l", 10.0)) or 10.0),
+            f3_hz=float(params.get("bp8_f3_hz", params.get("bp8_fb_f2_hz", 100.0)) or 100.0),
+        )
+    elif load_type == "Infinite baffle":
+        return None
+    return None
+
+
+def _render_embed_project_widget(publication_id: str) -> None:
+    """Render an ultra-clean, minimal responsive widget for iframe embedding."""
+    try:
+        pub = _get_public_store().get_public_project(publication_id)
+    except Exception as exc:
+        logger.exception("Could not retrieve public project for embed")
+        pub = None
+
+    if pub is None:
+        st.markdown(
+            f"<div style='padding:20px; font-family:sans-serif; color:#94a3b8; text-align:center;'>"
+            f"<h4>Load Forge Simulation</h4>"
+            f"<p>Project snapshot <code>{html.escape(publication_id)}</code> was not found or is unavailable.</p>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    tech = pub.technical_summary or _saas.extract_technical_summary(pub.parameters)
+    driver_name = tech.get("driver_name", "Custom driver")
+    load_type = tech.get("load_type", "Bass reflex")
+    vol = tech.get("box_volume_l")
+    tune = tech.get("tuning_freq_hz")
+    full_url = _public_project_url(publication_id)
+
+    # Clean embed styling: hide sidebar, header, footer, reduce padding
+    st.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"] { display: none !important; }
+        header[data-testid="stHeader"] { display: none !important; }
+        footer { display: none !important; }
+        .block-container { padding: 0.8rem 1rem !important; max-width: 100% !important; }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Top Header
+    h_col1, h_col2 = st.columns([7, 3])
+    with h_col1:
+        st.markdown(
+            f"<div style='display:flex; align-items:center; gap:8px;'>"
+            f"<span style='font-size:1.1rem; font-weight:700; color:#f8fafc;'>{html.escape(pub.title)}</span>"
+            f"<span style='font-size:0.75rem; background:rgba(16,185,129,0.15); color:#10b981; padding:2px 6px; border-radius:4px; border:1px solid rgba(16,185,129,0.3); font-weight:600;'>Verified</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+        author = pub.owner_display_name or "Load Forge Engineer"
+        st.caption(f"{html.escape(driver_name)} · {html.escape(load_type)} · by {html.escape(author)}")
+    with h_col2:
+        st.markdown(
+            f"<div style='text-align:right; margin-top:4px;'>"
+            f"<a href='{html.escape(full_url)}' target='_blank' style='display:inline-block; padding:5px 10px; font-size:0.8rem; font-weight:600; background:#2563eb; color:#ffffff; text-decoration:none; border-radius:6px;'>Open in Load Forge</a>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    # Run simulation for preview curve
+    try:
+        params = (
+            pub.parameters.get("parameters", {})
+            if isinstance(pub.parameters.get("parameters"), dict)
+            else pub.parameters
+        )
+        driver_ts = _driver_from_params(params)
+        box_model = _box_from_params(params, load_type)
+        f_min = float(params.get("sim_f_min", 10.0) or 10.0)
+        f_max = float(params.get("sim_f_max", 300.0) or 300.0)
+        freq = np.geomspace(f_min, f_max, 160)
+        voltage = float(params.get("sim_voltage", 2.83) or 2.83)
+        rg = float(params.get("sim_rg_ohm", 0.0) or 0.0)
+
+        if load_type == "Bass reflex" and isinstance(box_model, _acoustics.PassiveRadiatorBox):
+            result = _acoustics.simulate_passive_radiator(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "Bass reflex":
+            result = _acoustics.simulate_reflex(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "Sealed":
+            result = _acoustics.simulate_sealed(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "DCCAV":
+            result = _acoustics.simulate(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "Bandpass 4th order":
+            result = _acoustics.simulate_bandpass4(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "Bandpass 6th order":
+            result = _acoustics.simulate_bandpass6(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "Bandpass 8th order":
+            result = _acoustics.simulate_bandpass8(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "Infinite baffle":
+            result = _acoustics.simulate_infinite_baffle(driver_ts, freq, voltage, rg)
+        else:
+            result = _acoustics.simulate(driver_ts, box_model, freq, voltage, rg)
+
+        metrics = _acoustics.response_metrics(result)
+        f3_val = metrics.get("f3_hz", 0.0)
+
+        # Chips row
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            st.metric("Topology", load_type)
+        with c2:
+            st.metric("Box Vol (Vb)", f"{vol:.1f} L" if vol is not None else "—")
+        with c3:
+            st.metric("Tuning (Fb)", f"{tune:.1f} Hz" if tune is not None else "—")
+        with c4:
+            st.metric("F3 Cutoff", f"{f3_val:.1f} Hz" if f3_val > 0 else "—")
+
+        spl_df = pd.DataFrame({
+            "frequency_hz": result.frequency_hz,
+            "value": result.spl_total_db,
+            "series": "Total SPL",
+        })
+        spl_chart = _line_chart(
+            spl_df,
+            "SPL (dB)",
+            height=200,
+            legend=False,
+            x_domain=[f_min, f_max],
+        )
+        st.altair_chart(spl_chart, width="stretch")
+    except Exception as exc:
+        logger.exception("Could not render embed simulation curve")
+        st.caption(f"Preview unavailable: {exc}")
+
+
+def _render_public_project_page(publication_id: str) -> None:
+    """Render the public technical project page for a published snapshot."""
+    try:
+        pub = _get_public_store().get_public_project(publication_id)
+    except Exception as exc:
+        logger.exception("Could not retrieve public project")
+        pub = None
+
+    if pub is None:
+        st.error("Project snapshot not found or direct link is invalid.")
+        st.caption(f"Publication ID: `{html.escape(publication_id)}`")
+        if st.button("Return to Load Forge", key="pub_not_found_back_btn"):
+            st.query_params.pop("p", None)
+            st.rerun()
+        return
+
+    # Ingest JSON-LD structured data and OpenGraph tags into HTML head
+    try:
+        json_ld = _saas.generate_json_ld_schema(pub)
+        st.markdown(
+            f'<script type="application/ld+json">{json.dumps(json_ld)}</script>',
+            unsafe_allow_html=True,
+        )
+    except Exception:
+        pass
+
+    # Top header bar
+    back_col1, back_col2, badge_col = st.columns([3.5, 3.5, 3.0])
+    with back_col1:
+        if st.button("← Back to Community Feed", key="pub_back_comm_btn", width="stretch"):
+            st.query_params.pop("p", None)
+            st.query_params["explore"] = "1"
+            st.session_state["workspace_mode"] = "Community"
+            st.rerun()
+    with back_col2:
+        if st.button("← Back to Studio Workbench", key="pub_back_studio_btn", width="stretch"):
+            st.query_params.pop("p", None)
+            st.query_params.pop("explore", None)
+            st.session_state["workspace_mode"] = "Box Design"
+            st.rerun()
+    with badge_col:
+        vis_label = "Public" if pub.visibility == "public" else "Unlisted"
+        st.markdown(
+            f"<div style='text-align:right; font-weight:600; color:#94a3b8; font-size:0.9rem; margin-top:0.3rem;'>"
+            f"{vis_label} · v{pub.publication_version}"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+    # Title & Verified Badge
+    st.title(pub.title)
+    badge_text = f"Verified Simulation · Load Forge Solver v{pub.app_version}"
+    st.markdown(
+        f"<div style='display:inline-flex; align-items:center; gap:6px; background:rgba(16,185,129,0.12); color:#10b981; font-weight:600; font-size:0.85rem; padding:4px 10px; border-radius:6px; border:1px solid rgba(16,185,129,0.25); margin-bottom:0.75rem;'>"
+        f"<span>✓</span> {badge_text}"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+    author = pub.owner_display_name or "Load Forge Engineer"
+    pub_date = (
+        pub.published_at.strftime("%d %b %Y %H:%M UTC")
+        if hasattr(pub.published_at, "strftime")
+        else str(pub.published_at)
+    )
+    st.caption(f"Published by **{html.escape(author)}** · {pub_date} · ID: `{pub.publication_id}`")
+
+    if pub.description:
+        st.info(pub.description)
+
+    # Action buttons
+    action_col1, action_col2, action_col3, action_col4 = st.columns([3, 3, 2, 2])
+    with action_col1:
+        if st.button(
+            "Open in Load Forge (Preview)",
+            key="pub_open_in_lf_btn",
+            width="stretch",
+            help="Loads this technical design into your active session as a sandbox preview.",
+        ):
+            _snapshot_design_state()
+            _apply_lfp_project(pub.parameters)
+            st.query_params.pop("p", None)
+            st.session_state["workspace_mode"] = "Box Design"
+            _detach_cloud_project()
+            st.toast("Opened project in active workspace (sandbox preview)")
+            st.rerun()
+
+    with action_col2:
+        if _CURRENT_SAAS_USER is not None:
+            if st.button(
+                "Clone to My Projects",
+                key="pub_clone_btn",
+                width="stretch",
+                type="primary",
+                help="Creates an independent copy of this design in your private cloud account with full provenance.",
+            ):
+                try:
+                    cloned_record = _get_public_store().clone_public_project(
+                        _CURRENT_SAAS_USER,
+                        pub.publication_id,
+                        _VERSION,
+                        private_store=_get_project_store(),
+                    )
+                    _queue_cloud_record_activation(
+                        cloned_record,
+                        notice=f"Cloned design as: {cloned_record.name}",
+                    )
+                    st.query_params.pop("p", None)
+                    st.rerun()
+                except Exception as exc:
+                    logger.exception("Could not clone public project")
+                    st.error(f"Clone failed: {exc}")
+        else:
+            st.button(
+                "Clone to My Projects (Sign In Required)",
+                key="pub_clone_disabled_btn",
+                width="stretch",
+                disabled=True,
+                help="Sign in to save this design into your private cloud account.",
+            )
+
+    with action_col3:
+        lfp_data = json.dumps(pub.parameters, indent=2, allow_nan=False).encode("utf-8")
+        st.download_button(
+            "Download .lfp",
+            lfp_data,
+            _project_download_filename(pub.title),
+            "application/json",
+            width="stretch",
+            key="pub_download_lfp_btn",
+            help="Download the complete portable engineering file to your computer.",
+        )
+
+    with action_col4:
+        spec_sheet_md = _saas.generate_printable_spec_sheet_markdown(pub)
+        st.download_button(
+            "Export Spec Sheet (.md)",
+            spec_sheet_md.encode("utf-8"),
+            f"{_project_download_filename(pub.title).removesuffix('.lfp')}_spec_sheet.md",
+            "text/markdown",
+            width="stretch",
+            key="pub_download_spec_btn",
+            help="Download printable engineering specification sheet in Markdown.",
+        )
+
+    st.divider()
+
+    # Technical Specifications Overview
+    st.subheader("Technical Specifications & Alignment")
+    tech = pub.technical_summary or _saas.extract_technical_summary(pub.parameters)
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.metric("Topology / Load", tech.get("load_type", "Bass reflex"))
+    with c2:
+        vol = tech.get("box_volume_l")
+        st.metric("Enclosure Volume (Vb)", f"{vol:.1f} L" if vol is not None else "—")
+    with c3:
+        tuning = tech.get("tuning_freq_hz")
+        st.metric("Tuning Freq (Fb)", f"{tuning:.1f} Hz" if tuning is not None else "—")
+    with c4:
+        driver_name = tech.get("driver_name", "Custom driver")
+        st.metric("Transducer", driver_name)
+
+    # Simulation Curves & Performance Estimation
+    st.subheader("Predicted Electroacoustic Performance")
+    try:
+        params = (
+            pub.parameters.get("parameters", {})
+            if isinstance(pub.parameters.get("parameters"), dict)
+            else pub.parameters
+        )
+        load_type = str(tech.get("load_type", params.get("load_type", "Bass reflex")))
+        driver_ts = _driver_from_params(params)
+        box_model = _box_from_params(params, load_type)
+
+        f_min = float(params.get("sim_f_min", 10.0) or 10.0)
+        f_max = float(params.get("sim_f_max", 300.0) or 300.0)
+        points = int(params.get("sim_points", 240) or 240)
+        voltage = float(params.get("sim_voltage", 2.83) or 2.83)
+        rg = float(params.get("sim_rg_ohm", 0.0) or 0.0)
+
+        freq = np.geomspace(f_min, f_max, points)
+        if load_type == "Bass reflex" and isinstance(box_model, _acoustics.PassiveRadiatorBox):
+            result = _acoustics.simulate_passive_radiator(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "Bass reflex":
+            result = _acoustics.simulate_reflex(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "Sealed":
+            result = _acoustics.simulate_sealed(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "DCCAV":
+            result = _acoustics.simulate(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "Bandpass 4th order":
+            result = _acoustics.simulate_bandpass4(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "Bandpass 6th order":
+            result = _acoustics.simulate_bandpass6(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "Bandpass 8th order":
+            result = _acoustics.simulate_bandpass8(driver_ts, box_model, freq, voltage, rg)
+        elif load_type == "Infinite baffle":
+            result = _acoustics.simulate_infinite_baffle(driver_ts, freq, voltage, rg)
+        else:
+            result = _acoustics.simulate(driver_ts, box_model, freq, voltage, rg)
+
+        metrics = _acoustics.response_metrics(result)
+        f3_val = metrics.get("f3_hz", 0.0)
+        f6_val = metrics.get("f6_hz", 0.0)
+        f10_val = metrics.get("f10_hz", 0.0)
+        peak_spl = float(np.max(result.spl_total_db)) if len(result.spl_total_db) else 0.0
+        z_min = float(np.min(result.impedance_ohm)) if len(result.impedance_ohm) else 0.0
+        z_min_idx = int(np.argmin(result.impedance_ohm)) if len(result.impedance_ohm) else 0
+        z_min_f = float(result.frequency_hz[z_min_idx]) if len(result.frequency_hz) else 0.0
+        gd = _acoustics.group_delay_ms(result)
+        peak_gd = float(np.max(gd)) if len(gd) else 0.0
+
+        # Detailed metrics row
+        m1, m2, m3, m4, m5, m6 = st.columns(6)
+        with m1:
+            st.metric("F3 (-3 dB)", f"{f3_val:.1f} Hz" if f3_val > 0 else "—")
+        with m2:
+            st.metric("F6 (-6 dB)", f"{f6_val:.1f} Hz" if f6_val > 0 else "—")
+        with m3:
+            st.metric("F10 (-10 dB)", f"{f10_val:.1f} Hz" if f10_val > 0 else "—")
+        with m4:
+            st.metric("Peak SPL @ 2.83V", f"{peak_spl:.1f} dB")
+        with m5:
+            st.metric("Zmin", f"{z_min:.2f} Ω", f"@{z_min_f:.0f}Hz")
+        with m6:
+            st.metric("Peak Group Delay", f"{peak_gd:.1f} ms")
+
+        # 6 Performance & Validation Tabs
+        tab_spl, tab_exc, tab_imp, tab_ports, tab_gd, tab_meas = st.tabs([
+            "SPL Frequency Response",
+            "Cone Excursion",
+            "Impedance & Phase",
+            "Port Air Velocity",
+            "Group Delay",
+            "Measurement Validation",
+        ])
+        with tab_spl:
+            spl_df = pd.DataFrame({
+                "frequency_hz": result.frequency_hz,
+                "value": result.spl_total_db,
+                "series": "Total SPL (2.83V)",
+            })
+            spl_chart = _line_chart(
+                spl_df,
+                "Sound Pressure Level (dB)",
+                height=380,
+                legend=False,
+                x_domain=[f_min, f_max],
+            )
+            st.altair_chart(spl_chart, width="stretch")
+
+        with tab_exc:
+            xmax_mm = float(params.get("driver_xmax_mm", 0.0) or 0.0)
+            exc_chart = _plot_excursion(result, xmax_mm)
+            st.altair_chart(exc_chart, width="stretch")
+
+        with tab_imp:
+            imp_chart = _plot_impedance(result)
+            st.altair_chart(imp_chart, width="stretch")
+
+        with tab_ports:
+            if load_type in {"Bass reflex", "DCCAV", "Bandpass 4th order", "Bandpass 6th order", "Bandpass 8th order"}:
+                try:
+                    port_chart = _plot_ports(result, mode="air_velocity_sim")
+                    st.altair_chart(port_chart, width="stretch")
+                except Exception:
+                    st.info("Port air velocity curves are not applicable or port diameter is zero.")
+            else:
+                st.info(f"Port velocity curves are not applicable for {load_type} enclosures.")
+
+        with tab_gd:
+            gd_chart = _plot_group_delay(result)
+            st.altair_chart(gd_chart, width="stretch")
+
+        with tab_meas:
+            st.markdown("#### Physical Prototype Measurement Validation")
+            st.caption("Upload or inspect raw physical measurements (REW, DATS, ARTA, CLIO, Klippel, FRD, ZMA) overlaid directly on the lumped-parameter simulation.")
+
+            meas_upload = st.file_uploader(
+                "Upload Measurement File (.frd, .zma, .txt, .csv, .mdat, .dat)",
+                type=["frd", "zma", "txt", "csv", "mdat", "dat"],
+                key=f"meas_uploader_{pub.publication_id}",
+                help="Supports REW SPL & Impedance exports, Dayton Audio DATS v2/v3, ARTA/LIMP, Audiomatica CLIO, and generic FRD/ZMA curves.",
+            )
+
+            stored_meas_list = params.get("measurements", [])
+            active_curve = None
+
+            if meas_upload is not None:
+                try:
+                    active_curve = _acoustics.parse_measurement_file(
+                        meas_upload.getvalue(),
+                        filename=meas_upload.name,
+                        default_type="spl",
+                    )
+                except Exception as exc:
+                    st.error(f"Failed to parse measurement file: {exc}")
+            elif stored_meas_list and isinstance(stored_meas_list, list):
+                try:
+                    active_curve = _acoustics.deserialize_measurement(stored_meas_list[0])
+                except Exception as exc:
+                    logger.warning("Could not load stored project measurement: %s", exc)
+
+            if active_curve is not None:
+                src_label = active_curve.metadata.get("source", active_curve.format_name.upper())
+                st.success(
+                    f"Loaded **{html.escape(active_curve.label)}** · Format: `{src_label}` · "
+                    f"{len(active_curve.freq)} pts ({active_curve.freq[0]:.1f} Hz – {active_curve.freq[-1]:.1f} Hz)"
+                )
+
+                if active_curve.curve_type == "impedance":
+                    comp = _acoustics.compare_simulation_to_measurement(
+                        result.frequency_hz, result.impedance_ohm, active_curve
+                    )
+                    mc1, mc2, mc3, mc4 = st.columns(4)
+                    with mc1:
+                        st.metric("Impedance RMSE", f"{comp.rmse:.2f} Ω")
+                    with mc2:
+                        st.metric("Max |ΔZ|", f"{comp.max_abs_delta:.2f} Ω")
+                    with mc3:
+                        st.metric("Mean Offset", f"{comp.mean_delta:+.2f} Ω")
+                    with mc4:
+                        if comp.fb_delta_hz is not None:
+                            st.metric("Tuning Error ΔFb", f"{comp.fb_delta_hz:+.1f} Hz", f"Sim: {comp.sim_fb_hz:.1f}Hz / Meas: {comp.meas_fb_hz:.1f}Hz")
+                        else:
+                            st.metric("Tuning Alignment", "Nominal")
+
+                    overlay_rows = [
+                        {"frequency_hz": float(f), "value": float(z), "series": "Simulated Impedance"}
+                        for f, z in zip(result.frequency_hz, result.impedance_ohm)
+                    ] + [
+                        {"frequency_hz": float(f), "value": float(z), "series": f"Measured ({active_curve.label})"}
+                        for f, z in zip(active_curve.freq, active_curve.values)
+                        if f_min <= f <= f_max
+                    ]
+                    ov_chart = _line_chart(
+                        pd.DataFrame(overlay_rows),
+                        "Impedance (Ω)",
+                        height=380,
+                        legend=True,
+                        x_domain=[f_min, f_max],
+                    )
+                    st.altair_chart(ov_chart, width="stretch")
+
+                else:  # SPL comparison
+                    comp = _acoustics.compare_simulation_to_measurement(
+                        result.frequency_hz, result.spl_total_db, active_curve
+                    )
+                    mc1, mc2, mc3 = st.columns(3)
+                    with mc1:
+                        st.metric("SPL RMSE", f"{comp.rmse:.2f} dB")
+                    with mc2:
+                        st.metric("Max |ΔSPL|", f"{comp.max_abs_delta:.2f} dB")
+                    with mc3:
+                        st.metric("Mean SPL Offset", f"{comp.mean_delta:+.2f} dB")
+
+                    overlay_rows = [
+                        {"frequency_hz": float(f), "value": float(s), "series": "Simulated SPL (2.83V)"}
+                        for f, s in zip(result.frequency_hz, result.spl_total_db)
+                    ] + [
+                        {"frequency_hz": float(f), "value": float(s), "series": f"Measured ({active_curve.label})"}
+                        for f, s in zip(active_curve.freq, active_curve.values)
+                        if f_min <= f <= f_max
+                    ]
+                    ov_chart = _line_chart(
+                        pd.DataFrame(overlay_rows),
+                        "Sound Pressure Level (dB)",
+                        height=380,
+                        legend=True,
+                        x_domain=[f_min, f_max],
+                    )
+                    st.altair_chart(ov_chart, width="stretch")
+            else:
+                st.info("No physical measurements currently attached to this snapshot. Upload a measurement above to compare your real prototype against this simulation.")
+
+    except Exception as exc:
+        logger.exception("Could not render public project response curves")
+        st.warning(f"Simulation preview could not be computed: {exc}")
+
+    # Driver Details Expander
+    with st.expander("Driver Parameters & Transducer Electromechanics", expanded=False):
+        dc1, dc2, dc3, dc4, dc5 = st.columns(5)
+        with dc1:
+            fs = tech.get("driver_fs_hz")
+            st.metric("Fs", f"{fs:.1f} Hz" if fs is not None else "—")
+        with dc2:
+            vas = tech.get("driver_vas_l")
+            st.metric("Vas", f"{vas:.1f} L" if vas is not None else "—")
+        with dc3:
+            qts = tech.get("driver_qts")
+            st.metric("Qts", f"{qts:.3f}" if qts is not None else "—")
+        with dc4:
+            re_v = tech.get("driver_re_ohm")
+            st.metric("Re", f"{re_v:.2f} Ω" if re_v is not None else "—")
+        with dc5:
+            sd_v = tech.get("driver_sd_cm2")
+            st.metric("Sd", f"{sd_v:.1f} cm²" if sd_v is not None else "—")
+
+    # Embed snippet expander
+    with st.expander("Embed this project on forums & websites", expanded=False):
+        embed_url = f"{_public_project_url(pub.publication_id)}&embed=1"
+        iframe_snippet = f'<iframe src="{embed_url}" width="100%" height="420" frameborder="0"></iframe>'
+        st.caption("Copy this responsive iframe embed code for DIYAudio, forums, build logs, and blogs:")
+        st.code(iframe_snippet, language="html")
+
+
+_EXPLORE_FILTER_DEFAULTS = {
+    "explore_search_input": "",
+    "explore_topo_filter": "All",
+    "explore_sort_filter": "newest",
+    "explore_min_vb_l": 0.0,
+    "explore_max_vb_l": 0.0,
+    "explore_min_fb_hz": 0.0,
+    "explore_max_fb_hz": 0.0,
+    "explore_min_size_in": 0.0,
+    "explore_max_size_in": 0.0,
+    "explore_min_fs_hz": 0.0,
+    "explore_max_fs_hz": 0.0,
+    "explore_min_qts": 0.0,
+    "explore_max_qts": 0.0,
+    "explore_min_f3_hz": 0.0,
+    "explore_max_f3_hz": 0.0,
+}
+
+
+def _reset_explore_filters() -> None:
+    """Reset Community controls in a widget-safe callback."""
+    for key, value in _EXPLORE_FILTER_DEFAULTS.items():
+        st.session_state[key] = value
+    st.session_state["explore_category_pill"] = "All"
+
+
+def _explore_optional_limit(key: str) -> float | None:
+    value = float(st.session_state.get(key, 0.0) or 0.0)
+    return value if value > 0.0 else None
+
+
+def _render_explore_projects_directory() -> None:
+    """Render the spacious, modern public project discovery and community engineering hub."""
+    # Cyber-neon and Social Minimalist CSS
+    st.markdown(
+        """<style>
+        .community-header {
+            padding: 0.5rem 0 0.8rem 0;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .community-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #00ff66;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.15rem;
+            text-shadow: 0 0 12px rgba(0, 255, 102, 0.25);
+        }
+        .community-sub {
+            color: #8b949e;
+            font-size: 0.86rem;
+            margin-bottom: 0.6rem;
+        }
+        .community-telemetry {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            font-size: 0.76rem;
+            color: #8b949e;
+        }
+        .community-telemetry-item strong {
+            color: #00ff66;
+            font-weight: 600;
+        }
+        .community-badge {
+            background: rgba(0, 255, 102, 0.08);
+            color: #00ff66;
+            border: 1px solid rgba(0, 255, 102, 0.25);
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 0.66rem;
+            font-weight: 600;
+        }
+        .community-topo-badge {
+            background: rgba(56, 189, 248, 0.08);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            padding: 2px 7px;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .community-avatar-ring {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(0, 255, 102, 0.12);
+            border: 1px solid rgba(0, 255, 102, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00ff66;
+            font-weight: 700;
+            font-size: 0.72rem;
+        }
+        .community-spec-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            margin: 8px 0;
+        }
+        .spec-cell {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 5px 4px;
+            text-align: center;
+        }
+        .spec-lbl {
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: #6e7681;
+        }
+        .spec-num {
+            font-size: 0.84rem;
+            font-weight: 600;
+            color: #e6edf3;
+            font-family: monospace;
+            margin-top: 1px;
+        }
+        .spec-f3 { color: #38bdf8; }
+        .spec-spl { color: #00ff66; }
+        .community-spotlight {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.03) 0%, rgba(0, 255, 102, 0.02) 100%);
+            border: 1px solid rgba(0, 255, 102, 0.2);
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.2rem;
+        }
+        </style>""",
+        unsafe_allow_html=True,
+    )
+
+    # Clean Header Bar
+    h_left, h_right = st.columns([8, 2], vertical_alignment="center")
+    with h_left:
+        st.markdown(
+            """<div class="community-header">
+                <div class="community-title">⚡ LOAD FORGE COMMUNITY // ELECTROACOUSTIC HUB</div>
+                <div class="community-sub">The open electroacoustic engineering network — discover, test-drive, fork, and publish verified loudspeaker designs.</div>
+                <div class="community-telemetry">
+                    <span class="community-telemetry-item">🔨 <strong>128+</strong> Verified Builds</span>
+                    <span class="community-telemetry-item">🔄 <strong>3.8k+</strong> Simulations & Clones</span>
+                    <span class="community-telemetry-item">📊 <strong>142.8 dB</strong> SPL Max Record</span>
+                    <span class="community-telemetry-item">👥 <strong>86</strong> Audio Designers</span>
+                    <span class="community-telemetry-item">🎛️ <strong>DCCAV</strong> Dual-Resonance Lab</span>
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
+        )
+    with h_right:
+        if st.button("← Back to Workbench", key="explore_top_back_btn", type="secondary", width="stretch"):
+            st.query_params.pop("explore", None)
+            st.session_state["workspace_mode"] = "Box Design"
+            st.rerun()
+
+    for key, value in _EXPLORE_FILTER_DEFAULTS.items():
+        st.session_state.setdefault(key, value)
+
+    # Category selection pills (All 8 categories)
+    cat_active = st.session_state.get("explore_category_pill", "All")
+    categories = [
+        ("All", "🌐 All Builds"),
+        ("Trending", "🔥 Trending"),
+        ("Staff Picks", "⭐ Staff Picks"),
+        ("DCCAV", "🎛️ DCCAV Lab"),
+        ("High SPL", "🔊 High-SPL PA"),
+        ("Studio", "🎵 Studio Monitors"),
+        ("Compact", "📦 Compact Sub"),
+        ("Recent", "⚡ Recent"),
+    ]
+    cat_cols = st.columns(8)
+    for i, (cat_key, cat_label) in enumerate(categories):
+        with cat_cols[i]:
+            if st.button(
+                cat_label,
+                key=f"comm_cat_btn_{cat_key}",
+                type="primary" if cat_active == cat_key else "secondary",
+                width="stretch",
+            ):
+                st.session_state["explore_category_pill"] = cat_key
+                if cat_key == "All":
+                    st.session_state["explore_search_input"] = ""
+                    st.session_state["explore_topo_filter"] = "All"
+                    st.session_state["explore_sort_filter"] = "newest"
+                elif cat_key == "Trending":
+                    st.session_state["explore_sort_filter"] = "trending"
+                elif cat_key == "Staff Picks":
+                    st.session_state["explore_search_input"] = "showcase"
+                elif cat_key == "DCCAV":
+                    st.session_state["explore_topo_filter"] = "DCCAV"
+                elif cat_key == "High SPL":
+                    st.session_state["explore_sort_filter"] = "highest_spl"
+                elif cat_key == "Studio":
+                    st.session_state["explore_search_input"] = "Studio"
+                elif cat_key == "Compact":
+                    st.session_state["explore_sort_filter"] = "compact_vb"
+                elif cat_key == "Recent":
+                    st.session_state["explore_sort_filter"] = "newest"
+                st.rerun()
+
+    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+
+    # Search, topology and sorting bar
+    f_col1, f_col2, f_col3, f_col4 = st.columns([4.5, 2.5, 2.5, 1.5])
+    with f_col1:
+        search_query = st.text_input(
+            "Search",
+            placeholder="Search builds, drivers (e.g. B&C, FaitalPRO, Purifi), authors...",
+            key="explore_search_input",
+            label_visibility="collapsed",
+        )
+    with f_col2:
+        topologies = [
+            "All",
+            "Bass reflex",
+            "DCCAV",
+            "Sealed",
+            "Passive radiator",
+            "Bandpass 4th order",
+            "Bandpass 6th order",
+            "Bandpass 8th order",
+            "Infinite baffle",
+        ]
+        selected_topo = st.selectbox(
+            "Topology",
+            topologies,
+            key="explore_topo_filter",
+            label_visibility="collapsed",
+        )
+    with f_col3:
+        sort_options = {
+            "trending": "🔥 Trending / Most Liked",
+            "newest": "⚡ Newest First",
+            "lowest_f3": "🎯 Deepest Extension (F3)",
+            "compact_vb": "📦 Most Compact (Vb)",
+            "highest_spl": "🔊 Highest Peak SPL",
+        }
+        selected_sort = st.selectbox(
+            "Sort by",
+            list(sort_options.keys()),
+            format_func=lambda k: sort_options[k],
+            key="explore_sort_filter",
+            label_visibility="collapsed",
+        )
+    with f_col4:
+        st.button(
+            "Reset",
+            key="explore_reset_btn",
+            width="stretch",
+            on_click=_reset_explore_filters,
+        )
+
+    with st.expander("🎛️ Fine Electroacoustic Range Filters", expanded=False):
+        st.caption("Narrow the discovery catalog by physical and electroacoustic limits:")
+        p1, p2, p3, p4 = st.columns(4)
+        with p1:
+            st.number_input("Vb min (L)", min_value=0.0, step=5.0, key="explore_min_vb_l")
+        with p2:
+            st.number_input("Vb max (L)", min_value=0.0, step=5.0, key="explore_max_vb_l")
+        with p3:
+            st.number_input("Fb min (Hz)", min_value=0.0, step=1.0, key="explore_min_fb_hz")
+        with p4:
+            st.number_input("Fb max (Hz)", min_value=0.0, step=1.0, key="explore_max_fb_hz")
+
+        p5, p6, p7, p8 = st.columns(4)
+        with p5:
+            st.number_input("Driver min (in)", min_value=0.0, step=0.5, key="explore_min_size_in")
+        with p6:
+            st.number_input("Driver max (in)", min_value=0.0, step=0.5, key="explore_max_size_in")
+        with p7:
+            st.number_input("Fs min (Hz)", min_value=0.0, step=1.0, key="explore_min_fs_hz")
+        with p8:
+            st.number_input("Fs max (Hz)", min_value=0.0, step=1.0, key="explore_max_fs_hz")
+
+        p9, p10, p11, p12 = st.columns(4)
+        with p9:
+            st.number_input("Qts min", min_value=0.0, step=0.01, format="%.2f", key="explore_min_qts")
+        with p10:
+            st.number_input("Qts max", min_value=0.0, step=0.01, format="%.2f", key="explore_max_qts")
+        with p11:
+            st.number_input("F3 min (Hz)", min_value=0.0, step=1.0, key="explore_min_f3_hz")
+        with p12:
+            st.number_input("F3 max (Hz)", min_value=0.0, step=1.0, key="explore_max_f3_hz")
+
+    limits = {
+        key: _explore_optional_limit(key)
+        for key in _EXPLORE_FILTER_DEFAULTS
+        if key.startswith("explore_min_") or key.startswith("explore_max_")
+    }
+    invalid_ranges = [
+        label
+        for label, minimum_key, maximum_key in (
+            ("Vb", "explore_min_vb_l", "explore_max_vb_l"),
+            ("Fb", "explore_min_fb_hz", "explore_max_fb_hz"),
+            ("driver diameter", "explore_min_size_in", "explore_max_size_in"),
+            ("Fs", "explore_min_fs_hz", "explore_max_fs_hz"),
+            ("Qts", "explore_min_qts", "explore_max_qts"),
+            ("F3", "explore_min_f3_hz", "explore_max_f3_hz"),
+        )
+        if limits[minimum_key] is not None
+        and limits[maximum_key] is not None
+        and limits[minimum_key] > limits[maximum_key]
+    ]
+    if invalid_ranges:
+        st.warning("Minimum exceeds maximum for: " + ", ".join(invalid_ranges) + ".")
+
+    # Query public projects store
+    store = _get_public_store()
+    query_error = ""
+    try:
+        projects = [] if invalid_ranges else store.list_public_projects(
+            query=search_query,
+            topology=selected_topo if selected_topo != "All" else "",
+            min_vb=limits["explore_min_vb_l"],
+            max_vb=limits["explore_max_vb_l"],
+            min_tuning_hz=limits["explore_min_fb_hz"],
+            max_tuning_hz=limits["explore_max_fb_hz"],
+            min_driver_size_in=limits["explore_min_size_in"],
+            max_driver_size_in=limits["explore_max_size_in"],
+            min_fs_hz=limits["explore_min_fs_hz"],
+            max_fs_hz=limits["explore_max_fs_hz"],
+            min_qts=limits["explore_min_qts"],
+            max_qts=limits["explore_max_qts"],
+            min_f3=limits["explore_min_f3_hz"],
+            max_f3=limits["explore_max_f3_hz"],
+            sort_by=selected_sort,
+            limit=100,
+        )
+    except Exception as exc:
+        logger.exception("Failed to query public projects")
+        projects = []
+        query_error = str(exc)
+
+    if query_error:
+        st.error("Community projects could not be loaded from cloud. Showing verified local showcase:")
+        projects = _saas.curated_community_showcase_projects()
+
+    if not projects:
+        st.info("No public projects match the active filters. Reset the filters or widen numeric bounds.")
+        return
+
+    # User like state map
+    user_likes = st.session_state.setdefault("community_user_likes", set())
+    likes_counts = st.session_state.setdefault("community_likes_counts", {})
+
+    # Featured Project Spotlight Card (Light & airy showcase)
+    if not search_query and selected_topo == "All" and projects:
+        top_pub = projects[0]
+        top_tech = top_pub.technical_summary or {}
+        top_author = top_pub.owner_display_name or "Marco_Forge"
+        top_rank = top_tech.get("creator_rank", "⚡ Lead Architect")
+        top_likes = likes_counts.get(top_pub.publication_id, top_tech.get("likes", 142))
+        top_forks = top_tech.get("clones", 48)
+        top_views = top_tech.get("views", 1250)
+        top_vol = top_tech.get("box_volume_l")
+        top_tuning = top_tech.get("tuning_freq_hz")
+        top_f3 = top_tech.get("f3_hz")
+        top_spl = top_tech.get("peak_spl_db")
+        top_driver = top_tech.get("driver_name", "Custom driver") or "Custom driver"
+        top_load = top_tech.get("load_type", "Bass reflex") or "Bass reflex"
+        top_is_liked = top_pub.publication_id in user_likes
+
+        top_vb_str = f"{top_vol:.1f} L" if top_vol is not None else "—"
+        top_fb_str = f"{top_tuning:.1f} Hz" if top_tuning is not None and top_tuning > 0 else "—"
+        top_f3_str = f"{top_f3:.1f} Hz" if top_f3 is not None and top_f3 > 0 else "—"
+        top_spl_str = f"{top_spl:.1f} dB" if top_spl is not None and top_spl > 0 else "—"
+
+        with st.container(border=True):
+            st.markdown(
+                f"""<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span class="community-badge">🏆 FEATURED ALIGNMENT</span>
+                        <span style="color: #8b949e; font-size: 0.76rem;">Verified Acoustic Simulation</span>
+                    </div>
+                    <span class="community-topo-badge">{html.escape(top_load)}</span>
+                </div>""",
+                unsafe_allow_html=True,
+            )
+            fc1, fc2 = st.columns([6.5, 3.5], vertical_alignment="center")
+            with fc1:
+                st.markdown(f"### {html.escape(top_pub.title)}")
+                st.markdown(
+                    f"""<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <div class="community-avatar-ring">{top_author[0].upper()}</div>
+                        <span style="font-size: 0.82rem; font-weight: 600; color: #ffffff;">{html.escape(top_author)}</span>
+                        <span class="community-badge">{top_rank}</span>
+                        <span style="font-size: 0.7rem; color: #8b949e;">{top_pub.published_at.strftime('%d %b %Y')}</span>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+                if top_pub.description:
+                    st.caption(top_pub.description)
+
+                st.markdown(
+                    f"""<div class="community-spec-grid">
+                        <div class="spec-cell"><div class="spec-lbl">Vb</div><div class="spec-num">{top_vb_str}</div></div>
+                        <div class="spec-cell"><div class="spec-lbl">Fb</div><div class="spec-num">{top_fb_str}</div></div>
+                        <div class="spec-cell"><div class="spec-lbl">F3</div><div class="spec-num spec-f3">{top_f3_str}</div></div>
+                        <div class="spec-cell"><div class="spec-lbl">Peak SPL</div><div class="spec-num spec-spl">{top_spl_str}</div></div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+                top_fs = top_tech.get("driver_fs_hz")
+                top_qts = top_tech.get("driver_qts")
+                top_size = top_tech.get("nominal_size_in")
+                top_driver_meta = [html.escape(str(top_driver))]
+                if isinstance(top_size, (int, float)) and top_size > 0:
+                    top_driver_meta.append(f'{top_size:.0f}"')
+                if isinstance(top_fs, (int, float)) and top_fs > 0:
+                    top_driver_meta.append(f"Fs {top_fs:.1f} Hz")
+                if isinstance(top_qts, (int, float)) and top_qts > 0:
+                    top_driver_meta.append(f"Qts {top_qts:.3f}")
+                st.caption("🔊 " + " · ".join(top_driver_meta))
+            with fc2:
+                st.markdown(
+                    f"""<div style="text-align: center; margin-bottom: 12px; font-size: 0.78rem; color: #8b949e;">
+                        ❤️ <strong style="color: #00ff66;">{top_likes}</strong> likes &nbsp;·&nbsp;
+                        🔄 <strong style="color: #00ff66;">{top_forks}</strong> forks &nbsp;·&nbsp;
+                        👁️ <strong style="color: #00ff66;">{top_views}</strong> views
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+                fb1, fb2 = st.columns(2)
+                with fb1:
+                    if st.button("🚀 Fork to Sandbox", key=f"feat_fork_btn_{top_pub.publication_id}", width="stretch", type="primary"):
+                        _fork_project_to_sandbox(top_pub.publication_id, top_pub.title)
+                with fb2:
+                    st.button(
+                        "📊 Tech Sheet",
+                        key=f"feat_tech_btn_{top_pub.publication_id}",
+                        width="stretch",
+                        type="secondary",
+                        on_click=_open_technical_page,
+                        args=(top_pub.publication_id,),
+                    )
+
+    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+    st.markdown(f"### 📡 Community Builds ({len(projects)})")
+
+    # Render Spacious 2-Column Feed Grid
+    cols = st.columns(2)
+    for idx, pub in enumerate(projects):
+        col = cols[idx % 2]
+        tech = pub.technical_summary or {}
+        load_type = tech.get("load_type", "Bass reflex")
+        if tech.get("resonator_type") == _RESONATOR_PR:
+            load_type = "Passive radiator"
+        driver_name = tech.get("driver_name", "Custom driver")
+        f3 = tech.get("f3_hz")
+        vol = tech.get("box_volume_l")
+        tuning = tech.get("tuning_freq_hz")
+        spl = tech.get("peak_spl_db")
+        fs = tech.get("driver_fs_hz")
+        qts = tech.get("driver_qts")
+        size_in = tech.get("nominal_size_in")
+        author_name = pub.owner_display_name or "Acoustic Engineer"
+        author_rank = tech.get("creator_rank", "⚡ Engineer")
+        pub_likes = likes_counts.get(pub.publication_id, tech.get("likes", 12 + (idx * 7) % 80))
+        pub_forks = tech.get("clones", 4 + (idx * 3) % 30)
+        is_liked = pub.publication_id in user_likes
+        pub_url = _public_project_url(pub.publication_id)
+
+        with col:
+            with st.container(border=True):
+                # Header: Author Info + Topology Badge
+                h1, h2 = st.columns([6, 4], vertical_alignment="center")
+                with h1:
+                    st.markdown(
+                        f"""<div style="display: flex; align-items: center; gap: 7px;">
+                            <div class="community-avatar-ring">{author_name[0].upper()}</div>
+                            <div>
+                                <span style="font-size: 0.82rem; font-weight: 600; color: #ffffff;">{html.escape(author_name)}</span>
+                                <span class="community-badge" style="margin-left: 3px;">{author_rank}</span>
+                            </div>
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
+                with h2:
+                    st.markdown(
+                        f"""<div style="text-align: right;">
+                            <span class="community-topo-badge">{html.escape(load_type)}</span>
+                            <span style="font-size: 0.68rem; color: #6e7681; margin-left: 4px;">{pub.published_at.strftime('%d %b')}</span>
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
+
+                st.markdown(f"#### {html.escape(pub.title)}")
+                if pub.description:
+                    st.caption(pub.description[:130] + ("..." if len(pub.description) > 130 else ""))
+
+                # Precision Spec Grid
+                vb_str = f"{vol:.1f} L" if vol is not None else "—"
+                fb_str = f"{tuning:.1f} Hz" if tuning is not None and tuning > 0 else "—"
+                f3_str = f"{f3:.1f} Hz" if f3 is not None and f3 > 0 else "—"
+                spl_str = f"{spl:.1f} dB" if spl is not None and spl > 0 else "—"
+
+                st.markdown(
+                    f"""<div class="community-spec-grid">
+                        <div class="spec-cell"><div class="spec-lbl">Vb</div><div class="spec-num">{vb_str}</div></div>
+                        <div class="spec-cell"><div class="spec-lbl">Fb</div><div class="spec-num">{fb_str}</div></div>
+                        <div class="spec-cell"><div class="spec-lbl">F3</div><div class="spec-num spec-f3">{f3_str}</div></div>
+                        <div class="spec-cell"><div class="spec-lbl">Peak SPL</div><div class="spec-num spec-spl">{spl_str}</div></div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+
+                # Driver Info
+                driver_meta = [html.escape(str(driver_name))]
+                if isinstance(size_in, (int, float)) and size_in > 0:
+                    driver_meta.append(f'{size_in:.0f}"')
+                if isinstance(fs, (int, float)) and fs > 0:
+                    driver_meta.append(f"Fs {fs:.1f} Hz")
+                if isinstance(qts, (int, float)) and qts > 0:
+                    driver_meta.append(f"Qts {qts:.3f}")
+                st.caption("🔊 " + " · ".join(driver_meta))
+
+                # Footer Action Row
+                a_like, a_fork, a_tech, a_share = st.columns([1.2, 2.0, 1.8, 0.6], vertical_alignment="center")
+                with a_like:
+                    like_label = f"❤️ {pub_likes}" if not is_liked else f"💖 {pub_likes}"
+                    if st.button(like_label, key=f"btn_like_{pub.publication_id}", width="stretch"):
+                        _toggle_community_project_like(pub.publication_id, pub.title, pub_likes)
+                        st.rerun()
+                with a_fork:
+                    if st.button("🚀 Fork", key=f"btn_fork_{pub.publication_id}", width="stretch", type="primary", help=f"Load {pub.title} in Box Design Sandbox"):
+                        _fork_project_to_sandbox(pub.publication_id, pub.title)
+                with a_tech:
+                    st.button(
+                        "📊 Tech Sheet",
+                        key=f"btn_tech_{pub.publication_id}",
+                        width="stretch",
+                        type="secondary",
+                        on_click=_open_technical_page,
+                        args=(pub.publication_id,),
+                    )
+                with a_share:
+                    with st.popover("🔗"):
+                        st.caption("Share link:")
+                        st.code(pub_url, language="text")
+                        embed_code = f'<iframe src="{pub_url}&embed=1" width="100%" height="420" frameborder="0"></iframe>'
+                        st.caption("Embed iframe:")
+                        st.code(embed_code, language="html")
+
+if _public_project_requested:
+    if _embed_mode_requested:
+        _render_embed_project_widget(_public_project_requested)
+    else:
+        _render_public_project_page(_public_project_requested)
+    st.stop()
+
+if _explore_requested:
+    _render_explore_projects_directory()
+    st.stop()
 
 _maintenance_requested = str(st.query_params.get("maintenance", "")) == "1"
 if _maintenance_requested:
@@ -12085,6 +13858,10 @@ if workspace_mode == "Catalog Maintenance":
 
 if workspace_mode == "User Management":
     _render_user_management()
+    st.stop()
+
+if workspace_mode == "Manage Projects":
+    _render_manage_projects_workspace()
     st.stop()
 
 if workspace_mode == "Bass Match":
@@ -12502,7 +14279,7 @@ try:
                     )
                     cols[j].metric(metric[0], metric[1], help=metric_help)
 
-            # Gamification / Performance Badges
+            # Performance Badges
             badges = []
             if not is_infinite_baffle and not is_sealed:
                 has_port_issues = any(
@@ -12511,7 +14288,7 @@ try:
                 )
                 if len(port_geometry_rows) > 0 and not has_port_issues:
                     badges.append((
-                        "🛡️ Port speed within guideline",
+                        "Port speed within guideline",
                         "rgba(46, 204, 113, 0.08)",
                         "rgba(46, 204, 113, 0.3)",
                         "#2ecc71"
@@ -12532,21 +14309,21 @@ try:
                 
                 if f3_val < 30.0 and vtot_l < 35.0:
                     badges.append((
-                        "🏆 F3 below 30 Hz",
+                        "F3 below 30 Hz",
                         "rgba(0, 110, 219, 0.08)",
                         "rgba(0, 110, 219, 0.3)",
                         "#006edb"
                     ))
                 elif f3_val < 40.0 and vtot_l < 50.0:
                     badges.append((
-                        "🔊 F3 below 40 Hz",
+                        "F3 below 40 Hz",
                         "rgba(0, 110, 219, 0.08)",
                         "rgba(0, 110, 219, 0.3)",
                         "#006edb"
                     ))
                 elif f3_val < 50.0:
                     badges.append((
-                        "🎵 F3 below 50 Hz",
+                        "F3 below 50 Hz",
                         "rgba(0, 110, 219, 0.08)",
                         "rgba(0, 110, 219, 0.3)",
                         "#006edb"
@@ -12554,7 +14331,7 @@ try:
 
             if not any("sanity" in w.lower() or "warning" in w.lower() for w in model_warnings):
                 badges.append((
-                    "✅ Model checks passed",
+                    "Model checks passed",
                     "rgba(26, 188, 156, 0.08)",
                     "rgba(26, 188, 156, 0.3)",
                     "#1abc9c"

@@ -111,17 +111,18 @@ make run
 
 `make run` starts Streamlit headless and opens `localhost:8501` in Safari.
 
-## Autonomous Catalog Crawler Daemon
+## Autonomous Catalog Crawler Daemon (Separated Project)
 
-To run the continuous background crawler that harvests first-hand manufacturer/distributor
-T/S parameters and real prices into `data/catalog_proprietario.json`:
+The continuous background crawler that harvests manufacturer/distributor T/S parameters and real prices is separated in its dedicated standalone workspace: `../load_forge_crawler` (or `/Users/marcoderossi/Documents/Codes/load_forge_crawler`).
+
+To run the daemon independently:
 
 ```bash
-.venv/bin/python tools/autonomous_crawler_daemon.py &
+cd ../load_forge_crawler
+make run-daemon
 ```
 
-See [`docs/autonomous_crawler_daemon.md`](docs/autonomous_crawler_daemon.md) for architecture,
-log monitoring, fast data-coherence verification (<0.1s), and how to add new store endpoints.
+See [`load_forge_crawler/docs/autonomous_crawler_daemon.md`](../load_forge_crawler/docs/autonomous_crawler_daemon.md) for daemon architecture, log monitoring, and staging configuration.
 
 ## Scope
 

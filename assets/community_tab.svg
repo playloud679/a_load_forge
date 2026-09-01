@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 80" fill="none">
+  <defs>
+    <filter id="glow-p" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Left Icon: Large Circular Network Node -->
+  <circle cx="42" cy="40" r="32" stroke="#00ff66" stroke-width="2.6" fill="rgba(0,255,102,0.08)" filter="url(#glow-p)" />
+  <circle cx="42" cy="40" r="26" stroke="rgba(0,255,102,0.4)" stroke-width="1.2" stroke-dasharray="3 3" />
+
+  <!-- Network Interconnections -->
+  <line x1="42" y1="24" x2="27" y2="52" stroke="#00ff66" stroke-width="1.8" />
+  <line x1="42" y1="24" x2="57" y2="52" stroke="#00ff66" stroke-width="1.8" />
+  <line x1="27" y1="52" x2="57" y2="52" stroke="#00ff66" stroke-width="1.8" />
+  <circle cx="42" cy="40" r="2.8" fill="#00ff66" filter="url(#glow-p)" />
+
+  <!-- Top Avatar Node -->
+  <circle cx="42" cy="24" r="6" fill="#000000" stroke="#00ff66" stroke-width="1.4" />
+  <circle cx="42" cy="22" r="2" fill="#00ff66" />
+  <path d="M38 27 C38 25 46 25 46 27" stroke="#00ff66" stroke-width="1.2" />
+
+  <!-- Bottom Left Avatar Node -->
+  <circle cx="27" cy="52" r="6" fill="#000000" stroke="#00ff66" stroke-width="1.4" />
+  <circle cx="27" cy="50" r="2" fill="#00ff66" />
+  <path d="M23 55 C23 53 31 53 31 55" stroke="#00ff66" stroke-width="1.2" />
+
+  <!-- Bottom Right Avatar Node -->
+  <circle cx="57" cy="52" r="6" fill="#000000" stroke="#00ff66" stroke-width="1.4" />
+  <circle cx="57" cy="50" r="2" fill="#00ff66" />
+  <path d="M53 55 C53 53 61 53 61 55" stroke="#00ff66" stroke-width="1.2" />
+
+  <!-- Horizontal glowing baseline with round terminal dots spanning right under text -->
+  <path d="M85 64 H390" stroke="#00ff66" stroke-width="2" filter="url(#glow-p)" />
+  <circle cx="85" cy="64" r="3" fill="#00ff66" />
+  <circle cx="390" cy="64" r="3" fill="#00ff66" />
+
+  <!-- Typography: Big, crisp, bold italic filling the space from left to right -->
+  <text x="86" y="47" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Inter, sans-serif" font-weight="900" font-style="italic" font-size="31" fill="#ffffff" letter-spacing="0.5">
+    Explore <tspan fill="#00ff66">Community Prj</tspan>
+  </text>
+</svg>

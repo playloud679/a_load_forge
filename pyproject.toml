@@ -4,8 +4,8 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "load-forge"
-version = "0.13.2"
-description = "Load Forge - Advanced Multi-Topology Acoustic Load Design & Optimizer (DCCAV, reflex, sealed, passive radiator, bandpass)"
+version = "0.15.13"
+description = "Load Forge - Advanced Multi-Topology Acoustic Load Design & Optimizer"
 readme = "README.md"
 license = { text = "Proprietary" }
 requires-python = ">=3.10"

@@ -4,12 +4,12 @@
   <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
-**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.13.2**
+**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.15.13**
 
-[![Version](https://img.shields.io/badge/version-0.13.2-blue.svg)](VERSION)
-[![Python](https://img.shields.io/badge/python-3.10%2B-brightgreen.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-0.15.13-blue.svg)](VERSION)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://loadforge.streamlit.app)
 
-Current release: **0.13.2**
+Current release: **0.15.13**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth-, sixth- and eighth-order bandpass**,
@@ -33,6 +33,10 @@ far-field measurement substitute.
 
 Current UI highlights:
 
+- a first-class `Community` directory, linked directly from the project header,
+  for browsing public projects with keyword/topology search and parametric
+  ranges for Vb, Fb, driver diameter, Fs, Qts and F3; result cards expose the
+  relevant engineering values and open the immutable technical snapshot
 - separate `Design a box` and `Bass Match` workspaces selected through large,
   directly clickable branded tabs
 - compact 3+3 load picker whose illustrated cards are directly clickable,

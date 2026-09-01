@@ -15,8 +15,14 @@ LOAD_FORGE_OPEN_BETA_ENABLED=true
 LOAD_FORGE_SAAS_BACKEND=firestore
 LOAD_FORGE_GCP_PROJECT=civic-radio-502611-i8
 LOAD_FORGE_FIRESTORE_DATABASE=(default)
+LF_FIRESTORE_PRIVATE_DB=lf-private
+LF_FIRESTORE_PUBLIC_DB=lf-public
+LF_FIRESTORE_CATALOG_RUNTIME_DB=lf-catalog-runtime
+LF_FIRESTORE_CATALOG_STAGING_DB=lf-catalog-staging
 LOAD_FORGE_PROJECT_TRASH_RETENTION_DAYS=30
 ```
+
+`LF_FIRESTORE_*_DB` configuration variables establish dedicated data security boundaries across the private, public, catalog runtime, and crawler staging domains (see `docs/storage.md`). If unset, they safely default to `LOAD_FORGE_FIRESTORE_DATABASE` or `(default)` in local development. `LOAD_FORGE_STRICT_MULTI_DB=true` can be enabled to forbid the default database in multi-tenant environments.
 
 `LOAD_FORGE_SAAS_BACKEND=memory` is available for tests and local UI
 development only.  `LOAD_FORGE_AUTH_BYPASS=true` creates a local development
@@ -128,6 +134,30 @@ Firestore cloud autosave is the normal persistence mechanism for authenticated
 users. `.lfp` export is the independent user-controlled backup/portability
 mechanism.
 
+If a cloud write exhausts its retry window, the project header reports the
+classified cause (authentication, permissions, validation or connectivity) and
+offers `Retry cloud save`; local session state and the last acknowledged cloud
+revision remain available until the retry succeeds.
+
+Bass Match result context is stored as a named object rather than an array
+containing another array. Firestore rejects nested arrays, while older project
+records using the legacy list shape remain readable during restore.
+
+If another tab or device commits a newer revision during an autosave, the UI
+rebases its optimistic revision marker and retries the local payload once. This
+prevents a recoverable `revision changed from N to N+1` race from leaving the
+project permanently in a failed-save state.
+
+Autosave does not create a cloud record until the user supplies a project name.
+Legacy records named `Untitled project`, created by older releases before the
+required-name flow, are excluded from the active project browser. An unnamed
+local draft is shown as `Name required`; `.lfp` export and duplication remain
+disabled until it has a user-supplied name.
+
+Saved Bass Match rows, run statistics and their input context are restored when
+opening a project, including in a fresh Streamlit session. Finder defaults
+migrations no longer clear a valid persisted result set during that restore.
+
 ```text
 Authenticated user
     Streamlit project state
@@ -206,7 +236,38 @@ serializable Box Design parameter, editable comparison state, Bass Match
 controls and saved results. Cloud IDs, revision numbers and Trash status are
 not required to open the file offline. The UI records only when it generated a
 download in the current session; it does not claim that the file still exists
-on the user's computer.
+## Information Architecture & Dedicated Manage Projects Workspace
+
+Project lifecycle operations are decoupled from technical engineering sidebars
+(Bass Match and Box Design) and concentrated into a dedicated first-class
+workspace:
+
+```text
+Primary Navigation:
+  Manage Projects | Bass Match | Box Design [ | Explore ]
+```
+
+- **Technical Sidebar Minimalism**: Inside Bass Match and Box Design, sidebars
+  contain strictly technical engineering controls (driver parameters, load selection,
+  filters, enclosure dimensions). Project management is represented solely by a compact
+  Current Project header showing project name, live autosave status indicator
+  (`Saved ✓` / `Saving…` / `Unsaved changes`), and a direct link to `Manage Projects →`.
+- **Dedicated `Manage Projects` Page (`workspace_mode = "Manage Projects"`)**:
+  - **Quick Action Toolbar**: `➕ New Project` (opens a blank required-name prompt before
+    initializing a clean independent project),
+    `📥 Import .lfp / .crw` (popover supporting `Import as New Project` and `Replace Active Project`),
+    and `↻ Refresh`.
+  - **Active Project Spotlight**: Hero card highlighting currently active project,
+    real-time autosave status, electroacoustic parameter summary ($V_b, F_b, F_s, Q_{ts}$),
+    primary CTAs (`Open in Box Design ⚡`, `Open in Bass Match 🔍`), backup export (`💾 Export .lfp`),
+    duplication (`📋 Duplicate`), in-place rename, and shareable URL link generation.
+  - **Cloud Projects Browser & History**:
+    - `📂 Cloud Projects`: Table/Card grid of all active cloud projects with Name, Revision,
+      Last Modified timestamp, cloud sync state, and quick actions (`Open`, `Duplicate`, `Trash`).
+    - `🕒 Revision History`: Immutable snapshot timeline for the active project with `Restore Version`.
+    - `🗑️ Trash`: Soft-deleted projects with 30-day retention countdown and `Restore from Trash`.
+    - `🚀 Publish Snapshot`: Technical snapshot publishing with title, notes, and visibility (`Public` vs `Unlisted`).
+    - `👤 Account & Quotas`: Plan status, credits balance, refill date, and simulation counters.
 
 ## Error handling
 
@@ -239,3 +300,63 @@ project-persistence migration.
 `InMemoryProjectStore` and `FirestoreProjectStore` expose the same
 save/load/list, revision restore, soft-delete and Trash-restore operations. The
 UI always scopes calls with the authenticated `SaaSUser`.
+
+## Public projects and technical snapshots
+
+Load Forge separates private engineering projects from public/unlisted project
+publications:
+
+```text
+Private workspace
+  tenants/{tenant_id}/projects/{project_id}
+         |
+         | explicit publish
+         v
+Public snapshot
+  public_projects/{publication_id}
+  public_projects/{publication_id}/versions/v_{version}
+```
+
+- **Snapshot Immutability**: Publishing creates an immutable technical version
+  snapshot (`PublicProjectVersion`). Later private autosaves do not modify the
+  published snapshot.
+- **Visibility Modes**:
+  - `unlisted`: Accessible only via direct URL (`?p=<publication_id>`). Excluded
+    from explore/search listings.
+  - `public`: Accessible via direct link and eligible for public exploration.
+- **Provenance on Clone/Remix**: Cloning a public project creates a brand new
+  private project in the caller's tenant, embedding provenance metadata
+  (`source_publication_id`, `source_publication_version`, `original_author_uid`,
+  `original_author_name`, and timestamp) without mutating the original project.
+- **Technical Metadata Extraction**: `extract_technical_summary(payload)`
+  automatically derives driver parameters, nominal size, enclosure volume ($V_b$),
+  and tuning frequency ($F_b$) without duplicating core simulation physics.
+- **Explore Public Directory (`?explore=1` / Community Hub)**: Futuristic,
+  cyber-neon social engineering hub with a dedicated Community sidebar. It
+  provides verified cold-start showcase presets (`curated_community_showcase_projects()`),
+  interactive social discovery (category pills, like toggles, creator rank badges,
+  forks and views counters), Top Audio Engineers leaderboard, and live activity pulse.
+  It supports keyword query (title, author and driver), peer topology filtering
+  (including passive-radiator discrimination), and numeric ranges for enclosure volume
+  ($V_b$), tuning ($F_b$), driver diameter, driver $F_s$, $Q_{ts}$ and response
+  $F_3$. Sorting supports `trending`, `newest`, `lowest_f3`, `compact_vb` and
+  `highest_spl`. Current Box Design keys and legacy project keys are both
+  normalized into the published technical summary so filters remain reliable
+  across saved project generations.
+- **Featured Project Spotlight of the Week**: Full-width glowing hero card
+  spotlighting top-rated community alignments with 1-click sandbox forking and tech sheets.
+- **Real-World Measurement Validation Overlay**: Projects can store real physical measurements
+  (parsed via `src/measurements.py` supporting REW, DATS, ARTA, CLIO, Klippel, FRD, ZMA) and display
+  them overlaid against simulated responses with automated RMSE and tuning offset ($\Delta F_b$) metrics.
+- **Verification Badge**: Each published technical snapshot displays a verified badge
+  (`Verified Simulation · Load Forge Solver v{version}`) certifying the lumped-parameter
+  matrix solver output.
+- **Embed Widget Mode (`?p=<pub_id>&embed=1`)**: A lightweight, responsive iframe
+  widget for external technical blogs, forums (DIYAudio, ASR), and build logs.
+  Hides application chrome and renders key electroacoustic metrics and an interactive
+  SPL response curve with a direct CTA to open the full project.
+- **Printable Spec Sheet Export**: `generate_printable_spec_sheet_markdown(pub)` generates
+  a publication-ready technical specification sheet in Markdown.
+- **SEO & Social Previews**: `generate_json_ld_schema(pub)` and `generate_open_graph_meta(pub)`
+  produce structured Schema.org `TechArticle` / `Product` JSON-LD and OpenGraph metadata
+  for discovery indexing and rich social link previews.

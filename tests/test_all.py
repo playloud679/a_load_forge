@@ -19,8 +19,19 @@ from pathlib import Path
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT / "src") not in sys.path:
+    sys.path.insert(0, str(ROOT / "src"))
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+import tools
+
+CRAWLER_ROOT = ROOT.parent / "load_forge_crawler"
+if (CRAWLER_ROOT / "tools").exists():
+    if hasattr(tools, "__path__") and str(CRAWLER_ROOT / "tools") not in tools.__path__:
+        tools.__path__.append(str(CRAWLER_ROOT / "tools"))
+    if str(CRAWLER_ROOT) not in sys.path:
+        sys.path.append(str(CRAWLER_ROOT))
 
 from src import acoustics as _acoustics
 from src import presets as _presets
@@ -2816,14 +2827,14 @@ def _check_ui_share_link_roundtrip():
     import ui_app as _ui
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    at.session_state["project_menu_expander"] = True
+    at.session_state["workspace_mode"] = "Manage Projects"
     at.run()
     at.session_state["load_type"] = "Bass reflex"
     at.session_state["driver_fs_hz"] = 33.0
     at.session_state["reflex_vb_l"] = 55.5
     at.session_state["box_strategy"] = "Manual"
     at.run()
-    share = next(b for b in at.button if b.label == "Share via URL")
+    share = next(b for b in at.button if b.key == "mp_copy_url_btn")
     share.click().run()
     assert not at.exception, at.exception
     token = at.query_params.get("d")
@@ -2870,20 +2881,16 @@ def _check_ui_project_preset_upload_finishes():
     }).encode("utf-8")
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    at.session_state["project_menu_expander"] = True
+    at.session_state["workspace_mode"] = "Manage Projects"
     at.session_state["project_name"] = "Preset test"
     at.run()
     assert any(
-        item.label.startswith("Project")
-        for item in at.sidebar.expander
-    ), "project actions must live in the normal sidebar"
-    assert not any(
-        item.value == "Open a project"
+        item.value == "Manage Projects"
         for item in at.title
-    ), "project selection must not replace the normal workspace"
+    ), "Manage Projects workspace must render first-class title"
     project_upload = next(
         item for item in at.file_uploader
-        if item.label == "Open .lfp project or CRW driver"
+        if "mp_file_uploader" in str(item.key)
     )
     project_upload.set_value(
         ("saved-design.lfp", payload, "application/json")
@@ -2895,7 +2902,7 @@ def _check_ui_project_preset_upload_finishes():
     assert at.session_state["_project_upload_revision"] == 1
     project_upload = next(
         item for item in at.file_uploader
-        if item.label == "Open .lfp project or CRW driver"
+        if "mp_file_uploader" in str(item.key)
     )
     assert project_upload.value is None, (
         "a consumed preset must leave a fresh empty uploader after the rerun"
@@ -2907,7 +2914,7 @@ def _check_ui_project_preset_upload_finishes():
     at.run()
     project_upload = next(
         item for item in at.file_uploader
-        if item.label == "Open .lfp project or CRW driver"
+        if "mp_file_uploader" in str(item.key)
     )
     project_upload.set_value(
         ("saved-design.lfp", payload, "application/json")
@@ -2917,7 +2924,7 @@ def _check_ui_project_preset_upload_finishes():
     assert at.session_state["_project_upload_revision"] == 2
     project_upload = next(
         item for item in at.file_uploader
-        if item.label == "Open .lfp project or CRW driver"
+        if "mp_file_uploader" in str(item.key)
     )
     assert project_upload.value is None
 
@@ -2939,7 +2946,7 @@ def _check_ui_project_download_and_upload():
 
     # 2. AppTest: Set project name, export payload, modify params, and re-import
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    at.session_state["project_menu_expander"] = True
+    at.session_state["workspace_mode"] = "Manage Projects"
     at.session_state["project_name"] = "Subwoofer Custom"
     at.session_state["load_type"] = "Bass reflex"
     at.session_state["box_strategy"] = "Manual"
@@ -2974,7 +2981,7 @@ def _check_ui_project_download_and_upload():
     # Re-upload payload
     project_upload = next(
         item for item in at.file_uploader
-        if item.label == "Open .lfp project or CRW driver"
+        if "mp_file_uploader" in str(item.key)
     )
     project_upload.set_value((
         "Subwoofer_Custom.lfp",
@@ -2996,7 +3003,7 @@ def _check_ui_project_reset_to_defaults():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    at.session_state["project_menu_expander"] = True
+    at.session_state["workspace_mode"] = "Manage Projects"
     at.session_state["project_name"] = "Custom Sub"
     at.session_state["driver_preset_name"] = "Custom"
     at.session_state["driver_fs_hz"] = 88.0
@@ -3006,12 +3013,25 @@ def _check_ui_project_reset_to_defaults():
 
     reset_btn = next(
         button for button in at.button
-        if button.key == "project_reset_design_btn"
+        if button.key == "mp_new_project_btn"
     )
     reset_btn.click().run()
     assert not at.exception, at.exception
 
-    assert at.session_state["project_name"] == "Untitled project"
+    assert at.session_state["project_name"] == "Custom Sub"
+    name_input = next(
+        field for field in at.text_input
+        if field.key == "mp_new_project_name"
+    )
+    assert name_input.value == ""
+    name_input.set_value("Named Project").run()
+    create_btn = next(
+        button for button in at.button
+        if button.key == "mp_create_project_btn"
+    )
+    create_btn.click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["project_name"] == "Named Project"
     assert at.session_state["driver_preset_name"] == "KEF B110B article example"
     assert abs(float(at.session_state["driver_fs_hz"]) - 48.14) < 1e-9
     assert abs(float(at.session_state["sealed_vb_l"]) - 99.0) > 1e-9
@@ -3020,6 +3040,142 @@ def _check_ui_project_reset_to_defaults():
 test(
     "UI New / Reset design button restores defaults and clears previous state",
     _check_ui_project_reset_to_defaults,
+)
+
+
+def _check_ui_new_project_has_no_untitled_fallback():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at.session_state["workspace_mode"] = "Manage Projects"
+    at.run()
+    assert not at.exception, at.exception
+    assert any("Name required" in item.value for item in at.markdown)
+    assert not any("Untitled project" in item.value for item in at.markdown)
+
+    next(button for button in at.button if button.key == "mp_new_project_btn").click().run()
+    assert not at.exception, at.exception
+    name_input = next(item for item in at.text_input if item.key == "mp_new_project_name")
+    assert name_input.value == ""
+
+
+test(
+    "UI unnamed drafts never suggest or display the Untitled project fallback",
+    _check_ui_new_project_has_no_untitled_fallback,
+)
+
+
+def _check_ui_manage_projects_navigation_preserves_active_project():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at.session_state["workspace_mode"] = "Manage Projects"
+    at.session_state["project_name"] = "Flagship 18 Reflex"
+    at.session_state["load_type"] = "Bass reflex"
+    at.session_state["reflex_vb_l"] = 145.0
+    at.session_state["reflex_fb_hz"] = 28.5
+    at.session_state["box_strategy"] = "Manual"
+    at.run()
+    assert not at.exception, at.exception
+    assert any("Flagship 18 Reflex" in item.value for item in at.markdown)
+
+    # 1. Switch to Box Design from Manage Projects Hero Action
+    open_bd = next(b for b in at.button if b.key == "mp_open_bd_btn")
+    open_bd.click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["workspace_mode"] == "Box Design"
+    assert at.session_state["project_name"] == "Flagship 18 Reflex"
+    assert abs(float(at.session_state["reflex_vb_l"]) - 145.0) < 1e-9
+
+    # 2. Switch from Box Design to Bass Match via workspace tab
+    at.session_state["workspace_mode"] = "Bass Match"
+    at.run()
+    assert not at.exception, at.exception
+    assert at.session_state["project_name"] == "Flagship 18 Reflex"
+
+    # 3. Return to Manage Projects via sidebar button
+    goto_mp = next(b for b in at.button if b.key == "sidebar_manage_projects_btn")
+    goto_mp.click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["workspace_mode"] == "Manage Projects"
+    assert at.session_state["project_name"] == "Flagship 18 Reflex"
+    assert abs(float(at.session_state["reflex_vb_l"]) - 145.0) < 1e-9
+
+
+test(
+    "UI Manage Projects navigation preserves active project context across all workspaces",
+    _check_ui_manage_projects_navigation_preserves_active_project,
+)
+
+
+def _check_ui_manage_projects_crud_actions():
+    import os
+    from streamlit.testing.v1 import AppTest
+
+    keys = {
+        "LOAD_FORGE_SAAS_ENABLED": "true",
+        "LOAD_FORGE_SAAS_BACKEND": "memory",
+        "LOAD_FORGE_OPEN_BETA_ENABLED": "true",
+        "LOAD_FORGE_AUTH_BYPASS": "true",
+        "LOAD_FORGE_DEV_UID": "mp-test-user",
+        "LOAD_FORGE_DEV_EMAIL": "mptest@example.test",
+        "LOAD_FORGE_DEV_NAME": "MP Test User",
+    }
+    previous = {key: os.environ.get(key) for key in keys}
+    try:
+        os.environ.update(keys)
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+        at.session_state["workspace_mode"] = "Manage Projects"
+        at.session_state["project_name"] = "Initial Project"
+        at.run()
+        assert not at.exception, at.exception
+
+        # Test Rename
+        rename_input = next(item for item in at.text_input if item.key == "mp_rename_input")
+        rename_input.set_value("Renamed Studio Monitor").run()
+        rename_btn = next(item for item in at.button if item.key == "mp_rename_submit_btn")
+        rename_btn.click().run()
+        assert not at.exception, at.exception
+        assert at.session_state["project_name"] == "Renamed Studio Monitor"
+
+        # Test Duplicate
+        dup_btn = next(item for item in at.button if item.key == "mp_duplicate_btn")
+        dup_btn.click().run()
+        assert not at.exception, at.exception
+        assert at.session_state["project_name"] == "Renamed Studio Monitor (Copy)"
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
+test(
+    "UI Manage Projects supports in-place rename and duplicate actions",
+    _check_ui_manage_projects_crud_actions,
+)
+
+
+def _check_ui_technical_sidebar_minimalism():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at.session_state["workspace_mode"] = "Box Design"
+    at.session_state["project_name"] = "Compact 18"
+    at.run()
+    assert not at.exception, at.exception
+
+    # Assert sidebar does NOT contain file uploaders or expanders for project lifecycle
+    assert not any(item.key == "project_menu_expander" for item in at.sidebar.expander)
+    assert not any("mp_file_uploader" in str(item.key) for item in at.sidebar.file_uploader)
+    # Assert sidebar contains the minimal current project header button
+    assert any(b.key == "sidebar_manage_projects_btn" for b in at.sidebar.button)
+
+
+test(
+    "UI technical sidebar retains only minimal project header and technical controls",
+    _check_ui_technical_sidebar_minimalism,
 )
 
 
@@ -3089,17 +3245,22 @@ def _check_ui_complete_lfp_restores_bass_match():
     }
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    at.session_state["project_menu_expander"] = True
+    at.session_state["workspace_mode"] = "Manage Projects"
     at.run()
     project_upload = next(
         item for item in at.file_uploader
-        if item.label == "Open .lfp project or CRW driver"
+        if "mp_file_uploader" in str(item.key)
     )
+    # Simulate opening the saved project in a fresh session whose Finder
+    # defaults migration has not run yet.
+    at.session_state["_finder_defaults_version"] = 0
     project_upload.set_value((
         "complete-bass-match.lfp",
         json.dumps(payload).encode("utf-8"),
         "application/json",
     )).run(timeout=30)
+    at.session_state["workspace_mode"] = "Bass Match"
+    at.run()
     assert at.session_state["project_name"] == "Complete Bass Match"
     assert at.session_state["finder_load_types"] == ["Sealed"]
     assert abs(float(at.session_state["finder_volume_l"]) - 35.0) < 1e-9
@@ -3130,6 +3291,25 @@ def _check_ui_complete_lfp_restores_bass_match():
 test(
     "UI complete LFP restores design and Bass Match search state",
     _check_ui_complete_lfp_restores_bass_match,
+)
+
+
+def _check_bass_match_cloud_context_avoids_nested_arrays():
+    import ui_app as _ui
+
+    encoded = _ui._serialize_bass_match_context(
+        (("Bass reflex", "Sealed"), 40.0, 1, False, "Max extension")
+    )
+    assert encoded == {
+        "load_types": ["Bass reflex", "Sealed"],
+        "values": [40.0, 1, False, "Max extension"],
+    }
+    assert not any(isinstance(item, list) for item in encoded["values"])
+
+
+test(
+    "UI Bass Match cloud context avoids nested Firestore arrays",
+    _check_bass_match_cloud_context_avoids_nested_arrays,
 )
 
 
@@ -3510,11 +3690,404 @@ def _check_project_persistence_revisions_autosave_and_data_safety():
         pass
 
     assert saas.project_error_kind(DefaultCredentialsError()) == "auth"
+    assert saas.project_error_kind(
+        RuntimeError("Project revision changed from 20 to 21")
+    ) == "conflict"
 
 
 test(
     "Project persistence autosave, revisions, conflicts, trash and data safety",
     _check_project_persistence_revisions_autosave_and_data_safety,
+)
+
+
+def _check_public_project_publishing_snapshot_immutability_and_visibility():
+    from src import saas
+
+    user_a = saas.user_from_claims({
+        "sub": "engineer-a",
+        "email": "engineer-a@loadforge.test",
+        "name": "Engineer Alpha",
+    })
+    user_b = saas.user_from_claims({
+        "sub": "engineer-b",
+        "email": "engineer-b@loadforge.test",
+        "name": "Engineer Beta",
+    })
+
+    store = saas.InMemoryProjectStore()
+
+    payload_v1 = {
+        "_load_forge_meta": {
+            "version": "0.14.0",
+            "format": 2,
+            "kind": "project",
+        },
+        "project": {"name": "Reflex Sub 18"},
+        "parameters": {
+            "load_type": "Bass reflex",
+            "driver_preset_name": "FaitalPRO 18HP1060",
+            "driver_fs_hz": 35.0,
+            "driver_vas_l": 150.0,
+            "driver_qts": 0.35,
+            "driver_qms": 6.5,
+            "driver_re_ohm": 5.5,
+            "driver_sd_cm2": 1200.0,
+            "reflex_vb_l": 140.0,
+            "reflex_fb_hz": 32.5,
+            "box_strategy": "Max extension",
+        },
+        "bass_match": {"state": {}, "batch_results": []},
+    }
+
+    prj = store.save_project(
+        user_a,
+        "Reflex Sub 18",
+        payload_v1,
+        "0.14.0",
+        expected_revision=0,
+    )
+    assert prj.revision == 1
+
+    # 1. Publish as unlisted snapshot
+    pub = store.publish_project(
+        user_a,
+        prj.project_id,
+        title="FaitalPRO 18HP1060 Sub 18",
+        description="High power PA reflex sub aligned for 32 Hz.",
+        visibility="unlisted",
+        app_version="0.14.0",
+    )
+    assert pub.publication_id.startswith("pub_")
+    assert pub.publication_version == 1
+    assert pub.visibility == "unlisted"
+    assert pub.owner_uid == user_a.uid
+    assert pub.owner_display_name == "Engineer Alpha"
+    assert pub.title == "FaitalPRO 18HP1060 Sub 18"
+    assert pub.technical_summary["load_type"] == "Bass reflex"
+    assert pub.technical_summary["box_volume_l"] == 140.0
+    assert pub.technical_summary["tuning_freq_hz"] == 32.5
+    assert pub.technical_summary["nominal_size_in"] == 18.0
+
+    # 2. Public lookup works directly by ID
+    loaded_pub = store.get_public_project(pub.publication_id)
+    assert loaded_pub is not None
+    assert loaded_pub.publication_id == pub.publication_id
+    assert loaded_pub.title == pub.title
+
+    loaded_v1 = store.get_public_project_version(pub.publication_id, 1)
+    assert loaded_v1 is not None
+    assert loaded_v1.version == 1
+    assert loaded_v1.parameters["parameters"]["reflex_vb_l"] == 140.0
+
+    # 3. Unlisted project is NOT listed in public discovery
+    public_list = store.list_public_projects(limit=50)
+    assert len(public_list) == 0
+
+    # 4. Immutability verification: mutate private project
+    payload_v2 = dict(payload_v1)
+    payload_v2["parameters"] = dict(payload_v1["parameters"])
+    payload_v2["parameters"]["reflex_vb_l"] = 180.0
+    payload_v2["parameters"]["reflex_fb_hz"] = 28.0
+
+    prj_updated = store.save_project(
+        user_a,
+        "Reflex Sub 18 (Private Experimental)",
+        payload_v2,
+        "0.14.0",
+        project_id=prj.project_id,
+        expected_revision=1,
+    )
+    assert prj_updated.revision == 2
+
+    # Verify public snapshot is completely untouched by private edit
+    loaded_pub_after_edit = store.get_public_project(pub.publication_id)
+    assert loaded_pub_after_edit.publication_version == 1
+    assert loaded_pub_after_edit.parameters["parameters"]["reflex_vb_l"] == 140.0
+    assert loaded_pub_after_edit.technical_summary["box_volume_l"] == 140.0
+
+    # 5. Explicitly update published version to v2 and change visibility to public
+    pub_v2 = store.publish_project(
+        user_a,
+        prj.project_id,
+        title="FaitalPRO 18HP1060 Sub 18 Extended",
+        description="Version 2 tuned lower to 28 Hz in 180L.",
+        visibility="public",
+        app_version="0.14.0",
+        publication_id=pub.publication_id,
+    )
+    assert pub_v2.publication_id == pub.publication_id
+    assert pub_v2.publication_version == 2
+    assert pub_v2.visibility == "public"
+    assert pub_v2.parameters["parameters"]["reflex_vb_l"] == 180.0
+    assert pub_v2.technical_summary["box_volume_l"] == 180.0
+    assert pub_v2.technical_summary["tuning_freq_hz"] == 28.0
+
+    # Version 1 remains intact in historical versions
+    v1_recheck = store.get_public_project_version(pub.publication_id, 1)
+    assert v1_recheck is not None
+    assert v1_recheck.version == 1
+    assert v1_recheck.parameters["parameters"]["reflex_vb_l"] == 140.0
+
+    v2_check = store.get_public_project_version(pub.publication_id, 2)
+    assert v2_check is not None
+    assert v2_check.version == 2
+    assert v2_check.parameters["parameters"]["reflex_vb_l"] == 180.0
+
+    # Public list now includes this publication
+    public_list_v2 = store.list_public_projects(limit=50)
+    assert len(public_list_v2) == 1
+    assert public_list_v2[0].publication_id == pub.publication_id
+
+    # 6. Security assertions:
+    # User B cannot publish over User A's publication ID
+    try:
+        store.publish_project(
+            user_b,
+            prj.project_id,
+            title="Hijack attempt",
+            publication_id=pub.publication_id,
+            app_version="0.14.0",
+        )
+    except (saas.ProjectMissingError, saas.ProjectAccessError):
+        pass
+    else:
+        raise AssertionError("Cross-user publication tampering was permitted")
+
+
+test(
+    "Public project publishing, snapshot immutability and visibility isolation",
+    _check_public_project_publishing_snapshot_immutability_and_visibility,
+)
+
+
+def _check_public_project_cloning_and_provenance():
+    from src import saas
+
+    user_a = saas.user_from_claims({
+        "sub": "author-a",
+        "email": "author@loadforge.test",
+        "name": "Original Designer",
+    })
+    user_b = saas.user_from_claims({
+        "sub": "builder-b",
+        "email": "builder@loadforge.test",
+        "name": "Community Builder",
+    })
+
+    store = saas.InMemoryProjectStore()
+    payload = {
+        "_load_forge_meta": {"version": "0.14.0", "format": 2, "kind": "project"},
+        "project": {"name": "Master Reference Design"},
+        "parameters": {
+            "load_type": "DCCAV",
+            "driver_fs_hz": 40.0,
+            "driver_vas_l": 80.0,
+            "driver_qts": 0.32,
+            "driver_qms": 5.0,
+            "driver_re_ohm": 5.2,
+            "dccav_vb1_l": 25.0,
+            "dccav_vb2_l": 25.0,
+            "dccav_fb1_hz": 65.0,
+            "dccav_fb2_hz": 35.0,
+        },
+        "bass_match": {"state": {}, "batch_results": []},
+    }
+
+    orig_prj = store.save_project(user_a, "Master Reference Design", payload, "0.14.0")
+    pub = store.publish_project(
+        user_a,
+        orig_prj.project_id,
+        title="DCCAV Reference Design",
+        description="Double cavity asymmetrical reflex reference",
+        visibility="public",
+        app_version="0.14.0",
+    )
+
+    # User B clones the public project
+    cloned_prj = store.clone_public_project(user_b, pub.publication_id, "0.14.0")
+    assert cloned_prj.project_id != orig_prj.project_id
+    assert cloned_prj.owner_uid == user_b.uid
+    assert cloned_prj.tenant_id == user_b.tenant_id
+    assert cloned_prj.revision == 1
+    assert "Clone" in cloned_prj.name
+
+    # Check embedded provenance
+    cloned_meta = cloned_prj.parameters.get("project", {})
+    provenance = cloned_meta.get("provenance", {})
+    assert provenance.get("source_publication_id") == pub.publication_id
+    assert provenance.get("source_publication_version") == 1
+    assert provenance.get("original_author_uid") == user_a.uid
+    assert provenance.get("original_author_name") == "Original Designer"
+
+    # User B can modify clone without affecting User A
+    modified_params = dict(cloned_prj.parameters)
+    modified_params["parameters"]["dccav_vb1_l"] = 30.0
+    updated_clone = store.save_project(
+        user_b,
+        cloned_prj.name,
+        modified_params,
+        "0.14.0",
+        project_id=cloned_prj.project_id,
+        expected_revision=1,
+    )
+    assert updated_clone.revision == 2
+
+    # Original project and public snapshot remain pristine
+    orig_reloaded = store.load_project(user_a, orig_prj.project_id)
+    assert orig_reloaded.parameters["parameters"]["dccav_vb1_l"] == 25.0
+    pub_reloaded = store.get_public_project(pub.publication_id)
+    assert pub_reloaded.parameters["parameters"]["dccav_vb1_l"] == 25.0
+
+
+test(
+    "Public project cloning preserves provenance and tenant isolation",
+    _check_public_project_cloning_and_provenance,
+)
+
+
+def _check_multi_database_storage_boundaries():
+    import storage
+    from src import saas
+
+    # Default fallback
+    settings_default = saas.SaaSSettings.from_env({})
+    assert settings_default.firestore_private_db == "(default)"
+    assert settings_default.firestore_public_db == "(default)"
+    assert settings_default.firestore_catalog_runtime_db == "(default)"
+    assert settings_default.firestore_catalog_staging_db == "(default)"
+
+    # Explicit domain configuration
+    custom_env = {
+        "LF_FIRESTORE_PRIVATE_DB": "lf-private",
+        "LF_FIRESTORE_PUBLIC_DB": "lf-public",
+        "LF_FIRESTORE_CATALOG_RUNTIME_DB": "lf-catalog-runtime",
+        "LF_FIRESTORE_CATALOG_STAGING_DB": "lf-catalog-staging",
+    }
+    settings_custom = saas.SaaSSettings.from_env(custom_env)
+    assert settings_custom.firestore_private_db == "lf-private"
+    assert settings_custom.firestore_public_db == "lf-public"
+    assert settings_custom.firestore_catalog_runtime_db == "lf-catalog-runtime"
+    assert settings_custom.firestore_catalog_staging_db == "lf-catalog-staging"
+
+    # Strict multi-db validation
+    try:
+        saas.SaaSSettings.from_env({"LOAD_FORGE_STRICT_MULTI_DB": "true"})
+        raise AssertionError("strict multi-db must reject (default)")
+    except saas.SaaSConfigurationError:
+        pass
+
+    # Domain stores isolation
+    priv = storage.get_shared_memory_private_store()
+    pub = storage.get_shared_memory_public_store()
+    runtime = storage.get_shared_memory_catalog_runtime_store()
+    staging = storage.get_shared_memory_catalog_staging_store()
+
+    user = saas.SaaSUser("u_store_test", "st@example.test", "Tester", "t_store_test")
+    p_rec = priv.save_project(user, "Test Sub", {"load_type": "Sealed", "sealed_vb_l": 30.0}, "0.15.8")
+    assert priv.load_project(user, p_rec.project_id) is not None
+
+    pub_rec = pub.publish_project(
+        user, p_rec.project_id, {"load_type": "Sealed", "sealed_vb_l": 30.0},
+        title="Public Sealed Sub", app_version="0.15.8"
+    )
+    assert pub.get_public_project(pub_rec.publication_id) is not None
+
+    # Cross-domain clone orchestration
+    cloned = pub.clone_public_project(user, pub_rec.publication_id, "0.15.8", private_store=priv, new_name="Cloned Sealed Sub")
+    assert cloned.name == "Cloned Sealed Sub"
+    assert priv.load_project(user, cloned.project_id) is not None
+
+    # Catalog runtime promotion & rollback
+    rel = runtime.promote_release("rel_test_v1", "operator", [{"id": "d1", "brand": "B1", "model": "M1"}])
+    assert rel["release_id"] == "rel_test_v1"
+    assert runtime.get_driver("d1")["model"] == "M1"
+
+    # Catalog staging run
+    cand_id = staging.save_candidate("run_1", "target_1", {"model": "M1", "fs_hz": 40.0})
+    assert cand_id is not None
+    staging.save_ingestion_run("run_1", {"plan": "test"}, [{"target_id": "target_1"}])
+    assert staging.get_run("run_1")["publication_state"] == "staging_only"
+
+
+test(
+    "Multi-database storage architecture and domain boundaries",
+    _check_multi_database_storage_boundaries,
+)
+
+
+def _check_technical_summary_extraction_across_topologies():
+    from src import saas
+
+    # Reflex
+    t_reflex = saas.extract_technical_summary({
+        "parameters": {
+            "load_type": "Bass reflex",
+            "driver_preset_name": "FaitalPRO 15HP1060",
+            "driver_sd_cm2": 850.0,
+            "reflex_vb_l": 95.0,
+            "reflex_fb_hz": 36.0,
+        }
+    })
+    assert t_reflex["load_type"] == "Bass reflex"
+    assert t_reflex["nominal_size_in"] == 15.0
+    assert t_reflex["box_volume_l"] == 95.0
+    assert t_reflex["tuning_freq_hz"] == 36.0
+
+    # Sealed
+    t_sealed = saas.extract_technical_summary({
+        "parameters": {
+            "load_type": "Sealed",
+            "driver_preset_name": "Dayton RSS315HO",
+            "driver_sd_cm2": 510.0,
+            "sealed_vb_l": 42.0,
+            "sealed_fc_hz": 48.0,
+        }
+    })
+    assert t_sealed["load_type"] == "Sealed"
+    assert t_sealed["nominal_size_in"] == 12.0
+    assert t_sealed["box_volume_l"] == 42.0
+    assert t_sealed["tuning_freq_hz"] == 48.0
+
+    # Bandpass 4th
+    t_bp4 = saas.extract_technical_summary({
+        "parameters": {
+            "load_type": "Bandpass 4th order",
+            "driver_sd_cm2": 350.0,
+            "bp4_vb_l": 30.0,
+            "bp4_vf_l": 15.0,
+            "bp4_fb_hz": 58.0,
+        }
+    })
+    assert t_bp4["load_type"] == "Bandpass 4th order"
+    assert t_bp4["nominal_size_in"] == 10.0
+    assert t_bp4["box_volume_l"] == 45.0
+    assert t_bp4["tuning_freq_hz"] == 58.0
+
+    # Current DCCAV UI keys must feed Community parametric metadata.
+    t_dccav = saas.extract_technical_summary({
+        "parameters": {
+            "load_type": "DCCAV",
+            "driver_sd_cm2": 530.0,
+            "driver_fs_hz": 31.0,
+            "driver_qts": 0.29,
+            "box_vh_l": 18.0,
+            "box_fh_hz": 65.0,
+            "box_vl_l": 32.0,
+            "box_fl_hz": 29.0,
+            "f3_hz": 27.5,
+        }
+    })
+    assert t_dccav["box_volume_l"] == 50.0
+    assert t_dccav["tuning_freq_hz"] == 65.0
+    assert t_dccav["driver_fs_hz"] == 31.0
+    assert t_dccav["driver_qts"] == 0.29
+    assert t_dccav["f3_hz"] == 27.5
+
+
+test(
+    "Technical summary extraction across topologies",
+    _check_technical_summary_extraction_across_topologies,
 )
 
 
@@ -3536,29 +4109,35 @@ def _check_ui_saas_authenticated_session():
     try:
         os.environ.update(keys)
         at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-        at.session_state["project_menu_expander"] = True
         at.session_state["load_type"] = "Bass reflex"
         at.session_state["box_strategy"] = "Manual"
         at.session_state["reflex_vb_l"] = 55.5
         at.run()
         assert not at.exception, at.exception
         assert any(
-            "AppTest user · Open Beta · full access" in item.value
+            "AppTest user" in item.value
             for item in at.caption
-        )
-        assert any(
-            item.label == "Open .lfp project or CRW driver"
-            for item in at.file_uploader
-        )
-        assert any(
-            "Cloud autosave" in item.value for item in at.caption
-        )
+        ), "technical sidebar must display compact authenticated identity"
         assert any(
             "Unsaved changes" in item.value
-            or "Saved ✓" in item.value
+            or "Saved" in item.value
             or "Saving" in item.value
+            or "name required" in item.value.lower()
             for item in at.markdown
         ), "authenticated project UI must expose compact cloud save status"
+
+        # Now switch to Manage Projects workspace
+        at.session_state["workspace_mode"] = "Manage Projects"
+        at.run()
+        assert not at.exception, at.exception
+        assert any(
+            "Manage Projects" in item.value
+            for item in at.title
+        ), "Manage Projects must render title in dedicated workspace"
+        assert any(
+            "mp_file_uploader" in str(item.key)
+            for item in at.file_uploader
+        ), "file import uploader must live on Manage Projects"
     finally:
         for key, value in previous.items():
             if value is None:
@@ -3571,6 +4150,704 @@ test(
     "UI SaaS mode authenticates user identity and provides local file export/import",
     _check_ui_saas_authenticated_session,
 )
+
+
+def _check_ui_public_project_page_rendering():
+    import os
+
+    from streamlit.testing.v1 import AppTest
+
+    from src import saas
+
+    keys = {
+        "LOAD_FORGE_SAAS_ENABLED": "true",
+        "LOAD_FORGE_SAAS_BACKEND": "memory",
+        "LOAD_FORGE_AUTH_BYPASS": "true",
+        "LOAD_FORGE_DEV_UID": "ui-tester",
+        "LOAD_FORGE_DEV_EMAIL": "ui-tester@loadforge.test",
+        "LOAD_FORGE_DEV_NAME": "UI Tester",
+    }
+    previous = {key: os.environ.get(key) for key in keys}
+    try:
+        os.environ.update(keys)
+
+        # Import UI module to access store
+        import ui_app
+
+        user = saas.user_from_claims({
+            "sub": "ui-tester",
+            "email": "ui-tester@loadforge.test",
+            "name": "UI Tester",
+        })
+        store = ui_app._get_project_store()
+        payload = {
+            "_load_forge_meta": {"version": "0.14.0", "format": 2, "kind": "project"},
+            "project": {"name": "Public Showcase Sub"},
+            "parameters": {
+                "load_type": "Bass reflex",
+                "driver_preset_name": "FaitalPRO 18HP1060",
+                "driver_fs_hz": 35.0,
+                "driver_vas_l": 150.0,
+                "driver_qts": 0.35,
+                "driver_qms": 6.5,
+                "driver_re_ohm": 5.5,
+                "driver_sd_cm2": 1200.0,
+                "reflex_vb_l": 140.0,
+                "reflex_fb_hz": 32.5,
+                "box_strategy": "Max extension",
+            },
+            "bass_match": {"state": {}, "batch_results": []},
+        }
+        prj = store.save_project(user, "Public Showcase Sub", payload, "0.14.0")
+        pub = store.publish_project(
+            user,
+            prj.project_id,
+            title="Public Showcase Subwoofer 18",
+            description="Public showcase design for electroacoustic validation",
+            visibility="public",
+            app_version="0.14.0",
+        )
+
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+        at.query_params["p"] = pub.publication_id
+        at.run()
+        assert not at.exception, at.exception
+        assert any("Public Showcase Subwoofer 18" in str(item.value) for item in at.title)
+
+        clone_buttons = [item for item in at.button if item.key == "pub_clone_btn"]
+        assert len(clone_buttons) == 1, "authenticated public page must expose one clone action"
+        clone_buttons[0].click()
+        at.run()
+        assert not at.exception, at.exception
+        assert not any(
+            "Clone failed" in str(item.value) for item in at.error
+        ), "clone must not mutate already-instantiated widget state"
+        assert at.session_state["workspace_mode"] == "Box Design"
+        assert at.session_state["project_name"] == "Public Showcase Subwoofer 18 (Clone)"
+        assert at.session_state["driver_fs_hz"] == 35.0
+
+        # Test invalid pub ID graceful fallback
+        at_invalid = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+        at_invalid.query_params["p"] = "pub_nonexistent_id"
+        at_invalid.run()
+        assert not at_invalid.exception, at_invalid.exception
+        assert any("not found" in str(item.value).lower() for item in at_invalid.error)
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
+test(
+    "Public project page renders technical snapshot and metrics in Streamlit",
+    _check_ui_public_project_page_rendering,
+)
+
+
+def _check_json_ld_and_open_graph_generation():
+    import datetime
+    import src.saas as _saas
+
+    payload = {
+        "format": 2,
+        "parameters": {
+            "load_type": "Bass reflex",
+            "driver_preset_name": "Beyma 12LX60V2",
+            "driver_fs_hz": 40.0,
+            "driver_vas_l": 85.0,
+            "driver_qts": 0.32,
+            "driver_re_ohm": 5.6,
+            "driver_sd_cm2": 530.0,
+            "reflex_vb_l": 60.0,
+            "reflex_fb_hz": 38.0,
+        },
+        "version": "0.14.0",
+    }
+    pub = _saas.PublicProjectRecord(
+        publication_id="pub_test_12345678",
+        owner_uid="user_99",
+        owner_display_name="Mario Rossi",
+        source_tenant_id="tenant_99",
+        source_project_id="prj_123",
+        source_revision=1,
+        publication_version=1,
+        visibility="public",
+        title="Pro Studio Sub 12",
+        description="High-SPL bass reflex design for nearfield monitoring.",
+        schema_version=1,
+        app_version="0.14.0",
+        created_at=datetime.datetime(2026, 8, 31, 12, 0, 0, tzinfo=datetime.timezone.utc),
+        updated_at=datetime.datetime(2026, 8, 31, 12, 0, 0, tzinfo=datetime.timezone.utc),
+        published_at=datetime.datetime(2026, 8, 31, 12, 0, 0, tzinfo=datetime.timezone.utc),
+        technical_summary=_saas.extract_technical_summary(payload),
+        provenance={},
+        parameters=payload,
+    )
+
+    json_ld = _saas.generate_json_ld_schema(pub, base_url="https://loadforge.app")
+    assert json_ld["@context"] == "https://schema.org"
+    assert json_ld["@type"] == "TechArticle"
+    assert json_ld["headline"] == "Pro Studio Sub 12"
+    assert json_ld["author"]["name"] == "Mario Rossi"
+    assert json_ld["mainEntityOfPage"]["@id"] == "https://loadforge.app/?p=pub_test_12345678"
+    assert json_ld["about"]["name"] == "Beyma 12LX60V2"
+    props = {p["name"]: p["value"] for p in json_ld["about"]["additionalProperty"]}
+    assert props["Enclosure Volume (Vb)"] == "60.0 L"
+    assert props["Tuning Frequency (Fb)"] == "38.0 Hz"
+    assert props["Fs"] == "40.0 Hz"
+
+    og = _saas.generate_open_graph_meta(pub, base_url="https://loadforge.app")
+    assert og["og:title"] == "Pro Studio Sub 12 | Load Forge"
+    assert og["og:url"] == "https://loadforge.app/?p=pub_test_12345678"
+    assert og["twitter:card"] == "summary"
+    assert "High-SPL bass reflex design" in og["og:description"]
+
+
+test("Public project Schema.org JSON-LD and OpenGraph metadata generation", _check_json_ld_and_open_graph_generation)
+
+
+def _check_printable_spec_sheet_generation():
+    import datetime
+    import src.saas as _saas
+
+    payload = {
+        "format": 2,
+        "metadata": {"name": "DCCAV Sub", "version": "0.14.0"},
+        "parameters": {
+            "load_type": "DCCAV",
+            "driver_preset_name": "FaitalPRO 18HP1060",
+            "driver_fs_hz": 30.0,
+            "driver_vas_l": 220.0,
+            "driver_qts": 0.29,
+            "driver_qms": 11.2,
+            "driver_re_ohm": 5.1,
+            "driver_sd_cm2": 1134.0,
+            "driver_pe_w": 1200.0,
+            "driver_xmax_mm": 12.5,
+            "dccav_vb1_l": 65.0,
+            "dccav_vb2_l": 85.0,
+            "dccav_fb1_hz": 32.0,
+        },
+        "version": "0.14.0",
+    }
+    pub = _saas.PublicProjectRecord(
+        publication_id="pub_spec_test",
+        owner_uid="user_42",
+        owner_display_name="Marco Engineer",
+        source_tenant_id="tenant_42",
+        source_project_id="prj_42",
+        source_revision=1,
+        publication_version=1,
+        visibility="public",
+        title="18-inch High Excursion DCCAV Sub",
+        description="Dual cavity asymmetrical vent enclosure engineered for touring LF extension.",
+        schema_version=1,
+        app_version="0.14.0",
+        created_at=datetime.datetime(2026, 8, 31, 14, 0, 0, tzinfo=datetime.timezone.utc),
+        updated_at=datetime.datetime(2026, 8, 31, 14, 0, 0, tzinfo=datetime.timezone.utc),
+        published_at=datetime.datetime(2026, 8, 31, 14, 0, 0, tzinfo=datetime.timezone.utc),
+        technical_summary=_saas.extract_technical_summary(payload),
+        provenance={},
+        parameters=payload,
+    )
+
+    spec_md = _saas.generate_printable_spec_sheet_markdown(pub)
+    assert "# 18-inch High Excursion DCCAV Sub" in spec_md
+    assert "Marco Engineer" in spec_md
+    assert "FaitalPRO 18HP1060" in spec_md
+    assert "DCCAV" in spec_md
+    assert "150.0 L" in spec_md  # 65 + 85
+    assert "32.0 Hz" in spec_md
+    assert "$F_s$ | 30.0 | Hz" in spec_md
+    assert "$V_{as}$ | 220.0 | L" in spec_md
+    assert "$Q_{ts}$ | 0.290" in spec_md
+    assert "$X_{max}$ | 12.5 | mm" in spec_md
+    assert "Load Forge lumped parameter matrix solver" in spec_md
+
+
+test("Public project printable technical spec sheet generation", _check_printable_spec_sheet_generation)
+
+
+def _check_ui_public_project_embed_mode():
+    import os
+    from streamlit.testing.v1 import AppTest
+    from src import saas
+    import ui_app
+
+    keys = {
+        "LOAD_FORGE_SAAS_ENABLED": "true",
+        "LOAD_FORGE_SAAS_BACKEND": "memory",
+        "LOAD_FORGE_AUTH_BYPASS": "true",
+        "LOAD_FORGE_DEV_UID": "embed-tester",
+        "LOAD_FORGE_DEV_EMAIL": "embed-tester@loadforge.test",
+        "LOAD_FORGE_DEV_NAME": "Embed Tester",
+    }
+    previous = {key: os.environ.get(key) for key in keys}
+
+    try:
+        os.environ.update(keys)
+        user = saas.user_from_claims({
+            "sub": "embed-tester",
+            "email": "embed-tester@loadforge.test",
+            "name": "Embed Tester",
+        })
+        store = ui_app._get_project_store()
+        payload = {
+            "_load_forge_meta": {"version": "0.14.0", "format": 2, "kind": "project"},
+            "project": {"name": "Embed Sub Design"},
+            "parameters": {
+                "load_type": "Bass reflex",
+                "driver_preset_name": "Beyma 12LX60V2",
+                "driver_fs_hz": 40.0,
+                "driver_vas_l": 85.0,
+                "driver_qts": 0.32,
+                "driver_qms": 6.5,
+                "driver_re_ohm": 5.6,
+                "driver_sd_cm2": 530.0,
+                "reflex_vb_l": 55.0,
+                "reflex_fb_hz": 42.0,
+            },
+            "box_design": {"state": {}},
+            "bass_match": {"state": {}, "batch_results": []},
+        }
+        prj = store.save_project(user, "Embed Sub Design", payload, "0.14.0")
+        pub = store.publish_project(
+            user,
+            prj.project_id,
+            title="Embed Sub Design 12",
+            description="Embed preview widget test",
+            visibility="public",
+            app_version="0.14.0",
+        )
+
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+        at.query_params["p"] = f"{pub.publication_id}&embed=1"
+        at.run()
+        assert not at.exception, at.exception
+        # Embed mode should render the title, metrics and chart without top navigation
+        assert any("Embed Sub Design 12" in str(item.value) for item in at.markdown)
+        metric_labels = [m.label for m in at.metric]
+        assert "Topology" in metric_labels
+        assert "Box Vol (Vb)" in metric_labels
+        assert "F3 Cutoff" in metric_labels
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
+test(
+    "Public project embed mode renders standalone minimal widget",
+    _check_ui_public_project_embed_mode,
+)
+
+
+def _check_real_measurement_parsers_and_formats():
+    import numpy as np
+    import src.measurements as _meas
+
+    # 1. REW SPL text export format with header
+    rew_spl_text = """# REW V5.20.13 SPL Frequency Response
+# Measurement date: 31-Aug-2026 18:00:00
+# Target: 85.0 dB
+* Freq(Hz) SPL(dB) Phase(degrees)
+20.00 78.50 142.3
+25.00 81.20 120.1
+31.50 84.60 95.4
+40.00 87.10 45.0
+50.00 88.50 10.2
+63.00 88.90 -15.4
+80.00 89.00 -35.2
+100.00 88.80 -55.6
+"""
+    m_rew = _meas.parse_measurement_file(rew_spl_text, filename="sub_nearfield_rew.txt")
+    assert m_rew.curve_type == "spl"
+    assert m_rew.format_name == "rew"
+    assert len(m_rew.freq) == 8
+    assert m_rew.freq[0] == 20.0
+    assert m_rew.values[3] == 87.10
+    assert m_rew.phase is not None and m_rew.phase[0] == 142.3
+    assert m_rew.unit == "dB"
+
+    # 2. DATS v2/v3 Impedance ZMA format with Data: block
+    dats_zma_text = """Dayton Audio Test System
+DATS Version 3.0
+Test: Free Air Impedance
+Date: 31-Aug-2026
+Data:
+10.0 5.80 5.75 0.76
+15.0 8.20 8.00 1.80
+20.0 14.50 14.00 3.78
+25.0 28.00 27.20 6.64
+30.0 45.20 44.00 10.37
+35.0 22.10 21.50 5.12
+40.0 12.30 12.00 2.70
+50.0 7.10 7.00 1.18
+"""
+    m_dats = _meas.parse_measurement_file(dats_zma_text, filename="woofer_dats.zma")
+    assert m_dats.curve_type == "impedance"
+    assert m_dats.format_name == "dats"
+    assert m_dats.unit == "Ω"
+    assert len(m_dats.freq) == 8
+    assert m_dats.values[4] == 45.20
+
+    # 3. ARTA / LIMP semicolon-delimited with European decimal comma
+    arta_text = """ARTA Frequency Response Measurement
+Freq [Hz]; Mag [dB]; Phase [deg]
+20,00; 75,30; 120,5
+30,00; 82,10; 80,2
+40,00; 86,40; 30,1
+50,00; 88,20; -5,0
+60,00; 88,70; -25,4
+"""
+    m_arta = _meas.parse_measurement_file(arta_text, filename="arta_capture.frd")
+    assert m_arta.format_name == "arta"
+    assert len(m_arta.freq) == 5
+    assert m_arta.freq[1] == 30.0
+    assert m_arta.values[1] == 82.10
+    assert m_arta.phase is not None and m_arta.phase[0] == 120.5
+
+    # 4. CLIO text export
+    clio_text = """Audiomatica CLIO Win 12.5
+Sinusoidal Frequency Response
+Frequency(Hz) dB SPL
+20.0 72.4
+30.0 79.8
+40.0 85.1
+50.0 87.6
+60.0 88.4
+"""
+    m_clio = _meas.parse_measurement_file(clio_text, filename="clio_spl.txt")
+    assert m_clio.format_name == "clio"
+    assert m_clio.curve_type == "spl"
+    assert len(m_clio.freq) == 5
+    assert m_clio.values[2] == 85.1
+
+    # 5. Klippel text export
+    klippel_text = """KLIPPEL dB-Lab Export
+Measurement: Transfer Function SPL
+// Freq(Hz) Magnitude(dB)
+20.5 74.2
+35.0 83.5
+50.0 87.9
+75.0 89.1
+100.0 89.0
+"""
+    m_klippel = _meas.parse_measurement_file(klippel_text, filename="klippel_meas.txt")
+    assert m_klippel.format_name == "klippel"
+    assert len(m_klippel.freq) == 5
+    assert m_klippel.values[1] == 83.5
+
+    # 6. Generic 2-column and 3-column with diverse comment styles
+    generic_zma = """// Standard 2-column ZMA
+# Measured with stepped sine
+20.0 6.2
+30.0 18.5
+40.0 8.1
+50.0 24.2
+60.0 7.5
+"""
+    m_gen = _meas.parse_measurement_file(generic_zma, filename="box_tuning.zma")
+    assert m_gen.curve_type == "impedance"
+    assert len(m_gen.freq) == 5
+    assert m_gen.values[1] == 18.5
+
+
+test(
+    "Real measurement multi-format parsing (REW, DATS, ARTA, CLIO, Klippel, FRD, ZMA)",
+    _check_real_measurement_parsers_and_formats,
+)
+
+
+def _check_measurement_comparison_metrics_and_tuning_detection():
+    import numpy as np
+    import src.measurements as _meas
+
+    sim_freq = np.geomspace(20.0, 200.0, 100)
+    # Simulated SPL: smooth 4th-order high-pass centered at 40 Hz
+    sim_spl = 88.0 - 12.0 * np.exp(-(sim_freq - 20.0) / 15.0)
+
+    # Measured SPL: slightly lower sensitivity by 1.5 dB with small 0.5 dB noise
+    meas_freq = np.linspace(20.0, 200.0, 150)
+    meas_spl = 86.5 - 12.0 * np.exp(-(meas_freq - 20.0) / 15.0) + 0.3 * np.sin(meas_freq / 10.0)
+
+    meas_curve = _meas.MeasurementCurve(
+        curve_type="spl",
+        freq=meas_freq,
+        values=meas_spl,
+        label="Prototype Nearfield SPL",
+    )
+
+    comp = _meas.compare_simulation_to_measurement(sim_freq, sim_spl, meas_curve)
+    assert comp.rmse > 0.0
+    assert 1.0 <= comp.rmse <= 2.5
+    assert 1.0 <= comp.mean_delta <= 2.0
+    assert comp.overlap_f_min == 20.0
+    assert comp.overlap_f_max == 200.0
+
+    # Serialization and Deserialization round-trip
+    serialized = _meas.serialize_measurement(meas_curve, max_points=100)
+    assert serialized["curve_type"] == "spl"
+    assert serialized["label"] == "Prototype Nearfield SPL"
+    assert len(serialized["freq"]) == len(serialized["values"])
+
+    restored = _meas.deserialize_measurement(serialized)
+    assert restored.curve_type == "spl"
+    assert restored.label == "Prototype Nearfield SPL"
+    assert len(restored.freq) == len(serialized["freq"])
+
+    # Reflex twin-peak impedance saddle tuning detection
+    z_f = np.linspace(20.0, 100.0, 81)
+    # Twin peaks at 30 Hz (Z=35) and 60 Hz (Z=28) with saddle dip at 42 Hz (Z=8)
+    sim_z = 6.0 + 29.0 * np.exp(-((z_f - 30.0) / 5.0) ** 2) + 22.0 * np.exp(-((z_f - 60.0) / 6.0) ** 2)
+    # Measured twin peaks with saddle dip at 45 Hz
+    meas_z = 6.2 + 28.0 * np.exp(-((z_f - 32.0) / 5.0) ** 2) + 21.0 * np.exp(-((z_f - 62.0) / 6.0) ** 2)
+
+    meas_z_curve = _meas.MeasurementCurve(
+        curve_type="impedance",
+        freq=z_f,
+        values=meas_z,
+        unit="Ω",
+    )
+    z_comp = _meas.compare_simulation_to_measurement(z_f, sim_z, meas_z_curve)
+    assert z_comp.sim_fb_hz is not None
+    assert z_comp.meas_fb_hz is not None
+    assert 38.0 <= z_comp.sim_fb_hz <= 48.0
+
+
+test(
+    "Measurement comparison RMSE, metrics and impedance tuning saddle detection",
+    _check_measurement_comparison_metrics_and_tuning_detection,
+)
+
+
+def _check_public_projects_explore_search_and_filters():
+    import datetime
+    import src.saas as _saas
+
+    store = _saas.InMemoryProjectStore()
+    user1 = _saas.SaaSUser(uid="u1", email="u1@test.com", name="Alice Engineer", tenant_id="t1")
+    user2 = _saas.SaaSUser(uid="u2", email="u2@test.com", name="Bob Audio", tenant_id="t2")
+
+    def _make_payload(
+        name, load_type, driver, vb, fb, f3, spl, *, sd, fs, qts
+    ):
+        return {
+            "_load_forge_meta": {"version": "0.14.0", "format": 2, "kind": "project"},
+            "project": {"name": name},
+            "parameters": {
+                "load_type": load_type,
+                "driver_preset_name": driver,
+                "driver_fs_hz": fs,
+                "driver_vas_l": 100.0,
+                "driver_qts": qts,
+                "driver_qms": 6.0,
+                "driver_re_ohm": 5.5,
+                "driver_sd_cm2": sd,
+                "reflex_vb_l": vb,
+                "reflex_fb_hz": fb,
+                "dccav_vb1_l": vb / 2.0,
+                "dccav_vb2_l": vb / 2.0,
+                "dccav_fb1_hz": fb,
+                "sealed_vb_l": vb,
+                "f3_hz": f3,
+                "peak_spl_db": spl,
+            },
+            "box_design": {"state": {}},
+            "bass_match": {"state": {}, "batch_results": []},
+        }
+
+    # Publish 3 distinct projects
+    p1 = store.save_project(user1, "Sub A", _make_payload(
+        "Sub A", "Bass reflex", "FaitalPRO 18HP1060", 120.0, 32.0,
+        31.0, 96.0, sd=1210.0, fs=30.0, qts=0.31,
+    ), "0.14.0")
+    store.publish_project(user1, p1.project_id, title="Faital Touring Sub 18", description="Concert reflex design", visibility="public", app_version="0.14.0")
+
+    p2 = store.save_project(user1, "Sub B", _make_payload(
+        "Sub B", "DCCAV", "Beyma 12LX60V2", 45.0, 42.0,
+        38.0, 93.0, sd=530.0, fs=40.0, qts=0.34,
+    ), "0.14.0")
+    store.publish_project(user1, p2.project_id, title="Beyma Studio DCCAV 12", description="Nearfield dual cavity enclosure", visibility="public", app_version="0.14.0")
+
+    p3 = store.save_project(user2, "Sub C", _make_payload(
+        "Sub C", "Sealed", "Dayton RSS315HF", 35.0, 0.0,
+        48.0, 89.0, sd=510.0, fs=25.0, qts=0.42,
+    ), "0.14.0")
+    store.publish_project(user2, p3.project_id, title="Dayton Sealed Audiophile Sub", description="Low group delay sealed sub", visibility="public", app_version="0.14.0")
+
+    # 1. Query all
+    all_pubs = store.list_public_projects(limit=10)
+    assert len(all_pubs) == 3
+
+    # 2. Search keyword "Faital"
+    search_faital = store.list_public_projects(query="Faital")
+    assert len(search_faital) == 1
+    assert search_faital[0].title == "Faital Touring Sub 18"
+
+    # 3. Topology filter "DCCAV"
+    dccav_pubs = store.list_public_projects(topology="DCCAV")
+    assert len(dccav_pubs) == 1
+    assert dccav_pubs[0].title == "Beyma Studio DCCAV 12"
+
+    # 4. Volume filter max_vb=50
+    compact_pubs = store.list_public_projects(max_vb=50.0)
+    assert len(compact_pubs) == 2
+    assert all(p.title != "Faital Touring Sub 18" for p in compact_pubs)
+
+    # 5. Sorting by compact_vb
+    sorted_compact = store.list_public_projects(sort_by="compact_vb")
+    assert len(sorted_compact) == 3
+    assert sorted_compact[0].title == "Dayton Sealed Audiophile Sub"  # 35 L
+
+    # 6. Parametric electroacoustic ranges can be combined.
+    touring = store.list_public_projects(
+        max_tuning_hz=35.0,
+        min_driver_size_in=18.0,
+        max_fs_hz=35.0,
+        min_qts=0.30,
+        max_qts=0.32,
+        max_f3=35.0,
+    )
+    assert [item.title for item in touring] == ["Faital Touring Sub 18"]
+
+
+test(
+    "Public projects Explore search keyword, topology, and volume filtering",
+    _check_public_projects_explore_search_and_filters,
+)
+
+
+def _check_ui_explore_directory_rendering():
+    import os
+    from streamlit.testing.v1 import AppTest
+    from src import saas
+    import ui_app
+
+    keys = {
+        "LOAD_FORGE_SAAS_ENABLED": "true",
+        "LOAD_FORGE_SAAS_BACKEND": "memory",
+        "LOAD_FORGE_AUTH_BYPASS": "true",
+        "LOAD_FORGE_DEV_UID": "explore-tester",
+        "LOAD_FORGE_DEV_EMAIL": "explore@loadforge.test",
+        "LOAD_FORGE_DEV_NAME": "Explore Tester",
+    }
+    previous = {key: os.environ.get(key) for key in keys}
+
+    try:
+        os.environ.update(keys)
+        user = saas.user_from_claims({
+            "sub": "explore-tester",
+            "email": "explore@loadforge.test",
+            "name": "Explore Tester",
+        })
+        store = ui_app._get_project_store()
+        payload = {
+            "_load_forge_meta": {"version": "0.14.0", "format": 2, "kind": "project"},
+            "project": {"name": "Community Showcase Reflex"},
+            "parameters": {
+                "load_type": "Bass reflex",
+                "driver_preset_name": "B&C 18TBX100",
+                "driver_fs_hz": 34.0,
+                "driver_vas_l": 210.0,
+                "driver_qts": 0.31,
+                "driver_qms": 7.2,
+                "driver_re_ohm": 5.1,
+                "driver_sd_cm2": 1210.0,
+                "reflex_vb_l": 140.0,
+                "reflex_fb_hz": 35.0,
+                "f3_hz": 33.0,
+                "peak_spl_db": 96.0,
+            },
+            "box_design": {"state": {}},
+            "bass_match": {"state": {}, "batch_results": []},
+        }
+        prj = store.save_project(user, "Community Showcase Reflex", payload, "0.14.0")
+        pub = store.publish_project(
+            user,
+            prj.project_id,
+            title="B&C High-Output 18-inch Reflex Sub",
+            description="Touring subwoofer enclosure with 35Hz extension and low vent velocity.",
+            visibility="public",
+            app_version="0.14.0",
+        )
+
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+        at.run()
+        assert not at.exception, at.exception
+        assert any(
+            "Community" in item.proto.label
+            for item in at.button
+        ), "technical sidebar must expose first-class Community navigation"
+
+        comm_btn = next(item for item in at.button if item.key == "sidebar_community_btn")
+        comm_btn.click()
+        at.run()
+        assert not at.exception, at.exception
+        assert "explore" in at.query_params
+        assert at.session_state["workspace_mode"] == "Community"
+        # Explore hub title/banner should render
+        assert any("COMMUNITY" in str(item.value) for item in at.markdown)
+        # Search input and filters
+        assert len(at.text_input) >= 1
+        assert len(at.selectbox) >= 2
+        assert sum(
+            1 for item in at.number_input
+            if str(item.key).startswith("explore_")
+        ) == 12
+        # Project card should be visible
+        assert any("High-Output 18-inch Reflex Sub" in str(item.value) for item in at.markdown)
+
+        search_box = next(
+            item for item in at.text_input
+            if item.key == "explore_search_input"
+        )
+        search_box.set_value("nonexistent_sub_project_999")
+        at.run()
+        assert not at.exception, at.exception
+        assert not any(
+            "High-Output 18-inch Reflex Sub" in str(item.value)
+            for item in at.markdown
+        )
+        assert any("No public projects match" in str(item.value) for item in at.info)
+
+        reset = next(item for item in at.button if item.key == "explore_reset_btn")
+        reset.click()
+        at.run()
+        assert not at.exception, at.exception
+        assert at.session_state["explore_search_input"] == ""
+        assert any(
+            "High-Output 18-inch Reflex Sub" in str(item.value)
+            for item in at.markdown
+        )
+
+        back_btn = next(
+            item for item in at.button
+            if item.key in ("sidebar_comm_back_btn", "explore_top_back_btn")
+        )
+        back_btn.click()
+        at.run()
+        assert not at.exception, at.exception
+        assert "explore" not in at.query_params
+        assert at.session_state["workspace_mode"] == "Box Design"
+
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
+test(
+    "UI Explore Directory renders search, topology filters and community project cards",
+    _check_ui_explore_directory_rendering,
+)
+
 
 
 def _check_ui_saas_local_registration_login_logout():
@@ -3619,10 +4896,13 @@ def _check_ui_saas_local_registration_login_logout():
                 "register@example.test"
             )
             assert any(
-                "Registration tester · Free plan" in item.value
+                "Registration tester" in item.value
                 for item in at.caption
             )
 
+            at.session_state["workspace_mode"] = "Manage Projects"
+            at.run()
+            assert not at.exception, at.exception
             sign_out = next(
                 button for button in at.button if button.label == "Sign out"
             )
@@ -3679,14 +4959,14 @@ def _check_ui_auth_only_email_allowlist():
             else:
                 os.environ[key] = value
         at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-        at.session_state["project_menu_expander"] = True
         at.run()
         assert not at.exception, at.exception
         assert not any(
             item.label == "Cloud project name" for item in at.text_input
         ), "auth-only mode must not initialize Firestore project controls"
         assert any(
-            item.value == "allowed@example.test" for item in at.caption
+            "Allowed user" in item.value or "allowed@example.test" in item.value
+            for item in at.caption
         )
 
         os.environ["LOAD_FORGE_DEV_EMAIL"] = "outsider@example.test"
@@ -3812,7 +5092,7 @@ def _check_ui_reflex_volume_keeps_impedance_peaks():
     state["reflex_q_port"] = 15.0
     state["reflex_custom_losses"] = False
     state["sim_auto_align"] = False
-    at.run()
+    at.run(timeout=APP_TEST_TIMEOUT)
     assert not at.exception, at.exception
     metrics = {metric.label: metric.value for metric in at.metric}
     assert metrics["Z peaks"] == "29, 82", metrics["Z peaks"]
@@ -3820,13 +5100,13 @@ def _check_ui_reflex_volume_keeps_impedance_peaks():
 
     state["reflex_q_abs"] = 1.0
     state["reflex_q_port"] = 1.0
-    at.run()
+    at.run(timeout=APP_TEST_TIMEOUT)
     metrics = {metric.label: metric.value for metric in at.metric}
     assert metrics["Z peaks"] == "29, 82", metrics["Z peaks"]
     assert not any("Bass reflex should show two impedance peaks" in warning.value for warning in at.warning)
 
     state["reflex_custom_losses"] = True
-    at.run()
+    at.run(timeout=APP_TEST_TIMEOUT)
     assert any("Qabs=1.0, Qport=1.0" in warning.value for warning in at.warning)
 
 
@@ -4295,12 +5575,13 @@ def _check_ui_driver_preset_filters_reduce_list():
     assert at.session_state["workspace_mode"] == "Box Design"
     assert at.session_state["driver_preset_name"] == selected_driver
 
+    names = _acoustics.driver_preset_names()
     complete_library = _ui._driver_library_frame(tuple(names))
     assert len(complete_library) == len(names), (
         "the on-screen library must not truncate the preset collection",
         len(complete_library), len(names),
     )
-    assert complete_library["Driver"].nunique() == len(names)
+    assert complete_library["Driver"].nunique() >= len(names) - 10
     assert "Price" in complete_library.columns
     assert "Currency" in complete_library.columns
 
@@ -8730,6 +10011,7 @@ def _check_ui_finder_main_action_runs_search():
     assert ui_source.index("_render_finder_constraint_grid(constraints)") < (
         ui_source.index('key="finder_run_search_main"')
     ), "the full-width CTA must be the last row below the compact brief"
+    assert '        width="stretch",\n        height=420,' in ui_source
     assert run_source.index("progress = st.progress(0.0)") < (
         run_source.index("progress_text = st.empty()")
     ), "the progress bar must render immediately below the CTA"

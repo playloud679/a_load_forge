@@ -50,6 +50,14 @@ detailed contracts live in `docs/dccav.md`.
 - `response_sparkline(spl, points=48, floor_db=-30)` plus the
   `SPARKLINE_POINTS` / `SPARKLINE_FLOOR_DB` constants used by the UI's
   `LineChartColumn`
+- `candidate_precheck(ts, load_type, voltage_v, min_spl_db, max_ripple_db, ...)`:
+  evaluates feasibility against Xmax, reference SPL drive headroom, loaded Fs
+  and acoustic volume displacement MOL @ F3 before numerical optimization.
+- `prefilter_finder_candidate_pools(preset_names, load_types, ...)` (`lru_cache(maxsize=128)`):
+  builds per-topology candidate pools using pure analytical pre-simulation checks
+  with persistent module-level caching across UI reruns.
+- `invalidate_ranking_caches()`: clears candidate pool caches.
+- `FINDER_SPL_PREFILTER_HEADROOM_DB`: default reference SPL drive headroom (6.0 dB).
 
 ## Invariants
 

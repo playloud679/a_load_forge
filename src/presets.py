@@ -6,24 +6,57 @@ metadata and retailer price enrichment.
 
 from __future__ import annotations
 
+import io
 import json
 import math
 import os
 import pickle
 import re
+import time
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
 try:
     from .engine import DriverTS, sd_from_diameter
-    from .pricing import _preset_price, _valid_price
+    from .pricing import DRIVER_PRICES_PATH, _preset_price, _valid_price, convert_price
 except ImportError:  # top-level import with src/ on sys.path (ui_app)
     from engine import DriverTS, sd_from_diameter  # type: ignore[no-redef]
-    from pricing import _preset_price, _valid_price  # type: ignore[no-redef]
+    from pricing import DRIVER_PRICES_PATH, _preset_price, _valid_price, convert_price  # type: ignore[no-redef]
+
+
+class _SafeCatalogUnpickler(pickle.Unpickler):
+    """Unpickler robust against top-level vs package module naming for acoustics/engine."""
+
+    def find_class(self, module: str, name: str) -> object:
+        if module.startswith("src."):
+            mod_sub = module.removeprefix("src.")
+            try:
+                mod = __import__(module, fromlist=[name])
+                return getattr(mod, name)
+            except Exception:
+                pass
+            mod = __import__(mod_sub, fromlist=[name])
+            return getattr(mod, name)
+        elif module in {"engine", "presets", "pricing", "ranking"}:
+            try:
+                mod = __import__(f"src.{module}", fromlist=[name])
+                return getattr(mod, name)
+            except Exception:
+                pass
+            mod = __import__(module, fromlist=[name])
+            return getattr(mod, name)
+        return super().find_class(module, name)
+
+
+def _safe_unpickle_bytes(data: bytes) -> object:
+    return _SafeCatalogUnpickler(io.BytesIO(data)).load()
 
 LOUDSPEAKER_DATABASE_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "catalog_lsdb.json"
+)
+FIRESTORE_PRESETS_CACHE_PATH = (
+    Path(__file__).resolve().parents[1] / "data" / "catalog_firestore.cache.pickle"
 )
 # Presets extracted directly from manufacturer sites (HTML/PDF/API), kept in a
 # separate file from the loudspeakerdatabase.com import above: this file is
@@ -1425,7 +1458,7 @@ def _load_external_presets(
                 else 0.0
             )
             if cache_mtime >= path.stat().st_mtime and cache_mtime >= prices_mtime:
-                cached = pickle.loads(cache_path.read_bytes())
+                cached = _safe_unpickle_bytes(cache_path.read_bytes())
                 if (
                     isinstance(cached, tuple)
                     and len(cached) == 2
@@ -1638,9 +1671,34 @@ def _load_firestore_presets(
 ) -> tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]:
     """Load driver presets dynamically from Google Cloud Firestore.
 
-    Gracefully falls back to empty if offline or credentials are not present.
+    Gracefully falls back to cached snapshot or empty if offline/unavailable.
     """
-    project_id = os.environ.get("LOAD_FORGE_GCP_PROJECT", "civic-radio-502611-i8")
+    if client is None and FIRESTORE_PRESETS_CACHE_PATH.exists():
+        try:
+            cache_age = time.time() - FIRESTORE_PRESETS_CACHE_PATH.stat().st_mtime
+            if cache_age < 3600:
+                cached = _safe_unpickle_bytes(FIRESTORE_PRESETS_CACHE_PATH.read_bytes())
+                if (
+                    isinstance(cached, tuple)
+                    and len(cached) == 2
+                    and isinstance(cached[0], dict)
+                    and isinstance(cached[1], dict)
+                ):
+                    return cached
+        except Exception:
+            pass
+
+    project_id = (
+        os.environ.get("LOAD_FORGE_GCP_PROJECT")
+        or os.environ.get("GOOGLE_CLOUD_PROJECT")
+        or "civic-radio-502611-i8"
+    )
+    database_id = (
+        os.environ.get("LF_FIRESTORE_CATALOG_RUNTIME_DB")
+        or os.environ.get("LOAD_FORGE_FIRESTORE_CATALOG_RUNTIME_DB")
+        or os.environ.get("LOAD_FORGE_FIRESTORE_DATABASE")
+        or "(default)"
+    )
     collection_name = os.environ.get("LOAD_FORGE_FIRESTORE_DRIVERS_COLLECTION", "driver_presets")
     presets: dict[str, DriverTS] = {}
     info: dict[str, DriverPresetInfo] = {}
@@ -1649,13 +1707,25 @@ def _load_firestore_presets(
     try:
         if client is None:
             from google.cloud import firestore
-            client = firestore.Client(project=project_id)
+            client = firestore.Client(project=project_id, database=database_id)
         for doc in client.collection(collection_name).stream():
             data = doc.to_dict() if hasattr(doc, "to_dict") else doc
             if isinstance(data, dict):
                 raw_items.append(data)
     except Exception:
         raw_items = []
+        if client is None and FIRESTORE_PRESETS_CACHE_PATH.exists():
+            try:
+                cached = _safe_unpickle_bytes(FIRESTORE_PRESETS_CACHE_PATH.read_bytes())
+                if (
+                    isinstance(cached, tuple)
+                    and len(cached) == 2
+                    and isinstance(cached[0], dict)
+                    and isinstance(cached[1], dict)
+                ):
+                    return cached
+            except Exception:
+                pass
 
     for item in raw_items:
         try:
@@ -1712,6 +1782,14 @@ def _load_firestore_presets(
         except Exception:
             continue
 
+    if client is None:
+        try:
+            tmp = FIRESTORE_PRESETS_CACHE_PATH.with_suffix(".tmp")
+            tmp.write_bytes(pickle.dumps((presets, info), protocol=pickle.HIGHEST_PROTOCOL))
+            tmp.replace(FIRESTORE_PRESETS_CACHE_PATH)
+        except Exception:
+            pass
+
     return presets, info
 
 
@@ -1724,9 +1802,20 @@ def invalidate_preset_caches() -> None:
     _load_vituixcad_presets.cache_clear()
     _load_speakerboxlite_presets.cache_clear()
     _load_ztzaudio_presets.cache_clear()
+    try:
+        if FIRESTORE_PRESETS_CACHE_PATH.exists():
+            FIRESTORE_PRESETS_CACHE_PATH.unlink(missing_ok=True)
+    except Exception:
+        pass
     driver_preset_names.cache_clear()
     driver_preset_info.cache_clear()
     driver_preset_provenance_category.cache_clear()
+    driver_preset_identity.cache_clear()
+    driver_preset_preference.cache_clear()
+    deduplicate_driver_preset_names.cache_clear()
+    all_preset_brands.cache_clear()
+    all_preset_price_currencies.cache_clear()
+    all_preset_price_values.cache_clear()
     get_driver_preset.cache_clear()
 
 
@@ -1765,7 +1854,7 @@ def get_passive_radiator_preset(name: str) -> PassiveRadiatorPreset:
         raise ValueError(f"Unknown passive-radiator preset: {name}") from exc
 
 
-@lru_cache(maxsize=8192)
+@lru_cache(maxsize=32768)
 def driver_preset_info(name: str) -> DriverPresetInfo:
     """Return source, brand and sizing metadata for a driver preset."""
     if name in DRIVER_PRESETS:
@@ -1789,7 +1878,7 @@ def driver_preset_info(name: str) -> DriverPresetInfo:
     raise ValueError(f"Unknown driver preset: {name}")
 
 
-@lru_cache(maxsize=8192)
+@lru_cache(maxsize=32768)
 def driver_preset_provenance_category(name: str) -> str:
     """Return a stable, user-facing provenance bucket for one preset.
 
@@ -1812,7 +1901,127 @@ def driver_preset_provenance_category(name: str) -> str:
     return "Load Forge database"
 
 
-@lru_cache(maxsize=8192)
+@lru_cache(maxsize=32768)
+def driver_preset_identity(name: str) -> tuple[str, str, str]:
+    """Return one physical brand/model/impedance identity across catalogs."""
+    try:
+        info = driver_preset_info(name)
+        ts = get_driver_preset(name)
+        return _external_catalog_identity(
+            info.brand or "Other",
+            info.part_number or info.model or name,
+            ts,
+            impedance_text=info.model,
+        )
+    except Exception:
+        normalized = re.sub(r"[^a-z0-9]+", "", name.casefold())
+        return "unknown", normalized, ""
+
+
+@lru_cache(maxsize=32768)
+def driver_preset_preference(name: str) -> tuple[int, int, float, str]:
+    """Prefer Load Forge provenance, then an available lower price."""
+    try:
+        info = driver_preset_info(name)
+        category = driver_preset_provenance_category(name)
+        price = float(info.price) if info.price is not None else float("inf")
+    except Exception:
+        category = "Other"
+        price = float("inf")
+    source_priority = {
+        "Load Forge database": 0,
+        "LSDB": 1,
+        "VituixCAD": 2,
+        "Speaker Box Lite": 3,
+    }.get(category, 4)
+    return (
+        source_priority,
+        0 if math.isfinite(price) else 1,
+        price,
+        name.casefold(),
+    )
+
+
+@lru_cache(maxsize=256)
+def deduplicate_driver_preset_names(
+    preset_names: tuple[str, ...],
+) -> tuple[tuple[str, ...], int]:
+    """Choose one preferred catalog record for each physical driver."""
+    chosen: dict[tuple[str, str, str], str] = {}
+    for name in preset_names:
+        identity = driver_preset_identity(name)
+        previous = chosen.get(identity)
+        if (
+            previous is None
+            or driver_preset_preference(name) < driver_preset_preference(previous)
+        ):
+            chosen[identity] = name
+    unique_names = tuple(chosen.values())
+    return unique_names, len(preset_names) - len(unique_names)
+
+
+@lru_cache(maxsize=1)
+def all_preset_brands() -> tuple[str, ...]:
+    """Return all unique brands across catalogs."""
+    brands = {_built_in_preset_brand(name) for name in DRIVER_PRESETS}
+    for _presets, info in _external_tiers():
+        for item in info.values():
+            if item.brand and item.brand.strip():
+                brands.add(item.brand.strip())
+    return tuple(sorted(brands, key=str.casefold))
+
+
+@lru_cache(maxsize=1)
+def all_preset_price_currencies() -> tuple[str, ...]:
+    """Return all distinct non-empty currencies across driver presets with prices."""
+    currencies = set()
+    for name in DRIVER_PRESETS:
+        brand = _built_in_preset_brand(name)
+        model = name.removeprefix(brand).strip() if brand != "Other" else name
+        price, currency, _url = _preset_price(name, model, brand)
+        if price is not None and currency:
+            currencies.add(currency)
+    for _presets, info in _external_tiers():
+        for item in info.values():
+            if item.price is not None and item.currency and item.currency.strip():
+                currencies.add(item.currency.strip())
+    return tuple(sorted(currencies))
+
+
+@lru_cache(maxsize=32)
+def all_preset_price_values(
+    currency: str = "",
+    rates_tuple: tuple[tuple[str, float], ...] = (),
+) -> tuple[float, ...]:
+    """Return sorted/filtered price floats across all presets in requested currency."""
+    rates = dict(rates_tuple) if rates_tuple else None
+    values = []
+    for name in DRIVER_PRESETS:
+        brand = _built_in_preset_brand(name)
+        model = name.removeprefix(brand).strip() if brand != "Other" else name
+        price, curr, _url = _preset_price(name, model, brand)
+        if price is None or not math.isfinite(float(price)):
+            continue
+        if not currency or curr == currency:
+            values.append(float(price))
+        else:
+            converted = convert_price(price, curr, currency, rates)
+            if converted is not None and math.isfinite(float(converted)):
+                values.append(float(converted))
+    for _presets, info in _external_tiers():
+        for item in info.values():
+            if item.price is None or not math.isfinite(float(item.price)):
+                continue
+            if not currency or item.currency == currency:
+                values.append(float(item.price))
+            else:
+                converted = convert_price(item.price, item.currency, currency, rates)
+                if converted is not None and math.isfinite(float(converted)):
+                    values.append(float(converted))
+    return tuple(values)
+
+
+@lru_cache(maxsize=32768)
 def get_driver_preset(name: str) -> DriverTS:
     """Return a driver preset by name."""
     if name in DRIVER_PRESETS:
@@ -1821,5 +2030,3 @@ def get_driver_preset(name: str) -> DriverTS:
         if name in presets:
             return presets[name]
     raise ValueError(f"Unknown driver preset: {name}")
-
-# Trigger reload

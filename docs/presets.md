@@ -62,8 +62,9 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
   simulation time.
 - `_load_external_presets(path, ...)`: shared lazy loader used by all five
   catalogs; missing or invalid files degrade to whatever tiers remain. Employs
-  an automatic binary `.cache.pickle` layer validated against the source JSON
-  `mtime` for sub-100ms cold boot, with automatic fallback and atomic cache
+  an automatic binary `.cache.pickle` layer with `_SafeCatalogUnpickler` (cross-import
+  safe between `src.*` and top-level execution) validated against the source JSON
+  `mtime` and `driver_prices.json` for sub-100ms cold boot, with automatic fallback and atomic cache
   refresh. Reads pre-baked `price`, `currency` and `url` fields directly from
   the catalog records with fast fallback and overlay via `pricing._preset_price`.
   Within the Load Forge manufacturer tier, decorated SB Acoustics titles are
@@ -74,15 +75,22 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
   price can still enrich the retained row.
 - `_load_loudspeaker_database_presets()` / `_load_manufacturer_presets()` /
   `_load_vituixcad_presets()` / `_load_speakerboxlite_presets()` /
-  `_load_ztzaudio_presets()` (`lru_cache(maxsize=1)` each): the catalog-specific
-  loaders. The
-  generated aggregate tiers are already brand/model-deduplicated against
+  `_load_ztzaudio_presets()` / `_load_firestore_presets()` (`lru_cache(maxsize=1)` each): the catalog-specific
+  loaders. `_load_firestore_presets()` binds to `LF_FIRESTORE_CATALOG_RUNTIME_DB` (or `LOAD_FORGE_FIRESTORE_DATABASE`),
+  caching verified snapshots in `FIRESTORE_PRESETS_CACHE_PATH` for sub-second offline startup
+  and falling back gracefully to cached snapshot or empty offline. The generated aggregate tiers are already brand/model-deduplicated against
   earlier catalogs.
 - `_external_tiers()`: the ordered list
   `[LSDB, manufacturer, Firestore online, VituixCAD, Speaker Box Lite, ZTZ Audio]` that
   `driver_preset_names/info/get_driver_preset` walk after the built-ins.
+- `_combined_catalog_maps()`: unified mapping of all 15,553 driver presets to `DriverTS` and
+  `DriverPresetInfo` providing $O(1)$ fast lookups for `get_driver_preset`, `driver_preset_info`,
+  `all_preset_brands`, `all_preset_price_currencies` and `all_preset_price_values`.
 - Public catalog API: `driver_preset_names()`, `driver_preset_info(name)`,
-  `driver_preset_provenance_category(name)`, `get_driver_preset(name)`,
+  `driver_preset_provenance_category(name)`, `driver_preset_identity(name)`,
+  `driver_preset_preference(name)`, `deduplicate_driver_preset_names(preset_names)`,
+  `all_preset_brands()`, `all_preset_price_currencies()`,
+  `all_preset_price_values(currency, rates_tuple)`, `get_driver_preset(name)`,
   `invalidate_preset_caches()`
 - `DriverPresetInfo.mechanical` optionally carries physical layout dimensions
   (`MechanicalDimensions`: overall diameter, cutout, depth, bolt circle and

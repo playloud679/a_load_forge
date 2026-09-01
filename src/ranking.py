@@ -8,8 +8,10 @@ the ranking table.
 
 from __future__ import annotations
 
+import math
 import os
 from dataclasses import asdict, dataclass
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -23,6 +25,146 @@ except ImportError:  # top-level import with src/ on sys.path (ui_app)
 SPARKLINE_POINTS = 48
 SPARKLINE_FLOOR_DB = -30.0
 FINDER_WORKER_PROTOCOL_REVISION = 2
+FINDER_SPL_PREFILTER_HEADROOM_DB = 6.0
+
+
+def candidate_precheck(
+    ts: engine.DriverTS,
+    load_type: str,
+    voltage_v: float,
+    min_spl_db: float,
+    max_ripple_db: float,
+    max_f3_hz: float = 0.0,
+    min_mol_f3_db: float = 0.0,
+    max_volume_l: float = 0.0,
+    fast_prefilter: bool = True,
+) -> str | None:
+    """Return why a candidate can be rejected before enclosure simulation."""
+    if load_type not in {"Sealed", "Infinite baffle"} and ts.xmax_mm <= 0.0:
+        return "missing Xmax"
+    if min_spl_db > 0.0:
+        reference = engine.driver_reference_metrics(ts)
+        drive_spl_db = reference.spl_2v83_db + 20.0 * np.log10(
+            float(voltage_v) / 2.83
+        )
+        enclosure_headroom_db = (
+            1.0
+            if load_type == "Infinite baffle"
+            else max(FINDER_SPL_PREFILTER_HEADROOM_DB, float(max_ripple_db))
+        )
+        if drive_spl_db + enclosure_headroom_db < float(min_spl_db):
+            return "reference SPL"
+
+    if fast_prefilter:
+        loaded_fs = engine.panel_loaded_fs_hz(ts)
+        # Analytical maximum F3 feasibility check:
+        # A sealed or infinite baffle box can never produce an F3 lower than ~0.65 * Fs.
+        # A vented / bandpass / DCCAV box cannot credibly reach an F3 lower than Fs / 2.5
+        # under realistic damping and volume bounds without extreme response anomalies.
+        if max_f3_hz > 0.0:
+            if load_type in {"Sealed", "Infinite baffle"}:
+                if float(max_f3_hz) < loaded_fs * 0.65:
+                    return "F3 infeasible"
+            elif loaded_fs > float(max_f3_hz) * 2.5:
+                return "F3 infeasible"
+
+        # Analytical MOL @ F3 feasibility check (Maximum acoustic volume displacement):
+        # Maximum excursion-limited low-frequency pressure from cone displacement Vd = Sd * Xmax.
+        # Half-space acoustic pressure at 1 m from volume displacement Vd at frequency f:
+        # P_rms = (2 * pi * f^2 * rho * Vd) / sqrt(2).
+        # We allow a generous +12 dB headroom for Helmholtz / quarter-wave resonance reinforcement.
+        if min_mol_f3_db > 0.0 and max_f3_hz > 0.0 and ts.xmax_mm > 0.0 and ts.pe_w > 0.0:
+            sd_m2 = ts.sd_cm2 / 10000.0
+            xmax_m = ts.xmax_mm / 1000.0
+            vd_m3 = sd_m2 * xmax_m
+            if vd_m3 > 0.0:
+                f_eval = float(max_f3_hz)
+                p_rms = (2.0 * np.pi * (f_eval**2) * 1.2041 * vd_m3) / 1.41421356
+                spl_excursion_cone = 20.0 * np.log10(max(p_rms, 1e-12) / 20e-6)
+                headroom_db = 12.0 if load_type != "Infinite baffle" else 0.0
+                if spl_excursion_cone + headroom_db < float(min_mol_f3_db):
+                    return "MOL infeasible"
+
+    return None
+
+
+@lru_cache(maxsize=128)
+def prefilter_finder_candidate_pools(
+    preset_names: tuple[str, ...],
+    load_types: tuple[str, ...],
+    voltage_v: float,
+    min_spl_db: float,
+    max_ripple_db: float,
+    max_f3_hz: float,
+    min_mol_f3_db: float,
+    max_volume_l: float,
+    fast_prefilter: bool,
+    driver_configuration: str,
+    pool_fingerprint: tuple = (),
+) -> tuple[tuple[tuple[str, tuple[str, ...]], ...], dict[str, int]]:
+    """Build per-load candidate pools using only pre-simulation information."""
+    del pool_fingerprint  # Cache key only: invalidates when code/catalog changes.
+    pools = {load_type: [] for load_type in load_types}
+    rejected_by_reason = {
+        "reference SPL": 0,
+        "missing Xmax": 0,
+        "invalid T/S": 0,
+        "F3 infeasible": 0,
+        "MOL infeasible": 0,
+    }
+    eligible_drivers: set[str] = set()
+    for name in preset_names:
+        try:
+            ts = engine.apply_driver_configuration(
+                presets.get_driver_preset(name),
+                driver_configuration,
+            )
+        except Exception:
+            rejected_by_reason["invalid T/S"] += len(load_types)
+            continue
+        for load_type in load_types:
+            try:
+                reason = candidate_precheck(
+                    ts,
+                    load_type,
+                    voltage_v,
+                    min_spl_db,
+                    max_ripple_db,
+                    max_f3_hz=max_f3_hz,
+                    min_mol_f3_db=min_mol_f3_db,
+                    max_volume_l=max_volume_l,
+                    fast_prefilter=fast_prefilter,
+                )
+            except Exception:
+                reason = "invalid T/S"
+            if reason is not None:
+                rejected_by_reason[reason] = rejected_by_reason.get(reason, 0) + 1
+                continue
+            pools[load_type].append(name)
+            eligible_drivers.add(name)
+    pool_rows = tuple(
+        (load_type, tuple(pools[load_type]))
+        for load_type in load_types
+    )
+    total_simulations = len(preset_names) * len(load_types)
+    eligible_simulations = sum(len(names) for names in pools.values())
+    return pool_rows, {
+        "input_drivers": len(preset_names),
+        "eligible_drivers": len(eligible_drivers),
+        "total_simulations": total_simulations,
+        "eligible_simulations": eligible_simulations,
+        "rejected_simulations": total_simulations - eligible_simulations,
+        "rejected_spl": rejected_by_reason.get("reference SPL", 0),
+        "rejected_xmax": rejected_by_reason.get("missing Xmax", 0),
+        "rejected_invalid": rejected_by_reason.get("invalid T/S", 0),
+        "rejected_f3": rejected_by_reason.get("F3 infeasible", 0),
+        "rejected_mol": rejected_by_reason.get("MOL infeasible", 0),
+    }
+
+
+def invalidate_ranking_caches() -> None:
+    """Clear cached ranking and candidate pool lookups."""
+    prefilter_finder_candidate_pools.cache_clear()
 
 
 @dataclass(frozen=True)

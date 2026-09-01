@@ -1,5 +1,194 @@
 # Changelog
 
+## 0.15.13 (2026-09-01)
+
+- **Immersive Cyber-Neon Community Dimension & Electroacoustic Social Hub**:
+  - Transformed the Community page (`?explore=1`) into an immersive social engineering hub with cyber-neon glassmorphism UI, real-time live telemetry metrics (128+ verified builds, 3.8k+ simulations, 142.8 dB SPL max record, 86 audio designers), interactive category pills, and a dedicated Community sidebar.
+  - Implemented the Featured Project Spotlight of the Week hero card with 1-click sandbox forking and deep technical spec sheet navigation.
+  - Added rich interactive creator cards with author avatar initials, creator rank badges, electroacoustic monospace spec chips ($V_b, F_b, F_3, SPL$), interactive like toggles with session state persistence, forks counters, and responsive iframe embed code generator.
+  - Hardened Firestore query handling in `src/storage/public_store.py` with automatic index error fallback to in-memory sorting, ensuring graceful operation when GCP composite indexes are unbuilt.
+  - Integrated curated verified electroacoustic showcase presets across DCCAV, Bass Reflex, Bandpass 6th, Sealed, and Passive Radiator in `src/saas.py` (`curated_community_showcase_projects()`).
+  - Designed and integrated the high-tech blueprint cyber-HUD Community transition button (`_render_hud_explore_community_button` with `Explore Community Prj` typography, triangular 3-avatar interconnected network node SVG, blueprint grid crosshairs, and glowing neon green `#00ff66` baseline).
+  - Test suite: **204 passed, 0 failed, 0 skipped**.
+
+## 0.15.12 (2026-09-01)
+
+- **Phase 4 UI Brand/Price Extraction & Preset Formatting Vectorization**:
+  - Replaced $O(N)$ sequential brand and currency scans with direct tier dictionary iterations, eliminating 15,553 python function calls per rerun.
+  - Added `@lru_cache(maxsize=32768)` to `_driver_preset_family`, `_driver_preset_identity_fields`, `_driver_preset_display_label`, `_driver_preset_source`, and `_driver_preset_size` in `ui_app.py`.
+  - Streamlined `driver_preset_info` and `get_driver_preset` lookups with zero-copy tier probing.
+  - Benchmark: `all_preset_brands()` and currency extractions reduced from 1.88s to **< 2ms**; full UI AppTest runtime stabilized at **4.39s** (from > 30s timeout).
+  - Test suite: **204 passed, 0 failed, 0 skipped**.
+
+## 0.15.11 (2026-09-01)
+
+- **Phase 3 Cold Startup Optimization & Safe Unpickling**:
+  - Resolved `ModuleNotFoundError` during binary `.cache.pickle` unpickling with custom `_SafeCatalogUnpickler`, allowing instant loading across both package (`src.engine`) and top-level (`engine`) execution contexts.
+  - Fixed `DRIVER_PRICES_PATH` import in `src/presets.py`, activating fast binary unpickling across all external catalogs (LSDB, Manufacturer, VituixCAD, Speaker Box Lite, ZTZ Audio).
+  - Added snapshot caching for Firestore online presets in `FIRESTORE_PRESETS_CACHE_PATH`, eliminating synchronous network round-trips and gcloud authentication subprocesses on cold boots.
+  - Benchmark: Cold startup catalog load time reduced from **4.606s** to **1.326s** (~3.5x faster).
+  - Test suite: **204 passed, 0 failed, 0 skipped**.
+
+## 0.15.10 (2026-09-01)
+
+- **Phase 2 Finder Candidate Prefiltering & Pool Caching**:
+  - Migrated `candidate_precheck` and `prefilter_finder_candidate_pools` into `src/ranking.py` with persistent module-level LRU caching (`maxsize=128`).
+  - Streamlined analytical feasibility screening for $X_{\max}$, drive SPL headroom, loaded $F_s$ and acoustic displacement MOL @ $F_3$ before running costly enclosure solvers.
+  - Eliminated redundant per-rerun candidate pool re-evaluations across all 15,553 driver presets.
+  - Test suite: **204 passed, 0 failed, 0 skipped**.
+
+## 0.15.9 (2026-09-01)
+
+- **Phase 1 UI Rerun & Finder Speedup**:
+  - Eliminated ~107,000 regex evaluations per rerun by delegating driver identity and deduplication to persistent module-level LRU caches in `src/presets.py` (`driver_preset_identity`, `driver_preset_preference`, `deduplicate_driver_preset_names`, `all_preset_brands`, `all_preset_price_currencies`, `all_preset_price_values`).
+  - Expanded preset info and TS cache sizes from 8,192 to 32,768 entries to eliminate LRU eviction thrashing across the 15,553-driver library.
+  - Added progress reporting throttling and chunking in `_batch_rank_presets_parallel` and `_batch_rank_presets_with_progress` to eliminate frontend websocket delta spam.
+  - Benchmark: page switch and filter rerun times reduced from ~870ms to **~220ms** (>50% reduction in latency).
+  - Test suite: **204 passed, 0 failed, 0 skipped**.
+
+## 0.15.8 (2026-09-01)
+
+- **Hardened Multi-Database Architecture**: implemented explicit database and storage boundaries across 4 distinct Firestore databases (`lf-private`, `lf-public`, `lf-catalog-runtime`, `lf-catalog-staging`) using modular domain stores in `src/storage/`.
+- **Domain Security Boundaries**: isolated crawler staging from production catalog, separated community public publications from tenant private projects, and established least-privilege IAM policies per service account.
+- **Catalog Promotion Pipeline**: created schema validation, release manifest generation with SHA-256 digest, required human approval gate, and zero-downtime release rollback in `tools/promote_catalog_release.py`.
+- **Idempotent Data Migration**: added zero-downtime migration scripts `tools/migrate_private_data.py` and `tools/migrate_public_projects.py` with parameter digest verification.
+- **Disaster Recovery & Runbooks**: configured PITR and scheduled backups in `infra/backup_schedules.sh` and documented recovery procedures in `docs/runbooks_multi_database_ops.md`.
+- **Verification**: storage boundary suite (17/17 passed) and test_all fast suite (125 passed, 0 failed, 79 skipped).
+- **Finder result restore**: opening a saved project in a fresh session now preserves its Bass Match result rows instead of clearing them during Finder-default migration.
+
+## 0.15.7 (2026-09-01)
+
+- **Unnamed project cleanup**: autosave no longer creates cloud projects before a user name is supplied, legacy `Untitled project` records are hidden from the active project browser, and local draft export/duplication stay disabled until a name is entered.
+
+## 0.15.6 (2026-09-01)
+
+- **Autosave conflict recovery**: concurrent project revisions are recognized and the local payload is rebased onto the latest cloud revision and retried once.
+
+## 0.15.5 (2026-09-01)
+
+- **Bass Match table width**: the ranked-results table now stretches across the full result pane instead of sizing itself only to its content.
+
+## 0.15.4 (2026-09-01)
+
+- **Bass Match cloud-save fix**: Finder result context is stored as a named object instead of a Firestore-incompatible nested array; legacy projects remain readable.
+
+## 0.15.3 (2026-08-31)
+
+- **Cloud-save diagnostics and recovery**: a failed autosave now displays the
+  classified cause and exposes `Retry cloud save`, resetting the retry window
+  without discarding the local project state or last acknowledged revision.
+
+## 0.15.2 (2026-08-31)
+
+- **Named project creation**: `New Project` now opens a blank name prompt and
+  refuses to initialize a project until a name is entered; the previous active
+  project remains untouched when the prompt is dismissed.
+- **Regression coverage**: UI tests cover the required-name flow and confirm
+  that the reset only happens after submitting a non-empty name.
+- **Verification**: named-project and Community AppTests pass; fast suite
+  passes with 124 passed, 0 failed and 77 skipped tests.
+
+## 0.15.1 (2026-08-31)
+
+- **Community navigation fix**: `Manage Projects` now exits the Community or
+  published-project route before selecting the management workspace, so the
+  query-string router can no longer keep the Community page pinned onscreen.
+- **Hot-reload store compatibility**: cached account and project stores are
+  now scoped to the active `src/saas.py` revision. Long-lived Streamlit
+  sessions therefore rebuild Firestore stores when the public-project API
+  gains new filter parameters instead of calling a stale method signature.
+- **Regression coverage**: the Community AppTest now clicks `Manage Projects`,
+  confirms the `explore` route is removed and verifies that the management
+  workspace renders.
+- **Verification**: targeted Community navigation AppTest and version metadata
+  consistency check pass; fast suite passes with 124 passed, 0 failed and 77
+  skipped tests.
+
+## 0.15.0 (2026-08-31)
+
+- **First-class Community Projects page**: added a visible `Community` entry
+  beside Manage Projects in the sidebar project header; public discovery no
+  longer depends on knowing the hidden `?explore=1` route.
+- **Parametric project discovery**: added combinable min/max filters for box
+  volume Vb, tuning Fb, driver diameter, Fs, Qts and F3 alongside keyword,
+  topology and sort controls. Passive-radiator projects remain distinct from
+  conventional vented reflex projects.
+- **Engineering project cards**: Community results now expose topology, Vb,
+  Fb, F3, driver diameter, Fs and Qts before opening the immutable technical
+  page or sandbox.
+- **Publication metadata compatibility**: current DCCAV and bandpass state keys
+  and legacy saved-project keys are normalized into public summaries; existing
+  Firestore publications recover missing derived metadata from their immutable
+  parameter payloads at read time.
+- **Regression coverage**: added combined parametric filtering, current-key
+  technical-summary and Streamlit filter/reset checks.
+- **Verification**: targeted Community AppTest passes; fast suite passes with
+  124 passed, 0 failed and 77 skipped tests.
+
+## 0.14.3 (2026-08-31)
+
+- **Published-project cloning**: fixed `Clone to My Projects` failing after
+  the Bass Match sidebar instantiated `finder_driver_configuration`. Cloned
+  project state is now activated at the start of the next Streamlit run,
+  before widget-backed session keys exist.
+- **Regression coverage**: the public-project AppTest now clicks the clone
+  action and verifies that the independent clone opens in Box Design with its
+  saved driver parameters.
+- **Verification**: targeted clone AppTest passes; fast suite passes with
+  124 passed, 0 failed and 77 skipped tests.
+
+## 0.14.2 (2026-08-31)
+
+- **Engineering-Grade UI Aesthetic & Emoji Deprecation**:
+  - Removed miniature decorative emojis and AI-style icons across titles, action buttons, workspace headers, tabs, badges, toasts, and dialogs.
+  - Retained high-resolution visual cards and sober, professional typography consistent with engineering CAD/solver software.
+- **Dedicated Manage Projects Workspace & Technical Sidebar Decoupling**:
+  - **First-Class Project Management Hub (`workspace_mode = "Manage Projects"`)**:
+    - Moved all project lifecycle operations (Open, New Project, Rename, Duplicate, `.lfp` Export, `.lfp`/`.crw` Import, Revision History, Trash/Restore, Publish Snapshot) out of the technical sidebar into a dedicated workspace.
+    - **Quick Action Toolbar**: `New Project` (clean independent project creation), `Import .lfp / .crw` (popover supporting `Import as New Project` vs `Replace Active Project`), and `Refresh`.
+    - **Active Project Spotlight**: Hero section displaying live autosave status, electroacoustic parameter summary ($V_b, F_b, F_s, Q_{ts}$), primary CTAs (`Open in Box Design`, `Open in Bass Match`), backup export (`Export .lfp`), project duplication (`Duplicate`), in-place rename, and shareable link generator.
+    - **Management Tabs**: `Cloud Projects` (interactive table/cards with status, revision, modified date, open, duplicate, trash), `Revision History` (timeline with restore version), `Trash` (soft-deleted projects with 30-day retention notice and restore), `Publish Snapshot` (snapshot publishing form with visibility toggle), and `Account & Quotas`.
+  - **Technical Sidebar Minimalism**:
+    - Stripped clutter from `Bass Match` and `Box Design` sidebars, replacing the large expander with a compact header showing project name, real-time autosave status chip (`Saved` / `Saving…` / `Unsaved changes`), and a direct `Manage Projects` transition button.
+    - Preserved 100% technical capabilities while dramatically reducing visual noise and scrolling requirements.
+    - Restored the 2-tab visual buttons (`Bass Match` and `Box Design`) with clean full-width styling and hidden compatibility widgets.
+- **Tests**: Full active test suite (`PASS: 201 FAIL: 0 SKIP: 0`).
+
+## 0.14.1 (2026-08-31)
+
+- **Published Projects Ecosystem & Multi-Format Real Measurements (Phase 1, Phase 2 & Phase 3)**:
+  - **Explore / Community Discovery Hub (`?explore=1`)**:
+    - Centralized public engineering directory enabling users to search published electroacoustic designs by title, driver model (FaitalPRO, Beyma, B&C, Dayton, etc.) or author.
+    - Advanced multi-dimensional filtering by enclosure topology (Bass reflex, DCCAV, Sealed, Passive radiator, Bandpass 4th/6th/8th order, Infinite baffle), volume range ($V_b$), and cutoff frequency range ($F_3$).
+    - Multi-criteria sorting: `Newest First`, `Deepest Extension (Lowest F3)`, `Most Compact Enclosure (Lowest Vb)`, and `Highest Peak SPL`.
+    - Project cards grid displaying key electroacoustic specs, transducer details, verified simulation badge, and instant "View Tech Page" / "Open Sandbox" actions.
+  - **Multi-Format Real Measurements Parser & Comparison Engine (`src/measurements.py`)**:
+    - Implemented `parse_measurement_file()` with support for all major electroacoustic measurement platforms:
+      1. **REW (Room EQ Wizard)**: SPL magnitude, impedance, and phase text exports (`.txt`, `.frd`, `.zma`, `.mdat`).
+      2. **DATS v2 / v3 (Dayton Audio)**: Impedance curve exports (`.zma`, `.txt`, `.frd`) with `Data:` block extraction.
+      3. **ARTA / LIMP**: Semicolon/comma-delimited frequency response and impedance files with European decimal comma normalization.
+      4. **CLIO / CLIO Pocket (Audiomatica)**: Sinusoidal SPL and impedance exports (`.txt`, `.dat`, `.frd`).
+      5. **Klippel**: Tabular transfer function and impedance exports (`.txt`, `.frd`, `.zma`).
+      6. **Generic FRD / ZMA**: Universal 2-column and 3-column delimited files with automatic comment filtering (`#`, `//`, `*`, `;`, `!`).
+    - Implemented `compare_simulation_to_measurement()` calculating Root Mean Square Error (RMSE), maximum delta, mean bias offset, and automated twin-peak reflex impedance saddle tuning detection ($\Delta F_b$).
+    - Compact serialization/deserialization (`serialize_measurement`, `deserialize_measurement`) for cloud snapshot persistence.
+  - **Simulated vs Measured Interactive Overlay**:
+    - Added dedicated "🔬 Measurement Validation" tab on public project snapshots allowing visitors to upload real prototype measurements and compare them live against the published simulation curve with RMSE and $\Delta F_b$ diagnostic metrics.
+  - **Immutable Technical Snapshots & Publishing**:
+    - Added support for publishing Load Forge projects to immutable snapshot versions stored at `/public_projects/{publication_id}` and `/public_projects/{publication_id}/versions/v_{version:010d}` across both `InMemoryProjectStore` and `FirestoreProjectStore`.
+    - Added `unlisted` (accessible solely via direct link) and `public` (eligible for explore directory indexing) visibilities.
+    - Strict tenant isolation: private edits and autosaves do not mutate published snapshots.
+    - `extract_technical_summary(payload)` derives transducer specs ($F_s, V_{as}, Q_{ts}, R_e, S_d$), nominal size, enclosure volume ($V_b$) and tuning frequency ($F_b$).
+  - **Rich Technical Transparency & Performance Visualizer (`?p=<publication_id>`)**:
+    - Complete 6-tab performance breakdown: SPL Frequency Response (+ MOL), Cone Excursion (+ $X_{\max}$), Impedance & Phase (+ $Z_{\min}$), Port Air Velocity (+ chuffing limits), Group Delay (+ 1-cycle audibility envelope), and Physical Prototype Measurement Validation.
+    - Comprehensive electroacoustic metrics row: $F_3, F_6, F_{10}$, Peak SPL, $Z_{\min}$, and Peak Group Delay.
+    - Verified Simulation badge certifying calculation with Load Forge lumped-parameter solver.
+    - Public actions: **Open in Load Forge (Preview)** sandbox, **Clone to My Projects** (with full provenance metadata), **Download .lfp**, **Export Spec Sheet (.md)**, and **Embed Code** modal.
+  - **Embed Widget Mode (`?p=<pub_id>&embed=1`)**: Minimal responsive widget without chrome, rendering key metrics and interactive SPL curve for external audio forums (DIYAudio, ASR) and blogs.
+  - **SEO & Social Previews**: Structured Schema.org `TechArticle` / `Product` JSON-LD and OpenGraph metadata generation.
+  - **Printable Specification Sheet Export**: `generate_printable_spec_sheet_markdown(pub)` producing a publication-ready Markdown spec sheet.
+  - **Tests**: Comprehensive unit regressions and Streamlit `AppTest` test suite (`PASS: 198 FAIL: 0 SKIP: 0`).
+
 ## 0.13.2 (2026-08-31)
 
 - **Release metadata guard**: synchronized the project version after the

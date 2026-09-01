@@ -9,6 +9,7 @@ are peers behind the same API.
 The implementation remains split by responsibility:
 
 - `src/engine.py`: acoustic physics, simulations, optimizers and analysis;
+- `src/measurements.py`: multi-format real measurement parsing (REW, DATS, ARTA, CLIO, Klippel, FRD, ZMA) and simulation comparison;
 - `src/port_cad.py`: parametric in-scale CAD cross-section blueprints and 3D STL mesh export;
 - `src/presets.py`: driver T/S catalogs, passive radiator presets and metadata;
 - `src/pricing.py`: verified retailer prices and value scoring;
@@ -28,7 +29,7 @@ topology; new cross-load code and documentation should use `acoustics`.
 
 The public types and functions are those exported by the implementation
 modules. Detailed contracts, formulas, validation rules and limitations live
-in [engine.md](engine.md), [port_cad.md](port_cad.md), [presets.md](presets.md),
+in [engine.md](engine.md), [measurements.md](measurements.md), [port_cad.md](port_cad.md), [presets.md](presets.md),
 [pricing.md](pricing.md) and [ranking.md](ranking.md). DCCAV-specific theory
 remains in [dccav.md](dccav.md).
 
