@@ -897,78 +897,100 @@ def extract_technical_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
     f3_hz = params.get("f3_hz") if params.get("f3_hz") is not None else params.get("f3")
     peak_spl_db = params.get("peak_spl_db") if params.get("peak_spl_db") is not None else (params.get("spl_db") or params.get("mol_db"))
 
-    if (f3_hz is None or peak_spl_db is None) and fs and vas and qts:
+    if f3_hz is None or peak_spl_db is None:
         try:
             from src import acoustics as _acoustics
             import numpy as _np
-            d_ts = _acoustics.DriverTS(
-                fs_hz=float(fs),
-                vas_l=float(vas),
-                qts=float(qts),
-                qms=float(qms or 5.0),
-                re_ohm=float(re_val or 5.0),
-                sd_cm2=float(sd or 500.0),
-                pe_w=float(pe or 100.0),
-                xmax_mm=float(xmax or 5.0),
-                preset_name=driver_name,
-            )
-            freq = _acoustics.response_frequency_grid(20.0, 500.0, points=120)
-            res = None
-            if load_type == "Bass reflex":
-                b_mod = _acoustics.ReflexBox(
-                    vb_l=float(params.get("reflex_vb_l", 50.0) or 50.0),
-                    fb_hz=float(params.get("reflex_fb_hz", 40.0) or 40.0),
-                    ql=float(params.get("reflex_ql", 7.0) or 7.0),
+            d_ts = None
+            if fs and vas and qts:
+                d_ts = _acoustics.DriverTS(
+                    fs_hz=float(fs),
+                    vas_l=float(vas),
+                    qts=float(qts),
+                    qms=float(qms or 5.0),
+                    re_ohm=float(re_val or 5.0),
+                    sd_cm2=float(sd or 500.0),
+                    pe_w=float(pe or 100.0),
+                    xmax_mm=float(xmax or 5.0),
+                    preset_name=driver_name,
                 )
-                res = _acoustics.simulate_reflex(d_ts, b_mod, freq)
-            elif load_type == "Sealed":
-                b_mod = _acoustics.SealedBox(
-                    vb_l=float(params.get("sealed_vb_l", 30.0) or 30.0),
-                    fc_hz=float(params.get("sealed_fc_hz", 50.0) or 50.0),
-                    qtc=float(params.get("sealed_qtc", 0.707) or 0.707),
-                )
-                res = _acoustics.simulate_sealed(d_ts, b_mod, freq)
-            elif load_type == "DCCAV":
-                vh = float(params.get("box_vh_l", params.get("dccav_vb1_l", 15.0)) or 15.0)
-                vl = float(params.get("box_vl_l", params.get("dccav_vb2_l", 25.0)) or 25.0)
-                fh = float(params.get("box_fh_hz", params.get("dccav_fb1_hz", 60.0)) or 60.0)
-                fl = float(params.get("box_fl_hz", params.get("dccav_fb2_hz", 30.0)) or 30.0)
-                b_mod = _acoustics.DccavBox(vh_l=vh, vl_l=vl, fh_hz=fh, fl_hz=fl)
-                res = _acoustics.simulate(d_ts, b_mod, freq)
-            elif load_type == "Bandpass 4th order":
-                vs = float(params.get("bandpass4_vs_l", params.get("bp4_vb_l", 20.0)) or 20.0)
-                vp = float(params.get("bandpass4_vp_l", params.get("bp4_vf_l", 20.0)) or 20.0)
-                fp = float(params.get("bandpass4_fp_hz", params.get("bp4_fb_hz", 50.0)) or 50.0)
-                b_mod = _acoustics.Bandpass4Box(vs_l=vs, vp_l=vp, fp_hz=fp)
-                res = _acoustics.simulate_bandpass4(d_ts, b_mod, freq)
-            elif load_type == "Bandpass 6th order":
-                vr = float(params.get("bandpass6_vr_l", params.get("bp6_vr_l", 20.0)) or 20.0)
-                vp = float(params.get("bandpass6_vp_l", params.get("bp6_vf_l", 20.0)) or 20.0)
-                fp = float(params.get("bandpass6_fp_hz", params.get("bp6_fb_f_hz", 60.0)) or 60.0)
-                fr = float(params.get("bandpass6_fr_hz", params.get("bp6_fb_r_hz", 30.0)) or 30.0)
-                b_mod = _acoustics.Bandpass6Box(vr_l=vr, vp_l=vp, fp_hz=fp, fr_hz=fr)
-                res = _acoustics.simulate_bandpass6(d_ts, b_mod, freq)
-            elif load_type == "Bandpass 8th order":
-                v1 = float(params.get("bp8_v1_l", 20.0) or 20.0)
-                v2 = float(params.get("bp8_v2_l", 20.0) or 20.0)
-                v3 = float(params.get("bp8_v3_l", 20.0) or 20.0)
-                f1 = float(params.get("bp8_f1_hz", 70.0) or 70.0)
-                f2 = float(params.get("bp8_f2_hz", 45.0) or 45.0)
-                f3_p = float(params.get("bp8_f3_hz", 30.0) or 30.0)
-                b_mod = _acoustics.Bandpass8Box(v1_l=v1, v2_l=v2, v3_l=v3, f1_hz=f1, f2_hz=f2, f3_hz=f3_p)
-                res = _acoustics.simulate_bandpass8(d_ts, b_mod, freq)
-            elif load_type == "Infinite baffle":
-                res = _acoustics.simulate_infinite_baffle(d_ts, freq)
+            elif driver_name:
+                try:
+                    d_ts = _acoustics.get_driver_preset(driver_name)
+                except Exception:
+                    clean = driver_name.split("(")[0].strip()
+                    try:
+                        d_ts = _acoustics.get_driver_preset(clean)
+                    except Exception:
+                        d_ts = None
 
-            if res is not None:
-                mets = _acoustics.response_metrics(res)
-                if f3_hz is None:
-                    f3_hz = mets.get("f3_hz")
-                if peak_spl_db is None:
-                    if hasattr(res, "mol_db") and len(res.mol_db):
-                        peak_spl_db = float(_np.nanmax(res.mol_db))
-                    elif hasattr(res, "spl_total_db") and len(res.spl_total_db):
-                        peak_spl_db = float(_np.nanmax(res.spl_total_db))
+            if d_ts is not None:
+                freq = _np.geomspace(20.0, 500.0, 120)
+                res = None
+                vol_val = float(box_vol_l or 0.0)
+                if load_type == "Bass reflex":
+                    vb = vol_val if vol_val > 0 else (d_ts.vas_l * (d_ts.qts ** 2) * 15.0)
+                    fb = float(tuning_hz or d_ts.fs_hz)
+                    b_mod = _acoustics.ReflexBox(
+                        vb_l=vb,
+                        fb_hz=fb,
+                        ql=float(params.get("reflex_ql", 7.0) or 7.0),
+                    )
+                    res = _acoustics.simulate_reflex(d_ts, b_mod, freq)
+                elif load_type == "Sealed":
+                    vb = vol_val if vol_val > 0 else d_ts.vas_l
+                    fc = float(tuning_hz or (d_ts.fs_hz * 1.3))
+                    b_mod = _acoustics.SealedBox(
+                        vb_l=vb,
+                        fc_hz=fc,
+                        qtc=float(params.get("sealed_qtc", 0.707) or 0.707),
+                    )
+                    res = _acoustics.simulate_sealed(d_ts, b_mod, freq)
+                elif load_type == "DCCAV":
+                    if vol_val > 0:
+                        vh = float(params.get("box_vh_l", params.get("dccav_vb1_l", vol_val / 3.0)) or (vol_val / 3.0))
+                        vl = float(params.get("box_vl_l", params.get("dccav_vb2_l", 2.0 * vol_val / 3.0)) or (2.0 * vol_val / 3.0))
+                        fh = float(params.get("box_fh_hz", params.get("dccav_fb1_hz", tuning_hz or 60.0)) or 60.0)
+                        fl = float(params.get("box_fl_hz", params.get("dccav_fb2_hz", 30.0)) or 30.0)
+                        b_mod = _acoustics.DccavBox(vh_l=vh, vl_l=vl, fh_hz=fh, fl_hz=fl)
+                    else:
+                        sugg = _acoustics.suggest_alignment(d_ts)
+                        b_mod = _acoustics.DccavBox(vh_l=sugg.vh_l, vl_l=sugg.vl_l, fh_hz=sugg.fh_hz, fl_hz=sugg.fl_hz)
+                    res = _acoustics.simulate(d_ts, b_mod, freq)
+                elif load_type == "Bandpass 4th order":
+                    vs = float(params.get("bandpass4_vs_l", params.get("bp4_vb_l", vol_val / 2.0 if vol_val else 20.0)) or 20.0)
+                    vp = float(params.get("bandpass4_vp_l", params.get("bp4_vf_l", vol_val / 2.0 if vol_val else 20.0)) or 20.0)
+                    fp = float(params.get("bandpass4_fp_hz", params.get("bp4_fb_hz", tuning_hz or 50.0)) or 50.0)
+                    b_mod = _acoustics.Bandpass4Box(vs_l=vs, vp_l=vp, fp_hz=fp)
+                    res = _acoustics.simulate_bandpass4(d_ts, b_mod, freq)
+                elif load_type == "Bandpass 6th order":
+                    vr = float(params.get("bandpass6_vr_l", params.get("bp6_vr_l", vol_val / 2.0 if vol_val else 20.0)) or 20.0)
+                    vp = float(params.get("bandpass6_vp_l", params.get("bp6_vf_l", vol_val / 2.0 if vol_val else 20.0)) or 20.0)
+                    fp = float(params.get("bandpass6_fp_hz", params.get("bp6_fb_f_hz", tuning_hz or 60.0)) or 60.0)
+                    fr = float(params.get("bandpass6_fr_hz", params.get("bp6_fb_r_hz", 30.0)) or 30.0)
+                    b_mod = _acoustics.Bandpass6Box(vr_l=vr, vp_l=vp, fp_hz=fp, fr_hz=fr)
+                    res = _acoustics.simulate_bandpass6(d_ts, b_mod, freq)
+                elif load_type == "Bandpass 8th order":
+                    v1 = float(params.get("bp8_v1_l", vol_val / 3.0 if vol_val else 20.0) or 20.0)
+                    v2 = float(params.get("bp8_v2_l", vol_val / 3.0 if vol_val else 20.0) or 20.0)
+                    v3 = float(params.get("bp8_v3_l", vol_val / 3.0 if vol_val else 20.0) or 20.0)
+                    f1 = float(params.get("bp8_f1_hz", 70.0) or 70.0)
+                    f2 = float(params.get("bp8_f2_hz", 45.0) or 45.0)
+                    f3_p = float(params.get("bp8_f3_hz", 30.0) or 30.0)
+                    b_mod = _acoustics.Bandpass8Box(v1_l=v1, v2_l=v2, v3_l=v3, f1_hz=f1, f2_hz=f2, f3_hz=f3_p)
+                    res = _acoustics.simulate_bandpass8(d_ts, b_mod, freq)
+                elif load_type == "Infinite baffle":
+                    res = _acoustics.simulate_infinite_baffle(d_ts, freq)
+
+                if res is not None:
+                    mets = _acoustics.response_metrics(res)
+                    if f3_hz is None:
+                        f3_hz = mets.get("f3_hz")
+                    if peak_spl_db is None:
+                        if hasattr(res, "mol_db") and len(res.mol_db) and _np.nanmax(res.mol_db) > 0:
+                            peak_spl_db = float(_np.nanmax(res.mol_db))
+                        elif hasattr(res, "spl_total_db") and len(res.spl_total_db):
+                            peak_spl_db = float(_np.nanmax(res.spl_total_db))
         except Exception as exc:
             logger.debug("Automatic technical summary metric derivation: %s", exc)
 

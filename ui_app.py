@@ -13294,62 +13294,88 @@ def _derive_project_acoustic_metrics(params_items: tuple) -> tuple[float | None,
     params = dict(params_items)
     try:
         load_type = str(params.get("load_type", "Bass reflex"))
+        driver_name = str(params.get("driver_name", params.get("driver_preset_name", ""))).strip()
         fs = params.get("driver_fs_hz")
         vas = params.get("driver_vas_l")
         qts = params.get("driver_qts")
-        if not (fs and vas and qts):
+        box_vol_l = params.get("box_volume_l", params.get("reflex_vb_l", params.get("sealed_vb_l")))
+        tuning_hz = params.get("tuning_freq_hz", params.get("reflex_fb_hz", params.get("sealed_fc_hz")))
+
+        d_ts = None
+        if fs and vas and qts:
+            d_ts = _acoustics.DriverTS(
+                fs_hz=float(fs),
+                vas_l=float(vas),
+                qts=float(qts),
+                qms=float(params.get("driver_qms") or 5.0),
+                re_ohm=float(params.get("driver_re_ohm") or 5.0),
+                sd_cm2=float(params.get("driver_sd_cm2") or 500.0),
+                pe_w=float(params.get("driver_pe_w") or 100.0),
+                xmax_mm=float(params.get("driver_xmax_mm") or 5.0),
+                preset_name=driver_name,
+            )
+        elif driver_name:
+            try:
+                d_ts = _acoustics.get_driver_preset(driver_name)
+            except Exception:
+                clean = driver_name.split("(")[0].strip()
+                try:
+                    d_ts = _acoustics.get_driver_preset(clean)
+                except Exception:
+                    d_ts = None
+
+        if d_ts is None:
             return None, None
-        d_ts = _acoustics.DriverTS(
-            fs_hz=float(fs),
-            vas_l=float(vas),
-            qts=float(qts),
-            qms=float(params.get("driver_qms") or 5.0),
-            re_ohm=float(params.get("driver_re_ohm") or 5.0),
-            sd_cm2=float(params.get("driver_sd_cm2") or 500.0),
-            pe_w=float(params.get("driver_pe_w") or 100.0),
-            xmax_mm=float(params.get("driver_xmax_mm") or 5.0),
-            preset_name=str(params.get("driver_preset_name", "")),
-        )
-        freq = _acoustics.response_frequency_grid(20.0, 500.0, points=120)
+
+        freq = np.geomspace(20.0, 500.0, 120)
         res = None
+        vol_val = float(box_vol_l or 0.0)
         if load_type == "Bass reflex":
+            vb = vol_val if vol_val > 0 else (d_ts.vas_l * (d_ts.qts ** 2) * 15.0)
+            fb = float(tuning_hz or d_ts.fs_hz)
             b_mod = _acoustics.ReflexBox(
-                vb_l=float(params.get("reflex_vb_l", 50.0) or 50.0),
-                fb_hz=float(params.get("reflex_fb_hz", 40.0) or 40.0),
+                vb_l=vb,
+                fb_hz=fb,
                 ql=float(params.get("reflex_ql", 7.0) or 7.0),
             )
             res = _acoustics.simulate_reflex(d_ts, b_mod, freq)
         elif load_type == "Sealed":
+            vb = vol_val if vol_val > 0 else d_ts.vas_l
+            fc = float(tuning_hz or (d_ts.fs_hz * 1.3))
             b_mod = _acoustics.SealedBox(
-                vb_l=float(params.get("sealed_vb_l", 30.0) or 30.0),
-                fc_hz=float(params.get("sealed_fc_hz", 50.0) or 50.0),
+                vb_l=vb,
+                fc_hz=fc,
                 qtc=float(params.get("sealed_qtc", 0.707) or 0.707),
             )
             res = _acoustics.simulate_sealed(d_ts, b_mod, freq)
         elif load_type == "DCCAV":
-            vh = float(params.get("box_vh_l", params.get("dccav_vb1_l", 15.0)) or 15.0)
-            vl = float(params.get("box_vl_l", params.get("dccav_vb2_l", 25.0)) or 25.0)
-            fh = float(params.get("box_fh_hz", params.get("dccav_fb1_hz", 60.0)) or 60.0)
-            fl = float(params.get("box_fl_hz", params.get("dccav_fb2_hz", 30.0)) or 30.0)
-            b_mod = _acoustics.DccavBox(vh_l=vh, vl_l=vl, fh_hz=fh, fl_hz=fl)
+            if vol_val > 0:
+                vh = float(params.get("box_vh_l", params.get("dccav_vb1_l", vol_val / 3.0)) or (vol_val / 3.0))
+                vl = float(params.get("box_vl_l", params.get("dccav_vb2_l", 2.0 * vol_val / 3.0)) or (2.0 * vol_val / 3.0))
+                fh = float(params.get("box_fh_hz", params.get("dccav_fb1_hz", tuning_hz or 60.0)) or 60.0)
+                fl = float(params.get("box_fl_hz", params.get("dccav_fb2_hz", 30.0)) or 30.0)
+                b_mod = _acoustics.DccavBox(vh_l=vh, vl_l=vl, fh_hz=fh, fl_hz=fl)
+            else:
+                sugg = _acoustics.suggest_alignment(d_ts)
+                b_mod = _acoustics.DccavBox(vh_l=sugg.vh_l, vl_l=sugg.vl_l, fh_hz=sugg.fh_hz, fl_hz=sugg.fl_hz)
             res = _acoustics.simulate(d_ts, b_mod, freq)
         elif load_type == "Bandpass 4th order":
-            vs = float(params.get("bandpass4_vs_l", params.get("bp4_vb_l", 20.0)) or 20.0)
-            vp = float(params.get("bandpass4_vp_l", params.get("bp4_vf_l", 20.0)) or 20.0)
-            fp = float(params.get("bandpass4_fp_hz", params.get("bp4_fb_hz", 50.0)) or 50.0)
+            vs = float(params.get("bandpass4_vs_l", params.get("bp4_vb_l", vol_val / 2.0 if vol_val else 20.0)) or 20.0)
+            vp = float(params.get("bandpass4_vp_l", params.get("bp4_vf_l", vol_val / 2.0 if vol_val else 20.0)) or 20.0)
+            fp = float(params.get("bandpass4_fp_hz", params.get("bp4_fb_hz", tuning_hz or 50.0)) or 50.0)
             b_mod = _acoustics.Bandpass4Box(vs_l=vs, vp_l=vp, fp_hz=fp)
             res = _acoustics.simulate_bandpass4(d_ts, b_mod, freq)
         elif load_type == "Bandpass 6th order":
-            vr = float(params.get("bandpass6_vr_l", params.get("bp6_vr_l", 20.0)) or 20.0)
-            vp = float(params.get("bandpass6_vp_l", params.get("bp6_vf_l", 20.0)) or 20.0)
-            fp = float(params.get("bandpass6_fp_hz", params.get("bp6_fb_f_hz", 60.0)) or 60.0)
+            vr = float(params.get("bandpass6_vr_l", params.get("bp6_vr_l", vol_val / 2.0 if vol_val else 20.0)) or 20.0)
+            vp = float(params.get("bandpass6_vp_l", params.get("bp6_vf_l", vol_val / 2.0 if vol_val else 20.0)) or 20.0)
+            fp = float(params.get("bandpass6_fp_hz", params.get("bp6_fb_f_hz", tuning_hz or 60.0)) or 60.0)
             fr = float(params.get("bandpass6_fr_hz", params.get("bp6_fb_r_hz", 30.0)) or 30.0)
             b_mod = _acoustics.Bandpass6Box(vr_l=vr, vp_l=vp, fp_hz=fp, fr_hz=fr)
             res = _acoustics.simulate_bandpass6(d_ts, b_mod, freq)
         elif load_type == "Bandpass 8th order":
-            v1 = float(params.get("bp8_v1_l", 20.0) or 20.0)
-            v2 = float(params.get("bp8_v2_l", 20.0) or 20.0)
-            v3 = float(params.get("bp8_v3_l", 20.0) or 20.0)
+            v1 = float(params.get("bp8_v1_l", vol_val / 3.0 if vol_val else 20.0) or 20.0)
+            v2 = float(params.get("bp8_v2_l", vol_val / 3.0 if vol_val else 20.0) or 20.0)
+            v3 = float(params.get("bp8_v3_l", vol_val / 3.0 if vol_val else 20.0) or 20.0)
             f1 = float(params.get("bp8_f1_hz", 70.0) or 70.0)
             f2 = float(params.get("bp8_f2_hz", 45.0) or 45.0)
             f3_p = float(params.get("bp8_f3_hz", 30.0) or 30.0)
@@ -13362,7 +13388,7 @@ def _derive_project_acoustic_metrics(params_items: tuple) -> tuple[float | None,
             mets = _acoustics.response_metrics(res)
             f3_val = mets.get("f3_hz")
             spl_val = None
-            if hasattr(res, "mol_db") and len(res.mol_db):
+            if hasattr(res, "mol_db") and len(res.mol_db) and np.nanmax(res.mol_db) > 0:
                 spl_val = float(np.nanmax(res.mol_db))
             elif hasattr(res, "spl_total_db") and len(res.spl_total_db):
                 spl_val = float(np.nanmax(res.spl_total_db))
