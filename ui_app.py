@@ -13679,24 +13679,41 @@ def _render_explore_projects_directory() -> None:
         top_load = top_tech.get("load_type", "Bass reflex") or "Bass reflex"
         top_size = top_tech.get("nominal_size_in")
         top_is_liked = top_pub.publication_id in user_likes
+        top_f3_val = float(top_f3) if top_f3 is not None and float(top_f3 or 0) > 0 else None
+        top_spl_val = float(top_spl) if top_spl is not None and float(top_spl or 0) > 0 else None
 
-        if top_f3 is None or top_spl is None:
+        if top_f3_val is None or top_spl_val is None:
             top_raw = getattr(top_pub, "parameters", {}) or {}
             inner_p = top_raw.get("parameters", {}) if isinstance(top_raw.get("parameters"), dict) else top_raw
             merged = {**inner_p, **top_tech}
             items = tuple(sorted((str(k), v) for k, v in merged.items() if isinstance(v, (str, int, float, bool))))
             f3_c, spl_c = _derive_project_acoustic_metrics(items)
-            if top_f3 is None:
-                top_f3 = f3_c
-            if top_spl is None:
-                top_spl = spl_c
+            if top_f3_val is None and f3_c is not None:
+                top_f3_val = f3_c
+            if top_spl_val is None and spl_c is not None:
+                top_spl_val = spl_c
+
+        if top_f3_val is None or top_spl_val is None:
+            try:
+                full_top = store.get_public_project(top_pub.publication_id)
+                if full_top is not None and full_top.parameters:
+                    full_p = full_top.parameters.get("parameters", {}) if isinstance(full_top.parameters.get("parameters"), dict) else full_top.parameters
+                    merged_full = {**full_p, **top_tech}
+                    items_full = tuple(sorted((str(k), v) for k, v in merged_full.items() if isinstance(v, (str, int, float, bool))))
+                    f3_f, spl_f = _derive_project_acoustic_metrics(items_full)
+                    if top_f3_val is None and f3_f is not None:
+                        top_f3_val = f3_f
+                    if top_spl_val is None and spl_f is not None:
+                        top_spl_val = spl_f
+            except Exception:
+                pass
 
         top_driver_str = str(top_driver)
         if isinstance(top_size, (int, float)) and top_size > 0:
             top_driver_str += f' ({top_size:.0f}")'
         top_vb_str = f"{top_vol:.1f} L" if top_vol is not None and top_vol > 0 else "—"
-        top_f3_str = f"{top_f3:.1f} Hz" if top_f3 is not None and top_f3 > 0 else "—"
-        top_mol_str = f"{top_spl:.1f} dB" if top_spl is not None and top_spl > 0 else "—"
+        top_f3_str = f"{top_f3_val:.1f} Hz" if top_f3_val is not None and top_f3_val > 0 else "—"
+        top_mol_str = f"{top_spl_val:.1f} dB" if top_spl_val is not None and top_spl_val > 0 else "—"
 
         with st.container(border=True):
             fh_img, fh_txt = st.columns([0.7, 5.3], vertical_alignment="center")
@@ -13770,23 +13787,41 @@ def _render_explore_projects_directory() -> None:
         pub_likes = likes_counts.get(pub.publication_id, tech.get("likes", 12 + (idx * 7) % 80))
         is_liked = pub.publication_id in user_likes
 
-        if f3 is None or spl is None:
+        f3_val = float(f3) if f3 is not None and float(f3 or 0) > 0 else None
+        spl_val = float(spl) if spl is not None and float(spl or 0) > 0 else None
+
+        if f3_val is None or spl_val is None:
             pub_raw = getattr(pub, "parameters", {}) or {}
             inner_p = pub_raw.get("parameters", {}) if isinstance(pub_raw.get("parameters"), dict) else pub_raw
             merged = {**inner_p, **tech}
             items = tuple(sorted((str(k), v) for k, v in merged.items() if isinstance(v, (str, int, float, bool))))
             f3_c, spl_c = _derive_project_acoustic_metrics(items)
-            if f3 is None:
-                f3 = f3_c
-            if spl is None:
-                spl = spl_c
+            if f3_val is None and f3_c is not None:
+                f3_val = f3_c
+            if spl_val is None and spl_c is not None:
+                spl_val = spl_c
+
+        if f3_val is None or spl_val is None:
+            try:
+                full_pub = store.get_public_project(pub.publication_id)
+                if full_pub is not None and full_pub.parameters:
+                    full_p = full_pub.parameters.get("parameters", {}) if isinstance(full_pub.parameters.get("parameters"), dict) else full_pub.parameters
+                    merged_full = {**full_p, **tech}
+                    items_full = tuple(sorted((str(k), v) for k, v in merged_full.items() if isinstance(v, (str, int, float, bool))))
+                    f3_f, spl_f = _derive_project_acoustic_metrics(items_full)
+                    if f3_val is None and f3_f is not None:
+                        f3_val = f3_f
+                    if spl_val is None and spl_f is not None:
+                        spl_val = spl_f
+            except Exception:
+                pass
 
         driver_str = str(driver_name)
         if isinstance(size_in, (int, float)) and size_in > 0:
             driver_str += f' ({size_in:.0f}")'
         vb_str = f"{vol:.1f} L" if vol is not None and vol > 0 else "—"
-        f3_str = f"{f3:.1f} Hz" if f3 is not None and f3 > 0 else "—"
-        mol_str = f"{spl:.1f} dB" if spl is not None and spl > 0 else "—"
+        f3_str = f"{f3_val:.1f} Hz" if f3_val is not None and f3_val > 0 else "—"
+        mol_str = f"{spl_val:.1f} dB" if spl_val is not None and spl_val > 0 else "—"
 
         with col:
             with st.container(border=True):
