@@ -11691,7 +11691,7 @@ def _toggle_community_project_like(pub_id: str, pub_title: str, default_likes: i
 
 
 def _render_community_sidebar() -> None:
-    """Render a clean, airy Community sidebar with back navigation, leaderboard, pulse, and publish CTA."""
+    """Render a clean Community sidebar with back navigation and publish CTA."""
     if st.button("← Back to Studio Workbench", key="sidebar_comm_back_btn", type="primary", width="stretch"):
         st.query_params.pop("explore", None)
         st.query_params.pop("p", None)
@@ -11699,71 +11699,17 @@ def _render_community_sidebar() -> None:
         st.rerun()
 
     st.markdown(
-        """<div style="background: rgba(0,255,102,0.04); border: 1px solid rgba(0,255,102,0.15); border-radius: 8px; padding: 6px 10px; margin: 10px 0; display: flex; align-items: center; gap: 8px;">
-            <span style="display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #00ff66; box-shadow: 0 0 6px rgba(0,255,102,0.6);"></span>
-            <span style="color: #00ff66; font-size: 0.74rem; font-weight: 600; letter-spacing: 0.4px;">COMMUNITY NETWORK ONLINE</span>
+        """<div style="background: rgba(16,185,129,0.06); border: 1px solid rgba(16,185,129,0.25); border-radius: 8px; padding: 7px 10px; margin: 10px 0; display: flex; align-items: center; gap: 8px;">
+            <span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #10b981; box-shadow: 0 0 6px rgba(16,185,129,0.6);"></span>
+            <span style="color: #10b981; font-size: 0.74rem; font-weight: 600; letter-spacing: 0.4px;">COMMUNITY NETWORK ONLINE</span>
         </div>""",
         unsafe_allow_html=True,
     )
 
     st.markdown("---")
 
-    # Leaderboard: Top Audio Engineers
-    st.markdown(
-        """<div style="color: #8b949e; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">
-            🏆 Top Audio Engineers
-        </div>""",
-        unsafe_allow_html=True,
-    )
-    leaders = [
-        {"name": "Marco_Forge", "badge": "⚡ Lead Architect", "stars": 840, "avatar": "M"},
-        {"name": "SoundLab", "badge": "🔊 Verified Master", "stars": 620, "avatar": "S"},
-        {"name": "BassEngine", "badge": "🏆 Pro Builder", "stars": 510, "avatar": "B"},
-        {"name": "AcousticPurity", "badge": "🎵 Hi-Fi Artisan", "stars": 430, "avatar": "A"},
-        {"name": "StageKraft", "badge": "⚡ Pro Builder", "stars": 390, "avatar": "K"},
-    ]
-    for idx, l in enumerate(leaders, 1):
-        st.markdown(
-            f"""<div style="display: flex; align-items: center; justify-content: space-between; padding: 4px 0; font-size: 0.76rem;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <div style="width: 20px; height: 20px; border-radius: 50%; background: rgba(0,255,102,0.12); border: 1px solid rgba(0,255,102,0.3); display: flex; align-items: center; justify-content: center; font-size: 0.65rem; font-weight: 700; color: #00ff66;">{l['avatar']}</div>
-                    <div>
-                        <span style="font-weight: 600; color: #e6edf3; font-size: 0.76rem;">{html.escape(l['name'])}</span>
-                        <span style="font-size: 0.62rem; color: #8b949e; margin-left: 2px;">{l['badge']}</span>
-                    </div>
-                </div>
-                <div style="font-size: 0.72rem; font-weight: 700; color: #00ff66;">⭐ {l['stars']}</div>
-            </div>""",
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-
-    # Live Community Pulse Feed
-    st.markdown(
-        """<div style="color: #8b949e; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px;">
-            📡 Live Activity Pulse
-        </div>""",
-        unsafe_allow_html=True,
-    )
-    activities = [
-        {"user": "SoundLab", "action": "forked", "target": "DCCAV 18PRO", "time": "2m ago"},
-        {"user": "Matteo", "action": "liked", "target": "Studio Prec 8", "time": "7m ago"},
-        {"user": "BassEngine", "action": "published", "target": "Slam-Box 12", "time": "18m ago"},
-        {"user": "StageKraft", "action": "cloned", "target": "Tour Reflex 15", "time": "34m ago"},
-    ]
-    for act in activities:
-        st.markdown(
-            f"""<div style="padding: 3px 6px; margin-bottom: 4px; border-left: 1.5px solid rgba(0,255,102,0.5); font-size: 0.72rem; color: #8b949e;">
-                <span style="color: #00ff66; font-weight: 600;">{html.escape(act['user'])}</span> {act['action']} <span style="color: #e6edf3;">{html.escape(act['target'])}</span> <span style="color: #484f58; font-size: 0.65rem;">({act['time']})</span>
-            </div>""",
-            unsafe_allow_html=True,
-        )
-
-    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-
     # Publish Current Design CTA
-    with st.expander("🚀 Publish Active Design", expanded=False):
+    with st.expander("🚀 Publish Active Project", expanded=False):
         st.caption("Share your active design with the Load Forge community:")
         active_proj_name = st.session_state.get("project_name", "") or "My Acoustic Project"
         pub_title_input = st.text_input("Title", value=active_proj_name, key="comm_side_pub_title")
@@ -13319,125 +13265,121 @@ def _explore_optional_limit(key: str) -> float | None:
     return value if value > 0.0 else None
 
 
+def _get_community_load_image(load_type: str) -> Path | None:
+    """Return matching load diagram asset path for a community project card."""
+    path = _LOAD_TYPE_IMAGES.get(load_type)
+    if path and path.exists():
+        return path
+    lt = (load_type or "").lower()
+    if "dccav" in lt:
+        return _LOAD_TYPE_IMAGES.get("DCCAV")
+    if "reflex" in lt or "pr" in lt or "passive" in lt:
+        return _LOAD_TYPE_IMAGES.get("Bass reflex")
+    if "sealed" in lt:
+        return _LOAD_TYPE_IMAGES.get("Sealed")
+    if "4th" in lt:
+        return _LOAD_TYPE_IMAGES.get("Bandpass 4th order")
+    if "6th" in lt:
+        return _LOAD_TYPE_IMAGES.get("Bandpass 6th order")
+    if "8th" in lt:
+        return _LOAD_TYPE_IMAGES.get("Bandpass 8th order")
+    if "baffle" in lt:
+        return _LOAD_TYPE_IMAGES.get("Infinite baffle")
+    return _LOAD_TYPE_IMAGES.get("Bass reflex")
+
+
 def _render_explore_projects_directory() -> None:
-    """Render the spacious, modern public project discovery and community engineering hub."""
-    # Cyber-neon and Social Minimalist CSS
+    """Render the clean, visual public project discovery and community engineering hub."""
     st.markdown(
         """<style>
         .community-header {
-            padding: 0.5rem 0 0.8rem 0;
-            margin-bottom: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 0.4rem 0 0.6rem 0;
+            margin-bottom: 0.8rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
         .community-title {
-            font-size: 1.6rem;
+            font-size: 1.45rem;
             font-weight: 700;
-            color: #00ff66;
+            color: #10b981;
             letter-spacing: 0.5px;
             margin-bottom: 0.15rem;
-            text-shadow: 0 0 12px rgba(0, 255, 102, 0.25);
         }
         .community-sub {
-            color: #8b949e;
-            font-size: 0.86rem;
-            margin-bottom: 0.6rem;
+            color: #9ca3af;
+            font-size: 0.84rem;
+            margin-bottom: 0.4rem;
         }
         .community-telemetry {
             display: flex;
             flex-wrap: wrap;
-            gap: 16px;
-            font-size: 0.76rem;
+            gap: 14px;
+            font-size: 0.74rem;
             color: #8b949e;
         }
-        .community-telemetry-item strong {
-            color: #00ff66;
+        .community-telemetry strong {
+            color: #10b981;
             font-weight: 600;
         }
         .community-badge {
-            background: rgba(0, 255, 102, 0.08);
-            color: #00ff66;
-            border: 1px solid rgba(0, 255, 102, 0.25);
+            background: rgba(16, 185, 129, 0.10);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.28);
             padding: 2px 6px;
             border-radius: 6px;
             font-size: 0.66rem;
             font-weight: 600;
         }
         .community-topo-badge {
-            background: rgba(56, 189, 248, 0.08);
-            color: #38bdf8;
-            border: 1px solid rgba(56, 189, 248, 0.25);
-            padding: 2px 7px;
+            background: rgba(16, 185, 129, 0.10);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.30);
+            padding: 2px 8px;
             border-radius: 6px;
-            font-size: 0.7rem;
+            font-size: 0.70rem;
             font-weight: 600;
             letter-spacing: 0.3px;
+            display: inline-block;
         }
         .community-avatar-ring {
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
-            background: rgba(0, 255, 102, 0.12);
-            border: 1px solid rgba(0, 255, 102, 0.4);
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.4);
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #00ff66;
+            color: #10b981;
             font-weight: 700;
-            font-size: 0.72rem;
+            font-size: 0.70rem;
         }
-        .community-spec-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
-            margin: 8px 0;
+        .community-card-load-img {
+            background: #000000;
+            border-radius: 8px;
+            padding: 4px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .spec-cell {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+        .community-card-load-img img {
             border-radius: 6px;
-            padding: 5px 4px;
-            text-align: center;
-        }
-        .spec-lbl {
-            font-size: 0.6rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.6px;
-            color: #6e7681;
-        }
-        .spec-num {
-            font-size: 0.84rem;
-            font-weight: 600;
-            color: #e6edf3;
-            font-family: monospace;
-            margin-top: 1px;
-        }
-        .spec-f3 { color: #38bdf8; }
-        .spec-spl { color: #00ff66; }
-        .community-spotlight {
-            background: linear-gradient(135deg, rgba(56, 189, 248, 0.03) 0%, rgba(0, 255, 102, 0.02) 100%);
-            border: 1px solid rgba(0, 255, 102, 0.2);
-            border-radius: 12px;
-            padding: 1rem 1.25rem;
-            margin-bottom: 1.2rem;
         }
         </style>""",
         unsafe_allow_html=True,
     )
 
     # Clean Header Bar
-    h_left, h_right = st.columns([8, 2], vertical_alignment="center")
+    h_left, h_right = st.columns([7.5, 2.5], vertical_alignment="center")
     with h_left:
         st.markdown(
             """<div class="community-header">
                 <div class="community-title">⚡ LOAD FORGE COMMUNITY // ELECTROACOUSTIC HUB</div>
-                <div class="community-sub">The open electroacoustic engineering network — discover, test-drive, fork, and publish verified loudspeaker designs.</div>
+                <div class="community-sub">Verified loudspeaker designs, acoustic simulations, and community alignments.</div>
                 <div class="community-telemetry">
-                    <span class="community-telemetry-item">🔨 <strong>128+</strong> Verified Builds</span>
-                    <span class="community-telemetry-item">🔄 <strong>3.8k+</strong> Simulations & Clones</span>
-                    <span class="community-telemetry-item">📊 <strong>142.8 dB</strong> SPL Max Record</span>
-                    <span class="community-telemetry-item">👥 <strong>86</strong> Audio Designers</span>
-                    <span class="community-telemetry-item">🎛️ <strong>DCCAV</strong> Dual-Resonance Lab</span>
+                    <span>🔨 <strong>128+</strong> Verified Builds</span>
+                    <span>🔄 <strong>3.8k+</strong> Simulations & Clones</span>
+                    <span>👥 <strong>86</strong> Audio Designers</span>
                 </div>
             </div>""",
             unsafe_allow_html=True,
@@ -13451,52 +13393,8 @@ def _render_explore_projects_directory() -> None:
     for key, value in _EXPLORE_FILTER_DEFAULTS.items():
         st.session_state.setdefault(key, value)
 
-    # Category selection pills (All 8 categories)
-    cat_active = st.session_state.get("explore_category_pill", "All")
-    categories = [
-        ("All", "🌐 All Builds"),
-        ("Trending", "🔥 Trending"),
-        ("Staff Picks", "⭐ Staff Picks"),
-        ("DCCAV", "🎛️ DCCAV Lab"),
-        ("High SPL", "🔊 High-SPL PA"),
-        ("Studio", "🎵 Studio Monitors"),
-        ("Compact", "📦 Compact Sub"),
-        ("Recent", "⚡ Recent"),
-    ]
-    cat_cols = st.columns(8)
-    for i, (cat_key, cat_label) in enumerate(categories):
-        with cat_cols[i]:
-            if st.button(
-                cat_label,
-                key=f"comm_cat_btn_{cat_key}",
-                type="primary" if cat_active == cat_key else "secondary",
-                width="stretch",
-            ):
-                st.session_state["explore_category_pill"] = cat_key
-                if cat_key == "All":
-                    st.session_state["explore_search_input"] = ""
-                    st.session_state["explore_topo_filter"] = "All"
-                    st.session_state["explore_sort_filter"] = "newest"
-                elif cat_key == "Trending":
-                    st.session_state["explore_sort_filter"] = "trending"
-                elif cat_key == "Staff Picks":
-                    st.session_state["explore_search_input"] = "showcase"
-                elif cat_key == "DCCAV":
-                    st.session_state["explore_topo_filter"] = "DCCAV"
-                elif cat_key == "High SPL":
-                    st.session_state["explore_sort_filter"] = "highest_spl"
-                elif cat_key == "Studio":
-                    st.session_state["explore_search_input"] = "Studio"
-                elif cat_key == "Compact":
-                    st.session_state["explore_sort_filter"] = "compact_vb"
-                elif cat_key == "Recent":
-                    st.session_state["explore_sort_filter"] = "newest"
-                st.rerun()
-
-    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
-
     # Search, topology and sorting bar
-    f_col1, f_col2, f_col3, f_col4 = st.columns([4.5, 2.5, 2.5, 1.5])
+    f_col1, f_col2, f_col3, f_col4 = st.columns([4.2, 2.5, 2.5, 1.3])
     with f_col1:
         search_query = st.text_input(
             "Search",
@@ -13638,15 +13536,13 @@ def _render_explore_projects_directory() -> None:
     user_likes = st.session_state.setdefault("community_user_likes", set())
     likes_counts = st.session_state.setdefault("community_likes_counts", {})
 
-    # Featured Project Spotlight Card (Light & airy showcase)
+    # Featured Project Spotlight Card with Load Type Icon
     if not search_query and selected_topo == "All" and projects:
         top_pub = projects[0]
         top_tech = top_pub.technical_summary or {}
         top_author = top_pub.owner_display_name or "Marco_Forge"
         top_rank = top_tech.get("creator_rank", "⚡ Lead Architect")
         top_likes = likes_counts.get(top_pub.publication_id, top_tech.get("likes", 142))
-        top_forks = top_tech.get("clones", 48)
-        top_views = top_tech.get("views", 1250)
         top_vol = top_tech.get("box_volume_l")
         top_tuning = top_tech.get("tuning_freq_hz")
         top_f3 = top_tech.get("f3_hz")
@@ -13655,43 +13551,30 @@ def _render_explore_projects_directory() -> None:
         top_load = top_tech.get("load_type", "Bass reflex") or "Bass reflex"
         top_is_liked = top_pub.publication_id in user_likes
 
-        top_vb_str = f"{top_vol:.1f} L" if top_vol is not None else "—"
-        top_fb_str = f"{top_tuning:.1f} Hz" if top_tuning is not None and top_tuning > 0 else "—"
-        top_f3_str = f"{top_f3:.1f} Hz" if top_f3 is not None and top_f3 > 0 else "—"
-        top_spl_str = f"{top_spl:.1f} dB" if top_spl is not None and top_spl > 0 else "—"
-
         with st.container(border=True):
-            st.markdown(
-                f"""<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span class="community-badge">🏆 FEATURED ALIGNMENT</span>
-                        <span style="color: #8b949e; font-size: 0.76rem;">Verified Acoustic Simulation</span>
-                    </div>
-                    <span class="community-topo-badge">{html.escape(top_load)}</span>
-                </div>""",
-                unsafe_allow_html=True,
-            )
-            fc1, fc2 = st.columns([6.5, 3.5], vertical_alignment="center")
-            with fc1:
-                st.markdown(f"### {html.escape(top_pub.title)}")
+            fc_l, fc_r = st.columns([1.1, 3.9], vertical_alignment="center")
+            with fc_l:
+                top_img = _get_community_load_image(top_load)
+                if top_img and top_img.exists():
+                    st.image(str(top_img), width="stretch")
                 st.markdown(
-                    f"""<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                        <div class="community-avatar-ring">{top_author[0].upper()}</div>
-                        <span style="font-size: 0.82rem; font-weight: 600; color: #ffffff;">{html.escape(top_author)}</span>
-                        <span class="community-badge">{top_rank}</span>
-                        <span style="font-size: 0.7rem; color: #8b949e;">{top_pub.published_at.strftime('%d %b %Y')}</span>
+                    f"""<div style="text-align: center; margin-top: 4px;">
+                        <span class="community-topo-badge">{html.escape(top_load)}</span>
                     </div>""",
                     unsafe_allow_html=True,
                 )
-                if top_pub.description:
-                    st.caption(top_pub.description)
-
+            with fc_r:
                 st.markdown(
-                    f"""<div class="community-spec-grid">
-                        <div class="spec-cell"><div class="spec-lbl">Vb</div><div class="spec-num">{top_vb_str}</div></div>
-                        <div class="spec-cell"><div class="spec-lbl">Fb</div><div class="spec-num">{top_fb_str}</div></div>
-                        <div class="spec-cell"><div class="spec-lbl">F3</div><div class="spec-num spec-f3">{top_f3_str}</div></div>
-                        <div class="spec-cell"><div class="spec-lbl">Peak SPL</div><div class="spec-num spec-spl">{top_spl_str}</div></div>
+                    f"""<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
+                        <span class="community-badge">🏆 FEATURED ALIGNMENT</span>
+                        <span style="color: #8b949e; font-size: 0.76rem;">Verified Acoustic Simulation</span>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+                st.markdown(f"### {html.escape(top_pub.title)}")
+                st.markdown(
+                    f"""<div style="font-size: 0.78rem; color: #8b949e; margin-bottom: 6px;">
+                        <strong>{html.escape(top_author)}</strong> <span class="community-badge" style="margin: 0 4px;">{top_rank}</span> · {top_pub.published_at.strftime('%d %b %Y')}
                     </div>""",
                     unsafe_allow_html=True,
                 )
@@ -13706,16 +13589,25 @@ def _render_explore_projects_directory() -> None:
                 if isinstance(top_qts, (int, float)) and top_qts > 0:
                     top_driver_meta.append(f"Qts {top_qts:.3f}")
                 st.caption("🔊 " + " · ".join(top_driver_meta))
-            with fc2:
-                st.markdown(
-                    f"""<div style="text-align: center; margin-bottom: 12px; font-size: 0.78rem; color: #8b949e;">
-                        ❤️ <strong style="color: #00ff66;">{top_likes}</strong> likes &nbsp;·&nbsp;
-                        🔄 <strong style="color: #00ff66;">{top_forks}</strong> forks &nbsp;·&nbsp;
-                        👁️ <strong style="color: #00ff66;">{top_views}</strong> views
-                    </div>""",
-                    unsafe_allow_html=True,
-                )
-                fb1, fb2 = st.columns(2)
+
+                top_specs = []
+                if top_vol is not None and top_vol > 0:
+                    top_specs.append(f"Vb: **{top_vol:.1f} L**")
+                if top_tuning is not None and top_tuning > 0:
+                    top_specs.append(f"Fb: **{top_tuning:.1f} Hz**")
+                if top_f3 is not None and top_f3 > 0:
+                    top_specs.append(f"F3: **{top_f3:.1f} Hz**")
+                if top_spl is not None and top_spl > 0:
+                    top_specs.append(f"Peak SPL: **{top_spl:.1f} dB**")
+                if top_specs:
+                    st.markdown(
+                        f"""<div style="font-size: 0.84rem; color: #e6edf3; margin-bottom: 8px;">
+                            {' &nbsp;·&nbsp; '.join(top_specs)}
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
+
+                fb1, fb2, fb3 = st.columns([2.4, 2.0, 1.2], vertical_alignment="center")
                 with fb1:
                     if st.button("🚀 Fork to Sandbox", key=f"feat_fork_btn_{top_pub.publication_id}", width="stretch", type="primary"):
                         _fork_project_to_sandbox(top_pub.publication_id, top_pub.title)
@@ -13728,14 +13620,19 @@ def _render_explore_projects_directory() -> None:
                         on_click=_open_technical_page,
                         args=(top_pub.publication_id,),
                     )
+                with fb3:
+                    f_like_label = f"❤️ {top_likes}" if not top_is_liked else f"💖 {top_likes}"
+                    if st.button(f_like_label, key=f"feat_like_{top_pub.publication_id}", width="stretch"):
+                        _toggle_community_project_like(top_pub.publication_id, top_pub.title, top_likes)
+                        st.rerun()
 
-    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top: 8px;'></div>", unsafe_allow_html=True)
     st.markdown(f"### 📡 Community Builds ({len(projects)})")
 
-    # Render Spacious 2-Column Feed Grid
-    cols = st.columns(2)
+    # Render Visual 3-Column Grid with Load Type Icons (Bambu Studio / MakerWorld style)
+    cols = st.columns(3)
     for idx, pub in enumerate(projects):
-        col = cols[idx % 2]
+        col = cols[idx % 3]
         tech = pub.technical_summary or {}
         load_type = tech.get("load_type", "Bass reflex")
         if tech.get("resonator_type") == _RESONATOR_PR:
@@ -13749,55 +13646,25 @@ def _render_explore_projects_directory() -> None:
         qts = tech.get("driver_qts")
         size_in = tech.get("nominal_size_in")
         author_name = pub.owner_display_name or "Acoustic Engineer"
-        author_rank = tech.get("creator_rank", "⚡ Engineer")
         pub_likes = likes_counts.get(pub.publication_id, tech.get("likes", 12 + (idx * 7) % 80))
-        pub_forks = tech.get("clones", 4 + (idx * 3) % 30)
         is_liked = pub.publication_id in user_likes
         pub_url = _public_project_url(pub.publication_id)
 
         with col:
             with st.container(border=True):
-                # Header: Author Info + Topology Badge
-                h1, h2 = st.columns([6, 4], vertical_alignment="center")
-                with h1:
-                    st.markdown(
-                        f"""<div style="display: flex; align-items: center; gap: 7px;">
-                            <div class="community-avatar-ring">{author_name[0].upper()}</div>
-                            <div>
-                                <span style="font-size: 0.82rem; font-weight: 600; color: #ffffff;">{html.escape(author_name)}</span>
-                                <span class="community-badge" style="margin-left: 3px;">{author_rank}</span>
-                            </div>
-                        </div>""",
-                        unsafe_allow_html=True,
-                    )
-                with h2:
-                    st.markdown(
-                        f"""<div style="text-align: right;">
-                            <span class="community-topo-badge">{html.escape(load_type)}</span>
-                            <span style="font-size: 0.68rem; color: #6e7681; margin-left: 4px;">{pub.published_at.strftime('%d %b')}</span>
-                        </div>""",
-                        unsafe_allow_html=True,
-                    )
-
-                st.markdown(f"#### {html.escape(pub.title)}")
-                if pub.description:
-                    st.caption(pub.description[:130] + ("..." if len(pub.description) > 130 else ""))
-
-                # Precision Spec Grid
-                vb_str = f"{vol:.1f} L" if vol is not None else "—"
-                fb_str = f"{tuning:.1f} Hz" if tuning is not None and tuning > 0 else "—"
-                f3_str = f"{f3:.1f} Hz" if f3 is not None and f3 > 0 else "—"
-                spl_str = f"{spl:.1f} dB" if spl is not None and spl > 0 else "—"
+                load_img = _get_community_load_image(load_type)
+                if load_img and load_img.exists():
+                    st.image(str(load_img), width="stretch")
 
                 st.markdown(
-                    f"""<div class="community-spec-grid">
-                        <div class="spec-cell"><div class="spec-lbl">Vb</div><div class="spec-num">{vb_str}</div></div>
-                        <div class="spec-cell"><div class="spec-lbl">Fb</div><div class="spec-num">{fb_str}</div></div>
-                        <div class="spec-cell"><div class="spec-lbl">F3</div><div class="spec-num spec-f3">{f3_str}</div></div>
-                        <div class="spec-cell"><div class="spec-lbl">Peak SPL</div><div class="spec-num spec-spl">{spl_str}</div></div>
+                    f"""<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px; margin-bottom: 4px;">
+                        <span class="community-topo-badge">{html.escape(load_type)}</span>
+                        <span style="font-size: 0.68rem; color: #6e7681;">{pub.published_at.strftime('%d %b %Y')}</span>
                     </div>""",
                     unsafe_allow_html=True,
                 )
+
+                st.markdown(f"#### {html.escape(pub.title)}")
 
                 # Driver Info
                 driver_meta = [html.escape(str(driver_name))]
@@ -13809,32 +13676,52 @@ def _render_explore_projects_directory() -> None:
                     driver_meta.append(f"Qts {qts:.3f}")
                 st.caption("🔊 " + " · ".join(driver_meta))
 
-                # Footer Action Row
-                a_like, a_fork, a_tech, a_share = st.columns([1.2, 2.0, 1.8, 0.6], vertical_alignment="center")
-                with a_like:
-                    like_label = f"❤️ {pub_likes}" if not is_liked else f"💖 {pub_likes}"
-                    if st.button(like_label, key=f"btn_like_{pub.publication_id}", width="stretch"):
-                        _toggle_community_project_like(pub.publication_id, pub.title, pub_likes)
-                        st.rerun()
+                # Specs summary
+                specs = []
+                if vol is not None and vol > 0:
+                    specs.append(f"Vb: **{vol:.1f} L**")
+                if tuning is not None and tuning > 0:
+                    specs.append(f"Fb: **{tuning:.1f} Hz**")
+                if f3 is not None and f3 > 0:
+                    specs.append(f"F3: **{f3:.1f} Hz**")
+                if spl is not None and spl > 0:
+                    specs.append(f"SPL: **{spl:.1f} dB**")
+                if specs:
+                    st.markdown(
+                        f"""<div style="font-size: 0.78rem; color: #e6edf3; margin-bottom: 8px;">
+                            {' · '.join(specs)}
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
+
+                # Author line
+                st.markdown(
+                    f"""<div style="display: flex; align-items: center; gap: 6px; font-size: 0.74rem; color: #8b949e; margin-bottom: 8px;">
+                        <div class="community-avatar-ring">{author_name[0].upper()}</div>
+                        <span><strong>{html.escape(author_name)}</strong></span>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+
+                # Action Row
+                a_fork, a_tech, a_like = st.columns([2.0, 1.6, 1.2], vertical_alignment="center")
                 with a_fork:
                     if st.button("🚀 Fork", key=f"btn_fork_{pub.publication_id}", width="stretch", type="primary", help=f"Load {pub.title} in Box Design Sandbox"):
                         _fork_project_to_sandbox(pub.publication_id, pub.title)
                 with a_tech:
                     st.button(
-                        "📊 Tech Sheet",
+                        "📊 Tech",
                         key=f"btn_tech_{pub.publication_id}",
                         width="stretch",
                         type="secondary",
                         on_click=_open_technical_page,
                         args=(pub.publication_id,),
                     )
-                with a_share:
-                    with st.popover("🔗"):
-                        st.caption("Share link:")
-                        st.code(pub_url, language="text")
-                        embed_code = f'<iframe src="{pub_url}&embed=1" width="100%" height="420" frameborder="0"></iframe>'
-                        st.caption("Embed iframe:")
-                        st.code(embed_code, language="html")
+                with a_like:
+                    like_label = f"❤️ {pub_likes}" if not is_liked else f"💖 {pub_likes}"
+                    if st.button(like_label, key=f"btn_like_{pub.publication_id}", width="stretch"):
+                        _toggle_community_project_like(pub.publication_id, pub.title, pub_likes)
+                        st.rerun()
 
 if _public_project_requested:
     if _embed_mode_requested:

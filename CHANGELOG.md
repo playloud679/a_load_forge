@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.15.19 (2026-09-02)
+
+- **Bambu Studio / MakerWorld Style Visual 3-Column Community Cards**:
+  - Transformed Community Projects feed into a visual-first 3-column card grid inspired by MakerWorld / Bambu Studio model libraries.
+  - Placed large schematic load-type illustrations at the top of each project card.
+  - Streamlined card metadata: topology badge, project title, driver & electroacoustic specs summary, author identity, and direct Fork & Tech Sheet actions.
+  - Test suite: **205 passed, 0 failed, 0 skipped**.
+
+## 0.15.18 (2026-09-02)
+
+- **Visual Load Type Illustrations and Clean Minimalist Community Projects Layout**:
+  - Embedded schematic load type illustrations (`_LOAD_TYPE_IMAGES`) directly into each Community Project card and Spotlight showcase.
+  - Streamlined the Community feed layout: removed redundant pill buttons, fake sidebar leaderboards, and noisy metrics clutter.
+  - Refined project card information hierarchy: prominent load diagram, clean title, author & date, driver metadata, electroacoustic specs, and direct Fork / Tech Sheet actions.
+  - Test suite: **205 passed, 0 failed, 0 skipped**.
+
 ## 0.15.17 (2026-09-02)
 
 - **Frameless Full-Width Sidebar Integration with App Emerald Palette**:
