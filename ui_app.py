@@ -3078,20 +3078,21 @@ def _render_hud_explore_community_button(key: str = "sidebar_community_btn") -> 
     st.markdown(
         f"""<style>
         .st-key-hud_community_nav {{
-            margin: 6px 0 10px 0 !important;
+            margin: 4px 0 10px 0 !important;
+            width: 100% !important;
         }}
         .st-key-hud_community_nav div[data-testid="stButton"] button {{
-            background-color: #000000 !important;
-            border: 1px solid rgba(16,185,129,.38) !important;
-            border-radius: .6rem !important;
-            height: clamp(3.0rem, 5.5vw, 4.2rem) !important;
-            min-height: 3.0rem !important;
+            background-color: transparent !important;
+            border: none !important;
+            border-radius: 0 !important;
+            height: clamp(3.4rem, 6vw, 4.8rem) !important;
+            min-height: 3.4rem !important;
             position: relative !important;
             overflow: hidden !important;
             padding: 0 !important;
             width: 100% !important;
-            box-shadow: 0 0 0 1px rgba(16,185,129,.10) !important;
-            transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease !important;
+            box-shadow: none !important;
+            transition: transform .16s ease, filter .16s ease !important;
         }}
         .st-key-hud_community_nav div[data-testid="stButton"] button::before {{
             content: "" !important;
@@ -3109,15 +3110,16 @@ def _render_hud_explore_community_button(key: str = "sidebar_community_btn") -> 
             pointer-events: none !important;
         }}
         .st-key-hud_community_nav div[data-testid="stButton"] button:hover {{
-            border-color: #10b981 !important;
-            box-shadow: 0 0 0 1px rgba(16,185,129,.25), 0 0 16px rgba(16,185,129,.4) !important;
-            transform: translateY(-1px) !important;
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            transform: translateY(-1px) scale(1.01) !important;
         }}
         .st-key-hud_community_nav div[data-testid="stButton"] button:hover::before {{
-            filter: brightness(1.18) drop-shadow(0 0 8px rgba(0, 255, 102, 0.5)) !important;
+            filter: brightness(1.22) drop-shadow(0 0 10px rgba(16, 185, 129, 0.65)) !important;
         }}
         .st-key-hud_community_nav div[data-testid="stButton"] button:focus-visible {{
-            outline: 3px solid rgba(255,255,255,.82) !important;
+            outline: 2px solid rgba(16, 185, 129, 0.8) !important;
             outline-offset: 2px !important;
         }}
         </style>""",

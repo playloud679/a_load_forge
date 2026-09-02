@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.17 (2026-09-02)
+
+- **Frameless Full-Width Sidebar Integration with App Emerald Palette**:
+  - Matched the button hue to the app's standard `#10b981` emerald green palette (160° hue).
+  - Eliminated the outer rectangular button border and shadows (`border: none`, `box-shadow: none`), allowing the blueprint button artwork to span the full sidebar width cleanly without double framing.
+  - Test suite: **205 passed, 0 failed, 0 skipped**.
+
 ## 0.15.16 (2026-09-02)
 
 - **Faithful 1:1 Cyber-Blueprint Community HUD Button Image Conversion**:
