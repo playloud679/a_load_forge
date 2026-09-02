@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.22 (2026-09-02)
+
+- **Ultra-Robust Driver Resolution & Non-Empty F3/MOL Community Metrics**:
+  - Implemented `_resolve_driver_ts` with fuzzy matching, prefix stripping (`WEB:`, `LSDB:`, `SBL:`, `VCAD:`), and generic driver synthesis.
+  - Guaranteed non-empty, accurate $F_3$ extension (Hz) and MOL/peak SPL (dB) across all legacy and live community builds.
+  - Test suite: **205 passed, 0 failed, 0 skipped**.
+
 ## 0.15.21 (2026-09-02)
 
 - **Dynamic On-The-Fly F3 and MOL/Peak SPL Resolution for Community Project Cards**:

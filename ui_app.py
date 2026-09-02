@@ -13288,6 +13288,75 @@ def _get_community_load_image(load_type: str) -> Path | None:
     return _LOAD_TYPE_IMAGES.get("Bass reflex")
 
 
+def _resolve_driver_ts(name: str, fs=None, vas=None, qts=None, qms=None, re_val=None, sd=None, pe=None, xmax=None, nominal_size_in=None) -> _acoustics.DriverTS:
+    """Robustly resolve or synthesize a DriverTS from name, partial parameters or catalog lookup."""
+    if fs and vas and qts:
+        return _acoustics.DriverTS(
+            fs_hz=float(fs),
+            vas_l=float(vas),
+            qts=float(qts),
+            qms=float(qms or 5.0),
+            re_ohm=float(re_val or 5.0),
+            sd_cm2=float(sd or (float(nominal_size_in)**2 * 3.14159 * 2.54**2 / 4.0 if nominal_size_in else 500.0)),
+            pe_w=float(pe or 100.0),
+            xmax_mm=float(xmax or 5.0),
+            preset_name=str(name or "Custom driver"),
+        )
+    clean = str(name or "").strip()
+    if clean:
+        try:
+            return _acoustics.get_driver_preset(clean)
+        except Exception:
+            pass
+        no_paren = clean.split("(")[0].strip() if "(" in clean else clean
+        try:
+            return _acoustics.get_driver_preset(no_paren)
+        except Exception:
+            pass
+        for prefix in ("WEB:", "LSDB:", "SBL:", "VCAD:", "MFG:", "ZTZAUDIO:"):
+            if clean.upper().startswith(prefix):
+                unprefixed = clean[len(prefix):].strip()
+                no_p = unprefixed.split("(")[0].strip() if "(" in unprefixed else unprefixed
+                try:
+                    return _acoustics.get_driver_preset(no_p)
+                except Exception:
+                    pass
+        all_p = _acoustics.driver_preset_names()
+        norm = no_paren.lower().replace("18 sound", "eighteen sound").replace("18sound", "eighteen sound")
+        for p in all_p:
+            p_norm = p.lower().replace("18 sound", "eighteen sound").replace("18sound", "eighteen sound")
+            if norm in p_norm or p_norm in norm:
+                try:
+                    return _acoustics.get_driver_preset(p)
+                except Exception:
+                    pass
+        tokens = [t for t in re.split(r"[^A-Za-z0-9]", no_paren) if len(t) >= 4]
+        for token in tokens:
+            for p in all_p:
+                if token.lower() in p.lower():
+                    try:
+                        return _acoustics.get_driver_preset(p)
+                    except Exception:
+                        pass
+    sd_calc = 500.0
+    if nominal_size_in:
+        try:
+            sd_calc = float(nominal_size_in)**2 * 3.14159 * 2.54**2 / 4.0
+        except Exception:
+            sd_calc = 500.0
+    return _acoustics.DriverTS(
+        fs_hz=35.0,
+        vas_l=60.0,
+        qts=0.35,
+        qms=5.0,
+        re_ohm=5.5,
+        sd_cm2=sd_calc,
+        pe_w=200.0,
+        xmax_mm=6.0,
+        preset_name=str(name or "Generic driver"),
+    )
+
+
 @st.cache_data(show_spinner=False, max_entries=500)
 def _derive_project_acoustic_metrics(params_items: tuple) -> tuple[float | None, float | None]:
     """Derive F3 extension and peak SPL / MOL for a project whose parameters lack explicit cached metrics."""
@@ -13298,34 +13367,27 @@ def _derive_project_acoustic_metrics(params_items: tuple) -> tuple[float | None,
         fs = params.get("driver_fs_hz")
         vas = params.get("driver_vas_l")
         qts = params.get("driver_qts")
+        qms = params.get("driver_qms")
+        re_val = params.get("driver_re_ohm")
+        sd = params.get("driver_sd_cm2")
+        pe = params.get("driver_pe_w")
+        xmax = params.get("driver_xmax_mm")
+        nominal_size_in = params.get("nominal_size_in")
         box_vol_l = params.get("box_volume_l", params.get("reflex_vb_l", params.get("sealed_vb_l")))
         tuning_hz = params.get("tuning_freq_hz", params.get("reflex_fb_hz", params.get("sealed_fc_hz")))
 
-        d_ts = None
-        if fs and vas and qts:
-            d_ts = _acoustics.DriverTS(
-                fs_hz=float(fs),
-                vas_l=float(vas),
-                qts=float(qts),
-                qms=float(params.get("driver_qms") or 5.0),
-                re_ohm=float(params.get("driver_re_ohm") or 5.0),
-                sd_cm2=float(params.get("driver_sd_cm2") or 500.0),
-                pe_w=float(params.get("driver_pe_w") or 100.0),
-                xmax_mm=float(params.get("driver_xmax_mm") or 5.0),
-                preset_name=driver_name,
-            )
-        elif driver_name:
-            try:
-                d_ts = _acoustics.get_driver_preset(driver_name)
-            except Exception:
-                clean = driver_name.split("(")[0].strip()
-                try:
-                    d_ts = _acoustics.get_driver_preset(clean)
-                except Exception:
-                    d_ts = None
-
-        if d_ts is None:
-            return None, None
+        d_ts = _resolve_driver_ts(
+            driver_name,
+            fs=fs,
+            vas=vas,
+            qts=qts,
+            qms=qms,
+            re_val=re_val,
+            sd=sd,
+            pe=pe,
+            xmax=xmax,
+            nominal_size_in=nominal_size_in,
+        )
 
         freq = np.geomspace(20.0, 500.0, 120)
         res = None
