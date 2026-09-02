@@ -13288,6 +13288,90 @@ def _get_community_load_image(load_type: str) -> Path | None:
     return _LOAD_TYPE_IMAGES.get("Bass reflex")
 
 
+@st.cache_data(show_spinner=False, max_entries=500)
+def _derive_project_acoustic_metrics(params_items: tuple) -> tuple[float | None, float | None]:
+    """Derive F3 extension and peak SPL / MOL for a project whose parameters lack explicit cached metrics."""
+    params = dict(params_items)
+    try:
+        load_type = str(params.get("load_type", "Bass reflex"))
+        fs = params.get("driver_fs_hz")
+        vas = params.get("driver_vas_l")
+        qts = params.get("driver_qts")
+        if not (fs and vas and qts):
+            return None, None
+        d_ts = _acoustics.DriverTS(
+            fs_hz=float(fs),
+            vas_l=float(vas),
+            qts=float(qts),
+            qms=float(params.get("driver_qms") or 5.0),
+            re_ohm=float(params.get("driver_re_ohm") or 5.0),
+            sd_cm2=float(params.get("driver_sd_cm2") or 500.0),
+            pe_w=float(params.get("driver_pe_w") or 100.0),
+            xmax_mm=float(params.get("driver_xmax_mm") or 5.0),
+            preset_name=str(params.get("driver_preset_name", "")),
+        )
+        freq = _acoustics.response_frequency_grid(20.0, 500.0, points=120)
+        res = None
+        if load_type == "Bass reflex":
+            b_mod = _acoustics.ReflexBox(
+                vb_l=float(params.get("reflex_vb_l", 50.0) or 50.0),
+                fb_hz=float(params.get("reflex_fb_hz", 40.0) or 40.0),
+                ql=float(params.get("reflex_ql", 7.0) or 7.0),
+            )
+            res = _acoustics.simulate_reflex(d_ts, b_mod, freq)
+        elif load_type == "Sealed":
+            b_mod = _acoustics.SealedBox(
+                vb_l=float(params.get("sealed_vb_l", 30.0) or 30.0),
+                fc_hz=float(params.get("sealed_fc_hz", 50.0) or 50.0),
+                qtc=float(params.get("sealed_qtc", 0.707) or 0.707),
+            )
+            res = _acoustics.simulate_sealed(d_ts, b_mod, freq)
+        elif load_type == "DCCAV":
+            vh = float(params.get("box_vh_l", params.get("dccav_vb1_l", 15.0)) or 15.0)
+            vl = float(params.get("box_vl_l", params.get("dccav_vb2_l", 25.0)) or 25.0)
+            fh = float(params.get("box_fh_hz", params.get("dccav_fb1_hz", 60.0)) or 60.0)
+            fl = float(params.get("box_fl_hz", params.get("dccav_fb2_hz", 30.0)) or 30.0)
+            b_mod = _acoustics.DccavBox(vh_l=vh, vl_l=vl, fh_hz=fh, fl_hz=fl)
+            res = _acoustics.simulate(d_ts, b_mod, freq)
+        elif load_type == "Bandpass 4th order":
+            vs = float(params.get("bandpass4_vs_l", params.get("bp4_vb_l", 20.0)) or 20.0)
+            vp = float(params.get("bandpass4_vp_l", params.get("bp4_vf_l", 20.0)) or 20.0)
+            fp = float(params.get("bandpass4_fp_hz", params.get("bp4_fb_hz", 50.0)) or 50.0)
+            b_mod = _acoustics.Bandpass4Box(vs_l=vs, vp_l=vp, fp_hz=fp)
+            res = _acoustics.simulate_bandpass4(d_ts, b_mod, freq)
+        elif load_type == "Bandpass 6th order":
+            vr = float(params.get("bandpass6_vr_l", params.get("bp6_vr_l", 20.0)) or 20.0)
+            vp = float(params.get("bandpass6_vp_l", params.get("bp6_vf_l", 20.0)) or 20.0)
+            fp = float(params.get("bandpass6_fp_hz", params.get("bp6_fb_f_hz", 60.0)) or 60.0)
+            fr = float(params.get("bandpass6_fr_hz", params.get("bp6_fb_r_hz", 30.0)) or 30.0)
+            b_mod = _acoustics.Bandpass6Box(vr_l=vr, vp_l=vp, fp_hz=fp, fr_hz=fr)
+            res = _acoustics.simulate_bandpass6(d_ts, b_mod, freq)
+        elif load_type == "Bandpass 8th order":
+            v1 = float(params.get("bp8_v1_l", 20.0) or 20.0)
+            v2 = float(params.get("bp8_v2_l", 20.0) or 20.0)
+            v3 = float(params.get("bp8_v3_l", 20.0) or 20.0)
+            f1 = float(params.get("bp8_f1_hz", 70.0) or 70.0)
+            f2 = float(params.get("bp8_f2_hz", 45.0) or 45.0)
+            f3_p = float(params.get("bp8_f3_hz", 30.0) or 30.0)
+            b_mod = _acoustics.Bandpass8Box(v1_l=v1, v2_l=v2, v3_l=v3, f1_hz=f1, f2_hz=f2, f3_hz=f3_p)
+            res = _acoustics.simulate_bandpass8(d_ts, b_mod, freq)
+        elif load_type == "Infinite baffle":
+            res = _acoustics.simulate_infinite_baffle(d_ts, freq)
+
+        if res is not None:
+            mets = _acoustics.response_metrics(res)
+            f3_val = mets.get("f3_hz")
+            spl_val = None
+            if hasattr(res, "mol_db") and len(res.mol_db):
+                spl_val = float(np.nanmax(res.mol_db))
+            elif hasattr(res, "spl_total_db") and len(res.spl_total_db):
+                spl_val = float(np.nanmax(res.spl_total_db))
+            return f3_val, spl_val
+    except Exception:
+        pass
+    return None, None
+
+
 def _render_explore_projects_directory() -> None:
     """Render the clean, visual public project discovery and community engineering hub."""
     st.markdown(
@@ -13563,13 +13647,23 @@ def _render_explore_projects_directory() -> None:
         top_rank = top_tech.get("creator_rank", "⚡ Lead Architect")
         top_likes = likes_counts.get(top_pub.publication_id, top_tech.get("likes", 142))
         top_vol = top_tech.get("box_volume_l")
-        top_tuning = top_tech.get("tuning_freq_hz")
         top_f3 = top_tech.get("f3_hz")
         top_spl = top_tech.get("peak_spl_db")
         top_driver = top_tech.get("driver_name", "Custom driver") or "Custom driver"
         top_load = top_tech.get("load_type", "Bass reflex") or "Bass reflex"
         top_size = top_tech.get("nominal_size_in")
         top_is_liked = top_pub.publication_id in user_likes
+
+        if top_f3 is None or top_spl is None:
+            top_raw = getattr(top_pub, "parameters", {}) or {}
+            inner_p = top_raw.get("parameters", {}) if isinstance(top_raw.get("parameters"), dict) else top_raw
+            merged = {**inner_p, **top_tech}
+            items = tuple(sorted((str(k), v) for k, v in merged.items() if isinstance(v, (str, int, float, bool))))
+            f3_c, spl_c = _derive_project_acoustic_metrics(items)
+            if top_f3 is None:
+                top_f3 = f3_c
+            if top_spl is None:
+                top_spl = spl_c
 
         top_driver_str = str(top_driver)
         if isinstance(top_size, (int, float)) and top_size > 0:
@@ -13644,12 +13738,22 @@ def _render_explore_projects_directory() -> None:
         driver_name = tech.get("driver_name", "Custom driver")
         f3 = tech.get("f3_hz")
         vol = tech.get("box_volume_l")
-        tuning = tech.get("tuning_freq_hz")
         spl = tech.get("peak_spl_db")
         size_in = tech.get("nominal_size_in")
         author_name = pub.owner_display_name or "Acoustic Engineer"
         pub_likes = likes_counts.get(pub.publication_id, tech.get("likes", 12 + (idx * 7) % 80))
         is_liked = pub.publication_id in user_likes
+
+        if f3 is None or spl is None:
+            pub_raw = getattr(pub, "parameters", {}) or {}
+            inner_p = pub_raw.get("parameters", {}) if isinstance(pub_raw.get("parameters"), dict) else pub_raw
+            merged = {**inner_p, **tech}
+            items = tuple(sorted((str(k), v) for k, v in merged.items() if isinstance(v, (str, int, float, bool))))
+            f3_c, spl_c = _derive_project_acoustic_metrics(items)
+            if f3 is None:
+                f3 = f3_c
+            if spl is None:
+                spl = spl_c
 
         driver_str = str(driver_name)
         if isinstance(size_in, (int, float)) and size_in > 0:

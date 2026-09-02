@@ -330,7 +330,8 @@ Public snapshot
   `original_author_name`, and timestamp) without mutating the original project.
 - **Technical Metadata Extraction**: `extract_technical_summary(payload)`
   automatically derives driver parameters, nominal size, enclosure volume ($V_b$),
-  and tuning frequency ($F_b$) without duplicating core simulation physics.
+  tuning frequency ($F_b$), and dynamically simulates $F_3$ cutoff and MOL / peak SPL limits
+  whenever explicit cached simulation metrics are absent.
 - **Explore Public Directory (`?explore=1` / Community Hub)**: Futuristic,
   cyber-neon social engineering hub with a dedicated Community sidebar. It
   provides verified cold-start showcase presets (`curated_community_showcase_projects()`),

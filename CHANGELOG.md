@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.21 (2026-09-02)
+
+- **Dynamic On-The-Fly F3 and MOL/Peak SPL Resolution for Community Project Cards**:
+  - Implemented automatic acoustic metric derivation in `extract_technical_summary` and `_derive_project_acoustic_metrics`.
+  - Accurately computes and renders $F_3$ extension (Hz) and MOL/peak SPL (dB) across all community builds (including projects without pre-stored simulation metrics).
+  - Test suite: **205 passed, 0 failed, 0 skipped**.
+
 ## 0.15.20 (2026-09-02)
 
 - **Compact Load Type Icons with 2x2 Basic Project Value Grid**:
