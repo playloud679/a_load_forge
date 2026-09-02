@@ -3062,77 +3062,42 @@ def _request_new_project_name() -> None:
     st.session_state["_new_project_name_prompt"] = True
 
 
-_COMMUNITY_HUD_SVG_B64 = (
-    "PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0MDAg"
-    "ODAiIGZpbGw9Im5vbmUiPgogIDxkZWZzPgogICAgPGZpbHRlciBpZD0iZ2xvdy1wIiB4PSItMjAl"
-    "IiB5PSItMjAlIiB3aWR0aD0iMTQwJSIgaGVpZ2h0PSIxNDAlIj4KICAgICAgPGZlR2F1c3NpYW5C"
-    "bHVyIHN0ZERldmlhdGlvbj0iMiIgcmVzdWx0PSJibHVyIiAvPgogICAgICA8ZmVNZXJnZT4KICAg"
-    "ICAgICA8ZmVNZXJnZU5vZGUgaW49ImJsdXIiIC8+CiAgICAgICAgPGZlTWVyZ2VOb2RlIGluPSJT"
-    "b3VyY2VHcmFwaGljIiAvPgogICAgICA8L2ZlTWVyZ2U+CiAgICA8L2ZpbHRlcj4KICA8L2RlZnM+"
-    "CgogIDwhLS0gTGVmdCBJY29uOiBMYXJnZSBDaXJjdWxhciBOZXR3b3JrIE5vZGUgLS0+CiAgPGNp"
-    "cmNsZSBjeD0iNDIiIGN5PSI0MCIgcj0iMzIiIHN0cm9rZT0iIzAwZmY2NiIgc3Ryb2tlLXdpZHRo"
-    "PSIyLjYiIGZpbGw9InJnYmEoMCwyNTUsMTAyLDAuMDgpIiBmaWx0ZXI9InVybCgjZ2xvdy1wKSIg"
-    "Lz4KICA8Y2lyY2xlIGN4PSI0MiIgY3k9IjQwIiByPSIyNiIgc3Ryb2tlPSJyZ2JhKDAsMjU1LDEw"
-    "MiwwLjQpIiBzdHJva2Utd2lkdGg9IjEuMiIgc3Ryb2tlLWRhc2hhcnJheT0iMyAzIiAvPgoKICA8"
-    "IS0tIE5ldHdvcmsgSW50ZXJjb25uZWN0aW9ucyAtLT4KICA8bGluZSB4MT0iNDIiIHkxPSIyNCIg"
-    "eDI9IjI3IiB5Mj0iNTIiIHN0cm9rZT0iIzAwZmY2NiIgc3Ryb2tlLXdpZHRoPSIxLjgiIC8+CiAg"
-    "PGxpbmUgeDE9IjQyIiB5MT0iMjQiIHgyPSI1NyIgeTI9IjUyIiBzdHJva2U9IiMwMGZmNjYiIHN0"
-    "cm9rZS13aWR0aD0iMS44IiAvPgogIDxsaW5lIHgxPSIyNyIgeTE9IjUyIiB4Mj0iNTciIHkyPSI1"
-    "MiIgc3Ryb2tlPSIjMDBmZjY2IiBzdHJva2Utd2lkdGg9IjEuOCIgLz4KICA8Y2lyY2xlIGN4PSI0"
-    "MiIgY3k9IjQwIiByPSIyLjgiIGZpbGw9IiMwMGZmNjYiIGZpbHRlcj0idXJsKCNnbG93LXApIiAv"
-    "PgoKICA8IS0tIFRvcCBBdmF0YXIgTm9kZSAtLT4KICA8Y2lyY2xlIGN4PSI0MiIgY3k9IjI0IiBy"
-    "PSI2IiBmaWxsPSIjMDAwMDAwIiBzdHJva2U9IiMwMGZmNjYiIHN0cm9rZS13aWR0aD0iMS40IiAv"
-    "PgogIDxjaXJjbGUgY3g9IjQyIiBjeT0iMjIiIHI9IjIiIGZpbGw9IiMwMGZmNjYiIC8+CiAgPHBh"
-    "dGggZD0iTTM4IDI3IEMzOCAyNSA0NiAyNSA0NiAyNyIgc3Ryb2tlPSIjMDBmZjY2IiBzdHJva2Ut"
-    "d2lkdGg9IjEuMiIgLz4KCiAgPCEtLSBCb3R0b20gTGVmdCBBdmF0YXIgTm9kZSAtLT4KICA8Y2ly"
-    "Y2xlIGN4PSIyNyIgY3k9IjUyIiByPSI2IiBmaWxsPSIjMDAwMDAwIiBzdHJva2U9IiMwMGZmNjYi"
-    "IHN0cm9rZS13aWR0aD0iMS40IiAvPgogIDxjaXJjbGUgY3g9IjI3IiBjeT0iNTAiIHI9IjIiIGZp"
-    "bGw9IiMwMGZmNjYiIC8+CiAgPHBhdGggZD0iTTIzIDU1IEMyMyA1MyAzMSA1MyAzMSA1NSIgc3Ry"
-    "b2tlPSIjMDBmZjY2IiBzdHJva2Utd2lkdGg9IjEuMiIgLz4KCiAgPCEtLSBCb3R0b20gUmlnaHQg"
-    "QXZhdGFyIE5vZGUgLS0+CiAgPGNpcmNsZSBjeD0iNTciIGN5PSI1MiIgcj0iNiIgZmlsbD0iIzAw"
-    "MDAwMCIgc3Ryb2tlPSIjMDBmZjY2IiBzdHJva2Utd2lkdGg9IjEuNCIgLz4KICA8Y2lyY2xlIGN4"
-    "PSI1NyIgY3k9IjUwIiByPSIyIiBmaWxsPSIjMDBmZjY2IiAvPgogIDxwYXRoIGQ9Ik01MyA1NSBD"
-    "NTMgNTMgNjEgNTMgNjEgNTUiIHN0cm9rZT0iIzAwZmY2NiIgc3Ryb2tlLXdpZHRoPSIxLjIiIC8+"
-    "CgogIDwhLS0gSG9yaXpvbnRhbCBnbG93aW5nIGJhc2VsaW5lIHdpdGggcm91bmQgdGVybWluYWwg"
-    "ZG90cyBzcGFubmluZyByaWdodCB1bmRlciB0ZXh0IC0tPgogIDxwYXRoIGQ9Ik04NSA2NCBIMzkw"
-    "IiBzdHJva2U9IiMwMGZmNjYiIHN0cm9rZS13aWR0aD0iMiIgZmlsdGVyPSJ1cmwoI2dsb3ctcCki"
-    "IC8+CiAgPGNpcmNsZSBjeD0iODUiIGN5PSI2NCIgcj0iMyIgZmlsbD0iIzAwZmY2NiIgLz4KICA8"
-    "Y2lyY2xlIGN4PSIzOTAiIGN5PSI2NCIgcj0iMyIgZmlsbD0iIzAwZmY2NiIgLz4KCiAgPCEtLSBU"
-    "eXBvZ3JhcGh5OiBCaWcsIGNyaXNwLCBib2xkIGl0YWxpYyBmaWxsaW5nIHRoZSBzcGFjZSBmcm9t"
-    "IGxlZnQgdG8gcmlnaHQgLS0+CiAgPHRleHQgeD0iODYiIHk9IjQ3IiBmb250LWZhbWlseT0iLWFw"
-    "cGxlLXN5c3RlbSwgQmxpbmtNYWNTeXN0ZW1Gb250LCBTZWdvZSBVSSwgUm9ib3RvLCBJbnRlciwg"
-    "c2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9IjkwMCIgZm9udC1zdHlsZT0iaXRhbGljIiBmb250LXNp"
-    "emU9IjMxIiBmaWxsPSIjZmZmZmZmIiBsZXR0ZXItc3BhY2luZz0iMC41Ij4KICAgIEV4cGxvcmUg"
-    "PHRzcGFuIGZpbGw9IiMwMGZmNjYiPkNvbW11bml0eSBQcmo8L3RzcGFuPgogIDwvdGV4dD4KPC9z"
-    "dmc+"
-)
+_COMMUNITY_TAB_IMAGE = Path(__file__).parent / "assets" / "community_tab.png"
+
+
+@lru_cache(maxsize=1)
+def _community_tab_image_b64() -> str:
+    if _COMMUNITY_TAB_IMAGE.exists():
+        return base64.b64encode(_COMMUNITY_TAB_IMAGE.read_bytes()).decode("ascii")
+    return ""
 
 
 def _render_hud_explore_community_button(key: str = "sidebar_community_btn") -> None:
     """Render the high-tech blueprint cyber-HUD button for transitioning to Community."""
+    b64 = _community_tab_image_b64()
     st.markdown(
         f"""<style>
         .st-key-hud_community_nav {{
-            margin: 8px 0 12px 0 !important;
+            margin: 6px 0 10px 0 !important;
         }}
         .st-key-hud_community_nav div[data-testid="stButton"] button {{
             background-color: #000000 !important;
-            border: 1px solid rgba(16,185,129,.46) !important;
-            border-radius: .7rem !important;
-            height: clamp(3.2rem, 5.5vw, 4.4rem) !important;
-            min-height: 3.2rem !important;
+            border: 1px solid rgba(16,185,129,.38) !important;
+            border-radius: .6rem !important;
+            height: clamp(3.0rem, 5.5vw, 4.2rem) !important;
+            min-height: 3.0rem !important;
             position: relative !important;
             overflow: hidden !important;
             padding: 0 !important;
             width: 100% !important;
-            box-shadow: 0 0 0 1px rgba(16,185,129,.12) !important;
+            box-shadow: 0 0 0 1px rgba(16,185,129,.10) !important;
             transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease !important;
         }}
         .st-key-hud_community_nav div[data-testid="stButton"] button::before {{
             content: "" !important;
             position: absolute !important;
             inset: 0 !important;
-            background-image: url("data:image/svg+xml;base64,{_COMMUNITY_HUD_SVG_B64}") !important;
+            background-image: url("data:image/png;base64,{b64}") !important;
             background-position: center !important;
             background-repeat: no-repeat !important;
             background-size: contain !important;
@@ -3145,7 +3110,7 @@ def _render_hud_explore_community_button(key: str = "sidebar_community_btn") -> 
         }}
         .st-key-hud_community_nav div[data-testid="stButton"] button:hover {{
             border-color: #10b981 !important;
-            box-shadow: 0 0 0 1px rgba(16,185,129,.25), 0 0 20px rgba(16,185,129,.4) !important;
+            box-shadow: 0 0 0 1px rgba(16,185,129,.25), 0 0 16px rgba(16,185,129,.4) !important;
             transform: translateY(-1px) !important;
         }}
         .st-key-hud_community_nav div[data-testid="stButton"] button:hover::before {{

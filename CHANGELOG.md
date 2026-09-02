@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.16 (2026-09-02)
+
+- **Faithful 1:1 Cyber-Blueprint Community HUD Button Image Conversion**:
+  - Restored the original high-tech blueprint button raster artwork from ChatGPT with exact blueprint grid lines, technical tick marks, circular 3-avatar node halo, and chamfered polygon frame.
+  - Converted the blue/cyan spectrum cleanly into glowing cyber-emerald green (`#00ff66` / `#10b981`) while preserving crisp white typography (`Explore`) and pure black background.
+  - Integrated `assets/community_tab.png` into `ui_app.py` via cached base64 raster embedding with `background-size: contain`.
+  - Test suite: **205 passed, 0 failed, 0 skipped**.
+
 ## 0.15.15 (2026-09-01)
 
 - **Bass Match Seek Time & Scan Telemetry Display Resolution**:
