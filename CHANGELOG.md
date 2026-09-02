@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.20 (2026-09-02)
+
+- **Compact Load Type Icons with 2x2 Basic Project Value Grid**:
+  - Rescaled load type diagrams to compact thumbnail icons (~46px) next to project title and topology badge.
+  - Added clean 2x2 electroacoustic parameter grid (`DRIVER`, `VOLUME (Vb)`, `F3 EXTENSION`, `MOL / PEAK SPL`) on every Community project card.
+  - Streamlined information hierarchy with author identity, direct `🚀 Fork` action, `📊 Tech` sheet, and `❤️ Like` interactions.
+  - Test suite: **205 passed, 0 failed, 0 skipped**.
+
 ## 0.15.19 (2026-09-02)
 
 - **Bambu Studio / MakerWorld Style Visual 3-Column Community Cards**:

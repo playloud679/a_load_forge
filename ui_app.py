@@ -13353,18 +13353,37 @@ def _render_explore_projects_directory() -> None:
             font-weight: 700;
             font-size: 0.70rem;
         }
-        .community-card-load-img {
-            background: #000000;
-            border-radius: 8px;
-            padding: 4px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .community-grid-specs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin: 8px 0 8px 0;
         }
-        .community-card-load-img img {
+        .spec-box {
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px solid rgba(255, 255, 255, 0.06);
             border-radius: 6px;
+            padding: 5px 8px;
         }
+        .spec-box-lbl {
+            font-size: 0.60rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #8b949e;
+            margin-bottom: 2px;
+        }
+        .spec-box-val {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #e6edf3;
+            font-family: monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .spec-box-f3 { color: #38bdf8; font-weight: 700; }
+        .spec-box-spl { color: #10b981; font-weight: 700; }
         </style>""",
         unsafe_allow_html=True,
     )
@@ -13536,7 +13555,7 @@ def _render_explore_projects_directory() -> None:
     user_likes = st.session_state.setdefault("community_user_likes", set())
     likes_counts = st.session_state.setdefault("community_likes_counts", {})
 
-    # Featured Project Spotlight Card with Load Type Icon
+    # Featured Project Spotlight Card with Compact Icon & Spec Grid
     if not search_query and selected_topo == "All" and projects:
         top_pub = projects[0]
         top_tech = top_pub.technical_summary or {}
@@ -13549,87 +13568,72 @@ def _render_explore_projects_directory() -> None:
         top_spl = top_tech.get("peak_spl_db")
         top_driver = top_tech.get("driver_name", "Custom driver") or "Custom driver"
         top_load = top_tech.get("load_type", "Bass reflex") or "Bass reflex"
+        top_size = top_tech.get("nominal_size_in")
         top_is_liked = top_pub.publication_id in user_likes
 
+        top_driver_str = str(top_driver)
+        if isinstance(top_size, (int, float)) and top_size > 0:
+            top_driver_str += f' ({top_size:.0f}")'
+        top_vb_str = f"{top_vol:.1f} L" if top_vol is not None and top_vol > 0 else "—"
+        top_f3_str = f"{top_f3:.1f} Hz" if top_f3 is not None and top_f3 > 0 else "—"
+        top_mol_str = f"{top_spl:.1f} dB" if top_spl is not None and top_spl > 0 else "—"
+
         with st.container(border=True):
-            fc_l, fc_r = st.columns([1.1, 3.9], vertical_alignment="center")
-            with fc_l:
+            fh_img, fh_txt = st.columns([0.7, 5.3], vertical_alignment="center")
+            with fh_img:
                 top_img = _get_community_load_image(top_load)
                 if top_img and top_img.exists():
-                    st.image(str(top_img), width="stretch")
-                st.markdown(
-                    f"""<div style="text-align: center; margin-top: 4px;">
-                        <span class="community-topo-badge">{html.escape(top_load)}</span>
-                    </div>""",
-                    unsafe_allow_html=True,
-                )
-            with fc_r:
+                    st.image(str(top_img), width=54)
+            with fh_txt:
                 st.markdown(
                     f"""<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
                         <span class="community-badge">🏆 FEATURED ALIGNMENT</span>
-                        <span style="color: #8b949e; font-size: 0.76rem;">Verified Acoustic Simulation</span>
+                        <span class="community-topo-badge">{html.escape(top_load)}</span>
+                        <span style="color: #8b949e; font-size: 0.74rem;">{top_pub.published_at.strftime('%d %b %Y')}</span>
                     </div>""",
                     unsafe_allow_html=True,
                 )
                 st.markdown(f"### {html.escape(top_pub.title)}")
                 st.markdown(
-                    f"""<div style="font-size: 0.78rem; color: #8b949e; margin-bottom: 6px;">
-                        <strong>{html.escape(top_author)}</strong> <span class="community-badge" style="margin: 0 4px;">{top_rank}</span> · {top_pub.published_at.strftime('%d %b %Y')}
+                    f"""<div style="font-size: 0.78rem; color: #8b949e; margin-top: -4px;">
+                        <strong>{html.escape(top_author)}</strong> <span class="community-badge" style="margin: 0 4px;">{top_rank}</span>
                     </div>""",
                     unsafe_allow_html=True,
                 )
-                top_fs = top_tech.get("driver_fs_hz")
-                top_qts = top_tech.get("driver_qts")
-                top_size = top_tech.get("nominal_size_in")
-                top_driver_meta = [html.escape(str(top_driver))]
-                if isinstance(top_size, (int, float)) and top_size > 0:
-                    top_driver_meta.append(f'{top_size:.0f}"')
-                if isinstance(top_fs, (int, float)) and top_fs > 0:
-                    top_driver_meta.append(f"Fs {top_fs:.1f} Hz")
-                if isinstance(top_qts, (int, float)) and top_qts > 0:
-                    top_driver_meta.append(f"Qts {top_qts:.3f}")
-                st.caption("🔊 " + " · ".join(top_driver_meta))
 
-                top_specs = []
-                if top_vol is not None and top_vol > 0:
-                    top_specs.append(f"Vb: **{top_vol:.1f} L**")
-                if top_tuning is not None and top_tuning > 0:
-                    top_specs.append(f"Fb: **{top_tuning:.1f} Hz**")
-                if top_f3 is not None and top_f3 > 0:
-                    top_specs.append(f"F3: **{top_f3:.1f} Hz**")
-                if top_spl is not None and top_spl > 0:
-                    top_specs.append(f"Peak SPL: **{top_spl:.1f} dB**")
-                if top_specs:
-                    st.markdown(
-                        f"""<div style="font-size: 0.84rem; color: #e6edf3; margin-bottom: 8px;">
-                            {' &nbsp;·&nbsp; '.join(top_specs)}
-                        </div>""",
-                        unsafe_allow_html=True,
-                    )
+            st.markdown(
+                f"""<div class="community-grid-specs">
+                    <div class="spec-box"><div class="spec-box-lbl">DRIVER</div><div class="spec-box-val" title="{html.escape(top_driver_str)}">{html.escape(top_driver_str)}</div></div>
+                    <div class="spec-box"><div class="spec-box-lbl">VOLUME (Vb)</div><div class="spec-box-val">{top_vb_str}</div></div>
+                    <div class="spec-box"><div class="spec-box-lbl">F3 EXTENSION</div><div class="spec-box-val spec-box-f3">{top_f3_str}</div></div>
+                    <div class="spec-box"><div class="spec-box-lbl">MOL / PEAK SPL</div><div class="spec-box-val spec-box-spl">{top_mol_str}</div></div>
+                </div>""",
+                unsafe_allow_html=True,
+            )
 
-                fb1, fb2, fb3 = st.columns([2.4, 2.0, 1.2], vertical_alignment="center")
-                with fb1:
-                    if st.button("🚀 Fork to Sandbox", key=f"feat_fork_btn_{top_pub.publication_id}", width="stretch", type="primary"):
-                        _fork_project_to_sandbox(top_pub.publication_id, top_pub.title)
-                with fb2:
-                    st.button(
-                        "📊 Tech Sheet",
-                        key=f"feat_tech_btn_{top_pub.publication_id}",
-                        width="stretch",
-                        type="secondary",
-                        on_click=_open_technical_page,
-                        args=(top_pub.publication_id,),
-                    )
-                with fb3:
-                    f_like_label = f"❤️ {top_likes}" if not top_is_liked else f"💖 {top_likes}"
-                    if st.button(f_like_label, key=f"feat_like_{top_pub.publication_id}", width="stretch"):
-                        _toggle_community_project_like(top_pub.publication_id, top_pub.title, top_likes)
-                        st.rerun()
+            fb1, fb2, fb3 = st.columns([2.4, 2.0, 1.2], vertical_alignment="center")
+            with fb1:
+                if st.button("🚀 Fork to Sandbox", key=f"feat_fork_btn_{top_pub.publication_id}", width="stretch", type="primary"):
+                    _fork_project_to_sandbox(top_pub.publication_id, top_pub.title)
+            with fb2:
+                st.button(
+                    "📊 Tech Sheet",
+                    key=f"feat_tech_btn_{top_pub.publication_id}",
+                    width="stretch",
+                    type="secondary",
+                    on_click=_open_technical_page,
+                    args=(top_pub.publication_id,),
+                )
+            with fb3:
+                f_like_label = f"❤️ {top_likes}" if not top_is_liked else f"💖 {top_likes}"
+                if st.button(f_like_label, key=f"feat_like_{top_pub.publication_id}", width="stretch"):
+                    _toggle_community_project_like(top_pub.publication_id, top_pub.title, top_likes)
+                    st.rerun()
 
     st.markdown("<div style='margin-top: 8px;'></div>", unsafe_allow_html=True)
     st.markdown(f"### 📡 Community Builds ({len(projects)})")
 
-    # Render Visual 3-Column Grid with Load Type Icons (Bambu Studio / MakerWorld style)
+    # Render Visual 3-Column Grid with Small Load Icon + Basic Project Value Grid
     cols = st.columns(3)
     for idx, pub in enumerate(projects):
         col = cols[idx % 3]
@@ -13642,57 +13646,46 @@ def _render_explore_projects_directory() -> None:
         vol = tech.get("box_volume_l")
         tuning = tech.get("tuning_freq_hz")
         spl = tech.get("peak_spl_db")
-        fs = tech.get("driver_fs_hz")
-        qts = tech.get("driver_qts")
         size_in = tech.get("nominal_size_in")
         author_name = pub.owner_display_name or "Acoustic Engineer"
         pub_likes = likes_counts.get(pub.publication_id, tech.get("likes", 12 + (idx * 7) % 80))
         is_liked = pub.publication_id in user_likes
-        pub_url = _public_project_url(pub.publication_id)
+
+        driver_str = str(driver_name)
+        if isinstance(size_in, (int, float)) and size_in > 0:
+            driver_str += f' ({size_in:.0f}")'
+        vb_str = f"{vol:.1f} L" if vol is not None and vol > 0 else "—"
+        f3_str = f"{f3:.1f} Hz" if f3 is not None and f3 > 0 else "—"
+        mol_str = f"{spl:.1f} dB" if spl is not None and spl > 0 else "—"
 
         with col:
             with st.container(border=True):
-                load_img = _get_community_load_image(load_type)
-                if load_img and load_img.exists():
-                    st.image(str(load_img), width="stretch")
-
-                st.markdown(
-                    f"""<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 6px; margin-bottom: 4px;">
-                        <span class="community-topo-badge">{html.escape(load_type)}</span>
-                        <span style="font-size: 0.68rem; color: #6e7681;">{pub.published_at.strftime('%d %b %Y')}</span>
-                    </div>""",
-                    unsafe_allow_html=True,
-                )
-
-                st.markdown(f"#### {html.escape(pub.title)}")
-
-                # Driver Info
-                driver_meta = [html.escape(str(driver_name))]
-                if isinstance(size_in, (int, float)) and size_in > 0:
-                    driver_meta.append(f'{size_in:.0f}"')
-                if isinstance(fs, (int, float)) and fs > 0:
-                    driver_meta.append(f"Fs {fs:.1f} Hz")
-                if isinstance(qts, (int, float)) and qts > 0:
-                    driver_meta.append(f"Qts {qts:.3f}")
-                st.caption("🔊 " + " · ".join(driver_meta))
-
-                # Specs summary
-                specs = []
-                if vol is not None and vol > 0:
-                    specs.append(f"Vb: **{vol:.1f} L**")
-                if tuning is not None and tuning > 0:
-                    specs.append(f"Fb: **{tuning:.1f} Hz**")
-                if f3 is not None and f3 > 0:
-                    specs.append(f"F3: **{f3:.1f} Hz**")
-                if spl is not None and spl > 0:
-                    specs.append(f"SPL: **{spl:.1f} dB**")
-                if specs:
+                # Header with small load type icon and title
+                h_img, h_txt = st.columns([0.7, 3.3], vertical_alignment="center")
+                with h_img:
+                    load_img = _get_community_load_image(load_type)
+                    if load_img and load_img.exists():
+                        st.image(str(load_img), width=46)
+                with h_txt:
+                    st.markdown(f"#### {html.escape(pub.title)}")
                     st.markdown(
-                        f"""<div style="font-size: 0.78rem; color: #e6edf3; margin-bottom: 8px;">
-                            {' · '.join(specs)}
+                        f"""<div style="display: flex; align-items: center; gap: 6px; margin-top: -6px;">
+                            <span class="community-topo-badge">{html.escape(load_type)}</span>
+                            <span style="font-size: 0.68rem; color: #6e7681;">{pub.published_at.strftime('%d %b %Y')}</span>
                         </div>""",
                         unsafe_allow_html=True,
                     )
+
+                # Basic Project Values Grid (Driver, Volume, F3, MOL)
+                st.markdown(
+                    f"""<div class="community-grid-specs">
+                        <div class="spec-box"><div class="spec-box-lbl">DRIVER</div><div class="spec-box-val" title="{html.escape(driver_str)}">{html.escape(driver_str)}</div></div>
+                        <div class="spec-box"><div class="spec-box-lbl">VOLUME (Vb)</div><div class="spec-box-val">{vb_str}</div></div>
+                        <div class="spec-box"><div class="spec-box-lbl">F3 EXTENSION</div><div class="spec-box-val spec-box-f3">{f3_str}</div></div>
+                        <div class="spec-box"><div class="spec-box-lbl">MOL / PEAK SPL</div><div class="spec-box-val spec-box-spl">{mol_str}</div></div>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
 
                 # Author line
                 st.markdown(
