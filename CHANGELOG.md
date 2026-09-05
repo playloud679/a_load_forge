@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.25 (2026-09-05)
+
+- **Stripe Payments & Hosted Billing Infrastructure**:
+  - Implemented zero-liability payment integration via Stripe Checkout and Stripe Customer Portal (`src/billing.py`).
+  - Added dedicated FastAPI webhook microservice (`webhooks/main.py`) for Cloud Run with cryptographic signature verification, idempotency tracking via `stripe_events`, and atomic Firestore state synchronization.
+  - Extended `UserAccount` with Stripe billing fields (`stripe_customer_id`, `stripe_subscription_id`, `subscription_status`, `current_period_end`, `cancel_at_period_end`) and `has_pro_access()` entitlement method.
+  - Added seamless UI triggers in the app sidebar and project management workspace with automatic post-checkout toast notifications.
+  - Authored comprehensive configuration and deployment guide in `docs/payments-stripe.md`.
+  - Added unit and endpoint test suite in `tests/test_billing.py` (7 passing tests).
+
 ## 0.15.24 (2026-09-05)
 
 - **Restricted Third-Party Catalogs (Admin Only)**:

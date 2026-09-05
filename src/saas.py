@@ -2506,6 +2506,20 @@ class UserAccount:
     is_admin: bool
     created_at: datetime
     updated_at: datetime
+    stripe_customer_id: str | None = None
+    stripe_subscription_id: str | None = None
+    subscription_status: str | None = None
+    current_period_end: datetime | None = None
+    cancel_at_period_end: bool = False
+
+    def has_pro_access(self) -> bool:
+        if self.is_admin:
+            return True
+        if self.plan in ("pro", "team"):
+            if self.subscription_status is None:
+                return True
+            return self.subscription_status in ("active", "trialing", "past_due")
+        return False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -2520,6 +2534,11 @@ class UserAccount:
             "is_admin": self.is_admin,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
+            "stripe_customer_id": self.stripe_customer_id,
+            "stripe_subscription_id": self.stripe_subscription_id,
+            "subscription_status": self.subscription_status,
+            "current_period_end": self.current_period_end.isoformat() if self.current_period_end else None,
+            "cancel_at_period_end": self.cancel_at_period_end,
         }
 
     @classmethod
@@ -2546,6 +2565,11 @@ class UserAccount:
             is_admin=bool(data.get("is_admin", False)),
             created_at=parse_dt(data.get("created_at")),
             updated_at=parse_dt(data.get("updated_at")),
+            stripe_customer_id=data.get("stripe_customer_id"),
+            stripe_subscription_id=data.get("stripe_subscription_id"),
+            subscription_status=data.get("subscription_status"),
+            current_period_end=parse_dt(data.get("current_period_end")) if data.get("current_period_end") else None,
+            cancel_at_period_end=bool(data.get("cancel_at_period_end", False)),
         )
 
 
@@ -2640,6 +2664,40 @@ class InMemoryUserAccountStore:
             return None
         acc = self._accounts[key]
         acc.credits_balance = max(0, acc.credits_balance + delta)
+        acc.updated_at = datetime.now(timezone.utc)
+        return acc
+
+    def update_billing_info(
+        self,
+        email_or_uid: str,
+        *,
+        stripe_customer_id: str | None = None,
+        stripe_subscription_id: str | None = None,
+        subscription_status: str | None = None,
+        current_period_end: datetime | None = None,
+        cancel_at_period_end: bool | None = None,
+        plan: str | None = None,
+    ) -> UserAccount | None:
+        key = email_or_uid.strip().casefold()
+        if key not in self._accounts:
+            return None
+        acc = self._accounts[key]
+        if stripe_customer_id is not None:
+            acc.stripe_customer_id = stripe_customer_id
+        if stripe_subscription_id is not None:
+            acc.stripe_subscription_id = stripe_subscription_id
+        if subscription_status is not None:
+            acc.subscription_status = subscription_status
+        if current_period_end is not None:
+            acc.current_period_end = current_period_end
+        if cancel_at_period_end is not None:
+            acc.cancel_at_period_end = cancel_at_period_end
+        if plan is not None and plan != acc.plan:
+            ent = PLAN_ENTITLEMENTS.get(plan, PLAN_ENTITLEMENTS["free"])
+            diff = ent.monthly_credits - acc.credits_monthly_quota
+            acc.plan = plan
+            acc.credits_monthly_quota = ent.monthly_credits
+            acc.credits_balance = max(0, acc.credits_balance + diff)
         acc.updated_at = datetime.now(timezone.utc)
         return acc
 
@@ -2809,6 +2867,52 @@ class FirestoreUserAccountStore:
             return acc
 
         return do_adjust(transaction)
+
+    def update_billing_info(
+        self,
+        email_or_uid: str,
+        *,
+        stripe_customer_id: str | None = None,
+        stripe_subscription_id: str | None = None,
+        subscription_status: str | None = None,
+        current_period_end: datetime | None = None,
+        cancel_at_period_end: bool | None = None,
+        plan: str | None = None,
+    ) -> UserAccount | None:
+        try:
+            from google.cloud import firestore
+        except ImportError as exc:
+            raise SaaSConfigurationError("google-cloud-firestore is required") from exc
+        ref = self._user_ref(email_or_uid)
+        transaction = self._client.transaction()
+
+        @firestore.transactional
+        def do_update(tx):
+            snap = ref.get(transaction=tx)
+            if not snap.exists:
+                return None
+            acc = UserAccount.from_dict(snap.to_dict())
+            if stripe_customer_id is not None:
+                acc.stripe_customer_id = stripe_customer_id
+            if stripe_subscription_id is not None:
+                acc.stripe_subscription_id = stripe_subscription_id
+            if subscription_status is not None:
+                acc.subscription_status = subscription_status
+            if current_period_end is not None:
+                acc.current_period_end = current_period_end
+            if cancel_at_period_end is not None:
+                acc.cancel_at_period_end = cancel_at_period_end
+            if plan is not None and plan != acc.plan:
+                ent = PLAN_ENTITLEMENTS.get(plan, PLAN_ENTITLEMENTS["free"])
+                diff = ent.monthly_credits - acc.credits_monthly_quota
+                acc.plan = plan
+                acc.credits_monthly_quota = ent.monthly_credits
+                acc.credits_balance = max(0, acc.credits_balance + diff)
+            acc.updated_at = datetime.now(timezone.utc)
+            tx.set(ref, acc.to_dict())
+            return acc
+
+        return do_update(transaction)
 
     def list_all_accounts(self) -> list[UserAccount]:
         collection = self._client.collection("users")

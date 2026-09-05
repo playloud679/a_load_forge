@@ -46,6 +46,7 @@ import pricing as _pricing
 import ranking as _ranking
 import saas as _saas
 import storage as _storage
+import billing as _billing
 
 sys.path.insert(0, str(Path(__file__).parent / "tools"))
 import compare_afw_sealed as _afw_compare
@@ -3160,6 +3161,43 @@ def _render_hud_explore_community_button(key: str = "sidebar_community_btn") -> 
         )
 
 
+def _render_billing_action_button(acc: _saas.UserAccount) -> None:
+    """Render upgrade to Pro or manage subscription button in the sidebar."""
+    if not _billing.is_stripe_configured():
+        return
+
+    if acc.plan == "free":
+        with st.popover("🚀 Upgrade to Pro", width="stretch"):
+            st.markdown("#### Choose your Pro plan")
+            st.markdown(
+                "- **2,500 monthly simulation credits**\n"
+                "- **100 cloud-saved projects**\n"
+                "- Full candidate pool & export sheets\n"
+                "- Cloud revision backups"
+            )
+            interval = st.radio("Billing cycle", ["Monthly", "Yearly (Save 20%)"], key="sidebar_upgrade_interval")
+            chosen_int = "yearly" if "Yearly" in interval else "monthly"
+            try:
+                checkout_url = _billing.create_checkout_session(
+                    acc,
+                    plan="pro",
+                    interval=chosen_int,
+                    account_store=_ACCOUNT_STORE,
+                )
+                st.link_button("Proceed to Stripe Checkout", checkout_url, type="primary", width="stretch")
+            except Exception as exc:
+                st.error(f"Checkout initialization: {exc}")
+    elif acc.stripe_customer_id:
+        try:
+            portal_url = _billing.create_customer_portal_session(
+                acc,
+                account_store=_ACCOUNT_STORE,
+            )
+            st.link_button("⚙️ Manage Subscription", portal_url, width="stretch")
+        except Exception:
+            pass
+
+
 def _render_current_project_sidebar_header() -> None:
     """Render minimal, compact project identity, autosave status, and link to Manage Projects."""
     project_name = _project_display_name(st.session_state.get("project_name", ""))
@@ -3171,6 +3209,7 @@ def _render_current_project_sidebar_header() -> None:
             st.caption(
                 f"**{html.escape(_CURRENT_SAAS_USER.name or _CURRENT_SAAS_USER.email or 'Engineer')}** · *{acc.plan.upper()}* · **{acc.credits_balance:,}** credits"
             )
+            _render_billing_action_button(acc)
         elif _CURRENT_SAAS_USER.email:
             st.caption(html.escape(_CURRENT_SAAS_USER.email))
 
@@ -11696,6 +11735,15 @@ if _share_token and st.session_state.get("_applied_share_token") != _share_token
 
 _initialize_alignment_defaults()
 _sync_auto_alignment_if_needed()
+
+_checkout_status = st.query_params.get("checkout")
+if _checkout_status:
+    if _checkout_status == "success":
+        st.toast("🎉 Subscription checkout successful! Your Pro access is syncing.", icon="🚀")
+    elif _checkout_status == "canceled":
+        st.toast("Checkout canceled. No charges were made.", icon="ℹ️")
+    st.query_params.pop("checkout", None)
+    st.query_params.pop("session_id", None)
 
 finder_library_filters_slot = st.empty()
 
