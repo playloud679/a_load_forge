@@ -12,4 +12,4 @@ COPY src/ ./src/
 COPY webhooks/ ./webhooks/
 
 EXPOSE 8080
-CMD ["uvicorn", "webhooks.main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD exec uvicorn webhooks.main:app --host 0.0.0.0 --port ${PORT:-8080}
