@@ -1,5 +1,5 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'europe-west1-docker.pkg.dev/civic-radio-502611-i8/load-forge/load-forge-webhooks:1.0.0', '-f', 'webhooks/Dockerfile', '.']
+  args: ['build', '-t', 'europe-west1-docker.pkg.dev/civic-radio-502611-i8/load-forge/load-forge-webhooks:1.0.1', '-f', 'webhooks/Dockerfile', '.']
 images:
-- 'europe-west1-docker.pkg.dev/civic-radio-502611-i8/load-forge/load-forge-webhooks:1.0.0'
+- 'europe-west1-docker.pkg.dev/civic-radio-502611-i8/load-forge/load-forge-webhooks:1.0.1'
