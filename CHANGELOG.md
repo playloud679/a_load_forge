@@ -1,14 +1,21 @@
 # Changelog
 
-## 0.15.25 (2026-09-05)
+## 0.16.0 (2026-09-06)
 
-- **Stripe Payments & Hosted Billing Infrastructure**:
-  - Implemented zero-liability payment integration via Stripe Checkout and Stripe Customer Portal (`src/billing.py`).
-  - Added dedicated FastAPI webhook microservice (`webhooks/main.py`) for Cloud Run with cryptographic signature verification, idempotency tracking via `stripe_events`, and atomic Firestore state synchronization.
-  - Extended `UserAccount` with Stripe billing fields (`stripe_customer_id`, `stripe_subscription_id`, `subscription_status`, `current_period_end`, `cancel_at_period_end`) and `has_pro_access()` entitlement method.
-  - Added seamless UI triggers in the app sidebar and project management workspace with automatic post-checkout toast notifications.
-  - Authored comprehensive configuration and deployment guide in `docs/payments-stripe.md`.
-  - Added unit and endpoint test suite in `tests/test_billing.py` (7 passing tests).
+- **Session Sign Out & Universal Logout Action**:
+  - Added dedicated power/logout icon button (`⏻`) directly inside the sidebar authenticated user header with full tooltip guidance.
+  - Added header "Sign out" button in the `Manage Projects` workspace for quick account switching.
+  - Integrated `?logout=1` URL query parameter support for instant, clean session termination.
+  - Hardened `_sign_out_saas` to cleanly clear local account session keys, project cache, and call OIDC `st.logout()` gracefully across all authentication modes.
+- **Stripe Payments & Commercial Hosted Billing Milestone**:
+  - Zero-liability hosted payment integration via Stripe Checkout and Stripe Customer Portal (`src/billing.py`).
+  - Standalone FastAPI webhook microservice (`webhooks/main.py`) deployed on Google Cloud Run with cryptographic signature verification, idempotency tracking (`stripe_events`), and atomic Firestore synchronization.
+  - Extended `UserAccount` with billing state (`stripe_customer_id`, `stripe_subscription_id`, `subscription_status`, `current_period_end`, `cancel_at_period_end`) and `has_pro_access()` gating.
+  - Dynamic checkout toast notifications upon returning from Stripe Checkout (`?checkout=success` / `?checkout=canceled`).
+- **Production Catalog Sanitation & Administrator Gating**:
+  - Cleaned and consolidated proprietary manufacturer database to 9,849 verified, 100% simulatable presets.
+  - Segregated foreign third-party aggregates (`LSDB`, `VituixCAD`, `Speaker Box Lite`) exclusively to administrator accounts (`_maintenance_allowed()`).
+  - Integrated Firestore `rejected_records` quarantine repository with zero local footprint.
 
 ## 0.15.24 (2026-09-05)
 

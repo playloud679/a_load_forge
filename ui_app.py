@@ -999,12 +999,18 @@ def _render_local_account_gate(*, render_hero: bool = True) -> None:
 
 
 def _sign_out_saas() -> None:
-    if _SAAS_SETTINGS.local_accounts:
-        st.session_state.pop(_LOCAL_ACCOUNT_SESSION_KEY, None)
-        st.session_state.pop("_saas_projects_identity", None)
-        st.session_state.pop("_saas_project_summaries", None)
+    st.session_state.pop(_LOCAL_ACCOUNT_SESSION_KEY, None)
+    st.session_state.pop("_saas_projects_identity", None)
+    st.session_state.pop("_saas_project_summaries", None)
+    st.session_state.pop("_cached_user_account", None)
+    try:
+        st.logout()
+    except Exception:
+        pass
+    try:
         st.rerun()
-    st.logout()
+    except Exception:
+        pass
     st.stop()
 
 
@@ -3205,13 +3211,18 @@ def _render_current_project_sidebar_header() -> None:
     # Minimal user identity line if authenticated
     if _CURRENT_SAAS_USER is not None:
         acc = _get_current_user_account()
+        u_col1, u_col2 = st.columns([4.2, 0.8], vertical_alignment="center")
+        with u_col1:
+            if acc:
+                st.caption(
+                    f"**{html.escape(_CURRENT_SAAS_USER.name or _CURRENT_SAAS_USER.email or 'Engineer')}** · *{acc.plan.upper()}* · **{acc.credits_balance:,}** credits"
+                )
+            elif _CURRENT_SAAS_USER.email:
+                st.caption(html.escape(_CURRENT_SAAS_USER.email))
+        with u_col2:
+            st.button("⏻", key="sidebar_sign_out_btn", help="Sign out / Logout", on_click=_sign_out_saas)
         if acc:
-            st.caption(
-                f"**{html.escape(_CURRENT_SAAS_USER.name or _CURRENT_SAAS_USER.email or 'Engineer')}** · *{acc.plan.upper()}* · **{acc.credits_balance:,}** credits"
-            )
             _render_billing_action_button(acc)
-        elif _CURRENT_SAAS_USER.email:
-            st.caption(html.escape(_CURRENT_SAAS_USER.email))
 
     with st.container(border=True):
         st.markdown(f"**Project**: {html.escape(project_name)}")
@@ -3486,13 +3497,16 @@ def _render_manage_projects_publish() -> None:
 
 def _render_manage_projects_workspace() -> None:
     """Dedicated first-class workspace for project lifecycle, persistence, and storage management."""
-    c_back, c_title = st.columns([1.5, 8.5], vertical_alignment="center")
+    c_back, c_title, c_logout = st.columns([1.5, 7.0, 1.5], vertical_alignment="center")
     with c_back:
         if st.button("← Back to app", key="mp_back_to_app_btn"):
             _select_workspace("Bass Match")
             st.rerun()
     with c_title:
         st.title("Manage Projects")
+    with c_logout:
+        if _CURRENT_SAAS_USER is not None:
+            st.button("Sign out", key="mp_sign_out_header_btn", on_click=_sign_out_saas, help="Sign out / Logout")
     st.caption(
         "Centralized project lifecycle, cloud autosave, revision history, "
         ".lfp file imports/exports, and publication management."
@@ -11744,6 +11758,10 @@ if _checkout_status:
         st.toast("Checkout canceled. No charges were made.", icon="ℹ️")
     st.query_params.pop("checkout", None)
     st.query_params.pop("session_id", None)
+
+if st.query_params.get("logout") in ("1", "true", "yes"):
+    st.query_params.pop("logout", None)
+    _sign_out_saas()
 
 finder_library_filters_slot = st.empty()
 
