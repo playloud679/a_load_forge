@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.15.24 (2026-09-05)
+
+- **Restricted Third-Party Catalogs (Admin Only)**:
+  - Third-party aggregate databases (`LSDB`, `VituixCAD`, `Speaker Box Lite`) are now gated exclusively to administrator accounts (`_maintenance_allowed()`).
+  - Regular users interact exclusively with the verified Load Forge proprietary catalog and Z Bench reference laboratory measurements.
+  - Filter options in Bass Match / Finder, candidate pools, and Box Design preset selectors automatically enforce this restriction across user sessions.
+- **Production Catalog Sanitation & Cloud Quarantine Repository**:
+  - Cleaned and deduplicated the production proprietary catalog to 9,849 clean, unique, 100% simulatable presets.
+  - Staged and quarantined 1,564 invalid, foreign aggregate, or redundant records directly in the Google Cloud Firestore `rejected_records` collection with audit categorization.
+  - Maintained zero local staging files, managing the quarantine repository exclusively on Firestore.
+
+## 0.15.23 (2026-09-02)
+
+- **Community Project Build & Prototype Photo Upload**:
+  - Added real enclosure/cabinet build photo upload (`jpg`, `jpeg`, `png`, `webp`) to project publishing workflows (Manage Projects and Community Sidebar).
+  - Implemented client-side WebP optimization (`_process_project_cover_image`) producing lightweight data URIs (~20-50KB).
+  - Rendered prototype cover photos seamlessly in Community 3-column build cards, Featured Spotlight hero banners, and technical project view pages.
+  - Test suite: **205 passed, 0 failed, 0 skipped**.
+
 ## 0.15.22 (2026-09-02)
 
 - **Ultra-Robust Driver Resolution & Non-Empty F3/MOL Community Metrics**:

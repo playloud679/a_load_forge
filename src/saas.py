@@ -912,7 +912,6 @@ def extract_technical_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
                     sd_cm2=float(sd or 500.0),
                     pe_w=float(pe or 100.0),
                     xmax_mm=float(xmax or 5.0),
-                    preset_name=driver_name,
                 )
             elif driver_name:
                 try:
@@ -1013,6 +1012,7 @@ def extract_technical_summary(payload: Mapping[str, Any]) -> dict[str, Any]:
         "peak_spl_db": peak_spl_db,
         "driver_configuration": params.get("driver_config", "Single driver"),
         "box_strategy": params.get("box_strategy", "Max extension"),
+        "cover_image": params.get("cover_image") or payload.get("cover_image"),
     }
     return {k: v for k, v in summary.items() if v is not None}
 
@@ -1047,7 +1047,7 @@ def generate_json_ld_schema(
     if tech.get("driver_qts") is not None:
         props.append({"@type": "PropertyValue", "name": "Qts", "value": f"{tech['driver_qts']:.3f}"})
 
-    return {
+    doc: dict[str, Any] = {
         "@context": "https://schema.org",
         "@type": "TechArticle",
         "mainEntityOfPage": {
@@ -1074,6 +1074,10 @@ def generate_json_ld_schema(
             "additionalProperty": props,
         },
     }
+    cover_img = tech.get("cover_image")
+    if cover_img and isinstance(cover_img, str) and cover_img.startswith("http"):
+        doc["image"] = [cover_img]
+    return doc
 
 
 def generate_open_graph_meta(
@@ -1092,16 +1096,21 @@ def generate_open_graph_meta(
     tune = f"{tech['tuning_freq_hz']:.1f}Hz" if "tuning_freq_hz" in tech else ""
     specs = " · ".join(filter(None, [load_type, vol, tune]))
     desc = pub.description or f"Load Forge engineering simulation for {driver_name} ({specs})."
-    return {
+    meta = {
         "og:title": f"{pub.title} | Load Forge",
         "og:description": desc,
         "og:type": "article",
         "og:url": page_url,
         "og:site_name": "Load Forge",
-        "twitter:card": "summary",
+        "twitter:card": "summary_large_image" if tech.get("cover_image") else "summary",
         "twitter:title": f"{pub.title} | Load Forge",
         "twitter:description": desc,
     }
+    cover_img = tech.get("cover_image")
+    if cover_img and isinstance(cover_img, str) and cover_img.startswith("http"):
+        meta["og:image"] = cover_img
+        meta["twitter:image"] = cover_img
+    return meta
 
 
 def generate_printable_spec_sheet_markdown(pub: PublicProjectRecord) -> str:

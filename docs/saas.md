@@ -358,6 +358,10 @@ Public snapshot
   SPL response curve with a direct CTA to open the full project.
 - **Printable Spec Sheet Export**: `generate_printable_spec_sheet_markdown(pub)` generates
   a publication-ready technical specification sheet in Markdown.
+- **Build & Prototype Photo Upload**: Projects can attach real physical prototype
+  photos or 3D renders during publishing. Images are automatically resized and
+  optimized to lightweight WebP data URIs, embedded in public technical summaries,
+  community cards, spotlight hero cards, and OpenGraph link previews.
 - **SEO & Social Previews**: `generate_json_ld_schema(pub)` and `generate_open_graph_meta(pub)`
   produce structured Schema.org `TechArticle` / `Product` JSON-LD and OpenGraph metadata
   for discovery indexing and rich social link previews.

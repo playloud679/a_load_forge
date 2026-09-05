@@ -2478,6 +2478,30 @@ def _build_lfp_project(
     return _saas.validate_project_payload(payload, allow_legacy=False)
 
 
+def _process_project_cover_image(uploaded_file, max_dim: int = 800, quality: int = 80) -> str | None:
+    """Process, resize and optimize user-uploaded build/cabinet photo into a compact WebP base64 URI."""
+    if uploaded_file is None:
+        return None
+    try:
+        from PIL import Image
+        import io
+        import base64
+
+        raw_bytes = uploaded_file.getvalue() if hasattr(uploaded_file, "getvalue") else uploaded_file.read()
+        if not raw_bytes:
+            return None
+        img = Image.open(io.BytesIO(raw_bytes))
+        img = img.convert("RGB")
+        img.thumbnail((max_dim, max_dim), Image.Resampling.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format="WEBP", quality=quality, method=4)
+        encoded = base64.b64encode(buf.getvalue()).decode("ascii")
+        return f"data:image/webp;base64,{encoded}"
+    except Exception as exc:
+        logger.warning("Could not process uploaded cover image: %s", exc)
+        return None
+
+
 def _bass_match_results_signature() -> str:
     """Hash heavy Finder output once, then reuse it across UI reruns."""
     cached = st.session_state.get("_bass_match_results_signature")
@@ -3370,16 +3394,32 @@ def _render_manage_projects_publish() -> None:
         ["Unlisted (accessible via direct link)", "Public (discoverable in Explore/Projects)"],
         key="mp_pub_vis_select",
     )
+    pub_photo_upload = st.file_uploader(
+        "📷 Build Photo / Real Prototype (optional)",
+        type=["jpg", "jpeg", "png", "webp"],
+        key="mp_pub_photo_upload",
+        help="Upload a real photo or 3D render of your enclosure build to feature on the community card.",
+    )
     if st.button("Publish Technical Snapshot", key="mp_pub_submit_btn", width="stretch", type="primary"):
         try:
             vis = "public" if pub_vis_option.startswith("Public") else "unlisted"
             curr_prj = _get_project_store().load_project(_CURRENT_SAAS_USER, str(project_id))
             if curr_prj is None:
                 raise ValueError("Project not found in private workspace")
+            
+            project_params = dict(curr_prj.parameters)
+            if pub_photo_upload is not None:
+                cover_data_uri = _process_project_cover_image(pub_photo_upload)
+                if cover_data_uri:
+                    if "parameters" in project_params and isinstance(project_params["parameters"], dict):
+                        project_params["parameters"] = dict(project_params["parameters"])
+                        project_params["parameters"]["cover_image"] = cover_data_uri
+                    project_params["cover_image"] = cover_data_uri
+
             pub_record = _get_public_store().publish_project(
                 _CURRENT_SAAS_USER,
                 str(project_id),
-                curr_prj.parameters,
+                project_params,
                 title=pub_title_input,
                 description=pub_desc_input,
                 visibility=vis,
@@ -3388,6 +3428,7 @@ def _render_manage_projects_publish() -> None:
             )
             st.session_state["_last_published_id"] = pub_record.publication_id
             st.toast(f"Published snapshot: {pub_record.title}")
+            st.rerun()
         except Exception as exc:
             logger.exception("Could not publish project snapshot")
             st.error(f"Publishing failed: {exc}")
@@ -4430,6 +4471,26 @@ def _driver_preset_source(name: str) -> str:
         return "Load Forge database"
 
 
+_RESTRICTED_THIRD_PARTY_SOURCES = frozenset({"LSDB", "VituixCAD", "Speaker Box Lite"})
+
+
+def _available_driver_preset_names() -> list[str]:
+    """Return driver preset names visible to the current user.
+
+    Non-admin users are strictly restricted to the Load Forge proprietary catalog and Z Bench.
+    Third-party aggregate databases (LSDB, VituixCAD, Speaker Box Lite) are accessible
+    exclusively to administrators.
+    """
+    names = _acoustics.driver_preset_names()
+    if _maintenance_allowed():
+        return names
+    return [
+        name for name in names
+        if _driver_preset_source(name) not in _RESTRICTED_THIRD_PARTY_SOURCES
+    ]
+
+
+
 def _render_driver_mechanical_drawing(
     mechanical: _presets.MechanicalDimensions | None,
 ) -> None:
@@ -4526,7 +4587,7 @@ def _all_preset_price_currencies() -> list[str]:
 
 
 def _preset_price_currencies(names: list[str]) -> list[str]:
-    all_names = _acoustics.driver_preset_names()
+    all_names = _available_driver_preset_names()
     if len(names) == len(all_names):
         return _all_preset_price_currencies()
     return sorted(
@@ -4545,7 +4606,7 @@ def _all_preset_price_values(currency: str | None = None) -> list[float]:
 
 
 def _preset_price_values(names: list[str], currency: str | None = None) -> list[float]:
-    all_names = _acoustics.driver_preset_names()
+    all_names = _available_driver_preset_names()
     if len(names) == len(all_names):
         return _all_preset_price_values(currency)
     values = []
@@ -4636,7 +4697,7 @@ def _all_available_preset_families() -> list[str]:
 
 
 def _available_preset_families(names: list[str]) -> list[str]:
-    all_names = _acoustics.driver_preset_names()
+    all_names = _available_driver_preset_names()
     if len(names) == len(all_names):
         return _all_available_preset_families()
     present = {_driver_preset_family(name) for name in names}
@@ -4679,8 +4740,14 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
         key="preset_search",
         placeholder="Manufacturer or part number",
     )
+    is_admin = _maintenance_allowed()
+    provenance_options = (
+        list(_PRESET_SOURCE_FILTERS)
+        if is_admin
+        else [opt for opt in _PRESET_SOURCE_FILTERS if opt not in _RESTRICTED_THIRD_PARTY_SOURCES]
+    )
     filter_options = (
-        ("preset_source_filter", "Provenance", list(_PRESET_SOURCE_FILTERS)),
+        ("preset_source_filter", "Provenance", provenance_options),
         (
             "preset_family_filter",
             "Manufacturer",
@@ -4786,9 +4853,11 @@ def _filter_driver_preset_names(
         values = {str(item) for item in ([value] if isinstance(value, str) else value)}
         return set() if not values or "All" in values else values
 
+    is_admin = _maintenance_allowed()
     source_values = {
         _PRESET_SOURCE_FILTER_ALIASES.get(value, value)
         for value in selected_values(source)
+        if is_admin or _PRESET_SOURCE_FILTER_ALIASES.get(value, value) not in _RESTRICTED_THIRD_PARTY_SOURCES
     }
     family_values = selected_values(family)
     size_values = selected_values(size)
@@ -4804,11 +4873,16 @@ def _filter_driver_preset_names(
         source_values or family_values or size_values or class_values or query
         or max_price is not None or max_mms_g is not None or max_le_mh is not None
     ):
+        if not is_admin:
+            return [name for name in names if _driver_preset_source(name) not in _RESTRICTED_THIRD_PARTY_SOURCES]
         return list(names)
     rates = _current_exchange_rates()[0] if max_price is not None else None
     filtered = []
     for name in names:
-        if source_values and _driver_preset_source(name) not in source_values:
+        source_name = _driver_preset_source(name)
+        if not is_admin and source_name in _RESTRICTED_THIRD_PARTY_SOURCES:
+            continue
+        if source_values and source_name not in source_values:
             continue
         if family_values and _driver_preset_family(name) not in family_values:
             continue
@@ -6408,7 +6482,7 @@ def _design_tab_label_driver(label: str) -> str:
 
 def _recover_design_tab_preset(parameters: dict) -> str:
     """Recover a preset name from unchanged T/S values in a legacy tab."""
-    for name in _acoustics.driver_preset_names():
+    for name in _available_driver_preset_names():
         if _design_tab_parameters_match_preset(parameters, name):
             return str(name)
     return "Custom"
@@ -11715,12 +11789,24 @@ def _render_community_sidebar() -> None:
         pub_title_input = st.text_input("Title", value=active_proj_name, key="comm_side_pub_title")
         pub_desc_input = st.text_area("Notes", placeholder="E.g. Tuned for touring sub...", key="comm_side_pub_desc", height=70)
         pub_vis = st.selectbox("Visibility", ["public", "unlisted"], key="comm_side_pub_vis")
+        pub_photo_side = st.file_uploader(
+            "📷 Build Photo (optional)",
+            type=["jpg", "jpeg", "png", "webp"],
+            key="comm_side_pub_photo",
+            help="Upload a photo or 3D render of your real build.",
+        )
         if st.button("Publish Design", key="comm_side_pub_btn", type="primary", width="stretch"):
             if _CURRENT_SAAS_USER is None:
                 st.warning("Please sign in to publish projects.")
             else:
                 try:
                     payload = _build_lfp_project({"name": pub_title_input or active_proj_name}, include_results=True)
+                    if pub_photo_side is not None:
+                        cover_data_uri = _process_project_cover_image(pub_photo_side)
+                        if cover_data_uri:
+                            if "parameters" in payload and isinstance(payload["parameters"], dict):
+                                payload["parameters"]["cover_image"] = cover_data_uri
+                            payload["cover_image"] = cover_data_uri
                     pub_rec = _get_public_store().publish_project(
                         _CURRENT_SAAS_USER,
                         st.session_state.get("_cloud_project_id") or _saas.new_project_id(),
@@ -11825,7 +11911,7 @@ with st.sidebar:
         with bm_tab2:
             _render_find_driver_goal_sidebar()
 
-        all_preset_names = _acoustics.driver_preset_names()
+        all_preset_names = _available_driver_preset_names()
         with bm_tab3:
             _render_finder_library_filters(all_preset_names)
 
@@ -11876,7 +11962,7 @@ with st.sidebar:
         _render_workspace_tabs()
         bd_tab1, bd_tab2, bd_tab3 = st.tabs(["Driver", "Load Selection", "Enclosure Parameters"])
         
-        all_preset_names = _acoustics.driver_preset_names()
+        all_preset_names = _available_driver_preset_names()
         with bd_tab1:
             st.text_input(
                 "Search preset",
@@ -12892,10 +12978,17 @@ def _render_public_project_page(publication_id: str) -> None:
         if hasattr(pub.published_at, "strftime")
         else str(pub.published_at)
     )
-    st.caption(f"Published by **{html.escape(author)}** · {pub_date} · ID: `{pub.publication_id}`")
-
     if pub.description:
         st.info(pub.description)
+
+    pub_cover_img = (pub.technical_summary or {}).get("cover_image") or (pub.parameters or {}).get("cover_image")
+    if pub_cover_img:
+        st.markdown(
+            f"""<div style="border-radius: 10px; overflow: hidden; margin-bottom: 1.2rem; border: 1px solid rgba(255,255,255,0.1); max-height: 420px; display: flex; align-items: center; justify-content: center; background: #0b0f19;">
+                <img src="{pub_cover_img}" style="width: 100%; max-height: 400px; object-fit: contain; border-radius: 8px;" alt="Real Build Photo" />
+            </div>""",
+            unsafe_allow_html=True,
+        )
 
     # Action buttons
     action_col1, action_col2, action_col3, action_col4 = st.columns([3, 3, 2, 2])
@@ -13300,7 +13393,6 @@ def _resolve_driver_ts(name: str, fs=None, vas=None, qts=None, qms=None, re_val=
             sd_cm2=float(sd or (float(nominal_size_in)**2 * 3.14159 * 2.54**2 / 4.0 if nominal_size_in else 500.0)),
             pe_w=float(pe or 100.0),
             xmax_mm=float(xmax or 5.0),
-            preset_name=str(name or "Custom driver"),
         )
     clean = str(name or "").strip()
     if clean:
@@ -13353,7 +13445,6 @@ def _resolve_driver_ts(name: str, fs=None, vas=None, qts=None, qms=None, re_val=
         sd_cm2=sd_calc,
         pe_w=200.0,
         xmax_mm=6.0,
-        preset_name=str(name or "Generic driver"),
     )
 
 
@@ -13778,6 +13869,14 @@ def _render_explore_projects_directory() -> None:
         top_mol_str = f"{top_spl_val:.1f} dB" if top_spl_val is not None and top_spl_val > 0 else "—"
 
         with st.container(border=True):
+            top_cover = top_tech.get("cover_image")
+            if top_cover:
+                st.markdown(
+                    f"""<div style="border-radius: 8px; overflow: hidden; margin-bottom: 10px; max-height: 200px; display: flex; align-items: center; justify-content: center; background: #0b0f19;">
+                        <img src="{top_cover}" style="width: 100%; max-height: 190px; object-fit: cover; border-radius: 6px;" alt="Featured Build" />
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
             fh_img, fh_txt = st.columns([0.7, 5.3], vertical_alignment="center")
             with fh_img:
                 top_img = _get_community_load_image(top_load)
@@ -13841,6 +13940,7 @@ def _render_explore_projects_directory() -> None:
         if tech.get("resonator_type") == _RESONATOR_PR:
             load_type = "Passive radiator"
         driver_name = tech.get("driver_name", "Custom driver")
+        card_cover = tech.get("cover_image")
         f3 = tech.get("f3_hz")
         vol = tech.get("box_volume_l")
         spl = tech.get("peak_spl_db")
@@ -13878,6 +13978,9 @@ def _render_explore_projects_directory() -> None:
             except Exception:
                 pass
 
+        if not card_cover:
+            card_cover = (pub_raw if 'pub_raw' in locals() and pub_raw else {}).get("cover_image")
+
         driver_str = str(driver_name)
         if isinstance(size_in, (int, float)) and size_in > 0:
             driver_str += f' ({size_in:.0f}")'
@@ -13887,6 +13990,13 @@ def _render_explore_projects_directory() -> None:
 
         with col:
             with st.container(border=True):
+                if card_cover:
+                    st.markdown(
+                        f"""<div style="border-radius: 6px; overflow: hidden; margin-bottom: 8px; max-height: 140px; display: flex; align-items: center; justify-content: center; background: #0b0f19;">
+                            <img src="{card_cover}" style="width: 100%; height: 130px; object-fit: cover; border-radius: 4px;" alt="Build Photo" />
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
                 # Header with small load type icon and title
                 h_img, h_txt = st.columns([0.7, 3.3], vertical_alignment="center")
                 with h_img:
