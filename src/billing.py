@@ -19,6 +19,33 @@ logger = logging.getLogger("load_forge.billing")
 # Defaults and URLs
 DEFAULT_APP_URL = "https://load-forge-665148536194.europe-west1.run.app"
 
+CREDIT_PACKS: dict[str, dict[str, Any]] = {
+    "pack_1000": {
+        "credits": 1_000,
+        "name": "1,000 Credits",
+        "price_eur": 9.0,
+        "badge": "Starter",
+        "description": "Ideal for focused project tweaks and custom driver runs",
+        "env_var": "STRIPE_PRICE_CREDITS_1000",
+    },
+    "pack_5000": {
+        "credits": 5_000,
+        "name": "5,000 Credits",
+        "price_eur": 29.0,
+        "badge": "Popular",
+        "description": "Multi-topology comparative scans and deep sweeps",
+        "env_var": "STRIPE_PRICE_CREDITS_5000",
+    },
+    "pack_10000": {
+        "credits": 10_000,
+        "name": "10,000 Credits",
+        "price_eur": 49.0,
+        "badge": "Best Value",
+        "description": "Exhaustive scans across our full 9,800+ driver catalog",
+        "env_var": "STRIPE_PRICE_CREDITS_10000",
+    },
+}
+
 
 def get_stripe_setting(key: str, default: str = "") -> str:
     """Retrieve a Stripe configuration parameter from env or Streamlit secrets."""
@@ -180,6 +207,90 @@ def create_customer_portal_session(
     return str(session.url)
 
 
+def create_credit_pack_checkout_session(
+    account: UserAccount,
+    pack_key: str = "pack_5000",
+    *,
+    success_url: str | None = None,
+    cancel_url: str | None = None,
+    account_store: Any = None,
+) -> str:
+    """Create a one-time Stripe Checkout Session to buy simulation credit packs."""
+    if pack_key not in CREDIT_PACKS:
+        raise ValueError(f"Unknown credit pack: {pack_key}")
+    pack = CREDIT_PACKS[pack_key]
+    stripe = _init_stripe()
+    customer_id = ensure_stripe_customer(account, account_store=account_store)
+
+    app_url = get_app_url()
+    s_url = success_url or f"{app_url}/?checkout=success&session_id={{CHECKOUT_SESSION_ID}}&pack={pack_key}"
+    c_url = cancel_url or f"{app_url}/?checkout=canceled"
+
+    price_id = get_stripe_setting(pack["env_var"])
+    if price_id:
+        line_items = [{"price": price_id, "quantity": 1}]
+    else:
+        line_items = [{
+            "price_data": {
+                "currency": "eur",
+                "unit_amount": int(pack["price_eur"] * 100),
+                "product_data": {
+                    "name": f"Load Forge - {pack['name']}",
+                    "description": pack["description"],
+                },
+            },
+            "quantity": 1,
+        }]
+
+    session = stripe.checkout.Session.create(
+        customer=customer_id,
+        mode="payment",
+        line_items=line_items,
+        success_url=s_url,
+        cancel_url=c_url,
+        client_reference_id=account.uid,
+        metadata={
+            "uid": account.uid,
+            "email": account.email,
+            "type": "credit_pack",
+            "pack_key": pack_key,
+            "credits": str(pack["credits"]),
+        },
+    )
+    return str(session.url)
+
+
+def sync_checkout_session(session_id: str, account_store: Any = None) -> dict[str, Any]:
+    """Retrieve a completed checkout session directly from Stripe and sync account state immediately."""
+    stripe = _init_stripe()
+    session = stripe.checkout.Session.retrieve(session_id)
+    mode = session.get("mode")
+    meta = session.get("metadata") or {}
+    uid = session.get("client_reference_id") or meta.get("uid", "")
+    email = meta.get("email", "")
+    target = email or uid
+    res: dict[str, Any] = {"status": "ok", "mode": mode, "type": meta.get("type", "subscription")}
+
+    if target and account_store:
+        if mode == "payment" and meta.get("type") == "credit_pack":
+            credits_to_add = int(meta.get("credits", 0))
+            if credits_to_add > 0:
+                account_store.adjust_credits(target, credits_to_add)
+                res["credits"] = credits_to_add
+        elif mode == "subscription":
+            sub_id = session.get("subscription")
+            tier = meta.get("tier", "pro")
+            account_store.update_billing_info(
+                target,
+                stripe_customer_id=session.get("customer"),
+                stripe_subscription_id=sub_id,
+                subscription_status="active",
+                plan=tier,
+            )
+            res["plan"] = tier
+    return res
+
+
 def process_webhook_event(
     payload: bytes,
     sig_header: str,
@@ -249,18 +360,28 @@ def process_webhook_event(
         sub_id = data_obj.get("subscription")
         uid = extract_uid(data_obj)
         email = extract_email(data_obj)
-        tier = (data_obj.get("metadata") or {}).get("tier", "pro")
         customer_id = data_obj.get("customer")
         target = email or uid
-        if target and account_store:
-            account_store.update_billing_info(
-                target,
-                stripe_customer_id=customer_id,
-                stripe_subscription_id=sub_id,
-                subscription_status="active",
-                plan=tier,
-            )
-        result_summary["action"] = "checkout_completed"
+        mode = data_obj.get("mode")
+        meta = data_obj.get("metadata") or {}
+
+        if mode == "payment" and meta.get("type") == "credit_pack":
+            credits_to_add = int(meta.get("credits", 0))
+            if target and account_store and credits_to_add > 0:
+                account_store.adjust_credits(target, credits_to_add)
+            result_summary["action"] = f"added_{credits_to_add}_credits"
+            result_summary["credits"] = credits_to_add
+        else:
+            tier = meta.get("tier", "pro")
+            if target and account_store:
+                account_store.update_billing_info(
+                    target,
+                    stripe_customer_id=customer_id,
+                    stripe_subscription_id=sub_id,
+                    subscription_status="active",
+                    plan=tier,
+                )
+            result_summary["action"] = "checkout_completed"
 
     elif event_type in ("customer.subscription.created", "customer.subscription.updated"):
         sub_id = data_obj.get("id")

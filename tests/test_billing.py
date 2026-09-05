@@ -179,5 +179,97 @@ class TestBilling(unittest.TestCase):
             self.assertEqual(r_post.status_code, 400)
 
 
+    def test_create_credit_pack_checkout_session(self):
+        acc = UserAccount(
+            uid="u_credits",
+            email="pack@example.com",
+            name="Pack Buyer",
+            plan="free",
+            credits_balance=100,
+            credits_monthly_quota=100,
+            quota_reset_at=datetime.now(timezone.utc),
+            total_simulations_run=0,
+            is_admin=False,
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
+        )
+        mock_store = InMemoryUserAccountStore()
+        mock_store.get_or_create_account(acc.uid, acc.email, acc.name)
+
+        mock_session = MagicMock(url="https://checkout.stripe.com/pay/cs_credits123")
+        with patch("stripe.Customer.create", return_value=MagicMock(id="cus_credits123")), \
+             patch("stripe.checkout.Session.create", return_value=mock_session) as mock_create, \
+             patch.dict("os.environ", {"STRIPE_SECRET_KEY": "sk_test_123"}):
+            url = billing.create_credit_pack_checkout_session(
+                acc,
+                pack_key="pack_5000",
+                account_store=mock_store,
+            )
+            self.assertEqual(url, "https://checkout.stripe.com/pay/cs_credits123")
+            mock_create.assert_called_once()
+            _, kwargs = mock_create.call_args
+            self.assertEqual(kwargs["mode"], "payment")
+            self.assertEqual(kwargs["metadata"]["credits"], "5000")
+            self.assertEqual(kwargs["metadata"]["type"], "credit_pack")
+
+    def test_process_webhook_credit_pack_completed(self):
+        store = InMemoryUserAccountStore()
+        user = store.get_or_create_account("u_buyer", "buyer@example.com", "Buyer")
+        self.assertEqual(user.credits_balance, 100)
+
+        event_credits = {
+            "id": "evt_pack_123",
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "mode": "payment",
+                    "customer": "cus_buyer123",
+                    "client_reference_id": "u_buyer",
+                    "metadata": {
+                        "uid": "u_buyer",
+                        "email": "buyer@example.com",
+                        "type": "credit_pack",
+                        "credits": "5000",
+                    },
+                }
+            }
+        }
+
+        with patch("stripe.Webhook.construct_event", return_value=event_credits), \
+             patch.dict("os.environ", {
+                 "STRIPE_SECRET_KEY": "sk_test_123",
+                 "STRIPE_WEBHOOK_SECRET": "whsec_test_123",
+             }):
+            res = billing.process_webhook_event(b"dummy", "dummy_sig", account_store=store)
+            self.assertEqual(res["status"], "success")
+            self.assertEqual(res["credits"], 5000)
+            updated = store.get_or_create_account("u_buyer", "buyer@example.com", "Buyer")
+            self.assertEqual(updated.credits_balance, 5100)
+
+    def test_sync_checkout_session(self):
+        store = InMemoryUserAccountStore()
+        user = store.get_or_create_account("u_sync", "sync@example.com", "Sync User")
+        self.assertEqual(user.credits_balance, 100)
+
+        mock_session = {
+            "mode": "payment",
+            "client_reference_id": "u_sync",
+            "metadata": {
+                "uid": "u_sync",
+                "email": "sync@example.com",
+                "type": "credit_pack",
+                "credits": "1000",
+            },
+        }
+
+        with patch("stripe.checkout.Session.retrieve", return_value=mock_session), \
+             patch.dict("os.environ", {"STRIPE_SECRET_KEY": "sk_test_123"}):
+            res = billing.sync_checkout_session("cs_test_sync", account_store=store)
+            self.assertEqual(res["status"], "ok")
+            self.assertEqual(res["credits"], 1000)
+            updated = store.get_or_create_account("u_sync", "sync@example.com", "Sync User")
+            self.assertEqual(updated.credits_balance, 1100)
+
+
 if __name__ == "__main__":
     unittest.main()

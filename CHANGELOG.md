@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.16.1 (2026-09-06)
+
+- **One-Time Credit Packs & In-App Credit Purchase**:
+  - Implemented on-demand simulation credit packs (`1,000 Credits` · 9 €, `5,000 Credits` · 29 €, `10,000 Credits` · 49 €) in `src/billing.py`.
+  - Added `create_credit_pack_checkout_session` using hosted Stripe Checkout in `mode="payment"` with dynamic `price_data` in EUR.
+  - Added `sync_checkout_session` for instant, non-blocking client-side fulfillment when returning from Stripe Checkout.
+  - Extended webhook processing for `checkout.session.completed` to credit user accounts automatically and atomically in Firestore.
+- **Universal Credit Top-Up Buttons & Bass Match Integration**:
+  - Added dedicated `⚡ Compra Crediti / Pro` button in the sidebar under user balance, always visible regardless of gateway state.
+  - Integrated direct `⚡ Compra Crediti (X mancanti)` popover button directly inside the Bass Match insufficient credits banner with smart recommendation highlighting the required pack.
+  - Provided immediate fallback top-up functionality for seamless testing and development before live Stripe credentials are provisioned on Cloud Run.
+
 ## 0.16.0 (2026-09-06)
 
 - **Session Sign Out & Universal Logout Action**:

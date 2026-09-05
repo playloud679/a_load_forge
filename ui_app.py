@@ -3167,41 +3167,119 @@ def _render_hud_explore_community_button(key: str = "sidebar_community_btn") -> 
         )
 
 
-def _render_billing_action_button(acc: _saas.UserAccount) -> None:
-    """Render upgrade to Pro or manage subscription button in the sidebar."""
-    if not _billing.is_stripe_configured():
-        return
+def _render_credits_purchase_popover(
+    acc: _saas.UserAccount,
+    *,
+    key: str = "credits_purchase_popover",
+    label: str = "⚡ Compra Crediti / Pro",
+    shortfall: int = 0,
+    width: str = "stretch",
+) -> None:
+    """Render an interactive popover to purchase simulation credit packs or upgrade subscriptions."""
+    stripe_ready = _billing.is_stripe_configured()
+    with st.popover(label, width=width):
+        st.markdown(f"### 💳 Saldo: **{acc.credits_balance:,}** crediti · *{acc.plan.upper()}*")
+        if shortfall > 0:
+            st.info(f"💡 Per la scansione corrente mancano **{shortfall:,} crediti**.")
 
-    if acc.plan == "free":
-        with st.popover("🚀 Upgrade to Pro", width="stretch"):
-            st.markdown("#### Choose your Pro plan")
-            st.markdown(
-                "- **2,500 monthly simulation credits**\n"
-                "- **100 cloud-saved projects**\n"
-                "- Full candidate pool & export sheets\n"
-                "- Cloud revision backups"
-            )
-            interval = st.radio("Billing cycle", ["Monthly", "Yearly (Save 20%)"], key="sidebar_upgrade_interval")
-            chosen_int = "yearly" if "Yearly" in interval else "monthly"
-            try:
-                checkout_url = _billing.create_checkout_session(
-                    acc,
-                    plan="pro",
-                    interval=chosen_int,
-                    account_store=_ACCOUNT_STORE,
+        tab_packs, tab_sub = st.tabs(["⚡ Pacchetti Crediti", "🚀 Abbonamento Pro"])
+        with tab_packs:
+            st.caption("Acquista pacchetti di crediti aggiuntivi per sbloccare simulazioni avanzate ed esportazioni.")
+            for pack_key, pack_info in _billing.CREDIT_PACKS.items():
+                is_recommended = (shortfall > 0 and pack_info["credits"] >= shortfall)
+                badge_text = f" · **{pack_info['badge']}**" if pack_info.get("badge") else ""
+                if is_recommended:
+                    badge_text = " · ⭐ **Suggerito per questa scansione**"
+                with st.container(border=True):
+                    c1, c2 = st.columns([2.2, 1.8], vertical_alignment="center")
+                    with c1:
+                        st.markdown(f"**{pack_info['name']}**{badge_text}")
+                        st.caption(f"{pack_info['description']} · **{pack_info['credits']:,} crediti**")
+                    with c2:
+                        price_str = f"€ {pack_info['price_eur']:.0f}"
+                        if stripe_ready:
+                            try:
+                                checkout_url = _billing.create_credit_pack_checkout_session(
+                                    acc,
+                                    pack_key=pack_key,
+                                    account_store=_ACCOUNT_STORE,
+                                )
+                                st.link_button(
+                                    f"Acquista ({price_str})",
+                                    checkout_url,
+                                    type="primary" if is_recommended else "secondary",
+                                    width="stretch",
+                                    key=f"{key}_pack_{pack_key}",
+                                )
+                            except Exception as exc:
+                                st.error(f"Errore: {exc}")
+                        else:
+                            # Immediate credit reload for testing / unconfigured gateway
+                            if st.button(
+                                f"Ricarica ({price_str})*",
+                                key=f"{key}_demo_topup_{pack_key}",
+                                type="primary" if is_recommended else "secondary",
+                                width="stretch",
+                                help="Ricarica crediti istantanea per collaudo e utilizzo immediato.",
+                            ):
+                                _ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, pack_info["credits"])
+                                st.session_state.pop("_cached_user_account", None)
+                                st.toast(f"🎉 Ricaricati con successo {pack_info['credits']:,} crediti!", icon="⚡")
+                                st.rerun()
+
+            if not stripe_ready:
+                st.caption(
+                    "* *Gateway Stripe in fase di configurazione su questa istanza Cloud Run. "
+                    "I pulsanti consentono la ricarica immediata per consentire il collaudo e l'uso completo.*"
                 )
-                st.link_button("Proceed to Stripe Checkout", checkout_url, type="primary", width="stretch")
-            except Exception as exc:
-                st.error(f"Checkout initialization: {exc}")
-    elif acc.stripe_customer_id:
-        try:
-            portal_url = _billing.create_customer_portal_session(
-                acc,
-                account_store=_ACCOUNT_STORE,
-            )
-            st.link_button("⚙️ Manage Subscription", portal_url, width="stretch")
-        except Exception:
-            pass
+
+        with tab_sub:
+            if acc.plan == "free":
+                st.markdown(
+                    "- **2.500 crediti mensili** inclusi ogni mese\n"
+                    "- **100 progetti salvati su cloud** con storico revisioni\n"
+                    "- Accesso illimitato al catalogo completo e report tecnici"
+                )
+                interval = st.radio("Frequenza di fatturazione", ["Mensile (19 € / mese)", "Annuale (189 € / anno · Risparmi 20%)"], key=f"{key}_sub_interval")
+                chosen_int = "yearly" if "Annuale" in interval else "monthly"
+                if stripe_ready:
+                    try:
+                        checkout_url = _billing.create_checkout_session(
+                            acc,
+                            plan="pro",
+                            interval=chosen_int,
+                            account_store=_ACCOUNT_STORE,
+                        )
+                        st.link_button("Passa a Pro con Stripe", checkout_url, type="primary", width="stretch")
+                    except Exception as exc:
+                        st.error(f"Errore Stripe: {exc}")
+                else:
+                    if st.button("Attiva Pro (Demo/Test)*", key=f"{key}_sub_demo_btn", type="primary", width="stretch"):
+                        _ACCOUNT_STORE.update_billing_info(acc.email or acc.uid, plan="pro")
+                        st.session_state.pop("_cached_user_account", None)
+                        st.toast("🎉 Account aggiornato a Pro!", icon="🚀")
+                        st.rerun()
+            elif acc.stripe_customer_id and stripe_ready:
+                try:
+                    portal_url = _billing.create_customer_portal_session(
+                        acc,
+                        account_store=_ACCOUNT_STORE,
+                    )
+                    st.link_button("⚙️ Gestisci Abbonamento (Stripe)", portal_url, width="stretch")
+                except Exception:
+                    pass
+            else:
+                st.success(f"Sei abbonato al piano **{acc.plan.upper()}**!")
+
+
+def _render_billing_action_button(acc: _saas.UserAccount) -> None:
+    """Render upgrade to Pro or buy credits button in the sidebar."""
+    _render_credits_purchase_popover(
+        acc,
+        key="sidebar_billing_action_popover",
+        label="⚡ Compra Crediti / Pro",
+        width="stretch",
+    )
 
 
 def _render_current_project_sidebar_header() -> None:
@@ -9584,10 +9662,20 @@ def _render_bass_match_hero(
                 "SPL, change the driver configuration or relax the library filters."
             )
         if not has_enough_credits:
+            shortfall = max(0, run_credits - credits_balance)
             st.error(
-                f"Insufficient credits: this scan requires **{run_credits:,} credits**, but your balance is **{credits_balance:,} credits**. "
-                "Refine your filters, choose fewer drivers, or upgrade your plan."
+                f"Insufficient credits: this scan requires **{run_credits:,} credits**, but your balance is **{credits_balance:,} credits** "
+                f"(shortfall: **{shortfall:,} credits**). "
+                "Refine your filters, choose fewer drivers, or purchase credits / upgrade below."
             )
+            c_buy1, _ = st.columns([2.2, 2.8])
+            with c_buy1:
+                _render_credits_purchase_popover(
+                    acc,
+                    key="bm_buy_credits_err_popover",
+                    label=f"⚡ Compra Crediti ({shortfall:,} mancanti)",
+                    shortfall=shortfall,
+                )
     run_requested = st.button(
         _FINDER_CTA_LABEL,
         type="primary",
@@ -11753,11 +11841,24 @@ _sync_auto_alignment_if_needed()
 _checkout_status = st.query_params.get("checkout")
 if _checkout_status:
     if _checkout_status == "success":
-        st.toast("🎉 Subscription checkout successful! Your Pro access is syncing.", icon="🚀")
+        session_id = st.query_params.get("session_id")
+        if session_id and _billing.is_stripe_configured():
+            try:
+                sess_info = _billing.sync_checkout_session(session_id, _ACCOUNT_STORE)
+                if sess_info.get("type") == "credit_pack":
+                    st.toast(f"🎉 Pagamento completato! Aggiunti {sess_info.get('credits', 0):,} crediti al tuo saldo.", icon="⚡")
+                else:
+                    st.toast("🎉 Subscription checkout successful! Your Pro access is active.", icon="🚀")
+            except Exception:
+                st.toast("🎉 Checkout successful! Syncing account state...", icon="🚀")
+        else:
+            st.toast("🎉 Checkout successful! Syncing account state...", icon="🚀")
+        st.session_state.pop("_cached_user_account", None)
     elif _checkout_status == "canceled":
         st.toast("Checkout canceled. No charges were made.", icon="ℹ️")
     st.query_params.pop("checkout", None)
     st.query_params.pop("session_id", None)
+    st.query_params.pop("pack", None)
 
 if st.query_params.get("logout") in ("1", "true", "yes"):
     st.query_params.pop("logout", None)
