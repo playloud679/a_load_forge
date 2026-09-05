@@ -4,12 +4,12 @@
   <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
-**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.16.1**
+**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.16.2**
 =============================================================================
-[![Version](https://img.shields.io/badge/version-0.16.1-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-0.16.2-blue.svg)](VERSION)
 [![CI](https://github.com/marcoderossi/load_forge/actions/workflows/ci.yml/badge.svg)](https://github.com/marcoderossi/load_forge/actions)
 
-Current release: **0.16.1**
+Current release: **0.16.2**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth-, sixth- and eighth-order bandpass**,

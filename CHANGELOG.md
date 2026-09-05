@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.16.2 (2026-09-06)
+
+- **10x Credits Scaling Across All Tiers**:
+  - Scaled monthly free credits and credit packs by 10x to accommodate high-volume batch simulations:
+    - **Free tier**: 10,000 monthly credits (previously 100).
+    - **Starter pack (€9)**: 100,000 credits (previously 1,000).
+    - **Pro pack / Pro tier (€19/mo)**: 300,000 credits (previously 2,500).
+    - **Power pack (€49)**: 1,000,000 credits (previously 10,000).
+  - Backward-compatible quota upgrade in `FirestoreUserAccountStore` and `FirestorePrivateStore`: existing accounts below the new quota automatically receive the difference upon next login or access.
+- **English UI Localization & Instant In-Memory Balance Refresh**:
+  - Enforced full English localization for all credit purchase popovers, checkout actions, and error banners across the application.
+  - Hardened top-up actions to immediately reflect new credit balances in-memory before triggering `st.rerun()`, ensuring seamless immediate unblocking of batch scans.
+
 ## 0.16.1 (2026-09-06)
 
 - **One-Time Credit Packs & In-App Credit Purchase**:

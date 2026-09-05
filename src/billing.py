@@ -20,29 +20,29 @@ logger = logging.getLogger("load_forge.billing")
 DEFAULT_APP_URL = "https://load-forge-665148536194.europe-west1.run.app"
 
 CREDIT_PACKS: dict[str, dict[str, Any]] = {
-    "pack_1000": {
-        "credits": 1_000,
-        "name": "1,000 Credits",
+    "pack_100000": {
+        "credits": 100_000,
+        "name": "100,000 Credits",
         "price_eur": 9.0,
         "badge": "Starter",
-        "description": "Ideal for focused project tweaks and custom driver runs",
-        "env_var": "STRIPE_PRICE_CREDITS_1000",
+        "description": "Ideal for focused sweeps, deep comparisons and custom driver runs",
+        "env_var": "STRIPE_PRICE_CREDITS_100000",
     },
-    "pack_5000": {
-        "credits": 5_000,
-        "name": "5,000 Credits",
-        "price_eur": 29.0,
+    "pack_300000": {
+        "credits": 300_000,
+        "name": "300,000 Credits",
+        "price_eur": 19.0,
         "badge": "Popular",
-        "description": "Multi-topology comparative scans and deep sweeps",
-        "env_var": "STRIPE_PRICE_CREDITS_5000",
+        "description": "Multi-topology comparative scans across extensive candidate pools",
+        "env_var": "STRIPE_PRICE_CREDITS_300000",
     },
-    "pack_10000": {
-        "credits": 10_000,
-        "name": "10,000 Credits",
+    "pack_1000000": {
+        "credits": 1_000_000,
+        "name": "1,000,000 Credits",
         "price_eur": 49.0,
-        "badge": "Best Value",
-        "description": "Exhaustive scans across our full 9,800+ driver catalog",
-        "env_var": "STRIPE_PRICE_CREDITS_10000",
+        "badge": "Power / Best Value",
+        "description": "Exhaustive scans across our full 9,800+ driver catalog with zero limits",
+        "env_var": "STRIPE_PRICE_CREDITS_1000000",
     },
 }
 
@@ -209,7 +209,7 @@ def create_customer_portal_session(
 
 def create_credit_pack_checkout_session(
     account: UserAccount,
-    pack_key: str = "pack_5000",
+    pack_key: str = "pack_300000",
     *,
     success_url: str | None = None,
     cancel_url: str | None = None,

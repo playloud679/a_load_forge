@@ -3374,8 +3374,8 @@ def _check_saas_identity_entitlements_and_project_store():
     assert beta_entitlements.access_tier == "pro"
     assert beta_entitlements.promotion == "open_beta"
     assert beta_entitlements.saved_projects == 100
-    assert beta_entitlements.monthly_credits == 2_500
-    assert beta_entitlements.monthly_finder_runs == 2_500
+    assert beta_entitlements.monthly_credits == 300_000
+    assert beta_entitlements.monthly_finder_runs == 300_000
 
     team_user = saas.user_from_claims({
         "sub": "team-user",

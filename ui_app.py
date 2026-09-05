@@ -3171,30 +3171,30 @@ def _render_credits_purchase_popover(
     acc: _saas.UserAccount,
     *,
     key: str = "credits_purchase_popover",
-    label: str = "⚡ Compra Crediti / Pro",
+    label: str = "⚡ Buy Credits / Pro",
     shortfall: int = 0,
     width: str = "stretch",
 ) -> None:
     """Render an interactive popover to purchase simulation credit packs or upgrade subscriptions."""
     stripe_ready = _billing.is_stripe_configured()
     with st.popover(label, width=width):
-        st.markdown(f"### 💳 Saldo: **{acc.credits_balance:,}** crediti · *{acc.plan.upper()}*")
+        st.markdown(f"### 💳 Balance: **{acc.credits_balance:,}** credits · *{acc.plan.upper()}*")
         if shortfall > 0:
-            st.info(f"💡 Per la scansione corrente mancano **{shortfall:,} crediti**.")
+            st.info(f"💡 Current scan requires **{shortfall:,} additional credits**.")
 
-        tab_packs, tab_sub = st.tabs(["⚡ Pacchetti Crediti", "🚀 Abbonamento Pro"])
+        tab_packs, tab_sub = st.tabs(["⚡ Credit Packs", "🚀 Pro Subscription"])
         with tab_packs:
-            st.caption("Acquista pacchetti di crediti aggiuntivi per sbloccare simulazioni avanzate ed esportazioni.")
+            st.caption("Purchase one-time credit packs to unlock comprehensive sweeps and exports.")
             for pack_key, pack_info in _billing.CREDIT_PACKS.items():
                 is_recommended = (shortfall > 0 and pack_info["credits"] >= shortfall)
                 badge_text = f" · **{pack_info['badge']}**" if pack_info.get("badge") else ""
                 if is_recommended:
-                    badge_text = " · ⭐ **Suggerito per questa scansione**"
+                    badge_text = " · ⭐ **Recommended for this scan**"
                 with st.container(border=True):
                     c1, c2 = st.columns([2.2, 1.8], vertical_alignment="center")
                     with c1:
                         st.markdown(f"**{pack_info['name']}**{badge_text}")
-                        st.caption(f"{pack_info['description']} · **{pack_info['credits']:,} crediti**")
+                        st.caption(f"{pack_info['description']} · **{pack_info['credits']:,} credits**")
                     with c2:
                         price_str = f"€ {pack_info['price_eur']:.0f}"
                         if stripe_ready:
@@ -3205,43 +3205,44 @@ def _render_credits_purchase_popover(
                                     account_store=_ACCOUNT_STORE,
                                 )
                                 st.link_button(
-                                    f"Acquista ({price_str})",
+                                    f"Buy ({price_str})",
                                     checkout_url,
                                     type="primary" if is_recommended else "secondary",
                                     width="stretch",
                                     key=f"{key}_pack_{pack_key}",
                                 )
                             except Exception as exc:
-                                st.error(f"Errore: {exc}")
+                                st.error(f"Error: {exc}")
                         else:
                             # Immediate credit reload for testing / unconfigured gateway
                             if st.button(
-                                f"Ricarica ({price_str})*",
+                                f"Top up ({price_str})*",
                                 key=f"{key}_demo_topup_{pack_key}",
                                 type="primary" if is_recommended else "secondary",
                                 width="stretch",
-                                help="Ricarica crediti istantanea per collaudo e utilizzo immediato.",
+                                help="Instant credit top-up for testing and immediate simulation runs.",
                             ):
                                 _ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, pack_info["credits"])
+                                acc.credits_balance += pack_info["credits"]
                                 st.session_state.pop("_cached_user_account", None)
-                                st.toast(f"🎉 Ricaricati con successo {pack_info['credits']:,} crediti!", icon="⚡")
+                                st.toast(f"🎉 Successfully added {pack_info['credits']:,} credits!", icon="⚡")
                                 st.rerun()
 
             if not stripe_ready:
                 st.caption(
-                    "* *Gateway Stripe in fase di configurazione su questa istanza Cloud Run. "
-                    "I pulsanti consentono la ricarica immediata per consentire il collaudo e l'uso completo.*"
+                    "* *Stripe checkout gateway is being configured on Cloud Run. "
+                    "The instant top-up buttons enable immediate testing and full simulation access.*"
                 )
 
         with tab_sub:
             if acc.plan == "free":
                 st.markdown(
-                    "- **2.500 crediti mensili** inclusi ogni mese\n"
-                    "- **100 progetti salvati su cloud** con storico revisioni\n"
-                    "- Accesso illimitato al catalogo completo e report tecnici"
+                    "- **300,000 monthly credits** included every month\n"
+                    "- **100 cloud-saved projects** with revision history\n"
+                    "- Unlimited access to full catalog, high-res sweeps, and export sheets"
                 )
-                interval = st.radio("Frequenza di fatturazione", ["Mensile (19 € / mese)", "Annuale (189 € / anno · Risparmi 20%)"], key=f"{key}_sub_interval")
-                chosen_int = "yearly" if "Annuale" in interval else "monthly"
+                interval = st.radio("Billing cycle", ["Monthly (€19 / mo)", "Yearly (€189 / yr · Save 20%)"], key=f"{key}_sub_interval")
+                chosen_int = "yearly" if "Yearly" in interval else "monthly"
                 if stripe_ready:
                     try:
                         checkout_url = _billing.create_checkout_session(
@@ -3250,14 +3251,17 @@ def _render_credits_purchase_popover(
                             interval=chosen_int,
                             account_store=_ACCOUNT_STORE,
                         )
-                        st.link_button("Passa a Pro con Stripe", checkout_url, type="primary", width="stretch")
+                        st.link_button("Upgrade to Pro with Stripe", checkout_url, type="primary", width="stretch")
                     except Exception as exc:
-                        st.error(f"Errore Stripe: {exc}")
+                        st.error(f"Stripe Error: {exc}")
                 else:
-                    if st.button("Attiva Pro (Demo/Test)*", key=f"{key}_sub_demo_btn", type="primary", width="stretch"):
+                    if st.button("Activate Pro (Demo/Test)*", key=f"{key}_sub_demo_btn", type="primary", width="stretch"):
                         _ACCOUNT_STORE.update_billing_info(acc.email or acc.uid, plan="pro")
+                        _ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, 300_000)
+                        acc.plan = "pro"
+                        acc.credits_balance += 300_000
                         st.session_state.pop("_cached_user_account", None)
-                        st.toast("🎉 Account aggiornato a Pro!", icon="🚀")
+                        st.toast("🎉 Account upgraded to Pro with 300,000 credits!", icon="🚀")
                         st.rerun()
             elif acc.stripe_customer_id and stripe_ready:
                 try:
@@ -3265,11 +3269,11 @@ def _render_credits_purchase_popover(
                         acc,
                         account_store=_ACCOUNT_STORE,
                     )
-                    st.link_button("⚙️ Gestisci Abbonamento (Stripe)", portal_url, width="stretch")
+                    st.link_button("⚙️ Manage Subscription (Stripe)", portal_url, width="stretch")
                 except Exception:
                     pass
             else:
-                st.success(f"Sei abbonato al piano **{acc.plan.upper()}**!")
+                st.success(f"You are subscribed to the **{acc.plan.upper()}** plan!")
 
 
 def _render_billing_action_button(acc: _saas.UserAccount) -> None:
@@ -3277,7 +3281,7 @@ def _render_billing_action_button(acc: _saas.UserAccount) -> None:
     _render_credits_purchase_popover(
         acc,
         key="sidebar_billing_action_popover",
-        label="⚡ Compra Crediti / Pro",
+        label="⚡ Buy Credits / Pro",
         width="stretch",
     )
 
@@ -9673,7 +9677,7 @@ def _render_bass_match_hero(
                 _render_credits_purchase_popover(
                     acc,
                     key="bm_buy_credits_err_popover",
-                    label=f"⚡ Compra Crediti ({shortfall:,} mancanti)",
+                    label=f"⚡ Buy Credits ({shortfall:,} needed)",
                     shortfall=shortfall,
                 )
     run_requested = st.button(
@@ -11846,7 +11850,7 @@ if _checkout_status:
             try:
                 sess_info = _billing.sync_checkout_session(session_id, _ACCOUNT_STORE)
                 if sess_info.get("type") == "credit_pack":
-                    st.toast(f"🎉 Pagamento completato! Aggiunti {sess_info.get('credits', 0):,} crediti al tuo saldo.", icon="⚡")
+                    st.toast(f"🎉 Payment successful! Added {sess_info.get('credits', 0):,} credits to your balance.", icon="⚡")
                 else:
                     st.toast("🎉 Subscription checkout successful! Your Pro access is active.", icon="🚀")
             except Exception:

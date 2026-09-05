@@ -290,21 +290,21 @@ PLAN_ENTITLEMENTS: dict[str, PlanEntitlements] = {
     "free": PlanEntitlements(
         "free",
         saved_projects=3,
-        monthly_credits=100,
+        monthly_credits=10_000,
         team_seats=1,
         access_tier="free",
     ),
     "pro": PlanEntitlements(
         "pro",
         saved_projects=100,
-        monthly_credits=2_500,
+        monthly_credits=300_000,
         team_seats=1,
         access_tier="pro",
     ),
     "team": PlanEntitlements(
         "team",
         saved_projects=500,
-        monthly_credits=10_000,
+        monthly_credits=1_000_000,
         team_seats=10,
         access_tier="team",
     ),
@@ -2615,8 +2615,8 @@ class InMemoryUserAccountStore:
         month = now.month % 12 + 1
         year = now.year + (1 if now.month == 12 else 0)
         reset_at = datetime(year, month, 1, tzinfo=timezone.utc)
-        balance = 100_000 if is_admin else ent.monthly_credits
-        quota = 100_000 if is_admin else ent.monthly_credits
+        balance = 1_000_000 if is_admin else ent.monthly_credits
+        quota = 1_000_000 if is_admin else ent.monthly_credits
         acc = UserAccount(
             uid=uid,
             email=normalized_email,
@@ -2756,15 +2756,20 @@ class FirestoreUserAccountStore:
             snap = ref.get(transaction=tx)
             if snap.exists:
                 acc = UserAccount.from_dict(snap.to_dict())
-                # Check monthly reset
+                ent = PLAN_ENTITLEMENTS.get(acc.plan, PLAN_ENTITLEMENTS["free"])
                 if now >= acc.quota_reset_at:
                     month = acc.quota_reset_at.month % 12 + 1
                     year = acc.quota_reset_at.year + (1 if acc.quota_reset_at.month == 12 else 0)
                     next_reset = datetime(year, month, 1, tzinfo=timezone.utc)
-                    ent = PLAN_ENTITLEMENTS.get(acc.plan, PLAN_ENTITLEMENTS["free"])
                     acc.credits_balance = ent.monthly_credits
                     acc.credits_monthly_quota = ent.monthly_credits
                     acc.quota_reset_at = next_reset
+                    acc.updated_at = now
+                    tx.set(ref, acc.to_dict())
+                elif acc.credits_monthly_quota < ent.monthly_credits:
+                    diff = ent.monthly_credits - acc.credits_monthly_quota
+                    acc.credits_monthly_quota = ent.monthly_credits
+                    acc.credits_balance = max(ent.monthly_credits, acc.credits_balance + diff)
                     acc.updated_at = now
                     tx.set(ref, acc.to_dict())
                 if is_admin_candidate and not acc.is_admin:

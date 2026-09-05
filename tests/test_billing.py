@@ -202,20 +202,20 @@ class TestBilling(unittest.TestCase):
              patch.dict("os.environ", {"STRIPE_SECRET_KEY": "sk_test_123"}):
             url = billing.create_credit_pack_checkout_session(
                 acc,
-                pack_key="pack_5000",
+                pack_key="pack_300000",
                 account_store=mock_store,
             )
             self.assertEqual(url, "https://checkout.stripe.com/pay/cs_credits123")
             mock_create.assert_called_once()
             _, kwargs = mock_create.call_args
             self.assertEqual(kwargs["mode"], "payment")
-            self.assertEqual(kwargs["metadata"]["credits"], "5000")
+            self.assertEqual(kwargs["metadata"]["credits"], "300000")
             self.assertEqual(kwargs["metadata"]["type"], "credit_pack")
 
     def test_process_webhook_credit_pack_completed(self):
         store = InMemoryUserAccountStore()
         user = store.get_or_create_account("u_buyer", "buyer@example.com", "Buyer")
-        self.assertEqual(user.credits_balance, 100)
+        self.assertEqual(user.credits_balance, 10000)
 
         event_credits = {
             "id": "evt_pack_123",
@@ -229,7 +229,7 @@ class TestBilling(unittest.TestCase):
                         "uid": "u_buyer",
                         "email": "buyer@example.com",
                         "type": "credit_pack",
-                        "credits": "5000",
+                        "credits": "300000",
                     },
                 }
             }
@@ -242,14 +242,14 @@ class TestBilling(unittest.TestCase):
              }):
             res = billing.process_webhook_event(b"dummy", "dummy_sig", account_store=store)
             self.assertEqual(res["status"], "success")
-            self.assertEqual(res["credits"], 5000)
+            self.assertEqual(res["credits"], 300000)
             updated = store.get_or_create_account("u_buyer", "buyer@example.com", "Buyer")
-            self.assertEqual(updated.credits_balance, 5100)
+            self.assertEqual(updated.credits_balance, 310000)
 
     def test_sync_checkout_session(self):
         store = InMemoryUserAccountStore()
         user = store.get_or_create_account("u_sync", "sync@example.com", "Sync User")
-        self.assertEqual(user.credits_balance, 100)
+        self.assertEqual(user.credits_balance, 10000)
 
         mock_session = {
             "mode": "payment",
@@ -258,7 +258,7 @@ class TestBilling(unittest.TestCase):
                 "uid": "u_sync",
                 "email": "sync@example.com",
                 "type": "credit_pack",
-                "credits": "1000",
+                "credits": "100000",
             },
         }
 
@@ -266,9 +266,9 @@ class TestBilling(unittest.TestCase):
              patch.dict("os.environ", {"STRIPE_SECRET_KEY": "sk_test_123"}):
             res = billing.sync_checkout_session("cs_test_sync", account_store=store)
             self.assertEqual(res["status"], "ok")
-            self.assertEqual(res["credits"], 1000)
+            self.assertEqual(res["credits"], 100000)
             updated = store.get_or_create_account("u_sync", "sync@example.com", "Sync User")
-            self.assertEqual(updated.credits_balance, 1100)
+            self.assertEqual(updated.credits_balance, 110000)
 
 
 if __name__ == "__main__":

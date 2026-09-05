@@ -407,15 +407,20 @@ class FirestorePrivateStore:
             snap = ref.get(transaction=tx)
             if snap.exists:
                 acc = saas.UserAccount.from_dict(snap.to_dict())
-                # Check monthly reset
+                ent = saas.PLAN_ENTITLEMENTS.get(acc.plan, saas.PLAN_ENTITLEMENTS["free"])
                 if now >= acc.quota_reset_at:
                     month = acc.quota_reset_at.month % 12 + 1
                     year = acc.quota_reset_at.year + (1 if acc.quota_reset_at.month == 12 else 0)
                     next_reset = datetime(year, month, 1, tzinfo=timezone.utc)
-                    ent = saas.PLAN_ENTITLEMENTS.get(acc.plan, saas.PLAN_ENTITLEMENTS["free"])
                     acc.credits_balance = ent.monthly_credits
                     acc.credits_monthly_quota = ent.monthly_credits
                     acc.quota_reset_at = next_reset
+                    acc.updated_at = now
+                    tx.set(ref, acc.to_dict())
+                elif acc.credits_monthly_quota < ent.monthly_credits:
+                    diff = ent.monthly_credits - acc.credits_monthly_quota
+                    acc.credits_monthly_quota = ent.monthly_credits
+                    acc.credits_balance = max(ent.monthly_credits, acc.credits_balance + diff)
                     acc.updated_at = now
                     tx.set(ref, acc.to_dict())
                 if is_admin_candidate and not acc.is_admin:
