@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.5 (2026-09-06)
+
+- **Modern Wide-Screen Billing Modal (Design Overhaul)**:
+  - Replaced cramped 300px sidebar popover with a clean, spacious modal dialog (`@st.dialog`) with dark backdrop overlay.
+  - Eliminated cluttered, multi-layered vertical radio buttons in favor of sleek, side-by-side comparative cards for **Hobby** (€3/mo) and **Pro** (€9/mo).
+  - Integrated top segmented billing cycle toggle (`Monthly` vs `Yearly · Save up to 27%`) dynamically updating pricing in-place.
+  - Formatted one-time credit packs into balanced 3-column pricing cards with direct Stripe Checkout links.
+  - Highlighted full payment options in modal footer (Credit Cards, PayPal, Klarna, Satispay, Amazon Pay).
+  - Sidebar layout remains completely stable and compact without pushing down speaker topology icons.
+
 ## 0.16.4 (2026-09-06)
 
 - **Subscription-First Popover Hierarchy & Stripe PayPal Activation**:
