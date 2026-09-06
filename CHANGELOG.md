@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.3 (2026-09-06)
+
+- **Hobby Subscription Tier & Social Community Project Freedom**:
+  - Introduced the **Hobby Plan** at **€ 3 / month** (or **€ 29 / year**) with **60,000 monthly credits**, specifically designed for DIY builders and audio enthusiasts.
+  - Reduced **Pro Plan** to **€ 9 / month** (or **€ 79 / year**) for **300,000 monthly credits** to provide a natural, accessible 3x progression.
+  - **Unlimited Cloud Projects for All Tiers**: Removed project limits across all plans (`saved_projects = 999_999`) to nurture the public community library and social project sharing.
+  - Adjusted one-time credit pack pricing to align with subscriptions (100k for € 5, 300k for € 12, 1M for € 29).
+
 ## 0.16.2 (2026-09-06)
 
 - **10x Credits Scaling Across All Tiers**:

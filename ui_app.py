@@ -3182,7 +3182,7 @@ def _render_credits_purchase_popover(
         if shortfall > 0:
             st.info(f"💡 Current scan requires **{shortfall:,} additional credits**.")
 
-        tab_packs, tab_sub = st.tabs(["⚡ Credit Packs", "🚀 Pro Subscription"])
+        tab_packs, tab_sub = st.tabs(["⚡ Credit Packs", "🚀 Subscriptions"])
         with tab_packs:
             st.caption("Purchase one-time credit packs to unlock comprehensive sweeps and exports.")
             for pack_key, pack_info in _billing.CREDIT_PACKS.items():
@@ -3235,13 +3235,73 @@ def _render_credits_purchase_popover(
                 )
 
         with tab_sub:
-            if acc.plan == "free":
-                st.markdown(
-                    "- **300,000 monthly credits** included every month\n"
-                    "- **100 cloud-saved projects** with revision history\n"
-                    "- Unlimited access to full catalog, high-res sweeps, and export sheets"
+            if acc.plan in ("free", "unknown"):
+                tier_choice = st.radio(
+                    "Choose your plan",
+                    ["Hobby (€3 / mo · 60,000 credits)", "Pro (€9 / mo · 300,000 credits)"],
+                    key=f"{key}_sub_tier_select",
                 )
-                interval = st.radio("Billing cycle", ["Monthly (€19 / mo)", "Yearly (€189 / yr · Save 20%)"], key=f"{key}_sub_interval")
+                is_hobby = "Hobby" in tier_choice
+                target_plan = "hobby" if is_hobby else "pro"
+
+                if is_hobby:
+                    st.markdown(
+                        "- **60,000 monthly credits** for acoustic design & sweeps\n"
+                        "- **Unlimited cloud-saved projects** & community sharing\n"
+                        "- Access to full 9,800+ driver library & export sheets"
+                    )
+                    interval = st.radio(
+                        "Billing cycle",
+                        ["Monthly (€3 / mo)", "Yearly (€29 / yr · Save 20%)"],
+                        key=f"{key}_sub_interval_hobby",
+                    )
+                else:
+                    st.markdown(
+                        "- **300,000 monthly credits** for power users & batch scans\n"
+                        "- **Unlimited cloud-saved projects** & full revision history\n"
+                        "- Priority cloud computing & comprehensive technical export sheets"
+                    )
+                    interval = st.radio(
+                        "Billing cycle",
+                        ["Monthly (€9 / mo)", "Yearly (€79 / yr · Save 27%)"],
+                        key=f"{key}_sub_interval_pro",
+                    )
+                chosen_int = "yearly" if "Yearly" in interval else "monthly"
+
+                if stripe_ready:
+                    try:
+                        checkout_url = _billing.create_checkout_session(
+                            acc,
+                            plan=target_plan,
+                            interval=chosen_int,
+                            account_store=_ACCOUNT_STORE,
+                        )
+                        btn_label = f"Subscribe to {target_plan.title()} with Stripe"
+                        st.link_button(btn_label, checkout_url, type="primary", width="stretch")
+                    except Exception as exc:
+                        st.error(f"Stripe Error: {exc}")
+                else:
+                    added_cr = 60_000 if target_plan == "hobby" else 300_000
+                    if st.button(f"Activate {target_plan.title()} (Demo/Test)*", key=f"{key}_sub_demo_btn", type="primary", width="stretch"):
+                        _ACCOUNT_STORE.update_billing_info(acc.email or acc.uid, plan=target_plan)
+                        _ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, added_cr)
+                        acc.plan = target_plan
+                        acc.credits_balance += added_cr
+                        st.session_state.pop("_cached_user_account", None)
+                        st.toast(f"🎉 Account upgraded to {target_plan.title()} with {added_cr:,} credits!", icon="🚀")
+                        st.rerun()
+
+            elif acc.plan == "hobby":
+                st.success("You are subscribed to the **HOBBY** plan (60,000 credits/mo)!")
+                st.markdown(
+                    "Need more simulation power for high-volume sweeps?\n"
+                    "- **Upgrade to Pro (€9 / mo)** for **300,000 credits/mo**"
+                )
+                interval = st.radio(
+                    "Billing cycle for Pro upgrade",
+                    ["Monthly (€9 / mo)", "Yearly (€79 / yr · Save 27%)"],
+                    key=f"{key}_sub_upgrade_pro_interval",
+                )
                 chosen_int = "yearly" if "Yearly" in interval else "monthly"
                 if stripe_ready:
                     try:
@@ -3254,16 +3314,17 @@ def _render_credits_purchase_popover(
                         st.link_button("Upgrade to Pro with Stripe", checkout_url, type="primary", width="stretch")
                     except Exception as exc:
                         st.error(f"Stripe Error: {exc}")
-                else:
-                    if st.button("Activate Pro (Demo/Test)*", key=f"{key}_sub_demo_btn", type="primary", width="stretch"):
-                        _ACCOUNT_STORE.update_billing_info(acc.email or acc.uid, plan="pro")
-                        _ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, 300_000)
-                        acc.plan = "pro"
-                        acc.credits_balance += 300_000
-                        st.session_state.pop("_cached_user_account", None)
-                        st.toast("🎉 Account upgraded to Pro with 300,000 credits!", icon="🚀")
-                        st.rerun()
+                if acc.stripe_customer_id and stripe_ready:
+                    try:
+                        portal_url = _billing.create_customer_portal_session(
+                            acc,
+                            account_store=_ACCOUNT_STORE,
+                        )
+                        st.link_button("⚙️ Manage Subscription (Stripe)", portal_url, width="stretch")
+                    except Exception:
+                        pass
             elif acc.stripe_customer_id and stripe_ready:
+                st.success(f"You are subscribed to the **{acc.plan.upper()}** plan!")
                 try:
                     portal_url = _billing.create_customer_portal_session(
                         acc,

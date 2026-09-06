@@ -23,7 +23,7 @@ CREDIT_PACKS: dict[str, dict[str, Any]] = {
     "pack_100000": {
         "credits": 100_000,
         "name": "100,000 Credits",
-        "price_eur": 9.0,
+        "price_eur": 5.0,
         "badge": "Starter",
         "description": "Ideal for focused sweeps, deep comparisons and custom driver runs",
         "env_var": "STRIPE_PRICE_CREDITS_100000",
@@ -31,7 +31,7 @@ CREDIT_PACKS: dict[str, dict[str, Any]] = {
     "pack_300000": {
         "credits": 300_000,
         "name": "300,000 Credits",
-        "price_eur": 19.0,
+        "price_eur": 12.0,
         "badge": "Popular",
         "description": "Multi-topology comparative scans across extensive candidate pools",
         "env_var": "STRIPE_PRICE_CREDITS_300000",
@@ -39,7 +39,7 @@ CREDIT_PACKS: dict[str, dict[str, Any]] = {
     "pack_1000000": {
         "credits": 1_000_000,
         "name": "1,000,000 Credits",
-        "price_eur": 49.0,
+        "price_eur": 29.0,
         "badge": "Power / Best Value",
         "description": "Exhaustive scans across our full 9,800+ driver catalog with zero limits",
         "env_var": "STRIPE_PRICE_CREDITS_1000000",
@@ -83,11 +83,15 @@ def get_stripe_price_id(plan: str = "pro", interval: str = "monthly") -> str:
     val = get_stripe_setting(key)
     if val:
         return val
-    # Fallback to general price env if available
-    if plan_norm == "pro" and int_norm == "monthly":
-        return get_stripe_setting("STRIPE_PRICE_PRO_MONTHLY", "price_pro_monthly_default")
+    # Fallback to defaults created in Stripe
+    if plan_norm == "hobby" and int_norm == "monthly":
+        return get_stripe_setting("STRIPE_PRICE_HOBBY_MONTHLY", "price_1UCbuiPgXf9081cTKLOukCkX")
+    elif plan_norm == "hobby" and int_norm == "yearly":
+        return get_stripe_setting("STRIPE_PRICE_HOBBY_YEARLY", "price_1UCbuiPgXf9081cTRWTHAWuF")
+    elif plan_norm == "pro" and int_norm == "monthly":
+        return get_stripe_setting("STRIPE_PRICE_PRO_MONTHLY", "price_1UCbujPgXf9081cTtlwN0KcB")
     elif plan_norm == "pro" and int_norm == "yearly":
-        return get_stripe_setting("STRIPE_PRICE_PRO_YEARLY", "price_pro_yearly_default")
+        return get_stripe_setting("STRIPE_PRICE_PRO_YEARLY", "price_1UCbujPgXf9081cTx2YEy0my")
     elif plan_norm == "team":
         return get_stripe_setting("STRIPE_PRICE_TEAM_MONTHLY", "price_team_monthly_default")
     return ""

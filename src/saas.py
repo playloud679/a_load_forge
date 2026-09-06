@@ -289,21 +289,28 @@ class PlanEntitlements:
 PLAN_ENTITLEMENTS: dict[str, PlanEntitlements] = {
     "free": PlanEntitlements(
         "free",
-        saved_projects=3,
+        saved_projects=999_999,
         monthly_credits=10_000,
         team_seats=1,
         access_tier="free",
     ),
+    "hobby": PlanEntitlements(
+        "hobby",
+        saved_projects=999_999,
+        monthly_credits=60_000,
+        team_seats=1,
+        access_tier="pro",
+    ),
     "pro": PlanEntitlements(
         "pro",
-        saved_projects=100,
+        saved_projects=999_999,
         monthly_credits=300_000,
         team_seats=1,
         access_tier="pro",
     ),
     "team": PlanEntitlements(
         "team",
-        saved_projects=500,
+        saved_projects=999_999,
         monthly_credits=1_000_000,
         team_seats=10,
         access_tier="team",
@@ -2515,7 +2522,7 @@ class UserAccount:
     def has_pro_access(self) -> bool:
         if self.is_admin:
             return True
-        if self.plan in ("pro", "team"):
+        if self.plan in ("hobby", "pro", "team"):
             if self.subscription_status is None:
                 return True
             return self.subscription_status in ("active", "trialing", "past_due")
