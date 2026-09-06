@@ -3171,69 +3171,18 @@ def _render_credits_purchase_popover(
     acc: _saas.UserAccount,
     *,
     key: str = "credits_purchase_popover",
-    label: str = "⚡ Buy Credits / Pro",
+    label: str = "🚀 Subscriptions & Credits",
     shortfall: int = 0,
     width: str = "stretch",
 ) -> None:
-    """Render an interactive popover to purchase simulation credit packs or upgrade subscriptions."""
+    """Render an interactive popover to upgrade subscriptions or purchase simulation credit packs."""
     stripe_ready = _billing.is_stripe_configured()
     with st.popover(label, width=width):
         st.markdown(f"### 💳 Balance: **{acc.credits_balance:,}** credits · *{acc.plan.upper()}*")
         if shortfall > 0:
             st.info(f"💡 Current scan requires **{shortfall:,} additional credits**.")
 
-        tab_packs, tab_sub = st.tabs(["⚡ Credit Packs", "🚀 Subscriptions"])
-        with tab_packs:
-            st.caption("Purchase one-time credit packs to unlock comprehensive sweeps and exports.")
-            for pack_key, pack_info in _billing.CREDIT_PACKS.items():
-                is_recommended = (shortfall > 0 and pack_info["credits"] >= shortfall)
-                badge_text = f" · **{pack_info['badge']}**" if pack_info.get("badge") else ""
-                if is_recommended:
-                    badge_text = " · ⭐ **Recommended for this scan**"
-                with st.container(border=True):
-                    c1, c2 = st.columns([2.2, 1.8], vertical_alignment="center")
-                    with c1:
-                        st.markdown(f"**{pack_info['name']}**{badge_text}")
-                        st.caption(f"{pack_info['description']} · **{pack_info['credits']:,} credits**")
-                    with c2:
-                        price_str = f"€ {pack_info['price_eur']:.0f}"
-                        if stripe_ready:
-                            try:
-                                checkout_url = _billing.create_credit_pack_checkout_session(
-                                    acc,
-                                    pack_key=pack_key,
-                                    account_store=_ACCOUNT_STORE,
-                                )
-                                st.link_button(
-                                    f"Buy ({price_str})",
-                                    checkout_url,
-                                    type="primary" if is_recommended else "secondary",
-                                    width="stretch",
-                                    key=f"{key}_pack_{pack_key}",
-                                )
-                            except Exception as exc:
-                                st.error(f"Error: {exc}")
-                        else:
-                            # Immediate credit reload for testing / unconfigured gateway
-                            if st.button(
-                                f"Top up ({price_str})*",
-                                key=f"{key}_demo_topup_{pack_key}",
-                                type="primary" if is_recommended else "secondary",
-                                width="stretch",
-                                help="Instant credit top-up for testing and immediate simulation runs.",
-                            ):
-                                _ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, pack_info["credits"])
-                                acc.credits_balance += pack_info["credits"]
-                                st.session_state.pop("_cached_user_account", None)
-                                st.toast(f"🎉 Successfully added {pack_info['credits']:,} credits!", icon="⚡")
-                                st.rerun()
-
-            if not stripe_ready:
-                st.caption(
-                    "* *Stripe checkout gateway is being configured on Cloud Run. "
-                    "The instant top-up buttons enable immediate testing and full simulation access.*"
-                )
-
+        tab_sub, tab_packs = st.tabs(["🚀 Subscriptions", "⚡ Credit Packs"])
         with tab_sub:
             if acc.plan in ("free", "unknown"):
                 tier_choice = st.radio(
@@ -3336,13 +3285,64 @@ def _render_credits_purchase_popover(
             else:
                 st.success(f"You are subscribed to the **{acc.plan.upper()}** plan!")
 
+        with tab_packs:
+            st.caption("Purchase one-time credit packs to unlock comprehensive sweeps and exports.")
+            for pack_key, pack_info in _billing.CREDIT_PACKS.items():
+                is_recommended = (shortfall > 0 and pack_info["credits"] >= shortfall)
+                badge_text = f" · **{pack_info['badge']}**" if pack_info.get("badge") else ""
+                if is_recommended:
+                    badge_text = " · ⭐ **Recommended for this scan**"
+                with st.container(border=True):
+                    c1, c2 = st.columns([2.2, 1.8], vertical_alignment="center")
+                    with c1:
+                        st.markdown(f"**{pack_info['name']}**{badge_text}")
+                        st.caption(f"{pack_info['description']} · **{pack_info['credits']:,} credits**")
+                    with c2:
+                        price_str = f"€ {pack_info['price_eur']:.0f}"
+                        if stripe_ready:
+                            try:
+                                checkout_url = _billing.create_credit_pack_checkout_session(
+                                    acc,
+                                    pack_key=pack_key,
+                                    account_store=_ACCOUNT_STORE,
+                                )
+                                st.link_button(
+                                    f"Buy ({price_str})",
+                                    checkout_url,
+                                    type="primary" if is_recommended else "secondary",
+                                    width="stretch",
+                                    key=f"{key}_pack_{pack_key}",
+                                )
+                            except Exception as exc:
+                                st.error(f"Error: {exc}")
+                        else:
+                            # Immediate credit reload for testing / unconfigured gateway
+                            if st.button(
+                                f"Top up ({price_str})*",
+                                key=f"{key}_demo_topup_{pack_key}",
+                                type="primary" if is_recommended else "secondary",
+                                width="stretch",
+                                help="Instant credit top-up for testing and immediate simulation runs.",
+                            ):
+                                _ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, pack_info["credits"])
+                                acc.credits_balance += pack_info["credits"]
+                                st.session_state.pop("_cached_user_account", None)
+                                st.toast(f"🎉 Successfully added {pack_info['credits']:,} credits!", icon="⚡")
+                                st.rerun()
+
+            if not stripe_ready:
+                st.caption(
+                    "* *Stripe checkout gateway is being configured on Cloud Run. "
+                    "The instant top-up buttons enable immediate testing and full simulation access.*"
+                )
+
 
 def _render_billing_action_button(acc: _saas.UserAccount) -> None:
     """Render upgrade to Pro or buy credits button in the sidebar."""
     _render_credits_purchase_popover(
         acc,
         key="sidebar_billing_action_popover",
-        label="⚡ Buy Credits / Pro",
+        label="🚀 Subscriptions & Credits",
         width="stretch",
     )
 
@@ -9738,7 +9738,7 @@ def _render_bass_match_hero(
                 _render_credits_purchase_popover(
                     acc,
                     key="bm_buy_credits_err_popover",
-                    label=f"⚡ Buy Credits ({shortfall:,} needed)",
+                    label=f"🚀 Subscribe / Buy Credits ({shortfall:,} needed)",
                     shortfall=shortfall,
                 )
     run_requested = st.button(

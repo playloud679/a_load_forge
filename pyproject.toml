@@ -4,8 +4,8 @@ build-backend = "setuptools.backends._legacy:_Backend"
 
 [project]
 name = "load-forge"
-version = "0.16.3"
-description = "Load Forge - Advanced Multi-Topology Acoustic Load Design & Optimizer"
+version = "0.16.4"
+description = "Load Forge - Advanced Acoustic CAD, Multi-Topology Loudspeaker Simulation & Driver Search Engine"
 readme = "README.md"
 license = { text = "Proprietary" }
 requires-python = ">=3.10"

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.4 (2026-09-06)
+
+- **Subscription-First Popover Hierarchy & Stripe PayPal Activation**:
+  - Reordered billing popover tabs so **🚀 Subscriptions** appears as the primary, default active tab before **⚡ Credit Packs**.
+  - Renamed billing CTA actions to explicitly prioritize subscriptions (`🚀 Subscriptions & Credits` and `🚀 Subscribe / Buy Credits`).
+  - Enabled **PayPal** in the active Stripe Payment Method Configuration (`pmc_1UCbUfPgXf9081cT1q1NchR5`) for both recurring subscriptions and one-time pack checkouts.
+
 ## 0.16.3 (2026-09-06)
 
 - **Hobby Subscription Tier & Social Community Project Freedom**:
