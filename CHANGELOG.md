@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.16.6 (2026-09-07)
+
+- **Comprehensive UI Alignment & Symmetrical Grid System**:
+  - **Acoustic Topology Sidebar Cards**: Row 1 (direct radiators: Infinite Baffle, Sealed, Reflex) and Row 2 (compound loads: BP4, BP6, BP8, DCCAV) now dynamically scale to `st.columns(len(row_load_types), gap="small")`, eliminating the blank gap on row 1 and stretching both rows to 100% of the sidebar width.
+  - **Label Height Normalization**: Fixed `.load-card-label` height to `1.7rem` with centered flexbox layout, ensuring multi-line labels (e.g. Infinite Baffle) and single-line labels align on the exact same baseline across cards.
+  - **Bass Match Constraint Grid**: Switched `.finder-constraint-grid` to `repeat(auto-fill, minmax(9.75rem, 1fr))`, guaranteeing that trailing cards on row 4 maintain identical, uniform width with rows 1–3 rather than stretching irregularly.
+
 ## 0.16.5 (2026-09-06)
 
 - **Modern Wide-Screen Billing Modal (Design Overhaul)**:
