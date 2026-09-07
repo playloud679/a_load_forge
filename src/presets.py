@@ -58,6 +58,11 @@ LOUDSPEAKER_DATABASE_PATH = (
 FIRESTORE_PRESETS_CACHE_PATH = (
     Path(__file__).resolve().parents[1] / "data" / "catalog_firestore.cache.pickle"
 )
+_FIRESTORE_CACHE_TTL_SECONDS = float(
+    os.environ.get("LOAD_FORGE_FIRESTORE_CACHE_TTL_SECONDS", "60.0")
+)
+_LAST_DYNAMIC_CATALOG_CHECK_TIME: float = 0.0
+_LAST_MANUFACTURER_CATALOG_MTIME: float = 0.0
 # Presets extracted directly from manufacturer sites (HTML/PDF/API), kept in a
 # separate file from the loudspeakerdatabase.com import above: this file is
 # safe to ship in a public build, the LSDB one is not (see docs/presets.md).
@@ -1676,7 +1681,7 @@ def _load_firestore_presets(
     if client is None and FIRESTORE_PRESETS_CACHE_PATH.exists():
         try:
             cache_age = time.time() - FIRESTORE_PRESETS_CACHE_PATH.stat().st_mtime
-            if cache_age < 3600:
+            if cache_age < _FIRESTORE_CACHE_TTL_SECONDS:
                 cached = _safe_unpickle_bytes(FIRESTORE_PRESETS_CACHE_PATH.read_bytes())
                 if (
                     isinstance(cached, tuple)
@@ -1793,8 +1798,58 @@ def _load_firestore_presets(
     return presets, info
 
 
+def check_dynamic_catalog_freshness(force: bool = False) -> bool:
+    """Check if dynamic catalog sources (Firestore or local catalog file) have updated.
+
+    If TTL has expired or a force refresh is requested, dynamically refreshes
+    Firestore presets and any modified local manufacturer catalog without
+    reloading static third-party database files. Returns True if any cache was refreshed.
+    """
+    global _LAST_DYNAMIC_CATALOG_CHECK_TIME, _LAST_MANUFACTURER_CATALOG_MTIME
+    now = time.time()
+    ttl = _FIRESTORE_CACHE_TTL_SECONDS
+    mfr_path = manufacturer_database_path()
+    mfr_mtime = 0.0
+    try:
+        if mfr_path.exists():
+            mfr_mtime = mfr_path.stat().st_mtime
+    except Exception:
+        pass
+    mfr_changed = (_LAST_MANUFACTURER_CATALOG_MTIME > 0 and mfr_mtime != _LAST_MANUFACTURER_CATALOG_MTIME)
+
+    if not force and not mfr_changed and (now - _LAST_DYNAMIC_CATALOG_CHECK_TIME < ttl):
+        return False
+
+    _LAST_DYNAMIC_CATALOG_CHECK_TIME = now
+    _LAST_MANUFACTURER_CATALOG_MTIME = mfr_mtime
+
+    _load_firestore_presets.cache_clear()
+    if mfr_changed or force:
+        _load_manufacturer_presets.cache_clear()
+    _external_tiers.cache_clear()
+    driver_preset_names.cache_clear()
+    driver_preset_info.cache_clear()
+    driver_preset_provenance_category.cache_clear()
+    driver_preset_identity.cache_clear()
+    driver_preset_preference.cache_clear()
+    deduplicate_driver_preset_names.cache_clear()
+    all_preset_brands.cache_clear()
+    all_preset_price_currencies.cache_clear()
+    all_preset_price_values.cache_clear()
+    get_driver_preset.cache_clear()
+    return True
+
+
 def invalidate_preset_caches() -> None:
     """Clear all LRU caches for driver and passive radiator presets."""
+    global _LAST_DYNAMIC_CATALOG_CHECK_TIME, _LAST_MANUFACTURER_CATALOG_MTIME
+    _LAST_DYNAMIC_CATALOG_CHECK_TIME = time.time()
+    try:
+        mfr_path = manufacturer_database_path()
+        if mfr_path.exists():
+            _LAST_MANUFACTURER_CATALOG_MTIME = mfr_path.stat().st_mtime
+    except Exception:
+        pass
     _external_tiers.cache_clear()
     _load_firestore_presets.cache_clear()
     _load_manufacturer_presets.cache_clear()
@@ -1822,9 +1877,9 @@ def invalidate_preset_caches() -> None:
 @lru_cache(maxsize=1)
 def _external_tiers() -> list[tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]]:
     return [
+        _load_firestore_presets(),
         _load_loudspeaker_database_presets(),
         _load_manufacturer_presets(),
-        _load_firestore_presets(),
         _load_vituixcad_presets(),
         _load_speakerboxlite_presets(),
         _load_ztzaudio_presets(),
@@ -1929,11 +1984,12 @@ def driver_preset_preference(name: str) -> tuple[int, int, float, str]:
         category = "Other"
         price = float("inf")
     source_priority = {
-        "Load Forge database": 0,
-        "LSDB": 1,
-        "VituixCAD": 2,
-        "Speaker Box Lite": 3,
-    }.get(category, 4)
+        "Z Bench": 0,
+        "Load Forge database": 1,
+        "LSDB": 2,
+        "VituixCAD": 3,
+        "Speaker Box Lite": 4,
+    }.get(category, 5)
     return (
         source_priority,
         0 if math.isfinite(price) else 1,

@@ -6215,6 +6215,55 @@ test(
 )
 
 
+def _check_dynamic_catalog_freshness_and_zbench_priority():
+    from unittest.mock import MagicMock, patch
+    from src import acoustics as ac
+    from src import presets
+
+    presets.invalidate_preset_caches()
+    refreshed = ac.check_dynamic_catalog_freshness(force=True)
+    assert refreshed is True
+    # Immediate second call without elapsed TTL returns False
+    assert ac.check_dynamic_catalog_freshness(force=False) is False
+
+    mock_doc = MagicMock()
+    mock_doc.to_dict.return_value = {
+        "brand": "SBAcoustics",
+        "model": "SB17-Test",
+        "name": "Z Bench: SBAcoustics SB17-Test",
+        "source": "Z Bench Measurement",
+        "driver": {
+            "fs_hz": 38.5,
+            "re_ohm": 5.9,
+            "qms": 4.8,
+            "qes": 0.42,
+            "qts": 0.38,
+            "vas_l": 24.5,
+            "le_mh": 0.42,
+            "sd_cm2": 118.0,
+            "xmax_mm": 5.0,
+            "pe_w": 60.0,
+        },
+    }
+    mock_client = MagicMock()
+    mock_client.collection.return_value.stream.return_value = [mock_doc]
+    drivers, info = ac._load_firestore_presets(client=mock_client)
+    name = "Z Bench: SBAcoustics SB17-Test"
+
+    with patch.object(presets, "_load_firestore_presets", return_value=(drivers, info)):
+        presets.invalidate_preset_caches()
+        zbench_pref = presets.driver_preset_preference(name)
+        assert zbench_pref[0] == 0
+
+    presets.invalidate_preset_caches()
+
+
+test(
+    "Dynamic catalog freshness and Z Bench top preference priority",
+    _check_dynamic_catalog_freshness_and_zbench_priority,
+)
+
+
 def _check_heritage_importer_parses_altec_and_tad_tables():
     from tools import import_heritage_drivers as heritage
 

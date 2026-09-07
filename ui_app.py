@@ -4716,6 +4716,7 @@ def _available_driver_preset_names() -> list[str]:
     Third-party aggregate databases (LSDB, VituixCAD, Speaker Box Lite) are accessible
     exclusively to administrators.
     """
+    _acoustics.check_dynamic_catalog_freshness()
     names = _acoustics.driver_preset_names()
     if _maintenance_allowed():
         return names
@@ -4970,11 +4971,23 @@ def _sync_filter_multiselect(
 
 def _render_finder_library_filters(all_preset_names: list[str]) -> None:
     """Render Finder library filters."""
-    st.text_input(
-        "Search preset",
-        key="preset_search",
-        placeholder="Manufacturer or part number",
-    )
+    col_search, col_refresh = st.columns([5, 1])
+    with col_search:
+        st.text_input(
+            "Search preset",
+            key="preset_search",
+            placeholder="Manufacturer or part number",
+        )
+    with col_refresh:
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+        if st.button(
+            "🔄",
+            key="refresh_presets_btn_finder",
+            help="Refresh driver library from cloud catalog & Z-Bench",
+            use_container_width=True,
+        ):
+            _acoustics.invalidate_preset_caches()
+            st.rerun()
     is_admin = _maintenance_allowed()
     provenance_options = (
         list(_PRESET_SOURCE_FILTERS)
@@ -12235,11 +12248,23 @@ with st.sidebar:
         
         all_preset_names = _available_driver_preset_names()
         with bd_tab1:
-            st.text_input(
-                "Search preset",
-                key="preset_search",
-                placeholder="Manufacturer or part number",
-            )
+            col_search, col_refresh = st.columns([5, 1])
+            with col_search:
+                st.text_input(
+                    "Search preset",
+                    key="preset_search",
+                    placeholder="Manufacturer or part number",
+                )
+            with col_refresh:
+                st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+                if st.button(
+                    "🔄",
+                    key="refresh_presets_btn_box_design",
+                    help="Refresh driver library from cloud catalog & Z-Bench",
+                    use_container_width=True,
+                ):
+                    _acoustics.invalidate_preset_caches()
+                    st.rerun()
         if "_pending_driver_preset_name" in st.session_state:
             st.session_state["driver_preset_name"] = st.session_state.pop(
                 "_pending_driver_preset_name"

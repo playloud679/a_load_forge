@@ -20,6 +20,7 @@ try:
         _load_speakerboxlite_presets,  # noqa: F401
         _load_vituixcad_presets,  # noqa: F401
         _load_ztzaudio_presets,  # noqa: F401
+        check_dynamic_catalog_freshness,  # noqa: F401
         invalidate_preset_caches,  # noqa: F401
     )
     from .pricing import *  # noqa: F401,F403
@@ -37,6 +38,7 @@ except ImportError:  # top-level import with src/ on sys.path (ui_app)
         _load_speakerboxlite_presets,  # noqa: F401
         _load_vituixcad_presets,  # noqa: F401
         _load_ztzaudio_presets,  # noqa: F401
+        check_dynamic_catalog_freshness,  # noqa: F401
         invalidate_preset_caches,  # noqa: F401
     )
     from pricing import *  # noqa: F401,F403

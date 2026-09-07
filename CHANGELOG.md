@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.7 (2026-09-07)
+
+- **Dynamic Catalog Synchronization & Z-Bench Hardware Integration**:
+  - **Dynamic Catalog Freshness & Automatic Invalidation**: Added `check_dynamic_catalog_freshness` in `src/presets.py` and exported through `src/acoustics.py`. Enforces a 60-second TTL on cloud Firestore queries and instantly invalidates memory caches if `catalog_proprietario.json` is modified locally or new drivers are uploaded via Z-Bench.
+  - **Z-Bench Top Preference & Dropdown Placement**: Moved `_load_firestore_presets()` to index 0 of `_external_tiers()` and gave "Z Bench" highest precedence (priority 0) in `driver_preset_preference()`. Custom-measured drivers now appear immediately below built-in reference drivers at index ~30 in all dropdowns and selectors.
+  - **On-Demand "🔄" Refresh Controls**: Added interactive refresh buttons beside the "Search preset" inputs in both Box Design (Driver tab) and Bass Match (Finder Library tab), enabling users to force-sync newly measured drivers from Z-Bench into the UI with one click.
+  - **Catalog Synchronization**: Synced newly measured driver `Z Bench: ALIEXPRESS flat_sub_8_burned_in_36h` in `data/catalog_proprietario.json`.
+
 ## 0.16.6 (2026-09-07)
 
 - **Comprehensive UI Alignment & Symmetrical Grid System**:
