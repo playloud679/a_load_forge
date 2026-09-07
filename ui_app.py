@@ -1231,25 +1231,30 @@ def _reflex_uses_passive_radiator(*, finder: bool = False) -> bool:
 
 
 @st.cache_data(show_spinner=False)
-def _load_type_card_styles(version: str = "bp8_v2") -> str:
+def _load_type_card_styles(version: str = "square_v2") -> str:
     """Return compact clickable-card CSS with the supplied diagrams embedded."""
     rules = [
         """
         <style>
         [class*="st-key-load_card_"] {
-            min-height: 6rem;
+            min-height: unset;
+        }
+        [class*="st-key-load_card_"] div[data-testid="stButton"] {
+            display: flex;
+            justify-content: center;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button {
             background-color: #f2f2f0;
             background-position: center;
             background-repeat: no-repeat;
-            background-size: cover;
+            background-size: 82% 82%;
             border: 1px solid rgba(255,255,255,.16);
             border-radius: .58rem;
             box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
             filter: saturate(.72) brightness(.82) contrast(1.04);
-            height: 4.55rem;
-            min-height: 4.55rem;
+            aspect-ratio: 1 / 1;
+            height: auto;
+            min-height: unset;
             opacity: .88;
             overflow: hidden;
             padding: 0;
