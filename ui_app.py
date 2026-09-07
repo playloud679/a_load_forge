@@ -588,7 +588,7 @@ st.markdown(
     }
     .finder-constraint-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(9.75rem, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(9.75rem, 1fr));
         gap: .4rem;
         margin-top: .08rem;
     }
@@ -1266,15 +1266,11 @@ def _load_type_card_styles(version: str = "bp8_v2") -> str:
         }
         .load-card-label {
             color: rgba(250,250,250,.88);
-            font-size: .68rem;
+            font-size: .7rem;
             font-weight: 650;
-            line-height: .85rem;
+            line-height: .9rem;
             margin: .2rem 0 .15rem;
-            min-height: 1.7rem;
-            height: 1.7rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            min-height: .9rem;
             text-align: center;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button:hover {
@@ -1357,7 +1353,7 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
     st.markdown(_load_type_card_styles(), unsafe_allow_html=True)
     for row_start, row_end in ((0, 3), (3, len(_ALL_LOAD_TYPES))):
         row_load_types = _ALL_LOAD_TYPES[row_start:row_end]
-        row_cols = st.columns(len(row_load_types), gap="small")
+        row_cols = st.columns(4)
         for offset, lt in enumerate(row_load_types):
             with row_cols[offset]:
                 with st.container(key=f"load_card_{_LOAD_TYPE_SLUGS[lt]}"):
