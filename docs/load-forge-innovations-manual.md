@@ -55,20 +55,22 @@ $$\text{Driver} \longrightarrow V_h \parallel \text{Port } h \longrightarrow V_l
 
 ---
 
-### B. Driver Panel Air Loading (Massa Aggiunta della Flangia di Montaggio)
+### B. Driver Panel Air Loading (Accoppiamento empirico aria-pistone/baffle)
 
-Nei simulatori standard, il driver viene simulato con la sua massa mobile nominale $M_{ms}$ in aria libera. Nella realtà, quando l'altoparlante è montato su un pannello spesso (baffle in MDF/multistrato da 18–30 mm) con flangia incassata o cono posteriore flangiato, l'aria intrappolata nel condotto di montaggio si muove solidale al cono, aggiungendo massa.
+La correzione empirica è stata introdotta durante il tentativo di validazione AFW. Il caso AFW FE126 e il relativo test di regressione restano il riferimento attuale. Il coefficiente rappresenta l'accoppiamento aria-pistone/baffle; non ricava spessore, incasso o geometria del pannello.
 
 | Parametro | Tipo / Unità | Significato Operativo |
 |---|---|---|
-| **`Panel air loading`** | Toggle (On/Off) | Abilita la correzione fisica per la massa virtuale d'aria del pannello. |
-| **`Panel coupling (α)`** | Fattore (0.0 – 1.0) | Grado di accoppiamento geometrico del pannello (default 0.90 per montaggi standard). |
+| **`Panel air loading`** | Toggle (On/Off) | Abilita la correzione empirica della massa d'aria. |
+| **`Panel coupling (α)`** | Fattore (0.0 – 1.0) | Coefficiente empirico regolabile nella UI; default 0.90 riferito al confronto AFW FE126. |
 
 #### Formula applicata:
-$$\Delta M_{\text{air}} = \frac{8}{3\pi} \cdot \rho_0 \cdot r_{\text{piston}}^3 \cdot \alpha_{\text{coupling}}$$
+$$\Delta M_{\text{air}} = \frac{8}{3} \cdot \rho_0 \cdot r_{\text{piston}}^3 \cdot \alpha_{\text{coupling}}$$
 $$F_{s, \text{mounted}} = F_s \cdot \sqrt{\frac{M_{ms}}{M_{ms} + \Delta M_{\text{air}}}}$$
 
-**Effetto pratico**: Abbassa la reale $F_s$ montata di 1–3 Hz e incrementa leggermente il $Q_{ts}$ reale, evitando di progettare un accordo reflex disallineato rispetto alla risposta effettiva in cassa.
+Le formule valgono per un singolo pistone, con $r_{\text{piston}}=\sqrt{S_d/\pi}$ e unità SI; per più pistoni radianti si sommano le masse individuali. Zero o il toggle disattivato annullano la correzione.
+
+**Effetto pratico**: Riduce la Fs montata calcolata in funzione del rapporto fra massa aggiunta e Mms, senza un offset fisso in Hz. Il modello mantiene i Q forniti e ricalcola internamente Mms/Rms/Bl secondo `engine.md`. Il riferimento FE126 produce circa 0.2581 g aggiuntivi e Fs montata 85.2385 Hz da Fs libera 89.4 Hz.
 
 ---
 

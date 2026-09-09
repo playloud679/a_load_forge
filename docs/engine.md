@@ -136,7 +136,9 @@ a = sqrt(Sd/pi)
 Fs,mounted = Fs / sqrt((Mms + Mair)/Mms)
 ```
 
-The 0.90 coupling is the conventional partial-baffle approximation.  It is a
+This empirical correction was introduced during AFW validation attempts;
+the AFW FE126 regression remains the current reference for the model and
+its 0.90 default. The UI exposes coupling from 0 to 1. It is a
 dimensionless finite-panel proxy rather than a hard-coded frequency offset:
 the effect changes with `Sd/Mms`.  Alignment frequencies, simulations,
 sealed metrics, reference sensitivity and EBP use mounted Fs.  `Vas`, `Qts`

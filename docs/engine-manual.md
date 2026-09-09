@@ -40,9 +40,12 @@ Questi parametri descrivono le proprietà fisiche del cono, del gruppo magnetico
 | **$P_e$** | $\text{Watt}$ | *Thermal Power Handling* | Potenza termica massima continua dissipabile dalla bobina senza danneggiarsi per sovratemperatura. |
 
 ### Correzione *Panel Air Loading* (Massa Aggiunta del Pannello)
-Nel montaggio reale su pannello (baffle), il volume d'aria compreso nello spessore della flangia e la restrizione di gola aumentano la massa d'aria radiante che grava sul cono:
-- Il motore calcola la massa virtuale aggiunta $\Delta M_{\text{air}} = \frac{8}{3\pi} \rho_0 \cdot r_{\text{piston}}^3 \cdot \alpha_{\text{coupling}}$.
+Il modello empirico è stato introdotto durante il tentativo di validazione AFW; il caso AFW FE126 e il relativo test di regressione restano il riferimento attuale.
+
+- Per un singolo pistone, il motore calcola la massa aggiunta $\Delta M_{\text{air}} = \frac{8}{3} \rho_0 \cdot r_{\text{piston}}^3 \cdot \alpha_{\text{coupling}}$, con $r_{\text{piston}}=\sqrt{S_d/\pi}$ e unità SI.
 - La frequenza di risonanza effettiva montata si abbassa: $F_{s, \text{mounted}} = F_s \sqrt{\frac{M_{ms}}{M_{ms} + \Delta M_{\text{air}}}}$.
+
+`Panel coupling` è regolabile nella UI da 0 a 1, con default empirico 0.90 riferito al confronto AFW FE126. Zero o `Panel air loading` disattivato annullano la correzione. Il parametro non ricava spessore, incasso o geometria del pannello. Per più pistoni radianti si sommano le masse calcolate per ciascun pistone. Il modello mantiene i Q forniti e ricalcola internamente Mms/Rms/Bl come descritto in `engine.md`.
 
 ---
 

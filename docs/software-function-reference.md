@@ -334,8 +334,11 @@ essere coerenti; in particolare deve valere Qms > Qts perché Qes sia fisico.
 **Panel air loading** aggiunge la quota di massa d'aria accoppiata al pistone
 montato su pannello. **Panel coupling** va da 0 (nessuna correzione) a 1
 (correzione completa del modello). L'app mostra massa aggiunta e Fs montata.
-Serve a evitare che una Fs libera venga trattata come identica alla condizione
-montata; non sostituisce una misura reale sul baffle definitivo.
+La correzione è empirica ed è stata introdotta durante il tentativo di
+validazione AFW: il caso FE126 e il relativo test restano il reference attuale,
+con default 0.90. Non ricava la geometria del pannello e non sostituisce una
+misura reale sul baffle definitivo. La formula implementata è descritta in
+`engine.md`.
 
 ### 4.4 Driver configuration
 

@@ -131,7 +131,9 @@ If optional `Mms`, `Cms` or `Bl` are not supplied, they are derived from
 Returns added panel-coupled air mass in grams and mounted resonance in Hz.
 The increment is `panel_coupling * (8/3) * rho * a^3`, where
 `a=sqrt(Sd/pi)`.  It is enabled by default and uses a 90% partial-baffle
-coupling.  The UI exposes both the on/off choice and coupling; disabling it
+empirical coupling introduced during AFW validation attempts; the FE126
+regression below remains the current reference. The UI exposes both the
+on/off choice and coupling from 0 to 1; disabling it
 restores the classical free-air T/S results.  This models the resonance and
 sensitivity change from diaphragm air loading, but not diffraction or baffle
 step. For a composite set of separate identical drivers, the total `Sd` is
