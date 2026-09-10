@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.17 (2026-09-10)
+
+- Restrict reruns to what is strictly necessary. The design analysis tabs
+  (Response, Excursion, Impedance, Ports, Group Delay, Atlas) and the Bass
+  Match candidate pool now run as Streamlit fragments, so switching chart tabs
+  or opening the pool re-renders only that section instead of reloading the
+  page and moving the scroll. Applying a port optimization keeps an app-scope
+  rerun because it changes data rebuilt by the full run; pin/zoom actions stay
+  fragment-scoped.
+- Fresh active suite after the last edit: **224 passed, 0 failed, 0 skipped**.
+
 ## 0.16.16 (2026-09-10)
 
 - Stop the sidebar scroll jump when switching tabs. Bass Match and Box Design

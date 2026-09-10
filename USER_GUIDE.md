@@ -438,8 +438,9 @@ The **Design a box** plots use contextual tabs. `Response`, `Excursion`,
 ported, passive-radiator and bandpass loads; `Atlas` is hidden for infinite
 baffle and passive-radiator designs because the generic design-space sweep is
 defined for duct geometry. Only the selected analysis tab builds its chart;
-hidden tabs do not recreate charts after unrelated clicks. Driver ranking
-lives in its own workspace.
+hidden tabs do not recreate charts after unrelated clicks, and switching tabs
+reruns only this chart section, so the page keeps its scroll position. Driver
+ranking lives in its own workspace.
 
 Inside the `Response` tab:
 

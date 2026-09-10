@@ -10372,8 +10372,9 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
     )
 
 
+@st.fragment
 def _render_candidate_pool(filtered_preset_names: list[str]) -> None:
-    """Keep raw catalog browsing secondary to the Bass Match workflow."""
+    """Keep raw catalog browsing secondary; opening it reruns only this fragment."""
     selected_count = len(
         _selected_library_preset_names(filtered_preset_names)
     )
@@ -11690,7 +11691,10 @@ def _render_ports_tab(
                         "text": feedback_text,
                         "compromised": bool(compromised_notes),
                     }
-                st.rerun()
+                # The port geometry rows are rebuilt by the full script run, so
+                # this action needs an app-scope rerun even though it sits in a
+                # fragment; pin/zoom actions can stay fragment-scoped.
+                st.rerun(scope="app")
             elif last_opt_state is None:
                 st.session_state["_last_opt_state"] = current_opt_state
 
@@ -14840,6 +14844,103 @@ if workspace_mode == "Bass Match":
     st.stop()
 
 
+@st.fragment
+def _render_design_analysis_tabs(
+    current_ts,
+    load_type,
+    box,
+    result,
+    thresholds,
+    freq,
+    sim_voltage,
+    sim_series_r,
+    port_geometry_rows,
+    is_pr,
+    is_sealed,
+    is_infinite_baffle,
+    chart_sig,
+) -> None:
+    """Render the design analysis tabs.
+
+    A tab change reruns only this fragment, so switching Response, Excursion,
+    Impedance, Ports, Group Delay or Atlas keeps the main page scroll still.
+    """
+    tab_labels = ["Response", "Excursion", "Impedance"]
+    if not (is_sealed or is_infinite_baffle):
+        tab_labels.append("Ports")
+    tab_labels.append("Group Delay")
+    if not is_infinite_baffle and not is_pr:
+        tab_labels.append("Atlas")
+    design_tabs = dict(zip(
+        tab_labels,
+        st.tabs(
+            tab_labels,
+            key="design_analysis_tab",
+            on_change="rerun",
+        ),
+        strict=True,
+    ))
+
+    # Stateful tabs expose which panel is open. Hidden Streamlit tabs execute
+    # by default, which previously rebuilt five charts and the Atlas controls
+    # after every unrelated click. Render only the selected analysis panel.
+    if design_tabs["Response"].open:
+        with design_tabs["Response"]:
+            _render_response_tab(
+                current_ts, load_type, box, result, thresholds, freq,
+                sim_voltage, sim_series_r,
+            )
+    elif design_tabs["Excursion"].open:
+        with design_tabs["Excursion"]:
+            st.subheader("Cone Excursion")
+            xmax_mm = float(st.session_state.get("driver_xmax_mm", 0.0))
+            st.altair_chart(
+                _plot_excursion(result, xmax_mm),
+                width="stretch",
+                key=f"excursion_chart_{chart_sig}",
+            )
+            if xmax_mm > 0.0:
+                st.caption(f"Dashed emerald line: driver Xmax = {xmax_mm:.1f} mm.")
+            else:
+                st.caption("Set the driver Xmax to draw the excursion limit line.")
+    elif design_tabs["Impedance"].open:
+        with design_tabs["Impedance"]:
+            st.subheader("Electrical Impedance")
+            st.altair_chart(
+                _plot_impedance(result),
+                width="stretch",
+                key=f"impedance_chart_{chart_sig}",
+            )
+    elif "Ports" in design_tabs and design_tabs["Ports"].open:
+        with design_tabs["Ports"]:
+            _render_ports_tab(
+                result, port_geometry_rows, load_type,
+                driver=current_ts, box=box,
+                passive_radiator=is_pr,
+            )
+    elif design_tabs["Group Delay"].open:
+        with design_tabs["Group Delay"]:
+            st.subheader("Group Delay")
+            gd_limit_ms = (
+                float(st.session_state.get("opt_max_gd_ms", 0.0))
+                if _alignment_uses_optimizer() else 0.0
+            )
+            st.altair_chart(
+                _plot_group_delay(result, gd_limit_ms),
+                width="stretch",
+                key=f"gd_chart_{chart_sig}",
+            )
+            if gd_limit_ms > 0.0:
+                st.caption(
+                    "Dashed emerald line: optimizer group-delay limit = "
+                    f"{gd_limit_ms:.0f} ms."
+                )
+    elif "Atlas" in design_tabs and design_tabs["Atlas"].open:
+        with design_tabs["Atlas"]:
+            _render_atlas_tab(current_ts, load_type, box, sim_voltage)
+
+
+
 try:
     if current_ts is None:
         raise ValueError("Driver parameters are incomplete")
@@ -15059,80 +15160,11 @@ try:
         result,
     )
 
-    tab_labels = ["Response", "Excursion", "Impedance"]
-    if not (is_sealed or is_infinite_baffle):
-        tab_labels.append("Ports")
-    tab_labels.append("Group Delay")
-    if not is_infinite_baffle and not is_pr:
-        tab_labels.append("Atlas")
-    design_tabs = dict(zip(
-        tab_labels,
-        st.tabs(
-            tab_labels,
-            key="design_analysis_tab",
-            on_change="rerun",
-        ),
-        strict=True,
-    ))
-
-    # Stateful tabs expose which panel is open. Hidden Streamlit tabs execute
-    # by default, which previously rebuilt five charts and the Atlas controls
-    # after every unrelated click. Render only the selected analysis panel.
-    if design_tabs["Response"].open:
-        with design_tabs["Response"]:
-            _render_response_tab(
-                current_ts, load_type, box, result, thresholds, freq,
-                sim_voltage, sim_series_r,
-            )
-    elif design_tabs["Excursion"].open:
-        with design_tabs["Excursion"]:
-            st.subheader("Cone Excursion")
-            xmax_mm = float(st.session_state.get("driver_xmax_mm", 0.0))
-            st.altair_chart(
-                _plot_excursion(result, xmax_mm),
-                width="stretch",
-                key=f"excursion_chart_{chart_sig}",
-            )
-            if xmax_mm > 0.0:
-                st.caption(f"Dashed emerald line: driver Xmax = {xmax_mm:.1f} mm.")
-            else:
-                st.caption("Set the driver Xmax to draw the excursion limit line.")
-    elif design_tabs["Impedance"].open:
-        with design_tabs["Impedance"]:
-            st.subheader("Electrical Impedance")
-            st.altair_chart(
-                _plot_impedance(result),
-                width="stretch",
-                key=f"impedance_chart_{chart_sig}",
-            )
-    elif "Ports" in design_tabs and design_tabs["Ports"].open:
-        with design_tabs["Ports"]:
-            _render_ports_tab(
-                result, port_geometry_rows, load_type,
-                driver=current_ts, box=box,
-                passive_radiator=is_pr,
-            )
-    elif design_tabs["Group Delay"].open:
-        with design_tabs["Group Delay"]:
-            st.subheader("Group Delay")
-            gd_limit_ms = (
-                float(st.session_state.get("opt_max_gd_ms", 0.0))
-                if _alignment_uses_optimizer() else 0.0
-            )
-            st.altair_chart(
-                _plot_group_delay(result, gd_limit_ms),
-                width="stretch",
-                key=f"gd_chart_{chart_sig}",
-            )
-            if gd_limit_ms > 0.0:
-                st.caption(
-                    "Dashed emerald line: optimizer group-delay limit = "
-                    f"{gd_limit_ms:.0f} ms."
-                )
-    elif "Atlas" in design_tabs and design_tabs["Atlas"].open:
-        with design_tabs["Atlas"]:
-            _render_atlas_tab(current_ts, load_type, box, sim_voltage)
-
+    _render_design_analysis_tabs(
+        current_ts, load_type, box, result, thresholds, freq,
+        sim_voltage, sim_series_r, port_geometry_rows,
+        is_pr, is_sealed, is_infinite_baffle, chart_sig,
+    )
     active_load_image = _LOAD_TYPE_IMAGES.get(load_type)
     with st.container(key="active_load_summary"):
         # Left: active load schematic, Right: Dense info
