@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.21 (2026-09-10)
+
+- Rebalance the load-card diagrams: keep the uniform enclosure height from
+  0.16.20 but raise it to 56% of the card, so the drawings are as large as the
+  0.16.19 set while staying visually equal. Only the widest arrow span
+  (Bandpass 6th order) reaches the card edge.
+- Fresh active suite after the last edit: **224 passed, 0 failed, 0 skipped**.
+
 ## 0.16.20 (2026-09-10)
 
 - Give every load-card diagram the same visual size: each drawing is scaled so
