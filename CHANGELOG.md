@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.19 (2026-09-10)
+
+- Enlarge the load-card diagrams while keeping the card size unchanged. The
+  seven load icons are re-normalized: each drawing is cropped to its content,
+  centered on the card background with a uniform ~6% margin, and drawn at the
+  full card size, so the diagram fills more of the square and every card shows
+  the same visual weight.
+- Fresh active suite after the last edit: **224 passed, 0 failed, 0 skipped**.
+
 ## 0.16.18 (2026-09-10)
 
 - Reorganize the chrome so the sidebar commands stay visible without scrolling:

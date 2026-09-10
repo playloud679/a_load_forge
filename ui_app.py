@@ -1270,7 +1270,7 @@ def _reflex_uses_passive_radiator(*, finder: bool = False) -> bool:
 
 
 @st.cache_data(show_spinner=False)
-def _load_type_card_styles(version: str = "square_v2") -> str:
+def _load_type_card_styles(version: str = "square_v3") -> str:
     """Return compact clickable-card CSS with the supplied diagrams embedded."""
     rules = [
         """
@@ -1286,7 +1286,7 @@ def _load_type_card_styles(version: str = "square_v2") -> str:
             background-color: #f2f2f0;
             background-position: center;
             background-repeat: no-repeat;
-            background-size: 82% 82%;
+            background-size: 100% 100%;
             border: 1px solid rgba(255,255,255,.16);
             border-radius: .58rem;
             box-shadow: inset 0 1px 0 rgba(255,255,255,.06);

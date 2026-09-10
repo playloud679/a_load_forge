@@ -2341,6 +2341,10 @@ def _check_ui_pin_response_overlay():
     assert not at.exception, at.exception
     assert at.session_state["pinned_responses"][0]["visible"] is True
 
+    # The pin controls live in a fragment; a full run keeps the AppTest widget
+    # tree in sync before the next fragment-scoped click.
+    at.run()
+    assert not at.exception, at.exception
     remove_first = next(
         b for b in at.button if b.key == "remove_pinned_response_0"
     )
