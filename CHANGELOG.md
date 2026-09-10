@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.20 (2026-09-10)
+
+- Give every load-card diagram the same visual size: each drawing is scaled so
+  the enclosure/driver (the dark structure, arrows excluded) has the same
+  height in every card, centered on the structure rather than on the arrow
+  span. Cards keep their size and the diagram fills the square with a small
+  uniform margin.
+- Fresh active suite after the last edit: **224 passed, 0 failed, 0 skipped**.
+
 ## 0.16.19 (2026-09-10)
 
 - Enlarge the load-card diagrams while keeping the card size unchanged. The
