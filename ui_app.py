@@ -4667,7 +4667,6 @@ def _render_optimizer_alternatives(driver: _acoustics.DriverTS) -> None:
                 st.session_state["_opt_last_context"] = _optimizer_result_context(
                     driver, load_type, alternative.box,
                 )
-                st.rerun()
 
 
 def _run_box_optimizer(driver: _acoustics.DriverTS) -> _acoustics.OptimizedAlignment:
@@ -9171,6 +9170,7 @@ def _render_find_driver_target_sidebar() -> None:
 def _run_find_driver_search(
     filtered_preset_names: list[str],
     context_preset_names: list[str] | None = None,
+    stats_slot=None,
 ) -> None:
     """Rank the filtered candidates from the current Finder sidebar state."""
     price_enabled = bool(st.session_state.get("preset_price_enabled", False))
@@ -9376,6 +9376,9 @@ def _run_find_driver_search(
         "loads": load_run_stats,
         "completed_at": datetime.now(UTC).isoformat(),
     }
+    # Fill the statistics placeholder created before the run instead of
+    # triggering a full-page rerun, which moved the user's scroll position.
+    _render_finder_run_statistics(stats_slot)
     st.session_state["batch_result_context"] = (
         tuple(finder_load_types),
         finder_volume_l,
@@ -9401,10 +9404,6 @@ def _run_find_driver_search(
     )
     st.session_state.pop("_restored_bass_match_controls_signature", None)
     _invalidate_bass_match_results_signature()
-    # The hero (and its persisted run-statistics box) is rendered before this
-    # function executes, so without a rerun the box keeps showing the previous
-    # run's numbers while the results below already show the new ones.
-    st.rerun()
 
 
 def _render_find_driver_goal_sidebar() -> None:
@@ -10002,8 +10001,12 @@ def _finder_per_load_stats_str(stats: object) -> str:
     return " | ".join(parts)
 
 
-def _render_finder_run_statistics() -> None:
-    """Keep the last measured Bass Match throughput visible and persistent."""
+def _render_finder_run_statistics(container=None) -> None:
+    """Keep the last measured Bass Match throughput visible and persistent.
+
+    ``container`` is an ``st.empty()`` placeholder created before a run so the
+    completed statistics can be filled in place without a full-page rerun.
+    """
     stats = st.session_state.get("finder_last_run_stats")
     if not isinstance(stats, dict) or not stats:
         return
@@ -10050,7 +10053,8 @@ def _render_finder_run_statistics() -> None:
     )
     credit_mult = _ranking.search_profile_credit_multiplier(profile_name)
     credits_consumed = simulations * credit_mult
-    st.markdown(
+    target = container if container is not None else st
+    target.markdown(
         "<div style='margin: 8px 0 2px 0; padding: 6px 12px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.28); border-radius: 6px; font-size: 0.82rem; color: #d1d5db;'>"
         f"⏱️ <strong>Seek time:</strong> {elapsed_s:.2f} s total "
         f"<span style='color: #10b981;'>({ms_per_sim:.1f} ms/sim · {simulations_per_second:.0f} sim/s · {ms_per_driver:.1f} ms/driver)</span>"
@@ -10134,7 +10138,8 @@ def _render_bass_match_hero(
             f"{prefilter_stats['duplicate_rows']:,}",
         )
         _render_finder_constraint_grid(constraints)
-        _render_finder_run_statistics()
+        finder_stats_slot = st.empty()
+        _render_finder_run_statistics(finder_stats_slot)
         if match_preset_names and not prequalified_names:
             st.warning(
                 "No driver passes the pre-simulation checks. Lower Minimum "
@@ -10166,7 +10171,10 @@ def _render_bass_match_hero(
         if acc and run_credits > 0:
             _ACCOUNT_STORE.deduct_credits(acc.email or acc.uid, run_credits)
             _get_current_user_account.cache_clear()
-        _run_find_driver_search(match_preset_names, filtered_preset_names)
+        _run_find_driver_search(
+            match_preset_names, filtered_preset_names,
+            stats_slot=finder_stats_slot,
+        )
     return match_preset_names
 
 

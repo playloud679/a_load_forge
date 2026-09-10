@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.15 (2026-09-10)
+
+- Stop avoidable full-page reruns that moved the scroll position. The Bass
+  Match run now fills its statistics box in place through an `st.empty()`
+  placeholder instead of calling `st.rerun()`, so brief, statistics and
+  results update in one pass. Applying an **Explore alternatives** box no
+  longer reruns the page either: the box widgets render later in the same pass
+  and pick up the new state directly.
+- Fresh active suite after the last edit: **224 passed, 0 failed, 0 skipped**.
+
 ## 0.16.14 (2026-09-10)
 
 - Make Simple mode truly minimal. Bass Match Simple now keeps only the guided

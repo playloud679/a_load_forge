@@ -10168,7 +10168,8 @@ def _check_ui_finder_main_action_runs_search():
         run_source.index("progress_text = st.empty()")
     ), "the progress bar must render immediately below the CTA"
     assert (
-        "        _run_find_driver_search(match_preset_names, filtered_preset_names)\n"
+        "        _run_find_driver_search(\n"
+        "            match_preset_names, filtered_preset_names,\n"
     ) in ui_source, (
         "the ranking must start below the full-width CTA"
     )
