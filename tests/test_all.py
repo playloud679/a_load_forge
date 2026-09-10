@@ -36,6 +36,17 @@ if (CRAWLER_ROOT / "tools").exists():
 from src import acoustics as _acoustics
 from src import presets as _presets
 
+
+def _ui_source_bundle() -> str:
+    """Return every UI source file (thin ui_app.py plus the split src/ui package).
+
+    Source-text assertions used to read ui_app.py directly; after the module
+    split the strings live in src/ui/<module>.py, so the checks read the whole
+    bundle instead of one file.
+    """
+    paths = [ROOT / "ui_app.py"] + sorted((ROOT / "src" / "ui").glob("*.py"))
+    return "\n".join(path.read_text(encoding="utf-8") for path in paths)
+
 PASS = 0
 FAIL = 0
 SKIP = 0
@@ -2381,7 +2392,7 @@ def _check_ui_editable_design_comparison_tabs():
 
     import ui_app as _ui
 
-    source = (ROOT / "ui_app.py").read_text()
+    source = _ui_source_bundle()
     assert '[data-testid="stTooltipContent"]' in source
     assert '[role="tooltip"]' in source
     tooltip_css = source.split(
@@ -5320,7 +5331,7 @@ def _check_response_chart_drops_non_finite_points_and_keeps_label_scale_clean():
     chart = _ui._plot_response(result, rows)
     spec = chart.to_dict()
     spec_text = str(spec)
-    assert "plot_show_tuning_markers" in (ROOT / "ui_app.py").read_text()
+    assert "plot_show_tuning_markers" in _ui_source_bundle()
     assert "label_y_px" not in spec_text
     assert "label_y_db" in spec_text
     response_axis = spec["layer"][0]["encoding"]["y"]["axis"]
@@ -5694,16 +5705,17 @@ test(
 
 def _check_ui_driver_preset_price_filter_uses_optional_metadata():
     import ui_app as _ui
+    from ui import catalog as _catalog
 
-    original = _ui._driver_preset_price
-    original_currency = _ui._driver_preset_currency
-    original_rates = _ui._current_exchange_rates
+    original = _catalog._driver_preset_price
+    original_currency = _catalog._driver_preset_currency
+    original_rates = _catalog._current_exchange_rates
     try:
         prices = {"cheap": 50.0, "cheap_gbp": 40.0, "expensive": 500.0, "unknown": None}
         currencies = {"cheap": "EUR", "cheap_gbp": "GBP", "expensive": "EUR", "unknown": ""}
-        _ui._driver_preset_price = lambda name: prices[name]
-        _ui._driver_preset_currency = lambda name: currencies[name]
-        _ui._current_exchange_rates = lambda: (
+        _catalog._driver_preset_price = lambda name: prices[name]
+        _catalog._driver_preset_currency = lambda name: currencies[name]
+        _catalog._current_exchange_rates = lambda: (
             {"EUR": 1.0, "GBP": 0.8, "USD": 1.2}, "2026-07-17"
         )
         filtered = _ui._filter_driver_preset_names(
@@ -5721,9 +5733,9 @@ def _check_ui_driver_preset_price_filter_uses_optional_metadata():
             [50.0, 50.0],
         )
     finally:
-        _ui._driver_preset_price = original
-        _ui._driver_preset_currency = original_currency
-        _ui._current_exchange_rates = original_rates
+        _catalog._driver_preset_price = original
+        _catalog._driver_preset_currency = original_currency
+        _catalog._current_exchange_rates = original_rates
 
     info = _acoustics.DriverPresetInfo(
         name="priced",
@@ -5911,7 +5923,7 @@ def _check_admin_can_save_box_design_ts_to_catalog():
 
     import ui_app as _ui
 
-    source = (ROOT / "ui_app.py").read_text(encoding="utf-8")
+    source = _ui_source_bundle()
     assert 'key="admin_save_box_design_driver"' in source
     with tempfile.TemporaryDirectory() as directory:
         catalog_path = Path(directory) / "catalog.json"
@@ -5977,6 +5989,7 @@ test(
 def _check_ecb_rates_normalize_library_prices():
     import ui_app as _ui
     from src import pricing
+    from ui import catalog as _catalog
 
     payload = b'''<?xml version="1.0" encoding="UTF-8"?>
     <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01"
@@ -5994,9 +6007,9 @@ def _check_ecb_rates_normalize_library_prices():
     assert pricing.convert_price(80.0, "GBP", "CHF", rates) is None
     assert pricing.convert_price(80.0, "GBP", "GBP", {}) == 80.0
 
-    original_rates = _ui._current_exchange_rates
+    original_rates = _catalog._current_exchange_rates
     try:
-        _ui._current_exchange_rates = lambda: (rates, rates_date)
+        _catalog._current_exchange_rates = lambda: (rates, rates_date)
         native = _ui.pd.DataFrame({
             "Driver": ["EUR driver", "GBP driver", "unknown"],
             "Price": [100.0, 80.0, np.nan],
@@ -6004,7 +6017,7 @@ def _check_ecb_rates_normalize_library_prices():
         })
         normalized = _ui._normalize_price_frame(native, "USD")
     finally:
-        _ui._current_exchange_rates = original_rates
+        _catalog._current_exchange_rates = original_rates
     assert np.allclose(normalized["Price"].iloc[:2], [120.0, 120.0])
     assert normalized["Currency"].tolist() == ["USD", "USD", ""]
 
@@ -10160,7 +10173,7 @@ def _check_ui_finder_main_action_runs_search():
 
     import ui_app as _ui
 
-    ui_source = (ROOT / "ui_app.py").read_text(encoding="utf-8")
+    ui_source = _ui_source_bundle()
     result_signature_source = inspect.getsource(
         _ui._finder_result_context_signature
     )
@@ -11240,23 +11253,24 @@ test("UI parallel optimizer ranking matches the serial path", _check_ui_parallel
 
 def _check_ui_parallel_ranking_falls_back_when_processes_are_denied():
     import ui_app as _ui
+    from ui import finder as _finder
 
     names = ("KEF B110B article example", "Beyma 12CMV2")
     goals = _ui._acoustics.OptimizationGoals(objective="balanced")
     expected = _ui._batch_rank_presets(
         names, "Sealed", 30.0, 2.83, 10.0, 300.0, 80, len(names), goals=goals)
-    original_executor = _ui.ProcessPoolExecutor
+    original_executor = _finder.ProcessPoolExecutor
 
     class DeniedProcessPool:
         def __init__(self, *args, **kwargs):
             raise PermissionError("process semaphores denied")
 
     try:
-        _ui.ProcessPoolExecutor = DeniedProcessPool
+        _finder.ProcessPoolExecutor = DeniedProcessPool
         actual = _ui._batch_rank_presets_parallel(
             names, "Sealed", 30.0, 2.83, 10.0, 300.0, 80, len(names), goals)
     finally:
-        _ui.ProcessPoolExecutor = original_executor
+        _finder.ProcessPoolExecutor = original_executor
 
     assert [row["Driver"] for row in actual] == [row["Driver"] for row in expected]
     for expected_row, actual_row in zip(expected, actual, strict=True):
@@ -11287,13 +11301,14 @@ test(
 
 def _check_ui_stale_finder_workers_fall_back_to_current_threads():
     import ui_app as _ui
+    from ui import finder as _finder
 
     assert (
         _ui._OPTIMIZER_ENGINE_REVISION
         == _ui._engine.OPTIMIZER_ENGINE_REVISION
     )
-    original_executor = _ui.ProcessPoolExecutor
-    original_backend = _ui._finder_executor_backend
+    original_executor = _finder.ProcessPoolExecutor
+    original_backend = _finder._finder_executor_backend
     stale_shutdown = []
 
     class StaleFuture:
@@ -11312,15 +11327,15 @@ def _check_ui_stale_finder_workers_fall_back_to_current_threads():
 
     try:
         _ui._drop_finder_worker_pool()
-        _ui.ProcessPoolExecutor = StaleProcessPool
-        _ui._finder_executor_backend = lambda app_path=None: "process"
+        _finder.ProcessPoolExecutor = StaleProcessPool
+        _finder._finder_executor_backend = lambda app_path=None: "process"
         pool = _ui._finder_worker_pool(2)
         assert isinstance(pool, _ui.ThreadPoolExecutor)
         assert stale_shutdown, "the stale process pool must be discarded"
         assert _ui._ranking._finder_shared_pool_backend == "thread"
     finally:
-        _ui.ProcessPoolExecutor = original_executor
-        _ui._finder_executor_backend = original_backend
+        _finder.ProcessPoolExecutor = original_executor
+        _finder._finder_executor_backend = original_backend
         _ui._drop_finder_worker_pool()
 
 
@@ -11332,6 +11347,7 @@ test(
 
 def _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast():
     import ui_app as _ui
+    from ui import finder as _finder
 
     cloud_path = _ui.Path("/mount/src/load_forge/ui_app.py")
     assert _ui._is_streamlit_community_cloud(cloud_path)
@@ -11354,7 +11370,7 @@ def _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast():
         _ui.Path("/Users/example/load_forge/ui_app.py")
     ) == 8
 
-    original_executor = _ui.ProcessPoolExecutor
+    original_executor = _finder.ProcessPoolExecutor
 
     class DeniedProcessPool:
         def __init__(self, *args, **kwargs):
@@ -11362,13 +11378,13 @@ def _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast():
 
     try:
         _ui._drop_finder_worker_pool()
-        _ui.ProcessPoolExecutor = DeniedProcessPool
+        _finder.ProcessPoolExecutor = DeniedProcessPool
         pool = _ui._finder_worker_pool(2)
         assert isinstance(pool, _ui.ThreadPoolExecutor)
         assert _ui._ranking._finder_shared_pool_backend == "thread"
         assert pool.submit(lambda: "ready").result(timeout=5) == "ready"
     finally:
-        _ui.ProcessPoolExecutor = original_executor
+        _finder.ProcessPoolExecutor = original_executor
         _ui._drop_finder_worker_pool()
 
 
