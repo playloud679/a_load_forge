@@ -5142,6 +5142,19 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
         ("preset_size_filter", "Size", list(_PRESET_SIZE_FILTERS)),
         ("preset_class_filter", "Class", list(_PRESET_CLASS_FILTERS)),
     )
+    if not _show_advanced_controls():
+        # Simple mode hides the expert catalog filters; clear any value they
+        # still carry so a hidden filter cannot silently change the results.
+        for hidden_key in (
+            "preset_source_filter", "preset_size_filter", "preset_class_filter",
+        ):
+            st.session_state[hidden_key] = ["All"]
+            st.session_state[f"{hidden_key}__select_v5"] = []
+            st.session_state[f"{hidden_key}__select_v5__aggregate"] = ("All",)
+        filter_options = tuple(
+            option for option in filter_options
+            if option[0] == "preset_family_filter"
+        )
     for key, label, options in filter_options:
         raw_current = st.session_state.get(key, ["All"])
         current = [raw_current] if isinstance(raw_current, str) else list(raw_current)
@@ -5179,6 +5192,8 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
         aggregate = [str(value) for value in selected] or ["All"]
         st.session_state[key] = aggregate
         st.session_state[synced_key] = tuple(aggregate)
+    if not _show_advanced_controls():
+        st.caption("Advanced filters (Provenance, Size, Class) are hidden.")
 
     preset_currencies = _preset_price_currencies(all_preset_names)
     if preset_currencies:
@@ -9117,13 +9132,14 @@ def _render_finder_scenario_selector() -> None:
 def _render_find_driver_target_sidebar() -> None:
     """Render the enclosure conditions used for every Finder candidate."""
     finder_load_types, only_infinite_baffle = _finder_load_context()
-    _finder_selectbox(
-        "Driver configuration",
-        list(_acoustics.DRIVER_CONFIGURATIONS),
-        key="finder_driver_configuration",
-        help="Rank every candidate as one driver; a 2–8-driver series, "
-             "parallel or mixed array; or an isobaric array up to 16 total drivers.",
-    )
+    if _show_advanced_controls():
+        _finder_selectbox(
+            "Driver configuration",
+            list(_acoustics.DRIVER_CONFIGURATIONS),
+            key="finder_driver_configuration",
+            help="Rank every candidate as one driver; a 2–8-driver series, "
+                 "parallel or mixed array; or an isobaric array up to 16 total drivers.",
+        )
     _finder_number_input(
         "Maximum volume (L)",
         min_value=0.1,
@@ -9136,7 +9152,7 @@ def _render_find_driver_target_sidebar() -> None:
     )
     if only_infinite_baffle:
         st.caption("Infinite baffle does not use a box volume.")
-    if "Bass reflex" in finder_load_types:
+    if _show_advanced_controls() and "Bass reflex" in finder_load_types:
         with st.expander("Ports", expanded=True):
             _finder_selectbox(
                 "Bass-reflex resonator",
@@ -9144,11 +9160,12 @@ def _render_find_driver_target_sidebar() -> None:
                 key="finder_reflex_resonator_type",
                 help="Rank the reflex enclosure with an air vent or a passive radiator.",
             )
-    _finder_number_input(
-        "Comparison voltage (V)", min_value=0.01, max_value=200.0,
-        step=0.01, key="finder_voltage",
-        help="All candidates are compared at the same input voltage; 2.83 V is the standard reference.",
-    )
+    if _show_advanced_controls():
+        _finder_number_input(
+            "Comparison voltage (V)", min_value=0.01, max_value=200.0,
+            step=0.01, key="finder_voltage",
+            help="All candidates are compared at the same input voltage; 2.83 V is the standard reference.",
+        )
 
 
 def _run_find_driver_search(
@@ -9397,38 +9414,41 @@ def _render_find_driver_goal_sidebar() -> None:
         finder_load_types == ["Bass reflex"]
         and _reflex_uses_passive_radiator(finder=True)
     )
-    _finder_number_input(
-        "Maximum F3 (Hz, 0 = off)",
-        min_value=0.0,
-        max_value=500.0,
-        step=1.0,
-        key="finder_max_f3_hz",
-        help="Exclude simulated designs whose F3 is above this hard limit; "
-             "0 disables the constraint.",
-    )
-    _finder_number_input(
-        "Minimum MOL at F3 (dB, 0 = off)",
-        min_value=0.0,
-        max_value=150.0,
-        step=0.5,
-        key="finder_min_mol_f3_db",
-        help="Require the excursion/thermal limited maximum output at the "
-             "candidate's F3 to reach this level; 0 disables.",
-    )
+    advanced_controls = _show_advanced_controls()
+    if advanced_controls:
+        _finder_number_input(
+            "Maximum F3 (Hz, 0 = off)",
+            min_value=0.0,
+            max_value=500.0,
+            step=1.0,
+            key="finder_max_f3_hz",
+            help="Exclude simulated designs whose F3 is above this hard limit; "
+                 "0 disables the constraint.",
+        )
+        _finder_number_input(
+            "Minimum MOL at F3 (dB, 0 = off)",
+            min_value=0.0,
+            max_value=150.0,
+            step=0.5,
+            key="finder_min_mol_f3_db",
+            help="Require the excursion/thermal limited maximum output at the "
+                 "candidate's F3 to reach this level; 0 disables.",
+        )
     if only_infinite_baffle:
         st.caption(
             "Infinite baffle has no enclosure to optimize; candidates are "
             "ranked on their free-air response."
         )
     else:
-        _finder_number_input(
-            "Minimum SPL (dB, 0 = off)", min_value=0.0, max_value=150.0,
-            step=0.5, key="finder_min_spl_db",
-            help="Require at least this simulated peak SPL at the comparison "
-                 "voltage. A conservative reference-sensitivity check first "
-                 "removes candidates that cannot plausibly reach it; the final "
-                 "hard check uses the simulated response. 0 disables.",
-        )
+        if advanced_controls:
+            _finder_number_input(
+                "Minimum SPL (dB, 0 = off)", min_value=0.0, max_value=150.0,
+                step=0.5, key="finder_min_spl_db",
+                help="Require at least this simulated peak SPL at the comparison "
+                     "voltage. A conservative reference-sensitivity check first "
+                     "removes candidates that cannot plausibly reach it; the final "
+                     "hard check uses the simulated response. 0 disables.",
+            )
         if only_passive_radiator:
             st.caption(
                 "Passive-radiator candidates use the dedicated physical starter, "
@@ -9446,27 +9466,33 @@ def _render_find_driver_goal_sidebar() -> None:
                      "Design workspace, without exceeding Maximum volume. Balanced "
                      "trades extension against smoothness and box practicality.",
             )
-            _finder_number_input(
-                "Allowed response ripple (dB)", min_value=0.0, max_value=12.0,
-                step=0.5, key="finder_max_ripple_db",
-                help="Maximum peak-to-valley variation in the evaluated low-frequency passband.",
-            )
-            _finder_number_input(
-                "Ripple frequency ceiling (Hz, 0 = off)", min_value=0.0, max_value=500.0,
-                step=5.0, key="finder_max_ripple_freq_hz",
-                help="Ignore response variation above this frequency (e.g. 70-100 Hz for subwoofers). "
-                     "Uses sparse sampling above this ceiling for faster search. 0 evaluates the full passband.",
-            )
-            _finder_number_input(
-                "Maximum excursion (× driver Xmax)", min_value=0.0, max_value=3.0,
-                step=0.05, key="finder_excursion_ratio",
-                help="1.0 means cone travel stays within published Xmax; 0 disables the constraint.",
-            )
-            _finder_number_input(
-                "Maximum group delay (ms)", min_value=0.0, max_value=100.0,
-                step=1.0, key="finder_max_gd_ms",
-                help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
-            )
+            if advanced_controls:
+                _finder_number_input(
+                    "Allowed response ripple (dB)", min_value=0.0, max_value=12.0,
+                    step=0.5, key="finder_max_ripple_db",
+                    help="Maximum peak-to-valley variation in the evaluated low-frequency passband.",
+                )
+                _finder_number_input(
+                    "Ripple frequency ceiling (Hz, 0 = off)", min_value=0.0, max_value=500.0,
+                    step=5.0, key="finder_max_ripple_freq_hz",
+                    help="Ignore response variation above this frequency (e.g. 70-100 Hz for subwoofers). "
+                         "Uses sparse sampling above this ceiling for faster search. 0 evaluates the full passband.",
+                )
+                _finder_number_input(
+                    "Maximum excursion (× driver Xmax)", min_value=0.0, max_value=3.0,
+                    step=0.05, key="finder_excursion_ratio",
+                    help="1.0 means cone travel stays within published Xmax; 0 disables the constraint.",
+                )
+                _finder_number_input(
+                    "Maximum group delay (ms)", min_value=0.0, max_value=100.0,
+                    step=1.0, key="finder_max_gd_ms",
+                    help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
+                )
+            else:
+                st.caption(
+                    "Advanced constraints are hidden. Enable Advanced mode to set "
+                    "F3, MOL, SPL, ripple, excursion and delay limits."
+                )
     if _show_advanced_controls():
         with st.expander("Advanced driver filters", expanded=True):
             _finder_number_input(
@@ -9556,35 +9582,36 @@ def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
         f"Scans all {len(filtered_preset_names)} matching presets · {load_label}"
         + ("" if only_infinite_baffle else f" · ≤ {finder_volume_l:.1f} L")
     )
-    st.toggle(
-        "Show data coverage",
-        key="finder_show_coverage",
-        help="Per-field completeness of the filtered catalog. Missing values "
-             "keep conservative fallbacks and appear as em dashes in the "
-             "ranking table.",
-    )
-    if st.session_state.get("finder_show_coverage"):
-        summary = _driver_coverage_summary(tuple(filtered_preset_names))
-        if summary:
-            st.caption(
-                f"Optional-parameter coverage · {summary['Drivers']:,} drivers"
-            )
-            st.dataframe(
-                pd.DataFrame(
-                    [
-                        {"Field": label, "Present %": value}
-                        for label, value in summary.items()
-                        if label != "Drivers"
-                    ]
-                ),
-                hide_index=True,
-                width="stretch",
-                column_config={
-                    "Present %": st.column_config.ProgressColumn(
-                        "Present %", min_value=0, max_value=100, format="%d%%",
+    if _show_advanced_controls():
+        st.toggle(
+            "Show data coverage",
+            key="finder_show_coverage",
+            help="Per-field completeness of the filtered catalog. Missing values "
+                 "keep conservative fallbacks and appear as em dashes in the "
+                 "ranking table.",
+        )
+        if st.session_state.get("finder_show_coverage"):
+            summary = _driver_coverage_summary(tuple(filtered_preset_names))
+            if summary:
+                st.caption(
+                    f"Optional-parameter coverage · {summary['Drivers']:,} drivers"
+                )
+                st.dataframe(
+                    pd.DataFrame(
+                        [
+                            {"Field": label, "Present %": value}
+                            for label, value in summary.items()
+                            if label != "Drivers"
+                        ]
                     ),
-                },
-            )
+                    hide_index=True,
+                    width="stretch",
+                    column_config={
+                        "Present %": st.column_config.ProgressColumn(
+                            "Present %", min_value=0, max_value=100, format="%d%%",
+                        ),
+                    },
+                )
 
 
 # Frontend payload caps: tables/dropdowns above these sizes make every rerun
@@ -12535,8 +12562,8 @@ with st.sidebar:
             )
         else:
             st.caption(
-                "Simple mode · expert controls are hidden (search profile, "
-                "evaluation grid, T/S overrides)."
+                "Simple mode · guided scenario, load, volume and goal. Enable "
+                "Advanced for full controls."
             )
     if _explore_requested:
         _render_community_sidebar()
@@ -12596,11 +12623,6 @@ with st.sidebar:
                             width="stretch",
                             help="Restore the practical quick-scan profile without changing the active design.",
                         )
-                else:
-                    st.caption(
-                        "Expert controls are hidden. Enable Advanced mode to change "
-                        "the search profile or the evaluation grid."
-                    )
         if bm_tab2.open:
             with bm_tab2:
                 _render_find_driver_goal_sidebar()
@@ -12910,26 +12932,27 @@ with st.sidebar:
                 _load_set = {st.session_state.get("load_type", "Sealed")}
                 _render_load_type_buttons(_load_set, single_select=True)
                 _render_engine_only_topologies_note()
-                st.selectbox(
-                    "Driver configuration",
-                    list(_acoustics.DRIVER_CONFIGURATIONS),
-                    key="driver_config",
-                    on_change=_auto_align_current_driver,
-                    help="Identical drivers sharing one enclosure: series, parallel "
-                         "or mixed arrays up to eight drivers, or isobaric arrays "
-                         "up to 16 total drivers. Each isobaric pair contributes one "
-                         "radiating piston and half one driver's Vas.",
-                )
-                if st.session_state.get("driver_config", "Single driver") != "Single driver":
-                    try:
-                        _composite = _driver_from_state()
-                        st.caption(
-                            f"Composite: Sd {_composite.sd_cm2:.0f} cm² · "
-                            f"Vas {_composite.vas_l:.1f} L · "
-                            f"Re {_composite.re_ohm:.2f} Ω · Pe {_composite.pe_w:.0f} W"
-                        )
-                    except Exception:
-                        pass
+                if _show_advanced_controls():
+                    st.selectbox(
+                        "Driver configuration",
+                        list(_acoustics.DRIVER_CONFIGURATIONS),
+                        key="driver_config",
+                        on_change=_auto_align_current_driver,
+                        help="Identical drivers sharing one enclosure: series, parallel "
+                             "or mixed arrays up to eight drivers, or isobaric arrays "
+                             "up to 16 total drivers. Each isobaric pair contributes one "
+                             "radiating piston and half one driver's Vas.",
+                    )
+                    if st.session_state.get("driver_config", "Single driver") != "Single driver":
+                        try:
+                            _composite = _driver_from_state()
+                            st.caption(
+                                f"Composite: Sd {_composite.sd_cm2:.0f} cm² · "
+                                f"Vas {_composite.vas_l:.1f} L · "
+                                f"Re {_composite.re_ohm:.2f} Ω · Pe {_composite.pe_w:.0f} W"
+                            )
+                        except Exception:
+                            pass
                     
         with bd_tab3:
             if bd_tab3.open:
@@ -12947,20 +12970,26 @@ with st.sidebar:
                          "constraints change. Manual unlocks volumes and tuning for "
                          "direct editing.",
                 )
+                if not _show_advanced_controls():
+                    st.caption(
+                        "Simple mode · the optimizer chooses the box. Enable "
+                        "Advanced to edit voltage, constraints and port details."
+                    )
                 # Simulate Inputs
-                sim_c1, sim_c2 = st.columns(2)
-                with sim_c1:
-                    st.number_input(
-                        "Voltage (V)", min_value=0.01, max_value=200.0, step=_step5("sim_voltage", 0.01),
-                        key="sim_voltage",
-                    )
-                with sim_c2:
-                    st.number_input(
-                        "Series R (Ω)", min_value=0.0, max_value=100.0,
-                        step=_step5("sim_series_r_ohm", 0.1), key="sim_series_r_ohm",
-                        help="Amplifier output + cable + crossover-coil DCR in series with the "
-                             "driver. Optimizer and driver ranking evaluate at 0 Ω.",
-                    )
+                if _show_advanced_controls():
+                    sim_c1, sim_c2 = st.columns(2)
+                    with sim_c1:
+                        st.number_input(
+                            "Voltage (V)", min_value=0.01, max_value=200.0, step=_step5("sim_voltage", 0.01),
+                            key="sim_voltage",
+                        )
+                    with sim_c2:
+                        st.number_input(
+                            "Series R (Ω)", min_value=0.0, max_value=100.0,
+                            step=_step5("sim_series_r_ohm", 0.1), key="sim_series_r_ohm",
+                            help="Amplifier output + cable + crossover-coil DCR in series with the "
+                                 "driver. Optimizer and driver ranking evaluate at 0 Ω.",
+                        )
             
             try:
                 current_ts = _driver_from_state()
@@ -13009,20 +13038,21 @@ with st.sidebar:
                             "No optimized box satisfies the current goal; the "
                             f"starter box is shown instead. ({auto_box_error})"
                         )
-                    st.markdown("**Optimization constraints**")
-                    st.number_input("Max total volume (L, 0 = off)", min_value=0.0, max_value=2000.0,
-                                    step=1.0, key="opt_max_volume_l")
-                    st.number_input("Max ripple (dB)", min_value=0.0, max_value=12.0,
-                                    step=0.5, key="opt_max_ripple_db")
-                    st.number_input("Ripple ceiling (Hz, 0 = off)", min_value=0.0, max_value=500.0,
-                                    step=5.0, key="opt_max_ripple_freq_hz",
-                                    help="Ignore response variation above this frequency (e.g. 70-100 Hz for subwoofers).")
-                    st.number_input("Excursion limit (x Xmax, 0 = off)", min_value=0.0, max_value=3.0,
-                                    step=0.05, key="opt_excursion_ratio")
-                    st.number_input("Target F3 (Hz, 0 = lowest)", min_value=0.0, max_value=500.0,
-                                    step=1.0, key="opt_target_f3_hz")
-                    st.number_input("Max group delay (ms, 0 = off)", min_value=0.0, max_value=100.0,
-                                    step=1.0, key="opt_max_gd_ms")
+                    if _show_advanced_controls():
+                        st.markdown("**Optimization constraints**")
+                        st.number_input("Max total volume (L, 0 = off)", min_value=0.0, max_value=2000.0,
+                                        step=1.0, key="opt_max_volume_l")
+                        st.number_input("Max ripple (dB)", min_value=0.0, max_value=12.0,
+                                        step=0.5, key="opt_max_ripple_db")
+                        st.number_input("Ripple ceiling (Hz, 0 = off)", min_value=0.0, max_value=500.0,
+                                        step=5.0, key="opt_max_ripple_freq_hz",
+                                        help="Ignore response variation above this frequency (e.g. 70-100 Hz for subwoofers).")
+                        st.number_input("Excursion limit (x Xmax, 0 = off)", min_value=0.0, max_value=3.0,
+                                        step=0.05, key="opt_excursion_ratio")
+                        st.number_input("Target F3 (Hz, 0 = lowest)", min_value=0.0, max_value=500.0,
+                                        step=1.0, key="opt_target_f3_hz")
+                        st.number_input("Max group delay (ms, 0 = off)", min_value=0.0, max_value=100.0,
+                                        step=1.0, key="opt_max_gd_ms")
                     current_optimizer_summary = _current_optimizer_summary(current_ts)
                     if current_optimizer_summary:
                         st.caption(current_optimizer_summary)

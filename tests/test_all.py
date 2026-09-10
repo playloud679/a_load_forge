@@ -5090,6 +5090,7 @@ def _check_ui_class_filter():
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Bass Match"
+    at.session_state["ui_show_advanced"] = True
     at.run()
     at.session_state["preset_class_filter"] = "Midbass"
     at.session_state["preset_search"] = "Dayton Audio RSS315HO-4"
@@ -5595,6 +5596,7 @@ def _check_ui_driver_preset_filters_reduce_list():
     at.session_state["workspace_mode"] = "Bass Match"
     at.session_state["bass_match_sidebar_tab"] = "Library filters"
     at.session_state["finder_candidate_pool_expander"] = True
+    at.session_state["ui_show_advanced"] = True
     at.session_state["preset_search"] = "12CMV2"
     at.run()
     assert not at.exception, at.exception
@@ -10095,6 +10097,7 @@ def _check_ui_simple_advanced_mode_and_guided_scenarios():
     simple_keys = {n.key for n in at.sidebar.number_input}
     assert "finder_points" not in simple_keys
     assert "finder_f_min" not in simple_keys
+    assert "finder_voltage" not in simple_keys
     assert "Simple mode" in " ".join(c.value for c in at.sidebar.caption)
     guided = next(
         box for box in at.sidebar.selectbox if box.key == "finder_scenario"
@@ -10107,6 +10110,21 @@ def _check_ui_simple_advanced_mode_and_guided_scenarios():
     assert float(at.session_state["finder_volume_l"]) == 60.0
     assert float(at.session_state["finder_max_ripple_freq_hz"]) == 80.0
     assert set(at.session_state["finder_load_types"]) == {"Bass reflex", "DCCAV"}
+
+    # Simple mode also reduces the constraints tab to the optimization goal.
+    at.session_state["bass_match_sidebar_tab"] = "Performance filters"
+    at.run()
+    assert not at.exception, at.exception
+    simple_goal_keys = {n.key for n in at.sidebar.number_input}
+    assert "finder_max_f3_hz" not in simple_goal_keys
+    assert "finder_max_ripple_db" not in simple_goal_keys
+    assert "finder_min_spl_db" not in simple_goal_keys
+    assert any(
+        box.key == "finder_objective" for box in at.sidebar.selectbox
+    )
+    at.session_state["bass_match_sidebar_tab"] = "Load type"
+    at.run()
+    assert not at.exception, at.exception
 
     # Advanced mode restores the expert controls.
     at.session_state["ui_show_advanced"] = True
@@ -10296,6 +10314,7 @@ def _check_ui_finder_main_action_runs_search():
     assert selected_cta.proto.type == "primary"
     assert "Your best matches" not in [sub.value for sub in at.subheader]
 
+    at.session_state["ui_show_advanced"] = True
     at.session_state["preset_size_filter"] = ["10 in"]
     at.run()
     assert not at.exception, at.exception
@@ -10341,6 +10360,7 @@ def _check_ui_design_state_survives_workspace_roundtrip():
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["load_type"] = "Sealed"
     at.session_state["box_design_sidebar_tab"] = "Enclosure Parameters"
+    at.session_state["ui_show_advanced"] = True
     at.run()
     assert not at.exception, at.exception
     # Widget-bound edits (not programmatic ones) are what Streamlit cleans up
@@ -10915,6 +10935,7 @@ def _check_ui_driver_configuration_selector():
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["load_type"] = "DCCAV"
     at.session_state["box_design_sidebar_tab"] = "Load Selection"
+    at.session_state["ui_show_advanced"] = True
     at.run()
     assert not at.exception, at.exception
     metrics = {m.label: m.value for m in at.metric}
@@ -11913,6 +11934,7 @@ def _check_ui_response_spec_cache():
     at = AppTest.from_file(str(ROOT / 'ui_app.py'), default_timeout=60)
     at.session_state['workspace_mode'] = 'Box Design'
     at.session_state['box_design_sidebar_tab'] = 'Enclosure Parameters'
+    at.session_state['ui_show_advanced'] = True
     at.run()
     assert not at.exception, at.exception
     first = at.session_state['_response_spec_cache']

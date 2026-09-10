@@ -300,15 +300,20 @@ three-step workflow:
    **Candidate pool**, where typing in **Search preset** immediately lists the
    first matching names before a scan is started.
 
-The sidebar opens in **Simple mode**: a **Guided setup** selector configures
-the whole brief in one click for **Home theater**, **Car SPL**, **Hi-Fi** or
-**Infinite baffle**, while the expert controls (search profile, evaluation
-range, simulation resolution, `Mms`/`Le` filters and driver T/S overrides)
-stay hidden. Enable **Advanced mode** at the top of the sidebar to reveal
-them; the active values keep applying in both modes. The active mode is shown
-under the toggle, and in Advanced mode the expert sections open directly
+The sidebar opens in **Simple mode**, which keeps only the essentials: the
+**Guided setup** scenario selector (Home theater, Car SPL, Hi-Fi, Infinite
+baffle), the load cards, the maximum volume, the optimization goal and the
+basic library filters (search, manufacturer, price). Everything else — driver
+configuration, comparison voltage, F3/MOL/SPL/ripple/excursion/delay
+constraints, provenance/size/class filters, data coverage, search profile,
+evaluation range, simulation resolution and driver T/S overrides — is hidden
+and keeps its defaults. Enable **Advanced mode** at the top of the sidebar to
+reveal it; the active values keep applying in both modes. The active mode is
+shown under the toggle, and in Advanced mode the expert sections open directly
 (**Advanced evaluation**, **Advanced driver filters**, **Advanced driver
-parameters**).
+parameters**). Box Design Simple keeps the driver preset, the load cards and
+the box strategy; voltage, series resistance, optimization constraints and
+driver configuration are Advanced-only.
 
 **Run Bass Match** appears once as a full-width primary action immediately
 below the compact brief; it is not duplicated in the sidebar. While a scan is

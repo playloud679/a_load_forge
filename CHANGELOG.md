@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.16.14 (2026-09-10)
+
+- Make Simple mode truly minimal. Bass Match Simple now keeps only the guided
+  scenario, load cards, maximum volume, optimization goal and basic library
+  filters (search, manufacturer, price). Driver configuration, comparison
+  voltage, F3/MOL/SPL/ripple/excursion/delay constraints,
+  provenance/size/class filters and data coverage are Advanced-only; hidden
+  filters are reset so they cannot silently change results. Box Design Simple
+  keeps the driver preset, load cards and box strategy, with voltage, series
+  resistance, optimization constraints and driver configuration in Advanced.
+- Fresh active suite after the last edit: **224 passed, 0 failed, 0 skipped**.
+
 ## 0.16.13 (2026-09-10)
 
 - Make Simple/Advanced mode visibly different: the active mode is captioned
