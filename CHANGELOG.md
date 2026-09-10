@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.17.0 (2026-09-11)
+
+- **Refactor**: split the 15.6k-line `ui_app.py` monolith into a thin entry
+  point plus the `src/ui` package (`runtime`, `constants`, `styles`, `state`,
+  `catalog`, `finder`, `optimizer`, `analysis`, `projects`, `account`,
+  `app`). Behavior is unchanged: module-qualified cross-references keep
+  Streamlit hot-reload safe, and functools caches are cleared per run to
+  preserve the original per-script-run scope.
+- **Docs/Test**: added `docs/ui.md` and `docs/ui/*.md`; updated `AGENTS.md`
+  and `docs/INDEX.md`; tests patch owning modules and source assertions read
+  the full UI bundle. Fresh full suite: **224 passed, 0 failed, 0 skipped**.
+
 ## 0.16.21 (2026-09-10)
 
 - Rebalance the load-card diagrams: keep the uniform enclosure height from

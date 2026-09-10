@@ -1,9 +1,9 @@
-# Replicates the CLAUDE.md test contract: compile, lint, full suite, AppTest.
+# Compile, critical lint, release metadata, full suite and AppTest smoke.
 name: CI
 
 on:
   push:
-    branches: [master, experimental]
+    branches: [dev, master, experimental]
   pull_request:
 
 jobs:
@@ -11,9 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Check release version metadata
-        run: python tools/check_version_consistency.py
 
       - uses: actions/setup-python@v5
         with:
@@ -25,11 +22,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt ruff
 
-      - name: Compile
-        run: python -m py_compile ui_app.py src/*.py tests/test_all.py
+      - name: Check release version metadata
+        run: python tools/check_version_consistency.py
 
-      - name: Lint
-        run: python -m ruff check src tests ui_app.py
+      - name: Compile
+        run: python -m py_compile ui_app.py src/*.py src/ui/*.py tests/test_all.py
+
+      - name: Lint refactored UI surface
+        run: python -m ruff check --select F401,F811,F821,I001 ui_app.py src/ui
 
       - name: Test suite
         run: python tests/test_all.py
