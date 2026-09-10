@@ -10659,19 +10659,16 @@ def _check_ui_progressive_disclosure():
     assert not any(n.key == 'driver_fs_hz' for n in at.number_input)
     at.button(key='workspace_tab_button_box_design').click().run()
     assert not at.exception, at.exception
+    # Every sidebar panel renders together so switching tabs never reruns and
+    # never resets the sidebar scroll; the box fields stay present but disabled
+    # until the strategy becomes Manual.
     assert any(n.key == 'driver_fs_hz' for n in at.number_input)
-    assert not any(n.key == 'box_vh_l' for n in at.number_input)
-    at.session_state['box_design_sidebar_tab'] = 'Enclosure Parameters'
-    at.run()
     assert at.number_input(key='box_vh_l').disabled
-    assert not any(n.key == 'driver_fs_hz' for n in at.number_input)
     at.segmented_control(key='box_strategy').set_value('Manual').run()
     assert not at.exception, at.exception
     assert not at.number_input(key='box_vh_l').disabled
     at.number_input(key='box_vh_l').set_value(19.0).run()
     at.session_state['box_design_sidebar_tab'] = 'Driver'
-    at.run()
-    at.session_state['box_design_sidebar_tab'] = 'Enclosure Parameters'
     at.run()
     assert at.number_input(key='box_vh_l').value == 19.0
 
@@ -11645,7 +11642,9 @@ def _check_ui_finder_comprehensive_ux_regression():
     assert at.session_state['finder_load_types'] == ['DCCAV']
     at.session_state['bass_match_sidebar_tab'] = 'Library filters'
     at.run()
-    assert not any(b.key == 'load_btn_Sealed' for b in at.button)
+    # All sidebar panels render together: switching tabs is client-side only
+    # and must not rerun (which used to reset the sidebar scroll to the top).
+    assert any(b.key == 'load_btn_Sealed' for b in at.button)
     at.multiselect(key='preset_family_filter__select_v5').set_value(['Beyma']).run()
     at.button(key='workspace_tab_button_box_design').click().run()
     assert not at.exception, at.exception

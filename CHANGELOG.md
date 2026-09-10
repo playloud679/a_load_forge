@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.16 (2026-09-10)
+
+- Stop the sidebar scroll jump when switching tabs. Bass Match and Box Design
+  now render all sidebar panels together and no longer force a rerun on tab
+  change, so switching **Load type**, **Performance filters**, **Library
+  filters**, **Driver**, **Load Selection** or **Enclosure Parameters** is a
+  client-side action that keeps the sidebar scroll position. Hidden panels
+  also keep their widget state instead of being destroyed and rebuilt.
+- Regression tests updated for the always-rendered panels.
+- Fresh active suite after the last edit: **224 passed, 0 failed, 0 skipped**.
+
 ## 0.16.15 (2026-09-10)
 
 - Stop avoidable full-page reruns that moved the scroll position. The Bass

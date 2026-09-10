@@ -277,8 +277,9 @@ and the optimizer rejects boxes whose smallest workable duct would break the
 
 The **Bass Match** workspace has independent search constraints; it does not
 reuse or alter the active design controls. Target, performance and library
-controls use three stateful sidebar tabs. Only the open tab is rendered in a
-three-step workflow:
+controls use three stateful sidebar tabs. All three panels render together, so
+switching tabs is instant and never resets the sidebar scroll, in a three-step
+workflow:
 
 1. **Target enclosure** selects the load, maximum enclosure volume and voltage.
 2. **Performance goal** selects the optimization objective, hard maximum F3
