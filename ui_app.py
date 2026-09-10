@@ -9468,7 +9468,7 @@ def _render_find_driver_goal_sidebar() -> None:
                 help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
             )
     if _show_advanced_controls():
-        with st.expander("Advanced driver filters"):
+        with st.expander("Advanced driver filters", expanded=True):
             _finder_number_input(
                 "Maximum Mms (g, 0 = off)",
                 min_value=0.0,
@@ -12529,6 +12529,15 @@ with st.sidebar:
             help="Show expert controls: search profile, evaluation grid and "
                  "driver T/S overrides. Off keeps the guided workflow.",
         )
+        if _show_advanced_controls():
+            st.caption(
+                "Advanced mode · expert controls are open in the active tabs."
+            )
+        else:
+            st.caption(
+                "Simple mode · expert controls are hidden (search profile, "
+                "evaluation grid, T/S overrides)."
+            )
     if _explore_requested:
         _render_community_sidebar()
     elif _public_project_requested:
@@ -12559,7 +12568,7 @@ with st.sidebar:
                 _render_find_driver_target_sidebar()
                 _render_engine_only_topologies_note()
                 if _show_advanced_controls():
-                    with st.expander("Advanced evaluation"):
+                    with st.expander("Advanced evaluation", expanded=True):
                         _finder_selectbox(
                             "Search profile",
                             list(_ranking.SEARCH_PROFILES.keys()),
@@ -12870,7 +12879,7 @@ with st.sidebar:
                     pass
 
                 if _show_advanced_controls():
-                    with st.expander("Advanced driver parameters"):
+                    with st.expander("Advanced driver parameters", expanded=True):
                         d3, d4 = st.columns(2)
                         with d3:
                             lbl_mms = f"Mms (g) [calc: {derived.mms_kg*1000:.1f}]" if (derived and not st.session_state.get("driver_mms_g")) else "Mms (g)"

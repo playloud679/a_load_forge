@@ -305,7 +305,10 @@ the whole brief in one click for **Home theater**, **Car SPL**, **Hi-Fi** or
 **Infinite baffle**, while the expert controls (search profile, evaluation
 range, simulation resolution, `Mms`/`Le` filters and driver T/S overrides)
 stay hidden. Enable **Advanced mode** at the top of the sidebar to reveal
-them; the active values keep applying in both modes.
+them; the active values keep applying in both modes. The active mode is shown
+under the toggle, and in Advanced mode the expert sections open directly
+(**Advanced evaluation**, **Advanced driver filters**, **Advanced driver
+parameters**).
 
 **Run Bass Match** appears once as a full-width primary action immediately
 below the compact brief; it is not duplicated in the sidebar. While a scan is

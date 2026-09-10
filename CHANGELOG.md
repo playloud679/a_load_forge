@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.13 (2026-09-10)
+
+- Make Simple/Advanced mode visibly different: the active mode is captioned
+  directly under the sidebar toggle, and in Advanced mode the expert sections
+  (**Advanced evaluation**, **Advanced driver filters**, **Advanced driver
+  parameters**) open immediately instead of staying collapsed. The toggle
+  already switched the controls; only the visual change was too subtle.
+- Regression test asserts the mode caption and the Advanced evaluation
+  section.
+- Fresh active suite after the last edit: **224 passed, 0 failed, 0 skipped**.
+
 ## 0.16.12 (2026-09-10)
 
 - Remove the truncated completion toast from Bass Match. The persistent run

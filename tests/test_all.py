@@ -10095,6 +10095,7 @@ def _check_ui_simple_advanced_mode_and_guided_scenarios():
     simple_keys = {n.key for n in at.sidebar.number_input}
     assert "finder_points" not in simple_keys
     assert "finder_f_min" not in simple_keys
+    assert "Simple mode" in " ".join(c.value for c in at.sidebar.caption)
     guided = next(
         box for box in at.sidebar.selectbox if box.key == "finder_scenario"
     )
@@ -10113,6 +10114,11 @@ def _check_ui_simple_advanced_mode_and_guided_scenarios():
     assert not at.exception, at.exception
     advanced_keys = {n.key for n in at.sidebar.number_input}
     assert {"finder_points", "finder_f_min", "finder_f_max"} <= advanced_keys
+    assert "Advanced mode" in " ".join(c.value for c in at.sidebar.caption)
+    assert any(
+        expander.label == "Advanced evaluation"
+        for expander in at.sidebar.expander
+    )
 
 
 test(
