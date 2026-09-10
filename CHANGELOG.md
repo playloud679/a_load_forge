@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.11 (2026-09-10)
+
+- Refresh the persisted Bass Match run-statistics box as soon as a scan
+  completes. The box is rendered before the clicked run executes, so it
+  previously kept the previous run's seek time and per-load numbers while the
+  results below already showed the new ones; a post-run rerun now renders the
+  whole page from the completed run state.
+- Regression test runs two searches with different loads and asserts the box
+  reports only the latest load.
+- Fresh active suite after the last edit: **224 passed, 0 failed, 0 skipped**.
+
 ## 0.16.10 (2026-09-10)
 
 - Show the Bass Match seek time broken down per load: usable/attempted

@@ -10304,6 +10304,29 @@ def _check_ui_finder_main_action_runs_search():
         for item in at.info
     ), "changing the size filter must hide stale ranked results"
 
+    # A second run with a different load must refresh the persisted run
+    # statistics box instead of leaving the previous run's numbers on screen.
+    at.session_state["finder_load_types"] = ["Bass reflex"]
+    at.session_state["preset_size_filter"] = ["All"]
+    at.session_state["finder_reflex_resonator_type"] = _ui._RESONATOR_PORT
+    at.run()
+    assert not at.exception, at.exception
+    second_run_button = next(
+        button for button in list(at.button) + list(at.sidebar.button)
+        if button.label == _ui._FINDER_CTA_LABEL
+    )
+    second_run_button.click().run()
+    assert not at.exception, at.exception
+    second_stats = at.session_state["finder_last_run_stats"]
+    assert list(second_stats["loads"]) == ["Bass reflex"], second_stats["loads"]
+    stats_text = (
+        " ".join(item.value for item in at.markdown)
+        + " "
+        + " ".join(item.value for item in at.caption)
+    )
+    assert "Bass reflex:" in stats_text, stats_text
+    assert "DCCAV:" not in stats_text, stats_text
+
 
 test("UI Finder single main action runs the driver search", _check_ui_finder_main_action_runs_search)
 

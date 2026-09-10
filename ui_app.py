@@ -9394,6 +9394,10 @@ def _run_find_driver_search(
     )
     st.session_state.pop("_restored_bass_match_controls_signature", None)
     _invalidate_bass_match_results_signature()
+    # The hero (and its persisted run-statistics box) is rendered before this
+    # function executes, so without a rerun the box keeps showing the previous
+    # run's numbers while the results below already show the new ones.
+    st.rerun()
 
 
 def _render_find_driver_goal_sidebar() -> None:

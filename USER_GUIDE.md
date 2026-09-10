@@ -351,7 +351,8 @@ designs with `F3 ≤ 40 Hz`; `0` disables the constraint.
   the same progress indicator through every selected load. After a scan, the
   persistent run statistics report total seek time, credits and a per-load
   breakdown (usable/attempted, evaluations per driver and elapsed seconds), so
-  the heavier DCCAV search stays visible next to the lighter reflex pass.
+  the heavier DCCAV search stays visible next to the lighter reflex pass. The
+  statistics box refreshes as soon as a scan completes.
 - The full-width **Open this design in Box Design** action sits immediately
   below the brief: it is gray and disabled until a ranked row is selected,
   then turns emerald and opens that design. Selecting 2–8 rows changes the same
