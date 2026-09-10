@@ -1,5 +1,20 @@
 # src/presets.py — driver preset catalog
 
+Cloud catalog reads use stale-while-revalidate: normal preset lookups read the
+last successful memory/disk snapshot and never wait for Firestore. A single
+background worker refreshes at most once per 60-second interval, with a
+three-second query timeout and SDK retries disabled. The UI polls completion
+every two seconds. Only successful changed snapshots invalidate metadata and
+filter caches; failure preserves existing drivers, including after a manual
+refresh. Successful internally-created clients write the disk snapshot too.
+Injected clients remain synchronous for tests/tools and never write disk.
+`check_dynamic_catalog_freshness(force=True)` schedules an immediate refresh;
+`invalidate_preset_caches()` clears derived/static loaders without deleting the
+last good cloud snapshot. Manufacturer file changes invalidate that tier only.
+Each invalidation increments a catalog revision used by UI table and Finder
+prefilter cache keys, so updating an existing cloud driver also refreshes its
+eligibility and metadata. Disk replacement uses a unique temporary file.
+
 Built-in driver presets plus four optional external catalogs, with brand/size
 metadata and retailer price enrichment. `src/dccav.py` re-exports the public
 API; detailed contracts live in `docs/dccav.md`.
@@ -187,6 +202,8 @@ redistribution licence.
   `DriverTS`; optional fields (`le10k_mh`, `mms_g`, `cms_mm_per_n`, `bl_tm`)
   stay `None` when absent rather than defaulting to `0.0`, matching how
   `engine.DriverTS` distinguishes "not measured" from "measured as zero".
+  Ranking surfaces this distinction through `driver_data_coverage()` (see
+  `docs/ranking.md`) and the UI `Data` / `Data %` badges.
 External web listings are deduplicated by normalized brand/model and nominal
 electrical resistance.  Inch and generic product words are removed from the
 comparison key, while explicit or inferred nominal impedance keeps real

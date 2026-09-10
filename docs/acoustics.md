@@ -1,5 +1,10 @@
 # `src/acoustics.py` — neutral acoustic-load public API
 
+Catalog freshness checks are non-blocking: `check_dynamic_catalog_freshness`
+publishes completed cloud refreshes and schedules network work in a single
+background worker. `force=True` requests a refresh; it does not wait for it.
+Normal preset lookup retains the last good snapshot on cloud failures.
+
 `src/acoustics.py` is the primary public facade for every supported enclosure
 and waveguide topology. It deliberately has no preferred load: DCCAV, bass
 reflex (vent or passive radiator), sealed, infinite baffle, fourth-,

@@ -31,15 +31,18 @@ La trasformazione inversa garantisce volumi e frequenze positive e conserva la
 somma dei volumi. I round-trip physical → optimizer → physical sono coperti da
 regression test.
 
-### 1.2 Algoritmo: Global Sniff + ricerca adattiva
+### 1.2 Algoritmo: Global Sweep + Local Sniff + ricerca adattiva
 L'ottimizzatore è deterministico:
 1. valuta lo starter;
-2. valuta una sequenza Halton fissa in un raggio locale;
-3. seleziona il miglior basin feasible prima della discesa;
-4. misura la sensibilità locale degli assi;
-5. esegue compass search con un passo indipendente per asse;
-6. prova una direzione pattern diagonale dopo spostamenti riusciti;
-7. verifica i finalisti con campionamento spettrale adattivo.
+2. esegue un **global sweep** Halton sull'intero dominio ammesso (2–8 punti
+   secondo la dimensione, solo per topologie multi-asse) per non restare
+   intrappolato nel bacino dello starter;
+3. valuta una sequenza Halton fissa in un raggio locale;
+4. seleziona il miglior basin feasible prima della discesa;
+5. misura la sensibilità locale degli assi;
+6. esegue compass search con un passo indipendente per asse;
+7. prova una direzione pattern diagonale dopo spostamenti riusciti;
+8. verifica i finalisti con campionamento spettrale adattivo.
 
 Gli assi produttivi mantengono o espandono moderatamente il passo; quelli che
 falliscono ripetutamente vengono dimezzati senza forzare la convergenza degli
@@ -107,17 +110,27 @@ Con un Ripple frequency ceiling attivo, sia la griglia coarse sia quella finale
 usano i punti richiesti sotto il limite e una coda di 9 punti sopra: i 30 punti
 coarse diventano normalmente 38 punti distinti.
 
-Bass Match espone profili da **30/60/120 valutazioni di box per combinazione
-driver × carico**, ridotte a 24 nel runtime Cloud Run. Questi sono
-i tentativi complessivi: non vengono assegnati 30 tentativi a ciascuna
-variabile. Infinite baffle e passive radiator non eseguono questa ricerca del
-box: usano rispettivamente il modello senza box e lo starter fisico dedicato.
-Il numero richiesto non viene mai superato e include starter, sniff,
-sensitivity e pattern search. I campioni in frequenza di un box già valutato
+Bass Match assegna un budget di valutazioni di box **proporzionale al numero di
+assi liberi della topologia** (Sealed 1, Bass reflex 2, BP4 3, BP6/DCCAV 4,
+BP8 6): `overhead + per_axis × assi`, con pavimento e tetto di profilo.
+Il profilo Standard usa 20/asse + 10 (Sealed 30, Reflex 50, BP4 70,
+BP6/DCCAV 90, BP8 120, tetto 120); il profilo Deep usa 40/asse + 20 (fino a
+240). Non esistono più i vecchi 30/60/120 uniformi né la riduzione a 24 nel
+runtime Cloud Run. Il numero richiesto non viene mai superato e include starter,
+sniff, sensitivity e pattern search. Infinite baffle e passive radiator non
+eseguono questa ricerca del box: usano rispettivamente il modello senza box e lo
+starter fisico dedicato. I campioni in frequenza di un box già valutato
 sono un budget spettrale separato.
 L'API generale `optimize_alignment()`, usata fuori dal Finder, conserva invece
 default più larghi di 260 valutazioni e 160 frequenze, senza refinement locale
 se il chiamante non lo richiede.
+
+Bass Match non applica una Top-K preliminare: ogni job ammesso dal pre-filtro
+analitico viene ottimizzato. I brief ripetuti (stesso driver, carico, volume,
+profilo e vincoli) sono però serviti da una cache limitata a 512 risultati di
+ottimizzazione, quindi un rerun dopo la modifica di un filtro post-simulazione
+non ripete la ricerca. La cache è invalidata da `invalidate_ranking_caches()` e
+dalla revisione del motore.
 
 ### 4.2 Griglia Segmentata per Subwoofer (`segmented_frequency_grid`)
 Quando è attivo un tetto di frequenza per il ripple ($F_{\text{ripple\_max}}$):

@@ -13,6 +13,10 @@ import os
 import pickle
 import re
 import time
+import threading
+import tempfile
+from concurrent.futures import Future, ThreadPoolExecutor
+from typing import Any
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -61,6 +65,11 @@ FIRESTORE_PRESETS_CACHE_PATH = (
 _FIRESTORE_CACHE_TTL_SECONDS = float(
     os.environ.get("LOAD_FORGE_FIRESTORE_CACHE_TTL_SECONDS", "60.0")
 )
+_FIRESTORE_REFRESH_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="catalog-refresh")
+_FIRESTORE_REFRESH_FUTURE: Future | None = None
+_FIRESTORE_REFRESH_LOCK = threading.RLock()
+_FIRESTORE_SNAPSHOT: tuple[dict, dict] | None = None
+_CATALOG_CACHE_REVISION = 0
 _LAST_DYNAMIC_CATALOG_CHECK_TIME: float = 0.0
 _LAST_MANUFACTURER_CATALOG_MTIME: float = 0.0
 # Presets extracted directly from manufacturer sites (HTML/PDF/API), kept in a
@@ -1670,29 +1679,37 @@ def _load_ztzaudio_presets() -> tuple[dict[str, DriverTS], dict[str, DriverPrese
     )
 
 
+def _read_firestore_snapshot() -> tuple[dict, dict] | None:
+    """Read the last successful cloud snapshot, including when it is stale."""
+    try:
+        cached = _safe_unpickle_bytes(FIRESTORE_PRESETS_CACHE_PATH.read_bytes())
+        if (isinstance(cached, tuple) and len(cached) == 2
+                and all(isinstance(part, dict) for part in cached)):
+            return cached
+    except Exception:
+        pass
+    return None
+
+
 @lru_cache(maxsize=1)
 def _load_firestore_presets(
     client: Any | None = None,
 ) -> tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]]:
-    """Load driver presets dynamically from Google Cloud Firestore.
+    """Serve cloud presets from memory/disk without waiting on the network.
 
-    Gracefully falls back to cached snapshot or empty if offline/unavailable.
+    An injected client remains a synchronous loader for offline tools and tests.
+    The UI schedules refresh through check_dynamic_catalog_freshness().
     """
-    if client is None and FIRESTORE_PRESETS_CACHE_PATH.exists():
-        try:
-            cache_age = time.time() - FIRESTORE_PRESETS_CACHE_PATH.stat().st_mtime
-            if cache_age < _FIRESTORE_CACHE_TTL_SECONDS:
-                cached = _safe_unpickle_bytes(FIRESTORE_PRESETS_CACHE_PATH.read_bytes())
-                if (
-                    isinstance(cached, tuple)
-                    and len(cached) == 2
-                    and isinstance(cached[0], dict)
-                    and isinstance(cached[1], dict)
-                ):
-                    return cached
-        except Exception:
-            pass
+    if client is not None:
+        return _fetch_firestore_presets(client) or ({}, {})
+    return _FIRESTORE_SNAPSHOT or _read_firestore_snapshot() or ({}, {})
 
+
+def _fetch_firestore_presets(
+    client: Any | None = None,
+) -> tuple[dict[str, DriverTS], dict[str, DriverPresetInfo]] | None:
+    """Fetch in a worker; None denotes failure and preserves the last snapshot."""
+    owns_client = client is None
     project_id = (
         os.environ.get("LOAD_FORGE_GCP_PROJECT")
         or os.environ.get("GOOGLE_CLOUD_PROJECT")
@@ -1713,24 +1730,12 @@ def _load_firestore_presets(
         if client is None:
             from google.cloud import firestore
             client = firestore.Client(project=project_id, database=database_id)
-        for doc in client.collection(collection_name).stream():
+        for doc in client.collection(collection_name).stream(timeout=3.0, retry=None):
             data = doc.to_dict() if hasattr(doc, "to_dict") else doc
             if isinstance(data, dict):
                 raw_items.append(data)
     except Exception:
-        raw_items = []
-        if client is None and FIRESTORE_PRESETS_CACHE_PATH.exists():
-            try:
-                cached = _safe_unpickle_bytes(FIRESTORE_PRESETS_CACHE_PATH.read_bytes())
-                if (
-                    isinstance(cached, tuple)
-                    and len(cached) == 2
-                    and isinstance(cached[0], dict)
-                    and isinstance(cached[1], dict)
-                ):
-                    return cached
-            except Exception:
-                pass
+        return None
 
     for item in raw_items:
         try:
@@ -1787,45 +1792,27 @@ def _load_firestore_presets(
         except Exception:
             continue
 
-    if client is None:
+    if owns_client:
+        tmp = None
         try:
-            tmp = FIRESTORE_PRESETS_CACHE_PATH.with_suffix(".tmp")
-            tmp.write_bytes(pickle.dumps((presets, info), protocol=pickle.HIGHEST_PROTOCOL))
+            with tempfile.NamedTemporaryFile(dir=FIRESTORE_PRESETS_CACHE_PATH.parent, delete=False) as handle:
+                tmp = Path(handle.name)
+                handle.write(pickle.dumps((presets, info), protocol=pickle.HIGHEST_PROTOCOL))
             tmp.replace(FIRESTORE_PRESETS_CACHE_PATH)
         except Exception:
             pass
+        finally:
+            if tmp is not None:
+                tmp.unlink(missing_ok=True)
 
     return presets, info
 
 
-def check_dynamic_catalog_freshness(force: bool = False) -> bool:
-    """Check if dynamic catalog sources (Firestore or local catalog file) have updated.
-
-    If TTL has expired or a force refresh is requested, dynamically refreshes
-    Firestore presets and any modified local manufacturer catalog without
-    reloading static third-party database files. Returns True if any cache was refreshed.
-    """
-    global _LAST_DYNAMIC_CATALOG_CHECK_TIME, _LAST_MANUFACTURER_CATALOG_MTIME
-    now = time.time()
-    ttl = _FIRESTORE_CACHE_TTL_SECONDS
-    mfr_path = manufacturer_database_path()
-    mfr_mtime = 0.0
-    try:
-        if mfr_path.exists():
-            mfr_mtime = mfr_path.stat().st_mtime
-    except Exception:
-        pass
-    mfr_changed = (_LAST_MANUFACTURER_CATALOG_MTIME > 0 and mfr_mtime != _LAST_MANUFACTURER_CATALOG_MTIME)
-
-    if not force and not mfr_changed and (now - _LAST_DYNAMIC_CATALOG_CHECK_TIME < ttl):
-        return False
-
-    _LAST_DYNAMIC_CATALOG_CHECK_TIME = now
-    _LAST_MANUFACTURER_CATALOG_MTIME = mfr_mtime
-
+def _clear_dynamic_catalog_views() -> None:
+    """Invalidate derived catalog views only after their underlying data changes."""
+    global _CATALOG_CACHE_REVISION
+    _CATALOG_CACHE_REVISION += 1
     _load_firestore_presets.cache_clear()
-    if mfr_changed or force:
-        _load_manufacturer_presets.cache_clear()
     _external_tiers.cache_clear()
     driver_preset_names.cache_clear()
     driver_preset_info.cache_clear()
@@ -1837,7 +1824,48 @@ def check_dynamic_catalog_freshness(force: bool = False) -> bool:
     all_preset_price_currencies.cache_clear()
     all_preset_price_values.cache_clear()
     get_driver_preset.cache_clear()
-    return True
+
+
+def check_dynamic_catalog_freshness(force: bool = False) -> bool:
+    """Publish finished refreshes and schedule at most one cloud read off-thread.
+
+    Expiring the TTL never evicts usable data. Only a successful changed cloud
+    snapshot or a changed manufacturer file invalidates the derived views.
+    """
+    global _LAST_DYNAMIC_CATALOG_CHECK_TIME, _LAST_MANUFACTURER_CATALOG_MTIME
+    global _FIRESTORE_REFRESH_FUTURE, _FIRESTORE_SNAPSHOT
+    with _FIRESTORE_REFRESH_LOCK:
+        now = time.time()
+        changed = False
+        future = _FIRESTORE_REFRESH_FUTURE
+        if future is not None and future.done():
+            _FIRESTORE_REFRESH_FUTURE = None
+            try:
+                snapshot = future.result()
+            except Exception:
+                snapshot = None
+            if snapshot is not None:
+                previous = _load_firestore_presets()
+                _FIRESTORE_SNAPSHOT = snapshot
+                changed = snapshot != previous
+
+        try:
+            mtime = manufacturer_database_path().stat().st_mtime
+        except OSError:
+            mtime = 0.0
+        if force or (_LAST_MANUFACTURER_CATALOG_MTIME > 0
+                     and mtime != _LAST_MANUFACTURER_CATALOG_MTIME):
+            _load_manufacturer_presets.cache_clear()
+            changed = True
+        _LAST_MANUFACTURER_CATALOG_MTIME = mtime
+
+        if (_FIRESTORE_REFRESH_FUTURE is None
+                and (force or now - _LAST_DYNAMIC_CATALOG_CHECK_TIME >= _FIRESTORE_CACHE_TTL_SECONDS)):
+            _LAST_DYNAMIC_CATALOG_CHECK_TIME = now
+            _FIRESTORE_REFRESH_FUTURE = _FIRESTORE_REFRESH_EXECUTOR.submit(_fetch_firestore_presets)
+        if changed:
+            _clear_dynamic_catalog_views()
+        return changed
 
 
 def invalidate_preset_caches() -> None:
@@ -1850,28 +1878,12 @@ def invalidate_preset_caches() -> None:
             _LAST_MANUFACTURER_CATALOG_MTIME = mfr_path.stat().st_mtime
     except Exception:
         pass
-    _external_tiers.cache_clear()
-    _load_firestore_presets.cache_clear()
     _load_manufacturer_presets.cache_clear()
     _load_loudspeaker_database_presets.cache_clear()
     _load_vituixcad_presets.cache_clear()
     _load_speakerboxlite_presets.cache_clear()
     _load_ztzaudio_presets.cache_clear()
-    try:
-        if FIRESTORE_PRESETS_CACHE_PATH.exists():
-            FIRESTORE_PRESETS_CACHE_PATH.unlink(missing_ok=True)
-    except Exception:
-        pass
-    driver_preset_names.cache_clear()
-    driver_preset_info.cache_clear()
-    driver_preset_provenance_category.cache_clear()
-    driver_preset_identity.cache_clear()
-    driver_preset_preference.cache_clear()
-    deduplicate_driver_preset_names.cache_clear()
-    all_preset_brands.cache_clear()
-    all_preset_price_currencies.cache_clear()
-    all_preset_price_values.cache_clear()
-    get_driver_preset.cache_clear()
+    _clear_dynamic_catalog_views()
 
 
 @lru_cache(maxsize=1)

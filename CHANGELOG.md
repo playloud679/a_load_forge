@@ -1,5 +1,61 @@
 # Changelog
 
+## 0.16.9 (2026-09-10)
+
+- **Adaptive Finder optimizer budgets per topology**: evaluation limits now
+  scale with the free axes (`overhead + per-axis × axes`) instead of a flat
+  value — Standard 30–120 (Sealed 30, Bass reflex 50, BP4 70, BP6/DCCAV 90,
+  BP8 120), Deep 60–240. No Cloud Run reduction; run statistics show the
+  per-load budget range.
+- **Deterministic global search phase**: a fixed Halton sweep over the full
+  bounded domain (2–8 points by dimension, multi-axis loads only) runs before
+  the local sniff, so the search can leave the starter basin without random
+  choices. Determinism is covered by new regression tests.
+- **Optimizer result cache**: bounded (512-entry), thread-safe memoization of
+  complete optimizer briefs. Repeated Finder runs that change only
+  post-simulation filters skip the expensive search;
+  `invalidate_ranking_caches()` clears it.
+- **Simple / Advanced sidebar mode** (Simple by default) with guided scenario
+  presets (Home theater, Car SPL, Hi-Fi, Infinite baffle) and practical
+  tooltips. Expert controls (search profile, evaluation grid, Mms/Le filters,
+  T/S overrides) are hidden in Simple mode but keep applying.
+- **Driver data coverage**: `driver_data_coverage()` plus `Data` / `Data %`
+  badges in the ranking table and a per-field coverage panel in the Candidate
+  library, so incomplete records are visible before a scan.
+- **Forge Score clarified** as a heuristic health indicator that is never a
+  default ranking criterion; comparisons stay on F3, MOL, excursion and
+  impedance.
+- **Engine/API-only waveguides declared**: transmission line, MLTL,
+  quarter-wave, back-loaded horn and tapped horn are listed in the sidebar
+  under **Engine/API-only topologies** and documented as non-interactive.
+- **Explore alternatives**: `OptimizedAlignment.alternatives` exposes up to
+  five buildable runner-up boxes (score, F3, volume, ripple, excursion) and
+  Box Design offers one-click apply for each.
+- Restore the local-SaaS registration test by supplying the alpha invite
+  master token, so the full suite is green again.
+- Fresh active suite after the last edit: **224 passed, 0 failed, 0 skipped**.
+  Fast suite: **140 passed**; acoustic-load smoke: **14 passed**.
+
+## 0.16.8 (2026-09-07)
+
+- Reuse one account read per script run, invalidate it after credit/plan changes,
+  and derive administrator access from exact configured identities rather than
+  email substrings or the login allowlist. Existing stale admin flags are revoked.
+- Refresh the cloud driver catalog in one background worker, retain the last
+  successful snapshot during slow/failed reads, and atomically persist successful
+  refreshes. Catalog revisions invalidate Finder eligibility and library metadata.
+- Restore the two-second autosave timer without rebuilding the acoustic workspace.
+  Render only active sidebar/project panels and reuse unchanged serialized response
+  charts, preserving zoom, physics, comparison visibility and hidden parameter state.
+- Restore five formerly short-circuited UI regressions; add account, catalog,
+  autosave, chart-cache checks and smoke coverage for all five distributed loads.
+- Warm offline AppTest workspace clicks over five repetitions: median Box Design
+  0.267 s (previous review: 0.50–0.56 s), Bass Match 0.234 s (previous: 0.25–0.26 s).
+  Browser rendering and real network latency are excluded. Account reads drop
+  from 9/5 in authenticated Bass Match/Box Design to one per script run.
+- Final fresh active suite: **217 passed, 0 failed, 0 skipped**. Additional
+  validation: storage boundaries **17 passed**, billing **10 passed**.
+
 ## 0.16.7 (2026-09-07)
 
 - **Dynamic Catalog Synchronization & Z-Bench Hardware Integration**:

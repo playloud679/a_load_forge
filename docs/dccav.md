@@ -459,7 +459,10 @@ with mounted Fs when panel loading is enabled.
 
 Goal-driven box optimizer used by the UI's `Optimized` box strategy.
 It runs a bounded deterministic Finder V2 search using topology-native
-coordinates. DCCAV is represented as total volume, logit chamber fraction,
+coordinates. A fixed Halton global sweep over the full bounded domain (2–8
+points by dimension, multi-axis loads only) runs before the local sniff, so
+the search can leave the starter basin without any random choice. DCCAV is
+represented as total volume, logit chamber fraction,
 `Fl` and `Fh/Fl`; BP4 as total volume, chamber fraction and `Fp`; BP6 as total
 volume, chamber fraction, base tuning and tuning ratio; BP8 as total volume,
 two softmax chamber logits, base tuning and two tuning ratios. Reflex and
@@ -475,10 +478,12 @@ before admitting the row.
 If refined F3 crosses just below the DCCAV credibility boundary, `fl` and `fh`
 are reduced together by the minimum required factor and the winning alignment
 is rechecked, preserving the tuning ratio and avoiding a post-search warning.
-Finder exposes Fast/Standard/Deep budgets of 30/60/120 distinct box candidates
-(Cloud Run caps them at 24). The strict counter includes starter, sniff,
-sensitivity and local/pattern candidates but not extra spectral samples of an
-already-counted box.
+Finder scales the evaluation budget with the topology's free axes
+(`overhead + per_axis × axes`): Standard uses 20/axis + 10 (Sealed 30,
+Reflex 50, BP4 70, BP6/DCCAV 90, BP8 120, cap 120), Deep uses 40/axis + 20
+(cap 240). There is no Cloud Run reduction. The strict counter includes
+starter, sniff, sensitivity and local/pattern candidates but not extra
+spectral samples of an already-counted box.
 Accepted `load_type` values are `"DCCAV"`, `"Bandpass 4th order"`,
 `"Bandpass 6th order"`, `"Bandpass 8th order"`, `"Bass reflex"` and `"Sealed"`;
 the legacy labels `"Acoustic suspension"` and `"Suspension pneumatic"` are
@@ -490,6 +495,11 @@ exact `Vh+Vl`, `Vs+Vp` or `Vb` for callers that explicitly need an equality
 constraint. The `Bass Match` workspace does not use it: Finder passes its
 **Maximum volume** through `OptimizationGoals.max_total_volume_l`, allowing
 each driver to retain a better, smaller alignment.
+The returned `OptimizedAlignment.alternatives` tuple exposes up to five
+buildable runner-up boxes (`AlignmentAlternative` with score, F3, total volume,
+ripple and excursion ratio), excluding the winner and infeasible finalists.
+The list is deterministic and drives the UI's **Explore alternatives**
+expander.
 
 `OptimizationGoals` fields:
 
@@ -1045,5 +1055,5 @@ If no true rising crossing exists in the simulated range, the returned value is
   process-pool optimizer path returns rows identical to the serial one, and
   process/semaphore denial automatically falls back to the safe serial path
 
-Cloud Run Finder optimization uses 24 evaluations per candidate and caps the
-response grid at 80 points; local runs retain the original profile.
+Cloud Run Finder optimization uses the same per-topology budgets as local runs
+(no 24-evaluation reduction) and caps the response grid at 80 points.

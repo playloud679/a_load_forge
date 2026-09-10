@@ -19,6 +19,9 @@
 - Manages user account states and credits balances (`users/{email_or_uid}`).
 - Encapsulates optimistic locking via expected revisions and content hash deduplication.
 - Strictly isolated: does not expose public publication paths.
+- Both account backends use `saas.account_is_admin` for exact configured email
+  membership and reconcile existing admin flags on reads, including revocation.
+  The login allowlist does not grant administrator privileges.
 
 ### `public_store.py`
 - Implements `PublicStore`, `FirestorePublicStore`, `InMemoryPublicStore`.
@@ -70,3 +73,8 @@ LOAD_FORGE_STRICT_MULTI_DB=true
 - **Migration Tools**: [`tools/migrate_private_data.py`](../tools/migrate_private_data.py) and [`tools/migrate_public_projects.py`](../tools/migrate_public_projects.py)
 - **Promotion Pipeline**: [`tools/promote_catalog_release.py`](../tools/promote_catalog_release.py)
 
+Catalog promotion sanitizes model-derived Firestore document IDs. Models that
+contain `/` or `\\` are stored under deterministic hash IDs, so a manufacturer
+model code cannot be interpreted as a nested Firestore path.
+Imported provenance keys are normalized to Firestore-safe string keys; empty
+source-field keys become `unnamed`.

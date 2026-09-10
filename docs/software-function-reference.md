@@ -193,12 +193,17 @@ $$N_{\text{job}}=\sum_{c\in\text{carichi}}N_{\text{driver ammessi per }c}$$
 Con un solo carico, 5.087 Ready simulations significano quindi 5.087 driver
 da valutare su quel carico. Con due carichi, lo stesso driver può produrre due
 job distinti. Ogni job viene eseguito indipendentemente e nessun driver viene
-saltato perché non appartiene a una Top-K preliminare.
+saltato perché non appartiene a una Top-K preliminare. I job con lo stesso
+brief (driver, carico, volume massimo, profilo e vincoli) sono serviti da una
+cache di 512 risultati di ottimizzazione, utile soprattutto quando si cambiano
+solo i filtri applicati dopo la simulazione.
 
-Per ciascun job ottimizzato, Bass Match usa questo budget:
+Per ciascun job ottimizzato, Bass Match usa un budget **proporzionale al numero
+di assi liberi della topologia** (`overhead + per_axis × assi`, con pavimento e
+tetto di profilo):
 
-1. fino a **30 allineamenti di box** sul runtime normale, oppure 24 su Cloud
-   Run (`K_SERVICE`);
+1. **Standard**: 20 valutazioni per asse + 10, tetto 120. **Deep**: 40 per asse
+   + 20, tetto 240;
 2. ogni allineamento provvisorio è simulato su **30 frequenze**; se è attivo
    il Ripple frequency ceiling diventano 30 punti sotto il limite più 9 sopra,
    con il punto di separazione condiviso, quindi normalmente 38;
@@ -208,36 +213,37 @@ Per ciascun job ottimizzato, Bass Match usa questo budget:
    normalmente **240 punti**; il servizio Cloud limita questa fase a 80 punti.
    Anche qui il ceiling attivo aggiunge la coda sparsa sopra il limite.
 
-Il limite di 30/24 è un massimo globale per quel job, non “30 prove per ogni
-parametro”. L'ottimizzatore può terminare prima quando il passo di ricerca è
-già sceso sotto la soglia. I carichi usano i seguenti parametri liberi:
+Il budget è un massimo globale per quel job, non “N prove per ogni parametro”.
+L'ottimizzatore può terminare prima quando il passo di ricerca è già sceso
+sotto la soglia. I carichi usano i seguenti parametri liberi:
 
-| Carico | Parametri cercati | Prove di box per driver |
+| Carico | Parametri cercati | Prove di box per driver (Standard / Deep) |
 |---|---|---:|
 | Infinite baffle | nessuno | 0; una sola risposta finale |
-| Sealed | volume Vb | fino a 30/24 |
-| Bass reflex a condotto | volume Vb e accordo Fb | fino a 30/24 |
+| Sealed | volume Vb | 30 / 60 |
+| Bass reflex a condotto | volume Vb e accordo Fb | 50 / 100 |
 | Bass reflex con passive radiator | starter fisico Vb, area/massa/Q/Xmax del PR | 0; una sola risposta finale |
-| Bandpass 4th order | Vs, Vp, Fp | fino a 30/24 |
-| Bandpass 6th order | Vr, Fr, Vp, Fp | fino a 30/24 |
-| Bandpass 8th order | V1, F1, V2, F2, V3, F3 | fino a 30/24 |
-| DCCAV | Vh, Vl, Fl e rapporto Fh/Fl | fino a 30/24 |
+| Bandpass 4th order | Vs, Vp, Fp | 70 / 140 |
+| Bandpass 6th order | Vr, Fr, Vp, Fp | 90 / 180 |
+| Bandpass 8th order | V1, F1, V2, F2, V3, F3 | 120 / 240 |
+| DCCAV | Vh, Vl, Fl e rapporto Fh/Fl | 90 / 180 |
 
-Il budget è uguale per topologia, non proporzionale al numero di variabili.
-Di conseguenza Sealed esplora un solo asse con 30 tentativi, mentre DCCAV ne
-distribuisce al massimo 30 su quattro assi e Bandpass 8th order su sei: è una
-scelta orientata alla velocità del catalogo, ma rende la ricerca dei carichi
-più complessi meno fitta rispetto a quella della cassa chiusa.
+Il budget cresce quindi con la complessità della topologia: la cassa chiusa
+riceve i tentativi minimi sufficienti per un solo asse, mentre DCCAV e
+Bandpass 8th order ricevono un numero di valutazioni proporzionale ai loro
+quattro e sei assi. Non esiste più la riduzione a 24 valutazioni nel runtime
+Cloud Run.
 
-Esempio riferito a **5.087 job DCCAV Ready**, 240 punti finali, runtime normale
-e Ripple frequency ceiling disattivato. Nel caso massimo il run può effettuare:
+Esempio riferito a **5.087 job DCCAV Ready**, 240 punti finali, profilo
+Standard, runtime normale e Ripple frequency ceiling disattivato. Nel caso
+massimo il run può effettuare:
 
-- $5.087\times30=152.610$ allineamenti provvisori;
-- $152.610\times30=4.578.300$ soluzioni box-frequenza nella ricerca;
+- $5.087\times90=457.830$ allineamenti provvisori;
+- $457.830\times30=13.734.900$ soluzioni box-frequenza nella ricerca;
 - $5.087\times(30+20)=254.350$ punti per ricontrollare e raffinare i vincitori;
 - $5.087\times240=1.220.880$ punti per le curve finali.
 
-Il totale massimo ordinario è quindi circa **6,05 milioni di soluzioni
+Il totale massimo ordinario è quindi circa **15,2 milioni di soluzioni
 box-frequenza**, non 5.087 sole prove. Può essere inferiore per convergenza
 anticipata; un DCCAV che non supera il controllo di credibilità dopo il
 refinement può richiedere fino a tre correzioni aggiuntive dell'accordo.
@@ -248,15 +254,19 @@ La ricerca è deterministica e avviene nello spazio logaritmico: modificare un
 volume o un accordo equivale così a esplorare variazioni percentuali, non
 incrementi assoluti. Si parte dall'allineamento suggerito per il driver e il
 carico; con **Max extension** e DCCAV viene considerato anche un punto di
-partenza a camere più grandi. Se il punto iniziale non è costruibile vengono
-provati riavvii deterministici al 75%, 25% e 50% della diagonale dello spazio
-ammesso.
+partenza a camere più grandi. Prima della discesa locale l'ottimizzatore esegue
+un **global sweep** Halton deterministico sull'intero dominio ammesso (2–8
+punti secondo la dimensione, solo per topologie multi-asse): serve a non
+restare intrappolato nel bacino dello starter. Segue uno sniff Halton locale
+attorno allo starter e, se il punto iniziale non è costruibile, vengono provati
+riavvii deterministici al 75%, 25% e 50% della diagonale dello spazio ammesso.
 
 Il *compass search* usa inizialmente un passo logaritmico di 0,4. Per ogni asse
 prova la direzione positiva e negativa, accetta soltanto uno score migliore e,
 quando nessuna direzione migliora, dimezza il passo. Si ferma sotto 0,02 o al
-raggiungimento del budget di 30/24 valutazioni. Non usa casualità: stesso
-driver, stesso brief e stessa versione del motore producono la stessa scelta.
+raggiungimento del budget di valutazioni del profilo attivo. Non usa casualità:
+stesso driver, stesso brief e stessa versione del motore producono la stessa
+scelta.
 
 Prima del confronto dello score vengono applicate barriere di costruibilità:
 
@@ -487,8 +497,10 @@ la sensibilità.
 Il motore contiene anche transmission line uniforme/segmentata, MLTL,
 quarter-wave, back-loaded horn e tapped horn. Sono API tecniche validate dai
 test ma non compaiono oggi tra le sette schede operative di Bass Match/Box
-Design. Non vanno quindi descritte come funzioni UI già utilizzabili; richiedono
-un futuro contratto completo di controlli, preset, grafici e test d'interfaccia.
+Design. Non vanno quindi descritte come funzioni UI già utilizzabili; la
+sidebar lo dichiara esplicitamente nell'expander **Engine/API-only topologies**.
+Un futuro contratto completo richiederebbe controlli, preset, grafici e test
+d'interfaccia.
 
 ## 7. Grafici e analisi
 

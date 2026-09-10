@@ -2580,6 +2580,14 @@ class UserAccount:
         )
 
 
+def account_is_admin(email: str, admin_emails: frozenset[str]) -> bool:
+    """Match an explicit administrator identity, never a substring or login rule."""
+    normalized = email.strip().casefold()
+    return bool(normalized) and normalized in {
+        value.strip().casefold() for value in admin_emails if value.strip()
+    }
+
+
 class InMemoryUserAccountStore:
     """In-memory user account store for tests and offline development."""
 
@@ -2608,14 +2616,11 @@ class InMemoryUserAccountStore:
                 acc.credits_balance = ent.monthly_credits
                 acc.credits_monthly_quota = ent.monthly_credits
                 acc.quota_reset_at = next_reset
-            if (normalized_email in admin_emails or "playloud79@gmail.com" in normalized_email or "marcoderossi" in normalized_email):
-                acc.is_admin = True
+            acc.is_admin = account_is_admin(normalized_email, admin_emails)
             return acc
 
         is_admin = (
-            normalized_email in admin_emails
-            or "playloud79@gmail.com" in normalized_email
-            or "marcoderossi" in normalized_email
+            account_is_admin(normalized_email, admin_emails)
         )
         plan = "free"
         ent = PLAN_ENTITLEMENTS.get(plan, PLAN_ENTITLEMENTS["free"])
@@ -2751,9 +2756,7 @@ class FirestoreUserAccountStore:
         normalized_email = email.strip().casefold()
         now = datetime.now(timezone.utc)
         is_admin_candidate = (
-            normalized_email in admin_emails
-            or "playloud79@gmail.com" in normalized_email
-            or "marcoderossi" in normalized_email
+            account_is_admin(normalized_email, admin_emails)
         )
 
         transaction = self._client.transaction()
@@ -2779,8 +2782,8 @@ class FirestoreUserAccountStore:
                     acc.credits_balance = max(ent.monthly_credits, acc.credits_balance + diff)
                     acc.updated_at = now
                     tx.set(ref, acc.to_dict())
-                if is_admin_candidate and not acc.is_admin:
-                    acc.is_admin = True
+                if acc.is_admin != is_admin_candidate:
+                    acc.is_admin = is_admin_candidate
                     acc.updated_at = now
                     tx.set(ref, acc.to_dict())
                 return acc

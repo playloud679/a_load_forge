@@ -9,7 +9,8 @@ Exports the acoustic-load dataclasses and helpers from the neutral
   `ReflexAlignment`, `ReflexBox`, `Bandpass4Alignment`, `Bandpass4Box`,
   `Bandpass6Alignment`, `Bandpass6Box`, `Bandpass8Alignment`, `Bandpass8Box`,
   `SealedAlignment`, `SealedBox`,
-  `OptimizationGoals`, `OptimizedAlignment`, `SimulationResult`
+  `OptimizationGoals`, `OptimizedAlignment`, `AlignmentAlternative`,
+  `SimulationResult`
 - `driver_preset_names()`, `get_driver_preset()`
 - `sd_from_diameter()`, `complete_driver()`, `suggest_alignment()`,
   `suggest_reflex_alignment()`, `suggest_bandpass4_alignment()`,

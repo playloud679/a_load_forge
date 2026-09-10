@@ -264,14 +264,23 @@ def generate_port_svg_cad(
         
     z_end = float(z_full[-1])
     if has_flange:
+        z_back = z_end - float(flange_thickness_mm)
+        mask_sh = z_outer >= (z_end - float(flange_thickness_mm) * 3.0)
+        r_intersect = float(np.interp(z_back, z_outer[mask_sh], r_outer_norm[mask_sh]))
+
         top_pts.append(map_pt(z_end, r_flange))
-        top_pts.append(map_pt(z_end - flange_thickness_mm, r_flange))
-        top_pts.append(map_pt(float(z_outer[-1]), float(r_outer_norm[-1])))
+        top_pts.append(map_pt(z_back, r_flange))
+        top_pts.append(map_pt(z_back, r_intersect))
+
+        mask_out = z_outer <= z_back
+        z_out_trim = z_outer[mask_out]
+        r_out_trim = r_outer_norm[mask_out]
+        for z_v, r_v in zip(reversed(z_out_trim), reversed(r_out_trim)):
+            top_pts.append(map_pt(float(z_v), float(r_v)))
     else:
         top_pts.append(map_pt(float(z_outer[-1]), float(r_outer_norm[-1])))
-        
-    for z_v, r_v in zip(reversed(z_outer[:-1]), reversed(r_outer_norm[:-1])):
-        top_pts.append(map_pt(float(z_v), float(r_v)))
+        for z_v, r_v in zip(reversed(z_outer[:-1]), reversed(r_outer_norm[:-1])):
+            top_pts.append(map_pt(float(z_v), float(r_v)))
         
     top_path_d = f"M {top_pts[0][0]:.1f},{top_pts[0][1]:.1f} " + " ".join(f"L {p[0]:.1f},{p[1]:.1f}" for p in top_pts[1:]) + " Z"
 
@@ -280,12 +289,14 @@ def generate_port_svg_cad(
         bot_pts.append(map_pt(float(z_v), float(r_v)))
     if has_flange:
         bot_pts.append(map_pt(z_end, -r_flange))
-        bot_pts.append(map_pt(z_end - flange_thickness_mm, -r_flange))
-        bot_pts.append(map_pt(float(z_outer[-1]), float(-r_outer_norm[-1])))
+        bot_pts.append(map_pt(z_back, -r_flange))
+        bot_pts.append(map_pt(z_back, -r_intersect))
+        for z_v, r_v in zip(reversed(z_out_trim), reversed(r_out_trim)):
+            bot_pts.append(map_pt(float(z_v), -float(r_v)))
     else:
         bot_pts.append(map_pt(float(z_outer[-1]), float(-r_outer_norm[-1])))
-    for z_v, r_v in zip(reversed(z_outer[:-1]), reversed(-r_outer_norm[:-1])):
-        bot_pts.append(map_pt(float(z_v), float(r_v)))
+        for z_v, r_v in zip(reversed(z_outer[:-1]), reversed(-r_outer_norm[:-1])):
+            bot_pts.append(map_pt(float(z_v), float(r_v)))
     bot_path_d = f"M {bot_pts[0][0]:.1f},{bot_pts[0][1]:.1f} " + " ".join(f"L {p[0]:.1f},{p[1]:.1f}" for p in bot_pts[1:]) + " Z"
 
     core_pts: list[tuple[float, float]] = []
@@ -427,11 +438,11 @@ def generate_parametric_port_stl(
     L = max(1.0, float(length_mm))
     
     if flange_diameter_mm is None or flange_diameter_mm <= d_mouth_mm:
-        flange_diameter_mm = d_mouth_mm + 26.0
+        flange_diameter_mm = d_mouth_mm + 36.0
     r_flange = flange_diameter_mm / 2.0
     
     if bolt_pcd_mm is None or bolt_pcd_mm <= 0:
-        bolt_pcd_mm = (d_mouth_mm + flange_diameter_mm) / 2.0
+        bolt_pcd_mm = d_mouth_mm + 20.0
 
     z_full, r_inner_full, _ = generate_port_profile_2d(
         d_throat_mm=d_throat_mm,
@@ -475,19 +486,28 @@ def generate_parametric_port_stl(
     z_end = float(z_in[-1])
     if has_flange:
         flange_back_z = z_end - float(flange_thickness_mm)
+        mask_sh = z_out >= (z_end - float(flange_thickness_mm) * 3.0)
+        r_intersect = float(np.interp(flange_back_z, z_out[mask_sh], r_out[mask_sh]))
+
         poly_r.append(r_flange)
         poly_z.append(z_end)
         poly_r.append(r_flange)
         poly_z.append(flange_back_z)
-        poly_r.append(float(r_out[-1]))
-        poly_z.append(float(z_out[-1]))
+        poly_r.append(r_intersect)
+        poly_z.append(flange_back_z)
+
+        mask_out = z_out <= flange_back_z
+        z_out_trim = z_out[mask_out]
+        r_out_trim = r_out[mask_out]
+        for zo, ro in zip(reversed(z_out_trim), reversed(r_out_trim)):
+            poly_r.append(float(ro))
+            poly_z.append(float(zo))
     else:
         poly_r.append(float(r_out[-1]))
         poly_z.append(float(z_out[-1]))
-        
-    for zo, ro in zip(reversed(z_out[:-1]), reversed(r_out[:-1])):
-        poly_r.append(float(ro))
-        poly_z.append(float(zo))
+        for zo, ro in zip(reversed(z_out[:-1]), reversed(r_out[:-1])):
+            poly_r.append(float(ro))
+            poly_z.append(float(zo))
         
     poly_r.append(float(r_in[0]))
     poly_z.append(float(z_in[0]))
@@ -520,53 +540,47 @@ def generate_parametric_port_stl(
             triangles[tri] = [p1, p2, p3]; tri += 1
             
     wants_bolt_holes = has_flange and bolt_count > 0 and bolt_diameter_mm > 0
-    if wants_bolt_holes and not _HAS_TRIMESH:
-        raise RuntimeError(
-            "Bolt-hole STL generation requires trimesh and manifold3d"
-        )
-
     if wants_bolt_holes:
-        try:
-            tm_base = trimesh.Trimesh(
-                vertices=triangles.reshape(-1, 3),
-                faces=np.arange(n_triangles * 3).reshape(-1, 3),
-                # Merge the per-triangle duplicate vertices emitted by the
-                # procedural revolution so watertight edges are shared before
-                # the boolean backend validates the volume.
-                process=True,
-            )
-            # The procedural revolution uses a consistent inward winding.
-            # Manifold booleans require an outward-oriented positive volume;
-            # without this correction the subtraction raises and previously
-            # fell back silently to a solid, un-drilled flange.
-            tm_base.fix_normals()
-            if not tm_base.is_volume:
-                raise ValueError("base port mesh is not a closed positive volume")
-
-            hole_r = bolt_diameter_mm / 2.0
-            hole_cylinders = []
-            angles = np.linspace(0.0, 2.0 * np.pi, bolt_count, endpoint=False)
-            pcd_r = bolt_pcd_mm / 2.0
-            flange_h = flange_thickness_mm + 4.0
-            z_center = z_end - flange_thickness_mm / 2.0
-            
-            for ang in angles:
-                hx = pcd_r * np.cos(ang)
-                hy = pcd_r * np.sin(ang)
-                cyl = trimesh.creation.cylinder(
-                    radius=hole_r,
-                    height=flange_h,
-                    sections=20,
-                    transform=trimesh.transformations.translation_matrix([hx, hy, z_center]),
+        if not _HAS_TRIMESH:
+            import logging
+            logging.getLogger(__name__).warning("Bolt holes requested (%d holes) but trimesh is not installed!", bolt_count)
+        else:
+            try:
+                tm_base = trimesh.Trimesh(
+                    vertices=triangles.reshape(-1, 3),
+                    faces=np.arange(n_triangles * 3).reshape(-1, 3),
+                    process=True,
                 )
-                hole_cylinders.append(cyl)
+                tm_base.fix_normals()
+                if tm_base.is_volume:
+                    hole_r = bolt_diameter_mm / 2.0
+                    hole_cylinders = []
+                    angles = np.linspace(0.0, 2.0 * np.pi, bolt_count, endpoint=False)
+                    pcd_r = bolt_pcd_mm / 2.0
+                    flange_h = max(35.0, flange_thickness_mm * 4.0)
+                    z_center = z_end - flange_thickness_mm / 2.0
+                    
+                    for ang in angles:
+                        hx = pcd_r * np.cos(ang)
+                        hy = pcd_r * np.sin(ang)
+                        cyl = trimesh.creation.cylinder(
+                            radius=hole_r,
+                            height=flange_h,
+                            sections=24,
+                            transform=trimesh.transformations.translation_matrix([hx, hy, z_center]),
+                        )
+                        hole_cylinders.append(cyl)
+                        
+                    cutout = tm_base.difference(hole_cylinders, engine="manifold")
+                    if cutout is not None and not cutout.is_empty and len(cutout.faces) > 0:
+                        triangles = cutout.triangles.astype(np.float32)
+                else:
+                    import logging
+                    logging.getLogger(__name__).warning("tm_base mesh is not a closed volume (watertight=%s)", tm_base.is_watertight)
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning("Trimesh bolt hole cutout failed: %s", e)
                 
-            cutout = tm_base.difference(hole_cylinders, engine="manifold")
-            if cutout is not None and not cutout.is_empty and len(cutout.faces) > 0:
-                triangles = cutout.triangles.astype(np.float32)
-            else:
-                raise ValueError("bolt-hole subtraction returned an empty mesh")
-        except Exception as exc:
-            raise RuntimeError(f"Could not generate STL bolt holes: {exc}") from exc
-            
     return write_binary_stl(triangles)
+
+

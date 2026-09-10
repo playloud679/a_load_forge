@@ -25,6 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 import storage
+import saas
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger("load_forge.catalog.promotion")
@@ -105,7 +106,8 @@ def promote_catalog_release(
         logger.info("DRY RUN: Validated release %s with %d drivers (digest: %s)", release_id, len(valid_drivers), digest[:12])
         return release_meta
 
-    store = storage.create_catalog_runtime_store()
+    settings = saas.SaaSSettings.from_env()
+    store = storage.create_catalog_runtime_store(settings)
     # If store has promote_release, execute
     result = store.promote_release(
         release_id=release_id,
@@ -135,7 +137,8 @@ def rollback_catalog_release(
         logger.info("DRY RUN: Would roll back active release to %s", target_release_id)
         return {"target_release_id": target_release_id, "dry_run": True}
 
-    store = storage.create_catalog_runtime_store()
+    settings = saas.SaaSSettings.from_env()
+    store = storage.create_catalog_runtime_store(settings)
     result = store.rollback_release(
         target_release_id=target_release_id,
         rolled_back_by=rolled_back_by,

@@ -350,6 +350,18 @@ class OptimizationGoals:
 
 
 @dataclass(frozen=True)
+class AlignmentAlternative:
+    """A buildable runner-up alignment from one optimizer run."""
+
+    box: DccavBox | ReflexBox | Bandpass4Box | Bandpass6Box | Bandpass8Box | SealedBox
+    score: float
+    f3_hz: float
+    total_volume_l: float
+    ripple_db: float
+    excursion_ratio: float
+
+
+@dataclass(frozen=True)
 class OptimizedAlignment:
     """Optimizer result: the box plus the achieved response figures."""
 
@@ -362,6 +374,7 @@ class OptimizedAlignment:
     total_volume_l: float
     score: float
     evaluations: int
+    alternatives: tuple[AlignmentAlternative, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -1042,6 +1055,7 @@ OPTIMIZER_MAX_PORT_DIAMETER_CM = 60.0
 _OPTIMIZER_PORT_FEASIBILITY_RATIO = 0.95
 _OPTIMIZER_DCCAV_F3_RATIO = 0.67
 _OPTIMIZER_RIPPLE_CONSTRAINT_SCORE = 1e4
+_OPTIMIZER_MAX_ALTERNATIVES = 5
 
 
 def port_air_velocity_ms(
@@ -2357,8 +2371,10 @@ def optimize_alignment(
 
     The search is a bounded compass pattern search in log-space, started from
     the empirical article alignment (DCCAV), Vas/Fs reflex starting point or
-    classical closed-box alignment.  Loss factors are copied from
-    ``box_template`` when provided.
+    classical closed-box alignment.  A deterministic global Halton sweep over
+    the full bounded domain precedes a local low-discrepancy sniff, so
+    multi-axis topologies can escape the starter basin without randomness.
+    Loss factors are copied from ``box_template`` when provided.
     """
     if goals.objective not in _OBJECTIVE_WEIGHTS:
         raise ValueError(f"Unknown optimizer objective: {goals.objective}")
@@ -2695,11 +2711,21 @@ def optimize_alignment(
         evaluated.append((score, clipped.copy(), box, metrics))
         return answer
 
-    # 1) Starter, then a deterministic local low-discrepancy sniff. Unlike the
-    # previous restart queue, all sniff points are compared before local search
-    # so the remaining budget is spent in the best basin actually observed.
+    # 1) Starter, a deterministic global sweep, then a deterministic local
+    # low-discrepancy sniff. The global phase samples the whole bounded domain
+    # so multi-axis topologies are not trapped in the starter basin; the local
+    # sniff then refines its neighbourhood. Unlike the previous restart queue,
+    # all points are compared before local search so the remaining budget is
+    # spent in the best basin actually observed.
     dim = len(lower)
     _starter_box, _starter_metrics, starter_score = evaluate(p0)
+    global_limits = {1: 0, 2: 4, 3: 5, 4: 6, 6: 8}
+    global_budget = min(
+        global_limits.get(dim, max(4, dim)),
+        max(0, (max_evaluations - 1) // 5),
+    )
+    for row in _halton_sequence(dim, global_budget):
+        evaluate(lower + row * (upper - lower))
     sniff_limits = {1: 0, 2: 6, 3: 8, 4: 10, 6: 14}
     sniff_budget = min(
         sniff_limits.get(dim, max(4, 2 * dim)),
@@ -2869,6 +2895,30 @@ def optimize_alignment(
             )
     best_score = _score_alignment(
         best_metrics, goals, ts, is_dccav, is_bandpass4)
+    # 5) Keep the best buildable runners-up so callers can offer alternatives
+    # instead of a single deterministic winner. Infeasible finalists are
+    # excluded: they are not buildable boxes under the active constraints.
+    alternatives: list[AlignmentAlternative] = []
+    seen_signatures = {tuple(vars(best_box).values())}
+    for alternative_score, alternative_box, alternative_metrics in sorted(
+        finalists, key=lambda item: item[0]
+    ):
+        if alternative_score >= _OPTIMIZER_RIPPLE_CONSTRAINT_SCORE:
+            continue
+        signature = tuple(vars(alternative_box).values())
+        if signature in seen_signatures:
+            continue
+        seen_signatures.add(signature)
+        alternatives.append(AlignmentAlternative(
+            box=alternative_box,
+            score=float(alternative_score),
+            f3_hz=float(alternative_metrics["f3_hz"]),
+            total_volume_l=float(alternative_metrics["total_volume_l"]),
+            ripple_db=float(alternative_metrics["ripple_db"]),
+            excursion_ratio=float(alternative_metrics["excursion_ratio"]),
+        ))
+        if len(alternatives) >= _OPTIMIZER_MAX_ALTERNATIVES:
+            break
     if best_score >= 1e5:
         raise ValueError(
             "No credible alignment with buildable, low-velocity ports was found; "
@@ -2898,6 +2948,7 @@ def optimize_alignment(
         total_volume_l=float(best_metrics["total_volume_l"]),
         score=float(best_score),
         evaluations=evaluations,
+        alternatives=tuple(alternatives),
     )
 
 

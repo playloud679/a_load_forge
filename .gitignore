@@ -53,6 +53,10 @@ data/price_crawler.log
 
 # Local recoverable catalog snapshots; release catalogs live under data/.
 snapshots/
+data/*.backup_*.json
+
+# Runtime invite state written by src/invites.py (deploy via env/config)
+data/invites.json
 
 # Streamlit secrets (contains API keys — keep local)
 .streamlit/secrets.toml

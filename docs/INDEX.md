@@ -103,6 +103,14 @@ heading already conveyed by its editable tab and sidebar. Visibility, duplicate
 and close are fixed-position compact icons inside every tab, never a separate action row.
 UI-only design actions reuse cached solver output and saved alignment state;
 they must not trigger a second rerun or restart the enclosure optimizer.
+The Response panel also retains one serialized Vega-Lite specification per
+session: changes to driver/box, sampling, zoom, traces, cursor settings,
+comparison snapshots/visibility or source revisions invalidate it. Unrelated
+workspace reruns reuse it. Bass Match/Box Design sidebar and Manage Projects tabs render
+only the selected panel; hidden history tabs never query Firestore.
+Box Design still prepares driver/solver inputs independently of the active
+sidebar panel. Hidden widget values, including eighth-order bandpass fields,
+and sidebar selections survive tab and workspace round trips.
 Workspace switching must remain view-only: Bass Match workers are created only
 by `Run Bass Match`; closed Project/Candidate sections and inactive sidebar or
 analysis tabs must not build their hidden controls, tables or charts. Catalog

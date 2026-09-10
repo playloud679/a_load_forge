@@ -15,7 +15,8 @@ contracts and the test list — lives in `docs/dccav.md`.
   `DriverPresetInfo`: `DriverTS`, `DerivedDriver`, alignments and boxes
   (including `Bandpass4Alignment` / `Bandpass4Box`, `Bandpass6Alignment` / `Bandpass6Box`,
   `Bandpass8Alignment` / `Bandpass8Box`),
-  `OptimizationGoals`, `OptimizedAlignment`, `SimulationResult`,
+  `OptimizationGoals`, `OptimizedAlignment`, `AlignmentAlternative`,
+  `SimulationResult`,
   `ToleranceBand`, `DesignSpaceMap`, `DriverReferenceMetrics`,
   `DriverBandwidthClass`
 - Waveguide topologies: `WaveguideSegment`, `TransmissionLineBox`, `MltlBox`,
@@ -96,6 +97,13 @@ scales with the physical driver count.
 ## Panel air loading
 
 ## Distributed waveguides
+
+**UI scope:** these five models are engine/API-only. The interactive load
+cards cover only the lumped loads listed at the top of this document; the
+waveguides have no sidebar controls, presets or plots and are reached through
+`simulate_transmission_line`, `simulate_mltl`, `simulate_quarter_wave`,
+`simulate_back_loaded_horn` and `simulate_tapped_horn`. The sidebar declares
+this explicitly under **Engine/API-only topologies**.
 
 The waveguide solvers use a loss-bearing, one-dimensional pressure/volume-
 velocity transfer matrix. `TransmissionLineBox` accepts stepped uniform
@@ -213,22 +221,33 @@ trade-offs.
 `optimize_alignment` utilizes a deterministic multi-stage pattern search:
 1. **Topology-native transform** converts the physical starter into normalized
    coordinates and guarantees positive volumes/frequencies on inverse mapping.
-2. **Deterministic Global Sniff** samples a local radius with a fixed Halton
-   sequence in every multidimensional profile, including Fast. All sniff points
-   are scored before descent and the best observed feasible basin is selected.
-   An infeasible starter also activates fixed 25/50/75% diagonal fallback points.
-3. **Sensitivity probe** measures local score response and orders axes by
+2. **Deterministic Global Sweep** evaluates a fixed Halton sequence across the
+   full bounded domain for every multi-axis topology (2–8 points depending on
+   dimension), so the search is not confined to the starter basin.
+3. **Deterministic Local Sniff** samples a local radius with a fixed Halton
+   sequence. All sniff points are scored before descent and the best observed
+   feasible basin is selected. An infeasible starter also activates fixed
+   25/50/75% diagonal fallback points.
+4. **Sensitivity probe** measures local score response and orders axes by
    information gained.
-4. **Adaptive Compass & Pattern Search** keeps one step per axis, shrinking only
+5. **Adaptive Compass & Pattern Search** keeps one step per axis, shrinking only
    unsuccessful directions, and accelerates along composite successful
    displacement vectors (`x_pattern = x_new + Δx`).
-5. **Adaptive spectral verification** resolves tunings, extrema and curvature
+6. **Adaptive spectral verification** resolves tunings, extrema and curvature
    for competitive finalists before hard ripple and construction acceptance.
 
 The cached box-evaluation counter is strictly capped by `max_evaluations`, even
 for a one-evaluation job. Extra frequency samples of an already-counted box are
 a separate spectral budget. If every resolved finalist remains infeasible,
 `optimize_alignment` raises an explicit error rather than returning it.
+
+The returned `OptimizedAlignment` also carries up to five buildable
+`alternatives` (`AlignmentAlternative`: box, score, F3, total volume, ripple
+and excursion ratio). The winner and every infeasible finalist are excluded, so
+alternatives are real buildable boxes under the active constraints. The UI
+surfaces them under **Explore alternatives** with one-click apply. Determinism
+extends to the alternative list: the same brief and engine revision produce the
+same ordered runners-up.
 
 ## Invariants
 

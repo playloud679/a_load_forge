@@ -395,9 +395,7 @@ class FirestorePrivateStore:
         normalized_email = email.strip().casefold()
         now = datetime.now(timezone.utc)
         is_admin_candidate = (
-            normalized_email in admin_emails
-            or "playloud79@gmail.com" in normalized_email
-            or "marcoderossi" in normalized_email
+            saas.account_is_admin(normalized_email, admin_emails)
         )
 
         transaction = self._client.transaction()
@@ -423,8 +421,8 @@ class FirestorePrivateStore:
                     acc.credits_balance = max(ent.monthly_credits, acc.credits_balance + diff)
                     acc.updated_at = now
                     tx.set(ref, acc.to_dict())
-                if is_admin_candidate and not acc.is_admin:
-                    acc.is_admin = True
+                if acc.is_admin != is_admin_candidate:
+                    acc.is_admin = is_admin_candidate
                     acc.updated_at = now
                     tx.set(ref, acc.to_dict())
                 return acc
@@ -742,12 +740,11 @@ class InMemoryPrivateStore:
                 acc.credits_monthly_quota = ent.monthly_credits
                 acc.quota_reset_at = next_reset
                 acc.updated_at = now
+            acc.is_admin = saas.account_is_admin(email, admin_emails)
             return acc
 
         is_admin = (
-            key in admin_emails
-            or "playloud79@gmail.com" in key
-            or "marcoderossi" in key
+            saas.account_is_admin(key, admin_emails)
         )
         ent = saas.PLAN_ENTITLEMENTS.get("free", saas.PLAN_ENTITLEMENTS["free"])
         month = now.month % 12 + 1

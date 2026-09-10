@@ -46,6 +46,7 @@ import pricing as _pricing
 import ranking as _ranking
 import saas as _saas
 import storage as _storage
+import storage.private_store as _private_store
 import billing as _billing
 
 sys.path.insert(0, str(Path(__file__).parent / "tools"))
@@ -83,7 +84,7 @@ def _reload_if_source_changed(module) -> bool:
 # wildcard namespace keeps the old engine symbols in a long-lived Streamlit
 # process.
 for _module in (
-    _engine, _port_cad, _pricing, _presets, _ranking, _saas, _storage,
+    _engine, _port_cad, _pricing, _presets, _ranking, _saas, _private_store, _storage,
     _afw_export, _afw_compare,
 ):
     _reload_if_source_changed(_module)
@@ -943,7 +944,23 @@ def _render_local_account_gate(*, render_hero: bool = True) -> None:
                     _remember_local_account(user)
                     st.rerun()
         else:
+            prefilled_token = ""
+            try:
+                if "token" in st.query_params:
+                    prefilled_token = str(st.query_params["token"]).strip()
+                elif hasattr(st, "context") and hasattr(st.context, "cookies"):
+                    prefilled_token = str(st.context.cookies.get("lf_alpha_token", "")).strip()
+            except Exception:
+                pass
+
             with st.form("local_saas_registration"):
+                alpha_code = st.text_input(
+                    "Alpha Invite Code",
+                    value=prefilled_token,
+                    placeholder="FORGE-XXXX-XXXX",
+                    help="Load Forge Studio è in Private Closed Alpha. È richiesto un codice invito valido per registrarsi.",
+                    key="_local_register_alpha_code",
+                )
                 name = st.text_input(
                     "Name",
                     placeholder="Your Name",
@@ -977,7 +994,11 @@ def _render_local_account_gate(*, render_hero: bool = True) -> None:
                     width="stretch",
                 )
             if submitted:
-                if password != confirmation:
+                from src.invites import verify_and_redeem_token
+                is_valid_code, code_err = verify_and_redeem_token(alpha_code)
+                if not is_valid_code:
+                    st.error(f"⛔ Codice Invito non valido ({code_err}). Richiedi l'accesso su https://load-forge.com/alpha-gate")
+                elif password != confirmation:
                     st.error("Passwords do not match")
                 else:
                     try:
@@ -989,7 +1010,10 @@ def _render_local_account_gate(*, render_hero: bool = True) -> None:
                         st.rerun()
         st.markdown(
             """
-            <div style="text-align: center; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: rgba(255,255,255,0.40); line-height: 1.4;">
+            <div style="text-align: center; margin-top: 0.8rem; font-size: 0.8rem; color: rgba(255,255,255,0.6);">
+                Non hai ancora un codice invito? <a href="https://load-forge.com/alpha-gate" target="_blank" style="color: #10b981; font-weight: 500;">Richiedi l'accesso alla Closed Alpha</a>
+            </div>
+            <div style="text-align: center; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: rgba(255,255,255,0.40); line-height: 1.4;">
                 Local storage · Encrypted credentials (PBKDF2) · Autosaved projects
             </div>
             """,
@@ -1103,7 +1127,7 @@ _CURRENT_SAAS_USER = _resolve_saas_user()
 @st.cache_resource(show_spinner=False)
 def _cached_account_store(
     settings: _saas.SaaSSettings,
-    source_token: int,
+    source_token: tuple[int, int],
 ):
     """Cache an account store only for the active SaaS module revision."""
     del source_token
@@ -1111,7 +1135,10 @@ def _cached_account_store(
 
 
 def _get_account_store():
-    return _cached_account_store(_SAAS_SETTINGS, _SAAS_SOURCE_TOKEN)
+    return _cached_account_store(
+        _SAAS_SETTINGS,
+        (_SAAS_SOURCE_TOKEN, Path(_private_store.__file__).stat().st_mtime_ns),
+    )
 
 _ACCOUNT_STORE = _get_account_store()
 
@@ -1143,14 +1170,26 @@ def _cached_public_store(
 def _get_public_store():
     return _cached_public_store(_SAAS_SETTINGS, _SAAS_SOURCE_TOKEN)
 
+def _account_admin_emails() -> frozenset[str]:
+    """Administration is configured separately from the login allowlist."""
+    email = os.getenv("LOAD_FORGE_ADMIN_EMAIL", "playloud79@gmail.com").strip().casefold()
+    emails = {email} if email else set()
+    uid = os.getenv("LOAD_FORGE_ADMIN_UID", "").strip()
+    if uid and _CURRENT_SAAS_USER is not None and _CURRENT_SAAS_USER.uid == uid:
+        emails.add(_CURRENT_SAAS_USER.email.strip().casefold())
+    return frozenset(emails - {""})
+
+
+@cache
 def _get_current_user_account() -> _saas.UserAccount | None:
+    """Reuse one account read within this script run, never across sessions."""
     if _CURRENT_SAAS_USER is None:
         # Default local session account for demo/offline use with full trial balance
         acc = _ACCOUNT_STORE.get_or_create_account(
             uid="local-user",
             email="local@loadforge.app",
             name="Load Forge User",
-            admin_emails=_SAAS_SETTINGS.allowed_emails,
+            admin_emails=_account_admin_emails(),
         )
         if acc.credits_balance < 2500:
             acc.credits_balance = 2500
@@ -1160,12 +1199,12 @@ def _get_current_user_account() -> _saas.UserAccount | None:
         uid=_CURRENT_SAAS_USER.uid,
         email=_CURRENT_SAAS_USER.email,
         name=_CURRENT_SAAS_USER.name,
-        admin_emails=_SAAS_SETTINGS.allowed_emails,
+        admin_emails=_account_admin_emails(),
     )
     return acc
 
 _PARAM_PREFIXES = (
-    "driver_", "box_", "reflex_", "pr_", "bandpass4_", "bandpass6_", "sealed_", "loss_", "sim_", "opt_", "load_type"
+    "driver_", "box_", "reflex_", "pr_", "bandpass4_", "bandpass6_", "bp8_", "sealed_", "loss_", "sim_", "opt_", "load_type"
 )
 _RESPONSE_TRACE_OPTIONS = ("Total", "Cone", "Lower port")
 _RESONATOR_RESPONSE_TRACES = {
@@ -1376,6 +1415,20 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
                         unsafe_allow_html=True,
                     )
     return set(active_set)
+
+
+def _render_engine_only_topologies_note() -> None:
+    """Declare the distributed-waveguide models that stay engine/API-only."""
+    with st.expander("Engine/API-only topologies"):
+        st.markdown(
+            "Transmission line, MLTL, quarter-wave, back-loaded horn and tapped "
+            "horn are validated engine models without interactive load cards, "
+            "presets or plots. They are reached through the Python API "
+            "(`simulate_transmission_line`, `simulate_mltl`, "
+            "`simulate_quarter_wave`, `simulate_back_loaded_horn`, "
+            "`simulate_tapped_horn`), so they are intentionally not selectable "
+            "in this workspace."
+        )
 
 
 @st.cache_data(show_spinner=False)
@@ -2920,6 +2973,12 @@ def _cloud_autosave_step(
 def _render_cloud_persistence_status() -> None:
     if not (_SAAS_SETTINGS.enabled and _CURRENT_SAAS_USER is not None):
         return
+    _cloud_persistence_fragment()
+
+
+@st.fragment(run_every=2)
+def _cloud_persistence_fragment() -> None:
+    """Advance debounce/retries after the last edit without rerunning the workspace."""
     force = bool(st.session_state.pop("_cloud_autosave_force", False))
     try:
         status = _cloud_autosave_step(
@@ -3248,7 +3307,9 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
                     else:
                         if st.button("Activate Hobby (Demo/Test)*", key="modal_hobby_demo_btn", type="primary", width="stretch"):
                             _ACCOUNT_STORE.update_billing_info(acc.email or acc.uid, plan="hobby")
+                            _get_current_user_account.cache_clear()
                             _ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, 60_000)
+                            _get_current_user_account.cache_clear()
                             acc.plan = "hobby"
                             acc.credits_balance += 60_000
                             st.session_state.pop("_cached_user_account", None)
@@ -3297,7 +3358,9 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
                     else:
                         if st.button("Activate Pro (Demo/Test)*", key="modal_pro_demo_btn", type="primary", width="stretch"):
                             _ACCOUNT_STORE.update_billing_info(acc.email or acc.uid, plan="pro")
+                            _get_current_user_account.cache_clear()
                             _ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, 300_000)
+                            _get_current_user_account.cache_clear()
                             acc.plan = "pro"
                             acc.credits_balance += 300_000
                             st.session_state.pop("_cached_user_account", None)
@@ -3350,6 +3413,7 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
                             width="stretch",
                         ):
                             _ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, pack_info["credits"])
+                            _get_current_user_account.cache_clear()
                             acc.credits_balance += pack_info["credits"]
                             st.session_state.pop("_cached_user_account", None)
                             st.toast(f"🎉 Successfully added {pack_info['credits']:,} credits!", icon="⚡")
@@ -3409,7 +3473,8 @@ def _render_current_project_sidebar_header() -> None:
 
     with st.container(border=True):
         st.markdown(f"**Project**: {html.escape(project_name)}")
-        _render_cloud_persistence_status()
+        if st.session_state.get("workspace_mode") != "Manage Projects":
+            _render_cloud_persistence_status()
         if st.button(
             "Manage Projects",
             key="sidebar_manage_projects_btn",
@@ -3893,25 +3958,30 @@ def _render_manage_projects_workspace() -> None:
         "Trash",
         "Publish Snapshot",
         "Account & Entitlements",
-    ])
+    ], key="manage_projects_tab", on_change="rerun")
 
-    with tab_list:
-        _render_manage_projects_cloud_list()
+    if tab_list.open:
+        with tab_list:
+            _render_manage_projects_cloud_list()
 
-    with tab_history:
-        _render_manage_projects_history()
+    if tab_history.open:
+        with tab_history:
+            _render_manage_projects_history()
 
-    with tab_trash:
-        _render_manage_projects_trash()
+    if tab_trash.open:
+        with tab_trash:
+            _render_manage_projects_trash()
 
-    with tab_publish:
-        _render_manage_projects_publish()
+    if tab_publish.open:
+        with tab_publish:
+            _render_manage_projects_publish()
 
-    with tab_account:
-        if user is not None:
-            _render_authenticated_account_controls(user)
-        else:
-            st.info("Operating in standalone offline mode. Sign in to enable multi-device cloud persistence.")
+    if tab_account.open:
+        with tab_account:
+            if user is not None:
+                _render_authenticated_account_controls(user)
+            else:
+                st.info("Operating in standalone offline mode. Sign in to enable multi-device cloud persistence.")
 
 
 def _snapshot_revision(snapshot: dict) -> str:
@@ -3948,7 +4018,7 @@ def _chart_signature() -> str:
             continue
         # Zooming must update the mounted chart in place: remounting inside the
         # response fragment makes Vega measure a collapsed container width.
-        if key == "plot_response_window_hz":
+        if key in {"plot_response_window_hz", "plot_response_reset_zoom", "box_design_sidebar_tab"}:
             continue
         try:
             json.dumps(value)
@@ -4196,6 +4266,9 @@ def _preserve_design_state() -> None:
     for key in list(st.session_state):
         if _is_param_key(key):
             st.session_state[key] = st.session_state[key]
+    for tab_key in ("box_design_sidebar_tab", "manage_projects_tab"):
+        if tab_key in st.session_state:
+            st.session_state[tab_key] = st.session_state[tab_key]
     if "design_analysis_tab" in st.session_state:
         st.session_state["design_analysis_tab"] = st.session_state[
             "design_analysis_tab"
@@ -4520,26 +4593,81 @@ def _optimizer_result_context(
     )
 
 
-def _current_optimizer_summary(driver: _acoustics.DriverTS) -> str | None:
+def _optimizer_context_box():
+    """Return the active load type and the box currently shown in the sidebar."""
     load_type = st.session_state.get("load_type", "DCCAV")
     if load_type == "Bass reflex":
-        box = _reflex_box_from_state()
-    elif load_type == "Sealed":
-        box = _sealed_box_from_state()
-    elif load_type == "Bandpass 4th order":
-        box = _bandpass4_box_from_state()
-    elif load_type == "Bandpass 6th order":
-        box = _bandpass6_box_from_state()
-    elif load_type == "Bandpass 8th order":
-        box = _bandpass8_box_from_state()
-    elif load_type == "DCCAV":
-        box = _box_from_state()
-    else:
+        return load_type, _reflex_box_from_state()
+    if load_type == "Sealed":
+        return load_type, _sealed_box_from_state()
+    if load_type == "Bandpass 4th order":
+        return load_type, _bandpass4_box_from_state()
+    if load_type == "Bandpass 6th order":
+        return load_type, _bandpass6_box_from_state()
+    if load_type == "Bandpass 8th order":
+        return load_type, _bandpass8_box_from_state()
+    if load_type == "DCCAV":
+        return load_type, _box_from_state()
+    return load_type, None
+
+
+def _current_optimizer_summary(driver: _acoustics.DriverTS) -> str | None:
+    load_type, box = _optimizer_context_box()
+    if box is None:
         return None
     context = _optimizer_result_context(driver, load_type, box)
     if st.session_state.get("_opt_last_context") != context:
         return None
     return st.session_state.get("opt_last_summary")
+
+
+def _current_optimizer_alternatives(driver: _acoustics.DriverTS) -> tuple:
+    load_type, box = _optimizer_context_box()
+    if box is None:
+        return ()
+    context = _optimizer_result_context(driver, load_type, box)
+    if st.session_state.get("_opt_last_context") != context:
+        return ()
+    return tuple(st.session_state.get("_opt_last_alternatives") or ())
+
+
+def _render_optimizer_alternatives(driver: _acoustics.DriverTS) -> None:
+    """Offer the runner-up boxes from the last optimizer run with one-click apply."""
+    alternatives = _current_optimizer_alternatives(driver)
+    if not alternatives:
+        return
+    with st.expander("Explore alternatives"):
+        st.caption(
+            "Runner-up buildable alignments from the same deterministic search. "
+            "Scores are relative to the active goal; physical metrics are shown "
+            "for every candidate."
+        )
+        for index, alternative in enumerate(alternatives):
+            st.markdown(
+                f"**Alternative {index + 1}** · score {alternative.score:.1f} · "
+                f"F3 {alternative.f3_hz:.1f} Hz · "
+                f"Vtot {alternative.total_volume_l:.1f} L · "
+                f"ripple {alternative.ripple_db:.2f} dB · "
+                f"excursion {alternative.excursion_ratio:.2f}× Xmax"
+            )
+            if st.button(
+                "Apply this box",
+                key=f"opt_alt_apply_{index}",
+                width="stretch",
+            ):
+                load_type = st.session_state.get("load_type", "DCCAV")
+                _apply_optimized_box(alternative.box)
+                _apply_optimized_port_geometry(driver, alternative.box)
+                st.session_state["opt_last_summary"] = (
+                    f"Applied alternative {index + 1}: "
+                    f"F3 {alternative.f3_hz:.1f} Hz · "
+                    f"Vtot {alternative.total_volume_l:.1f} L · "
+                    f"score {alternative.score:.1f}"
+                )
+                st.session_state["_opt_last_context"] = _optimizer_result_context(
+                    driver, load_type, alternative.box,
+                )
+                st.rerun()
 
 
 def _run_box_optimizer(driver: _acoustics.DriverTS) -> _acoustics.OptimizedAlignment:
@@ -4567,6 +4695,7 @@ def _run_box_optimizer(driver: _acoustics.DriverTS) -> _acoustics.OptimizedAlign
     )
     _apply_optimized_port_geometry(driver, optimized.box)
     st.session_state["opt_last_summary"] = _optimized_summary(optimized)
+    st.session_state["_opt_last_alternatives"] = tuple(optimized.alternatives)
     st.session_state["_opt_last_context"] = _optimizer_result_context(
         driver, load_type, optimized.box,
     )
@@ -4725,6 +4854,13 @@ def _available_driver_preset_names() -> list[str]:
         name for name in names
         if _driver_preset_source(name) not in _RESTRICTED_THIRD_PARTY_SOURCES
     ]
+
+
+@st.fragment(run_every=2)
+def _poll_catalog_refresh() -> None:
+    """Publish completed catalog refreshes while keeping network I/O off reruns."""
+    if _acoustics.check_dynamic_catalog_freshness():
+        st.rerun()
 
 
 
@@ -4988,6 +5124,7 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
             use_container_width=True,
         ):
             _acoustics.invalidate_preset_caches()
+            _acoustics.check_dynamic_catalog_freshness(force=True)
             st.rerun()
     is_admin = _maintenance_allowed()
     provenance_options = (
@@ -7574,6 +7711,7 @@ def _finder_pool_fingerprint(workers: int) -> tuple:
     )
     return (
         _FINDER_RANKING_VERSION,
+        _presets._CATALOG_CACHE_REVISION,
         _ranking.FINDER_WORKER_PROTOCOL_REVISION,
         _engine.OPTIMIZER_ENGINE_REVISION,
         _finder_executor_backend(),
@@ -8904,6 +9042,78 @@ def _finder_prefilter(
     }, stats
 
 
+def _show_advanced_controls() -> bool:
+    """Return whether the expert sidebar controls are visible."""
+    return bool(st.session_state.get("ui_show_advanced", False))
+
+
+_FINDER_SCENARIOS: dict[str, dict | None] = {
+    "Custom": None,
+    "Home theater": {
+        "finder_objective": "Max extension",
+        "finder_volume_l": 60.0,
+        "finder_max_ripple_db": 3.0,
+        "finder_max_ripple_freq_hz": 80.0,
+        "finder_excursion_ratio": 1.0,
+        "finder_max_gd_ms": 30.0,
+        "finder_min_spl_db": 0.0,
+        "finder_load_types": ["Bass reflex", "DCCAV"],
+        "load_type": "Bass reflex",
+    },
+    "Car SPL": {
+        "finder_objective": "Max extension",
+        "finder_volume_l": 40.0,
+        "finder_max_ripple_db": 4.0,
+        "finder_max_ripple_freq_hz": 60.0,
+        "finder_excursion_ratio": 1.0,
+        "finder_max_gd_ms": 35.0,
+        "finder_min_spl_db": 90.0,
+        "finder_load_types": ["Bass reflex", "Bandpass 8th order"],
+        "load_type": "Bass reflex",
+    },
+    "Hi-Fi": {
+        "finder_objective": "Flattest",
+        "finder_volume_l": 40.0,
+        "finder_max_ripple_db": 2.0,
+        "finder_max_ripple_freq_hz": 0.0,
+        "finder_excursion_ratio": 1.0,
+        "finder_max_gd_ms": 25.0,
+        "finder_min_spl_db": 0.0,
+        "finder_load_types": ["Bass reflex", "Sealed"],
+        "load_type": "Bass reflex",
+    },
+    "Infinite baffle": {
+        "finder_objective": "Balanced",
+        "finder_load_types": ["Infinite baffle"],
+        "load_type": "Infinite baffle",
+    },
+}
+
+
+def _apply_finder_scenario() -> None:
+    """Apply a guided scenario to the live Finder sidebar state."""
+    scenario = str(st.session_state.get("finder_scenario", "Custom"))
+    preset = _FINDER_SCENARIOS.get(scenario)
+    if not preset:
+        return
+    for key, value in preset.items():
+        st.session_state[key] = value
+
+
+def _render_finder_scenario_selector() -> None:
+    """Offer practical scenarios that configure the Finder brief in one click."""
+    st.selectbox(
+        "Guided setup",
+        list(_FINDER_SCENARIOS),
+        key="finder_scenario",
+        on_change=_apply_finder_scenario,
+        help="Preconfigure the brief for a typical use case: Home theater "
+             "(deep extension below 80 Hz), Car SPL (compact box, high output), "
+             "Hi-Fi (flat response) or Infinite baffle. Choose Custom to keep "
+             "your own settings.",
+    )
+
+
 def _render_find_driver_target_sidebar() -> None:
     """Render the enclosure conditions used for every Finder candidate."""
     finder_load_types, only_infinite_baffle = _finder_load_context()
@@ -9125,10 +9335,18 @@ def _run_find_driver_search(
     st.session_state["_finder_match_completion"] = completion_text
     st.session_state["batch_results"] = all_rows
     st.session_state["batch_search_completed"] = True
-    evals_per_candidate = _ranking.finder_optimizer_evaluation_limit(profile=finder_search_profile)
+    evaluations_per_load = {
+        lt: _ranking.finder_optimizer_evaluation_limit(
+            profile=finder_search_profile, load_type=lt)
+        for lt in finder_load_types
+    }
+    evals_per_candidate = max(evaluations_per_load.values(), default=0)
     # Each candidate undergoes full compass evaluations + narrow F3 refinement passes + finalist adaptive grid verification
-    refine_mult = 1.25 if evals_per_candidate >= 30 else 1.0
-    actual_acoustic_simulations = int(eligible_total * evals_per_candidate * refine_mult)
+    actual_acoustic_simulations = 0
+    for lt, budget in evaluations_per_load.items():
+        attempted = int(load_run_stats.get(lt, {}).get("attempted", 0))
+        refine_mult = 1.25 if budget >= 30 else 1.0
+        actual_acoustic_simulations += int(attempted * budget * refine_mult)
 
     st.session_state["finder_last_run_stats"] = {
         "elapsed_s": elapsed_s,
@@ -9138,6 +9356,7 @@ def _run_find_driver_search(
         "simulations": eligible_total,
         "actual_acoustic_simulations": actual_acoustic_simulations,
         "evaluations_per_driver": evals_per_candidate,
+        "evaluations_per_load": evaluations_per_load,
         "search_profile": finder_search_profile,
         "unique_drivers": unique_driver_total,
         "skipped_a_priori": int(prefilter_stats["rejected_simulations"]),
@@ -9248,34 +9467,35 @@ def _render_find_driver_goal_sidebar() -> None:
                 step=1.0, key="finder_max_gd_ms",
                 help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
             )
-    with st.expander("Advanced driver filters"):
-        _finder_number_input(
-            "Maximum Mms (g, 0 = off)",
-            min_value=0.0,
-            max_value=2000.0,
-            step=1.0,
-            key="finder_max_mms_g",
-            help="Keep only drivers whose published moving mass Mms is no "
-                 "greater than this value. Candidates without Mms are excluded "
-                 "while the limit is active; 0 disables.",
-        )
-        _finder_number_input(
-            "Maximum Le (mH, 0 = off)",
-            min_value=0.0,
-            max_value=20.0,
-            step=0.01,
-            format="%.3f",
-            key="finder_max_le_mh",
-            help="Keep only drivers whose published nominal/1 kHz voice-coil "
-                 "inductance is no greater than this value. Le10k is not "
-                 "substituted; candidates without Le are excluded while the "
-                 "limit is active. 0 disables.",
-        )
-        st.checkbox(
-            "Fast T/S pre-screening",
-            key="finder_fast_prefilter",
-            help="Analytically exclude drivers that cannot physically achieve the requested F3 or MOL before running full enclosure simulations, accelerating search speed by up to 10×.",
-        )
+    if _show_advanced_controls():
+        with st.expander("Advanced driver filters"):
+            _finder_number_input(
+                "Maximum Mms (g, 0 = off)",
+                min_value=0.0,
+                max_value=2000.0,
+                step=1.0,
+                key="finder_max_mms_g",
+                help="Keep only drivers whose published moving mass Mms is no "
+                     "greater than this value. Candidates without Mms are excluded "
+                     "while the limit is active; 0 disables.",
+            )
+            _finder_number_input(
+                "Maximum Le (mH, 0 = off)",
+                min_value=0.0,
+                max_value=20.0,
+                step=0.01,
+                format="%.3f",
+                key="finder_max_le_mh",
+                help="Keep only drivers whose published nominal/1 kHz voice-coil "
+                     "inductance is no greater than this value. Le10k is not "
+                     "substituted; candidates without Le are excluded while the "
+                     "limit is active. 0 disables.",
+            )
+            st.checkbox(
+                "Fast T/S pre-screening",
+                key="finder_fast_prefilter",
+                help="Analytically exclude drivers that cannot physically achieve the requested F3 or MOL before running full enclosure simulations, accelerating search speed by up to 10×.",
+            )
 
 
 
@@ -9291,6 +9511,33 @@ def _finder_search_blocked(filtered_preset_names: list[str]) -> bool:
             and float(_finder_value("finder_volume_l")) <= 0.0
         )
     )
+
+
+@st.cache_data(show_spinner=False)
+def _driver_coverage_summary(preset_names: tuple[str, ...]) -> dict[str, int]:
+    """Per-field coverage percentages across the filtered catalog."""
+    counts = {label: 0 for label in _acoustics.DRIVER_COVERAGE_LABELS}
+    total = 0
+    for name in preset_names:
+        try:
+            info = _acoustics.driver_preset_info(name)
+            ts = _acoustics.get_driver_preset(name)
+        except Exception:
+            continue
+        total += 1
+        for label in _acoustics.driver_data_coverage(
+            ts, info.size_in, info.price
+        )["missing"]:
+            counts[label] = counts.get(label, 0) + 1
+    if not total:
+        return {}
+    return {
+        "Drivers": total,
+        **{
+            label: int(round(100.0 * (total - missing) / total))
+            for label, missing in counts.items()
+        },
+    }
 
 
 def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
@@ -9309,6 +9556,35 @@ def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
         f"Scans all {len(filtered_preset_names)} matching presets · {load_label}"
         + ("" if only_infinite_baffle else f" · ≤ {finder_volume_l:.1f} L")
     )
+    st.toggle(
+        "Show data coverage",
+        key="finder_show_coverage",
+        help="Per-field completeness of the filtered catalog. Missing values "
+             "keep conservative fallbacks and appear as em dashes in the "
+             "ranking table.",
+    )
+    if st.session_state.get("finder_show_coverage"):
+        summary = _driver_coverage_summary(tuple(filtered_preset_names))
+        if summary:
+            st.caption(
+                f"Optional-parameter coverage · {summary['Drivers']:,} drivers"
+            )
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {"Field": label, "Present %": value}
+                        for label, value in summary.items()
+                        if label != "Drivers"
+                    ]
+                ),
+                hide_index=True,
+                width="stretch",
+                column_config={
+                    "Present %": st.column_config.ProgressColumn(
+                        "Present %", min_value=0, max_value=100, format="%d%%",
+                    ),
+                },
+            )
 
 
 # Frontend payload caps: tables/dropdowns above these sizes make every rerun
@@ -9329,7 +9605,7 @@ _TABLE_NUMBER_FORMATS = {
     "Fb Hz": ".1f", "Fc Hz": ".1f", "Qtc": ".3f", "Vs L": ".2f",
     "Vp L": ".2f", "Fp Hz": ".1f", "Vr L": ".2f", "Fr Hz": ".1f",
     "Vh L": ".2f", "fh Hz": ".1f", "Vl L": ".2f", "fl Hz": ".1f",
-    "Mms g": ".1f", "Le10k mH": ".2f",
+    "Mms g": ".1f", "Le10k mH": ".2f", "Data %": ".0f",
 }
 
 
@@ -9419,6 +9695,19 @@ def _refresh_finder_result_catalog_metadata(rows: object) -> list[dict]:
                 size_in = None
             if size_in is not None:
                 row["Size in"] = float(size_in)
+        if row.get("_driver_ts"):
+            try:
+                coverage = _acoustics.driver_data_coverage(
+                    _acoustics.DriverTS(**row["_driver_ts"]),
+                    row.get("Size in"),
+                    row.get("Price"),
+                )
+            except Exception:
+                coverage = None
+            if coverage is not None:
+                row["Data"] = coverage["status"]
+                row["Data %"] = coverage["score"]
+                row["_data_missing"] = coverage["missing"]
         refreshed.append(row)
     return refreshed
 
@@ -9429,8 +9718,10 @@ def _driver_library_frame(
     preset_names: tuple[str, ...],
     target_currency: str = "",
     exchange_rates: tuple[tuple[str, float], ...] = (),
+    catalog_revision: int = 0,
 ) -> pd.DataFrame:
     """Build the complete filtered driver library table once per filter set."""
+    del catalog_revision  # Cache identity includes refreshed cloud metadata.
     rates = dict(exchange_rates)
     rows = []
     for name in preset_names:
@@ -9681,13 +9972,25 @@ def _render_finder_run_statistics() -> None:
         actual_sims = int(stats.get("actual_acoustic_simulations", 0))
         evals_per_drv = int(stats.get("evaluations_per_driver", 60))
         profile_name = str(stats.get("search_profile", "Standard"))
+        evaluations_per_load = stats.get("evaluations_per_load") or {}
+        load_budgets = sorted({
+            int(budget) for budget in evaluations_per_load.values() if int(budget) > 0
+        })
     except (TypeError, ValueError):
         return
 
     if elapsed_s <= 0.0:
         return
 
-    actual_str = f" · 🔬 <strong>{actual_sims:,}</strong> solves ({evals_per_drv} evals/drv · <em>{profile_name}</em>)" if actual_sims > 0 else ""
+    if load_budgets:
+        evals_label = (
+            f"{load_budgets[0]}"
+            if load_budgets[0] == load_budgets[-1]
+            else f"{load_budgets[0]}–{load_budgets[-1]}"
+        )
+    else:
+        evals_label = str(evals_per_drv)
+    actual_str = f" · 🔬 <strong>{actual_sims:,}</strong> solves ({evals_label} evals/drv · <em>{profile_name}</em>)" if actual_sims > 0 else ""
     credit_mult = _ranking.search_profile_credit_multiplier(profile_name)
     credits_consumed = simulations * credit_mult
     st.markdown(
@@ -9804,6 +10107,7 @@ def _render_bass_match_hero(
     if run_requested:
         if acc and run_credits > 0:
             _ACCOUNT_STORE.deduct_credits(acc.email or acc.uid, run_credits)
+            _get_current_user_account.cache_clear()
         _run_find_driver_search(match_preset_names, filtered_preset_names)
     return match_preset_names
 
@@ -9942,6 +10246,7 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         tuple(shown_names),
         price_currency,
         tuple(sorted(rates.items())),
+        _presets._CATALOG_CACHE_REVISION,
     )
     if price_currency:
         rate_note = f" · ECB {rates_date}" if rates_date else ""
@@ -10287,7 +10592,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         ("Ripple dB", np.nan), ("Response", None), ("Class", ""),
         ("Size in", np.nan), ("Sd cm²", np.nan),
         ("Resonator", ""), ("Mms g", np.nan), ("Le10k mH", np.nan),
-        ("MOL @ F3 dB", np.nan),
+        ("MOL @ F3 dB", np.nan), ("Data", ""), ("Data %", np.nan),
     ):
         if name not in full_df.columns:
             full_df[name] = default
@@ -10346,6 +10651,11 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         columns.append("Mms g")
     if batch_df["Le10k mH"].notna().any():
         columns.append("Le10k mH")
+    if "Data" in batch_df.columns and (batch_df["Data"] != "Complete").any():
+        batch_df["Data"] = batch_df["Data"].map(
+            {"Complete": "✓", "Partial": "⚠", "Incomplete": "⛔"}
+        ).fillna("")
+        columns.extend(["Data", "Data %"])
 
     display_df = _clean_display_table_frame(batch_df[columns])
     columns = list(display_df.columns)
@@ -10379,6 +10689,18 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             "Min ohm": st.column_config.NumberColumn("Min Z", format="%.2f"),
             "Mms g": st.column_config.NumberColumn(format="%.1f"),
             "Le10k mH": st.column_config.NumberColumn(format="%.3f"),
+            "Data": st.column_config.TextColumn(
+                "Data",
+                help="Optional-parameter coverage: ✓ complete, ⚠ partial, "
+                     "⛔ incomplete. Missing values keep their conservative "
+                     "fallback and are shown as em dashes.",
+            ),
+            "Data %": st.column_config.NumberColumn(
+                "Data %", format="%.0f%%",
+                help="Share of optional engineering/commercial fields present "
+                     "for this driver (Xmax, Pe, Le, Mms, Bl, Cms, Le10k, "
+                     "nominal size, price).",
+            ),
             "Size in": st.column_config.NumberColumn(
                 "Size (in)", format="%.1f"
             ),
@@ -10680,13 +11002,35 @@ def _render_response_tab(
         if saved_traces != selected_traces:
             st.session_state["plot_response_traces"] = selected_traces
 
-        st.altair_chart(
-            _plot_response(
+        # Keep one fully serialized chart per session. Unrelated clicks reuse
+        # it; physics, overlays, visibility, markers and zoom all invalidate it.
+        _pinned_responses()  # Normalize legacy/empty pins before hashing.
+        chart_key = (
+            Path(__file__).stat().st_mtime_ns,
+            _simulation_engine_revision(), repr(current_ts), repr(box), load_type,
+            _chart_signature(), tuple(frequency_window), tuple(selected_traces),
+            ripple_max_freq,
+            st.session_state.get("standalone_design_visible", True),
+            st.session_state.get("design_comparison_active_id"),
+            tuple(
+                (tab.get("id"), tab.get("label"), tab.get("color"),
+                 tab.get("visible", True), _snapshot_revision(tab["snapshot"]))
+                for tab in _design_comparison_tabs()
+                if isinstance(tab.get("snapshot"), dict)
+            ),
+        )
+        cached_chart = st.session_state.get("_response_spec_cache")
+        if cached_chart is None or cached_chart[0] != chart_key:
+            spec = _plot_response(
                 result, cursor_rows, compare_series, band,
                 frequency_window=frequency_window,
                 show_legend=False,
                 default_visible=selected_traces,
-            ),
+            ).to_dict()
+            cached_chart = (chart_key, spec)
+            st.session_state["_response_spec_cache"] = cached_chart
+        st.vega_lite_chart(
+            spec=cached_chart[1],
             width="stretch",
             # Preserve the mounted Vega view while parameters and project
             # autosave state change. A content-derived key remounts the chart
@@ -12129,6 +12473,8 @@ def _render_public_project_sidebar(pub_id: str) -> None:
         st.rerun()
 
 
+_poll_catalog_refresh()
+
 with st.sidebar:
     if _BRAND_IMAGE.exists():
         with st.container(key="brand_logo"):
@@ -12142,6 +12488,16 @@ with st.sidebar:
         st.caption(f"v{_VERSION}")
 
     workspace_mode = str(st.session_state.get("workspace_mode", "Bass Match"))
+    if (
+        not (_explore_requested or _public_project_requested)
+        and workspace_mode in ("Bass Match", "Box Design")
+    ):
+        st.toggle(
+            "Advanced mode",
+            key="ui_show_advanced",
+            help="Show expert controls: search profile, evaluation grid and "
+                 "driver T/S overrides. Off keeps the guided workflow.",
+        )
     if _explore_requested:
         _render_community_sidebar()
     elif _public_project_requested:
@@ -12152,53 +12508,67 @@ with st.sidebar:
     elif workspace_mode == "Bass Match":
         _render_project_menu()
         _render_workspace_tabs()
+        if "finder_load_types" not in st.session_state:
+            st.session_state["finder_load_types"] = [st.session_state.get("load_type", "DCCAV")]
         bm_tab1, bm_tab2, bm_tab3 = st.tabs(
             ["Load type", "Performance filters", "Library filters"],
             key="bass_match_sidebar_tab",
+            on_change="rerun",
         )
         
-        with bm_tab1:
-            if "finder_load_types" not in st.session_state:
-                st.session_state["finder_load_types"] = [
-                    str(st.session_state.get("load_type", "DCCAV"))]
-            _finder_load_set = set(st.session_state["finder_load_types"])
-            _render_load_type_buttons(_finder_load_set, single_select=False)
-            st.caption("Toggle the loads you want to compare. At least one must stay active.")
-            _render_find_driver_target_sidebar()
-            with st.expander("Advanced evaluation"):
-                _finder_selectbox(
-                    "Search profile",
-                    list(_ranking.SEARCH_PROFILES.keys()),
-                    key="finder_search_profile",
-                    help="Standard (1 credit/driver): 60 evaluations per candidate with adaptive spectral verification. Deep (2 credits/driver): 120 evaluations per candidate for maximum exploration depth.",
-                )
-                _finder_number_input(
-                    "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
-                    step=1.0, key="finder_f_min",
-                    help="Lowest frequency included in response, excursion and delay evaluation.",
-                )
-                _finder_number_input(
-                    "Evaluation range end (Hz)", min_value=10.0, max_value=5000.0,
-                    step=10.0, key="finder_f_max",
-                    help="Highest frequency included in the low-frequency comparison.",
-                )
-                _finder_number_input(
-                    "Simulation resolution (points)", min_value=80, max_value=1000,
-                    step=20, key="finder_points",
-                )
-                st.button(
-                    "Reset Finder defaults",
-                    key="finder_reset_defaults",
-                    on_click=_reset_finder_defaults,
-                    width="stretch",
-                    help="Restore the practical quick-scan profile without changing the active design.",
-                )
-        with bm_tab2:
-            _render_find_driver_goal_sidebar()
+        if bm_tab1.open:
+            with bm_tab1:
+                if "finder_load_types" not in st.session_state:
+                    st.session_state["finder_load_types"] = [
+                        str(st.session_state.get("load_type", "DCCAV"))]
+                _render_finder_scenario_selector()
+                _finder_load_set = set(st.session_state["finder_load_types"])
+                _render_load_type_buttons(_finder_load_set, single_select=False)
+                st.caption("Toggle the loads you want to compare. At least one must stay active.")
+                _render_find_driver_target_sidebar()
+                _render_engine_only_topologies_note()
+                if _show_advanced_controls():
+                    with st.expander("Advanced evaluation"):
+                        _finder_selectbox(
+                            "Search profile",
+                            list(_ranking.SEARCH_PROFILES.keys()),
+                            key="finder_search_profile",
+                            help="Standard (1 credit/driver): budget scaled to the load topology, 20 evaluations per free axis + 10 (Sealed 30, Bass reflex 50, BP4 70, BP6/DCCAV 90, BP8 120) with adaptive spectral verification. Deep (2 credits/driver): 40 per axis + 20 (up to 240) for maximum exploration depth.",
+                        )
+                        _finder_number_input(
+                            "Evaluation range start (Hz)", min_value=1.0, max_value=1000.0,
+                            step=1.0, key="finder_f_min",
+                            help="Lowest frequency included in response, excursion and delay evaluation.",
+                        )
+                        _finder_number_input(
+                            "Evaluation range end (Hz)", min_value=10.0, max_value=5000.0,
+                            step=10.0, key="finder_f_max",
+                            help="Highest frequency included in the low-frequency comparison.",
+                        )
+                        _finder_number_input(
+                            "Simulation resolution (points)", min_value=80, max_value=1000,
+                            step=20, key="finder_points",
+                        )
+                        st.button(
+                            "Reset Finder defaults",
+                            key="finder_reset_defaults",
+                            on_click=_reset_finder_defaults,
+                            width="stretch",
+                            help="Restore the practical quick-scan profile without changing the active design.",
+                        )
+                else:
+                    st.caption(
+                        "Expert controls are hidden. Enable Advanced mode to change "
+                        "the search profile or the evaluation grid."
+                    )
+        if bm_tab2.open:
+            with bm_tab2:
+                _render_find_driver_goal_sidebar()
 
         all_preset_names = _available_driver_preset_names()
-        with bm_tab3:
-            _render_finder_library_filters(all_preset_names)
+        if bm_tab3.open:
+            with bm_tab3:
+                _render_finder_library_filters(all_preset_names)
 
         def _live_or_aggregate_filter(key: str):
             live = st.session_state.get(f"{key}__select_v5")
@@ -12245,303 +12615,312 @@ with st.sidebar:
     elif not (_explore_requested or _public_project_requested):
         _render_project_menu()
         _render_workspace_tabs()
-        bd_tab1, bd_tab2, bd_tab3 = st.tabs(["Driver", "Load Selection", "Enclosure Parameters"])
+        bd_tab1, bd_tab2, bd_tab3 = st.tabs(
+            ["Driver", "Load Selection", "Enclosure Parameters"],
+            key="box_design_sidebar_tab", on_change="rerun",
+        )
         
-        all_preset_names = _available_driver_preset_names()
-        with bd_tab1:
-            col_search, col_refresh = st.columns([5, 1])
-            with col_search:
-                st.text_input(
-                    "Search preset",
-                    key="preset_search",
-                    placeholder="Manufacturer or part number",
-                )
-            with col_refresh:
-                st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-                if st.button(
-                    "🔄",
-                    key="refresh_presets_btn_box_design",
-                    help="Refresh driver library from cloud catalog & Z-Bench",
-                    use_container_width=True,
-                ):
-                    _acoustics.invalidate_preset_caches()
-                    st.rerun()
         if "_pending_driver_preset_name" in st.session_state:
             st.session_state["driver_preset_name"] = st.session_state.pop(
                 "_pending_driver_preset_name"
             )
-        filtered_preset_names = _filter_driver_preset_names(
-            all_preset_names,
-            source="All",
-            family="All",
-            size="All",
-            search=st.session_state.get("preset_search", ""),
-            max_price=None,
-            max_price_currency=None,
-            selected=st.session_state.get("driver_preset_name"),
-            driver_class="All"
-        )
-        current_preset = st.session_state.get("driver_preset_name", "Custom")
-        # A 10k-option dropdown re-serialized on every rerun makes workspace
-        # switches take seconds in the browser; cap it and keep the current
-        # selection pinned so it never disappears from the widget.
-        select_names = filtered_preset_names[:_PRESET_SELECT_MAX_OPTIONS]
-        if (
-            current_preset != "Custom"
-            and current_preset in filtered_preset_names
-            and current_preset not in select_names
-        ):
-            select_names = [current_preset, *select_names]
-        preset_options = ["Custom", *select_names]
-        if current_preset not in preset_options:
-            st.session_state["driver_preset_name"] = "Custom"
-            current_preset = "Custom"
-
-        with bd_tab1:
-            # Captions removed to save vertical space
-            preset_name = st.selectbox(
-                "Driver preset",
-                preset_options,
-                key="driver_preset_name",
-                on_change=_on_driver_preset_change,
-                format_func=lambda value: (
-                    value if value == "Custom"
-                    else _driver_preset_display_label(value)
-                ),
-            )
-            if preset_name != "Custom":
-                try:
-                    preset_info = _acoustics.driver_preset_info(preset_name)
-                    purchase = _purchase_markdown(preset_info)
-                    preset_driver = _acoustics.get_driver_preset(preset_name)
-                except ValueError:
-                    purchase = None
-                    preset_info = None
-                    preset_driver = None
-                if purchase:
-                    st.markdown(purchase)
-                if preset_info is not None and preset_driver is not None:
-                    manufacturer, part_number = _driver_preset_identity_fields(
-                        preset_name
+        if bd_tab1.open:
+            all_preset_names = _available_driver_preset_names()
+            with bd_tab1:
+                col_search, col_refresh = st.columns([5, 1])
+                with col_search:
+                    st.text_input(
+                        "Search preset",
+                        key="preset_search",
+                        placeholder="Manufacturer or part number",
                     )
-                    st.session_state["driver_identity_manufacturer"] = manufacturer
-                    st.session_state["driver_identity_part_number"] = part_number
-                    identity_col1, identity_col2 = st.columns(2)
-                    identity_col1.text_input(
-                        "Manufacturer",
-                        disabled=True,
-                        key="driver_identity_manufacturer",
-                    )
-                    identity_col2.text_input(
-                        "Part number",
-                        disabled=True,
-                        key="driver_identity_part_number",
-                    )
-                    nominal = (
-                        f"{preset_info.size_in:g} in"
-                        if preset_info.size_in is not None
-                        else "not published"
-                    )
-                    effective = np.sqrt(4.0 * preset_driver.sd_cm2 / np.pi) / 2.54
-                    st.caption(
-                        f"Nominal frame: {nominal} · Sd: {preset_driver.sd_cm2:.1f} cm² "
-                        f"· equivalent effective piston: Ø {effective:.2f} in"
-                    )
-                    with st.expander("Mechanical drawing", expanded=False):
-                        _render_driver_mechanical_drawing(preset_info.mechanical)
-                    
-            catalog_source_preset = (
-                preset_name if preset_name != "Custom"
-                else str(st.session_state.get("_admin_catalog_source_preset", ""))
-            )
-            if (
-                _maintenance_allowed()
-                and _catalog_path_for_preset(catalog_source_preset)
-            ):
-                if st.button(
-                    "Save T/S to catalog",
-                    key="admin_save_box_design_driver",
-                    help=(
-                        "Administrator only. Replace the selected source preset's "
-                        "catalog T/S values with the current Box Design values."
-                    ),
-                ):
-                    try:
-                        saved_name = _update_catalog_driver_from_box_design(
-                            catalog_source_preset, _driver_from_state(),
-                        )
-                    except ValueError as exc:
-                        st.error(f"Could not update catalog T/S: {exc}")
-                    else:
-                        st.session_state["_pending_driver_preset_name"] = (
-                            catalog_source_preset
-                        )
-                        st.session_state["_admin_catalog_source_preset"] = (
-                            catalog_source_preset
-                        )
-                        st.session_state["_admin_catalog_update_notice"] = (
-                            f"Catalog T/S updated for {saved_name}."
-                        )
+                with col_refresh:
+                    st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+                    if st.button(
+                        "🔄",
+                        key="refresh_presets_btn_box_design",
+                        help="Refresh driver library from cloud catalog & Z-Bench",
+                        use_container_width=True,
+                    ):
+                        _acoustics.invalidate_preset_caches()
+                        _acoustics.check_dynamic_catalog_freshness(force=True)
                         st.rerun()
-            update_notice = st.session_state.pop(
-                "_admin_catalog_update_notice", ""
+            filtered_preset_names = _filter_driver_preset_names(
+                all_preset_names,
+                source="All",
+                family="All",
+                size="All",
+                search=st.session_state.get("preset_search", ""),
+                max_price=None,
+                max_price_currency=None,
+                selected=st.session_state.get("driver_preset_name"),
+                driver_class="All"
             )
-            if update_notice:
-                st.success(update_notice)
+            current_preset = st.session_state.get("driver_preset_name", "Custom")
+            # A 10k-option dropdown re-serialized on every rerun makes workspace
+            # switches take seconds in the browser; cap it and keep the current
+            # selection pinned so it never disappears from the widget.
+            select_names = filtered_preset_names[:_PRESET_SELECT_MAX_OPTIONS]
+            if (
+                current_preset != "Custom"
+                and current_preset in filtered_preset_names
+                and current_preset not in select_names
+            ):
+                select_names = [current_preset, *select_names]
+            preset_options = ["Custom", *select_names]
+            if current_preset not in preset_options:
+                st.session_state["driver_preset_name"] = "Custom"
+                current_preset = "Custom"
 
-            c1, c2 = st.columns(2)
-            with c1:
-                st.number_input("Fs (Hz)", min_value=1.0, max_value=500.0, step=_step5("driver_fs_hz", 0.1),
-                                key="driver_fs_hz", on_change=_on_driver_param_change)
-                st.number_input("Qts", min_value=0.05, max_value=2.0, step=_step5("driver_qts", 0.001),
-                                format="%.3f", key="driver_qts", on_change=_on_driver_param_change)
-                st.number_input("Re (Ω)", min_value=0.1, max_value=64.0, step=_step5("driver_re_ohm", 0.01),
-                                key="driver_re_ohm", on_change=_on_driver_param_change)
-            with c2:
-                st.number_input("Vas (L)", min_value=0.1, max_value=1000.0, step=_step5("driver_vas_l", 0.1),
-                                key="driver_vas_l", on_change=_on_driver_param_change)
-                st.number_input("Qms", min_value=0.051, max_value=50.0, step=_step5("driver_qms", 0.001),
-                                format="%.3f", key="driver_qms", on_change=_on_driver_param_change)
-                st.number_input("Le (mH)", min_value=0.0, max_value=20.0, step=_step5("driver_le_mh", 0.001),
-                                format="%.3f", key="driver_le_mh", on_change=_on_driver_param_change)
-
-            p_col1, p_col2 = st.columns([1, 1], vertical_alignment="bottom")
-            with p_col1:
-                st.radio("Piston mode", ["Diameter", "Sd"], horizontal=True, key="driver_sd_mode",
-                         on_change=_on_driver_param_change, label_visibility="collapsed")
-            with p_col2:
-                if st.session_state.get("driver_sd_mode", "Diameter") == "Diameter":
-                    st.number_input("Piston diameter (mm)", min_value=10.0, max_value=1000.0,
-                                    step=_step5("driver_diameter_mm", 0.1), key="driver_diameter_mm",
-                                    on_change=_on_driver_param_change)
-                else:
-                    st.number_input("Sd (cm²)", min_value=1.0, max_value=5000.0, step=_step5("driver_sd_cm2", 1.0),
-                                    key="driver_sd_cm2", on_change=_on_driver_param_change)
-
-            if st.session_state.get("driver_sd_mode", "Diameter") == "Diameter":
-                st.caption(f"Sd = {_acoustics.sd_from_diameter(st.session_state.get('driver_diameter_mm', 100)):.1f} cm²")
-
-            c_col1, c_col2 = st.columns([1.2, 1.8], vertical_alignment="center")
-            with c_col1:
-                st.checkbox(
-                    "Panel air loading",
-                    key="driver_panel_air_load",
-                    on_change=_on_driver_param_change,
-                    help="Adds the air mass coupled to a diaphragm mounted on a finite baffle."
+            with bd_tab1:
+                # Captions removed to save vertical space
+                preset_name = st.selectbox(
+                    "Driver preset",
+                    preset_options,
+                    key="driver_preset_name",
+                    on_change=_on_driver_preset_change,
+                    format_func=lambda value: (
+                        value if value == "Custom"
+                        else _driver_preset_display_label(value)
+                    ),
                 )
-            with c_col2:
-                if st.session_state.get("driver_panel_air_load", True):
-                    st.slider(
-                        "Panel coupling",
-                        min_value=0.0,
-                        max_value=1.0,
-                        step=0.01,
-                        key="driver_panel_coupling",
+                if preset_name != "Custom":
+                    try:
+                        preset_info = _acoustics.driver_preset_info(preset_name)
+                        purchase = _purchase_markdown(preset_info)
+                        preset_driver = _acoustics.get_driver_preset(preset_name)
+                    except ValueError:
+                        purchase = None
+                        preset_info = None
+                        preset_driver = None
+                    if purchase:
+                        st.markdown(purchase)
+                    if preset_info is not None and preset_driver is not None:
+                        manufacturer, part_number = _driver_preset_identity_fields(
+                            preset_name
+                        )
+                        st.session_state["driver_identity_manufacturer"] = manufacturer
+                        st.session_state["driver_identity_part_number"] = part_number
+                        identity_col1, identity_col2 = st.columns(2)
+                        identity_col1.text_input(
+                            "Manufacturer",
+                            disabled=True,
+                            key="driver_identity_manufacturer",
+                        )
+                        identity_col2.text_input(
+                            "Part number",
+                            disabled=True,
+                            key="driver_identity_part_number",
+                        )
+                        nominal = (
+                            f"{preset_info.size_in:g} in"
+                            if preset_info.size_in is not None
+                            else "not published"
+                        )
+                        effective = np.sqrt(4.0 * preset_driver.sd_cm2 / np.pi) / 2.54
+                        st.caption(
+                            f"Nominal frame: {nominal} · Sd: {preset_driver.sd_cm2:.1f} cm² "
+                            f"· equivalent effective piston: Ø {effective:.2f} in"
+                        )
+                        with st.expander("Mechanical drawing", expanded=False):
+                            _render_driver_mechanical_drawing(preset_info.mechanical)
+
+                catalog_source_preset = (
+                    preset_name if preset_name != "Custom"
+                    else str(st.session_state.get("_admin_catalog_source_preset", ""))
+                )
+                if (
+                    _maintenance_allowed()
+                    and _catalog_path_for_preset(catalog_source_preset)
+                ):
+                    if st.button(
+                        "Save T/S to catalog",
+                        key="admin_save_box_design_driver",
+                        help=(
+                            "Administrator only. Replace the selected source preset's "
+                            "catalog T/S values with the current Box Design values."
+                        ),
+                    ):
+                        try:
+                            saved_name = _update_catalog_driver_from_box_design(
+                                catalog_source_preset, _driver_from_state(),
+                            )
+                        except ValueError as exc:
+                            st.error(f"Could not update catalog T/S: {exc}")
+                        else:
+                            st.session_state["_pending_driver_preset_name"] = (
+                                catalog_source_preset
+                            )
+                            st.session_state["_admin_catalog_source_preset"] = (
+                                catalog_source_preset
+                            )
+                            st.session_state["_admin_catalog_update_notice"] = (
+                                f"Catalog T/S updated for {saved_name}."
+                            )
+                            st.rerun()
+                update_notice = st.session_state.pop(
+                    "_admin_catalog_update_notice", ""
+                )
+                if update_notice:
+                    st.success(update_notice)
+
+                c1, c2 = st.columns(2)
+                with c1:
+                    st.number_input("Fs (Hz)", min_value=1.0, max_value=500.0, step=_step5("driver_fs_hz", 0.1),
+                                    key="driver_fs_hz", on_change=_on_driver_param_change)
+                    st.number_input("Qts", min_value=0.05, max_value=2.0, step=_step5("driver_qts", 0.001),
+                                    format="%.3f", key="driver_qts", on_change=_on_driver_param_change)
+                    st.number_input("Re (Ω)", min_value=0.1, max_value=64.0, step=_step5("driver_re_ohm", 0.01),
+                                    key="driver_re_ohm", on_change=_on_driver_param_change)
+                with c2:
+                    st.number_input("Vas (L)", min_value=0.1, max_value=1000.0, step=_step5("driver_vas_l", 0.1),
+                                    key="driver_vas_l", on_change=_on_driver_param_change)
+                    st.number_input("Qms", min_value=0.051, max_value=50.0, step=_step5("driver_qms", 0.001),
+                                    format="%.3f", key="driver_qms", on_change=_on_driver_param_change)
+                    st.number_input("Le (mH)", min_value=0.0, max_value=20.0, step=_step5("driver_le_mh", 0.001),
+                                    format="%.3f", key="driver_le_mh", on_change=_on_driver_param_change)
+
+                p_col1, p_col2 = st.columns([1, 1], vertical_alignment="bottom")
+                with p_col1:
+                    st.radio("Piston mode", ["Diameter", "Sd"], horizontal=True, key="driver_sd_mode",
+                             on_change=_on_driver_param_change, label_visibility="collapsed")
+                with p_col2:
+                    if st.session_state.get("driver_sd_mode", "Diameter") == "Diameter":
+                        st.number_input("Piston diameter (mm)", min_value=10.0, max_value=1000.0,
+                                        step=_step5("driver_diameter_mm", 0.1), key="driver_diameter_mm",
+                                        on_change=_on_driver_param_change)
+                    else:
+                        st.number_input("Sd (cm²)", min_value=1.0, max_value=5000.0, step=_step5("driver_sd_cm2", 1.0),
+                                        key="driver_sd_cm2", on_change=_on_driver_param_change)
+
+                if st.session_state.get("driver_sd_mode", "Diameter") == "Diameter":
+                    st.caption(f"Sd = {_acoustics.sd_from_diameter(st.session_state.get('driver_diameter_mm', 100)):.1f} cm²")
+
+                c_col1, c_col2 = st.columns([1.2, 1.8], vertical_alignment="center")
+                with c_col1:
+                    st.checkbox(
+                        "Panel air loading",
+                        key="driver_panel_air_load",
                         on_change=_on_driver_param_change,
-                        help="Fraction of the low-frequency baffled-piston air-mass increment.",
-                        label_visibility="collapsed"
+                        help="Adds the air mass coupled to a diaphragm mounted on a finite baffle."
                     )
+                with c_col2:
+                    if st.session_state.get("driver_panel_air_load", True):
+                        st.slider(
+                            "Panel coupling",
+                            min_value=0.0,
+                            max_value=1.0,
+                            step=0.01,
+                            key="driver_panel_coupling",
+                            on_change=_on_driver_param_change,
+                            help="Fraction of the low-frequency baffled-piston air-mass increment.",
+                            label_visibility="collapsed"
+                        )
             
-            if st.session_state.get("driver_panel_air_load", True):
+                if st.session_state.get("driver_panel_air_load", True):
+                    try:
+                        _panel_mass_g, _panel_fs_hz = _acoustics.panel_air_load_metrics(_driver_from_state())
+                        st.caption(f"Mounted Fs {_panel_fs_hz:.2f} Hz · added air mass {_panel_mass_g:.3f} g")
+                    except (KeyError, ValueError):
+                        pass
+
+                output_col1, output_col2 = st.columns(2)
+                with output_col1:
+                    st.number_input("Xmax (mm)", min_value=0.0, max_value=100.0, step=_step5("driver_xmax_mm", 0.1),
+                                    key="driver_xmax_mm", on_change=_on_driver_param_change)
+                with output_col2:
+                    st.number_input("Pe (W)", min_value=0.0, max_value=5000.0, step=_step5("driver_pe_w", 1.0),
+                                    key="driver_pe_w", on_change=_on_driver_param_change)
+
+                derived = None
                 try:
-                    _panel_mass_g, _panel_fs_hz = _acoustics.panel_air_load_metrics(_driver_from_state())
-                    st.caption(f"Mounted Fs {_panel_fs_hz:.2f} Hz · added air mass {_panel_mass_g:.3f} g")
-                except (KeyError, ValueError):
-                    pass
-
-            output_col1, output_col2 = st.columns(2)
-            with output_col1:
-                st.number_input("Xmax (mm)", min_value=0.0, max_value=100.0, step=_step5("driver_xmax_mm", 0.1),
-                                key="driver_xmax_mm", on_change=_on_driver_param_change)
-            with output_col2:
-                st.number_input("Pe (W)", min_value=0.0, max_value=5000.0, step=_step5("driver_pe_w", 1.0),
-                                key="driver_pe_w", on_change=_on_driver_param_change)
-
-            derived = None
-            try:
-                derived = _acoustics.complete_driver(_driver_from_state())
-            except Exception:
-                pass
-
-            with st.expander("Advanced driver parameters"):
-                d3, d4 = st.columns(2)
-                with d3:
-                    lbl_mms = f"Mms (g) [calc: {derived.mms_kg*1000:.1f}]" if (derived and not st.session_state.get("driver_mms_g")) else "Mms (g)"
-                    step_mms = _step5("driver_mms_g", 0.01, derived.mms_kg*1000 if derived else None)
-                    st.number_input(lbl_mms, min_value=0.0, max_value=1000.0, step=step_mms,
-                                    key="driver_mms_g", on_change=_on_driver_param_change)
-
-                    lbl_bl = f"Bl (T·m) [calc: {derived.bl_tm:.2f}]" if (derived and not st.session_state.get("driver_bl_tm")) else "Bl (T·m)"
-                    step_bl = _step5("driver_bl_tm", 0.01, derived.bl_tm if derived else None)
-                    st.number_input(lbl_bl, min_value=0.0, max_value=100.0, step=step_bl,
-                                    key="driver_bl_tm", on_change=_on_driver_param_change)
-                with d4:
-                    lbl_cms = f"Cms (mm/N) [calc: {derived.cms_m_per_n*1000:.3f}]" if (derived and not st.session_state.get("driver_cms_mm_n")) else "Cms (mm/N)"
-                    step_cms = _step5("driver_cms_mm_n", 0.001, derived.cms_m_per_n*1000 if derived else None)
-                    st.number_input(lbl_cms, min_value=0.0, max_value=100.0, step=step_cms,
-                                    format="%.3f", key="driver_cms_mm_n",
-                                    on_change=_on_driver_param_change)
-                    st.number_input("Le10k (mH)", min_value=0.0, max_value=20.0, step=_step5("driver_le10k_mh", 0.001),
-                                    format="%.3f", key="driver_le10k_mh",
-                                    on_change=_on_driver_param_change,
-                                    help="Voice coil inductance measured at 10 kHz, as "
-                                         "reported alongside Le (1 kHz) on some pro-audio "
-                                         "datasheets. Informational only — not used in the "
-                                         "impedance/response simulation.")
-
-        with bd_tab2:
-            _load_set = {st.session_state.get("load_type", "Sealed")}
-            _render_load_type_buttons(_load_set, single_select=True)
-            st.selectbox(
-                "Driver configuration",
-                list(_acoustics.DRIVER_CONFIGURATIONS),
-                key="driver_config",
-                on_change=_auto_align_current_driver,
-                help="Identical drivers sharing one enclosure: series, parallel "
-                     "or mixed arrays up to eight drivers, or isobaric arrays "
-                     "up to 16 total drivers. Each isobaric pair contributes one "
-                     "radiating piston and half one driver's Vas.",
-            )
-            if st.session_state.get("driver_config", "Single driver") != "Single driver":
-                try:
-                    _composite = _driver_from_state()
-                    st.caption(
-                        f"Composite: Sd {_composite.sd_cm2:.0f} cm² · "
-                        f"Vas {_composite.vas_l:.1f} L · "
-                        f"Re {_composite.re_ohm:.2f} Ω · Pe {_composite.pe_w:.0f} W"
-                    )
+                    derived = _acoustics.complete_driver(_driver_from_state())
                 except Exception:
                     pass
+
+                if _show_advanced_controls():
+                    with st.expander("Advanced driver parameters"):
+                        d3, d4 = st.columns(2)
+                        with d3:
+                            lbl_mms = f"Mms (g) [calc: {derived.mms_kg*1000:.1f}]" if (derived and not st.session_state.get("driver_mms_g")) else "Mms (g)"
+                            step_mms = _step5("driver_mms_g", 0.01, derived.mms_kg*1000 if derived else None)
+                            st.number_input(lbl_mms, min_value=0.0, max_value=1000.0, step=step_mms,
+                                            key="driver_mms_g", on_change=_on_driver_param_change)
+
+                            lbl_bl = f"Bl (T·m) [calc: {derived.bl_tm:.2f}]" if (derived and not st.session_state.get("driver_bl_tm")) else "Bl (T·m)"
+                            step_bl = _step5("driver_bl_tm", 0.01, derived.bl_tm if derived else None)
+                            st.number_input(lbl_bl, min_value=0.0, max_value=100.0, step=step_bl,
+                                            key="driver_bl_tm", on_change=_on_driver_param_change)
+                        with d4:
+                            lbl_cms = f"Cms (mm/N) [calc: {derived.cms_m_per_n*1000:.3f}]" if (derived and not st.session_state.get("driver_cms_mm_n")) else "Cms (mm/N)"
+                            step_cms = _step5("driver_cms_mm_n", 0.001, derived.cms_m_per_n*1000 if derived else None)
+                            st.number_input(lbl_cms, min_value=0.0, max_value=100.0, step=step_cms,
+                                            format="%.3f", key="driver_cms_mm_n",
+                                            on_change=_on_driver_param_change)
+                            st.number_input("Le10k (mH)", min_value=0.0, max_value=20.0, step=_step5("driver_le10k_mh", 0.001),
+                                            format="%.3f", key="driver_le10k_mh",
+                                            on_change=_on_driver_param_change,
+                                            help="Voice coil inductance measured at 10 kHz, as "
+                                                 "reported alongside Le (1 kHz) on some pro-audio "
+                                                 "datasheets. Informational only — not used in the "
+                                                 "impedance/response simulation.")
+
+        if bd_tab2.open:
+            with bd_tab2:
+                _load_set = {st.session_state.get("load_type", "Sealed")}
+                _render_load_type_buttons(_load_set, single_select=True)
+                _render_engine_only_topologies_note()
+                st.selectbox(
+                    "Driver configuration",
+                    list(_acoustics.DRIVER_CONFIGURATIONS),
+                    key="driver_config",
+                    on_change=_auto_align_current_driver,
+                    help="Identical drivers sharing one enclosure: series, parallel "
+                         "or mixed arrays up to eight drivers, or isobaric arrays "
+                         "up to 16 total drivers. Each isobaric pair contributes one "
+                         "radiating piston and half one driver's Vas.",
+                )
+                if st.session_state.get("driver_config", "Single driver") != "Single driver":
+                    try:
+                        _composite = _driver_from_state()
+                        st.caption(
+                            f"Composite: Sd {_composite.sd_cm2:.0f} cm² · "
+                            f"Vas {_composite.vas_l:.1f} L · "
+                            f"Re {_composite.re_ohm:.2f} Ω · Pe {_composite.pe_w:.0f} W"
+                        )
+                    except Exception:
+                        pass
                     
         with bd_tab3:
-            st.segmented_control(
-                "Box strategy",
-                _BOX_STRATEGIES,
-                key="box_strategy",
-                on_change=_on_box_strategy_change,
-                disabled=st.session_state.get("load_type", "Sealed") == "Infinite baffle",
-                width="stretch",
-                help="One optimizer drives every goal: Max extension favors the "
-                     "deepest F3, Balanced trades extension against smoothness "
-                     "and practicality, Flattest favors the smoothest passband. "
-                     "The box re-applies automatically when the driver, load or "
-                     "constraints change. Manual unlocks volumes and tuning for "
-                     "direct editing.",
-            )
-            # Simulate Inputs
-            sim_c1, sim_c2 = st.columns(2)
-            with sim_c1:
-                st.number_input(
-                    "Voltage (V)", min_value=0.01, max_value=200.0, step=_step5("sim_voltage", 0.01),
-                    key="sim_voltage",
+            if bd_tab3.open:
+                st.segmented_control(
+                    "Box strategy",
+                    _BOX_STRATEGIES,
+                    key="box_strategy",
+                    on_change=_on_box_strategy_change,
+                    disabled=st.session_state.get("load_type", "Sealed") == "Infinite baffle",
+                    width="stretch",
+                    help="One optimizer drives every goal: Max extension favors the "
+                         "deepest F3, Balanced trades extension against smoothness "
+                         "and practicality, Flattest favors the smoothest passband. "
+                         "The box re-applies automatically when the driver, load or "
+                         "constraints change. Manual unlocks volumes and tuning for "
+                         "direct editing.",
                 )
-            with sim_c2:
-                st.number_input(
-                    "Series R (Ω)", min_value=0.0, max_value=100.0,
-                    step=_step5("sim_series_r_ohm", 0.1), key="sim_series_r_ohm",
-                    help="Amplifier output + cable + crossover-coil DCR in series with the "
-                         "driver. Optimizer and driver ranking evaluate at 0 Ω.",
-                )
+                # Simulate Inputs
+                sim_c1, sim_c2 = st.columns(2)
+                with sim_c1:
+                    st.number_input(
+                        "Voltage (V)", min_value=0.01, max_value=200.0, step=_step5("sim_voltage", 0.01),
+                        key="sim_voltage",
+                    )
+                with sim_c2:
+                    st.number_input(
+                        "Series R (Ω)", min_value=0.0, max_value=100.0,
+                        step=_step5("sim_series_r_ohm", 0.1), key="sim_series_r_ohm",
+                        help="Amplifier output + cable + crossover-coil DCR in series with the "
+                             "driver. Optimizer and driver ranking evaluate at 0 Ω.",
+                    )
             
             try:
                 current_ts = _driver_from_state()
@@ -12579,7 +12958,7 @@ with st.sidebar:
                     st.session_state["_optimizer_engine_revision"] = (
                         _OPTIMIZER_ENGINE_REVISION)
 
-                if load_type != "Infinite baffle" and box_strategy in _OPT_OBJECTIVE_LABELS:
+                if bd_tab3.open and load_type != "Infinite baffle" and box_strategy in _OPT_OBJECTIVE_LABELS:
                     st.caption(
                         "The optimizer re-applies this goal automatically when the "
                         "driver, load or constraints change."
@@ -12607,6 +12986,7 @@ with st.sidebar:
                     current_optimizer_summary = _current_optimizer_summary(current_ts)
                     if current_optimizer_summary:
                         st.caption(current_optimizer_summary)
+                        _render_optimizer_alternatives(current_ts)
                         
             except Exception as exc:
                 logger.exception("Driver parameter setup failed")
@@ -12619,7 +12999,7 @@ with st.sidebar:
                 derived = None
                 st.error(f"Driver parameters are invalid - check the T/S values. ({exc})")
 
-            if current_ts is not None:
+            if bd_tab3.open and current_ts is not None:
                 box_edit_disabled = st.session_state.get("box_strategy", "Max extension") != "Manual"
                 if load_type == "Bass reflex":
                     _box_number_with_nudge(
@@ -12991,6 +13371,7 @@ def _render_user_management() -> None:
                 if new_plan != acc.plan:
                     if st.button("Apply plan", key=f"btn_plan_{acc.email or acc.uid}"):
                         _ACCOUNT_STORE.update_plan(acc.email or acc.uid, new_plan)
+                        _get_current_user_account.cache_clear()
                         st.success(f"Plan updated to {new_plan}")
                         st.rerun()
             with col_credits:
@@ -13006,6 +13387,7 @@ def _render_user_management() -> None:
                 if delta != 0:
                     if st.button("Update credits", key=f"btn_cr_{acc.email or acc.uid}"):
                         _ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, delta)
+                        _get_current_user_account.cache_clear()
                         st.success(f"Adjusted by {delta:+d} credits")
                         st.rerun()
 
@@ -14790,13 +15172,22 @@ try:
                 cols = st.columns(6)
                 for j, metric in enumerate(flat_metrics[i:i+6]):
                     metric_help = (
-                        "Heuristic design-health indicator. It starts at 100 "
-                        "and deducts points for model warnings, excursion "
-                        "violations and impractical port geometry."
+                        "Heuristic 0-100 design-health indicator, not a physical "
+                        "performance metric. It starts at 100 and deducts points "
+                        "for model warnings, excursion violations and impractical "
+                        "port geometry; it is never used as the default ranking "
+                        "criterion. Read it together with F3, excursion, MOL and "
+                        "impedance."
                         if metric[0] == "Forge Score"
                         else None
                     )
                     cols[j].metric(metric[0], metric[1], help=metric_help)
+
+            st.caption(
+                "Forge Score is a heuristic design-health indicator: comparisons "
+                "and ranking always use the physical metrics (F3, MOL, excursion, "
+                "impedance)."
+            )
 
             # Performance Badges
             badges = []

@@ -122,10 +122,10 @@ def test_private_store_project_and_account_isolation():
 
     # Account operations
     acc = priv_store.get_or_create_account(user.uid, user.email, user.name)
-    assert acc.credits_balance == 100
+    assert acc.credits_balance == saas.PLAN_ENTITLEMENTS["free"].monthly_credits
     assert priv_store.deduct_credits(user.email, 10) is True
     updated_acc = priv_store.get_or_create_account(user.uid, user.email, user.name)
-    assert updated_acc.credits_balance == 90
+    assert updated_acc.credits_balance == saas.PLAN_ENTITLEMENTS["free"].monthly_credits - 10
 
     # Ensure PrivateStore does not have public publishing method
     assert not hasattr(priv_store, "publish_project")

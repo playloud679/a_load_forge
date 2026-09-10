@@ -201,6 +201,9 @@ which creates a new current revision instead of rewriting history.
 Autosave computes a semantic SHA-256 hash, marks changed state dirty, waits 1.5
 seconds, and writes only if the state remains changed. A two-second Streamlit
 fragment supplies the follow-up run when the user stops moving a slider.
+Exactly one persistence fragment is mounted: in the technical sidebar, or in
+the active-project card on Manage Projects. Timer ticks update persistence
+status without rebuilding the acoustic workspace or re-reading the account.
 Transient failures retry without sleeping at 2, 5 and 15 seconds. Permission,
 authentication, malformed data and exhausted retries remain visibly failed;
 `Saved ✓` is set only after the store returns an acknowledged record.
@@ -284,6 +287,15 @@ credentials are installed. Raw exception text is logged and is shown in the UI
 only for an unclassified failure.
 
 ## Account and credit isolation
+
+Administrator status is derived from exact, case-insensitive email membership
+in the explicit `admin_emails` argument; account reads also revoke stale flags
+when that identity is no longer configured. Substring matching is forbidden.
+The UI supplies `LOAD_FORGE_ADMIN_EMAIL` (existing default:
+`playloud79@gmail.com`) and an exact `LOAD_FORGE_ADMIN_UID` match separately
+from `LOAD_FORGE_ALLOWED_EMAILS`, which controls login only. Account reads are
+memoized for one script run and invalidated after credit/plan mutations;
+the result is never shared between user sessions or cached across full reruns.
 
 Project writes are restricted to `tenants/{tenant_id}/projects/...`; account
 identity, subscription and credit fields remain below `users/{account_id}` and

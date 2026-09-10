@@ -119,6 +119,11 @@ Il **Forge Score** è una metrica di merito proprietaria che assegna un punteggi
 
 Un punteggio $\ge 85/100$ certifica un allineamento bilanciato, pronto per la costruzione reale senza controindicazioni fisiche.
 
+Il Forge Score è un **indicatore di salute progettuale**, non una misura
+fisica: nel Finder l'ordinamento predefinito resta la F3 e il punteggio non
+compare come colonna; nella vista Design è sempre mostrato accanto a F3,
+escursione massima, MOL e impedenza minima, che restano i criteri di confronto.
+
 ---
 
 ### G. Metriche Dinamiche di Potenza ed Escursione (MOL e MIL)

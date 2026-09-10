@@ -65,6 +65,10 @@ the image and the active load has a red outline plus a check indicator. The
 cards use a compact 3+3 grid and remain keyboard-focusable. In the Finder the
 same cards toggle multiple loads for comparison. Search, source, brand, size,
 class and price filters narrow the driver library in both workspaces.
+Transmission line, MLTL, quarter-wave, back-loaded horn and tapped horn are
+**engine/API-only** models: the **Engine/API-only topologies** expander
+declares that they are validated in the Python API but have no interactive
+controls, presets or plots.
 
 In **Design a box**, the **Driver preset** selector loads built-in examples
 immediately. Catalog entries are presented as separate **Manufacturer** and
@@ -105,6 +109,11 @@ Helmholtz length and the 5%-of-c air-speed guideline; stored boxes are
 recalculated automatically after a physics-engine update. If no candidate
 satisfies credibility, geometry and air-speed limits, the app keeps a starter
 box and reports why instead of applying a warning-laden result.
+After an automatic box is applied, the **Explore alternatives** expander lists
+up to five buildable runner-up boxes from the same deterministic search with
+their score and physical metrics (F3, total volume, ripple, excursion).
+**Apply this box** switches the design to one of them; infeasible finalists are
+never listed.
 
 Projects saved by earlier versions load transparently: the old **Suggested**
 strategy maps to **Balanced** and the old **Optimized** strategy maps to its
@@ -276,8 +285,9 @@ three-step workflow:
    and ripple allowance, plus optional maximum `Mms` and nominal/1 kHz `Le`
    filters. A zero maximum disables either filter; while active, candidates
    without the corresponding published value are excluded. Excursion,
-   group-delay and minimum-SPL limits stay in **Advanced constraints**; scan
-   range, result count and resolution stay in **Advanced scan**.
+   group-delay, minimum-SPL and minimum-MOL limits sit in **Performance
+   filters**; scan range and simulation resolution sit in **Advanced
+   evaluation** (Advanced mode).
 3. **Candidate library** filters the catalog in the sidebar by text,
    provenance, size, brand, bandwidth class and optional price ceiling.
    Provenance groups built-ins, direct manufacturer sources, official
@@ -290,6 +300,13 @@ three-step workflow:
    **Candidate pool**, where typing in **Search preset** immediately lists the
    first matching names before a scan is started.
 
+The sidebar opens in **Simple mode**: a **Guided setup** selector configures
+the whole brief in one click for **Home theater**, **Car SPL**, **Hi-Fi** or
+**Infinite baffle**, while the expert controls (search profile, evaluation
+range, simulation resolution, `Mms`/`Le` filters and driver T/S overrides)
+stay hidden. Enable **Advanced mode** at the top of the sidebar to reveal
+them; the active values keep applying in both modes.
+
 **Run Bass Match** appears once as a full-width primary action immediately
 below the compact brief; it is not duplicated in the sidebar. While a scan is
 running, a slim progress bar occupies the next row and its status stays in a
@@ -300,6 +317,11 @@ titled **Candidate library**; completed scans use
 Missing values render as em dashes and columns with no data are omitted, while
 the ranked table and candidate CSV expose nominal `Size`, piston area `Sd` and
 only the compact `Vtot` value for enclosure volume.
+When any ranked row has missing optional parameters, the table adds a `Data`
+badge (✓ complete, ⚠ partial, ⛔ incomplete) and a `Data %` coverage column;
+the **Show data coverage** toggle in the Candidate library tab lists per-field
+completeness for the filtered catalog, so incomplete records are visible
+before a scan.
 Individual chamber volumes, tuning/system frequencies and alignment details
 remain internal so a selected candidate can still be applied to Design.
 

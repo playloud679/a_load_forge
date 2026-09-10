@@ -2,6 +2,7 @@
 
 try:
     from .acoustics import (
+        AlignmentAlternative,
         Bandpass4Alignment,
         Bandpass4Box,
         Bandpass6Alignment,
@@ -48,6 +49,7 @@ except (ImportError, ModuleNotFoundError):
     pass
 
 __all__ = [
+    "AlignmentAlternative",
     "Bandpass4Alignment",
     "Bandpass4Box",
     "Bandpass6Alignment",

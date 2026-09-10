@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import math
 import os
+import threading
+from collections import OrderedDict
 from dataclasses import asdict, dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -26,6 +28,30 @@ SPARKLINE_POINTS = 48
 SPARKLINE_FLOOR_DB = -30.0
 FINDER_WORKER_PROTOCOL_REVISION = 2
 FINDER_SPL_PREFILTER_HEADROOM_DB = 6.0
+
+# Bounded memoization of the expensive optimizer result, keyed by the full
+# driver/brief fingerprint. Rows are rebuilt on every call so callers can keep
+# mutating their own copies without poisoning the cache.
+_OPTIMIZED_ALIGNMENT_CACHE: OrderedDict[tuple, engine.OptimizedAlignment] = OrderedDict()
+_OPTIMIZED_ALIGNMENT_CACHE_LOCK = threading.Lock()
+_OPTIMIZED_ALIGNMENT_CACHE_SIZE = 512
+
+# Optional engineering/commercial fields tracked by the data-coverage badge.
+# The six essential T/S values (Fs, Vas, Qts, Qms, Re, Sd) are required by the
+# catalog loaders, so they are not part of the score.
+_DRIVER_COVERAGE_FIELDS = (
+    ("Xmax", lambda ts, size, price: float(ts.xmax_mm) > 0.0),
+    ("Pe", lambda ts, size, price: float(ts.pe_w) > 0.0),
+    ("Le", lambda ts, size, price: float(ts.le_mh) > 0.0),
+    ("Mms", lambda ts, size, price: ts.mms_g is not None),
+    ("Bl", lambda ts, size, price: ts.bl_tm is not None),
+    ("Cms", lambda ts, size, price: ts.cms_mm_per_n is not None),
+    ("Le10k", lambda ts, size, price: ts.le10k_mh is not None),
+    ("Size", lambda ts, size, price: size is not None and np.isfinite(float(size))),
+    ("Price", lambda ts, size, price: price is not None and np.isfinite(float(price))),
+)
+
+DRIVER_COVERAGE_LABELS = tuple(label for label, _ in _DRIVER_COVERAGE_FIELDS)
 
 
 def candidate_precheck(
@@ -162,9 +188,56 @@ def prefilter_finder_candidate_pools(
     }
 
 
+def _optimizer_brief_key(
+    ts: engine.DriverTS,
+    goals: engine.OptimizationGoals,
+    load_type: str,
+    voltage_v: float,
+    frequency_points: int,
+    refine_f3_points: int,
+    search_profile: str,
+) -> tuple:
+    """Fingerprint a complete optimizer brief for the result cache."""
+    return (
+        engine.OPTIMIZER_ENGINE_REVISION,
+        load_type,
+        search_profile,
+        float(voltage_v),
+        int(frequency_points),
+        int(refine_f3_points),
+        float(goals.max_total_volume_l) if goals.max_total_volume_l is not None else None,
+        goals.objective,
+        float(goals.target_f3_hz) if goals.target_f3_hz is not None else None,
+        float(goals.max_ripple_db),
+        float(goals.max_excursion_ratio),
+        float(goals.max_group_delay_ms) if goals.max_group_delay_ms is not None else None,
+        float(goals.min_spl_db) if goals.min_spl_db is not None else None,
+        float(goals.ripple_max_freq_hz) if goals.ripple_max_freq_hz is not None else None,
+        *(getattr(ts, field) for field in ts.__dataclass_fields__),
+    )
+
+
+def _cached_optimized_alignment(key: tuple, factory) -> engine.OptimizedAlignment:
+    """Return a memoized optimizer result, computing it on the first miss."""
+    with _OPTIMIZED_ALIGNMENT_CACHE_LOCK:
+        cached = _OPTIMIZED_ALIGNMENT_CACHE.get(key)
+        if cached is not None:
+            _OPTIMIZED_ALIGNMENT_CACHE.move_to_end(key)
+            return cached
+    optimized = factory()
+    with _OPTIMIZED_ALIGNMENT_CACHE_LOCK:
+        _OPTIMIZED_ALIGNMENT_CACHE[key] = optimized
+        _OPTIMIZED_ALIGNMENT_CACHE.move_to_end(key)
+        while len(_OPTIMIZED_ALIGNMENT_CACHE) > _OPTIMIZED_ALIGNMENT_CACHE_SIZE:
+            _OPTIMIZED_ALIGNMENT_CACHE.popitem(last=False)
+    return optimized
+
+
 def invalidate_ranking_caches() -> None:
     """Clear cached ranking and candidate pool lookups."""
     prefilter_finder_candidate_pools.cache_clear()
+    with _OPTIMIZED_ALIGNMENT_CACHE_LOCK:
+        _OPTIMIZED_ALIGNMENT_CACHE.clear()
 
 
 @dataclass(frozen=True)
@@ -179,6 +252,35 @@ class RankingCandidate:
     price: float | None
     currency: str
     url: str
+
+
+def driver_data_coverage(
+    ts: engine.DriverTS,
+    size_in: float | None = None,
+    price: float | None = None,
+) -> dict:
+    """Return the optional-parameter coverage for one driver.
+
+    ``score`` is the percentage of optional engineering/commercial fields that
+    are present, ``missing`` lists the absent labels and ``status`` is the
+    display bucket (Complete / Partial / Incomplete). Missing fields are never
+    invented: callers keep the existing fallbacks and use the badge to warn the
+    user about what the ranking could not verify.
+    """
+    missing = tuple(
+        label
+        for label, present in _DRIVER_COVERAGE_FIELDS
+        if not present(ts, size_in, price)
+    )
+    total = len(_DRIVER_COVERAGE_FIELDS)
+    score = int(round(100.0 * (total - len(missing)) / total))
+    if not missing:
+        status = "Complete"
+    elif score >= 55:
+        status = "Partial"
+    else:
+        status = "Incomplete"
+    return {"score": score, "missing": missing, "status": status}
 
 
 def response_sparkline(
@@ -215,15 +317,36 @@ def finder_worker_ready() -> tuple[int, int, int]:
 SEARCH_PROFILE_STANDARD = "Standard"
 SEARCH_PROFILE_DEEP = "Deep"
 
+# Free optimizer axes per lumped topology, mirroring the coordinate vectors in
+# engine.optimize_alignment.  Loads without a box search (infinite baffle,
+# passive radiator starter) are absent on purpose.
+_LOAD_TYPE_SEARCH_AXES = {
+    "Sealed": 1,
+    "Bass reflex": 2,
+    "Bandpass 4th order": 3,
+    "Bandpass 6th order": 4,
+    "DCCAV": 4,
+    "Bandpass 8th order": 6,
+}
+
 SEARCH_PROFILES = {
     SEARCH_PROFILE_STANDARD: {
+        # Legacy flat budget, used when the load type is unknown.
         "max_evaluations": 60,
+        "evaluations_per_axis": 20,
+        "evaluations_overhead": 10,
+        "min_evaluations": 24,
+        "evaluations_cap": 120,
         "coarse_points": 30,
         "refine_f3_points": 20,
         "credit_multiplier": 1,
     },
     SEARCH_PROFILE_DEEP: {
         "max_evaluations": 120,
+        "evaluations_per_axis": 40,
+        "evaluations_overhead": 20,
+        "min_evaluations": 48,
+        "evaluations_cap": 240,
         "coarse_points": 30,
         "refine_f3_points": 20,
         "credit_multiplier": 2,
@@ -237,13 +360,37 @@ def search_profile_credit_multiplier(profile: str = SEARCH_PROFILE_STANDARD) -> 
     return int(spec.get("credit_multiplier", 1))
 
 
+def finder_optimizer_axis_count(load_type: str | None) -> int | None:
+    """Return the number of free optimizer axes for a load, or None if unswept."""
+    if not load_type:
+        return None
+    canonical = (
+        "Sealed"
+        if load_type in ("Suspension pneumatic", "Acoustic suspension")
+        else load_type
+    )
+    return _LOAD_TYPE_SEARCH_AXES.get(canonical)
+
+
 def finder_optimizer_evaluation_limit(
     module_path: Path | None = None,
     profile: str = SEARCH_PROFILE_STANDARD,
+    load_type: str | None = None,
 ) -> int:
-    """Return the per-driver optimizer budget based on the active search profile."""
+    """Return the per-driver optimizer budget for the active profile and load.
+
+    The budget scales with the number of free optimizer axes (Sealed 1 ...
+    Bandpass 8th order 6) instead of using one flat value for every topology:
+    ``overhead + per_axis * axes``, clamped to the profile floor and cap.
+    Without a known load type the historical flat profile budget is returned.
+    ``module_path`` is accepted for API compatibility and ignored.
+    """
     spec = SEARCH_PROFILES.get(profile, SEARCH_PROFILES[SEARCH_PROFILE_STANDARD])
-    return int(spec["max_evaluations"])
+    axes = finder_optimizer_axis_count(load_type)
+    if axes is None:
+        return int(spec["max_evaluations"])
+    budget = int(spec["evaluations_overhead"]) + int(spec["evaluations_per_axis"]) * int(axes)
+    return int(min(max(budget, int(spec["min_evaluations"])), int(spec["evaluations_cap"])))
 
 
 def finder_optimizer_frequency_plan(
@@ -344,6 +491,7 @@ def rank_candidate_row(
         if load_type not in ("Sealed", "Infinite baffle") and ts.xmax_mm <= 0:
             return None
         driver_class = engine.classify_driver_bandwidth(ts).driver_class
+        coverage = driver_data_coverage(ts, candidate.size_in, candidate.price)
         ripple_db = float("nan")
         box: (
             engine.DccavBox
@@ -369,14 +517,22 @@ def rank_candidate_row(
                 ripple_max_freq_hz=goals.ripple_max_freq_hz,
             )
             frequency_points, refine_f3_points = finder_optimizer_frequency_plan(profile=search_profile)
-            optimized = engine.optimize_alignment(
-                ts,
-                batch_goals,
-                load_type=load_type,
-                voltage_v=float(voltage_v),
-                max_evaluations=finder_optimizer_evaluation_limit(profile=search_profile),
-                frequency_points=frequency_points,
-                refine_f3_points=refine_f3_points,
+            brief_key = _optimizer_brief_key(
+                ts, batch_goals, load_type, float(voltage_v),
+                frequency_points, refine_f3_points, search_profile,
+            )
+            optimized = _cached_optimized_alignment(
+                brief_key,
+                lambda: engine.optimize_alignment(
+                    ts,
+                    batch_goals,
+                    load_type=load_type,
+                    voltage_v=float(voltage_v),
+                    max_evaluations=finder_optimizer_evaluation_limit(
+                        profile=search_profile, load_type=load_type),
+                    frequency_points=frequency_points,
+                    refine_f3_points=refine_f3_points,
+                ),
             )
             box = optimized.box
             ripple_db = float(optimized.ripple_db)
@@ -656,6 +812,9 @@ def rank_candidate_row(
             "Ripple dB": ripple_db,
             "Max excursion mm": float(np.nanmax(result.excursion_mm)),
             "Min ohm": float(np.nanmin(result.impedance_ohm)),
+            "Data": coverage["status"],
+            "Data %": coverage["score"],
+            "_data_missing": coverage["missing"],
             "Response": response_sparkline(result.spl_total_db),
             "_load_type": load_type,
             **box_values,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import hashlib
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Any, Protocol
@@ -15,6 +16,16 @@ except ImportError:
     from src.storage._firestore_client import get_firestore_client  # type: ignore[no-redef]
 
 logger = logging.getLogger("load_forge.storage.catalog_runtime")
+
+
+def _firestore_safe(value: Any) -> Any:
+    """Make imported provenance serializable by Firestore."""
+    if isinstance(value, dict):
+        return {str(key) if str(key) else "unnamed": _firestore_safe(item)
+                for key, item in value.items()}
+    if isinstance(value, list):
+        return [_firestore_safe(item) for item in value]
+    return value
 
 
 class CatalogRuntimeStore(Protocol):
@@ -139,12 +150,22 @@ class FirestoreCatalogRuntimeStore:
         batch = self._client.batch()
         count = 0
         for item in drivers:
-            driver_dict = dict(item)
-            doc_id = str(driver_dict.get("id") or driver_dict.get("model") or f"drv_{count}")
+            driver_dict = _firestore_safe(dict(item))
+            raw_id = str(driver_dict.get("id") or driver_dict.get("model") or f"drv_{count}")
+            # Models may contain `/` (or other path separators), which would
+            # turn a Firestore document ID into an invalid nested path. Keep
+            # readable IDs when safe and use a deterministic slug otherwise.
+            if not raw_id or "/" in raw_id or "\\" in raw_id:
+                identity = "|".join(str(driver_dict.get(k, "")) for k in ("brand", "model", "name"))
+                doc_id = "drv_" + hashlib.sha256(identity.encode("utf-8")).hexdigest()[:32]
+            else:
+                doc_id = raw_id
             ref = self._client.collection("drivers").document(doc_id)
             batch.set(ref, driver_dict)
             count += 1
-            if count % 450 == 0:
+            # Firestore limits batches by both document count and serialized
+            # request size; catalog rows include provenance and can be large.
+            if count % 50 == 0:
                 batch.commit()
                 batch = self._client.batch()
         batch.commit()

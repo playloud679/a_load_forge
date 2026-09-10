@@ -986,6 +986,7 @@ def _check_ui_bandpass4_design_and_persistence():
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["load_type"] = "Bandpass 4th order"
+    at.session_state["box_design_sidebar_tab"] = "Enclosure Parameters"
     at.run()
     assert not at.exception, at.exception
     labels = {item.label for item in at.number_input}
@@ -1130,6 +1131,7 @@ def _check_ui_bandpass6_design_and_persistence():
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["load_type"] = "Bandpass 6th order"
+    at.session_state["box_design_sidebar_tab"] = "Enclosure Parameters"
     at.run()
     assert not at.exception, at.exception
     labels = {item.label for item in at.number_input}
@@ -4901,6 +4903,8 @@ def _check_ui_saas_local_registration_login_logout():
 
     from streamlit.testing.v1 import AppTest
 
+    import src.invites as invites_module
+
     with tempfile.TemporaryDirectory() as directory:
         keys = {
             "LOAD_FORGE_SAAS_ENABLED": "true",
@@ -4913,6 +4917,8 @@ def _check_ui_saas_local_registration_login_logout():
             "K_SERVICE": None,
         }
         previous = {key: os.environ.get(key) for key in keys}
+        original_master_token = invites_module.MASTER_TOKEN
+        invites_module.MASTER_TOKEN = "TEST-ALPHA-TOKEN"
         try:
             for key, value in keys.items():
                 if value is None:
@@ -4928,6 +4934,7 @@ def _check_ui_saas_local_registration_login_logout():
             assert not at.exception, at.exception
 
             fields = {item.key: item for item in at.text_input}
+            fields["_local_register_alpha_code"].set_value("TEST-ALPHA-TOKEN")
             fields["_local_register_name"].set_value("Registration tester")
             fields["_local_register_email"].set_value("register@example.test")
             fields["_local_register_password"].set_value("a safe demo password")
@@ -4967,6 +4974,7 @@ def _check_ui_saas_local_registration_login_logout():
                 "register@example.test"
             )
         finally:
+            invites_module.MASTER_TOKEN = original_master_token
             for key, value in previous.items():
                 if value is None:
                     os.environ.pop(key, None)
@@ -5786,7 +5794,7 @@ def _check_ui_driver_library_compares_nominal_size_and_sd():
 
     sb_name = next(
         name for name in _ui._acoustics.driver_preset_names()
-        if name.startswith("WEB: SB Acoustics") and "SB17NRXC35-4" in name
+        if name.startswith(("WEB: SB Acoustics", "PDF: SB Acoustics")) and "SB17NRXC35-4" in name
     )
     sb_frame = _ui._driver_library_frame((sb_name,))
     assert sb_frame.iloc[0]["Manufacturer"] == "SB Acoustics"
@@ -7696,8 +7704,13 @@ def _check_crawler_agent_release_is_approved_and_immutable():
     import json
     import tempfile
 
+    from unittest.mock import patch
+    import src
     from services.crawler_agent.model import AgentManifest
-    from services.crawler_agent.release import build_release
+    # The standalone crawler owns src.quarantine; keep this test-only import
+    # extension out of the simulator's production namespace.
+    with patch.object(src, "__path__", [*src.__path__, str(CRAWLER_ROOT / "src")]):
+        from services.crawler_agent.release import build_release
     from src import presets
 
     candidate = {
@@ -9801,6 +9814,63 @@ test(
 )
 
 
+def _check_optimizer_global_sweep_is_deterministic_across_topologies():
+    from src import engine as _engine
+
+    ts = _acoustics.get_driver_preset("Beyma 12CMV2")
+    goals = _acoustics.OptimizationGoals(objective="extension", max_ripple_db=0.0)
+    for load_type in ("Bass reflex", "Bandpass 4th order", "DCCAV"):
+        first = _engine.optimize_alignment(
+            ts, goals, load_type=load_type, max_evaluations=40,
+            frequency_points=30,
+        )
+        second = _engine.optimize_alignment(
+            ts, goals, load_type=load_type, max_evaluations=40,
+            frequency_points=30,
+        )
+        assert first.evaluations <= 40, load_type
+        assert first == second, load_type
+        assert np.isfinite(first.f3_hz), load_type
+
+
+test(
+    "Global Halton sweep stays deterministic across multi-axis topologies",
+    _check_optimizer_global_sweep_is_deterministic_across_topologies,
+)
+
+
+def _check_optimizer_returns_buildable_alternatives():
+    ts = _acoustics.get_driver_preset("Beyma 12CMV2")
+    goals = _acoustics.OptimizationGoals(
+        objective="balanced", max_total_volume_l=80.0)
+    optimized = _acoustics.optimize_alignment(
+        ts, goals, load_type="Bass reflex", max_evaluations=80,
+        frequency_points=30,
+    )
+    assert optimized.alternatives, "the search must expose runner-up boxes"
+    assert len(optimized.alternatives) <= 5
+    winner_signature = tuple(vars(optimized.box).values())
+    frequency = np.geomspace(10.0, 500.0, 120)
+    for alternative in optimized.alternatives:
+        assert alternative.score < 1e4
+        assert np.isfinite(alternative.f3_hz)
+        assert np.isfinite(alternative.total_volume_l)
+        assert tuple(vars(alternative.box).values()) != winner_signature
+        assert _acoustics.simulate_reflex(
+            ts, alternative.box, frequency) is not None
+    repeated = _acoustics.optimize_alignment(
+        ts, goals, load_type="Bass reflex", max_evaluations=80,
+        frequency_points=30,
+    )
+    assert repeated == optimized
+
+
+test(
+    "Optimizer exposes buildable alternatives deterministically",
+    _check_optimizer_returns_buildable_alternatives,
+)
+
+
 def _check_final_response_ripple_uses_display_resolution():
     from src import engine as _engine
 
@@ -9908,46 +9978,21 @@ test("Reflex and sealed optimizers respect capped and fixed volumes", _check_opt
 
 
 def _check_ui_supports_sealed_and_infinite_baffle():
-    return
     from streamlit.testing.v1 import AppTest
-
-    import ui_app as _ui
-    assert _ui._apply_loaded_params({"load_type": "Suspension pneumatic"}) == 1
-    assert _ui.st.session_state["load_type"] == "Sealed"
-    assert _ui._apply_loaded_params({"load_type": "Acoustic suspension"}) == 1
-    assert _ui.st.session_state["load_type"] == "Sealed"
-
-    for load_type, expected_metric in (
-        ("Sealed", "Vb sealed (active)"),
-        ("Infinite baffle", "Mounted Fs"),
-    ):
-        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-        at.session_state["workspace_mode"] = "Box Design"
-        at.session_state["load_type"] = load_type
+    for load_type in ('Sealed', 'Infinite baffle'):
+        at = AppTest.from_file(str(ROOT / 'ui_app.py'), default_timeout=60)
+        at.session_state['workspace_mode'] = 'Box Design'
+        at.session_state['box_design_sidebar_tab'] = 'Enclosure Parameters'
+        at.session_state['load_type'] = load_type
         at.run()
         assert not at.exception, at.exception
-        metrics = {metric.label: metric.value for metric in at.metric}
-        assert expected_metric in metrics, (load_type, metrics)
-        assert not any(control.label == "Box volume (L)" for control in at.number_input)
-        design_filter_labels = {
-            "Provenance", "Size", "Manufacturer", "Class", "Price currency"
-        }
-        assert not any(box.label in design_filter_labels for box in at.selectbox)
-        if load_type == "Infinite baffle":
-            assert not any(button.label == "Run optimizer and apply" for button in at.button)
-
-        at.session_state["workspace_mode"] = "Bass Match"
-        at.run()
+        assert not any(tab.label == 'Ports' for tab in at.tabs)
+        volume_inputs = [n for n in at.number_input if n.key == 'sealed_vb_l']
+        assert bool(volume_inputs) == (load_type == 'Sealed')
+        at.button(key='workspace_tab_button_bass_match').click().run()
         assert not at.exception, at.exception
-        
-        assert not any(box.label == "Driver preset" for box in at.selectbox)
-        rank_button = next(
-            button for button in at.button
-            if button.label == _ui._FINDER_CTA_LABEL
-        )
-        assert not rank_button.disabled
-        if load_type == "Infinite baffle":
-            assert not any(n.label == "Volume (L)" for n in at.number_input)
+        assert not any(box.label == 'Driver preset' for box in at.selectbox)
+        assert any(button.key == 'finder_run_search_main' for button in at.button)
 
 
 test("UI separates design and driver-finder workflows", _check_ui_supports_sealed_and_infinite_baffle)
@@ -9957,6 +10002,7 @@ def _check_ui_finder_starts_from_practical_defaults():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at.session_state["ui_show_advanced"] = True
     at.run()
     assert not at.exception, at.exception
 
@@ -10011,80 +10057,68 @@ test("UI Finder starts from practical independent defaults", _check_ui_finder_st
 
 
 def _check_ui_finder_parameters_are_all_in_sidebar():
-    return
     from streamlit.testing.v1 import AppTest
-
-    import ui_app as _ui
-
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    at.session_state["workspace_mode"] = "Bass Match"
+    at = AppTest.from_file(str(ROOT / 'ui_app.py'), default_timeout=60)
+    at.session_state['ui_show_advanced'] = True
     at.run()
     assert not at.exception, at.exception
-
-    number_labels = {
-        "Maximum volume (L)",
-        "Comparison voltage (V)",
-        "Allowed response ripple (dB)",
-        "Maximum excursion (× driver Xmax)",
-        "Maximum group delay (ms)",
-        "Minimum SPL (dB, 0 = off)",
-        "Maximum Mms (g, 0 = off)",
-        "Maximum Le (mH, 0 = off)",
-        "Evaluation range start (Hz)",
-        "Evaluation range end (Hz)",
-        "Simulation resolution (points)",
-    }
-    sidebar_numbers = {control.label for control in at.sidebar.number_input}
-    {control.label for control in at.number_input}
-    assert number_labels <= sidebar_numbers, number_labels - sidebar_numbers
-    
-    assert any(box.label == "Optimization goal" for box in at.sidebar.selectbox)
-    assert not any(
-        box.label == "Optimize enclosure per candidate"
-        for box in at.sidebar.checkbox
-    ), "ranking always uses the optimizer; the quick-scan toggle is retired"
-    assert any(button.label == "Reset Finder defaults" for button in at.sidebar.button)
-    assert not any(
-        button.label == _ui._FINDER_CTA_LABEL for button in at.sidebar.button
-    )
-    assert sum(
-        button.label == _ui._FINDER_CTA_LABEL for button in at.button
-    ) == 1
-
-    at.session_state["batch_results"] = [{
-        "Driver": "Priced test driver", "Brand": "Test", "Size in": 8.0,
-        "F3 Hz": 40.0, "F6 Hz": 32.0, "F10 Hz": 25.0,
-        "Peak dB": 90.0, "Max excursion mm": 1.0, "Min ohm": 6.0,
-        "Vb L": 40.0, "Fc Hz": 50.0, "Qtc": 0.707,
-        "Price": 100.0, "Currency": "EUR", "Buy": "",
-        "Ripple dB": 1.0, "Response": [], "Class": "Woofer",
-    }]
-    at.session_state["batch_result_context"] = (
-        ("Sealed",), 40.0, 1, False, "Balanced", "Port", 0.0,
-        0.0, 0.0, 0.0,
-        _ui._FINDER_RANKING_VERSION,
-    )
-    at.session_state["finder_load_types"] = ["Sealed"]
-    at.run()
-    assert not at.exception, at.exception
-    assert not any(radio.label == "Rank by" for radio in at.sidebar.radio)
-    assert any(radio.label == "Rank by" for radio in at.radio)
-
-    assert _ui._FINDER_RANKING_VERSION == 11
-    at.session_state["batch_result_context"] = (
-        ("Sealed",), 40.0, 1, False, "Balanced", "Port", 0.0,
-        0.0, 0.0, 0.0,
-        _ui._FINDER_RANKING_VERSION - 1,
-    )
-    at.run()
-    assert not at.exception, at.exception
-    assert not any(
-        (frame.value.astype(str) == "Priced test driver").to_numpy().any()
-        for frame in at.dataframe
-    ), "a persisted result from an older ranking revision must be hidden"
+    seen_numbers = set()
+    seen_selects = set()
+    for panel in ('Load type', 'Performance filters', 'Library filters'):
+        at.session_state['bass_match_sidebar_tab'] = panel
+        at.run()
+        assert not at.exception, at.exception
+        seen_numbers.update(n.key for n in at.sidebar.number_input)
+        seen_selects.update(n.key for n in at.sidebar.selectbox)
+        assert sum(b.key == 'finder_run_search_main' for b in at.button) == 1
+        assert not any(b.key == 'finder_run_search_main' for b in at.sidebar.button)
+    assert {'finder_volume_l', 'finder_voltage', 'finder_max_ripple_db',
+            'finder_excursion_ratio', 'finder_max_gd_ms',
+            'finder_min_spl_db', 'finder_max_mms_g', 'finder_max_le_mh',
+            'finder_f_min', 'finder_f_max', 'finder_points'} <= seen_numbers
+    assert 'finder_objective' in seen_selects
 
 
 test("UI keeps every Finder parameter in the sidebar", _check_ui_finder_parameters_are_all_in_sidebar)
+
+
+def _check_ui_simple_advanced_mode_and_guided_scenarios():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at.session_state["workspace_mode"] = "Bass Match"
+    at.session_state["bass_match_sidebar_tab"] = "Load type"
+    at.run()
+    assert not at.exception, at.exception
+
+    # Simple mode hides the expert grid and offers the guided setup.
+    simple_keys = {n.key for n in at.sidebar.number_input}
+    assert "finder_points" not in simple_keys
+    assert "finder_f_min" not in simple_keys
+    guided = next(
+        box for box in at.sidebar.selectbox if box.key == "finder_scenario"
+    )
+    assert guided.value == "Custom"
+
+    guided.set_value("Home theater").run()
+    assert not at.exception, at.exception
+    assert at.session_state["finder_objective"] == "Max extension"
+    assert float(at.session_state["finder_volume_l"]) == 60.0
+    assert float(at.session_state["finder_max_ripple_freq_hz"]) == 80.0
+    assert set(at.session_state["finder_load_types"]) == {"Bass reflex", "DCCAV"}
+
+    # Advanced mode restores the expert controls.
+    at.session_state["ui_show_advanced"] = True
+    at.run()
+    assert not at.exception, at.exception
+    advanced_keys = {n.key for n in at.sidebar.number_input}
+    assert {"finder_points", "finder_f_min", "finder_f_max"} <= advanced_keys
+
+
+test(
+    "UI Simple/Advanced mode and guided scenarios stay consistent",
+    _check_ui_simple_advanced_mode_and_guided_scenarios,
+)
 
 
 def _check_ui_finder_main_action_runs_search():
@@ -10270,6 +10304,7 @@ def _check_ui_design_state_survives_workspace_roundtrip():
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["load_type"] = "Sealed"
+    at.session_state["box_design_sidebar_tab"] = "Enclosure Parameters"
     at.run()
     assert not at.exception, at.exception
     # Widget-bound edits (not programmatic ones) are what Streamlit cleans up
@@ -10472,8 +10507,12 @@ def _check_ui_optimized_alignment_mode():
         st.session_state.get("opt_last_summary")
     )
     assert _ui._current_optimizer_summary(driver) == st.session_state["opt_last_summary"]
+    assert _ui._current_optimizer_alternatives(driver) == tuple(
+        st.session_state["_opt_last_alternatives"]
+    )
     st.session_state["box_vl_l"] = float(st.session_state["box_vl_l"]) + 1.0
     assert _ui._current_optimizer_summary(driver) is None
+    assert _ui._current_optimizer_alternatives(driver) == ()
 
     # The strategy IS the objective: no separate goal selector remains.
     st.session_state["box_strategy"] = "Max extension"
@@ -10556,43 +10595,28 @@ test(
 
 
 def _check_ui_progressive_disclosure():
-    return
     from streamlit.testing.v1 import AppTest
-
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at = AppTest.from_file(str(ROOT / 'ui_app.py'), default_timeout=60)
     at.run()
     assert not at.exception, at.exception
-    # New sessions land on the Finder workspace with the active DCCAV load.
-    assert at.session_state["workspace_mode"] == "Bass Match"
-    assert at.session_state["load_type"] == "DCCAV"
-    
-    assert not any(b.label == "Run Bass Match" for b in at.sidebar.button)
-    assert sum(b.label == "Run Bass Match" for b in at.button) == 1
-    assert at.session_state["driver_preset_name"] == "KEF B110B article example"
-
-    at.session_state["workspace_mode"] = "Box Design"
-    at.session_state["load_type"] = "DCCAV"
-    at.run()
+    assert not any(n.key == 'driver_fs_hz' for n in at.number_input)
+    at.button(key='workspace_tab_button_box_design').click().run()
     assert not at.exception, at.exception
-    assert [tab.label for tab in at.tabs] == [
-        "Response", "Excursion", "Impedance", "Ports", "Group Delay", "Atlas",
-    ]
-    assert not any(n.label in {"M1 (Hz)", "M2 (Hz)"} for n in at.number_input)
-    assert not any(n.label == "Series R (Ω)" for n in at.number_input)
-    vh = next(n for n in at.number_input if n.label == "Vh upper (L)")
-    assert vh.disabled, "suggested strategy must protect automatically managed box values"
-
-    at.session_state["ui_show_advanced"] = True
-    at.session_state["box_strategy"] = "Manual"
-    at.session_state["sim_auto_align"] = False
+    assert any(n.key == 'driver_fs_hz' for n in at.number_input)
+    assert not any(n.key == 'box_vh_l' for n in at.number_input)
+    at.session_state['box_design_sidebar_tab'] = 'Enclosure Parameters'
     at.run()
+    assert at.number_input(key='box_vh_l').disabled
+    assert not any(n.key == 'driver_fs_hz' for n in at.number_input)
+    at.segmented_control(key='box_strategy').set_value('Manual').run()
     assert not at.exception, at.exception
-    labels = {n.label for n in at.number_input}
-    assert "Series R (Ω)" in labels
-    assert not {"M1 (Hz)", "M2 (Hz)"} & labels
-    assert not any(toggle.label == "Manual markers" for toggle in at.toggle)
-    vh = next(n for n in at.number_input if n.label == "Vh upper (L)")
-    assert not vh.disabled, "manual strategy must expose editable box values"
+    assert not at.number_input(key='box_vh_l').disabled
+    at.number_input(key='box_vh_l').set_value(19.0).run()
+    at.session_state['box_design_sidebar_tab'] = 'Driver'
+    at.run()
+    at.session_state['box_design_sidebar_tab'] = 'Enclosure Parameters'
+    at.run()
+    assert at.number_input(key='box_vh_l').value == 19.0
 
 
 test("UI progressively reveals manual and advanced controls", _check_ui_progressive_disclosure)
@@ -10604,6 +10628,7 @@ def _check_ui_box_inputs_have_one_stepper():
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["load_type"] = "DCCAV"
+    at.session_state["box_design_sidebar_tab"] = "Enclosure Parameters"
     at.run()
     assert not at.exception, at.exception
     assert not any(
@@ -10666,6 +10691,7 @@ def _check_ui_finder_goal_inputs_always_active():
         "Minimum SPL (dB, 0 = off)",
     )
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at.session_state["ui_show_advanced"] = True
     at.session_state["workspace_mode"] = "Bass Match"
     at.session_state["bass_match_sidebar_tab"] = "Performance filters"
     at.run()
@@ -10756,38 +10782,26 @@ test("DCCAV design-space atlas maps F3 and ripple over the box plane", _check_de
 
 
 def _check_ui_atlas_tab():
-    return
+    from unittest.mock import patch
     from streamlit.testing.v1 import AppTest
-
-    import ui_app as _ui
-
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
-    at.session_state["workspace_mode"] = "Box Design"
-    at.session_state["load_type"] = "Bass reflex"
+    at = AppTest.from_file(str(ROOT / 'ui_app.py'), default_timeout=60)
+    at.session_state['workspace_mode'] = 'Box Design'
+    at.session_state['load_type'] = 'Bass reflex'
     at.run()
     assert not at.exception, at.exception
-    assert [tab.label for tab in at.tabs] == [
-        "Response", "Excursion", "Impedance", "Ports", "Group Delay", "Atlas",
-    ]
-    assert any("Enable to map" in caption.value for caption in at.caption), (
-        "atlas computation must stay gated behind the toggle")
-
-    at.session_state["atlas_enabled"] = True
+    assert not any(t.key == 'atlas_enabled' for t in at.toggle)
+    at.session_state['design_analysis_tab'] = 'Atlas'
     at.run()
     assert not at.exception, at.exception
-    assert any(
-        "grid around the empirical starter" in caption.value
-        for caption in at.caption
-    ), "the enabled atlas must describe its grid"
-    assert any(r.label == "Color by" for r in at.radio)
-
-    state = _ui.st.session_state
-    state["load_type"] = "Bass reflex"
-    state["atlas_pending_point"] = {"load_type": "Bass reflex", "x": 25.0, "y": 40.0}
-    _ui._apply_pending_atlas_point()
-    assert float(state["reflex_vb_l"]) == 25.0
-    assert float(state["reflex_fb_hz"]) == 40.0
-    assert state["box_strategy"] == "Manual", "an applied atlas point must unlock the box"
+    assert any('Enable to map' in caption.value for caption in at.caption)
+    at.toggle(key='atlas_enabled').set_value(True).run()
+    assert not at.exception, at.exception
+    assert any(r.label == 'Color by' for r in at.radio)
+    at.session_state['atlas_pending_point'] = {'load_type': 'Bass reflex', 'x': 25.0, 'y': 40.0}
+    at.run()
+    assert at.session_state['reflex_vb_l'] == 25.0
+    assert at.session_state['reflex_fb_hz'] == 40.0
+    assert at.session_state['box_strategy'] == 'Manual'
 
 
 test("UI Atlas tab gates the design-space map and applies clicked points", _check_ui_atlas_tab)
@@ -10864,6 +10878,7 @@ def _check_ui_driver_configuration_selector():
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Box Design"
     at.session_state["load_type"] = "DCCAV"
+    at.session_state["box_design_sidebar_tab"] = "Load Selection"
     at.run()
     assert not at.exception, at.exception
     metrics = {m.label: m.value for m in at.metric}
@@ -11300,6 +11315,180 @@ test(
 )
 
 
+def _check_finder_optimizer_budget_scales_with_topology_axes():
+    import ui_app as _ui
+
+    ranking = _ui._ranking
+    assert ranking.finder_optimizer_axis_count("Sealed") == 1
+    assert ranking.finder_optimizer_axis_count("Suspension pneumatic") == 1
+    assert ranking.finder_optimizer_axis_count("Bass reflex") == 2
+    assert ranking.finder_optimizer_axis_count("Bandpass 4th order") == 3
+    assert ranking.finder_optimizer_axis_count("Bandpass 6th order") == 4
+    assert ranking.finder_optimizer_axis_count("DCCAV") == 4
+    assert ranking.finder_optimizer_axis_count("Bandpass 8th order") == 6
+    assert ranking.finder_optimizer_axis_count("Infinite baffle") is None
+    assert ranking.finder_optimizer_axis_count(None) is None
+
+    standard = {
+        "Sealed": 30,
+        "Bass reflex": 50,
+        "Bandpass 4th order": 70,
+        "Bandpass 6th order": 90,
+        "DCCAV": 90,
+        "Bandpass 8th order": 120,
+    }
+    deep = {
+        "Sealed": 60,
+        "Bass reflex": 100,
+        "Bandpass 4th order": 140,
+        "Bandpass 6th order": 180,
+        "DCCAV": 180,
+        "Bandpass 8th order": 240,
+    }
+    for load_type, expected in standard.items():
+        assert ranking.finder_optimizer_evaluation_limit(
+            profile="Standard", load_type=load_type) == expected, load_type
+    for load_type, expected in deep.items():
+        assert ranking.finder_optimizer_evaluation_limit(
+            profile="Deep", load_type=load_type) == expected, load_type
+    # Backward compatibility: unknown or unswept loads keep the flat budget.
+    assert ranking.finder_optimizer_evaluation_limit(profile="Standard") == 60
+    assert ranking.finder_optimizer_evaluation_limit(profile="Deep") == 120
+    assert ranking.finder_optimizer_evaluation_limit(
+        profile="Standard", load_type="Infinite baffle") == 60
+
+
+test(
+    "Finder optimizer budget scales with topology axes",
+    _check_finder_optimizer_budget_scales_with_topology_axes,
+)
+
+
+def _check_rank_candidate_row_forwards_adaptive_budget():
+    import ui_app as _ui
+
+    ranking = _ui._ranking
+    engine = ranking.engine
+    ts = engine.DriverTS(
+        fs_hz=35.0, vas_l=60.0, qts=0.4, qms=3.0, re_ohm=6.0, sd_cm2=500.0,
+        xmax_mm=8.0, pe_w=200.0,
+    )
+    candidate = ranking.RankingCandidate(
+        name="Synthetic adaptive-budget driver", ts=ts, source="test",
+        brand="Test", size_in=12.0, price=None, currency="EUR", url="",
+    )
+    captured: dict = {}
+    original = engine.optimize_alignment
+
+    def fake_optimize(*args, **kwargs):
+        captured.update(kwargs)
+        raise RuntimeError("budget captured")
+
+    engine.optimize_alignment = fake_optimize
+    try:
+        result = ranking.rank_candidate_row(
+            candidate, "Bandpass 8th order", 60.0, 2.83, 10.0, 500.0, 80,
+            engine.OptimizationGoals(objective="balanced"),
+        )
+    finally:
+        engine.optimize_alignment = original
+    assert result is None
+    assert captured["max_evaluations"] == ranking.finder_optimizer_evaluation_limit(
+        profile="Standard", load_type="Bandpass 8th order")
+    assert captured["load_type"] == "Bandpass 8th order"
+
+
+test(
+    "Ranking forwards the per-topology optimizer budget",
+    _check_rank_candidate_row_forwards_adaptive_budget,
+)
+
+
+def _check_rank_candidate_row_caches_repeated_optimizations():
+    import ui_app as _ui
+
+    ranking = _ui._ranking
+    engine = ranking.engine
+    ranking.invalidate_ranking_caches()
+    ts = engine.DriverTS(
+        fs_hz=35.0, vas_l=60.0, qts=0.4, qms=3.0, re_ohm=6.0, sd_cm2=500.0,
+        xmax_mm=8.0, pe_w=200.0,
+    )
+    candidate = ranking.RankingCandidate(
+        name="Synthetic cached driver", ts=ts, source="test",
+        brand="Test", size_in=12.0, price=None, currency="EUR", url="",
+    )
+    goals = engine.OptimizationGoals(objective="balanced")
+    calls = {"count": 0}
+    original = engine.optimize_alignment
+
+    def counting_optimize(*args, **kwargs):
+        calls["count"] += 1
+        return original(*args, **kwargs)
+
+    engine.optimize_alignment = counting_optimize
+    try:
+        first = ranking.rank_candidate_row(
+            candidate, "Sealed", 40.0, 2.83, 10.0, 500.0, 80, goals)
+        second = ranking.rank_candidate_row(
+            candidate, "Sealed", 40.0, 2.83, 10.0, 500.0, 80, goals)
+    finally:
+        engine.optimize_alignment = original
+    assert first is not None and second is not None
+    assert calls["count"] == 1, calls
+    assert first["F3 Hz"] == second["F3 Hz"]
+    assert first is not second
+
+    # A different brief must miss the cache and run the optimizer again.
+    engine.optimize_alignment = counting_optimize
+    try:
+        third = ranking.rank_candidate_row(
+            candidate, "Sealed", 30.0, 2.83, 10.0, 500.0, 80, goals)
+    finally:
+        engine.optimize_alignment = original
+    assert third is not None
+    assert calls["count"] == 2, calls
+    ranking.invalidate_ranking_caches()
+
+
+test(
+    "Ranking caches repeated optimizer briefs",
+    _check_rank_candidate_row_caches_repeated_optimizations,
+)
+
+
+def _check_driver_data_coverage_badges():
+    import ui_app as _ui
+
+    engine = _ui._ranking.engine
+    complete = engine.DriverTS(
+        fs_hz=35.0, vas_l=60.0, qts=0.4, qms=3.0, re_ohm=6.0, sd_cm2=500.0,
+        xmax_mm=8.0, pe_w=200.0, le_mh=0.5, mms_g=80.0, bl_tm=12.0,
+        cms_mm_per_n=0.3, le10k_mh=0.4,
+    )
+    coverage = _acoustics.driver_data_coverage(complete, 12.0, 199.0)
+    assert coverage == {"score": 100, "missing": (), "status": "Complete"}
+
+    sparse = engine.DriverTS(
+        fs_hz=35.0, vas_l=60.0, qts=0.4, qms=3.0, re_ohm=6.0, sd_cm2=500.0,
+    )
+    coverage = _acoustics.driver_data_coverage(sparse, None, None)
+    assert coverage["status"] == "Incomplete"
+    assert coverage["score"] == 0
+    assert set(coverage["missing"]) == set(_acoustics.DRIVER_COVERAGE_LABELS)
+
+    partial = engine.DriverTS(
+        fs_hz=35.0, vas_l=60.0, qts=0.4, qms=3.0, re_ohm=6.0, sd_cm2=500.0,
+        xmax_mm=8.0, pe_w=200.0, le_mh=0.5, mms_g=80.0,
+    )
+    coverage = _acoustics.driver_data_coverage(partial, 12.0, None)
+    assert coverage["status"] == "Partial"
+    assert "Bl" in coverage["missing"]
+
+
+test("Driver data coverage badges flag incomplete records", _check_driver_data_coverage_badges)
+
+
 def _check_module_split_facade():
     import ast
 
@@ -11384,250 +11573,35 @@ test("Acoustic simulation rejects invalid frequency grids", _check_simulation_re
 
 
 def _check_ui_finder_comprehensive_ux_regression():
-    return
-    """Cover Finder UI contracts:
-
-    1. Visual workspace tabs and logical sidebar order (1, 2, 3 / 4 after search)
-    2. Clicking the six load-type cards
-    3. Multi-select (Finder) vs single-select (Design) behaviour
-    4. Single CTA "Run Bass Match" presence and state
-    5. Title/caption before and after the search
-    6. Price column is conditional on price data
-    7. No literal "None" in the results table
-    8. Minimum SPL removes non-compliant candidates
-    9. Contextual tabs for sealed, infinite baffle, reflex and PR resonator
-    10. State persistence through Finder ↔ Design round-trip
-    """
     from streamlit.testing.v1 import AppTest
-
-    import ui_app as _ui
-
-    # -- 1. Finder sidebar stays focused; library filters use the main area ---
-    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=60)
+    at = AppTest.from_file(str(ROOT / 'ui_app.py'), default_timeout=60)
     at.run()
     assert not at.exception, at.exception
-    workspace_picker = next(
-        control for control in at.segmented_control if control.label == "Workspace"
-    )
-    assert workspace_picker.options == ["Bass Match", "Box Design"]
-    workspace_picker.set_value("Box Design").run()
-    assert at.session_state["workspace_mode"] == "Box Design"
-    workspace_picker.set_value("Bass Match").run()
-    assert at.session_state["workspace_mode"] == "Bass Match"
-    assert not at.exception, at.exception
-
-    sidebar_subs_raw = [sub.value for sub in at.sidebar.subheader]
-    [s for s in sidebar_subs_raw if s.startswith(("1 ·", "2 ·", "3 ·", "4 ·"))]
-    # assert ordered_markers[:2] == [
-    #     "1 · Target enclosure", "2 · Performance goal",
-    # ], ordered_markers
-
-    # -- 2. All six load-type cards are clickable buttons --------------------
-    card_buttons = [b for b in at.sidebar.button if b.key.startswith("load_btn_")]
-    assert len(card_buttons) == 6, [b.key for b in card_buttons]
-    expected_labels = {"Infinite baffle", "Sealed", "Reflex", "BP4", "BP6", "DCCAV"}
-    assert {b.label for b in card_buttons} == expected_labels
-
-    # Toggle all six to active in the Finder (re-acquire after each run)
-    for lt in _ui._ALL_LOAD_TYPES:
-        current = set(at.session_state["finder_load_types"])
-        if lt not in current:
-            btn = next(b for b in at.sidebar.button if b.key == f"load_btn_{lt}")
-            btn.click().run()
-            assert not at.exception, at.exception
-    assert len(at.session_state["finder_load_types"]) == 6
-    resonator_select = next(
-        widget for widget in at.sidebar.selectbox
-        if widget.label == "Bass-reflex resonator"
-    )
-    resonator_select.select("Passive radiator").run()
-    assert not at.exception, at.exception
-    assert at.session_state["finder_reflex_resonator_type"] == "Passive radiator"
-
-    # -- 3. Multi-select vs single-select ----------------------------------
-    # Finder: deselect one, others stay active
-    sealed_btn = next(b for b in at.sidebar.button if b.key == "load_btn_Sealed")
-    sealed_btn.click().run()
-    assert not at.exception, at.exception
-    assert "Sealed" not in at.session_state["finder_load_types"]
-    assert len(at.session_state["finder_load_types"]) == 5
-
-    # Design single-select: fresh AppTest, click cards one by one
-    at_design = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    at_design.session_state["workspace_mode"] = "Box Design"
-    at_design.run()
-    assert not at_design.exception, at_design.exception
-    # In Design, clicking a load card replaces the selection
-    for lt in ("Bass reflex", "DCCAV"):
-        btn = next(b for b in at_design.sidebar.button if b.key == f"load_btn_{lt}")
-        btn.click().run()
-        assert not at_design.exception, at_design.exception
-        assert at_design.session_state["load_type"] == lt, lt
-
-    # -- 4. Single CTA "Run Bass Match" --------------------------------------
-    at.session_state["preset_search"] = "KEF B110B article example"
-    at.session_state["finder_volume_l"] = 40.0
-    at.session_state["finder_points"] = 80
+    loads = {'Infinite baffle', 'Sealed', 'Bass reflex', 'Bandpass 4th order',
+             'Bandpass 6th order', 'Bandpass 8th order', 'DCCAV'}
+    assert {b.key.removeprefix('load_btn_') for b in at.sidebar.button
+            if b.key and b.key.startswith('load_btn_')} == loads
+    at.button(key='load_btn_Sealed').click().run()
+    assert set(at.session_state['finder_load_types']) == {'DCCAV', 'Sealed'}
+    at.button(key='load_btn_Sealed').click().run()
+    assert at.session_state['finder_load_types'] == ['DCCAV']
+    at.session_state['bass_match_sidebar_tab'] = 'Library filters'
     at.run()
+    assert not any(b.key == 'load_btn_Sealed' for b in at.button)
+    at.multiselect(key='preset_family_filter__select_v5').set_value(['Beyma']).run()
+    at.button(key='workspace_tab_button_box_design').click().run()
     assert not at.exception, at.exception
-
-    assert not any(
-        b.label == _ui._FINDER_CTA_LABEL for b in at.sidebar.button
-    )
-    match_buttons = [
-        b for b in at.button if b.label == _ui._FINDER_CTA_LABEL
-    ]
-    assert len(match_buttons) == 1, match_buttons
-    find_btn = match_buttons[0]
-    assert find_btn.key == "finder_run_search_main"
-    assert find_btn.proto.type == "primary"
-    assert not find_btn.disabled
-
-    # -- 5. Title / caption before and after the search ----------------------
-    assert not at.title
-    assert any(
-        "Bass Match · Your bass brief" in item.value
-        for item in at.markdown
-    )
-    assert any(
-        expander.label.startswith("Candidate pool ·")
-        for expander in at.expander
-    )
-    constraint_markup = next(
-        item.value for item in at.markdown
-        if item.value.startswith("<div class='finder-constraint-grid'>")
-    )
-    assert "Minimum SPL" in constraint_markup
-    assert "Evaluation range" in constraint_markup
-    assert "Candidate pool" in constraint_markup
-
-    find_btn.click().run()
-    assert not at.exception, at.exception
-    assert at.session_state["batch_results"], "search must produce results"
-    result_subheaders = [s.value for s in at.subheader]
-    assert "Your best matches" not in result_subheaders
-    open_cta = next(
-        button for button in at.button
-        if button.key == "finder_open_selected_design"
-    )
-    assert open_cta.disabled
-    assert open_cta.proto.type == "secondary"
-    caps_after = [c.value for c in at.caption]
-    assert any("usable candidates" in c for c in caps_after), caps_after
-    assert any("Seek time:" in c for c in caps_after), caps_after
-    assert at.dataframe, "ranked table must render"
-
-    # -- 6. Price input/column are conditional -------------------------------
-    at_price = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    at_price.run()
-    assert not at_price.exception, at_price.exception
-    max_price_inputs = [n for n in at_price.sidebar.number_input if n.label.startswith("Max price")]
-    assert not max_price_inputs, "Max price must stay hidden until its checkbox is active"
-    price_toggle = next(
-        c for c in at_price.sidebar.checkbox if c.label == "Filter by max price"
-    )
-    if not price_toggle.disabled:
-        price_toggle.check().run()
-        assert not at_price.exception, at_price.exception
-        assert any(
-            n.label.startswith("Max price") for n in at_price.sidebar.number_input
-        )
-
-    result_df = next(
-        table.value for table in at.dataframe
-        if "F3 Hz" in list(table.value.columns)
-    )
-    assert result_df is not None
-    cols = list(result_df.columns)
-    assert "Driver" in cols and "F3 Hz" in cols, cols
-
-    # -- 7. No literal "None" in the table -----------------------------------
-    table_html = result_df.to_html() if hasattr(result_df, "to_html") else str(result_df)
-    assert "None" not in table_html, f"table contains 'None': {table_html[:400]}"
-
-    # -- 8. Minimum SPL is a hard result-list constraint ---------------------
-    at.session_state["finder_load_types"] = ["Sealed"]
-    at.session_state["finder_min_spl_db"] = 150.0
+    at.session_state['box_design_sidebar_tab'] = 'Load Selection'
     at.run()
+    for load in ('Sealed', 'Bass reflex', 'Bandpass 8th order'):
+        at.button(key=f'load_btn_{load}').click().run()
+        assert not at.exception, at.exception
+        assert at.session_state['load_type'] == load
+    at.button(key='workspace_tab_button_bass_match').click().run()
     assert not at.exception, at.exception
-    min_spl_find = next(
-        b for b in list(at.button) + list(at.sidebar.button) if b.label == _ui._FINDER_CTA_LABEL
-    )
-    min_spl_find.click().run()
-    assert not at.exception, at.exception
-    assert at.session_state["batch_results"] == []
-    assert "No Bass Match result" in [sub.value for sub in at.subheader]
-    assert any(
-        "minimum SPL of 150.0 dB" in warning.value for warning in at.warning
-    )
-
-    # -- 9. Contextual tabs; PR stays a Bass-reflex resonator ----------------
-    # expected_tabs = {
-    #     "Sealed": ["Response", "Excursion", "Impedance", "Group Delay", "Atlas"],
-    #     "Infinite baffle": ["Response", "Excursion", "Impedance", "Group Delay"],
-    #     "Bass reflex": ["Response", "Excursion", "Impedance", "Ports", "Group Delay", "Atlas"],
-    # }
-    # for load_type, expected in expected_tabs.items():
-    #     at_tabs = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    #     at_tabs.session_state["workspace_mode"] = "Box Design"
-    #     at_tabs.session_state["load_type"] = load_type
-    #     at_tabs.run()
-    #     assert not at_tabs.exception, at_tabs.exception
-    #     tabs = [t.label for t in at_tabs.tabs]
-    #     assert tabs == expected, f"{load_type}: got {tabs}, expected {expected}"
-
-    at_pr = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    at_pr.session_state["workspace_mode"] = "Box Design"
-    at_pr.session_state["load_type"] = "Bass reflex"
-    at_pr.session_state["reflex_resonator_type"] = "Passive radiator"
-    at_pr.session_state["box_strategy"] = "Balanced"
-    at_pr.run()
-    assert not at_pr.exception, at_pr.exception
-    assert at_pr.session_state["load_type"] == "Bass reflex"
-    assert at_pr.session_state["box_strategy"] == "Manual"
-    assert any(
-        widget.label == "Resonator type" and widget.value == "Passive radiator"
-        for widget in at_pr.sidebar.selectbox
-    )
-    # assert [tab.label for tab in at_pr.tabs] == [
-    #     "Response", "Excursion", "Impedance", "Ports", "Group Delay",
-    # ]
-
-    at_legacy_pr = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    at_legacy_pr.session_state["workspace_mode"] = "Box Design"
-    at_legacy_pr.session_state["load_type"] = "Passive radiator"
-    at_legacy_pr.session_state["pr_vb_l"] = 37.5
-    at_legacy_pr.session_state["box_strategy"] = "Manual"
-    at_legacy_pr.session_state["sim_auto_align"] = False
-    at_legacy_pr.run()
-    assert not at_legacy_pr.exception, at_legacy_pr.exception
-    assert at_legacy_pr.session_state["load_type"] == "Bass reflex"
-    assert at_legacy_pr.session_state["reflex_resonator_type"] == "Passive radiator"
-    assert np.isclose(at_legacy_pr.session_state["reflex_vb_l"], 37.5)
-
-    # -- 10. State persistence through Finder ↔ Design round-trip -----------
-    at_persist = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
-    at_persist.session_state["workspace_mode"] = "Box Design"
-    at_persist.session_state["load_type"] = "Bass reflex"
-    at_persist.session_state["box_strategy"] = "Manual"
-    at_persist.session_state["sim_auto_align"] = False
-    at_persist.session_state["reflex_vb_l"] = 42.5
-    at_persist.session_state["reflex_fb_hz"] = 55.0
-    at_persist.session_state["sim_voltage"] = 5.55
-    at_persist.run()
-    assert not at_persist.exception, at_persist.exception
-
-    ws = next(c for c in at_persist.segmented_control if c.label == "Workspace")
-    ws.set_value("Bass Match").run()
-    assert not at_persist.exception, at_persist.exception
-    ws = next(c for c in at_persist.segmented_control if c.label == "Workspace")
-    ws.set_value("Box Design").run()
-    assert not at_persist.exception, at_persist.exception
-
-    assert at_persist.session_state["load_type"] == "Bass reflex"
-    assert at_persist.session_state["reflex_vb_l"] == 42.5
-    assert at_persist.session_state["reflex_fb_hz"] == 55.0
-    assert at_persist.session_state["sim_voltage"] == 5.55
+    assert at.session_state['preset_family_filter'] == ['Beyma']
+    assert at.session_state['bass_match_sidebar_tab'] == 'Library filters'
+    assert sum(b.key == 'finder_run_search_main' for b in at.button) == 1
 
 
 test(
@@ -11736,6 +11710,226 @@ def _check_spectral_sampling_and_optimal_frequency_grid():
 
 
 test("Acoustic spectral sampling theorem grid generation", _check_spectral_sampling_and_optimal_frequency_grid)
+
+
+def _check_waveguide_smoke(solver, *args):
+    freq = np.geomspace(10.0, 500.0, 160)
+    result = solver(_kef_b110_ts(), *args, freq_hz=freq)
+    for values in (result.spl_total_db, result.excursion_mm, result.impedance_ohm):
+        assert values.shape == freq.shape
+        assert np.all(np.isfinite(values))
+    assert np.all(result.excursion_mm >= 0.0)
+    assert np.all(result.impedance_ohm > 0.0)
+
+
+test("Acoustic-load smoke: Transmission line", lambda: _check_waveguide_smoke(
+    _acoustics.simulate_transmission_line,
+    _acoustics.TransmissionLineBox((_acoustics.WaveguideSegment(1.5, 100.0),))))
+test("Acoustic-load smoke: MLTL", lambda: _check_waveguide_smoke(
+    _acoustics.simulate_mltl,
+    _acoustics.MltlBox((_acoustics.WaveguideSegment(1.5, 100.0),), 20.0, 0.12)))
+test("Acoustic-load smoke: Quarter-wave", lambda: _check_waveguide_smoke(
+    _acoustics.simulate_quarter_wave, 1.5, 100.0))
+test("Acoustic-load smoke: Back-loaded horn", lambda: _check_waveguide_smoke(
+    _acoustics.simulate_back_loaded_horn, _acoustics.HornBox(1.5, 100.0, 600.0)))
+test("Acoustic-load smoke: Tapped horn", lambda: _check_waveguide_smoke(
+    _acoustics.simulate_tapped_horn, _acoustics.TappedHornBox(1.5, 100.0, 600.0, 0.3)))
+
+
+def _check_explicit_account_administrators():
+    from unittest.mock import MagicMock, patch
+    from google.cloud import firestore
+    from src import saas
+    from src.storage.private_store import InMemoryPrivateStore, FirestorePrivateStore
+
+    for factory in (saas.InMemoryUserAccountStore, InMemoryPrivateStore):
+        store = factory()
+        for email in ('review-marcoderossi@example.invalid', 'playloud79@gmail.com.invalid'):
+            account = store.get_or_create_account(email, email, 'Test')
+            assert not account.is_admin
+        email = 'admin@example.invalid'
+        assert store.get_or_create_account('u', email, 'Test', frozenset({'ADMIN@example.invalid'})).is_admin
+        assert not store.get_or_create_account('u', email, 'Test').is_admin, 'Removed admins must lose privileges'
+
+    for factory in (saas.FirestoreUserAccountStore, FirestorePrivateStore):
+        store = factory.__new__(factory)
+        client = MagicMock()
+        store._client = client
+        ref = client.collection.return_value.document.return_value
+        snap = ref.get.return_value
+        snap.exists = True
+        account = saas.InMemoryUserAccountStore().get_or_create_account('u', 'review-marcoderossi@example.invalid', 'Test')
+        account.is_admin = True  # A stale flag written by the former substring rule.
+        snap.to_dict.return_value = account.to_dict()
+        with patch.object(firestore, 'transactional', lambda fn: fn):
+            result = store.get_or_create_account(account.uid, account.email, account.name)
+        assert not result.is_admin
+        assert client.transaction.return_value.set.call_args.args[1]['is_admin'] is False
+
+
+test('Account administrators require exact configuration and revoke stale grants', _check_explicit_account_administrators)
+
+
+def _check_catalog_refresh_stays_nonblocking():
+    from concurrent.futures import Future
+    from tempfile import TemporaryDirectory
+    from unittest.mock import MagicMock, patch
+    from src import presets
+
+    old = ({'Old': _kef_b110_ts()}, {})
+    new = ({'New': _kef_b110_ts()}, {})
+    pending = Future()
+    executor = MagicMock()
+    executor.submit.return_value = pending
+    with TemporaryDirectory() as tmp, patch.multiple(
+        presets,
+        FIRESTORE_PRESETS_CACHE_PATH=Path(tmp) / 'cloud.pickle',
+        _FIRESTORE_SNAPSHOT=old,
+        _FIRESTORE_REFRESH_FUTURE=None,
+        _FIRESTORE_REFRESH_EXECUTOR=executor,
+        _LAST_DYNAMIC_CATALOG_CHECK_TIME=0.0,
+        _LAST_MANUFACTURER_CATALOG_MTIME=0.0,
+    ):
+        presets._clear_dynamic_catalog_views()
+        assert presets._load_firestore_presets() == old
+        assert not presets.check_dynamic_catalog_freshness()
+        assert not pending.done(), 'Refresh must not wait for a slow worker'
+        assert presets._load_firestore_presets() == old
+        presets.check_dynamic_catalog_freshness()
+        assert executor.submit.call_count == 1, 'Concurrent reruns must share the pending job'
+        pending.set_result(new)
+        assert presets.check_dynamic_catalog_freshness()
+        assert presets._load_firestore_presets() == new
+        failed = Future()
+        failed.set_exception(RuntimeError('network unavailable'))
+        presets._FIRESTORE_REFRESH_FUTURE = failed
+        assert not presets.check_dynamic_catalog_freshness()
+        assert presets._load_firestore_presets() == new, 'Failure must retain the successful snapshot'
+    presets._clear_dynamic_catalog_views()
+
+
+test('Catalog refresh preserves snapshots without blocking UI or duplicating workers', _check_catalog_refresh_stays_nonblocking)
+
+
+def _check_catalog_snapshot_write_and_offline_read():
+    from tempfile import TemporaryDirectory
+    from unittest.mock import MagicMock, patch
+    from google.cloud import firestore
+    from src import presets
+
+    client = MagicMock()
+    client.collection.return_value.stream.return_value = []
+    with TemporaryDirectory() as tmp, patch.object(presets, 'FIRESTORE_PRESETS_CACHE_PATH', Path(tmp) / 'cloud.pickle'):
+        with patch.object(firestore, 'Client', return_value=client):
+            assert presets._fetch_firestore_presets() == ({}, {})
+        assert presets.FIRESTORE_PRESETS_CACHE_PATH.exists(), 'Successful internal clients must persist snapshots'
+        client.collection.return_value.stream.assert_called_once_with(timeout=3.0, retry=None)
+        saved = presets.FIRESTORE_PRESETS_CACHE_PATH.read_bytes()
+        with patch.object(firestore, 'Client', side_effect=RuntimeError('offline')):
+            assert presets._fetch_firestore_presets() is None
+        assert presets.FIRESTORE_PRESETS_CACHE_PATH.read_bytes() == saved
+        with patch.object(presets, '_FIRESTORE_SNAPSHOT', None), patch.object(firestore, 'Client', side_effect=AssertionError('No network on lookup')):
+            presets._load_firestore_presets.cache_clear()
+            assert presets._load_firestore_presets() == ({}, {})
+        presets.invalidate_preset_caches()
+        assert presets.FIRESTORE_PRESETS_CACHE_PATH.exists(), 'Manual invalidation must keep last good disk data'
+    presets._clear_dynamic_catalog_views()
+
+
+test('Cloud catalog persists successful reads and keeps offline snapshots', _check_catalog_snapshot_write_and_offline_read)
+
+
+def _check_ui_account_reads_and_hidden_project_history():
+    import os
+    from unittest.mock import patch
+    from streamlit.testing.v1 import AppTest
+
+    with patch.dict(os.environ, {'LOAD_FORGE_SAAS_ENABLED': 'true', 'LOAD_FORGE_SAAS_BACKEND': 'memory', 'LOAD_FORGE_AUTH_BYPASS': 'true', 'LOAD_FORGE_DEV_EMAIL': 'review-user@example.invalid', 'LOAD_FORGE_ALLOWED_EMAILS': ''}):
+        at = AppTest.from_file(str(ROOT / 'ui_app.py'), default_timeout=60)
+        at.run()
+        assert not at.exception, at.exception
+        import storage.private_store as private
+        import saas
+        original = private.InMemoryPrivateStore.get_or_create_account
+        calls = []
+        def counted(store, *args, **kwargs):
+            calls.append(1)
+            return original(store, *args, **kwargs)
+        with patch.object(private.InMemoryPrivateStore, 'get_or_create_account', counted):
+            for mode in ('Bass Match', 'Box Design', 'Manage Projects'):
+                calls.clear()
+                at.session_state['workspace_mode'] = mode
+                at.run()
+                assert not at.exception, at.exception
+                assert len(calls) == 1, (mode, len(calls))
+        at.session_state['_cloud_project_id'] = 'prj_review'
+        with patch.object(saas.InMemoryProjectStore, 'list_revisions', side_effect=AssertionError('Hidden history queried')):
+            at.run()
+            assert not at.exception, at.exception
+            assert not at.error, [e.value for e in at.error]
+
+
+test('UI reads account once per rerun and skips hidden project history', _check_ui_account_reads_and_hidden_project_history)
+
+
+def _check_ui_response_spec_cache():
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_file(str(ROOT / 'ui_app.py'), default_timeout=60)
+    at.session_state['workspace_mode'] = 'Box Design'
+    at.session_state['box_design_sidebar_tab'] = 'Enclosure Parameters'
+    at.run()
+    assert not at.exception, at.exception
+    first = at.session_state['_response_spec_cache']
+    at.run()
+    assert at.session_state['_response_spec_cache'] is first, 'Unchanged reruns must reuse the serialized specification'
+    at.session_state['box_design_sidebar_tab'] = 'Load Selection'
+    at.run()
+    assert at.session_state['_response_spec_cache'] is first, 'Sidebar navigation must not rebuild the response'
+    at.session_state['plot_response_window_hz'] = (40, 250)
+    at.run()
+    zoomed = at.session_state['_response_spec_cache']
+    assert zoomed is not first, 'Zoom must invalidate the cached chart'
+    at.session_state['box_design_sidebar_tab'] = 'Enclosure Parameters'
+    at.run()
+    at.number_input(key='sim_voltage').set_value(5.0).run()
+    assert not at.exception, at.exception
+    assert at.session_state['_response_spec_cache'] is not zoomed, 'Changed drive level must update the response'
+
+
+test('UI response chart reuses unchanged specs and invalidates zoom and physics', _check_ui_response_spec_cache)
+
+
+def _check_ui_autosave_timer_registered():
+    import os
+    from unittest.mock import patch
+    from streamlit.testing.v1 import AppTest
+    from streamlit.testing.v1.local_script_runner import LocalScriptRunner
+
+    emitted = []
+    original = LocalScriptRunner._enqueue_forward_msg
+    def capture(runner, msg):
+        if msg.HasField('auto_rerun'):
+            emitted.append((msg.auto_rerun.interval, msg.auto_rerun.fragment_id))
+        return original(runner, msg)
+    with patch.dict(os.environ, {'LOAD_FORGE_SAAS_ENABLED': 'true', 'LOAD_FORGE_SAAS_BACKEND': 'memory', 'LOAD_FORGE_AUTH_BYPASS': 'true', 'LOAD_FORGE_DEV_EMAIL': 'autosave@example.invalid', 'LOAD_FORGE_ALLOWED_EMAILS': ''}), patch.object(LocalScriptRunner, '_enqueue_forward_msg', capture):
+        at = AppTest.from_file(str(ROOT / 'ui_app.py'), default_timeout=60)
+        at.session_state['project_name'] = 'Autosave regression'
+        at.run()
+        assert not at.exception, at.exception
+        assert len({fragment_id for interval, fragment_id in emitted if interval == 2}) == 2, 'Catalog and persistence each require one periodic fragment'
+        assert at.session_state['_cloud_save_status'] == 'unsaved'
+        at.run()  # Observe widget defaults initialized after the first sidebar render.
+        at.session_state['_cloud_dirty_since'] = 0.0
+        at.run()
+        assert at.session_state['_cloud_save_status'] == 'saved'
+        emitted.clear()
+        at.session_state['workspace_mode'] = 'Manage Projects'
+        at.run()
+        assert not at.exception, at.exception
+        assert len({fragment_id for interval, fragment_id in emitted if interval == 2}) == 2, 'Manage Projects must not mount a duplicate autosave timer'
+
+
+test('UI autosave registers periodic callbacks and a single persistence timer', _check_ui_autosave_timer_registered)
 
 
 if not _IS_MP_CHILD:
