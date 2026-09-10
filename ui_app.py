@@ -3451,44 +3451,61 @@ def _render_billing_action_button(acc: _saas.UserAccount) -> None:
     )
 
 
-def _render_current_project_sidebar_header() -> None:
-    """Render minimal, compact project identity, autosave status, and link to Manage Projects."""
-    project_name = _project_display_name(st.session_state.get("project_name", ""))
+def _render_main_account_header() -> None:
+    """Expose account, project and community actions on the main screen.
 
-    # Minimal user identity line if authenticated
+    Keeping these controls out of the sidebar lets every sidebar command stay
+    visible without scrolling.
+    """
     if _CURRENT_SAAS_USER is not None:
         acc = _get_current_user_account()
-        u_col1, u_col2 = st.columns([4.2, 0.8], vertical_alignment="center")
-        with u_col1:
+        account_col, billing_col, signout_col = st.columns(
+            [4.4, 2.0, 0.6], vertical_alignment="center"
+        )
+        with account_col:
             if acc:
                 st.caption(
-                    f"**{html.escape(_CURRENT_SAAS_USER.name or _CURRENT_SAAS_USER.email or 'Engineer')}** · *{acc.plan.upper()}* · **{acc.credits_balance:,}** credits"
+                    f"**{html.escape(_CURRENT_SAAS_USER.name or _CURRENT_SAAS_USER.email or 'Engineer')}**"
+                    f" · *{acc.plan.upper()}* · **{acc.credits_balance:,}** credits"
                 )
             elif _CURRENT_SAAS_USER.email:
                 st.caption(html.escape(_CURRENT_SAAS_USER.email))
-        with u_col2:
-            st.button("⏻", key="sidebar_sign_out_btn", help="Sign out / Logout", on_click=_sign_out_saas)
-        if acc:
-            _render_billing_action_button(acc)
-
-    with st.container(border=True):
-        st.markdown(f"**Project**: {html.escape(project_name)}")
-        if st.session_state.get("workspace_mode") != "Manage Projects":
-            _render_cloud_persistence_status()
-        if st.button(
+        with billing_col:
+            if acc:
+                _render_billing_action_button(acc)
+        with signout_col:
+            st.button(
+                "⏻",
+                key="sidebar_sign_out_btn",
+                help="Sign out / Logout",
+                on_click=_sign_out_saas,
+            )
+    project_name = _project_display_name(st.session_state.get("project_name", ""))
+    project_col, manage_col, community_col = st.columns(
+        [4.4, 1.5, 1.5], vertical_alignment="center"
+    )
+    with project_col:
+        if _project_name_is_placeholder(project_name):
+            st.markdown(
+                "**Project name required** · name this project in Manage Projects "
+                "to enable cloud save."
+            )
+        else:
+            st.markdown(f"**Project**: {html.escape(project_name)}")
+        _render_cloud_persistence_status()
+    with manage_col:
+        st.button(
             "Manage Projects",
             key="sidebar_manage_projects_btn",
             width="stretch",
             on_click=_open_manage_projects_workspace,
-        ):
-            pass
-
-    _render_hud_explore_community_button(key="sidebar_community_btn")
+        )
+    with community_col:
+        _render_hud_explore_community_button(key="sidebar_community_btn")
 
 
 def _render_project_menu() -> None:
-    """Legacy compatibility hook forwarding to current project header."""
-    _render_current_project_sidebar_header()
+    """Compatibility hook: the project header now lives on the main screen."""
 
 
 def _render_manage_projects_cloud_list() -> None:
@@ -12548,9 +12565,9 @@ _poll_catalog_refresh()
 with st.sidebar:
     if _BRAND_IMAGE.exists():
         with st.container(key="brand_logo"):
-            st.image(str(_BRAND_IMAGE), width="stretch")
+            st.image(str(_BRAND_IMAGE), width=170)
         st.markdown(
-            f"<div style='text-align: right; color: rgba(255,255,255,0.4); font-size: 0.75rem; margin-top: -0.5rem; margin-bottom: 1rem;'>v{_VERSION}</div>", 
+            f"<div style='text-align: right; color: rgba(255,255,255,0.4); font-size: 0.7rem; margin-top: -0.4rem; margin-bottom: 0.4rem;'>v{_VERSION}</div>", 
             unsafe_allow_html=True
         )
     else:
@@ -12558,25 +12575,6 @@ with st.sidebar:
         st.caption(f"v{_VERSION}")
 
     workspace_mode = str(st.session_state.get("workspace_mode", "Bass Match"))
-    if (
-        not (_explore_requested or _public_project_requested)
-        and workspace_mode in ("Bass Match", "Box Design")
-    ):
-        st.toggle(
-            "Advanced mode",
-            key="ui_show_advanced",
-            help="Show expert controls: search profile, evaluation grid and "
-                 "driver T/S overrides. Off keeps the guided workflow.",
-        )
-        if _show_advanced_controls():
-            st.caption(
-                "Advanced mode · expert controls are open in the active tabs."
-            )
-        else:
-            st.caption(
-                "Simple mode · guided scenario, load, volume and goal. Enable "
-                "Advanced for full controls."
-            )
     if _explore_requested:
         _render_community_sidebar()
     elif _public_project_requested:
@@ -13392,6 +13390,27 @@ with st.sidebar:
                     st.query_params["admin_users"] = "1"
                     st.session_state["workspace_mode"] = "User Management"
                     st.rerun()
+
+    if (
+        not (_explore_requested or _public_project_requested)
+        and workspace_mode in ("Bass Match", "Box Design")
+    ):
+        st.divider()
+        st.toggle(
+            "Advanced mode",
+            key="ui_show_advanced",
+            help="Show expert controls: search profile, evaluation grid and "
+                 "driver T/S overrides. Off keeps the guided workflow.",
+        )
+        if _show_advanced_controls():
+            st.caption(
+                "Advanced mode · expert controls are open in the active tabs."
+            )
+        else:
+            st.caption(
+                "Simple mode · guided scenario, load, volume and goal. Enable "
+                "Advanced for full controls."
+            )
 
 
 def _render_user_management() -> None:
@@ -14838,6 +14857,12 @@ if workspace_mode == "User Management":
 if workspace_mode == "Manage Projects":
     _render_manage_projects_workspace()
     st.stop()
+
+if (
+    workspace_mode in ("Bass Match", "Box Design")
+    and not (_explore_requested or _public_project_requested)
+):
+    _render_main_account_header()
 
 if workspace_mode == "Bass Match":
     _render_find_driver_workspace(filtered_preset_names)

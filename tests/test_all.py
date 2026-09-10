@@ -3171,12 +3171,16 @@ def _check_ui_technical_sidebar_minimalism():
     # Assert sidebar does NOT contain file uploaders or expanders for project lifecycle
     assert not any(item.key == "project_menu_expander" for item in at.sidebar.expander)
     assert not any("mp_file_uploader" in str(item.key) for item in at.sidebar.file_uploader)
-    # Assert sidebar contains the minimal current project header button
-    assert any(b.key == "sidebar_manage_projects_btn" for b in at.sidebar.button)
+    # Project lifecycle and community controls now live on the main screen; the
+    # sidebar keeps only workspace commands, so they stay visible without scroll.
+    assert not any(b.key == "sidebar_manage_projects_btn" for b in at.sidebar.button)
+    assert any(b.key == "sidebar_manage_projects_btn" for b in at.button)
+    assert not any(b.key == "sidebar_community_btn" for b in at.sidebar.button)
+    assert any(b.key == "sidebar_community_btn" for b in at.button)
 
 
 test(
-    "UI technical sidebar retains only minimal project header and technical controls",
+    "UI technical sidebar keeps project lifecycle on the main screen",
     _check_ui_technical_sidebar_minimalism,
 )
 

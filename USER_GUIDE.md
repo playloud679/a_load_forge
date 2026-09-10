@@ -19,14 +19,18 @@ cache warm and does not start Bass Match workers or hidden chart calculations.
   only the catalog candidates allowed by the sidebar filters, and preserves the
   current design until a candidate is explicitly applied.
 
-The collapsible **Project** section sits at the top of the sidebar. Its import,
-export and cloud/browser controls are built only when the section is open, so a
-closed project menu adds no work to routine design clicks. Load Forge creates a
-browser-local project automatically on first use and autosaves it after every
-interaction. One existing project opens automatically; when the browser holds
-several projects, the normal app opens immediately with **Project** expanded so
-one can be opened or **New project** can be chosen. The section renames, creates,
-switches, downloads and imports projects without a separate landing page.
+The **Project** row sits at the top of the main screen, above the workspace:
+it shows the active project name (or **Project name required** when unnamed),
+the cloud save status, **Manage Projects** and **Explore Community**. The
+account row directly above it exposes the signed-in name, plan and credits,
+the **Subscriptions & Credits** action and sign-out. Keeping these controls on
+the main screen leaves the sidebar to the workspace commands, so they stay
+visible without scrolling. Load Forge creates a browser-local project
+automatically on first use and autosaves it after every interaction. One
+existing project opens automatically; when the browser holds several projects,
+**Manage Projects** lists them and lets one be opened or a **New project**
+chosen. The workspace renames, creates, switches, downloads and imports
+projects without a separate landing page.
 **New project** starts from the normal Load Forge defaults and does not inherit
 the previous project's driver, enclosure, Finder results, comparison curves,
 manual snapshots or plot settings. Any older browser-load request still in
@@ -308,8 +312,8 @@ basic library filters (search, manufacturer, price). Everything else — driver
 configuration, comparison voltage, F3/MOL/SPL/ripple/excursion/delay
 constraints, provenance/size/class filters, data coverage, search profile,
 evaluation range, simulation resolution and driver T/S overrides — is hidden
-and keeps its defaults. Enable **Advanced mode** at the top of the sidebar to
-reveal it; the active values keep applying in both modes. The active mode is
+and keeps its defaults. Enable **Advanced mode** at the bottom of the sidebar
+to reveal it; the active values keep applying in both modes. The active mode is
 shown under the toggle, and in Advanced mode the expert sections open directly
 (**Advanced evaluation**, **Advanced driver filters**, **Advanced driver
 parameters**). Box Design Simple keeps the driver preset, the load cards and

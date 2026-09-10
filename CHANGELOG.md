@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.16.18 (2026-09-10)
+
+- Reorganize the chrome so the sidebar commands stay visible without scrolling:
+  the account row (name · plan · credits, **Subscriptions & Credits**,
+  sign-out) and the project row (project name or **Project name required**,
+  cloud save status, **Manage Projects**, **Explore Community**) now live at
+  the top of the main screen. The brand logo is smaller and the **Advanced
+  mode** toggle moved to the bottom of the sidebar, leaving the sidebar to the
+  workspace commands.
+- Regression tests updated for the relocated project/community controls.
+- Fresh active suite after the last edit: **224 passed, 0 failed, 0 skipped**.
+
 ## 0.16.17 (2026-09-10)
 
 - Restrict reruns to what is strictly necessary. The design analysis tabs
