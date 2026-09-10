@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
-from datetime import UTC, datetime
-from pathlib import Path
 import atexit
 import multiprocessing
 import os
 import time
 import uuid
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from datetime import UTC, datetime
+from pathlib import Path
 
 import altair as alt
 import numpy as np

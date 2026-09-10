@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import logging
+from pathlib import Path
 
 import acoustics as _acoustics
 import ranking as _ranking
-
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 

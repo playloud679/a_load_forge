@@ -12014,6 +12014,42 @@ def _check_ui_autosave_timer_registered():
 test('UI autosave registers periodic callbacks and a single persistence timer', _check_ui_autosave_timer_registered)
 
 
+def _check_load_type_icons_uniform():
+    from PIL import Image
+
+    icon_dir = ROOT / "assets" / "load_types"
+    expected = {
+        "infinite_baffle.png", "sealed.png", "bass_reflex.png",
+        "bandpass_4th.png", "bandpass_6th.png", "bandpass_8th.png", "dccav.png",
+    }
+    present = {path.name for path in icon_dir.glob("*.png")}
+    assert expected <= present, expected - present
+
+    heights = {}
+    for path in sorted(icon_dir.glob("*.png")):
+        image = Image.open(path).convert("RGB")
+        width, height = image.size
+        pixels = image.load()
+        top = bottom = None
+        for y in range(height):
+            for x in range(width):
+                r, g, b = pixels[x, y]
+                if r < 130 and g < 130 and b < 130:
+                    if top is None:
+                        top = y
+                    bottom = y
+                    break
+        assert top is not None, f"{path.name} has no dark enclosure pixels"
+        heights[path.name] = bottom - top + 1
+
+    spread = max(heights.values()) - min(heights.values())
+    assert spread <= 6, heights
+    assert min(heights.values()) >= 0.45 * height, heights
+
+
+test("UI load-type diagrams keep one large uniform enclosure height", _check_load_type_icons_uniform)
+
+
 if not _IS_MP_CHILD:
     print(f"\n{'=' * 40}")
     print(f"  PASS: {PASS}   FAIL: {FAIL}   SKIP: {SKIP}")

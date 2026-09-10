@@ -2,22 +2,22 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import csv
 import hashlib
 import io
 import json
 import re
 import uuid
+from pathlib import Path
 
 import altair as alt
+import generate_afw_dccav as _afw_export
 import numpy as np
 import pandas as pd
 import streamlit as st
 
 import acoustics as _acoustics
 import engine as _engine
-import generate_afw_dccav as _afw_export
 import port_cad as _port_cad
 
 from . import catalog as _catalog
@@ -2022,7 +2022,7 @@ def _plot_ports(
         ]
         g_labels = [
             f"{label} limit ({limit:.1f} m/s)"
-            for (_, label, _, _), limit in zip(guideline_specs, g_limits)
+            for (_, label, _, _), limit in zip(guideline_specs, g_limits, strict=False)
         ]
         g_colors = [
             active_color if style == active_style_key else muted_color

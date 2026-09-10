@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import json
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
-import json
 
 import numpy as np
 import pandas as pd

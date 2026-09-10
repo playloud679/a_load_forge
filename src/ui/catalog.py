@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from functools import cache, lru_cache
-from pathlib import Path
 import hashlib
 import html
 import json
 import os
+from functools import lru_cache
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -691,7 +691,7 @@ def _render_driver_mechanical_drawing(
         st.caption("Mechanical dimensions not published for this driver.")
         return
     metrics = st.columns(min(3, len(shown)))
-    for column, (label, value) in zip(metrics * ((len(shown) + 2) // 3), shown.items()):
+    for column, (label, value) in zip(metrics * ((len(shown) + 2) // 3), shown.items(), strict=False):
         unit = "kg" if label == "Weight" else "mm"
         column.metric(label, f"{value:.1f} {unit}")
     overall = mechanical.overall_diameter_mm or 100.0

@@ -2,27 +2,26 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
-from functools import cache, lru_cache
-from pathlib import Path
 import base64
 import hashlib
 import html
-import io
 import json
 import os
 import re
 import time
 import uuid
 import zlib
+from datetime import UTC, datetime
+from functools import lru_cache
+from pathlib import Path
 
+import compare_afw_sealed as _afw_compare
 import numpy as np
 import pandas as pd
 import streamlit as st
 
 import acoustics as _acoustics
 import billing as _billing
-import compare_afw_sealed as _afw_compare
 import saas as _saas
 
 from . import account as _account
@@ -145,9 +144,10 @@ def _process_project_cover_image(uploaded_file, max_dim: int = 800, quality: int
     if uploaded_file is None:
         return None
     try:
-        from PIL import Image
-        import io
         import base64
+        import io
+
+        from PIL import Image
 
         raw_bytes = uploaded_file.getvalue() if hasattr(uploaded_file, "getvalue") else uploaded_file.read()
         if not raw_bytes:
@@ -1726,7 +1726,7 @@ def _render_embed_project_widget(publication_id: str) -> None:
     """Render an ultra-clean, minimal responsive widget for iframe embedding."""
     try:
         pub = _account._get_public_store().get_public_project(publication_id)
-    except Exception as exc:
+    except Exception:
         _runtime.logger.exception("Could not retrieve public project for embed")
         pub = None
 
@@ -1849,7 +1849,7 @@ def _render_public_project_page(publication_id: str) -> None:
     """Render the public technical project page for a published snapshot."""
     try:
         pub = _account._get_public_store().get_public_project(publication_id)
-    except Exception as exc:
+    except Exception:
         _runtime.logger.exception("Could not retrieve public project")
         pub = None
 
@@ -2182,10 +2182,10 @@ def _render_public_project_page(publication_id: str) -> None:
 
                     overlay_rows = [
                         {"frequency_hz": float(f), "value": float(z), "series": "Simulated Impedance"}
-                        for f, z in zip(result.frequency_hz, result.impedance_ohm)
+                        for f, z in zip(result.frequency_hz, result.impedance_ohm, strict=False)
                     ] + [
                         {"frequency_hz": float(f), "value": float(z), "series": f"Measured ({active_curve.label})"}
-                        for f, z in zip(active_curve.freq, active_curve.values)
+                        for f, z in zip(active_curve.freq, active_curve.values, strict=False)
                         if f_min <= f <= f_max
                     ]
                     ov_chart = _analysis._line_chart(
@@ -2211,10 +2211,10 @@ def _render_public_project_page(publication_id: str) -> None:
 
                     overlay_rows = [
                         {"frequency_hz": float(f), "value": float(s), "series": "Simulated SPL (2.83V)"}
-                        for f, s in zip(result.frequency_hz, result.spl_total_db)
+                        for f, s in zip(result.frequency_hz, result.spl_total_db, strict=False)
                     ] + [
                         {"frequency_hz": float(f), "value": float(s), "series": f"Measured ({active_curve.label})"}
-                        for f, s in zip(active_curve.freq, active_curve.values)
+                        for f, s in zip(active_curve.freq, active_curve.values, strict=False)
                         if f_min <= f <= f_max
                     ]
                     ov_chart = _analysis._line_chart(

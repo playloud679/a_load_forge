@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Any
 import base64
+from typing import Any
 
 import streamlit as st
 
 from . import constants as _constants
 from . import state as _state
-
 
 GLOBAL_CSS = """
     <style>

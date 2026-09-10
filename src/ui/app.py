@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
+import generate_afw_dccav as _afw_export
 import numpy as np
 import streamlit as st
 
 import acoustics as _acoustics
 import billing as _billing
-import generate_afw_dccav as _afw_export
 import ranking as _ranking
 
 from . import account as _account
