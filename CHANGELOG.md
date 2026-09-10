@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.12 (2026-09-10)
+
+- Remove the truncated completion toast from Bass Match. The persistent run
+  statistics box and the results caption already report completion and timings,
+  so the toast only overlapped the brief and hid its elapsed time behind a
+  "view more" link.
+- Fresh active suite after the last edit: **224 passed, 0 failed, 0 skipped**.
+
 ## 0.16.11 (2026-09-10)
 
 - Refresh the persisted Bass Match run-statistics box as soon as a scan

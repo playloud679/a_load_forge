@@ -9180,7 +9180,6 @@ def _run_find_driver_search(
             f"Bass Match · 0/{eligible_total} simulations"
             f" · {prefilter_stats['rejected_simulations']} skipped a priori"
         )
-    st.session_state.pop("_finder_match_completion", None)
     all_rows: list[dict] = []
     load_run_stats: dict[str, dict] = {}
     completed_offset = 0
@@ -9332,18 +9331,9 @@ def _run_find_driver_search(
     simulations_per_second = (
         eligible_total / elapsed_s if elapsed_s > 0.0 else 0.0
     )
-    completion_text = (
-        f"Bass Match complete · {eligible_total} simulations after pre-filtering "
-        f"{prefilter_stats['rejected_simulations']} · "
-        f"{len(all_rows)} unique drivers · "
-        f"{collapsed_result_rows} alternate load rows collapsed · "
-        f"Elapsed: {elapsed_s:.1f} s "
-        f"({elapsed_ms_per_simulation:.1f} ms/simulation)"
-    )
     progress.progress(1.0)
     progress_text.empty()
     progress.empty()
-    st.session_state["_finder_match_completion"] = completion_text
     st.session_state["batch_results"] = all_rows
     st.session_state["batch_search_completed"] = True
     evals_per_candidate = max(evaluations_per_load.values(), default=0)
@@ -10394,10 +10384,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     """Render Finder results and candidate application, separate from inputs."""
     load_type = str(st.session_state.get("load_type", "DCCAV"))
     _render_bass_match_hero(filtered_preset_names)
-
-    match_completion = st.session_state.pop("_finder_match_completion", None)
-    if match_completion:
-        st.toast(str(match_completion))
 
     finder_volume_l = float(st.session_state.get("finder_volume_l", 0.0))
     # Old/restored sessions can contain an empty load list even though the

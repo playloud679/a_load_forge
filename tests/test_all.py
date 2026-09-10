@@ -10257,9 +10257,6 @@ def _check_ui_finder_main_action_runs_search():
     assert not any(
         "Bass Match complete" in caption.value for caption in at.caption
     ), "completion must not consume permanent page height"
-    assert "_finder_match_completion" not in at.session_state, (
-        "the one-shot completion message must be consumed after the rerun"
-    )
     assert "Your best matches" not in [sub.value for sub in at.subheader]
     assert at.dataframe, "ranked rows must appear in the main workspace"
     result_cta = next(
