@@ -348,7 +348,10 @@ designs with `F3 ≤ 40 Hz`; `0` disables the constraint.
   matching-preset count above **Run Bass Match** updates live as filters change.
   Every match shows a live per-candidate progress bar. Small scans advance on
   the serial path; scans above eight candidates use worker processes and keep
-  the same progress indicator through every selected load.
+  the same progress indicator through every selected load. After a scan, the
+  persistent run statistics report total seek time, credits and a per-load
+  breakdown (usable/attempted, evaluations per driver and elapsed seconds), so
+  the heavier DCCAV search stays visible next to the lighter reflex pass.
 - The full-width **Open this design in Box Design** action sits immediately
   below the brief: it is gray and disabled until a ranked row is selected,
   then turns emerald and opens that design. Selecting 2–8 rows changes the same

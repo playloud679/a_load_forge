@@ -9182,8 +9182,14 @@ def _run_find_driver_search(
         )
     st.session_state.pop("_finder_match_completion", None)
     all_rows: list[dict] = []
-    load_run_stats: dict[str, dict[str, int]] = {}
+    load_run_stats: dict[str, dict] = {}
     completed_offset = 0
+    finder_search_profile = str(_finder_value("finder_search_profile"))
+    evaluations_per_load = {
+        lt: _ranking.finder_optimizer_evaluation_limit(
+            profile=finder_search_profile, load_type=lt)
+        for lt in finder_load_types
+    }
     for lt in finder_load_types:
         load_preset_names = candidate_pools.get(lt, [])
         load_scan_count = len(load_preset_names)
@@ -9207,7 +9213,7 @@ def _run_find_driver_search(
             if os.getenv("K_SERVICE") else int(_finder_value("finder_points")),
             load_scan_count,
         )
-        finder_search_profile = str(_finder_value("finder_search_profile"))
+        load_started = time.perf_counter()
         if load_scan_count > 8:
             batch_rows = _batch_rank_presets_parallel(
                 *rank_args,
@@ -9254,6 +9260,11 @@ def _run_find_driver_search(
         load_run_stats[lt] = {
             "attempted": load_scan_count,
             "usable": len(batch_rows),
+            "elapsed_s": time.perf_counter() - load_started,
+            "evaluations_per_driver": (
+                0 if (is_infinite_baffle or uses_pr)
+                else int(evaluations_per_load.get(lt, 0))
+            ),
         }
         if lt == "Bass reflex":
             for row in batch_rows:
@@ -9335,11 +9346,6 @@ def _run_find_driver_search(
     st.session_state["_finder_match_completion"] = completion_text
     st.session_state["batch_results"] = all_rows
     st.session_state["batch_search_completed"] = True
-    evaluations_per_load = {
-        lt: _ranking.finder_optimizer_evaluation_limit(
-            profile=finder_search_profile, load_type=lt)
-        for lt in finder_load_types
-    }
     evals_per_candidate = max(evaluations_per_load.values(), default=0)
     # Each candidate undergoes full compass evaluations + narrow F3 refinement passes + finalist adaptive grid verification
     actual_acoustic_simulations = 0
@@ -9950,6 +9956,31 @@ def _render_finder_constraint_grid(
     )
 
 
+def _finder_per_load_stats_str(stats: object) -> str:
+    """Return the compact per-load seek-time/evaluations breakdown, if recorded."""
+    if not isinstance(stats, dict):
+        return ""
+    try:
+        parts = []
+        for load_name, load_stat in (stats.get("loads") or {}).items():
+            if not isinstance(load_stat, dict):
+                continue
+            piece = (
+                f"{load_name}: {int(load_stat.get('usable', 0))}"
+                f"/{int(load_stat.get('attempted', 0))}"
+            )
+            load_evals = int(load_stat.get("evaluations_per_driver", 0) or 0)
+            if load_evals > 0:
+                piece += f" · {load_evals} evals/drv"
+            load_elapsed = float(load_stat.get("elapsed_s", 0.0) or 0.0)
+            if load_elapsed > 0.0:
+                piece += f" · {load_elapsed:.2f} s"
+            parts.append(piece)
+    except (TypeError, ValueError):
+        return ""
+    return " | ".join(parts)
+
+
 def _render_finder_run_statistics() -> None:
     """Keep the last measured Bass Match throughput visible and persistent."""
     stats = st.session_state.get("finder_last_run_stats")
@@ -9991,6 +10022,11 @@ def _render_finder_run_statistics() -> None:
     else:
         evals_label = str(evals_per_drv)
     actual_str = f" · 🔬 <strong>{actual_sims:,}</strong> solves ({evals_label} evals/drv · <em>{profile_name}</em>)" if actual_sims > 0 else ""
+    per_load_str = _finder_per_load_stats_str(stats)
+    load_str = (
+        f" · 🧩 <strong>Per load:</strong> {per_load_str}"
+        if per_load_str else ""
+    )
     credit_mult = _ranking.search_profile_credit_multiplier(profile_name)
     credits_consumed = simulations * credit_mult
     st.markdown(
@@ -9999,6 +10035,7 @@ def _render_finder_run_statistics() -> None:
         f"<span style='color: #10b981;'>({ms_per_sim:.1f} ms/sim · {simulations_per_second:.0f} sim/s · {ms_per_driver:.1f} ms/driver)</span>"
         f" · 💳 <strong>{credits_consumed:,} credits</strong> ({simulations:,} candidates · {credit_mult}× {profile_name})"
         f"{actual_str}"
+        f"{load_str}"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -10559,6 +10596,9 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                 seek_time_str = f" · ⏱️ Seek time: {el_s:.2f} s ({ms_sim:.1f} ms/sim · {sims_sec:.0f} sim/s)"
         except (TypeError, ValueError):
             seek_time_str = ""
+    per_load_summary = _finder_per_load_stats_str(run_stats)
+    if per_load_summary:
+        per_load_summary = f" · 🧩 Per load: {per_load_summary}"
 
     st.caption(
         f"{len(batch_rows)} usable candidates · "
@@ -10569,6 +10609,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         )
         + f"{load_summary}{volume_summary} · {objective}"
         + f"{seek_time_str}"
+        + f"{per_load_summary}"
     )
     full_df = pd.DataFrame(batch_rows)
     if "_load_type" in full_df.columns:

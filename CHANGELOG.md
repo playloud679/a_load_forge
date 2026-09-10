@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.10 (2026-09-10)
+
+- Show the Bass Match seek time broken down per load: usable/attempted
+  candidates, evaluations per driver and elapsed seconds for each selected
+  topology. This makes the adaptive budget visible (a DCCAV pass runs roughly
+  twice the evaluations of a reflex pass) and distinguishes real search time
+  from cache-served reruns with unchanged constraints.
+- Fresh active suite after the last edit: **224 passed, 0 failed, 0 skipped**.
+
 ## 0.16.9 (2026-09-10)
 
 - **Adaptive Finder optimizer budgets per topology**: evaluation limits now

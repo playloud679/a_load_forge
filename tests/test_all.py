@@ -10238,6 +10238,16 @@ def _check_ui_finder_main_action_runs_search():
     find_button.click().run()
     assert not at.exception, at.exception
     assert at.session_state["batch_results"], "main action must produce ranked rows"
+    run_stats = at.session_state["finder_last_run_stats"]
+    assert run_stats["loads"], "per-load statistics must be recorded"
+    for load_stat in run_stats["loads"].values():
+        assert load_stat["elapsed_s"] >= 0.0
+        assert load_stat["evaluations_per_driver"] > 0
+    assert "Per load:" in (
+        " ".join(item.value for item in at.markdown)
+        + " "
+        + " ".join(item.value for item in at.caption)
+    ), "the run statistics must break the seek time down per load"
     assert not any(
         "Bass Match inputs changed" in item.value for item in at.info
     ), "an empty persisted load list must not hide the freshly ranked fallback load"
