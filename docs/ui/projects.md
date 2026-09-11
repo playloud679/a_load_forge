@@ -36,8 +36,14 @@
   drop user edits.
 - Cloud lists are invalidated explicitly (`_invalidate_cloud_project_list`)
   after writes.
+- **New Project never discards work**: `_create_new_project(name)` keeps the
+  active design and Bass Match state, detaches from any previous cloud record
+  and autosaves the work into the new project. The old clean-slate behaviour
+  is an explicit opt-in through the "Start from a blank design" checkbox
+  (`start_blank=True`), which is the only caller of
+  `_clear_active_project_state`.
 
 ## Tests
 
 `_check_lfp_*`, `_check_cloud_*`, `_check_public_*`, `_check_ui_share_*`,
-`_check_saas_*` (billing/credits).
+`_check_saas_*` (billing/credits), `_check_ui_new_project_preserves_work`.

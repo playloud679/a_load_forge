@@ -666,13 +666,20 @@ def _duplicate_active_project() -> None:
         _mark_cloud_project_dirty(immediate=True)
     st.toast(f"Duplicated project: {copy_name}")
 
-def _create_new_project(name: str) -> None:
-    """Reset active state and initialize a newly named independent project."""
+def _create_new_project(name: str, *, start_blank: bool = False) -> None:
+    """Save the current work as a newly named independent project.
+
+    Creating a project must never discard the active design or Bass Match run:
+    by default the new project adopts the current state, detaches from any
+    previous cloud record and autosaves immediately. ``start_blank=True`` is
+    the explicit opt-in for the old clean-slate behaviour.
+    """
     project_name = str(name).strip()
     if not project_name:
         raise ValueError("Project name is required")
-    _clear_active_project_state()
-    _state._reset_finder_defaults()
+    if start_blank:
+        _clear_active_project_state()
+        _state._reset_finder_defaults()
     st.session_state.pop("_new_project_name_prompt", None)
     st.session_state["workspace_mode"] = "Manage Projects"
     st.session_state["project_name"] = project_name[:80]
@@ -681,7 +688,10 @@ def _create_new_project(name: str) -> None:
     ) + 1
     _detach_cloud_project()
     _mark_cloud_project_dirty(immediate=True)
-    st.toast(f"Initialized new project: {project_name[:80]}")
+    if start_blank:
+        st.toast(f"Started blank project: {project_name[:80]}")
+    else:
+        st.toast(f"Saved current work into new project: {project_name[:80]}")
 
 def _open_manage_projects_workspace() -> None:
     """Leave any public/admin route and open the project-management workspace."""
@@ -705,6 +715,7 @@ def _open_technical_page(publication_id: str) -> None:
 
 def _request_new_project_name() -> None:
     """Show the required blank name prompt without changing the active project."""
+    st.session_state.pop("mp_new_project_blank", None)
     st.session_state["_new_project_name_prompt"] = True
 
 @lru_cache(maxsize=1)
@@ -1328,6 +1339,15 @@ def _render_manage_projects_workspace() -> None:
                 key="mp_new_project_name",
                 max_chars=80,
             )
+            start_blank = st.checkbox(
+                "Start from a blank design",
+                value=False,
+                key="mp_new_project_blank",
+                help=(
+                    "Off: the current design and Bass Match results are saved "
+                    "into the new project. On: start from the factory defaults."
+                ),
+            )
             name_col, cancel_col = st.columns(2)
             with name_col:
                 if st.button(
@@ -1339,7 +1359,10 @@ def _render_manage_projects_workspace() -> None:
                     if not new_project_name.strip():
                         st.error("Enter a project name to continue.")
                     else:
-                        _create_new_project(new_project_name)
+                        _create_new_project(
+                            new_project_name,
+                            start_blank=start_blank,
+                        )
                         st.rerun()
             with cancel_col:
                 if st.button("Cancel", key="mp_cancel_new_project_btn", width="stretch"):
@@ -1355,7 +1378,7 @@ def _render_manage_projects_workspace() -> None:
             type="primary",
             width="stretch",
             on_click=_request_new_project_name,
-            help="Create a clean independent project with a required name",
+            help="Save the current work as a new independent project with a required name",
         )
     with tb_col2:
         with st.popover("Import .lfp / .crw", width="stretch"):

@@ -3016,7 +3016,7 @@ test(
 )
 
 
-def _check_ui_project_reset_to_defaults():
+def _check_ui_new_project_preserves_work():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
@@ -3028,11 +3028,11 @@ def _check_ui_project_reset_to_defaults():
     at.run()
     assert not at.exception, at.exception
 
-    reset_btn = next(
+    new_project_btn = next(
         button for button in at.button
         if button.key == "mp_new_project_btn"
     )
-    reset_btn.click().run()
+    new_project_btn.click().run()
     assert not at.exception, at.exception
 
     assert at.session_state["project_name"] == "Custom Sub"
@@ -3042,6 +3042,8 @@ def _check_ui_project_reset_to_defaults():
     )
     assert name_input.value == ""
     name_input.set_value("Named Project").run()
+
+    # Default: the new project adopts the current work instead of discarding it.
     create_btn = next(
         button for button in at.button
         if button.key == "mp_create_project_btn"
@@ -3049,14 +3051,38 @@ def _check_ui_project_reset_to_defaults():
     create_btn.click().run()
     assert not at.exception, at.exception
     assert at.session_state["project_name"] == "Named Project"
+    assert at.session_state["driver_preset_name"] == "Custom"
+    assert abs(float(at.session_state["driver_fs_hz"]) - 88.0) < 1e-9
+    assert abs(float(at.session_state["sealed_vb_l"]) - 99.0) < 1e-9
+    assert at.session_state["_cloud_save_status"] == "unsaved"
+
+    # Explicit blank start keeps the old clean-slate behaviour.
+    next(
+        button for button in at.button
+        if button.key == "mp_new_project_btn"
+    ).click().run()
+    next(
+        field for field in at.text_input
+        if field.key == "mp_new_project_name"
+    ).set_value("Blank Project").run()
+    next(
+        box for box in at.checkbox
+        if box.key == "mp_new_project_blank"
+    ).set_value(True).run()
+    next(
+        button for button in at.button
+        if button.key == "mp_create_project_btn"
+    ).click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["project_name"] == "Blank Project"
     assert at.session_state["driver_preset_name"] == "KEF B110B article example"
     assert abs(float(at.session_state["driver_fs_hz"]) - 48.14) < 1e-9
     assert abs(float(at.session_state["sealed_vb_l"]) - 99.0) > 1e-9
 
 
 test(
-    "UI New / Reset design button restores defaults and clears previous state",
-    _check_ui_project_reset_to_defaults,
+    "UI New Project saves the current work and can start blank",
+    _check_ui_new_project_preserves_work,
 )
 
 
