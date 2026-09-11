@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.17.1 (2026-09-11)
+
+- **Fix**: creating a project no longer discards the active design or Bass
+  Match run. "New Project" now saves the current work into the named project
+  (detach from the previous cloud record + immediate autosave). The old
+  clean-slate behaviour is an explicit "Start from a blank design" checkbox in
+  the naming prompt.
+- **Docs/Test**: documented the new-project invariant in
+  `docs/ui/projects.md`; replaced the reset-on-create regression with
+  `_check_ui_new_project_preserves_work`. Full suite: **225 passed, 0 failed,
+  0 skipped**.
+
 ## 0.17.0 (2026-09-11)
 
 - **Refactor**: split the 15.6k-line `ui_app.py` monolith into a thin entry
