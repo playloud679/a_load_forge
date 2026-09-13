@@ -4,6 +4,11 @@
   registration UI for local accounts, OIDC and bypass modes.
 - `_resolve_saas_user` — resolves the current `SaaSUser` (or `None`); renders
   the gate and calls `st.stop()` when auth is required.
+- `_anonymous_claims` — per-session guest identity used when
+  `LOAD_FORGE_ANONYMOUS_ACCESS=true`. The uid lives in
+  `_constants._ANONYMOUS_SESSION_KEY`, so every Streamlit session gets its own
+  Free account and projects never leak between visitors. With the flag off
+  (default) the blocking gate is unchanged.
 - `_remember_local_account` / `_sign_out_saas` — session transitions.
 - Stores: `_get_account_store`, `_get_project_store`, `_get_public_store`
   (each `@st.cache_resource`, keyed by `_runtime._SAAS_SETTINGS` and

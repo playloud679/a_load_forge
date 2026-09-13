@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.2 (2026-09-13)
+
+- **Anonymous studio access**: new `LOAD_FORGE_ANONYMOUS_ACCESS` setting
+  (default off, allowed on Cloud Run). When enabled, unauthenticated visitors
+  enter the workspace directly instead of the blocking sign-in gate. Each
+  Streamlit session gets its own ephemeral guest identity
+  (`guest+<uid>@loadforge.local`, Free plan) so saved projects never leak
+  between visitors; signing in stays available for persistent accounts.
+- **Tests**: added settings and UI AppTest coverage; the auth-only and
+  local-account gates are unchanged when the flag is off.
+
 ## 0.17.1 (2026-09-11)
 
 - **Fix**: creating a project no longer discards the active design or Bass

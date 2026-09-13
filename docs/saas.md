@@ -36,6 +36,12 @@ limits. The UI labels this state as `Open Beta · full access`. Disabling the
 flag therefore restores the normal plan entitlements without migrating users,
 creating subscriptions or changing saved projects.
 
+`LOAD_FORGE_ANONYMOUS_ACCESS=true` opens the workspace to unauthenticated
+visitors. Each Streamlit session receives its own ephemeral guest account
+(`guest+<uid>@loadforge.local`, Free plan) so saved projects never leak between
+visitors, and signing in remains optional. The flag defaults to false and is
+accepted on Cloud Run.
+
 Authentication uses Streamlit's native OIDC support (`st.login`, `st.user`,
 `st.logout`).  Mount a complete `secrets.toml` from Secret Manager at
 `/app/.streamlit/secrets.toml`.  The tracked

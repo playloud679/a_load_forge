@@ -3400,6 +3400,19 @@ def _check_saas_identity_entitlements_and_project_store():
     })
     assert configured.enabled and configured.auth_required and configured.auth_bypass
     assert configured.project_trash_retention_days == 30
+    anonymous = saas.SaaSSettings.from_env({
+        "LOAD_FORGE_SAAS_ENABLED": "true",
+        "LOAD_FORGE_SAAS_BACKEND": "memory",
+        "LOAD_FORGE_ANONYMOUS_ACCESS": "true",
+    })
+    assert anonymous.enabled and anonymous.auth_required
+    assert anonymous.anonymous_access
+    assert not anonymous.auth_bypass and not anonymous.local_accounts
+    default_access = saas.SaaSSettings.from_env({
+        "LOAD_FORGE_SAAS_ENABLED": "true",
+        "LOAD_FORGE_SAAS_BACKEND": "memory",
+    })
+    assert not default_access.anonymous_access
     retention_configured = saas.SaaSSettings.from_env({
         "LOAD_FORGE_PROJECT_TRASH_RETENTION_DAYS": "45",
     })
@@ -5088,6 +5101,51 @@ def _check_ui_auth_only_email_allowlist():
 test(
     "UI auth-only mode enforces the email allowlist without Firestore",
     _check_ui_auth_only_email_allowlist,
+)
+
+
+def _check_ui_anonymous_access_without_gate():
+    import os
+
+    from streamlit.testing.v1 import AppTest
+
+    keys = {
+        "LOAD_FORGE_SAAS_ENABLED": "true",
+        "LOAD_FORGE_SAAS_BACKEND": "memory",
+        "LOAD_FORGE_ANONYMOUS_ACCESS": "true",
+        "LOAD_FORGE_AUTH_REQUIRED": None,
+        "LOAD_FORGE_AUTH_BYPASS": None,
+        "LOAD_FORGE_LOCAL_ACCOUNTS": None,
+        "K_SERVICE": None,
+    }
+    previous = {key: os.environ.get(key) for key in keys}
+    try:
+        for key, value in keys.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+        at.run()
+        assert not at.exception, at.exception
+        assert not any(
+            "Sign in to Load Forge" in item.value for item in at.markdown
+        ), "anonymous access must not render the blocking sign-in gate"
+        assert "_anonymous_guest_uid" in at.session_state, "guest identity missing"
+        assert any(
+            "Load type" == item.label for item in at.tabs
+        ), "workspace did not load for an anonymous visitor"
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
+test(
+    "UI anonymous access opens the workspace without a sign-in gate",
+    _check_ui_anonymous_access_without_gate,
 )
 
 

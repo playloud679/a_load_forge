@@ -86,6 +86,12 @@ registrati l'accesso Pro senza modificare il piano memorizzato e senza creare
 abbonamenti. Rimuovere o disattivare la variabile ripristina gli entitlement
 normali; non migra né cancella i progetti esistenti.
 
+`LOAD_FORGE_ANONYMOUS_ACCESS=true` apre il workspace ai visitatori non
+autenticati senza account condiviso: ogni sessione Streamlit riceve un'identità
+guest effimera (`guest+<uid>@loadforge.local`, piano Free) e il sign-in resta
+opzionale. Il flag è disattivato per default, è accettato su Cloud Run e il
+deployment attuale del servizio `load-forge` lo usa per il funnel pubblico.
+
 Il service account di `load-forge` deve avere soltanto il ruolo necessario
 per leggere e scrivere i documenti (`roles/datastore.user`) e l'accesso alla
 versione del secret.  Se il database `(default)` non esiste ancora, crearlo in

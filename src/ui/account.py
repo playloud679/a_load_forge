@@ -5,6 +5,7 @@ from __future__ import annotations
 import multiprocessing
 import os
 import time
+import uuid
 from functools import cache
 from pathlib import Path
 
@@ -75,6 +76,23 @@ def _render_auth_hero_and_badges(title: str, subtitle: str) -> None:
         """,
         unsafe_allow_html=True,
     )
+
+def _anonymous_claims() -> dict[str, str]:
+    """Return a stable per-session guest identity.
+
+    Anonymous visitors get their own uid so saved projects never leak between
+    sessions, while still resolving to a regular Free account.
+    """
+    uid = st.session_state.get(_constants._ANONYMOUS_SESSION_KEY)
+    if not isinstance(uid, str) or not uid:
+        uid = f"anon_{uuid.uuid4().hex}"
+        st.session_state[_constants._ANONYMOUS_SESSION_KEY] = uid
+    return {
+        "sub": uid,
+        "email": f"guest+{uid}@loadforge.local",
+        "name": "Guest",
+        "plan": "free",
+    }
 
 def _render_local_account_gate(*, render_hero: bool = True) -> None:
     """Render the local registration/login form."""
@@ -242,35 +260,39 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
             except (AttributeError, RuntimeError):
                 logged_in = False
             if not logged_in:
-                _, col_center, _ = st.columns([1, 3.2, 1])
-                with col_center:
-                    _render_auth_hero_and_badges(
-                        title="Sign in to Load Forge",
-                        subtitle="Sign in to save and manage your box designs, simulations, and driver catalog.",
-                    )
-                    try:
-                        auth_configured = "auth" in st.secrets
-                    except (FileNotFoundError, RuntimeError):
-                        auth_configured = False
-                    if auth_configured:
-                        if st.button("Sign in with Google", type="primary", width="stretch"):
-                            if _runtime._SAAS_SETTINGS.oidc_provider:
-                                st.login(_runtime._SAAS_SETTINGS.oidc_provider)
-                            else:
-                                st.login()
-                        st.markdown(
-                            """
-                            <div style="display: flex; align-items: center; text-align: center; margin: 1.2rem 0; color: rgba(255,255,255,0.35); font-size: 0.8rem;">
-                                <div style="flex: 1; border-bottom: 1px solid rgba(255,255,255,0.12);"></div>
-                                <span style="padding: 0 0.8rem; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em;">oppure</span>
-                                <div style="flex: 1; border-bottom: 1px solid rgba(255,255,255,0.12);"></div>
-                            </div>
-                            """,
-                            unsafe_allow_html=True,
+                if _runtime._SAAS_SETTINGS.anonymous_access:
+                    claims = _anonymous_claims()
+                else:
+                    _, col_center, _ = st.columns([1, 3.2, 1])
+                    with col_center:
+                        _render_auth_hero_and_badges(
+                            title="Sign in to Load Forge",
+                            subtitle="Sign in to save and manage your box designs, simulations, and driver catalog.",
                         )
-                    _render_local_account_gate(render_hero=False)
-                    st.stop()
-            claims = st.user.to_dict()
+                        try:
+                            auth_configured = "auth" in st.secrets
+                        except (FileNotFoundError, RuntimeError):
+                            auth_configured = False
+                        if auth_configured:
+                            if st.button("Sign in with Google", type="primary", width="stretch"):
+                                if _runtime._SAAS_SETTINGS.oidc_provider:
+                                    st.login(_runtime._SAAS_SETTINGS.oidc_provider)
+                                else:
+                                    st.login()
+                            st.markdown(
+                                """
+                                <div style="display: flex; align-items: center; text-align: center; margin: 1.2rem 0; color: rgba(255,255,255,0.35); font-size: 0.8rem;">
+                                    <div style="flex: 1; border-bottom: 1px solid rgba(255,255,255,0.12);"></div>
+                                    <span style="padding: 0 0.8rem; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em;">oppure</span>
+                                    <div style="flex: 1; border-bottom: 1px solid rgba(255,255,255,0.12);"></div>
+                                </div>
+                                """,
+                                unsafe_allow_html=True,
+                            )
+                        _render_local_account_gate(render_hero=False)
+                        st.stop()
+            if not isinstance(claims, dict):
+                claims = st.user.to_dict()
 
     expires_at = claims.get("exp")
     if expires_at is not None:
