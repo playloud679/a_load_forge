@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.18.1 (2026-09-16)
+
+- **Auth**: sign-out can no longer be silently undone by the Google SSO
+  session. Google stopped publishing `end_session_endpoint`, so `st.logout()`
+  ends only the Load Forge session while the browser keeps the Google identity;
+  the production `[auth]` secret now sets `client_kwargs.prompt = "consent"`,
+  forcing Google’s confirmation screen on every sign-in.
+- **Docs**: documented the `prompt = "consent"` requirement and the need to
+  remount the secrets volume with a new Cloud Run revision in
+  `docs/deploy-cloudrun.md`; updated `docs/ui/account.md`.
+- Validation: fresh full suite **228 passed, 0 failed, 0 skipped**.
+
 ## 0.18.0 (2026-09-15)
 
 - Kept the original illustrated Load Forge navigation, load cards and community artwork.
