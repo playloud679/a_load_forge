@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.3 (2026-09-15)
+
+- **Fix**: the Finder results table no longer shows the `Le10k mH` column just
+  because a catalog record carries a `0.0` placeholder. Non-positive `Le10k`
+  values are treated as missing in the ranking row (`NaN`) and in the driver
+  coverage badge, so the optional column only appears when a candidate has a
+  real published 10 kHz inductance. The Max Le constraint is unchanged and was
+  already acting on nominal `Le` only.
+- **Docs/Test**: documented the missing-value rule in `docs/ranking.md`.
+  Fresh full suite: **226 passed, 0 failed, 0 skipped**.
+
 ## 0.17.2 (2026-09-13)
 
 - **Anonymous studio access**: new `LOAD_FORGE_ANONYMOUS_ACCESS` setting

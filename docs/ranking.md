@@ -73,7 +73,9 @@ detailed contracts live in `docs/dccav.md`.
   (`Complete` / `Partial` / `Incomplete`) of the optional
   engineering/commercial fields Xmax, Pe, Le, Mms, Bl, Cms, Le10k, nominal
   size and price. Missing fields are never invented: callers keep their
-  existing fallbacks and use the badge to warn the user.
+  existing fallbacks and use the badge to warn the user. Non-positive
+  (`0.0`) placeholders count as missing for every optional numeric field,
+  including `Le10k`.
 - `DRIVER_COVERAGE_LABELS`: tuple of the tracked optional field labels, used
   by the UI coverage summary.
 - `prefilter_finder_candidate_pools(preset_names, load_types, ...)` (`lru_cache(maxsize=128)`):
@@ -125,6 +127,9 @@ detailed contracts live in `docs/dccav.md`.
   remain stable. The visible order is identity/load, size and total volume,
   price/currency, then F3/MOL/peak/response and electrical limits; optional
   `Value`, `Buy` and `Le10k` fields occupy their corresponding nearby slots.
+  The `Le10k mH` row value is `NaN` unless the driver carries a positive
+  published 10 kHz inductance, so the optional column stays hidden when only
+  catalog `0.0` placeholders are present.
   The Finder dataframe uses content width and leaves column widths automatic,
   so its initial layout is compact without requiring a header double-click.
 - Finder volume is always an upper bound. Rows may therefore report different

@@ -46,7 +46,7 @@ _DRIVER_COVERAGE_FIELDS = (
     ("Mms", lambda ts, size, price: ts.mms_g is not None),
     ("Bl", lambda ts, size, price: ts.bl_tm is not None),
     ("Cms", lambda ts, size, price: ts.cms_mm_per_n is not None),
-    ("Le10k", lambda ts, size, price: ts.le10k_mh is not None),
+    ("Le10k", lambda ts, size, price: float(ts.le10k_mh or 0.0) > 0.0),
     ("Size", lambda ts, size, price: size is not None and np.isfinite(float(size))),
     ("Price", lambda ts, size, price: price is not None and np.isfinite(float(price))),
 )
@@ -803,7 +803,7 @@ def rank_candidate_row(
             "Currency": candidate.currency,
             "Buy": candidate.url,
             "Mms g": ts.mms_g if ts.mms_g is not None else np.nan,
-            "Le10k mH": ts.le10k_mh if ts.le10k_mh is not None else np.nan,
+            "Le10k mH": ts.le10k_mh if float(ts.le10k_mh or 0.0) > 0.0 else np.nan,
             "F3 Hz": f3_hz,
             "F6 Hz": thresholds[6],
             "F10 Hz": thresholds[10],
