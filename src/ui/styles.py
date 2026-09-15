@@ -49,9 +49,13 @@ GLOBAL_CSS = """
     }
     header[data-testid="stHeader"] {
         background: transparent !important;
+        pointer-events: none !important;
     }
     [data-testid="stToolbar"] { visibility: hidden; }
-    [data-testid="stExpandSidebarButton"] { visibility: visible; }
+    [data-testid="stExpandSidebarButton"] {
+        pointer-events: auto !important;
+        visibility: visible;
+    }
     [data-stale="true"] {
         filter: none !important;
         opacity: 1 !important;
@@ -212,6 +216,7 @@ GLOBAL_CSS = """
 
     header[data-testid="stHeader"] {
         background-color: transparent !important;
+        pointer-events: none !important;
     }
 
     [data-testid="stCaptionContainer"] {

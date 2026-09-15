@@ -24,3 +24,10 @@
 The original logo, illustrated workspace buttons, load diagrams, colors and card
 styles are preserved. The native sidebar opener stays visible when the Streamlit
 toolbar is hidden, including mobile.
+
+The app header (`header[data-testid="stHeader"]`) is kept transparent instead of
+`display: none` so the sidebar opener remains reachable. It is a fixed bar over
+the first main-area widgets (account, subscription, logout), so it carries
+`pointer-events: none !important` and only
+`[data-testid="stExpandSidebarButton"]` re-enables `pointer-events: auto`.
+Removing that guard makes the top-row buttons visible but unclickable.

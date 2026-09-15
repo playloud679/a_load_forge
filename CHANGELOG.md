@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.18.2 (2026-09-16)
+
+- **UI**: the transparent Streamlit header no longer swallows clicks. Since
+  0.18.0 the header was kept transparent instead of `display: none` so the
+  sidebar opener stayed reachable, but its fixed bar covered the first main-area
+  widgets: the account row, its subscription/billing button and the logout
+  button were visible yet unclickable (no pointer cursor). The header now sets
+  `pointer-events: none` and only `stExpandSidebarButton` re-enables
+  `pointer-events: auto`.
+- **Docs/Test**: documented the click-through header in `docs/ui/styles.md`;
+  added a CSS regression test asserting the pointer-events guard.
+- Validation: fresh full suite **229 passed, 0 failed, 0 skipped**.
+
 ## 0.18.1 (2026-09-16)
 
 - **Auth**: sign-out can no longer be silently undone by the Google SSO

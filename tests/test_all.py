@@ -2674,6 +2674,34 @@ test(
 )
 
 
+def _check_ui_transparent_header_keeps_clicks():
+    """The transparent app header must not swallow pointer events.
+
+    Streamlit keeps a fixed header bar on top of the main column. The global
+    CSS makes it transparent instead of removing it so the sidebar opener stays
+    reachable, so it must stay click-through; otherwise the first widgets in
+    the main area (account, subscription, logout) become dead buttons.
+    """
+    source = (ROOT / "src" / "ui" / "styles.py").read_text(encoding="utf-8")
+    header_rules = [
+        chunk.split("}", 1)[0]
+        for chunk in source.split('header[data-testid="stHeader"]')[1:]
+    ]
+    assert len(header_rules) == 2, header_rules
+    for rule in header_rules:
+        assert "pointer-events: none !important;" in rule, rule
+    expand_rule = source.split('[data-testid="stExpandSidebarButton"]', 1)[1]
+    expand_rule = expand_rule.split("}", 1)[0]
+    assert "pointer-events: auto !important;" in expand_rule, expand_rule
+    assert "visibility: visible;" in expand_rule, expand_rule
+
+
+test(
+    "UI transparent header stays click-through except the sidebar opener",
+    _check_ui_transparent_header_keeps_clicks,
+)
+
+
 def _check_ui_reuses_unchanged_design_simulation():
     import ui_app as _ui
 
