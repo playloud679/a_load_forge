@@ -11,7 +11,10 @@
 - `_remember_local_account` / `_sign_out_saas` — session transitions.
 - Stores: `_get_account_store`, `_get_project_store`, `_get_public_store`
   (each `@st.cache_resource`, keyed by `_runtime._SAAS_SETTINGS` and
-  `_runtime._SAAS_SOURCE_TOKEN`).
+  `_runtime._SAAS_SOURCE_TOKEN`). The registration/login form uses
+  `_saas.create_credential_store(_runtime._SAAS_SETTINGS)`: SQLite
+  `LocalAccountStore` in memory/local dev modes, durable
+  `FirestoreCredentialStore` on Firestore deployments.
 - `_account_admin_emails`, `_get_current_user_account` — entitlement helpers.
 
 ## Invariants

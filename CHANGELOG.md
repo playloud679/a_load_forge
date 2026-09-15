@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.17.5 (2026-09-15)
+
+- **Accounts**: new durable `FirestoreCredentialStore` for production email
+  sign-up. When the Firestore backend is active (Cloud Run),
+  `create_credential_store` persists one `credentials/{email}` document in the
+  private database with a salted scrypt hash, atomic duplicate detection and
+  no plaintext passwords, so accounts survive restarts and multi-instance
+  routing. Memory/local modes keep the SQLite `LocalAccountStore`.
+- **Ops**: added `tools/adopt_guest_projects.py` to copy projects left by
+  removed anonymous guests into a real account (dry-run default, idempotent,
+  source never modified); adopted the single legacy guest project `econowave`.
+- **Docs/Test**: updated `docs/saas.md`, `docs/ui/account.md` and the
+  multi-database runbook; added a credential-store regression test. Fresh full
+  suite: **227 passed, 0 failed, 0 skipped**.
+
 ## 0.17.4 (2026-09-15)
 
 - **Access**: every visitor must now sign in with an email account, Free plan

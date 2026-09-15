@@ -524,6 +524,96 @@ class LocalAccountStore:
         return user_from_claims({"sub": row[0], "email": row[1], "name": row[2]})
 
 
+class FirestoreCredentialStore:
+    """Durable email/password credential registry backed by Firestore.
+
+    Local development keeps ``LocalAccountStore``; Cloud Run uses this store so
+    accounts survive container restarts and are shared across instances.
+    Credentials live in the private database under ``credentials/{email}`` and
+    never store plaintext passwords (scrypt with a per-account salt).
+    """
+
+    COLLECTION = "credentials"
+
+    def __init__(
+        self,
+        *,
+        project: str | None = None,
+        database: str = "(default)",
+        client: Any | None = None,
+    ) -> None:
+        self._project = project
+        self._database = database
+        self._client = client
+
+    def _firestore_client(self):
+        if self._client is None:
+            try:
+                from google.cloud import firestore
+            except ImportError as exc:
+                raise SaaSConfigurationError(
+                    "google-cloud-firestore is required for production email accounts"
+                ) from exc
+            self._client = firestore.Client(
+                project=self._project, database=self._database
+            )
+        return self._client
+
+    @staticmethod
+    def _document_key(email: str) -> str:
+        return email.strip().casefold().replace("/", "_")
+
+    def create_account(self, name: str, email: str, password: str) -> SaaSUser:
+        from google.api_core import exceptions as google_exceptions
+
+        normalized_email = _normalize_email(email)
+        normalized_name = _normalize_account_name(name)
+        password_hash = _password_hash(password)
+        uid = f"fire_{uuid.uuid4().hex}"
+        document = self._firestore_client().collection(self.COLLECTION).document(
+            self._document_key(normalized_email)
+        )
+        try:
+            document.create(
+                {
+                    "uid": uid,
+                    "email": normalized_email,
+                    "name": normalized_name,
+                    "password_hash": password_hash,
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                }
+            )
+        except google_exceptions.AlreadyExists as exc:
+            raise AccountExistsError("An account with this email already exists") from exc
+        return user_from_claims(
+            {"sub": uid, "email": normalized_email, "name": normalized_name}
+        )
+
+    def authenticate(self, email: str, password: str) -> SaaSUser:
+        try:
+            normalized_email = _normalize_email(email)
+        except ValueError as exc:
+            raise InvalidCredentialsError("Email or password is incorrect") from exc
+        snapshot = (
+            self._firestore_client()
+            .collection(self.COLLECTION)
+            .document(self._document_key(normalized_email))
+            .get()
+        )
+        data = snapshot.to_dict() if snapshot.exists else None
+        if not isinstance(data, dict) or not _password_matches(
+            password, str(data.get("password_hash", ""))
+        ):
+            raise InvalidCredentialsError("Email or password is incorrect")
+        return user_from_claims(
+            {
+                "sub": data.get("uid"),
+                "email": data.get("email") or normalized_email,
+                "name": data.get("name") or normalized_email,
+            }
+        )
+
+
 def _env_flag(env: Mapping[str, str], name: str, default: bool = False) -> bool:
     raw = env.get(name)
     if raw is None:
@@ -3107,3 +3197,19 @@ def create_account_store(settings: SaaSSettings):
         )
     except Exception:
         return InMemoryUserAccountStore()
+
+
+def create_credential_store(settings: SaaSSettings):
+    """Return the credential registry for the active deployment.
+
+    Memory/local modes keep the SQLite ``LocalAccountStore`` for development;
+    Firestore-backed deployments (Cloud Run) use the durable
+    ``FirestoreCredentialStore`` so email accounts survive restarts and are
+    shared across instances.
+    """
+    if settings.backend == "memory" or not settings.enabled or settings.local_accounts:
+        return LocalAccountStore(settings.local_account_database)
+    return FirestoreCredentialStore(
+        project=settings.gcp_project,
+        database=settings.firestore_private_db,
+    )

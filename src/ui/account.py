@@ -97,7 +97,7 @@ def _render_local_account_gate(*, render_hero: bool = True) -> None:
             label_visibility="collapsed",
             key="_local_account_mode",
         )
-        accounts = _saas.LocalAccountStore(_runtime._SAAS_SETTINGS.local_account_database)
+        accounts = _saas.create_credential_store(_runtime._SAAS_SETTINGS)
         if account_mode == "Sign in":
             with st.form("local_saas_sign_in"):
                 email = st.text_input(

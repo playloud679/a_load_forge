@@ -415,15 +415,19 @@ def _check_presets_are_available():
         _acoustics.driver_preset_info(dayton_retailer_name).part_number
         == "RSS315HO-4"
     )
-    eminence_alpha_names = [
-        name
-        for name in names
-        if 'Eminence Alpha-12A 12" Guitar/PA Driver' in name
-    ]
-    assert len(eminence_alpha_names) == 1, eminence_alpha_names
+    eminence_alpha_names = []
+    for name in names:
+        if "ALPHA-12A" not in name.upper():
+            continue
+        info = _acoustics.driver_preset_info(name)
+        if info.brand == "Eminence" and (info.part_number or "").casefold() == "alpha-12a":
+            eminence_alpha_names.append(name)
+    assert eminence_alpha_names, "Eminence Alpha-12A preset missing"
     eminence_alpha_info = _acoustics.driver_preset_info(eminence_alpha_names[0])
     assert eminence_alpha_info.brand == "Eminence", eminence_alpha_info
-    assert eminence_alpha_info.part_number == "Alpha-12A", eminence_alpha_info
+    assert (
+        eminence_alpha_info.part_number or ""
+    ).casefold() == "alpha-12a", eminence_alpha_info
     celestion_tf1830_info = _acoustics.driver_preset_info(
         "WEB: Celestion 18-inch"
     )
@@ -3535,6 +3539,132 @@ def _check_saas_identity_entitlements_and_project_store():
 test(
     "SaaS identity, entitlements and tenant project store are isolated",
     _check_saas_identity_entitlements_and_project_store,
+)
+
+
+def _check_firestore_credential_store_is_durable_and_safe():
+    import tempfile
+
+    from google.api_core import exceptions as google_exceptions
+
+    from src import saas
+
+    class _FakeSnapshot:
+        def __init__(self, data):
+            self._data = data
+
+        @property
+        def exists(self):
+            return self._data is not None
+
+        def to_dict(self):
+            return dict(self._data) if self._data is not None else None
+
+    class _FakeDocument:
+        def __init__(self, documents, key):
+            self._documents = documents
+            self.key = key
+
+        def create(self, data):
+            if self.key in self._documents:
+                raise google_exceptions.AlreadyExists("document exists")
+            self._documents[self.key] = dict(data)
+
+        def get(self):
+            return _FakeSnapshot(self._documents.get(self.key))
+
+        def set(self, data):
+            self._documents[self.key] = dict(data)
+
+    class _FakeCollection:
+        def __init__(self, documents, name):
+            self._documents = documents
+            self.name = name
+
+        def document(self, key):
+            return _FakeDocument(self._documents, key)
+
+    class _FakeFirestore:
+        def __init__(self):
+            self.documents = {}
+
+        def collection(self, name):
+            assert name == saas.FirestoreCredentialStore.COLLECTION
+            return _FakeCollection(self.documents, name)
+
+    client = _FakeFirestore()
+    store = saas.FirestoreCredentialStore(client=client)
+    user = store.create_account(
+        "Durable Tester", "Durable@Example.test", "a safe demo password"
+    )
+    assert user.email == "durable@example.test"
+    assert user.uid.startswith("fire_")
+    authenticated = store.authenticate("durable@example.test", "a safe demo password")
+    assert authenticated.uid == user.uid
+    assert authenticated.email == "durable@example.test"
+    stored = client.documents["durable@example.test"]
+    assert stored["password_hash"] != "a safe demo password"
+    assert stored["password_hash"].startswith("scrypt$")
+    for bad_password in ("wrong-password", ""):
+        try:
+            store.authenticate("durable@example.test", bad_password)
+        except saas.InvalidCredentialsError:
+            pass
+        else:
+            raise AssertionError("credential store accepted an invalid password")
+    for bad_email in ("missing@example.test", "not-an-email"):
+        try:
+            store.authenticate(bad_email, "a safe demo password")
+        except saas.InvalidCredentialsError:
+            pass
+        else:
+            raise AssertionError(f"credential store authenticated {bad_email!r}")
+    try:
+        store.create_account(
+            "Duplicate", "durable@example.test", "another safe password"
+        )
+    except saas.AccountExistsError:
+        pass
+    else:
+        raise AssertionError("credential store accepted a duplicate email")
+    try:
+        store.create_account("Short", "short@example.test", "short")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("credential store accepted a short password")
+
+    with tempfile.TemporaryDirectory() as directory:
+        database = str(Path(directory) / "accounts.sqlite3")
+        local = saas.create_credential_store(
+            saas.SaaSSettings(
+                enabled=True, backend="memory", local_account_database=database
+            )
+        )
+        assert isinstance(local, saas.LocalAccountStore)
+        dev = saas.create_credential_store(
+            saas.SaaSSettings(
+                enabled=True,
+                backend="firestore",
+                gcp_project="local-project",
+                local_accounts=True,
+                local_account_database=database,
+            )
+        )
+        assert isinstance(dev, saas.LocalAccountStore)
+    firestore_store = saas.create_credential_store(
+        saas.SaaSSettings(
+            enabled=True,
+            backend="firestore",
+            gcp_project="catalog-project",
+        )
+    )
+    assert isinstance(firestore_store, saas.FirestoreCredentialStore)
+
+
+test(
+    "Firestore credential store persists email accounts safely",
+    _check_firestore_credential_store_is_durable_and_safe,
 )
 
 

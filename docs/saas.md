@@ -97,11 +97,21 @@ password hashes in a permission-restricted SQLite file and derives a separate
 tenant from each stable account ID. Duplicate emails and invalid credentials
 return generic user-facing errors.
 
-Local accounts are a product-development surface, not the production identity
-provider. `SaaSSettings` rejects both local accounts and the authentication
-bypass whenever Cloud Run sets `K_SERVICE`. Production registration, email
-verification, password recovery and MFA belong to the configured OIDC
-provider.
+`create_credential_store(settings)` selects the registry: memory/local modes
+(including the `LOAD_FORGE_LOCAL_ACCOUNTS` development flag) keep the SQLite
+`LocalAccountStore`, while Firestore-backed deployments use
+`FirestoreCredentialStore`. The Firestore store persists one document per
+normalized email in `credentials/{email}` inside the private database, creates
+the document atomically (duplicate emails raise `AccountExistsError`) and
+stores only the salted scrypt `password_hash` plus uid, name and creation
+time. It never stores plaintext passwords and survives Cloud Run restarts and
+multi-instance routing. The admin `users/` account document (plan, credits) is
+still created lazily by `get_or_create_account` on first authenticated use.
+
+Local accounts remain a development surface: `SaaSSettings` rejects the
+`LOAD_FORGE_LOCAL_ACCOUNTS` flag and the authentication bypass whenever Cloud
+Run sets `K_SERVICE`. Password recovery, email verification and MFA still
+belong to the configured OIDC provider.
 
 ## Identity and tenant contract
 
