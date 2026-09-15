@@ -92,6 +92,27 @@ email/password è libera (nessun codice invito) e l'accesso Google resta
 disponibile quando `auth` è configurato in `secrets.toml`. La variabile
 storica `LOAD_FORGE_ANONYMOUS_ACCESS` è stata rimossa e viene ignorata.
 
+Google non pubblica più `end_session_endpoint` nel discovery OIDC, quindi
+`st.logout()` chiude soltanto la sessione Load Forge (Streamlit registra
+`No end_session_endpoint found for provider default`) e il browser conserva la
+sessione SSO Google. Per evitare che il login successivo rientri in silenzio
+con l'identità precedente, la sezione `[auth]` del secret di produzione
+richiede:
+
+```toml
+[auth.client_kwargs]
+prompt = "consent"
+```
+
+Con `prompt = "consent"` Google mostra sempre la schermata di conferma a ogni
+accesso, quindi dopo il logout il rientro richiede un'azione esplicita
+dell'utente. Streamlit applica `prompt = "select_account"` solo quando la
+chiave non è presente; senza questa configurazione il browser può rientrare
+con la sessione Google ancora attiva. Dopo aver aggiunto una nuova versione
+del secret è necessaria una nuova revisione Cloud Run
+(`--update-secrets=/app/.streamlit/secrets.toml=load-forge-secrets:latest`),
+perché i volumi dei secret vengono montati all'avvio dell'istanza.
+
 Il service account di `load-forge` deve avere soltanto il ruolo necessario
 per leggere e scrivere i documenti (`roles/datastore.user`) e l'accesso alla
 versione del secret.  Se il database `(default)` non esiste ancora, crearlo in

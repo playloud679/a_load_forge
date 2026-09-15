@@ -42,6 +42,13 @@ Streamlit’s OAuth logout redirect for OIDC sessions. Calling a second rerun
 after `st.logout()` can replace that redirect and leave the authenticated page
 visible.
 
+Google no longer publishes an `end_session_endpoint`, so `st.logout()` ends
+only the Load Forge session while the browser keeps the Google SSO session. The
+production `[auth]` secret sets `client_kwargs.prompt = "consent"` so every
+sign-in shows Google’s confirmation screen and the next access cannot silently
+reuse the previous identity; remounting the secret needs a new Cloud Run
+revision. See `docs/deploy-cloudrun.md` for the secret layout.
+
 In development auth-bypass mode, logout pauses the generated demo identity and
 shows a signed-out screen with an explicit “Sign in again” action, instead of
 recreating that identity on the next rerun.
