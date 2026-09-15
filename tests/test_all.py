@@ -11305,7 +11305,7 @@ def _check_ui_finder_value_ranking():
             "F3 Hz": f3, "F6 Hz": f3 - 5.0, "F10 Hz": f3 - 10.0,
             "MOL @ F3 dB": 85.0, "Peak dB": 90.0,
             "Ripple dB": 1.0, "Max excursion mm": 3.0,
-            "Min ohm": 6.0, "Response": [0.0, -3.0], **box_values,
+            "Min ohm": 6.0, "Le mH": 0.45, "Response": [0.0, -3.0], **box_values,
         }
         for name, f3, price in (("A deep", 30.0, 400.0), ("B value", 40.0, 80.0))
     ]
@@ -11374,8 +11374,9 @@ def _check_ui_finder_value_ranking():
     ] == [
         "Manufacturer", "Part number", "Load", "Size in", "Vtot L",
         "Price", "Currency", "F3 Hz", "MOL @ F3 dB", "Peak dB",
-        "Response", "Min ohm",
+        "Response", "Min ohm", "Le mH",
     ]
+    assert "Le10k mH" not in results_frame.columns, results_frame.columns
     result_column_config = json.loads(results_table.proto.columns)
     assert result_column_config["Manufacturer"]["label"] == "Mfr"
     assert result_column_config["Part number"]["label"] == "Part #"

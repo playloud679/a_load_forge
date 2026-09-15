@@ -34,8 +34,9 @@ results, the candidate pool and the run statistics.
   `ui.finder._finder_executor_backend`.
 - Search progress renders immediately below the CTA; result reruns are
   avoided (stats refresh in place) so scroll position is preserved.
-- The batch results table and its CSV download never expose the internal
-  `Le10k mH` ranking key; only the visible columns are rendered/exported.
+- The batch results table and its CSV download expose the nominal `Le mH`
+  (when present) and never the internal `Le10k mH` ranking key; only the
+  visible columns are rendered/exported.
 - The initial render must not be disabled by an unloaded catalog
   (`_check_ui_finder_main_action_runs_search`).
 

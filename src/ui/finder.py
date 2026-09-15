@@ -2099,7 +2099,8 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         ("Load", ""), ("Price", np.nan), ("Currency", ""), ("Buy", ""),
         ("Ripple dB", np.nan), ("Response", None), ("Class", ""),
         ("Size in", np.nan), ("Sd cm²", np.nan),
-        ("Resonator", ""), ("Mms g", np.nan), ("Le10k mH", np.nan),
+        ("Resonator", ""), ("Mms g", np.nan), ("Le mH", np.nan),
+        ("Le10k mH", np.nan),
         ("MOL @ F3 dB", np.nan), ("Data", ""), ("Data %", np.nan),
     ):
         if name not in full_df.columns:
@@ -2157,6 +2158,8 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     columns.append("Min ohm")
     if batch_df["Mms g"].notna().any():
         columns.append("Mms g")
+    if batch_df["Le mH"].notna().any():
+        columns.append("Le mH")
     if "Data" in batch_df.columns and (batch_df["Data"] != "Complete").any():
         batch_df["Data"] = batch_df["Data"].map(
             {"Complete": "✓", "Partial": "⚠", "Incomplete": "⛔"}
@@ -2194,6 +2197,11 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             ),
             "Min ohm": st.column_config.NumberColumn("Min Z", format="%.2f"),
             "Mms g": st.column_config.NumberColumn(format="%.1f"),
+            "Le mH": st.column_config.NumberColumn(
+                format="%.3f",
+                help="Nominal/1 kHz voice-coil inductance used by the Max Le "
+                     "filter and the impedance simulation.",
+            ),
             "Data": st.column_config.TextColumn(
                 "Data",
                 help="Optional-parameter coverage: ✓ complete, ⚠ partial, "

@@ -121,16 +121,16 @@ detailed contracts live in `docs/dccav.md`.
 - The UI's minimum `MOL @ F3` constraint is a hard post-simulation filter.
   Missing/non-finite MOL values cannot satisfy a non-zero minimum.
 - The compact Finder result table omits the internal `Class`, `Sd cm²` and
-  `Le10k mH` metadata columns. Its currency heading is `CUR`, and the
-  maximum-output heading is the concise `MOL`; manufacturer, part number and
-  minimum impedance are displayed as `Mfr`, `Part #` and `Min Z`; the
-  underlying ranking-row keys remain stable. The visible order is
-  identity/load, size and total volume, price/currency, then
-  F3/MOL/peak/response and electrical limits; optional `Value` and `Buy` fields
-  occupy their corresponding nearby slots. Non-positive (`0.0`) `Le10k`
-  placeholders still count as missing in the coverage badge, while positive
-  values stay available to internal consumers and the CSV is generated from
-  the visible columns only.
+  `Le10k mH` metadata columns and exposes the nominal `Le mH` (the value used
+  by the Max Le filter and the simulation) when at least one candidate carries
+  a positive value. Its currency heading is `CUR`, and the maximum-output
+  heading is the concise `MOL`; manufacturer, part number and minimum
+  impedance are displayed as `Mfr`, `Part #` and `Min Z`; the underlying
+  ranking-row keys remain stable. The visible order is identity/load, size and
+  total volume, price/currency, then F3/MOL/peak/response and electrical
+  limits; optional `Value` and `Buy` fields occupy their corresponding nearby
+  slots. Non-positive (`0.0`) `Le`/`Le10k` placeholders count as missing, and
+  the CSV is generated from the visible columns only.
   The Finder dataframe uses content width and leaves column widths automatic,
   so its initial layout is compact without requiring a header double-click.
 - Finder volume is always an upper bound. Rows may therefore report different

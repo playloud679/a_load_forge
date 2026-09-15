@@ -803,6 +803,7 @@ def rank_candidate_row(
             "Currency": candidate.currency,
             "Buy": candidate.url,
             "Mms g": ts.mms_g if ts.mms_g is not None else np.nan,
+            "Le mH": ts.le_mh if float(ts.le_mh or 0.0) > 0.0 else np.nan,
             "Le10k mH": ts.le10k_mh if float(ts.le10k_mh or 0.0) > 0.0 else np.nan,
             "F3 Hz": f3_hz,
             "F6 Hz": thresholds[6],

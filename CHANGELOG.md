@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.17.7 (2026-09-15)
+
+- **UI**: the Finder results table and its CSV download now show the nominal
+  `Le mH` — the inductance used by the Max Le filter and the impedance
+  simulation — whenever at least one candidate has a positive value. The
+  `Le10k mH` key stays internal and is never displayed.
+- **Docs/Test**: updated `docs/ranking.md` and `docs/ui/finder.md`; the seeded
+  Finder table test now asserts `Le mH` is visible and `Le10k mH` is absent.
+  Fresh full suite: **227 passed, 0 failed, 0 skipped**.
+
 ## 0.17.6 (2026-09-15)
 
 - **UI**: the Finder results table and its CSV download no longer expose the
