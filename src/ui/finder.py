@@ -2157,8 +2157,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     columns.append("Min ohm")
     if batch_df["Mms g"].notna().any():
         columns.append("Mms g")
-    if batch_df["Le10k mH"].notna().any():
-        columns.append("Le10k mH")
     if "Data" in batch_df.columns and (batch_df["Data"] != "Complete").any():
         batch_df["Data"] = batch_df["Data"].map(
             {"Complete": "✓", "Partial": "⚠", "Incomplete": "⛔"}
@@ -2196,7 +2194,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             ),
             "Min ohm": st.column_config.NumberColumn("Min Z", format="%.2f"),
             "Mms g": st.column_config.NumberColumn(format="%.1f"),
-            "Le10k mH": st.column_config.NumberColumn(format="%.3f"),
             "Data": st.column_config.TextColumn(
                 "Data",
                 help="Optional-parameter coverage: ✓ complete, ⚠ partial, "

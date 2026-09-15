@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.17.6 (2026-09-15)
+
+- **UI**: the Finder results table and its CSV download no longer expose the
+  `Le10k mH` column, even when a candidate carries a positive published 10 kHz
+  inductance. `Le10k` remains an internal ranking/coverage field and is still
+  accepted in Box Design, but it is not substituted for the nominal `Le` used
+  by the constraint and the simulation.
+- **Docs/Test**: updated `docs/ranking.md` and `docs/ui/finder.md`. Fresh full
+  suite: **227 passed, 0 failed, 0 skipped**.
+
 ## 0.17.5 (2026-09-15)
 
 - **Accounts**: new durable `FirestoreCredentialStore` for production email
