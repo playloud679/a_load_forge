@@ -53,6 +53,22 @@ If the project was deleted past application Trash retention:
    ```
 3. Run verification check using `tools/migrate_private_data.py --source-db=lf-private-recovered --target-db=lf-private`.
 
+### Procedure D: Adopt Projects Left by Removed Anonymous Guests
+
+Anonymous guests (`guest+<uid>@loadforge.local`) can no longer sign in; their
+projects remain under the deterministic guest tenant. Copy them to a real
+account tenant without touching the source (dry-run first):
+
+```bash
+.venv/bin/python tools/adopt_guest_projects.py \
+  --project="${LOAD_FORGE_GCP_PROJECT}" --to-email=owner@example.com          # dry-run
+.venv/bin/python tools/adopt_guest_projects.py \
+  --project="${LOAD_FORGE_GCP_PROJECT}" --to-email=owner@example.com --apply  # idempotent copy
+```
+
+The source documents are never modified or deleted and projects already
+present in the target tenant are skipped on rerun.
+
 ---
 
 ## Runbook 2: Catalog Release Rollback for `lf-catalog-runtime`
