@@ -166,7 +166,17 @@ def main() -> None:
     _state._default("opt_max_ripple_freq_hz", 0.0)
     _state._default("opt_excursion_ratio", 1.0)
     _state._default("opt_max_gd_ms", 0.0)
-    _state._default("workspace_mode", "Bass Match")
+    # Authenticated sessions begin with their own projects; reruns preserve the
+    # chosen workspace. Explicit shared designs still open in the editor.
+    initial_workspace = (
+        "Box Design" if st.query_params.get("d") else
+        "Manage Projects" if _runtime._CURRENT_SAAS_USER is not None else "Bass Match"
+    )
+    if st.session_state.pop("_projects_after_login", False):
+        if not any(st.query_params.get(key) for key in ("p", "explore", "checkout", "maintenance", "admin_users")):
+            st.session_state["workspace_mode"] = initial_workspace
+            st.session_state["manage_projects_tab"] = "Cloud Projects"
+    _state._default("workspace_mode", initial_workspace)
     _state._default("ui_show_advanced", False)
     _state._ensure_finder_defaults()
     _state._ensure_price_currency_default()
@@ -289,6 +299,7 @@ def main() -> None:
         elif workspace_mode == "Manage Projects":
             _projects._render_project_menu()
             _state._render_workspace_tabs()
+            _projects._render_hud_explore_community_button(key="sidebar_community_btn")
         elif workspace_mode == "Bass Match":
             _projects._render_project_menu()
             _state._render_workspace_tabs()

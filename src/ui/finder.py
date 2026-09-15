@@ -1729,7 +1729,6 @@ def _render_bass_match_hero(
     acc = _account._get_current_user_account()
     is_admin = bool(acc.is_admin) if acc else False
     credits_balance = acc.credits_balance if acc else 2500
-    credits_quota = acc.credits_monthly_quota if acc else 2500
 
     finder_search_profile = str(_state._finder_value("finder_search_profile"))
     credit_mult = _ranking.search_profile_credit_multiplier(finder_search_profile)
@@ -1740,42 +1739,29 @@ def _render_bass_match_hero(
 
     run_requested = False
     with st.container(border=True, key="bass_match_brief"):
-        h_col1, h_col2 = st.columns([2.5, 1.5], vertical_alignment="center")
-        with h_col1:
-            st.markdown("#### Bass Match · Your bass brief")
-        with h_col2:
-            st.markdown(
-                "<div style='text-align: right;'><span class='lf-quota-pill'>"
-                f"Credits available: <strong>{credits_balance:,} / {credits_quota:,}</strong>"
-                f" · This run: <strong>{run_credits:,} credits</strong>"
-                f" <small>({prefilter_stats['eligible_simulations']:,} drv · {credit_mult}× {finder_search_profile})</small>"
-                "</span></div>",
-                unsafe_allow_html=True,
-            )
-        b1, b2, b3, b4 = st.columns(
-            [1.2, 1.2, 1.2, 1.2],
-            vertical_alignment="center",
-        )
+        st.markdown("#### Bass Match · Your bass brief")
+        st.caption("Review your setup, then compare the drivers that fit.")
+        b1, b2, b3 = st.columns(3)
         b1.metric(
-            "Pre-qualified",
-            f"{len(prequalified_names):,} / "
-            f"{prefilter_stats['unique_drivers']:,}",
-            help="Drivers that pass cheap pre-simulation checks for at least "
-            "one active load.",
+            "Pre-qualified", f"{len(prequalified_names):,}",
+            help="Drivers that pass pre-simulation checks for at least one active load.",
         )
-        b2.metric(
-            "Ready simulations",
-            f"{prefilter_stats['eligible_simulations']:,}",
-        )
-        b3.metric(
-            "Skipped a priori",
-            f"{prefilter_stats['rejected_simulations']:,}",
-        )
-        b4.metric(
-            "Duplicates removed",
-            f"{prefilter_stats['duplicate_rows']:,}",
-        )
-        _catalog._render_finder_constraint_grid(constraints)
+        b2.metric("Ready simulations", f"{prefilter_stats['eligible_simulations']:,}")
+        b3.metric("Run cost", f"{run_credits:,} credits" if acc else "Local run")
+        primary_labels = {"Loads", "Maximum box", "Optimization", "Voltage"}
+        _catalog._render_finder_constraint_grid([
+            (label, value) for label, value in constraints if label in primary_labels
+        ])
+        with st.expander("All constraints & search details"):
+            _catalog._render_finder_constraint_grid(constraints)
+            detail_cols = st.columns(2)
+            detail_cols[0].metric("Skipped a priori", f"{prefilter_stats['rejected_simulations']:,}")
+            detail_cols[1].metric("Duplicates removed", f"{prefilter_stats['duplicate_rows']:,}")
+            st.caption(
+                f"{prefilter_stats['unique_drivers']:,} unique drivers · "
+                f"{finder_search_profile} profile · {credit_mult} credit(s) per simulation. "
+                f"Balance: {credits_balance:,} credits."
+            )
         finder_stats_slot = st.empty()
         _render_finder_run_statistics(finder_stats_slot)
         if match_preset_names and not prequalified_names:

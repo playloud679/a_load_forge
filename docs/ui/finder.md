@@ -44,3 +44,10 @@ results, the candidate pool and the run statistics.
 
 Finder tests (`_check_ui_finder_*`, `_check_ui_parallel_ranking_*`,
 `_check_ui_stale_finder_workers_*`) plus the AppTest workspace flows.
+
+## Project-first UX
+
+The original Bass Match visual identity is preserved. The brief shows qualified
+drivers, simulation count, run cost and four core constraints first; all
+constraints and diagnostics remain in a collapsed details expander. The single
+run action and its credit/search behavior are unchanged.

@@ -48,8 +48,10 @@ GLOBAL_CSS = """
         box-shadow: 0 0 0 1px #10b981 !important;
     }
     header[data-testid="stHeader"] {
-        display: none !important;
+        background: transparent !important;
     }
+    [data-testid="stToolbar"] { visibility: hidden; }
+    [data-testid="stExpandSidebarButton"] { visibility: visible; }
     [data-stale="true"] {
         filter: none !important;
         opacity: 1 !important;

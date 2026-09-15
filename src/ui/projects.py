@@ -429,7 +429,7 @@ def _apply_cloud_record(record: _saas.ProjectRecord) -> int:
     return applied
 
 def _queue_cloud_record_activation(
-    record: _saas.ProjectRecord,
+    record: _saas.ProjectSummary,
     *,
     notice: str = "",
 ) -> None:
@@ -585,6 +585,11 @@ def _invalidate_cloud_project_list() -> None:
 
 def _cloud_project_summaries(*, force: bool = False) -> list[_saas.ProjectSummary]:
     now = time.monotonic()
+    user = _runtime._CURRENT_SAAS_USER
+    identity = (user.tenant_id, user.uid) if user is not None else None
+    if st.session_state.get("_cloud_project_summaries_identity") != identity:
+        _invalidate_cloud_project_list()
+        st.session_state["_cloud_project_summaries_identity"] = identity
     cached = st.session_state.get("_cloud_project_summaries")
     cached_at = float(st.session_state.get("_cloud_project_summaries_at", 0.0) or 0.0)
     if not force and isinstance(cached, list) and now - cached_at < 30.0:
@@ -1078,7 +1083,21 @@ def _render_manage_projects_cloud_list() -> None:
         st.info("No saved cloud projects found. Click **New Project** or import an existing `.lfp` file.")
         return
     current_id = str(st.session_state.get("_cloud_project_id", ""))
-    st.caption(f"Showing **{len(active)}** cloud projects in your account")
+    search_col, sort_col = st.columns([3, 1])
+    with search_col:
+        query = st.text_input(
+            "Search your projects", key="mp_project_search",
+            placeholder="Find a project by name",
+        ).strip().casefold()
+    with sort_col:
+        order = st.selectbox("Sort by", ["Recently updated", "Name"], key="mp_project_sort")
+    active = [item for item in active if query in item.name.casefold()]
+    active.sort(key=(lambda item: item.name.casefold()) if order == "Name" else
+                (lambda item: item.updated_at), reverse=order == "Recently updated")
+    if not active:
+        st.info("No project matches this search. Try a different name.")
+        return
+    st.caption(f"{len(active)} project{'s' if len(active) != 1 else ''}")
 
     for item in active:
         is_current = item.project_id == current_id
@@ -1087,27 +1106,23 @@ def _render_manage_projects_cloud_list() -> None:
             with r_col1:
                 badge = "**[ACTIVE]** " if is_current else ""
                 st.markdown(f"{badge}**{html.escape(item.name)}**")
-                st.caption(f"ID: `{item.project_id[:12]}...` · Revision **r{item.revision}**")
+                st.caption(f"Revision {item.revision}")
             with r_col2:
                 updated_str = item.updated_at.strftime("%d %b %Y %H:%M UTC")
                 st.caption(updated_str)
             with r_col3:
                 st.caption("Active" if is_current else "Saved")
             with r_col4:
-                b_col1, b_col2, b_col3 = st.columns([1.2, 1.2, 1.1])
+                b_col1, b_col2 = st.columns([1.4, 1])
                 with b_col1:
-                    if st.button("Open", key=f"mp_list_open_{item.project_id}", width="stretch", type="primary" if is_current else "secondary"):
-                        try:
-                            record = _account._get_project_store().load_project(_runtime._CURRENT_SAAS_USER, item.project_id)
-                            if record is None:
-                                raise _saas.ProjectMissingError("Project not found")
-                            _apply_cloud_record(record)
-                            st.toast(f"Opened project: {record.name}")
-                            st.rerun()
-                        except Exception as exc:
-                            _runtime.logger.exception("Could not open project")
-                            st.error(f"Open failed: {exc}")
-                with b_col2:
+                    st.button(
+                        "Open", key=f"mp_list_open_{item.project_id}", width="stretch",
+                        type="primary" if is_current else "secondary",
+                        on_click=_queue_cloud_record_activation,
+                        args=(item,),
+                        kwargs={"notice": f"Opened project: {item.name}"},
+                    )
+                with b_col2, st.popover("More", width="stretch"):
                     if st.button("Duplicate", key=f"mp_list_dup_{item.project_id}", width="stretch"):
                         try:
                             rec = _account._get_project_store().load_project(_runtime._CURRENT_SAAS_USER, item.project_id)
@@ -1125,7 +1140,6 @@ def _render_manage_projects_cloud_list() -> None:
                         except Exception as exc:
                             _runtime.logger.exception("Could not duplicate project")
                             st.error(f"Duplicate failed: {exc}")
-                with b_col3:
                     if st.button("Trash", key=f"mp_list_trash_{item.project_id}", width="stretch"):
                         try:
                             _account._get_project_store().soft_delete_project(
@@ -1320,9 +1334,11 @@ def _render_manage_projects_workspace() -> None:
         if _runtime._CURRENT_SAAS_USER is not None:
             st.button("Sign out", key="mp_sign_out_header_btn", on_click=_account._sign_out_saas, help="Sign out / Logout")
     st.caption(
-        "Centralized project lifecycle, cloud autosave, revision history, "
-        ".lfp file imports/exports, and publication management."
+        "Open a saved project, start a new design, or import your work."
     )
+
+    if _runtime._CURRENT_SAAS_USER is not None:
+        st.caption(_runtime._CURRENT_SAAS_USER.name or _runtime._CURRENT_SAAS_USER.email)
 
     project_name = str(st.session_state.get("project_name", "")).strip()
     project_label = _project_display_name(project_name)
@@ -1435,8 +1451,40 @@ def _render_manage_projects_workspace() -> None:
                 st.toast("Previous design restored")
                 st.rerun()
 
-    # 2. Active Project Spotlight (Hero Box)
-    with st.container(border=True):
+    # 3. Project Management Tabs
+    tab_list, tab_history, tab_trash, tab_publish, tab_account = st.tabs([
+        "Cloud Projects",
+        "Revision History",
+        "Trash",
+        "Publish Snapshot",
+        "Account & Entitlements",
+    ], key="manage_projects_tab", on_change="rerun")
+
+    if tab_list.open:
+        with tab_list:
+            _render_manage_projects_cloud_list()
+
+    if tab_history.open:
+        with tab_history:
+            _render_manage_projects_history()
+
+    if tab_trash.open:
+        with tab_trash:
+            _render_manage_projects_trash()
+
+    if tab_publish.open:
+        with tab_publish:
+            _render_manage_projects_publish()
+
+    if tab_account.open:
+        with tab_account:
+            if user is not None:
+                _render_authenticated_account_controls(user)
+            else:
+                st.info("Operating in standalone offline mode. Sign in to enable multi-device cloud persistence.")
+
+    # Draft tools stay available without displacing the user's project list.
+    with st.expander("Current project · details, export & sharing", expanded=False):
         st.markdown(f"### Active Project: {html.escape(project_label)}")
         _render_cloud_persistence_status()
 
@@ -1527,37 +1575,6 @@ def _render_manage_projects_workspace() -> None:
                     st.query_params["d"] = token
                     st.toast("URL token added to browser query params")
 
-    # 3. Project Management Tabs
-    tab_list, tab_history, tab_trash, tab_publish, tab_account = st.tabs([
-        "Cloud Projects",
-        "Revision History",
-        "Trash",
-        "Publish Snapshot",
-        "Account & Entitlements",
-    ], key="manage_projects_tab", on_change="rerun")
-
-    if tab_list.open:
-        with tab_list:
-            _render_manage_projects_cloud_list()
-
-    if tab_history.open:
-        with tab_history:
-            _render_manage_projects_history()
-
-    if tab_trash.open:
-        with tab_trash:
-            _render_manage_projects_trash()
-
-    if tab_publish.open:
-        with tab_publish:
-            _render_manage_projects_publish()
-
-    if tab_account.open:
-        with tab_account:
-            if user is not None:
-                _render_authenticated_account_controls(user)
-            else:
-                st.info("Operating in standalone offline mode. Sign in to enable multi-device cloud persistence.")
 
 def _parse_query_param_str(key: str) -> str:
     val = st.query_params.get(key, "")

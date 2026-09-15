@@ -4294,16 +4294,53 @@ def _check_ui_saas_authenticated_session():
         assert any(
             "AppTest user" in item.value
             for item in at.caption
-        ), "technical sidebar must display compact authenticated identity"
+        ), "account controls must display authenticated identity"
         assert any(
             "Unsaved changes" in item.value
             or "Saved" in item.value
             or "Saving" in item.value
             or "name required" in item.value.lower()
+            or "Not saved" in item.value
             for item in at.markdown
         ), "authenticated project UI must expose compact cloud save status"
 
-        # Now switch to Manage Projects workspace
+        assert at.session_state["workspace_mode"] == "Manage Projects"
+        assert not next(
+            panel for panel in at.expander
+            if panel.label == "Current project · details, export & sharing"
+        ).proto.expanded
+
+        from ui import account as account_ui, runtime as runtime_ui
+        import saas
+        store = account_ui._get_project_store()
+        owner = runtime_ui._CURRENT_SAAS_USER
+        other = saas.user_from_claims({"sub": "other-project-owner", "email": "other@example.test"})
+        payload = {"load_type": "Sealed", "sealed_vb_l": 36.0, "box_strategy": "Manual"}
+        alpha = store.save_project(owner, "Alpha listening room", payload, "test")
+        beta = store.save_project(owner, "Beta studio", payload, "test")
+        private = store.save_project(other, "Private other project", payload, "test")
+        at.session_state["_cloud_project_summaries_at"] = 0.0
+        at.run()
+        assert not at.exception, at.exception
+        keys = {button.key for button in at.button}
+        assert f"mp_list_open_{alpha.project_id}" in keys
+        assert f"mp_list_open_{beta.project_id}" in keys
+        assert f"mp_list_open_{private.project_id}" not in keys
+        at.selectbox(key="mp_project_sort").set_value("Name").run()
+        opens = [button.key for button in at.button if str(button.key).startswith("mp_list_open_")]
+        assert opens.index(f"mp_list_open_{alpha.project_id}") < opens.index(f"mp_list_open_{beta.project_id}")
+        at.text_input(key="mp_project_search").set_value("ALPHA").run()
+        assert not at.exception, at.exception
+        assert f"mp_list_open_{beta.project_id}" not in {button.key for button in at.button}
+        at.button(key=f"mp_list_open_{alpha.project_id}").click().run()
+        assert not at.exception, at.exception
+        assert at.session_state["workspace_mode"] == "Box Design"
+        assert at.session_state["project_name"] == "Alpha listening room"
+        assert at.session_state["sealed_vb_l"] == 36.0
+        at.run()
+        assert at.session_state["workspace_mode"] == "Box Design", "reruns must not redirect to projects"
+
+        # Return to project management without losing the editor state.
         at.session_state["workspace_mode"] = "Manage Projects"
         at.run()
         assert not at.exception, at.exception
@@ -4326,6 +4363,45 @@ def _check_ui_saas_authenticated_session():
 test(
     "UI SaaS mode authenticates user identity and provides local file export/import",
     _check_ui_saas_authenticated_session,
+)
+
+
+def _check_ui_auth_bypass_sign_out_returns_to_signed_out_state():
+    import os
+
+    from streamlit.testing.v1 import AppTest
+
+    keys = {
+        "LOAD_FORGE_SAAS_ENABLED": "true",
+        "LOAD_FORGE_SAAS_BACKEND": "memory",
+        "LOAD_FORGE_AUTH_BYPASS": "true",
+        "LOAD_FORGE_DEV_UID": "logout-regression",
+        "LOAD_FORGE_DEV_EMAIL": "logout-regression@example.test",
+        "LOAD_FORGE_DEV_NAME": "Logout regression",
+    }
+    previous = {key: os.environ.get(key) for key in keys}
+    try:
+        os.environ.update(keys)
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+        at.run()
+        assert not at.exception, at.exception
+        next(button for button in at.button if button.label == "Sign out").click().run()
+        assert not at.exception, at.exception
+        assert any(button.label == "Sign in again" for button in at.button)
+        next(button for button in at.button if button.label == "Sign in again").click().run()
+        assert not at.exception, at.exception
+        assert any(button.label == "Sign out" for button in at.button)
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
+test(
+    "UI auth-bypass Sign out returns to the signed-out state",
+    _check_ui_auth_bypass_sign_out_returns_to_signed_out_state,
 )
 
 
@@ -5118,6 +5194,7 @@ def _check_ui_saas_local_registration_login_logout():
             assert at.session_state["_local_saas_account"]["email"] == (
                 "register@example.test"
             )
+            assert at.session_state["workspace_mode"] == "Manage Projects"
             assert any(
                 "Registration tester" in item.value
                 for item in at.caption
@@ -5144,6 +5221,7 @@ def _check_ui_saas_local_registration_login_logout():
             assert at.session_state["_local_saas_account"]["email"] == (
                 "register@example.test"
             )
+            assert at.session_state["workspace_mode"] == "Manage Projects"
         finally:
             for key, value in previous.items():
                 if value is None:
@@ -10397,7 +10475,7 @@ def _check_ui_finder_main_action_runs_search():
     initial_prequalified = next(
         metric for metric in at.metric if metric.label == "Pre-qualified"
     )
-    assert initial_prequalified.value != "0 / 0", (
+    assert int(initial_prequalified.value.replace(",", "")) > 0, (
         "the initial Bass Match render must load its server-side candidate "
         f"names, got {initial_prequalified.value}"
     )
@@ -10425,7 +10503,6 @@ def _check_ui_finder_main_action_runs_search():
     assert not at.exception, at.exception
     assert "finder_result_count" not in at.session_state
 
-    assert not at.title, "the compact Finder must not spend a row on a page title"
     assert any(
         "Bass Match · Your bass brief" in item.value
         for item in at.markdown
@@ -10438,10 +10515,19 @@ def _check_ui_finder_main_action_runs_search():
         "Skipped a priori",
         "Duplicates removed",
     }
-    constraint_markup = next(
+    constraint_grids = [
         item.value for item in at.markdown
         if item.value.startswith("<div class='finder-constraint-grid'>")
+    ]
+    assert len(constraint_grids) == 2
+    assert "Maximum box" in constraint_grids[0]
+    assert "Minimum SPL" not in constraint_grids[0]
+    detail_panel = next(
+        panel for panel in at.expander
+        if panel.label == "All constraints & search details"
     )
+    assert not detail_panel.proto.expanded
+    constraint_markup = constraint_grids[1]
     for constraint in (
         "Loads",
         "Configuration",

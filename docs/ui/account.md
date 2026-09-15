@@ -30,3 +30,18 @@
 
 `_check_saas_*`, `_check_account_admin_*`, and the cloud persistence tests
 that import `ui_app._get_project_store()`.
+
+## Project-first UX
+
+Local sign-in and registration set `_projects_after_login` for a one-time
+project-list landing. Sign-out clears the navigation choice and cached private
+project summaries so the next login starts from that user’s projects.
+
+Logout uses a local rerun for local accounts and returns directly through
+Streamlit’s OAuth logout redirect for OIDC sessions. Calling a second rerun
+after `st.logout()` can replace that redirect and leave the authenticated page
+visible.
+
+In development auth-bypass mode, logout pauses the generated demo identity and
+shows a signed-out screen with an explicit “Sign in again” action, instead of
+recreating that identity on the next rerun.

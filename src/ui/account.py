@@ -19,6 +19,7 @@ from . import runtime as _runtime
 
 
 def _remember_local_account(user: _saas.SaaSUser) -> None:
+    st.session_state["_projects_after_login"] = True
     st.session_state[_constants._LOCAL_ACCOUNT_SESSION_KEY] = {
         "sub": user.uid,
         "email": user.email,
@@ -189,14 +190,50 @@ def _sign_out_saas() -> None:
     st.session_state.pop("_saas_projects_identity", None)
     st.session_state.pop("_saas_project_summaries", None)
     st.session_state.pop("_cached_user_account", None)
-    try:
-        st.logout()
-    except Exception:
-        pass
-    try:
-        st.rerun()
-    except Exception:
-        pass
+    st.session_state.pop("workspace_mode", None)
+    st.session_state.pop("manage_projects_tab", None)
+    st.session_state.pop("_cloud_project_summaries", None)
+    st.session_state.pop("_cloud_project_summaries_at", None)
+    settings = _runtime._SAAS_SETTINGS
+    # Local accounts have no OAuth session to redirect. OIDC sessions must
+    # return directly after st.logout(): a rerun here can replace Streamlit's
+    # auth redirect with the old authenticated page.
+    local_session = bool(
+        settings is not None
+        and (settings.local_accounts or settings.auth_bypass)
+    )
+    if settings is not None and settings.auth_bypass:
+        # Development bypass would otherwise recreate the demo identity on
+        # every rerun, making the visible Sign out action appear ineffective.
+        st.session_state["_auth_bypass_signed_out"] = True
+    if local_session:
+        try:
+            st.rerun()
+        except Exception:
+            pass
+    else:
+        try:
+            st.logout()
+        except Exception:
+            try:
+                st.rerun()
+            except Exception:
+                pass
+    st.stop()
+
+
+def _render_auth_bypass_signed_out() -> None:
+    """Show a deterministic signed-out state for development auth bypasses."""
+    _, center, _ = st.columns([1, 3.2, 1])
+    with center:
+        _render_auth_hero_and_badges(
+            title="You are signed out",
+            subtitle="Development authentication bypass is paused for this session.",
+        )
+        st.info("No account data is active in this browser session.")
+        if st.button("Sign in again", type="primary", width="stretch"):
+            st.session_state.pop("_auth_bypass_signed_out", None)
+            st.rerun()
     st.stop()
 
 def _resolve_saas_user() -> _saas.SaaSUser | None:
@@ -209,6 +246,8 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
     if not _runtime._SAAS_SETTINGS.auth_required:
         return None
     if _runtime._SAAS_SETTINGS.auth_bypass:
+        if st.session_state.get("_auth_bypass_signed_out", False):
+            _render_auth_bypass_signed_out()
         claims = _runtime._SAAS_SETTINGS.development_claims()
     elif _runtime._SAAS_SETTINGS.local_accounts:
         claims = st.session_state.get(_constants._LOCAL_ACCOUNT_SESSION_KEY)

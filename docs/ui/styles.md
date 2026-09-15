@@ -18,3 +18,9 @@
   labels wrapping (`white-space: normal !important`); regression tests assert
   these strings.
 - CSS is injected before any auth/widget rendering so reruns do not reflow.
+
+## Project-first UX
+
+The original logo, illustrated workspace buttons, load diagrams, colors and card
+styles are preserved. The native sidebar opener stays visible when the Streamlit
+toolbar is hidden, including mobile.

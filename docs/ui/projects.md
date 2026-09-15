@@ -47,3 +47,13 @@
 
 `_check_lfp_*`, `_check_cloud_*`, `_check_public_*`, `_check_ui_share_*`,
 `_check_saas_*` (billing/credits), `_check_ui_new_project_preserves_work`.
+
+## Project-first UX
+
+Manage Projects puts the private project list before the collapsed current-
+project details/export/sharing panel. Search matches project names case-
+insensitively; sorting supports recent updates and names. Opening a list item
+queues activation before widget creation on the next run and enters Box Design.
+Cached project summaries are keyed by tenant and user identity. The original
+community artwork and visual styling remain intact. Duplicate and Trash actions
+are grouped under each project’s More menu.

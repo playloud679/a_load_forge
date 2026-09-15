@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.18.0 (2026-09-15)
+
+- Kept the original illustrated Load Forge navigation, load cards and community artwork.
+- Authenticated users now land on their own project list after login. Projects can be searched and sorted; opening one queues its state safely and continues in Box Design.
+- Secondary project actions (duplicate and trash) are grouped under **More**. Current-project export, sharing and revision tools remain available in a collapsed panel.
+- Added tenant/user-aware project-summary caching and preserved the existing Finder brief identity while moving secondary diagnostics behind an expandable details section.
+- Validation: fresh full suite **228 passed, 0 failed, 0 skipped**; 14 acoustic-load smoke tests passed.
+
 ## 0.17.7 (2026-09-15)
 
 - **UI**: the Finder results table and its CSV download now show the nominal

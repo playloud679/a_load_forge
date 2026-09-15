@@ -21,3 +21,12 @@
   imported for side effects.
 - The CSS injection and `set_page_config` happen in `ui_app.py` before
   `main()`, preserving the original ordering.
+
+## Project-first UX
+
+Authenticated fresh sessions start in Manage Projects. Workspace changes survive
+ordinary reruns; successful local sign-in/registration queues a one-time return
+to Cloud Projects. Explicit shared-design links open Box Design and public,
+community, checkout and admin routes retain their handling. The original branded
+sidebar and workspace artwork remain intact. The projects landing also exposes
+the original illustrated Community action alongside Bass Match and Box Design.
