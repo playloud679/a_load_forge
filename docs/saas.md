@@ -36,11 +36,11 @@ limits. The UI labels this state as `Open Beta · full access`. Disabling the
 flag therefore restores the normal plan entitlements without migrating users,
 creating subscriptions or changing saved projects.
 
-`LOAD_FORGE_ANONYMOUS_ACCESS=true` opens the workspace to unauthenticated
-visitors. Each Streamlit session receives its own ephemeral guest account
-(`guest+<uid>@loadforge.local`, Free plan) so saved projects never leak between
-visitors, and signing in remains optional. The flag defaults to false and is
-accepted on Cloud Run.
+Every visitor must authenticate before entering the workspace, Free accounts
+included: there is no anonymous or guest identity. Email sign-in and free
+email/password registration are always required and no invite code is
+requested. The legacy `LOAD_FORGE_ANONYMOUS_ACCESS` flag was removed; setting
+it has no effect.
 
 Authentication uses Streamlit's native OIDC support (`st.login`, `st.user`,
 `st.logout`).  Mount a complete `secrets.toml` from Secret Manager at

@@ -86,7 +86,6 @@ class SaaSSettings:
     oidc_provider: str | None = None
     auth_bypass: bool = False
     local_accounts: bool = False
-    anonymous_access: bool = False
     local_account_database: str = ".local/load_forge_accounts.sqlite3"
     dev_uid: str = "local-developer"
     dev_email: str = "developer@localhost"
@@ -100,7 +99,6 @@ class SaaSSettings:
         open_beta_enabled = _env_flag(values, "LOAD_FORGE_OPEN_BETA_ENABLED")
         auth_bypass = _env_flag(values, "LOAD_FORGE_AUTH_BYPASS")
         local_accounts = _env_flag(values, "LOAD_FORGE_LOCAL_ACCOUNTS")
-        anonymous_access = _env_flag(values, "LOAD_FORGE_ANONYMOUS_ACCESS")
         if auth_bypass and local_accounts:
             raise SaaSConfigurationError(
                 "Choose either LOAD_FORGE_AUTH_BYPASS or LOAD_FORGE_LOCAL_ACCOUNTS"
@@ -229,7 +227,6 @@ class SaaSSettings:
             oidc_provider=provider,
             auth_bypass=auth_bypass,
             local_accounts=local_accounts,
-            anonymous_access=anonymous_access,
             local_account_database=str(
                 values.get(
                     "LOAD_FORGE_LOCAL_ACCOUNT_DATABASE",

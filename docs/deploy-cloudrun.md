@@ -22,10 +22,10 @@ gcloud config set project PROJECT_ID
 gcloud services enable run.googleapis.com artifactregistry.googleapis.com
 
 gcloud builds submit \
-  --tag europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.17.3
+  --tag europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.17.4
 
 gcloud run deploy load-forge \
-  --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.17.3 \
+  --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.17.4 \
   --region europe-west1 \
   --platform managed \
   --allow-unauthenticated \
@@ -86,11 +86,11 @@ registrati l'accesso Pro senza modificare il piano memorizzato e senza creare
 abbonamenti. Rimuovere o disattivare la variabile ripristina gli entitlement
 normali; non migra né cancella i progetti esistenti.
 
-`LOAD_FORGE_ANONYMOUS_ACCESS=true` apre il workspace ai visitatori non
-autenticati senza account condiviso: ogni sessione Streamlit riceve un'identità
-guest effimera (`guest+<uid>@loadforge.local`, piano Free) e il sign-in resta
-opzionale. Il flag è disattivato per default, è accettato su Cloud Run e il
-deployment attuale del servizio `load-forge` lo usa per il funnel pubblico.
+L'accesso al workspace richiede sempre un account con email, anche per il
+piano Free: non esiste più la modalità anonima/guest. La registrazione
+email/password è libera (nessun codice invito) e l'accesso Google resta
+disponibile quando `auth` è configurato in `secrets.toml`. La variabile
+storica `LOAD_FORGE_ANONYMOUS_ACCESS` è stata rimossa e viene ignorata.
 
 Il service account di `load-forge` deve avere soltanto il ruolo necessario
 per leggere e scrivere i documenti (`roles/datastore.user`) e l'accesso alla

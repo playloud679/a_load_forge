@@ -52,7 +52,6 @@ _FAVICON_PATH = _PROJECT_ROOT / "assets" / "load_forge_favicon.png"
 
 _LOCAL_ACCOUNT_SESSION_KEY = "_local_saas_account"
 
-_ANONYMOUS_SESSION_KEY = "_anonymous_guest_uid"
 
 _PARAM_PREFIXES = (
     "driver_", "box_", "reflex_", "pr_", "bandpass4_", "bandpass6_", "bp8_", "sealed_", "loss_", "sim_", "opt_", "load_type"

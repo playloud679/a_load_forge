@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.17.4 (2026-09-15)
+
+- **Access**: every visitor must now sign in with an email account, Free plan
+  included. Anonymous guest identities were removed; the legacy
+  `LOAD_FORGE_ANONYMOUS_ACCESS` flag is ignored and no longer appears in
+  `SaaSSettings`.
+- **Registration**: the alpha invite code was removed from the email/password
+  sign-up form, so any valid email address can create a Free account.
+- **Docs/Test**: updated `docs/ui/account.md`, `docs/saas.md` and
+  `docs/deploy-cloudrun.md`; tests now assert the gate is always rendered and
+  that the invite field is gone. Fresh full suite: **226 passed, 0 failed,
+  0 skipped**.
+
 ## 0.17.3 (2026-09-15)
 
 - **Fix**: the Finder results table no longer shows the `Le10k mH` column just

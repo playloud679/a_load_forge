@@ -5,7 +5,6 @@ from __future__ import annotations
 import multiprocessing
 import os
 import time
-import uuid
 from functools import cache
 from pathlib import Path
 
@@ -77,23 +76,6 @@ def _render_auth_hero_and_badges(title: str, subtitle: str) -> None:
         unsafe_allow_html=True,
     )
 
-def _anonymous_claims() -> dict[str, str]:
-    """Return a stable per-session guest identity.
-
-    Anonymous visitors get their own uid so saved projects never leak between
-    sessions, while still resolving to a regular Free account.
-    """
-    uid = st.session_state.get(_constants._ANONYMOUS_SESSION_KEY)
-    if not isinstance(uid, str) or not uid:
-        uid = f"anon_{uuid.uuid4().hex}"
-        st.session_state[_constants._ANONYMOUS_SESSION_KEY] = uid
-    return {
-        "sub": uid,
-        "email": f"guest+{uid}@loadforge.local",
-        "name": "Guest",
-        "plan": "free",
-    }
-
 def _render_local_account_gate(*, render_hero: bool = True) -> None:
     """Render the local registration/login form."""
     if render_hero:
@@ -145,23 +127,7 @@ def _render_local_account_gate(*, render_hero: bool = True) -> None:
                     _remember_local_account(user)
                     st.rerun()
         else:
-            prefilled_token = ""
-            try:
-                if "token" in st.query_params:
-                    prefilled_token = str(st.query_params["token"]).strip()
-                elif hasattr(st, "context") and hasattr(st.context, "cookies"):
-                    prefilled_token = str(st.context.cookies.get("lf_alpha_token", "")).strip()
-            except Exception:
-                pass
-
             with st.form("local_saas_registration"):
-                alpha_code = st.text_input(
-                    "Alpha Invite Code",
-                    value=prefilled_token,
-                    placeholder="FORGE-XXXX-XXXX",
-                    help="Load Forge Studio è in Private Closed Alpha. È richiesto un codice invito valido per registrarsi.",
-                    key="_local_register_alpha_code",
-                )
                 name = st.text_input(
                     "Name",
                     placeholder="Your Name",
@@ -195,11 +161,7 @@ def _render_local_account_gate(*, render_hero: bool = True) -> None:
                     width="stretch",
                 )
             if submitted:
-                from src.invites import verify_and_redeem_token
-                is_valid_code, code_err = verify_and_redeem_token(alpha_code)
-                if not is_valid_code:
-                    st.error(f"⛔ Codice Invito non valido ({code_err}). Richiedi l'accesso su https://load-forge.com/alpha-gate")
-                elif password != confirmation:
+                if password != confirmation:
                     st.error("Passwords do not match")
                 else:
                     try:
@@ -212,7 +174,7 @@ def _render_local_account_gate(*, render_hero: bool = True) -> None:
         st.markdown(
             """
             <div style="text-align: center; margin-top: 0.8rem; font-size: 0.8rem; color: rgba(255,255,255,0.6);">
-                Non hai ancora un codice invito? <a href="https://load-forge.com/alpha-gate" target="_blank" style="color: #10b981; font-weight: 500;">Richiedi l'accesso alla Closed Alpha</a>
+                Registrazione libera con email: nessun codice invito richiesto.
             </div>
             <div style="text-align: center; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.75rem; color: rgba(255,255,255,0.40); line-height: 1.4;">
                 Local storage · Encrypted credentials (PBKDF2) · Autosaved projects
@@ -260,37 +222,34 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
             except (AttributeError, RuntimeError):
                 logged_in = False
             if not logged_in:
-                if _runtime._SAAS_SETTINGS.anonymous_access:
-                    claims = _anonymous_claims()
-                else:
-                    _, col_center, _ = st.columns([1, 3.2, 1])
-                    with col_center:
-                        _render_auth_hero_and_badges(
-                            title="Sign in to Load Forge",
-                            subtitle="Sign in to save and manage your box designs, simulations, and driver catalog.",
+                _, col_center, _ = st.columns([1, 3.2, 1])
+                with col_center:
+                    _render_auth_hero_and_badges(
+                        title="Sign in to Load Forge",
+                        subtitle="Sign in to save and manage your box designs, simulations, and driver catalog.",
+                    )
+                    try:
+                        auth_configured = "auth" in st.secrets
+                    except (FileNotFoundError, RuntimeError):
+                        auth_configured = False
+                    if auth_configured:
+                        if st.button("Sign in with Google", type="primary", width="stretch"):
+                            if _runtime._SAAS_SETTINGS.oidc_provider:
+                                st.login(_runtime._SAAS_SETTINGS.oidc_provider)
+                            else:
+                                st.login()
+                        st.markdown(
+                            """
+                            <div style="display: flex; align-items: center; text-align: center; margin: 1.2rem 0; color: rgba(255,255,255,0.35); font-size: 0.8rem;">
+                                <div style="flex: 1; border-bottom: 1px solid rgba(255,255,255,0.12);"></div>
+                                <span style="padding: 0 0.8rem; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em;">oppure</span>
+                                <div style="flex: 1; border-bottom: 1px solid rgba(255,255,255,0.12);"></div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
                         )
-                        try:
-                            auth_configured = "auth" in st.secrets
-                        except (FileNotFoundError, RuntimeError):
-                            auth_configured = False
-                        if auth_configured:
-                            if st.button("Sign in with Google", type="primary", width="stretch"):
-                                if _runtime._SAAS_SETTINGS.oidc_provider:
-                                    st.login(_runtime._SAAS_SETTINGS.oidc_provider)
-                                else:
-                                    st.login()
-                            st.markdown(
-                                """
-                                <div style="display: flex; align-items: center; text-align: center; margin: 1.2rem 0; color: rgba(255,255,255,0.35); font-size: 0.8rem;">
-                                    <div style="flex: 1; border-bottom: 1px solid rgba(255,255,255,0.12);"></div>
-                                    <span style="padding: 0 0.8rem; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.05em;">oppure</span>
-                                    <div style="flex: 1; border-bottom: 1px solid rgba(255,255,255,0.12);"></div>
-                                </div>
-                                """,
-                                unsafe_allow_html=True,
-                            )
-                        _render_local_account_gate(render_hero=False)
-                        st.stop()
+                    _render_local_account_gate(render_hero=False)
+                    st.stop()
             if not isinstance(claims, dict):
                 claims = st.user.to_dict()
 

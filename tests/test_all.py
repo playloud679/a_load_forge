@@ -3400,19 +3400,6 @@ def _check_saas_identity_entitlements_and_project_store():
     })
     assert configured.enabled and configured.auth_required and configured.auth_bypass
     assert configured.project_trash_retention_days == 30
-    anonymous = saas.SaaSSettings.from_env({
-        "LOAD_FORGE_SAAS_ENABLED": "true",
-        "LOAD_FORGE_SAAS_BACKEND": "memory",
-        "LOAD_FORGE_ANONYMOUS_ACCESS": "true",
-    })
-    assert anonymous.enabled and anonymous.auth_required
-    assert anonymous.anonymous_access
-    assert not anonymous.auth_bypass and not anonymous.local_accounts
-    default_access = saas.SaaSSettings.from_env({
-        "LOAD_FORGE_SAAS_ENABLED": "true",
-        "LOAD_FORGE_SAAS_BACKEND": "memory",
-    })
-    assert not default_access.anonymous_access
     retention_configured = saas.SaaSSettings.from_env({
         "LOAD_FORGE_PROJECT_TRASH_RETENTION_DAYS": "45",
     })
@@ -4961,8 +4948,6 @@ def _check_ui_saas_local_registration_login_logout():
 
     from streamlit.testing.v1 import AppTest
 
-    import src.invites as invites_module
-
     with tempfile.TemporaryDirectory() as directory:
         keys = {
             "LOAD_FORGE_SAAS_ENABLED": "true",
@@ -4975,8 +4960,6 @@ def _check_ui_saas_local_registration_login_logout():
             "K_SERVICE": None,
         }
         previous = {key: os.environ.get(key) for key in keys}
-        original_master_token = invites_module.MASTER_TOKEN
-        invites_module.MASTER_TOKEN = "TEST-ALPHA-TOKEN"
         try:
             for key, value in keys.items():
                 if value is None:
@@ -4992,7 +4975,7 @@ def _check_ui_saas_local_registration_login_logout():
             assert not at.exception, at.exception
 
             fields = {item.key: item for item in at.text_input}
-            fields["_local_register_alpha_code"].set_value("TEST-ALPHA-TOKEN")
+            assert "_local_register_alpha_code" not in fields
             fields["_local_register_name"].set_value("Registration tester")
             fields["_local_register_email"].set_value("register@example.test")
             fields["_local_register_password"].set_value("a safe demo password")
@@ -5032,7 +5015,6 @@ def _check_ui_saas_local_registration_login_logout():
                 "register@example.test"
             )
         finally:
-            invites_module.MASTER_TOKEN = original_master_token
             for key, value in previous.items():
                 if value is None:
                     os.environ.pop(key, None)
@@ -5104,7 +5086,7 @@ test(
 )
 
 
-def _check_ui_anonymous_access_without_gate():
+def _check_ui_email_required_without_guest_access():
     import os
 
     from streamlit.testing.v1 import AppTest
@@ -5128,13 +5110,13 @@ def _check_ui_anonymous_access_without_gate():
         at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
         at.run()
         assert not at.exception, at.exception
-        assert not any(
-            "Sign in to Load Forge" in item.value for item in at.markdown
-        ), "anonymous access must not render the blocking sign-in gate"
-        assert "_anonymous_guest_uid" in at.session_state, "guest identity missing"
         assert any(
+            "Sign in to Load Forge" in item.value for item in at.markdown
+        ), "the email sign-in gate must always be rendered"
+        assert "_anonymous_guest_uid" not in at.session_state
+        assert not any(
             "Load type" == item.label for item in at.tabs
-        ), "workspace did not load for an anonymous visitor"
+        ), "the workspace must not load without an account"
     finally:
         for key, value in previous.items():
             if value is None:
@@ -5144,8 +5126,8 @@ def _check_ui_anonymous_access_without_gate():
 
 
 test(
-    "UI anonymous access opens the workspace without a sign-in gate",
-    _check_ui_anonymous_access_without_gate,
+    "UI requires email sign-in even when legacy anonymous access is requested",
+    _check_ui_email_required_without_guest_access,
 )
 
 
