@@ -72,7 +72,7 @@
   primary/secondary action split.
 - Validation: fresh full suite **229 passed, 0 failed, 0 skipped**.
 
-## 0.18.3 (2026-09-16)
+## 0.18.8 (2026-09-16)
 
 - **UI**: Bass Match is results-first. The brief is now a single compact row
   (title plus pre-qualified / ready-simulations / run-cost metrics) and every
