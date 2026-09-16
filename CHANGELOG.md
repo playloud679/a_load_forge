@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.18.3 (2026-09-16)
+
+- **UI**: Bass Match is results-first. The brief is now a single compact row
+  (title plus pre-qualified / ready-simulations / run-cost metrics) and every
+  constraint, skipped/duplicate counter and profile detail moved into the
+  collapsed "All constraints & search details" expander, so the ranked table
+  sits just below the Run action instead of below several diagnostic panels.
+- **UI**: the results header is one line (`N matches · loads · box · goal`)
+  next to `Rank by`; the open/compare CTA and CSV export sit directly under the
+  table; the long scan diagnostics (prefilter counts, seek time, per-load
+  breakdown, per-brand totals) collapsed under "Scan diagnostics".
+- **Docs/Test**: updated `docs/ui/finder.md` and the function reference; the
+  Finder AppTest now asserts the single constraint grid, the collapsed details
+  and collapsed diagnostics panels.
+- Validation: fresh full suite **229 passed, 0 failed, 0 skipped**.
+
 ## 0.18.2 (2026-09-16)
 
 - **UI**: the transparent Streamlit header no longer swallows clicks. Since

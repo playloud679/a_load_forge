@@ -47,7 +47,12 @@ Finder tests (`_check_ui_finder_*`, `_check_ui_parallel_ranking_*`,
 
 ## Project-first UX
 
-The original Bass Match visual identity is preserved. The brief shows qualified
-drivers, simulation count, run cost and four core constraints first; all
-constraints and diagnostics remain in a collapsed details expander. The single
-run action and its credit/search behavior are unchanged.
+The original Bass Match visual identity is preserved. The brief is a single
+compact row (title plus pre-qualified / ready-simulations / run-cost metrics);
+every constraint, the skipped/duplicate counters and the profile details live
+in the collapsed "All constraints & search details" expander so the results
+stay near the top. After a run the header shows the match count next to the
+`Rank by` control, the table is followed by the open/compare CTA and the CSV
+export, and the long scan diagnostics (prefilter counts, seek time, per-load
+breakdown, per-brand totals) collapse under "Scan diagnostics". The single run
+action and its credit/search behavior are unchanged.

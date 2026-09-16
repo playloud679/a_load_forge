@@ -173,7 +173,7 @@ l'app segnala che occorre rieseguire la ricerca.
 Se sono presenti prezzi, **Rank by F3** mantiene la graduatoria acustica mentre
 **Best value** ordina per il prodotto F3 × prezzo: un valore minore rappresenta
 il modo economicamente più conveniente di raggiungere una certa estensione,
-non la qualità assoluta del driver. **Download candidate CSV** esporta la
+non la qualità assoluta del driver. **Download CSV** esporta la
 tabella. Selezionando una riga la si apre in Box Design; selezionando da due a
 otto righe si creano varianti confrontabili e indipendentemente editabili.
 

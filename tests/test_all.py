@@ -10547,15 +10547,13 @@ def _check_ui_finder_main_action_runs_search():
         item.value for item in at.markdown
         if item.value.startswith("<div class='finder-constraint-grid'>")
     ]
-    assert len(constraint_grids) == 2
-    assert "Maximum box" in constraint_grids[0]
-    assert "Minimum SPL" not in constraint_grids[0]
+    assert len(constraint_grids) == 1
     detail_panel = next(
         panel for panel in at.expander
         if panel.label == "All constraints & search details"
     )
     assert not detail_panel.proto.expanded
-    constraint_markup = constraint_grids[1]
+    constraint_markup = constraint_grids[0]
     for constraint in (
         "Loads",
         "Configuration",
@@ -10615,6 +10613,13 @@ def _check_ui_finder_main_action_runs_search():
     ), "completion must not consume permanent page height"
     assert "Your best matches" not in [sub.value for sub in at.subheader]
     assert at.dataframe, "ranked rows must appear in the main workspace"
+    diagnostics_panel = next(
+        panel for panel in at.expander
+        if panel.label == "Scan diagnostics"
+    )
+    assert not diagnostics_panel.proto.expanded, (
+        "the long scan diagnostics must stay collapsed so results stay on top"
+    )
     result_cta = next(
         button for button in at.button
         if button.key == "finder_open_selected_design"

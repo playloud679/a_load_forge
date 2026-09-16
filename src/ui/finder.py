@@ -1739,19 +1739,19 @@ def _render_bass_match_hero(
 
     run_requested = False
     with st.container(border=True, key="bass_match_brief"):
-        st.markdown("#### Bass Match · Your bass brief")
-        st.caption("Review your setup, then compare the drivers that fit.")
-        b1, b2, b3 = st.columns(3)
-        b1.metric(
+        title_col, m1, m2, m3 = st.columns(
+            [2.4, 1.0, 1.0, 1.0],
+            vertical_alignment="center",
+        )
+        with title_col:
+            st.markdown("#### Bass Match · Your bass brief")
+            st.caption("Review your setup, then compare the drivers that fit.")
+        m1.metric(
             "Pre-qualified", f"{len(prequalified_names):,}",
             help="Drivers that pass pre-simulation checks for at least one active load.",
         )
-        b2.metric("Ready simulations", f"{prefilter_stats['eligible_simulations']:,}")
-        b3.metric("Run cost", f"{run_credits:,} credits" if acc else "Local run")
-        primary_labels = {"Loads", "Maximum box", "Optimization", "Voltage"}
-        _catalog._render_finder_constraint_grid([
-            (label, value) for label, value in constraints if label in primary_labels
-        ])
+        m2.metric("Ready simulations", f"{prefilter_stats['eligible_simulations']:,}")
+        m3.metric("Run cost", f"{run_credits:,} credits" if acc else "Local run")
         with st.expander("All constraints & search details"):
             _catalog._render_finder_constraint_grid(constraints)
             detail_cols = st.columns(2)
@@ -2016,7 +2016,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     batch_rows = _catalog._refresh_finder_result_catalog_metadata(batch_rows)
     st.session_state["batch_results"] = batch_rows
 
-    selection_cta = st.empty()
     display_finder_loads = [
         "Bass reflex (PR)"
         if item == "Bass reflex" and finder_resonator == _constants._RESONATOR_PR
@@ -2052,18 +2051,12 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     per_load_summary = _finder_per_load_stats_str(run_stats)
     if per_load_summary:
         per_load_summary = f" · 🧩 Per load: {per_load_summary}"
-
-    st.caption(
-        f"{len(batch_rows)} usable candidates · "
-        + (
-            f"{int(context[11])}/{int(context[12])} simulations after pre-filter · "
-            if len(context) > 12
-            else f"{context[2]} scanned presets · "
-        )
-        + f"{load_summary}{volume_summary} · {objective}"
-        + f"{seek_time_str}"
-        + f"{per_load_summary}"
+    scan_detail_str = (
+        f"{int(context[11])}/{int(context[12])} simulations after pre-filter"
+        if len(context) > 12
+        else f"{context[2]} scanned presets"
     )
+
     full_df = pd.DataFrame(batch_rows)
     if "_load_type" in full_df.columns:
         full_df = full_df.rename(columns={"_load_type": "Load"})
@@ -2071,13 +2064,12 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         manufacturer_counts = (
             full_df["Manufacturer"].astype(str).value_counts().sort_index()
         )
-        st.caption(
-            "Risultati per marca: "
-            + " · ".join(
-                f"{manufacturer} {int(count)}"
-                for manufacturer, count in manufacturer_counts.items()
-            )
+        manufacturer_summary = "Risultati per marca: " + " · ".join(
+            f"{manufacturer} {int(count)}"
+            for manufacturer, count in manufacturer_counts.items()
         )
+    else:
+        manufacturer_summary = ""
     full_df["Vtot L"] = full_df.apply(
         _finder_total_volume_l, axis=1
     )
@@ -2101,16 +2093,24 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
 
     value_currency = _catalog._finder_price_currency(full_df)
     rank_mode = _constants._FINDER_RANK_F3
-    if value_currency:
-        rank_mode = st.radio(
-            "Rank by",
-            _constants._FINDER_RANK_MODES,
-            horizontal=True,
-            key="finder_rank_mode",
-            help="Best value re-sorts the scan by F3 × price: the cheapest way "
-                 "to reach deep bass ranks first. Use the sidebar price filter "
-                 "to cap the budget.",
+    summary_col, rank_col = st.columns([3.2, 1.8], vertical_alignment="center")
+    with summary_col:
+        match_word = "match" if len(batch_rows) == 1 else "matches"
+        st.caption(
+            f"**{len(batch_rows):,} {match_word}** · {load_summary}"
+            f"{volume_summary} · {objective}"
         )
+    if value_currency:
+        with rank_col:
+            rank_mode = st.radio(
+                "Rank by",
+                _constants._FINDER_RANK_MODES,
+                horizontal=True,
+                key="finder_rank_mode",
+                help="Best value re-sorts the scan by F3 × price: the cheapest way "
+                     "to reach deep bass ranks first. Use the sidebar price filter "
+                     "to cap the budget.",
+            )
     if rank_mode == _constants._FINDER_RANK_VALUE and value_currency:
         full_df = _catalog._value_sorted_frame(full_df, value_currency)
         st.caption(
@@ -2215,13 +2215,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     csv_columns = [
         name for name in columns if name not in {"Driver", "Response"}
     ]
-    st.download_button(
-        "Download candidate CSV",
-        batch_df[csv_columns].to_csv(index=False).encode("utf-8"),
-        "load_forge_candidates.csv",
-        "text/csv",
-        width="stretch",
-    )
 
     selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
     selected_indices = [
@@ -2249,7 +2242,8 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
         not selected_designs
         or too_many
     )
-    with selection_cta.container():
+    cta_col, download_col = st.columns([2.6, 1.0], vertical_alignment="center")
+    with cta_col:
         st.button(
             cta_label,
             type="secondary" if not selected_designs else "primary",
@@ -2259,6 +2253,14 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             on_click=_queue_finder_design_selection,
             args=(selected_designs, float(_state._finder_value("finder_voltage"))),
         )
+    with download_col:
+        st.download_button(
+            "Download CSV",
+            batch_df[csv_columns].to_csv(index=False).encode("utf-8"),
+            "load_forge_candidates.csv",
+            "text/csv",
+            width="stretch",
+        )
 
     if not selected_indices:
         with st.container(key="emerald_info_candidate_selection"):
@@ -2266,6 +2268,18 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                 "Select one match to preview it, or select 2–8 matches to "
                 "compare them in Box Design."
             )
+
+    with st.expander("Scan diagnostics", expanded=False):
+        st.caption(
+            f"{len(batch_rows)} usable candidates · {scan_detail_str} · "
+            f"{load_summary}{volume_summary} · {objective}"
+            f"{seek_time_str}"
+            f"{per_load_summary}"
+        )
+        if manufacturer_summary:
+            st.caption(manufacturer_summary)
+
+    if not selected_indices:
         _render_candidate_pool(filtered_preset_names)
         return
     if len(selected_indices) > 1:
