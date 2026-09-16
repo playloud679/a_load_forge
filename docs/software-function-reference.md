@@ -174,8 +174,18 @@ Se sono presenti prezzi, **Rank by F3** mantiene la graduatoria acustica mentre
 **Best value** ordina per il prodotto F3 × prezzo: un valore minore rappresenta
 il modo economicamente più conveniente di raggiungere una certa estensione,
 non la qualità assoluta del driver. **Download CSV** esporta la
-tabella. Selezionando una riga la si apre in Box Design; selezionando da due a
-otto righe si creano varianti confrontabili e indipendentemente editabili.
+tabella. Usa le checkbox all'estrema sinistra per selezionare i design:
+la barra compatta sopra la tabella riepiloga i modelli selezionati.
+Con una selezione premi **Open this design in Box Design**; con due–otto
+premi **Compare N designs in Box Design** per aprire varianti indipendentemente
+editabili. Oltre otto selezioni il pulsante resta disabilitato: deseleziona le
+righe in eccesso. Il run completato apre automaticamente la tab **Results**, dedicata alla
+tabella e all'apertura in Box Design. Cambiare un parametro che richiede una
+nuova ricerca riporta alla tab **Run Bass Match**, che contiene brief, candidati
+e lancio della simulazione. Nel brief tutti i vincoli attivi sono visibili;
+**Show disabled constraints** mostra anche quelli disabilitati o non applicabili.
+Tempi, simulazioni e crediti restano consultabili
+sotto la tabella in **Run details**. Cambiare tab non avvia simulazioni.
 
 Il pannello **Candidate pool** è il catalogo filtrato sottostante. Nessuna
 selezione significa “simula tutti i driver ammessi”; una selezione multipla

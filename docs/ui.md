@@ -42,6 +42,11 @@ script with focused modules; behavior is unchanged.
 `_runtime.X`; `ui_app.py` assigns `_CURRENT_SAAS_USER` and `_ACCOUNT_STORE`
 on every rerun after `initialize_saas_settings()`.
 
+The entry point also rereads `VERSION` on every rerun before page configuration
+and re-exports, updating `_ui_runtime._VERSION` even when `runtime.py` itself
+has not changed. An unreadable version file uses `dev`. Refreshing the page
+therefore updates both the browser title and visible version after a bump.
+
 ## Test contract
 
 - `tests/test_all.py` imports `ui_app` and uses the re-exported names

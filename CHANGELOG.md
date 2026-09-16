@@ -1,5 +1,77 @@
 # Changelog
 
+## 0.18.8 (2026-09-16)
+
+- **UI**: show all active search constraints directly on the Run Bass Match
+  page. A Show disabled constraints toggle reveals Off/Any/N/A values without
+  changing the search; only prefilter diagnostics remain collapsed.
+- **Docs/Test**: update user/module guides, release metadata and the Finder
+  AppTest for default active-only and expanded constraint summaries.
+- Validation: `.venv/bin/python tests/test_all.py` — **229 passed, 0 failed,
+  0 skipped**; UI compilation, version consistency and `git diff --check` passed.
+
+## 0.18.7 (2026-09-16)
+
+- **UI**: split Bass Match setup and results into main-area Run/Results tabs.
+  Completed scans open Results automatically; invalidating search-input changes
+  return to Run. Hidden setup and catalog controls are not rendered on Results.
+- **UI**: replace the large selection card with a compact toolbar and expand
+  the ranked table to 680 px. Run diagnostics move below the table.
+- **Docs/Test**: update module and user guides, release metadata and AppTests
+  for tab transitions, selection persistence and the Box Design handoff.
+- Validation: `.venv/bin/python tests/test_all.py` — **229 passed, 0 failed,
+  0 skipped**; UI compilation, version consistency and `git diff --check` passed.
+
+## 0.18.6 (2026-09-16)
+
+- **UI**: Finder results guide users through Run → Select designs → Open Box
+  Design, with explicit checkbox instructions, selected-design summaries and
+  a prominent primary Open/Compare action for one to eight designs.
+- **UI**: completed-run statistics move into a collapsed Run details panel;
+  the Run action becomes secondary once results are available.
+- **Fix**: refresh the displayed version from VERSION on each app rerun so
+  release bumps appear without restarting the Streamlit process.
+- **Docs/Test**: synchronized Finder and style documentation; checked empty,
+  single, multiple, over-limit and cleared selections plus restored results.
+- Validation: `.venv/bin/python tests/test_all.py` — **229 passed, 0 failed,
+  0 skipped**; UI Python compilation and version consistency checks passed.
+
+## 0.18.5 (2026-09-16)
+
+- **UI**: the Box Design launch is back where it is visible: the
+  `Open this design in Box Design` / `Compare N designs in Box Design` button
+  now sits in a slim toolbar directly above the ranked table — contextual
+  selection hint on the left, compact emerald-outline pill pinned right — so
+  it never reads as a second Run button. It reads the selection recorded by
+  the previous interaction, so it enables as soon as a row is ticked; a new
+  run clears the stale selection.
+- **UI**: the main header is compact. Project name plus cloud-save status,
+  user, plan and credit balance collapse into a single summary line; billing,
+  Manage Projects, community and Sign out move into the collapsed
+  `⚙️ Account & projects` panel (stable keys unchanged). CSV export stays a
+  plain download action under the table.
+- **Docs/Test**: updated `docs/ui/finder.md`, `docs/ui/projects.md`; the
+  Finder workspace AppTest now asserts the launch sits above the table and the
+  compact header panel is present.
+- Validation: fresh full suite **229 passed, 0 failed, 0 skipped**.
+
+## 0.18.4 (2026-09-16)
+
+- **UI**: Bass Match always surfaces the work it performed. The last-run
+  statistics render as an emerald "Simulation work performed" panel with four
+  tiles (seek time, simulations, acoustic solves, credits) and the per-load
+  breakdown, placed directly between the Run action and the ranked table.
+- **UI**: action hierarchy is explicit. `Run Bass Match` is the only primary
+  button; `Open this design in Box Design` / `Compare N designs in Box Design`
+  is always secondary inside the styled `bass_match_result_actions` container
+  (neutral outline, emerald hover), and CSV export is a plain download action.
+- **UI**: the ranked results table is taller (560 px) so matches keep the
+  workspace below the work panel.
+- **Docs/Test**: updated `docs/ui/finder.md` and `docs/ui/styles.md`; the
+  Finder workspace AppTest now asserts the visible work panel and the
+  primary/secondary action split.
+- Validation: fresh full suite **229 passed, 0 failed, 0 skipped**.
+
 ## 0.18.3 (2026-09-16)
 
 - **UI**: Bass Match is results-first. The brief is now a single compact row

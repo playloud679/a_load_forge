@@ -2,6 +2,14 @@
 
 ## Manuale funzionale
 
+Bass Match separa **Run Bass Match** e **Results** in due tab principali. Un run
+completato apre Results; modificare un input che invalida i risultati riporta
+al Run. La pagina Results privilegia la tabella, con una barra compatta per
+selezionare tramite checkbox e aprire uno–otto design in Box Design. Statistiche
+e diagnostica restano sotto la tabella.
+La tab Run mostra direttamente tutti i vincoli attivi; **Show disabled
+constraints** rende visibili anche quelli Off/Any/N/A senza modificare la ricerca.
+
 - [`software-function-reference.md`](software-function-reference.md) — guida
   completa in italiano a Bass Match, parametri, topologie, Box Design,
   analisi, progetti, export e catalogo.
@@ -18,7 +26,7 @@ in sync in the same change.
 | Module/File | Doc | Role |
 |---|---|---|
 | `ui_app.py` | [ui.md](ui.md) | Thin Streamlit entry point: path setup, `src/` hot-reload, global CSS, runtime globals, test-compatible re-exports, `ui.app.main()` |
-| `src/ui/*.py` | [ui.md](ui.md) + [ui/](ui/) | Dashboard package: runtime globals, constants, styles, state models, catalog, finder, optimizer, analysis, projects, account and the app body. Implements the killer-feature-first Bass Match brief and single run action, a selection-aware gray/emerald Box Design CTA directly below the brief, all usable ranked results without a display cap, a lazy collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, compact multiselect library filters, progressively disclosed T/S controls, stateful lazy analysis/sidebar tabs, compact plot markers including labelled enclosure tuning frequencies, authenticated Firestore autosave with revision/conflict/Trash controls, and complete portable `.lfp` v2 Box Design/Bass Match backups. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
+| `src/ui/*.py` | [ui.md](ui.md) + [ui/](ui/) | Dashboard package: runtime globals, constants, styles, state models, catalog, finder, optimizer, analysis, projects, account and the app body. Implements the killer-feature-first Bass Match brief and single run action, separate Run/Results pages with a compact selection-aware Box Design CTA above the results table, all usable ranked results without a display cap, a lazy collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, compact multiselect library filters, progressively disclosed T/S controls, stateful lazy analysis/sidebar tabs, compact plot markers including labelled enclosure tuning frequencies, authenticated Firestore autosave with revision/conflict/Trash controls, and complete portable `.lfp` v2 Box Design/Bass Match backups. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
 | `src/__init__.py` | [__init__.md](__init__.md) | Public package exports for acoustic-load helpers |
 | `src/acoustics.py` | [acoustics.md](acoustics.md) | Neutral public facade for every lumped and distributed acoustic load |
 | `src/dccav.py` | [dccav.md](dccav.md) | Legacy import compatibility and DCCAV-specific theory |
@@ -145,16 +153,14 @@ Compact titles preserve driver identity through tab selection/deletion and use
 the same deterministic colors as their chart curves. The Finder follows
 acoustic brief → `Run Bass Match` → ranked driver/load/box designs. Its raw
 driver library is a secondary collapsible candidate pool used to narrow the
-search or open one known driver directly. In the default collapsed state, the
-brief exposes every enclosure, performance, driver, library and evaluation
-constraint in a dense responsive grid, including explicit Off/Any/N/A states;
-four metrics share one row, the full-width run action occupies the next compact
-row, completion is a transient toast, and ranked
-rows scroll within a fixed-height table. During matching, a prominent full-width
+search or open one known driver directly. On Run, the brief exposes every active
+enclosure, performance, driver, library and evaluation constraint in a responsive
+grid; a toggle includes Off/Any/N/A states. Three metrics share the brief header,
+and the full-width run action follows the grid. Completion opens Results,
+where ranked rows scroll within a 680 px table. During matching, a full-width
 slim progress bar temporarily occupies the row immediately below the action,
-with its small status caption beneath;
-optional/advanced sections are the only persistent controls allowed to extend
-the page. Constraint labels and values use readable dashboard sizing. The
+with its small status caption beneath. Constraint labels and values use
+readable dashboard sizing. The
 Finder replaces the retired soft `Desired F3` preference with an optional hard
 `Maximum F3` post-simulation constraint: only designs at or below the limit
 remain ranked. Before running the enclosure solver,

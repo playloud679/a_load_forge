@@ -245,7 +245,7 @@ GLOBAL_CSS = """
         background: #0f1520 !important;
         padding: .45rem .6rem .45rem !important;
     }
-    .st-key-finder_run_search_main div[data-testid="stButton"] button {
+    .st-key-finder_run_search_main div[data-testid="stButton"] button[kind="primary"] {
         background: #10b981;
         border: 1px solid #10b981;
         box-shadow: 0 .25rem 0.85rem rgba(16,185,129,.22);
@@ -516,6 +516,81 @@ GLOBAL_CSS = """
         section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
             padding-top: .75rem !important;
         }
+    }
+    .lf-run-stats {
+        margin: .5rem 0 .35rem 0;
+        padding: .65rem .8rem .7rem;
+        border: 1px solid rgba(16,185,129,.35);
+        border-radius: 8px;
+        background: linear-gradient(180deg, rgba(16,185,129,.10), rgba(16,185,129,.03));
+    }
+    .lf-run-stats-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: .75rem;
+        font-size: .92rem;
+        color: #d1fae5;
+    }
+    .lf-run-stats-profile {
+        color: #9ca3af;
+        font-weight: 500;
+        font-size: .78rem;
+    }
+    .lf-run-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .55rem;
+        margin-top: .5rem;
+    }
+    .lf-run-stat {
+        display: flex;
+        flex-direction: column;
+        padding: .45rem .55rem;
+        border: 1px solid rgba(255,255,255,.10);
+        border-radius: 7px;
+        background: rgba(15,21,32,.85);
+    }
+    .lf-run-stat-value {
+        font-size: 1.28rem;
+        font-weight: 800;
+        line-height: 1.15;
+        color: #10b981;
+    }
+    .lf-run-stat-label {
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+        color: #e5e7eb;
+    }
+    .lf-run-stat-sub {
+        margin-top: .1rem;
+        font-size: .72rem;
+        color: #9ca3af;
+    }
+    .lf-run-stats-loads {
+        margin-top: .5rem;
+        font-size: .78rem;
+        color: #d1d5db;
+    }
+    @media (max-width: 900px) {
+        .lf-run-stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    .st-key-bass_match_result_actions {
+        padding: 0 !important;
+    }
+    .st-key-bass_match_result_actions div[data-testid="stButton"] button {
+        min-height: 2.6rem;
+        border-radius: 6px;
+        font-weight: 700;
+    }
+    .st-key-bass_match_result_actions div[data-testid="stButton"] button:not(:disabled) {
+        background: #10b981 !important;
+        border-color: #10b981 !important;
+        color: #fff !important;
+    }
+    .st-key-bass_match_result_actions div[data-testid="stButton"] button::after {
+        content: " →";
     }
     </style>
     """

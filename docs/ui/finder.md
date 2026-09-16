@@ -18,7 +18,8 @@ results, the candidate pool and the run statistics.
   `_apply_pending_batch_result`, `_add_finder_designs_to_comparison`,
   `_apply_pending_batch_comparison`, `_finder_row_driver`,
   `_finder_total_volume_l`.
-- Workspace UI: `_render_find_driver_workspace`, `_render_bass_match_hero`,
+- Workspace UI: `_render_find_driver_workspace`, `_finder_results_current`,
+  `_render_finder_results`, `_render_bass_match_hero`,
   `_render_finder_run_statistics`, `_finder_per_load_stats_str`,
   `_render_candidate_pool` (`@st.fragment`), `_render_find_driver_actions`,
   `_render_find_driver_goal_sidebar`, `_render_find_driver_target_sidebar`,
@@ -32,8 +33,8 @@ results, the candidate pool and the run statistics.
 - Worker pools are process-first with a thread fallback on Streamlit Cloud or
   denied process semaphores. Tests patch `ui.finder.ProcessPoolExecutor` and
   `ui.finder._finder_executor_backend`.
-- Search progress renders immediately below the CTA; result reruns are
-  avoided (stats refresh in place) so scroll position is preserved.
+- Search progress renders below the Run CTA. Completion queues Results and
+  reruns once to remove setup controls; it never reruns the search itself.
 - The batch results table and its CSV download expose the nominal `Le mH`
   (when present) and never the internal `Le10k mH` ranking key; only the
   visible columns are rendered/exported.
@@ -45,14 +46,31 @@ results, the candidate pool and the run statistics.
 Finder tests (`_check_ui_finder_*`, `_check_ui_parallel_ranking_*`,
 `_check_ui_stale_finder_workers_*`) plus the AppTest workspace flows.
 
-## Project-first UX
+## Separate Run and Results pages (v0.18.7)
 
-The original Bass Match visual identity is preserved. The brief is a single
-compact row (title plus pre-qualified / ready-simulations / run-cost metrics);
-every constraint, the skipped/duplicate counters and the profile details live
-in the collapsed "All constraints & search details" expander so the results
-stay near the top. After a run the header shows the match count next to the
-`Rank by` control, the table is followed by the open/compare CTA and the CSV
-export, and the long scan diagnostics (prefilter counts, seek time, per-load
-breakdown, per-brand totals) collapse under "Scan diagnostics". The single run
-action and its credit/search behavior are unchanged.
+- Main-area stateful tabs (`temp_bass_match_page`) render only the active page.
+  Run contains the brief, prefilter metrics, credits, Run action and candidate
+  pool. Results contains compact summary/ranking and selection/Open controls,
+  then a 680 px table; CSV, run statistics, diagnostics and previews follow it.
+- Run displays the full grid of active constraints directly in the brief.
+  `Show disabled constraints` reveals Off/Any/N/A entries; it defaults off and
+  only changes presentation. Prefilter diagnostics remain under Search details.
+- `_finder_results_current` owns the existing context validation and legacy
+  migration. Invalidating search inputs forces Run before tab creation.
+  Ordering and row selection preserve Results; background catalog updates do
+  not invalidate the existing input signature.
+- A completed run queues Results and reruns once after storing results. Empty
+  successful searches also open Results with the existing no-match explanation.
+  Restored valid contexts open Results automatically. Users can revisit Run
+  without spending credits or starting a search; returning retains selection.
+- The toolbar points to the far-left checkboxes. One selection enables Open;
+  two through eight enable Compare; excess selections disable the action.
+  Selected names stay compact (two names plus a remainder count).
+- Fresh runs clear both table selections. Existing queued Box Design handoff
+  preserves independent editable design tabs.
+
+The Finder workspace AppTest covers automatic transitions, hidden setup UI,
+manual tab round trips, selection persistence, input invalidation and opening
+Box Design, including volume/voltage/objective edits, presentation-only changes
+and completed searches with no matches; the restored-project AppTest covers
+saved results.

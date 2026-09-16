@@ -320,16 +320,24 @@ parameters**). Box Design Simple keeps the driver preset, the load cards and
 the box strategy; voltage, series resistance, optimization constraints and
 driver configuration are Advanced-only.
 
+The main area has **Run Bass Match** and **Results** tabs. A completed scan
+opens Results automatically; changing a search input that invalidates it returns
+to Run. Switching tabs manually does not rerun the search or spend credits.
+Setup, candidate counts and the candidate library appear only on Run.
+The Run brief shows all active constraints without opening an expander. Enable
+**Show disabled constraints** to include Off/Any filters and constraints marked
+N/A for the selected loads. The toggle changes only the summary, not the search.
+Results starts with compact ranking/selection controls and a tall table; run details
+and diagnostics sit below it.
+
 **Run Bass Match** appears once as a full-width primary action immediately
 below the compact brief; it is not duplicated in the sidebar. While a scan is
 running, a slim progress bar occupies the next row and its status stays in a
-small caption below the bar, minimizing permanent page height. Before a scan,
-the workspace is
-titled **Candidate library**; completed scans use
-**Recommended drivers** and show the active load, volume cap and objective.
+small caption below the bar. Completed scans open **Results**, showing the
+match count, active load, volume cap and objective above the ranked table.
 Missing values render as em dashes and columns with no data are omitted, while
-the ranked table and candidate CSV expose nominal `Size`, piston area `Sd` and
-only the compact `Vtot` value for enclosure volume.
+the ranked table and candidate CSV expose nominal `Size` and the compact
+`Vtot` value for enclosure volume. Piston area `Sd` remains internal metadata.
 When any ranked row has missing optional parameters, the table adds a `Data`
 badge (✓ complete, ⚠ partial, ⛔ incomplete) and a `Data %` coverage column;
 the **Show data coverage** toggle in the Candidate library tab lists per-field
@@ -362,14 +370,18 @@ designs with `F3 ≤ 40 Hz`; `0` disables the constraint.
   Every match shows a live per-candidate progress bar. Small scans advance on
   the serial path; scans above eight candidates use worker processes and keep
   the same progress indicator through every selected load. After a scan, the
-  persistent run statistics report total seek time, credits and a per-load
+  collapsed **Run details** panel reports total seek time, credits and a per-load
   breakdown (usable/attempted, evaluations per driver and elapsed seconds), so
-  the heavier DCCAV search stays visible next to the lighter reflex pass. The
+  the heavier DCCAV search can be inspected alongside the lighter reflex pass. The
   statistics box refreshes as soon as a scan completes.
-- The full-width **Open this design in Box Design** action sits immediately
-  below the brief: it is gray and disabled until a ranked row is selected,
-  then turns emerald and opens that design. Selecting 2–8 rows changes the same
-  action into the Pro multi-design comparison command. A single selected result
+- Use the checkboxes at the far left of the Results table to select rows;
+  uncheck a row to remove it. The compact toolbar summarizes the selected models.
+  **Open this design in Box Design** enables for one selection; selecting 2–8
+  enables **Compare N designs in Box Design**, available on every account tier.
+  More than eight selections shows a warning and disables the action until
+  excess rows are unchecked. Opening Box Design becomes the primary action,
+  on Results. Each selected design gets its own editable tab.
+  A single selected result
   is also retained as the first editable design tab: returning to Bass Match and
   opening another single result appends it instead of replacing the first one.
 

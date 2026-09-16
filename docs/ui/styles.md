@@ -31,3 +31,12 @@ the first main-area widgets (account, subscription, logout), so it carries
 `pointer-events: none !important` and only
 `[data-testid="stExpandSidebarButton"]` re-enables `pointer-events: auto`.
 Removing that guard makes the top-row buttons visible but unclickable.
+
+### Bass Match result toolbar
+
+- `.lf-run-stats*` styles run-statistics tiles inside the collapsed Run details
+  expander. On Results this appears below the table, alongside diagnostics.
+- `.st-key-bass_match_result_actions` is a compact unbordered selection toolbar
+  with a primary Box Design button; it adds no card padding or large heading.
+- Run and Results are separate lazily rendered native tabs. No CSS hiding or
+  results-presence selector is needed to demote a competing Run action.

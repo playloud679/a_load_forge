@@ -1010,56 +1010,59 @@ def _render_billing_action_button(acc: _saas.UserAccount) -> None:
     )
 
 def _render_main_account_header() -> None:
-    """Expose account, project and community actions on the main screen.
+    """Keep account and project chrome compact on the main workspaces.
 
-    Keeping these controls out of the sidebar lets every sidebar command stay
-    visible without scrolling.
+    The identity, project name and cloud-save status stay on a single line;
+    billing, project management, community and sign-out live inside the
+    collapsed "Account & projects" panel so they remain reachable without
+    cluttering the workspace.
     """
-    if _runtime._CURRENT_SAAS_USER is not None:
-        acc = _account._get_current_user_account()
-        account_col, billing_col, signout_col = st.columns(
-            [4.4, 2.0, 0.6], vertical_alignment="center"
-        )
-        with account_col:
-            if acc:
-                st.caption(
-                    f"**{html.escape(_runtime._CURRENT_SAAS_USER.name or _runtime._CURRENT_SAAS_USER.email or 'Engineer')}**"
-                    f" · *{acc.plan.upper()}* · **{acc.credits_balance:,}** credits"
-                )
-            elif _runtime._CURRENT_SAAS_USER.email:
-                st.caption(html.escape(_runtime._CURRENT_SAAS_USER.email))
-        with billing_col:
-            if acc:
-                _render_billing_action_button(acc)
-        with signout_col:
-            st.button(
-                "⏻",
-                key="sidebar_sign_out_btn",
-                help="Sign out / Logout",
-                on_click=_account._sign_out_saas,
-            )
-    project_name = _project_display_name(st.session_state.get("project_name", ""))
-    project_col, manage_col, community_col = st.columns(
-        [4.4, 1.5, 1.5], vertical_alignment="center"
+    acc = (
+        _account._get_current_user_account()
+        if _runtime._CURRENT_SAAS_USER is not None
+        else None
     )
-    with project_col:
+    project_name = _project_display_name(st.session_state.get("project_name", ""))
+    summary_col, actions_col = st.columns([5.2, 1.4], vertical_alignment="center")
+    with summary_col:
+        parts = []
         if _project_name_is_placeholder(project_name):
-            st.markdown(
+            parts.append(
                 "**Project name required** · name this project in Manage Projects "
                 "to enable cloud save."
             )
         else:
-            st.markdown(f"**Project**: {html.escape(project_name)}")
+            parts.append(f"**Project**: {html.escape(project_name)}")
+        if acc and _runtime._CURRENT_SAAS_USER is not None:
+            user_label = html.escape(
+                _runtime._CURRENT_SAAS_USER.name
+                or _runtime._CURRENT_SAAS_USER.email
+                or "Engineer"
+            )
+            parts.append(
+                f"**{user_label}** · *{acc.plan.upper()}* · "
+                f"**{acc.credits_balance:,}** credits"
+            )
+        st.caption(" · ".join(parts))
         _render_cloud_persistence_status()
-    with manage_col:
-        st.button(
-            "Manage Projects",
-            key="sidebar_manage_projects_btn",
-            width="stretch",
-            on_click=_open_manage_projects_workspace,
-        )
-    with community_col:
-        _render_hud_explore_community_button(key="sidebar_community_btn")
+    with actions_col:
+        with st.expander("⚙️ Account & projects", expanded=False):
+            if acc:
+                _render_billing_action_button(acc)
+            st.button(
+                "Manage Projects",
+                key="sidebar_manage_projects_btn",
+                width="stretch",
+                on_click=_open_manage_projects_workspace,
+            )
+            _render_hud_explore_community_button(key="sidebar_community_btn")
+            st.button(
+                "Sign out",
+                key="sidebar_sign_out_btn",
+                width="stretch",
+                help="Sign out / Logout",
+                on_click=_account._sign_out_saas,
+            )
 
 def _render_project_menu() -> None:
     """Compatibility hook: the project header now lives on the main screen."""

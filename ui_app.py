@@ -114,6 +114,12 @@ for _ui_module in (
 ):
     _reload_if_source_changed(_ui_module)
 
+# VERSION can change without changing runtime.py in this long-lived process.
+try:
+    _ui_runtime._VERSION = (Path(__file__).parent / "VERSION").read_text().strip()
+except OSError:
+    _ui_runtime._VERSION = "dev"
+
 st.set_page_config(
     page_title=f"Load Forge v{_ui_runtime._VERSION}",
     page_icon=str(_ui_constants._FAVICON_PATH) if _ui_constants._FAVICON_PATH.exists() else None,

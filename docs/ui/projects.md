@@ -47,6 +47,9 @@
 
 `_check_lfp_*`, `_check_cloud_*`, `_check_public_*`, `_check_ui_share_*`,
 `_check_saas_*` (billing/credits), `_check_ui_new_project_preserves_work`.
+The account/billing AppTests drive the header buttons by their stable keys,
+and the Finder workspace AppTest asserts the collapsed `⚙️ Account & projects`
+panel is present on the Bass Match screen.
 
 ## Project-first UX
 
@@ -57,3 +60,13 @@ queues activation before widget creation on the next run and enters Box Design.
 Cached project summaries are keyed by tenant and user identity. The original
 community artwork and visual styling remain intact. Duplicate and Trash actions
 are grouped under each project’s More menu.
+
+### Compact main header
+
+`_render_main_account_header` keeps the Bass Match / Box Design chrome on one
+summary line (project name plus cloud-save status, then user, plan and credit
+balance) and moves billing, **Manage Projects**, community and **Sign out**
+into the collapsed `⚙️ Account & projects` expander. The buttons keep their
+stable keys (`sidebar_manage_projects_btn`, `sidebar_community_btn`,
+`sidebar_sign_out_btn`, `sidebar_billing_action_popover_open_modal_btn`), and
+the account widgets still render only in SaaS mode.

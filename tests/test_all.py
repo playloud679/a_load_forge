@@ -3355,7 +3355,7 @@ def _check_ui_complete_lfp_restores_bass_match():
     )
     assert restored_cta.label == "Open this design in Box Design"
     assert restored_cta.disabled
-    assert restored_cta.proto.type == "secondary"
+    assert restored_cta.proto.type == "primary"
     assert not any(
         item.value == "Your best matches" for item in at.subheader
     )
@@ -10483,10 +10483,17 @@ def _check_ui_finder_main_action_runs_search():
     assert "_finder_pool_fingerprint" not in result_signature_source
     assert "candidate_digest" not in result_signature_source
     assert "height: .8rem !important;" in ui_source
-    assert ui_source.index("_render_finder_constraint_grid(constraints)") < (
+    assert ui_source.index("_render_finder_constraint_grid(visible_constraints)") < (
         ui_source.index('key="finder_run_search_main"')
     ), "the full-width CTA must be the last row below the compact brief"
-    assert '        width="stretch",\n        height=420,' in ui_source
+    assert '        width="stretch",\n        height=680,' in ui_source
+    finder_source = (ROOT / "src" / "ui" / "finder.py").read_text(encoding="utf-8")
+    assert finder_source.index('key="finder_open_selected_design"') < (
+        finder_source.index("table_state = st.dataframe(")
+    ), "the Box Design launch must stay visible above the ranked table"
+    assert ui_source.index('key="finder_run_search_main"') < (
+        ui_source.index("_render_finder_run_statistics(finder_stats_slot)")
+    ), "the work panel must sit between the run action and the ranked table"
     assert run_source.index("progress = st.progress(0.0)") < (
         run_source.index("progress_text = st.empty()")
     ), "the progress bar must render immediately below the CTA"
@@ -10548,9 +10555,17 @@ def _check_ui_finder_main_action_runs_search():
         if item.value.startswith("<div class='finder-constraint-grid'>")
     ]
     assert len(constraint_grids) == 1
+    assert "Maximum F3" not in constraint_grids[0], "disabled constraints start hidden"
+    assert "Maximum box" in constraint_grids[0], "active constraints remain visible"
+    next(toggle for toggle in at.toggle if toggle.key == "temp_bass_match_show_disabled_constraints").set_value(True).run()
+    assert not at.exception, at.exception
+    constraint_grids = [
+        item.value for item in at.markdown
+        if item.value.startswith("<div class='finder-constraint-grid'>")
+    ]
     detail_panel = next(
         panel for panel in at.expander
-        if panel.label == "All constraints & search details"
+        if panel.label == "Search details"
     )
     assert not detail_panel.proto.expanded
     constraint_markup = constraint_grids[0]
@@ -10602,6 +10617,13 @@ def _check_ui_finder_main_action_runs_search():
         + " "
         + " ".join(item.value for item in at.caption)
     ), "the run statistics must break the seek time down per load"
+    assert "Simulation work performed" in (
+        " ".join(item.value for item in at.markdown)
+    ), "the simulation work must be surfaced as a prominent panel"
+    assert any(
+        expander.label == "⚙️ Account & projects"
+        for expander in at.expander
+    ), "account and project actions must stay reachable in the collapsed header panel"
     assert not any(
         "Bass Match inputs changed" in item.value for item in at.info
     ), "an empty persisted load list must not hide the freshly ranked fallback load"
@@ -10626,7 +10648,10 @@ def _check_ui_finder_main_action_runs_search():
     )
     assert result_cta.label == "Open this design in Box Design"
     assert result_cta.disabled
-    assert result_cta.proto.type == "secondary"
+    assert any("checkboxes at the far left" in item.value for item in at.caption)
+    run_details = next(panel for panel in at.expander if panel.label.startswith("Run details ·"))
+    assert not run_details.proto.expanded
+    assert result_cta.proto.type == "primary"
     assert len(at.session_state["batch_result_context"]) == 17
     assert (
         at.session_state["batch_result_context"][16]
@@ -10649,7 +10674,78 @@ def _check_ui_finder_main_action_runs_search():
     assert selected_cta.label == "Open this design in Box Design"
     assert not selected_cta.disabled
     assert selected_cta.proto.type == "primary"
+    assert any("1 selected" in item.value for item in at.caption)
+    assert at.session_state["temp_bass_match_page"] == "Results"
+    assert not any(button.key == "finder_run_search_main" for button in at.button)
+    assert not any(metric.label == "Pre-qualified" for metric in at.metric)
+    assert not any(panel.label.startswith("Candidate pool") for panel in at.expander)
+
+    # Switching tabs is view-only and preserves selection without another scan.
+    completed_at = at.session_state["finder_last_run_stats"]["completed_at"]
+    at.session_state["temp_bass_match_page"] = "Run Bass Match"
+    at.run()
+    assert not at.exception, at.exception
+    assert any(button.key == "finder_run_search_main" for button in at.button)
+    assert not any(button.key == "finder_open_selected_design" for button in at.button)
+    at.session_state["temp_bass_match_page"] = "Results"
+    at.run()
+    assert not at.exception, at.exception
+    assert not next(button for button in at.button if button.key == "finder_open_selected_design").disabled
+    assert at.session_state["finder_last_run_stats"]["completed_at"] == completed_at
+
+    # Presentation changes stay on Results; simulation-input changes force Run.
+    at.session_state["ui_show_advanced"] = True
+    at.run()
+    assert at.session_state["temp_bass_match_page"] == "Results"
+    for key, changed in (
+        ("finder_volume_l", 41.0),
+        ("finder_voltage", 4.0),
+        ("finder_objective", "Flattest"),
+    ):
+        previous = at.session_state[key]
+        at.session_state[key] = changed
+        at.run()
+        assert not at.exception, at.exception
+        assert at.session_state["temp_bass_match_page"] == "Run Bass Match", key
+        assert not any(button.key == "finder_open_selected_design" for button in at.button)
+        at.session_state[key] = previous
+        at.session_state["temp_bass_match_page"] = "Results"
+        at.run()
+        assert not at.exception, at.exception
+        assert at.session_state["temp_bass_match_page"] == "Results", key
+
+    # A completed empty search still has a Results page, without setup clutter.
+    saved_rows = at.session_state["batch_results"]
+    at.session_state["batch_results"] = []
+    at.run()
+    assert not at.exception, at.exception
+    assert at.session_state["temp_bass_match_page"] == "Results"
+    assert any(item.value == "No Bass Match result" for item in at.subheader)
+    assert not any(button.key == "finder_run_search_main" for button in at.button)
+    at.session_state["batch_results"] = saved_rows
+    at.run()
+
     assert "Your best matches" not in [sub.value for sub in at.subheader]
+
+    # The next-step panel must handle compare, over-limit and cleared selections.
+    original_results = list(at.session_state["batch_results"])
+    at.session_state["batch_results"] = original_results * 9
+    for indices, label, disabled in (
+        ([0, 1], "Compare 2 designs in Box Design", False),
+        (list(range(9)), "Compare 9 designs in Box Design", True),
+        ([], "Open this design in Box Design", True),
+    ):
+        at.session_state["batch_results_table_f3"] = {
+            "selection": {"rows": indices, "columns": [], "cells": []},
+        }
+        at.run()
+        assert not at.exception, at.exception
+        action = next(button for button in at.button if button.key == "finder_open_selected_design")
+        assert action.label == label
+        assert action.disabled == disabled
+        if len(indices) > 8:
+            assert any("keep at most 8" in item.value for item in at.caption)
+    at.session_state["batch_results"] = original_results
 
     at.session_state["ui_show_advanced"] = True
     at.session_state["preset_size_filter"] = ["10 in"]
@@ -10662,6 +10758,9 @@ def _check_ui_finder_main_action_runs_search():
         "Bass Match inputs changed" in item.value
         for item in at.info
     ), "changing the size filter must hide stale ranked results"
+
+    assert at.session_state["temp_bass_match_page"] == "Run Bass Match"
+    assert any(button.key == "finder_run_search_main" for button in at.button)
 
     # A second run with a different load must refresh the persisted run
     # statistics box instead of leaving the previous run's numbers on screen.
@@ -10685,6 +10784,14 @@ def _check_ui_finder_main_action_runs_search():
     )
     assert "Bass reflex:" in stats_text, stats_text
     assert "DCCAV:" not in stats_text, stats_text
+    assert at.session_state["temp_bass_match_page"] == "Results"
+    at.session_state["batch_results_table_f3"] = {
+        "selection": {"rows": [0], "columns": [], "cells": []},
+    }
+    at.run()
+    next(button for button in at.button if button.key == "finder_open_selected_design").click().run()
+    assert not at.exception, at.exception
+    assert at.session_state["workspace_mode"] == "Box Design"
 
 
 test("UI Finder single main action runs the driver search", _check_ui_finder_main_action_runs_search)

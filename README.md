@@ -4,12 +4,12 @@
   <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
-**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.18.3**
+**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.18.8**
 =============================================================================
-[![Version](https://img.shields.io/badge/version-0.18.3-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-0.18.8-blue.svg)](VERSION)
 [![CI](https://github.com/marcoderossi/load_forge/actions/workflows/ci.yml/badge.svg)](https://github.com/marcoderossi/load_forge/actions)
 
-Current release: **0.18.3**
+Current release: **0.18.8**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth-, sixth- and eighth-order bandpass**,
@@ -33,6 +33,10 @@ far-field measurement substitute.
 
 Current UI highlights:
 
+- separate main-area **Run Bass Match** and **Results** tabs: completing a scan
+  opens the ranked table automatically; changing a search parameter returns to
+  Run. Results keeps only compact ranking/selection controls above the table,
+  with the primary Open/Compare action for Box Design and diagnostics below
 - a first-class `Community` directory, linked directly from the project header,
   for browsing public projects with keyword/topology search and parametric
   ranges for Vb, Fb, driver diameter, Fs, Qts and F3; result cards expose the
@@ -47,11 +51,11 @@ Current UI highlights:
 - a killer-feature-first `Bass Match` workspace: define the bass brief, run one
   optimized driver/load/box search, then open a winning design in Box Design;
   its brief shows every operative enclosure, performance, driver, library and
-  evaluation constraint in a compact grid, while counts and the action stay in
-  one row; completion uses a non-layout toast, the active scan gets a prominent
-  full-width progress bar and ranked matches scroll inside a fixed-height table
-  so the normal workspace does not grow beyond the viewport; the raw catalog
-  stays secondary as a collapsible candidate pool; the former Finder
+  evaluation constraint directly in the Run grid, with a toggle for disabled
+  constraints. Counts sit above the grid and the Run action below it; completion
+  opens Results automatically. The active scan gets a full-width progress bar,
+  and ranked matches scroll inside a 680 px table. The raw catalog stays on Run
+  as a collapsible candidate pool; the former Finder
   `Desired F3` soft optimizer preference is removed because it did not act as
   a dependable ranking constraint, while
   reference SPL, driver configuration, T/S validity and required Xmax reduce

@@ -1684,23 +1684,52 @@ def _render_finder_run_statistics(container=None) -> None:
         )
     else:
         evals_label = str(evals_per_drv)
-    actual_str = f" · 🔬 <strong>{actual_sims:,}</strong> solves ({evals_label} evals/drv · <em>{profile_name}</em>)" if actual_sims > 0 else ""
     per_load_str = _finder_per_load_stats_str(stats)
-    load_str = (
-        f" · 🧩 <strong>Per load:</strong> {per_load_str}"
-        if per_load_str else ""
-    )
     credit_mult = _ranking.search_profile_credit_multiplier(profile_name)
     credits_consumed = simulations * credit_mult
+    actual_value = f"{actual_sims:,}" if actual_sims > 0 else "—"
+    loads_scanned = len(evaluations_per_load) if evaluations_per_load else 0
     target = container if container is not None else st
+    target = target.expander(
+        f"Run details · {elapsed_s:.2f} s · {simulations:,} simulations · "
+        f"{credits_consumed:,} credits", expanded=False,
+    )
     target.markdown(
-        "<div style='margin: 8px 0 2px 0; padding: 6px 12px; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.28); border-radius: 6px; font-size: 0.82rem; color: #d1d5db;'>"
-        f"⏱️ <strong>Seek time:</strong> {elapsed_s:.2f} s total "
-        f"<span style='color: #10b981;'>({ms_per_sim:.1f} ms/sim · {simulations_per_second:.0f} sim/s · {ms_per_driver:.1f} ms/driver)</span>"
-        f" · 💳 <strong>{credits_consumed:,} credits</strong> ({simulations:,} candidates · {credit_mult}× {profile_name})"
-        f"{actual_str}"
-        f"{load_str}"
-        "</div>",
+        "<div class='lf-run-stats'>"
+        "<div class='lf-run-stats-head'>"
+        "⚙️ <strong>Simulation work performed</strong>"
+        f"<span class='lf-run-stats-profile'>{profile_name} profile · {credit_mult} credit(s)/simulation</span>"
+        "</div>"
+        "<div class='lf-run-stats-grid'>"
+        "<div class='lf-run-stat'>"
+        f"<span class='lf-run-stat-value'>{elapsed_s:,.2f} s</span>"
+        "<span class='lf-run-stat-label'>Seek time</span>"
+        f"<span class='lf-run-stat-sub'>{ms_per_sim:.1f} ms/sim · {simulations_per_second:,.0f} sim/s</span>"
+        "</div>"
+        "<div class='lf-run-stat'>"
+        f"<span class='lf-run-stat-value'>{simulations:,}</span>"
+        "<span class='lf-run-stat-label'>Simulations</span>"
+        f"<span class='lf-run-stat-sub'>{evals_label} evals/driver · {unique_drivers:,} drivers</span>"
+        "</div>"
+        "<div class='lf-run-stat'>"
+        f"<span class='lf-run-stat-value'>{actual_value}</span>"
+        "<span class='lf-run-stat-label'>Acoustic solves</span>"
+        f"<span class='lf-run-stat-sub'>{ms_per_driver:.1f} ms/driver</span>"
+        "</div>"
+        "<div class='lf-run-stat'>"
+        f"<span class='lf-run-stat-value'>{credits_consumed:,}</span>"
+        "<span class='lf-run-stat-label'>Credits</span>"
+        f"<span class='lf-run-stat-sub'>{loads_scanned or '—'} load(s) scanned</span>"
+        "</div>"
+        "</div>"
+        + (
+            "<div class='lf-run-stats-loads'>🧩 <strong>Per load:</strong> "
+            + per_load_str
+            + "</div>"
+            if per_load_str
+            else ""
+        )
+        + "</div>",
         unsafe_allow_html=True,
     )
 
@@ -1752,8 +1781,18 @@ def _render_bass_match_hero(
         )
         m2.metric("Ready simulations", f"{prefilter_stats['eligible_simulations']:,}")
         m3.metric("Run cost", f"{run_credits:,} credits" if acc else "Local run")
-        with st.expander("All constraints & search details"):
-            _catalog._render_finder_constraint_grid(constraints)
+        show_disabled = st.toggle(
+            "Show disabled constraints",
+            key="temp_bass_match_show_disabled_constraints",
+            help="Also show filters set to Off or Any, and constraints not applicable to the selected loads.",
+        )
+        visible_constraints = [
+            (label, value) for label, value in constraints
+            if show_disabled or value not in {"Off", "Any", "N/A"}
+            or (label == "Search" and bool(st.session_state.get("preset_search", "").strip()))
+        ]
+        _catalog._render_finder_constraint_grid(visible_constraints)
+        with st.expander("Search details"):
             detail_cols = st.columns(2)
             detail_cols[0].metric("Skipped a priori", f"{prefilter_stats['rejected_simulations']:,}")
             detail_cols[1].metric("Duplicates removed", f"{prefilter_stats['duplicate_rows']:,}")
@@ -1762,8 +1801,6 @@ def _render_bass_match_hero(
                 f"{finder_search_profile} profile · {credit_mult} credit(s) per simulation. "
                 f"Balance: {credits_balance:,} credits."
             )
-        finder_stats_slot = st.empty()
-        _render_finder_run_statistics(finder_stats_slot)
         if match_preset_names and not prequalified_names:
             st.warning(
                 "No driver passes the pre-simulation checks. Lower Minimum "
@@ -1791,14 +1828,23 @@ def _render_bass_match_hero(
         disabled=_finder_search_blocked(filtered_preset_names) or not has_enough_credits,
         key="finder_run_search_main",
     )
+    # Keep run details available without pushing the next step below the fold.
+    finder_stats_slot = st.empty()
+    _render_finder_run_statistics(finder_stats_slot)
     if run_requested:
         if acc and run_credits > 0:
             _runtime._ACCOUNT_STORE.deduct_credits(acc.email or acc.uid, run_credits)
             _account._get_current_user_account.cache_clear()
+        # A new scan invalidates row indices: drop the previous table selection
+        # so the follow-up Box Design action cannot inherit a stale row.
+        for stale_key in ("batch_results_table_f3", "batch_results_table_value"):
+            st.session_state.pop(stale_key, None)
         _run_find_driver_search(
             match_preset_names, filtered_preset_names,
             stats_slot=finder_stats_slot,
         )
+        st.session_state["_bass_match_open_results"] = True
+        st.rerun()
     return match_preset_names
 
 @st.fragment
@@ -1843,10 +1889,9 @@ def _queue_finder_design_selection(
             "voltage_v": float(voltage_v),
         }
 
-def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
-    """Render Finder results and candidate application, separate from inputs."""
+def _finder_results_current(filtered_preset_names: list[str]) -> bool:
+    """Validate and migrate stored results before choosing the visible page."""
     load_type = str(st.session_state.get("load_type", "DCCAV"))
-    _render_bass_match_hero(filtered_preset_names)
 
     finder_volume_l = float(st.session_state.get("finder_volume_l", 0.0))
     # Old/restored sessions can contain an empty load list even though the
@@ -1936,6 +1981,70 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             and not restored_results_match
         )
     )
+    return context_matches
+
+def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
+    """Keep setup and ranked results on separate, lazily rendered pages."""
+    context_matches = _finder_results_current(filtered_preset_names)
+    context = st.session_state.get("batch_result_context", ())
+    results_available = context_matches and bool(
+        st.session_state.get("batch_search_completed")
+        or st.session_state.get("batch_results")
+    )
+    result_token = repr(context)
+    open_results = st.session_state.pop("_bass_match_open_results", False)
+    if not results_available:
+        st.session_state["temp_bass_match_page"] = "Run Bass Match"
+    elif (
+        open_results
+        or "temp_bass_match_page" not in st.session_state
+        or st.session_state.get("_bass_match_seen_context") != result_token
+    ):
+        st.session_state["temp_bass_match_page"] = "Results"
+    st.session_state["_bass_match_seen_context"] = result_token
+    # Keep selections alive while their dataframe is hidden on the Run page.
+    for table_key in ("batch_results_table_f3", "batch_results_table_value"):
+        if table_key in st.session_state:
+            st.session_state[table_key] = st.session_state[table_key]
+    run_tab, results_tab = st.tabs(
+        ["Run Bass Match", "Results"],
+        key="temp_bass_match_page", on_change="rerun",
+    )
+    if run_tab.open:
+        with run_tab:
+            if context and not context_matches:
+                st.info("Bass Match inputs changed. Run Bass Match again to update the results.")
+            _render_bass_match_hero(filtered_preset_names)
+            _render_candidate_pool(filtered_preset_names)
+    elif results_tab.open:
+        with results_tab:
+            _render_finder_results(filtered_preset_names, context_matches)
+
+
+def _render_finder_results(filtered_preset_names: list[str], context_matches: bool) -> None:
+    """Render only results, selection and the Box Design handoff."""
+    load_type = str(st.session_state.get("load_type", "DCCAV"))
+
+    finder_volume_l = float(st.session_state.get("finder_volume_l", 0.0))
+    # Old/restored sessions can contain an empty load list even though the
+    # Finder falls back to the active design load for both its brief and run.
+    # Compare against that same effective load context, or every successful
+    # fallback run is immediately hidden as an input change.
+    finder_loads = tuple(_catalog._finder_load_context()[0])
+    finder_resonator = str(st.session_state.get(
+        "finder_reflex_resonator_type", _constants._RESONATOR_PORT))
+    batch_rows = st.session_state.get("batch_results", [])
+    context = st.session_state.get("batch_result_context", ())
+    current_min_spl_db = float(
+        st.session_state.get("finder_min_spl_db", 0.0) or 0.0)
+    current_min_mol_f3_db = float(
+        st.session_state.get("finder_min_mol_f3_db", 0.0) or 0.0)
+    current_max_f3_hz = float(
+        st.session_state.get("finder_max_f3_hz", 0.0) or 0.0)
+    current_max_mms_g = float(
+        st.session_state.get("finder_max_mms_g", 0.0) or 0.0)
+    current_max_le_mh = float(
+        st.session_state.get("finder_max_le_mh", 0.0) or 0.0)
     if not context_matches:
         batch_rows = []
     if not batch_rows:
@@ -2010,7 +2119,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                     st.warning(
                         "No usable candidate satisfies the current enclosure and constraints."
                     )
-        _render_candidate_pool(filtered_preset_names)
         return
 
     batch_rows = _catalog._refresh_finder_result_catalog_metadata(batch_rows)
@@ -2105,6 +2213,7 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             rank_mode = st.radio(
                 "Rank by",
                 _constants._FINDER_RANK_MODES,
+                label_visibility="collapsed",
                 horizontal=True,
                 key="finder_rank_mode",
                 help="Best value re-sorts the scan by F3 × price: the cheapest way "
@@ -2154,14 +2263,67 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
 
     display_df = _state._clean_display_table_frame(batch_df[columns])
     columns = list(display_df.columns)
+    table_key = f"batch_results_table_{'value' if 'Value' in columns else 'f3'}"
+
+    # Read the persisted selection before rendering the next-step panel.
+    previous_state = st.session_state.get(table_key) or {}
+    if isinstance(previous_state, dict):
+        previous_rows = (previous_state.get("selection") or {}).get("rows", [])
+    else:  # defensive: widget objects are not expected here
+        previous_rows = getattr(getattr(previous_state, "selection", None), "rows", []) or []
+    header_selected_indices = [
+        int(index) for index in previous_rows if 0 <= int(index) < len(batch_df)
+    ]
+    header_selected_designs = [
+        {
+            "row": batch_df.iloc[index].to_dict(),
+            "load_type": str(batch_df.iloc[index].get("Load", load_type)),
+        }
+        for index in header_selected_indices
+    ]
+    header_count = len(header_selected_designs)
+    header_cta_label = (
+        f"Compare {header_count} designs in Box Design"
+        if header_count > 1
+        else "Open this design in Box Design"
+    )
+    header_cta_disabled = (
+        not header_selected_designs
+        or header_count > _constants._MAX_COMPARISON_DESIGNS
+    )
+    with st.container(key="bass_match_result_actions"):
+        hint_col, cta_col = st.columns([3, 2], vertical_alignment="center")
+        with hint_col:
+            if not header_count:
+                st.caption("**Select using the checkboxes at the far left:** 1 design to develop, 2–8 to compare.")
+            elif header_count > _constants._MAX_COMPARISON_DESIGNS:
+                st.caption(f"**{header_count} selected · keep at most {_constants._MAX_COMPARISON_DESIGNS} to continue.** Uncheck excess rows.")
+            else:
+                names = [
+                    f"{item['row'].get('Manufacturer', '')} {item['row'].get('Part number', '')}"
+                    for item in header_selected_designs[:2]
+                ]
+                extra = f" +{header_count - 2} more" if header_count > 2 else ""
+                st.caption(f"**{header_count} selected** · " + " · ".join(names) + extra)
+        with cta_col:
+            st.button(
+                header_cta_label,
+                type="primary",
+                width="stretch",
+                key="finder_open_selected_design",
+                disabled=header_cta_disabled,
+                on_click=_queue_finder_design_selection,
+                args=(header_selected_designs, float(_state._finder_value("finder_voltage"))),
+            )
+
     table_state = st.dataframe(
         display_df,
         # Use the complete result-pane width; users can still resize columns
         # interactively without leaving an unused strip beside the table.
         width="stretch",
-        height=420,
+        height=680,
         hide_index=True,
-        key=f"batch_results_table_{'value' if 'Value' in columns else 'f3'}",
+        key=table_key,
         on_select="rerun",
         selection_mode="multi-row",
         column_config={
@@ -2233,42 +2395,17 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     ]
     comparison_count = len(selected_designs)
     too_many = comparison_count > _constants._MAX_COMPARISON_DESIGNS
-    cta_label = (
-        f"Compare {comparison_count} designs in Box Design"
-        if comparison_count > 1
-        else "Open this design in Box Design"
-    )
-    cta_disabled = (
-        not selected_designs
-        or too_many
-    )
-    cta_col, download_col = st.columns([2.6, 1.0], vertical_alignment="center")
-    with cta_col:
-        st.button(
-            cta_label,
-            type="secondary" if not selected_designs else "primary",
-            width="stretch",
-            key="finder_open_selected_design",
-            disabled=cta_disabled,
-            on_click=_queue_finder_design_selection,
-            args=(selected_designs, float(_state._finder_value("finder_voltage"))),
-        )
+    download_col, _ = st.columns([1.0, 3.0], vertical_alignment="center")
     with download_col:
         st.download_button(
-            "Download CSV",
+            "⬇️ Download CSV",
             batch_df[csv_columns].to_csv(index=False).encode("utf-8"),
             "load_forge_candidates.csv",
             "text/csv",
             width="stretch",
         )
 
-    if not selected_indices:
-        with st.container(key="emerald_info_candidate_selection"):
-            st.caption(
-                "Select one match to preview it, or select 2–8 matches to "
-                "compare them in Box Design."
-            )
-
+    _render_finder_run_statistics()
     with st.expander("Scan diagnostics", expanded=False):
         st.caption(
             f"{len(batch_rows)} usable candidates · {scan_detail_str} · "
@@ -2280,7 +2417,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             st.caption(manufacturer_summary)
 
     if not selected_indices:
-        _render_candidate_pool(filtered_preset_names)
         return
     if len(selected_indices) > 1:
         with st.container(border=True):
@@ -2296,7 +2432,6 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
                 st.warning(
                     f"Select at most {_constants._MAX_COMPARISON_DESIGNS} designs."
                 )
-        _render_candidate_pool(filtered_preset_names)
         return
 
     selected_index = selected_indices[0]
@@ -2322,4 +2457,3 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
             st.caption(f"Vtot {total_volume_l:.2f} L")
         elif row_load_type == "Infinite baffle":
             st.caption("Infinite baffle · no enclosure volume")
-    _render_candidate_pool(filtered_preset_names)
