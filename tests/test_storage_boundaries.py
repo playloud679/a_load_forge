@@ -413,6 +413,30 @@ def test_catalog_promotion_pipeline_tool():
     )
     assert rb["target_release_id"] == "rel_2026_prev"
 
+    # 5. Invalid rows abort by default, but an explicit opt-in can omit them
+    #    and the release metadata records exactly which drivers were left out.
+    try:
+        promoter.promote_catalog_release(
+            candidate_drivers=[valid_driver, invalid_driver],
+            release_id="rel_2026_drop",
+            approved_by="lead-engineer@loadforge.app",
+            dry_run=True,
+        )
+        assert False, "invalid candidates must abort the promotion by default"
+    except ValueError:
+        pass
+
+    dropped = promoter.promote_catalog_release(
+        candidate_drivers=[valid_driver, invalid_driver],
+        release_id="rel_2026_drop",
+        approved_by="lead-engineer@loadforge.app",
+        dry_run=True,
+        drop_invalid=True,
+    )
+    assert dropped["driver_count"] == 1
+    assert dropped["metadata"]["omitted_invalid_count"] == 1
+    assert dropped["metadata"]["omitted_invalid_drivers"] == ["BrokenModel"]
+
 
 def test_crawler_service_does_not_import_private_or_public_store():
     """Verify architectural boundary: crawler agent must not import private or public stores."""

@@ -71,7 +71,26 @@ present in the target tenant are skipped on rerun.
 
 ---
 
-## Runbook 2: Catalog Release Rollback for `lf-catalog-runtime`
+## Runbook 2: Catalog Release Promotion and Rollback for `lf-catalog-runtime`
+
+### Promotion Procedure
+1. Synchronize the staging catalog into `data/catalog_proprietario.json`
+   (`load_forge_crawler/tools/sync_to_official_db.py`) and review it with
+   `tools/audit_catalog_consistency.py`.
+2. Dry-run the promotion (validates physics, computes the release digest, writes
+   nothing):
+   ```bash
+   .venv/bin/python tools/promote_catalog_release.py \
+     --candidate data/catalog_proprietario.json \
+     --release-id manufacturer-YYYYMMDD \
+     --approved-by="<operator@loadforge.app>"
+   ```
+3. Promote for real with `--commit`. Records that fail the physics gate abort the
+   release; add `--drop-invalid` only when a reviewed set of unsimulatable
+   records must be omitted, in which case their names are recorded in the
+   release metadata (`omitted_invalid_drivers`).
+4. Confirm the active pointer with `store.get_release_metadata()` or the
+   Firestore console (`catalog_metadata/active_release`).
 
 ### Incident Scenarios
 * A promoted driver catalog release contains incorrect T/S parameters, bad frequency curves, or unverified prices.

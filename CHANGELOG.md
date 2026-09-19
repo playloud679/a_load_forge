@@ -37,6 +37,12 @@
   `docs/ui/{app,catalog,finder}.md` and the crawler's
   `docs/catalog-unit-review.md`; added coverage/published-size regression tests
   plus crawler tests for the Sd derivation order and the conflict flag.
+- **Ops**: `tools/promote_catalog_release.py` gained an opt-in `--drop-invalid`.
+  Candidates that fail the physics gate still abort the release by default;
+  with the flag they are omitted and their names/count are recorded in the
+  Firestore release metadata (`omitted_invalid_drivers`), so a reviewed
+  omission is auditable instead of silent. The 48 Ground Zero records without
+  a usable `Re` (which the simulator cannot load either) were omitted this way.
 - **Test**: the `Crawler release...` fixture now points the mandatory
   URL-contract guard at an isolated fake deploy checkout and asserts a `safe`
   guard report, instead of comparing a one-driver fixture against the real

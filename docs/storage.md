@@ -78,3 +78,11 @@ contain `/` or `\\` are stored under deterministic hash IDs, so a manufacturer
 model code cannot be interpreted as a nested Firestore path.
 Imported provenance keys are normalized to Firestore-safe string keys; empty
 source-field keys become `unnamed`.
+
+The promoter validates every candidate before writing: `fs_hz`, `re_ohm` and
+`qts` must be positive finite numbers. A record that fails aborts the release,
+because the simulator cannot load it either. `--drop-invalid` opts into
+omitting those records instead and stores their names in the release metadata
+(`metadata.omitted_invalid_drivers`, `metadata.omitted_invalid_count`), so the
+omission is auditable and reversible instead of silent. Promotion stays a dry
+run unless `--commit` is passed, and `--approved-by` is mandatory.

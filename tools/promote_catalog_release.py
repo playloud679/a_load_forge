@@ -46,18 +46,32 @@ def validate_driver_physics(driver: dict[str, Any]) -> list[str]:
     return errors
 
 
-def validate_candidate_drivers(drivers: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[str]]:
-    """Validate driver physics and minimum required T/S parameters."""
+def partition_candidate_drivers(
+    drivers: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], list[str], list[str]]:
+    """Split candidates into (valid, errors, invalid names).
+
+    The names let an caller that opts into dropping invalid rows record exactly
+    which drivers were left out of a release, so the omission stays auditable.
+    """
     valid = []
     errors = []
+    invalid_names: list[str] = []
     for idx, item in enumerate(drivers):
         d = item.get("driver") if isinstance(item.get("driver"), dict) else item
         driver_errors = validate_driver_physics(dict(d))
-        if driver_errors:
-            name = item.get("name") or item.get("model") or f"row_{idx}"
-            errors.append(f"Driver {name}: {'; '.join(driver_errors)}")
-        else:
+        if not driver_errors:
             valid.append(item)
+            continue
+        name = str(item.get("name") or item.get("model") or f"row_{idx}")
+        invalid_names.append(name)
+        errors.append(f"Driver {name}: {'; '.join(driver_errors)}")
+    return valid, errors, invalid_names
+
+
+def validate_candidate_drivers(drivers: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[str]]:
+    """Validate driver physics and minimum required T/S parameters."""
+    valid, errors, _invalid = partition_candidate_drivers(drivers)
     return valid, errors
 
 
@@ -71,8 +85,16 @@ def promote_catalog_release(
     project_id: str | None = None,
     database_id: str = "lf-catalog-runtime",
     dry_run: bool = True,
+    drop_invalid: bool = False,
 ) -> dict[str, Any]:
-    """Execute promotion pipeline of validated drivers into lf-catalog-runtime."""
+    """Execute promotion pipeline of validated drivers into lf-catalog-runtime.
+
+    By default any invalid candidate aborts the promotion. With
+    ``drop_invalid=True`` records that fail validation (for example a harvested
+    driver with no voice-coil resistance, which the simulator cannot load) are
+    omitted instead, and their names are stored in the release metadata so the
+    omission is auditable.
+    """
     if not release_id.strip():
         raise ValueError("release_id is required")
     if not approved_by.strip():
@@ -86,12 +108,22 @@ def promote_catalog_release(
     else:
         raise ValueError("candidate_file or candidate_drivers must be provided")
 
-    valid_drivers, validation_errors = validate_candidate_drivers(raw_drivers)
+    valid_drivers, validation_errors, invalid_names = partition_candidate_drivers(raw_drivers)
     if validation_errors:
-        raise ValueError(f"Candidate validation failed ({len(validation_errors)} errors): {validation_errors[:5]}")
+        if not drop_invalid:
+            raise ValueError(f"Candidate validation failed ({len(validation_errors)} errors): {validation_errors[:5]}")
+        logger.warning(
+            "Dropping %d invalid driver(s) from release %s: %s",
+            len(invalid_names), release_id, invalid_names[:5],
+        )
 
     canonical_json = json.dumps(valid_drivers, sort_keys=True, separators=(",", ":")).encode("utf-8")
     digest = hashlib.sha256(canonical_json).hexdigest()
+
+    release_metadata = dict(metadata or {})
+    if invalid_names:
+        release_metadata["omitted_invalid_drivers"] = sorted(invalid_names)
+        release_metadata["omitted_invalid_count"] = len(invalid_names)
 
     release_meta = {
         "release_id": release_id,
@@ -99,7 +131,7 @@ def promote_catalog_release(
         "promoted_at": datetime.now(UTC).isoformat(),
         "driver_count": len(valid_drivers),
         "catalog_sha256": digest,
-        "metadata": dict(metadata or {}),
+        "metadata": release_metadata,
     }
 
     if dry_run:
@@ -156,6 +188,11 @@ def main() -> int:
     parser.add_argument("--project", default=os.environ.get("LOAD_FORGE_GCP_PROJECT", "civic-radio-502611-i8"))
     parser.add_argument("--database", default=os.environ.get("LF_FIRESTORE_CATALOG_RUNTIME_DB", "lf-catalog-runtime"))
     parser.add_argument("--commit", action="store_true", help="Execute writes to Firestore (default is dry-run)")
+    parser.add_argument(
+        "--drop-invalid", action="store_true",
+        help="Omit records that fail physics validation instead of aborting; the "
+             "omitted driver names are stored in the release metadata",
+    )
 
     args = parser.parse_args()
 
@@ -183,6 +220,7 @@ def main() -> int:
         project_id=args.project,
         database_id=args.database,
         dry_run=not args.commit,
+        drop_invalid=args.drop_invalid,
     )
     return 0
 
