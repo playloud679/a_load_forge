@@ -89,8 +89,18 @@ present in the target tenant are skipped on rerun.
    release; add `--drop-invalid` only when a reviewed set of unsimulatable
    records must be omitted, in which case their names are recorded in the
    release metadata (`omitted_invalid_drivers`).
+   The current deployment has **only the `(default)` Firestore database**
+   provisioned (the `lf-*` databases from the target architecture are not
+   created yet), so the working invocation is
+   `--project civic-radio-502611-i8 --database "(default)"`.
 4. Confirm the active pointer with `store.get_release_metadata()` or the
    Firestore console (`catalog_metadata/active_release`).
+
+Promote the **crawler staging catalog**
+(`load_forge_crawler/data/catalog_proprietario.json`), not the app-side copy:
+`load_forge/data/catalog_proprietario.json` is the `allowed_records()`-filtered
+subset (10,761 rows vs 11,047) and promoting it would shrink the published
+runtime catalog.
 
 ### Incident Scenarios
 * A promoted driver catalog release contains incorrect T/S parameters, bad frequency curves, or unverified prices.

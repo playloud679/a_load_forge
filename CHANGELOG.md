@@ -43,6 +43,14 @@
   Firestore release metadata (`omitted_invalid_drivers`), so a reviewed
   omission is auditable instead of silent. The 48 Ground Zero records without
   a usable `Re` (which the simulator cannot load either) were omitted this way.
+- **Ops (Firestore)**: the repaired catalog was promoted to the runtime
+  catalog in project `civic-radio-502611-i8` database `(default)` (the only
+  provisioned database; the `lf-catalog-runtime` name in the target
+  architecture does not exist yet) as release `manufacturer-20260920`:
+  **10,998 drivers**, `approved_by playloud79@gmail.com`, 49 unsimulatable
+  records omitted and recorded in the release metadata. The candidate is the
+  crawler staging catalog, which yields exactly the same driver count as the
+  previous release, so the Sd repair ships without any catalog regression.
 - **Test**: the `Crawler release...` fixture now points the mandatory
   URL-contract guard at an isolated fake deploy checkout and asserts a `safe`
   guard report, instead of comparing a one-driver fixture against the real

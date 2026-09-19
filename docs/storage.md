@@ -91,4 +91,6 @@ A committed promotion never falls back to the process-local in-memory store: it
 resolves the Firestore store explicitly from `--project` / `--database`
 (`LOAD_FORGE_GCP_PROJECT`, `LF_FIRESTORE_CATALOG_RUNTIME_DB`) and refuses to run
 when no GCP project is configured. Without that guard a misconfigured shell
-would log a successful release while writing nothing to Firestore.
+would log a successful release while writing nothing to Firestore. In the
+current deployment only the `(default)` database exists, so promotions pass
+`--project civic-radio-502611-i8 --database "(default)"`.
