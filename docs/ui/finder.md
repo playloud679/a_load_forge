@@ -68,6 +68,12 @@ Finder tests (`_check_ui_finder_*`, `_check_ui_parallel_ranking_*`,
   Selected names stay compact (two names plus a remainder count).
 - Fresh runs clear both table selections. Existing queued Box Design handoff
   preserves independent editable design tabs.
+- The ranked table badges data quality through `driver_data_coverage()`: ✓
+  complete, ⚠ partial, ⛔ incomplete. A driver whose **published** nominal frame
+  size cannot host its `Sd` (70–115 % window) shows ⚠ with `Size/Sd` in the
+  missing-fields list; the published size stays in the `Size (in)` column and
+  the box/port numbers still use the stored `Sd`, so the conflict is visible
+  rather than silently relabelled.
 
 The Finder workspace AppTest covers automatic transitions, hidden setup UI,
 manual tab round trips, selection persistence, input invalidation and opening

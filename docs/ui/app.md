@@ -21,6 +21,11 @@
   imported for side effects.
 - The CSS injection and `set_page_config` happen in `ui_app.py` before
   `main()`, preserving the original ordering.
+- The selected driver summary prints the published nominal frame, `Sd` and the
+  equivalent effective piston diameter. When `DriverPresetInfo.size_sd_conflict`
+  is set (published frame size and `Sd` cannot coexist) a warning states that
+  the simulation uses the stored `Sd` and asks the user to verify the datasheet;
+  the published size is never replaced by an Sd-derived estimate.
 
 ## Project-first UX
 

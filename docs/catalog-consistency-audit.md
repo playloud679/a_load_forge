@@ -20,24 +20,51 @@ The audit also compares every explicit inch diameter in a name or published
 specification with Sd. It does not interpret bare model numbers as diameters;
 voice-coil and compression-driver dimensions are excluded from that inference.
 
-## Local scan, 2026-09-10
+## Repairing what the audit finds
+
+The audit only reports. `Sd` values that are provably wrong are repaired in the
+crawler repository, which owns the source-of-truth catalog:
+
+```bash
+cd ../load_forge_crawler
+.venv/bin/python tools/repair_sd_integrity.py            # dry run + report
+.venv/bin/python tools/repair_sd_integrity.py --apply    # writes the catalog
+.venv/bin/python tools/sync_to_official_db.py            # propagate to load_forge + deploy
+```
+
+`tools/repair_sd_integrity.py` repairs a row only when the replacement comes
+from independent evidence: the `Vas`+`Cms` identity, a corroborated decade/unit
+rescale, or a **published** nominal frame diameter (at 80 % of the frame) when
+the stored value is identifiable as the crawler's voice-coil-area fallback or
+falls below the physical floor for any radiator. Every repair records
+`website_fields.field_corrections.sd_cm2` and `derivations.sd_cm2`, refreshes
+dependent derived fields and is idempotent. Rows it cannot resolve stay
+untouched and are listed in `data/sd_integrity_repair_report.json`; at runtime
+they surface as the ⚠ `Size/Sd` coverage flag instead of a silently rewritten
+frame size.
+
+## Local scan, 2026-09-20
 
 | File | Rows inspected | Rows requiring review |
 |---|---:|---:|
-| catalog_proprietario.json | 9,906 | 2,316 |
-| manufacturer_drivers.json | 9,906 | 2,316 |
+| catalog_proprietario.json | 10,761 | 2,787 |
+| manufacturer_drivers.json | 10,761 | 2,787 |
 | catalog_lsdb.json | 6,215 | 721 |
-| catalog_vituixcad.json | 1,038 | 61 |
-| catalog_speakerboxlite.json | 1,952 | 229 |
+| catalog_vituixcad.json | 1,038 | 62 |
+| catalog_speakerboxlite.json | 1,952 | 231 |
 | catalog_ztzaudio_lf_ferrite_presets.json | 25 | 3 |
 
-The manufacturer copy must not be counted as another 9,906 unique drivers.
+The manufacturer copy must not be counted as another 10,761 unique drivers.
 External catalogs also overlap; totals are row counts, not unique drivers.
 No sampling or acoustic eligibility filtering is used.
 
-In the proprietary catalog: 782 Vas identity discrepancies, 603 motor
-discrepancies, 411 Fs discrepancies, 159 Q discrepancies, 244 size/Sd
-discrepancies, 716 size-correction histories and 1,228 missing-unit observations.
+This run follows the Sd-integrity repair below: in the proprietary catalog
+`size_sd_mismatch` fell from 284 to 210 and `declared_size_sd_mismatch` from 177
+to 116 (80 rows repaired for a voice-coil-derived, decade-scaled or
+unit-mismatched `Sd`). The remaining findings are review candidates: a
+70–115 % diameter window flags drivers with unusually wide surrounds as well as
+genuine conflicts, and only the crawler-side repair tool may change them, on
+independent evidence.
 Categories overlap; a record can have multiple findings.
 The first scan found 60 Rockville records requiring review. Source-verified
 repairs now cover MS12LB, MS12LW and MS10LB in both local manufacturer files.

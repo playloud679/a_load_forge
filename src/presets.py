@@ -66,6 +66,12 @@ _FIRESTORE_CACHE_TTL_SECONDS = float(
     os.environ.get("LOAD_FORGE_FIRESTORE_CACHE_TTL_SECONDS", "60.0")
 )
 _FIRESTORE_REFRESH_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="catalog-refresh")
+# Serialized preset caches (disk snapshots and per-catalog ``.cache.pickle``
+# files) embed loader-built ``DriverPresetInfo``/``DriverTS`` objects, so they
+# go stale whenever loader semantics change. Bump this whenever this module
+# changes how a cached record is built (see docs/presets.md), or a long-lived
+# Streamlit process keeps serving rows produced by the previous logic.
+_PRESET_CACHE_VERSION = 3
 _FIRESTORE_REFRESH_FUTURE: Future | None = None
 _FIRESTORE_REFRESH_LOCK = threading.RLock()
 _FIRESTORE_SNAPSHOT: tuple[dict, dict] | None = None
@@ -170,6 +176,39 @@ def coherent_nominal_size_in(
     return nominal
 
 
+def published_nominal_size_in(
+    published_specs: dict[str, float] | None,
+) -> float | None:
+    """Return the manufacturer-published nominal frame diameter, if recorded."""
+    if not isinstance(published_specs, dict):
+        return None
+    try:
+        value = float(published_specs.get("nominal_diameter_in"))
+    except (TypeError, ValueError):
+        return None
+    return value if math.isfinite(value) and value > 0.0 else None
+
+
+def resolved_nominal_size_in(
+    size_in: float | None,
+    sd_cm2: float,
+    published_size_in: float | None = None,
+) -> float | None:
+    """Return the frame size to display, never overriding a published one.
+
+    A manufacturer-published nominal diameter is independent evidence: an
+    implausible ``Sd`` must not be able to relabel a correctly published
+    driver, because a corrupt area would otherwise rewrite the size class,
+    the Size filter and the diameter hub the driver belongs to. The
+    incompatibility stays visible through ``DriverPresetInfo.size_sd_conflict``
+    instead. Only inferred sizes (model numbers, harvested guesses) keep the
+    Size/Sd coherence repair.
+    """
+    if published_size_in is not None and float(published_size_in) > 0.0:
+        return float(published_size_in)
+    return coherent_nominal_size_in(size_in, sd_cm2)
+
+
 @dataclass(frozen=True)
 class MechanicalDimensions:
     """Physical driver envelope used by the drawing/layout tools, not T/S."""
@@ -197,6 +236,11 @@ class DriverPresetInfo:
     currency: str = ""
     kind: str = ""
     url: str = ""
+    # True when a manufacturer-published nominal diameter cannot host the
+    # stored Sd-equivalent piston (0.70-1.15 of the frame). The published size
+    # is still shown; this flag lets the UI warn instead of silently rewriting
+    # it. Populated by the catalog loader, see docs/presets.md.
+    size_sd_conflict: bool = False
     part_number: str = ""
     mechanical: MechanicalDimensions | None = None
     published_specs: dict[str, float] | None = None
@@ -1475,11 +1519,12 @@ def _load_external_presets(
                 cached = _safe_unpickle_bytes(cache_path.read_bytes())
                 if (
                     isinstance(cached, tuple)
-                    and len(cached) == 2
-                    and isinstance(cached[0], dict)
+                    and len(cached) == 3
+                    and cached[0] == _PRESET_CACHE_VERSION
                     and isinstance(cached[1], dict)
+                    and isinstance(cached[2], dict)
                 ):
-                    return cached
+                    return cached[1], cached[2]
         except Exception:
             pass
 
@@ -1535,19 +1580,28 @@ def _load_external_presets(
             if item.get("size_in") is not None
             else None
         )
+        published_specs = _published_specs_from_mapping(item.get("published_specs"))
+        declared_size_in = published_nominal_size_in(published_specs)
+        frame_size_in = resolved_nominal_size_in(
+            raw_size_in, driver.sd_cm2, declared_size_in,
+        )
         item_info = DriverPresetInfo(
             name=name,
             source=item_source,
             brand=item_brand,
             model=item_model,
             part_number=part_number or item_model,
-            size_in=coherent_nominal_size_in(raw_size_in, driver.sd_cm2),
+            size_in=frame_size_in,
             price=enriched_price if enriched_price is not None else item_price,
             currency=enriched_currency or item_currency,
             kind=str(item.get("kind") or ""),
             url=enriched_url or item_url or str(item.get("url") or ""),
             mechanical=_mechanical_dimensions_from_mapping(item.get("mechanical")),
-            published_specs=_published_specs_from_mapping(item.get("published_specs")),
+            published_specs=published_specs,
+            size_sd_conflict=(
+                declared_size_in is not None
+                and not nominal_size_matches_sd(declared_size_in, driver.sd_cm2)
+            ),
         )
         identity = _external_catalog_identity(
             item_brand,
@@ -1590,7 +1644,10 @@ def _load_external_presets(
 
     try:
         tmp_path = cache_path.with_suffix(".tmp")
-        tmp_path.write_bytes(pickle.dumps((presets, info), protocol=pickle.HIGHEST_PROTOCOL))
+        tmp_path.write_bytes(pickle.dumps(
+            (_PRESET_CACHE_VERSION, presets, info),
+            protocol=pickle.HIGHEST_PROTOCOL,
+        ))
         tmp_path.replace(cache_path)
     except Exception:
         pass
@@ -1683,9 +1740,10 @@ def _read_firestore_snapshot() -> tuple[dict, dict] | None:
     """Read the last successful cloud snapshot, including when it is stale."""
     try:
         cached = _safe_unpickle_bytes(FIRESTORE_PRESETS_CACHE_PATH.read_bytes())
-        if (isinstance(cached, tuple) and len(cached) == 2
-                and all(isinstance(part, dict) for part in cached)):
-            return cached
+        if (isinstance(cached, tuple) and len(cached) == 3
+                and cached[0] == _PRESET_CACHE_VERSION
+                and all(isinstance(part, dict) for part in cached[1:])):
+            return cached[1], cached[2]
     except Exception:
         pass
     return None
@@ -1797,7 +1855,10 @@ def _fetch_firestore_presets(
         try:
             with tempfile.NamedTemporaryFile(dir=FIRESTORE_PRESETS_CACHE_PATH.parent, delete=False) as handle:
                 tmp = Path(handle.name)
-                handle.write(pickle.dumps((presets, info), protocol=pickle.HIGHEST_PROTOCOL))
+                handle.write(pickle.dumps(
+                    (_PRESET_CACHE_VERSION, presets, info),
+                    protocol=pickle.HIGHEST_PROTOCOL,
+                ))
             tmp.replace(FIRESTORE_PRESETS_CACHE_PATH)
         except Exception:
             pass

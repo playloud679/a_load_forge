@@ -37,6 +37,12 @@ Everything that reads or edits the driver catalog and the preset library.
 
 - The UI never mutates the source catalog implicitly: only the explicit admin
   action writes, and only through `presets`/`tools` merge helpers.
+- `_driver_coverage_summary` and `_refresh_finder_result_catalog_metadata` pass
+  `DriverPresetInfo.size_sd_conflict` into `driver_data_coverage`, so a
+  published frame size that cannot host the stored `Sd` appears as a `Size/Sd`
+  data gap (⚠) in the library and ranked tables instead of being silently
+  replaced by an Sd-derived size class. Saved Finder rows refresh the flag from
+  the live catalog and persist it as `_size_sd_conflict`.
 - Tests patch price internals on **this** module
   (`ui.catalog._current_exchange_rates`), because module-qualified call sites
   resolve here.

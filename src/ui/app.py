@@ -506,6 +506,14 @@ def main() -> None:
                             f"Nominal frame: {nominal} · Sd: {preset_driver.sd_cm2:.1f} cm² "
                             f"· equivalent effective piston: Ø {effective:.2f} in"
                         )
+                        if preset_info.size_sd_conflict:
+                            st.warning(
+                                f"Data check: the published {nominal} frame cannot "
+                                f"host this Sd (Ø {effective:.2f} in effective "
+                                "piston). The simulation uses the stored Sd; "
+                                "verify the datasheet before trusting the box "
+                                "volume and excursion results."
+                            )
                         with st.expander("Mechanical drawing", expanded=False):
                             _catalog._render_driver_mechanical_drawing(preset_info.mechanical)
 

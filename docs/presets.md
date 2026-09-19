@@ -118,16 +118,33 @@ manufacturer-catalog rows. Use each tier's importer/crawler so provenance in
   Each extracted value also keeps its original label, value, unit, method,
   source URL and fetch timestamp in `website_fields`.
 - Size/Sd integrity API: `effective_piston_diameter_in(sd_cm2)`,
-  `nominal_size_matches_sd(size_in, sd_cm2)` and
-  `coherent_nominal_size_in(size_in, sd_cm2)`. External nominal sizes are
-  accepted while the circular effective diameter represented by `Sd` is
-  70–115% of the nominal frame size. This tolerance accommodates differing
-  baskets and suspensions while rejecting size-like model numbers and bad
-  catalog labels. Missing values and values outside it are replaced at load
-  time by the nearest conventional Size/Sd anchor, including for built-in
-  presets, so filters and ranked tables always expose coherent diameter
-  metadata. This is an estimated commercial frame-size class, not a claim that
-  nominal frame diameter equals the smaller effective piston diameter.
+  `nominal_size_matches_sd(size_in, sd_cm2)`, `coherent_nominal_size_in(size_in,
+  sd_cm2)`, `published_nominal_size_in(published_specs)` and
+  `resolved_nominal_size_in(size_in, sd_cm2, published_size_in=None)`. External
+  nominal sizes are accepted while the circular effective diameter represented
+  by `Sd` is 70–115% of the nominal frame size. This tolerance accommodates
+  differing baskets and suspensions while rejecting size-like model numbers
+  and bad catalog labels. **Inferred** sizes (model numbers, harvested guesses)
+  and values outside the window are replaced at load time by the nearest
+  conventional Size/Sd anchor, so filters and ranked tables always expose
+  coherent diameter metadata.
+- A manufacturer-published nominal diameter (`published_specs.nominal_diameter_in`)
+  is independent evidence and is **never** overwritten by an Sd-derived frame
+  class: a corrupt `Sd` must not be able to relabel a correctly published
+  driver, its Size filter bucket or its diameter hub. Such a row keeps the
+  published size, is flagged through `DriverPresetInfo.size_sd_conflict` and is
+  surfaced by `driver_data_coverage()` as a `Size/Sd` data gap (see
+  `docs/ranking.md`). Repairing the underlying `Sd` is the job of
+  `load_forge_crawler`'s `tools/repair_sd_integrity.py`
+  (see `docs/catalog-consistency-audit.md`). This is an estimated commercial
+  frame-size class, not a claim that nominal frame diameter equals the smaller
+  effective piston diameter.
+- Serialized preset caches (`catalog_*.cache.pickle` and the Firestore snapshot)
+  embed loader-built `DriverPresetInfo`/`DriverTS` objects. `_PRESET_CACHE_VERSION`
+  is stored inside each cache and must be bumped whenever this module changes how
+  a cached record is built; a mismatch forces a rebuild. Without it a long-lived
+  Streamlit process would keep serving records produced by the previous loader
+  logic, because the on-disk file can be newer than the catalog JSON.
 
 `DriverPresetInfo.name` remains the stable, source-decorated internal catalog
 key. Runtime identity is exposed separately as `brand` and `part_number`; the

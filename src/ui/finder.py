@@ -2354,7 +2354,9 @@ def _render_finder_results(filtered_preset_names: list[str], context_matches: bo
                 "Data",
                 help="Optional-parameter coverage: ✓ complete, ⚠ partial, "
                      "⛔ incomplete. Missing values keep their conservative "
-                     "fallback and are shown as em dashes.",
+                     "fallback and are shown as em dashes. A ⚠ also appears "
+                     "when a published frame size cannot host the driver's "
+                     "Sd (label Size/Sd); the published size is still shown.",
             ),
             "Data %": st.column_config.NumberColumn(
                 "Data %", format="%.0f%%",

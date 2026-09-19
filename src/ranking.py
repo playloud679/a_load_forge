@@ -26,7 +26,9 @@ except ImportError:  # top-level import with src/ on sys.path (ui_app)
 
 SPARKLINE_POINTS = 48
 SPARKLINE_FLOOR_DB = -30.0
-FINDER_WORKER_PROTOCOL_REVISION = 2
+# Bumped when the Finder worker payload or coverage semantics change so a
+# stale forkserver child is rejected instead of returning rows from old code.
+FINDER_WORKER_PROTOCOL_REVISION = 3
 FINDER_SPL_PREFILTER_HEADROOM_DB = 6.0
 
 # Bounded memoization of the expensive optimizer result, keyed by the full
@@ -252,12 +254,17 @@ class RankingCandidate:
     price: float | None
     currency: str
     url: str
+    # Set when a published nominal frame size cannot host the stored Sd. The
+    # driver stays usable (the published size wins), but the ranked tables warn
+    # rather than silently substituting an Sd-derived size class.
+    size_sd_conflict: bool = False
 
 
 def driver_data_coverage(
     ts: engine.DriverTS,
     size_in: float | None = None,
     price: float | None = None,
+    size_sd_conflict: bool = False,
 ) -> dict:
     """Return the optional-parameter coverage for one driver.
 
@@ -265,22 +272,32 @@ def driver_data_coverage(
     are present, ``missing`` lists the absent labels and ``status`` is the
     display bucket (Complete / Partial / Incomplete). Missing fields are never
     invented: callers keep the existing fallbacks and use the badge to warn the
-    user about what the ranking could not verify.
+    user about what the ranking could not verify. A published frame size that
+    contradicts ``Sd`` is reported in ``missing`` as ``Size/Sd`` and caps the
+    status at Partial, so a data-integrity problem is never shown as Complete.
     """
     missing = tuple(
         label
         for label, present in _DRIVER_COVERAGE_FIELDS
         if not present(ts, size_in, price)
     )
+    if size_sd_conflict:
+        missing = (*missing, "Size/Sd")
     total = len(_DRIVER_COVERAGE_FIELDS)
     score = int(round(100.0 * (total - len(missing)) / total))
+    score = max(0, score)
     if not missing:
         status = "Complete"
     elif score >= 55:
         status = "Partial"
     else:
         status = "Incomplete"
-    return {"score": score, "missing": missing, "status": status}
+    return {
+        "score": score,
+        "missing": missing,
+        "status": status,
+        "size_sd_conflict": bool(size_sd_conflict),
+    }
 
 
 def response_sparkline(
@@ -417,6 +434,7 @@ def ranking_candidate(name: str) -> RankingCandidate:
         price=info.price,
         currency=info.currency,
         url=info.url or "",
+        size_sd_conflict=info.size_sd_conflict,
     )
 
 
@@ -491,7 +509,9 @@ def rank_candidate_row(
         if load_type not in ("Sealed", "Infinite baffle") and ts.xmax_mm <= 0:
             return None
         driver_class = engine.classify_driver_bandwidth(ts).driver_class
-        coverage = driver_data_coverage(ts, candidate.size_in, candidate.price)
+        coverage = driver_data_coverage(
+            ts, candidate.size_in, candidate.price, candidate.size_sd_conflict,
+        )
         ripple_db = float("nan")
         box: (
             engine.DccavBox
@@ -816,6 +836,7 @@ def rank_candidate_row(
             "Data": coverage["status"],
             "Data %": coverage["score"],
             "_data_missing": coverage["missing"],
+            "_size_sd_conflict": coverage["size_sd_conflict"],
             "Response": response_sparkline(result.spl_total_db),
             "_load_type": load_type,
             **box_values,

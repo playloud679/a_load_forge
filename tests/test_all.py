@@ -8070,6 +8070,18 @@ def _check_crawler_agent_release_is_approved_and_immutable():
         baseline_path = root / "baseline.json"
         candidate_path = root / "acme-official" / "candidate_catalog.json"
         release_path = root / "releases" / "manufacturer-r1.json"
+        # The mandatory URL-contract guard needs a deploy checkout. Point it at
+        # an isolated fake one (the real guard logic and its safe/unsafe/allow
+        # removal behaviour are covered by load_forge_crawler's
+        # tests/test_url_guard.py) so this test never depends on the state of
+        # the sibling load_forge_deploy repository.
+        deploy_root = root / "load_forge_deploy"
+        (deploy_root / "scripts").mkdir(parents=True)
+        (deploy_root / "scripts" / "catalog_guard.py").write_text(
+            "import json\n"
+            "print(json.dumps({'removed': 0, 'redirects_total': 0}))\n",
+            encoding="utf-8",
+        )
         baseline_path.write_text('{"presets": []}\n', encoding="utf-8")
         candidate_path.parent.mkdir()
         candidate_path.write_text(
@@ -8083,10 +8095,12 @@ def _check_crawler_agent_release_is_approved_and_immutable():
             manifest=manifest,
             release_id="manufacturer-r1",
             approved_by="reviewer@example.test",
+            deploy_root=deploy_root,
         )
         assert payload["usable_presets"] == 1
         assert payload["merge_stats"]["added"] == 1
         assert len(payload["catalog_sha256"]) == 64
+        assert payload["url_guard"]["status"] == "safe", payload["url_guard"]
         assert release_path.exists()
         try:
             build_release(
@@ -8096,6 +8110,7 @@ def _check_crawler_agent_release_is_approved_and_immutable():
                 manifest=manifest,
                 release_id="manufacturer-r1",
                 approved_by="reviewer@example.test",
+                deploy_root=deploy_root,
             )
         except FileExistsError:
             pass
@@ -8116,6 +8131,7 @@ def _check_crawler_agent_release_is_approved_and_immutable():
                 manifest=manifest,
                 release_id="forbidden",
                 approved_by="reviewer@example.test",
+                deploy_root=deploy_root,
             )
         except ValueError:
             pass
@@ -8136,6 +8152,7 @@ def _check_crawler_agent_release_is_approved_and_immutable():
                 manifest=manifest,
                 release_id="off-domain",
                 approved_by="reviewer@example.test",
+                deploy_root=deploy_root,
             )
         except ValueError:
             pass
@@ -11969,7 +11986,19 @@ def _check_driver_data_coverage_badges():
         cms_mm_per_n=0.3, le10k_mh=0.4,
     )
     coverage = _acoustics.driver_data_coverage(complete, 12.0, 199.0)
-    assert coverage == {"score": 100, "missing": (), "status": "Complete"}
+    assert coverage == {
+        "score": 100, "missing": (), "status": "Complete",
+        "size_sd_conflict": False,
+    }
+
+    # A published frame size that cannot host Sd is never reported as Complete
+    # and is named in the missing list instead of being silently rewritten.
+    conflict = _acoustics.driver_data_coverage(
+        complete, 12.0, 199.0, size_sd_conflict=True
+    )
+    assert conflict["size_sd_conflict"] is True
+    assert "Size/Sd" in conflict["missing"]
+    assert conflict["status"] != "Complete"
 
     sparse = engine.DriverTS(
         fs_hz=35.0, vas_l=60.0, qts=0.4, qms=3.0, re_ohm=6.0, sd_cm2=500.0,
@@ -11989,6 +12018,49 @@ def _check_driver_data_coverage_badges():
 
 
 test("Driver data coverage badges flag incomplete records", _check_driver_data_coverage_badges)
+
+
+def _check_published_nominal_size_survives_bad_sd():
+    """A corrupt Sd must not relabel a correctly published frame size."""
+    import ui_app as _ui
+
+    presets = _ui._presets
+    # Declared 8 in with the historic voice-coil Sd (11.4 cm2 = a 1.5 in
+    # piston): the published size wins, the conflict is flagged, and the row is
+    # no longer rewritten to an Sd-derived 2 in frame class.
+    assert presets.resolved_nominal_size_in(8.0, 11.4, 8.0) == 8.0
+    assert presets.resolved_nominal_size_in(8.0, 11.4) == 2.0
+    assert not presets.nominal_size_matches_sd(8.0, 11.4)
+
+    info = presets.DriverPresetInfo(
+        name="test", source="test", brand="test", model="test",
+        size_in=8.0, size_sd_conflict=True,
+    )
+    assert info.size_sd_conflict is True
+    assert presets.DriverPresetInfo(
+        name="test", source="test", brand="test", model="test",
+    ).size_sd_conflict is False
+
+    # Every runtime catalog row carrying a published nominal diameter keeps it
+    # whenever Sd is plausible; conflicting rows keep it too and raise a flag.
+    flagged = [
+        name for name in _ui._acoustics.driver_preset_names()
+        if _ui._acoustics.driver_preset_info(name).size_sd_conflict
+    ]
+    for name in flagged:
+        info = _ui._acoustics.driver_preset_info(name)
+        published = presets.published_nominal_size_in(info.published_specs)
+        assert published is not None, name
+        assert info.size_in == published, name
+        assert not presets.nominal_size_matches_sd(
+            info.size_in, _ui._acoustics.get_driver_preset(name).sd_cm2
+        ), name
+
+
+test(
+    "Published nominal size survives a corrupt Sd and is flagged",
+    _check_published_nominal_size_survives_bad_sd,
+)
 
 
 def _check_module_split_facade():

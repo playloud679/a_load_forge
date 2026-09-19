@@ -1497,7 +1497,7 @@ def _driver_coverage_summary(preset_names: tuple[str, ...]) -> dict[str, int]:
             continue
         total += 1
         for label in _acoustics.driver_data_coverage(
-            ts, info.size_in, info.price
+            ts, info.size_in, info.price, info.size_sd_conflict
         )["missing"]:
             counts[label] = counts.get(label, 0) + 1
     if not total:
@@ -1525,21 +1525,21 @@ def _refresh_finder_result_catalog_metadata(rows: object) -> list[dict]:
         if not isinstance(saved, dict):
             continue
         row = dict(saved)
-        if _state._table_value_missing(row.get("Size in")):
-            try:
-                size_in = _acoustics.driver_preset_info(
-                    str(row.get("Driver", ""))
-                ).size_in
-            except ValueError:
-                size_in = None
-            if size_in is not None:
-                row["Size in"] = float(size_in)
+        try:
+            saved_info = _acoustics.driver_preset_info(str(row.get("Driver", "")))
+        except ValueError:
+            saved_info = None
+        if saved_info is not None:
+            if _state._table_value_missing(row.get("Size in")) and saved_info.size_in is not None:
+                row["Size in"] = float(saved_info.size_in)
+            row["_size_sd_conflict"] = bool(saved_info.size_sd_conflict)
         if row.get("_driver_ts"):
             try:
                 coverage = _acoustics.driver_data_coverage(
                     _acoustics.DriverTS(**row["_driver_ts"]),
                     row.get("Size in"),
                     row.get("Price"),
+                    bool(row.get("_size_sd_conflict", False)),
                 )
             except Exception:
                 coverage = None

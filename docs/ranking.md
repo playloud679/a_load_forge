@@ -69,13 +69,17 @@ detailed contracts live in `docs/dccav.md`.
 - `candidate_precheck(ts, load_type, voltage_v, min_spl_db, max_ripple_db, ...)`:
   evaluates feasibility against Xmax, reference SPL drive headroom, loaded Fs
   and acoustic volume displacement MOL @ F3 before numerical optimization.
-- `driver_data_coverage(ts, size_in=None, price=None)`: percentage and status
-  (`Complete` / `Partial` / `Incomplete`) of the optional
+- `driver_data_coverage(ts, size_in=None, price=None, size_sd_conflict=False)`:
+  percentage and status (`Complete` / `Partial` / `Incomplete`) of the optional
   engineering/commercial fields Xmax, Pe, Le, Mms, Bl, Cms, Le10k, nominal
   size and price. Missing fields are never invented: callers keep their
   existing fallbacks and use the badge to warn the user. Non-positive
   (`0.0`) placeholders count as missing for every optional numeric field,
-  including `Le10k`.
+  including `Le10k`. `size_sd_conflict` (from
+  `DriverPresetInfo.size_sd_conflict`) appends the `Size/Sd` label to
+  `missing`, caps the status below `Complete` and is returned as its own key, so
+  a published frame size that cannot host the stored `Sd` can never look like a
+  complete record. The score still counts only the nine optional fields.
 - `DRIVER_COVERAGE_LABELS`: tuple of the tracked optional field labels, used
   by the UI coverage summary.
 - `prefilter_finder_candidate_pools(preset_names, load_types, ...)` (`lru_cache(maxsize=128)`):

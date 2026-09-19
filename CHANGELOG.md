@@ -1,5 +1,53 @@
 # Changelog
 
+## 0.18.9 (2026-09-20)
+
+- **Data (Fix 1 — crawler)**: `tools/crawl_thiele_small.py` no longer derives a
+  missing `Sd` from the **voice-coil** diameter for cone drivers. A published
+  nominal frame diameter is consumed first (at 80 % of the frame,
+  `NOMINAL_FRAME_PISTON_RATIO`), the voice-coil area is allowed only for dome
+  drivers at or above `DOME_VOICE_COIL_MIN_FS_HZ` (400 Hz), a low-`Fs` cone with
+  no usable evidence is rejected instead of given an impossible area, and a
+  record whose `Sd` cannot coexist with its declared nominal diameter is marked
+  `website_fields.quality_status = rejected_size_sd_conflict` instead of being
+  published. Every derived `Sd` now records its formula in
+  `website_fields.derivations.sd_cm2`.
+- **Data (Fix 2 — catalog)**: added `load_forge_crawler`'s
+  `tools/repair_sd_integrity.py`, which repairs provably wrong `Sd` values on
+  independent evidence only (Vas+Cms identity, corroborated decade/unit rescale,
+  or the published frame size for values recognisable as the voice-coil area or
+  below the 1 cm² physical floor), records `field_corrections`/`derivations`,
+  refreshes dependent fields, is idempotent and writes
+  `data/sd_integrity_repair_report.json`. Applied to the proprietary catalog:
+  **80 rows corrected** (43 voice-coil area, 32 physics identity, 5 m²→cm² unit
+  errors) and propagated with `tools/sync_to_official_db.py`. Audit deltas:
+  `size_sd_mismatch` 284 → 210, `declared_size_sd_mismatch` 177 → 116.
+- **Data (Fix 3 — runtime)**: `resolved_nominal_size_in()` never lets an
+  implausible `Sd` overwrite a manufacturer-published nominal diameter; the
+  published size stays and the conflict is exposed as
+  `DriverPresetInfo.size_sd_conflict`. `driver_data_coverage()` reports it as a
+  `Size/Sd` gap and never returns `Complete`; the ranked table shows ⚠ and the
+  Box Design driver panel explains that the stored `Sd` is used and asks to
+  verify the datasheet. Serialized preset caches now embed
+  `_PRESET_CACHE_VERSION`, so a loader-semantics change can no longer be served
+  from a stale `.cache.pickle` in a long-lived Streamlit process. Finder worker
+  protocol revision bumped to 3 for the new payload field.
+- **Docs/Test**: updated `docs/presets.md`, `docs/ranking.md`,
+  `docs/crawl_thiele_small.md`, `docs/catalog-consistency-audit.md`,
+  `docs/ui/{app,catalog,finder}.md` and the crawler's
+  `docs/catalog-unit-review.md`; added coverage/published-size regression tests
+  plus crawler tests for the Sd derivation order and the conflict flag.
+- **Test**: the `Crawler release...` fixture now points the mandatory
+  URL-contract guard at an isolated fake deploy checkout and asserts a `safe`
+  guard report, instead of comparing a one-driver fixture against the real
+  published slug index (9,104 spurious retirements). The guard's safe/unsafe/
+  allow-removal behaviour stays covered by
+  `load_forge_crawler/tests/test_url_guard.py`.
+- Validation: `.venv/bin/python tests/test_all.py` — **230 passed, 0 failed,
+  0 skipped**; `--fast` — **142 passed, 0 failed**;
+  `load_forge_crawler`: `.venv/bin/python -m unittest discover -s tests` —
+  **60 passed**; Streamlit AppTest and `git diff --check` clean.
+
 ## 0.18.8 (2026-09-16)
 
 - **UI**: show all active search constraints directly on the Run Bass Match

@@ -215,10 +215,23 @@ confidence reaches `--min-confidence` (default `0.75`).
 
 It can also derive `Sd` from a published effective diaphragm radius/diameter,
 from `Vd+Xmax`, or by inverting the `Vas+Cms` relationship. `Re` can be derived
-from `Qes+BL+Fs+Mms`. Nominal frame diameter is never substituted for effective
-piston diameter. HTTPS requests use certifi and securely fall back to the
-system `curl` trust store for legacy certificate chains; certificate checking
-is never disabled.
+from `Qes+BL+Fs+Mms`. When none of those published quantities exist, `Sd` is
+estimated from the **published nominal frame diameter** at 80 % of the frame
+(`NOMINAL_FRAME_PISTON_RATIO`), and the estimate is recorded in
+`website_fields.derivations.sd_cm2` with `confidence: estimated`.
+
+The voice-coil area is used only for dome drivers, and only when `Fs` reaches
+`DOME_VOICE_COIL_MIN_FS_HZ` (400 Hz): a dome radiates from a surface close to
+the coil, while a cone past that limit does not. Ranking the voice coil above
+the nominal frame size is what produced the historic 10-30x too small `Sd`
+values on coned midranges and woofers, so a low-`Fs` cone with no published
+`Sd` and no nominal size is now **rejected** instead of stored. A record whose
+surviving `Sd` cannot coexist with its own declared nominal diameter is kept
+for provenance but marked `website_fields.quality_status =
+rejected_size_sd_conflict`, so the simulator skips it. The nominal frame
+diameter is never reported as the effective piston diameter. HTTPS requests
+use certifi and securely fall back to the system `curl` trust store for legacy
+certificate chains; certificate checking is never disabled.
 
 Nominal inch sizes are parsed as complete values, including mixed fractions:
 `6-1/2"` becomes 6.5 rather than 2, and `1-1/8"` becomes 1.125. A bare numeric
