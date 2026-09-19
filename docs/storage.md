@@ -86,3 +86,9 @@ omitting those records instead and stores their names in the release metadata
 (`metadata.omitted_invalid_drivers`, `metadata.omitted_invalid_count`), so the
 omission is auditable and reversible instead of silent. Promotion stays a dry
 run unless `--commit` is passed, and `--approved-by` is mandatory.
+
+A committed promotion never falls back to the process-local in-memory store: it
+resolves the Firestore store explicitly from `--project` / `--database`
+(`LOAD_FORGE_GCP_PROJECT`, `LF_FIRESTORE_CATALOG_RUNTIME_DB`) and refuses to run
+when no GCP project is configured. Without that guard a misconfigured shell
+would log a successful release while writing nothing to Firestore.

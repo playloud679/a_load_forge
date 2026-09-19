@@ -437,6 +437,20 @@ def test_catalog_promotion_pipeline_tool():
     assert dropped["metadata"]["omitted_invalid_count"] == 1
     assert dropped["metadata"]["omitted_invalid_drivers"] == ["BrokenModel"]
 
+    # 6. A committed release must resolve a real Firestore target. Without a
+    #    project (or with a memory backend) it must refuse instead of silently
+    #    reporting success against the process-local store.
+    with patch.dict(
+        os.environ,
+        {"LOAD_FORGE_GCP_PROJECT": "", "GOOGLE_CLOUD_PROJECT": ""},
+        clear=False,
+    ):
+        try:
+            promoter._runtime_store(project_id=None, database_id="lf-catalog-runtime")
+            assert False, "a release without a GCP project must be refused"
+        except RuntimeError as exc:
+            assert "GCP project" in str(exc)
+
 
 def test_crawler_service_does_not_import_private_or_public_store():
     """Verify architectural boundary: crawler agent must not import private or public stores."""

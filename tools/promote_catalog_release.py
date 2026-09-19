@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import sys
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -73,6 +74,42 @@ def validate_candidate_drivers(drivers: list[dict[str, Any]]) -> tuple[list[dict
     """Validate driver physics and minimum required T/S parameters."""
     valid, errors, _invalid = partition_candidate_drivers(drivers)
     return valid, errors
+
+
+def _runtime_store(
+    *,
+    project_id: str | None,
+    database_id: str,
+) -> Any:
+    """Return the write-capable Firestore runtime store for a real release.
+
+    ``storage.create_catalog_runtime_store`` falls back to the process-local
+    in-memory store whenever the app settings resolve to a local/memory
+    backend. A production promotion that silently succeeded against that store
+    would report success while writing nothing to Firestore, so a committed
+    release must land on the real Firestore store or fail loudly.
+    """
+    settings = saas.SaaSSettings.from_env()
+    settings = replace(
+        settings,
+        enabled=True,
+        backend="firestore",
+        gcp_project=project_id or settings.gcp_project,
+        firestore_catalog_runtime_db=database_id,
+    )
+    if not settings.gcp_project:
+        raise RuntimeError(
+            "refusing to commit a catalog release without a GCP project: set "
+            "LOAD_FORGE_GCP_PROJECT or pass --project"
+        )
+    store = storage.create_catalog_runtime_store(settings)
+    if isinstance(store, storage.InMemoryCatalogRuntimeStore):
+        raise RuntimeError(
+            "refusing to commit a catalog release into the in-memory store: set "
+            "LOAD_FORGE_GCP_PROJECT and LOAD_FORGE_STORAGE_BACKEND=firestore "
+            "(or pass --project) so the release reaches Firestore"
+        )
+    return store
 
 
 def promote_catalog_release(
@@ -138,8 +175,7 @@ def promote_catalog_release(
         logger.info("DRY RUN: Validated release %s with %d drivers (digest: %s)", release_id, len(valid_drivers), digest[:12])
         return release_meta
 
-    settings = saas.SaaSSettings.from_env()
-    store = storage.create_catalog_runtime_store(settings)
+    store = _runtime_store(project_id=project_id, database_id=database_id)
     # If store has promote_release, execute
     result = store.promote_release(
         release_id=release_id,
@@ -169,8 +205,7 @@ def rollback_catalog_release(
         logger.info("DRY RUN: Would roll back active release to %s", target_release_id)
         return {"target_release_id": target_release_id, "dry_run": True}
 
-    settings = saas.SaaSSettings.from_env()
-    store = storage.create_catalog_runtime_store(settings)
+    store = _runtime_store(project_id=project_id, database_id=database_id)
     result = store.rollback_release(
         target_release_id=target_release_id,
         rolled_back_by=rolled_back_by,
