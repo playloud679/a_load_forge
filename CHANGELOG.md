@@ -35,7 +35,9 @@
 - **Docs/Test**: updated `docs/presets.md`, `docs/ranking.md`,
   `docs/crawl_thiele_small.md`, `docs/catalog-consistency-audit.md`,
   `docs/ui/{app,catalog,finder}.md` and the crawler's
-  `docs/catalog-unit-review.md`; added coverage/published-size regression tests
+  `docs/catalog-unit-review.md`; added `docs/architecture-pipelines.md`
+  (runtime/data/publishing/release/price/SaaS/ops pipelines, repo boundaries and
+  target-vs-real infrastructure); added coverage/published-size regression tests
   plus crawler tests for the Sd derivation order and the conflict flag.
 - **Ops**: `tools/promote_catalog_release.py` gained an opt-in `--drop-invalid`.
   Candidates that fail the physics gate still abort the release by default;

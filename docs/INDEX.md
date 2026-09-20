@@ -90,6 +90,14 @@ T/S parameters -> derived driver components -> selected acoustic-load alignment
         -> acoustic impedance network -> response arrays -> plots / CSV
 ```
 
+## Architecture and Pipelines
+
+- [`architecture-pipelines.md`](architecture-pipelines.md) — mappa completa delle
+  pipeline (runtime Streamlit, dati/catalogo, pubblicazione SEO, release
+  Firestore, prezzi, SaaS/gestione, ops), confini dei tre repository, comandi
+  rapidi e differenze fra architettura target e infrastruttura reale. Leggilo per
+  primo quando devi capire *chi scrive cosa e quando*.
+
 ## Acoustic-load UI Contract
 
 When changing `src/engine.py` or `src/acoustics.py`:
