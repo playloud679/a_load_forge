@@ -5,6 +5,17 @@ parameters. It supports DCCAV, fourth- and sixth-order bandpass, conventional
 bass reflex with either a port or passive radiator, acoustic suspension
 (sealed box) and ideal infinite baffle.
 
+## Entry and landing
+
+Load Forge follows your intent. Explicit links open their target directly: a
+shared design or public project, and `?view=bass-match`, `?view=box-design` or
+`?view=projects`. Otherwise a returning user resumes the last engineering
+workspace, and a first-time or no-context visitor sees the **Studio** start
+screen with two choices: **Find the right driver** (Bass Match) or **Design
+with a driver** (Box Design), with recent projects listed below as a secondary
+element. Projects and Explore are supporting destinations; they open only when
+you choose them, never as the automatic landing page.
+
 ## Workspaces
 
 The two large image tabs below the header separate two different jobs. The red

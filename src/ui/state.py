@@ -16,6 +16,7 @@ import acoustics as _acoustics
 from . import constants as _constants
 from . import finder as _finder
 from . import projects as _projects
+from . import runtime as _runtime
 from . import styles as _styles
 
 
@@ -118,11 +119,36 @@ def _select_workspace(workspace: str) -> None:
     """Select a workspace from tabs or action buttons."""
     if workspace in {"Manage Projects", "Bass Match", "Box Design", "Catalog Maintenance", "User Management"}:
         st.session_state["workspace_mode"] = workspace
+        if workspace in {"Bass Match", "Box Design"}:
+            st.session_state["_last_engineering_workspace"] = workspace
         if workspace in {"Bass Match", "Box Design", "Manage Projects"}:
             st.query_params.pop("view", None)
             st.session_state.pop("_applied_workspace_route", None)
             for k in ("admin_users", "maintenance", "explore", "p", "embed"):
                 st.query_params.pop(k, None)
+
+def _resume_last_engineering_workspace() -> str | None:
+    """Return the last engineering workspace to resume, if any.
+
+    Preference order: the remembered session workspace, then the most recent
+    cloud project's saved workspace. Returns None when the user has no
+    meaningful previous workspace (GOLDEN_STD studio entry: resume engineering,
+    never land on Projects or Explore). The cloud lookup runs once per session
+    and only once an identity exists, so a later sign-in can still resume work.
+    """
+    remembered = st.session_state.get("_last_engineering_workspace")
+    if remembered in ("Bass Match", "Box Design"):
+        return remembered
+    if st.session_state.get("_last_engineering_workspace_resolved"):
+        return None
+    if _runtime._CURRENT_SAAS_USER is None:
+        return None
+    st.session_state["_last_engineering_workspace_resolved"] = True
+    cloud_workspace = _projects._last_cloud_workspace()
+    if cloud_workspace in ("Bass Match", "Box Design"):
+        st.session_state["_last_engineering_workspace"] = cloud_workspace
+        return cloud_workspace
+    return None
 
 def _on_workspace_compat_change() -> None:
     val = st.session_state.get("_workspace_compat_mode")
@@ -130,29 +156,30 @@ def _on_workspace_compat_change() -> None:
         _select_workspace(val)
 
 def _render_workspace_tabs() -> None:
-    """Render the shared primary navigation without changing project identity."""
+    """Render image tabs for the two primary technical workspaces."""
+    st.markdown(_styles._workspace_tab_styles(), unsafe_allow_html=True)
     active = str(st.session_state.get("workspace_mode", "Bass Match"))
     workspaces = _available_workspaces()
     tab_columns = st.columns(len(workspaces), gap="small")
     for column, workspace in zip(tab_columns, workspaces, strict=True):
         slug = _constants._WORKSPACE_TAB_SLUGS[workspace]
         with column:
-            with st.container(key=f"primary_nav_{slug}"):
+            with st.container(key=f"workspace_tab_{slug}"):
                 st.button(
-                    ("● " if workspace == active else "") + _constants._WORKSPACE_DISPLAY_LABELS[workspace],
-                    key="sidebar_manage_projects_btn" if workspace == "Manage Projects" else f"workspace_tab_button_{slug}",
-                    type="secondary",
+                    _constants._WORKSPACE_DISPLAY_LABELS[workspace],
+                    key=f"workspace_tab_button_{slug}",
+                    type="primary" if workspace == active else "secondary",
                     width="stretch",
                     on_click=_select_workspace,
                     args=(workspace,),
                 )
     # Keep this widget in the app tree for old sessions and automated clients.
-    # CSS hides the compatibility control; the primary navigation stays visible.
+    # CSS hides it completely from people because the image tabs are the primary control.
     with st.container(key="workspace_compat_control"):
         st.segmented_control(
             "Workspace",
-            workspaces,
-            default=active if active in workspaces else "Bass Match",
+            (*workspaces, "Manage Projects"),
+            default=active if active in (*workspaces, "Manage Projects") else "Bass Match",
             format_func=lambda value: _constants._WORKSPACE_DISPLAY_LABELS.get(value, value),
             key="_workspace_compat_mode",
             on_change=_on_workspace_compat_change,

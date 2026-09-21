@@ -166,21 +166,26 @@ def main() -> None:
     _state._default("opt_max_ripple_freq_hz", 0.0)
     _state._default("opt_excursion_ratio", 1.0)
     _state._default("opt_max_gd_ms", 0.0)
-    # Authenticated sessions begin with their own projects; reruns preserve the
-    # chosen workspace. Explicit shared designs still open in the editor.
+    # Landing rules (GOLDEN_STD studio entry): known intent (deep links) wins;
+    # otherwise resume the last engineering workspace; otherwise show the Studio
+    # start screen. Projects and Explore are supporting destinations, never the
+    # generic landing page.
     requested_workspace = {
         "bass-match": "Bass Match",
         "box-design": "Box Design",
         "projects": "Manage Projects",
     }.get(str(st.query_params.get("view", "")))
-    initial_workspace = requested_workspace or (
-        "Box Design" if st.query_params.get("d") else
-        "Manage Projects" if _runtime._CURRENT_SAAS_USER is not None else "Bass Match"
+    deep_link_workspace = requested_workspace or (
+        "Box Design" if st.query_params.get("d") else None
+    )
+    initial_workspace = (
+        deep_link_workspace
+        or _state._resume_last_engineering_workspace()
+        or _constants._STUDIO_WORKSPACE
     )
     if st.session_state.pop("_projects_after_login", False):
         if not any(st.query_params.get(key) for key in ("p", "explore", "checkout", "maintenance", "admin_users")):
             st.session_state["workspace_mode"] = initial_workspace
-            st.session_state["manage_projects_tab"] = "Cloud Projects"
     _state._default("workspace_mode", initial_workspace)
     if requested_workspace and st.session_state.get("_applied_workspace_route") != st.query_params.get("view"):
         st.session_state["workspace_mode"] = requested_workspace
@@ -299,15 +304,23 @@ def main() -> None:
             st.title("Load Forge")
             st.caption(f"v{_runtime._VERSION}")
 
-        workspace_mode = str(st.session_state.get("workspace_mode", "Bass Match"))
+        workspace_mode = str(st.session_state.get("workspace_mode", _constants._STUDIO_WORKSPACE))
+        if workspace_mode in ("Bass Match", "Box Design"):
+            # Remember the last engineering workspace for returning users.
+            st.session_state["_last_engineering_workspace"] = workspace_mode
         if _explore_requested:
             _projects._render_community_sidebar()
         elif _public_project_requested:
             _projects._render_public_project_sidebar(_public_project_requested)
         elif workspace_mode == "Manage Projects":
             _projects._render_project_menu()
+            _state._render_workspace_tabs()
+            _projects._render_hud_explore_community_button(key="sidebar_community_btn")
+        elif workspace_mode == _constants._STUDIO_WORKSPACE:
+            _state._render_workspace_tabs()
         elif workspace_mode == "Bass Match":
             _projects._render_project_menu()
+            _state._render_workspace_tabs()
             if "finder_load_types" not in st.session_state:
                 st.session_state["finder_load_types"] = [st.session_state.get("load_type", "DCCAV")]
             bm_tab1, bm_tab2, bm_tab3 = st.tabs(
@@ -404,6 +417,7 @@ def main() -> None:
 
         elif not (_explore_requested or _public_project_requested):
             _projects._render_project_menu()
+            _state._render_workspace_tabs()
             bd_tab1, bd_tab2, bd_tab3 = st.tabs(
                 ["Driver", "Load Selection", "Enclosure Parameters"],
                 key="box_design_sidebar_tab",
@@ -1141,8 +1155,6 @@ def main() -> None:
                     "Simple mode · guided scenario, load, volume and goal. Enable "
                     "Advanced for full controls."
                 )
-    if not _embed_mode_requested:
-        _state._render_workspace_tabs()
     if _public_project_requested:
         if _embed_mode_requested:
             _projects._render_embed_project_widget(_public_project_requested)
@@ -1165,6 +1177,9 @@ def main() -> None:
         st.stop()
     if workspace_mode == "User Management":
         _projects._render_user_management()
+        st.stop()
+    if workspace_mode == _constants._STUDIO_WORKSPACE:
+        _projects._render_studio_start()
         st.stop()
     if workspace_mode == "Manage Projects":
         _projects._render_manage_projects_workspace()

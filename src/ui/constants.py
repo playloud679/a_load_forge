@@ -215,10 +215,15 @@ _PRESET_CLASS_ENGINE_VALUES = {
     "Midbass": "Midbass-capable",
 }
 
-_WORKSPACES = ("Manage Projects", "Bass Match", "Box Design")
+_WORKSPACES = ("Bass Match", "Box Design")
+
+# Studio is the no-context landing screen. It is not part of the workspace tabs
+# and is only shown when there is no deep link and no resumable engineering
+# workspace (GOLDEN_STD studio entry rules).
+_STUDIO_WORKSPACE = "Studio"
 
 _WORKSPACE_DISPLAY_LABELS = {
-    "Manage Projects": "Projects",
+    "Manage Projects": "Manage Projects",
     "Bass Match": "Bass Match",
     "Box Design": "Box Design",
     "Catalog Maintenance": "Catalog Maintenance",

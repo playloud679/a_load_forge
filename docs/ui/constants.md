@@ -29,6 +29,8 @@ that gate behavior.
 
 ## Phase B navigation
 
-The primary workspace order is Projects, Bass Match, Box Design. The internal
-`Manage Projects` identifier remains compatible with saved sessions and callers;
-its display label is Projects.
+The primary workspace order is Bass Match, Box Design. `_STUDIO_WORKSPACE`
+(`"Studio"`) is the no-context landing screen and is not a tab; it is shown
+only when there is no deep link and no resumable engineering workspace. The
+internal `Manage Projects` identifier remains compatible with saved sessions and
+callers; it is reached from the account header rather than the image-tab row.

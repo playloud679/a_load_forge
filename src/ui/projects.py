@@ -461,7 +461,13 @@ def _apply_pending_cloud_record() -> int:
         raise _saas.ProjectMissingError("Cloned cloud project was not found")
     applied = _apply_cloud_record(record)
     _invalidate_cloud_project_list()
-    st.session_state["workspace_mode"] = "Box Design"
+    # Open the project in its last engineering workspace, defaulting to Box
+    # Design when the record carries no valid workspace (GOLDEN_STD entry rules).
+    restored_workspace = st.session_state.get("workspace_mode")
+    if restored_workspace in ("Bass Match", "Box Design"):
+        st.session_state["_last_engineering_workspace"] = restored_workspace
+    else:
+        st.session_state["workspace_mode"] = "Box Design"
     if notice:
         st.toast(notice)
     return applied
@@ -723,6 +729,36 @@ def _cloud_project_summaries(*, force: bool = False) -> list[_saas.ProjectSummar
     st.session_state["_cloud_project_summaries"] = summaries
     st.session_state["_cloud_project_summaries_at"] = now
     return summaries
+
+def _last_cloud_workspace() -> str | None:
+    """Return the last engineering workspace from the most recent cloud project.
+
+    Reads the saved `workspace_mode` from the most recently updated non-trashed
+    project without opening it, so a returning user resumes Bass Match or Box
+    Design instead of landing on Projects. Any failure falls back to None.
+    """
+    if not (_runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER is not None):
+        return None
+    try:
+        summaries = _cloud_project_summaries()
+        active = [
+            item for item in summaries
+            if item.status != "trashed" and item.deleted_at is None
+        ]
+        if not active:
+            return None
+        latest = active[0]
+        record = _account._get_project_store().load_project(
+            _runtime._CURRENT_SAAS_USER,
+            latest.project_id,
+        )
+        if record is None:
+            return None
+        workspace = (record.parameters.get("bass_match") or {}).get("state", {}).get("workspace_mode")
+    except Exception:
+        _runtime.logger.exception("Could not resolve last cloud workspace")
+        return None
+    return workspace if workspace in ("Bass Match", "Box Design") else None
 
 def _record_lfp_export() -> None:
     st.session_state["_last_lfp_export_at"] = datetime.now(UTC).isoformat()
@@ -1120,6 +1156,99 @@ def _render_billing_action_button(acc: _saas.UserAccount) -> None:
         width="stretch",
     )
 
+def _render_studio_start() -> None:
+    """Render the minimal Studio start screen for users with no active workspace.
+
+    Projects and Explore are supporting destinations, never the generic landing
+    page. This screen routes no-context and new users into Bass Match or Box
+    Design (GOLDEN_STD studio entry rules).
+    """
+    header_col, account_col = st.columns([5, 1.4], vertical_alignment="center")
+    with header_col:
+        st.title("What do you want to design?")
+        st.caption("Load Forge — acoustic load simulation and optimization.")
+    with account_col:
+        if _runtime._CURRENT_SAAS_USER is not None:
+            with st.expander("Account", expanded=False):
+                st.caption(
+                    _runtime._CURRENT_SAAS_USER.name
+                    or _runtime._CURRENT_SAAS_USER.email
+                )
+                try:
+                    acc = _account._get_current_user_account()
+                except Exception:
+                    acc = None
+                if acc:
+                    _render_billing_action_button(acc)
+                st.button(
+                    "Manage Projects",
+                    key="studio_manage_projects_btn",
+                    width="stretch",
+                    on_click=_open_manage_projects_workspace,
+                )
+                _render_hud_explore_community_button(key="studio_community_btn")
+                st.button(
+                    "Sign out",
+                    key="studio_sign_out_btn",
+                    width="stretch",
+                    help="Sign out / Logout",
+                    on_click=_account._sign_out_saas,
+                )
+
+    left, right = st.columns(2, gap="large")
+    with left:
+        with st.container(border=True):
+            st.markdown("### 🔎 Find the right driver")
+            st.caption("Start from volume, extension, output and budget.")
+            st.button(
+                "Bass Match",
+                key="studio_start_bass_match_btn",
+                type="primary",
+                width="stretch",
+                on_click=_state._select_workspace,
+                args=("Bass Match",),
+            )
+    with right:
+        with st.container(border=True):
+            st.markdown("### 📐 Design with a driver")
+            st.caption("Choose a driver and design its enclosure.")
+            st.button(
+                "Box Design",
+                key="studio_start_box_design_btn",
+                type="primary",
+                width="stretch",
+                on_click=_state._select_workspace,
+                args=("Box Design",),
+            )
+
+    if _runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER is not None:
+        st.divider()
+        st.subheader("Recent projects")
+        try:
+            recent = [
+                item for item in _cloud_project_summaries()
+                if item.status != "trashed" and item.deleted_at is None
+            ][:5]
+        except Exception:
+            _runtime.logger.exception("Could not list recent projects")
+            recent = []
+        if not recent:
+            st.caption("No saved projects yet. Start a new design above.")
+        for item in recent:
+            info_col, open_col = st.columns([5, 1.4], vertical_alignment="center")
+            with info_col:
+                st.markdown(f"**{html.escape(item.name)}**")
+                st.caption(f"Modified {item.updated_at:%d %b %Y %H:%M UTC}")
+            with open_col:
+                st.button(
+                    "Open",
+                    key=f"studio_recent_open_{item.project_id}",
+                    width="stretch",
+                    on_click=_queue_cloud_record_activation,
+                    args=(item,),
+                    kwargs={"notice": f"Opened project: {item.name}"},
+                )
+
 def _render_main_account_header() -> None:
     """Shared project context and secondary account/discovery access."""
     acc = (
@@ -1136,6 +1265,12 @@ def _render_main_account_header() -> None:
         with st.expander("Account", expanded=False):
             if acc:
                 _render_billing_action_button(acc)
+            st.button(
+                "Manage Projects",
+                key="sidebar_manage_projects_btn",
+                width="stretch",
+                on_click=_open_manage_projects_workspace,
+            )
             _render_hud_explore_community_button(key="sidebar_community_btn")
             st.button(
                 "Sign out",
@@ -1424,7 +1559,6 @@ def _render_manage_projects_workspace() -> None:
     with c_logout:
         if _runtime._CURRENT_SAAS_USER is not None:
             st.button("Sign out", key="mp_sign_out_header_btn", on_click=_account._sign_out_saas, help="Sign out / Logout")
-        _render_hud_explore_community_button(key="sidebar_community_btn")
     st.caption(
         "Open a saved project, start a new design, or import your work."
     )

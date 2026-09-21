@@ -29,17 +29,20 @@
 
 ## Project-first UX
 
-Authenticated fresh sessions without explicit context start in Projects.
-Workspace changes survive
-ordinary reruns; successful local sign-in/registration queues a one-time return
-to Cloud Projects. Explicit shared-design links open Box Design and public,
-community, checkout and admin routes retain their handling. The original branded
-sidebar remains; compact text navigation identifies the three primary pages.
-The projects landing retains the existing secondary Community action.
+Studio entry follows intent (GOLDEN_STD studio entry). An explicit deep link
+(`?view=`, the shared-design `?d=` token, `?p=` public project) routes straight
+to its workspace; otherwise the last engineering workspace is resumed (session
+memory first, then the most recent cloud project's saved `workspace_mode`);
+otherwise the minimal Studio start screen (`_render_studio_start`) offers Bass
+Match and Box Design with recent projects as a secondary list. Projects and
+Explore are supporting destinations and are never the generic landing page.
+The original branded sidebar remains; full-image Bass Match and Box Design tabs
+identify the two primary technical pages.
 
 ## Phase B routing
 
-Primary navigation is shared in the main area, outside technical sidebars and
-omitted from embeds. `?view=bass-match`, `?view=box-design` and `?view=projects`
-support direct entry, applied once per route change. Existing public, shared,
-billing and admin links retain their handling.
+Deep links `?view=bass-match`, `?view=box-design` and `?view=projects`, plus
+the shared-design `?d=` token, apply once per route change. Primary navigation
+lives in the technical sidebar as the two image tabs; Manage Projects is reached
+from the account header and Explore through explicit navigation. Existing
+public, shared, billing and admin links retain their handling.

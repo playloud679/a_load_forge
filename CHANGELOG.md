@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.18.12 (2026-09-21)
+
+- **Studio entry rules**: Projects and Explore are no longer the generic landing
+  page. A no-context visitor sees a minimal **Studio** start screen (Find the
+  right driver → Bass Match, Design with a driver → Box Design, recent projects
+  secondary); a returning user resumes the last engineering workspace (session
+  memory, then the most recent cloud project's saved `workspace_mode`); known
+  intent (`?view=`, `?d=`, `?p=`) always routes straight to its workspace.
+  Opening a saved project resumes its own engineering workspace instead of
+  hardcoding Box Design. `_STUDIO_WORKSPACE`, `_render_studio_start`,
+  `_last_cloud_workspace` and `_resume_last_engineering_workspace` implement the
+  contract. Full suite: 236 tests passing, no failures.
+
+## 0.18.11 (2026-09-21)
+
+- **UI**: restored the 0.18.9 sidebar graphics. Bass Match and Box Design are
+  full-image tabs again in the technical sidebar (the red/blue artwork),
+  replacing the compact text navigation added in 0.18.10. Manage Projects
+  moves back into the collapsed Account panel, which keeps billing, community
+  and sign-out. `?view=` deep links and the Phase B save/visibility/Untitled
+  behavior are unchanged. Full suite: 234 tests passing, no failures.
+
 ## 0.18.10 (2026-09-21)
 
 - **UX — Phase B**: shared Projects / Bass Match / Box Design navigation,

@@ -3259,6 +3259,127 @@ test(
 )
 
 
+def _check_ui_studio_entry_landing_rules():
+    """Projects and Explore must never be the generic Studio landing page."""
+    from streamlit.testing.v1 import AppTest
+
+    # 1. No-context user gets the intent-based Studio start, never Projects/Explore.
+    fresh = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    fresh.run()
+    assert not fresh.exception, fresh.exception
+    assert fresh.session_state["workspace_mode"] == "Studio"
+    assert any("What do you want to design?" in item.value for item in fresh.title)
+    studio_keys = {button.key for button in fresh.button}
+    assert "studio_start_bass_match_btn" in studio_keys
+    assert "studio_start_box_design_btn" in studio_keys
+
+    # 2. Studio cards route straight into the engineering workspaces.
+    bass = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    bass.run()
+    bass.button(key="studio_start_bass_match_btn").click().run()
+    assert not bass.exception, bass.exception
+    assert bass.session_state["workspace_mode"] == "Bass Match"
+
+    box = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    box.run()
+    box.button(key="studio_start_box_design_btn").click().run()
+    assert not box.exception, box.exception
+    assert box.session_state["workspace_mode"] == "Box Design"
+
+    # 3. Known intent deep links bypass any landing screen.
+    for view, workspace in (
+        ("bass-match", "Bass Match"),
+        ("box-design", "Box Design"),
+        ("projects", "Manage Projects"),
+    ):
+        linked = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+        linked.query_params["view"] = view
+        linked.run()
+        assert not linked.exception, linked.exception
+        assert linked.session_state["workspace_mode"] == workspace, view
+
+    # 4. Returning user resumes the last engineering workspace, never Projects.
+    returning = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    returning.session_state["_last_engineering_workspace"] = "Bass Match"
+    returning.run()
+    assert not returning.exception, returning.exception
+    assert returning.session_state["workspace_mode"] == "Bass Match"
+
+    # 5. A bare entry stays on Studio: Explore/Projects need explicit selection.
+    assert not any(b.key == "sidebar_community_btn" for b in fresh.sidebar.button)
+
+
+test(
+    "UI studio entry never lands on Projects or Explore by default",
+    _check_ui_studio_entry_landing_rules,
+)
+
+
+def _check_ui_studio_resumes_last_cloud_workspace():
+    """A returning cloud user resumes the most recent engineering workspace."""
+    import os
+    from datetime import UTC, datetime
+
+    from streamlit.testing.v1 import AppTest
+
+    keys = {
+        "LOAD_FORGE_SAAS_ENABLED": "true",
+        "LOAD_FORGE_SAAS_BACKEND": "memory",
+        "LOAD_FORGE_OPEN_BETA_ENABLED": "true",
+        "LOAD_FORGE_AUTH_BYPASS": "true",
+        "LOAD_FORGE_DEV_UID": "studio-resume-user",
+        "LOAD_FORGE_DEV_EMAIL": "studio-resume@example.test",
+        "LOAD_FORGE_DEV_NAME": "Studio Resume",
+    }
+    previous = {key: os.environ.get(key) for key in keys}
+    try:
+        os.environ.update(keys)
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+        at.run()
+        assert not at.exception, at.exception
+        assert at.session_state["workspace_mode"] == "Studio"
+
+        from ui import account as account_ui, runtime as runtime_ui
+
+        store = account_ui._get_project_store()
+        owner = runtime_ui._CURRENT_SAAS_USER
+        now = datetime.now(UTC).isoformat()
+        payload = {
+            "_load_forge_meta": {"version": "test", "format": 2, "kind": "project"},
+            "project": {"id": "lfp_resume", "name": "Resume me", "created_at": now, "updated_at": now},
+            "parameters": {
+                "load_type": "Bass reflex",
+                "driver_fs_hz": 30.0,
+                "driver_vas_l": 100.0,
+                "driver_qts": 0.4,
+                "driver_qms": 4.0,
+                "driver_re_ohm": 6.0,
+            },
+            "bass_match": {"state": {"workspace_mode": "Bass Match"}},
+        }
+        store.save_project(owner, "Resume me", payload, "test")
+
+        returning = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+        returning.run()
+        assert not returning.exception, returning.exception
+        assert returning.session_state["workspace_mode"] == "Bass Match", (
+            "a returning user with a recent engineering project must resume it, "
+            "not Projects"
+        )
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
+test(
+    "UI studio entry resumes the last cloud engineering workspace",
+    _check_ui_studio_resumes_last_cloud_workspace,
+)
+
+
 def _check_ui_complete_lfp_restores_bass_match():
     import json
 
@@ -4324,6 +4445,15 @@ def _check_ui_saas_authenticated_session():
             "AppTest user" in item.value
             for item in at.caption
         ), "account controls must display authenticated identity"
+        assert at.session_state["workspace_mode"] == "Studio", (
+            "a fresh authenticated session with no recent project must land on "
+            "the Studio start screen, never Projects"
+        )
+
+        # Projects opens only when explicitly selected.
+        at.session_state["workspace_mode"] = "Manage Projects"
+        at.run()
+        assert not at.exception, at.exception
         assert any(
             "Unsaved changes" in item.value
             or "Saved" in item.value
@@ -4332,8 +4462,6 @@ def _check_ui_saas_authenticated_session():
             or "Not saved" in item.value
             for item in [*at.markdown, *at.caption]
         ), "authenticated project UI must expose compact cloud save status"
-
-        assert at.session_state["workspace_mode"] == "Manage Projects"
         assert not next(
             panel for panel in at.expander
             if panel.label == "Project actions"
@@ -5059,6 +5187,8 @@ def _check_ui_explore_directory_rendering():
         )
 
         at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+        # An engineering workspace keeps the account/community chrome in reach.
+        at.session_state["workspace_mode"] = "Bass Match"
         at.run()
         assert not at.exception, at.exception
         assert any(
@@ -5223,7 +5353,7 @@ def _check_ui_saas_local_registration_login_logout():
             assert at.session_state["_local_saas_account"]["email"] == (
                 "register@example.test"
             )
-            assert at.session_state["workspace_mode"] == "Manage Projects"
+            assert at.session_state["workspace_mode"] == "Studio"
             assert any(
                 "Registration tester" in item.value
                 for item in at.caption
@@ -5250,7 +5380,7 @@ def _check_ui_saas_local_registration_login_logout():
             assert at.session_state["_local_saas_account"]["email"] == (
                 "register@example.test"
             )
-            assert at.session_state["workspace_mode"] == "Manage Projects"
+            assert at.session_state["workspace_mode"] == "Studio"
         finally:
             for key, value in previous.items():
                 if value is None:
@@ -10403,6 +10533,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
     from streamlit.testing.v1 import AppTest
     at = AppTest.from_file(str(ROOT / 'ui_app.py'), default_timeout=60)
     at.session_state['ui_show_advanced'] = True
+    at.session_state['workspace_mode'] = 'Bass Match'
     at.run()
     assert not at.exception, at.exception
     seen_numbers = set()
@@ -10523,6 +10654,7 @@ def _check_ui_finder_main_action_runs_search():
     )
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at.session_state["workspace_mode"] = "Bass Match"
     at.run()
     assert not at.exception, at.exception
     initial_prequalified = next(
@@ -12150,6 +12282,7 @@ test("Acoustic simulation rejects invalid frequency grids", _check_simulation_re
 def _check_ui_finder_comprehensive_ux_regression():
     from streamlit.testing.v1 import AppTest
     at = AppTest.from_file(str(ROOT / 'ui_app.py'), default_timeout=60)
+    at.session_state['workspace_mode'] = 'Bass Match'
     at.run()
     assert not at.exception, at.exception
     loads = {'Infinite baffle', 'Sealed', 'Bass reflex', 'Bandpass 4th order',
@@ -12492,6 +12625,7 @@ def _check_ui_autosave_timer_registered():
     with patch.dict(os.environ, {'LOAD_FORGE_SAAS_ENABLED': 'true', 'LOAD_FORGE_SAAS_BACKEND': 'memory', 'LOAD_FORGE_AUTH_BYPASS': 'true', 'LOAD_FORGE_DEV_EMAIL': 'autosave@example.invalid', 'LOAD_FORGE_ALLOWED_EMAILS': ''}), patch.object(LocalScriptRunner, '_enqueue_forward_msg', capture):
         at = AppTest.from_file(str(ROOT / 'ui_app.py'), default_timeout=60)
         at.session_state['project_name'] = 'Autosave regression'
+        at.session_state['workspace_mode'] = 'Box Design'
         at.run()
         assert not at.exception, at.exception
         assert len({fragment_id for interval, fragment_id in emitted if interval == 2}) == 2, 'Catalog and persistence each require one periodic fragment'

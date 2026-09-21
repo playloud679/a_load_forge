@@ -14,8 +14,11 @@
   `_apply_pending_cloud_record`, `_cloud_autosave_step`,
   `_cloud_persistence_fragment` (`@st.fragment(run_every=2)`),
   `_render_cloud_persistence_status`, `_cloud_project_summaries`,
-  `_cloud_persistence_error_message`, `_detach_cloud_project`,
-  `_duplicate_active_project`, `_create_new_project`.
+  `_last_cloud_workspace`, `_cloud_persistence_error_message`,
+  `_detach_cloud_project`, `_duplicate_active_project`, `_create_new_project`.
+- Studio entry: `_render_studio_start` (no-context landing with Bass Match /
+  Box Design cards and a secondary recent-project list). Opening a cloud record
+  resumes its saved engineering workspace via `_apply_pending_cloud_record`.
 - Manage Projects/community: `_render_manage_projects_workspace`,
   `_render_manage_projects_cloud_list/history/trash/publish`,
   `_render_public_project_page`, `_render_embed_project_widget`,
@@ -56,17 +59,27 @@ panel is present on the Bass Match screen.
 Manage Projects puts the private project list before the collapsed current-
 project details/export/sharing panel. Search matches project names case-
 insensitively; sorting supports recent updates and names. Opening a list item
-queues activation before widget creation on the next run and enters Box Design.
+queues activation before widget creation on the next run and enters the
+project's saved engineering workspace (Box Design fallback).
 Cached project summaries are keyed by tenant and user identity. The original
 community artwork and visual styling remain intact. Duplicate and Trash actions
 are grouped under each project’s More menu.
 
+### Studio entry
+
+`_render_studio_start` is the no-context landing screen (GOLDEN_STD studio
+entry). It offers Bass Match and Box Design as the two primary actions and
+lists recent projects as a secondary element, never as the dominant content.
+`_last_cloud_workspace` resolves a returning user's most recent engineering
+workspace without opening the project. Projects and Explore are reached only
+by explicit selection, deep link or public URL.
+
 ### Compact main header
 
 `_render_main_account_header` renders shared project context followed by compact
-plan/credit information and a collapsed Account panel for billing, existing
-Community access and sign out. Projects is primary navigation, with its legacy
-button key `sidebar_manage_projects_btn` preserved. Publication status uses a
+plan/credit information and a collapsed Account panel for billing, Manage
+Projects navigation (legacy button key `sidebar_manage_projects_btn`), existing
+Community access and sign out. Publication status uses a
 content digest, excluding navigation-only state and generated file timestamps.
 Tests in `tests/test_phase_b.py`, registered in the active runner, cover direct
 entry, identity/rename/comparison, save failures, publication updates, withdrawal
@@ -95,6 +108,8 @@ the published content; explicit Update public version publishes current saved
 content. Private withdraws every legacy link. A content hash detects unpublished
 edits. Publication access is enforced by the public store, never private reads.
 
-The shared main navigation replaces Projects inside Account. Account keeps its
-billing/sign-out actions and the existing secondary Community entry. No billing
+The image-tab navigation returns to the technical sidebar; Manage Projects is
+reached from the Account panel (legacy key `sidebar_manage_projects_btn`).
+Account keeps its billing/sign-out actions and the existing secondary Community
+entry; the Manage Projects sidebar also keeps a Community action. No billing
 policy, credits calculation, physics or result ranking changes in Phase B.
