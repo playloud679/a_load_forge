@@ -215,10 +215,10 @@ _PRESET_CLASS_ENGINE_VALUES = {
     "Midbass": "Midbass-capable",
 }
 
-_WORKSPACES = ("Bass Match", "Box Design")
+_WORKSPACES = ("Manage Projects", "Bass Match", "Box Design")
 
 _WORKSPACE_DISPLAY_LABELS = {
-    "Manage Projects": "Manage Projects",
+    "Manage Projects": "Projects",
     "Bass Match": "Bass Match",
     "Box Design": "Box Design",
     "Catalog Maintenance": "Catalog Maintenance",

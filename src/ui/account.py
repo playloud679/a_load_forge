@@ -13,6 +13,7 @@ import streamlit as st
 import saas as _saas
 import storage as _storage
 import storage.private_store as _private_store
+import storage.public_store as _public_store
 
 from . import constants as _constants
 from . import runtime as _runtime
@@ -359,7 +360,8 @@ def _cached_public_store(
     return _storage.create_public_store(settings)
 
 def _get_public_store():
-    return _cached_public_store(_runtime._SAAS_SETTINGS, _runtime._SAAS_SOURCE_TOKEN)
+    source_token = _runtime._SAAS_SOURCE_TOKEN ^ Path(_public_store.__file__).stat().st_mtime_ns
+    return _cached_public_store(_runtime._SAAS_SETTINGS, source_token)
 
 def _account_admin_emails() -> frozenset[str]:
     """Administration is configured separately from the login allowlist."""

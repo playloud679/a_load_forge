@@ -40,3 +40,9 @@ Bridges `st.session_state` and the acoustic model objects.
 
 `tests/test_all.py` covers param round-trips, box-strategy restoration,
 `_normalize_stl_split_mode` and the editable-tab preset recovery.
+
+## Primary navigation
+
+`_render_workspace_tabs` renders compact neutral buttons in the main area for
+Projects, Bass Match and Box Design. Selection preserves the project identity.
+The hidden compatibility widget retains existing automated-client values.

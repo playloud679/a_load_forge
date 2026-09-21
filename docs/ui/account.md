@@ -1,5 +1,9 @@
 # src/ui/account.py — auth gate and account stores
 
+The public-store resource cache includes its source modification time as well
+as the SaaS token, so a running server adopts publication access-control changes
+on reload. Account and billing store policies are unchanged.
+
 - `_render_local_account_gate` / `_render_auth_hero_and_badges` — login and
   registration UI for local accounts, OIDC and bypass modes. Registration is
   open to any valid email address (no invite code) and always collects the

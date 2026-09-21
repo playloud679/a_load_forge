@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.18.10 (2026-09-21)
+
+- **UX — Phase B**: shared Projects / Bass Match / Box Design navigation,
+  compact project name/rename, acknowledged save status and visibility.
+  Authenticated Untitled projects autosave without a naming prerequisite;
+  direct `view=bass-match` / `view=box-design` links retain intent. Opening
+  another project flushes pending work and stays put if saving fails.
+- **Publication**: owner/tenant-scoped association reuses existing publication
+  links. Public/Unlisted access changes do not publish private edits; explicit
+  updates retain immutable versions. Private withdraws all associated links,
+  including old duplicates, and blocks public reads, versions, embeds and clones.
+- **Docs/Test**: synchronized UI/storage docs, README, index and version metadata;
+  added project identity, navigation, visibility and save-failure regressions.
+  Physics and billing policies are unchanged. Full validation completed with
+  234 tests passing and no failures.
+
 ## 0.18.9 (2026-09-20)
 
 - **Data (Fix 1 — crawler)**: `tools/crawl_thiele_small.py` no longer derives a

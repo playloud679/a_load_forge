@@ -168,7 +168,12 @@ def main() -> None:
     _state._default("opt_max_gd_ms", 0.0)
     # Authenticated sessions begin with their own projects; reruns preserve the
     # chosen workspace. Explicit shared designs still open in the editor.
-    initial_workspace = (
+    requested_workspace = {
+        "bass-match": "Bass Match",
+        "box-design": "Box Design",
+        "projects": "Manage Projects",
+    }.get(str(st.query_params.get("view", "")))
+    initial_workspace = requested_workspace or (
         "Box Design" if st.query_params.get("d") else
         "Manage Projects" if _runtime._CURRENT_SAAS_USER is not None else "Bass Match"
     )
@@ -177,6 +182,9 @@ def main() -> None:
             st.session_state["workspace_mode"] = initial_workspace
             st.session_state["manage_projects_tab"] = "Cloud Projects"
     _state._default("workspace_mode", initial_workspace)
+    if requested_workspace and st.session_state.get("_applied_workspace_route") != st.query_params.get("view"):
+        st.session_state["workspace_mode"] = requested_workspace
+        st.session_state["_applied_workspace_route"] = st.query_params.get("view")
     _state._default("ui_show_advanced", False)
     _state._ensure_finder_defaults()
     _state._ensure_price_currency_default()
@@ -298,11 +306,8 @@ def main() -> None:
             _projects._render_public_project_sidebar(_public_project_requested)
         elif workspace_mode == "Manage Projects":
             _projects._render_project_menu()
-            _state._render_workspace_tabs()
-            _projects._render_hud_explore_community_button(key="sidebar_community_btn")
         elif workspace_mode == "Bass Match":
             _projects._render_project_menu()
-            _state._render_workspace_tabs()
             if "finder_load_types" not in st.session_state:
                 st.session_state["finder_load_types"] = [st.session_state.get("load_type", "DCCAV")]
             bm_tab1, bm_tab2, bm_tab3 = st.tabs(
@@ -399,7 +404,6 @@ def main() -> None:
 
         elif not (_explore_requested or _public_project_requested):
             _projects._render_project_menu()
-            _state._render_workspace_tabs()
             bd_tab1, bd_tab2, bd_tab3 = st.tabs(
                 ["Driver", "Load Selection", "Enclosure Parameters"],
                 key="box_design_sidebar_tab",
@@ -1137,6 +1141,8 @@ def main() -> None:
                     "Simple mode · guided scenario, load, volume and goal. Enable "
                     "Advanced for full controls."
                 )
+    if not _embed_mode_requested:
+        _state._render_workspace_tabs()
     if _public_project_requested:
         if _embed_mode_requested:
             _projects._render_embed_project_widget(_public_project_requested)

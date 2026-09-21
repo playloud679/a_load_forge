@@ -6,7 +6,6 @@ import base64
 import hashlib
 import html
 import json
-import os
 import re
 import time
 import uuid
@@ -132,9 +131,7 @@ def _build_lfp_project(
             include_results=include_results
         ),
     }
-    # Keep an unnamed local draft renderable, but never treat it as a valid
-    # cloud/LFP project. Autosave and export/duplication gate this payload on a
-    # user-supplied name before persistence.
+    # Legacy callers may build a draft before the header assigns its default name.
     if _project_name_is_placeholder(name):
         return payload
     return _saas.validate_project_payload(payload, allow_legacy=False)
@@ -383,14 +380,14 @@ def _project_download_filename(name: str) -> str:
     return f"{stem or 'load_forge_project'}.lfp"
 
 def _project_name_is_placeholder(name: object) -> bool:
-    """Return whether a project has no user-supplied name yet."""
+    """An automatically named project is a valid persistence container."""
     normalized = str(name or "").strip().casefold()
-    return not normalized or normalized == _constants._UNTITLED_PROJECT_NAME.casefold()
+    return not normalized
 
 def _project_display_name(name: object) -> str:
-    """Return a non-persisted label for an unnamed local draft."""
+    """Resolve the name shared by the header, autosave and portable export."""
     value = str(name or "").strip()
-    return value if not _project_name_is_placeholder(value) else "Name required"
+    return value or _constants._UNTITLED_PROJECT_NAME
 
 def _mark_cloud_project_dirty(*, immediate: bool = False) -> None:
     """Flag a structural project change for the autosave fragment."""
@@ -440,6 +437,8 @@ def _queue_cloud_record_activation(
     only the new project identity here and load its state before widgets are
     created on the rerun.
     """
+    if not _save_before_project_switch():
+        return
     st.session_state["_pending_cloud_project_id"] = record.project_id
     if notice:
         st.session_state["_pending_cloud_project_notice"] = notice
@@ -476,16 +475,8 @@ def _cloud_autosave_step(
 ) -> str:
     """Advance one non-blocking debounced autosave attempt."""
     now = time.monotonic() if now is None else float(now)
-    name = str(st.session_state.get("project_name", "")).strip()
-    if _project_name_is_placeholder(name):
-        if st.session_state.get("_cloud_project_id"):
-            # Do not keep attaching a legacy auto-created placeholder record
-            # to the active draft. Naming it later will create a fresh record.
-            _detach_cloud_project()
-        st.session_state["_cloud_save_status"] = "name_required"
-        st.session_state.pop("_cloud_save_error", None)
-        st.session_state.pop("_cloud_save_error_kind", None)
-        return "name_required"
+    name = _project_display_name(st.session_state.get("project_name", ""))
+    st.session_state["project_name"] = name
     try:
         payload = _build_lfp_project({"name": name}, include_results=True)
     except Exception as exc:
@@ -494,6 +485,7 @@ def _cloud_autosave_step(
         st.session_state["_cloud_save_error_kind"] = "invalid"
         _runtime.logger.exception("Project autosave validation failed")
         return "failed"
+    previous_revision = st.session_state.get("_cloud_project_revision")
     status, _ = _saas.advance_project_autosave(
         store,
         user,
@@ -531,12 +523,25 @@ def _cloud_autosave_step(
                 debounce_seconds=_constants._AUTOSAVE_DEBOUNCE_SECONDS,
                 retry_delays=_constants._AUTOSAVE_RETRY_DELAYS,
             )
+    if status == "saved" and st.session_state.get("_cloud_project_revision") != previous_revision:
+        _invalidate_cloud_project_list()
     return status
 
 def _render_cloud_persistence_status() -> None:
     if not (_runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER is not None):
+        st.caption("Session only")
+        return
+    if not _has_project_work():
+        st.caption("Not saved")
         return
     _cloud_persistence_fragment()
+
+def _has_project_work() -> bool:
+    return bool(
+        st.session_state.get("_cloud_project_id")
+        or st.session_state.get("_project_started")
+        or _project_display_name(st.session_state.get("project_name", "")) != _constants._UNTITLED_PROJECT_NAME
+    )
 
 @st.fragment(run_every=2)
 def _cloud_persistence_fragment() -> None:
@@ -562,22 +567,138 @@ def _cloud_persistence_fragment() -> None:
         else "#f87171"
     )
     st.markdown(
-        f"<div title='Cloud persistence status' style='font-size:.76rem;"
+        f"<div title='Save status' style='font-size:.76rem;"
         f"color:{color};margin:-.25rem 0 .45rem 0'>● {html.escape(label)}</div>",
         unsafe_allow_html=True,
     )
-    if status == "name_required":
-        st.caption("Name this project in Manage Projects to enable cloud save.")
     if status in {"failed", "conflict"}:
         error_kind = str(st.session_state.get("_cloud_save_error_kind", "unknown"))
-        error = str(st.session_state.get("_cloud_save_error", "")).strip()
         st.error(_cloud_persistence_error_message(error_kind))
-        if error and error_kind == "unknown":
-            st.caption(error[:240])
         if st.button("Retry cloud save", key="project_cloud_retry", width="stretch"):
             st.session_state["_cloud_save_failure_count"] = 0
             _mark_cloud_project_dirty(immediate=True)
             st.rerun()
+
+def _save_before_project_switch() -> bool:
+    if not (_runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER):
+        return True
+    if not _has_project_work():
+        return True
+    try:
+        status = _cloud_autosave_step(_account._get_project_store(), _runtime._CURRENT_SAAS_USER, force=True)
+    except Exception:
+        _runtime.logger.exception("Could not save before switching projects")
+        status = "failed"
+    if status == "unsaved" and st.session_state.get("_cloud_suppressed_hash"):
+        return True
+    if status != "saved":
+        st.session_state["_project_switch_error"] = "Your changes could not be saved. Retry saving before opening another project."
+        return False
+    return True
+
+def _project_publications() -> list[_saas.PublicProjectRecord]:
+    project_id = st.session_state.get("_cloud_project_id")
+    if not project_id or not (_runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER):
+        return []
+    return _account._get_public_store().project_publications(_runtime._CURRENT_SAAS_USER, str(project_id))
+
+def _publication_is_stale(publication) -> bool:
+    name = _project_display_name(st.session_state.get("project_name", ""))
+    payload = _build_lfp_project({"name": name}, include_results=True)
+    def signature(title, data):
+        data = json.loads(json.dumps(data))
+        state = data.get("bass_match", {}).get("state", {})
+        for key in ("workspace_mode", "design_comparison_active_id", "design_comparison_loaded_id"):
+            state.pop(key, None)
+        return _saas.project_content_hash(title, data)
+    return signature(name, payload) != signature(publication.title, publication.parameters)
+
+def _change_project_visibility(visibility: str, *, update: bool = False) -> None:
+    """Change access separately from explicitly publishing edited content."""
+    user = _runtime._CURRENT_SAAS_USER
+    if user is None or not _runtime._SAAS_SETTINGS.enabled:
+        raise ValueError("Sign in to share this project")
+    store = _account._get_public_store()
+    publications = _project_publications()
+    if visibility == "Private":
+        for publication in publications:
+            store.set_visibility(user, publication.publication_id, "unpublished")
+        return
+    if visibility not in {"Public", "Unlisted"}:
+        raise ValueError("Invalid visibility")
+    visible = [p for p in publications if p.visibility != "unpublished"]
+    current = next((p for p in visible if p.visibility == "public"),
+                   visible[0] if visible else publications[0] if publications else None)
+    if current and current.visibility != "unpublished" and not update:
+        # Access changes never publish pending private edits.
+        for publication in publications:
+            store.set_visibility(user, publication.publication_id,
+                                 visibility.lower() if publication == current else "unpublished")
+        return
+    if not _save_before_project_switch():
+        raise ValueError("Save your changes before publishing")
+    record = _account._get_project_store().load_project(user, str(st.session_state["_cloud_project_id"]))
+    if record is None:
+        raise ValueError("Project unavailable")
+    published = store.publish_project(
+        user, record.project_id, record.parameters, title=record.name,
+        description=current.description if current else "",
+        visibility=visibility.lower(), app_version=_runtime._VERSION,
+        publication_id=current.publication_id if current else None,
+        source_revision=record.revision,
+    )
+    for previous in publications:
+        if previous.publication_id != published.publication_id:
+            store.set_visibility(user, previous.publication_id, "unpublished")
+
+def _rename_project_from_header(widget_key: str) -> None:
+    name = str(st.session_state.get(widget_key, "")).strip()
+    if name:
+        st.session_state["project_name"] = name[:80]
+        _mark_cloud_project_dirty(immediate=True)
+
+def _apply_header_visibility(widget_key: str, *, update: bool = False) -> None:
+    try:
+        _change_project_visibility(str(st.session_state[widget_key]), update=update)
+    except Exception:
+        _runtime.logger.exception("Could not change project visibility")
+        st.session_state["_project_switch_error"] = "Could not update project visibility. Your private work is retained; please retry."
+
+def _render_project_header() -> None:
+    if st.session_state.get("workspace_mode") in {"Bass Match", "Box Design"}:
+        st.session_state["_project_started"] = True
+    st.session_state["project_name"] = _project_display_name(st.session_state.get("project_name", ""))
+    name_col, save_col, visibility_col = st.columns([3, 1.4, 1.6], vertical_alignment="center")
+    with name_col:
+        with st.popover(st.session_state["project_name"], width="stretch"):
+            name_key = f"temp_project_header_name_{st.session_state.get('_cloud_project_id', 'draft')}_{st.session_state['project_name']}"
+            st.text_input("Project name", value=st.session_state["project_name"], key=name_key, max_chars=80)
+            st.button("Rename", key="action_project_header_rename", on_click=_rename_project_from_header, args=(name_key,))
+    with save_col:
+        _render_cloud_persistence_status()
+    with visibility_col:
+        try:
+            publications = _project_publications()
+            visible = [p for p in publications if p.visibility != "unpublished"]
+            current = next((p for p in visible if p.visibility == "public"), visible[0] if visible else None)
+            visibility = current.visibility.capitalize() if current else "Private"
+            with st.popover(visibility, width="stretch"):
+                st.caption("Private — Only you can access this project.\n\nUnlisted — Anyone with the link can view it.\n\nPublic — Visible in Explore.")
+                visibility_key = f"temp_project_visibility_{st.session_state.get('_cloud_project_id', 'draft')}"
+                st.selectbox("Visibility", ["Private", "Unlisted", "Public"], index=["Private", "Unlisted", "Public"].index(visibility), key=visibility_key)
+                st.button("Apply visibility", key="action_project_visibility", disabled=not (_runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER), on_click=_apply_header_visibility, args=(visibility_key,))
+                if current:
+                    st.link_button("View shared project", _public_project_url(current.publication_id))
+            if current and _publication_is_stale(current):
+                st.caption("Changes not published")
+                st.session_state["_current_project_visibility"] = visibility
+                st.button("Update public version", key="action_project_publish_update", on_click=_apply_header_visibility, args=("_current_project_visibility",), kwargs={"update": True})
+        except Exception:
+            _runtime.logger.exception("Project visibility unavailable")
+            st.error("Could not update or read project visibility. Please retry.")
+    notice = st.session_state.pop("_project_switch_error", None)
+    if notice:
+        st.error(notice)
 
 def _invalidate_cloud_project_list() -> None:
     st.session_state.pop("_cloud_project_summaries", None)
@@ -609,28 +730,18 @@ def _record_lfp_export() -> None:
 def _cloud_persistence_error_message(kind: str) -> str:
     """Return a concise recovery instruction without exposing project contents."""
     if kind == "auth":
-        if not os.environ.get("K_SERVICE"):
-            return (
-                "Cloud save is unavailable because local Google Cloud credentials "
-                "are missing or expired. Run `gcloud auth application-default login`, "
-                "then restart Load Forge."
-            )
-        return "Cloud save authentication expired. Sign in again, then retry."
+        return "Your sign-in has expired. Sign in again, then retry saving."
     if kind == "permission":
-        return (
-            "Firestore denied this project write. Check the service account or "
-            "Firestore permissions, then retry."
-        )
+        return "This account cannot save this project. Your local changes are retained. Contact support if this continues."
     if kind == "invalid":
         return (
-            "This project state did not pass validation, so the previous cloud "
-            "revision was preserved."
+            "This project could not be saved. Your previous saved version is safe."
         )
     if kind == "transient":
-        return "Cloud save could not connect after retrying. Check the connection, then retry."
+        return "Could not connect to save your changes. Check your connection, then retry."
     if kind == "conflict":
-        return "Another session changed this project. The latest revision was fetched; retry the local save."
-    return "Cloud save failed. Check the Firestore configuration or connection, then retry."
+        return "Another session changed this project. Your local changes are retained; retry saving."
+    return "Could not save your changes. Retry saving, or contact support if this continues."
 
 def _detach_cloud_project(*, suppress_hash: str | None = None) -> None:
     for key in (
@@ -1010,51 +1121,21 @@ def _render_billing_action_button(acc: _saas.UserAccount) -> None:
     )
 
 def _render_main_account_header() -> None:
-    """Keep account and project chrome compact on the main workspaces.
-
-    The identity, project name and cloud-save status stay on a single line;
-    billing, project management, community and sign-out live inside the
-    collapsed "Account & projects" panel so they remain reachable without
-    cluttering the workspace.
-    """
+    """Shared project context and secondary account/discovery access."""
     acc = (
         _account._get_current_user_account()
         if _runtime._CURRENT_SAAS_USER is not None
         else None
     )
-    project_name = _project_display_name(st.session_state.get("project_name", ""))
+    _render_project_header()
     summary_col, actions_col = st.columns([5.2, 1.4], vertical_alignment="center")
     with summary_col:
-        parts = []
-        if _project_name_is_placeholder(project_name):
-            parts.append(
-                "**Project name required** · name this project in Manage Projects "
-                "to enable cloud save."
-            )
-        else:
-            parts.append(f"**Project**: {html.escape(project_name)}")
         if acc and _runtime._CURRENT_SAAS_USER is not None:
-            user_label = html.escape(
-                _runtime._CURRENT_SAAS_USER.name
-                or _runtime._CURRENT_SAAS_USER.email
-                or "Engineer"
-            )
-            parts.append(
-                f"**{user_label}** · *{acc.plan.upper()}* · "
-                f"**{acc.credits_balance:,}** credits"
-            )
-        st.caption(" · ".join(parts))
-        _render_cloud_persistence_status()
+            st.caption(f"{acc.plan.upper()} · {acc.credits_balance:,} credits")
     with actions_col:
-        with st.expander("⚙️ Account & projects", expanded=False):
+        with st.expander("Account", expanded=False):
             if acc:
                 _render_billing_action_button(acc)
-            st.button(
-                "Manage Projects",
-                key="sidebar_manage_projects_btn",
-                width="stretch",
-                on_click=_open_manage_projects_workspace,
-            )
             _render_hud_explore_community_button(key="sidebar_community_btn")
             st.button(
                 "Sign out",
@@ -1080,7 +1161,7 @@ def _render_manage_projects_cloud_list() -> None:
         return
     active = [
         item for item in summaries
-        if item.status != "trashed" and not _project_name_is_placeholder(item.name)
+        if item.status != "trashed"
     ]
     if not active:
         st.info("No saved cloud projects found. Click **New Project** or import an existing `.lfp` file.")
@@ -1104,17 +1185,24 @@ def _render_manage_projects_cloud_list() -> None:
 
     for item in active:
         is_current = item.project_id == current_id
+        visibility = "Private"
+        try:
+            publications = _account._get_public_store().project_publications(_runtime._CURRENT_SAAS_USER, item.project_id)
+            visible = [p for p in publications if p.visibility != "unpublished"]
+            if visible:
+                visibility = "Public" if any(p.visibility == "public" for p in visible) else "Unlisted"
+        except Exception:
+            _runtime.logger.exception("Could not resolve project visibility")
         with st.container(border=True):
-            r_col1, r_col2, r_col3, r_col4 = st.columns([3.5, 2.2, 1.3, 3.0], vertical_alignment="center")
+            r_col1, r_col2, r_col3, r_col4 = st.columns([3.2, 2.4, 1.5, 2.4], vertical_alignment="center")
             with r_col1:
-                badge = "**[ACTIVE]** " if is_current else ""
-                st.markdown(f"{badge}**{html.escape(item.name)}**")
-                st.caption(f"Revision {item.revision}")
+                st.markdown(f"**{html.escape(item.name)}**")
+                st.caption("Active project" if is_current else "Project")
             with r_col2:
                 updated_str = item.updated_at.strftime("%d %b %Y %H:%M UTC")
-                st.caption(updated_str)
+                st.caption(f"Modified {updated_str}")
             with r_col3:
-                st.caption("Active" if is_current else "Saved")
+                st.caption(visibility)
             with r_col4:
                 b_col1, b_col2 = st.columns([1.4, 1])
                 with b_col1:
@@ -1332,13 +1420,16 @@ def _render_manage_projects_workspace() -> None:
             _state._select_workspace("Bass Match")
             st.rerun()
     with c_title:
-        st.title("Manage Projects")
+        st.title("Projects")
     with c_logout:
         if _runtime._CURRENT_SAAS_USER is not None:
             st.button("Sign out", key="mp_sign_out_header_btn", on_click=_account._sign_out_saas, help="Sign out / Logout")
+        _render_hud_explore_community_button(key="sidebar_community_btn")
     st.caption(
         "Open a saved project, start a new design, or import your work."
     )
+    _render_project_header()
+    st.markdown(f"**Current project:** {html.escape(_project_display_name(st.session_state.get('project_name', '')))}")
 
     if _runtime._CURRENT_SAAS_USER is not None:
         st.caption(_runtime._CURRENT_SAAS_USER.name or _runtime._CURRENT_SAAS_USER.email)
@@ -1486,46 +1577,12 @@ def _render_manage_projects_workspace() -> None:
             else:
                 st.info("Operating in standalone offline mode. Sign in to enable multi-device cloud persistence.")
 
-    # Draft tools stay available without displacing the user's project list.
-    with st.expander("Current project · details, export & sharing", expanded=False):
-        st.markdown(f"### Active Project: {html.escape(project_label)}")
-        _render_cloud_persistence_status()
-
-        # Summary row of parameters
-        load_type = st.session_state.get("load_type", "Bass reflex")
-        driver_name = st.session_state.get("driver_preset_name", "Custom")
-        vol_l = float(st.session_state.get("reflex_vb_l", st.session_state.get("dccav_vb1_l", 50.0)))
-
-        m_c1, m_c2, m_c3, m_c4 = st.columns(4)
-        with m_c1:
-            st.metric("Topology", load_type)
-        with m_c2:
-            st.metric("Driver", driver_name[:20] if driver_name else "Custom")
-        with m_c3:
-            st.metric("Enclosure Vb", f"{vol_l:.1f} L")
-        with m_c4:
-            st.metric("Cloud State", f"r{revision}" if cloud_id else "Local Draft")
-
-        # Primary Workflow Actions
-        act_col1, act_col2, act_col3, act_col4 = st.columns(4)
+    with st.expander("Project actions", expanded=False):
+        st.caption("Occasional project actions")
+        st.button("Open in Box Design", key="mp_open_bd_btn", on_click=_state._select_workspace, args=("Box Design",))
+        st.button("Open in Bass Match", key="mp_open_bm_btn", on_click=_state._select_workspace, args=("Bass Match",))
+        act_col1, act_col2 = st.columns(2)
         with act_col1:
-            st.button(
-                "Open in Box Design",
-                key="mp_open_bd_btn",
-                type="primary",
-                width="stretch",
-                on_click=_state._select_workspace,
-                args=("Box Design",),
-            )
-        with act_col2:
-            st.button(
-                "Open in Bass Match",
-                key="mp_open_bm_btn",
-                width="stretch",
-                on_click=_state._select_workspace,
-                args=("Bass Match",),
-            )
-        with act_col3:
             payload = _build_lfp_project({"name": project_name}, include_results=True)
             lfp_data = json.dumps(payload, indent=2, allow_nan=False).encode("utf-8")
             st.download_button(
@@ -1539,7 +1596,7 @@ def _render_manage_projects_workspace() -> None:
                 disabled=_project_name_is_placeholder(project_name),
                 help="Name the project before exporting an .lfp backup.",
             )
-        with act_col4:
+        with act_col2:
             if st.button(
                 "Duplicate Project",
                 key="mp_duplicate_btn",
@@ -1550,8 +1607,7 @@ def _render_manage_projects_workspace() -> None:
                 _duplicate_active_project()
                 st.rerun()
 
-        # In-place Rename & Share accordion
-        with st.expander("Project Details, Rename & Sharing Link", expanded=False):
+        with st.expander("Rename & sharing link", expanded=False):
             rn_col1, rn_col2 = st.columns([3, 1])
             with rn_col1:
                 new_name = st.text_input("Project Name", value=project_name, key="mp_rename_input", max_chars=80)

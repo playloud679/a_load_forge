@@ -1,5 +1,16 @@
 # Load Forge — Module Index
 
+## UX Phase B
+
+La navigazione principale è **Projects | Bass Match | Box Design**. Le due
+viste tecniche condividono nome, salvataggio e visibilità del progetto.
+Un progetto senza nome usa **Untitled project** e viene salvato automaticamente
+nelle sessioni autenticate; in modalità locale compare **Session only**.
+La pubblicazione resta esplicita: le modifiche private non aggiornano la copia
+pubblica. **Update public version** pubblica le modifiche; **Private** revoca
+l'accesso pubblico conservando il lavoro privato. La pagina Projects conserva
+le azioni esistenti fino alla successiva fase di semplificazione.
+
 ## Manuale funzionale
 
 Bass Match separa **Run Bass Match** e **Results** in due tab principali. Un run

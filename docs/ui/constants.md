@@ -26,3 +26,9 @@ it, so constants no longer depend on `ui_app.py`'s working directory.
 `_check_ui_finder_defaults_*`, `_check_ui_pin_response_overlay`,
 `_check_ui_response_*` and the version-consistency checks cover the values
 that gate behavior.
+
+## Phase B navigation
+
+The primary workspace order is Projects, Bass Match, Box Design. The internal
+`Manage Projects` identifier remains compatible with saved sessions and callers;
+its display label is Projects.

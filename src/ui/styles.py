@@ -47,6 +47,12 @@ GLOBAL_CSS = """
         border-color: #10b981 !important;
         box-shadow: 0 0 0 1px #10b981 !important;
     }
+    .st-key-workspace_compat_control {
+        display: none !important;
+    }
+    [class*="st-key-primary_nav_"] button p {
+        white-space: normal;
+    }
     header[data-testid="stHeader"] {
         background: transparent !important;
         pointer-events: none !important;

@@ -21,9 +21,15 @@
 
 ## Project-first UX
 
-The original logo, illustrated workspace buttons, load diagrams, colors and card
-styles are preserved. The native sidebar opener stays visible when the Streamlit
+The original logo, load diagrams, colors and card styles are preserved. Phase B
+uses compact native text buttons for primary navigation; the legacy illustrated
+workspace stylesheet remains available for compatibility but is not injected by
+the navigation renderer. The native sidebar opener stays visible when the Streamlit
 toolbar is hidden, including mobile.
+
+Global CSS hides the legacy compatibility workspace widget independently of
+the old illustrated stylesheet, avoiding duplicate navigation. Primary text
+labels can wrap at narrow widths and use Streamlit's native column layout.
 
 The app header (`header[data-testid="stHeader"]`) is kept transparent instead of
 `display: none` so the sidebar opener remains reachable. It is a fixed bar over

@@ -4,12 +4,12 @@
   <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
-**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.18.9**
+**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.18.10**
 =============================================================================
-[![Version](https://img.shields.io/badge/version-0.18.9-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-0.18.10-blue.svg)](VERSION)
 [![CI](https://github.com/marcoderossi/load_forge/actions/workflows/ci.yml/badge.svg)](https://github.com/marcoderossi/load_forge/actions)
 
-Current release: **0.18.9**
+Current release: **0.18.10**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth-, sixth- and eighth-order bandpass**,
@@ -33,6 +33,12 @@ far-field measurement substitute.
 
 Current UI highlights:
 
+- primary **Projects | Bass Match | Box Design** navigation and shared project
+  name, save status and visibility. Start immediately with an autosaved
+  **Untitled project** in authenticated mode, rename later, and keep the same
+  project across engineering views. Local-only sessions explicitly show
+  **Session only**. Public edits require **Update public version**; returning
+  to Private withdraws public access without deleting the private design
 - separate main-area **Run Bass Match** and **Results** tabs: completing a scan
   opens the ranked table automatically; changing a search parameter returns to
   Run. Results keeps only compact ranking/selection controls above the table,
@@ -41,8 +47,7 @@ Current UI highlights:
   for browsing public projects with keyword/topology search and parametric
   ranges for Vb, Fb, driver diameter, Fs, Qts and F3; result cards expose the
   relevant engineering values and open the immutable technical snapshot
-- separate `Design a box` and `Bass Match` workspaces selected through large,
-  directly clickable branded tabs
+- separate `Box Design` and `Bass Match` engineering views of the same project
 - compact 3+3 load picker whose illustrated cards are directly clickable,
   with labels beneath the diagrams, keyboard focus and an emerald checked active state
 - a black sidebar and unified emerald primary-action palette across workspace
@@ -91,8 +96,8 @@ Current UI highlights:
   recoverable 30-day Trash; portable `.lfp` v2 backups remain independent and
   include both Box Design and complete Bass Match controls/results, while
   legacy flat presets remain importable
-- project download/import and URL-based sharing grouped in the collapsible
-  sidebar `Project` section
+- project download/import and legacy URL-based sharing remain on Projects;
+  engineering sidebars contain technical controls
 - optional Streamlit OIDC login with an exact email allowlist, independently
   deployable in auth-only/local-file mode or with tenant-scoped Firestore projects
 - port-geometry estimates and chuffing diagnostics

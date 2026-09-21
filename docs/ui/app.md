@@ -29,9 +29,17 @@
 
 ## Project-first UX
 
-Authenticated fresh sessions start in Manage Projects. Workspace changes survive
+Authenticated fresh sessions without explicit context start in Projects.
+Workspace changes survive
 ordinary reruns; successful local sign-in/registration queues a one-time return
 to Cloud Projects. Explicit shared-design links open Box Design and public,
 community, checkout and admin routes retain their handling. The original branded
-sidebar and workspace artwork remain intact. The projects landing also exposes
-the original illustrated Community action alongside Bass Match and Box Design.
+sidebar remains; compact text navigation identifies the three primary pages.
+The projects landing retains the existing secondary Community action.
+
+## Phase B routing
+
+Primary navigation is shared in the main area, outside technical sidebars and
+omitted from embeds. `?view=bass-match`, `?view=box-design` and `?view=projects`
+support direct entry, applied once per route change. Existing public, shared,
+billing and admin links retain their handling.

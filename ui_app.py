@@ -51,6 +51,7 @@ import ranking as _ranking
 import saas as _saas
 import storage as _storage
 import storage.private_store as _private_store
+import storage.public_store as _public_store
 
 sys.path.insert(0, str(Path(__file__).parent / "tools"))
 import compare_afw_sealed as _afw_compare
@@ -86,7 +87,7 @@ def _reload_if_source_changed(module) -> bool:
 # wildcard namespace keeps the old engine symbols in a long-lived Streamlit
 # process.
 for _module in (
-    _engine, _port_cad, _pricing, _presets, _ranking, _saas, _private_store, _storage,
+    _engine, _port_cad, _pricing, _presets, _ranking, _saas, _private_store, _public_store, _storage,
     _afw_export, _afw_compare,
 ):
     _reload_if_source_changed(_module)

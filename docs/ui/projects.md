@@ -48,7 +48,7 @@
 `_check_lfp_*`, `_check_cloud_*`, `_check_public_*`, `_check_ui_share_*`,
 `_check_saas_*` (billing/credits), `_check_ui_new_project_preserves_work`.
 The account/billing AppTests drive the header buttons by their stable keys,
-and the Finder workspace AppTest asserts the collapsed `⚙️ Account & projects`
+and the Finder workspace AppTest asserts the collapsed `Account`
 panel is present on the Bass Match screen.
 
 ## Project-first UX
@@ -63,10 +63,38 @@ are grouped under each project’s More menu.
 
 ### Compact main header
 
-`_render_main_account_header` keeps the Bass Match / Box Design chrome on one
-summary line (project name plus cloud-save status, then user, plan and credit
-balance) and moves billing, **Manage Projects**, community and **Sign out**
-into the collapsed `⚙️ Account & projects` expander. The buttons keep their
-stable keys (`sidebar_manage_projects_btn`, `sidebar_community_btn`,
-`sidebar_sign_out_btn`, `sidebar_billing_action_popover_open_modal_btn`), and
-the account widgets still render only in SaaS mode.
+`_render_main_account_header` renders shared project context followed by compact
+plan/credit information and a collapsed Account panel for billing, existing
+Community access and sign out. Projects is primary navigation, with its legacy
+button key `sidebar_manage_projects_btn` preserved. Publication status uses a
+content digest, excluding navigation-only state and generated file timestamps.
+Tests in `tests/test_phase_b.py`, registered in the active runner, cover direct
+entry, identity/rename/comparison, save failures, publication updates, withdrawal
+and public/version/embed access. Storage tests also exercise Firestore checks
+with a mocked client; they do not contact production.
+
+## Phase B project context
+
+Engineering pages and Projects share `_render_project_header`: name/rename,
+acknowledged save state and Private/Unlisted/Public access. Empty names become
+Untitled project and can autosave without a naming wizard. Local-only sessions
+say Session only, never Saved. The header mounts the single persistence timer.
+Merely browsing Projects with no active work does not create an empty record;
+the Untitled project starts when entering either engineering workspace.
+Save errors use user-facing recovery instructions; backend detail stays in logs.
+Phase C Projects is a browser: cards show name, modified time, save state and
+Private/Unlisted/Public visibility. Technical metrics and backend revision
+identifiers are removed from the default list. Project actions remain in a
+collapsed secondary panel; import, history, trash and publication workflows
+remain available in their contextual tabs.
+
+Opening another saved project first flushes edits; failed saves prevent the
+switch. Publication lookup uses authenticated owner/tenant/project identity,
+including legacy publications and withdrawn records. Access changes preserve
+the published content; explicit Update public version publishes current saved
+content. Private withdraws every legacy link. A content hash detects unpublished
+edits. Publication access is enforced by the public store, never private reads.
+
+The shared main navigation replaces Projects inside Account. Account keeps its
+billing/sign-out actions and the existing secondary Community entry. No billing
+policy, credits calculation, physics or result ranking changes in Phase B.

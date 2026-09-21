@@ -57,3 +57,8 @@ therefore updates both the browser title and visible version after a bump.
   not the `ui_app` re-export.
 - Source-text assertions use `_ui_source_bundle()` (thin `ui_app.py` plus all
   `src/ui/*.py`).
+
+## Phase B bootstrap
+
+The public store module participates in source-change hot reload alongside the
+private store so publication access checks stay current in long-lived sessions.

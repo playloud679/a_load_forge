@@ -2934,7 +2934,7 @@ def _check_ui_project_preset_upload_finishes():
     at.session_state["project_name"] = "Preset test"
     at.run()
     assert any(
-        item.value == "Manage Projects"
+        item.value == "Projects"
         for item in at.title
     ), "Manage Projects workspace must render first-class title"
     project_upload = next(
@@ -3118,15 +3118,16 @@ test(
 )
 
 
-def _check_ui_new_project_has_no_untitled_fallback():
+def _check_ui_new_project_has_untitled_fallback():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
     at.session_state["workspace_mode"] = "Manage Projects"
     at.run()
     assert not at.exception, at.exception
-    assert any("Name required" in item.value for item in at.markdown)
-    assert not any("Untitled project" in item.value for item in at.markdown)
+    assert at.session_state["project_name"] == "Untitled project"
+    assert not any("Name required" in item.value for item in at.markdown)
+    assert not next(item for item in at.get("download_button") if item.proto.id.endswith("mp_download_lfp_btn")).proto.disabled
 
     next(button for button in at.button if button.key == "mp_new_project_btn").click().run()
     assert not at.exception, at.exception
@@ -3135,8 +3136,8 @@ def _check_ui_new_project_has_no_untitled_fallback():
 
 
 test(
-    "UI unnamed drafts never suggest or display the Untitled project fallback",
-    _check_ui_new_project_has_no_untitled_fallback,
+    "UI unnamed drafts support the Untitled project fallback and export",
+    _check_ui_new_project_has_untitled_fallback,
 )
 
 
@@ -4329,13 +4330,13 @@ def _check_ui_saas_authenticated_session():
             or "Saving" in item.value
             or "name required" in item.value.lower()
             or "Not saved" in item.value
-            for item in at.markdown
+            for item in [*at.markdown, *at.caption]
         ), "authenticated project UI must expose compact cloud save status"
 
         assert at.session_state["workspace_mode"] == "Manage Projects"
         assert not next(
             panel for panel in at.expander
-            if panel.label == "Current project · details, export & sharing"
+            if panel.label == "Project actions"
         ).proto.expanded
 
         from ui import account as account_ui, runtime as runtime_ui
@@ -4373,7 +4374,7 @@ def _check_ui_saas_authenticated_session():
         at.run()
         assert not at.exception, at.exception
         assert any(
-            "Manage Projects" in item.value
+            "Projects" in item.value
             for item in at.title
         ), "Manage Projects must render title in dedicated workspace"
         assert any(
@@ -10638,7 +10639,7 @@ def _check_ui_finder_main_action_runs_search():
         " ".join(item.value for item in at.markdown)
     ), "the simulation work must be surfaced as a prominent panel"
     assert any(
-        expander.label == "⚙️ Account & projects"
+        expander.label == "Account"
         for expander in at.expander
     ), "account and project actions must stay reachable in the collapsed header panel"
     assert not any(
@@ -12507,6 +12508,19 @@ def _check_ui_autosave_timer_registered():
 
 
 test('UI autosave registers periodic callbacks and a single persistence timer', _check_ui_autosave_timer_registered)
+
+
+from test_phase_b import (
+    check_direct_entry_and_project_identity,
+    check_failed_save_prevents_switch,
+    check_public_store_access,
+    check_visibility_lifecycle,
+)
+
+test("UI Phase B direct entry, Untitled autosave and canonical project identity", check_direct_entry_and_project_identity)
+test("UI Phase B visibility snapshots, stale state and withdrawal", check_visibility_lifecycle)
+test("UI Phase B failed save preserves active work before Open", check_failed_save_prevents_switch)
+test("Phase B public store visibility enforces owner and withdrawn version access", check_public_store_access)
 
 
 def _check_load_type_icons_uniform():

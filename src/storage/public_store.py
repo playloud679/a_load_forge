@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Any, Protocol
 
@@ -38,6 +39,10 @@ class PublicStore(Protocol):
     ) -> saas.PublicProjectRecord: ...
 
     def get_public_project(self, publication_id: str) -> saas.PublicProjectRecord | None: ...
+
+    def project_publications(self, user: saas.SaaSUser, project_id: str) -> list[saas.PublicProjectRecord]: ...
+
+    def set_visibility(self, user: saas.SaaSUser, publication_id: str, visibility: str) -> None: ...
 
     def get_public_project_version(
         self, publication_id: str, version: int
@@ -98,6 +103,29 @@ class FirestorePublicStore:
             saas._validate_publication_id(publication_id)
         )
 
+    def project_publications(self, user: saas.SaaSUser, project_id: str) -> list[saas.PublicProjectRecord]:
+        snapshots = self._client.collection("public_projects").where("owner_uid", "==", user.uid).stream()
+        records = [saas._public_record_from_document(s.id, s.to_dict()) for s in snapshots]
+        return sorted((r for r in records if r.source_tenant_id == user.tenant_id
+                       and r.source_project_id == project_id), key=lambda r: r.updated_at, reverse=True)
+
+    def set_visibility(self, user: saas.SaaSUser, publication_id: str, visibility: str) -> None:
+        from google.cloud import firestore
+
+        if visibility not in saas._PUBLICATION_VISIBILITIES:
+            raise ValueError("Invalid visibility")
+        ref = self._public_project_ref(publication_id)
+
+        @firestore.transactional
+        def update(tx):
+            snapshot = ref.get(transaction=tx)
+            data = snapshot.to_dict() if snapshot.exists else None
+            if not data or data.get("owner_uid") != user.uid or data.get("source_tenant_id") != user.tenant_id:
+                raise saas.ProjectAccessError("Publication unavailable")
+            tx.update(ref, {"visibility": visibility})
+
+        update(self._client.transaction())
+
     def publish_project(
         self,
         user: saas.SaaSUser,
@@ -135,7 +163,7 @@ class FirestorePublicStore:
             snap = ref.get(transaction=tx)
             existing = snap.to_dict() if snap.exists else None
             if existing:
-                if str(existing.get("owner_uid")) != user.uid:
+                if str(existing.get("owner_uid")) != user.uid or existing.get("source_tenant_id") != user.tenant_id:
                     raise saas.ProjectAccessError("Publication belongs to another user")
                 pub_version = int(existing.get("publication_version", 1)) + 1
                 created_at = existing.get("created_at") or now
@@ -198,11 +226,14 @@ class FirestorePublicStore:
                 if showcase.publication_id == pub_id:
                     return showcase
             return None
-        return saas._public_record_from_document(pub_id, snap.to_dict())
+        record = saas._public_record_from_document(pub_id, snap.to_dict())
+        return record if record.visibility != "unpublished" else None
 
     def get_public_project_version(
         self, publication_id: str, version: int
     ) -> saas.PublicProjectVersion | None:
+        if self.get_public_project(publication_id) is None:
+            return None
         pub_id = saas._validate_publication_id(publication_id)
         version_id = f"v_{int(version):010d}"
         snap = self._public_project_ref(pub_id).collection("versions").document(version_id).get()
@@ -374,6 +405,19 @@ class InMemoryPublicStore:
         self._public_projects: dict[str, saas.PublicProjectRecord] = {}
         self._public_versions: dict[str, list[saas.PublicProjectVersion]] = {}
 
+    def project_publications(self, user: saas.SaaSUser, project_id: str) -> list[saas.PublicProjectRecord]:
+        return sorted((r for r in self._public_projects.values()
+                       if r.owner_uid == user.uid and r.source_tenant_id == user.tenant_id
+                       and r.source_project_id == project_id), key=lambda r: r.updated_at, reverse=True)
+
+    def set_visibility(self, user: saas.SaaSUser, publication_id: str, visibility: str) -> None:
+        if visibility not in saas._PUBLICATION_VISIBILITIES:
+            raise ValueError("Invalid visibility")
+        record = self._public_projects.get(publication_id)
+        if not record or record.owner_uid != user.uid or record.source_tenant_id != user.tenant_id:
+            raise saas.ProjectAccessError("Publication unavailable")
+        self._public_projects[publication_id] = replace(record, visibility=visibility)
+
     def publish_project(
         self,
         user: saas.SaaSUser,
@@ -396,7 +440,7 @@ class InMemoryPublicStore:
         now = datetime.now(timezone.utc)
         existing = self._public_projects.get(pub_id)
         if existing:
-            if existing.owner_uid != user.uid:
+            if existing.owner_uid != user.uid or existing.source_tenant_id != user.tenant_id:
                 raise saas.ProjectAccessError("Publication belongs to another user")
             pub_version = existing.publication_version + 1
             created_at = existing.created_at
@@ -449,7 +493,8 @@ class InMemoryPublicStore:
     def get_public_project(self, publication_id: str) -> saas.PublicProjectRecord | None:
         pub_id = saas._validate_publication_id(publication_id)
         if pub_id in self._public_projects:
-            return self._public_projects[pub_id]
+            record = self._public_projects[pub_id]
+            return record if record.visibility != "unpublished" else None
         for showcase in saas.curated_community_showcase_projects():
             if showcase.publication_id == pub_id:
                 return showcase
@@ -458,6 +503,8 @@ class InMemoryPublicStore:
     def get_public_project_version(
         self, publication_id: str, version: int
     ) -> saas.PublicProjectVersion | None:
+        if self.get_public_project(publication_id) is None:
+            return None
         pub_id = saas._validate_publication_id(publication_id)
         versions = self._public_versions.get(pub_id, [])
         found = next((v for v in versions if v.version == int(version)), None)
