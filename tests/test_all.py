@@ -4571,6 +4571,101 @@ test(
 )
 
 
+def _check_ui_manage_projects_batch_operations():
+    import os
+
+    from streamlit.testing.v1 import AppTest
+
+    keys = {
+        "LOAD_FORGE_SAAS_ENABLED": "true",
+        "LOAD_FORGE_SAAS_BACKEND": "memory",
+        "LOAD_FORGE_OPEN_BETA_ENABLED": "true",
+        "LOAD_FORGE_AUTH_BYPASS": "true",
+        "LOAD_FORGE_DEV_UID": "batch-op-user",
+        "LOAD_FORGE_DEV_EMAIL": "batch@example.test",
+        "LOAD_FORGE_DEV_NAME": "Batch user",
+    }
+    previous = {key: os.environ.get(key) for key in keys}
+    try:
+        os.environ.update(keys)
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+        at.session_state["workspace_mode"] = "Manage Projects"
+        at.run()
+        assert not at.exception, at.exception
+
+        from ui import account as account_ui, runtime as runtime_ui
+        store = account_ui._get_project_store()
+        owner = runtime_ui._CURRENT_SAAS_USER
+        assert owner is not None
+
+        payload = {"load_type": "Sealed", "sealed_vb_l": 25.0, "box_strategy": "Manual"}
+        p1 = store.save_project(owner, "Batch Project 1", payload, "test")
+        p2 = store.save_project(owner, "Batch Project 2", payload, "test")
+        at.session_state["_cloud_project_summaries_at"] = 0.0
+        at.run()
+        assert not at.exception, at.exception
+
+        # Checkboxes and batch controls present
+        assert f"mp_sel_{p1.project_id}" in [c.key for c in at.checkbox]
+        assert f"mp_sel_{p2.project_id}" in [c.key for c in at.checkbox]
+        assert "mp_btn_select_all" in [b.key for b in at.button]
+        assert "mp_btn_deselect_all" in [b.key for b in at.button]
+
+        # Select all
+        at.button(key="mp_btn_select_all").click().run()
+        assert not at.exception, at.exception
+        sel_states = {c.key: c.value for c in at.checkbox if "mp_sel_" in str(c.key)}
+        assert sel_states.get(f"mp_sel_{p1.project_id}") is True
+        assert sel_states.get(f"mp_sel_{p2.project_id}") is True
+
+        # Deselect all
+        at.button(key="mp_btn_deselect_all").click().run()
+        assert not at.exception, at.exception
+        sel_states = {c.key: c.value for c in at.checkbox if "mp_sel_" in str(c.key)}
+        assert sel_states.get(f"mp_sel_{p1.project_id}") is False
+        assert sel_states.get(f"mp_sel_{p2.project_id}") is False
+
+        # Select p1 individually and batch trash it
+        at.checkbox(key=f"mp_sel_{p1.project_id}").check().run()
+        assert not at.exception, at.exception
+        at.button(key="mp_batch_trash_confirm_btn").click().run()
+        assert not at.exception, at.exception
+
+        # p1 should now be trashed, p2 still active in cloud list
+        active_opens = [b.key for b in at.button if str(b.key).startswith("mp_list_open_")]
+        assert f"mp_list_open_{p1.project_id}" not in active_opens
+        assert f"mp_list_open_{p2.project_id}" in active_opens
+
+        # Switch to Trash tab
+        at.session_state["manage_projects_tab"] = "Trash"
+        at.run()
+        assert not at.exception, at.exception
+        trash_chks = [c.key for c in at.checkbox if "mp_trash_sel_" in str(c.key)]
+        assert f"mp_trash_sel_{p1.project_id}" in trash_chks
+
+        # Select all in Trash and batch restore
+        at.button(key="mp_trash_btn_select_all").click().run()
+        assert not at.exception, at.exception
+        at.button(key="mp_trash_batch_restore_btn").click().run()
+        assert not at.exception, at.exception
+
+        # Verify p1 is restored in store
+        summaries = {s.project_id: s.status for s in store.list_projects(owner, include_deleted=True)}
+        assert summaries.get(p1.project_id) == "active"
+    finally:
+        for key, value in previous.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
+
+test(
+    "UI Manage Projects supports batch multi-selection, batch trash, and batch restore",
+    _check_ui_manage_projects_batch_operations,
+)
+
+
 def _check_ui_auth_bypass_sign_out_returns_to_signed_out_state():
     import os
 

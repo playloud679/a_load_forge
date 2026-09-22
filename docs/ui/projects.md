@@ -25,6 +25,7 @@
   preventing duplicate untitled drafts on app open/reload.
 - Manage Projects/community: `_render_manage_projects_workspace`,
   `_render_manage_projects_cloud_list/history/trash/publish`,
+  `_set_project_selection_batch`,
   `_render_public_project_page`, `_render_embed_project_widget`,
   `_render_explore_projects_directory`, `_render_community_sidebar`,
   `_render_public_project_sidebar`, `_fork_project_to_sandbox`,
@@ -72,6 +73,12 @@ project's saved engineering workspace (Box Design fallback).
 Cached project summaries are keyed by tenant and user identity. The original
 community artwork and visual styling remain intact. Duplicate and Trash actions
 are grouped under each project’s More menu.
+
+### Multi-selection and batch project actions
+
+- **Project cards checkboxes**: Every active project card includes a checkbox (`mp_sel_<project_id>`) for multi-item selection.
+- **Batch action bar**: Above the card list, controls display selection count (`N of M selected`), `Select all`, `Deselect all`, and a `🗑️ Delete (N)` action backed by a confirmation popover. Confirming moves all selected projects to Trash simultaneously, cleanly detaches if the currently active project was included, and refreshes the list.
+- **Batch restore in Trash**: The Trash tab mirrors multi-selection checkboxes (`mp_trash_sel_<project_id>`) with `Select all`, `Deselect all`, and a bulk `♻️ Restore (N)` action. Individual single-item restore remains available on each card.
 
 ### Studio entry
 

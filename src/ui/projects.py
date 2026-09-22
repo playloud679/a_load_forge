@@ -1449,6 +1449,11 @@ def _render_main_account_header() -> None:
 def _render_project_menu() -> None:
     """Compatibility hook: the project header now lives on the main screen."""
 
+def _set_project_selection_batch(project_ids: list[str], selected: bool, prefix: str = "mp_sel_") -> None:
+    """Batch-set checkbox states for project management selection."""
+    for pid in project_ids:
+        st.session_state[f"{prefix}{pid}"] = selected
+
 def _render_manage_projects_cloud_list() -> None:
     """Render the cloud projects table and management cards."""
     if not (_runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER is not None):
@@ -1482,7 +1487,72 @@ def _render_manage_projects_cloud_list() -> None:
     if not active:
         st.info("No project matches this search. Try a different name.")
         return
-    st.caption(f"{len(active)} project{'s' if len(active) != 1 else ''}")
+
+    active_ids = [item.project_id for item in active]
+    selected_items = [item for item in active if bool(st.session_state.get(f"mp_sel_{item.project_id}"))]
+    sel_count = len(selected_items)
+
+    bar_info, bar_sel_all, bar_desel_all, bar_del = st.columns([3.0, 1.3, 1.4, 1.8], vertical_alignment="center")
+    with bar_info:
+        if sel_count > 0:
+            st.markdown(f"**{sel_count}** of **{len(active)}** selected")
+        else:
+            st.caption(f"{len(active)} project{'s' if len(active) != 1 else ''}")
+    with bar_sel_all:
+        st.button(
+            "Select all",
+            key="mp_btn_select_all",
+            on_click=_set_project_selection_batch,
+            args=(active_ids, True, "mp_sel_"),
+            width="stretch",
+        )
+    with bar_desel_all:
+        st.button(
+            "Deselect all",
+            key="mp_btn_deselect_all",
+            on_click=_set_project_selection_batch,
+            args=(active_ids, False, "mp_sel_"),
+            disabled=sel_count == 0,
+            width="stretch",
+        )
+    with bar_del:
+        with st.popover(
+            f"🗑️ Delete ({sel_count})" if sel_count > 0 else "🗑️ Delete",
+            disabled=sel_count == 0,
+            width="stretch",
+        ):
+            st.markdown(f"Move **{sel_count}** selected project{'s' if sel_count != 1 else ''} to Trash?")
+            st.caption("You can restore them anytime from the Trash tab.")
+            if st.button(
+                f"Yes, move {sel_count} to Trash",
+                key="mp_batch_trash_confirm_btn",
+                type="primary",
+                width="stretch",
+            ):
+                store = _account._get_project_store()
+                trashed_count = 0
+                failed_count = 0
+                for item in selected_items:
+                    try:
+                        store.soft_delete_project(
+                            _runtime._CURRENT_SAAS_USER,
+                            item.project_id,
+                            _runtime._VERSION,
+                            expected_revision=item.revision,
+                        )
+                        if item.project_id == current_id:
+                            _detach_cloud_project(suppress_hash=item.content_hash)
+                        st.session_state.pop(f"mp_sel_{item.project_id}", None)
+                        trashed_count += 1
+                    except Exception:
+                        _runtime.logger.exception("Could not trash project %s", item.project_id)
+                        failed_count += 1
+                _invalidate_cloud_project_list()
+                if trashed_count:
+                    st.toast(f"Moved {trashed_count} project{'s' if trashed_count != 1 else ''} to Trash")
+                if failed_count:
+                    st.error(f"Failed to trash {failed_count} project(s)")
+                st.rerun()
 
     for item in active:
         is_current = item.project_id == current_id
@@ -1495,7 +1565,13 @@ def _render_manage_projects_cloud_list() -> None:
         except Exception:
             _runtime.logger.exception("Could not resolve project visibility")
         with st.container(border=True):
-            r_col1, r_col2, r_col3, r_col4 = st.columns([3.2, 2.4, 1.5, 2.4], vertical_alignment="center")
+            c_chk, r_col1, r_col2, r_col3, r_col4 = st.columns([0.45, 3.2, 2.3, 1.4, 2.4], vertical_alignment="center")
+            with c_chk:
+                st.checkbox(
+                    "Select project",
+                    key=f"mp_sel_{item.project_id}",
+                    label_visibility="collapsed",
+                )
             with r_col1:
                 st.markdown(f"**{html.escape(item.name)}**")
                 st.caption("Active project" if is_current else "Project")
@@ -1542,6 +1618,7 @@ def _render_manage_projects_cloud_list() -> None:
                             )
                             if is_current:
                                 _detach_cloud_project(suppress_hash=item.content_hash)
+                            st.session_state.pop(f"mp_sel_{item.project_id}", None)
                             _invalidate_cloud_project_list()
                             st.toast(f"Moved to Trash: {item.name}")
                             st.rerun()
@@ -1611,19 +1688,78 @@ def _render_manage_projects_trash() -> None:
     if not trashed:
         st.info("Trash is empty. All projects are active.")
         return
-    st.caption(
-        f"**{len(trashed)}** trashed project(s). "
-        f"Trash retention target: {_runtime._SAAS_SETTINGS.project_trash_retention_days} days."
-    )
+
+    trashed_ids = [item.project_id for item in trashed]
+    selected_trashed = [item for item in trashed if bool(st.session_state.get(f"mp_trash_sel_{item.project_id}"))]
+    t_sel_count = len(selected_trashed)
+
+    t_col1, t_col2, t_col3, t_col4 = st.columns([3.0, 1.3, 1.4, 1.8], vertical_alignment="center")
+    with t_col1:
+        if t_sel_count > 0:
+            st.markdown(f"**{t_sel_count}** of **{len(trashed)}** selected")
+        else:
+            st.caption(
+                f"**{len(trashed)}** trashed project(s). "
+                f"Retention: {_runtime._SAAS_SETTINGS.project_trash_retention_days} days."
+            )
+    with t_col2:
+        st.button(
+            "Select all",
+            key="mp_trash_btn_select_all",
+            on_click=_set_project_selection_batch,
+            args=(trashed_ids, True, "mp_trash_sel_"),
+            width="stretch",
+        )
+    with t_col3:
+        st.button(
+            "Deselect all",
+            key="mp_trash_btn_deselect_all",
+            on_click=_set_project_selection_batch,
+            args=(trashed_ids, False, "mp_trash_sel_"),
+            disabled=t_sel_count == 0,
+            width="stretch",
+        )
+    with t_col4:
+        restore_label = f"♻️ Restore ({t_sel_count})" if t_sel_count > 0 else "♻️ Restore"
+        if st.button(restore_label, key="mp_trash_batch_restore_btn", type="primary", disabled=t_sel_count == 0, width="stretch"):
+            store = _account._get_project_store()
+            restored_count = 0
+            failed_count = 0
+            for item in selected_trashed:
+                try:
+                    store.restore_project(
+                        _runtime._CURRENT_SAAS_USER,
+                        item.project_id,
+                        _runtime._VERSION,
+                        expected_revision=item.revision,
+                    )
+                    st.session_state.pop(f"mp_trash_sel_{item.project_id}", None)
+                    restored_count += 1
+                except Exception:
+                    _runtime.logger.exception("Could not restore project %s", item.project_id)
+                    failed_count += 1
+            _invalidate_cloud_project_list()
+            if restored_count:
+                st.toast(f"Restored {restored_count} project{'s' if restored_count != 1 else ''}")
+            if failed_count:
+                st.error(f"Failed to restore {failed_count} project(s)")
+            st.rerun()
+
     for item in trashed:
         with st.container(border=True):
-            c_info, c_action = st.columns([3, 1], vertical_alignment="center")
+            c_chk, c_info, c_action = st.columns([0.45, 3.2, 1.4], vertical_alignment="center")
+            with c_chk:
+                st.checkbox(
+                    "Select trashed",
+                    key=f"mp_trash_sel_{item.project_id}",
+                    label_visibility="collapsed",
+                )
             with c_info:
                 st.markdown(f"**{html.escape(item.name)}**")
                 del_str = item.deleted_at.strftime("%d %b %Y %H:%M UTC") if item.deleted_at else "recently"
                 st.caption(f"Deleted on {del_str} · Revision r{item.revision}")
             with c_action:
-                if st.button("Restore from Trash", key=f"mp_trash_restore_{item.project_id}", width="stretch", type="primary"):
+                if st.button("Restore from Trash", key=f"mp_trash_restore_{item.project_id}", width="stretch", type="secondary"):
                     try:
                         _account._get_project_store().restore_project(
                             _runtime._CURRENT_SAAS_USER,
@@ -1631,6 +1767,7 @@ def _render_manage_projects_trash() -> None:
                             _runtime._VERSION,
                             expected_revision=item.revision,
                         )
+                        st.session_state.pop(f"mp_trash_sel_{item.project_id}", None)
                         _invalidate_cloud_project_list()
                         st.toast(f"Restored project: {item.name}")
                         st.rerun()
