@@ -14,6 +14,7 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[2]
 logger = logging.getLogger("load_forge.ui")
 
 _OPTIMIZER_ENGINE_REVISION = 8
+_BOX_DESIGN_OPTIMIZER_EVALUATIONS = 1000
 
 _BRAND_IMAGE = _PROJECT_ROOT / "assets" / "load_forge_header.png"
 

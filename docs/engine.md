@@ -75,8 +75,13 @@ marked compromised. It never silently falls back to the first/smallest duct.
   for local optimizer fidelity. Passband ripple is evaluated from F3 across the entire evaluated frequency band (or up to `goals.ripple_max_freq_hz`), and also captures any sub-F3 resonant bounce. Setting `goals.ripple_max_freq_hz` limits the ripple
   evaluation window to low-frequency subwoofer passbands and generates a
   `segmented_frequency_grid` with high resolution below the ceiling and 9 sparse points above. If refinement puts DCCAV just below its credibility
-  boundary, both tunings are reduced together by the minimum required factor
-  and the winner is checked again
+    boundary, both tunings are reduced together by the minimum required factor
+    and the winner is checked again. When `max_evaluations <= 120`, the optimizer
+    uses a fast path with compact Halton sampling and single-start compass search;
+    when `max_evaluations > 120` (e.g. in Box Design deep runs), it expands Halton
+    exploration up to 200 points, adds multi-scale deep sniff points, and runs a
+    multi-start adaptive compass/pattern search across up to 5 spatially-diverse
+    candidate basins to reliably find global optima and prevent local trap convergence.
 - `OPTIMIZER_ENGINE_REVISION` is included in the Finder worker handshake. It
   prevents a long-lived Python forkserver from returning alignments calculated
   by an older optimizer after Streamlit hot-reloads the application.

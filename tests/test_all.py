@@ -10399,6 +10399,26 @@ test(
 )
 
 
+def _check_dccav_deep_max_extension_finds_deep_optimum():
+    ts = _acoustics.get_driver_preset("SBL: HiVi B3N")
+    opt = _acoustics.optimize_alignment(
+        ts,
+        _acoustics.OptimizationGoals(objective="extension", max_ripple_db=3.0),
+        load_type="DCCAV",
+        max_evaluations=1000,
+    )
+    assert opt.f3_hz <= 43.0, f"Expected deep F3 <= 43 Hz, got {opt.f3_hz:.1f} Hz"
+    assert opt.total_volume_l <= 9.5, f"Expected compact box <= 9.5 L, got {opt.total_volume_l:.1f} L"
+    assert opt.ripple_db <= 3.0, f"Ripple must be compliant, got {opt.ripple_db:.2f} dB"
+    assert opt.box.vh_l < opt.box.vl_l, "DCCAV chamber ratio must have upper volume smaller than lower"
+
+
+test(
+    "DCCAV deep Max extension escapes local traps and beats shallow minima",
+    _check_dccav_deep_max_extension_finds_deep_optimum,
+)
+
+
 def _check_optimizer_target_f3_prefers_compact_box():
     ts = _acoustics.get_driver_preset("Beyma 12CMV2")
     opt = _acoustics.optimize_alignment(

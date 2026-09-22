@@ -2720,26 +2720,45 @@ def optimize_alignment(
     dim = len(lower)
     _starter_box, _starter_metrics, starter_score = evaluate(p0)
     global_limits = {1: 0, 2: 4, 3: 5, 4: 6, 6: 8}
-    global_budget = min(
-        global_limits.get(dim, max(4, dim)),
-        max(0, (max_evaluations - 1) // 5),
-    )
+    base_limit = global_limits.get(dim, max(4, dim))
+    if max_evaluations <= 120:
+        global_budget = min(
+            base_limit,
+            max(0, (max_evaluations - 1) // 5),
+        )
+    else:
+        global_budget = min(
+            max(base_limit * 8, (max_evaluations - 1) // 5),
+            200,
+        )
     for row in _halton_sequence(dim, global_budget):
         evaluate(lower + row * (upper - lower))
     sniff_limits = {1: 0, 2: 6, 3: 8, 4: 10, 6: 14}
-    sniff_budget = min(
-        sniff_limits.get(dim, max(4, 2 * dim)),
-        max(0, (max_evaluations - 1) // 4),
-    )
+    base_sniff = sniff_limits.get(dim, max(4, 2 * dim))
+    if max_evaluations <= 120:
+        sniff_budget = min(
+            base_sniff,
+            max(0, (max_evaluations - 1) // 4),
+        )
+    else:
+        sniff_budget = min(
+            max(base_sniff * 2, (max_evaluations - 1) // 8),
+            40,
+        )
     sniff_points: list[np.ndarray] = []
     if is_dccav and goals.objective == "extension" and not goals.target_f3_hz:
         deep_p = p0.copy()
         deep_p[0] += np.log(5.0)
         sniff_points.append(np.clip(deep_p, lower, upper))
+        if max_evaluations > 120:
+            for deep_scale in (2.0, 3.5):
+                dp = p0.copy()
+                dp[0] += np.log(deep_scale)
+                sniff_points.append(np.clip(dp, lower, upper))
     if starter_score >= _OPTIMIZER_RIPPLE_CONSTRAINT_SCORE:
         sniff_points.extend(
             lower + fraction * (upper - lower)
-            for fraction in (0.75, 0.25, 0.5)
+            for fraction in ((0.75, 0.25, 0.5, 0.15, 0.85) if max_evaluations > 120 else (0.75, 0.25, 0.5))
         )
     if sniff_budget > len(sniff_points):
         radius = np.minimum(0.55, 0.25 * (upper - lower))
@@ -2755,73 +2774,159 @@ def optimize_alignment(
         feasible = [item for item in evaluated if item[0] < _OPTIMIZER_RIPPLE_CONSTRAINT_SCORE]
         return min(feasible or evaluated, key=lambda item: item[0])
 
-    cur_score, cur_p, cur_box, cur_metrics = best_evaluated()
+    if max_evaluations <= 120:
+        cur_score, cur_p, cur_box, cur_metrics = best_evaluated()
 
-    # 2) Sensitivity probe. Axes with a measurable local effect are visited
-    # first; the probe points also remain valid candidates instead of consuming
-    # budget only for diagnostics.
-    probe_step = np.minimum(0.20, 0.20 * np.maximum(upper - lower, 1.0))
-    sensitivity = np.zeros(dim, dtype=float)
-    probe_reserve = max(4, dim + 2)
-    for axis in range(dim):
-        if max_evaluations - evaluations <= probe_reserve:
-            break
-        scores: list[float] = []
-        for sign in (1.0, -1.0):
+        # 2) Sensitivity probe. Axes with a measurable local effect are visited
+        # first; the probe points also remain valid candidates instead of consuming
+        # budget only for diagnostics.
+        probe_step = np.minimum(0.20, 0.20 * np.maximum(upper - lower, 1.0))
+        sensitivity = np.zeros(dim, dtype=float)
+        probe_reserve = max(4, dim + 2)
+        for axis in range(dim):
             if max_evaluations - evaluations <= probe_reserve:
                 break
-            candidate = cur_p.copy()
-            candidate[axis] += sign * probe_step[axis]
-            _box, metrics, score = evaluate(candidate)
-            if metrics is not None and np.isfinite(score):
-                scores.append(score)
-        if scores:
-            sensitivity[axis] = max(abs(score - cur_score) for score in scores)
-    cur_score, cur_p, cur_box, cur_metrics = best_evaluated()
-
-    # 3) Adaptive per-axis compass/pattern search. Successful axes retain or
-    # modestly expand their step; repeatedly unproductive axes converge alone
-    # instead of shrinking the whole search space.
-    steps = np.full(dim, 0.40, dtype=float)
-    successes = np.zeros(dim, dtype=int)
-    failures = np.zeros(dim, dtype=int)
-    while evaluations < max_evaluations and np.any(steps >= 0.02):
-        previous_p = cur_p.copy()
-        improved_any = False
-        priorities = sensitivity * (1.0 + successes) / (1.0 + failures)
-        axis_order = np.argsort(-priorities, kind="stable")
-        for axis in axis_order:
-            if evaluations >= max_evaluations or steps[axis] < 0.02:
-                continue
-            axis_improved = False
+            scores: list[float] = []
             for sign in (1.0, -1.0):
-                if evaluations >= max_evaluations:
+                if max_evaluations - evaluations <= probe_reserve:
                     break
                 candidate = cur_p.copy()
-                candidate[axis] += sign * steps[axis]
-                candidate = np.clip(candidate, lower, upper)
-                if np.allclose(candidate, cur_p):
+                candidate[axis] += sign * probe_step[axis]
+                _box, metrics, score = evaluate(candidate)
+                if metrics is not None and np.isfinite(score):
+                    scores.append(score)
+            if scores:
+                sensitivity[axis] = max(abs(score - cur_score) for score in scores)
+        cur_score, cur_p, cur_box, cur_metrics = best_evaluated()
+
+        # 3) Adaptive per-axis compass/pattern search.
+        steps = np.full(dim, 0.40, dtype=float)
+        successes = np.zeros(dim, dtype=int)
+        failures = np.zeros(dim, dtype=int)
+        while evaluations < max_evaluations and np.any(steps >= 0.02):
+            previous_p = cur_p.copy()
+            improved_any = False
+            priorities = sensitivity * (1.0 + successes) / (1.0 + failures)
+            axis_order = np.argsort(-priorities, kind="stable")
+            for axis in axis_order:
+                if evaluations >= max_evaluations or steps[axis] < 0.02:
                     continue
-                box, metrics, score = evaluate(candidate)
-                if metrics is not None and score < cur_score - 1e-9:
-                    improvement = cur_score - score
-                    cur_p, cur_box, cur_metrics, cur_score = candidate, box, metrics, score
-                    sensitivity[axis] = max(sensitivity[axis], improvement)
-                    axis_improved = True
-                    improved_any = True
-            if axis_improved:
-                successes[axis] += 1
-                steps[axis] = min(0.60, steps[axis] * 1.10)
-            else:
-                failures[axis] += 1
-                steps[axis] *= 0.5
-        if improved_any and evaluations < max_evaluations:
-            delta = cur_p - previous_p
-            pattern_candidate = np.clip(cur_p + delta, lower, upper)
-            if not np.allclose(pattern_candidate, cur_p):
-                box, metrics, score = evaluate(pattern_candidate)
-                if metrics is not None and score < cur_score - 1e-9:
-                    cur_p, cur_box, cur_metrics, cur_score = pattern_candidate, box, metrics, score
+                axis_improved = False
+                for sign in (1.0, -1.0):
+                    if evaluations >= max_evaluations:
+                        break
+                    candidate = cur_p.copy()
+                    candidate[axis] += sign * steps[axis]
+                    candidate = np.clip(candidate, lower, upper)
+                    if np.allclose(candidate, cur_p):
+                        continue
+                    box, metrics, score = evaluate(candidate)
+                    if metrics is not None and score < cur_score - 1e-9:
+                        improvement = cur_score - score
+                        cur_p, cur_box, cur_metrics, cur_score = candidate, box, metrics, score
+                        sensitivity[axis] = max(sensitivity[axis], improvement)
+                        axis_improved = True
+                        improved_any = True
+                if axis_improved:
+                    successes[axis] += 1
+                    steps[axis] = min(0.60, steps[axis] * 1.10)
+                else:
+                    failures[axis] += 1
+                    steps[axis] *= 0.5
+            if improved_any and evaluations < max_evaluations:
+                delta = cur_p - previous_p
+                pattern_candidate = np.clip(cur_p + delta, lower, upper)
+                if not np.allclose(pattern_candidate, cur_p):
+                    box, metrics, score = evaluate(pattern_candidate)
+                    if metrics is not None and score < cur_score - 1e-9:
+                        cur_p, cur_box, cur_metrics, cur_score = pattern_candidate, box, metrics, score
+    else:
+        # 2 & 3) Multi-start sensitivity probe and adaptive compass/pattern search.
+        # Deep search: explore multiple diverse basins and refine each.
+        k_seeds = min(5, max(2, (max_evaluations - evaluations) // 120))
+        span = np.maximum(upper - lower, 1e-6)
+
+        def _select_seeds() -> list[tuple[float, np.ndarray, BoxUnion, dict[str, float]]]:
+            feasible = [item for item in evaluated if item[0] < _OPTIMIZER_RIPPLE_CONSTRAINT_SCORE]
+            pool = sorted(feasible or evaluated, key=lambda item: item[0])
+            seeds: list[tuple[float, np.ndarray, BoxUnion, dict[str, float]]] = []
+            for cand in pool:
+                if len(seeds) >= k_seeds:
+                    break
+                cand_norm = (cand[1] - lower) / span
+                if not any(np.linalg.norm(cand_norm - (s[1] - lower) / span) < 0.18 for s in seeds):
+                    seeds.append(cand)
+            return seeds or [best_evaluated()]
+
+        seeds = _select_seeds()
+        for seed_score, seed_p, seed_box, seed_metrics in seeds:
+            if evaluations >= max_evaluations:
+                break
+            cur_score, cur_p, cur_box, cur_metrics = seed_score, seed_p.copy(), seed_box, seed_metrics
+
+            probe_step = np.minimum(0.20, 0.20 * np.maximum(upper - lower, 1.0))
+            sensitivity = np.zeros(dim, dtype=float)
+            probe_reserve = max(4, dim + 2)
+            for axis in range(dim):
+                if max_evaluations - evaluations <= probe_reserve:
+                    break
+                scores: list[float] = []
+                for sign in (1.0, -1.0):
+                    if max_evaluations - evaluations <= probe_reserve:
+                        break
+                    candidate = cur_p.copy()
+                    candidate[axis] += sign * probe_step[axis]
+                    _box, metrics, score = evaluate(candidate)
+                    if metrics is not None and np.isfinite(score):
+                        scores.append(score)
+                if scores:
+                    sensitivity[axis] = max(abs(score - cur_score) for score in scores)
+
+            # Re-check best evaluated after probe
+            b_score, b_p, b_box, b_metrics = best_evaluated()
+            if b_score < cur_score - 1e-9:
+                cur_score, cur_p, cur_box, cur_metrics = b_score, b_p.copy(), b_box, b_metrics
+
+            steps = np.full(dim, 0.40, dtype=float)
+            successes = np.zeros(dim, dtype=int)
+            failures = np.zeros(dim, dtype=int)
+            while evaluations < max_evaluations and np.any(steps >= 0.02):
+                previous_p = cur_p.copy()
+                improved_any = False
+                priorities = sensitivity * (1.0 + successes) / (1.0 + failures)
+                axis_order = np.argsort(-priorities, kind="stable")
+                for axis in axis_order:
+                    if evaluations >= max_evaluations or steps[axis] < 0.02:
+                        continue
+                    axis_improved = False
+                    for sign in (1.0, -1.0):
+                        if evaluations >= max_evaluations:
+                            break
+                        candidate = cur_p.copy()
+                        candidate[axis] += sign * steps[axis]
+                        candidate = np.clip(candidate, lower, upper)
+                        if np.allclose(candidate, cur_p):
+                            continue
+                        box, metrics, score = evaluate(candidate)
+                        if metrics is not None and score < cur_score - 1e-9:
+                            improvement = cur_score - score
+                            cur_p, cur_box, cur_metrics, cur_score = candidate, box, metrics, score
+                            sensitivity[axis] = max(sensitivity[axis], improvement)
+                            axis_improved = True
+                            improved_any = True
+                    if axis_improved:
+                        successes[axis] += 1
+                        steps[axis] = min(0.60, steps[axis] * 1.10)
+                    else:
+                        failures[axis] += 1
+                        steps[axis] *= 0.5
+                if improved_any and evaluations < max_evaluations:
+                    delta = cur_p - previous_p
+                    pattern_candidate = np.clip(cur_p + delta, lower, upper)
+                    if not np.allclose(pattern_candidate, cur_p):
+                        box, metrics, score = evaluate(pattern_candidate)
+                        if metrics is not None and score < cur_score - 1e-9:
+                            cur_p, cur_box, cur_metrics, cur_score = pattern_candidate, box, metrics, score
 
     best_score, _best_p, best_box, best_metrics = best_evaluated()
 

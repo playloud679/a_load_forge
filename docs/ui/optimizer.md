@@ -18,6 +18,8 @@
 ## Invariants
 
 - Optimizer budgets are per-topology (`ranking.finder_optimizer_axis_count`,
-  `finder_optimizer_evaluation_limit`); this module must not hardcode them.
+  `finder_optimizer_evaluation_limit`) for batch Finder searches; Box Design uses
+  `_constants._BOX_DESIGN_OPTIMIZER_EVALUATIONS` (1000 evaluations) in
+  `_run_box_optimizer` to invoke deep multi-start global optimization.
 - The optimizer result context keys include the engine revision so stale
   results never render after an engine bump.

@@ -296,6 +296,7 @@ def _run_box_optimizer(driver: _acoustics.DriverTS) -> _acoustics.OptimizedAlign
         load_type=load_type,
         box_template=template,
         voltage_v=float(st.session_state.get("sim_voltage", 2.83)),
+        max_evaluations=_constants._BOX_DESIGN_OPTIMIZER_EVALUATIONS,
     )
     _apply_optimized_port_geometry(driver, optimized.box)
     st.session_state["opt_last_summary"] = _optimized_summary(optimized)

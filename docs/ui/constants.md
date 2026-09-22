@@ -20,6 +20,9 @@ it, so constants no longer depend on `ui_app.py`'s working directory.
   asserted by tests; bump them together with the matching migration.
 - `_EXPLORE_FILTER_DEFAULTS` lives here even though it was defined late in the
   original script, because explorer helpers read it as a global.
+- `_BOX_DESIGN_OPTIMIZER_EVALUATIONS` sets the budget (1000 evaluations) for
+  single-driver interactive runs in Box Design to engage deep multi-start global
+  search.
 
 ## Tests
 
