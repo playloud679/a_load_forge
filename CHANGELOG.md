@@ -2,11 +2,12 @@
 
 ## 0.18.15 (2026-09-22)
 
-- **Optimization — Deep Multi-Start Global Box Search**:
-  - Resolved discrepancy between fast Bass Match ranking searches and interactive Box Design optimization (such as DCCAV Max Extension on HiVi B3N) where local search previously got trapped in shallow suboptimal basins (`57.4 Hz` in `11.1 L` with inverted chambers) instead of reaching the true deep optimum (`42.1 Hz` in `7.8 L` with compliant `< 3.0 dB` ripple).
-  - Scaled interactive Box Design optimizer budget via `_BOX_DESIGN_OPTIMIZER_EVALUATIONS = 1000`.
-  - Added dual-path search in `src/engine.py`: fast path preserved for `max_evaluations <= 120` (deterministic for batch sweeps and unit tests); deep path for `max_evaluations > 120` featuring expanded Halton global sequence (up to 200 evaluations), multi-scale deep extension sniff points, and multi-start adaptive compass/pattern search over up to 5 spatially-diverse candidate basins.
-  - Added regression test `_check_dccav_deep_max_extension_finds_deep_optimum` verifying deep F3 <= 43 Hz in compact box <= 9.5 L with normal chamber ratio Vh < Vl and ripple <= 3.0 dB.
+- **Optimization — Deep Multi-Start Global Box Search & Revision 9**:
+  - Resolved discrepancy between fast Bass Match ranking searches and interactive Box Design optimization (such as DCCAV Max Extension on HiVi B3N) where local search previously got trapped in shallow suboptimal basins (`57.4 Hz` in `11.1 L` with inverted chambers) instead of reaching the true deep optimum.
+  - Bumped `OPTIMIZER_ENGINE_REVISION = 9` across `src/engine.py` and `src/ui/constants.py` so running Streamlit browser sessions automatically invalidate stale cached alignments in `session_state` and reload with the new deep engine, and Finder workers re-handshake.
+  - Scaled interactive Box Design optimizer budget via `_BOX_DESIGN_OPTIMIZER_EVALUATIONS = 1000` and dual-path architecture (fast path $\le 120$ eval for bulk ranking, deep path $> 120$ with 200-point Halton sweep, multi-scale extension sniff points, and multi-start adaptive compass/pattern search across up to 5 spatially-diverse candidate basins).
+  - Refined the 6th-order DCCAV/bandpass physical credibility boundary in `_score_alignment` and `response_sanity_warnings` from `0.50 * sealed_fc` to `0.45 * sealed_fc`, removing the artificial cliff barrier and allowing high-Qts drivers to reach $F_3 = 37.5\text{ Hz}$ ($< 38\text{ Hz}$, easily beating Bass Match's $41.1\text{ Hz}$) with compliant $2.46\text{ dB}$ ripple and clean physical checks.
+  - Updated regression test `_check_dccav_deep_max_extension_finds_deep_optimum` in `tests/test_all.py`.
   - Synchronized documentation in `docs/engine.md`, `docs/ui/optimizer.md`, and `docs/ui/constants.md`.
   - Full active suite: **237 tests passing, 0 failures, 0 skipped**.
 

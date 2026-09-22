@@ -29,7 +29,7 @@ OPTIMIZER_F3_REFINE_POINTS = 20
 # Process workers report this semantic revision to the Streamlit parent. File
 # mtimes alone cannot detect a stale module inherited from Python's persistent
 # forkserver process after an in-place engine update.
-OPTIMIZER_ENGINE_REVISION = 8
+OPTIMIZER_ENGINE_REVISION = 9
 
 
 def spectral_sampling_points(
@@ -2195,7 +2195,7 @@ def _score_alignment(
             score += 10.0
         elif f_high < 1.4 * f3:
             score += 10.0 * (1.4 * f3 / max(f_high, EPS) - 1.0)
-    if f3 < 0.50 * metrics["sealed_fc_hz"]:
+    if f3 < 0.45 * metrics["sealed_fc_hz"]:
         score += 5.0
     # Size regularizer so equal-scoring boxes prefer the smaller build; once a
     # requested F3 target is met, extra litres stop buying score elsewhere, so
@@ -3974,9 +3974,9 @@ def response_sanity_warnings(
         )
 
     sealed_fc = equivalent_sealed_fc_hz(ts, box)
-    if f3 < 0.50 * sealed_fc:
+    if f3 < 0.45 * sealed_fc:
         messages.append(
-            f"F3 {f3:.1f} Hz is below half the equivalent sealed Fc "
+            f"F3 {f3:.1f} Hz is below 0.45*sealed Fc "
             f"({sealed_fc:.1f} Hz), so the alignment is physically suspect."
         )
     return messages

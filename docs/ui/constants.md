@@ -16,7 +16,8 @@ it, so constants no longer depend on `ui_app.py`'s working directory.
 - Version-like constants that gate default migrations
   (`_FINDER_DEFAULTS_VERSION`, `_RESPONSE_DEFAULTS_VERSION`,
   `_PRICE_CURRENCY_DEFAULTS_VERSION`, `_LFP_FORMAT_VERSION`,
-  `_FINDER_RANKING_VERSION`, `_FINDER_CONTEXT_FILTERED_POOL_VERSION`) are
+  `_FINDER_RANKING_VERSION`, `_FINDER_CONTEXT_FILTERED_POOL_VERSION`,
+  `_OPTIMIZER_ENGINE_REVISION`) are
   asserted by tests; bump them together with the matching migration.
 - `_EXPLORE_FILTER_DEFAULTS` lives here even though it was defined late in the
   original script, because explorer helpers read it as a global.
