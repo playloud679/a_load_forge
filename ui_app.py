@@ -477,6 +477,7 @@ from ui.projects import (
     _invalidate_bass_match_results_signature as _invalidate_bass_match_results_signature,
 )
 from ui.projects import _invalidate_cloud_project_list as _invalidate_cloud_project_list
+from ui.projects import _is_project_name_taken as _is_project_name_taken
 from ui.projects import _mark_cloud_project_dirty as _mark_cloud_project_dirty
 from ui.projects import _open_billing_modal as _open_billing_modal
 from ui.projects import _open_community_workspace as _open_community_workspace
@@ -513,6 +514,7 @@ from ui.projects import _render_user_management as _render_user_management
 from ui.projects import _request_new_project_name as _request_new_project_name
 from ui.projects import _reset_explore_filters as _reset_explore_filters
 from ui.projects import _resolve_driver_ts as _resolve_driver_ts
+from ui.projects import _resume_last_cloud_project as _resume_last_cloud_project
 from ui.projects import _serialize_bass_match_context as _serialize_bass_match_context
 from ui.projects import _set_active_cloud_record as _set_active_cloud_record
 from ui.projects import _share_link_url as _share_link_url
@@ -841,6 +843,7 @@ __all__ = [
     "_invalidate_bass_match_results_signature",
     "_invalidate_cloud_project_list",
     "_is_param_key",
+    "_is_project_name_taken",
     "_is_streamlit_community_cloud",
     "_json_safe",
     "_line_chart",
@@ -975,6 +978,7 @@ __all__ = [
     "_reset_response_zoom",
     "_resolve_driver_ts",
     "_resolve_saas_user",
+    "_resume_last_cloud_project",
     "_response_amplitude_axis",
     "_response_series",
     "_response_tuning_markers",

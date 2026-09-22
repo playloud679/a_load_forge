@@ -355,6 +355,8 @@ _SAVE_STATUS_LABELS = {
     "failed": "Save failed",
     "conflict": "Save conflict",
     "name_required": "Project name required",
+    "duplicate": "Name already exists",
+    "duplicate_name": "Name already exists",
 }
 
 _UNTITLED_PROJECT_NAME = "Untitled project"

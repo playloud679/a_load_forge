@@ -385,6 +385,25 @@ def _project_name_is_placeholder(name: object) -> bool:
     normalized = str(name or "").strip().casefold()
     return not normalized
 
+def _is_project_name_taken(name: str, *, exclude_project_id: str | None = None) -> bool:
+    """Return True if an active cloud project in this account already has this name."""
+    if not (_runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER is not None):
+        return False
+    target = _saas._normalize_project_name(name).casefold()
+    if not target or _saas._is_placeholder_name(target):
+        return False
+    summaries = _cloud_project_summaries()
+    for item in summaries:
+        if item.status == "trashed" or item.deleted_at is not None:
+            continue
+        if exclude_project_id and item.project_id == exclude_project_id:
+            continue
+        if _saas._is_placeholder_name(item.name):
+            continue
+        if _saas._normalize_project_name(item.name).casefold() == target:
+            return True
+    return False
+
 def _project_display_name(name: object) -> str:
     """Resolve the name shared by the header, autosave and portable export."""
     value = str(name or "").strip()
@@ -555,7 +574,7 @@ def _render_cloud_persistence_status() -> None:
     if not (_runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER is not None):
         _render_static_status_badge("Session only", "#94a3b8", "rgba(148, 163, 184, 0.08)", "rgba(148, 163, 184, 0.20)")
         return
-    if not _has_project_work():
+    if not _has_project_work() and not st.session_state.get("_cloud_autosave_force"):
         _render_static_status_badge("Not saved", "#94a3b8", "rgba(148, 163, 184, 0.08)", "rgba(148, 163, 184, 0.20)")
         return
     _cloud_persistence_fragment()
@@ -683,9 +702,15 @@ def _change_project_visibility(visibility: str, *, update: bool = False) -> None
 
 def _rename_project_from_header(widget_key: str) -> None:
     name = str(st.session_state.get(widget_key, "")).strip()
-    if name:
-        st.session_state["project_name"] = name[:80]
-        _mark_cloud_project_dirty(immediate=True)
+    if not name:
+        return
+    current_id = st.session_state.get("_cloud_project_id")
+    if _is_project_name_taken(name, exclude_project_id=current_id):
+        st.session_state["_project_switch_error"] = f"A project named '{name}' already exists."
+        st.toast(f"A project named '{name}' already exists", icon="⚠️")
+        return
+    st.session_state["project_name"] = name[:80]
+    _mark_cloud_project_dirty(immediate=True)
 
 def _apply_header_visibility(widget_key: str, *, update: bool = False) -> None:
     try:
@@ -695,8 +720,6 @@ def _apply_header_visibility(widget_key: str, *, update: bool = False) -> None:
         st.session_state["_project_switch_error"] = "Could not update project visibility. Your private work is retained; please retry."
 
 def _render_project_header() -> None:
-    if st.session_state.get("workspace_mode") in {"Bass Match", "Box Design"}:
-        st.session_state["_project_started"] = True
     st.session_state["project_name"] = _project_display_name(st.session_state.get("project_name", ""))
     name_col, save_col, visibility_col = st.columns([3, 1.4, 1.6], vertical_alignment="center")
     with name_col:
@@ -784,11 +807,48 @@ def _last_cloud_workspace() -> str | None:
         return None
     return workspace if workspace in ("Bass Match", "Box Design") else None
 
+def _resume_last_cloud_project() -> _saas.ProjectRecord | None:
+    """Load and resume the most recently updated active cloud project.
+
+    Restores the project's parameters, name, active cloud identity and
+    workspace mode so a returning user continues exactly where they left off,
+    preventing orphan drafts on startup. Returns None if no active project exists.
+    """
+    if not (_runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER is not None):
+        return None
+    try:
+        summaries = _cloud_project_summaries()
+        active = [
+            item for item in summaries
+            if item.status != "trashed" and item.deleted_at is None
+        ]
+        if not active:
+            return None
+        latest = active[0]
+        record = _account._get_project_store().load_project(
+            _runtime._CURRENT_SAAS_USER,
+            latest.project_id,
+        )
+        if record is None:
+            return None
+        _apply_cloud_record(record)
+        _invalidate_cloud_project_list()
+        workspace = (record.parameters.get("bass_match") or {}).get("state", {}).get("workspace_mode")
+        if workspace in ("Bass Match", "Box Design"):
+            st.session_state["workspace_mode"] = workspace
+            st.session_state["_last_engineering_workspace"] = workspace
+        return record
+    except Exception:
+        _runtime.logger.exception("Could not resume last cloud project")
+        return None
+
 def _record_lfp_export() -> None:
     st.session_state["_last_lfp_export_at"] = datetime.now(UTC).isoformat()
 
 def _cloud_persistence_error_message(kind: str) -> str:
     """Return a concise recovery instruction without exposing project contents."""
+    if kind in ("duplicate", "duplicate_name"):
+        return "A project with this name already exists. Choose a different name."
     if kind == "auth":
         return "Your sign-in has expired. Sign in again, then retry saving."
     if kind == "permission":
@@ -824,7 +884,12 @@ def _duplicate_active_project() -> None:
         return
     store = _account._get_project_store()
     current_name = str(st.session_state.get("project_name", _constants._UNTITLED_PROJECT_NAME))
-    copy_name = f"{current_name} (Copy)"
+    candidate = f"{current_name} (Copy)"
+    counter = 2
+    while _is_project_name_taken(candidate):
+        candidate = f"{current_name} (Copy {counter})"
+        counter += 1
+    copy_name = candidate
     payload = _build_lfp_project({"name": copy_name}, include_results=True)
     if _runtime._CURRENT_SAAS_USER is not None and _runtime._SAAS_SETTINGS.enabled:
         record = store.save_project(
@@ -853,6 +918,8 @@ def _create_new_project(name: str, *, start_blank: bool = False) -> None:
     project_name = str(name).strip()
     if not project_name:
         raise ValueError("Project name is required")
+    if _is_project_name_taken(project_name):
+        raise _saas.ProjectDuplicateNameError(f"A project named '{project_name}' already exists")
     if start_blank:
         _clear_active_project_state()
         _state._reset_finder_defaults()
@@ -1275,8 +1342,6 @@ def _render_studio_start() -> None:
 
 def _render_main_account_header() -> None:
     """Consolidated single-row Global Application Bar: Project context on left, Account & secondary nav on right."""
-    if st.session_state.get("workspace_mode") in {"Bass Match", "Box Design"}:
-        st.session_state["_project_started"] = True
     st.session_state["project_name"] = _project_display_name(st.session_state.get("project_name", ""))
 
     acc = (
@@ -1706,11 +1771,14 @@ def _render_manage_projects_workspace() -> None:
                     type="primary",
                     width="stretch",
                 ):
-                    if not new_project_name.strip():
+                    trimmed = new_project_name.strip()
+                    if not trimmed:
                         st.error("Enter a project name to continue.")
+                    elif _is_project_name_taken(trimmed):
+                        st.error(f"A project named '{trimmed}' already exists.")
                     else:
                         _create_new_project(
-                            new_project_name,
+                            trimmed,
                             start_blank=start_blank,
                         )
                         st.rerun()
@@ -1762,13 +1830,20 @@ def _render_manage_projects_workspace() -> None:
                         loaded_name = str(payload["project"]["name"]).strip()
                     elif upload.name:
                         loaded_name = Path(upload.name).stem
-                    st.session_state["project_name"] = loaded_name
-                    st.session_state["_project_upload_revision"] = upload_revision + 1
                     if import_mode == "Import as New Project":
+                        candidate = loaded_name
+                        counter = 2
+                        while _is_project_name_taken(candidate):
+                            candidate = f"{loaded_name} ({counter})"
+                            counter += 1
+                        loaded_name = candidate
+                        st.session_state["project_name"] = loaded_name
                         _detach_cloud_project()
                         _mark_cloud_project_dirty(immediate=True)
                     else:
+                        st.session_state["project_name"] = loaded_name
                         _mark_cloud_project_dirty(immediate=True)
+                    st.session_state["_project_upload_revision"] = upload_revision + 1
                     st.toast(f"Imported project: {loaded_name} ({count} parameters)")
                     st.rerun()
                 except Exception as exc:
@@ -1855,11 +1930,16 @@ def _render_manage_projects_workspace() -> None:
                 st.write("")
                 st.write("")
                 if st.button("Rename", key="mp_rename_submit_btn", width="stretch"):
-                    if new_name.strip() and new_name.strip() != project_name:
-                        st.session_state["project_name"] = new_name.strip()
-                        _mark_cloud_project_dirty(immediate=True)
-                        st.toast(f"Renamed project to: {new_name.strip()}")
-                        st.rerun()
+                    trimmed = new_name.strip()
+                    if trimmed and trimmed != project_name:
+                        current_id = st.session_state.get("_cloud_project_id")
+                        if _is_project_name_taken(trimmed, exclude_project_id=current_id):
+                            st.error(f"A project named '{trimmed}' already exists.")
+                        else:
+                            st.session_state["project_name"] = trimmed
+                            _mark_cloud_project_dirty(immediate=True)
+                            st.toast(f"Renamed project to: {trimmed}")
+                            st.rerun()
 
             st.divider()
             sh_col1, sh_col2 = st.columns([3, 1])

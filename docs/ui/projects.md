@@ -15,11 +15,14 @@
   `_cloud_persistence_fragment` (`@st.fragment(run_every=2)`),
   `_render_cloud_persistence_status`, `_render_static_status_badge`,
   `_cloud_project_summaries`, `_last_cloud_workspace`,
+  `_resume_last_cloud_project`, `_is_project_name_taken`,
   `_cloud_persistence_error_message`, `_detach_cloud_project`,
   `_duplicate_active_project`, `_create_new_project`.
 - Studio entry: `_render_studio_start` (no-context landing with Bass Match /
   Box Design cards and a secondary recent-project list). Opening a cloud record
   resumes its saved engineering workspace via `_apply_pending_cloud_record`.
+  Clean app startup resumes the latest active cloud project via `_resume_last_cloud_project`,
+  preventing duplicate untitled drafts on app open/reload.
 - Manage Projects/community: `_render_manage_projects_workspace`,
   `_render_manage_projects_cloud_list/history/trash/publish`,
   `_render_public_project_page`, `_render_embed_project_widget`,
@@ -40,6 +43,10 @@
   drop user edits.
 - Cloud lists are invalidated explicitly (`_invalidate_cloud_project_list`)
   after writes.
+- **Duplicate names forbidden**: Project names must be unique within a tenant
+  (case-insensitive). Duplicate checks in `_is_project_name_taken` protect header
+  renaming, Manage Projects renaming and creation, and file imports. Duplicating an
+  existing project automatically generates unique suffixes `(Copy)`, `(Copy 2)`, etc.
 - **New Project never discards work**: `_create_new_project(name)` keeps the
   active design and Bass Match state, detaches from any previous cloud record
   and autosaves the work into the new project. The old clean-slate behaviour

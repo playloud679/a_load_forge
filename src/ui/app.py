@@ -31,6 +31,16 @@ def main() -> None:
     _catalog._driver_preset_source.cache_clear()
     _catalog._driver_preset_size.cache_clear()
     _projects._community_tab_image_b64.cache_clear()
+
+    # Resume the last open cloud project on clean startup without deep links
+    if (
+        st.session_state.get("_cloud_project_id") is None
+        and not st.session_state.get("_session_project_resumed", False)
+        and not any(st.query_params.get(k) for k in ("d", "p", "explore", "embed", "maintenance", "admin_users", "view"))
+    ):
+        st.session_state["_session_project_resumed"] = True
+        _projects._resume_last_cloud_project()
+
     _state._default("driver_fs_hz", 48.14)
     _state._default("driver_vas_l", 11.52)
     _state._default("driver_qts", 0.362)

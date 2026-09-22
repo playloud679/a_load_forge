@@ -57,6 +57,10 @@ class ProjectValidationError(ValueError):
     """Raised before persistence when a project payload is malformed."""
 
 
+class ProjectDuplicateNameError(ProjectValidationError):
+    """Raised when saving a project with a name already used by another active project in the same tenant."""
+
+
 class ProjectMissingError(LookupError):
     """Raised when an operation targets a project or revision that is absent."""
 
@@ -725,6 +729,17 @@ def _normalize_project_name(name: str) -> str:
     if len(value) > 80:
         raise ValueError("Project name must be at most 80 characters")
     return value
+
+
+def _is_placeholder_name(name: object) -> bool:
+    cleaned = " ".join(str(name or "").split()).casefold()
+    return not cleaned or cleaned in {
+        "untitled project",
+        "untitled",
+        "progetto senza titolo",
+        "bozza",
+        "draft",
+    }
 
 
 def _normalize_parameters(parameters: Mapping[str, Any]) -> dict[str, Any]:
@@ -1745,6 +1760,15 @@ class InMemoryProjectStore:
                 f"Project revision changed from {expected_revision} to {current_revision}"
             )
         project_name = _normalize_project_name(name)
+        if status != "trashed" and not _is_placeholder_name(project_name):
+            normalized_target = project_name.casefold()
+            for (t_id, p_id), rec in self._records.items():
+                if t_id == user.tenant_id and p_id != project_id:
+                    if rec.status != "trashed" and rec.deleted_at is None:
+                        if not _is_placeholder_name(rec.name) and rec.name.strip().casefold() == normalized_target:
+                            raise ProjectDuplicateNameError(
+                                f"A project named '{project_name}' already exists"
+                            )
         normalized = validate_project_payload(parameters)
         content_hash = project_content_hash(project_name, normalized)
         if (
@@ -2166,6 +2190,17 @@ class FirestoreProjectStore:
                 and str(existing.get("status", "active")) == status
             ):
                 return False
+            if status != "trashed" and not _is_placeholder_name(project_name):
+                coll = self._client.collection("tenants").document(user.tenant_id).collection("projects")
+                docs = coll.where("name", "==", project_name).stream(transaction=tx)
+                for doc in docs:
+                    if doc.id != project_id:
+                        d_val = doc.to_dict()
+                        if d_val.get("status") != "trashed" and d_val.get("deleted_at") is None:
+                            if not _is_placeholder_name(d_val.get("name", "")):
+                                raise ProjectDuplicateNameError(
+                                    f"A project named '{project_name}' already exists"
+                                )
             revision = current_revision + 1
             revision_id = f"rev_{revision:010d}"
             revision_ref = ref.collection("revisions").document(revision_id)
@@ -3062,6 +3097,8 @@ def create_project_store(settings: SaaSSettings):
 
 def project_error_kind(exc: BaseException) -> str:
     """Classify persistence failures without requiring Google libraries in tests."""
+    if isinstance(exc, ProjectDuplicateNameError):
+        return "duplicate"
     if isinstance(exc, ProjectConflictError):
         return "conflict"
     if isinstance(exc, ProjectMissingError):

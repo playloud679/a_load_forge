@@ -120,6 +120,14 @@ def test_private_store_project_and_account_isolation():
     assert loaded is not None
     assert loaded.project_id == rec.project_id
 
+    # Duplicate project name rejection in private store
+    try:
+        priv_store.save_project(user, "Subwoofer 1", payload, "0.15.8")
+    except saas.ProjectDuplicateNameError:
+        pass
+    else:
+        raise AssertionError("PrivateStore accepted duplicate project name")
+
     # Account operations
     acc = priv_store.get_or_create_account(user.uid, user.email, user.name)
     assert acc.credits_balance == saas.PLAN_ENTITLEMENTS["free"].monthly_credits

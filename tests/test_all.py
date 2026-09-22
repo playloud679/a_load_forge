@@ -3357,7 +3357,7 @@ def _check_ui_studio_resumes_last_cloud_workspace():
             },
             "bass_match": {"state": {"workspace_mode": "Bass Match"}},
         }
-        store.save_project(owner, "Resume me", payload, "test")
+        saved_rec = store.save_project(owner, "Resume me", payload, "test")
 
         returning = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
         returning.run()
@@ -3366,6 +3366,9 @@ def _check_ui_studio_resumes_last_cloud_workspace():
             "a returning user with a recent engineering project must resume it, "
             "not Projects"
         )
+        assert returning.session_state["project_name"] == "Resume me"
+        assert returning.session_state["_cloud_project_id"] == saved_rec.project_id
+        assert returning.session_state["driver_fs_hz"] == 30.0
     finally:
         for key, value in previous.items():
             if value is None:
@@ -3633,6 +3636,51 @@ def _check_saas_identity_entitlements_and_project_store():
     })
     assert store.load_project(other_tenant, created.project_id) is None
     assert store.list_projects(other_tenant) == []
+
+    # Duplicate project names in the same tenant must be rejected
+    try:
+        store.save_project(
+            team_user,
+            "Reference alignment v2",
+            {"load_type": "Bass reflex", "reflex_vb_l": 50.0},
+            "0.6.9",
+        )
+    except saas.ProjectDuplicateNameError:
+        pass
+    else:
+        raise AssertionError("Duplicate project name in the same tenant was accepted")
+
+    # Case-insensitive duplicate rejection
+    try:
+        store.save_project(
+            team_user,
+            "reference alignment V2",
+            {"load_type": "Bass reflex", "reflex_vb_l": 50.0},
+            "0.6.9",
+        )
+    except saas.ProjectDuplicateNameError:
+        pass
+    else:
+        raise AssertionError("Case-insensitive duplicate project name was accepted")
+
+    # Updating the same project with its existing name is allowed
+    store.save_project(
+        team_user,
+        "Reference alignment v2",
+        {"load_type": "Bass reflex", "reflex_vb_l": 59.0},
+        "0.6.9",
+        project_id=created.project_id,
+        expected_revision=2,
+    )
+
+    # Different tenant can use the same project name
+    outsider_prj = store.save_project(
+        other_tenant,
+        "Reference alignment v2",
+        {"load_type": "Bass reflex", "reflex_vb_l": 40.0},
+        "0.6.9",
+    )
+    assert outsider_prj.name == "Reference alignment v2"
 
     try:
         saas.SaaSSettings.from_env({

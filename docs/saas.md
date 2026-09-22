@@ -164,11 +164,14 @@ rebases its optimistic revision marker and retries the local payload once. This
 prevents a recoverable `revision changed from N to N+1` race from leaving the
 project permanently in a failed-save state.
 
-Autosave does not create a cloud record until the user supplies a project name.
-Legacy records named `Untitled project`, created by older releases before the
-required-name flow, are excluded from the active project browser. An unnamed
-local draft is shown as `Name required`; `.lfp` export and duplication remain
-disabled until it has a user-supplied name.
+Autosave does not create a cloud record on bare startup until the user
+engages in work or edits parameters. Clean app startup automatically resumes
+the user's latest active project, restoring parameters and workspace mode.
+Project names within a tenant must be unique (case-insensitive); saving or
+renaming a project with an identical name to another active non-trashed project
+raises `ProjectDuplicateNameError` (classified as `kind="duplicate"`).
+Placeholder names (such as `Untitled project`, `Bozza`, `Draft`) are excluded
+from duplicate checks.
 
 Saved Bass Match rows, run statistics and their input context are restored when
 opening a project, including in a fresh Streamlit session. Finder defaults

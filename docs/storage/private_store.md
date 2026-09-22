@@ -11,3 +11,8 @@ Neither an email substring nor the application's login allowlist grants access.
 Firestore performs this reconciliation in the account transaction; changes do
 not touch project documents. The UI caches reads only within one script run
 and clears that cache after account mutations.
+
+Both `FirestorePrivateStore` and `InMemoryPrivateStore` enforce unique project
+names per tenant (case-insensitive) across active, non-trashed projects. Attempting
+to write a duplicate project name raises `saas.ProjectDuplicateNameError`, while
+placeholder names (`Untitled project`, `Bozza`, etc.) remain exempt.

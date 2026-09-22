@@ -175,6 +175,17 @@ class FirestorePrivateStore:
                 and str(existing.get("status", "active")) == status
             ):
                 return False
+            if status != "trashed" and not saas._is_placeholder_name(project_name):
+                coll = self._client.collection("tenants").document(user.tenant_id).collection("projects")
+                docs = coll.where("name", "==", project_name).stream(transaction=tx)
+                for doc in docs:
+                    if doc.id != project_id:
+                        d_val = doc.to_dict()
+                        if d_val.get("status") != "trashed" and d_val.get("deleted_at") is None:
+                            if not saas._is_placeholder_name(d_val.get("name", "")):
+                                raise saas.ProjectDuplicateNameError(
+                                    f"A project named '{project_name}' already exists"
+                                )
             revision = current_revision + 1
             revision_id = f"rev_{revision:010d}"
             revision_ref = ref.collection("revisions").document(revision_id)
@@ -570,6 +581,15 @@ class InMemoryPrivateStore:
             raise saas.ProjectConflictError(
                 f"Project revision changed from {expected_revision} to {current_revision}"
             )
+        if status != "trashed" and not saas._is_placeholder_name(project_name):
+            normalized_target = project_name.casefold()
+            for (t_id, p_id), rec in self._records.items():
+                if t_id == user.tenant_id and p_id != target_id:
+                    if rec.status != "trashed" and rec.deleted_at is None:
+                        if not saas._is_placeholder_name(rec.name) and rec.name.strip().casefold() == normalized_target:
+                            raise saas.ProjectDuplicateNameError(
+                                f"A project named '{project_name}' already exists"
+                            )
         if (
             existing
             and existing.name == project_name

@@ -31,9 +31,9 @@
 
 Studio entry follows intent (GOLDEN_STD studio entry). An explicit deep link
 (`?view=`, the shared-design `?d=` token, `?p=` public project) routes straight
-to its workspace; otherwise the last engineering workspace is resumed (session
-memory first, then the most recent cloud project's saved `workspace_mode`);
-otherwise the minimal Studio start screen (`_render_studio_start`) offers Bass
+to its workspace; otherwise clean app startup resumes the user's most recent active
+cloud project (restoring its parameters, cloud identity, and saved `workspace_mode`);
+otherwise session memory or the minimal Studio start screen (`_render_studio_start`) offers Bass
 Match and Box Design with recent projects as a secondary list. Projects and
 Explore are supporting destinations and are never the generic landing page.
 The original branded sidebar remains. Primary engineering mode selection lives in the

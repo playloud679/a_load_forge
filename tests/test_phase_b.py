@@ -62,11 +62,12 @@ def check_direct_entry_and_project_identity():
                 assert at.session_state["_cloud_project_id"] == project_id
             assert len(store.list_projects(user)) == count
             name = next(item for item in at.text_input if str(item.key).startswith("temp_project_header_name_"))
-            name.set_value("Compact 18 PA").run()
+            target_name = f"Compact 18 PA {workspace}"
+            name.set_value(target_name).run()
             at.button(key="action_project_header_rename").click().run()
             save(at)
             assert at.session_state["_cloud_project_id"] == project_id
-            assert store.load_project(user, project_id).name == "Compact 18 PA"
+            assert store.load_project(user, project_id).name == target_name
             at.button(key="workspace_tab_button_bass_match").click().run()
             at.session_state["batch_pending_comparison"] = {
                 "designs": [
