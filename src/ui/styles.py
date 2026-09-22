@@ -65,15 +65,39 @@ GLOBAL_CSS = """
         background: #000 !important;
         width: 24.5rem !important;
         min-width: 24.5rem !important;
+        max-width: 24.5rem !important;
     }
-    section[data-testid="stSidebar"] [data-testid="stSidebarContent"],
-    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
+    section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
         background: #000 !important;
         width: 24.5rem !important;
         min-width: 24.5rem !important;
+        max-width: 24.5rem !important;
+        box-sizing: border-box !important;
+        padding-left: 0.9rem !important;
+        padding-right: 0.9rem !important;
+        padding-top: 0 !important;
+        overflow-x: hidden !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
+        background: #000 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        padding-top: 0 !important;
+        margin-top: -3.8rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-        gap: 0.35rem !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    section[data-testid="stSidebar"] button[data-baseweb="tab"] {
+        font-size: 0.86rem !important;
+        padding: 0.20rem 0.40rem !important;
+        white-space: nowrap !important;
     }
     html {
         scrollbar-gutter: stable;
@@ -109,15 +133,6 @@ GLOBAL_CSS = """
         padding-left: 1.25rem !important;
         padding-right: 1.25rem !important;
         max-width: 100% !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
-        padding-top: 0 !important;
-        padding-left: 0.8rem !important;
-        padding-right: 0.8rem !important;
-    }
-    section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
-        padding-top: 0 !important;
-        margin-top: -3.8rem !important;
     }
     .st-key-brand_logo {
         background: #000;
@@ -178,23 +193,23 @@ GLOBAL_CSS = """
     }
     [data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] p {
         margin-bottom: 0 !important;
-        font-weight: 550 !important;
-        font-size: 0.94rem !important;
-        color: #f1f5f9 !important;
+        font-weight: 600 !important;
+        font-size: 0.96rem !important;
+        color: #f8fafc !important;
     }
     section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
     section[data-testid="stSidebar"] label p {
-        font-size: 0.90rem !important;
-        font-weight: 550 !important;
-        color: #f1f5f9 !important;
+        font-size: 0.94rem !important;
+        font-weight: 600 !important;
+        color: #f8fafc !important;
         line-height: 1.35 !important;
         margin-bottom: 0.05rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p,
     [data-testid="stCaptionContainer"] p {
-        line-height: 1.4 !important;
-        font-size: 0.85rem !important;
-        color: rgba(255,255,255,0.72) !important;
+        line-height: 1.35 !important;
+        font-size: 0.88rem !important;
+        color: rgba(255,255,255,0.85) !important;
     }
     section[data-testid="stSidebar"] [data-testid="stNumberInput"]
     div[data-baseweb="input"] {
@@ -602,24 +617,24 @@ GLOBAL_CSS = """
         margin: 0 !important;
     }
     .stMetric {
-        border: 1px solid rgba(255,255,255,.16) !important;
+        border: 1px solid rgba(255,255,255,.18) !important;
         border-radius: 6px !important;
         background: #141b27 !important;
-        padding: .28rem .50rem !important;
+        padding: .24rem .48rem !important;
     }
     .stMetric label,
     .stMetric [data-testid="stMetricLabel"] p {
-        font-size: 0.82rem !important;
+        font-size: 0.88rem !important;
         font-weight: 600 !important;
-        color: #94a3b8 !important;
-        margin-bottom: -0.15rem !important;
+        color: #cbd5e1 !important;
+        margin-bottom: -0.10rem !important;
         text-transform: none;
         letter-spacing: 0.02em;
     }
     .stMetric div[data-testid="stMetricValue"] {
-        font-size: 1.18rem !important;
+        font-size: 1.25rem !important;
         font-weight: 700 !important;
-        color: #f8fafc !important;
+        color: #ffffff !important;
         line-height: 1.2 !important;
         padding-bottom: 0.05rem !important;
     }
@@ -1027,11 +1042,15 @@ def _load_type_card_styles(version: str = "square_v5") -> str:
         """
         <style>
         [class*="st-key-load_card_"] {
-            min-height: unset;
+            min-height: 5.2rem !important;
+            height: auto !important;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] {
-            display: flex;
-            justify-content: center;
+            display: flex !important;
+            justify-content: center !important;
+            width: 100% !important;
+            height: 3.4rem !important;
+            min-height: 3.4rem !important;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button {
             background-color: #f2f2f0;
@@ -1042,16 +1061,16 @@ def _load_type_card_styles(version: str = "square_v5") -> str:
             border-radius: .58rem;
             box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
             filter: saturate(.72) brightness(.82) contrast(1.04);
-            aspect-ratio: 1 / 1;
-            height: auto;
-            min-height: unset;
+            height: 3.4rem !important;
+            min-height: 3.4rem !important;
+            max-height: 3.4rem !important;
             opacity: .88;
             overflow: hidden;
             padding: 0;
             position: relative;
             transition: border-color .16s ease, box-shadow .16s ease,
                         filter .16s ease, transform .16s ease;
-            width: 100%;
+            width: 100% !important;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button::after {
             display: none;
@@ -1061,12 +1080,17 @@ def _load_type_card_styles(version: str = "square_v5") -> str:
         }
         .load-card-label {
             color: rgba(250,250,250,.92);
-            font-size: .82rem;
-            font-weight: 700;
-            line-height: 1.0rem;
-            margin: .15rem 0 .10rem;
-            min-height: 1.0rem;
+            font-size: .76rem;
+            font-weight: 600;
+            line-height: 1.15;
+            margin: .20rem 0 0 0;
+            min-height: 1.8rem;
+            height: 1.8rem;
             text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            word-break: break-word;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button:hover {
             border-color: #10b981;
@@ -1293,8 +1317,8 @@ def _workspace_tab_styles() -> str:
             background-color: #000000;
             border: 1px solid rgba(16,185,129,.46);
             border-radius: .65rem;
-            height: 3.2rem;
-            min-height: 3.2rem;
+            height: 3.4rem;
+            min-height: 3.4rem;
             overflow: hidden;
             padding: 0;
             position: relative;

@@ -1460,17 +1460,21 @@ def main() -> None:
                     """
                 <style>
                 .st-key-active_load_summary [data-testid="stMetricValue"] {
-                    font-size: 1.15rem !important;
+                    font-size: 1.22rem !important;
+                    font-weight: 700 !important;
+                    color: #ffffff !important;
                 }
-                .st-key-active_load_summary [data-testid="stMetricLabel"] {
-                    font-size: 0.7rem !important;
+                .st-key-active_load_summary [data-testid="stMetricLabel"] p {
+                    font-size: 0.86rem !important;
+                    font-weight: 600 !important;
+                    color: #cbd5e1 !important;
                     margin-bottom: 0.05rem !important;
                 }
                 .st-key-active_load_summary [data-testid="stVerticalBlock"] {
-                    gap: 0rem !important;
+                    gap: 0.15rem !important;
                 }
                 .st-key-active_load_summary [data-testid="stMetric"] {
-                    padding-bottom: 0 !important;
+                    padding: 0.20rem 0.40rem !important;
                 }
                 </style>
                 """,
@@ -1566,9 +1570,8 @@ def main() -> None:
                         cols[j].metric(metric[0], metric[1], help=metric_help)
 
                 st.caption(
-                    "Forge Score is a heuristic design-health indicator: comparisons "
-                    "and ranking always use the physical metrics (F3, MOL, excursion, "
-                    "impedance)."
+                    "Forge Score is a heuristic design-health indicator (0-100); "
+                    "ranking and comparison always use physical metrics."
                 )
 
             # Performance Badges

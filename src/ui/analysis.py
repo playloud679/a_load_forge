@@ -106,6 +106,8 @@ def _response_amplitude_axis() -> alt.Axis:
         grid=True,
         labelPadding=6,
         titlePadding=10,
+        labelFontSize=12,
+        titleFontSize=13,
         zindex=1,
     )
 
@@ -188,13 +190,13 @@ def _line_chart(
                 "frequency_hz:Q",
                 title="Frequency (Hz)",
                 scale=_log_frequency_scale(x_domain),
-                axis=alt.Axis(format="~g"),
+                axis=alt.Axis(format="~g", labelFontSize=12, titleFontSize=13),
             ),
             y=alt.Y(
                 f"{y_field}:Q",
                 title=y_title,
                 scale=alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined,
-                axis=y_axis if y_axis is not None else alt.Undefined,
+                axis=y_axis if y_axis is not None else alt.Axis(labelFontSize=12, titleFontSize=13),
             ),
             color=color,
             opacity=opacity,
@@ -210,13 +212,13 @@ def _line_chart(
                 "frequency_hz:Q",
                 title="Frequency (Hz)",
                 scale=_log_frequency_scale(x_domain),
-                axis=alt.Axis(format="~g"),
+                axis=alt.Axis(format="~g", labelFontSize=12, titleFontSize=13),
             ),
             y=alt.Y(
                 f"{y_field}:Q",
                 title=y_title,
                 scale=alt.Scale(domain=y_domain, nice=False) if y_domain else alt.Undefined,
-                axis=y_axis if y_axis is not None else alt.Undefined,
+                axis=y_axis if y_axis is not None else alt.Axis(labelFontSize=12, titleFontSize=13),
             ),
             color=color,
             tooltip=[
@@ -720,7 +722,7 @@ def _plot_response(
     chart = _line_chart(
         data,
         "LF pressure estimate (dB)",
-        height=380,
+        height=320,
         legend=show_legend,
         x_domain=frequency_window,
         y_domain=y_domain,
@@ -752,7 +754,7 @@ def _plot_response(
         mil_chart = _line_chart(
             mil_data,
             "Max input power (W)",
-            height=380,
+            height=320,
             legend=show_legend,
             x_domain=frequency_window,
             y_domain=mil_y_domain,
@@ -2456,10 +2458,6 @@ def _render_response_tab(
             # autosave state change. A content-derived key remounts the chart
             # and briefly removes the page scrollbar, creating a resize loop.
             key="response_chart",
-        )
-        st.caption(
-            "Use the frequency slider below to zoom; click the chart to place a point marker "
-            "and double-click to clear it."
         )
     else:
         st.caption("Response pens off.")

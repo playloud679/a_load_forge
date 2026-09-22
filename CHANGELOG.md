@@ -2,14 +2,13 @@
 
 ## 0.18.18 (2026-09-22)
 
-- **UI & Layout — Viewport Height Optimization & Readability Scaling**:
-  - Resized and stabilized the sidebar width to `24.5rem` (392px) on desktop to eliminate accidental multi-column wrapping into vertical rows.
-  - Tightened vertical block gaps across the entire application (`gap: 0.35rem` in sidebar, `0.45rem` in main container) and reduced container vertical padding to eliminate over 150px of dead whitespace.
-  - Boosted typography hierarchy across all surfaces for clear legibility: widget labels (`0.94rem` main, `0.90rem` sidebar), captions (`0.85rem` with high-contrast `0.72` opacity), metrics (`0.82rem` labels, `1.18rem`–`1.30rem` values), and main tabs (`0.95rem` with `font-weight: 600`).
-  - Re-proportioned Bass Match hero brief, action toolbar, and technical constraint matrix with compact paddings and boosted font sizes (`0.80rem` constraint labels, `0.96rem` values).
-  - Dynamically capped the ranked results table height in `src/ui/finder.py` (`min(480, max(240, 38 + len(display_df) * 36))`) to keep results visible within standard desktop viewports without driving full-page scrolling.
-  - Adjusted primary acoustic response and MIL chart height in `src/ui/analysis.py` to `380px` (from 420px), fitting telemetry cards, response curves, and design controls without vertical scrolling.
-  - Synchronized documentation across `docs/ui/styles.md`, `docs/ui/finder.md`, `docs/ui/analysis.md`, and `docs/ui/app.md`.
+- **UI & Layout — Viewport Height Optimization, Overlap Fix & High Legibility**:
+  - Fixed WebKit / Chrome flex `aspect-ratio` height-collapsing bug on `<button>` elements in `src/ui/styles.py` that previously caused Row 2 load cards to render directly on top of Row 1.
+  - Re-architected sidebar width and containment (`width: 24.5rem` / 392px, `box-sizing: border-box`, `padding: 0 0.9rem`) to completely eliminate right-edge horizontal clipping on load cards, steppers (`+`/`-`), select boxes, and version labels.
+  - Scaled up typography hierarchy across all surfaces for crisp legibility: widget labels (`0.96rem` main, `0.94rem` sidebar), captions (`0.88rem` with high-contrast `0.85`), metric labels (`0.88rem`, `#cbd5e1`) and values (`1.25rem`, `#ffffff`), removing the legacy `0.70rem` active load metric label shrink.
+  - Optimized acoustic response chart height to `320px` in `src/ui/analysis.py` with enhanced axis typography (`labelFontSize=12`, `titleFontSize=13`), fitting the entire CAD telemetry metrics panel and controls cleanly within standard 900p / 1080p viewports without vertical scrolling.
+  - Visually verified rendering on Google Chrome across all pages and views: Box Design (DCCAV, Bass reflex, Sealed, BP4, BP6, BP8, Infinite baffle), analysis tabs (Response, Excursion, Impedance, Ports, Group Delay, Atlas), Bass Match Search Brief and Results, Projects, and Explore.
+  - Synchronized documentation across `docs/ui/styles.md`, `docs/ui/analysis.md`, `docs/ui/app.md`, and `docs/deploy-cloudrun.md`.
   - Full active suite: **238 tests passing, 0 failures, 0 skipped**.
 
 ## 0.18.17 (2026-09-22)
