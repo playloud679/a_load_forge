@@ -46,14 +46,16 @@ Removing that guard makes the top-row buttons visible but unclickable.
 - Run and Results are separate lazily rendered native tabs. No CSS hiding or
   results-presence selector is needed to demote a competing Run action.
 
-### Sidebar search specification brief (Phase C)
+### Sidebar search specification brief
 
 - `section[data-testid="stSidebar"] div[data-testid="stTabs"]` styles the sidebar tabs
   as a clean segmented control bar with dark container, subtle borders, and an emerald active indicator.
 - `.st-key-sidebar_brief_header_container` and `.sidebar-brief-title` style the top brief header
   row housing the Search Brief title and aligned Advanced mode toggle switch.
-- `.st-key-finder_enclosure_popover_wrap` styles the compact enclosure selector button with CAD
-  borders and hover glow, which houses the illustrated topology cards within an overlay popover.
+- The 7-card enclosure topology selector grid (`_load_type_card_styles()`) is always visible directly
+  in the sidebar across both simple and advanced modes, retaining full brand artwork and instant click states.
+- Non-advance (Simple) mode organizes the entire workflow in a single tab (`Search brief`), exposing
+  enclosure setup, volume, goal, and library filters without tab-switching.
 - `.sidebar-section-title` provides subtle CAD-like technical subsection titles.
 - `.sidebar-brief-summary-card`, `.sidebar-brief-tag`, and `.sidebar-brief-count` style
   the persistent summary card at the bottom of the sidebar.

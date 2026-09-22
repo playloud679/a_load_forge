@@ -349,34 +349,42 @@ def main() -> None:
                         "Advanced for full controls."
                     )
 
-            bm_tab1, bm_tab2, bm_tab3 = st.tabs(
-                ["Load type", "Performance filters", "Library filters"],
-                key="bass_match_sidebar_tab",
-            )
-        
-            with bm_tab1:
-                st.markdown('<div class="sidebar-section-title">Target enclosure</div>', unsafe_allow_html=True)
-                if "finder_load_types" not in st.session_state:
-                    st.session_state["finder_load_types"] = [
-                        str(st.session_state.get("load_type", "DCCAV"))]
-                _finder._render_finder_scenario_selector()
-                _finder_load_set = set(st.session_state["finder_load_types"])
-                active_loads = sorted(list(_finder_load_set))
-                if len(active_loads) == 1:
-                    enc_summary = active_loads[0]
-                elif len(active_loads) <= 2:
-                    enc_summary = ", ".join(active_loads)
-                else:
-                    enc_summary = f"{len(active_loads)} loads selected"
+            if "finder_load_types" not in st.session_state:
+                st.session_state["finder_load_types"] = [
+                    str(st.session_state.get("load_type", "DCCAV"))]
+            _finder_load_set = set(st.session_state["finder_load_types"])
+            all_preset_names = _catalog._available_driver_preset_names()
 
-                with st.container(key="finder_enclosure_popover_wrap"):
-                    with st.popover(f"🎛️ Enclosure: {enc_summary} ▾", width="stretch"):
-                        st.markdown('<div class="sidebar-section-title">Choose topologies</div>', unsafe_allow_html=True)
-                        _state._render_load_type_buttons(_finder_load_set, single_select=False)
-                        st.caption("Toggle the loads you want to compare. At least one must stay active.")
-                        _state._render_engine_only_topologies_note()
-                _finder._render_find_driver_target_sidebar()
-                if _finder._show_advanced_controls():
+            if not _finder._show_advanced_controls():
+                # Non-advance (Simple) mode: single unified tab with loads grid always visible
+                # and library filters visible directly.
+                bm_simple_tab, = st.tabs(["Search brief"], key="bass_match_sidebar_tab")
+                with bm_simple_tab:
+                    st.markdown('<div class="sidebar-section-title">Target enclosure</div>', unsafe_allow_html=True)
+                    _finder._render_finder_scenario_selector()
+                    _state._render_load_type_buttons(_finder_load_set, single_select=False)
+                    st.caption("Toggle the loads you want to compare. At least one must stay active.")
+                    _state._render_engine_only_topologies_note()
+                    _finder._render_find_driver_target_sidebar()
+
+                    st.markdown('<div class="sidebar-section-title">Acoustic goal</div>', unsafe_allow_html=True)
+                    _finder._render_find_driver_goal_sidebar()
+
+                    st.markdown('<div class="sidebar-section-title">Driver & catalog filters</div>', unsafe_allow_html=True)
+                    _catalog._render_finder_library_filters(all_preset_names)
+            else:
+                # Advanced mode: 3 dedicated tabs
+                bm_tab1, bm_tab2, bm_tab3 = st.tabs(
+                    ["Load type", "Performance filters", "Library filters"],
+                    key="bass_match_sidebar_tab",
+                )
+                with bm_tab1:
+                    st.markdown('<div class="sidebar-section-title">Target enclosure</div>', unsafe_allow_html=True)
+                    _finder._render_finder_scenario_selector()
+                    _state._render_load_type_buttons(_finder_load_set, single_select=False)
+                    st.caption("Toggle the loads you want to compare. At least one must stay active.")
+                    _state._render_engine_only_topologies_note()
+                    _finder._render_find_driver_target_sidebar()
                     with st.expander("Advanced evaluation", expanded=True):
                         _state._finder_selectbox(
                             "Search profile",
@@ -405,14 +413,12 @@ def main() -> None:
                             width="stretch",
                             help="Restore the practical quick-scan profile without changing the active design.",
                         )
-            with bm_tab2:
-                st.markdown('<div class="sidebar-section-title">Acoustic limits & goals</div>', unsafe_allow_html=True)
-                _finder._render_find_driver_goal_sidebar()
-
-            all_preset_names = _catalog._available_driver_preset_names()
-            with bm_tab3:
-                st.markdown('<div class="sidebar-section-title">Driver & catalog filters</div>', unsafe_allow_html=True)
-                _catalog._render_finder_library_filters(all_preset_names)
+                with bm_tab2:
+                    st.markdown('<div class="sidebar-section-title">Acoustic limits & goals</div>', unsafe_allow_html=True)
+                    _finder._render_find_driver_goal_sidebar()
+                with bm_tab3:
+                    st.markdown('<div class="sidebar-section-title">Driver & catalog filters</div>', unsafe_allow_html=True)
+                    _catalog._render_finder_library_filters(all_preset_names)
 
             def _live_or_aggregate_filter(key: str):
                 live = st.session_state.get(f"{key}__select_v5")

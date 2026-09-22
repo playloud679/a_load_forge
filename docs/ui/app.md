@@ -43,11 +43,15 @@ control context for the parameters below.
 In the main workspace, a single, perfectly aligned, compact Global Application Bar hosts
 project context on the left (name, save state, visibility) and restrained secondary actions
 on the right (Projects, Community, Account).
-In Bass Match, the sidebar is organized as a clean Search Brief (Phase C):
+In Bass Match, the sidebar is organized as a clean Search Brief:
 the Advanced mode toggle is positioned directly at the top alongside the SEARCH BRIEF
-header (`.st-key-sidebar_brief_header_container`) with mode captions. The enclosure topology
-selector is condensed into a compact selector button (`🎛️ Enclosure: <selected> ▾`) that
-opens the full illustrated topology card gallery via a Streamlit popover (`.st-key-finder_enclosure_popover_wrap`),
-preventing sidebar clutter while preserving the illustrated topology identity. The bottom
-Advanced toggle is scoped exclusively to Box Design to avoid duplicate widget keys.
+header (`.st-key-sidebar_brief_header_container`) with mode captions.
+The 7-card enclosure topology selector grid is restored and always visible directly on the
+sidebar canvas, retaining full brand identity and instant load toggling without hidden menus.
+Non-advanced (Simple) mode presents the complete workflow in a single unified tab (`Search brief`),
+uniting guided setup, the always-visible load cards grid, volume target, optimization goal,
+and directly visible library filters (search preset, brand, size, class, price) for an effortless
+single-panel experience. When Advanced mode is toggled, it expands into three dedicated tabs
+(`Load type`, `Performance filters`, `Library filters`) with deep evaluation controls and detailed
+acoustic limit sliders. The bottom Advanced toggle is scoped exclusively to Box Design to avoid duplicate widget keys.
 Existing public, shared, billing and admin links retain their handling.

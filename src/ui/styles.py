@@ -269,26 +269,6 @@ GLOBAL_CSS = """
         color: #cbd5e1;
         white-space: nowrap !important;
     }
-    .st-key-finder_enclosure_popover_wrap {
-        margin: 0.25rem 0 0.45rem 0 !important;
-    }
-    .st-key-finder_enclosure_popover_wrap button[data-testid="stPopoverButton"] {
-        background: #141b27 !important;
-        border: 1px solid rgba(255, 255, 255, 0.14) !important;
-        border-radius: 6px !important;
-        color: #e2e8f0 !important;
-        font-weight: 600 !important;
-        font-size: 0.80rem !important;
-        padding: 0.42rem 0.65rem !important;
-        width: 100% !important;
-        justify-content: space-between !important;
-        transition: all 0.15s ease !important;
-    }
-    .st-key-finder_enclosure_popover_wrap button[data-testid="stPopoverButton"]:hover {
-        border-color: #10b981 !important;
-        color: #ffffff !important;
-        box-shadow: 0 0 8px rgba(16, 185, 129, 0.2) !important;
-    }
     section[data-testid="stSidebar"] div[data-testid="stTabs"] {
         margin-top: 0.2rem !important;
     }
