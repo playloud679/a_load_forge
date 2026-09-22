@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.18.16 (2026-09-22)
+## 0.18.17 (2026-09-22)
 
 - **Project Management — Multi-Selection, Batch Trash & Batch Restore**:
   - Added checkboxes on every project card in the Manage Projects workspace for multi-project selection.
@@ -8,6 +8,11 @@
   - Automatic safe detachment if the active open project is included in the batch deletion.
   - Added matching multi-select and bulk restoration (`♻️ Restore (N)`) in the Trash tab.
   - Maintained full backward compatibility for single-project Open, Duplicate, and Trash actions.
+  - Synchronized documentation in `docs/ui/projects.md`.
+  - Full active suite: **238 tests passing, 0 failures, 0 skipped**.
+
+## 0.18.16 (2026-09-22)
+
 - **Project Management — Startup Resume & Duplicate Name Protection**:
   - Eliminated automatic generation of orphan "Untitled project" draft records upon application launch and browser reloads: clean app startup automatically resumes the user's most recent active cloud project via `_resume_last_cloud_project()`, restoring parameters, cloud project ID, and saved engineering workspace.
   - Guarded autosave against saving clean blank drafts on initial load when no edits have occurred.
@@ -15,7 +20,7 @@
   - Backend project stores (`InMemoryProjectStore`, `FirestoreProjectStore`, `InMemoryPrivateStore`, `FirestorePrivateStore`) enforce uniqueness on non-placeholder names, raising `ProjectDuplicateNameError` (classified as `kind="duplicate"`). Placeholder names (`Untitled project`, `Bozza`, `Draft`, etc.) remain exempt.
   - Project duplication automatically appends unique suffixes (`(Copy)`, `(Copy 2)`), and file imports safely disambiguate existing project names.
   - Synchronized documentation in `docs/ui/projects.md`, `docs/saas.md`, `docs/storage/private_store.md`, and `docs/ui/app.md`.
-  - Full active suite: **238 tests passing, 0 failures, 0 skipped**.
+  - Full active suite: **237 tests passing, 0 failures, 0 skipped**.
 
 ## 0.18.15 (2026-09-22)
 
