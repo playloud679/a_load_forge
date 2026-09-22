@@ -307,7 +307,7 @@ def main() -> None:
             with st.container(key="brand_logo"):
                 st.image(str(_constants._BRAND_IMAGE), width=170)
             st.markdown(
-                f"<div style='text-align: right; color: rgba(255,255,255,0.4); font-size: 0.7rem; margin-top: -0.4rem; margin-bottom: 0.4rem;'>v{_runtime._VERSION}</div>", 
+                f"<div style='text-align: right; color: rgba(255,255,255,0.6); font-size: 0.80rem; margin-top: -0.3rem; margin-bottom: 0.20rem;'>v{_runtime._VERSION}</div>", 
                 unsafe_allow_html=True
             )
         else:

@@ -2399,7 +2399,7 @@ def _render_finder_results(filtered_preset_names: list[str], context_matches: bo
         # Use the complete result-pane width; users can still resize columns
         # interactively without leaving an unused strip beside the table.
         width="stretch",
-        height=680,
+        height=min(480, max(240, 38 + len(display_df) * 36)),
         hide_index=True,
         key=table_key,
         on_select="rerun",

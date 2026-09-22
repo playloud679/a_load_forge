@@ -720,7 +720,7 @@ def _plot_response(
     chart = _line_chart(
         data,
         "LF pressure estimate (dB)",
-        height=420,
+        height=380,
         legend=show_legend,
         x_domain=frequency_window,
         y_domain=y_domain,
@@ -752,7 +752,7 @@ def _plot_response(
         mil_chart = _line_chart(
             mil_data,
             "Max input power (W)",
-            height=420,
+            height=380,
             legend=show_legend,
             x_domain=frequency_window,
             y_domain=mil_y_domain,

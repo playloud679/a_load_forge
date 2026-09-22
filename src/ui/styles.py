@@ -61,19 +61,37 @@ GLOBAL_CSS = """
         opacity: 1 !important;
     }
     section[data-testid="stSidebar"],
-    section[data-testid="stSidebar"] > div,
+    section[data-testid="stSidebar"] > div {
+        background: #000 !important;
+        width: 24.5rem !important;
+        min-width: 24.5rem !important;
+    }
     section[data-testid="stSidebar"] [data-testid="stSidebarContent"],
     section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
         background: #000 !important;
+        width: 24.5rem !important;
+        min-width: 24.5rem !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+        gap: 0.35rem !important;
     }
     html {
         scrollbar-gutter: stable;
+        font-size: 16px !important;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeLegibility;
     }
     body,
     [data-testid="stAppViewContainer"],
     section[data-testid="stMain"] {
         scrollbar-gutter: stable;
         background-color: var(--lf-bg-base) !important;
+        font-size: 1rem !important;
+        color: #f3f4f6 !important;
+    }
+    [data-testid="stMain"] [data-testid="stVerticalBlock"] {
+        gap: 0.45rem !important;
     }
     @media (max-width: 768px) {
         section[data-testid="stSidebar"],
@@ -85,15 +103,17 @@ GLOBAL_CSS = """
         }
     }
     .block-container,
-    [data-testid="stMainBlockContainer"],
-    [data-testid="stAppViewContainer"] {
-        padding-top: 0.2rem !important;
-        padding-bottom: 0.2rem !important;
-        padding-left: 1.0rem !important;
-        padding-right: 1.0rem !important;
+    [data-testid="stMainBlockContainer"] {
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+        padding-left: 1.25rem !important;
+        padding-right: 1.25rem !important;
+        max-width: 100% !important;
     }
     section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
         padding-top: 0 !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
     }
     section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {
         padding-top: 0 !important;
@@ -153,26 +173,28 @@ GLOBAL_CSS = """
         letter-spacing: -0.01em !important;
     }
     [data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] {
-        padding-bottom: 0.1rem !important;
-        margin-top: 0.55rem !important;
+        padding-bottom: 0.05rem !important;
+        margin-top: 0.35rem !important;
     }
     [data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] p {
         margin-bottom: 0 !important;
-        font-weight: 500 !important;
-        font-size: 0.85rem !important;
+        font-weight: 550 !important;
+        font-size: 0.94rem !important;
+        color: #f1f5f9 !important;
     }
     section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
     section[data-testid="stSidebar"] label p {
-        font-size: 0.82rem !important;
-        font-weight: 500 !important;
-        color: rgba(255,255,255,0.85) !important;
-        line-height: 1.3 !important;
+        font-size: 0.90rem !important;
+        font-weight: 550 !important;
+        color: #f1f5f9 !important;
+        line-height: 1.35 !important;
         margin-bottom: 0.05rem !important;
     }
-    section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
-        line-height: 1.45 !important;
-        font-size: 0.75rem !important;
-        color: rgba(255,255,255,0.48) !important;
+    section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p,
+    [data-testid="stCaptionContainer"] p {
+        line-height: 1.4 !important;
+        font-size: 0.85rem !important;
+        color: rgba(255,255,255,0.72) !important;
     }
     section[data-testid="stSidebar"] [data-testid="stNumberInput"]
     div[data-baseweb="input"] {
@@ -209,8 +231,8 @@ GLOBAL_CSS = """
         width: 1.0rem !important;
     }
     hr {
-        margin-top: 0.4rem !important;
-        margin-bottom: 0.4rem !important;
+        margin-top: 0.25rem !important;
+        margin-bottom: 0.25rem !important;
         border-color: rgba(255,255,255,0.12) !important;
     }
 
@@ -220,7 +242,7 @@ GLOBAL_CSS = """
     }
 
     [data-testid="stCaptionContainer"] {
-        color: rgba(250,250,250,.65);
+        color: rgba(250,250,250,.72);
     }
     /* Keep widget help available without letting long tooltips cover the UI. */
     [data-testid="stTooltipContent"],
@@ -233,16 +255,16 @@ GLOBAL_CSS = """
         background: #0f1520;
         border: 1px solid rgba(255,255,255,.16) !important;
         border-radius: 6px !important;
-        margin-block: .25rem .55rem;
+        margin-block: .20rem .45rem;
     }
     .st-key-finder_library_filters [data-testid="stVerticalBlock"] {
-        gap: .55rem !important;
+        gap: .40rem !important;
     }
 
     /* Sidebar Search Brief & Segmented Tabs */
     .st-key-sidebar_brief_header_container {
-        margin-top: 0.15rem;
-        margin-bottom: 0.25rem;
+        margin-top: 0.10rem;
+        margin-bottom: 0.15rem;
     }
     .st-key-sidebar_brief_header_container .st-key-ui_show_advanced {
         display: flex !important;
@@ -251,26 +273,26 @@ GLOBAL_CSS = """
     .st-key-sidebar_brief_header_container .st-key-ui_show_advanced label,
     .st-key-sidebar_brief_header_container .st-key-ui_show_advanced label p,
     .st-key-sidebar_brief_header_container .st-key-ui_show_advanced div[data-testid="stWidgetLabel"] {
-        font-size: 0.74rem !important;
+        font-size: 0.86rem !important;
         font-weight: 600 !important;
-        color: #94a3b8 !important;
+        color: #cbd5e1 !important;
         white-space: nowrap !important;
         margin: 0 !important;
     }
     .sidebar-brief-header {
-        margin-top: 0.15rem;
-        margin-bottom: 0.15rem;
+        margin-top: 0.10rem;
+        margin-bottom: 0.10rem;
     }
     .sidebar-brief-title {
-        font-size: 0.78rem;
+        font-size: 0.92rem;
         font-weight: 700;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.01em;
         text-transform: none;
-        color: #cbd5e1;
+        color: #f8fafc;
         white-space: nowrap !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stTabs"] {
-        margin-top: 0.2rem !important;
+        margin-top: 0.15rem !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stTabs"] div[role="tablist"] {
         background: rgba(255, 255, 255, 0.04) !important;
@@ -284,19 +306,19 @@ GLOBAL_CSS = """
     section[data-testid="stSidebar"] div[data-testid="stTabs"] button[role="tab"] {
         flex: 1 1 0% !important;
         text-align: center !important;
-        padding: 0.38rem 0.25rem !important;
+        padding: 0.35rem 0.25rem !important;
         border-radius: 6px !important;
-        font-size: 0.76rem !important;
+        font-size: 0.88rem !important;
         font-weight: 600 !important;
-        letter-spacing: 0.02em !important;
-        color: rgba(255, 255, 255, 0.65) !important;
+        letter-spacing: 0.01em !important;
+        color: rgba(255, 255, 255, 0.70) !important;
         border: none !important;
         background: transparent !important;
         transition: all 0.15s ease !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stTabs"] button[role="tab"]:hover {
         color: #f8fafc !important;
-        background: rgba(255, 255, 255, 0.06) !important;
+        background: rgba(255, 255, 255, 0.08) !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
         color: #10b981 !important;
@@ -304,39 +326,39 @@ GLOBAL_CSS = """
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(16, 185, 129, 0.25) !important;
     }
     .sidebar-section-title {
-        font-size: 0.76rem !important;
-        font-weight: 600 !important;
-        letter-spacing: 0.02em !important;
+        font-size: 0.88rem !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.01em !important;
         text-transform: none !important;
-        color: #94a3b8 !important;
-        margin: 0.45rem 0 0.25rem 0 !important;
-        padding-bottom: 0.15rem !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+        color: #e2e8f0 !important;
+        margin: 0.35rem 0 0.15rem 0 !important;
+        padding-bottom: 0.12rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
     .sidebar-brief-summary-card {
         background: #141b27;
         border: 1px solid rgba(255, 255, 255, 0.08);
         border-radius: 8px;
-        padding: 0.55rem 0.65rem;
-        margin-top: 0.6rem;
-        margin-bottom: 0.35rem;
+        padding: 0.45rem 0.65rem;
+        margin-top: 0.40rem;
+        margin-bottom: 0.25rem;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
     }
     .sidebar-brief-header-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 0.2rem;
+        margin-bottom: 0.15rem;
     }
     .sidebar-brief-tag {
-        font-size: 0.72rem;
+        font-size: 0.84rem;
         font-weight: 600;
-        letter-spacing: 0.02em;
+        letter-spacing: 0.01em;
         text-transform: none;
-        color: #94a3b8;
+        color: #cbd5e1;
     }
     .sidebar-brief-count {
-        font-size: 0.82rem;
+        font-size: 0.94rem;
         font-weight: 700;
         color: #f8fafc;
     }
@@ -376,39 +398,40 @@ GLOBAL_CSS = """
         background: #0d121a !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         border-radius: 8px !important;
-        padding: 1.15rem 1.35rem 0.95rem 1.35rem !important;
-        margin-bottom: 0.75rem !important;
+        padding: 0.65rem 1.0rem 0.55rem 1.0rem !important;
+        margin-bottom: 0.45rem !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22) !important;
     }
     .bass-match-hero-header {
         display: flex;
         flex-direction: column;
-        gap: 0.2rem;
+        gap: 0.15rem;
     }
     .bass-match-hero-title {
-        font-size: 1.15rem;
+        font-size: 1.18rem;
         font-weight: 700;
         color: #f8fafc;
         letter-spacing: -0.01em;
     }
     .bass-match-hero-subtitle {
-        font-size: 0.82rem;
+        font-size: 0.88rem;
         color: #94a3b8;
-        margin-bottom: 0.65rem;
+        margin-bottom: 0.45rem;
     }
     .bass-match-brief-summary {
         display: flex;
         flex-direction: column;
-        gap: 0.18rem;
-        margin-bottom: 0.5rem;
+        gap: 0.15rem;
+        margin-bottom: 0.35rem;
     }
     .bass-match-spec-line-primary {
-        font-size: 1.05rem;
+        font-size: 1.10rem;
         font-weight: 600;
         color: #10b981;
         letter-spacing: 0.01em;
     }
     .bass-match-spec-line-secondary {
-        font-size: 0.88rem;
+        font-size: 0.92rem;
         font-weight: 500;
         color: #cbd5e1;
     }
@@ -417,15 +440,15 @@ GLOBAL_CSS = """
         align-items: center;
         gap: 0.45rem;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 0.82rem;
+        font-size: 0.88rem;
         color: #94a3b8;
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.06);
         border-radius: 5px;
-        padding: 0.30rem 0.65rem;
+        padding: 0.25rem 0.55rem;
         width: fit-content;
-        margin-top: 0.4rem;
-        margin-bottom: 0.65rem;
+        margin-top: 0.25rem;
+        margin-bottom: 0.35rem;
     }
     .bass-match-readiness-sep {
         color: rgba(255, 255, 255, 0.25);
@@ -457,18 +480,11 @@ GLOBAL_CSS = """
         filter: brightness(1.08) !important;
         transform: translateY(-1px) !important;
     }
-    .st-key-bass_match_brief {
-        padding: .6rem .8rem .85rem !important;
-        border-radius: 8px !important;
-        border: 1px solid rgba(255,255,255,0.09) !important;
-        background: #0d131f !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22) !important;
-    }
     .st-key-bass_match_brief > div[data-testid="stVerticalBlock"] {
-        gap: .35rem !important;
+        gap: .25rem !important;
     }
     .st-key-bass_match_brief h4 {
-        font-size: 1.02rem !important;
+        font-size: 1.08rem !important;
         font-weight: 700 !important;
         color: #f8fafc !important;
         letter-spacing: -0.01em !important;
@@ -477,22 +493,22 @@ GLOBAL_CSS = """
         padding: 0 !important;
     }
     .st-key-bass_match_brief .stMetric {
-        min-height: 3.1rem !important;
-        padding: .3rem .5rem !important;
+        min-height: 2.75rem !important;
+        padding: .25rem .45rem !important;
         background: rgba(255, 255, 255, 0.025) !important;
         border: 1px solid rgba(255, 255, 255, 0.06) !important;
         border-radius: 6px !important;
     }
     .st-key-bass_match_brief .stMetric [data-testid="stMetricLabel"] p {
-        font-size: 0.68rem !important;
+        font-size: 0.82rem !important;
         font-weight: 600 !important;
         text-transform: none !important;
-        letter-spacing: 0.03em !important;
+        letter-spacing: 0.02em !important;
         color: #94a3b8 !important;
         font-family: ui-monospace, SFMono-Regular, monospace !important;
     }
     .st-key-bass_match_brief .stMetric [data-testid="stMetricValue"] {
-        font-size: 1.25rem !important;
+        font-size: 1.28rem !important;
         font-weight: 700 !important;
         color: #f8fafc !important;
         font-family: ui-monospace, SFMono-Regular, monospace !important;
@@ -501,7 +517,7 @@ GLOBAL_CSS = """
         margin: 0 !important;
     }
     .st-key-bass_match_brief [data-testid="stCaptionContainer"] p {
-        font-size: 0.78rem !important;
+        font-size: 0.85rem !important;
         color: #94a3b8 !important;
         line-height: 1.3 !important;
     }
@@ -509,15 +525,15 @@ GLOBAL_CSS = """
         border: 1px solid rgba(255, 255, 255, 0.06) !important;
         border-radius: 6px !important;
         background: rgba(0, 0, 0, 0.12) !important;
-        margin-top: 0.2rem !important;
+        margin-top: 0.15rem !important;
     }
     .finder-constraint-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
-        gap: .35rem;
-        margin-top: .15rem;
-        margin-bottom: .25rem;
-        padding: .35rem;
+        gap: .30rem;
+        margin-top: .10rem;
+        margin-bottom: .20rem;
+        padding: .30rem;
         background: rgba(0, 0, 0, 0.18);
         border-radius: 6px;
         border: 1px solid rgba(255, 255, 255, 0.06);
@@ -526,7 +542,7 @@ GLOBAL_CSS = """
         min-width: 0;
         border: 1px solid rgba(255, 255, 255, 0.05);
         border-radius: 4px;
-        padding: .32rem .5rem;
+        padding: .28rem .45rem;
         background: rgba(255, 255, 255, 0.02);
         transition: background .15s ease, border-color .15s ease;
     }
@@ -535,20 +551,20 @@ GLOBAL_CSS = """
         border-color: rgba(255, 255, 255, 0.1);
     }
     .finder-constraint-label {
-        color: #64748b;
-        font-size: .65rem;
+        color: #94a3b8;
+        font-size: .80rem;
         font-weight: 600;
-        letter-spacing: .03em;
+        letter-spacing: .02em;
         line-height: 1;
         text-transform: none;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
     }
     .finder-constraint-value {
         color: #f1f5f9;
-        font-size: .88rem;
+        font-size: .96rem;
         font-weight: 600;
         line-height: 1.25;
-        margin-top: .15rem;
+        margin-top: .12rem;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -589,22 +605,23 @@ GLOBAL_CSS = """
         border: 1px solid rgba(255,255,255,.16) !important;
         border-radius: 6px !important;
         background: #141b27 !important;
-        padding: .35rem .55rem !important;
+        padding: .28rem .50rem !important;
     }
-    .stMetric label {
-        font-size: 0.70rem !important;
+    .stMetric label,
+    .stMetric [data-testid="stMetricLabel"] p {
+        font-size: 0.82rem !important;
         font-weight: 600 !important;
         color: #94a3b8 !important;
-        margin-bottom: -0.2rem !important;
+        margin-bottom: -0.15rem !important;
         text-transform: none;
         letter-spacing: 0.02em;
     }
     .stMetric div[data-testid="stMetricValue"] {
-        font-size: 1.05rem !important;
+        font-size: 1.18rem !important;
         font-weight: 700 !important;
         color: #f8fafc !important;
         line-height: 1.2 !important;
-        padding-bottom: 0.1rem !important;
+        padding-bottom: 0.05rem !important;
     }
 
     [data-testid="stVerticalBlockBorderWrapper"] {
@@ -616,16 +633,16 @@ GLOBAL_CSS = """
     /* Tabs emerald indicator & text */
     div[data-testid="stTabs"] { gap: 0 !important; }
     button[data-baseweb="tab"] {
-        padding-top: 0.3rem !important;
-        padding-bottom: 0.3rem !important;
-        font-weight: 500 !important;
-        font-size: 0.85rem !important;
-        color: rgba(255, 255, 255, 0.7) !important;
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        color: rgba(255, 255, 255, 0.72) !important;
     }
     button[data-baseweb="tab"][aria-selected="true"] {
         color: #10b981 !important;
         border-bottom-color: #10b981 !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
     }
     div[data-testid="stTabs"] div[data-baseweb="tab-highlight"],
     div[data-testid="stTabs"] div[data-baseweb="tab-border"] {
@@ -840,14 +857,14 @@ GLOBAL_CSS = """
         background: rgba(15, 23, 42, 0.7) !important;
         border: 1px solid rgba(255, 255, 255, 0.08) !important;
         border-radius: 8px !important;
-        padding: 0.45rem 0.75rem !important;
-        margin-bottom: 0.5rem !important;
+        padding: 0.35rem 0.65rem !important;
+        margin-bottom: 0.35rem !important;
     }
     .st-key-bass_match_result_actions div[data-testid="stButton"] button {
-        min-height: 2.6rem;
+        min-height: 2.4rem;
         border-radius: 6px;
         font-weight: 700;
-        font-size: 0.92rem;
+        font-size: 0.98rem;
         letter-spacing: 0.01em;
         transition: all 0.16s ease !important;
     }
@@ -866,7 +883,7 @@ GLOBAL_CSS = """
         content: " →";
     }
     .st-key-bass_match_result_actions div[data-testid="stCaptionContainer"] p {
-        font-size: 0.82rem !important;
+        font-size: 0.86rem !important;
         color: #94a3b8 !important;
         margin: 0 !important;
         line-height: 1.35 !important;
@@ -879,7 +896,7 @@ GLOBAL_CSS = """
         padding: 0.1rem 0;
     }
     .bass-match-results-summary-primary {
-        font-size: 0.92rem;
+        font-size: 1.02rem;
         font-weight: 600;
         color: #e2e8f0;
         letter-spacing: -0.01em;
@@ -890,8 +907,8 @@ GLOBAL_CSS = """
         font-weight: 700;
     }
     .bass-match-results-summary-meta {
-        font-size: 0.78rem;
-        color: #64748b;
+        font-size: 0.84rem;
+        color: #94a3b8;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         letter-spacing: 0.01em;
     }
@@ -900,7 +917,7 @@ GLOBAL_CSS = """
         min-height: 2.05rem !important;
         height: 2.05rem !important;
         padding: 0.15rem 0.65rem !important;
-        font-size: 0.80rem !important;
+        font-size: 0.85rem !important;
         font-weight: 600 !important;
         border-radius: 5px !important;
         background: rgba(255, 255, 255, 0.04) !important;
@@ -924,7 +941,7 @@ GLOBAL_CSS = """
     }
     .st-key-finder_match_preview_card h4,
     .st-key-finder_comparison_preview_card h4 {
-        font-size: 0.98rem !important;
+        font-size: 1.02rem !important;
         font-weight: 700 !important;
         color: #f8fafc !important;
         margin-bottom: 0.2rem !important;
@@ -934,33 +951,37 @@ GLOBAL_CSS = """
         background: rgba(255, 255, 255, 0.025) !important;
         border: 1px solid rgba(255, 255, 255, 0.06) !important;
         border-radius: 6px !important;
-        padding: 0.3rem 0.5rem !important;
+        padding: 0.28rem 0.5rem !important;
     }
     .st-key-finder_match_preview_card .stMetric [data-testid="stMetricValue"],
     .st-key-finder_comparison_preview_card .stMetric [data-testid="stMetricValue"] {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-        font-size: 1.15rem !important;
+        font-size: 1.22rem !important;
         font-weight: 700 !important;
         color: #f8fafc !important;
     }
     .st-key-finder_match_preview_card .stMetric [data-testid="stMetricLabel"] p,
     .st-key-finder_comparison_preview_card .stMetric [data-testid="stMetricLabel"] p {
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
-        font-size: 0.68rem !important;
+        font-size: 0.80rem !important;
         font-weight: 600 !important;
         text-transform: none !important;
-        letter-spacing: 0.03em !important;
+        letter-spacing: 0.02em !important;
         color: #94a3b8 !important;
     }
     [data-testid="stDataFrame"] {
         border: 1px solid rgba(255, 255, 255, 0.09) !important;
         border-radius: 6px !important;
     }
+    [data-testid="stDataFrame"] div[role="gridcell"],
+    [data-testid="stDataFrame"] div[role="columnheader"] {
+        font-size: 0.92rem !important;
+    }
     div[data-testid="stDownloadButton"] button {
         min-height: 2.1rem !important;
         height: 2.1rem !important;
         padding: 0.15rem 0.75rem !important;
-        font-size: 0.80rem !important;
+        font-size: 0.85rem !important;
         font-weight: 600 !important;
         border-radius: 5px !important;
         background: rgba(255, 255, 255, 0.04) !important;
@@ -1039,12 +1060,12 @@ def _load_type_card_styles(version: str = "square_v5") -> str:
             opacity: 0;
         }
         .load-card-label {
-            color: rgba(250,250,250,.88);
-            font-size: .7rem;
-            font-weight: 650;
-            line-height: .9rem;
-            margin: .2rem 0 .15rem;
-            min-height: .9rem;
+            color: rgba(250,250,250,.92);
+            font-size: .82rem;
+            font-weight: 700;
+            line-height: 1.0rem;
+            margin: .15rem 0 .10rem;
+            min-height: 1.0rem;
             text-align: center;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button:hover {
@@ -1108,8 +1129,8 @@ def _workspace_tab_styles() -> str:
             -webkit-backdrop-filter: blur(16px) !important;
             border: 1px solid rgba(255, 255, 255, 0.09) !important;
             border-radius: 8px !important;
-            padding: 0.35rem 0.65rem !important;
-            margin-bottom: 0.85rem !important;
+            padding: 0.25rem 0.60rem !important;
+            margin-bottom: 0.45rem !important;
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
         }
         .st-key-global_app_bar div[data-testid="stHorizontalBlock"] {
@@ -1189,8 +1210,8 @@ def _workspace_tab_styles() -> str:
             line-height: 2.1rem !important;
             box-sizing: border-box !important;
             padding: 0 0.60rem !important;
-            font-size: 0.80rem !important;
-            font-weight: 500 !important;
+            font-size: 0.88rem !important;
+            font-weight: 600 !important;
             letter-spacing: 0.015em !important;
             border-radius: 6px !important;
             background: rgba(255, 255, 255, 0.04) !important;
@@ -1208,7 +1229,7 @@ def _workspace_tab_styles() -> str:
         .st-key-global_app_bar button[data-testid="stPopoverButton"] *,
         .st-key-global_app_bar div[data-testid="stButton"] > button * {
             white-space: nowrap !important;
-            font-size: 0.80rem !important;
+            font-size: 0.88rem !important;
             margin: 0 !important;
         }
         .st-key-global_app_bar button[data-testid="stPopoverButton"]:hover,
@@ -1272,8 +1293,8 @@ def _workspace_tab_styles() -> str:
             background-color: #000000;
             border: 1px solid rgba(16,185,129,.46);
             border-radius: .65rem;
-            height: 3.6rem;
-            min-height: 3.6rem;
+            height: 3.2rem;
+            min-height: 3.2rem;
             overflow: hidden;
             padding: 0;
             position: relative;

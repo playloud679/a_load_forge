@@ -101,8 +101,17 @@ Removing that guard makes the top-row buttons visible but unclickable.
   (`#10b981`) exclusively for active `:focus-within` and primary call-to-actions.
 - Menu dropdown hover items use clean neutral highlighting (`rgba(255, 255, 255, 0.08)`) with emerald reserved for
   the currently active selection.
-- `[data-testid="stDataFrame"]` and `div[data-testid="stDownloadButton"]` are styled with subtle dark CAD
-  borders and minimalist button hover states.
+### Viewport Height Optimization & High Legibility
+
+- Root font size anchored to `16px` with antialiased and legible rendering across devices.
+- Sidebar width optimized to `24.5rem` (392px) on desktop to prevent multi-column controls from wrapping and overflowing vertically.
+- Vertical block gaps tightened (`gap: 0.35rem` in sidebar, `0.45rem` in main container) with minimal top/bottom block container padding, preserving substantial vertical space.
+- Legibility-first typography hierarchy: widget labels boosted to `0.94rem` (main) and `0.90rem` (sidebar), captions to `0.85rem` with high-contrast `rgba(255, 255, 255, 0.72)`.
+- Metric widgets (`.stMetric`) scaled to `0.82rem` labels and `1.18rem`–`1.30rem` values.
+- Constraint grid labels boosted to `0.80rem` with values at `0.96rem`.
+- Main tabs scaled to `0.95rem` (`font-weight: 600`) and dataframe grid cells scaled to `0.92rem`.
+- Top app bar buttons scaled to `0.88rem` with bottom margin reduced to `0.45rem`.
+- Sidebar illustrated workspace mode switch buttons adjusted to `3.2rem` height.
 
 
 

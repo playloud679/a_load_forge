@@ -30,6 +30,7 @@ All plotting and analysis-tab rendering.
 
 ## Invariants
 
+- Primary response and MIL charts use `height=380` (optimized from 420px) to ensure telemetry, charts, and subcontrols fit comfortably within desktop viewports without vertical scrolling.
 - Chart layers must filter data to the zoom window; unclipped marks past the
   x-domain make Vega shrink the plot area.
 - `@st.fragment` tabs rerun alone so switching Response/Ports/Atlas keeps the

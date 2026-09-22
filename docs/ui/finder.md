@@ -56,7 +56,7 @@ Finder tests (`_check_ui_finder_*`, `_check_ui_parallel_ranking_*`,
   Results (Phase E) makes the ranked candidates table visually dominant, presenting a compact two-tier header
   (`<count> matches · <loads> · <volume> · <objective> · <profile>` over `<N> evaluated · <T> s` telemetry)
   with an `Edit search` button (invoking `_on_finder_edit_search` to cleanly transition back to the brief), rank mode selector,
-  and the primary `Open this design in Box Design` / `Compare N designs in Box Design` toolbar positioned directly above the 680 px table.
+  and the primary `Open this design in Box Design` / `Compare N designs in Box Design` toolbar positioned directly above the dynamically capped table (capped at 480 px to fit standard viewports without page scrolling).
 - Search details expander hosts prefilter diagnostic metrics (`Pre-qualified`, `Ready simulations`, `Skipped a priori`, `Duplicates removed`),
   credits breakdown, the `Show disabled constraints` toggle and the full technical constraint grid.
 - `_finder_results_current` owns the existing context validation and legacy

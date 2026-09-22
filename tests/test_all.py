@@ -5792,7 +5792,7 @@ def _check_response_chart_domain_tracks_10hz_and_peak():
     assert zoom_domain == [68.0, 85.0], zoom_domain
     chart = _ui._plot_response(result, [], frequency_window=[20.0, 40.0])
     spec = chart.to_dict()
-    assert spec["height"] == 420, spec.get("height")
+    assert spec["height"] == 380, spec.get("height")
     assert "'domain': [20.0, 40.0]" in str(spec), spec
 
 
@@ -10798,7 +10798,7 @@ def _check_ui_finder_main_action_runs_search():
     assert ui_source.index("_render_finder_constraint_grid(visible_constraints)") < (
         ui_source.index('key="finder_run_search_main"')
     ), "the full-width CTA must be the last row below the compact brief"
-    assert '        width="stretch",\n        height=680,' in ui_source
+    assert '        width="stretch",\n        height=min(480, max(240, 38 + len(display_df) * 36)),' in ui_source
     finder_source = (ROOT / "src" / "ui" / "finder.py").read_text(encoding="utf-8")
     assert finder_source.index('key="finder_open_selected_design"') < (
         finder_source.index("table_state = st.dataframe(")
