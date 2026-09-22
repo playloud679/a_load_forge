@@ -50,12 +50,13 @@ Removing that guard makes the top-row buttons visible but unclickable.
 
 - `section[data-testid="stSidebar"] div[data-testid="stTabs"]` styles the sidebar tabs
   as a clean segmented control bar with dark container, subtle borders, and an emerald active indicator.
+  Single-tab lists (`:not(:has(button:nth-of-type(2)))`) are suppressed so Simple mode displays without redundant tab buttons.
 - `.st-key-sidebar_brief_header_container` and `.sidebar-brief-title` style the top brief header
   row housing the Search Brief title and aligned Advanced mode toggle switch.
 - The 7-card enclosure topology selector grid (`_load_type_card_styles()`) is always visible directly
   in the sidebar across both simple and advanced modes, retaining full brand artwork and instant click states.
-- Non-advance (Simple) mode organizes the entire workflow in a single tab (`Search brief`), exposing
-  enclosure setup, volume, goal, and library filters without tab-switching.
+- Non-advance (Simple) mode organizes the entire workflow in a single unified panel without artificial tab headers,
+  exposing enclosure setup, volume, goal, and library filters without tab-switching.
 - `.sidebar-section-title` provides subtle CAD-like technical subsection titles.
 - `.sidebar-brief-summary-card`, `.sidebar-brief-tag`, and `.sidebar-brief-count` style
   the persistent summary card at the bottom of the sidebar.
@@ -65,11 +66,11 @@ Removing that guard makes the top-row buttons visible but unclickable.
 - `.st-key-temp_bass_match_page div[data-testid="stTabs"] div[role="tablist"]` hides the Run/Results
   tablist header so workflow states operate sequentially rather than as competing tabs.
 - `.st-key-bass_match_brief` unifies the search brief into a sleek CAD telemetry panel
-  with `.bass-match-hero-title`, `.bass-match-spec-line-primary` (emerald specs), `.bass-match-spec-line-secondary`,
-  and `.bass-match-readiness-row` (monospace readiness badge).
+  with `.bass-match-hero-title`, `.bass-match-brief-row`, `.bass-match-spec-line-primary` (emerald specs),
+  `.bass-match-spec-line-secondary`, and `.bass-match-readiness-row` (monospace readiness badge) on a clean horizontal line.
 - `.finder-constraint-grid` and `.finder-constraint` format active constraints as an
-  integrated specification matrix organized inside the `Search details ▸` expander.
-- `.st-key-finder_run_search_main` styles the primary dominant emerald Run CTA.
+  integrated specification matrix organized inside the collapsed `Search details ▸` expander.
+- `.st-key-finder_run_search_main` styles the primary dominant emerald Run CTA positioned prominently in the hero area.
 - `.st-key-finder_candidate_pool_expander` styles the secondary candidate pool accordion.
 
 ### Results State Styling (Phase E)

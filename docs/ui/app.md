@@ -45,13 +45,13 @@ project context on the left (name, save state, visibility) and restrained second
 on the right (Projects, Community, Account).
 In Bass Match, the sidebar is organized as a clean Search Brief:
 the Advanced mode toggle is positioned directly at the top alongside the SEARCH BRIEF
-header (`.st-key-sidebar_brief_header_container`) with mode captions.
+header (`.st-key-sidebar_brief_header_container`) with concise mode captions ("Simple mode" / "Advanced mode").
 The 7-card enclosure topology selector grid is restored and always visible directly on the
-sidebar canvas, retaining full brand identity and instant load toggling without hidden menus.
-Non-advanced (Simple) mode presents the complete workflow in a single unified tab (`Search brief`),
+sidebar canvas, retaining full brand identity and instant load toggling without hidden menus or redundant captions.
+Non-advanced (Simple) mode presents the complete workflow in a single unified panel without artificial tab headers,
 uniting guided setup, the always-visible load cards grid, volume target, optimization goal,
 and directly visible library filters (search preset, brand, size, class, price) for an effortless
 single-panel experience. When Advanced mode is toggled, it expands into three dedicated tabs
-(`Load type`, `Performance filters`, `Library filters`) with deep evaluation controls and detailed
-acoustic limit sliders. The bottom Advanced toggle is scoped exclusively to Box Design to avoid duplicate widget keys.
+(`Load type`, `Performance filters`, `Library filters`) with deep evaluation controls, detailed
+acoustic limit sliders, and engine-only topology notes. The bottom Advanced toggle is scoped exclusively to Box Design to avoid duplicate widget keys.
 Existing public, shared, billing and admin links retain their handling.

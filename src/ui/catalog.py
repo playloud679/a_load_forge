@@ -981,8 +981,6 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
         aggregate = [str(value) for value in selected] or ["All"]
         st.session_state[key] = aggregate
         st.session_state[synced_key] = tuple(aggregate)
-    if not _finder._show_advanced_controls():
-        st.caption("Advanced filters (Provenance, Size, Class) are hidden.")
 
     preset_currencies = _preset_price_currencies(all_preset_names)
     if preset_currencies:

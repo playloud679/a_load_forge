@@ -350,14 +350,9 @@ def main() -> None:
                              "driver T/S overrides. Off keeps the guided workflow.",
                     )
                 if _finder._show_advanced_controls():
-                    st.caption(
-                        "Advanced mode · expert controls and full filter matrix are open."
-                    )
+                    st.caption("Advanced mode")
                 else:
-                    st.caption(
-                        "Simple mode · guided scenario, load, volume and goal. Enable "
-                        "Advanced for full controls."
-                    )
+                    st.caption("Simple mode")
 
             if "finder_load_types" not in st.session_state:
                 st.session_state["finder_load_types"] = [
@@ -373,8 +368,6 @@ def main() -> None:
                     st.markdown('<div class="sidebar-section-title">Target enclosure</div>', unsafe_allow_html=True)
                     _finder._render_finder_scenario_selector()
                     _state._render_load_type_buttons(_finder_load_set, single_select=False)
-                    st.caption("Toggle the loads you want to compare. At least one must stay active.")
-                    _state._render_engine_only_topologies_note()
                     _finder._render_find_driver_target_sidebar()
 
                     st.markdown('<div class="sidebar-section-title">Acoustic goal</div>', unsafe_allow_html=True)
@@ -392,7 +385,6 @@ def main() -> None:
                     st.markdown('<div class="sidebar-section-title">Target enclosure</div>', unsafe_allow_html=True)
                     _finder._render_finder_scenario_selector()
                     _state._render_load_type_buttons(_finder_load_set, single_select=False)
-                    st.caption("Toggle the loads you want to compare. At least one must stay active.")
                     _state._render_engine_only_topologies_note()
                     _finder._render_find_driver_target_sidebar()
                     with st.expander("Advanced evaluation", expanded=True):
@@ -770,10 +762,7 @@ def main() -> None:
                          "direct editing.",
                 )
                 if not _finder._show_advanced_controls():
-                    st.caption(
-                        "Simple mode · the optimizer chooses the box. Enable "
-                        "Advanced to edit voltage, constraints and port details."
-                    )
+                    st.caption("Simple mode")
             # Simulate Inputs
                 if _finder._show_advanced_controls():
                     sim_c1, sim_c2 = st.columns(2)
@@ -1176,14 +1165,9 @@ def main() -> None:
                      "driver T/S overrides. Off keeps the guided workflow.",
             )
             if _finder._show_advanced_controls():
-                st.caption(
-                    "Advanced mode · expert controls are open in the active tabs."
-                )
+                st.caption("Advanced mode")
             else:
-                st.caption(
-                    "Simple mode · guided scenario, load, volume and goal. Enable "
-                    "Advanced for full controls."
-                )
+                st.caption("Simple mode")
     if _public_project_requested:
         if _embed_mode_requested:
             _projects._render_embed_project_widget(_public_project_requested)

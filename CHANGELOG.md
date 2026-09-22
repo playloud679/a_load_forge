@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.18.19 (2026-09-23)
+
+- **UI & Layout — Decluttering, Visual Noise Reduction & Clean CAD Layout**:
+  - Streamlined Bass Match hero brief card into a clean single-line flex row (`.bass-match-brief-row`) combining primary enclosure specs, optimization objective, and candidate readiness count pill on one horizontal bar.
+  - Removed wordy, chatty subtitles ("Find drivers matching your design constraints.") and diagnostic jargon.
+  - Positioned the prominent full-width "Run Bass Match" green CTA button directly inside the brief card for instant clarity and zero vertical scrolling.
+  - Re-architected sidebar mode captions from long explanatory sentences ("Simple mode · guided scenario, load, volume and goal. Enable Advanced for full controls.") to concise, elegant labels ("Simple mode" / "Advanced mode").
+  - Removed redundant instructional caption under load buttons ("Toggle the loads you want to compare. At least one must stay active.").
+  - Suppressed engine/API-only topologies note in Simple mode, keeping it reserved strictly for Advanced evaluation.
+  - Eliminated artificial single-tab button headers in the sidebar (`Search brief`) using CSS `:not(:has(button:nth-of-type(2)))`, delivering a pure, single-panel experience.
+  - Compacted alert containers (`[data-testid="stAlertContainer"]`) and expander metrics for quiet, professional CAD aesthetics.
+  - Full active suite: **238 tests passing, 0 failures, 0 skipped**.
+
 ## 0.18.18 (2026-09-22)
 
 - **UI & Layout — Viewport Height Optimization, Overlap Fix & High Legibility**:

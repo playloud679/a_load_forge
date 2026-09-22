@@ -1803,20 +1803,19 @@ def _render_bass_match_hero(
         st.markdown(
             f"""<div class="bass-match-hero-header">
                 <div class="bass-match-hero-title">Bass Match · Your bass brief</div>
-                <div class="bass-match-hero-subtitle">Find drivers matching your design constraints.</div>
-                <div class="bass-match-brief-summary">
-                    <div class="bass-match-spec-line-primary">{primary_specs}</div>
-                    <div class="bass-match-spec-line-secondary">{secondary_specs}</div>
-                </div>
-                <div class="bass-match-readiness-row">
-                    <span class="bass-match-readiness-val">{candidates_ready_str}</span>
-                    <span class="bass-match-readiness-sep">·</span>
-                    <span class="bass-match-readiness-val">{sims_ready_str}</span>{cost_str}
+                <div class="bass-match-brief-row">
+                    <span class="bass-match-spec-line-primary">{primary_specs}</span>
+                    <span class="bass-match-spec-sep">·</span>
+                    <span class="bass-match-spec-line-secondary">{secondary_specs}</span>
+                    <span class="bass-match-readiness-row">
+                        <span class="bass-match-readiness-val">{candidates_ready_str}</span>
+                        <span class="bass-match-readiness-sep">·</span>
+                        <span class="bass-match-readiness-val">{sims_ready_str}</span>{cost_str}
+                    </span>
                 </div>
             </div>""",
             unsafe_allow_html=True,
         )
-
         with st.expander("Search details", expanded=False):
             m1, m2, m3, m4 = st.columns(4)
             m1.metric(

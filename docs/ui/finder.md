@@ -51,8 +51,9 @@ Finder tests (`_check_ui_finder_*`, `_check_ui_parallel_ranking_*`,
 - Main-area stateful workflow (`temp_bass_match_page`) functions as sequential workflow
   states rather than peer navigation tabs (the tablist header is hidden via CSS).
   Run displays a compact technical brief hierarchy (Phase D): primary specs (`Loads · Configuration · Volume`),
-  secondary specs (`Objective · Profile`), and a monospace telemetry row (`<N> candidates ready · <M> simulations`),
-  while individual metric boxes and the constraint grid are organized neatly inside the `Search details ▸` expander.
+  secondary specs (`Objective · Profile`), and a monospace telemetry pill (`<N> candidates ready · <M> simulations`)
+  unified on a single horizontal row (`.bass-match-brief-row`), while prefilter metrics and the constraint grid
+  are organized neatly inside the collapsed `Search details ▸` expander above the prominent full-width Run CTA.
   Results (Phase E) makes the ranked candidates table visually dominant, presenting a compact two-tier header
   (`<count> matches · <loads> · <volume> · <objective> · <profile>` over `<N> evaluated · <T> s` telemetry)
   with an `Edit search` button (invoking `_on_finder_edit_search` to cleanly transition back to the brief), rank mode selector,

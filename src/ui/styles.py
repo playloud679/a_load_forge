@@ -141,14 +141,25 @@ GLOBAL_CSS = """
         filter: hue-rotate(150deg) saturate(2.4) contrast(1.55) brightness(1.04);
     }
     /* Instruction bands: neutral by default, emerald for actionable selection hints. */
+    [data-testid="stAlertContainer"] {
+        padding: 0.35rem 0.75rem !important;
+        margin-bottom: 0.45rem !important;
+    }
     [data-testid="stAlertContainer"]:has([data-testid="stAlertContentInfo"]) {
-        background-color: rgba(107,114,128,.16) !important;
-        border: 1px solid rgba(156,163,175,.34) !important;
+        background-color: rgba(107,114,128,.14) !important;
+        border: 1px solid rgba(156,163,175,.30) !important;
         color: #e5e7eb !important;
         border-radius: 6px !important;
+        font-size: 0.88rem !important;
     }
     [data-testid="stAlertContainer"] [data-testid="stAlertContentInfo"] {
         color: inherit !important;
+        font-size: 0.88rem !important;
+    }
+    /* Hide single-tab bar headers in sidebar so lone tabs don't show redundant fake buttons */
+    [data-testid="stSidebar"] [data-baseweb="tab-list"]:not(:has(button:nth-of-type(2))),
+    [data-testid="stSidebar"] [role="tablist"]:not(:has(button:nth-of-type(2))) {
+        display: none !important;
     }
     [class*="st-key-emerald_info_"] [data-testid="stAlertContainer"] {
         background-color: rgba(16,185,129,.13) !important;
@@ -318,6 +329,9 @@ GLOBAL_CSS = """
         display: flex !important;
         width: 100% !important;
     }
+    section[data-testid="stSidebar"] div[data-testid="stTabs"] div[role="tablist"]:not(:has(button:nth-of-type(2))) {
+        display: none !important;
+    }
     section[data-testid="stSidebar"] div[data-testid="stTabs"] button[role="tab"] {
         flex: 1 1 0% !important;
         text-align: center !important;
@@ -420,33 +434,32 @@ GLOBAL_CSS = """
     .bass-match-hero-header {
         display: flex;
         flex-direction: column;
-        gap: 0.15rem;
+        gap: 0.35rem;
+        margin-bottom: 0.60rem;
     }
     .bass-match-hero-title {
-        font-size: 1.18rem;
+        font-size: 1.15rem;
         font-weight: 700;
         color: #f8fafc;
         letter-spacing: -0.01em;
     }
-    .bass-match-hero-subtitle {
-        font-size: 0.88rem;
-        color: #94a3b8;
-        margin-bottom: 0.45rem;
-    }
-    .bass-match-brief-summary {
+    .bass-match-brief-row {
         display: flex;
-        flex-direction: column;
-        gap: 0.15rem;
-        margin-bottom: 0.35rem;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.65rem;
     }
     .bass-match-spec-line-primary {
-        font-size: 1.10rem;
+        font-size: 1.05rem;
         font-weight: 600;
         color: #10b981;
         letter-spacing: 0.01em;
     }
+    .bass-match-spec-sep {
+        color: rgba(255, 255, 255, 0.25);
+    }
     .bass-match-spec-line-secondary {
-        font-size: 0.92rem;
+        font-size: 0.95rem;
         font-weight: 500;
         color: #cbd5e1;
     }
@@ -455,18 +468,30 @@ GLOBAL_CSS = """
         align-items: center;
         gap: 0.45rem;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-        font-size: 0.88rem;
+        font-size: 0.85rem;
         color: #94a3b8;
         background: rgba(255, 255, 255, 0.03);
         border: 1px solid rgba(255, 255, 255, 0.06);
         border-radius: 5px;
-        padding: 0.25rem 0.55rem;
+        padding: 0.20rem 0.50rem;
         width: fit-content;
-        margin-top: 0.25rem;
-        margin-bottom: 0.35rem;
+        margin-left: auto;
     }
     .bass-match-readiness-sep {
         color: rgba(255, 255, 255, 0.25);
+    }
+    [data-testid="stExpander"] [data-testid="stMetric"] {
+        background: rgba(255, 255, 255, 0.02) !important;
+        border: 1px solid rgba(255, 255, 255, 0.06) !important;
+        border-radius: 6px !important;
+        padding: 0.35rem 0.60rem !important;
+    }
+    [data-testid="stExpander"] [data-testid="stMetricLabel"] p {
+        font-size: 0.78rem !important;
+        color: #94a3b8 !important;
+    }
+    [data-testid="stExpander"] [data-testid="stMetricValue"] {
+        font-size: 1.15rem !important;
     }
 
     .st-key-active_load_summary {
