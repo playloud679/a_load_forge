@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.18.14 (2026-09-22)
+
+- **UI — Bass Match Sidebar Enclosure & Filter Integration**:
+  - Restored the 7-card illustrated enclosure topology grid (`_load_type_card_styles`) directly onto the sidebar canvas (always visible, no popover).
+  - Non-advance (Simple) mode operates in a single unified tab (`Search brief`) with target enclosure, goal, and library filters (search preset, brand, size, class, price) directly visible without tab switching.
+  - Advanced mode provides the three dedicated tabs (`Load type`, `Performance filters`, `Library filters`) for granular engineering controls.
+  - Synchronized documentation in `docs/ui/app.md` and `docs/ui/styles.md`.
+  - Full active suite: **236 tests passing, 0 failures, 0 skipped**.
+
 ## 0.18.13 (2026-09-22)
 
 - **Bass Match UI/UX Transformation (Phases A–F)**:
