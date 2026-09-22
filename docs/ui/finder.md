@@ -21,7 +21,7 @@ results, the candidate pool and the run statistics.
 - Workspace UI: `_render_find_driver_workspace`, `_finder_results_current`,
   `_render_finder_results`, `_render_bass_match_hero`,
   `_render_finder_run_statistics`, `_finder_per_load_stats_str`,
-  `_render_candidate_pool` (`@st.fragment`), `_render_find_driver_actions`,
+  `_render_candidate_pool` (`@st.fragment`), `_render_find_driver_actions` (search brief summary),
   `_render_find_driver_goal_sidebar`, `_render_find_driver_target_sidebar`,
   `_render_finder_scenario_selector`, `_apply_finder_scenario`,
   `_show_advanced_controls`, `_run_find_driver_search`.
@@ -48,13 +48,17 @@ Finder tests (`_check_ui_finder_*`, `_check_ui_parallel_ranking_*`,
 
 ## Separate Run and Results pages (v0.18.7)
 
-- Main-area stateful tabs (`temp_bass_match_page`) render only the active page.
-  Run contains the brief, prefilter metrics, credits, Run action and candidate
-  pool. Results contains compact summary/ranking and selection/Open controls,
-  then a 680 px table; CSV, run statistics, diagnostics and previews follow it.
-- Run displays the full grid of active constraints directly in the brief.
-  `Show disabled constraints` reveals Off/Any/N/A entries; it defaults off and
-  only changes presentation. Prefilter diagnostics remain under Search details.
+- Main-area stateful workflow (`temp_bass_match_page`) functions as sequential workflow
+  states rather than peer navigation tabs (the tablist header is hidden via CSS).
+  Run displays a compact technical brief hierarchy (Phase D): primary specs (`Loads · Configuration · Volume`),
+  secondary specs (`Objective · Profile`), and a monospace telemetry row (`<N> candidates ready · <M> simulations`),
+  while individual metric boxes and the constraint grid are organized neatly inside the `Search details ▸` expander.
+  Results (Phase E) makes the ranked candidates table visually dominant, presenting a compact two-tier header
+  (`<count> matches · <loads> · <volume> · <objective> · <profile>` over `<N> evaluated · <T> s` telemetry)
+  with an `Edit search` button (invoking `_on_finder_edit_search` to cleanly transition back to the brief), rank mode selector,
+  and the primary `Open this design in Box Design` / `Compare N designs in Box Design` toolbar positioned directly above the 680 px table.
+- Search details expander hosts prefilter diagnostic metrics (`Pre-qualified`, `Ready simulations`, `Skipped a priori`, `Duplicates removed`),
+  credits breakdown, the `Show disabled constraints` toggle and the full technical constraint grid.
 - `_finder_results_current` owns the existing context validation and legacy
   migration. Invalidating search inputs forces Run before tab creation.
   Ordering and row selection preserve Results; background catalog updates do

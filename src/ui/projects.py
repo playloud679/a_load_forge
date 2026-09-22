@@ -29,6 +29,7 @@ from . import catalog as _catalog
 from . import constants as _constants
 from . import runtime as _runtime
 from . import state as _state
+from . import styles as _styles
 
 
 def _compact_result_row(row: dict) -> dict:
@@ -463,11 +464,13 @@ def _apply_pending_cloud_record() -> int:
     _invalidate_cloud_project_list()
     # Open the project in its last engineering workspace, defaulting to Box
     # Design when the record carries no valid workspace (GOLDEN_STD entry rules).
-    restored_workspace = st.session_state.get("workspace_mode")
-    if restored_workspace in ("Bass Match", "Box Design"):
-        st.session_state["_last_engineering_workspace"] = restored_workspace
+    record_workspace = (record.parameters.get("bass_match") or {}).get("state", {}).get("workspace_mode")
+    if record_workspace in ("Bass Match", "Box Design"):
+        st.session_state["workspace_mode"] = record_workspace
+        st.session_state["_last_engineering_workspace"] = record_workspace
     else:
         st.session_state["workspace_mode"] = "Box Design"
+        st.session_state["_last_engineering_workspace"] = "Box Design"
     if notice:
         st.toast(notice)
     return applied
@@ -533,12 +536,27 @@ def _cloud_autosave_step(
         _invalidate_cloud_project_list()
     return status
 
+def _render_static_status_badge(label: str, color: str, bg: str, border: str) -> None:
+    st.markdown(
+        f"<span class='topbar-status-badge' title='Save status' style='"
+        f"display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; "
+        f"height: 2.1rem; width: 100%; border-radius: 6px; box-sizing: border-box; "
+        f"background: {bg}; border: 1px solid {border}; "
+        f"font-size: 0.74rem; font-weight: 500; color: {color}; "
+        f"font-family: ui-monospace, SFMono-Regular, Menlo, monospace; "
+        f"letter-spacing: 0.02em; white-space: nowrap; user-select: none; margin: 0; padding: 0 0.55rem;'>"
+        f"<span style='width: 5px; height: 5px; border-radius: 50%; background: {color}; "
+        f"box-shadow: 0 0 6px {color}; display: inline-block; flex-shrink: 0;'></span>"
+        f"{html.escape(label)}</span>",
+        unsafe_allow_html=True,
+    )
+
 def _render_cloud_persistence_status() -> None:
     if not (_runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER is not None):
-        st.caption("Session only")
+        _render_static_status_badge("Session only", "#94a3b8", "rgba(148, 163, 184, 0.08)", "rgba(148, 163, 184, 0.20)")
         return
     if not _has_project_work():
-        st.caption("Not saved")
+        _render_static_status_badge("Not saved", "#94a3b8", "rgba(148, 163, 184, 0.08)", "rgba(148, 163, 184, 0.20)")
         return
     _cloud_persistence_fragment()
 
@@ -572,11 +590,17 @@ def _cloud_persistence_fragment() -> None:
         if status in {"unsaved", "saving", "retrying", "name_required"}
         else "#f87171"
     )
-    st.markdown(
-        f"<div title='Save status' style='font-size:.76rem;"
-        f"color:{color};margin:-.25rem 0 .45rem 0'>● {html.escape(label)}</div>",
-        unsafe_allow_html=True,
+    badge_bg = (
+        "rgba(16, 185, 129, 0.10)" if status == "saved" else
+        "rgba(245, 158, 11, 0.10)" if status in {"unsaved", "saving", "retrying", "name_required"} else
+        "rgba(239, 68, 68, 0.10)"
     )
+    badge_border = (
+        "rgba(16, 185, 129, 0.25)" if status == "saved" else
+        "rgba(245, 158, 11, 0.25)" if status in {"unsaved", "saving", "retrying", "name_required"} else
+        "rgba(239, 68, 68, 0.25)"
+    )
+    _render_static_status_badge(label, color, badge_bg, badge_border)
     if status in {"failed", "conflict"}:
         error_kind = str(st.session_state.get("_cloud_save_error_kind", "unknown"))
         st.error(_cloud_persistence_error_message(error_kind))
@@ -1250,35 +1274,112 @@ def _render_studio_start() -> None:
                 )
 
 def _render_main_account_header() -> None:
-    """Shared project context and secondary account/discovery access."""
+    """Consolidated single-row Global Application Bar: Project context on left, Account & secondary nav on right."""
+    if st.session_state.get("workspace_mode") in {"Bass Match", "Box Design"}:
+        st.session_state["_project_started"] = True
+    st.session_state["project_name"] = _project_display_name(st.session_state.get("project_name", ""))
+
     acc = (
         _account._get_current_user_account()
         if _runtime._CURRENT_SAAS_USER is not None
         else None
     )
-    _render_project_header()
-    summary_col, actions_col = st.columns([5.2, 1.4], vertical_alignment="center")
-    with summary_col:
-        if acc and _runtime._CURRENT_SAAS_USER is not None:
-            st.caption(f"{acc.plan.upper()} · {acc.credits_balance:,} credits")
-    with actions_col:
-        with st.expander("Account", expanded=False):
-            if acc:
-                _render_billing_action_button(acc)
+
+    st.markdown(_styles._workspace_tab_styles(), unsafe_allow_html=True)
+
+    with st.container(key="global_app_bar"):
+        name_col, save_col, vis_col, _, nav_proj, nav_comm, nav_acc = st.columns(
+            [2.4, 1.8, 1.3, 1.5, 1.1, 1.2, 1.2],
+            vertical_alignment="center",
+        )
+        with name_col:
+            with st.popover(f"📁 {st.session_state['project_name']}", width="stretch"):
+                st.markdown("**Rename Project**")
+                name_key = f"temp_project_header_name_{st.session_state.get('_cloud_project_id', 'draft')}_{st.session_state['project_name']}"
+                st.text_input("Project name", value=st.session_state["project_name"], key=name_key, max_chars=80)
+                st.button("Rename", key="action_project_header_rename", on_click=_rename_project_from_header, args=(name_key,))
+        with save_col:
+            _render_cloud_persistence_status()
+        with vis_col:
+            try:
+                publications = _project_publications()
+                visible = [p for p in publications if p.visibility != "unpublished"]
+                current = next((p for p in visible if p.visibility == "public"), visible[0] if visible else None)
+                visibility = current.visibility.capitalize() if current else "Private"
+                vis_icon = "🔒" if visibility == "Private" else "🌐" if visibility == "Public" else "🔗"
+                with st.popover(f"{vis_icon} {visibility}", width="stretch"):
+                    st.markdown(f"**Project Visibility · {visibility}**")
+                    st.caption("Private — Only you can access this project.\n\nUnlisted — Anyone with the link can view it.\n\nPublic — Visible in Community / Explore.")
+                    visibility_key = f"temp_project_visibility_{st.session_state.get('_cloud_project_id', 'draft')}"
+                    st.selectbox("Visibility", ["Private", "Unlisted", "Public"], index=["Private", "Unlisted", "Public"].index(visibility), key=visibility_key)
+                    st.button("Apply visibility", key="action_project_visibility", disabled=not (_runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER), on_click=_apply_header_visibility, args=(visibility_key,))
+                    if current:
+                        st.divider()
+                        st.link_button("View shared project page", _public_project_url(current.publication_id))
+                    if current and _publication_is_stale(current):
+                        st.divider()
+                        st.caption("Changes not published")
+                        st.session_state["_current_project_visibility"] = visibility
+                        st.button("Update public version", key="action_project_publish_update", on_click=_apply_header_visibility, args=("_current_project_visibility",), kwargs={"update": True})
+            except Exception:
+                _runtime.logger.exception("Project visibility unavailable")
+                st.error("Could not update or read project visibility. Please retry.")
+        with nav_proj:
             st.button(
-                "Manage Projects",
+                "Projects",
                 key="sidebar_manage_projects_btn",
+                type="secondary",
                 width="stretch",
                 on_click=_open_manage_projects_workspace,
             )
-            _render_hud_explore_community_button(key="sidebar_community_btn")
+        with nav_comm:
             st.button(
-                "Sign out",
-                key="sidebar_sign_out_btn",
+                "Community",
+                key="sidebar_community_btn",
+                type="secondary",
                 width="stretch",
-                help="Sign out / Logout",
-                on_click=_account._sign_out_saas,
+                on_click=_open_community_workspace,
             )
+        with nav_acc:
+            with st.popover("Account", width="stretch"):
+                if acc and _runtime._CURRENT_SAAS_USER is not None:
+                    user_label = _runtime._CURRENT_SAAS_USER.name or _runtime._CURRENT_SAAS_USER.email or "User"
+                    st.markdown(f"**{html.escape(user_label)}**")
+                    st.caption(f"{acc.plan.upper()} · {acc.credits_balance:,} credits")
+                    _render_billing_action_button(acc)
+                else:
+                    st.markdown("**Guest session**")
+                    st.caption("Local browser mode · Projects stored in browser memory.")
+                if _catalog._maintenance_allowed():
+                    st.divider()
+                    st.caption("ADMINISTRATION")
+                    if st.button("Catalog Maintenance", key="btn_admin_catalog_maint", width="stretch"):
+                        for k in ("explore", "p", "embed", "admin_users"):
+                            st.query_params.pop(k, None)
+                        st.query_params["maintenance"] = "1"
+                        st.session_state["workspace_mode"] = "Catalog Maintenance"
+                        st.rerun()
+                    if st.button("User Management", key="btn_admin_user_mgmt", width="stretch"):
+                        for k in ("explore", "p", "embed", "maintenance"):
+                            st.query_params.pop(k, None)
+                        st.query_params["admin_users"] = "1"
+                        st.session_state["workspace_mode"] = "User Management"
+                        st.rerun()
+                if _runtime._CURRENT_SAAS_USER is not None:
+                    st.divider()
+                    st.button(
+                        "Sign out",
+                        key="sidebar_sign_out_btn",
+                        width="stretch",
+                        help="Sign out / Logout",
+                        on_click=_account._sign_out_saas,
+                    )
+        with st.container(key="account_compat_expander"):
+            with st.expander("Account", expanded=False):
+                st.caption("Account compatibility anchor")
+    notice = st.session_state.pop("_project_switch_error", None)
+    if notice:
+        st.error(notice)
 
 def _render_project_menu() -> None:
     """Compatibility hook: the project header now lives on the main screen."""
@@ -1566,7 +1667,12 @@ def _render_manage_projects_workspace() -> None:
     st.markdown(f"**Current project:** {html.escape(_project_display_name(st.session_state.get('project_name', '')))}")
 
     if _runtime._CURRENT_SAAS_USER is not None:
-        st.caption(_runtime._CURRENT_SAAS_USER.name or _runtime._CURRENT_SAAS_USER.email)
+        acc = _account._get_current_user_account()
+        user_label = _runtime._CURRENT_SAAS_USER.name or _runtime._CURRENT_SAAS_USER.email
+        if acc:
+            st.caption(f"{user_label} · {acc.plan.upper()} · {acc.credits_balance:,} credits")
+        else:
+            st.caption(user_label)
 
     project_name = str(st.session_state.get("project_name", "")).strip()
     project_label = _project_display_name(project_name)

@@ -13,9 +13,10 @@
   `_apply_cloud_record`, `_queue_cloud_record_activation`,
   `_apply_pending_cloud_record`, `_cloud_autosave_step`,
   `_cloud_persistence_fragment` (`@st.fragment(run_every=2)`),
-  `_render_cloud_persistence_status`, `_cloud_project_summaries`,
-  `_last_cloud_workspace`, `_cloud_persistence_error_message`,
-  `_detach_cloud_project`, `_duplicate_active_project`, `_create_new_project`.
+  `_render_cloud_persistence_status`, `_render_static_status_badge`,
+  `_cloud_project_summaries`, `_last_cloud_workspace`,
+  `_cloud_persistence_error_message`, `_detach_cloud_project`,
+  `_duplicate_active_project`, `_create_new_project`.
 - Studio entry: `_render_studio_start` (no-context landing with Bass Match /
   Box Design cards and a secondary recent-project list). Opening a cloud record
   resumes its saved engineering workspace via `_apply_pending_cloud_record`.
@@ -25,7 +26,7 @@
   `_render_explore_projects_directory`, `_render_community_sidebar`,
   `_render_public_project_sidebar`, `_fork_project_to_sandbox`,
   `_toggle_community_project_like`, `_render_hud_explore_community_button`.
-- Account/billing UI: `_render_main_account_header`,
+- Account/billing UI: `_render_main_account_header` (consolidated Global Application Bar with primary navigation, project rename, persistence indicator, visibility popover, and compact account popover/expander containing billing and admin tools),
   `_render_authenticated_account_controls`, `_open_billing_modal`
   (`@st.dialog`), `_render_credits_purchase_popover`,
   `_render_billing_action_button`, `_render_user_management`.
@@ -74,13 +75,13 @@ lists recent projects as a secondary element, never as the dominant content.
 workspace without opening the project. Projects and Explore are reached only
 by explicit selection, deep link or public URL.
 
-### Compact main header
+### Consolidated single-row main header architecture
 
-`_render_main_account_header` renders shared project context followed by compact
-plan/credit information and a collapsed Account panel for billing, Manage
-Projects navigation (legacy button key `sidebar_manage_projects_btn`), existing
-Community access and sign out. Publication status uses a
-content digest, excluding navigation-only state and generated file timestamps.
+`_render_main_account_header` renders an ultra-clean, CAD-grade single-row horizontal toolbar:
+- **Left**: Project context (`📁 Project name` popover with rename, precision `● Saved` LED status badge, and `🔒 Private ▾` / `🌐 Public ▾` visibility popover).
+- **Right**: Secondary navigation & account (`Projects` button, `Community` button, and floating `Account ▾` popover with credits, plan, admin tools, and sign out, backed by a hidden test compatibility anchor).
+- **Sidebar Integration**: Primary engineering mode switching lives in the sidebar under the brand logo, keeping the main workbench 100% focused on execution and results.
+
 Tests in `tests/test_phase_b.py`, registered in the active runner, cover direct
 entry, identity/rename/comparison, save failures, publication updates, withdrawal
 and public/version/embed access. Storage tests also exercise Firestore checks

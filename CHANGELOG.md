@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.18.13 (2026-09-22)
+
+- **Bass Match UI/UX Transformation (Phases A–F)**:
+  - **Single-row precision CAD application bar**: Consolidated project name popover, LED persistence badge, visibility selector, and secondary navigation (`Projects`, `Community`, `Account`) into a unified `2.1rem` baseline header, eliminating vertical jitter and horizontal misalignment.
+  - **Preserved brand identity**: Re-anchored the iconic illustrated Bass Match and Box Design mode selectors in the sidebar with active glowing states.
+  - **Sidebar progressive disclosure (Phase C)**: Streamlined search configuration into a compact `Search brief` with top-aligned `Advanced` toggle; enclosure topology selector converted to a clean single-button CAD dropdown with full illustrated artwork popover.
+  - **Compact pre-run CAD telemetry brief (Phase D)**: Replaced disparate headers and multi-box grids with a cohesive telemetry canvas (`.bass-match-hero-header`, `.bass-match-spec-line-primary`), progressive disclosure for detailed constraints inside `Search details ▸`, and hidden tablist header for sequential workflow.
+  - **Results-first state & seamless return (Phase E)**: Full results table visual dominance, compact two-tier engineering results header (`.bass-match-results-summary`), race-condition-free `✏️ Edit search` return flow, and context-sensitive Box Design handoff toolbar (`Open this design in Box Design →` / `Compare N designs in Box Design →`).
+  - **Visual polish & cohesion (Phase F)**: Eliminated loud uppercase text-transforms across metrics and constraint labels, softened multiselect filter tags into dark translucent surfaces, and refined input hover states to clean neutral highlights.
+  - Full active suite: **236 tests passing, 0 failures, 0 skipped**.
+
 ## 0.18.12 (2026-09-21)
 
 - **Studio entry rules**: Projects and Explore are no longer the generic landing

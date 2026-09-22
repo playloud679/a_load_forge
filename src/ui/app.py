@@ -308,6 +308,7 @@ def main() -> None:
         if workspace_mode in ("Bass Match", "Box Design"):
             # Remember the last engineering workspace for returning users.
             st.session_state["_last_engineering_workspace"] = workspace_mode
+            _state._render_workspace_tabs()
         if _explore_requested:
             _projects._render_community_sidebar()
         elif _public_project_requested:
@@ -319,25 +320,62 @@ def main() -> None:
         elif workspace_mode == _constants._STUDIO_WORKSPACE:
             _state._render_workspace_tabs()
         elif workspace_mode == "Bass Match":
-            _projects._render_project_menu()
-            _state._render_workspace_tabs()
             if "finder_load_types" not in st.session_state:
                 st.session_state["finder_load_types"] = [st.session_state.get("load_type", "DCCAV")]
+
+            with st.container(key="sidebar_brief_header_container"):
+                col_sb_title, col_sb_adv = st.columns([1.15, 1.45], vertical_alignment="center")
+                with col_sb_title:
+                    st.markdown(
+                        '<div class="sidebar-brief-header">'
+                        '<span class="sidebar-brief-title">Search brief</span>'
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
+                with col_sb_adv:
+                    st.toggle(
+                        "Advanced",
+                        key="ui_show_advanced",
+                        help="Show expert controls: search profile, evaluation grid and "
+                             "driver T/S overrides. Off keeps the guided workflow.",
+                    )
+                if _finder._show_advanced_controls():
+                    st.caption(
+                        "Advanced mode · expert controls and full filter matrix are open."
+                    )
+                else:
+                    st.caption(
+                        "Simple mode · guided scenario, load, volume and goal. Enable "
+                        "Advanced for full controls."
+                    )
+
             bm_tab1, bm_tab2, bm_tab3 = st.tabs(
                 ["Load type", "Performance filters", "Library filters"],
                 key="bass_match_sidebar_tab",
             )
         
             with bm_tab1:
+                st.markdown('<div class="sidebar-section-title">Target enclosure</div>', unsafe_allow_html=True)
                 if "finder_load_types" not in st.session_state:
                     st.session_state["finder_load_types"] = [
                         str(st.session_state.get("load_type", "DCCAV"))]
                 _finder._render_finder_scenario_selector()
                 _finder_load_set = set(st.session_state["finder_load_types"])
-                _state._render_load_type_buttons(_finder_load_set, single_select=False)
-                st.caption("Toggle the loads you want to compare. At least one must stay active.")
+                active_loads = sorted(list(_finder_load_set))
+                if len(active_loads) == 1:
+                    enc_summary = active_loads[0]
+                elif len(active_loads) <= 2:
+                    enc_summary = ", ".join(active_loads)
+                else:
+                    enc_summary = f"{len(active_loads)} loads selected"
+
+                with st.container(key="finder_enclosure_popover_wrap"):
+                    with st.popover(f"🎛️ Enclosure: {enc_summary} ▾", width="stretch"):
+                        st.markdown('<div class="sidebar-section-title">Choose topologies</div>', unsafe_allow_html=True)
+                        _state._render_load_type_buttons(_finder_load_set, single_select=False)
+                        st.caption("Toggle the loads you want to compare. At least one must stay active.")
+                        _state._render_engine_only_topologies_note()
                 _finder._render_find_driver_target_sidebar()
-                _state._render_engine_only_topologies_note()
                 if _finder._show_advanced_controls():
                     with st.expander("Advanced evaluation", expanded=True):
                         _state._finder_selectbox(
@@ -368,24 +406,26 @@ def main() -> None:
                             help="Restore the practical quick-scan profile without changing the active design.",
                         )
             with bm_tab2:
+                st.markdown('<div class="sidebar-section-title">Acoustic limits & goals</div>', unsafe_allow_html=True)
                 _finder._render_find_driver_goal_sidebar()
 
             all_preset_names = _catalog._available_driver_preset_names()
             with bm_tab3:
+                st.markdown('<div class="sidebar-section-title">Driver & catalog filters</div>', unsafe_allow_html=True)
                 _catalog._render_finder_library_filters(all_preset_names)
 
             def _live_or_aggregate_filter(key: str):
                 live = st.session_state.get(f"{key}__select_v5")
                 aggregate = st.session_state.get(key, ["All"])
-            # Empty live multiselect means All only when no restored/project
-            # aggregate carries a concrete selection.
+                # Empty live multiselect means All only when no restored/project
+                # aggregate carries a concrete selection.
                 return live if live else aggregate
 
             filtered_preset_names = _catalog._filter_driver_preset_names(
                 all_preset_names,
-            # Read the live multiselect keys. The aggregate project keys are
-            # updated by callbacks and can otherwise lag one rerun behind
-            # when a second manufacturer is added to the selection.
+                # Read the live multiselect keys. The aggregate project keys are
+                # updated by callbacks and can otherwise lag one rerun behind
+                # when a second manufacturer is added to the selection.
                 source=_live_or_aggregate_filter("preset_source_filter"),
                 family=_live_or_aggregate_filter("preset_family_filter"),
                 size=_live_or_aggregate_filter("preset_size_filter"),
@@ -412,12 +452,9 @@ def main() -> None:
                 ),
             )
             _catalog._sync_finder_library_selection(filtered_preset_names)
-            with bm_tab3:
-                _finder._render_find_driver_actions(filtered_preset_names)
+            _finder._render_find_driver_actions(filtered_preset_names)
 
         elif not (_explore_requested or _public_project_requested):
-            _projects._render_project_menu()
-            _state._render_workspace_tabs()
             bd_tab1, bd_tab2, bd_tab3 = st.tabs(
                 ["Driver", "Load Selection", "Enclosure Parameters"],
                 key="box_design_sidebar_tab",
@@ -1111,33 +1148,9 @@ def main() -> None:
         if not (_explore_requested or _public_project_requested):
             _catalog._render_catalog_crawl_report()
 
-            if _catalog._maintenance_allowed():
-                st.markdown("---")
-                with st.expander("Admin Tools", expanded=False):
-                    if st.button(
-                        "Catalog Maintenance",
-                        key="btn_admin_catalog_maint",
-                        use_container_width=True,
-                    ):
-                        for k in ("explore", "p", "embed", "admin_users"):
-                            st.query_params.pop(k, None)
-                        st.query_params["maintenance"] = "1"
-                        st.session_state["workspace_mode"] = "Catalog Maintenance"
-                        st.rerun()
-                    if st.button(
-                        "User Management",
-                        key="btn_admin_user_mgmt",
-                        use_container_width=True,
-                    ):
-                        for k in ("explore", "p", "embed", "maintenance"):
-                            st.query_params.pop(k, None)
-                        st.query_params["admin_users"] = "1"
-                        st.session_state["workspace_mode"] = "User Management"
-                        st.rerun()
-
         if (
             not (_explore_requested or _public_project_requested)
-            and workspace_mode in ("Bass Match", "Box Design")
+            and workspace_mode == "Box Design"
         ):
             st.divider()
             st.toggle(

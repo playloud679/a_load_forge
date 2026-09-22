@@ -1545,9 +1545,8 @@ def _finder_search_blocked(filtered_preset_names: list[str]) -> bool:
     )
 
 def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
-    """Render the live Finder summary; the workspace owns the single CTA."""
+    """Render the live Finder search brief summary."""
     finder_load_types, only_infinite_baffle = _catalog._finder_load_context()
-
     finder_volume_l = float(_state._finder_value("finder_volume_l"))
     display_loads = [
         "Bass reflex (PR)"
@@ -1556,10 +1555,30 @@ def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
         for item in finder_load_types
     ]
     load_label = " + ".join(display_loads) if len(display_loads) <= 2 else f"{len(display_loads)} loads"
-    st.caption(
-        f"Scans all {len(filtered_preset_names)} matching presets · {load_label}"
-        + ("" if only_infinite_baffle else f" · ≤ {finder_volume_l:.1f} L")
+    vol_str = "" if only_infinite_baffle else f"≤ {finder_volume_l:.1f} L"
+
+    selected_preset_names = _catalog._selected_library_preset_names(filtered_preset_names)
+    match_count = len(selected_preset_names) if selected_preset_names else len(filtered_preset_names)
+
+    finder_search_profile = str(_state._finder_value("finder_search_profile"))
+    credit_mult = _ranking.search_profile_credit_multiplier(finder_search_profile)
+    est_credits = int(match_count * len(finder_load_types) * credit_mult)
+    acc = _account._get_current_user_account()
+
+    st.markdown('<div class="sidebar-brief-summary-card">', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="sidebar-brief-header-row">'
+        f'<span class="sidebar-brief-tag">Specification brief</span>'
+        f'<span class="sidebar-brief-count">{match_count:,} drivers</span>'
+        f'</div>',
+        unsafe_allow_html=True,
     )
+    st.caption(
+        f"{load_label}" + (f" · {vol_str}" if vol_str else "")
+        + (f" · ~{est_credits:,} credits" if acc else " · Local run")
+    )
+    st.markdown('</div>', unsafe_allow_html=True)
+
     if _show_advanced_controls():
         st.toggle(
             "Show data coverage",
@@ -1766,41 +1785,65 @@ def _render_bass_match_hero(
     enforce_credits = _runtime._SAAS_SETTINGS.enabled and _runtime._CURRENT_SAAS_USER is not None and not is_admin
     has_enough_credits = (not enforce_credits) or (credits_balance >= run_credits or run_credits == 0)
 
+    finder_load_types, _ = _catalog._finder_load_context()
+    load_names = ", ".join(finder_load_types) if finder_load_types else "DCCAV"
+    driver_config = str(st.session_state.get("finder_driver_configuration", "Single driver"))
+    volume_val = float(st.session_state.get("finder_volume_l", 40.0) or 40.0)
+    primary_specs = f"{load_names} · {driver_config} · ≤{volume_val:.0f} L"
+
+    finder_objective = str(st.session_state.get("finder_objective", "Max extension"))
+    secondary_specs = f"{finder_objective} · {finder_search_profile}"
+
+    candidates_ready_str = f"{len(prequalified_names):,} candidates ready"
+    sims_ready_str = f"{prefilter_stats['eligible_simulations']:,} simulations"
+    cost_str = f" · {run_credits:,} credits" if acc else ""
+
     run_requested = False
     with st.container(border=True, key="bass_match_brief"):
-        title_col, m1, m2, m3 = st.columns(
-            [2.4, 1.0, 1.0, 1.0],
-            vertical_alignment="center",
+        st.markdown(
+            f"""<div class="bass-match-hero-header">
+                <div class="bass-match-hero-title">Bass Match · Your bass brief</div>
+                <div class="bass-match-hero-subtitle">Find drivers matching your design constraints.</div>
+                <div class="bass-match-brief-summary">
+                    <div class="bass-match-spec-line-primary">{primary_specs}</div>
+                    <div class="bass-match-spec-line-secondary">{secondary_specs}</div>
+                </div>
+                <div class="bass-match-readiness-row">
+                    <span class="bass-match-readiness-val">{candidates_ready_str}</span>
+                    <span class="bass-match-readiness-sep">·</span>
+                    <span class="bass-match-readiness-val">{sims_ready_str}</span>{cost_str}
+                </div>
+            </div>""",
+            unsafe_allow_html=True,
         )
-        with title_col:
-            st.markdown("#### Bass Match · Your bass brief")
-            st.caption("Review your setup, then compare the drivers that fit.")
-        m1.metric(
-            "Pre-qualified", f"{len(prequalified_names):,}",
-            help="Drivers that pass pre-simulation checks for at least one active load.",
-        )
-        m2.metric("Ready simulations", f"{prefilter_stats['eligible_simulations']:,}")
-        m3.metric("Run cost", f"{run_credits:,} credits" if acc else "Local run")
-        show_disabled = st.toggle(
-            "Show disabled constraints",
-            key="temp_bass_match_show_disabled_constraints",
-            help="Also show filters set to Off or Any, and constraints not applicable to the selected loads.",
-        )
-        visible_constraints = [
-            (label, value) for label, value in constraints
-            if show_disabled or value not in {"Off", "Any", "N/A"}
-            or (label == "Search" and bool(st.session_state.get("preset_search", "").strip()))
-        ]
-        _catalog._render_finder_constraint_grid(visible_constraints)
-        with st.expander("Search details"):
-            detail_cols = st.columns(2)
-            detail_cols[0].metric("Skipped a priori", f"{prefilter_stats['rejected_simulations']:,}")
-            detail_cols[1].metric("Duplicates removed", f"{prefilter_stats['duplicate_rows']:,}")
+
+        with st.expander("Search details", expanded=False):
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric(
+                "Pre-qualified", f"{len(prequalified_names):,}",
+                help="Drivers that pass pre-simulation checks for at least one active load.",
+            )
+            m2.metric("Ready simulations", f"{prefilter_stats['eligible_simulations']:,}")
+            m3.metric("Skipped a priori", f"{prefilter_stats['rejected_simulations']:,}")
+            m4.metric("Duplicates removed", f"{prefilter_stats['duplicate_rows']:,}")
+
             st.caption(
                 f"{prefilter_stats['unique_drivers']:,} unique drivers · "
                 f"{finder_search_profile} profile · {credit_mult} credit(s) per simulation. "
                 f"Balance: {credits_balance:,} credits."
             )
+
+            show_disabled = st.toggle(
+                "Show disabled constraints",
+                key="temp_bass_match_show_disabled_constraints",
+                help="Also show filters set to Off or Any, and constraints not applicable to the selected loads.",
+            )
+            visible_constraints = [
+                (label, value) for label, value in constraints
+                if show_disabled or value not in {"Off", "Any", "N/A"}
+                or (label == "Search" and bool(st.session_state.get("preset_search", "").strip()))
+            ]
+            _catalog._render_finder_constraint_grid(visible_constraints)
         if match_preset_names and not prequalified_names:
             st.warning(
                 "No driver passes the pre-simulation checks. Lower Minimum "
@@ -1870,6 +1913,11 @@ def _render_candidate_pool(filtered_preset_names: list[str]) -> None:
     if pool_expander.open:
         with pool_expander:
             _catalog._render_driver_library(filtered_preset_names)
+
+def _on_finder_edit_search() -> None:
+    """Return to the search brief from the results page."""
+    st.session_state["temp_bass_match_page"] = "Run Bass Match"
+    st.session_state["_bass_match_edit_search"] = True
 
 def _queue_finder_design_selection(
     selected_designs: list[dict],
@@ -1993,7 +2041,8 @@ def _render_find_driver_workspace(filtered_preset_names: list[str]) -> None:
     )
     result_token = repr(context)
     open_results = st.session_state.pop("_bass_match_open_results", False)
-    if not results_available:
+    edit_search = st.session_state.pop("_bass_match_edit_search", False)
+    if not results_available or edit_search:
         st.session_state["temp_bass_match_page"] = "Run Bass Match"
     elif (
         open_results
@@ -2201,12 +2250,41 @@ def _render_finder_results(filtered_preset_names: list[str], context_matches: bo
 
     value_currency = _catalog._finder_price_currency(full_df)
     rank_mode = _constants._FINDER_RANK_F3
-    summary_col, rank_col = st.columns([3.2, 1.8], vertical_alignment="center")
+
+    search_profile = str(st.session_state.get("finder_search_profile", "Standard"))
+    eval_count = None
+    if isinstance(run_stats, dict):
+        eval_count = run_stats.get("simulations")
+    if eval_count is None and len(context) > 12:
+        eval_count = int(context[11])
+    match_word = "match" if len(batch_rows) == 1 else "matches"
+    eval_detail = f"{eval_count:,} evaluated" if eval_count else f"{len(batch_rows):,} evaluated"
+    time_detail = f" · {el_s:.2f} s" if seek_time_str and "el_s" in locals() and el_s > 0 else ""
+
+    summary_markup = (
+        f"<div class='bass-match-results-summary'>"
+        f"<div class='bass-match-results-summary-primary'>"
+        f"<span class='bass-match-results-match-count'>{len(batch_rows):,} {match_word}</span> · "
+        f"{load_summary}{volume_summary} · {objective} · {search_profile}"
+        f"</div>"
+        f"<div class='bass-match-results-summary-meta'>{eval_detail}{time_detail}</div>"
+        f"</div>"
+    )
+
+    if value_currency:
+        summary_col, edit_col, rank_col = st.columns([2.8, 0.9, 1.3], vertical_alignment="center")
+    else:
+        summary_col, edit_col = st.columns([3.8, 1.0], vertical_alignment="center")
     with summary_col:
-        match_word = "match" if len(batch_rows) == 1 else "matches"
-        st.caption(
-            f"**{len(batch_rows):,} {match_word}** · {load_summary}"
-            f"{volume_summary} · {objective}"
+        st.markdown(summary_markup, unsafe_allow_html=True)
+    with edit_col:
+        st.button(
+            "✏️ Edit search",
+            key="finder_edit_search_btn",
+            type="secondary",
+            width="stretch",
+            on_click=_on_finder_edit_search,
+            help="Return to the search brief to adjust target enclosure, limits, or candidate pool.",
         )
     if value_currency:
         with rank_col:
@@ -2421,7 +2499,7 @@ def _render_finder_results(filtered_preset_names: list[str], context_matches: bo
     if not selected_indices:
         return
     if len(selected_indices) > 1:
-        with st.container(border=True):
+        with st.container(border=True, key="finder_comparison_preview_card"):
             st.markdown(
                 f"#### Design comparison · {comparison_count} selected"
             )
@@ -2439,7 +2517,7 @@ def _render_finder_results(filtered_preset_names: list[str], context_matches: bo
     selected_index = selected_indices[0]
     selected_row = batch_df.iloc[selected_index].to_dict()
     row_load_type = str(selected_row.get("Load", load_type))
-    with st.container(border=True):
+    with st.container(border=True, key="finder_match_preview_card"):
         st.markdown(
             "#### Match preview · "
             f"{_catalog._driver_preset_display_label(str(selected_row['Driver']))} · "

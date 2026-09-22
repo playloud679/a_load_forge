@@ -36,13 +36,18 @@ memory first, then the most recent cloud project's saved `workspace_mode`);
 otherwise the minimal Studio start screen (`_render_studio_start`) offers Bass
 Match and Box Design with recent projects as a secondary list. Projects and
 Explore are supporting destinations and are never the generic landing page.
-The original branded sidebar remains; full-image Bass Match and Box Design tabs
-identify the two primary technical pages.
-
-## Phase B routing
-
-Deep links `?view=bass-match`, `?view=box-design` and `?view=projects`, plus
-the shared-design `?d=` token, apply once per route change. Primary navigation
-lives in the technical sidebar as the two image tabs; Manage Projects is reached
-from the account header and Explore through explicit navigation. Existing
-public, shared, billing and admin links retain their handling.
+The original branded sidebar remains. Primary engineering mode selection lives in the
+sidebar directly beneath the brand logo via `_state._render_workspace_tabs()`, displaying
+the authentic illustrated Bass Match and Box Design artwork cards to establish the active
+control context for the parameters below.
+In the main workspace, a single, perfectly aligned, compact Global Application Bar hosts
+project context on the left (name, save state, visibility) and restrained secondary actions
+on the right (Projects, Community, Account).
+In Bass Match, the sidebar is organized as a clean Search Brief (Phase C):
+the Advanced mode toggle is positioned directly at the top alongside the SEARCH BRIEF
+header (`.st-key-sidebar_brief_header_container`) with mode captions. The enclosure topology
+selector is condensed into a compact selector button (`🎛️ Enclosure: <selected> ▾`) that
+opens the full illustrated topology card gallery via a Streamlit popover (`.st-key-finder_enclosure_popover_wrap`),
+preventing sidebar clutter while preserving the illustrated topology identity. The bottom
+Advanced toggle is scoped exclusively to Box Design to avoid duplicate widget keys.
+Existing public, shared, billing and admin links retain their handling.
