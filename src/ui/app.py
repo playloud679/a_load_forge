@@ -305,10 +305,10 @@ def main() -> None:
     with st.sidebar:
         if _constants._BRAND_IMAGE.exists():
             with st.container(key="sidebar_brand_header"):
-                logo_col, version_col = st.columns([3, 1], vertical_alignment="center")
+                logo_col, version_col = st.columns([3.5, 1], vertical_alignment="center")
                 with logo_col:
                     with st.container(key="brand_logo"):
-                        st.image(str(_constants._BRAND_IMAGE), width=170)
+                        st.image(str(_constants._BRAND_IMAGE), width="stretch")
                 with version_col:
                     st.markdown(
                         f'<div class="sidebar-version">v{_runtime._VERSION}</div>',

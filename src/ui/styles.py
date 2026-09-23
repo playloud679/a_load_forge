@@ -63,18 +63,18 @@ GLOBAL_CSS = """
     section[data-testid="stSidebar"],
     section[data-testid="stSidebar"] > div {
         background: #000 !important;
-        width: min(27rem, 100vw) !important;
-        min-width: min(27rem, 100vw) !important;
-        max-width: min(27rem, 100vw) !important;
+        width: clamp(28rem, 28vw, 42rem) !important;
+        min-width: min(28rem, 100vw) !important;
+        max-width: min(45rem, 100vw) !important;
     }
     section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
         background: #000 !important;
-        width: min(27rem, 100vw) !important;
-        min-width: min(27rem, 100vw) !important;
-        max-width: min(27rem, 100vw) !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
         box-sizing: border-box !important;
-        padding-left: 0.9rem !important;
-        padding-right: 0.9rem !important;
+        padding-left: 1.1rem !important;
+        padding-right: 1.1rem !important;
         padding-top: 0 !important;
         overflow-x: hidden !important;
     }
@@ -136,9 +136,15 @@ GLOBAL_CSS = """
     }
     .st-key-brand_logo {
         background: #000;
+        display: flex;
+        align-items: center;
     }
     .st-key-brand_logo img {
         filter: hue-rotate(150deg) saturate(2.4) contrast(1.55) brightness(1.04);
+        max-height: 3.8rem !important;
+        width: auto !important;
+        max-width: 100% !important;
+        object-fit: contain;
     }
     /* Instruction bands: neutral by default, emerald for actionable selection hints. */
     [data-testid="stAlertContainer"] {
@@ -1160,31 +1166,43 @@ def _load_type_card_styles(version: str = "square_v5") -> str:
         """
         <style>
         [class*="st-key-load_card_"] {
-            min-height: 4.15rem !important;
+            min-height: unset !important;
             height: auto !important;
+        }
+        [class*="st-key-load_card_"] div[data-testid="stVerticalBlock"] {
+            gap: 0 !important;
+        }
+        [class*="st-key-load_card_"] div[data-testid="element-container"],
+        [class*="st-key-load_card_"] div[data-testid="stElementContainer"] {
+            margin: 0 !important;
+            padding: 0 !important;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] {
             display: flex !important;
             justify-content: center !important;
             width: 100% !important;
-            height: 2.65rem !important;
-            min-height: 2.65rem !important;
+            height: auto !important;
+            min-height: unset !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button {
             background-color: #f2f2f0;
             background-position: center;
             background-repeat: no-repeat;
-            background-size: 100% 100%;
+            background-size: 100% 100% !important;
             border: 1px solid rgba(255,255,255,.16);
             border-radius: .58rem;
             box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
             filter: saturate(.72) brightness(.82) contrast(1.04);
-            height: 2.65rem !important;
-            min-height: 2.65rem !important;
-            max-height: 2.65rem !important;
+            aspect-ratio: 1 / 1 !important;
+            height: auto !important;
+            min-height: unset !important;
+            max-height: unset !important;
             opacity: .88;
             overflow: hidden;
-            padding: 0;
+            padding: 0 !important;
+            margin: 0 !important;
             position: relative;
             transition: border-color .16s ease, box-shadow .16s ease,
                         filter .16s ease, transform .16s ease;
@@ -1196,14 +1214,17 @@ def _load_type_card_styles(version: str = "square_v5") -> str:
         [class*="st-key-load_card_"] div[data-testid="stButton"] button p {
             opacity: 0;
         }
-        .load-card-label {
+        [class*="st-key-load_card_"] div[data-testid="stMarkdownContainer"] p,
+        [class*="st-key-load_card_"] .load-card-label {
             color: rgba(250,250,250,.92);
-            font-size: .76rem;
+            font-size: .78rem;
             font-weight: 600;
             line-height: 1.15;
-            margin: .20rem 0 0 0;
-            min-height: 1.3rem;
-            height: 1.3rem;
+            margin-top: 0.10rem !important;
+            margin-bottom: 0 !important;
+            padding: 0 !important;
+            min-height: 1.15rem;
+            height: auto;
             text-align: center;
             display: flex;
             align-items: center;
@@ -1446,8 +1467,10 @@ def _workspace_tab_styles() -> str:
             background-color: #000000;
             border: 1px solid rgba(16,185,129,.46);
             border-radius: .65rem;
-            height: 2.65rem;
-            min-height: 2.65rem;
+            aspect-ratio: 3 / 1 !important;
+            height: auto !important;
+            min-height: 4.2rem !important;
+            max-height: 6rem !important;
             overflow: hidden;
             padding: 0;
             position: relative;
@@ -1457,7 +1480,7 @@ def _workspace_tab_styles() -> str:
         [class*="st-key-workspace_tab_"] div[data-testid="stButton"] button::before {
             background-position: center;
             background-repeat: no-repeat;
-            background-size: contain;
+            background-size: 100% 100% !important;
             border-radius: calc(.7rem - 2px);
             content: "";
             filter: grayscale(18%) brightness(.72);

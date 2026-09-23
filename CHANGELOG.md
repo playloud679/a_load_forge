@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.18.27 (2026-09-23)
+
+- **Responsive desktop sidebar, enlarged brand logo & authentic workspace tabs**:
+  - Replaced rigid sidebar max-width with responsive scaling `clamp(28rem, 28vw, 42rem)` and `width: 100%` content, allowing the sidebar to use available horizontal space on wide desktop displays while preserving ample room for the main simulation workbench.
+  - Enlarged the sidebar brand logo (`load_forge`) to scale responsively (`use_container_width=True`, `max-height: 3.8rem`) in the top header row alongside the version badge.
+  - Restored authentic full 3:1 form factor (`aspect-ratio: 3 / 1`, `min-height: 4.2rem`, `max-height: 6rem`) and edge-to-edge artwork for the illustrated `Bass Match` and `Box Design` workspace mode tabs.
+  - Restored true 1:1 square aspect ratio (`aspect-ratio: 1 / 1`), zero-gap block containers, and tightened label margins (0.10rem) directly beneath the icons for all 7 enclosure load type cards (`Infinite baffle`, `Sealed`, `Reflex`, `BP4`, `BP6`, `BP8`, `DCCAV`), eliminating distortion and excess spacing.
+- **Validation**: Python compilation and Streamlit startup AppTest passed;
+  acoustic-load smoke: **14 passed, 0 failed**; full test suite: **242 passed, 0 failed, 0 skipped**;
+  Chromium headless checks confirmed 1:1 square buttons (141.7px at 2560px, 85.7px at 1440px), 3:1 workspace tabs (96px height at 2560px, 67px at 1440px), enlarged logo (283px at 2560px, 268px at 1440px), and clean layout;
+  `git diff --check` clean.
+
 ## 0.18.26 (2026-09-23)
 
 - **Sidebar legibility and spacing**: widened the desktop sidebar, aligned the

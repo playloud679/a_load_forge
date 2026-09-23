@@ -36,10 +36,10 @@ cloud project (restoring its parameters, cloud identity, and saved `workspace_mo
 otherwise session memory or the minimal Studio start screen (`_render_studio_start`) offers Bass
 Match and Box Design with recent projects as a secondary list. Projects and
 Explore are supporting destinations and are never the generic landing page.
-The branded sidebar places the logo and a readable 0.9rem version label on one
+The branded sidebar places the expanded responsive logo and a readable 0.9rem version label on one
 vertically centered row in `sidebar_brand_header`, without negative version margins. Primary engineering mode selection lives in the
 sidebar directly beneath the brand logo via `_state._render_workspace_tabs()`, displaying
-the authentic illustrated Bass Match and Box Design artwork cards to establish the active
+the authentic illustrated Bass Match and Box Design artwork cards at full 3:1 form factor to establish the active
 control context for the parameters below.
 In the main workspace, a single, perfectly aligned, compact Global Application Bar hosts
 project context on the left (name, save state, visibility) and restrained secondary actions

@@ -120,9 +120,17 @@ These rules preserve widget keys and the scoped Simple-mode tab-header hiding.
 
 Candidate library containers use `clamp(240px, 100dvh - 580px, 460px)` on
 desktop. Enclosure artwork retains explicit heights for WebKit stability.
-The desktop sidebar is 432px wide, capped at the viewport width.
+The desktop sidebar scales responsively with `clamp(28rem, 28vw, 42rem)` to take
+full advantage of wide desktop screens while preserving room for the main area.
 Logo and version share a vertically centered header row, reserving 2.25rem
 on the right for the native sidebar collapse button. Sidebar tabs use
 separate bordered surfaces with 0.5rem gaps, a three-rem minimum height,
-wrapping labels and an emerald selected border; the shared underline is hidden. Root typography stays at 16px;
+wrapping labels and an emerald selected border; the shared underline is hidden.
+Load-type enclosure cards maintain a 1:1 square aspect ratio with full
+square background sizing, zero container gaps, and tightened label margins
+(0.10rem) directly below the card icons to prevent distortion and spacing
+drift; illustrated workspace tabs use a 3:1 aspect ratio (`aspect-ratio: 3 / 1`,
+`min-height: 4.2rem`) with edge-to-edge background sizing to restore their
+full-height form factor; the sidebar logo scales responsively with
+`max-height: 3.8rem` to match the wider sidebar header. Root typography stays at 16px;
 navigation, tooltips and native scrolling remain available.
