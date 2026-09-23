@@ -54,4 +54,5 @@ and directly visible library filters (search preset, brand, size, class, price) 
 single-panel experience. When Advanced mode is toggled, it expands into three dedicated tabs
 (`Load type`, `Performance filters`, `Library filters`) with deep evaluation controls, detailed
 acoustic limit sliders, and engine-only topology notes. The bottom Advanced toggle is scoped exclusively to Box Design to avoid duplicate widget keys.
+Bass Match candidate pool starts expanded by default, preserves pinned driver selections across filter modifications, and supports direct simulation of single drivers or multi-driver comparisons in Box Design without requiring a search run.
 Existing public, shared, billing and admin links retain their handling.

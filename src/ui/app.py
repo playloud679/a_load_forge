@@ -429,6 +429,7 @@ def main() -> None:
                 # aggregate carries a concrete selection.
                 return live if live else aggregate
 
+            _catalog._sync_pinned_from_library_table(all_preset_names)
             filtered_preset_names = _catalog._filter_driver_preset_names(
                 all_preset_names,
                 # Read the live multiselect keys. The aggregate project keys are
@@ -458,6 +459,7 @@ def main() -> None:
                     if float(st.session_state.get("finder_max_le_mh", 0.0)) > 0.0
                     else None
                 ),
+                pinned=st.session_state.get("finder_pinned_driver_names", []),
             )
             _catalog._sync_finder_library_selection(filtered_preset_names)
             _finder._render_find_driver_actions(filtered_preset_names)

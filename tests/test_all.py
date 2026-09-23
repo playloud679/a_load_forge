@@ -12856,6 +12856,66 @@ def _check_load_type_icons_uniform():
 test("UI load-type diagrams keep one large uniform enclosure height", _check_load_type_icons_uniform)
 
 
+def _check_ui_candidate_pool_open_pinning_and_multisim():
+    from streamlit.testing.v1 import AppTest
+
+    # 1. Candidate pool starts open by default (not empty screen)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at.session_state["workspace_mode"] = "Bass Match"
+    at.run()
+    assert not at.exception, at.exception
+    pool_exp = [e for e in at.expander if e.label.startswith("Candidate pool")][0]
+    assert pool_exp.proto.expanded is True, "Candidate pool must start expanded"
+    assert len(pool_exp.dataframe) > 0, "Dataframe must be rendered in open pool expander"
+
+    # 2. Simple mode has complete library filters (Provenance, Manufacturer, Size, Class)
+    at_simple = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at_simple.session_state["workspace_mode"] = "Bass Match"
+    at_simple.session_state["ui_show_advanced"] = False
+    at_simple.run()
+    assert not at_simple.exception, at_simple.exception
+    simple_labels = [m.label for m in at_simple.sidebar.multiselect]
+    assert "Provenance" in simple_labels
+    assert "Manufacturer" in simple_labels
+    assert "Size" in simple_labels
+    assert "Class" in simple_labels
+
+    # 3. Pinning across filter changes
+    at_pin = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at_pin.session_state["workspace_mode"] = "Bass Match"
+    at_pin.run()
+    assert not at_pin.exception, at_pin.exception
+    at_pin.session_state["finder_driver_library_table"] = {"selection": {"rows": [0], "columns": [], "cells": []}}
+    at_pin.run()
+    assert not at_pin.exception, at_pin.exception
+    pinned_driver = str(at_pin.dataframe[0].value.iloc[0]["Driver"])
+    at_pin.session_state["preset_search"] = "NonexistentSearchFilterStr123"
+    at_pin.run()
+    assert not at_pin.exception, at_pin.exception
+    assert str(at_pin.dataframe[0].value.iloc[0]["Driver"]) == pinned_driver
+    assert at_pin.session_state["finder_driver_library_table"]["selection"]["rows"] == [0]
+
+    # 4. Multi-driver simulation directly in Box Design
+    at_multi = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at_multi.session_state["workspace_mode"] = "Bass Match"
+    at_multi.run()
+    assert not at_multi.exception, at_multi.exception
+    at_multi.session_state["finder_driver_library_table"] = {"selection": {"rows": [0, 1], "columns": [], "cells": []}}
+    at_multi.run()
+    assert not at_multi.exception, at_multi.exception
+    multi_btn = [b for b in at_multi.button if b.key == "finder_use_library_driver_multi"][0]
+    multi_btn.click().run()
+    assert not at_multi.exception, at_multi.exception
+    assert at_multi.session_state["workspace_mode"] == "Box Design"
+    assert len(at_multi.session_state["design_comparison_tabs"]) == 2
+
+
+test(
+    "Bass Match candidate pool starts open, keeps complete simple filters, pins drivers across filters, and simulates candidates in Box Design",
+    _check_ui_candidate_pool_open_pinning_and_multisim,
+)
+
+
 if not _IS_MP_CHILD:
     print(f"\n{'=' * 40}")
     print(f"  PASS: {PASS}   FAIL: {FAIL}   SKIP: {SKIP}")

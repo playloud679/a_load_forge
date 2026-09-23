@@ -931,19 +931,6 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
         ("preset_size_filter", "Size", list(_constants._PRESET_SIZE_FILTERS)),
         ("preset_class_filter", "Class", list(_constants._PRESET_CLASS_FILTERS)),
     )
-    if not _finder._show_advanced_controls():
-        # Simple mode hides the expert catalog filters; clear any value they
-        # still carry so a hidden filter cannot silently change the results.
-        for hidden_key in (
-            "preset_source_filter", "preset_size_filter", "preset_class_filter",
-        ):
-            st.session_state[hidden_key] = ["All"]
-            st.session_state[f"{hidden_key}__select_v5"] = []
-            st.session_state[f"{hidden_key}__select_v5__aggregate"] = ("All",)
-        filter_options = tuple(
-            option for option in filter_options
-            if option[0] == "preset_family_filter"
-        )
     for key, label, options in filter_options:
         raw_current = st.session_state.get(key, ["All"])
         current = [raw_current] if isinstance(raw_current, str) else list(raw_current)
@@ -1035,6 +1022,7 @@ def _filter_driver_preset_names(
     driver_class: str | list[str] = "All",
     max_mms_g: float | None = None,
     max_le_mh: float | None = None,
+    pinned: list[str] | None = None,
 ) -> list[str]:
     def selected_values(value: str | list[str]) -> set[str]:
         values = {str(item) for item in ([value] if isinstance(value, str) else value)}
@@ -1053,6 +1041,18 @@ def _filter_driver_preset_names(
         for value in selected_values(driver_class)
     }
     query = search.strip().casefold()
+
+    if pinned:
+        pinned_set = set(pinned)
+        pinned_valid = [
+            p for p in pinned
+            if p in names
+            and (is_admin or _driver_preset_source(p) not in _constants._RESTRICTED_THIRD_PARTY_SOURCES)
+        ]
+    else:
+        pinned_set = set()
+        pinned_valid = []
+
     # The default view has no active filters.  Avoid touching every preset's
     # metadata on the first Streamlit run; names remain server-side and the
     # visible table is capped/paginated later.
@@ -1060,9 +1060,16 @@ def _filter_driver_preset_names(
         source_values or family_values or size_values or class_values or query
         or max_price is not None or max_mms_g is not None or max_le_mh is not None
     ):
-        if not is_admin:
-            return [name for name in names if _driver_preset_source(name) not in _constants._RESTRICTED_THIRD_PARTY_SOURCES]
-        return list(names)
+        base_names = [name for name in names if _driver_preset_source(name) not in _constants._RESTRICTED_THIRD_PARTY_SOURCES] if not is_admin else list(names)
+        if pinned_valid:
+            result = list(pinned_valid) + [name for name in base_names if name not in pinned_set]
+            if selected and selected != "Custom" and selected in names and selected not in result:
+                result.insert(0, selected)
+            return result
+        if selected and selected != "Custom" and selected in names and selected not in base_names:
+            base_names.insert(0, selected)
+        return base_names
+
     rates = _current_exchange_rates()[0] if max_price is not None else None
     filtered = []
     for name in names:
@@ -1109,27 +1116,58 @@ def _filter_driver_preset_names(
             if price is None or float(price) > float(max_price):
                 continue
         filtered.append(name)
-    if selected and selected != "Custom" and selected in names and selected not in filtered:
-        filtered.insert(0, selected)
-    return filtered
+
+    filtered_without_pinned = [name for name in filtered if name not in pinned_set]
+    result = list(pinned_valid) + filtered_without_pinned
+    if selected and selected != "Custom" and selected in names and selected not in result:
+        result.insert(0, selected)
+    return result
+
+def _sync_pinned_from_library_table(all_preset_names: list[str] | None = None) -> list[str]:
+    """Sync pinned driver names from the last displayed table selection."""
+    table_state = st.session_state.get("finder_driver_library_table")
+    last_shown = st.session_state.get("_finder_last_shown_names")
+    if last_shown is None and all_preset_names is not None:
+        last_shown = all_preset_names
+    if not isinstance(table_state, dict) or not isinstance(last_shown, (list, tuple)):
+        return list(st.session_state.get("finder_pinned_driver_names", []))
+    selection = table_state.get("selection")
+    if not isinstance(selection, dict):
+        return list(st.session_state.get("finder_pinned_driver_names", []))
+    rows = selection.get("rows")
+    if rows is None:
+        return list(st.session_state.get("finder_pinned_driver_names", []))
+    current_pinned = [
+        str(last_shown[i])
+        for i in rows
+        if isinstance(i, int) and 0 <= i < len(last_shown)
+    ]
+    st.session_state["finder_pinned_driver_names"] = current_pinned
+    return current_pinned
 
 def _sync_finder_library_selection(filtered_preset_names: list[str]) -> None:
-    """Drop table row selections that belong to a previous filtered pool."""
-    state = st.session_state.get("finder_driver_library_table")
-    if not isinstance(state, dict):
+    """Ensure table row selection points to the pinned drivers at the head of the candidate pool."""
+    pinned = st.session_state.get("finder_pinned_driver_names", [])
+    table_state = st.session_state.setdefault("finder_driver_library_table", {})
+    if not isinstance(table_state, dict):
         return
     shown_count = min(len(filtered_preset_names), _constants._LIBRARY_TABLE_MAX_ROWS)
-    selection = state.get("selection")
+    pinned_count = min(len(pinned), shown_count)
+    selection = table_state.setdefault("selection", {})
     if not isinstance(selection, dict):
-        return
-    rows = selection.get("rows", [])
-    valid_rows = [
-        row for row in rows
-        if isinstance(row, int) and 0 <= row < shown_count
-    ]
-    if valid_rows != rows:
-        state["selection"] = {**selection, "rows": valid_rows}
-        st.session_state["finder_driver_library_table"] = state
+        selection = {}
+        table_state["selection"] = selection
+    selection["rows"] = list(range(pinned_count))
+    st.session_state["finder_driver_library_table"] = table_state
+
+def _clear_library_selection() -> None:
+    """Clear all pinned drivers and table selection."""
+    st.session_state["finder_pinned_driver_names"] = []
+    st.session_state["_finder_last_shown_names"] = None
+    table_state = st.session_state.get("finder_driver_library_table")
+    if isinstance(table_state, dict):
+        table_state["selection"] = {"rows": [], "columns": [], "cells": []}
+        st.session_state["finder_driver_library_table"] = table_state
 
 def _driver_preset_class(name: str) -> str:
     # functools.cache would restart cold on every Streamlit rerun (this whole
@@ -1622,6 +1660,9 @@ def _selected_library_preset_names(
     filtered_preset_names: list[str],
 ) -> list[str]:
     """Return the currently selected rows from the visible candidate pool."""
+    pinned = st.session_state.get("finder_pinned_driver_names")
+    if pinned:
+        return [p for p in pinned if p in filtered_preset_names]
     shown_names = filtered_preset_names[:_constants._LIBRARY_TABLE_MAX_ROWS]
     table_state = st.session_state.get("finder_driver_library_table")
     if not isinstance(table_state, dict):
@@ -1875,8 +1916,8 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         return
 
     st.caption(
-        "Select one driver to open it directly in Box Design, or select "
-        "several to limit the next Bass Match run."
+        "Select one or more drivers to simulate directly in Box Design, "
+        "or run Bass Match to rank them. Selected drivers remain pinned across filter changes."
     )
 
     # Re-serializing the full 10k-row catalog to the browser on every rerun
@@ -1938,36 +1979,67 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
                 f"Price ({price_currency})" if price_currency else "Price",
                 format="%.2f",
             ),
-            "Currency": None,
         },
     )
-    
+
+    # Remember the displayed driver names so future row selections map to the exact presets shown
+    st.session_state["_finder_last_shown_names"] = list(shown_names)
+
     selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
-    if not selected_rows:
+    selected_indices = [
+        int(r) for r in selected_rows
+        if isinstance(r, (int, np.integer)) and 0 <= int(r) < len(library_df)
+    ]
+    selected_names = [str(library_df.iloc[i]["Driver"]) for i in selected_indices]
+
+    if not selected_names:
         with st.container(key="emerald_info_library_selection"):
             st.info(
                 "No pool limit selected. Bass Match will evaluate every driver "
                 "allowed by the Library filters."
             )
         return
-        
-    if len(selected_rows) > 1:
-        with st.container(key="emerald_info_library_multi_selection"):
-            st.info(
-                f"{len(selected_rows)} drivers selected. Run Bass Match above "
-                "to rank only this pool."
+
+    if len(selected_names) == 1:
+        selected_name = selected_names[0]
+        c_btn1, c_btn2 = st.columns([3, 1])
+        with c_btn1:
+            st.button(
+                f"Open {_driver_preset_display_label(selected_name)} in Box Design",
+                type="primary",
+                width="stretch",
+                key="finder_use_library_driver",
+                on_click=_finder._apply_library_driver,
+                args=(selected_name,),
+            )
+        with c_btn2:
+            st.button(
+                "Unpin driver",
+                width="stretch",
+                key="finder_unpin_library_driver",
+                on_click=_clear_library_selection,
             )
         return
-        
-    selected_index = int(selected_rows[0])
-    if not 0 <= selected_index < len(library_df):
-        return
-    selected_name = str(library_df.iloc[selected_index]["Driver"])
-    st.button(
-        f"Open {_driver_preset_display_label(selected_name)} in Box Design",
-        type="primary",
-        width="stretch",
-        key="finder_use_library_driver",
-        on_click=_finder._apply_library_driver,
-        args=(selected_name,),
-    )
+
+    with st.container(key="emerald_info_library_multi_selection"):
+        st.info(
+            f"{len(selected_names)} drivers selected (pinned across filter changes). "
+            "Simulate them together in Box Design or run Bass Match above to rank them."
+        )
+    c_btn1, c_btn2 = st.columns([3, 1])
+    with c_btn1:
+        st.button(
+            f"Simulate {len(selected_names)} drivers in Box Design",
+            type="primary",
+            width="stretch",
+            key="finder_use_library_driver_multi",
+            on_click=_finder._apply_multiple_library_drivers,
+            args=(selected_names,),
+        )
+    with c_btn2:
+        st.button(
+            "Unpin all",
+            width="stretch",
+            key="finder_clear_library_selection",
+            on_click=_clear_library_selection,
+        )

@@ -593,6 +593,7 @@ def _preserve_library_filters() -> None:
         "preset_price_currency",
         "bass_match_sidebar_tab",
         "finder_candidate_pool_expander",
+        "finder_pinned_driver_names",
     )
     compact_widget_keys = tuple(
         widget_key

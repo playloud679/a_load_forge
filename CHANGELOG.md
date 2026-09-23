@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.18.20 (2026-09-23)
+
+- **Bass Match — Candidate Pool Auto-Open, Complete Simple Mode Filters, Driver Pinning & Direct Simulation in Box Design**:
+  - Candidate pool expander (`finder_candidate_pool_expander`) now starts expanded by default when opening Bass Match (`expanded=True`), presenting the full scrollable driver catalog immediately rather than leaving an empty screen.
+  - Complete library filters in Simple mode: removed the filter-stripping restriction so Provenance, Manufacturer, Size, Class, and Price filters are all available with Advanced mode off.
+  - Driver Pinning across filter changes: selected driver(s) in the candidate pool remain pinned at the top of the pool even when subsequent filter modifications would normally exclude them (`_filter_driver_preset_names` with `pinned`, `_sync_pinned_from_library_table`).
+  - Direct simulation in Box Design without running Bass Match:
+    - Selecting 1 driver provides a primary action to open the driver directly in Box Design with its suggested alignment (`finder_use_library_driver`).
+    - Selecting multiple drivers provides a primary action to simulate all selected candidates together in Box Design comparison tabs (`finder_use_library_driver_multi`), auto-aligning and simulating each driver with overlaid responses.
+    - Added dedicated unpin actions for single and bulk selections.
+  - Synchronized documentation across `docs/ui/catalog.md`, `docs/ui/finder.md`, `docs/ui/app.md`, `docs/deploy-cloudrun.md`, `README.md`, `pyproject.toml`, and `VERSION`.
+  - Full active suite: **239 tests passing, 0 failures, 0 skipped**.
+
 ## 0.18.19 (2026-09-23)
 
 - **UI & Layout — Decluttering, Visual Noise Reduction & Clean CAD Layout**:

@@ -18,12 +18,14 @@ Everything that reads or edits the driver catalog and the preset library.
   `_current_exchange_rates` (ECB, cached 6 h), `_normalized_preset_price`,
   `_preset_price_currencies`, `_preset_price_values`,
   `_normalize_price_frame`, `_value_sorted_frame`, `_purchase_markdown`.
-- Library UI and filters: `_render_finder_library_filters`,
-  `_filter_driver_preset_names`, `_sync_finder_library_selection`,
-  `_render_driver_library`, `_render_driver_mechanical_drawing`,
-  `_passive_radiator_library_frame`, `_render_passive_radiator_library`,
-  `_finder_filter_summary`, `_finder_brief_constraints`,
-  `_render_finder_constraint_grid`.
+- Library UI and filters: `_render_finder_library_filters` (complete in both Simple
+  and Advanced modes: Provenance, Manufacturer, Size, Class, Price),
+  `_filter_driver_preset_names` (supports `pinned` drivers preserved at the top of the pool),
+  `_sync_pinned_from_library_table`, `_sync_finder_library_selection`, `_clear_library_selection`,
+  `_render_driver_library` (supports single and multi-driver Box Design simulation actions),
+  `_render_driver_mechanical_drawing`, `_passive_radiator_library_frame`,
+  `_render_passive_radiator_library`, `_finder_filter_summary`,
+  `_finder_brief_constraints`, `_render_finder_constraint_grid`.
 - Candidate prefiltering: `_finder_candidate_precheck`,
   `_finder_prefilter`, `_prefilter_finder_candidate_pools`,
   `_deduplicate_finder_preset_names`, `_filter_finder_performance_rows`,

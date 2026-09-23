@@ -925,6 +925,134 @@ def _apply_library_driver(name: str) -> None:
         _mark_auto_alignment_synced(driver)
     st.session_state["workspace_mode"] = "Box Design"
 
+def _apply_multiple_library_drivers(names: list[str]) -> None:
+    """Load multiple library presets as Box Design comparison tabs."""
+    if not names:
+        return
+    if len(names) == 1:
+        _apply_library_driver(names[0])
+        return
+
+    _analysis._end_design_comparison()
+    load_type = str(
+        (st.session_state.get("finder_load_types") or [st.session_state.get("load_type", "DCCAV")])[0]
+    )
+    st.session_state["load_type"] = load_type
+    sim_voltage = float(st.session_state.get("finder_voltage", st.session_state.get("sim_voltage", 2.83)))
+    sim_series_r = float(st.session_state.get("sim_series_r_ohm", 0.0))
+    sim_f_min = float(st.session_state.get("sim_f_min", 10.0))
+    sim_f_max = float(st.session_state.get("sim_f_max", 500.0))
+    sim_points = int(st.session_state.get("sim_points", 100))
+    engine_revision = _analysis._simulation_engine_revision()
+
+    comparison_tabs: list[dict] = []
+    max_designs = min(len(names), _constants._MAX_COMPARISON_DESIGNS)
+
+    for name in names[:max_designs]:
+        try:
+            driver = _acoustics.get_driver_preset(name)
+        except Exception:
+            continue
+
+        st.session_state["driver_preset_name"] = name
+        st.session_state["driver_config"] = "Single driver"
+        _catalog._apply_driver_preset(driver)
+        st.session_state["load_type"] = load_type
+
+        if _state._box_strategy_is_auto():
+            _optimizer._apply_suggested_box_for(driver)
+            _mark_auto_alignment_synced(driver)
+
+        is_pr = (
+            load_type == "Bass reflex"
+            and st.session_state.get("reflex_resonator_type") == "Passive radiator"
+        )
+        if is_pr:
+            box = _state._pr_box_from_state()
+        elif load_type == "Bass reflex":
+            box = _state._reflex_box_from_state()
+        elif load_type == "Bandpass 4th order":
+            box = _state._bandpass4_box_from_state()
+        elif load_type == "Bandpass 6th order":
+            box = _state._bandpass6_box_from_state()
+        elif load_type == "Bandpass 8th order":
+            box = _state._bandpass8_box_from_state()
+        elif load_type == "Sealed":
+            box = _state._sealed_box_from_state()
+        elif load_type == "Infinite baffle":
+            box = None
+        else:
+            box = _state._box_from_state()
+
+        try:
+            result, _, _, _ = _analysis._simulate_design_cached(
+                engine_revision,
+                driver,
+                load_type,
+                box,
+                sim_f_min,
+                sim_f_max,
+                sim_points,
+                sim_voltage,
+                sim_series_r,
+            )
+        except Exception:
+            _runtime.logger.exception("Could not simulate driver %s for comparison", name)
+            continue
+
+        tab_number = len(comparison_tabs) + 1
+        tab_id = f"design_{uuid.uuid4().hex}"
+        label = _analysis._design_comparison_tab_label(
+            tab_number,
+            load_type,
+            preset=name,
+            config="Single driver",
+        )
+        color = _constants._DESIGN_COMPARISON_TRACE_COLORS[
+            len(comparison_tabs) % len(_constants._DESIGN_COMPARISON_TRACE_COLORS)
+        ]
+        snapshot = _analysis._pinned_response_snapshot(
+            load_type,
+            box,
+            result,
+            label=label,
+            color=color,
+        )
+        snapshot["label"] = label
+        snapshot["color"] = color
+        snapshot["visible"] = True
+
+        params = _state._json_safe(_state._collect_params())
+        tab = {
+            "id": tab_id,
+            "label": label,
+            "color": color,
+            "driver_preset_name": name,
+            "display_driver_name": name,
+            "load_type": load_type,
+            "visible": True,
+            "parameters": params,
+            "snapshot": snapshot,
+        }
+        comparison_tabs.append(tab)
+
+    if not comparison_tabs:
+        return
+
+    active = comparison_tabs[0]
+    _projects._apply_loaded_params(dict(active["parameters"]))
+    st.session_state["driver_preset_name"] = str(active["driver_preset_name"])
+    st.session_state["design_comparison_tabs"] = comparison_tabs
+    st.session_state["design_comparison_active_id"] = active["id"]
+    st.session_state["design_comparison_loaded_id"] = active["id"]
+    st.session_state["pinned_responses"] = [
+        dict(item["snapshot"])
+        for item in comparison_tabs
+        if item["id"] != active["id"]
+    ]
+    _mark_auto_alignment_synced()
+    st.session_state["workspace_mode"] = "Box Design"
+
 def _apply_library_pr(name: str) -> None:
     """Load one passive radiator preset into the current simulation workspace."""
     _analysis._end_design_comparison()
@@ -1902,7 +2030,7 @@ def _render_candidate_pool(filtered_preset_names: list[str]) -> None:
     )
     pool_expander = st.expander(
         f"Candidate pool · {pool_suffix}",
-        expanded=not filtered_preset_names,
+        expanded=st.session_state.get("finder_candidate_pool_expander", True),
         key="finder_candidate_pool_expander",
         on_change="rerun",
     )

@@ -231,6 +231,7 @@ from ui.catalog import _catalog_path_for_preset as _catalog_path_for_preset
 from ui.catalog import _catalog_record_display_identity as _catalog_record_display_identity
 from ui.catalog import _current_exchange_rates as _current_exchange_rates
 from ui.catalog import _deduplicate_finder_preset_names as _deduplicate_finder_preset_names
+from ui.catalog import _clear_library_selection as _clear_library_selection
 from ui.catalog import (
     _deduplicate_finder_preset_names_tuple as _deduplicate_finder_preset_names_tuple,
 )
@@ -286,6 +287,7 @@ from ui.catalog import _size_bucket as _size_bucket
 from ui.catalog import _sync_filter_group_all as _sync_filter_group_all
 from ui.catalog import _sync_filter_multiselect as _sync_filter_multiselect
 from ui.catalog import _sync_finder_library_selection as _sync_finder_library_selection
+from ui.catalog import _sync_pinned_from_library_table as _sync_pinned_from_library_table
 from ui.catalog import (
     _update_catalog_driver_from_box_design as _update_catalog_driver_from_box_design,
 )
@@ -377,6 +379,7 @@ from ui.finder import _apply_bandpass8_alignment as _apply_bandpass8_alignment
 from ui.finder import _apply_batch_result as _apply_batch_result
 from ui.finder import _apply_finder_scenario as _apply_finder_scenario
 from ui.finder import _apply_library_driver as _apply_library_driver
+from ui.finder import _apply_multiple_library_drivers as _apply_multiple_library_drivers
 from ui.finder import _apply_library_pr as _apply_library_pr
 from ui.finder import _apply_pending_atlas_point as _apply_pending_atlas_point
 from ui.finder import _apply_pending_batch_comparison as _apply_pending_batch_comparison
@@ -690,6 +693,7 @@ __all__ = [
     "_apply_finder_scenario",
     "_apply_lfp_project",
     "_apply_library_driver",
+    "_apply_multiple_library_drivers",
     "_apply_library_pr",
     "_apply_loaded_params",
     "_apply_optimized_box",
@@ -733,6 +737,7 @@ __all__ = [
     "_clean_display_table_frame",
     "_clean_style_str",
     "_clear_active_project_state",
+    "_clear_library_selection",
     "_clear_pinned_responses",
     "_click_marker_layer",
     "_cloud_autosave_step",
@@ -1015,6 +1020,7 @@ __all__ = [
     "_sync_filter_group_all",
     "_sync_filter_multiselect",
     "_sync_finder_library_selection",
+    "_sync_pinned_from_library_table",
     "_table_value_missing",
     "_toggle_community_project_like",
     "_toggle_design_tab_visible",

@@ -16,12 +16,13 @@ results, the candidate pool and the run statistics.
   `_finder_pool_fingerprint`, `_is_streamlit_community_cloud`.
 - Result handling: `_apply_batch_result`, `_finder_result_snapshot`,
   `_apply_pending_batch_result`, `_add_finder_designs_to_comparison`,
-  `_apply_pending_batch_comparison`, `_finder_row_driver`,
+  `_apply_pending_batch_comparison`, `_apply_library_driver`,
+  `_apply_multiple_library_drivers`, `_apply_library_pr`, `_finder_row_driver`,
   `_finder_total_volume_l`.
 - Workspace UI: `_render_find_driver_workspace`, `_finder_results_current`,
   `_render_finder_results`, `_render_bass_match_hero`,
   `_render_finder_run_statistics`, `_finder_per_load_stats_str`,
-  `_render_candidate_pool` (`@st.fragment`), `_render_find_driver_actions` (search brief summary),
+  `_render_candidate_pool` (`@st.fragment`, starts expanded by default), `_render_find_driver_actions` (search brief summary),
   `_render_find_driver_goal_sidebar`, `_render_find_driver_target_sidebar`,
   `_render_finder_scenario_selector`, `_apply_finder_scenario`,
   `_show_advanced_controls`, `_run_find_driver_search`.
