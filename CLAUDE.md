@@ -1,95 +1,10 @@
-# CLAUDE.md
+# Coding agent guidance
 
-Guidance for coding agents working in this repository.
+Follow [AGENTS.md](AGENTS.md), the single project-specific development contract.
+Load Forge is pre-production: use targeted checks, concise logs and scoped edits.
+Routine work does not require full-suite gates, version bumps or release paperwork.
 
-## Mandatory Documentation Contract
-
-If you modify any `src/*.py` module, update the matching `docs/<module>.md` in
-the same change.  The docs are the token-saving source of truth for future
-agents.  A stale doc is treated as a broken build.
-
-## Mandatory Test Contract
-
-While patching Python:
-
-```bash
-.venv/bin/python -m py_compile ui_app.py src/*.py tests/test_all.py
-.venv/bin/python tests/test_all.py -m "acoustic-load smoke"
-```
-
-For UI changes:
-
-```bash
-.venv/bin/python -c 'from streamlit.testing.v1 import AppTest; at = AppTest.from_file("ui_app.py", default_timeout=30); at.run(); assert not at.exception, at.exception'
-```
-
-Before any commit touching Python, run the full active suite fresh:
-
-```bash
-.venv/bin/python tests/test_all.py
-```
-
-Do not claim a test passed unless it was actually run.
-
-## Active Architecture
-
-Load Forge is a Streamlit acoustic-load simulator.
-
-```text
-ui_app.py -> src/ui/*.py -> src/acoustics.py (facade) -> src/engine.py + src/presets.py + src/pricing.py
-          -> docs/acoustics.md (+ docs/<module>.md) -> tests/test_all.py
-```
-
-The current simulator supports DCCAV / double asymmetric reflex:
-
-```text
-driver -> upper volume || upper port -> lower volume || lower port
-```
-
-plus fourth-, sixth- and eighth-order bandpass, conventional bass reflex,
-passive radiator, acoustic suspension / sealed box, ideal infinite baffle,
-transmission line, MLTL, quarter-wave, back-loaded horn and tapped horn.
-
-Inputs are driver T/S parameters plus chamber/tuning/loss controls.  Outputs are
-response plots, metrics and CSV export.
-
-## Commands
-
-```bash
-make install
-make run
-.venv/bin/python tests/test_all.py -m "acoustic-load smoke"
-make test
-```
-
-## Module Notes
-
-| Module/File | Role |
-|---|---|
-| `ui_app.py` | Thin Streamlit bootstrap, reloads and test-compatible re-exports |
-| `src/ui/*.py` | Dashboard implementation; see `docs/ui.md` |
-| `src/acoustics.py` | Neutral public facade re-exporting every acoustic-load API |
-| `src/dccav.py` | Backward-compatible alias for `src/acoustics.py` |
-| `src/engine.py` | Physics, simulation, optimizer, atlas, Monte Carlo, exports, classification |
-| `src/presets.py` | Built-in + Loudspeaker Database driver catalog and metadata |
-| `src/pricing.py` | Retailer price records, safe matching and value scoring |
-| `src/ranking.py` | Find-a-driver candidate rows (worker-process safe) |
-| `docs/acoustics.md` | Neutral facade contract and cross-load smoke-test policy |
-| `docs/dccav.md` | DCCAV-specific theory and legacy-import compatibility |
-| `docs/engine.md`, `docs/presets.md`, `docs/pricing.md` | Per-module contracts |
-| `tests/test_all.py` | Focused custom runner with the acoustic-load suite |
-
-## Streamlit Reload Rule
-
-Backend modules are imported as modules and reloaded through
-`_reload_if_source_changed`, dependencies first. The acoustic facade always
-rebinds exports after that pass. This includes measurements and billing.
-Every UI module then participates in source-change reload; cross-module calls
-use module-qualified references. See `docs/ui.md` for the current contract.
-Add new imports/reloads when adding active helper modules.
-
-## Change Scope
-
-Keep edits narrow and inside the active acoustic-load simulation surface unless
-the user explicitly changes the product direction.  Do not push unless
-explicitly requested.
+Read [docs/ui.md](docs/ui.md) for UI ownership/hot reload and
+[docs/development.md](docs/development.md) for test selection. Read matching
+module docs only when needed. `GOLDEN_STD.md` is background guidance;
+`AGENTS.md` and the user's instructions take precedence.

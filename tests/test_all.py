@@ -16,6 +16,15 @@ import traceback
 from dataclasses import replace
 from pathlib import Path
 
+# Capture the noisy child process before importing Streamlit or application code.
+if __name__ == "__main__":
+    import os
+    if not os.environ.get("LOAD_FORGE_TEST_LOG_CHILD") and not any(
+        flag in sys.argv for flag in ("--verbose", "--list", "--help", "-h")
+    ):
+        from suite_output import run_logged
+        sys.exit(run_logged([sys.executable, "-u", __file__, *sys.argv[1:]]))
+
 import numpy as np
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -24,14 +33,7 @@ if str(ROOT / "src") not in sys.path:
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-import tools
-
 CRAWLER_ROOT = ROOT.parent / "load_forge_crawler"
-if (CRAWLER_ROOT / "tools").exists():
-    if hasattr(tools, "__path__") and str(CRAWLER_ROOT / "tools") not in tools.__path__:
-        tools.__path__.append(str(CRAWLER_ROOT / "tools"))
-    if str(CRAWLER_ROOT) not in sys.path:
-        sys.path.append(str(CRAWLER_ROOT))
 
 from src import acoustics as _acoustics
 from src import presets as _presets
@@ -66,53 +68,64 @@ def _parse_args():
     parser.add_argument(
         "--match", "-m", action="append", default=[],
         help="Run only tests whose label contains this text. May be repeated.")
-    parser.add_argument(
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument(
         "--fast", action="store_true",
         help="Run only fast unit/physics/catalog tests (skip heavy UI AppTests).")
-    parser.add_argument(
+    modes.add_argument(
         "--ui", action="store_true",
         help="Run only UI AppTest tests.")
-    parser.add_argument(
+    modes.add_argument(
         "--smoke", action="store_true",
         help="Run only acoustic-load smoke tests.")
     parser.add_argument(
         "--time", action="store_true",
         help="Print execution time for every test.")
+    modes.add_argument("--crawler", action="store_true",
+                       help="Run legacy crawler checks using the sibling workspace (opt-in).")
+    parser.add_argument("--verbose", action="store_true", help="Stream all raw output instead of logging it.")
     parser.add_argument("--list", action="store_true", help="List matching tests.")
     return parser.parse_args()
 
 
 ARGS = (
-    argparse.Namespace(match=[], fast=False, ui=False, smoke=False, time=False, list=False)
+    argparse.Namespace(match=[], fast=False, ui=False, smoke=False, crawler=False, time=False, list=False, verbose=False)
     if _IS_MP_CHILD
     else _parse_args()
 )
 MATCHES = [m.casefold() for m in ARGS.match]
-if ARGS.smoke:
-    MATCHES.append("acoustic-load smoke")
 
 
-def _is_ui_test(label: str) -> bool:
-    return label.startswith("UI ") or label.startswith("Streamlit ")
+# The simulator never imports or extends paths into the sibling project by default.
+if ARGS.crawler:
+    import tools
+    if not (CRAWLER_ROOT / "tools").is_dir():
+        raise SystemExit(f"Crawler workspace not found: {CRAWLER_ROOT}")
+    tools.__path__.append(str(CRAWLER_ROOT / "tools"))
+    sys.path.append(str(CRAWLER_ROOT))
 
 
-def _selected(label: str) -> bool:
-    if ARGS.fast and _is_ui_test(label):
+def _selected(label: str, group: str) -> bool:
+    if (group == "crawler") != ARGS.crawler:
         return False
-    if ARGS.ui and not _is_ui_test(label):
+    if ARGS.smoke and "acoustic-load smoke" not in label.casefold():
+        return False
+    if ARGS.fast and group != "core":
+        return False
+    if ARGS.ui and group != "ui":
         return False
     return not MATCHES or any(m in label.casefold() for m in MATCHES)
 
 
-def test(label, fn):
+def test(label, fn, *, group="core"):
     global PASS, FAIL, SKIP
     if _IS_MP_CHILD:
         return
-    if not _selected(label):
+    if not _selected(label, group):
         SKIP += 1
         return
     if ARGS.list:
-        tag = " [UI]" if _is_ui_test(label) else " [FAST]"
+        tag = f" [{group.upper()}]"
         print(f"  - {label}{tag}")
         PASS += 1
         return
@@ -262,7 +275,7 @@ def _check_bandpass8_ui():
     assert not at.exception, at.exception
 
 
-test("UI exposes Bandpass 8th order simulation", _check_bandpass8_ui)
+test("UI exposes Bandpass 8th order simulation", _check_bandpass8_ui, group="ui")
 
 
 def _check_presets_are_available():
@@ -1014,7 +1027,7 @@ def _check_ui_bandpass4_design_and_persistence():
     )
 
 
-test("UI fourth-order bandpass controls persist and render", _check_ui_bandpass4_design_and_persistence)
+test("UI fourth-order bandpass controls persist and render", _check_ui_bandpass4_design_and_persistence, group="ui")
 
 
 def _check_bandpass6_model_and_starter():
@@ -1159,7 +1172,7 @@ def _check_ui_bandpass6_design_and_persistence():
     )
 
 
-test("UI sixth-order bandpass controls persist and render", _check_ui_bandpass6_design_and_persistence)
+test("UI sixth-order bandpass controls persist and render", _check_ui_bandpass6_design_and_persistence, group="ui")
 
 
 def _check_response_metrics_are_sane():
@@ -1321,7 +1334,7 @@ def _check_frd_zma_exports():
     assert "Import impedance ZMA or CSV" not in uploader_labels
 
 
-test("DCCAV FRD/ZMA exports match the simulated arrays", _check_frd_zma_exports)
+test("DCCAV FRD/ZMA exports match the simulated arrays", _check_frd_zma_exports, group="ui")
 
 
 def _check_ui_group_delay_chart_renders():
@@ -1337,7 +1350,7 @@ def _check_ui_group_delay_chart_renders():
     )
 
 
-test("UI group-delay tab renders the Group Delay chart", _check_ui_group_delay_chart_renders)
+test("UI group-delay tab renders the Group Delay chart", _check_ui_group_delay_chart_renders, group="ui")
 
 
 def _check_ui_non_calculating_navigation_is_lazy():
@@ -1370,6 +1383,7 @@ def _check_ui_non_calculating_navigation_is_lazy():
 test(
     "UI workspace navigation keeps expensive panels lazy",
     _check_ui_non_calculating_navigation_is_lazy,
+    group="ui",
 )
 
 
@@ -1712,6 +1726,7 @@ def _check_ui_port_blueprint_focus_survives_flare_rerun():
 test(
     "UI Ports blueprint focus survives flare-profile reruns",
     _check_ui_port_blueprint_focus_survives_flare_rerun,
+    group="ui",
 )
 
 
@@ -1736,6 +1751,7 @@ def _check_ui_small_alignment_warning_uses_active_box():
 test(
     "UI small 12-inch alignment warning uses the active box",
     _check_ui_small_alignment_warning_uses_active_box,
+    group="ui",
 )
 
 
@@ -2089,6 +2105,7 @@ def _check_ui_port_geometry_warns_on_excessive_length():
 test(
     "UI port geometry warns when a duct is longer than the box can hold",
     _check_ui_port_geometry_warns_on_excessive_length,
+    group="ui",
 )
 
 
@@ -2120,6 +2137,7 @@ def _check_ui_port_duct_volume_and_pipe_warnings():
 test(
     "UI port geometry warns on oversized ducts and in-band pipe resonance",
     _check_ui_port_duct_volume_and_pipe_warnings,
+    group="ui",
 )
 
 
@@ -2159,6 +2177,7 @@ def _check_ui_port_geometry_warns_below_golden_rule():
 test(
     "UI port geometry warns below the minimum-area golden rule",
     _check_ui_port_geometry_warns_below_golden_rule,
+    group="ui",
 )
 
 
@@ -2188,7 +2207,7 @@ def _check_ui_port_geometry_warns_on_small_vent():
     assert not any("chuffing" in warning.value for warning in at.warning)
 
 
-test("UI port geometry warns about small-vent air speed", _check_ui_port_geometry_warns_on_small_vent)
+test("UI port geometry warns about small-vent air speed", _check_ui_port_geometry_warns_on_small_vent, group="ui")
 
 
 def _check_driver_reference_metrics():
@@ -2220,7 +2239,7 @@ def _check_ui_reference_metrics_row():
     )
 
 
-test("UI shows reference efficiency, sensitivity and EBP metrics", _check_ui_reference_metrics_row)
+test("UI shows reference efficiency, sensitivity and EBP metrics", _check_ui_reference_metrics_row, group="ui")
 
 
 def _check_series_resistance_effects():
@@ -2285,7 +2304,7 @@ def _check_ui_series_resistance_input():
     assert 3.0 < (z_min_rs - z_min_base) < 5.0, (z_min_base, z_min_rs)
 
 
-test("UI series resistance raises the minimum impedance metric", _check_ui_series_resistance_input)
+test("UI series resistance raises the minimum impedance metric", _check_ui_series_resistance_input, group="ui")
 
 
 def _check_ui_pin_response_overlay():
@@ -2388,7 +2407,7 @@ def _check_ui_pin_response_overlay():
     assert len(migrated) == 1 and migrated[0]["label"] == "Legacy DCCAV pin", migrated
 
 
-test("UI pin overlay stores multiple loads and clears them", _check_ui_pin_response_overlay)
+test("UI pin overlay stores multiple loads and clears them", _check_ui_pin_response_overlay, group="ui")
 
 
 def _check_ui_editable_design_comparison_tabs():
@@ -2671,6 +2690,7 @@ def _check_ui_editable_design_comparison_tabs():
 test(
     "UI design comparison tabs keep every variant independently editable",
     _check_ui_editable_design_comparison_tabs,
+    group="ui",
 )
 
 
@@ -2699,6 +2719,7 @@ def _check_ui_transparent_header_keeps_clicks():
 test(
     "UI transparent header stays click-through except the sidebar opener",
     _check_ui_transparent_header_keeps_clicks,
+    group="ui",
 )
 
 
@@ -2741,6 +2762,7 @@ def _check_ui_reuses_unchanged_design_simulation():
 test(
     "UI reuses unchanged design simulation across interface clicks",
     _check_ui_reuses_unchanged_design_simulation,
+    group="ui",
 )
 
 
@@ -2829,6 +2851,7 @@ def _check_ui_finder_selection_creates_editable_design_tabs():
 test(
     "UI Finder multi-selection creates editable Box Design tabs",
     _check_ui_finder_selection_creates_editable_design_tabs,
+    group="ui",
 )
 
 
@@ -2867,7 +2890,7 @@ def _check_ui_load_comparison_overlay():
     ), "comparison caption missing on the main response chart"
 
 
-test("UI load comparison simulates all topologies at equal volume", _check_ui_load_comparison_overlay)
+test("UI load comparison simulates all topologies at equal volume", _check_ui_load_comparison_overlay, group="ui")
 
 
 def _check_ui_share_link_roundtrip():
@@ -2913,7 +2936,7 @@ def _check_ui_share_link_roundtrip():
     )
 
 
-test("UI share link round-trips the design through the URL", _check_ui_share_link_roundtrip)
+test("UI share link round-trips the design through the URL", _check_ui_share_link_roundtrip, group="ui")
 
 
 def _check_ui_project_preset_upload_finishes():
@@ -2981,6 +3004,7 @@ def _check_ui_project_preset_upload_finishes():
 test(
     "UI project preset upload completes once and resets its uploader",
     _check_ui_project_preset_upload_finishes,
+    group="ui",
 )
 
 
@@ -3045,6 +3069,7 @@ def _check_ui_project_download_and_upload():
 test(
     "UI project .lfp export and import round-trips design parameters and project name",
     _check_ui_project_download_and_upload,
+    group="ui",
 )
 
 
@@ -3115,6 +3140,7 @@ def _check_ui_new_project_preserves_work():
 test(
     "UI New Project saves the current work and can start blank",
     _check_ui_new_project_preserves_work,
+    group="ui",
 )
 
 
@@ -3138,6 +3164,7 @@ def _check_ui_new_project_has_untitled_fallback():
 test(
     "UI unnamed drafts support the Untitled project fallback and export",
     _check_ui_new_project_has_untitled_fallback,
+    group="ui",
 )
 
 
@@ -3181,6 +3208,7 @@ def _check_ui_manage_projects_navigation_preserves_active_project():
 test(
     "UI Manage Projects navigation preserves active project context across all workspaces",
     _check_ui_manage_projects_navigation_preserves_active_project,
+    group="ui",
 )
 
 
@@ -3230,6 +3258,7 @@ def _check_ui_manage_projects_crud_actions():
 test(
     "UI Manage Projects supports in-place rename and duplicate actions",
     _check_ui_manage_projects_crud_actions,
+    group="ui",
 )
 
 
@@ -3256,6 +3285,7 @@ def _check_ui_technical_sidebar_minimalism():
 test(
     "UI technical sidebar keeps project lifecycle on the main screen",
     _check_ui_technical_sidebar_minimalism,
+    group="ui",
 )
 
 
@@ -3312,6 +3342,7 @@ def _check_ui_studio_entry_landing_rules():
 test(
     "UI studio entry never lands on Projects or Explore by default",
     _check_ui_studio_entry_landing_rules,
+    group="ui",
 )
 
 
@@ -3380,6 +3411,7 @@ def _check_ui_studio_resumes_last_cloud_workspace():
 test(
     "UI studio entry resumes the last cloud engineering workspace",
     _check_ui_studio_resumes_last_cloud_workspace,
+    group="ui",
 )
 
 
@@ -3495,6 +3527,7 @@ def _check_ui_complete_lfp_restores_bass_match():
 test(
     "UI complete LFP restores design and Bass Match search state",
     _check_ui_complete_lfp_restores_bass_match,
+    group="ui",
 )
 
 
@@ -3514,6 +3547,7 @@ def _check_bass_match_cloud_context_avoids_nested_arrays():
 test(
     "UI Bass Match cloud context avoids nested Firestore arrays",
     _check_bass_match_cloud_context_avoids_nested_arrays,
+    group="ui",
 )
 
 
@@ -4568,6 +4602,7 @@ def _check_ui_saas_authenticated_session():
 test(
     "UI SaaS mode authenticates user identity and provides local file export/import",
     _check_ui_saas_authenticated_session,
+    group="ui",
 )
 
 
@@ -4663,6 +4698,7 @@ def _check_ui_manage_projects_batch_operations():
 test(
     "UI Manage Projects supports batch multi-selection, batch trash, and batch restore",
     _check_ui_manage_projects_batch_operations,
+    group="ui",
 )
 
 
@@ -4702,6 +4738,7 @@ def _check_ui_auth_bypass_sign_out_returns_to_signed_out_state():
 test(
     "UI auth-bypass Sign out returns to the signed-out state",
     _check_ui_auth_bypass_sign_out_returns_to_signed_out_state,
+    group="ui",
 )
 
 
@@ -4796,6 +4833,7 @@ def _check_ui_public_project_page_rendering():
 test(
     "Public project page renders technical snapshot and metrics in Streamlit",
     _check_ui_public_project_page_rendering,
+    group="ui",
 )
 
 
@@ -4996,6 +5034,7 @@ def _check_ui_public_project_embed_mode():
 test(
     "Public project embed mode renders standalone minimal widget",
     _check_ui_public_project_embed_mode,
+    group="ui",
 )
 
 
@@ -5401,6 +5440,7 @@ def _check_ui_explore_directory_rendering():
 test(
     "UI Explore Directory renders search, topology filters and community project cards",
     _check_ui_explore_directory_rendering,
+    group="ui",
 )
 
 
@@ -5446,6 +5486,7 @@ def _check_ui_admin_and_project_back_navigation():
 test(
     "UI User Management, Maintenance, and Manage Projects back navigation",
     _check_ui_admin_and_project_back_navigation,
+    group="ui",
 )
 
 
@@ -5535,6 +5576,7 @@ def _check_ui_saas_local_registration_login_logout():
 test(
     "UI SaaS local account registers, signs out and signs back in",
     _check_ui_saas_local_registration_login_logout,
+    group="ui",
 )
 
 
@@ -5593,6 +5635,7 @@ def _check_ui_auth_only_email_allowlist():
 test(
     "UI auth-only mode enforces the email allowlist without Firestore",
     _check_ui_auth_only_email_allowlist,
+    group="ui",
 )
 
 
@@ -5638,6 +5681,7 @@ def _check_ui_email_required_without_guest_access():
 test(
     "UI requires email sign-in even when legacy anonymous access is requested",
     _check_ui_email_required_without_guest_access,
+    group="ui",
 )
 
 
@@ -5710,7 +5754,7 @@ def _check_ui_class_filter():
     assert {"VC corner", "Class"} <= labels, labels
 
 
-test("UI class filter separates subwoofers from midbass presets", _check_ui_class_filter)
+test("UI class filter separates subwoofers from midbass presets", _check_ui_class_filter, group="ui")
 
 
 def _check_ui_reflex_volume_keeps_impedance_peaks():
@@ -5759,7 +5803,7 @@ def _check_ui_reflex_volume_keeps_impedance_peaks():
     assert any("Qabs=1.0, Qport=1.0" in warning.value for warning in at.warning)
 
 
-test("UI bass-reflex volume edits preserve resonance diagnostics", _check_ui_reflex_volume_keeps_impedance_peaks)
+test("UI bass-reflex volume edits preserve resonance diagnostics", _check_ui_reflex_volume_keeps_impedance_peaks, group="ui")
 
 
 def _check_response_chart_domain_tracks_10hz_and_peak():
@@ -5796,7 +5840,7 @@ def _check_response_chart_domain_tracks_10hz_and_peak():
     assert "'domain': [20.0, 40.0]" in str(spec), spec
 
 
-test("UI response chart zoom anchors at 10 Hz and keeps displayed traces visible", _check_response_chart_domain_tracks_10hz_and_peak)
+test("UI response chart zoom anchors at 10 Hz and keeps displayed traces visible", _check_response_chart_domain_tracks_10hz_and_peak, group="ui")
 
 
 def _check_ui_response_zoom_slider_and_reset():
@@ -5832,7 +5876,7 @@ def _check_ui_response_zoom_slider_and_reset():
     assert tuple(at.session_state["plot_response_window_hz"]) == (10, 500)
 
 
-test("UI response zoom has a frequency window and reliable reset", _check_ui_response_zoom_slider_and_reset)
+test("UI response zoom has a frequency window and reliable reset", _check_ui_response_zoom_slider_and_reset, group="ui")
 
 
 def _check_ui_response_toggles_survive_workspace_and_preset_changes():
@@ -5871,6 +5915,7 @@ def _check_ui_response_toggles_survive_workspace_and_preset_changes():
 test(
     "UI response toggles persist across workspace and preset changes",
     _check_ui_response_toggles_survive_workspace_and_preset_changes,
+    group="ui",
 )
 
 
@@ -5934,7 +5979,7 @@ def _check_response_chart_drops_non_finite_points_and_keeps_label_scale_clean():
     ), y_encodings
 
 
-test("UI response chart filters invalid points and keeps cursor labels on the dB scale", _check_response_chart_drops_non_finite_points_and_keeps_label_scale_clean)
+test("UI response chart filters invalid points and keeps cursor labels on the dB scale", _check_response_chart_drops_non_finite_points_and_keeps_label_scale_clean, group="ui")
 
 
 def _check_response_chart_has_click_marker():
@@ -5968,7 +6013,7 @@ def _check_response_chart_has_click_marker():
     assert click_params[0]["views"], click_params[0]
 
 
-test("UI response chart has a clickable moving marker", _check_response_chart_has_click_marker)
+test("UI response chart has a clickable moving marker", _check_response_chart_has_click_marker, group="ui")
 
 
 def _check_response_chart_mil_keeps_independent_right_axis():
@@ -6026,6 +6071,7 @@ def _check_response_chart_mil_keeps_independent_right_axis():
 test(
     "UI response chart keeps MIL on an independent right axis",
     _check_response_chart_mil_keeps_independent_right_axis,
+    group="ui",
 )
 
 
@@ -6073,6 +6119,7 @@ def _check_ui_mil_mol_buttons_kept_but_curve_hidden():
 test(
     "UI keeps MIL/MOL buttons but hides the curve without a thermal rating",
     _check_ui_mil_mol_buttons_kept_but_curve_hidden,
+    group="ui",
 )
 
 
@@ -6236,7 +6283,7 @@ def _check_ui_driver_preset_filters_reduce_list():
     assert "Currency" in complete_library.columns
 
 
-test("UI driver preset filters reduce long speaker lists", _check_ui_driver_preset_filters_reduce_list)
+test("UI driver preset filters reduce long speaker lists", _check_ui_driver_preset_filters_reduce_list, group="ui")
 
 
 def _check_ui_driver_performance_filters_limit_mms_and_le():
@@ -6276,6 +6323,7 @@ def _check_ui_driver_performance_filters_limit_mms_and_le():
 test(
     "UI Finder filters driver presets by maximum Mms and Le",
     _check_ui_driver_performance_filters_limit_mms_and_le,
+    group="ui",
 )
 
 
@@ -6325,7 +6373,7 @@ def _check_ui_driver_preset_price_filter_uses_optional_metadata():
     assert info.currency == "EUR"
 
 
-test("UI driver preset price filter uses optional metadata", _check_ui_driver_preset_price_filter_uses_optional_metadata)
+test("UI driver preset price filter uses optional metadata", _check_ui_driver_preset_price_filter_uses_optional_metadata, group="ui")
 
 
 def _check_ui_driver_library_compares_nominal_size_and_sd():
@@ -6459,6 +6507,7 @@ def _check_ui_driver_library_compares_nominal_size_and_sd():
 test(
     "UI driver library compares nominal size and Sd",
     _check_ui_driver_library_compares_nominal_size_and_sd,
+    group="ui",
 )
 
 
@@ -6490,6 +6539,7 @@ def _check_ui_catalog_maintenance_normalizes_part_numbers():
 test(
     "UI catalog maintenance normalizes manufacturer part numbers",
     _check_ui_catalog_maintenance_normalizes_part_numbers,
+    group="ui",
 )
 
 
@@ -6559,6 +6609,7 @@ def _check_admin_can_save_box_design_ts_to_catalog():
 test(
     "Admin can save Box Design T/S values to the source catalog",
     _check_admin_can_save_box_design_ts_to_catalog,
+    group="ui",
 )
 
 
@@ -6910,6 +6961,7 @@ def _check_heritage_importer_parses_altec_and_tad_tables():
 test(
     "Heritage importer parses Altec and TAD official tables",
     _check_heritage_importer_parses_altec_and_tad_tables,
+    group="crawler",  # Local importer depends on the sibling crawler parser.
 )
 
 
@@ -7148,7 +7200,7 @@ def _check_manufacturer_optional_refresh_preserves_values_and_provenance():
     assert not batches.should_continue({"processed": 0, "failures": []}, 0.5)
 
 
-test("Manufacturer optional refresh preserves values and provenance", _check_manufacturer_optional_refresh_preserves_values_and_provenance)
+test("Manufacturer optional refresh preserves values and provenance", _check_manufacturer_optional_refresh_preserves_values_and_provenance, group="crawler")
 
 
 def _check_catalog_completion_plans_gaps_and_stops_when_stalled():
@@ -7252,6 +7304,7 @@ def _check_catalog_completion_plans_gaps_and_stops_when_stalled():
 test(
     "Catalog completion prioritizes safe gaps and stops when coverage stalls",
     _check_catalog_completion_plans_gaps_and_stops_when_stalled,
+    group="crawler",
 )
 
 
@@ -7884,7 +7937,7 @@ Equivalent Cas air load                Vas                m3         0.0700""",
         assert renamed[0]["model"] == "TH12"
 
 
-test("Generic T/S crawler discovers, normalizes and safely merges drivers", _check_generic_ts_crawler_discovers_normalizes_and_merges)
+test("Generic T/S crawler discovers, normalizes and safely merges drivers", _check_generic_ts_crawler_discovers_normalizes_and_merges, group="crawler")
 
 
 def _check_monacor_official_harvester_filters_manufacturer_and_extracts_ts():
@@ -7939,6 +7992,7 @@ def _check_monacor_official_harvester_filters_manufacturer_and_extracts_ts():
 test(
     "Monacor official harvester filters manufacturer and extracts T/S",
     _check_monacor_official_harvester_filters_manufacturer_and_extracts_ts,
+    group="crawler",
 )
 
 
@@ -7990,6 +8044,7 @@ def _check_sica_official_harvester_separates_brands_and_normalizes_units():
 test(
     "SICA official harvester separates brands and normalizes units",
     _check_sica_official_harvester_separates_brands_and_normalizes_units,
+    group="crawler",
 )
 
 
@@ -8027,6 +8082,7 @@ def _check_faitalpro_official_harvester_enumerates_impedance_variants():
 test(
     "FaitalPRO official harvester enumerates impedance variants",
     _check_faitalpro_official_harvester_enumerates_impedance_variants,
+    group="crawler",
 )
 
 
@@ -8062,6 +8118,7 @@ def _check_ciare_official_harvester_extracts_catalog_identity():
 test(
     "Ciare official harvester extracts catalog identity",
     _check_ciare_official_harvester_extracts_catalog_identity,
+    group="crawler",
 )
 
 
@@ -8106,6 +8163,7 @@ def _check_official_hunt_radar_uses_external_identity_without_copying_ts():
 test(
     "Official hunt radar uses external identities without copying T/S",
     _check_official_hunt_radar_uses_external_identity_without_copying_ts,
+    group="crawler",
 )
 
 
@@ -8152,6 +8210,7 @@ def _check_fane_official_harvester_follows_postbacks_and_extracts_ts():
 test(
     "Fane official harvester follows postbacks and extracts T/S",
     _check_fane_official_harvester_follows_postbacks_and_extracts_ts,
+    group="crawler",
 )
 
 
@@ -8296,6 +8355,7 @@ def _check_crawler_agent_policy_planning_and_staging():
 test(
     "Crawler agent accepts direct websites, rejects databases and stages only",
     _check_crawler_agent_policy_planning_and_staging,
+    group="crawler",
 )
 
 
@@ -8445,6 +8505,7 @@ def _check_crawler_agent_release_is_approved_and_immutable():
 test(
     "Crawler release requires approval, validates provenance and is immutable",
     _check_crawler_agent_release_is_approved_and_immutable,
+    group="crawler",
 )
 
 
@@ -8494,6 +8555,7 @@ def _check_manufacturer_deduper_only_removes_identical_subsets():
 test(
     "Manufacturer deduper removes only identical parameter subsets",
     _check_manufacturer_deduper_only_removes_identical_subsets,
+    group="crawler",
 )
 
 
@@ -8559,6 +8621,7 @@ def _check_manufacturer_metadata_enrichment_uses_physics_and_verified_prices():
 test(
     "Manufacturer metadata enrichment uses physics and verified prices",
     _check_manufacturer_metadata_enrichment_uses_physics_and_verified_prices,
+    group="crawler",
 )
 
 
@@ -8660,6 +8723,7 @@ def _check_manufacturer_metadata_reconciles_sd_and_nominal_size():
 test(
     "Manufacturer metadata reconciles Sd and nominal size",
     _check_manufacturer_metadata_reconciles_sd_and_nominal_size,
+    group="crawler",
 )
 
 
@@ -8874,7 +8938,7 @@ def _check_pdf_datasheet_library_archives_indexes_and_merges_aliases():
     assert len(partial_merged) == 1
 
 
-test("PDF datasheet library archives, indexes and merges aliases", _check_pdf_datasheet_library_archives_indexes_and_merges_aliases)
+test("PDF datasheet library archives, indexes and merges aliases", _check_pdf_datasheet_library_archives_indexes_and_merges_aliases, group="crawler")
 
 
 def _check_price_enricher_extracts_jsonld_product_offer():
@@ -8914,7 +8978,7 @@ def _check_price_enricher_extracts_jsonld_product_offer():
     assert enricher.match_score(candidate, product) >= 0.85
 
 
-test("Price enricher extracts JSON-LD product offers", _check_price_enricher_extracts_jsonld_product_offer)
+test("Price enricher extracts JSON-LD product offers", _check_price_enricher_extracts_jsonld_product_offer, group="crawler")
 
 
 def _check_price_enricher_percent_encodes_unicode_urls():
@@ -8955,7 +9019,7 @@ def _check_price_enricher_percent_encodes_unicode_urls():
     }
 
 
-test("Price enricher percent-encodes Unicode retailer URLs", _check_price_enricher_percent_encodes_unicode_urls)
+test("Price enricher percent-encodes Unicode retailer URLs", _check_price_enricher_percent_encodes_unicode_urls, group="crawler")
 
 
 def _check_price_enricher_falls_back_on_dirty_jsonld_product_text():
@@ -8985,7 +9049,7 @@ def _check_price_enricher_falls_back_on_dirty_jsonld_product_text():
     assert products[0]["name"].endswith('5.5" Woofer')
 
 
-test("Price enricher falls back on dirty JSON-LD product text", _check_price_enricher_falls_back_on_dirty_jsonld_product_text)
+test("Price enricher falls back on dirty JSON-LD product text", _check_price_enricher_falls_back_on_dirty_jsonld_product_text, group="crawler")
 
 
 def _check_price_enricher_sitemap_and_catalog_matching():
@@ -9023,7 +9087,7 @@ def _check_price_enricher_sitemap_and_catalog_matching():
     assert urls[0] in payload["catalog"]["SoundImports"]
 
 
-test("Price enricher supports sitemap catalog matching", _check_price_enricher_sitemap_and_catalog_matching)
+test("Price enricher supports sitemap catalog matching", _check_price_enricher_sitemap_and_catalog_matching, group="crawler")
 
 
 def _check_price_enricher_rejects_weak_substring_matches():
@@ -9114,7 +9178,7 @@ def _check_price_enricher_rejects_weak_substring_matches():
     assert payload["prices"]["LP 10"]["price"] == 5.95
 
 
-test("Price enricher rejects weak substring matches", _check_price_enricher_rejects_weak_substring_matches)
+test("Price enricher rejects weak substring matches", _check_price_enricher_rejects_weak_substring_matches, group="crawler")
 
 
 def _check_price_enricher_extracts_category_itemlist_offers():
@@ -9156,7 +9220,7 @@ def _check_price_enricher_extracts_category_itemlist_offers():
     assert enricher.rel_next_url(html, "https://www.soundimports.eu/en/audio-components/woofers/").endswith("page2.html")
 
 
-test("Price enricher extracts category ItemList offers", _check_price_enricher_extracts_category_itemlist_offers)
+test("Price enricher extracts category ItemList offers", _check_price_enricher_extracts_category_itemlist_offers, group="crawler")
 
 
 def _check_price_enricher_supports_bluearan_provider():
@@ -9209,7 +9273,7 @@ def _check_price_enricher_supports_bluearan_provider():
     assert product["url"] in payload["catalog"]["BlueAran"]
 
 
-test("Price enricher supports the Blue Aran provider", _check_price_enricher_supports_bluearan_provider)
+test("Price enricher supports the Blue Aran provider", _check_price_enricher_supports_bluearan_provider, group="crawler")
 
 
 def _check_price_enricher_supports_madisound_provider():
@@ -9280,7 +9344,7 @@ def _check_price_enricher_supports_madisound_provider():
     assert enricher.product_looks_like_driver(kit) is False
 
 
-test("Price enricher supports the Madisound provider", _check_price_enricher_supports_madisound_provider)
+test("Price enricher supports the Madisound provider", _check_price_enricher_supports_madisound_provider, group="crawler")
 
 
 def _check_price_enricher_supports_partsexpress_provider():
@@ -9329,7 +9393,7 @@ def _check_price_enricher_supports_partsexpress_provider():
     assert payload["prices"]["LSDB: Tang Band W5-1138SMF"]["price"] == 43.98
 
 
-test("Price enricher supports the Parts Express provider", _check_price_enricher_supports_partsexpress_provider)
+test("Price enricher supports the Parts Express provider", _check_price_enricher_supports_partsexpress_provider, group="crawler")
 
 
 def _check_price_enricher_brand_aliases_and_model_variants():
@@ -9370,7 +9434,7 @@ def _check_price_enricher_brand_aliases_and_model_variants():
     assert enricher.match_score(faital, product) >= 0.8
 
 
-test("Price enricher matches brand aliases and model variants", _check_price_enricher_brand_aliases_and_model_variants)
+test("Price enricher matches brand aliases and model variants", _check_price_enricher_brand_aliases_and_model_variants, group="crawler")
 
 
 def _check_price_enricher_keeps_existing_record_across_currencies():
@@ -9411,7 +9475,7 @@ def _check_price_enricher_keeps_existing_record_across_currencies():
     assert payload["prices"][candidate.name]["price"] == 99.95
 
 
-test("Price enricher keeps existing records across currencies", _check_price_enricher_keeps_existing_record_across_currencies)
+test("Price enricher keeps existing records across currencies", _check_price_enricher_keeps_existing_record_across_currencies, group="crawler")
 
 
 def _check_price_enricher_rematches_cached_catalog_without_network():
@@ -9464,6 +9528,7 @@ def _check_price_enricher_rematches_cached_catalog_without_network():
 test(
     "Price enricher rematches cached catalogs without network",
     _check_price_enricher_rematches_cached_catalog_without_network,
+    group="crawler",
 )
 
 
@@ -9484,6 +9549,7 @@ def _check_price_enricher_targets_complete_runtime_library():
 test(
     "Price enricher targets the complete runtime driver library",
     _check_price_enricher_targets_complete_runtime_library,
+    group="crawler",
 )
 
 
@@ -9535,6 +9601,7 @@ def _check_thomann_search_parser_extracts_new_stock_only():
 test(
     "Thomann search parser extracts matching new-stock offers",
     _check_thomann_search_parser_extracts_new_stock_only,
+    group="crawler",
 )
 
 
@@ -9565,6 +9632,7 @@ def _check_ds18_parser_keeps_only_runtime_model_skus():
 test(
     "DS18 parser keeps only exact runtime model SKUs",
     _check_ds18_parser_keeps_only_runtime_model_skus,
+    group="crawler",
 )
 
 
@@ -9597,6 +9665,7 @@ def _check_fi_parser_expands_impedance_options():
 test(
     "Fi Car Audio parser expands impedance options",
     _check_fi_parser_expands_impedance_options,
+    group="crawler",
 )
 
 
@@ -9618,6 +9687,7 @@ def _check_wavecor_parser_expands_official_price_rows():
 test(
     "Wavecor parser expands official price rows",
     _check_wavecor_parser_expands_official_price_rows,
+    group="crawler",
 )
 
 
@@ -9639,6 +9709,7 @@ def _check_audiohifi_parser_extracts_tang_band_rows():
 test(
     "AUDIO-HI.FI parser extracts Tang Band rows",
     _check_audiohifi_parser_extracts_tang_band_rows,
+    group="crawler",
 )
 
 
@@ -9682,6 +9753,7 @@ def _check_strumentimusicali_detail_builds_authoritative_record():
 test(
     "StrumentiMusicali detail builds authoritative brand+MPN record",
     _check_strumentimusicali_detail_builds_authoritative_record,
+    group="crawler",
 )
 
 
@@ -9731,6 +9803,7 @@ def _check_leanaudio_parser_extracts_lf_driver_rows():
 test(
     "Lean Audio parser keeps branded LF drivers only",
     _check_leanaudio_parser_extracts_lf_driver_rows,
+    group="crawler",
 )
 
 
@@ -9766,7 +9839,7 @@ def _check_ui_batch_finder_ranks_presets_under_volume_cap():
     assert any(value < -1.0 for value in spark), "sparkline must show the LF roll-off"
 
 
-test("UI batch finder ranks drivers under a DCCAV volume cap", _check_ui_batch_finder_ranks_presets_under_volume_cap)
+test("UI batch finder ranks drivers under a DCCAV volume cap", _check_ui_batch_finder_ranks_presets_under_volume_cap, group="ui")
 
 
 def _check_ui_finder_filters_minimum_mol_at_f3():
@@ -9788,6 +9861,7 @@ def _check_ui_finder_filters_minimum_mol_at_f3():
 test(
     "UI Finder filters candidates by MOL, SPL and maximum F3",
     _check_ui_finder_filters_minimum_mol_at_f3,
+    group="ui",
 )
 
 
@@ -9837,6 +9911,7 @@ def _check_ui_finder_prefilters_known_driver_limits():
 test(
     "UI Finder prefilters reference SPL and known load requirements",
     _check_ui_finder_prefilters_known_driver_limits,
+    group="ui",
 )
 
 
@@ -9876,6 +9951,7 @@ def _check_ui_finder_keeps_one_row_per_physical_driver():
 test(
     "UI Finder deduplicates redundant catalog rows while preserving distinct load topologies",
     _check_ui_finder_keeps_one_row_per_physical_driver,
+    group="ui",
 )
 
 
@@ -9897,6 +9973,7 @@ def _check_ui_finder_filters_excessive_ripple():
 test(
     "UI Finder filters out candidate rows exceeding max ripple",
     _check_ui_finder_filters_excessive_ripple,
+    group="ui",
 )
 
 
@@ -10033,7 +10110,7 @@ def _check_ui_batch_finder_supports_reflex_volume():
     assert all(np.isfinite(row["Fc Hz"]) and np.isfinite(row["Qtc"]) for row in ib_rows)
 
 
-test("UI batch finder supports reflex, sealed and infinite-baffle loads", _check_ui_batch_finder_supports_reflex_volume)
+test("UI batch finder supports reflex, sealed and infinite-baffle loads", _check_ui_batch_finder_supports_reflex_volume, group="ui")
 
 
 def _check_ui_batch_finder_optimizes_each_driver():
@@ -10086,7 +10163,7 @@ def _check_ui_batch_finder_optimizes_each_driver():
         assert row["Vb L"] <= 30.0 + 1e-9, row
 
 
-test("UI batch finder optimizes each driver below the volume cap", _check_ui_batch_finder_optimizes_each_driver)
+test("UI batch finder optimizes each driver below the volume cap", _check_ui_batch_finder_optimizes_each_driver, group="ui")
 
 
 def _check_ui_batch_result_applies_selected_driver_and_box():
@@ -10139,7 +10216,7 @@ def _check_ui_batch_result_applies_selected_driver_and_box():
     assert abs(st.session_state["driver_fs_hz"] - 48.14) < 1e-9
 
 
-test("UI candidate apply opens a manual design", _check_ui_batch_result_applies_selected_driver_and_box)
+test("UI candidate apply opens a manual design", _check_ui_batch_result_applies_selected_driver_and_box, group="ui")
 
 
 def _check_beyma_4fr40_finder_and_box_design_f3_match():
@@ -10190,6 +10267,7 @@ def _check_beyma_4fr40_finder_and_box_design_f3_match():
 test(
     "UI Beyma 4FR40 Finder result keeps the same F3 in Box Design",
     _check_beyma_4fr40_finder_and_box_design_f3_match,
+    group="ui",
 )
 
 
@@ -10254,6 +10332,7 @@ def _check_ui_batch_pending_result_applies_before_widgets():
 test(
     "UI consecutive single Finder selections stay as editable Box Design tabs",
     _check_ui_batch_pending_result_applies_before_widgets,
+    group="ui",
 )
 
 
@@ -10631,7 +10710,7 @@ def _check_ui_supports_sealed_and_infinite_baffle():
         assert any(button.key == 'finder_run_search_main' for button in at.button)
 
 
-test("UI separates design and driver-finder workflows", _check_ui_supports_sealed_and_infinite_baffle)
+test("UI separates design and driver-finder workflows", _check_ui_supports_sealed_and_infinite_baffle, group="ui")
 
 
 def _check_ui_finder_starts_from_practical_defaults():
@@ -10689,7 +10768,7 @@ def _check_ui_finder_starts_from_practical_defaults():
     ), "ranking always uses the optimizer; the quick-scan toggle is retired"
 
 
-test("UI Finder starts from practical independent defaults", _check_ui_finder_starts_from_practical_defaults)
+test("UI Finder starts from practical independent defaults", _check_ui_finder_starts_from_practical_defaults, group="ui")
 
 
 def _check_ui_finder_parameters_are_all_in_sidebar():
@@ -10716,7 +10795,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
     assert 'finder_objective' in seen_selects
 
 
-test("UI keeps every Finder parameter in the sidebar", _check_ui_finder_parameters_are_all_in_sidebar)
+test("UI keeps every Finder parameter in the sidebar", _check_ui_finder_parameters_are_all_in_sidebar, group="ui")
 
 
 def _check_ui_simple_advanced_mode_without_scenario_presets():
@@ -10770,6 +10849,7 @@ def _check_ui_simple_advanced_mode_without_scenario_presets():
 test(
     "UI Simple/Advanced mode omits scenario presets and keeps manual controls",
     _check_ui_simple_advanced_mode_without_scenario_presets,
+    group="ui",
 )
 
 
@@ -11100,7 +11180,7 @@ def _check_ui_finder_main_action_runs_search():
     assert at.session_state["workspace_mode"] == "Box Design"
 
 
-test("UI Finder single main action runs the driver search", _check_ui_finder_main_action_runs_search)
+test("UI Finder single main action runs the driver search", _check_ui_finder_main_action_runs_search, group="ui")
 
 
 def _check_ui_design_state_survives_workspace_roundtrip():
@@ -11136,6 +11216,7 @@ def _check_ui_design_state_survives_workspace_roundtrip():
 test(
     "UI design edits survive a Finder workspace round trip",
     _check_ui_design_state_survives_workspace_roundtrip,
+    group="ui",
 )
 
 
@@ -11209,6 +11290,7 @@ def _check_ui_finder_filters_survive_workspace_roundtrip_and_reset():
 test(
     "UI Finder filters survive workspace round trips and empty states reset",
     _check_ui_finder_filters_survive_workspace_roundtrip_and_reset,
+    group="ui",
 )
 
 
@@ -11245,7 +11327,7 @@ def _check_ui_purchase_links():
     assert rows and "Buy" in rows[0], rows
 
 
-test("UI shows purchase links for enriched presets", _check_ui_purchase_links)
+test("UI shows purchase links for enriched presets", _check_ui_purchase_links, group="ui")
 
 
 def _check_ui_optimized_alignment_mode():
@@ -11334,7 +11416,7 @@ def _check_ui_optimized_alignment_mode():
     assert _ui._normalize_box_strategy("garbage") == "Max extension"
 
 
-test("UI optimized alignment mode applies goal-driven boxes", _check_ui_optimized_alignment_mode)
+test("UI optimized alignment mode applies goal-driven boxes", _check_ui_optimized_alignment_mode, group="ui")
 
 
 def _check_ui_auto_strategy_applies_optimizer_boxes():
@@ -11366,7 +11448,7 @@ def _check_ui_auto_strategy_applies_optimizer_boxes():
     assert metrics.get("Vb sealed (active)") == f"{sealed_vb_l:.2f} L", metrics
 
 
-test("UI auto strategy applies goal-driven boxes", _check_ui_auto_strategy_applies_optimizer_boxes)
+test("UI auto strategy applies goal-driven boxes", _check_ui_auto_strategy_applies_optimizer_boxes, group="ui")
 
 
 def _check_ui_grs_extension_optimizer_applies_without_model_warnings():
@@ -11397,6 +11479,7 @@ def _check_ui_grs_extension_optimizer_applies_without_model_warnings():
 test(
     "UI GRS max-extension optimizer returns a credible low-velocity design",
     _check_ui_grs_extension_optimizer_applies_without_model_warnings,
+    group="ui",
 )
 
 
@@ -11422,7 +11505,7 @@ def _check_ui_progressive_disclosure():
     assert at.number_input(key='box_vh_l').value == 19.0
 
 
-test("UI progressively reveals manual and advanced controls", _check_ui_progressive_disclosure)
+test("UI progressively reveals manual and advanced controls", _check_ui_progressive_disclosure, group="ui")
 
 
 def _check_ui_box_inputs_have_one_stepper():
@@ -11451,7 +11534,7 @@ def _check_ui_box_inputs_have_one_stepper():
     ), "manual mode must not add a second pair of stepper buttons"
 
 
-test("UI box inputs use one integrated stepper", _check_ui_box_inputs_have_one_stepper)
+test("UI box inputs use one integrated stepper", _check_ui_box_inputs_have_one_stepper, group="ui")
 
 
 def _check_ui_response_window_includes_mol_trace():
@@ -11475,7 +11558,7 @@ def _check_ui_response_window_includes_mol_trace():
     assert domain[1] > total_only[1], "MOL must widen the window beyond the total trace"
 
 
-test("UI response window widens to keep the MOL trace visible", _check_ui_response_window_includes_mol_trace)
+test("UI response window widens to keep the MOL trace visible", _check_ui_response_window_includes_mol_trace, group="ui")
 
 
 def _check_ui_finder_goal_inputs_always_active():
@@ -11531,7 +11614,7 @@ def _check_ui_finder_goal_inputs_always_active():
     assert not any(box.label == "Optimization goal" for box in at.selectbox)
 
 
-test("UI Finder optimizer goal and constraints are always active", _check_ui_finder_goal_inputs_always_active)
+test("UI Finder optimizer goal and constraints are always active", _check_ui_finder_goal_inputs_always_active, group="ui")
 
 
 def _check_design_space_map():
@@ -11607,7 +11690,7 @@ def _check_ui_atlas_tab():
     assert at.session_state['box_strategy'] == 'Manual'
 
 
-test("UI Atlas tab gates the design-space map and applies clicked points", _check_ui_atlas_tab)
+test("UI Atlas tab gates the design-space map and applies clicked points", _check_ui_atlas_tab, group="ui")
 
 
 def _check_driver_configurations():
@@ -11702,7 +11785,7 @@ def _check_ui_driver_configuration_selector():
     )
 
 
-test("UI driver configuration re-aligns the box to the composite", _check_ui_driver_configuration_selector)
+test("UI driver configuration re-aligns the box to the composite", _check_ui_driver_configuration_selector, group="ui")
 
 
 def _check_monte_carlo_tolerance_band():
@@ -11771,7 +11854,7 @@ def _check_ui_tolerance_band_toggle():
     assert float(tol.value) == 15.0
 
 
-test("UI tolerance band toggle renders the Monte Carlo caption", _check_ui_tolerance_band_toggle)
+test("UI tolerance band toggle renders the Monte Carlo caption", _check_ui_tolerance_band_toggle, group="ui")
 
 
 def _check_price_extension_score():
@@ -11924,7 +12007,7 @@ def _check_ui_finder_value_ranking():
     ), "value mode must explain the currency-consistent score"
 
 
-test("UI Finder ranks candidates by price-performance value", _check_ui_finder_value_ranking)
+test("UI Finder ranks candidates by price-performance value", _check_ui_finder_value_ranking, group="ui")
 
 
 def _check_ui_parallel_ranking_matches_serial():
@@ -11977,7 +12060,7 @@ def _check_ui_parallel_ranking_matches_serial():
         assert s_row["Response"] == p_row["Response"]
 
 
-test("UI parallel optimizer ranking matches the serial path", _check_ui_parallel_ranking_matches_serial)
+test("UI parallel optimizer ranking matches the serial path", _check_ui_parallel_ranking_matches_serial, group="ui")
 
 
 def _check_ui_parallel_ranking_falls_back_when_processes_are_denied():
@@ -12008,7 +12091,7 @@ def _check_ui_parallel_ranking_falls_back_when_processes_are_denied():
         assert expected_row["Response"] == actual_row["Response"]
 
 
-test("UI parallel Finder falls back when worker processes are denied", _check_ui_parallel_ranking_falls_back_when_processes_are_denied)
+test("UI parallel Finder falls back when worker processes are denied", _check_ui_parallel_ranking_falls_back_when_processes_are_denied, group="ui")
 
 
 def _check_finder_worker_revision_protocol():
@@ -12071,6 +12154,7 @@ def _check_ui_stale_finder_workers_fall_back_to_current_threads():
 test(
     "UI Finder rejects stale optimizer worker revisions",
     _check_ui_stale_finder_workers_fall_back_to_current_threads,
+    group="ui",
 )
 
 
@@ -12120,6 +12204,7 @@ def _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast():
 test(
     "UI Streamlit Cloud bounds processes and falls back without a long wait",
     _check_ui_streamlit_cloud_bounds_processes_and_falls_back_fast,
+    group="ui",
 )
 
 
@@ -12473,6 +12558,7 @@ def _check_ui_finder_comprehensive_ux_regression():
 test(
     "UI Finder UX regression: sections, cards, selects, CTA, title, price, no-None, tabs, persistence",
     _check_ui_finder_comprehensive_ux_regression,
+    group="ui",
 )
 
 
@@ -12735,7 +12821,7 @@ def _check_ui_account_reads_and_hidden_project_history():
             assert not at.error, [e.value for e in at.error]
 
 
-test('UI reads account once per rerun and skips hidden project history', _check_ui_account_reads_and_hidden_project_history)
+test('UI reads account once per rerun and skips hidden project history', _check_ui_account_reads_and_hidden_project_history, group="ui")
 
 
 def _check_ui_response_spec_cache():
@@ -12763,7 +12849,7 @@ def _check_ui_response_spec_cache():
     assert at.session_state['_response_spec_cache'] is not zoomed, 'Changed drive level must update the response'
 
 
-test('UI response chart reuses unchanged specs and invalidates zoom and physics', _check_ui_response_spec_cache)
+test('UI response chart reuses unchanged specs and invalidates zoom and physics', _check_ui_response_spec_cache, group="ui")
 
 
 def _check_ui_autosave_timer_registered():
@@ -12797,7 +12883,7 @@ def _check_ui_autosave_timer_registered():
         assert len({fragment_id for interval, fragment_id in emitted if interval == 2}) == 2, 'Manage Projects must not mount a duplicate autosave timer'
 
 
-test('UI autosave registers periodic callbacks and a single persistence timer', _check_ui_autosave_timer_registered)
+test('UI autosave registers periodic callbacks and a single persistence timer', _check_ui_autosave_timer_registered, group="ui")
 
 
 from test_phase_b import (
@@ -12807,9 +12893,9 @@ from test_phase_b import (
     check_visibility_lifecycle,
 )
 
-test("UI Phase B direct entry, Untitled autosave and canonical project identity", check_direct_entry_and_project_identity)
-test("UI Phase B visibility snapshots, stale state and withdrawal", check_visibility_lifecycle)
-test("UI Phase B failed save preserves active work before Open", check_failed_save_prevents_switch)
+test("UI Phase B direct entry, Untitled autosave and canonical project identity", check_direct_entry_and_project_identity, group="ui")
+test("UI Phase B visibility snapshots, stale state and withdrawal", check_visibility_lifecycle, group="ui")
+test("UI Phase B failed save preserves active work before Open", check_failed_save_prevents_switch, group="ui")
 test("Phase B public store visibility enforces owner and withdrawn version access", check_public_store_access)
 
 
@@ -12846,7 +12932,7 @@ def _check_load_type_icons_uniform():
     assert min(heights.values()) >= 0.45 * height, heights
 
 
-test("UI load-type diagrams keep one large uniform enclosure height", _check_load_type_icons_uniform)
+test("UI load-type diagrams keep one large uniform enclosure height", _check_load_type_icons_uniform, group="ui")
 
 
 def _check_ui_candidate_pool_open_pinning_and_multisim():
@@ -12916,6 +13002,7 @@ def _check_ui_candidate_pool_open_pinning_and_multisim():
 test(
     "Bass Match candidate pool starts open, keeps complete simple filters, pins drivers across filters, and simulates candidates in Box Design",
     _check_ui_candidate_pool_open_pinning_and_multisim,
+    group="ui",
 )
 
 

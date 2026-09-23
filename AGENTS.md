@@ -1,38 +1,35 @@
 # Agent Instructions for AI Coding Assistants
 
-## Rule 0: docs/ MUST stay in sync with src/
+## Development mode: pre-production
 
-Editing any `src/*.py` REQUIRES updating its matching `docs/<module>.md` in the
-same change (`src/ui/<module>.py` → `docs/ui/<module>.md`).  The docs are read
-instead of source to save tokens, so stale docs mislead every future agent.  No
-exceptions; create the doc if missing.
+Optimize for short, reviewable iterations. These project-specific rules override
+production/release ceremony in `GOLDEN_STD.md` and older documentation.
 
-## Rule 1: targeted tests while patching, fresh suite before commit
+- Read the relevant module doc, then search only the needed source sections.
+  Do not load entire large modules, the changelog, or raw test logs by default.
+- Update matching `docs/<module>.md` when a documented API, behavior, assumption
+  or workflow changes. Pure CSS spacing, copy edits and internal refactors do
+  not require ceremonial doc edits. Create a module doc for new source modules.
+- Use the smallest relevant check once after a coherent edit. Do not run smoke,
+  fast, UI and full suites in sequence for a small change.
+- CSS/layout: inspect the affected view; use a targeted AppTest only if widget
+  behavior changed. AppTest startup does not validate CSS appearance.
+- UI behavior: `make test-match MATCH='relevant test label'`.
+- Physics: `make test-smoke` (all load families) plus the affected regression.
+- General Python: `make test` (fast local suite) when no narrower check fits.
+- Test infrastructure or broad cross-module changes: `make test-all` once.
+  The full simulator suite also runs in CI; it is not a local pre-commit gate.
+- Keep test output concise. The runner writes complete logs to
+  `.local/test-logs/`; read only relevant errors. Use `--verbose` only for debugging.
+- Report checks actually run. Fix relevant failures; do not chase unrelated
+  failures or expand the task without a concrete dependency.
+- Do not bump versions, edit release references, add changelog entries, tag,
+  deploy or create a release for routine edits. Do so for an explicit release.
+- Do not add compatibility layers, fallback paths, extra approval workflows or
+  broad refactors for hypothetical production requirements.
+- Preserve acoustic correctness and existing user data. Do not push unless asked.
 
-After every meaningful change to `src/*.py` or `ui_app.py`, run the smallest
-relevant check:
-
-```bash
-.venv/bin/python -m py_compile ui_app.py src/ui/*.py tests/test_all.py
-.venv/bin/python tests/test_all.py -m "acoustic-load smoke"   # or: make test-smoke
-.venv/bin/python tests/test_all.py --fast                     # or: make test-fast
-```
-
-For UI changes, also run a Streamlit AppTest:
-
-```bash
-.venv/bin/python -c 'from streamlit.testing.v1 import AppTest; at = AppTest.from_file("ui_app.py", default_timeout=30); at.run(); assert not at.exception, at.exception'
-# or: make test-ui
-```
-
-Before every commit touching Python, run the full active suite fresh after the
-last edit:
-
-```bash
-.venv/bin/python tests/test_all.py   # or: make test; report the actual pass count
-```
-
-Commit only on 0 failures and record pass counts in `CHANGELOG.md`.
+See [docs/development.md](docs/development.md) for test commands and groups.
 
 ## Active App: Load Forge Acoustic Loads
 

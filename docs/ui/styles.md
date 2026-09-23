@@ -136,7 +136,7 @@ main workbench can no longer drift apart:
 ### Responsive spacing and legibility
 
 The workbench may scroll vertically: fitting every control into one screen is
-not a layout requirement. Sidebar blocks have 0.65rem gaps, 0.9rem labels and a
+not a layout requirement. Sidebar blocks use the shared 0.75rem gap token, 0.9rem labels and a
 shared 2.4rem control height (`--lf-control-height`); captions use a 1.4
 line-height without negative bottom margins. Number-input steppers, text
 inputs, selectboxes and multi-selects share one charcoal surface and radius
@@ -149,7 +149,7 @@ with a 6.5rem minimum (10rem for the project name), so project names and actions
 These rules preserve widget keys and the scoped Simple-mode tab-header hiding.
 
 Candidate library containers use `clamp(240px, 100dvh - 580px, 460px)` on
-desktop. Enclosure artwork retains explicit heights for WebKit stability.
+desktop. Enclosure artwork uses a square aspect ratio and intrinsic card height.
 The desktop sidebar scales responsively with `clamp(28rem, 28vw, 42rem)` to take
 full advantage of wide desktop screens while preserving room for the main area.
 Logo and version share a vertically centered header row, reserving 2.25rem
@@ -157,10 +157,21 @@ on the right for the native sidebar collapse button. Sidebar tabs use
 separate bordered surfaces with 0.5rem gaps, a three-rem minimum height,
 wrapping labels and an emerald selected border; the shared underline is hidden.
 Load-type enclosure cards maintain a 1:1 square aspect ratio with full
-square background sizing, zero container gaps, and tightened label margins
-(0.10rem) directly below the card icons to prevent distortion and spacing
-drift; illustrated workspace tabs use a 3:1 aspect ratio (`aspect-ratio: 3 / 1`,
+square background sizing. A single four-column grid owns the complete cards,
+including captions with reserved two-line space and a 0.375rem image/caption gap;
+row spacing is 0.75rem. HTML captions avoid Markdown height underestimation; illustrated workspace tabs use a 3:1 aspect ratio (`aspect-ratio: 3 / 1`,
 `min-height: 4.2rem`) with edge-to-edge background sizing to restore their
 full-height form factor; the sidebar logo scales responsively with
 `max-height: 3.8rem` to match the wider sidebar header. Root typography stays at 16px;
 navigation, tooltips and native scrolling remain available.
+
+
+### Shared sidebar alignment
+
+`--lf-gap-xs/sm/md` define spacing once. Named `field_row_*` containers align
+paired controls at the bottom and keep filter pairs in independent rows, so
+multiselect wrapping cannot move just one column's following fields.
+`search_row_*` uses a fluid input track and a fixed control-width action track
+in both workspaces. Fields draw one outer border, never nested input borders.
+Number stepper CSS targets only `stNumberInputStepUp/Down`, leaving the label's
+help button at its natural size. Native widget keys and interactions are retained.

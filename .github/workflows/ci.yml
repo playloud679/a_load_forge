@@ -1,4 +1,4 @@
-# Compile, critical lint, release metadata, full suite and AppTest smoke.
+# Full simulator coverage once in CI; local development uses targeted checks.
 name: CI
 
 on:
@@ -34,10 +34,12 @@ jobs:
       - name: Test suite
         run: python tests/test_all.py
 
-      - name: Streamlit AppTest smoke
-        run: >
-          python -c 'from streamlit.testing.v1 import AppTest;
-          at = AppTest.from_file("ui_app.py", default_timeout=60);
-          at.run();
-          assert not at.exception, at.exception;
-          print("AppTest OK")'
+      - name: Test runner checks
+        run: python -m unittest discover -s tests -p test_suite_runner.py
+
+      - name: Keep test logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-logs
+          path: .local/test-logs/

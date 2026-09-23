@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.18.30 (2026-09-23)
+
+- **Layout primitives, load type grid and fast test runner**:
+  - Introduced shared sidebar layout primitives (`--lf-gap-xs`, `--lf-gap-sm`,
+    `--lf-gap-md`, `.st-key-load_type_grid`, search rows and field rows) for
+    clean alignment, responsive spacing, and uniform control styling.
+  - 4-column acoustic load selection grid with unified artwork and caption
+    alignment.
+  - Scoped `stNumberInput` stepper button rules to prevent style bleed across
+    other action buttons.
+  - Added fast local test runner with concise summary reporting and structured
+    suite logs in `.local/test-logs/` (`make test`, `make test-fast`, `make test-all`).
+  - Aligned development contract in `AGENTS.md` and `docs/development.md` for
+    focused, reviewable iterations.
+
 ## 0.18.29 (2026-09-23)
 
 - **Fix — data-entry controls were not restyled in production**: the container

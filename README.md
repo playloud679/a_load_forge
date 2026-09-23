@@ -4,13 +4,13 @@
   <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
-**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.18.29**
+**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.18.30**
 
-[![Version](https://img.shields.io/badge/version-0.18.29-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-0.18.30-blue.svg)](VERSION)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 
-Current release: **0.18.29**
+Current release: **0.18.30**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth-, sixth- and eighth-order bandpass**,
@@ -303,27 +303,23 @@ tests/test_all.py     custom test runner, including acoustic-load tests
 
 ## Tests
 
-Targeted acoustic-load checks:
-
 ```bash
-.venv/bin/python tests/test_all.py -m "acoustic-load smoke"
+make test                              # fast local checks, no UI or crawler
+make test-match MATCH='candidate pool' # one relevant behavior
+make test-smoke                        # every acoustic-load family
+make test-ui                           # simulator UI group
+make test-all                          # full simulator suite; also runs in CI
 ```
 
-Full active suite:
-
-```bash
-.venv/bin/python tests/test_all.py
-```
-
-For UI changes, run a Streamlit `AppTest` that loads `ui_app.py` and asserts no
-exceptions.
+Output is a short summary; complete logs are stored in `.local/test-logs/`.
+Use `--time`, `--list` or `--verbose` with `tests/test_all.py` when needed.
+Legacy crawler checks are opt-in with `make test-crawler` and need the sibling
+workspace. See [docs/development.md](docs/development.md) for details.
 
 ## Development Contract
 
-The repo follows the local contract in `AGENTS.md` and `GOLDEN_STD.md`:
-
-- every `src/*.py` change must update its matching `docs/<module>.md`
-- new or changed behavior needs tests in the same change
-- run targeted tests while patching
-- run the full active suite before any commit touching Python
-- do not push unless explicitly requested
+This project is pre-production. [AGENTS.md](AGENTS.md) is the active contract:
+use the smallest relevant check, update docs when their contracts change, and
+reserve version bumps and release paperwork for explicit releases. The full
+suite is available for broad changes; it is not required before every commit.
+Do not push unless explicitly requested.

@@ -78,3 +78,11 @@ Existing public, shared, billing and admin links retain their handling.
 The summary uses high-contrast metric values (1.22rem) and labels (0.86rem),
 with padding between metrics. Forge Score is described as a heuristic 0–100
 health indicator; ranking and comparison use physical metrics.
+
+## Sidebar alignment
+
+Simple-mode volume and optimization controls share the named
+`field_row_search_targets` container with bottom-aligned columns. Common CSS
+spacing tokens govern the row, rather than independent widget offsets.
+
+Box Design shares the `search_row_*` input/action layout with Bass Match.

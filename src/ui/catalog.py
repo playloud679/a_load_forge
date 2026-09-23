@@ -899,22 +899,23 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
     """Render Finder library filters."""
     # Bottom alignment keeps the icon button on the same baseline as the
     # labelled input without a hardcoded spacer; CSS fixes its square size.
-    col_search, col_refresh = st.columns([5, 1], vertical_alignment="bottom")
-    with col_search:
-        st.text_input(
-            "Search preset",
-            key="preset_search",
-            placeholder="Manufacturer or part number",
-        )
-    with col_refresh:
-        if st.button(
-            "🔄",
-            key="refresh_presets_btn_finder",
-            help="Refresh driver library from cloud catalog & Z-Bench",
-        ):
-            _acoustics.invalidate_preset_caches()
-            _acoustics.check_dynamic_catalog_freshness(force=True)
-            st.rerun()
+    with st.container(key="search_row_finder"):
+        col_search, col_refresh = st.columns([5, 1], vertical_alignment="bottom")
+        with col_search:
+            st.text_input(
+                "Search preset",
+                key="preset_search",
+                placeholder="Manufacturer or part number",
+            )
+        with col_refresh:
+            if st.button(
+                "🔄",
+                key="refresh_presets_btn_finder",
+                help="Refresh driver library from cloud catalog & Z-Bench",
+            ):
+                _acoustics.invalidate_preset_caches()
+                _acoustics.check_dynamic_catalog_freshness(force=True)
+                st.rerun()
     is_admin = _maintenance_allowed()
     provenance_options = (
         list(_constants._PRESET_SOURCE_FILTERS)
@@ -931,8 +932,10 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
         ("preset_size_filter", "Size", list(_constants._PRESET_SIZE_FILTERS)),
         ("preset_class_filter", "Class", list(_constants._PRESET_CLASS_FILTERS)),
     )
-    filter_columns = st.columns(2, gap="small")
     for index, (key, label, options) in enumerate(filter_options):
+        if index % 2 == 0:
+            with st.container(key=f"field_row_library_{index // 2}"):
+                filter_columns = st.columns(2, gap="small", vertical_alignment="bottom")
         raw_current = st.session_state.get(key, ["All"])
         current = [raw_current] if isinstance(raw_current, str) else list(raw_current)
         if key == "preset_source_filter":

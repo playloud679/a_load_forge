@@ -54,3 +54,11 @@ Design) in the technical sidebar, driven by `_workspace_tab_styles()` and the
 resumes engineering work instead of landing on Projects. The hidden
 compatibility widget retains existing automated-client values and also carries
 the Manage Projects option.
+
+## Load-card layout
+
+`_render_load_type_buttons` renders one keyed `load_type_grid` containing seven
+cards in display order. Each card owns its square button and caption; CSS Grid
+controls the columns and row spacing, replacing separately sized Streamlit rows.
+Style-only HTML uses `st.html` so it adds no empty Markdown block; captions also
+use HTML with intrinsic height. Selection callbacks and widget keys are unchanged.

@@ -29,6 +29,9 @@ GLOBAL_CSS = """
         /* Data-entry control system: one shared surface, height, radius and
            stepper geometry for number inputs, text inputs, selectboxes and
            multiselects in both the sidebar and the main workbench. */
+        --lf-gap-xs: 0.375rem;
+        --lf-gap-sm: 0.75rem;
+        --lf-gap-md: 1rem;
         --lf-control-bg: #141b27;
         --lf-control-bg-hover: #1a2230;
         --lf-control-border: rgba(255, 255, 255, 0.18);
@@ -42,15 +45,21 @@ GLOBAL_CSS = """
     }
     /* Distinct dark charcoal contrast for form & data entry controls */
     div[data-baseweb="input"],
-    div[data-baseweb="base-input"],
-    .stNumberInput input,
-    .stTextInput input,
     [data-testid="stNumberInput"] div[data-baseweb="input"],
     [data-testid="stTextInput"] div[data-baseweb="input"] {
         background-color: var(--lf-control-bg) !important;
         border: 1px solid var(--lf-control-border) !important;
         border-radius: var(--lf-control-radius) !important;
         color: #f3f4f6 !important;
+    }
+    /* A field has one border; inner wrappers and inputs do not draw another. */
+    [data-testid="stTextInput"] [data-baseweb="base-input"],
+    [data-testid="stNumberInput"] [data-baseweb="base-input"],
+    [data-testid="stTextInput"] input,
+    [data-testid="stNumberInput"] input {
+        border: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
     }
     /* Select and multiselect share exactly the same surface as the inputs.
        Streamlit <=1.58 renders BaseWeb (data-baseweb); 1.64+ renders react-aria
@@ -275,7 +284,7 @@ GLOBAL_CSS = """
         border: 1px solid var(--lf-control-border) !important;
         background-color: var(--lf-control-bg) !important;
     }
-    [data-testid="stNumberInput"] button {
+    [data-testid="stNumberInput"] button[data-testid^="stNumberInputStep"] {
         align-items: center !important;
         align-self: stretch !important;
         background: var(--lf-stepper-bg) !important;
@@ -291,11 +300,11 @@ GLOBAL_CSS = """
         padding: 0 !important;
         transition: background-color .15s ease, color .15s ease;
     }
-    [data-testid="stNumberInput"] button:hover:not(:disabled) {
+    [data-testid="stNumberInput"] button[data-testid^="stNumberInputStep"]:hover:not(:disabled) {
         background: rgba(16,185,129,.25) !important;
         color: #10b981 !important;
     }
-    [data-testid="stNumberInput"] button svg {
+    [data-testid="stNumberInput"] button[data-testid^="stNumberInputStep"] svg {
         height: var(--lf-stepper-icon) !important;
         width: var(--lf-stepper-icon) !important;
     }
@@ -363,6 +372,28 @@ GLOBAL_CSS = """
         gap: .40rem !important;
     }
 
+    /* Sidebar layout primitives: sections, paired fields and trailing actions. */
+    [data-testid="stSidebar"] [class*="st-key-field_row_"] [data-testid="stHorizontalBlock"] {
+        gap: var(--lf-gap-md) !important;
+        align-items: end;
+    }
+    [data-testid="stSidebar"] [class*="st-key-search_row_"] [data-testid="stHorizontalBlock"] {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) var(--lf-control-height);
+        gap: var(--lf-gap-sm) !important;
+        align-items: end;
+    }
+    [data-testid="stSidebar"] [class*="st-key-search_row_"] [data-testid="stColumn"] {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+    [data-testid="stSidebar"] .st-key-sidebar_brief_header_container [data-testid="stHorizontalBlock"] {
+        align-items: center;
+    }
+    [data-testid="stSidebar"] .st-key-sidebar_brief_header_container .st-key-ui_show_advanced {
+        justify-content: flex-end;
+        margin: 0;
+    }
     /* Sidebar Search Brief & Segmented Tabs */
     .st-key-sidebar_brief_header_container {
         margin-top: 0.10rem;
@@ -462,7 +493,7 @@ GLOBAL_CSS = """
         letter-spacing: 0.01em !important;
         text-transform: none !important;
         color: #e2e8f0 !important;
-        margin: 0.35rem 0 0.15rem 0 !important;
+        margin: var(--lf-gap-md) 0 var(--lf-gap-xs) !important;
         padding-bottom: 0.12rem !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
@@ -1138,7 +1169,7 @@ GLOBAL_CSS = """
     }
     /* Let controls grow and wrap instead of squeezing the workbench to one screen. */
     [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-        gap: 0.65rem !important;
+        gap: var(--lf-gap-sm) !important;
     }
     [data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
         margin-bottom: 0 !important;
@@ -1225,11 +1256,22 @@ def _focused_port_flare_style(state: Any = None) -> str:
     )
 
 @st.cache_data(show_spinner=False)
-def _load_type_card_styles(version: str = "square_v5") -> str:
+def _load_type_card_styles(version: str = "grid_v6") -> str:
     """Return compact clickable-card CSS with the supplied diagrams embedded."""
     rules = [
         """
         <style>
+        /* One grid owns both axes; each item includes artwork AND caption. */
+        [data-testid="stSidebar"] .st-key-load_type_grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: var(--lf-gap-sm) !important;
+            margin-block: var(--lf-gap-xs) var(--lf-gap-sm);
+        }
+        .st-key-load_type_grid > * { min-width: 0; }
+        [data-testid="stSidebar"] .st-key-load_type_grid [class*="st-key-load_card_"] {
+            gap: var(--lf-gap-xs) !important;
+        }
         [class*="st-key-load_card_"] {
             min-height: unset !important;
             height: auto !important;
@@ -1241,6 +1283,10 @@ def _load_type_card_styles(version: str = "square_v5") -> str:
         [class*="st-key-load_card_"] div[data-testid="stElementContainer"] {
             margin: 0 !important;
             padding: 0 !important;
+        }
+        [class*="st-key-load_card_"] [data-testid="stElementContainer"] {
+            height: auto !important;
+            min-height: 0 !important;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] {
             display: flex !important;
@@ -1279,16 +1325,15 @@ def _load_type_card_styles(version: str = "square_v5") -> str:
         [class*="st-key-load_card_"] div[data-testid="stButton"] button p {
             opacity: 0;
         }
-        [class*="st-key-load_card_"] div[data-testid="stMarkdownContainer"] p,
         [class*="st-key-load_card_"] .load-card-label {
             color: rgba(250,250,250,.92);
             font-size: .78rem;
             font-weight: 600;
             line-height: 1.15;
-            margin-top: 0.10rem !important;
+            margin-top: 0 !important;
             margin-bottom: 0 !important;
             padding: 0 !important;
-            min-height: 1.15rem;
+            min-height: 2.3em;
             height: auto;
             text-align: center;
             display: flex;

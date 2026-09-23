@@ -1,5 +1,10 @@
 # GOLDEN_STD.md - Universal Development & AI Agent Contract
 
+> **Load Forge pre-production override:** [AGENTS.md](AGENTS.md) is the active
+> local contract. Full-suite pre-commit gates, mandatory release paperwork,
+> doc edits for unchanged contracts and automatic standards synchronization
+> are not part of routine development. Consult this reference only as needed.
+
 **Specification Version:** `1.1.0`  
 **Last Updated:** `2026-08-30`  
 **Standard Identifier:** `STD-AGY-DEV-CONTRACT-V1.1`  

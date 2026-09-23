@@ -1,4 +1,4 @@
-.PHONY: venv install dev run check-version test test-fast test-ui test-catalog test-contracts test-smoke test-match lint format clean
+.PHONY: venv install dev run check-version test test-all test-fast test-ui test-crawler test-runner test-catalog test-contracts test-smoke test-match lint format clean
 
 VENV_DIR := .venv
 PYTHON  := python3
@@ -23,7 +23,9 @@ run:
 check-version:
 	$(VENV_DIR)/bin/python tools/check_version_consistency.py
 
-test:
+test: test-fast
+
+test-all:
 	$(VENV_DIR)/bin/python tests/test_all.py
 
 test-fast:
@@ -34,6 +36,12 @@ test-smoke:
 
 test-ui:
 	$(VENV_DIR)/bin/python tests/test_all.py --ui
+
+test-crawler:
+	$(VENV_DIR)/bin/python tests/test_all.py --crawler
+
+test-runner:
+	$(VENV_DIR)/bin/python -m unittest discover -s tests -p test_suite_runner.py
 
 test-catalog:
 	$(VENV_DIR)/bin/python tests/test_catalog.py

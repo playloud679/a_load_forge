@@ -182,6 +182,9 @@ design per physical driver. Empty result columns stay hidden.
 Crawler scripts and services are maintained in `../load_forge_crawler` relative
 to the repository root. Run its commands and tests there. The retained crawler
 guides below describe that workspace, not executable tools in this simulator.
+Legacy integration checks are opt-in via `make test-crawler`; ordinary simulator
+tests do not import the sibling workspace. See [development.md](development.md)
+for the pre-production workflow and targeted test commands.
 
 | Former local path | Retained guide | Role in crawler workspace |
 |---|---|---|

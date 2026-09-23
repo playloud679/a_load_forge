@@ -340,11 +340,10 @@ def main() -> None:
             with st.container(key="sidebar_brief_header_container"):
                 col_sb_title, col_sb_adv = st.columns([1.15, 1.45], vertical_alignment="center")
                 with col_sb_title:
-                    st.markdown(
+                    st.html(
                         '<div class="sidebar-brief-header">'
                         '<span class="sidebar-brief-title">Search brief</span>'
-                        '</div>',
-                        unsafe_allow_html=True,
+                        '</div>'
                     )
                 with col_sb_adv:
                     st.toggle(
@@ -372,11 +371,12 @@ def main() -> None:
                     bm_simple_tab, = st.tabs(["Search brief"], key="bass_match_sidebar_tab")
                     with bm_simple_tab:
                         _state._render_load_type_buttons(_finder_load_set, single_select=False)
-                        volume_column, goal_column = st.columns(2, gap="small")
-                        with volume_column:
-                            _finder._render_find_driver_target_sidebar()
-                        with goal_column:
-                            _finder._render_find_driver_goal_sidebar()
+                        with st.container(key="field_row_search_targets"):
+                            volume_column, goal_column = st.columns(2, gap="small", vertical_alignment="bottom")
+                            with volume_column:
+                                _finder._render_find_driver_target_sidebar()
+                            with goal_column:
+                                _finder._render_find_driver_goal_sidebar()
 
                         st.markdown('<div class="sidebar-section-title">Driver & catalog filters</div>', unsafe_allow_html=True)
                         _catalog._render_finder_library_filters(all_preset_names)
@@ -482,22 +482,23 @@ def main() -> None:
                 # Bottom alignment keeps the icon button on the same baseline as
                 # the labelled input without a hardcoded spacer; CSS fixes its
                 # square size to the shared control height.
-                col_search, col_refresh = st.columns([5, 1], vertical_alignment="bottom")
-                with col_search:
-                    st.text_input(
-                        "Search preset",
-                        key="preset_search",
-                        placeholder="Manufacturer or part number",
-                    )
-                with col_refresh:
-                    if st.button(
-                        "🔄",
-                        key="refresh_presets_btn_box_design",
-                        help="Refresh driver library from cloud catalog & Z-Bench",
-                    ):
-                        _acoustics.invalidate_preset_caches()
-                        _acoustics.check_dynamic_catalog_freshness(force=True)
-                        st.rerun()
+                with st.container(key="search_row_box_design"):
+                    col_search, col_refresh = st.columns([5, 1], vertical_alignment="bottom")
+                    with col_search:
+                        st.text_input(
+                            "Search preset",
+                            key="preset_search",
+                            placeholder="Manufacturer or part number",
+                        )
+                    with col_refresh:
+                        if st.button(
+                            "🔄",
+                            key="refresh_presets_btn_box_design",
+                            help="Refresh driver library from cloud catalog & Z-Bench",
+                        ):
+                            _acoustics.invalidate_preset_caches()
+                            _acoustics.check_dynamic_catalog_freshness(force=True)
+                            st.rerun()
             filtered_preset_names = _catalog._filter_driver_preset_names(
                 all_preset_names,
                 source="All",

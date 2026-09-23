@@ -80,26 +80,22 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
     In multi-select mode each click toggles the load.
     Returns the (possibly modified) set.
     """
-    st.markdown(_styles._load_type_card_styles(), unsafe_allow_html=True)
-    for row_start, row_end in ((0, 3), (3, len(_constants._ALL_LOAD_TYPES))):
-        row_load_types = _constants._ALL_LOAD_TYPES[row_start:row_end]
-        row_cols = st.columns(4)
-        for offset, lt in enumerate(row_load_types):
-            with row_cols[offset]:
-                with st.container(key=f"load_card_{_constants._LOAD_TYPE_SLUGS[lt]}"):
-                    active = lt in active_set
-                    st.button(
-                        _constants._LOAD_TYPE_SHORT[lt],
-                        key=f"load_btn_{lt}",
-                        type="primary" if active else "secondary",
-                        width="stretch",
-                        on_click=_select_load_type_card,
-                        args=(lt, single_select),
-                    )
-                    st.markdown(
-                        f'<div class="load-card-label">{_constants._LOAD_TYPE_SHORT[lt]}</div>',
-                        unsafe_allow_html=True,
-                    )
+    st.html(_styles._load_type_card_styles())
+    with st.container(key="load_type_grid"):
+        for lt in _constants._ALL_LOAD_TYPES:
+            with st.container(key=f"load_card_{_constants._LOAD_TYPE_SLUGS[lt]}"):
+                active = lt in active_set
+                st.button(
+                    _constants._LOAD_TYPE_SHORT[lt],
+                    key=f"load_btn_{lt}",
+                    type="primary" if active else "secondary",
+                    width="stretch",
+                    on_click=_select_load_type_card,
+                    args=(lt, single_select),
+                )
+                st.html(
+                    f'<div class="load-card-label">{_constants._LOAD_TYPE_SHORT[lt]}</div>',
+                )
     return set(active_set)
 
 def _render_engine_only_topologies_note() -> None:

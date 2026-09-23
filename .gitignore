@@ -35,6 +35,7 @@ data/*.cache.tmp
 data/crawler_daemon.log
 
 # Debug/scratch output (local analysis, regenerated on demand)
+scratch/
 diff_perf.txt
 test_out.txt
 test_results*.txt

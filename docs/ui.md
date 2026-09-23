@@ -52,6 +52,9 @@ therefore updates both the browser title and visible version after a bump.
 
 ## Test contract
 
+- Pre-production checks are targeted; see [development.md](development.md).
+  Register AppTests with `group="ui"`, regardless of their label. Full UI
+  coverage is `make test-ui`; one behavior uses `make test-match MATCH='...'`.
 - `tests/test_all.py` imports `ui_app` and uses the re-exported names
   (`_ui._plot_response`, `_ui._batch_rank_presets`, ...). Keep the re-export
   block in `ui_app.py` when adding a module.

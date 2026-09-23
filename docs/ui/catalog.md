@@ -72,3 +72,10 @@ Everything that reads or edits the driver catalog and the preset library.
 `_check_ui_driver_preset_price_filter_uses_optional_metadata`,
 `_check_ecb_rates_normalize_library_prices`,
 `_check_ui_finder_filters_*`, `_check_driver_coverage_*`.
+
+## Filter alignment
+
+The Finder search and refresh action live in `search_row_finder`: a fluid input
+track plus one control-width action track. Library filters are rendered in
+explicit paired rows (`field_row_library_*`), so a tall multiselect expands its
+own row and the next pair remains aligned. Filter values and callbacks are unchanged.
