@@ -115,6 +115,13 @@ main workbench can no longer drift apart:
   `--lf-control-height` are shared by `st.number_input`, `st.text_input`,
   `st.selectbox` and `st.multiselect`; the select/multiselect control div is
   repainted from the same token so all four surfaces match.
+- Streamlit widget markup changed across versions: `<=1.58` renders BaseWeb
+  (`data-baseweb`), while `1.64+` renders react-aria (`div[role="group"]`). The
+  select/multiselect rules therefore target **both** structures; the numeric
+  text/number fields keep matching through `.stNumberInput input` /
+  `.stTextInput input`. `requirements.txt` pins `streamlit==1.58.0` (the version
+  the suite is verified against) so the locally checked DOM matches production
+  instead of silently drifting to the latest release.
 - `--lf-stepper-width` and `--lf-stepper-icon` size the number-input `+`/`-`
   buttons uniformly. A single global rule replaces the earlier competing
   sidebar/main declarations: the compact sidebar width was silently outranked

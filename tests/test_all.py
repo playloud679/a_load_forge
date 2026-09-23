@@ -5408,7 +5408,7 @@ def _check_ui_admin_and_project_back_navigation():
     from streamlit.testing.v1 import AppTest
 
     # 1. User Management back navigation
-    at = AppTest.from_file("ui_app.py", default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.query_params["admin_users"] = "1"
     at.run()
     assert not at.exception, at.exception
@@ -5420,7 +5420,7 @@ def _check_ui_admin_and_project_back_navigation():
     assert at.session_state["workspace_mode"] == "Bass Match"
 
     # 2. Catalog Maintenance back navigation
-    at_m = AppTest.from_file("ui_app.py", default_timeout=30)
+    at_m = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at_m.query_params["maintenance"] = "1"
     at_m.run()
     assert not at_m.exception, at_m.exception
@@ -5432,7 +5432,7 @@ def _check_ui_admin_and_project_back_navigation():
     assert at_m.session_state["workspace_mode"] == "Bass Match"
 
     # 3. Manage Projects back navigation
-    at_p = AppTest.from_file("ui_app.py", default_timeout=30)
+    at_p = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at_p.session_state["workspace_mode"] = "Manage Projects"
     at_p.run()
     assert not at_p.exception, at_p.exception
@@ -6541,7 +6541,7 @@ def _check_admin_can_save_box_design_ts_to_catalog():
         assert saved_driver["pe_w"] == 300.0
 
     from streamlit.testing.v1 import AppTest
-    at = AppTest.from_file("ui_app.py", default_timeout=30)
+    at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=30)
     at.session_state["active_workspace"] = "Box Design"
     at.session_state["_auth_user"] = {
         "email": "test-admin@loadforge.internal",

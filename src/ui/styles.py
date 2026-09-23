@@ -52,12 +52,16 @@ GLOBAL_CSS = """
         border-radius: var(--lf-control-radius) !important;
         color: #f3f4f6 !important;
     }
-    /* Select and multiselect share exactly the same surface as the inputs. */
+    /* Select and multiselect share exactly the same surface as the inputs.
+       Streamlit <=1.58 renders BaseWeb (data-baseweb); 1.64+ renders react-aria
+       with a role="group" control, so both structures are targeted here. */
     [data-testid="stSelectbox"] div[data-baseweb="select"],
     [data-testid="stMultiSelect"] div[data-baseweb="select"] {
         background-color: transparent !important;
         border: none !important;
     }
+    [data-testid="stSelectbox"] div[role="group"],
+    [data-testid="stMultiSelect"] div[role="group"],
     [data-testid="stSelectbox"] div[data-baseweb="select"] > div,
     [data-testid="stMultiSelect"] div[data-baseweb="select"] > div,
     div[data-baseweb="select"] > div {
@@ -66,6 +70,11 @@ GLOBAL_CSS = """
         border-radius: var(--lf-control-radius) !important;
         min-height: var(--lf-control-height) !important;
         color: #f3f4f6 !important;
+    }
+    [data-testid="stSelectbox"] div[role="group"]:focus-within,
+    [data-testid="stMultiSelect"] div[role="group"]:focus-within {
+        border-color: #10b981 !important;
+        box-shadow: 0 0 0 1px #10b981 !important;
     }
     div[data-baseweb="input"]:focus-within,
     div[data-baseweb="select"]:focus-within,

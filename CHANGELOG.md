@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.18.29 (2026-09-23)
+
+- **Fix — data-entry controls were not restyled in production**: the container
+  resolved `streamlit>=1.58.0` to the latest release; Streamlit 1.64 dropped the
+  BaseWeb markup, so the select/multiselect CSS (`data-baseweb`) silently stopped
+  matching and the filters rendered black instead of the shared charcoal surface.
+  Pinned `streamlit==1.58.0` (the version the suite is verified against) so the
+  locally checked DOM matches production and cannot drift again.
+- Kept react-aria selectors (`[data-testid="stSelectbox"] div[role="group"]`,
+  `[data-testid="stMultiSelect"] div[role="group"]`) alongside the legacy
+  BaseWeb ones as forward-compatibility, plus the matching `:focus-within`
+  emerald ring.
+- Hardened the test harness for newer Streamlit: `AppTest.from_file` now uses
+  absolute paths (1.64+ resolves relative scripts against the calling file).
+- **Validation**: Python compilation and Streamlit AppTest passed; fresh full
+  active suite: **242 passed, 0 failed, 0 skipped**.
+
 ## 0.18.28 (2026-09-23)
 
 - **Data-entry spacing and button consistency**: introduced one shared control
