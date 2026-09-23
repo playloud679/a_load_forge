@@ -294,7 +294,7 @@ PLAN_ENTITLEMENTS: dict[str, PlanEntitlements] = {
     "free": PlanEntitlements(
         "free",
         saved_projects=999_999,
-        monthly_credits=10_000,
+        monthly_credits=3_000,
         team_seats=1,
         access_tier="free",
     ),
@@ -2731,16 +2731,19 @@ class InMemoryUserAccountStore:
         now = datetime.now(timezone.utc)
         if key in self._accounts:
             acc = self._accounts[key]
+            ent = PLAN_ENTITLEMENTS.get(acc.plan, PLAN_ENTITLEMENTS["free"])
             # Check monthly reset
             if now >= acc.quota_reset_at:
                 # Next month reset
                 month = acc.quota_reset_at.month % 12 + 1
                 year = acc.quota_reset_at.year + (1 if acc.quota_reset_at.month == 12 else 0)
                 next_reset = datetime(year, month, 1, tzinfo=timezone.utc)
-                ent = PLAN_ENTITLEMENTS.get(acc.plan, PLAN_ENTITLEMENTS["free"])
                 acc.credits_balance = ent.monthly_credits
                 acc.credits_monthly_quota = ent.monthly_credits
                 acc.quota_reset_at = next_reset
+            elif acc.plan == "free" and acc.credits_monthly_quota > ent.monthly_credits:
+                acc.credits_monthly_quota = ent.monthly_credits
+                acc.credits_balance = min(acc.credits_balance, ent.monthly_credits)
             acc.is_admin = account_is_admin(normalized_email, admin_emails)
             return acc
 
@@ -2905,6 +2908,11 @@ class FirestoreUserAccountStore:
                     diff = ent.monthly_credits - acc.credits_monthly_quota
                     acc.credits_monthly_quota = ent.monthly_credits
                     acc.credits_balance = max(ent.monthly_credits, acc.credits_balance + diff)
+                    acc.updated_at = now
+                    tx.set(ref, acc.to_dict())
+                elif acc.plan == "free" and acc.credits_monthly_quota > ent.monthly_credits:
+                    acc.credits_monthly_quota = ent.monthly_credits
+                    acc.credits_balance = min(acc.credits_balance, ent.monthly_credits)
                     acc.updated_at = now
                     tx.set(ref, acc.to_dict())
                 if acc.is_admin != is_admin_candidate:

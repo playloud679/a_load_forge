@@ -215,7 +215,7 @@ class TestBilling(unittest.TestCase):
     def test_process_webhook_credit_pack_completed(self):
         store = InMemoryUserAccountStore()
         user = store.get_or_create_account("u_buyer", "buyer@example.com", "Buyer")
-        self.assertEqual(user.credits_balance, 10000)
+        self.assertEqual(user.credits_balance, 3000)
 
         event_credits = {
             "id": "evt_pack_123",
@@ -244,12 +244,12 @@ class TestBilling(unittest.TestCase):
             self.assertEqual(res["status"], "success")
             self.assertEqual(res["credits"], 300000)
             updated = store.get_or_create_account("u_buyer", "buyer@example.com", "Buyer")
-            self.assertEqual(updated.credits_balance, 310000)
+            self.assertEqual(updated.credits_balance, 303000)
 
     def test_sync_checkout_session(self):
         store = InMemoryUserAccountStore()
         user = store.get_or_create_account("u_sync", "sync@example.com", "Sync User")
-        self.assertEqual(user.credits_balance, 10000)
+        self.assertEqual(user.credits_balance, 3000)
 
         mock_session = {
             "mode": "payment",
@@ -268,7 +268,7 @@ class TestBilling(unittest.TestCase):
             self.assertEqual(res["status"], "ok")
             self.assertEqual(res["credits"], 100000)
             updated = store.get_or_create_account("u_sync", "sync@example.com", "Sync User")
-            self.assertEqual(updated.credits_balance, 110000)
+            self.assertEqual(updated.credits_balance, 103000)
 
 
 if __name__ == "__main__":

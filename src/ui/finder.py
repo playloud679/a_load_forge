@@ -1841,7 +1841,7 @@ def _render_finder_run_statistics(container=None) -> None:
     target.markdown(
         "<div class='lf-run-stats'>"
         "<div class='lf-run-stats-head'>"
-        "⚙️ <strong>Simulation work performed</strong>"
+        "<strong>Simulation work performed</strong>"
         f"<span class='lf-run-stats-profile'>{profile_name} profile · {credit_mult} credit(s)/simulation</span>"
         "</div>"
         "<div class='lf-run-stats-grid'>"
@@ -1867,7 +1867,7 @@ def _render_finder_run_statistics(container=None) -> None:
         "</div>"
         "</div>"
         + (
-            "<div class='lf-run-stats-loads'>🧩 <strong>Per load:</strong> "
+            "<div class='lf-run-stats-loads'><strong>Per load:</strong> "
             + per_load_str
             + "</div>"
             if per_load_str
@@ -1919,7 +1919,8 @@ def _render_bass_match_hero(
     finder_objective = str(st.session_state.get("finder_objective", "Max extension"))
     secondary_specs = f"{finder_objective} · {finder_search_profile}"
 
-    candidates_ready_str = f"{len(prequalified_names):,} candidates ready"
+    total_lib = len(_catalog._available_driver_preset_names())
+    candidates_ready_str = f"{len(prequalified_names):,} / {total_lib:,} in catalog"
     sims_ready_str = f"{prefilter_stats['eligible_simulations']:,} simulations"
     cost_str = f" · {run_credits:,} credits" if acc else ""
 
@@ -1968,6 +1969,29 @@ def _render_bass_match_hero(
                 or (label == "Search" and bool(st.session_state.get("preset_search", "").strip()))
             ]
             _catalog._render_finder_constraint_grid(visible_constraints)
+        if acc and acc.plan == "free":
+            pct = max(0, min(100, int((credits_balance / 3000) * 100)))
+            with st.container(border=True, key="bm_urgency_banner"):
+                u_col1, u_col2 = st.columns([3.2, 1.8], vertical_alignment="center")
+                with u_col1:
+                    st.markdown(
+                        f"""
+                        <div style="display:flex; flex-direction:column; gap:0.2rem;">
+                            <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                                <span style="background:rgba(15,23,42,0.8); color:#fca5a5; border:1px solid rgba(239,68,68,0.4); padding:0.12rem 0.50rem; border-radius:4px; font-size:0.72rem; font-weight:800; letter-spacing:0.04em;">FREE PLAN</span>
+                                <span style="font-size:0.92rem; font-weight:700; color:#f8fafc;">Remaining credits: <b style="color:#fbbf24;">{credits_balance:,}</b> / 3,000 ({pct}%)</span>
+                            </div>
+                            <div style="font-size:0.78rem; color:#94a3b8; line-height:1.4;">
+                                Each scan consumes compute credits. Upgrade to <b>Pro</b> (300k credits/mo) for continuous runs and priority queue.
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                with u_col2:
+                    with st.container(key="bm_upgrade_callout"):
+                        if st.button("UPGRADE TO PRO (FROM €3)", key="btn_bm_brief_upgrade", width="stretch", help="Unlock up to 300,000 monthly credits with priority computing"):
+                            _projects._open_billing_modal(acc)
         if match_preset_names and not prequalified_names:
             st.warning(
                 "No driver passes the pre-simulation checks. Lower Minimum "
@@ -1980,14 +2004,15 @@ def _render_bass_match_hero(
                 f"(shortfall: **{shortfall:,} credits**). "
                 "Refine your filters, choose fewer drivers, or purchase credits / upgrade below."
             )
-            c_buy1, _ = st.columns([2.2, 2.8])
+            c_buy1, _ = st.columns([2.5, 2.5])
             with c_buy1:
-                _projects._render_credits_purchase_popover(
-                    acc,
-                    key="bm_buy_credits_err_popover",
-                    label=f"🚀 Subscribe / Buy Credits ({shortfall:,} needed)",
-                    shortfall=shortfall,
-                )
+                with st.container(key="bm_upgrade_callout"):
+                    _projects._render_credits_purchase_popover(
+                        acc,
+                        key="bm_buy_credits_err_popover",
+                        label=f"Unlock Subscription / Credits (+{shortfall:,})",
+                        shortfall=shortfall,
+                    )
     run_requested = st.button(
         _constants._FINDER_CTA_LABEL,
         type="primary",
@@ -2020,11 +2045,11 @@ def _render_candidate_pool(filtered_preset_names: list[str]) -> None:
     selected_count = len(
         _catalog._selected_library_preset_names(filtered_preset_names)
     )
-    pool_suffix = (
-        f"{selected_count} selected"
-        if selected_count
-        else f"{len(filtered_preset_names):,} available"
-    )
+    total_drivers = len(_catalog._available_driver_preset_names())
+    if selected_count:
+        pool_suffix = f"{selected_count} selected · {len(filtered_preset_names):,} matching of {total_drivers:,} in proprietary catalog"
+    else:
+        pool_suffix = f"{len(filtered_preset_names):,} matching of {total_drivers:,} drivers in proprietary catalog"
     pool_expander = st.expander(
         f"Candidate pool · {pool_suffix}",
         expanded=st.session_state.get("finder_candidate_pool_expander", True),
@@ -2326,12 +2351,12 @@ def _render_finder_results(filtered_preset_names: list[str], context_matches: bo
             )
             sims_sec = float(run_stats.get("simulations_per_second", 0.0))
             if el_s > 0:
-                seek_time_str = f" · ⏱️ Seek time: {el_s:.2f} s ({ms_sim:.1f} ms/sim · {sims_sec:.0f} sim/s)"
+                seek_time_str = f" · Seek time: {el_s:.2f} s ({ms_sim:.1f} ms/sim · {sims_sec:.0f} sim/s)"
         except (TypeError, ValueError):
             seek_time_str = ""
     per_load_summary = _finder_per_load_stats_str(run_stats)
     if per_load_summary:
-        per_load_summary = f" · 🧩 Per load: {per_load_summary}"
+        per_load_summary = f" · Per load: {per_load_summary}"
     scan_detail_str = (
         f"{int(context[11])}/{int(context[12])} simulations after pre-filter"
         if len(context) > 12
@@ -2403,7 +2428,7 @@ def _render_finder_results(filtered_preset_names: list[str], context_matches: bo
         st.markdown(summary_markup, unsafe_allow_html=True)
     with edit_col:
         st.button(
-            "✏️ Edit search",
+            "Edit search",
             key="finder_edit_search_btn",
             type="secondary",
             width="stretch",
@@ -2602,7 +2627,7 @@ def _render_finder_results(filtered_preset_names: list[str], context_matches: bo
     download_col, _ = st.columns([1.0, 3.0], vertical_alignment="center")
     with download_col:
         st.download_button(
-            "⬇️ Download CSV",
+            "Download CSV",
             batch_df[csv_columns].to_csv(index=False).encode("utf-8"),
             "load_forge_candidates.csv",
             "text/csv",

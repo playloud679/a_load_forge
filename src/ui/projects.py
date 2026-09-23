@@ -707,7 +707,7 @@ def _rename_project_from_header(widget_key: str) -> None:
     current_id = st.session_state.get("_cloud_project_id")
     if _is_project_name_taken(name, exclude_project_id=current_id):
         st.session_state["_project_switch_error"] = f"A project named '{name}' already exists."
-        st.toast(f"A project named '{name}' already exists", icon="⚠️")
+        st.toast(f"A project named '{name}' already exists")
         return
     st.session_state["project_name"] = name[:80]
     _mark_cloud_project_dirty(immediate=True)
@@ -1030,7 +1030,7 @@ def _render_hud_explore_community_button(key: str = "sidebar_community_btn") -> 
             on_click=_open_community_workspace,
         )
 
-@st.dialog("🚀 Plans & Simulation Credits", width="large")
+@st.dialog("Subscription Plans & Credits", width="large")
 def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
     """Render a clean, modern modal dialog for subscription plans and credit packs."""
     stripe_ready = _billing.is_stripe_configured()
@@ -1038,16 +1038,19 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
     # Top Balance & Status Banner
     bal_col1, bal_col2 = st.columns([3, 2], vertical_alignment="center")
     with bal_col1:
-        st.markdown(f"#### 💳 Balance: **{acc.credits_balance:,}** credits · *{acc.plan.upper()} PLAN*")
-        st.caption("Unlimited cloud projects · 9,800+ Driver Catalog · Community Library")
+        if acc.plan == "free":
+            st.markdown(f"#### Balance: **{acc.credits_balance:,}** credits · *Free Plan (3,000 / mo)*")
+        else:
+            st.markdown(f"#### Balance: **{acc.credits_balance:,}** credits · *{acc.plan.upper()} Plan*")
+        st.caption("Unlimited cloud projects · 9,915 certified drivers in proprietary library · Shared community models")
     with bal_col2:
         if shortfall > 0:
-            st.warning(f"⚠️ Current scan requires **{shortfall:,} additional credits**.")
+            st.warning(f"The current simulation scan requires **{shortfall:,} additional credits**.")
 
-    tab_sub, tab_packs = st.tabs(["🚀 Subscriptions", "⚡ One-Time Credit Packs"])
+    tab_sub, tab_packs = st.tabs(["Subscriptions", "One-Time Credit Packs"])
 
     with tab_sub:
-        st.caption("Subscribe for recurring monthly credits, priority computing, and community perks. Cancel anytime.")
+        st.caption("Subscribe to a monthly plan for recurring compute credits, priority simulation queue, and advanced features. Cancel anytime.")
 
         # Billing cycle selector
         interval_choice = st.segmented_control(
@@ -1065,7 +1068,7 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
         # HOBBY CARD
         with col_h:
             with st.container(border=True):
-                st.markdown("### 🟢 Hobby")
+                st.markdown("### Hobby")
                 if is_yearly:
                     st.markdown("## **€ 29** <span style='font-size:1rem;font-weight:normal;color:#aaa;'>/ year</span>", unsafe_allow_html=True)
                     st.caption("~€ 2.41 / month · Save 20% compared to monthly")
@@ -1075,16 +1078,16 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
 
                 st.markdown(
                     "- **60,000 credits** / month\n"
-                    "- **Unlimited cloud-saved projects**\n"
-                    "- Full 9,800+ driver library access\n"
-                    "- Community project sharing\n"
-                    "- Technical export sheets & CSV"
+                    "- **Unlimited cloud projects**\n"
+                    "- Full access to 9,915 driver proprietary catalog\n"
+                    "- Community project sharing & presets\n"
+                    "- Export technical spec sheets & CSV"
                 )
 
                 if acc.plan == "hobby":
-                    st.button("✓ Current Plan", disabled=True, width="stretch", key="modal_hobby_current")
+                    st.button("Current Plan", disabled=True, width="stretch", key="modal_hobby_current")
                 elif acc.plan in ("pro", "team"):
-                    st.caption("Included in your higher tier")
+                    st.caption("Included in your higher plan")
                 else:
                     if stripe_ready:
                         try:
@@ -1095,7 +1098,7 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
                                 account_store=_runtime._ACCOUNT_STORE,
                             )
                             st.link_button(
-                                f"Subscribe to Hobby ({'€29/yr' if is_yearly else '€3/mo'})",
+                                f"Activate Hobby ({'€29/year' if is_yearly else '€3/month'})",
                                 checkout_url,
                                 type="primary",
                                 width="stretch",
@@ -1104,7 +1107,7 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
                         except Exception as exc:
                             st.error(f"Stripe Error: {exc}")
                     else:
-                        if st.button("Activate Hobby (Demo/Test)*", key="modal_hobby_demo_btn", type="primary", width="stretch"):
+                        if st.button("Activate Hobby (Test)*", key="modal_hobby_demo_btn", type="primary", width="stretch"):
                             _runtime._ACCOUNT_STORE.update_billing_info(acc.email or acc.uid, plan="hobby")
                             _account._get_current_user_account.cache_clear()
                             _runtime._ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, 60_000)
@@ -1112,13 +1115,13 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
                             acc.plan = "hobby"
                             acc.credits_balance += 60_000
                             st.session_state.pop("_cached_user_account", None)
-                            st.toast("🎉 Account upgraded to Hobby with 60,000 credits!", icon="🚀")
+                            st.toast("Account updated to Hobby with 60,000 credits!")
                             st.rerun()
 
         # PRO CARD
         with col_p:
             with st.container(border=True):
-                st.markdown("### ⚡ Pro ⭐ *Most Popular*")
+                st.markdown("### Pro *(Recommended)*")
                 if is_yearly:
                     st.markdown("## **€ 79** <span style='font-size:1rem;font-weight:normal;color:#aaa;'>/ year</span>", unsafe_allow_html=True)
                     st.caption("~€ 6.58 / month · Save 27% compared to monthly")
@@ -1128,14 +1131,14 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
 
                 st.markdown(
                     "- **300,000 credits** / month\n"
-                    "- **Unlimited cloud-saved projects**\n"
-                    "- Priority cloud computing & sweep speed\n"
-                    "- Full revision history & comparison\n"
-                    "- Comprehensive printable spec sheets"
+                    "- **Unlimited cloud projects**\n"
+                    "- Priority compute & fast multi-core scans\n"
+                    "- Complete comparison history & revision logs\n"
+                    "- Full printable technical engineering sheets"
                 )
 
                 if acc.plan == "pro":
-                    st.button("✓ Current Plan", disabled=True, width="stretch", key="modal_pro_current")
+                    st.button("Current Plan", disabled=True, width="stretch", key="modal_pro_current")
                 else:
                     if stripe_ready:
                         try:
@@ -1146,7 +1149,7 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
                                 account_store=_runtime._ACCOUNT_STORE,
                             )
                             st.link_button(
-                                f"Subscribe to Pro ({'€79/yr' if is_yearly else '€9/mo'})",
+                                f"Activate Pro ({'€79/year' if is_yearly else '€9/month'})",
                                 checkout_url,
                                 type="primary",
                                 width="stretch",
@@ -1155,7 +1158,7 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
                         except Exception as exc:
                             st.error(f"Stripe Error: {exc}")
                     else:
-                        if st.button("Activate Pro (Demo/Test)*", key="modal_pro_demo_btn", type="primary", width="stretch"):
+                        if st.button("Activate Pro (Test)*", key="modal_pro_demo_btn", type="primary", width="stretch"):
                             _runtime._ACCOUNT_STORE.update_billing_info(acc.email or acc.uid, plan="pro")
                             _account._get_current_user_account.cache_clear()
                             _runtime._ACCOUNT_STORE.adjust_credits(acc.email or acc.uid, 300_000)
@@ -1163,7 +1166,7 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
                             acc.plan = "pro"
                             acc.credits_balance += 300_000
                             st.session_state.pop("_cached_user_account", None)
-                            st.toast("🎉 Account upgraded to Pro with 300,000 credits!", icon="🚀")
+                            st.toast("Account updated to Pro with 300,000 credits!")
                             st.rerun()
 
         # Manage subscription link for active subscribers
@@ -1171,7 +1174,7 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
             st.divider()
             try:
                 portal_url = _billing.create_customer_portal_session(acc, account_store=_runtime._ACCOUNT_STORE)
-                st.link_button("⚙️ Manage Existing Subscription / Invoices (Stripe Portal)", portal_url, width="stretch")
+                st.link_button("Manage Subscription / Invoices (Stripe Portal)", portal_url, width="stretch")
             except Exception:
                 pass
 
@@ -1215,12 +1218,12 @@ def _open_billing_modal(acc: _saas.UserAccount, shortfall: int = 0) -> None:
                             _account._get_current_user_account.cache_clear()
                             acc.credits_balance += pack_info["credits"]
                             st.session_state.pop("_cached_user_account", None)
-                            st.toast(f"🎉 Successfully added {pack_info['credits']:,} credits!", icon="⚡")
+                            st.toast(f"Successfully added {pack_info['credits']:,} credits!")
                             st.rerun()
 
     st.markdown(
         "<div style='text-align:center; padding-top: 1rem; color: #888; font-size: 0.85rem;'>"
-        "🔒 Secure checkout powered by <b>Stripe</b> · Supports <b>Cards</b>, <b>PayPal</b>, <b>Klarna</b>, <b>Satispay</b> & <b>Amazon Pay</b>"
+        "Secure checkout powered by <b>Stripe</b> · Credit cards, PayPal, Klarna, Apple Pay & Google Pay"
         "</div>",
         unsafe_allow_html=True,
     )
@@ -1229,7 +1232,7 @@ def _render_credits_purchase_popover(
     acc: _saas.UserAccount,
     *,
     key: str = "credits_purchase_popover",
-    label: str = "🚀 Subscriptions & Credits",
+    label: str = "Subscriptions & Credits",
     shortfall: int = 0,
     width: str = "stretch",
 ) -> None:
@@ -1239,11 +1242,12 @@ def _render_credits_purchase_popover(
         _open_billing_modal(acc, shortfall=shortfall)
 
 def _render_billing_action_button(acc: _saas.UserAccount) -> None:
-    """Render upgrade to Pro or buy credits button in the sidebar."""
+    """Render upgrade to Pro or buy credits button in the sidebar or popovers."""
+    label = "Upgrade to Pro · 300k Credits" if acc.plan == "free" else "Manage Subscription"
     _render_credits_purchase_popover(
         acc,
         key="sidebar_billing_action_popover",
-        label="🚀 Subscriptions & Credits",
+        label=label,
         width="stretch",
     )
 
@@ -1289,7 +1293,7 @@ def _render_studio_start() -> None:
     left, right = st.columns(2, gap="large")
     with left:
         with st.container(border=True):
-            st.markdown("### 🔎 Find the right driver")
+            st.markdown("### Find the right driver")
             st.caption("Start from volume, extension, output and budget.")
             st.button(
                 "Bass Match",
@@ -1301,7 +1305,7 @@ def _render_studio_start() -> None:
             )
     with right:
         with st.container(border=True):
-            st.markdown("### 📐 Design with a driver")
+            st.markdown("### Design with a driver")
             st.caption("Choose a driver and design its enclosure.")
             st.button(
                 "Box Design",
@@ -1353,12 +1357,19 @@ def _render_main_account_header() -> None:
     st.markdown(_styles._workspace_tab_styles(), unsafe_allow_html=True)
 
     with st.container(key="global_app_bar"):
-        name_col, save_col, vis_col, _, nav_proj, nav_comm, nav_acc = st.columns(
-            [2.4, 1.8, 1.3, 1.5, 1.1, 1.2, 1.2],
-            vertical_alignment="center",
-        )
+        if acc:
+            name_col, save_col, vis_col, _, nav_upgrade, nav_proj, nav_comm, nav_acc = st.columns(
+                [2.0, 1.4, 1.2, 0.1, 2.7, 0.9, 1.0, 1.0],
+                vertical_alignment="center",
+            )
+        else:
+            name_col, save_col, vis_col, _, nav_proj, nav_comm, nav_acc = st.columns(
+                [2.4, 1.8, 1.3, 1.5, 1.1, 1.2, 1.2],
+                vertical_alignment="center",
+            )
+            nav_upgrade = None
         with name_col:
-            with st.popover(f"📁 {st.session_state['project_name']}", width="stretch"):
+            with st.popover(f"{st.session_state['project_name']}", width="stretch"):
                 st.markdown("**Rename Project**")
                 name_key = f"temp_project_header_name_{st.session_state.get('_cloud_project_id', 'draft')}_{st.session_state['project_name']}"
                 st.text_input("Project name", value=st.session_state["project_name"], key=name_key, max_chars=80)
@@ -1371,8 +1382,7 @@ def _render_main_account_header() -> None:
                 visible = [p for p in publications if p.visibility != "unpublished"]
                 current = next((p for p in visible if p.visibility == "public"), visible[0] if visible else None)
                 visibility = current.visibility.capitalize() if current else "Private"
-                vis_icon = "🔒" if visibility == "Private" else "🌐" if visibility == "Public" else "🔗"
-                with st.popover(f"{vis_icon} {visibility}", width="stretch"):
+                with st.popover(f"{visibility}", width="stretch"):
                     st.markdown(f"**Project Visibility · {visibility}**")
                     st.caption("Private — Only you can access this project.\n\nUnlisted — Anyone with the link can view it.\n\nPublic — Visible in Community / Explore.")
                     visibility_key = f"temp_project_visibility_{st.session_state.get('_cloud_project_id', 'draft')}"
@@ -1389,6 +1399,28 @@ def _render_main_account_header() -> None:
             except Exception:
                 _runtime.logger.exception("Project visibility unavailable")
                 st.error("Could not update or read project visibility. Please retry.")
+        if nav_upgrade is not None and acc:
+            with nav_upgrade:
+                if acc.plan == "free":
+                    with st.container(key="header_upgrade_btn"):
+                        btn_label = f"{acc.credits_balance:,} / 3,000 CREDITS · UPGRADE TO PRO"
+                        if st.button(
+                            btn_label,
+                            key="btn_hdr_upgrade_pro",
+                            width="stretch",
+                            help=f"Remaining credits: {acc.credits_balance:,}. Upgrade to Pro for 300,000 monthly credits and priority computing.",
+                        ):
+                            _open_billing_modal(acc)
+                else:
+                    with st.container(key="header_credits_btn"):
+                        plan_tag = acc.plan.upper()
+                        if st.button(
+                            f"{plan_tag} · {acc.credits_balance:,} CREDITS",
+                            key="btn_hdr_active_plan",
+                            width="stretch",
+                            help=f"Active {plan_tag} plan ({acc.credits_balance:,} credits). Click to manage subscription or top up credits.",
+                        ):
+                            _open_billing_modal(acc)
         with nav_proj:
             st.button(
                 "Projects",
@@ -1517,7 +1549,7 @@ def _render_manage_projects_cloud_list() -> None:
         )
     with bar_del:
         with st.popover(
-            f"🗑️ Delete ({sel_count})" if sel_count > 0 else "🗑️ Delete",
+            f"Delete ({sel_count})" if sel_count > 0 else "Delete",
             disabled=sel_count == 0,
             width="stretch",
         ):
@@ -1720,7 +1752,7 @@ def _render_manage_projects_trash() -> None:
             width="stretch",
         )
     with t_col4:
-        restore_label = f"♻️ Restore ({t_sel_count})" if t_sel_count > 0 else "♻️ Restore"
+        restore_label = f"Restore ({t_sel_count})" if t_sel_count > 0 else "Restore"
         if st.button(restore_label, key="mp_trash_batch_restore_btn", type="primary", disabled=t_sel_count == 0, width="stretch"):
             store = _account._get_project_store()
             restored_count = 0
@@ -1801,7 +1833,7 @@ def _render_manage_projects_publish() -> None:
         key="mp_pub_vis_select",
     )
     pub_photo_upload = st.file_uploader(
-        "📷 Build Photo / Real Prototype (optional)",
+        "Build Photo / Real Prototype (optional)",
         type=["jpg", "jpeg", "png", "webp"],
         key="mp_pub_photo_upload",
         help="Upload a real photo or 3D render of your enclosure build to feature on the community card.",
@@ -2108,7 +2140,7 @@ def _fork_project_to_sandbox(pub_id: str, pub_title: str) -> None:
             st.query_params.pop(key, None)
         st.session_state["workspace_mode"] = "Box Design"
         _detach_cloud_project()
-        st.toast(f"🚀 Loaded '{pub_title}' into Box Design Sandbox!")
+        st.toast(f"Loaded '{pub_title}' into Box Design Sandbox")
         st.rerun()
     else:
         st.error(f"Could not load project parameters for {pub_title}")
@@ -2123,11 +2155,11 @@ def _toggle_community_project_like(pub_id: str, pub_title: str, default_likes: i
     if pub_id in user_likes:
         user_likes.remove(pub_id)
         likes_counts[pub_id] = max(0, likes_counts[pub_id] - 1)
-        st.toast(f"Unliked '{pub_title}'")
+        st.toast(f"Removed '{pub_title}' from favorites")
     else:
         user_likes.add(pub_id)
         likes_counts[pub_id] = likes_counts[pub_id] + 1
-        st.toast(f"❤️ Liked '{pub_title}'!")
+        st.toast(f"Added '{pub_title}' to favorites")
 
 def _render_community_sidebar() -> None:
     """Render a clean Community sidebar with back navigation and publish CTA."""
@@ -2148,14 +2180,14 @@ def _render_community_sidebar() -> None:
     st.markdown("---")
 
     # Publish Current Design CTA
-    with st.expander("🚀 Publish Active Project", expanded=False):
+    with st.expander("Publish Active Project", expanded=False):
         st.caption("Share your active design with the Load Forge community:")
         active_proj_name = st.session_state.get("project_name", "") or "My Acoustic Project"
         pub_title_input = st.text_input("Title", value=active_proj_name, key="comm_side_pub_title")
         pub_desc_input = st.text_area("Notes", placeholder="E.g. Tuned for touring sub...", key="comm_side_pub_desc", height=70)
         pub_vis = st.selectbox("Visibility", ["public", "unlisted"], key="comm_side_pub_vis")
         pub_photo_side = st.file_uploader(
-            "📷 Build Photo (optional)",
+            "Build Photo (optional)",
             type=["jpg", "jpeg", "png", "webp"],
             key="comm_side_pub_photo",
             help="Upload a photo or 3D render of your real build.",
@@ -3119,12 +3151,12 @@ def _render_explore_projects_directory() -> None:
     with h_left:
         st.markdown(
             """<div class="community-header">
-                <div class="community-title">⚡ LOAD FORGE COMMUNITY // ELECTROACOUSTIC HUB</div>
+                <div class="community-title">LOAD FORGE COMMUNITY // ELECTROACOUSTIC HUB</div>
                 <div class="community-sub">Verified loudspeaker designs, acoustic simulations, and community alignments.</div>
                 <div class="community-telemetry">
-                    <span>🔨 <strong>128+</strong> Verified Builds</span>
-                    <span>🔄 <strong>3.8k+</strong> Simulations & Clones</span>
-                    <span>👥 <strong>86</strong> Audio Designers</span>
+                    <span><strong>128+</strong> Verified Builds</span>
+                    <span><strong>3.8k+</strong> Simulations & Clones</span>
+                    <span><strong>86</strong> Audio Designers</span>
                 </div>
             </div>""",
             unsafe_allow_html=True,
@@ -3167,11 +3199,11 @@ def _render_explore_projects_directory() -> None:
         )
     with f_col3:
         sort_options = {
-            "trending": "🔥 Trending / Most Liked",
-            "newest": "⚡ Newest First",
-            "lowest_f3": "🎯 Deepest Extension (F3)",
-            "compact_vb": "📦 Most Compact (Vb)",
-            "highest_spl": "🔊 Highest Peak SPL",
+            "trending": "Trending / Most Liked",
+            "newest": "Newest First",
+            "lowest_f3": "Deepest Extension (F3)",
+            "compact_vb": "Most Compact (Vb)",
+            "highest_spl": "Highest Peak SPL",
         }
         selected_sort = st.selectbox(
             "Sort by",
@@ -3188,7 +3220,7 @@ def _render_explore_projects_directory() -> None:
             on_click=_reset_explore_filters,
         )
 
-    with st.expander("🎛️ Fine Electroacoustic Range Filters", expanded=False):
+    with st.expander("Fine Electroacoustic Range Filters", expanded=False):
         st.caption("Narrow the discovery catalog by physical and electroacoustic limits:")
         p1, p2, p3, p4 = st.columns(4)
         with p1:
@@ -3286,7 +3318,7 @@ def _render_explore_projects_directory() -> None:
         top_pub = projects[0]
         top_tech = top_pub.technical_summary or {}
         top_author = top_pub.owner_display_name or "Marco_Forge"
-        top_rank = top_tech.get("creator_rank", "⚡ Lead Architect")
+        top_rank = top_tech.get("creator_rank", "Lead Architect")
         top_likes = likes_counts.get(top_pub.publication_id, top_tech.get("likes", 142))
         top_vol = top_tech.get("box_volume_l")
         top_f3 = top_tech.get("f3_hz")
@@ -3348,7 +3380,7 @@ def _render_explore_projects_directory() -> None:
             with fh_txt:
                 st.markdown(
                     f"""<div style="display: flex; align-items: center; gap: 8px; margin-bottom: 2px;">
-                        <span class="community-badge">🏆 FEATURED ALIGNMENT</span>
+                        <span class="community-badge">FEATURED ALIGNMENT</span>
                         <span class="community-topo-badge">{html.escape(top_load)}</span>
                         <span style="color: #8b949e; font-size: 0.74rem;">{top_pub.published_at.strftime('%d %b %Y')}</span>
                     </div>""",
@@ -3374,11 +3406,11 @@ def _render_explore_projects_directory() -> None:
 
             fb1, fb2, fb3 = st.columns([2.4, 2.0, 1.2], vertical_alignment="center")
             with fb1:
-                if st.button("🚀 Fork to Sandbox", key=f"feat_fork_btn_{top_pub.publication_id}", width="stretch", type="primary"):
+                if st.button("Fork to Sandbox", key=f"feat_fork_btn_{top_pub.publication_id}", width="stretch", type="primary"):
                     _fork_project_to_sandbox(top_pub.publication_id, top_pub.title)
             with fb2:
                 st.button(
-                    "📊 Tech Sheet",
+                    "Tech Sheet",
                     key=f"feat_tech_btn_{top_pub.publication_id}",
                     width="stretch",
                     type="secondary",
@@ -3386,13 +3418,13 @@ def _render_explore_projects_directory() -> None:
                     args=(top_pub.publication_id,),
                 )
             with fb3:
-                f_like_label = f"❤️ {top_likes}" if not top_is_liked else f"💖 {top_likes}"
+                f_like_label = f"Approve ({top_likes})"
                 if st.button(f_like_label, key=f"feat_like_{top_pub.publication_id}", width="stretch"):
                     _toggle_community_project_like(top_pub.publication_id, top_pub.title, top_likes)
                     st.rerun()
 
     st.markdown("<div style='margin-top: 8px;'></div>", unsafe_allow_html=True)
-    st.markdown(f"### 📡 Community Builds ({len(projects)})")
+    st.markdown(f"### Community Builds ({len(projects)})")
 
     # Render Visual 3-Column Grid with Small Load Icon + Basic Project Value Grid
     cols = st.columns(3)
@@ -3499,11 +3531,11 @@ def _render_explore_projects_directory() -> None:
                 # Action Row
                 a_fork, a_tech, a_like = st.columns([2.0, 1.6, 1.2], vertical_alignment="center")
                 with a_fork:
-                    if st.button("🚀 Fork", key=f"btn_fork_{pub.publication_id}", width="stretch", type="primary", help=f"Load {pub.title} in Box Design Sandbox"):
+                    if st.button("Fork", key=f"btn_fork_{pub.publication_id}", width="stretch", type="primary", help=f"Load {pub.title} in Box Design Sandbox"):
                         _fork_project_to_sandbox(pub.publication_id, pub.title)
                 with a_tech:
                     st.button(
-                        "📊 Tech",
+                        "Tech",
                         key=f"btn_tech_{pub.publication_id}",
                         width="stretch",
                         type="secondary",
@@ -3511,7 +3543,7 @@ def _render_explore_projects_directory() -> None:
                         args=(pub.publication_id,),
                     )
                 with a_like:
-                    like_label = f"❤️ {pub_likes}" if not is_liked else f"💖 {pub_likes}"
+                    like_label = f"Approve ({pub_likes})"
                     if st.button(like_label, key=f"btn_like_{pub.publication_id}", width="stretch"):
                         _toggle_community_project_like(pub.publication_id, pub.title, pub_likes)
                         st.rerun()

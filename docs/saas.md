@@ -124,9 +124,10 @@ The built-in entitlement seeds are:
 
 | Plan | Saved projects | Monthly credits | Seats |
 |---|---:|---:|---:|
-| `free` | 3 | 100 | 1 |
-| `pro` | 100 | 2,500 | 1 |
-| `team` | 500 | 10,000 | 10 |
+| `free` | Unlimited (999k) | 3,000 | 1 |
+| `hobby` | Unlimited (999k) | 60,000 | 1 |
+| `pro` | Unlimited (999k) | 300,000 | 1 |
+| `team` | Unlimited (999k) | 1,000,000 | 10 |
 
 These values are server-side product defaults. Standard runs consume 1 credit per candidate; Deep runs consume 2 credits per candidate. `UserAccountStore` (backed by Firestore in production and memory in development) handles atomic credit deductions, monthly quota replenishment on the 1st of each month, and administrator management. Administrator accounts receive an automatic credit balance refill ($100,000+$) and are exempt from simulation credit blocking in Bass Match.
 

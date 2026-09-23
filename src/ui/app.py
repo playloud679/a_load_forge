@@ -264,16 +264,16 @@ def main() -> None:
                 try:
                     sess_info = _billing.sync_checkout_session(session_id, _runtime._ACCOUNT_STORE)
                     if sess_info.get("type") == "credit_pack":
-                        st.toast(f"🎉 Payment successful! Added {sess_info.get('credits', 0):,} credits to your balance.", icon="⚡")
+                        st.toast(f"Payment successful. Added {sess_info.get('credits', 0):,} credits to your balance.")
                     else:
-                        st.toast("🎉 Subscription checkout successful! Your Pro access is active.", icon="🚀")
+                        st.toast("Subscription checkout successful. Pro access is active.")
                 except Exception:
-                    st.toast("🎉 Checkout successful! Syncing account state...", icon="🚀")
+                    st.toast("Checkout successful. Syncing account state...")
             else:
-                st.toast("🎉 Checkout successful! Syncing account state...", icon="🚀")
+                st.toast("Checkout successful. Syncing account state...")
             st.session_state.pop("_cached_user_account", None)
         elif _checkout_status == "canceled":
-            st.toast("Checkout canceled. No charges were made.", icon="ℹ️")
+            st.toast("Checkout canceled. No charges were made.")
         st.query_params.pop("checkout", None)
         st.query_params.pop("session_id", None)
         st.query_params.pop("pack", None)
@@ -323,6 +323,26 @@ def main() -> None:
             # Remember the last engineering workspace for returning users.
             st.session_state["_last_engineering_workspace"] = workspace_mode
             _state._render_workspace_tabs()
+            _user_acc = _account._get_current_user_account() if _runtime._CURRENT_SAAS_USER is not None else None
+            if _user_acc and _user_acc.plan == "free":
+                _pct = max(0.0, min(1.0, float(_user_acc.credits_balance) / 3000.0))
+                with st.container(key="sidebar_credit_urgency_box"):
+                    st.markdown(
+                        f"""<div style="background:rgba(15,23,42,0.65); border:1px solid rgba(51,65,85,0.7); border-radius:8px; padding:0.55rem 0.65rem; margin:0.35rem 0 0.35rem 0;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
+                                <span style="font-size:0.68rem; font-weight:800; color:#34d399; letter-spacing:0.06em; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); padding:0.10rem 0.40rem; border-radius:3px;">FREE PLAN</span>
+                                <span style="font-size:0.75rem; font-weight:700; color:#fbbf24;">{_user_acc.credits_balance:,} / 3,000 CREDITS</span>
+                            </div>
+                            <div style="font-size:0.72rem; color:#94a3b8; line-height:1.3; margin-bottom:0.35rem;">
+                                Compute credits for Bass Match search. Upgrade for continuous scans and priority queue.
+                            </div>
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
+                    st.progress(_pct)
+                    with st.container(key="sidebar_billing_action_popover"):
+                        if st.button("UPGRADE TO PRO (FROM €3)", key="sb_urgency_cta_btn", width="stretch", help="Unlock up to 300,000 monthly credits with priority computing"):
+                            _projects._open_billing_modal(_user_acc)
         if _explore_requested:
             _projects._render_community_sidebar()
         elif _public_project_requested:
@@ -479,6 +499,11 @@ def main() -> None:
                 )
             all_preset_names = _catalog._available_driver_preset_names()
             with bd_tab1:
+                st.markdown(
+                    f'<div style="font-size:0.75rem; font-weight:700; color:#34d399; letter-spacing:0.04em; margin-bottom:0.25rem;">'
+                    f'PROPRIETARY CATALOG: {len(all_preset_names):,} CERTIFIED DRIVERS</div>',
+                    unsafe_allow_html=True,
+                )
                 # Bottom alignment keeps the icon button on the same baseline as
                 # the labelled input without a hardcoded spacer; CSS fixes its
                 # square size to the shared control height.
@@ -492,7 +517,7 @@ def main() -> None:
                         )
                     with col_refresh:
                         if st.button(
-                            "🔄",
+                            "Sync",
                             key="refresh_presets_btn_box_design",
                             help="Refresh driver library from cloud catalog & Z-Bench",
                         ):
@@ -1551,11 +1576,6 @@ def main() -> None:
                         )
                         cols[j].metric(metric[0], metric[1], help=metric_help)
 
-                st.caption(
-                    "Forge Score is a heuristic design-health indicator (0-100); "
-                    "ranking and comparison always use physical metrics."
-                )
-
             # Performance Badges
                 badges = []
                 if not is_infinite_baffle and not is_sealed:
@@ -1618,11 +1638,11 @@ def main() -> None:
                     badge_html = " ".join([
                         f'<span style="display: inline-block; background-color: {bg}; '
                         f'border: 1px solid {border}; border-radius: 0.35rem; '
-                        f'padding: 0.15rem 0.45rem; margin-right: 0.35rem; font-size: 0.72rem; '
+                        f'padding: 0.12rem 0.40rem; margin-right: 0.35rem; font-size: 0.70rem; '
                         f'font-weight: 600; color: {color};">{text}</span>'
                         for text, bg, border, color in badges
                     ])
-                    st.markdown(f'<div style="margin-top: 0.45rem; padding-bottom: 0.45rem; margin-bottom: 0.2rem;">{badge_html}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div style="margin-top: 0.15rem; margin-bottom: 0.10rem;">{badge_html}</div>', unsafe_allow_html=True)
 
                 if model_warnings:
                     for warning in model_warnings:

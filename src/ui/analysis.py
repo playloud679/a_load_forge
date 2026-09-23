@@ -722,7 +722,7 @@ def _plot_response(
     chart = _line_chart(
         data,
         "LF pressure estimate (dB)",
-        height=240,
+        height=580,
         legend=show_legend,
         x_domain=frequency_window,
         y_domain=y_domain,
@@ -754,7 +754,7 @@ def _plot_response(
         mil_chart = _line_chart(
             mil_data,
             "Max input power (W)",
-            height=240,
+            height=580,
             legend=show_legend,
             x_domain=frequency_window,
             y_domain=mil_y_domain,
@@ -833,7 +833,7 @@ def _plot_excursion(result: _acoustics.SimulationResult, xmax_mm: float) -> alt.
     chart = _line_chart(
         data,
         "Excursion (mm)",
-        height=285,
+        height=520,
         legend=False,
         color_overrides=(
             {"Excursion": active_color} if active_color else None
@@ -862,7 +862,7 @@ def _plot_impedance(result: _acoustics.SimulationResult) -> alt.Chart:
     chart = _line_chart(
         data,
         "Impedance (Ω)",
-        height=285,
+        height=520,
         legend=False,
         color_overrides=(
             {"Impedance": active_color} if active_color else None
@@ -887,7 +887,7 @@ def _plot_mil(result: _acoustics.SimulationResult) -> alt.Chart:
     chart = _line_chart(
         data,
         "Max input power (W)",
-        height=240,
+        height=520,
         legend=False,
         y_domain=mil_y_domain,
         y_field="mil_value",
@@ -1970,7 +1970,7 @@ def _plot_group_delay(result: _acoustics.SimulationResult, limit_ms: float = 0.0
     chart = _line_chart(
         data,
         "Group delay (ms)",
-        height=240,
+        height=520,
         legend=False,
         color_overrides=(
             {"Group delay": active_color} if active_color else None
@@ -2008,7 +2008,7 @@ def _plot_ports(
     else:
         y_title = "Air velocity (m/s)"
         tooltip_format = ".1f"
-    chart = _line_chart(data, y_title, height=320)
+    chart = _line_chart(data, y_title, height=520)
     if mode in {"air_velocity_mol", "air_velocity_sim"}:
         active_style = _styles._focused_port_flare_style()
         guideline_specs = [
@@ -2587,59 +2587,38 @@ def _render_response_tab(
     # --- 5. Render Captions and Pinned List ---
     if load_type == "Bass reflex":
         resonator = "passive radiator" if _state._reflex_uses_passive_radiator() else "vent"
-        st.caption(
-            "Bass-reflex total response is the vector sum of the exposed cone "
-            f"front radiation and the {resonator}. The model is low-frequency only; "
-            "it does not include baffle step, breakup, room gain or crossover behaviour."
+        lead_text = (
+            "Bass-reflex total response is the vector sum of exposed cone front radiation "
+            f"and {resonator}. Low-frequency model only."
         )
     elif load_type == "Bandpass 4th order":
-        st.caption(
-            "Fourth-order bandpass total response is the front vent only: the cone is "
-            "enclosed between a sealed rear chamber and a ported front chamber. The "
-            "cone trace shows internal motion and is not an additional radiating source."
-        )
+        lead_text = "Fourth-order bandpass total response is front vent only. Low-frequency model only."
     elif load_type == "Bandpass 6th order":
-        st.caption(
-            "Sixth-order bandpass total response is the polarity-correct vector difference "
-            "of both vents: the cone is enclosed between two ported chambers. The cone trace "
-            "shows internal motion and is not an additional radiating source."
-        )
+        lead_text = "Sixth-order bandpass total response is vector difference of both vents. Low-frequency model only."
     elif load_type == "Bandpass 8th order":
-        st.caption(
-            "Triple-chamber eighth-order bandpass total response radiates exclusively through Port 3 (common plenum chamber). "
-            "Chamber 1 and Chamber 2 ports exhaust internally into Chamber 3. "
-            "Driver excursion exhibits three distinct displacement notches corresponding to the chamber tunings."
-        )
+        lead_text = "Eighth-order bandpass radiates exclusively through Port 3 (common plenum). Low-frequency model only."
     elif load_type == "Sealed":
-        st.caption(
-            "Sealed-box response is the exposed cone front with the rear wave enclosed. "
-            "The model includes closed-box compliance and losses, but not room gain or baffle step."
-        )
+        lead_text = "Sealed-box response is exposed cone front with closed rear wave. Low-frequency model only."
     elif load_type == "Infinite baffle":
-        st.caption(
-            "Infinite-baffle response is the exposed cone front with perfect rear-wave isolation. "
-            "Finite-panel diffraction, rear leakage, room gain and baffle step are not included."
-        )
+        lead_text = "Infinite-baffle response is exposed cone front with ideal rear isolation. Low-frequency model only."
     else:
-        st.caption(
-            "DCCAV total response is the vector sum of the exposed cone front "
-            "radiation and the lower port. The load model is low-frequency only; "
-            "it is not an electrical crossover or breakup/directivity predictor."
-        )
+        lead_text = "DCCAV total response is vector sum of exposed cone front and lower port. Low-frequency model only."
 
+    extra_note = ""
     if comparison_mode:
-        st.caption(
-            f"Editable comparison: {len(comparison_tabs)}/"
-            f"{_constants._MAX_COMPARISON_DESIGNS} tabs · inactive designs use dashed "
-            "colored traces."
+        extra_note = (
+            f" · Comparison: {len(comparison_tabs)}/"
+            f"{_constants._MAX_COMPARISON_DESIGNS} tabs (dashed traces for inactive)."
         )
     elif pinned_state:
-        visible_pin_count = sum(
-            bool(pin.get("visible", True)) for pin in pinned_state)
-        st.caption(
-            f"Pinned responses: {len(pinned_state)}/{_constants._MAX_PINNED_RESPONSES} · "
-            f"{visible_pin_count} visible · dashed colored traces"
+        visible_pin_count = sum(bool(pin.get("visible", True)) for pin in pinned_state)
+        extra_note = (
+            f" · Pinned: {len(pinned_state)}/{_constants._MAX_PINNED_RESPONSES} "
+            f"({visible_pin_count} visible)."
         )
+    st.caption(f"{lead_text}{extra_note}")
+
+    if pinned_state:
         with st.expander("Manage pinned responses"):
             for index, pinned in enumerate(pinned_state):
                 is_visible = bool(pinned.get("visible", True))

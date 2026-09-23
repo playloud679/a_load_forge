@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.18.31 (2026-09-24)
+
+- **Proprietary catalog, large format plot, compact Box Design layout and English localization**:
+  - Strictly restricted the active preset catalog and search engine to the 9,915 certified drivers in the proprietary library.
+  - Substantially enlarged the frequency response and maximum input power (MIL) chart to 580 px height (+140%), and increased excursion, impedance, ports velocity and group delay plots to 520 px for clear acoustic inspection.
+  - Squeezed and compacted Box Design whitespace: streamlined tab-to-chart spacing, tightened plot controls and zoom slider padding, consolidated captions, and compacted performance scorecard metrics.
+  - Complete English localization: translated all billing modals, credit recharge packs, quota callouts, and search brief cards to clean, professional English.
+  - Cleaned UI visuals: removed all AI-style emojis and enhanced titanium/emerald industrial engineering controls and badges.
+
 ## 0.18.30 (2026-09-23)
 
 - **Layout primitives, load type grid and fast test runner**:

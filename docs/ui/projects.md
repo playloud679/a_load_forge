@@ -30,7 +30,7 @@
   `_render_explore_projects_directory`, `_render_community_sidebar`,
   `_render_public_project_sidebar`, `_fork_project_to_sandbox`,
   `_toggle_community_project_like`, `_render_hud_explore_community_button`.
-- Account/billing UI: `_render_main_account_header` (consolidated Global Application Bar with primary navigation, project rename, persistence indicator, visibility popover, and compact account popover/expander containing billing and admin tools),
+- Account/billing UI: `_render_main_account_header` (consolidated Global Application Bar with primary navigation, project rename, persistence indicator, visibility popover, prominent WOW-effect Upgrade / subscription CTA button, and compact account popover containing billing and admin tools),
   `_render_authenticated_account_controls`, `_open_billing_modal`
   (`@st.dialog`), `_render_credits_purchase_popover`,
   `_render_billing_action_button`, `_render_user_management`.

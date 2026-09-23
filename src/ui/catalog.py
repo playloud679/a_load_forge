@@ -188,9 +188,6 @@ def _render_catalog_maintenance() -> None:
     )
     catalog_paths = {
         "Proprietario": "catalog_proprietario.json",
-        "LSDB": "catalog_lsdb.json",
-        "VituixCAD": "catalog_vituixcad.json",
-        "Speaker Box Lite": "catalog_speakerboxlite.json",
     }
     c_back, c_title = st.columns([1.5, 8.5], vertical_alignment="center")
     with c_back:
@@ -651,16 +648,14 @@ def _driver_preset_source(name: str) -> str:
         return "Load Forge database"
 
 def _available_driver_preset_names() -> list[str]:
-    """Return driver preset names visible to the current user.
+    """Return driver preset names visible to the user.
 
-    Non-admin users are strictly restricted to the Load Forge proprietary catalog and Z Bench.
-    Third-party aggregate databases (LSDB, VituixCAD, Speaker Box Lite) are accessible
-    exclusively to administrators.
+    Strictly restricted to the Load Forge proprietary catalog and Z Bench.
+    Third-party aggregate databases (LSDB, VituixCAD, Speaker Box Lite) are
+    excluded from the application library.
     """
     _acoustics.check_dynamic_catalog_freshness()
     names = _acoustics.driver_preset_names()
-    if _maintenance_allowed():
-        return names
     return [
         name for name in names
         if _driver_preset_source(name) not in _constants._RESTRICTED_THIRD_PARTY_SOURCES
@@ -897,6 +892,11 @@ def _sync_filter_multiselect(
 
 def _render_finder_library_filters(all_preset_names: list[str]) -> None:
     """Render Finder library filters."""
+    st.markdown(
+        f'<div style="font-size:0.75rem; font-weight:700; color:#34d399; letter-spacing:0.04em; margin-bottom:0.25rem;">'
+        f'PROPRIETARY CATALOG: {len(all_preset_names):,} CERTIFIED DRIVERS</div>',
+        unsafe_allow_html=True,
+    )
     # Bottom alignment keeps the icon button on the same baseline as the
     # labelled input without a hardcoded spacer; CSS fixes its square size.
     with st.container(key="search_row_finder"):
@@ -909,7 +909,7 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
             )
         with col_refresh:
             if st.button(
-                "🔄",
+                "Sync",
                 key="refresh_presets_btn_finder",
                 help="Refresh driver library from cloud catalog & Z-Bench",
             ):
@@ -917,11 +917,10 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
                 _acoustics.check_dynamic_catalog_freshness(force=True)
                 st.rerun()
     is_admin = _maintenance_allowed()
-    provenance_options = (
-        list(_constants._PRESET_SOURCE_FILTERS)
-        if is_admin
-        else [opt for opt in _constants._PRESET_SOURCE_FILTERS if opt not in _constants._RESTRICTED_THIRD_PARTY_SOURCES]
-    )
+    provenance_options = [
+        opt for opt in _constants._PRESET_SOURCE_FILTERS
+        if opt not in _constants._RESTRICTED_THIRD_PARTY_SOURCES
+    ]
     filter_options = (
         ("preset_source_filter", "Provenance", provenance_options),
         (
@@ -1052,7 +1051,7 @@ def _filter_driver_preset_names(
         pinned_valid = [
             p for p in pinned
             if p in names
-            and (is_admin or _driver_preset_source(p) not in _constants._RESTRICTED_THIRD_PARTY_SOURCES)
+            and _driver_preset_source(p) not in _constants._RESTRICTED_THIRD_PARTY_SOURCES
         ]
     else:
         pinned_set = set()
@@ -1065,7 +1064,7 @@ def _filter_driver_preset_names(
         source_values or family_values or size_values or class_values or query
         or max_price is not None or max_mms_g is not None or max_le_mh is not None
     ):
-        base_names = [name for name in names if _driver_preset_source(name) not in _constants._RESTRICTED_THIRD_PARTY_SOURCES] if not is_admin else list(names)
+        base_names = [name for name in names if _driver_preset_source(name) not in _constants._RESTRICTED_THIRD_PARTY_SOURCES]
         if pinned_valid:
             result = list(pinned_valid) + [name for name in base_names if name not in pinned_set]
             if selected and selected != "Custom" and selected in names and selected not in result:
@@ -1924,9 +1923,10 @@ def _render_passive_radiator_library() -> None:
 
 def _render_driver_library(filtered_preset_names: list[str]) -> None:
     """Render every filtered driver in a scrollable, selectable library."""
+    total_drivers = len(_available_driver_preset_names())
     cat_mode = st.radio(
         "Library Catalog",
-        ["Loudspeaker Drivers", f"Passive Radiators ({len(_acoustics.passive_radiator_preset_names())})"],
+        [f"Loudspeaker Drivers ({total_drivers:,})", f"Passive Radiators ({len(_acoustics.passive_radiator_preset_names())})"],
         horizontal=True,
         key="finder_library_catalog_tab",
         label_visibility="collapsed",
@@ -1952,10 +1952,6 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         )
         return
 
-    if len(shown_names) < len(filtered_preset_names):
-        pool_note = f"{len(filtered_preset_names):,} drivers · first {len(shown_names)} shown"
-    else:
-        pool_note = f"{len(filtered_preset_names):,} drivers"
     price_currency = str(st.session_state.get("preset_price_currency", "EUR"))
     rates, rates_date = _current_exchange_rates()
     library_df = _driver_library_frame(
@@ -1964,8 +1960,18 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         tuple(sorted(rates.items())),
         _presets._CATALOG_CACHE_REVISION,
     )
-    price_note = f" · {price_currency}" if price_currency else ""
-    st.caption(f"{pool_note}{price_note} · Select drivers to open or compare in Box Design.")
+    st.markdown(
+        f"""<div style="display:flex; justify-content:space-between; align-items:center; background:rgba(15,23,42,0.65); border:1px solid rgba(51,65,85,0.7); border-radius:6px; padding:0.45rem 0.75rem; margin-bottom:0.4rem;">
+            <div>
+                <span style="font-size:0.80rem; font-weight:800; color:#f8fafc; letter-spacing:0.04em;">PROPRIETARY CATALOG: <span style="color:#34d399;">{total_drivers:,} DRIVERS</span></span>
+                <span style="font-size:0.75rem; color:#94a3b8; margin-left:0.5rem;">({len(filtered_preset_names):,} matching filters{f' · first {len(shown_names)} in table' if len(shown_names) < len(filtered_preset_names) else ''})</span>
+            </div>
+            <div style="font-size:0.75rem; color:#94a3b8;">
+                Currency: <b style="color:#f8fafc;">{price_currency}</b>
+            </div>
+        </div>""",
+        unsafe_allow_html=True,
+    )
     with st.container(height=320, border=False, key="finder_library_viewport"):
         table_state = st.dataframe(
             library_df,

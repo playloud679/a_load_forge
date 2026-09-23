@@ -1229,6 +1229,205 @@ GLOBAL_CSS = """
             min-height: 240px !important;
         }
     }
+
+    /* =========================================================================
+       WOW-EFFECT Subscription & Upgrade CTA Buttons (Urgency & FOMO)
+       ========================================================================= */
+    @keyframes lf-wow-grad {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    @keyframes lf-wow-glow {
+        0% {
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.45), 0 2px 6px rgba(0, 0, 0, 0.4);
+            border-color: rgba(52, 211, 153, 0.6);
+        }
+        50% {
+            box-shadow: 0 0 24px rgba(16, 185, 129, 0.75), 0 0 35px rgba(245, 158, 11, 0.35), 0 4px 12px rgba(0, 0, 0, 0.5);
+            border-color: #6ee7b7;
+        }
+        100% {
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.50), 0 2px 6px rgba(0, 0, 0, 0.4);
+            border-color: rgba(52, 211, 153, 0.6);
+        }
+    }
+    @keyframes lf-sheen-sweep {
+        0% { transform: translateX(-160%) rotate(25deg); }
+        22%, 100% { transform: translateX(160%) rotate(25deg); }
+    }
+
+    .st-key-header_upgrade_btn div[data-testid="stButton"] > button,
+    .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button,
+    .st-key-bm_upgrade_callout div[data-testid="stButton"] > button,
+    div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a,
+    div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a,
+    .st-key-modal_pro_demo_btn div[data-testid="stButton"] > button,
+    .st-key-modal_hobby_demo_btn div[data-testid="stButton"] > button {
+        background: linear-gradient(135deg, #065f46 0%, #059669 35%, #10b981 70%, #047857 100%) !important;
+        background-size: 200% 200% !important;
+        animation: lf-wow-grad 6s ease infinite, lf-wow-glow 2.5s ease-in-out infinite alternate !important;
+        border: 1px solid rgba(110, 231, 183, 0.6) !important;
+        color: #ffffff !important;
+        font-weight: 800 !important;
+        font-size: 0.88rem !important;
+        letter-spacing: 0.05em !important;
+        text-transform: uppercase !important;
+        min-height: 2.85rem !important;
+        padding: 0.55rem 1.0rem !important;
+        border-radius: 6px !important;
+        position: relative !important;
+        overflow: hidden !important;
+        box-shadow: 0 0 16px rgba(249, 115, 22, 0.65), 0 2px 8px rgba(0, 0, 0, 0.45) !important;
+        transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+
+    .st-key-header_upgrade_btn div[data-testid="stButton"] > button *,
+    .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button *,
+    .st-key-bm_upgrade_callout div[data-testid="stButton"] > button *,
+    div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a *,
+    div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a *,
+    .st-key-modal_pro_demo_btn div[data-testid="stButton"] > button *,
+    .st-key-modal_hobby_demo_btn div[data-testid="stButton"] > button * {
+        color: #ffffff !important;
+        font-weight: 800 !important;
+        font-size: 0.90rem !important;
+        letter-spacing: 0.04em !important;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7) !important;
+    }
+
+    .st-key-header_upgrade_btn div[data-testid="stButton"] > button::after,
+    .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button::after,
+    .st-key-bm_upgrade_callout div[data-testid="stButton"] > button::after,
+    div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a::after,
+    div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a::after {
+        content: "" !important;
+        position: absolute !important;
+        top: -60% !important;
+        left: -60% !important;
+        width: 220% !important;
+        height: 220% !important;
+        background: linear-gradient(60deg, transparent 38%, rgba(255, 255, 255, 0.36) 50%, transparent 62%) !important;
+        transform: rotate(25deg) !important;
+        animation: lf-sheen-sweep 3.6s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+        pointer-events: none !important;
+    }
+
+    .st-key-header_upgrade_btn div[data-testid="stButton"] > button:hover,
+    .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button:hover,
+    .st-key-bm_upgrade_callout div[data-testid="stButton"] > button:hover,
+    div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a:hover,
+    div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a:hover {
+        transform: translateY(-2px) scale(1.04) !important;
+        box-shadow: 0 0 35px rgba(249, 115, 22, 0.95), 0 0 55px rgba(239, 68, 68, 0.75), 0 8px 22px rgba(0, 0, 0, 0.6) !important;
+        filter: brightness(1.18) !important;
+        border-color: #ffffff !important;
+    }
+
+    .st-key-header_upgrade_btn div[data-testid="stButton"] > button:active,
+    .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button:active,
+    .st-key-bm_upgrade_callout div[data-testid="stButton"] > button:active,
+    div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a:active,
+    div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a:active {
+        transform: translateY(0) scale(0.98) !important;
+    }
+
+    .st-key-bm_urgency_banner {
+        border-color: rgba(239, 68, 68, 0.45) !important;
+        background: linear-gradient(90deg, rgba(239, 68, 68, 0.12) 0%, rgba(245, 158, 11, 0.08) 50%, rgba(16, 185, 129, 0.05) 100%) !important;
+        border-radius: 8px !important;
+        margin-block: 0.4rem 0.6rem !important;
+    }
+
+    /* Active plan badge in top bar */
+    .st-key-global_app_bar .st-key-header_credits_btn div[data-testid="stButton"] > button {
+        background: rgba(16, 185, 129, 0.12) !important;
+        border: 1px solid rgba(16, 185, 129, 0.35) !important;
+        color: #34d399 !important;
+        font-weight: 600 !important;
+        border-radius: 6px !important;
+        transition: all 0.15s ease !important;
+    }
+    .st-key-global_app_bar .st-key-header_credits_btn div[data-testid="stButton"] > button:hover {
+        background: rgba(16, 185, 129, 0.22) !important;
+        border-color: #10b981 !important;
+        box-shadow: 0 0 12px rgba(16, 185, 129, 0.35) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* =========================================================================
+       Ultra-Compact Box Design Layout & Spacing
+       ========================================================================= */
+    .st-key-design_analysis_tab {
+        margin-top: 0.10rem !important;
+        margin-bottom: 0.20rem !important;
+    }
+    .st-key-design_analysis_tab div[data-testid="stTabs"] div[role="tablist"] {
+        padding-bottom: 0 !important;
+        margin-bottom: 0.15rem !important;
+    }
+    .st-key-design_analysis_tab div[role="tabpanel"] > div[data-testid="stVerticalBlock"] {
+        gap: 0.20rem !important;
+    }
+    .st-key-design_analysis_tab [data-testid="stVegaLiteChart"],
+    .st-key-design_analysis_tab [data-testid="stAltairChart"] {
+        margin-top: 0 !important;
+        margin-bottom: 0.15rem !important;
+    }
+    .st-key-design_analysis_tab [data-testid="stSlider"] {
+        padding-top: 0 !important;
+        padding-bottom: 0 !important;
+        margin-top: -0.20rem !important;
+        margin-bottom: 0.05rem !important;
+    }
+    .st-key-design_analysis_tab [data-testid="stCaptionContainer"] p {
+        margin: 0 !important;
+        font-size: 0.73rem !important;
+        line-height: 1.25 !important;
+        color: #94a3b8 !important;
+    }
+    .st-key-design_analysis_tab [data-testid="stPills"],
+    .st-key-design_analysis_tab [data-testid="stToggle"] {
+        margin-bottom: 0 !important;
+    }
+
+    .st-key-active_load_summary {
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 6px !important;
+        background: #0b1118 !important;
+        padding: 0.30rem 0.50rem 0.25rem !important;
+        margin-top: 0.25rem !important;
+        margin-bottom: 0.25rem !important;
+    }
+    .st-key-active_load_summary [data-testid="stVerticalBlock"] {
+        gap: 0.10rem !important;
+    }
+    .st-key-active_load_summary [data-testid="stHorizontalBlock"] {
+        gap: 0.35rem !important;
+    }
+    .st-key-active_load_summary [data-testid="stMetric"] {
+        padding: 0.08rem 0.25rem !important;
+    }
+    .st-key-active_load_summary [data-testid="stMetricValue"] {
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+        color: #f8fafc !important;
+        line-height: 1.15 !important;
+    }
+    .st-key-active_load_summary [data-testid="stMetricLabel"] p {
+        font-size: 0.72rem !important;
+        font-weight: 600 !important;
+        color: #94a3b8 !important;
+        margin-bottom: 0 !important;
+        line-height: 1.1 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.03em !important;
+    }
+    .st-key-active_load_summary div[data-testid="stAlert"] {
+        padding: 0.30rem 0.60rem !important;
+        margin: 0.15rem 0 !important;
+        font-size: 0.80rem !important;
+    }
     </style>
     """
 

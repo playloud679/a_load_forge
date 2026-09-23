@@ -62,6 +62,10 @@ Everything that reads or edits the driver catalog and the preset library.
   data gap (⚠) in the library and ranked tables instead of being silently
   replaced by an Sd-derived size class. Saved Finder rows refresh the flag from
   the live catalog and persist it as `_size_sd_conflict`.
+- The application library, Box Design search and Bass Match candidate pool
+  exclusively expose the Load Forge proprietary database and Z Bench (~9,915 drivers).
+  Third-party aggregated datasets (LSDB, VituixCAD, Speaker Box Lite) are strictly
+  excluded from the active library across all users and administrators.
 - Tests patch price internals on **this** module
   (`ui.catalog._current_exchange_rates`), because module-qualified call sites
   resolve here.
