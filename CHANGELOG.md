@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.18.24 (2026-09-23)
+
+- **Fix — Streamlit Read-Only Widget State Compatibility (`ReadOnlyAttributeDictionary`)**:
+  - Resolved `TypeError: Widget state is read-only because modifying nested values has no effect on the app` in Bass Match candidate pool selection.
+  - Replaced nested mutation and `.setdefault("selection", ...)` on `finder_driver_library_table` with safe state extraction via `_table_selection_rows` and clean whole-dictionary assignment to `st.session_state["finder_driver_library_table"]`.
+  - Safely extract selected rows across dictionary, AttributeDictionary, and DataframeSelectionState widget representations while preserving pinned driver names across filter changes.
+  - Added regression tests verifying compatibility with Streamlit's `ReadOnlyAttributeDictionary`.
+- **Validation**: Python compilation clean; targeted candidate pool test passed; full test suite: **242 passed, 0 failed, 0 skipped**; `git diff --check` clean.
+
 ## 0.18.23 (2026-09-23)
 
 - **UI & Workspace Compaction (Compact Desktop Layout)**:

@@ -1125,24 +1125,42 @@ def _filter_driver_preset_names(
         result.insert(0, selected)
     return result
 
+def _table_selection_rows(table_state: Any) -> list[int] | None:
+    """Safely extract selected row indices from a Streamlit table state, whether dict or object."""
+    if table_state is None:
+        return None
+    rows = None
+    if isinstance(table_state, dict):
+        selection = table_state.get("selection")
+        if isinstance(selection, dict):
+            rows = selection.get("rows")
+        elif hasattr(selection, "rows"):
+            rows = getattr(selection, "rows", None)
+    elif hasattr(table_state, "selection"):
+        selection = getattr(table_state, "selection", None)
+        if isinstance(selection, dict):
+            rows = selection.get("rows")
+        elif hasattr(selection, "rows"):
+            rows = getattr(selection, "rows", None)
+    if rows is None or not isinstance(rows, (list, tuple)):
+        return None
+    return [int(r) for r in rows if isinstance(r, (int, np.integer))]
+
 def _sync_pinned_from_library_table(all_preset_names: list[str] | None = None) -> list[str]:
     """Sync pinned driver names from the last displayed table selection."""
     table_state = st.session_state.get("finder_driver_library_table")
     last_shown = st.session_state.get("_finder_last_shown_names")
     if last_shown is None and all_preset_names is not None:
         last_shown = all_preset_names
-    if not isinstance(table_state, dict) or not isinstance(last_shown, (list, tuple)):
+    if not isinstance(last_shown, (list, tuple)):
         return list(st.session_state.get("finder_pinned_driver_names", []))
-    selection = table_state.get("selection")
-    if not isinstance(selection, dict):
-        return list(st.session_state.get("finder_pinned_driver_names", []))
-    rows = selection.get("rows")
+    rows = _table_selection_rows(table_state)
     if rows is None:
         return list(st.session_state.get("finder_pinned_driver_names", []))
     current_pinned = [
         str(last_shown[i])
         for i in rows
-        if isinstance(i, int) and 0 <= i < len(last_shown)
+        if 0 <= i < len(last_shown)
     ]
     st.session_state["finder_pinned_driver_names"] = current_pinned
     return current_pinned
@@ -1150,26 +1168,23 @@ def _sync_pinned_from_library_table(all_preset_names: list[str] | None = None) -
 def _sync_finder_library_selection(filtered_preset_names: list[str]) -> None:
     """Ensure table row selection points to the pinned drivers at the head of the candidate pool."""
     pinned = st.session_state.get("finder_pinned_driver_names", [])
-    table_state = st.session_state.setdefault("finder_driver_library_table", {})
-    if not isinstance(table_state, dict):
-        return
     shown_count = min(len(filtered_preset_names), _constants._LIBRARY_TABLE_MAX_ROWS)
     pinned_count = min(len(pinned), shown_count)
-    selection = table_state.setdefault("selection", {})
-    if not isinstance(selection, dict):
-        selection = {}
-        table_state["selection"] = selection
-    selection["rows"] = list(range(pinned_count))
-    st.session_state["finder_driver_library_table"] = table_state
+    desired_rows = list(range(pinned_count))
+    table_state = st.session_state.get("finder_driver_library_table")
+    current_rows = _table_selection_rows(table_state)
+    if current_rows is None or current_rows != desired_rows:
+        st.session_state["finder_driver_library_table"] = {
+            "selection": {"rows": desired_rows, "columns": [], "cells": []}
+        }
 
 def _clear_library_selection() -> None:
     """Clear all pinned drivers and table selection."""
     st.session_state["finder_pinned_driver_names"] = []
     st.session_state["_finder_last_shown_names"] = None
-    table_state = st.session_state.get("finder_driver_library_table")
-    if isinstance(table_state, dict):
-        table_state["selection"] = {"rows": [], "columns": [], "cells": []}
-        st.session_state["finder_driver_library_table"] = table_state
+    st.session_state["finder_driver_library_table"] = {
+        "selection": {"rows": [], "columns": [], "cells": []}
+    }
 
 def _driver_preset_class(name: str) -> str:
     # functools.cache would restart cold on every Streamlit rerun (this whole
@@ -1667,13 +1682,11 @@ def _selected_library_preset_names(
         return [p for p in pinned if p in filtered_preset_names]
     shown_names = filtered_preset_names[:_constants._LIBRARY_TABLE_MAX_ROWS]
     table_state = st.session_state.get("finder_driver_library_table")
-    if not isinstance(table_state, dict):
-        return []
-    selected_rows = table_state.get("selection", {}).get("rows", [])
+    selected_rows = _table_selection_rows(table_state)
     return [
         shown_names[index]
         for index in selected_rows
-        if isinstance(index, int) and 0 <= index < len(shown_names)
+        if 0 <= index < len(shown_names)
     ]
 
 def _finder_filter_summary(
@@ -1887,7 +1900,7 @@ def _render_passive_radiator_library() -> None:
                 "URL": st.column_config.LinkColumn("Product Link"),
             },
         )
-    selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
+    selected_rows = _table_selection_rows(table_state) or []
     if not selected_rows:
         with st.container(key="emerald_info_pr_library_selection"):
             st.info("Select a passive radiator row to apply it to Box Design.")
@@ -1977,10 +1990,10 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
     # Remember the displayed driver names so future row selections map to the exact presets shown
     st.session_state["_finder_last_shown_names"] = list(shown_names)
 
-    selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
+    selected_rows = _table_selection_rows(table_state) or []
     selected_indices = [
-        int(r) for r in selected_rows
-        if isinstance(r, (int, np.integer)) and 0 <= int(r) < len(library_df)
+        r for r in selected_rows
+        if 0 <= r < len(library_df)
     ]
     selected_names = [str(library_df.iloc[i]["Driver"]) for i in selected_indices]
 

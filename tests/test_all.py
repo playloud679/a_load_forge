@@ -12902,6 +12902,16 @@ def _check_ui_candidate_pool_open_pinning_and_multisim():
     assert at_multi.session_state["workspace_mode"] == "Box Design"
     assert len(at_multi.session_state["design_comparison_tabs"]) == 2
 
+    # 5. Read-only widget state proxy compatibility (Streamlit ReadOnlyAttributeDictionary)
+    from streamlit.util import ReadOnlyAttributeDictionary
+    at_ro = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
+    at_ro.session_state["workspace_mode"] = "Bass Match"
+    at_ro.session_state["finder_driver_library_table"] = ReadOnlyAttributeDictionary({
+        "selection": ReadOnlyAttributeDictionary({"rows": [0], "columns": [], "cells": []})
+    })
+    at_ro.run()
+    assert not at_ro.exception, at_ro.exception
+
 
 test(
     "Bass Match candidate pool starts open, keeps complete simple filters, pins drivers across filters, and simulates candidates in Box Design",

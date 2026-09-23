@@ -21,7 +21,8 @@ Everything that reads or edits the driver catalog and the preset library.
 - Library UI and filters: `_render_finder_library_filters` (complete in both Simple
   and Advanced modes: Provenance, Manufacturer, Size, Class, Price),
   `_filter_driver_preset_names` (supports `pinned` drivers preserved at the top of the pool),
-  `_sync_pinned_from_library_table`, `_sync_finder_library_selection`, `_clear_library_selection`,
+  `_table_selection_rows`, `_sync_pinned_from_library_table`,
+  `_sync_finder_library_selection`, `_clear_library_selection`,
   `_render_driver_library` (supports single and multi-driver Box Design simulation actions),
   `_render_driver_mechanical_drawing`, `_passive_radiator_library_frame`,
   `_render_passive_radiator_library`, `_finder_filter_summary`,
@@ -44,6 +45,11 @@ Everything that reads or edits the driver catalog and the preset library.
   count, currency and selection hint share one caption above the table.
   Currency and price-filter enablement share a row. The catalog radio group
   hides its redundant label; selection guidance below the table is one caption.
+
+- Programmatic table row selection in `st.session_state["finder_driver_library_table"]`
+  always assigns a new dictionary (`{"selection": {"rows": ...}}`) instead of
+  mutating nested attributes or calling `.setdefault("selection", ...)`, remaining
+  fully compatible with Streamlit's read-only widget state proxies (`ReadOnlyAttributeDictionary`).
 
 - The UI never mutates the source catalog implicitly: only the explicit admin
   action writes, and only through `presets`/`tools` merge helpers.
