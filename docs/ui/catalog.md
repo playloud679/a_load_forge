@@ -45,6 +45,9 @@ Everything that reads or edits the driver catalog and the preset library.
   count, currency and selection hint share one caption above the table.
   Currency and price-filter enablement share a row. The catalog radio group
   hides its redundant label; selection guidance below the table is one caption.
+- The Search preset row bottom-aligns its 🔄 refresh icon button with the input
+  (`st.columns([5, 1], vertical_alignment="bottom")`); the button takes its
+  square size from the shared data-entry control CSS, not a fixed spacer.
 
 - Programmatic table row selection in `st.session_state["finder_driver_library_table"]`
   always assigns a new dictionary (`{"selection": {"rows": ...}}`) instead of

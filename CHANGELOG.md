@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.18.28 (2026-09-23)
+
+- **Data-entry spacing and button consistency**: introduced one shared control
+  token block (`--lf-control-bg`, `--lf-control-border`, `--lf-control-radius`,
+  `--lf-control-height`, `--lf-stepper-width`, `--lf-stepper-icon`) in
+  `GLOBAL_CSS` so number inputs, text inputs, selectboxes and multiselects all
+  render the same charcoal surface, height and radius in the sidebar and the
+  main workbench.
+- **Uniform number steppers**: replaced the two competing `stNumberInput`
+  button declarations with a single global rule. The compact sidebar width was
+  silently outranked by a higher-specificity `section[…]` rule; steppers are now
+  a consistent 2rem square with 0.9rem glyphs everywhere (verified 32px in the
+  live DOM).
+- **Aligned refresh button**: the Bass Match and Box Design Search preset rows
+  now use `st.columns([5, 1], vertical_alignment="bottom")` and drop the
+  hardcoded `height: 28px` spacer plus `use_container_width` stretch. The 🔄 icon
+  renders as a square button at the shared control height and bottom-aligns with
+  the input (verified 38.4px square, tops aligned in the live DOM).
+- Synchronized `docs/ui/styles.md`, `docs/ui/catalog.md` and `docs/ui/app.md`.
+- **Validation**: Python compilation and Streamlit startup AppTest passed;
+  fresh full active suite: **242 passed, 0 failed, 0 skipped**; live DOM checks
+  confirmed 32px uniform steppers, a single `#141b27` control surface and a
+  38.4px square refresh button aligned with the Search preset input;
+  `git diff --check` clean.
+
 ## 0.18.27 (2026-09-23)
 
 - **Responsive desktop sidebar, enlarged brand logo & authentic workspace tabs**:

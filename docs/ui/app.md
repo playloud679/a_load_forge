@@ -65,7 +65,10 @@ Existing saved search parameters remain editable without applying a scenario.
 Simple mode places maximum volume and optimization goal on one row, followed
 by the two-column library filters; the duplicate sidebar summary is omitted.
 Box Design lays out its six primary T/S inputs in three columns and two rows
-(Fs/Qts, Vas/Qms, Re/Le), keeping every core field directly editable.
+(Fs/Qts, Vas/Qms, Re/Le), keeping every core field directly editable. Its
+Search preset row uses the same bottom-aligned `st.columns([5, 1],
+vertical_alignment="bottom")` refresh-icon pattern as the Finder library
+filters, so the icon button sits square against the input without a spacer.
 Read-only manufacturer and part-number identity is a single caption instead
 of two disabled inputs; the stored identity keys remain available.
 Bass Match candidate pool starts expanded by default, preserves pinned driver selections across filter modifications, and supports direct simulation of single drivers or multi-driver comparisons in Box Design without requiring a search run.

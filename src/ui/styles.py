@@ -26,24 +26,51 @@ GLOBAL_CSS = """
         --lf-text-main: #f3f4f6;
         --lf-text-muted: rgba(255, 255, 255, 0.55);
         --lf-text-dim: rgba(255, 255, 255, 0.38);
+        /* Data-entry control system: one shared surface, height, radius and
+           stepper geometry for number inputs, text inputs, selectboxes and
+           multiselects in both the sidebar and the main workbench. */
+        --lf-control-bg: #141b27;
+        --lf-control-bg-hover: #1a2230;
+        --lf-control-border: rgba(255, 255, 255, 0.18);
+        --lf-control-border-hover: rgba(255, 255, 255, 0.32);
+        --lf-control-radius: 6px;
+        --lf-control-height: 2.4rem;
+        --lf-stepper-width: 2rem;
+        --lf-stepper-bg: #1e2638;
+        --lf-stepper-icon: 0.9rem;
         --primary-color: #10b981 !important;
     }
     /* Distinct dark charcoal contrast for form & data entry controls */
     div[data-baseweb="input"],
-    div[data-baseweb="select"] > div,
     div[data-baseweb="base-input"],
     .stNumberInput input,
     .stTextInput input,
-    .stSelectbox div[data-baseweb="select"],
     [data-testid="stNumberInput"] div[data-baseweb="input"],
     [data-testid="stTextInput"] div[data-baseweb="input"] {
-        background-color: #151a22 !important;
-        border: 1px solid rgba(255, 255, 255, 0.18) !important;
-        border-radius: 6px !important;
+        background-color: var(--lf-control-bg) !important;
+        border: 1px solid var(--lf-control-border) !important;
+        border-radius: var(--lf-control-radius) !important;
+        color: #f3f4f6 !important;
+    }
+    /* Select and multiselect share exactly the same surface as the inputs. */
+    [data-testid="stSelectbox"] div[data-baseweb="select"],
+    [data-testid="stMultiSelect"] div[data-baseweb="select"] {
+        background-color: transparent !important;
+        border: none !important;
+    }
+    [data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+    [data-testid="stMultiSelect"] div[data-baseweb="select"] > div,
+    div[data-baseweb="select"] > div {
+        background-color: var(--lf-control-bg) !important;
+        border: 1px solid var(--lf-control-border) !important;
+        border-radius: var(--lf-control-radius) !important;
+        min-height: var(--lf-control-height) !important;
         color: #f3f4f6 !important;
     }
     div[data-baseweb="input"]:focus-within,
-    div[data-baseweb="select"]:focus-within {
+    div[data-baseweb="select"]:focus-within,
+    div[data-baseweb="select"]:focus-within > div,
+    div[data-baseweb="select"] > div:focus-within {
         border-color: #10b981 !important;
         box-shadow: 0 0 0 1px #10b981 !important;
     }
@@ -229,19 +256,20 @@ GLOBAL_CSS = """
         font-size: 0.88rem !important;
         color: rgba(255,255,255,0.85) !important;
     }
-    section[data-testid="stSidebar"] [data-testid="stNumberInput"]
-    div[data-baseweb="input"] {
-        border-radius: .4rem;
-        min-height: 2.35rem;
+    /* Number inputs: one shared field + stepper geometry everywhere.  A single
+       global rule replaces the previous competing sidebar/main declarations so
+       the field height, radius and +/- button width can no longer diverge. */
+    [data-testid="stNumberInput"] div[data-baseweb="input"] {
+        border-radius: var(--lf-control-radius) !important;
+        min-height: var(--lf-control-height) !important;
         overflow: hidden;
-        border: 1px solid rgba(255, 255, 255, 0.20) !important;
-        background-color: #141b27 !important;
+        border: 1px solid var(--lf-control-border) !important;
+        background-color: var(--lf-control-bg) !important;
     }
-    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button,
     [data-testid="stNumberInput"] button {
         align-items: center !important;
         align-self: stretch !important;
-        background: #1e2638 !important;
+        background: var(--lf-stepper-bg) !important;
         border-left: 1px solid rgba(255,255,255,.16) !important;
         border-radius: 0 !important;
         color: #e2e8f0 !important;
@@ -249,19 +277,51 @@ GLOBAL_CSS = """
         height: auto !important;
         justify-content: center !important;
         margin: 0 !important;
-        min-width: 2.2rem !important;
+        min-width: var(--lf-stepper-width) !important;
+        width: var(--lf-stepper-width) !important;
         padding: 0 !important;
         transition: background-color .15s ease, color .15s ease;
     }
-    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button:hover:not(:disabled),
     [data-testid="stNumberInput"] button:hover:not(:disabled) {
         background: rgba(16,185,129,.25) !important;
         color: #10b981 !important;
     }
-    section[data-testid="stSidebar"] [data-testid="stNumberInput"] button svg,
     [data-testid="stNumberInput"] button svg {
-        height: 1.0rem !important;
-        width: 1.0rem !important;
+        height: var(--lf-stepper-icon) !important;
+        width: var(--lf-stepper-icon) !important;
+    }
+    /* Refresh-library icon buttons mirror the field height and radius so the
+       data-entry row reads as one aligned control strip. */
+    .st-key-refresh_presets_btn_finder div[data-testid="stButton"],
+    .st-key-refresh_presets_btn_box_design div[data-testid="stButton"] {
+        display: flex !important;
+        justify-content: flex-end !important;
+    }
+    .st-key-refresh_presets_btn_finder div[data-testid="stButton"] button,
+    .st-key-refresh_presets_btn_box_design div[data-testid="stButton"] button {
+        width: var(--lf-control-height) !important;
+        min-width: var(--lf-control-height) !important;
+        height: var(--lf-control-height) !important;
+        min-height: var(--lf-control-height) !important;
+        padding: 0 !important;
+        border-radius: var(--lf-control-radius) !important;
+        background: var(--lf-control-bg) !important;
+        border: 1px solid var(--lf-control-border) !important;
+        color: #cbd5e1 !important;
+        line-height: 1 !important;
+        transition: background-color .15s ease, border-color .15s ease, color .15s ease !important;
+    }
+    .st-key-refresh_presets_btn_finder div[data-testid="stButton"] button:hover,
+    .st-key-refresh_presets_btn_box_design div[data-testid="stButton"] button:hover {
+        background: var(--lf-control-bg-hover) !important;
+        border-color: #10b981 !important;
+        color: #10b981 !important;
+    }
+    .st-key-refresh_presets_btn_finder div[data-testid="stButton"] button p,
+    .st-key-refresh_presets_btn_box_design div[data-testid="stButton"] button p {
+        font-size: 0.95rem !important;
+        line-height: 1 !important;
+        margin: 0 !important;
     }
     hr {
         margin-top: 0.25rem !important;
@@ -765,13 +825,13 @@ GLOBAL_CSS = """
 
     /* High-contrast Selectbox, Inputs & Dropdowns */
     div[data-baseweb="select"] > div {
-        border: 1px solid rgba(255, 255, 255, 0.20) !important;
-        background-color: #141b27 !important;
-        border-radius: 6px !important;
-        min-height: 2.4rem !important;
+        border: 1px solid var(--lf-control-border) !important;
+        background-color: var(--lf-control-bg) !important;
+        border-radius: var(--lf-control-radius) !important;
+        min-height: var(--lf-control-height) !important;
     }
     div[data-baseweb="select"] > div:hover {
-        border-color: rgba(255, 255, 255, 0.32) !important;
+        border-color: var(--lf-control-border-hover) !important;
     }
     div[data-baseweb="select"] > div:focus-within {
         border-color: #10b981 !important;
@@ -808,13 +868,13 @@ GLOBAL_CSS = """
 
     /* High-contrast Text & Number Inputs */
     div[data-baseweb="input"] {
-        border: 1px solid rgba(255, 255, 255, 0.20) !important;
-        background-color: #141b27 !important;
-        border-radius: 6px !important;
-        min-height: 2.4rem !important;
+        border: 1px solid var(--lf-control-border) !important;
+        background-color: var(--lf-control-bg) !important;
+        border-radius: var(--lf-control-radius) !important;
+        min-height: var(--lf-control-height) !important;
     }
     div[data-baseweb="input"]:hover {
-        border-color: rgba(255, 255, 255, 0.32) !important;
+        border-color: var(--lf-control-border-hover) !important;
     }
     div[data-baseweb="input"]:focus-within {
         border-color: #10b981 !important;
@@ -1088,14 +1148,10 @@ GLOBAL_CSS = """
     }
     [data-testid="stSidebar"] [data-baseweb="input"],
     [data-testid="stSidebar"] [data-baseweb="select"] > div {
-        min-height: 2.5rem !important;
-    }
-    [data-testid="stSidebar"] [data-testid="stNumberInput"] button {
-        min-width: 1.5rem !important;
-        width: 1.5rem !important;
+        min-height: var(--lf-control-height) !important;
     }
     [data-testid="stSidebar"] [data-testid="stNumberInput"] input {
-        padding-inline: 0.4rem !important;
+        padding-inline: 0.5rem !important;
     }
     [data-testid="stSidebarUserContent"] {
         padding-bottom: 1.5rem !important;

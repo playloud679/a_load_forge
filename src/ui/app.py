@@ -479,7 +479,10 @@ def main() -> None:
                 )
             all_preset_names = _catalog._available_driver_preset_names()
             with bd_tab1:
-                col_search, col_refresh = st.columns([5, 1])
+                # Bottom alignment keeps the icon button on the same baseline as
+                # the labelled input without a hardcoded spacer; CSS fixes its
+                # square size to the shared control height.
+                col_search, col_refresh = st.columns([5, 1], vertical_alignment="bottom")
                 with col_search:
                     st.text_input(
                         "Search preset",
@@ -487,12 +490,10 @@ def main() -> None:
                         placeholder="Manufacturer or part number",
                     )
                 with col_refresh:
-                    st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
                     if st.button(
                         "🔄",
                         key="refresh_presets_btn_box_design",
                         help="Refresh driver library from cloud catalog & Z-Bench",
-                        use_container_width=True,
                     ):
                         _acoustics.invalidate_preset_caches()
                         _acoustics.check_dynamic_catalog_freshness(force=True)

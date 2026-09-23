@@ -105,12 +105,35 @@ Removing that guard makes the top-row buttons visible but unclickable.
   (`#10b981`) exclusively for active `:focus-within` and primary call-to-actions.
 - Menu dropdown hover items use clean neutral highlighting (`rgba(255, 255, 255, 0.08)`) with emerald reserved for
   the currently active selection.
+
+### Data-entry control system
+
+One `:root` token block drives every data-entry surface so the sidebar and the
+main workbench can no longer drift apart:
+
+- `--lf-control-bg`, `--lf-control-border`, `--lf-control-radius` and
+  `--lf-control-height` are shared by `st.number_input`, `st.text_input`,
+  `st.selectbox` and `st.multiselect`; the select/multiselect control div is
+  repainted from the same token so all four surfaces match.
+- `--lf-stepper-width` and `--lf-stepper-icon` size the number-input `+`/`-`
+  buttons uniformly. A single global rule replaces the earlier competing
+  sidebar/main declarations: the compact sidebar width was silently outranked
+  by a higher-specificity `section[…]` rule, so it never applied.
+- `.st-key-refresh_presets_btn_finder` and
+  `.st-key-refresh_presets_btn_box_design` render the 🔄 library-refresh icon
+  as a square button at `--lf-control-height`, aligned with the adjacent Search
+  preset input. The rows use
+  `st.columns([5, 1], vertical_alignment="bottom")`; the previous hardcoded
+  28px spacer and `use_container_width` stretch are gone.
+
 ### Responsive spacing and legibility
 
 The workbench may scroll vertically: fitting every control into one screen is
-not a layout requirement. Sidebar blocks have 0.65rem gaps, 0.9rem labels and
-2.5rem minimum input heights; captions use a 1.4 line-height without negative
-bottom margins. Inputs and multi-selects retain intrinsic heights.
+not a layout requirement. Sidebar blocks have 0.65rem gaps, 0.9rem labels and a
+shared 2.4rem control height (`--lf-control-height`); captions use a 1.4
+line-height without negative bottom margins. Number-input steppers, text
+inputs, selectboxes and multi-selects share one charcoal surface and radius
+through the data-entry token block.
 
 Response controls wrap at a 10rem column minimum; trace pills occupy their own
 row. Summary metrics wrap at a 9rem column minimum and labels can wrap.
