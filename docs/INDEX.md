@@ -4,8 +4,9 @@
 
 La navigazione principale è **Projects | Bass Match | Box Design**. Le due
 viste tecniche condividono nome, salvataggio e visibilità del progetto.
-Un progetto senza nome usa **Untitled project** e viene salvato automaticamente
-nelle sessioni autenticate; in modalità locale compare **Session only**.
+Al riavvio si riprende il progetto cloud attivo più recente. Una bozza
+**Untitled project** intatta non viene salvata: l’autosalvataggio parte dopo
+le modifiche nelle sessioni autenticate; in locale compare **Session only**.
 La pubblicazione resta esplicita: le modifiche private non aggiornano la copia
 pubblica. **Update public version** pubblica le modifiche; **Private** revoca
 l'accesso pubblico conservando il lavoro privato. La pagina Projects conserva
@@ -37,28 +38,13 @@ in sync in the same change.
 | Module/File | Doc | Role |
 |---|---|---|
 | `ui_app.py` | [ui.md](ui.md) | Thin Streamlit entry point: path setup, `src/` hot-reload, global CSS, runtime globals, test-compatible re-exports, `ui.app.main()` |
-| `src/ui/*.py` | [ui.md](ui.md) + [ui/](ui/) | Dashboard package: runtime globals, constants, styles, state models, catalog, finder, optimizer, analysis, projects, account and the app body. Implements the killer-feature-first Bass Match brief and single run action, separate Run/Results pages with a compact selection-aware Box Design CTA above the results table, all usable ranked results without a display cap, a lazy collapsible candidate pool, compact 3+3 illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, compact multiselect library filters, progressively disclosed T/S controls, stateful lazy analysis/sidebar tabs, compact plot markers including labelled enclosure tuning frequencies, authenticated Firestore autosave with revision/conflict/Trash controls, and complete portable `.lfp` v2 Box Design/Bass Match backups. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
+| `src/ui/*.py` | [ui.md](ui.md) + [ui/](ui/) | Dashboard package: runtime globals, constants, styles, state models, catalog, finder, optimizer, analysis, projects, account and the app body. Implements the killer-feature-first Bass Match brief and single run action, separate Run/Results pages with a compact selection-aware Box Design CTA above the results table, all usable ranked results without a display cap, an initially expanded candidate pool with pinned selections, seven illustrated load cards, a Bass-reflex Ports submenu for vent/passive-radiator resonators, compact multiselect library filters, progressively disclosed T/S controls, stateful lazy analysis/sidebar tabs, compact plot markers including labelled enclosure tuning frequencies, authenticated Firestore autosave with revision/conflict/Trash controls, and complete portable `.lfp` v2 Box Design/Bass Match backups. Response-chart overlay layers must filter their data to the zoom window (or clip their marks): unclipped marks past the x-domain make Vega shrink the plot area inside the container |
 | `src/__init__.py` | [__init__.md](__init__.md) | Public package exports for acoustic-load helpers |
 | `src/acoustics.py` | [acoustics.md](acoustics.md) | Neutral public facade for every lumped and distributed acoustic load |
 | `src/dccav.py` | [dccav.md](dccav.md) | Legacy import compatibility and DCCAV-specific theory |
 | `src/engine.py` | [engine.md](engine.md) | Physics, alignment, simulation and optimization for every supported load |
 | `src/saas.py` | [saas.md](saas.md) | Optional OIDC identity normalization, tenant-safe plan entitlements and Firestore/in-memory project persistence |
 | `tests/test_all.py` | source only | Active regression runner for the acoustic-load models and Streamlit workflows |
-| `tools/crawl_thiele_small.py` | [crawl_thiele_small.md](crawl_thiele_small.md) | Robots-aware sitemap/seed crawler, T/S parser, unit normalizer, validator and safe database merger |
-| `tools/publish_reviewed_catalog_additions.py` | [publish-reviewed-catalog-additions.md](publish-reviewed-catalog-additions.md) | Explicitly reviewed, validation-gated append-only promotion of crawler records |
-| `tools/harvest_peerless_official.py` | [harvest-peerless-official.md](harvest-peerless-official.md) | Complete first-party Peerless/Tymphany API crawl into staging |
-| `tools/harvest_monacor_official.py` | [harvest-monacor-official.md](harvest-monacor-official.md) | First-party Monacor component crawl with per-product manufacturer verification |
-| `tools/harvest_sica_official.py` | [harvest-sica-official.md](harvest-sica-official.md) | Structured first-party SICA/Jensen Store API crawl with brand separation and T/S unit normalization |
-| `tools/harvest_faitalpro_official.py` | [harvest-faitalpro-official.md](harvest-faitalpro-official.md) | First-party FaitalPRO LF/coaxial/archive crawl preserving official impedance variants |
-| `tools/harvest_ciare_official.py` | [harvest-ciare-official.md](harvest-ciare-official.md) | First-party Ciare current/archive LF and coaxial crawl with impedance-aware identities |
-| `tools/harvest_fane_official.py` | [harvest-fane-official.md](harvest-fane-official.md) | First-party Fane current/archive crawl with ASP.NET postback pagination support |
-| `tools/build_official_hunt_radar.py` | [official-hunt-radar.md](official-hunt-radar.md) | Identity-only gap radar across every optional external library; never copies third-party T/S data |
-| `tools/crawl_driver_datasheets.py` | [crawl_driver_datasheets.md](crawl_driver_datasheets.md) | PDF discovery, SHA-256 archive, SQLite provenance index and alias-aware catalog merge |
-| `tools/harvest_toutlehautparleur.py` | [harvest_toutlehautparleur.md](harvest_toutlehautparleur.md) | Restartable Safari-assisted harvest of TLHP cone-speaker prices and availability |
-| `tools/run_catalog_completion_cycle.py` | [catalog-completion-cycle.md](catalog-completion-cycle.md) | Offline gap planning and restartable Xmax/Pe/Le/price completion cycles |
-| `tools/run_high_yield_optional_cycle.py` | [high-yield-optional-cycle.md](high-yield-optional-cycle.md) | Probe-gated source ranking that expands only domains with measured optional-field yield |
-| `tools/run_published_spec_batches.py` | [published-spec-batches.md](published-spec-batches.md) | Restartable atomic batches for completing one proven source domain |
-| `services/crawler_agent` | [crawler-agent-service.md](crawler-agent-service.md) | Separate policy-bounded Cloud Run Job that autonomously plans direct-site crawls, writes staging artifacts and requires explicit approval for immutable catalog releases |
 | `tools/import_vituixcad_database.py` | [import-vituixcad-database.md](import-vituixcad-database.md) | Validated, deduplicated import of the public VituixCAD online driver database into a separate optional tier |
 | `tools/import_heritage_drivers.py` | [import-heritage-drivers.md](import-heritage-drivers.md) | Traceable import of Altec Technical Letter 267B and official Pioneer/TAD heritage T/S tables |
 | `tools/import_speakerboxlite_database.py` | [import-speakerboxlite-database.md](import-speakerboxlite-database.md) | Physically validated import of the public Speaker Box Lite community database into a separate optional tier |
@@ -190,3 +176,36 @@ Catalog rows sharing a normalized brand/model/impedance identity collapse
 before simulation, preferring Load Forge provenance and then price. Successful
 load variants collapse again after ranking, so the table exposes one best
 design per physical driver. Empty result columns stay hidden.
+
+## Separate crawler workspace
+
+Crawler scripts and services are maintained in `../load_forge_crawler` relative
+to the repository root. Run its commands and tests there. The retained crawler
+guides below describe that workspace, not executable tools in this simulator.
+
+| Former local path | Retained guide | Role in crawler workspace |
+|---|---|---|
+| `tools/crawl_thiele_small.py` | [crawl_thiele_small.md](crawl_thiele_small.md) | Robots-aware sitemap/seed crawler, T/S parser, unit normalizer, validator and safe database merger |
+| `tools/publish_reviewed_catalog_additions.py` | [publish-reviewed-catalog-additions.md](publish-reviewed-catalog-additions.md) | Explicitly reviewed, validation-gated append-only promotion of crawler records |
+| `tools/harvest_peerless_official.py` | [harvest-peerless-official.md](harvest-peerless-official.md) | Complete first-party Peerless/Tymphany API crawl into staging |
+| `tools/harvest_monacor_official.py` | [harvest-monacor-official.md](harvest-monacor-official.md) | First-party Monacor component crawl with per-product manufacturer verification |
+| `tools/harvest_sica_official.py` | [harvest-sica-official.md](harvest-sica-official.md) | Structured first-party SICA/Jensen Store API crawl with brand separation and T/S unit normalization |
+| `tools/harvest_faitalpro_official.py` | [harvest-faitalpro-official.md](harvest-faitalpro-official.md) | First-party FaitalPRO LF/coaxial/archive crawl preserving official impedance variants |
+| `tools/harvest_ciare_official.py` | [harvest-ciare-official.md](harvest-ciare-official.md) | First-party Ciare current/archive LF and coaxial crawl with impedance-aware identities |
+| `tools/harvest_fane_official.py` | [harvest-fane-official.md](harvest-fane-official.md) | First-party Fane current/archive crawl with ASP.NET postback pagination support |
+| `tools/build_official_hunt_radar.py` | [official-hunt-radar.md](official-hunt-radar.md) | Identity-only gap radar across every optional external library; never copies third-party T/S data |
+| `tools/crawl_driver_datasheets.py` | [crawl_driver_datasheets.md](crawl_driver_datasheets.md) | PDF discovery, SHA-256 archive, SQLite provenance index and alias-aware catalog merge |
+| `tools/harvest_toutlehautparleur.py` | [harvest_toutlehautparleur.md](harvest_toutlehautparleur.md) | Restartable Safari-assisted harvest of TLHP cone-speaker prices and availability |
+| `tools/run_catalog_completion_cycle.py` | [catalog-completion-cycle.md](catalog-completion-cycle.md) | Offline gap planning and restartable Xmax/Pe/Le/price completion cycles |
+| `tools/run_high_yield_optional_cycle.py` | [high-yield-optional-cycle.md](high-yield-optional-cycle.md) | Probe-gated source ranking that expands only domains with measured optional-field yield |
+| `tools/run_published_spec_batches.py` | [published-spec-batches.md](published-spec-batches.md) | Restartable atomic batches for completing one proven source domain |
+
+## Additional module contracts
+
+- [`src/billing.py`](billing.md)
+- [`src/invites.py`](invites.md)
+- [`src/storage/__init__.py`](storage/__init__.md)
+- [`src/storage/_firestore_client.py`](storage/_firestore_client.md)
+- [`src/storage/catalog_runtime_store.py`](storage/catalog_runtime_store.md)
+- [`src/storage/catalog_staging_store.py`](storage/catalog_staging_store.md)
+- [`src/ui/__init__.py`](ui/__init__.md)

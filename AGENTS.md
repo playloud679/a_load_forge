@@ -15,7 +15,7 @@ relevant check:
 ```bash
 .venv/bin/python -m py_compile ui_app.py src/ui/*.py tests/test_all.py
 .venv/bin/python tests/test_all.py -m "acoustic-load smoke"   # or: make test-smoke
-.venv/bin/python tests/test_all.py --fast                     # or: make test-fast (140 unit/physics tests in ~10s)
+.venv/bin/python tests/test_all.py --fast                     # or: make test-fast
 ```
 
 For UI changes, also run a Streamlit AppTest:
@@ -29,7 +29,7 @@ Before every commit touching Python, run the full active suite fresh after the
 last edit:
 
 ```bash
-.venv/bin/python tests/test_all.py   # or: make test (224 tests)
+.venv/bin/python tests/test_all.py   # or: make test; report the actual pass count
 ```
 
 Commit only on 0 failures and record pass counts in `CHANGELOG.md`.
@@ -155,4 +155,3 @@ passive radiator, sealed, infinite baffle, bandpass and distributed waveguides
 as peer load families. Keep new work inside that simulation surface unless the
 user explicitly changes the product direction. Do not push unless explicitly
 requested.
-

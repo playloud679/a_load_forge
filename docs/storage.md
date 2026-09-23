@@ -34,7 +34,10 @@
 - Implements `CatalogRuntimeStore`, `FirestoreCatalogRuntimeStore`, `InMemoryCatalogRuntimeStore`.
 - Provides read-only query APIs for runtime application flows (`get_driver`, `search_drivers`, `list_drivers`).
 - Manages versioned catalog releases (`releases/{release_id}`) and active release pointers (`catalog_metadata/active_release`).
-- Supports atomic promotion and release rollback (`rollback_release`).
+- Promotion writes driver batches followed by an active release pointer; the
+  entire release is not atomic. `rollback_release` changes that pointer and
+  metadata, but does not restore historical driver documents. See
+  [storage/catalog_runtime_store.md](storage/catalog_runtime_store.md).
 
 ### `catalog_staging_store.py`
 - Implements `CatalogStagingStore`, `FirestoreCatalogStagingStore`, `InMemoryCatalogStagingStore`.

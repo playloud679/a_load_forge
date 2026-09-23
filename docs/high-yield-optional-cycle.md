@@ -1,5 +1,10 @@
 # High-yield optional-field cycle
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/run_high_yield_optional_cycle.py` replaces blind full-catalog retries
 with a measured source-level gate for published-only `Xmax`, `Pe` and `Le`.
 

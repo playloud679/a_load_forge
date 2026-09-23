@@ -56,3 +56,8 @@ single-panel experience. When Advanced mode is toggled, it expands into three de
 acoustic limit sliders, and engine-only topology notes. The bottom Advanced toggle is scoped exclusively to Box Design to avoid duplicate widget keys.
 Bass Match candidate pool starts expanded by default, preserves pinned driver selections across filter modifications, and supports direct simulation of single drivers or multi-driver comparisons in Box Design without requiring a search run.
 Existing public, shared, billing and admin links retain their handling.
+# Active-load summary
+
+The summary uses high-contrast metric values (1.22rem) and labels (0.86rem),
+with padding between metrics. Forge Score is described as a heuristic 0–100
+health indicator; ranking and comparison use physical metrics.

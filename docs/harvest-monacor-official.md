@@ -1,5 +1,10 @@
 # Monacor official catalog harvester
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/harvest_monacor_official.py` reads the public product catalog at
 `monacor.com` and enumerates the seven low-frequency, midrange, coaxial and
 full-range component categories. Pagination is resolved from each category's

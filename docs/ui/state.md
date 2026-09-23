@@ -14,6 +14,8 @@ Bridges `st.session_state` and the acoustic model objects.
 - State snapshots: `_snapshot_manual_box`/`_restore_manual_box`,
   `_snapshot_design_state`/`_restore_design_state`,
   `_preserve_design_state`, `_preserve_library_filters`.
+  Library preservation includes `finder_pinned_driver_names`, keeping selected
+  candidates pinned across filter edits and workspace reruns.
 - Box strategy: `_normalize_box_strategy`, `_set_box_strategy_state`,
   `_box_strategy_is_auto`, `_manual_box_keys_for_load_type`.
 - Load-type/workspace selectors: `_render_load_type_buttons`,

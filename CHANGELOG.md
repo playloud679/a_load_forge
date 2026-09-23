@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.18.21 (2026-09-23)
+
+- **Repository contracts**: added the seven missing per-module documents;
+  synchronized state pinning, save-status labels, active-load metrics, optimizer
+  credibility limits, startup behavior and the UI/module index. Historical
+  commits are unchanged; this reconciles the current tree.
+- **Hot reload**: measurements and billing now participate in source-change
+  reload, with billing following SaaS and measurement exports rebound by the
+  acoustic facade.
+- **Crawler separation**: removed Makefile commands pointing to absent crawler
+  scripts and the obsolete local crawler-registry test. Retained crawler guides
+  identify their separate workspace. `make test-catalog` remains the strict
+  local data gate; `make test-contracts` checks module documents, local command
+  paths and reload coverage/behavior, also included in the active suite.
+- **Storage documentation**: corrected the promotion/rollback description:
+  batches are not an atomic full release and pointer rollback does not restore
+  historical driver documents.
+- **Validation (2026-09-23)**: `.venv/bin/python tests/test_all.py`:
+  **242 passed, 0 failed, 0 skipped**; acoustic smoke: **14 passed**;
+  repository contracts: **3 passed**; billing unittest suite: **10 passed**;
+  storage boundary runner: **17 passed**. Streamlit startup AppTest, Python
+  compilation, version consistency (0.18.21) and `git diff --check` passed.
+- **Outstanding data gate**: `tests/test_catalog.py` fails on 11 duplicated
+  Eminence names. A read-only inspection also found 101 invalid/missing required
+  fields across 52 raw rows. Catalog records and validation thresholds were
+  preserved; source review belongs to the crawler workflow. See
+  `docs/catalog-consistency-audit.md`.
+
 ## 0.18.20 (2026-09-23)
 
 - **Bass Match — Candidate Pool Auto-Open, Complete Simple Mode Filters, Driver Pinning & Direct Simulation in Box Design**:

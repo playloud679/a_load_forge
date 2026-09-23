@@ -1,5 +1,21 @@
 # Catalog consistency audit
 
+`make test-catalog` is a strict local data gate: source names must be unique and
+all six required T/S fields must be positive finite values. It does not share
+the runtime loader's deduplication or incomplete-row filtering. A passing
+simulation suite therefore does not imply that this raw catalog gate passes.
+Crawler policy tests belong to the separate crawler workspace; the obsolete
+local `test_crawler_registry.py` entry point has been removed.
+
+## Contract alignment check, 2026-09-23
+
+The strict gate currently fails on duplicate names: 11 Eminence names each
+occur twice in the 10,761-row proprietary catalog. Their six core T/S values
+and official URLs match, but metadata and optional values differ. A separate
+read-only inspection also finds 101 invalid/missing required fields across
+52 rows. The records are retained for source review in the crawler workspace;
+the gate has not been relaxed and missing physical values have not been invented.
+
 Run `.venv/bin/python tools/audit_catalog_consistency.py` to inspect every row
 in the six local simulation catalog files. Output:
 `data/catalog_consistency_audit.json`, with catalog, row index, name, URL,

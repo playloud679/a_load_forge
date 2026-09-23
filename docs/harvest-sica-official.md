@@ -1,5 +1,10 @@
 # SICA/Jensen official catalog harvester
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/harvest_sica_official.py` reads SICA Loudspeakers' public official
 WooCommerce Store API. The API exposes the current SICA and Jensen products as
 structured records, including their product categories and published acoustic

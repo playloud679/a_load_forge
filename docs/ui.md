@@ -8,7 +8,7 @@ script with focused modules; behavior is unchanged.
 
 | Module | Doc | Role |
 |---|---|---|
-| `src/ui/__init__.py` | this file | Package marker; puts `src/` on `sys.path` |
+| `src/ui/__init__.py` | [ui/__init__.md](ui/__init__.md) | Package marker; puts `src/` on `sys.path` |
 | `src/ui/runtime.py` | [ui/runtime.md](ui/runtime.md) | `_VERSION`, SaaS settings, current user/account store, `logger` |
 | `src/ui/constants.py` | [ui/constants.md](ui/constants.md) | Assets, defaults, labels, catalog paths, version defaults |
 | `src/ui/styles.py` | [ui/styles.md](ui/styles.md) | Global CSS and load-type/workspace card styles |
@@ -30,6 +30,9 @@ script with focused modules; behavior is unchanged.
   `importlib.reload`.
 - `ui_app.py` reloads every `src/ui/*` module through `_reload_if_source_changed`
   before re-exporting names and calling `ui.app.main()`.
+- The backend reload sequence includes `measurements` before the acoustic
+  facade and `billing` after `saas`. Changes to parsers and payment helpers
+  become visible on the next rerun without restarting Streamlit.
 - `src/ui/__init__.py` inserts `src/` into `sys.path`, so modules can
   `import acoustics as _acoustics` even when imported outside `ui_app.py`.
 - Import cycles between modules are expected and safe because modules only
@@ -57,6 +60,10 @@ therefore updates both the browser title and visible version after a bump.
   not the `ui_app` re-export.
 - Source-text assertions use `_ui_source_bundle()` (thin `ui_app.py` plus all
   `src/ui/*.py`).
+- `tests/test_repository_contracts.py` checks matching module documents, local
+  Makefile paths, backend reload coverage and actual changed/unchanged module
+  behavior. These checks also run in the active suite; `make test-contracts`
+  runs them independently.
 
 ## Phase B bootstrap
 

@@ -1,5 +1,10 @@
 # Peerless official API harvester
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/harvest_peerless_official.py` reads the public product API used by the
 official Peerless/Tymphany driver application at `products-peerless.com`. It
 walks every listing page and then requests each `/api/driver/{id}` detail

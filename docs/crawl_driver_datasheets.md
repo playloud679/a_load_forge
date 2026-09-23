@@ -1,5 +1,10 @@
 # PDF-first driver datasheet library
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/crawl_driver_datasheets.py` builds the durable document layer behind the
 Load Forge driver catalog. Product pages are discovery sources; linked PDF
 datasheets are downloaded, hashed, archived, indexed and parsed.

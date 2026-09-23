@@ -1,5 +1,10 @@
 # Restartable published-spec batches
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/run_published_spec_batches.py` completes one known source domain through
 small, atomic calls to `refresh_manufacturer_optionals.py`. Each child batch
 writes the catalog, URL checkpoint and report before the next batch starts, so

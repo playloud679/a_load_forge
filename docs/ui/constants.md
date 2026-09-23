@@ -38,3 +38,7 @@ The primary workspace order is Bass Match, Box Design. `_STUDIO_WORKSPACE`
 only when there is no deep link and no resumable engineering workspace. The
 internal `Manage Projects` identifier remains compatible with saved sessions and
 callers; it is reached from the account header rather than the image-tab row.
+# Save-status compatibility
+
+Both `duplicate` and `duplicate_name` map to **Name already exists** in
+`_SAVE_STATUS_LABELS`, preserving messages from both project-save paths.

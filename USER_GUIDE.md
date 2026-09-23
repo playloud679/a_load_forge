@@ -77,7 +77,7 @@ The compact **Load type** cards switch between `Infinite baffle`, `Sealed`,
 `Bass reflex`, `Bandpass 4th order`, `Bandpass 6th order` and `DCCAV`.
 Each small diagram is itself clickable, its name is overlaid on
 the image and the active load has a red outline plus a check indicator. The
-cards use a compact 3+3 grid and remain keyboard-focusable. In the Finder the
+cards use a seven-card grid and remain keyboard-focusable. In the Finder the
 same cards toggle multiple loads for comparison. Search, source, brand, size,
 class and price filters narrow the driver library in both workspaces.
 Transmission line, MLTL, quarter-wave, back-loaded horn and tapped horn are

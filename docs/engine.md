@@ -276,3 +276,10 @@ same ordered runners-up.
 
 Cloud Run Finder optimization uses an adaptive 80-point frequency grid around
 the loaded resonance; local runs retain the original 160-point grid.
+# Optimizer revision and sixth-order credibility boundary
+
+`OPTIMIZER_ENGINE_REVISION = 9` invalidates stale optimizer results. DCCAV and
+sixth-order bandpass scoring/sanity checks use `0.45 * sealed_fc` for the
+low-frequency credibility boundary, allowing physically checked deep
+alignments without the former 0.50 cutoff. The deep DCCAV maximum-extension
+regression in `tests/test_all.py` protects this behavior.

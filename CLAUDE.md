@@ -36,7 +36,7 @@ Do not claim a test passed unless it was actually run.
 Load Forge is a Streamlit acoustic-load simulator.
 
 ```text
-ui_app.py -> src/acoustics.py (facade) -> src/engine.py + src/presets.py + src/pricing.py
+ui_app.py -> src/ui/*.py -> src/acoustics.py (facade) -> src/engine.py + src/presets.py + src/pricing.py
           -> docs/acoustics.md (+ docs/<module>.md) -> tests/test_all.py
 ```
 
@@ -46,9 +46,9 @@ The current simulator supports DCCAV / double asymmetric reflex:
 driver -> upper volume || upper port -> lower volume || lower port
 ```
 
-plus fourth-order bandpass (sealed rear chamber + vented front chamber),
-conventional bass reflex, acoustic suspension / sealed box and ideal infinite
-baffle.
+plus fourth-, sixth- and eighth-order bandpass, conventional bass reflex,
+passive radiator, acoustic suspension / sealed box, ideal infinite baffle,
+transmission line, MLTL, quarter-wave, back-loaded horn and tapped horn.
 
 Inputs are driver T/S parameters plus chamber/tuning/loss controls.  Outputs are
 response plots, metrics and CSV export.
@@ -66,7 +66,8 @@ make test
 
 | Module/File | Role |
 |---|---|
-| `ui_app.py` | Streamlit single-page dashboard |
+| `ui_app.py` | Thin Streamlit bootstrap, reloads and test-compatible re-exports |
+| `src/ui/*.py` | Dashboard implementation; see `docs/ui.md` |
 | `src/acoustics.py` | Neutral public facade re-exporting every acoustic-load API |
 | `src/dccav.py` | Backward-compatible alias for `src/acoustics.py` |
 | `src/engine.py` | Physics, simulation, optimizer, atlas, Monte Carlo, exports, classification |
@@ -80,21 +81,12 @@ make test
 
 ## Streamlit Reload Rule
 
-Any `src/` module used in `ui_app.py` must be imported as a module and
-reloaded, dependencies first and the `acoustics` facade last:
-
-```python
-import acoustics as _acoustics
-import engine as _engine
-import presets as _presets
-import pricing as _pricing
-import ranking as _ranking
-
-for _module in (_engine, _pricing, _presets, _ranking, _acoustics):
-    importlib.reload(_module)
-```
-
-Add new imports/reloads when adding new active helper modules.
+Backend modules are imported as modules and reloaded through
+`_reload_if_source_changed`, dependencies first. The acoustic facade always
+rebinds exports after that pass. This includes measurements and billing.
+Every UI module then participates in source-change reload; cross-module calls
+use module-qualified references. See `docs/ui.md` for the current contract.
+Add new imports/reloads when adding active helper modules.
 
 ## Change Scope
 

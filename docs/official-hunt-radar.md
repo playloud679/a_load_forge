@@ -1,5 +1,10 @@
 # Official-source hunt radar
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/build_official_hunt_radar.py` uses the optional LSDB, VituixCAD,
 Speaker Box Lite, ZTZ Audio and legacy manufacturer-crawl libraries only as a
 discovery index. It does not import their technical fields into the proprietary

@@ -1,4 +1,4 @@
-.PHONY: venv install dev run test test-fast test-ui test-catalog test-smoke test-match crawl-ts crawl-datasheets crawl-peerless crawl-monacor crawl-sica crawl-faitalpro crawl-ciare crawl-fane catalog-radar catalog-plan catalog-complete lint format clean
+.PHONY: venv install dev run check-version test test-fast test-ui test-catalog test-contracts test-smoke test-match lint format clean
 
 VENV_DIR := .venv
 PYTHON  := python3
@@ -37,46 +37,13 @@ test-ui:
 
 test-catalog:
 	$(VENV_DIR)/bin/python tests/test_catalog.py
-	$(VENV_DIR)/bin/python tests/test_crawler_registry.py
+
+test-contracts:
+	$(VENV_DIR)/bin/python tests/test_repository_contracts.py
 
 test-match:
 	@if [ -z "$(MATCH)" ]; then echo "Usage: make test-match MATCH='acoustic-load smoke'"; exit 2; fi
 	$(VENV_DIR)/bin/python tests/test_all.py --match "$(MATCH)"
-
-crawl-ts:
-	@if [ -z "$(ARGS)" ]; then echo "Usage: make crawl-ts ARGS='--seed URL --fresh --dry-run'"; exit 2; fi
-	$(VENV_DIR)/bin/python tools/crawl_thiele_small.py $(ARGS)
-
-crawl-datasheets:
-	@if [ -z "$(ARGS)" ]; then echo "Usage: make crawl-datasheets ARGS='--seed PRODUCT_URL'"; exit 2; fi
-	$(VENV_DIR)/bin/python tools/crawl_driver_datasheets.py $(ARGS)
-
-crawl-peerless:
-	$(VENV_DIR)/bin/python tools/harvest_peerless_official.py $(ARGS)
-
-crawl-monacor:
-	$(VENV_DIR)/bin/python tools/harvest_monacor_official.py $(ARGS)
-
-crawl-sica:
-	$(VENV_DIR)/bin/python tools/harvest_sica_official.py $(ARGS)
-
-crawl-faitalpro:
-	$(VENV_DIR)/bin/python tools/harvest_faitalpro_official.py $(ARGS)
-
-crawl-ciare:
-	$(VENV_DIR)/bin/python tools/harvest_ciare_official.py $(ARGS)
-
-crawl-fane:
-	$(VENV_DIR)/bin/python tools/harvest_fane_official.py $(ARGS)
-
-catalog-radar:
-	$(VENV_DIR)/bin/python tools/build_official_hunt_radar.py $(ARGS)
-
-catalog-plan:
-	$(VENV_DIR)/bin/python tools/run_catalog_completion_cycle.py plan $(ARGS)
-
-catalog-complete:
-	$(VENV_DIR)/bin/python tools/run_catalog_completion_cycle.py run $(ARGS)
 
 lint:
 	$(VENV_DIR)/bin/python -m ruff check src tests ui_app.py

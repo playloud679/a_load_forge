@@ -22,10 +22,10 @@ gcloud config set project PROJECT_ID
 gcloud services enable run.googleapis.com artifactregistry.googleapis.com
 
 gcloud builds submit \
-  --tag europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.18.20
+  --tag europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.18.21
 
 gcloud run deploy load-forge \
-  --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.18.20 \
+  --image europe-west1-docker.pkg.dev/PROJECT_ID/load-forge/load-forge:0.18.21 \
   --region europe-west1 \
   --platform managed \
   --allow-unauthenticated \
@@ -211,4 +211,5 @@ LOAD_FORGE_MANUFACTURER_CATALOG_PATH=/catalog/releases/manufacturer-RELEASE.json
 ```
 
 Build, configurazione del job, policy delle sorgenti e procedura di promozione
-sono descritti in [crawler-agent-service.md](crawler-agent-service.md).
+sono mantenuti nel workspace separato `../load_forge_crawler` (percorso relativo
+alla radice di questo repository), insieme ai servizi e al Dockerfile del crawler.

@@ -1,5 +1,10 @@
 # FaitalPRO official catalog harvester
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/harvest_faitalpro_official.py` enumerates the first-party FaitalPRO LF,
 coaxial and archived-LF catalogs. Current product listings expose every
 published 4/8/16-ohm product ID, so impedance variants are harvested as

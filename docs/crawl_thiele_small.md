@@ -1,5 +1,10 @@
 # Generic Thiele/Small crawler
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/crawl_thiele_small.py` discovers manufacturer loudspeaker product
 pages, extracts validated Thiele/Small parameters and merges compatible
 presets into `data/manufacturer_drivers.json` by default — the LSDB-free

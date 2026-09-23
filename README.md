@@ -4,13 +4,13 @@
   <img src="assets/load_forge_header_app.png" alt="Load Forge" width="900">
 </p>
 
-**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.18.20**
+**Multi-Topology Acoustic Load Design & Optimizer** · Version **0.18.21**
 
-[![Version](https://img.shields.io/badge/version-0.18.20-blue.svg)](VERSION)
+[![Version](https://img.shields.io/badge/version-0.18.21-blue.svg)](VERSION)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue.svg)](pyproject.toml)
 [![License](https://img.shields.io/badge/license-Proprietary-red.svg)](LICENSE)
 
-Current release: **0.18.20**
+Current release: **0.18.21**
 
 Load Forge is a Streamlit simulator for acoustic loudspeaker loads.  It supports
 **DCCAV** / double resonator in series, **fourth-, sixth- and eighth-order bandpass**,
@@ -35,9 +35,10 @@ far-field measurement substitute.
 Current UI highlights:
 
 - primary **Projects | Bass Match | Box Design** navigation and shared project
-  name, save status and visibility. Start immediately with an autosaved
-  **Untitled project** in authenticated mode, rename later, and keep the same
-  project across engineering views. Local-only sessions explicitly show
+  name, save status and visibility. Returning users resume the latest active
+  cloud project; a clean startup does not save an empty **Untitled project**.
+  New drafts are saved after edits in authenticated mode, and the same project
+  stays active across engineering views. Local-only sessions explicitly show
   **Session only**. Public edits require **Update public version**; returning
   to Private withdraws public access without deleting the private design
 - separate main-area **Run Bass Match** and **Results** tabs: completing a scan
@@ -49,7 +50,7 @@ Current UI highlights:
   ranges for Vb, Fb, driver diameter, Fs, Qts and F3; result cards expose the
   relevant engineering values and open the immutable technical snapshot
 - separate `Box Design` and `Bass Match` engineering views of the same project
-- compact 3+3 load picker whose illustrated cards are directly clickable,
+- seven-card load picker whose illustrated cards are directly clickable,
   with labels beneath the diagrams, keyboard focus and an emerald checked active state
 - a black sidebar and unified emerald primary-action palette across workspace
   selection, load cards, Run controls, response traces and actionable guidance;
@@ -143,11 +144,17 @@ resolved feasibility decision.
 
 ## Populate the T/S catalog
 
+Catalog crawling runs in the separate `../load_forge_crawler` workspace.
+Run the following commands there, using that project's environment and docs.
+The simulator's `make test-catalog` validates its local catalog only;
+`make test-contracts` checks documentation coverage, reloads and local commands.
+
 The generic crawler can discover driver pages from a seed URL or sitemap,
 extract HTML/JSON-LD/PDF Thiele/Small data, normalize units and safely merge
 validated rows into the existing catalog:
 
 ```bash
+cd ../load_forge_crawler
 .venv/bin/python tools/crawl_thiele_small.py \
   --sitemap https://manufacturer.example/sitemap.xml \
   --include '/(woofer|subwoofer|speaker)/' \
@@ -161,7 +168,7 @@ For a durable PDF-first library, archive linked datasheets and merge their
 validated observations into the catalog:
 
 ```bash
-make crawl-datasheets ARGS="--seed https://manufacturer.example/product/woofer-12 --sleep 2"
+.venv/bin/python tools/crawl_driver_datasheets.py --seed https://manufacturer.example/product/woofer-12 --sleep 2
 ```
 
 Each distinct PDF is stored once by SHA-256 under `data/datasheets/`; its URLs,

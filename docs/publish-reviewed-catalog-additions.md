@@ -1,5 +1,10 @@
 # Reviewed append-only catalog additions
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/publish_reviewed_catalog_additions.py` promotes only crawler records
 whose product URLs were explicitly reviewed. It is intended for small,
 high-confidence catalog batches after a staging crawl.

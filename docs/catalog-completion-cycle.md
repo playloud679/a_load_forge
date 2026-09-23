@@ -1,5 +1,10 @@
 # Automatic catalog completion cycle
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/run_catalog_completion_cycle.py` coordinates the existing metadata,
 retailer and reporting tools. It targets the fields that cannot be inferred
 safely (`Xmax`, AES/RMS/rated `Pe`, `Le`) plus verified current prices. It does

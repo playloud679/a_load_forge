@@ -1,5 +1,10 @@
 # ToutLeHautParleur catalog harvester
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/harvest_toutlehautparleur.py` downloads the public English cone-speaker
 catalog from `en.toutlehautparleur.com`. Direct HTTP clients receive a
 Cloudflare challenge, so the harvester uses an already-open Safari session that

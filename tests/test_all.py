@@ -12916,6 +12916,17 @@ test(
 )
 
 
+from test_repository_contracts import (
+    check_makefile_paths,
+    check_module_documents,
+    check_reload_contract,
+)
+
+test("Repository contracts: every source module has matching documentation", check_module_documents)
+test("Repository contracts: Makefile scripts exist locally", check_makefile_paths)
+test("Repository contracts: backend reload coverage and source edits", check_reload_contract)
+
+
 if not _IS_MP_CHILD:
     print(f"\n{'=' * 40}")
     print(f"  PASS: {PASS}   FAIL: {FAIL}   SKIP: {SKIP}")

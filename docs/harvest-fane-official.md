@@ -1,5 +1,10 @@
 # Fane official harvester
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/harvest_fane_official.py` enumerates Fane's current product catalog and
 the official low-frequency/full-range archive. The site uses ASP.NET WebForms
 postbacks for pages after the first; the harvester preserves the server's

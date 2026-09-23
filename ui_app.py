@@ -44,6 +44,7 @@ sys.path.insert(0, str(Path(__file__).parent / "src"))
 import acoustics as _acoustics
 import billing as _billing
 import engine as _engine
+import measurements as _measurements
 import port_cad as _port_cad
 import presets as _presets
 import pricing as _pricing
@@ -87,7 +88,8 @@ def _reload_if_source_changed(module) -> bool:
 # wildcard namespace keeps the old engine symbols in a long-lived Streamlit
 # process.
 for _module in (
-    _engine, _port_cad, _pricing, _presets, _ranking, _saas, _private_store, _public_store, _storage,
+    _engine, _measurements, _port_cad, _pricing, _presets, _ranking, _saas, _billing,
+    _private_store, _public_store, _storage,
     _afw_export, _afw_compare,
 ):
     _reload_if_source_changed(_module)

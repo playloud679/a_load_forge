@@ -1,5 +1,10 @@
 # Ciare official catalog harvester
 
+> Crawler workspace: commands and `tools/` paths in this retained guide refer
+> to the separate `../load_forge_crawler` repository (relative to the simulator
+> root). Use that workspace and its environment; these scripts are not shipped
+> in the simulator.
+
 `tools/harvest_ciare_official.py` enumerates all first-party current and
 archived Ciare LF and coaxial product pages. The four server-rendered listings
 provide stable product URLs whose path contains family, impedance and model.
