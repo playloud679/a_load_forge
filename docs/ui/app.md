@@ -49,11 +49,14 @@ header (`.st-key-sidebar_brief_header_container`) with concise mode captions ("S
 The 7-card enclosure topology selector grid is restored and always visible directly on the
 sidebar canvas, retaining full brand identity and instant load toggling without hidden menus or redundant captions.
 Non-advanced (Simple) mode presents the complete workflow in a single unified panel without artificial tab headers,
-uniting guided setup, the always-visible load cards grid, volume target, optimization goal,
+uniting the always-visible load cards grid, volume target, optimization goal,
 and directly visible library filters (search preset, brand, size, class, price) for an effortless
 single-panel experience. When Advanced mode is toggled, it expands into three dedicated tabs
 (`Load type`, `Performance filters`, `Library filters`) with deep evaluation controls, detailed
 acoustic limit sliders, and engine-only topology notes. The bottom Advanced toggle is scoped exclusively to Box Design to avoid duplicate widget keys.
+Neither mode renders the Guided setup scenario presets or the redundant Target
+enclosure heading: the enclosure cards start directly below the brief controls.
+Existing saved search parameters remain editable without applying a scenario.
 Bass Match candidate pool starts expanded by default, preserves pinned driver selections across filter modifications, and supports direct simulation of single drivers or multi-driver comparisons in Box Design without requiring a search run.
 Existing public, shared, billing and admin links retain their handling.
 # Active-load summary

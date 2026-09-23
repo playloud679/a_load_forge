@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.18.22 (2026-09-23)
+
+- **Bass Match sidebar**: removed the Guided setup scenario selector and the
+  Target enclosure heading in both Simple and Advanced mode. Enclosure cards
+  now start directly below the brief controls, leaving more space for manual
+  parameters. Updated the UI contract and user guide.
+- **Validation**: targeted Simple/Advanced Streamlit AppTest passed; full active
+  suite: **242 passed, 0 failed, 0 skipped**. Python compilation passed.
+
 ## 0.18.21 (2026-09-23)
 
 - **Repository contracts**: added the seven missing per-module documents;

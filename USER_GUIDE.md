@@ -316,14 +316,14 @@ workflow:
    **Candidate pool**, where typing in **Search preset** immediately lists the
    first matching names before a scan is started.
 
-The sidebar opens in **Simple mode**, which keeps only the essentials: the
-**Guided setup** scenario selector (Home theater, Car SPL, Hi-Fi, Infinite
-baffle), the load cards, the maximum volume, the optimization goal and the
-basic library filters (search, manufacturer, price). Everything else — driver
+The sidebar opens in **Simple mode**, starting directly with the load cards,
+the maximum volume, the optimization goal and the complete library filters
+(search, provenance, manufacturer, size, class, price). Guided setup presets
+and the Target enclosure heading are removed in both modes. Everything else — driver
 configuration, comparison voltage, F3/MOL/SPL/ripple/excursion/delay
-constraints, provenance/size/class filters, data coverage, search profile,
+constraints, data coverage, search profile,
 evaluation range, simulation resolution and driver T/S overrides — is hidden
-and keeps its defaults. Enable **Advanced mode** at the bottom of the sidebar
+and keeps its defaults. Enable **Advanced mode** beside Search brief
 to reveal it; the active values keep applying in both modes. The active mode is
 shown under the toggle, and in Advanced mode the expert sections open directly
 (**Advanced evaluation**, **Advanced driver filters**, **Advanced driver

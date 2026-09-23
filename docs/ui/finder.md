@@ -24,8 +24,11 @@ results, the candidate pool and the run statistics.
   `_render_finder_run_statistics`, `_finder_per_load_stats_str`,
   `_render_candidate_pool` (`@st.fragment`, starts expanded by default), `_render_find_driver_actions` (search brief summary),
   `_render_find_driver_goal_sidebar`, `_render_find_driver_target_sidebar`,
-  `_render_finder_scenario_selector`, `_apply_finder_scenario`,
   `_show_advanced_controls`, `_run_find_driver_search`.
+- Legacy scenario helpers `_render_finder_scenario_selector` and
+  `_apply_finder_scenario` remain available for compatibility, but the sidebar
+  no longer calls them in either Simple or Advanced mode. Users edit the brief
+  directly; no scenario preset is applied by rendering the controls.
 - Atlas: `_design_space_cached`, `_atlas_frame`, `_render_atlas_tab`,
   `_queue_atlas_point`, `_apply_pending_atlas_point`.
 

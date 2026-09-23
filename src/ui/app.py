@@ -365,8 +365,6 @@ def main() -> None:
                 # and library filters visible directly.
                 bm_simple_tab, = st.tabs(["Search brief"], key="bass_match_sidebar_tab")
                 with bm_simple_tab:
-                    st.markdown('<div class="sidebar-section-title">Target enclosure</div>', unsafe_allow_html=True)
-                    _finder._render_finder_scenario_selector()
                     _state._render_load_type_buttons(_finder_load_set, single_select=False)
                     _finder._render_find_driver_target_sidebar()
 
@@ -382,8 +380,6 @@ def main() -> None:
                     key="bass_match_sidebar_tab",
                 )
                 with bm_tab1:
-                    st.markdown('<div class="sidebar-section-title">Target enclosure</div>', unsafe_allow_html=True)
-                    _finder._render_finder_scenario_selector()
                     _state._render_load_type_buttons(_finder_load_set, single_select=False)
                     _state._render_engine_only_topologies_note()
                     _finder._render_find_driver_target_sidebar()

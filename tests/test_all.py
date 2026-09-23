@@ -10719,7 +10719,7 @@ def _check_ui_finder_parameters_are_all_in_sidebar():
 test("UI keeps every Finder parameter in the sidebar", _check_ui_finder_parameters_are_all_in_sidebar)
 
 
-def _check_ui_simple_advanced_mode_and_guided_scenarios():
+def _check_ui_simple_advanced_mode_without_scenario_presets():
     from streamlit.testing.v1 import AppTest
 
     at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=APP_TEST_TIMEOUT)
@@ -10728,23 +10728,14 @@ def _check_ui_simple_advanced_mode_and_guided_scenarios():
     at.run()
     assert not at.exception, at.exception
 
-    # Simple mode hides the expert grid and offers the guided setup.
+    # Simple mode hides the expert grid and starts directly with enclosure cards.
     simple_keys = {n.key for n in at.sidebar.number_input}
     assert "finder_points" not in simple_keys
     assert "finder_f_min" not in simple_keys
     assert "finder_voltage" not in simple_keys
     assert "Simple mode" in " ".join(c.value for c in at.sidebar.caption)
-    guided = next(
-        box for box in at.sidebar.selectbox if box.key == "finder_scenario"
-    )
-    assert guided.value == "Custom"
-
-    guided.set_value("Home theater").run()
-    assert not at.exception, at.exception
-    assert at.session_state["finder_objective"] == "Max extension"
-    assert float(at.session_state["finder_volume_l"]) == 60.0
-    assert float(at.session_state["finder_max_ripple_freq_hz"]) == 80.0
-    assert set(at.session_state["finder_load_types"]) == {"Bass reflex", "DCCAV"}
+    assert not any(box.key == "finder_scenario" for box in at.sidebar.selectbox)
+    assert not any("Target enclosure" in item.value for item in at.sidebar.markdown)
 
     # Simple mode also reduces the constraints tab to the optimization goal.
     at.session_state["bass_match_sidebar_tab"] = "Performance filters"
@@ -10766,6 +10757,8 @@ def _check_ui_simple_advanced_mode_and_guided_scenarios():
     at.run()
     assert not at.exception, at.exception
     advanced_keys = {n.key for n in at.sidebar.number_input}
+    assert not any(box.key == "finder_scenario" for box in at.sidebar.selectbox)
+    assert not any("Target enclosure" in item.value for item in at.sidebar.markdown)
     assert {"finder_points", "finder_f_min", "finder_f_max"} <= advanced_keys
     assert "Advanced mode" in " ".join(c.value for c in at.sidebar.caption)
     assert any(
@@ -10775,8 +10768,8 @@ def _check_ui_simple_advanced_mode_and_guided_scenarios():
 
 
 test(
-    "UI Simple/Advanced mode and guided scenarios stay consistent",
-    _check_ui_simple_advanced_mode_and_guided_scenarios,
+    "UI Simple/Advanced mode omits scenario presets and keeps manual controls",
+    _check_ui_simple_advanced_mode_without_scenario_presets,
 )
 
 
