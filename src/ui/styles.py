@@ -63,15 +63,15 @@ GLOBAL_CSS = """
     section[data-testid="stSidebar"],
     section[data-testid="stSidebar"] > div {
         background: #000 !important;
-        width: 24.5rem !important;
-        min-width: 24.5rem !important;
-        max-width: 24.5rem !important;
+        width: min(27rem, 100vw) !important;
+        min-width: min(27rem, 100vw) !important;
+        max-width: min(27rem, 100vw) !important;
     }
     section[data-testid="stSidebar"] [data-testid="stSidebarContent"] {
         background: #000 !important;
-        width: 24.5rem !important;
-        min-width: 24.5rem !important;
-        max-width: 24.5rem !important;
+        width: min(27rem, 100vw) !important;
+        min-width: min(27rem, 100vw) !important;
+        max-width: min(27rem, 100vw) !important;
         box-sizing: border-box !important;
         padding-left: 0.9rem !important;
         padding-right: 0.9rem !important;
@@ -95,9 +95,9 @@ GLOBAL_CSS = """
         box-sizing: border-box !important;
     }
     section[data-testid="stSidebar"] button[data-baseweb="tab"] {
-        font-size: 0.86rem !important;
-        padding: 0.20rem 0.40rem !important;
-        white-space: nowrap !important;
+        font-size: 0.90rem !important;
+        padding: 0.55rem 0.60rem !important;
+        white-space: normal !important;
     }
     html {
         scrollbar-gutter: stable;
@@ -115,7 +115,7 @@ GLOBAL_CSS = """
         color: #f3f4f6 !important;
     }
     [data-testid="stMain"] [data-testid="stVerticalBlock"] {
-        gap: 0.45rem !important;
+        gap: 0.85rem !important;
     }
     @media (max-width: 768px) {
         section[data-testid="stSidebar"],
@@ -322,35 +322,64 @@ GLOBAL_CSS = """
         margin-top: 0.15rem !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stTabs"] div[role="tablist"] {
-        background: rgba(255, 255, 255, 0.04) !important;
-        border: 1px solid rgba(255, 255, 255, 0.10) !important;
-        border-radius: 8px !important;
-        padding: 3px !important;
-        gap: 3px !important;
+        background: transparent !important;
+        padding: 2px !important;
+        gap: 0.5rem !important;
         display: flex !important;
         width: 100% !important;
+        height: auto !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stTabs"] button[role="tab"] {
-        flex: 1 1 0% !important;
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+        min-height: 3rem !important;
+        height: auto !important;
         text-align: center !important;
-        padding: 0.35rem 0.25rem !important;
+        padding: 0.55rem 0.60rem !important;
         border-radius: 6px !important;
-        font-size: 0.88rem !important;
+        font-size: 0.90rem !important;
         font-weight: 600 !important;
-        letter-spacing: 0.01em !important;
-        color: rgba(255, 255, 255, 0.70) !important;
-        border: none !important;
-        background: transparent !important;
-        transition: all 0.15s ease !important;
+        line-height: 1.3 !important;
+        color: #cbd5e1 !important;
+        border: 1px solid #39414c !important;
+        background: #111720 !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stTabs"] button[role="tab"] p {
+        white-space: normal !important;
+        overflow-wrap: normal !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stTabs"] button[role="tab"]:hover {
         color: #f8fafc !important;
-        background: rgba(255, 255, 255, 0.08) !important;
+        border-color: #94a3b8 !important;
+        background: #1c2531 !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
-        color: #10b981 !important;
-        background: #141b27 !important;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(16, 185, 129, 0.25) !important;
+        color: #6ee7b7 !important;
+        background: #0b3028 !important;
+        border-color: #10b981 !important;
+    }
+    section[data-testid="stSidebar"] div[data-testid="stTabs"] div[data-baseweb="tab-highlight"],
+    section[data-testid="stSidebar"] div[data-testid="stTabs"] div[data-baseweb="tab-border"] {
+        background: transparent !important;
+    }
+    .st-key-sidebar_brand_header {
+        padding-right: 2.25rem !important;
+        box-sizing: border-box;
+    }
+    .st-key-sidebar_brand_header [data-testid="stHorizontalBlock"] {
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+    }
+    .st-key-sidebar_brand_header [data-testid="stColumn"] {
+        min-width: 0 !important;
+    }
+    .sidebar-version {
+        color: #cbd5e1;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
     }
     .sidebar-section-title {
         font-size: 0.88rem !important;
@@ -650,7 +679,7 @@ GLOBAL_CSS = """
         font-size: 0.88rem !important;
         font-weight: 600 !important;
         color: #cbd5e1 !important;
-        margin-bottom: -0.10rem !important;
+        margin-bottom: 0.15rem !important;
         text-transform: none;
         letter-spacing: 0.02em;
     }
@@ -1032,92 +1061,70 @@ GLOBAL_CSS = """
         border-color: rgba(255, 255, 255, 0.22) !important;
         color: #ffffff !important;
     }
-    /* Compact desktop workbench; expanded expert panels may still scroll. */
+    /* Let controls grow and wrap instead of squeezing the workbench to one screen. */
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+        gap: 0.65rem !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
+        margin-bottom: 0 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
+        font-size: 0.85rem !important;
+        line-height: 1.4 !important;
+        margin-bottom: 0 !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
+        font-size: 0.9rem !important;
+        line-height: 1.35 !important;
+    }
+    [data-testid="stSidebar"] [data-baseweb="tab-panel"] {
+        padding-top: 0.75rem !important;
+    }
+    [data-testid="stSidebar"] [data-baseweb="input"],
+    [data-testid="stSidebar"] [data-baseweb="select"] > div {
+        min-height: 2.5rem !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] button {
+        min-width: 1.5rem !important;
+        width: 1.5rem !important;
+    }
+    [data-testid="stSidebar"] [data-testid="stNumberInput"] input {
+        padding-inline: 0.4rem !important;
+    }
+    [data-testid="stSidebarUserContent"] {
+        padding-bottom: 1.5rem !important;
+    }
+    [data-testid="stHorizontalBlock"]:has(.st-key-plot_compare_loads) {
+        flex-wrap: wrap !important;
+        gap: 0.75rem !important;
+    }
+    [data-testid="stHorizontalBlock"]:has(.st-key-plot_compare_loads) > [data-testid="stColumn"] {
+        flex: 0 1 10rem !important;
+        min-width: min(10rem, 100%) !important;
+    }
+    [data-testid="stHorizontalBlock"]:has(.st-key-plot_compare_loads) > [data-testid="stColumn"]:first-child {
+        flex-basis: 100% !important;
+    }
+    .st-key-active_load_summary [data-testid="stHorizontalBlock"]:not(:has([data-testid="stImage"])) {
+        flex-wrap: wrap !important;
+        gap: 0.65rem !important;
+    }
+    .st-key-active_load_summary [data-testid="stHorizontalBlock"]:not(:has([data-testid="stImage"])) > [data-testid="stColumn"] {
+        flex: 1 1 9rem !important;
+        min-width: min(9rem, 100%) !important;
+    }
+    .st-key-active_load_summary [data-testid="stMetricLabel"] p {
+        white-space: normal !important;
+        overflow-wrap: normal !important;
+    }
     @media (min-width: 769px) {
-        [data-testid="stSidebarUserContent"] {
-            padding-bottom: 0.5rem !important;
-        }
-        .st-key-sidebar_brief_header_container {
-            margin-bottom: 0.5rem !important;
-        }
         .st-key-finder_library_viewport,
         .st-key-finder_pr_library_viewport,
         div:has(> .st-key-finder_library_viewport),
         div:has(> .st-key-finder_pr_library_viewport) {
-            height: clamp(180px, calc(100dvh - 580px), 460px) !important;
-            flex-basis: clamp(180px, calc(100dvh - 580px), 460px) !important;
-            min-height: 180px !important;
-        }
-        [data-testid="stSidebar"] [data-testid="stNumberInput"],
-        [data-testid="stSidebar"] [data-testid="stSelectbox"],
-        [data-testid="stSidebar"] [data-testid="stTextInput"],
-        [data-testid="stSidebar"] [data-testid="stMultiSelect"] {
-            gap: 0.125rem !important;
-        }
-        [data-testid="stSidebar"] [data-baseweb="input"] {
-            height: 2rem !important;
-        }
-        [data-testid="stSidebar"] [data-testid="stNumberInput"] button {
-            min-width: 1.25rem !important;
-            width: 1.25rem !important;
-        }
-        [data-testid="stSidebar"] [data-testid="stNumberInput"] input {
-            padding-left: 0.4rem !important;
-            padding-right: 0.15rem !important;
-        }
-        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-            gap: 0.22rem !important;
-        }
-        [data-testid="stMain"] [data-testid="stVerticalBlock"] {
-            gap: 0.25rem !important;
-        }
-        [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
-            gap: 0.5rem !important;
-        }
-        section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
-            font-size: 0.82rem !important;
-            line-height: 1.15 !important;
-        }
-        [data-testid="stSidebar"] [data-baseweb="input"],
-        [data-testid="stSidebar"] [data-baseweb="select"] > div {
-            min-height: 2rem !important;
-        }
-        [data-testid="stSidebar"] input {
-            min-height: 0 !important;
-            padding-top: 0.25rem !important;
-            padding-bottom: 0.25rem !important;
-            font-size: 0.85rem !important;
-        }
-        section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
-            margin-bottom: 0 !important;
-        }
-        section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
-            font-size: 0.78rem !important;
-            line-height: 1.2 !important;
-            margin-bottom: 0 !important;
-        }
-        [data-testid="stSidebar"] [data-baseweb="tab-panel"] {
-            padding-top: 0.25rem !important;
-        }
-        .sidebar-section-title {
-            font-size: 0.85rem !important;
-            margin: 0.12rem 0 !important;
-        }
-        .st-key-brand_logo img {
-            max-height: 3rem !important;
-            width: auto !important;
-            object-fit: contain;
-        }
-        [data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] {
-            margin-top: 0.1rem !important;
-        }
-        .st-key-bass_match_brief {
-            padding: 0.35rem 0.6rem !important;
-            margin-bottom: 0.15rem !important;
-        }
-        [data-testid="stExpander"] summary {
-            padding-top: 0.3rem !important;
-            padding-bottom: 0.3rem !important;
+            height: clamp(240px, calc(100dvh - 580px), 460px) !important;
+            flex-basis: clamp(240px, calc(100dvh - 580px), 460px) !important;
+            min-height: 240px !important;
         }
     }
     </style>
@@ -1270,17 +1277,28 @@ def _workspace_tab_styles() -> str:
         }
         .st-key-global_app_bar div[data-testid="stHorizontalBlock"] {
             align-items: center !important;
-            gap: 0.45rem !important;
+            gap: 0.65rem !important;
+            flex-wrap: wrap !important;
         }
         .st-key-global_app_bar div[data-testid="stColumn"] {
             display: flex !important;
             flex-direction: column !important;
             justify-content: center !important;
             align-items: center !important;
-            min-height: 2.1rem !important;
-            height: 2.1rem !important;
+            min-height: 2.5rem !important;
+            min-width: min(6.5rem, 100%) !important;
+            flex: 1 1 6.5rem !important;
+            height: auto !important;
             padding: 0 !important;
             margin: 0 !important;
+        }
+        .st-key-global_app_bar [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child {
+            flex-basis: 10rem !important;
+        }
+        /* The fourth column is the existing decorative spacer, not a control. */
+        .st-key-global_app_bar [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(4) {
+            flex: 0 0 0 !important;
+            min-width: 0 !important;
         }
         .st-key-global_app_bar div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"] {
             width: 100% !important;
@@ -1290,7 +1308,7 @@ def _workspace_tab_styles() -> str:
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            height: 2.1rem !important;
+            height: auto !important;
         }
         .st-key-global_app_bar div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"] > div[data-testid="stLayoutWrapper"] {
             width: 100% !important;
@@ -1299,26 +1317,26 @@ def _workspace_tab_styles() -> str:
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            height: 2.1rem !important;
+            height: auto !important;
         }
         .st-key-global_app_bar div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"] > div[data-testid="stLayoutWrapper"] > div[data-testid="element-container"] {
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
-            height: 2.1rem !important;
+            height: auto !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
         }
         .st-key-global_app_bar div[data-testid="stPopover"] {
             width: 100% !important;
-            height: 2.1rem !important;
+            height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
         }
         .st-key-global_app_bar div[data-testid="stPopover"] > div:first-child {
             width: 100% !important;
-            height: 2.1rem !important;
+            height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
             display: flex !important;
@@ -1330,7 +1348,7 @@ def _workspace_tab_styles() -> str:
         }
         .st-key-global_app_bar div[data-testid="stButton"] {
             width: 100% !important;
-            height: 2.1rem !important;
+            height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
             display: flex !important;
@@ -1339,12 +1357,12 @@ def _workspace_tab_styles() -> str:
         }
         .st-key-global_app_bar button[data-testid="stPopoverButton"],
         .st-key-global_app_bar div[data-testid="stButton"] > button {
-            height: 2.1rem !important;
-            min-height: 2.1rem !important;
-            max-height: 2.1rem !important;
-            line-height: 2.1rem !important;
+            height: auto !important;
+            min-height: 2.5rem !important;
+            max-height: none !important;
+            line-height: 1.35 !important;
             box-sizing: border-box !important;
-            padding: 0 0.60rem !important;
+            padding: 0.45rem 0.60rem !important;
             font-size: 0.88rem !important;
             font-weight: 600 !important;
             letter-spacing: 0.015em !important;
@@ -1359,11 +1377,11 @@ def _workspace_tab_styles() -> str:
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
             margin: 0 !important;
             width: 100% !important;
-            white-space: nowrap !important;
+            white-space: normal !important;
         }
         .st-key-global_app_bar button[data-testid="stPopoverButton"] *,
         .st-key-global_app_bar div[data-testid="stButton"] > button * {
-            white-space: nowrap !important;
+            white-space: normal !important;
             font-size: 0.88rem !important;
             margin: 0 !important;
         }
@@ -1391,10 +1409,10 @@ def _workspace_tab_styles() -> str:
             border-color: rgba(16, 185, 129, 0.4) !important;
         }
         .st-key-global_app_bar .topbar-status-badge {
-            height: 2.1rem !important;
-            min-height: 2.1rem !important;
-            max-height: 2.1rem !important;
-            line-height: 2.1rem !important;
+            height: auto !important;
+            min-height: 2.5rem !important;
+            max-height: none !important;
+            line-height: 1.35 !important;
             box-sizing: border-box !important;
             margin: 0 !important;
             display: inline-flex !important;
@@ -1406,11 +1424,11 @@ def _workspace_tab_styles() -> str:
         .st-key-global_app_bar div[data-testid="stMarkdownContainer"]:has(.topbar-status-badge) p {
             margin: 0 !important;
             padding: 0 !important;
-            height: 2.1rem !important;
+            height: auto !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            line-height: 2.1rem !important;
+            line-height: 1.35 !important;
         }
         .st-key-account_compat_expander {
             display: none !important;

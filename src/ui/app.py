@@ -304,12 +304,16 @@ def main() -> None:
     _catalog._poll_catalog_refresh()
     with st.sidebar:
         if _constants._BRAND_IMAGE.exists():
-            with st.container(key="brand_logo"):
-                st.image(str(_constants._BRAND_IMAGE), width=170)
-            st.markdown(
-                f"<div style='text-align: right; color: rgba(255,255,255,0.6); font-size: 0.80rem; margin-top: -0.3rem; margin-bottom: 0.20rem;'>v{_runtime._VERSION}</div>", 
-                unsafe_allow_html=True
-            )
+            with st.container(key="sidebar_brand_header"):
+                logo_col, version_col = st.columns([3, 1], vertical_alignment="center")
+                with logo_col:
+                    with st.container(key="brand_logo"):
+                        st.image(str(_constants._BRAND_IMAGE), width=170)
+                with version_col:
+                    st.markdown(
+                        f'<div class="sidebar-version">v{_runtime._VERSION}</div>',
+                        unsafe_allow_html=True,
+                    )
         else:
             st.title("Load Forge")
             st.caption(f"v{_runtime._VERSION}")

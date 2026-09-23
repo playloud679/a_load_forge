@@ -105,34 +105,24 @@ Removing that guard makes the top-row buttons visible but unclickable.
   (`#10b981`) exclusively for active `:focus-within` and primary call-to-actions.
 - Menu dropdown hover items use clean neutral highlighting (`rgba(255, 255, 255, 0.08)`) with emerald reserved for
   the currently active selection.
-### Viewport Height Optimization & High Legibility
+### Responsive spacing and legibility
 
-Desktop compact mode (above 768px wide) uses 0.22rem sidebar gaps, 0.25rem
-main gaps, 0.82rem sidebar labels and two-rem input minimum heights. Logo height
-is capped at three rem, enclosure/workspace artwork buttons at 2.65rem, with
-1.3rem enclosure labels. Brief panels and expanders have tighter padding.
-Scrolling remains available for expanded expert controls and smaller screens;
-content must never be clipped to simulate a viewport fit.
-Candidate library containers use `clamp(180px, 100dvh - 580px, 460px)` on
-desktop; their dataframes stretch to fill the available space. Sidebar bottom
-padding is 0.5rem instead of the framework's large blank footer space.
-Both the keyed library block and its fixed-height wrapper override flex-basis,
-so the dataframe receives the actual available height rather than 320px.
-Sidebar widget label gaps are 0.125rem and input boxes are two rem tall.
-Desktop number-input steppers are 1.25rem wide to leave room for values in
-three-column T/S rows; mobile retains the larger native controls.
-Compact sidebar captions reset Streamlit's negative bottom margin so text
-does not overlap the following control when paragraph margins are reduced.
+The workbench may scroll vertically: fitting every control into one screen is
+not a layout requirement. Sidebar blocks have 0.65rem gaps, 0.9rem labels and
+2.5rem minimum input heights; captions use a 1.4 line-height without negative
+bottom margins. Inputs and multi-selects retain intrinsic heights.
 
-- Root font size anchored to `16px` with antialiased and legible rendering across devices.
-- Sidebar width is `24.5rem` (392px) on desktop, with a black background and
-  `box-sizing: border-box` to prevent horizontal clipping.
-- Enclosure cards retain explicit heights to prevent Safari/WebKit row overlap.
-- Sidebar tabs scaled to `0.86rem` with `0.20rem 0.40rem` padding to ensure `Driver`, `Load Selection`, and `Enclosure Parameters` render on a single line without truncation or overflow scroll arrows.
-- Vertical block gaps and container padding optimized to fit the entire CAD telemetry panel within standard 900p / 1080p desktop viewports without vertical scrolling.
-- Legibility-first typography hierarchy: widget labels boosted to `0.96rem` (main) and `0.94rem` (sidebar), captions to `0.88rem` with high-contrast `rgba(255, 255, 255, 0.85)`.
-- Metric widgets (`.stMetric`) scaled to `0.88rem` labels (`#cbd5e1`) and `1.25rem` values (`#ffffff`).
-- Constraint grid labels boosted to `0.80rem` with values at `0.96rem`.
-- Main tabs scaled to `0.95rem` (`font-weight: 600`) and dataframe grid cells scaled to `0.92rem`.
-- Top app bar buttons scaled to `0.88rem` with bottom margin reduced to `0.45rem`.
-- Sidebar illustrated workspace mode switch buttons use `2.65rem` height.
+Response controls wrap at a 10rem column minimum; trace pills occupy their own
+row. Summary metrics wrap at a 9rem column minimum and labels can wrap.
+The global application bar uses intrinsic heights, wrapping labels and columns
+with a 6.5rem minimum (10rem for the project name), so project names and actions cannot overflow fixed rows. The decorative spacer can shrink to zero.
+These rules preserve widget keys and the scoped Simple-mode tab-header hiding.
+
+Candidate library containers use `clamp(240px, 100dvh - 580px, 460px)` on
+desktop. Enclosure artwork retains explicit heights for WebKit stability.
+The desktop sidebar is 432px wide, capped at the viewport width.
+Logo and version share a vertically centered header row, reserving 2.25rem
+on the right for the native sidebar collapse button. Sidebar tabs use
+separate bordered surfaces with 0.5rem gaps, a three-rem minimum height,
+wrapping labels and an emerald selected border; the shared underline is hidden. Root typography stays at 16px;
+navigation, tooltips and native scrolling remain available.

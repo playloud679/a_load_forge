@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.18.26 (2026-09-23)
+
+- **Sidebar legibility and spacing**: widened the desktop sidebar, aligned the
+  version beside the logo in `sidebar_brand_header`, and gave Driver, Load Selection,
+  and Enclosure Parameters distinct bordered tab surfaces with usable spacing and
+  legible height. Removed compressed spaces and overlapping elements; response
+  controls and summary metrics wrap responsively.
+- **Validation**: Python compilation and Streamlit startup AppTest passed;
+  acoustic-load smoke: **14 passed, 0 failed**; full test suite: **242 passed, 0 failed, 0 skipped**;
+  `git diff --check` clean.
+
 ## 0.18.25 (2026-09-23)
 
 - **Fix — sidebar tab navigation**: wrap the Bass Match Simple Search brief tab
