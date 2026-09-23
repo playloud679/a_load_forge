@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.18.25 (2026-09-23)
+
+- **Fix — sidebar tab navigation**: wrap the Bass Match Simple Search brief tab
+  in `bass_match_simple_tab_container` and hide only its header using
+  sidebar-scoped CSS with sufficient specificity to override the shared tab styles.
+- Remove both global structural single-tab rules using
+  `:not(:has(button:nth-of-type(2)))`, preventing their hiding behavior from
+  affecting Box Design after workspace changes. Driver, Load Selection and
+  Enclosure Parameters retain their navigation; Bass Match Advanced retains
+  Load type, Performance filters and Library filters.
+- Synchronize UI module documentation and release references.
+- **Validation**: Python compilation and Streamlit startup AppTest passed;
+  acoustic-load smoke: **14 passed, 0 failed**; fresh full active suite:
+  **242 passed, 0 failed, 0 skipped**. An initial full run reported one
+  candidate-pool multi-selection failure; its isolated rerun and the subsequent
+  complete suite passed without code changes. Playwright Chromium and WebKit:
+  Simple header hidden, all three Box Design tabs clickable after two workspace
+  round trips, and all three Advanced tabs clickable; visual sidebar review passed.
+  `git diff --check` clean.
+
 ## 0.18.24 (2026-09-23)
 
 - **Fix — Streamlit Read-Only Widget State Compatibility (`ReadOnlyAttributeDictionary`)**:

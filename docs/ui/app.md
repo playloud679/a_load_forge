@@ -51,7 +51,11 @@ sidebar canvas, retaining full brand identity and instant load toggling without 
 Non-advanced (Simple) mode presents the complete workflow in a single unified panel without artificial tab headers,
 uniting the always-visible load cards grid, volume target, optimization goal,
 and directly visible library filters (search preset, brand, size, class, price) for an effortless
-single-panel experience. When Advanced mode is toggled, it expands into three dedicated tabs
+single-panel experience. Its Search brief tab and contents are wrapped in
+`st.container(key="bass_match_simple_tab_container")`; CSS hides only this
+container’s tab header, without structural `:has()` single-tab detection.
+Box Design retains its Driver, Load Selection and Enclosure Parameters tabs
+when switching workspaces. When Advanced mode is toggled, it expands into three dedicated tabs
 (`Load type`, `Performance filters`, `Library filters`) with deep evaluation controls, detailed
 acoustic limit sliders, and engine-only topology notes. The bottom Advanced toggle is scoped exclusively to Box Design to avoid duplicate widget keys.
 Neither mode renders the Guided setup scenario presets or the redundant Target

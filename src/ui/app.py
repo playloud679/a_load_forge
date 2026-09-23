@@ -362,18 +362,20 @@ def main() -> None:
 
             if not _finder._show_advanced_controls():
                 # Non-advance (Simple) mode: single unified tab with loads grid always visible
-                # and library filters visible directly.
-                bm_simple_tab, = st.tabs(["Search brief"], key="bass_match_sidebar_tab")
-                with bm_simple_tab:
-                    _state._render_load_type_buttons(_finder_load_set, single_select=False)
-                    volume_column, goal_column = st.columns(2, gap="small")
-                    with volume_column:
-                        _finder._render_find_driver_target_sidebar()
-                    with goal_column:
-                        _finder._render_find_driver_goal_sidebar()
+                # and library filters visible directly. Scoped in a container to cleanly hide
+                # the lone tab header via CSS without brittle pseudo-class selectors.
+                with st.container(key="bass_match_simple_tab_container"):
+                    bm_simple_tab, = st.tabs(["Search brief"], key="bass_match_sidebar_tab")
+                    with bm_simple_tab:
+                        _state._render_load_type_buttons(_finder_load_set, single_select=False)
+                        volume_column, goal_column = st.columns(2, gap="small")
+                        with volume_column:
+                            _finder._render_find_driver_target_sidebar()
+                        with goal_column:
+                            _finder._render_find_driver_goal_sidebar()
 
-                    st.markdown('<div class="sidebar-section-title">Driver & catalog filters</div>', unsafe_allow_html=True)
-                    _catalog._render_finder_library_filters(all_preset_names)
+                        st.markdown('<div class="sidebar-section-title">Driver & catalog filters</div>', unsafe_allow_html=True)
+                        _catalog._render_finder_library_filters(all_preset_names)
             else:
                 # Advanced mode: 3 dedicated tabs
                 bm_tab1, bm_tab2, bm_tab3 = st.tabs(

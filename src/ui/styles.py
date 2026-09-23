@@ -156,9 +156,10 @@ GLOBAL_CSS = """
         color: inherit !important;
         font-size: 0.88rem !important;
     }
-    /* Hide single-tab bar headers in sidebar so lone tabs don't show redundant fake buttons */
-    [data-testid="stSidebar"] [data-baseweb="tab-list"]:not(:has(button:nth-of-type(2))),
-    [data-testid="stSidebar"] [role="tablist"]:not(:has(button:nth-of-type(2))) {
+    /* Hide the lone single-tab bar header in Bass Match Simple mode cleanly without brittle pseudo-classes */
+    section[data-testid="stSidebar"] .st-key-bass_match_simple_tab_container div[data-testid="stTabs"] div[role="tablist"],
+    section[data-testid="stSidebar"] .st-key-bass_match_simple_tab_container [data-baseweb="tab-list"],
+    section[data-testid="stSidebar"] .st-key-bass_match_simple_tab_container [role="tablist"] {
         display: none !important;
     }
     [class*="st-key-emerald_info_"] [data-testid="stAlertContainer"] {
@@ -328,9 +329,6 @@ GLOBAL_CSS = """
         gap: 3px !important;
         display: flex !important;
         width: 100% !important;
-    }
-    section[data-testid="stSidebar"] div[data-testid="stTabs"] div[role="tablist"]:not(:has(button:nth-of-type(2))) {
-        display: none !important;
     }
     section[data-testid="stSidebar"] div[data-testid="stTabs"] button[role="tab"] {
         flex: 1 1 0% !important;

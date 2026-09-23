@@ -50,7 +50,10 @@ Removing that guard makes the top-row buttons visible but unclickable.
 
 - `section[data-testid="stSidebar"] div[data-testid="stTabs"]` styles the sidebar tabs
   as a clean segmented control bar with dark container, subtle borders, and an emerald active indicator.
-  Single-tab lists (`:not(:has(button:nth-of-type(2)))`) are suppressed so Simple mode displays without redundant tab buttons.
+  Only tab headers inside `.st-key-bass_match_simple_tab_container` are hidden.
+  The sidebar-scoped selector overrides the general tablist display rule by specificity.
+  Global single-tab `:not(:has(button:nth-of-type(2)))` selectors were removed:
+  Box Design and Bass Match Advanced tab bars remain visible across workspace switches.
 - `.st-key-sidebar_brief_header_container` and `.sidebar-brief-title` style the top brief header
   row housing the Search Brief title and aligned Advanced mode toggle switch.
 - The 7-card enclosure topology selector grid (`_load_type_card_styles()`) is always visible directly
