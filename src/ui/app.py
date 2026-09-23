@@ -366,10 +366,11 @@ def main() -> None:
                 bm_simple_tab, = st.tabs(["Search brief"], key="bass_match_sidebar_tab")
                 with bm_simple_tab:
                     _state._render_load_type_buttons(_finder_load_set, single_select=False)
-                    _finder._render_find_driver_target_sidebar()
-
-                    st.markdown('<div class="sidebar-section-title">Acoustic goal</div>', unsafe_allow_html=True)
-                    _finder._render_find_driver_goal_sidebar()
+                    volume_column, goal_column = st.columns(2, gap="small")
+                    with volume_column:
+                        _finder._render_find_driver_target_sidebar()
+                    with goal_column:
+                        _finder._render_find_driver_goal_sidebar()
 
                     st.markdown('<div class="sidebar-section-title">Driver & catalog filters</div>', unsafe_allow_html=True)
                     _catalog._render_finder_library_filters(all_preset_names)
@@ -546,17 +547,7 @@ def main() -> None:
                         )
                         st.session_state["driver_identity_manufacturer"] = manufacturer
                         st.session_state["driver_identity_part_number"] = part_number
-                        identity_col1, identity_col2 = st.columns(2)
-                        identity_col1.text_input(
-                            "Manufacturer",
-                            disabled=True,
-                            key="driver_identity_manufacturer",
-                        )
-                        identity_col2.text_input(
-                            "Part number",
-                            disabled=True,
-                            key="driver_identity_part_number",
-                        )
+                        st.caption(f"{manufacturer} · {part_number}")
                         nominal = (
                             f"{preset_info.size_in:g} in"
                             if preset_info.size_in is not None
@@ -617,19 +608,20 @@ def main() -> None:
                 if update_notice:
                     st.success(update_notice)
 
-                c1, c2 = st.columns(2)
+                c1, c2, c3 = st.columns(3, gap="small")
                 with c1:
                     st.number_input("Fs (Hz)", min_value=1.0, max_value=500.0, step=_finder._step5("driver_fs_hz", 0.1),
                                     key="driver_fs_hz", on_change=_finder._on_driver_param_change)
                     st.number_input("Qts", min_value=0.05, max_value=2.0, step=_finder._step5("driver_qts", 0.001),
                                     format="%.3f", key="driver_qts", on_change=_finder._on_driver_param_change)
-                    st.number_input("Re (Ω)", min_value=0.1, max_value=64.0, step=_finder._step5("driver_re_ohm", 0.01),
-                                    key="driver_re_ohm", on_change=_finder._on_driver_param_change)
                 with c2:
                     st.number_input("Vas (L)", min_value=0.1, max_value=1000.0, step=_finder._step5("driver_vas_l", 0.1),
                                     key="driver_vas_l", on_change=_finder._on_driver_param_change)
                     st.number_input("Qms", min_value=0.051, max_value=50.0, step=_finder._step5("driver_qms", 0.001),
                                     format="%.3f", key="driver_qms", on_change=_finder._on_driver_param_change)
+                with c3:
+                    st.number_input("Re (Ω)", min_value=0.1, max_value=64.0, step=_finder._step5("driver_re_ohm", 0.01),
+                                    key="driver_re_ohm", on_change=_finder._on_driver_param_change)
                     st.number_input("Le (mH)", min_value=0.0, max_value=20.0, step=_finder._step5("driver_le_mh", 0.001),
                                     format="%.3f", key="driver_le_mh", on_change=_finder._on_driver_param_change)
 

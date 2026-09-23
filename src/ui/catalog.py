@@ -931,7 +931,8 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
         ("preset_size_filter", "Size", list(_constants._PRESET_SIZE_FILTERS)),
         ("preset_class_filter", "Class", list(_constants._PRESET_CLASS_FILTERS)),
     )
-    for key, label, options in filter_options:
+    filter_columns = st.columns(2, gap="small")
+    for index, (key, label, options) in enumerate(filter_options):
         raw_current = st.session_state.get(key, ["All"])
         current = [raw_current] if isinstance(raw_current, str) else list(raw_current)
         if key == "preset_source_filter":
@@ -956,7 +957,7 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
         if st.session_state.get(synced_key) != requested_state:
             st.session_state[widget_key] = selected
             st.session_state[synced_key] = requested_state
-        selected = st.multiselect(
+        selected = filter_columns[index % 2].multiselect(
             label,
             concrete_options,
             key=widget_key,
@@ -973,7 +974,8 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
     if preset_currencies:
         if st.session_state["preset_price_currency"] not in preset_currencies:
             st.session_state["preset_price_currency"] = preset_currencies[0]
-        st.selectbox("Price currency", preset_currencies, key="preset_price_currency")
+        currency_column, price_column = st.columns(2, gap="small", vertical_alignment="bottom")
+        currency_column.selectbox("Price currency", preset_currencies, key="preset_price_currency")
         price_currency = str(st.session_state["preset_price_currency"])
         rates, rates_date = _current_exchange_rates()
         preset_prices = _preset_price_values(all_preset_names, price_currency)
@@ -984,7 +986,7 @@ def _render_finder_library_filters(all_preset_names: list[str]) -> None:
             float(price_max_available),
             max(0.0, float(st.session_state["preset_max_price"])),
         )
-        st.checkbox("Filter by max price", key="preset_price_enabled")
+        price_column.checkbox("Filter by max price", key="preset_price_enabled")
         if st.session_state["preset_price_enabled"]:
             st.number_input(
                 f"Max price ({price_currency})",
@@ -1866,24 +1868,25 @@ def _render_passive_radiator_library() -> None:
     )
     pr_df = _passive_radiator_library_frame(search_val)
     st.caption(f"{len(pr_df)} passive radiators available in the catalog.")
-    table_state = st.dataframe(
-        pr_df,
-        width="stretch",
-        height=680,
-        hide_index=True,
-        key="finder_pr_library_table",
-        on_select="rerun",
-        selection_mode="single-row",
-        column_config={
-            "Radiator": None,
-            "Sp cm²": st.column_config.NumberColumn("Sp (cm²)", format="%.1f"),
-            "Fp Hz": st.column_config.NumberColumn("Fp (Hz)", format="%.1f"),
-            "Qmp": st.column_config.NumberColumn("Qmp", format="%.2f"),
-            "Mmp g": st.column_config.NumberColumn("Mmp (g)", format="%.1f"),
-            "Xmax mm": st.column_config.NumberColumn("Xmax (mm)", format="%.1f"),
-            "URL": st.column_config.LinkColumn("Product Link"),
-        },
-    )
+    with st.container(height=320, border=False, key="finder_pr_library_viewport"):
+        table_state = st.dataframe(
+            pr_df,
+            width="stretch",
+            height="stretch",
+            hide_index=True,
+            key="finder_pr_library_table",
+            on_select="rerun",
+            selection_mode="single-row",
+            column_config={
+                "Radiator": None,
+                "Sp cm²": st.column_config.NumberColumn("Sp (cm²)", format="%.1f"),
+                "Fp Hz": st.column_config.NumberColumn("Fp (Hz)", format="%.1f"),
+                "Qmp": st.column_config.NumberColumn("Qmp", format="%.2f"),
+                "Mmp g": st.column_config.NumberColumn("Mmp (g)", format="%.1f"),
+                "Xmax mm": st.column_config.NumberColumn("Xmax (mm)", format="%.1f"),
+                "URL": st.column_config.LinkColumn("Product Link"),
+            },
+        )
     selected_rows = getattr(table_state.selection, "rows", []) if table_state else []
     if not selected_rows:
         with st.container(key="emerald_info_pr_library_selection"):
@@ -1910,15 +1913,11 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         ["Loudspeaker Drivers", f"Passive Radiators ({len(_acoustics.passive_radiator_preset_names())})"],
         horizontal=True,
         key="finder_library_catalog_tab",
+        label_visibility="collapsed",
     )
     if cat_mode and "Passive Radiators" in cat_mode:
         _render_passive_radiator_library()
         return
-
-    st.caption(
-        "Select one or more drivers to simulate directly in Box Design, "
-        "or run Bass Match to rank them. Selected drivers remain pinned across filter changes."
-    )
 
     # Re-serializing the full 10k-row catalog to the browser on every rerun
     # (each row selection or widget change) costs seconds of frontend time;
@@ -1938,16 +1937,9 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         return
 
     if len(shown_names) < len(filtered_preset_names):
-        st.caption(
-            f"{len(filtered_preset_names)} presets match the current filters · "
-            f"showing the first {len(shown_names)}. Use search or Library "
-            "filters to narrow the list."
-        )
+        pool_note = f"{len(filtered_preset_names):,} drivers · first {len(shown_names)} shown"
     else:
-        st.caption(
-            f"{len(filtered_preset_names)} drivers match the current filters. "
-            "Scroll the table to browse the complete list."
-        )
+        pool_note = f"{len(filtered_preset_names):,} drivers"
     price_currency = str(st.session_state.get("preset_price_currency", "EUR"))
     rates, rates_date = _current_exchange_rates()
     library_df = _driver_library_frame(
@@ -1956,31 +1948,31 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         tuple(sorted(rates.items())),
         _presets._CATALOG_CACHE_REVISION,
     )
-    if price_currency:
-        rate_note = f" · ECB {rates_date}" if rates_date else ""
-        st.caption(f"Library prices shown in {price_currency}{rate_note}.")
-    table_state = st.dataframe(
-        library_df,
-        width="stretch",
-        height=720,
-        hide_index=True,
-        key="finder_driver_library_table",
-        on_select="rerun",
-        selection_mode="multi-row",
-        column_config={
-            "Driver": None,
-            "Nominal in": st.column_config.NumberColumn("Nominal Ø (in)", format="%.1f"),
-            "Size in": st.column_config.NumberColumn(format="%.1f"),
-            "Fs Hz": st.column_config.NumberColumn(format="%.1f"),
-            "Qts": st.column_config.NumberColumn(format="%.3f"),
-            "Vas L": st.column_config.NumberColumn(format="%.1f"),
-            "SPL dB": st.column_config.NumberColumn(format="%.0f"),
-            "Price": st.column_config.NumberColumn(
-                f"Price ({price_currency})" if price_currency else "Price",
-                format="%.2f",
-            ),
-        },
-    )
+    price_note = f" · {price_currency}" if price_currency else ""
+    st.caption(f"{pool_note}{price_note} · Select drivers to open or compare in Box Design.")
+    with st.container(height=320, border=False, key="finder_library_viewport"):
+        table_state = st.dataframe(
+            library_df,
+            width="stretch",
+            height="stretch",
+            hide_index=True,
+            key="finder_driver_library_table",
+            on_select="rerun",
+            selection_mode="multi-row",
+            column_config={
+                "Driver": None,
+                "Nominal in": st.column_config.NumberColumn("Nominal Ø (in)", format="%.1f"),
+                "Size in": st.column_config.NumberColumn(format="%.1f"),
+                "Fs Hz": st.column_config.NumberColumn(format="%.1f"),
+                "Qts": st.column_config.NumberColumn(format="%.3f"),
+                "Vas L": st.column_config.NumberColumn(format="%.1f"),
+                "SPL dB": st.column_config.NumberColumn(format="%.0f"),
+                "Price": st.column_config.NumberColumn(
+                    f"Price ({price_currency})" if price_currency else "Price",
+                    format="%.2f",
+                ),
+            },
+        )
 
     # Remember the displayed driver names so future row selections map to the exact presets shown
     st.session_state["_finder_last_shown_names"] = list(shown_names)
@@ -1993,11 +1985,7 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
     selected_names = [str(library_df.iloc[i]["Driver"]) for i in selected_indices]
 
     if not selected_names:
-        with st.container(key="emerald_info_library_selection"):
-            st.info(
-                "No pool limit selected. Bass Match will evaluate every driver "
-                "allowed by the Library filters."
-            )
+        st.caption("No selection: Bass Match uses all filtered drivers.")
         return
 
     if len(selected_names) == 1:

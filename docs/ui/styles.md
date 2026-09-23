@@ -104,9 +104,27 @@ Removing that guard makes the top-row buttons visible but unclickable.
   the currently active selection.
 ### Viewport Height Optimization & High Legibility
 
+Desktop compact mode (above 768px wide) uses 0.22rem sidebar gaps, 0.25rem
+main gaps, 0.82rem sidebar labels and two-rem input minimum heights. Logo height
+is capped at three rem, enclosure/workspace artwork buttons at 2.65rem, with
+1.3rem enclosure labels. Brief panels and expanders have tighter padding.
+Scrolling remains available for expanded expert controls and smaller screens;
+content must never be clipped to simulate a viewport fit.
+Candidate library containers use `clamp(180px, 100dvh - 580px, 460px)` on
+desktop; their dataframes stretch to fill the available space. Sidebar bottom
+padding is 0.5rem instead of the framework's large blank footer space.
+Both the keyed library block and its fixed-height wrapper override flex-basis,
+so the dataframe receives the actual available height rather than 320px.
+Sidebar widget label gaps are 0.125rem and input boxes are two rem tall.
+Desktop number-input steppers are 1.25rem wide to leave room for values in
+three-column T/S rows; mobile retains the larger native controls.
+Compact sidebar captions reset Streamlit's negative bottom margin so text
+does not overlap the following control when paragraph margins are reduced.
+
 - Root font size anchored to `16px` with antialiased and legible rendering across devices.
-- Sidebar width anchored stably at `23.5rem` (376px) on desktop viewports with pure black background and `box-sizing: border-box`, completely eliminating horizontal content clipping and right-edge truncation across browser viewports (Chrome, Safari, Firefox).
-- Enclosure load-type cards use explicit `3.4rem` button heights and `1.8rem` label flex containers, preventing Safari/WebKit `aspect-ratio` height-collapsing bugs where rows previously overlapped.
+- Sidebar width is `24.5rem` (392px) on desktop, with a black background and
+  `box-sizing: border-box` to prevent horizontal clipping.
+- Enclosure cards retain explicit heights to prevent Safari/WebKit row overlap.
 - Sidebar tabs scaled to `0.86rem` with `0.20rem 0.40rem` padding to ensure `Driver`, `Load Selection`, and `Enclosure Parameters` render on a single line without truncation or overflow scroll arrows.
 - Vertical block gaps and container padding optimized to fit the entire CAD telemetry panel within standard 900p / 1080p desktop viewports without vertical scrolling.
 - Legibility-first typography hierarchy: widget labels boosted to `0.96rem` (main) and `0.94rem` (sidebar), captions to `0.88rem` with high-contrast `rgba(255, 255, 255, 0.85)`.
@@ -114,7 +132,4 @@ Removing that guard makes the top-row buttons visible but unclickable.
 - Constraint grid labels boosted to `0.80rem` with values at `0.96rem`.
 - Main tabs scaled to `0.95rem` (`font-weight: 600`) and dataframe grid cells scaled to `0.92rem`.
 - Top app bar buttons scaled to `0.88rem` with bottom margin reduced to `0.45rem`.
-- Sidebar illustrated workspace mode switch buttons adjusted to `3.4rem` height.
-
-
-
+- Sidebar illustrated workspace mode switch buttons use `2.65rem` height.

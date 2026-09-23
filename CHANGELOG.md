@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.18.23 (2026-09-23)
+
+- **UI & Workspace Compaction (Compact Desktop Layout)**:
+  - `src/ui/catalog.py`: arranged catalog and passive radiator filters across two columns; wrapped driver and passive radiator tables in compact containers with adaptive/clamped heights and streamlined selectors.
+  - `src/ui/app.py`: paired max volume and objective side-by-side in Simple mode; displayed manufacturer and part number identity as a single unified caption; aligned Box Design parameters (Fs/Qts, Vas/Qms, Re/Le) into three columns.
+  - `src/ui/finder.py`: renamed volume label to "Max volume (L)"; removed redundant caption on Advanced constraints; concealed sidebar summary in Simple mode to maximize vertical space.
+  - `src/ui/analysis.py`: resized primary response and MIL charts from 320px to 240px with aligned layer heights, ensuring telemetry and traces fit desktop viewports without vertical scrolling.
+  - `src/ui/styles.py`: tightened gaps, paddings, fonts, inputs and stepper controls; reduced load and workspace card heights; added adaptive table height clamping; refined caption margins to prevent text collision.
+  - Synchronized documentation across `docs/ui/app.md`, `docs/ui/catalog.md`, `docs/ui/finder.md`, `docs/ui/styles.md`, `docs/ui/analysis.md`, and `USER_GUIDE.md`.
+- **Validation**: Python compilation clean; targeted response chart tests passed; full test suite: **242 passed, 0 failed, 0 skipped**; `git diff --check` clean.
+
 ## 0.18.22 (2026-09-23)
 
 - **Bass Match sidebar**: removed the Guided setup scenario selector and the

@@ -5792,7 +5792,7 @@ def _check_response_chart_domain_tracks_10hz_and_peak():
     assert zoom_domain == [68.0, 85.0], zoom_domain
     chart = _ui._plot_response(result, [], frequency_window=[20.0, 40.0])
     spec = chart.to_dict()
-    assert spec["height"] == 320, spec.get("height")
+    assert spec["height"] == 240, spec.get("height")
     assert "'domain': [20.0, 40.0]" in str(spec), spec
 
 
@@ -10666,7 +10666,7 @@ def _check_ui_finder_starts_from_practical_defaults():
     numbers.update({
         control.label: control.value for control in at.number_input
     })
-    assert numbers["Maximum volume (L)"] == 40.0, numbers
+    assert numbers["Max volume (L)"] == 40.0, numbers
     assert numbers["Comparison voltage (V)"] == 2.83, numbers
     assert numbers["Evaluation range start (Hz)"] == 10.0, numbers
     assert numbers["Evaluation range end (Hz)"] == 300.0, numbers

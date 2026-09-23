@@ -34,6 +34,11 @@ results, the candidate pool and the run statistics.
 
 ## Invariants
 
+- Simple mode omits the advanced-controls explanatory caption and repeated
+  sidebar specification summary, since the main brief already shows those
+  values. Advanced mode retains its summary and data-coverage controls.
+  The volume input is labelled `Max volume (L)` to fit beside the goal selector.
+
 - Worker pools are process-first with a thread fallback on Streamlit Cloud or
   denied process semaphores. Tests patch `ui.finder.ProcessPoolExecutor` and
   `ui.finder._finder_executor_backend`.

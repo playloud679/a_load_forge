@@ -1280,7 +1280,7 @@ def _render_find_driver_target_sidebar() -> None:
                  "parallel or mixed array; or an isobaric array up to 16 total drivers.",
         )
     _state._finder_number_input(
-        "Maximum volume (L)",
+        "Max volume (L)",
         min_value=0.1,
         max_value=2000.0,
         step=1.0,
@@ -1625,11 +1625,6 @@ def _render_find_driver_goal_sidebar() -> None:
                     step=1.0, key="finder_max_gd_ms",
                     help="Maximum allowed low-frequency group delay; 0 disables this constraint.",
                 )
-            else:
-                st.caption(
-                    "Advanced constraints are hidden. Enable Advanced mode to set "
-                    "F3, MOL, SPL, ripple, excursion and delay limits."
-                )
     if _show_advanced_controls():
         with st.expander("Advanced driver filters", expanded=True):
             _state._finder_number_input(
@@ -1674,6 +1669,8 @@ def _finder_search_blocked(filtered_preset_names: list[str]) -> bool:
 
 def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
     """Render the live Finder search brief summary."""
+    if not _show_advanced_controls():
+        return
     finder_load_types, only_infinite_baffle = _catalog._finder_load_context()
     finder_volume_l = float(_state._finder_value("finder_volume_l"))
     display_loads = [

@@ -1034,6 +1034,94 @@ GLOBAL_CSS = """
         border-color: rgba(255, 255, 255, 0.22) !important;
         color: #ffffff !important;
     }
+    /* Compact desktop workbench; expanded expert panels may still scroll. */
+    @media (min-width: 769px) {
+        [data-testid="stSidebarUserContent"] {
+            padding-bottom: 0.5rem !important;
+        }
+        .st-key-sidebar_brief_header_container {
+            margin-bottom: 0.5rem !important;
+        }
+        .st-key-finder_library_viewport,
+        .st-key-finder_pr_library_viewport,
+        div:has(> .st-key-finder_library_viewport),
+        div:has(> .st-key-finder_pr_library_viewport) {
+            height: clamp(180px, calc(100dvh - 580px), 460px) !important;
+            flex-basis: clamp(180px, calc(100dvh - 580px), 460px) !important;
+            min-height: 180px !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stNumberInput"],
+        [data-testid="stSidebar"] [data-testid="stSelectbox"],
+        [data-testid="stSidebar"] [data-testid="stTextInput"],
+        [data-testid="stSidebar"] [data-testid="stMultiSelect"] {
+            gap: 0.125rem !important;
+        }
+        [data-testid="stSidebar"] [data-baseweb="input"] {
+            height: 2rem !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stNumberInput"] button {
+            min-width: 1.25rem !important;
+            width: 1.25rem !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stNumberInput"] input {
+            padding-left: 0.4rem !important;
+            padding-right: 0.15rem !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+            gap: 0.22rem !important;
+        }
+        [data-testid="stMain"] [data-testid="stVerticalBlock"] {
+            gap: 0.25rem !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
+            gap: 0.5rem !important;
+        }
+        section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
+            font-size: 0.82rem !important;
+            line-height: 1.15 !important;
+        }
+        [data-testid="stSidebar"] [data-baseweb="input"],
+        [data-testid="stSidebar"] [data-baseweb="select"] > div {
+            min-height: 2rem !important;
+        }
+        [data-testid="stSidebar"] input {
+            min-height: 0 !important;
+            padding-top: 0.25rem !important;
+            padding-bottom: 0.25rem !important;
+            font-size: 0.85rem !important;
+        }
+        section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] {
+            margin-bottom: 0 !important;
+        }
+        section[data-testid="stSidebar"] [data-testid="stCaptionContainer"] p {
+            font-size: 0.78rem !important;
+            line-height: 1.2 !important;
+            margin-bottom: 0 !important;
+        }
+        [data-testid="stSidebar"] [data-baseweb="tab-panel"] {
+            padding-top: 0.25rem !important;
+        }
+        .sidebar-section-title {
+            font-size: 0.85rem !important;
+            margin: 0.12rem 0 !important;
+        }
+        .st-key-brand_logo img {
+            max-height: 3rem !important;
+            width: auto !important;
+            object-fit: contain;
+        }
+        [data-testid="stMainBlockContainer"] [data-testid="stWidgetLabel"] {
+            margin-top: 0.1rem !important;
+        }
+        .st-key-bass_match_brief {
+            padding: 0.35rem 0.6rem !important;
+            margin-bottom: 0.15rem !important;
+        }
+        [data-testid="stExpander"] summary {
+            padding-top: 0.3rem !important;
+            padding-bottom: 0.3rem !important;
+        }
+    }
     </style>
     """
 
@@ -1067,15 +1155,15 @@ def _load_type_card_styles(version: str = "square_v5") -> str:
         """
         <style>
         [class*="st-key-load_card_"] {
-            min-height: 5.2rem !important;
+            min-height: 4.15rem !important;
             height: auto !important;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] {
             display: flex !important;
             justify-content: center !important;
             width: 100% !important;
-            height: 3.4rem !important;
-            min-height: 3.4rem !important;
+            height: 2.65rem !important;
+            min-height: 2.65rem !important;
         }
         [class*="st-key-load_card_"] div[data-testid="stButton"] button {
             background-color: #f2f2f0;
@@ -1086,9 +1174,9 @@ def _load_type_card_styles(version: str = "square_v5") -> str:
             border-radius: .58rem;
             box-shadow: inset 0 1px 0 rgba(255,255,255,.06);
             filter: saturate(.72) brightness(.82) contrast(1.04);
-            height: 3.4rem !important;
-            min-height: 3.4rem !important;
-            max-height: 3.4rem !important;
+            height: 2.65rem !important;
+            min-height: 2.65rem !important;
+            max-height: 2.65rem !important;
             opacity: .88;
             overflow: hidden;
             padding: 0;
@@ -1109,8 +1197,8 @@ def _load_type_card_styles(version: str = "square_v5") -> str:
             font-weight: 600;
             line-height: 1.15;
             margin: .20rem 0 0 0;
-            min-height: 1.8rem;
-            height: 1.8rem;
+            min-height: 1.3rem;
+            height: 1.3rem;
             text-align: center;
             display: flex;
             align-items: center;
@@ -1342,8 +1430,8 @@ def _workspace_tab_styles() -> str:
             background-color: #000000;
             border: 1px solid rgba(16,185,129,.46);
             border-radius: .65rem;
-            height: 3.4rem;
-            min-height: 3.4rem;
+            height: 2.65rem;
+            min-height: 2.65rem;
             overflow: hidden;
             padding: 0;
             position: relative;

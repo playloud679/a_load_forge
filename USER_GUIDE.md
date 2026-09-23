@@ -317,6 +317,12 @@ workflow:
    first matching names before a scan is started.
 
 The sidebar opens in **Simple mode**, starting directly with the load cards,
+with volume and goal side by side and library filters in two columns on desktop.
+The candidate table adapts to the window height and scrolls internally. Box
+Design keeps its six core T/S inputs visible in two rows and uses a compact
+response plot. Expanded expert panels and small screens retain normal scrolling.
+
+Simple mode shows
 the maximum volume, the optimization goal and the complete library filters
 (search, provenance, manufacturer, size, class, price). Guided setup presets
 and the Target enclosure heading are removed in both modes. Everything else — driver

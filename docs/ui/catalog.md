@@ -37,6 +37,14 @@ Everything that reads or edits the driver catalog and the preset library.
 
 ## Invariants
 
+- Library filters use two columns (Provenance/Size and Manufacturer/Class),
+  keeping all filters available in both modes. Driver and passive-radiator
+  tables stretch inside keyed 320px containers; desktop CSS sizes their
+  viewport to the window height with internal table scrolling. The driver
+  count, currency and selection hint share one caption above the table.
+  Currency and price-filter enablement share a row. The catalog radio group
+  hides its redundant label; selection guidance below the table is one caption.
+
 - The UI never mutates the source catalog implicitly: only the explicit admin
   action writes, and only through `presets`/`tools` merge helpers.
 - `_driver_coverage_summary` and `_refresh_finder_result_catalog_metadata` pass
