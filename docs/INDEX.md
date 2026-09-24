@@ -212,3 +212,5 @@ for the pre-production workflow and targeted test commands.
 - [`src/storage/catalog_runtime_store.py`](storage/catalog_runtime_store.md)
 - [`src/storage/catalog_staging_store.py`](storage/catalog_staging_store.md)
 - [`src/ui/__init__.py`](ui/__init__.md)
+
+- `src/ui/navigation.py` → [Portal entry and sign-in return](ui/navigation.md).

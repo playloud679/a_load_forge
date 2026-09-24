@@ -12,7 +12,7 @@ on reload. Account and billing store policies are unchanged.
   OIDC identity from signed `_streamlit_user` cookie when Streamlit reconnects a
   pre-login session without updating `_user_info`; renders the gate and calls
   `st.stop()` when auth is required. There is no anonymous or guest identity:
-  every visitor must sign in or register an email account, including Free users.
+  when authentication is enabled, visitors must sign in or register an email account, including Free users.
 - `_remember_local_account` / `_sign_out_saas` — session transitions.
 - Stores: `_get_account_store`, `_get_project_store`, `_get_public_store`
   (each `@st.cache_resource`, keyed by `_runtime._SAAS_SETTINGS` and
@@ -38,8 +38,8 @@ that import `ui_app._get_project_store()`.
 
 ## Project-first UX
 
-Local sign-in and registration set `_projects_after_login` for a one-time
-project-list landing. Sign-out clears the navigation choice and cached private
+Local sign-in and registration set `_projects_after_login`; the entry router
+honors the requested workspace or resumes engineering work. Sign-out clears the navigation choice and cached private
 project summaries so the next login starts from that user’s projects.
 
 Logout uses a local rerun for local accounts and returns directly through
@@ -57,3 +57,6 @@ revision. See `docs/deploy-cloudrun.md` for the secret layout.
 In development auth-bypass mode, logout pauses the generated demo identity and
 shows a signed-out screen with an explicit “Sign in again” action, instead of
 recreating that identity on the next rerun.
+
+OIDC sign-in preserves the portal destination through the short-lived navigation
+cookie managed by [navigation](navigation.md); authentication itself is unchanged.

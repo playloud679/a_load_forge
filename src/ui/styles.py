@@ -1259,7 +1259,7 @@ GLOBAL_CSS = """
 
     .st-key-header_upgrade_btn div[data-testid="stButton"] > button,
     .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button,
-    .st-key-bm_upgrade_callout div[data-testid="stButton"] > button,
+    [class*="st-key-bm_upgrade_callout"] div[data-testid="stButton"] > button,
     div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a,
     div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a,
     .st-key-modal_pro_demo_btn div[data-testid="stButton"] > button,
@@ -1284,7 +1284,7 @@ GLOBAL_CSS = """
 
     .st-key-header_upgrade_btn div[data-testid="stButton"] > button *,
     .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button *,
-    .st-key-bm_upgrade_callout div[data-testid="stButton"] > button *,
+    [class*="st-key-bm_upgrade_callout"] div[data-testid="stButton"] > button *,
     div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a *,
     div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a *,
     .st-key-modal_pro_demo_btn div[data-testid="stButton"] > button *,
@@ -1298,7 +1298,7 @@ GLOBAL_CSS = """
 
     .st-key-header_upgrade_btn div[data-testid="stButton"] > button::after,
     .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button::after,
-    .st-key-bm_upgrade_callout div[data-testid="stButton"] > button::after,
+    [class*="st-key-bm_upgrade_callout"] div[data-testid="stButton"] > button::after,
     div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a::after,
     div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a::after {
         content: "" !important;
@@ -1315,7 +1315,7 @@ GLOBAL_CSS = """
 
     .st-key-header_upgrade_btn div[data-testid="stButton"] > button:hover,
     .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button:hover,
-    .st-key-bm_upgrade_callout div[data-testid="stButton"] > button:hover,
+    [class*="st-key-bm_upgrade_callout"] div[data-testid="stButton"] > button:hover,
     div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a:hover,
     div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a:hover {
         transform: translateY(-2px) scale(1.04) !important;
@@ -1326,7 +1326,7 @@ GLOBAL_CSS = """
 
     .st-key-header_upgrade_btn div[data-testid="stButton"] > button:active,
     .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button:active,
-    .st-key-bm_upgrade_callout div[data-testid="stButton"] > button:active,
+    [class*="st-key-bm_upgrade_callout"] div[data-testid="stButton"] > button:active,
     div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a:active,
     div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a:active {
         transform: translateY(0) scale(0.98) !important;

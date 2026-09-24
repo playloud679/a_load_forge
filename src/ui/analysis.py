@@ -2198,7 +2198,7 @@ def _sync_active_design_comparison_tab() -> None:
     # the optimizer again and overwrites the stored design.
     _finder._mark_auto_alignment_synced()
     st.session_state["design_comparison_loaded_id"] = requested_id
-    st.session_state["workspace_mode"] = "Box Design"
+    _state._select_workspace("Box Design")
     st.session_state["design_comparison_tabs"] = tabs
 
 @st.cache_data(show_spinner="Mapping the design space...")

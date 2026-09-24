@@ -591,7 +591,7 @@ def _apply_batch_result(row: dict, load_type: str) -> None:
     st.session_state["driver_panel_air_load"] = bool(driver.panel_air_load)
     st.session_state["driver_panel_coupling"] = float(driver.panel_coupling)
     _optimizer._use_manual_box_strategy()
-    st.session_state["workspace_mode"] = "Box Design"
+    _state._select_workspace("Box Design")
     st.session_state["opt_max_ripple_freq_hz"] = float(st.session_state.get("finder_max_ripple_freq_hz", 0.0) or 0.0)
     if load_type == "Bass reflex":
         st.session_state["reflex_vb_l"] = float(row["Vb L"])
@@ -897,7 +897,7 @@ def _add_finder_designs_to_comparison(
         and isinstance(item.get("snapshot"), dict)
     ]
     st.session_state["plot_compare_loads"] = False
-    st.session_state["workspace_mode"] = "Box Design"
+    _state._select_workspace("Box Design")
     return added_tabs
 
 def _apply_pending_batch_comparison() -> None:
@@ -923,7 +923,7 @@ def _apply_library_driver(name: str) -> None:
     if _state._box_strategy_is_auto():
         _optimizer._apply_suggested_box_for(driver)
         _mark_auto_alignment_synced(driver)
-    st.session_state["workspace_mode"] = "Box Design"
+    _state._select_workspace("Box Design")
 
 def _apply_multiple_library_drivers(names: list[str]) -> None:
     """Load multiple library presets as Box Design comparison tabs."""
@@ -1051,13 +1051,12 @@ def _apply_multiple_library_drivers(names: list[str]) -> None:
         if item["id"] != active["id"]
     ]
     _mark_auto_alignment_synced()
-    st.session_state["workspace_mode"] = "Box Design"
+    _state._select_workspace("Box Design")
 
 def _apply_library_pr(name: str) -> None:
     """Load one passive radiator preset into the current simulation workspace."""
     _analysis._end_design_comparison()
     pr = _acoustics.get_passive_radiator_preset(name)
-    st.session_state["workspace_mode"] = "Box Design"
     st.session_state["load_type"] = "Bass reflex"
     st.session_state["reflex_resonator_type"] = "Passive radiator"
     st.session_state["pr_preset_name"] = name
@@ -1067,6 +1066,7 @@ def _apply_library_pr(name: str) -> None:
     st.session_state["pr_mmp_g"] = pr.mmp_g
     st.session_state["pr_xmax_mm"] = pr.xmax_mm
     st.session_state["pr_added_mass_g"] = 0.0
+    _state._select_workspace("Box Design")
 
 def _apply_pending_atlas_point() -> None:
     pending = st.session_state.pop("atlas_pending_point", None)
@@ -2006,7 +2006,7 @@ def _render_bass_match_hero(
             )
             c_buy1, _ = st.columns([2.5, 2.5])
             with c_buy1:
-                with st.container(key="bm_upgrade_callout"):
+                with st.container(key="bm_upgrade_callout_shortfall"):
                     _projects._render_credits_purchase_popover(
                         acc,
                         key="bm_buy_credits_err_popover",
@@ -2042,6 +2042,8 @@ def _render_bass_match_hero(
 @st.fragment
 def _render_candidate_pool(filtered_preset_names: list[str]) -> None:
     """Keep raw catalog browsing secondary; opening it reruns only this fragment."""
+    if st.session_state.pop("_pending_workspace_switch", None) == "Box Design":
+        st.rerun(scope="app")
     selected_count = len(
         _catalog._selected_library_preset_names(filtered_preset_names)
     )

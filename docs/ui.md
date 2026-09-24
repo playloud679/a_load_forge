@@ -72,3 +72,5 @@ therefore updates both the browser title and visible version after a bump.
 
 The public store module participates in source-change hot reload alongside the
 private store so publication access checks stay current in long-lived sessions.
+
+- `src/ui/navigation.py` → [Portal entry and sign-in return](ui/navigation.md).

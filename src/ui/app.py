@@ -16,12 +16,14 @@ from . import catalog as _catalog
 from . import constants as _constants
 from . import finder as _finder
 from . import optimizer as _optimizer
+from . import navigation as _navigation
 from . import projects as _projects
 from . import runtime as _runtime
 from . import state as _state
 
 
 def main() -> None:
+    had_design = "driver_fs_hz" in st.session_state
     # The original script re-created functools caches on every Streamlit
     # rerun; keep that per-run scope now that modules are imported once.
     _account._get_current_user_account.cache_clear()
@@ -36,7 +38,7 @@ def main() -> None:
     if (
         st.session_state.get("_cloud_project_id") is None
         and not st.session_state.get("_session_project_resumed", False)
-        and not any(st.query_params.get(k) for k in ("d", "p", "explore", "embed", "maintenance", "admin_users", "view"))
+        and not any(st.query_params.get(k) for k in ("d", "p", "explore", "embed", "maintenance", "admin_users", "view", "preset"))
     ):
         st.session_state["_session_project_resumed"] = True
         _projects._resume_last_cloud_project()
@@ -186,7 +188,7 @@ def main() -> None:
         "projects": "Manage Projects",
     }.get(str(st.query_params.get("view", "")))
     deep_link_workspace = requested_workspace or (
-        "Box Design" if st.query_params.get("d") else None
+        "Box Design" if (st.query_params.get("d") or st.query_params.get("preset")) else None
     )
     initial_workspace = (
         deep_link_workspace
@@ -197,6 +199,8 @@ def main() -> None:
         if not any(st.query_params.get(key) for key in ("p", "explore", "checkout", "maintenance", "admin_users")):
             st.session_state["workspace_mode"] = initial_workspace
     _state._default("workspace_mode", initial_workspace)
+    if st.session_state.pop("_pending_workspace_switch", None) == "Box Design":
+        _state._select_workspace("Box Design")
     if requested_workspace and st.session_state.get("_applied_workspace_route") != st.query_params.get("view"):
         st.session_state["workspace_mode"] = requested_workspace
         st.session_state["_applied_workspace_route"] = st.query_params.get("view")
@@ -254,6 +258,7 @@ def main() -> None:
         except Exception:
             _runtime.logger.exception("Invalid share link payload")
             st.warning("The shared link could not be decoded; using the current parameters.")
+    _navigation.apply_catalog_handoff(preserve_existing=had_design)
     _finder._initialize_alignment_defaults()
     _finder._sync_auto_alignment_if_needed()
     _checkout_status = st.query_params.get("checkout")

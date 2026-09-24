@@ -105,6 +105,7 @@ from ui import app as _ui_app
 from ui import catalog as _ui_catalog
 from ui import constants as _ui_constants
 from ui import finder as _ui_finder
+from ui import navigation as _ui_navigation
 from ui import optimizer as _ui_optimizer
 from ui import projects as _ui_projects
 from ui import runtime as _ui_runtime
@@ -113,7 +114,7 @@ from ui import styles as _ui_styles
 
 for _ui_module in (
     _ui_runtime, _ui_constants, _ui_styles, _ui_state, _ui_catalog, _ui_finder,
-    _ui_optimizer, _ui_analysis, _ui_projects, _ui_account, _ui_app,
+    _ui_optimizer, _ui_analysis, _ui_projects, _ui_navigation, _ui_account, _ui_app,
 ):
     _reload_if_source_changed(_ui_module)
 
@@ -135,6 +136,8 @@ st.set_page_config(
 _ui_styles.inject_global_css()
 _ui_runtime.initialize_saas_settings()
 _ui_runtime._CURRENT_SAAS_USER = _ui_account._resolve_saas_user()
+if _ui_runtime._CURRENT_SAAS_USER is not None:
+    _ui_navigation.restore_auth_destination()
 _ui_runtime._ACCOUNT_STORE = _ui_account._get_account_store()
 
 from ui.account import _account_admin_emails as _account_admin_emails

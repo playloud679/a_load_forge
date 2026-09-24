@@ -62,3 +62,7 @@ cards in display order. Each card owns its square button and caption; CSS Grid
 controls the columns and row spacing, replacing separately sized Streamlit rows.
 Style-only HTML uses `st.html` so it adds no empty Markdown block; captions also
 use HTML with intrinsic height. Selection callbacks and widget keys are unchanged.
+
+Workspace selection clears consumed portal `preset/vb/fb/load` parameters so
+manual navigation does not reopen the imported design on refresh. The consumed
+signature is also reset, allowing a later explicit visit to the same driver link.

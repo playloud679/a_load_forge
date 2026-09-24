@@ -49,6 +49,10 @@ results, the candidate pool and the run statistics.
   visible columns are rendered/exported.
 - The initial render must not be disabled by an unloaded catalog
   (`_check_ui_finder_main_action_runs_search`).
+- Candidate pool library handoffs (`_apply_library_driver`, `_apply_multiple_library_drivers`,
+  `_apply_library_pr`) execute inside the `@st.fragment` boundary; they switch workspace
+  via `_state._select_workspace("Box Design")` and trigger `st.rerun(scope="app")` to
+  escalate to a full app-level rerun into Box Design.
 
 ## Tests
 
@@ -94,3 +98,6 @@ manual tab round trips, selection persistence, input invalidation and opening
 Box Design, including volume/voltage/objective edits, presentation-only changes
 and completed searches with no matches; the restored-project AppTest covers
 saved results.
+
+The Free-plan upgrade and insufficient-credit callouts have distinct container
+keys, allowing both to render in the same Bass Match view.

@@ -30,7 +30,8 @@ All plotting and analysis-tab rendering.
 
 ## Invariants
 
-- Primary response and MIL charts use `height=240` (optimized from 320px) with enhanced axis typography (`labelFontSize=12`, `titleFontSize=13`) to ensure telemetry, charts, and subcontrols fit comfortably within desktop viewports without vertical scrolling.
+- Primary response and MIL chart layers use `height=580`; zoom tests assert
+  frequency and amplitude domains independently of presentation height.
 - Chart layers must filter data to the zoom window; unclipped marks past the
   x-domain make Vega shrink the plot area.
 - `@st.fragment` tabs rerun alone so switching Response/Ports/Atlas keeps the
@@ -44,6 +45,5 @@ All plotting and analysis-tab rendering.
 `_check_ui_response_*`, `_check_ui_design_crw_*`.
 # Compact response view
 
-The primary response plot uses a 240px plotting area to keep the trace controls
-and enclosure metrics in view on desktop. Other analysis tabs retain their own
+The primary response plot uses a 580px plotting area. Other analysis tabs retain their own
 chart sizes; no traces, axes or simulation outputs are removed.

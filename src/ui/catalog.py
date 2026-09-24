@@ -1871,6 +1871,20 @@ def _passive_radiator_library_frame(search: str = "") -> pd.DataFrame:
         return pd.DataFrame(columns=columns)
     return pd.DataFrame(rows)
 
+def _on_simulate_single_pr(selected_name: str) -> None:
+    _finder._apply_library_pr(selected_name)
+    st.session_state["_pending_workspace_switch"] = "Box Design"
+
+def _on_simulate_single_candidate(selected_name: str) -> None:
+    st.session_state["finder_pinned_driver_names"] = [selected_name]
+    _finder._apply_library_driver(selected_name)
+    st.session_state["_pending_workspace_switch"] = "Box Design"
+
+def _on_simulate_multiple_candidates(selected_names: list[str]) -> None:
+    st.session_state["finder_pinned_driver_names"] = list(selected_names)
+    _finder._apply_multiple_library_drivers(selected_names)
+    st.session_state["_pending_workspace_switch"] = "Box Design"
+
 def _render_passive_radiator_library() -> None:
     """Render the catalog of passive radiators in a selectable table."""
     st.caption(
@@ -1912,14 +1926,16 @@ def _render_passive_radiator_library() -> None:
     if not 0 <= selected_index < len(pr_df):
         return
     selected_name = str(pr_df.iloc[selected_index]["Radiator"])
-    st.button(
+    if st.button(
         f"Apply {selected_name} to Box Design",
         type="primary",
         width="stretch",
         key="finder_use_library_pr",
-        on_click=_finder._apply_library_pr,
+        on_click=_on_simulate_single_pr,
         args=(selected_name,),
-    )
+    ):
+        st.session_state["_pending_workspace_switch"] = "Box Design"
+        st.rerun(scope="app")
 
 def _render_driver_library(filtered_preset_names: list[str]) -> None:
     """Render every filtered driver in a scrollable, selectable library."""
@@ -1999,14 +2015,22 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
     # Remember the displayed driver names so future row selections map to the exact presets shown
     st.session_state["_finder_last_shown_names"] = list(shown_names)
 
-    selected_rows = _table_selection_rows(table_state) or []
-    selected_indices = [
-        r for r in selected_rows
-        if 0 <= r < len(library_df)
-    ]
-    selected_names = [str(library_df.iloc[i]["Driver"]) for i in selected_indices]
+    selected_rows = _table_selection_rows(table_state)
+    if selected_rows is not None:
+        selected_indices = [
+            r for r in selected_rows
+            if 0 <= r < len(library_df)
+        ]
+        selected_names = [str(library_df.iloc[i]["Driver"]) for i in selected_indices]
+        st.session_state["finder_pinned_driver_names"] = list(selected_names)
+    else:
+        selected_names = [
+            p for p in st.session_state.get("finder_pinned_driver_names", [])
+            if p in shown_names
+        ]
 
     if not selected_names:
+        st.session_state["finder_pinned_driver_names"] = []
         st.caption("No selection: Bass Match uses all filtered drivers.")
         return
 
@@ -2014,14 +2038,16 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         selected_name = selected_names[0]
         c_btn1, c_btn2 = st.columns([3, 1])
         with c_btn1:
-            st.button(
+            if st.button(
                 f"Open {_driver_preset_display_label(selected_name)} in Box Design",
                 type="primary",
                 width="stretch",
                 key="finder_use_library_driver",
-                on_click=_finder._apply_library_driver,
+                on_click=_on_simulate_single_candidate,
                 args=(selected_name,),
-            )
+            ):
+                st.session_state["_pending_workspace_switch"] = "Box Design"
+                st.rerun(scope="app")
         with c_btn2:
             st.button(
                 "Unpin driver",
@@ -2038,14 +2064,16 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
         )
     c_btn1, c_btn2 = st.columns([3, 1])
     with c_btn1:
-        st.button(
+        if st.button(
             f"Simulate {len(selected_names)} drivers in Box Design",
             type="primary",
             width="stretch",
             key="finder_use_library_driver_multi",
-            on_click=_finder._apply_multiple_library_drivers,
+            on_click=_on_simulate_multiple_candidates,
             args=(selected_names,),
-        )
+        ):
+            st.session_state["_pending_workspace_switch"] = "Box Design"
+            st.rerun(scope="app")
     with c_btn2:
         st.button(
             "Unpin all",

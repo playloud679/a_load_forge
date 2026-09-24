@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.19.0 (2026-09-24)
+
+- **Portal → Studio handoff** (new `src/ui/navigation.py`, `docs/ui/navigation.md`):
+  - Catalog links from load-forge.com (`?preset=`, optional `vb`, `fb`, `load=sealed`) open Box Design with that driver and box. Inputs are validated before any state change (unknown preset, non-finite or out-of-range values, `fb` on sealed) and applied once per session, so reruns never overwrite user edits.
+  - An existing cloud project is saved and detached before the linked design is loaded; saved work is never overwritten.
+  - Sign-in return destination: the allowed entry query (`view`, `preset`, `vb`, `fb`, `load`, `p`, `explore`, `embed`, `d`) is kept in a 10-minute cookie across the OIDC redirect and restored once after login. Tokens and arbitrary URLs are never restored.
+  - `view=bass-match` / `view=box-design` deep links and the new `preset` parameter select the workspace; last-project resume is skipped for linked entries.
+- **Library → Box Design**: "Open in Box Design", multi-driver "Simulate in Box Design" and passive-radiator "Apply" now switch workspace reliably from the candidate-pool fragment and keep the pinned selection across reruns. Workspace changes go through `_select_workspace`, which also clears handoff query keys.
+- **Credits callout**: the shortfall callout uses its own key; styling matches every `bm_upgrade_callout*` variant.
+- Validation: `make test` 107 passed; `make test-match MATCH='UI portal'` 5 passed.
+
 ## 0.18.32 (2026-09-24)
 
 - **Fix — eliminate double login requirement on Google OIDC authentication**:

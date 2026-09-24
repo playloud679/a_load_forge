@@ -175,3 +175,6 @@ multiselect wrapping cannot move just one column's following fields.
 in both workspaces. Fields draw one outer border, never nested input borders.
 Number stepper CSS targets only `stNumberInputStepUp/Down`, leaving the label's
 help button at its natural size. Native widget keys and interactions are retained.
+
+The upgrade-button selectors cover both `bm_upgrade_callout` and
+`bm_upgrade_callout_shortfall`, whose separate keys allow simultaneous rendering.

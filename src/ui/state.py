@@ -120,7 +120,8 @@ def _select_workspace(workspace: str) -> None:
         if workspace in {"Bass Match", "Box Design", "Manage Projects"}:
             st.query_params.pop("view", None)
             st.session_state.pop("_applied_workspace_route", None)
-            for k in ("admin_users", "maintenance", "explore", "p", "embed"):
+            st.session_state.pop("_applied_catalog_handoff", None)
+            for k in ("admin_users", "maintenance", "explore", "p", "embed", "preset", "vb", "fb", "load"):
                 st.query_params.pop(k, None)
 
 def _resume_last_engineering_workspace() -> str | None:
