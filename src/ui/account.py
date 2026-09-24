@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import multiprocessing
 import os
 import time
 from functools import cache
 from pathlib import Path
+from typing import Any
 
 import streamlit as st
 
@@ -237,6 +239,94 @@ def _render_auth_bypass_signed_out() -> None:
             st.rerun()
     st.stop()
 
+def _patch_websocket_session_manager() -> None:
+    """Ensure reconnected sessions update _user_info from incoming cookies.
+
+    In Streamlit >=1.57 (Starlette WebSocket), WebsocketSessionManager.connect_session
+    reconnects existing sessions without updating their AppSession._user_info
+    from the newly parsed cookie. This patch ensures that whenever a client
+    reconnects, the active session's _user_info is synchronized with user_info.
+    """
+    try:
+        from streamlit.runtime.websocket_session_manager import WebsocketSessionManager
+        if getattr(WebsocketSessionManager, "_load_forge_user_info_patched", False):
+            return
+
+        orig_connect = WebsocketSessionManager.connect_session
+
+        def _patched_connect(self, client, script_data, user_info, existing_session_id=None, session_id_override=None):
+            session_id = orig_connect(
+                self, client, script_data, user_info,
+                existing_session_id=existing_session_id,
+                session_id_override=session_id_override,
+            )
+            if user_info and session_id in self._active_session_info_by_id:
+                active_session_info = self._active_session_info_by_id[session_id]
+                active_session_info.session._user_info.update(user_info)
+            return session_id
+
+        WebsocketSessionManager.connect_session = _patched_connect
+        WebsocketSessionManager._load_forge_user_info_patched = True
+    except Exception:
+        pass
+
+
+_patch_websocket_session_manager()
+
+
+def _sync_user_info_from_cookie() -> dict[str, Any] | None:
+    """Recover authenticated identity from signed Streamlit OIDC cookie.
+
+    Acts as an immediate fallback during script execution if a session was
+    reconnected before _user_info could be populated.
+    """
+    try:
+        if not hasattr(st, "context") or not hasattr(st.context, "cookies"):
+            return None
+        cookies = dict(st.context.cookies)
+        if not any(k.startswith("_streamlit_user") for k in cookies):
+            return None
+
+        from streamlit.web.server.starlette.starlette_websocket import (
+            USER_COOKIE_NAME,
+            _get_signed_cookie_with_chunks,
+        )
+        from streamlit.web.server.starlette.starlette_auth_routes import get_cookie_secret
+
+        secret = get_cookie_secret()
+        if not secret:
+            return None
+
+        raw = _get_signed_cookie_with_chunks(cookies, USER_COOKIE_NAME)
+        if not raw:
+            return None
+
+        payload = json.loads(raw.decode("utf-8"))
+        if not isinstance(payload, dict) or not payload.get("is_logged_in", False):
+            return None
+
+        user_info = dict(payload)
+        user_info.pop("origin", None)
+
+        from streamlit.runtime.scriptrunner_utils.script_run_context import get_script_run_ctx
+        ctx = get_script_run_ctx()
+        if ctx is not None:
+            ctx.user_info.update(user_info)
+            try:
+                from streamlit.runtime import Runtime
+                runtime_instance = Runtime.instance()
+                if runtime_instance is not None:
+                    session_info = runtime_instance._session_mgr.get_active_session_info(ctx.session_id)
+                    if session_info is not None:
+                        session_info.session._user_info.update(user_info)
+            except Exception:
+                pass
+
+        return user_info
+    except Exception:
+        return None
+
+
 def _resolve_saas_user() -> _saas.SaaSUser | None:
     """Resolve the authenticated user when either auth or SaaS is enabled."""
     # Finder workers re-import this module under multiprocessing spawn/forkserver
@@ -262,6 +352,11 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
             except (AttributeError, RuntimeError):
                 logged_in = False
             if not logged_in:
+                recovered_claims = _sync_user_info_from_cookie()
+                if recovered_claims:
+                    logged_in = True
+                    claims = recovered_claims
+            if not logged_in:
                 _, col_center, _ = st.columns([1, 3.2, 1])
                 with col_center:
                     _render_auth_hero_and_badges(
@@ -278,6 +373,7 @@ def _resolve_saas_user() -> _saas.SaaSUser | None:
                                 st.login(_runtime._SAAS_SETTINGS.oidc_provider)
                             else:
                                 st.login()
+                            st.stop()
                         st.markdown(
                             """
                             <div style="display: flex; align-items: center; text-align: center; margin: 1.2rem 0; color: rgba(255,255,255,0.35); font-size: 0.8rem;">

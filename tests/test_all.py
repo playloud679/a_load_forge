@@ -13006,6 +13006,52 @@ test(
 )
 
 
+def _check_ui_oidc_reconnection_cookie_sync():
+    import json
+    from unittest.mock import MagicMock, patch
+    import streamlit as st
+    from ui import account as _account
+
+    # 1. When no cookies are present, returns None
+    with patch.object(st, "context", create=True) as mock_context:
+        mock_context.cookies = {}
+        res = _account._sync_user_info_from_cookie()
+        assert res is None, "Should return None when no _streamlit_user cookie is found"
+
+    # 2. When _streamlit_user cookie is present with valid signed payload, decode and sync
+    sample_claims = {
+        "sub": "google-user-12345",
+        "email": "user@example.com",
+        "name": "Google User",
+        "origin": "http://localhost:8501",
+        "is_logged_in": True,
+        "exp": 9999999999,
+    }
+    mock_ctx = MagicMock()
+    mock_ctx.user_info = {}
+    mock_ctx.session_id = "test-sess-123"
+
+    with patch.object(st, "context", create=True) as mock_context, \
+         patch("streamlit.runtime.scriptrunner_utils.script_run_context.get_script_run_ctx", return_value=mock_ctx), \
+         patch("streamlit.web.server.starlette.starlette_websocket._get_signed_cookie_with_chunks", return_value=json.dumps(sample_claims).encode("utf-8")), \
+         patch("streamlit.web.server.starlette.starlette_auth_routes.get_cookie_secret", return_value="dummy-secret"):
+        mock_context.cookies = {"_streamlit_user": "dummy"}
+        user_info = _account._sync_user_info_from_cookie()
+        assert user_info is not None, "Should return decoded user info"
+        assert user_info.get("email") == "user@example.com"
+        assert user_info.get("sub") == "google-user-12345"
+        assert mock_ctx.user_info.get("is_logged_in") is True
+        assert mock_ctx.user_info.get("email") == "user@example.com"
+
+    # 3. Verify WebsocketSessionManager patch synchronizes _user_info on reconnect
+    from streamlit.runtime.websocket_session_manager import WebsocketSessionManager
+    _account._patch_websocket_session_manager()
+    assert getattr(WebsocketSessionManager, "_load_forge_user_info_patched", False) is True
+
+
+test("OIDC reconnection cookie sync recovers identity and updates session", _check_ui_oidc_reconnection_cookie_sync, group="ui")
+
+
 from test_repository_contracts import (
     check_makefile_paths,
     check_module_documents,

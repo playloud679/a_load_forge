@@ -8,10 +8,11 @@ on reload. Account and billing store policies are unchanged.
   registration UI for local accounts, OIDC and bypass modes. Registration is
   open to any valid email address (no invite code) and always collects the
   email before an account is created.
-- `_resolve_saas_user` — resolves the current `SaaSUser` (or `None`); renders
-  the gate and calls `st.stop()` when auth is required. There is no anonymous
-  or guest identity: every visitor must sign in or register an email account,
-  including Free users.
+- `_resolve_saas_user` — resolves the current `SaaSUser` (or `None`); recovers
+  OIDC identity from signed `_streamlit_user` cookie when Streamlit reconnects a
+  pre-login session without updating `_user_info`; renders the gate and calls
+  `st.stop()` when auth is required. There is no anonymous or guest identity:
+  every visitor must sign in or register an email account, including Free users.
 - `_remember_local_account` / `_sign_out_saas` — session transitions.
 - Stores: `_get_account_store`, `_get_project_store`, `_get_public_store`
   (each `@st.cache_resource`, keyed by `_runtime._SAAS_SETTINGS` and

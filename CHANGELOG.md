@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.18.32 (2026-09-24)
+
+- **Fix — eliminate double login requirement on Google OIDC authentication**:
+  - Fixed a regression in Streamlit's WebSocket session management where reconnected browser sessions failed to update `_user_info` from the freshly set `_streamlit_user` identity cookie.
+  - Implemented automatic recovery from signed OIDC cookies on initial render, ensuring authenticated users enter the app immediately without requiring a second sign-in attempt.
+  - Added runtime hook on `WebsocketSessionManager.connect_session` to synchronize active session identity upon client reconnection.
+  - Added regression test for OIDC reconnection cookie synchronization.
+
 ## 0.18.31 (2026-09-24)
 
 - **Proprietary catalog, large format plot, compact Box Design layout and English localization**:
