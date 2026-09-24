@@ -142,6 +142,28 @@ def _active_design_visible() -> bool:
             return bool(tab.get("visible", True))
     return True
 
+
+FIT_CHART_KEY = "lf_fit_chart"
+
+
+def _fit_chart_spec(chart) -> dict:
+    """Vega-Lite spec whose height follows its container (see _render_fit_chart)."""
+    spec = chart.to_dict() if hasattr(chart, "to_dict") else dict(chart)
+    if not any(k in spec for k in ("hconcat", "vconcat", "concat")):
+        spec["height"] = "container"
+    return spec
+
+
+def _render_fit_chart(chart, *, name: str, key: str | None = None) -> None:
+    """Render a chart as tall as the viewport minus the Studio chrome.
+
+    The height comes from CSS on the ``lf_fit_chart_*`` container
+    (styles.GLOBAL_CSS: ``--lf-fit-chart-offset``), so no page scroll is needed
+    down to the smallest supported height; below it the page scrolls.
+    """
+    with st.container(key=f"{FIT_CHART_KEY}_{name}"):
+        st.vega_lite_chart(spec=_fit_chart_spec(chart), width="stretch", height="stretch", key=key)
+
 def _line_chart(
     data: pd.DataFrame,
     y_title: str,
@@ -2451,14 +2473,10 @@ def _render_response_tab(
             ).to_dict()
             cached_chart = (chart_key, spec)
             st.session_state["_response_spec_cache"] = cached_chart
-        st.vega_lite_chart(
-            spec=cached_chart[1],
-            width="stretch",
-            # Preserve the mounted Vega view while parameters and project
-            # autosave state change. A content-derived key remounts the chart
-            # and briefly removes the page scrollbar, creating a resize loop.
-            key="response_chart",
-        )
+        # Preserve the mounted Vega view while parameters and project
+        # autosave state change. A content-derived key remounts the chart
+        # and briefly removes the page scrollbar, creating a resize loop.
+        _render_fit_chart(cached_chart[1], name="response", key="response_chart")
     else:
         st.caption("Response pens off.")
 
@@ -3133,7 +3151,7 @@ def _render_ports_tab(
             )
             st.markdown(f"##### {chart_title}")
             if _port_series(result, mode=port_plot_mode):
-                st.altair_chart(_plot_ports(result, mode=port_plot_mode), width="stretch", key=f"ports_chart_{chart_sig}")
+                _render_fit_chart(_plot_ports(result, mode=port_plot_mode), name="ports", key=f"ports_chart_{chart_sig}")
             else:
                 st.caption("Port pens off.")
 
@@ -3550,25 +3568,15 @@ def _render_design_analysis_tabs(
             )
     elif design_tabs["Excursion"].open:
         with design_tabs["Excursion"]:
-            st.subheader("Cone Excursion")
             xmax_mm = float(st.session_state.get("driver_xmax_mm", 0.0))
-            st.altair_chart(
-                _plot_excursion(result, xmax_mm),
-                width="stretch",
-                key=f"excursion_chart_{chart_sig}",
-            )
+            _render_fit_chart(_plot_excursion(result, xmax_mm), name="excursion", key=f"excursion_chart_{chart_sig}")
             if xmax_mm > 0.0:
                 st.caption(f"Dashed emerald line: driver Xmax = {xmax_mm:.1f} mm.")
             else:
                 st.caption("Set the driver Xmax to draw the excursion limit line.")
     elif design_tabs["Impedance"].open:
         with design_tabs["Impedance"]:
-            st.subheader("Electrical Impedance")
-            st.altair_chart(
-                _plot_impedance(result),
-                width="stretch",
-                key=f"impedance_chart_{chart_sig}",
-            )
+            _render_fit_chart(_plot_impedance(result), name="impedance", key=f"impedance_chart_{chart_sig}")
     elif "Ports" in design_tabs and design_tabs["Ports"].open:
         with design_tabs["Ports"]:
             _render_ports_tab(
@@ -3578,16 +3586,11 @@ def _render_design_analysis_tabs(
             )
     elif design_tabs["Group Delay"].open:
         with design_tabs["Group Delay"]:
-            st.subheader("Group Delay")
             gd_limit_ms = (
                 float(st.session_state.get("opt_max_gd_ms", 0.0))
                 if _optimizer._alignment_uses_optimizer() else 0.0
             )
-            st.altair_chart(
-                _plot_group_delay(result, gd_limit_ms),
-                width="stretch",
-                key=f"gd_chart_{chart_sig}",
-            )
+            _render_fit_chart(_plot_group_delay(result, gd_limit_ms), name="group_delay", key=f"gd_chart_{chart_sig}")
             if gd_limit_ms > 0.0:
                 st.caption(
                     "Dashed emerald line: optimizer group-delay limit = "

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.19.1 (2026-09-24)
+
+- **Box Design fits the window**: charts (Response, Excursion, Impedance, Ports, Group Delay) take the viewport height minus the Studio chrome (min 360 px, fixed 420 px on phones) instead of a fixed 520–580 px; measured 0 px page scroll at 1400×1000 and 1920×1080 (the Ports workbench still scrolls).
+- **Summary strip above the chart**: F3, Peak SPL, Excursion, Min Z, Volume and Forge Score on one line; model warnings behind a red "N warnings" button; full metrics, badges and load image under "Details". Same computations as before.
+- **Compact app bar**: one 49 px row (was ~150 px), uniform 2.25 rem buttons sized to their labels, project group left and account group right. The credit button shows the balance ("N credits · Upgrade"), not "N / 3,000", which was wrong once top-up packs pushed the balance above the monthly Free allowance.
+- Design/Driver/Export details are popovers on one row; toggle labels no longer wrap; duplicate tab subheaders removed.
+- Validation: `make test` 107 passed; `make test-match MATCH='UI'` 107 passed (new: viewport-fit layout).
+
 ## 0.19.0 (2026-09-24)
 
 - **Portal → Studio handoff** (new `src/ui/navigation.py`, `docs/ui/navigation.md`):

@@ -178,3 +178,15 @@ help button at its natural size. Native widget keys and interactions are retaine
 
 The upgrade-button selectors cover both `bm_upgrade_callout` and
 `bm_upgrade_callout_shortfall`, whose separate keys allow simultaneous rendering.
+
+
+## Viewport fit (0.19.1)
+
+`GLOBAL_CSS` defines `--lf-fit-chart-offset` / `--lf-fit-chart-min` and the
+`[class*="st-key-lf_fit_chart_"]` rules that pass the container height down
+Streamlit's chart wrappers (`stElementContainer` → `stFullScreenFrame` →
+`stVegaLiteChart` → `.chart-wrapper`) with `flex: 0 0 auto` so the box never
+shrinks; the summary strip chips (`.lf-chip`, `.lf-badge`); and one-line
+toggle labels. `_workspace_tab_styles` holds the compact app bar; buttons with
+`help=` are wrapped in a tooltip element, so the credit button rules match
+descendants.

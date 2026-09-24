@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import html
+
 import generate_afw_dccav as _afw_export
 import numpy as np
 import streamlit as st
@@ -20,6 +22,61 @@ from . import navigation as _navigation
 from . import projects as _projects
 from . import runtime as _runtime
 from . import state as _state
+
+
+_FORGE_SCORE_HELP = (
+    "Heuristic 0-100 design-health indicator, not a physical performance metric. "
+    "It starts at 100 and deducts points for model warnings, excursion violations and "
+    "impractical port geometry; it is never used as the default ranking criterion. "
+    "Read it together with F3, excursion, MOL and impedance."
+)
+
+
+def _render_summary_strip(flat_metrics, badges, warnings, load_image) -> None:
+    """Performance summary as one strip above the chart (docs/ui/app.md).
+
+    Key metrics and badges are compact chips; model warnings sit behind a red
+    count button and the full metric grid behind "Details", so the analysis
+    column fits the viewport without page scrolling.
+    """
+    # The strip shows the headline metrics only (one line on desktop); port,
+    # sub-volume and badge detail lives in "Details".
+    headline = {"F3": "F3", "Peak LF SPL": "Peak SPL", "Max excursion": "Excursion",
+                "Min impedance": "Min Z", "Box volume": "Volume", "Forge Score": "Score"}
+    chips = "".join(
+        f'<span class="lf-chip"><span class="lf-chip-k">{html.escape(headline[label])}</span>'
+        f'<span class="lf-chip-v">{html.escape(str(value))}</span></span>'
+        for label, value in flat_metrics
+        if label in headline
+    )
+    badge_html = "".join(
+        f'<span class="lf-badge" style="background:{bg};border-color:{border};color:{color}">'
+        f"{html.escape(text)}</span>"
+        for text, bg, border, color in badges
+    )
+    with st.container(key="lf_summary_strip"):
+        chips_col, warn_col, details_col = st.columns([12, 1.6, 1.4], vertical_alignment="center")
+        with chips_col:
+            st.markdown(f'<div class="lf-strip">{chips}</div>', unsafe_allow_html=True)
+        with warn_col:
+            if warnings:
+                label = f"{len(warnings)} warning" + ("s" if len(warnings) > 1 else "")
+                with st.container(key="lf_summary_warnings"):
+                    with st.popover(label, width="stretch"):
+                        for warning in warnings:
+                            st.warning(warning)
+        with details_col:
+            with st.popover("Details", width="stretch"):
+                if load_image is not None and load_image.exists():
+                    st.image(str(load_image), width=180)
+                for i in range(0, len(flat_metrics), 3):
+                    cols = st.columns(3)
+                    for j, (label, value) in enumerate(flat_metrics[i:i + 3]):
+                        cols[j].metric(label, value, help=_FORGE_SCORE_HELP if label == "Forge Score" else None)
+                if badge_html:
+                    st.markdown(f'<div class="lf-strip">{badge_html}</div>', unsafe_allow_html=True)
+                for warning in warnings:
+                    st.warning(warning)
 
 
 def main() -> None:
@@ -336,7 +393,7 @@ def main() -> None:
                         f"""<div style="background:rgba(15,23,42,0.65); border:1px solid rgba(51,65,85,0.7); border-radius:8px; padding:0.55rem 0.65rem; margin:0.35rem 0 0.35rem 0;">
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
                                 <span style="font-size:0.68rem; font-weight:800; color:#34d399; letter-spacing:0.06em; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); padding:0.10rem 0.40rem; border-radius:3px;">FREE PLAN</span>
-                                <span style="font-size:0.75rem; font-weight:700; color:#fbbf24;">{_user_acc.credits_balance:,} / 3,000 CREDITS</span>
+                                <span style="font-size:0.75rem; font-weight:700; color:#fbbf24;">{_user_acc.credits_balance:,} CREDITS</span>
                             </div>
                             <div style="font-size:0.72rem; color:#94a3b8; line-height:1.3; margin-bottom:0.35rem;">
                                 Compute credits for Bass Match search. Upgrade for continuous scans and priority queue.
@@ -1452,212 +1509,154 @@ def main() -> None:
             result,
         )
 
+        # Performance summary: computed here, shown as a strip above the chart
+        # (details in a popover) so the whole analysis fits the viewport.
+        active_load_image = _constants._LOAD_TYPE_IMAGES.get(load_type)
+        # Calculate Forge Score (0-100)
+        score_val = 100
+        warning_deductions = len(model_warnings) * 12
+        score_val -= warning_deductions
+        for row in port_geometry_rows:
+            if row.get("Peak m/s", 0.0) > _acoustics.PORT_VELOCITY_GUIDELINE_MS:
+                score_val -= 15
+            if not row.get("_is_pr", False):
+                golden_cm = _acoustics.port_displacement_min_diameter_cm(current_ts, row["_fb_hz"])
+                if 0.0 < row["Diameter cm"] < golden_cm:
+                    score_val -= 10
+                if row["Length cm"] <= 0.0:
+                    score_val -= 20
+        if current_ts and current_ts.xmax_mm and metrics["max_excursion_mm"] > current_ts.xmax_mm:
+            score_val -= 25
+        score_val = max(10, min(100, score_val))
+
+        flat_metrics = [
+            ("F3", _optimizer._fmt_hz(thresholds[3])),
+            ("Peak LF SPL", _optimizer._fmt_db(metrics["max_spl_db"])),
+            ("Max excursion", f"{metrics['max_excursion_mm']:.2f} mm"),
+            ("Min impedance", f"{metrics['min_impedance_ohm']:.2f} Ω"),
+        ]
+        if not is_infinite_baffle:
+            if load_type == "Bandpass 4th order":
+                flat_metrics.append(("Box volume", f"{box.vs_l + box.vp_l:.1f} L"))
+            elif load_type == "Bandpass 6th order":
+                flat_metrics.append(("Box volume", f"{box.vr_l + box.vp_l:.1f} L"))
+            elif load_type == "Bandpass 8th order":
+                flat_metrics.append(("Box volume", f"{box.v1_l + box.v2_l + box.v3_l:.1f} L"))
+            elif load_type == "DCCAV":
+                flat_metrics.append(("Box volume", f"{box.vh_l + box.vl_l:.1f} L"))
+            else:
+                flat_metrics.append(("Box volume", f"{box.vb_l:.1f} L"))
+        flat_metrics.append(("Forge Score", f"{score_val}/100"))
+
+        if not is_infinite_baffle:
+            ports = {row["Port"]: row for row in port_geometry_rows if not row.get("_is_pr", False)}
+
+            def _add_port(lbl):
+            # Match exact label or key starting with lbl
+                matching = [r for name, r in ports.items() if name == lbl or name.startswith(lbl)]
+                if matching:
+                    pr = matching[0]
+                    flat_metrics.extend([
+                        (f"{lbl} tuning", f"{pr['_fb_hz']:.1f} Hz"),
+                        (f"{lbl} size", f"Ø{pr['Diameter cm']:.1f}x{pr['Length cm']:.1f}")
+                    ])
+
+            if load_type == "Bandpass 4th order":
+                flat_metrics.append(("Closed vol (Vs)", f"{box.vs_l:.1f} L"))
+                flat_metrics.append(("Ported vol (Vp)", f"{box.vp_l:.1f} L"))
+                _add_port("Front vent")
+            elif load_type == "Bandpass 6th order":
+                flat_metrics.append(("Rear vol (Vr)", f"{box.vr_l:.1f} L"))
+                _add_port("Rear vent")
+                flat_metrics.append(("Front vol (Vp)", f"{box.vp_l:.1f} L"))
+                _add_port("Front vent")
+            elif load_type == "Bandpass 8th order":
+                flat_metrics.append(("Front vol (V1)", f"{box.v1_l:.1f} L"))
+                _add_port("Port 1")
+                flat_metrics.append(("Rear vol (V2)", f"{box.v2_l:.1f} L"))
+                _add_port("Port 2")
+                flat_metrics.append(("Plenum vol (V3)", f"{box.v3_l:.1f} L"))
+                _add_port("Port 3")
+            elif load_type == "DCCAV":
+                flat_metrics.append(("High vol (Vh)", f"{box.vh_l:.1f} L"))
+                _add_port("Upper port")
+                flat_metrics.append(("Low vol (Vl)", f"{box.vl_l:.1f} L"))
+                _add_port("Lower port")
+            else:
+                _add_port("Vent")
+
+    # Performance Badges
+        badges = []
+        if not is_infinite_baffle and not is_sealed:
+            has_port_issues = any(
+                "chuffing" in w.lower() or "minimum-area" in w.lower() or "tunes at most" in w.lower()
+                for w in model_warnings
+            )
+            if len(port_geometry_rows) > 0 and not has_port_issues:
+                badges.append((
+                    "Port speed within guideline",
+                    "rgba(46, 204, 113, 0.08)",
+                    "rgba(46, 204, 113, 0.3)",
+                    "#2ecc71"
+                ))
+
+        f3_val = thresholds[3]
+        if not np.isnan(f3_val) and not is_infinite_baffle:
+            if is_reflex or is_sealed or is_pr:
+                vtot_l = box.vb_l
+            elif is_bandpass4:
+                vtot_l = box.vs_l + box.vp_l
+            elif is_bandpass6:
+                vtot_l = box.vr_l + box.vp_l
+            elif is_bandpass8:
+                vtot_l = box.v1_l + box.v2_l + box.v3_l
+            else:
+                vtot_l = box.vh_l + box.vl_l
+
+            if f3_val < 30.0 and vtot_l < 35.0:
+                badges.append((
+                    "F3 below 30 Hz",
+                    "rgba(0, 110, 219, 0.08)",
+                    "rgba(0, 110, 219, 0.3)",
+                    "#006edb"
+                ))
+            elif f3_val < 40.0 and vtot_l < 50.0:
+                badges.append((
+                    "F3 below 40 Hz",
+                    "rgba(0, 110, 219, 0.08)",
+                    "rgba(0, 110, 219, 0.3)",
+                    "#006edb"
+                ))
+            elif f3_val < 50.0:
+                badges.append((
+                    "F3 below 50 Hz",
+                    "rgba(0, 110, 219, 0.08)",
+                    "rgba(0, 110, 219, 0.3)",
+                    "#006edb"
+                ))
+
+        if not any("sanity" in w.lower() or "warning" in w.lower() for w in model_warnings):
+            badges.append((
+                "Model checks passed",
+                "rgba(26, 188, 156, 0.08)",
+                "rgba(26, 188, 156, 0.3)",
+                "#1abc9c"
+            ))
+
+        _render_summary_strip(flat_metrics, badges, model_warnings, active_load_image)
+
         _analysis._render_design_analysis_tabs(
             current_ts, load_type, box, result, thresholds, freq,
             sim_voltage, sim_series_r, port_geometry_rows,
             is_pr, is_sealed, is_infinite_baffle, chart_sig,
         )
-        active_load_image = _constants._LOAD_TYPE_IMAGES.get(load_type)
-        with st.container(key="active_load_summary"):
-        # Left: active load schematic, Right: Dense info
-            if active_load_image is not None and active_load_image.exists():
-                img_col, data_col = st.columns([0.65, 5], vertical_alignment="center")
-                with img_col:
-                    st.image(str(active_load_image), width="stretch")
-            else:
-                data_col = st.container()
-        
-            with data_col:
-                st.markdown(
-                    """
-                <style>
-                .st-key-active_load_summary [data-testid="stMetricValue"] {
-                    font-size: 1.22rem !important;
-                    font-weight: 700 !important;
-                    color: #ffffff !important;
-                }
-                .st-key-active_load_summary [data-testid="stMetricLabel"] p {
-                    font-size: 0.86rem !important;
-                    font-weight: 600 !important;
-                    color: #cbd5e1 !important;
-                    margin-bottom: 0.05rem !important;
-                }
-                .st-key-active_load_summary [data-testid="stVerticalBlock"] {
-                    gap: 0.15rem !important;
-                }
-                .st-key-active_load_summary [data-testid="stMetric"] {
-                    padding: 0.20rem 0.40rem !important;
-                }
-                </style>
-                """,
-                    unsafe_allow_html=True
-                )
-            
-            # Calculate Forge Score (0-100)
-                score_val = 100
-                warning_deductions = len(model_warnings) * 12
-                score_val -= warning_deductions
-                for row in port_geometry_rows:
-                    if row.get("Peak m/s", 0.0) > _acoustics.PORT_VELOCITY_GUIDELINE_MS:
-                        score_val -= 15
-                    if not row.get("_is_pr", False):
-                        golden_cm = _acoustics.port_displacement_min_diameter_cm(current_ts, row["_fb_hz"])
-                        if 0.0 < row["Diameter cm"] < golden_cm:
-                            score_val -= 10
-                        if row["Length cm"] <= 0.0:
-                            score_val -= 20
-                if current_ts and current_ts.xmax_mm and metrics["max_excursion_mm"] > current_ts.xmax_mm:
-                    score_val -= 25
-                score_val = max(10, min(100, score_val))
-
-                flat_metrics = [
-                    ("F3", _optimizer._fmt_hz(thresholds[3])),
-                    ("Peak LF SPL", _optimizer._fmt_db(metrics["max_spl_db"])),
-                    ("Max excursion", f"{metrics['max_excursion_mm']:.2f} mm"),
-                    ("Min impedance", f"{metrics['min_impedance_ohm']:.2f} Ω"),
-                ]
-                if not is_infinite_baffle:
-                    if load_type == "Bandpass 4th order":
-                        flat_metrics.append(("Box volume", f"{box.vs_l + box.vp_l:.1f} L"))
-                    elif load_type == "Bandpass 6th order":
-                        flat_metrics.append(("Box volume", f"{box.vr_l + box.vp_l:.1f} L"))
-                    elif load_type == "Bandpass 8th order":
-                        flat_metrics.append(("Box volume", f"{box.v1_l + box.v2_l + box.v3_l:.1f} L"))
-                    elif load_type == "DCCAV":
-                        flat_metrics.append(("Box volume", f"{box.vh_l + box.vl_l:.1f} L"))
-                    else:
-                        flat_metrics.append(("Box volume", f"{box.vb_l:.1f} L"))
-                flat_metrics.append(("Forge Score", f"{score_val}/100"))
-
-                if not is_infinite_baffle:
-                    ports = {row["Port"]: row for row in port_geometry_rows if not row.get("_is_pr", False)}
-                
-                    def _add_port(lbl):
-                    # Match exact label or key starting with lbl
-                        matching = [r for name, r in ports.items() if name == lbl or name.startswith(lbl)]
-                        if matching:
-                            pr = matching[0]
-                            flat_metrics.extend([
-                                (f"{lbl} tuning", f"{pr['_fb_hz']:.1f} Hz"),
-                                (f"{lbl} size", f"Ø{pr['Diameter cm']:.1f}x{pr['Length cm']:.1f}")
-                            ])
-
-                    if load_type == "Bandpass 4th order":
-                        flat_metrics.append(("Closed vol (Vs)", f"{box.vs_l:.1f} L"))
-                        flat_metrics.append(("Ported vol (Vp)", f"{box.vp_l:.1f} L"))
-                        _add_port("Front vent")
-                    elif load_type == "Bandpass 6th order":
-                        flat_metrics.append(("Rear vol (Vr)", f"{box.vr_l:.1f} L"))
-                        _add_port("Rear vent")
-                        flat_metrics.append(("Front vol (Vp)", f"{box.vp_l:.1f} L"))
-                        _add_port("Front vent")
-                    elif load_type == "Bandpass 8th order":
-                        flat_metrics.append(("Front vol (V1)", f"{box.v1_l:.1f} L"))
-                        _add_port("Port 1")
-                        flat_metrics.append(("Rear vol (V2)", f"{box.v2_l:.1f} L"))
-                        _add_port("Port 2")
-                        flat_metrics.append(("Plenum vol (V3)", f"{box.v3_l:.1f} L"))
-                        _add_port("Port 3")
-                    elif load_type == "DCCAV":
-                        flat_metrics.append(("High vol (Vh)", f"{box.vh_l:.1f} L"))
-                        _add_port("Upper port")
-                        flat_metrics.append(("Low vol (Vl)", f"{box.vl_l:.1f} L"))
-                        _add_port("Lower port")
-                    else:
-                        _add_port("Vent")
-
-                for i in range(0, len(flat_metrics), 6):
-                    cols = st.columns(6)
-                    for j, metric in enumerate(flat_metrics[i:i+6]):
-                        metric_help = (
-                            "Heuristic 0-100 design-health indicator, not a physical "
-                            "performance metric. It starts at 100 and deducts points "
-                            "for model warnings, excursion violations and impractical "
-                            "port geometry; it is never used as the default ranking "
-                            "criterion. Read it together with F3, excursion, MOL and "
-                            "impedance."
-                            if metric[0] == "Forge Score"
-                            else None
-                        )
-                        cols[j].metric(metric[0], metric[1], help=metric_help)
-
-            # Performance Badges
-                badges = []
-                if not is_infinite_baffle and not is_sealed:
-                    has_port_issues = any(
-                        "chuffing" in w.lower() or "minimum-area" in w.lower() or "tunes at most" in w.lower()
-                        for w in model_warnings
-                    )
-                    if len(port_geometry_rows) > 0 and not has_port_issues:
-                        badges.append((
-                            "Port speed within guideline",
-                            "rgba(46, 204, 113, 0.08)",
-                            "rgba(46, 204, 113, 0.3)",
-                            "#2ecc71"
-                        ))
-            
-                f3_val = thresholds[3]
-                if not np.isnan(f3_val) and not is_infinite_baffle:
-                    if is_reflex or is_sealed or is_pr:
-                        vtot_l = box.vb_l
-                    elif is_bandpass4:
-                        vtot_l = box.vs_l + box.vp_l
-                    elif is_bandpass6:
-                        vtot_l = box.vr_l + box.vp_l
-                    elif is_bandpass8:
-                        vtot_l = box.v1_l + box.v2_l + box.v3_l
-                    else:
-                        vtot_l = box.vh_l + box.vl_l
-                
-                    if f3_val < 30.0 and vtot_l < 35.0:
-                        badges.append((
-                            "F3 below 30 Hz",
-                            "rgba(0, 110, 219, 0.08)",
-                            "rgba(0, 110, 219, 0.3)",
-                            "#006edb"
-                        ))
-                    elif f3_val < 40.0 and vtot_l < 50.0:
-                        badges.append((
-                            "F3 below 40 Hz",
-                            "rgba(0, 110, 219, 0.08)",
-                            "rgba(0, 110, 219, 0.3)",
-                            "#006edb"
-                        ))
-                    elif f3_val < 50.0:
-                        badges.append((
-                            "F3 below 50 Hz",
-                            "rgba(0, 110, 219, 0.08)",
-                            "rgba(0, 110, 219, 0.3)",
-                            "#006edb"
-                        ))
-
-                if not any("sanity" in w.lower() or "warning" in w.lower() for w in model_warnings):
-                    badges.append((
-                        "Model checks passed",
-                        "rgba(26, 188, 156, 0.08)",
-                        "rgba(26, 188, 156, 0.3)",
-                        "#1abc9c"
-                    ))
-
-                if badges:
-                    badge_html = " ".join([
-                        f'<span style="display: inline-block; background-color: {bg}; '
-                        f'border: 1px solid {border}; border-radius: 0.35rem; '
-                        f'padding: 0.12rem 0.40rem; margin-right: 0.35rem; font-size: 0.70rem; '
-                        f'font-weight: 600; color: {color};">{text}</span>'
-                        for text, bg, border, color in badges
-                    ])
-                    st.markdown(f'<div style="margin-top: 0.15rem; margin-bottom: 0.10rem;">{badge_html}</div>', unsafe_allow_html=True)
-
-                if model_warnings:
-                    for warning in model_warnings:
-                        st.warning(warning)
-
     # Warnings are now rendered inside data_col compactly
 
-        exp_c1, exp_c2 = st.columns(2)
+        # Details as popovers on one row: the analysis column fits the viewport
+        # and the panels still open wide over the page.
+        exp_c1, exp_c2, exp_c3 = st.columns(3)
         with exp_c1:
-            with st.expander("Design details"):
+            with st.popover("Design details", width="stretch"):
                 s1, s2, s3 = st.columns(3)
                 s1.metric("F6", _optimizer._fmt_hz(thresholds[6]))
                 s2.metric("F10", _optimizer._fmt_hz(thresholds[10]))
@@ -1742,7 +1741,7 @@ def main() -> None:
 
         with exp_c2:
             if derived is not None:
-                with st.expander("Driver details"):
+                with st.popover("Driver details", width="stretch"):
                     d1, d2, d3, d4, d5 = st.columns(5)
                     d1.metric("Qes", f"{derived.qes:.3f}")
                     d2.metric("Bl", f"{derived.bl_tm:.2f} T·m")
@@ -1771,60 +1770,61 @@ def main() -> None:
                         ebp_hint = "EBP 50-100: this driver works in both sealed and ported loads."
                     st.caption(f"{ebp_hint} Class indicators: {', '.join(bandwidth.reasons)}.")
 
-        with st.expander("Export design"):
-            dl_cols = st.columns(4) if load_type == "DCCAV" else st.columns(3)
-            dl_csv, dl_frd, dl_zma = dl_cols[:3]
-            with dl_csv:
-                st.download_button(
-                    "Download response CSV",
-                    _analysis._csv_bytes(result),
-                    "load_forge_response.csv",
-                    "text/csv",
-                    width="stretch",
-                )
-            with dl_frd:
-                st.download_button(
-                    "Download FRD (response)",
-                    _acoustics.export_frd_text(result),
-                    "load_forge_response.frd",
-                    "text/plain",
-                    width="stretch",
-                    help="Total response as freq/SPL/phase text for VituixCAD, XSim or REW.",
-                )
-            with dl_zma:
-                st.download_button(
-                    "Download ZMA (impedance)",
-                    _acoustics.export_zma_text(result),
-                    "load_forge_impedance.zma",
-                    "text/plain",
-                    width="stretch",
-                    help="Electrical impedance as freq/ohm/phase text for VituixCAD, XSim or REW.",
-                )
-            if load_type == "DCCAV":
-                with dl_cols[3]:
-                    try:
-                        afw_text = _afw_export.generate_afw_text(_state._collect_params())
-                        afw_bytes = afw_text.encode("latin-1")
-                        afw_error = None
-                    except Exception as exc:
-                        afw_bytes = b""
-                        afw_error = str(exc)
+        with exp_c3:
+            with st.popover("Export design", width="stretch"):
+                dl_cols = st.columns(4) if load_type == "DCCAV" else st.columns(3)
+                dl_csv, dl_frd, dl_zma = dl_cols[:3]
+                with dl_csv:
                     st.download_button(
-                        "Download AFW project",
-                        afw_bytes,
-                        "load_forge_dccav.afw",
-                        "application/octet-stream",
+                        "Download response CSV",
+                        _analysis._csv_bytes(result),
+                        "load_forge_response.csv",
+                        "text/csv",
                         width="stretch",
-                        disabled=afw_error is not None,
-                        help=(
-                            f"Could not build the AFW file: {afw_error}" if afw_error else
-                            "AUDIO per Windows pro v2 (AFW) project cloned from a "
-                            "verified DCAAV template with this design's driver T/S "
-                            "and chamber values. Port geometry fields are inherited "
-                            "from the template and are not this project's actual "
-                            "port dimensions."
-                        ),
                     )
+                with dl_frd:
+                    st.download_button(
+                        "Download FRD (response)",
+                        _acoustics.export_frd_text(result),
+                        "load_forge_response.frd",
+                        "text/plain",
+                        width="stretch",
+                        help="Total response as freq/SPL/phase text for VituixCAD, XSim or REW.",
+                    )
+                with dl_zma:
+                    st.download_button(
+                        "Download ZMA (impedance)",
+                        _acoustics.export_zma_text(result),
+                        "load_forge_impedance.zma",
+                        "text/plain",
+                        width="stretch",
+                        help="Electrical impedance as freq/ohm/phase text for VituixCAD, XSim or REW.",
+                    )
+                if load_type == "DCCAV":
+                    with dl_cols[3]:
+                        try:
+                            afw_text = _afw_export.generate_afw_text(_state._collect_params())
+                            afw_bytes = afw_text.encode("latin-1")
+                            afw_error = None
+                        except Exception as exc:
+                            afw_bytes = b""
+                            afw_error = str(exc)
+                        st.download_button(
+                            "Download AFW project",
+                            afw_bytes,
+                            "load_forge_dccav.afw",
+                            "application/octet-stream",
+                            width="stretch",
+                            disabled=afw_error is not None,
+                            help=(
+                                f"Could not build the AFW file: {afw_error}" if afw_error else
+                                "AUDIO per Windows pro v2 (AFW) project cloned from a "
+                                "verified DCAAV template with this design's driver T/S "
+                                "and chamber values. Port geometry fields are inherited "
+                                "from the template and are not this project's actual "
+                                "port dimensions."
+                            ),
+                        )
 
     except ValueError as exc:
         _runtime.logger.exception("Simulation failed")

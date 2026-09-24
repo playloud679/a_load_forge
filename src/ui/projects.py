@@ -1358,8 +1358,9 @@ def _render_main_account_header() -> None:
 
     with st.container(key="global_app_bar"):
         if acc:
+            # Project group | flexible spacer | account group (styles: global_app_bar).
             name_col, save_col, vis_col, _, nav_upgrade, nav_proj, nav_comm, nav_acc = st.columns(
-                [2.0, 1.4, 1.2, 0.1, 2.7, 0.9, 1.0, 1.0],
+                [2.2, 1.0, 1.0, 0.1, 1.9, 1.0, 1.1, 1.0],
                 vertical_alignment="center",
             )
         else:
@@ -1403,7 +1404,8 @@ def _render_main_account_header() -> None:
             with nav_upgrade:
                 if acc.plan == "free":
                     with st.container(key="header_upgrade_btn"):
-                        btn_label = f"{acc.credits_balance:,} / 3,000 CREDITS · UPGRADE TO PRO"
+                        # The balance can exceed the 3,000 monthly Free credits (top-up packs).
+                        btn_label = f"{acc.credits_balance:,} credits · Upgrade"
                         if st.button(
                             btn_label,
                             key="btn_hdr_upgrade_pro",
@@ -1415,7 +1417,7 @@ def _render_main_account_header() -> None:
                     with st.container(key="header_credits_btn"):
                         plan_tag = acc.plan.upper()
                         if st.button(
-                            f"{plan_tag} · {acc.credits_balance:,} CREDITS",
+                            f"{plan_tag} · {acc.credits_balance:,} credits",
                             key="btn_hdr_active_plan",
                             width="stretch",
                             help=f"Active {plan_tag} plan ({acc.credits_balance:,} credits). Click to manage subscription or top up credits.",

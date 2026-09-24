@@ -1428,7 +1428,45 @@ GLOBAL_CSS = """
         margin: 0.15rem 0 !important;
         font-size: 0.80rem !important;
     }
-    </style>
+
+    /* Performance summary strip above the Box Design chart (ui/app.py:_render_summary_strip). */
+    .st-key-lf_summary_strip { margin: 0.1rem 0 0.2rem 0 !important; }
+    .st-key-lf_summary_strip [data-testid="stHorizontalBlock"] { gap: 0.5rem !important; align-items: center !important; }
+    .lf-strip { display: flex; flex-wrap: wrap; gap: 0.35rem 0.4rem; align-items: center; }
+    .lf-chip { display: inline-flex; align-items: baseline; gap: 0.35rem; padding: 0.22rem 0.55rem;
+        border: 1px solid rgba(255,255,255,0.10); border-radius: 6px; background: rgba(255,255,255,0.03);
+        white-space: nowrap; line-height: 1.2; }
+    .lf-chip-k { font-size: 0.70rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.04em; }
+    .lf-chip-v { font-size: 0.86rem; font-weight: 700; color: #f8fafc; font-variant-numeric: tabular-nums; }
+    .lf-badge { display: inline-block; border: 1px solid; border-radius: 6px; padding: 0.22rem 0.5rem;
+        font-size: 0.72rem; font-weight: 600; white-space: nowrap; line-height: 1.2; }
+    .st-key-lf_summary_strip button[data-testid="stPopoverButton"] { min-height: 2rem !important; height: 2rem !important;
+        padding: 0 0.7rem !important; white-space: nowrap !important; }
+    .st-key-lf_summary_warnings button[data-testid="stPopoverButton"] { color: #fca5a5 !important;
+        border-color: rgba(248,113,113,0.45) !important; background: rgba(248,113,113,0.08) !important; }
+
+    /* Viewport-fit charts (ui/analysis.py:_render_fit_chart): height = viewport minus
+       the Studio chrome above/below the chart, never below --lf-fit-chart-min. */
+    :root { --lf-fit-chart-offset: 504px; --lf-fit-chart-min: 360px; }
+    [class*="st-key-lf_fit_chart_"] {
+        height: max(var(--lf-fit-chart-min), calc(100vh - var(--lf-fit-chart-offset))) !important;
+        min-height: max(var(--lf-fit-chart-min), calc(100vh - var(--lf-fit-chart-offset))) !important;
+        flex: 0 0 auto !important; display: flex !important; flex-direction: column !important;
+    }
+    [class*="st-key-lf_fit_chart_"] > [data-testid="stElementContainer"],
+    [class*="st-key-lf_fit_chart_"] [data-testid="stFullScreenFrame"],
+    [class*="st-key-lf_fit_chart_"] [data-testid="stFullScreenFrame"] > div,
+    [class*="st-key-lf_fit_chart_"] [data-testid="stVegaLiteChart"],
+    [class*="st-key-lf_fit_chart_"] .chart-wrapper { height: 100% !important; flex: 1 1 auto; min-height: 0; }
+
+    /* Response controls: toggle labels stay on one line so the row keeps one height. */
+    [data-testid="stMainBlockContainer"] [data-testid="stCheckbox"] p { white-space: nowrap !important; }
+
+    /* Phones and small tablets: the column stacks anyway, so use a fixed readable height. */
+    @media (max-width: 768px) {
+        [class*="st-key-lf_fit_chart_"] { height: 420px !important; min-height: 420px !important; }
+    }
+</style>
     """
 
 
@@ -1595,39 +1633,46 @@ def _workspace_tab_styles() -> str:
     rules = [
         """
         <style>
+        /* Single-row, fixed-height app bar: every control is one line tall (2.25rem),
+           labels never wrap (ellipsis), the spacer column pushes the account group right. */
         .st-key-global_app_bar {
             background: linear-gradient(180deg, rgba(20, 24, 33, 0.88) 0%, rgba(13, 17, 23, 0.96) 100%) !important;
             backdrop-filter: blur(16px) !important;
             -webkit-backdrop-filter: blur(16px) !important;
             border: 1px solid rgba(255, 255, 255, 0.09) !important;
             border-radius: 8px !important;
-            padding: 0.25rem 0.60rem !important;
-            margin-bottom: 0.45rem !important;
+            padding: 0.35rem 0.55rem !important;
+            margin-bottom: 0.40rem !important;
+
             box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
         }
+        /* An empty trailing block would otherwise add the block gap under the row. */
+        div[data-testid="stVerticalBlock"].st-key-global_app_bar { row-gap: 0 !important; gap: 0 !important; }
         .st-key-global_app_bar div[data-testid="stHorizontalBlock"] {
             align-items: center !important;
-            gap: 0.65rem !important;
-            flex-wrap: wrap !important;
+            gap: 0.45rem !important;
+            flex-wrap: nowrap !important;
         }
         .st-key-global_app_bar div[data-testid="stColumn"] {
             display: flex !important;
             flex-direction: column !important;
             justify-content: center !important;
             align-items: center !important;
-            min-height: 2.5rem !important;
-            min-width: min(6.5rem, 100%) !important;
-            flex: 1 1 6.5rem !important;
+            min-height: 2.25rem !important;
+            min-width: max-content !important;
+            flex: 0 0 auto !important;
+            width: auto !important;
             height: auto !important;
             padding: 0 !important;
             margin: 0 !important;
         }
         .st-key-global_app_bar [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:first-child {
-            flex-basis: 10rem !important;
+            flex: 0 1 16rem !important;
+            min-width: 8rem !important;
         }
         /* The fourth column is the existing decorative spacer, not a control. */
         .st-key-global_app_bar [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(4) {
-            flex: 0 0 0 !important;
+            flex: 1 1 0 !important;
             min-width: 0 !important;
         }
         .st-key-global_app_bar div[data-testid="stColumn"] > div[data-testid="stVerticalBlock"] {
@@ -1687,13 +1732,13 @@ def _workspace_tab_styles() -> str:
         }
         .st-key-global_app_bar button[data-testid="stPopoverButton"],
         .st-key-global_app_bar div[data-testid="stButton"] > button {
-            height: auto !important;
-            min-height: 2.5rem !important;
-            max-height: none !important;
-            line-height: 1.35 !important;
+            height: 2.25rem !important;
+            min-height: 2.25rem !important;
+            max-height: 2.25rem !important;
+            line-height: 1 !important;
             box-sizing: border-box !important;
-            padding: 0.45rem 0.60rem !important;
-            font-size: 0.88rem !important;
+            padding: 0 0.85rem !important;
+            font-size: 0.86rem !important;
             font-weight: 600 !important;
             letter-spacing: 0.015em !important;
             border-radius: 6px !important;
@@ -1707,12 +1752,14 @@ def _workspace_tab_styles() -> str:
             box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
             margin: 0 !important;
             width: 100% !important;
-            white-space: normal !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
         }
         .st-key-global_app_bar button[data-testid="stPopoverButton"] *,
         .st-key-global_app_bar div[data-testid="stButton"] > button * {
-            white-space: normal !important;
-            font-size: 0.88rem !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            font-size: 0.86rem !important;
             margin: 0 !important;
         }
         .st-key-global_app_bar button[data-testid="stPopoverButton"]:hover,
@@ -1738,11 +1785,37 @@ def _workspace_tab_styles() -> str:
             background: rgba(255, 255, 255, 0.10) !important;
             border-color: rgba(16, 185, 129, 0.4) !important;
         }
+        .st-key-global_app_bar [data-testid="stColumn"]:not(:first-child) button[data-testid="stPopoverButton"],
+        .st-key-global_app_bar [data-testid="stColumn"]:not(:first-child) div[data-testid="stButton"] button {
+            width: auto !important;
+        }
+        /* Buttons with help= are wrapped in a tooltip element, so match descendants. */
+        .st-key-global_app_bar .st-key-header_upgrade_btn div[data-testid="stButton"] button,
+        .st-key-global_app_bar .st-key-header_credits_btn div[data-testid="stButton"] button {
+            min-height: 2.25rem !important;
+            height: 2.25rem !important;
+            max-height: 2.25rem !important;
+            padding: 0 0.85rem !important;
+            line-height: 1 !important;
+            font-size: 0.84rem !important;
+            font-weight: 700 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            width: auto !important;
+        }
+        .st-key-global_app_bar .st-key-header_upgrade_btn div[data-testid="stButton"] button *,
+        .st-key-global_app_bar .st-key-header_credits_btn div[data-testid="stButton"] button * {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+        }
         .st-key-global_app_bar .topbar-status-badge {
-            height: auto !important;
-            min-height: 2.5rem !important;
-            max-height: none !important;
-            line-height: 1.35 !important;
+            height: 2.25rem !important;
+            min-height: 2.25rem !important;
+            max-height: 2.25rem !important;
+            line-height: 1 !important;
+            white-space: nowrap !important;
+            padding: 0 0.75rem !important;
             box-sizing: border-box !important;
             margin: 0 !important;
             display: inline-flex !important;

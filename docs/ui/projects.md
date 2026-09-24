@@ -128,3 +128,13 @@ reached from the Account panel (legacy key `sidebar_manage_projects_btn`).
 Account keeps its billing/sign-out actions and the existing secondary Community
 entry; the Manage Projects sidebar also keeps a Community action. No billing
 policy, credits calculation, physics or result ranking changes in Phase B.
+
+
+## App bar (0.19.1)
+
+`_render_main_account_header` renders one fixed-height row (2.25rem
+controls, labels never wrap, columns sized to content, a flexible spacer
+between the project group and the account group). The credit button shows
+the balance only (`N credits · Upgrade` on Free, `PLAN · N credits` on paid
+plans): the balance includes top-up packs, so it is not a fraction of the
+3,000 monthly Free credits.

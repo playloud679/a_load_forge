@@ -90,3 +90,20 @@ Box Design shares the `search_row_*` input/action layout with Bass Match.
 Catalog entry is applied before alignment and widget creation through
 [`navigation.py`](navigation.md). It preserves explicit box dimensions and
 opens a new design without replacing an existing cloud project.
+
+
+## Viewport-fit Box Design (0.19.1)
+
+The Box Design column fits the window without page scrolling from about
+1280×900 up (Response, Excursion, Impedance, Group Delay; the Ports tab is a
+workbench and still scrolls):
+
+- `_render_summary_strip` shows the headline metrics (F3, Peak SPL,
+  Excursion, Min Z, Volume, Score) as one line of chips above the analysis
+  tabs; model warnings sit behind a red "N warnings" popover and the full
+  metric grid, badges and load image behind "Details". Metrics, Forge Score
+  and badges are computed exactly as before, just before the charts.
+- "Design details", "Driver details" and "Export design" are popovers on one
+  row instead of stacked expanders.
+- `--lf-fit-chart-offset` (504px) is the measured height of the chrome above
+  and below the chart; retune it when that chrome changes.

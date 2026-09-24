@@ -1345,12 +1345,35 @@ def _check_ui_group_delay_chart_renders():
     at.session_state["design_analysis_tab"] = "Group Delay"
     at.run()
     assert not at.exception, at.exception
-    assert any(sub.value == "Group Delay" for sub in at.subheader), (
-        "Group Delay tab subheader missing"
-    )
+    # The tab label names the chart; the viewport-fit chart replaced the subheader.
+    assert len(at.get("vega_lite_chart")) >= 1, "Group Delay chart missing"
 
 
 test("UI group-delay tab renders the Group Delay chart", _check_ui_group_delay_chart_renders, group="ui")
+
+
+def _check_ui_viewport_fit_layout():
+    """Box Design fits the viewport: fit charts, one-line summary strip, compact bar."""
+    import altair as alt
+    import pandas as pd
+    if str(ROOT / "tools") not in sys.path:
+        sys.path.insert(0, str(ROOT / "tools"))
+    from ui import analysis, app, projects, styles
+    chart = alt.Chart(pd.DataFrame({"f": [10, 100], "db": [80, 90]})).mark_line().encode(x="f", y="db").properties(height=580)
+    assert analysis._fit_chart_spec(chart)["height"] == "container"
+    concat = alt.hconcat(chart, chart)
+    assert analysis._fit_chart_spec(concat).get("height") != "container"
+    css = styles.GLOBAL_CSS
+    assert "--lf-fit-chart-offset" in css and '[class*="st-key-lf_fit_chart_"]' in css
+    assert "@media (max-width: 768px)" in css
+    import inspect
+    strip_src = inspect.getsource(app._render_summary_strip)
+    assert '"Box volume": "Volume"' in strip_src and "Details" in strip_src
+    header_src = inspect.getsource(projects._render_main_account_header)
+    assert "/ 3,000" not in header_src and "credits · Upgrade" in header_src
+
+
+test("UI Box Design fits the viewport (fit charts, summary strip, compact bar)", _check_ui_viewport_fit_layout, group="ui")
 
 
 def _check_ui_non_calculating_navigation_is_lazy():

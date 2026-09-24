@@ -30,8 +30,12 @@ All plotting and analysis-tab rendering.
 
 ## Invariants
 
-- Primary response and MIL chart layers use `height=580`; zoom tests assert
-  frequency and amplitude domains independently of presentation height.
+- Charts are built with a numeric height (`height=580` response, 520 others)
+  but rendered through `_render_fit_chart`, which rewrites the top-level height
+  to `"container"` (`_fit_chart_spec`; concat specs untouched) inside an
+  `lf_fit_chart_<tab>` container. The container height is CSS:
+  `max(--lf-fit-chart-min, 100vh - --lf-fit-chart-offset)` (styles), fixed 420px
+  under 768px width. Zoom tests assert domains independently of height.
 - Chart layers must filter data to the zoom window; unclipped marks past the
   x-domain make Vega shrink the plot area.
 - `@st.fragment` tabs rerun alone so switching Response/Ports/Atlas keeps the
@@ -45,5 +49,6 @@ All plotting and analysis-tab rendering.
 `_check_ui_response_*`, `_check_ui_design_crw_*`.
 # Compact response view
 
-The primary response plot uses a 580px plotting area. Other analysis tabs retain their own
-chart sizes; no traces, axes or simulation outputs are removed.
+Response, Excursion, Impedance, Ports and Group Delay charts follow the
+viewport (see Invariants). Their duplicate subheaders were removed: the tab
+label names the chart. No traces, axes or simulation outputs are removed.
