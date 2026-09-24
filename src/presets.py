@@ -1443,10 +1443,10 @@ def _driver_ts_from_mapping(values: dict) -> DriverTS:
         qms=float(values["qms"]),
         re_ohm=float(values["re_ohm"]),
         sd_cm2=float(values["sd_cm2"]),
-        le_mh=float(values.get("le_mh", 0.0)),
+        le_mh=float(values.get("le_mh") or 0.0),  # null = not published
         le10k_mh=float(values["le10k_mh"]) if values.get("le10k_mh") is not None else None,
-        xmax_mm=float(values.get("xmax_mm", 0.0)),
-        pe_w=float(values.get("pe_w", 0.0)),
+        xmax_mm=float(values.get("xmax_mm") or 0.0),  # null = not published
+        pe_w=float(values.get("pe_w") or 0.0),  # null = not published
         mms_g=float(values["mms_g"]) if values.get("mms_g") is not None else None,
         cms_mm_per_n=(
             float(values["cms_mm_per_n"]) if values.get("cms_mm_per_n") is not None else None
@@ -1805,7 +1805,7 @@ def _fetch_firestore_presets(
             qms = float(d.get("qms", 5.0))
             qes = float(d.get("qes", 0.4))
             qts = float(d.get("qts", 0.37))
-            le_mh = float(d.get("le_mh", 0.0))
+            le_mh = float(d.get("le_mh") or 0.0)
             le10k_mh = float(d["le10k_mh"]) if d.get("le10k_mh") is not None else None
             sd_cm2 = float(d.get("sd_cm2", 100.0)) if d.get("sd_cm2") is not None else 100.0
             vas_l = float(d.get("vas_l", 20.0)) if d.get("vas_l") is not None else 20.0
