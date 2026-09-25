@@ -1121,8 +1121,12 @@ def _filter_driver_preset_names(
                 continue
         filtered.append(name)
 
+    # Pinned drivers lead the list only while they pass the active filters;
+    # otherwise changing a filter would keep searching the old pins.
+    filtered_set = set(filtered)
+    pinned_matching = [name for name in pinned_valid if name in filtered_set]
     filtered_without_pinned = [name for name in filtered if name not in pinned_set]
-    result = list(pinned_valid) + filtered_without_pinned
+    result = pinned_matching + filtered_without_pinned
     if selected and selected != "Custom" and selected in names and selected not in result:
         result.insert(0, selected)
     return result
@@ -1876,12 +1880,11 @@ def _on_simulate_single_pr(selected_name: str) -> None:
     st.session_state["_pending_workspace_switch"] = "Box Design"
 
 def _on_simulate_single_candidate(selected_name: str) -> None:
-    st.session_state["finder_pinned_driver_names"] = [selected_name]
+    # Opening a design must not pin it: pins restrict later Bass Match searches.
     _finder._apply_library_driver(selected_name)
     st.session_state["_pending_workspace_switch"] = "Box Design"
 
 def _on_simulate_multiple_candidates(selected_names: list[str]) -> None:
-    st.session_state["finder_pinned_driver_names"] = list(selected_names)
     _finder._apply_multiple_library_drivers(selected_names)
     st.session_state["_pending_workspace_switch"] = "Box Design"
 

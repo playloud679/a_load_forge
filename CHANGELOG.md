@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.3 (2026-09-25)
+
+- **Fix — Bass Match kept searching old drivers after a filter change**: opening one or more library drivers in Box Design silently pinned them (since 0.19.0), and pinned drivers were forced into the candidate pool even when they failed the active filters, so every later search evaluated only those drivers ("2 evaluated"). Opening a design no longer pins it, and a pin leads the pool only while it passes the filters. Regression test added (fails on 0.19.2).
+- **The load is shown as DCAAV**: `"DCCAV"` stays the internal value (saved projects, engine); every user-facing place — load cards, design tabs and pins, compare-loads legend, Finder summaries and results table, captions, toasts, help and the AFW export file name (`load_forge_dcaav.afw`) — shows **DCAAV**. Label parsing accepts both names.
+- Validation: `make test` passed; `make test-match MATCH='UI'` 108 passed.
+
 ## 0.19.2 (2026-09-25)
 
 - **Compact controls under the chart**: trace pills 28 px (were ~50), toggles and Pin/Tabs/Reset buttons 1.9 rem with 0.80 rem text, the frequency-window slider pulled up, and the Design/Driver/Export detail buttons 30 px. The control block shrinks from ~110 to 64 px and the chart gains the space (`--lf-fit-chart-offset` 504 → 469 px); still 0 px page scroll at 900, 1000 and 1080 px window height.

@@ -1376,6 +1376,29 @@ def _check_ui_viewport_fit_layout():
 test("UI Box Design fits the viewport (fit charts, summary strip, compact bar)", _check_ui_viewport_fit_layout, group="ui")
 
 
+def _check_ui_finder_pins_respect_filters():
+    """Regression: pins bypassed filters, so changing a filter re-searched the old pins."""
+    import inspect
+    from unittest.mock import patch
+    if str(ROOT / "tools") not in sys.path:
+        sys.path.insert(0, str(ROOT / "tools"))
+    from ui import catalog
+    names = catalog._acoustics.driver_preset_names()
+    markaudio = next(n for n in names if "MarkAudio" in n)
+    with patch.object(catalog.st, "session_state", {}), patch.object(catalog, "_maintenance_allowed", lambda: False):
+        other = catalog._filter_driver_preset_names(names, source="All", family="All", size="All",
+                                                    search="Beyma", pinned=[markaudio])
+        same = catalog._filter_driver_preset_names(names, source="All", family="All", size="All",
+                                                   search="MarkAudio", pinned=[markaudio])
+    assert markaudio not in other and other, "a pin outside the filter must not lead the search"
+    assert same[0] == markaudio, "a pin that passes the filter still leads"
+    for fn in (catalog._on_simulate_single_candidate, catalog._on_simulate_multiple_candidates):
+        assert "finder_pinned_driver_names" not in inspect.getsource(fn), "opening a design must not pin it"
+
+
+test("UI Finder pins respect filters and opening a design does not pin", _check_ui_finder_pins_respect_filters, group="ui")
+
+
 def _check_ui_non_calculating_navigation_is_lazy():
     import inspect
 

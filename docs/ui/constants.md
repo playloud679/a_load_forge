@@ -42,3 +42,13 @@ callers; it is reached from the account header rather than the image-tab row.
 
 Both `duplicate` and `duplicate_name` map to **Name already exists** in
 `_SAVE_STATUS_LABELS`, preserving messages from both project-save paths.
+
+
+## Load-type display names
+
+`"DCCAV"` is the internal load-type value (session state, saved projects,
+engine). Users read the product name **DCAAV**: `load_type_label()` maps a
+value, `display_load_names()` rewrites a string, `_LOAD_TYPE_NAMES` accepts
+both names when a user-facing label is parsed back (design tabs, pins), and
+`_TRACE_COLORS` carries both keys for compare-loads legends. Never store the
+display name.

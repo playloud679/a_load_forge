@@ -20,7 +20,7 @@ Everything that reads or edits the driver catalog and the preset library.
   `_normalize_price_frame`, `_value_sorted_frame`, `_purchase_markdown`.
 - Library UI and filters: `_render_finder_library_filters` (complete in both Simple
   and Advanced modes: Provenance, Manufacturer, Size, Class, Price),
-  `_filter_driver_preset_names` (supports `pinned` drivers preserved at the top of the pool),
+  `_filter_driver_preset_names` (pinned drivers lead the pool only while they pass the active filters; opening a design in Box Design never pins it),
   `_table_selection_rows`, `_sync_pinned_from_library_table`,
   `_sync_finder_library_selection`, `_clear_library_selection`,
   `_render_driver_library` (supports single and multi-driver Box Design simulation actions),
