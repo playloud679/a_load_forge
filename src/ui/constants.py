@@ -140,6 +140,14 @@ def display_load_names(text: object) -> str:
 
 _ALL_LOAD_TYPES = ["Infinite baffle", "Sealed", "Bass reflex",
                    "Bandpass 4th order", "Bandpass 6th order", "Bandpass 8th order", "DCCAV"]
+# Load cards offered in the selection grid, 3 per row: first the loads whose
+# driver radiates directly (exposed cone), then the bandpass loads with the
+# driver inside the enclosure. Infinite baffle is no longer offered; saved
+# projects that use it still open (it stays in _ALL_LOAD_TYPES).
+_GRID_LOAD_TYPES = [
+    "Sealed", "Bass reflex", "DCCAV",
+    "Bandpass 4th order", "Bandpass 6th order", "Bandpass 8th order",
+]
 # Internal values plus their display names, for parsing user-facing labels.
 _LOAD_TYPE_NAMES = frozenset(_ALL_LOAD_TYPES) | frozenset(_LOAD_TYPE_DISPLAY.values())
 

@@ -1527,7 +1527,7 @@ def _load_type_card_styles(version: str = "grid_v6") -> str:
         /* One grid owns both axes; each item includes artwork AND caption. */
         [data-testid="stSidebar"] .st-key-load_type_grid {
             display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: var(--lf-gap-sm) !important;
             margin-block: var(--lf-gap-xs) var(--lf-gap-sm);
         }

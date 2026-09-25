@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.4 (2026-09-25)
+
+- **Load selection grid 3×2**: first row the loads with the driver radiating directly (Sealed, Reflex, DCAAV), second row the bandpass loads with the driver inside (BP4, BP6, BP8), in both Box Design and Bass Match. **Infinite baffle is no longer offered**; saved projects and Finder selections that use it still open and show a "no longer offered" note under the grid.
+- Validation: `make test` passed; `make test-match MATCH='UI'` 108 passed.
+
 ## 0.19.3 (2026-09-25)
 
 - **Fix — Bass Match kept searching old drivers after a filter change**: opening one or more library drivers in Box Design silently pinned them (since 0.19.0), and pinned drivers were forced into the candidate pool even when they failed the active filters, so every later search evaluated only those drivers ("2 evaluated"). Opening a design no longer pins it, and a pin leads the pool only while it passes the filters. Regression test added (fails on 0.19.2).

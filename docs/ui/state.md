@@ -66,3 +66,12 @@ use HTML with intrinsic height. Selection callbacks and widget keys are unchange
 Workspace selection clears consumed portal `preset/vb/fb/load` parameters so
 manual navigation does not reopen the imported design on refresh. The consumed
 signature is also reset, allowing a later explicit visit to the same driver link.
+
+
+## Load selection grid (0.19.4)
+
+`_render_load_type_buttons` renders `_constants._GRID_LOAD_TYPES` as a 3×2
+grid: Sealed, Reflex, DCAAV (driver radiating directly) on the first row,
+BP4, BP6, BP8 (driver inside the enclosure) on the second. Infinite baffle is
+no longer offered; a project or Finder selection that still uses it keeps
+working and gets a "no longer offered" caption under the grid.

@@ -82,7 +82,7 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
     """
     st.html(_styles._load_type_card_styles())
     with st.container(key="load_type_grid"):
-        for lt in _constants._ALL_LOAD_TYPES:
+        for lt in _constants._GRID_LOAD_TYPES:
             with st.container(key=f"load_card_{_constants._LOAD_TYPE_SLUGS[lt]}"):
                 active = lt in active_set
                 st.button(
@@ -96,6 +96,12 @@ def _render_load_type_buttons(active_set: set[str], single_select: bool = False)
                 st.html(
                     f'<div class="load-card-label">{_constants._LOAD_TYPE_SHORT[lt]}</div>',
                 )
+    legacy = [lt for lt in active_set if lt not in _constants._GRID_LOAD_TYPES]
+    if legacy:
+        st.caption(
+            "Current load: " + ", ".join(_constants.load_type_label(lt) for lt in legacy)
+            + " (no longer offered). Pick a load above to switch."
+        )
     return set(active_set)
 
 def _render_engine_only_topologies_note() -> None:

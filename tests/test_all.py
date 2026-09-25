@@ -12575,10 +12575,11 @@ def _check_ui_finder_comprehensive_ux_regression():
     at.session_state['workspace_mode'] = 'Bass Match'
     at.run()
     assert not at.exception, at.exception
-    loads = {'Infinite baffle', 'Sealed', 'Bass reflex', 'Bandpass 4th order',
-             'Bandpass 6th order', 'Bandpass 8th order', 'DCCAV'}
-    assert {b.key.removeprefix('load_btn_') for b in at.sidebar.button
-            if b.key and b.key.startswith('load_btn_')} == loads
+    # 3x2 grid: exposed-driver loads first, then bandpass; Infinite baffle no longer offered.
+    grid = [b.key.removeprefix('load_btn_') for b in at.sidebar.button
+            if b.key and b.key.startswith('load_btn_')]
+    assert grid == ['Sealed', 'Bass reflex', 'DCCAV',
+                    'Bandpass 4th order', 'Bandpass 6th order', 'Bandpass 8th order'], grid
     at.button(key='load_btn_Sealed').click().run()
     assert set(at.session_state['finder_load_types']) == {'DCCAV', 'Sealed'}
     at.button(key='load_btn_Sealed').click().run()
