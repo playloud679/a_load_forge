@@ -207,8 +207,10 @@ the block layout is already proven identical to BP4/BP6).
 
 `generate_afw_text(lfp, template_path, title)` builds the same project text
 in memory (no file write), and is what `ui_app.py` calls for a "Download AFW
-project" button next to the response CSV/FRD/ZMA downloads, visible whenever
-the active load type is DCCAV. It feeds the button `_collect_params()`
+project" button next to the response CSV/FRD/ZMA downloads, visible only to
+administrators when the active load type is DCCAV
+(`src/ui/app.py:_afw_export_allowed`, same check as catalog maintenance);
+standard users export the portable `.lfp` project instead. It feeds the button `_collect_params()`
 directly (the same dict shape as a saved `.lfp` file), so the exported
 project always matches whatever is currently on screen.
 

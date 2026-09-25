@@ -32,6 +32,11 @@ _FORGE_SCORE_HELP = (
 )
 
 
+def _afw_export_allowed(load_type: str) -> bool:
+    """AFW (AUDIO per Windows) export is an admin tool; users keep the portable .lfp project."""
+    return load_type == "DCCAV" and _catalog._maintenance_allowed()
+
+
 def _render_summary_strip(flat_metrics, badges, warnings, load_image) -> None:
     """Performance summary as one strip above the chart (docs/ui/app.md).
 
@@ -1773,7 +1778,8 @@ def main() -> None:
 
         with exp_c3:
             with st.popover("Export design", width="stretch"):
-                dl_cols = st.columns(4) if load_type == "DCCAV" else st.columns(3)
+                show_afw = _afw_export_allowed(load_type)
+                dl_cols = st.columns(4) if show_afw else st.columns(3)
                 dl_csv, dl_frd, dl_zma = dl_cols[:3]
                 with dl_csv:
                     st.download_button(
@@ -1801,7 +1807,7 @@ def main() -> None:
                         width="stretch",
                         help="Electrical impedance as freq/ohm/phase text for VituixCAD, XSim or REW.",
                     )
-                if load_type == "DCCAV":
+                if show_afw:
                     with dl_cols[3]:
                         try:
                             afw_text = _afw_export.generate_afw_text(_state._collect_params())

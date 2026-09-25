@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.5 (2026-09-25)
+
+- **AFW export is admin-only**: the "Download AFW project" button (AUDIO per Windows, DCAAV) under Export design is shown only to administrators (`_afw_export_allowed`, same check as catalog maintenance). Standard users keep CSV/FRD/ZMA and the portable **`.lfp`** project export ("Export .lfp Backup" in Project actions).
+- Validation: `make test-match MATCH='UI'` 109 passed (new: AFW admin-only, project export stays `.lfp`).
+
 ## 0.19.4 (2026-09-25)
 
 - **Load selection grid 3×2**: first row the loads with the driver radiating directly (Sealed, Reflex, DCAAV), second row the bandpass loads with the driver inside (BP4, BP6, BP8), in both Box Design and Bass Match. **Infinite baffle is no longer offered**; saved projects and Finder selections that use it still open and show a "no longer offered" note under the grid.

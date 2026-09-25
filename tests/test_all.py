@@ -1399,6 +1399,21 @@ def _check_ui_finder_pins_respect_filters():
 test("UI Finder pins respect filters and opening a design does not pin", _check_ui_finder_pins_respect_filters, group="ui")
 
 
+def _check_ui_afw_export_is_admin_only():
+    """AFW export is an admin tool; standard users export the portable .lfp project."""
+    from unittest.mock import patch
+    from ui import app, projects
+    with patch.object(app._catalog, "_maintenance_allowed", lambda: False):
+        assert not app._afw_export_allowed("DCCAV"), "standard users must not get the AFW export"
+    with patch.object(app._catalog, "_maintenance_allowed", lambda: True):
+        assert app._afw_export_allowed("DCCAV"), "admins keep the AFW export"
+        assert not app._afw_export_allowed("Sealed"), "AFW exists only for DCAAV designs"
+    assert projects._project_download_filename("My box").endswith(".lfp"), "the project export stays .lfp"
+
+
+test("UI AFW export is admin-only; project export stays .lfp", _check_ui_afw_export_is_admin_only, group="ui")
+
+
 def _check_ui_non_calculating_navigation_is_lazy():
     import inspect
 
