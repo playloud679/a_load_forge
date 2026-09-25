@@ -32,6 +32,11 @@ from . import runtime as _runtime
 from . import state as _state
 
 
+
+# Free-plan balance under which Bass Match shows the upgrade box (10% of the
+# 3,000 monthly free credits); above it the app bar alone shows the balance.
+_LOW_CREDITS_FREE = 300
+
 def _apply_alignment(alignment: _acoustics.DccavAlignment):
     st.session_state["box_vh_l"] = float(alignment.vh_l)
     st.session_state["box_fh_hz"] = float(alignment.fh_hz)
@@ -1919,9 +1924,7 @@ def _render_bass_match_hero(
     finder_objective = str(st.session_state.get("finder_objective", "Max extension"))
     secondary_specs = f"{finder_objective} · {finder_search_profile}"
 
-    total_lib = len(_catalog._available_driver_preset_names())
-    candidates_ready_str = f"{len(prequalified_names):,} / {total_lib:,} in catalog"
-    sims_ready_str = f"{prefilter_stats['eligible_simulations']:,} simulations"
+    candidates_ready_str = f"{len(prequalified_names):,} pre-qualified"
     cost_str = f" · {run_credits:,} credits" if acc else ""
 
     run_requested = False
@@ -1934,9 +1937,7 @@ def _render_bass_match_hero(
                     <span class="bass-match-spec-sep">·</span>
                     <span class="bass-match-spec-line-secondary">{secondary_specs}</span>
                     <span class="bass-match-readiness-row">
-                        <span class="bass-match-readiness-val">{candidates_ready_str}</span>
-                        <span class="bass-match-readiness-sep">·</span>
-                        <span class="bass-match-readiness-val">{sims_ready_str}</span>{cost_str}
+                        <span class="bass-match-readiness-val">{candidates_ready_str}</span>{cost_str}
                     </span>
                 </div>
             </div>""",
@@ -1969,8 +1970,8 @@ def _render_bass_match_hero(
                 or (label == "Search" and bool(st.session_state.get("preset_search", "").strip()))
             ]
             _catalog._render_finder_constraint_grid(visible_constraints)
-        if acc and acc.plan == "free":
-            pct = max(0, min(100, int((credits_balance / 3000) * 100)))
+        # Shortfall has its own error + purchase below; this box is only the low-balance nudge.
+        if acc and acc.plan == "free" and has_enough_credits and credits_balance < _LOW_CREDITS_FREE:
             with st.container(border=True, key="bm_urgency_banner"):
                 u_col1, u_col2 = st.columns([3.2, 1.8], vertical_alignment="center")
                 with u_col1:
@@ -1979,7 +1980,7 @@ def _render_bass_match_hero(
                         <div style="display:flex; flex-direction:column; gap:0.2rem;">
                             <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
                                 <span style="background:rgba(15,23,42,0.8); color:#fca5a5; border:1px solid rgba(239,68,68,0.4); padding:0.12rem 0.50rem; border-radius:4px; font-size:0.72rem; font-weight:800; letter-spacing:0.04em;">FREE PLAN</span>
-                                <span style="font-size:0.92rem; font-weight:700; color:#f8fafc;">Remaining credits: <b style="color:#fbbf24;">{credits_balance:,}</b> / 3,000 ({pct}%)</span>
+                                <span style="font-size:0.92rem; font-weight:700; color:#f8fafc;">Credits running low: <b style="color:#fbbf24;">{credits_balance:,}</b> left</span>
                             </div>
                             <div style="font-size:0.78rem; color:#94a3b8; line-height:1.4;">
                                 Each scan consumes compute credits. Upgrade to <b>Pro</b> (300k credits/mo) for continuous runs and priority queue.
@@ -2049,9 +2050,9 @@ def _render_candidate_pool(filtered_preset_names: list[str]) -> None:
     )
     total_drivers = len(_catalog._available_driver_preset_names())
     if selected_count:
-        pool_suffix = f"{selected_count} selected · {len(filtered_preset_names):,} matching of {total_drivers:,} in proprietary catalog"
+        pool_suffix = f"{selected_count} selected · {len(filtered_preset_names):,} of {total_drivers:,} drivers match your filters"
     else:
-        pool_suffix = f"{len(filtered_preset_names):,} matching of {total_drivers:,} drivers in proprietary catalog"
+        pool_suffix = f"{len(filtered_preset_names):,} of {total_drivers:,} drivers match your filters"
     pool_expander = st.expander(
         f"Candidate pool · {pool_suffix}",
         expanded=st.session_state.get("finder_candidate_pool_expander", True),

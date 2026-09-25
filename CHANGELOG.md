@@ -3,7 +3,8 @@
 ## 0.19.5 (2026-09-25)
 
 - **AFW export is admin-only**: the "Download AFW project" button (AUDIO per Windows, DCAAV) under Export design is shown only to administrators (`_afw_export_allowed`, same check as catalog maintenance). Standard users keep CSV/FRD/ZMA and the portable **`.lfp`** project export ("Export .lfp Backup" in Project actions).
-- Validation: `make test-match MATCH='UI'` 109 passed (new: AFW admin-only, project export stays `.lfp`).
+- **Each fact once per screen** (Bass Match had the balance 3×, Upgrade 3×, the catalog size 5×): the sidebar FREE PLAN box is gone (plan, balance and Upgrade stay in the app bar); the in-page credits box appears only below 300 free credits when the run is still affordable, and never together with the shortfall error; the "/ 3,000 (100%)" ratio is gone (it read 770,112 / 3,000). The catalog size appears once, in the candidate-pool header ("N of M drivers match your filters"); the brief row shows pre-qualified drivers and cost only; the library tabs and header no longer restate counts; the unbacked "CERTIFIED DRIVERS" banner becomes "CATALOG: N DRIVERS" in Box Design only. Rule documented in `docs/ui.md` ("One place per fact").
+- Validation: `make test-match MATCH='UI'` 110 passed (new: AFW admin-only and project export stays `.lfp`; credits, Upgrade and catalog size shown once per screen).
 
 ## 0.19.4 (2026-09-25)
 

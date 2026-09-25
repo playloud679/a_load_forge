@@ -390,26 +390,6 @@ def main() -> None:
             # Remember the last engineering workspace for returning users.
             st.session_state["_last_engineering_workspace"] = workspace_mode
             _state._render_workspace_tabs()
-            _user_acc = _account._get_current_user_account() if _runtime._CURRENT_SAAS_USER is not None else None
-            if _user_acc and _user_acc.plan == "free":
-                _pct = max(0.0, min(1.0, float(_user_acc.credits_balance) / 3000.0))
-                with st.container(key="sidebar_credit_urgency_box"):
-                    st.markdown(
-                        f"""<div style="background:rgba(15,23,42,0.65); border:1px solid rgba(51,65,85,0.7); border-radius:8px; padding:0.55rem 0.65rem; margin:0.35rem 0 0.35rem 0;">
-                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
-                                <span style="font-size:0.68rem; font-weight:800; color:#34d399; letter-spacing:0.06em; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.35); padding:0.10rem 0.40rem; border-radius:3px;">FREE PLAN</span>
-                                <span style="font-size:0.75rem; font-weight:700; color:#fbbf24;">{_user_acc.credits_balance:,} CREDITS</span>
-                            </div>
-                            <div style="font-size:0.72rem; color:#94a3b8; line-height:1.3; margin-bottom:0.35rem;">
-                                Compute credits for Bass Match search. Upgrade for continuous scans and priority queue.
-                            </div>
-                        </div>""",
-                        unsafe_allow_html=True,
-                    )
-                    st.progress(_pct)
-                    with st.container(key="sidebar_billing_action_popover"):
-                        if st.button("UPGRADE TO PRO (FROM €3)", key="sb_urgency_cta_btn", width="stretch", help="Unlock up to 300,000 monthly credits with priority computing"):
-                            _projects._open_billing_modal(_user_acc)
         if _explore_requested:
             _projects._render_community_sidebar()
         elif _public_project_requested:
@@ -568,7 +548,7 @@ def main() -> None:
             with bd_tab1:
                 st.markdown(
                     f'<div style="font-size:0.75rem; font-weight:700; color:#34d399; letter-spacing:0.04em; margin-bottom:0.25rem;">'
-                    f'PROPRIETARY CATALOG: {len(all_preset_names):,} CERTIFIED DRIVERS</div>',
+                    f'CATALOG: {len(all_preset_names):,} DRIVERS</div>',
                     unsafe_allow_html=True,
                 )
                 # Bottom alignment keeps the icon button on the same baseline as

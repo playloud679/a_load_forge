@@ -1258,7 +1258,6 @@ GLOBAL_CSS = """
     }
 
     .st-key-header_upgrade_btn div[data-testid="stButton"] > button,
-    .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button,
     [class*="st-key-bm_upgrade_callout"] div[data-testid="stButton"] > button,
     div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a,
     div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a,
@@ -1283,7 +1282,6 @@ GLOBAL_CSS = """
     }
 
     .st-key-header_upgrade_btn div[data-testid="stButton"] > button *,
-    .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button *,
     [class*="st-key-bm_upgrade_callout"] div[data-testid="stButton"] > button *,
     div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a *,
     div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a *,
@@ -1297,7 +1295,6 @@ GLOBAL_CSS = """
     }
 
     .st-key-header_upgrade_btn div[data-testid="stButton"] > button::after,
-    .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button::after,
     [class*="st-key-bm_upgrade_callout"] div[data-testid="stButton"] > button::after,
     div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a::after,
     div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a::after {
@@ -1314,7 +1311,6 @@ GLOBAL_CSS = """
     }
 
     .st-key-header_upgrade_btn div[data-testid="stButton"] > button:hover,
-    .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button:hover,
     [class*="st-key-bm_upgrade_callout"] div[data-testid="stButton"] > button:hover,
     div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a:hover,
     div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a:hover {
@@ -1325,7 +1321,6 @@ GLOBAL_CSS = """
     }
 
     .st-key-header_upgrade_btn div[data-testid="stButton"] > button:active,
-    .st-key-sidebar_billing_action_popover div[data-testid="stButton"] > button:active,
     [class*="st-key-bm_upgrade_callout"] div[data-testid="stButton"] > button:active,
     div[data-testid="stLinkButton"].st-key-modal_pro_sub_btn a:active,
     div[data-testid="stLinkButton"].st-key-modal_hobby_sub_btn a:active {

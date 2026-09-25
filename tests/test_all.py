@@ -1402,6 +1402,8 @@ test("UI Finder pins respect filters and opening a design does not pin", _check_
 def _check_ui_afw_export_is_admin_only():
     """AFW export is an admin tool; standard users export the portable .lfp project."""
     from unittest.mock import patch
+    if str(ROOT / "tools") not in sys.path:
+        sys.path.insert(0, str(ROOT / "tools"))
     from ui import app, projects
     with patch.object(app._catalog, "_maintenance_allowed", lambda: False):
         assert not app._afw_export_allowed("DCCAV"), "standard users must not get the AFW export"
@@ -1412,6 +1414,28 @@ def _check_ui_afw_export_is_admin_only():
 
 
 test("UI AFW export is admin-only; project export stays .lfp", _check_ui_afw_export_is_admin_only, group="ui")
+
+
+def _check_ui_credits_and_catalog_size_shown_once():
+    """Each fact once per screen: balance/Upgrade in the app bar, catalog size in the pool header."""
+    import inspect
+    if str(ROOT / "tools") not in sys.path:
+        sys.path.insert(0, str(ROOT / "tools"))
+    from ui import app, catalog, finder
+    app_src, finder_src, catalog_src = (inspect.getsource(m) for m in (app, finder, catalog))
+    assert "sidebar_credit_urgency_box" not in app_src, "the sidebar must not repeat plan, balance and Upgrade"
+    assert "CERTIFIED DRIVERS" not in app_src + catalog_src, "no repeated or unbacked 'certified' catalog banners"
+    assert "PROPRIETARY CATALOG" not in catalog_src, "the library header must not restate the catalog size"
+    assert "in catalog\"" not in finder_src, "the brief must not restate the catalog size"
+    assert "/ 3,000" not in finder_src, "no balance-over-allowance ratio (it exceeds 100% for granted credits)"
+    brief = inspect.getsource(finder._render_bass_match_brief) if hasattr(finder, "_render_bass_match_brief") else finder_src
+    assert "has_enough_credits and credits_balance < _LOW_CREDITS_FREE" in brief, \
+        "the upgrade box is only the low-balance nudge; a shortfall shows the error alone"
+    assert "sims_ready_str" not in brief, "the brief row states drivers and cost once, not the same number three times"
+    assert finder._LOW_CREDITS_FREE == 300
+
+
+test("UI credits, Upgrade and catalog size are shown once per screen", _check_ui_credits_and_catalog_size_shown_once, group="ui")
 
 
 def _check_ui_non_calculating_navigation_is_lazy():

@@ -892,11 +892,6 @@ def _sync_filter_multiselect(
 
 def _render_finder_library_filters(all_preset_names: list[str]) -> None:
     """Render Finder library filters."""
-    st.markdown(
-        f'<div style="font-size:0.75rem; font-weight:700; color:#34d399; letter-spacing:0.04em; margin-bottom:0.25rem;">'
-        f'PROPRIETARY CATALOG: {len(all_preset_names):,} CERTIFIED DRIVERS</div>',
-        unsafe_allow_html=True,
-    )
     # Bottom alignment keeps the icon button on the same baseline as the
     # labelled input without a hardcoded spacer; CSS fixes its square size.
     with st.container(key="search_row_finder"):
@@ -1942,15 +1937,14 @@ def _render_passive_radiator_library() -> None:
 
 def _render_driver_library(filtered_preset_names: list[str]) -> None:
     """Render every filtered driver in a scrollable, selectable library."""
-    total_drivers = len(_available_driver_preset_names())
     cat_mode = st.radio(
         "Library Catalog",
-        [f"Loudspeaker Drivers ({total_drivers:,})", f"Passive Radiators ({len(_acoustics.passive_radiator_preset_names())})"],
+        ["Loudspeaker drivers", f"Passive radiators ({len(_acoustics.passive_radiator_preset_names())})"],
         horizontal=True,
         key="finder_library_catalog_tab",
         label_visibility="collapsed",
     )
-    if cat_mode and "Passive Radiators" in cat_mode:
+    if cat_mode and "Passive radiators" in cat_mode:
         _render_passive_radiator_library()
         return
 
@@ -1982,8 +1976,7 @@ def _render_driver_library(filtered_preset_names: list[str]) -> None:
     st.markdown(
         f"""<div style="display:flex; justify-content:space-between; align-items:center; background:rgba(15,23,42,0.65); border:1px solid rgba(51,65,85,0.7); border-radius:6px; padding:0.45rem 0.75rem; margin-bottom:0.4rem;">
             <div>
-                <span style="font-size:0.80rem; font-weight:800; color:#f8fafc; letter-spacing:0.04em;">PROPRIETARY CATALOG: <span style="color:#34d399;">{total_drivers:,} DRIVERS</span></span>
-                <span style="font-size:0.75rem; color:#94a3b8; margin-left:0.5rem;">({len(filtered_preset_names):,} matching filters{f' · first {len(shown_names)} in table' if len(shown_names) < len(filtered_preset_names) else ''})</span>
+                <span style="font-size:0.75rem; color:#94a3b8;">{f'Showing the first {len(shown_names)} — narrow the filters to see the rest' if len(shown_names) < len(filtered_preset_names) else 'All matching drivers'}</span>
             </div>
             <div style="font-size:0.75rem; color:#94a3b8;">
                 Currency: <b style="color:#f8fafc;">{price_currency}</b>

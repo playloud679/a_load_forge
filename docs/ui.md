@@ -50,6 +50,27 @@ and re-exports, updating `_ui_runtime._VERSION` even when `runtime.py` itself
 has not changed. An unreadable version file uses `dev`. Refreshing the page
 therefore updates both the browser title and visible version after a bump.
 
+## One place per fact
+
+Each piece of information appears once per screen, where it is used:
+
+- **Plan, credit balance and Upgrade**: only the app bar chip
+  (`projects.py`, "N credits · Upgrade"). Bass Match adds a box only when the
+  free balance is below `finder._LOW_CREDITS_FREE` (300) and the run is still
+  affordable; a run the balance cannot cover shows the shortfall error with its
+  own purchase button instead, never both.
+- **Catalog size**: only the candidate-pool header ("N of M drivers match your
+  filters") in Bass Match, and one plain "CATALOG: M DRIVERS" line in the Box
+  Design driver tab. No "certified" wording.
+- **Run cost**: the brief row states pre-qualified drivers and credits once;
+  simulation counts live in "Search details".
+- **Admin-only tools** (AFW export, catalog maintenance, provenance filters)
+  are hidden from standard users (`_catalog._maintenance_allowed`).
+
+`tests/test_all.py` ("shown once per screen", "AFW export is admin-only")
+enforces these rules; extend them before adding a new credits, upgrade or
+catalog-size surface.
+
 ## Test contract
 
 - Pre-production checks are targeted; see [development.md](development.md).
