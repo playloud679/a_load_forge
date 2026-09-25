@@ -480,7 +480,7 @@ def _batch_rank_presets_parallel(
                 if progress_text_widget is not None:
                     progress_text_widget.caption(
                         f"Matching {completed_offset + done}/{overall_total} simulations"
-                        f" · {load_type}"
+                        f" · {_constants.load_type_label(load_type)}"
                     )
             if row is not None:
                 rows.append(row)
@@ -543,7 +543,7 @@ def _batch_rank_presets_with_progress(
             last_progress_t = now
             progress.progress(min(current / overall_total, 1.0))
             if progress_text is not None:
-                progress_text.caption(f"Matching {current}/{overall_total} simulations · {load_type}")
+                progress_text.caption(f"Matching {current}/{overall_total} simulations · {_constants.load_type_label(load_type)}")
     return _acoustics.sort_ranked_rows(rows)
 
 def _finder_row_driver(row: dict) -> _acoustics.DriverTS:
@@ -1286,7 +1286,7 @@ def _render_find_driver_target_sidebar() -> None:
         step=1.0,
         key="finder_volume_l",
         disabled=only_infinite_baffle,
-        help="Upper limit for Vh+Vl (DCCAV), chamber total (bandpass), or Vb "
+        help="Upper limit for Vh+Vl (DCAAV), chamber total (bandpass), or Vb "
              "(reflex/sealed). Finder may choose a smaller optimal volume.",
     )
     if only_infinite_baffle:
@@ -1676,7 +1676,7 @@ def _render_find_driver_actions(filtered_preset_names: list[str]) -> None:
     display_loads = [
         "Bass reflex (PR)"
         if item == "Bass reflex" and _state._reflex_uses_passive_radiator(finder=True)
-        else item
+        else _constants.load_type_label(item)
         for item in finder_load_types
     ]
     load_label = " + ".join(display_loads) if len(display_loads) <= 2 else f"{len(display_loads)} loads"
@@ -1770,7 +1770,7 @@ def _finder_per_load_stats_str(stats: object) -> str:
             if not isinstance(load_stat, dict):
                 continue
             piece = (
-                f"{load_name}: {int(load_stat.get('usable', 0))}"
+                f"{_constants.load_type_label(load_name)}: {int(load_stat.get('usable', 0))}"
                 f"/{int(load_stat.get('attempted', 0))}"
             )
             load_evals = int(load_stat.get("evaluations_per_driver", 0) or 0)
@@ -1911,7 +1911,7 @@ def _render_bass_match_hero(
     has_enough_credits = (not enforce_credits) or (credits_balance >= run_credits or run_credits == 0)
 
     finder_load_types, _ = _catalog._finder_load_context()
-    load_names = ", ".join(finder_load_types) if finder_load_types else "DCCAV"
+    load_names = ", ".join(_constants.load_type_label(t) for t in finder_load_types) if finder_load_types else "DCAAV"
     driver_config = str(st.session_state.get("finder_driver_configuration", "Single driver"))
     volume_val = float(st.session_state.get("finder_volume_l", 40.0) or 40.0)
     primary_specs = f"{load_names} · {driver_config} · ≤{volume_val:.0f} L"
@@ -2279,7 +2279,7 @@ def _render_finder_results(filtered_preset_names: list[str], context_matches: bo
                 dccav_stats = load_stats.get("DCCAV", {})
                 reflex_stats = load_stats.get("Bass reflex", {})
                 load_summary = ", ".join(
-                    f"{load}: {stats.get('usable', 0)}/{stats.get('attempted', 0)}"
+                    f"{_constants.load_type_label(load)}: {stats.get('usable', 0)}/{stats.get('attempted', 0)}"
                     for load, stats in load_stats.items()
                 )
                 if load_summary and all(
@@ -2297,7 +2297,7 @@ def _render_finder_results(filtered_preset_names: list[str], context_matches: bo
                     and reflex_stats.get("usable", 0) > 0
                 ):
                     st.warning(
-                        "DCCAV non ha trovato un allineamento costruibile per "
+                        "DCAAV non ha trovato un allineamento costruibile per "
                         f"nessuna delle {dccav_stats['attempted']} candidate entro "
                         f"{finder_volume_l:.0f} L; il Bass reflex invece è fattibile. "
                         "Prova solo Bass reflex, aumenta il volume massimo o rilassa "
@@ -2305,7 +2305,7 @@ def _render_finder_results(filtered_preset_names: list[str], context_matches: bo
                     )
                 elif dccav_stats.get("attempted", 0) > 0 and dccav_stats.get("usable", 0) == 0:
                     st.warning(
-                        "Le candidate DCCAV sono state valutate, ma nessuna ha "
+                        "Le candidate DCAAV sono state valutate, ma nessuna ha "
                         f"prodotto un allineamento costruibile entro {finder_volume_l:.0f} L. "
                         "Aumenta il volume massimo o rilassa i vincoli di progetto."
                     )
@@ -2327,7 +2327,7 @@ def _render_finder_results(filtered_preset_names: list[str], context_matches: bo
     display_finder_loads = [
         "Bass reflex (PR)"
         if item == "Bass reflex" and finder_resonator == _constants._RESONATOR_PR
-        else item
+        else _constants.load_type_label(item)
         for item in finder_loads
     ]
     load_summary = (
@@ -2545,6 +2545,9 @@ def _render_finder_results(filtered_preset_names: list[str], context_matches: bo
                 args=(header_selected_designs, float(_state._finder_value("finder_voltage"))),
             )
 
+    if "Load" in display_df.columns:
+        # Show the product name; selection maps back by row position, not by this value.
+        display_df = display_df.assign(Load=display_df["Load"].map(_constants.load_type_label))
     table_state = st.dataframe(
         display_df,
         # Use the complete result-pane width; users can still resize columns

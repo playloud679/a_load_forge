@@ -2345,7 +2345,7 @@ def _check_ui_pin_response_overlay():
     assert not at.exception, at.exception
     pinned = at.session_state["pinned_responses"]
     assert len(pinned) == 1, "pin button must append the current response snapshot"
-    assert pinned[0]["label"].startswith("DCCAV"), pinned[0]["label"]
+    assert pinned[0]["label"].startswith("DCAAV"), pinned[0]["label"]  # display name of DCCAV
     assert pinned[0]["load_type"] == "DCCAV"
     assert pinned[0]["visible"] is True
     assert len(pinned[0]["frequency_hz"]) == len(pinned[0]["spl_total_db"]) > 0
@@ -2371,7 +2371,7 @@ def _check_ui_pin_response_overlay():
     at.session_state["load_type"] = "Sealed"
     at.run()
     assert not at.exception, "pinned overlay must survive a load-type change"
-    assert at.session_state["pinned_responses"][0]["label"].startswith("DCCAV")
+    assert at.session_state["pinned_responses"][0]["label"].startswith("DCAAV")
 
     next(b for b in at.button if b.label == "Pin response").click().run()
     assert not at.exception, at.exception

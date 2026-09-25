@@ -117,11 +117,31 @@ _LOAD_TYPE_SHORT = {
     "Bandpass 4th order": "BP4",
     "Bandpass 6th order": "BP6",
     "Bandpass 8th order": "BP8",
-    "DCCAV": "DCCAV",
+    "DCCAV": "DCAAV",
 }
+
+# "DCCAV" stays the internal load-type value (session state, saved projects,
+# engine); users always read the product name "DCAAV" (see load_type_label).
+_LOAD_TYPE_DISPLAY = {"DCCAV": "DCAAV"}
+
+
+def load_type_label(load_type: object) -> str:
+    """User-facing name of an internal load-type value."""
+    text = str(load_type)
+    return _LOAD_TYPE_DISPLAY.get(text, text)
+
+
+def display_load_names(text: object) -> str:
+    """Replace internal load-type values inside a user-facing string."""
+    out = str(text)
+    for internal, label in _LOAD_TYPE_DISPLAY.items():
+        out = out.replace(internal, label)
+    return out
 
 _ALL_LOAD_TYPES = ["Infinite baffle", "Sealed", "Bass reflex",
                    "Bandpass 4th order", "Bandpass 6th order", "Bandpass 8th order", "DCCAV"]
+# Internal values plus their display names, for parsing user-facing labels.
+_LOAD_TYPE_NAMES = frozenset(_ALL_LOAD_TYPES) | frozenset(_LOAD_TYPE_DISPLAY.values())
 
 _RESONATOR_PORT = "Port"
 
@@ -141,6 +161,7 @@ _TRACE_COLORS = {
     "Impedance": "#355070",
     "Excursion": "#b35c00",
     "DCCAV": "#10b981",
+    "DCAAV": "#10b981",  # display name of DCCAV in compare-loads legends
     "Bandpass 4th order": "#58d68d",
     "Bandpass 6th order": "#f2c14e",
     "Bandpass 8th order": "#ff9f1c",

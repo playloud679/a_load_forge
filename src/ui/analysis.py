@@ -962,7 +962,7 @@ def _pin_label(
             f"Vh {box.vh_l:.1f} L / Vl {box.vl_l:.1f} L · "
             f"fh {box.fh_hz:.0f} Hz / fl {box.fl_hz:.0f} Hz"
         )
-    return f"{load_type} · {preset} · {box_txt}"
+    return f"{_constants.load_type_label(load_type)} · {preset} · {box_txt}"
 
 def _pinned_responses() -> list[dict]:
     """Return all response pins, migrating the legacy single-pin state."""
@@ -1329,11 +1329,11 @@ def _design_comparison_tab_label(
         else st.session_state.get("driver_config", "Single driver")
     )
     if preset_name == "Custom":
-        return f"{number} · {load_type} · {driver_config}"
+        return f"{number} · {_constants.load_type_label(load_type)} · {driver_config}"
     manufacturer, part_number = _catalog._driver_preset_identity_fields(preset_name)
     return (
         f"{number} · {manufacturer} · {part_number} · "
-        f"{load_type} · {driver_config}"
+        f"{_constants.load_type_label(load_type)} · {driver_config}"
     )
 
 def _design_tab_label_driver(label: str) -> str:
@@ -1342,9 +1342,9 @@ def _design_tab_label_driver(label: str) -> str:
     if parts and parts[0].isdigit():
         parts = parts[1:]
     # New compact format: <manufacturer> · <part n.> · <load type> · <config>
-    if len(parts) >= 3 and parts[2] in _constants._ALL_LOAD_TYPES:
+    if len(parts) >= 3 and parts[2] in _constants._LOAD_TYPE_NAMES:
         candidate = f"{parts[0]} {parts[1]}"
-    elif len(parts) >= 2 and parts[0] in _constants._ALL_LOAD_TYPES:
+    elif len(parts) >= 2 and parts[0] in _constants._LOAD_TYPE_NAMES:
         return ""
     elif len(parts) >= 2 and parts[0].startswith("Variant of "):
         candidate = parts[1]
@@ -2393,7 +2393,8 @@ def _render_response_tab(
             _simulation_engine_revision(),
         )
         if comp_series:
-            compare_series = comp_series
+            # Legend names are user-facing: show DCAAV, keep the internal value elsewhere.
+            compare_series = {_constants.load_type_label(k): v for k, v in comp_series.items()}
 
     band = None
     if st.session_state.get("plot_tolerance_band", False) and not compare_series:
@@ -2620,7 +2621,7 @@ def _render_response_tab(
     elif load_type == "Infinite baffle":
         lead_text = "Infinite-baffle response is exposed cone front with ideal rear isolation. Low-frequency model only."
     else:
-        lead_text = "DCCAV total response is vector sum of exposed cone front and lower port. Low-frequency model only."
+        lead_text = "DCAAV total response is vector sum of exposed cone front and lower port. Low-frequency model only."
 
     extra_note = ""
     if comparison_mode:
@@ -2979,7 +2980,7 @@ def _render_ports_tab(
                         if not target_duct.startswith("All"):
                             st.toast(f"Lower Port (External) Optimized: Ø {o_low['diameter_cm']:.1f} cm")
                     if target_duct.startswith("All"):
-                        st.toast(f"DCCAV All Ports Optimized: Upper Ø {o_up['diameter_cm']:.1f} cm, Lower Ø {o_low['diameter_cm']:.1f} cm")
+                        st.toast(f"DCAAV All Ports Optimized: Upper Ø {o_up['diameter_cm']:.1f} cm, Lower Ø {o_low['diameter_cm']:.1f} cm")
                 elif load_type == "Bandpass 4th order":
                     opt_bp4 = _opt_single("Front vent (External)", box.vp_l, box.fp_hz, 1.43, result.port_l_velocity, "lower", "bandpass4_port_d_cm")
                     st.toast(f"Front Vent Optimized: Ø {opt_bp4['diameter_cm']:.1f} cm")

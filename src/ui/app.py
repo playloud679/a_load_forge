@@ -1766,7 +1766,7 @@ def main() -> None:
                     if ref.ebp_hz < 50.0:
                         ebp_hint = "EBP < 50: this driver classically favours sealed or infinite-baffle loads."
                     elif ref.ebp_hz > 100.0:
-                        ebp_hint = "EBP > 100: this driver classically favours ported loads (bass reflex / DCCAV)."
+                        ebp_hint = "EBP > 100: this driver classically favours ported loads (bass reflex / DCAAV)."
                     else:
                         ebp_hint = "EBP 50-100: this driver works in both sealed and ported loads."
                     st.caption(f"{ebp_hint} Class indicators: {', '.join(bandwidth.reasons)}.")
@@ -1813,7 +1813,7 @@ def main() -> None:
                         st.download_button(
                             "Download AFW project",
                             afw_bytes,
-                            "load_forge_dccav.afw",
+                            "load_forge_dcaav.afw",
                             "application/octet-stream",
                             width="stretch",
                             disabled=afw_error is not None,

@@ -2711,7 +2711,7 @@ def _render_public_project_page(publication_id: str) -> None:
                 except Exception:
                     st.info("Port air velocity curves are not applicable or port diameter is zero.")
             else:
-                st.info(f"Port velocity curves are not applicable for {load_type} enclosures.")
+                st.info(f"Port velocity curves are not applicable for {_constants.load_type_label(load_type)} enclosures.")
 
         with tab_gd:
             gd_chart = _analysis._plot_group_delay(result)
