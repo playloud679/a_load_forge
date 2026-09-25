@@ -1447,7 +1447,7 @@ GLOBAL_CSS = """
 
     /* Viewport-fit charts (ui/analysis.py:_render_fit_chart): height = viewport minus
        the Studio chrome above/below the chart, never below --lf-fit-chart-min. */
-    :root { --lf-fit-chart-offset: 504px; --lf-fit-chart-min: 360px; }
+    :root { --lf-fit-chart-offset: 469px; --lf-fit-chart-min: 360px; }
     [class*="st-key-lf_fit_chart_"] {
         height: max(var(--lf-fit-chart-min), calc(100vh - var(--lf-fit-chart-offset))) !important;
         min-height: max(var(--lf-fit-chart-min), calc(100vh - var(--lf-fit-chart-offset))) !important;
@@ -1466,6 +1466,32 @@ GLOBAL_CSS = """
     @media (max-width: 768px) {
         [class*="st-key-lf_fit_chart_"] { height: 420px !important; min-height: 420px !important; }
     }
+
+    /* Compact response controls under the chart (traces, toggles, pin/reset, window slider). */
+    [data-testid="stHorizontalBlock"]:has(.st-key-plot_compare_loads) { gap: 0.5rem !important; align-items: center !important; row-gap: 0.35rem !important; }
+    [data-testid="stHorizontalBlock"]:has(.st-key-plot_compare_loads) [data-testid="stPills"] button,
+    .st-key-plot_response_traces button {
+        min-height: 1.75rem !important; height: 1.75rem !important; padding: 0 0.65rem !important;
+        font-size: 0.80rem !important; line-height: 1 !important;
+    }
+    .st-key-plot_response_traces [data-testid="stButtonGroup"], .st-key-plot_response_traces div[role="group"] { gap: 0.3rem !important; }
+    [data-testid="stHorizontalBlock"]:has(.st-key-plot_compare_loads) [data-testid="stCheckbox"] p { font-size: 0.82rem !important; }
+    [data-testid="stHorizontalBlock"]:has(.st-key-plot_compare_loads) [data-testid="stCheckbox"] label { min-height: 1.75rem !important; gap: 0.35rem !important; }
+    [data-testid="stHorizontalBlock"]:has(.st-key-plot_compare_loads) [data-testid="stButton"] button {
+        min-height: 1.9rem !important; height: 1.9rem !important; padding: 0 0.75rem !important;
+        font-size: 0.80rem !important; line-height: 1 !important;
+    }
+    [data-testid="stHorizontalBlock"]:has(.st-key-plot_compare_loads) [data-testid="stButton"] button * { font-size: 0.80rem !important; }
+    .st-key-plot_response_window_hz { margin-top: -0.5rem !important; }
+    .st-key-plot_response_window_hz [data-testid="stSliderTickBarMin"],
+    .st-key-plot_response_window_hz [data-testid="stSliderTickBarMax"],
+    .st-key-plot_response_window_hz [data-testid="stThumbValue"] { font-size: 0.72rem !important; }
+
+    /* Detail popover buttons under the chart (ui/app.py lf_details_row). */
+    .st-key-lf_details_row button[data-testid="stPopoverButton"] {
+        min-height: 1.9rem !important; height: 1.9rem !important; padding: 0 0.75rem !important; font-size: 0.80rem !important;
+    }
+    .st-key-lf_details_row button[data-testid="stPopoverButton"] * { font-size: 0.80rem !important; }
 </style>
     """
 

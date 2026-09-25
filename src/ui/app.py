@@ -1654,7 +1654,8 @@ def main() -> None:
 
         # Details as popovers on one row: the analysis column fits the viewport
         # and the panels still open wide over the page.
-        exp_c1, exp_c2, exp_c3 = st.columns(3)
+        details_row = st.container(key="lf_details_row")
+        exp_c1, exp_c2, exp_c3 = details_row.columns(3)
         with exp_c1:
             with st.popover("Design details", width="stretch"):
                 s1, s2, s3 = st.columns(3)

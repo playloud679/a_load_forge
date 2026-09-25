@@ -105,5 +105,5 @@ workbench and still scrolls):
   and badges are computed exactly as before, just before the charts.
 - "Design details", "Driver details" and "Export design" are popovers on one
   row instead of stacked expanders.
-- `--lf-fit-chart-offset` (504px) is the measured height of the chrome above
+- `--lf-fit-chart-offset` (469px since 0.19.2, compact controls) is the measured height of the chrome above
   and below the chart; retune it when that chrome changes.

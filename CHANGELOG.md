@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.19.2 (2026-09-25)
+
+- **Compact controls under the chart**: trace pills 28 px (were ~50), toggles and Pin/Tabs/Reset buttons 1.9 rem with 0.80 rem text, the frequency-window slider pulled up, and the Design/Driver/Export detail buttons 30 px. The control block shrinks from ~110 to 64 px and the chart gains the space (`--lf-fit-chart-offset` 504 → 469 px); still 0 px page scroll at 900, 1000 and 1080 px window height.
+- Validation: `make test` passed; `make test-match MATCH='UI'` passed.
+
 ## 0.19.1 (2026-09-24)
 
 - **Box Design fits the window**: charts (Response, Excursion, Impedance, Ports, Group Delay) take the viewport height minus the Studio chrome (min 360 px, fixed 420 px on phones) instead of a fixed 520–580 px; measured 0 px page scroll at 1400×1000 and 1920×1080 (the Ports workbench still scrolls).
