@@ -126,6 +126,21 @@ def _ranked_alternatives(pool: tuple[str, ...], load_type: str, volume_l: float,
     return _ranking.sort_ranked_rows(rows)[:SHOWN]
 
 
+_ON_TOP_KEY = "_lf_alternatives_on_top"
+
+
+def wants_on_top() -> bool:
+    """True after a ``?compare=1`` entry (portal "Compare with Bass Match"), until dismissed."""
+    if str(st.query_params.get("compare", "")) == "1":
+        st.query_params.pop("compare", None)
+        st.session_state[_ON_TOP_KEY] = True
+    return bool(st.session_state.get(_ON_TOP_KEY))
+
+
+def _dismiss_on_top() -> None:
+    st.session_state[_ON_TOP_KEY] = False
+
+
 def _open_alternative(row: dict, load_type: str, voltage_v: float) -> None:
     _usage.track("alternative_opened", {"driver": row.get("Driver", ""), "load_type": load_type})
     # Same path as Bass Match's "Open in Box Design" (applied on the next run).
@@ -140,8 +155,12 @@ def _fmt(value: Any, digits: int, unit: str) -> str:
     return f"{number:.{digits}f} {unit}" if math.isfinite(number) else "–"
 
 
-def render_alternatives(driver_name: str, load_type: str, box: Any, voltage_v: float) -> None:
-    """Five similar drivers in this box; never raises into the Box Design page."""
+def render_alternatives(driver_name: str, load_type: str, box: Any, voltage_v: float, *, on_top: bool = False) -> None:
+    """Five similar drivers in this box; never raises into the Box Design page.
+
+    ``on_top``: rendered above the chart for a portal compare entry, with a
+    "Hide" action that moves it back under the analysis.
+    """
     volume_l = box_total_volume_l(load_type, box)
     if not volume_l or not driver_name:
         return
@@ -155,11 +174,16 @@ def render_alternatives(driver_name: str, load_type: str, box: Any, voltage_v: f
         return
     if not rows:
         return
-    _usage.track("alternatives_shown", {"driver": driver_name, "load_type": load_type},
+    _usage.track("alternatives_shown", {"driver": driver_name, "load_type": load_type, "on_top": on_top},
                  once=f"{driver_name}|{load_type}")
     label = _constants.load_type_label(load_type)
     with st.container(border=True, key="lf_alternatives"):
-        st.markdown(f"**Similar drivers in this {volume_l:.0f} L {label}** · Bass Match preview")
+        if on_top:
+            c_title, c_hide = st.columns([6, 1], vertical_alignment="center")
+            c_title.markdown(f"**Bass Match · drivers similar to {driver_name} in this {volume_l:.0f} L {label}**")
+            c_hide.button("Hide", key="lf_alt_hide", width="stretch", on_click=_dismiss_on_top)
+        else:
+            st.markdown(f"**Similar drivers in this {volume_l:.0f} L {label}** · Bass Match preview")
         for index, row in enumerate(rows):
             c_name, c_f3, c_spl, c_exc, c_price, c_open = st.columns(
                 [3.2, 1, 1, 1.1, 1.1, 1], vertical_alignment="center")

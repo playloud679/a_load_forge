@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.21.1 (2026-09-26)
+
+- **"Compare with Bass Match" lands on the comparison**: a Studio entry with `?compare=1` (the portal's new button on driver pages) shows the similar-driver Bass Match preview above the chart instead of below the fold, with a "Hide" action. `alternatives_shown` records `on_top`.
+- Validation: usage analytics tests 11 passed; `make test` and `make test-ui` passed except the pre-existing "Bass Match candidate pool starts open…".
+
 ## 0.21.0 (2026-09-26)
 
 - **Box Design without sign-in (guest mode, `LOAD_FORGE_GUEST_ACCESS`, default on)**: a signed-out visitor lands straight on a computed Box Design — the portal driver and box included, also from `view=bass-match` links — instead of the sign-in wall. Guests have no account, credits or persistence; they never share the local demo account.

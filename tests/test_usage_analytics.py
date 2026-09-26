@@ -290,3 +290,19 @@ def check_guest_sees_alternatives_on_landing():
         assert any(e["event"] == "alternative_opened" for e in store._events)
         assert "batch_pending_result" not in at.session_state, "the opened alternative was applied"
         del tabs_before
+
+
+def check_compare_entry_puts_alternatives_on_top():
+    with patch.dict(os.environ, _SAAS_ENV):
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=90)
+        at.query_params.update({"preset": "Beyma 12CMV2", "vb": "42", "fb": "30", "compare": "1"})
+        _run(at)
+        assert not at.exception, at.exception
+        assert at.button(key="lf_alt_hide") is not None, "compare entries show Bass Match on top"
+        assert "compare" not in at.query_params
+        assert any((b.key or "").startswith("lf_alt_open_") for b in at.button)
+        at.button(key="lf_alt_hide").click()
+        _run(at)
+        assert not at.exception, at.exception
+        assert "lf_alt_hide" not in [b.key for b in at.button]
+        assert any((b.key or "").startswith("lf_alt_open_") for b in at.button), "still listed under the chart"

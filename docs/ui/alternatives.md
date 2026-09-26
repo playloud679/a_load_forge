@@ -23,3 +23,7 @@ credits) stays behind sign-in.
   "Search all N drivers — sign in free" (`account.request_sign_in("bass_match")`).
 - Events: `alternatives_shown` (once per driver × load per session),
   `alternative_opened`. Failures are logged and never break Box Design.
+- **Compare entry (`?compare=1`)**: the portal's "Compare with Bass Match"
+  button adds `compare=1`; `wants_on_top()` consumes it and the preview is
+  rendered in a slot above the chart (`render_alternatives(..., on_top=True)`)
+  with a "Hide" action that moves it back under the analysis.

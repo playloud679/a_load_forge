@@ -1298,6 +1298,10 @@ def main() -> None:
         _finder._render_find_driver_workspace(filtered_preset_names)
         st.stop()
     _account.render_guest_sign_in_invite()
+    # Portal "Compare with Bass Match" links (?compare=1) put the similar-driver
+    # preview above the chart; it is filled once the design is simulated below.
+    alternatives_on_top = _alternatives.wants_on_top()
+    alternatives_slot = st.container() if alternatives_on_top else None
     try:
         if current_ts is None:
             raise ValueError("Driver parameters are incomplete")
@@ -1675,7 +1679,11 @@ def main() -> None:
 
         # Details as popovers on one row: the analysis column fits the viewport
         # and the panels still open wide over the page.
-        _alternatives.render_alternatives(driver_label, load_type, box, sim_voltage)
+        if alternatives_slot is not None:
+            with alternatives_slot:
+                _alternatives.render_alternatives(driver_label, load_type, box, sim_voltage, on_top=True)
+        else:
+            _alternatives.render_alternatives(driver_label, load_type, box, sim_voltage)
         details_row = st.container(key="lf_details_row")
         exp_c1, exp_c2, exp_c3 = details_row.columns(3)
         with exp_c1:
