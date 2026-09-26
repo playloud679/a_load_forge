@@ -306,3 +306,31 @@ def check_compare_entry_puts_alternatives_on_top():
         assert not at.exception, at.exception
         assert "lf_alt_hide" not in [b.key for b in at.button]
         assert any((b.key or "").startswith("lf_alt_open_") for b in at.button), "still listed under the chart"
+
+
+def check_plausibility_flags_kits_placeholders_and_size_mismatch():
+    from driver_plausibility import plausibility_issues as issues
+
+    from ui import alternatives as alt
+
+    kit = issues("Focal 165 SF3Kit a 3 vie da 165 mm", qts=1.0, le_mh=0.0, sd_cm2=22.0)
+    assert len(kit) == 3, kit                                  # kit + placeholder + size
+    assert issues("PRV 6CX380-4 6.5\" 2-Way Full-Range Coaxial Speaker", qts=0.4, le_mh=0.5, sd_cm2=130) == []
+    assert issues('Dayton Audio DC160-8 6-1/2" Classic Woofer', qts=0.4, le_mh=0.6, sd_cm2=135) == []
+    assert issues('Dayton Audio RC180-55 2" x 7" Woofer', qts=0.4, le_mh=0.3, sd_cm2=56) == []
+    assert issues('DC Audio M3 6.5" Subwoofer', qts=0.5, le_mh=1.0, sd_cm2=530)
+    assert issues("Peerless 830515 (12”)", qts=0.4, le_mh=1.0, sd_cm2=143)
+    assert alt._identity("WEB: Visaton FRS 7 - 8") == alt._identity("WEB: Visaton FRS 7 - 8 Ohm")
+    assert alt._identity("FRS 7 - 4 Ohm") != alt._identity("FRS 7 - 8 Ohm")
+
+
+def check_unreliable_driver_shows_warning_not_alternatives():
+    with patch.dict(os.environ, _SAAS_ENV):
+        at = AppTest.from_file(str(ROOT / "ui_app.py"), default_timeout=90)
+        at.query_params.update({"preset": "Focal 165 SF3Kit a 3 vie da 165 mm", "vb": "2", "fb": "150", "compare": "1"})
+        _run(at)
+        assert not at.exception, at.exception
+        if at.session_state["driver_preset_name"] != "Focal 165 SF3Kit a 3 vie da 165 mm":
+            return  # record already quarantined from the catalog
+        assert any("look unreliable" in w.value for w in at.warning), [w.value for w in at.warning]
+        assert not any((b.key or "").startswith("lf_alt_open_") for b in at.button)

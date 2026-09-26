@@ -27,3 +27,8 @@ credits) stays behind sign-in.
   button adds `compare=1`; `wants_on_top()` consumes it and the preview is
   rendered in a slot above the chart (`render_alternatives(..., on_top=True)`)
   with a "Hide" action that moves it back under the analysis.
+- **Unreliable data**: records flagged by
+  [driver_plausibility](../driver_plausibility.md) are excluded from the pool;
+  if the current driver is flagged, a warning replaces the comparison.
+  Duplicate listings that differ only by an "Ohm" word ("FRS 7 - 8" /
+  "FRS 7 - 8 Ohm") collapse to one.

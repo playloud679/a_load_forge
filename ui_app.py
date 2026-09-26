@@ -54,6 +54,7 @@ import storage as _storage
 import storage.private_store as _private_store
 import storage.public_store as _public_store
 import usage_analytics as _usage_analytics
+import driver_plausibility as _driver_plausibility
 
 sys.path.insert(0, str(Path(__file__).parent / "tools"))
 import compare_afw_sealed as _afw_compare
@@ -90,7 +91,7 @@ def _reload_if_source_changed(module) -> bool:
 # process.
 for _module in (
     _engine, _measurements, _port_cad, _pricing, _presets, _ranking, _saas, _billing,
-    _private_store, _public_store, _storage, _usage_analytics,
+    _private_store, _public_store, _storage, _usage_analytics, _driver_plausibility,
     _afw_export, _afw_compare,
 ):
     _reload_if_source_changed(_module)

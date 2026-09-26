@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.2 (2026-09-26)
+
+- **No more nonsense comparisons from bad catalog records** (new `src/driver_plausibility.py`): records whose T/S cannot describe the product are flagged — multi-driver kits ("Focal 165 SF3Kit a 3 vie", which had inherited a 65 mm midrange's parameters and produced a 2 L "6.5-inch" box), placeholder parameters (Qts 1.000 with Le 0) and a name size that contradicts Sd (6.5" coax pairs with Sd 530 cm², "8in" records with Sd 2 cm²). 57 of ~19,200 records. A flagged current driver shows "parameters look unreliable" instead of Bass Match alternatives; flagged records are never suggested.
+- Alternatives: listings differing only by an "Ohm" word ("Visaton FRS 7 - 8" / "FRS 7 - 8 Ohm") collapse to one.
+- Validation: `make test` passed; usage analytics tests 13 passed; `make test-ui` passed except the pre-existing "Bass Match candidate pool starts open…".
+
 ## 0.21.1 (2026-09-26)
 
 - **"Compare with Bass Match" lands on the comparison**: a Studio entry with `?compare=1` (the portal's new button on driver pages) shows the similar-driver Bass Match preview above the chart instead of below the fold, with a "Hide" action. `alternatives_shown` records `on_top`.

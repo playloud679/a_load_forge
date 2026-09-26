@@ -43,6 +43,7 @@ in sync in the same change.
 | `src/acoustics.py` | [acoustics.md](acoustics.md) | Neutral public facade for every lumped and distributed acoustic load |
 | `src/dccav.py` | [dccav.md](dccav.md) | Legacy import compatibility and DCCAV-specific theory |
 | `src/engine.py` | [engine.md](engine.md) | Physics, alignment, simulation and optimization for every supported load |
+| `src/driver_plausibility.py` | [driver_plausibility.md](driver_plausibility.md) | Flags catalog records whose T/S cannot describe the product (kits, placeholder parameters, name size vs Sd) |
 | `src/usage_analytics.py` | [usage_analytics.md](usage_analytics.md) | Product usage events (sign-in wall → sign-up → simulation → save → paywall) and the admin Traction funnel over real users only |
 | `src/saas.py` | [saas.md](saas.md) | Optional OIDC identity normalization, tenant-safe plan entitlements and Firestore/in-memory project persistence |
 | `tests/test_all.py` | source only | Active regression runner for the acoustic-load models and Streamlit workflows |

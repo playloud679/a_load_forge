@@ -22,6 +22,7 @@ from typing import Any
 import streamlit as st
 
 import acoustics as _acoustics
+import driver_plausibility as _plausibility
 import ranking as _ranking
 
 from . import account as _account
@@ -51,9 +52,15 @@ def box_total_volume_l(load_type: str, box: Any) -> float | None:
     return float(box.vb_l)
 
 
+_OHM_WORD = re.compile(r"(?<=\d)\s*(ohms?|Ω)\b|\bohms?\b", re.IGNORECASE)
+
+
 def _identity(name: str) -> str:
-    """The same unit listed by several sources collapses to one key."""
-    return re.sub(r"[^a-z0-9]", "", _SOURCE_PREFIX.sub("", name).casefold())
+    """The same unit listed by several sources collapses to one key.
+
+    "FRS 7 - 8" and "FRS 7 - 8 Ohm" are one product; 4 Ω and 8 Ω stay distinct.
+    """
+    return re.sub(r"[^a-z0-9]", "", _OHM_WORD.sub("", _SOURCE_PREFIX.sub("", name)).casefold())
 
 
 def _log_gap(a: float | None, b: float | None, missing: float = 0.5) -> float:
@@ -102,14 +109,26 @@ def similar_driver_names(
     return picked
 
 
+def driver_issues(name: str) -> list[str]:
+    """Plausibility problems of one catalog record (see driver_plausibility)."""
+    try:
+        ts = _acoustics.get_driver_preset(name)
+    except Exception:
+        return []
+    return _plausibility.plausibility_issues(name, qts=ts.qts, le_mh=ts.le_mh, sd_cm2=ts.sd_cm2)
+
+
 @lru_cache(maxsize=2)
 def _catalog_features(names: tuple[str, ...]) -> dict[str, tuple]:
+    """Size/Fs/Qts/Vas/Xmax per trustworthy record; implausible ones are never suggested."""
     features = {}
     for name in names:
         try:
             ts = _acoustics.get_driver_preset(name)
             info = _acoustics.driver_preset_info(name)
         except Exception:
+            continue
+        if _plausibility.plausibility_issues(name, qts=ts.qts, le_mh=ts.le_mh, sd_cm2=ts.sd_cm2):
             continue
         features[name] = (info.size_in, ts.fs_hz, ts.qts, ts.vas_l, ts.xmax_mm)
     return features
@@ -164,10 +183,30 @@ def render_alternatives(driver_name: str, load_type: str, box: Any, voltage_v: f
     volume_l = box_total_volume_l(load_type, box)
     if not volume_l or not driver_name:
         return
+    issues = driver_issues(driver_name)
+    if issues:
+        # A comparison built on wrong data would mislead: say so instead.
+        _usage.track("alternatives_shown", {"driver": driver_name, "load_type": load_type, "unreliable": True},
+                     once=f"{driver_name}|{load_type}")
+        with st.container(border=True, key="lf_alternatives"):
+            st.warning(
+                f"**The catalog parameters of {driver_name} look unreliable** — "
+                + "; ".join(issues)
+                + ". This design and any comparison built on it would be misleading. "
+                "Check the manufacturer's datasheet, or pick a single driver from the library."
+            )
+            if on_top:
+                st.button("Hide", key="lf_alt_hide", on_click=_dismiss_on_top)
+        return
     try:
         names = tuple(_catalog._available_driver_preset_names())
-        pool = similar_driver_names(
-            driver_name, _catalog_features(names), needs_xmax=load_type not in ("Sealed",))
+        features = dict(_catalog_features(names))
+        if driver_name not in features:
+            # The current (trustworthy) driver may be a user edit or outside the cached set.
+            ts = _acoustics.get_driver_preset(driver_name)
+            info = _acoustics.driver_preset_info(driver_name)
+            features[driver_name] = (info.size_in, ts.fs_hz, ts.qts, ts.vas_l, ts.xmax_mm)
+        pool = similar_driver_names(driver_name, features, needs_xmax=load_type not in ("Sealed",))
         rows = _ranked_alternatives(tuple(pool), load_type, round(volume_l, 1), round(float(voltage_v), 2))
     except Exception:
         _runtime.logger.exception("Alternatives preview failed")
